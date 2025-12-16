@@ -25,8 +25,6 @@ type RoleSettings struct {
 	// Bootnode settings
 	BootnodeSettings BootnodeSettings
 
-	// Node.js services
-	NodeJSServices NodeJSServicesSettings
 
 	// Tunnel client settings
 	TunnelClient TunnelClientSettings
@@ -51,12 +49,6 @@ type BootnodeSettings struct {
 	Enabled bool
 }
 
-// NodeJSServicesSettings defines Node.js services configuration
-type NodeJSServicesSettings struct {
-	Enabled        bool
-	TunnelRegistry TunnelRegistrySettings
-	PaymentGateway PaymentGatewaySettings
-}
 
 // TunnelRegistrySettings defines tunnel registry configuration
 type TunnelRegistrySettings struct {
@@ -123,24 +115,6 @@ var RoleSettingsMatrix = map[Role]RoleSettings{
 			Enabled: false,
 		},
 
-		// Node.js services
-		NodeJSServices: NodeJSServicesSettings{
-			Enabled: true,
-			TunnelRegistry: TunnelRegistrySettings{
-				Enabled:          true,
-				ScriptPath:       "agent-tunnel-registry/server.js",
-				HTTPPort:         3003,
-				ControlPort:      4001,
-				PublicRelayPort:  4000,
-				STUNPort:         3478,
-				ServerPublicHost: "localhost", // Will be set dynamically
-			},
-			PaymentGateway: PaymentGatewaySettings{
-				Enabled:    true,
-				ScriptPath: "agent-payment-gateway/server.js",
-				HTTPPort:   3004,
-			},
-		},
 
 		// Tunnel client settings
 		TunnelClient: TunnelClientSettings{
@@ -189,23 +163,7 @@ var RoleSettingsMatrix = map[Role]RoleSettings{
 		},
 
 		// Node.js services
-		NodeJSServices: NodeJSServicesSettings{
-			Enabled: false,
-			TunnelRegistry: TunnelRegistrySettings{
-				Enabled:          false,
-				ScriptPath:       "agent-tunnel-registry/server.js",
-				HTTPPort:         3003,
-				ControlPort:      4001,
-				PublicRelayPort:  4000,
-				STUNPort:         3478,
-				ServerPublicHost: "localhost",
-			},
-			PaymentGateway: PaymentGatewaySettings{
-				Enabled:    false,
-				ScriptPath: "agent-payment-gateway/server.js",
-				HTTPPort:   3004,
-			},
-		},
+		// Node.js services removed from role settings; management moved to Go components
 
 		// Tunnel client settings
 		TunnelClient: TunnelClientSettings{
@@ -254,23 +212,7 @@ var RoleSettingsMatrix = map[Role]RoleSettings{
 		},
 
 		// Node.js services
-		NodeJSServices: NodeJSServicesSettings{
-			Enabled: false,
-			TunnelRegistry: TunnelRegistrySettings{
-				Enabled:          false,
-				ScriptPath:       "agent-tunnel-registry/server.js",
-				HTTPPort:         3003,
-				ControlPort:      4001,
-				PublicRelayPort:  4000,
-				STUNPort:         3478,
-				ServerPublicHost: "localhost",
-			},
-			PaymentGateway: PaymentGatewaySettings{
-				Enabled:    false,
-				ScriptPath: "agent-payment-gateway/server.js",
-				HTTPPort:   3004,
-			},
-		},
+		// Node.js services removed from role settings; management moved to Go components
 
 		// Tunnel client settings
 		TunnelClient: TunnelClientSettings{
@@ -319,23 +261,7 @@ var RoleSettingsMatrix = map[Role]RoleSettings{
 		},
 
 		// Node.js services
-		NodeJSServices: NodeJSServicesSettings{
-			Enabled: false,
-			TunnelRegistry: TunnelRegistrySettings{
-				Enabled:          false,
-				ScriptPath:       "agent-tunnel-registry/server.js",
-				HTTPPort:         3003,
-				ControlPort:      4001,
-				PublicRelayPort:  4000,
-				STUNPort:         3478,
-				ServerPublicHost: "localhost",
-			},
-			PaymentGateway: PaymentGatewaySettings{
-				Enabled:    false,
-				ScriptPath: "agent-payment-gateway/server.js",
-				HTTPPort:   3004,
-			},
-		},
+		// Node.js services removed from role settings; management moved to Go components
 
 		// Tunnel client settings
 		TunnelClient: TunnelClientSettings{
@@ -417,38 +343,6 @@ func ApplyRoleDefaults(cfg *Config, role Role) {
 	// Apply bootnode settings
 	cfg.Bootnode.Enabled = settings.BootnodeSettings.Enabled
 
-	// Apply Node.js services settings
-	cfg.NodeJSServices.Enabled = settings.NodeJSServices.Enabled
-
-	// Apply tunnel registry settings
-	cfg.NodeJSServices.TunnelRegistry.Enabled = settings.NodeJSServices.TunnelRegistry.Enabled
-	if cfg.NodeJSServices.TunnelRegistry.ScriptPath == "" {
-		cfg.NodeJSServices.TunnelRegistry.ScriptPath = settings.NodeJSServices.TunnelRegistry.ScriptPath
-	}
-	if cfg.NodeJSServices.TunnelRegistry.HTTPPort == 0 {
-		cfg.NodeJSServices.TunnelRegistry.HTTPPort = uint(settings.NodeJSServices.TunnelRegistry.HTTPPort)
-	}
-	if cfg.NodeJSServices.TunnelRegistry.ControlPort == 0 {
-		cfg.NodeJSServices.TunnelRegistry.ControlPort = uint(settings.NodeJSServices.TunnelRegistry.ControlPort)
-	}
-	if cfg.NodeJSServices.TunnelRegistry.PublicRelayPort == 0 {
-		cfg.NodeJSServices.TunnelRegistry.PublicRelayPort = uint(settings.NodeJSServices.TunnelRegistry.PublicRelayPort)
-	}
-	if cfg.NodeJSServices.TunnelRegistry.STUNPort == 0 {
-		cfg.NodeJSServices.TunnelRegistry.STUNPort = uint(settings.NodeJSServices.TunnelRegistry.STUNPort)
-	}
-	if cfg.NodeJSServices.TunnelRegistry.ServerPublicHost == "" {
-		cfg.NodeJSServices.TunnelRegistry.ServerPublicHost = settings.NodeJSServices.TunnelRegistry.ServerPublicHost
-	}
-
-	// Apply payment gateway settings
-	cfg.NodeJSServices.PaymentGateway.Enabled = settings.NodeJSServices.PaymentGateway.Enabled
-	if cfg.NodeJSServices.PaymentGateway.ScriptPath == "" {
-		cfg.NodeJSServices.PaymentGateway.ScriptPath = settings.NodeJSServices.PaymentGateway.ScriptPath
-	}
-	if cfg.NodeJSServices.PaymentGateway.HTTPPort == 0 {
-		cfg.NodeJSServices.PaymentGateway.HTTPPort = uint(settings.NodeJSServices.PaymentGateway.HTTPPort)
-	}
 
 	// Apply tunnel client settings
 	cfg.TunnelClient.Enabled = settings.TunnelClient.Enabled

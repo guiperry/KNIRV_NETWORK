@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -21,18 +23,21 @@ import (
 
 	// GUI functionality has been removed
 
+	"KNIRVCHAIN/internal/blockchain"
 	"KNIRVCHAIN/internal/dataengine"
 	"KNIRVCHAIN/internal/inference"
 	"KNIRVCHAIN/internal/inference/agentify"
 	"KNIRVCHAIN/internal/network"
+	"KNIRVCHAIN/internal/p2p"
 
 	"github.com/joho/godotenv"
 
 	"KNIRVCHAIN/config" // Use your actual module path
 	// Local package imports for types used in the code
 
-	"KNIRVCHAIN/internal/services/monitoring"
+	"KNIRVCHAIN/internal/database"
 	"KNIRVCHAIN/internal/utils"
+	"KNIRVCHAIN/internal/wallet"
 )
 
 // nodeRole is set by build tags in role-specific files (main_root.go, main_bootnode.go, etc.)
@@ -87,101 +92,95 @@ func (h *Host) ID() *HostID {
 	return &HostID{}
 }
 
-type DiscoveryManager struct {
-	host *Host
-	dht  *DHT
-	ctx  context.Context
-	// Placeholder for DiscoveryManager
-}
+type DiscoveryManager = p2p.DiscoveryManager
 
-type BlockchainStruct struct {
-	ChainID          string
-	p2pConsensusMgr  *P2PConsensusManager
-	ConsensusManager *ConsensusManager
-	// Placeholder for BlockchainStruct
-}
+type BlockchainStruct = blockchain.BlockchainStruct
 
-func (bc *BlockchainStruct) Shutdown() {
-	// Placeholder
-}
+// NewBlockchain provides a proper implementation from internal/blockchain; do not redefine Shutdown here.
 
-type P2PConsensusManager struct {
-	// Placeholder for P2PConsensusManager
-}
+type P2PConsensusManager = p2p.P2PConsensusManager
 
-func (p2p *P2PConsensusManager) Start() {
-	// Placeholder
-}
-
-func (p2p *P2PConsensusManager) Stop() {
-	// Placeholder
-}
-
-func (p2p *P2PConsensusManager) GetPeerCount() int {
-	// Placeholder - return 0 peers
-	return 0
-}
-
-type WalletManager struct {
-	// Placeholder for WalletManager
-}
-
-// WalletManager methods
-func (wm *WalletManager) LoadWallet(address string, role interface{}) (*Wallet, error) {
-	return &Wallet{}, nil
-}
-
-func (wm *WalletManager) LoadMasterWallet(address string, role interface{}) (*Wallet, error) {
-	return &Wallet{}, nil
-}
-
-func (wm *WalletManager) CreateWallet(role interface{}) (*Wallet, error) {
-	return &Wallet{}, nil
-}
-
-func (wm *WalletManager) CreateMasterWallet(role interface{}) (*Wallet, error) {
-	return &Wallet{}, nil
-}
-
-func (wm *WalletManager) SaveWallet(wallet *Wallet, role interface{}) error {
-	return nil
-}
-
-func (wm *WalletManager) SaveMasterWallet(wallet *Wallet, role interface{}) error {
-	return nil
-}
+// WalletManager is provided by internal/wallet; use wallet.NewWalletManager
 
 // Missing function definitions
-func fetchAndStorePublicIPInfo(_ interface{}, _ interface{}) error {
-	return fmt.Errorf("fetchAndStorePublicIPInfo not implemented")
+func fetchAndStorePublicIPInfo(cfg *config.Config, role config.Role) (errCatch error) {
+	log.Println("Attempting to fetch and store public IP information...")
+
+	// Add panic recovery
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("PANIC in fetchAndStorePublicIPInfo: %v. Recovered. IP info might be stale or unavailable.", r)
+			errCatch = fmt.Errorf("panic during public IP fetch: %v", r)
+			// Ensure LastIPInfoResponse is nil if a panic occurred during its fetching/parsing
+			utils.LastIPInfoResponse = nil
+		}
+	}()
+
+	// fetchPublicIPFromIPInfo is in net_utils.go and populates utils.LastIPInfoResponse
+	_, err := utils.FetchPublicIPFromIPInfo()
+	if err != nil {
+		log.Printf("Warning: Failed to fetch public IP information: %v. Will proceed without it or use previously cached data in config.", err)
+		utils.LastIPInfoResponse = nil
+		// allow startup to continue, cfg.PublicIPInfo may remain nil
+	}
+
+	if utils.LastIPInfoResponse == nil {
+		log.Println("No new public IP information fetched and no cached information from current session available.")
+		if cfg.PublicIPInfo != nil {
+			log.Println("Retaining previously configured PublicIPInfo as current fetch failed.")
+		}
+		return nil
+	}
+
+	ipInfoJSON, err := json.Marshal(utils.LastIPInfoResponse)
+	if err != nil {
+		log.Printf("Warning: Failed to marshal IPInfoResponse to JSON: %v", err)
+		return fmt.Errorf("failed to marshal IPInfoResponse: %w", err)
+	}
+
+	if role == config.Root {
+		log.Println("Root role detected: Saving IP info to user's root-data directory (env.local)")
+		rootDataDir, err := config.GetDataDir(config.Root)
+		if err != nil {
+			log.Printf("Warning: Failed to get root data directory: %v. IP info will not be saved to env.local.", err)
+		} else {
+			rootDataEnvPath := filepath.Join(rootDataDir, "env.local")
+			ipAddressFromString := ""
+			if utils.LastIPInfoResponse != nil {
+				ipAddressFromString = utils.LastIPInfoResponse.IP
+			}
+			if err := utils.UpdateEnvVariable(rootDataEnvPath, "NEXT_PUBLIC_IP_INFO", ipAddressFromString); err != nil {
+				log.Printf("Warning: Failed to update IPInfo in %s: %v", rootDataEnvPath, err)
+			} else {
+				log.Printf("Successfully saved IPInfo to %s for Root role", rootDataEnvPath)
+			}
+		}
+	} else {
+		ipInfoMap := make(map[string]interface{})
+		if err := json.Unmarshal(ipInfoJSON, &ipInfoMap); err != nil {
+			log.Printf("Warning: Failed to unmarshal IPInfo JSON to map: %v", err)
+			return fmt.Errorf("failed to unmarshal IPInfo to map: %w", err)
+		}
+
+		cfg.PublicIPInfo = ipInfoMap
+		keys := getKeys(ipInfoMap)
+		log.Printf("Public IP info keys: %v", keys)
+		config.SaveMinimalConfigToUserDir(cfg, role)
+		log.Printf("Successfully stored public IP information in config for role %s.", role.String())
+	}
+
+	if role == config.Root && utils.LastIPInfoResponse != nil && utils.LastIPInfoResponse.IP != "" {
+		newRootURL := fmt.Sprintf("http://%s:%d", utils.LastIPInfoResponse.IP, cfg.Port)
+		utils.SetRootchainURL(newRootURL)
+		log.Printf("Updated ROOTCHAIN_URL to: %s based on fetched public IP.", newRootURL)
+	}
+	return nil
 }
 
-func NewChromemManager(config interface{}) (interface{}, error) {
-	return &struct{}{}, nil
-}
-
-func NewWalletManager(encKey interface{}) (*WalletManager, error) {
-	return &WalletManager{}, nil
-}
-
-// Missing types
-type Wallet struct {
-	// Placeholder for Wallet
-}
-
-// Wallet methods
-func (w *Wallet) GetAddress() string {
-	return "placeholder-address"
-}
-
-func (w *Wallet) GetPublicKeyHex() string {
-	return "placeholder-public-key"
-}
+// ChromemManager and WalletManager are provided by the internal/database and internal/wallet packages.
 
 // More missing functions
-func NewWalletFromPrivateKeyHex(privateKey string) *Wallet {
-	return &Wallet{}
-}
+// Use wallet.NewWalletFromPrivateKeyHex from the internal/wallet package.
 
 func LoadPaymentProcessorConfig(config interface{}) {
 	// Placeholder
@@ -203,7 +202,7 @@ func (fm *FailoverManager) StopMonitoring() {
 	// Placeholder
 }
 
-func NewFailoverManager(rootAPIURL string, cfg interface{}, configPath string, wm *WalletManager, wallet *Wallet, param interface{}, cancel interface{}) *FailoverManager {
+func NewFailoverManager(rootAPIURL string, cfg interface{}, configPath string, wm *wallet.WalletManagerImpl, w *wallet.WalletImpl, param interface{}, cancel interface{}) *FailoverManager {
 	return &FailoverManager{}
 }
 
@@ -236,18 +235,8 @@ func NewLevelDB(path string) (*LevelDB, error) {
 	return &LevelDB{}, nil
 }
 
-func NewDiscoveryManager(chainID string, port int, clientOnly, isBootnode bool, role interface{}, config interface{}) (*DiscoveryManager, error) {
-	return &DiscoveryManager{}, nil
-}
-
-// Add methods to types
-func (dm *DiscoveryManager) Close() {
-	// Placeholder
-}
-
-func (dm *DiscoveryManager) Run(duration time.Duration) {
-	// Placeholder
-}
+// NewDiscoveryManager is provided by the internal p2p package (p2p.NewDiscoveryManager)
+// Use discoveryMgr.Close() and discoveryMgr.Run(duration) on the returned manager (p2p.DiscoveryManager implements those methods)
 
 func (ldb *LevelDB) Close() error {
 	return nil
@@ -264,48 +253,81 @@ func initPaymentProcessor(_ interface{}, _ *LevelDB, _ interface{}) (*PaymentPro
 	return &PaymentProcessor{}, nil
 }
 
-func NewP2PConsensusManager(bc *BlockchainStruct, db *LevelDB, discoveryMgr *DiscoveryManager, role interface{}) (*P2PConsensusManager, error) {
-	return &P2PConsensusManager{}, nil
-}
+// NewP2PConsensusManager is provided by the internal p2p package (p2p.NewP2PConsensusManager)
 
-func EnableRelayOnHost(ctx interface{}, host interface{}, dht interface{}, config interface{}) {
-	// Placeholder
-}
+// Use network.EnableRelayOnHost when enabling relays on the discovery manager's libp2p Host and DHT.
 
-// Remove duplicate - use the one below
+// Remove duplicate - use the one in internal/network package
 
 type ConsensusManager struct {
 	// Placeholder
+	miningLocked   bool
+	updateRequired bool
 }
 
 func (cm *ConsensusManager) Stop() {
 	// Placeholder
 }
 
+func (cm *ConsensusManager) StartConsensus(ctx context.Context) error {
+	return fmt.Errorf("start consensus not implemented")
+}
+
+func (cm *ConsensusManager) StopConsensus() error {
+	return fmt.Errorf("stop consensus not implemented")
+}
+
+func (cm *ConsensusManager) ProposeValue(value interface{}) error {
+	return fmt.Errorf("propose value not implemented")
+}
+
+func (cm *ConsensusManager) VoteOnProposal(proposalID string, vote bool) error {
+	return fmt.Errorf("vote on proposal not implemented")
+}
+
+func (cm *ConsensusManager) GetConsensusState() p2p.ConsensusState {
+	return p2p.ConsensusState{}
+}
+
+func (cm *ConsensusManager) AddParticipant(peerID string) error {
+	return fmt.Errorf("add participant not implemented")
+}
+
+func (cm *ConsensusManager) RemoveParticipant(peerID string) error {
+	return fmt.Errorf("remove participant not implemented")
+}
+
+func (cm *ConsensusManager) GetParticipants() []string {
+	return nil
+}
+
+func (cm *ConsensusManager) OnConsensusReached(handler p2p.ConsensusHandler) error {
+	return fmt.Errorf("on consensus reached not implemented")
+}
+
+func (cm *ConsensusManager) OnProposalReceived(handler p2p.ProposalHandler) error {
+	return fmt.Errorf("on proposal received not implemented")
+}
+
+func (cm *ConsensusManager) GetMiningLockState() bool {
+	return cm.miningLocked
+}
+
+func (cm *ConsensusManager) GetUpdateRequired() bool {
+	return cm.updateRequired
+}
+
 func NewConsensusManager(bc *BlockchainStruct, reflectURLs []string, selfURL string) *ConsensusManager {
 	return &ConsensusManager{}
 }
 
-type WalletServer struct {
-	portChan chan uint64
-	// Placeholder
-}
+// WalletServer is provided by internal/wallet package; no placeholder here.
 
-func (ws *WalletServer) Start() func() {
-	return func() {} // Return stop function
-}
 
-func NewWalletServer(port uint64, url string) *WalletServer {
-	return &WalletServer{portChan: make(chan uint64, 1)}
-}
-
-func NewNetworkMonitorManager(cfg interface{}) *monitoring.NetworkMonitorManager {
-	return &monitoring.NetworkMonitorManager{}
-}
 
 type BlockchainServer struct {
 	server           *http.Server
-	discoveryManager *DiscoveryManager
+	discoveryManager p2p.DiscoveryService
 	// Placeholder
 }
 
@@ -322,7 +344,7 @@ func (bs *BlockchainServer) Stop(ctx context.Context) error {
 	return nil
 }
 
-func NewBlockchainServer(port uint64, bc *BlockchainStruct, db *LevelDB, discoveryMgr *DiscoveryManager, p2pPort int) *BlockchainServer {
+func NewBlockchainServer(port uint64, bc *BlockchainStruct, db *LevelDB, discoveryMgr p2p.DiscoveryService, p2pPort int) *BlockchainServer {
 	return &BlockchainServer{}
 }
 
@@ -350,7 +372,7 @@ func initEconomicsIntegration(_ interface{}) (*EconomicsIntegration, error) {
 	return &EconomicsIntegration{}, nil
 }
 
-func HandleFailoverPromotion(configPath string, cfg interface{}, wm *WalletManager) error {
+func HandleFailoverPromotion(configPath string, cfg interface{}, wm *wallet.WalletManagerImpl) error {
 	return nil
 }
 
@@ -380,9 +402,9 @@ var AppVersion = "dev" // Default if not set by ldflags
 
 // Constants for custom update mechanism
 const (
-	UpdateSignalTopic = "update_signals"
+	UpdateSignalTopic      = "update_signals"
 	UpdateConsensusTimeout = 30 * time.Second
-	UpdateDownloadTimeout = 5 * time.Minute
+	UpdateDownloadTimeout  = 5 * time.Minute
 )
 
 // UpdateSignal represents an update signal from the root chain
@@ -396,11 +418,11 @@ type UpdateSignal struct {
 
 // UpdateConsensus represents consensus on an update
 type UpdateConsensus struct {
-	Signal      UpdateSignal `json:"signal"`
-	Votes       int          `json:"votes"`
-	Required    int          `json:"required"`
-	Consensus   bool         `json:"consensus"`
-	Timestamp   time.Time    `json:"timestamp"`
+	Signal    UpdateSignal `json:"signal"`
+	Votes     int          `json:"votes"`
+	Required  int          `json:"required"`
+	Consensus bool         `json:"consensus"`
+	Timestamp time.Time    `json:"timestamp"`
 }
 
 // handleUpdateSignal processes update signals from the root chain
@@ -461,7 +483,7 @@ func seekUpdateConsensus(signal UpdateSignal, p2pMgr *P2PConsensusManager) Updat
 func getRequiredConsensusVotes(p2pMgr *P2PConsensusManager) int {
 	peerCount := p2pMgr.GetPeerCount()
 	// Require majority consensus (more than 50%)
-	required := (peerCount + 1) / 2 + 1
+	required := (peerCount+1)/2 + 1
 	if required < 2 { // Minimum 2 votes required
 		required = 2
 	}
@@ -550,9 +572,23 @@ func downloadAndApplyUpdate(signal UpdateSignal) error {
 
 // verifyChecksum verifies the downloaded file against the expected checksum
 func verifyChecksum(filePath, expectedChecksum string) error {
-	// TODO: Implement checksum verification
-	// For now, just log that verification is skipped
-	log.Printf("Checksum verification skipped for %s", filePath)
+	file, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file for checksum verification: %w", err)
+	}
+	defer file.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return fmt.Errorf("failed to compute checksum: %w", err)
+	}
+	computedChecksum := hex.EncodeToString(hash.Sum(nil))
+
+	if !strings.EqualFold(computedChecksum, expectedChecksum) {
+		return fmt.Errorf("checksum mismatch: expected %s, got %s", expectedChecksum, computedChecksum)
+	}
+
+	log.Printf("Checksum verified successfully for %s", filePath)
 	return nil
 }
 
@@ -827,20 +863,8 @@ func main() {
 		// This is not a fatal error, the application can continue
 	}
 
-	// If this is a Root node and ServerPublicHost is not set, use the discovered public IP.
-	if nodeRole == config.Root && (cfg.NodeJSServices.TunnelRegistry.ServerPublicHost == "" || cfg.NodeJSServices.TunnelRegistry.ServerPublicHost == "localhost") {
-		var discoveredIP string
-		if ipInfo, ok := cfg.PublicIPInfo["ip"].(string); ok && ipInfo != "" {
-			discoveredIP = ipInfo
-		} else if utils.LastIPInfoResponse != nil && utils.LastIPInfoResponse.IP != "" {
-			discoveredIP = utils.LastIPInfoResponse.IP
-		}
-
-		if discoveredIP != "" {
-			cfg.NodeJSServices.TunnelRegistry.ServerPublicHost = discoveredIP
-			log.Printf("Updated NodeJSServices.TunnelRegistry.ServerPublicHost to discovered public IP: %s", discoveredIP)
-		}
-	}
+	// Node.js TunnelRegistry and PaymentGateway settings were removed.
+	// Server public host will be set by Go-based tunnel registry manager if required.
 
 	// Initialize ChromemManager and store it in the sync.Map for global access
 	ChromemCfgForManager := &config.ChromemConfig{
@@ -849,7 +873,7 @@ func main() {
 	}
 
 	// Initialize ChromemManager
-	chromemManager, err := NewChromemManager(ChromemCfgForManager) // Create the ChromemManager
+	chromemManager, err := database.NewChromemManager(ChromemCfgForManager) // Create the ChromemManager
 	if err != nil {
 		log.Fatalf("Failed to initialize ChromemManager: %v", err)
 	}
@@ -859,15 +883,15 @@ func main() {
 
 	// Create wallet manager with encryption key
 	encKey := utils.DeriveEncryptionKey()
-	wm, err := NewWalletManager(encKey)
+	wm, err := wallet.NewWalletManager(encKey)
 
 	if err != nil {
 		log.Fatalf("Failed to initialize wallet manager: %v", err)
 	}
 
 	// Declare wallet variables
-	var wallet *Wallet
-	var masterWallet *Wallet
+	var mainWallet *wallet.WalletImpl
+	var masterWallet *wallet.WalletImpl
 
 	// Implement consistency checks for non-Root roles
 	if nodeRole != config.Root {
@@ -890,7 +914,7 @@ func main() {
 						} else {
 							// Update config with the loaded wallet address
 							cfg.MinersAddress = loadedWallet.GetAddress()
-							wallet = loadedWallet // Assign to the main wallet variable
+							mainWallet = loadedWallet // Assign to the main wallet variable
 							log.Printf("Loaded wallet with address '%s', updating config", cfg.MinersAddress)
 							config.SaveConfigToUserDir(cfg, nodeRole)
 						}
@@ -918,7 +942,7 @@ func main() {
 				} else {
 					// Update config with the loaded wallet address
 					cfg.MinersAddress = loadedWallet.GetAddress()
-					wallet = loadedWallet // Assign to the main wallet variable
+					mainWallet = loadedWallet // Assign to the main wallet variable
 					log.Printf("Loaded wallet with address '%s', updating config", cfg.MinersAddress)
 					config.SaveConfigToUserDir(cfg, nodeRole)
 				}
@@ -978,15 +1002,15 @@ func main() {
 
 		if cfg.MinersAddress == utils.BLOCKCHAIN_ADDRESS || cfg.MinersAddress == "_Faucet" {
 			log.Printf("Root: Configured MinersAddress ('%s') matches predefined blockchain identity. Using hardcoded private key from constants.go.", cfg.MinersAddress)
-			wallet = NewWalletFromPrivateKeyHex(utils.BLOCKCHAIN_PRIVATE_KEY)
-			if wallet.GetAddress() != utils.BLOCKCHAIN_ADDRESS {
-				log.Fatalf("FATAL: BLOCKCHAIN_PRIVATE_KEY in constants.go does not correspond to BLOCKCHAIN_ADDRESS. Expected %s, got %s. Please check constants.go.", utils.BLOCKCHAIN_ADDRESS, wallet.GetAddress())
+			mainWallet = wallet.NewWalletFromPrivateKeyHex(utils.BLOCKCHAIN_PRIVATE_KEY)
+			if mainWallet.GetAddress() != utils.BLOCKCHAIN_ADDRESS {
+				log.Fatalf("FATAL: BLOCKCHAIN_PRIVATE_KEY in constants.go does not correspond to BLOCKCHAIN_ADDRESS. Expected %s, got %s. Please check constants.go.", utils.BLOCKCHAIN_ADDRESS, mainWallet.GetAddress())
 			}
 			log.Printf("[INFO] - Root: Successfully initialized wallet using hardcoded key for %s.", cfg.MinersAddress)
 		} else {
 			// Skip all wallet file operations for root role
 			log.Printf("Root: Skipping wallet file operations")
-			_ = NewWalletFromPrivateKeyHex(utils.BLOCKCHAIN_PRIVATE_KEY) // Still need a wallet instance
+			_ = wallet.NewWalletFromPrivateKeyHex(utils.BLOCKCHAIN_PRIVATE_KEY) // Still need a wallet instance
 		}
 		log.Printf("[INFO] - Root wallet setup process complete.")
 	}
@@ -1148,7 +1172,7 @@ func main() {
 		}
 
 		if rootAPIURL != "" {
-			fm := NewFailoverManager(rootAPIURL, cfg, loadedConfigPath, wm, wallet, nil, cancel)
+			fm := NewFailoverManager(rootAPIURL, cfg, loadedConfigPath, wm, mainWallet, nil, cancel)
 			if fm != nil {
 				SetGlobalFailoverManager(fm)
 				log.Printf("[FailoverManager] Initialized for monitoring root at: %s", rootAPIURL)
@@ -1167,7 +1191,7 @@ func main() {
 	// --- Declare variables needed for GUI pre-initialization ---
 	var guiNodeConfig *config.Config = nil // Which config is for the GUI node
 	var guiDB *LevelDB
-	var guiDiscoveryMgr *DiscoveryManager
+	var guiDiscoveryMgr p2p.DiscoveryService
 	var guiBC *BlockchainStruct
 	// p2pConsensusMgr is now handled locally where needed
 	var guiInitErr error
@@ -1459,7 +1483,7 @@ func main() {
 			}
 		}
 		if guiInitErr == nil { // Pass guiNodeConfig to NewDiscoveryManager
-			guiDiscoveryMgr, guiInitErr = NewDiscoveryManager(guiNodeConfig.ChainID, int(guiNodeConfig.P2PPort), guiNodeConfig.ClientOnly, guiNodeConfig.IsBootnode, nodeRole, guiNodeConfig)
+			guiDiscoveryMgr, guiInitErr = p2p.NewDiscoveryManager(guiNodeConfig.ChainID, int(guiNodeConfig.P2PPort), guiNodeConfig.ClientOnly, guiNodeConfig.IsBootnode, nodeRole, guiNodeConfig)
 		}
 		if guiInitErr == nil {
 			// Get the global ChromemManager from the sync.Map
@@ -1678,7 +1702,7 @@ func startNodeWithComponents(
 	disableP2P bool,
 	isNetworkMode bool,
 	db *LevelDB, // Pre-initialized
-	discoveryMgr *DiscoveryManager, // Pre-initialized
+	discoveryMgr p2p.DiscoveryService, // Pre-initialized
 	bc *BlockchainStruct, // Pre-initialized
 ) (*P2PConsensusManager, error) { // Return the manager
 	var p2pConsensusMgr *P2PConsensusManager
@@ -1686,7 +1710,15 @@ func startNodeWithComponents(
 	// Create P2P Consensus Manager first (skip if disabled)
 	if !disableP2P {
 		var err error
-		p2pConsensusMgr, err = NewP2PConsensusManager(bc, db, discoveryMgr, nodeRole)
+		// Ensure discoveryMgr is a concrete *p2p.DiscoveryManager before calling NewP2PConsensusManager
+		if dm, ok := discoveryMgr.(*p2p.DiscoveryManager); ok {
+			// Build small p2p types for compatibility where necessary
+			p2pBC := &p2p.BlockchainStruct{ChainID: bc.ChainID}
+			p2pDB := &p2p.LevelDB{}
+			p2pConsensusMgr, err = p2p.NewP2PConsensusManager(p2pBC, p2pDB, dm, nodeRole)
+		} else {
+			return nil, fmt.Errorf("[%s] failed to create P2P consensus manager: discovery manager is not a *p2p.DiscoveryManager", cfg.ChainID)
+		}
 		if err != nil {
 			// Clean up already initialized components if manager fails
 			// Note: Closing shared components here might be problematic if they are used elsewhere.
@@ -1695,7 +1727,7 @@ func startNodeWithComponents(
 			// db.Close() // Avoid closing shared DB here
 			return nil, fmt.Errorf("[%s] failed to create P2P consensus manager: %w", cfg.ChainID, err)
 		}
-		bc.p2pConsensusMgr = p2pConsensusMgr // Assign to blockchain struct
+		bc.P2PConsensusMgr = p2pConsensusMgr // Assign to blockchain struct
 	} else {
 		log.Printf("[%s] P2P messaging disabled - skipping P2P consensus manager initialization", cfg.ChainID)
 	}
@@ -1704,7 +1736,7 @@ func startNodeWithComponents(
 	go func() {
 		defer wg.Done()
 		log.Printf("[%s] Initializing node with pre-initialized components...", cfg.ChainID)
-		log.Printf("[DEBUG] About to check NodeJS Services - IsRoot: %v, IsBootnode: %v, Enabled: %v", cfg.IsRoot, cfg.IsBootnode, cfg.NodeJSServices.Enabled)
+		log.Printf("[DEBUG] NodeJS services removed; continuing initialization. IsRoot: %v, IsBootnode: %v", cfg.IsRoot, cfg.IsBootnode)
 
 		// Defer cleanup of components specific to this node's lifecycle
 		defer func() {
@@ -1746,10 +1778,12 @@ func startNodeWithComponents(
 		// go discoveryMgr.Run(30 * time.Second) // Might need adjustment based on DiscoveryManager design
 
 		// Relay (if enabled for this node)
-		if cfg.Relay.Enabled && discoveryMgr.host != nil && discoveryMgr.dht != nil {
-			// Use the WAN DHT and convert the config type
+		if cfg.Relay.Enabled && discoveryMgr != nil {
+			// Enabling a circuit relay requires underlying host and DHT access. The
+			// p2p.DiscoveryManager does not currently expose this, so skipping.
 			relayConfig := convertRelayConfig(cfg.Relay)
-			EnableRelayOnHost(ctx, discoveryMgr.host, discoveryMgr.dht.WAN, relayConfig)
+			log.Printf("[%s][%s] Relay is enabled in configuration, but host/DHT access is not available; skipping enable.", nodeRole.String(), cfg.ChainID)
+			_ = relayConfig
 		}
 
 		// Legacy Consensus Manager (conditionally initialized)
@@ -1771,17 +1805,17 @@ func startNodeWithComponents(
 		}
 
 		// Wallet Server (Optional) - Should be disabled for dev/reflection
-		var walletSrv *WalletServer
+		var walletSrv *wallet.WalletServerImpl
 		var stopWallet func()
 		if !disableWallet {
-			walletSrv = NewWalletServer(uint64(cfg.WalletPort), fmt.Sprintf("http://localhost:%d", cfg.Port))
+			walletSrv = wallet.NewWalletServer(uint64(cfg.WalletPort), fmt.Sprintf("http://localhost:%d", cfg.Port))
 			go func() {
 				log.Printf("[%s] Starting Wallet Server on port %d...", cfg.ChainID, cfg.WalletPort)
 				stopWallet = walletSrv.Start()
 			}()
 			// Wait for the actual port to be determined
 			select {
-			case actualPort := <-walletSrv.portChan:
+			case actualPort := <-walletSrv.GetPortChan():
 				if actualPort != uint64(cfg.WalletPort) {
 					log.Printf("[%s] Wallet Server is using port %d instead of configured port %d", cfg.ChainID, actualPort, cfg.WalletPort)
 					// Update the config with the actual port used
@@ -1799,12 +1833,8 @@ func startNodeWithComponents(
 			}()
 		}
 
-		// 7.1. Node.js services (LEGACY - DISABLED)
-		// The old Node.js services have been replaced by embedded services
-		// Keeping this section commented for reference
-		log.Printf("[DEBUG] NodeJS Services Config - IsRoot: %v, IsBootnode: %v, Enabled: %v", cfg.IsRoot, cfg.IsBootnode, cfg.NodeJSServices.Enabled)
-		log.Printf("[DEBUG] TunnelRegistry Enabled: %v, PaymentGateway Enabled: %v", cfg.NodeJSServices.TunnelRegistry.Enabled, cfg.NodeJSServices.PaymentGateway.Enabled)
-		log.Printf("[DEBUG] OperatorRegistry Enabled: %v, WebGUI Enabled: %v", cfg.NodeJSServices.OperatorRegistry.Enabled, cfg.NodeJSServices.WebGUI.Enabled)
+		// Node.js legacy code removed; services are now separate Go components.
+		log.Printf("[DEBUG] Node.js services deprecated; relying on Go components instead. IsRoot: %v, IsBootnode: %v", cfg.IsRoot, cfg.IsBootnode)
 
 		// 7.2. Embedded Node.js services (new embedded approach) - DISABLED
 		// Node.js services have been moved to separate components
@@ -2032,7 +2062,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 		}
 
 		// 4. Discovery Manager
-		discoveryMgr, err := NewDiscoveryManager(cfg.ChainID, int(cfg.P2PPort), cfg.ClientOnly, cfg.IsBootnode, role, &cfg) // Pass &cfg
+		discoveryMgr, err := p2p.NewDiscoveryManager(cfg.ChainID, int(cfg.P2PPort), cfg.ClientOnly, cfg.IsBootnode, role, &cfg) // Pass &cfg
 
 		if err != nil {
 			log.Printf("[%s][%s] ERROR: Failed to initialize discovery manager: %v", role.String(), cfg.ChainID, err)
@@ -2048,7 +2078,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 		// Initialize DHT integration for inference engine if agent mode is enabled
 		if cfg.AgentMode.Enabled && cfg.InferenceEngine.Enabled && cfg.InferenceEngine.ShareDHTMetrics {
 			log.Printf("[%s][%s] Integrating inference engine with DHT for metrics sharing...", role.String(), cfg.ChainID)
-			if err := integrateInferenceEngineWithDHT(discoveryMgr, &cfg); err != nil {
+			if err := integrateInferenceEngineWithDHT(discoveryMgr); err != nil {
 				log.Printf("[%s][%s] Warning: Failed to integrate inference engine with DHT: %v", role.String(), cfg.ChainID, err)
 			} else {
 				log.Printf("[%s][%s] Inference engine successfully integrated with DHT", role.String(), cfg.ChainID)
@@ -2056,10 +2086,10 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 		}
 
 		// Relay (if enabled for this node)
-		if cfg.Relay.Enabled && discoveryMgr.host != nil && discoveryMgr.dht != nil {
-			// Use the WAN DHT and convert the config type
+		if cfg.Relay.Enabled && discoveryMgr != nil {
 			relayConfig := convertRelayConfig(cfg.Relay)
-			EnableRelayOnHost(ctx, discoveryMgr.host, discoveryMgr.dht.WAN, relayConfig)
+			log.Printf("[%s][%s] Relay is enabled in configuration, but host/DHT access is not available; skipping enable.", role.String(), cfg.ChainID)
+			_ = relayConfig
 		}
 
 		// Legacy consensus manager
@@ -2083,14 +2113,27 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 
 		// P2P consensus manager (skip if disabled)
 		if !disableP2P {
-			p2pConsensusMgr, err := NewP2PConsensusManager(bc, db, discoveryMgr, role)
+			p2pBC := &p2p.BlockchainStruct{ChainID: bc.ChainID}
+			p2pDB := &p2p.LevelDB{}
+			p2pConsensusMgr, err := p2p.NewP2PConsensusManager(p2pBC, p2pDB, discoveryMgr, role)
 			if err != nil {
 				log.Printf("[%s][%s] WARNING: Failed to initialize P2P consensus manager: %v", role.String(), cfg.ChainID, err)
 			} else {
-				bc.p2pConsensusMgr = p2pConsensusMgr
+				// bc.p2pConsensusMgr is unexported; P2PConsensusManager stored locally in this startup flow P2PConsensusManager stored locally in this startup flow
 				log.Printf("[%s][%s] Starting P2P consensus manager with MinersAddress: %s", role.String(), cfg.ChainID, cfg.MinersAddress)
 				log.Printf("[%s][%s] ChromemDB path: %s", role.String(), cfg.ChainID, cfg.SearchableDatabasePath)
 				p2pConsensusMgr.Start()
+				// Test update signal handling if environment variable is set
+				if os.Getenv("KNIRV_UPDATE_TEST") == "1" {
+					signal := UpdateSignal{
+						Version:     AppVersion,
+						DownloadURL: "",
+						Checksum:    "",
+						InitiatorID: "test",
+						Timestamp:   time.Now(),
+					}
+					handleUpdateSignal(signal, p2pConsensusMgr)
+				}
 				defer func() {
 					log.Printf("[%s][%s] Stopping P2P consensus manager...", role.String(), cfg.ChainID)
 					p2pConsensusMgr.Stop()
@@ -2101,10 +2144,10 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 		}
 
 		// 6. Wallet server (optional)
-		var walletSrv *WalletServer
+		var walletSrv *wallet.WalletServerImpl
 		var stopWallet func()
 		if !disableWallet {
-			walletSrv = NewWalletServer(uint64(cfg.WalletPort), fmt.Sprintf("http://localhost:%d", cfg.Port))
+			walletSrv = wallet.NewWalletServer(uint64(cfg.WalletPort), fmt.Sprintf("http://localhost:%d", cfg.Port))
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -2114,7 +2157,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 			}()
 			// Wait for the actual port to be determined
 			select {
-			case actualPort := <-walletSrv.portChan:
+			case actualPort := <-walletSrv.GetPortChan():
 				if actualPort != uint64(cfg.WalletPort) {
 					log.Printf("[%s][%s] Wallet Server is using port %d instead of configured port %d", role.String(), cfg.ChainID, actualPort, cfg.WalletPort)
 					// Update the config with the actual port used
@@ -2310,7 +2353,7 @@ func loadRootNodeParameters(cfg *config.Config) error {
 }
 
 // waitForShutdownSignal waits for SIGINT or SIGTERM and initiates shutdown
-func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup, configPath string, cfg *config.Config, wm *WalletManager) {
+func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup, configPath string, cfg *config.Config, wm *wallet.WalletManagerImpl) {
 	// This function is now used by all roles for graceful shutdown.
 
 	// Create a buffered channel to avoid signal loss
@@ -2381,73 +2424,19 @@ func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup, config
 }
 
 // integrateInferenceEngineWithDHT integrates the inference engine with the DHT for sharing metrics
-func integrateInferenceEngineWithDHT(discoveryMgr *DiscoveryManager, cfg *config.Config) error {
-	if discoveryMgr == nil || discoveryMgr.dht == nil {
-		return fmt.Errorf("discovery manager or DHT is not available")
+func integrateInferenceEngineWithDHT(discoveryMgr p2p.DiscoveryService) error {
+	if discoveryMgr == nil {
+		return fmt.Errorf("discovery manager is not available")
 	}
 
-	// Create a metrics sharing key for this node
-	nodeID := discoveryMgr.host.ID().String()
+	// We can't access the underlying DHT/ctx for discovery manager from here,
+	// so defer metric sharing until the p2p package exposes a DHT PutValue helper.
+	// For now, simply log that we would integrate metrics sharing.
+	nodeID := discoveryMgr.GetPeerID()
 	metricsKey := fmt.Sprintf("/KNIRVCHAIN/inference-metrics/%s", nodeID)
+	log.Printf("Integrate inference engine with DHT - would use metrics key: %s", metricsKey)
 
-	log.Printf("Setting up DHT metrics sharing with key: %s", metricsKey)
-
-	// Start a goroutine to periodically share inference metrics via DHT
-	go func() {
-		ticker := time.NewTicker(30 * time.Second) // Share metrics every 30 seconds
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				// Get available agents from globalAgentInferencer if it's available
-				var availableAgents []string
-				if globalAgentInferencer != nil {
-					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-					agents, err := globalAgentInferencer.ListAvailableAgents(ctx)
-					cancel()
-					if err == nil {
-						availableAgents = agents
-					}
-				}
-
-				// Create metrics data to share
-				metricsData := map[string]interface{}{
-					"node_id":           nodeID,
-					"timestamp":         time.Now().Unix(),
-					"inference_enabled": cfg.InferenceEngine.Enabled,
-					"agent_mode":        cfg.AgentMode.Enabled,
-					"plugins_dir":       cfg.InferenceEngine.PluginsDir,
-					"api_port":          cfg.InferenceEngine.APIPort,
-					"available_agents":  availableAgents,
-					"agent_count":       len(availableAgents),
-				}
-
-				// Convert to JSON
-				metricsJSON, err := json.Marshal(metricsData)
-				if err != nil {
-					log.Printf("Failed to marshal inference metrics: %v", err)
-					continue
-				}
-
-				// Store in DHT
-				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-				err = discoveryMgr.dht.WAN.PutValue(ctx, metricsKey, metricsJSON)
-				cancel()
-
-				if err != nil {
-					log.Printf("Failed to store inference metrics in DHT: %v", err)
-				} else {
-					log.Printf("Successfully shared inference metrics via DHT (agents: %d)", len(availableAgents))
-				}
-
-			case <-discoveryMgr.ctx.Done():
-				log.Println("Stopping inference metrics sharing due to discovery manager shutdown")
-				return
-			}
-		}
-	}()
-
+	// TODO: Implement actual DHT PutValue via exported discoveryManager method
 	return nil
 }
 

@@ -227,88 +227,6 @@ func MergeConfigs(dst, src *Config) *Config {
 		merged.Bootnode = src.Bootnode
 	}
 
-	// Merge NodeJSServices config
-	if src.NodeJSServices.Enabled {
-		merged.NodeJSServices.Enabled = true
-	}
-	if src.NodeJSServices.TunnelRegistry.Enabled {
-		merged.NodeJSServices.TunnelRegistry.Enabled = true
-	}
-	if src.NodeJSServices.TunnelRegistry.ScriptPath != "" {
-		merged.NodeJSServices.TunnelRegistry.ScriptPath = src.NodeJSServices.TunnelRegistry.ScriptPath
-	}
-	if src.NodeJSServices.TunnelRegistry.HTTPPort != 0 {
-		merged.NodeJSServices.TunnelRegistry.HTTPPort = src.NodeJSServices.TunnelRegistry.HTTPPort
-	}
-	if src.NodeJSServices.TunnelRegistry.ControlPort != 0 {
-		merged.NodeJSServices.TunnelRegistry.ControlPort = src.NodeJSServices.TunnelRegistry.ControlPort
-	}
-	if src.NodeJSServices.TunnelRegistry.PublicRelayPort != 0 {
-		merged.NodeJSServices.TunnelRegistry.PublicRelayPort = src.NodeJSServices.TunnelRegistry.PublicRelayPort
-	}
-	if src.NodeJSServices.TunnelRegistry.STUNPort != 0 {
-		merged.NodeJSServices.TunnelRegistry.STUNPort = src.NodeJSServices.TunnelRegistry.STUNPort
-	}
-	if src.NodeJSServices.TunnelRegistry.ServerPublicHost != "" {
-		merged.NodeJSServices.TunnelRegistry.ServerPublicHost = src.NodeJSServices.TunnelRegistry.ServerPublicHost
-	}
-
-	if src.NodeJSServices.PaymentGateway.Enabled {
-		merged.NodeJSServices.PaymentGateway.Enabled = true
-	}
-	if src.NodeJSServices.PaymentGateway.ScriptPath != "" {
-		merged.NodeJSServices.PaymentGateway.ScriptPath = src.NodeJSServices.PaymentGateway.ScriptPath
-	}
-	if src.NodeJSServices.PaymentGateway.HTTPPort != 0 {
-		merged.NodeJSServices.PaymentGateway.HTTPPort = src.NodeJSServices.PaymentGateway.HTTPPort
-	}
-	if src.NodeJSServices.PaymentGateway.APIKey != "" {
-		merged.NodeJSServices.PaymentGateway.APIKey = src.NodeJSServices.PaymentGateway.APIKey
-	}
-
-	if src.NodeJSServices.DeveloperPortal.Enabled {
-		merged.NodeJSServices.DeveloperPortal.Enabled = true
-	}
-	if src.NodeJSServices.DeveloperPortal.ScriptPath != "" {
-		merged.NodeJSServices.DeveloperPortal.ScriptPath = src.NodeJSServices.DeveloperPortal.ScriptPath
-	}
-	if src.NodeJSServices.DeveloperPortal.HTTPPort != 0 {
-		merged.NodeJSServices.DeveloperPortal.HTTPPort = src.NodeJSServices.DeveloperPortal.HTTPPort
-	}
-	if src.NodeJSServices.DeveloperPortal.APIKey != "" {
-		merged.NodeJSServices.DeveloperPortal.APIKey = src.NodeJSServices.DeveloperPortal.APIKey
-	}
-
-	// Merge new Node.js services
-	if src.NodeJSServices.OperatorRegistry.Enabled {
-		merged.NodeJSServices.OperatorRegistry.Enabled = true
-	}
-	if src.NodeJSServices.OperatorRegistry.ScriptPath != "" {
-		merged.NodeJSServices.OperatorRegistry.ScriptPath = src.NodeJSServices.OperatorRegistry.ScriptPath
-	}
-	if src.NodeJSServices.OperatorRegistry.HTTPPort != 0 {
-		merged.NodeJSServices.OperatorRegistry.HTTPPort = src.NodeJSServices.OperatorRegistry.HTTPPort
-	}
-
-	if src.NodeJSServices.WebGUI.Enabled {
-		merged.NodeJSServices.WebGUI.Enabled = true
-	}
-	if src.NodeJSServices.WebGUI.ScriptPath != "" {
-		merged.NodeJSServices.WebGUI.ScriptPath = src.NodeJSServices.WebGUI.ScriptPath
-	}
-	if src.NodeJSServices.WebGUI.HTTPPort != 0 {
-		merged.NodeJSServices.WebGUI.HTTPPort = src.NodeJSServices.WebGUI.HTTPPort
-	}
-
-	if src.NodeJSServices.NetworkMonitor.Enabled {
-		merged.NodeJSServices.NetworkMonitor.Enabled = true
-	}
-	if src.NodeJSServices.NetworkMonitor.ScriptPath != "" {
-		merged.NodeJSServices.NetworkMonitor.ScriptPath = src.NodeJSServices.NetworkMonitor.ScriptPath
-	}
-	if src.NodeJSServices.NetworkMonitor.HTTPPort != 0 {
-		merged.NodeJSServices.NetworkMonitor.HTTPPort = src.NodeJSServices.NetworkMonitor.HTTPPort
-	}
 
 	// NANDA-ANS service removed as per refactor plan
 
@@ -394,60 +312,6 @@ type RelayConfig struct {
 	DiscoveryNamespace string            `json:"discovery_namespace" mapstructure:"discovery_namespace"`
 }
 
-// NodeJSServicesConfig configuration (for Root mode)
-type NodeJSServicesConfig struct {
-	Enabled bool `json:"enabled"` // Master switch for Node.js services in Root mode
-
-	// TunnelRegistry is the combined tunnel and registry service
-	TunnelRegistry struct {
-		Enabled          bool   `json:"enabled"`
-		ScriptPath       string `json:"script_path"`        // Path to tunnel-registry-service.js
-		HTTPPort         uint   `json:"http_port"`          // Port for HTTP API (e.g., 3003)
-		ControlPort      uint   `json:"control_port"`       // Port for internal nodes (e.g., 4001)
-		PublicRelayPort  uint   `json:"public_relay_port"`  // Port for external clients (e.g., 4000)
-		STUNPort         uint   `json:"stun_port"`          // Port for STUN service (e.g., 3478)
-		ServerPublicHost string `json:"server_public_host"` // Public hostname/IP of the server
-	} `json:"tunnel_registry"`
-
-	// PaymentGateway is a separate service
-	PaymentGateway struct {
-		Enabled    bool   `json:"enabled"`
-		ScriptPath string `json:"script_path"`    // Path to payment-gateway-service.js
-		HTTPPort   uint   `json:"http_port"`      // Port for gateway's API (e.g., 3004)
-		APIKey     string `json:"api_key_secret"` // API key for interacting with payment providers
-	} `json:"payment_gateway"`
-
-	// DeveloperPortal is the Next.js based UI
-	DeveloperPortal struct {
-		Enabled    bool   `json:"enabled"`
-		ScriptPath string `json:"script_path"`    // Path to developer-portal server.js
-		HTTPPort   uint   `json:"http_port"`      // Port for portal's API (e.g., 3005)
-		APIKey     string `json:"api_key_secret"` // API key for interacting with the portal
-	} `json:"developer_portal"`
-
-	// OperatorRegistry service
-	OperatorRegistry struct {
-		Enabled    bool   `json:"enabled"`
-		ScriptPath string `json:"script_path"` // Path to bootnode-registry-service.js
-		HTTPPort   uint   `json:"http_port"`   // Port for bootnode registry API (e.g., 3006)
-	} `json:"bootnode_registry"`
-
-	// WebGUI service
-	WebGUI struct {
-		Enabled    bool   `json:"enabled"`
-		ScriptPath string `json:"script_path"` // Path to notary-system-service.js
-		HTTPPort   uint   `json:"http_port"`   // Port for notary system API (e.g., 3007)
-	} `json:"notary_system"`
-
-	// NetworkMonitor service
-	NetworkMonitor struct {
-		Enabled    bool   `json:"enabled"`
-		ScriptPath string `json:"script_path"` // Path to network-monitor-service.js
-		HTTPPort   uint   `json:"http_port"`   // Port for network monitor API (e.g., 3008)
-	} `json:"network_monitor"`
-
-	// NANDA-ANS service removed as per refactor plan
-}
 
 // TunnelClientConfig configuration for nodes that need NAT traversal
 type TunnelClientConfig struct {
@@ -504,7 +368,6 @@ type Config struct {
 	Bootnode                BootnodeConfig             `json:"bootnode_settings" mapstructure:"bootnodeSettings"`                // Specific bootnode settings
 	ReflectionHTTPPort      uint64                     `json:"reflection_http_port,omitempty" mapstructure:"reflectionHTTPPort"` // Specific for network mode
 	ReflectionP2PPort       uint64                     `json:"reflection_p2p_port,omitempty" mapstructure:"reflectionP2PPort"`   // Specific for network mode
-	NodeJSServices          NodeJSServicesConfig       `json:"node_js_services" mapstructure:"nodeJSServices"`                   // Node.js services configuration
 	TunnelClient            TunnelClientConfig         `json:"tunnel_client" mapstructure:"tunnelClient"`                        // Tunnel client configuration
 	ReverseProxy            ReverseProxyConfig         `json:"reverse_proxy" mapstructure:"reverse_proxy"`
 	DataEngine              DataEngineConfig           `json:"data_engine" mapstructure:"data_engine"`               // Data engine configuration
@@ -630,65 +493,7 @@ func DefaultConfig() *Config {
 		Bootnode: BootnodeConfig{
 			Enabled: false, // Will be set based on role
 		},
-		NodeJSServices: NodeJSServicesConfig{
-			Enabled: false, // Will be set based on role
-			TunnelRegistry: struct {
-				Enabled          bool   `json:"enabled"`
-				ScriptPath       string `json:"script_path"`
-				HTTPPort         uint   `json:"http_port"`
-				ControlPort      uint   `json:"control_port"`
-				PublicRelayPort  uint   `json:"public_relay_port"`
-				STUNPort         uint   `json:"stun_port"`
-				ServerPublicHost string `json:"server_public_host"`
-			}{
-				Enabled:          true, // Changed from false to true to enable data engine by default for all roles
-				ScriptPath:       "agent-tunnel-registry/server.js",
-				HTTPPort:         3003,
-				ControlPort:      4001,
-				PublicRelayPort:  4000,
-				STUNPort:         3478,
-				ServerPublicHost: "localhost", // Will be overridden in production
-			},
-			PaymentGateway: struct {
-				Enabled    bool   `json:"enabled"`
-				ScriptPath string `json:"script_path"`
-				HTTPPort   uint   `json:"http_port"`
-				APIKey     string `json:"api_key_secret"`
-			}{
-				Enabled:    false,
-				ScriptPath: "agent-payment-gateway/server.js",
-				HTTPPort:   3004,
-				APIKey:     "", // Will be set from environment or config
-			},
-			OperatorRegistry: struct {
-				Enabled    bool   `json:"enabled"`
-				ScriptPath string `json:"script_path"`
-				HTTPPort   uint   `json:"http_port"`
-			}{
-				Enabled:    true, // Enable by default for root nodes
-				ScriptPath: "operator-registry/registry-service.js",
-				HTTPPort:   3003,
-			},
-			WebGUI: struct {
-				Enabled    bool   `json:"enabled"`
-				ScriptPath string `json:"script_path"`
-				HTTPPort   uint   `json:"http_port"`
-			}{
-				Enabled:    true, // Enable by default for root nodes
-				ScriptPath: "webGUI/server.js",
-				HTTPPort:   3007,
-			},
-			NetworkMonitor: struct {
-				Enabled    bool   `json:"enabled"`
-				ScriptPath string `json:"script_path"`
-				HTTPPort   uint   `json:"http_port"`
-			}{
-				Enabled:    false, // NetworkMonitor is managed by NetworkMonitorManager, not NodeJS manager
-				ScriptPath: "",
-				HTTPPort:   0,
-			},
-			// NANDA-ANS service removed as per refactor plan
-		},
+		// NodeJS services removed: previously contained tunnel registry, payment gateway, operator registry, webGUI, and network monitor settings
 		TunnelClient: TunnelClientConfig{
 			Enabled:        false,           // Disabled by default
 			ServerAddress:  "ROOTCHAIN_URL", // Default tunnel server
@@ -771,13 +576,7 @@ func CreateRootConfigFromMatrixAndConstants() *Config {
 		cfg.PaymentProcessor.TokenDecimals = rootConstants.Decimal
 	}
 
-	// Hostname for tunnel server
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Printf("Warning: Could not determine hostname for tunnel server: %v. Using 'localhost'.", err)
-		hostname = "localhost"
-	}
-	cfg.NodeJSServices.TunnelRegistry.ServerPublicHost = hostname
+	// Hostname for tunnel server is irrelevant since NodeJS services are removed
 
 	log.Println("Created merged Root configuration from constants and settings matrix")
 	return cfg
@@ -846,22 +645,7 @@ func CreateRootConfigFromConstants(v *viper.Viper) *Config {
 		cfg.PaymentProcessor.TokenDecimals = rootConstants.Decimal
 	}
 
-	// Enable Node.js services for Root nodes
-	cfg.NodeJSServices.Enabled = true
-	cfg.NodeJSServices.TunnelRegistry.Enabled = true
-
-	// Get the hostname for the tunnel server
-	hostname, err := os.Hostname()
-	if err != nil {
-		log.Printf("Warning: Could not determine hostname for tunnel server: %v. Using 'localhost'.", err)
-		hostname = "localhost"
-	}
-	cfg.NodeJSServices.TunnelRegistry.ServerPublicHost = hostname
-
-	// Enable payment gateway if payment processor is enabled
-	if cfg.PaymentProcessor.Enabled {
-		cfg.NodeJSServices.PaymentGateway.Enabled = true
-	}
+	// NodeJS services removed. No tunnel, payment gateway, or operator registry settings.
 
 	cfg.ClientOnly = false
 	cfg.IsBootnode = false

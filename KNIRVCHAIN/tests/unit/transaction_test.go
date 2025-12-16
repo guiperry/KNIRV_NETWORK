@@ -96,7 +96,7 @@ func TestTransactionFlow(t *testing.T) {
 	bc.Unlock()
 	miningDone := make(chan struct{}) // Channel to signal mining completion
 	go func() {
-		bc.ProofOfWorkMining(context.Background(), receiverWallet.GetAddress(), &cm)
+		bc.ProofOfWorkMining(context.Background(), receiverWallet.GetAddress(), cm)
 		close(miningDone) // Signal when mining loop exits (e.g., on StopMining=true)
 	}()
 

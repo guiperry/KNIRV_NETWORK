@@ -1,0 +1,391 @@
+# KNIRVCHAIN Code Cleanup Plan
+
+This document outlines the refactoring plan for the KNIRVCHAIN application to improve its architecture, build process, and user interface.
+
+## 1. Role Determination Refactoring
+
+### Current Implementation
+- The application prompts users for role selection during installation (`install.go`)
+- Role determination is a mix of command-line flags, interactive prompts, and configuration files
+- Roles include Root, Bootnode, Peer, and Client
+
+### Proposed Changes
+- Remove interactive role selection from `install.go`
+- Rely exclusively on input flags or build flags for role determination
+- Update `config.DetermineRoleFromConfig()` to prioritize build flags over runtime flags
+- Add role-specific build tags to control compilation
+
+### Implementation Details
+1. Modify `install.go`:
+   - Remove `promptForRole()` function
+   - Update `Install()` function to only use the provided role parameter
+   - Remove all interactive role selection logic
+
+2. Update `main.go`:
+   - Add build tags for role determination (`//go:build root`, `//go:build bootnode`, etc.)
+   - Simplify role determination logic to check for build tags first
+   - Keep command-line flags as a fallback option
+
+3. Create role-specific entry points:
+   - Add `main_root.go`, `main_bootnode.go`, and `main_developer.go` with appropriate build tags
+   - Each file will set the default role and configuration
+
+## 2. Build System Updates
+
+### Current Implementation
+- Single binary with runtime flags for different roles
+- Cross-compilation script (`cross-compile.sh`) builds for multiple platforms
+- Build tags for GUI selection (`fyne_gui`)
+
+### Proposed Changes
+- Update Makefile to build 5 distinct binaries:
+  1. KNIRVCHAIN-Root (Linux)
+  2. KNIRVCHAIN-Bootnode (Linux)
+  3. KNIRVCHAIN-Developer (Windows)
+  4. KNIRVCHAIN-Developer (Linux)
+  5. KNIRVCHAIN-Developer (Mac)
+- Each binary will have its role determined at compile time
+- Remove the Fyne GUI build tag
+
+### Implementation Details
+1. Update `Makefile`:
+   - Add targets for each binary type
+   - Configure appropriate build tags and flags for each target
+   - Update the release packaging process to handle multiple binaries
+
+2. Modify `scripts/cross-compile.sh`:
+   - Add support for role-specific builds
+   - Update platform targeting to match the 5 required binaries
+   - Remove Fyne GUI compilation options
+
+3. Example Makefile targets:
+```makefile
+build/root-linux:
+	GOOS=linux GOARCH=amd64 go build -tags="root no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/KNIRVCHAIN-Root ${MAIN_PACKAGE_PATH}
+
+build/bootnode-linux:
+	GOOS=linux GOARCH=amd64 go build -tags="bootnode no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/KNIRVCHAIN-Bootnode ${MAIN_PACKAGE_PATH}
+
+build/developer-windows:
+	GOOS=windows GOARCH=amd64 go build -tags="developer no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/KNIRVCHAIN-Developer.exe ${MAIN_PACKAGE_PATH}
+
+build/developer-linux:
+	GOOS=linux GOARCH=amd64 go build -tags="developer no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/KNIRVCHAIN-Developer ${MAIN_PACKAGE_PATH}
+
+build/developer-mac:
+	GOOS=darwin GOARCH=amd64 go build -tags="developer no_webview" -ldflags="-X main.AppVersion=$(VERSION)" -o=${OUTPUT_DIR}/KNIRVCHAIN-Developer ${MAIN_PACKAGE_PATH}
+```
+
+## 3. GUI Implementation Refactoring
+
+### Current Implementation
+- Fyne GUI implementation in `gui.go` (conditionally compiled with `fyne_gui` build tag)
+- Alternative Next.js implementation in `altgui.go` (compiled when `fyne_gui` is not set)
+- WebView integration for displaying the UI
+
+### Proposed Changes
+- Completely remove the Fyne GUI implementation
+- Repurpose the Next.js implementation as a browser-only Node.js service
+- Rename to "Developer Portal" served only by the Rootnode
+- Remove all WebView dependencies
+- Configure and launch the Developer Portal as a Node.js service, similar to Payment Gateway and Tunnel Registry
+
+### Implementation Details
+1. Remove Fyne GUI:
+   - Delete `gui.go` file
+   - Remove all Fyne dependencies from `go.mod`
+   - Update imports in other files to remove Fyne references
+
+2. Repurpose Next.js implementation as a Node.js service:
+   - Move the Next.js code from embedded resources to a standalone directory structure
+   - Create a new directory `developer-portal` with Node.js service structure
+   - Create a `server.js` entry point for the Node.js service
+   - Add configuration for the Developer Portal in the NodeJSServices section of the config
+
+3. Update configuration structure:
+   - Add DeveloperPortal to NodeJSServicesConfig in `config/config.go`:
+   ```go
+   type NodeJSServicesConfig struct {
+       Enabled bool `json:"enabled"` // Master switch for Node.js services in Root mode
+
+       // TunnelRegistry is the combined tunnel and registry service
+       TunnelRegistry struct {
+           Enabled          bool   `json:"enabled"`
+           ScriptPath       string `json:"script_path"`
+           // Other fields remain...
+       } `json:"tunnel_registry"`
+
+       // PaymentGateway is a separate service
+       PaymentGateway struct {
+           Enabled    bool   `json:"enabled"`
+           ScriptPath string `json:"script_path"`
+           // Other fields remain...
+       } `json:"payment_gateway"`
+
+       // DeveloperPortal is the new Next.js based UI
+       DeveloperPortal struct {
+           Enabled    bool   `json:"enabled"`
+           ScriptPath string `json:"script_path"`
+           HTTPPort   int    `json:"http_port"`
+           APIKey     string `json:"api_key"`
+       } `json:"developer_portal"`
+   }
+   ```
+
+4. Add DeveloperPortal settings to `config/settings_matrix.go`:
+   ```go
+   type NodeJSServicesSettings struct {
+       Enabled        bool
+       TunnelRegistry TunnelRegistrySettings
+       PaymentGateway PaymentGatewaySettings
+       DeveloperPortal DeveloperPortalSettings
+   }
+
+   // DeveloperPortalSettings defines developer portal configuration
+   type DeveloperPortalSettings struct {
+       Enabled    bool
+       ScriptPath string
+       HTTPPort   int
+       APIKey     string
+   }
+   ```
+
+5. Update the NodeJSManager to handle the Developer Portal:
+   - Add a StartDeveloperPortal method to `nodejsmanager.go`:
+   ```go
+   // StartDeveloperPortal starts the developer portal service
+   func (m *NodeJSManager) StartDeveloperPortal() error {
+       m.mutex.Lock()
+       defer m.mutex.Unlock()
+
+       if !m.Config.Enabled || !m.Config.DeveloperPortal.Enabled {
+           return fmt.Errorf("developer portal service is not enabled in configuration")
+       }
+
+       // Check if already running
+       if _, exists := m.Processes["developer-portal"]; exists {
+           return fmt.Errorf("developer portal service is already running")
+       }
+
+       scriptPath := m.Config.DeveloperPortal.ScriptPath
+       if scriptPath == "" {
+           return fmt.Errorf("no script path provided for developer portal service")
+       }
+
+       // Check if the script exists
+       if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
+           return fmt.Errorf("script not found for developer portal service: %s", scriptPath)
+       }
+
+       // Find available port
+       actualHTTPPort := utils.FindAvailablePort(uint64(m.Config.DeveloperPortal.HTTPPort))
+       if actualHTTPPort != uint64(m.Config.DeveloperPortal.HTTPPort) {
+           log.Printf("[DeveloperPortal] HTTP Port %d in use, using %d instead.", 
+               m.Config.DeveloperPortal.HTTPPort, actualHTTPPort)
+       }
+
+       // Prepare environment variables
+       env := []string{
+           fmt.Sprintf("HTTP_API_PORT=%d", actualHTTPPort),
+           fmt.Sprintf("API_KEY=%s", m.Config.DeveloperPortal.APIKey),
+           fmt.Sprintf("NODE_ENV=%s", "production"), // Set to production by default
+           fmt.Sprintf("CHAIN_ID=%s", m.PeerID),
+       }
+
+       // Prepare the command
+       cmd := exec.Command("node", scriptPath)
+       cmd.Env = append(os.Environ(), env...)
+
+       // Capture stdout and stderr
+       stdout, err := cmd.StdoutPipe()
+       if err != nil {
+           return fmt.Errorf("failed to get stdout pipe for developer portal: %w", err)
+       }
+       stderr, err := cmd.StderrPipe()
+       if err != nil {
+           return fmt.Errorf("failed to get stderr pipe for developer portal: %w", err)
+       }
+
+       // Start the process
+       if err := cmd.Start(); err != nil {
+           return fmt.Errorf("failed to start developer portal: %w", err)
+       }
+
+       // Create a process object
+       process := &NodeJSProcess{
+           Name:       "DeveloperPortal",
+           Cmd:        cmd,
+           StdoutPipe: bufio.NewScanner(stdout),
+           StderrPipe: bufio.NewScanner(stderr),
+           StopChan:   make(chan struct{}),
+       }
+
+       // Store the process
+       m.Processes["developer-portal"] = process
+
+       // Start goroutines to handle stdout and stderr
+       go func() {
+           for process.StdoutPipe.Scan() {
+               log.Printf("[DeveloperPortal] %s", process.StdoutPipe.Text())
+           }
+       }()
+
+       go func() {
+           for process.StderrPipe.Scan() {
+               log.Printf("[DeveloperPortal ERROR] %s", process.StderrPipe.Text())
+           }
+       }()
+
+       // Start a goroutine to wait for the process to exit
+       go func() {
+           if err := cmd.Wait(); err != nil {
+               log.Printf("[DeveloperPortal] Process exited with error: %v", err)
+           } else {
+               log.Printf("[DeveloperPortal] Process exited successfully")
+           }
+           m.mutex.Lock()
+           delete(m.Processes, "developer-portal")
+           m.mutex.Unlock()
+       }()
+
+       log.Printf("[DeveloperPortal] Started successfully on port %d", actualHTTPPort)
+       return nil
+   }
+   ```
+
+6. Update the StartServices method to include the Developer Portal:
+   ```go
+   // StartServices starts all enabled Node.js services
+   func (m *NodeJSManager) StartServices() []error {
+       var errors []error
+
+       if m.Config.TunnelRegistry.Enabled {
+           if err := m.StartTunnelRegistry(); err != nil {
+               errors = append(errors, fmt.Errorf("failed to start tunnel registry service: %w", err))
+           }
+       }
+
+       if m.Config.PaymentGateway.Enabled {
+           if err := m.StartPaymentGateway(); err != nil {
+               errors = append(errors, fmt.Errorf("failed to start payment gateway service: %w", err))
+           }
+       }
+
+       if m.Config.DeveloperPortal.Enabled {
+           if err := m.StartDeveloperPortal(); err != nil {
+               errors = append(errors, fmt.Errorf("failed to start developer portal service: %w", err))
+           }
+       }
+
+       return errors
+   }
+   ```
+
+7. Update services initialization in `services_init.go`:
+   ```go
+   // Set default script path for developer portal if enabled but no path specified
+   if cfg.NodeJSServices.DeveloperPortal.Enabled && cfg.NodeJSServices.DeveloperPortal.ScriptPath == "" {
+       cfg.NodeJSServices.DeveloperPortal.ScriptPath = "developer-portal/server.js"
+       log.Printf("[%s] Using default script path for developer portal: %s", cfg.ChainID, cfg.NodeJSServices.DeveloperPortal.ScriptPath)
+   }
+
+   // Check if developer portal script exists
+   if cfg.NodeJSServices.DeveloperPortal.Enabled {
+       if _, err := os.Stat(cfg.NodeJSServices.DeveloperPortal.ScriptPath); os.IsNotExist(err) {
+           log.Printf("[%s] WARNING: Developer portal script not found: %s", cfg.ChainID, cfg.NodeJSServices.DeveloperPortal.ScriptPath)
+           log.Printf("[%s] Disabling developer portal service", cfg.ChainID)
+           cfg.NodeJSServices.DeveloperPortal.Enabled = false
+       }
+   }
+   ```
+
+8. Update build process:
+   - Add `no_webview` build tag to all binaries
+   - Remove WebView-related compilation logic from `cross-compile.sh`
+   - Update dependencies to remove WebView packages
+
+9. Create the Node.js service structure for the Developer Portal:
+   - Extract the Next.js code from the embedded resources
+   - Create a proper Node.js service structure with package.json
+   - Implement a server.js that serves the Next.js static files and provides API endpoints
+   - Add configuration for environment variables (HTTP_API_PORT, API_KEY, etc.)
+
+10. Add reverse proxy configuration in the main HTTP server:
+    ```go
+    // Route to Developer Portal service
+    if strings.HasPrefix(r.URL.Path, "/portal/") {
+        portalURL, _ := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", cfg.NodeJSServices.DeveloperPortal.HTTPPort))
+        proxy := httputil.NewSingleHostReverseProxy(portalURL)
+        proxy.ServeHTTP(w, r)
+        return
+    }
+    ```
+
+## 4. Terminal UI Implementation
+
+### Current Implementation
+- BubbleTea terminal UI implementation in `main_bubbletea.go`
+- Terminal UI is optional, enabled with `--terminal` flag
+- Competes with GUI implementations
+
+### Proposed Changes
+- Make BubbleTea terminal the default interface without any flag requirement
+- Ensure it works across all role-specific binaries
+- Improve terminal UI for better user experience
+
+### Implementation Details
+1. Update `main.go`:
+   - Remove `useTerminal` flag
+   - Make BubbleTea terminal the default UI for all roles
+   - Update UI initialization logic
+
+   
+2. Enhance `main_bubbletea.go`:
+   - Improve terminal UI components for better usability
+   - Add role-specific views and functionality
+   - Ensure compatibility with all roles
+
+3. Update configuration handling:
+   - Remove GUI-related configuration options
+   - Add terminal UI configuration options
+   - Ensure terminal UI works with minimal configuration
+
+## Implementation Timeline
+
+1. **Phase 1: Role Determination Refactoring**
+   - Update `install.go` to remove interactive role selection
+   - Add build tags for role determination
+   - Create role-specific entry points
+
+2. **Phase 2: Build System Updates**
+   - Update Makefile with new targets
+   - Modify cross-compile.sh for role-specific builds
+   - Test builds for all target platforms
+
+3. **Phase 3: GUI Implementation Refactoring**
+   - Remove Fyne GUI implementation
+   - Create Node.js service structure for Developer Portal:
+     * Extract Next.js code from embedded resources
+     * Set up proper Node.js service with package.json and server.js
+     * Configure environment variables and API endpoints
+   - Update configuration to include Developer Portal in NodeJSServices
+   - Implement NodeJSManager methods for Developer Portal
+   - Add reverse proxy configuration for Developer Portal
+   - Remove WebView dependencies
+
+4. **Phase 4: Terminal UI Implementation**
+   - Make BubbleTea terminal the default interface
+   - Enhance terminal UI components
+   - Test terminal UI across all roles
+
+## Testing Strategy
+
+- Build and test each binary type on its target platform
+- Verify role-specific functionality works correctly
+- Test Developer Portal Node.js service:
+  * Verify it starts correctly with the NodeJSManager
+  * Test API endpoints and static file serving
+  * Ensure it's accessible via the reverse proxy at /portal/ path
+  * Confirm it only runs on Root nodes
+- Validate terminal UI functionality across all roles
+- Test integration between Terminal UI and Developer Portal

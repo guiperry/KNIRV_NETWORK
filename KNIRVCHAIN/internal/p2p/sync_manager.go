@@ -52,13 +52,39 @@ func (bc *BlockchainStruct) AddBlock(block *Block) error {
 	return nil
 }
 
+func (bc *BlockchainStruct) AddTransactionToTransactionPool(tx *Transaction) error {
+	bc.TransactionPool = append(bc.TransactionPool, tx)
+	return nil
+}
+
+// GetChainID returns the chain id
+func (bc *BlockchainStruct) GetChainID() string {
+	return bc.ChainID
+}
+
+// GetChainAddress returns the chain address
+func (bc *BlockchainStruct) GetChainAddress() string {
+	return bc.ChainAddress
+}
+
+// GetBlocks returns the blocks slice
+func (bc *BlockchainStruct) GetBlocks() []*Block {
+	return bc.Blocks
+}
+
+// SetBlocks replaces the blocks slice
 func (bc *BlockchainStruct) SetBlocks(blocks []*Block) {
 	bc.Blocks = blocks
 }
 
-func (bc *BlockchainStruct) AddTransactionToTransactionPool(tx *Transaction) error {
-	bc.TransactionPool = append(bc.TransactionPool, tx)
-	return nil
+// GetTransactionPool returns the transaction pool
+func (bc *BlockchainStruct) GetTransactionPool() []*Transaction {
+	return bc.TransactionPool
+}
+
+// SetTransactionPool replaces the current transaction pool
+func (bc *BlockchainStruct) SetTransactionPool(txs []*Transaction) {
+	bc.TransactionPool = txs
 }
 
 func (bc *BlockchainStruct) IsNetworkAuthor(address string) bool {
@@ -210,6 +236,7 @@ func PrepareContextRecordForChromemEnhanced(contextRecord *types.ContextRecord, 
 }
 
 func openBrowser(url string) error {
+	log.Printf("Would open browser to URL: %s", url)
 	return fmt.Errorf("open browser not implemented")
 }
 

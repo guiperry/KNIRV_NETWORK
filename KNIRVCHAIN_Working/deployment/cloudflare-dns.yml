@@ -1,0 +1,151 @@
+---
+# CloudFlare DNS Management for KNIRVCHAIN Services
+# This playbook manages DNS records for all KNIRVCHAIN embedded services
+- name: Manage CloudFlare DNS Records for KNIRVCHAIN Services
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  collections:
+    - community.general
+  vars:
+    # CloudFlare Configuration (avoid self-referential vars)
+    zone_name: "{{ cloudflare_zone | default('knirv.com', true) }}"
+
+    # Environment Configuration
+    env_name: "{{ env | default('production', true) }}"
+
+    # Server IP Configuration
+    cf_server_ip: "{{ server_ip | default(oracle_server_ip | default('', true), true) }}"
+
+    # Service Port Configuration
+    oracle_main_port: "{{ oracle_main_port | default('1317', true) }}"
+    bootnode_registry_port: "{{ bootnode_registry_port | default('3006', true) }}"
+    tunnel_registry_port: "{{ tunnel_registry_port | default('3003', true) }}"
+    notary_system_port: "{{ notary_system_port | default('3007', true) }}"
+    network_monitor_port: "{{ network_monitor_port | default('3008', true) }}"
+
+    
+    # DNS Records Configuration for KNIRVCHAIN Services
+    dns_records:
+      # Main KNIRVCHAIN service
+      - name: "oracle"
+        type: "A"
+        content: "{{ cf_server_ip }}"
+        ttl: 300
+        proxied: true
+        comment: "KNIRVCHAIN Main Service"
+
+      # Environment-specific main record
+      - name: "{{ env_name }}.oracle"
+        type: "A"
+        content: "{{ cf_server_ip }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRVCHAIN {{ env_name | title }} Environment"
+
+      # Agent Bootnode Registry Service
+      - name: "bootnode-registry"
+        type: "A"
+        content: "{{ cf_server_ip }}"
+        ttl: 300
+        proxied: true
+        comment: "KNIRVCHAIN Agent Bootnode Registry Service"
+
+      # Agent Tunnel Registry Service
+      - name: "tunnel-registry"
+        type: "A"
+        content: "{{ cf_server_ip }}"
+        ttl: 300
+        proxied: true
+        comment: "KNIRVCHAIN Agent Tunnel Registry Service"
+
+      # Agent Notary System Service
+      - name: "notary-system"
+        type: "A"
+        content: "{{ cf_server_ip }}"
+        ttl: 300
+        proxied: true
+        comment: "KNIRVCHAIN Agent Notary System Service"
+
+      # Network Monitor Service
+      - name: "network-monitor"
+        type: "A"
+        content: "{{ cf_server_ip }}"
+        ttl: 300
+        proxied: true
+        comment: "KNIRVCHAIN Network Monitor Service"
+
+
+      
+      # Environment-specific service records
+      - name: "{{ env_name }}.bootnode-registry"
+        type: "A"
+        content: "{{ cf_server_ip }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRVCHAIN Bootnode Registry {{ env_name | title }}"
+
+      - name: "{{ env_name }}.tunnel-registry"
+        type: "A"
+        content: "{{ cf_server_ip }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRVCHAIN Tunnel Registry {{ env_name | title }}"
+
+      - name: "{{ env_name }}.notary-system"
+        type: "A"
+        content: "{{ cf_server_ip }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRVCHAIN Notary System {{ env_name | title }}"
+
+      - name: "{{ env_name }}.network-monitor"
+        type: "A"
+        content: "{{ cf_server_ip }}"
+        ttl: 300
+        proxied: false
+        comment: "KNIRVCHAIN Network Monitor {{ env_name | title }}"
+
+
+
+  tasks:
+    - name: Validate required variables
+      assert:
+        that:
+          - cloudflare_api_token | default('', true) | length > 0
+          - zone_name | default('', true) | length > 0
+          - cf_server_ip | default('', true) | length > 0
+        fail_msg: "cloudflare_api_token, zone_name, and cf_server_ip are required."
+
+    - name: Create/Update CloudFlare DNS records for KNIRVCHAIN services
+      no_log: true
+      community.general.cloudflare_dns:
+        zone: "{{ zone_name }}"
+        record: "{{ item.name }}"
+        type: "{{ item.type }}"
+        value: "{{ item.content }}"
+        ttl: "{{ item.ttl }}"
+        proxied: "{{ item.proxied | default(false) }}"
+        api_token: "{{ cloudflare_api_token }}"
+        state: present
+      loop: "{{ dns_records }}"
+      register: dns_results
+      delegate_to: localhost
+
+    - name: Display DNS update results
+      debug:
+        msg: "Updated DNS record: {{ item.item.name }} -> {{ item.item.content }}"
+      loop: "{{ dns_results.results }}"
+      when: item.changed
+
+    - name: Summary of DNS configuration
+      debug:
+        msg: |
+          KNIRVCHAIN DNS Configuration Complete:
+          - Main Service: oracle.{{ zone_name }} -> {{ cf_server_ip }}
+          - Bootnode Registry: bootnode-registry.{{ zone_name }} -> {{ cf_server_ip }}:{{ bootnode_registry_port }}
+          - Tunnel Registry: tunnel-registry.{{ zone_name }} -> {{ cf_server_ip }}:{{ tunnel_registry_port }}
+          - Notary System: notary-system.{{ zone_name }} -> {{ cf_server_ip }}:{{ notary_system_port }}
+          - Network Monitor: network-monitor.{{ zone_name }} -> {{ cf_server_ip }}:{{ network_monitor_port }}
+
+          - Environment: {{ env_name }}

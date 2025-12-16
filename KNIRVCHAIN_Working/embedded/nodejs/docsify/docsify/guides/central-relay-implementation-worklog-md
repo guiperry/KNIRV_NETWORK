@@ -1,0 +1,156 @@
+# Central Relay Implementation Worklog
+
+## Overview
+
+This document tracks the implementation progress of the Central Relay service as detailed in the Central_Relay_Implementation_Plan.md document.
+
+## Phase 1: Architecture and Configuration Setup ✅
+
+### 1.1 Directory Structure ✅
+
+Created the basic directory structure for the agent-tunnel-registry service:
+```
+agent-tunnel-registry/
+├── server.js                 # Main application entry point
+├── config.js                 # Configuration (ports, etc.)
+├── api/
+│   ├── index.js              # Main API router
+│   ├── registrationRoutes.js # Routes for /register, /nodes
+│   └── uriRoutes.js          # Routes for /uri/*
+├── registry/
+│   └── registryManager.js    # Logic for storing and retrieving node info
+├── tunneling/
+│   ├── controlListener.js    # TCP server for internal nodes' control connections
+│   ├── publicRelayListener.js # TCP server for external clients to connect for relay
+│   └── tunnelManager.js      # Manages active tunnels and data piping
+├── stun/
+│   └── stunServer.js         # STUN server for NAT traversal assistance
+├── package.json              # Node.js dependencies and project metadata
+└── README.md                 # Documentation
+```
+
+### 1.2 Package.json Configuration ✅
+
+Created package.json with all required dependencies for the tunnel registry service.
+
+### 1.3 Configuration Updates ✅
+
+Updated the Go configuration in `config/config.go` to include settings for Node.js services and the tunnel client:
+
+- Added `NodeJSServicesConfig` struct for Root/Root nodes
+- Added `TunnelClientConfig` struct for Bootnodes and Peers
+- Updated the main `Config` struct to include these new configurations
+
+## Phase 2: Node.js Service Implementation ✅
+
+### 2.1 Registry Manager ✅
+
+Implemented the registry manager for storing and retrieving node information:
+- Created `registryManager.js` with methods for node registration and lookup
+
+### 2.2 Tunnel Manager ✅
+
+Implemented the tunnel manager for handling relay connections:
+- Created `tunnelManager.js` with methods for managing control sockets and relaying data
+
+### 2.3 Control Listener ✅
+
+Implemented the control listener for internal nodes:
+- Created `controlListener.js` with methods for handling control connections
+
+### 2.4 Public Relay Listener ✅
+
+Implemented the public relay listener for external clients:
+- Created `publicRelayListener.js` with methods for handling relay connections
+
+### 2.5 STUN Server ✅
+
+Implemented a basic STUN server for NAT traversal assistance:
+- Created `stunServer.js` with methods for handling STUN requests
+
+### 2.6 API Routes ✅
+
+Implemented API routes for node registration and URI resolution:
+- Created `registrationRoutes.js` with endpoints for node registration
+- Created `uriRoutes.js` with endpoints for URI generation and resolution
+- Created `index.js` to combine all routes
+
+### 2.7 Main Server ✅
+
+Implemented the main server.js file that ties everything together:
+- Created `server.js` with HTTP server, control listener, public relay listener, and STUN server
+- Added status page for monitoring the service
+- Added connection pruning for inactive connections
+
+## Phase 3: Documentation ✅
+
+### 3.1 README ✅
+
+Created a README.md file for the agent-tunnel-registry service with:
+- Features overview
+- Port configuration
+- Installation instructions
+- Configuration options
+- API endpoint documentation
+- Usage examples
+
+## Phase 4: Go Integration ✅
+
+### 4.1 Update main.go to Manage Node.js Services ✅
+
+Implemented the Go code to start and manage the Node.js processes when in root mode:
+- Created `nodejsmanager.go` with methods for starting and stopping Node.js services
+- Implemented support for both the tunnel registry service and payment gateway service
+- Added process management with stdout/stderr capture and graceful shutdown
+- Added methods to check service status and get a list of running services
+
+## Phase 5: Client Integration ✅
+
+### 5.1 Go Client for Resolving knirv:// URIs ✅
+
+Implemented the Go client for resolving and connecting to `knirv://` URIs:
+- Created `uriresolver.go` with methods for parsing, resolving, and connecting to URIs
+- Created `uriresolver_test.go` with unit tests for URI parsing
+- Created `example.go` showing how to use the URI resolver
+- Implemented support for different connection types:
+  - DIRECT_P2P: Direct connection to a dev
+  - RELAYED_P2P_CIRCUIT: Connection via a libp2p circuit relay
+  - TUNNELED: Connection via the custom tunnel server
+
+### 5.2 Node.js Client for Nodes Behind NAT ✅
+
+Implemented the Node.js client for nodes behind NAT to establish a control connection:
+- Created `tunnelClient.js` with methods for connecting to the tunnel server
+- Created `package.json` for the client
+- Created `example.js` showing how to use the client
+- Created `README.md` with documentation
+
+## Phase 6: Alternative Approach - Libp2p Circuit Relay ✅
+
+### 6.1 Configure KNIRVCHAIN-ROOT Node as a Circuit Relay ✅
+
+Implemented the libp2p host configuration in the KNIRVCHAIN-ROOT node to enable it as a circuit relay:
+- Created `relay.go` with methods for configuring a host as a circuit relay
+- Implemented relay advertisement in the DHT
+- Added configuration options for relay resources and advertisement interval
+
+### 6.2 Configure Client Nodes to Use the Circuit Relay ✅
+
+Implemented the libp2p host configuration in client nodes to use the KNIRVCHAIN-ROOT node as a relay:
+- Added methods for configuring a host as a relay client
+- Implemented relay discovery in the DHT
+- Added helper functions for creating a host with relay client capabilities
+
+## Progress Updates
+
+- [Date: Current] Completed implementation of all phases (1-6)
+- [Date: Current] Created directory structure, package.json, and all Node.js files for the tunnel registry service
+- [Date: Current] Created Node.js client for nodes behind NAT
+- [Date: Current] Created Go tunnel client for bootnodes and devs
+- [Date: Current] Created Go client for resolving knirv:// URIs
+- [Date: Current] Created Go code to manage Node.js services
+- [Date: Current] Implemented libp2p circuit relay configuration for both relay and client nodes
+- [Date: Current] Updated Go configuration to include NodeJSServices and TunnelClient configurations
+- [Date: Current] Updated DefaultConfig and DefaultRootConfig to include default values for NodeJSServices and TunnelClient
+- [Date: Current] Updated MergeConfigs to handle merging NodeJSServices and TunnelClient configurations
+- [Date: Current] All planned features have been implemented

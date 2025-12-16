@@ -1,0 +1,7 @@
+			if err := bc.validateTransactionInBlockContext(tx, tempBlockAccounts); err != nil {
+				// Mark the transaction as invalid in the block
+				b.InvalidTxHashes[tx.TransactionHash] = err.Error()
+				agentlog.LogError(fmt.Sprintf("Invalid transaction %s in block %d during AddBlock: %v", tx.TransactionHash, b.BlockNumber, err), nil)
+				bc.Unlock()
+				return err // Reject block
+			}

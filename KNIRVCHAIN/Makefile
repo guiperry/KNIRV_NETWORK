@@ -444,7 +444,7 @@ generate/wrapper:
 	@echo "Generating run_wrapper.sh..."
 	@echo '#!/bin/bash' > ./run_wrapper.sh
 	@echo '' >> ./run_wrapper.sh
-	@echo 'RESTART_AFTER_UPDATE_EXIT_CODE=10' >> ./run_wrapper.sh # Exit code for go-rocket-update restart
+	# Updater restart handling removed; Updater (go-rocket-update) is no longer used
 	@echo 'BINARY_NAME="./$(BINARY_NAME)" # Adjust if binary is in a different location relative to script' >> ./run_wrapper.sh
 	@echo '' >> ./run_wrapper.sh
 	@echo 'while true; do' >> ./run_wrapper.sh
@@ -452,7 +452,7 @@ generate/wrapper:
 	@echo '    $${BINARY_NAME} "$$@"' >> ./run_wrapper.sh
 	@echo '    EXIT_CODE=$$?' >> ./run_wrapper.sh
 	@echo '' >> ./run_wrapper.sh
-	@echo '    if [ $${EXIT_CODE} -eq $${RESTART_AFTER_UPDATE_EXIT_CODE} ]; then' >> ./run_wrapper.sh
+	@echo '    # Updater restart handling removed; no restart-on-update logic' >> ./run_wrapper.sh
 	@echo '        echo "Application requested restart after update. Restarting in 1s..."' >> ./run_wrapper.sh
 	@echo '        sleep 1' >> ./run_wrapper.sh
 	@echo '    else' >> ./run_wrapper.sh

@@ -482,8 +482,8 @@ type BlockchainStruct struct {
 	Blocks               []*Block                 `json:"block_chain"`
 	ChainAddress         string                   `json:"chain_address"`
 	ChainID              string                   `json:"chain_id"` // Unique identifier for this blockchain
-	ConsensusManager     *p2p.ConsensusManager    `json:"-"`        // Exclude from JSON serialization
-	p2pConsensusMgr      *p2p.P2PConsensusManager `json:"-"`        // Local P2P consensus manager
+	ConsensusManager     p2p.ConsensusManager     `json:"-"`        // Exclude from JSON serialization
+	P2PConsensusMgr      *p2p.P2PConsensusManager `json:"-"`        // Local P2P consensus manager
 	Reflections          map[string]bool          `json:"reflections"`
 	MiningLocked         bool                     `json:"mining_locked"`
 	OwnerAddress         string                   `json:"owner_address"`
@@ -1464,9 +1464,9 @@ func (bc *BlockchainStruct) BroadcastTransaction(transaction *Transaction) {
 	agentlog.LogInfo("Broadcasting transaction: " + transaction.TransactionHash)
 
 	// Check if we have a P2P consensus manager
-	if bc.p2pConsensusMgr != nil {
+	if bc.P2PConsensusMgr != nil {
 		// Use P2P broadcasting
-		if err := bc.p2pConsensusMgr.BroadcastTransaction(convertToP2PTransaction(transaction)); err != nil {
+		if err := bc.P2PConsensusMgr.BroadcastTransaction(convertToP2PTransaction(transaction)); err != nil {
 			agentlog.LogError("Failed to broadcast transaction via P2P:", err)
 		}
 		return
@@ -1709,7 +1709,7 @@ func (bc *BlockchainStruct) CheckCMUExists(cmu string) bool {
 	return false
 }
 
-func (bc *BlockchainStruct) ProofOfWorkMining(ctx context.Context, minersAddress string, cm *ConsensusManager) {
+func (bc *BlockchainStruct) ProofOfWorkMining(ctx context.Context, minersAddress string, cm ConsensusManager) {
 	agentlog.LogInfo("Starting to Mine...")
 	nonce := 0
 	cons := cm
@@ -1757,7 +1757,7 @@ func (bc *BlockchainStruct) ProofOfWorkMining(ctx context.Context, minersAddress
 		}
 
 		// 2. Check if mining is locked or an update is required by consensus
-		if (*cons).GetMiningLockState() || (*cons).GetUpdateRequired() {
+		if cons.GetMiningLockState() || cons.GetUpdateRequired() {
 			// agentlog.LogInfo("Mining locked or update required, pausing...")
 			continue // Restart the loop (will enter select again)
 		}
@@ -1824,7 +1824,7 @@ func (bc *BlockchainStruct) ProofOfWorkMining(ctx context.Context, minersAddress
 			if bc.StopMining {
 				return
 			}
-			if (*cons).GetMiningLockState() || (*cons).GetUpdateRequired() {
+			if cons.GetMiningLockState() || cons.GetUpdateRequired() {
 				agentlog.LogInfo("Mining locked/update needed during nonce search, restarting cycle...")
 				time.Sleep(500 * time.Millisecond) // Small pause before restarting outer loop
 				bc.setIsActivelyMining(false)
@@ -1855,7 +1855,7 @@ func (bc *BlockchainStruct) ProofOfWorkMining(ctx context.Context, minersAddress
 			hashHex := hex.EncodeToString(guessHash)
 			if strings.HasPrefix(hashHex, desiredHashPrefix) {
 				// 10. Found a valid hash! Check lock one last time.
-				if (*cons).GetMiningLockState() {
+				if cons.GetMiningLockState() {
 					agentlog.LogInfo("Found valid hash but mining locked before adding block, restarting cycle...")
 					time.Sleep(500 * time.Millisecond)
 					bc.setIsActivelyMining(false)
@@ -1910,7 +1910,7 @@ func (bc *BlockchainStruct) ProofOfWorkMining(ctx context.Context, minersAddress
 }
 
 // HybridMining implements the PoAu-D consensus with PoW fallback
-func (bc *BlockchainStruct) HybridMining(ctx context.Context, minersAddress string, cm *ConsensusManager) {
+func (bc *BlockchainStruct) HybridMining(ctx context.Context, minersAddress string, cm ConsensusManager) {
 	agentlog.LogInfo("Starting Hybrid Mining (PoAu-D with PoW fallback)...")
 
 	// Set mining flag
@@ -1957,7 +1957,7 @@ func (bc *BlockchainStruct) HybridMining(ctx context.Context, minersAddress stri
 		}
 
 		// Check if mining is locked or an update is required by consensus
-		if (*cm).GetMiningLockState() || (*cm).GetUpdateRequired() {
+		if cm.GetMiningLockState() || cm.GetUpdateRequired() {
 			continue
 		}
 
@@ -2260,9 +2260,9 @@ func (bc *BlockchainStruct) BroadcastBlock(b *Block) {
 	agentlog.LogInfo(fmt.Sprintf("Broadcasting block #%d", b.BlockNumber))
 
 	// Check if we have a P2P consensus manager
-	if bc.p2pConsensusMgr != nil {
+	if bc.P2PConsensusMgr != nil {
 		// Use P2P broadcasting
-		if err := bc.p2pConsensusMgr.BroadcastBlock(convertToP2PBlock(b)); err != nil {
+		if err := bc.P2PConsensusMgr.BroadcastBlock(convertToP2PBlock(b)); err != nil {
 			agentlog.LogError("Failed to broadcast block via P2P:", err)
 		}
 		return

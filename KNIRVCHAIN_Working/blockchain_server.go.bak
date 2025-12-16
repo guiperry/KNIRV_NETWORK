@@ -1,0 +1,1645 @@
+package main
+
+import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"KNIRVCHAIN/errors"
+	pb "KNIRVCHAIN/proto"
+
+	"google.golang.org/protobuf/proto"
+)
+
+type BlockchainServer struct {
+	port             uint64
+	BlockchainPtr    *BlockchainStruct
+	chainAddress     string
+	server           *http.Server
+	db               *LevelDB
+	discoveryManager DiscoveryService
+	p2pPort          int
+}
+
+var pendingRegistrations = struct {
+	sync.RWMutex
+	m map[string]*pendingRegistration // Key: pendingTransactionHash
+}{m: make(map[string]*pendingRegistration)}
+
+type pendingRegistration struct {
+	Transaction *Transaction
+	CreatedAt   time.Time
+}
+
+// MCPPrepareCapabilityRegistrationRequest represents the request to prepare a capability registration
+type MCPPrepareCapabilityRegistrationRequest struct {
+	FromAddress    string      `json:"from_address"`
+	CapabilityType string      `json:"capability_type"`
+	Descriptor     interface{} `json:"descriptor"`
+	DesiredName    string      `json:"desired_name,omitempty"`
+	Fee            uint64      `json:"fee"`
+}
+
+// UnsignedTransactionDetails represents the details of an unsigned transaction
+type UnsignedTransactionDetails struct {
+	From      string `json:"from"`
+	To        string `json:"to,omitempty"`
+	Value     uint64 `json:"value"`
+	Data      []byte `json:"data"`
+	Timestamp int64  `json:"timestamp"`
+	Fee       uint64 `json:"fee"`
+	Type      string `json:"type"`
+}
+
+// MCPPrepareCapabilityRegistrationResponse represents the response to a prepare capability registration request
+type MCPPrepareCapabilityRegistrationResponse struct {
+	CapabilityID                   string                     `json:"capability_id"`
+	UnsignedTransactionPayloadHash string                     `json:"unsigned_transaction_payload_hash"`
+	TransactionDetailsForSigning   UnsignedTransactionDetails `json:"transaction_details_for_signing"`
+	Message                        string                     `json:"message"`
+	EstimatedGasFee                uint64                     `json:"estimated_gas_fee,omitempty"`
+}
+
+const pendingRegistrationTTL = 5 * time.Minute // TTL for pending registrations
+
+// cleanupExpiredRegistrations periodically removes expired pending registrations
+// This function should be called as a goroutine
+var cleanupRunning sync.Once
+
+func cleanupExpiredRegistrations() {
+	// Ensure this only runs once
+	cleanupRunning.Do(func() {
+		log.Println("[INFO] Starting pending registration cleanup goroutine")
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			now := time.Now()
+			expiredHashes := []string{}
+
+			// Find expired registrations
+			pendingRegistrations.RLock()
+			for hash, reg := range pendingRegistrations.m {
+				if now.Sub(reg.CreatedAt) > pendingRegistrationTTL {
+					expiredHashes = append(expiredHashes, hash)
+				}
+			}
+			pendingRegistrations.RUnlock()
+
+			// Remove expired registrations
+			if len(expiredHashes) > 0 {
+				pendingRegistrations.Lock()
+				for _, hash := range expiredHashes {
+					delete(pendingRegistrations.m, hash)
+				}
+				pendingRegistrations.Unlock()
+				log.Printf("[INFO] Cleaned up %d expired pending registrations", len(expiredHashes))
+			}
+		}
+	})
+}
+
+// Stop gracefully shuts down the blockchain server
+func (bcs *BlockchainServer) Stop(ctx context.Context) error {
+	var err error
+
+	// Shutdown HTTP server if running
+	if bcs.server != nil {
+		if shutdownErr := bcs.server.Shutdown(ctx); shutdownErr != nil {
+			err = fmt.Errorf("HTTP server shutdown error: %w", shutdownErr)
+		}
+	}
+
+	/// Stop discovery manager if exists
+	if bcs.discoveryManager != nil {
+		log.Println("Attempting to stop discovery manager...") // Added logging
+		// --- Just call Close() directly ---
+		bcs.discoveryManager.Close()
+		// --- No error check needed as Close() returns nothing ---
+		log.Println("Discovery manager stopped.") // Added logging
+	} else {
+		log.Println("Discovery manager was not initialized.") // Added logging
+	}
+
+	// Log final status
+	if err != nil {
+		log.Printf("Graceful shutdown completed with errors: %v", err)
+	} else {
+		log.Println("Graceful shutdown completed successfully.")
+	}
+
+	// Return only the potential error from the HTTP server shutdown
+	return err
+}
+
+// Define a struct for the request body
+type URIRequest struct {
+	DesiredID string `json:"desired_id"` // The ID the requestor wants to use
+}
+
+// Add this struct for the faucet request body
+type FaucetRequest struct {
+	Address string `json:"address"`
+	Amount  uint64 `json:"amount"`
+}
+
+// ServerInfo represents information about the server
+type ServerInfo struct {
+	HTTPPort    uint64   `json:"http_port"`
+	P2PPort     int      `json:"p2p_port"`
+	ChainID     string   `json:"chain_id"`
+	PeerID      string   `json:"dev_id,omitempty"`
+	Multiaddrs  []string `json:"multiaddrs,omitempty"`
+	Version     string   `json:"version"`
+	Connections int      `json:"connections,omitempty"`
+}
+
+// Modify NewBlockchainServer to accept DiscoveryService and p2pPort
+func NewBlockchainServer(port uint64, blockchain *BlockchainStruct, db *LevelDB, discoveryMgr DiscoveryService, p2pPort int) *BlockchainServer {
+	// Set the server port globally so it can be accessed from other parts of the code
+	SetServerPort(port) // Keep this if needed elsewhere
+
+	return &BlockchainServer{
+		port:             port,
+		BlockchainPtr:    blockchain,
+		db:               db,
+		discoveryManager: discoveryMgr, // Store the passed-in manager
+		p2pPort:          p2pPort,      // Store the correct P2P port
+	}
+}
+
+func (bcs *BlockchainServer) Start() error {
+	// Ensure discovery manager exists (was passed in)
+	if bcs.discoveryManager == nil {
+		log.Fatal("BlockchainServer started without a valid DiscoveryManager")
+		return fmt.Errorf("discovery manager not provided")
+	}
+
+	// Create a new HTTP server instance
+	mux := http.NewServeMux()
+	mux.HandleFunc("/chain", bcs.handleGetChain)
+	mux.HandleFunc("/reflections", bcs.handleGetReflections)
+	mux.HandleFunc("/add_reflection", bcs.handleAddReflection)
+	mux.HandleFunc("/block", bcs.handleReceiveBlock)
+	mux.HandleFunc("/transaction", bcs.handleReceiveTransaction)
+	mux.HandleFunc("/txn_pool", bcs.handleGetTransactionPool)
+	mux.HandleFunc("/ping", bcs.handlePing)
+	mux.HandleFunc("/health", bcs.handleHealth)
+	mux.HandleFunc("/uriGenerator", bcs.handleURIGenerator)
+	mux.HandleFunc("/info", bcs.handleServerInfo)
+	mux.HandleFunc("/devs", bcs.handleGetPeers)
+
+	// Add the test-only faucet handler
+	mux.HandleFunc("/test/faucet", bcs.handleTestFaucet)
+
+	// Add MCP API endpoints
+	mux.HandleFunc("/mcp/capability/prepare_registration", bcs.handleMCPPrepareCapabilityRegistration) // New client-side signing flow
+	mux.HandleFunc("/mcp/capability/register", bcs.handleMCPRegisterCapability)                        // Legacy endpoint (deprecated)
+	mux.HandleFunc("/mcp/capability/register/initiate", bcs.handleMCPRegisterCapabilityInitiate)       // Legacy two-step registration (deprecated)
+	mux.HandleFunc("/mcp/capability/register/finalize", bcs.handleMCPRegisterCapabilityFinalize)       // Legacy two-step registration (deprecated)
+	mux.HandleFunc("/mcp/capability/invoke", bcs.handleMCPInvokeCapability)
+	mux.HandleFunc("/mcp/capability/update", bcs.handleMCPUpdateCapability)
+	mux.HandleFunc("/mcp/capability/get", bcs.handleMCPGetCapability)
+	mux.HandleFunc("/mcp/capability/list", bcs.handleMCPListCapabilities)
+
+	bcs.server = &http.Server{
+		Addr:    ":" + strconv.Itoa(int(bcs.port)),
+		Handler: mux,
+	}
+
+	// Start the HTTP server (blocking call, should be run in goroutine by caller)
+	log.Println("Starting HTTP server listener on port:", bcs.port)
+	if err := bcs.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Printf("HTTP server ListenAndServe error: %v", err) // Log error instead of Fatal
+		return fmt.Errorf("failed to start HTTP server listener: %w", err)
+	}
+	log.Println("HTTP server listener stopped.")
+	return nil // Return nil when stopped gracefully
+}
+
+func (bcs *BlockchainServer) handlePing(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	log.Printf("Ping request from %s", r.RemoteAddr)
+
+	// Simple ping response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "ok",
+		"port":   strconv.Itoa(int(bcs.port)),
+	})
+}
+
+func (bcs *BlockchainServer) handleGetChain(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Create a simplified blockchain structure for serialization
+	type SerializableBlockchain struct {
+		Blocks          []*Block        `json:"blocks"`
+		TransactionPool []*Transaction  `json:"transaction_pool"`
+		ChainAddress    string          `json:"chain_address"`
+		Reflections     map[string]bool `json:"reflections"`
+		ChainID         string          `json:"chain_id"`
+	}
+
+	serializableBC := SerializableBlockchain{
+		Blocks:          bcs.BlockchainPtr.Blocks,
+		TransactionPool: bcs.BlockchainPtr.TransactionPool,
+		ChainAddress:    bcs.BlockchainPtr.ChainAddress,
+		Reflections:     bcs.BlockchainPtr.Reflections,
+		ChainID:         bcs.BlockchainPtr.ChainID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(serializableBC); err != nil {
+		log.Printf("failed to encode blockchain response: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (bcs *BlockchainServer) handleGetReflections(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	reflections := bcs.BlockchainPtr.Reflections
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(reflections); err != nil {
+		log.Printf("failed to encode reflections response: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (bcs *BlockchainServer) handleAddReflection(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var newReflection string
+	if err := json.NewDecoder(r.Body).Decode(&newReflection); err != nil {
+		log.Printf("failed to decode reflection request: %v", err)
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	bcs.BlockchainPtr.Reflections[newReflection] = true
+	fmt.Fprintf(w, "Reflection %s added successfully\n", newReflection)
+}
+
+func (bcs *BlockchainServer) handleReceiveBlock(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var data map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		err = fmt.Errorf("failed to decode block request: %w", err)
+		log.Println(err)
+		http.Error(w, "Bad request: invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Extract the block from the request
+	blockData, ok := data["block"]
+	if !ok {
+		err := fmt.Errorf("missing 'block' field in request")
+		log.Println(err)
+		http.Error(w, "Bad request: missing 'block' field", http.StatusBadRequest)
+		return
+	}
+
+	// Convert the block data to JSON
+	blockJSON, err := json.Marshal(blockData)
+	if err != nil {
+		err = fmt.Errorf("failed to marshal block data: %w", err)
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Unmarshal the JSON into a Block struct
+	var block Block
+	if err := json.Unmarshal(blockJSON, &block); err != nil {
+		http.Error(w, "Bad request: invalid block format", http.StatusBadRequest)
+		log.Println("Error unmarshaling block:", err)
+		return
+	}
+
+	// Verify the block
+	if !block.VerifyBlock() {
+		err := fmt.Errorf("%w: %v", errors.ErrInvalidBlock, block)
+		log.Println(err)
+		http.Error(w, "Bad request: invalid block", http.StatusBadRequest)
+		return
+	}
+
+	// Add the block to the blockchain using the stored db connection
+	bcs.BlockchainPtr.AddBlock(bcs.db, &block)
+
+	// Respond with success
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "Block added successfully")
+}
+
+func (bcs *BlockchainServer) handleReceiveTransaction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var data map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		err = fmt.Errorf("failed to decode transaction request: %w", err)
+		log.Println(err)
+		http.Error(w, "Bad request: invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Extract the transaction from the request
+	txnData, ok := data["transaction"]
+	if !ok {
+		err := fmt.Errorf("missing 'transaction' field in request")
+		log.Println(err)
+		http.Error(w, "Bad request: missing 'transaction' field", http.StatusBadRequest)
+		return
+	}
+
+	// Convert the transaction data to JSON
+	txnJSON, err := json.Marshal(txnData)
+	if err != nil {
+		err = fmt.Errorf("failed to marshal transaction data: %w", err)
+		log.Println(err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Unmarshal the JSON into a Transaction struct
+	var transaction Transaction
+	if err := json.Unmarshal(txnJSON, &transaction); err != nil {
+		http.Error(w, "Bad request: invalid transaction format", http.StatusBadRequest)
+		log.Println("Error unmarshaling transaction:", err)
+		return
+	}
+
+	// Verify and add the transaction to the pool
+	bcs.BlockchainPtr.AddTransactionToTransactionPool(&transaction)
+
+	// Respond with success
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "Transaction added successfully")
+}
+
+func (bcs *BlockchainServer) handleGetTransactionPool(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	bcs.BlockchainPtr.Lock()
+	defer bcs.BlockchainPtr.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(bcs.BlockchainPtr.TransactionPool); err != nil {
+		log.Printf("failed to encode transaction pool response: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (bcs *BlockchainServer) handleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	log.Printf("Health check request from %s", r.RemoteAddr)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	// Include DHT status if available
+	status := "ok"
+	if bcs.discoveryManager == nil {
+		status = "ok-no-dht"
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": status,
+		"port":   strconv.Itoa(int(bcs.port)),
+	})
+}
+
+func (bcs *BlockchainServer) handleURIGenerator(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed use POST", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var reqBody URIRequest
+
+	// First check if body is nil
+	if r.Body == nil {
+		log.Println("URI Generator: Request body is nil, generating UUID.")
+		reqBody.DesiredID = "" // Treat as empty request
+	} else {
+		// Then try to decode the body
+		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+			// Handle cases where body is empty or malformed
+			if err == io.EOF {
+				// Body is empty, proceed with UUID generation
+				log.Println("URI Generator: Request body is empty, generating UUID.")
+				reqBody.DesiredID = "" // Ensure it's empty
+			} else {
+				http.Error(w, "Invalid request body", http.StatusBadRequest)
+				return
+			}
+		}
+		defer r.Body.Close()
+	}
+
+	chosenID := ""
+	isAvailable := true // Assume available initially
+
+	// 2. Check availability if DesiredID is provided
+	if reqBody.DesiredID != "" {
+		// Basic validation for DesiredID (add more rules as needed)
+		if len(reqBody.DesiredID) < 3 || len(reqBody.DesiredID) > 64 || strings.ContainsAny(reqBody.DesiredID, "/.?& ") {
+			http.Error(w, "Invalid DesiredID format (length 3-64, no special chars)", http.StatusBadRequest)
+			return
+		}
+
+		// --- Check 1: Blockchain History ---
+		bcs.BlockchainPtr.Lock() // Lock for reading blocks
+		existsInBlocks := bcs.BlockchainPtr.CheckIfIDExistsInBlocks(reqBody.DesiredID)
+		bcs.BlockchainPtr.Unlock() // Unlock after reading
+
+		if existsInBlocks {
+			isAvailable = false
+			log.Printf("URI Generator: Desired ID '%s' found in existing blocks.", reqBody.DesiredID)
+		} else {
+			// --- Check 2: DHT (Only if not found in blocks and manager exists) ---
+			if bcs.discoveryManager != nil {
+				log.Printf("URI Generator: Checking DHT availability for desired ID: %s", reqBody.DesiredID)
+				providers, err := bcs.discoveryManager.FindResource(r.Context(), reqBody.DesiredID, DiscoveryResourceTypeChain)
+
+				// --- Refined Availability Logic ---
+				if err == nil {
+					// No error during lookup
+					if len(providers) > 0 {
+						// Found providers, ID is taken
+						isAvailable = false
+						log.Printf("URI Generator: Desired ID '%s' is already taken by %d provider(s).", reqBody.DesiredID, len(providers))
+					} else {
+						// No error and no providers found -> ID is available
+						isAvailable = true
+						log.Printf("URI Generator: No providers found for '%s'. ID is available.", reqBody.DesiredID)
+					}
+				} else {
+					// An error occurred during lookup
+					// Check if the error specifically indicates "no providers found"
+					// Note: The exact error message might vary slightly depending on libp2p versions or context.
+					// Adjust the string check if necessary based on actual error logs.
+					if strings.Contains(err.Error(), "no providers found") || strings.Contains(err.Error(), "failed to find any dev in table") {
+						// Specific error indicating availability
+						isAvailable = true
+						log.Printf("URI Generator: DHT lookup confirmed no providers for '%s'. ID is available. (Error: %v)", reqBody.DesiredID, err)
+					} else {
+						// Any other error (timeout, network issue, etc.)
+						log.Printf("URI Generator: Error checking resource availability for '%s': %v", reqBody.DesiredID, err)
+						// Treat unexpected errors as internal server errors, don't proceed with minting
+						http.Error(w, "Internal server error during availability check", http.StatusInternalServerError)
+						return // Stop processing
+					}
+				}
+				// --- End Refined Availability Logic ---
+
+			} else {
+				log.Printf("URI Generator: Discovery manager not available, skipping DHT check for '%s'. Assuming available based on local chain.", reqBody.DesiredID)
+				// isAvailable remains true if not found in blocks
+			} // <<< Closes the 'else' for discoveryManager == nil
+		} // <<< Closes the 'else' for existsInBlocks
+	} // <<< Closes the 'if' for reqBody.DesiredID != ""
+	// --- End of Availability Checks ---
+
+	// 3. Decide on the ID and handle unavailability
+	if reqBody.DesiredID != "" {
+		if isAvailable {
+			chosenID = reqBody.DesiredID
+			log.Printf("URI Generator: Desired ID '%s' is available.", chosenID)
+		} else {
+			// ID is taken, return conflict error
+			http.Error(w, fmt.Sprintf("Desired ID '%s' is not available", reqBody.DesiredID), http.StatusConflict)
+			return
+		}
+	} else {
+		// No desired ID provided, generate a UUID
+		chosenID = CalculateChainID() // CalculateChainID uses uuid.New()
+		log.Printf("URI Generator: No desired ID, generated UUID: %s", chosenID)
+	}
+
+	// Get or generate the chain ID
+	chainID := bcs.BlockchainPtr.ChainID
+	if chainID == "" {
+		// If chain ID is not set, generate one
+		chainID = CalculateChainID()
+		bcs.BlockchainPtr.ChainID = chainID
+	}
+
+	// Create chain metadata
+	metadata := ChainMetadata{
+		ChainID: chosenID,
+	}
+
+	// Generate the URI using the new format
+	uri := GenerateChainURI(metadata)
+
+	// If we have a discovery manager, announce this resource
+	if bcs.discoveryManager != nil {
+		// Announce the newly minted ID on the DHT
+		go func(idToAnnounce string) { // Announce in background
+			// Create a context with timeout for the announcement
+			announceCtx, announceCancel := context.WithTimeout(context.Background(), 30*time.Second) // 30-second timeout
+			defer announceCancel()
+
+			// Announce the resource using the chosen ID
+			err := bcs.discoveryManager.AnnounceMintedResource(announceCtx, idToAnnounce, DiscoveryResourceTypeChain)
+			if err != nil {
+				// Log the error, but the URI generation itself succeeded
+				log.Printf("[%s] WARNING: Failed to announce newly minted resource %s on DHT: %v", bcs.BlockchainPtr.ChainID, idToAnnounce, err)
+			}
+		}(chosenID)
+	}
+
+	// Create a transaction to mint the URI onto the blockchain
+	uriTxn := NewTransaction(
+		BLOCKCHAIN_ADDRESS, // From
+		"",                 // To (empty for URI mint)
+		0,                  // Value
+		[]byte(uri),        // Data contains the URI
+	)
+	uriTxn.Status = TXN_VERIFICATION_SUCCESS // Bypass verification
+
+	// Add to transaction pool
+	bcs.BlockchainPtr.addVerifiedTxnToPoolAndSignal(uriTxn)
+
+	// Log the generated URI and chosen ID
+	log.Printf("Generated URI: %s (Using ID: %s)", uri, chosenID)
+	log.Printf("URI Mint Transaction Hash: %s", uriTxn.TransactionHash)
+
+	// Return the URI and hash in JSON format
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated) // Use 201 Created as we are creating a resource (the URI/Txn)
+	json.NewEncoder(w).Encode(map[string]string{
+		"uri":      uri,
+		"txn_hash": uriTxn.TransactionHash,
+	})
+}
+
+// Handle server info request
+// This endpoint provides information about the server, including DHT status if available
+// It returns a JSON response with the server's HTTP port, P2P port, chain ID, and DHT information
+
+func (bcs *BlockchainServer) handleServerInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	info := ServerInfo{
+		HTTPPort: bcs.port,
+		P2PPort:  bcs.p2pPort,
+		ChainID:  bcs.BlockchainPtr.ChainID,
+		Version:  "1.0.0", // Replace with actual version
+	}
+
+	// Add DHT-specific information if available
+	if bcs.discoveryManager != nil {
+		info.PeerID = bcs.discoveryManager.GetPeerID()
+		info.Multiaddrs = bcs.discoveryManager.GetSelfMultiaddrs()
+		// Count connections (this is a placeholder, implement actual connection counting)
+		info.Connections = len(bcs.BlockchainPtr.Reflections)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(info); err != nil {
+		log.Printf("Failed to encode server info: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func (bcs *BlockchainServer) handleGetPeers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// If we don't have a discovery manager, return an empty list
+	if bcs.discoveryManager == nil {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]string{})
+		return
+	}
+
+	// Get chainID from query parameter or use our own
+	chainID := r.URL.Query().Get("chainID")
+	if chainID == "" {
+		chainID = bcs.BlockchainPtr.ChainID
+	}
+
+	devs, err := bcs.discoveryManager.FindResource(context.Background(), chainID, DiscoveryResourceTypeChain)
+	if err != nil {
+		log.Printf("Failed to find devs: %v", err)
+		// Return an empty list if we can't find devs
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode([]string{})
+		return
+	}
+
+	// Convert dev info to multiaddrs
+	var devAddrs []string
+	for _, dev := range devs {
+		for _, addr := range dev.Addrs {
+			devAddrs = append(devAddrs, fmt.Sprintf("%s/p2p/%s", addr.String(), dev.ID.String()))
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(devAddrs); err != nil {
+		log.Printf("Failed to encode devs: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+func (bcs *BlockchainServer) handleTestFaucet(w http.ResponseWriter, r *http.Request) {
+	// IMPORTANT: Add checks here to ensure this endpoint is ONLY active during testing
+	// e.g., check an environment variable, build tag, or a specific config flag.
+	// if !IsTestEnvironment() {
+	//     http.Error(w, "Endpoint not available", http.StatusForbidden)
+	// 	   return
+	// }
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req FaucetRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Address == "" || req.Amount == 0 {
+		http.Error(w, "Address and amount are required", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("[TEST FAUCET] Request to fund %s with %d", req.Address, req.Amount)
+
+	// Create the funding transaction from the blockchain faucet address
+	faucetTxn := NewTransaction(BLOCKCHAIN_ADDRESS, req.Address, req.Amount, []byte("test faucet funding"))
+	// Mark as successful immediately - bypasses normal signing/verification for faucet
+	faucetTxn.Status = TXN_VERIFICATION_SUCCESS // Mark as verified to enter pool
+
+	// Add directly to the transaction pool (bypassing normal AddTransactionToTransactionPool checks)
+	// Use the internal append method with locking
+	bcs.BlockchainPtr.addVerifiedTxnToPoolAndSignal(faucetTxn)
+
+	// Optionally broadcast this faucet transaction if needed for multi-node tests
+	// bcs.BlockchainPtr.BroadcastTransaction(faucetTxn)
+
+	log.Printf("[TEST FAUCET] Added funding transaction %s to pool for %s", faucetTxn.TransactionHash, req.Address)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(faucetTxn) // Respond with the created transaction
+}
+
+// --- MCP API Handlers ---
+
+// handleMCPRegisterCapabilityInitiate - Step 1 of 2-step registration
+func (bcs *BlockchainServer) handleMCPRegisterCapabilityInitiate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check content type to determine if we're receiving protobuf or JSON
+	contentType := r.Header.Get("Content-Type")
+	isProtobuf := strings.Contains(contentType, "application/protobuf") || strings.Contains(contentType, "application/x-protobuf")
+
+	var capabilityDescriptor interface{}
+	var capabilityName string
+	var capabilityTimestamp int64
+	var requestFrom string
+	var requestFee uint64
+	var requestCapabilityType string
+	var requestDesiredName string
+	var err error
+
+	if isProtobuf {
+		// Handle protobuf request
+		bodyBytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to read request body: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		// Unmarshal into a protobuf message
+		var requestProto pb.MCPRegisterCapabilityDataProto
+		if err := proto.Unmarshal(bodyBytes, &requestProto); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to unmarshal protobuf request: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		// Extract data from the protobuf message
+		// This would need additional fields in the proto definition for from, fee, etc.
+		// For now, we'll assume these are passed as HTTP headers or query parameters
+		requestFrom = r.URL.Query().Get("from")
+		// Public key is not used in this function
+		feeStr := r.URL.Query().Get("fee")
+		requestFee, _ = strconv.ParseUint(feeStr, 10, 64)
+		requestDesiredName = r.URL.Query().Get("desiredName")
+
+		// Extract capability descriptor from protobuf
+		if requestProto.CapabilityDescriptor == nil {
+			http.Error(w, "Missing capability descriptor in protobuf request", http.StatusBadRequest)
+			return
+		}
+
+		// Convert protobuf to Go struct
+		capabilityDescriptor, err = ConvertProtoToCapability(requestProto.CapabilityDescriptor)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to convert protobuf capability: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		// Extract capability type and name based on the descriptor type
+		switch desc := capabilityDescriptor.(type) {
+		case ResourceDescriptor:
+			capabilityName = desc.Name
+			capabilityTimestamp = desc.Timestamp
+			requestCapabilityType = string(desc.CapabilityType)
+		case ToolDescriptor:
+			capabilityName = desc.Name
+			capabilityTimestamp = desc.Timestamp
+			requestCapabilityType = string(desc.CapabilityType)
+		case PromptDescriptor:
+			capabilityName = desc.Name
+			capabilityTimestamp = desc.Timestamp
+			requestCapabilityType = string(desc.CapabilityType)
+		case MemoryServiceDescriptor:
+			capabilityName = desc.Name
+			capabilityTimestamp = desc.Timestamp
+			requestCapabilityType = string(desc.CapabilityType)
+		default:
+			http.Error(w, "Unsupported capability type in protobuf request", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Handle JSON request (legacy format)
+		var requestData struct {
+			From           string          `json:"from"`
+			PublicKey      string          `json:"publicKey"`
+			Fee            uint64          `json:"fee"`
+			CapabilityType string          `json:"capabilityType"`
+			Descriptor     json.RawMessage `json:"descriptor"`
+			DesiredName    string          `json:"desiredName,omitempty"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse request body: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		requestFrom = requestData.From
+		// Public key is not used in this function
+		requestFee = requestData.Fee
+		requestCapabilityType = requestData.CapabilityType
+		requestDesiredName = requestData.DesiredName
+
+		// Validate the capability type
+		switch requestData.CapabilityType {
+		case string(CapabilityTypeResource):
+			var descriptor ResourceDescriptor
+			if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+				http.Error(w, fmt.Sprintf("Failed to parse ResourceDescriptor: %v", err), http.StatusBadRequest)
+				return
+			}
+			capabilityName = descriptor.Name
+			capabilityTimestamp = descriptor.Timestamp
+			capabilityDescriptor = descriptor
+		case string(CapabilityTypeTool):
+			var descriptor ToolDescriptor
+			if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+				http.Error(w, fmt.Sprintf("Failed to parse ToolDescriptor: %v", err), http.StatusBadRequest)
+				return
+			}
+			capabilityName = descriptor.Name
+			capabilityTimestamp = descriptor.Timestamp
+			capabilityDescriptor = descriptor
+		case string(CapabilityTypePrompt):
+			var descriptor PromptDescriptor
+			if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+				http.Error(w, fmt.Sprintf("Failed to parse PromptDescriptor: %v", err), http.StatusBadRequest)
+				return
+			}
+			capabilityName = descriptor.Name
+			capabilityTimestamp = descriptor.Timestamp
+			capabilityDescriptor = descriptor
+		case string(CapabilityTypeMemoryService):
+			var descriptor MemoryServiceDescriptor
+			if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+				http.Error(w, fmt.Sprintf("Failed to parse MemoryServiceDescriptor: %v", err), http.StatusBadRequest)
+				return
+			}
+			capabilityName = descriptor.Name
+			capabilityTimestamp = descriptor.Timestamp
+			capabilityDescriptor = descriptor
+		default:
+			http.Error(w, fmt.Sprintf("Invalid capability type: %s", requestData.CapabilityType), http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Ensure timestamp is set if not provided
+	if capabilityTimestamp == 0 {
+		capabilityTimestamp = time.Now().Unix()
+	}
+
+	nameForIDGeneration := requestDesiredName
+	if nameForIDGeneration == "" {
+		if capabilityName == "" {
+			http.Error(w, "Either 'desiredName' in request or 'name' in descriptor must be provided for ID generation.", http.StatusBadRequest)
+			return
+		}
+		nameForIDGeneration = capabilityName
+	}
+
+	generatedCapabilityID := GenerateCapabilityID(nameForIDGeneration)
+
+	// Check if this server-generated ID already exists
+	if _, errDb := bcs.db.GetCapabilityByID(generatedCapabilityID); errDb == nil {
+		http.Error(w, fmt.Sprintf("Capability ID '%s' (generated from name '%s' and type '%s') already exists.", generatedCapabilityID, nameForIDGeneration, requestCapabilityType), http.StatusConflict)
+		return
+	}
+
+	// Update the descriptor with the server-generated ID.
+	// This requires modifying the specific descriptor type.
+	var finalDescriptorForHashing interface{}
+	switch desc := capabilityDescriptor.(type) {
+	case ResourceDescriptor:
+		desc.ID = generatedCapabilityID
+		// Ensure timestamp is set
+		if desc.Timestamp == 0 {
+			desc.Timestamp = capabilityTimestamp
+		}
+		finalDescriptorForHashing = desc
+	case ToolDescriptor:
+		desc.ID = generatedCapabilityID
+		// Ensure timestamp is set
+		if desc.Timestamp == 0 {
+			desc.Timestamp = capabilityTimestamp
+		}
+		finalDescriptorForHashing = desc
+	case PromptDescriptor:
+		desc.ID = generatedCapabilityID
+		// Ensure timestamp is set
+		if desc.Timestamp == 0 {
+			desc.Timestamp = capabilityTimestamp
+		}
+		finalDescriptorForHashing = desc
+	case MemoryServiceDescriptor:
+		desc.ID = generatedCapabilityID
+		// Ensure timestamp is set
+		if desc.Timestamp == 0 {
+			desc.Timestamp = capabilityTimestamp
+		}
+		finalDescriptorForHashing = desc
+	default:
+		http.Error(w, "Internal server error: could not set generated ID on descriptor.", http.StatusInternalServerError)
+		return
+	}
+
+	// Convert to protobuf for transaction data
+	capabilityProto, err := ConvertToCapabilityDescriptorContainerProto(finalDescriptorForHashing)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to convert capability to protobuf: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Create register capability data protobuf
+	registerData := &pb.MCPRegisterCapabilityDataProto{
+		CapabilityDescriptor: capabilityProto,
+	}
+
+	// Marshal the protobuf message for transaction data
+	txnData, err := proto.Marshal(registerData)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to marshal protobuf transaction data: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Create a new MCP transaction (unsigned at this stage)
+	pendingTxn := NewMCPTransaction(
+		requestFrom,
+		"", // No recipient for capability registration
+		0,  // No value transfer
+		txnData,
+		TransactionTypeMCPRegisterCapability,
+		requestFee,
+		capabilityTimestamp, // Pass the timestamp from the descriptor
+	)
+
+	// Store this pending transaction with creation timestamp
+	pendingRegistrations.Lock()
+	pendingRegistrations.m[pendingTxn.TransactionHash] = &pendingRegistration{
+		Transaction: pendingTxn,
+		CreatedAt:   time.Now(),
+	}
+	pendingRegistrations.Unlock()
+
+	// Start cleanup goroutine if not already running
+	go cleanupExpiredRegistrations()
+
+	log.Printf("[INFO] Initiated capability registration. Pending hash: %s, Generated ID: %s", pendingTxn.TransactionHash, generatedCapabilityID)
+
+	// Determine response format based on Accept header
+	acceptHeader := r.Header.Get("Accept")
+	if strings.Contains(acceptHeader, "application/protobuf") || strings.Contains(acceptHeader, "application/x-protobuf") {
+		// Return protobuf response
+		// This would need a response protobuf message definition
+		// For now, we'll return JSON
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":                 "pending_signature",
+			"pendingTransactionHash": pendingTxn.TransactionHash,
+			"canonicalCapabilityID":  generatedCapabilityID,
+			"fullDescriptor":         finalDescriptorForHashing,
+		})
+	} else {
+		// Return JSON response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":                 "pending_signature",
+			"pendingTransactionHash": pendingTxn.TransactionHash,
+			"canonicalCapabilityID":  generatedCapabilityID,
+			"fullDescriptor":         finalDescriptorForHashing,
+		})
+	}
+}
+
+// handleMCPRegisterCapabilityFinalize - Step 2 of 2-step registration
+func (bcs *BlockchainServer) handleMCPRegisterCapabilityFinalize(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the request body
+	var requestData struct {
+		PendingTransactionHash string `json:"pendingTransactionHash"`
+		PublicKey              string `json:"publicKey"`
+		Signature              string `json:"signature"` // Changed to string to handle base64 encoding
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to parse request body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Retrieve the pending transaction first
+	pendingRegistrations.RLock()
+	pendingReg, exists := pendingRegistrations.m[requestData.PendingTransactionHash]
+	pendingRegistrations.RUnlock()
+
+	if !exists {
+		http.Error(w, fmt.Sprintf("Pending transaction with hash %s not found or expired", requestData.PendingTransactionHash), http.StatusNotFound)
+		return
+	}
+
+	// Check if the pending registration has expired
+	if time.Since(pendingReg.CreatedAt) > pendingRegistrationTTL {
+		// Remove expired registration
+		pendingRegistrations.Lock()
+		delete(pendingRegistrations.m, requestData.PendingTransactionHash)
+		pendingRegistrations.Unlock()
+
+		http.Error(w, fmt.Sprintf("Pending transaction with hash %s has expired", requestData.PendingTransactionHash), http.StatusGone)
+		return
+	}
+
+	// Decode the base64-encoded signature
+	signature, err := base64.StdEncoding.DecodeString(requestData.Signature)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to decode signature: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Get the transaction from the pending registration
+	pendingTxn := pendingReg.Transaction
+
+	// Set the public key and signature
+	pendingTxn.PublicKey = requestData.PublicKey
+	pendingTxn.Signature = signature // Use the decoded signature
+
+	// Log transaction details before verification
+	log.Printf("[DEBUG] Verifying signature for transaction: %+v", pendingTxn)
+	log.Printf("[DEBUG] Signature (hex): %x", pendingTxn.Signature)
+	log.Printf("[DEBUG] Public Key: %s", pendingTxn.PublicKey)
+
+	// Verify the signature
+	if !pendingTxn.VerifySignature() {
+		log.Printf("[ERROR] Signature verification failed for transaction hash: %s", pendingTxn.TransactionHash)
+		http.Error(w, "Invalid signature", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("[DEBUG] Signature verification successful for transaction hash: %s", pendingTxn.TransactionHash)
+
+	// Remove from pending registrations
+	pendingRegistrations.Lock()
+	delete(pendingRegistrations.m, requestData.PendingTransactionHash)
+	pendingRegistrations.Unlock()
+
+	log.Printf("[INFO] Finalized capability registration for transaction hash: %s", pendingTxn.TransactionHash)
+
+	// Add the transaction to the pool with error checking
+	err = bcs.BlockchainPtr.AddTransactionToTransactionPool(pendingTxn)
+	if err != nil {
+		log.Printf("[ERROR] Failed to add MCP Register transaction to pool: %v\nTransaction: %+v\nSignature: %x",
+			err, pendingTxn, pendingTxn.Signature)
+		http.Error(w, fmt.Sprintf(`{"error":"Failed to process transaction","details":"%v"}`, err),
+			http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Log successful addition
+	log.Printf("[INFO] Successfully added transaction %s to pool", pendingTxn.TransactionHash)
+
+	// Extract capability ID and type from the transaction data for DHT announcement
+	var capabilityID string
+	var capabilityType string
+
+	// First try to unmarshal as protobuf
+	var registerProto pb.MCPRegisterCapabilityDataProto
+	if err := proto.Unmarshal(pendingTxn.Data, &registerProto); err == nil {
+		// Successfully parsed as protobuf
+		if registerProto.CapabilityDescriptor != nil {
+			// Convert protobuf to Go struct for extraction
+			capabilityDescriptor, err := ConvertProtoToCapability(registerProto.CapabilityDescriptor)
+			if err == nil {
+				// Extract ID and type based on the descriptor type
+				switch desc := capabilityDescriptor.(type) {
+				case ResourceDescriptor:
+					capabilityID = desc.ID
+					capabilityType = string(desc.CapabilityType)
+				case ToolDescriptor:
+					capabilityID = desc.ID
+					capabilityType = string(desc.CapabilityType)
+				case PromptDescriptor:
+					capabilityID = desc.ID
+					capabilityType = string(desc.CapabilityType)
+				case MemoryServiceDescriptor:
+					capabilityID = desc.ID
+					capabilityType = string(desc.CapabilityType)
+				}
+			}
+		}
+	} else {
+		// If not protobuf, try JSON format (legacy)
+		var txnDataMap map[string]interface{}
+		if err := json.Unmarshal(pendingTxn.Data, &txnDataMap); err != nil {
+			log.Printf("[ERROR] Failed to unmarshal transaction data for DHT announcement: %v", err)
+			// Continue anyway since the transaction is already in the pool
+		} else {
+			// Extract capability ID and type from the JSON data
+			if descriptor, ok := txnDataMap["capabilityDescriptor"].(map[string]interface{}); ok {
+				if id, ok := descriptor["id"].(string); ok {
+					capabilityID = id
+				}
+				if capType, ok := descriptor["capabilityType"].(string); ok {
+					capabilityType = capType
+				}
+			}
+		}
+	}
+
+	if capabilityID == "" || capabilityType == "" {
+		log.Printf("[ERROR] Failed to extract capability ID or type from transaction data for DHT announcement")
+		// Continue anyway since the transaction is already in the pool
+	}
+
+	// Generate and Announce URI
+	capabilityURI := GenerateMCPCapabilityURI(capabilityID, CapabilityType(capabilityType), "", nil)
+
+	if bcs.discoveryManager != nil {
+		go func(idToAnnounce string, capTypeStr string) { // Announce in background
+			announceCtx, announceCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer announceCancel()
+			// Announce using the lowercase string of the capability type for DHT key consistency
+			err := bcs.discoveryManager.AnnounceMCPCapability(announceCtx, idToAnnounce, strings.ToLower(capTypeStr))
+			if err != nil {
+				log.Printf("[ERROR] Failed to announce registered capability %s (URI: %s) on DHT: %v", idToAnnounce, capabilityURI, err)
+			} else {
+				log.Printf("[INFO] Successfully announced MCP capability %s (type: %s, URI: %s) on DHT", idToAnnounce, strings.ToLower(capTypeStr), capabilityURI)
+			}
+		}(capabilityID, capabilityType)
+	}
+
+	// Return success response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":           "success",
+		"transaction_hash": pendingTxn.TransactionHash,
+		"capability_uri":   capabilityURI,
+	})
+}
+
+// handleMCPRegisterCapability handles the registration of a new MCP capability (legacy endpoint)
+// This endpoint is deprecated and will be removed in a future version.
+// Use /mcp/capability/register/initiate and /mcp/capability/register/finalize instead.
+func (bcs *BlockchainServer) handleMCPRegisterCapability(w http.ResponseWriter, r *http.Request) {
+	// Log deprecation warning
+	log.Printf("[WARNING] Deprecated endpoint /mcp/capability/register used. Please migrate to the two-step registration process.")
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the request body
+	var requestData struct {
+		From           string          `json:"from"`
+		PublicKey      string          `json:"publicKey"`
+		Signature      []byte          `json:"signature"`
+		Fee            uint64          `json:"fee"`
+		CapabilityType string          `json:"capabilityType"`
+		Descriptor     json.RawMessage `json:"descriptor"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to parse request body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Validate the capability type
+	var capabilityDescriptor interface{}
+	var capabilityID string // To store the ID for URI generation and DHT announcement
+	var err error
+
+	switch requestData.CapabilityType {
+	case string(CapabilityTypeResource):
+		var descriptor ResourceDescriptor
+		if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse ResourceDescriptor: %v", err), http.StatusBadRequest)
+			return
+		}
+		capabilityID = descriptor.ID // Get ID from the descriptor
+		//capabilityTimestamp = descriptor.Timestamp
+		capabilityDescriptor = descriptor
+	case string(CapabilityTypeTool):
+		var descriptor ToolDescriptor
+		if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse ToolDescriptor: %v", err), http.StatusBadRequest)
+			return
+		}
+		capabilityID = descriptor.ID
+		//capabilityTimestamp = descriptor.Timestamp
+		capabilityDescriptor = descriptor
+	case string(CapabilityTypePrompt):
+		var descriptor PromptDescriptor
+		if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse PromptDescriptor: %v", err), http.StatusBadRequest)
+			return
+		}
+		capabilityID = descriptor.ID
+		//capabilityTimestamp = descriptor.Timestamp
+		capabilityDescriptor = descriptor
+	case string(CapabilityTypeMemoryService):
+		var descriptor MemoryServiceDescriptor
+		if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse MemoryServiceDescriptor: %v", err), http.StatusBadRequest)
+			return
+		}
+		capabilityID = descriptor.ID
+		//capabilityTimestamp = descriptor.Timestamp
+		capabilityDescriptor = descriptor
+	default:
+		http.Error(w, fmt.Sprintf("Invalid capability type: %s", requestData.CapabilityType), http.StatusBadRequest)
+		return
+	}
+
+	if capabilityID == "" {
+		http.Error(w, "Capability descriptor is missing a valid 'id' field", http.StatusBadRequest)
+		return
+	}
+
+	// Create transaction data that matches what the client signed
+	txnData, err := json.Marshal(map[string]interface{}{
+		"capabilityDescriptor": capabilityDescriptor,
+	})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to marshal transaction data: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Create a new MCP transaction
+	transaction := NewMCPTransaction(
+		requestData.From,
+		"", // No recipient for capability registration
+		0,  // No value transfer
+		txnData,
+		TransactionTypeMCPRegisterCapability,
+		requestData.Fee,
+	)
+
+	// Set the public key and signature
+	transaction.PublicKey = requestData.PublicKey
+	transaction.Signature = requestData.Signature
+
+	// Add the transaction to the pool with error checking
+	err = bcs.BlockchainPtr.AddTransactionToTransactionPool(transaction)
+	if err != nil {
+		log.Printf("[ERROR] Failed to add MCP Register transaction to pool: %v\nTransaction: %+v\nSignature: %x",
+			err, transaction, transaction.Signature)
+		http.Error(w, fmt.Sprintf(`{"error":"Failed to process transaction","details":"%v"}`, err),
+			http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Log successful addition
+	log.Printf("[INFO] Successfully added transaction %s to pool", transaction.TransactionHash)
+
+	// --- Generate and Announce URI ---
+	// Use capabilityID and its specific MCP type (e.g., "RESOURCE", "TOOL")
+	capabilityURI := GenerateMCPCapabilityURI(capabilityID, CapabilityType(requestData.CapabilityType), "", nil)
+
+	if bcs.discoveryManager != nil {
+		go func(idToAnnounce string, capTypeStr string) { // Announce in background
+			announceCtx, announceCancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer announceCancel()
+			// Announce using the lowercase string of the capability type for DHT key consistency
+			err := bcs.discoveryManager.AnnounceMCPCapability(announceCtx, idToAnnounce, strings.ToLower(capTypeStr))
+			if err != nil {
+				log.Printf("[ERROR] Failed to announce registered capability %s (URI: %s) on DHT: %v", idToAnnounce, capabilityURI, err)
+			} else {
+				log.Printf("[INFO] Successfully announced MCP capability %s (type: %s, URI: %s) on DHT", idToAnnounce, strings.ToLower(capTypeStr), capabilityURI)
+			}
+		}(capabilityID, requestData.CapabilityType)
+	}
+
+	// Return the transaction hash
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":           "success",
+		"transaction_hash": transaction.TransactionHash,
+		"capability_uri":   capabilityURI,
+	})
+}
+
+// handleMCPInvokeCapability handles the invocation of an MCP capability
+func (bcs *BlockchainServer) handleMCPInvokeCapability(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the request body
+	var requestData struct {
+		ContextRecord  json.RawMessage `json:"contextRecord"`
+		From           string          `json:"from"`
+		PublicKey      string          `json:"publicKey"`
+		Signature      []byte          `json:"signature"`
+		Fee            uint64          `json:"fee"`
+		CapabilityType string          `json:"capabilityType"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to parse request body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Parse the context record
+	var contextRecord ContextRecord
+	if err := json.Unmarshal(requestData.ContextRecord, &contextRecord); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to parse ContextRecord: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Resolve CapabilityID if it's a URI
+	resolvedCapabilityID, err := resolveIdentifier(contextRecord.CapabilityID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to resolve capability identifier '%s': %v", contextRecord.CapabilityID, err), http.StatusBadRequest)
+		return
+	}
+	if resolvedCapabilityID != contextRecord.CapabilityID {
+		log.Printf("Resolved capability URI '%s' to ID '%s' for invocation", contextRecord.CapabilityID, resolvedCapabilityID)
+		contextRecord.CapabilityID = resolvedCapabilityID // Update contextRecord with the raw ID
+	}
+
+	// Create a transaction for the capability invocation
+	txnData, err := json.Marshal(map[string]interface{}{
+		"contextRecord": contextRecord,
+	})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to marshal transaction data: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Create a new MCP transaction
+	transaction := NewMCPTransaction(
+		requestData.From,
+		"", // No recipient for capability invocation
+		0,  // No value transfer
+		txnData,
+		TransactionTypeMCPInvokeCapability,
+		requestData.Fee,
+	)
+
+	// Set the public key and signature
+	transaction.PublicKey = requestData.PublicKey
+	transaction.Signature = requestData.Signature
+
+	// Add the transaction to the pool
+	err = bcs.BlockchainPtr.AddTransactionToTransactionPool(transaction)
+	if err != nil {
+		log.Printf("[ERROR] Failed to add MCP Invoke transaction to pool: %v\nTransaction: %+v\nSignature: %x",
+			err, transaction, transaction.Signature)
+		http.Error(w, fmt.Sprintf(`{"error":"Failed to process transaction","details":"%v"}`, err), http.StatusUnprocessableEntity)
+		return
+	}
+
+	// Return the transaction hash
+	// Generate MCP capability URI
+	capabilityURI := GenerateMCPCapabilityURI(
+		transaction.TransactionHash, // Use transaction hash as capability ID
+		CapabilityTypeResource,      // Capability type
+		"",                          // No path
+		map[string]string{
+			"type": requestData.CapabilityType,
+		},
+	)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated) // Set HTTP status to 201 Created on success
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":           "success",
+		"transaction_hash": transaction.TransactionHash,
+		"capability_uri":   capabilityURI,
+	})
+}
+
+// handleMCPUpdateCapability handles the update of an MCP capability
+func (bcs *BlockchainServer) handleMCPUpdateCapability(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the request body
+	var requestData struct {
+		CapabilityID   string          `json:"capabilityID"`
+		CapabilityType string          `json:"capabilityType"`
+		Descriptor     json.RawMessage `json:"descriptor"`
+		From           string          `json:"from"`
+		PublicKey      string          `json:"publicKey"`
+		Signature      []byte          `json:"signature"`
+		Fee            uint64          `json:"fee"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to parse request body: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Resolve CapabilityID if it's a URI
+	resolvedCapabilityID, err := resolveIdentifier(requestData.CapabilityID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to resolve capability identifier '%s': %v", requestData.CapabilityID, err), http.StatusBadRequest)
+		return
+	}
+	if resolvedCapabilityID != requestData.CapabilityID {
+		log.Printf("Resolved capability URI '%s' to ID '%s' for update", requestData.CapabilityID, resolvedCapabilityID)
+		requestData.CapabilityID = resolvedCapabilityID // Update requestData with the raw ID
+	}
+
+	// Validate the capability type
+	var capabilityDescriptor interface{}
+
+	switch requestData.CapabilityType {
+	case string(CapabilityTypeResource):
+		var descriptor ResourceDescriptor
+		if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse ResourceDescriptor: %v", err), http.StatusBadRequest)
+			return
+		}
+		capabilityDescriptor = descriptor
+	case string(CapabilityTypeTool):
+		var descriptor ToolDescriptor
+		if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse ToolDescriptor: %v", err), http.StatusBadRequest)
+			return
+		}
+		capabilityDescriptor = descriptor
+	case string(CapabilityTypePrompt):
+		var descriptor PromptDescriptor
+		if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse PromptDescriptor: %v", err), http.StatusBadRequest)
+			return
+		}
+		capabilityDescriptor = descriptor
+	case string(CapabilityTypeMemoryService):
+		var descriptor MemoryServiceDescriptor
+		if err := json.Unmarshal(requestData.Descriptor, &descriptor); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse MemoryServiceDescriptor: %v", err), http.StatusBadRequest)
+			return
+		}
+		capabilityDescriptor = descriptor
+	default:
+		http.Error(w, fmt.Sprintf("Invalid capability type: %s", requestData.CapabilityType), http.StatusBadRequest)
+		return
+	}
+
+	// Create transaction data that matches what the client signed
+	txnData, err := json.Marshal(map[string]interface{}{
+		"capabilityID":         requestData.CapabilityID,
+		"capabilityType":       requestData.CapabilityType,
+		"capabilityDescriptor": capabilityDescriptor,
+	})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to marshal transaction data: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Create a new MCP transaction
+	transaction := NewMCPTransaction(
+		requestData.From,
+		"", // No recipient for capability update
+		0,  // No value transfer
+		txnData,
+		TransactionTypeMCPUpdateCapability,
+		requestData.Fee,
+	)
+
+	// Set the public key and signature
+	transaction.PublicKey = requestData.PublicKey
+	transaction.Signature = requestData.Signature
+
+	// Add the transaction to the pool
+	bcs.BlockchainPtr.AddTransactionToTransactionPool(transaction)
+
+	// Return the transaction hash
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":           "success",
+		"transaction_hash": transaction.TransactionHash,
+	})
+}
+
+// handleMCPGetCapability handles the retrieval of an MCP capability
+func (bcs *BlockchainServer) handleMCPGetCapability(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get the capability ID from the query parameters
+	uriParam := r.URL.Query().Get("uri") // New: allow full URI
+	idParam := r.URL.Query().Get("id")   // Existing: allow raw ID
+
+	var capabilityIDToLookup string
+
+	if uriParam != "" {
+		// If 'uri' is provided, parse it to get the ID
+		parsedID, resourceType, path, params, err := ParseResourceURI(uriParam)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Invalid capability URI '%s': %v", uriParam, err), http.StatusBadRequest)
+			return
+		}
+		// You could optionally validate the resourceType or use path/params here
+		_ = resourceType
+		_ = path
+		_ = params
+		capabilityIDToLookup = parsedID
+		log.Printf("Parsed capability ID '%s' from URI '%s'", capabilityIDToLookup, uriParam)
+	} else if idParam != "" {
+		// If 'id' is provided, use it directly
+		capabilityIDToLookup = idParam
+	} else {
+		http.Error(w, "Missing capability identifier (expected 'uri' or 'id' query parameter)", http.StatusBadRequest)
+		return
+	}
+
+	// Get the capability from the database
+	capability, err := bcs.db.GetCapabilityByID(capabilityIDToLookup)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get capability: %v", err), http.StatusNotFound)
+		return
+	}
+
+	// Return the capability
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":     "success",
+		"capability": capability,
+	})
+}
+
+// handleMCPListCapabilities handles the listing of MCP capabilities
+func (bcs *BlockchainServer) handleMCPListCapabilities(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get the capability type from the query parameters (optional)
+	capabilityTypeFilter := r.URL.Query().Get("type")
+
+	// Get the owner from the query parameters (optional)
+	ownerFilter := r.URL.Query().Get("owner")
+
+	var capabilities []interface{}
+	var err error
+
+	if capabilityTypeFilter != "" && ownerFilter != "" {
+		// If both filters are provided, we need to get by type, then filter by owner (or vice-versa)
+		// This could be optimized with a more specific DB query if performance becomes an issue.
+		capsByType, errType := bcs.db.GetCapabilitiesByType(capabilityTypeFilter)
+		if errType != nil {
+			http.Error(w, fmt.Sprintf("Failed to get capabilities by type: %v", errType), http.StatusInternalServerError)
+			return
+		}
+		for _, capInterface := range capsByType {
+			// Need to assert the type to access the Owner field from BaseDescriptor
+			// This is a bit verbose; a helper function might be good if this pattern repeats.
+			var owner string
+			switch c := capInterface.(type) {
+			case ResourceDescriptor:
+				owner = c.Owner
+			case ToolDescriptor:
+				owner = c.Owner
+			case PromptDescriptor:
+				owner = c.Owner
+			case MemoryServiceDescriptor:
+				owner = c.Owner
+			}
+			if owner == ownerFilter {
+				capabilities = append(capabilities, capInterface)
+			}
+		}
+	} else if capabilityTypeFilter != "" {
+		capabilities, err = bcs.db.GetCapabilitiesByType(capabilityTypeFilter)
+	} else if ownerFilter != "" {
+		capabilities, err = bcs.db.GetCapabilitiesByOwner(ownerFilter)
+	} else {
+		// No filters, get all (this might be too broad for production, consider pagination or default limits)
+		// For now, let's assume we want all if no filters.
+		// A more robust solution would be to iterate through all capability keys or have a dedicated "GetAllCapabilities" in DB.
+		// This is a simplified approach for now:
+		http.Error(w, "Listing all capabilities without filters is not yet fully optimized. Please provide at least one filter (type or owner).", http.StatusNotImplemented)
+		return
+	}
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to list capabilities: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"capabilities": capabilities, // Return the actual fetched capabilities
+	})
+}
+
+// resolveIdentifier checks if the input string is a URI and parses it to get the ID,
+// otherwise returns the input string as is (assuming it's a raw ID).
+func resolveIdentifier(identifierOrURI string) (string, error) {
+	if strings.HasPrefix(identifierOrURI, "agent://") {
+		id, _, _, _, err := ParseResourceURI(identifierOrURI) // We only need the ID part here
+		if err != nil {
+			return "", fmt.Errorf("invalid URI format '%s': %w", identifierOrURI, err)
+		}
+		return id, nil
+	}
+	return identifierOrURI, nil // Assume it's a raw ID
+}

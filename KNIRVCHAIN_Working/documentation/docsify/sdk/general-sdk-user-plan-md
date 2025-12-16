@@ -1,0 +1,1546 @@
+# KNIRVCHAIN General SDK User Plan
+
+## Overview
+
+This document outlines the development plan for the KNIRVCHAIN SDK CLI tool, focusing on general blockchain operations, network connections, and capability invocation. It provides a comprehensive guide for users who want to interact with the KNIRVCHAIN network without necessarily developing plugins.
+
+## Project Structure
+
+```
+agent-sdk-tool/
+├── cmd/                    # Command-line interface
+│   ├── root.go             # Root command
+│   ├── wallet/             # Wallet management commands
+│   │   ├── new.go          # Create new wallet
+│   │   ├── import.go       # Import existing wallet
+│   │   ├── list.go         # List wallets
+│   │   └── export.go       # Export wallet
+│   ├── mcp/                # MCP commands
+│   │   ├── invoke.go       # Invoke capability
+│   │   └── query.go        # Query capability
+│   └── network/            # Network commands
+│       ├── status.go       # Check network status
+│       └── devs.go        # List devs
+├── pkg/                    # Package code
+│   ├── wallet/             # Wallet management
+│   │   ├── manager.go      # Wallet operations
+│   │   ├── encryption.go   # Encryption utilities
+│   │   └── keystore.go     # Key storage
+│   ├── api/                # API client
+│   │   ├── client.go       # HTTP client
+│   │   ├── mcp.go          # MCP API
+│   │   └── network.go      # Network API
+│   ├── signer/             # Transaction signing
+│   │   ├── transaction.go  # Transaction data structures
+│   │   ├── hash.go         # Hash calculation
+│   │   └── sign.go         # Signature generation
+│   └── util/               # Utilities
+│       ├── config.go       # Configuration
+│       ├── logger.go       # Logging
+│       └── prompt.go       # User prompts
+├── main.go                 # Entry point
+└── go.mod                  # Go module file
+```
+
+## Development Phases
+
+### Phase 1: Wallet Management
+
+1. **Wallet Creation**
+   - Implement key pair generation:
+     ```go
+     // GenerateKeyPair generates a new ECDSA key pair
+     func GenerateKeyPair() (*ecdsa.PrivateKey, error) {
+         return crypto.GenerateKey()
+     }
+     ```
+   - Implement wallet file creation:
+     ```go
+     // CreateWallet creates a new wallet file
+     func CreateWallet(filePath string, password string) (string, error) {
+         // Generate key pair
+         privateKey, err := GenerateKeyPair()
+         if err != nil {
+             return "", fmt.Errorf("failed to generate key pair: %w", err)
+         }
+         
+         // Encrypt private key
+         encryptedKey, err := EncryptPrivateKey(privateKey, password)
+         if err != nil {
+             return "", fmt.Errorf("failed to encrypt private key: %w", err)
+         }
+         
+         // Create wallet file
+         wallet := Wallet{
+             Address:      crypto.PubkeyToAddress(privateKey.PublicKey).Hex(),
+             EncryptedKey: encryptedKey,
+             Version:      "1.0.0",
+             Timestamp:    time.Now().Unix(),
+         }
+         
+         // Marshal to JSON
+         walletJSON, err := json.MarshalIndent(wallet, "", "  ")
+         if err != nil {
+             return "", fmt.Errorf("failed to marshal wallet to JSON: %w", err)
+         }
+         
+         // Write to file
+         if err := ioutil.WriteFile(filePath, walletJSON, 0600); err != nil {
+             return "", fmt.Errorf("failed to write wallet file: %w", err)
+         }
+         
+         return wallet.Address, nil
+     }
+     ```
+
+2. **Wallet Import**
+   - Implement private key import:
+     ```go
+     // ImportPrivateKey imports a private key and creates a wallet file
+     func ImportPrivateKey(privateKeyHex string, filePath string, password string) (string, error) {
+         // Decode private key
+         privateKeyBytes, err := hex.DecodeString(strings.TrimPrefix(privateKeyHex, "0x"))
+         if err != nil {
+             return "", fmt.Errorf("failed to decode private key: %w", err)
+         }
+         
+         // Create private key
+         privateKey, err := crypto.ToECDSA(privateKeyBytes)
+         if err != nil {
+             return "", fmt.Errorf("failed to create private key: %w", err)
+         }
+         
+         // Encrypt private key
+         encryptedKey, err := EncryptPrivateKey(privateKey, password)
+         if err != nil {
+             return "", fmt.Errorf("failed to encrypt private key: %w", err)
+         }
+         
+         // Create wallet file
+         wallet := Wallet{
+             Address:      crypto.PubkeyToAddress(privateKey.PublicKey).Hex(),
+             EncryptedKey: encryptedKey,
+             Version:      "1.0.0",
+             Timestamp:    time.Now().Unix(),
+         }
+         
+         // Marshal to JSON
+         walletJSON, err := json.MarshalIndent(wallet, "", "  ")
+         if err != nil {
+             return "", fmt.Errorf("failed to marshal wallet to JSON: %w", err)
+         }
+         
+         // Write to file
+         if err := ioutil.WriteFile(filePath, walletJSON, 0600); err != nil {
+             return "", fmt.Errorf("failed to write wallet file: %w", err)
+         }
+         
+         return wallet.Address, nil
+     }
+     ```
+
+3. **Wallet Listing**
+   - Implement wallet discovery and listing:
+     ```go
+     // ListWallets lists all wallets in the specified directory
+     func ListWallets(directory string) ([]WalletInfo, error) {
+         // Get all files in directory
+         files, err := ioutil.ReadDir(directory)
+         if err != nil {
+             return nil, fmt.Errorf("failed to read directory: %w", err)
+         }
+         
+         // Filter wallet files
+         var walletInfos []WalletInfo
+         for _, file := range files {
+             if file.IsDir() || !strings.HasSuffix(file.Name(), ".json") {
+                 continue
+             }
+             
+             // Read wallet file
+             filePath := filepath.Join(directory, file.Name())
+             walletData, err := ioutil.ReadFile(filePath)
+             if err != nil {
+                 continue
+             }
+             
+             // Parse wallet
+             var wallet Wallet
+             if err := json.Unmarshal(walletData, &wallet); err != nil {
+                 continue
+             }
+             
+             // Add to list
+             walletInfos = append(walletInfos, WalletInfo{
+                 Address:  wallet.Address,
+                 FilePath: filePath,
+             })
+         }
+         
+         return walletInfos, nil
+     }
+     ```
+
+4. **Wallet Export**
+   - Implement private key export:
+     ```go
+     // ExportPrivateKey exports the private key from a wallet file
+     func ExportPrivateKey(filePath string, password string) (string, error) {
+         // Read wallet file
+         walletData, err := ioutil.ReadFile(filePath)
+         if err != nil {
+             return "", fmt.Errorf("failed to read wallet file: %w", err)
+         }
+         
+         // Parse wallet
+         var wallet Wallet
+         if err := json.Unmarshal(walletData, &wallet); err != nil {
+             return "", fmt.Errorf("failed to parse wallet file: %w", err)
+         }
+         
+         // Decrypt private key
+         privateKey, err := DecryptPrivateKey(wallet.EncryptedKey, password)
+         if err != nil {
+             return "", fmt.Errorf("failed to decrypt private key: %w", err)
+         }
+         
+         // Convert to hex
+         privateKeyBytes := crypto.FromECDSA(privateKey)
+         privateKeyHex := "0x" + hex.EncodeToString(privateKeyBytes)
+         
+         return privateKeyHex, nil
+     }
+     ```
+
+### Phase 2: Network API Client
+
+1. **API Client Implementation**
+   - Create HTTP client with retry and timeout:
+     ```go
+     // APIClient represents a client for the KNIRVCHAIN API
+     type APIClient struct {
+         BaseURL    string
+         HTTPClient *http.Client
+         MaxRetries int
+         Logger     *log.Logger
+     }
+     
+     // NewAPIClient creates a new API client
+     func NewAPIClient(baseURL string, timeout time.Duration, maxRetries int, logger *log.Logger) *APIClient {
+         return &APIClient{
+             BaseURL: baseURL,
+             HTTPClient: &http.Client{
+                 Timeout: timeout,
+             },
+             MaxRetries: maxRetries,
+             Logger:     logger,
+         }
+     }
+     
+     // Do performs an HTTP request with retry logic
+     func (c *APIClient) Do(req *http.Request) (*http.Response, error) {
+         var resp *http.Response
+         var err error
+         
+         for i := 0; i <= c.MaxRetries; i++ {
+             resp, err = c.HTTPClient.Do(req)
+             if err == nil {
+                 return resp, nil
+             }
+             
+             // Log error
+             c.Logger.Printf("Request failed (attempt %d/%d): %v", i+1, c.MaxRetries+1, err)
+             
+             // Check if we should retry
+             if i < c.MaxRetries {
+                 // Wait with exponential backoff
+                 backoff := time.Duration(math.Pow(2, float64(i))) * time.Second
+                 time.Sleep(backoff)
+                 
+                 // Create a new request (the old one may have been consumed)
+                 req = copyRequest(req)
+             }
+         }
+         
+         return nil, fmt.Errorf("request failed after %d attempts: %w", c.MaxRetries+1, err)
+     }
+     ```
+
+2. **Network Status API**
+   - Implement network status endpoint:
+     ```go
+     // GetNetworkStatus gets the status of the KNIRVCHAIN network
+     func (c *APIClient) GetNetworkStatus(ctx context.Context) (*NetworkStatus, error) {
+         // Create request
+         req, err := http.NewRequestWithContext(ctx, "GET", c.BaseURL+"/network/status", nil)
+         if err != nil {
+             return nil, fmt.Errorf("failed to create request: %w", err)
+         }
+         
+         // Set headers
+         req.Header.Set("Content-Type", "application/json")
+         
+         // Send request
+         resp, err := c.Do(req)
+         if err != nil {
+             return nil, fmt.Errorf("failed to send request: %w", err)
+         }
+         defer resp.Body.Close()
+         
+         // Check status code
+         if resp.StatusCode != http.StatusOK {
+             return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+         }
+         
+         // Parse response
+         var status NetworkStatus
+         if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+             return nil, fmt.Errorf("failed to parse response: %w", err)
+         }
+         
+         return &status, nil
+     }
+     ```
+
+3. **Peer Discovery API**
+   - Implement dev discovery endpoint:
+     ```go
+     // GetPeers gets the list of connected devs
+     func (c *APIClient) GetPeers(ctx context.Context) ([]PeerInfo, error) {
+         // Create request
+         req, err := http.NewRequestWithContext(ctx, "GET", c.BaseURL+"/p2p/devs", nil)
+         if err != nil {
+             return nil, fmt.Errorf("failed to create request: %w", err)
+         }
+         
+         // Set headers
+         req.Header.Set("Content-Type", "application/json")
+         
+         // Send request
+         resp, err := c.Do(req)
+         if err != nil {
+             return nil, fmt.Errorf("failed to send request: %w", err)
+         }
+         defer resp.Body.Close()
+         
+         // Check status code
+         if resp.StatusCode != http.StatusOK {
+             return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+         }
+         
+         // Parse response
+         var devsResponse struct {
+             Peers []PeerInfo `json:"devs"`
+         }
+         if err := json.NewDecoder(resp.Body).Decode(&devsResponse); err != nil {
+             return nil, fmt.Errorf("failed to parse response: %w", err)
+         }
+         
+         return devsResponse.Peers, nil
+     }
+     ```
+
+### Phase 3: Transaction Signing
+
+1. **Transaction Construction**
+   - Implement transaction data structures:
+     ```go
+     // Transaction represents a KNIRVCHAIN transaction
+     type Transaction struct {
+         From           string `json:"from"`
+         To             string `json:"to,omitempty"`
+         Value          uint64 `json:"value"`
+         Data           []byte `json:"data"`
+         Timestamp      int64  `json:"timestamp"`
+         Fee            uint64 `json:"fee"`
+         Type           string `json:"type"`
+         PublicKey      string `json:"publicKey,omitempty"`
+         Signature      []byte `json:"signature,omitempty"`
+         TransactionHash string `json:"transactionHash,omitempty"`
+     }
+     
+     // UnsignedTransactionDetails represents the details of an unsigned transaction
+     type UnsignedTransactionDetails struct {
+         From      string      `json:"from"`
+         To        string      `json:"to,omitempty"`
+         Value     uint64      `json:"value"`
+         Data      interface{} `json:"data"` // Contains the MCPRegisterCapabilityData
+         Timestamp int64       `json:"timestamp"`
+         Fee       uint64      `json:"fee"`
+         Type      string      `json:"type"`
+     }
+     ```
+   - Create canonical serialization for hashing:
+     ```go
+     func GetCanonicalBytesForHashing(tx *Transaction) ([]byte, error) {
+         // Convert to protobuf
+         txProto := &pb.TransactionProto{
+             From:      tx.From,
+             To:        tx.To,
+             Value:     tx.Value,
+             Data:      tx.Data,
+             Timestamp: tx.Timestamp,
+             Fee:       tx.Fee,
+             Type:      tx.Type,
+         }
+         
+         // Marshal to protobuf binary format
+         return proto.Marshal(txProto)
+     }
+     ```
+   - Implement transaction hash calculation:
+     ```go
+     func CalculateTransactionHash(tx *Transaction) (string, error) {
+         canonicalBytes, err := GetCanonicalBytesForHashing(tx)
+         if err != nil {
+             return "", fmt.Errorf("failed to get canonical bytes: %w", err)
+         }
+         
+         hash := sha256.Sum256(canonicalBytes)
+         return "0x" + hex.EncodeToString(hash[:]), nil
+     }
+     ```
+
+2. **Signing Logic**
+   - Implement transaction signing with ECDSA:
+     ```go
+     func SignTransactionData(
+         privateKey *ecdsa.PrivateKey,
+         unsignedTxDetails UnsignedTransactionDetails,
+         mcpPayloadBytes []byte,
+     ) ([]byte, string, error) {
+         // Create a transaction object from unsigned details
+         tx := &Transaction{
+             From:      unsignedTxDetails.From,
+             To:        unsignedTxDetails.To,
+             Value:     unsignedTxDetails.Value,
+             Data:      mcpPayloadBytes,
+             Timestamp: unsignedTxDetails.Timestamp,
+             Fee:       unsignedTxDetails.Fee,
+             Type:      unsignedTxDetails.Type,
+         }
+         
+         // Get canonical bytes for hashing
+         canonicalBytes, err := GetCanonicalBytesForHashing(tx)
+         if err != nil {
+             return nil, "", fmt.Errorf("failed to get canonical bytes: %w", err)
+         }
+         
+         // Calculate hash
+         hash := sha256.Sum256(canonicalBytes)
+         
+         // Sign the hash
+         signature, err := crypto.Sign(hash[:], privateKey)
+         if err != nil {
+             return nil, "", fmt.Errorf("failed to sign transaction: %w", err)
+         }
+         
+         // Calculate transaction hash
+         txHash := "0x" + hex.EncodeToString(hash[:])
+         
+         return signature, txHash, nil
+     }
+     ```
+   - Create verification functions:
+     ```go
+     func VerifySignature(
+         publicKeyHex string,
+         signature []byte,
+         transactionHash string,
+     ) (bool, error) {
+         // Decode public key
+         publicKeyBytes, err := hex.DecodeString(strings.TrimPrefix(publicKeyHex, "0x"))
+         if err != nil {
+             return false, fmt.Errorf("failed to decode public key: %w", err)
+         }
+         
+         // Decode transaction hash
+         hashBytes, err := hex.DecodeString(strings.TrimPrefix(transactionHash, "0x"))
+         if err != nil {
+             return false, fmt.Errorf("failed to decode transaction hash: %w", err)
+         }
+         
+         // Verify signature
+         return crypto.VerifySignature(publicKeyBytes, hashBytes, signature[:len(signature)-1]), nil
+     }
+     ```
+   - Implement function to assemble signed transaction:
+     ```go
+     func AssembleSignedTransaction(
+         unsignedTxDetails UnsignedTransactionDetails,
+         publicKeyHex string,
+         signature []byte,
+         transactionHash string,
+     ) (*Transaction, error) {
+         // Convert data interface to bytes if needed
+         var dataBytes []byte
+         var err error
+         
+         switch data := unsignedTxDetails.Data.(type) {
+         case []byte:
+             dataBytes = data
+         case string:
+             dataBytes = []byte(data)
+         default:
+             dataBytes, err = json.Marshal(data)
+             if err != nil {
+                 return nil, fmt.Errorf("failed to marshal transaction data: %w", err)
+             }
+         }
+         
+         // Create signed transaction
+         tx := &Transaction{
+             From:           unsignedTxDetails.From,
+             To:             unsignedTxDetails.To,
+             Value:          unsignedTxDetails.Value,
+             Data:           dataBytes,
+             Timestamp:      unsignedTxDetails.Timestamp,
+             Fee:            unsignedTxDetails.Fee,
+             Type:           unsignedTxDetails.Type,
+             PublicKey:      publicKeyHex,
+             Signature:      signature,
+             TransactionHash: transactionHash,
+         }
+         
+         return tx, nil
+     }
+     ```
+
+### Phase 4: MCP Capability Invocation
+
+1. **Capability Invocation Command**
+   - Implement `mcp invoke-capability` command:
+     ```go
+     var invokeCapabilityCmd = &cobra.Command{
+         Use:   "invoke-capability",
+         Short: "Invoke a capability on the KNIRVCHAIN blockchain",
+         Long: `Invoke a capability (resource, tool, etc.) on the KNIRVCHAIN blockchain.
+     
+     This command prepares a capability invocation request, signs it, and submits it to the blockchain.
+     
+     Example:
+       agent-sdk-tool mcp invoke-capability --node http://localhost:8080 --wallet ./my-wallet.json \
+         --from 0x123abc... --capability-id resource_example_1234567890abcdef \
+         --input '{"param1":"value1","param2":"value2"}' --fee 100`,
+         RunE: func(cmd *cobra.Command, args []string) error {
+             // Implementation of the command
+             return invokeCapability(cmd, args)
+         },
+     }
+     ```
+   - Add required parameters and flags:
+     ```go
+     func init() {
+         // Required flags
+         invokeCapabilityCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         invokeCapabilityCmd.Flags().String("wallet", "", "Path to wallet file")
+         invokeCapabilityCmd.Flags().String("from", "", "Address of the sender")
+         invokeCapabilityCmd.Flags().String("capability-id", "", "ID of the capability to invoke")
+         invokeCapabilityCmd.Flags().String("input", "", "JSON string or path to input file")
+         invokeCapabilityCmd.Flags().Uint64("fee", 0, "Transaction fee")
+         
+         // Optional flags
+         invokeCapabilityCmd.Flags().String("password", "", "Wallet password (will prompt if not provided)")
+         
+         // Mark required flags
+         invokeCapabilityCmd.MarkFlagRequired("node")
+         invokeCapabilityCmd.MarkFlagRequired("wallet")
+         invokeCapabilityCmd.MarkFlagRequired("from")
+         invokeCapabilityCmd.MarkFlagRequired("capability-id")
+         invokeCapabilityCmd.MarkFlagRequired("input")
+         invokeCapabilityCmd.MarkFlagRequired("fee")
+     }
+     ```
+
+2. **Capability Invocation Flow**
+   - Implement the complete invocation flow:
+     ```go
+     func invokeCapability(cmd *cobra.Command, args []string) error {
+         // 1. Parse and validate flags
+         nodeURL, _ := cmd.Flags().GetString("node")
+         walletPath, _ := cmd.Flags().GetString("wallet")
+         fromAddress, _ := cmd.Flags().GetString("from")
+         capabilityID, _ := cmd.Flags().GetString("capability-id")
+         inputStr, _ := cmd.Flags().GetString("input")
+         fee, _ := cmd.Flags().GetUint64("fee")
+         password, _ := cmd.Flags().GetString("password")
+         
+         // 2. Load input
+         input, err := loadInput(inputStr)
+         if err != nil {
+             return fmt.Errorf("failed to load input: %w", err)
+         }
+         
+         // 3. Load wallet and get private key
+         if password == "" {
+             password, err = promptForPassword("Enter wallet password: ")
+             if err != nil {
+                 return fmt.Errorf("failed to get password: %w", err)
+             }
+         }
+         
+         privateKey, err := wallet.LoadAndDecryptWallet(walletPath, password)
+         if err != nil {
+             return fmt.Errorf("failed to load wallet: %w", err)
+         }
+         
+         // 4. Prepare capability invocation request
+         request := &MCPPrepareCapabilityInvocationRequest{
+             FromAddress:  fromAddress,
+             CapabilityID: capabilityID,
+             Input:        input,
+             Fee:          fee,
+         }
+         
+         // 5. Call API to prepare invocation
+         client := api.NewAPIClient(nodeURL, 30*time.Second, 3, logger)
+         response, err := client.PrepareCapabilityInvocation(context.Background(), *request)
+         if err != nil {
+             return fmt.Errorf("failed to prepare capability invocation: %w", err)
+         }
+         
+         // 6. Extract transaction details for signing
+         unsignedTxDetails := response.TransactionDetailsForSigning
+         mcpPayloadBytes, err := json.Marshal(unsignedTxDetails.Data)
+         if err != nil {
+             return fmt.Errorf("failed to marshal transaction data: %w", err)
+         }
+         
+         // 7. Sign transaction
+         signature, txHash, err := signer.SignTransactionData(privateKey, unsignedTxDetails, mcpPayloadBytes)
+         if err != nil {
+             return fmt.Errorf("failed to sign transaction: %w", err)
+         }
+         
+         // 8. Assemble signed transaction
+         publicKeyHex := wallet.GetPublicKeyHex(&privateKey.PublicKey)
+         signedTx, err := signer.AssembleSignedTransaction(unsignedTxDetails, publicKeyHex, signature, txHash)
+         if err != nil {
+             return fmt.Errorf("failed to assemble signed transaction: %w", err)
+         }
+         
+         // 9. Submit transaction
+         submitResponse, err := client.SubmitTransaction(context.Background(), *signedTx)
+         if err != nil {
+             return fmt.Errorf("failed to submit transaction: %w", err)
+         }
+         
+         // 10. Display result
+         fmt.Printf("Capability invoked successfully!\n")
+         fmt.Printf("Transaction Hash: %s\n", submitResponse.TransactionHash)
+         fmt.Printf("Context Record ID: %s\n", response.ContextRecordID)
+         
+         return nil
+     }
+     ```
+
+3. **Capability Query Command**
+   - Implement `mcp query-capability` command:
+     ```go
+     var queryCapabilityCmd = &cobra.Command{
+         Use:   "query-capability",
+         Short: "Query a capability on the KNIRVCHAIN blockchain",
+         Long: `Query a capability (resource, tool, etc.) on the KNIRVCHAIN blockchain.
+     
+     This command retrieves information about a capability from the blockchain.
+     
+     Example:
+       agent-sdk-tool mcp query-capability --node http://localhost:8080 \
+         --capability-id resource_example_1234567890abcdef`,
+         RunE: func(cmd *cobra.Command, args []string) error {
+             // Implementation of the command
+             return queryCapability(cmd, args)
+         },
+     }
+     ```
+   - Add required parameters and flags:
+     ```go
+     func init() {
+         // Required flags
+         queryCapabilityCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         queryCapabilityCmd.Flags().String("capability-id", "", "ID of the capability to query")
+         
+         // Optional flags
+         queryCapabilityCmd.Flags().Bool("include-descriptor", false, "Include the full capability descriptor")
+         
+         // Mark required flags
+         queryCapabilityCmd.MarkFlagRequired("node")
+         queryCapabilityCmd.MarkFlagRequired("capability-id")
+     }
+     ```
+   - Implement the query flow:
+     ```go
+     func queryCapability(cmd *cobra.Command, args []string) error {
+         // 1. Parse and validate flags
+         nodeURL, _ := cmd.Flags().GetString("node")
+         capabilityID, _ := cmd.Flags().GetString("capability-id")
+         includeDescriptor, _ := cmd.Flags().GetBool("include-descriptor")
+         
+         // 2. Call API to query capability
+         client := api.NewAPIClient(nodeURL, 30*time.Second, 3, logger)
+         capability, err := client.GetCapability(context.Background(), capabilityID, includeDescriptor)
+         if err != nil {
+             return fmt.Errorf("failed to query capability: %w", err)
+         }
+         
+         // 3. Display result
+         fmt.Printf("Capability ID: %s\n", capability.ID)
+         fmt.Printf("Type: %s\n", capability.Type)
+         fmt.Printf("Owner: %s\n", capability.Owner)
+         fmt.Printf("Created At: %s\n", time.Unix(capability.CreatedAt, 0).Format(time.RFC3339))
+         
+         if includeDescriptor {
+             fmt.Printf("\nDescriptor:\n")
+             descriptorJSON, err := json.MarshalIndent(capability.Descriptor, "", "  ")
+             if err != nil {
+                 return fmt.Errorf("failed to marshal descriptor: %w", err)
+             }
+             fmt.Println(string(descriptorJSON))
+         }
+         
+         return nil
+     }
+     ```
+
+### Phase 5: Network Commands
+
+1. **Network Status Command**
+   - Implement `network status` command:
+     ```go
+     var statusCmd = &cobra.Command{
+         Use:   "status",
+         Short: "Check the status of the KNIRVCHAIN network",
+         Long: `Check the status of the KNIRVCHAIN network.
+     
+     This command retrieves information about the current state of the network.
+     
+     Example:
+       agent-sdk-tool network status --node http://localhost:8080`,
+         RunE: func(cmd *cobra.Command, args []string) error {
+             // Implementation of the command
+             return checkNetworkStatus(cmd, args)
+         },
+     }
+     ```
+   - Add required parameters and flags:
+     ```go
+     func init() {
+         // Required flags
+         statusCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         
+         // Mark required flags
+         statusCmd.MarkFlagRequired("node")
+     }
+     ```
+   - Implement the status check flow:
+     ```go
+     func checkNetworkStatus(cmd *cobra.Command, args []string) error {
+         // 1. Parse and validate flags
+         nodeURL, _ := cmd.Flags().GetString("node")
+         
+         // 2. Call API to get network status
+         client := api.NewAPIClient(nodeURL, 30*time.Second, 3, logger)
+         status, err := client.GetNetworkStatus(context.Background())
+         if err != nil {
+             return fmt.Errorf("failed to get network status: %w", err)
+         }
+         
+         // 3. Display result
+         fmt.Printf("Network Status:\n")
+         fmt.Printf("  Node ID: %s\n", status.NodeID)
+         fmt.Printf("  Version: %s\n", status.Version)
+         fmt.Printf("  Connected Peers: %d\n", status.ConnectedPeers)
+         fmt.Printf("  Synced: %t\n", status.Synced)
+         fmt.Printf("  Current Block: %d\n", status.CurrentBlock)
+         fmt.Printf("  Highest Block: %d\n", status.HighestBlock)
+         fmt.Printf("  Uptime: %s\n", formatDuration(status.UptimeSeconds))
+         
+         return nil
+     }
+     ```
+
+2. **Peer List Command**
+   - Implement `network devs` command:
+     ```go
+     var devsCmd = &cobra.Command{
+         Use:   "devs",
+         Short: "List connected devs in the KNIRVCHAIN network",
+         Long: `List connected devs in the KNIRVCHAIN network.
+     
+     This command retrieves information about the devs connected to the node.
+     
+     Example:
+       agent-sdk-tool network devs --node http://localhost:8080`,
+         RunE: func(cmd *cobra.Command, args []string) error {
+             // Implementation of the command
+             return listPeers(cmd, args)
+         },
+     }
+     ```
+   - Add required parameters and flags:
+     ```go
+     func init() {
+         // Required flags
+         devsCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         
+         // Optional flags
+         devsCmd.Flags().String("format", "table", "Output format (table, json, csv)")
+         
+         // Mark required flags
+         devsCmd.MarkFlagRequired("node")
+     }
+     ```
+   - Implement the dev listing flow:
+     ```go
+     func listPeers(cmd *cobra.Command, args []string) error {
+         // 1. Parse and validate flags
+         nodeURL, _ := cmd.Flags().GetString("node")
+         format, _ := cmd.Flags().GetString("format")
+         
+         // 2. Call API to get devs
+         client := api.NewAPIClient(nodeURL, 30*time.Second, 3, logger)
+         devs, err := client.GetPeers(context.Background())
+         if err != nil {
+             return fmt.Errorf("failed to get devs: %w", err)
+         }
+         
+         // 3. Display result
+         switch format {
+         case "table":
+             // Create table
+             table := tablewriter.NewWriter(os.Stdout)
+             table.SetHeader([]string{"ID", "Address", "Direction", "Latency"})
+             
+             // Add rows
+             for _, dev := range devs {
+                 table.Append([]string{
+                     dev.ID,
+                     dev.Address,
+                     dev.Direction,
+                     fmt.Sprintf("%d ms", dev.LatencyMS),
+                 })
+             }
+             
+             // Print table
+             table.Render()
+             
+         case "json":
+             // Marshal to JSON
+             devsJSON, err := json.MarshalIndent(devs, "", "  ")
+             if err != nil {
+                 return fmt.Errorf("failed to marshal devs to JSON: %w", err)
+             }
+             
+             // Print JSON
+             fmt.Println(string(devsJSON))
+             
+         case "csv":
+             // Create CSV writer
+             w := csv.NewWriter(os.Stdout)
+             
+             // Write header
+             if err := w.Write([]string{"ID", "Address", "Direction", "Latency (ms)"}); err != nil {
+                 return fmt.Errorf("failed to write CSV header: %w", err)
+             }
+             
+             // Write rows
+             for _, dev := range devs {
+                 if err := w.Write([]string{
+                     dev.ID,
+                     dev.Address,
+                     dev.Direction,
+                     fmt.Sprintf("%d", dev.LatencyMS),
+                 }); err != nil {
+                     return fmt.Errorf("failed to write CSV row: %w", err)
+                 }
+             }
+             
+             // Flush writer
+             w.Flush()
+             
+             // Check for errors
+             if err := w.Error(); err != nil {
+                 return fmt.Errorf("CSV writer error: %w", err)
+             }
+             
+         default:
+             return fmt.Errorf("unsupported format: %s", format)
+         }
+         
+         return nil
+     }
+     ```
+
+### Phase 6: URI Handling and Integration
+
+1. **agent URI Scheme Implementation**
+   - Implement `agent://` URI scheme parsing:
+     ```go
+     // agentUri represents a parsed agent URI
+     type agentUri struct {
+         Scheme       string            // Always "agent"
+         ResourceType string            // "capability", "transaction", "address", etc.
+         Identifier   string            // Resource identifier (capability ID, transaction hash, address)
+         Action       string            // Optional action to perform ("invoke", "query", "transfer", etc.)
+         Parameters   map[string]string // Optional parameters
+     }
+     
+     // ParseagentUri parses a agent URI string into a structured object
+     func ParseagentUri(uriString string) (*agentUri, error) {
+         // Validate URI format
+         if !strings.HasPrefix(uriString, "agent://") {
+             return nil, fmt.Errorf("invalid agent URI: must start with 'agent://'")
+         }
+         
+         // Parse URI
+         parsedUrl, err := url.Parse(uriString)
+         if err != nil {
+             return nil, fmt.Errorf("failed to parse URI: %w", err)
+         }
+         
+         // Extract components
+         pathParts := strings.Split(strings.TrimPrefix(parsedUrl.Path, "/"), "/")
+         if len(pathParts) < 2 {
+             return nil, fmt.Errorf("invalid agent URI: must contain resource type and identifier")
+         }
+         
+         // Create result
+         result := &agentUri{
+             Scheme:       "agent",
+             ResourceType: pathParts[0],
+             Identifier:   pathParts[1],
+             Parameters:   make(map[string]string),
+         }
+         
+         // Extract action if present
+         if len(pathParts) > 2 {
+             result.Action = pathParts[2]
+         }
+         
+         // Extract query parameters
+         queryParams := parsedUrl.Query()
+         for key, values := range queryParams {
+             if len(values) > 0 {
+                 result.Parameters[key] = values[0]
+             }
+         }
+         
+         return result, nil
+     }
+     
+     // ToUriString converts a agentUri object back to a string
+     func (uri *agentUri) ToUriString() string {
+         // Build base URI
+         var builder strings.Builder
+         builder.WriteString("agent://")
+         builder.WriteString(uri.ResourceType)
+         builder.WriteString("/")
+         builder.WriteString(uri.Identifier)
+         
+         // Add action if present
+         if uri.Action != "" {
+             builder.WriteString("/")
+             builder.WriteString(uri.Action)
+         }
+         
+         // Add query parameters if present
+         if len(uri.Parameters) > 0 {
+             builder.WriteString("?")
+             first := true
+             for key, value := range uri.Parameters {
+                 if !first {
+                     builder.WriteString("&")
+                 }
+                 builder.WriteString(url.QueryEscape(key))
+                 builder.WriteString("=")
+                 builder.WriteString(url.QueryEscape(value))
+                 first = false
+             }
+         }
+         
+         return builder.String()
+     }
+     ```
+
+2. **URI Command Implementation**
+   - Implement `uri` command for handling agent URIs:
+     ```go
+     var uriCmd = &cobra.Command{
+         Use:   "uri <agent-uri>",
+         Short: "Process a agent URI",
+         Long: `Process a agent URI and perform the associated action.
+     
+     agent URIs follow the format: agent://<resource-type>/<identifier>[/<action>][?param1=value1&param2=value2]
+     
+     Examples:
+       agent://capability/resource_example_1234567890abcdef/invoke?param1=value1
+       agent://transaction/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+       agent://address/0x1234567890abcdef1234567890abcdef12345678/transfer?amount=100`,
+         RunE: func(cmd *cobra.Command, args []string) error {
+             if len(args) != 1 {
+                 return fmt.Errorf("exactly one URI argument is required")
+             }
+             
+             return processUri(cmd, args[0])
+         },
+     }
+     ```
+   - Add required parameters and flags:
+     ```go
+     func init() {
+         // Optional flags
+         uriCmd.Flags().String("wallet", "", "Path to wallet file (required for actions that need signing)")
+         uriCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         uriCmd.Flags().String("password", "", "Wallet password (will prompt if not provided)")
+     }
+     ```
+   - Implement the URI processing flow:
+     ```go
+     func processUri(cmd *cobra.Command, uriString string) error {
+         // Parse URI
+         uri, err := ParseagentUri(uriString)
+         if err != nil {
+             return fmt.Errorf("failed to parse URI: %w", err)
+         }
+         
+         // Process based on resource type and action
+         switch uri.ResourceType {
+         case "capability":
+             return processCapabilityUri(cmd, uri)
+         case "transaction":
+             return processTransactionUri(cmd, uri)
+         case "address":
+             return processAddressUri(cmd, uri)
+         default:
+             return fmt.Errorf("unsupported resource type: %s", uri.ResourceType)
+         }
+     }
+     
+     func processCapabilityUri(cmd *cobra.Command, uri *agentUri) error {
+         // Get node URL
+         nodeURL, _ := cmd.Flags().GetString("node")
+         if nodeURL == "" {
+             return fmt.Errorf("--node flag is required for capability URIs")
+         }
+         
+         // Process based on action
+         switch uri.Action {
+         case "invoke":
+             // Check if wallet is provided
+             walletPath, _ := cmd.Flags().GetString("wallet")
+             if walletPath == "" {
+                 return fmt.Errorf("--wallet flag is required for invoke action")
+             }
+             
+             // Convert parameters to JSON
+             inputJSON, err := json.Marshal(uri.Parameters)
+             if err != nil {
+                 return fmt.Errorf("failed to marshal parameters to JSON: %w", err)
+             }
+             
+             // Create args for invoke command
+             invokeArgs := []string{
+                 "--node", nodeURL,
+                 "--wallet", walletPath,
+                 "--capability-id", uri.Identifier,
+                 "--input", string(inputJSON),
+             }
+             
+             // Get password if provided
+             password, _ := cmd.Flags().GetString("password")
+             if password != "" {
+                 invokeArgs = append(invokeArgs, "--password", password)
+             }
+             
+             // Create invoke command
+             invokeCmd := &cobra.Command{}
+             for _, arg := range invokeArgs {
+                 invokeCmd.Flags().String(arg, "", "")
+             }
+             
+             // Call invoke function
+             return invokeCapability(invokeCmd, nil)
+             
+         case "query", "":
+             // Create args for query command
+             queryArgs := []string{
+                 "--node", nodeURL,
+                 "--capability-id", uri.Identifier,
+             }
+             
+             // Check if include-descriptor is specified
+             if value, ok := uri.Parameters["include-descriptor"]; ok && value == "true" {
+                 queryArgs = append(queryArgs, "--include-descriptor")
+             }
+             
+             // Create query command
+             queryCmd := &cobra.Command{}
+             for _, arg := range queryArgs {
+                 queryCmd.Flags().String(arg, "", "")
+             }
+             
+             // Call query function
+             return queryCapability(queryCmd, nil)
+             
+         default:
+             return fmt.Errorf("unsupported action for capability: %s", uri.Action)
+         }
+     }
+     
+     // Similar implementations for processTransactionUri and processAddressUri
+     ```
+
+3. **URI Generation Utilities**
+   - Implement functions to generate URIs for different resources:
+     ```go
+     // GenerateCapabilityUri generates a agent URI for a capability
+     func GenerateCapabilityUri(capabilityId string, action string, params map[string]string) string {
+         uri := &agentUri{
+             Scheme:       "agent",
+             ResourceType: "capability",
+             Identifier:   capabilityId,
+             Action:       action,
+             Parameters:   params,
+         }
+         
+         return uri.ToUriString()
+     }
+     
+     // GenerateTransactionUri generates a agent URI for a transaction
+     func GenerateTransactionUri(transactionHash string) string {
+         uri := &agentUri{
+             Scheme:       "agent",
+             ResourceType: "transaction",
+             Identifier:   transactionHash,
+             Parameters:   make(map[string]string),
+         }
+         
+         return uri.ToUriString()
+     }
+     
+     // GenerateAddressUri generates a agent URI for an address
+     func GenerateAddressUri(address string, action string, params map[string]string) string {
+         uri := &agentUri{
+             Scheme:       "agent",
+             ResourceType: "address",
+             Identifier:   address,
+             Action:       action,
+             Parameters:   params,
+         }
+         
+         return uri.ToUriString()
+     }
+     ```
+
+### Phase 7: Testing and Documentation
+
+1. **Comprehensive Testing**
+   - Unit tests for all components
+   - Integration tests for end-to-end flows
+   - Test against actual blockchain node
+
+2. **Documentation**
+   - Create detailed README
+   - Generate command help text
+   - Create usage examples
+
+3. **Packaging**
+   - Create build scripts
+   - Set up release process
+   - Prepare distribution packages
+
+## Detailed Command Specifications
+
+### Wallet Commands
+
+#### `wallet new`
+```
+agent-sdk-tool wallet new [--password <pwd>] [--file <path>] [--no-password] [--overwrite]
+```
+- **Purpose**: Generates a new ECDSA key pair and stores it in an encrypted wallet file.
+- **Implementation Details**:
+  - Generates a new ECDSA key pair using the secp256k1 curve
+  - Derives the wallet address from the public key
+  - If `--password` is not provided, prompts the user for a password with confirmation
+  - Encrypts the private key using AES-256-GCM with the password-derived key
+  - Saves the encrypted wallet to the specified file or default location
+  - Outputs the generated address and public key
+- **Options**:
+  - `--password <pwd>`: Use the specified password for encryption (not recommended for production use)
+  - `--file <path>`: Save the wallet to the specified file path
+  - `--no-password`: Create an unencrypted wallet (for development only, displays security warning)
+  - `--overwrite`: Overwrite the file if it already exists
+- **Output**:
+  ```
+  New wallet created successfully!
+  Address: 0x1234567890abcdef1234567890abcdef12345678
+  Public Key: 0x04abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12345678
+  Wallet saved to: /home/user/.agent/wallets/wallet-2023-05-01.json
+  ```
+- **Error Handling**:
+  - Validates password strength (if provided)
+  - Checks if the output file already exists (unless `--overwrite` is specified)
+  - Verifies write permissions to the output directory
+  - Reports detailed error messages for any failures
+
+#### `wallet import`
+```
+agent-sdk-tool wallet import --private-key <key> [--password <pwd>] [--file <path>] [--no-password]
+```
+- **Purpose**: Imports an existing private key and stores it in an encrypted wallet file.
+- **Implementation Details**:
+  - Validates and parses the provided private key (hex format)
+  - Derives the public key and address from the private key
+  - If `--password` is not provided, prompts the user for a password with confirmation
+  - Encrypts the private key using AES-256-GCM with the password-derived key
+  - Saves the encrypted wallet to the specified file or default location
+  - Outputs the imported address and public key
+- **Options**:
+  - `--private-key <key>`: The private key to import in hex format (with or without 0x prefix)
+  - `--password <pwd>`: Use the specified password for encryption (not recommended for production use)
+  - `--file <path>`: Save the wallet to the specified file path
+  - `--no-password`: Create an unencrypted wallet (for development only, displays security warning)
+- **Output**:
+  ```
+  Wallet imported successfully!
+  Address: 0x1234567890abcdef1234567890abcdef12345678
+  Public Key: 0x04abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12345678
+  Wallet saved to: /home/user/.agent/wallets/imported-wallet-2023-05-01.json
+  ```
+- **Error Handling**:
+  - Validates the private key format and content
+  - Checks if the output file already exists
+  - Verifies write permissions to the output directory
+  - Reports detailed error messages for any failures
+
+#### `wallet list`
+```
+agent-sdk-tool wallet list [--show-paths] [--directory <dir>] [--format <format>]
+```
+- **Purpose**: Lists all wallets in the default or specified directory.
+- **Implementation Details**:
+  - Scans the default wallet directory or the specified directory
+  - Reads each wallet file and extracts the address
+  - Displays a formatted table with addresses and optionally file paths
+  - Can output in different formats (table, JSON, CSV)
+- **Options**:
+  - `--show-paths`: Include file paths in the output
+  - `--directory <dir>`: Scan the specified directory instead of the default
+  - `--format <format>`: Output format (table, json, csv, plain)
+- **Output** (table format):
+  ```
+  +----+------------------------------------------+------------------------------------------+
+  | #  | ADDRESS                                  | FILE                                     |
+  +----+------------------------------------------+------------------------------------------+
+  | 1  | 0x1234567890abcdef1234567890abcdef12345 | /home/user/.agent/wallets/wallet-1.json  |
+  | 2  | 0xabcdef1234567890abcdef1234567890abcde | /home/user/.agent/wallets/wallet-2.json  |
+  +----+------------------------------------------+------------------------------------------+
+  ```
+- **Error Handling**:
+  - Checks if the directory exists and is readable
+  - Validates wallet file formats
+  - Reports any errors encountered while reading wallet files
+
+#### `wallet export`
+```
+agent-sdk-tool wallet export --file <path> [--output <output_path>] [--format <format>] [--force]
+```
+- **Purpose**: Exports a wallet's private key with appropriate security warnings.
+- **Implementation Details**:
+  - Loads the specified wallet file
+  - Prompts for the wallet password
+  - Decrypts the private key
+  - Displays the private key with clear security warnings
+  - Optionally exports to a file in the specified format
+- **Options**:
+  - `--file <path>`: Path to the wallet file to export
+  - `--output <output_path>`: Path to save the exported private key (optional)
+  - `--format <format>`: Output format (hex, json, pem)
+  - `--force`: Skip security warnings and confirmations
+- **Output**:
+  ```
+  ⚠️  WARNING: Your private key is sensitive information!  ⚠️
+  Anyone with your private key can access your funds and assets.
+  Never share your private key with anyone or store it in an insecure location.
+  
+  Private Key: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+  
+  The private key has been exported to: /home/user/exported-key.hex
+  ```
+- **Error Handling**:
+  - Validates the wallet file format
+  - Verifies the password is correct
+  - Checks write permissions if exporting to a file
+  - Requires explicit confirmation unless `--force` is specified
+
+### MCP Commands
+
+#### `mcp invoke-capability`
+```
+agent-sdk-tool mcp invoke-capability --node <node_url> --wallet <wallet_file_path> --from <from_address> --capability-id <id> --input <json_string_or_file_path> --fee <amount> [--password <pwd>]
+```
+- **Purpose**: Invokes a capability on the KNIRVCHAIN blockchain.
+- **Implementation Details**:
+  - Validates all required parameters
+  - Loads and decrypts the wallet
+  - Prepares the capability invocation request
+  - Signs the transaction with the wallet's private key
+  - Submits the transaction to the blockchain
+  - Returns the transaction hash and invocation result
+- **Options**:
+  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--wallet <wallet_file_path>`: Path to the wallet file
+  - `--from <from_address>`: Address of the sender (must match the wallet)
+  - `--capability-id <id>`: ID of the capability to invoke
+  - `--input <json_string_or_file_path>`: JSON input string or path to input file
+  - `--fee <amount>`: Transaction fee in NRN tokens
+  - `--password <pwd>`: Wallet password (will prompt if not provided)
+- **Output**:
+  ```
+  Preparing capability invocation...
+  Capability invocation prepared.
+  
+  Signing transaction...
+  Transaction signed successfully.
+  
+  Submitting transaction...
+  Transaction submitted successfully!
+  
+  Capability invoked successfully!
+  Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+  Context Record ID: context_1234567890abcdef
+  
+  Invocation result will be available once the transaction is mined.
+  ```
+- **Error Handling**:
+  - Validates all input parameters
+  - Verifies the capability exists
+  - Checks if the input is valid for the capability
+  - Handles network errors when communicating with the node
+  - Provides detailed error messages for any failures
+
+#### `mcp query-capability`
+```
+agent-sdk-tool mcp query-capability --node <node_url> --capability-id <id> [--include-descriptor]
+```
+- **Purpose**: Queries information about a capability on the KNIRVCHAIN blockchain.
+- **Implementation Details**:
+  - Validates all required parameters
+  - Calls the API to retrieve capability information
+  - Displays the capability details
+  - Optionally includes the full capability descriptor
+- **Options**:
+  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--capability-id <id>`: ID of the capability to query
+  - `--include-descriptor`: Include the full capability descriptor in the output
+- **Output**:
+  ```
+  Capability ID: resource_example_1234567890abcdef
+  Type: RESOURCE
+  Owner: 0x1234567890abcdef1234567890abcdef12345678
+  Created At: 2023-05-01T12:34:56Z
+  
+  Descriptor:
+  {
+    "name": "Example Resource",
+    "description": "An example resource capability",
+    "version": "1.0.0",
+    "type": "RESOURCE",
+    "interfaces": [
+      "ResourceProvider"
+    ],
+    "parameters": {
+      "required": [
+        "param1"
+      ],
+      "optional": [
+        "param2",
+        "param3"
+      ]
+    },
+    "metadata": {
+      "author": "KNIRVCHAIN Developer",
+      "license": "MIT",
+      "tags": [
+        "example",
+        "resource"
+      ]
+    }
+  }
+  ```
+- **Error Handling**:
+  - Validates all input parameters
+  - Handles network errors when communicating with the node
+  - Provides detailed error messages for any failures
+
+### Network Commands
+
+#### `network status`
+```
+agent-sdk-tool network status --node <node_url>
+```
+- **Purpose**: Checks the status of the KNIRVCHAIN network.
+- **Implementation Details**:
+  - Validates all required parameters
+  - Calls the API to retrieve network status
+  - Displays the network status details
+- **Options**:
+  - `--node <node_url>`: URL of the KNIRVCHAIN node
+- **Output**:
+  ```
+  Network Status:
+    Node ID: QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ
+    Version: 1.0.0
+    Connected Peers: 5
+    Synced: true
+    Current Block: 12345
+    Highest Block: 12345
+    Uptime: 3 days, 12 hours, 34 minutes
+  ```
+- **Error Handling**:
+  - Validates all input parameters
+  - Handles network errors when communicating with the node
+  - Provides detailed error messages for any failures
+
+#### `network devs`
+```
+agent-sdk-tool network devs --node <node_url> [--format <format>]
+```
+- **Purpose**: Lists the devs connected to the KNIRVCHAIN node.
+- **Implementation Details**:
+  - Validates all required parameters
+  - Calls the API to retrieve dev information
+  - Displays the dev list in the specified format
+- **Options**:
+  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--format <format>`: Output format (table, json, csv)
+- **Output** (table format):
+  ```
+  +------------------------------------------+------------------------------------------+------------+----------+
+  | ID                                       | ADDRESS                                  | DIRECTION  | LATENCY  |
+  +------------------------------------------+------------------------------------------+------------+----------+
+  | QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvs | /ip4/192.168.1.100/tcp/4001             | Outbound   | 15 ms    |
+  | QmZMxNdpMkewiVZLMRxaNxUeZpDUb34pWjZ1kZv | /ip4/192.168.1.101/tcp/4001             | Inbound    | 20 ms    |
+  +------------------------------------------+------------------------------------------+------------+----------+
+  ```
+- **Error Handling**:
+  - Validates all input parameters
+  - Handles network errors when communicating with the node
+  - Provides detailed error messages for any failures
+
+### URI Command
+
+#### `uri`
+```
+agent-sdk-tool uri <agent-uri> [--wallet <wallet_file_path>] [--node <node_url>] [--password <pwd>]
+```
+- **Purpose**: Processes a agent URI and performs the associated action.
+- **Implementation Details**:
+  - Parses the agent URI into its components
+  - Determines the resource type and action
+  - Delegates to the appropriate command based on the URI
+  - Handles parameters from the URI query string
+- **Options**:
+  - `<agent-uri>`: The agent URI to process
+  - `--wallet <wallet_file_path>`: Path to the wallet file (required for actions that need signing)
+  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--password <pwd>`: Wallet password (will prompt if not provided)
+- **URI Format**:
+  ```
+  agent://<resource>.<resourcetype>/<identifier>[/<action>][?param1=value1&param2=value2]
+  ```
+- **Supported Resource Types**:
+  - `capability`: Represents a capability on the blockchain
+  - `transaction`: Represents a transaction on the blockchain
+  - `address`: Represents an address on the blockchain
+- **Supported Actions**:
+  - For `capability`: `invoke`, `query` (default)
+  - For `transaction`: `status` (default)
+  - For `address`: `transfer`, `balance` (default)
+- **Examples**:
+  ```
+  agent://resource_example_1234567890abcdef.capability/invoke?param1=value1&param2=value2
+  agent://0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890.transaction
+  agent://0x1234567890abcdef1234567890abcdef12345678.address/transfer?amount=100&to=0xabcdef1234567890abcdef1234567890abcdef
+  ```
+- **Output**:
+  The output depends on the resource type and action, matching the output of the corresponding command.
+- **Error Handling**:
+  - Validates the URI format
+  - Checks for required parameters based on the resource type and action
+  - Handles errors from the delegated commands
+  - Provides detailed error messages for any failures
+
+## Implementation Priorities
+
+1. **Core Wallet Functionality**
+   - Key generation and secure storage
+   - Wallet management commands
+   - Encryption and decryption utilities
+
+2. **Basic API Client**
+   - HTTP client with robust error handling
+   - Connection to blockchain node
+   - Basic transaction submission
+
+3. **Transaction Signing**
+   - Transaction data structures
+   - Canonical serialization for hashing
+   - ECDSA signature generation and verification
+
+4. **MCP Capability Invocation**
+   - Capability invocation command
+   - Capability query command
+   - Transaction preparation, signing, and submission
+
+5. **Network Commands**
+   - Network status command
+   - Peer list command
+   - Network information retrieval
+
+6. **URI Handling**
+   - agent URI scheme implementation
+   - URI parsing and generation
+   - URI command for processing URIs
+   - Integration with other commands
+
+7. **Testing and Documentation**
+   - Unit and integration tests
+   - Comprehensive documentation
+   - Usage examples
+
+## Success Criteria
+
+1. **Functionality**
+   - All commands function as specified in the detailed command specifications
+   - The tool successfully interacts with the KNIRVCHAIN blockchain
+   - Capability invocation works end-to-end
+
+2. **Usability**
+   - Clear and helpful command-line interface
+   - Comprehensive help text and documentation
+   - Intuitive error messages and user feedback
+   - Reasonable performance for all operations
+
+3. **Security**
+   - Secure wallet management with proper encryption
+   - Safe handling of private keys and passwords
+   - Proper validation of all inputs
+   - Secure communication with the blockchain node
+
+4. **Reliability**
+   - Robust error handling for all operations
+   - Graceful recovery from network issues
+   - Consistent behavior across different environments
+   - High test coverage with passing test suite
+
+5. **Documentation**
+   - Comprehensive README and command documentation
+   - Clear examples for all major use cases
+   - Troubleshooting guide for common issues
+
+6. **Extensibility**
+   - Well-structured code that can be extended
+   - Clear separation of concerns
+   - Modular design for adding new features
+   - Configurable behavior for different environments

@@ -88,10 +88,8 @@ type ServiceConfig struct {
 }
 
 // NodeJSServiceConfig represents configuration for Node.js services
-type NodeJSServiceConfig struct {
-	ServiceConfig
-	NodePath string `json:"node_path,omitempty"`
-}
+// NodeJSServiceConfig removed; node.js services no longer managed here.
+
 
 // BinaryServiceConfig represents configuration for binary services
 type BinaryServiceConfig struct {

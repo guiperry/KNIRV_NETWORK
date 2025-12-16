@@ -1,0 +1,2772 @@
+# KNIRVCHAIN SDK Tool - CLI Development Plan
+
+## Overview
+
+This document outlines the comprehensive development plan for the KNIRVCHAIN command-line interface (CLI) tool. The tool will enable developers to interact with the KNIRVCHAIN blockchain, manage wallets, and register capabilities through multiple integration routes. It serves as a critical interface between developers and the KNIRVCHAIN ecosystem, allowing for seamless integration of custom plugins, MCP servers, and operational procedures.
+
+The CLI tool will be built using Go, the Cobra CLI framework, and the Bubbletea terminal UI library, providing a robust, user-friendly interface with comprehensive documentation and error handling. It will support all core KNIRVCHAIN operations, with a particular focus on secure wallet management and capability registration through both direct plugin implementation and MCP server integration via extrapolation and interpolation routes. The Bubbletea framework will enable rich interactive terminal experiences with customizable themes, responsive layouts, and intuitive navigation.
+
+## Project Structure
+
+```
+agent-sdk-tool/
+├── main.go                     // CLI entry point and initialization
+├── cmd/                        // Cobra CLI command definitions
+│   ├── root.go                 // Root command and global flags
+│   ├── wallet.go               // Wallet management commands
+│   ├── mcp/                    // MCP capability commands
+│   │   ├── capability.go       // Direct plugin capability registration
+│   │   ├── server.go           // MCP server registration (extrapolation)
+│   │   ├── procedure.go        // Operational procedure registration (interpolation)
+│   │   ├── generate.go         // AI-powered plugin generation
+│   │   └── invoke.go           // Capability invocation
+│   └── utils.go                // Utility commands (version, config)
+├── core/                       // Core functionality
+│   ├── wallet_manager.go       // Wallet generation, encryption, storage
+│   ├── api_client.go           // KNIRVCHAIN HTTP API client
+│   ├── signer.go               // Transaction signing and verification
+│   ├── file_manager.go         // Plugin file validation and reference handling
+│   ├── hosting.go              // File hosting and accessibility functions
+│   ├── mcp_server_manager.go   // MCP server management
+│   ├── op_procedure_manager.go // Operational procedure management
+│   ├── process_engine.go       // Process execution engine
+│   └── inference_engine.go     // AI inference engine for plugin generation
+├── ui/                         // Terminal UI components using bubbletea
+│   ├── styles.go               // Common UI styles and themes
+│   ├── components/             // Reusable UI components
+│   │   ├── progress.go         // Progress bars and spinners
+│   │   ├── tables.go           // Interactive tables
+│   │   ├── forms.go            // Input forms and validation
+│   │   ├── modals.go           // Modal dialogs
+│   │   └── help.go             // Help and documentation views
+│   ├── views/                  // Full-screen TUI views
+│   │   ├── wallet_view.go      // Wallet management interface
+│   │   ├── capability_view.go  // Capability management interface
+│   │   ├── server_view.go      // Server management interface
+│   │   └── generate_view.go    // AI generation interface
+│   └── tui.go                  // TUI application initialization
+├── config/                     // Configuration management
+│   ├── config.go               // Configuration structure and functions
+│   └── defaults.go             // Default configuration values
+├── util/                       // Utility functions
+│   ├── crypto.go               // Cryptographic utilities
+│   ├── validation.go           // Input validation functions
+│   ├── formatting.go           // Output formatting utilities
+│   ├── deployment.go           // Server deployment utilities
+│   └── ai_client.go            // AI service client utilities
+├── ai/                         // AI-related components
+│   ├── prompts/                // Prompt templates for different plugin types
+│   │   ├── resource.tmpl       // Resource plugin prompt template
+│   │   ├── tool.tmpl           // Tool plugin prompt template
+│   │   └── procedure.tmpl      // Procedure prompt template
+│   ├── models.go               // AI model configurations
+│   ├── parser.go               // Code parsing and validation
+│   └── testing.go              // Automated test generation
+├── test/                       // Test files and fixtures
+│   ├── fixtures/               // Test data
+│   └── integration/            // Integration tests
+├── docs/                       // Documentation
+│   ├── examples/               // Example usage scenarios
+│   └── schemas/                // JSON schemas for descriptors
+├── go.mod                      // Go module definition
+└── go.sum                      // Go module checksums
+```
+
+The structure follows Go best practices and separates concerns effectively:
+- `cmd/` contains all command definitions using the Cobra framework, with MCP commands organized in a subdirectory
+- `core/` houses the primary business logic, API interactions, MCP server/procedure management, and inference engine
+- `ui/` contains terminal UI components built with bubbletea, organized into reusable components and full-screen views
+- `config/` manages user configuration and defaults
+- `util/` provides shared utility functions including server deployment and AI client utilities
+- `ai/` contains AI-specific components like prompt templates, model configurations, and code parsing/testing utilities
+- `test/` contains comprehensive test suites
+- `docs/` includes detailed documentation and examples for all integration routes
+
+## Development Phases
+
+### Phase 1: Project Setup and Core Infrastructure (Week 1)
+
+1. **Project Initialization**
+   - Create project directory structure following the layout defined above
+   - Initialize Go module with `go mod init github.com/cloud-equities/agent-sdk-tool`
+   - Add required dependencies:
+     - `github.com/spf13/cobra` for CLI framework
+     - `github.com/spf13/viper` for configuration management
+     - `github.com/sirupsen/logrus` for structured logging
+     - `github.com/ethereum/go-ethereum/crypto` for ECDSA cryptography
+     - `golang.org/x/crypto` for encryption functions
+     - `github.com/sashabaranov/go-openai` for OpenAI API client
+     - `github.com/anthropics/anthropic-sdk-go` for Anthropic API client
+     - `github.com/charmbracelet/bubbletea` for terminal UI framework
+     - `github.com/charmbracelet/lipgloss` for terminal styling
+     - `github.com/charmbracelet/bubbles` for common UI components
+     - `github.com/muesli/termenv` for terminal environment detection
+   - Set up Git repository with appropriate .gitignore and README.md
+   - Create basic command structure in the cmd/ directory:
+     - root.go: Define the base command and global behavior
+     - wallet.go: Scaffold wallet management commands
+     - mcp/: Directory for MCP capability commands
+       - capability.go: Scaffold capability registration command
+       - server.go: Scaffold server registration command
+       - procedure.go: Scaffold procedure registration command
+       - generate.go: Scaffold AI-powered plugin generation command
+       - invoke.go: Scaffold capability invocation command
+     - utils.go: Utility commands like version and config
+
+2. **Configuration Management**
+   - Implement configuration file handling using Viper
+   - Define configuration structure in config/config.go:
+     ```go
+     type Config struct {
+         NodeURL         string `mapstructure:"node_url"`
+         WalletDirectory string `mapstructure:"wallet_directory"`
+         LogLevel        string `mapstructure:"log_level"`
+         DefaultFee      uint64 `mapstructure:"default_fee"`
+         FileServer      struct {
+             Enabled bool   `mapstructure:"enabled"`
+             Port    int    `mapstructure:"port"`
+             BaseURL string `mapstructure:"base_url"`
+         } `mapstructure:"file_server"`
+         AI             struct {
+             Provider    string `mapstructure:"provider"`
+             APIKey      string `mapstructure:"api_key"`
+             BaseURL     string `mapstructure:"base_url"`
+             DefaultModel string `mapstructure:"default_model"`
+             MaxTokens   int    `mapstructure:"max_tokens"`
+             Temperature float64 `mapstructure:"temperature"`
+         } `mapstructure:"ai"`
+         UI             struct {
+             EnableTUI      bool   `mapstructure:"enable_tui"`
+             Theme          string `mapstructure:"theme"`
+             ColorMode      string `mapstructure:"color_mode"`
+             ShowIcons      bool   `mapstructure:"show_icons"`
+             AnimationSpeed int    `mapstructure:"animation_speed"`
+             CompactMode    bool   `mapstructure:"compact_mode"`
+         } `mapstructure:"ui"`
+     }
+     ```
+   - Set default values in config/defaults.go
+   - Create functions to:
+     - Load configuration from file (YAML/JSON)
+     - Save configuration to file
+     - Override configuration with environment variables
+     - Override configuration with command-line flags
+   - Implement configuration initialization in main.go
+
+3. **Basic CLI Structure**
+   - Implement root command with comprehensive help text
+   - Add version command that displays:
+     - CLI tool version
+     - Go version
+     - Build timestamp
+     - Git commit hash
+   - Add global flags:
+     - `--node-url`: URL of the KNIRVCHAIN node
+     - `--config`: Path to configuration file
+     - `--verbose`: Enable verbose logging
+     - `--log-level`: Set logging level (debug, info, warn, error)
+     - `--log-format`: Set logging format (text, json)
+     - `--ai-provider`: AI provider to use (openai, anthropic)
+     - `--ai-model`: AI model to use for generation
+     - `--tui`: Enable terminal UI mode with bubbletea
+     - `--theme`: Set UI theme (default, dark, light, high-contrast)
+     - `--color-mode`: Set color mode (16, 256, truecolor)
+     - `--no-animations`: Disable UI animations
+   - Set up logging framework with:
+     - Multiple output formats (text, JSON)
+     - Configurable log levels
+     - File and console logging
+     - Contextual logging with fields
+   - Implement graceful error handling and user-friendly error messages
+   - Add command auto-completion for bash/zsh/fish shells
+
+### Phase 2: Wallet Management Implementation (Week 1-2)
+
+1. **Key Generation and Storage**
+   - Implement ECDSA key pair generation using the secp256k1 curve (compatible with KNIRVCHAIN)
+     ```go
+     func GenerateKeyPair() (*ecdsa.PrivateKey, error) {
+         return crypto.GenerateKey() // Uses the secp256k1 curve
+     }
+     ```
+   - Create secure key storage with AES-256-GCM encryption:
+     - Use AES-256-GCM for authenticated encryption
+     - Include version field for future encryption upgrades
+     - Store nonce and salt with the encrypted data
+     - Add MAC for integrity verification
+   - Implement password-based key derivation:
+     - Use Argon2id with secure parameters (memory: 64MB, iterations: 3, parallelism: 4)
+     - Alternative: PBKDF2 with HMAC-SHA256 and high iteration count (100,000+)
+     - Generate unique salt for each wallet
+   - Create wallet file format:
+     ```json
+     {
+       "version": 1,
+       "address": "0x...",
+       "crypto": {
+         "cipher": "aes-256-gcm",
+         "ciphertext": "base64-encoded-encrypted-private-key",
+         "cipherparams": {
+           "nonce": "base64-encoded-nonce"
+         },
+         "kdf": "argon2id",
+         "kdfparams": {
+           "salt": "base64-encoded-salt",
+           "memory": 65536,
+           "iterations": 3,
+           "parallelism": 4
+         },
+         "mac": "base64-encoded-mac"
+       },
+       "timestamp": 1678886400
+     }
+     ```
+   - Implement functions to:
+     - Encrypt private key with password
+     - Decrypt private key with password
+     - Validate wallet file integrity
+
+2. **Wallet Commands**
+   - `wallet new`: Generate and store new wallet
+     - Implementation details:
+       - Generate new ECDSA key pair
+       - Derive address from public key
+       - Prompt for password with confirmation
+       - Encrypt private key with password
+       - Save to file in specified location or default wallet directory
+       - Display address and public key
+     - Options:
+       - `--password`: Specify password (not recommended for production)
+       - `--file`: Specify output file path
+       - `--no-password`: Create unencrypted wallet (development only)
+       - `--overwrite`: Overwrite existing wallet file
+   
+   - `wallet import`: Import existing private key
+     - Implementation details:
+       - Accept private key in hex format
+       - Validate private key format
+       - Derive public key and address
+       - Prompt for password with confirmation
+       - Encrypt private key with password
+       - Save to file in specified location or default wallet directory
+       - Display address and public key
+     - Options:
+       - `--private-key`: Private key in hex format
+       - `--password`: Specify password (not recommended for production)
+       - `--file`: Specify output file path
+       - `--no-password`: Create unencrypted wallet (development only)
+   
+   - `wallet list`: List available wallets
+     - Implementation details:
+       - Scan default wallet directory
+       - Read wallet files and extract addresses
+       - Display formatted table with addresses and file paths
+       - Sort by creation date or address
+     - Options:
+       - `--show-paths`: Show file paths
+       - `--directory`: Specify custom directory to scan
+       - `--format`: Output format (table, json, csv)
+   
+   - `wallet export`: Export wallet (with proper security warnings)
+     - Implementation details:
+       - Load wallet file
+       - Prompt for password
+       - Decrypt private key
+       - Display private key with clear security warnings
+       - Option to export to file
+     - Options:
+       - `--file`: Wallet file to export
+       - `--output`: Output file (optional)
+       - `--format`: Output format (hex, json, pem)
+       - `--force`: Skip security warnings
+
+3. **Testing**
+   - Unit tests for cryptographic functions:
+     - Test key generation with fixed seeds for deterministic results
+     - Test encryption/decryption with known inputs and outputs
+     - Test address derivation with known keys
+     - Test password-based key derivation with known inputs
+   - Integration tests for wallet commands:
+     - Test wallet creation with various options
+     - Test wallet import with various key formats
+     - Test wallet listing with different directory structures
+     - Test wallet export with different formats
+   - Security review of key storage:
+     - Verify encryption implementation against known vulnerabilities
+     - Check for proper memory handling (zeroing sensitive data)
+     - Validate password strength requirements
+     - Ensure no plaintext keys are written to disk
+   - Fuzzing tests:
+     - Test with malformed wallet files
+     - Test with invalid passwords
+     - Test with corrupted encrypted data
+
+### Phase 3: API Client Implementation (Week 2-3)
+
+1. **HTTP Client Setup**
+   - Create robust HTTP client with proper error handling:
+     ```go
+     type APIClient struct {
+         httpClient *http.Client
+         baseURL    string
+         timeout    time.Duration
+         retries    int
+         logger     *logrus.Logger
+     }
+     
+     func NewAPIClient(baseURL string, timeout time.Duration, retries int, logger *logrus.Logger) *APIClient {
+         return &APIClient{
+             httpClient: &http.Client{
+                 Timeout: timeout,
+                 Transport: &http.Transport{
+                     MaxIdleConns:        100,
+                     MaxIdleConnsPerHost: 20,
+                     IdleConnTimeout:     90 * time.Second,
+                     TLSHandshakeTimeout: 10 * time.Second,
+                 },
+             },
+             baseURL: baseURL,
+             timeout: timeout,
+             retries: retries,
+             logger:  logger,
+         }
+     }
+     ```
+   - Implement request/response structures:
+     - Define Go structs for all API request and response types
+     - Ensure proper JSON tags for serialization/deserialization
+     - Include validation methods for request structures
+     - Create helper methods for common request patterns
+   - Add timeout and retry logic:
+     - Implement exponential backoff for retries
+     - Add circuit breaker pattern for failing endpoints
+     - Include context support for cancellation
+     - Add detailed logging for request/response cycles
+   - Implement content negotiation:
+     - Support both JSON and Protobuf formats
+     - Add proper Accept and Content-Type headers
+     - Include automatic format negotiation based on endpoint
+
+2. **API Endpoints**
+   - Implement connection to blockchain node:
+     - Add health check function to verify node connectivity
+     - Include version compatibility check
+     - Implement automatic node discovery (optional)
+   - Create functions for all required API endpoints:
+     - `/mcp/capability/prepare_registration`: Prepare capability registration
+     - `/transaction`: Submit signed transaction
+     - `/chain`: Get blockchain information
+     - `/block`: Get block information
+     - `/txn_pool`: Get transaction pool information
+     - `/info`: Get node information
+   - Add proper error handling and response parsing:
+     - Define custom error types for different API errors
+     - Implement structured error responses
+     - Add detailed logging for debugging
+     - Include response validation
+   - Implement the core PrepareCapabilityRegistration function:
+     ```go
+     func (c *APIClient) PrepareCapabilityRegistration(
+         ctx context.Context,
+         request MCPPrepareCapabilityRegistrationRequest,
+         pluginFilePath string,
+         manifestFilePath string,
+     ) (*MCPPrepareCapabilityRegistrationResponse, error) {
+         // Validate plugin and manifest files exist
+         if err := validateFileExists(pluginFilePath); err != nil {
+             return nil, fmt.Errorf("plugin file validation failed: %w", err)
+         }
+         if err := validateFileExists(manifestFilePath); err != nil {
+             return nil, fmt.Errorf("manifest file validation failed: %w", err)
+         }
+         
+         // Generate file references and add to request
+         pluginRef, err := generateFileReference(pluginFilePath)
+         if err != nil {
+             return nil, fmt.Errorf("failed to generate plugin file reference: %w", err)
+         }
+         manifestRef, err := generateFileReference(manifestFilePath)
+         if err != nil {
+             return nil, fmt.Errorf("failed to generate manifest file reference: %w", err)
+         }
+         
+         // Add file references to descriptor schema
+         if request.Descriptor == nil {
+             request.Descriptor = make(map[string]interface{})
+         }
+         
+         // Add schema with file references
+         schema := map[string]interface{}{
+             "manifestFile":   manifestRef.RelativePath,
+             "executableFile": pluginRef.RelativePath,
+             "locationHints":  []string{manifestRef.LocationHint, pluginRef.LocationHint},
+         }
+         
+         // Add schema to descriptor
+         request.Descriptor["schema"] = schema
+         
+         // Make API request
+         resp, err := c.post(ctx, "/mcp/capability/prepare_registration", request)
+         if err != nil {
+             return nil, fmt.Errorf("API request failed: %w", err)
+         }
+         
+         // Parse response
+         var response MCPPrepareCapabilityRegistrationResponse
+         if err := json.Unmarshal(resp, &response); err != nil {
+             return nil, fmt.Errorf("failed to parse response: %w", err)
+         }
+         
+         return &response, nil
+     }
+     ```
+
+3. **Plugin File Reference Handling**
+   - Implement validation of plugin .so files:
+     - Check file existence and readability
+     - Verify file is a valid .so shared library
+     - Extract metadata from plugin file (if possible)
+     - Calculate content hash for integrity verification
+   - Implement validation of manifest files:
+     - Check file existence and readability
+     - Validate JSON/YAML structure
+     - Verify required fields are present
+     - Check for consistency between manifest and plugin
+   - Create functions to generate file references and location hints:
+     - Implement FileReference structure:
+       ```go
+       type FileReference struct {
+           OriginalPath  string // Original file path
+           RelativePath  string // Path relative to base directory
+           ContentHash   string // SHA-256 hash of file content
+           LocationHint  string // URI where file can be accessed
+           FileSize      int64  // Size of file in bytes
+           LastModified  time.Time // Last modification time
+       }
+       ```
+     - Create functions to generate location hints based on hosting strategy:
+       - Local file server: `http://local-ip:port/path/to/file`
+       - Web server: `http://configured-domain/path/to/file`
+       - IPFS: `ipfs://content-hash`
+     - Implement content hash calculation:
+       ```go
+       func calculateContentHash(filePath string) (string, error) {
+           file, err := os.Open(filePath)
+           if err != nil {
+               return "", err
+           }
+           defer file.Close()
+           
+           hasher := sha256.New()
+           if _, err := io.Copy(hasher, file); err != nil {
+               return "", err
+           }
+           
+           return hex.EncodeToString(hasher.Sum(nil)), nil
+       }
+       ```
+     - Add functions to determine relative paths:
+       ```go
+       func getRelativePath(filePath, basePath string) (string, error) {
+           absFilePath, err := filepath.Abs(filePath)
+           if err != nil {
+               return "", err
+           }
+           absBasePath, err := filepath.Abs(basePath)
+           if err != nil {
+               return "", err
+           }
+           relPath, err := filepath.Rel(absBasePath, absFilePath)
+           if err != nil {
+               return "", err
+           }
+           return filepath.ToSlash(relPath), nil
+       }
+       ```
+
+### Phase 4: Terminal UI Implementation (Week 3)
+
+1. **Bubbletea Framework Setup**
+   - Set up the bubbletea application framework:
+     ```go
+     type App struct {
+         config      *config.Config
+         program     *tea.Program
+         currentView ui.View
+         wallet      *core.WalletManager
+         apiClient   *core.APIClient
+         logger      *logrus.Logger
+     }
+     
+     func NewApp(config *config.Config, wallet *core.WalletManager, apiClient *core.APIClient, logger *logrus.Logger) *App {
+         app := &App{
+             config:    config,
+             wallet:    wallet,
+             apiClient: apiClient,
+             logger:    logger,
+         }
+         return app
+     }
+     
+     func (a *App) Start() error {
+         // Initialize bubbletea program
+         p := tea.NewProgram(a.initialModel())
+         a.program = p
+         return p.Start()
+     }
+     ```
+   - Implement terminal environment detection:
+     - Detect color support (16, 256, truecolor)
+     - Detect terminal dimensions
+     - Adapt UI based on available features
+   - Create theme system with lipgloss:
+     - Define color palettes for different themes (default, dark, light, high-contrast)
+     - Create consistent styling for UI elements
+     - Support for terminal color modes (16, 256, truecolor)
+     - Implement responsive design for different terminal sizes
+
+2. **Core UI Components**
+   - Implement reusable UI components in ui/components/:
+     - Progress bars and spinners:
+       - Implement loading spinners with customizable appearance
+       - Create progress bars with percentage display
+       - Add support for indeterminate progress indicators
+     - Interactive tables:
+       - Sortable columns
+       - Pagination for large datasets
+       - Row selection and actions
+       - Customizable column rendering
+     - Input forms:
+       - Text input with validation
+       - Password input with masking
+       - Dropdown selects
+       - Checkboxes and radio buttons
+       - Form validation and error display
+     - Modal dialogs:
+       - Confirmation dialogs
+       - Error messages
+       - Multi-step wizards
+       - Help overlays
+     - Help and documentation views:
+       - Context-sensitive help
+       - Keyboard shortcut display
+       - Command documentation
+
+3. **Full-Screen Views**
+   - Implement full-screen TUI views in ui/views/:
+     - Wallet management view:
+       - List wallets with details
+       - Create/import wallet interface
+       - Export wallet interface
+       - Delete wallet confirmation
+     - Capability management view:
+       - Register capability interface
+       - List registered capabilities
+       - Capability details view
+       - Invoke capability interface
+     - Server management view:
+       - Register server interface
+       - List registered servers
+       - Server status monitoring
+       - Server logs view
+     - AI generation view:
+       - Plugin type selection
+       - Parameter input form
+       - Generation progress display
+       - Result preview and editing
+
+4. **Integration with Cobra Commands**
+   - Create hybrid CLI/TUI mode:
+     - Detect when to use TUI vs. CLI based on flags and terminal capabilities
+     - Implement command execution from TUI
+     - Allow switching between TUI and CLI modes
+   - Add TUI-specific flags to commands:
+     - `--interactive`: Force interactive TUI mode
+     - `--simple`: Force simple CLI mode
+     - `--theme`: Set UI theme
+   - Implement keyboard shortcuts:
+     - Global shortcuts for navigation
+     - Context-specific shortcuts for actions
+     - Help overlay with shortcut reference
+   - Add command history and favorites:
+     - Store command history
+     - Allow saving favorite commands
+     - Quick access to recent and favorite commands
+
+5. **Testing**
+   - Unit tests for UI components:
+     - Test component rendering
+     - Test user interaction handling
+     - Test keyboard shortcut handling
+   - Integration tests for TUI views:
+     - Test view transitions
+     - Test data flow between views
+     - Test command execution from TUI
+   - Accessibility testing:
+     - Test with screen readers
+     - Test with different terminal sizes
+     - Test with different color modes
+     - Test with keyboard-only navigation
+
+### Phase 5: Transaction Signing (Week 4)
+
+1. **Transaction Construction**
+   - Implement transaction data structures:
+     ```go
+     // Transaction represents a KNIRVCHAIN transaction
+     type Transaction struct {
+         From           string `json:"from"`
+         To             string `json:"to,omitempty"`
+         Value          uint64 `json:"value"`
+         Data           []byte `json:"data"`
+         Timestamp      int64  `json:"timestamp"`
+         Fee            uint64 `json:"fee"`
+         Type           string `json:"type"`
+         PublicKey      string `json:"publicKey,omitempty"`
+         Signature      []byte `json:"signature,omitempty"`
+         TransactionHash string `json:"transactionHash,omitempty"`
+     }
+     
+     // UnsignedTransactionDetails represents the details of an unsigned transaction
+     type UnsignedTransactionDetails struct {
+         From      string      `json:"from"`
+         To        string      `json:"to,omitempty"`
+         Value     uint64      `json:"value"`
+         Data      interface{} `json:"data"` // Contains the MCPRegisterCapabilityData
+         Timestamp int64       `json:"timestamp"`
+         Fee       uint64      `json:"fee"`
+         Type      string      `json:"type"`
+     }
+     ```
+   - Create canonical serialization for hashing:
+     - Implement Protobuf-based serialization for consistent hashing
+     - Ensure deterministic ordering of fields
+     - Handle different data types correctly
+     - Implement the same canonicalization logic as the server
+     ```go
+     func GetCanonicalBytesForHashing(tx *Transaction) ([]byte, error) {
+         // Convert to protobuf
+         txProto := &pb.TransactionProto{
+             From:      tx.From,
+             To:        tx.To,
+             Value:     tx.Value,
+             Data:      tx.Data,
+             Timestamp: tx.Timestamp,
+             Fee:       tx.Fee,
+             Type:      tx.Type,
+         }
+         
+         // Marshal to protobuf binary format
+         return proto.Marshal(txProto)
+     }
+     ```
+   - Ensure compatibility with server-side hashing:
+     - Implement the exact same hashing algorithm as the server
+     - Add validation to confirm hash matches server expectations
+     - Include version compatibility checks
+     - Create test vectors for hash verification
+   - Implement transaction hash calculation:
+     ```go
+     func CalculateTransactionHash(tx *Transaction) (string, error) {
+         canonicalBytes, err := GetCanonicalBytesForHashing(tx)
+         if err != nil {
+             return "", fmt.Errorf("failed to get canonical bytes: %w", err)
+         }
+         
+         hash := sha256.Sum256(canonicalBytes)
+         return "0x" + hex.EncodeToString(hash[:]), nil
+     }
+     ```
+
+2. **Signing Logic**
+   - Implement transaction signing with ECDSA:
+     ```go
+     func SignTransactionData(
+         privateKey *ecdsa.PrivateKey,
+         unsignedTxDetails UnsignedTransactionDetails,
+         mcpPayloadBytes []byte,
+     ) ([]byte, string, error) {
+         // Create a transaction object from unsigned details
+         tx := &Transaction{
+             From:      unsignedTxDetails.From,
+             To:        unsignedTxDetails.To,
+             Value:     unsignedTxDetails.Value,
+             Data:      mcpPayloadBytes,
+             Timestamp: unsignedTxDetails.Timestamp,
+             Fee:       unsignedTxDetails.Fee,
+             Type:      unsignedTxDetails.Type,
+         }
+         
+         // Get canonical bytes for hashing
+         canonicalBytes, err := GetCanonicalBytesForHashing(tx)
+         if err != nil {
+             return nil, "", fmt.Errorf("failed to get canonical bytes: %w", err)
+         }
+         
+         // Calculate hash
+         hash := sha256.Sum256(canonicalBytes)
+         
+         // Sign the hash
+         signature, err := crypto.Sign(hash[:], privateKey)
+         if err != nil {
+             return nil, "", fmt.Errorf("failed to sign transaction: %w", err)
+         }
+         
+         // Calculate transaction hash
+         txHash := "0x" + hex.EncodeToString(hash[:])
+         
+         return signature, txHash, nil
+     }
+     ```
+   - Create verification functions:
+     ```go
+     func VerifySignature(
+         publicKeyHex string,
+         signature []byte,
+         transactionHash string,
+     ) (bool, error) {
+         // Decode public key
+         publicKeyBytes, err := hex.DecodeString(strings.TrimPrefix(publicKeyHex, "0x"))
+         if err != nil {
+             return false, fmt.Errorf("failed to decode public key: %w", err)
+         }
+         
+         // Decode transaction hash
+         hashBytes, err := hex.DecodeString(strings.TrimPrefix(transactionHash, "0x"))
+         if err != nil {
+             return false, fmt.Errorf("failed to decode transaction hash: %w", err)
+         }
+         
+         // Verify signature
+         return crypto.VerifySignature(publicKeyBytes, hashBytes, signature[:len(signature)-1]), nil
+     }
+     ```
+   - Ensure proper error handling:
+     - Add detailed error messages for each failure case
+     - Implement recovery mechanisms for common errors
+     - Add logging for debugging signature issues
+     - Create helper functions for common error patterns
+   - Implement function to assemble signed transaction:
+     ```go
+     func AssembleSignedTransaction(
+         unsignedTxDetails UnsignedTransactionDetails,
+         publicKeyHex string,
+         signature []byte,
+         transactionHash string,
+     ) (*Transaction, error) {
+         // Convert data interface to bytes if needed
+         var dataBytes []byte
+         var err error
+         
+         switch data := unsignedTxDetails.Data.(type) {
+         case []byte:
+             dataBytes = data
+         case string:
+             dataBytes = []byte(data)
+         default:
+             dataBytes, err = json.Marshal(data)
+             if err != nil {
+                 return nil, fmt.Errorf("failed to marshal transaction data: %w", err)
+             }
+         }
+         
+         // Create signed transaction
+         tx := &Transaction{
+             From:           unsignedTxDetails.From,
+             To:             unsignedTxDetails.To,
+             Value:          unsignedTxDetails.Value,
+             Data:           dataBytes,
+             Timestamp:      unsignedTxDetails.Timestamp,
+             Fee:            unsignedTxDetails.Fee,
+             Type:           unsignedTxDetails.Type,
+             PublicKey:      publicKeyHex,
+             Signature:      signature,
+             TransactionHash: transactionHash,
+         }
+         
+         return tx, nil
+     }
+     ```
+
+3. **Testing**
+   - Test against known good signatures:
+     - Create test vectors with known inputs and expected outputs
+     - Verify signatures against these test vectors
+     - Include edge cases (empty fields, maximum values, etc.)
+     - Test with different key types and lengths
+   - Verify compatibility with server implementation:
+     - Create test transactions and verify with server
+     - Test against different server versions
+     - Verify hash calculation matches server
+     - Test with real blockchain transactions
+   - Stress test with various input types:
+     - Test with different data types and sizes
+     - Test with malformed inputs
+     - Test with boundary conditions
+     - Test performance with large transactions
+   - Implement comprehensive test suite:
+     - Unit tests for each function
+     - Integration tests for end-to-end signing flow
+     - Benchmark tests for performance analysis
+     - Fuzzing tests for robustness
+
+### Phase 6: MCP Integration and Capability Registration (Week 5-6)
+
+1. **MCP Server Manager Implementation**
+   - Implement MCP server management functionality:
+     ```go
+     type MCPServerManager struct {
+         servers map[string]*MCPServer
+         db      *LevelDB
+     }
+     
+     type MCPServer struct {
+         ID            string
+         DeploymentType string
+         Source        string
+         Version       string
+         Status        string
+         Capabilities  []string
+         Config        map[string]interface{}
+     }
+     ```
+   - Add server deployment and management functions:
+     - GitHub repository cloning and building
+     - Live server health checking and monitoring
+     - Server status management
+     - Capability discovery and registration
+
+2. **Operational Procedure Manager Implementation**
+   - Implement operational procedure management:
+     ```go
+     type OpProcedureManager struct {
+         procedures map[string]*OpProcedure
+         db         *LevelDB
+     }
+     
+     type OpProcedure struct {
+         ID          string
+         Name        string
+         Version     string
+         Process     *ProcessDefinition
+         MCPConfig   *MCPConfiguration
+         Status      string
+     }
+     ```
+   - Add process execution engine:
+     ```go
+     type ProcessEngine struct {
+         procedures map[string]*OpProcedure
+         servers    *MCPServerManager
+         db         *LevelDB
+     }
+     
+     type ProcessInstance struct {
+         ID           string
+         ProcedureID  string
+         CurrentStep  string
+         Status       string
+         Context      map[string]interface{}
+     }
+     ```
+
+3. **Direct Plugin Capability Registration Command**
+   - Implement `mcp register-capability` command:
+     ```go
+     var registerCapabilityCmd = &cobra.Command{
+         Use:   "register-capability",
+         Short: "Register a new capability on the KNIRVCHAIN blockchain",
+         Long: `Register a new capability (resource, tool, etc.) on the KNIRVCHAIN blockchain.
+     
+     For plugin resources, this command will validate the plugin .so file and opSchema file,
+     create references to these files in the descriptor, and add location hints for dev access.
+     
+     Example:
+       agent-sdk-tool mcp register-capability --node http://localhost:8080 --wallet ./my-wallet.json \
+         --from 0x123abc... --type RESOURCE --descriptor ./descriptor.json \
+         --plugin ./plugin.so --opschema ./opschema.yaml --fee 100`,
+         RunE: func(cmd *cobra.Command, args []string) error {
+             // Implementation of the command
+             return registerCapability(cmd, args)
+         },
+     }
+     ```
+   - Add all required parameters and flags:
+     ```go
+     func init() {
+         // Required flags
+         registerCapabilityCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         registerCapabilityCmd.Flags().String("wallet", "", "Path to wallet file")
+         registerCapabilityCmd.Flags().String("from", "", "Address of the sender")
+         registerCapabilityCmd.Flags().String("type", "", "Capability type (RESOURCE, TOOL, etc.)")
+         registerCapabilityCmd.Flags().String("descriptor", "", "JSON string or path to descriptor file")
+         registerCapabilityCmd.Flags().Uint64("fee", 0, "Transaction fee")
+         
+         // Plugin-specific flags
+         registerCapabilityCmd.Flags().String("plugin", "", "Path to plugin .so file (required for RESOURCE type)")
+         registerCapabilityCmd.Flags().String("opschema", "", "Path to opSchema file (required for RESOURCE type)")
+         
+         // Optional flags
+         registerCapabilityCmd.Flags().String("password", "", "Wallet password (will prompt if not provided)")
+         registerCapabilityCmd.Flags().StringSlice("location-hint", nil, "Additional location hints for file access")
+         registerCapabilityCmd.Flags().String("relative-path-base", "", "Base directory for relative paths")
+         registerCapabilityCmd.Flags().Bool("start-file-server", false, "Start a local file server for hosting plugin files")
+         registerCapabilityCmd.Flags().Int("file-server-port", 8090, "Port for the local file server")
+         
+         // Mark required flags
+         registerCapabilityCmd.MarkFlagRequired("node")
+         registerCapabilityCmd.MarkFlagRequired("wallet")
+         registerCapabilityCmd.MarkFlagRequired("from")
+         registerCapabilityCmd.MarkFlagRequired("type")
+         registerCapabilityCmd.MarkFlagRequired("descriptor")
+         registerCapabilityCmd.MarkFlagRequired("fee")
+     }
+     ```
+   - Implement file reference strategy for plugin and opSchema files:
+     - Add validation for plugin and opSchema files based on capability type
+     - Implement automatic detection of file types
+     - Add support for different descriptor formats (JSON string, file path)
+     - Create helper functions for common operations
+
+4. **MCP Server Registration Command (Extrapolation)**
+   - Implement `mcp register-server` command:
+     ```go
+     var registerServerCmd = &cobra.Command{
+         Use:   "register-server",
+         Short: "Register an MCP server on the KNIRVCHAIN blockchain",
+         Long: `Register an MCP server on the KNIRVCHAIN blockchain using the extrapolation route.
+     
+     This command will register the server and optionally auto-register all capabilities
+     provided by the server.
+     
+     Example:
+       agent-sdk-tool mcp register-server --node http://localhost:8080 --wallet ./my-wallet.json \
+         --from 0x123abc... --server-schema ./server-schema.yaml --fee 100 --auto-register-capabilities`,
+         RunE: func(cmd *cobra.Command, args []string) error {
+             // Implementation of the command
+             return registerServer(cmd, args)
+         },
+     }
+     ```
+   - Add required parameters and flags:
+     ```go
+     func init() {
+         // Required flags
+         registerServerCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         registerServerCmd.Flags().String("wallet", "", "Path to wallet file")
+         registerServerCmd.Flags().String("from", "", "Address of the sender")
+         registerServerCmd.Flags().String("server-schema", "", "Path to server schema file")
+         registerServerCmd.Flags().Uint64("fee", 0, "Transaction fee")
+         
+         // Optional flags
+         registerServerCmd.Flags().String("password", "", "Wallet password (will prompt if not provided)")
+         registerServerCmd.Flags().Bool("auto-register-capabilities", false, "Automatically register all capabilities provided by the server")
+         registerServerCmd.Flags().Bool("deploy-server", false, "Deploy the server if it's not already running")
+         registerServerCmd.Flags().String("deployment-config", "", "Path to deployment configuration file")
+         
+         // Mark required flags
+         registerServerCmd.MarkFlagRequired("node")
+         registerServerCmd.MarkFlagRequired("wallet")
+         registerServerCmd.MarkFlagRequired("from")
+         registerServerCmd.MarkFlagRequired("server-schema")
+         registerServerCmd.MarkFlagRequired("fee")
+     }
+     ```
+
+5. **Operational Procedure Registration Command (Interpolation)**
+   - Implement `mcp register-procedure` command:
+     ```go
+     var registerProcedureCmd = &cobra.Command{
+         Use:   "register-procedure",
+         Short: "Register an operational procedure on the KNIRVCHAIN blockchain",
+         Long: `Register an operational procedure on the KNIRVCHAIN blockchain using the interpolation route.
+     
+     This command will register the procedure, deploy any required MCP servers, and register
+     the capability on the blockchain.
+     
+     Example:
+       agent-sdk-tool mcp register-procedure --node http://localhost:8080 --wallet ./my-wallet.json \
+         --from 0x123abc... --opschema ./opschema.yaml --plugin ./plugin.so --fee 100 --deploy-servers`,
+         RunE: func(cmd *cobra.Command, args []string) error {
+             // Implementation of the command
+             return registerProcedure(cmd, args)
+         },
+     }
+     ```
+   - Add required parameters and flags:
+     ```go
+     func init() {
+         // Required flags
+         registerProcedureCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         registerProcedureCmd.Flags().String("wallet", "", "Path to wallet file")
+         registerProcedureCmd.Flags().String("from", "", "Address of the sender")
+         registerProcedureCmd.Flags().String("opschema", "", "Path to opSchema file")
+         registerProcedureCmd.Flags().Uint64("fee", 0, "Transaction fee")
+         
+         // Optional flags
+         registerProcedureCmd.Flags().String("password", "", "Wallet password (will prompt if not provided)")
+         registerProcedureCmd.Flags().String("plugin", "", "Path to plugin .so file (if procedure includes plugin functions)")
+         registerProcedureCmd.Flags().Bool("deploy-servers", false, "Deploy any MCP servers required by the procedure")
+         registerProcedureCmd.Flags().StringSlice("location-hint", nil, "Additional location hints for file access")
+         registerProcedureCmd.Flags().Bool("validate-servers", true, "Validate that all referenced MCP servers are accessible")
+         
+         // Mark required flags
+         registerProcedureCmd.MarkFlagRequired("node")
+         registerProcedureCmd.MarkFlagRequired("wallet")
+         registerProcedureCmd.MarkFlagRequired("from")
+         registerProcedureCmd.MarkFlagRequired("opschema")
+         registerProcedureCmd.MarkFlagRequired("fee")
+     }
+     ```
+
+6. **File Reference Strategy**
+   - Implement logic to determine how files will be referenced:
+     ```go
+     type FileReferenceStrategy interface {
+         GenerateLocationHint(filePath string) (string, error)
+         GetRelativePath(filePath string) (string, error)
+         EnsureAccessibility(filePath string) error
+     }
+     
+     // Local file server strategy
+     type LocalFileServerStrategy struct {
+         BaseDir    string
+         ServerPort int
+         LocalIP    string
+     }
+     
+     // Web server strategy
+     type WebServerStrategy struct {
+         BaseDir  string
+         BaseURL  string
+     }
+     
+     // IPFS strategy
+     type IPFSStrategy struct {
+         IPFSNode  *ipfs.Node
+     }
+     ```
+   - Create options for different hosting scenarios:
+     - Local file server:
+       - Automatically start a simple HTTP file server
+       - Determine local IP address for accessibility
+       - Generate URLs based on local IP and port
+       - Validate that files are in the served directory
+     - Existing web server:
+       - Allow specifying a base URL for an existing web server
+       - Generate relative paths from the base directory
+       - Combine with base URL to create complete URIs
+       - Validate that the server is accessible
+     - IPFS integration:
+       - Add files to IPFS network
+       - Generate IPFS URIs (ipfs://hash)
+       - Ensure files are pinned for persistence
+       - Validate IPFS node connectivity
+   - Add validation to ensure files will be accessible to devs:
+     - Implement accessibility checks for each strategy
+     - Verify file permissions are correct
+     - Test generated URLs for accessibility
+     - Add warnings for potential accessibility issues
+   - Create configuration options for file reference strategy:
+     ```go
+     type FileReferenceConfig struct {
+         Strategy          string   // "local", "web", "ipfs"
+         BaseDir           string   // Base directory for relative paths
+         ServerPort        int      // Port for local file server
+         BaseURL           string   // Base URL for web server
+         AdditionalHints   []string // Additional location hints
+         ValidateAccess    bool     // Whether to validate accessibility
+     }
+     ```
+
+3. **End-to-End Flow**
+   - Implement the complete registration flow:
+     ```go
+     func registerCapability(cmd *cobra.Command, args []string) error {
+         // 1. Parse and validate flags
+         nodeURL, _ := cmd.Flags().GetString("node")
+         walletPath, _ := cmd.Flags().GetString("wallet")
+         fromAddress, _ := cmd.Flags().GetString("from")
+         capabilityType, _ := cmd.Flags().GetString("type")
+         descriptorInput, _ := cmd.Flags().GetString("descriptor")
+         pluginPath, _ := cmd.Flags().GetString("plugin")
+         manifestPath, _ := cmd.Flags().GetString("manifest")
+         fee, _ := cmd.Flags().GetUint64("fee")
+         password, _ := cmd.Flags().GetString("password")
+         
+         // 2. Validate inputs based on capability type
+         if capabilityType == "RESOURCE" {
+             if pluginPath == "" || manifestPath == "" {
+                 return fmt.Errorf("plugin and manifest files are required for RESOURCE capability type")
+             }
+         }
+         
+         // 3. Load and parse descriptor
+         descriptor, err := loadDescriptor(descriptorInput)
+         if err != nil {
+             return fmt.Errorf("failed to load descriptor: %w", err)
+         }
+         
+         // 4. Set up file reference strategy
+         strategy, err := setupFileReferenceStrategy(cmd)
+         if err != nil {
+             return fmt.Errorf("failed to set up file reference strategy: %w", err)
+         }
+         
+         // 5. Load wallet and get private key
+         if password == "" {
+             password, err = promptForPassword("Enter wallet password: ")
+             if err != nil {
+                 return fmt.Errorf("failed to get password: %w", err)
+             }
+         }
+         
+         privateKey, err := wallet.LoadAndDecryptWallet(walletPath, password)
+         if err != nil {
+             return fmt.Errorf("failed to load wallet: %w", err)
+         }
+         
+         // 6. Prepare capability registration request
+         request := &MCPPrepareCapabilityRegistrationRequest{
+             FromAddress:    fromAddress,
+             CapabilityType: capabilityType,
+             Descriptor:     descriptor,
+             Fee:            fee,
+         }
+         
+         // 7. Call API to prepare registration
+         client := api.NewAPIClient(nodeURL, 30*time.Second, 3, logger)
+         response, err := client.PrepareCapabilityRegistration(context.Background(), *request, pluginPath, manifestPath)
+         if err != nil {
+             return fmt.Errorf("failed to prepare capability registration: %w", err)
+         }
+         
+         // 8. Extract transaction details for signing
+         unsignedTxDetails := response.TransactionDetailsForSigning
+         mcpPayloadBytes, err := json.Marshal(unsignedTxDetails.Data)
+         if err != nil {
+             return fmt.Errorf("failed to marshal transaction data: %w", err)
+         }
+         
+         // 9. Sign transaction
+         signature, txHash, err := signer.SignTransactionData(privateKey, unsignedTxDetails, mcpPayloadBytes)
+         if err != nil {
+             return fmt.Errorf("failed to sign transaction: %w", err)
+         }
+         
+         // 10. Assemble signed transaction
+         publicKeyHex := wallet.GetPublicKeyHex(&privateKey.PublicKey)
+         signedTx, err := signer.AssembleSignedTransaction(unsignedTxDetails, publicKeyHex, signature, txHash)
+         if err != nil {
+             return fmt.Errorf("failed to assemble signed transaction: %w", err)
+         }
+         
+         // 11. Submit transaction
+         submitResponse, err := client.SubmitTransaction(context.Background(), *signedTx)
+         if err != nil {
+             return fmt.Errorf("failed to submit transaction: %w", err)
+         }
+         
+         // 12. Display result
+         fmt.Printf("Capability registered successfully!\n")
+         fmt.Printf("Transaction Hash: %s\n", submitResponse.TransactionHash)
+         fmt.Printf("Capability ID: %s\n", response.CapabilityID)
+         fmt.Printf("Capability URI: %s\n", generateCapabilityURI(response.CapabilityID, capabilityType))
+         
+         return nil
+     }
+     ```
+   - Add proper error handling and user feedback:
+     - Implement detailed error messages for each step
+     - Add progress indicators for long-running operations
+     - Display clear success/failure messages
+     - Include transaction details in the output
+     - Add verbose logging for debugging
+     - Implement retry logic for transient failures
+
+### Phase 7: Server Deployment and Process Execution (Week 7)
+
+1. **Server Deployment Manager**
+   - Implement GitHub repository deployment:
+     ```go
+     type GitHubDeployment struct {
+         Repository  string
+         Branch      string
+         BuildCmd    string
+         TestCmd     string
+         DeployCmd   string
+     }
+     
+     func DeployFromGitHub(deployment GitHubDeployment) (*DeploymentResult, error) {
+         // Clone repository
+         // Check out branch
+         // Run build command
+         // Run test command
+         // Run deploy command
+         // Return deployment result
+     }
+     ```
+   - Implement live server deployment:
+     ```go
+     type LiveServerDeployment struct {
+         URL              string
+         HealthCheckURL   string
+         AuthConfig       map[string]string
+     }
+     
+     func ValidateLiveServer(deployment LiveServerDeployment) (*DeploymentResult, error) {
+         // Validate server URL
+         // Check health endpoint
+         // Verify authentication
+         // Return deployment result
+     }
+     ```
+   - Add deployment monitoring and management:
+     - Server health checking
+     - Status updates
+     - Error handling and recovery
+     - Logging and metrics
+
+2. **Process Execution Engine**
+   - Implement process step execution:
+     ```go
+     func (e *ProcessEngine) ExecuteStep(instance *ProcessInstance, step *ProcessStep) error {
+         // Determine step type (plugin_function, mcp_server, tool, etc.)
+         // Execute appropriate action based on step type
+         // Handle client injection points
+         // Process inputs and outputs
+         // Update process instance state
+         // Return any errors
+     }
+     ```
+   - Add process flow control:
+     ```go
+     func (e *ProcessEngine) ExecuteProcess(procedureID string, input map[string]interface{}) (*ProcessInstance, error) {
+         // Create new process instance
+         // Get procedure definition
+         // Execute start step
+         // Follow process flow until end or error
+         // Handle error conditions
+         // Return completed process instance
+     }
+     ```
+   - Implement client injection handling:
+     - Support for different injection types (config, resource, tool, userPrompt, inference)
+     - Integration with MCP capabilities
+     - Context management between steps
+     - Error handling and recovery
+
+### Phase 8: AI Inference Engine Implementation (Week 8)
+
+1. **AI Client Integration**
+   - Implement AI service client:
+     ```go
+     type AIServiceClient struct {
+         APIKey      string
+         BaseURL     string
+         Model       string
+         MaxTokens   int
+         Temperature float64
+         HTTPClient  *http.Client
+     }
+     
+     func NewAIServiceClient(config AIServiceConfig) *AIServiceClient {
+         return &AIServiceClient{
+             APIKey:      config.APIKey,
+             BaseURL:     config.BaseURL,
+             Model:       config.Model,
+             MaxTokens:   config.MaxTokens,
+             Temperature: config.Temperature,
+             HTTPClient: &http.Client{
+                 Timeout: 120 * time.Second,
+             },
+         }
+     }
+     
+     func (c *AIServiceClient) GenerateCompletion(prompt string) (string, error) {
+         // Prepare request payload
+         // Send request to AI service
+         // Process and return response
+     }
+     ```
+   - Add support for multiple AI providers:
+     - OpenAI API integration
+     - Anthropic API integration
+     - Local model support (optional)
+     - Custom provider configuration
+
+2. **Prompt Template Management**
+   - Create prompt templates for different plugin types:
+     ```go
+     type PromptTemplate struct {
+         Name        string
+         Description string
+         Template    string
+         Variables   []string
+     }
+     
+     func LoadPromptTemplate(path string) (*PromptTemplate, error) {
+         // Load template from file
+         // Parse variables
+         // Return template object
+     }
+     
+     func (t *PromptTemplate) Render(variables map[string]string) (string, error) {
+         // Replace variables in template
+         // Validate all variables are provided
+         // Return rendered prompt
+     }
+     ```
+   - Example resource plugin prompt template:
+     ```
+     # KNIRVCHAIN Resource Plugin Generation
+
+     You are an expert Go developer tasked with creating a KNIRVCHAIN resource plugin based on the provided opSchema.
+     
+     ## OpSchema Details
+     
+     ```yaml
+     {{.OpSchema}}
+     ```
+     
+     ## Requirements
+     
+     1. Create a Go plugin that implements the KNIRVCHAIN ResourceProvider interface
+     2. The plugin must handle all operations defined in the opSchema
+     3. Implement proper error handling and validation
+     4. Follow Go best practices and KNIRVCHAIN plugin conventions
+     5. Include comprehensive unit tests
+     
+     ## ResourceProvider Interface
+     
+     ```go
+     type ResourceProvider interface {
+         // Initialize is called when the plugin is loaded
+         Initialize(ctx context.Context, config map[string]interface{}) error
+         
+         // GetResource returns the resource data
+         GetResource(ctx context.Context, params map[string]interface{}) (interface{}, error)
+         
+         // CreateResource creates a new resource
+         CreateResource(ctx context.Context, data interface{}) (string, error)
+         
+         // UpdateResource updates an existing resource
+         UpdateResource(ctx context.Context, id string, data interface{}) error
+         
+         // DeleteResource deletes a resource
+         DeleteResource(ctx context.Context, id string) error
+     }
+     ```
+     
+     ## Output Format
+     
+     Please provide the following files:
+     
+     1. plugin.go - Main plugin implementation
+     2. types.go - Data structures and interfaces
+     3. utils.go - Utility functions
+     4. plugin_test.go - Unit tests
+     
+     Each file should be properly formatted and include appropriate documentation.
+     
+     ## Security Considerations
+     
+     - Validate all inputs
+     - Handle errors gracefully
+     - Avoid using unsafe packages
+     - Implement proper authentication if required
+     - Follow the principle of least privilege
+     
+     Please generate high-quality, production-ready code that meets all these requirements.
+     ```
+   - Implement template rendering with variable substitution:
+     - OpSchema parsing and extraction
+     - Context-aware variable substitution
+     - Template validation and error handling
+
+3. **Inference Engine Core**
+   - Implement the core inference engine:
+     ```go
+     type InferenceEngine struct {
+         AIClient        *AIServiceClient
+         TemplateManager *PromptTemplateManager
+         CodeParser      *CodeParser
+         TestGenerator   *TestGenerator
+     }
+     
+     func (e *InferenceEngine) GeneratePlugin(opSchema *OpSchema, options GenerateOptions) (*GeneratedPlugin, error) {
+         // Parse opSchema
+         // Select appropriate template
+         // Prepare prompt variables
+         // Generate plugin code
+         // Parse and validate generated code
+         // Generate tests
+         // Run tests
+         // Return generated plugin
+     }
+     ```
+   - Add code parsing and validation:
+     - Syntax validation
+     - Static analysis
+     - Security checks
+     - Best practices enforcement
+   - Implement test generation and execution:
+     - Unit test generation
+     - Integration test generation
+     - Test execution and reporting
+
+4. **Plugin Generation Command**
+   - Implement `mcp generate-plugin` command:
+     ```go
+     var generatePluginCmd = &cobra.Command{
+         Use:   "generate-plugin",
+         Short: "Generate a plugin from an opSchema file using AI",
+         Long: `Generate a fully functional plugin from an opSchema file using AI.
+     
+     This command will analyze the opSchema file, generate appropriate plugin code,
+     create tests, and optionally register the capability on the blockchain.
+     
+     Example:
+       agent-sdk-tool mcp generate-plugin --opschema ./opschema.yaml --output ./plugin \
+         --language go --register`,
+         RunE: func(cmd *cobra.Command, args []string) error {
+             // Implementation of the command
+             return generatePlugin(cmd, args)
+         },
+     }
+     ```
+   - Add required parameters and flags:
+     ```go
+     func init() {
+         // Required flags
+         generatePluginCmd.Flags().String("opschema", "", "Path to opSchema file")
+         generatePluginCmd.Flags().String("output", "", "Output directory for generated files")
+         
+         // Optional flags
+         generatePluginCmd.Flags().String("language", "go", "Programming language for the plugin (go, rust, c++)")
+         generatePluginCmd.Flags().Bool("register", false, "Register the capability after generation")
+         generatePluginCmd.Flags().String("model", "", "AI model to use for generation")
+         generatePluginCmd.Flags().Bool("interactive", false, "Enable interactive mode for refinement")
+         generatePluginCmd.Flags().Bool("run-tests", true, "Run tests on the generated plugin")
+         generatePluginCmd.Flags().Bool("optimize", true, "Optimize the generated code")
+         
+         // Registration-related flags (used when --register is true)
+         generatePluginCmd.Flags().String("node", "", "URL of the KNIRVCHAIN node")
+         generatePluginCmd.Flags().String("wallet", "", "Path to wallet file")
+         generatePluginCmd.Flags().String("from", "", "Address of the sender")
+         generatePluginCmd.Flags().Uint64("fee", 0, "Transaction fee")
+         
+         // Mark required flags
+         generatePluginCmd.MarkFlagRequired("opschema")
+         generatePluginCmd.MarkFlagRequired("output")
+     }
+     ```
+
+### Phase 9: Testing and Documentation (Week 9-10)
+
+1. **Comprehensive Testing**
+   - Unit tests for all components:
+     - Implement test suite for each package:
+       ```go
+       // wallet_manager_test.go
+       func TestGenerateKeyPair(t *testing.T) {
+           // Test cases
+           key, err := GenerateKeyPair()
+           assert.NoError(t, err)
+           assert.NotNil(t, key)
+           // Additional assertions
+       }
+       
+       func TestEncryptDecryptWallet(t *testing.T) {
+           // Test encryption and decryption
+           key, _ := GenerateKeyPair()
+           password := "test-password"
+           
+           // Encrypt
+           encrypted, err := EncryptPrivateKey(key, password)
+           assert.NoError(t, err)
+           
+           // Decrypt
+           decrypted, err := DecryptPrivateKey(encrypted, password)
+           assert.NoError(t, err)
+           
+           // Verify keys match
+           assert.Equal(t, key.D.Bytes(), decrypted.D.Bytes())
+       }
+       ```
+     - Use table-driven tests for multiple test cases:
+       ```go
+       func TestVerifySignature(t *testing.T) {
+           testCases := []struct {
+               name        string
+               publicKey   string
+               signature   []byte
+               txHash      string
+               expectValid bool
+           }{
+               {
+                   name:        "Valid signature",
+                   publicKey:   "0x...", // Known public key
+                   signature:   []byte{...}, // Known signature
+                   txHash:      "0x...", // Known transaction hash
+                   expectValid: true,
+               },
+               {
+                   name:        "Invalid signature",
+                   publicKey:   "0x...", // Known public key
+                   signature:   []byte{...}, // Invalid signature
+                   txHash:      "0x...", // Known transaction hash
+                   expectValid: false,
+               },
+               // Additional test cases
+           }
+           
+           for _, tc := range testCases {
+               t.Run(tc.name, func(t *testing.T) {
+                   valid, err := VerifySignature(tc.publicKey, tc.signature, tc.txHash)
+                   assert.NoError(t, err)
+                   assert.Equal(t, tc.expectValid, valid)
+               })
+           }
+       }
+       ```
+     - Implement mocks for external dependencies:
+       ```go
+       // Mock API client for testing
+       type MockAPIClient struct {
+           mock.Mock
+       }
+       
+       func (m *MockAPIClient) PrepareCapabilityRegistration(ctx context.Context, request MCPPrepareCapabilityRegistrationRequest, pluginFilePath, manifestFilePath string) (*MCPPrepareCapabilityRegistrationResponse, error) {
+           args := m.Called(ctx, request, pluginFilePath, manifestFilePath)
+           return args.Get(0).(*MCPPrepareCapabilityRegistrationResponse), args.Error(1)
+       }
+       
+       func (m *MockAPIClient) SubmitTransaction(ctx context.Context, tx Transaction) (*SubmitTxResponse, error) {
+           args := m.Called(ctx, tx)
+           return args.Get(0).(*SubmitTxResponse), args.Error(1)
+       }
+       ```
+     - Use test coverage tools to ensure high coverage:
+       ```bash
+       go test -coverprofile=coverage.out ./...
+       go tool cover -html=coverage.out
+       ```
+   
+   - Integration tests for end-to-end flows:
+     - Create test fixtures for different scenarios:
+       - Sample wallet files
+       - Sample plugin and manifest files
+       - Sample descriptors for different capability types
+     - Implement integration test suite:
+       ```go
+       func TestEndToEndCapabilityRegistration(t *testing.T) {
+           // Skip if integration tests are not enabled
+           if testing.Short() {
+               t.Skip("Skipping integration test in short mode")
+           }
+           
+           // Set up test environment
+           tempDir, err := ioutil.TempDir("", "agent-sdk-test")
+           assert.NoError(t, err)
+           defer os.RemoveAll(tempDir)
+           
+           // Create test wallet
+           walletPath := filepath.Join(tempDir, "test-wallet.json")
+           password := "test-password"
+           address, err := createTestWallet(walletPath, password)
+           assert.NoError(t, err)
+           
+           // Copy test plugin and manifest files
+           pluginPath := filepath.Join(tempDir, "test-plugin.so")
+           manifestPath := filepath.Join(tempDir, "test-manifest.json")
+           copyTestFile(t, "testdata/plugin.so", pluginPath)
+           copyTestFile(t, "testdata/manifest.json", manifestPath)
+           
+           // Start test server
+           server := startTestServer(t)
+           defer server.Close()
+           
+           // Run the command
+           cmd := exec.Command(
+               "agent-sdk-tool",
+               "mcp", "register-capability",
+               "--node", server.URL,
+               "--wallet", walletPath,
+               "--from", address,
+               "--type", "RESOURCE",
+               "--descriptor", `{"name":"Test Resource","description":"Test"}`,
+               "--plugin", pluginPath,
+               "--manifest", manifestPath,
+               "--fee", "100",
+               "--password", password,
+           )
+           
+           output, err := cmd.CombinedOutput()
+           assert.NoError(t, err, "Command failed: %s", output)
+           
+           // Verify output contains expected strings
+           outputStr := string(output)
+           assert.Contains(t, outputStr, "Capability registered successfully")
+           assert.Contains(t, outputStr, "Transaction Hash:")
+           assert.Contains(t, outputStr, "Capability ID:")
+       }
+       ```
+     - Test different file reference strategies:
+       - Local file server
+       - Web server
+       - IPFS (if implemented)
+     - Test error handling and recovery:
+       - Network failures
+       - Invalid inputs
+       - Server errors
+   
+   - Test against actual blockchain node:
+     - Set up a local test node:
+       ```bash
+       # Start a local KNIRVCHAIN node for testing
+       docker run -d -p 8080:8080 --name agent-test-node KNIRVCHAIN/node:latest
+       ```
+     - Create test scripts for common operations:
+       ```bash
+       #!/bin/bash
+       # Test script for wallet creation and capability registration
+       
+       # Create a new wallet
+       ./agent-sdk-tool wallet new --password test123 --file ./test-wallet.json
+       
+       # Register a capability
+       ./agent-sdk-tool mcp register-capability \
+         --node http://localhost:8080 \
+         --wallet ./test-wallet.json \
+         --from $(./agent-sdk-tool wallet list --format=plain | head -n 1) \
+         --type RESOURCE \
+         --descriptor '{"name":"Test Resource","description":"Test"}' \
+         --plugin ./test-plugin.so \
+         --manifest ./test-manifest.json \
+         --fee 100 \
+         --password test123
+       ```
+     - Implement automated test suite for node integration:
+       - Test wallet operations
+       - Test capability registration
+       - Test transaction submission
+       - Test error handling
+     - Create CI/CD pipeline for automated testing
+
+2. **Documentation**
+   - Create detailed README:
+     - Project overview and purpose
+     - Installation instructions for different platforms
+     - Quick start guide
+     - Configuration options
+     - Command reference
+     - Troubleshooting section
+     - Contributing guidelines
+   - Generate command help text:
+     - Implement comprehensive help text for all commands
+     - Include examples in help text
+     - Add detailed flag descriptions
+     - Create man pages for Unix systems
+     ```go
+     // Example of comprehensive help text
+     var rootCmd = &cobra.Command{
+         Use:   "agent-sdk-tool",
+         Short: "KNIRVCHAIN CLI Tool for blockchain interaction",
+         Long: `KNIRVCHAIN CLI Tool is a command-line interface for interacting with the KNIRVCHAIN blockchain.
+     
+     It provides functionality for wallet management, capability registration, and other blockchain operations.
+     
+     Complete documentation is available at https://docs.KNIRVCHAIN.io/sdk-tool`,
+         Example: `  # Create a new wallet
+       agent-sdk-tool wallet new
+     
+       # Register a capability
+       agent-sdk-tool mcp register-capability --node http://localhost:8080 --wallet ./my-wallet.json \
+         --from 0x123abc... --type RESOURCE --descriptor ./descriptor.json \
+         --plugin ./plugin.so --manifest ./manifest.json --fee 100`,
+     }
+     ```
+   - Create usage examples:
+     - Basic wallet operations:
+       - Creating a new wallet
+       - Importing an existing wallet
+       - Listing wallets
+     - Capability registration:
+       - Registering a resource capability
+       - Registering a tool capability
+       - Using different file reference strategies
+     - Advanced usage:
+       - Custom descriptor creation
+       - Using environment variables for configuration
+       - Scripting and automation
+     - Include example scripts and configuration files
+   - Document plugin and manifest file requirements:
+     - Plugin file format and requirements:
+       - Supported programming languages
+       - Required exports/interfaces
+       - Compilation instructions
+       - Security considerations
+     - Manifest file format:
+       ```json
+       {
+         "name": "Example Plugin",
+         "version": "1.0.0",
+         "description": "An example plugin for KNIRVCHAIN",
+         "author": "KNIRVCHAIN Developer",
+         "license": "MIT",
+         "main": "plugin.so",
+         "interfaces": ["ResourceProvider"],
+         "dependencies": {
+           "KNIRVCHAIN-sdk": "^1.0.0"
+         },
+         "config": {
+           "memory_limit_mb": 256,
+           "timeout_ms": 5000
+         }
+       }
+       ```
+     - Best practices for plugin development
+     - Examples of valid plugins and manifests
+   - Create online documentation:
+     - Set up documentation website
+     - Include interactive examples
+     - Add search functionality
+     - Provide API reference
+     - Include tutorials and guides
+
+3. **Packaging**
+   - Create build scripts:
+     - Cross-platform build script:
+       ```bash
+       #!/bin/bash
+       # Build script for multiple platforms
+       
+       VERSION=$(git describe --tags --always)
+       BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M:%S')
+       
+       # Build for Linux
+       GOOS=linux GOARCH=amd64 go build -ldflags="-X 'main.Version=$VERSION' -X 'main.BuildTime=$BUILD_TIME'" -o dist/agent-cli-tool-linux-amd64
+       
+       # Build for macOS
+       GOOS=darwin GOARCH=amd64 go build -ldflags="-X 'main.Version=$VERSION' -X 'main.BuildTime=$BUILD_TIME'" -o dist/agent-cli-tool-darwin-amd64
+       
+       # Build for Windows
+       GOOS=windows GOARCH=amd64 go build -ldflags="-X 'main.Version=$VERSION' -X 'main.BuildTime=$BUILD_TIME'" -o dist/agent-cli-tool-windows-amd64.exe
+       ```
+     - Docker build script:
+       ```dockerfile
+       FROM golang:1.18 as builder
+       WORKDIR /app
+       COPY . .
+       RUN go mod download
+       RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o agent-sdk-tool
+       
+       FROM alpine:latest
+       RUN apk --no-cache add ca-certificates
+       WORKDIR /root/
+       COPY --from=builder /app/agent-cli-tool .
+       ENTRYPOINT ["./agent-cli-tool"]
+       ```
+     - Makefile for common operations:
+       ```makefile
+       .PHONY: build test clean
+       
+       build:
+           go build -o bin/agent-cli-tool
+       
+       test:
+           go test -v ./...
+       
+       clean:
+           rm -rf bin/
+       ```
+   - Set up release process:
+     - Implement semantic versioning
+     - Create release checklist
+     - Set up CI/CD pipeline for automated releases
+     - Implement changelog generation
+     - Add release signing for security
+   - Prepare distribution packages:
+     - Create installers for different platforms:
+       - DEB package for Debian/Ubuntu
+       - RPM package for RHEL/CentOS
+       - MSI installer for Windows
+       - DMG package for macOS
+     - Set up package repositories:
+       - APT repository for Debian/Ubuntu
+       - YUM repository for RHEL/CentOS
+       - Homebrew formula for macOS
+     - Create installation scripts:
+       ```bash
+       #!/bin/bash
+       # Installation script for Linux
+       
+       # Download the latest release
+       curl -L https://github.com/cloud-equities/agent-sdk-tool/releases/latest/download/agent-sdk-tool-linux-amd64 -o agent-sdk-tool
+       
+       # Make it executable
+       chmod +x agent-sdk-tool
+       
+       # Move to a directory in PATH
+       sudo mv agent-sdk-tool /usr/local/bin/
+       ```
+     - Implement auto-update functionality (optional)
+
+## Detailed Command Specifications
+
+### Wallet Commands
+
+#### `wallet new`
+```
+agent-sdk-tool wallet new [--password <pwd>] [--file <path>] [--no-password] [--overwrite]
+```
+- **Purpose**: Generates a new ECDSA key pair and stores it in an encrypted wallet file.
+- **Implementation Details**:
+  - Generates a new ECDSA key pair using the secp256k1 curve
+  - Derives the wallet address from the public key
+  - If `--password` is not provided, prompts the user for a password with confirmation
+  - Encrypts the private key using AES-256-GCM with the password-derived key
+  - Saves the encrypted wallet to the specified file or default location
+  - Outputs the generated address and public key
+- **Options**:
+  - `--password <pwd>`: Use the specified password for encryption (not recommended for production use)
+  - `--file <path>`: Save the wallet to the specified file path
+  - `--no-password`: Create an unencrypted wallet (for development only, displays security warning)
+  - `--overwrite`: Overwrite the file if it already exists
+- **Output**:
+  ```
+  New wallet created successfully!
+  Address: 0x1234567890abcdef1234567890abcdef12345678
+  Public Key: 0x04abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12345678
+  Wallet saved to: /home/user/.agent/wallets/wallet-2023-05-01.json
+  ```
+- **Error Handling**:
+  - Validates password strength (if provided)
+  - Checks if the output file already exists (unless `--overwrite` is specified)
+  - Verifies write permissions to the output directory
+  - Reports detailed error messages for any failures
+
+#### `wallet import`
+```
+agent-cli-tool wallet import --private-key <key> [--password <pwd>] [--file <path>] [--no-password]
+```
+- **Purpose**: Imports an existing private key and stores it in an encrypted wallet file.
+- **Implementation Details**:
+  - Validates and parses the provided private key (hex format)
+  - Derives the public key and address from the private key
+  - If `--password` is not provided, prompts the user for a password with confirmation
+  - Encrypts the private key using AES-256-GCM with the password-derived key
+  - Saves the encrypted wallet to the specified file or default location
+  - Outputs the imported address and public key
+- **Options**:
+  - `--private-key <key>`: The private key to import in hex format (with or without 0x prefix)
+  - `--password <pwd>`: Use the specified password for encryption (not recommended for production use)
+  - `--file <path>`: Save the wallet to the specified file path
+  - `--no-password`: Create an unencrypted wallet (for development only, displays security warning)
+- **Output**:
+  ```
+  Wallet imported successfully!
+  Address: 0x1234567890abcdef1234567890abcdef12345678
+  Public Key: 0x04abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12345678
+  Wallet saved to: /home/user/.agent/wallets/imported-wallet-2023-05-01.json
+  ```
+- **Error Handling**:
+  - Validates the private key format and content
+  - Checks if the output file already exists
+  - Verifies write permissions to the output directory
+  - Reports detailed error messages for any failures
+
+#### `wallet list`
+```
+agent-cli-tool wallet list [--show-paths] [--directory <dir>] [--format <format>]
+```
+- **Purpose**: Lists all wallets in the default or specified directory.
+- **Implementation Details**:
+  - Scans the default wallet directory or the specified directory
+  - Reads each wallet file and extracts the address
+  - Displays a formatted table with addresses and optionally file paths
+  - Can output in different formats (table, JSON, CSV)
+- **Options**:
+  - `--show-paths`: Include file paths in the output
+  - `--directory <dir>`: Scan the specified directory instead of the default
+  - `--format <format>`: Output format (table, json, csv, plain)
+- **Output** (table format):
+  ```
+  +----+------------------------------------------+------------------------------------------+
+  | #  | ADDRESS                                  | FILE                                     |
+  +----+------------------------------------------+------------------------------------------+
+  | 1  | 0x1234567890abcdef1234567890abcdef12345 | /home/user/.agent/wallets/wallet-1.json  |
+  | 2  | 0xabcdef1234567890abcdef1234567890abcde | /home/user/.agent/wallets/wallet-2.json  |
+  +----+------------------------------------------+------------------------------------------+
+  ```
+- **Error Handling**:
+  - Checks if the directory exists and is readable
+  - Validates wallet file formats
+  - Reports any errors encountered while reading wallet files
+
+#### `wallet export`
+```
+agent-cli-tool wallet export --file <path> [--output <output_path>] [--format <format>] [--force]
+```
+- **Purpose**: Exports a wallet's private key with appropriate security warnings.
+- **Implementation Details**:
+  - Loads the specified wallet file
+  - Prompts for the wallet password
+  - Decrypts the private key
+  - Displays the private key with clear security warnings
+  - Optionally exports to a file in the specified format
+- **Options**:
+  - `--file <path>`: Path to the wallet file to export
+  - `--output <output_path>`: Path to save the exported private key (optional)
+  - `--format <format>`: Output format (hex, json, pem)
+  - `--force`: Skip security warnings and confirmations
+- **Output**:
+  ```
+  ⚠️  WARNING: Your private key is sensitive information!  ⚠️
+  Anyone with your private key can access your funds and assets.
+  Never share your private key with anyone or store it in an insecure location.
+  
+  Private Key: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+  
+  The private key has been exported to: /home/user/exported-key.hex
+  ```
+- **Error Handling**:
+  - Validates the wallet file format
+  - Verifies the password is correct
+  - Checks write permissions if exporting to a file
+  - Requires explicit confirmation unless `--force` is specified
+
+### MCP Commands
+
+#### `mcp generate-plugin`
+```
+agent-cli-tool mcp generate-plugin --opschema <opschema_file_path> --output <output_directory> [--language <language>] [--register] [--model <model_name>] [--interactive] [--run-tests] [--optimize] [--node <node_url>] [--wallet <wallet_file_path>] [--from <from_address>] [--fee <amount>]
+```
+- **Purpose**: Generates a fully functional plugin from an opSchema file using AI.
+- **Implementation Details**:
+  - Analyzes the opSchema file to understand the capability requirements
+  - Selects the appropriate prompt template based on capability type
+  - Generates plugin code using the AI inference engine
+  - Validates the generated code for syntax, security, and best practices
+  - Generates unit and integration tests for the plugin
+  - Runs tests to ensure functionality
+  - Optionally registers the capability on the blockchain
+- **Options**:
+  - `--opschema <opschema_file_path>`: Path to the opSchema file
+  - `--output <output_directory>`: Output directory for generated files
+  - `--language <language>`: Programming language for the plugin (go, rust, c++)
+  - `--register`: Register the capability after generation
+  - `--model <model_name>`: AI model to use for generation
+  - `--interactive`: Enable interactive mode for refinement
+  - `--run-tests`: Run tests on the generated plugin
+  - `--optimize`: Optimize the generated code
+  - `--node <node_url>`: URL of the KNIRVCHAIN node (required if --register is specified)
+  - `--wallet <wallet_file_path>`: Path to the wallet file (required if --register is specified)
+  - `--from <from_address>`: Address of the sender (required if --register is specified)
+  - `--fee <amount>`: Transaction fee (required if --register is specified)
+- **Output**:
+  ```
+  Analyzing opSchema file...
+  OpSchema validation successful.
+  
+  Generating plugin code...
+  Selected template: resource_provider
+  Using model: gpt-4-turbo
+  Code generation successful.
+  
+  Validating generated code...
+  Syntax validation: PASSED
+  Security checks: PASSED
+  Best practices: PASSED
+  
+  Generating tests...
+  Generated 12 unit tests and 3 integration tests.
+  
+  Running tests...
+  All tests passed successfully!
+  
+  Optimizing code...
+  Optimization complete. Performance improved by 15%.
+  
+  Plugin generated successfully!
+  Output directory: /home/user/projects/my-plugin
+  
+  Files generated:
+  - plugin.go (main plugin implementation)
+  - types.go (data structures and interfaces)
+  - utils.go (utility functions)
+  - plugin_test.go (unit tests)
+  - integration_test.go (integration tests)
+  - README.md (documentation)
+  
+  Registering capability on blockchain...
+  Preparing capability registration...
+  Capability registration prepared.
+  Capability ID: resource_test-resource_1234567890abcdef
+  
+  Signing transaction...
+  Transaction signed successfully.
+  
+  Submitting transaction...
+  Transaction submitted successfully!
+  
+  Capability registered successfully!
+  Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+  Capability ID: resource_test-resource_1234567890abcdef
+  Capability URI: agent://resource/resource_test-resource_1234567890abcdef
+  ```
+- **Error Handling**:
+  - Validates the opSchema file
+  - Handles AI service errors
+  - Validates generated code
+  - Reports test failures
+  - Provides detailed error messages for any failures
+  - Offers suggestions for fixing issues
+
+#### `mcp register-capability`
+```
+agent-cli-tool mcp register-capability --node <node_url> --wallet <wallet_file_path> --from <from_address> --type <RESOURCE|TOOL|...> --descriptor <json_string_or_file_path> --plugin <plugin_so_file_path> --opschema <opschema_file_path> --fee <amount> [--password <pwd>] [--location-hint <uri>] [--relative-path-base <path>] [--start-file-server] [--file-server-port <port>]
+```
+- **Purpose**: Registers a new capability on the KNIRVCHAIN blockchain.
+- **Implementation Details**:
+  - Validates all required parameters
+  - For plugin resources:
+    - Validates the plugin .so file and opSchema file
+    - Creates references to these files in the descriptor
+    - Adds location hints for dev access
+  - Loads and decrypts the wallet
+  - Prepares the capability registration request
+  - Signs the transaction with the wallet's private key
+  - Submits the transaction to the blockchain
+  - Returns the transaction hash and capability URI
+- **Options**:
+  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--wallet <wallet_file_path>`: Path to the wallet file
+  - `--from <from_address>`: Address of the sender (must match the wallet)
+  - `--type <RESOURCE|TOOL|...>`: Type of capability to register
+  - `--descriptor <json_string_or_file_path>`: JSON descriptor string or path to descriptor file
+  - `--plugin <plugin_so_file_path>`: Path to the plugin .so file (required for RESOURCE type)
+  - `--opschema <opschema_file_path>`: Path to the opSchema file (required for RESOURCE type)
+  - `--fee <amount>`: Transaction fee in NRN tokens
+  - `--password <pwd>`: Wallet password (will prompt if not provided)
+  - `--location-hint <uri>`: Additional location hints for file access (can be specified multiple times)
+  - `--relative-path-base <path>`: Base directory for relative paths
+  - `--start-file-server`: Start a local file server for hosting plugin files
+  - `--file-server-port <port>`: Port for the local file server (default: 8090)
+- **Output**:
+  ```
+  Validating plugin and opSchema files...
+  Plugin validation successful.
+  OpSchema validation successful.
+  
+  Setting up file references...
+  Using local file server strategy.
+  Starting file server on port 8090...
+  File server started at http://192.168.1.100:8090
+  
+  Preparing capability registration...
+  Capability registration prepared.
+  Capability ID: resource_test-resource_1234567890abcdef
+  
+  Signing transaction...
+  Transaction signed successfully.
+  
+  Submitting transaction...
+  Transaction submitted successfully!
+  
+  Capability registered successfully!
+  Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+  Capability ID: resource_test-resource_1234567890abcdef
+  Capability URI: agent://resource/resource_test-resource_1234567890abcdef
+  
+  Plugin file accessible at: http://192.168.1.100:8090/plugins/test-plugin.so
+  OpSchema file accessible at: http://192.168.1.100:8090/opschemas/test-opschema.yaml
+  
+  File server will remain running. Press Ctrl+C to stop.
+  ```
+- **Error Handling**:
+  - Validates all input parameters
+  - Checks if the plugin and opSchema files exist and are valid
+  - Verifies the wallet exists and can be decrypted
+  - Handles network errors when communicating with the node
+  - Provides detailed error messages for any failures
+
+#### `mcp register-server`
+```
+agent-cli-tool mcp register-server --node <node_url> --wallet <wallet_file_path> --from <from_address> --server-schema <server_schema_file_path> --fee <amount> [--password <pwd>] [--auto-register-capabilities] [--deploy-server] [--deployment-config <config_file_path>]
+```
+- **Purpose**: Registers an MCP server on the KNIRVCHAIN blockchain using the extrapolation route.
+- **Implementation Details**:
+  - Validates the server schema file
+  - Optionally deploys the server if it's not already running
+  - Discovers capabilities provided by the server
+  - Registers the server on the blockchain
+  - Optionally auto-registers all capabilities provided by the server
+  - Returns the transaction hash and server URI
+- **Options**:
+  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--wallet <wallet_file_path>`: Path to the wallet file
+  - `--from <from_address>`: Address of the sender (must match the wallet)
+  - `--server-schema <server_schema_file_path>`: Path to the server schema file
+  - `--fee <amount>`: Transaction fee in NRN tokens
+  - `--password <pwd>`: Wallet password (will prompt if not provided)
+  - `--auto-register-capabilities`: Automatically register all capabilities provided by the server
+  - `--deploy-server`: Deploy the server if it's not already running
+  - `--deployment-config <config_file_path>`: Path to deployment configuration file
+- **Output**:
+  ```
+  Validating server schema...
+  Server schema validation successful.
+  
+  Checking server status...
+  Server is not running. Deploying server...
+  Cloning repository from https://github.com/example/mcp-server...
+  Building server...
+  Running tests...
+  Deploying server...
+  Server deployed successfully at http://localhost:3000
+  
+  Discovering capabilities...
+  Found 3 capabilities:
+  - resource-provider
+  - tool-executor
+  - prompt-generator
+  
+  Preparing server registration...
+  Server registration prepared.
+  Server ID: mcp-server_example-mcp-server_1234567890abcdef
+  
+  Signing transaction...
+  Transaction signed successfully.
+  
+  Submitting transaction...
+  Transaction submitted successfully!
+  
+  Server registered successfully!
+  Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+  Server ID: mcp-server_example-mcp-server_1234567890abcdef
+  Server URI: agent://mcp-server/mcp-server_example-mcp-server_1234567890abcdef
+  
+  Auto-registering capabilities...
+  Registering capability: resource-provider...
+  Capability registered successfully!
+  Capability ID: resource_resource-provider_1234567890abcdef
+  
+  Registering capability: tool-executor...
+  Capability registered successfully!
+  Capability ID: tool_tool-executor_1234567890abcdef
+  
+  Registering capability: prompt-generator...
+  Capability registered successfully!
+  Capability ID: prompt_prompt-generator_1234567890abcdef
+  
+  All capabilities registered successfully!
+  ```
+- **Error Handling**:
+  - Validates the server schema file
+  - Checks if the server is accessible
+  - Verifies the wallet exists and can be decrypted
+  - Handles deployment errors
+  - Provides detailed error messages for any failures
+
+#### `mcp register-procedure`
+```
+agent-cli-tool mcp register-procedure --node <node_url> --wallet <wallet_file_path> --from <from_address> --opschema <opschema_file_path> --fee <amount> [--password <pwd>] [--plugin <plugin_so_file_path>] [--deploy-servers] [--location-hint <uri>] [--validate-servers]
+```
+- **Purpose**: Registers an operational procedure on the KNIRVCHAIN blockchain using the interpolation route.
+- **Implementation Details**:
+  - Validates the opSchema file
+  - Validates the plugin file if provided
+  - Checks that all referenced MCP servers are accessible
+  - Optionally deploys required MCP servers
+  - Registers the procedure on the blockchain
+  - Registers the capability described in the opSchema
+  - Returns the transaction hash and procedure URI
+- **Options**:
+  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--wallet <wallet_file_path>`: Path to the wallet file
+  - `--from <from_address>`: Address of the sender (must match the wallet)
+  - `--opschema <opschema_file_path>`: Path to the opSchema file
+  - `--fee <amount>`: Transaction fee in NRN tokens
+  - `--password <pwd>`: Wallet password (will prompt if not provided)
+  - `--plugin <plugin_so_file_path>`: Path to plugin .so file (if procedure includes plugin functions)
+  - `--deploy-servers`: Deploy any MCP servers required by the procedure
+  - `--location-hint <uri>`: Additional location hints for file access
+  - `--validate-servers`: Validate that all referenced MCP servers are accessible
+- **Output**:
+  ```
+  Validating opSchema...
+  OpSchema validation successful.
+  
+  Validating plugin...
+  Plugin validation successful.
+  
+  Checking MCP servers...
+  Server 'tes5edit-server' is not accessible. Deploying server...
+  Cloning repository from https://github.com/example/tes5edit-server...
+  Building server...
+  Running tests...
+  Deploying server...
+  Server deployed successfully at http://localhost:3001
+  
+  Setting up file references...
+  Using local file server strategy.
+  Starting file server on port 8090...
+  File server started at http://192.168.1.100:8090
+  
+  Preparing procedure registration...
+  Procedure registration prepared.
+  Procedure ID: procedure_skyrim-mod-validator_1234567890abcdef
+  
+  Signing transaction...
+  Transaction signed successfully.
+  
+  Submitting transaction...
+  Transaction submitted successfully!
+  
+  Procedure registered successfully!
+  Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+  Procedure ID: procedure_skyrim-mod-validator_1234567890abcdef
+  Procedure URI: agent://procedure/procedure_skyrim-mod-validator_1234567890abcdef
+  
+  Registering capability...
+  Capability registered successfully!
+  Capability ID: resource_skyrim-mod-validator_1234567890abcdef
+  Capability URI: agent://resource/resource_skyrim-mod-validator_1234567890abcdef
+  
+  Plugin file accessible at: http://192.168.1.100:8090/plugins/test-plugin.so
+  OpSchema file accessible at: http://192.168.1.100:8090/opschemas/test-opschema.yaml
+  
+  File server will remain running. Press Ctrl+C to stop.
+  ```
+- **Error Handling**:
+  - Validates the opSchema file
+  - Checks if the plugin file exists and is valid
+  - Verifies that all referenced MCP servers are accessible
+  - Handles deployment errors
+  - Provides detailed error messages for any failures
+
+#### `mcp invoke-capability`
+```
+agent-cli-tool mcp invoke-capability --node <node_url> --wallet <wallet_file_path> --from <from_address> --capability-id <id> --input <json_string_or_file_path> --fee <amount> [--password <pwd>]
+```
+- **Purpose**: Invokes a capability on the KNIRVCHAIN blockchain.
+- **Implementation Details**:
+  - Validates all required parameters
+  - Loads and decrypts the wallet
+  - Prepares the capability invocation request
+  - Signs the transaction with the wallet's private key
+  - Submits the transaction to the blockchain
+  - Returns the transaction hash and invocation result
+- **Options**:
+  - `--node <node_url>`: URL of the KNIRVCHAIN node
+  - `--wallet <wallet_file_path>`: Path to the wallet file
+  - `--from <from_address>`: Address of the sender (must match the wallet)
+  - `--capability-id <id>`: ID of the capability to invoke
+  - `--input <json_string_or_file_path>`: JSON input string or path to input file
+  - `--fee <amount>`: Transaction fee in NRN tokens
+  - `--password <pwd>`: Wallet password (will prompt if not provided)
+- **Output**:
+  ```
+  Preparing capability invocation...
+  Capability invocation prepared.
+  
+  Signing transaction...
+  Transaction signed successfully.
+  
+  Submitting transaction...
+  Transaction submitted successfully!
+  
+  Capability invoked successfully!
+  Transaction Hash: 0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+  Context Record ID: context_1234567890abcdef
+  
+  Invocation result will be available once the transaction is mined.
+  ```
+- **Error Handling**:
+  - Validates all input parameters
+  - Verifies the capability exists
+  - Checks if the input is valid for the capability
+  - Handles network errors when communicating with the node
+  - Provides detailed error messages for any failures
+
+## File Reference Strategy
+
+The CLI tool will support multiple strategies for making plugin files accessible to devs. This is a critical component of the capability registration process, as it ensures that other nodes in the network can access the plugin and manifest files referenced in the capability descriptor.
+
+### 1. **Local File Server Strategy**
+
+- **Implementation**:
+  ```go
+  type LocalFileServerStrategy struct {
+      BaseDir    string
+      ServerPort int
+      LocalIP    string
+      server     *http.Server
+  }
+  
+  func NewLocalFileServerStrategy(baseDir string, port int) (*LocalFileServerStrategy, error) {
+      // Get local IP address
+      localIP, err := getLocalIP()
+      if err != nil {
+          return nil, fmt.Errorf("failed to determine local IP: %w", err)
+      }
+      
+      strategy := &LocalFileServerStrategy{
+          BaseDir:    baseDir,
+          ServerPort: port,
+          LocalIP:    localIP,
+      }
+      
+      return strategy, nil
+  }
+  
+  func (s *LocalFileServerStrategy) StartServer() error {
+      // Create file server handler
+      fileHandler := http.FileServer(http.Dir(s.BaseDir))
+      
+      // Create server mux
+      mux := http.NewServeMux()
+      mux.Handle("/", fileHandler)
+      
+      // Create server
+      s.server = &http.Server{
+          Addr:    fmt.Sprintf(":%d", s.ServerPort),
+          Handler: mux,
+      }
+      
+      // Start server in a goroutine
+      go func() {
+          if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+              log.Printf("File server error: %v", err)
+          }
+      }()
+      
+      return nil
+  }
+  
+  func (s *LocalFileServerStrategy) GenerateLocationHint(filePath string) (string, error) {
+      relPath, err := s.GetRelativePath(filePath)
+      if err != nil {
+          return "", err
+      }
+      
+      return fmt.Sprintf("http://%s:%d/%s", s.LocalIP, s.ServerPort, relPath), nil
+  }
+  
+  func (s *LocalFileServerStrategy) GetRelativePath(filePath string) (string, error) {
+      absFilePath, err := filepath.Abs(filePath)
+      if err != nil {
+          return "", err
+      }
+      
+      absBaseDir, err := filepath.Abs(s.BaseDir)
+      if err != nil {
+          return "", err
+      }
+      
+      relPath, err := filepath.Rel(absBaseDir, absFilePath)
+      if err != nil {
+          return "", err
+      }
+      
+      return filepath.ToSlash(relPath), nil
+  }
+  
+  func (s *LocalFileServerStrategy) EnsureAccessibility(filePath string) error {
+      // Check if file exists and is readable
+      if _, err := os.Stat(filePath); err != nil {
+          return fmt.Errorf("file accessibility check failed: %w", err)
+      }
+      
+      // Check if file is within base directory
+      relPath, err := s.GetRelativePath(filePath)
+      if err != nil {
+          return fmt.Errorf("file is not within base directory: %w", err)
+      }
+      
+      // Try to access the file via HTTP to verify server is working
+      url := fmt.Sprintf("http://%s:%d/%s", s.LocalIP, s.ServerPort, relPath)
+      resp, err := http.Get(url)
+      if err != nil {
+          return fmt.Errorf("file is not accessible via HTTP: %w", err)
+      }
+      defer resp.Body.Close()
+      
+      if resp.StatusCode != http.StatusOK {
+          return fmt.Errorf("file is not accessible via HTTP, status code: %d", resp.StatusCode)
+      }
+      
+      return nil
+  }
+  
+  func (s *LocalFileServerStrategy) StopServer() error {
+      if s.server != nil {
+          ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+          defer cancel()
+          return s.server.Shutdown(ctx)
+      }
+      return nil
+  }
+  ```
+
+- **Features**:
+  - Automatically configures a local HTTP file server
+  - Determines the local IP address for external accessibility
+  - Generates appropriate URIs based on local IP and port
+  - Adds these as location hints in the capability descriptor
+  - Validates that files are accessible via the server
+  - Provides options to keep the server running after registration
+
+- **Advantages**:
+  - Simple to use with minimal configuration
+  - Works well for development and testing
+  - No need for external hosting services
+
+- **Limitations**:
+  - Requires the developer's machine to be accessible from the internet
+  - May not work behind NAT or firewalls without port forwarding
+  - Not suitable for production use without additional security measures
+
+### 2. **Existing Web Server Strategy**
+
+- **Implementation**:
+  ```go
+  type WebServerStrategy struct {
+      BaseDir  string
+      BaseURL  string
+  }
+  
+  func NewWebServerStrategy(baseDir, baseURL string) (*WebServerStrategy, error) {
+      // Validate base URL format
+      if _, err := url.Parse(baseURL); err != nil {
+          return nil, fmt.Errorf("invalid base URL: %w", err)
+      }
+      
+      // Ensure base URL ends with a slash
+      if !strings.HasSuffix(baseURL, "/") {
+          baseURL += "/"
+      }
+      
+      return &WebServerStrategy{
+          BaseDir: baseDir,
+          BaseURL: baseURL,
+      }, nil
+  }
+  
+  func (s *WebServerStrategy) GenerateLocationHint(filePath string) (string, error) {
+      relPath, err := s.GetRelativePath(filePath)
+      if err != nil {
+          return "", err
+      }
+      
+      return s.BaseURL + relPath, nil
+  }
+  
+  func (s *WebServerStrategy) GetRelativePath(filePath string) (string, error) {
+      absFilePath, err := filepath.Abs(filePath)
+      if err != nil {
+          return "", err
+      }
+      
+      absBaseDir, err := filepath.Abs(s.BaseDir)
+      if err != nil {
+          return "", err
+      }
+      
+      relPath, err := filepath.Rel(absBaseDir, absFilePath)
+      if err != nil {
+          return "", err
+      }
+      
+      return filepath.ToSlash(relPath), nil
+  }
+  
+  func (s *WebServerStrategy) EnsureAccessibility(filePath string) error {
+      // Check if file exists and is readable
+      if _, err := os.Stat(filePath); err != nil {
+          return fmt.Errorf("file accessibility check failed: %w", err)
+      }
+      
+      // Get location hint
+      hint, err := s.GenerateLocationHint(filePath)
+      if err != nil {
+          return fmt.Errorf("failed to generate location hint: %w", err)
+      }
+      
+      // Try to access the file via HTTP to verify server is working
+      resp, err := http.Get(hint)
+      if err != nil {
+          return fmt.Errorf("file is not accessible via HTTP: %w", err)
+      }
+      defer resp.Body.Close()
+      
+      if resp.StatusCode != http.StatusOK {
+          return fmt.Errorf("file is not accessible via HTTP, status code: %d", resp.StatusCode)
+      }
+      
+      return nil
+  }
+  ```
+
+- **Features**:
+  - Allows specifying a base URL for an existing web server
+  - Generates relative paths from the base directory
+  - Combines base URL and relative paths to create complete URIs
+  - Validates that files are accessible via the web server
+
+- **Advantages**:
+  - Works with existing web hosting infrastructure
+  - More reliable for production use
+  - Better security and control over file access
+
+- **Limitations**:
+  - Requires manual setup of web server
+  - Developer must ensure files are properly uploaded to the server
+  - May require additional authentication or access control
+
+### 3. **Distributed Storage Strategy (IPFS)**
+
+- **Implementation**:
+  ```go
+  type IPFSStrategy struct {
+      IPFSNode *ipfs.Node
+      Gateway  string
+  }
+  
+  func NewIPFSStrategy(gateway string) (*IPFSStrategy, error) {
+      // Initialize IPFS node
+      ctx := context.Background()
+      node, err := ipfs.NewNode(ctx, &ipfs.Config{
+          Gateway: gateway,
+      })
+      if err != nil {
+          return nil, fmt.Errorf("failed to initialize IPFS node: %w", err)
+      }
+      
+      return &IPFSStrategy{
+          IPFSNode: node,
+          Gateway:  gateway,
+      }, nil
+  }
+  
+  func (s *IPFSStrategy) GenerateLocationHint(filePath string) (string, error) {
+      // Add file to IPFS
+      file, err := os.Open(filePath)
+      if err != nil {
+          return "", fmt.Errorf("failed to open file: %w", err)
+      }
+      defer file.Close()
+      
+      // Add file to IPFS
+      ctx := context.Background()
+      cid, err := s.IPFSNode.Add(ctx, file)
+      if err != nil {
+          return "", fmt.Errorf("failed to add file to IPFS: %w", err)
+      }
+      
+      // Pin the file to ensure it remains available
+      if err := s.IPFSNode.Pin(ctx, cid); err != nil {
+          return "", fmt.Errorf("failed to pin file: %w", err)
+      }
+      
+      // Generate IPFS URI
+      return fmt.Sprintf("ipfs://%s", cid.String()), nil
+  }
+  
+  func (s *IPFSStrategy) GetRelativePath(filePath string) (string, error) {
+      // For IPFS, the relative path is not used
+      // Instead, we use the CID as the identifier
+      return filepath.Base(filePath), nil
+  }
+  
+  func (s *IPFSStrategy) EnsureAccessibility(filePath string) error {
+      // Check if file exists and is readable
+      if _, err := os.Stat(filePath); err != nil {
+          return fmt.Errorf("file accessibility check failed: %w", err)
+      }
+      
+      // Get location hint
+      hint, err := s.GenerateLocationHint(filePath)
+      if err != nil {
+          return fmt.Errorf("failed to generate location hint: %w", err)
+      }
+      
+      // Extract CID from hint
+      cid := strings.TrimPrefix(hint, "ipfs://")
+      
+      // Try to access the file via IPFS gateway to verify it's accessible
+      gatewayURL := fmt.Sprintf("%s/ipfs/%s", s.Gateway, cid)
+      resp, err := http.Get(gatewayURL)
+      if err != nil {
+          return fmt.Errorf("file is not accessible via IPFS gateway: %w", err)
+      }
+      defer resp.Body.Close()
+      
+      if resp.StatusCode != http.StatusOK {
+          return fmt.Errorf("file is not accessible via IPFS gateway, status code: %d", resp.StatusCode)
+      }
+      
+      return nil
+  }
+  ```
+
+- **Features**:
+  - Adds files to the IPFS network
+  - Generates content-addressed URIs (ipfs://CID)
+  - Pins files to ensure persistence
+  - Validates accessibility through IPFS gateways
+
+- **Advantages**:
+  - Decentralized storage with no single point of failure
+  - Content addressing ensures integrity
+  - No need for dedicated hosting infrastructure
+  - Files remain accessible as long as they are pinned somewhere in the network
+
+- **Limitations**:
+  - Requires IPFS node setup or access to a pinning service
+  - May have slower access times compared to direct HTTP
+  - Requires devs to have IPFS support or access to an IPFS gateway
+
+### Strategy Selection and Configuration
+
+The CLI tool will provide a flexible mechanism for selecting and configuring the appropriate file reference strategy:
+
+```go
+// FileReferenceConfig defines the configuration for file reference strategies
+type FileReferenceConfig struct {
+    Strategy          string   // "local", "web", "ipfs"
+    BaseDir           string   // Base directory for relative paths
+    ServerPort        int      // Port for local file server
+    BaseURL           string   // Base URL for web server
+    IPFSGateway       string   // IPFS gateway URL
+    AdditionalHints   []string // Additional location hints
+    ValidateAccess    bool     // Whether to validate accessibility
+}
+
+// CreateFileReferenceStrategy creates a file reference strategy based on configuration
+func CreateFileReferenceStrategy(config FileReferenceConfig) (FileReferenceStrategy, error) {
+    switch config.Strategy {
+    case "local":
+        return NewLocalFileServerStrategy(config.BaseDir, config.ServerPort)
+    case "web":
+        return NewWebServerStrategy(config.BaseDir, config.BaseURL)
+    case "ipfs":
+        return NewIPFSStrategy(config.IPFSGateway)
+    default:
+        return nil, fmt.Errorf("unsupported file reference strategy: %s", config.Strategy)
+    }
+}
+```
+
+## Implementation Priorities
+
+The development of the KNIRVCHAIN CLI tool will follow these priorities:
+
+1. **Core Wallet Functionality**
+   - Key generation and secure storage
+   - Wallet management commands
+   - Encryption and decryption utilities
+
+2. **Basic API Client**
+   - HTTP client with robust error handling
+   - Connection to blockchain node
+   - Basic transaction submission
+
+3. **Transaction Signing**
+   - Transaction data structures
+   - Canonical serialization for hashing
+   - ECDSA signature generation and verification
+
+4. **File Validation and Reference Generation**
+   - Plugin .so file validation
+   - OpSchema file validation
+   - File reference strategy implementation
+
+5. **MCP Server Management**
+   - Server schema validation
+   - Server deployment and management
+   - Capability discovery and registration
+   - Server health monitoring
+
+6. **Process Execution Engine**
+   - Process step execution
+   - Process flow control
+   - Client injection handling
+   - Context management
+
+7. **Capability Registration Commands**
+   - Direct plugin capability registration
+   - MCP server registration (extrapolation)
+   - Operational procedure registration (interpolation)
+   - End-to-end registration flows
+
+8. **AI Inference Engine**
+   - AI service client integration
+   - Prompt template management
+   - Code generation and validation
+   - Automated test generation and execution
+   - Plugin generation command
+
+9. **Advanced File Reference Strategies**
+   - Web server integration
+   - IPFS support
+   - Additional location hint options
+
+10. **Additional MCP Commands**
+    - Capability invocation
+    - Capability updates
+    - Capability queries
+
+## Success Criteria
+
+The KNIRVCHAIN CLI tool will be considered successful when it meets the following criteria:
+
+1. **Functionality**
+   - All commands function as specified in the detailed command specifications
+   - The tool successfully interacts with the KNIRVCHAIN blockchain
+   - All capability registration routes work end-to-end with proper file references
+   - MCP server deployment and management functions correctly
+   - Process execution engine handles complex operational procedures
+   - AI inference engine generates high-quality, functional plugins from opSchema files
+
+2. **Usability**
+   - Clear and helpful command-line interface
+   - Comprehensive help text and documentation
+   - Intuitive error messages and user feedback
+   - Reasonable performance for all operations
+   - Seamless transition between different integration routes
+   - Simplified developer experience with AI-powered plugin generation
+
+3. **Security**
+   - Secure wallet management with proper encryption
+   - Safe handling of private keys and passwords
+   - Proper validation of all inputs
+   - Secure communication with the blockchain node
+   - Secure server deployment and management
+   - Security validation of AI-generated code
+
+4. **Reliability**
+   - Robust error handling for all operations
+   - Graceful recovery from network issues
+   - Consistent behavior across different environments
+   - High test coverage with passing test suite
+   - Reliable server deployment and health monitoring
+   - Consistent and reliable AI-generated plugin code
+
+5. **Documentation**
+   - Comprehensive README and command documentation
+   - Clear examples for all major use cases
+   - Detailed documentation for all integration routes
+   - Detailed plugin, opSchema, and server schema file requirements
+   - Troubleshooting guide for common issues
+   - Guidelines for effective opSchema design for AI plugin generation
+
+6. **Extensibility**
+   - Well-structured code that can be extended
+   - Clear separation of concerns
+   - Modular design for adding new features
+   - Configurable behavior for different environments
+   - Support for custom server deployment strategies
+   - Customizable AI prompt templates and model configurations

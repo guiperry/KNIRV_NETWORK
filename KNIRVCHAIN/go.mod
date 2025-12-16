@@ -27,7 +27,6 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/guiperry/gollm_cerebras v0.2.1
 	github.com/invopop/jsonschema v0.13.0
-	github.com/mouuff/go-rocket-update v1.5.4
 	github.com/philippgille/chromem-go v0.7.0
 	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/segmentio/kafka-go v0.4.48

@@ -63,13 +63,34 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+// DB defines the subset of database methods used by the P2P manager
+type DB interface {
+	PutIntoDb(interface{}, string) error
+	GetContextRecord(txHash string) (interface{}, error)
+}
+
+// Blockchain defines the subset of blockchain methods used by the P2P manager
+type Blockchain interface {
+	GetChainID() string
+	GetChainAddress() string
+	IsActivelyMining() bool
+	Lock()
+	Unlock()
+	GetBlocks() []*Block
+	SetBlocks([]*Block)
+	AddBlock(*Block) error
+	GetTransactionPool() []*Transaction
+	SetTransactionPool([]*Transaction)
+	AddTransactionToTransactionPool(*Transaction) error
+}
+
 // P2PConsensusManager implements a decentralized consensus mechanism using libp2p pubsub
 type P2PConsensusManager struct {
 	// Core components
 	host             host.Host
 	pubsub           *pubsub.PubSub
-	blockchain       *BlockchainStruct
-	db               *LevelDB
+	blockchain       Blockchain
+	db               DB
 	discoveryManager *DiscoveryManager
 	ctx              context.Context
 	cancel           context.CancelFunc
@@ -96,12 +117,15 @@ type P2PConsensusManager struct {
 }
 
 // NewP2PConsensusManager creates a new P2P consensus manager
-func NewP2PConsensusManager(blockchain *BlockchainStruct, db *LevelDB, discoveryManager *DiscoveryManager, role config.Role) (*P2PConsensusManager, error) {
+func NewP2PConsensusManager(blockchain Blockchain, db DB, discoveryManager DiscoveryService, role config.Role) (*P2PConsensusManager, error) {
 	// Create a new context
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Get the host from the discovery manager
-	host := discoveryManager.host
+	// Get the host from the discovery manager, if possible
+	var host host.Host
+	if dm, ok := discoveryManager.(*DiscoveryManager); ok {
+		host = dm.host
+	}
 
 	// Create a new pubsub instance with options based on role
 	// Using GossipSub as it's more efficient than FloodSub for larger networks
@@ -139,7 +163,7 @@ func NewP2PConsensusManager(blockchain *BlockchainStruct, db *LevelDB, discovery
 		pubsub:           ps,
 		blockchain:       blockchain,
 		db:               db,
-		discoveryManager: discoveryManager,
+		discoveryManager: discoveryManager.(*DiscoveryManager),
 		ctx:              ctx,
 		cancel:           cancel,
 		stopChan:         make(chan struct{}),
@@ -164,8 +188,8 @@ func (pcm *P2PConsensusManager) setupPubSub() error {
 	var err error
 
 	// Define topic names with chain ID prefix
-	blockTopicName := fmt.Sprintf("%s.%s", pcm.blockchain.ChainID, BlockTopic)
-	transactionTopicName := fmt.Sprintf("%s.%s", pcm.blockchain.ChainID, TransactionTopic)
+	blockTopicName := fmt.Sprintf("%s.%s", pcm.blockchain.GetChainID(), BlockTopic)
+	transactionTopicName := fmt.Sprintf("%s.%s", pcm.blockchain.GetChainID(), TransactionTopic)
 
 	// We don't need topic-specific options for now
 	// The pubsub instance is already configured with role-specific options
@@ -178,15 +202,15 @@ func (pcm *P2PConsensusManager) setupPubSub() error {
 	case config.Root:
 		// Root nodes need stricter validation but higher throughput
 		log.Printf("[%s][%s] Using Root node topic validation settings",
-			pcm.nodeRole.String(), pcm.blockchain.ChainID)
+			pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 	case config.RoleBootnode:
 		// Bootnodes need balanced validation and throughput
 		log.Printf("[%s][%s] Using Bootnode topic validation settings",
-			pcm.nodeRole.String(), pcm.blockchain.ChainID)
+			pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 	default:
 		// Default options for nodes and clients
 		log.Printf("[%s][%s] Using default topic validation settings",
-			pcm.nodeRole.String(), pcm.blockchain.ChainID)
+			pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 	}
 
 	// Join the block topic with role-specific options
@@ -227,7 +251,7 @@ func (pcm *P2PConsensusManager) setupPubSub() error {
 	}
 
 	log.Printf("[%s][%s] P2P consensus manager subscribed to topics: %s, %s, %s",
-		pcm.nodeRole.String(), pcm.blockchain.ChainID,
+		pcm.nodeRole.String(), pcm.blockchain.GetChainID(),
 		blockTopicName, transactionTopicName, networkControlTopicName)
 
 	return nil
@@ -235,7 +259,7 @@ func (pcm *P2PConsensusManager) setupPubSub() error {
 
 // Start begins the consensus process
 func (pcm *P2PConsensusManager) Start() {
-	log.Printf("[%s][%s] Starting P2P consensus manager...", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+	log.Printf("[%s][%s] Starting P2P consensus manager...", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 
 	// Start the block handler
 	go pcm.handleBlocks()
@@ -249,7 +273,7 @@ func (pcm *P2PConsensusManager) Start() {
 	// Start the fork resolution process
 	go pcm.runForkResolution()
 
-	log.Printf("[%s][%s] P2P consensus manager started successfully.", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+	log.Printf("[%s][%s] P2P consensus manager started successfully.", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 }
 
 // handleBlocks processes incoming blocks from the network
@@ -261,7 +285,7 @@ func (pcm *P2PConsensusManager) handleBlocks() {
 				// Context was canceled, exit gracefully
 				return
 			}
-			log.Printf("[%s][%s] Error receiving block from pubsub: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+			log.Printf("[%s][%s] Error receiving block from pubsub: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 			continue
 		}
 
@@ -273,11 +297,11 @@ func (pcm *P2PConsensusManager) handleBlocks() {
 		// Decode the block
 		var block Block
 		if err := json.Unmarshal(msg.Data, &block); err != nil {
-			log.Printf("[%s][%s] Error decoding block: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+			log.Printf("[%s][%s] Error decoding block: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 			continue
 		}
 
-		log.Printf("[%s][%s] Received block #%d from node %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, block.BlockNumber, msg.ReceivedFrom.String())
+		log.Printf("[%s][%s] Received block #%d from node %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), block.BlockNumber, msg.ReceivedFrom.String())
 
 		// Process the block
 		pcm.processReceivedBlock(&block)
@@ -293,7 +317,7 @@ func (pcm *P2PConsensusManager) handleTransactions() {
 				// Context was canceled, exit gracefully
 				return
 			}
-			log.Printf("[%s][%s] Error receiving transaction from pubsub: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+			log.Printf("[%s][%s] Error receiving transaction from pubsub: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 			continue
 		}
 
@@ -305,11 +329,11 @@ func (pcm *P2PConsensusManager) handleTransactions() {
 		// Decode the transaction
 		var transaction Transaction
 		if err := json.Unmarshal(msg.Data, &transaction); err != nil {
-			log.Printf("[%s][%s] Error decoding transaction: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+			log.Printf("[%s][%s] Error decoding transaction: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 			continue
 		}
 
-		log.Printf("[%s][%s] Received transaction %s from node %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, transaction.TransactionHash, msg.ReceivedFrom.String())
+		log.Printf("[%s][%s] Received transaction %s from node %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), transaction.TransactionHash, msg.ReceivedFrom.String())
 
 		// Process the transaction
 		pcm.processReceivedTransaction(&transaction)
@@ -320,14 +344,14 @@ func (pcm *P2PConsensusManager) handleTransactions() {
 func (pcm *P2PConsensusManager) processReceivedBlock(block *Block) {
 	// Skip if we're actively mining
 	if pcm.blockchain.IsActivelyMining() {
-		log.Printf("[%s][%s] Skipping received block processing as we're actively mining", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Skipping received block processing as we're actively mining", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		return
 	}
 
 	// Lock mining during block processing
 	pcm.lockMining()
 	defer pcm.unlockMining()
-	log.Printf("[%s][%s] Processing received block #%d", pcm.nodeRole.String(), pcm.blockchain.ChainID, block.BlockNumber)
+	log.Printf("[%s][%s] Processing received block #%d", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), block.BlockNumber)
 	// Verify the block
 	if !block.VerifyBlock() {
 		log.Printf("Received invalid block #%d, ignoring", block.BlockNumber)
@@ -336,12 +360,12 @@ func (pcm *P2PConsensusManager) processReceivedBlock(block *Block) {
 
 	// Check if the block extends our current chain
 	pcm.blockchain.Lock()
-	currentLastBlock := pcm.blockchain.Blocks[len(pcm.blockchain.Blocks)-1]
+	currentLastBlock := pcm.blockchain.GetBlocks()[len(pcm.blockchain.GetBlocks())-1]
 	pcm.blockchain.Unlock()
 
 	// If the block extends our current chain, add it
 	if block.BlockNumber == currentLastBlock.BlockNumber+1 && block.PrevHashString() == currentLastBlock.HashString() {
-		log.Printf("[%s][%s] Adding block #%d to our chain", pcm.nodeRole.String(), pcm.blockchain.ChainID, block.BlockNumber)
+		log.Printf("[%s][%s] Adding block #%d to our chain", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), block.BlockNumber)
 		pcm.blockchain.AddBlock(block)
 		return
 	}
@@ -349,7 +373,7 @@ func (pcm *P2PConsensusManager) processReceivedBlock(block *Block) {
 	// If the block is part of a potentially longer chain, trigger fork resolution
 	if block.BlockNumber > currentLastBlock.BlockNumber {
 		log.Printf("[%s][%s] Received block #%d is ahead of our chain (at #%d), triggering fork resolution",
-			pcm.nodeRole.String(), pcm.blockchain.ChainID, block.BlockNumber, currentLastBlock.BlockNumber)
+			pcm.nodeRole.String(), pcm.blockchain.GetChainID(), block.BlockNumber, currentLastBlock.BlockNumber)
 
 		// Request the full chain from the node who sent this block
 		// This will be handled by the fork resolution process
@@ -361,7 +385,7 @@ func (pcm *P2PConsensusManager) processReceivedBlock(block *Block) {
 func (pcm *P2PConsensusManager) processReceivedTransaction(transaction *Transaction) {
 	// Verify the transaction
 	if !transaction.VerifyTxn() {
-		log.Printf("[%s][%s] Received invalid transaction %s, ignoring", pcm.nodeRole.String(), pcm.blockchain.ChainID, transaction.TransactionHash)
+		log.Printf("[%s][%s] Received invalid transaction %s, ignoring", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), transaction.TransactionHash)
 		return
 	}
 
@@ -383,7 +407,7 @@ func (pcm *P2PConsensusManager) BroadcastBlock(block *Block) error {
 		return fmt.Errorf("failed to publish block: %w", err)
 	}
 
-	log.Printf("[%s][%s] Block #%d broadcast to the network", pcm.nodeRole.String(), pcm.blockchain.ChainID, block.BlockNumber)
+	log.Printf("[%s][%s] Block #%d broadcast to the network", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), block.BlockNumber)
 	return nil
 }
 
@@ -401,7 +425,7 @@ func (pcm *P2PConsensusManager) BroadcastTransaction(transaction *Transaction) e
 		return fmt.Errorf("failed to publish transaction: %w", err)
 	}
 
-	log.Printf("[%s][%s] Transaction %s broadcast to the network", pcm.nodeRole.String(), pcm.blockchain.ChainID, transaction.TransactionHash)
+	log.Printf("[%s][%s] Transaction %s broadcast to the network", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), transaction.TransactionHash)
 	return nil
 }
 
@@ -430,14 +454,14 @@ func (pcm *P2PConsensusManager) runForkResolution() {
 // registerSyncHandler registers the chain sync stream handler
 func (pcm *P2PConsensusManager) registerSyncHandler() {
 	pcm.host.SetStreamHandler(ChainSyncProtocolID, pcm.handleSyncStream)
-	log.Printf("[%s][%s] Registered chain sync handler for protocol %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, ChainSyncProtocolID)
+	log.Printf("[%s][%s] Registered chain sync handler for protocol %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), ChainSyncProtocolID)
 }
 
 // handleSyncStream handles incoming chain sync requests
 func (pcm *P2PConsensusManager) handleSyncStream(stream network.Stream) {
 	defer stream.Close()
 	nodeID := stream.Conn().RemotePeer()
-	log.Printf("[%s][%s] Received chain sync stream from %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, nodeID)
+	log.Printf("[%s][%s] Received chain sync stream from %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), nodeID)
 
 	reader := bufio.NewReader(stream)
 	writer := bufio.NewWriter(stream)
@@ -447,7 +471,7 @@ func (pcm *P2PConsensusManager) handleSyncStream(stream network.Stream) {
 	// Read request type
 	var request map[string]interface{}
 	if err := decoder.Decode(&request); err != nil {
-		log.Printf("[%s][%s] Error decoding sync request from %s: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, nodeID, err)
+		log.Printf("[%s][%s] Error decoding sync request from %s: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), nodeID, err)
 		return
 	}
 
@@ -460,23 +484,23 @@ func (pcm *P2PConsensusManager) handleSyncStream(stream network.Stream) {
 		// getBlocksPayload is the GetBlocksRequest struct, likely unmarshaled as map[string]interface{}
 		getBlocksMap, ok := getBlocksPayload.(map[string]interface{})
 		if !ok {
-			log.Printf("[%s][%s] Invalid 'getBlocks' payload structure from %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, nodeID)
+			log.Printf("[%s][%s] Invalid 'getBlocks' payload structure from %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), nodeID)
 			return
 		}
 		startAfterFloat, ok := getBlocksMap["start_after"].(float64) // JSON numbers are float64
 		if !ok {
-			log.Printf("[%s][%s] Invalid 'start_after' in getBlocks request from %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, nodeID)
+			log.Printf("[%s][%s] Invalid 'start_after' in getBlocks request from %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), nodeID)
 			return
 		}
 		pcm.handleBlocksRequest(uint64(startAfterFloat), encoder, writer)
 	} else {
-		log.Printf("[%s][%s] Received unknown sync request from %s: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, nodeID, request)
+		log.Printf("[%s][%s] Received unknown sync request from %s: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), nodeID, request)
 	}
 }
 
 func (pcm *P2PConsensusManager) handleStatusRequest(encoder *json.Encoder, writer *bufio.Writer) {
 	pcm.blockchain.Lock()
-	lastBlock := pcm.blockchain.Blocks[len(pcm.blockchain.Blocks)-1]
+	lastBlock := pcm.blockchain.GetBlocks()[len(pcm.blockchain.GetBlocks())-1]
 	pcm.blockchain.Unlock()
 
 	response := StatusResponse{
@@ -485,11 +509,11 @@ func (pcm *P2PConsensusManager) handleStatusRequest(encoder *json.Encoder, write
 	}
 
 	if err := encoder.Encode(response); err != nil {
-		log.Printf("[%s][%s] Error encoding status response: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+		log.Printf("[%s][%s] Error encoding status response: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 		return
 	}
 	if err := writer.Flush(); err != nil {
-		log.Printf("[%s][%s] Error flushing status response: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+		log.Printf("[%s][%s] Error flushing status response: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 	}
 }
 
@@ -498,7 +522,7 @@ func (pcm *P2PConsensusManager) handleBlocksRequest(startAfter uint64, encoder *
 	defer pcm.blockchain.Unlock()
 
 	var blocks []*Block
-	for _, block := range pcm.blockchain.Blocks {
+	for _, block := range pcm.blockchain.GetBlocks() {
 		if block.BlockNumber > startAfter {
 			blocks = append(blocks, block)
 		}
@@ -506,11 +530,11 @@ func (pcm *P2PConsensusManager) handleBlocksRequest(startAfter uint64, encoder *
 
 	response := BlocksResponse{Blocks: blocks}
 	if err := encoder.Encode(response); err != nil {
-		log.Printf("[%s][%s] Error encoding blocks response: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+		log.Printf("[%s][%s] Error encoding blocks response: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 		return
 	}
 	if err := writer.Flush(); err != nil {
-		log.Printf("[%s][%s] Error flushing blocks response: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+		log.Printf("[%s][%s] Error flushing blocks response: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 	}
 }
 
@@ -519,7 +543,7 @@ func (pcm *P2PConsensusManager) requestChainFromPeers() {
 	// --- Prevent Concurrent Sync Runs (within this node) ---
 	pcm.mu.Lock()
 	if pcm.isSyncing {
-		log.Printf("[%s][%s] Sync already in progress, skipping this cycle.", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Sync already in progress, skipping this cycle.", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		pcm.mu.Unlock()
 		return
 	}
@@ -530,33 +554,33 @@ func (pcm *P2PConsensusManager) requestChainFromPeers() {
 		pcm.mu.Lock()
 		pcm.isSyncing = false
 		pcm.mu.Unlock()
-		log.Printf("[%s][%s] P2P chain sync check finished.", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] P2P chain sync check finished.", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 	}()
 
 	// --- Use DiscoveryManager to find relevant nodes ---
 	if pcm.discoveryManager == nil {
-		log.Printf("[%s][%s] DiscoveryManager not available, cannot find KNIRVCHAIN nodes.", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] DiscoveryManager not available, cannot find KNIRVCHAIN nodes.", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		return
 	}
 
 	// Find nodes providing our specific chain resource
-	agentPeersInfo, err := pcm.discoveryManager.FindResource(context.Background(), pcm.blockchain.ChainID, DiscoveryResourceTypeChain)
+	agentPeersInfo, err := pcm.discoveryManager.FindResource(context.Background(), pcm.blockchain.GetChainID(), DiscoveryResourceTypeChain)
 	if err != nil {
 		// Log non-critical errors (like "no providers found") less verbosely for the role
 		if !strings.Contains(err.Error(), "no providers found") {
-			log.Printf("[%s][%s] Error finding KNIRVCHAIN nodes via DHT: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+			log.Printf("[%s][%s] Error finding KNIRVCHAIN nodes via DHT: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 		} else {
-			log.Printf("[%s][%s] No other KNIRVCHAIN nodes found via DHT for chain sync.", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+			log.Printf("[%s][%s] No other KNIRVCHAIN nodes found via DHT for chain sync.", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		}
 		return
 	}
 
 	if len(agentPeersInfo) == 0 {
-		log.Printf("[%s][%s] No relevant KNIRVCHAIN nodes found to sync with.", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] No relevant KNIRVCHAIN nodes found to sync with.", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		return
 	}
 
-	log.Printf("[%s][%s] Starting P2P chain sync check with %d potential KNIRVCHAIN node(s)", pcm.nodeRole.String(), pcm.blockchain.ChainID, len(agentPeersInfo))
+	log.Printf("[%s][%s] Starting P2P chain sync check with %d potential KNIRVCHAIN node(s)", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), len(agentPeersInfo))
 
 	// --- Iterate through KNIRVCHAIN nodes only ---
 	for _, nodeInfo := range agentPeersInfo {
@@ -568,16 +592,16 @@ func (pcm *P2PConsensusManager) requestChainFromPeers() {
 		// --- Connection Check (Optional but good) ---
 		// Ensure we are actually connected before trying to open a stream
 		if pcm.host.Network().Connectedness(nodeID) != network.Connected {
-			log.Printf("[%s][%s] Found node %s via DHT but not connected, attempting connection...", pcm.nodeRole.String(), pcm.blockchain.ChainID, nodeID)
+			log.Printf("[%s][%s] Found node %s via DHT but not connected, attempting connection...", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), nodeID)
 			// Use a timeout for the connection attempt
 			connectCtx, connectCancel := context.WithTimeout(pcm.ctx, 15*time.Second)
 			err := pcm.host.Connect(connectCtx, nodeInfo) // Use the AddrInfo from FindResource
 			connectCancel()
 			if err != nil {
-				log.Printf("[%s][%s] Failed to connect to node %s: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, nodeID, err)
+				log.Printf("[%s][%s] Failed to connect to node %s: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), nodeID, err)
 				continue // Skip to next node if connection fails
 			}
-			log.Printf("[%s][%s] Successfully connected to node %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, nodeID)
+			log.Printf("[%s][%s] Successfully connected to node %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), nodeID)
 		}
 
 		// Open stream with timeout and handle in goroutine
@@ -587,7 +611,7 @@ func (pcm *P2PConsensusManager) requestChainFromPeers() {
 
 			stream, err := pcm.host.NewStream(ctx, nodeID, ChainSyncProtocolID)
 			if err != nil {
-				log.Printf("[%s][%s] Failed to open sync stream to node %s: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, nodeID, err)
+				log.Printf("[%s][%s] Failed to open sync stream to node %s: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), nodeID, err)
 				return
 			}
 			defer stream.Close()
@@ -600,24 +624,24 @@ func (pcm *P2PConsensusManager) requestChainFromPeers() {
 			// 1. Get node status
 			statusReqPayload := map[string]interface{}{"getStatus": GetStatusRequest{}}
 			if err := encoder.Encode(statusReqPayload); err != nil {
-				log.Printf("[%s][%s] Error encoding status request: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+				log.Printf("[%s][%s] Error encoding status request: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 				return
 			}
 			if err := writer.Flush(); err != nil { // Ensure writer is flushed after encoding
-				log.Printf("[%s][%s] Error flushing status request: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+				log.Printf("[%s][%s] Error flushing status request: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 				return
 			}
 
 			// 2. Read status response
 			var status StatusResponse
 			if err := decoder.Decode(&status); err != nil {
-				log.Printf("[%s][%s] Error decoding status response: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+				log.Printf("[%s][%s] Error decoding status response: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 				return
 			}
 
 			// 3. Compare with our chain
 			pcm.blockchain.Lock()
-			localLast := pcm.blockchain.Blocks[len(pcm.blockchain.Blocks)-1]
+			localLast := pcm.blockchain.GetBlocks()[len(pcm.blockchain.GetBlocks())-1]
 			pcm.blockchain.Unlock()
 
 			if status.LatestBlockNumber > localLast.BlockNumber {
@@ -629,28 +653,28 @@ func (pcm *P2PConsensusManager) requestChainFromPeers() {
 					},
 				}
 				if err := encoder.Encode(blocksReqPayload); err != nil {
-					log.Printf("[%s][%s] Error encoding blocks request: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+					log.Printf("[%s][%s] Error encoding blocks request: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 					return
 				}
 				if err := writer.Flush(); err != nil {
-					log.Printf("[%s][%s] Error flushing blocks request: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+					log.Printf("[%s][%s] Error flushing blocks request: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 					return
 				}
 
 				// 4. Receive and validate blocks
 				var blocksResp BlocksResponse
 				if err := decoder.Decode(&blocksResp); err != nil {
-					log.Printf("[%s][%s] Error decoding blocks response: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+					log.Printf("[%s][%s] Error decoding blocks response: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 					return
 				}
 
 				if len(blocksResp.Blocks) > 0 {
 					// Validate and potentially switch chains
 					if valid, err := pcm.validateChain(blocksResp.Blocks); err != nil {
-						log.Printf("[%s][%s] Chain validation error: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+						log.Printf("[%s][%s] Chain validation error: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 						return
 					} else if valid {
-						newChain := append(pcm.blockchain.Blocks[:len(pcm.blockchain.Blocks)-1], blocksResp.Blocks...)
+						newChain := append(pcm.blockchain.GetBlocks()[:len(pcm.blockchain.GetBlocks())-1], blocksResp.Blocks...)
 						pcm.switchToChain(newChain)
 					}
 				}
@@ -703,33 +727,33 @@ func (pcm *P2PConsensusManager) switchToChain(newChain []*Block) {
 	// Validate the new chain
 	valid, err := pcm.validateChain(newChain)
 	if err != nil {
-		log.Printf("[%s][%s] Error validating chain: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+		log.Printf("[%s][%s] Error validating chain: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 		return
 	}
 	if !valid {
-		log.Printf("[%s][%s] Received invalid chain, ignoring", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Received invalid chain, ignoring", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		return
 	}
 
 	// Check if the new chain is longer than our current chain
 	pcm.blockchain.Lock()
-	currentChainLength := len(pcm.blockchain.Blocks)
+	currentChainLength := len(pcm.blockchain.GetBlocks())
 	pcm.blockchain.Unlock()
 
 	if len(newChain) <= currentChainLength {
-		log.Printf("[%s][%s] Received chain is not longer than our current chain, ignoring", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Received chain is not longer than our current chain, ignoring", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		return
 	}
 
-	log.Printf("[%s][%s] Switching to longer chain (length: %d -> %d)", pcm.nodeRole.String(), pcm.blockchain.ChainID, currentChainLength, len(newChain))
+	log.Printf("[%s][%s] Switching to longer chain (length: %d -> %d)", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), currentChainLength, len(newChain))
 
 	// Update our blockchain with the new chain
 	pcm.blockchain.SetBlocks(newChain)
 
 	// Save the updated blockchain to the database
-	err = pcm.db.PutIntoDb(pcm.blockchain, pcm.blockchain.ChainAddress)
+	err = pcm.db.PutIntoDb(pcm.blockchain, pcm.blockchain.GetChainAddress())
 	if err != nil {
-		log.Printf("[%s][%s] Failed to save updated blockchain to database: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+		log.Printf("[%s][%s] Failed to save updated blockchain to database: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 	}
 
 	// Update the transaction pool
@@ -751,14 +775,14 @@ func (pcm *P2PConsensusManager) updateTransactionPool(chain []*Block) {
 
 	// Filter out confirmed transactions from the pool
 	var newPool []*Transaction
-	for _, tx := range pcm.blockchain.TransactionPool {
+	for _, tx := range pcm.blockchain.GetTransactionPool() {
 		if !confirmedTxns[tx.TransactionHash] {
 			newPool = append(newPool, tx)
 		}
 	}
 
 	// Update the transaction pool
-	pcm.blockchain.TransactionPool = newPool
+	pcm.blockchain.SetTransactionPool(newPool)
 }
 
 // lockMining prevents mining during consensus operations
@@ -777,7 +801,7 @@ func (pcm *P2PConsensusManager) unlockMining() {
 
 // Stop gracefully shuts down the consensus manager
 func (pcm *P2PConsensusManager) Stop() {
-	log.Printf("[%s][%s] Stopping P2P consensus manager...", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+	log.Printf("[%s][%s] Stopping P2P consensus manager...", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 
 	// Use a sync.Once to ensure we only close the channel once
 	pcm.mu.Lock()
@@ -785,11 +809,11 @@ func (pcm *P2PConsensusManager) Stop() {
 		select {
 		case <-pcm.stopChan:
 			// Channel already closed
-			log.Printf("[%s][%s] P2P consensus manager stopChan was already closed", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+			log.Printf("[%s][%s] P2P consensus manager stopChan was already closed", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		default:
 			// Close the channel
 			close(pcm.stopChan)
-			log.Printf("[%s][%s] P2P consensus manager stopChan closed", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+			log.Printf("[%s][%s] P2P consensus manager stopChan closed", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		}
 	}
 	pcm.mu.Unlock()
@@ -797,22 +821,22 @@ func (pcm *P2PConsensusManager) Stop() {
 	// Cancel the context if it exists
 	if pcm.cancel != nil {
 		pcm.cancel()
-		log.Printf("[%s][%s] P2P consensus manager context canceled", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] P2P consensus manager context canceled", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 	}
 
 	// Close any subscriptions
 	pcm.mu.Lock()
 	if pcm.blockSub != nil {
 		pcm.blockSub.Cancel()
-		log.Printf("[%s][%s] Block subscription canceled", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Block subscription canceled", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 	}
 	if pcm.transactionSub != nil {
 		pcm.transactionSub.Cancel()
-		log.Printf("[%s][%s] Transaction subscription canceled", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Transaction subscription canceled", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 	}
 	pcm.mu.Unlock()
 
-	log.Printf("[%s][%s] P2P consensus manager stopped.", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+	log.Printf("[%s][%s] P2P consensus manager stopped.", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 }
 
 // GetStatus returns the current P2P consensus status as a string
@@ -874,7 +898,7 @@ func (pcm *P2PConsensusManager) handleNetworkControl() {
 			msg, err := pcm.networkControlSub.Next(pcm.ctx)
 			if err != nil {
 				if pcm.ctx.Err() == nil {
-					log.Printf("[%s][%s] Error receiving network control message: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+					log.Printf("[%s][%s] Error receiving network control message: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 				}
 				continue
 			}
@@ -887,11 +911,11 @@ func (pcm *P2PConsensusManager) handleNetworkControl() {
 			// Decode the network control message
 			var networkMsg NetworkControlMessage
 			if err := json.Unmarshal(msg.Data, &networkMsg); err != nil {
-				log.Printf("[%s][%s] Error decoding network control message: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, err)
+				log.Printf("[%s][%s] Error decoding network control message: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 				continue
 			}
 
-			log.Printf("[%s][%s] Received network control message: %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, networkMsg.Type)
+			log.Printf("[%s][%s] Received network control message: %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), networkMsg.Type)
 
 			// Handle different network control message types
 			switch networkMsg.Type {
@@ -900,7 +924,7 @@ func (pcm *P2PConsensusManager) handleNetworkControl() {
 			case "NetworkResume":
 				pcm.handleNetworkResume(networkMsg.Payload, msg.ReceivedFrom.String())
 			default:
-				log.Printf("[%s][%s] Unknown network control message type: %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, networkMsg.Type)
+				log.Printf("[%s][%s] Unknown network control message type: %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), networkMsg.Type)
 			}
 		}
 	}
@@ -911,32 +935,32 @@ func (pcm *P2PConsensusManager) handleNetworkPause(payload interface{}, fromPeer
 	pcm.mu.Lock()
 	defer pcm.mu.Unlock()
 
-	log.Printf("[%s][%s] Received NetworkPause message from peer: %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, fromPeerID)
+	log.Printf("[%s][%s] Received NetworkPause message from peer: %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), fromPeerID)
 
 	// Parse the NetworkPausePayload
 	pauseData, ok := payload.(map[string]interface{})
 	if !ok {
-		log.Printf("[%s][%s] Invalid NetworkPause payload format", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Invalid NetworkPause payload format", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		return
 	}
 
 	// Extract pause information
 	initiatorPeerID, ok := pauseData["initiator_peer_id"].(string)
 	if !ok {
-		log.Printf("[%s][%s] Invalid initiator_peer_id in NetworkPause", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Invalid initiator_peer_id in NetworkPause", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		return
 	}
 
 	reason, ok := pauseData["reason"].(string)
 	if !ok {
-		log.Printf("[%s][%s] Invalid reason in NetworkPause", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Invalid reason in NetworkPause", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		return
 	}
 
 	// Extract timestamp (optional for future use, but we don't use it for now)
 	_, ok = pauseData["timestamp"].(*time.Timer) // We'll extract but won't use
 	if !ok {
-		log.Printf("[%s][%s] Invalid timestamp in NetworkPause", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Invalid timestamp in NetworkPause", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		return
 	}
 
@@ -949,13 +973,13 @@ func (pcm *P2PConsensusManager) handleNetworkPause(payload interface{}, fromPeer
 
 	log.Printf("[%s][%s] Network PAUSED by %s until %s - Reason: %s",
 		pcm.nodeRole.String(),
-		pcm.blockchain.ChainID,
+		pcm.blockchain.GetChainID(),
 		initiatorPeerID,
 		pcm.pausedUntil.Format("2006-01-02 15:04:05 UTC"),
 		reason)
 
 	// Stop accepting new blocks and transactions during pause
-	log.Printf("[%s][%s] Network operations paused - rejecting new blocks and transactions", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+	log.Printf("[%s][%s] Network operations paused - rejecting new blocks and transactions", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 
 	// TODO: Signal to other components (HTTP server, blockchain miner, etc.) to pause
 }
@@ -965,13 +989,13 @@ func (pcm *P2PConsensusManager) handleNetworkResume(payload interface{}, fromPee
 	pcm.mu.Lock()
 	defer pcm.mu.Unlock()
 
-	log.Printf("[%s][%s] Received NetworkResume message from peer: %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, fromPeerID)
+	log.Printf("[%s][%s] Received NetworkResume message from peer: %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), fromPeerID)
 
 	// Validate payload format (even if we don't use specific fields yet)
 	if payload != nil {
 		if resumeData, ok := payload.(map[string]interface{}); ok {
 			if timestamp, exists := resumeData["timestamp"]; exists {
-				log.Printf("[%s][%s] Resume message timestamp: %v", pcm.nodeRole.String(), pcm.blockchain.ChainID, timestamp)
+				log.Printf("[%s][%s] Resume message timestamp: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), timestamp)
 			}
 		}
 	}
@@ -980,7 +1004,7 @@ func (pcm *P2PConsensusManager) handleNetworkResume(payload interface{}, fromPee
 	pcm.networkPaused = false
 	pcm.pausedUntil = time.Time{}
 
-	log.Printf("[%s][%s] Network operations RESUMED by %s", pcm.nodeRole.String(), pcm.blockchain.ChainID, fromPeerID)
+	log.Printf("[%s][%s] Network operations RESUMED by %s", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), fromPeerID)
 
 	// TODO: Signal to other components to resume normal operations
 }
@@ -992,7 +1016,7 @@ func (pcm *P2PConsensusManager) IsNetworkPaused() bool {
 
 	// Check if pause has expired
 	if pcm.networkPaused && time.Now().After(pcm.pausedUntil) {
-		log.Printf("[%s][%s] Network pause timeout expired, auto-resuming", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Network pause timeout expired, auto-resuming", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		pcm.networkPaused = false
 		pcm.pausedUntil = time.Time{}
 		return false
@@ -1007,7 +1031,7 @@ func (pcm *P2PConsensusManager) GetPauseStatus() (bool, time.Time) {
 	defer pcm.mu.Unlock()
 
 	if pcm.networkPaused && time.Now().After(pcm.pausedUntil) {
-		log.Printf("[%s][%s] Network pause timeout expired, auto-resuming", pcm.nodeRole.String(), pcm.blockchain.ChainID)
+		log.Printf("[%s][%s] Network pause timeout expired, auto-resuming", pcm.nodeRole.String(), pcm.blockchain.GetChainID())
 		pcm.networkPaused = false
 		pcm.pausedUntil = time.Time{}
 		return false, time.Time{}
