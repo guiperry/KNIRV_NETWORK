@@ -464,10 +464,12 @@ func TestCapabilityInvocation(t *testing.T) {
 
 	// Wait for LevelDB writes to complete with retry
 	var contextRecordFromDB *pb.ContextRecordProto
+	var getErr error
+	var ctxInterface interface{}
 	t.Logf("Starting context record retrieval attempts for tx %s", invokeTxn.TransactionHash)
 	for i := 0; i < 10; i++ { // Increased retry count
-		ctxInterface, err := db.GetContextRecord(invokeTxn.TransactionHash)
-		if err == nil {
+		ctxInterface, getErr = db.GetContextRecord(invokeTxn.TransactionHash)
+		if getErr == nil {
 			if ctx, ok := ctxInterface.(*pb.ContextRecordProto); ok {
 				contextRecordFromDB = ctx
 				t.Logf("Successfully retrieved context record on attempt %d", i+1)
@@ -477,14 +479,14 @@ func TestCapabilityInvocation(t *testing.T) {
 			}
 		}
 		// Check if the error indicates "not found" without direct leveldb dependency
-		if !strings.Contains(err.Error(), "not found") {
-			t.Fatalf("Failed to get context record: %v", err)
+		if !strings.Contains(getErr.Error(), "not found") {
+			t.Fatalf("Failed to get context record: %v", getErr)
 		}
 		t.Logf("Context record not found yet (attempt %d), waiting...", i+1)
 		time.Sleep(500 * time.Millisecond) // Increased delay
 	}
-	if err != nil {
-		t.Fatalf("Failed to retrieve context record after retries: %v", err)
+	if getErr != nil {
+		t.Fatalf("Failed to retrieve context record after retries: %v", getErr)
 	}
 
 	// Verify that the context record was processed and stored using tx hash as ID
