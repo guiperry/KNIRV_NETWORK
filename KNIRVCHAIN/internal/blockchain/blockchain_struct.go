@@ -529,6 +529,46 @@ func (bc *BlockchainStruct) GetDB() *database.LevelDB {
 	return bc.db
 }
 
+// Implement methods required by p2p.Blockchain interface
+func (bc *BlockchainStruct) GetChainID() string {
+	return bc.ChainID
+}
+
+func (bc *BlockchainStruct) GetChainAddress() string {
+	return bc.ChainAddress
+}
+
+func (bc *BlockchainStruct) GetBlocks() interface{} {
+	return bc.Blocks
+}
+
+func (bc *BlockchainStruct) SetBlocks(blocks interface{}) {
+	if b, ok := blocks.([]*Block); ok {
+		bc.Blocks = make([]*Block, len(b))
+		for i, block := range b {
+			bc.Blocks[i] = block.DeepCopy()
+		}
+	}
+}
+
+func (bc *BlockchainStruct) GetTransactionPool() interface{} {
+	return bc.TransactionPool
+}
+
+func (bc *BlockchainStruct) SetTransactionPool(txs interface{}) {
+	if t, ok := txs.([]*Transaction); ok {
+		bc.TransactionPool = t
+	}
+}
+
+// AddBlock accepts interface{} and delegates to addBlockInternal for p2p.Blockchain interface compliance
+func (bc *BlockchainStruct) AddBlock(blk interface{}) error {
+	if b, ok := blk.(*Block); ok {
+		return bc.addBlockInternal(b)
+	}
+	return fmt.Errorf("invalid block type for AddBlock: expected *Block")
+}
+
 // GetMCPProcessor returns the MCP processor for testing purposes
 func (bc *BlockchainStruct) GetMCPProcessor() *MCPProcessor {
 	return bc.mcpProcessor
@@ -540,6 +580,11 @@ func (bc *BlockchainStruct) SetDB(db *database.LevelDB) {
 
 func (bc *BlockchainStruct) SetMCPProcessor(processor *MCPProcessor) {
 	bc.mcpProcessor = processor
+}
+
+// SetP2PConsensusManager sets the internal P2P consensus manager reference
+func (bc *BlockchainStruct) SetP2PConsensusManager(pm *p2p.P2PConsensusManager) {
+	bc.P2PConsensusMgr = pm
 }
 
 // SetAgentManager sets the agent manager for the blockchain (for testing purposes)
@@ -1208,10 +1253,8 @@ func (bc *BlockchainStruct) applyBlockTransactions(b *Block, tempBlockAccounts m
 	return mcpContextRecordsForSync, nil
 }
 
-// AddBlock validates a new block, processes its transactions (including MCP fee transfers),
-// updates account balances in the database, and adds the block to the chain.
-// It returns an error if the block is invalid or if any part of the processing fails.
-func (bc *BlockchainStruct) AddBlock(b *Block) error {
+// addBlockInternal is the real AddBlock implementation
+func (bc *BlockchainStruct) addBlockInternal(b *Block) error {
 	bc.Lock() // Lock for the entire duration of critical state modification
 
 	if err := bc.verifyBlockContext(b); err != nil {
@@ -1389,7 +1432,15 @@ func (bc *BlockchainStruct) HandleChainReorganization(orphanedBlocks []*Block, n
 	return nil // Return original error if there was one from the reorganization logic
 }
 
-func (bc *BlockchainStruct) AddTransactionToTransactionPool(transaction *Transaction) error {
+func (bc *BlockchainStruct) AddTransactionToTransactionPool(txInterface interface{}) error {
+	// Interface compliance - accept interface{}
+	if tx, ok := txInterface.(*Transaction); ok {
+		return bc.addTransactionToTransactionPoolInternal(tx)
+	}
+	return fmt.Errorf("invalid transaction type: expected *Transaction")
+}
+
+func (bc *BlockchainStruct) addTransactionToTransactionPoolInternal(transaction *Transaction) error {
 	bc.Lock() // Lock for pool and block checks
 	defer bc.Unlock()
 
@@ -2324,16 +2375,6 @@ func (bc *BlockchainStruct) AddReflection(reflection string) {
 	}
 
 	bc.Reflections[reflection] = true
-}
-
-func (bc *BlockchainStruct) SetBlocks(blocks []*Block) {
-	bc.Lock()
-	defer bc.Unlock()
-
-	bc.Blocks = make([]*Block, len(blocks))
-	for i, block := range blocks {
-		bc.Blocks[i] = block.DeepCopy()
-	}
 }
 
 // validateTransaction validates a transaction

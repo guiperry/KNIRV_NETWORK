@@ -76,12 +76,12 @@ type Blockchain interface {
 	IsActivelyMining() bool
 	Lock()
 	Unlock()
-	GetBlocks() []*Block
-	SetBlocks([]*Block)
-	AddBlock(*Block) error
-	GetTransactionPool() []*Transaction
-	SetTransactionPool([]*Transaction)
-	AddTransactionToTransactionPool(*Transaction) error
+	GetBlocks() interface{}                            // Returns []*Block but via interface{} to avoid cross-package type requirements
+	SetBlocks(interface{})                             // Accepts []*Block but via interface{}
+	AddBlock(interface{}) error                        // Accepts *Block but via interface{}
+	GetTransactionPool() interface{}                   // Returns []*Transaction but via interface{}
+	SetTransactionPool(interface{})                    // Accepts []*Transaction but via interface{}
+	AddTransactionToTransactionPool(interface{}) error // Accepts *Transaction but via interface{}
 }
 
 // P2PConsensusManager implements a decentralized consensus mechanism using libp2p pubsub
@@ -360,7 +360,8 @@ func (pcm *P2PConsensusManager) processReceivedBlock(block *Block) {
 
 	// Check if the block extends our current chain
 	pcm.blockchain.Lock()
-	currentLastBlock := pcm.blockchain.GetBlocks()[len(pcm.blockchain.GetBlocks())-1]
+	blocks := pcm.blockchain.GetBlocks().([]*Block)
+	currentLastBlock := blocks[len(blocks)-1]
 	pcm.blockchain.Unlock()
 
 	// If the block extends our current chain, add it
@@ -500,7 +501,8 @@ func (pcm *P2PConsensusManager) handleSyncStream(stream network.Stream) {
 
 func (pcm *P2PConsensusManager) handleStatusRequest(encoder *json.Encoder, writer *bufio.Writer) {
 	pcm.blockchain.Lock()
-	lastBlock := pcm.blockchain.GetBlocks()[len(pcm.blockchain.GetBlocks())-1]
+	blocks := pcm.blockchain.GetBlocks().([]*Block)
+	lastBlock := blocks[len(blocks)-1]
 	pcm.blockchain.Unlock()
 
 	response := StatusResponse{
@@ -522,7 +524,7 @@ func (pcm *P2PConsensusManager) handleBlocksRequest(startAfter uint64, encoder *
 	defer pcm.blockchain.Unlock()
 
 	var blocks []*Block
-	for _, block := range pcm.blockchain.GetBlocks() {
+	for _, block := range pcm.blockchain.GetBlocks().([]*Block) {
 		if block.BlockNumber > startAfter {
 			blocks = append(blocks, block)
 		}
@@ -641,7 +643,7 @@ func (pcm *P2PConsensusManager) requestChainFromPeers() {
 
 			// 3. Compare with our chain
 			pcm.blockchain.Lock()
-			localLast := pcm.blockchain.GetBlocks()[len(pcm.blockchain.GetBlocks())-1]
+			localLast := pcm.blockchain.GetBlocks().([]*Block)[len(pcm.blockchain.GetBlocks().([]*Block))-1]
 			pcm.blockchain.Unlock()
 
 			if status.LatestBlockNumber > localLast.BlockNumber {
@@ -674,7 +676,7 @@ func (pcm *P2PConsensusManager) requestChainFromPeers() {
 						log.Printf("[%s][%s] Chain validation error: %v", pcm.nodeRole.String(), pcm.blockchain.GetChainID(), err)
 						return
 					} else if valid {
-						newChain := append(pcm.blockchain.GetBlocks()[:len(pcm.blockchain.GetBlocks())-1], blocksResp.Blocks...)
+						newChain := append(pcm.blockchain.GetBlocks().([]*Block)[:len(pcm.blockchain.GetBlocks().([]*Block))-1], blocksResp.Blocks...)
 						pcm.switchToChain(newChain)
 					}
 				}
@@ -737,7 +739,7 @@ func (pcm *P2PConsensusManager) switchToChain(newChain []*Block) {
 
 	// Check if the new chain is longer than our current chain
 	pcm.blockchain.Lock()
-	currentChainLength := len(pcm.blockchain.GetBlocks())
+	currentChainLength := len(pcm.blockchain.GetBlocks().([]*Block))
 	pcm.blockchain.Unlock()
 
 	if len(newChain) <= currentChainLength {
@@ -775,7 +777,8 @@ func (pcm *P2PConsensusManager) updateTransactionPool(chain []*Block) {
 
 	// Filter out confirmed transactions from the pool
 	var newPool []*Transaction
-	for _, tx := range pcm.blockchain.GetTransactionPool() {
+	txPool := pcm.blockchain.GetTransactionPool().([]*Transaction)
+	for _, tx := range txPool {
 		if !confirmedTxns[tx.TransactionHash] {
 			newPool = append(newPool, tx)
 		}

@@ -466,10 +466,15 @@ func TestCapabilityInvocation(t *testing.T) {
 	var contextRecordFromDB *pb.ContextRecordProto
 	t.Logf("Starting context record retrieval attempts for tx %s", invokeTxn.TransactionHash)
 	for i := 0; i < 10; i++ { // Increased retry count
-		contextRecordFromDB, err = db.GetContextRecord(invokeTxn.TransactionHash)
+		ctxInterface, err := db.GetContextRecord(invokeTxn.TransactionHash)
 		if err == nil {
-			t.Logf("Successfully retrieved context record on attempt %d", i+1)
-			break
+			if ctx, ok := ctxInterface.(*pb.ContextRecordProto); ok {
+				contextRecordFromDB = ctx
+				t.Logf("Successfully retrieved context record on attempt %d", i+1)
+				break
+			} else {
+				t.Fatalf("Type assertion failed for context record: got %T", ctxInterface)
+			}
 		}
 		// Check if the error indicates "not found" without direct leveldb dependency
 		if !strings.Contains(err.Error(), "not found") {

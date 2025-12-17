@@ -51,18 +51,7 @@ var mainChromemManager sync.Map
 var globalAgentInferencer *agentify.AgentInferencer
 var globalInferenceService *inference.InferenceService
 
-// Missing type definitions for main.go
-type LevelDB struct {
-	// Placeholder for LevelDB
-}
-
-func (ldb *LevelDB) GetBytes(key string) ([]byte, error) {
-	return []byte("placeholder"), nil
-}
-
-func (ldb *LevelDB) PutBytes(key string, value []byte) error {
-	return nil
-}
+// Placeholder types for network components
 
 type WAN struct {
 	// Placeholder
@@ -96,9 +85,11 @@ type DiscoveryManager = p2p.DiscoveryManager
 
 type BlockchainStruct = blockchain.BlockchainStruct
 
-// NewBlockchain provides a proper implementation from internal/blockchain; do not redefine Shutdown here.
+type LevelDB = database.LevelDB
 
 type P2PConsensusManager = p2p.P2PConsensusManager
+
+// NewBlockchain provides a proper implementation from internal/blockchain; do not redefine Shutdown here.
 
 // WalletManager is provided by internal/wallet; use wallet.NewWalletManager
 
@@ -238,14 +229,10 @@ func NewLevelDB(path string) (*LevelDB, error) {
 // NewDiscoveryManager is provided by the internal p2p package (p2p.NewDiscoveryManager)
 // Use discoveryMgr.Close() and discoveryMgr.Run(duration) on the returned manager (p2p.DiscoveryManager implements those methods)
 
-func (ldb *LevelDB) Close() error {
-	return nil
-}
-
 // Missing variables and functions
 var trueGenesisBlock interface{} = &struct{}{}
 
-func NewBlockchain(genesisBlock interface{}, chainID, minersAddress string, db *LevelDB, chromemMgr *ChromemManager, searchablePath string, cerebrasConfig interface{}) (*BlockchainStruct, error) {
+func NewBlockchain(genesisBlock interface{}, chainID, minersAddress string, db *database.LevelDB, chromemMgr *ChromemManager, searchablePath string, cerebrasConfig interface{}) (*BlockchainStruct, error) {
 	return &BlockchainStruct{ChainID: chainID}, nil
 }
 
@@ -322,8 +309,6 @@ func NewConsensusManager(bc *BlockchainStruct, reflectURLs []string, selfURL str
 }
 
 // WalletServer is provided by internal/wallet package; no placeholder here.
-
-
 
 type BlockchainServer struct {
 	server           *http.Server
@@ -1711,11 +1696,9 @@ func startNodeWithComponents(
 	if !disableP2P {
 		var err error
 		// Ensure discoveryMgr is a concrete *p2p.DiscoveryManager before calling NewP2PConsensusManager
+		// Create P2P consensus manager using interfaces - pass actual blockchain and db implementations
 		if dm, ok := discoveryMgr.(*p2p.DiscoveryManager); ok {
-			// Build small p2p types for compatibility where necessary
-			p2pBC := &p2p.BlockchainStruct{ChainID: bc.ChainID}
-			p2pDB := &p2p.LevelDB{}
-			p2pConsensusMgr, err = p2p.NewP2PConsensusManager(p2pBC, p2pDB, dm, nodeRole)
+			p2pConsensusMgr, err = p2p.NewP2PConsensusManager(bc, db, dm, nodeRole)
 		} else {
 			return nil, fmt.Errorf("[%s] failed to create P2P consensus manager: discovery manager is not a *p2p.DiscoveryManager", cfg.ChainID)
 		}
@@ -1727,7 +1710,8 @@ func startNodeWithComponents(
 			// db.Close() // Avoid closing shared DB here
 			return nil, fmt.Errorf("[%s] failed to create P2P consensus manager: %w", cfg.ChainID, err)
 		}
-		bc.P2PConsensusMgr = p2pConsensusMgr // Assign to blockchain struct
+		// Attach P2P manager via exported setter
+		bc.SetP2PConsensusManager(p2pConsensusMgr)
 	} else {
 		log.Printf("[%s] P2P messaging disabled - skipping P2P consensus manager initialization", cfg.ChainID)
 	}
@@ -2113,13 +2097,12 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 
 		// P2P consensus manager (skip if disabled)
 		if !disableP2P {
-			p2pBC := &p2p.BlockchainStruct{ChainID: bc.ChainID}
-			p2pDB := &p2p.LevelDB{}
-			p2pConsensusMgr, err := p2p.NewP2PConsensusManager(p2pBC, p2pDB, discoveryMgr, role)
+			p2pConsensusMgr, err := p2p.NewP2PConsensusManager(bc, db, discoveryMgr, role)
 			if err != nil {
 				log.Printf("[%s][%s] WARNING: Failed to initialize P2P consensus manager: %v", role.String(), cfg.ChainID, err)
 			} else {
-				// bc.p2pConsensusMgr is unexported; P2PConsensusManager stored locally in this startup flow P2PConsensusManager stored locally in this startup flow
+				// Attach to blockchain via setter
+				bc.SetP2PConsensusManager(p2pConsensusMgr)
 				log.Printf("[%s][%s] Starting P2P consensus manager with MinersAddress: %s", role.String(), cfg.ChainID, cfg.MinersAddress)
 				log.Printf("[%s][%s] ChromemDB path: %s", role.String(), cfg.ChainID, cfg.SearchableDatabasePath)
 				p2pConsensusMgr.Start()
