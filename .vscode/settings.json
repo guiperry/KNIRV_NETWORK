@@ -3,7 +3,8 @@
         
         "bash": {
             "path": "bash",
-            "icon": "terminal-bash"
+            "icon": "terminal-bash",
+            "args": ["-l"]
         },
         "zsh": {
             "path": "zsh"
@@ -20,6 +21,7 @@
             "icon": "terminal-powershell"
         }
     },
+    "terminal.integrated.defaultProfile.linux": "bash",
     "codium.codeCompletion.enable": false,
     "zencoder.mcpServers": {
         "playwright": {
