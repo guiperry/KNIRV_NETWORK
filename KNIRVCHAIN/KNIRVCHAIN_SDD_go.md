@@ -109,8 +109,13 @@ const (
 type Block struct {
     BlockID         uuid.UUID      `json:"block_id"`
     Timestamp       int64          `json:"timestamp"`
+// This hash is of the protobuf file, ensuring the off-chain data is verifiable.
     PayloadHash     string         `json:"payload_hash"`
     Data            []byte         `json:"data"`           // GLB binary data
+// --- Off-Chain Data Reference ---
+// This URI points to the protobuf file on the local filesystem
+// which contains the full GLB data.
+    DataURI         string         `json:"data_uri"`
     Category        MemoryCategory `json:"category"`
     PrevHash        string         `json:"prev_hash"`
     NRNCost         uint64         `json:"nrn_cost"`
@@ -289,6 +294,7 @@ func (s *MCPServer) handleStoreMemory(w http.ResponseWriter, r *http.Request) {
         Timestamp:      time.Now().Unix(),
         PayloadHash:    payloadHash,
         Data:           glbData,
+        DataURI         string                
         Category:       req.MemoryType,
         NRNCost:        estimatedCost,
         SemanticVector: embedding,
@@ -2836,6 +2842,7 @@ func TestBlockCreation(t *testing.T) {
         Timestamp:      time.Now().Unix(),
         PayloadHash:    "test_hash",
         Data:           []byte("test data"),
+        DataURI:        "test_uri",              
         Category:       blockchain.CategoryGeneral,
         NRNCost:        10,
         SemanticVector: make([]float32, 768),

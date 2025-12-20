@@ -1,4 +1,13 @@
 {
+    "go.goroot": "/home/gperry/.gvm/gos/go1.24.1",
+    "go.toolsEnvVars": {
+        "GOROOT": "/home/gperry/.gvm/gos/go1.24.1"
+    },
+    "go.useLanguageServer": true,
+    "go.languageServerFlags": [
+        "-rpc.trace"
+    ],
+    
     "terminal.integrated.profiles.linux": {
         
         "bash": {
