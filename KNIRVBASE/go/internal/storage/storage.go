@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
+	"github.com/knirv/knirvbase/internal/crypto/pqc"
 	"github.com/knirv/knirvbase/internal/types"
 )
 
@@ -17,17 +19,32 @@ type Storage interface {
 	Delete(collection, id string) error
 	Find(collection, id string) (map[string]interface{}, error)
 	FindAll(collection string) ([]map[string]interface{}, error)
+
+	// Index management
+	CreateIndex(collection, name string, indexType IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error
+	DropIndex(collection, name string) error
+	GetIndex(collection, name string) *Index
+	GetIndexesForCollection(collection string) []*Index
+	QueryIndex(collection, indexName string, query map[string]interface{}) ([]string, error)
 }
 
 // FileStorage implements Storage using files
 type FileStorage struct {
-	baseDir string
-	mu      sync.RWMutex
+	baseDir       string
+	indexManager  *IndexManager
+	encryptionMgr *pqc.EncryptionManager
+	mu            sync.RWMutex
 }
 
 func NewFileStorage(baseDir string) *FileStorage {
 	os.MkdirAll(baseDir, 0755)
-	return &FileStorage{baseDir: baseDir}
+	indexManager := NewIndexManager(baseDir)
+	indexManager.LoadIndexes() // Load existing indexes
+	return &FileStorage{
+		baseDir:       baseDir,
+		indexManager:  indexManager,
+		encryptionMgr: pqc.NewEncryptionManager(),
+	}
 }
 
 func (fs *FileStorage) getCollectionDir(collection string) string {
@@ -38,6 +55,23 @@ func (fs *FileStorage) getDocPath(collection, id string) string {
 	return filepath.Join(fs.getCollectionDir(collection), id+".json")
 }
 
+// SetMasterKey sets the master PQC key for encryption
+func (fs *FileStorage) SetMasterKey(keyPair *pqc.PQCKeyPair) {
+	fs.encryptionMgr.SetMasterKey(keyPair)
+}
+
+// IsEncryptedCollection checks if a collection should be encrypted
+func (fs *FileStorage) IsEncryptedCollection(collection string) bool {
+	// Encrypt sensitive collections
+	encryptedCollections := []string{"credentials", "pqc_keys", "audit_log"}
+	for _, ec := range encryptedCollections {
+		if collection == ec {
+			return true
+		}
+	}
+	return false
+}
+
 func (fs *FileStorage) Insert(collection string, doc map[string]interface{}) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
@@ -45,23 +79,42 @@ func (fs *FileStorage) Insert(collection string, doc map[string]interface{}) err
 	os.MkdirAll(fs.getCollectionDir(collection), 0755)
 	path := fs.getDocPath(collection, doc["id"].(string))
 
+	// Create a copy for processing
+	docCopy := fs.deepCopyDoc(doc)
+
 	// Handle MEMORY blob
-	if entryType, ok := doc["entryType"].(types.EntryType); ok && entryType == types.EntryTypeMemory {
-		if payload, ok := doc["payload"].(map[string]interface{}); ok {
+	if entryType, ok := docCopy["entryType"].(types.EntryType); ok && entryType == types.EntryTypeMemory {
+		if payload, ok := docCopy["payload"].(map[string]interface{}); ok {
 			if blob, hasBlob := payload["blob"]; hasBlob {
-				blobPath := fs.saveBlob(collection, doc["id"].(string), blob)
+				blobPath := fs.saveBlob(collection, docCopy["id"].(string), blob)
 				payload["blobRef"] = blobPath
 				delete(payload, "blob")
-				doc["payload"] = payload
+				docCopy["payload"] = payload
 			}
 		}
 	}
 
-	data, err := json.Marshal(doc)
+	// Encrypt sensitive collections (only if master key is set)
+	if fs.IsEncryptedCollection(collection) && fs.encryptionMgr.GetMasterKey() != nil {
+		encryptedDoc, err := fs.encryptDocument(docCopy)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt document: %w", err)
+		}
+		docCopy = encryptedDoc
+	}
+
+	data, err := json.Marshal(docCopy)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0644)
+
+	err = os.WriteFile(path, data, 0644)
+	if err != nil {
+		return err
+	}
+
+	// Update indexes (use original doc for indexing)
+	return fs.indexManager.Insert(collection, doc)
 }
 
 func (fs *FileStorage) Update(collection, id string, update map[string]interface{}) error {
@@ -97,7 +150,8 @@ func (fs *FileStorage) Delete(collection, id string) error {
 	blobPath := filepath.Join(blobDir, id)
 	os.Remove(blobPath)
 
-	return nil
+	// Remove from indexes
+	return fs.indexManager.Delete(collection, id)
 }
 
 func (fs *FileStorage) Find(collection, id string) (map[string]interface{}, error) {
@@ -116,6 +170,15 @@ func (fs *FileStorage) Find(collection, id string) (map[string]interface{}, erro
 	var doc map[string]interface{}
 	if err := json.Unmarshal(data, &doc); err != nil {
 		return nil, err
+	}
+
+	// Decrypt if document is encrypted and we have a master key
+	if encrypted, ok := doc["encrypted"].(bool); ok && encrypted && fs.encryptionMgr.GetMasterKey() != nil {
+		decryptedDoc, err := fs.decryptDocument(doc)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt document: %w", err)
+		}
+		doc = decryptedDoc
 	}
 
 	// Load blob for MEMORY
@@ -181,4 +244,161 @@ func (fs *FileStorage) loadBlob(blobRef string) (interface{}, error) {
 	var blob interface{}
 	json.Unmarshal(data, &blob)
 	return blob, nil
+}
+
+// Index management methods
+
+func (fs *FileStorage) CreateIndex(collection, name string, indexType IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error {
+	return fs.indexManager.CreateIndex(collection, name, indexType, fields, unique, partialExpr, options)
+}
+
+func (fs *FileStorage) DropIndex(collection, name string) error {
+	return fs.indexManager.DropIndex(collection, name)
+}
+
+func (fs *FileStorage) GetIndex(collection, name string) *Index {
+	return fs.indexManager.GetIndex(collection, name)
+}
+
+func (fs *FileStorage) GetIndexesForCollection(collection string) []*Index {
+	return fs.indexManager.GetIndexesForCollection(collection)
+}
+
+func (fs *FileStorage) QueryIndex(collection, indexName string, query map[string]interface{}) ([]string, error) {
+	return fs.indexManager.QueryIndex(collection, indexName, query)
+}
+
+// deepCopyDoc creates a deep copy of a document
+func (fs *FileStorage) deepCopyDoc(doc map[string]interface{}) map[string]interface{} {
+	data, _ := json.Marshal(doc)
+	var copy map[string]interface{}
+	json.Unmarshal(data, &copy)
+	return copy
+}
+
+// encryptDocument encrypts sensitive fields in a document
+func (fs *FileStorage) encryptDocument(doc map[string]interface{}) (map[string]interface{}, error) {
+	masterKey := fs.encryptionMgr.GetMasterKey()
+	if masterKey == nil {
+		return nil, fmt.Errorf("no master key set for encryption")
+	}
+
+	// Encrypt the payload
+	if payload, ok := doc["payload"].(map[string]interface{}); ok {
+		encryptedPayload, err := fs.encryptPayload(payload, masterKey.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encrypt payload: %w", err)
+		}
+		doc["payload"] = encryptedPayload
+		doc["encrypted"] = true
+		doc["encryption_key_id"] = masterKey.ID
+	}
+
+	return doc, nil
+}
+
+// encryptPayload encrypts sensitive fields in the payload
+func (fs *FileStorage) encryptPayload(payload map[string]interface{}, keyID string) (map[string]interface{}, error) {
+	encrypted := make(map[string]interface{})
+
+	for key, value := range payload {
+		// Encrypt sensitive fields
+		if fs.isSensitiveField(key) {
+			// Convert value to bytes for encryption
+			valueBytes, err := json.Marshal(value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal field %s: %w", key, err)
+			}
+
+			encryptedValue, err := fs.encryptionMgr.EncryptData(valueBytes, keyID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to encrypt field %s: %w", key, err)
+			}
+
+			encrypted[key] = encryptedValue
+			encrypted[key+"_encrypted"] = true
+		} else {
+			encrypted[key] = value
+		}
+	}
+
+	return encrypted, nil
+}
+
+// isSensitiveField checks if a field contains sensitive data that should be encrypted
+func (fs *FileStorage) isSensitiveField(fieldName string) bool {
+	sensitiveFields := []string{"hash", "salt", "private_key", "secret", "password", "token"}
+	for _, sf := range sensitiveFields {
+		if strings.Contains(strings.ToLower(fieldName), sf) {
+			return true
+		}
+	}
+	return false
+}
+
+// decryptDocument decrypts an encrypted document
+func (fs *FileStorage) decryptDocument(doc map[string]interface{}) (map[string]interface{}, error) {
+	keyID, ok := doc["encryption_key_id"].(string)
+	if !ok {
+		return nil, fmt.Errorf("missing encryption_key_id")
+	}
+
+	// Get the decryption key
+	keyPair := fs.encryptionMgr.GetMasterKey()
+	if keyPair == nil || keyPair.ID != keyID {
+		return nil, fmt.Errorf("decryption key not available")
+	}
+
+	// Decrypt the payload
+	if payload, ok := doc["payload"].(map[string]interface{}); ok {
+		decryptedPayload, err := fs.decryptPayload(payload, keyID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt payload: %w", err)
+		}
+		doc["payload"] = decryptedPayload
+	}
+
+	// Remove encryption metadata
+	delete(doc, "encrypted")
+	delete(doc, "encryption_key_id")
+
+	return doc, nil
+}
+
+// decryptPayload decrypts encrypted fields in the payload
+func (fs *FileStorage) decryptPayload(payload map[string]interface{}, _ string) (map[string]interface{}, error) {
+	decrypted := make(map[string]interface{})
+
+	for key, value := range payload {
+		// Check if field is encrypted
+		if strings.HasSuffix(key, "_encrypted") {
+			// This is an encryption marker, skip
+			continue
+		}
+
+		if isEncrypted, ok := payload[key+"_encrypted"].(bool); ok && isEncrypted {
+			// This field is encrypted
+			encryptedValue, ok := value.(string)
+			if !ok {
+				return nil, fmt.Errorf("encrypted field %s is not a string", key)
+			}
+
+			decryptedBytes, err := fs.encryptionMgr.DecryptData(encryptedValue)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decrypt field %s: %w", key, err)
+			}
+
+			// Unmarshal the decrypted value
+			var decryptedValue interface{}
+			if err := json.Unmarshal(decryptedBytes, &decryptedValue); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal decrypted field %s: %w", key, err)
+			}
+
+			decrypted[key] = decryptedValue
+		} else {
+			decrypted[key] = value
+		}
+	}
+
+	return decrypted, nil
 }

@@ -4,6 +4,7 @@
 
 KNIRVBASE is a lightweight, local-first distributed database prototype implemented in Go. It demonstrates a minimal, self-contained implementation of:
 
+- **PQC Encryption Layer**: Post-quantum cryptography using Kyber-768 (encryption) and Dilithium-3 (signatures) for secure data storage
 - CRDT-based conflict resolution using **vector clocks**,
 - Local file-backed **storage** for metadata and blobs (blobs are stored locally),
 - A **mock network** abstraction for peer communication (easy to replace with libp2p or another transport),
@@ -15,6 +16,7 @@ This package is intended as an architectural prototype and reference implementat
 
 ## 🔍 Features
 
+- **PQC Encryption**: Kyber-768 KEM + AES-256-GCM for encryption, Dilithium-3 for digital signatures
 - Local-first operations and background sync
 - CRDT resolve using vector clocks (merge rules + LWW tie-breakers)
 - File-based storage for documents and local blob files
@@ -97,9 +99,10 @@ The language is intentionally minimal and aimed at quick integration and demos �
 ## 📦 Package Overview (what's inside)
 
 - `cmd/` — small demo CLI (`cmd/main.go`) showing initialization and sample operations.
+- `internal/crypto/pqc` — Post-quantum cryptography: Kyber-768 encryption, Dilithium-3 signatures, key management.
 - `internal/database` — `DistributedDatabase`: high-level database orchestration and collection factory.
 - `internal/collection` — `DistributedCollection` + `LocalCollection`: local storage, CRDT operation emission, sync logic.
-- `internal/storage` — `FileStorage`: file-based persistence and blob handling.
+- `internal/storage` — `FileStorage`: file-based persistence and blob handling with PQC encryption.
 - `internal/network` — `Network` interface + `MockNetwork`: network abstraction used by distributed components.
 - `internal/resolver` — CRDT resolver logic and helpers for converting to/from distributed documents.
 - `internal/clock` — vector clock implementation and comparison utilities.
@@ -135,9 +138,9 @@ Note: The codebase ships a `MockNetwork` for simplicity — to run real P2P sync
 
 ## ⚠️ Limitations & Security Notes
 
+- **PQC Encryption:** Sensitive collections (`credentials`, `pqc_keys`, `audit_log`) are automatically encrypted at rest when a master key is configured. Uses Kyber-768 + AES-256-GCM for confidentiality and Dilithium-3 for integrity.
 - **Mock network:** The current `MockNetwork` is only suitable for single-node or test environments. Replace it with a production transport for true P2P behavior.
 - **Blob handling:** Blobs are stored locally and only referenced in synchronized metadata; no blob distribution is implemented here.
-- **Auth data storage:** `AUTH` data is stored in plain JSON in this prototype. In production, ensure secrets and keys are encrypted and access-controlled.
 - **No authentication for network messages:** This prototype does not implement cryptographic signing or authenticated transports — real deployments must use TLS/Noise and authenticated peer identities.
 
 ---

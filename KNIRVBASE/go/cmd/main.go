@@ -7,10 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	dbpkg "github.com/knirv/knirvbase/internal/database"
 	qry "github.com/knirv/knirvbase/internal/query"
-	stor "github.com/knirv/knirvbase/internal/storage"
 	typ "github.com/knirv/knirvbase/internal/types"
+	"github.com/knirv/knirvbase/pkg/knirvbase"
 )
 
 func main() {
@@ -24,12 +23,12 @@ func main() {
 	}
 	os.MkdirAll(appDataDir, 0755)
 
-	// Create storage
-	store := stor.NewFileStorage(appDataDir)
-
 	// Create database
-	opts := dbpkg.DistributedDbOptions{}
-	db, err := dbpkg.NewDistributedDatabase(ctx, opts, store)
+	opts := knirvbase.Options{
+		DataDir:            appDataDir,
+		DistributedEnabled: true,
+	}
+	db, err := knirvbase.New(ctx, opts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,14 +44,14 @@ func main() {
 	}
 
 	// Create collections
-	authColl := db.Collection("auth", store)
-	memoryColl := db.Collection("memory", store)
+	authColl := db.Collection("auth")
+	memoryColl := db.Collection("memory")
 
 	// Attach to network
-	if err := db.AddCollectionToNetwork(networkID, "auth"); err != nil {
+	if err := authColl.AttachToNetwork(networkID); err != nil {
 		log.Fatal(err)
 	}
-	if err := db.AddCollectionToNetwork(networkID, "memory"); err != nil {
+	if err := memoryColl.AttachToNetwork(networkID); err != nil {
 		log.Fatal(err)
 	}
 
@@ -67,7 +66,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = query.Execute(db, authColl)
+	authCollInternal := db.RawCollection("auth")
+	_, err = query.Execute(db.Raw(), authCollInternal)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	result, err := query.Execute(db, authColl)
+	result, err := query.Execute(db.Raw(), authCollInternal)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -105,7 +105,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	results, err := query.Execute(db, memoryColl)
+	memoryCollInternal := db.RawCollection("memory")
+	results, err := query.Execute(db.Raw(), memoryCollInternal)
 	if err != nil {
 		log.Fatal(err)
 	}
