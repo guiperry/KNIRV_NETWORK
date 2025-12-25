@@ -362,14 +362,14 @@ for _, doc := range results {
 | **1.2 PQC Encryption Layer** | 1-2 weeks | Security Dev | PQC library selection |
 | **1.3 Query Optimizer** | 1-2 weeks | Backend Dev | 1.1 (indexes) |
 | **1.4 Encryption at Rest** | 1 week | Security Dev | 1.2 (PQC) |
-| **1.5 Benchmark Suite** | 1 week | QA | 1.1, 1.3 |
+| **1.5 Benchmark Suite** | 1 week | QA | 1.1, 1.3 | ✅ **COMPLETED** |
 
 **Deliverables:**
 - ✅ KNIRVBASE with functional secondary indexes
 - ✅ PQC encryption (Kyber-768) for credential storage
 - ✅ Query performance meets ASIC-Shield SLA (< 500ms p99)
 - ✅ Encryption at rest for all sensitive collections
-- ✅ Performance benchmarks baseline
+- ✅ Performance benchmarks baseline **(COMPLETED: `benchmarks_test.go`, `benchmark_integration_test.go`)**
 
 **Phase 1 Success Criteria:**
 - [ ] Insert credential: < 10ms (p99)

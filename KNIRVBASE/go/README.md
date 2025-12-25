@@ -119,6 +119,22 @@ The language is intentionally minimal and aimed at quick integration and demos â
 go test ./...
 ```
 
+- Run performance benchmarks:
+
+```bash
+make bench
+# or
+go test -bench=. -benchmem ./benchmarks
+```
+
+- Run SLA validation tests:
+
+```bash
+make bench-sla
+# or
+go test -run=TestBenchmarkSLAs -v ./benchmarks
+```
+
 - Format & vet:
 
 ```bash
@@ -133,6 +149,43 @@ go mod tidy
 ```
 
 Note: The codebase includes a full P2P networking implementation with TCP connections and DHT-like peer discovery for distributed operation.
+
+---
+
+## ðŸ“Š Performance Benchmarks
+
+KNIRVBASE includes a comprehensive benchmark suite that validates performance against ASIC-Shield SLA requirements:
+
+### SLA Targets (ASIC-Shield Integration)
+- **Credential Insert**: p99 < 10ms
+- **Credential Query**: p99 < 5ms
+- **Authentication Workflow**: p99 < 500ms (including 100M KDF iterations)
+- **PQC Encryption**: < 20ms per operation
+- **Large Scale**: No performance degradation with 10K+ credentials
+
+### Running Benchmarks
+
+```bash
+# Run all benchmarks
+make bench-all
+
+# Run SLA validation
+make bench-sla
+
+# Generate CPU/memory profiles
+make bench-profile
+```
+
+### Benchmark Results
+
+The benchmark suite (`benchmarks_test.go`) includes:
+- `BenchmarkCredentialInsert`: Measures credential storage performance
+- `BenchmarkCredentialQuery`: Measures credential lookup performance
+- `BenchmarkPQCCrypto`: Measures PQC encryption/decryption overhead
+- `BenchmarkAuthWorkflow`: Simulates full authentication workflow
+- `BenchmarkLargeScale`: Tests performance with 10K credentials
+
+Integration tests (`benchmark_integration_test.go`) validate that results meet SLA targets and detect performance regressions.
 
 ---
 
