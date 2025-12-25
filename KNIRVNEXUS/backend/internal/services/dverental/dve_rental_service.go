@@ -33,8 +33,8 @@ type DVERentalService struct {
 	blockchainClient BlockchainClientInterface
 
 	// Service references
-	dveManager          interface{} // DVE manager for node allocation
-	cdeService          interface{} // CDE service for environment provisioning
+	dveManager            interface{} // DVE manager for node allocation
+	cdeService            interface{} // CDE service for environment provisioning
 	containerOrchestrator interface{} // Container orchestrator for TEE containers
 
 	// Rental data
@@ -44,6 +44,7 @@ type DVERentalService struct {
 	// Configuration
 	cleanupInterval time.Duration
 	defaultPlans    []*objects.RentalPlan
+	testMode        bool // Enable mock fallbacks for testing
 }
 
 // NewDVERentalService creates a new DVE rental service
@@ -94,6 +95,14 @@ func (drs *DVERentalService) SetBlockchainClient(client BlockchainClientInterfac
 	defer drs.mu.Unlock()
 
 	drs.blockchainClient = client
+}
+
+// SetTestMode enables or disables test mode for mock fallbacks
+func (drs *DVERentalService) SetTestMode(enabled bool) {
+	drs.mu.Lock()
+	defer drs.mu.Unlock()
+
+	drs.testMode = enabled
 }
 
 // Start starts the DVE rental service
@@ -662,20 +671,23 @@ func (drs *DVERentalService) generateSecureCredentials(userID, envID string) (ob
 func (drs *DVERentalService) provisionTEEContainer(rental *objects.DVERental) (*container.Container, error) {
 	// Check if container orchestrator is available
 	if drs.containerOrchestrator == nil {
-		// Fallback to mock container if orchestrator is not available
-		containerID := "container-" + uuid.New().String()[:8]
-		mockContainer := &container.Container{
-			ID:    containerID,
-			Status: container.ContainerStatusRunning,
-			CreatedAt: time.Now(),
-			Spec: &container.ContainerSpec{
-				SSHPort:     22145, // Mock port
-				SSHUsername: fmt.Sprintf("rental-user-%s", rental.ID[:8]),
-			},
-			Runtime: "mock",
+		if drs.testMode {
+			// Fallback to mock container only in test mode
+			containerID := "container-" + uuid.New().String()[:8]
+			mockContainer := &container.Container{
+				ID:        containerID,
+				Status:    container.ContainerStatusRunning,
+				CreatedAt: time.Now(),
+				Spec: &container.ContainerSpec{
+					SSHPort:     22145, // Mock port
+					SSHUsername: fmt.Sprintf("rental-user-%s", rental.ID[:8]),
+				},
+				Runtime: "mock",
+			}
+			log.Printf("Provisioned mock TEE container %s for rental %s (test mode)", containerID, rental.ID)
+			return mockContainer, nil
 		}
-		log.Printf("Provisioned mock TEE container %s for rental %s", containerID, rental.ID)
-		return mockContainer, nil
+		return nil, fmt.Errorf("container orchestrator not available and not in test mode")
 	}
 
 	// Use actual container orchestrator
@@ -685,20 +697,23 @@ func (drs *DVERentalService) provisionTEEContainer(rental *objects.DVERental) (*
 
 	orchestrator, ok := drs.containerOrchestrator.(ContainerOrchestratorInterface)
 	if !ok {
-		// Fallback to mock if interface doesn't match
-		containerID := "container-" + uuid.New().String()[:8]
-		mockContainer := &container.Container{
-			ID:    containerID,
-			Status: container.ContainerStatusRunning,
-			CreatedAt: time.Now(),
-			Spec: &container.ContainerSpec{
-				SSHPort:     22145, // Mock port
-				SSHUsername: fmt.Sprintf("rental-user-%s", rental.ID[:8]),
-			},
-			Runtime: "mock",
+		if drs.testMode {
+			// Fallback to mock if interface doesn't match (only in test mode)
+			containerID := "container-" + uuid.New().String()[:8]
+			mockContainer := &container.Container{
+				ID:        containerID,
+				Status:    container.ContainerStatusRunning,
+				CreatedAt: time.Now(),
+				Spec: &container.ContainerSpec{
+					SSHPort:     22145, // Mock port
+					SSHUsername: fmt.Sprintf("rental-user-%s", rental.ID[:8]),
+				},
+				Runtime: "mock",
+			}
+			log.Printf("Provisioned fallback TEE container %s for rental %s (test mode)", containerID, rental.ID)
+			return mockContainer, nil
 		}
-		log.Printf("Provisioned fallback TEE container %s for rental %s", containerID, rental.ID)
-		return mockContainer, nil
+		return nil, fmt.Errorf("container orchestrator interface mismatch and not in test mode")
 	}
 
 	// Provision the container

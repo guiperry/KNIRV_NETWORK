@@ -333,11 +333,11 @@ func (drs *DVERentalService) updateRentalUsageMetrics(rental *objects.DVERental,
 	rental.UpdatedAt = timestamp
 
 	// Calculate billing based on usage (optional - could be used for overage charges)
-	drs.calculateUsageBasedBilling(rental, timeElapsed)
+	drs.calculateUsageBasedBilling(rental)
 }
 
 // calculateUsageBasedBilling calculates any additional charges based on resource usage
-func (drs *DVERentalService) calculateUsageBasedBilling(rental *objects.DVERental, timeElapsed float64) {
+func (drs *DVERentalService) calculateUsageBasedBilling(rental *objects.DVERental) {
 	// This is a placeholder for usage-based billing logic
 	// In a real implementation, this could calculate overage charges for:
 	// - CPU usage above allocated limits

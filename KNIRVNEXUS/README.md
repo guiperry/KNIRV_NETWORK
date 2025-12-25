@@ -213,7 +213,7 @@ docker run -p 8090:8090 knirv/nexus:latest
 - **Missing**: Mode switching logic, GUI-specific configurations
 - **Impact**: Deployment flexibility limited
 
-> **Note**: See `Nexus_Gap_Analysis.md` for detailed analysis of implementation gaps and recommended actions.
+> **Note**: See `docs/final_nexus_gap_analysis.md` for detailed analysis of implementation gaps and recommended actions.
 ## 🚀 Quick Start
 
 ### Prerequisites

@@ -2277,8 +2277,12 @@ echo "🔍 Verifying service health..."
 curl -s http://localhost:1317/health && echo "  ✅ ORACLE healthy" || echo "  ⚠️  ORACLE not ready yet"
 curl -s http://localhost:8090/health && echo "  ✅ CHAIN healthy" || echo "  ⚠️  CHAIN not ready yet"
 curl -s http://localhost:8082/height && echo "  ✅ GRAPH healthy" || echo "  ⚠️  GRAPH not ready yet"
-curl -s http://localhost:8084/ && echo "  ✅ NEXUS healthy" || echo "  ⚠️  NEXUS not ready yet"
 curl -s http://localhost:8086/status && echo "  ✅ ROUTER healthy" || echo "  ⚠️  ROUTER not ready yet"
+
+# Only check NEXUS if the binary exists (private/corporate testing)
+if [ -f /usr/local/bin/knirvnexus ] || [ -f /opt/knirv-testnet/bin/knirvnexus ]; then
+    curl -s http://localhost:8084/ && echo "  ✅ NEXUS healthy (private mode)" || echo "  ⚠️  NEXUS not ready yet"
+fi
 
 echo ""
 echo "📄 Orchestrator log: /var/log/knirvtestnet.log"

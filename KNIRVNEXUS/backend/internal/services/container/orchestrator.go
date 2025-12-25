@@ -13,44 +13,46 @@ import (
 
 // ContainerOrchestrator manages the lifecycle of DVE containers
 type ContainerOrchestrator struct {
-	portAllocator    *PortAllocator
-	sshProvisioner   *SSHProvisioner
-	config           *ContainerConfig
+	portAllocator      *PortAllocator
+	sshProvisioner     *SSHProvisioner
+	config             *ContainerConfig
 	teeSecurityService *teesecurity.TEESecurityService
+	sshKeys            map[string]*SSHKeypair // containerID -> SSH keys
 }
 
 // ContainerConfig holds configuration for container orchestration
 type ContainerConfig struct {
-	ContainerRuntime    string        // "docker", "podman", "kata", "gvisor"
-	BaseImage           string        // Base container image
-	SSHPortRangeStart   int           // Starting port for SSH allocation
-	SSHPortRangeEnd     int           // Ending port for SSH allocation
-	ValidationPortRangeStart int      // Starting port for validation allocation
-	ValidationPortRangeEnd   int      // Ending port for validation allocation
-	ErrorResPortRangeStart   int      // Starting port for error resolution allocation
-	ErrorResPortRangeEnd     int      // Ending port for error resolution allocation
-	ProvisioningTimeout time.Duration // Timeout for container provisioning
-	CleanupInterval     time.Duration // Interval for cleanup of expired containers
+	ContainerRuntime         string        // "docker", "podman", "kata", "gvisor"
+	BaseImage                string        // Base container image
+	SSHPortRangeStart        int           // Starting port for SSH allocation
+	SSHPortRangeEnd          int           // Ending port for SSH allocation
+	ValidationPortRangeStart int           // Starting port for validation allocation
+	ValidationPortRangeEnd   int           // Ending port for validation allocation
+	ErrorResPortRangeStart   int           // Starting port for error resolution allocation
+	ErrorResPortRangeEnd     int           // Ending port for error resolution allocation
+	ProvisioningTimeout      time.Duration // Timeout for container provisioning
+	CleanupInterval          time.Duration // Interval for cleanup of expired containers
 }
 
 // NewContainerOrchestrator creates a new container orchestrator
 func NewContainerOrchestrator(config *ContainerConfig, teeSecurityService *teesecurity.TEESecurityService) (*ContainerOrchestrator, error) {
 	portAllocator := NewPortAllocator(PortAllocationConfig{
-		SSHRangeStart:         config.SSHPortRangeStart,
-		SSHRangeEnd:           config.SSHPortRangeEnd,
-		ValidationRangeStart:  config.ValidationPortRangeStart,
-		ValidationRangeEnd:    config.ValidationPortRangeEnd,
-		ErrorResRangeStart:    config.ErrorResPortRangeStart,
-		ErrorResRangeEnd:      config.ErrorResPortRangeEnd,
+		SSHRangeStart:        config.SSHPortRangeStart,
+		SSHRangeEnd:          config.SSHPortRangeEnd,
+		ValidationRangeStart: config.ValidationPortRangeStart,
+		ValidationRangeEnd:   config.ValidationPortRangeEnd,
+		ErrorResRangeStart:   config.ErrorResPortRangeStart,
+		ErrorResRangeEnd:     config.ErrorResPortRangeEnd,
 	})
 
 	sshProvisioner := NewSSHProvisioner()
 
 	return &ContainerOrchestrator{
-		portAllocator:     portAllocator,
-		sshProvisioner:    sshProvisioner,
-		config:            config,
+		portAllocator:      portAllocator,
+		sshProvisioner:     sshProvisioner,
+		config:             config,
 		teeSecurityService: teeSecurityService,
+		sshKeys:            make(map[string]*SSHKeypair),
 	}, nil
 }
 
@@ -87,17 +89,17 @@ func (co *ContainerOrchestrator) ProvisionContainer(rentalID string) (*Container
 
 	// Create container specification with security hardening
 	containerSpec := &ContainerSpec{
-		ID:              fmt.Sprintf("dve-%s-%d", rentalID, time.Now().Unix()),
-		Image:           co.config.BaseImage,
-		SSHPort:         endpoints.SSHPort,
-		ValidationPort:  endpoints.ValidationPort,
-		ErrorResPort:    endpoints.ErrorResPort,
-		SSHUsername:     fmt.Sprintf("rental-user-%s", rentalID[:8]),
-		SSHPublicKey:    sshKeys.PublicKey,
-		TEEType:         co.determineTEEType(),
+		ID:             fmt.Sprintf("dve-%s-%d", rentalID, time.Now().Unix()),
+		Image:          co.config.BaseImage,
+		SSHPort:        endpoints.SSHPort,
+		ValidationPort: endpoints.ValidationPort,
+		ErrorResPort:   endpoints.ErrorResPort,
+		SSHUsername:    fmt.Sprintf("rental-user-%s", rentalID[:8]),
+		SSHPublicKey:   sshKeys.PublicKey,
+		TEEType:        co.determineTEEType(),
 		ResourceLimits: objects.ResourceLimits{
 			MaxCPU:       2.0,
-			MaxMemory:    4 * 1024 * 1024 * 1024, // 4GB
+			MaxMemory:    4 * 1024 * 1024 * 1024,  // 4GB
 			MaxDisk:      50 * 1024 * 1024 * 1024, // 50GB
 			MaxBandwidth: 100 * 1024 * 1024,       // 100Mbps
 		},
@@ -128,6 +130,9 @@ func (co *ContainerOrchestrator) ProvisionContainer(rentalID string) (*Container
 	container.SSHKeys = sshKeys
 	container.Endpoints = endpoints
 
+	// Store SSH keys for later retrieval
+	co.sshKeys[container.ID] = sshKeys
+
 	log.Printf("Successfully provisioned container %s for rental %s with security enforcement", container.ID, rentalID)
 	return container, nil
 }
@@ -149,6 +154,15 @@ func (co *ContainerOrchestrator) GetContainerStatus(containerID string) (Contain
 	return co.getContainerStatus(containerID)
 }
 
+// GetSSHPrivateKey retrieves the SSH private key for a container
+func (co *ContainerOrchestrator) GetSSHPrivateKey(containerID string) (string, error) {
+	keys, exists := co.sshKeys[containerID]
+	if !exists {
+		return "", fmt.Errorf("SSH keys not found for container %s", containerID)
+	}
+	return keys.PrivateKey, nil
+}
+
 // TerminateContainer terminates and cleans up a container
 func (co *ContainerOrchestrator) TerminateContainer(containerID string) error {
 	log.Printf("Terminating container %s", containerID)
@@ -158,6 +172,9 @@ func (co *ContainerOrchestrator) TerminateContainer(containerID string) error {
 	if rentalID != "" {
 		co.portAllocator.ReleasePorts(rentalID)
 	}
+
+	// Clean up SSH keys
+	delete(co.sshKeys, containerID)
 
 	// Terminate the container
 	return co.terminateContainer(containerID)

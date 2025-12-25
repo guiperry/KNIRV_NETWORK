@@ -156,6 +156,7 @@ type SSHSession struct {
 	ContainerID     string    `json:"container_id"`
 	Username        string    `json:"username"`
 	PublicKeyHash   string    `json:"public_key_hash"`
+	PrivateKey      string    `json:"-"` // Private key stored securely, not serialized
 	PrivateKeyURL   string    `json:"private_key_url"`
 	ExpiresAt       time.Time `json:"expires_at"`
 	CreatedAt       time.Time `json:"created_at"`

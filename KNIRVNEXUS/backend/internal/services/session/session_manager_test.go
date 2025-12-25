@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewSessionManager(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 
 	if sm == nil {
 		t.Fatal("Session manager should not be nil")
@@ -24,12 +24,12 @@ func TestNewSessionManager(t *testing.T) {
 }
 
 func TestSessionManager_CreateSSHSession(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID := "rental_123"
 	containerID := "container_456"
 	username := "testuser"
 
-	session, err := sm.CreateSSHSession(rentalID, containerID, username)
+	session, err := sm.CreateSSHSession(rentalID, containerID, username, "test-private-key")
 	if err != nil {
 		t.Fatalf("Failed to create SSH session: %v", err)
 	}
@@ -72,13 +72,13 @@ func TestSessionManager_CreateSSHSession(t *testing.T) {
 }
 
 func TestSessionManager_GetSSHSession(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID := "rental_123"
 	containerID := "container_456"
 	username := "testuser"
 
 	// Create session
-	session, err := sm.CreateSSHSession(rentalID, containerID, username)
+	session, err := sm.CreateSSHSession(rentalID, containerID, username, "test-private-key")
 	if err != nil {
 		t.Fatalf("Failed to create SSH session: %v", err)
 	}
@@ -105,13 +105,13 @@ func TestSessionManager_GetSSHSession(t *testing.T) {
 }
 
 func TestSessionManager_UpdateSSHSessionPublicKey(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID := "rental_123"
 	containerID := "container_456"
 	username := "testuser"
 
 	// Create session
-	session, err := sm.CreateSSHSession(rentalID, containerID, username)
+	session, err := sm.CreateSSHSession(rentalID, containerID, username, "test-private-key")
 	if err != nil {
 		t.Fatalf("Failed to create SSH session: %v", err)
 	}
@@ -142,13 +142,13 @@ func TestSessionManager_UpdateSSHSessionPublicKey(t *testing.T) {
 }
 
 func TestSessionManager_TerminateSSHSession(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID := "rental_123"
 	containerID := "container_456"
 	username := "testuser"
 
 	// Create session
-	session, err := sm.CreateSSHSession(rentalID, containerID, username)
+	session, err := sm.CreateSSHSession(rentalID, containerID, username, "test-private-key")
 	if err != nil {
 		t.Fatalf("Failed to create SSH session: %v", err)
 	}
@@ -173,7 +173,7 @@ func TestSessionManager_TerminateSSHSession(t *testing.T) {
 }
 
 func TestSessionManager_CreateValidationSession(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID := "rental_123"
 	validationType := "reasoning"
 
@@ -208,7 +208,7 @@ func TestSessionManager_CreateValidationSession(t *testing.T) {
 }
 
 func TestSessionManager_GetValidationSession(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID := "rental_123"
 	validationType := "reasoning"
 
@@ -236,7 +236,7 @@ func TestSessionManager_GetValidationSession(t *testing.T) {
 }
 
 func TestSessionManager_UpdateValidationEndpoint(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID := "rental_123"
 	validationType := "reasoning"
 
@@ -277,7 +277,7 @@ func TestSessionManager_UpdateValidationEndpoint(t *testing.T) {
 }
 
 func TestSessionManager_TerminateValidationSession(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID := "rental_123"
 	validationType := "reasoning"
 
@@ -307,12 +307,12 @@ func TestSessionManager_TerminateValidationSession(t *testing.T) {
 }
 
 func TestSessionManager_GetSessionsByRentalID(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID1 := "rental_123"
 	rentalID2 := "rental_456"
 
 	// Create sessions for rental 1
-	sshSession, err := sm.CreateSSHSession(rentalID1, "container_1", "user1")
+	sshSession, err := sm.CreateSSHSession(rentalID1, "container_1", "user1", "test-private-key")
 	if err != nil {
 		t.Fatalf("Failed to create SSH session: %v", err)
 	}
@@ -379,11 +379,11 @@ func TestSessionManager_GetSessionsByRentalID(t *testing.T) {
 }
 
 func TestSessionManager_TerminateAllSessionsForRental(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID := "rental_123"
 
 	// Create multiple sessions for the rental
-	sshSession, err := sm.CreateSSHSession(rentalID, "container_1", "user1")
+	sshSession, err := sm.CreateSSHSession(rentalID, "container_1", "user1", "test-private-key")
 	if err != nil {
 		t.Fatalf("Failed to create SSH session: %v", err)
 	}
@@ -422,7 +422,7 @@ func TestSessionManager_TerminateAllSessionsForRental(t *testing.T) {
 }
 
 func TestSessionManager_GenerateSessionID(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 
 	id1 := sm.generateSessionID()
 	id2 := sm.generateSessionID()
@@ -445,7 +445,7 @@ func TestSessionManager_GenerateSessionID(t *testing.T) {
 }
 
 func TestSessionManager_GenerateSessionToken(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 
 	token1 := sm.generateSessionToken()
 	token2 := sm.generateSessionToken()
@@ -468,14 +468,14 @@ func TestSessionManager_GenerateSessionToken(t *testing.T) {
 }
 
 func TestSessionManager_CleanupExpiredSessions(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 
 	// Create a session that expires immediately
 	rentalID := "rental_123"
 	containerID := "container_456"
 	username := "testuser"
 
-	session, err := sm.CreateSSHSession(rentalID, containerID, username)
+	session, err := sm.CreateSSHSession(rentalID, containerID, username, "test-private-key")
 	if err != nil {
 		t.Fatalf("Failed to create SSH session: %v", err)
 	}
@@ -492,7 +492,7 @@ func TestSessionManager_CleanupExpiredSessions(t *testing.T) {
 }
 
 func TestSessionManager_ErrorResolutionSession(t *testing.T) {
-	sm := NewSessionManager()
+	sm := NewSessionManager(nil)
 	rentalID := "rental_123"
 	supportedTypes := []string{"timeout", "network", "resource"}
 

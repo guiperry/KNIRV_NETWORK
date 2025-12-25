@@ -88,7 +88,7 @@ func TestSessionManagement(t *testing.T) {
 		containerID := "container-test-456"
 		username := "test-user"
 
-		sess, err := manager.CreateSSHSession(rentalID, containerID, username)
+		sess, err := manager.CreateSSHSession(rentalID, containerID, username, "mock-private-key")
 		require.NoError(t, err)
 		assert.NotNil(t, sess)
 		assert.Equal(t, rentalID, sess.RentalID)
@@ -210,13 +210,13 @@ func TestRentalToProvisioningFlow(t *testing.T) {
 
 		// Step 1: Create rental
 		rental := &objects.DVERental{
-			ID:              rentalID,
-			UserID:          userID,
-			DVENodeID:       "node-test-789",
-			Status:          "active",
-			RentalDuration:  30,
-			StartTime:       time.Now(),
-			EndTime:         time.Now().Add(30 * 24 * time.Hour),
+			ID:                 rentalID,
+			UserID:             userID,
+			DVENodeID:          "node-test-789",
+			Status:             "active",
+			RentalDuration:     30,
+			StartTime:          time.Now(),
+			EndTime:            time.Now().Add(30 * 24 * time.Hour),
 			ProvisioningStatus: "pending",
 		}
 		_ = rental.ID
@@ -242,7 +242,7 @@ func TestRentalToProvisioningFlow(t *testing.T) {
 		require.NoError(t, err)
 
 		// Step 4: Create sessions
-		sshSession, err := sessionMgr.CreateSSHSession(rentalID, container.ID, "test-user")
+		sshSession, err := sessionMgr.CreateSSHSession(rentalID, container.ID, "test-user", "mock-private-key")
 		require.NoError(t, err)
 
 		valSession, err := sessionMgr.CreateValidationSession(rentalID, "reasoning")
@@ -310,22 +310,22 @@ func TestAPIEndpointIntegration(t *testing.T) {
 		// Test the expected structure of full access info response
 		accessInfo := map[string]interface{}{
 			"ssh": map[string]interface{}{
-				"endpoint":                "10.0.1.42",
-				"port":                    22145,
-				"username":                "rental-user-abc123",
+				"endpoint":                 "10.0.1.42",
+				"port":                     22145,
+				"username":                 "rental-user-abc123",
 				"private_key_download_url": "/api/sessions/ssh/abc123/key",
-				"command":                 "ssh -i key.pem rental-user-abc123@10.0.1.42 -p 22145",
-				"expires_at":              time.Now().Add(24 * time.Hour),
+				"command":                  "ssh -i key.pem rental-user-abc123@10.0.1.42 -p 22145",
+				"expires_at":               time.Now().Add(24 * time.Hour),
 			},
 			"reasoning_validation": map[string]interface{}{
-				"endpoint_url": "http://10.0.1.42:23145",
+				"endpoint_url":  "http://10.0.1.42:23145",
 				"session_token": "jwt-token-xyz",
-				"expires_at":   time.Now().Add(24 * time.Hour),
+				"expires_at":    time.Now().Add(24 * time.Hour),
 			},
 			"error_resolution": map[string]interface{}{
-				"endpoint_url": "http://10.0.1.42:24145",
+				"endpoint_url":  "http://10.0.1.42:24145",
 				"session_token": "jwt-token-uvw",
-				"expires_at":   time.Now().Add(24 * time.Hour),
+				"expires_at":    time.Now().Add(24 * time.Hour),
 			},
 		}
 
@@ -369,13 +369,13 @@ func TestCompleteWorkflow(t *testing.T) {
 
 		// Step 1: User rents DVE (simulated)
 		rental := &objects.DVERental{
-			ID:              rentalID,
-			UserID:          userID,
-			DVENodeID:       "node-e2e-789",
-			Status:          "active",
-			RentalDuration:  30,
-			StartTime:       time.Now(),
-			EndTime:         time.Now().Add(30 * 24 * time.Hour),
+			ID:                 rentalID,
+			UserID:             userID,
+			DVENodeID:          "node-e2e-789",
+			Status:             "active",
+			RentalDuration:     30,
+			StartTime:          time.Now(),
+			EndTime:            time.Now().Add(30 * 24 * time.Hour),
 			ProvisioningStatus: "pending",
 		}
 		_ = rental.ID
@@ -401,7 +401,7 @@ func TestCompleteWorkflow(t *testing.T) {
 		assert.NotNil(t, endpoints)
 
 		// Step 4: System creates sessions
-		sshSess, err := sessionMgr.CreateSSHSession(rentalID, container.ID, "test-user")
+		sshSess, err := sessionMgr.CreateSSHSession(rentalID, container.ID, "test-user", "mock-private-key")
 		require.NoError(t, err)
 		valSess, err := sessionMgr.CreateValidationSession(rentalID, "reasoning")
 		require.NoError(t, err)

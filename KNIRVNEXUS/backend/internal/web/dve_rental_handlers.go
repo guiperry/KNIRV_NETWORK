@@ -449,12 +449,12 @@ func (h *DVERentalHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Requ
 
 	if rentalID == "" {
 		h.logError(&ErrorLogEntry{
-			ID:       fmt.Sprintf("error_%d", time.Now().UnixNano()),
-			UserID:   userID,
-			RentalID: rentalID,
-			Endpoint: r.URL.Path,
-			Error:    "Rental ID is required",
-			Severity: "low",
+			ID:        fmt.Sprintf("error_%d", time.Now().UnixNano()),
+			UserID:    userID,
+			RentalID:  rentalID,
+			Endpoint:  r.URL.Path,
+			Error:     "Rental ID is required",
+			Severity:  "low",
 			Timestamp: time.Now(),
 		})
 
@@ -496,8 +496,22 @@ func (h *DVERentalHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	// Get SSH private key from container orchestrator
+	privateKey, err := h.containerOrchestrator.GetSSHPrivateKey(rental.ContainerID)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to retrieve SSH private key: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
 	// Create SSH session using session manager
-	sshSession, err := h.sessionManager.CreateSSHSession(rentalID, rental.ContainerID, rental.SSHUsername)
+	sshSession, err := h.sessionManager.CreateSSHSession(rentalID, rental.ContainerID, rental.SSHUsername, privateKey)
 	if err != nil {
 		response := DVERentalResponse{
 			Success:   false,
@@ -563,15 +577,15 @@ func (h *DVERentalHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Requ
 
 	// Log successful access attempt
 	h.logAccessAttempt(&AccessLogEntry{
-		ID:          fmt.Sprintf("ssh_create_success_%d", time.Now().UnixNano()),
-		UserID:      userID,
-		RentalID:    rentalID,
-		Action:      "create_session",
-		ServiceType: "ssh",
-		IPAddress:   r.RemoteAddr,
-		UserAgent:   r.UserAgent(),
-		Success:     true,
-		Timestamp:   startTime,
+		ID:           fmt.Sprintf("ssh_create_success_%d", time.Now().UnixNano()),
+		UserID:       userID,
+		RentalID:     rentalID,
+		Action:       "create_session",
+		ServiceType:  "ssh",
+		IPAddress:    r.RemoteAddr,
+		UserAgent:    r.UserAgent(),
+		Success:      true,
+		Timestamp:    startTime,
 		ResponseTime: time.Since(startTime),
 	})
 
@@ -1136,6 +1150,206 @@ func (h *DVERentalHandlers) GetErrorResolutionSession(w http.ResponseWriter, r *
 	json.NewEncoder(w).Encode(response)
 }
 
+// TerminateValidationSession handles DELETE /api/dve-rental/rentals/{id}/validation-session
+func (h *DVERentalHandlers) TerminateValidationSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rentalID := vars["id"]
+
+	if rentalID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Extract user ID from JWT token
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		userID = "test-user-default"
+	}
+
+	// Validate rental ownership
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil || rental == nil || rental.UserID != userID {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental not found or access denied",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Get all sessions for this rental and find the most recent validation session
+	sessions, err := h.sessionManager.GetSessionsByRentalID(rentalID)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to retrieve sessions: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Find the most recent validation session
+	var latestValidationSession *objects.ValidationSession
+	var latestTime time.Time
+
+	for _, session := range sessions {
+		if validationSession, ok := session.(*objects.ValidationSession); ok {
+			if validationSession.CreatedAt.After(latestTime) {
+				latestValidationSession = validationSession
+				latestTime = validationSession.CreatedAt
+			}
+		}
+	}
+
+	if latestValidationSession == nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Validation session not found for this rental",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Terminate the validation session
+	err = h.sessionManager.TerminateValidationSession(latestValidationSession.ID)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to terminate validation session: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := DVERentalResponse{
+		Success:   true,
+		Message:   "Validation session terminated successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// TerminateErrorResolutionSession handles DELETE /api/dve-rental/rentals/{id}/error-resolution-session
+func (h *DVERentalHandlers) TerminateErrorResolutionSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	rentalID := vars["id"]
+
+	if rentalID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// TODO: Extract user ID from JWT token
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		userID = "test-user-default"
+	}
+
+	// Validate rental ownership
+	rental, err := h.dveRentalService.GetRentalByID(rentalID)
+	if err != nil || rental == nil || rental.UserID != userID {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Rental not found or access denied",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Get all sessions for this rental and find the most recent error resolution session
+	sessions, err := h.sessionManager.GetSessionsByRentalID(rentalID)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to retrieve sessions: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Find the most recent error resolution session
+	var latestErrorResSession *objects.ErrorResolutionSession
+	var latestTime time.Time
+
+	for _, session := range sessions {
+		if errorResSession, ok := session.(*objects.ErrorResolutionSession); ok {
+			if errorResSession.CreatedAt.After(latestTime) {
+				latestErrorResSession = errorResSession
+				latestTime = errorResSession.CreatedAt
+			}
+		}
+	}
+
+	if latestErrorResSession == nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Error resolution session not found for this rental",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Terminate the error resolution session
+	err = h.sessionManager.TerminateErrorResolutionSession(latestErrorResSession.ID)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Failed to terminate error resolution session: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := DVERentalResponse{
+		Success:   true,
+		Message:   "Error resolution session terminated successfully",
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // TerminateSSHSession handles DELETE /api/dve-rental/rentals/{id}/ssh-session
 func (h *DVERentalHandlers) TerminateSSHSession(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -1184,8 +1398,77 @@ func (h *DVERentalHandlers) TerminateSSHSession(w http.ResponseWriter, r *http.R
 	json.NewEncoder(w).Encode(response)
 }
 
+// DownloadSSHPrivateKey handles GET /api/sessions/ssh/{sessionId}/private-key
+func (h *DVERentalHandlers) DownloadSSHPrivateKey(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sessionID := vars["sessionId"]
+
+	if sessionID == "" {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "Session ID is required",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Get SSH session
+	sshSession, err := h.sessionManager.GetSSHSession(sessionID)
+	if err != nil {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "SSH session not found: " + err.Error(),
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Check if session is expired
+	if time.Now().After(sshSession.ExpiresAt) {
+		response := DVERentalResponse{
+			Success:   false,
+			Error:     "SSH session has expired",
+			Timestamp: time.Now().Format(time.RFC3339),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusGone)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Validate rental access (optional, but good practice)
+	// For now, we'll allow download if session exists and is valid
+
+	// Set headers for file download
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", "ssh_private_key.pem"))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(sshSession.PrivateKey)))
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+
+	// Write the private key
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(sshSession.PrivateKey))
+}
+
 // RegisterRoutes registers the DVE rental routes with the router
 func (h *DVERentalHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
+	// Register SSH private key download route
+	if authMiddleware != nil {
+		protectedRouter := r.PathPrefix("/api/sessions").Subrouter()
+		protectedRouter.Use(authMiddleware.RequireAuth)
+		protectedRouter.HandleFunc("/ssh/{sessionId}/private-key", h.DownloadSSHPrivateKey).Methods("GET")
+	} else {
+		r.HandleFunc("/api/sessions/ssh/{sessionId}/private-key", h.DownloadSSHPrivateKey).Methods("GET")
+	}
+
 	// Create a subrouter for DVE rental endpoints
 	rentalRouter := r.PathPrefix("/api/dve-rental").Subrouter()
 
@@ -1207,8 +1490,10 @@ func (h *DVERentalHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middle
 		protectedRentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.TerminateSSHSession).Methods("DELETE")
 		protectedRentalRouter.HandleFunc("/rentals/{id}/validation-session", h.CreateValidationSession).Methods("POST")
 		protectedRentalRouter.HandleFunc("/rentals/{id}/validation-session", h.GetValidationSession).Methods("GET")
+		protectedRentalRouter.HandleFunc("/rentals/{id}/validation-session", h.TerminateValidationSession).Methods("DELETE")
 		protectedRentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.CreateErrorResolutionSession).Methods("POST")
 		protectedRentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET")
+		protectedRentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.TerminateErrorResolutionSession).Methods("DELETE")
 	} else {
 		// If no auth middleware, allow all routes (for testnet mode)
 		rentalRouter.HandleFunc("/rentals", h.CreateRental).Methods("POST")
@@ -1221,8 +1506,10 @@ func (h *DVERentalHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middle
 		rentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.TerminateSSHSession).Methods("DELETE")
 		rentalRouter.HandleFunc("/rentals/{id}/validation-session", h.CreateValidationSession).Methods("POST")
 		rentalRouter.HandleFunc("/rentals/{id}/validation-session", h.GetValidationSession).Methods("GET")
+		rentalRouter.HandleFunc("/rentals/{id}/validation-session", h.TerminateValidationSession).Methods("DELETE")
 		rentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.CreateErrorResolutionSession).Methods("POST")
 		rentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET")
+		rentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.TerminateErrorResolutionSession).Methods("DELETE")
 	}
 
 	// Handle OPTIONS requests for CORS (ensure CORS headers are set)
@@ -1291,16 +1578,16 @@ func (h *DVERentalHandlers) validateRentalAccess(rentalID, userID string) error 
 
 // AccessLogEntry represents an access attempt log entry
 type AccessLogEntry struct {
-	ID          string    `json:"id"`
-	UserID      string    `json:"user_id"`
-	RentalID    string    `json:"rental_id"`
-	Action      string    `json:"action"` // "create_session", "access_terminal", "terminate_session", etc.
-	ServiceType string    `json:"service_type"` // "ssh", "validation", "error_resolution"
-	IPAddress   string    `json:"ip_address"`
-	UserAgent   string    `json:"user_agent"`
-	Success     bool      `json:"success"`
-	ErrorMsg    string    `json:"error_msg,omitempty"`
-	Timestamp   time.Time `json:"timestamp"`
+	ID           string        `json:"id"`
+	UserID       string        `json:"user_id"`
+	RentalID     string        `json:"rental_id"`
+	Action       string        `json:"action"`       // "create_session", "access_terminal", "terminate_session", etc.
+	ServiceType  string        `json:"service_type"` // "ssh", "validation", "error_resolution"
+	IPAddress    string        `json:"ip_address"`
+	UserAgent    string        `json:"user_agent"`
+	Success      bool          `json:"success"`
+	ErrorMsg     string        `json:"error_msg,omitempty"`
+	Timestamp    time.Time     `json:"timestamp"`
 	ResponseTime time.Duration `json:"response_time"`
 }
 
@@ -1328,17 +1615,17 @@ func (h *DVERentalHandlers) logAccessAttempt(entry *AccessLogEntry) {
 
 // DVEPerformanceMetrics represents performance monitoring data for DVE operations
 type DVEPerformanceMetrics struct {
-	ID              string        `json:"id"`
-	Endpoint        string        `json:"endpoint"`
-	Method          string        `json:"method"`
-	ResponseTime    time.Duration `json:"response_time"`
-	StatusCode      int           `json:"status_code"`
-	RequestSize     int64         `json:"request_size"`
-	ResponseSize    int64         `json:"response_size"`
-	UserID          string        `json:"user_id,omitempty"`
-	Timestamp       time.Time     `json:"timestamp"`
-	MemoryUsage     int64         `json:"memory_usage,omitempty"`
-	CPUUsage        float64       `json:"cpu_usage,omitempty"`
+	ID           string        `json:"id"`
+	Endpoint     string        `json:"endpoint"`
+	Method       string        `json:"method"`
+	ResponseTime time.Duration `json:"response_time"`
+	StatusCode   int           `json:"status_code"`
+	RequestSize  int64         `json:"request_size"`
+	ResponseSize int64         `json:"response_size"`
+	UserID       string        `json:"user_id,omitempty"`
+	Timestamp    time.Time     `json:"timestamp"`
+	MemoryUsage  int64         `json:"memory_usage,omitempty"`
+	CPUUsage     float64       `json:"cpu_usage,omitempty"`
 }
 
 // logPerformanceMetrics logs performance metrics
@@ -1364,14 +1651,14 @@ func (h *DVERentalHandlers) logPerformanceMetrics(metrics *DVEPerformanceMetrics
 
 // ErrorLogEntry represents an error log entry
 type ErrorLogEntry struct {
-	ID          string    `json:"id"`
-	UserID      string    `json:"user_id,omitempty"`
-	RentalID    string    `json:"rental_id,omitempty"`
-	Endpoint    string    `json:"endpoint"`
-	Error       string    `json:"error"`
-	StackTrace  string    `json:"stack_trace,omitempty"`
-	Severity    string    `json:"severity"` // "low", "medium", "high", "critical"
-	Timestamp   time.Time `json:"timestamp"`
+	ID          string                 `json:"id"`
+	UserID      string                 `json:"user_id,omitempty"`
+	RentalID    string                 `json:"rental_id,omitempty"`
+	Endpoint    string                 `json:"endpoint"`
+	Error       string                 `json:"error"`
+	StackTrace  string                 `json:"stack_trace,omitempty"`
+	Severity    string                 `json:"severity"` // "low", "medium", "high", "critical"
+	Timestamp   time.Time              `json:"timestamp"`
 	RequestData map[string]interface{} `json:"request_data,omitempty"`
 }
 

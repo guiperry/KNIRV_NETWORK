@@ -55,6 +55,9 @@ func setupTestDVERentalService(t *testing.T) (*DVERentalService, *buntdb.DB) {
 	service, err := NewDVERentalService(db)
 	require.NoError(t, err)
 
+	// Enable test mode for mock fallbacks
+	service.SetTestMode(true)
+
 	t.Cleanup(func() {
 		if service.running {
 			service.Stop()

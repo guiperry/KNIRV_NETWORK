@@ -3,24 +3,34 @@ package session
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 
 	"backend_server/internal/objects"
+
+	"github.com/tidwall/buntdb"
 )
 
 // SessionManager manages access sessions for DVE rentals
 type SessionManager struct {
+	db       *buntdb.DB
 	sessions map[string]interface{} // sessionID -> session object
 	mutex    sync.RWMutex
 }
 
 // NewSessionManager creates a new session manager
-func NewSessionManager() *SessionManager {
+func NewSessionManager(db *buntdb.DB) *SessionManager {
 	sm := &SessionManager{
+		db:       db,
 		sessions: make(map[string]interface{}),
+	}
+
+	// Load existing sessions from database
+	if err := sm.loadSessionsFromDatabase(); err != nil {
+		log.Printf("Warning: Failed to load sessions from database: %v", err)
 	}
 
 	// Start cleanup routine
@@ -30,7 +40,7 @@ func NewSessionManager() *SessionManager {
 }
 
 // CreateSSHSession creates a new SSH session for a rental
-func (sm *SessionManager) CreateSSHSession(rentalID, containerID, username string) (*objects.SSHSession, error) {
+func (sm *SessionManager) CreateSSHSession(rentalID, containerID, username, privateKey string) (*objects.SSHSession, error) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
@@ -43,6 +53,7 @@ func (sm *SessionManager) CreateSSHSession(rentalID, containerID, username strin
 		ContainerID:   containerID,
 		Username:      username,
 		PublicKeyHash: "", // Will be set when keys are generated
+		PrivateKey:    privateKey,
 		PrivateKeyURL: fmt.Sprintf("/api/sessions/ssh/%s/private-key", sessionID),
 		ExpiresAt:     expiresAt,
 		CreatedAt:     time.Now(),
@@ -50,6 +61,11 @@ func (sm *SessionManager) CreateSSHSession(rentalID, containerID, username strin
 	}
 
 	sm.sessions[sessionID] = session
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, session); err != nil {
+		log.Printf("Warning: Failed to save SSH session to database: %v", err)
+	}
 
 	log.Printf("Created SSH session %s for rental %s", sessionID, rentalID)
 	return session, nil
@@ -96,6 +112,12 @@ func (sm *SessionManager) UpdateSSHSessionPublicKey(sessionID, publicKeyHash str
 	}
 
 	sshSession.PublicKeyHash = publicKeyHash
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, sshSession); err != nil {
+		log.Printf("Warning: Failed to save updated SSH session to database: %v", err)
+	}
+
 	log.Printf("Updated public key hash for SSH session %s", sessionID)
 	return nil
 }
@@ -115,6 +137,12 @@ func (sm *SessionManager) TerminateSSHSession(sessionID string) error {
 	}
 
 	delete(sm.sessions, sessionID)
+
+	// Delete from database
+	if err := sm.deleteSessionFromDatabase(sessionID); err != nil {
+		log.Printf("Warning: Failed to delete SSH session from database: %v", err)
+	}
+
 	log.Printf("Terminated SSH session %s", sessionID)
 	return nil
 }
@@ -140,6 +168,11 @@ func (sm *SessionManager) CreateValidationSession(rentalID string, validationTyp
 	}
 
 	sm.sessions[sessionID] = session
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, session); err != nil {
+		log.Printf("Warning: Failed to save validation session to database: %v", err)
+	}
 
 	log.Printf("Created validation session %s for rental %s", sessionID, rentalID)
 	return session, nil
@@ -184,6 +217,12 @@ func (sm *SessionManager) UpdateValidationEndpoint(sessionID, endpointURL string
 
 	valSession.EndpointURL = endpointURL
 	valSession.Port = port
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, valSession); err != nil {
+		log.Printf("Warning: Failed to save updated validation session to database: %v", err)
+	}
+
 	log.Printf("Updated endpoint for validation session %s: %s:%d", sessionID, endpointURL, port)
 	return nil
 }
@@ -203,6 +242,12 @@ func (sm *SessionManager) TerminateValidationSession(sessionID string) error {
 	}
 
 	delete(sm.sessions, sessionID)
+
+	// Delete from database
+	if err := sm.deleteSessionFromDatabase(sessionID); err != nil {
+		log.Printf("Warning: Failed to delete validation session from database: %v", err)
+	}
+
 	log.Printf("Terminated validation session %s", sessionID)
 	return nil
 }
@@ -228,6 +273,11 @@ func (sm *SessionManager) CreateErrorResolutionSession(rentalID string, supporte
 	}
 
 	sm.sessions[sessionID] = session
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, session); err != nil {
+		log.Printf("Warning: Failed to save error resolution session to database: %v", err)
+	}
 
 	log.Printf("Created error resolution session %s for rental %s", sessionID, rentalID)
 	return session, nil
@@ -272,6 +322,12 @@ func (sm *SessionManager) UpdateErrorResolutionEndpoint(sessionID, endpointURL s
 
 	errSession.EndpointURL = endpointURL
 	errSession.Port = port
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, errSession); err != nil {
+		log.Printf("Warning: Failed to save updated error resolution session to database: %v", err)
+	}
+
 	log.Printf("Updated endpoint for error resolution session %s: %s:%d", sessionID, endpointURL, port)
 	return nil
 }
@@ -291,6 +347,12 @@ func (sm *SessionManager) TerminateErrorResolutionSession(sessionID string) erro
 	}
 
 	delete(sm.sessions, sessionID)
+
+	// Delete from database
+	if err := sm.deleteSessionFromDatabase(sessionID); err != nil {
+		log.Printf("Warning: Failed to delete error resolution session from database: %v", err)
+	}
+
 	log.Printf("Terminated error resolution session %s", sessionID)
 	return nil
 }
@@ -346,6 +408,12 @@ func (sm *SessionManager) TerminateAllSessionsForRental(rentalID string) error {
 
 	for _, sessionID := range sessionIDsToDelete {
 		delete(sm.sessions, sessionID)
+
+		// Delete from database
+		if err := sm.deleteSessionFromDatabase(sessionID); err != nil {
+			log.Printf("Warning: Failed to delete session %s from database: %v", sessionID, err)
+		}
+
 		log.Printf("Terminated session %s for rental %s", sessionID, rentalID)
 	}
 
@@ -354,6 +422,106 @@ func (sm *SessionManager) TerminateAllSessionsForRental(rentalID string) error {
 	}
 
 	return nil
+}
+
+// loadSessionsFromDatabase loads all active sessions from the database
+func (sm *SessionManager) loadSessionsFromDatabase() error {
+	if sm.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	return sm.db.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend("", func(key, value string) bool {
+			if len(key) > 8 && key[:8] == "session:" {
+				var sessionData struct {
+					Type string      `json:"type"`
+					Data interface{} `json:"data"`
+				}
+
+				if err := json.Unmarshal([]byte(value), &sessionData); err != nil {
+					log.Printf("Warning: Failed to unmarshal session %s: %v", key, err)
+					return true
+				}
+
+				var session interface{}
+				switch sessionData.Type {
+				case "ssh":
+					var sshSession objects.SSHSession
+					dataBytes, _ := json.Marshal(sessionData.Data)
+					if err := json.Unmarshal(dataBytes, &sshSession); err == nil {
+						session = &sshSession
+					}
+				case "validation":
+					var valSession objects.ValidationSession
+					dataBytes, _ := json.Marshal(sessionData.Data)
+					if err := json.Unmarshal(dataBytes, &valSession); err == nil {
+						session = &valSession
+					}
+				case "error-resolution":
+					var errSession objects.ErrorResolutionSession
+					dataBytes, _ := json.Marshal(sessionData.Data)
+					if err := json.Unmarshal(dataBytes, &errSession); err == nil {
+						session = &errSession
+					}
+				}
+
+				if session != nil {
+					sessionID := key[8:] // Remove "session:" prefix
+					sm.sessions[sessionID] = session
+					log.Printf("Loaded session %s from database", sessionID)
+				}
+			}
+			return true
+		})
+	})
+}
+
+// saveSessionToDatabase saves a session to the database
+func (sm *SessionManager) saveSessionToDatabase(sessionID string, session interface{}) error {
+	if sm.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	sessionData := struct {
+		Type string      `json:"type"`
+		Data interface{} `json:"data"`
+	}{}
+
+	switch s := session.(type) {
+	case *objects.SSHSession:
+		sessionData.Type = "ssh"
+		sessionData.Data = s
+	case *objects.ValidationSession:
+		sessionData.Type = "validation"
+		sessionData.Data = s
+	case *objects.ErrorResolutionSession:
+		sessionData.Type = "error-resolution"
+		sessionData.Data = s
+	default:
+		return fmt.Errorf("unknown session type")
+	}
+
+	data, err := json.Marshal(sessionData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal session data: %w", err)
+	}
+
+	return sm.db.Update(func(tx *buntdb.Tx) error {
+		_, _, err := tx.Set("session:"+sessionID, string(data), nil)
+		return err
+	})
+}
+
+// deleteSessionFromDatabase removes a session from the database
+func (sm *SessionManager) deleteSessionFromDatabase(sessionID string) error {
+	if sm.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	return sm.db.Update(func(tx *buntdb.Tx) error {
+		_, err := tx.Delete("session:" + sessionID)
+		return err
+	})
 }
 
 // generateSessionID generates a unique session ID
@@ -398,6 +566,11 @@ func (sm *SessionManager) cleanupExpiredSessions() {
 
 		for _, sessionID := range expiredSessions {
 			delete(sm.sessions, sessionID)
+
+			// Delete from database
+			if err := sm.deleteSessionFromDatabase(sessionID); err != nil {
+				log.Printf("Warning: Failed to delete expired session %s from database: %v", sessionID, err)
+			}
 		}
 
 		sm.mutex.Unlock()

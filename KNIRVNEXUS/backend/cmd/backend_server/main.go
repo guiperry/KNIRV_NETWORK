@@ -116,7 +116,7 @@ func initLogging(cfg *config.Config) (*zap.Logger, error) {
 		FunctionKey:    zapcore.OmitKey,
 		MessageKey:     "message",
 		StacktraceKey:  "stacktrace",
-		LineEnding:      zapcore.DefaultLineEnding,
+		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.LowercaseLevelEncoder,
 		EncodeTime:     zapcore.ISO8601TimeEncoder,
 		EncodeDuration: zapcore.SecondsDurationEncoder,
@@ -344,9 +344,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize Container Orchestrator with Kali-aware runtime selection
 	containerConfig := &container.ContainerConfig{
 		ContainerRuntime:         getContainerRuntime(teeSecurityService),
-		BaseImage:               "ubuntu:20.04",
-		SSHPortRangeStart:       22000,
-		SSHPortRangeEnd:         22999,
+		BaseImage:                "ubuntu:20.04",
+		SSHPortRangeStart:        22000,
+		SSHPortRangeEnd:          22999,
 		ValidationPortRangeStart: 23000,
 		ValidationPortRangeEnd:   23999,
 		ErrorResPortRangeStart:   24000,
@@ -372,7 +372,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	dveRentalService.SetBlockchainClient(nrnClient)
 
 	// Initialize Session Manager
-	sessionManager := session.NewSessionManager()
+	sessionManager := session.NewSessionManager(dbManager.GetDB())
 
 	// Initialize Endpoint Registry
 	endpointRegistry := endpoints.NewEndpointRegistry(dbManager.GetDB())
@@ -380,8 +380,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize Payment Services
 	stripeService := payment.NewStripeService(
 		"s_k_test_example", // TODO: Load from environment
-		"pk_test_example", // TODO: Load from environment
-		"whsec_example",   // TODO: Load from environment
+		"pk_test_example",  // TODO: Load from environment
+		"whsec_example",    // TODO: Load from environment
 		"usd",
 		"2023-10-16",
 	)
@@ -620,16 +620,16 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"build_time": BuildTime,
 		"git_commit": GitCommit,
 		"services": map[string]bool{
-			"database":          s.db != nil,
-			"p2p_manager":       s.p2pManager != nil,
-			"dve_manager":       s.dveManager != nil,
-			"validation_core":   s.validationCore != nil,
-			"model_server":      s.modelServer != nil,
-			"data_engine":       s.dataEngine != nil,
-			"inference_service": s.inferenceService != nil,
-			"websocket_service": s.websocketService != nil,
-			"cde_service":       s.cdeService != nil,
-			"dns_service":       s.dnsService != nil,
+			"database":           s.db != nil,
+			"p2p_manager":        s.p2pManager != nil,
+			"dve_manager":        s.dveManager != nil,
+			"validation_core":    s.validationCore != nil,
+			"model_server":       s.modelServer != nil,
+			"data_engine":        s.dataEngine != nil,
+			"inference_service":  s.inferenceService != nil,
+			"websocket_service":  s.websocketService != nil,
+			"cde_service":        s.cdeService != nil,
+			"dns_service":        s.dnsService != nil,
 			"dve_rental_service": s.dveRentalService != nil,
 		},
 	}
@@ -770,6 +770,16 @@ func (s *Server) Start() error {
 		}
 	}
 
+	// Start Container Orchestrator
+	if s.containerOrchestrator != nil {
+		if err := s.containerOrchestrator.Start(s.ctx); err != nil {
+			log.Printf("Warning: Failed to start Container Orchestrator: %v", err)
+			// Continue - container orchestrator failure shouldn't stop basic server operation
+		} else {
+			log.Println("Container Orchestrator started")
+		}
+	}
+
 	// Start DVE Rental service
 	if s.dveRentalService != nil {
 		if err := s.dveRentalService.Start(); err != nil {
@@ -899,6 +909,12 @@ func (s *Server) Stop() error {
 	if s.dveRentalService != nil {
 		if err := s.dveRentalService.Stop(); err != nil {
 			log.Printf("Error stopping DVE Rental service: %v", err)
+		}
+	}
+
+	if s.containerOrchestrator != nil {
+		if err := s.containerOrchestrator.Stop(); err != nil {
+			log.Printf("Error stopping Container Orchestrator: %v", err)
 		}
 	}
 

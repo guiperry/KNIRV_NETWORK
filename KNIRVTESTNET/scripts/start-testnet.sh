@@ -457,13 +457,16 @@ else
     exit 1
 fi
 
-# 4. Start KNIRV-NEXUS (unified binary with embedded frontend)
-print_status "Starting KNIRV-NEXUS unified service..."
-if ./scripts/start-knirvnexus.sh; then
-    wait_for_service "KNIRV-NEXUS" "8084" "/" "data/knirvnexus.pid" || exit 1
+# 4. Start KNIRV-NEXUS (optional - for private/corporate testing only)
+if [ -f "bin/knirvnexus" ]; then
+    print_status "Starting KNIRV-NEXUS (optional - private testing mode)..."
+    if ./scripts/start-knirvnexus.sh; then
+        wait_for_service "KNIRV-NEXUS" "8084" "/" "data/knirvnexus.pid" || print_warning "KNIRV-NEXUS health check failed, continuing..."
+    else
+        print_warning "Failed to start KNIRV-NEXUS, continuing without it..."
+    fi
 else
-    print_error "Failed to start KNIRV-NEXUS"
-    exit 1
+    print_status "Skipping KNIRV-NEXUS (not found - public testnet mode)"
 fi
 
 # 5. Start KNIRV-ROUTER (network routing)
@@ -547,13 +550,22 @@ echo ""
 echo "🎉 KNIRV TESTNET IS FULLY RUNNING!"
 echo "=================================="
 echo ""
-echo "Core Services:"
+echo "Public Testnet Services:"
 echo "  🔗 KNIRV-ORACLE:  http://localhost:1317"
 echo "  ⛓️ KNIRVCHAIN:    http://localhost:8090"
 echo "  📊 KNIRVGRAPH:    http://localhost:8082"
-echo "  🔒 KNIRV-NEXUS:   http://localhost:8084 (API) / http://localhost:8083 (GUI)"
 echo "  🌐 KNIRV-ROUTER:  http://localhost:8086"
 echo "  🚪 KNIRV-GATEWAY: http://localhost:8888"
+
+# Only show NEXUS if it's running
+if [ -f "data/knirvnexus.pid" ]; then
+    NEXUS_PID=$(cat "data/knirvnexus.pid" 2>/dev/null || echo "")
+    if [ -n "$NEXUS_PID" ] && kill -0 "$NEXUS_PID" 2>/dev/null; then
+        echo ""
+        echo "Private Testing Services (Corporate):"
+        echo "  🔒 KNIRV-NEXUS:   http://localhost:8084 (API) / http://localhost:8083 (GUI)"
+    fi
+fi
 
 echo "  🏥 HEALTH MONITOR: http://localhost:10001/health-monitor"
 echo ""

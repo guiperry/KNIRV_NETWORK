@@ -34,9 +34,11 @@ echo ""
 
 # Step 2: Verify all required binaries exist
 echo -e "${BLUE}Step 2: Verifying binaries...${NC}"
-REQUIRED_BINS=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter")
+REQUIRED_BINS=("knirvoracle" "knirvchain" "knirvgraph" "knirvrouter")
+OPTIONAL_BINS=("knirvnexus")
 MISSING_BINS=()
 
+echo "Required binaries (public testnet):"
 for bin in "${REQUIRED_BINS[@]}"; do
     if [ ! -f "bin/$bin" ]; then
         echo -e "${RED}❌ Missing binary: bin/$bin${NC}"
@@ -47,8 +49,19 @@ for bin in "${REQUIRED_BINS[@]}"; do
     fi
 done
 
+echo ""
+echo "Optional binaries (private/corporate testing):"
+for bin in "${OPTIONAL_BINS[@]}"; do
+    if [ ! -f "bin/$bin" ]; then
+        echo -e "${YELLOW}ℹ️  Optional: bin/$bin${NC} (not found - will skip)"
+    else
+        BIN_SIZE=$(du -h "bin/$bin" | cut -f1)
+        echo -e "${GREEN}✅ Found: bin/$bin${NC} (${BIN_SIZE})"
+    fi
+done
+
 if [ ${#MISSING_BINS[@]} -ne 0 ]; then
-    echo -e "${RED}❌ Build failed: Missing binaries: ${MISSING_BINS[*]}${NC}"
+    echo -e "${RED}❌ Build failed: Missing required binaries: ${MISSING_BINS[*]}${NC}"
     exit 1
 fi
 
@@ -114,10 +127,24 @@ echo "  📦 File: ./knirvtestnet"
 echo "  📏 Size: $BINARY_SIZE"
 echo "  📍 Path: $BINARY_PATH"
 echo ""
-echo "Embedded Components:"
+echo "Embedded Components (Public Testnet):"
 for bin in "${REQUIRED_BINS[@]}"; do
     BIN_SIZE=$(du -h "bin/$bin" | cut -f1)
     echo "  ✓ $bin ($BIN_SIZE)"
+done
+
+# Show optional components if present
+OPTIONAL_FOUND=false
+for bin in "${OPTIONAL_BINS[@]}"; do
+    if [ -f "bin/$bin" ]; then
+        if [ "$OPTIONAL_FOUND" = false ]; then
+            echo ""
+            echo "Optional Components (Private Testing):"
+            OPTIONAL_FOUND=true
+        fi
+        BIN_SIZE=$(du -h "bin/$bin" | cut -f1)
+        echo "  ✓ $bin ($BIN_SIZE)"
+    fi
 done
 echo ""
 echo "Additional Embedded:"

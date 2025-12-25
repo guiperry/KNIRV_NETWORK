@@ -56,8 +56,19 @@ echo "2/6 Building KNIRVCHAIN with testnet features..."
 echo "3/6 Building KNIRVGRAPH with testnet mode..."
 ./scripts/build-knirvgraph.sh
 
-echo "4/6 Building KNIRV-NEXUS unified binary with embedded frontend..."
-./scripts/build-knirvnexus.sh $FORCE_REBUILD
+echo "4/7 Building KNIRV-NEXUS (optional - for private/corporate testing)..."
+if [ -f "scripts/build-knirvnexus.sh" ]; then
+    echo "  ℹ️  KNIRV-NEXUS is optional and only used for private testing"
+    read -p "  Build KNIRV-NEXUS? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        ./scripts/build-knirvnexus.sh $FORCE_REBUILD
+    else
+        echo "  ⏭️  Skipping KNIRV-NEXUS build (public testnet mode)"
+    fi
+else
+    echo "  ⚠️  build-knirvnexus.sh not found, skipping"
+fi
 
 echo "5/6 Building KNIRV-ROUTER with simplified connectivity..."
 ./scripts/build-knirvrouter.sh

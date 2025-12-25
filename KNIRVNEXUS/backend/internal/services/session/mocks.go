@@ -19,13 +19,14 @@ func NewMockSessionManager() *MockSessionManager {
 }
 
 // Additional methods to match the actual SessionManager interface
-func (m *MockSessionManager) CreateSSHSession(rentalID, containerID, username string) (*objects.SSHSession, error) {
+func (m *MockSessionManager) CreateSSHSession(rentalID, containerID, username, privateKey string) (*objects.SSHSession, error) {
 	sessionID := fmt.Sprintf("ssh-session-%s", rentalID)
 	session := &objects.SSHSession{
 		ID:            sessionID,
 		RentalID:      rentalID,
 		ContainerID:   containerID,
 		Username:      username,
+		PrivateKey:    privateKey,
 		PrivateKeyURL: fmt.Sprintf("/api/sessions/ssh/%s/private-key", sessionID),
 		ExpiresAt:     time.Now().Add(24 * time.Hour),
 		CreatedAt:     time.Now(),
