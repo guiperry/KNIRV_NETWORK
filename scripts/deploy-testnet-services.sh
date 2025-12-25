@@ -1284,21 +1284,35 @@ build_and_upload_orchestrator() {
     log_checkpoint "Building and uploading Go orchestrator..."
     print_step "Building and uploading Go orchestrator..."
 
-    # Build the orchestrator
-    print_status "Building the Go orchestrator..."
-    cd "$TESTNET_DIR"
-    ./scripts/build-all.sh
-    cd -
+    local testnet_binary="$TESTNET_DIR/knirvtestnet"
+
+    # Build the orchestrator if it doesn't exist
+    if [ ! -f "$testnet_binary" ]; then
+        print_status "Building the Go orchestrator..."
+        cd "$TESTNET_DIR"
+        if [ ! -f "build-orchestrator.sh" ]; then
+            print_error "build-orchestrator.sh not found!"
+            exit 1
+        fi
+        ./build-orchestrator.sh
+        cd -
+    else
+        print_status "Using existing orchestrator binary: $testnet_binary"
+        local bin_size=$(du -h "$testnet_binary" | cut -f1)
+        print_status "Binary size: $bin_size"
+    fi
+
+    # Verify binary exists after build
+    if [ ! -f "$testnet_binary" ]; then
+        print_error "Orchestrator binary not found after build: $testnet_binary"
+        exit 1
+    fi
 
     # Upload the orchestrator
-    print_status "Uploading the Go orchestrator..."
-    scp -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no "$TESTNET_DIR/knirvtestnet" ubuntu@"$TESTNET_IP":/tmp/knirvtestnet
+    print_status "Uploading orchestrator to $TESTNET_IP..."
+    scp -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no "$testnet_binary" ubuntu@"$TESTNET_IP":/tmp/knirvtestnet
 
-    # Execute the orchestrator
-    print_status "Executing the Go orchestrator..."
-    ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "sudo mv /tmp/knirvtestnet /usr/local/bin/knirvtestnet && sudo /usr/local/bin/knirvtestnet"
-
-    print_success "Go orchestrator deployed and executed successfully"
+    print_success "Go orchestrator built and uploaded successfully"
 }
 
 # Function to clean server deployment
@@ -2217,65 +2231,67 @@ deploy_native_testnet() {
         print_status "Skipping deploy_native_testnet (already completed)"
         return 0
     fi
-    
+
     log_checkpoint "Deploying native testnet..."
-    print_step "Deploying KNIRVTESTNET in Native mode..."
-    print_status "Installing Node.js and running npm scripts on server..."
+    print_step "Deploying KNIRVTESTNET via unified Go orchestrator..."
 
-    # Install Node.js and dependencies on server
+    # Build and upload the orchestrator if not already done
+    if ! ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" "[ -f /usr/local/bin/knirvtestnet ]"; then
+        print_status "Orchestrator not found on remote. Building and uploading..."
+        build_and_upload_orchestrator
+    else
+        print_status "Orchestrator already exists on remote server"
+    fi
+
+    # Deploy and start the orchestrator
+    print_status "Starting orchestrator on remote..."
     ssh -i "${SSH_KEY/#\~/$HOME}" -o StrictHostKeyChecking=no ubuntu@"$TESTNET_IP" << 'EOF'
-cd /opt/knirv-testnet
-
-# Install Node.js if not already installed
-if ! command -v node >/dev/null 2>&1; then
-    echo "Installing Node.js..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-    sudo apt-get install -y nodejs
-else
-    echo "Node.js is already installed: $(node --version)"
+# Move orchestrator to /usr/local/bin if it's in /tmp
+if [ -f /tmp/knirvtestnet ]; then
+    echo "Installing orchestrator to /usr/local/bin..."
+    sudo mv /tmp/knirvtestnet /usr/local/bin/knirvtestnet
+    sudo chmod +x /usr/local/bin/knirvtestnet
 fi
 
-# Install main npm dependencies (node_modules was excluded from upload)
-echo "Installing main npm dependencies..."
-if [ -f "package.json" ]; then
-    npm install --production --no-optional --no-audit --no-fund
-else
-    echo "No package.json found in root, skipping main dependencies"
-fi
+# Stop existing orchestrator instance if running
+echo "Stopping any existing orchestrator instances..."
+sudo pkill knirvtestnet || true
+sleep 2
 
-# Install testnet-gateway dependencies if it exists
-if [ -d "data/testnet-gateway" ] && [ -f "data/testnet-gateway/package.json" ]; then
-    echo "Installing testnet-gateway dependencies..."
-    cd data/testnet-gateway
-    npm install --production --no-optional --no-audit --no-fund
-    cd ../..
-else
-    echo "No testnet-gateway package.json found, skipping"
-fi
+# Start new orchestrator instance in background
+echo "Starting KNIRV orchestrator..."
+sudo nohup /usr/local/bin/knirvtestnet /opt/knirv-testnet > /var/log/knirvtestnet.log 2>&1 &
 
-# Load testnet endpoints
-echo "Loading testnet endpoints..."
-npm run load-endpoints:testnet || echo "Endpoint loading completed"
+# Store PID
+ORCH_PID=$!
+echo $ORCH_PID > /tmp/knirvtestnet.pid
+echo "✅ KNIRV Orchestrator started (PID: $ORCH_PID)"
 
-# Start the testnet services
-echo "Starting KNIRVTESTNET services..."
-npm start &
-
-# Store the main process PID
-MAIN_PID=$!
-echo $MAIN_PID > /tmp/knirv-testnet-main.pid
-
-# Wait a bit for services to start
+# Wait for services to initialize
+echo "⏳ Waiting for services to initialize (15 seconds)..."
 sleep 15
 
-# Check if services are running
-echo "Checking service status..."
-npm run testnet:status || echo "Status check completed"
+# Verify services are running
+echo ""
+echo "🔍 Verifying service health..."
+curl -s http://localhost:1317/health && echo "  ✅ ORACLE healthy" || echo "  ⚠️  ORACLE not ready yet"
+curl -s http://localhost:8090/health && echo "  ✅ CHAIN healthy" || echo "  ⚠️  CHAIN not ready yet"
+curl -s http://localhost:8082/height && echo "  ✅ GRAPH healthy" || echo "  ⚠️  GRAPH not ready yet"
+curl -s http://localhost:8084/ && echo "  ✅ NEXUS healthy" || echo "  ⚠️  NEXUS not ready yet"
+curl -s http://localhost:8086/status && echo "  ✅ ROUTER healthy" || echo "  ⚠️  ROUTER not ready yet"
 
-echo "Native deployment completed! Main PID: $MAIN_PID"
+echo ""
+echo "📄 Orchestrator log: /var/log/knirvtestnet.log"
+echo "🎉 Native deployment completed!"
 EOF
 
-    print_success "Native KNIRVTESTNET deployment completed"
+    if [ $? -eq 0 ]; then
+        print_success "Native KNIRVTESTNET deployment completed successfully!"
+        print_status "View logs: ssh -i ${SSH_KEY/#\~/$HOME} ubuntu@$TESTNET_IP 'tail -f /var/log/knirvtestnet.log'"
+        print_status "Stop orchestrator: ssh -i ${SSH_KEY/#\~/$HOME} ubuntu@$TESTNET_IP 'sudo pkill knirvtestnet'"
+    else
+        handle_deployment_error "NATIVE_DEPLOYMENT" "Failed to deploy native testnet" ""
+    fi
 }
 
 deploy_testnet_services() {

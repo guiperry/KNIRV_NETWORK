@@ -60,12 +60,19 @@ func (fs *FileStorage) SetMasterKey(keyPair *pqc.PQCKeyPair) {
 	fs.encryptionMgr.SetMasterKey(keyPair)
 }
 
-// IsEncryptedCollection checks if a collection should be encrypted
+// IsEncryptedCollection checks if a collection contains sensitive data that should be encrypted
 func (fs *FileStorage) IsEncryptedCollection(collection string) bool {
-	// Encrypt sensitive collections
-	encryptedCollections := []string{"credentials", "pqc_keys", "audit_log"}
-	for _, ec := range encryptedCollections {
-		if collection == ec {
+	// Collections that contain sensitive data requiring encryption at rest
+	sensitiveCollections := []string{
+		"credentials",    // hash, salt fields
+		"pqc_keys",       // private key fields
+		"sessions",       // token_hash field
+		"audit_log",      // details field
+		"threat_events",  // indicators field
+		"access_control", // permissions field
+	}
+	for _, sc := range sensitiveCollections {
+		if collection == sc {
 			return true
 		}
 	}
@@ -96,7 +103,7 @@ func (fs *FileStorage) Insert(collection string, doc map[string]interface{}) err
 
 	// Encrypt sensitive collections (only if master key is set)
 	if fs.IsEncryptedCollection(collection) && fs.encryptionMgr.GetMasterKey() != nil {
-		encryptedDoc, err := fs.encryptDocument(docCopy)
+		encryptedDoc, err := fs.encryptDocument(collection, docCopy)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt document: %w", err)
 		}
@@ -277,7 +284,7 @@ func (fs *FileStorage) deepCopyDoc(doc map[string]interface{}) map[string]interf
 }
 
 // encryptDocument encrypts sensitive fields in a document
-func (fs *FileStorage) encryptDocument(doc map[string]interface{}) (map[string]interface{}, error) {
+func (fs *FileStorage) encryptDocument(collection string, doc map[string]interface{}) (map[string]interface{}, error) {
 	masterKey := fs.encryptionMgr.GetMasterKey()
 	if masterKey == nil {
 		return nil, fmt.Errorf("no master key set for encryption")
@@ -285,7 +292,7 @@ func (fs *FileStorage) encryptDocument(doc map[string]interface{}) (map[string]i
 
 	// Encrypt the payload
 	if payload, ok := doc["payload"].(map[string]interface{}); ok {
-		encryptedPayload, err := fs.encryptPayload(payload, masterKey.ID)
+		encryptedPayload, err := fs.encryptPayload(collection, payload, masterKey.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to encrypt payload: %w", err)
 		}
@@ -298,12 +305,12 @@ func (fs *FileStorage) encryptDocument(doc map[string]interface{}) (map[string]i
 }
 
 // encryptPayload encrypts sensitive fields in the payload
-func (fs *FileStorage) encryptPayload(payload map[string]interface{}, keyID string) (map[string]interface{}, error) {
+func (fs *FileStorage) encryptPayload(collection string, payload map[string]interface{}, keyID string) (map[string]interface{}, error) {
 	encrypted := make(map[string]interface{})
 
 	for key, value := range payload {
-		// Encrypt sensitive fields
-		if fs.isSensitiveField(key) {
+		// Encrypt sensitive fields based on collection and field name
+		if fs.isSensitiveField(collection, key) {
 			// Convert value to bytes for encryption
 			valueBytes, err := json.Marshal(value)
 			if err != nil {
@@ -326,13 +333,40 @@ func (fs *FileStorage) encryptPayload(payload map[string]interface{}, keyID stri
 }
 
 // isSensitiveField checks if a field contains sensitive data that should be encrypted
-func (fs *FileStorage) isSensitiveField(fieldName string) bool {
-	sensitiveFields := []string{"hash", "salt", "private_key", "secret", "password", "token"}
-	for _, sf := range sensitiveFields {
-		if strings.Contains(strings.ToLower(fieldName), sf) {
-			return true
+// Based on the ASIC-Shield security specification
+func (fs *FileStorage) isSensitiveField(collection, fieldName string) bool {
+	// Define sensitive fields by collection (field-level encryption)
+	sensitiveFields := map[string][]string{
+		"credentials": {
+			"hash", // KDF output
+			"salt", // Random salt for KDF
+		},
+		"pqc_keys": {
+			"kyber_private_key",     // Kyber private key
+			"dilithium_private_key", // Dilithium private key
+		},
+		"sessions": {
+			"token_hash", // Session token hash
+		},
+		"audit_log": {
+			"details", // Event details that may contain sensitive info
+		},
+		"threat_events": {
+			"indicators", // Attack indicators and evidence
+		},
+		"access_control": {
+			"permissions", // Access control permissions
+		},
+	}
+
+	if fields, exists := sensitiveFields[collection]; exists {
+		for _, field := range fields {
+			if fieldName == field {
+				return true
+			}
 		}
 	}
+
 	return false
 }
 
@@ -341,12 +375,6 @@ func (fs *FileStorage) decryptDocument(doc map[string]interface{}) (map[string]i
 	keyID, ok := doc["encryption_key_id"].(string)
 	if !ok {
 		return nil, fmt.Errorf("missing encryption_key_id")
-	}
-
-	// Get the decryption key
-	keyPair := fs.encryptionMgr.GetMasterKey()
-	if keyPair == nil || keyPair.ID != keyID {
-		return nil, fmt.Errorf("decryption key not available")
 	}
 
 	// Decrypt the payload

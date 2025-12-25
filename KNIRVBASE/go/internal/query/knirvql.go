@@ -77,10 +77,21 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 				}
 				break
 			} else {
-				// Simple filter: key = value
-				if i+2 < len(parts) && parts[i+1] == "=" {
-					value := strings.Trim(parts[i+2], "\"")
-					filters = append(filters, Filter{Key: parts[i], Value: value})
+				// Parse filter: key operator value
+				if i+2 < len(parts) {
+					key := parts[i]
+					operator := parts[i+1]
+					valueStr := strings.Trim(parts[i+2], "\"")
+					// Parse value
+					var value interface{}
+					if f, err := strconv.ParseFloat(valueStr, 64); err == nil {
+						value = f
+					} else if i, err := strconv.ParseInt(valueStr, 10, 64); err == nil {
+						value = i
+					} else {
+						value = valueStr
+					}
+					filters = append(filters, Filter{Key: key, Operator: operator, Value: value})
 					i += 3
 				} else {
 					break
@@ -294,45 +305,16 @@ const (
 
 // Filter for WHERE clauses
 type Filter struct {
-	Key   string
-	Value string
+	Key      string
+	Operator string
+	Value    interface{}
 }
 
 // Execute executes the query on the database
 func (q *Query) Execute(db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
 	switch q.Type {
 	case QueryGet:
-		if q.EntryType == typ.EntryTypeAuth {
-			// For AUTH, find by key from filters
-			if len(q.Filters) > 0 && q.Filters[0].Key == "key" {
-				doc, err := collection.Find(q.Filters[0].Value)
-				if err != nil || doc == nil {
-					return nil, err
-				}
-				if p, ok := doc["payload"].(map[string]interface{}); ok {
-					return p["value"], nil
-				}
-			}
-			return nil, fmt.Errorf("invalid AUTH query")
-		} else {
-			// For MEMORY, find with filters
-			docs, err := collection.FindAll()
-			if err != nil {
-				return nil, err
-			}
-			var results []map[string]interface{}
-			for _, doc := range docs {
-				if p, ok := doc["payload"].(map[string]interface{}); ok {
-					if q.matchesFilters(p) {
-						results = append(results, doc)
-					}
-				}
-			}
-			if q.Limit > 0 && len(results) > q.Limit {
-				results = results[:q.Limit]
-			}
-			return results, nil
-		}
+		return q.executeGet(db, collection)
 	case QuerySet:
 		doc := map[string]interface{}{
 			"id":        q.Key,
@@ -367,11 +349,165 @@ func (q *Query) Execute(db *db.DistributedDatabase, collection *coll.Distributed
 	}
 }
 
-func (q *Query) matchesFilters(payload map[string]interface{}) bool {
-	for _, f := range q.Filters {
-		if val, ok := payload[f.Key]; !ok || fmt.Sprintf("%v", val) != f.Value {
+// executeGet executes a GET query using the query optimizer
+func (q *Query) executeGet(db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
+	// Get collection name from query or default
+	collectionName := q.Collection
+	if collectionName == "" {
+		if q.EntryType == typ.EntryTypeAuth {
+			collectionName = "auth"
+		} else {
+			collectionName = "memory"
+		}
+	}
+
+	// Get indexes for the collection
+	indexes := db.GetIndexesForCollection(collectionName)
+
+	// Create optimizer
+	optimizer := NewQueryOptimizer(collectionName, indexes, nil)
+
+	// Generate execution plan
+	plan, err := optimizer.Optimize(q)
+	if err != nil {
+		return nil, fmt.Errorf("failed to optimize query: %w", err)
+	}
+
+	// Execute the plan
+	return q.executePlan(plan, db, collection)
+}
+
+// executePlan executes a query plan
+func (q *Query) executePlan(plan *QueryPlan, db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
+	switch plan.ScanType {
+	case FullScan:
+		return q.executeFullScan(plan, collection)
+	case IndexScan:
+		return q.executeIndexScan(plan, db, collection)
+	case IndexOnlyScan:
+		return q.executeIndexOnlyScan(plan, db)
+	default:
+		return q.executeFullScan(plan, collection)
+	}
+}
+
+// executeFullScan performs a full collection scan
+func (q *Query) executeFullScan(plan *QueryPlan, collection *coll.DistributedCollection) (interface{}, error) {
+	docs, err := collection.FindAll()
+	if err != nil {
+		return nil, err
+	}
+
+	var results []map[string]interface{}
+	for _, doc := range docs {
+		if q.matchesFiltersWithPlan(doc, plan.PostFilters) {
+			results = append(results, doc)
+		}
+	}
+
+	if plan.Limit > 0 && len(results) > plan.Limit {
+		results = results[:plan.Limit]
+	}
+
+	return results, nil
+}
+
+// executeIndexScan performs an index scan followed by post-filtering
+func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
+	// Query the index to get candidate document IDs
+	docIDs, err := db.QueryIndex(plan.IndexName, plan.IndexName, map[string]interface{}{
+		"value": plan.IndexFilters[0].Value, // Simplified - assumes single filter
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var results []map[string]interface{}
+	for _, docID := range docIDs {
+		doc, err := collection.Find(docID)
+		if err != nil {
+			continue
+		}
+		if doc != nil && q.matchesFiltersWithPlan(doc, plan.PostFilters) {
+			results = append(results, doc)
+		}
+	}
+
+	if plan.Limit > 0 && len(results) > plan.Limit {
+		results = results[:plan.Limit]
+	}
+
+	return results, nil
+}
+
+// executeIndexOnlyScan performs an index-only scan (no document access needed)
+func (q *Query) executeIndexOnlyScan(plan *QueryPlan, db *db.DistributedDatabase) (interface{}, error) {
+	// For index-only scans, we can return document IDs directly
+	docIDs, err := db.QueryIndex(plan.IndexName, plan.IndexName, map[string]interface{}{
+		"value": plan.IndexFilters[0].Value, // Simplified - assumes single filter
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if plan.Limit > 0 && len(docIDs) > plan.Limit {
+		docIDs = docIDs[:plan.Limit]
+	}
+
+	return docIDs, nil
+}
+
+func (q *Query) matchesFiltersWithPlan(doc map[string]interface{}, filters []Filter) bool {
+	payload, ok := doc["payload"].(map[string]interface{})
+	if !ok {
+		return false
+	}
+	for _, f := range filters {
+		if !q.matchesFilter(payload, f) {
 			return false
 		}
 	}
 	return true
+}
+
+func (q *Query) matchesFilter(payload map[string]interface{}, filter Filter) bool {
+	val, ok := payload[filter.Key]
+	if !ok {
+		return false
+	}
+	switch filter.Operator {
+	case "=":
+		return fmt.Sprintf("%v", val) == fmt.Sprintf("%v", filter.Value)
+	case "!=":
+		return fmt.Sprintf("%v", val) != fmt.Sprintf("%v", filter.Value)
+	case ">":
+		return compareValues(val, filter.Value) > 0
+	case "<":
+		return compareValues(val, filter.Value) < 0
+	case ">=":
+		return compareValues(val, filter.Value) >= 0
+	case "<=":
+		return compareValues(val, filter.Value) <= 0
+	case "CONTAINS":
+		valStr := fmt.Sprintf("%v", val)
+		filterStr := fmt.Sprintf("%v", filter.Value)
+		return strings.Contains(valStr, filterStr)
+	case "STARTS_WITH":
+		valStr := fmt.Sprintf("%v", val)
+		filterStr := fmt.Sprintf("%v", filter.Value)
+		return strings.HasPrefix(valStr, filterStr)
+	default:
+		return false
+	}
+}
+
+func compareValues(a, b interface{}) int {
+	aStr := fmt.Sprintf("%v", a)
+	bStr := fmt.Sprintf("%v", b)
+	if aStr < bStr {
+		return -1
+	} else if aStr > bStr {
+		return 1
+	}
+	return 0
 }

@@ -155,7 +155,12 @@ func (em *EncryptionManager) DecryptData(encryptedData string) ([]byte, error) {
 	em.mu.RUnlock()
 
 	if !exists {
-		return nil, fmt.Errorf("key %s not found in cache", keyID)
+		// If key not in cache, try to use master key
+		if em.masterKey != nil && em.masterKey.ID == keyID {
+			keyPair = em.masterKey
+		} else {
+			return nil, fmt.Errorf("key %s not found in cache", keyID)
+		}
 	}
 
 	if !keyPair.IsActive() {

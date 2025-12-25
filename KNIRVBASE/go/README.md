@@ -7,7 +7,7 @@ KNIRVBASE is a lightweight, local-first distributed database prototype implement
 - **PQC Encryption Layer**: Post-quantum cryptography using Kyber-768 (encryption) and Dilithium-3 (signatures) for secure data storage
 - CRDT-based conflict resolution using **vector clocks**,
 - Local file-backed **storage** for metadata and blobs (blobs are stored locally),
-- A **mock network** abstraction for peer communication (easy to replace with libp2p or another transport),
+- **Real P2P networking** with DHT-like peer discovery and TCP-based communication,
 - A small, human-friendly query language **KNIRVQL** for simple GET/SET/DELETE and basic vector similarity queries.
 
 This package is intended as an architectural prototype and reference implementation for distributed collections and synchronization logic used across the KNIRV ecosystem.
@@ -16,11 +16,11 @@ This package is intended as an architectural prototype and reference implementat
 
 ## 🔍 Features
 
-- **PQC Encryption**: Kyber-768 KEM + AES-256-GCM for encryption, Dilithium-3 for digital signatures
+- **PQC Encryption at Rest**: Field-level encryption for sensitive data using Kyber-768 KEM + AES-256-GCM, with Dilithium-3 signatures for integrity
 - Local-first operations and background sync
 - CRDT resolve using vector clocks (merge rules + LWW tie-breakers)
 - File-based storage for documents and local blob files
-- Pluggable network interface (includes a `MockNetwork` for local use and tests)
+- **Real P2P networking** with TCP connections and DHT-like peer discovery
 - `KNIRVQL` parser and executor for quick interactive operations
 - Convenience command-line demo in `cmd/main.go`
 
@@ -103,7 +103,7 @@ The language is intentionally minimal and aimed at quick integration and demos �
 - `internal/database` — `DistributedDatabase`: high-level database orchestration and collection factory.
 - `internal/collection` — `DistributedCollection` + `LocalCollection`: local storage, CRDT operation emission, sync logic.
 - `internal/storage` — `FileStorage`: file-based persistence and blob handling with PQC encryption.
-- `internal/network` — `Network` interface + `MockNetwork`: network abstraction used by distributed components.
+- `internal/network` — `Network` interface + `NetworkManager`: real P2P networking with TCP connections and DHT-like peer discovery.
 - `internal/resolver` — CRDT resolver logic and helpers for converting to/from distributed documents.
 - `internal/clock` — vector clock implementation and comparison utilities.
 - `internal/query` — `KNIRVQL` parser and query execution.
@@ -132,14 +132,14 @@ go vet ./...
 go mod tidy
 ```
 
-Note: The codebase ships a `MockNetwork` for simplicity — to run real P2P sync replace or extend the `network` implementation with a `libp2p`-based manager.
+Note: The codebase includes a full P2P networking implementation with TCP connections and DHT-like peer discovery for distributed operation.
 
 ---
 
 ## ⚠️ Limitations & Security Notes
 
-- **PQC Encryption:** Sensitive collections (`credentials`, `pqc_keys`, `audit_log`) are automatically encrypted at rest when a master key is configured. Uses Kyber-768 + AES-256-GCM for confidentiality and Dilithium-3 for integrity.
-- **Mock network:** The current `MockNetwork` is only suitable for single-node or test environments. Replace it with a production transport for true P2P behavior.
+- **PQC Encryption at Rest:** Field-level encryption for all sensitive data across collections (`credentials`, `pqc_keys`, `sessions`, `audit_log`, `threat_events`, `access_control`). Encrypts specific fields like `hash`, `salt`, `token_hash`, `details`, `indicators`, `permissions`, etc. Uses Kyber-768 + AES-256-GCM for confidentiality and Dilithium-3 for integrity. Master key must be configured for encryption to be active.
+- **P2P Networking:** Real TCP-based P2P networking with DHT-like peer discovery enables true distributed operation across multiple nodes.
 - **Blob handling:** Blobs are stored locally and only referenced in synchronized metadata; no blob distribution is implemented here.
 - **No authentication for network messages:** This prototype does not implement cryptographic signing or authenticated transports — real deployments must use TLS/Noise and authenticated peer identities.
 
@@ -167,7 +167,7 @@ See the repository `LICENSE`.
 
 If you'd like, I can also:
 - Add usage examples as runnable scripts
-- Draft a minimal libp2p-based `network` implementation skeleton
-- Add unit tests for untested modules (knirvql, storage, resolver)
+- Add unit tests for untested modules (network, resolver)
+- Add performance benchmarks for P2P operations
 
-🔧 **Next step:** tell me which of the above you'd like me to implement next (tests, libp2p network, or example scripts).
+🔧 **Next step:** tell me which of the above you'd like me to implement next (tests, benchmarks, or example scripts).

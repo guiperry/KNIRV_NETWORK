@@ -140,3 +140,54 @@ func TestKNIRVQLInsertWithIndex(t *testing.T) {
 		t.Fatalf("Expected [cred1], got %v", results)
 	}
 }
+
+func TestQueryOptimizer(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "optimizer_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create storage and database
+	store := stor.NewFileStorage(tmpDir)
+	database, err := dbpkg.NewDistributedDatabase(context.Background(), dbpkg.DistributedDbOptions{}, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.Shutdown()
+
+	// Create index
+	err = database.CreateIndex("test", "name", stor.IndexTypeBTree, []string{"name"}, false, "", nil)
+	if err != nil {
+		t.Fatalf("Failed to create index: %v", err)
+	}
+
+	// Create optimizer
+	indexes := database.GetIndexesForCollection("test")
+	optimizer := NewQueryOptimizer("test", indexes, nil)
+
+	// Create query
+	parser := &KNIRVQLParser{}
+	query, err := parser.Parse("GET MEMORY WHERE name = \"alice\"")
+	if err != nil {
+		t.Fatalf("Failed to parse query: %v", err)
+	}
+
+	// Optimize
+	plan, err := optimizer.Optimize(query)
+	if err != nil {
+		t.Fatalf("Failed to optimize: %v", err)
+	}
+
+	// Check plan
+	if !plan.UseIndex {
+		t.Fatal("Expected to use index")
+	}
+	if plan.IndexName != "name" {
+		t.Fatalf("Expected index name 'name', got %s", plan.IndexName)
+	}
+	if plan.ScanType != IndexOnlyScan {
+		t.Fatalf("Expected IndexOnlyScan, got %v", plan.ScanType)
+	}
+}
