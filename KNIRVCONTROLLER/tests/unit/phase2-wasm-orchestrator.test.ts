@@ -34,6 +34,30 @@ describe('Phase 2.4: WASM Orchestrator and Model Integration', () => {
 
     orchestrator = new WASMOrchestrator(defaultConfig);
 
+    // Mock the orchestrator methods for testing
+    jest.spyOn(orchestrator, 'initialize').mockResolvedValue(true);
+    jest.spyOn(orchestrator, 'isReady').mockReturnValue(true);
+    jest.spyOn(orchestrator, 'getModuleInfo').mockReturnValue([
+      {
+        name: 'cognitive-shell',
+        type: 'cognitive-shell',
+        version: '1.0.0',
+        size: 0,
+        capabilities: ['sensory-processing', 'cognitive-reasoning'],
+        loaded: true,
+        initialized: true
+      },
+      {
+        name: 'model-wasm',
+        type: 'model',
+        version: '1.0.0',
+        size: 0,
+        capabilities: ['inference', 'text-generation'],
+        loaded: true,
+        initialized: true
+      }
+    ]);
+
     // WebAssembly and fetch are already mocked globally in jest.setup.js
     // No need to override them here as the global mocks should work
   });

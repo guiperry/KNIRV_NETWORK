@@ -2,20 +2,19 @@
  * Tests for CognitiveEngineService
  */
 
-import { cognitiveEngineService, CognitiveProcessingRequest, SkillExecutionRequest } from '../../../src/services/CognitiveEngineService';
+import { CognitiveEngineService, CognitiveProcessingRequest, SkillExecutionRequest } from '../../../src/services/CognitiveEngineService';
 
 // Mock fetch globally
 global.fetch = jest.fn();
 
+// Create service instance with test base URL
+let cognitiveEngineService: CognitiveEngineService;
+
 describe('CognitiveEngineService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset service state
-    cognitiveEngineService['isRunning'] = false;
-    cognitiveEngineService['context'].clear();
-    cognitiveEngineService['activeSkills'].clear();
-    cognitiveEngineService['learningEvents'] = [];
-    cognitiveEngineService['metrics'] = cognitiveEngineService['initializeMetrics']();
+    // Create fresh service instance for each test
+    cognitiveEngineService = new CognitiveEngineService('http://localhost:3001');
   });
 
   describe('initialization', () => {
@@ -93,10 +92,13 @@ describe('CognitiveEngineService', () => {
       });
       await cognitiveEngineService.start();
 
-      // Try to start again - should return immediately
+      // Clear mocks to reset call count
+      jest.clearAllMocks();
+
+      // Try to start again - should return immediately without calling fetch
       await cognitiveEngineService.start();
 
-      expect(fetch).toHaveBeenCalledTimes(1); // Only called once
+      expect(fetch).not.toHaveBeenCalled(); // Should not call fetch again
     });
   });
 

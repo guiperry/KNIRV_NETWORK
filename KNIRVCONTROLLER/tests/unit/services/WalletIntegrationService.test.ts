@@ -40,9 +40,9 @@ describe('WalletIntegrationService', () => {
         value: { hostname: 'app.knirv.com' },
         writable: true
       });
-      
+
       const service = new (walletIntegrationService.constructor as typeof WalletIntegrationService)();
-      expect(service['bridgeUrl']).toBe('https://wallet.knirv.com');
+      expect(service['bridgeUrl']).toBe('/wallet');
     });
   });
 

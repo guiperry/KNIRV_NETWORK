@@ -1119,22 +1119,20 @@ pub fn idea_collaboration_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut knirv_graph: ResMut<KnirvGraphState>,
-    mut idea_node_query: Query<(Entity, &mut IdeaNode)>,
+    mut idea_node_query: Query<(Entity, &mut IdeaNode, &Transform)>,
     agent_query: Query<(Entity, &AIAgent, &Transform)>,
     time: Res<Time>,
 ) {
-    for (idea_entity, mut idea_node) in idea_node_query.iter_mut() {
+    for (idea_entity, mut idea_node, idea_transform) in idea_node_query.iter_mut() {
         if idea_node.status == IdeaStatus::Pending {
             // Find nearby agents to collaborate on this idea
             let mut nearby_agents = Vec::new();
 
             for (agent_entity, agent, agent_transform) in agent_query.iter() {
                 // Check if agent is within collaboration range
-                if let Some(idea_transform) = commands.get_entity(idea_entity).and_then(|e| e.get::<Transform>()) {
-                    let distance = agent_transform.translation.distance(idea_transform.translation);
-                    if distance < 5.0 && !idea_node.collaborators.contains(&agent.id) {
-                        nearby_agents.push(agent.id.clone());
-                    }
+                let distance = agent_transform.translation.distance(idea_transform.translation);
+                if distance < 5.0 && !idea_node.collaborators.contains(&agent.id) {
+                    nearby_agents.push(agent.id.clone());
                 }
             }
 
@@ -1199,7 +1197,7 @@ fn create_property_from_idea(
     };
 
     // Create visual representation
-    let property_mesh = meshes.add(Mesh::from(bevy::render::mesh::shape::Icosphere { radius: 0.4, subdivisions: 2 }));
+    let property_mesh = meshes.add(Mesh::from(bevy::render::mesh::shape::UVSphere { radius: 0.4, sectors: 16, stacks: 8 }));
     let property_material = materials.add(StandardMaterial {
         base_color: Color::rgb(1.0, 0.8, 0.0), // Golden color for properties
         emissive: Color::rgb(0.5, 0.4, 0.0),
@@ -1209,9 +1207,9 @@ fn create_property_from_idea(
     });
 
     let property_position = Vec3::new(
-        (rand::random::<f32>() - 0.5) * 40.0,
+        (fastrand::f32() - 0.5) * 40.0,
         1.0,
-        (rand::random::<f32>() - 0.5) * 40.0,
+        (fastrand::f32() - 0.5) * 40.0,
     );
 
     let entity = commands.spawn((

@@ -1,7 +1,14 @@
 
 // Mock the entire database service module
 jest.mock('../../../../src/core/services/databaseService', () => {
+  const mockAgents = {};
+  const mockSkills = {};
+  const mockChatSessions = {};
+
   const mockDatabaseService = {
+    agents: mockAgents,
+    skills: mockSkills,
+    chatSessions: mockChatSessions,
     createAgent: jest.fn(),
     getAgent: jest.fn(),
     listAgents: jest.fn(),

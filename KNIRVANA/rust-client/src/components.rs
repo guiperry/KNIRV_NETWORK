@@ -167,7 +167,7 @@ pub enum IdeaType {
 }
 
 /// Status of idea development
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum IdeaStatus {
     Pending,
     Collaborative,

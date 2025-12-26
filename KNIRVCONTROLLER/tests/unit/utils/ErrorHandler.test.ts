@@ -8,12 +8,13 @@ import ErrorHandler, { errorHandler, ErrorSeverity, ErrorCategory } from '../../
 // Mock console methods to avoid noise in test output
 const originalConsole = { ...console };
 beforeAll(() => {
-  console.error = jest.fn();
-  console.warn = jest.fn();
-  console.info = jest.fn();
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'info').mockImplementation(() => {});
 });
 
 afterAll(() => {
+  jest.restoreAllMocks();
   Object.assign(console, originalConsole);
 });
 
@@ -104,30 +105,42 @@ describe('ErrorHandler', () => {
 
   describe('Error Logging', () => {
     it('should log critical errors', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
       await handler.handleError('Critical error', {}, ErrorCategory.SYSTEM, ErrorSeverity.CRITICAL);
-      
-      expect(console.error).toHaveBeenCalledWith(
+
+      expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('[CRITICAL] system: Critical error'),
         expect.any(Object)
       );
+
+      consoleSpy.mockRestore();
     });
 
     it('should log high severity errors', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
       await handler.handleError('High error', {}, ErrorCategory.NETWORK, ErrorSeverity.HIGH);
-      
-      expect(console.error).toHaveBeenCalledWith(
+
+      expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('[HIGH] network: High error'),
         expect.any(Object)
       );
+
+      consoleSpy.mockRestore();
     });
 
     it('should log medium severity errors as warnings', async () => {
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
       await handler.handleError('Medium error', {}, ErrorCategory.VALIDATION, ErrorSeverity.MEDIUM);
-      
-      expect(console.warn).toHaveBeenCalledWith(
+
+      expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('[MEDIUM] validation: Medium error'),
         expect.any(Object)
       );
+
+      consoleSpy.mockRestore();
     });
 
     it('should not log low severity errors by default', async () => {
@@ -137,13 +150,16 @@ describe('ErrorHandler', () => {
     });
 
     it('should log low severity errors in debug mode', async () => {
+      const consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
       const debugHandler = new ErrorHandler({ logLevel: 'debug' });
       await debugHandler.handleError('Low error', {}, ErrorCategory.USER_INPUT, ErrorSeverity.LOW);
-      
-      expect(console.info).toHaveBeenCalledWith(
+
+      expect(consoleSpy).toHaveBeenCalledWith(
         expect.stringContaining('[LOW] user_input: Low error'),
         expect.any(Object)
       );
+
+      consoleSpy.mockRestore();
     });
   });
 

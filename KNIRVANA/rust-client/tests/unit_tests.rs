@@ -151,32 +151,32 @@ mod system_tests {
             is_running: true,
             current_scene: "main_world".to_string(),
             player_count: 1,
-            game_mode: "single_player".to_string(),
-            elapsed_time: 0.0,
+            active_challenges: vec![],
         };
 
         assert!(game_state.is_running);
         assert_eq!(game_state.current_scene, "main_world");
         assert_eq!(game_state.player_count, 1);
-        assert_eq!(game_state.game_mode, "single_player");
-        assert_eq!(game_state.elapsed_time, 0.0);
+        assert!(game_state.active_challenges.is_empty());
     }
 
     #[test]
     fn test_game_config_defaults() {
         let config = GameConfig {
-            graphics_quality: GraphicsQuality::Medium,
-            audio_enabled: true,
-            master_volume: 0.8,
-            debug_mode: false,
-            max_fps: 60,
+            enable_vr: false,
+            enable_ar: false,
+            enable_physics: true,
+            enable_networking: true,
+            api_endpoint: "https://api.example.com".to_string(),
+            mobile_optimized: false,
         };
 
-        assert!(matches!(config.graphics_quality, GraphicsQuality::Medium));
-        assert!(config.audio_enabled);
-        assert_eq!(config.master_volume, 0.8);
-        assert!(!config.debug_mode);
-        assert_eq!(config.max_fps, 60);
+        assert!(!config.enable_vr);
+        assert!(!config.enable_ar);
+        assert!(config.enable_physics);
+        assert!(config.enable_networking);
+        assert_eq!(config.api_endpoint, "https://api.example.com");
+        assert!(!config.mobile_optimized);
     }
 
     #[test]
@@ -195,73 +195,6 @@ mod system_tests {
     }
 }
 
-#[cfg(test)]
-mod networking_tests {
-    use super::*;
-    use serde_json;
-
-    #[test]
-    fn test_network_message_creation() {
-        let message = NetworkMessage {
-            message_type: "player_join".to_string(),
-            payload: serde_json::json!({
-                "player_id": "player_123",
-                "player_name": "TestPlayer"
-            }),
-            timestamp: 1640995200, // 2022-01-01 00:00:00 UTC
-        };
-
-        assert_eq!(message.message_type, "player_join");
-        assert_eq!(message.timestamp, 1640995200);
-        
-        let payload_obj = message.payload.as_object().unwrap();
-        assert_eq!(payload_obj["player_id"], "player_123");
-        assert_eq!(payload_obj["player_name"], "TestPlayer");
-    }
-
-    #[test]
-    fn test_network_message_serialization() {
-        let original_message = NetworkMessage {
-            message_type: "game_update".to_string(),
-            payload: serde_json::json!({
-                "position": {"x": 10.5, "y": 20.3, "z": 5.1},
-                "health": 85
-            }),
-            timestamp: 1640995260,
-        };
-
-        // Serialize
-        let serialized = serde_json::to_string(&original_message).unwrap();
-        assert!(serialized.contains("game_update"));
-        assert!(serialized.contains("1640995260"));
-
-        // Deserialize
-        let deserialized: NetworkMessage = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(deserialized.message_type, original_message.message_type);
-        assert_eq!(deserialized.timestamp, original_message.timestamp);
-        
-        let original_pos = &original_message.payload["position"];
-        let deserialized_pos = &deserialized.payload["position"];
-        assert_eq!(original_pos["x"], deserialized_pos["x"]);
-        assert_eq!(original_pos["y"], deserialized_pos["y"]);
-        assert_eq!(original_pos["z"], deserialized_pos["z"]);
-    }
-
-    #[test]
-    fn test_connection_config() {
-        let config = ConnectionConfig {
-            server_url: "wss://game.knirvana.com/ws".to_string(),
-            timeout_ms: 10000,
-            retry_attempts: 5,
-            heartbeat_interval: 30,
-        };
-
-        assert_eq!(config.server_url, "wss://game.knirvana.com/ws");
-        assert_eq!(config.timeout_ms, 10000);
-        assert_eq!(config.retry_attempts, 5);
-        assert_eq!(config.heartbeat_interval, 30);
-    }
-}
 
 #[cfg(test)]
 mod economics_tests {

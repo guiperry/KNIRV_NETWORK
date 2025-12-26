@@ -248,7 +248,7 @@ describe('Phase 1: Component Integration Tests', () => {
       // Test that existing protobuf functionality still works
       const legacyResponse = {
         invocation_id: 'legacy-test-123',
-        status: 'SUCCESS',
+        status: 1, // SUCCESS = 1 from the enum
         error_message: '',
         skill: {
           skill_id: 'legacy-skill',

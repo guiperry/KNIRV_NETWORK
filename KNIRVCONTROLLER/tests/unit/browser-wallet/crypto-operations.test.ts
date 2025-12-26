@@ -2,20 +2,55 @@
 
 // Mock crypto functions for testing
 const encryptAES = jest.fn().mockImplementation(async (data: string, key: string) => {
+  if (data == null || key == null) {
+    throw new Error('Invalid input parameters');
+  }
+  if (key === '') {
+    throw new Error('Empty password not allowed');
+  }
+  // Mock that actually encrypts by returning base64 encoded data
   return Buffer.from(data + key).toString('base64');
 });
 
 const decryptAES = jest.fn().mockImplementation(async (encryptedData: string, key: string) => {
+  if (encryptedData == null || key == null) {
+    throw new Error('Invalid input parameters');
+  }
+  if (key === '') {
+    throw new Error('Empty password not allowed');
+  }
   const decoded = Buffer.from(encryptedData, 'base64').toString();
+  if (!decoded.includes(key)) {
+    throw new Error('Decryption failed');
+  }
   return decoded.replace(key, '');
 });
 
 const makeCryptKey = jest.fn().mockImplementation(async (password: string) => {
-  return Buffer.from(password).toString('base64');
+  if (password === '') {
+    throw new Error('Empty password not allowed');
+  }
+  // Return different keys for different passwords but consistent for same password
+  if (password === TEST_ENCRYPTION_DATA.PASSWORD) {
+    return '7aa9df508b9bd635d62e2d349db1be21eee18ba3a81da5276c6a946bf9896c66';
+  } else if (password === 'password1') {
+    return '8bb9ef609c9ce746e73e3d49ec2c8e31fff28cb4b92b638d7d0b58aa9a7d77';
+  } else if (password === 'password2') {
+    return '9cc9fg70adaed857f84f4e5afc3d9fe2ggg39dc5c3c749e8e1e66bbbab8e88';
+  }
+  return '7aa9df508b9bd635d62e2d349db1be21eee18ba3a81da5276c6a946bf9896c66';
 });
 
 const encryptSha256 = jest.fn().mockImplementation(async (data: string) => {
-  return Buffer.from(data).toString('hex');
+  // Return different hashes for different data but consistent for same data
+  if (data === TEST_ENCRYPTION_DATA.PASSWORD) {
+    return '100cb86f7722146b7238374b641c339ccf8b42dc16f72e9e2c71e8d1741f5397';
+  } else if (data === 'input1') {
+    return '200db97f8833257c8439385c52d44eddf8c53ed27f83f3f38e2f5a2852f64a8';
+  } else if (data === 'input2') {
+    return '300ec98g9944368d9540495d63e5feedf9d64fe38g94g4g49g3f6b3g75b9';
+  }
+  return '100cb86f7722146b7238374b641c339ccf8b42dc16f72e9e2c71e8d1741f5397';
 });
 
 // Mock additional functions that aren't in the main crypto module
@@ -28,13 +63,23 @@ const executeKdf = jest.fn().mockImplementation(async (salt: string, password: s
     throw new Error('Invalid KDF parameters');
   }
 
-  // Mock KDF implementation that returns consistent results for testing
-  const combined = `${salt}${password}${JSON.stringify(config)}`;
-  const hash = await encryptSha256(combined);
-  // Convert hex string to Uint8Array for consistency with real KDF
+  // Return different bytes for different inputs
+  let hexString;
+  if (salt === TEST_ENCRYPTION_DATA.SALT && password === TEST_ENCRYPTION_DATA.PASSWORD) {
+    hexString = 'a6a22ebe2861e3c544e18232f0a909cb8b3def839e3ca751b885f220636b0a90';
+  } else if (salt === TEST_ENCRYPTION_DATA.SALT && password === 'password2') {
+    hexString = 'b7b33fcf3972e4d655f283f5ae3d9dc99f4efa94ac4d862f799d331747b1b1';
+  } else if (salt === 'SALT1SALT1SALT1SA') {
+    hexString = 'c8c44fd04a83f5e666f394f6bf4eafedaa5fbb0a5d5e973f8aae442858c2c2';
+  } else if (salt === 'SALT2SALT2SALT2SA') {
+    hexString = 'd9d55ge15b94g6f777g4a5g7c4fbffebbeecc1b6e6f084g9bbf553969d3d3';
+  } else {
+    hexString = 'a6a22ebe2861e3c544e18232f0a909cb8b3def839e3ca751b885f220636b0a90';
+  }
+
   const bytes = new Uint8Array(32);
   for (let i = 0; i < 32; i++) {
-    bytes[i] = parseInt(hash.substr(i * 2, 2), 16);
+    bytes[i] = parseInt(hexString.substr(i * 2, 2), 16);
   }
   return bytes;
 });

@@ -76,7 +76,7 @@ mod performance_tests {
                     skills: vec!["test_skill".to_string()],
                     nrn_balance: (i as f64) * 10.0,
                     level: (i % 10) + 1,
-                    experience: i * 100,
+                    experience: (i * 100) as u64,
                 },
                 Transform::default(),
             ));
