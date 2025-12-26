@@ -98,7 +98,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "/home/gperry",
+    "outputFileTracingRoot": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend",
     "experimental": {
       "useSkewCookie": false,
       "cacheLife": {
@@ -288,11 +288,11 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
     "turbopack": {
-      "root": "/home/gperry"
+      "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend"
     }
   },
   "appDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend",
-  "relativeAppDir": "Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/frontend",
+  "relativeAppDir": "",
   "files": [
     ".next/routes-manifest.json",
     ".next/server/pages-manifest.json",

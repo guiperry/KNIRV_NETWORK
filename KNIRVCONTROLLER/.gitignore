@@ -11,6 +11,8 @@ node_modules
 .vscode
 .qodo
 
+/MY-CHAT-BRAIN/*
+
 */reports/
 */reports/*
 */logs/

@@ -27,6 +27,7 @@ import NetworkSelector, { NetworkType } from './components/NetworkSelector';
 const Skills = lazy(() => import('./pages/Skills'));
 const UDC = lazy(() => import('./pages/UDC'));
 const WalletPage = lazy(() => import('./pages/Wallet'));
+const ChatBrain = lazy(() => import('./pages/ChatBrain'));
 
 // Types
 import { Agent } from './types/common';
@@ -640,6 +641,9 @@ const ReceiverInterface = () => {
           <MenuItem onClick={openCognitiveShell} icon="🧠">
             Cognitive Shell
           </MenuItem>
+          <MenuItem onClick={() => { navigate('/manager/chat-brain'); setMenuOpen(false); }} icon="🧠">
+            Chat-Brain
+          </MenuItem>
           <MenuItem onClick={openCortexBuilder} icon="🎯">
             CORTEX Builder
           </MenuItem>
@@ -1068,6 +1072,7 @@ const ManagerInterface = () => {
           <Route path="/skills" element={<Skills />} />
           <Route path="/udc" element={<UDC />} />
           <Route path="/wallet" element={<WalletPage />} />
+          <Route path="/chat-brain" element={<ChatBrain />} />
           <Route path="/agent/:agentId" element={<AgentProfile />} />
         </Routes>
       </Suspense>

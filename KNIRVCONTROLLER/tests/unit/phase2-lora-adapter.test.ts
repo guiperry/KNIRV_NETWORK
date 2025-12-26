@@ -18,11 +18,11 @@ describe('Phase 2 LoRA Adapter Tests', () => {
   let loraEngine: LoRAAdapterEngine;
   let inMemoryAgentCore: {
     loadedAdapters: Map<string, unknown>;
-    agentCoreExecute: jest.Mock;
-    agentCoreExecuteTool: jest.Mock;
-    agentCoreLoadLoRA: jest.Mock;
-    agentCoreApplySkill: jest.Mock;
-    agentCoreGetStatus: jest.Mock;
+    agentCoreExecute: jest.MockedFunction<() => Promise<string>>;
+    agentCoreExecuteTool: jest.MockedFunction<() => Promise<string>>;
+    agentCoreLoadLoRA: jest.MockedFunction<(adapterString: unknown) => Promise<boolean>>;
+    agentCoreApplySkill: jest.MockedFunction<() => Promise<boolean>>;
+    agentCoreGetStatus: jest.MockedFunction<() => string>;
   };
 
   beforeEach(async () => {
@@ -139,9 +139,9 @@ describe('Phase 2 LoRA Adapter Tests', () => {
     inMemoryAgentCore = {
       loadedAdapters: new Map<string, unknown>(),
 
-      agentCoreExecute: jest.fn().mockResolvedValue('{"success": true}' as never),
-      agentCoreExecuteTool: jest.fn().mockResolvedValue('{"success": true}' as never),
-      agentCoreLoadLoRA: jest.fn().mockImplementation(async (adapterString: unknown) => {
+      agentCoreExecute: jest.fn<() => Promise<string>>().mockResolvedValue('{"success": true}'),
+      agentCoreExecuteTool: jest.fn<() => Promise<string>>().mockResolvedValue('{"success": true}'),
+      agentCoreLoadLoRA: jest.fn<(adapterString: unknown) => Promise<boolean>>().mockImplementation(async (adapterString: unknown) => {
         try {
           const adapter = JSON.parse(adapterString as string);
           inMemoryAgentCore.loadedAdapters.set(adapter.skillId, adapter);
@@ -150,8 +150,8 @@ describe('Phase 2 LoRA Adapter Tests', () => {
           return false;
         }
       }),
-      agentCoreApplySkill: jest.fn().mockResolvedValue(true as never),
-      agentCoreGetStatus: jest.fn().mockReturnValue('{"initialized": true}')
+      agentCoreApplySkill: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+      agentCoreGetStatus: jest.fn<() => string>().mockReturnValue('{"initialized": true}')
     };
 
     // Properly type the WebAssembly mock to match the actual WebAssembly interface
@@ -173,11 +173,11 @@ describe('Phase 2 LoRA Adapter Tests', () => {
     // Mock the AgentCoreInterface to be ready without requiring actual WASM
     (agentCoreInterface as any).isInitialized = true;
     (agentCoreInterface as any).agentCore = {
-      agentCoreExecute: jest.fn().mockResolvedValue('{"success": true}'),
-      agentCoreExecuteTool: jest.fn().mockResolvedValue('{"success": true}'),
-      agentCoreLoadLoRA: jest.fn().mockResolvedValue(true),
-      agentCoreApplySkill: jest.fn().mockResolvedValue(true),
-      agentCoreGetStatus: jest.fn().mockReturnValue('{"initialized": true}')
+      agentCoreExecute: jest.fn<() => Promise<string>>().mockResolvedValue('{"success": true}'),
+      agentCoreExecuteTool: jest.fn<() => Promise<string>>().mockResolvedValue('{"success": true}'),
+      agentCoreLoadLoRA: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+      agentCoreApplySkill: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+      agentCoreGetStatus: jest.fn<() => string>().mockReturnValue('{"initialized": true}')
     };
 
     // Mock the applySkill method to return true for this test
