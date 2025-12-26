@@ -27,7 +27,7 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  private retryTimeout: number | null = null;
+  private retryTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(props: Props) {
     super(props);

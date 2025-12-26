@@ -13,6 +13,7 @@ interface AbstraxionWalletProviderProps {
 export const AbstraxionWalletProvider: React.FC<AbstraxionWalletProviderProps> = ({ children }) => {
   // Abstraxion configuration
   const abstraxionConfig = {
+    chainId: "xion-testnet-1",
     rpcUrl: "https://rpc.xion-testnet-1.burnt.com:443",
     restUrl: "https://api.xion-testnet-1.burnt.com",
     walletUrl: "https://wallet.burnt.com",

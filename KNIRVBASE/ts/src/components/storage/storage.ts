@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { IndexManager, Index, IndexType } from './index';
-import { EncryptionManager } from '../crypto/pqc/encryption';
+import { EncryptionManager } from '../crypto/pqc';
 import { EntryType } from '../types/types';
 
 export interface Storage {
@@ -58,7 +58,7 @@ export class FileStorage implements Storage {
 
   async insert(collection: string, doc: Record<string, any>): Promise<void> {
     fs.mkdirSync(this.getCollectionDir(collection), { recursive: true });
-    const path = this.getDocPath(collection, doc.id);
+    const docPath = this.getDocPath(collection, doc.id);
 
     const docCopy = this.deepCopyDoc(doc);
 
@@ -79,7 +79,7 @@ export class FileStorage implements Storage {
     }
 
     const data = JSON.stringify(docCopy);
-    fs.writeFileSync(path, data, 'utf8');
+    fs.writeFileSync(docPath, data, 'utf8');
 
     // Update indexes
     await this.indexManager.insert(collection, doc);
@@ -97,9 +97,9 @@ export class FileStorage implements Storage {
   }
 
   async delete(collection: string, id: string): Promise<number> {
-    const path = this.getDocPath(collection, id);
+    const docPath = this.getDocPath(collection, id);
     try {
-      fs.unlinkSync(path);
+      fs.unlinkSync(docPath);
     } catch (err: any) {
       if (err.code !== 'ENOENT') throw err;
     }
@@ -117,9 +117,9 @@ export class FileStorage implements Storage {
   }
 
   async find(collection: string, id: string): Promise<Record<string, any> | null> {
-    const path = this.getDocPath(collection, id);
+    const docPath = this.getDocPath(collection, id);
     try {
-      const data = fs.readFileSync(path, 'utf8');
+      const data = fs.readFileSync(docPath, 'utf8');
       const doc: Record<string, any> = JSON.parse(data);
 
       // Decrypt if needed

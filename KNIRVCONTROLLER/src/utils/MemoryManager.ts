@@ -41,6 +41,12 @@ interface GlobalWithGC {
   gc?: () => void;
 }
 
+interface GlobalWithWindowGC {
+  window?: {
+    gc?: () => void;
+  };
+}
+
 interface WindowWithPerformanceMemory extends Window {
   performance: Performance & {
     memory?: PerformanceMemory;
@@ -50,7 +56,7 @@ interface WindowWithPerformanceMemory extends Window {
 class MemoryManager {
   private config: MemoryManagerConfig;
   private metrics: MemoryMetrics[] = [];
-  private monitoringInterval: number | null = null;
+  private monitoringInterval: ReturnType<typeof setInterval> | null = null;
   private cleanupCallbacks: (() => void)[] = [];
   private memoryListeners: ((metrics: MemoryMetrics) => void)[] = [];
   private isMonitoring: boolean = false;
@@ -179,18 +185,23 @@ class MemoryManager {
         console.warn('Failed to force garbage collection:', error);
       }
     }
+
     // Check for global.window.gc (test environment)
-    else if (typeof global !== 'undefined' && (global as any).window && 'gc' in (global as any).window) {
-      try {
-        (global as any).window.gc();
-        console.log('Forced garbage collection');
-        gcCalled = true;
-      } catch (error) {
-        console.warn('Failed to force garbage collection:', error);
+    if (!gcCalled && typeof global !== 'undefined') {
+      const globalWithWindow = global as typeof globalThis & GlobalWithWindowGC;
+      if (globalWithWindow.window && 'gc' in globalWithWindow.window) {
+        try {
+          globalWithWindow.window.gc!();
+          console.log('Forced garbage collection');
+          gcCalled = true;
+        } catch (error) {
+          console.warn('Failed to force garbage collection:', error);
+        }
       }
     }
+
     // Check for global gc (Node.js environment)
-    else if (typeof global !== 'undefined' && 'gc' in global && (global as GlobalWithGC).gc) {
+    if (!gcCalled && typeof global !== 'undefined' && 'gc' in global && (global as GlobalWithGC).gc) {
       try {
         (global as GlobalWithGC).gc!();
         console.log('Forced garbage collection');

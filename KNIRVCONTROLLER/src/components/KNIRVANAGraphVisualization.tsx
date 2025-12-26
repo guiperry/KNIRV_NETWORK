@@ -4,10 +4,12 @@
  */
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, ThreeEvent } from '@react-three/fiber';
 import { OrbitControls, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { personalKNIRVGRAPHService, GraphNode, GraphEdge } from '../services/PersonalKNIRVGRAPHService';
+
+/* eslint-disable react/no-unknown-property */
 
 interface GraphNodeProps {
   node: GraphNode;
@@ -48,11 +50,11 @@ function GraphNodeComponent({ node, onClick }: GraphNodeProps) {
       <mesh
         ref={meshRef}
         onClick={() => onClick?.(node)}
-        onPointerOver={(e: React.PointerEvent<THREE.Mesh>) => {
+        onPointerOver={(e: ThreeEvent<PointerEvent>) => {
           e.stopPropagation();
           document.body.style.cursor = 'pointer';
         }}
-        onPointerOut={(e: React.PointerEvent<THREE.Mesh>) => {
+        onPointerOut={(e: ThreeEvent<PointerEvent>) => {
           e.stopPropagation();
           document.body.style.cursor = 'auto';
         }}

@@ -1,10 +1,8 @@
 // LLM Provider Service - Multi-LLM Support
-import { Adaline } from '@adaline/gateway';
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel, type Content } from '@google/generative-ai';
 import type { LLMProvider, ChatMessage, ChatResponse } from '../types/chatBrain';
 
 export class LLMProviderService {
-  private adaline: Adaline | null = null;
   private gemini: GoogleGenerativeAI | null = null;
   private geminiModel: GenerativeModel | null = null;
 
@@ -13,16 +11,6 @@ export class LLMProviderService {
   }
 
   private initializeProviders(): void {
-    // Initialize Adaline (for OpenAI and multi-provider support)
-    const adalineKey = import.meta.env.VITE_ADALINE_KEY;
-    if (adalineKey) {
-      try {
-        this.adaline = new Adaline({ apiKey: adalineKey });
-      } catch (error) {
-        console.error('Failed to initialize Adaline:', error);
-      }
-    }
-
     // Initialize Google Gemini
     const geminiKey = import.meta.env.VITE_GOOGLE_API_KEY;
     if (geminiKey) {
@@ -98,40 +86,18 @@ export class LLMProviderService {
     }
   }
 
-  private buildGeminiHistory(history?: ChatMessage[]): Array<{ role: string; parts: string }> {
+  private buildGeminiHistory(history?: ChatMessage[]): Content[] {
     if (!history || history.length === 0) return [];
 
     return history.map((msg) => ({
       role: msg.type === 'user' ? 'user' : 'model',
-      parts: msg.text,
+      parts: [{ text: msg.text }],
     }));
   }
 
-  private async openAIChat(message: string, history?: ChatMessage[]): Promise<ChatResponse> {
-    if (!this.adaline) {
-      throw new Error('Adaline not initialized. Please check your API key.');
-    }
-
-    try {
-      const messages = this.buildChatMessages(message, history);
-
-      const response = await this.adaline.chat({
-        messages,
-        model: 'gpt-4-turbo-preview', // or gpt-3.5-turbo
-      });
-
-      return {
-        text: response.content || '',
-        provider: 'openai',
-        metadata: {
-          model: 'gpt-4-turbo-preview',
-          usage: response.usage,
-        },
-      };
-    } catch (error) {
-      console.error('OpenAI chat error:', error);
-      throw new Error(`OpenAI error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+  private async openAIChat(_message: string, _history?: ChatMessage[]): Promise<ChatResponse> {
+    // OpenAI functionality is temporarily disabled due to import issues
+    throw new Error('OpenAI provider is temporarily unavailable. Please use Gemini or DeepSeek.');
   }
 
   private async deepseekChat(message: string, history?: ChatMessage[]): Promise<ChatResponse> {
@@ -177,32 +143,9 @@ export class LLMProviderService {
     }
   }
 
-  private async adalineChat(message: string, history?: ChatMessage[]): Promise<ChatResponse> {
-    if (!this.adaline) {
-      throw new Error('Adaline not initialized. Please check your API key.');
-    }
-
-    try {
-      const messages = this.buildChatMessages(message, history);
-
-      // Let Adaline auto-select the best model
-      const response = await this.adaline.chat({
-        messages,
-        // No model specified - Adaline will choose automatically
-      });
-
-      return {
-        text: response.content || '',
-        provider: 'adaline',
-        metadata: {
-          model: response.model || 'auto',
-          usage: response.usage,
-        },
-      };
-    } catch (error) {
-      console.error('Adaline chat error:', error);
-      throw new Error(`Adaline error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+  private async adalineChat(_message: string, _history?: ChatMessage[]): Promise<ChatResponse> {
+    // Adaline functionality is temporarily disabled due to import issues
+    throw new Error('Adaline provider is temporarily unavailable. Please use Gemini or DeepSeek.');
   }
 
   private buildChatMessages(
@@ -237,7 +180,7 @@ export class LLMProviderService {
         return this.geminiModel !== null;
       case 'openai':
       case 'adaline':
-        return this.adaline !== null;
+        return false; // Temporarily disabled
       case 'deepseek':
         return !!import.meta.env.VITE_DEEPSEEK_API_KEY;
       default:

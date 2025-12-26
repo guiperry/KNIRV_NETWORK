@@ -11,6 +11,15 @@ The **KNIRV-CONTROLLER** serves as the comprehensive Neural Intelligence Model (
 
 ## 🆕 Recent Updates
 
+### 🧠 Chat-Brain: Personal Memory AI (Latest)
+- **Universal LLM Chat Interface**: Unified chat interface for all major LLMs (Gemini, OpenAI, DeepSeek, Adaline)
+- **Persistent Memory Layer**: KNIRVGRAPH-powered knowledge graph that captures and synthesizes every conversation
+- **Multi-LLM Support**: Seamlessly switch between different AI providers while maintaining conversation context
+- **Memory Graph Visualization**: Interactive Cytoscape-based graph showing relationships between concepts, entities, and conversations
+- **Notes & Knowledge Management**: Markdown-powered note-taking with automatic indexing and retrieval
+- **Contextual Intelligence**: Builds deep understanding of user knowledge, personality, and preferences over time
+- **Digital Memory Clone**: Creates an evolving representation of your thinking patterns and information needs
+
 ### ✅ External AI Integration (Beta Phase)
 - **Multi-Provider Support**: Integrated Google Gemini, Anthropic Claude, OpenAI ChatGPT-5, and Deepseek for inference during beta
 - **Cognitive Engine Enhancement**: Updated cognitive shell orchestrator to route inference through external API channels
@@ -43,7 +52,7 @@ The CONTROLLER integrates four core components into a unified platform:
   - **NEW**: Dynamic status updates (idle → monitoring → processing)
 
 #### 2. **Manager** (Neural Intelligence Model Lifecycle Management)
-- **Location**: `src/pages/` (Skills, UDC, Wallet, Badges)
+- **Location**: `src/pages/` (Skills, UDC, Wallet, Badges, Chat-Brain)
 - **Purpose**: Evolved mobile-controller for comprehensive NIM management
 - **Features**:
   - Neural Intelligence Model registration and deployment
@@ -54,6 +63,19 @@ The CONTROLLER integrates four core components into a unified platform:
   - **NEW**: Model creation and training with external AI integration
   - **NEW**: Sample starter NIM with default cortex.wasm
   - **NEW**: External API configuration and management
+  - **NEW**: Chat-Brain Personal Memory AI interface
+
+#### 2.1 **Chat-Brain** (Personal Memory AI)
+- **Location**: `src/pages/ChatBrain.tsx`
+- **Purpose**: Universal LLM interface with persistent memory and knowledge graph
+- **Features**:
+  - **Multi-LLM Chat**: Unified interface for Gemini, OpenAI, DeepSeek, Adaline
+  - **Memory Graph**: KNIRVGRAPH-powered knowledge graph with Cytoscape visualization
+  - **Persistent Context**: Conversations stored and synthesized across sessions
+  - **Smart Notes**: Markdown note-taking with automatic knowledge extraction
+  - **Contextual Learning**: Builds deep understanding of user patterns and preferences
+  - **LLM Provider Switching**: Seamlessly switch models while preserving context
+  - **Semantic Search**: Vector-based memory search for relevant past conversations
 
 #### 3. **CLI** (Terminal Interface)
 - **Location**: Integrated via sliding panels and terminal services
@@ -206,14 +228,26 @@ KNIRVCONTROLLER/
 │   ├── components/          # React components
 │   │   ├── KnirvShell.tsx   # Main interface component
 │   │   ├── CognitiveShellInterface.tsx
+│   │   ├── chat-brain/      # Chat-Brain components
+│   │   │   ├── ChatInterface.tsx
+│   │   │   ├── MemoryGraphView.tsx
+│   │   │   ├── NotesPanel.tsx
+│   │   │   └── LLMSelector.tsx
 │   │   └── ...
 │   ├── pages/               # Route components (Manager interface)
 │   │   ├── Skills.tsx
 │   │   ├── Wallet.tsx
+│   │   ├── ChatBrain.tsx    # Personal Memory AI page
 │   │   └── ...
 │   ├── services/            # Business logic services
 │   │   ├── ApiKeyService.ts
 │   │   ├── KnirvanaBridgeService.ts
+│   │   ├── knirvGraphService.ts    # KNIRVGRAPH integration
+│   │   ├── llmProviderService.ts   # Multi-LLM support
+│   │   ├── chatBrainService.ts     # Chat-Brain logic
+│   │   └── ...
+│   ├── contexts/            # React Context providers
+│   │   ├── ChatBrainContext.tsx    # Chat-Brain state
 │   │   └── ...
 │   ├── sensory-shell/       # WASM and cognitive processing
 │   │   ├── CognitiveEngine.ts
@@ -229,10 +263,13 @@ KNIRVCONTROLLER/
 │   ├── server/             # Backend API server
 │   │   └── api-server.ts
 │   └── types/              # TypeScript type definitions
+│       ├── chatBrain.ts    # Chat-Brain types
+│       └── ...
 ├── tests/                  # Test suites
 ├── rust-wasm/             # Rust WASM modules
 ├── assembly/              # AssemblyScript WASM
 └── docs/                  # Documentation
+    └── SDD.md             # Software Design Document
 ```
 
 ## API Endpoints
@@ -256,12 +293,25 @@ KNIRVCONTROLLER/
 ### Environment Variables
 ```bash
 # .env
+
+# Core Network Configuration
 VITE_API_BASE_URL=http://gateway-testnet.knirv.network
 VITE_ORACLE_ENDPOINT=http://oracle-testnet.knirv.network
 VITE_WALLET_CONNECT_PROJECT_ID=your_project_id
 VITE_WALLET_CONNECT_RPC_URL=http://localhost:8545
 VITE_XION_CHAIN_ID=local-1
 VITE_KNIRV_GRAPH_ENDPOINT=https://graph-testnet.knirv.network
+
+# Chat-Brain LLM Providers
+VITE_GOOGLE_API_KEY=your-gemini-api-key
+VITE_OPENAI_API_KEY=your-openai-api-key
+VITE_DEEPSEEK_API_KEY=your-deepseek-api-key
+VITE_ADALINE_KEY=your-adaline-api-key
+
+# KNIRVGRAPH Configuration (for Chat-Brain memory)
+VITE_KNIRVGRAPH_ENDPOINT=http://localhost:26657
+VITE_KNIRVGRAPH_CHAIN_ID=knirvgraph-1
+VITE_KNIRVGRAPH_API_KEY=your-api-key
 ```
 
 ### Network Configuration

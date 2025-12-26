@@ -114,7 +114,7 @@ export class AnalyticsService {
   };
   private baseUrl: string;
   private isCollecting: boolean = false;
-  private collectionInterval: number | null = null;
+  private collectionInterval: ReturnType<typeof setInterval> | null = null;
   private config: AnalyticsConfig;
 
   constructor(config: AnalyticsConfig = {}) {

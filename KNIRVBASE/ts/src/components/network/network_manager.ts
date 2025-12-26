@@ -69,7 +69,7 @@ export class NetworkManager implements Network {
       return cfg.networkId;
     }
 
-    cfg.collections = {};
+    cfg.collections = {} as Record<string, boolean>;
     this.networks.set(cfg.networkId, cfg);
     this.stats.set(cfg.networkId, {
       networkId: cfg.networkId,
@@ -104,7 +104,7 @@ export class NetworkManager implements Network {
       };
       this.networks.set(networkID, cfg);
       this.stats.set(networkID, {
-        networkId,
+        networkId: networkID,
         connectedPeers: 0,
         totalPeers: 0,
         collectionsShared: 0,

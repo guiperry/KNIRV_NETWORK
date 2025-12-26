@@ -47,10 +47,7 @@ export class LocalCollection {
     return await this.store.findAll(this.name);
   }
 
-  private cloneMap(m: Record<string, any> | null): Record<string, any> | null {
-    if (m === null) {
-      return null;
-    }
+  private cloneMap(m: Record<string, any>): Record<string, any> {
     const out: Record<string, any> = {};
     for (const k in m) {
       const v = m[k];
@@ -66,10 +63,7 @@ export class LocalCollection {
     return out;
   }
 
-  private cloneSlice(s: any[] | null): any[] | null {
-    if (s === null) {
-      return null;
-    }
+  private cloneSlice(s: any[]): any[] {
     const out: any[] = [];
     for (const e of s) {
       if (typeof e === 'object' && e !== null && !Array.isArray(e)) {
@@ -290,7 +284,10 @@ export class DistributedCollection {
       await this.local.delete(op.documentId);
     } else {
       // upsert
-      await this.local.insert(ToRegular(result));
+      const regular = ToRegular(result);
+      if (regular) {
+        await this.local.insert(regular);
+      }
     }
 
     // merge vector
