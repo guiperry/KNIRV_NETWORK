@@ -23,6 +23,9 @@ export * from '../components/resolver/crdt_resolver';
 export * from '../components/crypto/pqc/keys';
 export * from '../components/crypto/pqc/encryption';
 
+// Query
+export * from '../components/query/index';
+
 // Main Database class
 import { NetworkManager } from '../components/network/network_manager';
 import { FileStorage } from '../components/storage/storage';

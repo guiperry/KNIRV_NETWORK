@@ -56,7 +56,7 @@ jest.mock('lucide-react-native', () => ({
   Zap: () => 'Zap'
 }));
 
-jest.mock('../../../components/GlassCard', () => {
+jest.mock('../../../src/components/GlassCard', () => {
   return ({ children }: { children: React.ReactNode }) => children;
 });
 

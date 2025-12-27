@@ -172,11 +172,11 @@ jest.mock('lucide-react-native', () => ({
 }));
 
 // Mock components
-jest.mock('../../../components/GlassCard', () => {
+jest.mock('../../../src/components/GlassCard', () => {
   return ({ children }: { children: React.ReactNode }) => children;
 });
 
-jest.mock('../../../components/CryptoCard', () => {
+jest.mock('../../../src/components/CryptoCard', () => {
   return ({ symbol, name, balance, change }: { symbol: string; name: string; balance: string; change: string }) => (
     `CryptoCard: ${symbol} ${name} ${balance} ${change}`
   );

@@ -33,6 +33,8 @@ __exportStar(require("../components/resolver/crdt_resolver"), exports);
 // Crypto
 __exportStar(require("../components/crypto/pqc/keys"), exports);
 __exportStar(require("../components/crypto/pqc/encryption"), exports);
+// Query
+__exportStar(require("../components/query/index"), exports);
 // Main Database class
 const network_manager_1 = require("../components/network/network_manager");
 const storage_1 = require("../components/storage/storage");

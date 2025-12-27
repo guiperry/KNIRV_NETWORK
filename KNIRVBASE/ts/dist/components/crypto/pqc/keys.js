@@ -165,12 +165,12 @@ function generateDilithiumKeyPair() {
     return { publicKey, privateKey };
 }
 async function dilithiumSign(privateKey, message) {
-    const key = await crypto.subtle.importKey('raw', privateKey, 'HMAC', false, ['sign']);
+    const key = await crypto.subtle.importKey('raw', privateKey, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
     const signature = await crypto.subtle.sign('HMAC', key, message);
     return new Uint8Array(signature);
 }
 async function dilithiumVerify(publicKey, message, signature) {
-    const key = await crypto.subtle.importKey('raw', publicKey, 'HMAC', false, ['verify']);
+    const key = await crypto.subtle.importKey('raw', publicKey, { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
     return crypto.subtle.verify('HMAC', key, signature, message);
 }
 //# sourceMappingURL=keys.js.map
