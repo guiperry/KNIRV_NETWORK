@@ -448,3 +448,117 @@ func TestRun_InvalidConfig(t *testing.T) {
 	// This would require more complex mocking, so we'll skip for now
 	t.Skip("Config loading test requires mocking")
 }
+
+func TestGetOSAppDataDir(t *testing.T) {
+	// Test successful case
+	dir, err := getOSAppDataDir()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, dir)
+
+	// Verify directory exists
+	_, err = os.Stat(dir)
+	assert.NoError(t, err)
+}
+
+func TestInitLogging(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &config.Config{
+		Log: config.LogConfig{
+			Level:  "info",
+			Output: filepath.Join(tmpDir, "test.log"),
+		},
+	}
+
+	logger, err := initLogging(cfg)
+	assert.NoError(t, err)
+	assert.NotNil(t, logger)
+
+	// Test logging
+	logger.Info("Test log message")
+
+	// Verify log file was created
+	_, err = os.Stat(cfg.Log.Output)
+	assert.NoError(t, err)
+}
+
+func TestInitLogging_DebugLevel(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &config.Config{
+		Log: config.LogConfig{
+			Level:  "debug",
+			Output: filepath.Join(tmpDir, "debug.log"),
+		},
+	}
+
+	logger, err := initLogging(cfg)
+	assert.NoError(t, err)
+	assert.NotNil(t, logger)
+
+	logger.Debug("Test debug message")
+}
+
+func TestInitLogging_ErrorLevel(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &config.Config{
+		Log: config.LogConfig{
+			Level:  "error",
+			Output: filepath.Join(tmpDir, "error.log"),
+		},
+	}
+
+	logger, err := initLogging(cfg)
+	assert.NoError(t, err)
+	assert.NotNil(t, logger)
+
+	logger.Error("Test error message")
+}
+
+func TestInitLogging_DefaultLevel(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := &config.Config{
+		Log: config.LogConfig{
+			Level:  "invalid",
+			Output: filepath.Join(tmpDir, "default.log"),
+		},
+	}
+
+	logger, err := initLogging(cfg)
+	assert.NoError(t, err)
+	assert.NotNil(t, logger)
+
+	logger.Info("Test default level message")
+}
+
+func TestInitLogging_LogDirCreation(t *testing.T) {
+	tmpDir := t.TempDir()
+	logDir := filepath.Join(tmpDir, "nested", "logs")
+	logFile := filepath.Join(logDir, "test.log")
+
+	cfg := &config.Config{
+		Log: config.LogConfig{
+			Level:  "info",
+			Output: logFile,
+		},
+	}
+
+	logger, err := initLogging(cfg)
+	assert.NoError(t, err)
+	assert.NotNil(t, logger)
+
+	// Verify nested directory was created
+	_, err = os.Stat(logDir)
+	assert.NoError(t, err)
+}
+
+func TestGetContainerRuntime(t *testing.T) {
+	// Test with nil TEE service
+	runtime := getContainerRuntime(nil)
+	assert.Equal(t, "docker", runtime)
+
+	// Test with TEE service (mock)
+	// This would require more complex setup, so we'll test the basic case
+}

@@ -87,3 +87,4 @@ KNIRVGATEWAY/gateway
 KNIRVNEXUS/backend/cmd/container_deployer/golang-app-source/knirv-nexus
 KNIRVCHAIN/knirvchain
 KNIRVORACLE/oracle
+KNIRVCHAIN/bin/knirvchain

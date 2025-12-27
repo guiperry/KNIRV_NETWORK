@@ -39,9 +39,9 @@ func TestDownloadSSHPrivateKey_Success(t *testing.T) {
 	// Setup mocks
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
