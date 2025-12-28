@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -19,21 +22,30 @@ import (
 
 // Config holds the application configuration
 type Config struct {
-	NodeID      string
-	ListenAddr  string
-	DataDir     string
-	WalletKey   string
-	NetworkURL  string
-	ChainID     string
-	LogLevel    string
+	NodeID     string
+	ListenAddr string
+	DataDir    string
+	WalletKey  string
+	NetworkURL string
+	ChainID    string
+	LogLevel   string
 }
 
 // loadConfig loads configuration from environment variables with defaults
 func loadConfig() *Config {
+	listenAddr := getEnv("KNIRVCHAIN_LISTEN_ADDR", "localhost:8080")
+	// Parse host and port, find available port if needed
+	host, portStr, err := net.SplitHostPort(listenAddr)
+	if err != nil {
+		host = "localhost"
+		portStr = "8080"
+	}
+	port, _ := strconv.Atoi(portStr)
+	availablePort := findAvailablePort(port)
 	config := &Config{
 		NodeID:     getEnv("KNIRVCHAIN_NODE_ID", "knirvchain-node-1"),
-		ListenAddr: getEnv("KNIRVCHAIN_LISTEN_ADDR", "localhost:8080"),
-		DataDir:    getEnv("KNIRVCHAIN_DATA_DIR", filepath.Join(os.TempDir(), "knirvchain")),
+		ListenAddr: fmt.Sprintf("%s:%d", host, availablePort),
+		DataDir:    getEnv("KNIRVCHAIN_DATA_DIR", getDefaultDataDir()),
 		WalletKey:  getEnv("KNIRVCHAIN_WALLET_KEY", "mock"), // Use "mock" for development
 		NetworkURL: getEnv("KNIRVCHAIN_NETWORK_URL", "https://api.xion.network"),
 		ChainID:    getEnv("KNIRVCHAIN_CHAIN_ID", "xion-mainnet-1"),
@@ -48,6 +60,35 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// getDefaultDataDir returns the standard application data directory for the current OS
+func getDefaultDataDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return filepath.Join(os.TempDir(), "knirvchain") // fallback to temp dir
+	}
+	switch runtime.GOOS {
+	case "windows":
+		return filepath.Join(home, "AppData", "Roaming", "knirvchain")
+	case "darwin":
+		return filepath.Join(home, "Library", "Application Support", "knirvchain")
+	default: // linux and others
+		return filepath.Join(home, ".local", "share", "knirvchain")
+	}
+}
+
+// findAvailablePort finds an available port starting from the given port
+func findAvailablePort(startPort int) int {
+	for port := startPort; port < startPort+100; port++ {
+		addr := fmt.Sprintf("localhost:%d", port)
+		listener, err := net.Listen("tcp", addr)
+		if err == nil {
+			listener.Close()
+			return port
+		}
+	}
+	return startPort // fallback if none found
 }
 
 func main() {

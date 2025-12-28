@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/knirvchain/internal/blockchain"
+	"github.com/knirvchain/internal/bridge"
 	"github.com/knirvchain/internal/embedding"
 	"github.com/knirvchain/internal/storage"
 	"github.com/knirvchain/internal/wallet"
@@ -342,6 +343,63 @@ func TestBridgeToGraph(t *testing.T) {
 	})
 }
 
+func TestRegisterRoutes(t *testing.T) {
+	server := &MCPServer{
+		router: mux.NewRouter(),
+	}
+	server.registerRoutes()
+
+	// Verify routes are registered - just check that router is not nil
+	assert.NotNil(t, server.router, "Expected router to be initialized")
+}
+
+func TestNewMCPServer(t *testing.T) {
+	tmpDir := t.TempDir()
+	stor, err := storage.NewKNIRVBASEStorage(tmpDir + "/test.db")
+	require.NoError(t, err)
+	defer stor.Close()
+
+	chain, err := blockchain.NewChainNode("test-node", stor)
+	require.NoError(t, err)
+
+	wallet, err := wallet.NewNRNWallet("mock")
+	require.NoError(t, err)
+
+	embedder, err := embedding.NewTFIDFEmbedder(stor, 768)
+	require.NoError(t, err)
+
+	server, err := NewMCPServer("test-node", chain, wallet, embedder)
+	require.NoError(t, err)
+	assert.NotNil(t, server)
+	assert.NotNil(t, server.router)
+	assert.NotNil(t, server.encoder)
+	assert.Nil(t, server.bridge) // No bridge provided
+}
+
+func TestNewMCPServerWithBridge(t *testing.T) {
+	tmpDir := t.TempDir()
+	stor, err := storage.NewKNIRVBASEStorage(tmpDir + "/test.db")
+	require.NoError(t, err)
+	defer stor.Close()
+
+	chain, err := blockchain.NewChainNode("test-node", stor)
+	require.NoError(t, err)
+
+	wallet, err := wallet.NewNRNWallet("mock")
+	require.NoError(t, err)
+
+	embedder, err := embedding.NewTFIDFEmbedder(stor, 768)
+	require.NoError(t, err)
+
+	// Create a bridge
+	bridge := bridge.NewKNIRVGraphBridge("http://test.api", "test-key")
+
+	server, err := NewMCPServerWithBridge("test-node", chain, wallet, embedder, bridge)
+	require.NoError(t, err)
+	assert.NotNil(t, server)
+	assert.Equal(t, bridge, server.bridge)
+}
+
 // Integration-style tests for the full flow would go here
 // but require refactoring MCPServer to use interfaces for dependencies
 // instead of concrete types
@@ -541,4 +599,6 @@ func TestMCPServerIntegration(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 	})
+
+
 }

@@ -14,7 +14,7 @@ import (
 )
 
 // mockXIONServer creates a mock XION API server for testing
-func mockXIONServer(t *testing.T, balance uint64, txHash string, shouldFail bool) *httptest.Server {
+func mockXIONServer(_ *testing.T, balance uint64, txHash string, shouldFail bool) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if shouldFail {
 			w.WriteHeader(http.StatusInternalServerError)

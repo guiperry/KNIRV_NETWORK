@@ -35,13 +35,14 @@ func NewNRNWallet(key string) (*NRNWallet, error) {
 	var privKey *PrivateKey
 	var address string
 
-	if key == "mock" {
+	switch key {
+	case "mock":
 		// Mock wallet for testing
 		privKey = NewPrivateKey([]byte("mock_private_key_for_testing"))
 		address = "xion1mockaddress"
-	} else if key == "" {
+	case "":
 		return nil, fmt.Errorf("private key required (provide file path or 'mock' for testing)")
-	} else {
+	default:
 		// Load private key from file
 		keyBytes, err := os.ReadFile(key)
 		if err != nil {
@@ -148,7 +149,7 @@ func (w *NRNWallet) Spend(ctx context.Context, amount uint64, memo string) (stri
 	// Spending to self for now (actual recipient would be treasury or burn address)
 	tx := NewTransactionBuilder(w.client.chainID, accountNumber, sequence).
 		WithMemo(memo).
-		WithFee(1000, "unrn", 200000). // 0.001 NRN fee
+		WithFee(1000, "unrn", 200000).                          // 0.001 NRN fee
 		WithSend(w.address, w.address, amount*1000000, "unrn"). // Convert NRN to unrn
 		Build()
 

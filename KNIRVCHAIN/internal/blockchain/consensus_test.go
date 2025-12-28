@@ -59,7 +59,7 @@ func TestPoAValidator_AddRemoveValidator(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func createValidBlock(t *testing.T, prevBlock *Block) *Block {
+func createValidBlock(_ *testing.T, prevBlock *Block) *Block {
 	blockID := uuid.New()
 	timestamp := time.Now().Unix()
 
@@ -216,12 +216,12 @@ func TestPoAValidator_ValidateNRNCost(t *testing.T) {
 			size         int
 			expectedCost uint64
 		}{
-			{100, 1},      // < 1 KB
-			{1024, 1},     // = 1 KB
-			{1025, 2},     // > 1 KB
-			{2048, 2},     // = 2 KB
-			{10240, 10},   // = 10 KB
-			{10241, 11},   // > 10 KB
+			{100, 1},    // < 1 KB
+			{1024, 1},   // = 1 KB
+			{1025, 2},   // > 1 KB
+			{2048, 2},   // = 2 KB
+			{10240, 10}, // = 10 KB
+			{10241, 11}, // > 10 KB
 		}
 
 		for _, tc := range testCases {

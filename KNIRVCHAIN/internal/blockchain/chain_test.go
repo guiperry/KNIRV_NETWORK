@@ -32,7 +32,7 @@ func setupTestChainNode(t *testing.T) (*ChainNode, func()) {
 }
 
 // createTestBlock creates a valid block for testing
-func createTestBlock(t *testing.T, data []byte, category MemoryCategory, prevBlock *Block) *Block {
+func createTestBlock(_ *testing.T, data []byte, category MemoryCategory, prevBlock *Block) *Block {
 	blockID := uuid.New()
 	timestamp := time.Now().Unix()
 
