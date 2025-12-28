@@ -4,25 +4,54 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/knirvchain/internal/blockchain"
+	"github.com/knirvchain/internal/bridge"
+	"github.com/knirvchain/internal/embedding"
+	"github.com/knirvchain/internal/storage"
 	"github.com/knirvchain/internal/wallet"
 	"github.com/knirvchain/pkg/glb"
 )
 
 type MCPServer struct {
-	chain   *blockchain.ChainNode
-	wallet  *wallet.NRNWallet
-	encoder *glb.Encoder
-	router  *mux.Router
+	chain    *blockchain.ChainNode
+	wallet   *wallet.NRNWallet
+	embedder embedding.Embedder
+	encoder  *glb.Encoder
+	router   *mux.Router
+	bridge   *bridge.KNIRVGraphBridge // Optional bridge to KNIRVGRAPH
+	logger   *log.Logger
 }
 
-func NewMCPServer(nodeURL, walletKey string) (*MCPServer, error) {
-	chain, err := blockchain.NewChainNode(nodeURL)
+// NewMCPServer creates a new MCP server with injected dependencies
+func NewMCPServer(nodeID string, chain *blockchain.ChainNode, wallet *wallet.NRNWallet, embedder embedding.Embedder) (*MCPServer, error) {
+	return NewMCPServerWithBridge(nodeID, chain, wallet, embedder, nil)
+}
+
+// NewMCPServerWithBridge creates a new MCP server with optional KNIRVGRAPH bridge
+func NewMCPServerWithBridge(nodeID string, chain *blockchain.ChainNode, wallet *wallet.NRNWallet, embedder embedding.Embedder, graphBridge *bridge.KNIRVGraphBridge) (*MCPServer, error) {
+	server := &MCPServer{
+		chain:    chain,
+		wallet:   wallet,
+		embedder: embedder,
+		encoder:  glb.NewEncoder(),
+		router:   mux.NewRouter(),
+		bridge:   graphBridge,
+		logger:   log.New(log.Writer(), "[MCP] ", log.LstdFlags),
+	}
+
+	server.registerRoutes()
+	return server, nil
+}
+
+// NewMCPServerWithDefaults creates a new MCP server with default initialization (for backward compatibility)
+func NewMCPServerWithDefaults(nodeURL, walletKey string, stor storage.Storage) (*MCPServer, error) {
+	chain, err := blockchain.NewChainNode(nodeURL, stor)
 	if err != nil {
 		return nil, err
 	}
@@ -32,15 +61,13 @@ func NewMCPServer(nodeURL, walletKey string) (*MCPServer, error) {
 		return nil, err
 	}
 
-	server := &MCPServer{
-		chain:   chain,
-		wallet:  wallet,
-		encoder: glb.NewEncoder(),
-		router:  mux.NewRouter(),
+	// Create embedder with storage for vocabulary persistence
+	embedder, err := embedding.NewTFIDFEmbedder(stor, 768)
+	if err != nil {
+		return nil, err
 	}
 
-	server.registerRoutes()
-	return server, nil
+	return NewMCPServer(nodeURL, chain, wallet, embedder)
 }
 
 func (s *MCPServer) registerRoutes() {
@@ -347,13 +374,25 @@ func (s *MCPServer) shouldBridgeToGraph(category blockchain.MemoryCategory) bool
 		category == blockchain.CategoryContext
 }
 
-func (s *MCPServer) generateEmbedding(_ context.Context, _ string) ([]float32, error) {
-	// Stub: return random vector
-	return make([]float32, 768), nil
+func (s *MCPServer) generateEmbedding(ctx context.Context, text string) ([]float32, error) {
+	// Use embedder to generate semantic vector
+	return s.embedder.Generate(ctx, text)
 }
 
 func (s *MCPServer) bridgeToGraph(ctx context.Context, block *blockchain.Block) {
-	// Implementation in bridge package
+	// Skip if bridge is not configured
+	if s.bridge == nil {
+		return
+	}
+
+	// Send transaction to KNIRVGRAPH in background
+	// We don't want to fail the main operation if bridging fails
+	if err := s.bridge.SendTransaction(ctx, block); err != nil {
+		s.logger.Printf("Failed to bridge block %s to KNIRVGRAPH: %v", block.BlockID, err)
+		// Log error but don't propagate - bridging is optional
+	} else {
+		s.logger.Printf("Successfully bridged block %s to KNIRVGRAPH", block.BlockID)
+	}
 }
 
 func (s *MCPServer) Start(addr string) error {

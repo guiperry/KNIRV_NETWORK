@@ -8,12 +8,14 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/knirvchain/internal/storage"
 )
 
 type ChainNode struct {
-	nodeID string
-	blocks map[uuid.UUID]*Block
-	mu     sync.RWMutex
+	nodeID     string
+	blockStore *BlockStore
+	validator  BlockValidator
+	mu         sync.RWMutex
 }
 
 type SearchRequest struct {
@@ -22,10 +24,25 @@ type SearchRequest struct {
 	Category *MemoryCategory
 }
 
-func NewChainNode(nodeURL string) (*ChainNode, error) {
+func NewChainNode(nodeID string, storage storage.Storage) (*ChainNode, error) {
+	blockStore := NewBlockStore(storage)
+	validator := NewPoAValidator(nodeID) // Default PoA validator with only self authorized
+
 	return &ChainNode{
-		nodeID: nodeURL,
-		blocks: make(map[uuid.UUID]*Block),
+		nodeID:     nodeID,
+		blockStore: blockStore,
+		validator:  validator,
+	}, nil
+}
+
+// NewChainNodeWithValidator creates a chain node with a custom validator
+func NewChainNodeWithValidator(nodeID string, storage storage.Storage, validator BlockValidator) (*ChainNode, error) {
+	blockStore := NewBlockStore(storage)
+
+	return &ChainNode{
+		nodeID:     nodeID,
+		blockStore: blockStore,
+		validator:  validator,
 	}, nil
 }
 
@@ -33,8 +50,29 @@ func (cn *ChainNode) CommitBlock(ctx context.Context, block *Block) error {
 	cn.mu.Lock()
 	defer cn.mu.Unlock()
 
-	// Simple PoA: just append
-	cn.blocks[block.BlockID] = block
+	// Get latest block for validation (nil if this is first block)
+	var prevBlock *Block
+	allBlocks, err := cn.blockStore.GetAllBlocks()
+	if err == nil && len(allBlocks) > 0 {
+		// Find most recent block by timestamp
+		prevBlock = allBlocks[0]
+		for _, b := range allBlocks {
+			if b.Timestamp > prevBlock.Timestamp {
+				prevBlock = b
+			}
+		}
+	}
+
+	// Validate block with consensus rules
+	if err := cn.validator.ValidateBlock(block, prevBlock); err != nil {
+		return fmt.Errorf("block validation failed: %w", err)
+	}
+
+	// Persist block to storage
+	if err := cn.blockStore.PutBlock(block); err != nil {
+		return fmt.Errorf("failed to persist block: %w", err)
+	}
+
 	return nil
 }
 
@@ -42,11 +80,23 @@ func (cn *ChainNode) SemanticSearch(ctx context.Context, req SearchRequest) ([]*
 	cn.mu.RLock()
 	defer cn.mu.RUnlock()
 
+	var blocks []*Block
+	var err error
+
+	// Get blocks by category if specified, otherwise get all
+	if req.Category != nil {
+		blocks, err = cn.blockStore.GetBlocksByCategory(*req.Category)
+	} else {
+		blocks, err = cn.blockStore.GetAllBlocks()
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve blocks: %w", err)
+	}
+
+	// Calculate similarity scores
 	var results []*Block
-	for _, block := range cn.blocks {
-		if req.Category != nil && block.Category != *req.Category {
-			continue
-		}
+	for _, block := range blocks {
 		// Simple similarity: cosine similarity
 		similarity := cosineSimilarity(req.Vector, block.SemanticVector)
 		block.SimilarityScore = similarity
@@ -69,11 +119,46 @@ func (cn *ChainNode) GetBlock(ctx context.Context, blockID uuid.UUID) (*Block, e
 	cn.mu.RLock()
 	defer cn.mu.RUnlock()
 
-	block, ok := cn.blocks[blockID]
-	if !ok {
-		return nil, fmt.Errorf("block not found")
+	block, err := cn.blockStore.GetBlock(blockID)
+	if err != nil {
+		return nil, fmt.Errorf("block not found: %w", err)
 	}
 	return block, nil
+}
+
+// GetLatestBlock returns the most recent block by timestamp
+func (cn *ChainNode) GetLatestBlock(ctx context.Context) (*Block, error) {
+	cn.mu.RLock()
+	defer cn.mu.RUnlock()
+
+	allBlocks, err := cn.blockStore.GetAllBlocks()
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve blocks: %w", err)
+	}
+
+	if len(allBlocks) == 0 {
+		return nil, fmt.Errorf("no blocks in chain")
+	}
+
+	// Find most recent block by timestamp
+	latestBlock := allBlocks[0]
+	for _, b := range allBlocks {
+		if b.Timestamp > latestBlock.Timestamp {
+			latestBlock = b
+		}
+	}
+
+	return latestBlock, nil
+}
+
+// GetValidator returns the block validator for this chain node
+func (cn *ChainNode) GetValidator() BlockValidator {
+	return cn.validator
+}
+
+// GetNodeID returns the node ID
+func (cn *ChainNode) GetNodeID() string {
+	return cn.nodeID
 }
 
 func SHA256Hash(data []byte) string {
