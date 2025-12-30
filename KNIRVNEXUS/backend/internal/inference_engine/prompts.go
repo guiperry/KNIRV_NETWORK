@@ -1,5 +1,7 @@
 package inference_engine
 
+import "fmt"
+
 // Prompts for zookeeper Code Analysis and Remediation
 const (
 	// CodeFileAnalysisPrompt asks the AI to analyze a single code file for quality, complexity, and issues.
@@ -151,4 +153,30 @@ func indexOf(s, substr string) int {
 		}
 	}
 	return -1
+}
+
+// BuildPrompt constructs a prompt from base, context items, and user input
+func BuildPrompt(base string, context []string, userInput string) string {
+	prompt := base
+	if len(context) > 0 {
+		prompt += "\n\nContext:"
+		for _, ctx := range context {
+			prompt += "\n- " + ctx
+		}
+	}
+	if userInput != "" {
+		prompt += "\n\nUser Input: " + userInput
+	}
+	return prompt
+}
+
+// ValidatePrompt checks if a prompt is valid (non-empty and within length limits)
+func ValidatePrompt(prompt string) error {
+	if prompt == "" {
+		return fmt.Errorf("prompt cannot be empty")
+	}
+	if len(prompt) > 10000 {
+		return fmt.Errorf("prompt too long (max 10000 characters)")
+	}
+	return nil
 }

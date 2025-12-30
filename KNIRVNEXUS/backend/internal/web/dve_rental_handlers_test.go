@@ -92,13 +92,11 @@ func TestDownloadSSHPrivateKey_SessionNotFound(t *testing.T) {
 func TestDownloadSSHPrivateKey_SessionExpired(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
-
-	sessionID := "expired-session-123"
 
 	// Create an expired session
 	sshSession, _ := handlers.sessionManager.CreateSSHSession("rental-123", "container-456", "testuser", "test-private-key")
@@ -106,6 +104,8 @@ func TestDownloadSSHPrivateKey_SessionExpired(t *testing.T) {
 	sshSession.ExpiresAt = time.Now().Add(-1 * time.Hour)
 	sshSession.CreatedAt = time.Now().Add(-25 * time.Hour)
 	sshSession.LastUsed = time.Now().Add(-2 * time.Hour)
+
+	sessionID := sshSession.ID
 
 	req := httptest.NewRequest("GET", "/api/sessions/ssh/"+sessionID+"/private-key", nil)
 	req = mux.SetURLVars(req, map[string]string{"sessionId": sessionID})
