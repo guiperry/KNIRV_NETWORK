@@ -59,7 +59,10 @@ func NewContainerRuntimeManager(kaliProfile *KaliLinuxProfile) (*ContainerRuntim
 	}
 
 	if err := podmanRuntime.validate(context.Background()); err != nil {
-		return nil, fmt.Errorf("podman validation failed: %v", err)
+		log.Printf("Warning: Podman validation failed: %v", err)
+		log.Println("Container runtime features will be disabled (suitable for development/testing)")
+		manager.preferredRuntime = "disabled"
+		return manager, nil
 	}
 
 	manager.podmanFallback = podmanRuntime
@@ -76,6 +79,10 @@ func (crm *ContainerRuntimeManager) RunContainer(ctx context.Context, opts Conta
 
 	if crm.podmanFallback != nil {
 		return crm.podmanFallback.RunContainer(ctx, opts)
+	}
+
+	if crm.preferredRuntime == "disabled" {
+		return nil, fmt.Errorf("container runtime is disabled (cannot create nested containers in containerized environment)")
 	}
 
 	return nil, fmt.Errorf("no container runtime available")

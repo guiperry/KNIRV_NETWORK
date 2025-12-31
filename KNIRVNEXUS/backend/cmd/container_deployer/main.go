@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/fs"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -138,73 +137,6 @@ func getEmbeddedResourcesDirectory(appDataDir string) string {
 	return filepath.Join(appDataDir, "resources")
 }
 
-// exportEnvFile handles environment file setup for production deployments
-// For development and testnet, the unified binary has embedded .env files
-// and will extract them at runtime based on the --env flag
-func exportEnvFile(environment, artifactDir string) error {
-	switch environment {
-	case "development", "testnet":
-		// The unified binary has these embedded and will extract at runtime
-		// No need to export anything here
-		fmt.Printf("✓ Using embedded %s environment (will be extracted by binary at runtime)\n", environment)
-		return nil
-
-	case "production":
-		// For production, download .env from URL
-		fmt.Println("\nProduction environment setup:")
-		fmt.Println("1. Provide URL to .env.production file")
-		fmt.Println("2. Enter values manually (TODO: not yet implemented)")
-		fmt.Print("Enter your choice (1 or 2): ")
-		var choice string
-		fmt.Scanln(&choice)
-
-		var envData []byte
-		var err error
-
-		switch choice {
-		case "1":
-			fmt.Print("Enter URL to .env.production file: ")
-			var url string
-			fmt.Scanln(&url)
-
-			// Download the .env file from URL
-			resp, err := http.Get(url)
-			if err != nil {
-				return fmt.Errorf("failed to download .env.production from URL: %w", err)
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				return fmt.Errorf("failed to download .env.production: HTTP %d", resp.StatusCode)
-			}
-
-			envData, err = io.ReadAll(resp.Body)
-			if err != nil {
-				return fmt.Errorf("failed to read .env.production from response: %w", err)
-			}
-			fmt.Printf("✓ Downloaded .env.production from %s\n", url)
-
-		case "2":
-			return fmt.Errorf("manual entry not yet implemented - please use option 1")
-		default:
-			return fmt.Errorf("invalid choice: %s", choice)
-		}
-
-		// Write .env file to golang-app-source directory for Docker build
-		goAppSourcePath := filepath.Join(artifactDir, "golang-app-source")
-		if err := os.MkdirAll(goAppSourcePath, 0755); err != nil {
-			return fmt.Errorf("failed to create golang-app-source directory: %w", err)
-		}
-
-		envFilePath := filepath.Join(goAppSourcePath, ".env")
-		if err := os.WriteFile(envFilePath, envData, 0644); err != nil {
-		return fmt.Errorf("failed to write .env file: %w", err)
-	}
-
-	fmt.Printf("✓ .env file written to %s\n", envFilePath)
-	return nil
-}
-
 func main() {
 	// Initialize deployment logging
 	if err := initDeploymentLog(); err != nil {
@@ -258,6 +190,7 @@ func main() {
 	// Parse command-line flags for non-interactive mode
 	action := flag.String("action", "", "Action to perform: 1=Deploy new container, 2=Install Go app only, 3=Exit")
 	deployType := flag.String("deploy-type", "", "Deployment type: local or cloud")
+	envFlag := flag.String("env", "", "Environment: development, testnet, or production")
 	flag.Parse()
 
 	// Determine deployment type
@@ -290,30 +223,35 @@ func main() {
 
 	// Select deployment environment (dev/testnet/production)
 	var environment string
-	fmt.Println("\nSelect deployment environment:")
-	fmt.Println("1. Development (.env.development)")
-	fmt.Println("2. Testnet (.env.testnet)")
-	fmt.Println("3. Production (will prompt for values or URL)")
-	fmt.Print("Enter your choice (1, 2, or 3): ")
-	var envChoice string
-	fmt.Scanln(&envChoice)
-	switch envChoice {
-	case "1":
-		environment = "development"
-	case "2":
-		environment = "testnet"
-	case "3":
-		environment = "production"
-	default:
-		log.Fatalf("Invalid choice: %s", envChoice)
+	if *envFlag != "" {
+		// Use flag value if provided
+		environment = *envFlag
+		if environment != "development" && environment != "testnet" && environment != "production" {
+			log.Fatalf("Invalid environment: %s (must be 'development', 'testnet', or 'production')", environment)
+		}
+	} else {
+		// Ask user interactively
+		fmt.Println("\nSelect deployment environment:")
+		fmt.Println("1. Development (.env.development)")
+		fmt.Println("2. Testnet (.env.testnet)")
+		fmt.Println("3. Production (will prompt for values or URL)")
+		fmt.Print("Enter your choice (1, 2, or 3): ")
+		var envChoice string
+		fmt.Scanln(&envChoice)
+		switch envChoice {
+		case "1":
+			environment = "development"
+		case "2":
+			environment = "testnet"
+		case "3":
+			environment = "production"
+		default:
+			log.Fatalf("Invalid choice: %s", envChoice)
+		}
 	}
 
 	fmt.Printf("✓ Using %s environment\n", environment)
-
-	// Export the appropriate .env file
-	if err := exportEnvFile(environment, artifactDir); err != nil {
-		log.Fatalf("Failed to export .env file: %v", err)
-	}
+	fmt.Printf("  (The unified binary will extract embedded .env at runtime via KNIRV_ENV variable)\n")
 
 	// If action flag provided, execute it non-interactively
 	if *action != "" {

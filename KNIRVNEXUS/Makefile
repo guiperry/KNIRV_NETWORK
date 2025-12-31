@@ -47,7 +47,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local
 
 # Default target
 all: clean deps frontend backend binary
@@ -211,6 +211,10 @@ deploy-full: ## Full deployment with all components
 	@echo "$(BLUE)Running full deployment...$(NC)"
 	cd $(DEPLOYMENT_DIR) && ./scripts/full-deploy.sh --environment $(ENVIRONMENT)
 
+deploy-dev-local: ## Deploy to local development environment
+	@echo "$(BLUE)Deploying to local development environment...$(NC)"
+	cd $(BACKEND_DIR)/cmd/container_deployer && ./container_deployer --deploy-type local --env development --action 1
+
 deploy-monitoring: ## Deploy monitoring stack
 	@echo "$(BLUE)Deploying monitoring...$(NC)"
 	cd $(DEPLOYMENT_DIR)/ansible && ansible-playbook playbooks/monitoring.yml -e env=$(ENVIRONMENT)
@@ -243,6 +247,8 @@ clean: ## Clean build artifacts
 	rm -rf $(FRONTEND_DIR)/out
 	rm -rf $(FRONTEND_DIR)/node_modules
 	rm -rf node_modules/.cache
+	docker stop knirvnexus-kali-local
+	docker rm knirvnexus-kali-local
 
 clean-all: clean ## Clean everything including dependencies
 	@echo "$(BLUE)Cleaning all artifacts and dependencies...$(NC)"

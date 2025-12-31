@@ -101,6 +101,17 @@ func DetectKaliEnvironment() (*KaliLinuxProfile, error) {
 		profile.OS = "kali"
 		profile.IsKaliLinux = true
 		profile.PreferredRuntime = "native-go" // Use native Go container runtime for Kali
+	} else if strings.Contains(osReleaseLower, "debian") {
+		profile.OS = "debian"
+		// Check if Kali tools are installed (Debian with Kali tooling)
+		if hasKaliTools() {
+			log.Println("Detected Debian with Kali security tools - using native-go runtime")
+			profile.IsKaliLinux = true // Treat as Kali-equivalent for runtime purposes
+			profile.PreferredRuntime = "native-go"
+		} else {
+			profile.IsKaliLinux = false
+			profile.PreferredRuntime = "podman"
+		}
 	} else if strings.Contains(osReleaseLower, "ubuntu") {
 		profile.OS = "ubuntu"
 		profile.IsKaliLinux = false
@@ -113,12 +124,28 @@ func DetectKaliEnvironment() (*KaliLinuxProfile, error) {
 	// Detect CPU capabilities for TEE
 	profile.ArchitectureSupport = detectTEECapabilities()
 
-	// If Kali Linux, detect available security tools
+	// If Kali Linux (or Debian with Kali tools), detect available security tools
 	if profile.IsKaliLinux {
 		detectKaliSecurityTools(profile)
 	}
 
 	return profile, nil
+}
+
+// hasKaliTools checks if essential Kali security tools are installed
+func hasKaliTools() bool {
+	// Check for core security tools that indicate a Kali-like environment
+	essentialTools := []string{"strace", "radare2", "semgrep", "gdb"}
+	foundCount := 0
+
+	for _, tool := range essentialTools {
+		if _, err := exec.LookPath(tool); err == nil {
+			foundCount++
+		}
+	}
+
+	// If at least 2 essential tools are found, consider it a Kali-tooled environment
+	return foundCount >= 2
 }
 
 // readOSRelease reads /etc/os-release file

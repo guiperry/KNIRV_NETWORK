@@ -40,10 +40,14 @@ type ContainerResult struct {
 	ExecutionTime int64  // milliseconds
 }
 
-// NewNativeContainerRuntime creates a native Go container runtime for Kali Linux
+// NewNativeContainerRuntime creates a native Go container runtime for systems with Kali security tools
 func NewNativeContainerRuntime(kaliProfile *KaliLinuxProfile) (*NativeContainerRuntime, error) {
-	if !kaliProfile.IsKaliLinux {
-		return nil, fmt.Errorf("native runtime is only for Kali Linux. Use Podman fallback for other systems")
+	// Check if essential security tools are available (works on Kali or Debian with Kali tools)
+	requiredTools := []string{"strace", "bash"}
+	for _, tool := range requiredTools {
+		if _, err := exec.LookPath(tool); err != nil {
+			return nil, fmt.Errorf("native runtime requires %s to be installed", tool)
+		}
 	}
 
 	containerDir := "/tmp/knirv-containers"
@@ -51,6 +55,7 @@ func NewNativeContainerRuntime(kaliProfile *KaliLinuxProfile) (*NativeContainerR
 		return nil, fmt.Errorf("failed to create container directory: %v", err)
 	}
 
+	log.Printf("Native container runtime initialized (OS: %s, Tools available: strace, bash)", kaliProfile.OS)
 	return &NativeContainerRuntime{
 		kaliProfile:  kaliProfile,
 		containerDir: containerDir,

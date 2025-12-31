@@ -31,9 +31,9 @@ var embeddedFiles embed.FS
 //go:embed bin/backend_server
 var backendBinary []byte
 
-// Embed the backend config files
+// Embed the config files
 //
-//go:embed all:backend/config/*
+//go:embed all:config/*
 var configFiles embed.FS
 
 // Embed environment files
@@ -283,7 +283,7 @@ func extractConfigFiles() error {
 	}
 
 	// Walk through embedded config files
-	err = fs.WalkDir(configFiles, "backend/config", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(configFiles, "config", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -299,7 +299,7 @@ func extractConfigFiles() error {
 			return fmt.Errorf("failed to read embedded file %s: %w", path, err)
 		}
 
-		// Extract just the filename (remove "backend/config/" prefix)
+		// Extract just the filename (remove "config/" prefix)
 		filename := filepath.Base(path)
 		destPath := filepath.Join(configDir, filename)
 
@@ -517,6 +517,17 @@ func (app *NexusApp) Stop() error {
 	return nil
 }
 
+// isFlagSet checks if a flag was explicitly set on the command line
+func isFlagSet(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
+}
+
 // loadConfig loads configuration from file and environment
 func loadConfig() (*Config, error) {
 	// Parse command line flags
@@ -529,7 +540,15 @@ func loadConfig() (*Config, error) {
 	)
 	flag.Parse()
 
-	// Extract environment file based on flag
+	// Check for KNIRV_ENV environment variable if --env flag not explicitly set
+	if !isFlagSet("env") {
+		if envVar := os.Getenv("KNIRV_ENV"); envVar != "" {
+			*environment = envVar
+			log.Printf("Using environment from KNIRV_ENV: %s", *environment)
+		}
+	}
+
+	// Extract environment file based on flag or environment variable
 	if err := extractEnvFile(*environment); err != nil {
 		log.Printf("Warning: Failed to extract environment file: %v", err)
 	}
@@ -538,8 +557,8 @@ func loadConfig() (*Config, error) {
 	if *configFile != "" {
 		viper.SetConfigFile(*configFile)
 	} else {
-		// Set config file name and paths
-		viper.SetConfigName("production")
+		// Set config file name based on environment
+		viper.SetConfigName(*environment)
 		viper.SetConfigType("yaml")
 
 		// Add app data directory config path first (highest priority)
@@ -548,7 +567,6 @@ func loadConfig() (*Config, error) {
 		}
 
 		// Add local paths as fallback
-		viper.AddConfigPath("./backend/config")
 		viper.AddConfigPath("./config")
 		viper.AddConfigPath(".")
 	}

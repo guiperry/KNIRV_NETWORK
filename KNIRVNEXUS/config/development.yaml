@@ -1,12 +1,19 @@
 # KNIRV-NEXUS Development Configuration
 
+# Core configuration
+chain_id: knirv-nexus-devnet
+node_role: dve-manager
+
 # Server settings (wrapper frontend)
 host: "0.0.0.0"
-port: 8081
-database_path: "data/nexus.db"
+port: 8090
 serve_frontend: true
 log_level: "debug"
-log_file: "logs/nexus.log"
+log_file: "logs/nexus.db"
+
+# Database configuration
+database:
+  path: "data/nexus.db"
 
 # API Configuration
 api:
@@ -16,6 +23,7 @@ api:
   cors_origins:
     - "http://localhost:3000"
     - "http://localhost:8082"
+    - "http://localhost:8090"
     - "https://nexus.knirv.com"
   jwt_secret: "dev-jwt-secret-key-for-development-only"
   rate_limit_rps: 1000
