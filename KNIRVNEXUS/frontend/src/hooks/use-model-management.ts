@@ -67,9 +67,9 @@ export const useModelManagement = () => {
       }
       
       const response: APIResponse<Model[]> = await apiRequest(url, { method: 'GET' });
-      
-      if (response.success && response.data) {
-        setModels(response.data);
+
+      if (response.success) {
+        setModels(response.data || []);
       } else {
         throw new Error(response.error || 'Failed to fetch models');
       }
@@ -251,10 +251,11 @@ export const useModelManagement = () => {
     try {
       const url = `${API_BASE_URL}/api/model-management/objects/${modelId}/metrics?limit=${limit}`;
       const response: APIResponse<ModelMetrics[]> = await apiRequest(url, { method: 'GET' });
-      
-      if (response.success && response.data) {
-        setModelMetrics(prev => ({ ...prev, [modelId]: response.data! }));
-        return response.data;
+
+      if (response.success) {
+        const data = response.data || [];
+        setModelMetrics(prev => ({ ...prev, [modelId]: data }));
+        return data;
       }
     } catch (err) {
       console.error('Failed to fetch model metrics:', err);
@@ -267,10 +268,11 @@ export const useModelManagement = () => {
     try {
       const url = `${API_BASE_URL}/api/model-management/objects/${modelId}/logs?limit=${limit}`;
       const response: APIResponse<ModelLog[]> = await apiRequest(url, { method: 'GET' });
-      
-      if (response.success && response.data) {
-        setModelLogs(prev => ({ ...prev, [modelId]: response.data! }));
-        return response.data;
+
+      if (response.success) {
+        const data = response.data || [];
+        setModelLogs(prev => ({ ...prev, [modelId]: data }));
+        return data;
       }
     } catch (err) {
       console.error('Failed to fetch model logs:', err);
@@ -285,10 +287,11 @@ export const useModelManagement = () => {
         ? `${API_BASE_URL}/api/model-management/objects/${modelId}/events?limit=${limit}`
         : `${API_BASE_URL}/api/model-management/events?limit=${limit}`;
       const response: APIResponse<ModelEvent[]> = await apiRequest(url, { method: 'GET' });
-      
-      if (response.success && response.data) {
-        setModelEvents(response.data);
-        return response.data;
+
+      if (response.success) {
+        const data = response.data || [];
+        setModelEvents(data);
+        return data;
       }
     } catch (err) {
       console.error('Failed to fetch model events:', err);
@@ -301,10 +304,11 @@ export const useModelManagement = () => {
     try {
       const url = `${API_BASE_URL}/api/model-management/templates`;
       const response: APIResponse<ModelTemplate[]> = await apiRequest(url, { method: 'GET' });
-      
-      if (response.success && response.data) {
-        setTemplates(response.data);
-        return response.data;
+
+      if (response.success) {
+        const data = response.data || [];
+        setTemplates(data);
+        return data;
       }
     } catch (err) {
       console.error('Failed to fetch templates:', err);

@@ -981,6 +981,269 @@ kubectl get endpoints -n knirv-nexus
 kubectl get events -n knirv-nexus --sort-by='.lastTimestamp'
 ```
 
+## 🌐 CORS Configuration & Route Handling
+
+### Understanding CORS in KNIRVNEXUS
+
+KNIRVNEXUS uses a comprehensive CORS (Cross-Origin Resource Sharing) middleware to enable secure cross-origin requests between the frontend (port 8090) and backend API (port 8082). Understanding CORS is critical for adding new routes or debugging frontend-backend communication issues.
+
+#### CORS Middleware Architecture
+
+The CORS middleware is located at `backend/internal/web/middleware/middleware.go` and is applied globally to all routes in `backend/cmd/backend_server/main.go`:
+
+```go
+// In setupRoutes()
+s.router.Use(middleware.CORSMiddleware)
+```
+
+**Allowed Origins** (configured in middleware.go):
+- `http://localhost:3000` - Next.js dev server
+- `http://localhost:8090` - Production frontend
+- `http://localhost:8080` - Alternative port
+- `http://localhost:8082` - Backend API
+- `http://127.0.0.1:*` - Localhost variants
+- `https://nexus.knirv.com` - Production domain
+
+**CORS Headers Set**:
+- `Access-Control-Allow-Origin` - Dynamically set based on request origin
+- `Access-Control-Allow-Methods` - `GET, POST, PUT, PATCH, DELETE, OPTIONS`
+- `Access-Control-Allow-Headers` - `Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token`
+- `Access-Control-Allow-Credentials` - `true`
+- `Access-Control-Max-Age` - `86400` (24 hours)
+
+### Common CORS Issues and Solutions
+
+#### Issue 1: "No Access-Control-Allow-Origin header present"
+
+**Symptom**: Browser console shows CORS error on preflight OPTIONS request
+
+**Root Cause**: Route is registered with specific HTTP methods (e.g., `GET`) but not `OPTIONS`, causing gorilla/mux to return `405 Method Not Allowed` **before** the CORS middleware can add headers.
+
+**Solution**: Always include `OPTIONS` in your route method definitions:
+
+```go
+// ❌ WRONG - Will cause CORS errors
+router.HandleFunc("/api/my-endpoint", handler).Methods("GET")
+
+// ✅ CORRECT - Allows CORS preflight
+router.HandleFunc("/api/my-endpoint", handler).Methods("GET", "OPTIONS")
+
+// ✅ CORRECT - Multiple methods
+router.HandleFunc("/api/my-endpoint", handler).Methods("POST", "OPTIONS")
+router.HandleFunc("/api/my-endpoint", handler).Methods("GET", "PUT", "DELETE", "OPTIONS")
+```
+
+**Why This Happens**: Browsers send an OPTIONS preflight request before the actual request when:
+- Using methods other than GET/POST
+- Sending custom headers (like `Authorization`)
+- Content-Type is not `application/x-www-form-urlencoded`, `multipart/form-data`, or `text/plain`
+
+#### Issue 2: Duplicate Path Prefixes
+
+**Symptom**: Endpoint returns 404, but works at `/api/service/api/service/endpoint`
+
+**Root Cause**: Path prefix is defined twice - once in main.go and again in the handler's RegisterRoutes method.
+
+**Solution**: Choose ONE place to define the path prefix:
+
+```go
+// ❌ WRONG - Double prefix
+// In main.go:
+dveRentalRouter := s.router.PathPrefix("/api/dve-rental").Subrouter()
+dveRentalHandlers.RegisterRoutes(dveRentalRouter, authMiddleware)
+
+// In handler RegisterRoutes:
+rentalRouter := r.PathPrefix("/api/dve-rental").Subrouter()
+rentalRouter.HandleFunc("/plans", h.GetRentalPlans).Methods("GET", "OPTIONS")
+// Result: /api/dve-rental/api/dve-rental/plans
+
+// ✅ CORRECT - Prefix in handler only
+// In main.go:
+dveRentalHandlers.RegisterRoutes(s.router, authMiddleware)
+
+// In handler RegisterRoutes:
+rentalRouter := r.PathPrefix("/api/dve-rental").Subrouter()
+rentalRouter.HandleFunc("/plans", h.GetRentalPlans).Methods("GET", "OPTIONS")
+// Result: /api/dve-rental/plans
+```
+
+#### Issue 3: Frontend Null Data Handling
+
+**Symptom**: "Failed to fetch" error in console when API returns successfully but with `null` data
+
+**Root Cause**: Frontend code checks `if (response.success && response.data)` which fails when data is null
+
+**Solution**: Handle null data gracefully:
+
+```typescript
+// ❌ WRONG - Treats null as error
+if (response.success && response.data) {
+  setItems(response.data);
+} else {
+  throw new Error('Failed to fetch');
+}
+
+// ✅ CORRECT - Handles null as empty
+if (response.success) {
+  setItems(response.data || []);
+} else {
+  throw new Error(response.error || 'Failed to fetch');
+}
+```
+
+### Best Practices for Adding New Routes
+
+#### 1. Route Registration Template
+
+When adding new API routes, follow this pattern:
+
+```go
+// In your handler file (e.g., my_service_handlers.go)
+func (h *MyServiceHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
+    // Create subrouter with your service prefix
+    serviceRouter := r.PathPrefix("/api/my-service").Subrouter()
+
+    // Public routes - Always include OPTIONS
+    serviceRouter.HandleFunc("/public-endpoint", h.GetPublicData).Methods("GET", "OPTIONS")
+    serviceRouter.HandleFunc("/stats", h.GetStats).Methods("GET", "OPTIONS")
+
+    // Protected routes
+    if authMiddleware != nil {
+        protectedRouter := serviceRouter.PathPrefix("").Subrouter()
+        protectedRouter.Use(authMiddleware.RequireAuth)
+        protectedRouter.HandleFunc("/private-endpoint", h.GetPrivateData).Methods("GET", "OPTIONS")
+        protectedRouter.HandleFunc("/create", h.CreateResource).Methods("POST", "OPTIONS")
+        protectedRouter.HandleFunc("/update/{id}", h.UpdateResource).Methods("PUT", "OPTIONS")
+        protectedRouter.HandleFunc("/delete/{id}", h.DeleteResource).Methods("DELETE", "OPTIONS")
+    } else {
+        // Testnet mode - No auth required
+        serviceRouter.HandleFunc("/private-endpoint", h.GetPrivateData).Methods("GET", "OPTIONS")
+        serviceRouter.HandleFunc("/create", h.CreateResource).Methods("POST", "OPTIONS")
+        serviceRouter.HandleFunc("/update/{id}", h.UpdateResource).Methods("PUT", "OPTIONS")
+        serviceRouter.HandleFunc("/delete/{id}", h.DeleteResource).Methods("DELETE", "OPTIONS")
+    }
+}
+
+// In main.go setupRoutes():
+if s.myService != nil {
+    myServiceHandlers := web.NewMyServiceHandlers(s.myService)
+    // Pass the main router - handler will create its own subrouter
+    myServiceHandlers.RegisterRoutes(s.router, authMiddleware)
+    log.Println("My service routes configured")
+}
+```
+
+#### 2. Handler Method Pattern
+
+Ensure your handler methods work with both actual requests and OPTIONS preflight:
+
+```go
+func (h *MyServiceHandlers) GetData(w http.ResponseWriter, r *http.Request) {
+    // OPTIONS is handled automatically by CORS middleware
+    // Just write your normal handler logic
+
+    w.Header().Set("Content-Type", "application/json")
+    response := map[string]interface{}{
+        "success": true,
+        "data":    h.service.GetData(),
+    }
+    json.NewEncoder(w).Encode(response)
+}
+```
+
+#### 3. Frontend API Integration
+
+When calling your new backend endpoints from the frontend:
+
+```typescript
+// In your React hook or component
+import { apiRequest, API_BASE_URL } from '@/lib/api';
+
+const fetchData = async () => {
+  try {
+    const response = await apiRequest(
+      `${API_BASE_URL}/api/my-service/public-endpoint`,
+      { method: 'GET' }
+    );
+
+    // Handle null data gracefully
+    if (response.success) {
+      setData(response.data || []);
+    } else {
+      throw new Error(response.error || 'Failed to fetch data');
+    }
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    setError(error.message);
+  }
+};
+```
+
+### Testing CORS Configuration
+
+Always test your new routes with curl to verify CORS headers:
+
+```bash
+# Test OPTIONS preflight request
+curl -v -X OPTIONS \
+  -H "Origin: http://localhost:8090" \
+  -H "Access-Control-Request-Method: GET" \
+  http://localhost:8082/api/my-service/endpoint
+
+# Should return 200 OK with CORS headers
+
+# Test actual GET request
+curl -v -H "Origin: http://localhost:8090" \
+  http://localhost:8082/api/my-service/endpoint
+
+# Should return 200 OK with data and CORS headers
+```
+
+Expected headers in response:
+```
+< HTTP/1.1 200 OK
+< Access-Control-Allow-Origin: http://localhost:8090
+< Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+< Access-Control-Allow-Headers: Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token
+< Access-Control-Allow-Credentials: true
+```
+
+### Quick Reference Checklist
+
+When adding new API routes, verify:
+
+- [ ] Route includes `OPTIONS` method: `.Methods("GET", "OPTIONS")`
+- [ ] No duplicate path prefixes (check both main.go and handler)
+- [ ] CORS middleware is applied (should be automatic via `s.router.Use()`)
+- [ ] Frontend handles null data: `response.data || []`
+- [ ] Tested with curl for both OPTIONS and actual method
+- [ ] Browser dev console shows no CORS errors
+
+### Debugging CORS Issues
+
+If you encounter CORS errors:
+
+1. **Check the network tab** in browser dev tools:
+   - Look for the OPTIONS preflight request
+   - Check if it returns 200 or 405
+   - Verify `Access-Control-Allow-Origin` header is present
+
+2. **Test with curl** to isolate frontend vs backend issues:
+   ```bash
+   # If this works but browser fails, it's a frontend issue
+   curl -H "Origin: http://localhost:8090" http://localhost:8082/api/endpoint
+   ```
+
+3. **Verify route registration** in backend logs:
+   ```bash
+   # Look for route registration messages
+   grep "routes configured" backend.log
+   ```
+
+4. **Check for 404 or 405 errors** which indicate route definition issues:
+   - 404 = Route path is wrong or not registered
+   - 405 = Missing OPTIONS method in route definition
+
 ## 🤝 Contributing
 
 1. Fork the repository
