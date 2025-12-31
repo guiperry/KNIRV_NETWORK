@@ -178,12 +178,6 @@ func main() {
 		log.Fatalf("Failed to extract embedded files: %v", err)
 	}
 
-	// Copy golang-app-source to artifacts directory for persistence
-	err = ensureGoAppSourceInArtifacts(resourcesDir, artifactDir)
-	if err != nil {
-		log.Fatalf("Failed to ensure Go app source in artifacts: %v", err)
-	}
-
 	fmt.Println("\nChecking system prerequisites...")
 	if err := checkPrerequisites(); err != nil {
 		log.Fatalf("Prerequisite check failed: %v", err)
@@ -281,6 +275,7 @@ func extractEmbeddedFiles(dest string) error {
 		if err != nil {
 			return err
 		}
+		
 		if d.IsDir() {
 			return os.MkdirAll(filepath.Join(dest, path), 0755)
 		}
@@ -468,45 +463,6 @@ func checkKataArtifacts() bool {
 	return kernelExists && rootfsExists
 }
 
-func ensureGoAppSourceInArtifacts(resourcesDir, artifactDir string) error {
-	// Source and destination paths
-	srcAppSourcePath := filepath.Join(resourcesDir, golangAppSourceDir)
-	dstAppSourcePath := filepath.Join(artifactDir, golangAppSourceDir)
-
-	// Check if source exists
-	if _, err := os.Stat(srcAppSourcePath); os.IsNotExist(err) {
-		return fmt.Errorf("golang app source not found at %s", srcAppSourcePath)
-	}
-
-	// Check if destination already exists (don't overwrite, but ensure permissions)
-	if _, err := os.Stat(dstAppSourcePath); err == nil {
-		log.Printf("Go app source already exists in artifacts at %s", dstAppSourcePath)
-		// Ensure the binary has execute permissions even if it already exists
-		binaryPath := filepath.Join(dstAppSourcePath, "knirv-nexus")
-		chmodCmd := exec.Command("chmod", "+x", binaryPath)
-		if err := chmodCmd.Run(); err != nil {
-			return fmt.Errorf("failed to set execute permissions on existing binary: %v", err)
-		}
-		return nil
-	}
-
-	// Copy entire directory from resources to artifacts
-	log.Printf("Copying Go app source from resources to artifacts...")
-	copyCmd := exec.Command("cp", "-r", srcAppSourcePath, dstAppSourcePath)
-	if err := copyCmd.Run(); err != nil {
-		return fmt.Errorf("failed to copy Go app source to artifacts: %v", err)
-	}
-
-	// Ensure the binary has execute permissions
-	binaryPath := filepath.Join(dstAppSourcePath, "knirv-nexus")
-	chmodCmd := exec.Command("chmod", "+x", binaryPath)
-	if err := chmodCmd.Run(); err != nil {
-		return fmt.Errorf("failed to set execute permissions on binary: %v", err)
-	}
-
-	log.Printf("✓ Go app source copied to artifacts: %s", dstAppSourcePath)
-	return nil
-}
 
 // --- Command Execution Helper with Timeout & Signal Handling ---
 func runCmd(name string, args []string, workingDir string) error {
@@ -595,21 +551,20 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType string) {
 	ansibleWorkDir := getAnsibleDirectory(resourcesDir, deployType)
 	inventoryPath := filepath.Join(ansibleWorkDir, "inventory.ini")
 
-	// Use golang-app-source from container_deployer's own artifact directory
-	// This is placed here during the container_deployer build process via Makefile
-	goAppSourcePath := filepath.Join(artifactDir, golangAppSourceDir)
+	// Use golang-app-source from resources directory
+	goAppSourcePath := filepath.Join(resourcesDir, golangAppSourceDir)
 
-	// Verify Go app source exists in container_deployer's artifacts
+	// Verify Go app source exists in resources
 	if _, err := os.Stat(goAppSourcePath); os.IsNotExist(err) {
-		log.Fatalf("Go app source not found in container_deployer artifacts at %s", goAppSourcePath)
+		log.Fatalf("Go app source not found in resources at %s", goAppSourcePath)
 	}
 
 	var ansiblePlaybook string
 	var extraVars []string
 
 	if deployType == "local" {
-		// Local deployment uses Docker
-		ansiblePlaybook = "deploy-docker-app.yml"
+		// Local deployment uses Docker with Kali Linux tools
+		ansiblePlaybook = "deploy-docker-kali.yml"
 		extraVars = []string{
 			fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
 			fmt.Sprintf("container_image_name=%s", containerImageName),
@@ -664,21 +619,14 @@ func runInstallGoAppOnly(resourcesDir, artifactDir, deployType string) {
 	ansibleWorkDir := getAnsibleDirectory(resourcesDir, deployType)
 	inventoryPath := filepath.Join(ansibleWorkDir, "inventory.ini")
 
-	// Use golang-app-source from container_deployer's own artifact directory
-	// This is placed here during the container_deployer build process via Makefile
-	goAppSourcePath := filepath.Join(artifactDir, golangAppSourceDir)
+	// Use golang-app-source from resources directory
+	goAppSourcePath := filepath.Join(resourcesDir, golangAppSourceDir)
 
-	// Verify that the artifact directory exists and contains expected structure
-	if _, err := os.Stat(artifactDir); os.IsNotExist(err) {
-		log.Fatalf("Artifact directory %s does not exist", artifactDir)
-	}
-	log.Printf("Using container_deployer artifact directory: %s", artifactDir)
-
-	// Verify Go app source exists in container_deployer's artifacts
+	// Verify Go app source exists in resources
 	if _, err := os.Stat(goAppSourcePath); os.IsNotExist(err) {
-		log.Fatalf("Go app source not found in container_deployer artifacts at %s", goAppSourcePath)
+		log.Fatalf("Go app source not found in resources at %s", goAppSourcePath)
 	}
-	log.Printf("Using Go app source from container_deployer artifacts: %s", goAppSourcePath)
+	log.Printf("Using Go app source from resources: %s", goAppSourcePath)
 
 	// Check for any existing Kata artifacts in os_builder directory
 	osBuilderArtifactDir, err := getOsBuilderArtifactDirectory()

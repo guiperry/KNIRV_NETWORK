@@ -583,11 +583,8 @@ func (s *Server) setupRoutes() {
 	if s.dveRentalService != nil {
 		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db.GetDB())
 
-		// Create a subrouter for DVE rental routes
-		dveRentalRouter := s.router.PathPrefix("/api/dve-rental").Subrouter()
-		// dveRentalRouter.Use(middleware.RateLimitMiddleware(10)) // Temporarily disabled for debugging
-
-		dveRentalHandlers.RegisterRoutes(dveRentalRouter, authMiddleware)
+		// Pass the main router directly - the handler will create its own subrouter with the correct prefix
+		dveRentalHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE rental service routes configured")
 	}
 

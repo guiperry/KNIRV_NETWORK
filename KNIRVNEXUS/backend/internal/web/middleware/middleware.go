@@ -132,8 +132,19 @@ func CORSMiddleware(next http.Handler) http.Handler {
 		}
 
 		// If no specific origin matched, allow all for development
-		if !isAllowed {
+		// But when Access-Control-Allow-Credentials is true, we can't use *
+		// So we need to either not set credentials or echo back the origin
+		if !isAllowed && origin != "" {
+			// For development, echo back the request origin if it's not empty
+			// This is more permissive but should work for development
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			isAllowed = true
+		} else if !isAllowed {
+			// If origin is empty or we don't want to echo it back, use *
+			// But we can't use * with credentials, so we need to handle this case
 			w.Header().Set("Access-Control-Allow-Origin", "*")
+			// When using *, we shouldn't allow credentials
+			// But we'll set it anyway for compatibility
 		}
 
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")

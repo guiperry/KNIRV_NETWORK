@@ -90,3 +90,6 @@ KNIRVORACLE/oracle
 KNIRVCHAIN/bin/knirvchain
 KNIRVNEXUS/backend/cmd/container_deployer/container_deployer
 KNIRVNEXUS/backend/cmd/os_builder/os_builder
+KNIRVNEXUS/frontend/.next/*
+KNIRVNEXUS/frontend/out/*
+

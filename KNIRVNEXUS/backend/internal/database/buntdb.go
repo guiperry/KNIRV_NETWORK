@@ -59,9 +59,19 @@ func NewBuntDB(path string) (*BuntDBManager, error) {
 		}
 	}
 
+	// Try to open the database
 	db, err := buntdb.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open BuntDB: %w", err)
+		// If opening fails even after validation passed, try recovery once more
+		log.Printf("Database opening failed after validation, attempting recovery: %v", err)
+		if err := recoverDatabase(path); err != nil {
+			return nil, fmt.Errorf("failed to open BuntDB even after recovery: %w", err)
+		}
+		// Try opening again after recovery
+		db, err = buntdb.Open(path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open BuntDB: %w", err)
+		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -481,12 +491,31 @@ func validateDatabaseFile(path string) error {
 		return fmt.Errorf("database file too small, possibly corrupted")
 	}
 
+	// Note: BuntDB uses a text-based format that may start with various characters
+	// We don't reject based on file content alone, we rely on buntdb.Open to validate
+
 	// Try to open with BuntDB to check basic integrity
 	testDB, err := buntdb.Open(path)
 	if err != nil {
 		return fmt.Errorf("database file corrupted: %w", err)
 	}
+
+	// Try to perform a simple read operation to ensure database is actually usable
+	err = testDB.View(func(tx *buntdb.Tx) error {
+		// Try to iterate through a small number of keys
+		count := 0
+		return tx.Ascend("", func(key, value string) bool {
+			count++
+			return count < 5 // Only check first 5 keys
+		})
+	})
+
 	testDB.Close()
+
+	if err != nil && err != buntdb.ErrNotFound {
+		// ErrNotFound is okay - empty database
+		return fmt.Errorf("database file corrupted (cannot read data): %w", err)
+	}
 
 	return nil
 }
@@ -532,6 +561,38 @@ func recoverDatabase(path string) error {
 
 	if latestBackup == "" {
 		return fmt.Errorf("no valid backup found")
+	}
+
+	// Check if the backup is also corrupted (e.g., RESP format)
+	if err := validateDatabaseFile(latestBackup); err != nil {
+		log.Printf("Backup file %s is also corrupted: %v", latestBackup, err)
+		// Try other backups
+		validBackup := ""
+		for _, backup := range backups {
+			if backup == latestBackup {
+				continue // Already know this one is corrupted
+			}
+			if err := validateDatabaseFile(backup); err == nil {
+				validBackup = backup
+				break
+			}
+		}
+
+		if validBackup == "" {
+			log.Printf("All backup files are corrupted, removing all and starting fresh")
+			// Remove all corrupted backups
+			for _, backup := range backups {
+				if err := os.Remove(backup); err != nil {
+					log.Printf("Failed to remove corrupted backup %s: %v", backup, err)
+				}
+			}
+			// Remove main database file
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("failed to remove corrupted database: %w", err)
+			}
+			return nil
+		}
+		latestBackup = validBackup
 	}
 
 	log.Printf("Restoring from backup: %s", latestBackup)

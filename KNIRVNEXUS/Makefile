@@ -14,6 +14,7 @@ FRONTEND_DIR := $(ROOT_DIR)/frontend
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
+APPDATA_DIR := $(HOME)/.local/share/knirvnexus
 
 # Go Configuration
 GO_VERSION := 1.21
@@ -109,11 +110,13 @@ binary: frontend backend ## Build unified binary with embedded frontend and back
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-nexus .
 	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/knirv-nexus$(NC)"
-	@echo "$(BLUE)Copying binary to container_deployer golang-app-source...$(NC)"
-	@mkdir -p $(ROOT_DIR)/backend/cmd/container_deployer/golang-app-source
-	cp $(DIST_DIR)/knirv-nexus $(ROOT_DIR)/backend/cmd/container_deployer/golang-app-source/
-	@echo "$(GREEN)Binary copied to container_deployer golang-app-source$(NC)"
-
+	@echo "$(BLUE)Copying binary to container_deployer golang-app-source in app data directory...$(NC)"
+	@mkdir -p $(APPDATA_DIR)/container_deployer/resources/golang-app-source
+	cp $(DIST_DIR)/knirv-nexus $(APPDATA_DIR)/container_deployer/resources/golang-app-source
+	@mkdir -p $(BACKEND_DIR)/cmd/container_deployer/golang-app-source
+	cp $(DIST_DIR)/knirv-nexus $(BACKEND_DIR)/cmd/container_deployer/golang-app-source
+	@echo "$(GREEN)Binary copied to container_deployer/golang-app-source in both embedded backend and app data directory$(NC)"
+	@echo "$(GREEN)Good Build!$(NC)"
 # Testing
 test: test-go test-frontend test-architecture ## Run all tests
 
