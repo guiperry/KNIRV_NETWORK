@@ -1,11 +1,11 @@
 /// <reference types="node" />
 import { defineConfig, devices } from '@playwright/test'
 
-// Node version check - Playwright requires Node.js >= 14
+// Node version check - Playwright requires Node.js >= 18
 const nodeVersion = process.versions.node.split('.').map(Number)
 const major = nodeVersion[0]
-if (major < 14) {
-  throw new Error(`Playwright requires Node.js 14 or later. Current version: ${process.versions.node}. Please upgrade Node.js or use nvm.`)
+if (major < 18) {
+  throw new Error(`Playwright requires Node.js 18 or later. Current version: ${process.versions.node}. Please upgrade Node.js or use nvm.`)
 }
 
 /**
@@ -93,8 +93,8 @@ export default defineConfig({
   // },
 
   /* Global setup and teardown */
-  globalSetup: './src/test/e2e/global-setup.ts',
-  globalTeardown: './src/test/e2e/global-teardown.ts',
+  // globalSetup: './src/test/e2e/global-setup.ts',
+  // globalTeardown: './src/test/e2e/global-teardown.ts',
 
   /* Test output directory */
   outputDir: 'test-results/',

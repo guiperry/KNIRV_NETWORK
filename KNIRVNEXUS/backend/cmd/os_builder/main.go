@@ -21,9 +21,7 @@ import (
 
 //go:embed all:packer-base-kali/*
 //go:embed all:packer-kata-guest/*
-//go:embed all:ansible-deploy/*
 //go:embed inventory.ini
-//go:embed golang-app-source/knirv-nexus
 //go:embed all:terraform-deploy/*
 
 var embeddedFiles embed.FS
@@ -37,15 +35,9 @@ const (
 	packerBaseKaliDir    = "packer-base-kali"
 	outputBaseKaliDir    = "output-kali-base-box"
 	baseKaliOVAName      = "kali-base-box.ova"
-	packerKataGuestDir   = "packer-kata-guest"
 	terraformDeployDir   = "terraform-deploy"
-	ansibleDeployDir     = "ansible-deploy"
-	inventoryFile        = "inventory.ini"
-	golangAppSourceDir   = "golang-app-source"
-	outputKataGuestDir   = "output-kata-guest" // Where Packer drops kernel/rootfs
-	kataConfigDir        = "/etc/kata-containers"
+	outputKataGuestDir   = "output-kata-guest" // Where Terraform drops kernel/rootfs
 	customKataKernelName = "kali-clean-tee"
-	containerImageName   = "knirvnexus-go-app"
 	artifactsDirName     = "artifacts"
 )
 
@@ -104,15 +96,15 @@ func closeDeploymentLog() {
 }
 
 // getAppDataDirectory returns the Linux XDG Base Directory for app data
-// Following Linux standards: ~/.local/share/knirvnexus/os_builder/os_builder
+// Following Linux standards: ~/.local/share/knirvnexus/os_builder
 func getAppDataDirectory() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current user: %v", err)
 	}
 
-	// Use ~/.local/share/knirvnexus/os_builder/os_builder (XDG Base Directory Specification)
-	appDataDir := filepath.Join(usr.HomeDir, ".local", "share", appName)
+	// Use ~/.local/share/knirvnexus/os_builder (XDG Base Directory Specification)
+	appDataDir := filepath.Join(usr.HomeDir, ".local", "share", appName, "os_builder")
 	if err := os.MkdirAll(appDataDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create app data directory %s: %v", appDataDir, err)
 	}
@@ -171,11 +163,6 @@ func main() {
 		log.Fatalf("Failed to extract embedded files: %v", err)
 	}
 
-	// Copy golang-app-source to artifacts directory for persistence
-	err = ensureGoAppSourceInArtifacts(resourcesDir, artifactDir)
-	if err != nil {
-		log.Fatalf("Failed to ensure Go app source in artifacts: %v", err)
-	}
 
 	fmt.Println("\nChecking system prerequisites...")
 	if err := checkPrerequisites(); err != nil {
@@ -188,18 +175,17 @@ func main() {
 	baseKaliPath := filepath.Join(baseKaliOutputDir, baseKaliOVAName)
 	hasBaseKali := isBaseKaliImageAvailable(baseKaliPath)
 
+	// Display status of base Kali image
 	if !hasBaseKali {
 		fmt.Println("\n⚠️  Base Kali image (kali-base-box.ova) not found.")
 		fmt.Println("This is required as the foundation for the Kata container build.")
-		fmt.Println("Building base Kali image now...")
-		runBuildBaseKali(resourcesDir, artifactDir)
-		fmt.Println("\n✓ Base Kali image built successfully!")
+		fmt.Println("You can build it using option 0 from the menu below.")
 	} else {
 		fmt.Printf("\n✓ Base Kali image found at: %s\n", baseKaliPath)
 	}
 
 	// Parse command-line flags for non-interactive mode
-	action := flag.String("action", "", "Action to perform: 0=Build base Kali, 1=Full deploy, 1b=Full deploy (Terraform fallback), 2=Deploy new container, 3=Install Go app only, 4=Exit")
+	action := flag.String("action", "", "Action to perform: 0=Build base Kali, 1=Build Kata Container, 2=Exit")
 	flag.Parse()
 
 	// If action flag provided, execute it non-interactively
@@ -212,11 +198,8 @@ func main() {
 	for {
 		fmt.Println("\nSelect an action:")
 		fmt.Println("0. Build base Kali image (packer-base-kali) - only if rebuilding")
-		fmt.Println("1. Build and deploy a new KNIRV-NEXUS Kata Container (full fresh install with Packer)")
-		fmt.Println("1b. Build and deploy a new KNIRV-NEXUS Kata Container (full fresh install with Terraform fallback)")
-		fmt.Println("2. Deploy a new KNIRV-NEXUS Kata Container (assuming Kata is configured)")
-		fmt.Println("3. Only install the KNIRV-NEXUS Go App on an existing, configured Kata setup")
-		fmt.Println("4. Exit")
+		fmt.Println("1. Build KNIRV-NEXUS Kata Container (using Terraform)")
+		fmt.Println("2. Exit")
 		fmt.Print("Enter your choice: ")
 
 		var choice string
@@ -228,18 +211,9 @@ func main() {
 			runBuildBaseKali(resourcesDir, artifactDir)
 			fmt.Println("\n✓ Base Kali image rebuilt successfully!")
 		case "1":
-			fmt.Println("\nStarting full fresh build and deploy (using Packer)...")
-			runFullDeploy(resourcesDir, artifactDir)
-		case "1b":
-			fmt.Println("\nStarting full fresh build and deploy (using Terraform fallback)...")
-			runFullDeployTerraform(resourcesDir, artifactDir)
+			fmt.Println("\nStarting Kata Container build (using Terraform)...")
+			runBuildKataContainer(resourcesDir, artifactDir)
 		case "2":
-			fmt.Println("\nStarting new container deploy (assuming Kata configured)...")
-			runDeployNewContainer(resourcesDir, artifactDir)
-		case "3":
-			fmt.Println("\nStarting Go app install on existing Kata setup...")
-			runInstallGoAppOnly(resourcesDir, artifactDir)
-		case "4":
 			fmt.Println("Exiting.")
 			return
 		default:
@@ -481,32 +455,7 @@ func checkPrerequisites() error {
 }
 
 // --- Artifact Management ---
-func ensureGoAppSourceInArtifacts(resourcesDir, artifactDir string) error {
-	// Source and destination paths
-	srcAppSourcePath := filepath.Join(resourcesDir, golangAppSourceDir)
-	dstAppSourcePath := filepath.Join(artifactDir, golangAppSourceDir)
 
-	// Check if source exists
-	if _, err := os.Stat(srcAppSourcePath); os.IsNotExist(err) {
-		return fmt.Errorf("golang app source not found at %s", srcAppSourcePath)
-	}
-
-	// Check if destination already exists (don't overwrite)
-	if _, err := os.Stat(dstAppSourcePath); err == nil {
-		log.Printf("Go app source already exists in artifacts at %s", dstAppSourcePath)
-		return nil
-	}
-
-	// Copy entire directory from resources to artifacts
-	log.Printf("Copying Go app source from resources to artifacts...")
-	copyCmd := exec.Command("cp", "-r", srcAppSourcePath, dstAppSourcePath)
-	if err := copyCmd.Run(); err != nil {
-		return fmt.Errorf("failed to copy Go app source to artifacts: %v", err)
-	}
-
-	log.Printf("✓ Go app source copied to artifacts: %s", dstAppSourcePath)
-	return nil
-}
 
 // --- Base Kali Image Management ---
 func isBaseKaliImageAvailable(ovaPath string) bool {
@@ -617,164 +566,7 @@ func runCmdWithTimeout(name string, args []string, workingDir string, timeout ti
 }
 
 // --- Workflow Functions ---
-func runFullDeploy(resourcesDir, artifactDir string) {
-	// Ensure base Kali image exists before proceeding with Kata build
-	baseKaliOutputDir := filepath.Join(artifactDir, outputBaseKaliDir)
-	baseKaliPath := filepath.Join(baseKaliOutputDir, baseKaliOVAName)
-	if !isBaseKaliImageAvailable(baseKaliPath) {
-		fmt.Println("--- Step 0: Base Kali image not found. Building it first... ---")
-		runBuildBaseKali(resourcesDir, artifactDir)
-		fmt.Println()
-	} else {
-		fmt.Printf("✓ Using existing base Kali image: %s\n\n", baseKaliPath)
-	}
-
-	fmt.Println("--- Step 1: Building Custom Kata Kernel and Rootfs (via Packer) ---")
-	packerWorkDir := filepath.Join(resourcesDir, packerKataGuestDir)
-	outputKataGuestPath := filepath.Join(artifactDir, outputKataGuestDir) // Store in artifact dir
-	if err := os.MkdirAll(outputKataGuestPath, 0755); err != nil {
-		log.Fatalf("Failed to create output directory for Kata artifacts: %v", err)
-	}
-
-	// Copy the base Kali OVA to the packer work directory
-	// so that kata-kali-guest.pkr.hcl can reference it locally
-	baseKaliSource := filepath.Join(baseKaliOutputDir, baseKaliOVAName)
-	baseKaliDest := filepath.Join(packerWorkDir, "packer-base-kali", "output-kali-base-box", baseKaliOVAName)
-	baseKaliDestDir := filepath.Dir(baseKaliDest)
-	if err := os.MkdirAll(baseKaliDestDir, 0755); err != nil {
-		log.Fatalf("Failed to create base Kali reference directory: %v", err)
-	}
-	copyCmd := exec.Command("cp", baseKaliSource, baseKaliDest)
-	if err := copyCmd.Run(); err != nil {
-		log.Fatalf("Failed to copy base Kali OVA to packer work directory: %v", err)
-	}
-
-	err := runCmd("packer", []string{"build", "kata-kali-guest.pkr.hcl"}, packerWorkDir)
-	if err != nil {
-		log.Fatalf("Packer build failed: %v", err)
-	}
-	fmt.Println("--- Packer build completed. ---")
-
-	fmt.Println("--- Step 2: Deploying Kata Containers and Go App (via Ansible) ---")
-	ansibleWorkDir := filepath.Join(resourcesDir, ansibleDeployDir)
-	inventoryPath := filepath.Join(resourcesDir, inventoryFile)
-	goAppSourcePath := filepath.Join(artifactDir, golangAppSourceDir) // Use from artifacts for persistence
-
-	// Verify Go app source exists in artifacts
-	if _, err := os.Stat(goAppSourcePath); os.IsNotExist(err) {
-		log.Fatalf("Go app source not found in artifacts at %s", goAppSourcePath)
-	}
-
-	// We need to pass the paths to the custom kernel/rootfs to the Ansible playbook
-	// This can be done via Ansible extra vars (-e).
-	extraVars := []string{
-		fmt.Sprintf("custom_kata_kernel_path_local=%s", filepath.Join(outputKataGuestPath, "vmlinuz-"+customKataKernelName)),
-		fmt.Sprintf("custom_kata_rootfs_path_local=%s", filepath.Join(outputKataGuestPath, "kata-rootfs-"+customKataKernelName+".img")),
-		fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
-		fmt.Sprintf("container_image_name=%s", containerImageName),
-		fmt.Sprintf("artifact_directory=%s", artifactDir), // Pass artifact directory to Ansible
-	}
-
-	ansibleArgs := []string{"-i", inventoryPath, "deploy-kata-app.yml", "-e", strings.Join(extraVars, " ")}
-	err = runCmd("ansible-playbook", ansibleArgs, ansibleWorkDir)
-	if err != nil {
-		log.Fatalf("Ansible deployment failed: %v", err)
-	}
-	fmt.Println("--- Full deployment completed successfully! ---")
-}
-
-func runDeployNewContainer(resourcesDir, artifactDir string) {
-	fmt.Println("--- Deploying new KNIRV-NEXUS Kata Container (assuming Kata configured) ---")
-	ansibleWorkDir := filepath.Join(resourcesDir, ansibleDeployDir)
-	inventoryPath := filepath.Join(resourcesDir, inventoryFile)
-	goAppSourcePath := filepath.Join(artifactDir, golangAppSourceDir) // Use from artifacts for persistence
-
-	// Verify Go app source exists in artifacts
-	if _, err := os.Stat(goAppSourcePath); os.IsNotExist(err) {
-		log.Fatalf("Go app source not found in artifacts at %s", goAppSourcePath)
-	}
-
-	// Check if custom Kata artifacts exist in artifact directory
-	customKernelPath := filepath.Join(artifactDir, outputKataGuestDir, "vmlinuz-"+customKataKernelName)
-	customRootfsPath := filepath.Join(artifactDir, outputKataGuestDir, "kata-rootfs-"+customKataKernelName+".img")
-
-	// Use custom artifacts if they exist, otherwise fall back to system paths
-	kernelPath := customKernelPath
-	rootfsPath := customRootfsPath
-
-	if _, err := os.Stat(customKernelPath); os.IsNotExist(err) {
-		log.Printf("Custom Kata kernel not found at %s, using system path", customKernelPath)
-		kernelPath = filepath.Join(kataConfigDir, "vmlinuz-"+customKataKernelName)
-	}
-
-	if _, err := os.Stat(customRootfsPath); os.IsNotExist(err) {
-		log.Printf("Custom Kata rootfs not found at %s, using system path", customRootfsPath)
-		rootfsPath = filepath.Join(kataConfigDir, "kata-rootfs-"+customKataKernelName+".img")
-	}
-
-	extraVars := []string{
-		fmt.Sprintf("custom_kata_kernel_path_local=%s", kernelPath),
-		fmt.Sprintf("custom_kata_rootfs_path_local=%s", rootfsPath),
-		fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
-		fmt.Sprintf("container_image_name=%s", containerImageName),
-		fmt.Sprintf("artifact_directory=%s", artifactDir), // Pass artifact directory to Ansible
-	}
-
-	// We only want to run tasks related to building the container image and running it.
-	// This requires tagging the Ansible playbook properly for partial execution.
-	// For simplicity, let's just re-run the whole deploy playbook, but a more robust
-	// solution would use --tags or --start-at-task.
-	ansibleArgs := []string{"-i", inventoryPath, "deploy-kata-app.yml", "-e", strings.Join(extraVars, " ")}
-	err := runCmd("ansible-playbook", ansibleArgs, ansibleWorkDir)
-	if err != nil {
-		log.Fatalf("Ansible container deployment failed: %v", err)
-	}
-	fmt.Println("--- New container deployed successfully! ---")
-}
-
-func runInstallGoAppOnly(resourcesDir, artifactDir string) {
-	fmt.Println("--- Only installing KNIRV-NEXUS Go App on existing Kata setup ---")
-	ansibleWorkDir := filepath.Join(resourcesDir, ansibleDeployDir)
-	inventoryPath := filepath.Join(resourcesDir, inventoryFile)
-	goAppSourcePath := filepath.Join(artifactDir, golangAppSourceDir) // Use from artifacts for persistence
-
-	// Verify that the artifact directory exists and contains expected structure
-	if _, err := os.Stat(artifactDir); os.IsNotExist(err) {
-		log.Fatalf("Artifact directory %s does not exist", artifactDir)
-	}
-	log.Printf("Using artifact directory: %s", artifactDir)
-
-	// Verify Go app source exists in artifacts
-	if _, err := os.Stat(goAppSourcePath); os.IsNotExist(err) {
-		log.Fatalf("Go app source not found in artifacts at %s", goAppSourcePath)
-	}
-	log.Printf("Using Go app source from artifacts: %s", goAppSourcePath)
-
-	// Check for any existing artifacts that might be relevant
-	kataArtifactsDir := filepath.Join(artifactDir, outputKataGuestDir)
-	if _, err := os.Stat(kataArtifactsDir); err == nil {
-		log.Printf("Found Kata artifacts directory: %s", kataArtifactsDir)
-	}
-
-	extraVars := []string{
-		fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
-		fmt.Sprintf("container_image_name=%s", containerImageName),
-		fmt.Sprintf("artifact_directory=%s", artifactDir), // Pass artifact directory to Ansible
-	}
-
-	// This mode needs specific tags for Ansible.
-	// We need to modify the deploy-kata-app.yml to have tags for different sections,
-	// e.g., 'kata_config', 'go_app_build', 'go_app_run'.
-	// For this example, let's assume tags 'go_app_build' and 'go_app_run' exist.
-	ansibleArgs := []string{"-i", inventoryPath, "deploy-kata-app.yml", "--tags", "go_app_build,go_app_run", "-e", strings.Join(extraVars, " ")}
-	err := runCmd("ansible-playbook", ansibleArgs, ansibleWorkDir)
-	if err != nil {
-		log.Fatalf("Ansible Go app installation failed: %v", err)
-	}
-	fmt.Println("--- KNIRV-NEXUS Go App installed successfully! ---")
-}
-
-func runFullDeployTerraform(resourcesDir, artifactDir string) {
+func runBuildKataContainer(resourcesDir, artifactDir string) {
 	// Ensure base Kali image exists before proceeding with Kata build
 	baseKaliOutputDir := filepath.Join(artifactDir, outputBaseKaliDir)
 	baseKaliPath := filepath.Join(baseKaliOutputDir, baseKaliOVAName)
@@ -847,32 +639,8 @@ ssh_port                 = 22
 	fmt.Printf("✓ Kernel artifact: %s\n", kernelPath)
 	fmt.Printf("✓ Rootfs artifact: %s\n", rootfsPath)
 
-	fmt.Println("--- Step 2: Deploying Kata Containers and Go App (via Ansible) ---")
-	ansibleWorkDir := filepath.Join(resourcesDir, ansibleDeployDir)
-	inventoryPath := filepath.Join(resourcesDir, inventoryFile)
-	goAppSourcePath := filepath.Join(artifactDir, golangAppSourceDir) // Use from artifacts for persistence
-
-	// Verify Go app source exists in artifacts
-	if _, err := os.Stat(goAppSourcePath); os.IsNotExist(err) {
-		log.Fatalf("Go app source not found in artifacts at %s", goAppSourcePath)
-	}
-
-	// We need to pass the paths to the custom kernel/rootfs to the Ansible playbook
-	// This can be done via Ansible extra vars (-e).
-	extraVars := []string{
-		fmt.Sprintf("custom_kata_kernel_path_local=%s", kernelPath),
-		fmt.Sprintf("custom_kata_rootfs_path_local=%s", rootfsPath),
-		fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
-		fmt.Sprintf("container_image_name=%s", containerImageName),
-		fmt.Sprintf("artifact_directory=%s", artifactDir), // Pass artifact directory to Ansible
-	}
-
-	ansibleArgs := []string{"-i", inventoryPath, "deploy-kata-app.yml", "-e", strings.Join(extraVars, " ")}
-	err = runCmd("ansible-playbook", ansibleArgs, ansibleWorkDir)
-	if err != nil {
-		log.Fatalf("Ansible deployment failed: %v", err)
-	}
-	fmt.Println("--- Full deployment completed successfully! ---")
+	fmt.Println("\n--- Kata Container build completed successfully! ---")
+	fmt.Println("Build artifacts are ready for deployment.")
 }
 
 // executeAction performs the specified action non-interactively
@@ -883,22 +651,13 @@ func executeAction(action string, resourcesDir, artifactDir string) {
 		runBuildBaseKali(resourcesDir, artifactDir)
 		fmt.Println("\n✓ Base Kali image rebuilt successfully!")
 	case "1":
-		fmt.Println("\nStarting full fresh build and deploy (using Packer)...")
-		runFullDeploy(resourcesDir, artifactDir)
-	case "1b":
-		fmt.Println("\nStarting full fresh build and deploy (using Terraform fallback)...")
-		runFullDeployTerraform(resourcesDir, artifactDir)
+		fmt.Println("\nStarting Kata Container build (using Terraform)...")
+		runBuildKataContainer(resourcesDir, artifactDir)
 	case "2":
-		fmt.Println("\nStarting new container deploy (assuming Kata configured)...")
-		runDeployNewContainer(resourcesDir, artifactDir)
-	case "3":
-		fmt.Println("\nStarting Go app install on existing Kata setup...")
-		runInstallGoAppOnly(resourcesDir, artifactDir)
-	case "4":
 		fmt.Println("Exiting.")
 	default:
 		fmt.Printf("Invalid action: %s\n", action)
-		fmt.Println("Valid actions are: 0, 1, 1b, 2, 3, or 4")
+		fmt.Println("Valid actions are: 0, 1, or 2")
 		os.Exit(1)
 	}
 }

@@ -1,5 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Node version check - Playwright requires Node.js >= 14
+const nodeVersion = process.versions.node.split('.').map(Number)
+const major = nodeVersion[0]
+if (major < 14) {
+  throw new Error(`Playwright requires Node.js 14 or later. Current version: ${process.versions.node}. Please upgrade Node.js or use nvm.`)
+}
+
 /**
  * @see https://playwright.dev/docs/test-configuration
  */

@@ -46,7 +46,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer
 
 # Default target
 all: clean deps frontend backend binary
@@ -91,6 +91,17 @@ backend: deps-go ## Build complete Go backend service package
 	@mkdir -p bin
 	cp $(BACKEND_DIR)/bin/backend_server bin/
 	@echo "$(GREEN)Backend build completed$(NC)"
+
+# Specialized Build Tools
+os: deps-go ## Build os_builder binary
+	@echo "$(BLUE)Building os_builder binary...$(NC)"
+	cd $(BACKEND_DIR)/cmd/os_builder && go build -ldflags "$(LDFLAGS)" -o os_builder main.go
+	@echo "$(GREEN)os_builder build completed: backend/cmd/os_builder/os_builder$(NC)"
+
+deployer: deps-go ## Build container_deployer binary
+	@echo "$(BLUE)Building container_deployer binary...$(NC)"
+	cd $(BACKEND_DIR)/cmd/container_deployer && go build -ldflags "$(LDFLAGS)" -o container_deployer main.go
+	@echo "$(GREEN)container_deployer build completed: backend/cmd/container_deployer/container_deployer$(NC)"
 
 # Unified Binary (Frontend + Unified Backend)
 binary: frontend backend ## Build unified binary with embedded frontend and backend
@@ -157,7 +168,7 @@ dev: ## Start development environment
 
 dev-backend: backend ## Start unified backend development server
 	@echo "$(BLUE)Starting unified backend development server...$(NC)"
-	cd $(BACKEND_DIR) && ./bin/nexus-server --config config/development.yaml
+	cd $(BACKEND_DIR) && ./bin/backend-server --config config/development.yaml
 
 dev-frontend: ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
@@ -175,7 +186,7 @@ docker-run: docker ## Run Docker container
 # Packer Builds
 kali: ## Build Kali Linux base image with Packer
 	@echo "$(BLUE)Building Kali Linux base image with Packer...$(NC)"
-	cd $(BACKEND_DIR)/cmd/nexus-deployer/packer-base-kali && packer build .
+	cd $(BACKEND_DIR)/cmd/os_builder/packer-base-kali && packer build .
 	@echo "$(GREEN)Kali Linux base image build completed.$(NC)"
 
 # Deployment

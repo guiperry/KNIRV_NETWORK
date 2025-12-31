@@ -43,7 +43,7 @@ test_configuration_loading() {
     
     # Test with testnet environment
     export KNIRV_ENV=testnet
-    if go run cmd/main.go --config-test 2>&1 | grep -q "Configuration loaded successfully"; then
+    if go run cmd/backend_server/main.go --config-test 2>&1 | grep -q "Configuration loaded successfully"; then
         success "Testnet configuration loaded successfully"
     else
         error "Failed to load testnet configuration"
@@ -52,7 +52,7 @@ test_configuration_loading() {
     
     # Test with production environment
     export KNIRV_ENV=production
-    if go run cmd/main.go --config-test 2>&1 | grep -q "Configuration loaded successfully"; then
+    if go run cmd/backend_server/main.go --config-test 2>&1 | grep -q "Configuration loaded successfully"; then
         success "Production configuration loaded successfully"
     else
         error "Failed to load production configuration"
@@ -71,7 +71,7 @@ test_headless_mode() {
     export KNIRV_API_PORT=8080
     
     # Start the service in background
-    go run cmd/main.go --mode=headless --config=testnet &
+    go run cmd/backend_server/main.go --mode=headless --config=testnet &
     SERVICE_PID=$!
     
     # Wait for service to start
@@ -112,7 +112,7 @@ test_gui_mode() {
     export KNIRV_GUI_PORT=9080
     
     # Start the service in background
-    go run cmd/main.go --mode=gui --config=testnet &
+    go run cmd/backend_server/main.go --mode=gui --config=testnet &
     SERVICE_PID=$!
     
     # Wait for service to start
@@ -147,7 +147,7 @@ test_cli_flags() {
     log "Testing CLI flags..."
     
     # Test help flag
-    if go run cmd/main.go --help 2>&1 | grep -q "Usage:"; then
+    if go run cmd/backend_server/main.go --help 2>&1 | grep -q "Usage:"; then
         success "Help flag works correctly"
     else
         error "Help flag not working"
@@ -155,7 +155,7 @@ test_cli_flags() {
     fi
     
     # Test version flag
-    if go run cmd/main.go --version 2>&1 | grep -q "KNIRV-NEXUS"; then
+    if go run cmd/backend_server/main.go --version 2>&1 | grep -q "KNIRV-NEXUS"; then
         success "Version flag works correctly"
     else
         error "Version flag not working"
@@ -163,7 +163,7 @@ test_cli_flags() {
     fi
     
     # Test config validation
-    if go run cmd/main.go --validate-config --config=testnet 2>&1 | grep -q "valid"; then
+    if go run cmd/backend_server/main.go --validate-config --config=testnet 2>&1 | grep -q "valid"; then
         success "Config validation works correctly"
     else
         error "Config validation not working"
@@ -179,7 +179,7 @@ test_environment_variables() {
     export KNIRV_MODE=headless
     
     # Start service with environment override
-    go run cmd/main.go --config=testnet &
+    go run cmd/backend_server/main.go --config=testnet &
     SERVICE_PID=$!
     
     # Wait for service to start
@@ -208,7 +208,7 @@ test_role_based_access() {
     export KNIRV_MODE=headless
     export KNIRV_ENV=testnet
     
-    go run cmd/main.go --config=testnet &
+    go run cmd/backend_server/main.go --config=testnet &
     SERVICE_PID=$!
     
     # Wait for service to start
@@ -258,7 +258,7 @@ main() {
     
     # Check if project builds
     log "Building project..."
-    if go build -o "$TEST_DIR/knirv-nexus" cmd/main.go; then
+    if go build -o "$TEST_DIR/knirv-nexus" cmd/backend_server/main.go; then
         success "Project builds successfully"
     else
         error "Project build failed"
