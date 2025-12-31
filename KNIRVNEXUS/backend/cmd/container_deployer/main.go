@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -137,6 +138,73 @@ func getEmbeddedResourcesDirectory(appDataDir string) string {
 	return filepath.Join(appDataDir, "resources")
 }
 
+// exportEnvFile handles environment file setup for production deployments
+// For development and testnet, the unified binary has embedded .env files
+// and will extract them at runtime based on the --env flag
+func exportEnvFile(environment, artifactDir string) error {
+	switch environment {
+	case "development", "testnet":
+		// The unified binary has these embedded and will extract at runtime
+		// No need to export anything here
+		fmt.Printf("✓ Using embedded %s environment (will be extracted by binary at runtime)\n", environment)
+		return nil
+
+	case "production":
+		// For production, download .env from URL
+		fmt.Println("\nProduction environment setup:")
+		fmt.Println("1. Provide URL to .env.production file")
+		fmt.Println("2. Enter values manually (TODO: not yet implemented)")
+		fmt.Print("Enter your choice (1 or 2): ")
+		var choice string
+		fmt.Scanln(&choice)
+
+		var envData []byte
+		var err error
+
+		switch choice {
+		case "1":
+			fmt.Print("Enter URL to .env.production file: ")
+			var url string
+			fmt.Scanln(&url)
+
+			// Download the .env file from URL
+			resp, err := http.Get(url)
+			if err != nil {
+				return fmt.Errorf("failed to download .env.production from URL: %w", err)
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("failed to download .env.production: HTTP %d", resp.StatusCode)
+			}
+
+			envData, err = io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read .env.production from response: %w", err)
+			}
+			fmt.Printf("✓ Downloaded .env.production from %s\n", url)
+
+		case "2":
+			return fmt.Errorf("manual entry not yet implemented - please use option 1")
+		default:
+			return fmt.Errorf("invalid choice: %s", choice)
+		}
+
+		// Write .env file to golang-app-source directory for Docker build
+		goAppSourcePath := filepath.Join(artifactDir, "golang-app-source")
+		if err := os.MkdirAll(goAppSourcePath, 0755); err != nil {
+			return fmt.Errorf("failed to create golang-app-source directory: %w", err)
+		}
+
+		envFilePath := filepath.Join(goAppSourcePath, ".env")
+		if err := os.WriteFile(envFilePath, envData, 0644); err != nil {
+		return fmt.Errorf("failed to write .env file: %w", err)
+	}
+
+	fmt.Printf("✓ .env file written to %s\n", envFilePath)
+	return nil
+}
+
 func main() {
 	// Initialize deployment logging
 	if err := initDeploymentLog(); err != nil {
@@ -220,9 +288,36 @@ func main() {
 
 	fmt.Printf("\n✓ Using %s deployment configuration\n", selectedDeployType)
 
+	// Select deployment environment (dev/testnet/production)
+	var environment string
+	fmt.Println("\nSelect deployment environment:")
+	fmt.Println("1. Development (.env.development)")
+	fmt.Println("2. Testnet (.env.testnet)")
+	fmt.Println("3. Production (will prompt for values or URL)")
+	fmt.Print("Enter your choice (1, 2, or 3): ")
+	var envChoice string
+	fmt.Scanln(&envChoice)
+	switch envChoice {
+	case "1":
+		environment = "development"
+	case "2":
+		environment = "testnet"
+	case "3":
+		environment = "production"
+	default:
+		log.Fatalf("Invalid choice: %s", envChoice)
+	}
+
+	fmt.Printf("✓ Using %s environment\n", environment)
+
+	// Export the appropriate .env file
+	if err := exportEnvFile(environment, artifactDir); err != nil {
+		log.Fatalf("Failed to export .env file: %v", err)
+	}
+
 	// If action flag provided, execute it non-interactively
 	if *action != "" {
-		executeActionWithDeployType(*action, resourcesDir, artifactDir, selectedDeployType)
+		executeActionWithDeployType(*action, resourcesDir, artifactDir, selectedDeployType, environment)
 		return
 	}
 
@@ -245,7 +340,7 @@ func main() {
 	// Otherwise, run interactive mode
 	for {
 		fmt.Println("\nSelect an action:")
-		fmt.Println("1. Deploy a new KNIRV-NEXUS Kata Container (assuming Kata is configured)")
+		fmt.Println("1. Deploy a new KNIRV-NEXUS via Docker Container (assuming Docker is configured)")
 		fmt.Println("2. Only install the KNIRV-NEXUS Go App on an existing, configured Kata setup")
 		fmt.Println("3. Exit")
 		fmt.Print("Enter your choice: ")
@@ -256,7 +351,7 @@ func main() {
 		switch choice {
 		case "1":
 			fmt.Println("\nStarting new container deploy (assuming Kata configured)...")
-			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType)
+			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType, environment)
 		case "2":
 			fmt.Println("\nStarting Go app install on existing Kata setup...")
 			runInstallGoAppOnly(resourcesDir, artifactDir, selectedDeployType)
@@ -546,8 +641,8 @@ func getAnsibleDirectory(resourcesDir, deployType string) string {
 	return filepath.Join(resourcesDir, ansibleLocalDir)
 }
 
-func runDeployNewContainer(resourcesDir, artifactDir, deployType string) {
-	fmt.Printf("--- Deploying new KNIRV-NEXUS Container (%s deployment) ---\n", deployType)
+func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment string) {
+	fmt.Printf("--- Deploying new KNIRV-NEXUS Container (%s deployment, %s environment) ---\n", deployType, environment)
 	ansibleWorkDir := getAnsibleDirectory(resourcesDir, deployType)
 	inventoryPath := filepath.Join(ansibleWorkDir, "inventory.ini")
 
@@ -568,6 +663,7 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType string) {
 		extraVars = []string{
 			fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
 			fmt.Sprintf("container_image_name=%s", containerImageName),
+			fmt.Sprintf("knirv_environment=%s", environment), // Pass environment to Ansible
 		}
 	} else {
 		// Cloud deployment uses Kata containers
@@ -603,6 +699,7 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType string) {
 			fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
 			fmt.Sprintf("container_image_name=%s", containerImageName),
 			fmt.Sprintf("artifact_directory=%s", artifactDir), // Pass artifact directory to Ansible
+			fmt.Sprintf("knirv_environment=%s", environment),  // Pass environment to Ansible
 		}
 	}
 
@@ -612,6 +709,63 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType string) {
 		log.Fatalf("Ansible container deployment failed: %v", err)
 	}
 	fmt.Println("--- New container deployed successfully! ---")
+
+	// Check container status and tail logs
+	containerName := "knirvnexus-kali-local"
+
+	// Wait a moment for container to fully start
+	time.Sleep(2 * time.Second)
+
+	// Check if container is running
+	fmt.Printf("\n🔍 Checking container status...\n")
+	checkCmd := exec.Command("docker", "ps", "--filter", fmt.Sprintf("name=%s", containerName), "--format", "{{.Status}}")
+	statusOutput, err := checkCmd.Output()
+	if err != nil {
+		log.Printf("Warning: Failed to check container status: %v", err)
+	} else {
+		status := strings.TrimSpace(string(statusOutput))
+		if status != "" {
+			fmt.Printf("✓ Container is running: %s\n", status)
+		} else {
+			fmt.Printf("⚠️  Container may not be running. Checking all containers...\n")
+			allCmd := exec.Command("docker", "ps", "-a", "--filter", fmt.Sprintf("name=%s", containerName), "--format", "{{.Status}}")
+			allOutput, _ := allCmd.Output()
+			fmt.Printf("Status: %s\n", strings.TrimSpace(string(allOutput)))
+		}
+	}
+
+	// Tail the container logs
+	fmt.Printf("\n📜 Tailing container logs (Press Ctrl+C to exit)...\n")
+	fmt.Println("-----------------------------------------------------------")
+
+	logsCmd := exec.Command("docker", "logs", "-f", containerName)
+	logsCmd.Stdout = os.Stdout
+	logsCmd.Stderr = os.Stderr
+
+	// Set up signal handling to allow graceful exit with Ctrl+C
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	// Start tailing logs in a goroutine
+	logsDone := make(chan error, 1)
+	go func() {
+		logsDone <- logsCmd.Run()
+	}()
+
+	// Wait for either logs to finish or user interrupt
+	select {
+	case <-sigChan:
+		fmt.Println("\n\n📋 Log tailing stopped by user")
+		if logsCmd.Process != nil {
+			logsCmd.Process.Kill()
+		}
+	case err := <-logsDone:
+		if err != nil {
+			log.Printf("\nLog tailing ended: %v", err)
+		}
+	}
+
+	fmt.Println("\n✓ Deployment session complete")
 }
 
 func runInstallGoAppOnly(resourcesDir, artifactDir, deployType string) {
@@ -658,11 +812,11 @@ func runInstallGoAppOnly(resourcesDir, artifactDir, deployType string) {
 }
 
 // executeActionWithDeployType performs the specified action non-interactively with deployment type
-func executeActionWithDeployType(action string, resourcesDir, artifactDir, deployType string) {
+func executeActionWithDeployType(action string, resourcesDir, artifactDir, deployType, environment string) {
 	switch action {
 	case "1":
 		fmt.Println("\nStarting new container deploy (assuming Kata configured)...")
-		runDeployNewContainer(resourcesDir, artifactDir, deployType)
+		runDeployNewContainer(resourcesDir, artifactDir, deployType, environment)
 	case "2":
 		fmt.Println("\nStarting Go app install on existing Kata setup...")
 		runInstallGoAppOnly(resourcesDir, artifactDir, deployType)

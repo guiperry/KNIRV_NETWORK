@@ -1075,12 +1075,20 @@ func run() error {
 		}
 		viper.SetConfigFile(*configFile)
 	} else {
-		// Set default config path relative to backend directory
-		configPath := filepath.Join("config", "production.yaml")
-		if _, err := os.Stat(configPath); err == nil {
-			viper.SetConfigFile(configPath)
+		// Try app data directory first
+		appDataDir, _ := getOSAppDataDir()
+		appDataConfigPath := filepath.Join(appDataDir, "config", "production.yaml")
+		if _, err := os.Stat(appDataConfigPath); err == nil {
+			viper.SetConfigFile(appDataConfigPath)
+			log.Printf("Using config from app data directory: %s", appDataConfigPath)
 		} else {
-			log.Printf("Warning: Default config file not found at %s", configPath)
+			// Fallback to local config path
+			configPath := filepath.Join("config", "production.yaml")
+			if _, err := os.Stat(configPath); err == nil {
+				viper.SetConfigFile(configPath)
+			} else {
+				log.Printf("Warning: Default config file not found at %s or %s", appDataConfigPath, configPath)
+			}
 		}
 	}
 

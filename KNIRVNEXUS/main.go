@@ -31,6 +31,19 @@ var embeddedFiles embed.FS
 //go:embed bin/backend_server
 var backendBinary []byte
 
+// Embed the backend config files
+//
+//go:embed all:backend/config/*
+var configFiles embed.FS
+
+// Embed environment files
+//
+//go:embed .env.development
+var envDevelopment []byte
+
+//go:embed .env.testnet
+var envTestnet []byte
+
 // Version information (set by build flags)
 var (
 	Version   = "dev"
@@ -206,6 +219,100 @@ func (app *NexusApp) extractBackend() error {
 	}
 
 	return nil
+}
+
+// getAppDataDir returns the application data directory path
+func getAppDataDir() (string, error) {
+	// Try XDG_DATA_HOME first
+	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+		return filepath.Join(xdgDataHome, "knirvnexus"), nil
+	}
+
+	// Fallback to ~/.local/share/knirvnexus
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	return filepath.Join(homeDir, ".local", "share", "knirvnexus"), nil
+}
+
+// extractEnvFile extracts the embedded environment file based on the specified environment
+func extractEnvFile(environment string) error {
+	var envData []byte
+	var envName string
+
+	switch environment {
+	case "development":
+		envData = envDevelopment
+		envName = ".env.development"
+	case "testnet":
+		envData = envTestnet
+		envName = ".env.testnet"
+	case "production":
+		// For production, we expect the .env file to be provided externally
+		// or configured through environment variables
+		log.Println("Production mode: skipping .env file extraction (use external .env or environment variables)")
+		return nil
+	default:
+		return fmt.Errorf("unknown environment: %s (must be development, testnet, or production)", environment)
+	}
+
+	// Extract to current working directory so the application can find it
+	envPath := filepath.Join(".", ".env")
+	if err := os.WriteFile(envPath, envData, 0644); err != nil {
+		return fmt.Errorf("failed to write %s to %s: %w", envName, envPath, err)
+	}
+
+	log.Printf("Extracted %s environment file to %s", environment, envPath)
+	return nil
+}
+
+// extractConfigFiles extracts embedded config files to the application data directory
+func extractConfigFiles() error {
+	// Get application data directory
+	appDataDir, err := getAppDataDir()
+	if err != nil {
+		return err
+	}
+
+	// Create config directory in app data dir
+	configDir := filepath.Join(appDataDir, "config")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// Walk through embedded config files
+	err = fs.WalkDir(configFiles, "backend/config", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories
+		if d.IsDir() {
+			return nil
+		}
+
+		// Read embedded file
+		data, err := configFiles.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to read embedded file %s: %w", path, err)
+		}
+
+		// Extract just the filename (remove "backend/config/" prefix)
+		filename := filepath.Base(path)
+		destPath := filepath.Join(configDir, filename)
+
+		// Write to local filesystem
+		if err := os.WriteFile(destPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to write config file %s: %w", destPath, err)
+		}
+
+		log.Printf("Extracted config file: %s", destPath)
+		return nil
+	})
+
+	return err
 }
 
 // setupRoutes configures the application routes
@@ -414,12 +521,18 @@ func (app *NexusApp) Stop() error {
 func loadConfig() (*Config, error) {
 	// Parse command line flags
 	var (
-		configFile = flag.String("config", "", "Path to configuration file")
-		testnet    = flag.Bool("testnet", false, "Enable testnet mode")
-		port       = flag.Int("port", 0, "Server port (overrides config)")
-		host       = flag.String("host", "", "Server host (overrides config)")
+		configFile  = flag.String("config", "", "Path to configuration file")
+		testnet     = flag.Bool("testnet", false, "Enable testnet mode")
+		environment = flag.String("env", "production", "Environment: development, testnet, or production")
+		port        = flag.Int("port", 0, "Server port (overrides config)")
+		host        = flag.String("host", "", "Server host (overrides config)")
 	)
 	flag.Parse()
+
+	// Extract environment file based on flag
+	if err := extractEnvFile(*environment); err != nil {
+		log.Printf("Warning: Failed to extract environment file: %v", err)
+	}
 
 	// Set config file if provided
 	if *configFile != "" {
@@ -428,6 +541,13 @@ func loadConfig() (*Config, error) {
 		// Set config file name and paths
 		viper.SetConfigName("production")
 		viper.SetConfigType("yaml")
+
+		// Add app data directory config path first (highest priority)
+		if appDataDir, err := getAppDataDir(); err == nil {
+			viper.AddConfigPath(filepath.Join(appDataDir, "config"))
+		}
+
+		// Add local paths as fallback
 		viper.AddConfigPath("./backend/config")
 		viper.AddConfigPath("./config")
 		viper.AddConfigPath(".")
@@ -474,6 +594,11 @@ func loadConfig() (*Config, error) {
 func main() {
 	// Print version information
 	fmt.Printf("KNIRV-NEXUS v%s (built %s, commit %s)\n", Version, BuildTime, GitCommit)
+
+	// Extract embedded config files to app data directory
+	if err := extractConfigFiles(); err != nil {
+		log.Printf("Warning: Failed to extract config files: %v", err)
+	}
 
 	// Load configuration
 	config, err := loadConfig()
