@@ -750,10 +750,86 @@ KNIRV-NEXUS supports multiple TEE technologies:
 - **JWT Authentication**: Secure token-based authentication
 - **RBAC**: Role-based access control
 
-### Container Security
+### Container Security & Runtime Architecture
 
-- **Rootless Containers**: Podman-based rootless execution
-- **Minimal Base Images**: Hardened Kali Linux base
+KNIRV-NEXUS implements a layered security approach with multiple container runtime options:
+
+#### Container Runtime Options
+
+**1. Native Go Runtime (Recommended for Development/Testing)**
+- **Deployment**: Debian/Kali Linux with security tools installed
+- **Isolation**: Filesystem sandboxing only (temp directories)
+- **Security**: Multi-layer monitoring and detection
+- **Use Case**: Development, trusted code execution, security analysis
+
+**Security Layers**:
+- Layer 1: Static Analysis (semgrep, bandit, radare2) - Pre-execution audit
+- Layer 2: Filesystem Sandboxing - Isolated temp directories
+- Layer 3: Dynamic Analysis (strace) - System call monitoring during execution
+- Layer 4: Network Inspection (tcpdump, tshark) - Traffic analysis
+- Layer 5: Forensic Analysis (sleuthkit) - Post-execution investigation
+
+**Limitations**:
+- ⚠️ **No process/network/PID isolation** - Code runs with host system access
+- ⚠️ **No resource limits** - Can consume unlimited CPU/memory
+- ⚠️ **Security via detection, not prevention** - Monitors and logs malicious behavior
+- ✅ Suitable for: Development, testing trusted code, security research
+- ❌ NOT suitable for: Untrusted code in production without additional hardening
+
+**2. Podman Runtime (Production with Proper Isolation)**
+- **Deployment**: Host system with Podman installed
+- **Isolation**: Full Linux namespaces (PID, NET, MNT, UTS, IPC, USER)
+- **Security**: cgroup limits + AppArmor/SELinux + namespace isolation
+- **Use Case**: Production environments, untrusted code execution
+
+**3. Kata Containers (Maximum Isolation)**
+- **Deployment**: Host with Kata runtime and hardware virtualization
+- **Isolation**: VM-based isolation with minimal attack surface
+- **Security**: Hardware-enforced isolation boundaries
+- **Use Case**: High-security production, multi-tenant environments
+
+#### Deployment Architecture
+
+**Option A: Containerized Deployment (Development)**
+```
+Docker/Podman Container
+├── Debian bookworm-slim
+├── Kali security tools (strace, radare2, gdb, tcpdump, etc.)
+├── KNIRV-NEXUS binary
+└── Native Go Runtime (monitoring-based)
+    ├── Creates temp sandboxes
+    ├── Monitors with strace
+    └── Analyzes with Kali tools
+```
+
+**Option B: Host Deployment (Production)**
+```
+Kali Linux Host / Debian + Kali Tools
+├── KNIRV-NEXUS binary (running as service)
+└── Podman/Kata Runtime
+    ├── Creates isolated containers for DVE tasks
+    ├── Full namespace isolation
+    ├── cgroup resource limits
+    └── Security policy enforcement
+```
+
+**Required Security Tools**:
+- `strace`, `ltrace` - System call tracing
+- `gdb` - Debugging and analysis
+- `tcpdump`, `tshark` - Network analysis
+- `radare2` - Binary analysis
+- `semgrep` - Static code analysis
+- `bandit` - Python security analysis (if analyzing Python)
+- `sleuthkit` - Forensic analysis
+
+**Automatic Detection**: The system detects the environment and selects the appropriate runtime:
+1. Checks `/etc/os-release` for "kali" or "debian"
+2. Verifies essential security tools are installed
+3. Falls back to Podman if tools are unavailable
+4. Disables containerization if nested containers not supported
+
+- **Rootless Containers**: Podman-based rootless execution (when available)
+- **Minimal Base Images**: Hardened Debian with Kali security tools
 - **Security Scanning**: Automated vulnerability scanning
 - **Network Policies**: Kubernetes network isolation
 

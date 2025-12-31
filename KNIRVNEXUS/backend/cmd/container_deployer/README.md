@@ -19,15 +19,57 @@ The **container_deployer** is a specialized Go-based orchestration tool that dep
 
 The container_deployer provides two deployment modes:
 
-1. **Local Deployment**: Runs KNIRV-NEXUS in Kata Containers on your local machine using custom Kali Linux kernel/rootfs for security research and penetration testing capabilities
-2. **Cloud Deployment**: Deploys KNIRV-NEXUS to cloud infrastructure (AWS, Azure, GCP) using Kata Containers for secure, isolated execution
+1. **Local Development**: Runs KNIRV-NEXUS in Docker/Podman with Debian + Kali security tools
+2. **Cloud Production**: Deploys KNIRV-NEXUS to cloud infrastructure (AWS, Azure, GCP) using Kata Containers for VM-level isolation
 
-### Why Kata Containers with Kali Linux?
+### Container Runtime Architecture
 
-- **OS-Level Requirements**: KNIRV-NEXUS requires access to specific Kali Linux tools and utilities for security operations
-- **Isolation**: Each container runs in its own lightweight VM, providing strong isolation
-- **Security**: Kata Containers offer hardware-enforced security boundaries
-- **Compatibility**: Works with standard container images while providing VM-level security
+KNIRV-NEXUS uses different container strategies for different environments:
+
+**Development (Docker/Podman + Debian + Kali Tools)**
+- **Base Image**: `debian:bookworm-slim` with Kali security tools installed
+- **Runtime**: Native Go runtime using installed security tools
+- **Isolation**: Filesystem sandboxing + security monitoring
+- **Purpose**: Development, testing, security research
+- **Security**: Detection-based (strace, tcpdump, forensics)
+
+**Production (Kata Containers + VM Isolation)**
+- **Base Image**: Custom Kali Linux kernel + rootfs (built by os_builder)
+- **Runtime**: Kata Containers (VM-based isolation)
+- **Isolation**: Full VM boundaries + namespace isolation
+- **Purpose**: Production, untrusted code execution
+- **Security**: Prevention-based (hardware isolation)
+
+### Why Different Runtimes?
+
+**Docker/Podman with Debian + Kali Tools (Development)**:
+- ✅ Fast iteration and debugging
+- ✅ Access to Kali security tools (strace, radare2, semgrep, gdb, tcpdump)
+- ✅ Works in containerized environments (Docker-in-Docker)
+- ✅ Native Go runtime for monitored execution
+- ⚠️ Limited isolation (monitoring vs prevention)
+- 📋 Use Case: Local development, CI/CD, security analysis
+
+**Kata Containers with Custom Kali (Production)**:
+- ✅ Hardware-enforced VM isolation
+- ✅ Full namespace + cgroup isolation
+- ✅ Minimal attack surface
+- ⚠️ Requires hardware virtualization
+- ⚠️ Higher resource overhead
+- 📋 Use Case: Production deployments, multi-tenant environments
+
+### KNIRV-NEXUS Runtime Selection
+
+The KNIRV-NEXUS backend automatically detects the environment and selects the appropriate runtime:
+
+1. **Detects OS**: Checks `/etc/os-release` for "kali" or "debian"
+2. **Checks Tools**: Verifies security tools (strace, radare2, semgrep, gdb) are installed
+3. **Selects Runtime**:
+   - If Kali or Debian with tools → Native Go Runtime (monitoring-based)
+   - If tools unavailable → Attempts Podman (namespace isolation)
+   - If Podman unavailable → Disables containerization (development mode)
+
+This allows KNIRV-NEXUS to run in development containers while still providing the DVE (Distributed Validation Environment) functionality needed for the network
 
 ## Architecture
 
