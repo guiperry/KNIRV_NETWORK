@@ -3,7 +3,7 @@
 
 ### **Abstract**
 
-The **Heuristic Annotative Reduction Transformer (HEART)** is the central, high-performance deep-learning inference model for the KNIRV ecosystem. Implemented as a singular, massively parallel Transformer architecture on a Cerebras Wafer-Scale Engine (WSE), HEART serves as the network's subconscious intuition engine. It operates across two distinct, critical domains: **Quantum Annotative Reduction** for physical-layer qubit stabilization and **Abstract Pattern Annotation** for processing complex data from the KNIRVGRAPH. Agents across the network invoke HEART as a core `Capability` to receive dense "Annotative Vectors"—packets of profound heuristic insight—that guide their local reasoning and actions. HEART is the singular source of deep intuition; the agents that use it become HERO-capable.
+The **Heuristic Annotative Reduction Transformer (HEART)** is the central, high-performance deep-learning inference model for the KNIRV ecosystem. Implemented as a singular, massively parallel Transformer architecture on a Cerebras Wafer-Scale Engine (WSE), HEART serves as the network's subconscious intuition engine. It operates across two distinct, critical domains: **Quantum Annotative Reduction** for physical-layer qubit stabilization and **Abstract Pattern Annotation** for processing complex data from the KNIRVGRAPH. Agents across the network invoke the HEART as a core `Capability` to receive dense "Annotative Vectors"—packets of profound heuristic insight—that guide their local reasoning and actions. HEART is the singular source of deep intuition; the agents that use it become HERO-capable.
 
 ---
 

@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"backend_server/internal/objects"
 	"backend_server/internal/services/container"
 	"backend_server/internal/services/dverental"
 	"backend_server/internal/services/endpoints"
@@ -21,9 +22,9 @@ import (
 func TestNewDVERentalHandlers(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
@@ -66,9 +67,9 @@ func TestDownloadSSHPrivateKey_Success(t *testing.T) {
 func TestDownloadSSHPrivateKey_SessionNotFound(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
@@ -125,9 +126,9 @@ func TestDownloadSSHPrivateKey_SessionExpired(t *testing.T) {
 func TestDownloadSSHPrivateKey_MissingSessionID(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
@@ -146,23 +147,53 @@ func TestDownloadSSHPrivateKey_MissingSessionID(t *testing.T) {
 }
 
 func TestTerminateValidationSession_Success(t *testing.T) {
-	dveRentalService := &dverental.DVERentalService{}
-	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	dveRentalService, err := dverental.NewDVERentalService(db)
+	require.NoError(t, err)
+	containerOrchestrator := &container.ContainerOrchestrator{}
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
 	rentalID := "rental-123"
 	userID := "user-456"
 
+	// Create a rental first
+	rentalReq := objects.RentalRequest{
+		UserID:        userID,
+		PlanID:        "basic",
+		Duration:      3600, // 1 hour
+		PaymentTxHash: "test-tx",
+	}
+	rentalResp, err := dveRentalService.CreateRental(&rentalReq)
+	require.NoError(t, err)
+	require.True(t, rentalResp.Success)
+	// Get the actual rental ID from the response
+	rentalID = rentalResp.RentalID
+
+	// Set container ID for the rental to pass validation
+	err = db.Update(func(tx *buntdb.Tx) error {
+		val, err := tx.Get("rental:" + rentalID)
+		if err != nil {
+			return err
+		}
+		var rental objects.DVERental
+		if err := json.Unmarshal([]byte(val), &rental); err != nil {
+			return err
+		}
+		rental.ContainerID = "test-container"
+		data, _ := json.Marshal(rental)
+		_, _, err = tx.Set("rental:"+rentalID, string(data), nil)
+		return err
+	})
+	require.NoError(t, err)
+
 	// Create a real validation session
 	_, _ = handlers.sessionManager.CreateValidationSession(rentalID, "reasoning")
 
-	req := httptest.NewRequest("DELETE", "/api/dve-rental/rentals/"+rentalID+"/validation-session", nil)
+	req := httptest.NewRequest("DELETE", "/api/dve-rental/rentals/"+rentalID+"/validation-session?user_id="+userID, nil)
 	req = mux.SetURLVars(req, map[string]string{"id": rentalID})
-	req.Header.Set("user_id", userID) // Simulate middleware setting user ID
 	w := httptest.NewRecorder()
 
 	handlers.TerminateValidationSession(w, req)
@@ -170,18 +201,18 @@ func TestTerminateValidationSession_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var response DVERentalResponse
-	err := json.NewDecoder(w.Body).Decode(&response)
-	require.NoError(t, err)
+	unmarshalErr := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, unmarshalErr)
 	assert.True(t, response.Success)
 	assert.Contains(t, response.Message, "Validation session terminated successfully")
 }
 
 func TestTerminateValidationSession_RentalNotFound(t *testing.T) {
-	dveRentalService := &dverental.DVERentalService{}
-	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	dveRentalService, _ := dverental.NewDVERentalService(db)
+	containerOrchestrator := &container.ContainerOrchestrator{}
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
@@ -196,18 +227,18 @@ func TestTerminateValidationSession_RentalNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
 	var response DVERentalResponse
-	err := json.NewDecoder(w.Body).Decode(&response)
-	require.NoError(t, err)
+	unmarshalErr := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, unmarshalErr)
 	assert.False(t, response.Success)
 	assert.Contains(t, response.Error, "Rental not found or access denied")
 }
 
 func TestTerminateValidationSession_NoValidationSession(t *testing.T) {
-	dveRentalService := &dverental.DVERentalService{}
-	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	dveRentalService, _ := dverental.NewDVERentalService(db)
+	containerOrchestrator := &container.ContainerOrchestrator{}
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
@@ -234,24 +265,53 @@ func TestTerminateValidationSession_NoValidationSession(t *testing.T) {
 }
 
 func TestTerminateErrorResolutionSession_Success(t *testing.T) {
-	dveRentalService := &dverental.DVERentalService{}
-	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	dveRentalService, err := dverental.NewDVERentalService(db)
+	require.NoError(t, err)
+	containerOrchestrator := &container.ContainerOrchestrator{}
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
 	rentalID := "rental-123"
 	userID := "user-456"
 
+	// Create a rental first
+	rentalReq := objects.RentalRequest{
+		UserID:        userID,
+		PlanID:        "basic",
+		Duration:      3600,
+		PaymentTxHash: "test-tx",
+	}
+	rentalResp, err := dveRentalService.CreateRental(&rentalReq)
+	require.NoError(t, err)
+	require.True(t, rentalResp.Success)
+	rentalID = rentalResp.RentalID
+
+	// Set container ID for the rental to pass validation
+	err = db.Update(func(tx *buntdb.Tx) error {
+		val, err := tx.Get("rental:" + rentalID)
+		if err != nil {
+			return err
+		}
+		var rental objects.DVERental
+		if err := json.Unmarshal([]byte(val), &rental); err != nil {
+			return err
+		}
+		rental.ContainerID = "test-container"
+		data, _ := json.Marshal(rental)
+		_, _, err = tx.Set("rental:"+rentalID, string(data), nil)
+		return err
+	})
+	require.NoError(t, err)
+
 	// Create a real error resolution session
 	supportedTypes := []string{"timeout", "network"}
 	_, _ = handlers.sessionManager.CreateErrorResolutionSession(rentalID, supportedTypes)
 
-	req := httptest.NewRequest("DELETE", "/api/dve-rental/rentals/"+rentalID+"/error-resolution-session", nil)
+	req := httptest.NewRequest("DELETE", "/api/dve-rental/rentals/"+rentalID+"/error-resolution-session?user_id="+userID, nil)
 	req = mux.SetURLVars(req, map[string]string{"id": rentalID})
-	req.Header.Set("user_id", userID)
 	w := httptest.NewRecorder()
 
 	handlers.TerminateErrorResolutionSession(w, req)
@@ -259,8 +319,8 @@ func TestTerminateErrorResolutionSession_Success(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 
 	var response DVERentalResponse
-	err := json.NewDecoder(w.Body).Decode(&response)
-	require.NoError(t, err)
+	unmarshalErr := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, unmarshalErr)
 	assert.True(t, response.Success)
 	assert.Contains(t, response.Message, "Error resolution session terminated successfully")
 }
@@ -268,9 +328,9 @@ func TestTerminateErrorResolutionSession_Success(t *testing.T) {
 func TestTerminateErrorResolutionSession_RentalNotFound(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
@@ -292,23 +352,51 @@ func TestTerminateErrorResolutionSession_RentalNotFound(t *testing.T) {
 }
 
 func TestTerminateErrorResolutionSession_NoErrorResolutionSession(t *testing.T) {
-	dveRentalService := &dverental.DVERentalService{}
-	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	dveRentalService, _ := dverental.NewDVERentalService(db)
+	containerOrchestrator := &container.ContainerOrchestrator{}
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
 	rentalID := "rental-123"
 	userID := "user-456"
 
+	// Create a rental first
+	rentalReq := objects.RentalRequest{
+		UserID:        userID,
+		PlanID:        "basic",
+		Duration:      3600,
+		PaymentTxHash: "test-tx",
+	}
+	rentalResp, err := dveRentalService.CreateRental(&rentalReq)
+	require.NoError(t, err)
+	require.True(t, rentalResp.Success)
+	rentalID = rentalResp.RentalID
+
+	// Set container ID for the rental to pass validation
+	err = db.Update(func(tx *buntdb.Tx) error {
+		val, err := tx.Get("rental:" + rentalID)
+		if err != nil {
+			return err
+		}
+		var rental objects.DVERental
+		if err := json.Unmarshal([]byte(val), &rental); err != nil {
+			return err
+		}
+		rental.ContainerID = "test-container"
+		data, _ := json.Marshal(rental)
+		_, _, err = tx.Set("rental:"+rentalID, string(data), nil)
+		return err
+	})
+	require.NoError(t, err)
+
 	// Create a real SSH session but no error resolution session
 	_, _ = handlers.sessionManager.CreateSSHSession(rentalID, "container-456", "testuser", "test-key")
 
-	req := httptest.NewRequest("DELETE", "/api/dve-rental/rentals/"+rentalID+"/error-resolution-session", nil)
+	req := httptest.NewRequest("DELETE", "/api/dve-rental/rentals/"+rentalID+"/error-resolution-session?user_id="+userID, nil)
 	req = mux.SetURLVars(req, map[string]string{"id": rentalID})
-	req.Header.Set("user_id", userID)
 	w := httptest.NewRecorder()
 
 	handlers.TerminateErrorResolutionSession(w, req)
@@ -316,8 +404,8 @@ func TestTerminateErrorResolutionSession_NoErrorResolutionSession(t *testing.T) 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
 	var response DVERentalResponse
-	err := json.NewDecoder(w.Body).Decode(&response)
-	require.NoError(t, err)
+	unmarshalErr := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, unmarshalErr)
 	assert.False(t, response.Success)
 	assert.Contains(t, response.Error, "Error resolution session not found for this rental")
 }
@@ -325,9 +413,9 @@ func TestTerminateErrorResolutionSession_NoErrorResolutionSession(t *testing.T) 
 func TestTerminateValidationSession_MissingRentalID(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
@@ -348,9 +436,9 @@ func TestTerminateValidationSession_MissingRentalID(t *testing.T) {
 func TestTerminateErrorResolutionSession_MissingRentalID(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := &session.SessionManager{}
-	endpointRegistry := &endpoints.EndpointRegistry{}
 	db, _ := buntdb.Open(":memory:")
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
 
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 

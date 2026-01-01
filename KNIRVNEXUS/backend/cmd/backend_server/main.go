@@ -438,7 +438,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 // setupRoutes configures all HTTP routes for the unified server
 func (s *Server) setupRoutes() {
 	// Add CORS middleware
-	s.router.Use(middleware.CORSMiddleware)
+	s.router.Use(middleware.CORSMiddlewareHTTP())
 
 	// Health check endpoint
 	s.router.HandleFunc("/health", s.handleHealth).Methods("GET")

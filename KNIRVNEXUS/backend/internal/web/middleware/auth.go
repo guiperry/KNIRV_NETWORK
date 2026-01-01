@@ -239,3 +239,10 @@ func GetAuthContext(r *http.Request) *AuthContext {
 	}
 	return nil
 }
+
+// writeError writes an error response
+func writeError(w http.ResponseWriter, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}

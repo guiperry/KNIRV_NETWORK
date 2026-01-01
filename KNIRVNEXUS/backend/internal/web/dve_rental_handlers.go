@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"backend_server/internal/objects"
@@ -1418,13 +1419,19 @@ func (h *DVERentalHandlers) DownloadSSHPrivateKey(w http.ResponseWriter, r *http
 	// Get SSH session
 	sshSession, err := h.sessionManager.GetSSHSession(sessionID)
 	if err != nil {
+		errorMsg := "SSH session not found: " + err.Error()
+		statusCode := http.StatusNotFound
+		if strings.Contains(err.Error(), "expired") {
+			statusCode = http.StatusGone
+			errorMsg = "SSH session has expired"
+		}
 		response := DVERentalResponse{
 			Success:   false,
-			Error:     "SSH session not found: " + err.Error(),
+			Error:     errorMsg,
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(statusCode)
 		json.NewEncoder(w).Encode(response)
 		return
 	}
