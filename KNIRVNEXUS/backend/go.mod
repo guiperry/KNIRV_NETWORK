@@ -2,10 +2,9 @@ module backend_server
 
 go 1.23.0
 
-toolchain go1.23.3
-
 require (
 	fyne.io/fyne/v2 v2.7.1
+	github.com/cilium/ebpf v0.12.3
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/uuid v1.6.0
@@ -19,6 +18,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.10.0
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/pkoukk/tiktoken-go v0.1.7
+	github.com/seccomp/libseccomp-golang v0.10.0
 	github.com/segmentio/kafka-go v0.4.48
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.11.1
@@ -26,6 +26,7 @@ require (
 	github.com/tidwall/buntdb v1.3.0
 	github.com/wk8/go-ordered-map/v2 v2.1.8
 	golang.org/x/crypto v0.36.0
+	golang.org/x/sys v0.31.0
 	golang.org/x/term v0.30.0
 )
 
@@ -47,6 +48,7 @@ require (
 	github.com/jsummers/gobmp v0.0.0-20230614200233-a9de23ed2e25 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.5.1 // indirect
+	github.com/opencontainers/runtime-spec v1.1.0 // indirect
 	github.com/rymdport/portal v0.4.2 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
@@ -141,7 +143,6 @@ require (
 	github.com/multiformats/go-multistream v0.5.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/onsi/ginkgo/v2 v2.13.0 // indirect
-	github.com/opencontainers/runtime-spec v1.1.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
@@ -188,7 +189,6 @@ require (
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.24.1 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect

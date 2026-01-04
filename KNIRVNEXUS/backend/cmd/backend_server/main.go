@@ -293,26 +293,26 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize Controller Integration service
 	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager.GetDB())
 
-	// Initialize CDE service with TEE security integration
-	cdeService, err := cde.NewCDEService(teeSecurityService, dataEngine, cde.CDEConfig{
-		BaseImagePath:          cfg.CDE.BaseImagePath,
-		WorkspaceRoot:          cfg.CDE.WorkspaceRoot,
-		MaxEnvironments:        cfg.CDE.MaxEnvironments,
-		DefaultTimeout:         cfg.CDE.DefaultTimeout,
-		MaxCPUPerEnv:           cfg.CDE.MaxCPUPerEnv,
-		MaxMemoryPerEnv:        cfg.CDE.MaxMemoryPerEnv,
-		MaxDiskPerEnv:          cfg.CDE.MaxDiskPerEnv,
-		EnableSandboxing:       cfg.CDE.EnableSandboxing,
-		EnableNetworkIsolation: cfg.CDE.EnableNetworkIsolation,
-		AllowedPorts:           cfg.CDE.AllowedPorts,
-		SessionTimeout:         cfg.CDE.SessionTimeout,
-		MaxSessionsPerUser:     cfg.CDE.MaxSessionsPerUser,
-		MaxProjectsPerUser:     cfg.CDE.MaxProjectsPerUser,
-		ProjectStoragePath:     cfg.CDE.ProjectStoragePath,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize CDE service: %w", err)
-	}
+			// Initialize CDE service with TEE security integration and eBPF virtual containers
+			cdeService, err := cde.NewCDEService(teeSecurityService, dataEngine, nil, cde.CDEConfig{
+				BaseImagePath:          cfg.CDE.BaseImagePath,
+				WorkspaceRoot:          cfg.CDE.WorkspaceRoot,
+				MaxEnvironments:        cfg.CDE.MaxEnvironments,
+				DefaultTimeout:         cfg.CDE.DefaultTimeout,
+				MaxCPUPerEnv:           cfg.CDE.MaxCPUPerEnv,
+				MaxMemoryPerEnv:        cfg.CDE.MaxMemoryPerEnv,
+				MaxDiskPerEnv:          cfg.CDE.MaxDiskPerEnv,
+				EnableSandboxing:       cfg.CDE.EnableSandboxing,
+				EnableNetworkIsolation: cfg.CDE.EnableNetworkIsolation,
+				AllowedPorts:           cfg.CDE.AllowedPorts,
+				SessionTimeout:         cfg.CDE.SessionTimeout,
+				MaxSessionsPerUser:     cfg.CDE.MaxSessionsPerUser,
+				MaxProjectsPerUser:     cfg.CDE.MaxProjectsPerUser,
+				ProjectStoragePath:     cfg.CDE.ProjectStoragePath,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to initialize CDE service: %w", err)
+			}
 
 	// Initialize DNS service with minimal configuration for development
 	dnsConfig := dns.DNSConfig{

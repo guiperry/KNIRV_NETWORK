@@ -1,0 +1,67 @@
+# KNIRV-NEXUS Privileged Test Dockerfile
+# This Dockerfile is specifically designed for running privileged tests
+# that require full cgroup and namespace manipulation
+
+FROM debian:bookworm-slim
+
+# Install Kali security tools and runtime dependencies
+RUN apt-get update && apt-get install -y \
+    # Base tools
+    ca-certificates \
+    curl \
+    wget \
+    bash \
+    git \
+    # Kali security tools
+    strace \
+    ltrace \
+    gdb \
+    valgrind \
+    # Container runtime tools
+    cgroup-tools \
+    libcap2-bin \
+    iptables \
+    iproute2 \
+    # Build tools (for Go compilation)
+    build-essential \
+    pkg-config \
+    # Seccomp development library (required for libseccomp-golang)
+    libseccomp-dev \
+    # System utilities
+    procps \
+    psmisc \
+    systemd \
+    systemd-sysv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Go 1.23 (matching project requirements)
+ENV GO_VERSION=1.23.4
+RUN wget https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
+    rm go${GO_VERSION}.linux-amd64.tar.gz
+
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/go"
+ENV PATH="${GOPATH}/bin:${PATH}"
+
+# Create workspace directory
+RUN mkdir -p /workspace
+WORKDIR /workspace
+
+# Set up proper permissions for namespace operations
+# The container will run as root to allow namespace creation
+# but the application can drop privileges as needed
+
+# Environment variables for testing
+ENV KNIRVNEXUS_TEST_MODE=true
+ENV KNIRVNEXUS_CGROUP_BASE=/sys/fs/cgroup
+
+# Note: /sys/fs/cgroup will be mounted at runtime with -v /sys/fs/cgroup:/sys/fs/cgroup:rw
+# It cannot be created or modified during Docker build
+
+# Healthcheck (optional for tests)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD test -d /workspace || exit 1
+
+# Default command
+CMD ["/bin/bash"]

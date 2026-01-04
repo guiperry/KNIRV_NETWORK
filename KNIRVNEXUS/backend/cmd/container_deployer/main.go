@@ -289,7 +289,7 @@ func main() {
 		switch choice {
 		case "1":
 			fmt.Println("\nStarting new container deploy (assuming Kata configured)...")
-			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType, environment)
+			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType, environment, true) // Interactive mode: tail logs
 		case "2":
 			fmt.Println("\nStarting Go app install on existing Kata setup...")
 			runInstallGoAppOnly(resourcesDir, artifactDir, selectedDeployType)
@@ -579,7 +579,7 @@ func getAnsibleDirectory(resourcesDir, deployType string) string {
 	return filepath.Join(resourcesDir, ansibleLocalDir)
 }
 
-func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment string) {
+func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment string, tailLogs bool) {
 	fmt.Printf("--- Deploying new KNIRV-NEXUS Container (%s deployment, %s environment) ---\n", deployType, environment)
 	ansibleWorkDir := getAnsibleDirectory(resourcesDir, deployType)
 	inventoryPath := filepath.Join(ansibleWorkDir, "inventory.ini")
@@ -672,35 +672,43 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment st
 		}
 	}
 
-	// Tail the container logs
-	fmt.Printf("\n📜 Tailing container logs (Press Ctrl+C to exit)...\n")
-	fmt.Println("-----------------------------------------------------------")
+	// Tail logs only if requested (interactive mode)
+	if tailLogs {
+		// Tail the container logs
+		fmt.Printf("\n📜 Tailing container logs (Press Ctrl+C to exit)...\n")
+		fmt.Println("-----------------------------------------------------------")
 
-	logsCmd := exec.Command("docker", "logs", "-f", containerName)
-	logsCmd.Stdout = os.Stdout
-	logsCmd.Stderr = os.Stderr
+		logsCmd := exec.Command("docker", "logs", "-f", containerName)
+		logsCmd.Stdout = os.Stdout
+		logsCmd.Stderr = os.Stderr
 
-	// Set up signal handling to allow graceful exit with Ctrl+C
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+		// Set up signal handling to allow graceful exit with Ctrl+C
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	// Start tailing logs in a goroutine
-	logsDone := make(chan error, 1)
-	go func() {
-		logsDone <- logsCmd.Run()
-	}()
+		// Start tailing logs in a goroutine
+		logsDone := make(chan error, 1)
+		go func() {
+			logsDone <- logsCmd.Run()
+		}()
 
-	// Wait for either logs to finish or user interrupt
-	select {
-	case <-sigChan:
-		fmt.Println("\n\n📋 Log tailing stopped by user")
-		if logsCmd.Process != nil {
-			logsCmd.Process.Kill()
+		// Wait for either logs to finish or user interrupt
+		select {
+		case <-sigChan:
+			fmt.Println("\n\n📋 Log tailing stopped by user")
+			if logsCmd.Process != nil {
+				logsCmd.Process.Kill()
+			}
+		case err := <-logsDone:
+			if err != nil {
+				log.Printf("\nLog tailing ended: %v", err)
+			}
 		}
-	case err := <-logsDone:
-		if err != nil {
-			log.Printf("\nLog tailing ended: %v", err)
-		}
+	} else {
+		fmt.Println("\n✓ Container deployed and running")
+		fmt.Printf("  View logs: docker logs %s\n", containerName)
+		fmt.Printf("  Follow logs: docker logs -f %s\n", containerName)
+		fmt.Printf("  Access shell: docker exec -it %s /bin/bash\n", containerName)
 	}
 
 	fmt.Println("\n✓ Deployment session complete")
@@ -754,7 +762,7 @@ func executeActionWithDeployType(action string, resourcesDir, artifactDir, deplo
 	switch action {
 	case "1":
 		fmt.Println("\nStarting new container deploy (assuming Kata configured)...")
-		runDeployNewContainer(resourcesDir, artifactDir, deployType, environment)
+		runDeployNewContainer(resourcesDir, artifactDir, deployType, environment, false) // Non-interactive: skip log tailing
 	case "2":
 		fmt.Println("\nStarting Go app install on existing Kata setup...")
 		runInstallGoAppOnly(resourcesDir, artifactDir, deployType)

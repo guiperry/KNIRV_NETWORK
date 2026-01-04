@@ -47,7 +47,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate
 
 # Default target
 all: clean deps frontend backend binary
@@ -57,6 +57,12 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(YELLOW)Available targets:$(NC)"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+# eBPF Generation
+ebpf-generate: ## Generate eBPF Go code from C programs
+	@echo "Generating eBPF programs..."
+	cd backend/internal/ebpf && go generate
+	@echo "eBPF generation completed"
 
 # Dependency Management
 deps: deps-go deps-node deps-ansible ## Install all dependencies
@@ -105,11 +111,11 @@ deployer: deps-go ## Build container_deployer binary
 	@echo "$(GREEN)container_deployer build completed: backend/cmd/container_deployer/container_deployer$(NC)"
 
 # Unified Binary (Frontend + Unified Backend)
-binary: frontend backend ## Build unified binary with embedded frontend and backend
-	@echo "$(BLUE)Creating unified binary...$(NC)"
+binary: ebpf-generate frontend backend ## Build unified binary with embedded eBPF, frontend, and backend
+	@echo "$(BLUE)Creating unified binary with embedded eBPF...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-nexus .
-	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/knirv-nexus$(NC)"
+	@echo "$(GREEN)Unified binary created with embedded end-to-end and eBPF programs: $(DIST_DIR)/knirv-nexus$(NC)"
 	@echo "$(BLUE)Copying binary to container_deployer golang-app-source in app data directory...$(NC)"
 	@mkdir -p $(APPDATA_DIR)/container_deployer/resources/golang-app-source
 	cp $(DIST_DIR)/knirv-nexus $(APPDATA_DIR)/container_deployer/resources/golang-app-source
@@ -141,6 +147,21 @@ test-architecture: backend ## Test the new three-tier architecture
 	@echo "$(BLUE)Testing architecture...$(NC)"
 	cd $(BACKEND_DIR) && go test -v ./tests -run TestArchitecture
 	@echo "$(GREEN)Architecture tests completed$(NC)"
+
+test-privileged: ## Run privileged tests in Docker container (cgroups, namespaces, etc.)
+	@echo "$(BLUE)Running privileged tests in Docker container...$(NC)"
+	@./scripts/test-nexus-privileged.sh
+	@echo "$(GREEN)Privileged tests completed$(NC)"
+
+test-privileged-quick: ## Run privileged tests using existing container
+	@echo "$(BLUE)Running quick privileged tests...$(NC)"
+	@./scripts/test-nexus-privileged.sh --no-deploy
+	@echo "$(GREEN)Quick privileged tests completed$(NC)"
+
+test-privileged-full: ## Run full privileged tests with cleanup
+	@echo "$(BLUE)Running full privileged tests with cleanup...$(NC)"
+	@./scripts/test-nexus-privileged.sh --cleanup
+	@echo "$(GREEN)Full privileged tests completed$(NC)"
 
 # Linting and Formatting
 lint: lint-go lint-frontend ## Run all linters

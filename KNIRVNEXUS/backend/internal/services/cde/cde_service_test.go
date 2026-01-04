@@ -26,7 +26,7 @@ func TestCDEService_Start(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, config)
+	service, err := NewCDEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
@@ -59,7 +59,7 @@ func TestCDEService_Stop(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, config)
+	service, err := NewCDEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
@@ -87,7 +87,7 @@ func TestCDEService_Start_AlreadyRunning(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, config)
+	service, err := NewCDEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
@@ -123,7 +123,7 @@ func TestCDEService_Stop_NotRunning(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, config)
+	service, err := NewCDEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
@@ -151,7 +151,7 @@ func TestCDEService_GetStatus(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, config)
+	service, err := NewCDEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
@@ -192,7 +192,7 @@ func TestCDEService_IsRunning(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, config)
+	service, err := NewCDEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 

@@ -460,6 +460,21 @@ test-nexus: ## Test KNIRVNEXUS (Admin Portal)
 	@$(MAKE) test-nexus-security
 	@echo "$(GREEN)✓ KNIRVNEXUS comprehensive tests completed$(NC)"
 
+.PHONY: test-nexus-privileged
+test-nexus-privileged: ## Test KNIRVNEXUS with full Docker instance (root privileges)
+	@echo "$(BLUE)Testing KNIRVNEXUS with privileged tests in Docker...$(NC)"
+	@cd KNIRVNEXUS && $(MAKE) test-privileged
+
+.PHONY: test-nexus-privileged-quick
+test-nexus-privileged-quick: ## Quick privileged test (use existing container)
+	@echo "$(BLUE)Running quick privileged tests...$(NC)"
+	@cd KNIRVNEXUS && $(MAKE) test-privileged-quick
+
+.PHONY: test-nexus-privileged-full
+test-nexus-privileged-full: ## Full privileged test with cleanup
+	@echo "$(BLUE)Running full privileged tests with cleanup...$(NC)"
+	@cd KNIRVNEXUS && $(MAKE) test-privileged-full
+
 .PHONY: test-nexus-unit
 test-nexus-unit: ## Run KNIRVNEXUS unit tests
 	@echo "$(BLUE)Running KNIRVNEXUS unit tests...$(NC)"

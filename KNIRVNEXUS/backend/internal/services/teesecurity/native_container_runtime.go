@@ -13,22 +13,23 @@ import (
 
 // NativeContainerRuntime implements native Go container execution using cgroups and namespaces
 type NativeContainerRuntime struct {
-	kaliProfile *KaliLinuxProfile
+	kaliProfile  *KaliLinuxProfile
 	containerDir string
-	userID      int
-	groupID     int
+	userID       int
+	groupID      int
+	config       ContainerConfig
 }
 
 // ContainerOptions specifies container run options
 type ContainerOptions struct {
-	Image           string
-	Name            string
-	Args            []string
-	Env             []string
-	Volumes         []string
-	SecurityOpts    []string
-	SkillCode       string  // Skill code to execute
-	TestCases       []string // Test cases to run
+	Image        string
+	Name         string
+	Args         []string
+	Env          []string
+	Volumes      []string
+	SecurityOpts []string
+	SkillCode    string   // Skill code to execute
+	TestCases    []string // Test cases to run
 }
 
 // ContainerResult represents execution results
@@ -37,7 +38,8 @@ type ContainerResult struct {
 	ExitCode      int
 	Stdout        string
 	Stderr        string
-	ExecutionTime int64  // milliseconds
+	ExecutionTime int64 // milliseconds
+	ResourceUsage *ResourceUsage
 }
 
 // NewNativeContainerRuntime creates a native Go container runtime for systems with Kali security tools
@@ -55,26 +57,111 @@ func NewNativeContainerRuntime(kaliProfile *KaliLinuxProfile) (*NativeContainerR
 		return nil, fmt.Errorf("failed to create container directory: %v", err)
 	}
 
+	// Set default hardening configuration
+	defaultConfig := ContainerConfig{
+		EnableHardening:      true,
+		FallbackToMonitoring: true,
+		Namespaces: NamespaceConfig{
+			EnablePID:     true,
+			EnableNetwork: true,
+			EnableMount:   true,
+			EnableUTS:     true,
+			EnableIPC:     true,
+			EnableUser:    true,
+		},
+		Cgroups: CgroupConfig{
+			CPU: CgroupCPU{
+				Quota:  100000, // 1 CPU
+				Period: 100000,
+				Shares: 1024,
+			},
+			Memory: CgroupMemory{
+				Limit:     512 * 1024 * 1024, // 512 MB
+				SwapLimit: -1,                // No swap
+			},
+			PIDs: CgroupPIDs{
+				Max: 512,
+			},
+			IO: CgroupIO{
+				ReadBPS:  10 * 1024 * 1024, // 10 MB/s
+				WriteBPS: 10 * 1024 * 1024,
+			},
+		},
+		Network: NetworkConfig{
+			ContainerInterface: "eth0",
+			ContainerIP:        "10.200.0.2/24",
+			GatewayIP:          "10.200.0.1",
+			EnableInternet:     false,
+			DNSServers:         []string{"8.8.8.8", "1.1.1.1"},
+		},
+		Security: SecurityConfig{
+			DropCapabilities: true,
+			SeccompEnabled:   true,
+			AppArmorEnabled:  true,
+			ReadOnlyRoot:     true,
+			NoNewPrivs:       true,
+		},
+	}
+
 	log.Printf("Native container runtime initialized (OS: %s, Tools available: strace, bash)", kaliProfile.OS)
 	return &NativeContainerRuntime{
 		kaliProfile:  kaliProfile,
 		containerDir: containerDir,
+		config:       defaultConfig,
 	}, nil
 }
 
 // RunContainer executes SkillCode within a sandboxed environment using Kali's security tools
 func (ncr *NativeContainerRuntime) RunContainer(ctx context.Context, opts ContainerOptions) (*ContainerResult, error) {
-	containerID := fmt.Sprintf("skill-%d", os.Getpid())
-	result := &ContainerResult{
-		ContainerID: containerID,
+	containerID := fmt.Sprintf("skill-%d", time.Now().UnixNano())
+
+	log.Printf("Starting hardened container %s with full isolation", containerID)
+
+	// Check if hardening is enabled
+	if ncr.config.EnableHardening {
+		return ncr.runHardenedContainer(ctx, opts, containerID)
 	}
 
-	log.Printf("Starting native container %s with security analysis", containerID)
+	// Fallback to original monitoring-based execution
+	return ncr.runMonitoringContainer(ctx, opts, containerID)
+}
+
+// runHardenedContainer executes skill code with full namespace and cgroup isolation
+func (ncr *NativeContainerRuntime) runHardenedContainer(ctx context.Context, opts ContainerOptions, containerID string) (*ContainerResult, error) {
+	// 1. Create cgroup
+	cgroupMgr, err := NewCgroupManager(containerID, ncr.config.Cgroups)
+	if err != nil {
+		if ncr.config.FallbackToMonitoring {
+			log.Printf("Warning: Failed to create cgroup, falling back to monitoring: %v", err)
+			return ncr.runMonitoringContainer(ctx, opts, containerID)
+		}
+		return nil, fmt.Errorf("failed to create cgroup: %w", err)
+	}
+	defer cgroupMgr.Cleanup()
+
+	if err := cgroupMgr.ApplyLimits(); err != nil {
+		if ncr.config.FallbackToMonitoring {
+			log.Printf("Warning: Failed to apply cgroup limits, falling back to monitoring: %v", err)
+			return ncr.runMonitoringContainer(ctx, opts, containerID)
+		}
+		return nil, fmt.Errorf("failed to apply cgroup limits: %w", err)
+	}
+
+	// 2. Create namespace manager
+	namespaceMgr := NewNamespaceManager(ncr.config.Namespaces)
+
+	// 3. Execute in container with namespaces and Phase 2 features
+	return ncr.executeHardenedContainer(ctx, opts, containerID, cgroupMgr, namespaceMgr)
+}
+
+// runMonitoringContainer executes skill code with original monitoring-based approach
+func (ncr *NativeContainerRuntime) runMonitoringContainer(ctx context.Context, opts ContainerOptions, containerID string) (*ContainerResult, error) {
+	log.Printf("Running container %s with monitoring-based security (hardening disabled)", containerID)
 
 	// Create isolated environment
 	sandboxPath := filepath.Join(ncr.containerDir, containerID)
 	if err := os.MkdirAll(sandboxPath, 0700); err != nil {
-		return result, fmt.Errorf("failed to create sandbox: %v", err)
+		return nil, fmt.Errorf("failed to create sandbox: %v", err)
 	}
 	defer os.RemoveAll(sandboxPath)
 
@@ -217,7 +304,7 @@ func (ncr *NativeContainerRuntime) analyzeNetworkTraffic(ctx context.Context, co
 	// Use tcpdump if available
 	if _, err := exec.LookPath("tcpdump"); err == nil {
 		log.Printf("Capturing network traffic for container %s", containerID)
-		
+
 		// Check context before starting network capture
 		select {
 		case <-ctx.Done():
