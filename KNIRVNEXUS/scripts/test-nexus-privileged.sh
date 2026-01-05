@@ -28,6 +28,7 @@ LOG_FILE="${TEST_RESULTS_DIR}/privileged-tests_${TIMESTAMP}.log"
 DEPLOY_CONTAINER=true
 CLEANUP_CONTAINER=false
 RUN_TESTS=true
+SHOW_BUILD_OUTPUT=false
 WAIT_TIMEOUT=120  # seconds to wait for container to be ready
 
 # Parse command line arguments
@@ -45,6 +46,10 @@ while [[ $# -gt 0 ]]; do
             RUN_TESTS=false
             shift
             ;;
+        --show-build)
+            SHOW_BUILD_OUTPUT=true
+            shift
+            ;;
         --wait-timeout)
             WAIT_TIMEOUT="$2"
             shift 2
@@ -56,6 +61,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --no-deploy       Skip container deployment (use existing container)"
             echo "  --cleanup         Clean up container after tests"
             echo "  --no-tests        Only deploy container, don't run tests"
+            echo "  --show-build      Show verbose Docker build output"
             echo "  --wait-timeout N  Wait N seconds for container to be ready (default: 120)"
             echo "  --help            Show this help message"
             echo ""
@@ -63,7 +69,8 @@ while [[ $# -gt 0 ]]; do
             echo "  $0                           # Deploy and run all tests"
             echo "  $0 --no-deploy               # Run tests on existing container"
             echo "  $0 --cleanup                 # Deploy, test, and cleanup"
-            echo "  $0 --no-deploy --cleanup     # Test existing container and cleanup"
+            echo "  $0 --show-build              # Show verbose build output"
+            echo "  $0 --show-build --cleanup    # Show build output and cleanup after"
             exit 0
             ;;
         *)
@@ -301,6 +308,8 @@ run_privileged_tests() {
 
     if docker exec "${CONTAINER_NAME}" bash -c "
         set -e
+        export KNIRVNEXUS_TEST_MODE=true
+        export PATH="/usr/sbin:/sbin:$PATH"
         cd /workspace/KNIRVNEXUS/backend
 
         # Check kernel features

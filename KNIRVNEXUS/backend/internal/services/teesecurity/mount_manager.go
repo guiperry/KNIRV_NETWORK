@@ -172,6 +172,18 @@ func (mm *MountManager) mountMinimalDev() error {
 // applyBindMounts applies additional bind mounts
 func (mm *MountManager) applyBindMounts() error {
 	for _, bm := range mm.config.BindMounts {
+		// Verify source exists
+		if _, err := os.Stat(bm.Source); err != nil {
+			if os.IsNotExist(err) {
+				// Create source directory if it doesn't exist
+				if err := os.MkdirAll(bm.Source, 0755); err != nil {
+					return fmt.Errorf("failed to create bind mount source %s: %w", bm.Source, err)
+				}
+			} else {
+				return fmt.Errorf("failed to stat bind mount source %s: %w", bm.Source, err)
+			}
+		}
+
 		// Create mount point
 		if err := os.MkdirAll(bm.Destination, 0755); err != nil {
 			return fmt.Errorf("failed to create mount point %s: %w", bm.Destination, err)

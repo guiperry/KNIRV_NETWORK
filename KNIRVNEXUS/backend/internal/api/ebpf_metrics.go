@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"knirv-nexus/backend/internal/ebpf"
+	"backend_server/internal/ebpf"
 
 	"github.com/gin-gonic/gin"
 )

@@ -35,6 +35,16 @@ func TestPrivilegedEnvironmentSetup(t *testing.T) {
 
 	// Test 2: Cgroup filesystem writable
 	t.Run("CgroupWritable", func(t *testing.T) {
+		// First check if /sys/fs/cgroup exists and is accessible
+		cgroupRoot := "/sys/fs/cgroup"
+		if _, err := os.Stat(cgroupRoot); err != nil {
+			t.Errorf("FAIL: Cgroup root not accessible: %v", err)
+			t.Error("Container must be started with:")
+			t.Error("  -v /sys/fs/cgroup:/sys/fs/cgroup:rw")
+			allPassed = false
+			return
+		}
+
 		testPath := "/sys/fs/cgroup/knirv-privilege-test"
 
 		if err := os.MkdirAll(testPath, 0755); err != nil {

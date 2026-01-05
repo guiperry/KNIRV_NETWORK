@@ -191,6 +191,7 @@ func main() {
 	action := flag.String("action", "", "Action to perform: 1=Deploy new container, 2=Install Go app only, 3=Exit")
 	deployType := flag.String("deploy-type", "", "Deployment type: local or cloud")
 	envFlag := flag.String("env", "", "Environment: development, testnet, or production")
+	showBuild := flag.Bool("show-build", false, "Show verbose Docker build output")
 	flag.Parse()
 
 	// Determine deployment type
@@ -255,7 +256,7 @@ func main() {
 
 	// If action flag provided, execute it non-interactively
 	if *action != "" {
-		executeActionWithDeployType(*action, resourcesDir, artifactDir, selectedDeployType, environment)
+		executeActionWithDeployType(*action, resourcesDir, artifactDir, selectedDeployType, environment, *showBuild)
 		return
 	}
 
@@ -289,7 +290,7 @@ func main() {
 		switch choice {
 		case "1":
 			fmt.Println("\nStarting new container deploy (assuming Kata configured)...")
-			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType, environment, true) // Interactive mode: tail logs
+			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType, environment, true, *showBuild) // Interactive mode: tail logs
 		case "2":
 			fmt.Println("\nStarting Go app install on existing Kata setup...")
 			runInstallGoAppOnly(resourcesDir, artifactDir, selectedDeployType)
@@ -579,7 +580,7 @@ func getAnsibleDirectory(resourcesDir, deployType string) string {
 	return filepath.Join(resourcesDir, ansibleLocalDir)
 }
 
-func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment string, tailLogs bool) {
+func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment string, tailLogs bool, showBuild bool) {
 	fmt.Printf("--- Deploying new KNIRV-NEXUS Container (%s deployment, %s environment) ---\n", deployType, environment)
 	ansibleWorkDir := getAnsibleDirectory(resourcesDir, deployType)
 	inventoryPath := filepath.Join(ansibleWorkDir, "inventory.ini")
@@ -602,6 +603,8 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment st
 			fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
 			fmt.Sprintf("container_image_name=%s", containerImageName),
 			fmt.Sprintf("knirv_environment=%s", environment), // Pass environment to Ansible
+			"privileged_container=true",
+			fmt.Sprintf("show_build_output=%t", showBuild), // Pass show_build flag
 		}
 	} else {
 		// Cloud deployment uses Kata containers
@@ -758,11 +761,11 @@ func runInstallGoAppOnly(resourcesDir, artifactDir, deployType string) {
 }
 
 // executeActionWithDeployType performs the specified action non-interactively with deployment type
-func executeActionWithDeployType(action string, resourcesDir, artifactDir, deployType, environment string) {
+func executeActionWithDeployType(action string, resourcesDir, artifactDir, deployType, environment string, showBuild bool) {
 	switch action {
 	case "1":
 		fmt.Println("\nStarting new container deploy (assuming Kata configured)...")
-		runDeployNewContainer(resourcesDir, artifactDir, deployType, environment, false) // Non-interactive: skip log tailing
+		runDeployNewContainer(resourcesDir, artifactDir, deployType, environment, false, showBuild) // Non-interactive: skip log tailing
 	case "2":
 		fmt.Println("\nStarting Go app install on existing Kata setup...")
 		runInstallGoAppOnly(resourcesDir, artifactDir, deployType)

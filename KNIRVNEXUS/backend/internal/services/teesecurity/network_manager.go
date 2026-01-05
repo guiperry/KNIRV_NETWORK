@@ -1,12 +1,22 @@
 package teesecurity
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 )
+
+// generateRandomString generates a hexadecimal encoded random string of the given byte length.
+func generateRandomString(length int) (string, error) {
+	b := make([]byte, length)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
 
 // NetworkManager handles network namespace configuration and veth pair setup
 type NetworkManager struct {
@@ -19,7 +29,7 @@ func NewNetworkManager(config NetworkConfig) *NetworkManager {
 }
 
 // SetupNetworkNamespace configures networking in the container namespace
-func (nm *NetworkManager) SetupNetworkNamespace(netnsPath string) error {
+func (nm *NetworkManager) SetupNetworkNamespace(netnsPath string, containerInterface string) error {
 	// Basic network setup using ip command
 	// This is a simplified version that doesn't require external libraries
 
@@ -29,7 +39,7 @@ func (nm *NetworkManager) SetupNetworkNamespace(netnsPath string) error {
 	}
 
 	// Configure veth interface
-	if err := nm.configureVethSimple(); err != nil {
+	if err := nm.configureVethSimple(containerInterface); err != nil {
 		return err
 	}
 
@@ -42,14 +52,14 @@ func (nm *NetworkManager) SetupNetworkNamespace(netnsPath string) error {
 }
 
 // configureVethSimple configures the container side of the veth pair using ip command
-func (nm *NetworkManager) configureVethSimple() error {
+func (nm *NetworkManager) configureVethSimple(containerInterface string) error {
 	// Add IP address to container interface
-	if err := nm.runIPCommand("addr", "add", nm.config.ContainerIP, "dev", nm.config.ContainerInterface); err != nil {
+	if err := nm.runIPCommand("addr", "add", nm.config.ContainerIP, "dev", containerInterface); err != nil {
 		return fmt.Errorf("failed to add IP address: %w", err)
 	}
 
 	// Bring interface up
-	if err := nm.runIPCommand("link", "set", "dev", nm.config.ContainerInterface, "up"); err != nil {
+	if err := nm.runIPCommand("link", "set", "dev", containerInterface, "up"); err != nil {
 		return fmt.Errorf("failed to bring up interface: %w", err)
 	}
 
@@ -80,8 +90,13 @@ func (nm *NetworkManager) configureDNS() error {
 
 // CreateVethPair creates a veth pair (host side) using ip command
 func (nm *NetworkManager) CreateVethPair(containerPID int) (*VethPair, error) {
-	hostVeth := fmt.Sprintf("veth-host-%d", containerPID)
-	containerVeth := nm.config.ContainerInterface
+	// Generate unique names for veth interfaces
+	suffix, err := generateRandomString(3) // 3 bytes -> 6 chars
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate random suffix: %w", err)
+	}
+	hostVeth := fmt.Sprintf("h%s", suffix)
+	containerVeth := fmt.Sprintf("c%s", suffix) // Use a unique name for container side as well
 
 	// Create veth pair
 	if err := nm.runIPCommand("link", "add", hostVeth, "type", "veth", "peer", "name", containerVeth); err != nil {
@@ -89,7 +104,7 @@ func (nm *NetworkManager) CreateVethPair(containerPID int) (*VethPair, error) {
 	}
 
 	// Move peer to container namespace
-	if err := nm.runIPCommand("link", "set", containerVeth, "netns", strconv.Itoa(containerPID)); err != nil {
+	if err := nm.runIPCommand("link", "set", containerVeth, "netns", fmt.Sprintf("%d", containerPID)); err != nil {
 		// Cleanup on failure
 		nm.runIPCommand("link", "del", hostVeth)
 		return nil, fmt.Errorf("failed to move peer to container: %w", err)
@@ -123,15 +138,10 @@ func (nm *NetworkManager) DeleteVethPair(vethPair *VethPair) error {
 
 // runIPCommand executes ip command with given arguments
 func (nm *NetworkManager) runIPCommand(args ...string) error {
-	cmd := exec.Command("ip", args...)
+	cmd := exec.Command("/usr/sbin/ip", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("ip %s failed: %s: %w", strings.Join(args, " "), string(output), err)
 	}
 	return nil
-}
-
-// strconv.Itoa replacement for container PID
-func strconvItoa(i int) string {
-	return fmt.Sprintf("%d", i)
 }

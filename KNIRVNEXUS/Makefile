@@ -150,17 +150,17 @@ test-architecture: backend ## Test the new three-tier architecture
 
 test-privileged: ## Run privileged tests in Docker container (cgroups, namespaces, etc.)
 	@echo "$(BLUE)Running privileged tests in Docker container...$(NC)"
-	@./scripts/test-nexus-privileged.sh
+	@./scripts/test-nexus-privileged.sh $(if $(SHOW_BUILD),--show-build)
 	@echo "$(GREEN)Privileged tests completed$(NC)"
 
 test-privileged-quick: ## Run privileged tests using existing container
 	@echo "$(BLUE)Running quick privileged tests...$(NC)"
-	@./scripts/test-nexus-privileged.sh --no-deploy
+	@./scripts/test-nexus-privileged.sh --no-deploy $(if $(SHOW_BUILD),--show-build)
 	@echo "$(GREEN)Quick privileged tests completed$(NC)"
 
 test-privileged-full: ## Run full privileged tests with cleanup
 	@echo "$(BLUE)Running full privileged tests with cleanup...$(NC)"
-	@./scripts/test-nexus-privileged.sh --cleanup
+	@./scripts/test-nexus-privileged.sh --cleanup $(if $(SHOW_BUILD),--show-build)
 	@echo "$(GREEN)Full privileged tests completed$(NC)"
 
 # Linting and Formatting
@@ -270,6 +270,7 @@ clean: ## Clean build artifacts
 	rm -rf node_modules/.cache
 	docker stop knirvnexus-kali-local
 	docker rm knirvnexus-kali-local
+	docker system prune -f
 
 clean-all: clean ## Clean everything including dependencies
 	@echo "$(BLUE)Cleaning all artifacts and dependencies...$(NC)"

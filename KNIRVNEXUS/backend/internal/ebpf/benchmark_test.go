@@ -1,13 +1,14 @@
 package ebpf
 
 import (
+	"context"
 	"os"
 	"testing"
 )
 
 func setupManager(tb testing.TB) *Manager {
 	mgr := NewManager()
-	if err := mgr.Initialize(nil, &Config{}); err != nil {
+	if err := mgr.Initialize(context.TODO(), &Config{}); err != nil {
 		// in benchmarks, fail fast
 		tb.Fatalf("init manager: %v", err)
 	}

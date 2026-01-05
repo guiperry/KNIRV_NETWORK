@@ -32,6 +32,11 @@ func NewCgroupManager(containerID string, config CgroupConfig) (*CgroupManager, 
 		return nil, fmt.Errorf("failed to create base cgroup directory: %w", err)
 	}
 
+	// Enable controllers in the parent cgroup (required for cgroup v2)
+	if err := enableCgroupControllers(basePath); err != nil {
+		return nil, fmt.Errorf("failed to enable cgroup controllers: %w", err)
+	}
+
 	// Create container-specific cgroup
 	cgroupPath := filepath.Join(basePath, containerID)
 	if err := os.MkdirAll(cgroupPath, 0755); err != nil {
@@ -60,6 +65,80 @@ func verifyCgroupWritable() error {
 	}
 
 	// Test passed, directory is writable
+	return nil
+}
+
+// enableCgroupControllers enables all available controllers in a cgroup
+// This is required for cgroup v2 - controllers must be enabled in parent before child can use them
+func enableCgroupControllers(cgroupPath string) error {
+	// Read available controllers from root cgroup
+	rootControllers, err := os.ReadFile("/sys/fs/cgroup/cgroup.controllers")
+	if err != nil {
+		// If we can't read controllers, it might be cgroup v1 or permission issue
+		// Try to continue anyway
+		return nil
+	}
+
+	controllers := strings.Fields(string(rootControllers))
+	if len(controllers) == 0 {
+		// No controllers available, nothing to enable
+		return nil
+	}
+
+	// For the parent cgroup, we need to enable controllers in its parent first
+	// Get the parent of our basePath
+	parentPath := filepath.Dir(cgroupPath)
+
+	// If parent is root cgroup, read from root subtree_control
+	if parentPath == "/sys/fs/cgroup" || parentPath == "." {
+		// Enable controllers in root cgroup's subtree_control
+		subtreeControlPath := "/sys/fs/cgroup/cgroup.subtree_control"
+
+		// Build controller enable string (e.g., "+cpu +memory +io +pids")
+		var enableStr string
+		for _, controller := range controllers {
+			enableStr += "+" + controller + " "
+		}
+		enableStr = strings.TrimSpace(enableStr)
+
+		// Write to subtree_control to enable controllers
+		if err := os.WriteFile(subtreeControlPath, []byte(enableStr), 0644); err != nil {
+			// This might fail if already enabled or not supported - that's okay
+			// We'll check if individual operations succeed later
+		}
+	} else {
+		// Enable controllers in the parent's subtree_control
+		parentSubtreeControl := filepath.Join(parentPath, "cgroup.subtree_control")
+
+		// Build controller enable string
+		var enableStr string
+		for _, controller := range controllers {
+			enableStr += "+" + controller + " "
+		}
+		enableStr = strings.TrimSpace(enableStr)
+
+		// Write to parent's subtree_control
+		if err := os.WriteFile(parentSubtreeControl, []byte(enableStr), 0644); err != nil {
+			// This might fail if already enabled - that's okay
+		}
+	}
+
+	// Now enable controllers in this cgroup's subtree_control for its children
+	subtreeControlPath := filepath.Join(cgroupPath, "cgroup.subtree_control")
+
+	// Build controller enable string
+	var enableStr string
+	for _, controller := range controllers {
+		enableStr += "+" + controller + " "
+	}
+	enableStr = strings.TrimSpace(enableStr)
+
+	// Write to subtree_control
+	if err := os.WriteFile(subtreeControlPath, []byte(enableStr), 0644); err != nil {
+		// This might fail if already enabled or if we don't have processes in this cgroup yet
+		// That's okay - we'll be able to write to controller files anyway
+	}
+
 	return nil
 }
 
@@ -196,6 +275,13 @@ func (cm *CgroupManager) GetStats() (*CgroupStats, error) {
 
 // Cleanup removes the cgroup
 func (cm *CgroupManager) Cleanup() error {
+	// First, move all processes out of this cgroup
+	if err := cm.writeFile("cgroup.procs", "0"); err != nil {
+		// Log the error but try to continue cleanup, as some cgroups might not have procs writable
+		fmt.Printf("Warning: failed to move processes out of cgroup %s: %v\n", cm.cgroupPath, err)
+	}
+
+	// Then, remove the cgroup directory
 	return os.RemoveAll(cm.cgroupPath)
 }
 

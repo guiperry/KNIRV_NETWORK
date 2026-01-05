@@ -3,17 +3,17 @@ package teesecurity
 import (
 	"net"
 	"os"
-	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
 // TestNetworkManager_CreateVethPair tests veth pair creation
 func TestNetworkManager_CreateVethPair(t *testing.T) {
-	// Skip test if ip command is not available
-	if _, err := exec.LookPath("ip"); err != nil {
-		t.Skip("ip command not available, skipping network tests")
-	}
+	// // Skip test if ip command is not available
+	// if _, err := exec.LookPath("ip"); err != nil {
+	// 	t.Skip("ip command not available, skipping network tests")
+	// }
 
 	config := NetworkConfig{
 		ContainerInterface: "test-eth0",
@@ -48,7 +48,8 @@ func TestNetworkManager_ConfigureDNS(t *testing.T) {
 	}
 
 	// Test DNS configuration (create a temp file instead of /etc/resolv.conf)
-	tempFile := "/tmp/test-resolv.conf"
+	tempDir := t.TempDir() // Use Go's built-in temp directory creation
+	tempFile := filepath.Join(tempDir, "test-resolv.conf")
 	config.DNSServers = []string{"8.8.8.8", "1.1.1.1"}
 
 	// Create the DNS content
@@ -62,7 +63,6 @@ func TestNetworkManager_ConfigureDNS(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to write DNS config: %v", err)
 	}
-	defer os.Remove(tempFile)
 
 	// Verify content
 	content, err := os.ReadFile(tempFile)
@@ -96,10 +96,10 @@ func TestNetworkManager_ParseIP(t *testing.T) {
 
 // TestNetworkManager_DeleteVethPair tests veth pair deletion
 func TestNetworkManager_DeleteVethPair(t *testing.T) {
-	// Skip test if ip command is not available
-	if _, err := exec.LookPath("ip"); err != nil {
-		t.Skip("ip command not available, skipping network tests")
-	}
+	// // Skip test if ip command is not available
+	// if _, err := exec.LookPath("ip"); err != nil {
+	// 	t.Skip("ip command not available, skipping network tests")
+	// }
 
 	config := NetworkConfig{
 		ContainerInterface: "test-eth0",

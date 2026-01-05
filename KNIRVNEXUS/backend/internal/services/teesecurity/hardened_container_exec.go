@@ -97,8 +97,12 @@ func (ncr *NativeContainerRuntime) executeHardenedContainer(
 	}
 	defer networkMgr.DeleteVethPair(vethPair)
 
-	// Wait for container to complete setup and signal ready
-	// (Container will setup mounts, apply seccomp, drop caps, apply AppArmor, then exec skill)
+	// Call containerInit with the dynamically generated container interface name
+	err = containerInit(ctx, opts, containerID, ncr, vethPair.ContainerInterface)
+	if err != nil {
+		cmd.Process.Kill()
+		return result, fmt.Errorf("failed to initialize container: %w", err)
+	}
 
 	// Wait for completion
 	startTime := time.Now()
@@ -131,6 +135,7 @@ func containerInit(
 	opts ContainerOptions,
 	containerID string,
 	ncr *NativeContainerRuntime,
+	containerInterface string, // New parameter
 ) error {
 	// 1. Setup mount namespace
 	mountConfig := MountConfig{
@@ -155,7 +160,7 @@ func containerInit(
 
 	// 2. Setup network namespace
 	networkMgr := NewNetworkManager(ncr.config.Network)
-	if err := networkMgr.SetupNetworkNamespace("/proc/self/ns/net"); err != nil {
+	if err := networkMgr.SetupNetworkNamespace("/proc/self/ns/net", containerInterface); err != nil {
 		return err
 	}
 
