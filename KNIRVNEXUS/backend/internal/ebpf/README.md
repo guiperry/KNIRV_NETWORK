@@ -7,28 +7,28 @@ The KNIRVNEXUS eBPF subsystem provides kernel-level security monitoring and enfo
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    KNIRVNEXUS Backend                       │
+┌────────────────────────────────────────────────────────────┐
+│                    KNIRVNEXUS Backend                      │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │              eBPF Manager (manager.go)               │  │
 │  │    - Lifecycle management                            │  │
 │  │    - Coordination of subsystems                      │  │
 │  └──────────────────────────────────────────────────────┘  │
-│           │              │              │              │    │
-│           ▼              ▼              ▼              ▼    │
-│  ┌─────────────┐ ┌─────────────┐ ┌──────────┐ ┌──────────┐│
-│  │   Syscall   │ │  Sandbox    │ │   XDP    │ │ Virtual  ││
-│  │   Monitor   │ │  LSM Policy │ │  Filter  │ │Container ││
-│  │             │ │             │ │          │ │ Manager  ││
-│  └─────────────┘ └─────────────┘ └──────────┘ └──────────┘│
-└─────────────────────────────────────────────────────────────┘
+│           │              │              │              │   │
+│           ▼              ▼              ▼              ▼   │
+│  ┌─────────────┐ ┌─────────────┐ ┌──────────┐ ┌──────────┐ │
+│  │   Syscall   │ │  Sandbox    │ │   XDP    │ │ Virtual  │ │
+│  │   Monitor   │ │  LSM Policy │ │  Filter  │ │Container │ │
+│  │             │ │             │ │          │ │ Manager  │ │
+│  └─────────────┘ └─────────────┘ └──────────┘ └──────────┘ │
+└────────────────────────────────────────────────────────────┘
            │              │              │              │
            ▼              ▼              ▼              ▼
     ╔═══════════════════════════════════════════════════════╗
     ║              Linux Kernel (eBPF Programs)             ║
     ╠═══════════════════════════════════════════════════════╣
-    ║  syscall_trace.c  │  sandbox_lsm.c  │  xdp_filter.c  ║
-    ║       (TP)        │      (LSM)      │     (XDP)      ║
+    ║  syscall_trace.c  │  sandbox_lsm.c  │  xdp_filter.c   ║
+    ║       (TP)        │      (LSM)      │     (XDP)       ║
     ║                   │  virtual_ns.c                     ║
     ║                   │      (LSM)                        ║
     ╚═══════════════════════════════════════════════════════╝

@@ -59,3 +59,15 @@ type VirtualContainer struct {
 	RootFS         string
 	NetworkAllowed bool
 }
+
+// ProcessStats holds aggregated telemetry for a process
+type ProcessStats struct {
+	SyscallCount    [400]uint64
+	CPUTimeNs       uint64
+	MemoryBytes     uint64
+	NetTxBytes      uint64
+	NetRxBytes      uint64
+	ContextSwitches uint32
+	PageFaults      uint32
+	ModelName       string
+}

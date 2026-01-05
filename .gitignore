@@ -96,3 +96,5 @@ KNIRVNEXUS/frontend/out/*
 KNIRVNEXUS/knirv-nexus
 /KNIRVNEXUS/test-results
 /KNIRVNEXUS/test-results
+/KNIRVANA/ts-client/test-results
+/KNIRVANA/ts-client/playwright-report

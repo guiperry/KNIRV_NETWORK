@@ -15,10 +15,27 @@ struct syscall_event {
     __u32 syscall_id;
 };
 
+// Define the tracepoint context structure for raw_syscalls/sys_enter
+// This structure matches the kernel's tracepoint format
+struct trace_event_raw_sys_enter {
+    __u64 __unused__;      // Common tracepoint fields (not used)
+    long id;               // Syscall ID
+    unsigned long args[6]; // Syscall arguments
+};
+
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
     __uint(max_entries, 256 * 1024);
 } events SEC(".maps");
+
+// Dummy map to expose syscall_event type to bpf2go for Go code generation
+// This map is never used at runtime, but ensures the type is in BTF data
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __uint(max_entries, 1);
+    __type(key, __u32);
+    __type(value, struct syscall_event);
+} syscall_event_type SEC(".maps");
 
 SEC("tracepoint/raw_syscalls/sys_enter")
 int trace_sys_enter(struct trace_event_raw_sys_enter *ctx)

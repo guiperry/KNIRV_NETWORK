@@ -47,6 +47,12 @@ func (l *Loader) loadEmbeddedProgram() error {
 				Type:       ebpf.RingBuf,
 				MaxEntries: 256 * 1024, // 256KB
 			},
+			"process_telemetry": {
+				Type:       ebpf.Hash,
+				KeySize:    4,    // PID (u32)
+				ValueSize:  4096, // generous size for stats blob
+				MaxEntries: 100000,
+			},
 		},
 	}
 
