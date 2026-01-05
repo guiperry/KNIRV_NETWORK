@@ -298,6 +298,37 @@ run_privileged_tests() {
         go mod tidy
     " | tee -a "${LOG_FILE}"
 
+    # Ensure required tools are available in container (for tests)
+    log "Ensuring required tools and permissions are available in container..."
+    docker exec "${CONTAINER_NAME}" bash -c "
+        # Ensure /tmp is writable
+        chmod 1777 /tmp 2>/dev/null || true
+        mkdir -p /tmp/knirv-containers 2>/dev/null || true
+        chmod 755 /tmp/knirv-containers 2>/dev/null || true
+        
+        # Check if iproute2 is installed, install if missing
+        if ! command -v ip &> /dev/null; then
+            echo 'Installing iproute2...'
+            apt-get update -qq && apt-get install -y -qq iproute2 2>/dev/null || true
+        fi
+        # Check if util-linux is installed (provides unshare)
+        if ! command -v unshare &> /dev/null; then
+            echo 'Installing util-linux...'
+            apt-get update -qq && apt-get install -y -qq util-linux 2>/dev/null || true
+        fi
+        # Check if mount is available
+        if ! command -v mount &> /dev/null; then
+            echo 'Installing mount utilities...'
+            apt-get update -qq && apt-get install -y -qq mount 2>/dev/null || true
+        fi
+        # Ensure PATH includes /usr/sbin
+        export PATH=\"/usr/sbin:/sbin:\$PATH\"
+        echo 'Tools check:'
+        which ip 2>/dev/null || echo 'ip not found'
+        which unshare 2>/dev/null || echo 'unshare not found'
+        which mount 2>/dev/null || echo 'mount not found'
+    " | tee -a "${LOG_FILE}"
+
     # Run privileged tests
     log ""
     log "${BLUE}Executing privileged tests...${NC}"
@@ -331,13 +362,18 @@ run_privileged_tests() {
     " | tee "${test_output}"; then
         log_success "Privileged tests completed successfully"
 
-        # Parse test results
-        grep -E '^(PASS|FAIL|SKIP):' "${test_output}" > "${test_json}" || true
+        # Parse test results - output format is "--- PASS: TestName" etc.
+        grep -E '^--- (PASS|FAIL|SKIP):' "${test_output}" > "${test_json}" || true
 
-        # Count results
-        local passed=$(grep -c '^PASS:' "${test_json}" 2>/dev/null || echo "0")
-        local failed=$(grep -c '^FAIL:' "${test_json}" 2>/dev/null || echo "0")
-        local skipped=$(grep -c '^SKIP:' "${test_json}" 2>/dev/null || echo "0")
+        # Count results - clean grep output to remove newlines
+        local passed=$(grep -c '^--- PASS:' "${test_json}" 2>/dev/null | tr -d '\n\r' || echo "0")
+        local failed=$(grep -c '^--- FAIL:' "${test_json}" 2>/dev/null | tr -d '\n\r' || echo "0")
+        local skipped=$(grep -c '^--- SKIP:' "${test_json}" 2>/dev/null | tr -d '\n\r' || echo "0")
+
+        # Handle empty strings from grep -c
+        passed=${passed:-0}
+        failed=${failed:-0}
+        skipped=${skipped:-0}
 
         log ""
         log_header "Test Results Summary"
@@ -348,7 +384,7 @@ run_privileged_tests() {
         log "Detailed results: ${test_output}"
         log "JSON results: ${test_json}"
 
-        if [ "$failed" -gt 0 ]; then
+        if [ "${failed}" -gt 0 ]; then
             log_error "Some tests failed"
             return 1
         fi
@@ -358,7 +394,7 @@ run_privileged_tests() {
         log_error "Privileged tests failed"
 
         # Still try to save results
-        grep -E '^(PASS|FAIL|SKIP):' "${test_output}" > "${test_json}" 2>/dev/null || true
+        grep -E '^--- (PASS|FAIL|SKIP):' "${test_output}" > "${test_json}" 2>/dev/null || true
 
         return 1
     fi
@@ -421,9 +457,14 @@ EOF
         echo "### Summary" >> "${report_file}"
         echo "" >> "${report_file}"
 
-        local passed=$(grep -c '^PASS:' "${TEST_RESULTS_DIR}/test-results_${TIMESTAMP}.json" 2>/dev/null || echo "0")
-        local failed=$(grep -c '^FAIL:' "${test_json}" 2>/dev/null || echo "0")
-        local skipped=$(grep -c '^SKIP:' "${TEST_RESULTS_DIR}/test-results_${TIMESTAMP}.json" 2>/dev/null || echo "0")
+        local passed=$(grep -c '^--- PASS:' "${TEST_RESULTS_DIR}/test-results_${TIMESTAMP}.json" 2>/dev/null | tr -d '\n\r' || echo "0")
+        local failed=$(grep -c '^--- FAIL:' "${TEST_RESULTS_DIR}/test-results_${TIMESTAMP}.json" 2>/dev/null | tr -d '\n\r' || echo "0")
+        local skipped=$(grep -c '^--- SKIP:' "${TEST_RESULTS_DIR}/test-results_${TIMESTAMP}.json" 2>/dev/null | tr -d '\n\r' || echo "0")
+
+        # Handle empty strings from grep -c
+        passed=${passed:-0}
+        failed=${failed:-0}
+        skipped=${skipped:-0}
 
         echo "- ✅ **Passed:** ${passed}" >> "${report_file}"
         echo "- ❌ **Failed:** ${failed}" >> "${report_file}"
