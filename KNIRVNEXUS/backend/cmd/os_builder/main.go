@@ -21,6 +21,7 @@ import (
 
 //go:embed all:packer-base-kali/*
 //go:embed all:packer-kata-guest/*
+//go:embed all:packer-aws-kali/*
 //go:embed inventory.ini
 //go:embed all:terraform-deploy/*
 
@@ -35,8 +36,9 @@ const (
 	packerBaseKaliDir    = "packer-base-kali"
 	outputBaseKaliDir    = "output-kali-base-box"
 	baseKaliOVAName      = "kali-base-box.ova"
+	packerAWSKaliDir     = "packer-aws-kali"
 	terraformDeployDir   = "terraform-deploy"
-	outputKataGuestDir   = "output-kata-guest" // Where Terraform drops kernel/rootfs
+	outputKataGuestDir   = "output-kata-guest"
 	customKataKernelName = "kali-clean-tee"
 	artifactsDirName     = "artifacts"
 )
@@ -185,7 +187,7 @@ func main() {
 	}
 
 	// Parse command-line flags for non-interactive mode
-	action := flag.String("action", "", "Action to perform: 0=Build base Kali, 1=Build Kata Container, 2=Exit")
+	action := flag.String("action", "", "Action to perform: 0=Build base Kali, 1=Build Kata Container, 2=Build AWS AMI, 3=Exit")
 	flag.Parse()
 
 	// If action flag provided, execute it non-interactively
@@ -199,7 +201,8 @@ func main() {
 		fmt.Println("\nSelect an action:")
 		fmt.Println("0. Build base Kali image (packer-base-kali) - only if rebuilding")
 		fmt.Println("1. Build KNIRV-NEXUS Kata Container (using Terraform)")
-		fmt.Println("2. Exit")
+		fmt.Println("2. Build AWS AMI (Kali Linux for native deployment)")
+		fmt.Println("3. Exit")
 		fmt.Print("Enter your choice: ")
 
 		var choice string
@@ -214,6 +217,9 @@ func main() {
 			fmt.Println("\nStarting Kata Container build (using Terraform)...")
 			runBuildKataContainer(resourcesDir, artifactDir)
 		case "2":
+			fmt.Println("\nBuilding AWS AMI (Kali Linux for native deployment)...")
+			runBuildAWSAMI(resourcesDir, artifactDir)
+		case "3":
 			fmt.Println("Exiting.")
 			return
 		default:
@@ -456,6 +462,83 @@ func checkPrerequisites() error {
 
 // --- Artifact Management ---
 
+// --- AWS AMI Artifact Management ---
+
+// isAWSAMIBuildAvailable checks if the AWS AMI build directory exists
+func isAWSAMIBuildAvailable(resourcesDir string) bool {
+	awsKaliWorkDir := filepath.Join(resourcesDir, packerAWSKaliDir)
+	if _, err := os.Stat(awsKaliWorkDir); err == nil {
+		return true
+	}
+	return false
+}
+
+// runBuildAWSAMI builds a Kali Linux AMI for AWS native deployment
+func runBuildAWSAMI(resourcesDir, _ string) {
+	fmt.Println("--- Building AWS AMI (Kali Linux for Native Deployment) ---")
+
+	// Check AWS prerequisites
+	if !isAWSConfigured() {
+		fmt.Println("⚠️  AWS credentials not configured.")
+		fmt.Println("Please set the following environment variables:")
+		fmt.Println("  export AWS_ACCESS_KEY_ID=your_access_key")
+		fmt.Println("  export AWS_SECRET_ACCESS_KEY=your_secret_key")
+		fmt.Println("  export AWS_DEFAULT_REGION=us-east-1")
+		log.Fatalf("AWS credentials not configured. Cannot build AMI.")
+	}
+
+	awsKaliWorkDir := filepath.Join(resourcesDir, packerAWSKaliDir)
+
+	// Initialize Packer with Amazon plugin
+	fmt.Println("Initializing Packer with Amazon plugin...")
+	err := runCmd("packer", []string{"init", "."}, awsKaliWorkDir)
+	if err != nil {
+		log.Fatalf("Failed to initialize Packer: %v", err)
+	}
+
+	// Get AWS region from environment or use default
+	region := getAWSRegion()
+	fmt.Printf("Using AWS region: %s\n", region)
+
+	// Build the AMI
+	fmt.Println("Building AWS AMI with Packer...")
+	buildArgs := []string{
+		"build",
+		"-force",
+		"-var", fmt.Sprintf("aws_region=%s", region),
+		"-var", fmt.Sprintf("aws_ami_name=knirvnexus-kali-%s", time.Now().Format("2006-01-02")),
+		"-var", "aws_instance_type=t3.medium",
+		"-var", "aws_ami_description=KNIRVNEXUS Kali Linux - Native deployment ready",
+		"kali-aws-ami.pkr.hcl",
+	}
+
+	err = runCmd("packer", buildArgs, awsKaliWorkDir)
+	if err != nil {
+		log.Fatalf("Failed to build AWS AMI: %v", err)
+	}
+
+	fmt.Println("\n✓ AWS AMI build completed successfully!")
+	fmt.Println("The AMI is now available in your AWS account and can be used for native deployment.")
+	fmt.Println("Use the container_deployer with --deploy-mode native to deploy KNIRV-NEXUS to EC2.")
+}
+
+// isAWSConfigured checks if AWS credentials are configured
+func isAWSConfigured() bool {
+	// Check for environment variables
+	if os.Getenv("AWS_ACCESS_KEY_ID") == "" || os.Getenv("AWS_SECRET_ACCESS_KEY") == "" {
+		return false
+	}
+	return true
+}
+
+// getAWSRegion returns the AWS region from environment or default
+func getAWSRegion() string {
+	region := os.Getenv("AWS_DEFAULT_REGION")
+	if region == "" {
+		return "us-east-1"
+	}
+	return region
+}
 
 // --- Base Kali Image Management ---
 func isBaseKaliImageAvailable(ovaPath string) bool {
@@ -654,10 +737,14 @@ func executeAction(action string, resourcesDir, artifactDir string) {
 		fmt.Println("\nStarting Kata Container build (using Terraform)...")
 		runBuildKataContainer(resourcesDir, artifactDir)
 	case "2":
+		fmt.Println("\nBuilding AWS AMI (Kali Linux for native deployment)...")
+		runBuildAWSAMI(resourcesDir, artifactDir)
+		fmt.Println("\n✓ AWS AMI built successfully!")
+	case "3":
 		fmt.Println("Exiting.")
 	default:
 		fmt.Printf("Invalid action: %s\n", action)
-		fmt.Println("Valid actions are: 0, 1, or 2")
+		fmt.Println("Valid actions are: 0, 1, 2, or 3")
 		os.Exit(1)
 	}
 }

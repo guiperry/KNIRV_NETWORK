@@ -8,22 +8,51 @@ import (
 	"strings"
 )
 
+// CgroupDelegationStatus holds information about cgroup delegation status
+type CgroupDelegationStatus struct {
+	IsDelegated     bool   // True if cgroups are properly delegated
+	CgroupParent    string // The parent cgroup path being used
+	CgroupNamespace string // The cgroup namespace (if available)
+	SupportsV2      bool   // True if cgroups v2 is in use
+	ControllerPath  string // Path to controllers file
+}
+
 // CgroupManager manages cgroup v2 configuration and resource limits
 type CgroupManager struct {
-	cgroupPath string  // /sys/fs/cgroup/knirv-nexus/skill-<id>
+	cgroupPath string // /sys/fs/cgroup/knirv-nexus/skill-<id>
 	config     CgroupConfig
+	delegation *CgroupDelegationStatus
 }
 
 // NewCgroupManager creates a new CgroupManager instance
 func NewCgroupManager(containerID string, config CgroupConfig) (*CgroupManager, error) {
+	return NewCgroupManagerWithDelegation(containerID, config, nil)
+}
+
+// NewCgroupManagerWithDelegation creates a new CgroupManager with explicit delegation settings
+func NewCgroupManagerWithDelegation(containerID string, config CgroupConfig, delegation *CgroupDelegationStatus) (*CgroupManager, error) {
 	// Use cgroups v2 unified hierarchy
 	basePath := "/sys/fs/cgroup/knirv-nexus"
 
+	// Detect cgroup delegation status if not provided
+	if delegation == nil {
+		var err error
+		delegation, err = DetectCgroupDelegation()
+		if err != nil {
+			return nil, fmt.Errorf("failed to detect cgroup delegation: %w", err)
+		}
+	}
+
+	// Use delegated parent if available, otherwise use default path
+	if delegation.IsDelegated && delegation.CgroupParent != "" {
+		basePath = filepath.Join(delegation.CgroupParent, "knirv-nexus")
+	}
+
 	// Check if cgroup filesystem is mounted and writable
-	if err := verifyCgroupWritable(); err != nil {
+	if err := verifyCgroupWritable(basePath); err != nil {
 		return nil, fmt.Errorf("cgroup filesystem not writable: %w\n"+
 			"Ensure container is running with:\n"+
-			"  - Docker: --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw\n"+
+			"  - Docker: --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --cgroup-parent=docker\n"+
 			"  - Kata: privileged_without_host_devices=true with cgroup delegation", err)
 	}
 
@@ -46,13 +75,153 @@ func NewCgroupManager(containerID string, config CgroupConfig) (*CgroupManager, 
 	return &CgroupManager{
 		cgroupPath: cgroupPath,
 		config:     config,
+		delegation: delegation,
 	}, nil
 }
 
-// verifyCgroupWritable checks if the cgroup filesystem is mounted and writable
-func verifyCgroupWritable() error {
-	cgroupBase := "/sys/fs/cgroup"
+// DetectCgroupDelegation checks if cgroups are properly delegated in the current environment
+func DetectCgroupDelegation() (*CgroupDelegationStatus, error) {
+	status := &CgroupDelegationStatus{
+		IsDelegated:    false,
+		CgroupParent:   "",
+		SupportsV2:     false,
+		ControllerPath: "/sys/fs/cgroup/cgroup.controllers",
+	}
 
+	// Check if cgroup v2 is in use (unified hierarchy)
+	// In cgroup v2, cgroup.controllers exists at root
+	if _, err := os.Stat(status.ControllerPath); err == nil {
+		status.SupportsV2 = true
+	} else {
+		// Check for cgroup v1
+		if _, err := os.Stat("/sys/fs/cgroup/cpu"); err == nil {
+			status.SupportsV2 = false
+			return status, nil // v1 doesn't need the same delegation handling
+		}
+		return status, fmt.Errorf("cgroup filesystem not mounted at /sys/fs/cgroup")
+	}
+
+	// Check for Docker container environment
+	if isRunningInContainer() {
+		// If we're in a Docker container, check if we can create sub-cgroups
+		if canCreateSubcgroups() {
+			status.IsDelegated = true
+			// Use the docker cgroup parent as the base for our cgroups
+			status.CgroupParent = "/sys/fs/cgroup/knirv-nexus"
+		} else {
+			// Try to use the docker cgroup as parent if delegation is available
+			dockerCgroupPath := findDockerCgroupParent()
+			if dockerCgroupPath != "" {
+				// Test if we can write to this path
+				testPath := filepath.Join(dockerCgroupPath, "knirv-test")
+				if err := os.MkdirAll(testPath, 0755); err == nil {
+					os.RemoveAll(testPath)
+					status.IsDelegated = true
+					status.CgroupParent = dockerCgroupPath
+				} else {
+					// Fall back to default with limited permissions
+					status.IsDelegated = false
+					status.CgroupParent = "/sys/fs/cgroup"
+				}
+			}
+		}
+	} else {
+		// Bare metal - full access
+		status.IsDelegated = true
+		status.CgroupParent = "/sys/fs/cgroup"
+	}
+
+	return status, nil
+}
+
+// isRunningInContainer checks if we're running inside a container
+func isRunningInContainer() bool {
+	// Check for Docker-specific files
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return true
+	}
+	if _, err := os.Stat("/run/.containerenv"); err == nil {
+		return true
+	}
+	// Check cgroup for Docker patterns
+	if isDockerCgroup() {
+		return true
+	}
+	return false
+}
+
+// getCurrentCgroupPath returns the current process's cgroup path
+func getCurrentCgroupPath() string {
+	// Read /proc/self/cgroup to get our cgroup path
+	data, err := os.ReadFile("/proc/self/cgroup")
+	if err != nil {
+		return ""
+	}
+
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "0:") {
+			parts := strings.SplitN(line, ":", 3)
+			if len(parts) >= 3 {
+				return parts[2]
+			}
+		}
+	}
+	return ""
+}
+
+// canCreateSubcgroups tests if we can create sub-cgroups in the current environment
+func canCreateSubcgroups() bool {
+	testPath := "/sys/fs/cgroup/knirv-test-subgroup"
+	if err := os.MkdirAll(testPath, 0755); err == nil {
+		os.RemoveAll(testPath)
+		return true
+	}
+	return false
+}
+
+// findDockerCgroupParent attempts to find the Docker cgroup parent path
+func findDockerCgroupParent() string {
+	// Read /proc/self/cgroup to find our container's cgroup
+	data, err := os.ReadFile("/proc/self/cgroup")
+	if err != nil {
+		return ""
+	}
+
+	content := string(data)
+	// Look for Docker cgroup patterns
+	if strings.Contains(content, "/docker/") {
+		// Extract the docker cgroup path
+		lines := strings.Split(content, "\n")
+		for _, line := range lines {
+			if idx := strings.Index(line, "/docker/"); idx >= 0 {
+				// Get the docker cgroup directory
+				pathPart := line[idx+1:]
+				if endIdx := strings.Index(pathPart, ":"); endIdx >= 0 {
+					return pathPart[:endIdx]
+				}
+				return pathPart
+			}
+		}
+	}
+
+	// If --cgroup-parent was used, try common parent paths
+	commonParents := []string{
+		"/sys/fs/cgroup",
+	}
+
+	for _, parent := range commonParents {
+		if err := os.MkdirAll(filepath.Join(parent, "knirv-test"), 0755); err == nil {
+			os.RemoveAll(filepath.Join(parent, "knirv-test"))
+			return parent
+		}
+	}
+
+	return ""
+}
+
+// verifyCgroupWritable checks if the cgroup filesystem is mounted and writable
+func verifyCgroupWritable(cgroupBase string) error {
 	// Check if cgroup directory exists
 	if _, err := os.Stat(cgroupBase); os.IsNotExist(err) {
 		return fmt.Errorf("cgroup directory %s does not exist", cgroupBase)
@@ -191,7 +360,7 @@ func (cm *CgroupManager) applyMemoryLimits() error {
 	}
 
 	// Write memory.swap.max
-	swapLimit := "0"  // Disable swap by default
+	swapLimit := "0" // Disable swap by default
 	if cm.config.Memory.SwapLimit > 0 {
 		swapLimit = strconv.FormatInt(cm.config.Memory.SwapLimit, 10)
 	}

@@ -2,7 +2,12 @@
 
 # KNIRVNEXUS Docker Runner with Full Cgroup Access
 # This script runs the KNIRVNEXUS container with full filesystem privileges
-# required for cgroup and namespace manipulation
+# required for cgroup and namespace manipulation.
+#
+# Architecture:
+# - Docker container: Uses Podman for nested container orchestration
+# - Bare metal: Uses native Go runtime for containers
+# - Kata container: Uses native Go runtime (VM-level isolation)
 
 set -e
 
@@ -141,7 +146,10 @@ run_container() {
         --name "${CONTAINER_NAME}"
         --privileged
         --cgroupns=host
+        --cgroup-parent=docker
         -v /sys/fs/cgroup:/sys/fs/cgroup:rw
+        -v /var/run/podman:/var/run/podman
+        -v /var/tmp:/var/tmp:rw
         --cap-add=ALL
         --security-opt apparmor=unconfined
         --security-opt seccomp=unconfined
@@ -159,11 +167,33 @@ run_container() {
         # Wait for container to be ready
         sleep 2
 
+        # Detect host environment inside container
+        log_info "Detecting host environment..."
+        docker exec "${CONTAINER_NAME}" bash -c '
+            if [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
+                echo "DETECTED_ENV=docker"
+            elif grep -q "agent.container_manager=kata" /proc/cmdline 2>/dev/null; then
+                echo "DETECTED_ENV=kata-container"
+            else
+                echo "DETECTED_ENV=bare-metal"
+            fi
+        '
+
         # Run tests inside container
         log_info "Executing tests inside container..."
         docker exec "${CONTAINER_NAME}" bash -c "
             set -e
             cd /workspace/KNIRVNEXUS/backend
+
+            # Detect and export environment
+            if [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
+                export KNIRVNEXUS_HOST_ENV=docker
+            elif grep -q 'agent.container_manager=kata' /proc/cmdline 2>/dev/null; then
+                export KNIRVNEXUS_HOST_ENV=kata-container
+            else
+                export KNIRVNEXUS_HOST_ENV=bare-metal
+            fi
+            echo "Host environment: \${KNIRVNEXUS_HOST_ENV}"
 
             echo '=== Cgroup Verification ==='
             ls -la /sys/fs/cgroup/ || echo 'Cannot list cgroup directory'
@@ -177,13 +207,24 @@ run_container() {
                 echo 'WARNING: Cgroup filesystem is READ-ONLY'
             echo ''
 
+            echo '=== Podman Availability Check ==='
+            if command -v podman &> /dev/null; then
+                echo 'Podman found: $(podman --version)'
+                KNIRVNEXUS_PREFERRED_RUNTIME=podman
+            else
+                echo 'Podman not found, using native runtime'
+                KNIRVNEXUS_PREFERRED_RUNTIME=native-go
+            fi
+            export KNIRVNEXUS_PREFERRED_RUNTIME
+            echo ''
+
             echo '=== Running Go tests ==='
             go mod download
             go mod tidy
 
-            # Run privileged tests
+            # Run privileged tests with environment-aware runtime selection
             go test -v -timeout=30m \
-                -run 'TestNewCgroupManager|TestCgroupManager|TestNamespaceManager|TestNamespace' \
+                -run 'TestNewCgroupManager|TestCgroupManager|TestNamespaceManager|TestNamespace|TestCapabilityManager|TestCapability|TestNetworkManager|TestNetwork|TestMountManager|TestMount|TestHardenedContainer|TestContainerRuntime|TestPrivileged' \
                 ./internal/services/teesecurity/... \
                 2>&1
         "

@@ -20,7 +20,6 @@ func (ncr *NativeContainerRuntime) executeHardenedContainer(
 	opts ContainerOptions,
 	containerID string,
 	cgroupMgr *CgroupManager,
-	namespaceMgr *NamespaceManager,
 ) (*ContainerResult, error) {
 	result := &ContainerResult{ContainerID: containerID}
 

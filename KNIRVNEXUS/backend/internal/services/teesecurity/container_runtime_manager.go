@@ -29,45 +29,101 @@ type PodmanRuntime struct {
 func NewContainerRuntimeManager(kaliProfile *KaliLinuxProfile) (*ContainerRuntimeManager, error) {
 	manager := &ContainerRuntimeManager{
 		kaliProfile:      kaliProfile,
-		preferredRuntime: kaliProfile.PreferredRuntime,
+		preferredRuntime: kaliProfile.PreferredRuntime, // Initialize with profile's preferred runtime
 	}
 
-	// Try primary runtime first
-	if kaliProfile.IsKaliLinux && kaliProfile.PreferredRuntime == "native-go" {
-		nativeRuntime, err := NewNativeContainerRuntime(kaliProfile)
+	// Determine runtime strategy based on host environment
+	switch kaliProfile.HostEnvironment {
+	case "docker":
+		// If running in Docker, always prefer Podman for nested container orchestration
+		log.Println("Running in Docker environment, forcing Podman as preferred runtime.")
+		manager.preferredRuntime = "podman"
+		// Initialize Podman directly
+		currentUser, err := user.Current()
 		if err != nil {
-			log.Printf("Native runtime failed: %v. Falling back to Podman...", err)
-			manager.preferredRuntime = "podman"
+			return nil, fmt.Errorf("failed to get current user: %v", err)
+		}
+		userID, _ := strconv.Atoi(currentUser.Uid)
+		groupID, _ := strconv.Atoi(currentUser.Gid)
+		podmanRuntime := &PodmanRuntime{
+			userID:  userID,
+			groupID: groupID,
+		}
+		if err := podmanRuntime.validate(context.Background()); err != nil {
+			log.Printf("Warning: Podman validation failed in Docker environment: %v", err)
+			log.Println("Container runtime features will be disabled.")
+			manager.preferredRuntime = "disabled"
 		} else {
-			manager.nativeRuntime = nativeRuntime
-			return manager, nil
+			manager.podmanFallback = podmanRuntime
+		}
+		return manager, nil
+
+	case "bare-metal", "kata-container":
+		// On bare-metal or Kata (VM-level isolation), prioritize native Go runtime
+		if kaliProfile.PreferredRuntime == "native-go" {
+			nativeRuntime, err := NewNativeContainerRuntime(kaliProfile)
+			if err != nil {
+				log.Printf("Native runtime failed to initialize on %s: %v. Falling back to Podman...",
+					kaliProfile.HostEnvironment, err)
+				manager.preferredRuntime = "podman" // Fallback to Podman
+			} else {
+				manager.nativeRuntime = nativeRuntime
+				return manager, nil // Native runtime successfully initialized
+			}
+		} else {
+			log.Printf("Profile prefers Podman (%s) on %s environment, initializing Podman.",
+				kaliProfile.PreferredRuntime, kaliProfile.HostEnvironment)
+			manager.preferredRuntime = "podman"
+		}
+
+		// If native runtime failed or not preferred, initialize Podman fallback
+		if manager.preferredRuntime == "podman" {
+			currentUser, err := user.Current()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get current user: %v", err)
+			}
+			userID, _ := strconv.Atoi(currentUser.Uid)
+			groupID, _ := strconv.Atoi(currentUser.Gid)
+			podmanRuntime := &PodmanRuntime{
+				userID:  userID,
+				groupID: groupID,
+			}
+			if err := podmanRuntime.validate(context.Background()); err != nil {
+				log.Printf("Warning: Podman validation failed on %s environment: %v",
+					kaliProfile.HostEnvironment, err)
+				log.Println("Container runtime features will be disabled.")
+				manager.preferredRuntime = "disabled"
+			} else {
+				manager.podmanFallback = podmanRuntime
+			}
+		}
+
+	default:
+		// Fallback for unknown host environments (should not happen with proper detection)
+		log.Printf("Unknown host environment: %s. Defaulting to Podman.", kaliProfile.HostEnvironment)
+		manager.preferredRuntime = "podman"
+		// Initialize Podman directly as a fallback
+		currentUser, err := user.Current()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current user: %v", err)
+		}
+		userID, _ := strconv.Atoi(currentUser.Uid)
+		groupID, _ := strconv.Atoi(currentUser.Gid)
+		podmanRuntime := &PodmanRuntime{
+			userID:  userID,
+			groupID: groupID,
+		}
+		if err := podmanRuntime.validate(context.Background()); err != nil {
+			log.Printf("Warning: Podman validation failed in unknown environment: %v", err)
+			log.Println("Container runtime features will be disabled.")
+			manager.preferredRuntime = "disabled"
+		} else {
+			manager.podmanFallback = podmanRuntime
 		}
 	}
 
-	// Initialize Podman fallback for all non-Kali systems or on native failure
-	currentUser, err := user.Current()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get current user: %v", err)
-	}
-
-	userID, _ := strconv.Atoi(currentUser.Uid)
-	groupID, _ := strconv.Atoi(currentUser.Gid)
-
-	podmanRuntime := &PodmanRuntime{
-		userID:  userID,
-		groupID: groupID,
-	}
-
-	if err := podmanRuntime.validate(context.Background()); err != nil {
-		log.Printf("Warning: Podman validation failed: %v", err)
-		log.Println("Container runtime features will be disabled (suitable for development/testing)")
-		manager.preferredRuntime = "disabled"
-		return manager, nil
-	}
-
-	manager.podmanFallback = podmanRuntime
-	manager.preferredRuntime = "podman"
-
+	log.Printf("ContainerRuntimeManager initialized. Active Runtime: %s, Host Environment: %s",
+		manager.preferredRuntime, kaliProfile.HostEnvironment)
 	return manager, nil
 }
 

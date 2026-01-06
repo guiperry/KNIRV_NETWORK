@@ -302,7 +302,7 @@ func (ts *TEESecurityService) checkNetworkSecurity() string {
 
 // checkFileSystemSecurity verifies file system security
 func (ts *TEESecurityService) checkFileSystemSecurity() string {
-	containerDir := "/tmp/knirv-containers"
+	containerDir := "/var/tmp/knirv-containers"
 
 	info, err := os.Stat(containerDir)
 	if err != nil {
@@ -458,7 +458,7 @@ func (ts *TEESecurityService) performBasicTEEAttestation() error {
 // verifyNativeRuntimeSecurity verifies security features of native runtime
 func (ts *TEESecurityService) verifyNativeRuntimeSecurity() error {
 	// Check if sandbox directory is properly isolated
-	containerDir := "/tmp/knirv-containers"
+	containerDir := "/var/tmp/knirv-containers"
 	if _, err := os.Stat(containerDir); os.IsNotExist(err) {
 		return fmt.Errorf("container directory does not exist: %s", containerDir)
 	}

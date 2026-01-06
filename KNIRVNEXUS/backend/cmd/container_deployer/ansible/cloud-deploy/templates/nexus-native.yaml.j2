@@ -1,0 +1,157 @@
+# KNIRVNEXUS Configuration - Native Kali Linux Deployment
+# Environment: {{ environment }}
+
+# Application Configuration
+app:
+  name: "knirv-nexus"
+  host: "0.0.0.0"
+  port: 8090
+  log_level: "{{ 'debug' if environment == 'development' else 'info' }}"
+  data_dir: "/var/lib/knirv-nexus"
+  config_dir: "/etc/knirv-nexus"
+
+# Environment
+environment: "{{ environment }}"
+knirv_env: "{{ environment }}"
+
+# Database Configuration
+database:
+  type: "sqlite"
+  path: "/var/lib/knirv-nexus/nexus.db"
+  # For production, consider using PostgreSQL
+  # type: "postgres"
+  # host: "localhost"
+  # port: 5432
+  # name: "knirvnexus"
+  # user: "nexus"
+  # ssl_mode: "require"
+
+# Container Runtime Configuration (Native - no Docker wrapper)
+container_runtime:
+  type: "native"
+  cgroup_path: "/sys/fs/cgroup"
+  containerd_socket: "/run/containerd/containerd.sock"
+  runtime: "runc"
+
+# Network Configuration
+network:
+  port: 8090
+  host: "0.0.0.0"
+  tls:
+    enabled: false
+    cert_path: "/etc/knirv-nexus/ssl/cert.pem"
+    key_path: "/etc/knirv-nexus/ssl/key.pem"
+
+# Security Configuration
+security:
+  # TEE Configuration (SGX/SEV/TDX)
+  tee:
+    enabled: true
+    type: "auto"  # auto-detect, or specify: sgx, sev, tdx
+
+  # Capabilities for container management
+  capabilities:
+    - "CAP_SYS_ADMIN"
+    - "CAP_NET_ADMIN"
+    - "CAP_SYS_RESOURCE"
+    - "CAP_SETUID"
+    - "CAP_SETGID"
+    - "CAP_SYS_CHROOT"
+    - "CAP_SYS_PTRACE"
+
+# Kali Tools Integration
+kali_tools:
+  enabled: true
+  tools_path: "/usr/bin"
+  tools:
+    - "radare2"
+    - "ghidra"
+    - "wireshark"
+    - "tcpdump"
+    - "volatility3"
+    - "semgrep"
+    - "bandit"
+    - "gdb"
+    - "strace"
+
+# Monitoring Configuration
+monitoring:
+  metrics:
+    enabled: true
+    port: 9090
+  health_check:
+    enabled: true
+    endpoint: "/api/v1/health"
+
+# Logging Configuration
+logging:
+  level: "{{ 'debug' if environment == 'development' else 'info' }}"
+  format: "json"
+  output: "stdout"
+  file:
+    enabled: true
+    path: "/var/log/knirv-nexus/nexus.log"
+    max_size: "100MB"
+    max_backups: 10
+    max_age: 30
+
+# Skills Configuration
+skills:
+  # Skills directory for containerized skills
+  containerized_skills:
+    enabled: true
+    runtime: "runc"
+    images_dir: "/var/lib/knirv-nexus/skills/images"
+    overlay_size: "10G"
+
+  # Skill sandbox configuration
+  sandbox:
+    memory_limit: "2G"
+    cpu_limit: 2
+    network_isolation: true
+    read_only_rootfs: false
+
+# AWS EC2 Configuration (for native deployment)
+aws:
+  enabled: false  # Set to true if running on EC2
+  instance_id: "auto-detect"
+  region: "auto-detect"
+  use_iam_role: true
+
+# Cloud Integration
+cloud:
+  # XION Blockchain Integration
+  xion:
+    enabled: true
+    network: "{{ 'testnet' if environment != 'production' else 'mainnet' }}"
+    api_url: "{{ 'https://api.testnet.xion.burnt.com' if environment != 'production' else 'https://api.xion.burnt.com' }}"
+    gas_denom: "uxion"
+    fee_denom: "uxion"
+
+  # Bitcoin Integration
+  bitcoin:
+    enabled: true
+    network: "{{ 'testnet' if environment != 'production' else 'mainnet' }}"
+    rpc_host: "localhost"
+    rpc_port: 8332
+    rpc_user: "bitcoin"
+    rpc_password: "bitcoin"
+
+  # Ethereum Integration
+  ethereum:
+    enabled: true
+    network: "{{ 'goerli' if environment != 'production' else 'mainnet' }}"
+    rpc_url: "{{ 'https://goerli.infura.io/v3/YOUR_KEY' if environment != 'production' else 'https://mainnet.infura.io/v3/YOUR_KEY' }}"
+    chain_id: "{{ 5 if environment != 'production' else 1 }}"
+
+# Session Configuration
+session:
+  id: "auto-generated"
+  timeout: 3600
+  max_concurrent_skills: 10
+
+# Performance Configuration
+performance:
+  worker_threads: 4
+  max_memory_mb: 4096
+  cache_size_mb: 256

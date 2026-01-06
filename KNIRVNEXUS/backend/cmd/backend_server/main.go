@@ -16,6 +16,7 @@ import (
 	"backend_server/internal/config"
 	dataengine "backend_server/internal/data-engine"
 	"backend_server/internal/database"
+	"backend_server/internal/ebpf"
 	inference "backend_server/internal/inference_engine"
 	"backend_server/internal/services/blockchain"
 	"backend_server/internal/services/cde"
@@ -60,6 +61,10 @@ type Server struct {
 	httpServer *http.Server
 	p2pManager *p2p.DVEP2PManager
 	logger     *zap.Logger
+
+	// eBPF subsystem
+	ebpfManager             *ebpf.Manager
+	virtualContainerManager *ebpf.VirtualContainerManager
 
 	// All services are held here
 	dveManager                   *dvemanager.DVEManager
@@ -233,6 +238,24 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize DVE manager: %w", err)
 	}
 
+	// Ensure model server storage path is explicitly set to app data directory if empty
+	if cfg.ModelServer.StoragePath == "" {
+		appDataDir, err := getOSAppDataDir()
+		if err != nil {
+			// Log the error but proceed with a fallback that logs a warning.
+			// The user explicitly stated they want it in the app data dir,
+			// so if we can't determine it, it's a critical warning.
+			logger.Warn("Could not determine app data directory for model server storage, falling back to a relative 'models' directory", zap.Error(err))
+			// This fallback still creates 'models' in CWD, but it's a last resort after trying appDataDir.
+			// The problem description implies this is the source of the issue,
+			// but we can't create an absolute path without appDataDir.
+			cfg.ModelServer.StoragePath = "models"
+		} else {
+			cfg.ModelServer.StoragePath = filepath.Join(appDataDir, "models")
+			logger.Info("Setting model server storage path to app data directory", zap.String("path", cfg.ModelServer.StoragePath))
+		}
+	}
+
 	modelServer, err := modelserver.NewModelServer(cfg, dbManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize model server: %w", err)
@@ -282,6 +305,39 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		// Continue - TEE initialization is not critical for basic operation
 	}
 
+	// Initialize eBPF Manager for kernel-level monitoring and isolation
+	ebpfManager := ebpf.NewManager()
+	ebpfConfig := &ebpf.Config{
+		Programs: []ebpf.ProgramConfig{
+			{Name: "syscall_trace", Enabled: true},
+			{Name: "sandbox_lsm", Enabled: true},
+			{Name: "virtual_ns", Enabled: true},
+			{Name: "telemetry", Enabled: true},
+		},
+	}
+
+	// Initialize eBPF manager with context
+	ebpfCtx := context.Background()
+	if err := ebpfManager.Initialize(ebpfCtx, ebpfConfig); err != nil {
+		log.Printf("Warning: Failed to initialize eBPF manager: %v", err)
+		log.Printf("eBPF features will be disabled. This may be due to insufficient kernel capabilities.")
+		ebpfManager = nil // Disable eBPF if initialization fails
+	} else {
+		log.Println("eBPF Manager initialized successfully")
+	}
+
+	// Initialize Virtual Container Manager with eBPF
+	var virtualContainerManager *ebpf.VirtualContainerManager
+	if ebpfManager != nil {
+		virtualContainerManager = ebpf.NewVirtualContainerManager(ebpfManager)
+		if err := virtualContainerManager.InitializeVirtualContainers(); err != nil {
+			log.Printf("Warning: Failed to initialize virtual container manager: %v", err)
+			virtualContainerManager = nil
+		} else {
+			log.Println("Virtual Container Manager initialized successfully")
+		}
+	}
+
 	// Initialize System Health service
 	systemHealthService := systemhealth.NewSystemHealthService(dbManager.GetDB())
 	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService)
@@ -294,7 +350,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager.GetDB())
 
 			// Initialize CDE service with TEE security integration and eBPF virtual containers
-			cdeService, err := cde.NewCDEService(teeSecurityService, dataEngine, nil, cde.CDEConfig{
+			cdeService, err := cde.NewCDEService(teeSecurityService, dataEngine, virtualContainerManager, cde.CDEConfig{
 				BaseImagePath:          cfg.CDE.BaseImagePath,
 				WorkspaceRoot:          cfg.CDE.WorkspaceRoot,
 				MaxEnvironments:        cfg.CDE.MaxEnvironments,
@@ -405,6 +461,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		router:                       router,
 		p2pManager:                   p2pManager,
 		logger:                       logger,
+		ebpfManager:                  ebpfManager,
+		virtualContainerManager:      virtualContainerManager,
 		dveManager:                   dveManager,
 		validationCore:               validationCore,
 		cdeService:                   cdeService,
@@ -611,24 +669,46 @@ func (s *Server) setupRoutes() {
 // handleHealth handles the /health endpoint
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	// Get eBPF metrics if available
+	var ebpfMetrics map[string]any
+	if s.ebpfManager != nil {
+		metrics := s.ebpfManager.GetMetrics()
+		ebpfMetrics = map[string]any{
+			"enabled":           true,
+			"initialized":       metrics.Initialized,
+			"programs_attached": metrics.ProgramsAttached,
+		}
+	} else {
+		ebpfMetrics = map[string]any{
+			"enabled": false,
+			"reason":  "eBPF initialization failed or not supported",
+		}
+	}
+
 	response := map[string]any{
 		"status":     "healthy",
 		"version":    Version,
 		"build_time": BuildTime,
 		"git_commit": GitCommit,
 		"services": map[string]bool{
-			"database":           s.db != nil,
-			"p2p_manager":        s.p2pManager != nil,
-			"dve_manager":        s.dveManager != nil,
-			"validation_core":    s.validationCore != nil,
-			"model_server":       s.modelServer != nil,
-			"data_engine":        s.dataEngine != nil,
-			"inference_service":  s.inferenceService != nil,
-			"websocket_service":  s.websocketService != nil,
-			"cde_service":        s.cdeService != nil,
-			"dns_service":        s.dnsService != nil,
-			"dve_rental_service": s.dveRentalService != nil,
+			"database":                s.db != nil,
+			"p2p_manager":             s.p2pManager != nil,
+			"ebpf_manager":            s.ebpfManager != nil,
+			"virtual_container_mgr":   s.virtualContainerManager != nil,
+			"dve_manager":             s.dveManager != nil,
+			"validation_core":         s.validationCore != nil,
+			"model_server":            s.modelServer != nil,
+			"data_engine":             s.dataEngine != nil,
+			"inference_service":       s.inferenceService != nil,
+			"websocket_service":       s.websocketService != nil,
+			"cde_service":             s.cdeService != nil,
+			"dns_service":             s.dnsService != nil,
+			"dve_rental_service":      s.dveRentalService != nil,
+			"tee_security_service":    s.teeSecurityService != nil,
+			"container_orchestrator":  s.containerOrchestrator != nil,
 		},
+		"ebpf": ebpfMetrics,
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -957,6 +1037,23 @@ func (s *Server) Stop() error {
 
 	if s.p2pManager != nil {
 		s.p2pManager.Stop() // P2P manager stop doesn't return error
+	}
+
+	// Shutdown eBPF resources
+	if s.virtualContainerManager != nil {
+		if err := s.virtualContainerManager.ShutdownVirtualContainers(); err != nil {
+			log.Printf("Error shutting down virtual container manager: %v", err)
+		} else {
+			log.Println("Virtual Container Manager shutdown successfully")
+		}
+	}
+
+	if s.ebpfManager != nil {
+		if err := s.ebpfManager.Shutdown(); err != nil {
+			log.Printf("Error shutting down eBPF manager: %v", err)
+		} else {
+			log.Println("eBPF Manager shutdown successfully")
+		}
 	}
 
 	// Close database

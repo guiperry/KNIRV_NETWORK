@@ -52,7 +52,7 @@ func NewNativeContainerRuntime(kaliProfile *KaliLinuxProfile) (*NativeContainerR
 		}
 	}
 
-	containerDir := "/tmp/knirv-containers"
+	containerDir := "/var/tmp/knirv-containers"
 	if err := os.MkdirAll(containerDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create container directory: %v", err)
 	}
@@ -147,11 +147,8 @@ func (ncr *NativeContainerRuntime) runHardenedContainer(ctx context.Context, opt
 		return nil, fmt.Errorf("failed to apply cgroup limits: %w", err)
 	}
 
-	// 2. Create namespace manager
-	namespaceMgr := NewNamespaceManager(ncr.config.Namespaces)
-
-	// 3. Execute in container with namespaces and Phase 2 features
-	return ncr.executeHardenedContainer(ctx, opts, containerID, cgroupMgr, namespaceMgr)
+	// 2. Execute in container with namespaces and Phase 2 features
+	return ncr.executeHardenedContainer(ctx, opts, containerID, cgroupMgr)
 }
 
 // runMonitoringContainer executes skill code with original monitoring-based approach

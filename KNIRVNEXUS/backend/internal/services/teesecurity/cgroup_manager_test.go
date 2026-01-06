@@ -2,6 +2,7 @@ package teesecurity
 
 import (
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -302,17 +303,268 @@ func TestCgroupManager_Cleanup(t *testing.T) {
 	if err != nil {
 		// Check if this is a permission error (expected in non-privileged environments)
 		if strings.Contains(err.Error(), "permission denied") ||
-		   strings.Contains(err.Error(), "operation not permitted") {
+			strings.Contains(err.Error(), "operation not permitted") {
 			t.Skipf("Skipping test: Cleanup requires root privileges: %v", err)
 		} else {
 			t.Errorf("Cleanup failed: %v", err)
 		}
 	}
-	
+
 	// Verify cgroup was removed (only check if cleanup succeeded)
 	if err == nil {
 		if _, err := os.Stat(mgr.cgroupPath); err == nil {
 			t.Error("Cgroup path still exists after cleanup")
 		}
+	}
+}
+
+// TestDetectCgroupDelegation tests the cgroup delegation detection
+func TestDetectCgroupDelegation(t *testing.T) {
+	RequiresRoot(t, "TestDetectCgroupDelegation")
+	RequiresCgroupAccess(t, "TestDetectCgroupDelegation")
+
+	status, err := DetectCgroupDelegation()
+	if err != nil {
+		t.Fatalf("DetectCgroupDelegation failed: %v", err)
+	}
+
+	if status == nil {
+		t.Fatal("DetectCgroupDelegation returned nil")
+	}
+
+	// Verify status fields are set
+	if status.ControllerPath == "" {
+		t.Error("ControllerPath should not be empty")
+	}
+
+	// Verify cgroup v2 support detection
+	if status.SupportsV2 {
+		// Verify controllers file exists
+		if _, err := os.Stat(status.ControllerPath); err != nil {
+			t.Errorf("Expected cgroup v2 controllers file at %s: %v", status.ControllerPath, err)
+		}
+	}
+
+	t.Logf("Cgroup Delegation Status: IsDelegated=%v, CgroupParent=%s, SupportsV2=%v",
+		status.IsDelegated, status.CgroupParent, status.SupportsV2)
+}
+
+// TestDetectCgroupDelegation_CgroupParentPath tests that cgroup parent path is correctly set
+func TestDetectCgroupDelegation_CgroupParentPath(t *testing.T) {
+	RequiresRoot(t, "TestDetectCgroupDelegation_CgroupParentPath")
+	RequiresCgroupAccess(t, "TestDetectCgroupDelegation_CgroupParentPath")
+
+	status, err := DetectCgroupDelegation()
+	if err != nil {
+		t.Fatalf("DetectCgroupDelegation failed: %v", err)
+	}
+
+	// The cgroup parent should be set to a valid path
+	if status.CgroupParent == "" {
+		t.Error("CgroupParent should not be empty")
+	}
+
+	// Verify the parent path exists or is accessible
+	parentPath := status.CgroupParent
+	if _, err := os.Stat(parentPath); os.IsNotExist(err) {
+		// It might not exist yet, which is fine - we'll create it
+		t.Logf("CgroupParent path %s does not exist yet (will be created)", parentPath)
+	}
+}
+
+// TestNewCgroupManagerWithDelegation tests creating a cgroup manager with explicit delegation
+func TestNewCgroupManagerWithDelegation(t *testing.T) {
+	RequiresRoot(t, "TestNewCgroupManagerWithDelegation")
+	RequiresCgroupAccess(t, "TestNewCgroupManagerWithDelegation")
+
+	// Clean up existing test cgroup if it exists
+	cleanupPath := "/sys/fs/cgroup/knirv-nexus"
+	if _, err := os.Stat(cleanupPath); err == nil {
+		os.RemoveAll(cleanupPath)
+	}
+
+	config := CgroupConfig{
+		CPU: CgroupCPU{
+			Quota:  100000,
+			Period: 100000,
+			Shares: 1024,
+		},
+		Memory: CgroupMemory{
+			Limit:     512 * 1024 * 1024,
+			SwapLimit: -1,
+		},
+		PIDs: CgroupPIDs{
+			Max: 512,
+		},
+		IO: CgroupIO{
+			ReadBPS:  10 * 1024 * 1024,
+			WriteBPS: 10 * 1024 * 1024,
+		},
+	}
+
+	// Create explicit delegation status
+	delegation := &CgroupDelegationStatus{
+		IsDelegated:    true,
+		CgroupParent:   "/sys/fs/cgroup/knirv-nexus",
+		SupportsV2:     true,
+		ControllerPath: "/sys/fs/cgroup/cgroup.controllers",
+	}
+
+	mgr, err := NewCgroupManagerWithDelegation("test-delegation", config, delegation)
+	if err != nil {
+		t.Fatalf("NewCgroupManagerWithDelegation failed: %v", err)
+	}
+	defer mgr.Cleanup()
+
+	if mgr == nil {
+		t.Fatal("NewCgroupManagerWithDelegation returned nil")
+	}
+
+	// Verify the delegation status was stored
+	if mgr.delegation == nil {
+		t.Error("CgroupManager should have delegation status")
+	}
+
+	if !mgr.delegation.IsDelegated {
+		t.Error("Expected IsDelegated to be true")
+	}
+
+	// Verify the cgroup path uses the delegated parent
+	expectedPath := "/sys/fs/cgroup/knirv-nexus/test-delegation"
+	if mgr.cgroupPath != expectedPath {
+		t.Errorf("Expected cgroup path %s, got %s", expectedPath, mgr.cgroupPath)
+	}
+}
+
+// TestNewCgroupManagerWithDelegation_CustomParent tests creating a cgroup manager with custom parent
+func TestNewCgroupManagerWithDelegation_CustomParent(t *testing.T) {
+	RequiresRoot(t, "TestNewCgroupManagerWithDelegation_CustomParent")
+	RequiresCgroupAccess(t, "TestNewCgroupManagerWithDelegation_CustomParent")
+
+	// Clean up existing test cgroup if it exists
+	cleanupPath := "/sys/fs/cgroup/knirv-delegation-test"
+	if _, err := os.Stat(cleanupPath); err == nil {
+		os.RemoveAll(cleanupPath)
+	}
+
+	config := CgroupConfig{
+		CPU: CgroupCPU{
+			Quota:  100000,
+			Period: 100000,
+			Shares: 1024,
+		},
+		Memory: CgroupMemory{
+			Limit:     512 * 1024 * 1024,
+			SwapLimit: -1,
+		},
+		PIDs: CgroupPIDs{
+			Max: 512,
+		},
+		IO: CgroupIO{
+			ReadBPS:  10 * 1024 * 1024,
+			WriteBPS: 10 * 1024 * 1024,
+		},
+	}
+
+	// Create delegation status with custom parent
+	customParent := "/sys/fs/cgroup/knirv-delegation-test"
+	delegation := &CgroupDelegationStatus{
+		IsDelegated:    true,
+		CgroupParent:   customParent,
+		SupportsV2:     true,
+		ControllerPath: "/sys/fs/cgroup/cgroup.controllers",
+	}
+
+	mgr, err := NewCgroupManagerWithDelegation("custom-parent-test", config, delegation)
+	if err != nil {
+		t.Fatalf("NewCgroupManagerWithDelegation with custom parent failed: %v", err)
+	}
+	defer mgr.Cleanup()
+
+	// Verify the cgroup path uses the custom parent
+	expectedPath := filepath.Join(customParent, "custom-parent-test")
+	if mgr.cgroupPath != expectedPath {
+		t.Errorf("Expected cgroup path %s, got %s", expectedPath, mgr.cgroupPath)
+	}
+
+	// Verify the custom parent was created
+	if _, err := os.Stat(customParent); err != nil {
+		t.Errorf("Custom parent cgroup was not created: %v", err)
+	}
+}
+
+// TestIsRunningInContainer tests container detection
+func TestIsRunningInContainer(t *testing.T) {
+	// This test just verifies the function doesn't panic
+	// In a container, it should return true; on bare metal, false
+	_ = isRunningInContainer()
+	t.Logf("isRunningInContainer returned (check manually if expected)")
+}
+
+// TestCanCreateSubcgroups tests sub-cgroup creation capability
+func TestCanCreateSubcgroups(t *testing.T) {
+	RequiresRoot(t, "TestCanCreateSubcgroups")
+	RequiresCgroupAccess(t, "TestCanCreateSubcgroups")
+
+	canCreate := canCreateSubcgroups()
+	t.Logf("canCreateSubcgroups returned: %v", canCreate)
+
+	// If we're in a privileged environment, we should be able to create sub-cgroups
+	if os.Geteuid() == 0 {
+		// In a properly configured environment, this should be true
+		// But we don't fail the test if it's false - that might be expected in some container setups
+		t.Logf("Running as root, canCreateSubcgroups=%v (may be false if not properly delegated)", canCreate)
+	}
+}
+
+// TestFindDockerCgroupParent tests Docker cgroup parent detection
+func TestFindDockerCgroupParent(t *testing.T) {
+	RequiresRoot(t, "TestFindDockerCgroupParent")
+	RequiresCgroupAccess(t, "TestFindDockerCgroupParent")
+
+	parent := findDockerCgroupParent()
+	t.Logf("findDockerCgroupParent returned: %s", parent)
+
+	// The function should return a valid path or empty string
+	if parent != "" {
+		// Verify it's a reasonable path
+		if !strings.HasPrefix(parent, "/sys/fs/cgroup") {
+			t.Errorf("Expected path starting with /sys/fs/cgroup, got: %s", parent)
+		}
+	}
+}
+
+// TestGetCurrentCgroupPath tests getting the current cgroup path
+func TestGetCurrentCgroupPath(t *testing.T) {
+	path := getCurrentCgroupPath()
+	t.Logf("getCurrentCgroupPath returned: %s", path)
+
+	// The path should not be empty in a cgroup-aware environment
+	if path == "" {
+		t.Log("Warning: getCurrentCgroupPath returned empty string (might be expected in some environments)")
+	}
+}
+
+// TestCgroupDelegationStatus_Struct tests the CgroupDelegationStatus struct fields
+func TestCgroupDelegationStatus_Struct(t *testing.T) {
+	status := &CgroupDelegationStatus{
+		IsDelegated:     true,
+		CgroupParent:    "/sys/fs/cgroup/test",
+		CgroupNamespace: "",
+		SupportsV2:      true,
+		ControllerPath:  "/sys/fs/cgroup/cgroup.controllers",
+	}
+
+	if !status.IsDelegated {
+		t.Error("IsDelegated should be true")
+	}
+	if status.CgroupParent != "/sys/fs/cgroup/test" {
+		t.Errorf("Expected CgroupParent /sys/fs/cgroup/test, got %s", status.CgroupParent)
+	}
+	if !status.SupportsV2 {
+		t.Error("SupportsV2 should be true")
+	}
+	if status.ControllerPath != "/sys/fs/cgroup/cgroup.controllers" {
+		t.Errorf("Expected ControllerPath /sys/fs/cgroup/cgroup.controllers, got %s", status.ControllerPath)
 	}
 }

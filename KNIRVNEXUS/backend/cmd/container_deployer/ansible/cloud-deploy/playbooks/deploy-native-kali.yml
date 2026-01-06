@@ -1,0 +1,314 @@
+---
+# KNIRVNEXUS Native Deployment Playbook - Deploy directly on Kali Linux EC2
+- name: Deploy KNIRVNEXUS Binary Natively on Kali Linux EC2
+  hosts: kali_servers
+  become: true
+  gather_facts: true
+  vars:
+    app_name: "knirv-nexus"
+    app_binary_path: "{{ binary_source_path }}"
+    install_path: "/usr/local/bin/{{ app_name }}"
+    config_dir: "/etc/{{ app_name }}"
+    data_dir: "/var/lib/{{ app_name }}"
+    log_dir: "/var/log/{{ app_name }}"
+    environment: "{{ env | default('production') }}"
+    service_port: 8090
+
+  tasks:
+    - name: Verify Kali Linux OS
+      assert:
+        that:
+          - ansible_distribution == "Kali"
+        fail_msg: "This playbook requires Kali Linux"
+        success_msg: "Kali Linux detected: {{ ansible_distribution_version }}"
+
+    - name: Check kernel features
+      shell: |
+        echo "=== Kernel Features Check ==="
+        uname -r
+        echo ""
+        echo "Cgroups:"
+        mount | grep cgroup || echo "WARNING: No cgroup mounts found"
+        echo ""
+        echo "Namespaces:"
+        ls -la /proc/self/ns/ || echo "WARNING: Namespace info unavailable"
+        echo ""
+        echo "Capabilities:"
+        cat /proc/sys/kernel/cap_last_cap || echo "WARNING: Capabilities unavailable"
+      register: kernel_check
+      changed_when: false
+
+    - name: Display kernel features
+      debug:
+        var: kernel_check.stdout_lines
+
+    - name: Check if binary already exists
+      stat:
+        path: "{{ install_path }}"
+      register: binary_stat
+
+    - name: Backup existing binary if it exists
+      shell: |
+        if [ -f {{ install_path }} ]; then
+          cp {{ install_path }} {{ install_path }}.backup.$(date +%Y%m%d%H%M%S)
+          echo "Backup created"
+        fi
+      when: binary_stat.stat.exists
+      register: backup_result
+
+    - name: Display backup status
+      debug:
+        msg: "Existing binary backed up: {{ backup_result.stdout }}"
+      when: backup_result.rc is defined and backup_result.rc == 0
+
+    - name: Upload knirv-nexus binary
+      copy:
+        src: "{{ app_binary_path }}"
+        dest: "{{ install_path }}"
+        owner: root
+        group: root
+        mode: '0755'
+        backup: true
+      notify: restart knirv-nexus
+
+    - name: Verify binary executable
+      command: "{{ install_path }} --version"
+      register: binary_version
+      changed_when: false
+
+    - name: Display binary version
+      debug:
+        msg: "Installed {{ app_name }} version: {{ binary_version.stdout }}"
+
+    - name: Create configuration directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - "{{ config_dir }}"
+        - "{{ data_dir }}"
+        - "{{ log_dir }}"
+
+    - name: Set SELinux context for directories
+      shell: |
+        if command -v semanage >/dev/null 2>&1; then
+          semanage fcontext -a -t httpd_sys_content_t "{{ config_dir }}(/.*)?" 2>/dev/null || true
+          semanage fcontext -a -t httpd_sys_content_t "{{ data_dir }}(/.*)?" 2>/dev/null || true
+          restorecon -Rv {{ config_dir }} 2>/dev/null || true
+          restorecon -Rv {{ data_dir }} 2>/dev/null || true
+        fi
+      ignore_errors: true
+      changed_when: false
+
+    - name: Create production configuration file
+      template:
+        src: nexus-native.yaml.j2
+        dest: "{{ config_dir }}/production.yaml"
+        owner: root
+        group: root
+        mode: '0640'
+      notify: restart knirv-nexus
+
+    - name: Create systemd service file with eBPF capabilities
+      copy:
+        content: |
+          [Unit]
+          Description=KNIRVNEXUS Distributed Validation Environment with eBPF Support
+          Documentation=https://github.com/guiperry/KNIRV_NETWORK
+          After=network-online.target
+          Wants=network-online.target
+          ConditionPathExists={{ install_path }}
+
+          [Service]
+          Type=simple
+          User=root
+          Group=root
+
+          # Binary and configuration
+          ExecStart={{ install_path }} --config {{ config_dir }}/production.yaml
+          ExecReload=/bin/kill -HUP $MAINPID
+          WorkingDirectory={{ data_dir }}
+
+          # Environment
+          Environment=KNIRV_ENV={{ environment }}
+          Environment=HOME={{ data_dir }}
+          Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+          # Restart policy
+          Restart=always
+          RestartSec=10s
+          StartLimitInterval=200s
+          StartLimitBurst=5
+
+          # Resource limits
+          LimitNOFILE=65536
+          LimitNPROC=4096
+          LimitMEMLOCK=infinity
+
+          # Linux Capabilities for eBPF and Container Management
+          # CAP_BPF: Load eBPF programs (Linux 5.8+)
+          # CAP_PERFMON: Access performance monitoring data for eBPF telemetry
+          # CAP_SYS_ADMIN: Required for some eBPF operations and cgroup management
+          # CAP_NET_ADMIN: Network namespace and routing table manipulation
+          # CAP_NET_RAW: Raw socket access for XDP programs
+          # CAP_NET_BIND_SERVICE: Bind to privileged ports
+          # CAP_SYS_RESOURCE: Override resource limits for containers
+          # CAP_SETUID/SETGID: User namespace operations
+          # CAP_SYS_CHROOT: Chroot for container filesystem isolation
+          # CAP_SYS_PTRACE: Process tracing for debugging
+          CapabilityBoundingSet=CAP_BPF CAP_PERFMON CAP_SYS_ADMIN CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_SYS_RESOURCE CAP_SETUID CAP_SETGID CAP_SYS_CHROOT CAP_SYS_PTRACE
+          AmbientCapabilities=CAP_BPF CAP_PERFMON CAP_SYS_ADMIN CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_SYS_RESOURCE CAP_SETUID CAP_SETGID CAP_SYS_CHROOT CAP_SYS_PTRACE
+
+          # Security Hardening (while running as root)
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectSystem=strict
+          ProtectHome=true
+          ProtectKernelTunables=false
+          ProtectKernelModules=true
+          ProtectKernelLogs=false
+          ProtectControlGroups=false
+          RestrictRealtime=true
+          RestrictSUIDSGID=true
+          LockPersonality=true
+          MemoryDenyWriteExecute=false
+          RestrictNamespaces=false
+          PrivateDevices=false
+          ReadWritePaths={{ data_dir }} {{ log_dir }}
+          ReadOnlyPaths={{ config_dir }}
+
+          # System call filtering
+          SystemCallFilter=@system-service
+          SystemCallFilter=bpf perf_event_open
+
+          # Logging
+          StandardOutput=journal
+          StandardError=journal
+          SyslogIdentifier={{ app_name }}
+
+          # Process management
+          KillMode=mixed
+          KillSignal=SIGTERM
+          TimeoutStopSec=30s
+
+          [Install]
+          WantedBy=multi-user.target
+        dest: "/etc/systemd/system/{{ app_name }}.service"
+        owner: root
+        group: root
+        mode: '0644'
+      notify:
+        - reload systemd
+        - restart knirv-nexus
+
+    - name: Create log rotation configuration
+      copy:
+        content: |
+          {{ log_dir }}/*.log {
+              daily
+              rotate 14
+              compress
+              delaycompress
+              notifempty
+              create 0640 root root
+              sharedscripts
+              postrotate
+                  /bin/systemctl reload {{ app_name }} > /dev/null 2>&1 || true
+              endscript
+          }
+        dest: "/etc/logrotate.d/{{ app_name }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Configure firewall (ufw)
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop:
+        - "22"
+        - "{{ service_port }}"
+      when: ansible_facts['pkg_mgr'] == "apt"
+
+    - name: Enable and start knirv-nexus service
+      systemd:
+        name: "{{ app_name }}"
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Wait for service to be ready
+      wait_for:
+        port: "{{ service_port }}"
+        host: "127.0.0.1"
+        delay: 5
+        timeout: 60
+
+    - name: Verify service health
+      uri:
+        url: "http://127.0.0.1:{{ service_port }}/api/v1/health"
+        method: GET
+        status_code: 200
+      retries: 5
+      delay: 10
+      register: health_check
+
+    - name: Display deployment success
+      debug:
+        msg:
+          - "✓ KNIRVNEXUS deployed successfully on native Kali Linux!"
+          - "Environment: {{ environment }}"
+          - "Binary: {{ install_path }}"
+          - "Config: {{ config_dir }}/production.yaml"
+          - "Service: {{ app_name }}.service"
+          - "Health: {{ health_check.status }}"
+          - ""
+          - "Commands:"
+          - "  View logs: sudo journalctl -u {{ app_name }} -f"
+          - "  Restart: sudo systemctl restart {{ app_name }}"
+          - "  Status: sudo systemctl status {{ app_name }}"
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: true
+
+    - name: restart knirv-nexus
+      systemd:
+        name: "{{ app_name }}"
+        state: restarted
+
+---
+# Cleanup Task - Remove old backups
+- name: Cleanup Old Backups
+  hosts: kali_servers
+  become: true
+  gather_facts: false
+  vars:
+    app_name: "knirv-nexus"
+    install_path: "/usr/local/bin/{{ app_name }}"
+    backup_dir: "/usr/local/bin"
+
+  tasks:
+    - name: Find old backup files
+      find:
+        paths: "{{ backup_dir }}"
+        patterns: "{{ app_name }}.backup.*"
+        age: 7d
+      register: old_backups
+
+    - name: Remove old backup files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_backups.files }}"
+      when: old_backups.files | length > 0
+
+    - name: Display cleanup status
+      debug:
+        msg: "Removed {{ old_backups.files | length }} old backup files"
+      when: old_backups.files | length > 0

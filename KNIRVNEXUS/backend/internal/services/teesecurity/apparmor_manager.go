@@ -127,11 +127,12 @@ func (am *AppArmorManager) SetProfileMode(mode string) error {
 	}
 
 	var flag string
-	if mode == "enforce" {
+	switch mode {
+	case "enforce":
 		flag = "-e"
-	} else if mode == "complain" {
+	case "complain":
 		flag = "-c"
-	} else {
+	default:
 		return fmt.Errorf("invalid mode: %s (must be 'enforce' or 'complain')", mode)
 	}
 

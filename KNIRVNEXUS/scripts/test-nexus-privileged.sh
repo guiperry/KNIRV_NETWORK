@@ -3,6 +3,11 @@
 # KNIRVNEXUS Privileged Tests with Full Docker Instance Deployment
 # This script deploys a complete KNIRVNEXUS Docker instance with Debian + Kali tools
 # and runs all tests that require root privileges (cgroups, namespaces, etc.)
+#
+# Architecture:
+# - Docker container: Uses Podman for nested container orchestration
+# - Bare metal: Uses native Go runtime for containers
+# - Kata container: Uses native Go runtime (VM-level isolation)
 
 set -e  # Exit on error
 
@@ -258,8 +263,11 @@ run_privileged_tests() {
         "TestMountManager"
         "TestMount"
         "TestHardenedContainer"
+        "TestHardenedContainerExecution"
         "TestContainerRuntime"
         "TestPrivileged"
+        "TestPodmanRuntime"
+        "TestNativeRuntime"
     )
 
     local test_pattern=$(IFS='|'; echo "${ROOT_TEST_PATTERNS[*]}")
@@ -301,7 +309,12 @@ run_privileged_tests() {
     # Ensure required tools are available in container (for tests)
     log "Ensuring required tools and permissions are available in container..."
     docker exec "${CONTAINER_NAME}" bash -c "
-        # Ensure /tmp is writable
+        # Use /var/tmp instead of /tmp (Docker is less likely to mount it as read-only)
+        chmod 1777 /var/tmp 2>/dev/null || true
+        mkdir -p /var/tmp/knirv-containers 2>/dev/null || true
+        chmod 755 /var/tmp/knirv-containers 2>/dev/null || true
+        
+        # Also ensure /tmp is writable as fallback
         chmod 1777 /tmp 2>/dev/null || true
         mkdir -p /tmp/knirv-containers 2>/dev/null || true
         chmod 755 /tmp/knirv-containers 2>/dev/null || true
@@ -321,12 +334,19 @@ run_privileged_tests() {
             echo 'Installing mount utilities...'
             apt-get update -qq && apt-get install -y -qq mount 2>/dev/null || true
         fi
+        # Check if Podman is available (for nested container orchestration)
+        if command -v podman &> /dev/null; then
+            echo 'Podman found: \$(podman --version)'
+        else
+            echo 'Podman not found - will use native runtime'
+        fi
         # Ensure PATH includes /usr/sbin
         export PATH=\"/usr/sbin:/sbin:\$PATH\"
         echo 'Tools check:'
         which ip 2>/dev/null || echo 'ip not found'
         which unshare 2>/dev/null || echo 'unshare not found'
         which mount 2>/dev/null || echo 'mount not found'
+        which podman 2>/dev/null || echo 'podman not found'
     " | tee -a "${LOG_FILE}"
 
     # Run privileged tests
@@ -340,7 +360,34 @@ run_privileged_tests() {
     if docker exec "${CONTAINER_NAME}" bash -c "
         set -e
         export KNIRVNEXUS_TEST_MODE=true
-        export PATH="/usr/sbin:/sbin:$PATH"
+        export PATH=\"/usr/sbin:/sbin:\$PATH\"
+        
+        # Detect host environment
+        if [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
+            export KNIRVNEXUS_HOST_ENV=docker
+            echo 'Detected environment: Docker container'
+        elif grep -q 'agent.container_manager=kata' /proc/cmdline 2>/dev/null; then
+            export KNIRVNEXUS_HOST_ENV=kata-container
+            echo 'Detected environment: Kata container'
+        else
+            export KNIRVNEXUS_HOST_ENV=bare-metal
+            echo 'Detected environment: Bare metal'
+        fi
+        
+        # Set preferred runtime based on environment
+        if [ \"\${KNIRVNEXUS_HOST_ENV}\" = \"docker\" ]; then
+            if command -v podman &> /dev/null; then
+                export KNIRVNEXUS_PREFERRED_RUNTIME=podman
+                echo 'Using Podman for nested containers (Docker environment)'
+            else
+                export KNIRVNEXUS_PREFERRED_RUNTIME=native-go
+                echo 'Podman not available, using native-go runtime'
+            fi
+        else
+            export KNIRVNEXUS_PREFERRED_RUNTIME=native-go
+            echo 'Using native-go runtime (bare-metal or Kata)'
+        fi
+        
         cd /workspace/KNIRVNEXUS/backend
 
         # Check kernel features
@@ -468,33 +515,6 @@ EOF
 
         echo "- ✅ **Passed:** ${passed}" >> "${report_file}"
         echo "- ❌ **Failed:** ${failed}" >> "${report_file}"
-        echo "- ⏭️ **Skipped:** ${skipped}" >> "${report_file}"
-        echo "" >> "${report_file}"
-    fi
-
-    echo "## Artifacts" >> "${report_file}"
-    echo "" >> "${report_file}"
-    echo "- Test Output: \`test-output_${TIMESTAMP}.txt\`" >> "${report_file}"
-    echo "- Test Results: \`test-results_${TIMESTAMP}.json\`" >> "${report_file}"
-    echo "- Container Logs: \`container-logs_${TIMESTAMP}.txt\`" >> "${report_file}"
-    echo "- Full Log: \`privileged-tests_${TIMESTAMP}.log\`" >> "${report_file}"
-    echo "" >> "${report_file}"
-
-    log_success "Test report generated: ${report_file}"
-}
-
-# Main execution flow
-main() {
-    local exit_code=0
-
-    # Step 1: Check prerequisites
-    check_prerequisites || exit 1
-
-    # Step 2: Deploy container if requested
-    if [ "$DEPLOY_CONTAINER" = true ]; then
-        deploy_container || exit 1
-        wait_for_container || exit 1
-    else
         log_warning "Skipping container deployment (--no-deploy)"
         # Still check if container exists
         if ! docker ps --filter "name=${CONTAINER_NAME}" --filter "status=running" --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then

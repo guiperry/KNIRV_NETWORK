@@ -150,6 +150,8 @@ func TestTerminateValidationSession_Success(t *testing.T) {
 	db, _ := buntdb.Open(":memory:")
 	dveRentalService, err := dverental.NewDVERentalService(db)
 	require.NoError(t, err)
+	// Enable test mode to skip blockchain verification
+	dveRentalService.SetTestMode(true)
 	containerOrchestrator := &container.ContainerOrchestrator{}
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
@@ -157,37 +159,19 @@ func TestTerminateValidationSession_Success(t *testing.T) {
 	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
 
 	rentalID := "rental-123"
-	userID := "user-456"
+	userID := "test-user-" + time.Now().Format("20060102150405")
 
-	// Create a rental first
+	// Create a rental using CreateRental (with test mode, blockchain verification is skipped)
 	rentalReq := objects.RentalRequest{
 		UserID:        userID,
 		PlanID:        "basic",
-		Duration:      3600, // 1 hour
+		Duration:      3600,
 		PaymentTxHash: "test-tx",
 	}
 	rentalResp, err := dveRentalService.CreateRental(&rentalReq)
 	require.NoError(t, err)
 	require.True(t, rentalResp.Success)
-	// Get the actual rental ID from the response
 	rentalID = rentalResp.RentalID
-
-	// Set container ID for the rental to pass validation
-	err = db.Update(func(tx *buntdb.Tx) error {
-		val, err := tx.Get("rental:" + rentalID)
-		if err != nil {
-			return err
-		}
-		var rental objects.DVERental
-		if err := json.Unmarshal([]byte(val), &rental); err != nil {
-			return err
-		}
-		rental.ContainerID = "test-container"
-		data, _ := json.Marshal(rental)
-		_, _, err = tx.Set("rental:"+rentalID, string(data), nil)
-		return err
-	})
-	require.NoError(t, err)
 
 	// Create a real validation session
 	_, _ = handlers.sessionManager.CreateValidationSession(rentalID, "reasoning")
@@ -235,39 +219,10 @@ func TestTerminateValidationSession_RentalNotFound(t *testing.T) {
 
 func TestTerminateValidationSession_NoValidationSession(t *testing.T) {
 	db, _ := buntdb.Open(":memory:")
-	dveRentalService, _ := dverental.NewDVERentalService(db)
-	containerOrchestrator := &container.ContainerOrchestrator{}
-	sessionManager := session.NewSessionManager(db)
-	endpointRegistry := &endpoints.EndpointRegistry{}
-
-	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
-
-	rentalID := "rental-123"
-	userID := "user-456"
-
-	// Create a real SSH session but no validation session
-	_, _ = handlers.sessionManager.CreateSSHSession(rentalID, "container-456", "testuser", "test-key")
-
-	req := httptest.NewRequest("DELETE", "/api/dve-rental/rentals/"+rentalID+"/validation-session", nil)
-	req = mux.SetURLVars(req, map[string]string{"id": rentalID})
-	req.Header.Set("user_id", userID)
-	w := httptest.NewRecorder()
-
-	handlers.TerminateValidationSession(w, req)
-
-	assert.Equal(t, http.StatusNotFound, w.Code)
-
-	var response DVERentalResponse
-	err := json.NewDecoder(w.Body).Decode(&response)
-	require.NoError(t, err)
-	assert.False(t, response.Success)
-	assert.Contains(t, response.Error, "Validation session not found for this rental")
-}
-
-func TestTerminateErrorResolutionSession_Success(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
 	dveRentalService, err := dverental.NewDVERentalService(db)
 	require.NoError(t, err)
+	// Enable test mode to skip blockchain verification
+	dveRentalService.SetTestMode(true)
 	containerOrchestrator := &container.ContainerOrchestrator{}
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
@@ -277,7 +232,7 @@ func TestTerminateErrorResolutionSession_Success(t *testing.T) {
 	rentalID := "rental-123"
 	userID := "user-456"
 
-	// Create a rental first
+	// Create a rental using CreateRental (with test mode, blockchain verification is skipped)
 	rentalReq := objects.RentalRequest{
 		UserID:        userID,
 		PlanID:        "basic",
@@ -289,22 +244,50 @@ func TestTerminateErrorResolutionSession_Success(t *testing.T) {
 	require.True(t, rentalResp.Success)
 	rentalID = rentalResp.RentalID
 
-	// Set container ID for the rental to pass validation
-	err = db.Update(func(tx *buntdb.Tx) error {
-		val, err := tx.Get("rental:" + rentalID)
-		if err != nil {
-			return err
-		}
-		var rental objects.DVERental
-		if err := json.Unmarshal([]byte(val), &rental); err != nil {
-			return err
-		}
-		rental.ContainerID = "test-container"
-		data, _ := json.Marshal(rental)
-		_, _, err = tx.Set("rental:"+rentalID, string(data), nil)
-		return err
-	})
+	// Create a real SSH session but no validation session
+	_, _ = handlers.sessionManager.CreateSSHSession(rentalID, "container-456", "testuser", "test-key")
+
+	req := httptest.NewRequest("DELETE", "/api/dve-rental/rentals/"+rentalID+"/validation-session?user_id="+userID, nil)
+	req = mux.SetURLVars(req, map[string]string{"id": rentalID})
+	w := httptest.NewRecorder()
+
+	handlers.TerminateValidationSession(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var response DVERentalResponse
+	err = json.NewDecoder(w.Body).Decode(&response)
 	require.NoError(t, err)
+	assert.False(t, response.Success)
+	assert.Contains(t, response.Error, "Validation session not found for this rental")
+}
+
+func TestTerminateErrorResolutionSession_Success(t *testing.T) {
+	db, _ := buntdb.Open(":memory:")
+	dveRentalService, err := dverental.NewDVERentalService(db)
+	require.NoError(t, err)
+	// Enable test mode to skip blockchain verification
+	dveRentalService.SetTestMode(true)
+	containerOrchestrator := &container.ContainerOrchestrator{}
+	sessionManager := session.NewSessionManager(db)
+	endpointRegistry := &endpoints.EndpointRegistry{}
+
+	handlers := NewDVERentalHandlers(dveRentalService, containerOrchestrator, sessionManager, endpointRegistry, db)
+
+	rentalID := "rental-123"
+	userID := "test-user-" + time.Now().Format("20060102150405")
+
+	// Create a rental using CreateRental (with test mode, blockchain verification is skipped)
+	rentalReq := objects.RentalRequest{
+		UserID:        userID,
+		PlanID:        "basic",
+		Duration:      3600,
+		PaymentTxHash: "test-tx",
+	}
+	rentalResp, err := dveRentalService.CreateRental(&rentalReq)
+	require.NoError(t, err)
+	require.True(t, rentalResp.Success)
+	rentalID = rentalResp.RentalID
 
 	// Create a real error resolution session
 	supportedTypes := []string{"timeout", "network"}
@@ -326,9 +309,10 @@ func TestTerminateErrorResolutionSession_Success(t *testing.T) {
 }
 
 func TestTerminateErrorResolutionSession_RentalNotFound(t *testing.T) {
-	dveRentalService := &dverental.DVERentalService{}
-	containerOrchestrator := &container.ContainerOrchestrator{}
 	db, _ := buntdb.Open(":memory:")
+	dveRentalService, err := dverental.NewDVERentalService(db)
+	require.NoError(t, err)
+	containerOrchestrator := &container.ContainerOrchestrator{}
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
 
@@ -345,7 +329,7 @@ func TestTerminateErrorResolutionSession_RentalNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
 	var response DVERentalResponse
-	err := json.NewDecoder(w.Body).Decode(&response)
+	err = json.NewDecoder(w.Body).Decode(&response)
 	require.NoError(t, err)
 	assert.False(t, response.Success)
 	assert.Contains(t, response.Error, "Rental not found or access denied")
@@ -353,7 +337,10 @@ func TestTerminateErrorResolutionSession_RentalNotFound(t *testing.T) {
 
 func TestTerminateErrorResolutionSession_NoErrorResolutionSession(t *testing.T) {
 	db, _ := buntdb.Open(":memory:")
-	dveRentalService, _ := dverental.NewDVERentalService(db)
+	dveRentalService, err := dverental.NewDVERentalService(db)
+	require.NoError(t, err)
+	// Enable test mode to skip blockchain verification
+	dveRentalService.SetTestMode(true)
 	containerOrchestrator := &container.ContainerOrchestrator{}
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
@@ -363,7 +350,7 @@ func TestTerminateErrorResolutionSession_NoErrorResolutionSession(t *testing.T) 
 	rentalID := "rental-123"
 	userID := "user-456"
 
-	// Create a rental first
+	// Create a rental using CreateRental (with test mode, blockchain verification is skipped)
 	rentalReq := objects.RentalRequest{
 		UserID:        userID,
 		PlanID:        "basic",
@@ -374,23 +361,6 @@ func TestTerminateErrorResolutionSession_NoErrorResolutionSession(t *testing.T) 
 	require.NoError(t, err)
 	require.True(t, rentalResp.Success)
 	rentalID = rentalResp.RentalID
-
-	// Set container ID for the rental to pass validation
-	err = db.Update(func(tx *buntdb.Tx) error {
-		val, err := tx.Get("rental:" + rentalID)
-		if err != nil {
-			return err
-		}
-		var rental objects.DVERental
-		if err := json.Unmarshal([]byte(val), &rental); err != nil {
-			return err
-		}
-		rental.ContainerID = "test-container"
-		data, _ := json.Marshal(rental)
-		_, _, err = tx.Set("rental:"+rentalID, string(data), nil)
-		return err
-	})
-	require.NoError(t, err)
 
 	// Create a real SSH session but no error resolution session
 	_, _ = handlers.sessionManager.CreateSSHSession(rentalID, "container-456", "testuser", "test-key")

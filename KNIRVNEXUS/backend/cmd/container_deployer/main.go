@@ -22,7 +22,7 @@ import (
 //go:embed all:scripts/*
 //go:embed container.yaml
 //go:embed all:ansible/*
-//go:embed golang-app-source/knirv-nexus
+//go:embed all:golang-app-source/*
 //go:embed pod.yaml
 
 var embeddedFiles embed.FS
@@ -36,7 +36,7 @@ const (
 	ansibleCloudDir      = "ansible/cloud-deploy"
 	ansibleLocalDir      = "ansible/local-deploy"
 	golangAppSourceDir   = "golang-app-source"
-	outputKataGuestDir   = "output-kata-guest" // Where built kernel/rootfs artifacts are stored
+	outputKataGuestDir   = "output-kata-guest"
 	kataConfigDir        = "/etc/kata-containers"
 	customKataKernelName = "kali-clean-tee"
 	containerImageName   = "knirvnexus-go-app"
@@ -188,16 +188,17 @@ func main() {
 	kataArtifactsAvailable := checkKataArtifacts()
 
 	// Parse command-line flags for non-interactive mode
-	action := flag.String("action", "", "Action to perform: 1=Deploy new container, 2=Install Go app only, 3=Exit")
+	action := flag.String("action", "", "Action to perform: 1=Deploy container, 2=Deploy native, 3=Install Go app only, 4=Exit")
 	deployType := flag.String("deploy-type", "", "Deployment type: local or cloud")
+	deployMode := flag.String("deploy-mode", "", "Deployment mode: container, kata, or native")
 	envFlag := flag.String("env", "", "Environment: development, testnet, or production")
 	showBuild := flag.Bool("show-build", false, "Show verbose Docker build output")
 	flag.Parse()
 
-	// Determine deployment type
+	// Determine deployment type and mode
 	var selectedDeployType string
+	var selectedDeployMode string
 	if *deployType != "" {
-		// Use flag value if provided
 		selectedDeployType = *deployType
 		if selectedDeployType != "local" && selectedDeployType != "cloud" {
 			log.Fatalf("Invalid deployment type: %s (must be 'local' or 'cloud')", selectedDeployType)
@@ -220,7 +221,31 @@ func main() {
 		}
 	}
 
-	fmt.Printf("\n✓ Using %s deployment configuration\n", selectedDeployType)
+	// Determine deployment mode (container, kata, native)
+	if *deployMode != "" {
+		selectedDeployMode = *deployMode
+		if selectedDeployMode != "container" && selectedDeployMode != "kata" && selectedDeployMode != "native" {
+			log.Fatalf("Invalid deployment mode: %s (must be 'container', 'kata', or 'native')", selectedDeployMode)
+		}
+	} else {
+		// Ask user interactively for deployment mode
+		fmt.Println("\nSelect deployment mode:")
+		fmt.Println("1. Container-based (Docker/Kata)")
+		fmt.Println("2. Native binary (direct on OS)")
+		fmt.Print("Enter your choice (1 or 2): ")
+		var modeChoice string
+		fmt.Scanln(&modeChoice)
+		switch modeChoice {
+		case "1":
+			selectedDeployMode = "container"
+		case "2":
+			selectedDeployMode = "native"
+		default:
+			log.Fatalf("Invalid choice: %s", modeChoice)
+		}
+	}
+
+	fmt.Printf("\n✓ Using %s deployment configuration with %s mode\n", selectedDeployType, selectedDeployMode)
 
 	// Select deployment environment (dev/testnet/production)
 	var environment string
@@ -256,7 +281,7 @@ func main() {
 
 	// If action flag provided, execute it non-interactively
 	if *action != "" {
-		executeActionWithDeployType(*action, resourcesDir, artifactDir, selectedDeployType, environment, *showBuild)
+		executeActionWithDeployType(*action, resourcesDir, artifactDir, selectedDeployType, selectedDeployMode, environment, *showBuild)
 		return
 	}
 
@@ -279,8 +304,8 @@ func main() {
 	// Otherwise, run interactive mode
 	for {
 		fmt.Println("\nSelect an action:")
-		fmt.Println("1. Deploy a new KNIRV-NEXUS via Docker Container (assuming Docker is configured)")
-		fmt.Println("2. Only install the KNIRV-NEXUS Go App on an existing, configured Kata setup")
+		fmt.Println("1. Deploy KNIRV-NEXUS (container or native)")
+		fmt.Println("2. Only install the KNIRV-NEXUS binary on existing setup")
 		fmt.Println("3. Exit")
 		fmt.Print("Enter your choice: ")
 
@@ -289,11 +314,11 @@ func main() {
 
 		switch choice {
 		case "1":
-			fmt.Println("\nStarting new container deploy (assuming Kata configured)...")
-			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType, environment, true, *showBuild) // Interactive mode: tail logs
+			fmt.Println("\nStarting KNIRV-NEXUS deployment...")
+			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType, selectedDeployMode, environment, true, *showBuild)
 		case "2":
-			fmt.Println("\nStarting Go app install on existing Kata setup...")
-			runInstallGoAppOnly(resourcesDir, artifactDir, selectedDeployType)
+			fmt.Println("\nStarting Go app install on existing setup...")
+			runInstallGoAppOnly(resourcesDir, artifactDir, selectedDeployType, selectedDeployMode)
 		case "3":
 			fmt.Println("Exiting.")
 			return
@@ -580,8 +605,16 @@ func getAnsibleDirectory(resourcesDir, deployType string) string {
 	return filepath.Join(resourcesDir, ansibleLocalDir)
 }
 
-func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment string, tailLogs bool, showBuild bool) {
-	fmt.Printf("--- Deploying new KNIRV-NEXUS Container (%s deployment, %s environment) ---\n", deployType, environment)
+func runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, environment string, tailLogs bool, showBuild bool) {
+	fmt.Printf("--- Deploying new KNIRV-NEXUS (%s deployment, %s mode, %s environment) ---\n", deployType, deployMode, environment)
+
+	// Handle native deployment
+	if deployMode == "native" {
+		runNativeDeployment(resourcesDir, artifactDir, deployType, environment)
+		return
+	}
+
+	// Handle container-based deployment
 	ansibleWorkDir := getAnsibleDirectory(resourcesDir, deployType)
 	inventoryPath := filepath.Join(ansibleWorkDir, "inventory.ini")
 
@@ -602,9 +635,9 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment st
 		extraVars = []string{
 			fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
 			fmt.Sprintf("container_image_name=%s", containerImageName),
-			fmt.Sprintf("knirv_environment=%s", environment), // Pass environment to Ansible
+			fmt.Sprintf("knirv_environment=%s", environment),
 			"privileged_container=true",
-			fmt.Sprintf("show_build_output=%t", showBuild), // Pass show_build flag
+			fmt.Sprintf("show_build_output=%t", showBuild),
 		}
 	} else {
 		// Cloud deployment uses Kata containers
@@ -639,8 +672,8 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment st
 			fmt.Sprintf("custom_kata_rootfs_path_local=%s", rootfsPath),
 			fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
 			fmt.Sprintf("container_image_name=%s", containerImageName),
-			fmt.Sprintf("artifact_directory=%s", artifactDir), // Pass artifact directory to Ansible
-			fmt.Sprintf("knirv_environment=%s", environment),  // Pass environment to Ansible
+			fmt.Sprintf("artifact_directory=%s", artifactDir),
+			fmt.Sprintf("knirv_environment=%s", environment),
 		}
 	}
 
@@ -717,8 +750,15 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType, environment st
 	fmt.Println("\n✓ Deployment session complete")
 }
 
-func runInstallGoAppOnly(resourcesDir, artifactDir, deployType string) {
-	fmt.Printf("--- Only installing KNIRV-NEXUS Go App on existing Kata setup (%s deployment) ---\n", deployType)
+func runInstallGoAppOnly(resourcesDir, artifactDir, deployType, deployMode string) {
+	fmt.Printf("--- Only installing KNIRV-NEXUS Go App on existing setup (%s deployment, %s mode) ---\n", deployType, deployMode)
+
+	// Handle native deployment binary installation
+	if deployMode == "native" {
+		runNativeBinaryInstall(resourcesDir, artifactDir, deployType)
+		return
+	}
+
 	ansibleWorkDir := getAnsibleDirectory(resourcesDir, deployType)
 	inventoryPath := filepath.Join(ansibleWorkDir, "inventory.ini")
 
@@ -745,13 +785,9 @@ func runInstallGoAppOnly(resourcesDir, artifactDir, deployType string) {
 	extraVars := []string{
 		fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
 		fmt.Sprintf("container_image_name=%s", containerImageName),
-		fmt.Sprintf("artifact_directory=%s", artifactDir), // Pass artifact directory to Ansible
+		fmt.Sprintf("artifact_directory=%s", artifactDir),
 	}
 
-	// This mode needs specific tags for Ansible.
-	// We need to modify the deploy-kata-app.yml to have tags for different sections,
-	// e.g., 'kata_config', 'go_app_build', 'go_app_run'.
-	// For this example, let's assume tags 'go_app_build' and 'go_app_run' exist.
 	ansibleArgs := []string{"-i", inventoryPath, "deploy-kata-app.yml", "--tags", "go_app_build,go_app_run", "-e", strings.Join(extraVars, " ")}
 	err = runCmd("ansible-playbook", ansibleArgs, ansibleWorkDir)
 	if err != nil {
@@ -760,15 +796,140 @@ func runInstallGoAppOnly(resourcesDir, artifactDir, deployType string) {
 	fmt.Println("--- KNIRV-NEXUS Go App installed successfully! ---")
 }
 
+// --- Native Deployment Functions ---
+
+// runNativeDeployment handles native deployment to EC2 or local system
+func runNativeDeployment(resourcesDir, artifactDir, deployType, environment string) {
+	fmt.Printf("--- Deploying knirv-nexus NATIVELY (%s deployment, %s environment) ---\n", deployType, environment)
+
+	// Build the binary first
+	fmt.Println("Building knirv-nexus binary...")
+	binaryPath := buildKNIRVNexusBinary(artifactDir, environment)
+
+	if deployType == "local" {
+		// Local native deployment (for testing)
+		runLocalNativeDeployment(binaryPath, environment)
+	} else {
+		// Cloud native deployment to AWS EC2
+		runCloudNativeDeployment(resourcesDir, binaryPath, environment)
+	}
+}
+
+// buildKNIRVNexusBinary builds the knirv-nexus binary
+func buildKNIRVNexusBinary(artifactDir, environment string) string {
+	fmt.Println("Compiling knirv-nexus with embedded environment...")
+
+	// Navigate to KNIRVNEXUS directory
+	knirvNexusDir := filepath.Join(getCurrentRepoRoot(), "KNIRVNEXUS")
+
+	// Build output path
+	outputPath := filepath.Join(artifactDir, "knirv-nexus")
+
+	buildCmd := exec.Command("bash", "-c", fmt.Sprintf(`
+		cd %s &&
+		go mod tidy &&
+		CGO_ENABLED=1 go build \
+			-tags 'embed_%s' \
+			-ldflags="-s -w -X main.Version=$(git describe --tags --always) -X main.BuildTime=$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)" \
+			-o %s \
+			.
+	`, knirvNexusDir, environment, outputPath))
+
+	buildCmd.Stdout = os.Stdout
+	buildCmd.Stderr = os.Stderr
+
+	if err := buildCmd.Run(); err != nil {
+		log.Fatalf("Failed to build knirv-nexus binary: %v", err)
+	}
+
+	fmt.Printf("✓ Binary built successfully: %s\n", outputPath)
+	return outputPath
+}
+
+// getCurrentRepoRoot returns the current repository root directory
+func getCurrentRepoRoot() string {
+	// Try to find the repo root by looking for KNIRVNEXUS directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+	}
+	return cwd
+}
+
+// runCloudNativeDeployment deploys to AWS EC2 using Ansible
+func runCloudNativeDeployment(resourcesDir, binaryPath, environment string) {
+	ansibleWorkDir := filepath.Join(resourcesDir, ansibleCloudDir, "playbooks")
+	playbookPath := filepath.Join(ansibleWorkDir, "deploy-native-kali.yml")
+
+	// Get dynamic inventory for AWS EC2
+	inventoryPath := filepath.Join(resourcesDir, ansibleCloudDir, "inventory", "aws_ec2.yml")
+
+	extraVars := []string{
+		fmt.Sprintf("binary_source_path=%s", binaryPath),
+		fmt.Sprintf("env=%s", environment),
+	}
+
+	ansibleCmd := []string{
+		"ansible-playbook",
+		"-i", inventoryPath,
+		playbookPath,
+	}
+
+	for _, v := range extraVars {
+		ansibleCmd = append(ansibleCmd, "-e", v)
+	}
+
+	fmt.Printf("Running Ansible playbook: %s\n", playbookPath)
+	fmt.Printf("Extra vars: %v\n", extraVars)
+
+	err := runCmd(ansibleCmd[0], ansibleCmd[1:], ansibleWorkDir)
+	if err != nil {
+		log.Fatalf("Ansible native deployment failed: %v", err)
+	}
+
+	fmt.Println("✓ Native deployment to AWS EC2 completed successfully!")
+}
+
+// runLocalNativeDeployment deploys locally for testing
+func runLocalNativeDeployment(binaryPath, environment string) {
+	fmt.Println("--- Local Native Deployment ---")
+	fmt.Printf("Binary: %s\n", binaryPath)
+	fmt.Printf("Environment: %s\n", environment)
+	fmt.Println("")
+	fmt.Println("To run locally:")
+	fmt.Printf("  sudo %s --config /etc/knirv-nexus/production.yaml\n", binaryPath)
+	fmt.Println("")
+	fmt.Println("Note: This is for testing only. For production, use cloud deployment.")
+}
+
+// runNativeBinaryInstall installs the binary on an already provisioned system
+func runNativeBinaryInstall(resourcesDir, artifactDir, deployType string) {
+	fmt.Println("--- Installing KNIRV-NEXUS Binary on Existing System ---")
+
+	// Build the binary
+	binaryPath := buildKNIRVNexusBinary(artifactDir, "production")
+
+	// For local deployment, just show instructions
+	if deployType == "local" {
+		fmt.Printf("\nBinary built at: %s\n", binaryPath)
+		fmt.Println("Copy to target system and run:")
+		fmt.Printf("  sudo cp %s /usr/local/bin/knirv-nexus\n", binaryPath)
+		fmt.Printf("  sudo chmod +x /usr/local/bin/knirv-nexus\n")
+		fmt.Println("")
+	}
+
+	fmt.Println("✓ Binary installation prepared!")
+}
+
 // executeActionWithDeployType performs the specified action non-interactively with deployment type
-func executeActionWithDeployType(action string, resourcesDir, artifactDir, deployType, environment string, showBuild bool) {
+func executeActionWithDeployType(action string, resourcesDir, artifactDir, deployType, deployMode, environment string, showBuild bool) {
 	switch action {
 	case "1":
-		fmt.Println("\nStarting new container deploy (assuming Kata configured)...")
-		runDeployNewContainer(resourcesDir, artifactDir, deployType, environment, false, showBuild) // Non-interactive: skip log tailing
+		fmt.Println("\nStarting KNIRV-NEXUS deployment...")
+		runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, environment, false, showBuild)
 	case "2":
-		fmt.Println("\nStarting Go app install on existing Kata setup...")
-		runInstallGoAppOnly(resourcesDir, artifactDir, deployType)
+		fmt.Println("\nStarting Go app install on existing setup...")
+		runInstallGoAppOnly(resourcesDir, artifactDir, deployType, deployMode)
 	case "3":
 		fmt.Println("Exiting.")
 	default:

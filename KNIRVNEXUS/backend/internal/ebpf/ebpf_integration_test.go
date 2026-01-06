@@ -20,8 +20,8 @@ import (
 
 
 
-// TesteBPFIntegration tests the complete eBPF integration
-func TesteBPFIntegration(t *testing.T) {
+// TestEBPFIntegration tests the complete eBPF integration
+func TestEBPFIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping eBPF integration test in short mode")
 	}
@@ -187,8 +187,8 @@ func TesteBPFIntegration(t *testing.T) {
 	})
 }
 
-// TesteBPFStress tests eBPF components under load
-func TesteBPFStress(t *testing.T) {
+// TestEBPFStress tests eBPF components under load
+func TestEBPFStress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping eBPF stress test in short mode")
 	}
@@ -292,8 +292,8 @@ func TesteBPFStress(t *testing.T) {
 	})
 }
 
-// TesteBPFEndToEnd tests the complete eBPF workflow
-func TesteBPFEndToEnd(t *testing.T) {
+// TestEBPFEndToEnd tests the complete eBPF workflow
+func TestEBPFEndToEnd(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping eBPF end-to-end test in short mode")
 	}

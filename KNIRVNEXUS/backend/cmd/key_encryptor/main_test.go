@@ -13,7 +13,7 @@ func TestLoadDotKeyFile(t *testing.T) {
 	// Test case 1: Valid key file with key=value pairs
 	validKeyFile := filepath.Join(tempDir, "valid.key")
 	validContent := `# Comment line
-STRIPE_SECRET_KEY=___test_123
+STRIPE_SECRET_KEY=____test_123
 STRIPE_WEBHOOK_SECRET=whsec_456
 
 COINBASE_API_KEY=api_789

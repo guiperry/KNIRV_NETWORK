@@ -16,6 +16,7 @@ type KaliLinuxProfile struct {
 	IsKaliLinux          bool
 	KernelVersion        string
 	ArchitectureSupport  []string                    // ["sgx", "sev-snp", "tdx"]
+	HostEnvironment      string                      // "bare-metal", "docker", "kata-container"
 
 	// Kali Security Tools - Static Analysis
 	StaticAnalysisTools  KaliStaticAnalysisTools
@@ -85,12 +86,21 @@ func DetectKaliEnvironment() (*KaliLinuxProfile, error) {
 		return nil, errors.New("TEE operations require Linux operating system")
 	}
 
+	// Detect host environment first
+	profile.HostEnvironment = detectHostEnvironment()
+
 	// Read /etc/os-release for distribution info
 	osRelease, err := readOSRelease()
 	if err != nil {
 		log.Printf("Warning: Could not read /etc/os-release: %v", err)
 		profile.OS = "unknown"
-		profile.PreferredRuntime = "podman"
+		// Default to podman if OS is unknown or in a container, otherwise native-go
+		switch profile.HostEnvironment {
+		case "docker":
+			profile.PreferredRuntime = "podman"
+		default: // kata-container or bare-metal
+			profile.PreferredRuntime = "native-go"
+		}
 		return profile, nil
 	}
 
@@ -100,26 +110,37 @@ func DetectKaliEnvironment() (*KaliLinuxProfile, error) {
 	if strings.Contains(osReleaseLower, "kali") {
 		profile.OS = "kali"
 		profile.IsKaliLinux = true
-		profile.PreferredRuntime = "native-go" // Use native Go container runtime for Kali
 	} else if strings.Contains(osReleaseLower, "debian") {
 		profile.OS = "debian"
-		// Check if Kali tools are installed (Debian with Kali tooling)
 		if hasKaliTools() {
-			log.Println("Detected Debian with Kali security tools - using native-go runtime")
-			profile.IsKaliLinux = true // Treat as Kali-equivalent for runtime purposes
-			profile.PreferredRuntime = "native-go"
+			log.Println("Detected Debian with Kali security tools - treating as Kali-equivalent")
+			profile.IsKaliLinux = true
 		} else {
 			profile.IsKaliLinux = false
-			profile.PreferredRuntime = "podman"
 		}
 	} else if strings.Contains(osReleaseLower, "ubuntu") {
 		profile.OS = "ubuntu"
 		profile.IsKaliLinux = false
-		profile.PreferredRuntime = "podman" // Podman fallback for Ubuntu
 	} else {
 		profile.OS = "unknown"
-		profile.PreferredRuntime = "podman" // Default to Podman for other distributions
+		profile.IsKaliLinux = false
 	}
+
+	// Override PreferredRuntime based on HostEnvironment if it's a container
+	switch profile.HostEnvironment {
+	case "docker":
+		profile.PreferredRuntime = "podman"
+	case "kata-container":
+		profile.PreferredRuntime = "native-go" // Kata should support native-go as it's VM-level
+	default: // Bare metal or unknown
+		profile.PreferredRuntime = "native-go"
+	}
+
+	// For Kali/Debian with Kali tools, still prefer native if not containerized
+	if profile.IsKaliLinux && profile.HostEnvironment != "docker" { // If Kali or Kali-equivalent and not Docker
+		profile.PreferredRuntime = "native-go"
+	}
+
 
 	// Detect CPU capabilities for TEE
 	profile.ArchitectureSupport = detectTEECapabilities()
@@ -276,4 +297,66 @@ func logKaliToolsDetected(profile *KaliLinuxProfile) {
 	log.Printf("  AppArmor: %v", profile.SecurityFrameworks.AppArmor)
 	log.Printf("  SELinux: %v", profile.SecurityFrameworks.SELinux)
 	log.Printf("  Seccomp: %v", profile.SecurityFrameworks.Seccomp)
+}
+
+// detectHostEnvironment determines if the current process is running in a Docker container,
+// a Kata container, or on bare metal.
+func detectHostEnvironment() string {
+	// Check for Docker environment
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		log.Println("Detected host environment: Docker container")
+		return "docker"
+	}
+	if _, err := os.Stat("/run/.containerenv"); err == nil {
+		log.Println("Detected host environment: Docker container")
+		return "docker"
+	}
+	if isDockerCgroup() {
+		log.Println("Detected host environment: Docker container (cgroup)")
+		return "docker"
+	}
+
+	// Check for Kata Container environment
+	if isKataContainer() {
+		log.Println("Detected host environment: Kata container")
+		return "kata-container"
+	}
+
+	log.Println("Detected host environment: Bare metal")
+	return "bare-metal"
+}
+
+// isDockerCgroup checks for Docker-specific cgroup entries.
+func isDockerCgroup() bool {
+	cgroupPath := "/proc/self/cgroup"
+	data, err := os.ReadFile(cgroupPath)
+	if err != nil {
+		return false
+	}
+	// Look for common Docker cgroup patterns
+	if strings.Contains(string(data), "/docker/") || strings.Contains(string(data), "/actions_job/") {
+		return true
+	}
+	return false
+}
+
+// isKataContainer checks for indicators of a Kata Container.
+func isKataContainer() bool {
+	// Check for Kata-specific kernel command line arguments
+	cmdline, err := os.ReadFile("/proc/cmdline")
+	if err == nil && strings.Contains(string(cmdline), "agent.container_manager=kata") {
+		return true
+	}
+
+	// Check for Kata agent socket (example path, might vary)
+	if _, err := os.Stat("/run/vc/s/kata-containers/agent.sock"); err == nil {
+		return true
+	}
+
+	// Check for virtio-serial devices, common in VMs like Kata
+	if _, err := os.Stat("/dev/virtio-ports/org.qemu.guest_agent.0"); err == nil {
+		return true
+	}
+
+	return false
 }

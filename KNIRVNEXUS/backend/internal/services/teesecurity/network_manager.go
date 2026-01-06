@@ -136,9 +136,14 @@ func (nm *NetworkManager) DeleteVethPair(vethPair *VethPair) error {
 	return nil
 }
 
-// runIPCommand executes ip command with given arguments
+// runIPCommand executes ip command with given arguments using PATH lookup
 func (nm *NetworkManager) runIPCommand(args ...string) error {
-	cmd := exec.Command("/usr/sbin/ip", args...)
+	// Use PATH lookup instead of hardcoded path for cross-distribution compatibility
+	ipPath, err := exec.LookPath("ip")
+	if err != nil {
+		return fmt.Errorf("ip command not found in PATH: %w", err)
+	}
+	cmd := exec.Command(ipPath, args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("ip %s failed: %s: %w", strings.Join(args, " "), string(output), err)

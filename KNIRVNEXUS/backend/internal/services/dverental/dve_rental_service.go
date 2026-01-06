@@ -181,33 +181,44 @@ func (drs *DVERentalService) CreateRental(req *objects.RentalRequest) (*objects.
 	hours := float64(req.Duration) / 3600.0
 	totalCost := int64(hours * float64(plan.PricePerHour))
 
-	// Verify NRN payment transaction on blockchain
+	// Verify NRN payment transaction on blockchain or use test mode fallback
 	if drs.blockchainClient == nil {
-		return &objects.RentalResponse{
-			Success: false,
-			Error:   "Blockchain client not configured",
-		}, nil
-	}
+		if drs.testMode {
+			// In test mode, just require a payment tx hash as authorization proof
+			if req.PaymentTxHash == "" {
+				return &objects.RentalResponse{
+					Success: false,
+					Error:   "Payment transaction hash is required",
+				}, nil
+			}
+			log.Printf("[Test Mode] Skipping blockchain verification, using payment authorization: %s", req.PaymentTxHash)
+		} else {
+			return &objects.RentalResponse{
+				Success: false,
+				Error:   "Blockchain client not configured",
+			}, nil
+		}
+	} else {
+		// Verify payment on blockchain
+		systemWalletAddress := "knirv1system" // This should be configurable
+		payment, err := drs.blockchainClient.VerifyPaymentTransaction(req.PaymentTxHash, totalCost, systemWalletAddress)
+		if err != nil {
+			log.Printf("Payment verification failed for tx %s: %v", req.PaymentTxHash, err)
+			return &objects.RentalResponse{
+				Success: false,
+				Error:   "Payment verification failed: " + err.Error(),
+			}, nil
+		}
 
-	// For rental payments, the recipient should be the system wallet
-	systemWalletAddress := "knirv1system" // This should be configurable
-	payment, err := drs.blockchainClient.VerifyPaymentTransaction(req.PaymentTxHash, totalCost, systemWalletAddress)
-	if err != nil {
-		log.Printf("Payment verification failed for tx %s: %v", req.PaymentTxHash, err)
-		return &objects.RentalResponse{
-			Success: false,
-			Error:   "Payment verification failed: " + err.Error(),
-		}, nil
-	}
+		if payment.Status != "confirmed" {
+			return &objects.RentalResponse{
+				Success: false,
+				Error:   "Payment not confirmed on blockchain",
+			}, nil
+		}
 
-	if payment.Status != "confirmed" {
-		return &objects.RentalResponse{
-			Success: false,
-			Error:   "Payment not confirmed on blockchain",
-		}, nil
+		log.Printf("Payment verified: %d NRN received for rental", payment.Amount)
 	}
-
-	log.Printf("Payment verified: %d NRN received for rental", payment.Amount)
 
 	// Find available DVE node
 	dveNodeID := drs.findAvailableDVENode(req.PreferredDVE)
