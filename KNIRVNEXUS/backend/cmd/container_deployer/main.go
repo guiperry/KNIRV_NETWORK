@@ -39,7 +39,7 @@ const (
 	outputKataGuestDir   = "output-kata-guest"
 	kataConfigDir        = "/etc/kata-containers"
 	customKataKernelName = "kali-clean-tee"
-	containerImageName   = "knirvnexus-go-app"
+	containerImageName   = "knirvnexus-kali-base"
 	artifactsDirName     = "artifacts"
 )
 
@@ -193,6 +193,7 @@ func main() {
 	deployMode := flag.String("deploy-mode", "", "Deployment mode: container, kata, or native")
 	envFlag := flag.String("env", "", "Environment: development, testnet, or production")
 	showBuild := flag.Bool("show-build", false, "Show verbose Docker build output")
+	skipImageBuild := flag.Bool("skip-image-build", false, "Skip Docker image build if already exists") // New flag
 	flag.Parse()
 
 	// Determine deployment type and mode
@@ -281,7 +282,7 @@ func main() {
 
 	// If action flag provided, execute it non-interactively
 	if *action != "" {
-		executeActionWithDeployType(*action, resourcesDir, artifactDir, selectedDeployType, selectedDeployMode, environment, *showBuild)
+		executeActionWithDeployType(*action, resourcesDir, artifactDir, selectedDeployType, selectedDeployMode, environment, *showBuild, skipImageBuild)
 		return
 	}
 
@@ -315,7 +316,7 @@ func main() {
 		switch choice {
 		case "1":
 			fmt.Println("\nStarting KNIRV-NEXUS deployment...")
-			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType, selectedDeployMode, environment, true, *showBuild)
+			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType, selectedDeployMode, environment, true, *showBuild, skipImageBuild)
 		case "2":
 			fmt.Println("\nStarting Go app install on existing setup...")
 			runInstallGoAppOnly(resourcesDir, artifactDir, selectedDeployType, selectedDeployMode)
@@ -334,7 +335,7 @@ func extractEmbeddedFiles(dest string) error {
 		if err != nil {
 			return err
 		}
-		
+
 		if d.IsDir() {
 			return os.MkdirAll(filepath.Join(dest, path), 0755)
 		}
@@ -443,8 +444,24 @@ func installSshpass() error {
 	return nil
 }
 
+func installLsof() error {
+	fmt.Println("Installing lsof...")
+
+	installCmd := exec.Command("bash", "-c", `
+		sudo apt-get update && sudo apt-get install -y lsof
+	`)
+	installCmd.Stdout = os.Stdout
+	installCmd.Stderr = os.Stderr
+	if err := installCmd.Run(); err != nil {
+		return fmt.Errorf("failed to install lsof: %v", err)
+	}
+
+	fmt.Println("lsof installed successfully")
+	return nil
+}
+
 func checkPrerequisites() error {
-	cmds := []string{"ansible-playbook", "containerd", "nerdctl", "go", "sshpass"}
+	cmds := []string{"ansible-playbook", "containerd", "nerdctl", "go", "sshpass", "lsof"}
 
 	for _, cmd := range cmds {
 		if err := checkCommand(cmd); err != nil {
@@ -463,6 +480,8 @@ func checkPrerequisites() error {
 				installErr = installGo()
 			case "sshpass":
 				installErr = installSshpass()
+			case "lsof":
+				installErr = installLsof()
 			}
 
 			if installErr != nil {
@@ -522,6 +541,36 @@ func checkKataArtifacts() bool {
 	return kernelExists && rootfsExists
 }
 
+// LoadKaliDockerImageFromArchive attempts to load the Kali Docker image from a tar archive
+// in the os_builder's artifacts directory if it's not already present in the Docker daemon.
+func LoadKaliDockerImageFromArchive(osBuilderArtifactDir string) error {
+	imageTarPath := filepath.Join(osBuilderArtifactDir, "knirvnexus-kali-base.tar")
+
+	// Check if the image already exists in Docker daemon
+	cmd := exec.Command("docker", "images", "-q", "knirvnexus-kali-base:latest")
+	output, err := cmd.Output()
+	if err == nil && strings.TrimSpace(string(output)) != "" {
+		log.Println("knirvnexus-kali-base:latest already exists in Docker daemon. Skipping load from archive.")
+		return nil
+	}
+
+	// Check if the tar archive exists
+	if _, err := os.Stat(imageTarPath); os.IsNotExist(err) {
+		return fmt.Errorf("Kali Docker image archive not found at %s. Please build it first using 'go run backend/cmd/os_builder/main.go --action 1' or 'make kali'", imageTarPath)
+	} else if err != nil {
+		return fmt.Errorf("error checking for Kali Docker image archive: %v", err)
+	}
+
+	fmt.Printf("Loading Kali Docker image from archive: %s\n", imageTarPath)
+	loadCmdArgs := []string{"load", "-i", imageTarPath}
+	err = runCmd("docker", loadCmdArgs, "")
+	if err != nil {
+		return fmt.Errorf("failed to load Docker image from archive: %v", err)
+	}
+
+	log.Println("✓ Kali Docker image loaded successfully from archive.")
+	return nil
+}
 
 // --- Command Execution Helper with Timeout & Signal Handling ---
 func runCmd(name string, args []string, workingDir string) error {
@@ -605,7 +654,7 @@ func getAnsibleDirectory(resourcesDir, deployType string) string {
 	return filepath.Join(resourcesDir, ansibleLocalDir)
 }
 
-func runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, environment string, tailLogs bool, showBuild bool) {
+func runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, environment string, tailLogs bool, showBuild bool, skipImageBuild *bool) {
 	fmt.Printf("--- Deploying new KNIRV-NEXUS (%s deployment, %s mode, %s environment) ---\n", deployType, deployMode, environment)
 
 	// Handle native deployment
@@ -632,16 +681,48 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, en
 	if deployType == "local" {
 		// Local deployment uses Docker with Kali Linux tools
 		ansiblePlaybook = "deploy-docker-kali.yml"
-		extraVars = []string{
-			fmt.Sprintf("go_app_source_path=%s", goAppSourcePath),
-			fmt.Sprintf("container_image_name=%s", containerImageName),
-			fmt.Sprintf("knirv_environment=%s", environment),
-			"privileged_container=true",
-			fmt.Sprintf("show_build_output=%t", showBuild),
+
+		// Use golang-app-source from resources directory
+		// goAppSourcePath is already defined above this block in runDeployNewContainer
+
+		// Attempt to load the Kali Docker image from archive if it's not already in Docker daemon
+		osBuilderArtifactDir, err := getOsBuilderArtifactDirectory()
+		if err != nil {
+			log.Fatalf("Failed to get os_builder artifact directory: %v", err)
 		}
+		if err := LoadKaliDockerImageFromArchive(osBuilderArtifactDir); err != nil {
+			log.Fatalf("Failed to ensure Kali Docker image is available: %v", err)
+		}
+
+		var skipImageBuildVal bool // Local variable to store the decision
+
+		// Check if the Kali base Docker image exists locally after attempting to load
+		if *skipImageBuild { // Use the global flag variable (pointer dereference)
+			log.Println("skip-image-build flag is set. Verifying knirvnexus-kali-base:latest locally...")
+			cmd := exec.Command("docker", "images", "-q", "knirvnexus-kali-base:latest")
+			output, err := cmd.Output()
+			if err == nil && strings.TrimSpace(string(output)) != "" {
+				log.Println("knirvnexus-kali-base:latest found locally. Skipping image build.")
+				skipImageBuildVal = true
+			} else {
+				// This case should ideally not be reached if LoadKaliDockerImageFromArchive worked
+				log.Fatalf("Error: knirvnexus-kali-base:latest not found locally even after attempting to load from archive. This indicates an issue with the archive or Docker.")
+			}
+		} else { // If the flag is not set, default to building
+			log.Println("skip-image-build flag not set. Image will be built by Ansible.")
+			skipImageBuildVal = false // Allow Ansible to build
+		}
+
+		extraVars = []string{
+			fmt.Sprintf("go_app_source_path=%s", goAppSourcePath), // goAppSourcePath is a local variable
+			fmt.Sprintf("container_image_name=%s", containerImageName),
+			fmt.Sprintf("knirv_environment=%s", environment), // environment is a parameter
+			"privileged_container=true",
+			fmt.Sprintf("show_build_output=%t", showBuild),        // showBuild is a parameter
+			fmt.Sprintf("skip_image_build=%t", skipImageBuildVal), // Pass the resolved boolean value
+		}
+
 	} else {
-		// Cloud deployment uses Kata containers
-		ansiblePlaybook = "deploy-kata-app.yml"
 
 		// Get os_builder artifact directory for Kata artifacts
 		osBuilderArtifactDir, err := getOsBuilderArtifactDirectory()
@@ -847,13 +928,68 @@ func buildKNIRVNexusBinary(artifactDir, environment string) string {
 }
 
 // getCurrentRepoRoot returns the current repository root directory
+// by traversing up the directory tree looking for common repo indicators
 func getCurrentRepoRoot() string {
-	// Try to find the repo root by looking for KNIRVNEXUS directory
+	// Start from the current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
-		return "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+		// Fallback: try to find via known path patterns
+		return findRepoRootFromEnv()
 	}
-	return cwd
+
+	// Traverse up the directory tree looking for repo indicators
+	dir := cwd
+	for {
+		// Check for common repository indicators
+		if _, err := os.Stat(filepath.Join(dir, "KNIRVNEXUS")); err == nil {
+			return dir
+		}
+		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+			return dir
+		}
+		if _, err := os.Stat(filepath.Join(dir, "CLAUDE.md")); err == nil {
+			return dir
+		}
+		if _, err := os.Stat(filepath.Join(dir, "KNIRV_NETWORK")); err == nil {
+			return dir
+		}
+
+		// Try parent directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// We've reached the filesystem root without finding the repo
+			break
+		}
+		dir = parent
+	}
+
+	// Fallback: try to find via environment or known locations
+	return findRepoRootFromEnv()
+}
+
+// findRepoRootFromEnv attempts to find the repository root from environment variables
+func findRepoRootFromEnv() string {
+	// Try common environment variable patterns
+	candidates := []string{
+		os.Getenv("PWD"),
+		os.Getenv("WORKSPACE"),
+		os.Getenv("GITHUB_WORKSPACE"),
+		os.Getenv("CODEBASE_ROOT"),
+	}
+
+	for _, candidate := range candidates {
+		if candidate != "" {
+			if _, err := os.Stat(filepath.Join(candidate, "KNIRVNEXUS")); err == nil {
+				return candidate
+			}
+			if _, err := os.Stat(filepath.Join(candidate, ".git")); err == nil {
+				return candidate
+			}
+		}
+	}
+
+	// Last resort: return current directory
+	return "."
 }
 
 // runCloudNativeDeployment deploys to AWS EC2 using Ansible
@@ -906,12 +1042,25 @@ func runLocalNativeDeployment(binaryPath, environment string) {
 func runNativeBinaryInstall(resourcesDir, artifactDir, deployType string) {
 	fmt.Println("--- Installing KNIRV-NEXUS Binary on Existing System ---")
 
-	// Build the binary
-	binaryPath := buildKNIRVNexusBinary(artifactDir, "production")
+	// Path to the pre-compiled binary in golang-app-source
+	goAppSourcePath := filepath.Join(resourcesDir, golangAppSourceDir)
+	preCompiledBinaryPath := filepath.Join(goAppSourcePath, "knirv-nexus")
+
+	var binaryPath string
+
+	// First, check if pre-compiled embedded binary exists
+	if _, err := os.Stat(preCompiledBinaryPath); err == nil {
+		fmt.Printf("✓ Found pre-compiled embedded binary at: %s\n", preCompiledBinaryPath)
+		binaryPath = preCompiledBinaryPath
+	} else {
+		// Pre-compiled binary not found, build from source
+		fmt.Println("Pre-compiled binary not found, building from source...")
+		binaryPath = buildKNIRVNexusBinary(artifactDir, "production")
+	}
 
 	// For local deployment, just show instructions
 	if deployType == "local" {
-		fmt.Printf("\nBinary built at: %s\n", binaryPath)
+		fmt.Printf("\nBinary available at: %s\n", binaryPath)
 		fmt.Println("Copy to target system and run:")
 		fmt.Printf("  sudo cp %s /usr/local/bin/knirv-nexus\n", binaryPath)
 		fmt.Printf("  sudo chmod +x /usr/local/bin/knirv-nexus\n")
@@ -922,11 +1071,11 @@ func runNativeBinaryInstall(resourcesDir, artifactDir, deployType string) {
 }
 
 // executeActionWithDeployType performs the specified action non-interactively with deployment type
-func executeActionWithDeployType(action string, resourcesDir, artifactDir, deployType, deployMode, environment string, showBuild bool) {
+func executeActionWithDeployType(action string, resourcesDir, artifactDir, deployType, deployMode, environment string, showBuild bool, skipImageBuild *bool) {
 	switch action {
 	case "1":
 		fmt.Println("\nStarting KNIRV-NEXUS deployment...")
-		runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, environment, false, showBuild)
+		runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, environment, false, showBuild, skipImageBuild)
 	case "2":
 		fmt.Println("\nStarting Go app install on existing setup...")
 		runInstallGoAppOnly(resourcesDir, artifactDir, deployType, deployMode)

@@ -3,12 +3,17 @@ package ebpf
 import (
 	"context"
 	"encoding/binary"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetProcessMetrics(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("Skipping eBPF test: requires root privileges")
+	}
+
 	mgr := NewManager()
 	err := mgr.Initialize(context.Background(), &Config{})
 	require.NoError(t, err)

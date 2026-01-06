@@ -22,6 +22,8 @@ import (
 //go:embed all:packer-base-kali/*
 //go:embed all:packer-kata-guest/*
 //go:embed all:packer-aws-kali/*
+// Added for Kali Docker image build
+//go:embed all:packer-kali-docker/*
 //go:embed inventory.ini
 //go:embed all:terraform-deploy/*
 
@@ -34,6 +36,7 @@ var deploymentLogFile *os.File
 const (
 	appName              = "knirvnexus"
 	packerBaseKaliDir    = "packer-base-kali"
+	packerKaliDockerDir  = "packer-kali-docker" // New constant
 	outputBaseKaliDir    = "output-kali-base-box"
 	baseKaliOVAName      = "kali-base-box.ova"
 	packerAWSKaliDir     = "packer-aws-kali"
@@ -124,6 +127,25 @@ func getEmbeddedResourcesDirectory(appDataDir string) string {
 	return filepath.Join(appDataDir, "resources")
 }
 
+// getContainerDeployerBinaryPath returns the path to the knirv-nexus binary in container_deployer's golang-app-source
+func getContainerDeployerBinaryPath() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current user: %v", err)
+	}
+	// Path to knirv-nexus binary in container_deployer's golang-app-source
+	binaryPath := filepath.Join(usr.HomeDir, ".local", "share", appName, "container_deployer", "resources", "golang-app-source", "knirv-nexus")
+	
+	// Verify the binary exists
+	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("knirv-nexus binary not found at expected location: %s. Please ensure 'make binary' has been run.", binaryPath)
+	} else if err != nil {
+		return "", fmt.Errorf("error checking for knirv-nexus binary: %v", err)
+	}
+
+	return binaryPath, nil
+}
+
 func main() {
 	// Initialize deployment logging
 	if err := initDeploymentLog(); err != nil {
@@ -187,7 +209,7 @@ func main() {
 	}
 
 	// Parse command-line flags for non-interactive mode
-	action := flag.String("action", "", "Action to perform: 0=Build base Kali, 1=Build Kata Container, 2=Build AWS AMI, 3=Exit")
+	action := flag.String("action", "", "Action to perform: 0=Build base Kali, 1=Build Kali Docker Image, 2=Build Kata Container, 3=Build AWS AMI, 4=Exit")
 	flag.Parse()
 
 	// If action flag provided, execute it non-interactively
@@ -200,9 +222,10 @@ func main() {
 	for {
 		fmt.Println("\nSelect an action:")
 		fmt.Println("0. Build base Kali image (packer-base-kali) - only if rebuilding")
-		fmt.Println("1. Build KNIRV-NEXUS Kata Container (using Terraform)")
-		fmt.Println("2. Build AWS AMI (Kali Linux for native deployment)")
-		fmt.Println("3. Exit")
+		fmt.Println("1. Build Kali Docker Image")
+		fmt.Println("2. Build KNIRV-NEXUS Kata Container (using Terraform)")
+		fmt.Println("3. Build AWS AMI (Kali Linux for native deployment)")
+		fmt.Println("4. Exit")
 		fmt.Print("Enter your choice: ")
 
 		var choice string
@@ -214,12 +237,15 @@ func main() {
 			runBuildBaseKali(resourcesDir, artifactDir)
 			fmt.Println("\n✓ Base Kali image rebuilt successfully!")
 		case "1":
+			fmt.Println("\nBuilding Kali Docker Image...")
+			runBuildKaliDocker(resourcesDir, artifactDir)
+		case "2":
 			fmt.Println("\nStarting Kata Container build (using Terraform)...")
 			runBuildKataContainer(resourcesDir, artifactDir)
-		case "2":
+		case "3":
 			fmt.Println("\nBuilding AWS AMI (Kali Linux for native deployment)...")
 			runBuildAWSAMI(resourcesDir, artifactDir)
-		case "3":
+		case "4":
 			fmt.Println("Exiting.")
 			return
 		default:
@@ -575,6 +601,57 @@ func runBuildBaseKali(resourcesDir, artifactDir string) {
 	fmt.Printf("✓ Base Kali image successfully built and saved to: %s\n", ovaPathInArtifact)
 }
 
+func runBuildKaliDocker(resourcesDir, artifactDir string) {
+	fmt.Println("--- Building Kali Docker Image (packer-kali-docker) ---")
+	packerKaliDockerWorkDir := filepath.Join(resourcesDir, packerKaliDockerDir)
+
+	// Get the path to the knirv-nexus binary
+	knirvNexusBinaryPath, err := getContainerDeployerBinaryPath()
+	if err != nil {
+		log.Fatalf("Failed to get knirv-nexus binary path: %v", err)
+	}
+
+	// Initialize Packer plugins for the Docker builder
+	fmt.Println("Initializing Packer plugins for Kali Docker image build...")
+	err = runCmd("packer", []string{"init", "."}, packerKaliDockerWorkDir)
+	if err != nil {
+		log.Fatalf("Failed to initialize Packer plugins for Kali Docker image: %v", err)
+	}
+
+	fmt.Println("Executing Packer build for Kali Docker image...")
+	// Packer Docker builder automatically tags the image to the local Docker daemon
+	buildArgs := []string{
+		"build",
+		"-force",
+		"-var", fmt.Sprintf("knirv_nexus_binary_path=%s", knirvNexusBinaryPath), // Pass binary path as a variable
+		".",
+	}
+	err = runCmd("packer", buildArgs, packerKaliDockerWorkDir)
+	if err != nil {
+		log.Fatalf("Kali Docker Packer build failed: %v", err)
+	}
+
+	fmt.Printf("✓ Kali Docker image successfully built and tagged as 'knirvnexus-kali-base:latest'\n")
+	fmt.Println("You can verify with 'docker images knirvnexus-kali-base'")
+
+	// Export the Docker image to a tar archive and save it to the artifacts directory
+	fmt.Println("Exporting Kali Docker image to artifacts directory...")
+	imageTarPath := filepath.Join(artifactDir, "knirvnexus-kali-base.tar")
+	
+	// Ensure the artifacts directory exists
+	if err := os.MkdirAll(artifactDir, 0755); err != nil {
+		log.Fatalf("Failed to create artifact directory %s: %v", artifactDir, err)
+	}
+
+	saveCmdArgs := []string{"save", "-o", imageTarPath, "knirvnexus-kali-base:latest"}
+	err = runCmd("docker", saveCmdArgs, "") // Run in current directory
+	if err != nil {
+		log.Fatalf("Failed to save Docker image to archive: %v", err)
+	}
+	fmt.Printf("✓ Kali Docker image saved to %s\n", imageTarPath)
+}
+
+
 // --- Command Execution Helper with Timeout & Signal Handling ---
 func runCmd(name string, args []string, workingDir string) error {
 	// No timeout - long-running processes like kernel compilation should not be interrupted
@@ -734,17 +811,20 @@ func executeAction(action string, resourcesDir, artifactDir string) {
 		runBuildBaseKali(resourcesDir, artifactDir)
 		fmt.Println("\n✓ Base Kali image rebuilt successfully!")
 	case "1":
+		fmt.Println("\nBuilding Kali Docker Image...")
+		runBuildKaliDocker(resourcesDir, artifactDir)
+	case "2":
 		fmt.Println("\nStarting Kata Container build (using Terraform)...")
 		runBuildKataContainer(resourcesDir, artifactDir)
-	case "2":
+	case "3":
 		fmt.Println("\nBuilding AWS AMI (Kali Linux for native deployment)...")
 		runBuildAWSAMI(resourcesDir, artifactDir)
 		fmt.Println("\n✓ AWS AMI built successfully!")
-	case "3":
+	case "4":
 		fmt.Println("Exiting.")
 	default:
 		fmt.Printf("Invalid action: %s\n", action)
-		fmt.Println("Valid actions are: 0, 1, 2, or 3")
+		fmt.Println("Valid actions are: 0, 1, 2, 3, or 4")
 		os.Exit(1)
 	}
 }

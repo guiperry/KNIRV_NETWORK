@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -18,12 +19,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
-
 // TestEBPFIntegration tests the complete eBPF integration
 func TestEBPFIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping eBPF integration test in short mode")
+	}
+
+	if os.Getuid() != 0 {
+		t.Skip("Skipping eBPF integration test: requires root privileges")
 	}
 
 	// Create eBPF manager
@@ -193,6 +196,10 @@ func TestEBPFStress(t *testing.T) {
 		t.Skip("Skipping eBPF stress test in short mode")
 	}
 
+	if os.Getuid() != 0 {
+		t.Skip("Skipping eBPF stress test: requires root privileges")
+	}
+
 	// Create eBPF manager
 	manager := ebpf.NewManager()
 	xdpManager := ebpf.NewXDPManager(manager)
@@ -296,6 +303,10 @@ func TestEBPFStress(t *testing.T) {
 func TestEBPFEndToEnd(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping eBPF end-to-end test in short mode")
+	}
+
+	if os.Getuid() != 0 {
+		t.Skip("Skipping eBPF end-to-end test: requires root privileges")
 	}
 
 	// Create eBPF manager

@@ -6,6 +6,7 @@ package ebpf
 import (
 	"fmt"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -17,6 +18,11 @@ import (
 func TestXDPManagerBasic(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping XDP basic test in short mode")
+	}
+
+	// eBPF operations require root privileges
+	if os.Getuid() != 0 {
+		t.Skip("Skipping XDP test: requires root privileges (eBPF operations)")
 	}
 
 	// Create a mock manager
@@ -50,6 +56,11 @@ func TestXDPManagerBasic(t *testing.T) {
 func TestVirtualContainerManagerBasic(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping virtual container basic test in short mode")
+	}
+
+	// eBPF operations require root privileges
+	if os.Getuid() != 0 {
+		t.Skip("Skipping virtual container test: requires root privileges (eBPF operations)")
 	}
 
 	// Create a mock manager
@@ -181,6 +192,11 @@ func TestXDPPerformance(t *testing.T) {
 		t.Skip("Skipping performance test in short mode")
 	}
 
+	// eBPF operations require root privileges
+	if os.Getuid() != 0 {
+		t.Skip("Skipping XDP performance test: requires root privileges (eBPF operations)")
+	}
+
 	// Create XDP manager
 	manager := NewManager()
 	xdpManager := NewXDPManager(manager)
@@ -217,6 +233,11 @@ func TestXDPPerformance(t *testing.T) {
 func TestVirtualContainerPerformance(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance test in short mode")
+	}
+
+	// eBPF operations require root privileges
+	if os.Getuid() != 0 {
+		t.Skip("Skipping virtual container performance test: requires root privileges (eBPF operations)")
 	}
 
 	// Create virtual container manager

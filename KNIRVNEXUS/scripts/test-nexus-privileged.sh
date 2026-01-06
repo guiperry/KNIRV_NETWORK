@@ -170,29 +170,28 @@ check_prerequisites() {
 deploy_container() {
     log_header "Deploying KNIRVNEXUS Docker Container"
 
+    # The Kali Docker base image is assumed to be built by os_builder previously.
+    # If not found, container_deployer will provide guidance.
+
+
     # Check if container already exists
     if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-        log_warning "Container ${CONTAINER_NAME} already exists"
-        read -p "Remove and recreate? (y/N): " confirm
-        if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-            log "Removing existing container..."
-            docker rm -f "${CONTAINER_NAME}" || true
-        else
-            log "Using existing container"
-            return 0
-        fi
+        log_warning "Container ${CONTAINER_NAME} already exists. Removing and recreating..."
+        docker rm -f "${CONTAINER_NAME}" || true
     fi
 
-    log "Building and deploying container with Debian + Kali tools..."
-    log "This may take several minutes on first run..."
+    log "Deploying container using pre-built Kali tools image..."
 
     cd "${CONTAINER_DEPLOYER_DIR}"
 
-    # Run container deployer non-interactively
+    # Run container deployer non-interactively, skipping image build as it's pre-built
     if go run main.go \
         --action 1 \
+        --deploy-mode container \
         --deploy-type local \
-        --env development 2>&1 | tee -a "${LOG_FILE}"; then
+        --env development \
+        --skip-image-build \
+        2>&1 | tee -a "${LOG_FILE}"; then
         log_success "Container deployment completed"
     else
         log_error "Container deployment failed"
@@ -301,6 +300,7 @@ run_privileged_tests() {
     # Install test dependencies inside container
     log "Installing test dependencies..."
     docker exec "${CONTAINER_NAME}" bash -c "
+        export PATH=\"/usr/local/go/bin:\$PATH\" && \
         cd /workspace/KNIRVNEXUS/backend && \
         go mod download && \
         go mod tidy
@@ -336,7 +336,7 @@ run_privileged_tests() {
         fi
         # Check if Podman is available (for nested container orchestration)
         if command -v podman &> /dev/null; then
-            echo 'Podman found: \$(podman --version)'
+            echo 'Podman found: $(podman --version)'
         else
             echo 'Podman not found - will use native runtime'
         fi
@@ -360,7 +360,7 @@ run_privileged_tests() {
     if docker exec "${CONTAINER_NAME}" bash -c "
         set -e
         export KNIRVNEXUS_TEST_MODE=true
-        export PATH=\"/usr/sbin:/sbin:\$PATH\"
+        export PATH=\"/usr/local/go/bin:/usr/sbin:/sbin:\$PATH\" # Add /usr/local/go/bin here
         
         # Detect host environment
         if [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
@@ -375,7 +375,7 @@ run_privileged_tests() {
         fi
         
         # Set preferred runtime based on environment
-        if [ \"\${KNIRVNEXUS_HOST_ENV}\" = \"docker\" ]; then
+        if [ \"${KNIRVNEXUS_HOST_ENV}\" = \"docker\" ]; then
             if command -v podman &> /dev/null; then
                 export KNIRVNEXUS_PREFERRED_RUNTIME=podman
                 echo 'Using Podman for nested containers (Docker environment)'
@@ -515,9 +515,34 @@ EOF
 
         echo "- ✅ **Passed:** ${passed}" >> "${report_file}"
         echo "- ❌ **Failed:** ${failed}" >> "${report_file}"
+        echo "- ⏭️  **Skipped:** ${skipped}" >> "${report_file}"
+    fi
+
+    log_success "Test report generated: ${report_file}"
+}
+
+# Main function - orchestrates the entire test workflow
+main() {
+    local exit_code=0
+
+    # Step 1: Check prerequisites
+    check_prerequisites || exit 1
+
+    # Step 2: Deploy container if requested
+    if [ "$DEPLOY_CONTAINER" = true ]; then
+        if ! deploy_container; then
+            log_error "Container deployment failed"
+            exit 1
+        fi
+
+        if ! wait_for_container; then
+            log_error "Container failed to become ready"
+            exit 1
+        fi
+    else
         log_warning "Skipping container deployment (--no-deploy)"
         # Still check if container exists
-        if ! docker ps --filter "name=${CONTAINER_NAME}" --filter "status=running" --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        if ! docker ps --filter "name=${CONTAINER_NAME}" --filter "status=running" --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}\$"; then
             log_error "Container ${CONTAINER_NAME} is not running. Remove --no-deploy flag to deploy."
             exit 1
         fi
@@ -556,17 +581,17 @@ EOF
     log "Results directory: ${TEST_RESULTS_DIR}"
     log "Full log: ${LOG_FILE}"
 
-    if [ $exit_code -eq 0 ]; then
+    if [ ${exit_code} -eq 0 ]; then
         log_success "All tests passed!"
     else
         log_error "Some tests failed. Review logs for details."
     fi
 
-    exit $exit_code
+    exit ${exit_code}
 }
 
 # Trap Ctrl+C and cleanup
 trap 'log_error "Script interrupted"; exit 130' INT
 
 # Run main function
-main
+main "\$@"

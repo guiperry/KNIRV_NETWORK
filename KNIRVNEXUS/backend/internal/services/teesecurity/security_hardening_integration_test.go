@@ -2,6 +2,7 @@ package teesecurity
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -92,6 +93,11 @@ func TestSecurityHardening_AppArmorProfile(t *testing.T) {
 }
 
 func TestSecurityHardening_ContainerExecution(t *testing.T) {
+	// Skip this test if not running as root (required for full container isolation)
+	if os.Getuid() != 0 {
+		t.Skip("Skipping container execution test: requires root privileges")
+	}
+
 	// This test verifies that the container execution flow works
 	// with security hardening enabled
 

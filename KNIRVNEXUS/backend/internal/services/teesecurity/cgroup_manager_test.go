@@ -567,4 +567,7 @@ func TestCgroupDelegationStatus_Struct(t *testing.T) {
 	if status.ControllerPath != "/sys/fs/cgroup/cgroup.controllers" {
 		t.Errorf("Expected ControllerPath /sys/fs/cgroup/cgroup.controllers, got %s", status.ControllerPath)
 	}
+	if status.CgroupNamespace != "" {
+		t.Errorf("Expected CgroupNamespace to be empty, got %s", status.CgroupNamespace)
+	}
 }

@@ -5,6 +5,7 @@ package ebpf
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -12,6 +13,10 @@ import (
 )
 
 func TestManagerInitialization(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("Skipping eBPF test: requires root privileges")
+	}
+
 	mgr := NewManager()
 
 	err := mgr.Initialize(context.Background(), &Config{
@@ -27,6 +32,10 @@ func TestManagerInitialization(t *testing.T) {
 }
 
 func TestEventCollection(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("Skipping eBPF test: requires root privileges")
+	}
+
 	mgr := NewManager()
 	err := mgr.Initialize(context.Background(), &Config{
 		Programs: []ProgramConfig{
@@ -62,6 +71,10 @@ func TestEventCollection(t *testing.T) {
 }
 
 func TestPolicyManagement(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("Skipping eBPF test: requires root privileges")
+	}
+
 	mgr := NewManager()
 	err := mgr.Initialize(context.Background(), &Config{
 		Programs: []ProgramConfig{

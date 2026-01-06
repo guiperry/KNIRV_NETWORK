@@ -62,6 +62,11 @@ func (v *VirtualContainerManager) InitializeVirtualContainers() error {
 
 // CreateVirtualContainer creates a new eBPF-based virtual container
 func (v *VirtualContainerManager) CreateVirtualContainer(rootPID uint32, rootFS string) (*VirtualContainer, error) {
+	// Check if initialized
+	if v.collection == nil {
+		return nil, fmt.Errorf("virtual container manager not initialized")
+	}
+
 	containerID := atomic.AddUint64(&v.nextContainerID, 1)
 
 	container := &VirtualContainer{
@@ -109,6 +114,11 @@ func (v *VirtualContainerManager) DestroyVirtualContainer(id uint64) error {
 
 // GetVirtualContainer retrieves a virtual container by ID
 func (v *VirtualContainerManager) GetVirtualContainer(id uint64) (*VirtualContainer, error) {
+	// Check if initialized
+	if v.containersMap == nil {
+		return nil, fmt.Errorf("virtual container manager not initialized")
+	}
+
 	var kContainer struct {
 		ContainerID    uint64
 		RootPID        uint32
@@ -132,6 +142,11 @@ func (v *VirtualContainerManager) GetVirtualContainer(id uint64) (*VirtualContai
 
 // ListVirtualContainers lists all virtual containers
 func (v *VirtualContainerManager) ListVirtualContainers() ([]*VirtualContainer, error) {
+	// Check if initialized
+	if v.containersMap == nil {
+		return nil, fmt.Errorf("virtual container manager not initialized")
+	}
+
 	var containers []*VirtualContainer
 	var key, nextKey uint64
 

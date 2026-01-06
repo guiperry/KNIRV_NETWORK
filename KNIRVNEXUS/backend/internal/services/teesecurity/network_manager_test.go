@@ -28,8 +28,9 @@ func TestNetworkManager_CreateVethPair(t *testing.T) {
 	_, err := mgr.CreateVethPair(12345)
 	if err != nil {
 		// Expected to fail without root privileges or without proper network namespace
-		if !strings.Contains(err.Error(), "permission denied") &&
-			!strings.Contains(err.Error(), "operation not permitted") &&
+		errLower := strings.ToLower(err.Error())
+		if !strings.Contains(errLower, "permission denied") &&
+			!strings.Contains(errLower, "operation not permitted") &&
 			!strings.Contains(err.Error(), "No such process") {
 			t.Errorf("Unexpected error creating veth pair: %v", err)
 		}

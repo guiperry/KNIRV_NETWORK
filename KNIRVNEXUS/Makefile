@@ -47,7 +47,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate kali-docker-image
 
 # Default target
 all: clean deps frontend backend binary
@@ -213,6 +213,11 @@ kali: ## Build Kali Linux base image with Packer
 	cd $(BACKEND_DIR)/cmd/os_builder/packer-base-kali && packer build .
 	@echo "$(GREEN)Kali Linux base image build completed.$(NC)"
 
+kali-docker-image: ## Build Kali Docker image using os_builder
+	@echo "$(BLUE)Building Kali Docker image using os_builder...$(NC)"
+	go run $(BACKEND_DIR)/cmd/os_builder/main.go --action 1
+	@echo "$(GREEN)Kali Docker image build completed and saved to artifacts.$(NC)"
+
 # Deployment
 deploy: deploy-infrastructure deploy-dns deploy-application ## Full deployment
 
@@ -254,7 +259,7 @@ db-seed: ## Seed database with test data
 	cd $(BACKEND_DIR) && go run ./cmd/seed
 
 # Utilities
-clean: ## Clean build artifacts
+clean-all: ## Clean build artifacts
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
 	rm -rf $(BUILD_DIR)
 	rm -rf $(DIST_DIR)
@@ -270,9 +275,10 @@ clean: ## Clean build artifacts
 	rm -rf node_modules/.cache
 	docker stop knirvnexus-kali-local
 	docker rm knirvnexus-kali-local
-	docker system prune -f
+	## docker system prune -f
+	docker rmi knirvnexus-kali-base:latest
 
-clean-all: clean ## Clean everything including dependencies
+clean: ## Clean everything including dependencies
 	@echo "$(BLUE)Cleaning all artifacts and dependencies...$(NC)"
 	rm -rf node_modules
 	rm -rf $(FRONTEND_DIR)/node_modules
