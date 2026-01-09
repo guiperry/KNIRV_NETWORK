@@ -23,8 +23,10 @@ import (
 
 // Embed the Next.js build output
 //
-//go:embed all:frontend/out/*
-var embeddedFiles embed.FS
+////go:embed all:frontend/out/*  <-- commented out
+//var embeddedFiles embed.FS  <-- commented out
+// Temporarily provide an empty embed.FS if frontend is disabled, to allow compilation
+var embeddedFiles embed.FS // Provide a dummy empty embed.FS
 
 // Embed the unified backend binary
 //

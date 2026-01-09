@@ -22,8 +22,7 @@ source "docker" "kali_base" {
   commit = true
   changes = [
     "USER root",
-    "WORKDIR /app", # Changed to match containerfile-kali.j2
-    "CMD [\"/app/knirv-nexus\"]" # Changed to match containerfile-kali.j2
+    "WORKDIR /app" # Changed to match containerfile-kali.j2
   ]
 }
 
@@ -33,7 +32,7 @@ build {
   provisioner "shell" {
     inline = [
       "apt-get update",
-      "DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates wget curl gnupg2 software-properties-common python3 python3-pip python3-dev python3-setuptools python3-wheel git build-essential pkg-config strace ltrace gdb linux-perf tcpdump tshark wireshark-common mitmproxy sleuthkit python3-bandit docker.io podman iptables iproute2 util-linux mount procps apparmor apparmor-utils selinux-utils selinux-basics libseccomp2 libseccomp-dev seccomp",
+      "DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates wget curl gnupg2 software-properties-common python3 python3-pip python3-dev python3-setuptools python3-wheel git build-essential pkg-config strace ltrace gdb linux-perf tcpdump tshark wireshark-common mitmproxy sleuthkit python3-bandit docker.io podman iptables iproute2 util-linux mount procps apparmor apparmor-utils selinux-utils selinux-basics libseccomp2 libseccomp-dev seccomp iputils-ping",
       "rm -rf /var/lib/apt/lists/*",
       "", # Newline for readability
       "# Install Go 1.24.11",
@@ -88,17 +87,6 @@ build {
     inline = [
       "mkdir -p /app", # Explicitly create /app
       "chmod 755 /app" # Ensure permissions
-    ]
-  }
-
-  provisioner "file" {
-    source = var.knirv_nexus_binary_path
-    destination = "/app/knirv-nexus"
-  }
-
-  provisioner "shell" {
-    inline = [
-      "chmod +x /app/knirv-nexus"
     ]
   }
 

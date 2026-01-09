@@ -184,8 +184,8 @@ deploy_container() {
 
     cd "${CONTAINER_DEPLOYER_DIR}"
 
-    # Run container deployer non-interactively, skipping image build as it's pre-built
-    if go run main.go \
+    # Run container deployer binary non-interactively, skipping image build as it's pre-built
+    if ./container_deployer \
         --action 1 \
         --deploy-mode container \
         --deploy-type local \
@@ -355,69 +355,97 @@ run_privileged_tests() {
     log ""
 
     local test_output="${TEST_RESULTS_DIR}/test-output_${TIMESTAMP}.txt"
-    local test_json="${TEST_RESULTS_DIR}/test-results_${TIMESTAMP}.json"
+    local test_json_raw="${TEST_RESULTS_DIR}/test-results-raw_${TIMESTAMP}.json" # Raw JSON output
+    local test_json_summary="${TEST_RESULTS_DIR}/test-results-summary_${TIMESTAMP}.json" # Summarized JSON output
 
+    # Check for jq in container
+    if ! docker exec "${CONTAINER_NAME}" bash -c "export PATH=\"/usr/local/go/bin:/usr/sbin:/sbin:\$PATH\"; command -v jq" &> /dev/null; then
+        log_warning "jq not found in container. Installing jq..."
+        docker exec "${CONTAINER_NAME}" bash -c "
+            export PATH=\"/usr/local/go/bin:/usr/sbin:/sbin:\$PATH\" && \
+            apt-get update -qq && \
+            apt-get install -y -qq jq
+        " | tee -a "${LOG_FILE}"
+        if [ $? -ne 0 ]; then
+            log_error "Failed to install jq in container. Cannot parse JSON test results accurately."
+        fi
+    fi
+
+    # Execute Go tests inside the container
     if docker exec "${CONTAINER_NAME}" bash -c "
         set -e
         export KNIRVNEXUS_TEST_MODE=true
-        export PATH=\"/usr/local/go/bin:/usr/sbin:/sbin:\$PATH\" # Add /usr/local/go/bin here
+        export PATH=\"/usr/local/go/bin:/usr/sbin:/sbin:\$PATH\"
         
         # Detect host environment
         if [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
             export KNIRVNEXUS_HOST_ENV=docker
-            echo 'Detected environment: Docker container'
+            echo 'Detected environment: Docker container' >&2
         elif grep -q 'agent.container_manager=kata' /proc/cmdline 2>/dev/null; then
             export KNIRVNEXUS_HOST_ENV=kata-container
-            echo 'Detected environment: Kata container'
+            echo 'Detected environment: Kata container' >&2
         else
             export KNIRVNEXUS_HOST_ENV=bare-metal
-            echo 'Detected environment: Bare metal'
+            echo 'Detected environment: Bare metal' >&2
         fi
         
         # Set preferred runtime based on environment
         if [ \"${KNIRVNEXUS_HOST_ENV}\" = \"docker\" ]; then
             if command -v podman &> /dev/null; then
                 export KNIRVNEXUS_PREFERRED_RUNTIME=podman
-                echo 'Using Podman for nested containers (Docker environment)'
+                echo 'Using Podman for nested containers (Docker environment)' >&2
             else
                 export KNIRVNEXUS_PREFERRED_RUNTIME=native-go
-                echo 'Podman not available, using native-go runtime'
+                echo 'Podman not available, using native-go runtime' >&2
             fi
         else
             export KNIRVNEXUS_PREFERRED_RUNTIME=native-go
-            echo 'Using native-go runtime (bare-metal or Kata)'
+            echo 'Using native-go runtime (bare-metal or Kata)' >&2
         fi
         
         cd /workspace/KNIRVNEXUS/backend
 
         # Check kernel features
-        echo '=== Kernel Feature Check ==='
-        uname -r
-        echo ''
-        echo 'Cgroups:'
-        mount | grep cgroup || echo 'No cgroup mounts found'
-        echo ''
-        echo 'Namespaces:'
-        ls -la /proc/self/ns/ || echo 'Namespace info not available'
-        echo ''
+        echo '=== Kernel Feature Check ===' >&2
+        uname -r >&2
+        echo '' >&2
+        echo 'Cgroups:' >&2
+        mount | grep cgroup >&2 || echo 'No cgroup mounts found' >&2
+        echo '' >&2
+        echo 'Namespaces:' >&2
+        ls -la /proc/self/ns/ >&2 || echo 'Namespace info not available' >&2
+        echo '' >&2
 
         # Run tests with verbose output and JSON results
         go test -v -json -timeout=30m \
             -run '${test_pattern}' \
-            ./internal/services/teesecurity/... \
-            2>&1
-    " | tee "${test_output}"; then
-        log_success "Privileged tests completed successfully"
+            ./internal/services/teesecurity/...
+    " > "${test_json_raw}" ; then # Capture raw JSON output here
+        log_success "Privileged tests completed successfully (initial run)"
+    else
+        log_error "Privileged tests failed (go test command returned non-zero exit code)"
+    fi
 
-        # Parse test results - output format is "--- PASS: TestName" etc.
-        grep -E '^--- (PASS|FAIL|SKIP):' "${test_output}" > "${test_json}" || true
+    log_header "Raw Go Test Output (for debugging jq parse error)"
+    if [ -f "${test_json_raw}" ]; then
+        log "Content of ${test_json_raw}:"
+        cat "${test_json_raw}" | tee -a "${LOG_FILE}"
+    else
+        log "WARNING: ${test_json_raw} not found."
+    fi
+    log_header "End Raw Go Test Output"
 
-        # Count results - clean grep output to remove newlines
-        local passed=$(grep -c '^--- PASS:' "${test_json}" 2>/dev/null | tr -d '\n\r' || echo "0")
-        local failed=$(grep -c '^--- FAIL:' "${test_json}" 2>/dev/null | tr -d '\n\r' || echo "0")
-        local skipped=$(grep -c '^--- SKIP:' "${test_json}" 2>/dev/null | tr -d '\n\r' || echo "0")
+    # Now, process results (moved outside the initial if/else for logging raw output)
+    if [ -f "${test_json_raw}" ]; then
+        # Filter for actual test results (PASS/FAIL/SKIP) and save as summarized JSON
+        cat "${test_json_raw}" | jq -s 'map(select(.Action == "pass" or .Action == "fail" or .Action == "skip"))' > "${test_json_summary}" || true # Add || true to prevent immediate script exit on jq error
 
-        # Handle empty strings from grep -c
+        # Count results using jq
+        local passed=$(jq 'map(select(.Action == "pass")) | length' "${test_json_summary}") || passed=0
+        local failed=$(jq 'map(select(.Action == "fail")) | length' "${test_json_summary}") || failed=0
+        local skipped=$(jq 'map(select(.Action == "skip")) | length' "${test_json_summary}") || skipped=0
+
+        # Handle potential null/empty outputs from jq if file is malformed or empty
         passed=${passed:-0}
         failed=${failed:-0}
         skipped=${skipped:-0}
@@ -428,21 +456,17 @@ run_privileged_tests() {
         log "${RED}Failed:  ${failed}${NC}"
         log "${YELLOW}Skipped: ${skipped}${NC}"
         log ""
-        log "Detailed results: ${test_output}"
-        log "JSON results: ${test_json}"
+        log "Detailed results (raw JSON): ${test_json_raw}"
+        log "Summarized results (JSON): ${test_json_summary}" # New entry for summarized JSON
 
         if [ "${failed}" -gt 0 ]; then
             log_error "Some tests failed"
             return 1
+        else
+            return 0 # All tests passed or skipped
         fi
-
-        return 0
     else
-        log_error "Privileged tests failed"
-
-        # Still try to save results
-        grep -E '^--- (PASS|FAIL|SKIP):' "${test_output}" > "${test_json}" 2>/dev/null || true
-
+        log_error "No raw test results JSON found to parse. Test run likely failed completely."
         return 1
     fi
 }
@@ -500,15 +524,15 @@ generate_test_report() {
 EOF
 
     # Append test summary if available
-    if [ -f "${TEST_RESULTS_DIR}/test-results_${TIMESTAMP}.json" ]; then
+    if [ -f "${TEST_RESULTS_DIR}/test-results-summary_${TIMESTAMP}.json" ]; then
         echo "### Summary" >> "${report_file}"
         echo "" >> "${report_file}"
 
-        local passed=$(grep -c '^--- PASS:' "${TEST_RESULTS_DIR}/test-results_${TIMESTAMP}.json" 2>/dev/null | tr -d '\n\r' || echo "0")
-        local failed=$(grep -c '^--- FAIL:' "${TEST_RESULTS_DIR}/test-results_${TIMESTAMP}.json" 2>/dev/null | tr -d '\n\r' || echo "0")
-        local skipped=$(grep -c '^--- SKIP:' "${TEST_RESULTS_DIR}/test-results_${TIMESTAMP}.json" 2>/dev/null | tr -d '\n\r' || echo "0")
-
-        # Handle empty strings from grep -c
+        local passed=$(jq 'map(select(.Action == "pass")) | length' "${TEST_RESULTS_DIR}/test-results-summary_${TIMESTAMP}.json") || passed=0
+        local failed=$(jq 'map(select(.Action == "fail")) | length' "${TEST_RESULTS_DIR}/test-results-summary_${TIMESTAMP}.json") || failed=0
+        local skipped=$(jq 'map(select(.Action == "skip")) | length' "${TEST_RESULTS_DIR}/test-results-summary_${TIMESTAMP}.json") || skipped=0
+        
+        # Handle empty strings from jq
         passed=${passed:-0}
         failed=${failed:-0}
         skipped=${skipped:-0}
@@ -547,6 +571,17 @@ main() {
             exit 1
         fi
     fi
+
+    # --- INSERT DIAGNOSTIC STEPS HERE ---
+    log_header "Container Network Diagnostics"
+    log "Overwriting /etc/resolv.conf with public DNS (8.8.8.8)..."
+    docker exec "${CONTAINER_NAME}" bash -c "echo 'nameserver 8.8.8.8' > /etc/resolv.conf" | tee -a "${LOG_FILE}"
+    log "Checking /etc/resolv.conf inside container:"
+    docker exec "${CONTAINER_NAME}" cat /etc/resolv.conf | tee -a "${LOG_FILE}"
+    log "Attempting to ping google.com from inside container:"
+    docker exec "${CONTAINER_NAME}" bash -c "ping -c 3 google.com || echo 'Ping failed'" | tee -a "${LOG_FILE}"
+    log_success "Network diagnostics complete."
+    # --- END DIAGNOSTIC STEPS ---
 
     # Step 3: Run tests if requested
     if [ "$RUN_TESTS" = true ]; then

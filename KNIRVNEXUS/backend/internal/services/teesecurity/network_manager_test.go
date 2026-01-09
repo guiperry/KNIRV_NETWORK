@@ -28,10 +28,12 @@ func TestNetworkManager_CreateVethPair(t *testing.T) {
 	_, err := mgr.CreateVethPair(12345)
 	if err != nil {
 		// Expected to fail without root privileges or without proper network namespace
+		// Also may fail with "cannot allocate memory" in constrained container environments
 		errLower := strings.ToLower(err.Error())
 		if !strings.Contains(errLower, "permission denied") &&
 			!strings.Contains(errLower, "operation not permitted") &&
-			!strings.Contains(err.Error(), "No such process") {
+			!strings.Contains(err.Error(), "No such process") &&
+			!strings.Contains(errLower, "cannot allocate memory") {
 			t.Errorf("Unexpected error creating veth pair: %v", err)
 		}
 	}
@@ -100,9 +102,12 @@ func TestNetworkManager_DeleteVethPair(t *testing.T) {
 	err := mgr.DeleteVethPair(vethPair)
 	if err != nil {
 		// Expected to fail since the interface doesn't exist
+		// Also may fail with "cannot allocate memory" in constrained container environments
+		errLower := strings.ToLower(err.Error())
 		if !strings.Contains(err.Error(), "cannot find device") &&
 			!strings.Contains(err.Error(), "does not exist") &&
-			!strings.Contains(err.Error(), "Cannot find device") {
+			!strings.Contains(err.Error(), "Cannot find device") &&
+			!strings.Contains(errLower, "cannot allocate memory") {
 			t.Errorf("Unexpected error deleting veth pair: %v", err)
 		}
 	}

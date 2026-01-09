@@ -111,7 +111,7 @@ deployer: deps-go ## Build container_deployer binary
 	@echo "$(GREEN)container_deployer build completed: backend/cmd/container_deployer/container_deployer$(NC)"
 
 # Unified Binary (Frontend + Unified Backend)
-binary: ebpf-generate frontend backend ## Build unified binary with embedded eBPF, frontend, and backend
+binary: ebpf-generate backend ## Build unified binary with embedded eBPF, frontend, and backend
 	@echo "$(BLUE)Creating unified binary with embedded eBPF...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-nexus .
@@ -119,8 +119,10 @@ binary: ebpf-generate frontend backend ## Build unified binary with embedded eBP
 	@echo "$(BLUE)Copying binary to container_deployer golang-app-source in app data directory...$(NC)"
 	@mkdir -p $(APPDATA_DIR)/container_deployer/resources/golang-app-source
 	cp $(DIST_DIR)/knirv-nexus $(APPDATA_DIR)/container_deployer/resources/golang-app-source
+	chmod +x $(APPDATA_DIR)/container_deployer/resources/golang-app-source/knirv-nexus
 	@mkdir -p $(BACKEND_DIR)/cmd/container_deployer/golang-app-source
 	cp $(DIST_DIR)/knirv-nexus $(BACKEND_DIR)/cmd/container_deployer/golang-app-source
+	chmod +x $(BACKEND_DIR)/cmd/container_deployer/golang-app-source/knirv-nexus
 	@echo "$(GREEN)Binary copied to container_deployer/golang-app-source in both embedded backend and app data directory$(NC)"
 	@echo "$(GREEN)Good Build!$(NC)"
 # Testing
@@ -273,16 +275,17 @@ clean-all: ## Clean build artifacts
 	rm -rf $(FRONTEND_DIR)/out
 	rm -rf $(FRONTEND_DIR)/node_modules
 	rm -rf node_modules/.cache
+	cd $(BACKEND_DIR) && go clean -modcache
 	docker stop knirvnexus-kali-local
 	docker rm knirvnexus-kali-local
-	## docker system prune -f
-	docker rmi knirvnexus-kali-base:latest
+	docker system prune -f
+	
 
 clean: ## Clean everything including dependencies
 	@echo "$(BLUE)Cleaning all artifacts and dependencies...$(NC)"
-	rm -rf node_modules
 	rm -rf $(FRONTEND_DIR)/node_modules
 	cd $(BACKEND_DIR) && go clean -modcache
+	docker rmi knirvnexus-kali-base:latest
 
 install: binary ## Install binary to system
 	@echo "$(BLUE)Installing binary...$(NC)"

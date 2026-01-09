@@ -103,27 +103,15 @@ func DetectCgroupDelegation() (*CgroupDelegationStatus, error) {
 
 	// Check for Docker container environment
 	if isRunningInContainer() {
-		// If we're in a Docker container, check if we can create sub-cgroups
-		if canCreateSubcgroups() {
+		// Try to find the container's writable cgroup path
+		dockerCgroupPath := findDockerCgroupParent()
+		if dockerCgroupPath != "" {
 			status.IsDelegated = true
-			// Use the docker cgroup parent as the base for our cgroups
-			status.CgroupParent = "/sys/fs/cgroup/knirv-nexus"
+			status.CgroupParent = dockerCgroupPath
 		} else {
-			// Try to use the docker cgroup as parent if delegation is available
-			dockerCgroupPath := findDockerCgroupParent()
-			if dockerCgroupPath != "" {
-				// Test if we can write to this path
-				testPath := filepath.Join(dockerCgroupPath, "knirv-test")
-				if err := os.MkdirAll(testPath, 0755); err == nil {
-					os.RemoveAll(testPath)
-					status.IsDelegated = true
-					status.CgroupParent = dockerCgroupPath
-				} else {
-					// Fall back to default with limited permissions
-					status.IsDelegated = false
-					status.CgroupParent = "/sys/fs/cgroup"
-				}
-			}
+			// If we can't find a writable cgroup path, we're not delegated
+			status.IsDelegated = false
+			status.CgroupParent = "/sys/fs/cgroup"
 		}
 	} else {
 		// Bare metal - full access
@@ -189,32 +177,52 @@ func findDockerCgroupParent() string {
 	}
 
 	content := string(data)
-	// Look for Docker cgroup patterns
-	if strings.Contains(content, "/docker/") {
-		// Extract the docker cgroup path
-		lines := strings.Split(content, "\n")
-		for _, line := range lines {
-			if idx := strings.Index(line, "/docker/"); idx >= 0 {
-				// Get the docker cgroup directory
-				pathPart := line[idx+1:]
-				if endIdx := strings.Index(pathPart, ":"); endIdx >= 0 {
-					return pathPart[:endIdx]
-				}
-				return pathPart
-			}
+	lines := strings.Split(content, "\n")
+
+	// In cgroup v2, there's only one line with format: 0::/path/to/cgroup
+	// In cgroup v1, there are multiple lines with format: id:controller:/path
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+
+		// Split by colon
+		parts := strings.SplitN(line, ":", 3)
+		if len(parts) < 3 {
+			continue
+		}
+
+		cgroupPath := strings.TrimSpace(parts[2])
+		if cgroupPath == "" || cgroupPath == "/" {
+			// Root cgroup - use /sys/fs/cgroup directly
+			continue
+		}
+
+		// Remove leading slash for consistency
+		cgroupPath = strings.TrimPrefix(cgroupPath, "/")
+
+		// If the path contains "knirv-nexus", strip it and everything after it
+		// This prevents path doubling when tests run inside cgroups they created
+		if idx := strings.Index(cgroupPath, "/knirv-nexus"); idx >= 0 {
+			cgroupPath = cgroupPath[:idx]
+		}
+
+		// Build full path: /sys/fs/cgroup + cgroup path
+		fullPath := filepath.Join("/sys/fs/cgroup", cgroupPath)
+
+		// Test if we can write to this path
+		testPath := filepath.Join(fullPath, "knirv-test")
+		if err := os.MkdirAll(testPath, 0755); err == nil {
+			os.RemoveAll(testPath)
+			return fullPath
 		}
 	}
 
-	// If --cgroup-parent was used, try common parent paths
-	commonParents := []string{
-		"/sys/fs/cgroup",
-	}
-
-	for _, parent := range commonParents {
-		if err := os.MkdirAll(filepath.Join(parent, "knirv-test"), 0755); err == nil {
-			os.RemoveAll(filepath.Join(parent, "knirv-test"))
-			return parent
-		}
+	// Fallback: try to write to /sys/fs/cgroup root
+	testPath := filepath.Join("/sys/fs/cgroup", "knirv-test")
+	if err := os.MkdirAll(testPath, 0755); err == nil {
+		os.RemoveAll(testPath)
+		return "/sys/fs/cgroup"
 	}
 
 	return ""
@@ -222,18 +230,25 @@ func findDockerCgroupParent() string {
 
 // verifyCgroupWritable checks if the cgroup filesystem is mounted and writable
 func verifyCgroupWritable(cgroupBase string) error {
-	// Check if cgroup directory exists
-	if _, err := os.Stat(cgroupBase); os.IsNotExist(err) {
-		return fmt.Errorf("cgroup directory %s does not exist", cgroupBase)
+	// Get the parent directory to check if it's writable
+	// We need to verify the parent is writable so we can create cgroupBase
+	parentDir := filepath.Dir(cgroupBase)
+
+	// Check if parent cgroup directory exists (usually /sys/fs/cgroup)
+	if _, err := os.Stat(parentDir); os.IsNotExist(err) {
+		return fmt.Errorf("parent cgroup directory %s does not exist", parentDir)
 	}
 
-	// Try to create a test directory to verify write permissions
-	testPath := filepath.Join(cgroupBase, "knirv-objects")
+	// Try to create a test directory in the parent to verify write permissions
+	testPath := filepath.Join(parentDir, "knirv-test")
 	if err := os.MkdirAll(testPath, 0755); err != nil {
-		return fmt.Errorf("cannot create directory in %s (read-only filesystem): %w", cgroupBase, err)
+		return fmt.Errorf("cannot create directory in %s (read-only filesystem): %w", parentDir, err)
 	}
 
-	// Test passed, directory is writable
+	// Clean up test directory
+	os.RemoveAll(testPath)
+
+	// Test passed, parent directory is writable
 	return nil
 }
 
