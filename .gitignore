@@ -98,3 +98,4 @@ KNIRVNEXUS/knirv-nexus
 /KNIRVNEXUS/test-results
 /KNIRVANA/ts-client/test-results
 /KNIRVANA/ts-client/playwright-report
+KNIRVNEXUS/backend/coverage.out

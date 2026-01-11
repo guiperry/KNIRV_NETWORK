@@ -80,10 +80,16 @@ func (s *P2PService) Stop() error {
 	return nil
 }
 
-// OnPeerConnected handles peer connection events
-func (s *P2PService) OnPeerConnected(peerID string, ip net.IP) {
+// OnPeerConnected handles peer connection events with IP address string
+func (s *P2PService) OnPeerConnected(peerID string, ipAddr string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// Parse IP address
+	ip := net.ParseIP(ipAddr)
+	if ip == nil {
+		return fmt.Errorf("invalid IP address: %s", ipAddr)
+	}
 
 	// Add or update peer
 	s.peers[peerID] = PeerInfo{
@@ -97,22 +103,31 @@ func (s *P2PService) OnPeerConnected(peerID string, ip net.IP) {
 	if s.ebpfMgr != nil {
 		if err := s.ebpfMgr.AddWhitelistedIP(ip); err != nil {
 			log.Printf("P2PService: Failed to whitelist IP %s: %v", ip, err)
+			return fmt.Errorf("failed to whitelist IP: %w", err)
 		} else {
 			log.Printf("P2PService: Whitelisted peer %s with IP %s", peerID, ip)
 		}
 	}
 
 	log.Printf("P2PService: Peer connected: %s (%s)", peerID, ip)
+	return nil
 }
 
-// OnPeerDisconnected handles peer disconnection events
-func (s *P2PService) OnPeerDisconnected(peerID string) {
+// OnPeerDisconnected handles peer disconnection events with IP address string
+func (s *P2PService) OnPeerDisconnected(peerID string, ipAddr string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	peer, exists := s.peers[peerID]
 	if !exists {
-		return
+		log.Printf("P2PService: Peer %s not found in registry", peerID)
+		return nil
+	}
+
+	// Parse IP address
+	ip := net.ParseIP(ipAddr)
+	if ip == nil {
+		return fmt.Errorf("invalid IP address: %s", ipAddr)
 	}
 
 	// Mark as disconnected
@@ -129,17 +144,18 @@ func (s *P2PService) OnPeerDisconnected(peerID string) {
 		// Check if peer reconnected
 		if peerInfo, stillExists := s.peers[peerID]; stillExists && !peerInfo.IsConnected {
 			if s.ebpfMgr != nil {
-				if err := s.ebpfMgr.RemoveWhitelistedIP(peer.IP); err != nil {
-					log.Printf("P2PService: Failed to remove whitelist for IP %s: %v", peer.IP, err)
+				if err := s.ebpfMgr.RemoveWhitelistedIP(ip); err != nil {
+					log.Printf("P2PService: Failed to remove whitelist for IP %s: %v", ip, err)
 				} else {
-					log.Printf("P2PService: Removed whitelist for peer %s with IP %s", peerID, peer.IP)
+					log.Printf("P2PService: Removed whitelist for peer %s with IP %s", peerID, ip)
 				}
 			}
 			delete(s.peers, peerID)
 		}
 	}()
 
-	log.Printf("P2PService: Peer disconnected: %s (%s)", peerID, peer.IP)
+	log.Printf("P2PService: Peer disconnected: %s (%s)", peerID, ip)
+	return nil
 }
 
 // GetPeerInfo returns information about a specific peer

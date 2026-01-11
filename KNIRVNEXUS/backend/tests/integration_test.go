@@ -19,8 +19,8 @@ import (
 	"backend_server/internal/objects"
 	"backend_server/internal/services/dvemanager"
 	"backend_server/internal/services/validation"
-	"backend_server/pkg/p2p"
-	"backend_server/pkg/sse"
+	"backend_server/internal/services/p2p"
+	"backend_server/internal/utils/sse"
 )
 
 // TestSuite represents the integration test suite
@@ -64,7 +64,7 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 	}
 
 	// Initialize P2P manager
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	// Initialize DVE Manager

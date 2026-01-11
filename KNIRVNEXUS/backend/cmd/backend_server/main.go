@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"backend_server/internal/config"
-	dataengine "backend_server/internal/data-engine"
+	data_engine "backend_server/internal/data_engine"
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
 	inference "backend_server/internal/inference_engine"
@@ -29,6 +29,7 @@ import (
 	"backend_server/internal/services/endpoints"
 	modelserver "backend_server/internal/services/model-server"
 	"backend_server/internal/services/modelmanagement"
+	"backend_server/internal/services/p2p"
 	"backend_server/internal/services/payment"
 	"backend_server/internal/services/session"
 	"backend_server/internal/services/systemhealth"
@@ -37,7 +38,6 @@ import (
 	"backend_server/internal/services/websocket"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
-	"backend_server/pkg/p2p"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
@@ -72,7 +72,7 @@ type Server struct {
 	cdeService                   *cde.CDEService
 	dnsService                   *dns.DynamicDNSService
 	modelServer                  *modelserver.ModelServer
-	dataEngine                   *dataengine.BuntDBDataEngine
+	dataEngine                   *data_engine.BuntDBDataEngine
 	inferenceService             *inference.InferenceService
 	websocketService             *websocket.WebSocketService
 	teeSecurityService           *teesecurity.TEESecurityService
@@ -223,8 +223,51 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
-	// Initialize P2P manager
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, cfg.NodeRole, dbManager.GetDB(), cfg.P2P.DHTEnabled)
+	// Initialize eBPF Manager first (required for P2P security integration)
+	ebpfManager := ebpf.NewManager()
+	ebpfConfig := &ebpf.Config{
+		Programs: []ebpf.ProgramConfig{
+			{Name: "syscall_trace", Enabled: true},
+			{Name: "sandbox_lsm", Enabled: true},
+			{Name: "virtual_ns", Enabled: true},
+			{Name: "telemetry", Enabled: true},
+		},
+	}
+
+	// Initialize eBPF manager with context
+	ebpfCtx := context.Background()
+	if err := ebpfManager.Initialize(ebpfCtx, ebpfConfig); err != nil {
+		log.Printf("Warning: Failed to initialize eBPF manager: %v", err)
+		log.Printf("eBPF features will be disabled. This may be due to insufficient kernel capabilities.")
+		ebpfManager = nil // Disable eBPF if initialization fails
+	} else {
+		log.Println("eBPF Manager initialized successfully")
+	}
+
+	// Initialize XDP Manager and P2P Security Service (eBPF/XDP firewall integration)
+	var p2pSecurityService *p2p.P2PService
+	if ebpfManager != nil {
+		xdpManager := ebpf.NewXDPManager(ebpfManager)
+		if err := xdpManager.InitializeXDP(); err != nil {
+			log.Printf("Warning: Failed to initialize XDP manager: %v", err)
+		} else {
+			p2pSecurityService, err = p2p.NewP2PService(xdpManager)
+			if err != nil {
+				log.Printf("Warning: Failed to initialize P2P security service: %v", err)
+				p2pSecurityService = nil
+			} else {
+				if err := p2pSecurityService.Start(); err != nil {
+					log.Printf("Warning: Failed to start P2P security service: %v", err)
+					p2pSecurityService = nil
+				} else {
+					log.Println("P2P Security Service initialized successfully")
+				}
+			}
+		}
+	}
+
+	// Initialize P2P manager with security integration
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, cfg.NodeRole, dbManager.GetDB(), cfg.P2P.DHTEnabled, p2pSecurityService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize P2P manager: %w", err)
 	}
@@ -262,7 +305,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	// Initialize data engine
-	dataEngineConfig := dataengine.BuntDBDataEngineConfig{
+	dataEngineConfig := data_engine.BuntDBDataEngineConfig{
 		DatabasePath:     cfg.Database.Path,
 		EnableWebSocket:  true,
 		EnableRESTAPI:    true,
@@ -277,7 +320,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		FlushInterval:    time.Second * 10,
 		MaxMemoryUsage:   1024 * 1024 * 100, // 100MB
 	}
-	dataEngine, err := dataengine.NewBuntDBDataEngine(dataEngineConfig)
+	dataEngine, err := data_engine.NewBuntDBDataEngine(dataEngineConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize data engine: %w", err)
 	}
@@ -306,8 +349,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	// Initialize eBPF Manager for kernel-level monitoring and isolation
-	ebpfManager := ebpf.NewManager()
-	ebpfConfig := &ebpf.Config{
+	ebpfManager = ebpf.NewManager()
+	ebpfConfig = &ebpf.Config{
 		Programs: []ebpf.ProgramConfig{
 			{Name: "syscall_trace", Enabled: true},
 			{Name: "sandbox_lsm", Enabled: true},
@@ -317,7 +360,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	// Initialize eBPF manager with context
-	ebpfCtx := context.Background()
+	ebpfCtx = context.Background()
 	if err := ebpfManager.Initialize(ebpfCtx, ebpfConfig); err != nil {
 		log.Printf("Warning: Failed to initialize eBPF manager: %v", err)
 		log.Printf("eBPF features will be disabled. This may be due to insufficient kernel capabilities.")
@@ -349,26 +392,26 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize Controller Integration service
 	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager.GetDB())
 
-			// Initialize CDE service with TEE security integration and eBPF virtual containers
-			cdeService, err := cde.NewCDEService(teeSecurityService, dataEngine, virtualContainerManager, cde.CDEConfig{
-				BaseImagePath:          cfg.CDE.BaseImagePath,
-				WorkspaceRoot:          cfg.CDE.WorkspaceRoot,
-				MaxEnvironments:        cfg.CDE.MaxEnvironments,
-				DefaultTimeout:         cfg.CDE.DefaultTimeout,
-				MaxCPUPerEnv:           cfg.CDE.MaxCPUPerEnv,
-				MaxMemoryPerEnv:        cfg.CDE.MaxMemoryPerEnv,
-				MaxDiskPerEnv:          cfg.CDE.MaxDiskPerEnv,
-				EnableSandboxing:       cfg.CDE.EnableSandboxing,
-				EnableNetworkIsolation: cfg.CDE.EnableNetworkIsolation,
-				AllowedPorts:           cfg.CDE.AllowedPorts,
-				SessionTimeout:         cfg.CDE.SessionTimeout,
-				MaxSessionsPerUser:     cfg.CDE.MaxSessionsPerUser,
-				MaxProjectsPerUser:     cfg.CDE.MaxProjectsPerUser,
-				ProjectStoragePath:     cfg.CDE.ProjectStoragePath,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to initialize CDE service: %w", err)
-			}
+	// Initialize CDE service with TEE security integration and eBPF virtual containers
+	cdeService, err := cde.NewCDEService(teeSecurityService, dataEngine, virtualContainerManager, cde.CDEConfig{
+		BaseImagePath:          cfg.CDE.BaseImagePath,
+		WorkspaceRoot:          cfg.CDE.WorkspaceRoot,
+		MaxEnvironments:        cfg.CDE.MaxEnvironments,
+		DefaultTimeout:         cfg.CDE.DefaultTimeout,
+		MaxCPUPerEnv:           cfg.CDE.MaxCPUPerEnv,
+		MaxMemoryPerEnv:        cfg.CDE.MaxMemoryPerEnv,
+		MaxDiskPerEnv:          cfg.CDE.MaxDiskPerEnv,
+		EnableSandboxing:       cfg.CDE.EnableSandboxing,
+		EnableNetworkIsolation: cfg.CDE.EnableNetworkIsolation,
+		AllowedPorts:           cfg.CDE.AllowedPorts,
+		SessionTimeout:         cfg.CDE.SessionTimeout,
+		MaxSessionsPerUser:     cfg.CDE.MaxSessionsPerUser,
+		MaxProjectsPerUser:     cfg.CDE.MaxProjectsPerUser,
+		ProjectStoragePath:     cfg.CDE.ProjectStoragePath,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize CDE service: %w", err)
+	}
 
 	// Initialize DNS service with minimal configuration for development
 	dnsConfig := dns.DNSConfig{
@@ -692,21 +735,21 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"build_time": BuildTime,
 		"git_commit": GitCommit,
 		"services": map[string]bool{
-			"database":                s.db != nil,
-			"p2p_manager":             s.p2pManager != nil,
-			"ebpf_manager":            s.ebpfManager != nil,
-			"virtual_container_mgr":   s.virtualContainerManager != nil,
-			"dve_manager":             s.dveManager != nil,
-			"validation_core":         s.validationCore != nil,
-			"model_server":            s.modelServer != nil,
-			"data_engine":             s.dataEngine != nil,
-			"inference_service":       s.inferenceService != nil,
-			"websocket_service":       s.websocketService != nil,
-			"cde_service":             s.cdeService != nil,
-			"dns_service":             s.dnsService != nil,
-			"dve_rental_service":      s.dveRentalService != nil,
-			"tee_security_service":    s.teeSecurityService != nil,
-			"container_orchestrator":  s.containerOrchestrator != nil,
+			"database":               s.db != nil,
+			"p2p_manager":            s.p2pManager != nil,
+			"ebpf_manager":           s.ebpfManager != nil,
+			"virtual_container_mgr":  s.virtualContainerManager != nil,
+			"dve_manager":            s.dveManager != nil,
+			"validation_core":        s.validationCore != nil,
+			"model_server":           s.modelServer != nil,
+			"data_engine":            s.dataEngine != nil,
+			"inference_service":      s.inferenceService != nil,
+			"websocket_service":      s.websocketService != nil,
+			"cde_service":            s.cdeService != nil,
+			"dns_service":            s.dnsService != nil,
+			"dve_rental_service":     s.dveRentalService != nil,
+			"tee_security_service":   s.teeSecurityService != nil,
+			"container_orchestrator": s.containerOrchestrator != nil,
 		},
 		"ebpf": ebpfMetrics,
 	}

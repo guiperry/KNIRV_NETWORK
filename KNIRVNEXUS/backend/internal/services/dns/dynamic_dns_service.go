@@ -8,16 +8,16 @@ import (
 	"sync"
 	"time"
 
-	// dataengine "backend_server/internal/services/data-engine" // TODO: Re-enable when data-engine is available
-	dataengine "backend_server/internal/data-engine"
-	"backend_server/pkg/cloudflare"
+	// data_engine "backend_server/internal/services/data_engine" // TODO: Re-enable when data_engine is available
+	data_engine "backend_server/internal/data_engine"
+	"backend_server/internal/utils/cloudflare"
 )
 
 // DynamicDNSService manages dynamic DNS updates
 type DynamicDNSService struct {
 	// CloudFlare DNS manager
 	dnsManager *cloudflare.DNSManager
-	dataEngine *dataengine.BuntDBDataEngine
+	dataEngine *data_engine.BuntDBDataEngine
 
 	// Configuration
 	config DNSConfig
@@ -74,7 +74,7 @@ type DNSRecordConfig struct {
 }
 
 // NewDynamicDNSService creates a new dynamic DNS service
-func NewDynamicDNSService(dataEngine *dataengine.BuntDBDataEngine, config DNSConfig) (*DynamicDNSService, error) {
+func NewDynamicDNSService(dataEngine *data_engine.BuntDBDataEngine, config DNSConfig) (*DynamicDNSService, error) {
 	// Allow development mode with placeholder token
 	if config.CloudFlareAPIToken == "" {
 		return nil, fmt.Errorf("CloudFlare API token is required")

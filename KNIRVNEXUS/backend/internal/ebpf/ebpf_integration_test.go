@@ -95,7 +95,7 @@ func TestEBPFIntegration(t *testing.T) {
 		// Test peer connection (simulated)
 		testPeerID := "test-peer-123"
 		testPeerIP := net.IPv4(192, 168, 1, 200)
-		p2pService.OnPeerConnected(testPeerID, testPeerIP)
+		p2pService.OnPeerConnected(testPeerID, testPeerIP.String())
 
 		// Verify peer is whitelisted
 		peerInfo, err := p2pService.GetPeerInfo(testPeerID)
@@ -103,7 +103,7 @@ func TestEBPFIntegration(t *testing.T) {
 		assert.Equal(t, testPeerIP.String(), peerInfo.IP.String(), "Peer IP should match")
 
 		// Test peer disconnection
-		p2pService.OnPeerDisconnected(testPeerID)
+		p2pService.OnPeerDisconnected(testPeerID, testPeerIP.String())
 
 		// Test network metrics through P2P service
 		metrics, err := p2pService.GetNetworkMetrics()
@@ -349,12 +349,12 @@ func TestEBPFEndToEnd(t *testing.T) {
 	// 1. Peer connects to P2P network
 	testPeerID := "e2e-test-peer"
 	testPeerIP := net.IPv4(10, 0, 0, 1)
-	p2pService.OnPeerConnected(testPeerID, testPeerIP)
+	p2pService.OnPeerConnected(testPeerID, testPeerIP.String())
 
 	// 2. Create virtual CDE for development
 	env, err := cdeService.CreateVirtualCDE("test-dev", "e2e-test-env", cde.EnvTypeGo, map[string]interface{}{
-		"project":  "test-project",
-		"language": "go",
+	  "project":  "test-project",
+	  "language": "go",
 	})
 	assert.NoError(t, err, "Creating virtual CDE should succeed")
 
@@ -372,7 +372,7 @@ func TestEBPFEndToEnd(t *testing.T) {
 	assert.NotNil(t, metrics, "Metrics should not be nil")
 
 	// 6. Simulate peer disconnection
-	p2pService.OnPeerDisconnected(testPeerID)
+	p2pService.OnPeerDisconnected(testPeerID, testPeerIP.String())
 
 	// 7. Clean up environment
 	err = cdeService.StopEnvironment(env.ID)

@@ -1,14 +1,14 @@
 # Model Server
 
-A standalone HTTP server for serving, uploading, and managing WASM Plugin Model files in the KNIRVORACLE ecosystem.
+A standalone HTTP server for serving, uploading, and managing WASM Plugin Model files in the KNIRVNEXUS ecosystem.
 
 ## Overview
 
-The Plugin Model Server provides a simple HTTP API for managing compiled WASM plugin objects. It supports:
+The Plugin Model Server provides a simple HTTP API for managing compiled WASM plugin models. It supports:
 
 - **File Serving**: Download plugin model files via HTTP
 - **File Upload**: Upload new plugin model files
-- **File Listing**: List all available plugin objects
+- **File Listing**: List all available plugin models
 - **File Management**: Delete plugin model files
 - **Server Info**: Get server status and configuration
 
@@ -30,16 +30,16 @@ make build-all
 ### Running
 
 ```bash
-# Run with default settings (port 8082, ./objects directory)
+# Run with default settings (port 8082, ./models directory)
 ./plugin-server
 
 # Run with custom settings
-./plugin-server --port 8081 --objects ./my-objects --name "My Server"
+./plugin-server --port 8081 --models ./my-models --name "My Server"
 
 # Run with all options
 ./plugin-server \
   --port 8082 \
-  --objects ./objects \
+  --models ./models \
   --name "Production Server" \
   --register \
   --api http://localhost:3000 \
@@ -64,10 +64,10 @@ make clean
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--port` | `8082` | Port to listen on |
-| `--objects` | `./objects` | Directory containing Plugin Models |
-| `--name` | `"KNIRVORACLE Plugin Model Server"` | Name of this server instance |
-| `--register` | `false` | Register this server with the KNIRVORACLE system |
-| `--api` | `http://localhost:3000` | URL of the KNIRVORACLE API |
+| `--models` | `./models` | Directory containing Plugin Models |
+| `--name` | `"KNIRVNEXUS Plugin Model Server"` | Name of this server instance |
+| `--register` | `false` | Register this server with the KNIRVNEXUS system |
+| `--api` | `http://localhost:3000` | URL of the KNIRVNEXUS API |
 | `--cors` | `true` | Enable CORS headers |
 
 ## API Endpoints
@@ -78,21 +78,21 @@ Get server information and status.
 **Response:**
 ```json
 {
-  "name": "KNIRVORACLE Plugin Model Server",
+  "name": "KNIRVNEXUS Plugin Model Server",
   "port": 8082,
-  "model_dir": "./objects",
+  "model_dir": "./models",
   "start_time": "2024-01-01T12:00:00Z",
   "version": "1.0.0"
 }
 ```
 
 ### GET /list
-List all available plugin objects.
+List all available plugin models.
 
 **Response:**
 ```json
 {
-  "objects": [
+  "models": [
     {
       "name": "my-model.wasm",
       "size": 1024,
@@ -103,7 +103,7 @@ List all available plugin objects.
 }
 ```
 
-### GET /objects/{name}
+### GET /models/{name}
 Download a specific plugin model file.
 
 **Parameters:**
@@ -153,7 +153,7 @@ curl -X POST \
 ### Download a Plugin Model
 
 ```bash
-curl -O http://localhost:8082/objects/my-model.wasm
+curl -O http://localhost:8082/models/my-model.wasm
 ```
 
 ### List Available Models
@@ -175,9 +175,9 @@ curl -X DELETE http://localhost:8082/delete/my-model.wasm
 - Only regular files are served (no directories or special files)
 - CORS can be disabled for production environments
 
-## Integration with KNIRVORACLE
+## Integration with KNIRVNEXUS
 
-The server can be registered with the KNIRVORACLE system using the `--register` flag. This allows the blockchain to track server instances and their available plugin objects.
+The server can be registered with the KNIRVNEXUS system using the `--register` flag. This allows the blockchain to track server instances and their available plugin models.
 
 When registered, the server provides a reliable endpoint for:
 - Plugin model distribution

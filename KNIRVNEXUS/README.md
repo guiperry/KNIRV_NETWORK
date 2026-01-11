@@ -887,27 +887,27 @@ KNIRV-NEXUS Phase 3 Security Hardening implements comprehensive security measure
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    SECURITY HARDENING ARCHITECTURE                │
+│                    SECURITY HARDENING ARCHITECTURE              │
 ├─────────────────────────────────────────────────────────────────┤
-│  Layer 7: Monitoring & Detection (Existing)                     │
+│  Layer 7: Monitoring & Detection                                │
 │  └─ Static Analysis, Dynamic Tracing, Network Inspection        │
 ├─────────────────────────────────────────────────────────────────┤
-│  Layer 6: MAC Enforcement (Phase 3 - NEW)                       │
-│  └─ AppArmor profiles, SELinux policies, Filesystem restrictions │
+│  Layer 6: MAC Enforcement                                       │
+│  └─ AppArmor profiles, SELinux policies, Filesystem restrictions│
 ├─────────────────────────────────────────────────────────────────┤
-│  Layer 5: Syscall Filtering (Phase 3 - NEW)                      │
-│  └─ Seccomp-bpf filters, Dangerous syscall blocking              │
+│  Layer 5: Syscall Filtering                                     │
+│  └─ Seccomp-bpf filters, Dangerous syscall blocking             │
 ├─────────────────────────────────────────────────────────────────┤
-│  Layer 4: Capability Management (Phase 2)                       │
-│  └─ Minimal capabilities, no_new_privs, Privilege dropping       │
+│  Layer 4: Capability Management                                 │
+│  └─ Minimal capabilities, no_new_privs, Privilege dropping      │
 ├─────────────────────────────────────────────────────────────────┤
-│  Layer 3: Resource Limits (Phase 1)                             │
-│  └─ CPU, Memory, I/O, PID limits via cgroups v2                │
+│  Layer 3: Resource Limits                                       │
+│  └─ CPU, Memory, I/O, PID limits via cgroups v2                 │ 
 ├─────────────────────────────────────────────────────────────────┤
-│  Layer 2: Namespace Isolation (Phase 1)                         │
+│  Layer 2: Namespace Isolation                                   │
 │  └─ PID, Network, Mount, UTS, IPC, User namespaces              │
 ├─────────────────────────────────────────────────────────────────┤
-│  Layer 1: Filesystem Sandboxing (Original)                     │
+│  Layer 1: Filesystem Sandboxing                                 │
 │  └─ Temp directories, 0700 permissions, Isolated execution      │
 └─────────────────────────────────────────────────────────────────┘
 ```

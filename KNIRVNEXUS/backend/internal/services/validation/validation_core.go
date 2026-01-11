@@ -11,7 +11,7 @@ import (
 
 	"backend_server/internal/config"
 	"backend_server/internal/objects"
-	"backend_server/pkg/p2p"
+	"backend_server/internal/services/p2p"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"

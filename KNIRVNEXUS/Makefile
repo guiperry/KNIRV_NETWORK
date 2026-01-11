@@ -125,30 +125,33 @@ binary: ebpf-generate backend ## Build unified binary with embedded eBPF, fronte
 	chmod +x $(BACKEND_DIR)/cmd/container_deployer/golang-app-source/knirv-nexus
 	@echo "$(GREEN)Binary copied to container_deployer/golang-app-source in both embedded backend and app data directory$(NC)"
 	@echo "$(GREEN)Good Build!$(NC)"
+
 # Testing
-test: test-go test-frontend test-architecture ## Run all tests
+test: test-go test-frontend ## Run standard tests (unit + frontend)
+
+test-all: test-go test-frontend test-integration test-e2e test-architecture ## Run all non-privileged tests
+
+test-complete: test-all test-privileged ## Run complete test suite including privileged tests
 
 test-go: deps-go ## Run Go unit tests
 	@echo "$(BLUE)Running Go unit tests...$(NC)"
-	cd $(BACKEND_DIR) && go test -v -race -coverprofile=coverage.out ./...
-	cd $(BACKEND_DIR) && go tool cover -html=coverage.out -o coverage.html
+	@./scripts/run-tests.sh unit
 
 test-frontend: deps-node ## Run frontend tests
 	@echo "$(BLUE)Running frontend tests...$(NC)"
 	cd $(FRONTEND_DIR) && $(NPM_CMD) test
 
-test-integration: binary ## Run integration tests
+test-integration: deps-go ## Run integration tests
 	@echo "$(BLUE)Running integration tests...$(NC)"
-	cd $(BACKEND_DIR) && go test -v ./tests
+	@./scripts/run-tests.sh integration
 
-test-e2e: binary ## Run end-to-end tests
+test-e2e: deps-go ## Run end-to-end tests
 	@echo "$(BLUE)Running end-to-end tests...$(NC)"
-	cd $(BACKEND_DIR) && go test -v -tags=e2e ./tests/e2e/...
+	@./scripts/run-tests.sh e2e
 
-test-architecture: backend ## Test the new three-tier architecture
+test-architecture: deps-go ## Test the new three-tier architecture
 	@echo "$(BLUE)Testing architecture...$(NC)"
-	cd $(BACKEND_DIR) && go test -v ./tests -run TestArchitecture
-	@echo "$(GREEN)Architecture tests completed$(NC)"
+	@./scripts/run-tests.sh architecture
 
 test-privileged: ## Run privileged tests in Docker container (cgroups, namespaces, etc.)
 	@echo "$(BLUE)Running privileged tests in Docker container...$(NC)"
@@ -209,56 +212,22 @@ docker-run: docker ## Run Docker container
 	@echo "$(BLUE)Running Docker container...$(NC)"
 	docker run -p 8080:8080 $(DOCKER_IMAGE):$(DOCKER_TAG)
 
+# Docker Build
+kali-docker-image: ## Build Kali Docker image using os_builder
+	@echo "$(BLUE)Building Kali Docker image using os_builder...$(NC)"
+	go run $(BACKEND_DIR)/cmd/os_builder/main.go --action 1
+	@echo "$(GREEN)Kali Docker image build completed and saved to artifacts.$(NC)"
+
 # Packer Builds
 kali: ## Build Kali Linux base image with Packer
 	@echo "$(BLUE)Building Kali Linux base image with Packer...$(NC)"
 	cd $(BACKEND_DIR)/cmd/os_builder/packer-base-kali && packer build .
 	@echo "$(GREEN)Kali Linux base image build completed.$(NC)"
 
-kali-docker-image: ## Build Kali Docker image using os_builder
-	@echo "$(BLUE)Building Kali Docker image using os_builder...$(NC)"
-	go run $(BACKEND_DIR)/cmd/os_builder/main.go --action 1
-	@echo "$(GREEN)Kali Docker image build completed and saved to artifacts.$(NC)"
-
 # Deployment
-deploy: deploy-infrastructure deploy-dns deploy-application ## Full deployment
-
-deploy-infrastructure: ## Deploy AWS infrastructure
-	@echo "$(BLUE)Deploying AWS infrastructure...$(NC)"
-	cd $(DEPLOYMENT_DIR) && ./scripts/deploy.sh --environment $(ENVIRONMENT) --skip-dns --skip-application
-
-deploy-dns: ## Configure DNS
-	@echo "$(BLUE)Configuring DNS...$(NC)"
-	cd $(DEPLOYMENT_DIR) && ./scripts/deploy.sh --environment $(ENVIRONMENT) --skip-infrastructure --skip-application
-
-deploy-application: binary ## Deploy application
-	@echo "$(BLUE)Deploying application...$(NC)"
-	cd $(DEPLOYMENT_DIR) && ./scripts/deploy.sh --environment $(ENVIRONMENT) --skip-infrastructure --skip-dns
-
-deploy-full: ## Full deployment with all components
-	@echo "$(BLUE)Running full deployment...$(NC)"
-	cd $(DEPLOYMENT_DIR) && ./scripts/full-deploy.sh --environment $(ENVIRONMENT)
-
 deploy-dev-local: ## Deploy to local development environment
 	@echo "$(BLUE)Deploying to local development environment...$(NC)"
 	cd $(BACKEND_DIR)/cmd/container_deployer && ./container_deployer --deploy-type local --env development --action 1
-
-deploy-monitoring: ## Deploy monitoring stack
-	@echo "$(BLUE)Deploying monitoring...$(NC)"
-	cd $(DEPLOYMENT_DIR)/ansible && ansible-playbook playbooks/monitoring.yml -e env=$(ENVIRONMENT)
-
-deploy-security: ## Apply security hardening
-	@echo "$(BLUE)Applying security hardening...$(NC)"
-	cd $(DEPLOYMENT_DIR)/ansible && ansible-playbook playbooks/security.yml -e env=$(ENVIRONMENT)
-
-# Database
-db-migrate: ## Run database migrations
-	@echo "$(BLUE)Running database migrations...$(NC)"
-	cd $(BACKEND_DIR) && go run ./cmd/migrate
-
-db-seed: ## Seed database with test data
-	@echo "$(BLUE)Seeding database...$(NC)"
-	cd $(BACKEND_DIR) && go run ./cmd/seed
 
 # Utilities
 clean-all: ## Clean build artifacts

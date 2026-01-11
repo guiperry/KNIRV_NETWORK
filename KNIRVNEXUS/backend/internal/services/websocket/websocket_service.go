@@ -987,7 +987,8 @@ func (ws *WebSocketService) handleSSHWebSocket(w http.ResponseWriter, r *http.Re
 			select {
 			case input := <-inputChan:
 				// Handle special characters
-				if input == "\r" || input == "\n" {
+				switch input {
+				case "\r", "\n":
 					// Process command
 					command := strings.TrimSpace(buffer)
 					buffer = ""
@@ -1013,10 +1014,12 @@ func (ws *WebSocketService) handleSSHWebSocket(w http.ResponseWriter, r *http.Re
 						})
 						conn.Close()
 						return
+					case "":
+						// Empty command, do nothing
 					default:
 						if strings.HasPrefix(command, "echo ") {
 							output = "\r\n" + strings.TrimPrefix(command, "echo ") + "\r\n"
-						} else if command != "" {
+						} else {
 							output = "\r\n\x1b[31mCommand not found: " + command + "\x1b[0m\r\n"
 						}
 					}
@@ -1027,7 +1030,7 @@ func (ws *WebSocketService) handleSSHWebSocket(w http.ResponseWriter, r *http.Re
 						"data": output + prompt,
 					})
 
-				} else if input == "\x7f" { // Backspace
+				case "\x7f": // Backspace
 					if len(buffer) > 0 {
 						buffer = buffer[:len(buffer)-1]
 						conn.WriteJSON(map[string]interface{}{
@@ -1035,7 +1038,7 @@ func (ws *WebSocketService) handleSSHWebSocket(w http.ResponseWriter, r *http.Re
 							"data": "\b \b", // Move back, print space, move back
 						})
 					}
-				} else {
+				default:
 					buffer += input
 					conn.WriteJSON(map[string]interface{}{
 						"type": "output",

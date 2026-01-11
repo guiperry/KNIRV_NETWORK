@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	dataengine "backend_server/internal/data-engine"
+	data_engine "backend_server/internal/data_engine"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,12 +19,12 @@ func setupTestDNSService(t *testing.T) (*DynamicDNSService, *buntdb.DB) {
 	dbPath := filepath.Join(tmpDir, "test_dns.db")
 
 	// Create data engine config
-	dataEngineConfig := dataengine.BuntDBDataEngineConfig{
+	dataEngineConfig := data_engine.BuntDBDataEngineConfig{
 		DatabasePath: dbPath,
 	}
 
 	// Create data engine
-	dataEngine, err := dataengine.NewBuntDBDataEngine(dataEngineConfig)
+	dataEngine, err := data_engine.NewBuntDBDataEngine(dataEngineConfig)
 	require.NoError(t, err)
 
 	// Create DNS config

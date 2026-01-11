@@ -56,6 +56,10 @@ func TestNewServer(t *testing.T) {
 		P2P: config.P2PConfig{
 			DHTEnabled: true,
 		},
+		// Initialize ModelServerConfig and set a temporary storage path
+		ModelServer: config.ModelServerConfig{
+			StoragePath: t.TempDir(),
+		},
 	}
 
 	server, err := NewServer(cfg)
@@ -101,6 +105,9 @@ func TestNewServer_DatabaseError(t *testing.T) {
 			BindAddress: "localhost",
 			Port:        8080,
 		},
+		ModelServer: config.ModelServerConfig{ // Added for testing
+			StoragePath: t.TempDir(), // Use a temporary directory for model storage
+		},
 	}
 
 	server, err := NewServer(cfg)
@@ -122,6 +129,9 @@ func TestNewServer_P2PManagerError(t *testing.T) {
 		API: config.APIConfig{
 			BindAddress: "localhost",
 			Port:        8080,
+		},
+		ModelServer: config.ModelServerConfig{ // Added for testing
+			StoragePath: t.TempDir(), // Use a temporary directory for model storage
 		},
 	}
 
@@ -170,6 +180,9 @@ func TestServerSetupRoutes(t *testing.T) {
 		P2P: config.P2PConfig{
 			DHTEnabled: true,
 		},
+		ModelServer: config.ModelServerConfig{ // Added for testing
+			StoragePath: t.TempDir(), // Use a temporary directory for model storage
+		},
 	}
 
 	server, err := NewServer(cfg)
@@ -199,6 +212,9 @@ func TestServerHandleHealth(t *testing.T) {
 		API: config.APIConfig{
 			BindAddress: "localhost",
 			Port:        8080,
+		},
+		ModelServer: config.ModelServerConfig{ // Added for testing
+			StoragePath: t.TempDir(), // Use a temporary directory for model storage
 		},
 	}
 
@@ -320,6 +336,9 @@ func TestServerStart_InvalidConfig(t *testing.T) {
 		API: config.APIConfig{
 			BindAddress: "",
 			Port:        0,
+		},
+		ModelServer: config.ModelServerConfig{ // Added for testing
+			StoragePath: t.TempDir(), // Use a temporary directory for model storage
 		},
 	}
 

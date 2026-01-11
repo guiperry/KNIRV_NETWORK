@@ -15,14 +15,58 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
+// AuthConfig contains authentication configuration
+type AuthConfig struct {
+	PasswordMinLength      int           `json:"password_min_length" yaml:"password_min_length"`
+	PasswordRequireUpper   bool          `json:"password_require_upper" yaml:"password_require_upper"`
+	PasswordRequireLower   bool          `json:"password_require_lower" yaml:"password_require_lower"`
+	PasswordRequireDigit   bool          `json:"password_require_digit" yaml:"password_require_digit"`
+	PasswordRequireSpecial bool          `json:"password_require_special" yaml:"password_require_special"`
+	MaxLoginAttempts       int           `json:"max_login_attempts" yaml:"max_login_attempts"`
+	LockoutDuration        time.Duration `json:"lockout_duration" yaml:"lockout_duration"`
+	SessionTimeout         time.Duration `json:"session_timeout" yaml:"session_timeout"`
+	TokenExpiration        time.Duration `json:"token_expiration" yaml:"token_expiration"`
+	RefreshTokenExpiration time.Duration `json:"refresh_token_expiration" yaml:"refresh_token_expiration"`
+	EnableTwoFactor        bool          `json:"enable_two_factor" yaml:"enable_two_factor"`
+}
+
+// DefaultAuthConfig returns default authentication configuration
+func DefaultAuthConfig() AuthConfig {
+	return AuthConfig{
+		PasswordMinLength:      8,
+		PasswordRequireUpper:   true,
+		PasswordRequireLower:   true,
+		PasswordRequireDigit:   true,
+		PasswordRequireSpecial: false,
+		MaxLoginAttempts:       5,
+		LockoutDuration:        15 * time.Minute,
+		SessionTimeout:         30 * time.Minute,
+		TokenExpiration:        24 * time.Hour,
+		RefreshTokenExpiration: 7 * 24 * time.Hour,
+		EnableTwoFactor:        false,
+	}
+}
+
 // UserService handles user-related database operations
 type UserService struct {
-	db *database.BuntDBManager
+	db     *database.BuntDBManager
+	config AuthConfig
 }
 
 // NewUserService creates a new user service
 func NewUserService(db *database.BuntDBManager) *UserService {
-	return &UserService{db: db}
+	return &UserService{
+		db:     db,
+		config: DefaultAuthConfig(),
+	}
+}
+
+// NewUserServiceWithConfig creates a new user service with custom configuration
+func NewUserServiceWithConfig(db *database.BuntDBManager, config AuthConfig) *UserService {
+	return &UserService{
+		db:     db,
+		config: config,
+	}
 }
 
 // CreateUser creates a new user with hashed password
@@ -434,9 +478,12 @@ func (us *UserService) validateRegistration(reg *objects.UserRegistration) error
 	if len(reg.Username) < 3 || len(reg.Username) > 50 {
 		return fmt.Errorf("username must be between 3 and 50 characters")
 	}
-	if len(reg.Password) < 8 {
-		return fmt.Errorf("password must be at least 8 characters long")
+
+	// Use enhanced password validation from config
+	if err := us.validatePassword(reg.Password); err != nil {
+		return err
 	}
+
 	if len(reg.FirstName) < 1 || len(reg.FirstName) > 50 {
 		return fmt.Errorf("first name must be between 1 and 50 characters")
 	}
@@ -447,6 +494,31 @@ func (us *UserService) validateRegistration(reg *objects.UserRegistration) error
 	if !strings.Contains(reg.Email, "@") {
 		return fmt.Errorf("invalid email format")
 	}
+	return nil
+}
+
+// validatePassword validates password strength based on configuration
+func (us *UserService) validatePassword(password string) error {
+	if len(password) < us.config.PasswordMinLength {
+		return fmt.Errorf("password must be at least %d characters long", us.config.PasswordMinLength)
+	}
+
+	if us.config.PasswordRequireUpper && !strings.ContainsAny(password, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+		return fmt.Errorf("password must contain at least one uppercase letter")
+	}
+
+	if us.config.PasswordRequireLower && !strings.ContainsAny(password, "abcdefghijklmnopqrstuvwxyz") {
+		return fmt.Errorf("password must contain at least one lowercase letter")
+	}
+
+	if us.config.PasswordRequireDigit && !strings.ContainsAny(password, "0123456789") {
+		return fmt.Errorf("password must contain at least one digit")
+	}
+
+	if us.config.PasswordRequireSpecial && !strings.ContainsAny(password, "!@#$%^&*()_+-=[]{}|;:,.<>?") {
+		return fmt.Errorf("password must contain at least one special character")
+	}
+
 	return nil
 }
 
@@ -546,6 +618,198 @@ func (us *UserService) logAuditEvent(userID, action, resource, resourceID, ipAdd
 	if err := us.db.StoreJSON(key, auditLog); err != nil {
 		log.Printf("Failed to log audit event: %v", err)
 	}
+}
+
+// CreateSession creates a new user session
+func (us *UserService) CreateSession(userID, ipAddress, userAgent string) (*objects.UserSession, error) {
+	now := time.Now()
+
+	// Generate session token
+	token, err := objects.GenerateSecureToken(32)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate session token: %w", err)
+	}
+
+	session := &objects.UserSession{
+		ID:           fmt.Sprintf("session_%d", now.UnixNano()),
+		UserID:       userID,
+		Token:        token,
+		IPAddress:    ipAddress,
+		UserAgent:    userAgent,
+		CreatedAt:    now,
+		ExpiresAt:    now.Add(us.config.SessionTimeout),
+		LastActivity: now,
+		IsActive:     true,
+	}
+
+	// Store session
+	sessionKey := fmt.Sprintf("sessions:%s", session.ID)
+	if err := us.db.StoreJSON(sessionKey, session); err != nil {
+		return nil, fmt.Errorf("failed to store session: %w", err)
+	}
+
+	log.Printf("AuthService: Session created for user %s: %s", userID, session.ID)
+	return session, nil
+}
+
+// GetSession retrieves a session by ID
+func (us *UserService) GetSession(sessionID string) (*objects.UserSession, error) {
+	var session objects.UserSession
+	sessionKey := fmt.Sprintf("sessions:%s", sessionID)
+	if err := us.db.GetJSON(sessionKey, &session); err != nil {
+		return nil, fmt.Errorf("session not found: %w", err)
+	}
+	return &session, nil
+}
+
+// GetSessionByToken retrieves a session by token
+func (us *UserService) GetSessionByToken(token string) (*objects.UserSession, error) {
+	var session objects.UserSession
+	found := false
+
+	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
+		return tx.AscendKeys("sessions:*", func(key, value string) bool {
+			var s objects.UserSession
+			if err := json.Unmarshal([]byte(value), &s); err == nil && s.Token == token {
+				session = s
+				found = true
+				return false // Stop iteration
+			}
+			return true // Continue
+		})
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("database query failed: %w", err)
+	}
+
+	if !found {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	return &session, nil
+}
+
+// ValidateSession validates a session and updates its activity
+func (us *UserService) ValidateSession(token string) (*objects.UserSession, error) {
+	session, err := us.GetSessionByToken(token)
+	if err != nil {
+		return nil, fmt.Errorf("invalid session: %w", err)
+	}
+
+	if !session.IsSessionActive() {
+		return nil, fmt.Errorf("session expired or inactive")
+	}
+
+	// Update last activity
+	session.UpdateActivity()
+	sessionKey := fmt.Sprintf("sessions:%s", session.ID)
+	if err := us.db.StoreJSON(sessionKey, session); err != nil {
+		log.Printf("Failed to update session activity: %v", err)
+	}
+
+	return session, nil
+}
+
+// RefreshSession extends the session expiration time
+func (us *UserService) RefreshSession(sessionID string) error {
+	session, err := us.GetSession(sessionID)
+	if err != nil {
+		return err
+	}
+
+	if !session.IsActive {
+		return fmt.Errorf("session is not active")
+	}
+
+	// Extend expiration
+	session.ExpiresAt = time.Now().Add(us.config.SessionTimeout)
+	session.UpdateActivity()
+
+	sessionKey := fmt.Sprintf("sessions:%s", session.ID)
+	if err := us.db.StoreJSON(sessionKey, session); err != nil {
+		return fmt.Errorf("failed to refresh session: %w", err)
+	}
+
+	log.Printf("AuthService: Session refreshed: %s", sessionID)
+	return nil
+}
+
+// ExpireSession marks a session as inactive
+func (us *UserService) ExpireSession(sessionID string) error {
+	session, err := us.GetSession(sessionID)
+	if err != nil {
+		return err
+	}
+
+	session.IsActive = false
+	sessionKey := fmt.Sprintf("sessions:%s", session.ID)
+	if err := us.db.StoreJSON(sessionKey, session); err != nil {
+		return fmt.Errorf("failed to expire session: %w", err)
+	}
+
+	log.Printf("AuthService: Session expired: %s", sessionID)
+	return nil
+}
+
+// ExpireUserSessions expires all sessions for a user
+func (us *UserService) ExpireUserSessions(userID string) error {
+	var sessions []objects.UserSession
+
+	// Find all sessions for the user
+	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
+		return tx.AscendKeys("sessions:*", func(key, value string) bool {
+			var s objects.UserSession
+			if err := json.Unmarshal([]byte(value), &s); err == nil && s.UserID == userID {
+				sessions = append(sessions, s)
+			}
+			return true // Continue
+		})
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to find user sessions: %w", err)
+	}
+
+	// Expire all sessions
+	for _, session := range sessions {
+		if err := us.ExpireSession(session.ID); err != nil {
+			log.Printf("Failed to expire session %s: %v", session.ID, err)
+		}
+	}
+
+	log.Printf("AuthService: Expired %d sessions for user %s", len(sessions), userID)
+	return nil
+}
+
+// CleanupExpiredSessions removes expired sessions from the database
+func (us *UserService) CleanupExpiredSessions() error {
+	var expiredSessions []string
+
+	// Find expired sessions
+	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
+		return tx.AscendKeys("sessions:*", func(key, value string) bool {
+			var s objects.UserSession
+			if err := json.Unmarshal([]byte(value), &s); err == nil && s.IsExpired() {
+				expiredSessions = append(expiredSessions, key)
+			}
+			return true
+		})
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to find expired sessions: %w", err)
+	}
+
+	// Delete expired sessions
+	for _, key := range expiredSessions {
+		if err := us.db.DeleteKey(key); err != nil {
+			log.Printf("Failed to delete expired session %s: %v", key, err)
+		}
+	}
+
+	log.Printf("AuthService: Cleaned up %d expired sessions", len(expiredSessions))
+	return nil
 }
 
 // GetClientIP extracts the real client IP from various headers

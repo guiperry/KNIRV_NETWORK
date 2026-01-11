@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	// dataengine "backend_server/internal/data-engine" // TODO: Fix data-engine compilation issues
-	dataengine "backend_server/internal/data-engine"
+	// data_engine "backend_server/internal/data_engine" // TODO: Fix data_engine compilation issues
+	data_engine "backend_server/internal/data_engine"
 	ebpf "backend_server/internal/ebpf"
 	"backend_server/internal/services/teesecurity"
 )
@@ -21,7 +21,7 @@ import (
 type CDEService struct {
 	// Core components
 	teeSecurityService  *teesecurity.TEESecurityService
-	dataEngine          *dataengine.BuntDBDataEngine
+	dataEngine          *data_engine.BuntDBDataEngine
 	virtualContainerMgr *ebpf.VirtualContainerManager
 
 	// Environment management
@@ -238,7 +238,7 @@ type CDEResourcePool struct {
 }
 
 // NewCDEService creates a new CDE service
-func NewCDEService(teeSecurityService *teesecurity.TEESecurityService, dataEngine *dataengine.BuntDBDataEngine, virtualContainerMgr *ebpf.VirtualContainerManager, config CDEConfig) (*CDEService, error) {
+func NewCDEService(teeSecurityService *teesecurity.TEESecurityService, dataEngine *data_engine.BuntDBDataEngine, virtualContainerMgr *ebpf.VirtualContainerManager, config CDEConfig) (*CDEService, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	service := &CDEService{

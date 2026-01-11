@@ -12,7 +12,7 @@ import (
 
 	"backend_server/internal/config"
 	"backend_server/internal/database"
-	"backend_server/pkg/p2p"
+	"backend_server/internal/services/p2p"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,7 +33,7 @@ func TestNewAPIServer(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
@@ -61,7 +61,7 @@ func TestAPIServer_Start(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
@@ -92,7 +92,7 @@ func TestAPIServer_Stop(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
@@ -126,7 +126,7 @@ func TestAPIServer_corsMiddleware(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
@@ -178,7 +178,7 @@ func TestAPIServer_handleHealth(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
@@ -218,7 +218,7 @@ func TestAPIServer_handleValidationTasks(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
@@ -282,7 +282,7 @@ func TestAPIServer_handleValidationTaskDetails(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
@@ -314,7 +314,7 @@ func TestAPIServer_handleValidationResults(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
@@ -353,7 +353,7 @@ func TestAPIServer_handleValidationResultDetails(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
@@ -385,7 +385,7 @@ func TestAPIServer_handleSystemStatus(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
@@ -425,7 +425,7 @@ func TestAPIServer_handleSystemMetrics(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
 	require.NoError(t, err)
 
 	validationCore, err := NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
