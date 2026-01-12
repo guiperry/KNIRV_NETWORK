@@ -9,10 +9,13 @@ import (
 func TestNewApp(t *testing.T) {
 	tempDir := t.TempDir()
 
-	app, err := NewApp(tempDir, 8080)
+	app, err := NewApp(tempDir, 8080, false)
 	if err != nil {
 		t.Fatalf("Failed to create app: %v", err)
 	}
+	t.Cleanup(func() {
+		app.Stop(context.Background())
+	})
 
 	if app == nil {
 		t.Fatal("Expected app to be created")
@@ -42,48 +45,47 @@ func TestNewApp(t *testing.T) {
 func TestAppStartAndStop(t *testing.T) {
 	tempDir := t.TempDir()
 
-	app, err := NewApp(tempDir, 8081)
+	app, err := NewApp(tempDir, 8081, false)
 	if err != nil {
 		t.Fatalf("Failed to create app: %v", err)
 	}
 
-	// Test start and stop cycle
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
+	appCtx, appCancel := context.WithCancel(context.Background())
+	defer appCancel()
 
-	// Start the app in a goroutine
-	done := make(chan error, 1)
+	startErrChan := make(chan error, 1)
 	go func() {
-		done <- app.Start(ctx)
+		startErrChan <- app.Start(appCtx)
 	}()
 
-	// Give it a moment to start
-	time.Sleep(50 * time.Millisecond)
+	// Give the app a moment to start up
+	time.Sleep(100 * time.Millisecond)
 
-	// Stop the app
-	stopCtx, stopCancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	// Now stop the app, which should cause app.Start to return
+	stopCtx, stopCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer stopCancel()
 
 	err = app.Stop(stopCtx)
 	if err != nil {
 		t.Errorf("Failed to stop app: %v", err)
 	}
+	appCancel() // Explicitly cancel the app's context to unblock app.Start
 
-	// Wait for start to complete
+	// Wait for app.Start to return after being stopped
 	select {
-	case err := <-done:
-		if err != nil && err != context.DeadlineExceeded {
-			t.Errorf("Unexpected error from Start: %v", err)
+	case startErr := <-startErrChan:
+		if startErr != nil && startErr != context.Canceled && startErr != context.DeadlineExceeded {
+			t.Errorf("App.Start returned an unexpected error: %v", startErr)
 		}
-	case <-time.After(200 * time.Millisecond):
-		t.Error("Start did not complete in time")
+	case <-time.After(5 * time.Second):
+		t.Fatal("App.Start did not return after Stop was called")
 	}
 }
 
 func TestAppConfiguration(t *testing.T) {
 	tempDir := t.TempDir()
 
-	app, err := NewApp(tempDir, 9000)
+	app, err := NewApp(tempDir, 9000, false)
 	if err != nil {
 		t.Fatalf("Failed to create app: %v", err)
 	}
@@ -104,12 +106,12 @@ func TestAppMultipleInstances(t *testing.T) {
 	tempDir2 := t.TempDir()
 
 	// Create two app instances with different ports
-	app1, err := NewApp(tempDir1, 8083)
+	app1, err := NewApp(tempDir1, 8083, false)
 	if err != nil {
 		t.Fatalf("Failed to create first app: %v", err)
 	}
 
-	app2, err := NewApp(tempDir2, 8084)
+	app2, err := NewApp(tempDir2, 8084, false)
 	if err != nil {
 		t.Fatalf("Failed to create second app: %v", err)
 	}

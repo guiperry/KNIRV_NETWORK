@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"time"
 
-	"blockchain-app/internal/nrv"
+	"KNIRVGRAPH/internal/nrv"
 )
 
 // ProofOfSolution implements the Proof-of-Solution consensus mechanism for KNIRVGRAPH

@@ -6,31 +6,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
-
-// WebSocketServer handles real-time updates (simplified for KNIRVGRAPH)
-type WebSocketServer struct {
-	clientsMutex sync.RWMutex
-	broadcast    chan interface{}
-	server       *http.Server
-	dataEngine   *DataEngine
-	isRunning    bool
-	ctx          context.Context
-	cancel       context.CancelFunc
-	eventLog     []interface{}
-}
-
-// WebSocketConfig contains configuration for the WebSocket server
-type WebSocketConfig struct {
-	Port            int
-	ReadBufferSize  int
-	WriteBufferSize int
-	CheckOrigin     bool
-}
 
 // NewWebSocketServer creates a new WebSocket server
 func NewWebSocketServer(config WebSocketConfig, dataEngine *DataEngine) *WebSocketServer {
@@ -49,11 +28,20 @@ func NewWebSocketServer(config WebSocketConfig, dataEngine *DataEngine) *WebSock
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &WebSocketServer{
+		clients:    make(map[*websocket.Conn]bool),
 		broadcast:  make(chan interface{}, 100),
 		dataEngine: dataEngine,
 		ctx:        ctx,
 		cancel:     cancel,
 		eventLog:   make([]interface{}, 0),
+		upgrader: websocket.Upgrader{
+			ReadBufferSize:  config.ReadBufferSize,
+			WriteBufferSize: config.WriteBufferSize,
+			CheckOrigin: func(r *http.Request) bool {
+				return config.CheckOrigin
+			},
+		},
+		config: config, // Store the config
 	}
 }
 
@@ -72,7 +60,7 @@ func (s *WebSocketServer) Start() error {
 	mux.HandleFunc("/health", s.handleHealth)
 
 	s.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", 8080),
+		Addr:    fmt.Sprintf(":%d", s.config.Port), // Use s.config.Port here
 		Handler: mux,
 	}
 
@@ -151,28 +139,19 @@ func (s *WebSocketServer) Stop() error {
 
 // handleWebSocket handles HTTP requests (simplified for KNIRVGRAPH)
 func (s *WebSocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	// Set headers for JSON response
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	// Return current event log as JSON
-	s.clientsMutex.RLock()
-	defer s.clientsMutex.RUnlock()
-
-	// Return current data as JSON
-	response := map[string]interface{}{
-		"type": "status",
-		"data": map[string]interface{}{
-			"isRunning": s.isRunning,
-			"eventLog":  s.eventLog,
-		},
+	conn, err := s.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("Failed to upgrade connection: %v", err)
+		return
 	}
 
-	if s.dataEngine != nil {
-		response["metrics"] = s.dataEngine.GetMetrics()
-	}
+	// Register client
+	s.clientsMutex.Lock()
+	s.clients[conn] = true
+	s.clientsMutex.Unlock()
 
-	json.NewEncoder(w).Encode(response)
+	// Handle client messages
+	go s.handleClient(conn)
 }
 
 // handleClient handles messages from a WebSocket client

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"blockchain-app/internal/app"
+	"KNIRVGRAPH/internal/app"
 	"context"
 	"flag"
 	"log"
@@ -50,7 +50,7 @@ func main() {
 	}
 
 	// Create and start GraphChain application
-	app, err := app.NewAppWithConfig(*homeDir, *rpcPort, config)
+	app, err := app.NewAppWithConfig(*homeDir, *rpcPort, config, true)
 	if err != nil {
 		log.Fatalf("Failed to create app: %v", err)
 	}

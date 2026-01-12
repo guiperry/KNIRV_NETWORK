@@ -1,12 +1,12 @@
 package app
 
 import (
-	"blockchain-app/internal/economics"
-	"blockchain-app/internal/graphchain"
-	"blockchain-app/internal/network"
-	"blockchain-app/internal/nrv"
-	"blockchain-app/internal/p2p"
-	"blockchain-app/internal/storage"
+	"KNIRVGRAPH/internal/economics"
+	"KNIRVGRAPH/internal/graphchain"
+	"KNIRVGRAPH/internal/network"
+	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/p2p"
+	"KNIRVGRAPH/internal/storage"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -41,13 +41,13 @@ type App struct {
 	proofOfSolution *economics.ProofOfSolution
 	rpc             *network.RPCServer
 	storage         storage.GraphStorage
-	dhtManager      *p2p.DHTManager
+	dhtManager      p2p.DHTManagerInterface
 	logger          *zap.Logger
 	config          *Config
 }
 
 // NewApp creates a new GraphChain application instance
-func NewApp(homeDir string, rpcPort int) (*App, error) {
+func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	logger, _ := zap.NewProduction()
 
 	// Initialize default config
@@ -75,14 +75,14 @@ func NewApp(homeDir string, rpcPort int) (*App, error) {
 	// Initialize NRV system
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
-	// Get KNIRVORACLE URL from environment or use default
-	knirvRootURL := os.Getenv("KNIRVORACLE_URL")
-	if knirvRootURL == "" {
-		knirvRootURL = "http://localhost:1317" // Default KNIRVORACLE URL
+	// Get KNIRV_ORACLED RPC URL from environment or use default
+	knirvOracledRPCURL := os.Getenv("KNIRV_ORACLED_RPC_URL")
+	if knirvOracledRPCURL == "" {
+		knirvOracledRPCURL = "http://knirv-oracled:26657" // Default knirv-oracled RPC URL
 	}
 
 	// Initialize NRN integration
-	nrnIntegration := economics.NewNRNIntegration(knirvRootURL, nrvSystem)
+	nrnIntegration := economics.NewNRNIntegration(knirvOracledRPCURL, nrvSystem)
 
 	// Initialize Proof-of-Solution
 	proofOfSolution := economics.NewProofOfSolution(nrnIntegration, nrvSystem)
@@ -99,7 +99,7 @@ func NewApp(homeDir string, rpcPort int) (*App, error) {
 	}
 
 	serviceID := fmt.Sprintf("knirvgraph-%s", config.Testnet.ChainID)
-	dhtManager, err := p2p.NewDHTManager(serviceID, config.Testnet.ChainID, bootstrapPeers)
+	dhtManager, err := p2p.NewDHTManager(serviceID, config.Testnet.ChainID, bootstrapPeers, enableAutoRelay)
 	if err != nil {
 		logger.Warn("Failed to initialize DHT manager", zap.Error(err))
 		// Continue without DHT for now
@@ -130,7 +130,7 @@ func (app *App) GetConfig() *Config {
 }
 
 // NewAppWithConfig creates a new App instance with optional configuration
-func NewAppWithConfig(homeDir string, rpcPort int, config *Config) (*App, error) {
+func NewAppWithConfig(homeDir string, rpcPort int, config *Config, enableAutoRelay bool) (*App, error) {
 	logger, _ := zap.NewProduction()
 
 	var storageInstance storage.GraphStorage
@@ -157,14 +157,14 @@ func NewAppWithConfig(homeDir string, rpcPort int, config *Config) (*App, error)
 	// Initialize NRV system
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
-	// Get KNIRVORACLE URL from environment or use default
-	knirvRootURL := os.Getenv("KNIRVORACLE_URL")
-	if knirvRootURL == "" {
-		knirvRootURL = "http://localhost:1317" // Default KNIRVORACLE URL
+	// Get KNIRV_ORACLED RPC URL from environment or use default
+	knirvOracledRPCURL := os.Getenv("KNIRV_ORACLED_RPC_URL")
+	if knirvOracledRPCURL == "" {
+		knirvOracledRPCURL = "http://knirv-oracled:26657" // Default knirv-oracled RPC URL
 	}
 
 	// Initialize NRN integration
-	nrnIntegration := economics.NewNRNIntegration(knirvRootURL, nrvSystem)
+	nrnIntegration := economics.NewNRNIntegration(knirvOracledRPCURL, nrvSystem)
 
 	// Initialize Proof-of-Solution
 	proofOfSolution := economics.NewProofOfSolution(nrnIntegration, nrvSystem)
@@ -181,7 +181,7 @@ func NewAppWithConfig(homeDir string, rpcPort int, config *Config) (*App, error)
 	}
 
 	serviceID := fmt.Sprintf("knirvgraph-%s", config.Testnet.ChainID)
-	dhtManager, err := p2p.NewDHTManager(serviceID, config.Testnet.ChainID, bootstrapPeers)
+	dhtManager, err := p2p.NewDHTManager(serviceID, config.Testnet.ChainID, bootstrapPeers, enableAutoRelay)
 	if err != nil {
 		logger.Warn("Failed to initialize DHT manager", zap.Error(err))
 		// Continue without DHT for now

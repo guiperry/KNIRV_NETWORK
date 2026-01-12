@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"blockchain-app/internal/nrv"
+	"KNIRVGRAPH/internal/nrv"
 )
 
 // NRNIntegration handles NRN token economics for KNIRVGRAPH

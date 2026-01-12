@@ -1,7 +1,7 @@
 package main
 
 import (
-	"blockchain-app/internal/types"
+	"KNIRVGRAPH/internal/types"
 	"bytes"
 	"encoding/json"
 	"fmt"

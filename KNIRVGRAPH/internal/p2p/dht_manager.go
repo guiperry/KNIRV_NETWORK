@@ -1,3 +1,5 @@
+//go:build !test && !mock
+
 package p2p
 
 import (
@@ -30,7 +32,6 @@ const (
 	NetworkPauseTimeout = 30 * time.Minute
 )
 
-// DHTManager handles the Distributed Hash Table functionality for KNIRVGRAPH
 type DHTManager struct {
 	host           host.Host
 	kadDHT         *dht.IpfsDHT
@@ -107,7 +108,13 @@ type PropertyAnnouncementData struct {
 }
 
 // NewDHTManager creates a new DHT manager for KNIRVGRAPH
-func NewDHTManager(serviceID, chainID string, bootstrapPeers []string) (*DHTManager, error) {
+// NewDHTManager creates a new DHT manager for KNIRVGRAPH (exported for external use)
+func NewDHTManager(serviceID, chainID string, bootstrapPeers []string, enableAutoRelay bool) (DHTManagerInterface, error) {
+	return newDHTManager(serviceID, chainID, bootstrapPeers, enableAutoRelay)
+}
+
+// newDHTManager creates a new DHT manager for KNIRVGRAPH (unexported)
+func newDHTManager(serviceID, chainID string, bootstrapPeers []string, enableAutoRelay bool) (DHTManagerInterface, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Generate a new key pair for this node
@@ -117,17 +124,22 @@ func NewDHTManager(serviceID, chainID string, bootstrapPeers []string) (*DHTMana
 		return nil, fmt.Errorf("failed to generate key pair: %w", err)
 	}
 
-	// Create a new libp2p Host
-	h, err := libp2p.New(
+	opts := []libp2p.Option{
 		libp2p.Identity(priv),
 		libp2p.ListenAddrStrings(
 			"/ip4/0.0.0.0/tcp/9001",
 			"/ip6/::/tcp/9001",
 		),
-		libp2p.EnableNATService(),
-		libp2p.EnableAutoRelay(),
-		libp2p.EnableHolePunching(),
-	)
+	}
+
+	if enableAutoRelay {
+		opts = append(opts, libp2p.EnableNATService())
+		opts = append(opts, libp2p.EnableHolePunching())
+		opts = append(opts, libp2p.EnableAutoRelay())
+	}
+	
+	// Create a new libp2p Host
+	h, err := libp2p.New(opts...)
 	if err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to create libp2p host: %w", err)

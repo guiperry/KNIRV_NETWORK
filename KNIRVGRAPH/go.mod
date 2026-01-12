@@ -1,4 +1,4 @@
-module blockchain-app
+module KNIRVGRAPH
 
 go 1.23
 
