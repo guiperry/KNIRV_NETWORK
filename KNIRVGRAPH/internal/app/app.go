@@ -30,7 +30,67 @@ type TestnetConfig struct {
 
 // Config holds the application configuration
 type Config struct {
-	Testnet TestnetConfig `json:"testnet"`
+	Testnet   TestnetConfig  `json:"testnet"`
+	Node      NodeConfig     `json:"node"`
+	Network   NetworkConfig  `json:"network"`
+	Storage   StorageConfig  `json:"storage"`
+	DHT       DhtConfig      `json:"dht"`
+	DRQ       DrqConfig      `json:"drq"`
+	Clustering ClusteringConfig `json:"clustering"`
+	Topology  TopologyConfig `json:"topology"`
+	Validation ValidationConfig `json:"validation"`
+}
+
+// NetworkConfig holds network-specific configuration
+type NetworkConfig struct {
+	P2PPort int `json:"p2p_port"`
+	RPCPort int `json:"rpc_port"`
+	APIPort int `json:"api_port"`
+}
+
+// StorageConfig holds storage-specific configuration
+type StorageConfig struct {
+	DBType    string `json:"db_type"`
+	Path      string `json:"path"`
+	CacheSizeGB int    `json:"cache_size_gb"`
+}
+
+// DhtConfig holds DHT-specific configuration
+type DhtConfig struct {
+	Enabled        bool     `json:"enabled"`
+	BootstrapPeers []string `json:"bootstrap_peers"`
+}
+
+// DrqConfig holds DRQ-specific configuration
+type DrqConfig struct {
+	Enabled        bool    `json:"enabled"`
+	HistoryLength  int     `json:"history_length"`
+	LearningRate   float64 `json:"learning_rate"`
+	DiscountFactor float64 `json:"discount_factor"`
+	SyncInterval   string  `json:"sync_interval"` // e.g., "10s"
+}
+
+// ClusteringConfig holds clustering-specific configuration
+type ClusteringConfig struct {
+	EmbeddingModel     string  `json:"embedding_model"` // e.g., "bert_base_768"
+	SimilarityThreshold float64 `json:"similarity_threshold"`
+	MaxClusterSize     int     `json:"max_cluster_size"`
+	SpatialIndex       string  `json:"spatial_index"` // e.g., "kdtree"
+}
+
+// TopologyConfig holds topology-specific configuration
+type TopologyConfig struct {
+	MinDegree         int     `json:"min_degree"`
+	ScalingExponent   float64 `json:"scaling_exponent"`
+	RewireProbability float64 `json:"rewire_probability"`
+	PageRankIterations int    `json:"pagerank_iterations"`
+}
+
+// ValidationConfig holds validation-specific configuration
+type ValidationConfig struct {
+	DVEClientEnabled bool   `json:"dve_client_enabled"`
+	MinAttestations  int    `json:"min_attestations"`
+	Timeout          string `json:"timeout"` // e.g., "300s"
 }
 
 // App represents the main GraphChain application
@@ -61,10 +121,49 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 			Port:        rpcPort,
 			LocalMode:   true,
 		},
+		Node: GetDefaultNodeConfig(NODE_FULL), // Use default full node config
+		Network: NetworkConfig{
+			P2PPort: 9001, // Default libp2p port
+			RPCPort: rpcPort,
+			APIPort: 1317,
+		},
+		Storage: StorageConfig{
+			DBType:    "bluntdb",
+			Path:      fmt.Sprintf("%s/data", homeDir),
+			CacheSizeGB: 16,
+		},
+		DHT: DhtConfig{
+			Enabled:        true,
+			BootstrapPeers: []string{os.Getenv("KNIRV_BOOTSTRAP_PEER_1"), os.Getenv("KNIRV_BOOTSTRAP_PEER_2"), os.Getenv("KNIRV_BOOTSTRAP_PEER_3")},
+		},
+		DRQ: DrqConfig{
+			Enabled:        true,
+			HistoryLength:  3,
+			LearningRate:   0.01,
+			DiscountFactor: 0.95,
+			SyncInterval:   "10s",
+		},
+		Clustering: ClusteringConfig{
+			EmbeddingModel:     "bert_base_768",
+			SimilarityThreshold: 0.85,
+			MaxClusterSize:     100,
+			SpatialIndex:       "kdtree",
+		},
+		Topology: TopologyConfig{
+			MinDegree:         3,
+			ScalingExponent:   2.7,
+			RewireProbability: 0.01,
+			PageRankIterations: 100,
+		},
+		Validation: ValidationConfig{
+			DVEClientEnabled: true,
+			MinAttestations:  5,
+			Timeout:          "300s",
+		},
 	}
 
 	// Initialize BluntDB storage
-	storageInstance, err := storage.NewBluntDBStorage(fmt.Sprintf("%s/data", homeDir))
+	storageInstance, err := storage.NewBluntDBStorage(config.Storage.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize BluntDB storage: %w", err)
 	}
@@ -91,20 +190,21 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	var rpc *network.RPCServer
 
 	// Initialize DHT manager
-	bootstrapPeers := []string{
-		// Default bootstrap peers - these should be configured via environment variables
-		os.Getenv("KNIRV_BOOTSTRAP_PEER_1"),
-		os.Getenv("KNIRV_BOOTSTRAP_PEER_2"),
-		os.Getenv("KNIRV_BOOTSTRAP_PEER_3"),
-	}
-
-	serviceID := fmt.Sprintf("knirvgraph-%s", config.Testnet.ChainID)
-	dhtManager, err := p2p.NewDHTManager(serviceID, config.Testnet.ChainID, bootstrapPeers, enableAutoRelay)
+	// Use config.DHT settings
+	dhtManager, err := p2p.NewDHTManager(
+		fmt.Sprintf("knirvgraph-%s", config.Testnet.ChainID),
+		config.Testnet.ChainID,
+		config.DHT.BootstrapPeers,
+		enableAutoRelay,
+	)
 	if err != nil {
 		logger.Warn("Failed to initialize DHT manager", zap.Error(err))
 		// Continue without DHT for now
 		dhtManager = nil
 	}
+
+	// Explicitly assign to interface variable to help compiler
+	var dhtManagerInterface p2p.DHTManagerInterface = dhtManager
 
 	app := &App{
 		graphchain:      gc,
@@ -112,13 +212,13 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 		nrnIntegration:  nrnIntegration,
 		proofOfSolution: proofOfSolution,
 		storage:         storageInstance,
-		dhtManager:      dhtManager,
+		dhtManager:      dhtManagerInterface,
 		logger:          logger,
 		config:          config,
 	}
 
 	// Initialize RPC server with app reference
-	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, rpcPort)
+	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort)
 	app.rpc = rpc
 
 	return app, nil
@@ -130,14 +230,69 @@ func (app *App) GetConfig() *Config {
 }
 
 // NewAppWithConfig creates a new App instance with optional configuration
-func NewAppWithConfig(homeDir string, rpcPort int, config *Config, enableAutoRelay bool) (*App, error) {
+func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAutoRelay bool) (*App, error) {
 	logger, _ := zap.NewProduction()
+
+	// Use provided config or initialize default
+	config := appConfig
+	if config == nil {
+		config = &Config{
+			Testnet: TestnetConfig{
+				Enabled:     false,
+				InMemory:    false,
+				PrePopulate: false,
+				MaxNodes:    1000,
+				ChainID:     "knirvgraph-1",
+				Port:        rpcPort,
+				LocalMode:   true,
+			},
+			Node: GetDefaultNodeConfig(NODE_FULL), // Use default full node config
+			Network: NetworkConfig{
+				P2PPort: 9001, // Default libp2p port
+				RPCPort: rpcPort,
+				APIPort: 1317,
+			},
+			Storage: StorageConfig{
+				DBType:    "bluntdb",
+				Path:      fmt.Sprintf("%s/data", homeDir),
+				CacheSizeGB: 16,
+			},
+			DHT: DhtConfig{
+				Enabled:        true,
+				BootstrapPeers: []string{os.Getenv("KNIRV_BOOTSTRAP_PEER_1"), os.Getenv("KNIRV_BOOTSTRAP_PEER_2"), os.Getenv("KNIRV_BOOTSTRAP_PEER_3")},
+			},
+			DRQ: DrqConfig{
+				Enabled:        true,
+				HistoryLength:  3,
+				LearningRate:   0.01,
+				DiscountFactor: 0.95,
+				SyncInterval:   "10s",
+			},
+			Clustering: ClusteringConfig{
+				EmbeddingModel:     "bert_base_768",
+				SimilarityThreshold: 0.85,
+				MaxClusterSize:     100,
+				SpatialIndex:       "kdtree",
+			},
+			Topology: TopologyConfig{
+				MinDegree:         3,
+				ScalingExponent:   2.7,
+				RewireProbability: 0.01,
+				PageRankIterations: 100,
+			},
+			Validation: ValidationConfig{
+				DVEClientEnabled: true,
+				MinAttestations:  5,
+				Timeout:          "300s",
+			},
+		}
+	}
 
 	var storageInstance storage.GraphStorage
 	var err error
 
 	// Use in-memory storage for testnet if configured
-	if config != nil && config.Testnet.Enabled && config.Testnet.InMemory {
+	if config.Testnet.Enabled && config.Testnet.InMemory {
 		logger.Info("Using in-memory storage for testnet")
 		storageInstance, err = storage.NewMemoryStorage()
 		if err != nil {
@@ -145,7 +300,7 @@ func NewAppWithConfig(homeDir string, rpcPort int, config *Config, enableAutoRel
 		}
 	} else {
 		// Initialize BluntDB storage
-		storageInstance, err = storage.NewBluntDBStorage(fmt.Sprintf("%s/data", homeDir))
+		storageInstance, err = storage.NewBluntDBStorage(config.Storage.Path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize BluntDB storage: %w", err)
 		}
@@ -173,20 +328,21 @@ func NewAppWithConfig(homeDir string, rpcPort int, config *Config, enableAutoRel
 	var rpc *network.RPCServer
 
 	// Initialize DHT manager
-	bootstrapPeers := []string{
-		// Default bootstrap peers - these should be configured via environment variables
-		os.Getenv("KNIRV_BOOTSTRAP_PEER_1"),
-		os.Getenv("KNIRV_BOOTSTRAP_PEER_2"),
-		os.Getenv("KNIRV_BOOTSTRAP_PEER_3"),
-	}
-
-	serviceID := fmt.Sprintf("knirvgraph-%s", config.Testnet.ChainID)
-	dhtManager, err := p2p.NewDHTManager(serviceID, config.Testnet.ChainID, bootstrapPeers, enableAutoRelay)
+	// Use config.DHT settings
+	dhtManager, err := p2p.NewDHTManager(
+		fmt.Sprintf("knirvgraph-%s", config.Testnet.ChainID),
+		config.Testnet.ChainID,
+		config.DHT.BootstrapPeers,
+		enableAutoRelay,
+	)
 	if err != nil {
 		logger.Warn("Failed to initialize DHT manager", zap.Error(err))
 		// Continue without DHT for now
 		dhtManager = nil
 	}
+
+	// Explicitly assign to interface variable to help compiler
+	var dhtManagerInterface p2p.DHTManagerInterface = dhtManager
 
 	app := &App{
 		graphchain:      gc,
@@ -194,13 +350,13 @@ func NewAppWithConfig(homeDir string, rpcPort int, config *Config, enableAutoRel
 		nrnIntegration:  nrnIntegration,
 		proofOfSolution: proofOfSolution,
 		storage:         storageInstance,
-		dhtManager:      dhtManager,
+		dhtManager:      dhtManagerInterface,
 		logger:          logger,
 		config:          config,
 	}
 
 	// Initialize RPC server with app reference
-	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, rpcPort)
+	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort)
 	app.rpc = rpc
 
 	// Pre-populate test data if testnet mode is enabled

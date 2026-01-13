@@ -19,6 +19,8 @@ require (
 	go.uber.org/zap v1.27.0
 )
 
+replace github.com/knirvcorp/knirvbase/go => ./KNIRVBASE/go
+
 require (
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
