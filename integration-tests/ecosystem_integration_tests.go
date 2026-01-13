@@ -9,11 +9,21 @@ import (
 	"time"
 )
 
+// EcosystemTestResult represents the result of a single ecosystem test
+type EcosystemTestResult struct {
+	TestName  string                 `json:"test_name"`
+	Status    string                 `json:"status"`
+	Duration  time.Duration          `json:"duration"`
+	Error     string                 `json:"error,omitempty"`
+	Metrics   map[string]interface{} `json:"metrics,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+}
+
 // Ecosystem Integration Test Suite
 type EcosystemTestSuite struct {
 	baseURL    string
 	httpClient *http.Client
-	results    []TestResult
+	results    []EcosystemTestResult
 }
 
 // Ecosystem test structures
@@ -42,13 +52,13 @@ func NewEcosystemTestSuite(baseURL string) *EcosystemTestSuite {
 		httpClient: &http.Client{
 			Timeout: 60 * time.Second,
 		},
-		results: make([]TestResult, 0),
+		results: make([]EcosystemTestResult, 0),
 	}
 }
 
 // Add test result
 func (suite *EcosystemTestSuite) addResult(testName, status string, duration time.Duration, err error, metrics map[string]interface{}) {
-	result := TestResult{
+	result := EcosystemTestResult{
 		TestName:  testName,
 		Status:    status,
 		Duration:  duration,
@@ -540,7 +550,7 @@ func (suite *EcosystemTestSuite) generateSyntheticImageData(width, height, chann
 }
 
 // Get test results
-func (suite *EcosystemTestSuite) getResults() []TestResult {
+func (suite *EcosystemTestSuite) getResults() []EcosystemTestResult {
 	return suite.results
 }
 

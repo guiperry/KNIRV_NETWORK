@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/guiperry/KNIRVCHAIN-CLI/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/config"
 	"github.com/spf13/cobra"
 )
 

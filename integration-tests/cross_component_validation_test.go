@@ -152,7 +152,7 @@ func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 		time.Sleep(5 * time.Second)
 
 		// Verify agent creation is recorded in KNIRVORACLE blockchain
-		resp, err = v.suite.makeRequest("GET", v.suite.knirvRootURL+"/blockchain/transactions?type=agent_creation&agent_id="+agentID, nil)
+		resp, err = v.suite.makeRequest("GET", v.suite.knirvGatewayAPIURL+"/blockchain/transactions?type=agent_creation&agent_id="+agentID, nil)
 		require.NoError(t, err)
 
 		var transactions []map[string]interface{}
@@ -171,7 +171,7 @@ func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 	// Test 2: Agent execution consumes NRN tokens
 	t.Run("AgentExecutionTokenConsumption", func(t *testing.T) {
 		// Get initial wallet balance
-		resp, err := v.suite.makeRequest("GET", v.suite.knirvRootURL+"/wallet/"+v.suite.testWallet.Address+"/balance", nil)
+		resp, err := v.suite.makeRequest("GET", v.suite.knirvGatewayAPIURL+"/wallet/"+v.suite.testWallet.Address+"/balance", nil)
 		require.NoError(t, err)
 
 		var initialBalance map[string]interface{}
@@ -213,7 +213,7 @@ func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 		time.Sleep(10 * time.Second)
 
 		// Check final wallet balance
-		resp, err = v.suite.makeRequest("GET", v.suite.knirvRootURL+"/wallet/"+v.suite.testWallet.Address+"/balance", nil)
+		resp, err = v.suite.makeRequest("GET", v.suite.knirvGatewayAPIURL+"/wallet/"+v.suite.testWallet.Address+"/balance", nil)
 		require.NoError(t, err)
 
 		var finalBalance map[string]interface{}
@@ -234,7 +234,7 @@ func (v *CrossComponentValidator) TestKNIRVROUTERRootIntegration(t *testing.T) {
 	// Test 1: Connectivity proof generates NRN rewards
 	t.Run("ConnectivityProofRewards", func(t *testing.T) {
 		// Get initial balance
-		resp, err := v.suite.makeRequest("GET", v.suite.knirvRootURL+"/wallet/"+v.suite.testWallet.Address+"/balance", nil)
+		resp, err := v.suite.makeRequest("GET", v.suite.knirvGatewayAPIURL+"/wallet/"+v.suite.testWallet.Address+"/balance", nil)
 		require.NoError(t, err)
 
 		var initialBalance map[string]interface{}
@@ -263,7 +263,7 @@ func (v *CrossComponentValidator) TestKNIRVROUTERRootIntegration(t *testing.T) {
 		time.Sleep(15 * time.Second)
 
 		// Check if rewards were distributed
-		resp, err = v.suite.makeRequest("GET", v.suite.knirvRootURL+"/wallet/"+v.suite.testWallet.Address+"/balance", nil)
+		resp, err = v.suite.makeRequest("GET", v.suite.knirvGatewayAPIURL+"/wallet/"+v.suite.testWallet.Address+"/balance", nil)
 		require.NoError(t, err)
 
 		var finalBalance map[string]interface{}
@@ -274,7 +274,7 @@ func (v *CrossComponentValidator) TestKNIRVROUTERRootIntegration(t *testing.T) {
 			initialBalance["balance"], finalBalance["balance"])
 
 		// Verify reward transaction exists
-		resp, err = v.suite.makeRequest("GET", v.suite.knirvRootURL+"/blockchain/transactions?type=connectivity_reward&proof_id="+proofID, nil)
+		resp, err = v.suite.makeRequest("GET", v.suite.knirvGatewayAPIURL+"/blockchain/transactions?type=connectivity_reward&proof_id="+proofID, nil)
 		require.NoError(t, err)
 
 		var rewardTxs []map[string]interface{}

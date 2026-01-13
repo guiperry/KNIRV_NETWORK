@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/guiperry/KNIRVCHAIN-CLI/core"
-	"github.com/guiperry/KNIRVCHAIN-CLI/ui"
-	"github.com/guiperry/KNIRVCHAIN-CLI/ui/screens"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/ui"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/ui/screens"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

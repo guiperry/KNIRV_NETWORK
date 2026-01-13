@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/internal/requestconfig"
-	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/gateway/internal/requestconfig"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
 )
 
 // convertOptions converts option.RequestOption to requestconfig.RequestOption

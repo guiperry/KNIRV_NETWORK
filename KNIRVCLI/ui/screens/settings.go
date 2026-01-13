@@ -7,8 +7,8 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/guiperry/KNIRVCHAIN-CLI/ui"
-	"github.com/guiperry/KNIRVCHAIN-CLI/ui/components"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/ui"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/ui/components"
 )
 
 // SettingsKeyMap defines keybindings for the settings screen

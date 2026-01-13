@@ -4,43 +4,45 @@
 # Stage 1: Frontend Build
 FROM node:18-alpine AS frontend-builder
 
-WORKDIR /app
+WORKDIR /app/frontend
 
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
-COPY next.config.ts ./
-COPY tailwind.config.ts ./
-COPY postcss.config.mjs ./
-COPY components.json ./
+# Copy package files (relative to current build context `./KNIRVNEXUS/`)
+COPY frontend/package*.json ./
+COPY frontend/tsconfig.json ./
+COPY frontend/next.config.ts ./
+COPY frontend/tailwind.config.ts ./
+COPY frontend/postcss.config.mjs ./
+COPY frontend/components.json ./
 
 # Install dependencies
 RUN npm ci --only=production
 
-# Copy source code
-COPY src/ ./src/
-COPY public/ ./public/
+# Copy source code (relative to current build context `./KNIRVNEXUS/`)
+COPY frontend/src/ ./src/
+COPY frontend/public/ ./public/
+COPY frontend/scripts/ ./scripts/
 
 # Build frontend
 RUN npm run build
 
 # Stage 2: Backend Build
-FROM golang:1.21-alpine AS backend-builder
+FROM golang:1.24-alpine AS backend-builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app
 
-# Copy Go modules
+# Copy Go modules (relative to current build context `./KNIRVNEXUS/`)
 COPY backend/go.mod backend/go.sum ./
+COPY KNIRVBASE ./KNIRVBASE
 RUN go mod download
 
-# Copy backend source
+# Copy backend source (relative to current build context `./KNIRVNEXUS/`)
 COPY backend/ ./
 
 # Copy frontend build output to embed location
-COPY --from=frontend-builder /app/out ./pkg/gui/frontend/dist/
+COPY --from=frontend-builder /app/frontend/out ./pkg/gui/frontend/dist/ 
 
 # Build flags
 ARG VERSION=dev
@@ -81,10 +83,10 @@ RUN mkdir -p /opt/knirv-nexus/{bin,config,data,logs} && \
 WORKDIR /opt/knirv-nexus
 
 # Copy binary from builder
-COPY --from=backend-builder /app/bin/knirv-nexus ./bin/
+COPY --from=backend-builder /app/bin/knirv-nexus ./bin/ 
 
-# Copy configuration files
-COPY backend/config/ ./config/
+# Copy configuration files (relative to current build context `./KNIRVNEXUS/`)
+COPY config/ ./config/ 
 
 # Set permissions
 RUN chmod +x ./bin/knirv-nexus && \

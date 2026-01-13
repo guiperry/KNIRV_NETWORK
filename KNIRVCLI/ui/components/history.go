@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/guiperry/KNIRVCHAIN-CLI/ui"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/ui"
 )
 
 // CommandEntry represents a command history entry

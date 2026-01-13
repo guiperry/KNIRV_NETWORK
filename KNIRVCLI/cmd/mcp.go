@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/guiperry/KNIRVCHAIN-CLI/cmd/mcp"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/cmd/mcp"
 	"github.com/spf13/cobra"
 )
 

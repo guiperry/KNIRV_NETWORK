@@ -181,7 +181,7 @@ type CortexTestConfig struct {
 }
 
 // Test result structures
-type TestResult struct {
+type CortexTestResult struct {
 	TestName  string                 `json:"test_name"`
 	Status    string                 `json:"status"`
 	Duration  time.Duration          `json:"duration"`
@@ -192,7 +192,7 @@ type TestResult struct {
 
 type CortexTestSuite struct {
 	config     *CortexTestConfig
-	results    []TestResult
+	results    []CortexTestResult
 	httpClient *http.Client
 	startTime  time.Time
 }
@@ -224,7 +224,7 @@ func NewCortexTestSuite() (*CortexTestSuite, error) {
 
 	return &CortexTestSuite{
 		config:  config,
-		results: make([]TestResult, 0),
+		results: make([]CortexTestResult, 0),
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -234,7 +234,7 @@ func NewCortexTestSuite() (*CortexTestSuite, error) {
 
 // Add test result
 func (suite *CortexTestSuite) addResult(testName, status string, duration time.Duration, err error, metrics map[string]interface{}) {
-	result := TestResult{
+	result := CortexTestResult{
 		TestName:  testName,
 		Status:    status,
 		Duration:  duration,

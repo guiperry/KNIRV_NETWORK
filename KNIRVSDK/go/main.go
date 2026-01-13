@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway"
-	// "github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction" // TODO: Fix import paths
-	// "github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transmission" // TODO: Fix missing dependencies
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/gateway"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/oracled"
+	// "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/transaction" // TODO: Fix import paths
+	// "github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/transmission" // TODO: Fix missing dependencies
 )
 
 func main() {
@@ -22,6 +23,11 @@ func main() {
 		fmt.Println("✓ Gateway client initialized")
 		_ = gatewayClient // Use the client to avoid unused variable warning
 	}
+
+	// Initialize oracled client
+	oracledClient := oracled.NewClient("http://localhost:26657") // Default for local
+	fmt.Println("✓ Oracled client initialized")
+	_ = oracledClient // Use the client to avoid unused variable warning
 
 	// TODO: Initialize transaction client when import paths are fixed
 	// txClient, err := transaction.NewClient("http://localhost:8080")

@@ -5,7 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/guiperry/KNIRVCHAIN-CLI/ui"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/ui"
 )
 
 // Table is a component that displays a table

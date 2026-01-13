@@ -1,4 +1,4 @@
-module github.com/guiperry/KNIRVCHAIN-CLI
+module github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI
 
 go 1.23.1
 
@@ -22,6 +22,10 @@ require (
 	github.com/wk8/go-ordered-map/v2 v2.1.8
 	golang.org/x/crypto v0.36.0
 )
+
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/core => ./core
+
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE => ../KNIRVORACLE
 
 require (
 	cloud.google.com/go v0.115.0 // indirect

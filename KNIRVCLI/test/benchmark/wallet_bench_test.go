@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/guiperry/KNIRVCHAIN-CLI/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/core"
 )
 
 func BenchmarkWalletCreation(b *testing.B) {

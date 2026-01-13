@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/guiperry/KNIRVCHAIN-CLI/config"
-	"github.com/guiperry/KNIRVCHAIN-CLI/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/core"
 	"github.com/spf13/cobra"
 )
 

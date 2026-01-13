@@ -2,10 +2,7 @@ package integration_tests
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
@@ -13,66 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type IntegrationTestSuite struct {
-	knirvchainURL           string
-	knirvgraphURL           string
-	knirvnexusFrontendURL   string
-	knirvnexusAPIGatewayURL string
-	knirvnexusDVEManagerURL string
-	knirvnexusValidationURL string
-	knirvwalletURL          string
-	knirvshellURL           string
-	knirvroterURL           string
-	knirvRootURL            string
-	xionRPC                 string
-	testWallet              *TestWallet
-}
+// This file is now refactored to use common test utilities from test_utils.go.
+// The IntegrationTestSuite struct and its constructor, along with helper methods
+// are now from test_utils.go.
 
-type TestWallet struct {
-	Address  string `json:"address"`
-	Mnemonic string `json:"mnemonic"`
-	Balance  string `json:"balance"`
-	Type     string `json:"type,omitempty"`
-}
-
-func NewIntegrationTestSuite() *IntegrationTestSuite {
-	return &IntegrationTestSuite{
-		knirvchainURL:           "http://localhost:8080",
-		knirvgraphURL:           "http://localhost:8081",
-		knirvnexusFrontendURL:   "http://localhost:3000", // KNIRVNEXUS Frontend (Next.js)
-		knirvnexusAPIGatewayURL: "http://localhost:8080", // KNIRVNEXUS API Gateway
-		knirvnexusDVEManagerURL: "http://localhost:8081", // KNIRVNEXUS DVE Manager
-		knirvnexusValidationURL: "http://localhost:8082", // KNIRVNEXUS Validation Core
-		knirvwalletURL:          "http://localhost:8083", // KNIRVWALLET
-		knirvshellURL:           "http://localhost:8084", // KNIRVCORTEX
-		knirvroterURL:           "http://localhost:8085", // KNIRVROUTER
-		knirvRootURL:            "http://localhost:8086", // KNIRVORACLE
-		xionRPC:                 "https://rpc.xion-testnet-1.burnt.com:443",
-	}
-}
-
-func (suite *IntegrationTestSuite) SetupTest(t *testing.T) {
-	// Try to create test wallet (skip if KNIRVWALLET service not available)
-	wallet, err := suite.createTestWallet()
-	if err != nil {
-		t.Logf("Warning: Could not create test wallet (KNIRVWALLET service may not be running): %v", err)
-		suite.testWallet = nil
-		return
-	}
-	suite.testWallet = wallet
-
-	// Fund wallet with test tokens
-	err = suite.fundTestWallet()
-	if err != nil {
-		t.Logf("Warning: Could not fund test wallet: %v", err)
-		return
-	}
-
-	// Wait for funding to confirm
-	time.Sleep(5 * time.Second)
-}
-
-func (suite *IntegrationTestSuite) TestFullWorkflow(t *testing.T) {
+// TestFullWorkflow runs a full end-to-end workflow across multiple KNIRV services.
+func TestFullWorkflow(t *testing.T) {
+	suite := NewIntegrationTestSuite()
 	suite.SetupTest(t)
 
 	// Test 1: Register LLM on KNIRVCHAIN
@@ -251,66 +195,10 @@ func (suite *IntegrationTestSuite) TestFullWorkflow(t *testing.T) {
 	})
 }
 
-func (suite *IntegrationTestSuite) createTestWallet() (*TestWallet, error) {
-	// Create wallet using KNIRVWALLET service
-	resp, err := suite.makeRequest("POST", suite.knirvwalletURL+"/wallet/create", map[string]interface{}{
-		"name": "integration_test_wallet",
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	var wallet TestWallet
-	err = json.Unmarshal(resp, &wallet)
-	return &wallet, err
-}
-
-func (suite *IntegrationTestSuite) fundTestWallet() error {
-	// Fund wallet with test NRN tokens
-	fundData := map[string]interface{}{
-		"address": suite.testWallet.Address,
-		"amount":  "10000000", // 10 NRN
-	}
-
-	_, err := suite.makeRequest("POST", suite.knirvchainURL+"/faucet/fund", fundData)
-	return err
-}
-
-func (suite *IntegrationTestSuite) makeRequest(method, url string, data interface{}) ([]byte, error) {
-	var body io.Reader
-	if data != nil {
-		jsonData, err := json.Marshal(data)
-		if err != nil {
-			return nil, err
-		}
-		body = strings.NewReader(string(jsonData))
-	}
-
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return nil, err
-	}
-
-	if data != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("HTTP error %d", resp.StatusCode)
-	}
-
-	return io.ReadAll(resp.Body)
-}
-
 // Test KNIRVNEXUS Agent Management
-func (suite *IntegrationTestSuite) TestKNIRVNEXUSAgentManagement(t *testing.T) {
+func TestKNIRVNEXUSAgentManagement(t *testing.T) {
+	suite := NewIntegrationTestSuite()
+
 	// Test 1: Create Agent
 	t.Run("CreateAgent", func(t *testing.T) {
 		agentData := map[string]interface{}{
@@ -391,7 +279,9 @@ func (suite *IntegrationTestSuite) TestKNIRVNEXUSAgentManagement(t *testing.T) {
 }
 
 // Test KNIRVORACLE Blockchain Operations
-func (suite *IntegrationTestSuite) TestKNIRVORACLEBlockchain(t *testing.T) {
+func TestKNIRVORACLEBlockchain(t *testing.T) {
+	suite := NewIntegrationTestSuite()
+
 	// Test 1: Create Transaction
 	t.Run("CreateTransaction", func(t *testing.T) {
 		// Skip if wallet is not available (KNIRVWALLET service not running)
@@ -407,7 +297,7 @@ func (suite *IntegrationTestSuite) TestKNIRVORACLEBlockchain(t *testing.T) {
 			"type":   "transfer",
 		}
 
-		resp, err := suite.makeRequest("POST", suite.knirvRootURL+"/transaction", txData)
+		resp, err := suite.makeRequest("POST", suite.knirvGatewayAPIURL+"/transaction", txData)
 		require.NoError(t, err)
 
 		var result map[string]interface{}
@@ -420,7 +310,7 @@ func (suite *IntegrationTestSuite) TestKNIRVORACLEBlockchain(t *testing.T) {
 
 	// Test 2: Query Blockchain State
 	t.Run("QueryBlockchainState", func(t *testing.T) {
-		resp, err := suite.makeRequest("GET", suite.knirvRootURL+"/blockchain/state", nil)
+		resp, err := suite.makeRequest("GET", suite.knirvGatewayAPIURL+"/blockchain/state", nil)
 		require.NoError(t, err)
 
 		var state map[string]interface{}
@@ -439,7 +329,7 @@ func (suite *IntegrationTestSuite) TestKNIRVORACLEBlockchain(t *testing.T) {
 			return
 		}
 
-		resp, err := suite.makeRequest("GET", suite.knirvRootURL+"/wallet/"+suite.testWallet.Address+"/balance", nil)
+		resp, err := suite.makeRequest("GET", suite.knirvGatewayAPIURL+"/wallet/"+suite.testWallet.Address+"/balance", nil)
 		require.NoError(t, err)
 
 		var balance map[string]interface{}
@@ -452,7 +342,9 @@ func (suite *IntegrationTestSuite) TestKNIRVORACLEBlockchain(t *testing.T) {
 }
 
 // Test KNIRVROUTER P2P and Connectivity
-func (suite *IntegrationTestSuite) TestKNIRVROUTERConnectivity(t *testing.T) {
+func TestKNIRVROUTERConnectivity(t *testing.T) {
+	suite := NewIntegrationTestSuite()
+
 	// Test 1: Router Status
 	t.Run("RouterStatus", func(t *testing.T) {
 		resp, err := suite.makeRequest("GET", suite.knirvroterURL+"/status", nil)
@@ -511,8 +403,9 @@ func TestIntegrationSuite(t *testing.T) {
 	}
 
 	// Run all test suites
-	t.Run("FullWorkflow", suite.TestFullWorkflow)
-	t.Run("KNIRVNEXUSAgentManagement", suite.TestKNIRVNEXUSAgentManagement)
-	t.Run("KNIRVORACLEBlockchain", suite.TestKNIRVORACLEBlockchain)
-	t.Run("KNIRVROUTERConnectivity", suite.TestKNIRVROUTERConnectivity)
+	t.Run("FullWorkflow", TestFullWorkflow)
+	t.Run("KNIRVNEXUSAgentManagement", TestKNIRVNEXUSAgentManagement)
+	t.Run("KNIRVORACLEBlockchain", TestKNIRVORACLEBlockchain)
+	t.Run("KNIRVROUTERConnectivity", TestKNIRVROUTERConnectivity)
+	t.Run("KNIRVOracledDaemon", TestKNIRVOracledDaemon) // Add the new test
 }

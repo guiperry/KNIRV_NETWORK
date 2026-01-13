@@ -8,9 +8,9 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/guiperry/KNIRVCHAIN-CLI/core"
-	"github.com/guiperry/KNIRVCHAIN-CLI/ui"
-	"github.com/guiperry/KNIRVCHAIN-CLI/ui/components"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/ui"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/ui/components"
 )
 
 // CapabilityItem represents a capability item

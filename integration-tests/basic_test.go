@@ -19,7 +19,8 @@ func TestBasicFramework(t *testing.T) {
 		assert.Equal(t, "http://localhost:8083", suite.knirvwalletURL)
 		assert.Equal(t, "http://localhost:8084", suite.knirvshellURL)
 		assert.Equal(t, "http://localhost:8085", suite.knirvroterURL)
-		assert.Equal(t, "http://localhost:8086", suite.knirvRootURL)
+		assert.Equal(t, "http://localhost:8086", suite.knirvGatewayAPIURL) // Updated
+		assert.Equal(t, "http://localhost:26657", suite.knirvOracledRPCURL) // New
 		assert.Equal(t, "https://rpc.xion-testnet-1.burnt.com:443", suite.xionRPC)
 	})
 
@@ -34,7 +35,8 @@ func TestBasicFramework(t *testing.T) {
 			suite.knirvwalletURL,
 			suite.knirvshellURL,
 			suite.knirvroterURL,
-			suite.knirvRootURL,
+			suite.knirvGatewayAPIURL,   // Updated
+			suite.knirvOracledRPCURL, // New
 		}
 
 		for _, url := range urls {
@@ -48,7 +50,7 @@ func TestBasicFramework(t *testing.T) {
 // TestFrameworkComponents tests individual framework components
 func TestFrameworkComponents(t *testing.T) {
 	t.Run("TestWalletStructure", func(t *testing.T) {
-		wallet := &TestWallet{
+		wallet := &TestWallet{ // Uses TestWallet from test_utils.go
 			Address:  "test_address_123",
 			Mnemonic: "test mnemonic phrase",
 		}
@@ -85,7 +87,7 @@ func TestFrameworkComponents(t *testing.T) {
 // TestTestUtilities tests utility functions
 func TestTestUtilities(t *testing.T) {
 	t.Run("TestSuiteInitialization", func(t *testing.T) {
-		suite := NewIntegrationTestSuite()
+		suite := NewIntegrationTestSuite() // Uses NewIntegrationTestSuite from test_utils.go
 
 		// Verify all components are initialized
 		assert.NotEmpty(t, suite.knirvchainURL)
@@ -95,7 +97,8 @@ func TestTestUtilities(t *testing.T) {
 		assert.NotEmpty(t, suite.knirvwalletURL)
 		assert.NotEmpty(t, suite.knirvshellURL)
 		assert.NotEmpty(t, suite.knirvroterURL)
-		assert.NotEmpty(t, suite.knirvRootURL)
+		assert.NotEmpty(t, suite.knirvGatewayAPIURL)     // Updated
+		assert.NotEmpty(t, suite.knirvOracledRPCURL) // New
 		assert.NotEmpty(t, suite.xionRPC)
 	})
 

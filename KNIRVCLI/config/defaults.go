@@ -31,7 +31,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("knirv.network.discovery.interval", "30s")
 	v.SetDefault("knirv.network.discovery.timeout", "10s")
 
-	// KNIRVORACLE service defaults
+	// KNIRVORACLE service defaults (now refers to the web gateway/API)
 	v.SetDefault("knirv.services.knirvoracle.url", "http://localhost:9999")
 	v.SetDefault("knirv.services.knirvoracle.enabled", true)
 	v.SetDefault("knirv.services.knirvoracle.timeout", "30s")
@@ -40,7 +40,14 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("knirv.services.knirvoracle.endpoints.websocket", "/ws")
 	v.SetDefault("knirv.services.knirvoracle.endpoints.economics", "/economics")
 
-	// KNIRVGATEWAY service defaults
+	// KNIRVORACLED (blockchain daemon) service defaults
+	v.SetDefault("knirv.services.knirvoracled.rpc_url", "http://localhost:26657")
+	v.SetDefault("knirv.services.knirvoracled.enabled", true)
+	v.SetDefault("knirv.services.knirvoracled.timeout", "30s")
+	v.SetDefault("knirv.services.knirvoracled.retries", 3)
+	v.SetDefault("knirv.services.knirvoracled.endpoints.status", "/status")
+
+	// KNIRVGATEWAY service defaults (renamed from knirvoracle for clarity)
 	v.SetDefault("knirv.services.knirvgateway.url", "https://gateway.knirv.network")
 	v.SetDefault("knirv.services.knirvgateway.enabled", true)
 	v.SetDefault("knirv.services.knirvgateway.timeout", "30s")

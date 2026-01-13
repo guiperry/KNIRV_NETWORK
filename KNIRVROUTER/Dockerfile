@@ -1,14 +1,15 @@
 # KNIRVROUTER Production Dockerfile
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git gcc musl-dev
+RUN apk add --no-cache git gcc musl-dev pkgconf libx11-dev libxrandr-dev mesa-dev libxcursor-dev libxinerama-dev libxi-dev
 
 # Set working directory
 WORKDIR /app
 
 # Copy go mod files
 COPY go.mod go.sum ./
+COPY KNIRVBASE ./KNIRVBASE
 
 # Download dependencies
 RUN go mod download
@@ -36,7 +37,7 @@ WORKDIR /app
 COPY --from=builder /app/knirvrouter .
 
 # Copy configuration files
-COPY --from=builder /app/config ./config
+COPY config ./config
 
 # Create data directory
 RUN mkdir -p /app/data && \

@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"blockchain-app/internal/types"
+	"KNIRVGRAPH/internal/types"
 	"os"
 	"testing"
 	"time"

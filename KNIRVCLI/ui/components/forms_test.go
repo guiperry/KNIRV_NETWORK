@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/guiperry/KNIRVCHAIN-CLI/ui"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/ui"
 	"github.com/stretchr/testify/assert"
 )
 

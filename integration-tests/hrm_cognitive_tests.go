@@ -9,6 +9,16 @@ import (
 	"time"
 )
 
+// TestResult represents the result of a single HRM cognitive test
+type TestResult struct {
+	TestName  string                 `json:"test_name"`
+	Status    string                 `json:"status"`
+	Duration  time.Duration          `json:"duration"`
+	Error     string                 `json:"error,omitempty"`
+	Metrics   map[string]interface{} `json:"metrics,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+}
+
 // HRM Cognitive Test Suite
 type HRMCognitiveTestSuite struct {
 	baseURL    string

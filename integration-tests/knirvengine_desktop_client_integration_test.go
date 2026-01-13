@@ -1,4 +1,4 @@
-package main
+package integration_tests
 
 import (
 	"context"
@@ -21,35 +21,36 @@ import (
 // This test suite validates the enhanced testing infrastructure for KNIRVENGINE desktop-client
 // and integrates it with the existing KNIRV Network CI/CD pipeline
 
-const (
-	knirvEngineDir = "../KNIRVENGINE/desktop-client"
-	testTimeout    = 300 * time.Second
-	coverageThreshold = 70.0 // Minimum coverage percentage required
-)
-
-type TestResult struct {
+// PackageTestResult represents the test results for a single package
+type PackageTestResult struct {
 	Package     string  `json:"package"`
+	Status      string  `json:"status"`
 	Coverage    float64 `json:"coverage"`
 	TestsPassed int     `json:"tests_passed"`
 	TestsFailed int     `json:"tests_failed"`
 	Duration    string  `json:"duration"`
-	Status      string  `json:"status"`
 }
 
+// IntegrationTestReport represents the overall test report for the integration test suite
 type IntegrationTestReport struct {
-	Timestamp    string       `json:"timestamp"`
-	TotalTests   int          `json:"total_tests"`
-	PassedTests  int          `json:"passed_tests"`
-	FailedTests  int          `json:"failed_tests"`
-	Coverage     float64      `json:"overall_coverage"`
-	Duration     string       `json:"total_duration"`
-	Status       string       `json:"status"`
-	PackageTests []TestResult `json:"package_tests"`
+	Timestamp    string              `json:"timestamp"`
+	PackageTests []PackageTestResult `json:"package_tests"`
+	PassedTests  int                 `json:"passed_tests"`
+	FailedTests  int                 `json:"failed_tests"`
+	TotalTests   int                 `json:"total_tests"`
+	Coverage     float64             `json:"coverage"`
+	Duration     string              `json:"duration"`
+	Status       string              `json:"status"`
 }
+
+const (
+	knirvEngineDir    = "../KNIRVENGINE/desktop-client"
+	coverageThreshold = 70.0 // Minimum coverage percentage required
+)
 
 func TestKNIRVENGINEDesktopClientIntegration(t *testing.T) {
 	t.Log("🚀 Starting KNIRVENGINE Desktop Client Integration Test Suite")
-	
+
 	// Verify KNIRVENGINE directory exists
 	if _, err := os.Stat(knirvEngineDir); os.IsNotExist(err) {
 		t.Skipf("KNIRVENGINE desktop-client directory not found: %s", knirvEngineDir)
@@ -73,7 +74,7 @@ func TestKNIRVENGINEDesktopClientIntegration(t *testing.T) {
 	// Test each package individually
 	packages := []string{
 		"./agentify/...",
-		"./desktop/...", 
+		"./desktop/...",
 		"./services/...",
 		"./utils/...",
 		"./inference/...",
@@ -82,12 +83,12 @@ func TestKNIRVENGINEDesktopClientIntegration(t *testing.T) {
 	}
 
 	startTime := time.Now()
-	
+
 	for _, pkg := range packages {
 		t.Run(fmt.Sprintf("Package_%s", strings.ReplaceAll(pkg, "/", "_")), func(t *testing.T) {
 			result := runPackageTests(t, pkg)
 			report.PackageTests = append(report.PackageTests, result)
-			
+
 			if result.Status == "PASSED" {
 				report.PassedTests++
 			} else {
@@ -98,7 +99,7 @@ func TestKNIRVENGINEDesktopClientIntegration(t *testing.T) {
 	}
 
 	report.Duration = time.Since(startTime).String()
-	
+
 	// Calculate overall coverage
 	if len(report.PackageTests) > 0 {
 		var totalCoverage float64
@@ -120,18 +121,18 @@ func TestKNIRVENGINEDesktopClientIntegration(t *testing.T) {
 
 	// Validate results
 	assert.Equal(t, 0, report.FailedTests, "All package tests should pass")
-	assert.GreaterOrEqual(t, report.Coverage, coverageThreshold, 
+	assert.GreaterOrEqual(t, report.Coverage, coverageThreshold,
 		"Overall coverage should meet minimum threshold of %.1f%%", coverageThreshold)
 
 	t.Logf("🎉 KNIRVENGINE Desktop Client Integration Tests Completed")
-	t.Logf("📊 Results: %d/%d packages passed, %.1f%% coverage", 
+	t.Logf("📊 Results: %d/%d packages passed, %.1f%% coverage",
 		report.PassedTests, report.TotalTests, report.Coverage)
 }
 
-func runPackageTests(t *testing.T, pkg string) TestResult {
+func runPackageTests(t *testing.T, pkg string) PackageTestResult {
 	t.Logf("🧪 Testing package: %s", pkg)
-	
-	result := TestResult{
+
+	result := PackageTestResult{
 		Package: pkg,
 		Status:  "FAILED",
 	}
@@ -142,12 +143,12 @@ func runPackageTests(t *testing.T, pkg string) TestResult {
 	}()
 
 	// Run tests with coverage
-	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "go", "test", "-v", "-cover", "-coverprofile=coverage.out", pkg)
 	output, err := cmd.CombinedOutput()
-	
+
 	if err != nil {
 		t.Logf("❌ Package %s tests failed: %v", pkg, err)
 		t.Logf("Output: %s", string(output))
@@ -157,7 +158,7 @@ func runPackageTests(t *testing.T, pkg string) TestResult {
 	// Parse test output
 	outputStr := string(output)
 	lines := strings.Split(outputStr, "\n")
-	
+
 	for _, line := range lines {
 		// Parse coverage information
 		if strings.Contains(line, "coverage:") && strings.Contains(line, "of statements") {
@@ -166,7 +167,7 @@ func runPackageTests(t *testing.T, pkg string) TestResult {
 				result.Coverage = coverage
 			}
 		}
-		
+
 		// Count test results
 		if strings.Contains(line, "PASS:") {
 			result.TestsPassed++
@@ -196,7 +197,7 @@ func generateTestReport(t *testing.T, report *IntegrationTestReport) {
 	// Generate JSON report
 	timestamp := time.Now().Format("20060102_150405")
 	jsonFile := filepath.Join(reportsDir, fmt.Sprintf("knirvengine_desktop_client_test_results_%s.json", timestamp))
-	
+
 	jsonData, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		t.Logf("Warning: Could not marshal test report: %v", err)
@@ -211,7 +212,7 @@ func generateTestReport(t *testing.T, report *IntegrationTestReport) {
 	// Generate HTML report
 	htmlFile := filepath.Join(reportsDir, fmt.Sprintf("knirvengine_desktop_client_test_report_%s.html", timestamp))
 	htmlContent := generateHTMLReport(report)
-	
+
 	if err := os.WriteFile(htmlFile, []byte(htmlContent), 0644); err != nil {
 		t.Logf("Warning: Could not write HTML report: %v", err)
 		return
@@ -264,16 +265,16 @@ func generateHTMLReport(report *IntegrationTestReport) string {
             <th>Tests Passed</th>
             <th>Tests Failed</th>
             <th>Duration</th>
-        </tr>`, 
-        statusColor, report.Timestamp, report.Status, report.Coverage, report.Duration,
-        report.PassedTests, report.FailedTests, report.TotalTests)
+        </tr>`,
+		statusColor, report.Timestamp, report.Status, report.Coverage, report.Duration,
+		report.PassedTests, report.FailedTests, report.TotalTests)
 
 	for _, pkg := range report.PackageTests {
 		rowClass := "passed"
 		if pkg.Status == "FAILED" {
 			rowClass = "failed"
 		}
-		
+
 		html += fmt.Sprintf(`
         <tr class="%s">
             <td>%s</td>
@@ -327,7 +328,7 @@ func TestKNIRVENGINEServiceHealth(t *testing.T) {
 	for _, endpoint := range endpoints {
 		t.Run(fmt.Sprintf("Health_Check_%s", endpoint), func(t *testing.T) {
 			client := &http.Client{Timeout: 10 * time.Second}
-			
+
 			resp, err := client.Get(endpoint)
 			if err != nil {
 				t.Logf("⚠️ KNIRVENGINE service not running at %s: %v", endpoint, err)
@@ -339,9 +340,9 @@ func TestKNIRVENGINEServiceHealth(t *testing.T) {
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 
-			assert.Equal(t, http.StatusOK, resp.StatusCode, 
+			assert.Equal(t, http.StatusOK, resp.StatusCode,
 				"KNIRVENGINE health endpoint should return 200 OK")
-			
+
 			t.Logf("✅ KNIRVENGINE health check passed: %s", string(body))
 		})
 	}
@@ -374,7 +375,7 @@ func TestKNIRVENGINEFrontendIntegration(t *testing.T) {
 
 	cmd := exec.CommandContext(ctx, "npm", "test", "--", "--watchAll=false", "--coverage")
 	output, err := cmd.CombinedOutput()
-	
+
 	if err != nil {
 		t.Logf("Frontend tests output: %s", string(output))
 		// Don't fail the integration test if frontend tests have issues
@@ -403,7 +404,7 @@ func TestKNIRVENGINEBuildIntegration(t *testing.T) {
 
 	cmd := exec.CommandContext(ctx, "go", "build", "-o", "test-build", ".")
 	output, err := cmd.CombinedOutput()
-	
+
 	if err != nil {
 		t.Logf("Build output: %s", string(output))
 		t.Fatalf("KNIRVENGINE build failed: %v", err)

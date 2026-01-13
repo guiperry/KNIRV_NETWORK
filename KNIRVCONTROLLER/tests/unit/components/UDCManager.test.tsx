@@ -22,6 +22,19 @@ jest.mock('../../../src/services/UDCManagementService', () => ({
   }
 }));
 
+// Mock Lucide React icons to prevent rendering issues
+jest.mock('lucide-react', () => ({
+  Shield: () => <svg data-testid="shield-icon" />,
+  Plus: () => <svg data-testid="plus-icon" />,
+  RefreshCw: () => <svg data-testid="refresh-icon" />,
+  CheckCircle: () => <svg data-testid="check-circle-icon" />,
+  XCircle: () => <svg data-testid="x-circle-icon" />,
+  AlertTriangle: () => <svg data-testid="alert-triangle-icon" />,
+  Clock: () => <svg data-testid="clock-icon" />,
+  Eye: () => <svg data-testid="eye-icon" />,
+  Trash2: () => <svg data-testid="trash-icon" />,
+}));
+
 describe('UDCManager', () => {
   const mockUDCManagementService = udcManagementService as jest.Mocked<typeof udcManagementService>;
   

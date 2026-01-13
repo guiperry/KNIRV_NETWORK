@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
-	"github.com/guiperry/KNIRVCHAIN-CLI/cmd" // Your existing cmd package
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/cmd" // Your existing cmd package
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )

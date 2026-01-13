@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/guiperry/KNIRVCHAIN-CLI/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/core"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

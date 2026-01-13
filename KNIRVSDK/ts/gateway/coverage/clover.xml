@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1757373356986" clover="3.2.0">
-  <project timestamp="1757373356986" name="All files">
+<coverage generated="1768232959052" clover="3.2.0">
+  <project timestamp="1768232959053" name="All files">
     <metrics statements="342" coveredstatements="221" conditionals="205" coveredconditionals="125" methods="75" coveredmethods="42" elements="622" coveredelements="388" complexity="0" loc="342" ncloc="342" packages="1" files="7" classes="7"/>
-    <file name="client.ts" path="/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/client.ts">
+    <file name="client.ts" path="/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/client.ts">
       <metrics statements="104" coveredstatements="90" conditionals="85" coveredconditionals="71" methods="19" coveredmethods="16"/>
       <line num="5" count="1" type="stmt"/>
       <line num="6" count="1" type="stmt"/>
@@ -109,7 +109,7 @@
       <line num="316" count="1" type="stmt"/>
       <line num="317" count="1" type="stmt"/>
     </file>
-    <file name="economics.ts" path="/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/economics.ts">
+    <file name="economics.ts" path="/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/economics.ts">
       <metrics statements="120" coveredstatements="93" conditionals="83" coveredconditionals="51" methods="23" coveredmethods="17"/>
       <line num="5" count="2" type="stmt"/>
       <line num="25" count="2" type="stmt"/>
@@ -232,7 +232,7 @@
       <line num="333" count="32" type="stmt"/>
       <line num="334" count="32" type="stmt"/>
     </file>
-    <file name="gateway.ts" path="/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/gateway.ts">
+    <file name="gateway.ts" path="/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/gateway.ts">
       <metrics statements="5" coveredstatements="3" conditionals="0" coveredconditionals="0" methods="3" coveredmethods="1"/>
       <line num="11" count="1" type="stmt"/>
       <line num="14" count="32" type="stmt"/>
@@ -240,14 +240,14 @@
       <line num="20" count="0" type="stmt"/>
       <line num="25" count="0" type="stmt"/>
     </file>
-    <file name="health.ts" path="/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/health.ts">
+    <file name="health.ts" path="/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/health.ts">
       <metrics statements="4" coveredstatements="3" conditionals="0" coveredconditionals="0" methods="2" coveredmethods="1"/>
       <line num="10" count="1" type="stmt"/>
       <line num="13" count="32" type="stmt"/>
       <line num="14" count="32" type="stmt"/>
       <line num="19" count="0" type="stmt"/>
     </file>
-    <file name="integration.ts" path="/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/integration.ts">
+    <file name="integration.ts" path="/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/integration.ts">
       <metrics statements="5" coveredstatements="3" conditionals="0" coveredconditionals="0" methods="3" coveredmethods="1"/>
       <line num="10" count="1" type="stmt"/>
       <line num="13" count="32" type="stmt"/>
@@ -255,7 +255,7 @@
       <line num="19" count="0" type="stmt"/>
       <line num="24" count="0" type="stmt"/>
     </file>
-    <file name="poaud.ts" path="/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/poaud.ts">
+    <file name="poaud.ts" path="/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/poaud.ts">
       <metrics statements="84" coveredstatements="13" conditionals="32" coveredconditionals="0" methods="21" coveredmethods="4"/>
       <line num="5" count="1" type="stmt"/>
       <line num="16" count="1" type="stmt"/>
@@ -342,7 +342,7 @@
       <line num="259" count="0" type="stmt"/>
       <line num="263" count="0" type="stmt"/>
     </file>
-    <file name="types.ts" path="/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/types.ts">
+    <file name="types.ts" path="/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVSDK/ts/gateway/src/types.ts">
       <metrics statements="20" coveredstatements="16" conditionals="5" coveredconditionals="3" methods="4" coveredmethods="2"/>
       <line num="40" count="2" type="stmt"/>
       <line num="46" count="28" type="stmt"/>

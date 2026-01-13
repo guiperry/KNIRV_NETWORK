@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/guiperry/KNIRVCHAIN-CLI/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/core"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

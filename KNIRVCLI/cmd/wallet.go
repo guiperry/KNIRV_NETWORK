@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/guiperry/KNIRVCHAIN-CLI/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/core"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

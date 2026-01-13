@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/internal/requestconfig"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/gateway/internal/requestconfig"
 )
 
 // RequestOption is a function that modifies a request configuration

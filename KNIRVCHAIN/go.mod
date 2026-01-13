@@ -18,7 +18,7 @@ require (
 	golang.org/x/crypto v0.30.0
 )
 
-replace github.com/knirvcorp/knirvbase/go => ../KNIRVBASE/go
+replace github.com/knirvcorp/knirvbase/go => ./KNIRVBASE/go
 
 require (
 	github.com/cloudflare/circl v1.6.2 // indirect

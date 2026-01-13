@@ -8,8 +8,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway"
-	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/gateway"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
 )
 
 func main() {

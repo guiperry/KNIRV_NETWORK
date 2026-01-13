@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/guiperry/KNIRVCHAIN-CLI/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI/config"
 	"github.com/sirupsen/logrus"
 )
 

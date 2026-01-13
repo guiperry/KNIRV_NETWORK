@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSDK/go/gateway/option"
 )
 
 func TestEconomicsSkillsService(t *testing.T) {

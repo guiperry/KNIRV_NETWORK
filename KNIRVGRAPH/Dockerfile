@@ -6,15 +6,15 @@ FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Copy package files
+# Copy package files (relative to current WORKDIR)
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci
 
-# Copy frontend source
+# Copy frontend source (relative to current WORKDIR)
 COPY src ./src
-COPY public ./public
+# COPY public ./public # Commented out: 'public' directory not found
 COPY index.html ./
 COPY vite.config.ts ./
 COPY tsconfig*.json ./
@@ -25,7 +25,7 @@ COPY postcss.config.js ./
 RUN npm run build
 
 # Backend build stage
-FROM golang:1.21-alpine AS backend-builder
+FROM golang:1.24-alpine AS backend-builder
 
 # Install build dependencies
 RUN apk add --no-cache git gcc musl-dev
@@ -34,6 +34,7 @@ WORKDIR /app
 
 # Copy go mod files
 COPY go.mod go.sum ./
+COPY KNIRVBASE ./KNIRVBASE
 
 # Download dependencies
 RUN go mod download
