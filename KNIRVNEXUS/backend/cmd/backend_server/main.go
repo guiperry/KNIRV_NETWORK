@@ -452,7 +452,11 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	dveRentalService.SetContainerOrchestrator(containerOrchestrator)
 
 	// Initialize NRN blockchain client for payment verification
-	nrnClient := blockchain.NewNRNClient("http://localhost:8082") // TODO: Make configurable
+	nrnEndpoint := os.Getenv("NRN_BLOCKCHAIN_ENDPOINT")
+	if nrnEndpoint == "" {
+		nrnEndpoint = "http://localhost:8082" // Default for development
+	}
+	nrnClient := blockchain.NewNRNClient(nrnEndpoint)
 	dveRentalService.SetBlockchainClient(nrnClient)
 
 	// Initialize Session Manager
@@ -462,18 +466,46 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	endpointRegistry := endpoints.NewEndpointRegistry(dbManager.GetDB())
 
 	// Initialize Payment Services
+	// Load Stripe credentials from environment
+	stripeSecretKey := os.Getenv("STRIPE_SECRET_KEY")
+	if stripeSecretKey == "" {
+		stripeSecretKey = "sk_test_example" // Development fallback
+	}
+	stripePublicKey := os.Getenv("STRIPE_PUBLIC_KEY")
+	if stripePublicKey == "" {
+		stripePublicKey = "pk_test_example" // Development fallback
+	}
+	stripeWebhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+	if stripeWebhookSecret == "" {
+		stripeWebhookSecret = "whsec_example" // Development fallback
+	}
+
 	stripeService := payment.NewStripeService(
-		"s_k_test_example", // TODO: Load from environment
-		"pk_test_example",  // TODO: Load from environment
-		"whsec_example",    // TODO: Load from environment
+		stripeSecretKey,
+		stripePublicKey,
+		stripeWebhookSecret,
 		"usd",
 		"2023-10-16",
 	)
 
+	// Load PayPal credentials from environment
+	paypalClientID := os.Getenv("PAYPAL_CLIENT_ID")
+	if paypalClientID == "" {
+		paypalClientID = "client_id_example" // Development fallback
+	}
+	paypalSecret := os.Getenv("PAYPAL_SECRET")
+	if paypalSecret == "" {
+		paypalSecret = "secret_example" // Development fallback
+	}
+	paypalMode := os.Getenv("PAYPAL_MODE")
+	if paypalMode == "" {
+		paypalMode = "sandbox" // Development default
+	}
+
 	paypalService := payment.NewPayPalService(
-		"client_id_example", // TODO: Load from environment
-		"secret_example",    // TODO: Load from environment
-		"sandbox",           // TODO: Load from environment
+		paypalClientID,
+		paypalSecret,
+		paypalMode,
 		"USD",
 	)
 

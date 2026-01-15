@@ -31,10 +31,21 @@ func NewRuntimeSelector() *RuntimeSelector {
 		hostname = "localhost"
 	}
 
+	// Load node configuration from environment with fallbacks
+	nodePublicKey := os.Getenv("NODE_PUBLIC_KEY")
+	if nodePublicKey == "" {
+		nodePublicKey = "default-node-pubkey" // Development fallback
+	}
+
+	nodePeerID := os.Getenv("NODE_PEER_ID")
+	if nodePeerID == "" {
+		nodePeerID = "default-peer-id" // Development fallback
+	}
+
 	rs := &RuntimeSelector{
-		NodePublicKey: "default-node-pubkey", // TODO: Load from config
+		NodePublicKey: nodePublicKey,
 		NodeHostname:  hostname,
-		NodePeerID:    "default-peer-id", // TODO: Load from libp2p identity
+		NodePeerID:    nodePeerID,
 		GenesisTime:   time.Now(),
 	}
 

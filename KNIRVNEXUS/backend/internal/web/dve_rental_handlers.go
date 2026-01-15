@@ -92,8 +92,11 @@ func (h *DVERentalHandlers) CreateRental(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// TODO: Extract user ID from JWT token
-	// For now, use the user ID from the request
+	// Extract user ID from JWT token
+	if req.UserID == "" {
+		req.UserID = middleware.GetUserIDFromRequest(r)
+	}
+	// For development/testing, fallback to generated ID
 	if req.UserID == "" {
 		req.UserID = "test-user-" + time.Now().Format("20060102150405")
 	}

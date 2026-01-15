@@ -39,7 +39,7 @@ func (blv *BaseLLMValidator) ValidateBaseLLM(
 	result := &objects.ValidationResult{
 		ID:              fmt.Sprintf("result_%s", task.ID),
 		TaskID:          task.ID,
-		ValidatorNodeID: "local-node", // TODO: Get actual node ID
+		ValidatorNodeID: getNodeID(),
 		Status:          "running",
 		CreatedAt:       time.Now(),
 	}

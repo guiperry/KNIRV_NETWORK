@@ -240,6 +240,26 @@ func GetAuthContext(r *http.Request) *AuthContext {
 	return nil
 }
 
+// GetUserIDFromRequest extracts the user ID from the authenticated request
+// Returns an empty string if no valid auth context exists
+func GetUserIDFromRequest(r *http.Request) string {
+	authCtx := GetAuthContext(r)
+	if authCtx != nil {
+		return authCtx.UserID
+	}
+	return ""
+}
+
+// GetUsernameFromRequest extracts the username from the authenticated request
+// Returns an empty string if no valid auth context exists
+func GetUsernameFromRequest(r *http.Request) string {
+	authCtx := GetAuthContext(r)
+	if authCtx != nil {
+		return authCtx.Username
+	}
+	return ""
+}
+
 // writeError writes an error response
 func writeError(w http.ResponseWriter, statusCode int, message string) {
 	w.Header().Set("Content-Type", "application/json")

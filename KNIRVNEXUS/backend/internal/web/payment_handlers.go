@@ -523,8 +523,12 @@ func (ph *PaymentHandlers) RefundPayPalCapture(w http.ResponseWriter, r *http.Re
 
 // GetPaymentHistory handles GET /api/payments/history
 func (ph *PaymentHandlers) GetPaymentHistory(w http.ResponseWriter, r *http.Request) {
-	// TODO: Extract user ID from JWT token
-	userID := r.URL.Query().Get("user_id")
+	// Extract user ID from JWT token
+	userID := middleware.GetUserIDFromRequest(r)
+	if userID == "" {
+		// Fallback to query parameter for development/testing
+		userID = r.URL.Query().Get("user_id")
+	}
 	if userID == "" {
 		userID = "test-user-default"
 	}
