@@ -1,8 +1,8 @@
 package graphchain
 
 import (
-	"blockchain-app/internal/storage"
-	"blockchain-app/internal/types"
+	"KNIRVGRAPH/internal/storage"
+	"KNIRVGRAPH/internal/types"
 	"fmt"
 	"testing"
 	"time"

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// Client is a client for interacting with the knirv-oracled RPC endpoint.
+// Client is a client for interacting with the knirv-oracle RPC endpoint.
 type Client struct {
 	BaseURL string
 	client  *http.Client
@@ -25,7 +25,7 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-// OracleStatus represents the structure of the status response from knirv-oracled.
+// OracleStatus represents the structure of the status response from knirv-oracle.
 // This struct should match the output of KNIRVORACLE/internal/oracle/oracle.go's GetStatus() method.
 type OracleStatus struct {
 	ChainID   string `json:"chain_id"`
@@ -49,7 +49,7 @@ type OracleStatus struct {
 	} `json:"ibc"`
 }
 
-// GetStatus fetches the current status of the knirv-oracled node.
+// GetStatus fetches the current status of the knirv-oracle node.
 func (c *Client) GetStatus(ctx context.Context) (*OracleStatus, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/status", c.BaseURL), nil)
 	if err != nil {

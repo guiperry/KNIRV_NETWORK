@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV D-TEN Framework Use Cases</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            overflow: hidden;
+        }
+        .slide {
+            width: 1280px;
+            height: 720px;
+            position: relative;
+            background: linear-gradient(135deg, #0a192f 0%, #172a45 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://picsum.photos/seed/technology-network-digital/1280/720.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.15;
+            z-index: 0;
+        }
+        .content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 80%;
+        }
+        .title {
+            font-size: 64px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            line-height: 1.2;
+            color: white;
+        }
+        .subtitle {
+            font-size: 28px;
+            font-weight: 400;
+            color: #4ecdc4; /* Teal accent color */
+            margin-bottom: 40px;
+        }
+        .decorative-element {
+            width: 150px;
+            height: 4px;
+            background: linear-gradient(90deg, #4ecdc4 0%, #9c27b0 100%);
+            margin: 0 auto 40px;
+        }
+        .highlight-box {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: rgba(76, 29, 149, 0.3); /* Purple with transparency */
+            border-left: 4px solid #9c27b0; /* Purple */
+            margin-top: 20px;
+            text-align: left;
+        }
+        .highlight-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 20px;
+        }
+        .highlight-item i {
+            margin-right: 10px;
+            color: #4ecdc4; /* Teal */
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="content">
+            <h1 class="title">Use Cases for the KNIRV D-TEN Framework</h1>
+            <div class="decorative-element"></div>
+            <h2 class="subtitle">Enterprise Solutions with Verifiable AI</h2>
+            
+            <div class="highlight-box">
+                <div class="highlight-item">
+                    <i class="material-icons">security</i>
+                    <span>Verifiable AI Security</span>
+                </div>
+                <div class="highlight-item">
+                    <i class="material-icons">psychology</i>
+                    <span>Continuous Learning</span>
+                </div>
+                <div class="highlight-item">
+                    <i class="material-icons">business</i>
+                    <span>Enterprise Solutions</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

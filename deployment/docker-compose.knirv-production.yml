@@ -46,8 +46,8 @@ services:
         exec ipfs daemon --migrate=true --enable-gc
       "
 
-  # KNIRV Oracle - Core Orchestration
-  knirvoracle:
+  # KNIRV Gateway - Core Orchestration
+  knirv-gateway:
     image: knirv/oracle:latest
     container_name: knirv-production-oracle
     ports:
@@ -72,6 +72,35 @@ services:
       timeout: 10s
       retries: 3
 
+  # KNIRV Oracle Daemon - The activated blockchain
+  knirv-oracled:
+    image: knirv/oracled:latest
+    container_name: knirv-production-oracled
+    ports:
+      - "26656:26656" # P2P
+      - "26657:26657" # RPC
+    volumes:
+      - oracled-data:/data/oracle
+    networks:
+      - knirv-production
+    environment:
+      - ORACLE_CHAIN_ID=knirvoracle-1
+      - ORACLE_NETWORK_ID=knirv-testnet
+      - ORACLE_BLOCK_TIME=5
+      - ORACLE_INITIAL_SUPPLY=1000000000
+      - ORACLE_MAX_SUPPLY=10000000000
+      - ORACLE_OWNER_KEY= # This should be provided securely
+      - ORACLE_P2P_ADDR=/ip4/0.0.0.0/tcp/26656
+      - ORACLE_RPC_ADDR=0.0.0.0:26657
+      - ORACLE_API_ADDR=0.0.0.0:8080
+      - ORACLE_DATA_DIR=/data/oracle
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:26657/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # KNIRVCHAIN - Blockchain Layer
   knirvchain:
     image: knirv/chain:latest
@@ -83,14 +112,15 @@ services:
       - ./config/chain-production.toml:/app/config.toml:ro
     depends_on:
       - ipfs-production
-      - knirvoracle
+      - knirv-gateway
+      - knirv-oracled # New dependency on the oracle daemon
     networks:
       - knirv-production
     environment:
       - RUST_LOG=info
       - KNIRVCHAIN_RPC_ENDPOINT=0.0.0.0:8080
       - IPFS_API_URL=http://ipfs-production:5001
-      - ORACLE_URL=http://knirvoracle:8083
+      - ORACLE_URL=http://knirv-oracled:26657 # Point to the new oracled service
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -109,13 +139,15 @@ services:
       - ./config/graph-production.yaml:/app/config.yaml:ro
     depends_on:
       - ipfs-production
-      - knirvoracle
+      - knirv-gateway
+      - knirv-oracled # New dependency on the oracle daemon
     networks:
       - knirv-production
     environment:
       - GO_ENV=production
       - IPFS_API_URL=http://ipfs-production:5001
-      - ORACLE_URL=http://knirvoracle:8083
+      - ORACLE_URL=http://knirv-oracled:26657 # Point to the new oracled service
+      - KNIRV_ORACLED_RPC_URL=http://knirv-oracled:26657 # New variable for direct RPC access
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/height"]
@@ -134,16 +166,17 @@ services:
       - ./config/nexus-production.yaml:/app/config.yaml:ro
     depends_on:
       - ipfs-production
-      - knirvoracle
+      - knirv-gateway
       - knirvchain
       - knirvgraph
+      - knirv-oracled # New dependency on the oracle daemon
     networks:
       - knirv-production
     environment:
       - NEXUS_HOST=0.0.0.0
       - NEXUS_PORT=8082
       - IPFS_API_URL=http://ipfs-production:5001
-      - ORACLE_URL=http://knirvoracle:8083
+      - ORACLE_URL=http://knirv-oracled:26657 # Point to the new oracled service
       - CHAIN_URL=http://knirvchain:8080
       - GRAPH_URL=http://knirvgraph:8081
     restart: unless-stopped
@@ -167,12 +200,13 @@ services:
       - ./config/router-production.yaml:/app/config.yaml:ro
     depends_on:
       - ipfs-production
-      - knirvoracle
+      - knirv-gateway
+      - knirv-oracled # New dependency on the oracle daemon
     networks:
       - knirv-production
     environment:
       - IPFS_API_URL=http://ipfs-production:5001
-      - ORACLE_URL=http://knirvoracle:8083
+      - ORACLE_URL=http://knirv-oracled:26657 # Point to the new oracled service
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5001/status"]
@@ -190,7 +224,7 @@ services:
       - ./config/gateway-production.json:/app/config.json:ro
     depends_on:
       - ipfs-production
-      - knirvoracle
+      - knirv-gateway
       - knirvchain
       - knirvgraph
       - knirvnexus
@@ -202,7 +236,7 @@ services:
       - GATEWAY_PORT=8000
       - IPFS_API_URL=http://ipfs-production:5001
       - IPFS_GATEWAY_URL=http://ipfs-production:8080
-      - ORACLE_URL=http://knirvoracle:8083
+      - ORACLE_URL=http://knirv-gateway:8083
       - CHAIN_URL=http://knirvchain:8080
       - GRAPH_URL=http://knirvgraph:8081
       - NEXUS_URL=http://knirvnexus:8082
@@ -229,6 +263,8 @@ volumes:
     name: knirv-production-ipfs-data
   oracle-data:
     name: knirv-production-oracle-data
+  oracled-data:
+    name: knirv-production-oracled-data
   chain-data:
     name: knirv-production-chain-data
   graph-data:

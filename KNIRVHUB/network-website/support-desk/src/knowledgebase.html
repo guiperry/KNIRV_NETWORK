@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Knowledge Base - KNIRV Support Desk</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/hesk.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Knowledge Base</h1>
+            <nav class="nav">
+                <a href="index.html">Home</a>
+                <a href="submit_ticket.html">Submit Ticket</a>
+                <a href="knowledgebase.html" class="active">Knowledge Base</a>
+                <a href="viewticket.html">View Ticket</a>
+            </nav>
+        </header>
+
+        <main class="main-content">
+            <div class="kb-search">
+                <h2>Search Knowledge Base</h2>
+                <form id="kb-search-form">
+                    <div class="search-group">
+                        <input type="text" id="search-query" name="query" placeholder="Search for answers...">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="kb-categories">
+                <h2>Browse by Category</h2>
+                <div class="category-grid">
+                    <div class="category-card">
+                        <h3>Getting Started</h3>
+                        <p>Basic information and setup guides</p>
+                        <a href="#" class="btn btn-secondary">Browse</a>
+                    </div>
+
+                    <div class="category-card">
+                        <h3>Technical Support</h3>
+                        <p>Troubleshooting and technical issues</p>
+                        <a href="#" class="btn btn-secondary">Browse</a>
+                    </div>
+
+                    <div class="category-card">
+                        <h3>Account & Billing</h3>
+                        <p>Account management and billing questions</p>
+                        <a href="#" class="btn btn-secondary">Browse</a>
+                    </div>
+
+                    <div class="category-card">
+                        <h3>Features & Usage</h3>
+                        <p>How to use features and best practices</p>
+                        <a href="#" class="btn btn-secondary">Browse</a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="kb-results" class="kb-results">
+                <!-- Search results will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <script src="js/hesk-common.js"></script>
+    <script src="js/hesk-kb.js"></script>
+</body>
+</html>

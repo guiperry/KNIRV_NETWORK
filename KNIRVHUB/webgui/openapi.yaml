@@ -1,0 +1,840 @@
+openapi: 3.0.3
+info:
+  title: KNIRV WebGUI Backend API
+  description: API contract for all endpoints required by the KNIRV WebGUI frontend to operate as intended
+  version: 1.0.0
+  contact:
+    name: KNIRV Development Team
+    email: dev@knirv.network
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.knirv.network
+    description: Production API server
+
+tags:
+  - name: Health
+    description: Health check and system information endpoints
+  - name: Blockchain
+    description: Blockchain operations including blocks, transactions, and wallet
+  - name: User Data
+    description: User-specific data endpoints (capabilities, properties, skills)
+  - name: MCP
+    description: Model Context Protocol endpoints for capabilities and devices
+  - name: Payment
+    description: Payment gateway integration endpoints
+  - name: Network Monitor
+    description: Network monitoring and status endpoints
+  - name: GraphChain
+    description: GraphChain and NRV (Neural Resolution Vector) operations
+  - name: System
+    description: General system and utility endpoints
+
+paths:
+  # ===== Health & System Endpoints =====
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: Returns the health status of the backend service
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: "1.0.0"
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  error:
+                    type: string
+                    example: "Service unavailable"
+
+  /info:
+    get:
+      tags:
+        - Health
+      summary: System information
+      description: Returns detailed system information and configuration
+      responses:
+        '200':
+          description: System information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: "KNIRV Controller"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  environment:
+                    type: string
+                    example: "development"
+                  uptime:
+                    type: number
+                    example: 3600
+                  features:
+                    type: array
+                    items:
+                      type: string
+                    example: ["blockchain", "mcp", "graphchain"]
+
+  /controller/health:
+    get:
+      tags:
+        - Health
+      summary: Controller health check
+      description: Checks the health status of the controller service
+      responses:
+        '200':
+          description: Controller is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  controller_id:
+                    type: string
+                    example: "controller-123"
+
+  /session/controller:
+    post:
+      tags:
+        - System
+      summary: Create controller session
+      description: Establishes a new controller session for the user
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  description: User identifier
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                  description: Requested permissions
+      responses:
+        '200':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    type: string
+                    example: "session-abc123"
+                  controller_url:
+                    type: string
+                    example: "http://localhost:8081"
+                  expires_at:
+                    type: string
+                    format: date-time
+    get:
+      tags:
+        - System
+      summary: Get controller session
+      description: Retrieves the current controller session information
+      responses:
+        '200':
+          description: Session information retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    type: string
+                  controller_url:
+                    type: string
+                  user_id:
+                    type: string
+                  is_active:
+                    type: boolean
+
+  # ===== Blockchain Endpoints =====
+  /chain:
+    get:
+      tags:
+        - Blockchain
+      summary: Get blockchain blocks
+      description: Returns a list of blocks from the blockchain
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of blocks to return
+          schema:
+            type: integer
+            default: 100
+        - name: offset
+          in: query
+          description: Number of blocks to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Blocks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        height:
+                          type: integer
+                        hash:
+                          type: string
+                        timestamp:
+                          type: string
+                          format: date-time
+                        transactions:
+                          type: integer
+                  total:
+                    type: integer
+
+  /txn_pool:
+    get:
+      tags:
+        - Blockchain
+      summary: Get transaction pool
+      description: Returns pending transactions in the mempool
+      responses:
+        '200':
+          description: Transaction pool retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    from:
+                      type: string
+                    to:
+                      type: string
+                    amount:
+                      type: number
+                    fee:
+                      type: number
+                    timestamp:
+                      type: string
+                      format: date-time
+
+  /wallet/info:
+    get:
+      tags:
+        - Blockchain
+      summary: Get wallet information
+      description: Returns information about the user's wallet
+      responses:
+        '200':
+          description: Wallet information retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  address:
+                    type: string
+                  balance:
+                    type: number
+                  currency:
+                    type: string
+                    example: "KNIRV"
+                  transactions_count:
+                    type: integer
+
+  /devs:
+    get:
+      tags:
+        - Blockchain
+      summary: Get peers/devices
+      description: Returns a list of connected peers or devices
+      responses:
+        '200':
+          description: Peers list retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    address:
+                      type: string
+                    status:
+                      type: string
+                      enum: [online, offline, connecting]
+                    last_seen:
+                      type: string
+                      format: date-time
+
+  /transaction:
+    post:
+      tags:
+        - Blockchain
+      summary: Create transaction
+      description: Creates and broadcasts a new transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - recipient
+                - amount
+              properties:
+                recipient:
+                  type: string
+                  description: Recipient wallet address
+                amount:
+                  type: number
+                  description: Amount to send
+                fee:
+                  type: number
+                  description: Transaction fee (optional)
+                memo:
+                  type: string
+                  description: Transaction memo (optional)
+      responses:
+        '200':
+          description: Transaction created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction_id:
+                    type: string
+                  status:
+                    type: string
+                    example: "pending"
+                  fee:
+                    type: number
+
+  # ===== User Data Endpoints =====
+  /api/capabilities:
+    get:
+      tags:
+        - User Data
+      summary: Get capabilities
+      description: Returns user capabilities. Use `owner=me` to get current user's capabilities.
+      parameters:
+        - name: owner
+          in: query
+          description: Filter by owner. Use 'me' for current user.
+          schema:
+            type: string
+            example: "me"
+      responses:
+        '200':
+          description: Capabilities retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  capabilities:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        owner:
+                          type: string
+                        created_at:
+                          type: string
+                          format: date-time
+
+  /api/properties:
+    get:
+      tags:
+        - User Data
+      summary: Get properties
+      description: Returns user properties. Use `owner=me` to get current user's properties.
+      parameters:
+        - name: owner
+          in: query
+          description: Filter by owner. Use 'me' for current user.
+          schema:
+            type: string
+            example: "me"
+      responses:
+        '200':
+          description: Properties retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  properties:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        type:
+                          type: string
+                        value:
+                          type: object
+                        owner:
+                          type: string
+
+  /api/skills:
+    get:
+      tags:
+        - User Data
+      summary: Get skills
+      description: Returns user skills. Use `owner=me` to get current user's skills.
+      parameters:
+        - name: owner
+          in: query
+          description: Filter by owner. Use 'me' for current user.
+          schema:
+            type: string
+            example: "me"
+      responses:
+        '200':
+          description: Skills retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  skills:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        skill_type:
+                          type: string
+                        level:
+                          type: number
+                        owner:
+                          type: string
+
+  /api/objects:
+    get:
+      tags:
+        - User Data
+      summary: Get objects
+      description: Returns a list of objects (NFTs, assets, etc.)
+      responses:
+        '200':
+          description: Objects retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    type:
+                      type: string
+                    name:
+                      type: string
+                    owner:
+                      type: string
+                    metadata:
+                      type: object
+
+  /api/transactions:
+    get:
+      tags:
+        - User Data
+      summary: Get transactions
+      description: Returns a list of transactions
+      responses:
+        '200':
+          description: Transactions retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    type:
+                      type: string
+                    amount:
+                      type: number
+                    timestamp:
+                      type: string
+                      format: date-time
+                    status:
+                      type: string
+
+  /api/blocks:
+    get:
+      tags:
+        - User Data
+      summary: Get blocks
+      description: Returns a list of blocks (simplified view)
+      responses:
+        '200':
+          description: Blocks retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    height:
+                      type: integer
+                    hash:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+
+  # ===== MCP Endpoints =====
+  /mcp/capability/list:
+    get:
+      tags:
+        - MCP
+      summary: List capabilities
+      description: Returns a list of available MCP capabilities
+      responses:
+        '200':
+          description: Capabilities list retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  capabilities:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        capability_id:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        parameters:
+                          type: object
+
+  /mcp/capability/invoke:
+    post:
+      tags:
+        - MCP
+      summary: Invoke capability
+      description: Invokes an MCP capability with provided parameters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - capability_id
+              properties:
+                capability_id:
+                  type: string
+                parameters:
+                  type: object
+                  description: Capability-specific parameters
+      responses:
+        '200':
+          description: Capability invoked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: object
+                  status:
+                    type: string
+                    example: "success"
+
+  /mcp/dev/list:
+    get:
+      tags:
+        - MCP
+      summary: List devices
+      description: Returns a list of MCP devices
+      responses:
+        '200':
+          description: Devices list retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        type:
+                          type: string
+                        status:
+                          type: string
+
+  # ===== Payment Endpoints =====
+  /api/create-checkout-session:
+    post:
+      tags:
+        - Payment
+      summary: Create Stripe checkout session
+      description: Creates a Stripe checkout session for payment processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - currency
+              properties:
+                amount:
+                  type: number
+                  description: Amount in smallest currency unit (e.g., cents)
+                currency:
+                  type: string
+                  example: "usd"
+                description:
+                  type: string
+                success_url:
+                  type: string
+                cancel_url:
+                  type: string
+      responses:
+        '200':
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    type: string
+                  url:
+                    type: string
+                    description: Redirect URL for checkout
+
+  /api/create-coinbase-charge:
+    post:
+      tags:
+        - Payment
+      summary: Create Coinbase charge
+      description: Creates a Coinbase charge for cryptocurrency payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - currency
+              properties:
+                amount:
+                  type: number
+                currency:
+                  type: string
+                  example: "BTC"
+                name:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Coinbase charge created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  charge_id:
+                    type: string
+                  hosted_url:
+                    type: string
+
+  # ===== Network Monitor Endpoints =====
+  /api/network-monitor/status:
+    get:
+      tags:
+        - Network Monitor
+      summary: Get network status
+      description: Returns overall network status and health
+      responses:
+        '200':
+          description: Network status retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, offline]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  services:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        status:
+                          type: string
+                        latency:
+                          type: number
+
+  /api/network-monitor/services:
+    get:
+      tags:
+        - Network Monitor
+      summary: Get services
+      description: Returns detailed information about monitored services
+      responses:
+        '200':
+          description: Services information retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    url:
+                      type: string
+                    status:
+                      type: string
+                    last_check:
+                      type: string
+                      format: date-time
+                    response_time:
+                      type: number
+
+  /api/network-monitor/metrics:
+    get:
+      tags:
+        - Network Monitor
+      summary: Get metrics
+      description: Returns network performance metrics
+      responses:
+        '200':
+          description: Metrics retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+                  metrics:
+                    type: object
+                    additionalProperties:
+                      type: number
+
+  /api/network-monitor/logs:
+    get:
+      tags:
+        - Network Monitor
+      summary: Get logs
+      description: Returns recent network logs
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of log entries to return
+          schema:
+            type: integer
+            default: 20
+        - name: level
+          in: query
+          description: Filter by log level
+          schema:
+            type: string
+            enum: [info, warning, error, debug]
+      responses:
+        '200':
+          description: Logs retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp:
+                          type: string
+                          format

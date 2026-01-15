@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en" class="js">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="author" content="KNIRV Network">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="KNIRVCONTROLLER: The definitive desktop application for managing agents, wallets, and network operations on the KNIRV D-TEN. Includes the KNIRVWALLET functionality built-in.">
+    <meta name="keywords" content="KNIRVCONTROLLER, KNIRV controller, KNIRV wallet, D-TEN controller, KNIRVCLI, developer tools">
+
+    <link rel="canonical" href="https://knirv.network/knirvcontroller.html">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://knirv.network/knirvcontroller.html">
+    <meta property="og:title" content="KNIRVCONTROLLER | Manage Agents, Wallets, and Network Operations">
+    <meta property="og:description" content="A single, unified application that includes wallet functionality and powerful developer & operator tools for the KNIRV D-TEN.">
+    <meta property="og:image" content="https://knirv.network/images/social/knirvcontroller-card.png">
+
+    <link rel="shortcut icon" href="assets/favicon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+
+    <title>KNIRVCONTROLLER | Desktop Controller for the D-TEN</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/vendor.bundle.css?ver=210">
+    <link rel="stylesheet" href="assets/css/style-dark.css?ver=210">
+    <link rel="stylesheet" href="assets/css/theme.css?ver=210">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animated-logo-container { width:200px; height:60px; display:flex; align-items:center; justify-content:center }
+        .download-btn { margin:0.5rem; min-width:200px }
+    </style>
+</head>
+
+<body class="nk-body body-wider theme-dark mode-onepage has-rtl" dir="rtl">
+    <div class="nk-wrap">
+        <!-- Header (kept consistent with other product pages) -->
+        <header class="nk-header page-header is-transparent is-sticky is-shrink is-dark" id="header">
+            <div class="header-main">
+                <div class="header-container container">
+                    <div class="header-wrap">
+                        <div class="header-logo logo animated">
+                            <a href="./" class="logo-link"><div id="animated-logo" class="animated-logo-container"></div></a>
+                        </div>
+                        <div class="header-nav-toggle">
+                            <a href="#" class="navbar-toggle" data-menu-toggle="example-menu-04"><div class="toggle-line"><span></span></div></a>
+                        </div>
+                        <div class="header-navbar header-navbar-s1">
+                            <nav class="header-menu" id="example-menu-04">
+                                <ul class="menu menu-s2 animated">
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html">Home</a></li>
+                                    <li class="menu-item"><a class="menu-link nav-link" href="index.html#ecosystem">Ecosystem</a></li>
+                                    <li class="menu-item has-sub">
+                                        <a class="menu-link nav-link menu-toggle" href="#">Products</a>
+                                        <ul class="menu-sub menu-drop">
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvcontroller.html">KNIRVCONTROLLER</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvsdk.html">KNIRV SDK</a></li>
+                                            <li class="menu-item"><a class="menu-link nav-link" href="knirvrouter.html">KNIRVROUTER</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                                <ul class="menu-btns animated">
+                                    <li><a href="documentation/static/" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Documentation</span></a></li>
+                                    <li><a href="#download" class="btn btn-rg btn-auto btn-outline btn-grad on-bg-theme btn-round"><span>Download Controller</span></a></li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="nk-pages">
+            <section class="section mask-c-blend-dark bg-theme-dark-alt tc-light ov-h" id="features">
+                <div class="container">
+                    <div class="nk-block nk-block-text-wrap">
+                        <div class="row align-items-center justify-content-center">
+                            <div class="col-lg-6">
+                                <div class="banner-caption wide-auto text-center text-lg-start">
+                                    <h1 class="title title-xl-2 title-semibold">KNIRVCONTROLLER<br/> Unified Control for the D-TEN</h1>
+                                    <p class="lead">KNIRVCONTROLLER is the all-in-one desktop application for power users, operators, and developers. It includes the KNIRV wallet functionality but expands to provide agent management, network diagnostics, DVE access, and operator tooling for the KNIRV D-TEN.</p>
+                                    <ul class="list list-dot">
+                                        <li>Integrated KNIRVWALLET features (XION Meta Accounts)</li>
+                                        <li>Agent deployment & management (KNIRV-INFERENCE integration)</li>
+                                        <li>NRN token operations and economic tools</li>
+                                        <li>Real-time network diagnostics & DVE access</li>
+                                        <li>Operator dashboards and advanced logs</li>
+                                    </ul>
+                                    <div class="cpn-btns">
+                                        <a href="#download" class="btn btn-md btn-grad btn-round">Download Controller</a>
+                                        <a href="documentation/static/" class="btn btn-md btn-outline btn-grad on-bg-theme btn-round">Documentation</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="nk-block-img text-center">
+                                    <img src="images/light/gfx-z-a.png" alt="KNIRV Controller UI">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section bg-theme-dark-alt tc-light" id="download">
+                <div class="container">
+                    <div class="section-head text-center wide-auto-sm">
+                        <h2 class="title title-s4">Download KNIRVCONTROLLER</h2>
+                        <p>Get the KNIRV Controller app for your device. Available for desktop and mobile platforms with seamless synchronization across all your devices.</p>
+                    </div>
+
+                    <!-- Mobile Apps Section -->
+                    <div class="nk-block mb-5">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-8">
+                                <h3 class="title title-s3 text-center mb-4">Mobile Apps</h3>
+                                <div class="row">
+                                    <div class="col-md-6 text-center mb-3">
+                                        <div class="card bg-dark border-primary p-4">
+                                            <div class="mb-3">
+                                                <img src="images/icons/android-icon.png" alt="Android" style="width: 64px; height: 64px;" onerror="this.style.display='none'">
+                                                <h4 class="text-primary mt-2">Android</h4>
+                                            </div>
+                                            <p class="text-muted mb-3">Full-featured mobile app with offline capabilities</p>
+                                            <a href="#" class="btn btn-lg btn-primary btn-round download-btn" onclick="downloadMobileApp('android')">
+                                                <i class="fas fa-download me-2"></i>Download for Android
+                                            </a>
+                                            <small class="text-muted d-block mt-2">Android 7.0+ • 50MB</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 text-center mb-3">
+                                        <div class="card bg-dark border-primary p-4">
+                                            <div class="mb-3">
+                                                <img src="images/icons/ios-icon.png" alt="iOS" style="width: 64px; height: 64px;" onerror="this.style.display='none'">
+                                                <h4 class="text-primary mt-2">iOS</h4>
+                                            </div>
+                                            <p class="text-muted mb-3">Native iOS experience with Apple integration</p>
+                                            <a href="#" class="btn btn-lg btn-primary btn-round download-btn" onclick="downloadMobileApp('ios')">
+                                                <i class="fas fa-download me-2"></i>Download for iPhone
+                                            </a>
+                                            <small class="text-muted d-block mt-2">iOS 14.0+ • 50MB</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Apps Section -->
+                    <div class="nk-block">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-10">
+                                <h3 class="title title-s3 text-center mb-4">Desktop Applications</h3>
+                                <div class="row">
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="card bg-dark border-secondary p-3">
+                                            <h5 class="text-light">Windows</h5>
+                                            <p class="text-muted small">Windows 10/11 • 4GB RAM</p>
+                                            <a href="#" class="btn btn-outline-light btn-round" onclick="downloadController('windows')">Download</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="card bg-dark border-secondary p-3">
+                                            <h5 class="text-light">macOS</h5>
+                                            <p class="text-muted small">macOS 10.15+ • 4GB RAM</p>
+                                            <a href="#" class="btn btn-outline-light btn-round" onclick="downloadController('mac')">Download</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="card bg-dark border-secondary p-3">
+                                            <h5 class="text-light">Linux</h5>
+                                            <p class="text-muted small">Ubuntu 20.04+ • 4GB RAM</p>
+                                            <a href="#" class="btn btn-outline-light btn-round" onclick="downloadController('linux')">Download</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script src="assets/js/jquery.bundle.js?ver=210"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/scripts.js?ver=210"></script>
+    <script src="js/config-loader.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoContainer = document.getElementById('animated-logo');
+            if (logoContainer) {
+                logoContainer.innerHTML = `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" stroke="#2b56f5" fill="none" stroke-width="3"/><text x="50" y="55" text-anchor="middle" fill="#2b56f5" font-size="14">CTRL</text></svg>`;
+            }
+
+            // Load portal configuration
+            loadPortalConfig();
+        });
+
+        let portalConfig = null;
+
+        async function loadPortalConfig() {
+            try {
+                const response = await fetch('/config/portal-links.yaml');
+                const yamlText = await response.text();
+                // Simple YAML parsing for our needs
+                portalConfig = parseSimpleYAML(yamlText);
+            } catch (error) {
+                console.warn('Failed to load portal config:', error);
+            }
+        }
+
+        function parseSimpleYAML(yamlText) {
+            const config = {};
+            const lines = yamlText.split('\n');
+            let currentSection = null;
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('#') || !trimmed) continue;
+
+                if (trimmed.endsWith(':') && !trimmed.includes('  ')) {
+                    currentSection = trimmed.slice(0, -1);
+                    config[currentSection] = {};
+                } else if (currentSection && trimmed.includes(':')) {
+                    const [key, ...valueParts] = trimmed.split(':');
+                    const value = valueParts.join(':').trim().replace(/"/g, '');
+                    config[currentSection][key.trim()] = value;
+                }
+            }
+            return config;
+        }
+
+        async function downloadMobileApp(platform) {
+            // Show loading state
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Preparing Download...';
+            button.disabled = true;
+
+            try {
+                // Get download URL from config
+                const downloadUrl = getDownloadUrl(platform);
+
+                if (platform === 'android') {
+                    await downloadAndroidApp(downloadUrl);
+                } else if (platform === 'ios') {
+                    await downloadIOSApp(downloadUrl);
+                }
+            } catch (error) {
+                console.error('Download failed:', error);
+                alert('Download failed. Please try again or contact support.');
+            } finally {
+                // Restore button state
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
+        async function downloadAndroidApp(downloadUrl) {
+            // Check if we're on Android
+            const isAndroid = /Android/i.test(navigator.userAgent);
+
+            if (isAndroid) {
+                // Direct PWA installation on Android
+                window.location.href = 'https://beta-controller.knirv.network/?install=android';
+            } else {
+                // Download APK package for sideloading
+                const link = document.createElement('a');
+                link.href = downloadUrl || 'https://releases.knirv.network/knirvcontroller-android-pwa.zip';
+                link.download = 'knirvcontroller-android.zip';
+                link.click();
+
+                // Show installation instructions
+                showInstallationModal('android');
+            }
+        }
+
+        async function downloadIOSApp(downloadUrl) {
+            // Check if we're on iOS
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+            if (isIOS) {
+                // Direct PWA installation on iOS
+                window.location.href = 'https://beta-controller.knirv.network/?install=ios';
+            } else {
+                // Download iOS package
+                const link = document.createElement('a');
+                link.href = downloadUrl || 'https://releases.knirv.network/knirvcontroller-ios-pwa.zip';
+                link.download = 'knirvcontroller-ios.zip';
+                link.click();
+
+                // Show installation instructions
+                showInstallationModal('ios');
+            }
+        }
+
+        function downloadController(platform) {
+            const downloadUrls = {
+                windows: 'https://releases.knirv.network/knirvcontroller-setup.exe',
+                mac: 'https://releases.knirv.network/knirvcontroller.dmg',
+                linux: 'https://releases.knirv.network/knirvcontroller.AppImage'
+            };
+
+            const url = downloadUrls[platform];
+            if (url) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = '';
+                link.click();
+            }
+        }
+
+        function getDownloadUrl(platform) {
+            if (!portalConfig || !portalConfig.downloads || !portalConfig.downloads.knirvcontroller) {
+                return null;
+            }
+
+            const downloads = portalConfig.downloads.knirvcontroller;
+            return downloads[platform] || null;
+        }
+
+        function showInstallationModal(platform) {
+            const instructions = platform === 'android' ?
+                'To install on Android:\n1. Extract the downloaded file\n2. Open the folder and tap on the app link\n3. Follow the installation prompts\n4. The app will be added to your home screen' :
+                'To install on iOS:\n1. Extract the downloaded file\n2. Open Safari and navigate to the app URL\n3. Tap the Share button and select "Add to Home Screen"\n4. The app will be installed like a native app';
+
+            alert(instructions);
+        }
+
+        // PWA installation handling
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Show custom install button if we're on the PWA site
+            if (window.location.hostname === 'beta-controller.knirv.network') {
+                showPWAInstallPrompt();
+            }
+        });
+
+        function showPWAInstallPrompt() {
+            const installBanner = document.createElement('div');
+            installBanner.className = 'alert alert-info position-fixed top-0 start-50 translate-middle-x mt-3';
+            installBanner.style.zIndex = '9999';
+            installBanner.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <span class="me-3">Install KNIRV Controller for the best experience</span>
+                    <button class="btn btn-sm btn-primary me-2" onclick="installPWA()">Install</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="dismissInstallPrompt()">Later</button>
+                </div>
+            `;
+            document.body.appendChild(installBanner);
+            window.installBanner = installBanner;
+        }
+
+        async function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+
+                if (outcome === 'accepted') {
+                    console.log('PWA installed successfully');
+                }
+
+                deferredPrompt = null;
+                dismissInstallPrompt();
+            }
+        }
+
+        function dismissInstallPrompt() {
+            if (window.installBanner) {
+                window.installBanner.remove();
+            }
+        }
+    </script>
+    <!-- Universal Footer -->
+    <script src="js/universal-footer.js"></script>
+    <script src="assets/js/scripts.js?ver=210"></script>
+    <script src="js/config-loader.js"></script>
+</body>
+</html>

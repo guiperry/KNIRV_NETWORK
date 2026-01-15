@@ -162,6 +162,16 @@ func (x *XDPManager) GetNetworkMetrics() (*NetworkMetrics, error) {
 	return metrics, nil
 }
 
+// IsInitialized checks if the XDP manager has been initialized
+func (x *XDPManager) IsInitialized() bool {
+	return x.collection != nil
+}
+
+// GetCollection returns the eBPF collection (for testing purposes)
+func (x *XDPManager) GetCollection() *ebpf.Collection {
+	return x.collection
+}
+
 // ShutdownXDP cleans up XDP resources
 func (x *XDPManager) ShutdownXDP() error {
 	// Close all links

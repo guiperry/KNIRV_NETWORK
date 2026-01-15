@@ -213,8 +213,8 @@ run_integration_tests() {
     local flags
     flags=$(build_test_flags "coverage/integration.out")
 
-    # Run integration tests (matches: go test -v ./tests)
-    if go test $flags ./tests/integration/... ./tests/integration_test.go ./tests/container_provisioning_integration_test.go; then
+    # Run integration tests (matches: go test -v ./tests/integration/...)
+    if go test $flags ./tests/integration/...; then
         log_success "Integration tests passed"
         return 0
     else
@@ -421,3 +421,4 @@ main() {
 # Parse arguments and run main function
 parse_args "$@"
 main
+

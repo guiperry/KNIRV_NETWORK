@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revenue Projections (90-Day Timeline)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Source Sans Pro', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            aspect-ratio: 16/9;
+            max-width: 100vw;
+            max-height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, rgba(25, 25, 112, 0.9), rgba(102, 51, 153, 0.9));
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 4vh 5vw;
+            overflow: hidden;
+        }
+
+        /* Ensure 16:9 aspect ratio on all screen sizes */
+        @media (max-aspect-ratio: 16/9) {
+            .slide {
+                width: calc(100vh * 16/9);
+                height: 100vh;
+                margin: 0 auto;
+            }
+        }
+
+        @media (min-aspect-ratio: 16/9) {
+            .slide {
+                width: 100vw;
+                height: calc(100vw * 9/16);
+                margin: auto 0;
+            }
+        }
+        .header {
+            margin-bottom: clamp(2vh, 4vh, 6vh);
+        }
+        .title {
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 700;
+            margin-bottom: clamp(0.8rem, 1.5vh, 1.2rem);
+        }
+        .content {
+            display: flex;
+            flex-grow: 1;
+            gap: 40px;
+        }
+        .left-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .right-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .revenue-box {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            flex-grow: 1;
+        }
+        .revenue-title {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+        }
+        .revenue-title i {
+            margin-right: 12px;
+            font-size: 32px;
+        }
+        .chart-container {
+            height: 280px;
+            margin-bottom: 20px;
+        }
+        .total-revenue {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 700;
+            color: #a78bfa;
+            margin-top: 10px;
+        }
+        .month-box {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .month-box:last-child {
+            margin-bottom: 0;
+        }
+        .month-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .month-number {
+            background-color: rgba(167, 139, 250, 0.3);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            flex-shrink: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #a78bfa;
+        }
+        .month-title {
+            flex-grow: 1;
+        }
+        .month-name {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .month-revenue {
+            font-size: 20px;
+            color: #a78bfa;
+            font-weight: 600;
+        }
+        .month-details {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-left: 64px;
+        }
+        .detail-item {
+            display: flex;
+            align-items: flex-start;
+        }
+        .detail-icon {
+            margin-right: 12px;
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            flex-shrink: 0;
+        }
+        .detail-text {
+            font-size: 18px;
+            line-height: 1.4;
+        }
+        .highlight {
+            color: #a78bfa;
+            font-weight: 600;
+        }
+        /* Mobile responsive breakpoints */
+        @media (max-width: 768px) {
+            .slide {
+                padding: 3vh 4vw;
+            }
+            .content {
+                flex-direction: column;
+                gap: clamp(1.5rem, 3vh, 2rem);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .slide {
+                padding: 2vh 3vw;
+            }
+            .title {
+                font-size: clamp(1.8rem, 6vw, 2.2rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="header">
+            <h1 class="title">Revenue Projections (90-Day Timeline)</h1>
+        </div>
+        <div class="content">
+            <div class="left-content">
+                <div class="revenue-box">
+                    <h3 class="revenue-title">
+                        <i class="material-icons">trending_up</i>
+                        Revenue Growth
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    <div class="total-revenue">
+                        Projected 90-Day Total: <span class="highlight">$890,000</span>
+                    </div>
+                </div>
+            </div>
+            <div class="right-content">
+                <div class="month-box">
+                    <div class="month-header">
+                        <div class="month-number">1</div>
+                        <div class="month-title">
+                            <h4 class="month-name">Month 1: Foundation</h4>
+                            <p class="month-revenue">$150,000 revenue</p>
+                        </div>
+                    </div>
+                    <div class="month-details">
+                        <div class="detail-item">
+                            <i class="material-icons detail-icon">check_circle</i>
+                            <p class="detail-text">Close 3x AI Agent PoC contracts @ ~$50,000 avg.</p>
+                        </div>
+                        <div class="detail-item">
+                            <i class="material-icons detail-icon">check_circle</i>
+                            <p class="detail-text"><span class="highlight">Activities:</span> Outbound sales, demos, client projects</p>
+                        </div>
+                        <div class="detail-item">
+                            <i class="material-icons detail-icon">check_circle</i>
+                            <p class="detail-text"><span class="highlight">Team:</span> Core technical team + Sales Director</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="month-box">
+                    <div class="month-header">
+                        <div class="month-number">2</div>
+                        <div class="month-title">
+                            <h4 class="month-name">Month 2: Expansion</h4>
+                            <p class="month-revenue">$310,000 revenue</p>
+                        </div>
+                    </div>
+                    <div class="month-details">
+                        <div class="detail-item">
+                            <i class="material-icons detail-icon">check_circle</i>
+                            <p class="detail-text">5x PoC/Audit contracts + 2x Platform subscriptions</p>
+                        </div>
+                        <div class="detail-item">
+                            <i class="material-icons detail-icon">check_circle</i>
+                            <p class="detail-text"><span class="highlight">Activities:</span> Partner onboarding, content marketing</p>
+                        </div>
+                        <div class="detail-item">
+                            <i class="material-icons detail-icon">check_circle</i>
+                            <p class="detail-text"><span class="highlight">Team:</span> Add first Solution Architect</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="month-box">
+                    <div class="month-header">
+                        <div class="month-number">3</div>
+                        <div class="month-title">
+                            <h4 class="month-name">Month 3: Scale</h4>
+                            <p class="month-revenue">$430,000 revenue</p>
+                        </div>
+                    </div>
+                    <div class="month-details">
+                        <div class="detail-item">
+                            <i class="material-icons detail-icon">check_circle</i>
+                            <p class="detail-text">4x PoC + 8x Platform + 1x Enterprise project</p>
+                        </div>
+                        <div class="detail-item">
+                            <i class="material-icons detail-icon">check_circle</i>
+                            <p class="detail-text"><span class="highlight">Activities:</span> Systemize playbooks, activate partners</p>
+                        </div>
+                        <div class="detail-item">
+                            <i class="material-icons detail-icon">check_circle</i>
+                            <p class="detail-text"><span class="highlight">Team:</span> Full sales team operational</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            
+            const revenueChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Month 1', 'Month 2', 'Month 3'],
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: [150000, 310000, 430000],
+                        backgroundColor: [
+                            'rgba(167, 139, 250, 0.7)',
+                            'rgba(167, 139, 250, 0.8)',
+                            'rgba(167, 139, 250, 0.9)'
+                        ],
+                        borderColor: [
+                            'rgba(167, 139, 250, 1)',
+                            'rgba(167, 139, 250, 1)',
+                            'rgba(167, 139, 250, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Revenue: $' + context.raw.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

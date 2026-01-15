@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRVGRAPH - Decentralized Knowledge Graph with Economics - KNIRV Network Documentation</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        // Override footer links for documentation site
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.knirvConfig && window.knirvConfig.config) {
+                // Update legal links to use documentation-specific paths
+                if (window.knirvConfig.config.footer && window.knirvConfig.config.footer.legal) {
+                    window.knirvConfig.config.footer.legal.terms = "../legal/TERMS_AND_CONDITIONS.html";
+                    window.knirvConfig.config.footer.legal.privacy = "../legal/PRIVACY_POLICY.html";
+                    window.knirvConfig.config.footer.legal.contribution = "../legal/CODE_OF_CONDUCT.html";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <nav class="doc-nav">
+                <a href="../index.html">← Back to Documentation</a>
+            </nav>
+            <h1>KNIRVGRAPH - Decentralized Knowledge Graph with Economics</h1>
+            <p class="doc-description">User guide for KNIRVGRAPH</p>
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <article class="doc-content">
+                <p><h1>KNIRVGRAPH - Decentralized Knowledge Graph with Economics</h1></p><p>A comprehensive graph-based blockchain application featuring Network Resolution Vectors (NRV), Proof-of-Solution consensus, NRN token economics, and seamless integration with the KNIRV ecosystem.</p><p><h2>Architecture</h2></p><p><code></code>`
+┌─────────────────────────────────────────────────────────────┐
+│                    KNIRVGRAPH Layer                        │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐   │
+│  │ NRV System  │ │ ErrorNodes  │ │   SkillNodes        │   │
+│  └─────────────┘ └─────────────┘ └─────────────────────┘   │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐   │
+│  │ Economics   │ │ Proof-of-   │ │   Graph Explorer    │   │
+│  │ Integration │ │ Solution    │ │   (React)           │   │
+│  └─────────────┘ └─────────────┘ └─────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ HTTP/REST API + Economics
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                    Backend (Go)                            │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐   │
+│  │ RPC Server  │ │ GraphChain  │ │    NRV System       │   │
+│  │ +Economics  │ │    Core     │ │   (Vectors)         │   │
+│  └─────────────┘ └─────────────┘ └─────────────────────┘   │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐   │
+│  │   Storage   │ │ NRN Token   │ │   KNIRVORACLE         │   │
+│  │  (BluntDB)  │ │ Integration │ │   Integration       │   │
+│  └─────────────┘ └─────────────┘ └─────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+<code></code>`</p><p><h2>Features</h2></p><p><h3>🧠 Network Resolution Vector (NRV) System</h3>
+- <strong>Vector Management</strong>: Create, resolve, and maintain NetworkResolutionVectors
+- <strong>ErrorNodes</strong>: Specialized nodes for tracking and resolving network errors
+- <strong>SkillNodes</strong>: Capability-based nodes for AI agent skills and solutions
+- <strong>Confidence Scoring</strong>: Cryptographic confidence verification for resolutions
+- <strong>Signature Verification</strong>: Secure validation of vector authenticity</p><p><h3>💰 Economics Integration</h3>
+- <strong>NRN Token Integration</strong>: Seamless integration with KNIRVORACLE for NRN operations
+- <strong>Skill Confirmation</strong>: Skill validation for KNIRVCHAIN commitment
+- <strong>Proof-of-Solution</strong>: Reward distribution based on solution quality and efficiency
+- <strong>Economic Metrics</strong>: Real-time tracking of network economic activity
+- <strong>Reward Distribution</strong>: Automated NRN rewards for network participation</p><p><h2>🧪 Phase 7 Testing Infrastructure</h2></p><p><h3>Testing Architecture</h3>
+KNIRVGRAPH implements comprehensive testing for both backend (Go) and frontend (React) components:</p><p><h4>Frontend Testing (React + TypeScript)</h4>
+<code></code>`bash
+<h1>Run frontend tests</h1>
+npm test</p><p><h1>Run tests with coverage</h1>
+npm run test:coverage</p><p><h1>Run tests in watch mode</h1>
+npm run test:watch</p><p><h1>Lint code</h1>
+npm run lint
+<code></code>`</p><p><h4>Backend Testing (Go)</h4>
+<code></code>`bash
+<h1>Run Go backend tests</h1>
+go test -v ./...</p><p><h1>Run specific test packages</h1>
+go test -v ./internal/...
+go test -v ./pkg/...
+go test -v ./cmd/...
+<code></code>`</p><p><h4>Integration with Network Tests</h4>
+<code></code>`bash
+<h1>From project root - run KNIRVGRAPH network integration tests</h1>
+cd integration-tests && go test -v -run TestKNIRVGRAPH</p><p><h1>Run comprehensive KNIRVGRAPH test suite</h1>
+make test-graph</p><p><h1>Run KNIRVGRAPH comprehensive tests</h1>
+cd KNIRVGRAPH && ./scripts/run-comprehensive-tests.sh
+<code></code>`</p><p><h4>Test Structure</h4>
+<code></code>`
+src/
+├── __tests__/          # Frontend unit tests
+│   └── App.test.tsx
+├── test/              # Test utilities and setup
+│   └── setup.ts
+└── components/        # Component tests alongside source</p><p>backend/
+├── internal/          # Go backend tests
+├── pkg/              # Package tests
+└── cmd/              # Command tests
+<code></code>`</p><p><h3>🔗 KNIRV Ecosystem Integration</h3>
+- <strong>KNIRVORACLE Connectivity</strong>: Direct integration with KNIRV blockchain
+- <strong>Cross-Component Communication</strong>: Seamless interaction with other KNIRV services
+- <strong>Unified Authentication</strong>: Shared authentication across KNIRV ecosystem
+- <strong>Real-time Synchronization</strong>: Live updates and state synchronization</p><p><h3>🏗️ Backend (Go)</h3>
+- <strong>Graph Consensus</strong>: Byzantine fault-tolerant consensus adapted for graph structures
+- <strong>BluntDB Storage</strong>: High-performance graph data persistence with NRV support
+- <strong>REST API</strong>: Complete graph data access with economics endpoints
+- <strong>P2P Networking</strong>: Distributed node communication
+- <strong>CLI Tools</strong>: Command-line interface for graph and NRV interaction
+- <strong>Graph Operations</strong>: Node creation, edge management, path finding
+- <strong>Multi-dimensional Relationships</strong>: Complex node interconnections with NRV vectors</p><p><h3>🎨 Frontend (React)</h3>
+- <strong>Real-time Dashboard</strong>: Live graph and economics statistics
+- <strong>NRV Explorer</strong>: Browse and manage Network Resolution Vectors
+- <strong>ErrorNode Management</strong>: Track and resolve network errors
+- <strong>SkillNode Registry</strong>: Manage AI capabilities and skills
+- <strong>Economics Dashboard</strong>: Monitor NRN token flows and rewards
+- <strong>Graph Visualization</strong>: Interactive graph structure display with NRV overlays
+- <strong>Dark Theme</strong>: Modern UI inspired by ai.google.dev
+- <strong>Responsive Design</strong>: Mobile-friendly interface</p><p><h2>Quick Start</h2></p><p><h3>Prerequisites</h3>
+- Go 1.21+
+- Node.js 18+
+- npm or yarn
+- KNIRVORACLE running (for economics integration)</p><p><h3>Development Setup</h3></p><p>1. <strong>Clone and setup backend</strong>
+   <code></code>`bash
+   # Install Go dependencies
+   cd KNIRVGRAPH
+   go mod tidy</p><p>   # Build KNIRVGRAPH node
+   go build -o bin/knirvgraph ./cmd/node/main.go
+   <code></code>`</p><p>2. <strong>Setup frontend</strong>
+   <code></code>`bash
+   # Install frontend dependencies
+   npm install
+   <code></code>`</p><p>3. <strong>Start KNIRVGRAPH with Economics Integration</strong>
+   <code></code>`bash
+   # From project root - starts KNIRVGRAPH with full economics integration
+   ./scripts/start-knirvgraph-with-economics.sh
+   <code></code>`</p><p>4. <strong>Alternative: Manual startup</strong>
+   <code></code>`bash
+   # Terminal 1: Start KNIRVGRAPH node
+   cd KNIRVGRAPH
+   ./bin/knirvgraph --home ~/.knirvgraph --port 8081</p><p>   # Terminal 2: Start frontend dev server
+   npm run dev
+   <code></code>`</p><p>5. <strong>Access the application</strong>
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:8081
+   - Economics Endpoints: http://localhost:8081/economics/
+   - NRV System: http://localhost:8081/nrv/</p><p><h3>Using the CLI</h3></p><p><code></code>`bash
+<h1>Build CLI tool</h1>
+make build</p><p><h1>Get GraphChain height</h1>
+./build/graphchain-cli height</p><p><h1>Get node information</h1>
+./build/graphchain-cli node genesis</p><p><h1>Get edge information</h1>
+./build/graphchain-cli edge edge123</p><p><h1>Get graph heads</h1>
+./build/graphchain-cli heads</p><p><h1>Get node neighbors</h1>
+./build/graphchain-cli neighbors node1</p><p><h1>Find path between nodes</h1>
+./build/graphchain-cli path node1 node2</p><p><h1>Create a new node</h1>
+./build/graphchain-cli create-node --id node1 --parents genesis --weight 0.8</p><p><h1>Create a new edge</h1>
+./build/graphchain-cli create-edge --from node1 --to node2 --weight 0.5</p><p><h1>Get account balance</h1>
+./build/graphchain-cli account 0x1234567890123456789012345678901234567890</p><p><h1>Send graph transaction</h1>
+./build/graphchain-cli send-tx \
+  --from 0x1234567890123456789012345678901234567890 \
+  --to 0x0987654321098765432109876543210987654321 \
+  --amount 100 \
+  --fee 1 \
+  --type 5
+<code></code>`</p><p><h2>API Endpoints</h2></p><p><h3>Graph REST API</h3></p><p>| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | <code>/height</code> | Get current GraphChain height |
+| GET | <code>/node/{nodeID}</code> | Get node by ID |
+| GET | <code>/edge/{edgeID}</code> | Get edge by ID |
+| GET | <code>/graph/heads</code> | Get current graph heads |
+| GET | <code>/graph/neighbors/{nodeID}</code> | Get node neighbors |
+| GET | <code>/graph/path/{from}/{to}</code> | Find path between nodes |
+| POST | <code>/graph/traverse</code> | Execute graph traversal query |
+| GET | <code>/account/{address}</code> | Get account information |
+| POST | <code>/transaction</code> | Submit new graph transaction |
+| POST | <code>/node</code> | Create new graph node |
+| POST | <code>/edge</code> | Create new graph edge |</p><p><h3>NRV System API</h3></p><p>| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | <code>/nrv/vectors</code> | Get all NRV vectors |
+| POST | <code>/nrv/vectors</code> | Create new NRV vector |
+| GET | <code>/nrv/vectors/resolve/{targetHash}</code> | Resolve target hash to vectors |
+| GET | <code>/nrv/errors</code> | Get all error nodes |
+| POST | <code>/nrv/errors</code> | Create new error node |
+| GET | <code>/nrv/skills</code> | Get all skill nodes |
+| POST | <code>/nrv/skills</code> | Create new skill node |
+| GET | <code>/nrv/skills/for-error/{errorType}</code> | Get skills for specific error type |</p><p><h3>Economics API</h3></p><p>| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | <code>/economics/metrics</code> | Get economic metrics and statistics |
+| POST | <code>/economics/skill/confirm</code> | Confirm skill for KNIRVCHAIN commitment |
+| POST | <code>/economics/rewards/distribute</code> | Distribute NRN rewards |
+| POST | <code>/economics/proof/solution</code> | Submit proof of solution for rewards |</p><p><h3>System API</h3></p><p>| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | <code>/health</code> | System health check with service status |</p><p><h3>Example API Usage</h3></p><p><h4>Graph Operations</h4>
+<code></code>`bash
+<h1>Get current height</h1>
+curl http://localhost:8081/height</p><p><h1>Get node</h1>
+curl http://localhost:8081/node/genesis</p><p><h1>Get graph heads</h1>
+curl http://localhost:8081/graph/heads</p><p><h1>Find path between nodes</h1>
+curl http://localhost:8081/graph/path/node1/node2</p><p><h1>Create node</h1>
+curl -X POST http://localhost:8081/node \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "node1",
+    "parents": ["genesis"],
+    "weight": 0.8,
+    "data": {
+      "transactions": [],
+      "state_changes": [],
+      "edges": []
+    }
+  }'
+<code></code>`</p><p><h4>NRV System Operations</h4>
+<code></code>`bash
+<h1>Create an error node</h1>
+curl -X POST http://localhost:8081/nrv/errors \
+  -H "Content-Type: application/json" \
+  -d '{
+    "error_type": "network_timeout",
+    "description": "Connection timeout to external service",
+    "context": {
+      "service": "api.example.com",
+      "timeout": 30000,
+      "retry_count": 3
+    },
+    "severity": 2
+  }'</p><p><h1>Create a skill node</h1>
+curl -X POST http://localhost:8081/nrv/skills \
+  -H "Content-Type: application/json" \
+  -d '{
+    "skill_type": "network_diagnostics",
+    "capabilities": ["ping_test", "traceroute", "dns_lookup"],
+    "requirements": {
+      "min_confidence": 0.8,
+      "network_access": true
+    }
+  }'</p><p><h1>Create NRV vector</h1>
+curl -X POST http://localhost:8081/nrv/vectors \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target_hash": "abc123def456",
+    "coordinates": [0.1, 0.2, 0.3, 0.4, 0.5],
+    "metadata": {
+      "error_type": "network_timeout",
+      "skill_type": "network_diagnostics"
+    }
+  }'</p><p><h1>Get all error nodes</h1>
+curl http://localhost:8081/nrv/errors</p><p><h1>Get skills for specific error type</h1>
+curl http://localhost:8081/nrv/skills/for-error/network_timeout
+<code></code>`</p><p><h4>Economics Operations</h4>
+<code></code>`bash
+<h1>Get economic metrics</h1>
+curl http://localhost:8081/economics/metrics</p><p><h1>Confirm a skill for KNIRVCHAIN commitment</h1>
+curl -X POST http://localhost:8081/economics/skill/confirm \
+  -H "Content-Type: application/json" \
+  -d '{
+    "skill_id": "skill456",
+    "nrv_id": "nrv789",
+    "creator_id": "creator123"
+  }'</p><p><h1>Distribute rewards</h1>
+curl -X POST http://localhost:8081/economics/rewards/distribute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recipient_id": "solver123",
+    "amount": "500000",
+    "reason": "successful_error_resolution"
+  }'</p><p><h1>Submit solution proof</h1>
+curl -X POST http://localhost:8081/economics/proof/solution \
+  -H "Content-Type: application/json" \
+  -d '{
+    "error_node_id": "error123",
+    "skill_node_id": "skill456",
+    "solver_id": "solver789",
+    "efficiency_score": 0.95,
+    "quality_score": 0.88
+  }'
+<code></code>`</p><p><h4>System Health</h4>
+<code></code>`bash
+<h1>Check system health</h1>
+curl http://localhost:8081/health
+<code></code>`</p><p><h2>Testing Economics Integration</h2></p><p><h3>Automated Testing</h3>
+<code></code>`bash
+<h1>Run comprehensive economics integration tests</h1>
+./scripts/test-knirvgraph-economics.sh</p><p><h1>This will test:</h1>
+<h1>- KNIRVGRAPH connectivity</h1>
+<h1>- KNIRVORACLE integration</h1>
+<h1>- NRV system operations</h1>
+<h1>- Economics endpoints</h1>
+<h1>- Skill confirmation for KNIRVCHAIN commitment</h1>
+<h1>- Reward distribution</h1>
+<h1>- Proof-of-Solution mechanism</h1>
+<code></code>`</p><p><h3>Manual Testing Workflow</h3>
+<code></code>`bash
+<h1>1. Start KNIRVGRAPH with economics</h1>
+./scripts/start-knirvgraph-with-economics.sh</p><p><h1>2. In another terminal, test the integration</h1>
+./scripts/test-knirvgraph-economics.sh</p><p><h1>3. Monitor logs</h1>
+tail -f KNIRVGRAPH/logs/knirvgraph.log
+<code></code>`</p><p><h3>Environment Configuration</h3>
+<code></code>`bash
+<h1>Set KNIRVORACLE URL (default: http://localhost:1317)</h1>
+export KNIRVORACLE_URL=http://localhost:1317</p><p><h1>Set KNIRVGRAPH port (default: 8081)</h1>
+export KNIRVGRAPH_PORT=8081</p><p><h1>Enable/disable economics (default: true)</h1>
+export ECONOMICS_ENABLED=true
+<code></code>`</p><p><h2>Project Structure</h2></p><p><code></code>`
+KNIRVGRAPH/
+├── cmd/                    # Command-line applications
+│   ├── node/              # KNIRVGRAPH node with NRV and economics
+│   └── cli/               # CLI tool for graph operations
+├── internal/              # Private application code
+│   ├── app/               # Application logic with economics integration
+│   ├── graphchain/        # GraphChain core
+│   ├── nrv/               # Network Resolution Vector system
+│   ├── economics/         # NRN token integration and Proof-of-Solution
+│   │   ├── nrn_integration.go    # KNIRVORACLE integration
+│   │   └── proof_of_solution.go  # Proof-of-Solution consensus
+│   ├── network/           # Networking and RPC with economics endpoints
+│   ├── storage/           # Data persistence with NRV support
+│   └── types/             # Data structures for graph and NRV
+├── pkg/                   # Public libraries
+│   ├── crypto/            # Cryptographic functions
+│   └── utils/             # Utility functions
+├── config/                # Configuration files
+├── docs/                  # Documentation
+│   └── NRV_SYSTEM.md     # NRV system documentation
+├── src/                   # React frontend
+│   ├── components/        # React components with NRV and economics
+│   ├── pages/             # Page components
+│   ├── services/          # API services for graph, NRV, and economics
+│   └── context/           # React context
+├── public/                # Static assets
+├── bin/                   # Built binaries
+├── logs/                  # Application logs
+├── go.mod                 # Go module definition
+├── package.json           # Node.js dependencies
+├── Makefile              # Build automation
+└── README.md             # This file
+<code></code>`</p><p><h2>Development</h2></p><p><h3>Backend Development</h3></p><p><code></code>`bash
+<h1>Run tests</h1>
+make test</p><p><h1>Format code</h1>
+make fmt</p><p><h1>Lint code</h1>
+make lint</p><p><h1>Build binaries</h1>
+make build</p><p><h1>Clean build artifacts</h1>
+make clean
+<code></code>`</p><p><h3>Frontend Development</h3></p><p><code></code>`bash
+<h1>Start development server</h1>
+npm run dev</p><p><h1>Build for production</h1>
+npm run build</p><p><h1>Run linting</h1>
+npm run lint
+<code></code>`</p><p><h3>Full Stack Development</h3></p><p><code></code>`bash
+<h1>Start both backend and frontend</h1>
+make dev
+<code></code>`</p><p><h3>Graph Testing</h3></p><p><code></code>`bash
+<h1>Create genesis graph</h1>
+make create-genesis-graph</p><p><h1>Test graph operations</h1>
+make test-graph
+<code></code>`</p><p><h2>Configuration</h2></p><p><h3>Backend Configuration</h3></p><p>Edit <code>config/default.toml</code>:</p><p><code></code>`toml
+[network]
+listen_address = "tcp://0.0.0.0:26656"
+seeds = []
+max_peers = 50</p><p>[consensus]
+timeout_propose = 3000
+timeout_propose_delta = 500
+timeout_prevote = 1000
+timeout_precommit = 1000</p><p>[storage]
+db_path = "./data/graphchain.db"</p><p>[rpc]
+listen_address = "tcp://0.0.0.0:26657"
+port = 8080</p><p>[graph]
+max_nodes_per_level = 1000
+max_edges_per_node = 100
+allow_cycles = false
+consensus_threshold = 0.67
+traversal_depth_limit = 50
+max_heads = 10
+weight_decay_factor = 0.95</p><p>[bluntdb]
+db_path = "./data/graphchain.db"
+sync_writes = true
+value_log_max_entries = 1000000
+gc_interval = 300
+backup_interval = 3600
+<code></code>`</p><p><h3>Frontend Configuration</h3></p><p>The frontend automatically connects to the backend API at <code>http://localhost:8080</code>. To change this, update <code>src/services/api.ts</code>.</p><p><h2>Testing</h2></p><p><h3>Backend Tests</h3>
+<code></code>`bash
+make test
+<code></code>`</p><p><h3>Frontend Tests</h3>
+<code></code>`bash
+npm test
+<code></code>`</p><p><h3>Graph Operations Tests</h3>
+<code></code>`bash
+<h1>Test node creation</h1>
+./build/graphchain-cli create-node --id test1 --weight 1.0</p><p><h1>Test edge creation</h1>
+./build/graphchain-cli create-edge --from test1 --to genesis --weight 0.5</p><p><h1>Test path finding</h1>
+./build/graphchain-cli path test1 genesis
+<code></code>`</p><p><h2>Production Deployment</h2></p><p>1. <strong>Build production assets</strong>
+   <code></code>`bash
+   make prod
+   <code></code>`</p><p>2. <strong>Deploy backend</strong>
+   <code></code>`bash
+   # Copy binary to server
+   scp build/graphchain-node user@server:/usr/local/bin/
+   
+   # Start service
+   graphchain-node -home /var/lib/graphchain -rpc-port 8080
+   <code></code>`</p><p>3. <strong>Deploy frontend</strong>
+   <code></code>`bash
+   # Build and deploy static files
+   npm run build
+   # Deploy dist/ folder to web server
+   <code></code>`</p><p><h2>Graph Features</h2></p><p><h3>Node Operations</h3>
+- <strong>Create Nodes</strong>: Add new nodes with parent relationships
+- <strong>Update Nodes</strong>: Modify node properties and relationships
+- <strong>Delete Nodes</strong>: Remove nodes and update graph structure
+- <strong>Query Nodes</strong>: Retrieve node information and metadata</p><p><h3>Edge Operations</h3>
+- <strong>Create Edges</strong>: Establish weighted connections between nodes
+- <strong>Update Edges</strong>: Modify edge weights and properties
+- <strong>Delete Edges</strong>: Remove connections while maintaining graph integrity
+- <strong>Query Edges</strong>: Retrieve edge information and traversal data</p><p><h3>Graph Traversal</h3>
+- <strong>Path Finding</strong>: Discover routes between any two nodes
+- <strong>Neighbor Discovery</strong>: Find all connected nodes
+- <strong>Subgraph Extraction</strong>: Extract portions of the graph
+- <strong>Cycle Detection</strong>: Identify and prevent circular dependencies</p><p><h3>Consensus Features</h3>
+- <strong>Graph Validation</strong>: Ensure graph structure integrity
+- <strong>Multi-dimensional Consensus</strong>: Consensus across graph topology
+- <strong>Weight-based Validation</strong>: Consensus based on node and edge weights
+- <strong>Byzantine Fault Tolerance</strong>: Maintain consistency despite failures</p><p><h2>Contributing</h2></p><p>1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request</p><p><h2>License</h2></p><p>MIT License - see LICENSE file for details.</p><p><h2>Support</h2></p><p>- Open issues on GitHub
+- Check the documentation
+- Contact the development team</p><p><h2>Roadmap</h2></p><p><h3>✅ Completed (August 2025)</h3>
+- [x] <strong>NRV System Implementation</strong> - Complete Network Resolution Vector system
+- [x] <strong>Economics Integration</strong> - Full NRN token integration with KNIRVORACLE
+- [x] <strong>Proof-of-Solution</strong> - Reward mechanism for error resolution
+- [x] <strong>ErrorNodes & SkillNodes</strong> - Specialized node types for AI capabilities
+- [x] <strong>KNIRV Ecosystem Integration</strong> - Seamless integration with other KNIRV components
+- [x] <strong>Economic Metrics Tracking</strong> - Real-time economics monitoring
+- [x] <strong>Automated Testing</strong> - Comprehensive test suite for economics integration</p><p><h3>🔄 In Progress</h3>
+- [ ] <strong>Enhanced Graph Visualization</strong> - NRV-aware graph visualization tools
+- [ ] <strong>Advanced NRV Algorithms</strong> - Improved vector resolution and confidence scoring
+- [ ] <strong>Cross-Component DHT</strong> - Enhanced DHT integration with other KNIRV services</p><p><h3>📋 Planned</h3>
+- [ ] <strong>Graph Smart Contracts</strong> - Smart contract layer for graph operations
+- [ ] <strong>Enhanced Graph Consensus</strong> - Multi-dimensional consensus mechanisms
+- [ ] <strong>Cross-Graph Bridges</strong> - Inter-graph communication protocols
+- [ ] <strong>Advanced Graph Algorithms</strong> - Machine learning-enhanced graph operations
+- [ ] <strong>Mobile Applications</strong> - Mobile interface for KNIRVGRAPH
+- [ ] <strong>Graph Analytics Dashboard</strong> - Advanced analytics and insights
+- [ ] <strong>Multi-Language Support</strong> - SDK support for multiple programming languages
+- [ ] <strong>Real-time Collaboration</strong> - Multi-user graph editing and collaboration
+- [ ] <strong>Graph Machine Learning</strong> - AI-powered graph analysis and prediction</p>
+            </article>
+        </div>
+    </main>
+
+    <script src="../scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>

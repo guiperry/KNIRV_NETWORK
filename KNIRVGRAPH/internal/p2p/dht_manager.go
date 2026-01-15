@@ -546,18 +546,6 @@ func (dm *DHTManager) publishGraphAnnouncement(announcement GraphAnnouncementMes
 	return nil
 }
 
-// createCIDFromServiceID creates a CID from a service ID
-func (dm *DHTManager) createCIDFromServiceID(serviceID string) (cid.Cid, error) {
-	// Create a multihash from the service ID
-	hash, err := multihash.Sum([]byte(serviceID), multihash.SHA2_256, -1)
-	if err != nil {
-		return cid.Cid{}, err
-	}
-
-	// Create a CID from the multihash
-	return cid.NewCidV1(cid.Raw, hash), nil
-}
-
 // FindGraphServices finds other KNIRVGRAPH services on the network
 func (dm *DHTManager) FindGraphServices() ([]peer.AddrInfo, error) {
 	// Create a CID for KNIRVGRAPH services
@@ -578,4 +566,52 @@ func (dm *DHTManager) FindGraphServices() ([]peer.AddrInfo, error) {
 	}
 
 	return peerInfos, nil
+}
+
+// Publish publishes data to a specific topic.
+func (dm *DHTManager) Publish(topic string, data []byte) error {
+	if dm.IsNetworkPaused() {
+		return fmt.Errorf("network is paused, cannot publish to topic %s", topic)
+	}
+
+	t, err := dm.pubsub.Join(topic)
+	if err != nil {
+		return fmt.Errorf("failed to join topic %s: %w", topic, err)
+	}
+
+	if err := t.Publish(dm.ctx, data); err != nil {
+		return fmt.Errorf("failed to publish to topic %s: %w", topic, err)
+	}
+	return nil
+}
+
+// Subscribe subscribes to a specific topic.
+func (dm *DHTManager) Subscribe(topic string) (*pubsub.Subscription, error) {
+	if dm.IsNetworkPaused() {
+		return nil, fmt.Errorf("network is paused, cannot subscribe to topic %s", topic)
+	}
+
+	t, err := dm.pubsub.Join(topic)
+	if err != nil {
+		return nil, fmt.Errorf("failed to join topic %s: %w", topic, err)
+	}
+
+	sub, err := t.Subscribe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to subscribe to topic %s: %w", topic, err)
+	}
+
+	return sub, nil
+}
+
+// createCIDFromServiceID creates a CID from a service ID
+func (dm *DHTManager) createCIDFromServiceID(serviceID string) (cid.Cid, error) {
+	// Create a multihash from the service ID
+	hash, err := multihash.Sum([]byte(serviceID), multihash.SHA2_256, -1)
+	if err != nil {
+		return cid.Cid{}, err
+	}
+
+	// Create a CID from the multihash
+	return cid.NewCidV1(cid.Raw, hash), nil
 }

@@ -117,3 +117,6 @@ backend/Dockerfile.*
 
 # Local development
 local-*
+
+# KNIRVBASE should not be copied into Docker build context
+KNIRVBASE/

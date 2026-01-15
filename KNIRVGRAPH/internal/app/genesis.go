@@ -1,7 +1,7 @@
 package app
 
 import (
-	"blockchain-app/internal/types"
+	"KNIRVGRAPH/internal/types"
 	"encoding/json"
 	"os"
 	"time"

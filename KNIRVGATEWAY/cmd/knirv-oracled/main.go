@@ -30,7 +30,7 @@ func main() {
 		logger.Fatal("Invalid oracle configuration", zap.Error(err))
 	}
 
-	logger.Info("Starting knirv-oracled")
+	logger.Info("Starting knirv-oracle")
 	logger.Info(oracle.ConfigSummary(cfg))
 
 	// Create a new oracle instance
@@ -54,12 +54,12 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Info("Shutting down knirv-oracled")
+	logger.Info("Shutting down knirv-oracle")
 
 	// Stop the oracle services
 	if err := oracleNode.Stop(); err != nil {
 		logger.Error("Error stopping oracle node", zap.Error(err))
 	}
 
-	logger.Info("knirv-oracled stopped")
+	logger.Info("knirv-oracle stopped")
 }

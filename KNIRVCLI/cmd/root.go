@@ -79,6 +79,8 @@ func init() {
 
 	// Add WASM command
 	rootCmd.AddCommand(wasmCmd)
+	// Add oracled command
+	rootCmd.AddCommand(oracledCmd)
 
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.knirv.yaml)")

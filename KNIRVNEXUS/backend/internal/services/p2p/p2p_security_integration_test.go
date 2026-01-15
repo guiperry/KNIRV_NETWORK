@@ -224,7 +224,7 @@ func TestExtractIPFromMultiaddr(t *testing.T) {
 		},
 		{
 			name:     "Complex multiaddr with IPv4",
-			addr:     "/ip4/10.0.0.1/tcp/4001/p2p/QmHash",
+			addr:     "/ip4/10.0.0.1/tcp/4001/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
 			expected: "10.0.0.1",
 		},
 	}
@@ -267,7 +267,7 @@ func TestNetworkMetrics(t *testing.T) {
 		// Metrics might not be available in test environment
 		// but the method should not panic
 		if err != nil {
-			assert.Contains(t, err.Error(), "eBPF manager not available")
+			assert.Contains(t, err.Error(), "XDP collection not initialized")
 		} else {
 			assert.NotNil(t, metrics)
 		}

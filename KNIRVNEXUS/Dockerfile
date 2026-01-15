@@ -4,6 +4,9 @@
 # Stage 1: Frontend Build
 FROM node:18-alpine AS frontend-builder
 
+# Install git for build-log-start.mjs script
+RUN apk add --no-cache git
+
 WORKDIR /app/frontend
 
 # Copy package files (relative to current build context `./KNIRVNEXUS/`)
@@ -15,7 +18,7 @@ COPY frontend/postcss.config.mjs ./
 COPY frontend/components.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy source code (relative to current build context `./KNIRVNEXUS/`)
 COPY frontend/src/ ./src/
@@ -35,7 +38,6 @@ WORKDIR /app
 
 # Copy Go modules (relative to current build context `./KNIRVNEXUS/`)
 COPY backend/go.mod backend/go.sum ./
-COPY KNIRVBASE ./KNIRVBASE
 RUN go mod download
 
 # Copy backend source (relative to current build context `./KNIRVNEXUS/`)
@@ -57,7 +59,7 @@ ENV GOARCH=amd64
 RUN go build \
     -ldflags="-w -s -X main.Version=${VERSION} -X main.BuildTime=${BUILD_TIME} -X main.GitCommit=${GIT_COMMIT}" \
     -o bin/knirv-nexus \
-    ./knirv-nexus
+    ./cmd/backend_server
 
 # Stage 3: Production Image
 FROM alpine:3.19

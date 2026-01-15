@@ -50,10 +50,10 @@ func TestNewUserService(t *testing.T) {
 
 func TestUserService_CreateUser(t *testing.T) {
 	tests := []struct {
-		name        string
+		name         string
 		registration *objects.UserRegistration
-		expectError bool
-		errorMsg    string
+		expectError  bool
+		errorMsg     string
 	}{
 		{
 			name: "username too short",
@@ -72,7 +72,7 @@ func TestUserService_CreateUser(t *testing.T) {
 			registration: &objects.UserRegistration{
 				Username:  "testuser",
 				Email:     "test@example.com",
-				Password:  "short",
+				Password:  "Short1",
 				FirstName: "Test",
 				LastName:  "User",
 			},
@@ -84,7 +84,7 @@ func TestUserService_CreateUser(t *testing.T) {
 			registration: &objects.UserRegistration{
 				Username:  "testuser",
 				Email:     "invalid-email",
-				Password:  "password123",
+				Password:  "Password123",
 				FirstName: "Test",
 				LastName:  "User",
 			},
@@ -96,7 +96,7 @@ func TestUserService_CreateUser(t *testing.T) {
 			registration: &objects.UserRegistration{
 				Username:  "testuser",
 				Email:     "test@example.com",
-				Password:  "password123",
+				Password:  "Password123",
 				FirstName: "Test",
 				LastName:  "User",
 				Company:   "Test Corp",
@@ -109,7 +109,7 @@ func TestUserService_CreateUser(t *testing.T) {
 			registration: &objects.UserRegistration{
 				Username:  "testuser",
 				Email:     "different@example.com",
-				Password:  "password123",
+				Password:  "Password123",
 				FirstName: "Test",
 				LastName:  "User",
 			},
@@ -121,7 +121,7 @@ func TestUserService_CreateUser(t *testing.T) {
 			registration: &objects.UserRegistration{
 				Username:  "differentuser",
 				Email:     "test@example.com",
-				Password:  "password123",
+				Password:  "Password123",
 				FirstName: "Test",
 				LastName:  "User",
 			},
@@ -142,7 +142,7 @@ func TestUserService_CreateUser(t *testing.T) {
 				_, err := service.CreateUser(&objects.UserRegistration{
 					Username:  "testuser",
 					Email:     "test@example.com",
-					Password:  "password123",
+					Password:  "Password123",
 					FirstName: "Test",
 					LastName:  "User",
 				})
@@ -181,7 +181,7 @@ func TestUserService_GetUserByID(t *testing.T) {
 	registration := &objects.UserRegistration{
 		Username:  "testuser",
 		Email:     "test@example.com",
-		Password:  "password123",
+		Password:  "Password123",
 		FirstName: "Test",
 		LastName:  "User",
 	}
@@ -189,18 +189,18 @@ func TestUserService_GetUserByID(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name      string
-		userID    string
+		name        string
+		userID      string
 		expectError bool
 	}{
 		{
-			name:       "existing user",
-			userID:     user.ID,
+			name:        "existing user",
+			userID:      user.ID,
 			expectError: false,
 		},
 		{
-			name:       "non-existing user",
-			userID:     "non-existing-id",
+			name:        "non-existing user",
+			userID:      "non-existing-id",
 			expectError: true,
 		},
 	}
@@ -231,7 +231,7 @@ func TestUserService_GetUserByUsername(t *testing.T) {
 	registration := &objects.UserRegistration{
 		Username:  "testuser",
 		Email:     "test@example.com",
-		Password:  "password123",
+		Password:  "Password123",
 		FirstName: "Test",
 		LastName:  "User",
 	}
@@ -239,18 +239,18 @@ func TestUserService_GetUserByUsername(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name      string
-		username  string
+		name        string
+		username    string
 		expectError bool
 	}{
 		{
-			name:       "existing user",
-			username:   "testuser",
+			name:        "existing user",
+			username:    "testuser",
 			expectError: false,
 		},
 		{
-			name:       "non-existing user",
-			username:   "nonexisting",
+			name:        "non-existing user",
+			username:    "nonexisting",
 			expectError: true,
 		},
 	}
@@ -280,7 +280,7 @@ func TestUserService_GetUserByEmail(t *testing.T) {
 	registration := &objects.UserRegistration{
 		Username:  "testuser",
 		Email:     "test@example.com",
-		Password:  "password123",
+		Password:  "Password123",
 		FirstName: "Test",
 		LastName:  "User",
 	}
@@ -288,23 +288,23 @@ func TestUserService_GetUserByEmail(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name      string
-		email     string
+		name        string
+		email       string
 		expectError bool
 	}{
 		{
-			name:       "existing user",
-			email:      "test@example.com",
+			name:        "existing user",
+			email:       "test@example.com",
 			expectError: false,
 		},
 		{
-			name:       "case insensitive email",
-			email:      "TEST@EXAMPLE.COM",
+			name:        "case insensitive email",
+			email:       "TEST@EXAMPLE.COM",
 			expectError: false,
 		},
 		{
-			name:       "non-existing email",
-			email:      "nonexisting@example.com",
+			name:        "non-existing email",
+			email:       "nonexisting@example.com",
 			expectError: true,
 		},
 	}
@@ -334,7 +334,7 @@ func TestUserService_UpdateUser(t *testing.T) {
 	registration := &objects.UserRegistration{
 		Username:  "testuser",
 		Email:     "test@example.com",
-		Password:  "password123",
+		Password:  "Password123",
 		FirstName: "Test",
 		LastName:  "User",
 	}
@@ -375,7 +375,7 @@ func TestUserService_ChangePassword(t *testing.T) {
 	registration := &objects.UserRegistration{
 		Username:  "testuser",
 		Email:     "test@example.com",
-		Password:  "password123",
+		Password:  "Password123",
 		FirstName: "Test",
 		LastName:  "User",
 	}
@@ -391,8 +391,8 @@ func TestUserService_ChangePassword(t *testing.T) {
 		{
 			name: "valid password change",
 			change: &objects.ChangePassword{
-				CurrentPassword: "password123",
-				NewPassword:     "newpassword456",
+				CurrentPassword: "Password123",
+				NewPassword:     "Newpassword456",
 			},
 			expectError: false,
 		},
@@ -400,7 +400,7 @@ func TestUserService_ChangePassword(t *testing.T) {
 			name: "wrong current password",
 			change: &objects.ChangePassword{
 				CurrentPassword: "wrongpassword",
-				NewPassword:     "newpassword456",
+				NewPassword:     "Newpassword456",
 			},
 			expectError: true,
 			errorMsg:    "current password is incorrect",
@@ -430,7 +430,7 @@ func TestUserService_VerifyEmail(t *testing.T) {
 	registration := &objects.UserRegistration{
 		Username:  "testuser",
 		Email:     "test@example.com",
-		Password:  "password123",
+		Password:  "Password123",
 		FirstName: "Test",
 		LastName:  "User",
 	}
@@ -482,7 +482,7 @@ func TestUserService_InitiatePasswordReset(t *testing.T) {
 	registration := &objects.UserRegistration{
 		Username:  "testuser",
 		Email:     "test@example.com",
-		Password:  "password123",
+		Password:  "Password123",
 		FirstName: "Test",
 		LastName:  "User",
 	}
@@ -522,7 +522,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 	registration := &objects.UserRegistration{
 		Username:  "testuser",
 		Email:     "test@example.com",
-		Password:  "password123",
+		Password:  "Password123",
 		FirstName: "Test",
 		LastName:  "User",
 	}
@@ -548,7 +548,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 			name: "valid reset",
 			reset: &objects.PasswordReset{
 				Token:    updatedUser.PasswordResetToken,
-				Password: "newpassword789",
+				Password: "Newpassword789",
 			},
 			expectError: false,
 		},
@@ -556,7 +556,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 			name: "invalid token",
 			reset: &objects.PasswordReset{
 				Token:    "invalid-token",
-				Password: "newpassword789",
+				Password: "Newpassword789",
 			},
 			expectError: true,
 			errorMsg:    "invalid or expired reset token",
@@ -565,7 +565,7 @@ func TestUserService_ResetPassword(t *testing.T) {
 			name: "expired token",
 			reset: &objects.PasswordReset{
 				Token:    updatedUser.PasswordResetToken,
-				Password: "newpassword789",
+				Password: "Newpassword789",
 			},
 			expectError: true,
 			errorMsg:    "invalid or expired reset token",
@@ -614,7 +614,7 @@ func TestUserService_RecordLoginAttempt(t *testing.T) {
 	registration := &objects.UserRegistration{
 		Username:  "testuser",
 		Email:     "test@example.com",
-		Password:  "password123",
+		Password:  "Password123",
 		FirstName: "Test",
 		LastName:  "User",
 	}
@@ -656,7 +656,7 @@ func TestUserService_AuthenticateUser(t *testing.T) {
 	registration := &objects.UserRegistration{
 		Username:  "testuser",
 		Email:     "test@example.com",
-		Password:  "password123",
+		Password:  "Password123",
 		FirstName: "Test",
 		LastName:  "User",
 	}
@@ -678,14 +678,14 @@ func TestUserService_AuthenticateUser(t *testing.T) {
 		{
 			name:        "valid credentials",
 			username:    "testuser",
-			password:    "password123",
+			password:    "Password123",
 			ipAddress:   "127.0.0.1",
 			expectError: false,
 		},
 		{
 			name:        "invalid username",
 			username:    "invaliduser",
-			password:    "password123",
+			password:    "Password123",
 			ipAddress:   "127.0.0.1",
 			expectError: true,
 			errorMsg:    "invalid credentials",
@@ -721,10 +721,10 @@ func TestUserService_AuthenticateUser(t *testing.T) {
 
 func TestGetClientIP(t *testing.T) {
 	tests := []struct {
-		name           string
-		headers        map[string]string
-		remoteAddr     string
-		expectedIP     string
+		name       string
+		headers    map[string]string
+		remoteAddr string
+		expectedIP string
 	}{
 		{
 			name:       "X-Forwarded-For single IP",

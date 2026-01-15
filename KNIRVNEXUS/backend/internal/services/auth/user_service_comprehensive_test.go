@@ -41,6 +41,8 @@ func TestAuthConfig(t *testing.T) {
 		assert.Equal(t, 12, config.PasswordMinLength)
 		assert.True(t, config.PasswordRequireSpecial)
 		assert.Equal(t, 3, config.MaxLoginAttempts)
+		assert.Equal(t, 30*time.Minute, config.LockoutDuration)
+		assert.Equal(t, 1*time.Hour, config.SessionTimeout)
 	})
 }
 

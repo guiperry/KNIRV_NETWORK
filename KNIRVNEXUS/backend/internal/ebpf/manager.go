@@ -23,6 +23,9 @@ type Manager struct {
 	initialized bool
 }
 
+// Ensure Manager implements ManagerInterface
+var _ ManagerInterface = (*Manager)(nil)
+
 // NewManager creates a new eBPF Manager instance
 func NewManager() *Manager {
 	return &Manager{}

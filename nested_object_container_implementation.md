@@ -966,17 +966,17 @@ The KNIRVGATEWAY NOC is a full-featured demo that showcases a complete web gatew
 #### Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│            KNIRVGATEWAY NOC Container               │
-│                                                             │
+┌───────────────────────────────────────────────────────────┐
+│            KNIRVGATEWAY NOC Container                     │
+│                                                           │
 │  ┌────────────────────────────────────────────────────┐   │
 │  │         KNIRVGATEWAY Service                       │   │
 │  │  - REST API endpoints                              │   │
-│  │  - Documentation UI (Swagger/OpenAPI)             │   │
+│  │  - Documentation UI (Swagger/OpenAPI)              │   │
 │  │  - WebSocket streams                               │   │
 │  │  - Blockchain integration APIs                     │   │
 │  └────────────────────────────────────────────────────┘   │
-│                                                             │
+│                                                           │
 │  ┌────────────────────────────────────────────────────┐   │
 │  │         knirv-oracled (Embedded Daemon)            │   │
 │  │  - Cross-chain transfer coordination               │   │
@@ -984,16 +984,16 @@ The KNIRVGATEWAY NOC is a full-featured demo that showcases a complete web gatew
 │  │  - Token economics tracking                        │   │
 │  │  - IBC connection management                       │   │
 │  └────────────────────────────────────────────────────┘   │
-│                                                             │
+│                                                           │
 │  ┌────────────────────────────────────────────────────┐   │
 │  │         Embedded Model Server                      │   │
 │  │  - LLM inference (Ollama-compatible API)           │   │
 │  │  - Embedding generation                            │   │
-│  │  - LoRA adapter loading from KNIRVCHAIN           │   │
+│  │  - LoRA adapter loading from KNIRVCHAIN            │   │
 │  └────────────────────────────────────────────────────┘   │
-│                                                             │
+│                                                           │
 │  Ports: 8080 (gateway), 9090 (oracle), 11434 (model)      │
-└─────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────┘
 ```
 
 #### Implementation

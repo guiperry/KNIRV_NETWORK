@@ -1,0 +1,96 @@
+.attachmentForm {
+  width: 100%;
+}
+
+.formHeader {
+  margin-bottom: 15px;
+}
+
+.formHeader h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.parametersSection {
+  margin-bottom: 20px;
+}
+
+.parametersSection h5 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: normal;
+}
+
+.parameterField {
+  margin-bottom: 15px;
+}
+
+.parameterField label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.parameterField input,
+.parameterField select {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.parameterField input:focus,
+.parameterField select:focus {
+  outline: none;
+  border-color: rgba(var(--primary-rgb), 0.5);
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.paramDescription {
+  margin-top: 5px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.noParameters {
+  padding: 15px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-style: italic;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.attachButton {
+  padding: 8px 16px;
+  background-color: rgba(var(--primary-rgb), 0.8);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.attachButton:hover {
+  background-color: rgba(var(--primary-rgb), 1);
+}
+
+.attachButton:disabled {
+  background-color: rgba(var(--primary-rgb), 0.4);
+  cursor: not-allowed;
+}

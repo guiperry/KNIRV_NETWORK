@@ -39,6 +39,9 @@ import (
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
 
+	// Object Nest packages
+	"github.com/knirvcorp/knirvbase/go"
+
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	"github.com/tidwall/buntdb"
@@ -63,7 +66,7 @@ type Server struct {
 	logger     *zap.Logger
 
 	// eBPF subsystem
-	ebpfManager             *ebpf.Manager
+	ebpfManager             ebpf.ManagerInterface
 	virtualContainerManager *ebpf.VirtualContainerManager
 
 	// All services are held here
@@ -86,6 +89,10 @@ type Server struct {
 	endpointRegistry             *endpoints.EndpointRegistry
 	stripeService                *payment.StripeService
 	paypalService                *payment.PayPalService
+
+	// Object Nest subsystem
+	unifiedContainerManager *runtime.UnifiedContainerManager
+	demoDeployer            *deployment.DemoDeployer
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -348,28 +355,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		// Continue - TEE initialization is not critical for basic operation
 	}
 
-	// Initialize eBPF Manager for kernel-level monitoring and isolation
-	ebpfManager = ebpf.NewManager()
-	ebpfConfig = &ebpf.Config{
-		Programs: []ebpf.ProgramConfig{
-			{Name: "syscall_trace", Enabled: true},
-			{Name: "sandbox_lsm", Enabled: true},
-			{Name: "virtual_ns", Enabled: true},
-			{Name: "telemetry", Enabled: true},
-		},
-	}
-
-	// Initialize eBPF manager with context
-	ebpfCtx = context.Background()
-	if err := ebpfManager.Initialize(ebpfCtx, ebpfConfig); err != nil {
-		log.Printf("Warning: Failed to initialize eBPF manager: %v", err)
-		log.Printf("eBPF features will be disabled. This may be due to insufficient kernel capabilities.")
-		ebpfManager = nil // Disable eBPF if initialization fails
-	} else {
-		log.Println("eBPF Manager initialized successfully")
-	}
-
-	// Initialize Virtual Container Manager with eBPF
+	// Initialize Virtual Container Manager with eBPF (using the already initialized ebpfManager)
 	var virtualContainerManager *ebpf.VirtualContainerManager
 	if ebpfManager != nil {
 		virtualContainerManager = ebpf.NewVirtualContainerManager(ebpfManager)
@@ -495,6 +481,16 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize Cognitive Engine
 	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager.GetDB(), validationCore, inferenceService, modelManagementService)
 
+	// Initialize Object Nest subsystem
+	unifiedContainerManager := runtime.NewUnifiedContainerManager(
+		teeSecurityService,
+		ebpfManager,
+		virtualContainerManager,
+	)
+
+	// Initialize demo deployer (manages all demo NOCs)
+	demoDeployer := deployment.NewDemoDeployer(unifiedContainerManager)
+
 	// Create context for service lifecycle management
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -525,6 +521,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		endpointRegistry:             endpointRegistry,
 		stripeService:                stripeService,
 		paypalService:                paypalService,
+		unifiedContainerManager:      unifiedContainerManager,
+		demoDeployer:                 demoDeployer,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -716,11 +714,19 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	// Get eBPF metrics if available
 	var ebpfMetrics map[string]any
 	if s.ebpfManager != nil {
-		metrics := s.ebpfManager.GetMetrics()
-		ebpfMetrics = map[string]any{
-			"enabled":           true,
-			"initialized":       metrics.Initialized,
-			"programs_attached": metrics.ProgramsAttached,
+		// Check if the concrete value is not nil
+		if m, ok := s.ebpfManager.(*ebpf.Manager); ok && m != nil {
+			metrics := s.ebpfManager.GetMetrics()
+			ebpfMetrics = map[string]any{
+				"enabled":           true,
+				"initialized":       metrics.Initialized,
+				"programs_attached": metrics.ProgramsAttached,
+			}
+		} else {
+			ebpfMetrics = map[string]any{
+				"enabled": false,
+				"reason":  "eBPF manager not properly initialized",
+			}
 		}
 	} else {
 		ebpfMetrics = map[string]any{
@@ -930,6 +936,22 @@ func (s *Server) Start() error {
 		}
 	}
 
+	// Deploy demo NOCs if enabled (auto-deploy by default)
+	if s.demoDeployer != nil && (s.config.DemoMode || s.config.AutoDeployDemos) {
+		log.Println("🚀 Auto-deploying demo NOCs...")
+		go func() {
+			// Wait for services to be ready
+			time.Sleep(5 * time.Second)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			if err := s.demoDeployer.DeployAll(ctx); err != nil {
+				log.Printf("ERROR: Demo deployment failed: %v", err)
+			}
+		}()
+	}
+
 	// Validate server configuration before creating HTTP server
 	if s.config == nil || s.config.API.BindAddress == "" || s.config.API.Port <= 0 {
 		return fmt.Errorf("invalid server configuration: bind address and port must be specified")
@@ -993,6 +1015,16 @@ func (s *Server) Stop() error {
 	if s.cognitiveEngine != nil {
 		if err := s.cognitiveEngine.Stop(); err != nil {
 			log.Printf("Error stopping Cognitive Engine: %v", err)
+		}
+	}
+
+	// Cleanup demo NOCs
+	if s.demoDeployer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := s.demoDeployer.Cleanup(ctx); err != nil {
+			log.Printf("Error cleaning up demos: %v", err)
 		}
 	}
 

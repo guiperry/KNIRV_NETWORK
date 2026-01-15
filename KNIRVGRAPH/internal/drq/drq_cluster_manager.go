@@ -3,6 +3,7 @@ package drq
 import (
 	"fmt"
 	"math"
+	"time"
 )
 
 // DRQClusterManager handles dynamic error clustering via DRQ
@@ -65,35 +66,78 @@ func (cm *DRQClusterManager) ClusterError(
 	return bestCluster, nil
 }
 
-// createNewCluster is a stub for creating a new error cluster
+// createNewCluster creates a new error cluster.
 func (cm *DRQClusterManager) createNewCluster(errorNode *ErrorNode, embedding []float64) string {
-	// TODO: Implement actual cluster creation logic
-	_ = errorNode
-	_ = embedding
-	fmt.Println("Stub: Creating new cluster")
-	return "new_cluster_id"
+	clusterID := fmt.Sprintf("cluster_%d", time.Now().UnixNano())
+	newCluster := &ErrorCluster{
+		ClusterID:     clusterID,
+		Errors:        []*ErrorNode{errorNode},
+		Centroid:      embedding,
+		AgentCounts:   make(map[string]int),
+		Solutions:     make(map[string][]*Solution),
+		Status:        CLUSTER_ACTIVE,
+		CreatedAt:     time.Now(),
+		AvgComplexity: float64(errorNode.Complexity),
+	}
+
+	cm.clusters[clusterID] = newCluster
+	errorNode.ClusterID = clusterID
+
+	return clusterID
 }
 
-// addToCluster is a stub for adding an error to an existing cluster
+// addToCluster adds an error to an existing cluster and updates its properties.
 func (cm *DRQClusterManager) addToCluster(clusterID string, errorNode *ErrorNode, embedding []float64) {
-	// TODO: Implement actual logic to add error to cluster
-	_ = clusterID
-	_ = errorNode
-	_ = embedding
-	fmt.Println("Stub: Adding error to cluster")
+	cluster, ok := cm.clusters[clusterID]
+	if !ok {
+		return // Should not happen if called from ClusterError
+	}
+
+	// Update Centroid
+	totalErrors := float64(len(cluster.Errors))
+	for i := range cluster.Centroid {
+		cluster.Centroid[i] = (cluster.Centroid[i]*totalErrors + embedding[i]) / (totalErrors + 1)
+	}
+
+	// Update AvgComplexity
+	cluster.AvgComplexity = (cluster.AvgComplexity*totalErrors + float64(errorNode.Complexity)) / (totalErrors + 1)
+
+	// Add error to cluster
+	cluster.Errors = append(cluster.Errors, errorNode)
+	errorNode.ClusterID = clusterID
 }
 
-// cosineSimilarity is a stub for calculating cosine similarity
+// cosineSimilarity calculates the cosine similarity between two vectors.
 func cosineSimilarity(a, b []float64) float64 {
-	// TODO: Implement actual cosine similarity calculation
-	_ = a
-	_ = b
-	return 1.0 // Assume perfect similarity for stub
+	if len(a) != len(b) || len(a) == 0 {
+		return 0.0
+	}
+
+	var dotProduct, magA, magB float64
+	for i := 0; i < len(a); i++ {
+		dotProduct += a[i] * b[i]
+		magA += a[i] * a[i]
+		magB += b[i] * b[i]
+	}
+
+	magA = math.Sqrt(magA)
+	magB = math.Sqrt(magB)
+
+	if magA == 0 || magB == 0 {
+		return 0.0
+	}
+
+	return dotProduct / (magA * magB)
 }
 
-// GetActiveClusters is a stub for getting all active error clusters
+// GetActiveClusters retrieves all clusters with an "active" status.
 func (cm *DRQClusterManager) GetActiveClusters() map[string]*ErrorCluster {
-	// TODO: Implement actual logic to retrieve active clusters
-	return cm.clusters // Return existing map for now
+	activeClusters := make(map[string]*ErrorCluster)
+	for id, cluster := range cm.clusters {
+		if cluster.Status == CLUSTER_ACTIVE {
+			activeClusters[id] = cluster
+		}
+	}
+	return activeClusters
 }
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-    "blockchain-app/internal/nrv"
+    "KNIRVGRAPH/internal/nrv"
     "fmt"
     "log"
     "time"

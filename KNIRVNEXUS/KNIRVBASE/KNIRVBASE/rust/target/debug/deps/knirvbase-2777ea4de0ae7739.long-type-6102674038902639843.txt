@@ -1,1 +1,0 @@
-tokio::sync::RwLockWriteGuard<'_, HashMap<types::MessageType, Vec<Box<(dyn Fn(types::ProtocolMessage) + std::marker::Send + Sync + 'static)>>>>

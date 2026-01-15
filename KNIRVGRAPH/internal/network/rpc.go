@@ -1,9 +1,9 @@
 package network
 
 import (
-	"blockchain-app/internal/economics"
-	"blockchain-app/internal/nrv"
-	"blockchain-app/internal/types"
+	"KNIRVGRAPH/internal/economics"
+	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/types"
 	"context"
 	"encoding/json"
 	"fmt"

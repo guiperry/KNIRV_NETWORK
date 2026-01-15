@@ -1,10 +1,10 @@
 package network
 
 import (
-	"blockchain-app/internal/graphchain"
-	"blockchain-app/internal/nrv"
-	"blockchain-app/internal/storage"
-	"blockchain-app/internal/types"
+	"KNIRVGRAPH/internal/graphchain"
+	"KNIRVGRAPH/internal/nrv"
+	"KNIRVGRAPH/internal/storage"
+	"KNIRVGRAPH/internal/types"
 	"bytes"
 	"encoding/json"
 	"net/http"

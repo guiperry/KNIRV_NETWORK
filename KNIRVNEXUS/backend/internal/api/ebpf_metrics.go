@@ -9,7 +9,7 @@ import (
 )
 
 // RegisterEBPFMetrics registers a simple metrics endpoint
-func RegisterEBPFMetrics(router *gin.Engine, mgr *ebpf.Manager) {
+func RegisterEBPFMetrics(router *gin.Engine, mgr ebpf.ManagerInterface) {
 	router.GET("/api/v1/ebpf/metrics", func(c *gin.Context) {
 		metrics := mgr.GetMetrics()
 		c.JSON(http.StatusOK, gin.H{

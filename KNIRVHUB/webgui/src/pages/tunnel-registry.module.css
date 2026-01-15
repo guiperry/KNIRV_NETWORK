@@ -1,0 +1,219 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.controls {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.refreshButton {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.refreshButton:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.refreshButton:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.errorCard {
+  margin-bottom: 30px;
+  border-left: 4px solid #dc3545;
+}
+
+.errorContent {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px;
+}
+
+.errorIcon {
+  font-size: 2rem;
+}
+
+.errorTitle {
+  margin: 0 0 5px 0;
+  color: #dc3545;
+  font-size: 1.2rem;
+}
+
+.errorText {
+  margin: 0;
+  color: #721c24;
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.statusCard {
+  padding: 20px;
+  text-align: center;
+}
+
+.statusItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusLabel {
+  font-weight: 500;
+  color: #666;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statusValue {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #007bff;
+}
+
+.memoryCard .statusValue {
+  font-size: 1rem;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.connectionsCard {
+  padding: 20px;
+}
+
+.connectionsTitle {
+  margin: 0 0 20px 0;
+  color: #007bff;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.tableContainer {
+  overflow-x: auto;
+}
+
+.connectionsTable {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.connectionsTable th,
+.connectionsTable td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.connectionsTable th {
+  background: rgba(0, 123, 255, 0.1);
+  font-weight: 600;
+  color: #007bff;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+.connectionsTable tr:hover {
+  background: rgba(0, 123, 255, 0.02);
+}
+
+.connectionId {
+  font-family: monospace;
+  word-break: break-all;
+  font-size: 0.9rem;
+}
+
+.active {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.inactive {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.unknown {
+  color: #6c757d;
+}
+
+.noConnections {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.noConnectionsIcon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.noConnections p {
+  margin: 0;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+
+  .statusGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statusCard {
+    padding: 15px;
+  }
+
+  .connectionsTable {
+    font-size: 0.9rem;
+  }
+
+  .connectionsTable th,
+  .connectionsTable td {
+    padding: 8px 10px;
+  }
+
+  .tableContainer {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .connectionsTable th,
+  .connectionsTable td {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+
+  .connectionId {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

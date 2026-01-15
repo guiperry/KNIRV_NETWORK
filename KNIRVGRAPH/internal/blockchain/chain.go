@@ -1,8 +1,8 @@
 package blockchain
 
 import (
-	"blockchain-app/internal/storage"
-	"blockchain-app/internal/types"
+	"KNIRVGRAPH/internal/storage"
+	"KNIRVGRAPH/internal/types"
 	"encoding/json"
 	"fmt"
 	"sync"

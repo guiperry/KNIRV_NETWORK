@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV-INFERENCE Framework</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            overflow: hidden;
+        }
+        .slide {
+            width: 1280px;
+            min-height: 720px;
+            position: relative;
+            background: linear-gradient(135deg, #0a192f 0%, #172a45 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://picsum.photos/seed/ai-technology-network/1280/720.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.15;
+            z-index: 0;
+        }
+        .header {
+            position: relative;
+            z-index: 1;
+            padding: 40px 70px 20px;
+        }
+        .title {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: white;
+        }
+        .decorative-element {
+            width: 120px;
+            height: 4px;
+            background: linear-gradient(90deg, #4ecdc4 0%, #9c27b0 100%);
+            margin-bottom: 30px;
+        }
+        .content {
+            position: relative;
+            z-index: 1;
+            padding: 0 70px 40px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-container {
+            height: 180px;
+            margin-bottom: 20px;
+        }
+        .framework-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .framework-item {
+            background-color: rgba(26, 26, 46, 0.7);
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #4ecdc4;
+            display: flex;
+            align-items: center;
+            transition: transform 0.3s ease;
+        }
+        .framework-item:hover {
+            transform: translateY(-5px);
+        }
+        .framework-icon {
+            color: #4ecdc4;
+            font-size: 32px;
+            margin-right: 15px;
+        }
+        .framework-content {
+            flex: 1;
+        }
+        .framework-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: white;
+        }
+        .framework-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .keyword {
+            background-color: rgba(76, 29, 149, 0.3);
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .highlight {
+            color: #9c27b0;
+        }
+        .accent {
+            color: #4ecdc4;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="header">
+            <h1 class="title">KNIRV-INFERENCE Framework</h1>
+            <div class="decorative-element"></div>
+        </div>
+        <div class="content">
+            <div class="chart-container">
+                <canvas id="frameworkChart"></canvas>
+            </div>
+            
+            <div class="framework-grid">
+                <div class="framework-item">
+                    <i class="fas fa-brain framework-icon"></i>
+                    <div class="framework-content">
+                        <h3 class="framework-title">Self-Improving System</h3>
+                        <div class="framework-keywords">
+                            <span class="keyword"><span class="accent">ErrorNodes</span></span>
+                            <span class="keyword">Validated Solutions</span>
+                            <span class="keyword">New Skills</span>
+                            <span class="keyword">Continuous Improvement</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="framework-item">
+                    <i class="fas fa-code framework-icon"></i>
+                    <div class="framework-content">
+                        <h3 class="framework-title">Implementation</h3>
+                        <div class="framework-keywords">
+                            <span class="keyword"><span class="accent">KNIRV-SDK</span></span>
+                            <span class="keyword">Unified API Gateway</span>
+                            <span class="keyword">Seamless Integration</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="framework-item">
+                    <i class="fas fa-sync-alt framework-icon"></i>
+                    <div class="framework-content">
+                        <h3 class="framework-title">SEAL Loop</h3>
+                        <div class="framework-keywords">
+                            <span class="keyword">Self-Enhancing</span>
+                            <span class="keyword">Agent Learning</span>
+                            <span class="keyword">Decision Accuracy</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="framework-item">
+                    <i class="fas fa-coins framework-icon"></i>
+                    <div class="framework-content">
+                        <h3 class="framework-title">Economic Model</h3>
+                        <div class="framework-keywords">
+                            <span class="keyword"><span class="accent">NRN Tokens</span></span>
+                            <span class="keyword">Transparent Cost</span>
+                            <span class="keyword">Pay-per-Use</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('frameworkChart').getContext('2d');
+            
+            const frameworkChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Skills Registry', 'Base LLM', 'KNIRVGRAPH', 'API Gateway', 'Validation'],
+                    datasets: [{
+                        label: 'Framework Components',
+                        data: [90, 85, 95, 80, 90],
+                        backgroundColor: 'rgba(78, 205, 196, 0.2)',
+                        borderColor: 'rgba(78, 205, 196, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(78, 205, 196, 1)',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scale: {
+                        ticks: {
+                            beginAtZero: true,
+                            max: 100,
+                            display: false
+                        },
+                        pointLabels: {
+                            fontSize: 14,
+                            fontColor: '#ffffff'
+                        },
+                        gridLines: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        angleLines: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
+                    legend: {
+                        display: false
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

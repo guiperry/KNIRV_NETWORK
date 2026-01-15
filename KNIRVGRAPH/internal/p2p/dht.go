@@ -1,6 +1,9 @@
 package p2p
 
-import "github.com/libp2p/go-libp2p/core/peer"
+import (
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/peer"
+)
 
 // DHTManagerInterface defines the interface for DHTManager operations
 type DHTManagerInterface interface {
@@ -11,4 +14,6 @@ type DHTManagerInterface interface {
 	AnnounceCapability(capabilityID, name, description string, schema interface{}, metadata map[string]string) error
 	AnnounceProperty(propertyID, name, propertyType string, value interface{}, metadata map[string]string) error
 	FindGraphServices() ([]peer.AddrInfo, error)
+	Publish(topic string, data []byte) error
+	Subscribe(topic string) (*pubsub.Subscription, error)
 }

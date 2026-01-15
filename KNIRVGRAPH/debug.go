@@ -1,9 +1,9 @@
 package main
 
 import (
-	"blockchain-app/internal/blockchain"
-	"blockchain-app/internal/storage"
-	"blockchain-app/internal/types"
+	"KNIRVGRAPH/internal/blockchain"
+	"KNIRVGRAPH/internal/storage"
+	"KNIRVGRAPH/internal/types"
 	"fmt"
 	"time"
 )
