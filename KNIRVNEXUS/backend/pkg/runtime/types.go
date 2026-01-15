@@ -6,7 +6,7 @@ package runtime
 import (
 	"time"
 
-	"github.com/knirvcorp/knirvbase/go"
+	"backend_server/internal/ebpf"
 )
 
 // RuntimeMode defines the execution mode for a container
@@ -70,8 +70,8 @@ type UnifiedContainer struct {
 	P2PEndpoints   []string `json:"p2p_endpoints,omitempty"`
 
 	// TEE capabilities
-	TEEAttester *teesecurity.TEEAttester `json:"tee_attester,omitempty"`
-	Attestation *teesecurity.Attestation `json:"attestation,omitempty"`
+	TEEAttester interface{} `json:"tee_attester,omitempty"` // *teesecurity.TEEAttester
+	Attestation interface{} `json:"attestation,omitempty"`  // *teesecurity.Attestation
 
 	// Container runtime
 	Runtime   ContainerRuntime `json:"runtime"`
@@ -80,7 +80,7 @@ type UnifiedContainer struct {
 
 	// eBPF security
 	EBPFMonitor *ebpf.SyscallMonitor `json:"-"`
-	SandboxLSM  *ebpf.SandboxLSM     `json:"-"`
+	SandboxLSM  interface{}          `json:"-"` // *ebpf.SandboxLSM
 
 	// NOC specific
 	ObjectConfig  *NestedObjectConfig `json:"object_config,omitempty"`

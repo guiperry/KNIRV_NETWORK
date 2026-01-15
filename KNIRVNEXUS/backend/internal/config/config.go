@@ -14,13 +14,13 @@ import (
 
 // PaymentProcessorConfig defines payment processor configuration
 type PaymentProcessorConfig struct {
-	Enabled            bool    `mapstructure:"enabled"`
-	NodeRPC            string  `mapstructure:"node_rpc"`
-	WebhookPort        int     `mapstructure:"webhook_port"`
-	TokenSymbol        string  `mapstructure:"token_symbol"`
-	TokenDecimals      int     `mapstructure:"token_decimals"`
-	USDPerToken        float64 `mapstructure:"usd_per_token"`
-	ETHPerToken        float64 `mapstructure:"eth_per_token"`
+	Enabled       bool    `mapstructure:"enabled"`
+	NodeRPC       string  `mapstructure:"node_rpc"`
+	WebhookPort   int     `mapstructure:"webhook_port"`
+	TokenSymbol   string  `mapstructure:"token_symbol"`
+	TokenDecimals int     `mapstructure:"token_decimals"`
+	USDPerToken   float64 `mapstructure:"usd_per_token"`
+	ETHPerToken   float64 `mapstructure:"eth_per_token"`
 }
 
 // BootnodeConfig defines bootnode configuration
@@ -45,31 +45,33 @@ type ReverseProxyConfig struct {
 
 // Config represents the application configuration
 type Config struct {
-	Environment string           `mapstructure:"environment"`
-	ChainID     string           `mapstructure:"chain_id"`
-	NodeRole    string           `mapstructure:"node_role"`
-	Mode        string           `mapstructure:"mode"` // "headless" or "gui"
-	Testnet     bool             `mapstructure:"testnet"`
-	Database    DatabaseConfig   `mapstructure:"database"`
-	API         APIConfig        `mapstructure:"api"`
-	GUI         GUIConfig        `mapstructure:"gui"`
-	P2P         P2PConfig        `mapstructure:"p2p"`
-	Auth        AuthConfig       `mapstructure:"auth"`
-	Security    SecurityConfig   `mapstructure:"security"`
-	Roles       RolesConfig      `mapstructure:"roles"`
-	Network     NetworkConfig    `mapstructure:"network"`
-	Validation  ValidationConfig `mapstructure:"validation"`
-	TEE         TEEConfig        `mapstructure:"tee"`
-	CDE         CDEConfig        `mapstructure:"cde"`
-	Reports     ReportsConfig    `mapstructure:"reports"`
-	Log         LogConfig        `mapstructure:"log"`
-	DVE         DVEConfig        `mapstructure:"dve"`
-	Failover    FailoverConfig   `mapstructure:"failover"`
-	ModelServer ModelServerConfig `mapstructure:"model_server"`
-	IsRoot      bool             `json:"is_root" mapstructure:"is_root,IsRoot"`
-	IsBootnode  bool             `json:"is_bootnode" mapstructure:"is_bootnode,IsBootnode"`                                          // General bootnode flag
-	IsPeer      bool             `json:"is_dev" mapstructure:"is_dev,IsPeer"`
-	ClientOnly  bool             `json:"client_only" mapstructure:"client_only,clientOnly"`
+	Environment     string            `mapstructure:"environment"`
+	ChainID         string            `mapstructure:"chain_id"`
+	NodeRole        string            `mapstructure:"node_role"`
+	Mode            string            `mapstructure:"mode"` // "headless" or "gui"
+	Testnet         bool              `mapstructure:"testnet"`
+	DemoMode        bool              `mapstructure:"demo_mode"`
+	AutoDeployDemos bool              `mapstructure:"auto_deploy_demos"`
+	Database        DatabaseConfig    `mapstructure:"database"`
+	API             APIConfig         `mapstructure:"api"`
+	GUI             GUIConfig         `mapstructure:"gui"`
+	P2P             P2PConfig         `mapstructure:"p2p"`
+	Auth            AuthConfig        `mapstructure:"auth"`
+	Security        SecurityConfig    `mapstructure:"security"`
+	Roles           RolesConfig       `mapstructure:"roles"`
+	Network         NetworkConfig     `mapstructure:"network"`
+	Validation      ValidationConfig  `mapstructure:"validation"`
+	TEE             TEEConfig         `mapstructure:"tee"`
+	CDE             CDEConfig         `mapstructure:"cde"`
+	Reports         ReportsConfig     `mapstructure:"reports"`
+	Log             LogConfig         `mapstructure:"log"`
+	DVE             DVEConfig         `mapstructure:"dve"`
+	Failover        FailoverConfig    `mapstructure:"failover"`
+	ModelServer     ModelServerConfig `mapstructure:"model_server"`
+	IsRoot          bool              `json:"is_root" mapstructure:"is_root,IsRoot"`
+	IsBootnode      bool              `json:"is_bootnode" mapstructure:"is_bootnode,IsBootnode"` // General bootnode flag
+	IsPeer          bool              `json:"is_dev" mapstructure:"is_dev,IsPeer"`
+	ClientOnly      bool              `json:"client_only" mapstructure:"client_only,clientOnly"`
 
 	// Additional fields for role-based settings
 	PaymentProcessor PaymentProcessorConfig `mapstructure:"payment_processor"`
@@ -78,11 +80,11 @@ type Config struct {
 	ReverseProxy     ReverseProxyConfig     `mapstructure:"reverse_proxy"`
 
 	// Legacy fields
-	Port        uint64 `mapstructure:"port"`
-	P2PPort     uint64 `mapstructure:"p2p_port"`
-	WalletPort  uint64 `mapstructure:"wallet_port"`
-	NoWalletServer bool `mapstructure:"no_wallet_server"`
-	UseGUI      bool   `mapstructure:"use_gui"`
+	Port           uint64 `mapstructure:"port"`
+	P2PPort        uint64 `mapstructure:"p2p_port"`
+	WalletPort     uint64 `mapstructure:"wallet_port"`
+	NoWalletServer bool   `mapstructure:"no_wallet_server"`
+	UseGUI         bool   `mapstructure:"use_gui"`
 }
 
 // DatabaseConfig represents database configuration
@@ -255,13 +257,13 @@ type DVEDiscoveryConfig struct {
 
 // FailoverConfig represents failover service configuration
 type FailoverConfig struct {
-	Enabled              bool          `mapstructure:"enabled"`
-	HealthCheckInterval  time.Duration `mapstructure:"health_check_interval"`
-	HealthCheckTimeout   time.Duration `mapstructure:"health_check_timeout"`
-	FailoverThreshold    int           `mapstructure:"failover_threshold"`
-	EnableAutoFailover   bool          `mapstructure:"enable_auto_failover"`
-	RootNodes            []string      `mapstructure:"root_nodes"`
-	Bootnodes            []string      `mapstructure:"bootnodes"`
+	Enabled             bool          `mapstructure:"enabled"`
+	HealthCheckInterval time.Duration `mapstructure:"health_check_interval"`
+	HealthCheckTimeout  time.Duration `mapstructure:"health_check_timeout"`
+	FailoverThreshold   int           `mapstructure:"failover_threshold"`
+	EnableAutoFailover  bool          `mapstructure:"enable_auto_failover"`
+	RootNodes           []string      `mapstructure:"root_nodes"`
+	Bootnodes           []string      `mapstructure:"bootnodes"`
 }
 
 // ModelServerConfig represents model server configuration
@@ -483,7 +485,6 @@ func DetermineRoleFromConfig(cfg *Config) Role {
 	// If no build flags are set, fall back to config values
 	return DetermineRole(cfg.IsRoot, cfg.IsBootnode, cfg.IsPeer, cfg.ClientOnly)
 }
-
 
 // setDefaults sets default configuration values
 func setDefaults() {

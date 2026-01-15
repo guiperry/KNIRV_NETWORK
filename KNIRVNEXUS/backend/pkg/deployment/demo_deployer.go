@@ -9,7 +9,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/knirvcorp/knirvbase/go"
+	"backend_server/pkg/demos"
+	"backend_server/pkg/runtime"
 )
 
 // DemoDeployer manages automatic deployment of all demo NOCs

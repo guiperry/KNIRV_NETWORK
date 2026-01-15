@@ -38,9 +38,8 @@ import (
 	"backend_server/internal/services/websocket"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
-
-	// Object Nest packages
-	"github.com/knirvcorp/knirvbase/go"
+	"backend_server/pkg/deployment"
+	"backend_server/pkg/runtime"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"

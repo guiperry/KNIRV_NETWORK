@@ -9,7 +9,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/knirvcorp/knirvbase/go"
+	"backend_server/pkg/runtime"
 )
 
 // GatewayNestDeployer deploys KNIRVGATEWAY NOC
