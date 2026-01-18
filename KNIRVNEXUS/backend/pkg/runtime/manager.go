@@ -394,7 +394,7 @@ func (ucm *UnifiedContainerManager) generateCryptoHash(c *UnifiedContainer) stri
 
 // registerWithRouter registers the container with KNIRVROUTER DHT
 func (ucm *UnifiedContainerManager) registerWithRouter(
-	ctx context.Context,
+	_ context.Context,
 	c *UnifiedContainer,
 ) error {
 	// TODO: Implement actual KNIRVROUTER client integration
@@ -406,7 +406,7 @@ func (ucm *UnifiedContainerManager) registerWithRouter(
 
 // unregisterFromRouter unregisters the container from KNIRVROUTER DHT
 func (ucm *UnifiedContainerManager) unregisterFromRouter(
-	ctx context.Context,
+	_ context.Context,
 	c *UnifiedContainer,
 ) error {
 	// TODO: Implement actual KNIRVROUTER client integration

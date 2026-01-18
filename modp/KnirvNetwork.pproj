@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <ProjectName>KnirvNetwork</ProjectName>
+  <InputFiles>
+    <!-- Shared Types and Events -->
+    <PFile>types/network_types.p</PFile>
+    <PFile>events/network_events.p</PFile>
+
+    <!-- KNIRVORACLE Components -->
+    <PFile>components/oracle/token_machine.p</PFile>
+    <PFile>components/oracle/governance_machine.p</PFile>
+    <PFile>components/oracle/economics_machine.p</PFile>
+    <PFile>components/oracle/consensus_machine.p</PFile>
+    <PFile>components/oracle/ibc_machine.p</PFile>
+
+    <!-- KNIRVCHAIN Components -->
+    <PFile>components/chain/skill_registry.p</PFile>
+    <PFile>components/chain/llm_registry.p</PFile>
+    <PFile>components/chain/mcp_capability.p</PFile>
+    <PFile>components/chain/node_transformation.p</PFile>
+
+    <!-- KNIRVGRAPH Components -->
+    <PFile>components/graph/knowledge_graph.p</PFile>
+
+    <!-- KNIRVROUTER Components -->
+    <PFile>components/router/p2p_network.p</PFile>
+    <PFile>components/router/proof_of_connectivity.p</PFile>
+
+    <!-- KNIRVNEXUS Components -->
+    <PFile>components/nexus/validation_machine.p</PFile>
+    <PFile>components/nexus/execution_sandbox.p</PFile>
+
+    <!-- KNIRVBASE Components -->
+    <PFile>components/base/base_layer.p</PFile>
+
+    <!-- Network-Wide Monitors -->
+    <PFile>monitors/network_invariants.p</PFile>
+
+    <!-- Compositional Tests -->
+    <PFile>tests/network_composition_tests.p</PFile>
+  </InputFiles>
+  <Target>PChecker</Target>
+  <OutputDir>./output</OutputDir>
+</Project>

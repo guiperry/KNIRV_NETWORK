@@ -85,7 +85,7 @@ func TestSkillNodeValidationEndToEnd(t *testing.T) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	var completedTask *objects.ValidationTask
+	var completedTask *validation.ValidationTask
 	for {
 		select {
 		case <-timeout:
@@ -178,7 +178,7 @@ func TestBaseLLMValidationEndToEnd(t *testing.T) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
-	var completedTask *objects.ValidationTask
+	var completedTask *validation.ValidationTask
 	for {
 		select {
 		case <-timeout:
@@ -328,7 +328,7 @@ func TestTimeoutHandling(t *testing.T) {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	var failedTask *objects.ValidationTask
+	var failedTask *validation.ValidationTask
 	for {
 		select {
 		case <-timeout:
@@ -390,6 +390,51 @@ func (m *mockInferenceService) Start() error {
 }
 
 func (m *mockInferenceService) Stop() error {
+	return nil
+}
+
+// Additional methods to satisfy *inference.InferenceService interface
+func (m *mockInferenceService) GenerateTextWithContext(ctx context.Context, modelName string, promptText string, instructionText string) (string, error) {
+	return m.GenerateText(modelName, promptText, instructionText)
+}
+
+func (m *mockInferenceService) GenerateTextWithoutContext(modelName string, promptText string, instructionText string) (string, error) {
+	return m.GenerateText(modelName, promptText, instructionText)
+}
+
+func (m *mockInferenceService) GenerateTextWithProvider(providerName string, promptText string) (string, error) {
+	return "mock response", nil
+}
+
+func (m *mockInferenceService) GenerateTextWithMOA(promptText string, instructionText string) (string, error) {
+	return "mock response", nil
+}
+
+func (m *mockInferenceService) GenerateTextWithContextStrategist(promptText, instruction string, llmProviderName string) (string, error) {
+	return "mock response", nil
+}
+
+func (m *mockInferenceService) ExecuteComplexTask(ctx context.Context, complexPrompt string) (string, error) {
+	return "mock response", nil
+}
+
+func (m *mockInferenceService) GenerateTextWithCoT(ctx context.Context, promptText string) (string, error) {
+	return "mock response", nil
+}
+
+func (m *mockInferenceService) GenerateTextWithReflection(ctx context.Context, promptText string) (string, error) {
+	return "mock response", nil
+}
+
+func (m *mockInferenceService) GenerateStructuredOutput(content string, schema string) (string, error) {
+	return "mock response", nil
+}
+
+func (m *mockInferenceService) SetMOAPrimaryModel(modelName string) error {
+	return nil
+}
+
+func (m *mockInferenceService) StartWithConfig(attemptConfigs []interface{}, plannerModel string, executorModels []string, finalizerModel string, verifierModel string) error {
 	return nil
 }
 

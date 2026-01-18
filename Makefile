@@ -789,6 +789,181 @@ test-network-security: ## Run network security tests
 	fi
 
 # =============================================================================
+# MODP FORMAL VERIFICATION TESTS (NETWORK-WIDE)
+# =============================================================================
+
+# Network-wide ModP directory (covers all KNIRV components)
+MODP_DIR := $(PROJECT_ROOT)/modp
+
+.PHONY: setup-modp
+setup-modp: ## Setup ModP (P language) framework for formal verification
+	@echo "$(BLUE)Setting up ModP formal verification framework...$(NC)"
+	@if [ -f "$(MODP_DIR)/scripts/setup.sh" ]; then \
+		cd $(MODP_DIR) && chmod +x scripts/setup.sh && ./scripts/setup.sh; \
+		echo "$(GREEN)✓ ModP framework setup completed$(NC)"; \
+	else \
+		echo "$(RED)Error: ModP setup script not found$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: test-modp
+test-modp: ## Run all ModP compositional verification tests (network-wide)
+	@echo "$(BLUE)🔬 Running ModP Network-Wide Compositional Verification Tests$(NC)"
+	@echo "=============================================================="
+	@if [ -f "$(MODP_DIR)/scripts/run-tests.sh" ]; then \
+		cd $(MODP_DIR) && chmod +x scripts/run-tests.sh && ./scripts/run-tests.sh all; \
+		echo "$(GREEN)✓ ModP verification tests completed$(NC)"; \
+	else \
+		echo "$(RED)Error: ModP test runner not found$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: test-modp-network
+test-modp-network: ## Run network-wide cross-component tests only
+	@echo "$(BLUE)🔬 Running Network-Wide Cross-Component Tests$(NC)"
+	@echo "================================================"
+	@if [ -f "$(MODP_DIR)/scripts/run-tests-simple.sh" ]; then \
+		cd $(MODP_DIR) && bash ./scripts/run-tests-simple.sh; \
+		echo "$(GREEN)✓ Network-wide tests completed$(NC)"; \
+	else \
+		echo "$(RED)Error: ModP test runner not found$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: test-modp-component
+test-modp-component: ## Run component-specific tests only
+	@echo "$(BLUE)🔬 Running Component-Specific Tests$(NC)"
+	@echo "======================================"
+	@if [ -f "$(MODP_DIR)/scripts/run-tests.sh" ]; then \
+		cd $(MODP_DIR) && ./scripts/run-tests.sh component; \
+		echo "$(GREEN)✓ Component tests completed$(NC)"; \
+	else \
+		echo "$(RED)Error: ModP test runner not found$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: test-modp-compile
+test-modp-compile: ## Compile ModP P language modules only
+	@echo "$(BLUE)Compiling ModP P language modules...$(NC)"
+	@if [ -f "$(MODP_DIR)/scripts/run-tests.sh" ]; then \
+		cd $(MODP_DIR) && ./scripts/run-tests.sh compile; \
+		echo "$(GREEN)✓ ModP compilation completed$(NC)"; \
+	else \
+		echo "$(RED)Error: ModP test runner not found$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: test-modp-specific
+test-modp-specific: ## Run a specific ModP test (usage: make test-modp-specific TEST=FullNetworkComposition)
+	@if [ -z "$(TEST)" ]; then \
+		echo "$(RED)Error: TEST parameter is required$(NC)"; \
+		echo "Usage: make test-modp-specific TEST=<test_name>"; \
+		echo ""; \
+		echo "$(YELLOW)Network-Wide Tests:$(NC)"; \
+		echo "  - FullNetworkComposition        Full network cross-component test"; \
+		echo "  - ErrorToSkillToCrossChain      Error→Skill→IBC end-to-end flow"; \
+		echo "  - ValidationPipeline            Distributed validation pipeline"; \
+		echo "  - NetworkMaliciousBehaviorRejection  Security validation"; \
+		echo ""; \
+		echo "$(YELLOW)Component Tests:$(NC)"; \
+		echo "  - TokenTransferConsistency      Token transfer balance consistency"; \
+		echo "  - GovernanceLifecycle           Proposal lifecycle verification"; \
+		echo "  - SkillRegistration             Skill registry verification"; \
+		echo "  - NodeTransformation            Node transformation mining"; \
+		echo "  - KnowledgeGraphConsistency     Knowledge graph invariants"; \
+		echo "  - P2PConnectivity               P2P network verification"; \
+		echo "  - ValidationExecution           Validation sandbox verification"; \
+		echo "  - BaseLayerStorage              Base layer data availability"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Running ModP test: $(TEST)...$(NC)"
+	@if [ -f "$(MODP_DIR)/scripts/run-tests.sh" ]; then \
+		cd $(MODP_DIR) && ./scripts/run-tests.sh test $(TEST); \
+		echo "$(GREEN)✓ ModP test $(TEST) completed$(NC)"; \
+	else \
+		echo "$(RED)Error: ModP test runner not found$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: test-modp-list
+test-modp-list: ## List available ModP verification tests
+	@echo "$(BLUE)Available ModP Verification Tests$(NC)"
+	@echo "==================================="
+	@if [ -f "$(MODP_DIR)/scripts/run-tests.sh" ]; then \
+		cd $(MODP_DIR) && ./scripts/run-tests.sh list; \
+	else \
+		echo "$(YELLOW)Network-Wide Tests:$(NC)"; \
+		echo "  - FullNetworkComposition        Full cross-component verification"; \
+		echo "  - ErrorToSkillToCrossChain      Error→Skill→IBC pipeline"; \
+		echo "  - ValidationPipeline            Validation flow verification"; \
+		echo "  - NetworkMaliciousBehaviorRejection  Security invariants"; \
+		echo ""; \
+		echo "$(YELLOW)Component Tests:$(NC)"; \
+		echo "  - TokenTransferConsistency      KNIRVORACLE token operations"; \
+		echo "  - GovernanceLifecycle           KNIRVORACLE governance"; \
+		echo "  - SkillRegistration             KNIRVCHAIN skill registry"; \
+		echo "  - NodeTransformation            KNIRVCHAIN node transformation"; \
+		echo "  - KnowledgeGraphConsistency     KNIRVGRAPH knowledge graph"; \
+		echo "  - P2PConnectivity               KNIRVROUTER P2P network"; \
+		echo "  - ValidationExecution           KNIRVNEXUS validation"; \
+		echo "  - BaseLayerStorage              KNIRVBASE data availability"; \
+	fi
+
+.PHONY: test-modp-report
+test-modp-report: ## Generate ModP verification test report
+	@echo "$(BLUE)Generating ModP verification test report...$(NC)"
+	@if [ -f "$(MODP_DIR)/scripts/run-tests.sh" ]; then \
+		cd $(MODP_DIR) && ./scripts/run-tests.sh report; \
+		echo "$(GREEN)✓ ModP test report generated$(NC)"; \
+		echo "$(YELLOW)📊 Report available at: $(MODP_DIR)/results/$(NC)"; \
+	else \
+		echo "$(RED)Error: ModP test runner not found$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: modp-help
+modp-help: ## Show help for ModP formal verification commands
+	@echo "$(BLUE)ModP Formal Verification Commands (Network-Wide)$(NC)"
+	@echo "=================================================="
+	@echo ""
+	@echo "$(YELLOW)Setup:$(NC)"
+	@echo "  $(GREEN)setup-modp$(NC)                Install P language framework"
+	@echo ""
+	@echo "$(YELLOW)Testing:$(NC)"
+	@echo "  $(GREEN)test-modp$(NC)                 Run all compositional verification tests"
+	@echo "  $(GREEN)test-modp-network$(NC)         Run network-wide cross-component tests"
+	@echo "  $(GREEN)test-modp-component$(NC)       Run component-specific tests"
+	@echo "  $(GREEN)test-modp-compile$(NC)         Compile P modules only"
+	@echo "  $(GREEN)test-modp-specific$(NC)        Run a specific test (TEST=name)"
+	@echo "  $(GREEN)test-modp-list$(NC)            List available tests"
+	@echo "  $(GREEN)test-modp-report$(NC)          Generate test report"
+	@echo ""
+	@echo "$(YELLOW)Invariant Monitors:$(NC)"
+	@echo "  - NetworkIntegrityMonitor       Overall network health"
+	@echo "  - CrossChainConsistencyMonitor  Cross-chain message delivery"
+	@echo "  - TokenEconomicsMonitor         Token supply and treasury"
+	@echo "  - GovernanceProcessMonitor      Governance rule enforcement"
+	@echo "  - ValidationIntegrityMonitor    Validation task integrity"
+	@echo "  - KnowledgeGraphConsistencyMonitor  Graph consistency"
+	@echo ""
+	@echo "$(YELLOW)Components Covered:$(NC)"
+	@echo "  - KNIRVORACLE  Token, Governance, Economics, Consensus, IBC"
+	@echo "  - KNIRVCHAIN   Skill Registry, LLM Registry, MCP, Node Transformation"
+	@echo "  - KNIRVGRAPH   Knowledge Graph (Error/Solution)"
+	@echo "  - KNIRVROUTER  P2P Network, Proof of Connectivity"
+	@echo "  - KNIRVNEXUS   Validation, Execution Sandbox"
+	@echo "  - KNIRVBASE    Base Layer (Data Availability)"
+	@echo ""
+	@echo "$(YELLOW)Examples:$(NC)"
+	@echo "  make setup-modp                                    # Install P framework"
+	@echo "  make test-modp                                     # Run all tests"
+	@echo "  make test-modp-network                             # Run network tests only"
+	@echo "  make test-modp-specific TEST=FullNetworkComposition  # Run specific test"
+	@echo ""
+	@echo "$(YELLOW)Documentation:$(NC)"
+	@echo "  See modp/README.md for detailed documentation"
+
+# =============================================================================
 # TESTING AND VALIDATION
 # =============================================================================
 
