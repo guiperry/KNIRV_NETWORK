@@ -17,8 +17,6 @@ machine IBCMachine {
     var connections: map[string, ConnectionState];
     var pendingPackets: map[int, IBCPacket];
     var packetSequence: int;
-    var acknowledgedPackets: set[int];
-    var timedOutPackets: set[int];
 
     // Configuration
     var defaultTimeout: int;  // blocks
@@ -38,8 +36,6 @@ machine IBCMachine {
             connections = default(map[string, ConnectionState]);
             pendingPackets = default(map[int, IBCPacket]);
             packetSequence = 0;
-            acknowledgedPackets = default(set[int]);
-            timedOutPackets = default(set[int]);
             defaultTimeout = 1000;  // blocks
         }
 
@@ -59,13 +55,13 @@ machine IBCMachine {
 
             // Check if channel already exists
             if (tempChannelID in channels) {
-                send this, eIBCChannelOpenFailed, ("Channel already exists",);
+                send this, eIBCChannelOpenFailed, "Channel already exists";
                 return;
             }
 
             // Validate channel parameters
             if (payload.channel.connectionID == "") {
-                send this, eIBCChannelOpenFailed, ("Invalid connection ID",);
+                send this, eIBCChannelOpenFailed, "Invalid connection ID";
                 return;
             }
 
@@ -82,7 +78,7 @@ machine IBCMachine {
             tempNewChannel.channelState = tempChannelState;
             channels[tempChannelID] = tempNewChannel;
 
-            send this, eIBCChannelOpened, (tempChannelID,);
+            send this, eIBCChannelOpened, tempChannelID;
         }
 
         on eIBCChannelClose do (payload: (channelID: string)) {
@@ -95,36 +91,36 @@ machine IBCMachine {
             tempChannel.channelState = tempChannelState;
             channels[payload.channelID] = tempChannel;
 
-            send this, eIBCChannelClosed, (payload.channelID,);
+            send this, eIBCChannelClosed, payload.channelID;
         }
 
         // Packet sending
-        on eIBCSendPacket do (payload: (packet: IBCPacket)) {
+        on eIBCSendPacket do (packet: IBCPacket) {
             // Verify channel is open
-            if (!(payload.packet.sourceChannel in channels)) {
-                send this, eIBCPacketFailed, ("Channel not found",);
+            if (!(packet.sourceChannel in channels)) {
+                send this, eIBCPacketFailed, "Channel not found";
                 return;
             }
 
-            tempChannel = channels[payload.packet.sourceChannel];
+            tempChannel = channels[packet.sourceChannel];
 
             if (tempChannel.channelState.value != 3) {  // Not Open
-                send this, eIBCPacketFailed, ("Channel not open",);
+                send this, eIBCPacketFailed, "Channel not open";
                 return;
             }
 
             // Assign sequence number
             packetSequence = packetSequence + 1;
 
-            tempNewPacket = payload.packet;
+            tempNewPacket = packet;
             tempNewPacket.sequence = packetSequence;
 
             // Store pending packet
             pendingPackets[packetSequence] = tempNewPacket;
 
             // Announce packet sent
-            announce eIBCPacketSent, (packetSequence,);
-            send this, eIBCPacketSent, (packetSequence,);
+            announce eIBCPacketSent, packetSequence;
+            send this, eIBCPacketSent, packetSequence;
         }
 
         // Packet receiving (from counterparty chain)
@@ -143,26 +139,25 @@ machine IBCMachine {
             // Process packet based on port/data
             // In real implementation, this would dispatch to specific handlers
 
-            send this, eIBCPacketReceived, (payload.packet.sequence,);
+            send this, eIBCPacketReceived, payload.packet.sequence;
 
             // Send acknowledgment
-            send this, eIBCPacketAcknowledged, (payload.packet.sequence,);
+            send this, eIBCPacketAcknowledged, payload.packet.sequence;
         }
 
         // Packet acknowledgment
-        on eIBCPacketAcknowledged do (payload: (sequence: int)) {
-            if (payload.sequence in pendingPackets) {
-                acknowledgedPackets = acknowledgedPackets + (payload.sequence);
-                pendingPackets -= payload.sequence;
+        on eIBCPacketAcknowledged do (seqNum: int) {
+            // Track acknowledged packets - just remove from pending
+            if (seqNum in pendingPackets) {
+                pendingPackets -= seqNum;
             }
         }
 
         // Packet timeout
-        on eIBCPacketTimeout do (payload: (sequence: int)) {
-            if (payload.sequence in pendingPackets) {
-                timedOutPackets = timedOutPackets + (payload.sequence);
-                pendingPackets -= payload.sequence;
-
+        on eIBCPacketTimeout do (seqNum: int) {
+            // Handle timeout - just remove from pending
+            if (seqNum in pendingPackets) {
+                pendingPackets -= seqNum;
                 // Refund logic would go here
             }
         }
@@ -182,7 +177,7 @@ machine IBCMachine {
             tempPacket.timeoutTimestamp = tempTimestamp;
 
             send this, eIBCSendPacket, tempPacket;
-            send this, eCrossChainMessageSent, (payload.message.id,);
+            send this, eCrossChainMessageSent, payload.message.id;
         }
 
         on eNetworkShutdown do {

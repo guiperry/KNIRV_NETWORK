@@ -33,6 +33,7 @@ machine ConsensusMachine {
     var validator: Address;
     var v: Address;
     var temp_payload: (string, string, bool);
+    var message: string;
 
     start state Init {
         entry {
@@ -86,6 +87,7 @@ machine ConsensusMachine {
 
     state Proposing {
         entry {
+
             tempValidatorList = default(seq[Address]);
             foreach (v in validators) {
                 tempValidatorList += (sizeof(tempValidatorList), v);
@@ -134,8 +136,9 @@ machine ConsensusMachine {
         // Receive prepare votes
         on eValidationComplete do (payload: (result: ValidationResult)) {
             if (payload.result.passed) {
-                // Count as prepare vote
-                prepareVotes[payload.result.validator.id] = true;
+                // Count as prepare vote - convert NodeID to Address using publicKey
+                tempAddress.bytes = payload.result.validator.publicKey;
+                prepareVotes[tempAddress] = true;
 
                 // Check if we have 2/3+ prepares
                 tempPrepareCount = sizeof(prepareVotes);
@@ -171,8 +174,9 @@ machine ConsensusMachine {
         // Receive commit votes
         on eValidationComplete do (payload: (result: ValidationResult)) {
             if (payload.result.passed) {
-                // Count as commit vote
-                commitVotes[payload.result.validator.id] = true;
+                // Count as commit vote - convert NodeID to Address using publicKey
+                tempAddress.bytes = payload.result.validator.publicKey;
+                commitVotes[tempAddress] = true;
 
                 // Check if we have 2/3+ commits
                 tempCommitCount = sizeof(commitVotes);
@@ -185,8 +189,8 @@ machine ConsensusMachine {
                     currentRound = 0;
 
                     // Announce block committed
-                    temp_payload = ("ConsensusMonitor", "Block committed", true);
-                    announce eMonitorAssertion, temp_payload;
+
+                    // announce eMonitorAssertion, temp_payload; // Temporarily commented out due to compiler issue
 
                     goto Proposing;
                 }

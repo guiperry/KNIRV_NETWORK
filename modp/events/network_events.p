@@ -54,66 +54,66 @@ event eMCPCapabilityRegistered: MCPCapability;
 event eMCPCapabilityFailed: string;
 
 event eInvokeMCPCapability: (capabilityID: UUID, caller: Address, params: map[string, any]);
-event eMCPCapabilityResult: (capabilityID: UUID, result: map[string, any], success: bool);
+event eMCPCapabilityResult: MCPCapabilityResultData;
 
 // Node Transformation Events - ErrorNode → SkillNode Mining
 event eSubmitError: (errorType: string, errorMessage: string, context: map[string, any], sourceModel: UUID);
 event eErrorNodeCreated: ErrorNode;
 
 event eMineSkillFromError: (errorNodeID: UUID, trainer: Address, loraAdapter: string);
-event eSkillNodeMined: (skillNode: SkillNode, reward: BigInt);
-event eSkillMiningFailed: (errorNodeID: UUID, reason: string);
+event eSkillNodeMined: SkillNodeMinedData;
+event eSkillMiningFailed: SkillMiningFailedData;
 
 // Node Transformation Events - ContextNode → CapabilityNode Minting
 event eSubmitContext: (contextData: map[string, any], sourceInteraction: UUID);
 event eContextNodeCreated: ContextNode;
 
 event eMintCapabilityFromContext: (contextNodeID: UUID, creator: Address, mcpServer: string);
-event eCapabilityNodeMinted: (capabilityNode: CapabilityNode);
-event eCapabilityMintingFailed: (contextNodeID: UUID, reason: string);
+event eCapabilityNodeMinted: CapabilityNode;
+event eCapabilityMintingFailed: CapabilityMintingFailedData;
 
 // Node Transformation Events - IdeaNode → PropertyNode Making
 event eSubmitIdea: (ideaContent: string, proposer: Address);
 event eIdeaNodeCreated: IdeaNode;
 
 event eVoteOnIdea: (ideaNodeID: UUID, voter: Address, support: bool);
-event eIdeaVoted: (ideaNodeID: UUID, votes: int);
+event eIdeaVoted: IdeaVotedData;
 
 event eMakePropertyFromIdea: (ideaNodeID: UUID, owner: Address, inferenceNFT: string, royaltyRate: int);
 event ePropertyNodeMade: PropertyNode;
-event ePropertyMakingFailed: (ideaNodeID: UUID, reason: string);
+event ePropertyMakingFailed: PropertyMakingFailedData;
 
 // =====================================================================
 // KNIRVGRAPH EVENTS - Knowledge Graph
 // =====================================================================
 
 // Error Recording Events
-event eRecordError: (errorType: string, errorMessage: string, context: map[string, any]);
-event eErrorRecorded: (record: ErrorRecord);
-event eErrorDuplicate: (existingID: UUID, occurrences: int);
+event eRecordError: (errorType: string, errorMessage: string, stackTrace: string, context: map[string, any]);
+event eErrorRecorded: ErrorRecord;
+event eErrorDuplicate: ErrorDuplicateData;
 
 // Solution Events
 event eSubmitSolution: (forError: UUID, solutionType: string, content: string, author: Address);
-event eSolutionSubmitted: (solution: SolutionRecord);
+event eSolutionSubmitted: SolutionRecord;
 event eSolutionSubmissionFailed: string;
 
 event eValidateSolution: (solutionID: UUID, validator: Address, effective: bool);
-event eSolutionValidated: (solutionID: UUID, newEffectiveness: int);
+event eSolutionValidated: SolutionValidatedData;
 
 // Knowledge Graph Query Events
 event eQueryKnowledgeGraph: (queryType: string, params: map[string, any]);
-event eKnowledgeGraphResult: (nodes: seq[KnowledgeNode], patterns: seq[ErrorPattern]);
+event eKnowledgeGraphResult: KnowledgeGraphResultData;
 
 // Pattern Detection Events
-event ePatternDetected: (pattern: ErrorPattern);
-event ePatternUpdated: (patternID: UUID, occurrenceCount: int);
+event ePatternDetected: ErrorPattern;
+event ePatternUpdated: PatternUpdatedData;
 
 // Graph Linking Events
 event eLinkErrorToSolution: (errorID: UUID, solutionID: UUID);
-event eErrorSolutionLinked: (errorID: UUID, solutionID: UUID);
+event eErrorSolutionLinked: NodeLinkData;
 
 event eLinkNodes: (sourceID: UUID, targetID: UUID, linkType: string);
-event eNodesLinked: (sourceID: UUID, targetID: UUID);
+event eNodesLinked: NodeLinkData;
 
 // =====================================================================
 // KNIRVROUTER EVENTS - P2P Networking
@@ -121,46 +121,46 @@ event eNodesLinked: (sourceID: UUID, targetID: UUID);
 
 // Peer Discovery Events
 event eDiscoverPeers;
-event ePeersDiscovered: (peers: seq[PeerInfo]);
+event ePeersDiscovered: seq[PeerInfo];
 
-event eConnectToPeer: (peer: PeerInfo);
-event ePeerConnected: (peer: PeerInfo);
-event ePeerConnectionFailed: (peer: PeerInfo, reason: string);
+event eConnectToPeer: PeerInfo;
+event ePeerConnected: PeerInfo;
+event ePeerConnectionFailed: PeerConnectionFailedData;
 
-event eDisconnectPeer: (nodeID: NodeID);
-event ePeerDisconnected: (nodeID: NodeID);
+event eDisconnectPeer: NodeID;
+event ePeerDisconnected: NodeID;
 
 // Routing Events
-event eUpdateRoute: (routeEntry: RouteEntry);
-event eRouteUpdated: (routeEntry: RouteEntry);
+event eUpdateRoute: RouteEntry;
+event eRouteUpdated: RouteEntry;
 
-event eRouteMessage: (message: RoutedMessage);
-event eMessageRouted: (messageID: UUID, hopCount: int);
-event eMessageRoutingFailed: (messageID: UUID, reason: string);
+event eRouteMessage: RoutedMessage;
+event eMessageRouted: MessageRoutedData;
+event eMessageRoutingFailed: MessageRoutingFailedData;
 
-event eQueryRoute: (destination: NodeID);
-event eRouteQueryResult: (path: seq[NodeID]);
+event eQueryRoute: NodeID;
+event eRouteQueryResult: seq[NodeID];
 
 // Proof of Connectivity Events
-event eGenerateConnectivityProof: (verifier: NodeID);
-event eConnectivityProofGenerated: (proof: ConnectivityProof);
+event eGenerateConnectivityProof: NodeID;
+event eConnectivityProofGenerated: ConnectivityProof;
 
-event eVerifyConnectivityProof: (proof: ConnectivityProof);
-event eConnectivityProofVerified: (proof: ConnectivityProof, valid: bool);
+event eVerifyConnectivityProof: ConnectivityProof;
+event eConnectivityProofVerified: ConnectivityProofVerifiedData;
 
-event eConnectivityChallenged: (prover: NodeID, challenger: NodeID);
-event eConnectivityChallengeResult: (prover: NodeID, passed: bool);
+event eConnectivityChallenged: ConnectivityChallengedData;
+event eConnectivityChallengeResult: ConnectivityChallengeResultData;
 
 // Topology Events
 event eRequestTopologySnapshot;
-event eTopologySnapshotReady: (snapshot: TopologySnapshot);
+event eTopologySnapshotReady: TopologySnapshot;
 
-event eNetworkPartitionDetected: (partitions: seq[seq[NodeID]]);
-event eNetworkHealed: (timestamp: Timestamp);
+event eNetworkPartitionDetected: seq[seq[NodeID]];
+event eNetworkHealed: Timestamp;
 
 // Broadcast Events
 event eBroadcastMessage: (messageType: string, msgPayload: seq[int], ttl: int);
-event eBroadcastDelivered: (messageID: UUID, deliveryCount: int);
+event eBroadcastDelivered: BroadcastDeliveredData;
 
 // =====================================================================
 // KNIRVNEXUS EVENTS - Distributed Validation
@@ -287,20 +287,20 @@ event eTreasuryBalanceResponse: BigInt;
 
 // IBC Events
 event eIBCChannelOpen: (channel: IBCChannel);
-event eIBCChannelOpened: (channelID: string);
-event eIBCChannelOpenFailed: (reason: string);
+event eIBCChannelOpened: string;
+event eIBCChannelOpenFailed: string;
 
 event eIBCChannelClose: (channelID: string);
-event eIBCChannelClosed: (channelID: string);
+event eIBCChannelClosed: string;
 
-event eIBCSendPacket: (packet: IBCPacket);
-event eIBCPacketSent: (sequence: int);
-event eIBCPacketFailed: (reason: string);
+event eIBCSendPacket: IBCPacket;
+event eIBCPacketSent: int;
+event eIBCPacketFailed: string;
 
 event eIBCReceivePacket: (packet: IBCPacket);
-event eIBCPacketReceived: (sequence: int);
-event eIBCPacketAcknowledged: (sequence: int);
-event eIBCPacketTimeout: (sequence: int);
+event eIBCPacketReceived: int;
+event eIBCPacketAcknowledged: int;
+event eIBCPacketTimeout: int;
 
 // =====================================================================
 // CROSS-COMPONENT EVENTS
@@ -308,7 +308,7 @@ event eIBCPacketTimeout: (sequence: int);
 
 // Cross-chain messaging
 event eSendCrossChainMessage: (message: CrossChainMessage);
-event eCrossChainMessageSent: (messageID: UUID);
+event eCrossChainMessageSent: UUID;
 event eCrossChainMessageReceived: (message: CrossChainMessage);
 event eCrossChainMessageFailed: (messageID: UUID, reason: string);
 

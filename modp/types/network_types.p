@@ -134,6 +134,13 @@ type MCPCapability = (
 type MCPStatus = (status: string);
 // Values: "available", "restricted", "deprecated"
 
+// MCP invocation result
+type MCPCapabilityResultData = (
+    capabilityID: UUID,
+    result: map[string, any],
+    success: bool
+);
+
 // Node transformation types
 type ErrorNode = (
     id: UUID,
@@ -191,6 +198,33 @@ type PropertyNode = (
 type NodeStatus = (status: string);
 // Values: "pending", "validated", "rejected", "transformed"
 
+// Node transformation failure types
+type SkillMiningFailedData = (
+    errorNodeID: UUID,
+    reason: string
+);
+
+type CapabilityMintingFailedData = (
+    contextNodeID: UUID,
+    reason: string
+);
+
+type PropertyMakingFailedData = (
+    ideaNodeID: UUID,
+    reason: string
+);
+
+// Successful transformation event data types
+type SkillNodeMinedData = (
+    skillNode: SkillNode,
+    reward: BigInt
+);
+
+type IdeaVotedData = (
+    ideaNodeID: UUID,
+    votes: int
+);
+
 // =====================================================================
 // KNIRVGRAPH SPECIFIC TYPES
 // =====================================================================
@@ -244,9 +278,71 @@ type ErrorPattern = (
     suggestedSolutions: seq[UUID]
 );
 
+// KNIRVGRAPH event payload types
+type ErrorDuplicateData = (
+    existingID: UUID,
+    occurrences: int
+);
+
+type SolutionValidatedData = (
+    solutionID: UUID,
+    newEffectiveness: int
+);
+
+type PatternUpdatedData = (
+    patternID: UUID,
+    occurrenceCount: int
+);
+
+type NodeLinkData = (
+    sourceID: UUID,
+    targetID: UUID
+);
+
+type KnowledgeGraphResultData = (
+    nodes: seq[KnowledgeNode],
+    patterns: seq[ErrorPattern]
+);
+
 // =====================================================================
 // KNIRVROUTER SPECIFIC TYPES
 // =====================================================================
+
+// Router event payload types
+type PeerConnectionFailedData = (
+    peer: PeerInfo,
+    reason: string
+);
+
+type MessageRoutedData = (
+    messageID: UUID,
+    hopCount: int
+);
+
+type MessageRoutingFailedData = (
+    messageID: UUID,
+    reason: string
+);
+
+type ConnectivityProofVerifiedData = (
+    proof: ConnectivityProof,
+    valid: bool
+);
+
+type ConnectivityChallengedData = (
+    prover: NodeID,
+    challenger: NodeID
+);
+
+type ConnectivityChallengeResultData = (
+    prover: NodeID,
+    passed: bool
+);
+
+type BroadcastDeliveredData = (
+    messageID: UUID,
+    deliveryCount: int
+);
 
 // Routing table entry
 type RouteEntry = (
@@ -465,6 +561,8 @@ type RegistrationConfirmData = (
     registrationID: string
 );
 
+type ValidationRejectedReason = (reason: string);
+
 // Economics event types
 type TreasuryDepositData = (
     amount: BigInt,
@@ -540,6 +638,9 @@ type IBCChannel = (
 
 type ChannelState = (value: int);
 // Values: 0=Uninitialized, 1=Init, 2=TryOpen, 3=Open, 4=Closed
+
+// Wrapper type for IBC packet sequence numbers (enables set operations)
+type SeqNumber = (value: int);
 
 type IBCPacket = (
     sequence: int,

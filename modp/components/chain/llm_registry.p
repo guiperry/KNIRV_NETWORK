@@ -204,6 +204,7 @@ machine LLMRegistryMachine {
 
     fun GetActiveLLMCount(): int {
         var count: int;
+        var id: UUID;
         count = 0;
         foreach (id in keys(registrations)) {
             if (registrations[id].status.status == "active") {

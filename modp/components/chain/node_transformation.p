@@ -68,6 +68,14 @@ machine NodeTransformationMachine {
     var tmpNodeType: NodeType;
     var tmpResources: ResourceUsage;
     var validationResultPayload: (result: ValidationResult);
+    var tmpSkillMiningFailed: SkillMiningFailedData;
+    var tmpCapMintingFailed: CapabilityMintingFailedData;
+    var tmpPropMakingFailed: PropertyMakingFailedData;
+    var iterErrorNodeID: UUID;
+    var iterContextNodeID: UUID;
+    var iterIdeaNodeID: UUID;
+    var tmpSkillNodeMined: SkillNodeMinedData;
+    var tmpIdeaVoted: IdeaVotedData;
 
     start state Init {
         entry {
@@ -129,7 +137,7 @@ machine NodeTransformationMachine {
             tmpNewErrorNode.id = tmpErrorNodeID;
             tmpNewErrorNode.errorType = payload.errorType;
             tmpNewErrorNode.errorMessage = payload.errorMessage;
-            tmpNewErrorNode.context = payload.context;
+            tmpNewErrorNode.contextPayload = payload.context;
             tmpNewErrorNode.sourceModel = payload.sourceModel;
             tmpNewErrorNode.timestamp = tmpTimestamp;
             tmpNewErrorNode.status = tmpStatus;
@@ -138,9 +146,6 @@ machine NodeTransformationMachine {
 
             announce eErrorNodeCreated, tmpNewErrorNode;
             send this, eErrorNodeCreated, tmpNewErrorNode;
-
-            // Also forward to knowledge graph
-            announce eRecordError, (payload.errorType, payload.errorMessage, payload.context);
         }
 
         // Step 2: Mine skill from error
@@ -151,7 +156,9 @@ machine NodeTransformationMachine {
         )) {
             // Validate error node exists
             if (!(payload.errorNodeID in errorNodes)) {
-                send this, eSkillMiningFailed, (payload.errorNodeID, "Error node not found");
+                tmpSkillMiningFailed.errorNodeID = payload.errorNodeID;
+                tmpSkillMiningFailed.reason = "Error node not found";
+                send this, eSkillMiningFailed, tmpSkillMiningFailed;
                 return;
             }
 
@@ -159,13 +166,17 @@ machine NodeTransformationMachine {
 
             // Check not already being mined
             if (payload.errorNodeID in pendingSkillMining) {
-                send this, eSkillMiningFailed, (payload.errorNodeID, "Already being mined");
+                tmpSkillMiningFailed.errorNodeID = payload.errorNodeID;
+                tmpSkillMiningFailed.reason = "Already being mined";
+                send this, eSkillMiningFailed, tmpSkillMiningFailed;
                 return;
             }
 
             // Validate LoRA adapter
             if (payload.loraAdapter == "") {
-                send this, eSkillMiningFailed, (payload.errorNodeID, "Invalid LoRA adapter");
+                tmpSkillMiningFailed.errorNodeID = payload.errorNodeID;
+                tmpSkillMiningFailed.reason = "Invalid LoRA adapter";
+                send this, eSkillMiningFailed, tmpSkillMiningFailed;
                 return;
             }
 
@@ -185,18 +196,18 @@ machine NodeTransformationMachine {
             // For skill mining validation
             if (payload.result.score >= validationThreshold && payload.result.passed) {
                 // Find which error node this is for
-                foreach (errorNodeID in keys(pendingSkillMining)) {
-                    tmpTrainer = pendingSkillMining[errorNodeID];
+                foreach (iterErrorNodeID in keys(pendingSkillMining)) {
+                    tmpTrainer = pendingSkillMining[iterErrorNodeID];
 
                     // Create skill node
                     skillNodeCounter = skillNodeCounter + 1;
                     tmpSkillNodeID.value = format("skillnode_{0}", skillNodeCounter);
 
-                    tmpErrorNode = errorNodes[errorNodeID];
+                    tmpErrorNode = errorNodes[iterErrorNodeID];
 
                     tmpTimestamp.milliseconds = 0;
                     tmpNewSkillNode.id = tmpSkillNodeID;
-                    tmpNewSkillNode.derivedFrom = errorNodeID;
+                    tmpNewSkillNode.derivedFrom = iterErrorNodeID;
                     tmpNewSkillNode.loraAdapter = "lora://trained_adapter";  // Would be real pointer
                     tmpNewSkillNode.trainer = tmpTrainer;
                     tmpNewSkillNode.validationScore = payload.result.score;
@@ -207,14 +218,16 @@ machine NodeTransformationMachine {
 
                     // Update error node status
                     tmpErrorNode.status.status = "transformed";
-                    errorNodes[errorNodeID] = tmpErrorNode;
+                    errorNodes[iterErrorNodeID] = tmpErrorNode;
 
                     // Remove from pending
-                    pendingSkillMining -= errorNodeID;
+                    pendingSkillMining -= iterErrorNodeID;
 
                     // Announce success with reward
-                    announce eSkillNodeMined, (tmpNewSkillNode, skillMiningReward);
-                    send this, eSkillNodeMined, (tmpNewSkillNode, skillMiningReward);
+                    tmpSkillNodeMined.skillNode = tmpNewSkillNode;
+                    tmpSkillNodeMined.reward = skillMiningReward;
+                    announce eSkillNodeMined, tmpSkillNodeMined;
+                    send this, eSkillNodeMined, tmpSkillNodeMined;
 
                     break;
                 }
@@ -253,13 +266,17 @@ machine NodeTransformationMachine {
         )) {
             // Validate context node exists
             if (!(payload.contextNodeID in contextNodes)) {
-                send this, eCapabilityMintingFailed, (payload.contextNodeID, "Context node not found");
+                tmpCapMintingFailed.contextNodeID = payload.contextNodeID;
+                tmpCapMintingFailed.reason = "Context node not found";
+                send this, eCapabilityMintingFailed, tmpCapMintingFailed;
                 return;
             }
 
             // Validate MCP server pointer
             if (payload.mcpServer == "") {
-                send this, eCapabilityMintingFailed, (payload.contextNodeID, "Invalid MCP server pointer");
+                tmpCapMintingFailed.contextNodeID = payload.contextNodeID;
+                tmpCapMintingFailed.reason = "Invalid MCP server pointer";
+                send this, eCapabilityMintingFailed, tmpCapMintingFailed;
                 return;
             }
 
@@ -277,8 +294,8 @@ machine NodeTransformationMachine {
 
             capabilityNodes[tmpCapabilityNodeID] = tmpNewCapabilityNode;
 
-            announce eCapabilityNodeMinted, (tmpNewCapabilityNode,);
-            send this, eCapabilityNodeMinted, (tmpNewCapabilityNode,);
+            announce eCapabilityNodeMinted, tmpNewCapabilityNode;
+            send this, eCapabilityNodeMinted, tmpNewCapabilityNode;
         }
 
         // =====================================================================
@@ -326,8 +343,10 @@ machine NodeTransformationMachine {
 
             ideaNodes[payload.ideaNodeID] = tmpIdeaNode;
 
-            announce eIdeaVoted, (payload.ideaNodeID, tmpIdeaNode.votes);
-            send this, eIdeaVoted, (payload.ideaNodeID, tmpIdeaNode.votes);
+            tmpIdeaVoted.ideaNodeID = payload.ideaNodeID;
+            tmpIdeaVoted.votes = tmpIdeaNode.votes;
+            announce eIdeaVoted, tmpIdeaVoted;
+            send this, eIdeaVoted, tmpIdeaVoted;
         }
 
         // Step 3: Make property from idea (requires sufficient votes)
@@ -339,7 +358,9 @@ machine NodeTransformationMachine {
         )) {
             // Validate idea node exists
             if (!(payload.ideaNodeID in ideaNodes)) {
-                send this, ePropertyMakingFailed, (payload.ideaNodeID, "Idea node not found");
+                tmpPropMakingFailed.ideaNodeID = payload.ideaNodeID;
+                tmpPropMakingFailed.reason = "Idea node not found";
+                send this, ePropertyMakingFailed, tmpPropMakingFailed;
                 return;
             }
 
@@ -347,20 +368,25 @@ machine NodeTransformationMachine {
 
             // Check minimum votes
             if (tmpIdeaNode.votes < minIdeaVotesForProperty) {
-                send this, ePropertyMakingFailed, (payload.ideaNodeID,
-                    format("Insufficient votes: {0}/{1}", tmpIdeaNode.votes, minIdeaVotesForProperty));
+                tmpPropMakingFailed.ideaNodeID = payload.ideaNodeID;
+                tmpPropMakingFailed.reason = format("Insufficient votes: {0}/{1}", tmpIdeaNode.votes, minIdeaVotesForProperty);
+                send this, ePropertyMakingFailed, tmpPropMakingFailed;
                 return;
             }
 
             // Validate inference NFT pointer
             if (payload.inferenceNFT == "") {
-                send this, ePropertyMakingFailed, (payload.ideaNodeID, "Invalid inference NFT pointer");
+                tmpPropMakingFailed.ideaNodeID = payload.ideaNodeID;
+                tmpPropMakingFailed.reason = "Invalid inference NFT pointer";
+                send this, ePropertyMakingFailed, tmpPropMakingFailed;
                 return;
             }
 
             // Validate royalty rate (0-100%)
             if (payload.royaltyRate < 0 || payload.royaltyRate > 100) {
-                send this, ePropertyMakingFailed, (payload.ideaNodeID, "Invalid royalty rate");
+                tmpPropMakingFailed.ideaNodeID = payload.ideaNodeID;
+                tmpPropMakingFailed.reason = "Invalid royalty rate";
+                send this, ePropertyMakingFailed, tmpPropMakingFailed;
                 return;
             }
 
@@ -410,7 +436,7 @@ machine NodeTransformationMachine {
             tmpResult.validator = tmpValidator;
             tmpResult.passed = true;
             tmpResult.score = 85;
-            tmpResult.details = default(map[string, any]);
+            tmpResult.detailsPayload = default(map[string, any]);
             tmpResult.executionTime = 1000;
             tmpResult.resourcesUsed = tmpResources;
             tmpResult.timestamp = tmpTimestamp;

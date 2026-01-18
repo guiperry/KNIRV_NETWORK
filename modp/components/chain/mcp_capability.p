@@ -30,6 +30,7 @@ machine MCPCapabilityMachine {
     var tmpResult: map[string, any];
     var tmpMintedCapability: MCPCapability;
     var tmpStatus: MCPStatus;
+    var tmpCapResult: MCPCapabilityResultData;
 
     start state Init {
         entry {
@@ -132,7 +133,10 @@ machine MCPCapabilityMachine {
             // Check capability exists
             if (!(payload.capabilityID in capabilities)) {
                 tmpResult = default(map[string, any]);
-                send this, eMCPCapabilityResult, (payload.capabilityID, tmpResult, false);
+                tmpCapResult.capabilityID = payload.capabilityID;
+                tmpCapResult.result = tmpResult;
+                tmpCapResult.success = false;
+                send this, eMCPCapabilityResult, tmpCapResult;
                 return;
             }
 
@@ -141,7 +145,10 @@ machine MCPCapabilityMachine {
             // Check capability is available
             if (tmpCapability.status.status != "available") {
                 tmpResult = default(map[string, any]);
-                send this, eMCPCapabilityResult, (payload.capabilityID, tmpResult, false);
+                tmpCapResult.capabilityID = payload.capabilityID;
+                tmpCapResult.result = tmpResult;
+                tmpCapResult.success = false;
+                send this, eMCPCapabilityResult, tmpCapResult;
                 return;
             }
 
@@ -170,21 +177,24 @@ machine MCPCapabilityMachine {
             tmpResult["status"] = "success";
             tmpResult["capability"] = tmpCapability.name;
 
-            send this, eMCPCapabilityResult, (payload.capabilityID, tmpResult, true);
+            tmpCapResult.capabilityID = payload.capabilityID;
+            tmpCapResult.result = tmpResult;
+            tmpCapResult.success = true;
+            send this, eMCPCapabilityResult, tmpCapResult;
         }
 
         // Handle capability node minted from context
-        on eCapabilityNodeMinted do (payload: (capabilityNode: CapabilityNode)) {
+        on eCapabilityNodeMinted do (capabilityNode: CapabilityNode) {
             // Create an MCP capability from the minted capability node
             capabilityCounter = capabilityCounter + 1;
             tmpCapabilityID.value = format("mcp_minted_{0}", capabilityCounter);
 
             tmpStatus.status = "available";
             tmpMintedCapability.id = tmpCapabilityID;
-            tmpMintedCapability.name = format("MintedCapability_{0}", payload.capabilityNode.id.value);
+            tmpMintedCapability.name = format("MintedCapability_{0}", capabilityNode.id.value);
             tmpMintedCapability.version = "1.0.0";
-            tmpMintedCapability.serverPointer = payload.capabilityNode.mcpServer;
-            tmpMintedCapability.owner = payload.capabilityNode.creator;
+            tmpMintedCapability.serverPointer = capabilityNode.mcpServer;
+            tmpMintedCapability.owner = capabilityNode.creator;
             tmpMintedCapability.permissions = default(seq[string]);
             tmpMintedCapability.status = tmpStatus;
 
@@ -192,13 +202,13 @@ machine MCPCapabilityMachine {
             usageCount[tmpCapabilityID] = 0;
 
             // Add to owner's capabilities
-            if (payload.capabilityNode.creator in capabilitiesByOwner) {
-                tmpOwnerCapabilities = capabilitiesByOwner[payload.capabilityNode.creator];
+            if (capabilityNode.creator in capabilitiesByOwner) {
+                tmpOwnerCapabilities = capabilitiesByOwner[capabilityNode.creator];
             } else {
                 tmpOwnerCapabilities = default(seq[UUID]);
             }
             tmpOwnerCapabilities += (sizeof(tmpOwnerCapabilities), tmpCapabilityID);
-            capabilitiesByOwner[payload.capabilityNode.creator] = tmpOwnerCapabilities;
+            capabilitiesByOwner[capabilityNode.creator] = tmpOwnerCapabilities;
 
             announce eMCPCapabilityRegistered, tmpMintedCapability;
         }

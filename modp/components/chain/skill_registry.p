@@ -76,14 +76,14 @@ machine SkillRegistryMachine {
 
             // Create skill
             tempTimestamp.milliseconds = 0;
-            tempStatus.statusValue = "pending";
+            tempStatus.status = "pending";
 
             tempNewSkill.id = tempSkillID;
             tempNewSkill.name = payload.name;
             tempNewSkill.version = payload.version;
             tempNewSkill.owner = payload.owner;
             tempNewSkill.loraPointer = payload.loraPointer;
-            tempNewSkill.metadata = payload.metadata;
+            tempNewSkill.metadataPayload = payload.metadata;
             tempNewSkill.createdAt = tempTimestamp;
             tempNewSkill.status = tempStatus;
 
@@ -101,7 +101,7 @@ machine SkillRegistryMachine {
             skillsByOwner[payload.owner] = tempOwnerSkills;
 
             // Activate skill
-            tempStatus.statusValue = "active";
+            tempStatus.status = "active";
             tempNewSkill.status = tempStatus;
             skills[tempSkillID] = tempNewSkill;
 
@@ -117,13 +117,9 @@ machine SkillRegistryMachine {
 
             tempSkill = skills[payload.skillID];
 
-            // Apply updates (metadata only for now)
-            if ("metadata" in payload.updates) {
-                tempSkill.metadata = payload.updates["metadata"];
-            }
-
+            // Apply version update if provided
             if ("version" in payload.updates) {
-                tempSkill.version = payload.updates["version"];
+                tempSkill.version = payload.updates["version"] as string;
             }
 
             skills[payload.skillID] = tempSkill;
@@ -138,7 +134,7 @@ machine SkillRegistryMachine {
             }
 
             tempSkill = skills[payload.skillID];
-            tempStatus.statusValue = "deprecated";
+            tempStatus.status = "deprecated";
             tempSkill.status = tempStatus;
             skills[payload.skillID] = tempSkill;
 
@@ -159,14 +155,14 @@ machine SkillRegistryMachine {
             tempSkillID.value = format("skill_mined_{0}", skillCounter);
 
             tempTimestamp = payload.skillNode.timestamp;
-            tempStatus.statusValue = "active";
+            tempStatus.status = "active";
 
             tempNewSkill.id = tempSkillID;
             tempNewSkill.name = format("MinedSkill_{0}", payload.skillNode.id.value);
             tempNewSkill.version = "1.0.0";
             tempNewSkill.owner = payload.skillNode.trainer;
             tempNewSkill.loraPointer = payload.skillNode.loraAdapter;
-            tempNewSkill.metadata = default(map[string, any]);
+            tempNewSkill.metadataPayload = default(map[string, any]);
             tempNewSkill.createdAt = tempTimestamp;
             tempNewSkill.status = tempStatus;
 
@@ -213,7 +209,7 @@ machine SkillRegistryMachine {
 
     fun IsSkillActive(skillID: UUID): bool {
         if (skillID in skills) {
-            return skills[skillID].status.statusValue == "active";
+            return skills[skillID].status.status == "active";
         }
         return false;
     }

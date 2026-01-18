@@ -53,6 +53,11 @@ machine ValidationMachine {
     var tmpNextTask: ValidationTask;
     var tmpTotal: int;
     var validationResultPayload: (result: ValidationResult);
+    var tmpValidationRejectedReason: ValidationRejectedReason;
+    var tmpValidationTaskPayload: (task: ValidationTask);
+    var tmpValidationStartedPayload: (taskID: UUID);
+    var tmpValidationTimeoutPayload: (taskID: UUID);
+    var allValidatorKeys: seq[NodeID];
 
     start state Init {
         entry {
@@ -97,7 +102,8 @@ machine ValidationMachine {
         )) {
             // Check queue capacity
             if (sizeof(taskQueue) >= maxQueueSize) {
-                send this, eValidationTaskRejected, "Task queue is full";
+                tmpValidationRejectedReason.reason = "Task queue is full";
+            send this, eValidationTaskRejected, tmpValidationRejectedReason;
                 return;
             }
 
@@ -116,8 +122,9 @@ machine ValidationMachine {
             // Add to queue (priority-sorted insertion)
             InsertTaskByPriority(tmpNewTask);
 
-            announce eValidationTaskQueued, tmpNewTask;
-            send this, eValidationTaskQueued, tmpNewTask;
+            tmpValidationTaskPayload.task = tmpNewTask;
+            announce eValidationTaskQueued, tmpValidationTaskPayload;
+            send this, eValidationTaskQueued, tmpValidationTaskPayload;
 
             // Try to start task immediately if validator available
             TryStartNextTask();
@@ -187,8 +194,9 @@ machine ValidationMachine {
             tmpValidatorState.currentTask = tmpTask.id;
             validators[payload.validator] = tmpValidatorState;
 
-            announce eValidationStarted, tmpTask.id;
-            send this, eValidationStarted, tmpTask.id;
+            tmpValidationStartedPayload.taskID = tmpTask.id;
+            announce eValidationStarted, tmpValidationStartedPayload;
+            send this, eValidationStarted, tmpValidationStartedPayload;
 
             // Request sandbox execution
             send this, eExecuteInSandbox, (sandboxID = tmpTask.id, code = default(seq[int]), inputs = tmpTask.payload);
@@ -208,25 +216,20 @@ machine ValidationMachine {
                 return;
             }
 
-            tmpTask = runningTasks[payload.sandboxID];
-
-            // Find validator
-            tmpValidatorID.id = "";
-            tmpValidatorID.publicKey = default(seq[int]);
-            tmpValidatorID.nodeType.typeName = "";
-            foreach (vID in keys(validators)) {
-                if (validators[vID].currentTask.value == tmpTask.id.value) {
-                    tmpValidatorID = vID;
-                    break;
+            allValidatorKeys = keys(validators); // Assign to the machine-level variable
+            tmpI = 0;
+            while (tmpI < sizeof(allValidatorKeys)) {
+                tmpValidatorID = allValidatorKeys[tmpI]; // Get the current element
+                if (validators[tmpValidatorID].currentTask.value == tmpTask.id.value) {
+                    break; // Exit loop if found
                 }
+                tmpI = tmpI + 1; // Increment loop counter
             }
-
-            // Create result
             tmpResult.taskID = tmpTask.id;
             tmpResult.validator = tmpValidatorID;
             tmpResult.passed = true;
             tmpResult.score = 100;
-            tmpResult.details = payload.output;
+            tmpResult.detailsPayload = payload.output;
             tmpResult.executionTime = payload.resourcesUsed.cpuMillis;
             tmpResult.resourcesUsed = payload.resourcesUsed;
             tmpResult.timestamp.milliseconds = 0;
@@ -258,17 +261,14 @@ machine ValidationMachine {
                 return;
             }
 
-            tmpTask = runningTasks[payload.sandboxID];
-
-            // Find validator
-            tmpValidatorID.id = "";
-            tmpValidatorID.publicKey = default(seq[int]);
-            tmpValidatorID.nodeType.typeName = "";
-            foreach (vID in keys(validators)) {
-                if (validators[vID].currentTask.value == tmpTask.id.value) {
-                    tmpValidatorID = vID;
-                    break;
+            allValidatorKeys = keys(validators); // Assign to the machine-level variable
+            tmpI = 0;
+            while (tmpI < sizeof(allValidatorKeys)) {
+                tmpValidatorID = allValidatorKeys[tmpI]; // Get the current element
+                if (validators[tmpValidatorID].currentTask.value == tmpTask.id.value) {
+                    break; // Exit loop if found
                 }
+                tmpI = tmpI + 1; // Increment loop counter
             }
 
             // Move from running to failed
@@ -285,8 +285,8 @@ machine ValidationMachine {
                 validators[tmpValidatorID] = tmpValidatorState;
             }
 
-            announce eValidationFailed, (tmpTask.id, payload.reason);
-            send this, eValidationFailed, (tmpTask.id, payload.reason);
+            announce eValidationFailed, (taskID = tmpTask.id, reason = payload.reason);
+            send this, eValidationFailed, (taskID = tmpTask.id, reason = payload.reason);
 
             // Try to start next task
             TryStartNextTask();
@@ -307,11 +307,14 @@ machine ValidationMachine {
             tmpValidatorID.id = "";
             tmpValidatorID.publicKey = default(seq[int]);
             tmpValidatorID.nodeType.typeName = "";
-            foreach (vID in keys(validators)) {
-                if (validators[vID].currentTask.value == tmpTask.id.value) {
-                    tmpValidatorID = vID;
-                    break;
+            allValidatorKeys = keys(validators); // Assign to the machine-level variable
+            tmpI = 0;
+            while (tmpI < sizeof(allValidatorKeys)) {
+                tmpValidatorID = allValidatorKeys[tmpI]; // Get the current element
+                if (validators[tmpValidatorID].currentTask.value == tmpTask.id.value) {
+                    break; // Exit loop if found
                 }
+                tmpI = tmpI + 1; // Increment loop counter
             }
 
             // Move from running to failed
@@ -328,7 +331,8 @@ machine ValidationMachine {
                 validators[tmpValidatorID] = tmpValidatorState;
             }
 
-            announce eValidationTimeout, tmpTask.id;
+            tmpValidationTimeoutPayload.taskID = tmpTask.id;
+            announce eValidationTimeout, tmpValidationTimeoutPayload;
 
             // Try to start next task
             TryStartNextTask();
@@ -423,11 +427,14 @@ machine ValidationMachine {
         tmpAvailableValidator.publicKey = default(seq[int]);
         tmpAvailableValidator.nodeType.typeName = "";
 
-        foreach (vID in keys(validators)) {
-            if (validators[vID].available) {
-                tmpAvailableValidator = vID;
-                break;
+        allValidatorKeys = keys(validators); // Assign to the machine-level variable
+        tmpI = 0;
+        while (tmpI < sizeof(allValidatorKeys)) {
+            tmpAvailableValidator = allValidatorKeys[tmpI]; // Get the current element
+            if (validators[tmpAvailableValidator].available) {
+                break; // Exit loop if found
             }
+            tmpI = tmpI + 1; // Increment loop counter
         }
 
         if (tmpAvailableValidator.id == "") {
@@ -437,7 +444,7 @@ machine ValidationMachine {
         // Start next task
         tmpNextTask = taskQueue[0];
 
-        send this, eStartValidation, (tmpNextTask.id, tmpAvailableValidator);
+        send this, eStartValidation, (taskID = tmpNextTask.id, validator = tmpAvailableValidator);
     }
 
     // Statistics helpers

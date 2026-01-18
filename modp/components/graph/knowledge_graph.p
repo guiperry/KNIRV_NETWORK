@@ -63,6 +63,12 @@ machine KnowledgeGraphMachine {
     var tmpNewNode: KnowledgeNode;
     var tmpConnections: seq[UUID];
     var tmpNode: KnowledgeNode;
+    var tmpErrorDuplicateData: ErrorDuplicateData;
+    var tmpSolutionValidatedData: SolutionValidatedData;
+    var tmpPatternUpdatedData: PatternUpdatedData;
+    var tmpNodeLinkData: NodeLinkData;
+    var tmpKnowledgeGraphResult: KnowledgeGraphResultData;
+    var patternID: UUID;
 
     start state Init {
         entry {
@@ -107,6 +113,7 @@ machine KnowledgeGraphMachine {
         on eRecordError do (payload: (
             errorType: string,
             errorMessage: string,
+            stackTrace: string,
             context: map[string, any]
         )) {
             // Compute error hash for deduplication
@@ -121,8 +128,10 @@ machine KnowledgeGraphMachine {
                 tmpExistingRecord.lastSeen.milliseconds = 0;
                 errorRecords[tmpExistingID] = tmpExistingRecord;
 
-                announce eErrorDuplicate, (tmpExistingID, tmpExistingRecord.occurrences);
-                send this, eErrorDuplicate, (tmpExistingID, tmpExistingRecord.occurrences);
+                tmpErrorDuplicateData.existingID = tmpExistingID;
+                tmpErrorDuplicateData.occurrences = tmpExistingRecord.occurrences;
+                announce eErrorDuplicate, tmpErrorDuplicateData;
+                send this, eErrorDuplicate, tmpErrorDuplicateData;
 
                 // Check for pattern
                 CheckForPattern(payload.errorType);
@@ -137,7 +146,7 @@ machine KnowledgeGraphMachine {
             tmpNewRecord.errorHash = tmpErrorHash;
             tmpNewRecord.errorType = payload.errorType;
             tmpNewRecord.stackTrace = payload.stackTrace;
-            tmpNewRecord.context = payload.context;
+            tmpNewRecord.contextPayload = payload.context;
             tmpNewRecord.occurrences = 1;
             tmpNewRecord.firstSeen.milliseconds = 0;
             tmpNewRecord.lastSeen.milliseconds = 0;
@@ -158,8 +167,8 @@ machine KnowledgeGraphMachine {
             // Create knowledge node
             CreateKnowledgeNode(tmpErrorID, "error", payload.context);
 
-            announce eErrorRecorded, (tmpNewRecord,);
-            send this, eErrorRecorded, (tmpNewRecord,);
+            announce eErrorRecorded, tmpNewRecord;
+            send this, eErrorRecorded, tmpNewRecord;
 
             // Check for pattern
             CheckForPattern(payload.errorType);
@@ -177,7 +186,7 @@ machine KnowledgeGraphMachine {
         )) {
             // Validate error exists
             if (!(payload.forError in errorRecords)) {
-                send this, eSolutionSubmissionFailed, ("Error not found",);
+                send this, eSolutionSubmissionFailed, "Error not found";
                 return;
             }
 
@@ -185,7 +194,7 @@ machine KnowledgeGraphMachine {
             tmpErrorRecord = errorRecords[payload.forError];
 
             if (sizeof(tmpErrorRecord.solutions) >= maxSolutionsPerError) {
-                send this, eSolutionSubmissionFailed, ("Maximum solutions reached for this error",);
+                send this, eSolutionSubmissionFailed, "Maximum solutions reached for this error";
                 return;
             }
 
@@ -234,8 +243,8 @@ machine KnowledgeGraphMachine {
             // Link nodes
             LinkKnowledgeNodes(payload.forError, tmpSolutionID);
 
-            announce eSolutionSubmitted, (tmpNewSolution,);
-            send this, eSolutionSubmitted, (tmpNewSolution,);
+            announce eSolutionSubmitted, tmpNewSolution;
+            send this, eSolutionSubmitted, tmpNewSolution;
         }
 
         on eValidateSolution do (payload: (
@@ -261,8 +270,10 @@ machine KnowledgeGraphMachine {
 
             solutionRecords[payload.solutionID] = tmpSolution;
 
-            announce eSolutionValidated, (payload.solutionID, tmpSolution.effectiveness);
-            send this, eSolutionValidated, (payload.solutionID, tmpSolution.effectiveness);
+            tmpSolutionValidatedData.solutionID = payload.solutionID;
+            tmpSolutionValidatedData.newEffectiveness = tmpSolution.effectiveness;
+            announce eSolutionValidated, tmpSolutionValidatedData;
+            send this, eSolutionValidated, tmpSolutionValidatedData;
         }
 
         // =====================================================================
@@ -278,7 +289,7 @@ machine KnowledgeGraphMachine {
 
             if (payload.queryType == "errors_by_type") {
                 if ("type" in payload.params) {
-                    tmpErrorType = payload.params["type"];
+                    tmpErrorType = payload.params["type"] as string;
 
                     if (tmpErrorType in errorsByType) {
                         tmpErrorIDs = errorsByType[tmpErrorType];
@@ -294,7 +305,7 @@ machine KnowledgeGraphMachine {
                 }
             } else if (payload.queryType == "solutions_for_error") {
                 if ("error_id" in payload.params) {
-                    tmpErrorIDStr = payload.params["error_id"];
+                    tmpErrorIDStr = payload.params["error_id"] as string;
                     tmpQueryErrorID.value = tmpErrorIDStr;
 
                     if (tmpQueryErrorID in solutionsByError) {
@@ -315,7 +326,9 @@ machine KnowledgeGraphMachine {
                 }
             }
 
-            send this, eKnowledgeGraphResult, (tmpResultNodes, tmpResultPatterns);
+            tmpKnowledgeGraphResult.nodes = tmpResultNodes;
+            tmpKnowledgeGraphResult.patterns = tmpResultPatterns;
+            send this, eKnowledgeGraphResult, tmpKnowledgeGraphResult;
         }
 
         // =====================================================================
@@ -324,12 +337,16 @@ machine KnowledgeGraphMachine {
 
         on eLinkErrorToSolution do (payload: (errorID: UUID, solutionID: UUID)) {
             LinkKnowledgeNodes(payload.errorID, payload.solutionID);
-            send this, eErrorSolutionLinked, (payload.errorID, payload.solutionID);
+            tmpNodeLinkData.sourceID = payload.errorID;
+            tmpNodeLinkData.targetID = payload.solutionID;
+            send this, eErrorSolutionLinked, tmpNodeLinkData;
         }
 
         on eLinkNodes do (payload: (sourceID: UUID, targetID: UUID, linkType: string)) {
             LinkKnowledgeNodes(payload.sourceID, payload.targetID);
-            send this, eNodesLinked, (payload.sourceID, payload.targetID);
+            tmpNodeLinkData.sourceID = payload.sourceID;
+            tmpNodeLinkData.targetID = payload.targetID;
+            send this, eNodesLinked, tmpNodeLinkData;
         }
 
         on eNetworkShutdown do {
@@ -370,7 +387,9 @@ machine KnowledgeGraphMachine {
                         tmpPattern.frequency = sizeof(tmpTypeErrors);
                         errorPatterns[tmpPatternID] = tmpPattern;
 
-                        announce ePatternUpdated, (tmpPatternID, tmpPattern.frequency);
+                        tmpPatternUpdatedData.patternID = tmpPatternID;
+                        tmpPatternUpdatedData.occurrenceCount = tmpPattern.frequency;
+                        announce ePatternUpdated, tmpPatternUpdatedData;
                     }
                 }
             } else {
@@ -394,7 +413,7 @@ machine KnowledgeGraphMachine {
                 tmpTypePatterns += (0, tmpPatternID);
                 patternsByType[errorType] = tmpTypePatterns;
 
-                announce ePatternDetected, (tmpNewPattern,);
+                announce ePatternDetected, tmpNewPattern;
             }
         }
     }
@@ -404,7 +423,7 @@ machine KnowledgeGraphMachine {
 
         tmpNewNode.id = id;
         tmpNewNode.nodeType.typeName = nodeType;
-        tmpNewNode.content = content;
+        tmpNewNode.contentPayload = content;
         tmpNewNode.embedding = default(seq[float]);
         tmpNewNode.connections = default(seq[UUID]);
         tmpNewNode.createdAt.milliseconds = 0;

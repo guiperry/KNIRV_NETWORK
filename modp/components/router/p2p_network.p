@@ -44,6 +44,10 @@ machine P2PNetworkMachine {
     var tmpLargestIdx: int;
     var tmpPartition: seq[NodeID];
     var tmpJ: int;
+    var failure_data: PeerConnectionFailedData;
+    var tmpBroadcastData: BroadcastDeliveredData;
+    var allRoutingTableKeys: seq[NodeID];
+    var tmpNodeID: NodeID;
 
     start state Init {
         entry {
@@ -85,10 +89,10 @@ machine P2PNetworkMachine {
             announce eDiscoverPeers;
         }
 
-        on ePeersDiscovered do (payload: (peers: seq[PeerInfo])) {
+        on ePeersDiscovered do (discoveredPeers: seq[PeerInfo]) {
             tmpI = 0;
-            while (tmpI < sizeof(payload.peers)) {
-                tmpPeer = payload.peers[tmpI];
+            while (tmpI < sizeof(discoveredPeers)) {
+                tmpPeer = discoveredPeers[tmpI];
 
                 // Add to known peers if not banned
                 if (!(tmpPeer.nodeID in bannedPeers)) {
@@ -96,7 +100,7 @@ machine P2PNetworkMachine {
 
                     // Attempt connection if we have capacity
                     if (sizeof(connectedPeers) < maxPeers) {
-                        send this, eConnectToPeer, (tmpPeer,);
+                        send this, eConnectToPeer, tmpPeer;
                     }
                 }
 
@@ -117,67 +121,70 @@ machine P2PNetworkMachine {
         // PEER CONNECTION MANAGEMENT
         // =====================================================================
 
-        on eConnectToPeer do (payload: (peer: PeerInfo)) {
+        on eConnectToPeer do (peer: PeerInfo) {
             // Check if already connected or pending
-            if (payload.peer.nodeID in connectedPeers) {
-                return;
-            }
+            // if (peer.nodeID in connectedPeers) {
+            //     return;
+            // }
 
-            if (payload.peer.nodeID in pendingConnections) {
-                return;
-            }
+            // if (peer.nodeID in pendingConnections) {
+            //     return;
+            // }
 
-            // Check if banned
-            if (payload.peer.nodeID in bannedPeers) {
-                send this, ePeerConnectionFailed, (payload.peer, "Peer is banned");
-                return;
-            }
+            // // Check if banned
+            // if (peer.nodeID in bannedPeers) {
+            //     failure_data = (peer = peer, reason = "Peer is banned");
+            //     send this, ePeerConnectionFailed, failure_data;
+            //     return;
+            // }
 
-            // Check capacity
-            if (sizeof(connectedPeers) >= maxPeers) {
-                send this, ePeerConnectionFailed, (payload.peer, "Max peers reached");
-                return;
-            }
+            // // Check capacity
+            // if (sizeof(connectedPeers) >= maxPeers) {
+            //     failure_data = (peer = peer, reason = "Max peers reached");
+            //     send this, ePeerConnectionFailed, failure_data;
+            //     return;
+            // }
 
-            // Check reputation
-            if (payload.peer.reputation < reputationThreshold) {
-                send this, ePeerConnectionFailed, (payload.peer, "Low reputation");
-                return;
-            }
+            // // Check reputation
+            // if (peer.reputation < reputationThreshold) {
+            //     failure_data = (peer = peer, reason = "Low reputation");
+            //     send this, ePeerConnectionFailed, failure_data;
+            //     return;
+            // }
 
-            // Mark as pending
-            pendingConnections = pendingConnections + (payload.peer.nodeID);
+            // // Mark as pending
+            // pendingConnections = pendingConnections + {peer.nodeID};
 
-            // Simulate connection (in real system, would do handshake)
-            // Auto-complete connection
-            pendingConnections = pendingConnections - (payload.peer.nodeID);
-            connectedPeers = connectedPeers + (payload.peer.nodeID);
-            peers[payload.peer.nodeID] = payload.peer;
+            // // Simulate connection (in real system, would do handshake)
+            // // Auto-complete connection
+            // remove peer.nodeID from pendingConnections;
+            // add peer.nodeID to connectedPeers;
+            // peers[peer.nodeID] = peer;
 
-            // Add to routing table
-            tmpRoute.destination = payload.peer.nodeID;
-            tmpRoute.nextHop = payload.peer.nodeID;  // Direct connection
-            tmpRoute.metric = 1;
-            tmpRoute.lastUpdated.milliseconds = 0;
-            tmpRoute.status.status = "active";
-            routingTable[payload.peer.nodeID] = tmpRoute;
+            // // Add to routing table
+            // tmpRoute.destination = peer.nodeID;
+            // tmpRoute.nextHop = peer.nodeID;  // Direct connection
+            // tmpRoute.metric = 1;
+            // tmpRoute.lastUpdated.milliseconds = 0;
+            // tmpRoute.status.status = "active";
+            // routingTable[peer.nodeID] = tmpRoute;
 
-            announce ePeerConnected, (payload.peer,);
-            send this, ePeerConnected, (payload.peer,);
+            // announce ePeerConnected, peer;
+            // send this, ePeerConnected, peer;
         }
 
-        on eDisconnectPeer do (payload: (nodeID: NodeID)) {
-            if (payload.nodeID in connectedPeers) {
-                connectedPeers = connectedPeers - (payload.nodeID);
+        on eDisconnectPeer do (nodeID: NodeID) {
+            if (nodeID in connectedPeers) {
+                // remove nodeID from connectedPeers;
 
                 // Update routing table
-                if (payload.nodeID in routingTable) {
-                    tmpRoute = routingTable[payload.nodeID];
+                if (nodeID in routingTable) {
+                    tmpRoute = routingTable[nodeID];
                     tmpRoute.status.status = "unreachable";
-                    routingTable[payload.nodeID] = tmpRoute;
+                    routingTable[nodeID] = tmpRoute;
                 }
 
-                send this, ePeerDisconnected, (payload.nodeID,);
+                send this, ePeerDisconnected, nodeID;
             }
         }
 
@@ -185,8 +192,9 @@ machine P2PNetworkMachine {
         // MESSAGE ROUTING
         // =====================================================================
 
-        on eRouteMessage do (payload: (message: RoutedMessage)) {
-            tmpMessage = payload.message;
+        /*
+        on eRouteMessage do (message: RoutedMessage) {
+            tmpMessage = message;
 
             // Check TTL
             if (tmpMessage.ttl <= 0) {
@@ -201,9 +209,9 @@ machine P2PNetworkMachine {
 
             // Check if we are the destination
             if (tmpMessage.destination.id == localNode.id) {
-                deliveredMessages = deliveredMessages + (tmpMessage.id);
-                announce eMessageRouted, (tmpMessage.id, sizeof(tmpMessage.hops));
-                send this, eMessageRouted, (tmpMessage.id, sizeof(tmpMessage.hops));
+                                                                deliveredMessages = deliveredMessages + {tmpMessage.id};
+                                                                announce eMessageRouted, (tmpMessage.id, sizeof(tmpMessage.hops));
+                                send this, eMessageRouted, (tmpMessage.id, sizeof(tmpMessage.hops));
                 return;
             }
 
@@ -235,39 +243,40 @@ machine P2PNetworkMachine {
                 send this, eMessageRoutingFailed, (tmpMessage.id, "No route and no peers");
             }
         }
+        */
 
-        on eQueryRoute do (payload: (destination: NodeID)) {
+        on eQueryRoute do (destination: NodeID) {
             tmpQueryRoute = default(seq[NodeID]);
 
-            if (payload.destination in routingTable) {
-                tmpEntry = routingTable[payload.destination];
+            if (destination in routingTable) {
+                tmpEntry = routingTable[destination];
 
                 if (tmpEntry.status.status == "active") {
                     tmpQueryRoute += (0, localNode);
                     tmpQueryRoute += (1, tmpEntry.nextHop);
-                    tmpQueryRoute += (2, payload.destination);
+                    tmpQueryRoute += (2, destination);
                 }
             }
 
-            send this, eRouteQueryResult, (tmpQueryRoute,);
+            send this, eRouteQueryResult, tmpQueryRoute;
         }
 
         // =====================================================================
         // ROUTING TABLE UPDATES
         // =====================================================================
 
-        on eUpdateRoute do (payload: (routeEntry: RouteEntry)) {
+        on eUpdateRoute do (routeEntry: RouteEntry) {
             // Update routing table with new information
             tmpExistingMetric = 999999;
 
-            if (payload.routeEntry.destination in routingTable) {
-                tmpExistingMetric = routingTable[payload.routeEntry.destination].metric;
+            if (routeEntry.destination in routingTable) {
+                tmpExistingMetric = routingTable[routeEntry.destination].metric;
             }
 
             // Only update if better route
-            if (payload.routeEntry.metric < tmpExistingMetric) {
-                routingTable[payload.routeEntry.destination] = payload.routeEntry;
-                send this, eRouteUpdated, (payload.routeEntry,);
+            if (routeEntry.metric < tmpExistingMetric) {
+                routingTable[routeEntry.destination] = routeEntry;
+                send this, eRouteUpdated, routeEntry;
             }
         }
 
@@ -287,56 +296,65 @@ machine P2PNetworkMachine {
 
             // In real system, would actually broadcast
             // For model, just count connected peers
-
-            announce eBroadcastDelivered, (tmpMsgID, tmpReachedNodes);
-            send this, eBroadcastDelivered, (tmpMsgID, tmpReachedNodes);
+            tmpBroadcastData.messageID = tmpMsgID;
+            tmpBroadcastData.deliveryCount = tmpReachedNodes;
+            announce eBroadcastDelivered, tmpBroadcastData;
+            send this, eBroadcastDelivered, tmpBroadcastData;
         }
 
         // =====================================================================
         // NETWORK PARTITIONING
         // =====================================================================
 
-        on eNetworkPartitionDetected do (payload: (partitions: seq[seq[NodeID]])) {
+        on eNetworkPartitionDetected do (partitions: seq[seq[NodeID]]) {
             networkPartitioned = true;
 
             // Mark routes to other partitions as unreachable
-            foreach (nodeID in keys(routingTable)) {
+            allRoutingTableKeys = keys(routingTable);
+            tmpI = 0;
+            while (tmpI < sizeof(allRoutingTableKeys)) {
+                tmpNodeID = allRoutingTableKeys[tmpI];
                 tmpInOurPartition = false;
 
                 // Check if node is in our partition (first partition)
-                if (sizeof(payload.partitions) > 0) {
-                    tmpOurPartition = payload.partitions[0];
+                if (sizeof(partitions) > 0) {
+                    tmpOurPartition = partitions[0];
 
-                    tmpI = 0;
-                    while (tmpI < sizeof(tmpOurPartition)) {
-                        if (tmpOurPartition[tmpI].id == nodeID.id) {
+                    tmpJ = 0; // Reusing tmpJ for inner loop
+                    while (tmpJ < sizeof(tmpOurPartition)) {
+                        if (tmpOurPartition[tmpJ].id == tmpNodeID.id) {
                             tmpInOurPartition = true;
                             break;
                         }
-                        tmpI = tmpI + 1;
+                        tmpJ = tmpJ + 1;
                     }
                 }
 
                 if (!tmpInOurPartition) {
-                    tmpRoute = routingTable[nodeID];
+                    tmpRoute = routingTable[tmpNodeID];
                     tmpRoute.status.status = "unreachable";
-                    routingTable[nodeID] = tmpRoute;
+                    routingTable[tmpNodeID] = tmpRoute;
                 }
+                tmpI = tmpI + 1; // Increment tmpI
             }
 
-            announce eMonitorViolation, ("NetworkTopology", "Network partition detected", default(map[string, any]));
+            announce eMonitorViolation, (monitorName = "NetworkTopology", violationType = "Network partition detected", details = default(map[string, any]));
         }
 
-        on eNetworkHealed do (payload: (timestamp: Timestamp)) {
+        on eNetworkHealed do (timestamp: Timestamp) {
             networkPartitioned = false;
 
             // Re-enable all routes
-            foreach (nodeID in keys(routingTable)) {
-                if (nodeID in connectedPeers) {
-                    tmpRoute = routingTable[nodeID];
+            allRoutingTableKeys = keys(routingTable); // Reusing the existing machine-level variable
+            tmpI = 0;
+            while (tmpI < sizeof(allRoutingTableKeys)) {
+                tmpNodeID = allRoutingTableKeys[tmpI]; // Reusing the existing machine-level variable tmpNodeID
+                if (tmpNodeID in connectedPeers) {
+                    tmpRoute = routingTable[tmpNodeID];
                     tmpRoute.status.status = "active";
-                    routingTable[nodeID] = tmpRoute;
+                    routingTable[tmpNodeID] = tmpRoute;
                 }
+                tmpI = tmpI + 1;
             }
         }
 
@@ -347,7 +365,7 @@ machine P2PNetworkMachine {
         on eDiscoverPeers do {
             // Trigger peer discovery
             // In real system, would query DHT or bootstrap nodes
-            announce ePeersDiscovered, (default(seq[PeerInfo]),);
+            announce ePeersDiscovered, default(seq[PeerInfo]);
         }
 
         on eNetworkShutdown do {

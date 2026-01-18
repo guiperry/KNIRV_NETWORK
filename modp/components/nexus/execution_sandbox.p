@@ -50,6 +50,10 @@ machine ExecutionSandboxMachine {
     var tmpViolationReason: string;
     var tmpOutput: map[string, any];
     var tmpCount: int;
+    var allSandboxKeys: seq[UUID];
+    var tmpI: int;
+    var tmpSandboxCreatedPayload: (sandboxID: UUID);
+    var tmpSandboxDestroyedPayload: (sandboxID: UUID);
 
     start state Init {
         entry {
@@ -93,10 +97,14 @@ machine ExecutionSandboxMachine {
         on eCreateSandbox do (payload: (config: SandboxConfig)) {
             // Check concurrent sandbox limit
             tmpActiveSandboxes = 0;
-            foreach (id in keys(sandboxes)) {
-                if (sandboxes[id].sandboxState == "created" || sandboxes[id].sandboxState == "running") {
+            allSandboxKeys = keys(sandboxes); // Assign to the machine-level variable
+            tmpI = 0;
+            while (tmpI < sizeof(allSandboxKeys)) {
+                tmpSandboxID = allSandboxKeys[tmpI]; // Get the current element
+                if (sandboxes[tmpSandboxID].sandboxState == "created" || sandboxes[tmpSandboxID].sandboxState == "running") {
                     tmpActiveSandboxes = tmpActiveSandboxes + 1;
                 }
+                tmpI = tmpI + 1; // Increment loop counter
             }
 
             if (tmpActiveSandboxes >= maxConcurrentSandboxes) {
@@ -126,8 +134,9 @@ machine ExecutionSandboxMachine {
             sandboxes[tmpSandboxID] = tmpNewSandbox;
             sandboxConfigs[tmpSandboxID] = payload.config;
 
-            announce eSandboxCreated, tmpSandboxID;
-            send this, eSandboxCreated, tmpSandboxID;
+            tmpSandboxCreatedPayload.sandboxID = tmpSandboxID;
+            announce eSandboxCreated, tmpSandboxCreatedPayload;
+            send this, eSandboxCreated, tmpSandboxCreatedPayload;
         }
 
         // =====================================================================
@@ -162,7 +171,7 @@ machine ExecutionSandboxMachine {
 
             // Check sandbox state
             if (tmpSandbox.sandboxState != "created") {
-                send this, eSandboxExecutionFailed, (payload.sandboxID, "Sandbox not in created state");
+                send this, eSandboxExecutionFailed, (sandboxID = payload.sandboxID, reason = "Sandbox not in created state");
                 return;
             }
 
@@ -191,12 +200,16 @@ machine ExecutionSandboxMachine {
 
         on eEmergencyHalt do {
             // Destroy all running sandboxes
-            foreach (id in keys(sandboxes)) {
-                if (sandboxes[id].sandboxState == "running") {
-                    tmpSandbox = sandboxes[id];
+            allSandboxKeys = keys(sandboxes); // Assign to the machine-level variable
+            tmpI = 0;
+            while (tmpI < sizeof(allSandboxKeys)) {
+                tmpSandboxID = allSandboxKeys[tmpI]; // Get the current element
+                if (sandboxes[tmpSandboxID].sandboxState == "running") {
+                    tmpSandbox = sandboxes[tmpSandboxID];
                     tmpSandbox.sandboxState = "destroyed";
-                    sandboxes[id] = tmpSandbox;
+                    sandboxes[tmpSandboxID] = tmpSandbox;
                 }
+                tmpI = tmpI + 1; // Increment loop counter
             }
             goto Halted;
         }
@@ -205,10 +218,13 @@ machine ExecutionSandboxMachine {
     state Executing {
         entry {
             // Simulate execution for all running sandboxes
-            foreach (sandboxID in keys(runningExecutions)) {
-                tmpExecState = runningExecutions[sandboxID];
+            allSandboxKeys = keys(runningExecutions); // Assign to the machine-level variable
+            tmpI = 0;
+            while (tmpI < sizeof(allSandboxKeys)) {
+                tmpSandboxID = allSandboxKeys[tmpI]; // Get the current element
+                tmpExecState = runningExecutions[tmpSandboxID];
 
-                tmpConfig = sandboxConfigs[sandboxID];
+                tmpConfig = sandboxConfigs[tmpSandboxID];
 
                 // Simulate resource usage
                 tmpResourcesUsed.cpuMillis = 100;      // Simulated CPU usage
@@ -245,10 +261,10 @@ machine ExecutionSandboxMachine {
                     resourceViolations = resourceViolations + 1;
                     failedExecutions = failedExecutions + 1;
 
-                    announce eResourceLimitExceeded, (sandboxID, tmpViolationReason, tmpConfig.maxCPU, tmpResourcesUsed.cpuMillis);
+                    announce eResourceLimitExceeded, (sandboxID = tmpSandboxID, resourceType = tmpViolationReason, limit = tmpConfig.maxCPU, actual = tmpResourcesUsed.cpuMillis);
 
-                    announce eSandboxExecutionFailed, (sandboxID, tmpViolationReason);
-                    send this, eSandboxExecutionFailed, (sandboxID, tmpViolationReason);
+                    announce eSandboxExecutionFailed, (sandboxID = tmpSandboxID, reason = tmpViolationReason);
+                    send this, eSandboxExecutionFailed, (sandboxID = tmpSandboxID, reason = tmpViolationReason);
                 } else {
                     // Successful execution
                     successfulExecutions = successfulExecutions + 1;
@@ -257,18 +273,19 @@ machine ExecutionSandboxMachine {
                     tmpOutput["status"] = "success";
                     tmpOutput["execution_time"] = tmpResourcesUsed.cpuMillis;
 
-                    announce eSandboxExecutionResult, (sandboxID, tmpOutput, tmpResourcesUsed);
-                    send this, eSandboxExecutionResult, (sandboxID, tmpOutput, tmpResourcesUsed);
+                    announce eSandboxExecutionResult, (sandboxID = tmpSandboxID, output = tmpOutput, resourcesUsed = tmpResourcesUsed);
+                    send this, eSandboxExecutionResult, (sandboxID = tmpSandboxID, output = tmpOutput, resourcesUsed = tmpResourcesUsed);
                 }
 
                 // Update sandbox state
-                tmpSandbox = sandboxes[sandboxID];
+                tmpSandbox = sandboxes[tmpSandboxID];
                 tmpSandbox.sandboxState = "completed";
                 tmpSandbox.resourcesUsed = tmpResourcesUsed;
-                sandboxes[sandboxID] = tmpSandbox;
+                sandboxes[tmpSandboxID] = tmpSandbox;
 
                 // Remove from running
-                runningExecutions -= sandboxID;
+                runningExecutions -= tmpSandboxID;
+                tmpI = tmpI + 1; // Increment loop counter
             }
 
             goto Active;
@@ -297,7 +314,8 @@ machine ExecutionSandboxMachine {
                 runningExecutions -= sandboxID;
             }
 
-            announce eSandboxDestroyed, sandboxID;
+            tmpSandboxDestroyedPayload.sandboxID = sandboxID;
+            announce eSandboxDestroyed, tmpSandboxDestroyedPayload;
         }
     }
 
@@ -307,10 +325,14 @@ machine ExecutionSandboxMachine {
 
     fun GetActiveSandboxCount(): int {
         tmpCount = 0;
-        foreach (id in keys(sandboxes)) {
-            if (sandboxes[id].sandboxState == "created" || sandboxes[id].sandboxState == "running") {
+        allSandboxKeys = keys(sandboxes); // Assign to the machine-level variable
+        tmpI = 0;
+        while (tmpI < sizeof(allSandboxKeys)) {
+            tmpSandboxID = allSandboxKeys[tmpI]; // Get the current element
+            if (sandboxes[tmpSandboxID].sandboxState == "created" || sandboxes[tmpSandboxID].sandboxState == "running") {
                 tmpCount = tmpCount + 1;
             }
+            tmpI = tmpI + 1; // Increment loop counter
         }
         return tmpCount;
     }

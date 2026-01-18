@@ -36,6 +36,10 @@ machine BaseLayerMachine {
     var tmpProof: DAProof;
     var tmpValid: bool;
     var tmpNewRoot: Hash;
+    var tmpDataStoredPayload: (record: BaseRecord);
+    var tmpDataRetrievedPayload: (record: BaseRecord);
+    var tmpDataNotFoundPayload: (recordID: UUID);
+    var tmpDAProofGeneratedPayload: (proof: DAProof);
 
     start state Init {
         entry {
@@ -115,8 +119,9 @@ machine BaseLayerMachine {
                 CommitLayer();
             }
 
-            announce eDataStored, tmpNewRecord;
-            send this, eDataStored, tmpNewRecord;
+            tmpDataStoredPayload.record = tmpNewRecord;
+            announce eDataStored, tmpDataStoredPayload;
+            send this, eDataStored, tmpDataStoredPayload;
         }
 
         // =====================================================================
@@ -125,9 +130,11 @@ machine BaseLayerMachine {
 
         on eRetrieveData do (payload: (recordID: UUID)) {
             if (payload.recordID in records) {
-                send this, eDataRetrieved, records[payload.recordID];
+                tmpDataRetrievedPayload.record = records[payload.recordID];
+                send this, eDataRetrieved, tmpDataRetrievedPayload;
             } else {
-                send this, eDataNotFound, payload.recordID;
+                tmpDataNotFoundPayload.recordID = payload.recordID;
+                send this, eDataNotFound, tmpDataNotFoundPayload;
             }
         }
 
@@ -138,7 +145,7 @@ machine BaseLayerMachine {
         on eRequestDAProof do (payload: (recordID: UUID)) {
             // Check record exists
             if (!(payload.recordID in records)) {
-                send this, eDAProofFailed, (payload.recordID, "Record not found");
+                send this, eDAProofFailed, (recordID = payload.recordID, reason = "Record not found");
                 return;
             }
 
@@ -155,8 +162,9 @@ machine BaseLayerMachine {
 
             daProofs[payload.recordID] = tmpProof;
 
-            announce eDAProofGenerated, tmpProof;
-            send this, eDAProofGenerated, tmpProof;
+            tmpDAProofGeneratedPayload.proof = tmpProof;
+            announce eDAProofGenerated, tmpDAProofGeneratedPayload;
+            send this, eDAProofGenerated, tmpDAProofGeneratedPayload;
         }
 
         on eVerifyDAProof do (payload: (proof: DAProof)) {
@@ -177,8 +185,8 @@ machine BaseLayerMachine {
                 }
             }
 
-            announce eDAProofVerified, (payload.proof.recordID, tmpValid);
-            send this, eDAProofVerified, (payload.proof.recordID, tmpValid);
+            announce eDAProofVerified, (recordID = payload.proof.recordID, valid = tmpValid);
+            send this, eDAProofVerified, (recordID = payload.proof.recordID, valid = tmpValid);
         }
 
         // =====================================================================
@@ -220,7 +228,7 @@ machine BaseLayerMachine {
         currentCommitment = tmpNewRoot;
         merkleRoots[currentHeight] = tmpNewRoot;
 
-        announce eMonitorAssertion, ("BaseLayer", format("Layer committed at height {0}", currentHeight), true);
+        announce eMonitorAssertion, (monitorName = "BaseLayer", assertionMessage = format("Layer committed at height {0}", currentHeight), passed = true);
     }
 
     fun GetRecordCount(): int {
