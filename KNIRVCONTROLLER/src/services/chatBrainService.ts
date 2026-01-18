@@ -10,6 +10,7 @@ import type {
 } from '../types/chatBrain';
 import { getLLMProviderService } from './llmProviderService';
 import { getKNIRVGraphService } from './knirvGraphService';
+import { cognitiveEngineService } from './CognitiveEngineService';
 
 export class ChatBrainService {
   private llmService = getLLMProviderService();
@@ -23,8 +24,31 @@ export class ChatBrainService {
     history?: ChatMessage[]
   ): Promise<ChatResponse> {
     try {
-      // Get AI response from selected provider
-      const response = await this.llmService.chat(message, provider, history);
+      // First, process the input using cortex.wasm cognitive engine
+      const cognitiveResult = await cognitiveEngineService.processInput({
+        input: message,
+        context: history ? { history: JSON.stringify(history) } : undefined,
+        taskType: 'conversation',
+        requiresSkillInvocation: true,
+        metadata: { provider }
+      });
+
+      // If cortex.wasm didn't produce a response, fall back to LLM provider
+      let response: ChatResponse;
+      if (cognitiveResult.output && cognitiveResult.output !== 'Processing completed') {
+        response = {
+          text: cognitiveResult.output,
+          provider: 'cortex',
+          metadata: {
+            confidence: cognitiveResult.confidence,
+            processingTime: cognitiveResult.processingTime,
+            skillsInvoked: cognitiveResult.skillsInvoked,
+            adaptationTriggered: cognitiveResult.adaptationTriggered
+          }
+        };
+      } else {
+        response = await this.llmService.chat(message, provider, history);
+      }
 
       // Store conversation in KNIRVGRAPH
       await this.storeConversationMessage(message, response.text, provider);
@@ -32,10 +56,40 @@ export class ChatBrainService {
       // Extract and store memory nodes from the conversation
       await this.extractAndStoreMemory(message, response.text);
 
+      // Check if we need to submit to KNIRVGRAPH based on cortex.wasm analysis
+      if (cognitiveResult.skillsInvoked && cognitiveResult.skillsInvoked.length > 0) {
+        await this.handleSkillInvocations(cognitiveResult.skillsInvoked, message, response.text);
+      }
+
       return response;
     } catch (error) {
       console.error('Error in sendMessage:', error);
       throw error;
+    }
+  }
+
+  private async handleSkillInvocations(skillsInvoked: string[], userMessage: string, aiResponse: string): Promise<void> {
+    try {
+      console.log('Handling skill invocations:', skillsInvoked);
+      
+      // For each skill invoked, we might want to:
+      // 1. Create a skill node in KNIRVGRAPH
+      // 2. Create a relation between the conversation and the skill
+      // 3. Trigger further processing or validation
+      
+      for (const skillId of skillsInvoked) {
+        await this.graphService.storeMemoryNode({
+          label: skillId,
+          type: 'skill',
+          timestamp: Date.now(),
+          properties: {
+            userMessage: userMessage.substring(0, 100),
+            aiResponse: aiResponse.substring(0, 100)
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error handling skill invocations:', error);
     }
   }
 
@@ -136,10 +190,71 @@ export class ChatBrainService {
     return sessionId;
   }
 
-  createNewSession(): string {
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  async createNewSession(name: string = 'New Chat', provider: LLMProvider = 'gemini'): Promise<ChatSession> {
+    const now = Date.now();
+    
+    const session: Omit<ChatSession, 'id'> = {
+      name,
+      messages: [],
+      createdAt: now,
+      updatedAt: now,
+      provider,
+    };
+
+    const sessionId = await this.graphService.storeChatSession(session);
     sessionStorage.setItem('chat_brain_session_id', sessionId);
-    return sessionId;
+    
+    return {
+      id: sessionId,
+      ...session,
+    };
+  }
+
+  async getCurrentSession(): Promise<ChatSession | null> {
+    const sessionId = this.getCurrentSessionId();
+    return await this.getChatSession(sessionId);
+  }
+
+  async getChatSession(sessionId: string): Promise<ChatSession | null> {
+    try {
+      return await this.graphService.getChatSession(sessionId);
+    } catch (error) {
+      console.error('Error getting chat session:', error);
+      return null;
+    }
+  }
+
+  async getAllChatSessions(): Promise<ChatSession[]> {
+    try {
+      return await this.graphService.getChatSessions();
+    } catch (error) {
+      console.error('Error getting all chat sessions:', error);
+      return [];
+    }
+  }
+
+  async updateChatSession(sessionId: string, updates: Partial<ChatSession>): Promise<void> {
+    try {
+      await this.graphService.updateChatSession(sessionId, updates);
+    } catch (error) {
+      console.error('Error updating chat session:', error);
+      throw error;
+    }
+  }
+
+  async deleteChatSession(sessionId: string): Promise<void> {
+    try {
+      await this.graphService.deleteChatSession(sessionId);
+      
+      // If we're deleting the current session, clear it from sessionStorage
+      const currentSessionId = this.getCurrentSessionId();
+      if (currentSessionId === sessionId) {
+        sessionStorage.removeItem('chat_brain_session_id');
+      }
+    } catch (error) {
+      console.error('Error deleting chat session:', error);
+      throw error;
+    }
   }
 
   async loadSession(sessionId: string): Promise<ChatMessage[]> {
@@ -154,6 +269,18 @@ export class ChatBrainService {
     } catch (error) {
       console.error('Error loading session:', error);
       return [];
+    }
+  }
+
+  async switchToSession(sessionId: string): Promise<void> {
+    sessionStorage.setItem('chat_brain_session_id', sessionId);
+    
+    // Update the session's updatedAt timestamp
+    try {
+      await this.graphService.updateChatSession(sessionId, { updatedAt: Date.now() });
+    } catch (error) {
+      console.error('Error updating session timestamp:', error);
+      // Don't throw - this is a non-critical operation
     }
   }
 
@@ -299,7 +426,7 @@ export class ChatBrainService {
 
   async clearChatHistory(): Promise<void> {
     // Create a new session to effectively clear history
-    this.createNewSession();
+    await this.createNewSession('New Chat', 'gemini');
   }
 
   async clearAllData(): Promise<void> {

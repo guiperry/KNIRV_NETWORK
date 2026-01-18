@@ -8,7 +8,7 @@ import type {
   MemoryGraph,
   Note,
   Conversation,
-  ChatMessage,
+  ChatSession,
 } from '../types/chatBrain';
 
 export class KNIRVGraphService {
@@ -315,6 +315,130 @@ export class KNIRVGraphService {
     }
   }
 
+  // ==================== Chat Session Operations ====================
+
+  async storeChatSession(session: Omit<ChatSession, 'id'>): Promise<string> {
+    if (this.useMockData) {
+      const id = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const mockSession = { ...session, id };
+
+      const existingSessions = this.getMockChatSessions();
+      existingSessions.push(mockSession);
+      localStorage.setItem('chat_brain_sessions', JSON.stringify(existingSessions));
+
+      return id;
+    }
+
+    try {
+      const response = await this.client.post<KNIRVGraphResponse<{ sessionId: string }>>(
+        '/api/graph/sessions',
+        {
+          ...session,
+          userId: this.getUserId(),
+        }
+      );
+
+      if (response.data.success && response.data.data) {
+        return response.data.data.sessionId;
+      }
+      throw new Error(response.data.error || 'Failed to store chat session');
+    } catch (error) {
+      console.error('Error storing chat session:', error);
+      throw error;
+    }
+  }
+
+  async getChatSessions(): Promise<ChatSession[]> {
+    if (this.useMockData) {
+      return this.getMockChatSessions();
+    }
+
+    try {
+      const response = await this.client.get<KNIRVGraphResponse<{ sessions: ChatSession[] }>>(
+        '/api/graph/sessions',
+        { params: { userId: this.getUserId() } }
+      );
+
+      if (response.data.success && response.data.data) {
+        return response.data.data.sessions;
+      }
+      throw new Error(response.data.error || 'Failed to get chat sessions');
+    } catch (error) {
+      console.error('Error getting chat sessions:', error);
+      throw error;
+    }
+  }
+
+  async getChatSession(sessionId: string): Promise<ChatSession | null> {
+    if (this.useMockData) {
+      const sessions = this.getMockChatSessions();
+      return sessions.find((s) => s.id === sessionId) || null;
+    }
+
+    try {
+      const response = await this.client.get<KNIRVGraphResponse<{ session: ChatSession }>>(
+        `/api/graph/sessions/${sessionId}`,
+        { params: { userId: this.getUserId() } }
+      );
+
+      if (response.data.success && response.data.data) {
+        return response.data.data.session;
+      }
+      throw new Error(response.data.error || 'Failed to get chat session');
+    } catch (error) {
+      console.error('Error getting chat session:', error);
+      throw error;
+    }
+  }
+
+  async updateChatSession(sessionId: string, updates: Partial<ChatSession>): Promise<void> {
+    if (this.useMockData) {
+      const sessions = this.getMockChatSessions();
+      const index = sessions.findIndex((s) => s.id === sessionId);
+      if (index >= 0) {
+        sessions[index] = { ...sessions[index], ...updates, updatedAt: Date.now() };
+        localStorage.setItem('chat_brain_sessions', JSON.stringify(sessions));
+      }
+      return;
+    }
+
+    try {
+      const response = await this.client.put<KNIRVGraphResponse<void>>(
+        `/api/graph/sessions/${sessionId}`,
+        { ...updates, updatedAt: Date.now() }
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.error || 'Failed to update chat session');
+      }
+    } catch (error) {
+      console.error('Error updating chat session:', error);
+      throw error;
+    }
+  }
+
+  async deleteChatSession(sessionId: string): Promise<void> {
+    if (this.useMockData) {
+      const sessions = this.getMockChatSessions();
+      const filtered = sessions.filter((s) => s.id !== sessionId);
+      localStorage.setItem('chat_brain_sessions', JSON.stringify(filtered));
+      return;
+    }
+
+    try {
+      const response = await this.client.delete<KNIRVGraphResponse<void>>(
+        `/api/graph/sessions/${sessionId}`
+      );
+
+      if (!response.data.success) {
+        throw new Error(response.data.error || 'Failed to delete chat session');
+      }
+    } catch (error) {
+      console.error('Error deleting chat session:', error);
+      throw error;
+    }
+  }
+
   // ==================== Mock Data Helpers ====================
 
   private getMockMemoryNodes(): MemoryNode[] {
@@ -392,6 +516,36 @@ export class KNIRVGraphService {
     return stored ? JSON.parse(stored) : [];
   }
 
+  private getMockChatSessions(): ChatSession[] {
+    const stored = localStorage.getItem('chat_brain_sessions');
+    if (stored) {
+      return JSON.parse(stored);
+    }
+
+    // Initialize with sample data
+    const sampleSessions: ChatSession[] = [
+      {
+        id: 'session_1',
+        name: 'General Chat',
+        messages: [],
+        createdAt: Date.now() - 86400000, // 1 day ago
+        updatedAt: Date.now() - 86400000,
+        provider: 'gemini',
+      },
+      {
+        id: 'session_2',
+        name: 'Technical Discussion',
+        messages: [],
+        createdAt: Date.now() - 43200000, // 12 hours ago
+        updatedAt: Date.now() - 43200000,
+        provider: 'openai',
+      },
+    ];
+
+    localStorage.setItem('chat_brain_sessions', JSON.stringify(sampleSessions));
+    return sampleSessions;
+  }
+
   // ==================== Utility Methods ====================
 
   setMockDataMode(enabled: boolean): void {
@@ -407,6 +561,7 @@ export class KNIRVGraphService {
     localStorage.removeItem('chat_brain_memory_edges');
     localStorage.removeItem('chat_brain_notes');
     localStorage.removeItem('chat_brain_conversations');
+    localStorage.removeItem('chat_brain_sessions');
   }
 }
 

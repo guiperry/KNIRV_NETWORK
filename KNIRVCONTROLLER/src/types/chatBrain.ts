@@ -20,7 +20,7 @@ export interface ChatResponse {
 }
 
 // Memory Graph Types
-export type MemoryNodeType = 'entity' | 'concept' | 'event' | 'keyword' | 'topic' | 'custom';
+export type MemoryNodeType = 'entity' | 'concept' | 'event' | 'keyword' | 'topic' | 'custom' | 'skill';
 
 export interface MemoryNode {
   id: string;
