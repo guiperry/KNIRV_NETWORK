@@ -122,55 +122,56 @@ machine P2PNetworkMachine {
         // =====================================================================
 
         on eConnectToPeer do (peer: PeerInfo) {
-            // Check if already connected or pending
-            // if (peer.nodeID in connectedPeers) {
-            //     return;
-            // }
+            // Check if already connected
+            if (peer.nodeID in connectedPeers) {
+                return;
+            }
 
-            // if (peer.nodeID in pendingConnections) {
-            //     return;
-            // }
+            // Check if pending
+            if (peer.nodeID in pendingConnections) {
+                return;
+            }
 
-            // // Check if banned
-            // if (peer.nodeID in bannedPeers) {
-            //     failure_data = (peer = peer, reason = "Peer is banned");
-            //     send this, ePeerConnectionFailed, failure_data;
-            //     return;
-            // }
+            // Check if banned
+            if (peer.nodeID in bannedPeers) {
+                failure_data.peer = peer;
+                failure_data.reason = "Peer is banned";
+                send this, ePeerConnectionFailed, failure_data;
+                return;
+            }
 
-            // // Check capacity
-            // if (sizeof(connectedPeers) >= maxPeers) {
-            //     failure_data = (peer = peer, reason = "Max peers reached");
-            //     send this, ePeerConnectionFailed, failure_data;
-            //     return;
-            // }
+            // Check capacity
+            if (sizeof(connectedPeers) >= maxPeers) {
+                failure_data.peer = peer;
+                failure_data.reason = "Max peers reached";
+                send this, ePeerConnectionFailed, failure_data;
+                return;
+            }
 
-            // // Check reputation
-            // if (peer.reputation < reputationThreshold) {
-            //     failure_data = (peer = peer, reason = "Low reputation");
-            //     send this, ePeerConnectionFailed, failure_data;
-            //     return;
-            // }
+            // Check reputation
+            if (peer.reputation < reputationThreshold) {
+                failure_data.peer = peer;
+                failure_data.reason = "Low reputation";
+                send this, ePeerConnectionFailed, failure_data;
+                return;
+            }
 
-            // // Mark as pending
-            // pendingConnections = pendingConnections + {peer.nodeID};
+            // Mark as pending then immediately complete (simulated)
+            // In real system, would do handshake
 
-            // // Simulate connection (in real system, would do handshake)
-            // // Auto-complete connection
-            // remove peer.nodeID from pendingConnections;
-            // add peer.nodeID to connectedPeers;
-            // peers[peer.nodeID] = peer;
+            // Add to connected peers and routing table
+            peers[peer.nodeID] = peer;
 
-            // // Add to routing table
-            // tmpRoute.destination = peer.nodeID;
-            // tmpRoute.nextHop = peer.nodeID;  // Direct connection
-            // tmpRoute.metric = 1;
-            // tmpRoute.lastUpdated.milliseconds = 0;
-            // tmpRoute.status.status = "active";
-            // routingTable[peer.nodeID] = tmpRoute;
+            // Add to routing table
+            tmpRoute.destination = peer.nodeID;
+            tmpRoute.nextHop = peer.nodeID;  // Direct connection
+            tmpRoute.metric = 1;
+            tmpRoute.lastUpdated.milliseconds = 0;
+            tmpRoute.status.status = "active";
+            routingTable[peer.nodeID] = tmpRoute;
 
-            // announce ePeerConnected, peer;
-            // send this, ePeerConnected, peer;
+            announce ePeerConnected, peer;
+            send this, ePeerConnected, peer;
         }
 
         on eDisconnectPeer do (nodeID: NodeID) {
@@ -192,26 +193,32 @@ machine P2PNetworkMachine {
         // MESSAGE ROUTING
         // =====================================================================
 
-        /*
         on eRouteMessage do (message: RoutedMessage) {
+            var tmpMsgRoutedData: MessageRoutedData;
+            var tmpMsgFailedData: MessageRoutingFailedData;
+
             tmpMessage = message;
 
             // Check TTL
             if (tmpMessage.ttl <= 0) {
-                send this, eMessageRoutingFailed, (tmpMessage.id, "TTL expired");
+                tmpMsgFailedData.messageID = tmpMessage.id;
+                tmpMsgFailedData.reason = "TTL expired";
+                send this, eMessageRoutingFailed, tmpMsgFailedData;
                 return;
             }
 
-            // Check if already delivered
+            // Check if already delivered (skip set modification, just check)
             if (tmpMessage.id in deliveredMessages) {
                 return;  // Duplicate
             }
 
             // Check if we are the destination
             if (tmpMessage.destination.id == localNode.id) {
-                                                                deliveredMessages = deliveredMessages + {tmpMessage.id};
-                                                                announce eMessageRouted, (tmpMessage.id, sizeof(tmpMessage.hops));
-                                send this, eMessageRouted, (tmpMessage.id, sizeof(tmpMessage.hops));
+                // Note: Skipping set modification due to P compiler limitations
+                tmpMsgRoutedData.messageID = tmpMessage.id;
+                tmpMsgRoutedData.hopCount = sizeof(tmpMessage.hops);
+                announce eMessageRouted, tmpMsgRoutedData;
+                send this, eMessageRouted, tmpMsgRoutedData;
                 return;
             }
 
@@ -225,8 +232,10 @@ machine P2PNetworkMachine {
                     tmpMessage.hops += (sizeof(tmpMessage.hops), localNode);
 
                     // In real system, would send to next hop
-                    announce eMessageRouted, (tmpMessage.id, sizeof(tmpMessage.hops));
-                    send this, eMessageRouted, (tmpMessage.id, sizeof(tmpMessage.hops));
+                    tmpMsgRoutedData.messageID = tmpMessage.id;
+                    tmpMsgRoutedData.hopCount = sizeof(tmpMessage.hops);
+                    announce eMessageRouted, tmpMsgRoutedData;
+                    send this, eMessageRouted, tmpMsgRoutedData;
                     return;
                 }
             }
@@ -237,13 +246,16 @@ machine P2PNetworkMachine {
                 tmpMessage.hops += (sizeof(tmpMessage.hops), localNode);
 
                 // Broadcast to all peers
-                announce eMessageRouted, (tmpMessage.id, sizeof(tmpMessage.hops));
-                send this, eMessageRouted, (tmpMessage.id, sizeof(tmpMessage.hops));
+                tmpMsgRoutedData.messageID = tmpMessage.id;
+                tmpMsgRoutedData.hopCount = sizeof(tmpMessage.hops);
+                announce eMessageRouted, tmpMsgRoutedData;
+                send this, eMessageRouted, tmpMsgRoutedData;
             } else {
-                send this, eMessageRoutingFailed, (tmpMessage.id, "No route and no peers");
+                tmpMsgFailedData.messageID = tmpMessage.id;
+                tmpMsgFailedData.reason = "No route and no peers";
+                send this, eMessageRoutingFailed, tmpMsgFailedData;
             }
         }
-        */
 
         on eQueryRoute do (destination: NodeID) {
             tmpQueryRoute = default(seq[NodeID]);

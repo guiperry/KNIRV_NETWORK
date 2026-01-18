@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <Reference Include="PCheckerCore">
-        <HintPath>/home/gperry/.dotnet/tools/.store/p/3.0.2/p/3.0.2/tools/net8.0/any/PCheckerCore.dll</HintPath>
+        <HintPath>/home/gperry/.p-lang/Bld/Drops/Release/Binaries/net8.0/PCheckerCore.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>
