@@ -14,11 +14,35 @@ import (
 // Embed all service directories (excluding node_modules, build artifacts)
 //
 //go:embed all:webgui
-//go:embed all:network-website
-var ServicesFS embed.FS
+var WebGUIFS embed.FS
+
+//go:embed all:network-website/*
+var NetworkWebsiteFS embed.FS
+
+//go:embed knirv-oracle
+var OracleBinary []byte
+
+// ExtractOracleBinary extracts the embedded knirv-oracle binary to the target directory
+func ExtractOracleBinary(targetPath string, logger *zap.Logger) error {
+	logger.Info("Extracting embedded knirv-oracle binary", zap.String("target", targetPath))
+
+	// Ensure target directory exists
+	targetDir := filepath.Dir(targetPath)
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return fmt.Errorf("failed to create target directory: %w", err)
+	}
+
+	// Write the embedded binary to file
+	if err := os.WriteFile(targetPath, OracleBinary, 0755); err != nil {
+		return fmt.Errorf("failed to write oracle binary: %w", err)
+	}
+
+	logger.Info("Successfully extracted knirv-oracle binary", zap.String("path", targetPath))
+	return nil
+}
 
 // ExtractWebGUI extracts only the webgui static files to a target directory
-func ExtractWebGUI(targetDir string, logger *zap.Logger) error {
+func ExtractWebGUI(webGUIFS embed.FS, targetDir string, logger *zap.Logger) error {
 	logger.Info("Extracting embedded webgui static files", zap.String("target", targetDir))
 
 	// Create target directory
@@ -27,7 +51,7 @@ func ExtractWebGUI(targetDir string, logger *zap.Logger) error {
 	}
 
 	// Extract only webgui files
-	err := fs.WalkDir(ServicesFS, ".", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(webGUIFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -91,7 +115,7 @@ func ExtractWebGUI(targetDir string, logger *zap.Logger) error {
 		}
 
 		// Read embedded file
-		data, err := fs.ReadFile(ServicesFS, path)
+		data, err := fs.ReadFile(WebGUIFS, path)
 		if err != nil {
 			return fmt.Errorf("failed to read embedded file %s: %w", path, err)
 		}
@@ -217,7 +241,7 @@ func ExtractWebGUI(targetDir string, logger *zap.Logger) error {
 }
 
 // ExtractNetworkWebsite extracts only the network-website files to a target directory
-func ExtractNetworkWebsite(targetDir string, logger *zap.Logger) error {
+func ExtractNetworkWebsite(networkWebsiteFS embed.FS, targetDir string, logger *zap.Logger) error {
 	logger.Info("Extracting embedded network-website", zap.String("target", targetDir))
 
 	// Create target directory
@@ -226,7 +250,7 @@ func ExtractNetworkWebsite(targetDir string, logger *zap.Logger) error {
 	}
 
 	// Extract only network-website files
-	err := fs.WalkDir(ServicesFS, "network-website", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(networkWebsiteFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -260,7 +284,7 @@ func ExtractNetworkWebsite(targetDir string, logger *zap.Logger) error {
 		}
 
 		// Read embedded file
-		data, err := fs.ReadFile(ServicesFS, path)
+		data, err := fs.ReadFile(NetworkWebsiteFS, path)
 		if err != nil {
 			return fmt.Errorf("failed to read embedded file %s: %w", path, err)
 		}

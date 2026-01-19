@@ -9,8 +9,8 @@ import (
 	"log"
 	"sync"
 
-	"backend_server/pkg/demos"
-	"backend_server/pkg/runtime"
+	"backend_server/internal/demos"
+	"backend_server/internal/runtime"
 )
 
 // DemoDeployer manages automatic deployment of all demo NOCs

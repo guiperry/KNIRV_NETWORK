@@ -9,19 +9,25 @@ import (
 	"log"
 	"strings"
 
-	"backend_server/pkg/runtime"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/pkg/embed"
+	"backend_server/internal/runtime"
+	"go.uber.org/zap"
 )
 
 // GatewayNestDeployer deploys KNIRVGATEWAY NOC
 type GatewayNestDeployer struct {
 	ContainerManager *runtime.UnifiedContainerManager
 	Container        *runtime.UnifiedContainer
+	embeddedGateway  *embed.Gateway
+	logger           *zap.Logger
 }
 
 // NewGatewayNestDeployer creates a new gateway nest deployer
 func NewGatewayNestDeployer(manager *runtime.UnifiedContainerManager) *GatewayNestDeployer {
+	logger, _ := zap.NewProduction()
 	return &GatewayNestDeployer{
 		ContainerManager: manager,
+		logger:           logger,
 	}
 }
 
@@ -29,6 +35,7 @@ func NewGatewayNestDeployer(manager *runtime.UnifiedContainerManager) *GatewayNe
 func (gnd *GatewayNestDeployer) Deploy(ctx context.Context) error {
 	log.Println("🌐 Deploying KNIRVGATEWAY NOC...")
 
+	// Create container configuration
 	config := &runtime.NestedObjectConfig{
 		ObjectType:        runtime.ObjectTypeWebApp,
 		EnableViewport:    true,
@@ -39,8 +46,8 @@ func (gnd *GatewayNestDeployer) Deploy(ctx context.Context) error {
 			"model_server": 11434,
 		},
 		Metadata: map[string]interface{}{
-			"image":   "knirvgateway:latest",
-			"command": []interface{}{"/usr/local/bin/gateway", "--oracle-embedded"},
+			"image":   "embedded:knirvgateway",
+			"command": []interface{}{"embedded"},
 			"environment": map[string]interface{}{
 				"KNIRV_MODE":          "gateway_nest",
 				"ENABLE_ORACLE":       "true",
@@ -56,12 +63,31 @@ func (gnd *GatewayNestDeployer) Deploy(ctx context.Context) error {
 		},
 	}
 
+	// Create container
 	container, err := gnd.ContainerManager.CreateNestedObject(ctx, config)
 	if err != nil {
 		return fmt.Errorf("KNIRVGATEWAY NOC creation failed: %w", err)
 	}
 
 	gnd.Container = container
+
+	// Initialize embedded gateway
+	cfg := embed.DefaultConfig()
+	cfg.Port = 8080
+	cfg.ChainID = "testnet"
+	cfg.Mode = "gateway_nest"
+	cfg.OracleOwnerKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	cfg.AutoOpenBrowser = false
+
+	gnd.embeddedGateway, err = embed.NewGateway(cfg, gnd.logger)
+	if err != nil {
+		return fmt.Errorf("failed to initialize embedded gateway: %w", err)
+	}
+
+	// Start embedded gateway
+	if err := gnd.embeddedGateway.Start(); err != nil {
+		return fmt.Errorf("failed to start embedded gateway: %w", err)
+	}
 
 	log.Printf("✅ KNIRVGATEWAY NOC deployed at knirv://%s.object.nest", container.CryptoHash)
 	gnd.printAccessInfo(container)
@@ -77,6 +103,14 @@ func (gnd *GatewayNestDeployer) Stop(ctx context.Context) error {
 
 	log.Println("Stopping KNIRVGATEWAY NOC...")
 
+	// Stop embedded gateway
+	if gnd.embeddedGateway != nil {
+		if err := gnd.embeddedGateway.Stop(); err != nil {
+			log.Printf("Error stopping embedded gateway: %v", err)
+		}
+	}
+
+	// Destroy container
 	if err := gnd.ContainerManager.DestroyContainer(ctx, gnd.Container.ID); err != nil {
 		return fmt.Errorf("KNIRVGATEWAY NOC stop failed: %w", err)
 	}
@@ -89,6 +123,11 @@ func (gnd *GatewayNestDeployer) Stop(ctx context.Context) error {
 // GetContainer returns the deployed container
 func (gnd *GatewayNestDeployer) GetContainer() *runtime.UnifiedContainer {
 	return gnd.Container
+}
+
+// GetEmbeddedGateway returns the embedded gateway instance
+func (gnd *GatewayNestDeployer) GetEmbeddedGateway() *embed.Gateway {
+	return gnd.embeddedGateway
 }
 
 // printAccessInfo prints access information for the gateway nest

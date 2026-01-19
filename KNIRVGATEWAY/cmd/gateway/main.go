@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/oracle"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/runtime"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/server"
 	"go.uber.org/zap"
@@ -53,6 +55,82 @@ func main() {
 			logger.Error("Failed to cleanup runtime", zap.Error(err))
 		}
 	}()
+
+	// Initialize and start knirv-oracle
+	logger.Info("Initializing knirv-oracle...")
+	oracleCfg, err := oracle.LoadConfigFromEnv()
+	if err != nil {
+		logger.Fatal("Failed to load oracle configuration", zap.Error(err))
+	}
+
+	// Check if oracle binary exists and owner key is set
+	oracleBinaryPath := rt.GetOracleBinaryPath()
+	if _, err := os.Stat(oracleBinaryPath); err == nil && oracleCfg.OwnerPrivateKey != "" {
+		// Binary exists and owner key is set, start as separate process
+		logger.Info("Starting knirv-oracle as separate process...", zap.String("path", oracleBinaryPath))
+		oracleCmd := exec.Command(oracleBinaryPath)
+		oracleCmd.Stdout = os.Stdout
+		oracleCmd.Stderr = os.Stderr
+		if err := oracleCmd.Start(); err != nil {
+			logger.Fatal("Failed to start knirv-oracle daemon", zap.Error(err))
+		}
+
+		// Ensure oracle daemon is stopped on exit
+		defer func() {
+			logger.Info("Stopping knirv-oracle daemon...")
+			if err := oracleCmd.Process.Signal(syscall.SIGTERM); err != nil {
+				logger.Error("Failed to send SIGTERM to knirv-oracle", zap.Error(err))
+				// If SIGTERM fails, force kill
+				if err := oracleCmd.Process.Kill(); err != nil {
+					logger.Error("Failed to kill knirv-oracle", zap.Error(err))
+				}
+			}
+			// Wait for the process to exit
+			_, err := oracleCmd.Process.Wait()
+			if err != nil {
+				logger.Error("Error waiting for knirv-oracle to exit", zap.Error(err))
+			}
+		}()
+	} else {
+		// Binary doesn't exist or owner key not set, initialize directly
+		logger.Warn("knirv-oracle binary not found or owner key not set, initializing directly...")
+
+		// If ORACLE_OWNER_KEY is not set, use a default for development/testing
+		if oracleCfg.OwnerPrivateKey == "" {
+			logger.Warn("ORACLE_OWNER_KEY not set, using development default")
+			// This is a dummy private key for testing purposes only
+			oracleCfg.OwnerPrivateKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+		}
+
+		// Validate oracle configuration
+		if err := oracle.ValidateConfig(oracleCfg); err != nil {
+			logger.Fatal("Invalid oracle configuration", zap.Error(err))
+		}
+
+		logger.Info("Oracle configuration summary", zap.String("config", oracle.ConfigSummary(oracleCfg)))
+
+		// Create oracle instance
+		oracleNode, err := oracle.NewOracle(oracleCfg, logger)
+		if err != nil {
+			logger.Fatal("Failed to create oracle instance", zap.Error(err))
+		}
+
+		// Start oracle services in a goroutine
+		go func() {
+			logger.Info("Starting knirv-oracle services...")
+			if err := oracleNode.Start(); err != nil {
+				logger.Fatal("Oracle node failed to start", zap.Error(err))
+			}
+		}()
+
+		// Ensure oracle is stopped on exit
+		defer func() {
+			logger.Info("Stopping knirv-oracle services...")
+			if err := oracleNode.Stop(); err != nil {
+				logger.Error("Error stopping oracle node", zap.Error(err))
+			}
+		}()
+	}
 
 	// Initialize HTTP server with webgui static and network website directories
 	srv, err := server.New(cfg, rt.GetWebGUIStaticPath(), rt.GetNetworkWebsitePath(), logger)

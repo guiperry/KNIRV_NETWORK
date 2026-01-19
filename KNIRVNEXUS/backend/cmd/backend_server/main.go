@@ -38,8 +38,8 @@ import (
 	"backend_server/internal/services/websocket"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
-	"backend_server/pkg/deployment"
-	"backend_server/pkg/runtime"
+	"backend_server/internal/demos/deployment"
+	"backend_server/internal/runtime"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
@@ -469,7 +469,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Load Stripe credentials from environment
 	stripeSecretKey := os.Getenv("STRIPE_SECRET_KEY")
 	if stripeSecretKey == "" {
-		stripeSecretKey = "sk_test_example" // Development fallback
+		stripeSecretKey = "___test_example" // Development fallback
 	}
 	stripePublicKey := os.Getenv("STRIPE_PUBLIC_KEY")
 	if stripePublicKey == "" {

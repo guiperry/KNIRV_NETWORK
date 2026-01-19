@@ -15,6 +15,7 @@ type Runtime struct {
 	BaseDir           string
 	NetworkWebsiteDir string
 	WebGUIStaticDir   string
+	OracleBinaryPath  string
 	logger            *zap.Logger
 	mu                sync.Mutex
 	extracted         bool
@@ -29,6 +30,7 @@ func NewRuntime(logger *zap.Logger) (*Runtime, error) {
 		BaseDir:           baseDir,
 		NetworkWebsiteDir: filepath.Join(baseDir, "network-website"),
 		WebGUIStaticDir:   filepath.Join(baseDir, "webgui-static"),
+		OracleBinaryPath:  filepath.Join(baseDir, "knirv-oracle"),
 		logger:            logger,
 	}
 
@@ -59,20 +61,27 @@ func (r *Runtime) Setup() error {
 
 	// Extract webgui static files
 	r.logger.Info("Extracting embedded webgui static files...")
-	if err := embedded.ExtractWebGUI(r.WebGUIStaticDir, r.logger); err != nil {
+	if err := embedded.ExtractWebGUI(embedded.WebGUIFS, r.WebGUIStaticDir, r.logger); err != nil {
 		return fmt.Errorf("failed to extract webgui static files: %w", err)
 	}
 
 	// Extract network-website
 	r.logger.Info("Extracting embedded network-website...")
-	if err := embedded.ExtractNetworkWebsite(r.NetworkWebsiteDir, r.logger); err != nil {
+	if err := embedded.ExtractNetworkWebsite(embedded.NetworkWebsiteFS, r.NetworkWebsiteDir, r.logger); err != nil {
 		return fmt.Errorf("failed to extract network-website: %w", err)
+	}
+
+	// Extract knirv-oracle binary
+	r.logger.Info("Extracting embedded knirv-oracle binary...")
+	if err := embedded.ExtractOracleBinary(r.OracleBinaryPath, r.logger); err != nil {
+		return fmt.Errorf("failed to extract knirv-oracle binary: %w", err)
 	}
 
 	r.extracted = true
 	r.logger.Info("Runtime setup complete",
 		zap.String("webguiStaticDir", r.WebGUIStaticDir),
 		zap.String("networkWebsiteDir", r.NetworkWebsiteDir),
+		zap.String("oracleBinaryPath", r.OracleBinaryPath),
 	)
 
 	return nil
@@ -111,6 +120,11 @@ func (r *Runtime) GetNetworkWebsitePath() string {
 // GetWebGUIStaticPath returns the path to the webgui static files
 func (r *Runtime) GetWebGUIStaticPath() string {
 	return r.WebGUIStaticDir
+}
+
+// GetOracleBinaryPath returns the path to the extracted knirv-oracle binary
+func (r *Runtime) GetOracleBinaryPath() string {
+	return r.OracleBinaryPath
 }
 
 // IsExtracted returns whether the runtime has been extracted

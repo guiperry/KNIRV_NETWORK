@@ -9,7 +9,7 @@ import (
 	"log"
 	"strings"
 
-	"backend_server/pkg/runtime"
+	"backend_server/internal/runtime"
 )
 
 // RouterNestDeployer deploys KNIRVROUTER NOC

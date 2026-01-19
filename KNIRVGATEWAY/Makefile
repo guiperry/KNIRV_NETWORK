@@ -18,14 +18,14 @@ GO_MOD=$(GO_CMD) mod
 
 # Build flags
 LDFLAGS=-ldflags "-s -w"
-BUILD_DIR=./cmd/oracle
-ORACLED_BUILD_DIR=./cmd/knirv-oracle
+BUILD_DIR=./cmd/gateway
+ORACLED_BUILD_DIR=./cmd/oracle
 
 # WebGUI build
 WEBGUI_DIR=internal/embedded/webgui
 
 # Default target
-all: build build-oracled
+all: build
 
 # Initialize Go modules
 init:
@@ -55,19 +55,21 @@ webgui-build:
 	@cd $(WEBGUI_DIR) && npm run build
 	@echo "WebGUI build complete"
 
-# Build the Go application
-build: webgui-build fmt vet
-	@echo "Building Go application..."
-	@mkdir -p $(BINARY_DIR)
-	$(GO_BUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) $(BUILD_DIR)
-	@echo "Build complete: $(BINARY_DIR)/$(BINARY_NAME)"
-
 # Build the Go oracle daemon
-build-oracled: fmt vet
+build-oracle: fmt vet
 	@echo "Building Go oracle daemon..."
 	@mkdir -p $(BINARY_DIR)
 	$(GO_BUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(ORACLED_BINARY_NAME) $(ORACLED_BUILD_DIR)
 	@echo "Build complete: $(BINARY_DIR)/$(ORACLED_BINARY_NAME)"
+	# Copy to internal/embedded directory for embedding
+	@cp $(BINARY_DIR)/$(ORACLED_BINARY_NAME) $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/internal/embedded/
+
+# Build the Go application
+build: build-oracle webgui-build fmt vet
+	@echo "Building Go application..."
+	@mkdir -p $(BINARY_DIR)
+	$(GO_BUILD) $(LDFLAGS) -o $(BINARY_DIR)/$(BINARY_NAME) $(BUILD_DIR)
+	@echo "Build complete: $(BINARY_DIR)/$(BINARY_NAME)"
 
 # Build for multiple platforms
 build-all: webgui-build
@@ -90,7 +92,7 @@ run: build
 	./$(BINARY_DIR)/$(BINARY_NAME)
 
 # Run the Go oracle daemon
-run-oracled: build-oracled
+run-oracle: build-oracle
 	@echo "Running Go oracle daemon..."
 	./$(BINARY_DIR)/$(ORACLED_BINARY_NAME)
 
