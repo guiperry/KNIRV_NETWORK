@@ -126,9 +126,9 @@ HEART transforms this into a **proactive, memory-augmented adversarial learning 
 
 HEART operates at the **discovery and validation stages** of the ErrorNode → SkillNode lifecycle:
 
-### Stage 1: ErrorNode Discovery (KNIRVGRAPH)
+### Stage 1: ErrorNode Discovery (KNIRVROUTER->KNIRVGRAPH)
 ```
-AI System Failure → Observer detects → NRV announced via DHT
+AI System Failure → KNIRVROUTER detects → NRV announced via DHT
                                      ↓
                            ErrorNode minted in KNIRVGRAPH
                            (FailureContext, Domain, Complexity)
@@ -193,12 +193,12 @@ Titans Memory updated with (ErrorNode, SkillNode, Success=True)
 
 **Hardware:**
 - 1× NVIDIA A100 (80GB) - VL-JEPA + Titans inference - $10,000
-- 1× Antminer S3 (BM1382 ASIC) - SHA-256 + SPHINCS+ signing - $30
+- 1× Antminer S3 (BM1382 ASIC) - SHA-256 + SPHINCS+ signing - $50
 - 1× Dell Optiplex 7060 (i7-8700, 32GB RAM) - Orchestration - $250
-- 1× Intel QAT 8970 PCIe - PQC acceleration - $150
+- 1× Intel QAT 8970 PCIe - PQC acceleration - $900
 - Network: 10 Gbps LAN for DVE mesh - $50
 
-**Total Capital:** ~$10,500
+**Total Capital:** ~$13,050
 
 **Operating Costs:**
 - Power: ~0.5 kW × $0.12/kWh = $526/year
@@ -210,12 +210,12 @@ Titans Memory updated with (ErrorNode, SkillNode, Success=True)
 ### Configuration B: CPU-Only Oracle (Budget)
 
 **Hardware:**
-- 1× Antminer S3 (BM1382 ASIC) - $30
+- 1× Antminer S3 (BM1382 ASIC) - $50
 - 1× Dell Optiplex 7060 (i7-8700, 32GB RAM upgraded) - $250
-- 1× Intel QAT 8970 PCIe - $150
-- Network: 1 Gbps - $20
+- 1× Intel QAT 8970 PCIe - $900
+- Network: 1 Gbps - $50
 
-**Total Capital:** $450
+**Total Capital:** $1,350
 
 **Operating Costs:**
 - Power: ~0.18 kW × $0.12/kWh = $189/year
@@ -233,53 +233,53 @@ Titans Memory updated with (ErrorNode, SkillNode, Success=True)
 HEART operates as a **singleton oracle service** within the KNIRV-NEXUS DVE network, specifically designed to accelerate KNIRVGRAPH's ErrorNode → SkillNode transformation process.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                  KNIRV D-TEN ECOSYSTEM CONTEXT                  │
-│              (Error Resolution Intelligence Layer)              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │              KNIRVGRAPH (Knowledge Graph)                │  │
+┌───────────────────────────────────────────────────────────────┐
+│                  KNIRV D-TEN ECOSYSTEM CONTEXT                │
+│              (Error Resolution Intelligence Layer)            │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │              KNIRVGRAPH (Knowledge Graph)               │  │
 │  │  ┌─────────────┐         ┌──────────────┐               │  │
 │  │  │ ErrorNodes  │────────→│ SkillNodes   │               │  │
 │  │  │ (Failures)  │ RESOLVES│ (Solutions)  │               │  │
 │  │  └──────┬──────┘         └──────▲───────┘               │  │
-│  │         │                       │                        │  │
-│  │         │ NRV Announcement      │ Validated Resolution   │  │
-│  └─────────┼───────────────────────┼────────────────────────┘  │
-│            │                       │                           │
-│            ↓                       │                           │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │           HEART ORACLE (Error Analysis)                  │  │
+│  │         │                       │                       │  │
+│  │         │ NRV Announcement      │ Validated Resolution  │  │
+│  └─────────┼───────────────────────┼───────────────────────┘  │
+│            │                       │                          │
+│            ↓                       │                          │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │           HEART ORACLE (Error Analysis)                 │  │
 │  │  - VL-JEPA: Encode ErrorNode failure context            │  │
 │  │  - Titans: Retrieve similar historical resolutions      │  │
 │  │  - Oracle Response: Annotative vector for DRQ guidance  │  │
-│  └────────────────────┬─────────────────────────────────────┘  │
-│                       │                                        │
-│                       ↓                                        │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │      DRQ ADVERSARIAL TRAINING FRAMEWORK                  │  │
+│  └────────────────────┬────────────────────────────────────┘  │
+│                       │                                       │
+│                       ↓                                       │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │      DRQ ADVERSARIAL TRAINING FRAMEWORK                 │  │
 │  │  Population: 50 candidate SkillNode strategies          │  │
 │  │  Evolution: Mutation + Crossover with oracle bias       │  │
 │  │  Fitness: Resolution success rate in validation sandbox │  │
-│  └────────────────────┬─────────────────────────────────────┘  │
-│                       │                                        │
-│                       ↓                                        │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │      DVE (Distributed Validation Environment)            │  │
+│  └────────────────────┬────────────────────────────────────┘  │
+│                       │                                       │
+│                       ↓                                       │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │      DVE (Distributed Validation Environment)           │  │
 │  │  - Byzantine consensus: 2/3 DVE nodes                   │  │
-│  │  - PQC attestation: Dilithium + SPHINCS+               │  │
-│  │  - Output: Validated SkillNode → KNIRVGRAPH            │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │              KNIRVCHAIN (Memory + Registry)              │  │
+│  │  - PQC attestation: Dilithium + SPHINCS+                │  │
+│  │  - Output: Validated SkillNode → KNIRVGRAPH             │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │              KNIRVCHAIN (Memory + Registry)             │  │
 │  │  - Long-Term Memory (LTM): ERROR category bridging      │  │
 │  │  - LoRA Adapter Pointers: Skill implementation refs     │  │
-│  │  - MCP Server Registry: Capability discovery           │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+│  │  - MCP Server Registry: Capability discovery            │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ## 2.2 Core Components
@@ -363,10 +363,10 @@ HEART operates as a **singleton oracle service** within the KNIRV-NEXUS DVE netw
 ## 2.3 Data Flow: ErrorNode → SkillNode Lifecycle with HEART
 
 ```
-[AI System Failure Detected]
+[CORTEX Detects AI System Failure: Queries KNIRVROUTER]
        │
        ↓
-[Observer Creates NRV (Noticed Resolvable Vector)]
+[KNIRVROUTER Creates NRV (Noticed Resolvable Vector)]
        │
        │ (Off-chain DHT announcement)
        ↓
@@ -379,7 +379,7 @@ HEART operates as a **singleton oracle service** within the KNIRV-NEXUS DVE netw
        │ - Complexity: 75/100
        │ - FailureContext: serialized environment + state
        ↓
-[CORTEX Detects ErrorNode → Query HEART Oracle]
+[HERO Detects ErrorNode → Query HEART Oracle]
        │
        ├─→ [VL-JEPA Encoder]
        │      │ (Visual: Stack trace heatmap)
@@ -525,11 +525,11 @@ type ErrorNode struct {
 
 ### 3.1.2 HEART Query Protocol
 
-When an ErrorNode is minted, CORTEX (cognitive orchestrator) queries HEART:
+When an ErrorNode is minted, the HERO (KNIRVGRAPH cognitive orchestrator) queries HEART:
 
 ```go
-// pkg/heart/knirvgraph.go
-package heart
+// pkg/hero/knirvgraph.go
+package hero
 
 type ErrorNodeQuery struct {
     QueryID      string
@@ -913,6 +913,7 @@ DRQ was originally designed for **Core War** - a programming game where programs
 | **Battle Outcome** | Validation result (resolves error or fails) |
 | **Evolution** | Mutation + crossover of resolution strategies |
 | **Oracle (HEART)** | Strategic guidance from historical resolutions |
+| **Orchestrator (HERO)** | Skill pipeline guidance |
 
 ### 4.1.2 DRQ Population Initialization
 
@@ -1217,7 +1218,7 @@ func TrainDRQPopulation(errorNode ErrorNode, oracleResponse *ErrorResolutionResp
 
 ---
 
-I'll continue with the remaining sections in the next response. The document is progressing well with proper KNIRVGRAPH focus.
+
 # 5. VL-JEPA ARCHITECTURE
 
 ## 5.1 Joint Embedding Predictive Architecture for Error Analysis
@@ -1372,13 +1373,13 @@ The Titans architecture (Behrouz et al., 2025; Google Research, 2025) enables HE
 ### 6.1.1 Neural Tape Architecture
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│         TITANS MEMORY FOR ERROR RESOLUTION HISTORY         │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │  Neural Tape (Persistent Storage)                    │ │
-│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │ │
+┌──────────────────────────────────────────────────────────┐
+│       TITANS MEMORY FOR ERROR RESOLUTION HISTORY         │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌─────────────────────────────────────────────────────┐ │
+│  │  Neural Tape (Persistent Storage)                   │ │
+│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │ │
 │  │  Entry Structure (per ErrorNode resolution):        │ │
 │  │  - ErrorNode Embedding: 2048D (FP16)                │ │
 │  │  - SkillNode Characteristics: 512D compressed       │ │
@@ -1388,39 +1389,39 @@ The Titans architecture (Behrouz et al., 2025; Google Research, 2025) enables HE
 │  │  - Success: bool (resolution validated)             │ │
 │  │  - Generation: int (DRQ convergence metric)         │ │
 │  │  - Timestamp: int64                                 │ │
-│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │ │
-│  │  Total: 100K entries × 2560 bytes = 256MB (FP16)   │ │
-│  │  LSH Index: 8 tables × 64 proj × 2048D = 1MB       │ │
+│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │ │
+│  │  Total: 100K entries × 2560 bytes = 256MB (FP16)    │ │
+│  │  LSH Index: 8 tables × 64 proj × 2048D = 1MB        │ │
 │  │  Total Memory: 10GB RAM allocation                  │ │
-│  └──────────────────┬───────────────────────────────────┘ │
-│                     │                                      │
-│                     ↓                                      │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │  Memory-Augmented Attention (MIRAS)                  │ │
-│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │ │
-│  │  Query Process:                                      │ │
+│  └──────────────────┬──────────────────────────────────┘ │
+│                     │                                    │
+│                     ↓                                    │
+│  ┌─────────────────────────────────────────────────────┐ │
+│  │  Memory-Augmented Attention (MIRAS)                 │ │
+│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │ │
+│  │  Query Process:                                     │ │
 │  │  1. Current ErrorNode embedding (2048D)             │ │
-│  │  2. LSH query → retrieve K=10 similar errors       │ │
-│  │  3. Filter: only successful resolutions            │ │
-│  │  4. Rank by: similarity × recency × domain match   │ │
-│  │  5. Extract SkillNode characteristics              │ │
-│  │  6. Generate attentional bias vector (2048D)       │ │
-│  └──────────────────┬───────────────────────────────────┘ │
-│                     │                                      │
-│                     ↓                                      │
-│  ┌──────────────────────────────────────────────────────┐ │
+│  │  2. LSH query → retrieve K=10 similar errors        │ │
+│  │  3. Filter: only successful resolutions             │ │
+│  │  4. Rank by: similarity × recency × domain match    │ │
+│  │  5. Extract SkillNode characteristics               │ │
+│  │  6. Generate attentional bias vector (2048D)        │ │
+│  └──────────────────┬──────────────────────────────────┘ │
+│                     │                                    │
+│                     ↓                                    │
+│  ┌─────────────────────────────────────────────────────┐ │
 │  │  Test-Time Learning (when confidence <0.94)         │ │
-│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │ │
+│  │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │ │
 │  │  if current_confidence < 0.94:                      │ │
 │  │      # Online gradient update                       │ │
 │  │      loss = compute_memory_loss(prediction, truth)  │ │
-│  │      memory_params.grad_step(loss, lr=0.001)       │ │
+│  │      memory_params.grad_step(loss, lr=0.001)        │ │
 │  │  else:                                              │ │
 │  │      # Freeze memory (prevent overfitting)          │ │
 │  │      memory_params.freeze()                         │ │
-│  └──────────────────────────────────────────────────────┘ │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
+│  └─────────────────────────────────────────────────────┘ │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### 6.1.2 Memory Storage Implementation

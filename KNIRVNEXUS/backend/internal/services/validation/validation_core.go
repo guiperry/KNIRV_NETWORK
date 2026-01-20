@@ -108,14 +108,14 @@ func (f *TaskFilter) Matches(task *objects.ValidationTask) bool {
 
 // CreateTaskRequest represents a request to create a validation task
 type CreateTaskRequest struct {
-	Type           string                 `json:"type"`
-	Priority       int                    `json:"priority,omitempty"`
-	Data           map[string]interface{} `json:"data"`
-	SkillCode      string                 `json:"skill_code,omitempty"`
-	TestCases      []objects.TestCase     `json:"test_cases,omitempty"`
-	RequiredTEEType string                `json:"required_tee_type,omitempty"`
-	RequestedBy    string                 `json:"requested_by,omitempty"`
-	Parameters     map[string]interface{} `json:"parameters,omitempty"`
+	Type            string                 `json:"type"`
+	Priority        int                    `json:"priority,omitempty"`
+	Data            map[string]interface{} `json:"data"`
+	SkillCode       string                 `json:"skill_code,omitempty"`
+	TestCases       []objects.TestCase     `json:"test_cases,omitempty"`
+	RequiredTEEType string                 `json:"required_tee_type,omitempty"`
+	RequestedBy     string                 `json:"requested_by,omitempty"`
+	Parameters      map[string]interface{} `json:"parameters,omitempty"`
 }
 
 // TaskQueue manages validation task queue
@@ -149,9 +149,6 @@ func NewValidationCore(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config
 
 // CreateValidationTask creates a new validation task
 func (vc *ValidationCore) CreateValidationTask(req *CreateTaskRequest) (*ValidationTask, error) {
-	vc.mu.Lock()
-	defer vc.mu.Unlock()
-
 	// Set default timeout (e.g., 1 hour from now)
 	timeoutAt := time.Now().Add(1 * time.Hour)
 
@@ -169,7 +166,10 @@ func (vc *ValidationCore) CreateValidationTask(req *CreateTaskRequest) (*Validat
 
 	// Store task in database (simplified)
 	// In real implementation, would store in buntdb
+	vc.mu.Lock()
 	vc.runningTasks[task.ID] = task
+	vc.taskQueue.AddTask(task)
+	vc.mu.Unlock()
 
 	return task, nil
 }
@@ -230,8 +230,6 @@ func (vc *ValidationCore) GetValidationResults(limit int) ([]*objects.Validation
 
 // Start starts the validation core service
 func (vc *ValidationCore) Start(ctx context.Context) error {
-	// Implementation would start background tasks, etc.
-	// For now, just return nil
 	return nil
 }
 
@@ -258,7 +256,7 @@ func (vc *ValidationCore) GetValidationTasks(filter *TaskFilter) ([]*objects.Val
 		if task.TimeoutAt != nil {
 			timeoutAt = *task.TimeoutAt
 		}
-		
+
 		objTask := &objects.ValidationTask{
 			ID:             task.ID,
 			Type:           task.Type,

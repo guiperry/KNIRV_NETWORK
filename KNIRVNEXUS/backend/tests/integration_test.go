@@ -200,11 +200,6 @@ func TestValidationTaskCreation(t *testing.T) {
 	ts := SetupTestSuite(t)
 	defer ts.TeardownTestSuite()
 
-	// Start services
-	ctx := context.Background()
-	go ts.validationCore.Start(ctx)
-	defer ts.validationCore.Stop(ctx)
-
 	// Create test cases
 	testCases := []objects.TestCase{
 		{

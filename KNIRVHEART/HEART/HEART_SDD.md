@@ -1,5 +1,5 @@
 # Software Design Document: HEART for HashNet
-## Heuristic Error Analysis Recognition Transformer with VL-JEPA & Titans Memory
+## Heuristic Error Analysis Resolution Transformer with VL-JEPA & Titans Memory
 
 **Project:** HEART - Central Oracle for HashNet DRQ-HEART Training  
 **Version:** 1.0  
@@ -37,7 +37,7 @@
 
 ## 1.1 Project Vision
 
-HEART (Heuristic Error Analysis Recognition Transformer) serves as the **centralized oracle** for the HashNet ecosystem, providing deep pattern intuition that transforms the DRQ adversarial training framework from a purely evolutionary system into a **hybrid neuro-symbolic AI** with long-term strategic memory.
+HEART (Heuristic Error Analysis Resolution Transformer) serves as the **centralized oracle** for the HashNet ecosystem, providing deep pattern intuition that transforms the KNIRV Network from a purely evolutionary system into a **hybrid neuro-symbolic AI** with long-term strategic memory.
 
 Unlike the original HEART concept running on Cerebras WSE for quantum annotation, this HashNet-optimized HEART leverages:
 

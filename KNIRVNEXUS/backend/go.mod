@@ -31,6 +31,7 @@ require (
 	golang.org/x/crypto v0.36.0
 	golang.org/x/sys v0.36.0
 	golang.org/x/term v0.30.0
+	lukechampine.com/blake3 v1.2.1
 )
 
 replace github.com/knirvcorp/knirvbase/go => ../../KNIRVBASE/go
@@ -209,6 +210,5 @@ require (
 	gonum.org/v1/gonum v0.13.0 // indirect
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
-	lukechampine.com/blake3 v1.2.1
+	gopkg.in/yaml.v3 v3.0.1 // indirect; indirect.v3 v3.0.1 // indirect
 )
