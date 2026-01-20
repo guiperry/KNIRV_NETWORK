@@ -22,6 +22,9 @@ type RuntimeSelector struct {
 	hasTEE       bool
 	teeType      string // sgx, sev, tdx
 	isPrivileged bool
+
+	// Test-only field to override runtime selection
+	testRuntime ContainerRuntime
 }
 
 // NewRuntimeSelector creates a new runtime selector
@@ -100,8 +103,18 @@ func (rs *RuntimeSelector) detectTEESupport() {
 	rs.hasTEE = false
 }
 
+// SetTestRuntime sets a test runtime to override the normal runtime selection
+func (rs *RuntimeSelector) SetTestRuntime(runtime ContainerRuntime) {
+	rs.testRuntime = runtime
+}
+
 // SelectRuntime selects the appropriate runtime based on mode and security level
 func (rs *RuntimeSelector) SelectRuntime(mode RuntimeMode, securityLevel SecurityLevel) (ContainerRuntime, error) {
+	// If test runtime is set, return it
+	if rs.testRuntime != nil {
+		return rs.testRuntime, nil
+	}
+
 	switch mode {
 	case RuntimeModeDocker:
 		if !rs.hasDocker {

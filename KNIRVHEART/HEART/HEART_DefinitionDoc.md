@@ -1,4 +1,4 @@
-# **HEART: The Heuristic Error Analysis Recognition Transformer**
+# **HEART: The Heuristic Error Analysis Resolution Transformer**
 ### A Centralized Oracle for Multi-Domain Pattern Intuition
 
 ### **Abstract**

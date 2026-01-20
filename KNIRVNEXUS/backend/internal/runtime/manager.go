@@ -309,46 +309,45 @@ func (ucm *UnifiedContainerManager) buildSpecForObjectType(config *NestedObjectC
 		spec.Ports = []PortMapping{
 			{ContainerPort: 11434, HostPort: 0, Protocol: "tcp"},
 		}
+	}
 
-	default:
-		// Custom object type - use provided metadata
-		if config.Metadata != nil {
-			if image, ok := config.Metadata["image"].(string); ok {
-				spec.Image = image
-			}
-			if cmd, ok := config.Metadata["command"].([]interface{}); ok {
-				spec.Command = make([]string, len(cmd))
-				for i, c := range cmd {
-					if str, ok := c.(string); ok {
-						spec.Command[i] = str
-					}
+	// Apply metadata overrides for all object types
+	if config.Metadata != nil {
+		if image, ok := config.Metadata["image"].(string); ok {
+			spec.Image = image
+		}
+		if cmd, ok := config.Metadata["command"].([]interface{}); ok {
+			spec.Command = make([]string, len(cmd))
+			for i, c := range cmd {
+				if str, ok := c.(string); ok {
+					spec.Command[i] = str
 				}
 			}
-			if env, ok := config.Metadata["environment"].(map[string]interface{}); ok {
-				for k, v := range env {
-					if str, ok := v.(string); ok {
-						spec.Environment[k] = str
-					}
+		}
+		if env, ok := config.Metadata["environment"].(map[string]interface{}); ok {
+			for k, v := range env {
+				if str, ok := v.(string); ok {
+					spec.Environment[k] = str
 				}
 			}
-			if vols, ok := config.Metadata["volumes"].(map[string]interface{}); ok {
-				spec.Volumes = make([]VolumeMount, 0, len(vols))
-				for source, target := range vols {
-					if targetStr, ok := target.(string); ok {
-						spec.Volumes = append(spec.Volumes, VolumeMount{
-							Source:   source,
-							Target:   targetStr,
-							ReadOnly: false,
-						})
-					}
+		}
+		if vols, ok := config.Metadata["volumes"].(map[string]interface{}); ok {
+			spec.Volumes = make([]VolumeMount, 0, len(vols))
+			for source, target := range vols {
+				if targetStr, ok := target.(string); ok {
+					spec.Volumes = append(spec.Volumes, VolumeMount{
+						Source:   source,
+						Target:   targetStr,
+						ReadOnly: false,
+					})
 				}
 			}
-			if caps, ok := config.Metadata["capabilities"].([]interface{}); ok {
-				spec.CapabilitySet = make([]string, 0, len(caps))
-				for _, cap := range caps {
-					if capStr, ok := cap.(string); ok {
-						spec.CapabilitySet = append(spec.CapabilitySet, capStr)
-					}
+		}
+		if caps, ok := config.Metadata["capabilities"].([]interface{}); ok {
+			spec.CapabilitySet = make([]string, 0, len(caps))
+			for _, cap := range caps {
+				if capStr, ok := cap.(string); ok {
+					spec.CapabilitySet = append(spec.CapabilitySet, capStr)
 				}
 			}
 		}

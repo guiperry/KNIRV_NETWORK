@@ -147,6 +147,15 @@ docker run -p 8090:8090 knirv/nexus:latest
 
 ### ✅ Fully Implemented Features
 
+#### Nested Object Container (NOC) Architecture
+- **Unified Container System**: DVE/TEE/Container convergence with RuntimeMode support
+- **Universal Object Deployment**: Supports web apps, APIs, blockchain nodes, model servers, 3D objects, and P2P services
+- **Content-Aware Rendering**: Viewport proxy with HTTP, WebRTC, WebGL, and VNC renderers
+- **Cryptographic Routing**: BLAKE3 hash-based URLs for container discovery
+- **3D Asset Support**: GLB/GLTF rendering with metadata extraction and polycount validation
+- **Demo NOCs**: Automatic deployment of KNIRVGATEWAY and KNIRVROUTER NOCs on startup
+- **Asset Registry**: 3D asset management with metadata and file tracking
+
 #### Unified Architecture
 - **Single Binary Deployment**: Frontend and backend embedded in one executable
 - **Embedded Frontend**: Next.js build output served via Go's embed filesystem
