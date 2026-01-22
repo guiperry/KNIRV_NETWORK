@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -33,18 +32,17 @@ type Config struct {
 
 // loadConfig loads configuration from environment variables with defaults
 func loadConfig() *Config {
-	listenAddr := getEnv("KNIRVCHAIN_LISTEN_ADDR", "localhost:8080")
-	// Parse host and port, find available port if needed
-	host, portStr, err := net.SplitHostPort(listenAddr)
-	if err != nil {
-		host = "localhost"
-		portStr = "8080"
+	// Get listen address from environment or use default
+	listenAddr := getEnv("KNIRVCHAIN_LISTEN_ADDR", "")
+	if listenAddr == "" {
+		// If no address specified, find an available port starting from 8080
+		port := findAvailablePort(8080)
+		listenAddr = fmt.Sprintf("localhost:%d", port)
 	}
-	port, _ := strconv.Atoi(portStr)
-	availablePort := findAvailablePort(port)
+	
 	config := &Config{
 		NodeID:     getEnv("KNIRVCHAIN_NODE_ID", "knirvchain-node-1"),
-		ListenAddr: fmt.Sprintf("%s:%d", host, availablePort),
+		ListenAddr: listenAddr,
 		DataDir:    getEnv("KNIRVCHAIN_DATA_DIR", getDefaultDataDir()),
 		WalletKey:  getEnv("KNIRVCHAIN_WALLET_KEY", "mock"), // Use "mock" for development
 		NetworkURL: getEnv("KNIRVCHAIN_NETWORK_URL", "https://api.xion.network"),

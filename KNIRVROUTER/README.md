@@ -87,8 +87,8 @@ KNIRVROUTER/
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/KNIRVROUTER_GO_Verifyer.git # Replace with your actual repo URL
-    cd KNIRVROUTER_GO_Verifyer
+    git clone https://github.com/guiperry/KNIRVROUTER.git # Replace with your actual repo URL
+    cd KNIRVROUTER
     ```
 
 2.  Install dependencies:
@@ -223,7 +223,7 @@ CONSENSUS_PAUSE_TIME=60
 ## Project Structure
 
 ```
-KNIRVROUTER_GO_Verifyer/
+KNIRVROUTER/
 ├── blockchain/         # Core blockchain logic (blocks, mining, PoW, DB interaction)
 ├── blockchainserver/   # HTTP server API for the verifier blockchain node
 ├── constants/          # System-wide constants and default path logic

@@ -2,16 +2,17 @@
 
 ## 1. Introduction
 
-This document outlines a plan for implementing a Zero Trust Architecture (ZTA) within the KNIRV_NETWORK, with a particular focus on the `KNIRVGATEWAY` component. The recommendations are based on the principles outlined in NIST SP 800-207 and a thorough analysis of the existing codebase.
+This document outlines a plan for implementing a Zero Trust Architecture (ZTA) within the KNIRV_NETWORK, with a particular focus on the `KNIRVGATEWAY` (which contains the KNIRVORACLE) component. The recommendations are based on the principles outlined in NIST SP 800-207 and a thorough analysis of the existing codebase.
 
 ## 2. Current State Analysis
 
-The `KNIRVGATEWAY` is a central component in the KNIRV_NETWORK, acting as a reverse proxy and a single point of entry for many services. The current implementation has several security weaknesses that need to be addressed:
+The `KNIRVGATEWAY` (and KNIRVORACLE) is a central component in the KNIRV_NETWORK, acting as a reverse proxy and a single point of entry for many services. The current implementation has several security weaknesses that need to be addressed:
 
 *   **Insecure Mock Authentication:** The authentication mechanism in `internal/auth/handler.go` is a mock implementation and is not suitable for production use. It uses a non-standard, insecure token generation and verification mechanism.
 *   **Lack of Authorization:** There is no authorization logic to control access to different resources.
 *   **Permissive CORS Policy:** The Cross-Origin Resource Sharing (CORS) policy is overly permissive, which could expose the network to cross-site request forgery (CSRF) and other attacks.
 *   **No Centralized Policy Enforcement:** While the gateway acts as a proxy, it does not enforce any security policies on the incoming traffic.
+*   **Lack of Transport Encryption:** Internal gRPC communications lack Mutual TLS (mTLS) authentication, relying on plaintext or basic TLS without certificate-based mutual authentication between consortium members.
 
 ## 3. Proposed Zero Trust Architecture: API Key System Implementation
 
@@ -37,7 +38,7 @@ Based on Zero Trust principles of "never trust, always verify," here's a compreh
 - **Secret**: Cryptographically random 32-byte string (NEVER stored, only hashed)
 
 #### Generation Process
-The following Go-like pseudocode illustrates the key generation process. This logic would replace the mock implementation in `internal/auth/handler.go`.
+The following Go-like pseudocode illustrates the key generation process. This logic would replace the mock implementation in `internal/auth/handler.go` in the KNIRVGATEWAY.
 
 ```go
 import (
@@ -88,7 +89,9 @@ func generateZeroTrustKey(db *sql.DB, userID string, scopes []string, metadata m
 
 ### 3.3. Zero Trust Database Schema
 
-The following SQL schema should be implemented to support the API key system.
+The following SQL schema should be implemented in KNIRVBASE to support the API key system.
+
+(THE FOLLOWING SHOULD BE TRANSLATED INTO KNIRVQL)
 
 ```sql
 CREATE TABLE api_keys (
@@ -133,20 +136,30 @@ CREATE TABLE api_key_events (
 The `KNIRVGATEWAY` will be the primary enforcement layer.
 
 ```
-Client Request
+Client Request (KNIRVCONTROLLER)
+    ↓
+[Transport Layer (KNIRVROUTER)]
+    ├── mTLS Authentication (Private PKI)
+    ├── Path Certificate Creation & Validation
+    └── zkTLS for Selective Disclosure
     ↓
 [API Gateway (KNIRVGATEWAY)] ← First line of defense
     ↓
 [Auth Service (part of KNIRVGATEWAY)] ← Trust verification
     ↓
-[Policy Engine (part of KNIRVGATEWAY)] ← Authorization decision
+[Policy Engine (part of KNIRVORACLE)] ← Authorization decision
     ↓
 [Backend API] ← Final validation
 ```
 
+**Transport Layer Security (mTLS & Path Certificates):**
+- **mTLS Authentication:** All gRPC communications between consortium members use Mutual TLS with a Private PKI. Each node presents a certificate signed by the consortium's Root CA (KNIRVORACLE), ensuring only authorized hardware can establish connections.
+- **Path Certificate Validation:** Once mTLS establishes the secure pipe, gRPC requests carry URI path certificates in metadata. The server validates these certificates to prove the request traveled through verified network pathways.
+- **zkTLS Integration:** For enhanced privacy, Zero-Knowledge Transport Layer Security allows routers to prove connectivity and certificate validity without revealing specific consortium member identities or complete hop sequences.
+
 #### Step 1: Key Extraction & Initial Validation (in `internal/server/middleware.go`)
 
-A new middleware in the `KNIRVGATEWAY` will perform the initial validation.
+A new middleware in the `KNIRVROUTER` will perform the initial validation.
 
 ```go
 // AuthMiddleware extracts and performs initial validation on the API key.
@@ -179,7 +192,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 #### Step 2: Cryptographic Verification (in `internal/auth/handler.go`)
 
-The `authenticateUser` function will be replaced with this logic.
+The `authenticateUser` function will be replaced with this logic in the KNIRVGATEWAY.
 
 ```go
 // verifyKeyIntegrity checks the key against the database.
@@ -226,7 +239,7 @@ func verifyKeyIntegrity(ctx context.Context, db *sql.DB, keyID, secret, clientIP
 
 #### Step 3: Continuous Risk Assessment (in a new `internal/risk` package)
 
-A new service for real-time risk scoring.
+A new service for real-time risk scoring performed by the KNIRVORACLE.
 
 ```go
 // calculateRiskScore assesses the risk of a request in real-time.
@@ -282,6 +295,12 @@ Scoped API keys with microsegmentation can be defined in the `scopes` and `anoma
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
+│                    Auth Service (in KNIRVROUTER)            │
+│  - Cryptographic verification                               │
+│  - Cache key metadata (5-min TTL)                           │
+└──────────────────────┬──────────────────────────────────────┘
+                       ↓
+┌─────────────────────────────────────────────────────────────┐
 │                      API Gateway Layer (KNIRVGATEWAY)       │
 │  - Key extraction & rate limiting                           │
 │  - DDoS protection (no IP trust)                            │
@@ -289,13 +308,7 @@ Scoped API keys with microsegmentation can be defined in the `scopes` and `anoma
 └──────────────────────┬──────────────────────────────────────┘
                        ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                    Auth Service (in KNIRVGATEWAY)           │
-│  - Cryptographic verification                               │
-│  - Cache key metadata (5-min TTL)                           │
-└──────────────────────┬──────────────────────────────────────┘
-                       ↓
-┌─────────────────────────────────────────────────────────────┐
-│          Policy Decision Point (PDP) (in KNIRVGATEWAY)      │
+│          Policy Decision Point (PDP) (in KNIRVORACLE)       │
 │  - Real-time risk scoring                                   │
 │  - Scope & permission evaluation                            │
 │  - Anomaly detection ML model                               │
@@ -319,19 +332,94 @@ Scoped API keys with microsegmentation can be defined in the `scopes` and `anoma
 | **Revocation**| Instant global revocation via distributed cache (e.g., Redis) |
 | **Monitoring**| Real-time anomaly detection; risk scoring               |
 | **Access**   | Deny-by-default; explicit scope grants                  |
-| **Encryption**| TLS 1.3 minimum; mTLS for internal services             |
+| **Encryption**| TLS 1.3 minimum; mTLS for internal services with Private PKI |
+
+### 3.8. Transport Layer Security with mTLS and gRPC
+
+In a Zero Trust Architecture, transport security is foundational. For the KNIRV_NETWORK consortium operating without internet connectivity, we implement a **Private PKI (Public Key Infrastructure)** with Mutual TLS (mTLS) for all gRPC communications.
+
+#### 3.8.1. Private Certificate Authority (CA) Trust Model
+
+1. **Generate a Root CA:** The consortium agrees on a single Root CA (KNIRVORACLE). This CA signs certificates for every router and application instance.
+2. **Issue Identity Certificates:** Every node (Member A's SaaS, Member B's Router, etc.) receives:
+   - A **Private Key** (kept secret)
+   - A **Certificate** (signed by the Root CA)
+   - The **Root CA Public Certificate** (to verify others)
+
+#### 3.8.2. GoLang Implementation for KNIRV-ROUTER Stack
+
+**Server-Side Configuration:**
+```go
+// Load the consortium's Root CA certificate
+certPool := x509.NewCertPool()
+ca, _ := ioutil.ReadFile("consortium-ca.crt")
+certPool.AppendCertsFromPEM(ca)
+
+// Load the Server's own certificate and private key
+serverCert, _ := tls.LoadX509KeyPair("server.crt", "server.key")
+
+// Create TLS credentials that REQUIRE a client certificate
+creds := credentials.NewTLS(&tls.Config{
+    Certificates: []tls.Certificate{serverCert},
+    ClientAuth:   tls.RequireAndVerifyClientCert, // This enables mTLS
+    ClientCAs:    certPool,
+})
+
+// Initialize the gRPC server
+s := grpc.NewServer(grpc.Creds(creds))
+```
+
+**Client-Side (KNIRVCONTROLLER) Configuration:**
+```go
+// Load the client's own certificate/key and the Root CA
+clientCert, _ := tls.LoadX509KeyPair("client.crt", "client.key")
+certPool := x509.NewCertPool()
+ca, _ := ioutil.ReadFile("consortium-ca.crt")
+certPool.AppendCertsFromPEM(ca)
+
+creds := credentials.NewTLS(&tls.Config{
+    Certificates: []tls.Certificate{clientCert},
+    RootCAs:      certPool,
+    ServerName:   "member-a-saas.consortium.local", // For SNI verification
+})
+
+// Connect to the server over the private WAN
+conn, _ := grpc.Dial("10.0.0.5:50051", grpc.WithTransportCredentials(creds))
+```
+
+#### 3.8.3. Layered Security: mTLS + URI Path Certificates
+
+- **L4 Security (mTLS):** Ensures the "pipe" between Member A and Member B is encrypted and authenticated. Only authorized consortium hardware can even establish a connection.
+- **L7 Security (URI Path Certificates):** Once the mTLS connection is open, the gRPC request carries the URI path certificate in its metadata. The server checks this certificate to prove that the request traveled through a **verified network pathway**.
+
+#### 3.8.4. Advanced: zkTLS and Selective Disclosure
+
+The whitepaper notes support for **zkTLS (Zero-Knowledge Transport Layer Security)**, which is particularly useful for:
+- **Privacy Preservation:** Prove a router is "healthy" and "active" (Proof-of-Connectivity) without revealing which specific consortium member is sending the data.
+- **Selective Disclosure:** A router can prove it has a valid URI path certificate without revealing the entire sequence of hops to every observer on the WAN.
+
+#### 3.8.5. Certificate Management Without Internet
+
+Since the consortium cannot reach online CRL (Certificate Revocation List) services, implement **Short-Lived Certificates**:
+1. KNIRVROUTERS use their **Proof-of-Connectivity** to request new 24-hour certificates from an internal KNIRVORACLE (through the KNIRVGATEWAY using the KNIRVNEXUS infrastructure).
+2. If a router is compromised, simply stop issuing new NRN tokens and certificates to it, effectively "burning" its access to the private WAN within one day.
+
+This combination of **mTLS for transport** and **URI path certificates for application logic** ensures that consortium data remains private, even if a physical WAN link is intercepted by an unauthorized party.
 
 ## 4. Implementation Phases
 
 ### Phase 1: Foundation (Weeks 1-2)
-- [ ] Deploy API Gateway (`KNIRVGATEWAY`) with key extraction middleware.
+- [ ] Deploy API Gateway (`KNIRVGATEWAY` w/ORACLE) and KNIRVROUTER with key extraction middleware.
 - [ ] Implement Argon2id hashing and the `api_keys` database schema.
 - [ ] Create "deny by default" policy (all keys inactive initially).
 - [ ] Set up `api_key_events` audit logging for all key events.
+- [ ] Establish Private PKI with Root CA (KNIRVORACLE) for mTLS.
+- [ ] Generate and distribute identity certificates for all consortium nodes.
+- [ ] Configure gRPC servers and clients with mTLS credentials.
 
 ### Phase 2: Continuous Verification (Weeks 3-4)
 - [ ] Build risk scoring engine with anomaly detection.
-- [ ] Implement a real-time monitoring dashboard.
+- [ ] Implement a real-time monitoring dashboard for admin in KNIRVGATEWAY/internal/embedded/webgui
 - [ ] Deploy IP/user agent tracking per key.
 - [ ] Create automated revocation triggers based on risk score.
 

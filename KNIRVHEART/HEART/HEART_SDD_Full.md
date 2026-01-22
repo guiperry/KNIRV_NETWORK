@@ -1,5 +1,5 @@
 # Software Design Document: HEART for KNIRVGRAPH
-## Heuristic Error Analysis Recognition Transformer for ErrorNode → SkillNode Resolution
+## Heuristic Error Analysis Resolution Transformer for ErrorNode → SkillNode Resolution
 
 **Project:** HEART v3.0 - Error Analysis Oracle for KNIRV Network
 **Version:** 3.0 (KNIRVGRAPH Integration)
@@ -83,41 +83,41 @@ HEART transforms this into a **proactive, memory-augmented adversarial learning 
 │      (For KNIRVGRAPH ErrorNode → SkillNode Transformation)   │
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │    VL-JEPA ENCODER (ErrorNode Context Understanding)   │ │
-│  │  - Visual: Error stack trace → semantic heatmap        │ │
-│  │  - Language: Error description + domain tokenization   │ │
-│  │  - Temporal: Error evolution history                   │ │
-│  │  - Joint Embedding: 2048D failure representation       │ │
-│  │  - Predictor: Resolution strategy confidence           │ │
-│  └──────────────────┬─────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │    VL-JEPA ENCODER (ErrorNode Context Understanding)   │  │
+│  │  - Visual: Error stack trace → semantic heatmap        │  │
+│  │  - Language: Error description + domain tokenization   │  │
+│  │  - Temporal: Error evolution history                   │  │
+│  │  - Joint Embedding: 2048D failure representation       │  │
+│  │  - Predictor: Resolution strategy confidence           │  │
+│  └──────────────────┬─────────────────────────────────────┘  │
 │                     │                                        │
 │                     ↓                                        │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │   TITANS MEMORY (Historical Resolution Knowledge)      │ │
-│  │  - Neural Tape: 100K+ ErrorNode resolution histories   │ │
-│  │  - MIRAS: Test-time memorization of successful Skills │ │
-│  │  - LSH Index: Sub-linear retrieval (K=10 @ 3ms)       │ │
-│  │  - Attentional Bias: Steer DRQ toward proven patterns │ │
-│  └──────────────────┬─────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │   TITANS MEMORY (Historical Resolution Knowledge)      │  │
+│  │  - Neural Tape: 100K+ ErrorNode resolution histories   │  │
+│  │  - MIRAS: Test-time memorization of successful Skills  │  │
+│  │  - LSH Index: Sub-linear retrieval (K=10 @ 3ms)        │  │
+│  │  - Attentional Bias: Steer DRQ toward proven patterns  │  │
+│  └──────────────────┬─────────────────────────────────────┘  │
 │                     │                                        │
 │                     ↓                                        │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │    DRQ ADVERSARIAL FRAMEWORK (Strategy Discovery)      │ │
-│  │  - Population: 50 candidate SkillNode strategies      │ │
-│  │  - Arena: Decentralized validation sandbox            │ │
-│  │  - Evolution: Mutation + crossover with oracle bias   │ │
-│  │  - Convergence: 18 generations (vs 45 without HEART)  │ │
-│  └──────────────────┬─────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │    DRQ ADVERSARIAL FRAMEWORK (Strategy Discovery)      │  │
+│  │  - Population: 50 candidate SkillNode strategies       │  │
+│  │  - Arena: Decentralized validation sandbox             │  │
+│  │  - Evolution: Mutation + crossover with oracle bias    │  │
+│  │  - Convergence: 18 generations (vs 45 without HEART)   │  │
+│  └──────────────────┬─────────────────────────────────────┘  │
 │                     │                                        │
 │                     ↓                                        │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │   DVE VALIDATION + PQC ATTESTATION                     │ │
-│  │  - Byzantine consensus: 2/3 DVE nodes must agree      │ │
-│  │  - CRYSTALS-Dilithium signatures                      │ │
-│  │  - SPHINCS+ quantum-safe attestation                  │ │
-│  │  - Result: Validated SkillNode with ResolvedBy edge   │ │
-│  └────────────────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │   DVE VALIDATION + PQC ATTESTATION                     │  │
+│  │  - Byzantine consensus: 2/3 DVE nodes must agree       │  │
+│  │  - CRYSTALS-Dilithium signatures                       │  │
+│  │  - SPHINCS+ quantum-safe attestation                   │  │
+│  │  - Result: Validated SkillNode with ResolvedBy edge    │  │
+│  └────────────────────────────────────────────────────────┘  │
 │                                                              │
 └──────────────────────────────────────────────────────────────┘
 ```

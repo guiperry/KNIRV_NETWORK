@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -45,7 +46,11 @@ type Server struct {
 }
 
 // New creates a new HTTP server
-func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *zap.Logger) (*Server, error) {
+func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *zap.Logger, db ...*sql.DB) (*Server, error) {
+	var dbInstance *sql.DB
+	if len(db) > 0 {
+		dbInstance = db[0]
+	}
 	// Initialize operator service
 
 	knirvOracleURL := "http://localhost:1317" // Default KNIRV-ORACLE URL
@@ -82,7 +87,7 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 	paymentHdlr := payment.NewHandler(paymentSvc, logger)
 
 	// Initialize auth handler
-	authHdlr := auth.NewHandler(cfg, logger)
+	authHdlr := auth.NewHandler(cfg, logger, dbInstance)
 
 	// Initialize URI handler
 	uriHdlr := uri.NewHandler(logger)

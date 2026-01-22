@@ -1,3 +1,5 @@
+// DEPRECATED: Use github.com/knirvcorp/knirvbase/go/internal/indexing instead
+// This file exists for compatibility purposes only and will be removed in future versions
 package indexing
 
 import (
@@ -161,12 +163,39 @@ func (h *HNSWIndex) Search(query []float32, k int) ([]uuid.UUID, error) {
 	// Search at layer 0 with larger beam width
 	ep = h.searchLayer(query, ep, max(h.ef, k), 0)
 
-	// Return top k results
-	if len(ep) > k {
-		ep = ep[:k]
+	// Sort results by distance to query vector before returning
+	type distanceEntry struct {
+		id       uuid.UUID
+		distance float64
 	}
 
-	return ep, nil
+	var entries []distanceEntry
+	for _, id := range ep {
+		if node, ok := h.nodes[id]; ok {
+			dist := euclideanDistance(query, node.Vector)
+			entries = append(entries, distanceEntry{
+				id:       id,
+				distance: dist,
+			})
+		}
+	}
+
+	// Sort by distance
+	for i := 0; i < len(entries)-1; i++ {
+		for j := i + 1; j < len(entries); j++ {
+			if entries[i].distance > entries[j].distance {
+				entries[i], entries[j] = entries[j], entries[i]
+			}
+		}
+	}
+
+	// Return top k results
+	var results []uuid.UUID
+	for i := 0; i < k && i < len(entries); i++ {
+		results = append(results, entries[i].id)
+	}
+
+	return results, nil
 }
 
 // searchLayer performs greedy search at a specific layer

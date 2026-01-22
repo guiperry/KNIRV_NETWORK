@@ -1,3 +1,4 @@
+// DEPRECATED: Use github.com/knirvcorp/knirvbase/go/internal/indexing instead
 package indexing
 
 import (

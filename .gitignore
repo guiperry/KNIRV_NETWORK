@@ -100,3 +100,5 @@ KNIRVNEXUS/knirv-nexus
 /KNIRVANA/ts-client/playwright-report
 KNIRVNEXUS/backend/coverage.out
 KNIRVGATEWAY/internal/embedded/knirv-oracle
+KNIRVROUTER/bin/knirvrouter-headless
+KNIRVROUTER/bin/knirvrouter
