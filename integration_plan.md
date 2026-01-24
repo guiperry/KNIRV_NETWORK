@@ -417,20 +417,20 @@ Total Duration: 310ms
 
 #### Milestone 3.1: Unified Dashboard (Week 1-3)
 - [ ] Consolidate ORACLE WebGUI as primary interface
-- [ ] Embed CONTROLLER management into WebGUI
-- [ ] Add WALLET integration to WebGUI
+- [ ] Embed WALLET management into WebGUI
+- [ ] Add CONTROLLER integration to WebGUI
 - [ ] Create unified NIM lifecycle view
 
 #### Milestone 3.2: One-Click Model Deployment (Week 4-6)
 - [ ] RAMP exports directly to CONTROLLER format
-- [ ] CONTROLLER auto-registers models with CHAIN
+- [ ] CONTROLLER auto-registers models with ORACLE
 - [ ] Automatic NEXUS validation queueing
 - [ ] GRAPH indexing without manual steps
 
 #### Milestone 3.3: Mobile Experience (Week 7-8)
 - [ ] PWA optimization for CONTROLLER
 - [ ] Mobile-responsive ORACLE WebGUI
-- [ ] QR code scanning for WALLET connection
+- [ ] QR code scanning for CONTROLLER connection
 - [ ] Push notifications for validation results
 
 **Success Criteria:**
