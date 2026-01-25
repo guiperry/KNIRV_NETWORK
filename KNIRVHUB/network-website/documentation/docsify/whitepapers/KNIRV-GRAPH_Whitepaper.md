@@ -4,7 +4,7 @@
 ### Abstract
 **KNIRVGRAPH** introduces a sovereign Layer 1 Graphchain designed to serve as the distributed vector graph backbone for a new generation of self-improving AI. Following the major refactor, KNIRVGRAPH operates as an embedded distributed vector graph within every instance on KNIRVANA, transforming from a standalone application to a core component of the agent intelligence infrastructure. It fuses a decentralized knowledge graph—where AI failures are first captured within specialized, dynamic "Noticed Resolvable Vectors" and then, upon validated resolution, minted as immutable **ErrorNodes** and composable, on-chain **SkillNodes**—with an architecture enabling **Self-improving Embodied Agent Learning (SEAL)**. The terminology has evolved from "blocks" to "vectors" and from "height" to "density" to better reflect the graph-based nature of the intelligence network.
 
-In this ecosystem, autonomous **KNIRV-CONTROLLER** agents and human developers have permissionless access to the global knowledge graph and actively participate in resolving ongoing AI failures through a revolutionary competitive clustering system. They diagnose problems, propose solutions (LoRA Adapters), and contribute to the resolution of **Noticed Resolvable Vectors (NRV)** within error clusters. These novel LoRA adapter solutions are rigorously tested in a **Decentralized Validation Environment (DVE)** and, if successful, are combined with error data to create weights and biases that train the network's collective intelligence through embedded **KNIRVCHAIN** WASM inference models.
+In this ecosystem, autonomous **KNIRV-CONTROLLER** agents and human developers have permissionless access to the global knowledge graph and actively participate in resolving ongoing AI failures through a revolutionary competitive clustering system. They diagnose problems, propose solutions (LoRA Adapters), and contribute to the resolution of **Noticed Resolvable Vectors (NRV)** within error clusters. These novel LoRA adapter solutions are rigorously tested in a **Deterministic Validation Environment (DVE)** and, if successful, are combined with error data to create weights and biases that train the network's collective intelligence through embedded **KNIRVCHAIN** WASM inference models.
 
 Following the major refactor, **KNIRVGRAPH** operates as both an embedded distributed vector graph within every instance on **KNIRVANA** and as a sophisticated neural network training platform. The revolutionary architecture groups similar ErrorNodes into clusters where agents compete to submit the most solutions, with cluster ownership determining skill invocation fee rights. All terminology has been updated from "blocks" to "vectors" and from "height" to "density" to better reflect the graph-based nature of the intelligence network. The native **NRN (Network Resolution Notice)** token, native to the **KNIRV-ORACLE** (our sovereign GoLang-based Layer 1 blockchain), powers a sophisticated "**Proof-of-Solution**" economy that rewards both individual solution validation and cluster ownership dominance.
 
@@ -223,8 +223,8 @@ sequenceDiagram
     KGBC-->>Solver: Transaction Receipt
 ```
 
-## 3.4 Stage 3: The Decentralized Validation Environment (DVE) - The Crucible of Truth
-The **Decentralized Validation Environment (DVE)** is the cornerstone of trust in **KNIRVGRAPH**, operating as a critical off-chain layer that bridges proposed solutions with on-chain verification. It ensures that any Skill proposed to an NRV truly resolves the underlying failure before it can be minted onto the knowledge graph. **KNIRV-SHELL** agents rent and utilize DVEs for these rigorous tests.
+## 3.4 Stage 3: The Deterministic Validation Environment (DVE) - The Crucible of Truth
+The **Deterministic Validation Environment (DVE)** is the cornerstone of trust in **KNIRVGRAPH**, operating as a critical off-chain layer that bridges proposed solutions with on-chain verification. It ensures that any Skill proposed to an NRV truly resolves the underlying failure before it can be minted onto the knowledge graph. **KNIRV-SHELL** agents rent and utilize DVEs for these rigorous tests.
 
 ***Expanded Information:***
 The **DVE** is not a single server or entity, but a globally distributed network of specialized, staked validator nodes (CLEAN servers). These nodes are responsible for providing secure, isolated, and deterministic sandboxed environments to rigorously test proposed Skills as rented by **KNIRV-SHELLs**.
@@ -240,7 +240,7 @@ The **DVE** is not a single server or entity, but a globally distributed network
 *   **DVE Consensus and ValidationProof:** After independent execution and verification by multiple DVEs (rented by the **KNIRV-SHELL**), each DVE node cryptographically signs an attestation of its results (`DVEResult`). These individual attestations are then aggregated by the **KNIRV-SHELL**. A supermajority (typically 2/3 or more) of the selected DVE nodes must independently replicate the execution and attest that the Skill successfully resolves the failure, is free of malicious code, and meets performance benchmarks. This collective, signed aggregation of attestations forms the `ValidationProof`. This `ValidationProof` is a critical piece of evidence that will be presented on-chain to **KNIRVGRAPH** in the next stage.
 *   **Incentives and Slashing:** DVE node operators stake substantial amounts of **NRN** (native to **KNIRV-ORACLE**). They earn a share of transaction fees and network rewards for providing reliable validation services. Conversely, their stake is slashed if they are found to be dishonest (e.g., falsely attesting to a malicious Skill) or if they consistently fail to perform validation tasks.
 
-**Diagram: Stage 3 - Decentralized Validation Environment (DVE)**
+**Diagram: Stage 3 - Deterministic Validation Environment (DVE)**
 ```mermaid
 graph TD
     subgraph DHT[Kademlia DHT]
@@ -252,7 +252,7 @@ graph TD
         SC["Skill Code (Executable)"]
     end
     
-    subgraph DVE_NETWORK[Decentralized Validation Environment]
+    subgraph DVE_NETWORK[Deterministic Validation Environment]
         DVE1[DVE Node 1: Staked NRN]
         DVE2[DVE Node 2: Staked NRN]
         DVE3[DVE Node 3: Staked NRN]
@@ -725,7 +725,7 @@ graph TD
 # 10. Conclusion: Forging the Future of Compounding Intelligence
 **KNIRVGRAPH** is a profound technological and economic experiment designed to solve the most critical bottleneck in AI development: the privatization and isolation of knowledge about failures and their resolutions. By creating a transparent, permissionless, and incentivized system for the collective resolution of failures, we are building more than just a Graphchain. We are laying the foundation for a global, self-healing intelligence that learns and grows at an exponential rate.
 
-Through the innovative integration of **Network Resolution Vectors (NRVs)** as dynamic, collaborative problem-solving pools, coordinated by a scalable Kademlia-based **Distributed Hash Table (DHT)**, and validated by the robust **Decentralized Validation Environment (DVE)**, **KNIRVGRAPH** redefines how AI systems evolve. We transform ephemeral errors into permanent, verifiable **ErrorNodes** and effective solutions into composable, monetizable **SkillNodes** (first on **KNIRVGRAPH**, then canonically on **KNIRVCHAIN**). The **NRN** token economy, native to **KNIRV-ORACLE** and driven by "**Proof-of-Solution**" and a liquid Skill marketplace, aligns incentives for all participants—Observers, Solvers (**KNIRV-SHELL** agents and human AI developers), Validators, and Governors—to contribute to this shared knowledge.
+Through the innovative integration of **Network Resolution Vectors (NRVs)** as dynamic, collaborative problem-solving pools, coordinated by a scalable Kademlia-based **Distributed Hash Table (DHT)**, and validated by the robust **Deterministic Validation Environment (DVE)**, **KNIRVGRAPH** redefines how AI systems evolve. We transform ephemeral errors into permanent, verifiable **ErrorNodes** and effective solutions into composable, monetizable **SkillNodes** (first on **KNIRVGRAPH**, then canonically on **KNIRVCHAIN**). The **NRN** token economy, native to **KNIRV-ORACLE** and driven by "**Proof-of-Solution**" and a liquid Skill marketplace, aligns incentives for all participants—Observers, Solvers (**KNIRV-SHELL** agents and human AI developers), Validators, and Governors—to contribute to this shared knowledge.
 
 We invite you to join us in building this future, where AI learns from every mistake, collectively and autonomously, forging a new era of compounding intelligence and safety.
 

@@ -14,7 +14,7 @@ Following the major refactor, the D-TEN unifies twelve sovereign layers, each op
 *   **KNIRV-ROUTER:** The `GoLang`-based network integrity layer, producing `NRN`s via "Proof-of-Connectivity" and embedding URI path certificates.
 *   **KNIRVGRAPH:** The `GoLang`-based distributed vector graph, deployed as embedded instances within KNIRVANA, with terminology evolved from "blocks" to "vectors" and "height" to "density".
 *   **KNIRVCHAIN:** Transformed into a `Rust`-compiled WASM inference model embedded within agent-core cognitive shells, featuring LoRA adapter chains and autonomous skill execution.
-*   **KNIRV-NEXUS DVE:** The `GoLang`-based network of Decentralized Validation Environments (CLEAN), providing verifiable execution, cryptographic proofs, and agent core pre-training infrastructure.
+*   **KNIRV-NEXUS DVE:** The `GoLang`-based network of Deterministic Validation Environments (CLEAN), providing verifiable execution, cryptographic proofs, and agent core pre-training infrastructure.
 *   **KNIRV-CONTROLLER:** The unified agent management platform integrating mobile-controller (manager), KNIRVSHELL (cli), agent-core (receiver), and wallet functionality with QR code connectivity.
 *   **KNIRV-INFERENCE:** The specialized agent intelligence development platform providing WASM compilation pipeline, model training infrastructure, and deployment sequence management.
 *   **KNIRV-ENGINE:** The desktop agent development environment with chromem-go database, electron wrapper, and seamless KNIRV-CONTROLLER integration via QR code connectivity.
@@ -130,7 +130,7 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 > *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRVCHAIN Whitepaper (Version 4.0)*.
 
 ## 3.5. KNIRV-NEXUS DVE: The Crucible of Verifiable AI Intelligence (CLEAN)
-**KNIRV-NEXUS DVE** (Decentralized Validation Environment) is a network of specialized, staked computing nodes embodying the Cognitive Logistic Execution Adaptability Network (CLEAN) paradigm. These `GoLang`-based nodes provide trustless, deterministic, and sandboxed execution environments.
+**KNIRV-NEXUS DVE** (Deterministic Validation Environment) is a network of specialized, staked computing nodes embodying the Cognitive Logistic Execution Adaptability Network (CLEAN) paradigm. These `GoLang`-based nodes provide trustless, deterministic, and sandboxed execution environments.
 
 > **Expanded Information:**
 >

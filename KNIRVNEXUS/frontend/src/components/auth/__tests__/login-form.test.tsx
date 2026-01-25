@@ -72,7 +72,7 @@ describe('LoginForm', () => {
     render(<LoginForm />);
 
     expect(screen.getByText('KNIRV NEXUS')).toBeInTheDocument();
-    expect(screen.getByText('Decentralized Validation Environment')).toBeInTheDocument();
+    expect(screen.getByText('Deterministic Validation Environment')).toBeInTheDocument();
     expect(screen.getByText('Username & Password')).toBeInTheDocument();
     expect(screen.getByText('Access Token')).toBeInTheDocument();
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();

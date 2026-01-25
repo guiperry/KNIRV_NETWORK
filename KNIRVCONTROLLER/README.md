@@ -48,8 +48,8 @@ The CONTROLLER integrates four core components into a unified platform:
   - NRV (Neural Response Vector) visualization
   - Real-time cognitive state management
   - Error, Context, and Idea submission workflows
-  - **NEW**: Visual cognitive mode indicator (lightning icon fills when active)
-  - **NEW**: Dynamic status updates (idle → monitoring → processing)
+  - Visual cognitive mode indicator (lightning icon fills when active)
+  - Dynamic status updates (idle → monitoring → processing)
 
 #### 2. **Manager** (Neural Intelligence Model Lifecycle Management)
 - **Location**: `src/pages/` (Skills, UDC, Wallet, Badges, Chat-Brain)
@@ -60,10 +60,10 @@ The CONTROLLER integrates four core components into a unified platform:
   - UDC (User Delegation Certificate) management
   - Network connectivity monitoring
   - Performance analytics
-  - **NEW**: Model creation and training with external AI integration
-  - **NEW**: Sample starter NIM with default cortex.wasm
-  - **NEW**: External API configuration and management
-  - **NEW**: Chat-Brain Personal Memory AI interface
+  - Model creation and training with external AI integration
+  - Sample starter NIM with default cortex.wasm
+  - External API configuration and management
+  - Chat-Brain Personal Memory AI interface
 
 #### 2.1 **Chat-Brain** (Personal Memory AI)
 - **Location**: `src/pages/ChatBrain.tsx`
@@ -118,7 +118,7 @@ The CONTROLLER integrates four core components into a unified platform:
 
 ### Network Integration
 - **Universal Connectivity**: Connect with all KNIRV network services
-- **QR Code Scanning**: Seamless integration with KNIRVENGINE and KNIRVNEXUS
+- **QR Code Scanning**: Seamless integration with KNIRVHUB and KNIRVNEXUS
 - **Primary Neural Intelligence Model Cloning**: Consistent behavior across platforms
 - **Cross-Platform Synchronization**: Real-time NIM configuration sync
 
@@ -145,7 +145,7 @@ The CONTROLLER integrates four core components into a unified platform:
 ### Backend
 - **Runtime**: Node.js 20.0.0+
 - **Framework**: Express.js with TypeScript
-- **Database**: RxDB (RxDB) with LokiJS adapter
+- **Database**: NebulaDB
 - **WebSocket**: Native WebSocket for real-time communication
 - **Authentication**: API key-based with rate limiting
 

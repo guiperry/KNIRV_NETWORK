@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KNIRV-NEXUS: Decentralized Validation Environment - KNIRV Network Documentation</title>
+    <title>KNIRV-NEXUS: Deterministic Validation Environment - KNIRV Network Documentation</title>
     <link rel="stylesheet" href="../styles.css">
     <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
     <script src="../js/config-loader.js"></script>
@@ -28,7 +28,7 @@
             <nav class="doc-nav">
                 <a href="../index.html">← Back to Documentation</a>
             </nav>
-            <h1>KNIRV-NEXUS: Decentralized Validation Environment</h1>
+            <h1>KNIRV-NEXUS: Deterministic Validation Environment</h1>
             <p class="doc-description">User guide for KNIRVNEXUS</p>
         </div>
     </header>
@@ -36,7 +36,7 @@
     <main class="doc-main">
         <div class="container">
             <article class="doc-content">
-                <p><h1>KNIRV-NEXUS: Decentralized Validation Environment</h1></p><p>KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable platform for validating SkillNodes and Base LLMs using a modern architecture that combines Next.js frontend with Go backend services in a single deployable binary.</p><p><h2>🏗️ Architecture Overview</h2></p><p>KNIRV-NEXUS implements a <strong>unified architecture</strong> with embedded frontend and backend services:</p><p><h3>Unified Binary Architecture</h3></p><p>- <strong>Main Wrapper</strong> (<code>main.go</code>): Embeds both frontend and backend into a single executable
+                <p><h1>KNIRV-NEXUS: Deterministic Validation Environment</h1></p><p>KNIRV-NEXUS is a unified implementation of the Deterministic Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable platform for validating SkillNodes and Base LLMs using a modern architecture that combines Next.js frontend with Go backend services in a single deployable binary.</p><p><h2>🏗️ Architecture Overview</h2></p><p>KNIRV-NEXUS implements a <strong>unified architecture</strong> with embedded frontend and backend services:</p><p><h3>Unified Binary Architecture</h3></p><p>- <strong>Main Wrapper</strong> (<code>main.go</code>): Embeds both frontend and backend into a single executable
 - <strong>Frontend Embedding</strong>: Next.js build output embedded via <code>//go:embed all:out</code>
 - <strong>Backend Embedding</strong>: Unified backend binary embedded via <code>//go:embed bin/backend-server</code>
 - <strong>API Proxy</strong>: Gin-based proxy routing <code>/api/*</code> requests to embedded backend

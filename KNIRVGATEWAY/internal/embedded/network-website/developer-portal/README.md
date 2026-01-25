@@ -157,7 +157,7 @@ The portal uses a custom CSS framework built on Tailwind CSS with KNIRV branding
 
 ### TESNET & Sandbox Improvements
 - **🏗️ CDE Pitch Integration**: Information about Collaborative Development Environment
-- **🔗 KNIRV-NEXUS Integration**: Direct access to DVE (Decentralized Validation Environment)
+- **🔗 KNIRV-NEXUS Integration**: Direct access to DVE (Deterministic Validation Environment)
 - **📖 Enhanced Documentation**: Detailed information about secure execution environments
 - **🎯 Improved UX**: Better user guidance for sandbox creation
 

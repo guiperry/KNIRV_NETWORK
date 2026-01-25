@@ -16,7 +16,7 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 ### KNIRVNEXUS Documentation
 
-* [KNIRV-NEXUS: Decentralized Validation Environment](knirvnexus/README.md) - User guide for KNIRVNEXUS
+* [KNIRV-NEXUS: Deterministic Validation Environment](knirvnexus/README.md) - User guide for KNIRVNEXUS
 
 ### KNIRVORACLE Documentation
 

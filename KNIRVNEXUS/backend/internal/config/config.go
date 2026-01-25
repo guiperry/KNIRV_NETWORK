@@ -237,7 +237,7 @@ type LogConfig struct {
 	Output string `mapstructure:"output"`
 }
 
-// DVEConfig represents DVE (Decentralized Validation Environment) configuration
+// DVEConfig represents DVE (Deterministic Validation Environment) configuration
 type DVEConfig struct {
 	Discovery DVEDiscoveryConfig `mapstructure:"discovery"`
 }

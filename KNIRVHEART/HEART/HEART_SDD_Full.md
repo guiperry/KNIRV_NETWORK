@@ -1,7 +1,7 @@
 # Software Design Document: HEART for KNIRVGRAPH
 ## Heuristic Error Analysis Resolution Transformer for ErrorNode → SkillNode Resolution
 
-**Project:** HEART v3.0 - Error Analysis Oracle for KNIRV Network
+**Project:** HEART v3.0 - Error Analysis Advisor for KNIRV Network
 **Version:** 3.0 (KNIRVGRAPH Integration)
 **Date:** January 11, 2026
 **Status:** Design Complete - Ready for Implementation
@@ -40,7 +40,7 @@
 
 ## 1.1 Project Vision
 
-HEART v3.0 serves as the **Heuristic Error Analysis Recognition Transformer** - the central intelligence oracle for KNIRVGRAPH's ErrorNode → SkillNode transformation process. HEART accelerates the discovery and validation of optimal error resolution strategies by combining:
+HEART v3.0 serves as the **Heuristic Error Analysis Resolution Transformer** - the central intelligence advisor for KNIRVGRAPH's ErrorNode → SkillNode transformation process. HEART accelerates the discovery and validation of optimal error resolution strategies by combining:
 
 1. **VL-JEPA (Vision-Language Joint Embedding Predictive Architecture)** - Multimodal encoding of ErrorNode failure contexts
 2. **Titans Memory Architecture** - Persistent memory of 100K+ historical error resolutions
@@ -57,7 +57,7 @@ When an AI system fails:
 1. **ErrorNode** created in KNIRVGRAPH with failure context
 2. **Noticed Resolvable Vector (NRV)** announced via DHT
 3. Human developers or SEAL agents manually propose solutions
-4. Solutions validated in DVE (Decentralized Validation Environment)
+4. Solutions validated in DVE (Deterministic Validation Environment)
 5. **SkillNode** minted upon successful validation
 
 **Problem:** This process is entirely reactive and lacks institutional memory. Similar errors require rediscovery of solutions, and there's no systematic way to explore the space of possible resolution strategies.
@@ -69,17 +69,17 @@ HEART transforms this into a **proactive, memory-augmented adversarial learning 
 1. **Error Encoding:** VL-JEPA encodes ErrorNode failure context into 2048D semantic embedding
 2. **Memory Retrieval:** Titans neural tape retrieves K=10 similar historical error resolutions
 3. **Strategy Generation:** DRQ adversarial population explores candidate SkillNode strategies
-4. **Oracle Guidance:** HEART provides "annotative vectors" biasing exploration toward promising solutions
+4. **Advisor Guidance:** HEART provides "annotative vectors" biasing exploration toward promising solutions
 5. **Validation:** Top candidates validated in DVE with cryptographic attestation
 6. **Memory Update:** Successful resolutions added to Titans neural tape for future queries
 
 **Result:** 60% faster convergence to valid SkillNodes, with quality improving as the neural tape grows.
 
-## 1.3 Key Innovation: The Error Resolution Oracle
+## 1.3 Key Innovation: The Error Resolution Advisor
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│         HEART: ERROR RESOLUTION ORACLE ARCHITECTURE          │
+│         HEART: ERROR RESOLUTION ADVISOR ARCHITECTURE          │
 │      (For KNIRVGRAPH ErrorNode → SkillNode Transformation)   │
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
@@ -106,7 +106,7 @@ HEART transforms this into a **proactive, memory-augmented adversarial learning 
 │  │    DRQ ADVERSARIAL FRAMEWORK (Strategy Discovery)      │  │
 │  │  - Population: 50 candidate SkillNode strategies       │  │
 │  │  - Arena: Decentralized validation sandbox             │  │
-│  │  - Evolution: Mutation + crossover with oracle bias    │  │
+│  │  - Evolution: Mutation + crossover with advisor bias    │  │
 │  │  - Convergence: 18 generations (vs 45 without HEART)   │  │
 │  └──────────────────┬─────────────────────────────────────┘  │
 │                     │                                        │
@@ -134,7 +134,7 @@ AI System Failure → KNIRVROUTER detects → NRV announced via DHT
                            (FailureContext, Domain, Complexity)
 ```
 
-### Stage 2: HEART Error Analysis (Oracle Query)
+### Stage 2: HEART Error Analysis (Advisor Query)
 ```
 ErrorNode → HEART Query
     ↓
@@ -179,17 +179,17 @@ Titans Memory updated with (ErrorNode, SkillNode, Success=True)
 | Metric | Target | Rationale |
 |--------|--------|-----------|
 | SkillNode Discovery Time | 18 gen (vs 45) | 60% faster convergence with HEART guidance |
-| Oracle Response Latency | <85ms p99 | Real-time guidance during DRQ evolution |
+| Advisor Response Latency | <85ms p99 | Real-time guidance during DRQ evolution |
 | Memory Retention Accuracy | >99.2% @ 100K errors | Titans MIRAS recall benchmark |
 | Resolution Quality | +15% success rate | DVE validation pass rate improvement |
 | Post-Quantum Security | NIST Level V | 256-bit classical, 128-bit quantum security |
-| Confidence Calibration | 94% @ >0.94 | Early exit when oracle is highly confident |
+| Confidence Calibration | 94% @ >0.94 | Early exit when advisor is highly confident |
 | DVE Consensus Agreement | >95% | Byzantine fault tolerance with PQC attestation |
 | Cost Efficiency | <0.001 NRN/query | Economically viable for high-volume error streams |
 
 ## 1.6 Resource Requirements
 
-### Configuration A: GPU-Accelerated Oracle (Recommended)
+### Configuration A: GPU-Accelerated Advisor (Recommended)
 
 **Hardware:**
 - 1× NVIDIA A100 (80GB) - VL-JEPA + Titans inference - $10,000
@@ -202,12 +202,12 @@ Titans Memory updated with (ErrorNode, SkillNode, Success=True)
 
 **Operating Costs:**
 - Power: ~0.5 kW × $0.12/kWh = $526/year
-- NRN Oracle Fees: Dynamic (0.0005-0.002 NRN/query)
+- NRN Advisor Fees: Dynamic (0.0005-0.002 NRN/query)
 - Maintenance: $200/year
 
 **Total Annual OpEx:** ~$1,000 + NRN fees
 
-### Configuration B: CPU-Only Oracle (Budget)
+### Configuration B: CPU-Only Advisor (Budget)
 
 **Hardware:**
 - 1× Antminer S3 (BM1382 ASIC) - $50
@@ -230,7 +230,7 @@ Titans Memory updated with (ErrorNode, SkillNode, Success=True)
 
 ## 2.1 System Context: KNIRV D-TEN Ecosystem
 
-HEART operates as a **singleton oracle service** within the KNIRV-NEXUS DVE network, specifically designed to accelerate KNIRVGRAPH's ErrorNode → SkillNode transformation process.
+HEART operates as a **singleton advisor service** within the KNIRV-NEXUS DVE network, specifically designed to accelerate KNIRVGRAPH's ErrorNode → SkillNode transformation process.
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
@@ -250,23 +250,23 @@ HEART operates as a **singleton oracle service** within the KNIRV-NEXUS DVE netw
 │            │                       │                          │
 │            ↓                       │                          │
 │  ┌─────────────────────────────────────────────────────────┐  │
-│  │           HEART ORACLE (Error Analysis)                 │  │
+│  │           HEART ADVISOR (Error Analysis)                 │  │
 │  │  - VL-JEPA: Encode ErrorNode failure context            │  │
 │  │  - Titans: Retrieve similar historical resolutions      │  │
-│  │  - Oracle Response: Annotative vector for DRQ guidance  │  │
+│  │  - Advisor Response: Annotative vector for DRQ guidance  │  │
 │  └────────────────────┬────────────────────────────────────┘  │
 │                       │                                       │
 │                       ↓                                       │
 │  ┌─────────────────────────────────────────────────────────┐  │
 │  │      DRQ ADVERSARIAL TRAINING FRAMEWORK                 │  │
 │  │  Population: 50 candidate SkillNode strategies          │  │
-│  │  Evolution: Mutation + Crossover with oracle bias       │  │
+│  │  Evolution: Mutation + Crossover with advisor bias       │  │
 │  │  Fitness: Resolution success rate in validation sandbox │  │
 │  └────────────────────┬────────────────────────────────────┘  │
 │                       │                                       │
 │                       ↓                                       │
 │  ┌─────────────────────────────────────────────────────────┐  │
-│  │      DVE (Distributed Validation Environment)           │  │
+│  │      DVE (Deterministic Validation Environment)         │  │
 │  │  - Byzantine consensus: 2/3 DVE nodes                   │  │
 │  │  - PQC attestation: Dilithium + SPHINCS+                │  │
 │  │  - Output: Validated SkillNode → KNIRVGRAPH             │  │
@@ -329,11 +329,11 @@ HEART operates as a **singleton oracle service** within the KNIRV-NEXUS DVE netw
 - **Arena:** Decentralized validation sandbox (DVE preview)
 - **Fitness Function:** Resolution success rate × code simplicity × composability
 - **Evolution Operators:**
-  - Mutation: Random code modifications (guided by oracle bias)
+  - Mutation: Random code modifications (guided by advisor bias)
   - Crossover: Combine successful sub-strategies
   - Selection: Tournament selection with elitism
 
-**Oracle Integration:**
+**Advisor Integration:**
 - HEART's annotative vector biases mutation operators
 - Titans memory provides "hints" on likely dependencies
 - VL-JEPA confidence gates exploration intensity
@@ -379,7 +379,7 @@ HEART operates as a **singleton oracle service** within the KNIRV-NEXUS DVE netw
        │ - Complexity: 75/100
        │ - FailureContext: serialized environment + state
        ↓
-[HERO Detects ErrorNode → Query HEART Oracle]
+[HERO Detects ErrorNode → Query HEART Advisor]
        │
        ├─→ [VL-JEPA Encoder]
        │      │ (Visual: Stack trace heatmap)
@@ -407,7 +407,7 @@ HEART operates as a **singleton oracle service** within the KNIRV-NEXUS DVE netw
        │      │
        │      └→ Steer DRQ toward proven patterns
        │
-       └─→ [Oracle Response Generated]
+       └─→ [Advisor Response Generated]
               │
               ├─ Annotative Vector (2048D strategic insight)
               ├─ Confidence Score (0-1)
@@ -424,7 +424,7 @@ HEART operates as a **singleton oracle service** within the KNIRV-NEXUS DVE netw
        │    - Each candidate tested in validation sandbox
        │    - Fitness = resolution_success × simplicity × composability
        │
-       │ 2. Apply Oracle Bias:
+       │ 2. Apply Advisor Bias:
        │    - Mutation operators weighted by annotative vector
        │    - Crossover selects fragments similar to Titans memory
        │
@@ -440,7 +440,7 @@ HEART operates as a **singleton oracle service** within the KNIRV-NEXUS DVE netw
 [Top 3 Candidates Selected]
        │
        ↓
-[DVE (Distributed Validation Environment) Submission]
+[DVE (Deterministic Validation Environment) Submission]
        │
        │ Byzantine Consensus Process:
        │ 1. Random selection: 7 DVE validator nodes
@@ -525,7 +525,7 @@ type ErrorNode struct {
 
 ### 3.1.2 HEART Query Protocol
 
-When an ErrorNode is minted, the HERO (KNIRVGRAPH cognitive orchestrator) queries HEART:
+When an ErrorNode is minted, the HERO (KNIRVGRAPH cognitive orchestrator) queries the HEART:
 
 ```go
 // pkg/hero/knirvgraph.go
@@ -547,7 +547,7 @@ type ErrorNodeQuery struct {
     }
 
     ContextWindow  int     // Historical cycles to encode
-    NRNPayment     float64 // Oracle query fee
+    NRNPayment     float64 // Advisor query fee
     Timestamp      int64
 }
 
@@ -695,7 +695,7 @@ type SkillNodeProposal struct {
     FitnessScore        float64
     ValidationHistory   []ValidationAttempt
 
-    // Oracle Guidance Used
+    // Advisor Guidance Used
     HEARTConfidence     float64
     SimilarResolutions  []string  // Referenced historical SkillNodes
 }
@@ -720,15 +720,15 @@ func (agent *DRQAgent) GenerateSkillNodeProposal(errorNode ErrorNode) *SkillNode
         GenerationsRequired: agent.Generation,
         FitnessScore:        agent.Fitness,
         ValidationHistory:   agent.ValidationAttempts,
-        HEARTConfidence:     agent.OracleConfidence,
-        SimilarResolutions:  agent.OracleReferences,
+        HEARTConfidence:     agent.AdvisorConfidence,
+        SimilarResolutions:  agent.AdvisorReferences,
     }
 }
 ```
 
 ## 3.3 DVE Validation Integration
 
-The Distributed Validation Environment validates SkillNode proposals with HEART attestation:
+The Deterministic Validation Environment validates SkillNode proposals with HEART attestation:
 
 ```go
 // pkg/dve/validation.go
@@ -907,13 +907,13 @@ DRQ was originally designed for **Core War** - a programming game where programs
 
 | Core War Concept | Error Resolution Mapping |
 |------------------|--------------------------|
-| **Warriors** | Candidate SkillNode strategies |
+| **Warriors** | Agent SkillNode strategies |
 | **Memory Arena** | ErrorNode FailureContext (validation sandbox) |
 | **Instructions (Redcode)** | Resolution code (Python, Go, etc.) |
 | **Battle Outcome** | Validation result (resolves error or fails) |
 | **Evolution** | Mutation + crossover of resolution strategies |
-| **Oracle (HEART)** | Strategic guidance from historical resolutions |
-| **Orchestrator (HERO)** | Skill pipeline guidance |
+| **Advisor** | Strategic guidance from historical resolutions (HEART) |
+| **Orchestrator** | Skill pipeline guidance (HERO) |
 
 ### 4.1.2 DRQ Population Initialization
 
@@ -930,12 +930,12 @@ type DRQAgent struct {
     ValidationScore float64
     Dependencies    []string
 
-    // Oracle guidance
-    OracleConfidence float64
-    OracleReferences []string  // Similar SkillNode IDs
+    // Advisor guidance
+    AdvisorConfidence float64
+    AdvisorReferences []string  // Similar SkillNode IDs
 }
 
-func InitializePopulation(errorNode ErrorNode, oracleResponse *ErrorResolutionResponse) []*DRQAgent {
+func InitializePopulation(errorNode ErrorNode, advisorResponse *ErrorResolutionResponse) []*DRQAgent {
     population := make([]*DRQAgent, 50)
 
     for i := 0; i < 50; i++ {
@@ -944,16 +944,16 @@ func InitializePopulation(errorNode ErrorNode, oracleResponse *ErrorResolutionRe
             Generation: 0,
         }
 
-        if oracleResponse.Confidence > 0.9 {
-            // High confidence: Seed with oracle-suggested strategies
-            agent.Genome = seedFromOracle(oracleResponse.SimilarResolutions[i%len(oracleResponse.SimilarResolutions)])
+        if advisorResponse.Confidence > 0.9 {
+            // High confidence: Seed with advisor-suggested strategies
+            agent.Genome = seedFromAdvisor(advisorResponse.SimilarResolutions[i%len(advisorResponse.SimilarResolutions)])
         } else {
             // Low confidence: Random initialization
             agent.Genome = randomGenome(errorNode.Complexity)
         }
 
         agent.PolicyNetwork = buildPolicyNetwork(errorNode.Domain)
-        agent.OracleReferences = oracleResponse.SimilarResolutions[i%len(oracleResponse.SimilarResolutions)].SkillNodeID
+        agent.AdvisorReferences = advisorResponse.SimilarResolutions[i%len(advisorResponse.SimilarResolutions)].SkillNodeID
 
         population[i] = agent
     }
@@ -1056,7 +1056,7 @@ func evaluateNovelty(agent *DRQAgent, domain string) float64 {
 }
 ```
 
-## 4.3 Evolution Operators with Oracle Bias
+## 4.3 Evolution Operators with Advisor Bias
 
 ### 4.3.1 Mutation (Guided by HEART Annotative Vector)
 
@@ -1064,24 +1064,24 @@ func evaluateNovelty(agent *DRQAgent, domain string) float64 {
 // pkg/drq/mutation.go
 package drq
 
-func MutateWithOracleBias(agent *DRQAgent, oracleResponse *ErrorResolutionResponse, mutationRate float64) *DRQAgent {
+func MutateWithAdvisorBias(agent *DRQAgent, advisorResponse *ErrorResolutionResponse, mutationRate float64) *DRQAgent {
     child := agent.Clone()
     child.Generation = agent.Generation + 1
 
-    // Oracle annotative vector provides mutation weights
-    mutationWeights := oracleResponse.ResolutionBias.MutationWeights
+    // Advisor annotative vector provides mutation weights
+    mutationWeights := advisorResponse.ResolutionBias.MutationWeights
 
     // Genome is sequence of code fragments
     fragments := parseGenomeFragments(agent.Genome)
 
     for i, fragment := range fragments {
         if rand.Float64() < mutationRate {
-            // Weighted mutation based on oracle guidance
+            // Weighted mutation based on advisor guidance
             weight := float64(mutationWeights[i % len(mutationWeights)])
 
             if weight > 0.7 {
-                // High weight: Mutate toward oracle-suggested pattern
-                fragments[i] = mutateTow ardsPattern(fragment, oracleResponse.SimilarResolutions)
+                // High weight: Mutate toward advisor-suggested pattern
+                fragments[i] = mutateTow ardsPattern(fragment, advisorResponse.SimilarResolutions)
             } else if weight > 0.3 {
                 // Medium weight: Conservative mutation
                 fragments[i] = mutateConservative(fragment)
@@ -1115,14 +1115,14 @@ func mutateTowardsPattern(fragment string, similarResolutions []ResolutionRef) s
 // pkg/drq/crossover.go
 package drq
 
-func CrossoverWithDependencies(parent1, parent2 *DRQAgent, oracleResponse *ErrorResolutionResponse) *DRQAgent {
+func CrossoverWithDependencies(parent1, parent2 *DRQAgent, advisorResponse *ErrorResolutionResponse) *DRQAgent {
     child := &DRQAgent{
         ID:         generateAgentID(),
         Generation: max(parent1.Generation, parent2.Generation) + 1,
     }
 
-    // Oracle suggests likely dependencies
-    suggestedDeps := oracleResponse.ResolutionBias.DependencySuggestions
+    // Advisor suggests likely dependencies
+    suggestedDeps := advisorResponse.ResolutionBias.DependencySuggestions
 
     // Crossover point: Balance parent contributions
     genome1 := parseGenomeFragments(parent1.Genome)
@@ -1137,7 +1137,7 @@ func CrossoverWithDependencies(parent1, parent2 *DRQAgent, oracleResponse *Error
     // Second half from parent2
     childGenome = append(childGenome, genome2[crossoverPoint:]...)
 
-    // Inject oracle-suggested dependencies
+    // Inject advisor-suggested dependencies
     for _, depID := range suggestedDeps {
         if rand.Float64() < 0.3 {  // 30% chance per suggestion
             depCode := fetchSkillNodeCode(depID)
@@ -1157,13 +1157,13 @@ func CrossoverWithDependencies(parent1, parent2 *DRQAgent, oracleResponse *Error
 // pkg/drq/training.go
 package drq
 
-func TrainDRQPopulation(errorNode ErrorNode, oracleResponse *ErrorResolutionResponse) *SkillNodeProposal {
+func TrainDRQPopulation(errorNode ErrorNode, advisorResponse *ErrorResolutionResponse) *SkillNodeProposal {
     // Initialize population
-    population := InitializePopulation(errorNode, oracleResponse)
+    population := InitializePopulation(errorNode, advisorResponse)
 
     maxGenerations := 45  // Maximum generations
-    if oracleResponse.Confidence > 0.9 {
-        maxGenerations = 18  // Early exit with high oracle confidence
+    if advisorResponse.Confidence > 0.9 {
+        maxGenerations = 18  // Early exit with high advisor confidence
     }
 
     for gen := 0; gen < maxGenerations; gen++ {
@@ -1196,8 +1196,8 @@ func TrainDRQPopulation(errorNode ErrorNode, oracleResponse *ErrorResolutionResp
             parent1 := parents[rand.Intn(len(parents))]
             parent2 := parents[rand.Intn(len(parents))]
 
-            child := CrossoverWithDependencies(parent1, parent2, oracleResponse)
-            child = MutateWithOracleBias(child, oracleResponse, 0.1)
+            child := CrossoverWithDependencies(parent1, parent2, advisorResponse)
+            child = MutateWithAdvisorBias(child, advisorResponse, 0.1)
 
             nextGen = append(nextGen, child)
         }

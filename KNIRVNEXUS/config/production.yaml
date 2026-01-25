@@ -240,7 +240,7 @@ production:
   min_replicas: 1
   max_replicas: 10
 
-# DVE (Decentralized Validation Environment) Configuration
+# DVE (Deterministic Validation Environment) Configuration
 dve:
   discovery:
     enabled: true

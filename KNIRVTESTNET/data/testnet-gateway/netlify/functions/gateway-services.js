@@ -44,7 +44,7 @@ const SERVICE_REGISTRY = {
   },
   'knirvnexus': {
     name: 'KNIRV-NEXUS',
-    description: 'Unified DVE (Decentralized Validation Environment) service',
+    description: 'Unified DVE (Deterministic Validation Environment) service',
     port: 8084,
     endpoints: {
       frontend: 'http://localhost:8084',

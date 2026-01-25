@@ -1,6 +1,6 @@
-# KNIRV-NEXUS: Decentralized Validation Environment
+# KNIRV-NEXUS: Deterministic Validation Environment
 
-KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable platform for validating SkillNodes and Base LLMs using a modern architecture that combines Next.js frontend with Go backend services in a single deployable binary.
+KNIRV-NEXUS is a unified implementation of the Deterministic Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable platform for validating SkillNodes and Base LLMs using a modern architecture that combines Next.js frontend with Go backend services in a single deployable binary.
 
 ## 🏗️ Architecture Overview
 

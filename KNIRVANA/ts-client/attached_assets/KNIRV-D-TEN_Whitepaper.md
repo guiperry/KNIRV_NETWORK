@@ -14,7 +14,7 @@ The D-TEN unifies twelve sovereign layers, each operating as a specialized, inte
 *   **KNIRV-ROUTER:** The `GoLang`-based network integrity layer, producing `NRN`s via "Proof-of-Connectivity" and embedding URI path certificates.
 *   **KNIRVGRAPH:** The `GoLang`-based Graphchain, serving as the decentralized knowledge fabric for `ErrorNode`s and `SkillNode`s.
 *   **KNIRVCHAIN:** The sovereign `Rust`-based blockchain, hosting the canonical CodeT5 Base LLM and `SkillRegistry`.
-*   **KNIRV-NEXUS DVE:** The `GoLang`-based network of Decentralized Validation Environments (CLEAN), providing verifiable execution and cryptographic proofs.
+*   **KNIRV-NEXUS DVE:** The `GoLang`-based network of Deterministic Validation Environments (CLEAN), providing verifiable execution and cryptographic proofs.
 *   **KNIRV-CORTEX:** The autonomous, `Rust` `WASM`-powered AI agents, capable of self-improving through SEAL (Self-Adapting Language Models).
 *   **KNIRV-WALLET:** The user-friendly gateway, leveraging XION's Meta Accounts for seamless interaction.
 *   **KNIRV-GATEWAY:** The unified web portal and serverless API gateway, serving as the primary entry point for all ecosystem interactions.
@@ -123,7 +123,7 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 > *   **Dedicated Whitepaper:** For a comprehensive understanding, refer to the *KNIRVCHAIN Whitepaper (Version 4.0)*.
 
 ## 3.5. KNIRV-NEXUS DVE: The Crucible of Verifiable AI Intelligence (CLEAN)
-**KNIRV-NEXUS DVE** (Decentralized Validation Environment) is a network of specialized, staked computing nodes embodying the Cognitive Logistic Execution Adaptability Network (CLEAN) paradigm. These `GoLang`-based nodes provide trustless, deterministic, and sandboxed execution environments.
+**KNIRV-NEXUS DVE** (Deterministic Validation Environment) is a network of specialized, staked computing nodes embodying the Cognitive Logistic Execution Adaptability Network (CLEAN) paradigm. These `GoLang`-based nodes provide trustless, deterministic, and sandboxed execution environments.
 
 > **Expanded Information:**
 >

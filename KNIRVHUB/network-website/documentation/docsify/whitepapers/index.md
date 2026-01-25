@@ -206,7 +206,7 @@
             <div class="whitepaper-icon">🔐</div>
             <h4 class="whitepaper-title">KNIRV-NEXUS DVE</h4>
             <p class="whitepaper-description">
-                The network of Decentralized Validation Environments (CLEAN), providing verifiable execution and cryptographic proofs for all Skill resolutions.
+                The network of Deterministic Validation Environments (CLEAN), providing verifiable execution and cryptographic proofs for all Skill resolutions.
             </p>
             <a href="#" class="whitepaper-link" onclick="event.stopPropagation(); openWhitepaper('KNIRVNEXUS_Whitepaper')">Read Whitepaper</a>
         </div>

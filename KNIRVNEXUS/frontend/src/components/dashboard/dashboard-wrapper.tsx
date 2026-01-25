@@ -81,7 +81,7 @@ export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps)
                 <Shield className="w-8 h-8 text-primary" />
                 <div>
                   <h1 className="text-2xl font-bold">KNIRV NEXUS</h1>
-                  <p className="text-sm text-muted-foreground">Decentralized Validation Environment</p>
+                  <p className="text-sm text-muted-foreground">Deterministic Validation Environment</p>
                 </div>
               </div>
             </div>

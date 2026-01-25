@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KNIRV-NEXUS DVE - Decentralized Validation Environment",
+  title: "KNIRV-NEXUS DVE - Deterministic Validation Environment",
   description: "The Crucible of Verifiable AI Intelligence - Powering Trustless Validation, Secure Execution, and Collective Learning in the KNIRV D-TEN",
   keywords: ["KNIRV-NEXUS", "DVE", "Decentralized Validation", "AI Intelligence", "Trusted Execution", "CLEAN", "KNIRV D-TEN", "Blockchain", "TEE"],
   authors: [{ name: "KNIRV Network Team" }],

@@ -1,0 +1,112 @@
+/* Blog Post Styles - Apply to all blog posts */
+.blog-content {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.8;
+    color: #e5e7eb;
+}
+
+.blog-content h2 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 2.5rem 0 1.5rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid rgba(16, 185, 129, 0.3);
+}
+
+.blog-content h3 {
+    font-size: 1.875rem;
+    font-weight: 600;
+    color: #f3f4f6;
+    margin: 2rem 0 1rem 0;
+}
+
+.blog-content p {
+    margin: 1.5rem 0;
+    font-size: 1.25rem;
+    color: #d1d5db;
+}
+
+.blog-content ul {
+    margin: 1.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.blog-content li {
+    margin: 0.75rem 0;
+    font-size: 1.25rem;
+    color: #d1d5db;
+}
+
+.blog-content li::marker {
+    color: #10b981;
+    font-weight: bold;
+}
+
+.blog-content strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.blog-content em {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.blog-content .icon {
+    display: inline-block;
+    margin-right: 0.5rem;
+    font-size: 1.25rem;
+}
+
+.blog-content .highlight-box {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));
+    border-left: 4px solid #10b981;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    border-radius: 0.5rem;
+}
+
+.blog-content .highlight-box p {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #e5e7eb;
+}
+
+.blog-content .image-container {
+    text-align: center;
+    margin: 3rem 0;
+}
+
+.blog-content .image-container img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+.blog-content .image-caption {
+    margin-top: 0.75rem;
+    font-size: 1rem;
+    color: #9ca3af;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .blog-content h2 {
+        font-size: 1.875rem;
+    }
+    
+    .blog-content h3 {
+        font-size: 1.5rem;
+    }
+    
+    .blog-content p,
+    .blog-content li {
+        font-size: 1.125rem;
+    }
+    
+    .blog-content .highlight-box p {
+        font-size: 1.25rem;
+    }
+}

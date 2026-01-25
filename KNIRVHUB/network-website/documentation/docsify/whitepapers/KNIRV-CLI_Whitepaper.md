@@ -38,7 +38,7 @@ The KNIRV-CLI is architected as a modular, GoLang application designed for relia
 The KNIRV-CLI provides a high-fidelity interface to each layer of the KNIRV Network, bridging the gap between the user and the decentralized backend.
 
 * **KNIRV-ORACLE Client:** Manages all blockchain operations, including agent registration, credentialing, and secure delegated execution. It facilitates the core operations of the KNIRV-CHAIN.
-* **KNIRV-NEXUS Client:** Provides a direct interface to the Decentralized Validation Environment (DVE) and the KNIRV-ENGINE, enabling users to rent DVEs for computational tasks and interact with inference APIs.
+* **KNIRV-NEXUS Client:** Provides a direct interface to the Deterministic Validation Environment (DVE) and the KNIRV-ENGINE, enabling users to rent DVEs for computational tasks and interact with inference APIs.
 * **KNIRV-GRAPH Client:** The primary tool for interacting with the KNIRV-GRAPH. It enables users to submit `ErrorNodes` and `SkillNodes` to the graph's `NRV` system, query the knowledge base, and participate in the "Proof-of-Solution" economy.
 * **KNIRV-GATEWAY Client:** Integrates with the unified API gateway, providing a secure, authenticated entry point for all network interactions.
 

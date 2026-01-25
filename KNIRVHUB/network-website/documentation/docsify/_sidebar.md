@@ -10,7 +10,7 @@
 
 ## KNIRVNEXUS Documentation
 
-* [KNIRV-NEXUS: Decentralized Validation Environment](knirvnexus/README.md)
+* [KNIRV-NEXUS: Deterministic Validation Environment](knirvnexus/README.md)
 
 ## KNIRVORACLE Documentation
 

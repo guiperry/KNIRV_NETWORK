@@ -236,9 +236,9 @@ Advanced model compilation and training pipeline with external AI integration fo
 
 **Location:** `KNIRVNEXUS/README.md`
 
-# KNIRV-NEXUS: Decentralized Validation Environment
+# KNIRV-NEXUS: Deterministic Validation Environment
 
-KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable pla...
+KNIRV-NEXUS is a unified implementation of the Deterministic Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable pla...
 
 [View Full Documentation](KNIRVNEXUS/README.md)
 
@@ -462,9 +462,9 @@ The official TypeScript/JavaScript SDK for KNIRV Gateway services, providing acc
 
 **Location:** `KNIRVTESTNET/data/knirvnexus/portal/README.md`
 
-# KNIRV-NEXUS: Decentralized Validation Environment
+# KNIRV-NEXUS: Deterministic Validation Environment
 
-KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable pla...
+KNIRV-NEXUS is a unified implementation of the Deterministic Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable pla...
 
 [View Full Documentation](KNIRVTESTNET/data/knirvnexus/portal/README.md)
 

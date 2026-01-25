@@ -1,95 +1,24 @@
-'use client';
-
-import React from "react";
 import { Bot, Calendar, User, ArrowRight, Tag, TrendingUp, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { getBlogPosts, formatDate } from "./lib/blog-utils";
 
 export default function BlogPage() {
-  const featuredPost = {
-    title: "The Future of Neural Intellegence Models: Trends and Predictions for 2024",
-    excerpt: "Explore the latest developments in AI agent technology and what they mean for businesses and developers in the coming year.",
-    author: "Sarah Chen",
-    date: "Dec 15, 2024",
-    readTime: "8 min read",
-    category: "Industry Insights",
-    image: "🚀",
-    tags: ["AI", "Trends", "Future", "Technology"]
-  };
-
-  const posts = [
-    {
-      title: "Building Conversational AI That Actually Understands Context",
-      excerpt: "Learn how to create Neural Intellegence Models that maintain context throughout conversations and provide more natural interactions.",
-      author: "Marcus Rodriguez",
-      date: "Dec 12, 2024",
-      readTime: "6 min read",
-      category: "Technical",
-      image: "🧠",
-      tags: ["Context", "NLP", "Conversation"]
-    },
-    {
-      title: "Case Study: How TechStart Reduced Support Tickets by 60%",
-    excerpt: "Discover how one startup used KNIRV to automate customer support and dramatically improve their response times.",
-      author: "Emily Johnson",
-      date: "Dec 10, 2024",
-      readTime: "5 min read",
-      category: "Case Study",
-      image: "📊",
-      tags: ["Customer Support", "Automation", "ROI"]
-    },
-    {
-      title: "Best Practices for Agent Personality Design",
-      excerpt: "Guidelines for creating Neural Intellegence Models with consistent, engaging personalities that align with your brand voice.",
-      author: "David Kim",
-      date: "Dec 8, 2024",
-      readTime: "7 min read",
-      category: "Design",
-      image: "🎭",
-      tags: ["Design", "Personality", "Branding"]
-    },
-    {
-      title: "Integrating Neural Intellegence Models with E-commerce Platforms",
-      excerpt: "Step-by-step guide to adding intelligent shopping assistants to your online store for better customer experience.",
-      author: "Lisa Wang",
-      date: "Dec 5, 2024",
-      readTime: "9 min read",
-      category: "Integration",
-      image: "🛒",
-      tags: ["E-commerce", "Shopping", "Integration"]
-    },
-    {
-      title: "The Ethics of AI: Building Responsible Agents",
-      excerpt: "Important considerations for developing Neural Intellegence Models that are ethical, unbiased, and beneficial for all users.",
-      author: "Dr. James Thompson",
-      date: "Dec 3, 2024",
-      readTime: "10 min read",
-      category: "Ethics",
-      image: "⚖️",
-      tags: ["Ethics", "Responsibility", "AI Safety"]
-    },
-    {
-      title: "Performance Optimization for High-Traffic Agent Deployments",
-      excerpt: "Technical deep-dive into scaling Neural Intellegence Models for enterprise-level applications with millions of interactions.",
-      author: "Alex Chen",
-      date: "Nov 30, 2024",
-      readTime: "12 min read",
-      category: "Technical",
-      image: "⚡",
-      tags: ["Performance", "Scaling", "Enterprise"]
-    }
-  ];
-
+  const posts = getBlogPosts();
+  const featuredPost = posts[0];
+  
+  // Calculate category counts
+  const categoryCounts = posts.reduce((acc, post) => {
+    acc[post.category] = (acc[post.category] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
   const categories = [
-    { name: "All Posts", count: 24 },
-    { name: "Technical", count: 8 },
-    { name: "Case Studies", count: 6 },
-    { name: "Industry Insights", count: 5 },
-    { name: "Design", count: 3 },
-    { name: "Integration", count: 2 }
+    { name: "All Posts", count: posts.length },
+    ...Object.entries(categoryCounts).map(([name, count]) => ({ name, count }))
   ];
 
   return (
@@ -156,55 +85,59 @@ export default function BlogPage() {
             <h2 className="text-3xl font-bold text-white">Latest Insights</h2>
           </div>
           
-          <Card className="bg-white/5 border-white/10 backdrop-blur-lg hover:bg-white/10 transition-all duration-300 max-w-4xl mx-auto">
-            <CardContent className="p-0">
-              <div className="grid md:grid-cols-2 gap-0">
-                <div className="bg-gradient-to-br from-knirv-primary/20 to-knirv-secondary/20 p-12 flex items-center justify-center">
-                  <span className="text-8xl">{featuredPost.image}</span>
-                </div>
-                <div className="p-8">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <Badge variant="secondary" className="bg-white/10 text-white/80">
-                      {featuredPost.category}
-                    </Badge>
-                    <div className="flex items-center space-x-2 text-white/60 text-sm">
-                      <Calendar className="h-4 w-4" />
-                      <span>{featuredPost.date}</span>
-                    </div>
+          {featuredPost && (
+            <Card className="bg-white/5 border-white/10 backdrop-blur-lg hover:bg-white/10 transition-all duration-300 max-w-4xl mx-auto">
+              <CardContent className="p-0">
+                <div className="grid md:grid-cols-2 gap-0">
+                  <div className="bg-gradient-to-br from-knirv-primary/20 to-knirv-secondary/20 p-12 flex items-center justify-center">
+                    <span className="text-8xl">{featuredPost.image}</span>
                   </div>
-                  
-                  <h3 className="text-2xl font-bold text-white mb-4 leading-tight">
-                    {featuredPost.title}
-                  </h3>
-                  
-                  <p className="text-white/70 mb-6 leading-relaxed">
-                    {featuredPost.excerpt}
-                  </p>
-                  
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-white/60" />
-                      <span className="text-white/80 text-sm">{featuredPost.author}</span>
-                    </div>
-                    <span className="text-white/60 text-sm">{featuredPost.readTime}</span>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {featuredPost.tags.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="border-white/20 text-white/60">
-                        {tag}
+                  <div className="p-8">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <Badge variant="secondary" className="bg-white/10 text-white/80">
+                        {featuredPost.category}
                       </Badge>
-                    ))}
+                      <div className="flex items-center space-x-2 text-white/60 text-sm">
+                        <Calendar className="h-4 w-4" />
+                        <span>{formatDate(featuredPost.date)}</span>
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-2xl font-bold text-white mb-4 leading-tight">
+                      {featuredPost.title}
+                    </h3>
+                    
+                    <p className="text-white/70 mb-6 leading-relaxed">
+                      {featuredPost.subtitle}
+                    </p>
+                    
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center space-x-2">
+                        <User className="h-4 w-4 text-white/60" />
+                        <span className="text-white/80 text-sm">{featuredPost.author}</span>
+                      </div>
+                      <span className="text-white/60 text-sm">{featuredPost.readTime}</span>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {featuredPost.keywords.map((tag, index) => (
+                        <Badge key={index} variant="outline" className="border-white/20 text-white/60">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    
+                    <Button className="bg-gradient-to-r from-knirv-primary to-knirv-secondary hover:from-knirv-secondary hover:to-knirv-primary text-white">
+                      <Link href={`/blog/${featuredPost.slug}`}>
+                        Read Article
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
                   </div>
-                  
-                  <Button className="bg-gradient-to-r from-knirv-primary to-knirv-secondary hover:from-knirv-secondary hover:to-knirv-primary text-white">
-                    Read Article
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -233,7 +166,7 @@ export default function BlogPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold text-white text-center mb-16">Recent Articles</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post, index) => (
+            {posts.slice(1).map((post, index) => (
               <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-lg hover:bg-white/10 transition-all duration-300 cursor-pointer group">
                 <CardContent className="p-0">
                   <div className="bg-gradient-to-br from-knirv-primary/20 to-knirv-secondary/20 p-8 flex items-center justify-center">
@@ -247,7 +180,7 @@ export default function BlogPage() {
                       </Badge>
                       <div className="flex items-center space-x-2 text-white/60 text-xs">
                         <Calendar className="h-3 w-3" />
-                        <span>{post.date}</span>
+                        <span>{formatDate(post.date)}</span>
                       </div>
                     </div>
                     
@@ -256,7 +189,7 @@ export default function BlogPage() {
                     </h3>
                     
                     <p className="text-white/70 text-sm mb-4 line-clamp-3">
-                      {post.excerpt}
+                      {post.subtitle}
                     </p>
                     
                     <div className="flex items-center justify-between text-white/60 text-xs mb-4">
@@ -268,7 +201,7 @@ export default function BlogPage() {
                     </div>
                     
                     <div className="flex flex-wrap gap-1 mb-4">
-                      {post.tags.map((tag, tagIndex) => (
+                      {post.keywords.map((tag, tagIndex) => (
                         <Badge key={tagIndex} variant="outline" className="border-white/20 text-white/60 text-xs">
                           {tag}
                         </Badge>
@@ -276,8 +209,10 @@ export default function BlogPage() {
                     </div>
                     
                     <Button variant="outline" className="w-full border-knirv-border-primary/50 text-knirv-text-primary hover:bg-knirv-bg-primary/10">
-                      Read More
-                      <ArrowRight className="ml-2 h-3 w-3" />
+                      <Link href={`/blog/${post.slug}`}>
+                        Read More
+                        <ArrowRight className="ml-2 h-3 w-3" />
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>

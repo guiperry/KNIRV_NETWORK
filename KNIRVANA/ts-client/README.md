@@ -489,7 +489,7 @@ The KNIRVANA Ecosystem Game has been successfully integrated into the ts-client 
 - Two game modes: Minimal (Step 1) and Full (Step 2)
 - Complete skill system with 4 upgradeable bot skills
 - Interactive 4x4 cluster grid with floating error boxes
-- Real-time resource management with Knerv currency
+- Real-time resource management with NRN currency
 
 ### 3. **Advanced Game Features**
 - **Bot Control Panel**: Debugging, ML, Security, Optimization skills

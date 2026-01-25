@@ -1,0 +1,37 @@
+<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:0.1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.1" />
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3" />
+    </filter>
+  </defs>
+  
+  <rect width="800" height="400" fill="url(#bgGrad)" rx="12" />
+  
+  <g transform="translate(100, 100)">
+    <rect width="150" height="150" fill="#10b981" opacity="0.2" rx="8" />
+    <circle cx="75" cy="75" r="40" fill="#10b981" />
+    <text x="75" y="85" font-family="Arial, sans-serif" font-size="36" fill="white" text-anchor="middle" font-weight="bold">🏥</text>
+    <text x="75" y="185" font-family="Arial, sans-serif" font-size="14" fill="#6b7280" text-anchor="middle" font-weight="600">Healthcare</text>
+  </g>
+  
+  <g transform="translate(325, 100)">
+    <rect width="150" height="150" fill="#3b82f6" opacity="0.2" rx="8" />
+    <circle cx="75" cy="75" r="40" fill="#3b82f6" />
+    <text x="75" y="85" font-family="Arial, sans-serif" font-size="36" fill="white" text-anchor="middle" font-weight="bold">💼</text>
+    <text x="75" y="185" font-family="Arial, sans-serif" font-size="14" fill="#6b7280" text-anchor="middle" font-weight="600">Finance</text>
+  </g>
+  
+  <g transform="translate(550, 100)">
+    <rect width="150" height="150" fill="#f59e0b" opacity="0.2" rx="8" />
+    <circle cx="75" cy="75" r="40" fill="#f59e0b" />
+    <text x="75" y="85" font-family="Arial, sans-serif" font-size="36" fill="white" text-anchor="middle" font-weight="bold">🛒</text>
+    <text x="75" y="185" font-family="Arial, sans-serif" font-size="14" fill="#6b7280" text-anchor="middle" font-weight="600">E-commerce</text>
+  </g>
+  
+  <text x="400" y="320" font-family="Arial, sans-serif" font-size="20" fill="#6b7280" text-anchor="middle" font-weight="600">Industry-Specific AI Solutions</text>
+  <text x="400" y="350" font-family="Arial, sans-serif" font-size="14" fill="#9ca3af" text-anchor="middle">Specialized AI agents tailored to specific industry needs</text>
+</svg>

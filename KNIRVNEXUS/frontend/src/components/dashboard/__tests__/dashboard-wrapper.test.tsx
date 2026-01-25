@@ -256,7 +256,7 @@ describe('DashboardWrapper', () => {
     render(<DashboardWrapper><div>Test Content</div></DashboardWrapper>);
 
     expect(screen.getByText('KNIRV NEXUS')).toBeInTheDocument();
-    expect(screen.getByText('Decentralized Validation Environment')).toBeInTheDocument();
+    expect(screen.getByText('Deterministic Validation Environment')).toBeInTheDocument();
     expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
 

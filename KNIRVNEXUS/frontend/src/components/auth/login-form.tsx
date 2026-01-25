@@ -80,7 +80,7 @@ export function LoginForm() {
             </div>
             <CardTitle className="text-2xl">KNIRV NEXUS</CardTitle>
             <CardDescription>
-              Decentralized Validation Environment
+              Deterministic Validation Environment
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -226,7 +226,7 @@ export function LoginForm() {
         </Card>
 
         <div className="text-center text-sm text-muted-foreground">
-          <p>Secure access to the KNIRV Decentralized Validation Environment</p>
+          <p>Secure access to the KNIRV Deterministic Validation Environment</p>
           <p className="mt-1">Role-based authentication with TEE attestation</p>
         </div>
       </div>

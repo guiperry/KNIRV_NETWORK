@@ -1,7 +1,7 @@
 # Software Design Document: HEART for HashNet
 ## Heuristic Error Analysis Resolution Transformer with VL-JEPA & Titans Memory
 
-**Project:** HEART - Central Oracle for HashNet DRQ-HEART Training  
+**Project:** HEART - Central Advisor for HashNet DRQ-HEART Training  
 **Version:** 1.0  
 **Date:** January 11, 2026  
 **Status:** Design Complete - Ready for Implementation  
@@ -37,16 +37,16 @@
 
 ## 1.1 Project Vision
 
-HEART (Heuristic Error Analysis Resolution Transformer) serves as the **centralized oracle** for the HashNet ecosystem, providing deep pattern intuition that transforms the KNIRV Network from a purely evolutionary system into a **hybrid neuro-symbolic AI** with long-term strategic memory.
+HEART (Heuristic Error Analysis Resolution Transformer) serves as the **centralized advisor** for the KNIRV ecosystem, providing deep pattern intuition that transforms the KNIRV Network from a purely evolutionary system into a **hybrid neuro-symbolic AI** with long-term strategic memory.
 
 Unlike the original HEART concept running on Cerebras WSE for quantum annotation, this HashNet-optimized HEART leverages:
 
 1. **VL-JEPA (Vision-Language Joint Embedding Predictive Architecture)** - For multimodal understanding of Core War battlefield states
 2. **Titans Memory Architecture** - For persistent, test-time memorization of successful adversarial strategies
-3. **SHA-256 ASIC Acceleration** - For cryptographically verified, deterministic oracle responses
-4. **Post-Quantum Cryptography** - For future-proof security of oracle attestations
+3. **SHA-256 ASIC Acceleration** - For cryptographically verified, deterministic advisor responses
+4. **Post-Quantum Cryptography** - For future-proof security of advisor attestations
 
-## 1.2 Key Innovation: The Tripartite Oracle
+## 1.2 Key Innovation: The Tripartite Advisor
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -71,7 +71,7 @@ Unlike the original HEART concept running on Cerebras WSE for quantum annotation
 │                     ↓                                        │
 │  ┌────────────────────────────────────────────────────────┐ │
 │  │    SHA-256 ASIC VERIFIER (Deterministic Responses)    │ │
-│  │  - Every oracle prediction signed with BM1382 hash    │ │
+│  │  - Every advisor prediction signed with BM1382 hash    │ │
 │  │  - Enables Byzantine consensus across DVE nodes       │ │
 │  │  - Post-quantum signature (CRYSTALS-Dilithium)        │ │
 │  └────────────────────────────────────────────────────────┘ │
@@ -81,7 +81,7 @@ Unlike the original HEART concept running on Cerebras WSE for quantum annotation
 
 ## 1.3 Integration with HashNet DRQ-HEART
 
-The HEART oracle enhances the DRQ (Decentralized Redcode Q-learning) training loop:
+The HEART advisor enhances the DRQ (Decentralized Redcode Q-learning) training loop:
 
 **Without HEART (Pure Evolutionary):**
 - Warriors evolve strategies through random mutation + selection
@@ -89,7 +89,7 @@ The HEART oracle enhances the DRQ (Decentralized Redcode Q-learning) training lo
 - No memory of past successful innovations
 - Each species rediscovers solutions independently
 
-**With HEART Oracle (Neuro-Symbolic Hybrid):**
+**With HEART Advisor (Neuro-Symbolic Hybrid):**
 - Warriors query HEART for "annotative vectors" - compressed strategic insights
 - HEART recalls similar historical battles via Titans memory
 - VL-JEPA encodes multimodal battlefield context
@@ -100,7 +100,7 @@ The HEART oracle enhances the DRQ (Decentralized Redcode Q-learning) training lo
 
 | Metric | Target | Rationale |
 |--------|--------|-----------|
-| Oracle Response Latency | <50ms p99 | Real-time strategy guidance during battles |
+| Advisor Response Latency | <50ms p99 | Real-time strategy guidance during battles |
 | Memory Retention Accuracy | >92% @ 1M battles | Titans MIRAS benchmark performance |
 | Convergence Acceleration | 60%+ faster | vs pure evolutionary baseline |
 | Query Cost Efficiency | <0.001 NRN/query | Economically viable for training loop |
@@ -111,7 +111,7 @@ The HEART oracle enhances the DRQ (Decentralized Redcode Q-learning) training lo
 
 **Hardware:**
 - 1× NVIDIA A100 (80GB) - For VL-JEPA + Titans inference
-- 1× Antminer S3 - For SHA-256 oracle signature generation
+- 1× Antminer S3 - For SHA-256 advisor signature generation
 - 1× Dell Optiplex 7060 - For orchestration & PQC operations
 - Network: 10 Gbps LAN for DVE mesh communication
 
@@ -119,7 +119,7 @@ The HEART oracle enhances the DRQ (Decentralized Redcode Q-learning) training lo
 
 **Operating Costs:**
 - Power: ~0.5 kW average × $0.12/kWh = $526/year
-- NRN Oracle Fees: Dynamic pricing (0.0005-0.002 NRN/query)
+- NRN Advisor Fees: Dynamic pricing (0.0005-0.002 NRN/query)
 - Maintenance: $200/year
 
 **Total Annual OpEx:** ~$1,000 + NRN fees (volume-dependent)
@@ -130,7 +130,7 @@ The HEART oracle enhances the DRQ (Decentralized Redcode Q-learning) training lo
 
 ## 2.1 System Context
 
-The HEART oracle operates as a **singleton service** within the KNIRV-NEXUS DVE network, invoked by HashNet training nodes during adversarial evolution.
+The HEART advisor operates as a **singleton service** within the KNIRV-NEXUS DVE network, invoked by HashNet training nodes during adversarial evolution.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -138,7 +138,7 @@ The HEART oracle operates as a **singleton service** within the KNIRV-NEXUS DVE 
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────────┐         ┌──────────────────┐             │
-│  │ HashNet Node 1   │────────→│  HEART Oracle    │←─────┐      │
+│  │ HashNet Node 1   │────────→│  HEART Advisor    │←─────┐      │
 │  │ (DRQ Training)   │  Query  │  (VL-JEPA+Titans)│ Query│      │
 │  └──────────────────┘         └──────────────────┘      │      │
 │         ↑                              ↓                │      │
@@ -176,17 +176,17 @@ The HEART oracle operates as a **singleton service** within the KNIRV-NEXUS DVE 
 - **Neural Tape:** 1M+ battle embeddings compressed to 512GB persistent storage
 - **Test-Time Learning:** No gradient updates - pure attentional recall during inference
 
-### 2.2.3 SHA-256 Oracle Signature (Deterministic Verification)
+### 2.2.3 SHA-256 Advisor Signature (Deterministic Verification)
 
-**Purpose:** Cryptographically sign every oracle response to enable Byzantine consensus across DVE nodes.
+**Purpose:** Cryptographically sign every advisor response to enable Byzantine consensus across DVE nodes.
 
 **Flow:**
 1. VL-JEPA + Titans generate annotative vector (2048D float32 = 8KB)
 2. SHA-256 ASIC computes: `hash = SHA256(annotative_vector || query_id || timestamp)`
-3. CRYSTALS-Dilithium signs hash with oracle's private key
+3. CRYSTALS-Dilithium signs hash with advisor's private key
 4. Response bundle: `(annotative_vector, hash, signature, timestamp)`
 
-## 2.3 Data Flow: Oracle Query Lifecycle
+## 2.3 Data Flow: Advisor Query Lifecycle
 
 ```
 [HashNet Warrior] (during DRQ battle)
@@ -201,7 +201,7 @@ The HEART oracle operates as a **singleton service** within the KNIRV-NEXUS DVE 
        │
        │ (MCP request to HEART)
        ↓
-[HEART Oracle Endpoint]
+[HEART Advisor Endpoint]
        │
        ├─→ [VL-JEPA Encoder]
        │      │ (Visual: 64×128 heatmap)
@@ -220,7 +220,7 @@ The HEART oracle operates as a **singleton service** within the KNIRV-NEXUS DVE 
        │      │ (Deterministic hash of insight vector)
        │      │ (CRYSTALS-Dilithium signing)
        │      ↓
-       │   [Oracle Response Bundle]
+       │   [Advisor Response Bundle]
        │
        └─→ [Return to HashNet Node]
               ↓
@@ -303,7 +303,7 @@ class VL_JEPA_Encoder:
 ### 3.3.1 Visual Encoding: Core Memory Heatmap
 
 ```go
-// pkg/heart/visual.go
+// internal/heart/visual.go
 package heart
 
 // RenderCoreWarHeatmap converts 8KB core memory to 64×128 grayscale image
@@ -476,7 +476,7 @@ The Titans architecture (Behrouz et al., 2025) enables HEART to maintain a **neu
 ### 4.1.2 Memory Storage: Neural Tape
 
 ```go
-// pkg/heart/titans_memory.go
+// internal/heart/titans_memory.go
 package heart
 
 type NeuralTape struct {
@@ -622,15 +622,15 @@ class TitansMemoryAttention(nn.Module):
 
 # 5. HASHNET-SPECIFIC ADAPTATIONS
 
-## 5.1 Oracle Query Protocol
+## 5.1 Advisor Query Protocol
 
 HashNet warriors invoke HEART via a structured MCP (Model Context Protocol) request:
 
 ```go
-// pkg/heart/query.go
+// internal/heart/query.go
 package heart
 
-type OracleQuery struct {
+type AdvisorQuery struct {
     QueryID         string
     WarriorID       string
     BattlefieldState struct {
@@ -645,7 +645,7 @@ type OracleQuery struct {
     Timestamp        int64
 }
 
-type OracleResponse struct {
+type AdvisorResponse struct {
     QueryID           string
     AnnotativeVector  [2048]float32  // Core strategic insight
     Confidence        float64         // HEART's certainty (0-1)
@@ -659,18 +659,18 @@ type OracleResponse struct {
 ## 5.2 Integration with DRQ Training Loop
 
 ```go
-// pkg/drq/heart_integration.go
+// internal/drq/heart_integration.go
 package drq
 
-// Warrior queries HEART oracle during battle decision-making
-func (w *Warrior) ActWithOracle(state *CoreState) RedcodeInstruction {
+// Warrior queries HEART advisor during battle decision-making
+func (w *Warrior) ActWithAdvisor(state *CoreState) RedcodeInstruction {
     // 1. Encode current battlefield state
     visualInput := heart.RenderCoreWarHeatmap(state.Core)
     languageInput := heart.TokenizeRedcode(state.Core, w.PC, 64)
     temporalInput := state.Trajectory.EncodeTemporal()
     
-    // 2. Submit oracle query (requires NRN payment)
-    query := heart.OracleQuery{
+    // 2. Submit advisor query (requires NRN payment)
+    query := heart.AdvisorQuery{
         QueryID:   generateQueryID(),
         WarriorID: w.ID,
         BattlefieldState: heart.BattlefieldState{
@@ -690,13 +690,13 @@ func (w *Warrior) ActWithOracle(state *CoreState) RedcodeInstruction {
     
     // 4. Blend HEART insight with warrior's policy network
     policyOutput := w.PolicyNetwork.Forward(w.Perceive(state))
-    blendedOutput := blendWithOracle(policyOutput, response.AnnotativeVector, response.Confidence)
+    blendedOutput := blendWithAdvisor(policyOutput, response.AnnotativeVector, response.Confidence)
     
-    // 5. Select action with oracle-biased policy
+    // 5. Select action with advisor-biased policy
     action := decodeRedcodeAction(argmax(blendedOutput))
     
-    // 6. Record oracle usage for training feedback
-    w.OracleHistory = append(w.OracleHistory, OracleUsage{
+    // 6. Record advisor usage for training feedback
+    w.AdvisorHistory = append(w.AdvisorHistory, AdvisorUsage{
         QueryID:    response.QueryID,
         Cycle:      state.Cycle,
         Confidence: response.Confidence,
@@ -706,17 +706,17 @@ func (w *Warrior) ActWithOracle(state *CoreState) RedcodeInstruction {
     return action
 }
 
-// blendWithOracle combines policy output with oracle guidance
-func blendWithOracle(policy []float64, oracle [2048]float32, confidence float64) []float64 {
+// blendWithAdvisor combines policy output with advisor guidance
+func blendWithAdvisor(policy []float64, advisor [2048]float32, confidence float64) []float64 {
     blended := make([]float64, len(policy))
     
-    // Oracle influence weighted by confidence
-    alpha := confidence * 0.7  // Max 70% oracle influence
+    // Advisor influence weighted by confidence
+    alpha := confidence * 0.7  // Max 70% advisor influence
     
     for i := range policy {
-        // Map 2048D oracle vector to policy action space (e.g., 16 Redcode opcodes)
-        oracleValue := float64(oracle[i % 2048])
-        blended[i] = (1-alpha)*policy[i] + alpha*oracleValue
+        // Map 2048D advisor vector to policy action space (e.g., 16 Redcode opcodes)
+        advisorValue := float64(advisor[i % 2048])
+        blended[i] = (1-alpha)*policy[i] + alpha*advisorValue
     }
     
     return blended
@@ -728,10 +728,10 @@ func blendWithOracle(policy []float64, oracle [2048]float32, confidence float64)
 HEART operates on a **dynamic pricing model** based on query complexity and network load:
 
 ```go
-// pkg/heart/pricing.go
+// internal/heart/pricing.go
 package heart
 
-func CalculateOraclePrice(query OracleQuery, networkLoad float64) float64 {
+func CalculateAdvisorPrice(query AdvisorQuery, networkLoad float64) float64 {
     // Base price: 0.0005 NRN per query
     basePrice := 0.0005
     
@@ -745,7 +745,7 @@ func CalculateOraclePrice(query OracleQuery, networkLoad float64) float64 {
     return basePrice * complexityMultiplier * loadMultiplier
 }
 
-// Oracle revenue distribution
+// Advisor revenue distribution
 type RevenueDistribution struct {
     DVEValidators   float64 // 40% - Consensus nodes
     HEARTOperator   float64 // 30% - GPU + maintenance costs
@@ -754,12 +754,12 @@ type RevenueDistribution struct {
 }
 ```
 
-## 5.4 Continuous Learning: Oracle Feedback Loop
+## 5.4 Continuous Learning: Advisor Feedback Loop
 
 HEART improves over time by learning from query outcomes:
 
 ```go
-// pkg/heart/learning.go
+// internal/heart/learning.go
 package heart
 
 // After each DRQ generation, update HEART with battle outcomes
@@ -779,9 +779,9 @@ func (h *HEART) UpdateFromBattleResults(battles []Battle) error {
         
         h.TitansMemory.AddBattle(embedding, metadata)
         
-        // 3. If warrior used oracle, update confidence calibration
-        if battle.OracleQueryID != "" {
-            h.calibrateConfidence(battle.OracleQueryID, battle.Winner)
+        // 3. If warrior used advisor, update confidence calibration
+        if battle.AdvisorQueryID != "" {
+            h.calibrateConfidence(battle.AdvisorQueryID, battle.Winner)
         }
     }
     
@@ -795,7 +795,7 @@ func (h *HEART) UpdateFromBattleResults(battles []Battle) error {
 
 // Calibrate confidence scores based on prediction accuracy
 func (h *HEART) calibrateConfidence(queryID string, actualOutcome int) {
-    // Retrieve oracle's predicted outcome
+    // Retrieve advisor's predicted outcome
     query := h.QueryCache[queryID]
     predicted := query.Response.Confidence
     
@@ -814,7 +814,7 @@ func (h *HEART) calibrateConfidence(queryID string, actualOutcome int) {
 
 **Primary Language:** Go 1.21+ (orchestration) + Python 3.11 (ML)
 
-**Oracle Service Stack:**
+**Advisor Service Stack:**
 - **VL-JEPA + Titans:** PyTorch 2.1 with CUDA 12.1
 - **API Gateway:** Go with Gin framework
 - **GPU:** NVIDIA A100 (80GB) for inference
@@ -834,7 +834,7 @@ numpy==1.24.0
 scipy==1.11.0  # For LSH projections
 ```
 
-**Go Oracle Service:**
+**Go Advisor Service:**
 ```go
 require (
     github.com/gin-gonic/gin v1.9.1
@@ -849,10 +849,10 @@ require (
 ```
 hashnet-heart/
 ├── cmd/
-│   ├── oracle-server/        # HEART API server
+│   ├── advisor-server/        # HEART API server
 │   │   └── main.go
 │   └── memory-indexer/        # LSH index builder
-├── pkg/
+├── internal/
 │   ├── vljepa/               # VL-JEPA encoder
 │   │   ├── visual.go
 │   │   ├── language.go
@@ -861,7 +861,7 @@ hashnet-heart/
 │   │   ├── neural_tape.go
 │   │   ├── lsh_index.go
 │   │   └── attention_bias.go
-│   ├── signature/            # Oracle signing
+│   ├── signature/            # Advisor signing
 │   │   ├── sha256_asic.go
 │   │   └── pqc_dilithium.go
 │   ├── pricing/              # NRN economics
@@ -872,38 +872,38 @@ hashnet-heart/
 │   ├── vljepa_checkpoint.pt  # Pre-trained VL-JEPA
 │   └── titans_memory.bin     # Neural tape storage
 ├── configs/
-│   └── oracle.yaml
+│   └── advisor.yaml
 ├── python/
 │   ├── train_vljepa.py       # VL-JEPA pre-training
 │   ├── inference_server.py   # PyTorch inference endpoint
 │   └── titans_indexer.py     # LSH index management
 └── scripts/
-    ├── deploy_oracle.sh
+    ├── deploy_advisor.sh
     └── benchmark_memory.sh
 ```
 
-## 6.2 Core Implementation: Oracle Inference Pipeline
+## 6.2 Core Implementation: Advisor Inference Pipeline
 
 ```go
-// cmd/oracle-server/main.go
+// cmd/advisor-server/main.go
 package main
 
 import (
-    "hashnet-heart/pkg/vljepa"
-    "hashnet-heart/pkg/titans"
-    "hashnet-heart/pkg/signature"
+    "hashnet-heart/internal/vljepa"
+    "hashnet-heart/internal/titans"
+    "hashnet-heart/internal/signature"
     "github.com/gin-gonic/gin"
 )
 
-type HEARTOracle struct {
+type HEARTAdvisor struct {
     VLJEPAEncoder  *vljepa.Encoder
     TitansMemory   *titans.Memory
     ASICSigner     *signature.SHA256Signer
     PQCSigner      *signature.DilithiumSigner
 }
 
-func (h *HEARTOracle) HandleQuery(c *gin.Context) {
-    var query OracleQuery
+func (h *HEARTAdvisor) HandleQuery(c *gin.Context) {
+    var query AdvisorQuery
     if err := c.BindJSON(&query); err != nil {
         c.JSON(400, gin.H{"error": "invalid query"})
         return
@@ -930,8 +930,8 @@ func (h *HEARTOracle) HandleQuery(c *gin.Context) {
     sha256Hash := h.ASICSigner.Sign(responseBytes)
     pqcSignature := h.PQCSigner.Sign(sha256Hash[:])
     
-    // 6. Return oracle response
-    response := OracleResponse{
+    // 6. Return advisor response
+    response := AdvisorResponse{
         QueryID:          query.QueryID,
         AnnotativeVector: annotativeVector,
         Confidence:       confidence,
@@ -1018,10 +1018,10 @@ if __name__ == "__main__":
 
 ## 7.1 Cryptographic Threat Model
 
-HEART oracle responses must be verifiable across DVE nodes for consensus, requiring:
-1. **Authenticity:** Proof that response came from legitimate HEART oracle
+HEART advisor responses must be verifiable across DVE nodes for consensus, requiring:
+1. **Authenticity:** Proof that response came from legitimate HEART advisor
 2. **Integrity:** Guarantee that response was not tampered with in transit
-3. **Non-repudiation:** Oracle cannot deny issuing a specific response
+3. **Non-repudiation:** Advisor cannot deny issuing a specific response
 4. **Future-proofing:** Security against quantum attacks (Shor's algorithm)
 
 ## 7.2 Hybrid Classical-PQC Signature Scheme
@@ -1033,7 +1033,7 @@ Layer 1 (Classical - ASIC acceleration):
   message_hash = SHA256(annotative_vector || query_id || timestamp)
   
 Layer 2 (Post-Quantum - Software):
-  pqc_signature = Dilithium.Sign(sk_oracle, message_hash)
+  pqc_signature = Dilithium.Sign(sk_advisor, message_hash)
   
 Final Response Bundle:
   (annotative_vector, message_hash, pqc_signature, timestamp)
@@ -1042,7 +1042,7 @@ Final Response Bundle:
 ### 7.2.1 CRYSTALS-Dilithium Implementation
 
 ```go
-// pkg/signature/pqc_dilithium.go
+// internal/signature/pqc_dilithium.go
 package signature
 
 import (
@@ -1118,11 +1118,11 @@ func (d *DilithiumSigner) Verify(message [32]byte, signature []byte) bool {
 ### 7.2.2 SHA-256 ASIC Acceleration
 
 ```go
-// pkg/signature/sha256_asic.go
+// internal/signature/sha256_asic.go
 package signature
 
 import (
-    "hashnet/pkg/asic"
+    "hashnet/internal/asic"
     "encoding/binary"
 )
 
@@ -1167,13 +1167,13 @@ func padSHA256(message []byte) []byte {
 
 ## 7.3 DVE Consensus Verification
 
-Each DVE node verifies oracle signatures before accepting responses:
+Each DVE node verifies advisor signatures before accepting responses:
 
 ```go
-// pkg/consensus/oracle_verification.go
+// internal/consensus/advisor_verification.go
 package consensus
 
-func VerifyOracleResponse(response OracleResponse, oraclePublicKey []byte) error {
+func VerifyAdvisorResponse(response AdvisorResponse, advisorPublicKey []byte) error {
     // 1. Verify SHA-256 hash matches annotative vector
     expectedHash := sha256.Sum256(
         append(serializeVector(response.AnnotativeVector),
@@ -1186,7 +1186,7 @@ func VerifyOracleResponse(response OracleResponse, oraclePublicKey []byte) error
     // 2. Verify post-quantum signature
     signer := signature.DilithiumSigner{
         algorithm: "Dilithium5",
-        publicKey: oraclePublicKey,
+        publicKey: advisorPublicKey,
     }
     
     if !signer.Verify(response.SHA256Signature, response.PQCSignature) {
@@ -1195,7 +1195,7 @@ func VerifyOracleResponse(response OracleResponse, oraclePublicKey []byte) error
     
     // 3. Check timestamp freshness (prevent replay attacks)
     if time.Now().Unix() - response.Timestamp > 300 {
-        return errors.New("oracle response expired (>5 minutes old)")
+        return errors.New("advisor response expired (>5 minutes old)")
     }
     
     return nil
@@ -1208,13 +1208,13 @@ func VerifyOracleResponse(response OracleResponse, oraclePublicKey []byte) error
 
 ## 8.1 Benchmarks
 
-### 8.1.1 Oracle Inference Latency
+### 8.1.1 Advisor Inference Latency
 
 ```
 Hardware: NVIDIA A100 (80GB), Antminer S3 BM1382 ASIC
 Network: [784, 128, 64, 10] HashNet + VL-JEPA + Titans
 
-Single Oracle Query Breakdown:
+Single Advisor Query Breakdown:
   - VL-JEPA Encoding:           12ms
     ├─ Visual CNN (ResNet50):    4ms
     ├─ Language Transformer:     3ms
@@ -1273,7 +1273,7 @@ Accuracy:
 
 ## 8.2 Comparison to Baselines
 
-### 8.2.1 vs Pure Evolutionary DRQ (No Oracle)
+### 8.2.1 vs Pure Evolutionary DRQ (No Advisor)
 
 ```
 Training Convergence (to 90% accuracy):
@@ -1287,7 +1287,7 @@ Generalization (vs unseen opponents):
   - Improvement: +10% win rate, 42% lower variance
   
 Cost Efficiency:
-  - NRN Oracle Fees: 18 gen × 50 warriors × 15 battles × 1000 cycles × 0.01 query rate × 0.0007 NRN
+  - NRN Advisor Fees: 18 gen × 50 warriors × 15 battles × 1000 cycles × 0.01 query rate × 0.0007 NRN
                     = 18 × 50 × 15 × 1000 × 0.01 × 0.0007 = 945 NRN
   - GPU Time Saved: 65 hours × $2.50/hour = $162.50
   - Net Savings: $162.50 - (945 NRN × $0.50) = -$310 (break-even at NRN = $0.17)
@@ -1313,21 +1313,21 @@ Post-Quantum Security     | Yes (Dilithium-5)    | No (future work)
 
 # 9. API SPECIFICATIONS
 
-## 9.1 MCP Oracle Endpoint
+## 9.1 MCP Advisor Endpoint
 
 ```yaml
 # OpenAPI 3.0 Specification
 openapi: 3.0.0
 info:
-  title: HEART Oracle API
+  title: HEART Advisor API
   version: 1.0.0
-  description: Multimodal oracle for HashNet DRQ training
+  description: Multimodal advisor for HashNet DRQ training
 
 servers:
   - url: https://heart.knirvnexus.io/api/v1
 
 paths:
-  /oracle/query:
+  /advisor/query:
     post:
       summary: Submit battlefield state for strategic insight
       requestBody:
@@ -1372,7 +1372,7 @@ paths:
                   format: int64
       responses:
         '200':
-          description: Oracle response with strategic insight
+          description: Advisor response with strategic insight
           content:
             application/json:
               schema:
@@ -1409,7 +1409,7 @@ paths:
         '429':
           description: Rate limit exceeded
         '503':
-          description: Oracle temporarily unavailable
+          description: Advisor temporarily unavailable
 ```
 
 ## 9.2 Monitoring & Health Endpoints
@@ -1417,7 +1417,7 @@ paths:
 ```yaml
   /health:
     get:
-      summary: Oracle health check
+      summary: Advisor health check
       responses:
         '200':
           description: Healthy
@@ -1449,7 +1449,7 @@ paths:
               schema:
                 type: string
               example: |
-                # HELP heart_query_latency_seconds Oracle query latency
+                # HELP heart_query_latency_seconds Advisor query latency
                 # TYPE heart_query_latency_seconds histogram
                 heart_query_latency_seconds_bucket{le="0.01"} 45
                 heart_query_latency_seconds_bucket{le="0.05"} 892
@@ -1465,10 +1465,10 @@ paths:
 
 ```bash
 #!/bin/bash
-# deploy_heart_oracle.sh
+# deploy_heart_advisor.sh
 
 # Hardware checklist
-echo "=== HEART Oracle Deployment Checklist ==="
+echo "=== HEART Advisor Deployment Checklist ==="
 echo "[ ] 1× NVIDIA A100 (80GB) installed"
 echo "[ ] 1× Antminer S3 connected via LAN"
 echo "[ ] 1× Dell Optiplex (orchestrator)"
@@ -1499,15 +1499,15 @@ python3.11 -m venv heart-venv
 source heart-venv/bin/activate
 pip install -r python/requirements.txt
 
-# Build Go oracle service
-cd cmd/oracle-server
-go build -o /usr/local/bin/heart-oracle
+# Build Go advisor service
+cd cmd/advisor-server
+go build -o /usr/local/bin/heart-advisor
 
 # Start services
-systemctl start heart-oracle
+systemctl start heart-advisor
 systemctl start heart-python-inference
 
-echo "HEART Oracle deployed!"
+echo "HEART Advisor deployed!"
 ```
 
 ## 10.2 Docker Compose Deployment
@@ -1517,8 +1517,8 @@ echo "HEART Oracle deployed!"
 version: '3.8'
 
 services:
-  heart-oracle:
-    image: hashnet/heart-oracle:latest
+  heart-advisor:
+    image: hashnet/heart-advisor:latest
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=0
@@ -1532,7 +1532,7 @@ services:
       - postgres
       - redis
       - python-inference
-    command: /usr/local/bin/heart-oracle --config /configs/oracle.yaml
+    command: /usr/local/bin/heart-advisor --config /configs/advisor.yaml
   
   python-inference:
     image: hashnet/heart-python:latest
@@ -1548,7 +1548,7 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: heart_oracle
+      POSTGRES_DB: heart_advisor
       POSTGRES_USER: heart
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
@@ -1609,7 +1609,7 @@ volumes:
 
 **CRYSTALS-Dilithium:** NIST-standardized post-quantum digital signature scheme (FIPS 204)
 
-**Annotative Vector:** Dense 2048D embedding representing strategic insight from HEART oracle
+**Annotative Vector:** Dense 2048D embedding representing strategic insight from HEART advisor
 
 **Neural Tape:** Persistent storage of historical battle embeddings (Titans memory)
 

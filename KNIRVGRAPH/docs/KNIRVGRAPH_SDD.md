@@ -975,7 +975,7 @@ func (sde *SkillDiscoveryEngine) DiscoverSkill(
         return nil, err
     }
     
-    // Canonical minting on KNIRVCHAIN
+    // Canonical minting on KNIRVCHAIN (Lorax)
     err = sde.knirvchain.MintSkillNode(skillNode)
     if err != nil {
         return nil, err

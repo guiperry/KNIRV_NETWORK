@@ -344,9 +344,9 @@ WebAssembly implementation of the KNIRV cognitive shell with external AI integra
 
 **Location:** `KNIRVNEXUS/README.md`
 
-# KNIRV-NEXUS: Decentralized Validation Environment
+# KNIRV-NEXUS: Deterministic Validation Environment
 
-KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable pla...
+KNIRV-NEXUS is a unified implementation of the Deterministic Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable pla...
 
 [View Full Documentation](KNIRVNEXUS/README.md)
 
@@ -646,9 +646,9 @@ This directory contains all configuration files for the KNIRVTESTNET deployment.
 
 **Location:** `KNIRVTESTNET/data/knirvnexus/portal/README.md`
 
-# KNIRV-NEXUS: Decentralized Validation Environment
+# KNIRV-NEXUS: Deterministic Validation Environment
 
-KNIRV-NEXUS is a unified implementation of the Decentralized Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable pla...
+KNIRV-NEXUS is a unified implementation of the Deterministic Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable pla...
 
 [View Full Documentation](KNIRVTESTNET/data/knirvnexus/portal/README.md)
 

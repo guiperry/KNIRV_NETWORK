@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// DVENode represents a DVE (Decentralized Validation Environment) node
+// DVENode represents a DVE (Deterministic Validation Environment) node
 type DVENode struct {
 	ID              string    `json:"id"`
 	Name            string    `json:"name"`
