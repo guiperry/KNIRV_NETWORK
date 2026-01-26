@@ -6,7 +6,7 @@ import { initSentry } from './utils/sentry';
 
 // Receiver components
 import { KnirvShell } from './components/KnirvShell';
-import { VoiceControl } from './components/VoiceControl';
+
 import { NetworkStatus } from './components/NetworkStatus';
 import { NRVVisualization } from './components/NRVVisualization';
 import { SlidingPanel } from './components/SlidingPanel';
@@ -14,9 +14,14 @@ import { EdgeColoring } from './components/EdgeColoring';
 import { AgentManager } from './components/AgentManager';
 import { FabricAlgorithm } from './components/FabricAlgorithm';
 import { CognitiveShellInterface } from './components/CognitiveShellInterface';
+import { ChatBrainProvider } from './contexts/ChatBrainContext';
 import { CortexBuilder } from './components/CortexBuilder';
 import { ApiKeyManager } from './components/ApiKeyManager';
 import USDCToNRNPurchase from './components/USDCToNRNPurchase';
+import { SlideDownModal } from './components/SlideDownModal';
+import { SkillsModalContent } from './components/modals/SkillsModalContent';
+import { UDCModalContent } from './components/modals/UDCModalContent';
+import { WalletModalContent } from './components/modals/WalletModalContent';
 interface CognitiveState {
   activeSkills: string[];
   confidenceLevel: number;
@@ -29,8 +34,10 @@ const UDC = lazy(() => import('./pages/UDC'));
 const WalletPage = lazy(() => import('./pages/Wallet'));
 const ChatBrain = lazy(() => import('./pages/ChatBrain'));
 
+
 // Types
 import { Agent } from './types/common';
+import { useKnirvana } from './components/game/stores/useKnirvana';
 
 
 
@@ -151,7 +158,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ onClick, children, icon, className 
 
 // Receiver Interface Component
 const ReceiverInterface = () => {
-  const navigate = useNavigate();
+  const gameStore = useKnirvana();
   const [shellStatus, setShellStatus] = useState<'idle' | 'processing' | 'listening' | 'error'>('idle');
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [currentNRVs, setCurrentNRVs] = useState<NRV[]>([]);
@@ -163,6 +170,7 @@ const ReceiverInterface = () => {
   const [isCortexBuilderOpen, setIsCortexBuilderOpen] = useState(false);
   const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
   const [isUSDCPurchaseOpen, setIsUSDCPurchaseOpen] = useState(false);
+  const [activeModal, setActiveModal] = useState<'skills' | 'udc' | 'wallet' | null>(null);
   const [networkConnections] = useState<{
     [key: string]: 'connected' | 'disconnected' | 'connecting';
   }>({
@@ -175,6 +183,20 @@ const ReceiverInterface = () => {
   });
 
   const shellRef = useRef<HTMLDivElement>(null);
+
+  // Sync NRN balance between game and controller
+  useEffect(() => {
+    if (gameStore.nrnBalance !== nrnBalance) {
+      setNrnBalance(gameStore.nrnBalance);
+    }
+  }, [gameStore.nrnBalance, nrnBalance, setNrnBalance]);
+
+  // Sync shell status based on game phase
+  useEffect(() => {
+    if (gameStore.gamePhase === 'playing') {
+      setShellStatus('idle');
+    }
+  }, [gameStore.gamePhase, setShellStatus]);
 
   useEffect(() => {
     // Initialize mock agents using the new Agent interface
@@ -239,50 +261,6 @@ const ReceiverInterface = () => {
     ];
     setAvailableAgents(mockAgents);
   }, []);
-
-  const handleVoiceCommand = (command: string) => {
-    setShellStatus('processing');
-
-    setTimeout(() => {
-      const lowerCommand = command.toLowerCase();
-
-      if (lowerCommand.includes('identify problems')) {
-        const newNRV: NRV = {
-          id: `nrv-${Date.now()}`,
-          problemDescription: `User reported issue: ${command}`,
-          sourceID: 'KNIRV-CORTEX-main',
-          inputType: 'Voice',
-          temporalContext: new Date(),
-          severity: 'Medium',
-          suggestedSolutionType: 'investigation',
-          status: 'Identified'
-        };
-        setCurrentNRVs(prev => [...prev, newNRV]);
-        setShellStatus('idle');
-      } else if (lowerCommand.includes('show network')) {
-        setActivePanels(['network-status']);
-        setShellStatus('idle');
-      } else if (lowerCommand.includes('assign agents')) {
-        setActivePanels(['agent-manager']);
-        setShellStatus('idle');
-      } else if (lowerCommand.includes('cognitive mode') || lowerCommand.includes('enable cognitive')) {
-        setCognitiveMode(true);
-        setActivePanels(prev => [...prev, 'cognitive-shell']);
-        setShellStatus('idle');
-      } else if (lowerCommand.includes('start learning')) {
-        setActivePanels(prev => [...prev, 'cognitive-shell']);
-        setShellStatus('idle');
-      } else if (lowerCommand.includes('capture screen')) {
-        handleScreenshotCapture();
-        return;
-      } else if (lowerCommand.includes('toggle network')) {
-        handleNetworkToggle();
-        setShellStatus('idle');
-      } else {
-        setShellStatus('idle');
-      }
-    }, 1500);
-  };
 
   const handleScreenshotCapture = () => {
     setShellStatus('processing');
@@ -464,12 +442,12 @@ const ReceiverInterface = () => {
     }
   };
 
-  const handleNetworkToggle = () => {
-    setActivePanels(prev =>
-      prev.includes('network-status')
-        ? prev.filter(id => id !== 'network-status')
-        : [...prev, 'network-status']
-    );
+  const handleSubmitDemo = () => {
+    // Toggle the voice demo functionality
+    setIsVoiceActive(prev => !prev);
+    
+    // The voice demo simulation will be triggered when isVoiceActive is toggled
+    // This allows starting and stopping the voice demo
   };
 
   const handleNRVMapping = (nrv: NRV) => {
@@ -517,6 +495,13 @@ const ReceiverInterface = () => {
       setSelectedNRV(null);
     }
   };
+
+  // Sync NRN balance changes from controller to game
+  useEffect(() => {
+    if (gameStore.nrnBalance !== nrnBalance) {
+      gameStore.addNRN(nrnBalance - gameStore.nrnBalance);
+    }
+  }, [nrnBalance, gameStore]);
 
   const closePanel = (panelId: string) => {
     setActivePanels(prev => prev.filter(id => id !== panelId));
@@ -589,6 +574,22 @@ const ReceiverInterface = () => {
     setIsUSDCPurchaseOpen(true);
   };
 
+  const handleSkillsOpen = () => {
+    setActiveModal('skills');
+  };
+
+  const handleUDCOpen = () => {
+    setActiveModal('udc');
+  };
+
+  const handleWalletOpen = () => {
+    setActiveModal('wallet');
+  };
+
+  const handleModalClose = () => {
+    setActiveModal(null);
+  };
+
   const toggleNetworkPanel = () => {
     setActivePanels(prev =>
       prev.includes('network-status')
@@ -626,24 +627,13 @@ const ReceiverInterface = () => {
           currentNetwork={currentNetwork}
           setCurrentNetwork={setCurrentNetwork}
         >
-          <MenuItem onClick={() => { navigate('/manager/skills'); setMenuOpen(false); }} icon="⚡">
-            Skills
-          </MenuItem>
-          <MenuItem onClick={() => { navigate('/manager/udc'); setMenuOpen(false); }} icon="🔐">
-            UDC
-          </MenuItem>
-          <MenuItem onClick={() => { navigate('/manager/wallet'); setMenuOpen(false); }} icon="💰">
-            Wallet
-          </MenuItem>
           <MenuItem onClick={handleQRScan} icon="📱">
             QR Scanner
           </MenuItem>
           <MenuItem onClick={openCognitiveShell} icon="🧠">
             Cognitive Shell
           </MenuItem>
-          <MenuItem onClick={() => { navigate('/manager/chat-brain'); setMenuOpen(false); }} icon="🧠">
-            Chat-Brain
-          </MenuItem>
+
           <MenuItem onClick={openCortexBuilder} icon="🎯">
             CORTEX Builder
           </MenuItem>
@@ -671,17 +661,17 @@ const ReceiverInterface = () => {
           nrnBalance={nrnBalance}
           onScreenshotCapture={handleScreenshotCapture}
           cognitiveMode={cognitiveMode}
+          isVoiceActive={isVoiceActive}
           onSubmitError={handleSubmitError}
           onSubmitContext={handleSubmitContext}
           onSubmitIdea={handleSubmitIdea}
+          onSubmitDemo={handleSubmitDemo}
+          onSkillsOpen={handleSkillsOpen}
+          onUDCOpen={handleUDCOpen}
+          onWalletOpen={handleWalletOpen}
         />
 
-        <VoiceControl
-          isActive={isVoiceActive}
-          onVoiceCommand={handleVoiceCommand}
-          onToggle={setIsVoiceActive}
-          cognitiveMode={cognitiveMode}
-        />
+
 
         <NRVVisualization
           nrvs={currentNRVs}
@@ -725,11 +715,13 @@ const ReceiverInterface = () => {
           title="Cognitive Shell"
           side="right"
         >
-          <CognitiveShellInterface
-            onStateChange={handleCognitiveStateChange}
-            onSkillInvoked={handleSkillInvoked}
-            onAdaptationTriggered={handleAdaptationTriggered}
-          />
+          <ChatBrainProvider>
+            <CognitiveShellInterface
+              onStateChange={handleCognitiveStateChange}
+              onSkillInvoked={handleSkillInvoked}
+              onAdaptationTriggered={handleAdaptationTriggered}
+            />
+          </ChatBrainProvider>
         </SlidingPanel>
 
         <SlidingPanel
@@ -782,13 +774,13 @@ const ReceiverInterface = () => {
           </div>
         )}
 
-        {/* Voice Status Indicator */}
+        {/* Auto Demo Status Indicator */}
         {isVoiceActive && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
             <div className="bg-teal-500 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg animate-pulse">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-                <span>Voice Active</span>
+                <span>Auto Demo</span>
                 {cognitiveMode && <span className="text-xs opacity-75">(Cognitive)</span>}
               </div>
             </div>
@@ -815,7 +807,36 @@ const ReceiverInterface = () => {
             </div>
           )}
         </div>
-      </main>
+        </main>
+
+      {/* Slide-Down Modals */}
+      <SlideDownModal
+        isOpen={activeModal === 'skills'}
+        onClose={handleModalClose}
+        title="Skills"
+      >
+        <SkillsModalContent nrnBalance={nrnBalance} />
+      </SlideDownModal>
+
+      <SlideDownModal
+        isOpen={activeModal === 'udc'}
+        onClose={handleModalClose}
+        title="User Delegation Certificate"
+      >
+        <UDCModalContent />
+      </SlideDownModal>
+
+      <SlideDownModal
+        isOpen={activeModal === 'wallet'}
+        onClose={handleModalClose}
+        title="KNIRV Wallet"
+      >
+        <WalletModalContent 
+          nrnBalance={nrnBalance} 
+          cognitiveMode={cognitiveMode}
+          cognitiveState={{ mode: 'active', isActive: cognitiveMode }}
+        />
+      </SlideDownModal>
 
       {/* QR Scanner Modal */}
       {showQRScanner && (

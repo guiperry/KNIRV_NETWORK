@@ -1,123 +1,157 @@
-# KNIRVWALLET - Browser Bridge: A Decentralized Wallet for the KNIRV Ecosystem
+KNIRVAGENTIFIER
 
-[![Banner](banner.png)](#)
+### 🤖 KNIRV-AGENTIFIER: The Autonomous Gateway
+Technology: Rust WASM-powered AI agents with SEAL loop + Advanced Voice Integration
 
-## Table of Contents
+Purpose: A mobile-native adapter that empowers existing AI assistants with autonomous agentic abilities, acting as the primary user gateway to the knirv.com D-TEN.
 
-- [Overview](#overview)
-- [Features](#features)
-- [Project Environment](#project-environment)
-- [Building Locally](#building-locally)
-- [Documentation](#documentation)
-- [KNIRV Ecosystem](#knirv-ecosystem)
-- [Contributing](#contributing)
-- [Support](#support)
+## 🎯 Key Features
 
+### Core Functionality
+- CodeT5 Base LLM + personalized LoRA adapters
+- Continuous failure detection and solution proposal
+- User Delegation Certificate (UDC) orchestration
+- Skill invocation and NRN consumption
+- Seamless integration with KNIRV-WALLET for asset management and transaction execution
+- Secure communication channels between the agentifier and the D-TEN
 
-## Overview
+### 🎤 Voice Integration & Monitoring
+- **Advanced Voice Processing**: Real-time speech recognition with Web Speech API
+- **Cognitive Shell**: Intelligent voice command parsing and execution
+- **Edge Coloring System**: Visual feedback for voice status (listening, processing, speaking)
+- **Wake Word Detection**: "KNIRV" wake word for hands-free activation
+- **Multi-Modal Commands**: Support for navigation, skill activation, and system control
+- **Real-time Status Monitoring**: Visual indicators for voice activity and cognitive mode
 
-**KNIRVWALLET - Browser Bridge** is a powerful, open-source, non-custodial wallet providing seamless access to the KNIRV Decentralized Trusted Execution Network (D-TEN).  It allows users to manage NRN tokens, control KNIRV-CORTEX agents, and interact with the KNIRV ecosystem via an intuitive, Web2-like experience powered by XION's Meta Accounts.  For users, it simplifies managing decentralized AI and crypto; for developers, it offers comprehensive APIs for ecosystem and KNIRV-CORTEX agent integration.  KNIRVWALLET - Browser Bridge supports browser extensions, mobile apps, and progressive web apps, all unified under a single interface.
+### 🎨 Visual Feedback System
+- **Dynamic Edge Coloring**: Screen borders change color based on voice status
+  - 🟢 Green: Idle state
+  - 🔵 Teal: Listening for commands
+  - 🔵 Blue: Processing voice input
+  - 🟣 Purple: Speaking/responding
+  - 🔴 Red: Error state
+- **Intensity Modulation**: Edge brightness reflects activity level
+- **Smooth Transitions**: 500ms animated color transitions
 
+## 🗣️ Voice Commands
 
-## Features
+### Navigation Commands
+- "Show skills page" / "Navigate to skills"
+- "Open wallet" / "Navigate to wallet"
+- "Show UDC" / "Open certificate panel"
+- "Go home" / "Show agents"
 
-✅ **KNIRV Ecosystem Integration**
-✅ **NRN Token Management:** Native support for KNIRV-ORACLE's NRN tokens
-✅ **KNIRV-CORTEX Agent Control:** Manage and control your AI agents
-✅ **XION Meta Accounts:** Gasless transactions and Web2-like authentication
-✅ **Multi-Chain Support:** BTC, ETH, Solana, and more
-✅ **Biometric Authentication:** Secure, convenient access
-✅ **User Delegation Certificates (UDCs):** Secure agent authorization
-✅ **Create & Restore Wallet**
-✅ **View Account Balances**
-✅ **Deposit & Send Tokens**
-✅ **Transaction History**
-✅ **Multi-Accounts**
-✅ **Multi-Network**
-✅ **Multi-Mnemonic**
-✅ **Ledger Support**
-✅ **Web3 Login Support**
-✅ **Manage Custom Tokens**
-✅ **Airgap Account Support**
-⬜ **KNIRVANA Game Integration**
-⬜ **Advanced Agent Analytics**
-⬜ **Cross-Chain NRN Bridging**
+### System Commands
+- "Toggle cognitive mode" / "Enable advanced mode"
+- "Check agent status" / "Show agent health"
+- "Check NRN balance" / "Show balance"
+- "Show network status" / "Check connections"
 
+### Skill Commands
+- "Activate skill [name]" / "Enable skill [name]"
+- "Deactivate skill [name]" / "Disable skill [name]"
+- "Show available skills"
 
-## Project Environment
+## 🏗️ Architecture
 
-| Tool       | Version |
-| ---------- | ------- |
-| Node.js    | 18.14.2 |
-| TypeScript | 4.9.5   |
-| Babel Core | 7.23.9  |
-| Webpack    | 5.90.3  |
-| React      | 18.2.0  |
+### Voice Processing Pipeline
+1. **Audio Capture**: MediaRecorder API for audio input
+2. **Speech Recognition**: Web Speech API with continuous listening
+3. **Command Parsing**: Pattern matching for command extraction
+4. **Action Execution**: Navigation and system control
+5. **Visual Feedback**: Edge coloring and status updates
+6. **Speech Synthesis**: Text-to-speech responses
 
-
-## Building Locally
-
-To set up a local environment, clone this repository and run the following commands:
-
-```bash
-nvm use
-
-yarn install
-
-yarn build
+### Component Structure
+```
+src/
+├── shared/
+│   └── cognitive-shell/
+│       ├── EventEmitter.ts      # Browser-compatible event system
+│       └── VoiceProcessor.ts     # Core voice processing logic
+├── react-app/
+│   ├── components/
+│   │   ├── EdgeColoring.tsx     # Visual feedback system
+│   │   ├── VoiceControl.tsx     # Voice interface component
+│   │   └── Layout.tsx           # Main layout with voice integration
+│   └── hooks/
+│       └── useVoiceIntegration.ts # Voice state management hook
 ```
 
-This will store the extension's build output in `packages/knirvwallet-extension/dist`.
+## 🚀 Getting Started
 
+### Prerequisites
+- Node.js 20+ (for development)
+- Modern browser with Web Speech API support
+- Microphone access for voice features
 
-## Documentation
+### Installation
+```bash
+npm install
+npm run dev
+```
 
-- [KNIRVWALLET_Whitepaper](../docs/whitepapers/KNIRVWALLET_Whitepaper.md)
-- [XION Integration Guide](../agentic-wallet/XION_INTEGRATION.md)
-- [Developer API Documentation](../docs/)
+### Voice Feature Testing
+Open `test-voice-integration.html` in your browser to test voice functionality:
+```bash
+# Open the test file directly in browser
+open test-voice-integration.html
+```
 
+### Usage
+1. **Enable Voice**: Click the microphone button in the bottom-right corner
+2. **Speak Commands**: Use any of the supported voice commands
+3. **Visual Feedback**: Watch the screen edges change color based on voice status
+4. **Cognitive Mode**: Toggle advanced voice processing features
 
-## KNIRV Ecosystem
+## 🔧 Configuration
 
-KNIRVWALLET - Browser Bridge is part of the broader KNIRV ecosystem:
+### Voice Processor Settings
+```typescript
+const config: VoiceConfig = {
+  sampleRate: 16000,
+  channels: 1,
+  language: 'en-US',
+  enableWakeWord: true,
+  wakeWord: 'knirv',
+  noiseReduction: true,
+};
+```
 
-- [KNIRV-ORACLE](../KNIRVORACLE/) - The foundational blockchain for NRN tokens
-- [KNIRVCHAIN](../KNIRVCHAIN/) - Smart contract platform for Skills and Base LLMs
-- [KNIRV-CORTEX](../KNIRVCORTEX/) - AI agent framework
-- [KNIRV-NEXUS](../KNIRVNEXUS/) - Distributed verification engine
+### Edge Coloring Customization
+```typescript
+const edgeColors = {
+  idle: '#10B981',      // Green
+  listening: '#14B8A6', // Teal
+  processing: '#3B82F6', // Blue
+  speaking: '#8B5CF6',   // Purple
+  error: '#EF4444'       // Red
+};
+```
 
+## 🧪 Testing
 
-## Contributing
+The application includes comprehensive voice integration testing:
+- Real-time speech recognition
+- Command pattern matching
+- Visual feedback systems
+- Error handling and recovery
+- Cross-browser compatibility
 
-Thank you for considering contributing to KNIRVWALLET - Browser Bridge! We value your input. Before submitting a pull request, please review these guidelines:
+## 🔮 Future Enhancements
 
-### How to Contribute
+- **Multi-language Support**: Expand beyond English
+- **Custom Wake Words**: User-configurable activation phrases
+- **Voice Biometrics**: Speaker identification and authentication
+- **Offline Processing**: Local speech recognition capabilities
+- **Advanced NLP**: Context-aware command interpretation
+- **Voice Shortcuts**: Customizable voice macros
 
-**Steps**
+## 📱 Mobile Compatibility
 
-1. Check for existing issues or pull requests to avoid duplicates.
-2. Fork the knirvwallet repository.
-3. Create a new branch for your changes.
-4. Make changes and commit them with concise, descriptive messages using the [Conventional Commits](https://www.conventionalcommits.org/) format. Ensure correct spelling, grammar, and remove trailing whitespace.
-5. Push your branch to your forked repository.
-6. Submit a pull request to our main branch.
+The voice integration is designed for mobile-first usage:
+- Touch-friendly voice controls
+- Responsive edge coloring
+- Optimized for mobile browsers
+- Progressive Web App (PWA) ready
 
-**Pull Request Title**
-
-Your pull request title must follow the conventional commits format and start with one of the following types:
-
-- **feat**: A new feature (e.g., `feat: Add user authentication`)
-- **chore**: Routine tasks or maintenance (e.g., `chore: Update dependencies`)
-- **fix**: A bug fix (e.g., `fix: Resolve memory leak issue`)
-- **test**: Adding missing tests or correcting existing tests (e.g., `test: Add unit tests for user registration`)
-- **style**: Changes that do not affect code meaning (e.g., `style: Apply gofmt to the codebase`)
-- **refactor**: Refactoring code without adding features or fixing bugs (e.g., `refactor: Optimize database query logic`)
-
-
-## Support
-
-If you have suggestions, want to contribute, or need support, please consider:
-
-- Our [CONTRIBUTING.md](CONTRIBUTING.md) file for contribution guidelines.
-- Opening an issue on our GitHub repository.
-- Joining the KNIRV community.

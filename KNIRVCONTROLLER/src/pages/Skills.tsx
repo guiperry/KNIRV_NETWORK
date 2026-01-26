@@ -511,38 +511,7 @@ export default function Skills() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-gray-600/50 backdrop-blur-xl bg-gray-900/80">
-        <div className="grid grid-cols-3 px-2 py-2">
-          <button
-            onClick={() => navigate('/manager/skills')}
-            className={`flex flex-col items-center py-2 px-1 rounded-lg transition-colors ${
-              window.location.pathname === '/manager/skills' ? 'text-blue-400 bg-blue-600/20' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Zap className="w-5 h-5 mb-1" />
-            <span className="text-xs">Skills</span>
-          </button>
-          <button
-            onClick={() => navigate('/manager/udc')}
-            className={`flex flex-col items-center py-2 px-1 rounded-lg transition-colors ${
-              window.location.pathname === '/manager/udc' ? 'text-blue-400 bg-blue-600/20' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Shield className="w-5 h-5 mb-1" />
-            <span className="text-xs">UDC</span>
-          </button>
-          <button
-            onClick={() => navigate('/manager/wallet')}
-            className={`flex flex-col items-center py-2 px-1 rounded-lg transition-colors ${
-              window.location.pathname === '/manager/wallet' ? 'text-blue-400 bg-blue-600/20' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            <Wallet className="w-5 h-5 mb-1" />
-            <span className="text-xs">Wallet</span>
-          </button>
-        </div>
-      </nav>
+
 
       {/* Sliding Panels */}
       <SlidingPanel

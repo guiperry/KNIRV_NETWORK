@@ -4,11 +4,13 @@ import { resolve } from 'path';
 import topLevelAwait from 'vite-plugin-top-level-await';
 import wasm from 'vite-plugin-wasm';
 import { visualizer } from 'rollup-plugin-visualizer';
+import glsl from 'vite-plugin-glsl';
 
 export default defineConfig({
   plugins: [
     react(),
     wasm(),
+    glsl(),
     topLevelAwait({
       promiseExportName: '__tla',
       promiseImportName: i => `__tla_${i}`
@@ -97,7 +99,8 @@ export default defineConfig({
       '@manager': resolve(__dirname, 'src/manager'),
       '@shared': resolve(__dirname, 'src/shared'),
       '@sensory-shell': resolve(__dirname, 'src/sensory-shell'),
-      '@wasm': resolve(__dirname, 'src/wasm-pkg')
+      '@wasm': resolve(__dirname, 'src/wasm-pkg'),
+      '@game': resolve(__dirname, 'src/components/game')
     }
   },
   
@@ -109,7 +112,15 @@ export default defineConfig({
       'react-router-dom',
       'lucide-react',
       '@tensorflow/tfjs',
-      'three'
+      'three',
+      '@react-three/fiber',
+      '@react-three/drei',
+      '@react-three/postprocessing',
+      'zustand',
+      'howler',
+      'matter-js',
+      'gsap',
+      'framer-motion'
     ],
     exclude: ['@napi-rs/wasm-runtime']
   },
@@ -119,6 +130,9 @@ export default defineConfig({
     format: 'es',
     plugins: () => [wasm(), topLevelAwait()]
   },
+  
+  // Asset handling for 3D models and textures
+  assetsInclude: ['**/*.gltf', '**/*.glb', '**/*.hdr', '**/*.mp3', '**/*.wav', '**/*.ogg'],
   
   // Environment variables
   define: {

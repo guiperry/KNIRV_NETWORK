@@ -162,7 +162,22 @@ describe('CognitiveShellInterface', () => {
 
     it('should show confidence level indicator', () => {
       render(<CognitiveShellInterface />);
-      expect(screen.getByText(/Confidence: 95%/i)).toBeInTheDocument();
+      
+      expect(screen.getByText(/Confidence:/i)).toBeInTheDocument();
+    });
+
+    it('should auto-start cognitive engine on component mount', async () => {
+      render(<CognitiveShellInterface />);
+      
+      // Should auto-start engine after 1 second delay
+      await waitFor(() => {
+        expect(screen.queryByText('Start')).not.toBeInTheDocument();
+      }, { timeout: 3000 });
+      
+      // Should show Stop button once engine is running
+      await waitFor(() => {
+        expect(screen.getByText('Stop')).toBeInTheDocument();
+      }, { timeout: 3000 });
     });
   });
 

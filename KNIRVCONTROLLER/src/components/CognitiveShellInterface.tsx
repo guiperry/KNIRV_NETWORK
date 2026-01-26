@@ -2,11 +2,17 @@ import React from 'react';
 
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Brain, Activity, Zap, Settings } from 'lucide-react';
+import { Brain, Activity, Zap, Settings, Trash2 } from 'lucide-react';
 import { cognitiveEngineService, CognitiveProcessingRequest } from '../services/CognitiveEngineService';
 import { CognitiveEngine, CognitiveConfig, CognitiveState } from '../sensory-shell/CognitiveEngine';
 import { HRMBridge } from '../sensory-shell/HRMBridge';
 import { WASMOrchestrator } from '../sensory-shell/WASMOrchestrator';
+import { ChatBrainProvider } from '../contexts/ChatBrainContext';
+import { ChatInterface } from './chat-brain/ChatInterface';
+import { MemoryGraphView } from './chat-brain/MemoryGraphView';
+import { NotesPanel } from './chat-brain/NotesPanel';
+import { LLMSelector } from './chat-brain/LLMSelector';
+import { useChatBrain } from '../contexts/ChatBrainContext';
 
 interface ConversationMessage {
   id: string;
@@ -38,10 +44,13 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
   const [learningMode, setLearningMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMemoryGraph, setShowMemoryGraph] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
 
   const [currentInput, setCurrentInput] = useState('');
   // Real-time conversation state
   const [conversationMessages, setConversationMessages] = useState<ConversationMessage[]>([]);
+  const { clearChat } = useChatBrain();
 
   // Load engine metrics
   const loadEngineMetrics = async () => {
@@ -253,10 +262,27 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     initializeWASMOrchestrator();
     loadEngineStatus();
 
+    // Auto-start cognitive engine after initialization
+    const autoStartEngine = async () => {
+      try {
+        if (cognitiveEngine && !isRunning) {
+          await cognitiveEngine.start();
+          console.log('Cognitive Engine auto-started successfully');
+          loadEngineMetrics();
+        }
+      } catch (error) {
+        console.error('Failed to auto-start Cognitive Engine:', error);
+      }
+    };
+
+    // Small delay to ensure initialization is complete
+    const autoStartTimer = setTimeout(autoStartEngine, 1000);
+
     // Refresh metrics every 5 seconds
     const metricsInterval = setInterval(updateMetrics, 5000);
 
     return () => {
+      clearTimeout(autoStartTimer);
       clearInterval(metricsInterval);
       if (engineRef.current) {
         // Force stop engine immediately
@@ -331,55 +357,6 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   }, [initializeCognitiveEngine, loadEngineStatus, updateMetrics]);
 
 
-  // Start/Stop engine using service
-  // const handleEngineToggle = async () => {
-  //   try {
-  //     if (isEngineRunning) {
-  //       await cognitiveEngineService.stop();
-  //       setIsEngineRunning(false);
-  //       setIsRunning(false);
-  //       onStateChange?.({
-  //         isRunning: false,
-  //         status: 'stopped',
-  //         currentContext: new Map(),
-  //         activeSkills: [],
-  //         learningHistory: [],
-  //         confidenceLevel: 0.5,
-  //         adaptationLevel: 0.0
-  //       } as CognitiveState);
-  //     } else {
-  //       await cognitiveEngineService.start();
-  //       setIsEngineRunning(true);
-  //       setIsRunning(true);
-  //       onStateChange?.({
-  //         isRunning: true,
-  //         status: 'running',
-  //         currentContext: new Map(),
-  //         activeSkills: [],
-  //         learningHistory: [],
-  //         confidenceLevel: 0.5,
-  //         adaptationLevel: 0.0
-  //       } as CognitiveState);
-  //     }
-  //     await loadEngineMetrics();
-  //   } catch (error) {
-  //     console.error('Failed to toggle engine:', error);
-  //   }
-  // };
-
-  // Handle learning mode toggle
-  /* const handleLearningToggle = async () => {
-    try {
-      if (!learningMode) {
-        await cognitiveEngineService.startLearningMode();
-      }
-      setLearningMode(!learningMode);
-    } catch (error) {
-      console.error('Failed to toggle learning mode:', error);
-    }
-  }; */
-
-
   // Process conversation message using service
   const handleSendMessage = async () => {
     if (!currentInput.trim() || isProcessing) return;
@@ -447,41 +424,6 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     }
   };
 
-  // Execute skill using service
-  /* const handleSkillExecution = async (skillId: string) => {
-    try {
-      const skillRequest: SkillExecutionRequest = {
-        skillId,
-        parameters: {},
-        context: {},
-        timeout: config.skillTimeout
-      };
-
-      const result = await cognitiveEngineService.executeSkill(skillRequest);
-
-      if (result.success) {
-        onSkillInvoked?.(skillId, result.output);
-        console.log(`Skill ${skillId} executed successfully:`, result.output);
-      } else {
-        console.error(`Skill ${skillId} execution failed:`, result.error);
-      }
-    } catch (error) {
-      console.error(`Failed to execute skill ${skillId}:`, error);
-    }
-  }; */
-
-  // Re-fetch state on every render (for test rerenders)
-  useEffect(() => {
-    if (cognitiveEngine && typeof cognitiveEngine.getState === 'function') {
-      const currentState = cognitiveEngine.getState();
-      if (onStateChange) {
-        onStateChange(currentState);
-      }
-    }
-  }, [cognitiveEngine, onStateChange]);
-
-
-
   const handleStart = async () => {
     if (cognitiveEngine && !isRunning) {
       try {
@@ -508,8 +450,11 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     setConfig(prevConfig => ({ ...prevConfig, ...newConfig }));
   }, []);
 
-
-
+  const handleClearChat = () => {
+    if (confirm('Are you sure you want to clear chat history?')) {
+      clearChat();
+    }
+  };
 
   const getStatusColor = () => {
     if (!isRunning) return 'text-gray-400';
@@ -523,116 +468,114 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
     return 'Active';
   };
 
+  // Re-fetch state on every render (for test rerenders)
+  useEffect(() => {
+    if (cognitiveEngine && typeof cognitiveEngine.getState === 'function') {
+      const currentState = cognitiveEngine.getState();
+      if (onStateChange) {
+        onStateChange(currentState);
+      }
+    }
+  }, [cognitiveEngine, onStateChange]);
+
   return (
-    <div data-testid="cognitive-shell-interface" className="bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-700/50 p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-            <Brain className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-white">Cognitive Shell</h3>
-            <p className={`text-sm ${getStatusColor()}`}>
-              Status: {getStatusText()} {isRunning && `(${engineState?.confidenceLevel ? 'Active' : 'Initializing'})`}
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-          
-          <button
-            onClick={() => handleUpdateConfig({ maxContextSize: config.maxContextSize + 10 })}
-            className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded border border-purple-500/30 hover:bg-purple-500/30 transition-colors text-sm"
-          >
-            Increase Context
-          </button>
-
-          {isRunning ? (
-            <button
-              onClick={handleStop}
-              className="px-3 py-1 bg-red-500/20 text-red-400 rounded border border-red-500/30 hover:bg-red-500/30 transition-colors text-sm"
-            >
-              Stop
-            </button>
-          ) : (
-            <button
-              onClick={handleStart}
-              className="px-3 py-1 bg-green-500/20 text-green-400 rounded border border-green-500/30 hover:bg-green-500/30 transition-colors text-sm"
-            >
-              Start
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Metrics Display */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="bg-gray-700/50 rounded-lg p-3">
-          <div className="flex items-center space-x-2 mb-1">
-            <Activity className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-gray-300">Confidence</span>
-          </div>
-          <div className="text-lg font-semibold text-white">
-            Confidence: {Math.round(((metrics?.confidenceLevel as number) || 0.95) * 100)}%
-          </div>
-        </div>
-
-        <div className="bg-gray-700/50 rounded-lg p-3">
-          <div className="flex items-center space-x-2 mb-1">
-            <Zap className="w-4 h-4 text-yellow-400" />
-            <span className="text-sm text-gray-300">Adaptation</span>
-          </div>
-          <div className="text-lg font-semibold text-white">
-            Adaptation: {Math.round(((metrics?.adaptationLevel as number) || 0.75) * 100)}%
-          </div>
-        </div>
-
-        <div className="bg-gray-700/50 rounded-lg p-4">
-          <div className="text-sm text-gray-300 mb-2">System Status</div>
-          <div className="text-lg font-semibold text-white">
-            {isRunning ? 'Running' : 'Ready'}
-          </div>
-        </div>
-      </div>
-
-      {/* Simple input for testing handleSendMessage */}
-      <div className="mt-4 flex space-x-2">
-        <input
-          type="text"
-          value={currentInput}
-          onChange={(e) => setCurrentInput(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-grow p-2 rounded bg-gray-700 text-white border border-gray-600"
-        />
-        <button
-          onClick={handleSendMessage}
-          disabled={isProcessing}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {isProcessing ? 'Sending...' : 'Send'}
-        </button>
-      </div>
-
-      {/* Display conversation messages */}
-      <div className="mt-4 h-48 overflow-y-auto bg-gray-700/50 rounded p-3">
-        {conversationMessages.map((message) => (
-          <div key={message.id} className={`mb-2 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
-            <span className={`inline-block p-2 rounded ${message.type === 'user' ? 'bg-blue-500' : message.type === 'assistant' ? 'bg-gray-600' : 'bg-red-500'} text-white`}>
-              {message.content}
-            </span>
-            <div className="text-xs text-gray-400 mt-1">
-              {message.timestamp.toLocaleTimeString()} {message.processingTime && `(${message.processingTime}ms)`}
+    <div data-testid="cognitive-shell-interface" className="bg-gray-800/90 backdrop-blur-sm rounded-lg border border-gray-700/50 h-full overflow-hidden flex flex-col">
+        {/* Engine Status Header - always visible */}
+        <div className="flex-shrink-0 border-b border-gray-700/50">
+          <div className="flex items-center justify-between p-3">
+            <div className="flex items-center space-x-2">
+              <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                <Brain className="w-4 h-4 text-white" />
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-semibold text-white">Engine Status:</span>
+                <span className={`text-xs ${getStatusColor()} px-2 py-1 rounded bg-gray-700/50`}>
+                  {getStatusText()}
+                </span>
+                <span className="text-xs text-gray-400">
+                  Confidence: {Math.round(((metrics?.confidenceLevel as number) || 0.95) * 100)}%
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <div className="text-xs text-gray-400">
+                Adaptation: {Math.round(((metrics?.adaptationLevel as number) || 0.75) * 100)}%
+              </div>
+              
+              {isRunning ? (
+                <button
+                  onClick={handleStop}
+                  className="px-2 py-1 bg-red-500\\/20 text-red-400 rounded border border-red-500\\/30 hover:bg-red-500\\/30 transition-colors text-xs"
+                >
+                  Stop
+                </button>
+              ) : (
+                <button
+                  onClick={handleStart}
+                  className="px-2 py-1 bg-green-500\\/20 text-green-400 rounded border border-green-500\\/30 hover:bg-green-500\\/30 transition-colors text-xs"
+                >
+                  Start
+                </button>
+              )}
             </div>
           </div>
-        ))}
-      </div>
+
+          {/* ChatBrain Controls Row */}
+          <div className="p-3 bg-gray-800/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <LLMSelector />
+                <span className="text-sm text-gray-400">Chat-Brain</span>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowMemoryGraph(!showMemoryGraph)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center space-x-1 ${
+                    showMemoryGraph
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  }`}
+                >
+                  <Activity size={14} />
+                  <span>Memory</span>
+                </button>
+
+                <button
+                  onClick={() => setShowNotes(!showNotes)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center space-x-1 ${
+                    showNotes
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  }`}
+                >
+                  <Settings size={14} />
+                  <span>Notes</span>
+                </button>
+
+                <button
+                  onClick={handleClearChat}
+                  className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg text-xs font-medium transition-colors flex items-center space-x-1"
+                >
+                  <Trash2 size={14} />
+                  <span>Clear</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Chat Interface - takes remaining space */}
+        <div className="flex-1 overflow-hidden">
+          <ChatInterface />
+        </div>
+
+        {/* Side Panels */}
+        <div className="flex space-x-4">
+          {showMemoryGraph && <MemoryGraphView onClose={() => setShowMemoryGraph(false)} />}
+          {showNotes && <NotesPanel onClose={() => setShowNotes(false)} />}
+        </div>
     </div>
   );
 };
