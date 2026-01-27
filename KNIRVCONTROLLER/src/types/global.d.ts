@@ -53,6 +53,7 @@ declare let webkitSpeechRecognition: {
 interface Window {
   SpeechRecognition?: typeof SpeechRecognition;
   webkitSpeechRecognition?: typeof webkitSpeechRecognition;
+  openErrorNodeModal?: () => void;
 }
 
 // Voice Integration types

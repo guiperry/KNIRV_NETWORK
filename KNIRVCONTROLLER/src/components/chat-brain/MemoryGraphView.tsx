@@ -6,9 +6,10 @@ import { useChatBrain } from '../../contexts/ChatBrainContext';
 
 interface MemoryGraphViewProps {
   onClose: () => void;
+  cognitiveShellOpen?: boolean;
 }
 
-export function MemoryGraphView({ onClose }: MemoryGraphViewProps) {
+export function MemoryGraphView({ onClose, cognitiveShellOpen = true }: MemoryGraphViewProps) {
   const { memoryNodes, memoryEdges, refreshMemoryGraph } = useChatBrain();
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
@@ -122,7 +123,9 @@ export function MemoryGraphView({ onClose }: MemoryGraphViewProps) {
   }, [memoryNodes, memoryEdges]);
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-[600px] bg-gray-800 border-l border-gray-700 z-50 flex flex-col">
+    <div className={`fixed top-0 bottom-0 w-[610px] bg-gray-800 border-l border-gray-700 z-50 flex flex-col ${
+      cognitiveShellOpen ? 'right-[600px]' : 'right-0'
+    }`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800/50">
         <div className="flex items-center space-x-2">

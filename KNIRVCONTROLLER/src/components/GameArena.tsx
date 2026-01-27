@@ -16,6 +16,8 @@ const controls = [
   { name: "zoomOut", keys: ["Minus", "NumpadSubtract"] },
   { name: "select", keys: ["Space"] },
   { name: "deploy", keys: ["KeyR"] },
+  { name: "nextError", keys: ["Tab"] },
+  { name: "prevError", keys: ["ShiftLeft", "Tab"] },
 ];
 
 export default function GameArena() {

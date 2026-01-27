@@ -20,6 +20,8 @@ module.exports = {
     '^@shared/(.*)$': '<rootDir>/src/shared/$1',
     '^@sensory-shell/(.*)$': '<rootDir>/src/sensory-shell/$1',
     '^@wasm/(.*)$': '<rootDir>/src/wasm-pkg/$1',
+    '^@engine/(.*)$': '<rootDir>/src/engine/$1',
+    '^@networking/(.*)$': '<rootDir>/src/networking/$1',
     // React Native module mappings for Jest
     '^react-native$': '<rootDir>/tests/mocks/react-native.js',
     '^react-native/(.*)$': '<rootDir>/tests/mocks/react-native.js',

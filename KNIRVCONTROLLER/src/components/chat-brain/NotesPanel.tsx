@@ -6,9 +6,10 @@ import ReactMarkdown from 'react-markdown';
 
 interface NotesPanelProps {
   onClose: () => void;
+  cognitiveShellOpen?: boolean;
 }
 
-export function NotesPanel({ onClose }: NotesPanelProps) {
+export function NotesPanel({ onClose, cognitiveShellOpen = true }: NotesPanelProps) {
   const { notes, currentNote, setCurrentNote, saveNote, loadNotes, deleteNote } = useChatBrain();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -70,7 +71,9 @@ export function NotesPanel({ onClose }: NotesPanelProps) {
   };
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-[600px] bg-gray-800 border-l border-gray-700 z-50 flex flex-col">
+    <div className={`fixed top-0 bottom-0 w-[610px] bg-gray-800 border-l border-gray-700 z-50 flex flex-col ${
+      cognitiveShellOpen ? 'right-[600px]' : 'right-0'
+    }`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800/50">
         <h2 className="text-lg font-semibold text-white">Notes</h2>

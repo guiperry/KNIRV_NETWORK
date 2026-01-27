@@ -1,3 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="0" failures="0" errors="0" time="0.066">
+<testsuites name="jest tests" tests="21" failures="0" errors="0" time="9.621">
+  <testsuite name="Verifier" errors="0" failures="0" skipped="0" timestamp="2026-01-27T01:19:13" time="4.667" tests="6">
+    <testcase classname="Verifier initialization should initialize with correct default weights" name="Verifier initialization should initialize with correct default weights" time="0.038">
+    </testcase>
+    <testcase classname="Verifier updateWeights should update scoring weights" name="Verifier updateWeights should update scoring weights" time="0.019">
+    </testcase>
+    <testcase classname="Verifier addConstraint and removeConstraint should add and remove constraints" name="Verifier addConstraint and removeConstraint should add and remove constraints" time="0.052">
+    </testcase>
+    <testcase classname="Verifier evaluate should evaluate code and return score" name="Verifier evaluate should evaluate code and return score" time="0.924">
+    </testcase>
+    <testcase classname="Verifier evaluate should apply constraints" name="Verifier evaluate should apply constraints" time="0.599">
+    </testcase>
+    <testcase classname="Verifier evaluate should penalize failing constraints" name="Verifier evaluate should penalize failing constraints" time="0.577">
+    </testcase>
+  </testsuite>
+  <testsuite name="Tournament" errors="0" failures="0" skipped="0" timestamp="2026-01-27T01:19:18" time="0.472" tests="3">
+    <testcase classname="Tournament initialization should initialize with correct default values" name="Tournament initialization should initialize with correct default values" time="0.021">
+    </testcase>
+    <testcase classname="Tournament runEpoch should run an epoch with agents" name="Tournament runEpoch should run an epoch with agents" time="0.065">
+    </testcase>
+    <testcase classname="Tournament runEpoch should not update skill slot if no agent beats incumbent score" name="Tournament runEpoch should not update skill slot if no agent beats incumbent score" time="0.02">
+    </testcase>
+  </testsuite>
+  <testsuite name="TrainingManager" errors="0" failures="0" skipped="0" timestamp="2026-01-27T01:19:19" time="0.609" tests="6">
+    <testcase classname="TrainingManager distill should distill trajectory" name="TrainingManager distill should distill trajectory" time="0.033">
+    </testcase>
+    <testcase classname="TrainingManager harden should harden agent" name="TrainingManager harden should harden agent" time="0.055">
+    </testcase>
+    <testcase classname="TrainingManager prune should prune trajectory" name="TrainingManager prune should prune trajectory" time="0.014">
+    </testcase>
+    <testcase classname="TrainingManager denoise should denoise trajectory" name="TrainingManager denoise should denoise trajectory" time="0.024">
+    </testcase>
+    <testcase classname="TrainingManager quantize should quantize trajectory" name="TrainingManager quantize should quantize trajectory" time="0.032">
+    </testcase>
+    <testcase classname="TrainingManager stressTest should run stress test" name="TrainingManager stressTest should run stress test" time="0.023">
+    </testcase>
+  </testsuite>
+  <testsuite name="SabotageEngine" errors="0" failures="0" skipped="0" timestamp="2026-01-27T01:19:19" time="0.421" tests="4">
+    <testcase classname="SabotageEngine applyEffect should apply noise injection effect" name="SabotageEngine applyEffect should apply noise injection effect" time="0.015">
+    </testcase>
+    <testcase classname="SabotageEngine applyEffect should apply backprop pulse effect" name="SabotageEngine applyEffect should apply backprop pulse effect" time="0.015">
+    </testcase>
+    <testcase classname="SabotageEngine applyEffect should apply gradient ghosting effect" name="SabotageEngine applyEffect should apply gradient ghosting effect" time="0.013">
+    </testcase>
+    <testcase classname="SabotageEngine applyEffect should apply effect with magnitude" name="SabotageEngine applyEffect should apply effect with magnitude" time="0.074">
+    </testcase>
+  </testsuite>
+  <testsuite name="LoraxClient" errors="0" failures="0" skipped="0" timestamp="2026-01-27T01:19:20" time="0.374" tests="2">
+    <testcase classname="LoraxClient fineTune should call LoRAX API to fine-tune" name="LoraxClient fineTune should call LoRAX API to fine-tune" time="0.02">
+    </testcase>
+    <testcase classname="LoraxClient commitToMainSlot should commit adapter to main slot" name="LoraxClient commitToMainSlot should commit adapter to main slot" time="0.013">
+    </testcase>
+  </testsuite>
 </testsuites>

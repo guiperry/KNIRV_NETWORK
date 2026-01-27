@@ -480,25 +480,38 @@ export default function KNIRVANAGameVisualization() {
       {/* Game Controls */}
       <div className="mb-4 flex flex-wrap gap-2">
         <button
-          onClick={() => handleCreateAgent('Analyzer')}
+          onClick={() => {
+            // Run error node demo (existing functionality)
+            handleCreateAgent('Analyzer');
+            // Open Error Management modal
+            if (typeof window !== 'undefined' && window.openErrorNodeModal) {
+              window.openErrorNodeModal();
+            }
+          }}
           className="px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white text-sm"
         >
-          + Analyzer (50 NRN)
+          Analyzer
         </button>
         <button
-          onClick={() => handleCreateAgent('Optimizer')}
+          onClick={() => {
+            // Navigate camera to error node on map
+            if (gameState.selectedErrorNode) {
+              // Focus camera on error node position
+              const errorPosition = gameState.selectedErrorNode.position;
+              console.log('Navigating to error node on map:', errorPosition);
+              // This would integrate with 3D camera controls
+            }
+          }}
           className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm"
         >
-          + Optimizer (50 NRN)
+          Map
         </button>
-        {gameState.selectedAgent && gameState.selectedErrorNode && (
-          <button
-            onClick={() => handleDeployAgent(gameState.selectedAgent!, gameState.selectedErrorNode!)}
-            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white text-sm"
-          >
-            Deploy Agent (10 NRN)
-          </button>
-        )}
+        <div className="px-3 py-2 bg-gray-700 rounded-lg text-sm">
+          <span className="text-gray-300">Status: </span>
+          <span className="text-yellow-400 font-medium">
+            {gameState.selectedErrorNode?.isBeingSolved ? 'Solving' : 'Active'}
+          </span>
+        </div>
       </div>
 
       {/* 3D Game Canvas */}

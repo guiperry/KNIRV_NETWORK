@@ -1,9 +1,10 @@
 import React from 'react';
 
 import { useState, useEffect } from 'react';
-import { Brain, Settings, Download, Play, Save, Trash2, BarChart3, Layers, Cpu } from 'lucide-react';
+import { Brain, Settings, Download, Play, Save, Trash2, BarChart3, Layers, Cpu, Upload, Bot } from 'lucide-react';
 import { personalKNIRVGRAPHService, GraphNode } from '../services/PersonalKNIRVGRAPHService';
 import { cortexTrainingService, TrainingConfig, CortexModel, TrainingProgress } from '../services/CortexTrainingService';
+import { agentManagementService, Agent, AgentUploadRequest } from '../services/AgentManagementService';
 
 interface CortexBuilderProps {
   isOpen: boolean;
@@ -14,7 +15,7 @@ interface CortexBuilderProps {
 type ModelVersion = CortexModel;
 
 export const CortexBuilder: React.FC<CortexBuilderProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'training' | 'data' | 'versions'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'training' | 'data' | 'versions' | 'upload'>('overview');
   const [trainingConfig, setTrainingConfig] = useState<TrainingConfig>({
     learningRate: 0.001,
     batchSize: 32,
@@ -27,11 +28,15 @@ export const CortexBuilder: React.FC<CortexBuilderProps> = ({ isOpen, onClose })
   const [isTraining, setIsTraining] = useState(false);
   const [trainingProgress, setTrainingProgress] = useState(0);
   const [graphData, setGraphData] = useState<GraphNode[]>([]);
+  const [cortexModels, setCortexModels] = useState<Agent[]>([]);
+  const [uploadingModel, setUploadingModel] = useState(false);
+  const [, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       loadGraphData();
       loadModelVersions();
+      loadCortexModels();
     }
   }, [isOpen]);
 
@@ -53,6 +58,48 @@ export const CortexBuilder: React.FC<CortexBuilderProps> = ({ isOpen, onClose })
     } catch (error) {
       console.error('Failed to load model versions:', error);
       setModelVersions([]);
+    }
+  };
+
+  const loadCortexModels = async () => {
+    try {
+      const availableModels = await agentManagementService.getAgents();
+      const cortexModelsOnly = availableModels.filter(agent => agent.type === 'wasm');
+      setCortexModels(cortexModelsOnly);
+    } catch (error) {
+      console.error('Failed to load cortex models:', error);
+      setCortexModels([]);
+    }
+  };
+
+  const handleModelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+    setUploadingModel(true);
+
+    try {
+      const uploadRequest: AgentUploadRequest = {
+        file,
+        metadata: {
+          name: file.name.replace(/\.[^/.]+$/, ''),
+          description: `Uploaded cortex.wasm model from ${file.name}`,
+          author: 'User'
+        },
+        type: 'wasm'
+      };
+
+      const newModel = await agentManagementService.uploadAgent(uploadRequest);
+      await loadCortexModels();
+      console.log('Cortex model uploaded successfully:', newModel);
+    } catch (error) {
+      console.error('Model upload failed:', error);
+      alert(`Model upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setUploadingModel(false);
+      setSelectedFile(null);
+      event.target.value = '';
     }
   };
 
@@ -122,11 +169,12 @@ export const CortexBuilder: React.FC<CortexBuilderProps> = ({ isOpen, onClose })
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'training', label: 'Training', icon: Settings },
             { id: 'data', label: 'Data', icon: Layers },
-            { id: 'versions', label: 'Versions', icon: Cpu }
+            { id: 'versions', label: 'Versions', icon: Cpu },
+            { id: 'upload', label: 'Upload WASM', icon: Upload }
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'overview' | 'training' | 'data' | 'versions')}
+              onClick={() => setActiveTab(tab.id as 'overview' | 'training' | 'data' | 'versions' | 'upload')}
               className={`flex items-center space-x-2 px-6 py-3 border-b-2 transition-colors ${
                 activeTab === tab.id
                   ? 'border-purple-500 text-purple-400'
@@ -348,6 +396,89 @@ export const CortexBuilder: React.FC<CortexBuilderProps> = ({ isOpen, onClose })
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'upload' && (
+            <div className="space-y-6">
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h3 className="text-lg font-medium text-white mb-4">Upload WASM Cortex Models</h3>
+                <p className="text-gray-300 mb-6">
+                  Upload pre-compiled WASM (WebAssembly) models to expand your CORTEX capabilities. These models can be deployed as specialized neural intelligence modules.
+                </p>
+
+                {/* Upload Section */}
+                <div className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center mb-6">
+                  <Bot className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <h4 className="text-white font-medium mb-2">Upload WASM Model</h4>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Drag and drop or click to select .wasm files
+                  </p>
+                  
+                  <input
+                    type="file"
+                    accept=".wasm"
+                    onChange={handleModelUpload}
+                    disabled={uploadingModel}
+                    className="hidden"
+                    id="wasm-upload"
+                  />
+                  <label
+                    htmlFor="wasm-upload"
+                    className={`inline-flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
+                      uploadingModel
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>{uploadingModel ? 'Uploading...' : 'Choose WASM File'}</span>
+                  </label>
+                </div>
+
+                {/* Uploaded Models */}
+                <div>
+                  <h4 className="text-white font-medium mb-4">Uploaded Cortex Models</h4>
+                  <div className="space-y-3">
+                    {cortexModels.map((model) => (
+                      <div key={model.agentId} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                            <Bot className="w-4 h-4 text-purple-400" />
+                          </div>
+                          <div>
+                            <h5 className="text-white font-medium">{model.name}</h5>
+                            <p className="text-gray-400 text-sm">{model.metadata.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="text-sm text-gray-400">
+                            Version: {model.metadata.version}
+                          </div>
+                          <div className="text-sm font-medium text-yellow-400">
+                            {model.nrnCost} NRN
+                          </div>
+                          <div className={`px-2 py-1 rounded text-xs ${
+                            model.status === 'Available' ? 'bg-green-500/20 text-green-400' :
+                            model.status === 'Deployed' ? 'bg-blue-500/20 text-blue-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {model.status}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {cortexModels.length === 0 && (
+                    <div className="text-center py-8">
+                      <Bot className="w-8 h-8 mx-auto mb-2 opacity-50 text-gray-600" />
+                      <p className="text-sm text-gray-500">No WASM models uploaded yet</p>
+                      <p className="text-xs text-gray-600 mt-1">Upload your first WASM model to get started</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

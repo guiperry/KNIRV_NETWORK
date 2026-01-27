@@ -15,7 +15,7 @@
 
 ## 2. Directory Structure
 
-Refactor the `src` folder to support the new modular mechanics:
+Refactor (add to current build, don't delete) the `src` folder to support the new modular mechanics:
 
 ```text
 src/

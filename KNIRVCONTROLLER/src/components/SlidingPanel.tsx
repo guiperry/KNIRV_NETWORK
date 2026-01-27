@@ -47,7 +47,7 @@ export const SlidingPanel: React.FC<SlidingPanelProps> = ({
       {/* Panel */}
       <div
         ref={panelRef}
-        className={`fixed top-0 ${side === 'left' ? 'left-0' : 'right-0'} h-full w-96 bg-gray-900/95 backdrop-blur-sm border-${side === 'left' ? 'r' : 'l'} border-gray-700/50 z-50 transition-transform duration-300 ease-in-out transform translate-x-0`}
+        className={`fixed top-0 ${side === 'left' ? 'left-0' : 'right-0'} h-full ${side === 'right' && _id === 'cognitive-shell' ? 'w-[600px]' : 'w-96'} bg-gray-900/95 backdrop-blur-sm border-${side === 'left' ? 'r' : 'l'} border-gray-700/50 z-50 transition-transform duration-300 ease-in-out transform translate-x-0`}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700/50">

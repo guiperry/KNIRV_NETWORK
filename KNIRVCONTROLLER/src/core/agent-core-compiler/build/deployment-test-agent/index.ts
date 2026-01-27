@@ -16,7 +16,7 @@ export const AGENT_CONFIG = {
   privateFactsUrl: '{{privateFactsUrl}}',
   adaptiveRouterUrl: '{{adaptiveRouterUrl}}',
   ttl: 3600,
-  signature: 'mock-signature-1768753355715'
+  signature: 'mock-signature-1769476679411'
 };
 
 // Import cognitive capabilities

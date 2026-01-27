@@ -1,7 +1,18 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import { Tournament } from "../../../engine/Tournament";
+import { Verifier } from "../../../engine/Verifier";
+import { LoraxClient } from "../../../networking/LoraxClient";
+import { TrainingManager } from "../../../engine/TrainingManager";
+import { SabotageEngine, SabotageType } from "../../../engine/Sabotage";
 
-export type GamePhase = "menu" | "playing" | "paused";
+export type GamePhase = "menu" | "playing" | "paused" | "training";
+
+export interface AgentResources {
+  compute: number;      // "Mana" for sabotage/human actions
+  parity: number;       // "Health" - reaching 0 causes divergence (elimination)
+  generation: number;   // Track evolutionary steps
+}
 
 export interface ErrorNode {
   id: string;
@@ -52,15 +63,23 @@ export interface PropertyNode {
 
 export interface Agent {
   id: string;
+  name: string;
   position: { x: number; y: number; z: number };
   target: string | null;
   status: 'idle' | 'moving' | 'working' | 'upgrading';
   type: string;
   efficiency: number;
   experience: number;
+  resources: AgentResources;
+  policy: 'greedy' | 'bayesian' | 'stochastic';
+  proposeSolution: (errorNodeContext: string) => Promise<{
+    chainOfThought: string[];
+    code: string;
+    estimatedLatency: number;
+  }>;
 }
 
-interface KnirvanaState {
+export interface KnirvanaState {
   // Game state
   gamePhase: GamePhase;
   gameTime: number;
@@ -84,6 +103,16 @@ interface KnirvanaState {
   selectedIdeaNode: string | null;
   selectedPropertyNode: string | null;
   selectedAgent: string | null;
+
+  // Tournament specific
+  skillSlotOwner: string | null;
+  incumbentScore: number;
+  
+  // Engine instances
+  tournament: Tournament;
+  verifier: Verifier;
+  loraxClient: LoraxClient;
+  trainingManager: TrainingManager;
   
   // Actions
   startGame: () => void;
@@ -102,6 +131,21 @@ interface KnirvanaState {
   // Resource actions
   addNRN: (amount: number) => void;
   spendNRN: (amount: number) => boolean;
+  
+  // Tournament actions
+  runEpoch: () => Promise<void>;
+  
+  // Sabotage actions
+  applySabotage: (targetAgentId: string, type: SabotageType, magnitude: number) => void;
+  
+  // Training actions
+  startTraining: (agentId: string) => void;
+  distillTrajectory: (agentId: string) => void;
+  hardenAgent: (agentId: string) => void;
+  
+  // Verifier actions
+  updateVerifierWeights: (weights: { correctness: number; latency: number; simplicity: number }) => void;
+  addVerifierConstraint: (id: string, validator: (res: unknown) => boolean) => void;
 }
 
 // Generate initial game data
@@ -151,11 +195,13 @@ const generateSkillNodes = (): SkillNode[] => {
 
 const generateInitialAgents = (): Agent[] => {
   const types = ['Analyzer', 'Optimizer'];
+  const policies: Array<'greedy' | 'bayesian' | 'stochastic'> = ['greedy', 'bayesian', 'stochastic'];
   const agents: Agent[] = [];
   
   for (let i = 0; i < 3; i++) {
     agents.push({
       id: `agent-${i}`,
+      name: `Agent ${i}`,
       position: {
         x: (Math.random() - 0.5) * 10,
         y: 1,
@@ -165,12 +211,32 @@ const generateInitialAgents = (): Agent[] => {
       status: 'idle',
       type: types[Math.floor(Math.random() * types.length)],
       efficiency: 0.6 + Math.random() * 0.4,
-      experience: Math.floor(Math.random() * 100)
+      experience: Math.floor(Math.random() * 100),
+      resources: {
+        compute: 100,
+        parity: 100,
+        generation: 1
+      },
+      policy: policies[i % policies.length],
+      proposeSolution: async (errorNodeContext: string) => {
+        // Default implementation
+        return {
+          chainOfThought: [`Thinking about ${errorNodeContext}`, 'Found a solution'],
+          code: `function solve(${errorNodeContext}) { return 42; }`,
+          estimatedLatency: Math.random() * 1000
+        };
+      }
     });
   }
   
   return agents;
 };
+
+// Initialize engine instances
+const verifier = new Verifier();
+const loraxClient = new LoraxClient('http://localhost:8080');
+const tournament = new Tournament(verifier, loraxClient);
+const trainingManager = new TrainingManager();
 
 export const useKnirvana = create<KnirvanaState>()(
   subscribeWithSelector((set, get) => ({
@@ -194,6 +260,14 @@ export const useKnirvana = create<KnirvanaState>()(
     selectedIdeaNode: null,
     selectedPropertyNode: null,
     selectedAgent: null,
+    
+    skillSlotOwner: null,
+    incumbentScore: 0.8,
+    
+    tournament,
+    verifier,
+    loraxClient,
+    trainingManager,
     
     // Actions
     startGame: () => {
@@ -245,8 +319,10 @@ export const useKnirvana = create<KnirvanaState>()(
     createAgent: (type) => {
       const cost = 50;
       if (get().spendNRN(cost)) {
+        const policies: Array<'greedy' | 'bayesian' | 'stochastic'> = ['greedy', 'bayesian', 'stochastic'];
         const newAgent: Agent = {
           id: `agent-${Date.now()}`,
+          name: `${type} Agent ${Date.now()}`,
           position: {
             x: (Math.random() - 0.5) * 5,
             y: 1,
@@ -256,7 +332,20 @@ export const useKnirvana = create<KnirvanaState>()(
           status: 'idle',
           type,
           efficiency: 0.5 + Math.random() * 0.3,
-          experience: 0
+          experience: 0,
+          resources: {
+            compute: 100,
+            parity: 100,
+            generation: 1
+          },
+          policy: policies[Math.floor(Math.random() * policies.length)],
+          proposeSolution: async (errorNodeContext: string) => {
+            return {
+              chainOfThought: [`Thinking about ${errorNodeContext}`, 'Found a solution'],
+              code: `function solve(${errorNodeContext}) { return 42; }`,
+              estimatedLatency: Math.random() * 1000
+            };
+          }
         };
         
         console.log(`Created new ${type} agent`);
@@ -307,7 +396,99 @@ export const useKnirvana = create<KnirvanaState>()(
       return false;
     },
     
-    setState: (updater: any) => {
+    runEpoch: async () => {
+      const state = get();
+      if (state.gamePhase !== 'playing') return;
+      
+      console.log('Running tournament epoch');
+      try {
+        // Get current error node context (using first active error node)
+        const activeErrorNode = state.errorNodes.find(node => node.isBeingSolved);
+        if (!activeErrorNode) return;
+        
+        // Simulate agent responses
+        const simulatedAgents = state.agents.map(agent => ({
+          ...agent,
+          proposeSolution: async (context: string) => {
+            // Simulate agent thinking
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
+            return {
+              chainOfThought: [`Thinking about ${context}`, 'Found a solution'],
+              code: `function solve(${context}) { return 42; }`,
+              estimatedLatency: Math.random() * 1000
+            };
+          }
+        }));
+        
+        await state.tournament.runEpoch(simulatedAgents, activeErrorNode.type);
+        
+        // Update skill slot owner
+        const skillSlotOwner = state.tournament.getSkillSlotOwner();
+        const incumbentScore = state.tournament.getIncumbentScore();
+        set({ skillSlotOwner, incumbentScore });
+        
+      } catch (error) {
+        console.error('Error running tournament epoch:', error);
+      }
+    },
+    
+    applySabotage: (targetAgentId, type, magnitude) => {
+      const state = get();
+      const targetAgent = state.agents.find(a => a.id === targetAgentId);
+      
+      if (targetAgent) {
+        // Check if player has enough compute
+        const cost = magnitude * 10;
+        if (targetAgent.resources.compute >= cost) {
+          SabotageEngine.applyEffect(type, targetAgent, magnitude);
+          targetAgent.resources.compute -= cost;
+          
+          set((s) => ({
+            agents: s.agents.map(a =>
+              a.id === targetAgentId ? { ...targetAgent } : a
+            )
+          }));
+        }
+      }
+    },
+    
+    startTraining: (agentId) => {
+      set({ gamePhase: 'training' });
+      console.log(`Starting training for agent ${agentId}`);
+    },
+    
+    distillTrajectory: (agentId) => {
+      console.log(`Distilling trajectory for agent ${agentId}`);
+      // In a real implementation, this would process the agent's trajectory
+    },
+    
+    hardenAgent: (agentId) => {
+      const state = get();
+      const agent = state.agents.find(a => a.id === agentId);
+      
+      if (agent) {
+        state.trainingManager.harden(agent);
+        set((s) => ({
+          agents: s.agents.map(a =>
+            a.id === agentId ? { ...agent } : a
+          )
+        }));
+      }
+    },
+    
+    updateVerifierWeights: (weights) => {
+      const state = get();
+      state.verifier.updateWeights(weights);
+      console.log('Updated verifier weights:', weights);
+    },
+    
+    addVerifierConstraint: (id, validator) => {
+      const state = get();
+      state.verifier.addConstraint(id, validator);
+      console.log(`Added verifier constraint: ${id}`);
+    },
+    
+    setState: (updater: Partial<KnirvanaState> | ((state: KnirvanaState) => Partial<KnirvanaState>)) => {
       set(updater);
     }
   }))

@@ -11,7 +11,6 @@ import { NetworkStatus } from './components/NetworkStatus';
 import { NRVVisualization } from './components/NRVVisualization';
 import { SlidingPanel } from './components/SlidingPanel';
 import { EdgeColoring } from './components/EdgeColoring';
-import { AgentManager } from './components/AgentManager';
 import { FabricAlgorithm } from './components/FabricAlgorithm';
 import { CognitiveShellInterface } from './components/CognitiveShellInterface';
 import { ChatBrainProvider } from './contexts/ChatBrainContext';
@@ -22,6 +21,8 @@ import { SlideDownModal } from './components/SlideDownModal';
 import { SkillsModalContent } from './components/modals/SkillsModalContent';
 import { UDCModalContent } from './components/modals/UDCModalContent';
 import { WalletModalContent } from './components/modals/WalletModalContent';
+import { AgentManagementModal } from './components/modals/AgentManagementModal';
+import { ErrorNodeModal } from './components/modals/ErrorNodeModal';
 interface CognitiveState {
   activeSkills: string[];
   confidenceLevel: number;
@@ -44,6 +45,25 @@ import { useKnirvana } from './components/game/stores/useKnirvana';
 
 
 
+
+// Window interface for global modal functions
+declare global {
+  interface Window {
+    openErrorNodeModal?: () => void;
+  }
+}
+
+// Sub-Agent interface for new Agent Management modal
+export interface SubAgent {
+  id: string;
+  name: string;
+  status: 'idle' | 'training' | 'ready' | 'deployed';
+  capabilities: string[];
+  expertise: string[];
+  trainingProgress: number;
+  nrnCost: number;
+  description: string;
+}
 
 // Types from receiver
 export interface Adaptation {
@@ -171,6 +191,8 @@ const ReceiverInterface = () => {
   const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
   const [isUSDCPurchaseOpen, setIsUSDCPurchaseOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<'skills' | 'udc' | 'wallet' | null>(null);
+  const [isAgentManagementOpen, setIsAgentManagementOpen] = useState(false);
+  const [isErrorNodeOpen, setIsErrorNodeOpen] = useState(false);
   const [networkConnections] = useState<{
     [key: string]: 'connected' | 'disconnected' | 'connecting';
   }>({
@@ -183,6 +205,50 @@ const ReceiverInterface = () => {
   });
 
   const shellRef = useRef<HTMLDivElement>(null);
+
+  // Mock sub-agent data
+  const [mockSubAgents] = useState<SubAgent[]>([
+    {
+      id: 'sub-agent-1',
+      name: 'React Debugger',
+      status: 'ready',
+      capabilities: ['Debugging', 'React', 'Error Detection'],
+      expertise: ['React Components', 'State Management', 'Hooks'],
+      trainingProgress: 100,
+      nrnCost: 75,
+      description: 'Specialized in debugging React applications and component issues'
+    },
+    {
+      id: 'sub-agent-2',
+      name: 'API Integration Expert',
+      status: 'training',
+      capabilities: ['API Development', 'REST', 'GraphQL'],
+      expertise: ['Microservices', 'API Design', 'Data Integration'],
+      trainingProgress: 65,
+      nrnCost: 90,
+      description: 'Expert in API design, integration patterns and microservices architecture'
+    },
+    {
+      id: 'sub-agent-3',
+      name: 'Security Analyst',
+      status: 'idle',
+      capabilities: ['Security', 'Vulnerability Assessment', 'Code Review'],
+      expertise: ['OWASP', 'Security Testing', 'Penetration Testing'],
+      trainingProgress: 0,
+      nrnCost: 120,
+      description: 'Security-focused agent for vulnerability detection and security best practices'
+    },
+    {
+      id: 'sub-agent-4',
+      name: 'Performance Optimizer',
+      status: 'deployed',
+      capabilities: ['Performance', 'Optimization', 'Profiling'],
+      expertise: ['Performance Tuning', 'Memory Management', 'CPU Optimization'],
+      trainingProgress: 100,
+      nrnCost: 85,
+      description: 'Specializes in application performance optimization and resource management'
+    }
+  ]);
 
   // Sync NRN balance between game and controller
   useEffect(() => {
@@ -291,9 +357,9 @@ const ReceiverInterface = () => {
     setShellStatus('processing');
 
     setActivePanels(prev =>
-      prev.includes('agent-manager')
+      prev.includes('key-agent-display')
         ? prev
-        : [...prev, 'agent-manager']
+        : [...prev, 'key-agent-display']
     );
 
     setTimeout(() => {
@@ -590,6 +656,25 @@ const ReceiverInterface = () => {
     setActiveModal(null);
   };
 
+  const handleTrainSubAgent = (subAgentId: string, userInstructions: string) => {
+    console.log('Training sub-agent:', subAgentId, 'with instructions:', userInstructions);
+    // In a real implementation, this would trigger the training process
+  };
+
+  const handleDeployAgent = (agentId: string) => {
+    console.log('Deploying agent:', agentId);
+    // In a real implementation, this would deploy the agent
+  };
+
+  // Global function to open Error Node modal from any component
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.openErrorNodeModal = () => {
+        setIsErrorNodeOpen(true);
+      };
+    }
+  }, []);
+
   const toggleNetworkPanel = () => {
     setActivePanels(prev =>
       prev.includes('network-status')
@@ -599,11 +684,11 @@ const ReceiverInterface = () => {
     setMenuOpen(false);
   };
 
-  const toggleAgentPanel = () => {
+  const toggleKeyAgentPanel = () => {
     setActivePanels(prev =>
-      prev.includes('agent-manager')
-        ? prev.filter(id => id !== 'agent-manager')
-        : [...prev, 'agent-manager']
+      prev.includes('key-agent-display')
+        ? prev.filter(id => id !== 'key-agent-display')
+        : [...prev, 'key-agent-display']
     );
     setMenuOpen(false);
   };
@@ -649,8 +734,14 @@ const ReceiverInterface = () => {
           <MenuItem onClick={() => { setShowNetworkSelector?.(true); setMenuOpen(false); }} icon="🔗">
             Network Selection
           </MenuItem>
-          <MenuItem onClick={toggleAgentPanel} icon="🤖">
+          <MenuItem onClick={() => setIsAgentManagementOpen(true)} icon="🤖">
             Agent Management
+          </MenuItem>
+          <MenuItem onClick={() => setIsErrorNodeOpen(true)} icon="⚠️">
+            Error Nodes
+          </MenuItem>
+          <MenuItem onClick={() => toggleKeyAgentPanel()} icon="🤖">
+            Key Agent Status
           </MenuItem>
         </BurgerMenu>
       </div>
@@ -693,19 +784,60 @@ const ReceiverInterface = () => {
         </SlidingPanel>
 
         <SlidingPanel
-          id="agent-manager"
-          isOpen={activePanels.includes('agent-manager')}
-          onClose={() => closePanel('agent-manager')}
-          title="Agent Management"
+          id="key-agent-display"
+          isOpen={activePanels.includes('key-agent-display')}
+          onClose={() => closePanel('key-agent-display')}
+          title="Key Agent Status"
           side="left"
         >
-          <AgentManager
-            agents={availableAgents}
-            nrvs={currentNRVs}
-            selectedNRV={selectedNRV}
-            onAgentAssignment={handleAgentAssignment}
-            nrnBalance={nrnBalance}
-          />
+          <div className="p-4 space-y-4">
+            {/* Large Robot Image */}
+            <div className="flex justify-center">
+              <img
+                src="/assets/avatar/bot_green.png"
+                alt="Key Agent"
+                className="w-48 h-48 rounded-full border-4 border-green-500/50 shadow-2xl"
+              />
+            </div>
+            
+            {/* Key Agent Info */}
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold text-white">Key Agent</h3>
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-green-400 font-medium">Online & Active</span>
+              </div>
+              <p className="text-sm text-gray-400">
+                Your personal AI assistant for training and managing sub-agents
+              </p>
+            </div>
+
+            {/* Status Message */}
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm font-medium text-gray-300 mb-1">Current Status</div>
+              <div className="text-base text-white">
+                {availableAgents.length > 0 
+                  ? `Monitoring ${availableAgents.length} active agents`
+                  : 'Awaiting agent deployment'
+                }
+              </div>
+              <div className="text-xs text-gray-400 mt-2">
+                Last activity: {new Date().toLocaleTimeString()}
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-gray-800 rounded-lg p-3 text-center">
+                <div className="text-lg font-bold text-white">{mockSubAgents.filter(sa => sa.status === 'ready').length}</div>
+                <div className="text-xs text-gray-400">Ready Agents</div>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-3 text-center">
+                <div className="text-lg font-bold text-blue-400">{mockSubAgents.filter(sa => sa.status === 'training').length}</div>
+                <div className="text-xs text-gray-400">In Training</div>
+              </div>
+            </div>
+          </div>
         </SlidingPanel>
 
         <SlidingPanel
@@ -837,6 +969,37 @@ const ReceiverInterface = () => {
           cognitiveState={{ mode: 'active', isActive: cognitiveMode }}
         />
       </SlideDownModal>
+
+      {/* New Agent Management Modal */}
+      <AgentManagementModal
+        isOpen={isAgentManagementOpen}
+        onClose={() => setIsAgentManagementOpen(false)}
+        keyAgent={availableAgents[0] || null}
+        subAgents={mockSubAgents}
+        nrnBalance={nrnBalance}
+        onTrainSubAgent={handleTrainSubAgent}
+        onDeployAgent={handleDeployAgent}
+      />
+
+      {/* Error Node Management Modal */}
+      <ErrorNodeModal
+        isOpen={isErrorNodeOpen}
+        onClose={() => setIsErrorNodeOpen(false)}
+        nrvs={currentNRVs}
+        selectedNRV={selectedNRV}
+        nrnBalance={nrnBalance}
+        onDeployAgent={(nrv: NRV) => {
+          // Find the first available agent to deploy
+          const availableAgent = availableAgents.find(agent =>
+            agent.status === 'Available' && nrnBalance >= agent.nrnCost
+          );
+          if (availableAgent) {
+            handleAgentAssignment(nrv, availableAgent);
+          } else {
+            console.warn('No available agent found for deployment');
+          }
+        }}
+      />
 
       {/* QR Scanner Modal */}
       {showQRScanner && (

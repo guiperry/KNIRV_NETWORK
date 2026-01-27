@@ -53,7 +53,7 @@ export const SlideDownModal: React.FC<SlideDownModalProps> = ({
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
         <div
           ref={modalRef}
-          className="w-full max-w-2xl max-h-[85vh] bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-2xl transition-all duration-300 ease-in-out transform scale-100 opacity-100"
+          className="w-full max-w-[720px] max-h-[85vh] bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-2xl transition-all duration-300 ease-in-out transform scale-100 opacity-100"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700/50">

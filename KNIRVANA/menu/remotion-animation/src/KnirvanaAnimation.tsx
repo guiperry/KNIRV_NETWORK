@@ -78,10 +78,6 @@ export const KnirvanaAnimation = () => {
               alignItems: 'center',
             }}
           >
-            <div style={{ opacity: electricSparksOpacity }}>
-              <Zap color="#00f0ff" size={40} style={{ position: 'absolute', top: '-20px', left: '50%', transform: 'translateX(-50%)' }} />
-              <Zap color="#00f0ff" size={40} style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%) rotate(180deg)' }} />
-            </div>
           </div>
         </div>
       </Sequence>
@@ -96,30 +92,6 @@ export const KnirvanaAnimation = () => {
             opacity: menuOpacity,
           }}
         >
-          <h1 style={{ color: '#ffffff', fontSize: '3em', textAlign: 'center', textShadow: '0 0 20px #00f0ff' }}>KNIRVANA</h1>
-
-          <div style={{ position: 'absolute', top: '50%', left: '50%', width: '400px', height: '400px', transform: 'translate(-50%, -50%)' }}>
-            <div style={{ position: 'absolute', top: 0, left: '50%', transform: `translate(-50%, ${-iconSpread * 180}px)`, color: '#ffffff', fontSize: '1.2em', textAlign: 'center' }}>KNIRV PAY</div>
-            <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: `translate(-50%, ${iconSpread * 180}px)`, color: '#ffffff', fontSize: '1.2em', textAlign: 'center' }}>KNIRV CHAIN</div>
-            <div style={{ position: 'absolute', left: 0, top: '50%', transform: `translate(${-iconSpread * 180}px, -50%)`, color: '#ffffff', fontSize: '1.2em', textAlign: 'center' }}>KNIRV NEXUS</div>
-            <div style={{ position: 'absolute', right: 0, top: '50%', transform: `translate(${iconSpread * 180}px, -50%)`, color: '#ffffff', fontSize: '1.2em', textAlign: 'center' }}>KNIRV ORACLE</div>
-          </div>
-
-          <div style={{ position: 'absolute', top: '50%', left: '50%', width: '600px', height: '600px', transform: 'translate(-50%, -50%)' }}>
-            <div style={{ position: 'absolute', top: 0, left: '50%', transform: `translate(-50%, ${-iconSpread * 280}px)`, color: '#00f0ff', fontSize: '1em', textAlign: 'center' }}>
-              <span style={{ fontSize: '2em' }}>V</span> <br /> KNIRV GATEWAY
-            </div>
-            <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: `translate(-50%, ${iconSpread * 280}px)`, color: '#00f0ff', fontSize: '1em', textAlign: 'center' }}>
-              <span style={{ fontSize: '2em' }}>W</span> <br /> KNIRV WALLET
-            </div>
-            <div style={{ position: 'absolute', left: 0, top: '50%', transform: `translate(${-iconSpread * 280}px, -50%)`, color: '#00f0ff', fontSize: '1em', textAlign: 'center' }}>
-              <span style={{ fontSize: '2em' }}>R</span> <br /> KNIRV ROUTER
-            </div>
-            <div style={{ position: 'absolute', right: 0, top: '50%', transform: `translate(${iconSpread * 280}px, -50%)`, color: '#00f0ff', fontSize: '1em', textAlign: 'center' }}>
-              <span style={{ fontSize: '2em' }}>C</span> <br /> KNIRV CONTROLLER
-            </div>
-          </div>
-
           <svg
             width="800"
             height="800"
@@ -141,7 +113,7 @@ export const KnirvanaAnimation = () => {
               const y2 = 400 + Math.sin(radian) * 300 * iconSpread;
               return (
                 <g key={angle}>
-                  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#00f0ff" strokeWidth="1" opacity="0.6" />
+                  
                   <circle cx={x1} cy={y1} r="3" fill="#00f0ff" />
                   <circle cx={x2} cy={y2} r="3" fill="#00f0ff" />
                 </g>
@@ -151,9 +123,7 @@ export const KnirvanaAnimation = () => {
         </div>
       </Sequence>
 
-      <div style={{ position: 'absolute', bottom: '30px', width: '100%', textAlign: 'center', color: '#00f0ff', fontSize: '2em', opacity: menuOpacity }}>
-        KNIRV.COM
-      </div>
+      
     </AbsoluteFill>
   );
 };

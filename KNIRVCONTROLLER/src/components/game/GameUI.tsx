@@ -1,6 +1,7 @@
 import React from 'react';
 import { useKnirvana } from './stores/useKnirvana';
 import { useAudio } from './stores/useAudio';
+import { SabotageType } from '../../engine/Sabotage';
 
 export default function GameUI() {
   const {
@@ -13,10 +14,17 @@ export default function GameUI() {
     startGame,
     pauseGame,
     createAgent,
-    deployAgent
+    deployAgent,
+    runEpoch,
+    applySabotage,
+    startTraining,
+    distillTrajectory,
+    hardenAgent,
+    skillSlotOwner,
+    incumbentScore,
+    agents
   } = useKnirvana();
   const errorNodes = useKnirvana(state => state.errorNodes);
-  const agents = useKnirvana(state => state.agents);
 
   const { isMuted, toggleMute } = useAudio();
 
@@ -58,6 +66,19 @@ export default function GameUI() {
         </div>
       </div>
 
+      {/* Tournament Info */}
+      <div className="absolute top-24 right-4 bg-gray-900/80 backdrop-blur-sm border border-purple-500/30 rounded-lg p-4">
+        <h3 className="text-purple-400 font-semibold mb-2">Tournament</h3>
+        <div className="space-y-1 text-sm">
+          <div className="text-gray-300">
+            Skill Slot Owner: <span className="text-purple-300">{skillSlotOwner || 'None'}</span>
+          </div>
+          <div className="text-gray-300">
+            Incumbent Score: <span className="text-yellow-400">{(incumbentScore * 100).toFixed(0)}%</span>
+          </div>
+        </div>
+      </div>
+
       {/* Stats Panel */}
       <div className="absolute top-24 left-4 bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4">
         <h3 className="text-cyan-400 font-semibold mb-2">Statistics</h3>
@@ -73,7 +94,7 @@ export default function GameUI() {
 
       {/* Selection Info */}
       {(selectedErrorNode || selectedAgent) && (
-        <div className="absolute top-24 right-4 bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 max-w-xs">
+        <div className="absolute top-60 right-4 bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 max-w-xs">
           <h3 className="text-cyan-400 font-semibold mb-2">
             {selectedErrorNode ? 'Error Node' : 'AI Agent'}
           </h3>
@@ -108,6 +129,26 @@ export default function GameUI() {
                   {agents.find(a => a.id === selectedAgent)?.status}
                 </span>
               </div>
+              <div className="text-gray-300">
+                Policy: <span className="text-purple-400">
+                  {agents.find(a => a.id === selectedAgent)?.policy}
+                </span>
+              </div>
+              <div className="text-gray-300">
+                Compute: <span className="text-blue-400">
+                  {agents.find(a => a.id === selectedAgent)?.resources.compute.toFixed(0)}
+                </span>
+              </div>
+              <div className="text-gray-300">
+                Parity: <span className="text-green-400">
+                  {agents.find(a => a.id === selectedAgent)?.resources.parity.toFixed(0)}
+                </span>
+              </div>
+              <div className="text-gray-300">
+                Generation: <span className="text-yellow-400">
+                  {agents.find(a => a.id === selectedAgent)?.resources.generation}
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -117,17 +158,28 @@ export default function GameUI() {
       <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
         <div className="space-x-2">
           <button
-            onClick={() => createAgent('Analyzer')}
+            onClick={() => {
+              createAgent('Analyzer');
+              if (typeof window !== 'undefined' && window.openErrorNodeModal) {
+                window.openErrorNodeModal();
+              }
+            }}
             className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm pointer-events-auto transition-colors"
           >
-            Create Analyzer (50 NRN)
+            Analyzer
           </button>
           <button
-            onClick={() => createAgent('Optimizer')}
-            className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded text-sm pointer-events-auto transition-colors"
+            onClick={() => runEpoch()}
+            className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm pointer-events-auto transition-colors"
           >
-            Create Optimizer (50 NRN)
+            Run Epoch
           </button>
+          <div className="bg-gray-700 text-white px-4 py-2 rounded text-sm pointer-events-none">
+            <span className="text-gray-300">Status: </span>
+            <span className="text-yellow-400 font-medium">
+              {selectedErrorNode && errorNodes.find(n => n.id === selectedErrorNode)?.isBeingSolved ? 'Solving' : 'Active'}
+            </span>
+          </div>
         </div>
         
         <div className="space-x-2">
@@ -155,6 +207,39 @@ export default function GameUI() {
           </button>
         </div>
       </div>
+
+      {/* Training and Sabotage Controls */}
+      {selectedAgent && (
+        <div className="absolute bottom-20 left-4 bg-gray-900/80 backdrop-blur-sm border border-purple-500/30 rounded-lg p-4">
+          <h3 className="text-purple-400 font-semibold mb-2">Agent Actions</h3>
+          <div className="space-x-2">
+            <button
+              onClick={() => startTraining(selectedAgent)}
+              className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-sm pointer-events-auto transition-colors"
+            >
+              Train
+            </button>
+            <button
+              onClick={() => distillTrajectory(selectedAgent)}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-sm pointer-events-auto transition-colors"
+            >
+              Distill
+            </button>
+            <button
+              onClick={() => hardenAgent(selectedAgent)}
+              className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-sm pointer-events-auto transition-colors"
+            >
+              Harden
+            </button>
+            <button
+              onClick={() => applySabotage(selectedAgent, SabotageType.BACKPROP_PULSE, 1)}
+              className="bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded text-sm pointer-events-auto transition-colors"
+            >
+              Sabotage
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
