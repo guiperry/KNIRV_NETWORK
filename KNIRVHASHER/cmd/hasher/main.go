@@ -9,8 +9,8 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/gperry/devtools/claude-cli/internal/server"
-	"github.com/gperry/devtools/claude-cli/internal/ui"
+	"hasher/internal/cli/server"
+	"hasher/internal/cli/ui"
 )
 
 func main() {
@@ -35,9 +35,9 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// Check if Tiny-LLM server is running
+	// Check if Llama-LLM server is running
 	if !server.IsServerRunning() {
-		fmt.Println("Tiny-LLM server is not running.")
+		fmt.Println("Llama-LLM server is not running.")
 
 		// Check if we have existing configuration
 		config, err := server.LoadConfig()
@@ -74,7 +74,7 @@ func main() {
 
 			if foundModelPath != "" && foundServerPath != "" {
 				// Found existing installation, create config and start server
-				fmt.Println("Found existing Tiny-LLM installation, creating configuration...")
+				fmt.Println("Found existing Llama-LLM installation, creating configuration...")
 				config = &server.Config{ModelPath: foundModelPath, ServerPath: foundServerPath}
 				if err := server.SaveConfig(config); err != nil {
 					fmt.Printf("Error saving config: %v\n", err)
@@ -115,7 +115,7 @@ func main() {
 
 	// Verify server is running after attempting to start
 	if !server.IsServerRunning() {
-		fmt.Println("Failed to start Tiny-LLM server.")
+		fmt.Println("Failed to start Llama-LLM server.")
 		server.ShutdownServer(serverCmd, serverStarted)
 		os.Exit(1)
 	}
@@ -126,8 +126,8 @@ func main() {
 	// Set server ready flag
 	model.ServerReady = true
 
-	// Start the Bubble Tea UI with alternate screen for clean display
-	p := tea.NewProgram(model, tea.WithAltScreen())
+	// Start the Bubble Tea UI with alternate screen and mouse support for clean display and text selection
+	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	// Start log listener and send log messages to program
 	go func() {
 		for log := range logChan {

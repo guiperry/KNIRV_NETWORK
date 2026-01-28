@@ -13,10 +13,10 @@ func TestChatViewInitialization(t *testing.T) {
 
 	// Check if model has initial data
 	assert.NotEmpty(t, model.ChatHistory, "Chat history should not be empty")
-	assert.Contains(t, model.ChatHistory[0], "Welcome to Tiny-LLM CLI!", "Initial welcome message missing")
+	assert.Contains(t, model.ChatHistory[0], "Welcome to Hasher CLI!", "Initial welcome message missing")
 
 	// Check if chat view contains initial content
-	assert.Contains(t, model.ChatView.View(), "Welcome to Tiny-LLM CLI!", "Chat view should display initial content")
+	assert.Contains(t, model.ChatView.View(), "Welcome to Hasher CLI!", "Chat view should display initial content")
 }
 
 // TestChatUpdate directly tests the chat update functionality
