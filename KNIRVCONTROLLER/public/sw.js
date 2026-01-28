@@ -21,7 +21,10 @@ const NETWORK_FIRST_PATTERNS = [
   /^https:\/\/api\.knirv\.com/,
   /^https:\/\/rpc\.knirv\.com/,
   /^https:\/\/ws\.knirv\.com/,
-  /^https:\/\/.*\.knirv\.network/
+  /^https:\/\/.*\.knirv\.network/,
+  /^http:\/\/localhost:3000\/api/,
+  /^https:\/\/localhost:3000\/api/,
+  /^\/api/
 ];
 
 // Cache-first resources (static assets, images)
@@ -134,7 +137,7 @@ async function networkFirst(request) {
   try {
     const response = await fetch(request);
     
-    if (response.ok) {
+    if (response.ok && response.status !== 206) {
       const cache = await caches.open(DYNAMIC_CACHE_NAME);
       cache.put(request, response.clone());
     }
@@ -163,7 +166,7 @@ async function cacheFirst(request) {
   
   const response = await fetch(request);
   
-  if (response.ok) {
+  if (response.ok && response.status !== 206) {
     cache.put(request, response.clone());
   }
   
@@ -176,7 +179,7 @@ async function staleWhileRevalidate(request) {
   const cachedResponse = await cache.match(request);
   
   const fetchPromise = fetch(request).then((response) => {
-    if (response.ok) {
+    if (response.ok && response.status !== 206) {
       cache.put(request, response.clone());
     }
     return response;

@@ -22,9 +22,9 @@ describe('KNIRVBASEService Browser Integration', () => {
     it('should detect browser environment correctly', async () => {
       // Mock browser environment
       global.window = {} as any;
-      global.fetch = jest.fn();
+      (global.fetch as jest.Mock) = jest.fn();
 
-      const { KNIRVBASEService } = await import('../../src/services/KNIRVBASEService');
+      const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
 
       // Should use browser-compatible implementation
@@ -36,7 +36,7 @@ describe('KNIRVBASEService Browser Integration', () => {
       delete (global as any).window;
       delete (global as any).fetch;
 
-      const { KNIRVBASEService } = await import('../../src/services/KNIRVBASEService');
+      const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
 
       // Should use Node.js filesystem implementation
@@ -52,7 +52,7 @@ describe('KNIRVBASEService Browser Integration', () => {
           origin: 'http://localhost:3000'
         }
       } as any;
-      global.fetch = jest.fn();
+      (global.fetch as jest.Mock) = jest.fn();
     });
 
     it('should initialize browser database with correct options', async () => {
@@ -62,9 +62,9 @@ describe('KNIRVBASEService Browser Integration', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
-      });
+      } as Response);
 
-      const { KNIRVBASEService } = await import('../../src/services/KNIRVBASEService');
+      const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
 
       await service.initialize({
@@ -93,9 +93,9 @@ describe('KNIRVBASEService Browser Integration', () => {
         ok: false,
         status: 500,
         json: async () => ({ error: 'Failed to initialize database' }),
-      });
+      } as Response);
 
-      const { KNIRVBASEService } = await import('../../src/services/KNIRVBASEService');
+      const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
 
       await expect(service.initialize()).rejects.toThrow('Failed to initialize database');
@@ -110,7 +110,7 @@ describe('KNIRVBASEService Browser Integration', () => {
           origin: 'http://localhost:3000'
         }
       } as any;
-      global.fetch = jest.fn();
+      (global.fetch as jest.Mock) = jest.fn();
     });
 
     it('should create and use collections in browser mode', async () => {
@@ -120,18 +120,18 @@ describe('KNIRVBASEService Browser Integration', () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
-      });
+      } as Response);
 
       // Mock successful document insertion
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ 
-          success: true, 
+        json: async () => ({
+          success: true,
           document: { id: 'test-doc', name: 'Test Document' }
         }),
-      });
+      } as Response);
 
-      const { KNIRVBASEService } = await import('../../src/services/KNIRVBASEService');
+      const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
 
       await service.initialize();

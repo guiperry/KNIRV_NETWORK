@@ -262,6 +262,167 @@ export class KNIRVBASEService {
   async saveChat(chat: any): Promise<any> {
     return await this.saveChatMessage(chat);
   }
+
+  // Chat session methods for API compatibility
+  async listChatSessions(): Promise<any[]> {
+    const collection = this.getCollection('trainingdata');
+    const allData = await collection.findAll();
+    const sessions = new Map();
+    
+    allData.forEach(item => {
+      if (item.sessionId) {
+        if (!sessions.has(item.sessionId)) {
+          sessions.set(item.sessionId, {
+            _id: item.sessionId,
+            title: item.title || 'Untitled Chat',
+            createdAt: new Date(item.timestamp),
+            updatedAt: new Date(item.timestamp),
+            messages: []
+          });
+        }
+        sessions.get(item.sessionId).messages.push({
+          id: item.id,
+          content: item.content,
+          sender: item.sender || 'user',
+          timestamp: new Date(item.timestamp)
+        });
+      }
+    });
+    
+    return Array.from(sessions.values());
+  }
+
+  async getChatSession(sessionId: string): Promise<any> {
+    const collection = this.getCollection('trainingdata');
+    const allData = await collection.findAll();
+    const sessionData = allData.filter(item => item.sessionId === sessionId);
+    
+    if (sessionData.length === 0) return null;
+    
+    const messages = sessionData.map(item => ({
+      id: item.id,
+      content: item.content,
+      sender: item.sender || 'user',
+      timestamp: new Date(item.timestamp)
+    }));
+    
+    const firstMessage = sessionData[0];
+    return {
+      _id: sessionId,
+      title: firstMessage.title || 'Untitled Chat',
+      createdAt: new Date(firstMessage.timestamp),
+      updatedAt: new Date(firstMessage.timestamp),
+      messages
+    };
+  }
+
+  async createChatSession(session: any): Promise<any> {
+    const collection = this.getCollection('trainingdata');
+    const newSession = {
+      sessionId: session._id || `session_${Date.now()}`,
+      title: session.title,
+      content: '',
+      sender: 'system',
+      timestamp: Date.now(),
+      ...session
+    };
+    return await collection.insert(newSession);
+  }
+
+  async updateChatSession(sessionId: string, updates: any): Promise<any> {
+    const collection = this.getCollection('trainingdata');
+    const allData = await collection.findAll();
+    const sessionData = allData.filter(item => item.sessionId === sessionId);
+    
+    if (sessionData.length === 0) {
+      throw new Error('Chat session not found');
+    }
+    
+    const sessionToUpdate = sessionData[0];
+    const updatedSession = { ...sessionToUpdate, ...updates, timestamp: Date.now() };
+    
+    // Always use ID-based update for consistency
+    await collection.update(sessionToUpdate.id, updatedSession);
+    
+    return updatedSession;
+  }
+
+  async deleteChatSession(sessionId: string): Promise<any> {
+    const collection = this.getCollection('trainingdata');
+    const allData = await collection.findAll();
+    const sessionData = allData.filter(item => item.sessionId === sessionId);
+    
+    let deletedCount = 0;
+    for (const session of sessionData) {
+      // Always use ID-based delete for consistency
+      await collection.delete(session.id);
+      deletedCount++;
+    }
+    
+    return { deletedCount };
+  }
+
+  // Agent management methods
+  async createAgent(agent: any): Promise<any> {
+    const collection = this.getCollection('knowledge');
+    return await collection.insert({
+      ...agent,
+      type: 'agent',
+      timestamp: Date.now()
+    });
+  }
+
+  async getAgent(agentId: string): Promise<any> {
+    const collection = this.getCollection('knowledge');
+    const allData = await collection.findAll();
+    const agents = allData.filter(item => item.id === agentId && item.type === 'agent');
+    return agents.length > 0 ? agents[0] : null;
+  }
+
+  async updateAgent(agentId: string, updates: any): Promise<any> {
+    const collection = this.getCollection('knowledge');
+    const allData = await collection.findAll();
+    const agents = allData.filter(item => item.id === agentId && item.type === 'agent');
+    
+    if (agents.length === 0) {
+      throw new Error('Agent not found');
+    }
+    
+    const agentToUpdate = agents[0];
+    const updatedAgent = { ...agentToUpdate, ...updates };
+    
+    // Always use ID-based update for consistency
+    await collection.update(agentToUpdate.id, updatedAgent);
+    
+    return updatedAgent;
+  }
+
+  async deleteAgent(agentId: string): Promise<any> {
+    const collection = this.getCollection('knowledge');
+    const allData = await collection.findAll();
+    const agents = allData.filter(item => item.id === agentId && item.type === 'agent');
+    
+    let deletedCount = 0;
+    for (const agent of agents) {
+      // Always use ID-based delete for consistency
+      await collection.delete(agent.id);
+      deletedCount++;
+    }
+    
+    return { deletedCount };
+  }
+
+  async listAgents(): Promise<any[]> {
+    const collection = this.getCollection('knowledge');
+    const allData = await collection.findAll();
+    return allData.filter(item => item.type === 'agent');
+  }
+
+  // User settings method
+  async getAllUserSettings(): Promise<any[]> {
+    const collection = this.getCollection('usersettings');
+    return await collection.findAll();
+  }
 }
 
 // Singleton instance

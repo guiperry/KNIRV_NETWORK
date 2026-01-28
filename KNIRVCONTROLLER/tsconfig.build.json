@@ -1,22 +1,13 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "noEmit": false,
-    "outDir": "dist/backend",
-    "rootDir": "src/backend",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "moduleResolution": "node",
-    "types": ["node"]
-  },
-  "include": [
-    "src/backend/**/*"
-  ],
   "exclude": [
-    "src/backend/**/*.test.ts",
-    "src/backend/**/*.spec.ts",
     "node_modules",
-    "dist"
+    "dist",
+    "build",
+    "coverage",
+    "backups",
+    "src/core/agent-core-compiler/build/**/*",
+    "assembly/**/*",
+    "tests/**/*"
   ]
 }

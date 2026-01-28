@@ -3,12 +3,12 @@
  * Provides backend endpoints for all Phase 1 services
  */
 
-import * as express from 'express';
-import * as cors from 'cors';
+import express from 'express';
+import cors from 'cors';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
-import * as crypto from 'crypto';
-import { apiKeyService, ApiKey } from '../services/ApiKeyService';
+import crypto from 'crypto';
+import { apiKeyService, ApiKey } from '../services/ApiKeyService.js';
 
 const app = express();
 const server = createServer(app);
@@ -107,7 +107,7 @@ const QR_CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const QR_TEMP_KEY_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 // Begin QR handshake: issue a short-lived nonce the client can embed in a QR payload
-app.post('/public/qr/start', (req, res) => {
+app.post('/public/qr/start', (req: express.Request, res: express.Response) => {
   try {
     const nonce = crypto.randomBytes(16).toString('hex');
     qrChallenges.set(nonce, { createdAt: Date.now(), ip: req.ip || 'unknown' });
@@ -124,7 +124,7 @@ app.post('/public/qr/start', (req, res) => {
 });
 
 // Complete QR handshake: validate nonce and issue a temporary, scoped API key
-app.post('/public/qr/complete', async (req, res) => {
+app.post('/public/qr/complete', async (req: express.Request, res: express.Response) => {
   try {
     const { nonce } = req.body || {};
     if (!nonce) return res.status(400).json({ error: 'nonce required' });
@@ -174,7 +174,7 @@ app.use('/api', authenticateApiKey);
 
 // --- Vault: Skills, Capabilities & Properties (user-scoped placeholders) ---
 // These endpoints return mock data for the authenticated key owner until real storage is wired.
-app.get('/api/skills', requirePermission('read:skills'), (req, res) => {
+app.get('/api/skills', requirePermission('read:skills'), (req: express.Request, res: express.Response) => {
   const owner = (req.query.owner as string) || 'me';
   // TODO: replace with DB queries filtered by req.apiKey/owner
   res.json({
@@ -548,14 +548,22 @@ app.get('/api/knirvbase/app-data-path', async (req, res) => {
 });
 
 app.post('/api/cognitive/hrm/init', (req, res) => {
-  const { modelPath, config } = req.body;
-  console.log('HRM Bridge initialized:', { modelPath, config });
-  res.json({ 
-    status: 'initialized',
-    modelPath,
-    config,
-    bridgeId: `hrm_${Date.now()}`
-  });
+  try {
+    const { modelPath, config } = req.body;
+    console.log('HRM Bridge initialized:', { modelPath, config });
+    res.json({ 
+      status: 'initialized',
+      modelPath,
+      config,
+      bridgeId: `hrm_${Date.now()}`
+    });
+  } catch (error) {
+    console.error('Failed to initialize HRM Bridge:', error);
+    res.status(500).json({ 
+      error: 'Failed to initialize HRM Bridge',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
 });
 
 // Terminal Command Endpoints

@@ -1,3 +1,3 @@
-export { KNIRVQLParser, QueryType } from './knirvql';
-export { QueryOptimizer, ScanType } from './optimizer';
+export { KNIRVQLParser } from './knirvql';
+export { QueryOptimizer } from './optimizer';
 //# sourceMappingURL=index.js.map

@@ -7,6 +7,24 @@ import { CognitiveShellInterface } from '../CognitiveShellInterface';
 import { ChatBrainProvider } from '../../contexts/ChatBrainContext';
 import { initializeTournamentController } from '../../engine/TournamentControllerIntegration';
 
+interface RewardAnchor {
+  id: number;
+  x: number;
+  y: number;
+  weights: {
+    w_c: number;
+    w_l: number;
+    w_s: number;
+  };
+  constraints: string;
+  metadata?: {
+    logs: string[];
+    traces: string[];
+    severity: string;
+    description: string;
+  };
+}
+
 export default function GameUI() {
   const {
     gamePhase,
@@ -36,8 +54,8 @@ export default function GameUI() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showVerifier, setShowVerifier] = useState(false);
   const [showCognitiveShell, setShowCognitiveShell] = useState(false);
-  const [selectedAnchor, setSelectedAnchor] = useState(null);
-  const [rewardAnchors, setRewardAnchors] = useState([]);
+  const [selectedAnchor, setSelectedAnchor] = useState<RewardAnchor | null>(null);
+  const [rewardAnchors, setRewardAnchors] = useState<RewardAnchor[]>([]);
   const canvasRef = useRef(null);
 
   // Initialize Tournament Controller on component mount
@@ -84,7 +102,7 @@ export default function GameUI() {
     console.log('Sculpt mode enabled - click on grid to place reward anchors');
   };
 
-  const handleGridClick = (event) => {
+  const handleGridClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isAnalyzed) return;
     
     const rect = event.currentTarget.getBoundingClientRect();
@@ -93,19 +111,19 @@ export default function GameUI() {
     
     const errorNodeData = selectedErrorNode ? errorNodes.find(n => n.id === selectedErrorNode) : null;
     const metadata = errorNodeData ? {
-      logs: errorNodeData.logs || ['Error: Memory allocation failed', 'Stack trace at line 42'],
-      traces: errorNodeData.traces || ['Component: DataProcessor', 'Method: processBatch'],
-      severity: errorNodeData.severity || 'high',
-      description: errorNodeData.description || 'Memory leak detected in processing pipeline'
+      logs: ['Error: Memory allocation failed', 'Stack trace at line 42'],
+      traces: ['Component: DataProcessor', 'Method: processBatch'],
+      severity: 'high',
+      description: 'Memory leak detected in processing pipeline'
     } : null;
     
-    const newAnchor = {
+    const newAnchor: RewardAnchor = {
       id: Date.now(),
       x,
       y,
       weights: { w_c: 0.6, w_l: 0.3, w_s: 0.1 },
       constraints: '// Define constraints here',
-      metadata
+      ...(metadata && { metadata })
     };
     
     setRewardAnchors([...rewardAnchors, newAnchor]);
@@ -121,52 +139,91 @@ export default function GameUI() {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-40">
-      {/* Top HUD */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-        <div className="bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4">
+      {/* Top Bar Grid Layout */}
+      <div className="absolute top-4 left-4 right-4 flex gap-4 z-50">
+        {/* KNIRVANA */}
+        <div className="bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 flex-shrink-0">
           <div className="text-cyan-400 font-bold text-lg">KNIRVANA</div>
           <div className="text-gray-300 text-sm">
             Phase: <span className="text-cyan-300">{gamePhase}</span>
           </div>
         </div>
-      </div>
 
-      {/* Tournament Info */}
-      <div className="absolute top-4 right-4 bg-gray-900/80 backdrop-blur-sm border border-purple-500/30 rounded-lg p-4">
-        <h3 className="text-purple-400 font-semibold mb-2">Tournament</h3>
-        <div className="space-y-1 text-sm">
-          <div className="text-gray-300">
-            Skill Slot Owner: <span className="text-purple-300">{skillSlotOwner || 'None'}</span>
-          </div>
-          <div className="text-gray-300">
-            Incumbent Score: <span className="text-yellow-400">{(incumbentScore * 100).toFixed(0)}%</span>
-          </div>
-          <div className="mt-2">
-            <div className="text-xs text-gray-400 mb-1">Red Queen Meter</div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
-                className="bg-purple-500 h-2 rounded-full transition-all"
-                style={{ width: `${Math.random() * 100}%` }}
-              />
+        {/* Agent Info Panel */}
+        {selectedAgent && (
+          <div className="bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 max-w-xs flex-shrink-0">
+            <h3 className="text-cyan-400 font-semibold mb-2">AI Agent</h3>
+            <div className="text-sm space-y-1">
+              <div className="text-gray-300">ID: {selectedAgent}</div>
+              <div className="text-gray-300">
+                Type: {agents.find(a => a.id === selectedAgent)?.type}
+              </div>
+              <div className="text-gray-300">
+                Status: <span className="text-green-400">
+                  {agents.find(a => a.id === selectedAgent)?.status}
+                </span>
+              </div>
+              <div className="text-gray-300">
+                Policy: <span className="text-purple-400">
+                  {agents.find(a => a.id === selectedAgent)?.policy}
+                </span>
+              </div>
+              <div className="text-gray-300">
+                Compute: <span className="text-blue-400">
+                  {agents.find(a => a.id === selectedAgent)?.resources.compute.toFixed(0)}
+                </span>
+              </div>
+              <div className="text-gray-300">
+                Parity: <span className="text-green-400">
+                  {agents.find(a => a.id === selectedAgent)?.resources.parity.toFixed(0)}
+                </span>
+              </div>
+              <div className="text-gray-300">
+                Generation: <span className="text-yellow-400">
+                  {agents.find(a => a.id === selectedAgent)?.resources.generation}
+                </span>
+              </div>
             </div>
           </div>
+        )}
 
-          <button
-            onClick={handleRunEpoch}
-            disabled={isEpochRunning}
-            className={`mt-2 w-full px-3 py-1 rounded text-sm pointer-events-auto transition-colors ${
-              isEpochRunning
-                ? 'bg-yellow-600 text-white cursor-not-allowed'
-                : 'bg-green-600 hover:bg-green-500 text-white'
-            }`}
-          >
-            {isEpochRunning ? 'Epoch Running' : 'Run Epoch'}
-          </button>
+        {/* Tournament Info */}
+        <div className="bg-gray-900/80 backdrop-blur-sm border border-purple-500/30 rounded-lg p-4 flex-shrink-0 ml-auto">
+          <h3 className="text-purple-400 font-semibold mb-2">Tournament</h3>
+          <div className="space-y-1 text-sm">
+            <div className="text-gray-300">
+              Skill Slot Owner: <span className="text-purple-300">{skillSlotOwner || 'None'}</span>
+            </div>
+            <div className="text-gray-300">
+              Incumbent Score: <span className="text-yellow-400">{(incumbentScore * 100).toFixed(0)}%</span>
+            </div>
+            <div className="mt-2">
+              <div className="text-xs text-gray-400 mb-1">Red Queen Meter</div>
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div 
+                  className="bg-purple-500 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.random() * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleRunEpoch}
+              disabled={isEpochRunning}
+              className={`mt-2 w-full px-3 py-1 rounded text-sm pointer-events-auto transition-colors ${
+                isEpochRunning
+                  ? 'bg-yellow-600 text-white cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-500 text-white'
+              }`}
+            >
+              {isEpochRunning ? 'Epoch Running' : 'Run Epoch'}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats Panel */}
-      <div className="absolute top-24 left-4 bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4">
+      <div className="absolute top-24 left-4 bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 z-50">
         <h3 className="text-cyan-400 font-semibold mb-2">Statistics</h3>
         <div className="space-y-1 text-sm">
           <div className="text-gray-300">
@@ -178,47 +235,12 @@ export default function GameUI() {
         </div>
       </div>
 
-      {/* Agent Info Panel */}
-      {selectedAgent && (
-        <div className="absolute top-36 right-4 bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 max-w-xs">
-          <h3 className="text-cyan-400 font-semibold mb-2">AI Agent</h3>
-          <div className="text-sm space-y-1">
-            <div className="text-gray-300">ID: {selectedAgent}</div>
-            <div className="text-gray-300">
-              Type: {agents.find(a => a.id === selectedAgent)?.type}
-            </div>
-            <div className="text-gray-300">
-              Status: <span className="text-green-400">
-                {agents.find(a => a.id === selectedAgent)?.status}
-              </span>
-            </div>
-            <div className="text-gray-300">
-              Policy: <span className="text-purple-400">
-                {agents.find(a => a.id === selectedAgent)?.policy}
-              </span>
-            </div>
-            <div className="text-gray-300">
-              Compute: <span className="text-blue-400">
-                {agents.find(a => a.id === selectedAgent)?.resources.compute.toFixed(0)}
-              </span>
-            </div>
-            <div className="text-gray-300">
-              Parity: <span className="text-green-400">
-                {agents.find(a => a.id === selectedAgent)?.resources.parity.toFixed(0)}
-              </span>
-            </div>
-            <div className="text-gray-300">
-              Generation: <span className="text-yellow-400">
-                {agents.find(a => a.id === selectedAgent)?.resources.generation}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+          
+      
 
       {/* Error Node Info Panel */}
       {selectedErrorNode && (
-        <div className="absolute top-80 right-4 bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 max-w-xs">
+        <div className="absolute top-80 right-4 bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 max-w-xs z-50">
           <h3 className="text-cyan-400 font-semibold mb-2">Error Node</h3>
           <div className="text-sm space-y-1">
             <div className="text-gray-300">ID: {selectedErrorNode}</div>
@@ -358,8 +380,8 @@ export default function GameUI() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-            </div>
-             <div className="flex-1 overflow-hidden">
+             </div>
+            <div className="flex-1 overflow-hidden">
               <ChatBrainProvider>
                 <CognitiveShellInterface 
                   onOpenCortexBuilder={() => console.log('Cortex builder opened')}

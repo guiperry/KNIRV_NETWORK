@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import './VerifierOverlay.css';
 
+interface WindowWithTournamentController extends Window {
+  tournamentController?: {
+    updateRewardWeights: (weights: { w_c: number; w_l: number; w_s: number }) => void;
+    addConstraint: (constraints: string) => void;
+  };
+}
+
 interface RewardAnchor {
   id: number;
   x: number;
@@ -61,9 +68,10 @@ verifier.setTargetOutput([104729, 104743]);`
     console.log('Committing logic to TournamentController:', { weights, constraints });
     
     // Integrate with TournamentController/LoRAX system
-    if (typeof window !== 'undefined' && window.tournamentController) {
-      window.tournamentController.updateRewardWeights(weights);
-      window.tournamentController.addConstraint(constraints);
+    const windowWithTC = window as WindowWithTournamentController;
+    if (typeof window !== 'undefined' && windowWithTC.tournamentController) {
+      windowWithTC.tournamentController.updateRewardWeights(weights);
+      windowWithTC.tournamentController.addConstraint(constraints);
       console.log('Logic committed to TournamentController/LoRAX system');
     }
     
@@ -88,7 +96,7 @@ verifier.setTargetOutput([104729, 104743]);`
               max="1" 
               step="0.05" 
               value={weights.w_c} 
-              oninput={(e) => updateWeights('w_c', parseFloat(e.target.value))}
+              onInput={(e: React.ChangeEvent<HTMLInputElement>) => updateWeights('w_c', parseFloat(e.target.value))}
             />
           </div>
           <div className="slider-group">
@@ -99,7 +107,7 @@ verifier.setTargetOutput([104729, 104743]);`
               max="1" 
               step="0.05" 
               value={weights.w_l} 
-              oninput={(e) => updateWeights('w_l', parseFloat(e.target.value))}
+              onInput={(e: React.ChangeEvent<HTMLInputElement>) => updateWeights('w_l', parseFloat(e.target.value))}
             />
           </div>
           <div className="slider-group">
@@ -110,7 +118,7 @@ verifier.setTargetOutput([104729, 104743]);`
               max="1" 
               step="0.05" 
               value={weights.w_s} 
-              oninput={(e) => updateWeights('w_s', parseFloat(e.target.value))}
+              onInput={(e: React.ChangeEvent<HTMLInputElement>) => updateWeights('w_s', parseFloat(e.target.value))}
             />
           </div>
           <p className="formula-preview">Score = (C × w_c) + (L_norm × w_l) + (S × w_s)</p>
@@ -121,9 +129,9 @@ verifier.setTargetOutput([104729, 104743]);`
           <div className="editor-container">
             <textarea 
               id="test-editor" 
-              spellcheck="false"
+              spellCheck={false}
               value={constraints}
-              onChange={(e) => setConstraints(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setConstraints(e.target.value)}
             />
           </div>
           <button className="deploy-logic-btn" onClick={commitLogic}>COMMIT_TO_ARENA</button>

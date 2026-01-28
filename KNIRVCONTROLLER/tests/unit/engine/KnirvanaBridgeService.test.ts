@@ -32,6 +32,17 @@ jest.mock('../services/PersonalKNIRVGRAPHService', () => ({
   }
 }));
 
+// Mock rxdbService
+const rxdbService = {
+  isDatabaseInitialized: jest.fn(),
+  initialize: jest.fn(),
+  getCollection: jest.fn(),
+  insert: jest.fn(),
+  find: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn()
+};
+
 describe('KnirvanaBridgeService', () => {
   beforeEach(async () => {
     // Reset mocks

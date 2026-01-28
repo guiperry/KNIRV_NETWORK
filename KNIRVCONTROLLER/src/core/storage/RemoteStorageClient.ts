@@ -45,8 +45,8 @@ export class RemoteStorageClient {
   constructor(options: StorageOptions) {
     this.sessionId = options.sessionId;
     this.baseUrl = options.baseUrl || (typeof window !== 'undefined' ? 
-      `${window.location.protocol}//${window.location.host}` : 
-      'http://localhost:3000');
+      `${window.location.protocol}//${window.location.host.replace(':3000', ':3001')}` : 
+      'http://localhost:3001');
   }
 
   private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {

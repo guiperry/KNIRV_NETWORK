@@ -13,6 +13,23 @@ import { Agent } from '../types/common';
 // import { KNIRVRouterIntegration, LoRAAdapterData } from '../sensory-shell/KNIRVRouterIntegration';
 // import { CognitiveEngine } from '../sensory-shell/CognitiveEngine';
 
+// Temporary placeholder for CognitiveEngine
+class CognitiveEngine {
+  constructor(config: any) {
+    console.log('CognitiveEngine placeholder initialized');
+  }
+}
+
+// Temporary placeholder state
+const [cognitiveEngine, setCognitiveEngine] = useState<CognitiveEngine | null>(null);
+
+// Temporary placeholder functions
+const loadLoRAAdapters = async (router: any) => {
+  console.log('loadLoRAAdapters placeholder called');
+};
+
+const router = null; // placeholder router
+
 // Temporary type definitions
 interface LoRAAdapterData {
   id: string;

@@ -270,16 +270,18 @@ export class HRMBridge extends EventEmitter {
         console.log(`Mock: Initializing ${lCount} L-modules and ${hCount} H-modules`);
         return true;
       },
-      process_sensory_input: (data: Float32Array, context: string) => {
-        console.log('Mock: Processing sensory input');
-        return new Float32Array([0.8, 0.6, 0.9, 0.7, 0.85]); // Mock response
+      process_cognitive_input: (input_json: string) => {
+        console.log('Mock: Processing cognitive input');
+        return JSON.stringify({ result: 'mock_cognitive_output', confidence: 0.95 });
       },
       load_weights: (weights: Uint8Array) => {
         console.log('Mock: Loading model weights');
         return true;
       },
-      get_confidence: () => 0.95,
-      get_adaptation_level: () => 0.87
+      get_model_info: () => JSON.stringify({ confidence: 0.95, adaptation_level: 0.87 }),
+      free: () => {
+        console.log('Mock: Freeing WASM resources');
+      }
     };
     
     this.emit('initialized');

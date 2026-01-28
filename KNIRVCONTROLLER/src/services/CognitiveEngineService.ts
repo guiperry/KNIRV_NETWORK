@@ -68,6 +68,12 @@ export class CognitiveEngineService {
   private hrmBridge: unknown = null;
 
   constructor(baseUrl: string = '') {
+    // Default to port 3001 for API calls if not specified
+    if (!baseUrl && typeof window !== 'undefined') {
+      baseUrl = window.location.origin.replace(':3000', ':3001');
+    } else if (!baseUrl) {
+      baseUrl = 'http://localhost:3001';
+    }
     this.baseUrl = baseUrl;
     this.metrics = this.initializeMetrics();
     this.initializeCognitiveEngine();

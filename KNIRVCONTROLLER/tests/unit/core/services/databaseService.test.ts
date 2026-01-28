@@ -192,9 +192,9 @@ describe('DatabaseService', () => {
     test('should get instance successfully', () => {
       const instance = databaseService;
       expect(instance).toBeDefined();
-      expect(instance.agents).toBeDefined();
-      expect(instance.skills).toBeDefined();
-      expect(instance.chatSessions).toBeDefined();
+      expect(instance.listAgents).toBeDefined();
+      expect(instance.listChatSessions).toBeDefined();
+      expect(instance.getChatSession).toBeDefined();
     });
   });
 });

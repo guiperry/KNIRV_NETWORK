@@ -48,6 +48,16 @@ const server = createServer((req, res) => {
       return;
     }
 
+    if (path === '/api/knirvbase/initialize' && req.method === 'POST') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        success: true, 
+        message: 'KNIRVBASE database initialized successfully',
+        dataDir: '/tmp/knirv-data'
+      }));
+      return;
+    }
+
     // Default 404
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 

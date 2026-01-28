@@ -230,7 +230,7 @@ export const searchSessions = async (req: Request, res: Response) => {
       
       // Search in message content
       if (session.messages) {
-        return session.messages.some(message => 
+        return session.messages.some((message: ChatMessage) => 
           message.content.toLowerCase().includes(query.toLowerCase())
         );
       }
