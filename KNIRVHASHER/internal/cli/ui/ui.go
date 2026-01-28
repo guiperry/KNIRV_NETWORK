@@ -366,7 +366,8 @@ func (m Model) renderChatView() string {
 
 	footer := footerStyle.Copy().Width(m.Width).Render(m.ResourceData)
 
-	availableHeight := m.Height - 3 - 2 // Subtract header and footer
+	// Calculate available height: total height - header(1) - footer(1) - input(3 lines with border)
+	availableHeight := m.Height - 1 - 1 - 3
 	if availableHeight < 10 {
 		availableHeight = 10
 	}
@@ -438,11 +439,13 @@ func (m Model) handleResize(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 
 	m.MainMenu.SetSize(msg.Width-4, msg.Height-6)
 
-	// Vertical layout dimensions
-	availableHeight := msg.Height - 7 // Subtract header, footer, input area
+	// Calculate available height: total height - header(1) - footer(1) - input(3 lines with border)
+	availableHeight := msg.Height - 1 - 1 - 3
 	if availableHeight < 10 {
 		availableHeight = 10
 	}
+
+	// Vertical layout dimensions
 	chatHeight := availableHeight / 2
 	logHeight := availableHeight - chatHeight
 
