@@ -5,9 +5,18 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 
 // Mock fetch for browser environment
-global.fetch = jest.fn();
+(global.fetch as jest.Mock) = jest.fn();
 
-import { RemoteStorageClient } from '../../src/core/storage/RemoteStorageClient';
+import { RemoteStorageClient } from '@core/storage/RemoteStorageClient';
+
+// Helper function to create mock responses
+const createMockResponse = (data: any, ok: boolean = true, status: number = 200) => ({
+  ok,
+  status,
+  json: async () => data,
+  text: async () => JSON.stringify(data),
+  blob: async () => new Blob([JSON.stringify(data)]),
+});
 
 describe('RemoteStorageClient Integration', () => {
   let client: RemoteStorageClient;
@@ -33,10 +42,8 @@ describe('RemoteStorageClient Integration', () => {
         dataDir: '/User/Library/Application Support/KNIRV/KNIRVCONTROLLER/data'
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(createMockResponse(mockResponse));
 
       const result = await client.initialize();
 
@@ -59,11 +66,10 @@ describe('RemoteStorageClient Integration', () => {
     });
 
     it('should handle initialization errors', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => ({ error: 'Initialization failed' }),
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse({ error: 'Initialization failed' }, false, 500)
+      );
 
       await expect(client.initialize()).rejects.toThrow('Initialization failed');
     });
@@ -71,21 +77,20 @@ describe('RemoteStorageClient Integration', () => {
 
   describe('Document Operations', () => {
     beforeEach(() => {
-      // Mock successful initialization
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      });
+      // Mock successful initialization - use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse({ success: true })
+      );
     });
 
     it('should insert a document', async () => {
       const mockDoc = { id: 'doc1', name: 'Test Document', data: 'test' };
       const mockResponse = { success: true, document: mockDoc };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse(mockResponse)
+      );
 
       const result = await client.insert('test-collection', mockDoc);
 
@@ -111,10 +116,10 @@ describe('RemoteStorageClient Integration', () => {
       const mockDoc = { id: 'doc1', name: 'Test Document', data: 'test' };
       const mockResponse = { success: true, document: mockDoc };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse(mockResponse)
+      );
 
       const result = await client.find('test-collection', 'doc1');
 
@@ -126,10 +131,10 @@ describe('RemoteStorageClient Integration', () => {
     });
 
     it('should return null for non-existent document', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: false, error: 'Document not found' }),
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse({ success: false, error: 'Document not found' })
+      );
 
       const result = await client.find('test-collection', 'nonexistent');
 
@@ -143,10 +148,10 @@ describe('RemoteStorageClient Integration', () => {
       ];
       const mockResponse = { success: true, documents: mockDocs };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse(mockResponse)
+      );
 
       const result = await client.findAll('test-collection');
 
@@ -161,10 +166,10 @@ describe('RemoteStorageClient Integration', () => {
       const updateData = { name: 'Updated Document' };
       const mockResponse = { success: true, updatedCount: 1 };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse(mockResponse)
+      );
 
       const result = await client.update('test-collection', 'doc1', updateData);
 
@@ -187,10 +192,10 @@ describe('RemoteStorageClient Integration', () => {
     it('should delete a document', async () => {
       const mockResponse = { success: true, deletedCount: 1 };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse(mockResponse)
+      );
 
       const result = await client.delete('test-collection', 'doc1');
 
@@ -217,10 +222,10 @@ describe('RemoteStorageClient Integration', () => {
         initialized: true,
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse(mockResponse)
+      );
 
       const result = await client.getInfo();
 
@@ -239,10 +244,10 @@ describe('RemoteStorageClient Integration', () => {
         homedir: '/User/testuser',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse(mockResponse)
+      );
 
       const result = await client.getAppDataPath();
 
@@ -256,24 +261,24 @@ describe('RemoteStorageClient Integration', () => {
 
   describe('Error Handling', () => {
     it('should handle network errors', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockRejectedValueOnce as any)(new Error('Network error'));
 
       await expect(client.find('test-collection', 'doc1')).rejects.toThrow('Network error');
     });
 
     it('should handle HTTP errors', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error',
-        json: async () => ({ error: 'Database error' }),
-      });
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)(
+        createMockResponse({ error: 'Database error' }, false, 500)
+      );
 
       await expect(client.find('test-collection', 'doc1')).rejects.toThrow('Database error');
     });
 
     it('should handle malformed JSON responses', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      // Use type assertion to bypass TypeScript checking
+      ((global.fetch as jest.Mock).mockResolvedValueOnce as any)({
         ok: true,
         json: async () => {
           throw new Error('Invalid JSON');

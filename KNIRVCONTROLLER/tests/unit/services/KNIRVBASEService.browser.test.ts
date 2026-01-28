@@ -8,6 +8,15 @@ import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals
 const originalWindow = global.window;
 const originalFetch = global.fetch;
 
+// Create a properly typed mock response helper
+const createMockResponse = (data: any, ok: boolean = true, status: number = 200) => ({
+  ok,
+  status,
+  json: async () => data,
+  text: async () => JSON.stringify(data),
+  blob: async () => new Blob([JSON.stringify(data)]),
+});
+
 describe('KNIRVBASEService Browser Integration', () => {
   beforeEach(() => {
     jest.resetModules();
@@ -58,11 +67,8 @@ describe('KNIRVBASEService Browser Integration', () => {
     it('should initialize browser database with correct options', async () => {
       const mockFetch = global.fetch as jest.Mock;
       
-      // Mock successful initialization
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      } as Response);
+      // Mock successful initialization - use type assertion to bypass TypeScript checking
+      (mockFetch.mockResolvedValueOnce as any)(createMockResponse({ success: true }));
 
       const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
@@ -88,12 +94,12 @@ describe('KNIRVBASEService Browser Integration', () => {
     it('should handle initialization errors gracefully', async () => {
       const mockFetch = global.fetch as jest.Mock;
       
-      // Mock initialization error
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => ({ error: 'Failed to initialize database' }),
-      } as Response);
+      // Mock initialization error - use type assertion to bypass TypeScript checking
+      (mockFetch.mockResolvedValueOnce as any)(createMockResponse(
+        { error: 'Failed to initialize database' },
+        false,
+        500
+      ));
 
       const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
@@ -116,20 +122,14 @@ describe('KNIRVBASEService Browser Integration', () => {
     it('should create and use collections in browser mode', async () => {
       const mockFetch = global.fetch as jest.Mock;
       
-      // Mock successful initialization
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true }),
-      } as Response);
+      // Mock successful initialization - use type assertion to bypass TypeScript checking
+      (mockFetch.mockResolvedValueOnce as any)(createMockResponse({ success: true }));
 
-      // Mock successful document insertion
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          document: { id: 'test-doc', name: 'Test Document' }
-        }),
-      } as Response);
+      // Mock successful document insertion - use type assertion to bypass TypeScript checking
+      (mockFetch.mockResolvedValueOnce as any)(createMockResponse({
+        success: true,
+        document: { id: 'test-doc', name: 'Test Document' }
+      }));
 
       const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
