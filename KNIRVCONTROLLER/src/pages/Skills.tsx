@@ -115,24 +115,12 @@ export default function Skills() {
   const [selectedNRV] = useState(null);
   const [nrnBalance] = useState(1250);
 
-  // Initialize KNIRVROUTER and Cognitive Engine - temporarily disabled for testing
+  // Initialize Cognitive Engine - KNIRVROUTER integration disabled
   useEffect(() => {
     const initializeIntegrations = async () => {
       try {
-        // Temporarily comment out problematic initialization
-        /*
-        // Initialize KNIRVROUTER
-        const router = new KNIRVRouterIntegration({
-          routerUrl: 'http://localhost:5000',
-          graphUrl: 'http://localhost:5001',
-          oracleUrl: 'http://localhost:5002',
-          timeout: 30000,
-          retryAttempts: 3,
-          enableP2P: true,
-          enableWASM: true
-        });
-
-        setKnirvRouter(router);
+        // KNIRVROUTER integration has been disabled
+        console.log('KNIRVROUTER integration is disabled');
 
         // Initialize Cognitive Engine
         const engine = new CognitiveEngine({
@@ -155,7 +143,6 @@ export default function Skills() {
 
         // Load LoRA adapters from network
         await loadLoRAAdapters(router);
-        */
 
         // Load default skills for testing
         setSkills(getDefaultSkills());
@@ -457,7 +444,7 @@ export default function Skills() {
             {isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                <p className="text-gray-400">Loading LoRA adapters from KNIRVROUTER network...</p>
+                <p className="text-gray-400">Loading available skills...</p>
               </div>
             ) : filteredSkills.length === 0 ? (
               <div className="text-center py-8">
@@ -466,7 +453,7 @@ export default function Skills() {
                 <p className="text-sm text-gray-500">
                   {searchTerm || selectedCategory !== 'all'
                     ? 'Try adjusting your search or filter criteria'
-                    : 'Connect to KNIRVROUTER network to load LoRA adapters'
+                    : 'No skills available. Check back later for updates.'
                   }
                 </p>
               </div>

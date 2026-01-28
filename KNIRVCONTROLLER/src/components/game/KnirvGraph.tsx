@@ -37,6 +37,7 @@ export default function KnirvGraph() {
           agent={agent}
           isSelected={selectedAgent === agent.id}
           onSelect={() => useKnirvana.getState().selectAgent(agent.id)}
+          onStage={() => console.log(`Staging agent ${agent.id}`)}
         />
       ))}
       

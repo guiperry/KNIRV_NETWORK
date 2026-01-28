@@ -3,11 +3,11 @@
  * Provides backend endpoints for all Phase 1 services
  */
 
-import express from 'express';
-import cors from 'cors';
+import * as express from 'express';
+import * as cors from 'cors';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { apiKeyService, ApiKey } from '../services/ApiKeyService';
 
 const app = express();
@@ -491,6 +491,60 @@ app.post('/api/cognitive/adaptation/save', (req, res) => {
   const { context, activeSkills, metrics, timestamp } = req.body;
   console.log('Adaptation saved:', { context, activeSkills, metrics, timestamp });
   res.json({ status: 'adaptation_saved' });
+});
+
+// KNIRVBASE Database Endpoints
+app.post('/api/knirvbase/initialize', async (req, res) => {
+  try {
+    const { sessionId, dataDir, distributedEnabled, networkId, bootstrapPeers } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+    
+    // Import the knirvbase functions
+    const { initializeDatabase } = await import('../core/api/knirvbase');
+    
+    await initializeDatabase(req, res);
+  } catch (error) {
+    console.error('Failed to initialize KNIRVBASE:', error);
+    res.status(500).json({ 
+      error: 'Failed to initialize KNIRVBASE',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+app.get('/api/knirvbase/session/:sessionId/info', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+    
+    const { getDatabaseInfo } = await import('../core/api/knirvbase');
+    await getDatabaseInfo(req, res);
+  } catch (error) {
+    console.error('Failed to get database info:', error);
+    res.status(500).json({ 
+      error: 'Failed to get database info',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+app.get('/api/knirvbase/app-data-path', async (req, res) => {
+  try {
+    const { getAppDataPath } = await import('../core/api/knirvbase');
+    await getAppDataPath(req, res);
+  } catch (error) {
+    console.error('Failed to get App Data path:', error);
+    res.status(500).json({ 
+      error: 'Failed to get App Data path',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
 });
 
 app.post('/api/cognitive/hrm/init', (req, res) => {

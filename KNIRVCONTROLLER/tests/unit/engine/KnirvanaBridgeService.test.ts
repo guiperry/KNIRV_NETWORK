@@ -3,14 +3,16 @@
  * Tests game mechanics integration with personal graph and collective network features
  */
 
-import { knirvanaBridgeService } from '../services/KnirvanaBridgeService';
-import { personalKNIRVGRAPHService } from '../services/PersonalKNIRVGRAPHService';
-import { rxdbService } from '../services/RxDBService';
+import { knirvanaBridgeService } from '../../../src/services/KnirvanaBridgeService';
+import { personalKNIRVGRAPHService } from '../../../src/services/PersonalKNIRVGRAPHService';
+import { knirvbaseService } from '../../../src/services/KNIRVBASEService';
+import { KnirvanaAgent } from '../../../src/services/KnirvanaBridgeService';
+import { ErrorNode } from '../../../src/components/game/stores/useKnirvana';
 
-// Mock the RxDB service
-jest.mock('../services/RxDBService', () => ({
-  rxdbService: {
-    isDatabaseInitialized: jest.fn(),
+// Mock the KNIRVBASE service
+jest.mock('../../../src/services/KNIRVBASEService', () => ({
+  knirvbaseService: {
+    isInitialized: jest.fn(),
     initialize: jest.fn(),
     getDatabase: jest.fn(() => ({
       settings: {
@@ -183,11 +185,11 @@ describe('KnirvanaBridgeService', () => {
       const gameState = knirvanaBridgeService.getGameState();
       expect(gameState.nrnBalance).toBe(490); // 500 - 10
 
-      const deployedAgent = gameState.agents.find(a => a.id === agentId);
+      const deployedAgent = gameState.agents.find((a: KnirvanaAgent) => a.id === agentId);
       expect(deployedAgent?.status).toBe('working');
       expect(deployedAgent?.target).toBe(errorNodeId);
 
-      const targetError = gameState.errorNodes.find(e => e.id === errorNodeId);
+      const targetError = gameState.errorNodes.find((e: ErrorNode) => e.id === errorNodeId);
       expect(targetError?.isBeingSolved).toBe(true);
       expect(targetError?.solverAgent).toBe(agentId);
     });
@@ -324,7 +326,7 @@ describe('KnirvanaBridgeService', () => {
       await knirvanaBridgeService.createAgent('Analyzer');
 
       const gameState = knirvanaBridgeService.getGameState();
-      const analyzerAgent = gameState.agents.find(a => a.type === 'Analyzer');
+      const analyzerAgent = gameState.agents.find((a: KnirvanaAgent) => a.type === 'Analyzer');
 
       expect(analyzerAgent?.capabilities).toEqual([
         'error_analysis',
@@ -337,7 +339,7 @@ describe('KnirvanaBridgeService', () => {
       await knirvanaBridgeService.createAgent('Optimizer');
 
       const gameState = knirvanaBridgeService.getGameState();
-      const optimizerAgent = gameState.agents.find(a => a.type === 'Optimizer');
+      const optimizerAgent = gameState.agents.find((a: KnirvanaAgent) => a.type === 'Optimizer');
 
       expect(optimizerAgent?.capabilities).toEqual([
         'code_optimization',
@@ -350,7 +352,7 @@ describe('KnirvanaBridgeService', () => {
       await knirvanaBridgeService.createAgent('UnknownType');
 
       const gameState = knirvanaBridgeService.getGameState();
-      const unknownAgent = gameState.agents.find(a => a.type === 'UnknownType');
+      const unknownAgent = gameState.agents.find((a: KnirvanaAgent) => a.type === 'UnknownType');
 
       expect(unknownAgent?.capabilities).toEqual(['general_problem_solving']);
     });

@@ -1,8 +1,8 @@
 import request from 'supertest';
-import app from '../server/api-server';
+import app from '../../../src/server/api-server';
 
 // Mock apiKeyService to bypass authentication
-jest.mock('../services/ApiKeyService', () => ({
+jest.mock('../../../src/services/ApiKeyService', () => ({
   apiKeyService: {
     validateApiKey: jest.fn(async (key: string) => ({ id: 'testkey', key, permissions: ['write:graph', 'admin:all'], isActive: true })),
     checkRateLimit: jest.fn(async () => ({ allowed: true })),

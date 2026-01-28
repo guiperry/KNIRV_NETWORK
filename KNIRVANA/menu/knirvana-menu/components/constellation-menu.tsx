@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Eye, Box, Wrench, Globe, Cpu, Layers, Settings, Triangle } from "lucide-react"
+import StarSupernova from "./star-supernova"
+import SettingsModal from "./settings-modal"
 
 // Inner ring labels (closest to center)
 const innerLabels = [
@@ -53,10 +55,16 @@ function polarToCartesian(angle: number, radius: number) {
 export default function ConstellationMenu() {
   const [mounted, setMounted] = useState(false)
   const [hoveredIcon, setHoveredIcon] = useState<number | null>(null)
+  const [loadingComplete, setLoadingComplete] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const handleLoadingComplete = () => {
+    setLoadingComplete(true)
+  }
 
   const centerSize = 160
   const ring1Radius = 120
@@ -66,7 +74,16 @@ export default function ConstellationMenu() {
   const iconRadius = 360  // Position icons just outside the outer ring
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-[#030a18]">
+    <>
+      {/* Star Supernova Loading Animation */}
+      {!loadingComplete && <StarSupernova onComplete={handleLoadingComplete} />}
+      
+      {/* Main Constellation Menu */}
+      <div 
+        className="relative flex min-h-screen w-full items-center justify-center overflow-hidden"
+        style={{ backgroundColor: "#030a18" }}
+      >
+        <div className="relative">
       {/* Starfield Background */}
       <div className="absolute inset-0">
         {[...Array(200)].map((_, i) => (
@@ -104,18 +121,10 @@ export default function ConstellationMenu() {
         <div className="absolute bottom-0 right-[15%] h-28 w-7 bg-gradient-to-t from-cyan-900/20 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
       </div>
 
-      {/* Main Container */}
-      <motion.div
+       {/* Main Container */}
+      <div
         className="relative"
         style={{ width: 900, height: 900 }}
-        animate={{
-          scale: [1, 1.01, 1],
-        }}
-        transition={{
-          duration: 6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
       >
         {/* SVG for Rings and Connection Lines */}
         <svg
@@ -133,7 +142,7 @@ export default function ConstellationMenu() {
             stroke="rgba(0, 200, 255, 0.3)"
             strokeWidth="1.5"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={mounted ? { pathLength: 1, opacity: 1 } : {}}
+            animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
             transition={{ duration: 2, delay: 0.2 }}
           />
           
@@ -146,7 +155,7 @@ export default function ConstellationMenu() {
             stroke="rgba(0, 200, 255, 0.2)"
             strokeWidth="1"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={mounted ? { pathLength: 1, opacity: 1 } : {}}
+            animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
             transition={{ duration: 2, delay: 0.1 }}
           />
           
@@ -159,7 +168,7 @@ export default function ConstellationMenu() {
             stroke="rgba(0, 200, 255, 0.2)"
             strokeWidth="1"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={mounted ? { pathLength: 1, opacity: 1 } : {}}
+            animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
             transition={{ duration: 2, delay: 0.1 }}
           />
           
@@ -172,7 +181,7 @@ export default function ConstellationMenu() {
             stroke="rgba(0, 200, 255, 0.25)"
             strokeWidth="1.5"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={mounted ? { pathLength: 1, opacity: 1 } : {}}
+            animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
             transition={{ duration: 2, delay: 0.4 }}
           />
           
@@ -185,7 +194,7 @@ export default function ConstellationMenu() {
             stroke="rgba(0, 200, 255, 0.35)"
             strokeWidth="1.5"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={mounted ? { pathLength: 1, opacity: 1 } : {}}
+            animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
             transition={{ duration: 2, delay: 0.6 }}
           />
           
@@ -198,7 +207,7 @@ export default function ConstellationMenu() {
             stroke="rgba(0, 200, 255, 0.4)"
             strokeWidth="2"
             initial={{ pathLength: 0, opacity: 0 }}
-            animate={mounted ? { pathLength: 1, opacity: 1 } : {}}
+            animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
             transition={{ duration: 2, delay: 0.8 }}
           />
 
@@ -345,7 +354,7 @@ export default function ConstellationMenu() {
                 stroke="rgba(0, 200, 255, 0.1)"
                 strokeWidth="1"
                 initial={{ pathLength: 0, opacity: 0 }}
-                animate={mounted ? { pathLength: 1, opacity: 1 } : {}}
+                animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
                 transition={{ duration: 1, delay: 1.5 + i * 0.05 }}
               />
             )
@@ -353,7 +362,7 @@ export default function ConstellationMenu() {
 
           {/* Decorative arc segments - slow rotating disjointed ring */}
           <motion.g
-            animate={mounted ? { rotate: 360 } : {}}
+            animate={loadingComplete ? { rotate: 360 } : {}}
             transition={{
               duration: 120,
               repeat: Number.POSITIVE_INFINITY,
@@ -373,7 +382,7 @@ export default function ConstellationMenu() {
                   strokeWidth="3"
                   filter="url(#glow)"
                   initial={{ pathLength: 0, opacity: 0 }}
-                  animate={mounted ? { pathLength: 1, opacity: 1 } : {}}
+                  animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
                   transition={{ duration: 0.8, delay: 2 + i * 0.1 }}
                 />
               )
@@ -425,13 +434,14 @@ export default function ConstellationMenu() {
           )}
         </svg>
 
-        {/* Central Orb with Network Pattern */}
-        <motion.div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={mounted ? { scale: 1, opacity: 1 } : {}}
-          transition={{ duration: 1, ease: "easeOut" }}
-        >
+         {/* Central Orb with Network Pattern */}
+         <div
+           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+           style={{
+             opacity: loadingComplete ? 1 : 0,
+             transition: 'opacity 1.5s ease-in-out'
+           }}
+         >
           {/* Tight outer glow ring - glowing just at the edge */}
           <div
             className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
@@ -582,7 +592,7 @@ export default function ConstellationMenu() {
               boxShadow: "0 0 30px rgba(0, 220, 255, 0.6), 0 0 60px rgba(0, 200, 255, 0.4), inset 0 0 20px rgba(0, 220, 255, 0.3)",
             }}
           />
-        </motion.div>
+        </div>
 
         {/* Inner Labels */}
         {innerLabels.map((item, i) => {
@@ -597,7 +607,7 @@ export default function ConstellationMenu() {
                 textShadow: "0 0 8px rgba(0, 200, 255, 0.6)",
               }}
               initial={{ opacity: 0 }}
-              animate={mounted ? { opacity: 1 } : {}}
+              animate={loadingComplete ? { opacity: 1 } : {}}
               transition={{ duration: 0.5, delay: 2 + i * 0.05 }}
             >
               {item.label}
@@ -618,7 +628,7 @@ export default function ConstellationMenu() {
                 textShadow: "0 0 10px rgba(0, 200, 255, 0.8)",
               }}
               initial={{ opacity: 0 }}
-              animate={mounted ? { opacity: 1 } : {}}
+              animate={loadingComplete ? { opacity: 1 } : {}}
               transition={{ duration: 0.5, delay: 2.3 + i * 0.05 }}
             >
               {item.label}
@@ -634,6 +644,8 @@ export default function ConstellationMenu() {
           // Calculate absolute position from center (450 is half of 900)
           const absoluteX = 450 + pos.x - 28 // 28 is half of icon size (56)
           const absoluteY = 450 + pos.y - 28
+          const isSettingsIcon = item.icon === Settings
+          
           return (
             <motion.div
               key={`icon-${i}`}
@@ -643,10 +655,15 @@ export default function ConstellationMenu() {
                 top: absoluteY,
               }}
               initial={{ opacity: 0, scale: 0 }}
-              animate={mounted ? { opacity: 1, scale: 1 } : {}}
+animate={loadingComplete ? { opacity: 1, scale: 1 } : {}}
               transition={{ duration: 0.5, delay: 2.6 + i * 0.1, type: "spring" }}
               onMouseEnter={() => setHoveredIcon(i)}
               onMouseLeave={() => setHoveredIcon(null)}
+              onClick={() => {
+                if (isSettingsIcon) {
+                  setSettingsOpen(true)
+                }
+              }}
             >
               <motion.div
                 className="flex items-center justify-center rounded-full"
@@ -689,12 +706,20 @@ export default function ConstellationMenu() {
             textShadow: "0 0 20px rgba(0, 200, 255, 0.6), 0 0 40px rgba(0, 200, 255, 0.3)",
           }}
           initial={{ opacity: 0, y: 20 }}
-          animate={mounted ? { opacity: 1, y: 0 } : {}}
+          animate={loadingComplete ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 3 }}
         >
           KNIRV.COM
         </motion.div>
-      </motion.div>
-    </div>
+        </div>
+        </div>
+
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
+      </div>
+    </>
   )
 }

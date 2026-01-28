@@ -4,7 +4,7 @@
  */
 
 import { personalKNIRVGRAPHService, GraphNode, PersonalGraph } from './PersonalKNIRVGRAPHService';
-import { rxdbService } from './RxDBService';
+import { knirvbaseService } from './KNIRVBASEService';
 
 export interface TrainingConfig {
   learningRate: number;
@@ -297,18 +297,15 @@ class CortexTrainingService {
     return totalLoss / trainingData.inputs.length;
   }
 
+  // In-memory storage for models (TODO: persist to KNIRVBASE)
+  private savedModelsCache: CortexModel[] = [];
+
   /**
    * Get saved models
    */
   async getSavedModels(): Promise<CortexModel[]> {
     try {
-      const db = rxdbService.getDatabase();
-      const settings = await db.settings.findOne({ selector: { key: 'cortex_models' } }).exec();
-      
-      if (settings) {
-        return JSON.parse(settings.value);
-      }
-      return [];
+      return this.savedModelsCache;
     } catch (error) {
       console.error('Failed to load saved models:', error);
       return [];
@@ -316,19 +313,12 @@ class CortexTrainingService {
   }
 
   /**
-   * Save model to database
+   * Save model to in-memory cache
    */
   private async saveModel(model: CortexModel): Promise<void> {
     try {
-      const db = rxdbService.getDatabase();
-      const existingModels = await this.getSavedModels();
-      const updatedModels = [...existingModels, model];
-      
-      await db.settings.upsert({
-        key: 'cortex_models',
-        value: JSON.stringify(updatedModels),
-        timestamp: Date.now()
-      });
+      this.savedModelsCache.push(model);
+      console.log('Model saved to in-memory cache');
     } catch (error) {
       console.error('Failed to save model:', error);
       throw error;

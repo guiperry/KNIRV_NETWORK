@@ -1,0 +1,42 @@
+# Build directory
+bin/
+
+# Logs directory
+logs/
+
+# Other binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Legacy outputs (root level - deprecated)
+diagnostics_*.txt
+probe_*.txt
+/tmp/
+
+# Go build cache
+*.test
+*.out
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+.zencoder/
+.zenflow/
+.env
+
+# Toolchain (OpenWrt SDK)
+toolchain/
+device-discover

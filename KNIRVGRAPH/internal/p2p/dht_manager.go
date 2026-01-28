@@ -133,11 +133,12 @@ func newDHTManager(serviceID, chainID string, bootstrapPeers []string, enableAut
 	}
 
 	if enableAutoRelay {
+		// Enable NAT traversal but disable auto relay to avoid the peer source requirement
 		opts = append(opts, libp2p.EnableNATService())
 		opts = append(opts, libp2p.EnableHolePunching())
-		opts = append(opts, libp2p.EnableAutoRelay())
+		log.Println("NAT traversal enabled, auto relay disabled (requires peer source configuration)")
 	}
-	
+
 	// Create a new libp2p Host
 	h, err := libp2p.New(opts...)
 	if err != nil {

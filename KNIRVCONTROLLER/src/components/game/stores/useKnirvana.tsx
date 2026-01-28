@@ -6,6 +6,16 @@ import { LoraxClient } from "../../../networking/LoraxClient";
 import { TrainingManager } from "../../../engine/TrainingManager";
 import { SabotageEngine, SabotageType } from "../../../engine/Sabotage";
 
+export interface DeployAnimation {
+  id: string;
+  agentId: string;
+  agentName: string;
+  startPosition: { x: number; y: number; z: number };
+  endPosition: { x: number; y: number; z: number };
+  startTime: number;
+  duration: number;
+}
+
 export type GamePhase = "menu" | "playing" | "paused" | "training";
 
 export interface AgentResources {
@@ -69,9 +79,18 @@ export interface Agent {
   status: 'idle' | 'moving' | 'working' | 'upgrading';
   type: string;
   efficiency: number;
+  accuracy?: number;
   experience: number;
   resources: AgentResources;
   policy: 'greedy' | 'bayesian' | 'stochastic';
+  stats?: {
+    errorsResolved: number;
+    skillsLearned: number;
+    ideasDeveloped: number;
+    propertiesCreated: number;
+    sabotageApplied: number;
+    trainingTime: number;
+  };
   proposeSolution: (errorNodeContext: string) => Promise<{
     chainOfThought: string[];
     code: string;
@@ -97,6 +116,9 @@ export interface KnirvanaState {
   ideaNodes: IdeaNode[];
   propertyNodes: PropertyNode[];
   agents: Agent[];
+  
+  // Deploy animations
+  deployAnimations: DeployAnimation[];
 
   // Selection
   selectedErrorNode: string | null;
@@ -142,6 +164,10 @@ export interface KnirvanaState {
   startTraining: (agentId: string) => void;
   distillTrajectory: (agentId: string) => void;
   hardenAgent: (agentId: string) => void;
+  
+  // Deploy animation actions
+  startDeployAnimation: (agentId: string, agentName: string, endPosition: { x: number; y: number; z: number }) => void;
+  updateDeployAnimations: () => void;
   
   // Verifier actions
   updateVerifierWeights: (weights: { correctness: number; latency: number; simplicity: number }) => void;
@@ -255,6 +281,7 @@ export const useKnirvana = create<KnirvanaState>()(
     ideaNodes: [],
     propertyNodes: [],
     agents: generateInitialAgents(),
+    deployAnimations: [],
     
     selectedErrorNode: null,
     selectedIdeaNode: null,
@@ -281,6 +308,9 @@ export const useKnirvana = create<KnirvanaState>()(
     
     updateGameTime: (delta) => {
       set((state) => ({ gameTime: state.gameTime + delta }));
+      
+      // Update deploy animations
+      get().updateDeployAnimations();
       
       // Update game simulation
       const state = get();
@@ -314,6 +344,84 @@ export const useKnirvana = create<KnirvanaState>()(
     selectAgent: (id) => {
       console.log(`Selected Agent: ${id}`);
       set({ selectedAgent: id });
+    },
+    
+    startDeployAnimation: (agentId, agentName, endPosition) => {
+      console.log(`Starting deploy animation for agent ${agentId} to position (${endPosition.x}, ${endPosition.y}, ${endPosition.z})`);
+      
+      const animation: DeployAnimation = {
+        id: `deploy-${Date.now()}`,
+        agentId,
+        agentName,
+        startPosition: { x: 0, y: 20, z: 0 }, // Camera viewport position
+        endPosition,
+        startTime: Date.now(),
+        duration: 1500 // 1.5 seconds
+      };
+      
+      set(state => ({
+        deployAnimations: [...state.deployAnimations, animation]
+      }));
+    },
+    
+    updateDeployAnimations: () => {
+      const now = Date.now();
+      set(state => {
+        const activeAnimations = state.deployAnimations.filter(anim => 
+          now - anim.startTime < anim.duration
+        );
+        
+        // For completed animations, add the agent to the game
+        const completedAnimations = state.deployAnimations.filter(anim => 
+          now - anim.startTime >= anim.duration
+        );
+        
+        if (completedAnimations.length > 0) {
+          const newAgents = [...state.agents];
+          completedAnimations.forEach(anim => {
+            const newAgent: Agent = {
+              id: anim.agentId,
+              name: anim.agentName,
+              position: anim.endPosition,
+              target: null,
+              status: 'idle',
+              type: 'deployed',
+              policy: 'greedy',
+              efficiency: Math.random() * 0.5 + 0.5,
+              accuracy: Math.random() * 0.3 + 0.7,
+              experience: 0,
+              resources: {
+                compute: 100,
+                parity: 100,
+                generation: 1
+              },
+              stats: {
+                errorsResolved: 0,
+                skillsLearned: 0,
+                ideasDeveloped: 0,
+                propertiesCreated: 0,
+                sabotageApplied: 0,
+                trainingTime: 0
+              },
+              proposeSolution: async (errorNodeContext: string) => {
+                return {
+                  chainOfThought: [`Thinking about ${errorNodeContext}`, 'Found a solution'],
+                  code: `function solve(${errorNodeContext}) { return 42; }`,
+                  estimatedLatency: Math.random() * 1000
+                };
+              }
+            };
+            newAgents.push(newAgent);
+          });
+          
+          return {
+            deployAnimations: activeAnimations,
+            agents: newAgents
+          };
+        }
+        
+        return { deployAnimations: activeAnimations };
+      });
     },
     
     createAgent: (type) => {

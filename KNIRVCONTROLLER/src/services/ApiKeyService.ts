@@ -3,7 +3,7 @@
  * Manages API key generation, validation, and authentication for KNIRVCONTROLLER
  */
 
-import { rxdbService } from './RxDBService';
+import { knirvbaseService } from './KNIRVBASEService';
 // Browser-compatible crypto implementation
 const browserCrypto = {
   randomBytes: (size: number): { toString: (encoding: string) => string } => {
@@ -207,12 +207,11 @@ class ApiKeyService {
    */
   async recordUsage(usage: ApiKeyUsage): Promise<void> {
     try {
-      const db = rxdbService.getDatabase();
-      await db.settings.upsert({
+      // Create a usage record in the settings collection
+      await knirvbaseService.createUserSettings({
         id: `api_usage_${usage.keyId}_${Date.now()}`,
-        type: 'settings',
-        key: 'api_usage',
-        value: JSON.stringify(usage),
+        type: 'api_usage',
+        data: usage,
         timestamp: Date.now()
       });
 
@@ -228,11 +227,10 @@ class ApiKeyService {
    */
   async getApiKeys(): Promise<ApiKey[]> {
     try {
-      const db = rxdbService.getDatabase();
-      const settings = await db.settings.findOne({ selector: { key: 'api_keys' } }).exec();
+      const settings = await knirvbaseService.getUserSettings('api_keys');
       
       if (settings) {
-        return JSON.parse(settings.value);
+        return settings.data || [];
       }
       return [];
     } catch (error) {
@@ -246,20 +244,15 @@ class ApiKeyService {
    */
   async getApiKeyUsage(keyId: string): Promise<ApiKeyUsage[]> {
     try {
-      const db = rxdbService.getDatabase();
-      const usageRecords = await db.settings.find({
-        selector: { key: 'api_usage' }
-      }).exec();
-
+      const allSettings = await knirvbaseService.getAllUserSettings();
+      
       const usage: ApiKeyUsage[] = [];
-      for (const record of usageRecords) {
-        try {
-          const usageData = JSON.parse(record.value) as ApiKeyUsage;
-          if (usageData.keyId === keyId) {
-            usage.push(usageData);
-          }
-        } catch {
-          // Skip invalid records
+      for (const setting of allSettings) {
+        if (setting.type === 'api_usage' && setting.data && setting.data.keyId === keyId) {
+          usage.push({
+            ...setting.data,
+            timestamp: new Date(setting.data.timestamp)
+          } as ApiKeyUsage);
         }
       }
 
@@ -322,12 +315,10 @@ class ApiKeyService {
 
   private async saveApiKeys(apiKeys: ApiKey[]): Promise<void> {
     try {
-      const db = rxdbService.getDatabase();
-      await db.settings.upsert({
+      await knirvbaseService.createUserSettings({
         id: 'api_keys',
-        type: 'settings',
-        key: 'api_keys',
-        value: JSON.stringify(apiKeys),
+        type: 'api_keys',
+        data: apiKeys,
         timestamp: Date.now()
       });
     } catch (error) {

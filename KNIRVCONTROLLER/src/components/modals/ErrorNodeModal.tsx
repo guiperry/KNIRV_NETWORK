@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { AlertTriangle, Activity, Zap, Target, Clock, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react';
-import { NRV } from '../App';
+import { NRV } from '../../App';
 
 interface ErrorNodeModalProps {
   isOpen: boolean;
@@ -31,8 +31,8 @@ export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
   isOpen,
   onClose,
   nrvs,
-  selectedNRV,
-  nrnBalance,
+  selectedNRV: _selectedNRV,
+  nrnBalance: _nrnBalance,
   onDeployAgent
 }) => {
   const [errorNodes, setErrorNodes] = useState<ErrorNode[]>([]);
@@ -192,7 +192,7 @@ export const ErrorNodeModal: React.FC<ErrorNodeModalProps> = ({
                             <p className="text-xs text-slate-400 line-clamp-2">{errorNode.description}</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs px-2 py-1 rounded-full border bg-gradient-to-br ${getSeverityColor(errorNode.color)}`}>
+                            <span className={`text-xs px-2 py-1 rounded-full border bg-gradient-to-br ${getSeverityColor(errorNode.severity)}`}>
                               {errorNode.severity}
                             </span>
                           </div>

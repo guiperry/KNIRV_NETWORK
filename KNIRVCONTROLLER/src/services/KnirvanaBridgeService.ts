@@ -5,7 +5,7 @@
  */
 
 import { personalKNIRVGRAPHService, GraphNode, PersonalGraph } from './PersonalKNIRVGRAPHService';
-import { rxdbService } from './RxDBService';
+import { knirvbaseService } from './KNIRVBASEService';
 
 // Import node data types for proper typing
 interface ErrorNodeData {
@@ -112,9 +112,9 @@ export class KnirvanaBridgeService {
     if (this.isInitialized) return;
 
     try {
-      // Initialize RxDB
-      if (!rxdbService.isDatabaseInitialized()) {
-        await rxdbService.initialize();
+      // Initialize KNIRVBASE
+      if (!knirvbaseService.isInitialized()) {
+        await knirvbaseService.initialize();
       }
 
       // Load or create personal graph

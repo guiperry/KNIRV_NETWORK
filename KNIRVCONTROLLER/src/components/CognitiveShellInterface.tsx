@@ -28,12 +28,14 @@ interface CognitiveShellInterfaceProps {
   onSkillInvoked?: (skillId: string, result: unknown) => void;
   onAdaptationTriggered?: (adaptation: unknown) => void;
   onConversationUpdate?: (messages: ConversationMessage[]) => void;
+  onOpenCortexBuilder?: () => void;
 }
 
 export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = ({
   onStateChange,
   onSkillInvoked,
   onAdaptationTriggered,
+  onOpenCortexBuilder,
 }) => {
   const [cognitiveEngine, setCognitiveEngine] = useState<CognitiveEngine | null>(null);
   const [wasmOrchestrator, setWasmOrchestrator] = useState<WASMOrchestrator | null>(null);
@@ -457,12 +459,8 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
               
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setShowMemoryGraph(!showMemoryGraph)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center space-x-1 ${
-                    showMemoryGraph
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-                  }`}
+                  onClick={onOpenCortexBuilder}
+                  className="px-3 py-1 rounded-lg text-xs font-medium transition-colors flex items-center space-x-1 bg-gray-700 hover:bg-gray-600 text-gray-300"
                 >
                   <Activity size={14} />
                   <span>Memory</span>
@@ -499,7 +497,6 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
 
         {/* Side Panels */}
         <div className="flex space-x-4">
-          {showMemoryGraph && <MemoryGraphView onClose={() => setShowMemoryGraph(false)} cognitiveShellOpen={true} />}
           {showNotes && <NotesPanel onClose={() => setShowNotes(false)} cognitiveShellOpen={true} />}
         </div>
     </div>

@@ -52,7 +52,7 @@ The CONTROLLER integrates four core components into a unified platform:
   - Dynamic status updates (idle → monitoring → processing)
 
 #### 2. **Manager** (Neural Intelligence Model Lifecycle Management)
-- **Location**: `src/pages/` (Skills, UDC, Wallet, Badges, Chat-Brain)
+- **Location**: `src/pages/` (Skills, UDC, Wallet)
 - **Purpose**: Evolved mobile-controller for comprehensive NIM management
 - **Features**:
   - Neural Intelligence Model registration and deployment

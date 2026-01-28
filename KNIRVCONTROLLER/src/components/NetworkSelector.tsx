@@ -73,7 +73,6 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
         KNIRVCHAIN_API: 'https://chain-test.knirv.com',
         KNIRVGRAPH_API: 'https://graph-test.knirv.com',
         KNIRVNEXUS_API: 'https://nexus-test.knirv.com',
-        KNIRVROUTER_API: 'https://router-test.knirv.com',
         KNIRVANA_API: 'https://knirvana-test.knirv.com'
       },
       requiresDiscovery: false,
@@ -88,7 +87,6 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
         KNIRVCHAIN_API: 'https://chain.knirv.com',
         KNIRVGRAPH_API: 'https://graph.knirv.com',
         KNIRVNEXUS_API: 'https://nexus.knirv.com',
-        KNIRVROUTER_API: 'https://router.knirv.com',
         KNIRVANA_API: 'https://knirvana.knirv.com'
       },
       requiresDiscovery: false,
@@ -130,7 +128,6 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
       'KNIRVCHAIN_API',
       'KNIRVGRAPH_API',
       'KNIRVNEXUS_API',
-      'KNIRVROUTER_API',
       'KNIRVANA_API'
     ];
 
@@ -233,7 +230,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({
         const discoveredEndpoints: Record<string, string> = {};
         // Map discovered services to KNIRV service names
         discoveredServices.forEach((serviceEndpoint, index) => {
-          const serviceNames = ['KNIRVCHAIN_API', 'KNIRVGRAPH_API', 'KNIRVNEXUS_API', 'KNIRVROUTER_API', 'KNIRVANA_API'];
+          const serviceNames = ['KNIRVCHAIN_API', 'KNIRVGRAPH_API', 'KNIRVNEXUS_API', 'KNIRVANA_API'];
           if (serviceNames[index]) {
             discoveredEndpoints[serviceNames[index]] = serviceEndpoint;
           }

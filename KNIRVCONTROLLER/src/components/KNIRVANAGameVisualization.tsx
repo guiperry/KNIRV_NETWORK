@@ -496,10 +496,13 @@ export default function KNIRVANAGameVisualization() {
           onClick={() => {
             // Navigate camera to error node on map
             if (gameState.selectedErrorNode) {
-              // Focus camera on error node position
-              const errorPosition = gameState.selectedErrorNode.position;
-              console.log('Navigating to error node on map:', errorPosition);
-              // This would integrate with 3D camera controls
+              const errorNode = gameState.errorNodes.find(n => n.id === gameState.selectedErrorNode);
+              if (errorNode) {
+                // Focus camera on error node position
+                const errorPosition = errorNode.position;
+                console.log('Navigating to error node on map:', errorPosition);
+                // This would integrate with 3D camera controls
+              }
             }
           }}
           className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm"
@@ -509,7 +512,9 @@ export default function KNIRVANAGameVisualization() {
         <div className="px-3 py-2 bg-gray-700 rounded-lg text-sm">
           <span className="text-gray-300">Status: </span>
           <span className="text-yellow-400 font-medium">
-            {gameState.selectedErrorNode?.isBeingSolved ? 'Solving' : 'Active'}
+            {gameState.selectedErrorNode ? 
+              (gameState.errorNodes.find(n => n.id === gameState.selectedErrorNode)?.isBeingSolved ? 'Solving' : 'Active') 
+              : 'None'}
           </span>
         </div>
       </div>

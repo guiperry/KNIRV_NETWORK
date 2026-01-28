@@ -183,7 +183,7 @@ export const SkillsModalContent: React.FC<SkillsModalContentProps> = ({ nrnBalan
         {isLoading ? (
           <div className="text-center py-6">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400 mx-auto mb-3"></div>
-            <p className="text-sm text-gray-400">Loading LoRA adapters from KNIRVROUTER network...</p>
+            <p className="text-sm text-gray-400">Loading available skills...</p>
           </div>
         ) : filteredSkills.length === 0 ? (
           <div className="text-center py-6">
@@ -192,7 +192,7 @@ export const SkillsModalContent: React.FC<SkillsModalContentProps> = ({ nrnBalan
             <p className="text-xs text-gray-500">
               {searchTerm || selectedCategory !== 'all'
                 ? 'Try adjusting your search or filter criteria'
-                : 'Connect to KNIRVROUTER network to load LoRA adapters'
+                : 'No skills available. Check back later for updates.'
               }
             </p>
           </div>

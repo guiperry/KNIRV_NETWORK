@@ -5,6 +5,7 @@ import { Brain, Settings, Download, Play, Save, Trash2, BarChart3, Layers, Cpu, 
 import { personalKNIRVGRAPHService, GraphNode } from '../services/PersonalKNIRVGRAPHService';
 import { cortexTrainingService, TrainingConfig, CortexModel, TrainingProgress } from '../services/CortexTrainingService';
 import { agentManagementService, Agent, AgentUploadRequest } from '../services/AgentManagementService';
+import { MemoryGraphView } from './chat-brain/MemoryGraphView';
 
 interface CortexBuilderProps {
   isOpen: boolean;
@@ -360,6 +361,16 @@ export const CortexBuilder: React.FC<CortexBuilderProps> = ({ isOpen, onClose })
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h3 className="text-lg font-medium text-white mb-4">Memory Graph</h3>
+                <div className="h-96">
+                  <MemoryGraphView
+                    onClose={() => {}}
+                    cognitiveShellOpen={false}
+                  />
                 </div>
               </div>
             </div>

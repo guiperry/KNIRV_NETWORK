@@ -6,7 +6,6 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Coins, ArrowRight, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { useAbstraxionWallet, ConversionResult } from '../services/AbstraxionWalletService';
-import { rxdbService } from '../services/RxDBService';
 
 interface ConversionRequest {
   usdcAmount: string;
@@ -102,17 +101,11 @@ export default function USDCToNRNConverter() {
     }
   };
 
-  // Store conversion in RxDB
+  // Store conversion record (in-memory for now, TODO: persist to KNIRVBASE)
   const storeConversionInDatabase = async (result: ConversionResult) => {
     try {
-      if (!rxdbService.isDatabaseInitialized()) {
-        await rxdbService.initialize();
-      }
-
-      const db = rxdbService.getDatabase();
-
-      // Store conversion record
-      await db.conversions.insert({
+      // Log conversion record
+      console.log('Conversion recorded:', {
         id: result.transactionId,
         type: 'conversion',
         walletId: account?.id || 'default',
@@ -121,9 +114,8 @@ export default function USDCToNRNConverter() {
         nrnAmount: result.nrnAmount,
         rate: conversionRate,
         timestamp: typeof result.timestamp === 'number' ? result.timestamp : result.timestamp.getTime(),
-        status: 'completed' as const
+        status: 'completed'
       });
-
     } catch (error) {
       console.error('Failed to store conversion:', error);
       // Don't throw - conversion was successful, just failed to store locally

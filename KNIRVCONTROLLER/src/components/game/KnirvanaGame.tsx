@@ -1,11 +1,27 @@
 import { Canvas } from "@react-three/fiber";
-import { Suspense, useEffect } from "react";
+import { Suspense } from "react";
 import GameScene from "./GameScene";
 import GameUI from "./GameUI";
 import { useKnirvana } from "./stores/useKnirvana";
+import { useThemeStore } from "../../stores/useThemeStore";
 
 export default function KnirvanaGame() {
-  const { gamePhase, selectedAgent } = useKnirvana();
+  const { gamePhase } = useKnirvana();
+  const { themeMode } = useThemeStore();
+
+  // Theme-aware background colors
+  const getBackgroundColors = () => {
+    switch (themeMode) {
+      case 'light':
+        return { style: '#f5f5f5', color: '#f5f5f5' };
+      case 'light-blue':
+        return { style: '#001a33', color: '#001a33' };
+      default: // dark
+        return { style: '#000510', color: '#000510' };
+    }
+  };
+
+  const backgrounds = getBackgroundColors();
 
   return (
     <>
@@ -24,7 +40,7 @@ export default function KnirvanaGame() {
           preserveDrawingBuffer: true
         }}
         style={{
-          background: '#000510',
+          background: backgrounds.style,
           width: '100vw',
           height: '100vh',
           position: 'fixed',
@@ -32,9 +48,8 @@ export default function KnirvanaGame() {
           left: 0,
           zIndex: 1
         }}
-
       >
-        <color attach="background" args={["#000510"]} />
+        <color attach="background" args={[backgrounds.color]} />
 
         <Suspense fallback={null}>
           <GameScene />

@@ -512,8 +512,46 @@ const ReceiverInterface = () => {
     // Toggle the voice demo functionality
     setIsVoiceActive(prev => !prev);
     
-    // The voice demo simulation will be triggered when isVoiceActive is toggled
-    // This allows starting and stopping the voice demo
+    // Create Error Node demo NRVs
+    const demoNRVs: NRV[] = [
+      {
+        id: `demo-error-${Date.now()}-1`,
+        problemDescription: 'React component failed to render due to missing props',
+        sourceID: 'KNIRV-DEMO',
+        inputType: 'Error',
+        temporalContext: new Date(),
+        severity: 'High',
+        suggestedSolutionType: 'component-fix',
+        status: 'Identified'
+      },
+      {
+        id: `demo-error-${Date.now()}-2`,
+        problemDescription: 'API endpoint timeout detected in user authentication',
+        sourceID: 'KNIRV-DEMO',
+        inputType: 'Error',
+        temporalContext: new Date(Date.now() - 5000),
+        severity: 'Medium',
+        suggestedSolutionType: 'api-optimization',
+        status: 'Identified'
+      },
+      {
+        id: `demo-error-${Date.now()}-3`,
+        problemDescription: 'Memory leak detected in background service worker',
+        sourceID: 'KNIRV-DEMO',
+        inputType: 'Error',
+        temporalContext: new Date(Date.now() - 10000),
+        severity: 'Critical',
+        suggestedSolutionType: 'memory-management',
+        status: 'Identified'
+      }
+    ];
+    
+    // Add demo NRVs to current list
+    setCurrentNRVs(prev => [...demoNRVs, ...prev]);
+    
+    // Set shell status to processing briefly to show activity
+    setShellStatus('processing');
+    setTimeout(() => setShellStatus('idle'), 1500);
   };
 
   const handleNRVMapping = (nrv: NRV) => {
@@ -661,9 +699,18 @@ const ReceiverInterface = () => {
     // In a real implementation, this would trigger the training process
   };
 
-  const handleDeployAgent = (agentId: string) => {
-    console.log('Deploying agent:', agentId);
-    // In a real implementation, this would deploy the agent
+  const handleDeployAgent = (agentId: string, position: { x: number; y: number; z: number }) => {
+    console.log('Deploying agent:', agentId, 'to position:', position);
+    
+    // Find the sub-agent name for animation
+    const subAgent = mockSubAgents.find(sa => sa.id === agentId);
+    const agentName = subAgent?.name || `Agent ${agentId}`;
+    
+    // Start deploy animation
+    gameStore.startDeployAnimation(agentId, agentName, position);
+    
+    // Close the modal
+    setIsAgentManagementOpen(false);
   };
 
   // Global function to open Error Node modal from any component
@@ -728,11 +775,8 @@ const ReceiverInterface = () => {
           <MenuItem onClick={openUSDCPurchase} icon="💰">
             Buy NRN Tokens
           </MenuItem>
-          <MenuItem onClick={toggleNetworkPanel} icon="🌐">
-            Network Status
-          </MenuItem>
           <MenuItem onClick={() => { setShowNetworkSelector?.(true); setMenuOpen(false); }} icon="🔗">
-            Network Selection
+            Network
           </MenuItem>
           <MenuItem onClick={() => setIsAgentManagementOpen(true)} icon="🤖">
             Agent Management
@@ -794,9 +838,9 @@ const ReceiverInterface = () => {
             {/* Large Robot Image */}
             <div className="flex justify-center">
               <img
-                src="/assets/avatar/bot_green.png"
+                src="/assets/avatar/bot_default.png"
                 alt="Key Agent"
-                className="w-48 h-48 rounded-full border-4 border-green-500/50 shadow-2xl"
+                className="w-64 h-64 rounded-full border-4 border-green-500/50 shadow-2xl"
               />
             </div>
             
@@ -826,8 +870,30 @@ const ReceiverInterface = () => {
               </div>
             </div>
 
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  openCortexBuilder();
+                  closePanel('key-agent-display');
+                }}
+                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              >
+                Open CORTEX Builder
+              </button>
+              <button
+                onClick={() => {
+                  setIsAgentManagementOpen(true);
+                  closePanel('key-agent-display');
+                }}
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Open Agent Management
+              </button>
+            </div>
+            
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 mt-4">
               <div className="bg-gray-800 rounded-lg p-3 text-center">
                 <div className="text-lg font-bold text-white">{mockSubAgents.filter(sa => sa.status === 'ready').length}</div>
                 <div className="text-xs text-gray-400">Ready Agents</div>
@@ -852,6 +918,7 @@ const ReceiverInterface = () => {
               onStateChange={handleCognitiveStateChange}
               onSkillInvoked={handleSkillInvoked}
               onAdaptationTriggered={handleAdaptationTriggered}
+              onOpenCortexBuilder={openCortexBuilder}
             />
           </ChatBrainProvider>
         </SlidingPanel>

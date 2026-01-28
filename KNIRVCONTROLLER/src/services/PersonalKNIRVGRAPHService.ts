@@ -71,7 +71,7 @@ interface EdgeData {
   metadata?: Record<string, unknown>;
 }
 
-import { rxdbService } from './RxDBService';
+import { knirvbaseService } from './KNIRVBASEService';
 
 export interface GraphNode {
   id: string;
@@ -108,6 +108,7 @@ export interface PersonalGraph {
 export class PersonalKNIRVGRAPHService {
   private currentGraph: PersonalGraph | null = null;
   private isInitialized = false;
+  private graphCache: Map<string, PersonalGraph> = new Map(); // In-memory cache for graphs
 
   constructor() {
     this.initialize();
@@ -117,9 +118,9 @@ export class PersonalKNIRVGRAPHService {
     if (this.isInitialized) return;
 
     try {
-      // Initialize RxDB if not already done
-      if (!rxdbService.isDatabaseInitialized()) {
-        await rxdbService.initialize();
+      // Initialize KNIRVBASE if not already done
+      if (!knirvbaseService.isInitialized()) {
+        await knirvbaseService.initialize();
       }
 
       this.isInitialized = true;
@@ -157,10 +158,9 @@ export class PersonalKNIRVGRAPHService {
     try {
       if (!this.isInitialized) await this.initialize();
 
-      const db = rxdbService.getDatabase();
-
-      // Try to find an existing graph for the user
-      const existing = await db.graphs.findOne({ selector: { userId } }).exec();
+      // Try to find an existing graph for the user from cache
+      const cacheKey = `graph_${userId}`;
+      const existing = this.graphCache.get(cacheKey);
       if (existing) {
         try {
           const parsedNodes = (existing.nodes || []) as GraphNode[];
@@ -170,7 +170,7 @@ export class PersonalKNIRVGRAPHService {
             userId: existing.userId,
             nodes: parsedNodes,
             edges: parsedEdges,
-                    metadata: (existing.metadata as PersonalGraph['metadata']) || {
+            metadata: existing.metadata || {
               createdAt: Date.now(),
               lastModified: Date.now(),
               version: 1,
@@ -469,7 +469,8 @@ export class PersonalKNIRVGRAPHService {
     const words1 = str1.toLowerCase().split(/\s+/);
     const words2 = str2.toLowerCase().split(/\s+/);
     const intersection = words1.filter(word => words2.includes(word));
-    const union = [...new Set([...words1, ...words2])];
+    const unionSet = new Set([...words1, ...words2]);
+    const union = Array.from(unionSet);
     return intersection.length / union.length;
   }
 
@@ -498,25 +499,22 @@ export class PersonalKNIRVGRAPHService {
     await this.saveGraphToDatabase(this.currentGraph);
   }
 
-  // Save graph to RxDB
+  // Save graph to in-memory cache (TODO: persist to KNIRVBASE when collections are set up)
   private async saveGraphToDatabase(graph: PersonalGraph): Promise<void> {
     try {
-      const db = rxdbService.getDatabase();
-
-      // Upsert graph into graphs collection
-      await db.graphs.upsert({
-        id: graph.id,
-        type: 'graph',
-        userId: graph.userId,
-        nodes: graph.nodes,
-        edges: graph.edges,
-        metadata: graph.metadata,
-        timestamp: Date.now()
+      // Store in in-memory cache
+      const cacheKey = `graph_${graph.userId}`;
+      this.graphCache.set(cacheKey, {
+        ...graph,
+        metadata: {
+          ...graph.metadata,
+          lastModified: Date.now()
+        }
       });
 
-      console.log('Graph saved to database (graphs collection)');
+      console.log('Graph saved to in-memory cache');
     } catch (error) {
-      console.error('Failed to save graph to database:', error);
+      console.error('Failed to save graph:', error);
     }
   }
 

@@ -1,5 +1,6 @@
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
+import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { Agent as AgentType } from "./stores/useKnirvana";
 
@@ -7,9 +8,10 @@ interface AIAgentProps {
   agent: AgentType;
   isSelected: boolean;
   onSelect: () => void;
+  onStage?: () => void;
 }
 
-export default function AIAgent({ agent, isSelected, onSelect }: AIAgentProps) {
+export default function AIAgent({ agent, isSelected, onSelect, onStage }: AIAgentProps) {
   const meshRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
@@ -68,6 +70,27 @@ export default function AIAgent({ agent, isSelected, onSelect }: AIAgentProps) {
         <mesh position={[0, 2, 0]}>
           <ringGeometry args={[1.2, 1.4, 8]} />
           <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
+        </mesh>
+      )}
+
+      {/* Stage Button */}
+      {isSelected && onStage && (
+        <mesh position={[0, -1, 0]}>
+          <planeGeometry args={[0.6, 0.3]} />
+          <meshStandardMaterial color="#ff6b35" emissive="#ff6b35" emissiveIntensity={0.5} />
+          <mesh position={[0, 0, 0.01]}>
+            <planeGeometry args={[0.5, 0.2]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+          </mesh>
+          <Text
+            position={[0, 0, 0.02]}
+            fontSize={0.1}
+            color="#000000"
+            anchorX="center"
+            anchorY="middle"
+          >
+            Stage
+          </Text>
         </mesh>
       )}
     </group>

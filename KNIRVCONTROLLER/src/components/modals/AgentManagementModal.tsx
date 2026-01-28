@@ -45,7 +45,7 @@ interface AgentManagementModalProps {
   subAgents: SubAgent[];
   nrnBalance: number;
   onTrainSubAgent: (subAgentId: string, userInstructions: string) => void;
-  onDeployAgent: (agentId: string) => void;
+  onDeployAgent: (agentId: string, position: { x: number; y: number; z: number }) => void;
 }
 
 export const AgentManagementModal: React.FC<AgentManagementModalProps> = ({
@@ -124,42 +124,64 @@ export const AgentManagementModal: React.FC<AgentManagementModalProps> = ({
 
         <div className="p-6 pb-10">
           <div className="grid grid-cols-12 gap-6">
-            {/* Left: Agent Overview & Balance */}
-            <div className="col-span-12 md:col-span-3 space-y-4">
-              {/* Balance */}
-              <Panel title="Resources" icon={Wallet}>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-300">NRN Balance</span>
-                  <span className="text-lg font-bold text-emerald-400">{nrnBalance.toLocaleString()}</span>
-                </div>
-                <div className="mt-3 pt-3 border-t border-slate-800">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Active Agents</span>
-                    <span className="text-slate-300">{subAgents.filter(sa => sa.status === 'deployed').length}/{subAgents.length}</span>
-                  </div>
-                </div>
-              </Panel>
+            {/* Left: Key Agent */}
+            <div className="col-span-12 md:col-span-3">
+              <Panel title="Key Agent" icon={Star}>
+                {keyAgentData ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                        <Bot className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-slate-200">{keyAgentData.name}</div>
+                        <div className="text-xs text-slate-400">v{keyAgentData.version}</div>
+                      </div>
+                    </div>
 
-              {/* Training Stats */}
-              <Panel title="Training Stats" icon={Trophy}>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Total Trained</span>
-                    <span className="text-sm font-medium text-slate-300">
-                      {subAgents.filter(sa => sa.status === 'ready' || sa.status === 'deployed').length}
-                    </span>
+                    <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-slate-400">Status</span>
+                        <span className="text-xs font-medium text-emerald-400">{keyAgentData.status}</span>
+                      </div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-slate-400">Agents Trained</span>
+                        <span className="text-xs font-medium text-slate-300">{keyAgentData.totalTrained}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">Success Rate</span>
+                        <span className="text-xs font-medium text-emerald-400">{keyAgentData.successRate}%</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs text-slate-400 mb-2">Core Capabilities</div>
+                      <div className="space-y-2">
+                        {keyAgentData.capabilities.map((capability, idx) => {
+                          const Icon = getCapabilityIcon(capability);
+                          return (
+                            <div key={idx} className="flex items-center gap-2 text-xs">
+                              <Icon className="w-3 h-3 text-indigo-400" />
+                              <span className="text-slate-300">{capability}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => console.log('Open CORTEX Builder')}
+                      className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      Train Key Agent
+                    </button>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">In Training</span>
-                    <span className="text-sm font-medium text-blue-400">
-                      {subAgents.filter(sa => sa.status === 'training').length}
-                    </span>
+                ) : (
+                  <div className="text-center py-8">
+                    <Bot className="w-8 h-8 mx-auto mb-2 opacity-50 text-slate-600" />
+                    <p className="text-sm text-slate-500">No Key Agent Configured</p>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Success Rate</span>
-                    <span className="text-sm font-medium text-emerald-400">94%</span>
-                  </div>
-                </div>
+                )}
               </Panel>
             </div>
 
@@ -326,7 +348,15 @@ export const AgentManagementModal: React.FC<AgentManagementModalProps> = ({
 
                       {selectedSubAgent.status === 'ready' && (
                         <button
-                          onClick={() => onDeployAgent(selectedSubAgent.id)}
+                          onClick={() => {
+                            // Start deploy animation with random position on the grid
+                            const deployPosition = {
+                              x: (Math.random() - 0.5) * 30,
+                              y: 1,
+                              z: (Math.random() - 0.5) * 30
+                            };
+                            onDeployAgent(selectedSubAgent.id, deployPosition);
+                          }}
                           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700"
                         >
                           <Zap className="w-4 h-4" />
@@ -334,62 +364,114 @@ export const AgentManagementModal: React.FC<AgentManagementModalProps> = ({
                         </button>
                       )}
                     </div>
+
+                    {/* Optimization Buttons */}
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-slate-300">Optimization Options</h4>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => console.log('Distill trajectory')}
+                          className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+                        >
+                          Distill
+                        </button>
+                        <button
+                          onClick={() => console.log('Harden agent')}
+                          className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+                        >
+                          Harden
+                        </button>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Quantization (Bit Rate)</label>
+                        <input
+                          type="range"
+                          min="4"
+                          max="32"
+                          defaultValue="16"
+                          className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                          onChange={(e) => console.log('Quantization level:', e.target.value)}
+                        />
+                        <div className="flex justify-between text-xs text-slate-500 mt-1">
+                          <span>4-bit</span>
+                          <span>16-bit</span>
+                          <span>32-bit</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </Panel>
               )}
             </div>
 
-            {/* Right: Key Agent */}
-            <div className="col-span-12 md:col-span-3">
-              <Panel title="Key Agent" icon={Star}>
-                {keyAgentData ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                        <Bot className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-slate-200">{keyAgentData.name}</div>
-                        <div className="text-xs text-slate-400">v{keyAgentData.version}</div>
-                      </div>
-                    </div>
+            {/* Right: Training Stats */}
+            <div className="col-span-12 md:col-span-3 space-y-4">
+              {/* Balance */}
+              <Panel title="Resources" icon={Wallet}>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-300">NRN Balance</span>
+                  <span className="text-lg font-bold text-emerald-400">{nrnBalance.toLocaleString()}</span>
+                </div>
+                <div className="mt-3 pt-3 border-t border-slate-800">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Active Agents</span>
+                    <span className="text-slate-300">{subAgents.filter(sa => sa.status === 'deployed').length}/{subAgents.length}</span>
+                  </div>
+                </div>
+              </Panel>
 
-                    <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-slate-400">Status</span>
-                        <span className="text-xs font-medium text-emerald-400">{keyAgentData.status}</span>
+              {/* Training Stats */}
+              <Panel title="Training Stats" icon={Trophy}>
+                <div className="space-y-3">
+                  {selectedSubAgent ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">Training Progress</span>
+                        <span className="text-sm font-medium text-blue-400">{selectedSubAgent.trainingProgress}%</span>
                       </div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-slate-400">Agents Trained</span>
-                        <span className="text-xs font-medium text-slate-300">{keyAgentData.totalTrained}</span>
+                      <div className="w-full bg-slate-700 rounded-full h-1.5">
+                        <div 
+                          className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                          style={{ width: `${selectedSubAgent.trainingProgress}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">Status</span>
+                        <span className={`text-sm font-medium ${
+                          selectedSubAgent.status === 'training' ? 'text-blue-400' :
+                          selectedSubAgent.status === 'ready' ? 'text-emerald-400' :
+                          selectedSubAgent.status === 'deployed' ? 'text-purple-400' :
+                          'text-slate-400'
+                        }`}>
+                          {selectedSubAgent.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">NRN Cost</span>
+                        <span className="text-sm font-medium text-yellow-400">{selectedSubAgent.nrnCost} NRN</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">Total Trained</span>
+                        <span className="text-sm font-medium text-slate-300">
+                          {subAgents.filter(sa => sa.status === 'ready' || sa.status === 'deployed').length}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-400">In Training</span>
+                        <span className="text-sm font-medium text-blue-400">
+                          {subAgents.filter(sa => sa.status === 'training').length}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-slate-400">Success Rate</span>
-                        <span className="text-xs font-medium text-emerald-400">{keyAgentData.successRate}%</span>
+                        <span className="text-sm font-medium text-emerald-400">94%</span>
                       </div>
-                    </div>
-
-                    <div>
-                      <div className="text-xs text-slate-400 mb-2">Core Capabilities</div>
-                      <div className="space-y-2">
-                        {keyAgentData.capabilities.map((capability, idx) => {
-                          const Icon = getCapabilityIcon(capability);
-                          return (
-                            <div key={idx} className="flex items-center gap-2 text-xs">
-                              <Icon className="w-3 h-3 text-indigo-400" />
-                              <span className="text-slate-300">{capability}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Bot className="w-8 h-8 mx-auto mb-2 opacity-50 text-slate-600" />
-                    <p className="text-sm text-slate-500">No Key Agent Configured</p>
-                  </div>
-                )}
+                    </>
+                  )}
+                </div>
               </Panel>
             </div>
           </div>

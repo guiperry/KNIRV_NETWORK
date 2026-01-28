@@ -1,8 +1,9 @@
 import React from 'react';
 
 import { useState, useEffect } from 'react';
-import { Cpu, Zap, AlertTriangle, FileText, Lightbulb, Plus, Camera, Mic, Shield, Wallet } from 'lucide-react';
+import { Cpu, Zap, AlertTriangle, FileText, Lightbulb, Plus, Camera, Mic, Shield, Wallet, Eye, Lock, ShieldAlert, Brain } from 'lucide-react';
 import GameArena from './GameArena';
+import { useThemeStore } from '../stores/useThemeStore';
 
 interface KnirvShellProps {
   status: 'idle' | 'processing' | 'listening' | 'error';
@@ -35,14 +36,44 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isAdversarySolving, setIsAdversarySolving] = useState(false);
+  const { themeMode, toggleTheme } = useThemeStore();
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
-    return () => clearInterval(timer);
+    // Simulate adversary solving state
+    const adversaryTimer = setInterval(() => {
+      setIsAdversarySolving(prev => !prev);
+    }, 5000);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(adversaryTimer);
+    };
   }, []);
+
+  const handleNoiseInjection = () => {
+    console.log('Noise Injection activated');
+    setIsExpanded(false);
+  };
+
+  const handleWeightHijacking = () => {
+    console.log('Weight Hijacking activated');
+    setIsExpanded(false);
+  };
+
+  const handleContextPoisoning = () => {
+    console.log('Context Poisoning activated');
+    setIsExpanded(false);
+  };
+
+  const handleBackpropPulse = () => {
+    console.log('Backprop Pulse activated');
+    setIsExpanded(false);
+  };
 
   return (
     <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" data-testid="knirv-shell">
@@ -90,6 +121,15 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
               >
                 <Wallet className="w-4 h-4" />
               </button>
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg bg-gray-700/20 hover:bg-gray-700/30 border border-gray-600/30 text-gray-400 hover:text-gray-300 transition-colors"
+                title="Toggle Theme"
+              >
+                {themeMode === 'dark' && '🌙'}
+                {themeMode === 'light' && '☀️'}
+                {themeMode === 'light-blue' && '💧'}
+              </button>
             </div>
           </div>
         </div>
@@ -128,116 +168,95 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
         </div>
       </div>
 
-      {/* Main Action Button - Moved to Bottom Right */}
+      {/* Sabotage Button - Moved to Bottom Right */}
       <div className="absolute bottom-4 right-4 z-40">
         {/* Main Button Container */}
         <div className="relative w-14 h-14">
           {/* Radial Nested Buttons - Semi-circle arc from top to left */}
           {isExpanded && (
             <>
-              {/* Submit Error - Position 1 (top, 90°) */}
+              {/* Noise Injection - Position 1 (top, 90°) */}
               <button
-                onClick={() => {
-                  onSubmitError?.();
-                  setIsExpanded(false);
-                }}
+                onClick={handleNoiseInjection}
                 className="absolute w-12 h-12 cursor-pointer transition-all duration-300 hover:scale-110 group/radial"
                 style={{
                   top: '-66px',
                   left: '4px',
                 }}
-                title="Submit Error"
+                title="Noise Injection"
               >
-                <div className="absolute inset-0 rounded-full bg-red-500/90 border-2 border-red-400/50 group-hover/radial:bg-red-500 shadow-lg">
-                  <div className="absolute inset-1.5 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center group-hover/radial:from-red-400 group-hover/radial:to-red-500 transition-all">
-                    <AlertTriangle className="w-5 h-5 text-white" />
+                <div className="absolute inset-0 rounded-full bg-yellow-500/90 border-2 border-yellow-400/50 group-hover/radial:bg-yellow-500 shadow-lg">
+                  <div className="absolute inset-1.5 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 flex items-center justify-center group-hover/radial:from-yellow-400 group-hover/radial:to-yellow-500 transition-all">
+                    <Eye className="w-5 h-5 text-white" />
                   </div>
                 </div>
               </button>
 
-              {/* Submit Context - Position 2 (upper-left, 120°) */}
+              {/* Weight Hijacking - Position 2 (upper-left, 120°) */}
               <button
-                onClick={() => {
-                  onSubmitContext?.();
-                  setIsExpanded(false);
-                }}
+                onClick={handleWeightHijacking}
                 className="absolute w-12 h-12 cursor-pointer transition-all duration-300 hover:scale-110 group/radial"
                 style={{
                   top: '-57px',
                   left: '-31px',
                 }}
-                title="Submit Context"
+                title="Weight Hijacking"
               >
-                <div className="absolute inset-0 rounded-full bg-blue-500/90 border-2 border-blue-400/50 group-hover/radial:bg-blue-500 shadow-lg">
-                  <div className="absolute inset-1.5 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center group-hover/radial:from-blue-400 group-hover/radial:to-blue-500 transition-all">
-                    <FileText className="w-5 h-5 text-white" />
+                <div className="absolute inset-0 rounded-full bg-red-500/90 border-2 border-red-400/50 group-hover/radial:bg-red-500 shadow-lg">
+                  <div className="absolute inset-1.5 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center group-hover/radial:from-red-400 group-hover/radial:to-red-500 transition-all">
+                    <Lock className="w-5 h-5 text-white" />
                   </div>
                 </div>
               </button>
 
-              {/* Submit Idea - Position 3 (left-upper, 150°) */}
+              {/* Context Poisoning - Position 3 (left-upper, 150°) */}
               <button
-                onClick={() => {
-                  onSubmitIdea?.();
-                  setIsExpanded(false);
-                }}
+                onClick={handleContextPoisoning}
                 className="absolute w-12 h-12 cursor-pointer transition-all duration-300 hover:scale-110 group/radial"
                 style={{
                   top: '-31px',
                   left: '-57px',
                 }}
-                title="Submit Idea"
+                title="Context Poisoning"
               >
-                <div className="absolute inset-0 rounded-full bg-yellow-500/90 border-2 border-yellow-400/50 group-hover/radial:bg-yellow-500 shadow-lg">
-                  <div className="absolute inset-1.5 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 flex items-center justify-center group-hover/radial:from-yellow-400 group-hover/radial:to-yellow-500 transition-all">
-                    <Lightbulb className="w-5 h-5 text-white" />
+                <div className="absolute inset-0 rounded-full bg-purple-500/90 border-2 border-purple-400/50 group-hover/radial:bg-purple-500 shadow-lg">
+                  <div className="absolute inset-1.5 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center group-hover/radial:from-purple-400 group-hover/radial:to-purple-500 transition-all">
+                    <Brain className="w-5 h-5 text-white" />
                   </div>
                 </div>
               </button>
 
-              {/* Auto Demo - Position 4 (left, 180°) */}
+              {/* Backprop Pulse - Position 4 (left, 180°) */}
               <button
-                onClick={() => {
-                  onSubmitDemo?.();
-                  setIsExpanded(false);
-                }}
+                onClick={handleBackpropPulse}
                 className="absolute w-12 h-12 cursor-pointer transition-all duration-300 hover:scale-110 group/radial"
                 style={{
                   top: '4px',
                   left: '-66px',
                 }}
-                title="Auto Demo"
+                title="Backprop Pulse"
               >
-                <div className={`absolute inset-0 rounded-full border-2 shadow-lg transition-all duration-300 ${
-                  isVoiceActive
-                    ? 'bg-teal-500/90 border-teal-400/50 group-hover/radial:bg-teal-600 animate-pulse'
-                    : 'bg-teal-500/90 border-teal-400/50 group-hover/radial:bg-teal-500'
-                }`}>
-                  <div className={`absolute inset-1.5 rounded-full bg-gradient-to-r flex items-center justify-center transition-all duration-300 ${
-                    isVoiceActive
-                      ? 'from-teal-600 to-purple-700'
-                      : 'from-teal-500 to-purple-600 group-hover/radial:from-teal-400 group-hover/radial:to-purple-500'
-                  }`}>
-                    <Mic className="w-5 h-5 text-white" />
+                <div className="absolute inset-0 rounded-full bg-orange-500/90 border-2 border-orange-400/50 group-hover/radial:bg-orange-500 shadow-lg">
+                  <div className="absolute inset-1.5 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center group-hover/radial:from-orange-400 group-hover/radial:to-orange-500 transition-all">
+                    <ShieldAlert className="w-5 h-5 text-white" />
                   </div>
                 </div>
               </button>
             </>
           )}
 
-          {/* Main Button */}
+          {/* Main Sabotage Button */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="relative w-14 h-14 group cursor-pointer transition-transform hover:scale-105 z-20"
           >
             <div className={`absolute inset-0 rounded-full transition-all duration-1000 ${
-              status === 'idle' ? 'bg-green-500/20 border-2 border-green-500/50 group-hover:bg-green-500/30' :
-              status === 'processing' ? 'bg-blue-500/20 border-2 border-blue-500/50 animate-pulse' :
-              status === 'listening' ? 'bg-teal-500/20 border-2 border-teal-500/50 animate-pulse' :
-              'bg-red-500/20 border-2 border-red-500/50'
+              isAdversarySolving
+                ? 'bg-red-500/20 border-2 border-red-500/50 animate-pulse'
+                : 'bg-gray-700/20 border-2 border-gray-600/50 group-hover:bg-gray-700/30'
             }`}>
-              <div className="absolute inset-2 rounded-full bg-gradient-to-r from-blue-500 to-teal-500 flex items-center justify-center group-hover:from-blue-400 group-hover:to-teal-400 transition-all">
-                <Plus className={`w-6 h-6 text-white transition-transform duration-300 ${isExpanded ? 'rotate-45' : ''}`} />
+              <div className="absolute inset-2 rounded-full bg-gradient-to-r from-red-500 to-orange-500 flex items-center justify-center group-hover:from-red-400 group-hover:to-orange-400 transition-all">
+                <ShieldAlert className={`w-6 h-6 text-white transition-transform duration-300 ${isExpanded ? 'rotate-45' : ''}`} />
               </div>
             </div>
             {status === 'processing' && (

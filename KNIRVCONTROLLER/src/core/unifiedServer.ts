@@ -15,6 +15,17 @@ import { fileURLToPath } from 'url';
 import pino from 'pino';
 import { KNIRVCortexBackend } from './index.js';
 import { TemplateExporter } from './utils/templateExporter.js';
+import {
+  initializeDatabase,
+  insertDocument,
+  findDocument,
+  findAllDocuments,
+  updateDocument,
+  deleteDocument,
+  getDatabaseInfo,
+  closeDatabase,
+  getAppDataPath
+} from './api/knirvbase.js';
 
 // Jest-compatible module URL resolution
 const getModuleUrl = () => {
@@ -282,6 +293,17 @@ export class KNIRVControllerUnifiedServer {
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
+
+    // KNIRVBASE storage endpoints
+    this.app.post('/api/knirvbase/initialize', initializeDatabase);
+    this.app.post('/api/knirvbase/insert', insertDocument);
+    this.app.get('/api/knirvbase/:sessionId/:collection/:id', findDocument);
+    this.app.get('/api/knirvbase/:sessionId/:collection', findAllDocuments);
+    this.app.put('/api/knirvbase/:sessionId/:collection/:id', updateDocument);
+    this.app.delete('/api/knirvbase/:sessionId/:collection/:id', deleteDocument);
+    this.app.get('/api/knirvbase/:sessionId/info', getDatabaseInfo);
+    this.app.delete('/api/knirvbase/:sessionId', closeDatabase);
+    this.app.get('/api/knirvbase/appdata', getAppDataPath);
   }
 
   public async start() {
@@ -313,6 +335,7 @@ export class KNIRVControllerUnifiedServer {
         logger.info('  GET  /api/templates/info - Template information');
         logger.info('  POST /api/templates/export - Manual template export');
         logger.info('  POST /api/* - Backend API (proxied)');
+        logger.info('  POST /api/knirvbase/* - KNIRVBASE storage endpoints');
         logger.info('  POST /lora/* - LoRA endpoints (proxied)');
         logger.info('  POST /wasm/* - WASM endpoints (proxied)');
         logger.info('  POST /protobuf/* - Protobuf endpoints (proxied)');
