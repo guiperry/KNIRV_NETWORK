@@ -367,34 +367,32 @@ func (m Model) renderChatView() string {
 	footer := footerStyle.Copy().Width(m.Width).Render(m.ResourceData)
 
 	availableHeight := m.Height - 3 - 2 // Subtract header and footer
-	if availableHeight < 5 {
-		availableHeight = 5
+	if availableHeight < 10 {
+		availableHeight = 10
 	}
 
-	// Horizontal layout: Chat view on left, Log view on right
-	halfWidth := (m.Width - 3) / 2
-	chatWidth := halfWidth
-	logWidth := halfWidth
+	// Vertical layout: Chat view on top, Log view below (better for text selection)
+	chatHeight := availableHeight / 2
+	logHeight := availableHeight - chatHeight
 
-	m.ChatView.Width = chatWidth - 2
-	m.ChatView.Height = availableHeight - 2
-	m.LogView.Width = logWidth - 2
-	m.LogView.Height = availableHeight - 2
+	m.ChatView.Width = m.Width - 4
+	m.ChatView.Height = chatHeight - 2
+	m.LogView.Width = m.Width - 4
+	m.LogView.Height = logHeight - 2
 
 	chatContent := chatViewStyle.Copy().
-		Width(chatWidth).
-		Height(availableHeight).
+		Width(m.Width - 2).
+		Height(chatHeight).
 		Render(m.ChatView.View())
 
 	logContent := logViewStyle.Copy().
-		Width(logWidth).
-		Height(availableHeight).
+		Width(m.Width - 2).
+		Height(logHeight).
 		Render(m.LogView.View())
 
-	columns := lipgloss.JoinHorizontal(
-		lipgloss.Top,
+	columns := lipgloss.JoinVertical(
+		lipgloss.Left,
 		chatContent,
-		" ",
 		logContent,
 	)
 
@@ -440,11 +438,18 @@ func (m Model) handleResize(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 
 	m.MainMenu.SetSize(msg.Width-4, msg.Height-6)
 
-	// Horizontal layout dimensions
-	m.ChatView.Width = (msg.Width - 5) / 2
-	m.ChatView.Height = msg.Height - 7
-	m.LogView.Width = (msg.Width - 5) / 2
-	m.LogView.Height = msg.Height - 7
+	// Vertical layout dimensions
+	availableHeight := msg.Height - 7 // Subtract header, footer, input area
+	if availableHeight < 10 {
+		availableHeight = 10
+	}
+	chatHeight := availableHeight / 2
+	logHeight := availableHeight - chatHeight
+
+	m.ChatView.Width = msg.Width - 4
+	m.ChatView.Height = chatHeight - 2
+	m.LogView.Width = msg.Width - 4
+	m.LogView.Height = logHeight - 2
 
 	m.Input.SetWidth(msg.Width - 6)
 	m.Input.SetHeight(1)
