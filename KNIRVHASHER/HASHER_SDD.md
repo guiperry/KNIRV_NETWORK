@@ -400,7 +400,7 @@ func (n *HashNeuron) Forward(input []byte) float64 {
 
 #### Primary Protocol: gRPC (asic-driver)
 
-The ASIC device (Antminer S3) runs a two part driver (pixie-client and pixie-server) instance that exposes a gRPC API over the local area network (LAN). This provides a modern, efficient, and well-documented communication interface between the orchestrator and the ASIC.
+The ASIC device (Antminer S3) runs a two part driver (hasher-client and hasher-server) instance that exposes a gRPC API over the local area network (LAN). This provides a modern, efficient, and well-documented communication interface between the orchestrator and the ASIC.
 
 ```
 Communication Protocol: gRPC over TCP/IP (LAN)
@@ -419,9 +419,9 @@ Key API Methods:
 Protocol Buffers Definition (excerpt):
 syntax = "proto3";
 
-package pixie.v1;
+package hasher.v1;
 
-service PixieService {
+service HasherService {
   rpc ComputeHash(ComputeHashRequest) returns (ComputeHashResponse);
   rpc ComputeBatch(ComputeBatchRequest) returns (ComputeBatchResponse);
   rpc StreamCompute(stream StreamComputeRequest) returns (stream StreamComputeResponse);
@@ -452,7 +452,7 @@ message ComputeBatchResponse {
 
 #### Fallback Protocol: Embedded Driver
 
-If the asic-driver is unavailable (e.g., ASIC device can't run the gRPC pixie-server or pixie-client), the orchestrator falls back to the embedded driver that communicates directly with `/dev/bitmain-asic` device using the legacy custom protocol.
+If the asic-driver is unavailable (e.g., ASIC device can't run the gRPC hasher-server or hasher-client), the orchestrator falls back to the embedded driver that communicates directly with `/dev/bitmain-asic` device using the legacy custom protocol.
 
 ```
 Communication Protocol: Direct device file access
@@ -608,15 +608,15 @@ This section details the implementation of the simplified, recursive single-ASIC
 - Runtime: Go application encapsulating all logic.
 - Core Components:
     - **Recursive Task Queue:** Manages the N=21 inference passes for each request.
-    - **ASIC Driver:** Dual-mode driver supporting both pixie-driver (gRPC client) and embedded driver (fallback).
+    - **ASIC Driver:** Dual-mode driver supporting both hasher-driver (gRPC client) and embedded driver (fallback).
     - **Temporal Consensus Engine:** Aggregates results.
     - **Logical Validator:** Runs the Z3 theorem prover.
 - Containerization: Docker Compose for dependent services (PostgreSQL, Redis).
 
 **ASIC Driver (Antminer S3):**
 - OS: OpenWrt (customized)
-- Runtime: pixie-server (gRPC server) loaded directly onto the ASIC device's Linux controller.
-- Communication: gRPC over LAN between orchestrator and pixie-server.
+- Runtime: hasher-server (gRPC server) loaded directly onto the ASIC device's Linux controller.
+- Communication: gRPC over LAN between orchestrator and hasher-server.
 
 ### 5.1.2 Dependencies
 The Go dependencies are consolidated into the orchestrator application.
@@ -733,7 +733,7 @@ func (o *Orchestrator) runInferencePass(inputBytes []byte) [][]byte {
 ```
 
 ## 5.3 ASIC Driver Implementation
-The ASIC driver is a client implementation that communicates with the pixie-server running on the ASIC device's Linux controller via gRPC over LAN. This provides a modern, efficient, and well-documented communication interface.
+The ASIC driver is a client implementation that communicates with the hasher-server running on the ASIC device's Linux controller via gRPC over LAN. This provides a modern, efficient, and well-documented communication interface.
 
 ```go
 // internal/asic/device.go
@@ -747,48 +747,48 @@ import (
     "google.golang.org/grpc"
     "google.golang.org/grpc/credentials/insecure"
 
-    pb "asic-shield/internal/proto/pixie/v1"
+    pb "asic-shield/internal/proto/hasher/v1"
 )
 
 const (
-    // Pixie server address on ASIC device
+    // Hasher server address on ASIC device
     PIXIE_SERVER_ADDRESS = "192.168.1.99:50051"
 )
 
 type ASICDevice struct {
-    pixieClient pb.PixieServiceClient
-    pixieConn   *grpc.ClientConn
+    hasherClient pb.HasherServiceClient
+    hasherConn   *grpc.ClientConn
     chipCount   int
     frequency   int
 }
 
-// NewASICDevice creates a new ASIC driver that connects to the pixie-server
+// NewASICDevice creates a new ASIC driver that connects to the hasher-server
 func NewASICDevice() (*ASICDevice, error) {
     d := &ASICDevice{}
 
-    // Connect to pixie-server
-    if err := d.connectPixie(); err != nil {
-        return nil, fmt.Errorf("failed to connect to pixie-server: %w", err)
+    // Connect to hasher-server
+    if err := d.connectHasher(); err != nil {
+        return nil, fmt.Errorf("failed to connect to hasher-server: %w", err)
     }
 
     return d, nil
 }
 
-// connectPixie establishes a gRPC connection to pixie-server
-func (d *ASICDevice) connectPixie() error {
+// connectHasher establishes a gRPC connection to hasher-server
+func (d *ASICDevice) connectHasher() error {
     conn, err := grpc.Dial(PIXIE_SERVER_ADDRESS, grpc.WithTransportCredentials(insecure.NewCredentials()))
     if err != nil {
         return err
     }
 
-    d.pixieConn = conn
-    d.pixieClient = pb.NewPixieServiceClient(conn)
+    d.hasherConn = conn
+    d.hasherClient = pb.NewHasherServiceClient(conn)
 
     // Verify connection is working
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
-    deviceInfo, err := d.pixieClient.GetDeviceInfo(ctx, &pb.GetDeviceInfoRequest{})
+    deviceInfo, err := d.hasherClient.GetDeviceInfo(ctx, &pb.GetDeviceInfoRequest{})
     if err != nil {
         conn.Close()
         return err
@@ -801,14 +801,14 @@ func (d *ASICDevice) connectPixie() error {
 
 // Close the device
 func (d *ASICDevice) Close() error {
-    if d.pixieConn != nil {
-        return d.pixieConn.Close()
+    if d.hasherConn != nil {
+        return d.hasherConn.Close()
     }
     return nil
 }
 
 // ComputeLayer sends a batch of hash computations for a single network layer
-// to the ASIC using the pixie-driver and returns the results.
+// to the ASIC using the hasher-driver and returns the results.
 func (d *ASICDevice) ComputeLayer(input []byte, seeds [][32]byte) []byte {
     numNeurons := len(seeds)
     results := make([]byte, numNeurons*32)
@@ -819,11 +819,11 @@ func (d *ASICDevice) ComputeLayer(input []byte, seeds [][32]byte) []byte {
         jobs[i] = append(input, seeds[i][:]...)
     }
 
-    // Use pixie-driver (gRPC) for computation
+    // Use hasher-driver (gRPC) for computation
     ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
     defer cancel()
 
-    resp, err := d.pixieClient.ComputeBatch(ctx, &pb.ComputeBatchRequest{
+    resp, err := d.hasherClient.ComputeBatch(ctx, &pb.ComputeBatchRequest{
         Data:         jobs,
         MaxBatchSize: 32,
     })
@@ -839,12 +839,12 @@ func (d *ASICDevice) ComputeLayer(input []byte, seeds [][32]byte) []byte {
     return results
 }
 
-// ComputeHash computes a single hash using the pixie-driver
+// ComputeHash computes a single hash using the hasher-driver
 func (d *ASICDevice) ComputeHash(data []byte) ([]byte, error) {
     ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
     defer cancel()
 
-    resp, err := d.pixieClient.ComputeHash(ctx, &pb.ComputeHashRequest{
+    resp, err := d.hasherClient.ComputeHash(ctx, &pb.ComputeHashRequest{
         Data: data,
     })
     if err != nil {
@@ -859,7 +859,7 @@ func (d *ASICDevice) GetMetrics() (*pb.GetMetricsResponse, error) {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
-    return d.pixieClient.GetMetrics(ctx, &pb.GetMetricsRequest{})
+    return d.hasherClient.GetMetrics(ctx, &pb.GetMetricsRequest{})
 }
 
 // GetInfo retrieves device information
@@ -867,7 +867,7 @@ func (d *ASICDevice) GetInfo() (*pb.GetDeviceInfoResponse, error) {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
-    return d.pixieClient.GetDeviceInfo(ctx, &pb.GetDeviceInfoRequest{})
+    return d.hasherClient.GetDeviceInfo(ctx, &pb.GetDeviceInfoRequest{})
 
 ## 7.3 Automated Deployment Script
 

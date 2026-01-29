@@ -8,7 +8,6 @@ import { CognitiveEngine, CognitiveConfig, CognitiveState } from '../sensory-she
 import { HRMBridge } from '../sensory-shell/HRMBridge';
 import { WASMOrchestrator } from '../sensory-shell/WASMOrchestrator';
 import { ChatInterface } from './chat-brain/ChatInterface';
-import { MemoryGraphView } from './chat-brain/MemoryGraphView';
 import { NotesPanel } from './chat-brain/NotesPanel';
 import { LLMSelector } from './chat-brain/LLMSelector';
 import { useChatBrain } from '../contexts/ChatBrainContext';
@@ -29,6 +28,7 @@ interface CognitiveShellInterfaceProps {
   onAdaptationTriggered?: (adaptation: unknown) => void;
   onConversationUpdate?: (messages: ConversationMessage[]) => void;
   onOpenCortexBuilder?: () => void;
+  preloadedPrompt?: string;
 }
 
 export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = ({
@@ -36,13 +36,13 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
   onSkillInvoked,
   onAdaptationTriggered,
   onOpenCortexBuilder,
+  preloadedPrompt,
 }) => {
   const [cognitiveEngine, setCognitiveEngine] = useState<CognitiveEngine | null>(null);
   const [wasmOrchestrator, setWasmOrchestrator] = useState<WASMOrchestrator | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null);
   const [learningMode, setLearningMode] = useState(false);
-  const [showMemoryGraph, setShowMemoryGraph] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
 
   const { clearChat } = useChatBrain();
@@ -492,7 +492,7 @@ export const CognitiveShellInterface: React.FC<CognitiveShellInterfaceProps> = (
 
         {/* Chat Interface - takes remaining space */}
         <div className="flex-1 overflow-hidden">
-          <ChatInterface />
+          <ChatInterface preloadedPrompt={preloadedPrompt} />
         </div>
 
         {/* Side Panels */}

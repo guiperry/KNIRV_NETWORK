@@ -291,24 +291,24 @@ KNIRVCHAIN/
 ├── cmd/node/           # Application entry points
 ├── internal/           # Private application code
 │   ├── blockchain/     # Core blockchain logic
-│   ├── mcp/           # MCP server implementation
-│   ├── classifier/    # Memory classification
-│   ├── bridge/        # KNIRVGRAPH integration
-│   ├── pricing/       # Token economics
-│   ├── wallet/        # NRN wallet management
-│   ├── security/      # Encryption & auth
-│   ├── indexing/      # Search indexing
-│   ├── cache/         # Caching layer
-│   └── query/         # Query optimization
-├── pkg/               # Public library code
-│   ├── glb/          # GLB format handling
-│   └── config/       # Configuration management
-├── deployment/        # Deployment configurations
-├── docs/             # Documentation
-├── config.yaml       # Default configuration
-├── go.mod            # Go module file
-├── Makefile          # Build automation
-└── README.md         # This file
+│   ├── mcp/            # MCP server implementation
+│   ├── classifier/     # Memory classification
+│   ├── bridge/         # KNIRVGRAPH integration
+│   ├── pricing/        # Token economics
+│   ├── wallet/         # NRN wallet management
+│   ├── security/       # Encryption & auth
+│   ├── indexing/       # Search indexing
+│   ├── cache/          # Caching layer
+│   └── query/          # Query optimization
+├── pkg/                # Public library code
+│   ├── glb/            # GLB format handling
+│   └── config/         # Configuration management
+├── deployment/         # Deployment configurations
+├── docs/               # Documentation
+├── config.yaml         # Default configuration
+├── go.mod              # Go module file
+├── Makefile            # Build automation
+└── README.md           # This file
 ```
 
 ### Testing

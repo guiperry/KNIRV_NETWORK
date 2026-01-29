@@ -2,12 +2,12 @@
 
 ## What is Asic-Driver?
 
-Asic-Driver is a modernized, gRPC-based ASIC device driver with eBPF observability that transforms your traditional ASIC driver into a distributed, observable system with real-time monitoring capabilities. Instead of a "proxy", asic-driver's "pixie" protocol is a complete re-architecture that adds:
+Asic-Driver is a modernized, gRPC-based ASIC device driver with eBPF observability that transforms your traditional ASIC driver into a distributed, observable system with real-time monitoring capabilities. Instead of a "proxy", asic-driver's "hasher" protocol is a complete re-architecture that adds:
 
 - **Remote Access**: gRPC API for network-accessible compute operations
 - **Real-time Monitoring**: eBPF tracing for microsecond-precision observability
 - **Multi-Client Support**: Multiple applications can share the same ASIC
-- **Language Agnostic**: Any language with gRPC support can use pixie-client
+- **Language Agnostic**: Any language with gRPC support can use hasher-client
 - **Streaming**: High-throughput bidirectional streaming
 - **Batch Processing**: Efficient multi-hash computation
 - **Protocol Support**: Compatible with Bitmain ASIC devices
@@ -39,9 +39,9 @@ asic-driver/
 ├── .gitignore              # Git ignore rules
 │
 ├── proto/                   # Protocol Buffer definitions
-│   └── pixie/
+│   └── hasher/
 │       └── v1/
-│           └── pixie.proto  # gRPC service definition
+│           └── hasher.proto  # gRPC service definition
 │
 ├── internal/                # Internal packages
 │   ├── driver/             # ASIC driver implementation
@@ -52,20 +52,20 @@ asic-driver/
 │   │   └── server.go       # Service implementation
 │   │
 │   └── ebpf/               # eBPF programs
-│       └── pixie.bpf.c     # Kernel-space tracing
+│       └── hasher.bpf.c     # Kernel-space tracing
 │
 ├── cmd/                     # Command-line applications
-│   ├── pixie-server/       # Server executable
+│   ├── hasher-server/       # Server executable
 │   │   └── main.go
-│   └── pixie-client/       # Client executable
+│   └── hasher-client/       # Client executable
 │       └── main.go
 │
 ├── examples/                # Example code
 │   └── basic_usage.go      # Comprehensive usage examples
 │
 └── bin/                     # Compiled binaries (generated)
-    ├── pixie-server
-    └── pixie-client
+    ├── hasher-server
+    └── hasher-client
 ```
 
 ## 🎯 Key Features Implemented
@@ -73,10 +73,10 @@ asic-driver/
 ### 1. Remote Access via gRPC
 ```bash
 # Run server
-sudo ./bin/pixie-server
+sudo ./bin/hasher-server
 
 # Connect from anywhere
-./bin/pixie-client --addr=remote-server:50051
+./bin/hasher-client --addr=remote-server:50051
 ```
 
 ### 2. Real-time Monitoring with eBPF
@@ -87,10 +87,10 @@ sudo ./bin/pixie-server
 
 Four trace points monitor every operation:
 
-1. `pixie_compute_start` - Single hash begins
-2. `pixie_compute_end` - Single hash completes
-3. `pixie_batch_start` - Batch operation begins
-4. `pixie_batch_end` - Batch operation completes
+1. `hasher_compute_start` - Single hash begins
+2. `hasher_compute_end` - Single hash completes
+3. `hasher_batch_start` - Batch operation begins
+4. `hasher_batch_end` - Batch operation completes
 
 Statistics collected:
 - Total requests
@@ -113,18 +113,18 @@ Pre-configured for:
 
 ### 5. Built-in Observability
 ```bash
-./bin/pixie-client --mode=metrics
+./bin/hasher-client --mode=metrics
 ```
 Returns: Total requests, throughput, latency statistics, error counts
 
-## 💡 What Makes This "Pixie" Not Just a Proxy
+## 💡 What Makes This "Hasher" Not Just a Proxy
 
 ### Traditional Proxy
 - Forwards requests unchanged
 - Adds network layer only
 - No additional functionality
 
-### Pixie (This Implementation)
+### Hasher (This Implementation)
 - ✅ Adds observability (eBPF)
 - ✅ Provides metrics API
 - ✅ Supports multiple operation modes
@@ -140,7 +140,7 @@ Returns: Total requests, throughput, latency statistics, error counts
 
 ```
 ┌──────────────┐         ┌──────────────────────┐
-│Pixie Client  │         │   Pixie Server       │
+│Hasher Client  │         │   Hasher Server       │
 │  (Any Lang)  │◄─gRPC──►│                      │
 └──────────────┘         │ ┌──────────────────┐ │
                          │ │  gRPC Handler    │ │
@@ -195,7 +195,7 @@ Asic-Driver maintains 100% protocol compatibility:
 
 ## 📊 Performance
 
-| Metric | Original | pixie |
+| Metric | Original | hasher |
 |--------|----------|-------|
 | Single hash | ~50-100µs | ~70-150µs |
 | Batch (32) | ~35,000/sec | ~35,000/sec |
@@ -258,8 +258,8 @@ cd asic-driver
 docker-compose up
 
 # In another terminal, run a test
-docker-compose run pixie-client \
-    --addr=pixie-server:50051 --mode=batch --count=100
+docker-compose run hasher-client \
+    --addr=hasher-server:50051 --mode=batch --count=100
 ```
 
 ## Option 2: From Source
@@ -282,32 +282,32 @@ make ebpf
 make build
 
 # Run the server (requires sudo for eBPF)
-sudo ./bin/pixie-server &
+sudo ./bin/hasher-server &
 
 # Test with client
-./bin/pixie-client --mode=info
+./bin/hasher-client --mode=info
 ```
 
 ## 📖 Usage Examples
 
 ### Single Hash
 ```bash
-./bin/pixie-client --mode=single --count=10
+./bin/hasher-client --mode=single --count=10
 ```
 
 ### Batch Processing
 ```bash
-./bin/pixie-client --mode=batch --count=1000 --batch=32
+./bin/hasher-client --mode=batch --count=1000 --batch=32
 ```
 
 ### High Throughput Streaming
 ```bash
-./bin/pixie-client --mode=stream --count=100000
+./bin/hasher-client --mode=stream --count=100000
 ```
 
 ### View Metrics
 ```bash
-./bin/pixie-client --mode=metrics
+./bin/hasher-client --mode=metrics
 ```
 Output:
 ```
@@ -322,7 +322,7 @@ Total Errors:         0
 ### 5. Device Information
 
 ```bash
-./bin/pixie-client --mode=info
+./bin/hasher-client --mode=info
 ```
 Output:
 ```
@@ -394,7 +394,7 @@ d.mu.Unlock()
 Use streaming for maximum throughput:
 
 ```bash
-./bin/pixie-client --mode=stream --count=100000
+./bin/hasher-client --mode=stream --count=100000
 ```
 
 ## Monitoring with eBPF
@@ -528,7 +528,7 @@ make test
 
 ```bash
 # Start server
-sudo ./bin/pixie-server &
+sudo ./bin/hasher-server &
 
 # Run tests
 go test ./test/integration/...
@@ -568,7 +568,7 @@ sudo chmod 666 /dev/bitmain-asic
 Check metrics for bottlenecks:
 
 ```bash
-./bin/pixie-client --mode=metrics
+./bin/hasher-client --mode=metrics
 ```
 ---
 

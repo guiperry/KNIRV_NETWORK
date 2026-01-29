@@ -1,4 +1,4 @@
-// cmd/pixie-client/main.go
+// cmd/hasher-client/main.go
 package main
 
 import (
@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pb "asic-driver/internal/proto/pixie/v1"
+	pb "asic-driver/internal/proto/hasher/v1"
 )
 
 var (
@@ -33,7 +33,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	client := pb.NewPixieServiceClient(conn)
+	client := pb.NewHasherServiceClient(conn)
 	ctx := context.Background()
 
 	switch *mode {
@@ -52,7 +52,7 @@ func main() {
 	}
 }
 
-func runSingle(ctx context.Context, client pb.PixieServiceClient) {
+func runSingle(ctx context.Context, client pb.HasherServiceClient) {
 	log.Printf("Computing %d single hashes...", *count)
 
 	totalLatency := time.Duration(0)
@@ -78,7 +78,7 @@ func runSingle(ctx context.Context, client pb.PixieServiceClient) {
 	log.Printf("Completed %d hashes, average latency: %v", *count, avgLatency)
 }
 
-func runBatch(ctx context.Context, client pb.PixieServiceClient) {
+func runBatch(ctx context.Context, client pb.HasherServiceClient) {
 	log.Printf("Computing batch of %d hashes...", *count)
 
 	// Prepare batch data
@@ -108,7 +108,7 @@ func runBatch(ctx context.Context, client pb.PixieServiceClient) {
 	}
 }
 
-func runStream(ctx context.Context, client pb.PixieServiceClient) {
+func runStream(ctx context.Context, client pb.HasherServiceClient) {
 	log.Printf("Streaming %d hashes...", *count)
 
 	stream, err := client.StreamCompute(ctx)
@@ -165,13 +165,13 @@ func runStream(ctx context.Context, client pb.PixieServiceClient) {
 	log.Printf("Throughput: %.2f hashes/sec", float64(received)/elapsed.Seconds())
 }
 
-func showMetrics(ctx context.Context, client pb.PixieServiceClient) {
+func showMetrics(ctx context.Context, client pb.HasherServiceClient) {
 	resp, err := client.GetMetrics(ctx, &pb.GetMetricsRequest{})
 	if err != nil {
 		log.Fatalf("GetMetrics failed: %v", err)
 	}
 
-	fmt.Println("\n=== Pixie Metrics ===")
+	fmt.Println("\n=== Hasher Metrics ===")
 	fmt.Printf("Total Requests:       %d\n", resp.TotalRequests)
 	fmt.Printf("Total Bytes Processed: %d (%.2f MB)\n",
 		resp.TotalBytesProcessed,
@@ -190,7 +190,7 @@ func showMetrics(ctx context.Context, client pb.PixieServiceClient) {
 	}
 }
 
-func showInfo(ctx context.Context, client pb.PixieServiceClient) {
+func showInfo(ctx context.Context, client pb.HasherServiceClient) {
 	resp, err := client.GetDeviceInfo(ctx, &pb.GetDeviceInfoRequest{})
 	if err != nil {
 		log.Fatalf("GetDeviceInfo failed: %v", err)

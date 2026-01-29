@@ -12,33 +12,33 @@ import (
 	"google.golang.org/grpc/status"
 
 	"asic-driver/internal/driver"
-	pb "asic-driver/internal/proto/pixie/v1"
+	pb "asic-driver/internal/proto/hasher/v1"
 )
 
-// PixieServer implements the gRPC PixieService
-type PixieServer struct {
-	pb.UnimplementedPixieServiceServer
+// HasherServer implements the gRPC HasherService
+type HasherServer struct {
+	pb.UnimplementedHasherServiceServer
 
 	device    *driver.Device
 	startTime time.Time
 	mu        sync.RWMutex
 }
 
-// NewPixieServer creates a new Pixie gRPC server
-func NewPixieServer(enableTracing bool) (*PixieServer, error) {
+// NewHasherServer creates a new Hasher gRPC server
+func NewHasherServer(enableTracing bool) (*HasherServer, error) {
 	device, err := driver.OpenDevice(enableTracing)
 	if err != nil {
 		return nil, fmt.Errorf("open device: %w", err)
 	}
 
-	return &PixieServer{
+	return &HasherServer{
 		device:    device,
 		startTime: time.Now(),
 	}, nil
 }
 
 // ComputeHash implements single hash computation
-func (s *PixieServer) ComputeHash(ctx context.Context, req *pb.ComputeHashRequest) (*pb.ComputeHashResponse, error) {
+func (s *HasherServer) ComputeHash(ctx context.Context, req *pb.ComputeHashRequest) (*pb.ComputeHashResponse, error) {
 	if len(req.Data) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "data cannot be empty")
 	}
@@ -59,7 +59,7 @@ func (s *PixieServer) ComputeHash(ctx context.Context, req *pb.ComputeHashReques
 }
 
 // ComputeBatch implements batch hash computation
-func (s *PixieServer) ComputeBatch(ctx context.Context, req *pb.ComputeBatchRequest) (*pb.ComputeBatchResponse, error) {
+func (s *HasherServer) ComputeBatch(ctx context.Context, req *pb.ComputeBatchRequest) (*pb.ComputeBatchResponse, error) {
 	if len(req.Data) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "batch cannot be empty")
 	}
@@ -96,7 +96,7 @@ func (s *PixieServer) ComputeBatch(ctx context.Context, req *pb.ComputeBatchRequ
 }
 
 // StreamCompute implements streaming hash computation
-func (s *PixieServer) StreamCompute(stream pb.PixieService_StreamComputeServer) error {
+func (s *HasherServer) StreamCompute(stream pb.HasherService_StreamComputeServer) error {
 	ctx := stream.Context()
 
 	for {
@@ -141,7 +141,7 @@ func (s *PixieServer) StreamCompute(stream pb.PixieService_StreamComputeServer) 
 }
 
 // GetMetrics retrieves performance metrics
-func (s *PixieServer) GetMetrics(ctx context.Context, req *pb.GetMetricsRequest) (*pb.GetMetricsResponse, error) {
+func (s *HasherServer) GetMetrics(ctx context.Context, req *pb.GetMetricsRequest) (*pb.GetMetricsResponse, error) {
 	stats := s.device.GetStats()
 
 	avgLatency := uint64(0)
@@ -170,7 +170,7 @@ func (s *PixieServer) GetMetrics(ctx context.Context, req *pb.GetMetricsRequest)
 }
 
 // GetDeviceInfo retrieves device information
-func (s *PixieServer) GetDeviceInfo(ctx context.Context, req *pb.GetDeviceInfoRequest) (*pb.GetDeviceInfoResponse, error) {
+func (s *HasherServer) GetDeviceInfo(ctx context.Context, req *pb.GetDeviceInfoRequest) (*pb.GetDeviceInfoResponse, error) {
 	info := s.device.GetInfo()
 
 	uptime := time.Since(s.startTime)
@@ -185,6 +185,6 @@ func (s *PixieServer) GetDeviceInfo(ctx context.Context, req *pb.GetDeviceInfoRe
 }
 
 // Close closes the server and releases resources
-func (s *PixieServer) Close() error {
+func (s *HasherServer) Close() error {
 	return s.device.Close()
 }

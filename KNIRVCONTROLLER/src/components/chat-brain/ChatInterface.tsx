@@ -6,10 +6,24 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-export function ChatInterface() {
+interface ChatInterfaceProps {
+  preloadedPrompt?: string;
+}
+
+export function ChatInterface({ preloadedPrompt }: ChatInterfaceProps) {
   const { messages, sendMessage, isLoading, saveNote } = useChatBrain();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (preloadedPrompt && messages.length === 0) {
+      // Auto-send the preloaded prompt after a short delay
+      const timer = setTimeout(() => {
+        sendMessage(preloadedPrompt);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [preloadedPrompt, messages.length, sendMessage]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,7 +100,8 @@ export function ChatInterface() {
                   <ReactMarkdown
                     className="prose prose-invert max-w-none"
                     components={{
-                      code({ inline, className, children, ...props }: any) {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      code({ inline, className, children, ...props }: { inline?: boolean; className?: string; children?: React.ReactNode; [key: string]: any }) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline && match ? (
                           <SyntaxHighlighter

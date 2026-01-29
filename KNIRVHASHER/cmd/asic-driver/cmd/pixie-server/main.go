@@ -1,4 +1,4 @@
-// cmd/pixie-server/main.go
+// cmd/hasher-server/main.go
 package main
 
 import (
@@ -13,8 +13,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	pb "asic-driver/internal/proto/hasher/v1"
 	"asic-driver/internal/server"
-	pb "asic-driver/internal/proto/pixie/v1"
 )
 
 var (
@@ -42,15 +42,15 @@ func main() {
 
 	grpcServer := grpc.NewServer(opts...)
 
-	// Create Pixie server
-	pixieServer, err := server.NewPixieServer(*enableTracing)
+	// Create Hasher server
+	hasherServer, err := server.NewHasherServer(*enableTracing)
 	if err != nil {
-		log.Fatalf("Failed to create Pixie server: %v", err)
+		log.Fatalf("Failed to create Hasher server: %v", err)
 	}
-	defer pixieServer.Close()
+	defer hasherServer.Close()
 
 	// Register service
-	pb.RegisterPixieServiceServer(grpcServer, pixieServer)
+	pb.RegisterHasherServiceServer(grpcServer, hasherServer)
 
 	// Enable reflection for debugging
 	reflection.Register(grpcServer)
@@ -62,7 +62,7 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	log.Printf("Pixie gRPC server starting on %s", addr)
+	log.Printf("Hasher gRPC server starting on %s", addr)
 	log.Printf("eBPF tracing: %v", *enableTracing)
 
 	// Handle graceful shutdown

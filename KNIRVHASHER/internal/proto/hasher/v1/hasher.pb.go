@@ -2,15 +2,16 @@
 // versions:
 // 	protoc-gen-go v1.28.1
 // 	protoc        v4.25.7
-// source: internal/proto/pixie/v1/pixie.proto
+// source: internal/proto/hasher/v1/hasher.proto
 
-package pixiev1
+package hasherv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -33,7 +34,7 @@ type ComputeHashRequest struct {
 func (x *ComputeHashRequest) Reset() {
 	*x = ComputeHashRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[0]
+		mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -46,7 +47,7 @@ func (x *ComputeHashRequest) String() string {
 func (*ComputeHashRequest) ProtoMessage() {}
 
 func (x *ComputeHashRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[0]
+	mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +60,7 @@ func (x *ComputeHashRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputeHashRequest.ProtoReflect.Descriptor instead.
 func (*ComputeHashRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP(), []int{0}
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ComputeHashRequest) GetData() []byte {
@@ -84,7 +85,7 @@ type ComputeHashResponse struct {
 func (x *ComputeHashResponse) Reset() {
 	*x = ComputeHashResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[1]
+		mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -97,7 +98,7 @@ func (x *ComputeHashResponse) String() string {
 func (*ComputeHashResponse) ProtoMessage() {}
 
 func (x *ComputeHashResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[1]
+	mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +111,7 @@ func (x *ComputeHashResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputeHashResponse.ProtoReflect.Descriptor instead.
 func (*ComputeHashResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP(), []int{1}
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ComputeHashResponse) GetHash() []byte {
@@ -143,7 +144,7 @@ type ComputeBatchRequest struct {
 func (x *ComputeBatchRequest) Reset() {
 	*x = ComputeBatchRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[2]
+		mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -156,7 +157,7 @@ func (x *ComputeBatchRequest) String() string {
 func (*ComputeBatchRequest) ProtoMessage() {}
 
 func (x *ComputeBatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[2]
+	mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +170,7 @@ func (x *ComputeBatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputeBatchRequest.ProtoReflect.Descriptor instead.
 func (*ComputeBatchRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP(), []int{2}
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ComputeBatchRequest) GetData() [][]byte {
@@ -203,7 +204,7 @@ type ComputeBatchResponse struct {
 func (x *ComputeBatchResponse) Reset() {
 	*x = ComputeBatchResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[3]
+		mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -216,7 +217,7 @@ func (x *ComputeBatchResponse) String() string {
 func (*ComputeBatchResponse) ProtoMessage() {}
 
 func (x *ComputeBatchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[3]
+	mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -229,7 +230,7 @@ func (x *ComputeBatchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputeBatchResponse.ProtoReflect.Descriptor instead.
 func (*ComputeBatchResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP(), []int{3}
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ComputeBatchResponse) GetHashes() [][]byte {
@@ -268,7 +269,7 @@ type StreamComputeRequest struct {
 func (x *StreamComputeRequest) Reset() {
 	*x = StreamComputeRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[4]
+		mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -281,7 +282,7 @@ func (x *StreamComputeRequest) String() string {
 func (*StreamComputeRequest) ProtoMessage() {}
 
 func (x *StreamComputeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[4]
+	mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -294,7 +295,7 @@ func (x *StreamComputeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamComputeRequest.ProtoReflect.Descriptor instead.
 func (*StreamComputeRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP(), []int{4}
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *StreamComputeRequest) GetData() []byte {
@@ -328,7 +329,7 @@ type StreamComputeResponse struct {
 func (x *StreamComputeResponse) Reset() {
 	*x = StreamComputeResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[5]
+		mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -341,7 +342,7 @@ func (x *StreamComputeResponse) String() string {
 func (*StreamComputeResponse) ProtoMessage() {}
 
 func (x *StreamComputeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[5]
+	mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -354,7 +355,7 @@ func (x *StreamComputeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamComputeResponse.ProtoReflect.Descriptor instead.
 func (*StreamComputeResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP(), []int{5}
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *StreamComputeResponse) GetHash() []byte {
@@ -388,7 +389,7 @@ type GetMetricsRequest struct {
 func (x *GetMetricsRequest) Reset() {
 	*x = GetMetricsRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[6]
+		mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -401,7 +402,7 @@ func (x *GetMetricsRequest) String() string {
 func (*GetMetricsRequest) ProtoMessage() {}
 
 func (x *GetMetricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[6]
+	mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -414,7 +415,7 @@ func (x *GetMetricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMetricsRequest.ProtoReflect.Descriptor instead.
 func (*GetMetricsRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP(), []int{6}
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP(), []int{6}
 }
 
 // GetMetricsResponse contains aggregated performance metrics
@@ -444,7 +445,7 @@ type GetMetricsResponse struct {
 func (x *GetMetricsResponse) Reset() {
 	*x = GetMetricsResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[7]
+		mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -457,7 +458,7 @@ func (x *GetMetricsResponse) String() string {
 func (*GetMetricsResponse) ProtoMessage() {}
 
 func (x *GetMetricsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[7]
+	mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -470,7 +471,7 @@ func (x *GetMetricsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMetricsResponse.ProtoReflect.Descriptor instead.
 func (*GetMetricsResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP(), []int{7}
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetMetricsResponse) GetTotalRequests() uint64 {
@@ -539,7 +540,7 @@ type GetDeviceInfoRequest struct {
 func (x *GetDeviceInfoRequest) Reset() {
 	*x = GetDeviceInfoRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[8]
+		mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -552,7 +553,7 @@ func (x *GetDeviceInfoRequest) String() string {
 func (*GetDeviceInfoRequest) ProtoMessage() {}
 
 func (x *GetDeviceInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[8]
+	mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -565,7 +566,7 @@ func (x *GetDeviceInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeviceInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetDeviceInfoRequest) Descriptor() ([]byte, []int) {
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP(), []int{8}
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP(), []int{8}
 }
 
 // GetDeviceInfoResponse contains ASIC device information
@@ -589,7 +590,7 @@ type GetDeviceInfoResponse struct {
 func (x *GetDeviceInfoResponse) Reset() {
 	*x = GetDeviceInfoResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[9]
+		mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -602,7 +603,7 @@ func (x *GetDeviceInfoResponse) String() string {
 func (*GetDeviceInfoResponse) ProtoMessage() {}
 
 func (x *GetDeviceInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_proto_pixie_v1_pixie_proto_msgTypes[9]
+	mi := &file_internal_proto_hasher_v1_hasher_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -615,7 +616,7 @@ func (x *GetDeviceInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDeviceInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetDeviceInfoResponse) Descriptor() ([]byte, []int) {
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP(), []int{9}
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetDeviceInfoResponse) GetDevicePath() string {
@@ -653,9 +654,9 @@ func (x *GetDeviceInfoResponse) GetUptimeSeconds() uint64 {
 	return 0
 }
 
-var File_internal_proto_pixie_v1_pixie_proto protoreflect.FileDescriptor
+var File_internal_proto_hasher_v1_hasher_proto protoreflect.FileDescriptor
 
-var file_internal_proto_pixie_v1_pixie_proto_rawDesc = []byte{
+var file_internal_proto_hasher_v1_hasher_proto_rawDesc = []byte{
 	0x0a, 0x23, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f,
 	0x2f, 0x70, 0x69, 0x78, 0x69, 0x65, 0x2f, 0x76, 0x31, 0x2f, 0x70, 0x69, 0x78, 0x69, 0x65, 0x2e,
 	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x08, 0x70, 0x69, 0x78, 0x69, 0x65, 0x2e, 0x76, 0x31, 0x22,
@@ -767,43 +768,43 @@ var file_internal_proto_pixie_v1_pixie_proto_rawDesc = []byte{
 }
 
 var (
-	file_internal_proto_pixie_v1_pixie_proto_rawDescOnce sync.Once
-	file_internal_proto_pixie_v1_pixie_proto_rawDescData = file_internal_proto_pixie_v1_pixie_proto_rawDesc
+	file_internal_proto_hasher_v1_hasher_proto_rawDescOnce sync.Once
+	file_internal_proto_hasher_v1_hasher_proto_rawDescData = file_internal_proto_hasher_v1_hasher_proto_rawDesc
 )
 
-func file_internal_proto_pixie_v1_pixie_proto_rawDescGZIP() []byte {
-	file_internal_proto_pixie_v1_pixie_proto_rawDescOnce.Do(func() {
-		file_internal_proto_pixie_v1_pixie_proto_rawDescData = protoimpl.X.CompressGZIP(file_internal_proto_pixie_v1_pixie_proto_rawDescData)
+func file_internal_proto_hasher_v1_hasher_proto_rawDescGZIP() []byte {
+	file_internal_proto_hasher_v1_hasher_proto_rawDescOnce.Do(func() {
+		file_internal_proto_hasher_v1_hasher_proto_rawDescData = protoimpl.X.CompressGZIP(file_internal_proto_hasher_v1_hasher_proto_rawDescData)
 	})
-	return file_internal_proto_pixie_v1_pixie_proto_rawDescData
+	return file_internal_proto_hasher_v1_hasher_proto_rawDescData
 }
 
-var file_internal_proto_pixie_v1_pixie_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
-var file_internal_proto_pixie_v1_pixie_proto_goTypes = []interface{}{
-	(*ComputeHashRequest)(nil),    // 0: pixie.v1.ComputeHashRequest
-	(*ComputeHashResponse)(nil),   // 1: pixie.v1.ComputeHashResponse
-	(*ComputeBatchRequest)(nil),   // 2: pixie.v1.ComputeBatchRequest
-	(*ComputeBatchResponse)(nil),  // 3: pixie.v1.ComputeBatchResponse
-	(*StreamComputeRequest)(nil),  // 4: pixie.v1.StreamComputeRequest
-	(*StreamComputeResponse)(nil), // 5: pixie.v1.StreamComputeResponse
-	(*GetMetricsRequest)(nil),     // 6: pixie.v1.GetMetricsRequest
-	(*GetMetricsResponse)(nil),    // 7: pixie.v1.GetMetricsResponse
-	(*GetDeviceInfoRequest)(nil),  // 8: pixie.v1.GetDeviceInfoRequest
-	(*GetDeviceInfoResponse)(nil), // 9: pixie.v1.GetDeviceInfoResponse
-	nil,                           // 10: pixie.v1.GetMetricsResponse.DeviceStatsEntry
+var file_internal_proto_hasher_v1_hasher_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_internal_proto_hasher_v1_hasher_proto_goTypes = []interface{}{
+	(*ComputeHashRequest)(nil),    // 0: hasher.v1.ComputeHashRequest
+	(*ComputeHashResponse)(nil),   // 1: hasher.v1.ComputeHashResponse
+	(*ComputeBatchRequest)(nil),   // 2: hasher.v1.ComputeBatchRequest
+	(*ComputeBatchResponse)(nil),  // 3: hasher.v1.ComputeBatchResponse
+	(*StreamComputeRequest)(nil),  // 4: hasher.v1.StreamComputeRequest
+	(*StreamComputeResponse)(nil), // 5: hasher.v1.StreamComputeResponse
+	(*GetMetricsRequest)(nil),     // 6: hasher.v1.GetMetricsRequest
+	(*GetMetricsResponse)(nil),    // 7: hasher.v1.GetMetricsResponse
+	(*GetDeviceInfoRequest)(nil),  // 8: hasher.v1.GetDeviceInfoRequest
+	(*GetDeviceInfoResponse)(nil), // 9: hasher.v1.GetDeviceInfoResponse
+	nil,                           // 10: hasher.v1.GetMetricsResponse.DeviceStatsEntry
 }
-var file_internal_proto_pixie_v1_pixie_proto_depIdxs = []int32{
-	10, // 0: pixie.v1.GetMetricsResponse.device_stats:type_name -> pixie.v1.GetMetricsResponse.DeviceStatsEntry
-	0,  // 1: pixie.v1.pixieService.ComputeHash:input_type -> pixie.v1.ComputeHashRequest
-	2,  // 2: pixie.v1.pixieService.ComputeBatch:input_type -> pixie.v1.ComputeBatchRequest
-	4,  // 3: pixie.v1.pixieService.StreamCompute:input_type -> pixie.v1.StreamComputeRequest
-	6,  // 4: pixie.v1.pixieService.GetMetrics:input_type -> pixie.v1.GetMetricsRequest
-	8,  // 5: pixie.v1.pixieService.GetDeviceInfo:input_type -> pixie.v1.GetDeviceInfoRequest
-	1,  // 6: pixie.v1.pixieService.ComputeHash:output_type -> pixie.v1.ComputeHashResponse
-	3,  // 7: pixie.v1.pixieService.ComputeBatch:output_type -> pixie.v1.ComputeBatchResponse
-	5,  // 8: pixie.v1.pixieService.StreamCompute:output_type -> pixie.v1.StreamComputeResponse
-	7,  // 9: pixie.v1.pixieService.GetMetrics:output_type -> pixie.v1.GetMetricsResponse
-	9,  // 10: pixie.v1.pixieService.GetDeviceInfo:output_type -> pixie.v1.GetDeviceInfoResponse
+var file_internal_proto_hasher_v1_hasher_proto_depIdxs = []int32{
+	10, // 0: hasher.v1.GetMetricsResponse.device_stats:type_name -> hasher.v1.GetMetricsResponse.DeviceStatsEntry
+	0,  // 1: hasher.v1.hasherService.ComputeHash:input_type -> hasher.v1.ComputeHashRequest
+	2,  // 2: hasher.v1.hasherService.ComputeBatch:input_type -> hasher.v1.ComputeBatchRequest
+	4,  // 3: hasher.v1.hasherService.StreamCompute:input_type -> hasher.v1.StreamComputeRequest
+	6,  // 4: hasher.v1.hasherService.GetMetrics:input_type -> hasher.v1.GetMetricsRequest
+	8,  // 5: hasher.v1.hasherService.GetDeviceInfo:input_type -> hasher.v1.GetDeviceInfoRequest
+	1,  // 6: hasher.v1.hasherService.ComputeHash:output_type -> hasher.v1.ComputeHashResponse
+	3,  // 7: hasher.v1.hasherService.ComputeBatch:output_type -> hasher.v1.ComputeBatchResponse
+	5,  // 8: hasher.v1.hasherService.StreamCompute:output_type -> hasher.v1.StreamComputeResponse
+	7,  // 9: hasher.v1.hasherService.GetMetrics:output_type -> hasher.v1.GetMetricsResponse
+	9,  // 10: hasher.v1.hasherService.GetDeviceInfo:output_type -> hasher.v1.GetDeviceInfoResponse
 	6,  // [6:11] is the sub-list for method output_type
 	1,  // [1:6] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
@@ -811,13 +812,13 @@ var file_internal_proto_pixie_v1_pixie_proto_depIdxs = []int32{
 	0,  // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_internal_proto_pixie_v1_pixie_proto_init() }
-func file_internal_proto_pixie_v1_pixie_proto_init() {
-	if File_internal_proto_pixie_v1_pixie_proto != nil {
+func init() { file_internal_proto_hasher_v1_hasher_proto_init() }
+func file_internal_proto_hasher_v1_hasher_proto_init() {
+	if File_internal_proto_hasher_v1_hasher_proto != nil {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_internal_proto_pixie_v1_pixie_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_proto_hasher_v1_hasher_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ComputeHashRequest); i {
 			case 0:
 				return &v.state
@@ -829,7 +830,7 @@ func file_internal_proto_pixie_v1_pixie_proto_init() {
 				return nil
 			}
 		}
-		file_internal_proto_pixie_v1_pixie_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_proto_hasher_v1_hasher_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ComputeHashResponse); i {
 			case 0:
 				return &v.state
@@ -841,7 +842,7 @@ func file_internal_proto_pixie_v1_pixie_proto_init() {
 				return nil
 			}
 		}
-		file_internal_proto_pixie_v1_pixie_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_proto_hasher_v1_hasher_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ComputeBatchRequest); i {
 			case 0:
 				return &v.state
@@ -853,7 +854,7 @@ func file_internal_proto_pixie_v1_pixie_proto_init() {
 				return nil
 			}
 		}
-		file_internal_proto_pixie_v1_pixie_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_proto_hasher_v1_hasher_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*ComputeBatchResponse); i {
 			case 0:
 				return &v.state
@@ -865,7 +866,7 @@ func file_internal_proto_pixie_v1_pixie_proto_init() {
 				return nil
 			}
 		}
-		file_internal_proto_pixie_v1_pixie_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_proto_hasher_v1_hasher_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*StreamComputeRequest); i {
 			case 0:
 				return &v.state
@@ -877,7 +878,7 @@ func file_internal_proto_pixie_v1_pixie_proto_init() {
 				return nil
 			}
 		}
-		file_internal_proto_pixie_v1_pixie_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_proto_hasher_v1_hasher_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*StreamComputeResponse); i {
 			case 0:
 				return &v.state
@@ -889,7 +890,7 @@ func file_internal_proto_pixie_v1_pixie_proto_init() {
 				return nil
 			}
 		}
-		file_internal_proto_pixie_v1_pixie_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_proto_hasher_v1_hasher_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetMetricsRequest); i {
 			case 0:
 				return &v.state
@@ -901,7 +902,7 @@ func file_internal_proto_pixie_v1_pixie_proto_init() {
 				return nil
 			}
 		}
-		file_internal_proto_pixie_v1_pixie_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_proto_hasher_v1_hasher_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetMetricsResponse); i {
 			case 0:
 				return &v.state
@@ -913,7 +914,7 @@ func file_internal_proto_pixie_v1_pixie_proto_init() {
 				return nil
 			}
 		}
-		file_internal_proto_pixie_v1_pixie_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_proto_hasher_v1_hasher_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetDeviceInfoRequest); i {
 			case 0:
 				return &v.state
@@ -925,7 +926,7 @@ func file_internal_proto_pixie_v1_pixie_proto_init() {
 				return nil
 			}
 		}
-		file_internal_proto_pixie_v1_pixie_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_internal_proto_hasher_v1_hasher_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetDeviceInfoResponse); i {
 			case 0:
 				return &v.state
@@ -942,18 +943,18 @@ func file_internal_proto_pixie_v1_pixie_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_internal_proto_pixie_v1_pixie_proto_rawDesc,
+			RawDescriptor: file_internal_proto_hasher_v1_hasher_proto_rawDesc,
 			NumEnums:      0,
 			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_proto_pixie_v1_pixie_proto_goTypes,
-		DependencyIndexes: file_internal_proto_pixie_v1_pixie_proto_depIdxs,
-		MessageInfos:      file_internal_proto_pixie_v1_pixie_proto_msgTypes,
+		GoTypes:           file_internal_proto_hasher_v1_hasher_proto_goTypes,
+		DependencyIndexes: file_internal_proto_hasher_v1_hasher_proto_depIdxs,
+		MessageInfos:      file_internal_proto_hasher_v1_hasher_proto_msgTypes,
 	}.Build()
-	File_internal_proto_pixie_v1_pixie_proto = out.File
-	file_internal_proto_pixie_v1_pixie_proto_rawDesc = nil
-	file_internal_proto_pixie_v1_pixie_proto_goTypes = nil
-	file_internal_proto_pixie_v1_pixie_proto_depIdxs = nil
+	File_internal_proto_hasher_v1_hasher_proto = out.File
+	file_internal_proto_hasher_v1_hasher_proto_rawDesc = nil
+	file_internal_proto_hasher_v1_hasher_proto_goTypes = nil
+	file_internal_proto_hasher_v1_hasher_proto_depIdxs = nil
 }

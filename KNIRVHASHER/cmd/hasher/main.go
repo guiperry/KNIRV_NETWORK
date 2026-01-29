@@ -125,6 +125,8 @@ func main() {
 	model.ServerCmd = serverCmd
 	// Set server ready flag
 	model.ServerReady = true
+	// Debug: Go directly to chat view
+	//model.CurrentView = ui.ChatView
 
 	// Start the Bubble Tea UI with alternate screen and mouse support for clean display and text selection
 	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())

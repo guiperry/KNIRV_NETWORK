@@ -9,7 +9,11 @@ const originalWindow = global.window;
 const originalFetch = global.fetch;
 
 // Create a properly typed mock response helper
-const createMockResponse = (data: any, ok: boolean = true, status: number = 200) => ({
+interface MockResponseData {
+  [key: string]: unknown;
+}
+
+const createMockResponse = (data: MockResponseData, ok: boolean = true, status: number = 200) => ({
   ok,
   status,
   json: async () => data,
@@ -30,8 +34,8 @@ describe('KNIRVBASEService Browser Integration', () => {
   describe('Browser Environment Detection', () => {
     it('should detect browser environment correctly', async () => {
       // Mock browser environment
-      global.window = {} as any;
-      (global.fetch as jest.Mock) = jest.fn();
+      global.window = {} as Window & typeof globalThis;
+      global.fetch = jest.fn() as unknown as typeof fetch;
 
       const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
@@ -42,8 +46,8 @@ describe('KNIRVBASEService Browser Integration', () => {
 
     it('should detect Node.js environment correctly', async () => {
       // Mock Node.js environment
-      delete (global as any).window;
-      delete (global as any).fetch;
+      (global.window as unknown) = undefined;
+      (global.fetch as unknown) = undefined;
 
       const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
@@ -60,15 +64,15 @@ describe('KNIRVBASEService Browser Integration', () => {
         location: {
           origin: 'http://localhost:3000'
         }
-      } as any;
-      (global.fetch as jest.Mock) = jest.fn();
+      } as unknown as Window & typeof globalThis;
+      global.fetch = jest.fn() as unknown as typeof fetch;
     });
 
     it('should initialize browser database with correct options', async () => {
-      const mockFetch = global.fetch as jest.Mock;
+      const mockFetch = global.fetch as jest.Mock<typeof fetch>;
       
-      // Mock successful initialization - use type assertion to bypass TypeScript checking
-      (mockFetch.mockResolvedValueOnce as any)(createMockResponse({ success: true }));
+      // Mock successful initialization
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }) as unknown as Response);
 
       const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
@@ -92,14 +96,14 @@ describe('KNIRVBASEService Browser Integration', () => {
     });
 
     it('should handle initialization errors gracefully', async () => {
-      const mockFetch = global.fetch as jest.Mock;
+      const mockFetch = global.fetch as jest.Mock<typeof fetch>;
       
-      // Mock initialization error - use type assertion to bypass TypeScript checking
-      (mockFetch.mockResolvedValueOnce as any)(createMockResponse(
+      // Mock initialization error
+      mockFetch.mockResolvedValueOnce(createMockResponse(
         { error: 'Failed to initialize database' },
         false,
         500
-      ));
+      ) as unknown as Response);
 
       const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();
@@ -115,21 +119,21 @@ describe('KNIRVBASEService Browser Integration', () => {
         location: {
           origin: 'http://localhost:3000'
         }
-      } as any;
-      (global.fetch as jest.Mock) = jest.fn();
+      } as unknown as Window & typeof globalThis;
+      global.fetch = jest.fn() as unknown as typeof fetch;
     });
 
     it('should create and use collections in browser mode', async () => {
-      const mockFetch = global.fetch as jest.Mock;
+      const mockFetch = global.fetch as jest.Mock<typeof fetch>;
       
-      // Mock successful initialization - use type assertion to bypass TypeScript checking
-      (mockFetch.mockResolvedValueOnce as any)(createMockResponse({ success: true }));
+      // Mock successful initialization
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }) as unknown as Response);
 
-      // Mock successful document insertion - use type assertion to bypass TypeScript checking
-      (mockFetch.mockResolvedValueOnce as any)(createMockResponse({
+      // Mock successful document insertion
+      mockFetch.mockResolvedValueOnce(createMockResponse({
         success: true,
         document: { id: 'test-doc', name: 'Test Document' }
-      }));
+      }) as unknown as Response);
 
       const { KNIRVBASEService } = await import('@services/KNIRVBASEService');
       const service = new KNIRVBASEService();

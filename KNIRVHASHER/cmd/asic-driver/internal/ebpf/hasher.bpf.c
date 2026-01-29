@@ -63,7 +63,7 @@ static inline struct hash_stats* get_stats(void) {
 }
 
 // Trace point when compute operation starts
-SEC("uprobe/pixie_compute_start")
+SEC("uprobe/hasher_compute_start")
 int trace_compute_start(struct pt_regs *ctx) {
     __u64 tid = bpf_get_current_pid_tgid();
     __u64 ts = bpf_ktime_get_ns();
@@ -90,7 +90,7 @@ int trace_compute_start(struct pt_regs *ctx) {
 }
 
 // Trace point when compute operation ends
-SEC("uprobe/pixie_compute_end")
+SEC("uprobe/hasher_compute_end")
 int trace_compute_end(struct pt_regs *ctx) {
     __u64 tid = bpf_get_current_pid_tgid();
     __u64 ts = bpf_ktime_get_ns();
@@ -138,7 +138,7 @@ int trace_compute_end(struct pt_regs *ctx) {
 }
 
 // Trace batch operations
-SEC("uprobe/pixie_batch_start")
+SEC("uprobe/hasher_batch_start")
 int trace_batch_start(struct pt_regs *ctx) {
     __u64 tid = bpf_get_current_pid_tgid();
     __u64 ts = bpf_ktime_get_ns();
@@ -163,7 +163,7 @@ int trace_batch_start(struct pt_regs *ctx) {
     return 0;
 }
 
-SEC("uprobe/pixie_batch_end")
+SEC("uprobe/hasher_batch_end")
 int trace_batch_end(struct pt_regs *ctx) {
     __u64 tid = bpf_get_current_pid_tgid();
     __u64 ts = bpf_ktime_get_ns();

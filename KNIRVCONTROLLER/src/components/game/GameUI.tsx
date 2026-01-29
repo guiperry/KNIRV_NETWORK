@@ -54,13 +54,45 @@ export default function GameUI() {
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showVerifier, setShowVerifier] = useState(false);
   const [showCognitiveShell, setShowCognitiveShell] = useState(false);
-  const [selectedAnchor, setSelectedAnchor] = useState<RewardAnchor | null>(null);
   const [rewardAnchors, setRewardAnchors] = useState<RewardAnchor[]>([]);
-  const canvasRef = useRef(null);
+  const [preloadedPrompt, setPreloadedPrompt] = useState<string>('');
+  const [sabotageType, setSabotageType] = useState<SabotageType>(SabotageType.NOISE_INJECTION);
+  const [sabotageMagnitude, setSabotageMagnitude] = useState<number>(1);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
 
   // Initialize Tournament Controller on component mount
   useEffect(() => {
     initializeTournamentController();
+  }, []);
+
+  // Initialize canvas for drawing
+  useEffect(() => {
+    if (canvasRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Draw a simple grid or visualization
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw some visualization elements
+        ctx.strokeStyle = 'rgba(100, 255, 255, 0.3)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 20) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i, canvas.height);
+          ctx.stroke();
+        }
+        for (let i = 0; i < canvas.height; i += 20) {
+          ctx.beginPath();
+          ctx.moveTo(0, i);
+          ctx.lineTo(canvas.width, i);
+          ctx.stroke();
+        }
+      }
+    }
   }, []);
 
   if (gamePhase === "menu") {
@@ -102,6 +134,43 @@ export default function GameUI() {
     console.log('Sculpt mode enabled - click on grid to place reward anchors');
   };
 
+  const handleCreateAgent = () => {
+    const agentType = ['Analyzer', 'Optimizer', 'Solver'][Math.floor(Math.random() * 3)];
+    createAgent(agentType);
+  };
+
+  const handleApplySabotage = () => {
+    if (!selectedAgent) {
+      alert('Please select an agent first');
+      return;
+    }
+    applySabotage(selectedAgent, sabotageType, sabotageMagnitude);
+  };
+
+  const handleStartTraining = () => {
+    if (!selectedAgent) {
+      alert('Please select an agent first');
+      return;
+    }
+    startTraining(selectedAgent);
+  };
+
+  const handleDistillTrajectory = () => {
+    if (!selectedAgent) {
+      alert('Please select an agent first');
+      return;
+    }
+    distillTrajectory(selectedAgent);
+  };
+
+  const handleHardenAgent = () => {
+    if (!selectedAgent) {
+      alert('Please select an agent first');
+      return;
+    }
+    hardenAgent(selectedAgent);
+  };
+
   const handleGridClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!isAnalyzed) return;
     
@@ -130,12 +199,19 @@ export default function GameUI() {
     
     // Auto-load metadata into Cognitive Shell with preloaded prompt
     setTimeout(() => {
-      const preloadedPrompt = `Based on the following error node metadata, please generate a comprehensive test case for the reward anchor:\n\nError Metadata:\n${JSON.stringify(metadata, null, 2)}\n\nPlease provide:\n1. Specific test conditions\n2. Expected outcomes\n3. Edge cases to cover\n4. Performance constraints\n\nThis test case will be used to create reward shaping constraints for agent training.`;
+      const prompt = `Based on the following error node metadata, please generate a comprehensive test case for the reward anchor:\n\nError Metadata:\n${JSON.stringify(metadata, null, 2)}\n\nPlease provide:\n1. Specific test conditions\n2. Expected outcomes\n3. Edge cases to cover\n4. Performance constraints\n\nThis test case will be used to create reward shaping constraints for agent training.`;
+      setPreloadedPrompt(prompt);
       
       // Trigger cognitive shell with preloaded prompt
       setShowCognitiveShell(true);
     }, 100);
   };
+
+  const handlePauseGame = () => {
+    pauseGame();
+    alert('Game paused. Training and epoch progression halted.');
+  };
+
 
   return (
     <div className="fixed inset-0 pointer-events-none z-40">
@@ -227,6 +303,9 @@ export default function GameUI() {
         <h3 className="text-cyan-400 font-semibold mb-2">Statistics</h3>
         <div className="space-y-1 text-sm">
           <div className="text-gray-300">
+            NRN Balance: <span className="text-yellow-400">{nrnBalance}</span>
+          </div>
+          <div className="text-gray-300">
             Errors Resolved: <span className="text-green-400">{errorsResolved}</span>
           </div>
           <div className="text-gray-300">
@@ -235,8 +314,80 @@ export default function GameUI() {
         </div>
       </div>
 
+      {/* Agent Creation & Training Panel */}
+      <div className="absolute top-64 left-4 bg-gray-900/80 backdrop-blur-sm border border-cyan-500/30 rounded-lg p-4 z-50 max-w-xs">
+        <h3 className="text-cyan-400 font-semibold mb-2">Agent Management</h3>
+        <div className="space-y-2 text-sm">
+          <button
+            onClick={handleCreateAgent}
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded text-sm pointer-events-auto transition-colors"
+          >
+            Create New Agent (50 NRN)
+          </button>
           
-      
+          {selectedAgent && (
+            <>
+              <div className="pt-2 border-t border-gray-700">
+                <h4 className="text-cyan-300 font-medium mb-1">Training</h4>
+                <div className="grid grid-cols-2 gap-1">
+                  <button
+                    onClick={handleStartTraining}
+                    className="bg-purple-600 hover:bg-purple-500 text-white px-2 py-1 rounded text-xs pointer-events-auto transition-colors"
+                  >
+                    Start Training
+                  </button>
+                  <button
+                    onClick={handleDistillTrajectory}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded text-xs pointer-events-auto transition-colors"
+                  >
+                    Distill Trajectory
+                  </button>
+                  <button
+                    onClick={handleHardenAgent}
+                    className="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-xs pointer-events-auto transition-colors col-span-2"
+                  >
+                    Harden Agent
+                  </button>
+                </div>
+              </div>
+              
+              <div className="pt-2 border-t border-gray-700">
+                <h4 className="text-red-300 font-medium mb-1">Sabotage</h4>
+                <div className="space-y-1">
+                  <select
+                    value={sabotageType}
+                    onChange={(e) => setSabotageType(e.target.value as SabotageType)}
+                    className="w-full bg-gray-800 text-white text-xs p-1 rounded pointer-events-auto"
+                  >
+                    <option value={SabotageType.NOISE_INJECTION}>Noise Injection</option>
+                    <option value={SabotageType.BACKPROP_PULSE}>Backprop Pulse</option>
+                    <option value={SabotageType.GRADIENT_GHOSTING}>Gradient Ghosting</option>
+                  </select>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-300 text-xs">Magnitude:</span>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="5"
+                      step="0.1"
+                      value={sabotageMagnitude}
+                      onChange={(e) => setSabotageMagnitude(parseFloat(e.target.value))}
+                      className="flex-1 pointer-events-auto"
+                    />
+                    <span className="text-gray-300 text-xs w-8">{sabotageMagnitude.toFixed(1)}</span>
+                  </div>
+                  <button
+                    onClick={handleApplySabotage}
+                    className="w-full bg-red-700 hover:bg-red-600 text-white px-3 py-1 rounded text-sm pointer-events-auto transition-colors"
+                  >
+                    Apply Sabotage
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Error Node Info Panel */}
       {selectedErrorNode && (
@@ -273,137 +424,93 @@ export default function GameUI() {
         </div>
       )}
 
+      {/* Canvas for visualization */}
+      <div
+        className="absolute inset-0 w-full h-full pointer-events-auto"
+        onClick={handleGridClick}
+      >
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full pointer-events-none opacity-30"
+          width={800}
+          height={600}
+        />
+      </div>
+
       {/* Heatmap Overlay */}
       {showHeatmap && (
-        <div 
-          className="absolute inset-0 pointer-events-none z-30"
-          style={{
-            background: 'radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 0, 0, 0.3) 0%, rgba(255, 0, 0, 0.1) 50%, transparent 70%)',
-            mixBlendMode: 'multiply'
-          }}
-        />
+        <div className="absolute inset-0 bg-red-500/10 pointer-events-none" />
       )}
 
       {/* Reward Anchors */}
       {rewardAnchors.map(anchor => (
         <div
           key={anchor.id}
-          className="absolute w-4 h-4 bg-yellow-400 rounded-full cursor-pointer pointer-events-auto z-35"
-          style={{
-            left: `${anchor.x}%`,
-            top: `${anchor.y}%`,
-            transform: 'translate(-50%, -50%)',
-            boxShadow: '0 0 20px rgba(255, 255, 0, 0.8)'
-          }}
-          onClick={() => {
-            setSelectedAnchor(anchor);
-            setShowVerifier(true);
-          }}
-          title="Reward Anchor - Click to edit"
+          className="absolute w-4 h-4 bg-yellow-400/70 rounded-full pointer-events-auto cursor-pointer transform -translate-x-1/2 -translate-y-1/2"
+          style={{ left: `${anchor.x}%`, top: `${anchor.y}%` }}
         />
       ))}
 
       {/* Bottom Controls */}
-      <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-        <div className="space-x-2">
-          <button
-            onClick={handleAnalyze}
-            className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded text-sm pointer-events-auto transition-colors"
-          >
-            Analyze
-          </button>
-          <button
-            onClick={handleSculpt}
-            disabled={!isAnalyzed}
-            className={`px-4 py-2 rounded text-sm pointer-events-auto transition-colors ${
-              !isAnalyzed
-                ? 'bg-gray-600 text-white cursor-not-allowed'
-                : 'bg-purple-600 hover:bg-purple-500 text-white'
-            }`}
-          >
-            Sculpt
-          </button>
-          <div className="bg-gray-700 text-white px-4 py-2 rounded text-sm pointer-events-none">
-            <span className="text-gray-300">Status: </span>
-            <span className="text-yellow-400 font-medium">
-              {selectedErrorNode && errorNodes.find(n => n.id === selectedErrorNode)?.isBeingSolved ? 'Solving' : 'Active'}
-            </span>
-          </div>
-        </div>
-        
-        <div className="space-x-2">
-          {gamePhase === "playing" && (
-            <button
-              onClick={pauseGame}
-              className="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-2 rounded text-sm pointer-events-auto transition-colors"
-            >
-              Pause
-            </button>
-          )}
-          {gamePhase === "paused" && (
-            <button
-              onClick={startGame}
-              className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm pointer-events-auto transition-colors"
-            >
-              Resume
-            </button>
-          )}
-          <button
-            onClick={toggleMute}
-            className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded text-sm pointer-events-auto transition-colors"
-          >
-            {isMuted ? '🔇' : '🔊'} Sound
-          </button>
-        </div>
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-50">
+        <button
+          onClick={handleAnalyze}
+          className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg pointer-events-auto transition-colors"
+        >
+          Analyze
+        </button>
+        <button
+          onClick={handleSculpt}
+          disabled={!isAnalyzed}
+          className={`px-4 py-2 rounded-lg pointer-events-auto transition-colors ${
+            isAnalyzed
+              ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
+              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          Sculpt
+        </button>
+        <button
+          onClick={() => setShowVerifier(true)}
+          className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg pointer-events-auto transition-colors"
+        >
+          Verify
+        </button>
+        <button
+          onClick={() => setShowCognitiveShell(true)}
+          className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg pointer-events-auto transition-colors"
+        >
+          Cognitive Shell
+        </button>
+        <button
+          onClick={handlePauseGame}
+          className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg pointer-events-auto transition-colors"
+        >
+          Pause Game
+        </button>
+        <button
+          onClick={toggleMute}
+          className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg pointer-events-auto transition-colors"
+        >
+          {isMuted ? '🔇' : '🔊'}
+        </button>
       </div>
-
-      {/* Invisible click surface for placing reward anchors */}
-      {isAnalyzed && (
-        <div 
-          className="absolute inset-0 z-20 pointer-events-auto"
-          onClick={handleGridClick}
-          style={{ cursor: 'crosshair' }}
-        />
-      )}
 
       {/* Cognitive Shell Modal */}
       {showCognitiveShell && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 bg-black/80">
-          <div className="bg-gray-900 border border-cyan-500/50 rounded-lg w-full h-full max-w-6xl max-h-[80vh] m-4 flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
-              <h2 className="text-xl font-bold text-cyan-400">Cognitive Shell - Reward Anchor Configuration</h2>
-              <button
-                onClick={() => setShowCognitiveShell(false)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-             </div>
-            <div className="flex-1 overflow-hidden">
-              <ChatBrainProvider>
-                <CognitiveShellInterface 
-                  onOpenCortexBuilder={() => console.log('Cortex builder opened')}
-                  onSkillInvoked={(skillId, result) => console.log('Skill invoked:', skillId, result)}
-                  onAdaptationTriggered={(adaptation) => console.log('Adaptation triggered:', adaptation)}
-                />
-              </ChatBrainProvider>
-            </div>
-          </div>
-        </div>
+        <ChatBrainProvider>
+          <CognitiveShellInterface
+            preloadedPrompt={preloadedPrompt}
+          />
+        </ChatBrainProvider>
       )}
 
-      {/* Verifier Overlay Modal */}
+      {/* Verifier Overlay */}
       {showVerifier && (
         <VerifierOverlay
-          onClose={() => {
-            setShowVerifier(false);
-            setSelectedAnchor(null);
-          }}
+          onClose={() => setShowVerifier(false)}
           rewardAnchors={rewardAnchors}
           setRewardAnchors={setRewardAnchors}
-          initialAnchor={selectedAnchor}
         />
       )}
     </div>

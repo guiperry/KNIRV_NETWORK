@@ -1,3 +1,34 @@
+# Hasher Makefile
+
+# Go parameters
+GOCMD=go
+GOBUILD=$(GOCMD) build
+GOCLEAN=$(GOCMD) clean
+GOTEST=$(GOCMD) test
+GOGET=$(GOCMD) get
+GOMOD=$(GOCMD) mod
+
+# Binary names
+SERVER_BINARY=hasher-server
+CLIENT_BINARY=hasher-client
+BIN_DIR=bin
+
+# Proto parameters
+PROTO_DIR=internal/proto
+PROTO_OUT=.
+
+# eBPF parameters
+EBPF_SRC=internal/ebpf/hasher.bpf.c
+EBPF_OUT=internal/ebpf/hasher.bpf.o
+CLANG=clang
+LLVM_STRIP=llvm-strip
+
+# Build flags
+LDFLAGS=-ldflags "-s -w"
+TAGS=-tags netgo
+
+.PHONY: all build clean test proto ebpf deps help
+
 .PHONY: help build build-probe build-probe-v2 build-protocol-discover build-monitor deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor test clean hasher test-hasher
 
 ANTMINER_IP ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_IP || echo 192.168.12.151)
@@ -113,31 +144,8 @@ run:
 deploy: build
 	@./scripts/deploy.sh
 
-deploy-probe: build-probe
-	@echo "🚀 Deploying device probe to Antminer..."
-	@sshpass -p '$(ANTMINER_PASSWORD)' scp -o KexAlgorithms=+diffie-hellman-group14-sha1 \
-		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
-		bin/device-probe-mips $(ANTMINER_USER)@$(ANTMINER_IP):/tmp/device-probe
-	@sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \
-		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
-		$(ANTMINER_USER)@$(ANTMINER_IP) 'chmod +x /tmp/device-probe'
-	@echo "✅ Deployed! Run with:"
-	@echo "   sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \\"
-	@echo "     -o HostKeyAlgorithms=+ssh-rsa $(ANTMINER_USER)@$(ANTMINER_IP) '/tmp/device-probe'"
 
-deploy-probe-v2: build-probe-v2
-	@echo "🚀 Deploying enhanced device probe v2 to Antminer..."
-	@sshpass -p '$(ANTMINER_PASSWORD)' scp -o KexAlgorithms=+diffie-hellman-group14-sha1 \
-		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
-		bin/device-probe-v2-mips $(ANTMINER_USER)@$(ANTMINER_IP):/tmp/device-probe-v2
-	@sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \
-		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
-		$(ANTMINER_USER)@$(ANTMINER_IP) 'chmod +x /tmp/device-probe-v2'
-	@echo "✅ Deployed! Run with:"
-	@echo "   sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \\"
-	@echo "     -o HostKeyAlgorithms=+ssh-rsa $(ANTMINER_USER)@$(ANTMINER_IP) '/tmp/device-probe-v2'"
-
-deploy-protocol-discover: build-protocol-discover
+deploy-client: build-client
 	@echo "🚀 Deploying protocol discovery tool to Antminer..."
 	@sshpass -p '$(ANTMINER_PASSWORD)' scp -o KexAlgorithms=+diffie-hellman-group14-sha1 \
 		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
@@ -149,7 +157,7 @@ deploy-protocol-discover: build-protocol-discover
 	@echo "   sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \\"
 	@echo "     -o HostKeyAlgorithms=+ssh-rsa $(ANTMINER_USER)@$(ANTMINER_IP) '/tmp/protocol-discover'"
 
-deploy-monitor: build-monitor
+deploy-server: build-server
 	@echo "🚀 Deploying ASIC monitor tool to Antminer..."
 	@sshpass -p '$(ANTMINER_PASSWORD)' scp -o KexAlgorithms=+diffie-hellman-group14-sha1 \
 		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \

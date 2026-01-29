@@ -1,11 +1,11 @@
 syntax = "proto3";
 
-package pixie.v1;
+package hasher.v1;
 
-option go_package = "pixie/proto/pixie/v1;pixiev1";
+option go_package = "hasher/proto/hasher/v1;hasherv1";
 
-// pixieService provides ASIC computation services
-service pixieService {
+// hasherService provides ASIC computation services
+service hasherService {
   // ComputeHash computes a single SHA-256 hash
   rpc ComputeHash(ComputeHashRequest) returns (ComputeHashResponse);
   

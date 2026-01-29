@@ -81,7 +81,21 @@ var (
 
 	infoStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#60A5FA"))
+
+	logoStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFFF00")).
+			Bold(true).
+			MarginTop(1)
 )
+
+// ASCII art logo for HASHER
+const hasherLogo = `
+██╗  ██╗ █████╗ ███████╗██╗  ██╗███████╗██████╗
+██║  ██║██╔══██╗██╔════╝██║  ██║██╔════╝██╔══██╗
+███████║███████║███████╗███████║█████╗  ██████╔╝
+██╔══██║██╔══██║╚════██║██╔══██║██╔══╝  ██╔══██╗
+██║  ██║██║  ██║███████║██║  ██║███████╗██║  ██║
+╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝`
 
 // Menu item definitions
 type menuItem struct {
@@ -112,7 +126,7 @@ var menuItems = []list.Item{
 	},
 	menuItem{
 		title:       "4. Provision",
-		description: "Deploy pixie-server to ASIC device",
+		description: "Deploy hasher-server to ASIC device",
 		view:        MainMenuView,
 	},
 	menuItem{
@@ -162,8 +176,16 @@ type Model struct {
 
 // NewModel creates a new UI model
 func NewModel() Model {
-	// Initialize menu
-	menuList := list.New(menuItems, list.NewDefaultDelegate(), 0, 0)
+	// Default dimensions
+	defaultWidth := 80
+	defaultHeight := 24
+	menuHeight := defaultHeight - 13
+	if menuHeight < 6 {
+		menuHeight = 6
+	}
+
+	// Initialize menu with proper initial size
+	menuList := list.New(menuItems, list.NewDefaultDelegate(), defaultWidth-4, menuHeight)
 	menuList.Title = "Hasher CLI - Main Menu"
 	menuList.SetShowStatusBar(false)
 	menuList.SetFilteringEnabled(false)
@@ -345,11 +367,24 @@ func (m Model) renderMainMenu() string {
 
 	footer := footerStyle.Copy().Width(m.Width).Render(m.ResourceData)
 
-	menuContent := listStyle.Copy().Width(m.Width - 4).Height(m.Height - 6).Render(m.MainMenu.View())
+	// Render the logo centered
+	logo := logoStyle.Render(hasherLogo)
+
+	// Adjust menu height to fit: header(1) + footer(1) + logo(6) + margin(1) + menu_border(2) = 11
+	// But Height() sets content area, so total menu = menuHeight + 2 for border
+	// Total = 1 + 1 + 6 + 1 + (menuHeight + 2) + 1 = menuHeight + 12
+	// For Total = Height: menuHeight = Height - 12
+	// Add 1 more buffer to be safe
+	menuHeight := m.Height - 13
+	if menuHeight < 6 {
+		menuHeight = 6
+	}
+	menuContent := listStyle.Copy().Width(m.Width - 4).Height(menuHeight).Render(m.MainMenu.View())
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		header,
+		logo,
 		menuContent,
 		footer,
 	)
@@ -366,21 +401,23 @@ func (m Model) renderChatView() string {
 
 	footer := footerStyle.Copy().Width(m.Width).Render(m.ResourceData)
 
-	// Calculate available height: total height - header(1) - footer(1) - input(3 lines with border)
-	availableHeight := m.Height - 1 - 1 - 3
-	if availableHeight < 10 {
-		availableHeight = 10
+	// Calculate dimensions accounting for borders
+	// header(1) + footer(1) + input_content(1) + input_border(2) + chat_border(2) + log_border(2) = 9
+	contentHeight := m.Height - 9
+	if contentHeight < 6 {
+		contentHeight = 6
 	}
 
-	// Vertical layout: Chat view on top, Log view below (better for text selection)
-	chatHeight := availableHeight / 2
-	logHeight := availableHeight - chatHeight
+	chatHeight := contentHeight / 2
+	logHeight := contentHeight - chatHeight
 
+	// Update viewport dimensions (these are content areas inside borders)
 	m.ChatView.Width = m.Width - 4
-	m.ChatView.Height = chatHeight - 2
+	m.ChatView.Height = chatHeight
 	m.LogView.Width = m.Width - 4
-	m.LogView.Height = logHeight - 2
+	m.LogView.Height = logHeight
 
+	// Render views - Height() sets content area, border adds 2 more lines
 	chatContent := chatViewStyle.Copy().
 		Width(m.Width - 2).
 		Height(chatHeight).
@@ -391,14 +428,16 @@ func (m Model) renderChatView() string {
 		Height(logHeight).
 		Render(m.LogView.View())
 
+	// Stack views vertically
 	columns := lipgloss.JoinVertical(
 		lipgloss.Left,
 		chatContent,
 		logContent,
 	)
 
-	input := inputStyle.Copy().Width(m.Width - 4).Render(m.Input.View())
+	input := inputStyle.Copy().Width(m.Width - 4).Height(1).Render(m.Input.View())
 
+	// Build final UI
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		header,
@@ -437,22 +476,27 @@ func (m Model) handleResize(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 	m.Width = msg.Width
 	m.Height = msg.Height
 
-	m.MainMenu.SetSize(msg.Width-4, msg.Height-6)
+	// Menu height must match renderMainMenu calculation
+	menuHeight := msg.Height - 13
+	if menuHeight < 6 {
+		menuHeight = 6
+	}
+	m.MainMenu.SetSize(msg.Width-4, menuHeight)
 
-	// Calculate available height: total height - header(1) - footer(1) - input(3 lines with border)
-	availableHeight := msg.Height - 1 - 1 - 3
-	if availableHeight < 10 {
-		availableHeight = 10
+	// Calculate dimensions for chat view
+	// header(1) + footer(1) + input_content(1) + input_border(2) + chat_border(2) + log_border(2) = 9
+	contentHeight := msg.Height - 9
+	if contentHeight < 6 {
+		contentHeight = 6
 	}
 
-	// Vertical layout dimensions
-	chatHeight := availableHeight / 2
-	logHeight := availableHeight - chatHeight
+	chatHeight := contentHeight / 2
+	logHeight := contentHeight - chatHeight
 
 	m.ChatView.Width = msg.Width - 4
-	m.ChatView.Height = chatHeight - 2
+	m.ChatView.Height = chatHeight
 	m.LogView.Width = msg.Width - 4
-	m.LogView.Height = logHeight - 2
+	m.LogView.Height = logHeight
 
 	m.Input.SetWidth(msg.Width - 6)
 	m.Input.SetHeight(1)
@@ -606,7 +650,7 @@ func (m Model) runProtocol() tea.Msg {
 func (m Model) runProvision() tea.Msg {
 	m.CurrentView = ProgressView
 	m.ProgressText = "Provisioning device..."
-	m.ProgressStatus = "Deploying pixie-server..."
+	m.ProgressStatus = "Deploying hasher-server..."
 
 	go func() {
 		time.Sleep(3 * time.Second)
@@ -616,7 +660,7 @@ func (m Model) runProvision() tea.Msg {
 		m.CurrentView = MainMenuView
 	}()
 
-	return ProgressUpdateMsg{text: "Provisioning device...", status: "Deploying pixie-server..."}
+	return ProgressUpdateMsg{text: "Provisioning device...", status: "Deploying hasher-server..."}
 }
 
 // runTroubleshoot runs troubleshooting

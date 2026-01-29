@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	DevicePath = "/dev/bitmain-asic"
+	DevicePath   = "/dev/bitmain-asic"
 	MaxBatchSize = 256
 )
 
@@ -27,22 +27,22 @@ type Device struct {
 
 // DeviceStats holds device statistics with internal synchronization
 type DeviceStats struct {
-	TotalRequests    uint64
-	TotalBytes       uint64
-	TotalLatencyNs   uint64
-	PeakLatencyNs    uint64
-	ErrorCount       uint64
-	mu               sync.RWMutex
+	TotalRequests  uint64
+	TotalBytes     uint64
+	TotalLatencyNs uint64
+	PeakLatencyNs  uint64
+	ErrorCount     uint64
+	mu             sync.RWMutex
 }
 
 // DeviceStatsSnapshot is a copy of device statistics without synchronization
 // Used for returning stats to callers without copying mutexes
 type DeviceStatsSnapshot struct {
-	TotalRequests    uint64
-	TotalBytes       uint64
-	TotalLatencyNs   uint64
-	PeakLatencyNs    uint64
-	ErrorCount       uint64
+	TotalRequests  uint64
+	TotalBytes     uint64
+	TotalLatencyNs uint64
+	PeakLatencyNs  uint64
+	ErrorCount     uint64
 }
 
 // OpenDevice opens the ASIC device with eBPF tracing
@@ -76,8 +76,8 @@ func OpenDevice(enableTracing bool) (*Device, error) {
 func (d *Device) ComputeHash(data []byte) ([32]byte, error) {
 	// Trace start
 	if d.tracer != nil {
-		pixie_compute_start()
-		defer pixie_compute_end()
+		hasher_compute_start()
+		defer hasher_compute_end()
 	}
 
 	start := time.Now()
@@ -108,8 +108,8 @@ func (d *Device) ComputeBatch(inputs [][]byte) ([][32]byte, error) {
 
 	// Trace batch start
 	if d.tracer != nil {
-		pixie_batch_start()
-		defer pixie_batch_end()
+		hasher_batch_start()
+		defer hasher_batch_end()
 	}
 
 	start := time.Now()
@@ -280,22 +280,23 @@ type DeviceInfo struct {
 }
 
 // eBPF tracing stubs (implemented via CGO or replaced with actual eBPF calls)
+//
 //go:noinline
-func pixie_compute_start() {
+func hasher_compute_start() {
 	// This function is traced by eBPF uprobe
 }
 
 //go:noinline
-func pixie_compute_end() {
+func hasher_compute_end() {
 	// This function is traced by eBPF uprobe
 }
 
 //go:noinline
-func pixie_batch_start() {
+func hasher_batch_start() {
 	// This function is traced by eBPF uprobe
 }
 
 //go:noinline
-func pixie_batch_end() {
+func hasher_batch_end() {
 	// This function is traced by eBPF uprobe
 }

@@ -1,4 +1,4 @@
-# asic-driver Makefile
+# Hasher Makefile
 
 # Go parameters
 GOCMD=go
@@ -9,8 +9,8 @@ GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
 # Binary names
-SERVER_BINARY=pixie-server
-CLIENT_BINARY=pixie-client
+SERVER_BINARY=hasher-server
+CLIENT_BINARY=hasher-client
 BIN_DIR=bin
 
 # Proto parameters
@@ -18,8 +18,8 @@ PROTO_DIR=internal/proto
 PROTO_OUT=.
 
 # eBPF parameters
-EBPF_SRC=internal/ebpf/pixie.bpf.c
-EBPF_OUT=internal/ebpf/pixie.bpf.o
+EBPF_SRC=internal/ebpf/hasher.bpf.c
+EBPF_OUT=internal/ebpf/hasher.bpf.o
 CLANG=clang
 LLVM_STRIP=llvm-strip
 
@@ -43,13 +43,13 @@ build: build-server build-client
 build-server:
 	@echo "Building server..."
 	@mkdir -p $(BIN_DIR)
-	$(GOBUILD) $(LDFLAGS) $(TAGS) -o $(BIN_DIR)/$(SERVER_BINARY) ./cmd/pixie-server
+	$(GOBUILD) $(LDFLAGS) $(TAGS) -o $(BIN_DIR)/$(SERVER_BINARY) ./cmd/hasher-server
 
 ## build-client: Build client binary
 build-client:
 	@echo "Building client..."
 	@mkdir -p $(BIN_DIR)
-	$(GOBUILD) $(LDFLAGS) $(TAGS) -o $(BIN_DIR)/$(CLIENT_BINARY) ./cmd/pixie-client
+	$(GOBUILD) $(LDFLAGS) $(TAGS) -o $(BIN_DIR)/$(CLIENT_BINARY) ./cmd/hasher-client
 
 ## proto: Generate Go code from Protocol Buffers
 proto:
@@ -57,7 +57,7 @@ proto:
 	@mkdir -p $(PROTO_OUT)
 	protoc --go_out=$(PROTO_OUT) --go_opt=paths=source_relative \
 		--go-grpc_out=$(PROTO_OUT) --go-grpc_opt=paths=source_relative \
-		$(PROTO_DIR)/pixie/v1/*.proto
+		$(PROTO_DIR)/hasher/v1/*.proto
 
 ## ebpf: Compile eBPF programs
 ebpf: $(EBPF_OUT)
@@ -105,7 +105,7 @@ run-client: build-client
 
 ## docker-build: Build Docker image
 docker-build:
-	docker build -t pixie:latest .
+	docker build -t hasher:latest .
 
 ## install: Install binaries to system
 install: build

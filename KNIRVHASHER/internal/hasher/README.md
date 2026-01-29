@@ -165,7 +165,7 @@ BenchmarkRecursiveEngineInfer-8       10000  21000.0 ns/op
 
 ## Integration with ASIC Driver
 
-The `hasher` package is designed to integrate seamlessly with the existing pixie-driver architecture:
+The `hasher` package is designed to integrate seamlessly with the existing hasher-driver architecture:
 
 - **gRPC Communication**: Uses existing ComputeHash, ComputeBatch, and StreamCompute methods
 - **Metrics Collection**: Retrieves performance data from GetMetrics API
@@ -175,7 +175,7 @@ The `hasher` package is designed to integrate seamlessly with the existing pixie
 ## Compatibility
 
 - **Protocol**: gRPC over TCP/IP (primary) or direct `/dev/bitmain-asic` access (fallback)
-- **Devices**: Antminer S2/S3 with pixie-driver installed
+- **Devices**: Antminer S2/S3 with hasher-driver installed
 - **Dependencies**: Go 1.16+, standard library only (no external frameworks)
 
 ## Future Enhancements
