@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"backend_server/internal/database"
-	inference "backend_server/internal/inference_engine"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/dvemanager"
+	inference "backend_server/internal/services/inferencer"
 	"backend_server/internal/services/session"
 	"backend_server/internal/services/validation"
 	"backend_server/internal/web/middleware"

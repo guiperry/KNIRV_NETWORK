@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"bytes"
 	"fmt"
 	"os/exec"
 	"runtime"
@@ -16,7 +17,9 @@ import (
 	psutil "github.com/shirou/gopsutil/v3/cpu"
 	psmem "github.com/shirou/gopsutil/v3/mem"
 
+	"hasher/internal/analyzer"
 	"hasher/internal/cli/server"
+	"hasher/internal/hasher"
 )
 
 // View states
@@ -140,17 +143,22 @@ var menuItems = []list.Item{
 		view:        MainMenuView,
 	},
 	menuItem{
-		title:       "7. Test",
-		description: "Test hasher validation service",
+		title:       "7. Rules",
+		description: "Manage logical validation rules",
 		view:        MainMenuView,
 	},
 	menuItem{
-		title:       "8. Chat",
-		description: "Chat with hasher inference service (-llama for LLM)",
+		title:       "8. Test",
+		description: "Test ASIC communication pattern",
+		view:        MainMenuView,
+	},
+	menuItem{
+		title:       "9. Chat",
+		description: "Test hasher validation service",
 		view:        ChatView,
 	},
 	menuItem{
-		title:       "9. Quit",
+		title:       "0. Quit",
 		description: "Exit the application",
 		view:        MainMenuView,
 	},
@@ -172,6 +180,10 @@ type Model struct {
 	Height         int
 	ProgressText   string
 	ProgressStatus string
+	Deployer       *analyzer.Deployer
+	DeviceIP       string // Connected ASIC device IP (empty if none)
+	DeviceType     string // Type of connected device
+	CryptoEnabled  bool   // Whether crypto-transformer is enabled
 }
 
 // NewModel creates a new UI model
@@ -206,6 +218,10 @@ func NewModel() Model {
 	input.ShowLineNumbers = false
 	input.Cursor.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("#2563EB"))
 
+	// Initialize deployer
+	config := analyzer.DefaultDeployerConfig()
+	deployer, _ := analyzer.NewDeployer(config)
+
 	// Create model with initial data
 	model := Model{
 		CurrentView:    MainMenuView,
@@ -214,12 +230,15 @@ func NewModel() Model {
 		LogView:        logView,
 		Input:          input,
 		ServerLogs:     []string{"Logs will appear here..."},
-		ChatHistory:    []string{"Welcome to Hasher CLI!\n\nType your message below. Use -llama for LLM."},
+		ChatHistory:    []string{"Welcome to Hasher CLI!\n\nType your message below for hasher-based inference."},
 		ServerReady:    false,
 		Width:          80,
 		Height:         24,
 		ProgressText:   "",
 		ProgressStatus: "",
+		Deployer:       deployer,
+		DeviceIP:       "", // No device connected initially
+		DeviceType:     "",
 	}
 
 	// Initialize views
@@ -280,6 +299,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ProgressUpdateMsg:
 		m.ProgressText = msg.text
 		m.ProgressStatus = msg.status
+
+	case DeviceSelectedMsg:
+		m.DeviceIP = msg.IP
+		m.DeviceType = msg.DeviceType
+
+	case DiscoveryResultMsg:
+		// Update device info
+		if msg.DeviceIP != "" {
+			m.DeviceIP = msg.DeviceIP
+			m.DeviceType = msg.DevType
+		}
+		// Update logs and chat
+		m.ServerLogs = append(m.ServerLogs, msg.LogChat.Log)
+		if len(m.ServerLogs) > 50 {
+			m.ServerLogs = m.ServerLogs[len(m.ServerLogs)-50:]
+		}
+		m.updateLogView()
+		m.ChatHistory = append(m.ChatHistory, msg.LogChat.Chat)
+		m.updateChatView()
 	}
 
 	switch m.CurrentView {
@@ -293,22 +331,44 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if i, ok := m.MainMenu.SelectedItem().(menuItem); ok {
 					switch i.title {
 					case "1. Discovery":
+						m.CurrentView = ChatView
+						m.ChatHistory = append(m.ChatHistory, infoStyle.Render("Running Discovery..."))
+						m.updateChatView()
 						cmds = append(cmds, m.runDiscovery)
 					case "2. Probe":
+						m.CurrentView = ChatView
+						m.ChatHistory = append(m.ChatHistory, infoStyle.Render("Running Probe..."))
+						m.updateChatView()
 						cmds = append(cmds, m.runProbe)
 					case "3. Protocol":
+						m.CurrentView = ChatView
+						m.ChatHistory = append(m.ChatHistory, infoStyle.Render("Running Protocol Detection..."))
+						m.updateChatView()
 						cmds = append(cmds, m.runProtocol)
 					case "4. Provision":
+						m.CurrentView = ChatView
+						m.ChatHistory = append(m.ChatHistory, infoStyle.Render("Running Provisioning..."))
+						m.updateChatView()
 						cmds = append(cmds, m.runProvision)
 					case "5. Troubleshoot":
+						m.CurrentView = ChatView
+						m.ChatHistory = append(m.ChatHistory, infoStyle.Render("Running Troubleshooting..."))
+						m.updateChatView()
 						cmds = append(cmds, m.runTroubleshoot)
 					case "6. Configure":
-						cmds = append(cmds, m.runConfigure)
-					case "7. Test":
-						cmds = append(cmds, m.runTest)
-					case "8. Chat":
 						m.CurrentView = ChatView
-					case "9. Quit":
+						cmds = append(cmds, m.runConfigure)
+					case "7. Rules":
+						m.CurrentView = ChatView
+						cmds = append(cmds, m.runRulesManager)
+					case "8. Test":
+						m.CurrentView = ChatView
+						m.ChatHistory = append(m.ChatHistory, infoStyle.Render("Running Communication Test..."))
+						m.updateChatView()
+						cmds = append(cmds, m.runTest)
+					case "9. Chat":
+						m.CurrentView = ChatView
+					case "0. Quit":
 						return m, tea.Quit
 					}
 				}
@@ -362,10 +422,28 @@ func (m Model) renderMainMenu() string {
 	if m.ServerReady {
 		serverStatus = "Server: Ready"
 	}
-	headerContent := fmt.Sprintf(" Hasher CLI Tool | %s", serverStatus)
-	header := headerStyle.Copy().Width(m.Width).Render(headerContent)
 
-	footer := footerStyle.Copy().Width(m.Width).Render(m.ResourceData)
+	// Build header with device IP on right side
+	leftContent := fmt.Sprintf(" Hasher CLI Tool | %s", serverStatus)
+	deviceStatus := ""
+	if m.DeviceIP != "" {
+		deviceStatus = fmt.Sprintf("ASIC: %s ", m.DeviceIP)
+	}
+
+	// Calculate padding for right-aligned device status
+	padding := m.Width - len(leftContent) - len(deviceStatus) - 4 // 4 for style padding
+	if padding < 1 {
+		padding = 1
+	}
+	headerContent := leftContent + strings.Repeat(" ", padding) + deviceStatus
+	header := headerStyle.Width(m.Width).Render(headerContent)
+
+	// Build footer with device type on right side
+	footerRight := ""
+	if m.DeviceType != "" {
+		footerRight = fmt.Sprintf(" | %s", m.DeviceType)
+	}
+	footer := footerStyle.Width(m.Width).Render(m.ResourceData + footerRight)
 
 	// Render the logo centered
 	logo := logoStyle.Render(hasherLogo)
@@ -396,10 +474,28 @@ func (m Model) renderChatView() string {
 	if m.ServerReady {
 		serverStatus = "Server: Ready"
 	}
-	headerContent := fmt.Sprintf(" Hasher Chat | %s | Press ESC for menu", serverStatus)
-	header := headerStyle.Copy().Width(m.Width).Render(headerContent)
 
-	footer := footerStyle.Copy().Width(m.Width).Render(m.ResourceData)
+	// Build header with device IP on right side
+	leftContent := fmt.Sprintf(" Hasher Chat | %s | ESC=menu", serverStatus)
+	deviceStatus := ""
+	if m.DeviceIP != "" {
+		deviceStatus = fmt.Sprintf("ASIC: %s ", m.DeviceIP)
+	}
+
+	// Calculate padding for right-aligned device status
+	padding := m.Width - len(leftContent) - len(deviceStatus) - 4 // 4 for style padding
+	if padding < 1 {
+		padding = 1
+	}
+	headerContent := leftContent + strings.Repeat(" ", padding) + deviceStatus
+	header := headerStyle.Width(m.Width).Render(headerContent)
+
+	// Build footer with device type on right side
+	footerRight := ""
+	if m.DeviceType != "" {
+		footerRight = fmt.Sprintf(" | %s", m.DeviceType)
+	}
+	footer := footerStyle.Width(m.Width).Render(m.ResourceData + footerRight)
 
 	// Calculate dimensions accounting for borders
 	// header(1) + footer(1) + input_content(1) + input_border(2) + chat_border(2) + log_border(2) = 9
@@ -559,6 +655,30 @@ func (m Model) handleInput(input string) tea.Cmd {
 			return nil
 		}
 	}
+	if input == "/help" {
+		return func() tea.Msg {
+			helpText := infoStyle.Render("Available Commands:\n")
+			helpText += "  /quit           - Exit the application\n"
+			helpText += "  /menu           - Return to main menu\n"
+			helpText += "  /help           - Show this help\n"
+			helpText += "  /rule add       - Add a logical rule\n"
+			helpText += "  /rule delete    - Delete a logical rule\n"
+			helpText += "  /rule list      - List all rules\n"
+			helpText += "  /status         - Show server status\n"
+			helpText += "  /train          - Train crypto-transformer\n"
+			helpText += "\nType any text to perform inference with temporal ensemble."
+			return AppendChatMsg{Msg: helpText}
+		}
+	}
+	if input == "/status" {
+		return m.handleStatusCommand()
+	}
+	if input == "/train" {
+		return m.handleTrainCommand()
+	}
+	if strings.HasPrefix(input, "/rule") {
+		return m.handleRuleCommand(input)
+	}
 
 	userMsg := userMessageStyle.Render("You: " + input)
 	logStart := fmt.Sprintf("[%s] Sending to service: %s", time.Now().Format("15:04:05"), input)
@@ -572,146 +692,564 @@ func (m Model) handleInput(input string) tea.Cmd {
 			return AppendChatMsg{Msg: thinkingMsg}
 		},
 		func() tea.Msg {
-			var resp string
-			var err error
-
-			if strings.Contains(strings.ToLower(input), "-llama") {
-				resp, err = server.CallTinyLLMAPI(input)
-			} else {
-				resp = "Hasher service is not yet implemented"
-				err = nil
-			}
+			// Use cryptographic transformer inference for all messages
+			resp, err := server.CallCryptoTransformerInference(input, nil)
 
 			if err != nil {
-				logErr := fmt.Sprintf("[%s] API Error: %v", time.Now().Format("15:04:05"), err)
-				errMsg := lipgloss.NewStyle().Foreground(lipgloss.Color("#EF4444")).Render("Error: " + err.Error())
+				logErr := fmt.Sprintf("[%s] Transformer Error: %v", time.Now().Format("15:04:05"), err)
+				errMsg := lipgloss.NewStyle().Foreground(lipgloss.Color("#EF4444")).Render("Transformer Error: " + err.Error())
 				return CombinedLogChatMsg{Log: logErr, Chat: errMsg}
 			}
 
-			logResp := fmt.Sprintf("[%s] Response received (%d chars)", time.Now().Format("15:04:05"), len(resp))
-			llmMsg := llmMessageStyle.Render("Hasher: " + resp)
+			logResp := fmt.Sprintf("[%s] Crypto-transformer inference completed", time.Now().Format("15:04:05"))
+			llmMsg := llmMessageStyle.Render("Assistant: " + resp)
 			return CombinedLogChatMsg{Log: logResp, Chat: llmMsg}
 		},
 	)
 }
 
+// handleStatusCommand shows the current server and ASIC status
+func (m Model) handleStatusCommand() tea.Cmd {
+	return func() tea.Msg {
+		var output strings.Builder
+		output.WriteString(progressStyle.Render("System Status\n"))
+		output.WriteString("════════════════\n\n")
+
+		// Server status
+		serverStatus := "Stopped"
+		if m.ServerReady {
+			serverStatus = "Ready"
+		}
+		output.WriteString(fmt.Sprintf("Server: %s\n", serverStatus))
+
+		// Device status
+		if m.DeviceIP != "" {
+			output.WriteString(fmt.Sprintf("ASIC Device: %s (%s)\n", m.DeviceIP, m.DeviceType))
+		} else {
+			output.WriteString("ASIC Device: Not connected\n")
+		}
+
+		// Orchestrator status
+		orch := server.GetOrchestrator()
+		if orch != nil && orch.IsReady() {
+			output.WriteString("API Server: Running\n")
+		} else {
+			output.WriteString("API Server: Not running\n")
+		}
+
+		return AppendChatMsg{Msg: output.String()}
+	}
+}
+
+// handleTrainCommand initiates crypto-transformer training
+func (m Model) handleTrainCommand() tea.Cmd {
+	return func() tea.Msg {
+		startMsg := infoStyle.Render("Starting crypto-transformer training...")
+		return CombinedLogChatMsg{
+			Log:  "[" + time.Now().Format("15:04:05") + "] Training initiated",
+			Chat: startMsg,
+		}
+	}
+}
+
+// handleRuleCommand processes /rule commands
+func (m Model) handleRuleCommand(input string) tea.Cmd {
+	return func() tea.Msg {
+		parts := strings.Fields(input)
+		if len(parts) < 2 {
+			return AppendChatMsg{Msg: errorStyle.Render("Usage: /rule [add|delete|list] ...")}
+		}
+
+		subCmd := parts[1]
+		switch subCmd {
+		case "add":
+			return m.handleRuleAdd(parts[2:])
+		case "delete":
+			return m.handleRuleDelete(parts[2:])
+		case "list":
+			return m.handleRuleList(parts[2:])
+		default:
+			return AppendChatMsg{Msg: errorStyle.Render("Unknown rule command. Use: add, delete, or list")}
+		}
+	}
+}
+
+// handleRuleAdd adds a new logical rule
+func (m Model) handleRuleAdd(args []string) tea.Msg {
+	if len(args) < 3 {
+		return AppendChatMsg{Msg: errorStyle.Render("Usage: /rule add <domain> <type> <conclusion>\n  Types: constraint, subsumption, disjoint")}
+	}
+
+	domain := args[0]
+	ruleType := args[1]
+	conclusion := strings.Join(args[2:], " ")
+
+	// Validate rule type
+	if ruleType != "constraint" && ruleType != "subsumption" && ruleType != "disjoint" {
+		return AppendChatMsg{Msg: errorStyle.Render("Invalid rule type. Must be: constraint, subsumption, or disjoint")}
+	}
+
+	// Create validator and add rule
+	validator, err := hasher.NewLogicalValidator()
+	if err != nil {
+		return AppendChatMsg{Msg: errorStyle.Render(fmt.Sprintf("Error creating validator: %v", err))}
+	}
+
+	rule, err := hasher.NewLogicalRule(ruleType, []string{}, conclusion, "Added via CLI")
+	if err != nil {
+		return AppendChatMsg{Msg: errorStyle.Render(fmt.Sprintf("Error creating rule: %v", err))}
+	}
+
+	if err := validator.KnowledgeBase.AddRule(domain, rule); err != nil {
+		return AppendChatMsg{Msg: errorStyle.Render(fmt.Sprintf("Error adding rule: %v", err))}
+	}
+
+	successMsg := progressStyle.Render(fmt.Sprintf("Rule added to domain '%s':\n", domain))
+	successMsg += fmt.Sprintf("  Type: %s\n  Conclusion: %s\n", ruleType, conclusion)
+	return AppendChatMsg{Msg: successMsg}
+}
+
+// handleRuleDelete deletes a logical rule
+func (m Model) handleRuleDelete(args []string) tea.Msg {
+	if len(args) < 2 {
+		return AppendChatMsg{Msg: errorStyle.Render("Usage: /rule delete <domain> <index>")}
+	}
+
+	domain := args[0]
+	var index int
+	if _, err := fmt.Sscanf(args[1], "%d", &index); err != nil {
+		return AppendChatMsg{Msg: errorStyle.Render("Invalid index. Must be a number.")}
+	}
+
+	// Create validator and delete rule
+	validator, err := hasher.NewLogicalValidator()
+	if err != nil {
+		return AppendChatMsg{Msg: errorStyle.Render(fmt.Sprintf("Error creating validator: %v", err))}
+	}
+
+	if err := validator.KnowledgeBase.RemoveRule(domain, index); err != nil {
+		return AppendChatMsg{Msg: errorStyle.Render(fmt.Sprintf("Error deleting rule: %v", err))}
+	}
+
+	return AppendChatMsg{Msg: progressStyle.Render(fmt.Sprintf("Rule %d deleted from domain '%s'", index, domain))}
+}
+
+// handleRuleList lists logical rules
+func (m Model) handleRuleList(args []string) tea.Msg {
+	validator, err := hasher.NewLogicalValidator()
+	if err != nil {
+		return AppendChatMsg{Msg: errorStyle.Render(fmt.Sprintf("Error creating validator: %v", err))}
+	}
+
+	var output strings.Builder
+	output.WriteString(progressStyle.Render("Logical Validation Rules\n"))
+	output.WriteString("═════════════════════════\n\n")
+
+	if len(args) > 0 {
+		// List rules for specific domain
+		domain := args[0]
+		rules, err := validator.KnowledgeBase.GetRules(domain)
+		if err != nil {
+			return AppendChatMsg{Msg: errorStyle.Render(fmt.Sprintf("Error getting rules: %v", err))}
+		}
+
+		if len(rules) == 0 {
+			output.WriteString(fmt.Sprintf("No rules found for domain '%s'\n", domain))
+		} else {
+			output.WriteString(fmt.Sprintf("Domain: %s (%d rules)\n\n", domain, len(rules)))
+			for i, rule := range rules {
+				output.WriteString(fmt.Sprintf("[%d] %s\n", i, rule.String()))
+				if rule.Description != "" {
+					output.WriteString(fmt.Sprintf("    %s\n", rule.Description))
+				}
+			}
+		}
+	} else {
+		// List all domains and rules
+		for domain, rules := range validator.KnowledgeBase.Domains {
+			output.WriteString(fmt.Sprintf("Domain: %s (%d rules)\n", domain, len(rules)))
+			for i, rule := range rules {
+				output.WriteString(fmt.Sprintf("  [%d] %s\n", i, rule.String()))
+			}
+			output.WriteString("\n")
+		}
+	}
+
+	return AppendChatMsg{Msg: output.String()}
+}
+
+// DiscoveryResultMsg contains the result of device discovery
+type DiscoveryResultMsg struct {
+	LogChat  CombinedLogChatMsg
+	DeviceIP string
+	DevType  string
+}
+
 // runDiscovery runs device discovery
 func (m Model) runDiscovery() tea.Msg {
-	m.CurrentView = ProgressView
-	m.ProgressText = "Discovering ASIC devices..."
-	m.ProgressStatus = "Scanning network..."
+	return func() tea.Msg {
+		if m.Deployer == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Error: Deployer not initialized", time.Now().Format("15:04:05")),
+				Chat: errorStyle.Render("Error: Deployer not initialized"),
+			}
+		}
 
-	go func() {
-		time.Sleep(1 * time.Second)
-		// TODO: Implement discovery logic
-		m.ProgressStatus = "Scan complete"
-		time.Sleep(1 * time.Second)
-		m.CurrentView = MainMenuView
+		// Capture logs
+		var logBuffer bytes.Buffer
+		m.Deployer.SetLogWriter(&logBuffer)
+
+		result, err := m.Deployer.RunDiscovery()
+		if err != nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Discovery failed: %v", time.Now().Format("15:04:05"), err),
+				Chat: errorStyle.Render(fmt.Sprintf("Discovery failed: %v", err)),
+			}
+		}
+
+		// Get discovered devices
+		devices := m.Deployer.GetDevices()
+		var chatMsg string
+		var selectedIP, selectedType string
+
+		if len(devices) > 0 {
+			chatMsg = progressStyle.Render(fmt.Sprintf("Found %d ASIC device(s):\n", len(devices)))
+			for i, dev := range devices {
+				chatMsg += fmt.Sprintf("\n[%d] %s (%s)", i+1, dev.IPAddress, dev.DeviceType)
+				if dev.Accessible {
+					chatMsg += " - Accessible"
+				}
+			}
+			// Auto-select first device
+			m.Deployer.SelectDevice(0)
+			selectedIP = devices[0].IPAddress
+			selectedType = devices[0].DeviceType
+			chatMsg += fmt.Sprintf("\n\n✓ Auto-selected device: %s", selectedIP)
+			chatMsg += "\n\n" + infoStyle.Render("Next: Run 'Probe' to gather device information")
+		} else {
+			chatMsg = infoStyle.Render("No ASIC devices found on network.\n\nCheck that ASIC devices are powered on and connected to the network.")
+		}
+
+		return DiscoveryResultMsg{
+			LogChat: CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Discovery complete (%.2fs)\n%s", time.Now().Format("15:04:05"), result.Duration, logBuffer.String()),
+				Chat: chatMsg,
+			},
+			DeviceIP: selectedIP,
+			DevType:  selectedType,
+		}
 	}()
-
-	return ProgressUpdateMsg{text: "Discovering ASIC devices...", status: "Scanning network..."}
 }
 
 // runProbe runs device probe
 func (m Model) runProbe() tea.Msg {
-	m.CurrentView = ProgressView
-	m.ProgressText = "Probing ASIC device..."
-	m.ProgressStatus = "Running device diagnostics..."
+	return func() tea.Msg {
+		if m.Deployer == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Error: Deployer not initialized", time.Now().Format("15:04:05")),
+				Chat: errorStyle.Render("Error: Deployer not initialized"),
+			}
+		}
 
-	go func() {
-		time.Sleep(2 * time.Second)
-		// TODO: Implement probe logic
-		m.ProgressStatus = "Probe complete"
-		time.Sleep(1 * time.Second)
-		m.CurrentView = MainMenuView
+		device := m.Deployer.GetActiveDevice()
+		if device == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] No device selected - run Discovery first", time.Now().Format("15:04:05")),
+				Chat: infoStyle.Render("No device selected. Run Discovery first to find ASIC devices."),
+			}
+		}
+
+		var logBuffer bytes.Buffer
+		m.Deployer.SetLogWriter(&logBuffer)
+
+		result, err := m.Deployer.RunProbe()
+		if err != nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Probe failed: %v", time.Now().Format("15:04:05"), err),
+				Chat: errorStyle.Render(fmt.Sprintf("Probe failed: %v", err)),
+			}
+		}
+
+		chatOutput := progressStyle.Render("Probe Results:\n") + result.Output
+		chatOutput += "\n\n" + infoStyle.Render("Next: Run 'Protocol' to detect communication protocol")
+
+		return CombinedLogChatMsg{
+			Log:  fmt.Sprintf("[%s] Probe complete (%.2fs)\n%s", time.Now().Format("15:04:05"), result.Duration, logBuffer.String()),
+			Chat: chatOutput,
+		}
 	}()
-
-	return ProgressUpdateMsg{text: "Probing ASIC device...", status: "Running diagnostics..."}
 }
 
 // runProtocol runs protocol detection
 func (m Model) runProtocol() tea.Msg {
-	m.CurrentView = ProgressView
-	m.ProgressText = "Detecting protocol..."
-	m.ProgressStatus = "Testing communication protocols..."
+	return func() tea.Msg {
+		if m.Deployer == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Error: Deployer not initialized", time.Now().Format("15:04:05")),
+				Chat: errorStyle.Render("Error: Deployer not initialized"),
+			}
+		}
 
-	go func() {
-		time.Sleep(2 * time.Second)
-		// TODO: Implement protocol detection
-		m.ProgressStatus = "Protocol detected"
-		time.Sleep(1 * time.Second)
-		m.CurrentView = MainMenuView
+		device := m.Deployer.GetActiveDevice()
+		if device == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] No device selected - run Discovery first", time.Now().Format("15:04:05")),
+				Chat: infoStyle.Render("No device selected. Run Discovery first to find ASIC devices."),
+			}
+		}
+
+		var logBuffer bytes.Buffer
+		m.Deployer.SetLogWriter(&logBuffer)
+
+		result, err := m.Deployer.RunProtocol()
+		if err != nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Protocol detection failed: %v", time.Now().Format("15:04:05"), err),
+				Chat: errorStyle.Render(fmt.Sprintf("Protocol detection failed: %v", err)),
+			}
+		}
+
+		chatOutput := progressStyle.Render("Protocol Detection Results:\n") + result.Output
+		chatOutput += "\n\n" + infoStyle.Render("Next: Run 'Provision' to deploy hasher-server to the device")
+
+		return CombinedLogChatMsg{
+			Log:  fmt.Sprintf("[%s] Protocol detection complete (%.2fs)\n%s", time.Now().Format("15:04:05"), result.Duration, logBuffer.String()),
+			Chat: chatOutput,
+		}
 	}()
-
-	return ProgressUpdateMsg{text: "Detecting protocol...", status: "Testing communication..."}
 }
 
 // runProvision runs device provisioning
 func (m Model) runProvision() tea.Msg {
-	m.CurrentView = ProgressView
-	m.ProgressText = "Provisioning device..."
-	m.ProgressStatus = "Deploying hasher-server..."
+	return func() tea.Msg {
+		if m.Deployer == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Error: Deployer not initialized", time.Now().Format("15:04:05")),
+				Chat: errorStyle.Render("Error: Deployer not initialized"),
+			}
+		}
 
-	go func() {
-		time.Sleep(3 * time.Second)
-		// TODO: Implement provisioning logic
-		m.ProgressStatus = "Provisioning complete"
-		time.Sleep(1 * time.Second)
-		m.CurrentView = MainMenuView
+		device := m.Deployer.GetActiveDevice()
+		if device == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] No device selected - run Discovery first", time.Now().Format("15:04:05")),
+				Chat: infoStyle.Render("No device selected. Run Discovery first to find ASIC devices."),
+			}
+		}
+
+		var logBuffer bytes.Buffer
+		m.Deployer.SetLogWriter(&logBuffer)
+
+		result, err := m.Deployer.RunProvision()
+		if err != nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Provisioning failed: %v", time.Now().Format("15:04:05"), err),
+				Chat: errorStyle.Render(fmt.Sprintf("Provisioning failed: %v", err)),
+			}
+		}
+
+		chatOutput := progressStyle.Render("Provisioning Results:\n") + result.Output
+		chatOutput += "\n\n" + infoStyle.Render("Next: Run 'Test' to verify ASIC communication, or 'Chat' to start inference")
+
+		return CombinedLogChatMsg{
+			Log:  fmt.Sprintf("[%s] Provisioning complete (%.2fs)\n%s", time.Now().Format("15:04:05"), result.Duration, logBuffer.String()),
+			Chat: chatOutput,
+		}
 	}()
-
-	return ProgressUpdateMsg{text: "Provisioning device...", status: "Deploying hasher-server..."}
 }
 
 // runTroubleshoot runs troubleshooting
 func (m Model) runTroubleshoot() tea.Msg {
-	m.CurrentView = ProgressView
-	m.ProgressText = "Troubleshooting..."
-	m.ProgressStatus = "Running diagnostic tests..."
+	return func() tea.Msg {
+		if m.Deployer == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Error: Deployer not initialized", time.Now().Format("15:04:05")),
+				Chat: errorStyle.Render("Error: Deployer not initialized"),
+			}
+		}
 
-	go func() {
-		time.Sleep(2 * time.Second)
-		// TODO: Implement troubleshooting
-		m.ProgressStatus = "Diagnostics complete"
-		time.Sleep(1 * time.Second)
-		m.CurrentView = MainMenuView
+		device := m.Deployer.GetActiveDevice()
+		if device == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] No device selected - run Discovery first", time.Now().Format("15:04:05")),
+				Chat: infoStyle.Render("No device selected. Run Discovery first to find ASIC devices."),
+			}
+		}
+
+		var logBuffer bytes.Buffer
+		m.Deployer.SetLogWriter(&logBuffer)
+
+		result, err := m.Deployer.RunTroubleshoot()
+		if err != nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Troubleshooting failed: %v", time.Now().Format("15:04:05"), err),
+				Chat: errorStyle.Render(fmt.Sprintf("Troubleshooting failed: %v", err)),
+			}
+		}
+
+		chatOutput := progressStyle.Render("Troubleshooting Report:\n") + result.Output
+		chatOutput += "\n\n" + infoStyle.Render("Review the report above. Run 'Provision' if hasher-server is not deployed.")
+
+		return CombinedLogChatMsg{
+			Log:  fmt.Sprintf("[%s] Troubleshooting complete (%.2fs)\n%s", time.Now().Format("15:04:05"), result.Duration, logBuffer.String()),
+			Chat: chatOutput,
+		}
 	}()
-
-	return ProgressUpdateMsg{text: "Troubleshooting...", status: "Running diagnostics..."}
 }
 
 // runConfigure runs configuration
 func (m Model) runConfigure() tea.Msg {
-	m.CurrentView = ProgressView
-	m.ProgressText = "Configuring service..."
-	m.ProgressStatus = "Setting up hasher service..."
+	return func() tea.Msg {
+		if m.Deployer == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Error: Deployer not initialized", time.Now().Format("15:04:05")),
+				Chat: errorStyle.Render("Error: Deployer not initialized"),
+			}
+		}
 
-	go func() {
-		time.Sleep(2 * time.Second)
-		// TODO: Implement configuration
-		m.ProgressStatus = "Configuration complete"
-		time.Sleep(1 * time.Second)
-		m.CurrentView = MainMenuView
+		// Show current configuration
+		device := m.Deployer.GetActiveDevice()
+		var output strings.Builder
+		output.WriteString(progressStyle.Render("Current Configuration:\n"))
+		output.WriteString(strings.Repeat("-", 40) + "\n\n")
+
+		if device != nil {
+			output.WriteString(fmt.Sprintf("  ✓ Active Device: %s\n", device.IPAddress))
+			output.WriteString(fmt.Sprintf("    Device Type:   %s\n", device.DeviceType))
+			output.WriteString(fmt.Sprintf("    Protocol:      %s\n", device.Protocol.String()))
+			output.WriteString(fmt.Sprintf("    Accessible:    %v\n", device.Accessible))
+			if len(device.OpenPorts) > 0 {
+				output.WriteString(fmt.Sprintf("    Open Ports:    %v\n", device.OpenPorts))
+			}
+		} else {
+			output.WriteString("  ✗ No device selected\n")
+			output.WriteString("\n" + infoStyle.Render("Run 'Discovery' first to find ASIC devices on the network."))
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Configuration displayed (no device)", time.Now().Format("15:04:05")),
+				Chat: output.String(),
+			}
+		}
+
+		output.WriteString("\n" + infoStyle.Render("Workflow Steps:") + "\n")
+		output.WriteString("  1. Discovery  - Find ASIC devices on network\n")
+		output.WriteString("  2. Probe      - Gather device system information\n")
+		output.WriteString("  3. Protocol   - Detect communication protocol\n")
+		output.WriteString("  4. Provision  - Deploy hasher-server binary\n")
+		output.WriteString("  5. Test       - Verify ASIC communication\n")
+		output.WriteString("  6. Chat       - Start inference with ASIC\n")
+
+		return CombinedLogChatMsg{
+			Log:  fmt.Sprintf("[%s] Configuration displayed", time.Now().Format("15:04:05")),
+			Chat: output.String(),
+		}
 	}()
+}
 
-	return ProgressUpdateMsg{text: "Configuring service...", status: "Setting up service..."}
+// runRulesManager shows the logical rules management interface
+func (m Model) runRulesManager() tea.Msg {
+	return func() tea.Msg {
+		var output strings.Builder
+		output.WriteString(progressStyle.Render("Logical Validation Rules Manager\n"))
+		output.WriteString("══════════════════════════════════════\n\n")
+
+		// Get orchestrator for rule management
+		orch := server.GetOrchestrator()
+		if orch == nil {
+			// Create a temporary validator to show default rules
+			validator, err := hasher.NewLogicalValidator()
+			if err != nil {
+				return CombinedLogChatMsg{
+					Log:  fmt.Sprintf("[%s] Error creating validator: %v", time.Now().Format("15:04:05"), err),
+					Chat: errorStyle.Render(fmt.Sprintf("Error: %v", err)),
+				}
+			}
+
+			output.WriteString(infoStyle.Render("Available Domains:\n"))
+			for domain, rules := range validator.KnowledgeBase.Domains {
+				output.WriteString(fmt.Sprintf("\n  %s (%d rules)\n", domain, len(rules)))
+				for i, rule := range rules {
+					output.WriteString(fmt.Sprintf("    [%d] %s\n", i, rule.String()))
+					if rule.Description != "" {
+						output.WriteString(fmt.Sprintf("        %s\n", rule.Description))
+					}
+				}
+			}
+
+			output.WriteString("\n" + infoStyle.Render("Rule Management Commands:\n"))
+			output.WriteString("  In Chat view, use these commands:\n")
+			output.WriteString("  /rule add <domain> <type> <conclusion>\n")
+			output.WriteString("    Types: constraint, subsumption, disjoint\n")
+			output.WriteString("  /rule delete <domain> <index>\n")
+			output.WriteString("  /rule list [domain]\n")
+			output.WriteString("\n  Example:\n")
+			output.WriteString("    /rule add temperature constraint \"Valid range: -40 to 85\"\n")
+
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Rules manager displayed", time.Now().Format("15:04:05")),
+				Chat: output.String(),
+			}
+		}
+
+		// Show rules from orchestrator's validator
+		output.WriteString(infoStyle.Render("Available Domains:\n"))
+		// Note: Would access orchestrator's validator here
+		output.WriteString("  (Connect to API server to manage rules)\n")
+
+		output.WriteString("\n" + infoStyle.Render("API Endpoints:\n"))
+		output.WriteString("  POST /api/v1/rules      - Add a new rule\n")
+		output.WriteString("  DELETE /api/v1/rules    - Delete a rule\n")
+		output.WriteString("  GET /api/v1/rules/list  - List all rules\n")
+		output.WriteString("  GET /api/v1/domains     - List all domains\n")
+
+		output.WriteString("\n" + infoStyle.Render("In Chat view, use these commands:\n"))
+		output.WriteString("  /rule add <domain> <type> <conclusion>\n")
+		output.WriteString("  /rule delete <domain> <index>\n")
+		output.WriteString("  /rule list [domain]\n")
+
+		return CombinedLogChatMsg{
+			Log:  fmt.Sprintf("[%s] Rules manager displayed", time.Now().Format("15:04:05")),
+			Chat: output.String(),
+		}
+	}()
 }
 
 // runTest runs service tests
 func (m Model) runTest() tea.Msg {
-	m.CurrentView = ProgressView
-	m.ProgressText = "Testing service..."
-	m.ProgressStatus = "Running validation tests..."
+	return func() tea.Msg {
+		if m.Deployer == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Error: Deployer not initialized", time.Now().Format("15:04:05")),
+				Chat: errorStyle.Render("Error: Deployer not initialized"),
+			}
+		}
 
-	go func() {
-		time.Sleep(1 * time.Second)
-		// TODO: Implement test logic
-		m.ProgressStatus = "Tests passed"
-		time.Sleep(1 * time.Second)
-		m.CurrentView = MainMenuView
+		device := m.Deployer.GetActiveDevice()
+		if device == nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] No device selected - run Discovery first", time.Now().Format("15:04:05")),
+				Chat: infoStyle.Render("No device selected. Run Discovery first to find ASIC devices."),
+			}
+		}
+
+		var logBuffer bytes.Buffer
+		m.Deployer.SetLogWriter(&logBuffer)
+
+		result, err := m.Deployer.RunTest()
+		if err != nil {
+			return CombinedLogChatMsg{
+				Log:  fmt.Sprintf("[%s] Test failed: %v", time.Now().Format("15:04:05"), err),
+				Chat: errorStyle.Render(fmt.Sprintf("Test failed: %v", err)),
+			}
+		}
+
+		chatOutput := progressStyle.Render("Communication Test Results:\n") + result.Output
+		chatOutput += "\n\n" + infoStyle.Render("Tests complete! Run 'Chat' to start inference with the ASIC device.")
+
+		return CombinedLogChatMsg{
+			Log:  fmt.Sprintf("[%s] Test complete (%.2fs)\n%s", time.Now().Format("15:04:05"), result.Duration, logBuffer.String()),
+			Chat: chatOutput,
+		}
 	}()
-
-	return ProgressUpdateMsg{text: "Testing service...", status: "Running validation..."}
 }
 
 // Messages
@@ -735,4 +1273,10 @@ type CombinedLogChatMsg struct {
 type ProgressUpdateMsg struct {
 	text   string
 	status string
+}
+
+// DeviceSelectedMsg is sent when an ASIC device is discovered and selected
+type DeviceSelectedMsg struct {
+	IP         string
+	DeviceType string
 }

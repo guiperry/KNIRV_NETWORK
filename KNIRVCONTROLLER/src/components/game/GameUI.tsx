@@ -1,29 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useKnirvana } from './stores/useKnirvana';
+import React, { useState, useEffect } from 'react';
+import { useKnirvana, RewardAnchor } from './stores/useKnirvana';
 import { useAudio } from './stores/useAudio';
 import { SabotageType } from '../../engine/Sabotage';
 import VerifierOverlay from './VerifierOverlay';
 import { CognitiveShellInterface } from '../CognitiveShellInterface';
 import { ChatBrainProvider } from '../../contexts/ChatBrainContext';
 import { initializeTournamentController } from '../../engine/TournamentControllerIntegration';
-
-interface RewardAnchor {
-  id: number;
-  x: number;
-  y: number;
-  weights: {
-    w_c: number;
-    w_l: number;
-    w_s: number;
-  };
-  constraints: string;
-  metadata?: {
-    logs: string[];
-    traces: string[];
-    severity: string;
-    description: string;
-  };
-}
 
 export default function GameUI() {
   const {
@@ -47,52 +29,26 @@ export default function GameUI() {
     agents
   } = useKnirvana();
   const errorNodes = useKnirvana(state => state.errorNodes);
+  const isAnalyzing = useKnirvana(state => state.isAnalyzing);
+  const setAnalyzing = useKnirvana(state => state.setAnalyzing);
+  const isSculpting = useKnirvana(state => state.isSculpting);
+  const setSculpting = useKnirvana(state => state.setSculpting);
+  const rewardAnchors = useKnirvana(state => state.rewardAnchors);
+  const selectedRewardAnchor = useKnirvana(state => state.selectedRewardAnchor);
+  const updateRewardAnchor = useKnirvana(state => state.updateRewardAnchor);
 
   const { isMuted, toggleMute } = useAudio();
   const [isEpochRunning, setIsEpochRunning] = useState(false);
-  const [isAnalyzed, setIsAnalyzed] = useState(false);
-  const [showHeatmap, setShowHeatmap] = useState(false);
   const [showVerifier, setShowVerifier] = useState(false);
   const [showCognitiveShell, setShowCognitiveShell] = useState(false);
-  const [rewardAnchors, setRewardAnchors] = useState<RewardAnchor[]>([]);
   const [preloadedPrompt, setPreloadedPrompt] = useState<string>('');
   const [sabotageType, setSabotageType] = useState<SabotageType>(SabotageType.NOISE_INJECTION);
   const [sabotageMagnitude, setSabotageMagnitude] = useState<number>(1);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
 
   // Initialize Tournament Controller on component mount
   useEffect(() => {
     initializeTournamentController();
-  }, []);
-
-  // Initialize canvas for drawing
-  useEffect(() => {
-    if (canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Draw a simple grid or visualization
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw some visualization elements
-        ctx.strokeStyle = 'rgba(100, 255, 255, 0.3)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < canvas.width; i += 20) {
-          ctx.beginPath();
-          ctx.moveTo(i, 0);
-          ctx.lineTo(i, canvas.height);
-          ctx.stroke();
-        }
-        for (let i = 0; i < canvas.height; i += 20) {
-          ctx.beginPath();
-          ctx.moveTo(0, i);
-          ctx.lineTo(canvas.width, i);
-          ctx.stroke();
-        }
-      }
-    }
   }, []);
 
   if (gamePhase === "menu") {
@@ -123,15 +79,18 @@ export default function GameUI() {
   };
 
   const handleAnalyze = () => {
-    setIsAnalyzed(true);
-    setShowHeatmap(true);
-    // Generate heatmap overlay with red fabric
-    console.log('Generating heatmap overlay...');
+    // Toggle analyze mode - highlights error nodes in the 3D scene with red rings
+    const newAnalyzing = !isAnalyzing;
+    setAnalyzing(newAnalyzing);
+    console.log(`Analyze mode: ${newAnalyzing ? 'ON' : 'OFF'}`);
   };
 
   const handleSculpt = () => {
-    if (!isAnalyzed) return;
-    console.log('Sculpt mode enabled - click on grid to place reward anchors');
+    if (!isAnalyzing) return;
+    // Toggle sculpt mode
+    const newSculpting = !isSculpting;
+    setSculpting(newSculpting);
+    console.log(`Sculpt mode: ${newSculpting ? 'ON - click on arena floor to place reward anchors' : 'OFF'}`);
   };
 
   const handleCreateAgent = () => {
@@ -169,42 +128,6 @@ export default function GameUI() {
       return;
     }
     hardenAgent(selectedAgent);
-  };
-
-  const handleGridClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!isAnalyzed) return;
-    
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
-    
-    const errorNodeData = selectedErrorNode ? errorNodes.find(n => n.id === selectedErrorNode) : null;
-    const metadata = errorNodeData ? {
-      logs: ['Error: Memory allocation failed', 'Stack trace at line 42'],
-      traces: ['Component: DataProcessor', 'Method: processBatch'],
-      severity: 'high',
-      description: 'Memory leak detected in processing pipeline'
-    } : null;
-    
-    const newAnchor: RewardAnchor = {
-      id: Date.now(),
-      x,
-      y,
-      weights: { w_c: 0.6, w_l: 0.3, w_s: 0.1 },
-      constraints: '// Define constraints here',
-      ...(metadata && { metadata })
-    };
-    
-    setRewardAnchors([...rewardAnchors, newAnchor]);
-    
-    // Auto-load metadata into Cognitive Shell with preloaded prompt
-    setTimeout(() => {
-      const prompt = `Based on the following error node metadata, please generate a comprehensive test case for the reward anchor:\n\nError Metadata:\n${JSON.stringify(metadata, null, 2)}\n\nPlease provide:\n1. Specific test conditions\n2. Expected outcomes\n3. Edge cases to cover\n4. Performance constraints\n\nThis test case will be used to create reward shaping constraints for agent training.`;
-      setPreloadedPrompt(prompt);
-      
-      // Trigger cognitive shell with preloaded prompt
-      setShowCognitiveShell(true);
-    }, 100);
   };
 
   const handlePauseGame = () => {
@@ -424,57 +347,50 @@ export default function GameUI() {
         </div>
       )}
 
-      {/* Canvas for visualization */}
-      <div
-        className="absolute inset-0 w-full h-full pointer-events-auto"
-        onClick={handleGridClick}
-      >
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full pointer-events-none opacity-30"
-          width={800}
-          height={600}
-        />
-      </div>
-
-      {/* Heatmap Overlay */}
-      {showHeatmap && (
-        <div className="absolute inset-0 bg-red-500/10 pointer-events-none" />
+      {/* Sculpt mode indicator */}
+      {isSculpting && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+          <div className="bg-yellow-500/20 border-2 border-yellow-500 rounded-lg px-6 py-3 text-yellow-300 text-center">
+            Click on the arena floor to place a reward anchor
+          </div>
+        </div>
       )}
-
-      {/* Reward Anchors */}
-      {rewardAnchors.map(anchor => (
-        <div
-          key={anchor.id}
-          className="absolute w-4 h-4 bg-yellow-400/70 rounded-full pointer-events-auto cursor-pointer transform -translate-x-1/2 -translate-y-1/2"
-          style={{ left: `${anchor.x}%`, top: `${anchor.y}%` }}
-        />
-      ))}
 
       {/* Bottom Controls */}
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-50">
         <button
           onClick={handleAnalyze}
-          className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg pointer-events-auto transition-colors"
+          className={`px-4 py-2 rounded-lg pointer-events-auto transition-colors ${
+            isAnalyzing
+              ? 'bg-red-500 ring-2 ring-red-300 text-white'
+              : 'bg-red-600 hover:bg-red-500 text-white'
+          }`}
         >
-          Analyze
+          {isAnalyzing ? 'Analyzing...' : 'Analyze'}
         </button>
         <button
           onClick={handleSculpt}
-          disabled={!isAnalyzed}
+          disabled={!isAnalyzing}
           className={`px-4 py-2 rounded-lg pointer-events-auto transition-colors ${
-            isAnalyzed
-              ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
-              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+            isSculpting
+              ? 'bg-yellow-500 ring-2 ring-yellow-300 text-white'
+              : isAnalyzing
+                ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
+                : 'bg-gray-600 text-gray-400 cursor-not-allowed'
           }`}
         >
-          Sculpt
+          {isSculpting ? 'Sculpting...' : 'Sculpt'}
         </button>
         <button
           onClick={() => setShowVerifier(true)}
-          className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg pointer-events-auto transition-colors"
+          disabled={!selectedRewardAnchor}
+          className={`px-4 py-2 rounded-lg pointer-events-auto transition-colors ${
+            selectedRewardAnchor
+              ? 'bg-green-600 hover:bg-green-500 text-white'
+              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
+          }`}
         >
-          Verify
+          Verify{selectedRewardAnchor ? '' : ' (Select Anchor)'}
         </button>
         <button
           onClick={() => setShowCognitiveShell(true)}
@@ -506,11 +422,12 @@ export default function GameUI() {
       )}
 
       {/* Verifier Overlay */}
-      {showVerifier && (
+      {showVerifier && selectedRewardAnchor && (
         <VerifierOverlay
           onClose={() => setShowVerifier(false)}
           rewardAnchors={rewardAnchors}
-          setRewardAnchors={setRewardAnchors}
+          updateRewardAnchor={updateRewardAnchor}
+          initialAnchor={rewardAnchors.find(a => a.id === selectedRewardAnchor) || null}
         />
       )}
     </div>

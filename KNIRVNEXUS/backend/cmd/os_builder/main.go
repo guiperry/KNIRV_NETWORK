@@ -19,9 +19,9 @@ import (
 	"time"
 )
 
-//go:embed all:packer-base-kali/*
-//go:embed all:packer-kata-guest/*
-//go:embed all:packer-aws-kali/*
+
+//go:embed all:packer-kali-kata/*
+//go:embed all:packer-kali-aws/*
 // Added for Kali Docker image build
 //go:embed all:packer-kali-docker/*
 //go:embed inventory.ini
@@ -39,7 +39,7 @@ const (
 	packerKaliDockerDir  = "packer-kali-docker" // New constant
 	outputBaseKaliDir    = "output-kali-base-box"
 	baseKaliOVAName      = "kali-base-box.ova"
-	packerAWSKaliDir     = "packer-aws-kali"
+	packerAWSKaliDir     = "packer-kali-aws"
 	terraformDeployDir   = "terraform-deploy"
 	outputKataGuestDir   = "output-kata-guest"
 	customKataKernelName = "kali-clean-tee"
@@ -135,7 +135,7 @@ func getContainerDeployerBinaryPath() (string, error) {
 	}
 	// Path to knirv-nexus binary in container_deployer's golang-app-source
 	binaryPath := filepath.Join(usr.HomeDir, ".local", "share", appName, "container_deployer", "resources", "golang-app-source", "knirv-nexus")
-	
+
 	// Verify the binary exists
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
 		return "", fmt.Errorf("knirv-nexus binary not found at expected location: %s. Please ensure 'make binary' has been run.", binaryPath)
@@ -186,7 +186,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to extract embedded files: %v", err)
 	}
-
 
 	fmt.Println("\nChecking system prerequisites...")
 	if err := checkPrerequisites(); err != nil {
@@ -637,7 +636,7 @@ func runBuildKaliDocker(resourcesDir, artifactDir string) {
 	// Export the Docker image to a tar archive and save it to the artifacts directory
 	fmt.Println("Exporting Kali Docker image to artifacts directory...")
 	imageTarPath := filepath.Join(artifactDir, "knirvnexus-kali-base.tar")
-	
+
 	// Ensure the artifacts directory exists
 	if err := os.MkdirAll(artifactDir, 0755); err != nil {
 		log.Fatalf("Failed to create artifact directory %s: %v", artifactDir, err)
@@ -650,7 +649,6 @@ func runBuildKaliDocker(resourcesDir, artifactDir string) {
 	}
 	fmt.Printf("✓ Kali Docker image saved to %s\n", imageTarPath)
 }
-
 
 // --- Command Execution Helper with Timeout & Signal Handling ---
 func runCmd(name string, args []string, workingDir string) error {

@@ -128,7 +128,7 @@ Implemented the Bitmain ASIC protocol, CRC-16 validation, and 4-byte alignment; 
 - Sends data via bulk transfer ✅
 
 **Files:**
-- `cmd/asic-monitor/main.go` - USB communication tool
+- `cmd/monitor/main.go` - USB communication tool
 - `scripts/deploy-monitor-usb.sh` - Automated deployment
 
 ---
@@ -165,7 +165,7 @@ Implemented the Bitmain ASIC protocol, CRC-16 validation, and 4-byte alignment; 
 **Verification Results:**
 
 - TxConfig/RxStatus packets transmit successfully from `asic-monitor` (writes succeed) and, after the protocol corrections, the ASIC now replies with RxStatus packets (reads succeed)
-- Static analysis of `cgminer` 4.7.0 (driver-bitmain.c/h) correctly identified the mismatch: TxConfig uses a single-byte `uint8_t` for voltage and has a different control/reserved layout. The fix was applied in `cmd/asic-monitor/main.go` and validated by observing RxStatus responses.
+- Static analysis of `cgminer` 4.7.0 (driver-bitmain.c/h) correctly identified the mismatch: TxConfig uses a single-byte `uint8_t` for voltage and has a different control/reserved layout. The fix was applied in `cmd/monitor/main.go` and validated by observing RxStatus responses.
 - RxStatus CRCs and basic field layouts match expected values on received samples; full parser implementation remains next.
 
 - TxConfig: 28 bytes, CRC 0xF2E4 (bytes: E4 F2) ✅
@@ -174,7 +174,7 @@ Implemented the Bitmain ASIC protocol, CRC-16 validation, and 4-byte alignment; 
 - CRC calculations verified against manual computation
 
 **Files Modified:**
-- `cmd/asic-monitor/main.go` - Updated `createTxConfigPacket()` and `createRxStatusPacket()`
+- `cmd/monitor/main.go` - Updated `createTxConfigPacket()` and `createRxStatusPacket()`
 
 **Current Status:**
 - Packets transmit successfully to device
@@ -396,7 +396,7 @@ scripts/deploy-monitor-usb.sh      - USB deployment script
 
 #### Modified Files
 ```
-cmd/asic-monitor/main.go           - USB communication (CRC updated)
+cmd/monitor/main.go           - USB communication (CRC updated)
 scripts/build-mips-cgo.sh          - Static linking support, toolchain path
 .gitignore                         - Changed to toolchain/
 ```
@@ -414,7 +414,7 @@ KNIRVHASHER/
 │   ├── BITMAIN-PROTOCOL.md       # NEW - Complete protocol reference
 │   ├── TOOLCHAIN-SETUP.md        # NEW
 │   └── SESSION-PROGRESS.md       # NEW - This file
-├── cmd/asic-monitor/
+├── cmd/monitor/
 │   └── main.go                   # CRC-16 updated
 └── bin/
     └── asic-monitor-mips         # 3.3MB static binary
@@ -447,13 +447,13 @@ KNIRVHASHER/
 ### Build and Deploy
 ```bash
 # Build static binary
-./scripts/build-mips-cgo.sh bin/asic-monitor-mips cmd/asic-monitor/main.go static
+./scripts/build-mips-cgo.sh bin/monitor-mips cmd/monitor/main.go static
 
 # Deploy and run
 ./scripts/deploy-monitor-usb.sh
 
 # View output
-cat logs/asic-monitor-usb_*.log
+cat logs/monitor-usb_*.log
 ```
 
 ### Check Device Status
@@ -679,7 +679,7 @@ All critical communication infrastructure has been validated:
 **Task:** Implement complete RxStatus response parser.
 
 **Files to modify:**
-- `cmd/asic-monitor/main.go`
+- `cmd/monitor/main.go`
   - `parseRxStatus()` → handle full 648-byte response
   - Display chain count, temps, fans, ASIC status
 
@@ -696,7 +696,7 @@ All critical communication infrastructure has been validated:
 **Task:** Implement basic mining work submission.
 
 **Files to modify:**
-- `cmd/asic-monitor/main.go`
+- `cmd/monitor/main.go`
   - `createTxTaskPacket()` → properly formatted work
   - `parseRxNonce()` → handle nonce responses
   - Simple mining loop

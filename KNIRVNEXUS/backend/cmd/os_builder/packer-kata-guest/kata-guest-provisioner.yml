@@ -1,4 +1,4 @@
-# packer-kata-guest/kata-guest-provisioner.yml
+# packer-kali-kata/kata-guest-provisioner.yml
 # Converted to pure RAW commands to bypass Ansible module overhead and eliminate hangs
 ---
 - name: Build Custom Kata Kernel and Rootfs

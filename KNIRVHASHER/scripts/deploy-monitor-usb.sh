@@ -21,16 +21,16 @@ echo "=========================================="
 echo ""
 
 # Check if binary exists
-if [ ! -f "$PROJECT_ROOT/bin/asic-monitor-mips" ]; then
+if [ ! -f "$PROJECT_ROOT/bin/monitor-mips" ]; then
     echo "❌ Binary not found. Building..."
     cd "$PROJECT_ROOT"
-    ./scripts/build-mips-cgo.sh bin/asic-monitor-mips cmd/asic-monitor/main.go
+    ./scripts/build-mips-cgo.sh bin/monitor-mips cmd/monitor/main.go
     echo ""
 fi
 
 # Clean up old files on Antminer
 echo "🧹 Cleaning up old files..."
-sshpass -p "$ANTMINER_PASSWORD" ssh $SSH_OPTS ${ANTMINER_USER}@${ANTMINER_IP} 'killall -9 asic-monitor 2>/dev/null; rm -f /tmp/asic-monitor /tmp/libusb-1.0.so.0; echo "Ready"' || true
+sshpass -p "$ANTMINER_PASSWORD" ssh $SSH_OPTS ${ANTMINER_USER}@${ANTMINER_IP} 'killall -9 asic-monitor 2>/dev/null; rm -f /tmp/monitor /tmp/libusb-1.0.so.0; echo "Ready"' || true
 echo ""
 
 # Deploy libusb library
@@ -44,21 +44,21 @@ echo ""
 # Deploy binary
 echo "🚀 Deploying asic-monitor binary..."
 sshpass -p "$ANTMINER_PASSWORD" scp $SSH_OPTS \
-    "$PROJECT_ROOT/bin/asic-monitor-mips" \
-    ${ANTMINER_USER}@${ANTMINER_IP}:/tmp/asic-monitor
+    "$PROJECT_ROOT/bin/monitor-mips" \
+    ${ANTMINER_USER}@${ANTMINER_IP}:/tmp/monitor
 echo "✅ Binary deployed"
 echo ""
 
 # Set permissions
 echo "🔧 Setting permissions..."
-sshpass -p "$ANTMINER_PASSWORD" ssh $SSH_OPTS ${ANTMINER_USER}@${ANTMINER_IP} 'chmod +x /tmp/asic-monitor'
+sshpass -p "$ANTMINER_PASSWORD" ssh $SSH_OPTS ${ANTMINER_USER}@${ANTMINER_IP} 'chmod +x /tmp/monitor'
 echo "✅ Permissions set"
 echo ""
 
 # Create log directory
 mkdir -p "$PROJECT_ROOT/logs"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-OUTPUT_FILE="$PROJECT_ROOT/logs/asic-monitor-usb_${TIMESTAMP}.log"
+OUTPUT_FILE="$PROJECT_ROOT/logs/monitor-usb_${TIMESTAMP}.log"
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "Running ASIC monitor on Antminer (USB mode)..."
@@ -67,7 +67,7 @@ echo ""
 
 # Run monitor in dump-status mode with LD_LIBRARY_PATH pointing to /tmp for our libusb
 sshpass -p "$ANTMINER_PASSWORD" ssh $SSH_OPTS ${ANTMINER_USER}@${ANTMINER_IP} \
-    'LD_LIBRARY_PATH=/tmp:/usr/lib /tmp/asic-monitor --dump-status --dump-interval 2' 2>&1 | tee "$OUTPUT_FILE"
+    'LD_LIBRARY_PATH=/tmp:/usr/lib /tmp/monitor --dump-status --dump-interval 2' 2>&1 | tee "$OUTPUT_FILE"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

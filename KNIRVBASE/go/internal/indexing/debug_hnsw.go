@@ -2,6 +2,7 @@ package indexing
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 
 	"github.com/google/uuid"
@@ -150,4 +151,19 @@ func DebugHNSWIndex() {
 		}
 	}
 	fmt.Printf("\nCluster 1 results count: %d (expected >= 3)\n", cluster1Count)
+}
+
+// EuclideanDistance calculates the Euclidean distance between two vectors
+func EuclideanDistance(v1, v2 []float32) float64 {
+	if len(v1) != len(v2) {
+		return math.MaxFloat64
+	}
+
+	var sum float64
+	for i := range v1 {
+		diff := float64(v1[i] - v2[i])
+		sum += diff * diff
+	}
+
+	return math.Sqrt(sum)
 }

@@ -366,6 +366,20 @@ else
     run_smart_initialization
 fi
 
+# Run formal verification gate if enabled
+if [ "${ENABLE_FORMAL_VERIFICATION:-false}" = "true" ]; then
+    print_step "Formal Verification Gate..."
+    if ./scripts/verify-network-model.sh; then
+        print_success "Formal verification passed - proceeding with startup"
+    else
+        print_error "Formal verification failed - blocking deployment"
+        print_status "Set ENABLE_FORMAL_VERIFICATION=false to skip verification"
+        exit 1
+    fi
+else
+    print_status "Formal verification disabled (set ENABLE_FORMAL_VERIFICATION=true to enable)"
+fi
+
 # Build all components (skip on Render where binaries are pre-built)
 if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
     print_status "Running on Render - checking for pre-built binaries..."
@@ -513,6 +527,18 @@ else
     exit 1
 fi
 
+# 9. Start KNIRV Formal Verification Service (optional)
+if [ "${ENABLE_RUNTIME_VERIFICATION:-false}" = "true" ]; then
+    print_status "Starting KNIRV-VERIFIER (Formal Verification)..."
+    if ./scripts/start-knirvverifier.sh; then
+        wait_for_service "KNIRV-VERIFIER" "9000" "/verification/status" "data/knirvverifier.pid" || print_warning "KNIRV-VERIFIER not responding, continuing..."
+    else
+        print_warning "Failed to start KNIRV-VERIFIER, continuing without verification service..."
+    fi
+else
+    print_status "Runtime verification disabled (set ENABLE_RUNTIME_VERIFICATION=true to enable)"
+fi
+
 print_success "All services started successfully!"
 
 # Start KNIRVTESTNET Server directly (smart initialization already completed)
@@ -568,6 +594,15 @@ if [ -f "data/knirvnexus.pid" ]; then
 fi
 
 echo "  🏥 HEALTH MONITOR: http://localhost:10001/health-monitor"
+
+# Only show VERIFIER if it's running
+if [ -f "../../modp/data/knirvverifier.pid" ]; then
+    VERIFIER_PID=$(cat "../../modp/data/knirvverifier.pid" 2>/dev/null || echo "")
+    if [ -n "$VERIFIER_PID" ] && kill -0 "$VERIFIER_PID" 2>/dev/null; then
+        echo "  🔍 FORMAL VERIFIER: http://localhost:9000/verification/status"
+    fi
+fi
+
 echo ""
 echo "Main Portal:"
 echo "  🌐 KNIRVTESTNET:   http://localhost:10000"

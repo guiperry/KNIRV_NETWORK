@@ -1,3 +1,5 @@
+// DEPRECATED: Use github.com/knirvcorp/knirvbase/go/internal/indexing instead
+// This file exists for compatibility purposes only and will be removed in future versions
 package indexing
 
 import (
@@ -20,14 +22,14 @@ type HNSWNode struct {
 // HNSWIndex implements Hierarchical Navigable Small World graph for vector similarity search
 type HNSWIndex struct {
 	dimension      int
-	M              int                       // max number of connections per layer
-	Mmax           int                       // max number of connections for layer 0
-	Mmax0          int                       // max number of connections for higher layers
-	efConstruction int                       // size of dynamic candidate list during construction
-	ef             int                       // size of dynamic candidate list during search
-	ml             float64                   // level generation multiplier
-	nodes          map[uuid.UUID]*HNSWNode   // all nodes in the index
-	entryPoint     *HNSWNode                 // entry point for search (highest layer node)
+	M              int                     // max number of connections per layer
+	Mmax           int                     // max number of connections for layer 0
+	Mmax0          int                     // max number of connections for higher layers
+	efConstruction int                     // size of dynamic candidate list during construction
+	ef             int                     // size of dynamic candidate list during search
+	ml             float64                 // level generation multiplier
+	nodes          map[uuid.UUID]*HNSWNode // all nodes in the index
+	entryPoint     *HNSWNode               // entry point for search (highest layer node)
 	mu             sync.RWMutex
 }
 
@@ -411,20 +413,18 @@ func (h *HNSWIndex) findNewEntryPoint() *HNSWNode {
 	return entryPoint
 }
 
-// EntryPoint returns the current entry point for the index
+// Size returns the number of nodes in the index
+func (h *HNSWIndex) Size() int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return len(h.nodes)
+}
+
+// EntryPoint returns the entry point node for search
 func (h *HNSWIndex) EntryPoint() *HNSWNode {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	if h.entryPoint == nil {
-		return nil
-	}
-	// Return a copy to prevent accidental modification
-	return &HNSWNode{
-		ID:          h.entryPoint.ID,
-		Level:       h.entryPoint.Level,
-		Vector:      append([]float32(nil), h.entryPoint.Vector...),
-		Connections: make(map[int][]uuid.UUID), // Copy connections
-	}
+	return h.entryPoint
 }
 
 // GetAllNodes returns all node IDs in the index
@@ -432,55 +432,18 @@ func (h *HNSWIndex) GetAllNodes() []uuid.UUID {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	var ids []uuid.UUID
+	ids := make([]uuid.UUID, 0, len(h.nodes))
 	for id := range h.nodes {
 		ids = append(ids, id)
 	}
 	return ids
 }
 
-// GetNode returns a copy of a node by ID
+// GetNode returns a node by its ID
 func (h *HNSWIndex) GetNode(id uuid.UUID) *HNSWNode {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-
-	node, exists := h.nodes[id]
-	if !exists {
-		return nil
-	}
-	// Return a copy to prevent accidental modification
-	copyNode := &HNSWNode{
-		ID:          node.ID,
-		Level:       node.Level,
-		Vector:      append([]float32(nil), node.Vector...),
-		Connections: make(map[int][]uuid.UUID),
-	}
-	for layer, conns := range node.Connections {
-		copyNode.Connections[layer] = append([]uuid.UUID(nil), conns...)
-	}
-	return copyNode
-}
-
-// EuclideanDistance calculates Euclidean distance between two vectors (exported)
-func EuclideanDistance(v1, v2 []float32) float64 {
-	if len(v1) != len(v2) {
-		return math.MaxFloat64
-	}
-
-	var sum float64
-	for i := range v1 {
-		diff := float64(v1[i] - v2[i])
-		sum += diff * diff
-	}
-
-	return math.Sqrt(sum)
-}
-
-// Size returns the number of nodes in the index
-func (h *HNSWIndex) Size() int {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return len(h.nodes)
+	return h.nodes[id]
 }
 
 // Helper functions

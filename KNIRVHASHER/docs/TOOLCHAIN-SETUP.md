@@ -110,7 +110,7 @@ nm -D staging_dir/target-mips_24kc_musl/usr/lib/libusb-1.0.so | grep libusb_init
 
 Example:
 ```bash
-./scripts/build-mips-cgo.sh bin/asic-monitor-mips cmd/asic-monitor/main.go
+./scripts/build-mips-cgo.sh bin/monitor-mips cmd/monitor/main.go
 ```
 
 ### Manual Build
@@ -128,21 +128,21 @@ export CGO_CFLAGS="-I$SDK_ROOT/staging_dir/target-mips_24kc_musl/usr/include"
 export CGO_LDFLAGS="-L$SDK_ROOT/staging_dir/target-mips_24kc_musl/usr/lib -lusb-1.0"
 
 # Build
-go build -o bin/asic-monitor-mips cmd/asic-monitor/main.go
+go build -o bin/monitor-mips cmd/monitor/main.go
 ```
 
 ## Verifying Built Binaries
 
 ### Check Architecture
 ```bash
-file bin/asic-monitor-mips
+file bin/monitor-mips
 # Should show: ELF 32-bit MSB executable, MIPS, MIPS32 rel2 version 1 (SYSV)
 ```
 
 ### Check Dependencies
 ```bash
 cd openwrt-sdk-*/staging_dir/toolchain-*/bin
-./mips-openwrt-linux-musl-readelf -d /path/to/bin/asic-monitor-mips | grep NEEDED
+./mips-openwrt-linux-musl-readelf -d /path/to/bin/monitor-mips | grep NEEDED
 ```
 
 Expected output:

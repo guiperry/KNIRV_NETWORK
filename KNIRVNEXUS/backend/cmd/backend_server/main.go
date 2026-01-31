@@ -16,8 +16,11 @@ import (
 	"backend_server/internal/config"
 	data_engine "backend_server/internal/data_engine"
 	"backend_server/internal/database"
+	"backend_server/internal/demos/deployment"
 	"backend_server/internal/ebpf"
-	inference "backend_server/internal/inference_engine"
+	"backend_server/internal/mlcengine"
+	"backend_server/internal/runtime"
+	"backend_server/internal/services/cortex"
 	"backend_server/internal/services/blockchain"
 	"backend_server/internal/services/cde"
 	"backend_server/internal/services/cognitiveengine"
@@ -27,6 +30,7 @@ import (
 	"backend_server/internal/services/dvemanager"
 	"backend_server/internal/services/dverental"
 	"backend_server/internal/services/endpoints"
+	inference "backend_server/internal/services/inferencer"
 	modelserver "backend_server/internal/services/model-server"
 	"backend_server/internal/services/modelmanagement"
 	"backend_server/internal/services/p2p"
@@ -38,8 +42,6 @@ import (
 	"backend_server/internal/services/websocket"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
-	"backend_server/internal/demos/deployment"
-	"backend_server/internal/runtime"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
@@ -1318,6 +1320,20 @@ func run() error {
 	// Start the server
 	if err := server.Start(); err != nil {
 		return fmt.Errorf("failed to start server: %v", err)
+	}
+
+	log.Println("--- KNIRVNEXUS STARTUP ---")
+
+	// 1. Check/Build the AI Engine
+	if err := mlcengine.EnsureEngine(); err != nil {
+		log.Fatalf("Critical Failure: AI Engine could not be initialized: %v", err)
+	}
+
+	// 2. Initialize the Cortex (Wasm/Plugin host)
+	// Passing a reference to the Engine we just built
+	nexus, err := cortex.NewNexusDaemon()
+	if err != nil {
+		log.Fatalf("Failed to start Nexus Daemon: %v", err)
 	}
 
 	// Wait for interrupt signal

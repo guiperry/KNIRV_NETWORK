@@ -4,79 +4,63 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 )
 
 func testShutdown() bool {
-	fmt.Println("=== Tiny-LLM Shutdown Test ===")
+	fmt.Println("=== Hasher CLI Shutdown Test ===")
 
-	// Cleanup any existing running processes
-	exec.Command("pkill", "-9", "-f", "llama-server").Run()
-	time.Sleep(1 * time.Second)
-
-	// Check initial server state
-	if serverRunning() {
-		fmt.Println("❌ Server already running before test")
-		return false
-	}
-	fmt.Println("✅ Server is not running initially")
-
-	// Start the application
-	fmt.Println("\nStarting application...")
-	cmd := exec.Command("./tinyllm")
+	// Start application
+	fmt.Println("\nStarting hasher CLI application...")
+	cmd := exec.Command("./hasher-cli")
 	err := cmd.Start()
 	if err != nil {
 		fmt.Printf("❌ Error starting application: %v\n", err)
 		return false
 	}
 
-	// Give server time to start
-	fmt.Println("Waiting for server to start...")
-	for i := 0; i < 20; i++ {
-		if serverRunning() {
-			fmt.Println("✅ Server started successfully")
-			break
-		}
-		time.Sleep(1 * time.Second)
-		if i == 19 {
-			fmt.Println("❌ Server failed to start within 20 seconds")
-			cmd.Process.Kill()
-			return false
-		}
-	}
+	// Give application time to start
+	fmt.Println("Waiting for hasher CLI to start...")
+	time.Sleep(3 * time.Second)
 
 	// Test shutdown by sending SIGINT
 	fmt.Println("\nTesting shutdown with SIGINT...")
-	if err := cmd.Process.Signal(os.Interrupt); err != nil {
+	if err := cmd.Process.Signal(syscall.SIGINT); err != nil {
 		fmt.Printf("❌ Error sending SIGINT: %v\n", err)
 		cmd.Process.Kill()
 		return false
 	}
 
-	// Give server time to shutdown
+	// Give application time to shutdown
 	time.Sleep(3 * time.Second)
 
-	// Check if server is still running
-	if serverRunning() {
-		fmt.Println("❌ Server failed to shut down")
-		// Force kill the server
-		exec.Command("pkill", "-9", "-f", "llama-server").Run()
+	// Check if application is still running
+	if isProcessRunning(cmd.Process.Pid) {
+		fmt.Println("❌ Application failed to shut down")
+		// Force kill application
+		cmd.Process.Kill()
 		time.Sleep(1 * time.Second)
-		if serverRunning() {
-			fmt.Println("❌ Failed to force kill server")
+		if isProcessRunning(cmd.Process.Pid) {
+			fmt.Println("❌ Failed to force kill application")
 		} else {
-			fmt.Println("⚠️ Server force killed")
+			fmt.Println("⚠️ Application force killed")
 		}
 		return false
 	} else {
-		fmt.Println("✅ Server shut down successfully")
+		fmt.Println("✅ Hasher CLI shut down successfully")
 		return true
 	}
 }
 
-func serverRunning() bool {
-	// Use curl to check if server responds
-	cmd := exec.Command("curl", "-s", "http://localhost:8000/health")
-	err := cmd.Run()
+func isProcessRunning(pid int) bool {
+	// Check if process is still running by sending signal 0
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return false
+	}
+
+	// Send signal 0 (doesn't actually kill the process)
+	err = process.Signal(syscall.Signal(0))
 	return err == nil
 }

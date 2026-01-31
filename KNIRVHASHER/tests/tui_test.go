@@ -20,7 +20,7 @@ func TestTUICompiles(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.Chdir(originalDir)
 
-	cmd := exec.Command("go", "build", "./cmd/tinyllm")
+	cmd := exec.Command("go", "build", "./cmd/cli")
 	var out, errOut bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errOut
@@ -37,11 +37,11 @@ func TestTUICompiles(t *testing.T) {
 	select {
 	case err = <-done:
 		// Cleanup the executable
-		os.Remove("tinyllm")
+		os.Remove("hasher")
 		assert.NoError(t, err, "Compilation failed: %s", errOut.String())
 	case <-time.After(30 * time.Second):
 		cmd.Process.Kill()
-		os.Remove("tinyllm")
+		os.Remove("hasher")
 		t.Fatal("Compilation timed out")
 	}
 }
@@ -57,7 +57,7 @@ func TestUIContent(t *testing.T) {
 	// Try to find existing installation to test with
 	var configPath string
 	if strings.HasPrefix(homeDir, "/home/") {
-		configPath = homeDir + "/.tinyllm-cli-config"
+		configPath = homeDir + "/.hasher-config"
 	} else {
 		// Skip test if we can't find typical config location
 		t.Skip("Could not find typical config location")
@@ -77,7 +77,7 @@ func TestUIContent(t *testing.T) {
 	defer os.Chdir(originalDir)
 
 	// Run the TUI and capture output
-	cmd := exec.Command("go", "run", "./cmd/tinyllm")
+	cmd := exec.Command("go", "run", "./cmd/cli")
 	var out, errOut bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errOut
@@ -96,7 +96,7 @@ func TestUIContent(t *testing.T) {
 		t.Log("Output:", out.String())
 		t.Log("Errors:", errOut.String())
 		// Check if UI contains expected elements
-		assert.Contains(t, out.String(), "Tiny-LLM CLI Tool", "UI should display title")
+		assert.Contains(t, out.String(), "Hasher CLI Tool", "UI should display title")
 		assert.Contains(t, out.String(), "Type your message here", "UI should display input placeholder")
 		assert.Contains(t, out.String(), "Logs will appear here", "UI should display log section")
 	case <-time.After(10 * time.Second):

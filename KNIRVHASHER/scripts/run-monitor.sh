@@ -21,7 +21,7 @@ echo ""
 
 # Clean up old binary on Antminer
 echo "🧹 Cleaning up old binary..."
-sshpass -p "$ANTMINER_PASSWORD" ssh $SSH_OPTS ${ANTMINER_USER}@${ANTMINER_IP} 'killall -9 asic-monitor 2>/dev/null; rm -f /tmp/asic-monitor; echo "Ready"' || true
+sshpass -p "$ANTMINER_PASSWORD" ssh $SSH_OPTS ${ANTMINER_USER}@${ANTMINER_IP} 'killall -9 asic-monitor 2>/dev/null; rm -f /tmp/monitor; echo "Ready"' || true
 echo ""
 
 # Set device permissions
@@ -46,10 +46,10 @@ echo ""
 
 mkdir -p "$PROJECT_ROOT/logs"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-OUTPUT_FILE="$PROJECT_ROOT/logs/asic-monitor_${TIMESTAMP}.log"
+OUTPUT_FILE="$PROJECT_ROOT/logs/monitor_${TIMESTAMP}.log"
 
 # Run monitor in dump-status mode and capture output
-sshpass -p "$ANTMINER_PASSWORD" ssh $SSH_OPTS ${ANTMINER_USER}@${ANTMINER_IP} '/tmp/asic-monitor --dump-status --dump-interval 2' 2>&1 | tee "$OUTPUT_FILE"
+sshpass -p "$ANTMINER_PASSWORD" ssh $SSH_OPTS ${ANTMINER_USER}@${ANTMINER_IP} '/tmp/monitor --dump-status --dump-interval 2' 2>&1 | tee "$OUTPUT_FILE"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

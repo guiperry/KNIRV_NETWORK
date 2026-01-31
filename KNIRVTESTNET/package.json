@@ -59,7 +59,12 @@
     "services:list": "ps aux | grep -E '(knirv|nexus|health-monitor)' | grep -v grep",
     "services:kill": "bash scripts/kill_knirv.sh",
     "env:load": "source scripts/load-env.sh",
-    "env:check": "source scripts/load-env.sh && echo 'Environment loaded successfully'"
+    "env:check": "source scripts/load-env.sh && echo 'Environment loaded successfully'",
+    "verification:run": "cd ../modp && bash scripts/run-tests.sh",
+    "verification:health": "node scripts/check-verification-health.js",
+    "verification:start": "bash scripts/start-knirvverifier.sh",
+    "verification:verify": "bash scripts/verify-network-model.sh",
+    "testnet:start:verified": "ENABLE_FORMAL_VERIFICATION=true ENABLE_RUNTIME_VERIFICATION=true npm run testnet:start"
   },
   "dependencies": {
     "adm-zip": "^0.5.10",

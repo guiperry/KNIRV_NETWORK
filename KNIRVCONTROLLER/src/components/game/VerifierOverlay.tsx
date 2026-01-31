@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './VerifierOverlay.css';
+import { RewardAnchor } from './stores/useKnirvana';
 
 interface WindowWithTournamentController extends Window {
   tournamentController?: {
@@ -8,45 +9,43 @@ interface WindowWithTournamentController extends Window {
   };
 }
 
-interface RewardAnchor {
-  id: number;
-  x: number;
-  y: number;
-  weights: {
-    w_c: number;
-    w_l: number;
-    w_s: number;
-  };
-  constraints: string;
-  metadata?: any;
-}
-
 interface VerifierOverlayProps {
   onClose: () => void;
   rewardAnchors: RewardAnchor[];
-  setRewardAnchors: (anchors: RewardAnchor[]) => void;
+  updateRewardAnchor: (id: string, updates: Partial<RewardAnchor>) => void;
   initialAnchor?: RewardAnchor | null;
 }
 
-export default function VerifierOverlay({ onClose, rewardAnchors, setRewardAnchors, initialAnchor }: VerifierOverlayProps) {
-  const [selectedAnchor, setSelectedAnchor] = useState<RewardAnchor | null>(
-    initialAnchor || (rewardAnchors.length > 0 ? rewardAnchors[rewardAnchors.length - 1] : null)
-  );
-  
+export default function VerifierOverlay({ onClose, rewardAnchors, updateRewardAnchor, initialAnchor }: VerifierOverlayProps) {
+  const [selectedAnchor, setSelectedAnchor] = useState<RewardAnchor | null>(initialAnchor || null);
+
   const [weights, setWeights] = useState({
-    w_c: selectedAnchor?.weights.w_c || 0.6,
-    w_l: selectedAnchor?.weights.w_l || 0.3,
-    w_s: selectedAnchor?.weights.w_s || 0.1
+    w_c: initialAnchor?.weights.w_c ?? 0.6,
+    w_l: initialAnchor?.weights.w_l ?? 0.3,
+    w_s: initialAnchor?.weights.w_s ?? 0.1
   });
-  
+
   const [constraints, setConstraints] = useState(
-    selectedAnchor?.constraints || `// DEFINE ADVERSARIAL CONSTRAINTS
+    initialAnchor?.constraints || `// DEFINE ADVERSARIAL CONSTRAINTS
 verifier.addConstraint("memory_leak_check", (agent_res) => {
   return agent_res.usage < 128; // Max 128MB
 });
 
 verifier.setTargetOutput([104729, 104743]);`
   );
+
+  // Update state when initialAnchor changes
+  useEffect(() => {
+    if (initialAnchor) {
+      setSelectedAnchor(initialAnchor);
+      setWeights({
+        w_c: initialAnchor.weights.w_c,
+        w_l: initialAnchor.weights.w_l,
+        w_s: initialAnchor.weights.w_s
+      });
+      setConstraints(initialAnchor.constraints);
+    }
+  }, [initialAnchor]);
 
   const updateWeights = (weightType: 'w_c' | 'w_l' | 'w_s', value: number) => {
     const newWeights = { ...weights, [weightType]: value };
@@ -56,17 +55,12 @@ verifier.setTargetOutput([104729, 104743]);`
   const commitLogic = () => {
     if (!selectedAnchor) return;
 
-    const updatedAnchors = rewardAnchors.map(anchor =>
-      anchor.id === selectedAnchor.id
-        ? { ...anchor, weights, constraints }
-        : anchor
-    );
-    
-    setRewardAnchors(updatedAnchors);
-    
+    // Update the anchor in the store
+    updateRewardAnchor(selectedAnchor.id, { weights, constraints });
+
     // Send logic to TournamentController
     console.log('Committing logic to TournamentController:', { weights, constraints });
-    
+
     // Integrate with TournamentController/LoRAX system
     const windowWithTC = window as WindowWithTournamentController;
     if (typeof window !== 'undefined' && windowWithTC.tournamentController) {
@@ -74,7 +68,7 @@ verifier.setTargetOutput([104729, 104743]);`
       windowWithTC.tournamentController.addConstraint(constraints);
       console.log('Logic committed to TournamentController/LoRAX system');
     }
-    
+
     onClose();
   };
 
@@ -84,6 +78,21 @@ verifier.setTargetOutput([104729, 104743]);`
         <h2>VERIFIER_LOGIC_GATE // ARCHITECT_V1</h2>
         <button className="close-btn" onClick={onClose}>[X]</button>
       </div>
+
+      {/* Anchor Info */}
+      {selectedAnchor && (
+        <div className="anchor-info" style={{ padding: '0.5rem 1rem', borderBottom: '1px solid #333', fontSize: '0.85rem', color: '#888' }}>
+          <span>Anchor ID: {selectedAnchor.id}</span>
+          <span style={{ marginLeft: '1rem' }}>
+            Position: ({selectedAnchor.position.x.toFixed(1)}, {selectedAnchor.position.y.toFixed(1)}, {selectedAnchor.position.z.toFixed(1)})
+          </span>
+          {selectedAnchor.linkedErrorNode && (
+            <span style={{ marginLeft: '1rem', color: '#ff6666' }}>
+              Linked to Error: {selectedAnchor.linkedErrorNode}
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="content-grid">
         <section className="weight-shaping">

@@ -1,6 +1,5 @@
 import React, { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { Agent as AgentType } from "./stores/useKnirvana";
 
@@ -73,25 +72,19 @@ export default function AIAgent({ agent, isSelected, onSelect, onStage }: AIAgen
         </mesh>
       )}
 
-      {/* Stage Button */}
+      {/* Stage Button - visual indicator without text (avoids CSP worker issues) */}
       {isSelected && onStage && (
-        <mesh position={[0, -1, 0]}>
-          <planeGeometry args={[0.6, 0.3]} />
-          <meshStandardMaterial color="#ff6b35" emissive="#ff6b35" emissiveIntensity={0.5} />
-          <mesh position={[0, 0, 0.01]}>
-            <planeGeometry args={[0.5, 0.2]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.9} />
+        <group position={[0, -1.2, 0]} onClick={(e) => { e.stopPropagation(); onStage(); }}>
+          <mesh>
+            <boxGeometry args={[0.8, 0.25, 0.1]} />
+            <meshStandardMaterial color="#ff6b35" emissive="#ff6b35" emissiveIntensity={0.6} />
           </mesh>
-          <Text
-            position={[0, 0, 0.02]}
-            fontSize={0.1}
-            color="#000000"
-            anchorX="center"
-            anchorY="middle"
-          >
-            Stage
-          </Text>
-        </mesh>
+          {/* Arrow indicator pointing up to agent */}
+          <mesh position={[0, 0.25, 0]} rotation={[0, 0, Math.PI]}>
+            <coneGeometry args={[0.15, 0.2, 4]} />
+            <meshStandardMaterial color="#ff6b35" emissive="#ff6b35" emissiveIntensity={0.6} />
+          </mesh>
+        </group>
       )}
     </group>
   );

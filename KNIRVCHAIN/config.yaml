@@ -1,0 +1,67 @@
+# config/node.yaml
+node:
+  id: "node-001"
+  role: "VALIDATOR"
+  listen_addr: ":8080"
+  rpc_addr: ":8081"
+  metrics_addr: ":9090"
+
+blockchain:
+  data_dir: "/var/lib/knirvbase"
+  max_block_size: 10485760  # 10MB
+  block_time: 5s
+  consensus: "PoA"
+
+wallet:
+  private_key_path: "/etc/knirvbase/wallet.key"
+  contract_address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+  network_url: "https://knirv.network/rpc"
+
+cache:
+  redis_url: "redis://redis:6379"
+  ttl: 3600s
+  max_connections: 100
+
+indexing:
+  semantic:
+    enabled: true
+    dimension: 768
+    hnsw_m: 16
+    hnsw_ef_construction: 200
+  temporal:
+    enabled: true
+  category:
+    enabled: true
+  fulltext:
+    enabled: false
+
+security:
+  tls:
+    enabled: true
+    cert_file: "/etc/knirvbase/tls/cert.pem"
+    key_file: "/etc/knirvbase/tls/key.pem"
+  jwt:
+    secret: "your-jwt-secret-here"
+    token_duration: 3600s
+  encryption:
+    enabled: true
+    key_rotation_days: 90
+
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+
+monitoring:
+  prometheus:
+    enabled: true
+    path: "/metrics"
+  tracing:
+    enabled: true
+    jaeger_endpoint: "http://jaeger:14268/api/traces"
+
+performance:
+  max_goroutines: 10000
+  request_timeout: 30s
+  write_buffer_size: 4096
+  read_buffer_size: 4096

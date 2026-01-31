@@ -8,9 +8,9 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
-# Binary names
+# Driver Binary names
 SERVER_BINARY=hasher-server
-CLIENT_BINARY=hasher-client
+HOST_BINARY=hasher-host
 BIN_DIR=bin
 
 # Proto parameters
@@ -23,13 +23,7 @@ EBPF_OUT=internal/ebpf/hasher.bpf.o
 CLANG=clang
 LLVM_STRIP=llvm-strip
 
-# Build flags
-LDFLAGS=-ldflags "-s -w"
-TAGS=-tags netgo
-
-.PHONY: all build clean test proto ebpf deps help
-
-.PHONY: help build build-probe build-probe-v2 build-protocol-discover build-monitor deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor test clean hasher test-hasher
+.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor deploy-diagnostics cli test-cli build-all build-server-mips build-host-all embed-binaries build-crypto-transformer train-crypto-transformer run-crypto-transformer build-simple-hash run-simple-hash
 
 ANTMINER_IP ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_IP || echo 192.168.12.151)
 ANTMINER_USER ?= root
@@ -37,143 +31,275 @@ ANTMINER_PASSWORD ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_PASSWOR
 
 SDK_ROOT := $(CURDIR)/toolchain/openwrt-sdk-19.07.10-ar71xx-generic_gcc-7.5.0_musl.Linux-x86_64
 
-# Binary name
-BINARY_NAME := hasher
+# CLI Binary name
+CLI_BINARY_NAME := hasher
 
 # Build directory
-BUILD_DIR := ./bin
+CLI_BUILD_DIR := ./bin
 
 # Source files
-SRC_DIR := ./cmd/hasher
+CLI_SRC_DIR := ./cmd/cli
 
 # Test directories
-TEST_DIRS := ./internal/cli/ui ./internal/cli/server ./internal/cli/chat ./tests
+CLI_TEST_DIRS := ./internal/cli/ui ./internal/cli/server ./internal/cli/chat ./tests
 
 # Build flags
 GOFLAGS :=
-
+LDFLAGS=-ldflags "-s -w"
+TAGS=-tags netgo
 
 help:
-	@echo "🛡️  Hasher PoC - Development Commands"
+	@echo "🛡️  HASHER PoC - Development Commands"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  make build                   - Build diagnostic tool (MIPS)"
-	@echo "  make build-probe             - Build device probe tool (MIPS)"
-	@echo "  make build-probe-v2          - Build enhanced probe tool v2 (MIPS)"
-	@echo "  make build-protocol-discover - Build protocol discovery tool (MIPS)"
-	@echo "  make build-monitor           - Build ASIC monitor tool (MIPS)"
-	@echo "  make hasher                  - Build CLI tool (hasher)"
-	@echo "  make deploy                  - Build and deploy diagnostics"
-	@echo "  make deploy-probe            - Build and deploy probe tool"
-	@echo "  make deploy-probe-v2         - Build and deploy enhanced probe v2"
-	@echo "  make deploy-protocol-discover- Build and deploy protocol discovery"
-	@echo "  make deploy-monitor          - Build and deploy ASIC monitor"
-	@echo "  make test                    - Build, deploy, and run diagnostics"
-	@echo "  make test-hasher             - Build, deploy, and run CLI tool"
-	@echo "  make clean                   - Clean build artifacts"
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'
 	@echo ""
 	@echo "Configuration:"
 	@echo "  ANTMINER_IP=$(ANTMINER_IP)"
 	@echo "  ANTMINER_USER=$(ANTMINER_USER)"
 
-build:
-	@echo "🔨 Building diagnostic tool for MIPS..."
-	@mkdir -p bin
-	GOOS=linux GOARCH=mips GOMIPS=softfloat go build -o bin/asic-test-mips cmd/asic-test/main.go
-	@echo "✅ Build complete"
-	@ls -lh bin/asic-test-mips
+all: deps proto ebpf build
 
-build-probe:
-	@echo "🔨 Building device probe for MIPS..."
-	@mkdir -p bin
-	GOOS=linux GOARCH=mips GOMIPS=softfloat go build -o bin/device-probe-mips cmd/device-probe/main.go
-	@echo "✅ Build complete"
-	@ls -lh bin/device-probe-mips
+## proto: Generate Go code from Protocol Buffers
+proto:
+	@echo "Generating protobuf code..."
+	@mkdir -p $(PROTO_OUT)
+	protoc --go_out=$(PROTO_OUT) --go_opt=paths=source_relative \
+		--go-grpc_out=$(PROTO_OUT) --go-grpc_opt=paths=source_relative \
+		$(PROTO_DIR)/hasher/v1/*.proto
 
-build-probe-v2:
-	@echo "🔨 Building enhanced device probe v2 for MIPS..."
-	@mkdir -p bin
-	GOOS=linux GOARCH=mips GOMIPS=softfloat go build -o bin/device-probe-v2-mips cmd/device-probe-v2/main.go
-	@echo "✅ Build complete"
-	@ls -lh bin/device-probe-v2-mips
+## ebpf: Compile eBPF programs
+ebpf: $(EBPF_OUT)
 
-build-protocol-discover:
-	@echo "🔨 Building protocol discovery tool for MIPS..."
-	@mkdir -p bin
-	GOOS=linux GOARCH=mips GOMIPS=softfloat go build -o bin/protocol-discover-mips cmd/protocol-discover/main.go
-	@echo "✅ Build complete"
-	@ls -lh bin/protocol-discover-mips
+$(EBPF_OUT): $(EBPF_SRC)
+	@echo "Compiling eBPF program..."
+	$(CLANG) -g -O2 -target bpf -D__TARGET_ARCH_x86 \
+		-I/usr/include/bpf \
+		-c $(EBPF_SRC) -o $(EBPF_OUT)
+	$(LLVM_STRIP) -g $(EBPF_OUT)
 
+## generate: Generate all code (proto, ebpf, go generate)
+generate: proto ebpf
+	@echo "Running go generate..."
+	$(GOCMD) generate ./...
+
+## deps: Install dependencies
+deps:
+	@echo "Installing dependencies..."
+	$(GOMOD) download
+	$(GOMOD) tidy
+
+## build-monitor: Build ASIC monitor tool with diagnostic capabilities
 build-monitor:
 	@echo "🔨 Building ASIC monitor tool for MIPS (static)..."
 	@mkdir -p bin
+	@export STAGING_DIR=$(SDK_ROOT)/staging_dir && \
 	CGO_ENABLED=1 \
 	CC=$(SDK_ROOT)/staging_dir/toolchain-mips_24kc_gcc-7.5.0_musl/bin/mips-openwrt-linux-musl-gcc \
 	CGO_CFLAGS="-I$(SDK_ROOT)/staging_dir/target-mips_24kc_musl/usr/include" \
 	CGO_LDFLAGS="-L$(SDK_ROOT)/staging_dir/target-mips_24kc_musl/usr/lib -lusb-1.0 -static" \
 	GOOS=linux GOARCH=mips GOMIPS=softfloat \
-	go build -ldflags '-extldflags "-static"' -o bin/asic-monitor-mips cmd/asic-monitor/main.go
+	go build -ldflags '-extldflags "-static"' -o bin/monitor-mips cmd/monitor/main.go
 	@echo "✅ Build complete"
-	@ls -lh bin/asic-monitor-mips
+	@ls -lh bin/monitor-mips
 
+## build-monitor-diagnostics: Build monitor with diagnostics for MIPS (USB-free)
+build-monitor-diagnostics:
+	@echo "🔨 Building ASIC monitor diagnostics for MIPS (USB-free)..."
+	@mkdir -p bin
+	GOOS=linux GOARCH=mips GOMIPS=softfloat go build -ldflags "-s -w" \
+		-tags "noudp" -o bin/monitor-diagnostics-mips \
+		-ldflags '-X "main.DiagnosticMode=true"' cmd/monitor/main.go
+	@echo "✅ Build complete"
+	@ls -lh bin/monitor-diagnostics-mips
 
-hasher:
+cli:
 	@echo "Creating build directory..."
-	@mkdir -p $(BUILD_DIR)
-	@echo "Building $(BINARY_NAME)..."
-	@go build $(GOFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME) $(SRC_DIR)
-	@echo "Binary created successfully at $(BUILD_DIR)/$(BINARY_NAME)"
+	@mkdir -p $(CLI_BUILD_DIR)
+	@echo "Building $(CLI_BINARY_NAME)..."
+	@go build $(GOFLAGS) -o $(CLI_BUILD_DIR)/$(CLI_BINARY_NAME) $(CLI_SRC_DIR)
+	@echo "Binary created successfully at $(CLI_BUILD_DIR)/$(CLI_BINARY_NAME)"
 
-test-hasher:
+test-cli:
 	@echo "Running tests..."
-	@for dir in $(TEST_DIRS); do \
+	@for dir in $(CLI_TEST_DIRS); do \
 		echo "Running tests in $$dir..."; \
 		go test -v $$dir; \
 	done
 
-clean:
-	@echo "Cleaning up..."
-	@rm -rf $(BUILD_DIR)
-	@echo "Cleanup completed"
-
 run:
-	@echo "Running $(BINARY_NAME)..."
-	@go run $(SRC_DIR)
-
+	@echo "Running $(CLI_BINARY_NAME)..."
+	@go run $(CLI_SRC_DIR)
 
 deploy: build
 	@./scripts/deploy.sh
 
-
-deploy-client: build-client
-	@echo "🚀 Deploying protocol discovery tool to Antminer..."
-	@sshpass -p '$(ANTMINER_PASSWORD)' scp -o KexAlgorithms=+diffie-hellman-group14-sha1 \
-		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
-		bin/protocol-discover-mips $(ANTMINER_USER)@$(ANTMINER_IP):/tmp/protocol-discover
-	@sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \
-		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
-		$(ANTMINER_USER)@$(ANTMINER_IP) 'chmod +x /tmp/protocol-discover'
-	@echo "✅ Deployed! Run with:"
-	@echo "   sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \\"
-	@echo "     -o HostKeyAlgorithms=+ssh-rsa $(ANTMINER_USER)@$(ANTMINER_IP) '/tmp/protocol-discover'"
-
 deploy-server: build-server
-	@echo "🚀 Deploying ASIC monitor tool to Antminer..."
+	@echo "🚀 Deploying hasher-server to Antminer..."
 	@sshpass -p '$(ANTMINER_PASSWORD)' scp -o KexAlgorithms=+diffie-hellman-group14-sha1 \
 		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
-		bin/asic-monitor-mips $(ANTMINER_USER)@$(ANTMINER_IP):/tmp/asic-monitor
+		bin/hasher-server $(ANTMINER_USER)@$(ANTMINER_IP):/tmp/hasher-server
 	@sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \
 		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
-		$(ANTMINER_USER)@$(ANTMINER_IP) 'chmod +x /tmp/asic-monitor'
+		$(ANTMINER_USER)@$(ANTMINER_IP) 'chmod +x /tmp/hasher-server'
 	@echo "✅ Deployed! Run with:"
 	@echo "   sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \\"
-	@echo "     -o HostKeyAlgorithms=+ssh-rsa $(ANTMINER_USER)@$(ANTMINER_IP) '/tmp/asic-monitor --dump-status --dump-interval 2'"
+	@echo "     -o HostKeyAlgorithms=+ssh-rsa $(ANTMINER_USER)@$(ANTMINER_IP) '/tmp/hasher-server --dump-status --dump-interval 2'"
 
-test: build
-	@echo "Running full diagnostic test..."
-	@./scripts/deploy.sh
+## deploy-monitor: Deploy monitor with diagnostics to ASIC device
+deploy-monitor: build-monitor
+	@echo "🚀 Deploying ASIC monitor to Antminer..."
+	@sshpass -p '$(ANTMINER_PASSWORD)' scp -o KexAlgorithms=+diffie-hellman-group14-sha1 \
+		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
+		bin/monitor-mips $(ANTMINER_USER)@$(ANTMINER_IP):/tmp/monitor
+	@sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \
+		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
+		$(ANTMINER_USER)@$(ANTMINER_IP) 'chmod +x /tmp/monitor'
+	@echo "✅ Deployed! Run with:"
+	@echo "   sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \\"
+	@echo "     -o HostKeyAlgorithms=+ssh-rsa $(ANTMINER_USER)@$(ANTMINER_IP) '/tmp/monitor --diagnostics'"
 
+## deploy-monitor-diagnostics: Deploy monitor diagnostics (USB-free) to ASIC device
+deploy-monitor-diagnostics: build-monitor-diagnostics
+	@echo "🚀 Deploying monitor diagnostics (USB-free) to Antminer..."
+	@sshpass -p '$(ANTMINER_PASSWORD)' scp -o KexAlgorithms=+diffie-hellman-group14-sha1 \
+		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
+		bin/monitor-diagnostics-mips $(ANTMINER_USER)@$(ANTMINER_IP):/tmp/monitor-diagnostics
+	@sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \
+		-o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no \
+		$(ANTMINER_USER)@$(ANTMINER_IP) 'chmod +x /tmp/monitor-diagnostics'
+	@echo "✅ Deployed! Run with:"
+	@echo "   sshpass -p '$(ANTMINER_PASSWORD)' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 \\"
+	@echo "     -o HostKeyAlgorithms=+ssh-rsa $(ANTMINER_USER)@$(ANTMINER_IP) '/tmp/monitor-diagnostics --diagnostics'"
+
+# test: Run tests
+test:
+	@echo "Running tests..."
+	$(GOTEST) -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+## clean: Clean build artifacts
 clean:
+	@echo "Cleaning..."
+	$(GOCLEAN)
+	rm -rf $(BIN_DIR)
+	rm -f $(EBPF_OUT)
+	rm -f coverage.txt
 	@echo "🧹 Cleaning build artifacts..."
 	rm -rf bin/
 	@echo "✅ Clean complete"
+
+## run-server: Run the server
+run-server: build-server
+	@echo "Starting server..."
+	sudo $(BIN_DIR)/$(SERVER_BINARY)
+
+## run-host: Run the host
+run-host: build-host
+	@echo "Starting host..."
+	$(BIN_DIR)/$(HOST_BINARY)
+
+## docker-build: Build Docker image
+docker-build:
+	docker build -t hasher:latest .
+
+## install: Install binaries to system
+install: build
+	@echo "Installing binaries..."
+	sudo cp $(BIN_DIR)/$(SERVER_BINARY) /usr/local/bin/
+	cp $(BIN_DIR)/$(HOST_BINARY) /usr/local/bin/
+
+## lint: Run linters
+lint:
+	@echo "Running linters..."
+	golangci-lint run ./...
+
+# ============================================================================
+# Build targets for embedded binaries
+# ============================================================================
+
+EMBED_DIR=internal/cli/embedded/bin
+
+## build-server-mips: Build hasher-server for MIPS (Antminer) with static linking
+build-server-mips:
+	@echo "🔨 Building hasher-server for MIPS (static)..."
+	@mkdir -p $(BIN_DIR) $(EMBED_DIR)
+	@export STAGING_DIR=$(SDK_ROOT)/staging_dir && \
+	CGO_ENABLED=1 \
+	CC=$(SDK_ROOT)/staging_dir/toolchain-mips_24kc_gcc-7.5.0_musl/bin/mips-openwrt-linux-musl-gcc \
+	CGO_CFLAGS="-I$(SDK_ROOT)/staging_dir/target-mips_24kc_musl/usr/include" \
+	CGO_LDFLAGS="-L$(SDK_ROOT)/staging_dir/target-mips_24kc_musl/usr/lib -static" \
+	GOOS=linux GOARCH=mips GOMIPS=softfloat \
+	$(GOBUILD) -ldflags '-s -w -extldflags "-static"' -o $(BIN_DIR)/hasher-server-mips ./cmd/driver/hasher-server
+	@cp $(BIN_DIR)/hasher-server-mips $(EMBED_DIR)/
+	@echo "✅ Build complete: $(BIN_DIR)/hasher-server-mips"
+	@ls -lh $(BIN_DIR)/hasher-server-mips
+
+## build-host-linux-amd64: Build hasher-host for Linux x86_64
+build-host-linux-amd64:
+	@echo "🔨 Building hasher-host for Linux amd64..."
+	@mkdir -p $(BIN_DIR) $(EMBED_DIR)
+	GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/hasher-host-linux-amd64 ./cmd/driver/hasher-host
+	@cp $(BIN_DIR)/hasher-host-linux-amd64 $(EMBED_DIR)/
+	@echo "✅ Build complete: $(BIN_DIR)/hasher-host-linux-amd64"
+
+## build-host-darwin-amd64: Build hasher-host for macOS Intel
+build-host-darwin-amd64:
+	@echo "🔨 Building hasher-host for macOS amd64..."
+	@mkdir -p $(BIN_DIR) $(EMBED_DIR)
+	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/hasher-host-darwin-amd64 ./cmd/driver/hasher-host
+	@cp $(BIN_DIR)/hasher-host-darwin-amd64 $(EMBED_DIR)/
+
+## build-crypto-transformer: Build cryptographic transformer for local testing
+build-crypto-transformer:
+	@echo "🔐 Building cryptographic transformer..."
+	@mkdir -p bin
+	@go build -ldflags "-s -w" -o bin/crypto-transformer cmd/crypto_transformer/main.go
+	@echo "✅ Crypto-transformer binary created at bin/crypto-transformer"
+	@ls -lh bin/crypto-transformer
+
+## train-crypto-transformer: Train cryptographic transformer model
+train-crypto-transformer:
+	@echo "🎯 Training cryptographic transformer..."
+	@cd cmd/crypto_transformer && go run main.go --train
+
+## run-crypto-transformer: Run cryptographic transformer demo
+run-crypto-transformer:
+	@echo "💬 Starting cryptographic transformer demo..."
+	@./bin/crypto-transformer
+
+## run-simple-hash: Run simple hash test
+run-simple-hash:
+	@echo "🧪 Starting simple hash test..."
+	@./bin/simple-hash
+	@echo "✅ Build complete: $(BIN_DIR)/hasher-host-darwin-amd64"
+
+## build-host-darwin-arm64: Build hasher-host for macOS Apple Silicon
+build-host-darwin-arm64:
+	@echo "🔨 Building hasher-host for macOS arm64..."
+	@mkdir -p $(BIN_DIR) $(EMBED_DIR)
+	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/hasher-host-darwin-arm64 ./cmd/driver/hasher-host
+	@cp $(BIN_DIR)/hasher-host-darwin-arm64 $(EMBED_DIR)/
+	@echo "✅ Build complete: $(BIN_DIR)/hasher-host-darwin-arm64"
+
+## build-host-all: Build hasher-host for all platforms
+build-host-all: build-host-linux-amd64 build-host-darwin-amd64 build-host-darwin-arm64
+	@echo "✅ All hasher-host binaries built"
+
+## build-all: Build all binaries for embedding
+build-all: build-server-mips build-host-all
+	@echo "✅ All binaries built and ready for embedding"
+	@echo "📦 Embedded binaries in: $(EMBED_DIR)"
+	@ls -la $(EMBED_DIR)/
+
+## embed-binaries: Build all and then rebuild CLI with embedded binaries
+embed-binaries: build-all
+	@echo "🔨 Building CLI with embedded binaries..."
+	$(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/hasher ./cmd/cli
+	@echo "✅ CLI built with embedded binaries: $(BIN_DIR)/hasher"
+	@ls -lh $(BIN_DIR)/hasher
+
+## build: Build all components
+build: build-server build-client cli
+	@echo "✅ All components built"
+
+.DEFAULT_GOAL := help

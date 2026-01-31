@@ -350,7 +350,7 @@ echo ""
 # Build the specified Go program
 if [ -z "$1" ]; then
     echo "Usage: $0 <output-binary> <source.go>"
-    echo "Example: $0 bin/asic-monitor-mips cmd/asic-monitor/main.go"
+    echo "Example: $0 bin/monitor-mips cmd/monitor/main.go"
     exit 1
 fi
 
@@ -400,7 +400,7 @@ print_summary() {
     echo -e "${BLUE}📖 Next Steps:${NC}"
     echo ""
     echo "1. Build your MIPS binary:"
-    echo "   ./scripts/build-mips-cgo.sh bin/asic-monitor-mips cmd/asic-monitor/main.go"
+    echo "   ./scripts/build-mips-cgo.sh bin/monitor-mips cmd/monitor/main.go"
     echo ""
     echo "2. Deploy and test on Antminer:"
     echo "   ./scripts/deploy-monitor-usb.sh"

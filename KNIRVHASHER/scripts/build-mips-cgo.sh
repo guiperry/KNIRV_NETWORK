@@ -5,8 +5,8 @@
 #   ./build-mips-cgo.sh <output-binary> <source.go> [static]
 #
 # Examples:
-#   ./build-mips-cgo.sh bin/asic-monitor-mips cmd/asic-monitor/main.go
-#   ./build-mips-cgo.sh bin/asic-monitor-mips cmd/asic-monitor/main.go static
+#   ./build-mips-cgo.sh bin/monitor-mips cmd/monitor/main.go
+#   ./build-mips-cgo.sh bin/monitor-mips cmd/monitor/main.go static
 
 set -e
 
@@ -59,8 +59,8 @@ echo ""
 if [ -z "$1" ]; then
     echo "Usage: $0 <output-binary> <source.go> [static]"
     echo "Examples:"
-    echo "  $0 bin/asic-monitor-mips cmd/asic-monitor/main.go"
-    echo "  $0 bin/asic-monitor-mips cmd/asic-monitor/main.go static"
+    echo "  $0 bin/monitor-mips cmd/monitor/main.go"
+    echo "  $0 bin/monitor-mips cmd/monitor/main.go static"
     exit 1
 fi
 

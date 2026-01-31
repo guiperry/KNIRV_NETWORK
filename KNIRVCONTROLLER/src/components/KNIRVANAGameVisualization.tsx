@@ -9,6 +9,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Text, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { knirvanaBridgeService, KnirvanaErrorNode, KnirvanaSkillNode, KnirvanaAgent } from '../services/KnirvanaBridgeService';
+import GridParticleSystem from './game/GridParticleSystem';
 
 interface GameNodeProps {
   node: KnirvanaErrorNode | KnirvanaSkillNode;
@@ -254,27 +255,27 @@ function GameScene({
       />
       <pointLight position={[-10, -10, -5]} intensity={0.3} />
 
-      {/* Grid floor */}
+      {/* Grid Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]} receiveShadow>
         <planeGeometry args={[200, 200]} />
         <meshStandardMaterial color="#1a1a1a" transparent opacity={0.3} />
       </mesh>
 
-      {/* Grid lines */}
+      {/* Grid Lines */}
       {Array.from({ length: 21 }, (_, i) => (
         <React.Fragment key={`grid-${i}`}>
-      <line>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={2}
-            array={new Float32Array([-100, 0, i * 10 - 100, 100, 0, i * 10 - 100])}
-            itemSize={3}
-            args={[new Float32Array([-100, 0, i * 10 - 100, 100, 0, i * 10 - 100]), 3]}
-          />
-        </bufferGeometry>
-        <lineBasicMaterial color="#333" transparent opacity={0.2} />
-      </line>
+          <line>
+            <bufferGeometry>
+              <bufferAttribute
+                attach="attributes-position"
+                count={2}
+                array={new Float32Array([-100, 0, i * 10 - 100, 100, 0, i * 10 - 100])}
+                itemSize={3}
+                args={[new Float32Array([-100, 0, i * 10 - 100, 100, 0, i * 10 - 100]), 3]}
+              />
+            </bufferGeometry>
+            <lineBasicMaterial color="#333" transparent opacity={0.2} />
+          </line>
           <line>
             <bufferGeometry>
               <bufferAttribute
@@ -289,6 +290,11 @@ function GameScene({
           </line>
         </React.Fragment>
       ))}
+
+      {/* Grid Particle System */}
+      <GridParticleSystem errorNodes={errorNodes} />
+
+
 
       {/* Render error nodes */}
       {errorNodes.map((node) => (
@@ -524,6 +530,8 @@ export default function KNIRVANAGameVisualization() {
         <Canvas
           camera={{ position: [0, 5, 20], fov: 75 }}
           shadows
+          events={{ enabled: true }}
+          raycast={{ filter: (obj) => !obj.userData?.isParticles }}
         >
           <OrbitControls
             enablePan={true}

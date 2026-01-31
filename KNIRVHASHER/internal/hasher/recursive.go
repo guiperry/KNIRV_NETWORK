@@ -8,14 +8,21 @@ import (
 // RecursiveEngine implements the recursive single-ASIC inference engine
 // as specified in HASHER_SDD.md sections 1.2 and 2.3
 type RecursiveEngine struct {
-	Network     *HashNetwork        // The hash network to use
-	Passes      int                // Number of temporal passes (default: 21)
-	Jitter      float64             // Input jitter factor [0, 1] (default: 0.01)
-	SeedRotation bool              // Whether to rotate neuron seeds per pass
+	Network      *HashNetwork // The hash network to use
+	AsicClient   *ASICClient  // Optional ASIC client for hardware acceleration
+	Passes       int          // Number of temporal passes (default: 21)
+	Jitter       float64      // Input jitter factor [0, 1] (default: 0.01)
+	SeedRotation bool         // Whether to rotate neuron seeds per pass
 }
 
-// NewRecursiveEngine creates a new recursive inference engine
+// NewRecursiveEngine creates a new recursive inference engine with software-only hashing
 func NewRecursiveEngine(network *HashNetwork, passes int, jitter float64, seedRotation bool) (*RecursiveEngine, error) {
+	return NewRecursiveEngineWithASIC(network, nil, passes, jitter, seedRotation)
+}
+
+// NewRecursiveEngineWithASIC creates a new recursive inference engine with optional ASIC acceleration
+// If asicClient is nil, falls back to software SHA-256
+func NewRecursiveEngineWithASIC(network *HashNetwork, asicClient *ASICClient, passes int, jitter float64, seedRotation bool) (*RecursiveEngine, error) {
 	if network == nil {
 		return nil, ErrInvalidNetwork
 	}
@@ -27,11 +34,17 @@ func NewRecursiveEngine(network *HashNetwork, passes int, jitter float64, seedRo
 	}
 
 	return &RecursiveEngine{
-		Network:     network,
-		Passes:      passes,
-		Jitter:      jitter,
+		Network:      network,
+		AsicClient:   asicClient,
+		Passes:       passes,
+		Jitter:       jitter,
 		SeedRotation: seedRotation,
 	}, nil
+}
+
+// IsUsingASIC returns true if the engine is using ASIC hardware acceleration
+func (e *RecursiveEngine) IsUsingASIC() bool {
+	return e.AsicClient != nil && !e.AsicClient.IsUsingFallback()
 }
 
 // Infer performs recursive inference on the given input using temporal ensemble
@@ -74,26 +87,38 @@ func (e *RecursiveEngine) runPass(input []byte, passNum int) (*InferencePass, er
 		return nil, err
 	}
 
-	// Run inference with optional seed rotation
 	var prediction int
 	var confidence float64
-	if e.SeedRotation {
-		// Create a temporary network with rotated seeds
-		tempNet := e.rotateNetworkSeeds(passNum)
-		pred, conf, err := tempNet.Predict(jitteredInput)
+
+	// Check if we should use ASIC acceleration
+	if e.AsicClient != nil && !e.AsicClient.IsUsingFallback() {
+		// Use ASIC-backed inference
+		pred, conf, err := e.runASICInference(jitteredInput, passNum)
 		if err != nil {
 			return nil, err
 		}
 		prediction = pred
 		confidence = conf
 	} else {
-		// Run with original network
-		pred, conf, err := e.Network.Predict(jitteredInput)
-		if err != nil {
-			return nil, err
+		// Run software inference with optional seed rotation
+		if e.SeedRotation {
+			// Create a temporary network with rotated seeds
+			tempNet := e.rotateNetworkSeeds(passNum)
+			pred, conf, err := tempNet.Predict(jitteredInput)
+			if err != nil {
+				return nil, err
+			}
+			prediction = pred
+			confidence = conf
+		} else {
+			// Run with original network
+			pred, conf, err := e.Network.Predict(jitteredInput)
+			if err != nil {
+				return nil, err
+			}
+			prediction = pred
+			confidence = conf
 		}
-		prediction = pred
-		confidence = conf
 	}
 
 	return &InferencePass{
@@ -103,6 +128,77 @@ func (e *RecursiveEngine) runPass(input []byte, passNum int) (*InferencePass, er
 		Latency:     time.Since(start),
 		PassLatency: time.Since(passStart),
 	}, nil
+}
+
+// runASICInference runs a single inference pass using ASIC hardware
+func (e *RecursiveEngine) runASICInference(input []byte, passNum int) (int, float64, error) {
+	network := e.Network
+	if e.SeedRotation {
+		network = e.rotateNetworkSeeds(passNum)
+	}
+
+	// Layer 1: Hidden layer 1
+	layer1Inputs := e.prepareLayerInputs(input, network.Seeds1)
+	layer1Hashes, err := e.AsicClient.ComputeBatch(layer1Inputs)
+	if err != nil {
+		return -1, 0, err
+	}
+	layer1Output := e.hashesToFloats(layer1Hashes)
+	layer1Bytes := floatSliceToBytes(layer1Output)
+
+	// Layer 2: Hidden layer 2
+	layer2Inputs := e.prepareLayerInputs(layer1Bytes, network.Seeds2)
+	layer2Hashes, err := e.AsicClient.ComputeBatch(layer2Inputs)
+	if err != nil {
+		return -1, 0, err
+	}
+	layer2Output := e.hashesToFloats(layer2Hashes)
+	layer2Bytes := floatSliceToBytes(layer2Output)
+
+	// Layer 3: Output layer
+	outputInputs := e.prepareLayerInputs(layer2Bytes, network.SeedsOut)
+	outputHashes, err := e.AsicClient.ComputeBatch(outputInputs)
+	if err != nil {
+		return -1, 0, err
+	}
+	output := e.hashesToFloats(outputHashes)
+
+	// Find prediction (argmax) and confidence
+	maxVal := output[0]
+	maxIndex := 0
+	for i, val := range output[1:] {
+		if val > maxVal {
+			maxVal = val
+			maxIndex = i + 1
+		}
+	}
+
+	return maxIndex, maxVal, nil
+}
+
+// prepareLayerInputs prepares inputs for a neural network layer
+// Each neuron receives: input || seed
+func (e *RecursiveEngine) prepareLayerInputs(input []byte, seeds [][32]byte) [][]byte {
+	inputs := make([][]byte, len(seeds))
+	for i, seed := range seeds {
+		combined := make([]byte, len(input)+32)
+		copy(combined, input)
+		copy(combined[len(input):], seed[:])
+		inputs[i] = combined
+	}
+	return inputs
+}
+
+// hashesToFloats converts hash outputs to float64 values [0, 1]
+func (e *RecursiveEngine) hashesToFloats(hashes [][32]byte) []float64 {
+	floats := make([]float64, len(hashes))
+	for i, hash := range hashes {
+		// Take first 8 bytes as uint64 and normalize to [0, 1]
+		val := uint64(hash[0])<<56 | uint64(hash[1])<<48 | uint64(hash[2])<<40 | uint64(hash[3])<<32 |
+			uint64(hash[4])<<24 | uint64(hash[5])<<16 | uint64(hash[6])<<8 | uint64(hash[7])
+		floats[i] = float64(val) / float64(1<<64-1)
+	}
+	return floats
 }
 
 // applyJitter adds controlled jitter to the input

@@ -7,8 +7,9 @@ import (
 
 	"backend_server/internal/web/middleware"
 
+	inference "backend_server/internal/services/inferencer"
+
 	"github.com/gorilla/mux"
-	inference "backend_server/internal/inference_engine"
 )
 
 type InferenceHandlers struct {

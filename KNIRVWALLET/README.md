@@ -1,6 +1,6 @@
-KNIRVAGENTIFIER
+KNIRVWALLET
 
-### 🤖 KNIRV-AGENTIFIER: The Autonomous Gateway
+### 🤖 KNIRVWALLET: The Autonomous Gateway
 Technology: Rust WASM-powered AI agents with SEAL loop + Advanced Voice Integration
 
 Purpose: A mobile-native adapter that empowers existing AI assistants with autonomous agentic abilities, acting as the primary user gateway to the knirv.com D-TEN.

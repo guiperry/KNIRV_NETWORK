@@ -71,6 +71,20 @@ export interface PropertyNode {
   usageCount: number;
 }
 
+export interface RewardAnchor {
+  id: string;
+  position: { x: number; y: number; z: number };
+  weights: { w_c: number; w_l: number; w_s: number };
+  constraints: string;
+  linkedErrorNode?: string;
+  metadata?: {
+    logs: string[];
+    traces: string[];
+    severity: string;
+    description: string;
+  };
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -116,6 +130,7 @@ export interface KnirvanaState {
   ideaNodes: IdeaNode[];
   propertyNodes: PropertyNode[];
   agents: Agent[];
+  rewardAnchors: RewardAnchor[];
   
   // Deploy animations
   deployAnimations: DeployAnimation[];
@@ -125,6 +140,11 @@ export interface KnirvanaState {
   selectedIdeaNode: string | null;
   selectedPropertyNode: string | null;
   selectedAgent: string | null;
+  selectedRewardAnchor: string | null;
+
+  // Analyze mode - highlights error nodes in 3D scene
+  isAnalyzing: boolean;
+  isSculpting: boolean;
 
   // Tournament specific
   skillSlotOwner: string | null;
@@ -144,7 +164,17 @@ export interface KnirvanaState {
   // Node actions
   selectErrorNode: (id: string) => void;
   selectAgent: (id: string) => void;
-  
+
+  // Analyze mode
+  setAnalyzing: (analyzing: boolean) => void;
+  setSculpting: (sculpting: boolean) => void;
+
+  // Reward anchor actions
+  addRewardAnchor: (anchor: RewardAnchor) => void;
+  selectRewardAnchor: (id: string | null) => void;
+  updateRewardAnchor: (id: string, updates: Partial<RewardAnchor>) => void;
+  removeRewardAnchor: (id: string) => void;
+
   // Agent actions
   createAgent: (type: string) => void;
   deployAgent: (agentId: string, nodeId: string) => void;
@@ -281,13 +311,18 @@ export const useKnirvana = create<KnirvanaState>()(
     ideaNodes: [],
     propertyNodes: [],
     agents: generateInitialAgents(),
+    rewardAnchors: [],
     deployAnimations: [],
-    
+
     selectedErrorNode: null,
     selectedIdeaNode: null,
     selectedPropertyNode: null,
     selectedAgent: null,
-    
+    selectedRewardAnchor: null,
+
+    isAnalyzing: false,
+    isSculpting: false,
+
     skillSlotOwner: null,
     incumbentScore: 0.8,
     
@@ -345,7 +380,49 @@ export const useKnirvana = create<KnirvanaState>()(
       console.log(`Selected Agent: ${id}`);
       set({ selectedAgent: id });
     },
-    
+
+    setAnalyzing: (analyzing) => {
+      console.log(`Analyze mode: ${analyzing}`);
+      set({ isAnalyzing: analyzing });
+      // Turn off sculpting when disabling analyze
+      if (!analyzing) {
+        set({ isSculpting: false });
+      }
+    },
+
+    setSculpting: (sculpting) => {
+      console.log(`Sculpt mode: ${sculpting}`);
+      set({ isSculpting: sculpting });
+    },
+
+    addRewardAnchor: (anchor) => {
+      console.log(`Adding reward anchor at position:`, anchor.position);
+      set(state => ({
+        rewardAnchors: [...state.rewardAnchors, anchor],
+        selectedRewardAnchor: anchor.id
+      }));
+    },
+
+    selectRewardAnchor: (id) => {
+      console.log(`Selected reward anchor: ${id}`);
+      set({ selectedRewardAnchor: id });
+    },
+
+    updateRewardAnchor: (id, updates) => {
+      set(state => ({
+        rewardAnchors: state.rewardAnchors.map(anchor =>
+          anchor.id === id ? { ...anchor, ...updates } : anchor
+        )
+      }));
+    },
+
+    removeRewardAnchor: (id) => {
+      set(state => ({
+        rewardAnchors: state.rewardAnchors.filter(anchor => anchor.id !== id),
+        selectedRewardAnchor: state.selectedRewardAnchor === id ? null : state.selectedRewardAnchor
+      }));
+    },
+
     startDeployAnimation: (agentId, agentName, endPosition) => {
       console.log(`Starting deploy animation for agent ${agentId} to position (${endPosition.x}, ${endPosition.y}, ${endPosition.z})`);
       
