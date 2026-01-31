@@ -1,32 +1,34 @@
 package mlc
 
 /*
-#cgo LDFLAGS: -L/usr/local/lib -lmlc_llm -Wl,-rpath,/usr/local/lib
-#cgo CFLAGS: -I${SRCDIR}/../../third_party/include
+#cgo LDFLAGS: -L/usr/local/lib -lmlc_llm -ltvm_runtime
 #include <stdlib.h>
+#include <stdio.h>
 
-// Note: You must place the MLC-LLM header files (like mlc_chat.h) 
-// in your repo at /third_party/include/ so the compiler can see them.
-#include "mlc_chat.h" 
+// Note: If you are using modern MLC-LLM, replace the legacy types
+// with your custom C wrapper types or the JSONFFI equivalents.
+typedef void* MLCChatBackendHandle; 
+
+// Prototype for the create function (you will need to implement this in a .cc file)
+MLCChatBackendHandle MLCChatBackendCreate();
 */
 import "C"
+
 import (
-	"unsafe"
 	"fmt"
+	"unsafe"
 )
 
-type MLCEngine struct {
-	handle C.MLCChatBackendHandle
-}
+func CreateEngine() {
+	// Example of fixing C.CString and C.free
+	cStr := C.CString("model_path")
+	defer C.free(unsafe.Pointer(cStr)) // Standard CGO cleanup
 
-func NewEngine(modelPath string) (*MLCEngine, error) {
-	cPath := C.CString(modelPath)
-	defer C.free(unsafe.Pointer(cPath))
-
-	// Calling the actual C function from libmlc_llm.so
-	handle := C.MLCChatBackendCreate(cPath)
+	// The handle will now be recognized
+	var handle C.MLCChatBackendHandle = C.MLCChatBackendCreate()
 	if handle == nil {
-		return nil, fmt.Errorf("failed to initialize MLC backend")
+		fmt.Println("Failed to create engine")
 	}
-	return &MLCEngine{handle: handle}, nil
 }
+
+

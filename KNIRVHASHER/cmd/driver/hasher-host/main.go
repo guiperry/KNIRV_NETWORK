@@ -22,6 +22,7 @@ import (
 
 	"hasher/internal/crypto_transformer"
 	"hasher/internal/hasher"
+	"hasher/internal/host"
 )
 
 // Configuration flags
@@ -63,6 +64,10 @@ var (
 	discoveryPort    = flag.Int("discovery-port", 50051, "port to scan for hasher-server")
 	discoveryTimeout = flag.Duration("discovery-timeout", 2*time.Second, "timeout for each server probe")
 	skipLocalhost    = flag.Bool("skip-localhost", false, "skip localhost during discovery")
+
+	// Auto-deployment configuration
+	autoDeploy    = flag.Bool("auto-deploy", true, "automatically deploy hasher-server to ASIC devices")
+	cleanupOnExit = flag.Bool("cleanup", true, "clean up deployed hasher-server on exit")
 )
 
 // Orchestrator manages the recursive inference process
@@ -74,6 +79,7 @@ type Orchestrator struct {
 	discoveryResult *hasher.DiscoveryResult
 	startTime       time.Time
 	mu              sync.RWMutex
+	deployer        *host.Deployer // For auto-deployment
 
 	// Metrics
 	totalInferences  uint64
@@ -183,6 +189,22 @@ func main() {
 
 	log.Printf("Hasher Host Orchestrator starting...")
 
+	// Initialize deployment module if auto-deployment is enabled
+	var deployer *host.Deployer
+	if *autoDeploy {
+		deployConfig := &host.DeploymentConfig{
+			AutoDeploy:     *autoDeploy,
+			CleanupOnExit:  *cleanupOnExit,
+			ConnectTimeout: 30 * time.Second,
+			DeployTimeout:  120 * time.Second,
+		}
+		var err error
+		deployer, err = host.NewDeployer(deployConfig)
+		if err != nil {
+			log.Printf("Warning: Failed to create deployer: %v", err)
+		}
+	}
+
 	// Discover and connect to ASIC server
 	var asicClient *hasher.ASICClient
 	var discoveryResult *hasher.DiscoveryResult
@@ -196,26 +218,61 @@ func main() {
 			log.Printf("Warning: Could not create ASIC client: %v", err)
 		}
 	} else if *discoverNetwork {
-		// Perform network discovery
+		// Perform network discovery with auto-deployment
 		log.Printf("Discovering hasher-server instances on network...")
-		config := hasher.NewDiscoveryConfig()
-		config.Port = *discoveryPort
-		config.Timeout = *discoveryTimeout
-		config.SkipLocalhost = *skipLocalhost
-		if *discoverySubnet != "" {
-			config.Subnet = *discoverySubnet
-		}
 
-		var err error
-		asicClient, discoveryResult, err = hasher.DiscoverAndConnect(config)
-		if err != nil {
-			log.Printf("Warning: Network discovery failed: %v", err)
-			log.Printf("Falling back to software mode...")
-			asicClient, _ = hasher.NewASICClient("") // Create fallback client
+		if deployer != nil {
+			// Use auto-deployment with discovery
+			log.Printf("Auto-deployment enabled, looking for devices to deploy hasher-server...")
+			var err error
+			asicClient, err = deployer.DeployWithDiscovery()
+			if err != nil {
+				log.Printf("Warning: Auto-deployment failed: %v", err)
+				log.Printf("Falling back to standard discovery...")
+
+				// Fallback to standard discovery
+				config := hasher.NewDiscoveryConfig()
+				config.Port = *discoveryPort
+				config.Timeout = *discoveryTimeout
+				config.SkipLocalhost = *skipLocalhost
+				if *discoverySubnet != "" {
+					config.Subnet = *discoverySubnet
+				}
+
+				asicClient, discoveryResult, err = hasher.DiscoverAndConnect(config)
+				if err != nil {
+					log.Printf("Warning: Network discovery failed: %v", err)
+					log.Printf("Creating ASIC client for direct connection...")
+					asicClient, _ = hasher.NewASICClient("") // Create client for direct connection attempt
+				} else {
+					log.Printf("Connected to discovered hasher-server at %s", discoveryResult.Address)
+					log.Printf("Server info: %d chips, %s, latency: %dms",
+						discoveryResult.ChipCount, discoveryResult.Version, discoveryResult.LatencyMs)
+				}
+			} else {
+				log.Printf("Auto-deployment successful: hasher-server running on discovered device")
+			}
 		} else {
-			log.Printf("Connected to discovered hasher-server at %s", discoveryResult.Address)
-			log.Printf("Server info: %d chips, %s, latency: %dms",
-				discoveryResult.ChipCount, discoveryResult.Version, discoveryResult.LatencyMs)
+			// Standard discovery without auto-deployment
+			config := hasher.NewDiscoveryConfig()
+			config.Port = *discoveryPort
+			config.Timeout = *discoveryTimeout
+			config.SkipLocalhost = *skipLocalhost
+			if *discoverySubnet != "" {
+				config.Subnet = *discoverySubnet
+			}
+
+			var err error
+			asicClient, discoveryResult, err = hasher.DiscoverAndConnect(config)
+			if err != nil {
+				log.Printf("Warning: Network discovery failed: %v", err)
+				log.Printf("Creating ASIC client for direct connection...")
+				asicClient, _ = hasher.NewASICClient("") // Create client for direct connection attempt
+			} else {
+				log.Printf("Connected to discovered hasher-server at %s", discoveryResult.Address)
+				log.Printf("Server info: %d chips, %s, latency: %dms",
+					discoveryResult.ChipCount, discoveryResult.Version, discoveryResult.LatencyMs)
+			}
 		}
 	} else {
 		// Try localhost only
@@ -281,6 +338,7 @@ func main() {
 		cryptoModel:     cryptoModel,
 		discoveryResult: discoveryResult,
 		startTime:       time.Now(),
+		deployer:        deployer,
 	}
 
 	// Find available port for API mode
@@ -373,6 +431,11 @@ func runAPIServer(orch *Orchestrator) {
 
 	if orch.asicClient != nil {
 		orch.asicClient.Close()
+	}
+
+	// Cleanup deployed hasher-server if auto-deployment was used
+	if orch.deployer != nil {
+		orch.deployer.Cleanup()
 	}
 
 	log.Println("Server stopped")

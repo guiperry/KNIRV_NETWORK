@@ -1,11 +1,15 @@
 package crypto_transformer
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"hasher/internal/hasher"
 	"log"
 	"math"
 	"math/rand"
+	"net"
+	"net/http"
 	"time"
 )
 
@@ -355,4 +359,79 @@ func (t *Trainer) loadModel(path string) error {
 	// Placeholder for model loading
 	log.Printf("Loading model from: %s", path)
 	return nil
+}
+
+// =============================================================================
+// API Client Functions for Training
+// =============================================================================
+
+// TrainRequest represents a training request to hasher-host
+type TrainRequest struct {
+	Epochs       int      `json:"epochs"`
+	LearningRate float32  `json:"learning_rate"`
+	BatchSize    int      `json:"batch_size"`
+	DataSamples  []string `json:"data_samples"`
+}
+
+// TrainResponse represents the training API response
+type TrainResponse struct {
+	Epoch     int     `json:"epoch"`
+	Loss      float32 `json:"loss"`
+	Accuracy  float32 `json:"accuracy"`
+	LatencyMs float64 `json:"latency_ms"`
+	UsingASIC bool    `json:"using_asic"`
+}
+
+// findOpenPort finds an available port starting from a default port
+func findOpenPort(startPort int) int {
+	if startPort <= 0 {
+		startPort = 8080
+	}
+
+	for port := startPort; port <= 9090; port++ {
+		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		if err == nil {
+			listener.Close()
+			return port
+		}
+	}
+	return startPort // fallback
+}
+
+// CallTrainingAPI calls the hasher-host training API
+func CallTrainingAPI(epochs int, learningRate float32, batchSize int, dataSamples []string) (*TrainResponse, error) {
+	// Find hasher-host API port
+	apiPort := findOpenPort(8080)
+
+	// Create training request
+	req := TrainRequest{
+		Epochs:       epochs,
+		LearningRate: learningRate,
+		BatchSize:    batchSize,
+		DataSamples:  dataSamples,
+	}
+
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal training request: %w", err)
+	}
+
+	// Send training request
+	resp, err := http.Post(
+		fmt.Sprintf("http://localhost:%d/api/v1/train", apiPort),
+		"application/json",
+		bytes.NewReader(reqBody),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call training API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Parse training response
+	var trainResp TrainResponse
+	if err := json.NewDecoder(resp.Body).Decode(&trainResp); err != nil {
+		return nil, fmt.Errorf("failed to parse training response: %w", err)
+	}
+
+	return &trainResp, nil
 }

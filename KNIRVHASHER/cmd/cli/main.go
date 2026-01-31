@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -13,11 +15,13 @@ import (
 	"hasher/internal/analyzer"
 	"hasher/internal/cli/embedded"
 	"hasher/internal/cli/ui"
+	"hasher/internal/client"
 )
 
 func main() {
 	var hasherHostCmd *exec.Cmd
 	hasherHostStarted := false
+	hasherHostPort := 8080 // Default port, will be updated if hasher-host finds different port
 
 	// Initialize embedded binaries
 	fmt.Println("Hasher CLI starting...")
@@ -43,10 +47,13 @@ func main() {
 	}()
 
 	// Try to start hasher-host orchestrator
-	hasherHostCmd, hasherHostStarted = startHasherHost(logChan)
+	hasherHostCmd, hasherHostStarted, hasherHostPort = startHasherHost(logChan)
 
 	model.ServerCmd = hasherHostCmd
 	model.ServerReady = hasherHostStarted
+
+	// Update the API client to use the correct port
+	model.APIClient = client.NewAPIClient(hasherHostPort)
 
 	// Start the Bubble Tea UI with alternate screen and mouse support
 	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
@@ -99,7 +106,7 @@ func initEmbeddedBinaries() {
 }
 
 // startHasherHost attempts to start the hasher-host orchestrator
-func startHasherHost(logChan chan string) (*exec.Cmd, bool) {
+func startHasherHost(logChan chan string) (*exec.Cmd, bool, int) {
 	// Try to find hasher-host binary
 	hostPath, err := embedded.GetHasherHostPath()
 	if err != nil {
@@ -107,42 +114,44 @@ func startHasherHost(logChan chan string) (*exec.Cmd, bool) {
 		hostPath = findHasherHostExecutable()
 		if hostPath == "" {
 			fmt.Println("hasher-host not found. Run Discovery to provision ASIC devices.")
-			return nil, false
+			return nil, false, 8080
 		}
 	}
 
-	// Check if hasher-host is already running on the API port
-	if isHasherHostRunning() {
-		fmt.Println("hasher-host is already running.")
-		return nil, true
+	// Check if hasher-host is already running on common ports
+	if port := findRunningHasherHost(); port > 0 {
+		return nil, true, port
 	}
 
 	fmt.Printf("Starting hasher-host from %s...\n", hostPath)
 
-	// Start hasher-host in API mode
-	cmd := exec.Command(hostPath, "--mode=api", "--port=8080")
+	// Start hasher-host in API mode with port auto-discovery (let it find an open port)
+	cmd := exec.Command(hostPath, "--mode=api", "--port=0")
 
 	// Create pipes to capture output
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		logChan <- fmt.Sprintf("Error creating stdout pipe: %v", err)
-		return nil, false
+		return nil, false, 8080
 	}
 
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
 		logChan <- fmt.Sprintf("Error creating stderr pipe: %v", err)
-		return nil, false
+		return nil, false, 8080
 	}
 
 	if err := cmd.Start(); err != nil {
 		logChan <- fmt.Sprintf("Error starting hasher-host: %v", err)
-		return nil, false
+		return nil, false, 8080
 	}
 
 	logChan <- fmt.Sprintf("hasher-host started with PID %d", cmd.Process.Pid)
 
-	// Capture stdout
+	// Create a channel to capture the actual port from hasher-host output
+	portChan := make(chan int, 1)
+
+	// Capture stdout and parse port
 	go func() {
 		buf := make([]byte, 1024)
 		for {
@@ -151,7 +160,23 @@ func startHasherHost(logChan chan string) (*exec.Cmd, bool) {
 				return
 			}
 			if n > 0 {
-				logChan <- string(buf[:n])
+				output := string(buf[:n])
+				logChan <- output
+
+				// Parse port from output like "API server listening on :8081"
+				if strings.Contains(output, "API server listening on") {
+					parts := strings.Fields(output)
+					for _, part := range parts {
+						if strings.HasPrefix(part, ":") {
+							if port, err := strconv.Atoi(strings.TrimPrefix(part, ":")); err == nil {
+								select {
+								case portChan <- port:
+								default:
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}()
@@ -170,26 +195,55 @@ func startHasherHost(logChan chan string) (*exec.Cmd, bool) {
 		}
 	}()
 
-	// Wait for server to be ready
+	// Wait for server to be ready and get the actual port
 	fmt.Println("Waiting for hasher-host to start...")
 	startTime := time.Now()
 	timeout := 10 * time.Second
+	var actualPort int = 8080 // default
+
 	for time.Since(startTime) < timeout {
-		if isHasherHostRunning() {
-			fmt.Println("hasher-host is ready!")
-			return cmd, true
+		select {
+		case port := <-portChan:
+			actualPort = port
+			fmt.Printf("hasher-host is ready on port %d!\n", actualPort)
+			return cmd, true, actualPort
+		default:
+			// Check common ports if we haven't received the port message yet
+			if port := findRunningHasherHost(); port > 0 {
+				actualPort = port
+				fmt.Printf("hasher-host is ready on port %d!\n", actualPort)
+				return cmd, true, actualPort
+			}
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
 
 	fmt.Println("hasher-host startup timed out, continuing without orchestrator.")
-	return cmd, false
+	return cmd, false, actualPort
 }
 
-// isHasherHostRunning checks if hasher-host API is responding
-func isHasherHostRunning() bool {
+// findRunningHasherHost checks if hasher-host is already running on any port and returns the port
+func findRunningHasherHost() int {
+	// Common ports to check
+	ports := []int{8080, 8081, 8082, 8083, 8084, 8085, 8008, 9000}
+	client := &http.Client{Timeout: 2 * time.Second}
+
+	for _, port := range ports {
+		resp, err := client.Get(fmt.Sprintf("http://localhost:%d/api/v1/health", port))
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == 200 {
+				return port
+			}
+		}
+	}
+	return 0
+}
+
+// isHasherHostRunning checks if hasher-host API is responding on a specific port
+func isHasherHostRunning(port int) bool {
 	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get("http://localhost:8008/api/v1/health")
+	resp, err := client.Get(fmt.Sprintf("http://localhost:%d/api/v1/health", port))
 	if err != nil {
 		return false
 	}

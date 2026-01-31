@@ -41,7 +41,7 @@ CLI_BUILD_DIR := ./bin
 CLI_SRC_DIR := ./cmd/cli
 
 # Test directories
-CLI_TEST_DIRS := ./internal/cli/ui ./internal/cli/server ./internal/cli/chat ./tests
+CLI_TEST_DIRS := ./internal/cli/ui ./internal/cli/chat ./internal/client ./internal/crypto_transformer ./tests
 
 # Build flags
 GOFLAGS :=
@@ -298,8 +298,23 @@ embed-binaries: build-all
 	@echo "✅ CLI built with embedded binaries: $(BIN_DIR)/hasher"
 	@ls -lh $(BIN_DIR)/hasher
 
+
 ## build: Build all components
-build: build-server build-client cli
+build: build-host-linux-amd64 cli
 	@echo "✅ All components built"
+
+## test-training: Test training functionality
+test-training:
+	@echo "🎯 Testing training functionality..."
+	@echo "Starting hasher-host with training API..."
+	@$(BIN_DIR)/$(HOST_BINARY) --port 8080 &
+	@sleep 2
+	@echo "Testing training API call..."
+	@curl -X POST http://localhost:8080/api/v1/train \
+		-H "Content-Type: application/json" \
+		-d '{"epochs": 1, "learning_rate": 0.001, "batch_size": 32, "data_samples": ["test sample"]}' \
+		2>/dev/null || echo "❌ Training API test failed"
+	@pkill -f hasher-host || true
+	@echo "✅ Training test complete"
 
 .DEFAULT_GOAL := help

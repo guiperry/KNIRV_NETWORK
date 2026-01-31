@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -18,7 +19,8 @@ import (
 	psmem "github.com/shirou/gopsutil/v3/mem"
 
 	"hasher/internal/analyzer"
-	"hasher/internal/cli/server"
+	"hasher/internal/client"
+	cryptotransformer "hasher/internal/crypto_transformer"
 	"hasher/internal/hasher"
 )
 
@@ -57,8 +59,23 @@ var (
 				Foreground(lipgloss.Color("#60A5FA")).
 				Bold(true)
 
-	llmMessageStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#34D399"))
+	llmMessageStyle = lipgloss.NewStyle()
+
+	// Text selection and highlighting styles
+	highlightStyle = lipgloss.NewStyle().
+			Background(lipgloss.Color("#3B82F6")).
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Bold(true)
+
+	copyNoticeStyle = lipgloss.NewStyle().
+			Background(lipgloss.Color("#10B981")).
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Padding(0, 2).
+			Bold(true)
+
+	helpStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#9CA3AF")).
+			Italic(true)
 
 	inputStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
@@ -181,9 +198,18 @@ type Model struct {
 	ProgressText   string
 	ProgressStatus string
 	Deployer       *analyzer.Deployer
-	DeviceIP       string // Connected ASIC device IP (empty if none)
-	DeviceType     string // Type of connected device
-	CryptoEnabled  bool   // Whether crypto-transformer is enabled
+	DeviceIP       string            // Connected ASIC device IP (empty if none)
+	DeviceType     string            // Type of connected device
+	CryptoEnabled  bool              // Whether crypto-transformer is enabled
+	APIClient      *client.APIClient // API client for hasher-host
+
+	// Text selection fields
+	IsSelecting     bool   // Whether user is currently selecting text
+	SelectionStart  int    // Start position of selection (character index)
+	SelectionEnd    int    // End position of selection (character index)
+	SelectedText    string // Currently selected text
+	ShowCopyNotice  bool   // Whether to show "copied to clipboard" notice
+	CopyNoticeTimer int    // Timer for hiding copy notice
 }
 
 // NewModel creates a new UI model
@@ -239,6 +265,16 @@ func NewModel() Model {
 		Deployer:       deployer,
 		DeviceIP:       "", // No device connected initially
 		DeviceType:     "",
+		CryptoEnabled:  false,
+		APIClient:      client.NewAPIClient(8080),
+
+		// Text selection fields
+		IsSelecting:     false,
+		SelectionStart:  0,
+		SelectionEnd:    0,
+		SelectedText:    "",
+		ShowCopyNotice:  false,
+		CopyNoticeTimer: 0,
 	}
 
 	// Initialize views
@@ -267,6 +303,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
 		}
+
+	case tea.MouseMsg:
+		cmds = append(cmds, m.handleMouse(msg))
 
 	case tea.WindowSizeMsg:
 		m, cmd = m.handleResize(msg)
@@ -318,6 +357,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updateLogView()
 		m.ChatHistory = append(m.ChatHistory, msg.LogChat.Chat)
 		m.updateChatView()
+
+	case hideCopyNoticeMsg:
+		m.ShowCopyNotice = false
+
+	case textSelectedMsg:
+		m.SelectedText = msg.Text
+		if msg.Text != "" {
+			// Copy to clipboard
+			if err := clipboard.WriteAll(msg.Text); err == nil {
+				m.ShowCopyNotice = true
+				m.CopyNoticeTimer = 0
+				cmds = append(cmds, m.startCopyNoticeTimer())
+			}
+		}
 	}
 
 	switch m.CurrentView {
@@ -475,27 +528,34 @@ func (m Model) renderChatView() string {
 		serverStatus = "Server: Ready"
 	}
 
-	// Build header with device IP on right side
+	// Build header with device IP and instructions on right side
 	leftContent := fmt.Sprintf(" Hasher Chat | %s | ESC=menu", serverStatus)
-	deviceStatus := ""
+	rightContent := ""
 	if m.DeviceIP != "" {
-		deviceStatus = fmt.Sprintf("ASIC: %s ", m.DeviceIP)
+		rightContent = fmt.Sprintf("ASIC: %s | L/R-click=copy", m.DeviceIP)
+	} else {
+		rightContent = "L/R-click=copy"
 	}
 
-	// Calculate padding for right-aligned device status
-	padding := m.Width - len(leftContent) - len(deviceStatus) - 4 // 4 for style padding
+	// Calculate padding for right-aligned content
+	padding := m.Width - len(leftContent) - len(rightContent) - 4 // 4 for style padding
 	if padding < 1 {
 		padding = 1
 	}
-	headerContent := leftContent + strings.Repeat(" ", padding) + deviceStatus
+	headerContent := leftContent + strings.Repeat(" ", padding) + rightContent
 	header := headerStyle.Width(m.Width).Render(headerContent)
 
-	// Build footer with device type on right side
+	// Build footer with device type and copy notice
 	footerRight := ""
 	if m.DeviceType != "" {
 		footerRight = fmt.Sprintf(" | %s", m.DeviceType)
 	}
-	footer := footerStyle.Width(m.Width).Render(m.ResourceData + footerRight)
+	footerText := m.ResourceData + footerRight
+	if m.ShowCopyNotice {
+		copyNotice := copyNoticeStyle.Render("✓ Copied to clipboard")
+		footerText += " " + copyNotice
+	}
+	footer := footerStyle.Width(m.Width).Render(footerText)
 
 	// Calculate dimensions accounting for borders
 	// header(1) + footer(1) + input_content(1) + input_border(2) + chat_border(2) + log_border(2) = 9
@@ -666,6 +726,7 @@ func (m Model) handleInput(input string) tea.Cmd {
 			helpText += "  /rule list      - List all rules\n"
 			helpText += "  /status         - Show server status\n"
 			helpText += "  /train          - Train crypto-transformer\n"
+			helpText += "\nMouse: L/R-click to copy text from chat/log views."
 			helpText += "\nType any text to perform inference with temporal ensemble."
 			return AppendChatMsg{Msg: helpText}
 		}
@@ -692,8 +753,8 @@ func (m Model) handleInput(input string) tea.Cmd {
 			return AppendChatMsg{Msg: thinkingMsg}
 		},
 		func() tea.Msg {
-			// Use cryptographic transformer inference for all messages
-			resp, err := server.CallCryptoTransformerInference(input, nil)
+			// Use API client to call crypto transformer inference
+			resp, err := m.APIClient.CallCryptoTransformer(input, nil)
 
 			if err != nil {
 				logErr := fmt.Sprintf("[%s] Transformer Error: %v", time.Now().Format("15:04:05"), err)
@@ -702,7 +763,7 @@ func (m Model) handleInput(input string) tea.Cmd {
 			}
 
 			logResp := fmt.Sprintf("[%s] Crypto-transformer inference completed", time.Now().Format("15:04:05"))
-			llmMsg := llmMessageStyle.Render("Assistant: " + resp)
+			llmMsg := llmMessageStyle.Render("Assistant: " + resp.Response)
 			return CombinedLogChatMsg{Log: logResp, Chat: llmMsg}
 		},
 	)
@@ -729,12 +790,17 @@ func (m Model) handleStatusCommand() tea.Cmd {
 			output.WriteString("ASIC Device: Not connected\n")
 		}
 
-		// Orchestrator status
-		orch := server.GetOrchestrator()
-		if orch != nil && orch.IsReady() {
-			output.WriteString("API Server: Running\n")
-		} else {
+		// API Server status
+		health, err := m.APIClient.GetHealth()
+		if err != nil {
 			output.WriteString("API Server: Not running\n")
+		} else if health.Status == "ok" {
+			output.WriteString("API Server: Running\n")
+			if health.UsingASIC {
+				output.WriteString(fmt.Sprintf("ASIC Devices: %d chips\n", health.ChipCount))
+			}
+		} else {
+			output.WriteString("API Server: Error\n")
 		}
 
 		return AppendChatMsg{Msg: output.String()}
@@ -744,12 +810,90 @@ func (m Model) handleStatusCommand() tea.Cmd {
 // handleTrainCommand initiates crypto-transformer training
 func (m Model) handleTrainCommand() tea.Cmd {
 	return func() tea.Msg {
-		startMsg := infoStyle.Render("Starting crypto-transformer training...")
-		return CombinedLogChatMsg{
-			Log:  "[" + time.Now().Format("15:04:05") + "] Training initiated",
-			Chat: startMsg,
+		// Check if hasher-host is ready
+		if !m.ServerReady {
+			return CombinedLogChatMsg{
+				Log:  "[" + time.Now().Format("15:04:05") + "] Training failed - hasher-host not ready",
+				Chat: errorStyle.Render("Cannot start training: hasher-host is not ready. Please wait for the server to start."),
+			}
 		}
+
+		// Start training progress message
+		startMsg := infoStyle.Render("Starting crypto-transformer training...")
+		thinkingMsg := lipgloss.NewStyle().Foreground(lipgloss.Color("#9CA3AF")).Italic(true).Render("Initializing training loop...")
+
+		return tea.Batch(
+			func() tea.Msg {
+				return CombinedLogChatMsg{
+					Log:  "[" + time.Now().Format("15:04:05") + "] Training initiated",
+					Chat: startMsg,
+				}
+			},
+			func() tea.Msg {
+				return AppendChatMsg{Msg: thinkingMsg}
+			},
+			func() tea.Msg {
+				// Call hasher-host training API
+				resp, err := cryptotransformer.CallTrainingAPI(5, 0.001, 32, generateTrainingSamples())
+
+				if err != nil {
+					logErr := fmt.Sprintf("[%s] Training API Error: %v", time.Now().Format("15:04:05"), err)
+					errMsg := errorStyle.Render("Training failed: " + err.Error())
+					return CombinedLogChatMsg{Log: logErr, Chat: errMsg}
+				}
+
+				logResp := fmt.Sprintf("[%s] Training completed - Epoch: %d, Loss: %.4f, Accuracy: %.4f",
+					time.Now().Format("15:04:05"), resp.Epoch, resp.Loss, resp.Accuracy)
+
+				successMsg := progressStyle.Render("Training completed successfully!\n")
+				successMsg += fmt.Sprintf("Final Epoch: %d\n", resp.Epoch)
+				successMsg += fmt.Sprintf("Final Loss: %.4f\n", resp.Loss)
+				successMsg += fmt.Sprintf("Final Accuracy: %.2f%%\n", resp.Accuracy*100)
+				successMsg += fmt.Sprintf("Training Time: %.2f seconds\n", resp.LatencyMs/1000)
+				successMsg += fmt.Sprintf("ASIC Acceleration: %v\n", resp.UsingASIC)
+
+				return CombinedLogChatMsg{Log: logResp, Chat: successMsg}
+			},
+		)
 	}
+}
+
+// generateTrainingSamples creates sample training data for demonstration
+func generateTrainingSamples() []string {
+	samples := []string{
+		"hello world",
+		"neural network",
+		"hash transformer",
+		"asic acceleration",
+		"crypto mining",
+		"machine learning",
+		"artificial intelligence",
+		"deep learning",
+		"blockchain technology",
+		"quantum resistance",
+		"seed encoding",
+		"temporal ensemble",
+		"logical validation",
+		"hardware acceleration",
+		"cryptographic ai",
+		"hash matrix",
+		"inference engine",
+		"neural hashing",
+		"asic processing",
+		"transformer model",
+		"embedding space",
+		"attention mechanism",
+		"feedforward network",
+		"gradient descent",
+		"backpropagation",
+		"weight optimization",
+		"loss function",
+		"accuracy metric",
+		"training dataset",
+		"model checkpoint",
+		"convergence criteria",
+	}
+	return samples
 }
 
 // handleRuleCommand processes /rule commands
@@ -1152,59 +1296,35 @@ func (m Model) runRulesManager() tea.Msg {
 		output.WriteString(progressStyle.Render("Logical Validation Rules Manager\n"))
 		output.WriteString("══════════════════════════════════════\n\n")
 
-		// Get orchestrator for rule management
-		orch := server.GetOrchestrator()
-		if orch == nil {
-			// Create a temporary validator to show default rules
-			validator, err := hasher.NewLogicalValidator()
-			if err != nil {
-				return CombinedLogChatMsg{
-					Log:  fmt.Sprintf("[%s] Error creating validator: %v", time.Now().Format("15:04:05"), err),
-					Chat: errorStyle.Render(fmt.Sprintf("Error: %v", err)),
-				}
-			}
-
-			output.WriteString(infoStyle.Render("Available Domains:\n"))
-			for domain, rules := range validator.KnowledgeBase.Domains {
-				output.WriteString(fmt.Sprintf("\n  %s (%d rules)\n", domain, len(rules)))
-				for i, rule := range rules {
-					output.WriteString(fmt.Sprintf("    [%d] %s\n", i, rule.String()))
-					if rule.Description != "" {
-						output.WriteString(fmt.Sprintf("        %s\n", rule.Description))
-					}
-				}
-			}
-
-			output.WriteString("\n" + infoStyle.Render("Rule Management Commands:\n"))
-			output.WriteString("  In Chat view, use these commands:\n")
-			output.WriteString("  /rule add <domain> <type> <conclusion>\n")
-			output.WriteString("    Types: constraint, subsumption, disjoint\n")
-			output.WriteString("  /rule delete <domain> <index>\n")
-			output.WriteString("  /rule list [domain]\n")
-			output.WriteString("\n  Example:\n")
-			output.WriteString("    /rule add temperature constraint \"Valid range: -40 to 85\"\n")
-
+		// Create a validator for rule management (independent of orchestrator)
+		validator, err := hasher.NewLogicalValidator()
+		if err != nil {
 			return CombinedLogChatMsg{
-				Log:  fmt.Sprintf("[%s] Rules manager displayed", time.Now().Format("15:04:05")),
-				Chat: output.String(),
+				Log:  fmt.Sprintf("[%s] Error creating validator: %v", time.Now().Format("15:04:05"), err),
+				Chat: errorStyle.Render(fmt.Sprintf("Error: %v", err)),
 			}
 		}
 
-		// Show rules from orchestrator's validator
+		// Show available domains and rules
 		output.WriteString(infoStyle.Render("Available Domains:\n"))
-		// Note: Would access orchestrator's validator here
-		output.WriteString("  (Connect to API server to manage rules)\n")
+		for domain, rules := range validator.KnowledgeBase.Domains {
+			output.WriteString(fmt.Sprintf("\n  %s (%d rules)\n", domain, len(rules)))
+			for i, rule := range rules {
+				output.WriteString(fmt.Sprintf("    [%d] %s\n", i, rule.String()))
+				if rule.Description != "" {
+					output.WriteString(fmt.Sprintf("        %s\n", rule.Description))
+				}
+			}
+		}
 
-		output.WriteString("\n" + infoStyle.Render("API Endpoints:\n"))
-		output.WriteString("  POST /api/v1/rules      - Add a new rule\n")
-		output.WriteString("  DELETE /api/v1/rules    - Delete a rule\n")
-		output.WriteString("  GET /api/v1/rules/list  - List all rules\n")
-		output.WriteString("  GET /api/v1/domains     - List all domains\n")
-
-		output.WriteString("\n" + infoStyle.Render("In Chat view, use these commands:\n"))
+		output.WriteString("\n" + infoStyle.Render("Rule Management Commands:\n"))
+		output.WriteString("  In Chat view, use these commands:\n")
 		output.WriteString("  /rule add <domain> <type> <conclusion>\n")
+		output.WriteString("    Types: constraint, subsumption, disjoint\n")
 		output.WriteString("  /rule delete <domain> <index>\n")
 		output.WriteString("  /rule list [domain]\n")
+		output.WriteString("\n  Example:\n")
+		output.WriteString("    /rule add temperature constraint \"Valid range: -40 to 85\"\n")
 
 		return CombinedLogChatMsg{
 			Log:  fmt.Sprintf("[%s] Rules manager displayed", time.Now().Format("15:04:05")),
@@ -1265,6 +1385,12 @@ type AppendChatMsg struct {
 	Msg string
 }
 
+type hideCopyNoticeMsg struct{}
+
+type textSelectedMsg struct {
+	Text string
+}
+
 type CombinedLogChatMsg struct {
 	Log  string
 	Chat string
@@ -1279,4 +1405,69 @@ type ProgressUpdateMsg struct {
 type DeviceSelectedMsg struct {
 	IP         string
 	DeviceType string
+}
+
+// Mouse and clipboard functionality
+func (m Model) handleMouse(msg tea.MouseMsg) tea.Cmd {
+	if msg.Type == tea.MouseLeft {
+		// Check if we're in chat or log view
+		if m.CurrentView == ChatView || m.CurrentView == LogView {
+			// Get current view content
+			var content string
+			if m.CurrentView == ChatView {
+				content = strings.Join(m.ChatHistory, "\n")
+			} else {
+				content = strings.Join(m.ServerLogs, "\n")
+			}
+
+			// Extract text selection (simplified version)
+			selectedText := m.extractTextAtPosition(content, int(msg.X), int(msg.Y))
+			if selectedText != "" {
+				return func() tea.Msg {
+					return textSelectedMsg{Text: selectedText}
+				}
+			}
+		}
+	} else if msg.Type == tea.MouseRight {
+		// Right click to copy selection
+		if m.SelectedText != "" {
+			return func() tea.Msg {
+				return textSelectedMsg{Text: m.SelectedText}
+			}
+		}
+	}
+	return nil
+}
+
+func (m Model) extractTextAtPosition(content string, x, y int) string {
+	// Simplified text extraction - in a real implementation,
+	// this would calculate based on viewport and character positions
+	lines := strings.Split(content, "\n")
+	if y >= 0 && y < len(lines) {
+		line := lines[y]
+		if x >= 0 && x < len(line) {
+			// Extract word or phrase at cursor position
+			start := x
+			end := x
+
+			// Find word boundaries
+			for start > 0 && line[start-1] != ' ' && line[start-1] != '\n' {
+				start--
+			}
+			for end < len(line) && line[end] != ' ' && line[end] != '\n' {
+				end++
+			}
+
+			if start < end {
+				return line[start:end]
+			}
+		}
+	}
+	return ""
+}
+
+func (m Model) startCopyNoticeTimer() tea.Cmd {
+	return tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+		return hideCopyNoticeMsg{}
+	})
 }

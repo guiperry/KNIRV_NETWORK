@@ -1,0 +1,246 @@
+// internal/host/deployment.go
+// Package host provides hasher-host deployment and management functionality
+package host
+
+import (
+	"fmt"
+	"log"
+	"time"
+
+	"hasher/internal/analyzer"
+	"hasher/internal/hasher"
+)
+
+// DeploymentConfig defines deployment configuration
+type DeploymentConfig struct {
+	AutoDeploy     bool          // Automatically deploy hasher-server if not found
+	CleanupOnExit  bool          // Clean up deployed binaries on exit
+	ConnectTimeout time.Duration // Timeout for server connection
+	DeployTimeout  time.Duration // Timeout for deployment operations
+}
+
+// DefaultDeploymentConfig returns default deployment configuration
+func DefaultDeploymentConfig() *DeploymentConfig {
+	return &DeploymentConfig{
+		AutoDeploy:     true,
+		CleanupOnExit:  true,
+		ConnectTimeout: 30 * time.Second,
+		DeployTimeout:  120 * time.Second,
+	}
+}
+
+// Deployer manages hasher-server deployment to ASIC devices
+type Deployer struct {
+	config         *DeploymentConfig
+	analyzer       *analyzer.Deployer
+	deployedDevice string // IP address of deployed device
+	cleanupFunc    func() // Cleanup function to call on exit
+}
+
+// NewDeployer creates a new hasher-server deployer
+func NewDeployer(config *DeploymentConfig) (*Deployer, error) {
+	if config == nil {
+		config = DefaultDeploymentConfig()
+	}
+
+	// Create analyzer for device operations
+	analyzerConfig := analyzer.DefaultDeployerConfig()
+	analyzer, err := analyzer.NewDeployer(analyzerConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create analyzer: %w", err)
+	}
+
+	return &Deployer{
+		config:   config,
+		analyzer: analyzer,
+	}, nil
+}
+
+// EnsureServerDeployed ensures hasher-server is deployed and running on target device
+func (d *Deployer) EnsureServerDeployed(deviceIP string) (*hasher.ASICClient, error) {
+	log.Printf("Ensuring hasher-server is deployed on device: %s", deviceIP)
+
+	// Step 1: Check if hasher-server is already running
+	client, err := d.checkExistingServer(deviceIP)
+	if err == nil {
+		log.Printf("hasher-server already running on %s", deviceIP)
+		d.deployedDevice = deviceIP
+		return client, nil
+	}
+
+	log.Printf("hasher-server not available on %s, attempting deployment...", deviceIP)
+
+	// Step 2: Deploy hasher-server if auto-deploy is enabled
+	if !d.config.AutoDeploy {
+		return nil, fmt.Errorf("hasher-server not found and auto-deploy is disabled")
+	}
+
+	if err := d.deployHasherServer(deviceIP); err != nil {
+		return nil, fmt.Errorf("deployment failed: %w", err)
+	}
+
+	// Step 3: Wait for server to start and verify connection
+	client, err = d.waitForServer(deviceIP)
+	if err != nil {
+		return nil, fmt.Errorf("server deployment succeeded but connection failed: %w", err)
+	}
+
+	d.deployedDevice = deviceIP
+	log.Printf("hasher-server successfully deployed and running on %s", deviceIP)
+
+	// Set up cleanup if configured
+	if d.config.CleanupOnExit {
+		d.setupCleanup(deviceIP)
+	}
+
+	return client, nil
+}
+
+// checkExistingServer checks if hasher-server is already running on device
+func (d *Deployer) checkExistingServer(deviceIP string) (*hasher.ASICClient, error) {
+	address := fmt.Sprintf("%s:50051", deviceIP)
+
+	client, err := hasher.NewASICClient(address)
+	if err != nil {
+		return nil, err
+	}
+
+	// Simple connection test
+	_, err = client.GetDeviceInfo()
+	if err != nil {
+		client.Close()
+		return nil, fmt.Errorf("server not responding: %w", err)
+	}
+
+	return client, nil
+}
+
+// deployHasherServer deploys hasher-server to target device
+func (d *Deployer) deployHasherServer(deviceIP string) error {
+	log.Printf("Deploying hasher-server to %s...", deviceIP)
+
+	// Select device in analyzer
+	devices := d.analyzer.GetDevices()
+	targetDevice := -1
+	for i, dev := range devices {
+		if dev.IPAddress == deviceIP {
+			targetDevice = i
+			break
+		}
+	}
+
+	if targetDevice == -1 {
+		return fmt.Errorf("device %s not found in discovered devices", deviceIP)
+	}
+
+	if err := d.analyzer.SelectDevice(targetDevice); err != nil {
+		return fmt.Errorf("failed to select device: %w", err)
+	}
+
+	// Use provisioning phase to deploy and start hasher-server
+	log.Printf("Running provisioning phase to deploy hasher-server...")
+	_, err := d.analyzer.RunProvision()
+	if err != nil {
+		return fmt.Errorf("provisioning failed: %w", err)
+	}
+
+	return nil
+}
+
+// waitForServer waits for hasher-server to start and accepts connections
+func (d *Deployer) waitForServer(deviceIP string) (*hasher.ASICClient, error) {
+	address := fmt.Sprintf("%s:50051", deviceIP)
+
+	// Try connecting with exponential backoff
+	backoff := 1 * time.Second
+	maxBackoff := 10 * time.Second
+	timeout := time.After(d.config.ConnectTimeout)
+
+	for {
+		select {
+		case <-timeout:
+			return nil, fmt.Errorf("timeout waiting for hasher-server to start")
+		default:
+			client, err := hasher.NewASICClient(address)
+			if err == nil {
+				// Test the connection
+				if _, err := client.GetDeviceInfo(); err == nil {
+					return client, nil
+				}
+				client.Close()
+			}
+
+			// Wait and retry
+			time.Sleep(backoff)
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
+	}
+}
+
+// setupCleanup sets up cleanup function for deployed hasher-server
+func (d *Deployer) setupCleanup(deviceIP string) {
+	d.cleanupFunc = func() {
+		log.Printf("Cleaning up hasher-server from device %s...", deviceIP)
+
+		// Connect and cleanup using analyzer's cleanup
+		if err := d.analyzer.Connect(); err != nil {
+			log.Printf("Failed to connect for cleanup: %v", err)
+			return
+		}
+		defer d.analyzer.Disconnect()
+
+		// Use analyzer's cleanup which should handle hasher-server
+		if err := d.analyzer.Cleanup(); err != nil {
+			log.Printf("Warning: Cleanup failed: %v", err)
+		}
+
+		log.Printf("Cleanup complete for device %s", deviceIP)
+	}
+}
+
+// Cleanup performs cleanup of deployed hasher-server
+func (d *Deployer) Cleanup() {
+	if d.cleanupFunc != nil {
+		d.cleanupFunc()
+	}
+}
+
+// GetDeployedDevice returns the IP address of the device where server was deployed
+func (d *Deployer) GetDeployedDevice() string {
+	return d.deployedDevice
+}
+
+// DeployWithDiscovery performs device discovery and deployment in one step
+func (d *Deployer) DeployWithDiscovery() (*hasher.ASICClient, error) {
+	log.Printf("Performing device discovery and deployment...")
+
+	// Run discovery
+	_, err := d.analyzer.RunDiscovery()
+	if err != nil {
+		return nil, fmt.Errorf("discovery failed: %w", err)
+	}
+
+	devices := d.analyzer.GetDevices()
+	if len(devices) == 0 {
+		return nil, fmt.Errorf("no devices found")
+	}
+
+	// Use first accessible device
+	for _, dev := range devices {
+		if dev.Accessible {
+			log.Printf("Found accessible device: %s (%s)", dev.IPAddress, dev.DeviceType)
+			return d.EnsureServerDeployed(dev.IPAddress)
+		}
+	}
+
+	return nil, fmt.Errorf("no accessible devices found")
+}
+
+// SetLogWriter sets the log writer for the analyzer
+func (d *Deployer) SetLogWriter(w interface{}) {
+	// This would need proper type matching with analyzer
+	// For now, skip this implementation
+}
