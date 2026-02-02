@@ -48,7 +48,8 @@ func cleanupPortFile() {
 var (
 	// Server configuration
 	port      = flag.Int("port", 0, "HTTP API server port (0 = auto-find open port)")
-	asicAddr  = flag.String("asic-addr", "", "hasher-server gRPC address (empty = auto-discover)")
+	device    = flag.String("device", "", "ASIC device IP (empty = auto-discover/deploy). Deploys hasher-server first. Ex: 192.168.12.151")
+	asicAddr  = flag.String("asic-addr", "", "hasher-server gRPC address (empty = auto-discover). Deploys hasher-server first. Ex: 192.168.12.151:8888")
 	enableAPI = flag.Bool("api", true, "enable REST API server")
 
 	// CLI modes (for direct command-line testing)
@@ -248,15 +249,72 @@ func main() {
 	var discoveryResult *hasher.DiscoveryResult
 	var serverDeviceAddr string // Store the server device IP
 
-	if *asicAddr != "" {
-		// Use explicitly provided address
-		log.Printf("Connecting to specified ASIC server: %s", *asicAddr)
-		serverDeviceAddr = *asicAddr
-		var err error
-		asicClient, err = hasher.NewASICClient(*asicAddr)
-		if err != nil {
-			log.Printf("Warning: Could not create ASIC client: %v", err)
+	if *device != "" {
+		// Use explicit device IP - deployment is required first
+		log.Printf("Device specified: %s - deploying hasher-server first", *device)
+		serverDeviceAddr = fmt.Sprintf("%s:8888", *device)
+
+		// Deployment is mandatory - create deployer if not already created
+		if deployer == nil {
+			deployConfig := &host.DeploymentConfig{
+				AutoDeploy:     true,
+				CleanupOnExit:  *cleanupOnExit,
+				ConnectTimeout: 30 * time.Second,
+				DeployTimeout:  120 * time.Second,
+			}
+			var err error
+			deployer, err = host.NewDeployer(deployConfig)
+			if err != nil {
+				log.Fatalf("Failed to create required deployer for device %s: %v", *device, err)
+			}
 		}
+
+		// Deploy hasher-server to the specified device and get connected client
+		log.Printf("Deploying hasher-server to device %s...", *device)
+		deployedClient, deployErr := deployer.EnsureServerDeployed(*device)
+		if deployErr != nil {
+			log.Fatalf("Failed to deploy hasher-server to device %s: %v", *device, deployErr)
+		}
+
+		// Use the connected client from deployment (deployment already SSH'd to port 22, deployed, and connected to port 8888)
+		asicClient = deployedClient
+		log.Printf("Successfully deployed and connected to hasher-server on device %s", *device)
+
+	} else if *asicAddr != "" {
+		// Extract IP from asicAddr for deployment
+		deviceIP := extractIPFromAddress(*asicAddr)
+		if deviceIP == "" {
+			log.Fatalf("Invalid ASIC server address: %s - cannot extract device IP for deployment", *asicAddr)
+		}
+
+		log.Printf("ASIC server specified: %s - deploying hasher-server to device %s first", *asicAddr, deviceIP)
+		serverDeviceAddr = *asicAddr
+
+		// Deployment is mandatory - create deployer if not already created
+		if deployer == nil {
+			deployConfig := &host.DeploymentConfig{
+				AutoDeploy:     true,
+				CleanupOnExit:  *cleanupOnExit,
+				ConnectTimeout: 30 * time.Second,
+				DeployTimeout:  120 * time.Second,
+			}
+			var createErr error
+			deployer, createErr = host.NewDeployer(deployConfig)
+			if createErr != nil {
+				log.Fatalf("Failed to create required deployer for device %s: %v", deviceIP, createErr)
+			}
+		}
+
+		// Deploy hasher-server to device and get connected client
+		log.Printf("Deploying hasher-server to device %s...", deviceIP)
+		deployedClient, deployErr := deployer.EnsureServerDeployed(deviceIP)
+		if deployErr != nil {
+			log.Fatalf("Failed to deploy hasher-server to device %s: %v", deviceIP, deployErr)
+		}
+
+		// Use the connected client from deployment (deployment already SSH'd to port 22, deployed, and connected to port 8888)
+		asicClient = deployedClient
+		log.Printf("Successfully deployed and connected to hasher-server on device %s", deviceIP)
 	} else if *discoverNetwork {
 		// Perform network discovery with auto-deployment
 		log.Printf("Discovering hasher-server instances on network...")
@@ -329,9 +387,12 @@ func main() {
 		}
 	}
 
-	// Override with explicit flag if provided
+	// Override with explicit flags if provided
 	if *serverDeviceIP != "" {
 		serverDeviceAddr = *serverDeviceIP
+	} else if *device != "" {
+		// Device flag takes precedence for IP extraction
+		serverDeviceAddr = *device
 	}
 
 	if asicClient != nil {

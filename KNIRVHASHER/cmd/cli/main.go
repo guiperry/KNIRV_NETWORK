@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -22,7 +23,15 @@ const (
 	portFile = "/tmp/hasher-host.port"
 )
 
+// CLI configuration flags
+var (
+	deviceIP      = flag.String("device", "", "ASIC device IP for hasher-host (empty = auto-discover)")
+	discoveryFlag = flag.Bool("discover", true, "enable network discovery in hasher-host")
+	monitorLogs   = flag.Bool("monitor-logs", true, "enable server log monitoring")
+)
+
 func main() {
+	flag.Parse()
 	var hasherHostCmd *exec.Cmd
 	hasherHostStarted := false
 	hasherHostPort := 8080 // Default port, will be updated if hasher-host finds different port
@@ -130,8 +139,24 @@ func startHasherHost(logChan chan string) (*exec.Cmd, bool, int) {
 
 	logChan <- fmt.Sprintf("Starting hasher-host from %s...", hostPath)
 
-	// Start hasher-host in API mode with port auto-discovery
-	cmd := exec.Command(hostPath, "--mode=api", "--port=0")
+	// Build hasher-host arguments based on CLI flags
+	args := []string{"--mode=api", "--port=0"}
+
+	// Add device-specific flags if provided
+	if *deviceIP != "" {
+		args = append(args, "--device", *deviceIP, "--discover=false")
+		logChan <- fmt.Sprintf("Using device %s (discovery disabled)", *deviceIP)
+	} else {
+		if !*discoveryFlag {
+			args = append(args, "--discover=false")
+		}
+		if !*monitorLogs {
+			args = append(args, "--monitor-server-logs=false")
+		}
+	}
+
+	// Start hasher-host with configured arguments
+	cmd := exec.Command(hostPath, args...)
 
 	// Create pipes to capture output and forward to the UI
 	stdoutPipe, _ := cmd.StdoutPipe()

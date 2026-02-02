@@ -49,6 +49,8 @@ func NewDeployer(config *DeploymentConfig) (*Deployer, error) {
 
 	// Create analyzer for device operations
 	analyzerConfig := analyzer.DefaultDeployerConfig()
+	// If subnet flag is provided, override the empty default
+	analyzerConfig.Subnet = "" // Start with empty to force flag usage or auto-detection
 	analyzer, err := analyzer.NewDeployer(analyzerConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create analyzer: %w", err)
@@ -130,7 +132,7 @@ func (d *Deployer) checkExistingServer(deviceIP string) (*hasher.ASICClient, err
 func (d *Deployer) deployHasherServer(deviceIP string) error {
 	log.Printf("Deploying hasher-server to %s...", deviceIP)
 
-	// Select device in analyzer
+	// Select device in analyzer - try to find it in discovered devices first
 	devices := d.analyzer.GetDevices()
 	targetDevice := -1
 	for i, dev := range devices {
@@ -141,11 +143,16 @@ func (d *Deployer) deployHasherServer(deviceIP string) error {
 	}
 
 	if targetDevice == -1 {
-		return fmt.Errorf("device %s not found in discovered devices", deviceIP)
-	}
-
-	if err := d.analyzer.SelectDevice(targetDevice); err != nil {
-		return fmt.Errorf("failed to select device: %w", err)
+		// Device not found in discovery, try to select it directly by IP
+		log.Printf("Device %s not found in discovered devices, attempting direct selection...", deviceIP)
+		if err := d.analyzer.SelectDeviceByIP(deviceIP); err != nil {
+			return fmt.Errorf("failed to select device by IP %s: %w", deviceIP, err)
+		}
+	} else {
+		// Device found in discovery, select it by index
+		if err := d.analyzer.SelectDevice(targetDevice); err != nil {
+			return fmt.Errorf("failed to select device: %w", err)
+		}
 	}
 
 	// Use provisioning phase to deploy and start hasher-server
@@ -176,7 +183,11 @@ func (d *Deployer) waitForServer(deviceIP string) (*hasher.ASICClient, error) {
 			if err == nil {
 				// Test the connection
 				if _, err := client.GetDeviceInfo(); err == nil {
-					return client, nil
+					// CRITICAL: Verify we're NOT in fallback mode
+					if !client.IsUsingFallback() {
+						return client, nil
+					}
+					log.Printf("Server responded but client is in fallback mode - server not ready yet")
 				}
 				client.Close()
 			}

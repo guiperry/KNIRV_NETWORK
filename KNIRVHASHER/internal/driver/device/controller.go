@@ -154,7 +154,7 @@ func CheckDeviceState() (map[string]string, error) {
 }
 
 // OpenDevice opens the ASIC device with eBPF tracing
-// Handles "device or resource busy" by unloading the kernel module if necessary
+// Handles device access with USB-first strategy to bypass kernel module crashes
 func OpenDevice(enableTracing bool) (*Device, error) {
 	dev := &Device{
 		chipCount:       32,
@@ -164,8 +164,34 @@ func OpenDevice(enableTracing bool) (*Device, error) {
 		isOperational:   false,
 	}
 
-	// Strategy 1: Try direct open with O_RDWR (normal case - module not loaded or not in use)
-	log.Printf("Strategy 1: Opening device with O_RDWR...")
+	// Strategy 1: Try USB-based communication FIRST (bypasses kernel module entirely)
+	// This avoids triggering kernel crashes in the bitmain_asic driver
+	log.Printf("Strategy 1: Trying USB-based communication (bypassing kernel module)...")
+	if IsUSBDeviceAvailable() {
+		usbDev, usbErr := OpenUSBDevice()
+		if usbErr == nil {
+			// Initialize the USB device
+			if initErr := usbDev.Initialize(); initErr == nil {
+				log.Printf("Successfully using USB-based device access")
+				dev.usbDevice = usbDev
+				dev.useUSB = true
+				dev.chipCount = usbDev.GetChipCount()
+				dev.isOperational = true
+				return dev.initDevice(enableTracing)
+			} else {
+				log.Printf("USB initialization failed: %v", initErr)
+				usbDev.Close()
+			}
+		} else {
+			log.Printf("USB approach not viable: %v", usbErr)
+		}
+	} else {
+		log.Printf("USB subsystem not available on this system")
+	}
+
+	// Strategy 2: Try direct open with O_RDWR (only if USB fails)
+	// NOTE: This can trigger kernel crashes in bitmain_asic driver on some systems
+	log.Printf("Strategy 2: Opening device via kernel driver (may trigger crashes)...")
 	file, err := os.OpenFile(DevicePath, os.O_RDWR, 0)
 	if err == nil {
 		dev.file = file
@@ -182,8 +208,8 @@ func OpenDevice(enableTracing bool) (*Device, error) {
 		return nil, fmt.Errorf("open device: %w", err)
 	}
 
-	// Strategy 2: Try opening with O_RDONLY to see if device is accessible at all
-	log.Printf("Strategy 2: Trying O_RDONLY access...")
+	// Strategy 3: Try opening with O_RDONLY to see if device is accessible at all
+	log.Printf("Strategy 3: Trying O_RDONLY access...")
 	file, err = os.OpenFile(DevicePath, os.O_RDONLY, 0)
 	if err == nil {
 		// We can read but not write - close and try module unload for full access
@@ -191,26 +217,6 @@ func OpenDevice(enableTracing bool) (*Device, error) {
 		log.Printf("Device readable with O_RDONLY, but need O_RDWR - will try alternative methods")
 	} else {
 		log.Printf("Device not accessible even with O_RDONLY: %v", err)
-	}
-
-	// Strategy 3: Try USB-based communication (bypasses kernel module entirely)
-	log.Printf("Strategy 3: Trying USB-based communication...")
-	usbDev, usbErr := OpenUSBDevice()
-	if usbErr == nil {
-		// Initialize the USB device
-		if initErr := usbDev.Initialize(); initErr == nil {
-			log.Printf("Successfully using USB-based device access")
-			dev.usbDevice = usbDev
-			dev.useUSB = true
-			dev.chipCount = usbDev.GetChipCount()
-			dev.isOperational = true
-			return dev.initDevice(enableTracing)
-		} else {
-			log.Printf("USB initialization failed: %v", initErr)
-			usbDev.Close()
-		}
-	} else {
-		log.Printf("USB approach not viable: %v", usbErr)
 	}
 
 	// Strategy 4: Try IOCTL-based communication with loaded kernel module

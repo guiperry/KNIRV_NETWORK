@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -64,13 +65,13 @@ type DeployerConfig struct {
 func DefaultDeployerConfig() DeployerConfig {
 	homeDir, _ := os.UserHomeDir()
 	return DeployerConfig{
-		Subnet:          "192.168.12.0/24",
+		Subnet:          "", // Allow CLI flag override or auto-detection
 		Username:        "root",
 		Password:        "keperu100",
 		Timeout:         10 * time.Second,
 		WorkDir:         filepath.Join(homeDir, ".hasher", "bin"),
 		RemoteDir:       "/tmp",
-		ConcurrentScans: 50,
+		ConcurrentScans: 20, // Reduced from 50 to reduce network load
 	}
 }
 
@@ -158,6 +159,10 @@ func (d *Deployer) RunDiscovery() (*PhaseResult, error) {
 
 	d.log("Starting network discovery on %s...", d.config.Subnet)
 
+	// Add global timeout for discovery (30 seconds max)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	// Parse CIDR
 	ip, ipnet, err := net.ParseCIDR(d.config.Subnet)
 	if err != nil {
@@ -183,6 +188,14 @@ func (d *Deployer) RunDiscovery() (*PhaseResult, error) {
 
 	// Scan each IP
 	for _, ipStr := range ips {
+		// Check if context is cancelled
+		select {
+		case <-ctx.Done():
+			d.log("Discovery timeout reached, stopping scan")
+			goto collectResults
+		default:
+		}
+
 		wg.Add(1)
 		semaphore <- struct{}{}
 
@@ -190,11 +203,20 @@ func (d *Deployer) RunDiscovery() (*PhaseResult, error) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
 
+			// Check context before probing
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+
 			if device := d.probeHost(targetIP); device != nil {
 				devicesChan <- *device
 			}
 		}(ipStr)
 	}
+
+collectResults:
 
 	// Collector goroutine
 	go func() {
@@ -689,24 +711,41 @@ func (d *Deployer) RunProvision() (*PhaseResult, error) {
 		output.WriteString("Disk Space:\n" + df + "\n\n")
 	}
 
-	// Step 2: Stop CGMiner
-	d.log("Stopping CGMiner...")
-	output.WriteString("Stopping CGMiner:\n")
+	// Step 2: Stop CGMiner and release device
+	d.log("Stopping CGMiner and releasing ASIC device...")
+	output.WriteString("Stopping CGMiner and releasing device:\n")
 	output.WriteString(strings.Repeat("-", 30) + "\n")
 
 	stopOutput, _ := d.runRemoteCommand(`
+		echo "Stopping CGMiner processes..."
 		if pgrep cgminer > /dev/null 2>&1; then
 			/etc/init.d/cgminer stop 2>/dev/null || true
 			sleep 3
 			killall -9 cgminer bmminer 2>/dev/null || true
 			sleep 1
 			if pgrep cgminer > /dev/null 2>&1; then
-				echo "FAILED: CGMiner still running"
+				echo "WARNING: CGMiner still running"
 			else
 				echo "SUCCESS: CGMiner stopped"
 			fi
 		else
 			echo "CGMiner was not running"
+		fi
+		
+		echo "Releasing ASIC device..."
+		# Try multiple approaches to release the device
+		echo "  - Attempting to unload kernel module..."
+		rmmod bitmain_asic 2>/dev/null || echo "  - Module unload failed (may be in use)"
+		sleep 2
+		
+		# Try killall for any lingering processes
+		killall -9 cgminer bmminer 2>/dev/null || true
+		
+		# Final check
+		if lsmod | grep -q bitmain_asic; then
+			echo "  - WARNING: bitmain_asic module still loaded"
+		else
+			echo "  - SUCCESS: bitmain_asic module unloaded"
 		fi
 	`)
 	output.WriteString(stopOutput + "\n\n")
@@ -724,25 +763,44 @@ func (d *Deployer) RunProvision() (*PhaseResult, error) {
 	}
 
 	if _, err := os.Stat(serverBinaryPath); err == nil {
-		d.log("Found hasher-server at %s", serverBinaryPath)
+		d.log("Using local hasher-server binary at %s", serverBinaryPath)
 
 		// Read binary
 		binary, err := os.ReadFile(serverBinaryPath)
 		if err != nil {
 			output.WriteString(fmt.Sprintf("Failed to read binary: %v\n", err))
 		} else {
-			remoteBinaryPath := filepath.Join(d.config.RemoteDir, "hasher-server")
+			// Use the same binary name as uploaded (strip mips suffix for remote execution)
+			remoteBinaryName := "hasher-server" // Always use hasher-server on remote device
+			remoteBinaryPath := filepath.Join(d.config.RemoteDir, remoteBinaryName)
 			if err := d.uploadFile(remoteBinaryPath, binary); err != nil {
 				output.WriteString(fmt.Sprintf("Failed to upload: %v\n", err))
 			} else {
+				// Store the remote binary path for execution
+				remoteServerPath := remoteBinaryPath // This is now /tmp/hasher-server after line 758
 				d.runRemoteCommand(fmt.Sprintf("chmod +x %s", remoteBinaryPath))
 				output.WriteString(fmt.Sprintf("Deployed to %s\n", remoteBinaryPath))
+				d.log("✅ hasher-server deployed successfully at %s", remoteBinaryPath)
 
-				// Start hasher-server
+				// Start hasher-server with proper initialization
 				// Note: Use subshell with & instead of nohup since busybox doesn't have nohup
 				d.log("Starting hasher-server...")
-				startOutput, _ := d.runRemoteCommand(fmt.Sprintf("( %s --port=8888 --trace=true > /tmp/hasher-server.log 2>&1 ) &", remoteBinaryPath))
+				startCmd := fmt.Sprintf("( echo 'Starting hasher-server...'; %s --port=8888 --trace=true > /tmp/hasher-server.log 2>&1; echo 'Hasher-server exited with code: $?' ) &", remoteServerPath)
+				startOutput, _ := d.runRemoteCommand(startCmd)
 				output.WriteString("Started hasher-server: " + startOutput + "\n")
+
+				// Give hasher-server time to initialize and start listening
+				d.log("Waiting for hasher-server to initialize...")
+				d.runRemoteCommand("sleep 5") // Give server time to start
+
+				// Verify the process is actually running
+				d.log("Verifying hasher-server process...")
+				psOutput, _ := d.runRemoteCommand("ps w | grep hasher-server | grep -v grep || echo 'PROCESS_NOT_FOUND'")
+				if strings.Contains(psOutput, "PROCESS_NOT_FOUND") {
+					output.WriteString("WARNING: hasher-server process not found after startup\n")
+				} else {
+					output.WriteString("hasher-server process confirmed running\n")
+				}
 			}
 		}
 	} else {

@@ -1536,14 +1536,14 @@ func (m Model) handleMouse(msg tea.MouseMsg) tea.Cmd {
 			}
 
 			// Handle text selection in chat content area
-			// Convert global coordinates to chat viewport local coordinates
-			localY := int(msg.Y) - chatY
-			localX := int(msg.X) - chatX
-			if localX >= 1 && localX < chatWidth-1 && localY >= 1 && localY < chatHeight-1 {
+			if msg.X >= 1 && msg.X < chatWidth-1 && msg.Y >= 1 && msg.Y < chatY+chatHeight-1 {
 				content := strings.Join(m.ChatHistory, "\n")
+				// Convert to chat viewport local coordinates
+				localY := int(msg.Y) - chatY
 				// Account for viewport content area (excluding border) and scroll offset
-				adjustedY := localY - 1 + m.ChatScrollOffset // -1 to account for border
-				selectedText := m.extractTextAtPosition(content, localX-1, adjustedY)
+				adjustedY := localY - 1 + m.ChatScrollOffset
+				// localX-1 converts to content coordinates (excluding left border)
+				selectedText := m.extractTextAtPosition(content, int(msg.X)-1, adjustedY)
 				if selectedText != "" {
 					return func() tea.Msg {
 						return textSelectedMsg{Text: selectedText}
@@ -1576,7 +1576,9 @@ func (m Model) handleMouse(msg tea.MouseMsg) tea.Cmd {
 			if localX >= 1 && localX < logWidth-1 && localY >= 1 && localY < logHeight-1 {
 				content := strings.Join(m.ServerLogs, "\n")
 				// Account for viewport content area (excluding border) and scroll offset
-				adjustedY := localY - 1 + m.LogScrollOffset // -1 to account for border
+				// localY-1 converts to content coordinates (excluding top border)
+				adjustedY := localY - 1 + m.LogScrollOffset
+				// localX-1 converts to content coordinates (excluding left border)
 				selectedText := m.extractTextAtPosition(content, localX-1, adjustedY)
 				if selectedText != "" {
 					return func() tea.Msg {
@@ -1633,11 +1635,13 @@ func (m Model) handleMouse(msg tea.MouseMsg) tea.Cmd {
 	case tea.MouseRelease:
 		// Stop dragging when mouse is released
 		if m.ChatDragging || m.LogDragging {
-			m.ChatDragging = false
-			m.LogDragging = false
-			// Return the updated model to ensure state changes are applied
 			return func() tea.Msg {
-				return nil
+				return scrollbarUpdateMsg{
+					IsChat:        m.ChatDragging,
+					NewOffset:     m.ChatScrollOffset,
+					StartDragging: false,
+					DragStartY:    0,
+				}
 			}
 		}
 
