@@ -13,7 +13,7 @@ PROCESS_NAMES=(
 
 # Add more ports to this list as needed.
 PORTS=(
-    "50051" # gRPC hasher server
+    "80" # gRPC hasher server
     "8008"  # Hasher host API
 )
 # --- End of Configuration ---

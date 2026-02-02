@@ -23,7 +23,7 @@ EBPF_OUT=internal/ebpf/hasher.bpf.o
 CLANG=clang
 LLVM_STRIP=llvm-strip
 
-.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor deploy-diagnostics cli test-cli build-all build-server-mips build-host-all embed-binaries build-crypto-transformer train-crypto-transformer run-crypto-transformer build-simple-hash run-simple-hash
+.PHONY: all build clean test proto ebpf deps help build-asic-test build-probe build-probe build-probe-v2 build-protocol-discover build-monitor build-diagnostics deploy deploy-probe deploy-probe-v2 deploy-protocol-discover deploy-monitor deploy-diagnostics cli test-cli build-all build-server-mips build-host build-host-all embed-binaries build-crypto-transformer train-crypto-transformer run-crypto-transformer build-simple-hash run-simple-hash
 
 ANTMINER_IP ?= $(shell [ -f .env ] && source .env && echo $$DEVICE_IP || echo 192.168.12.151)
 ANTMINER_USER ?= root
@@ -281,36 +281,44 @@ build-host-darwin-arm64:
 	@cp $(BIN_DIR)/hasher-host-darwin-arm64 $(EMBED_DIR)/
 	@echo "✅ Build complete: $(BIN_DIR)/hasher-host-darwin-arm64"
 
+## build-host: Build hasher-host for current platform
+build-host:
+	@echo "🔨 Building hasher-host for current platform..."
+	@mkdir -p $(BIN_DIR)
+	$(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/$(HOST_BINARY) ./cmd/driver/hasher-host
+	@cp $(BIN_DIR)/hasher-host $(EMBED_DIR)/
+	@echo "✅ Build complete: $(BIN_DIR)/$(HOST_BINARY)"
+
 ## build-host-all: Build hasher-host for all platforms
-build-host-all: build-host-linux-amd64 build-host-darwin-amd64 build-host-darwin-arm64
+build-host-all: build-host-linux-amd64
 	@echo "✅ All hasher-host binaries built"
 
 ## build-all: Build all binaries for embedding
-build-all: build-server-mips build-host-all
+build-driver: build-server-mips build-host
 	@echo "✅ All binaries built and ready for embedding"
 	@echo "📦 Embedded binaries in: $(EMBED_DIR)"
 	@ls -la $(EMBED_DIR)/
 
 ## embed-binaries: Build all and then rebuild CLI with embedded binaries
-embed-binaries: build-all
-	@echo "🔨 Building CLI with embedded binaries..."
-	$(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/hasher ./cmd/cli
-	@echo "✅ CLI built with embedded binaries: $(BIN_DIR)/hasher"
-	@ls -lh $(BIN_DIR)/hasher
+embed-binaries: build-driver
+	@echo "🔨 Copying binaries to CLI embed directory..."
+	@cp $(BIN_DIR)/hasher-host $(EMBED_DIR)/
+	@cp $(BIN_DIR)/hasher-server-mips $(EMBED_DIR)/
+	@echo "✅ Build complete: $(BIN_DIR)/"
 
 
 ## build: Build all components
-build: build-host-linux-amd64 cli
+build: build-driver cli
 	@echo "✅ All components built"
 
 ## test-training: Test training functionality
 test-training:
 	@echo "🎯 Testing training functionality..."
 	@echo "Starting hasher-host with training API..."
-	@$(BIN_DIR)/$(HOST_BINARY) --port 8080 &
+	@$(BIN_DIR)/$(HOST_BINARY) --port 8081 &
 	@sleep 2
 	@echo "Testing training API call..."
-	@curl -X POST http://localhost:8080/api/v1/train \
+	@curl -X POST http://localhost:8081/api/v1/train \
 		-H "Content-Type: application/json" \
 		-d '{"epochs": 1, "learning_rate": 0.001, "batch_size": 32, "data_samples": ["test sample"]}' \
 		2>/dev/null || echo "❌ Training API test failed"

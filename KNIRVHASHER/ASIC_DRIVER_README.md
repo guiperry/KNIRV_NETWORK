@@ -73,7 +73,7 @@ KNIRVHASHER/
 sudo ./bin/hasher-server
 
 # Connect from anywhere
-./bin/hasher-host --addr=remote-server:50051
+./bin/hasher-host --addr=remote-server:8888
 ```
 
 ### 2. Real-time Monitoring with eBPF
@@ -256,7 +256,7 @@ docker-compose up
 
 # In another terminal, run a test
 docker-compose run hasher-host \
-    --addr=hasher-server:50051 --mode=batch --count=100
+    --addr=hasher-server:8888 --mode=batch --count=100
 ```
 
 ## Option 2: From Source

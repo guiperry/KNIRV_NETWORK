@@ -8,7 +8,7 @@ import cors from 'cors';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
 import crypto from 'crypto';
-import { apiKeyService, ApiKey } from '../services/ApiKeyService.js';
+import { apiKeyService, ApiKey } from '../services/ApiKeyService';
 
 const app = express();
 const server = createServer(app);
@@ -328,9 +328,9 @@ app.get('/api/status', (req, res) => {
 });
 
 // Graph ingestion endpoints: Error, Context, Idea
-import { personalKNIRVGRAPHService } from '../services/PersonalKNIRVGRAPHService';
-import { FactualitySlice } from '../slices/factualitySlice';
-import { FeasibilityReport } from '../slices/feasibilitySlice';
+import { personalKNIRVGRAPHService } from '../services/PersonalKNIRVGRAPHService.js';
+import { FactualitySlice } from '../slices/factualitySlice.js';
+import { FeasibilityReport } from '../slices/feasibilitySlice.js';
 
 app.post('/api/graph/error', authenticateApiKey, requirePermission('write:graph'), async (req, res) => {
   try {

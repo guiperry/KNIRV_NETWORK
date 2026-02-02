@@ -5,11 +5,11 @@ import * as THREE from "three";
 import GameLights from "./GameLights";
 import KnirvGraph from "./KnirvGraph";
 import CameraController from "./CameraController";
-import MountainTerrain from "./MountainTerrain";
 import RewardAnchor3D from "./RewardAnchor3D";
 import { useKnirvana } from "./stores/useKnirvana";
 import { useThemeStore } from "../../stores/useThemeStore";
 import DeployAnimation from "./DeployAnimation";
+import GridParticleSystem from "./GridParticleSystem";
 
 export default function GameScene() {
   const sceneRef = useRef<THREE.Group>(null);
@@ -137,9 +137,9 @@ export default function GameScene() {
         />
       </mesh>
       
-      {/* Mountain terrain - static geometric shapes at edges */}
-      <MountainTerrain />
-      
+      {/* Grid Particle System - electrical pulses shooting through grid */}
+      <GridParticleSystem key={themeMode} errorNodes={errorNodes} />
+
       {/* KNIRV Graph representation */}
       <KnirvGraph />
 
@@ -147,27 +147,6 @@ export default function GameScene() {
       {rewardAnchors.map(anchor => (
         <RewardAnchor3D key={anchor.id} anchor={anchor} />
       ))}
-
-      {/* Ambient particles - theme aware */}
-      <points>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={1000}
-            array={new Float32Array(
-              Array.from({ length: 3000 }, () => (Math.random() - 0.5) * 200)
-            )}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <pointsMaterial 
-          size={0.1} 
-          color={themeColors.particles}
-          transparent={true}
-          opacity={themeColors.particleOpacity}
-          sizeAttenuation={true}
-        />
-      </points>
 
       {/* Deploy animations */}
       <DeployAnimation />

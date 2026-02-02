@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -120,9 +121,52 @@ func (c *APIClient) post(endpoint string, data interface{}) (*json.RawMessage, e
 	}
 	defer resp.Body.Close()
 
+	// Read response body first to provide better error messages
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check for non-2xx status codes
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		// Try to extract error message from response
+		var errResp struct {
+			Error   string `json:"error"`
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(respBody, &errResp) == nil && (errResp.Error != "" || errResp.Message != "") {
+			errMsg := errResp.Error
+			if errMsg == "" {
+				errMsg = errResp.Message
+			}
+			return nil, fmt.Errorf("server error (%d): %s", resp.StatusCode, errMsg)
+		}
+		// Truncate response for error message (avoid huge HTML dumps)
+		preview := string(respBody)
+		if len(preview) > 200 {
+			preview = preview[:200] + "..."
+		}
+		return nil, fmt.Errorf("server returned status %d: %s", resp.StatusCode, preview)
+	}
+
+	// Check content type to ensure we're getting JSON
+	contentType := resp.Header.Get("Content-Type")
+	if contentType != "" && !bytes.Contains([]byte(contentType), []byte("json")) {
+		preview := string(respBody)
+		if len(preview) > 100 {
+			preview = preview[:100] + "..."
+		}
+		return nil, fmt.Errorf("unexpected content type %q (expected JSON): %s", contentType, preview)
+	}
+
 	var result json.RawMessage
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		// Provide helpful context for decode errors
+		preview := string(respBody)
+		if len(preview) > 100 {
+			preview = preview[:100] + "..."
+		}
+		return nil, fmt.Errorf("failed to decode JSON response: %w (response: %s)", err, preview)
 	}
 
 	return &result, nil
@@ -136,9 +180,41 @@ func (c *APIClient) get(endpoint string) (*json.RawMessage, error) {
 	}
 	defer resp.Body.Close()
 
+	// Read response body first to provide better error messages
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check for non-2xx status codes
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		// Try to extract error message from response
+		var errResp struct {
+			Error   string `json:"error"`
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(respBody, &errResp) == nil && (errResp.Error != "" || errResp.Message != "") {
+			errMsg := errResp.Error
+			if errMsg == "" {
+				errMsg = errResp.Message
+			}
+			return nil, fmt.Errorf("server error (%d): %s", resp.StatusCode, errMsg)
+		}
+		// Truncate response for error message
+		preview := string(respBody)
+		if len(preview) > 200 {
+			preview = preview[:200] + "..."
+		}
+		return nil, fmt.Errorf("server returned status %d: %s", resp.StatusCode, preview)
+	}
+
 	var result json.RawMessage
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		preview := string(respBody)
+		if len(preview) > 100 {
+			preview = preview[:100] + "..."
+		}
+		return nil, fmt.Errorf("failed to decode JSON response: %w (response: %s)", err, preview)
 	}
 
 	return &result, nil
@@ -172,8 +248,10 @@ type ChatResponse struct {
 }
 
 type HealthResponse struct {
-	Status    string `json:"status"`
-	UsingASIC bool   `json:"using_asic"`
-	ChipCount int    `json:"chip_count"`
-	Uptime    string `json:"uptime"`
+	Status            string `json:"status"`
+	UsingASIC         bool   `json:"using_asic"`
+	ChipCount         int    `json:"chip_count"`
+	Uptime            string `json:"uptime"`
+	ConnectionHealthy bool   `json:"connection_healthy"`
+	LastHealthCheck   string `json:"last_health_check,omitempty"`
 }

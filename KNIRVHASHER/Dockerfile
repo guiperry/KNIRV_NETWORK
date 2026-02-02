@@ -66,7 +66,7 @@ RUN useradd -m -u 1000 asic-driver
 WORKDIR /home/asic-driver
 
 # Expose gRPC port
-EXPOSE 50051
+EXPOSE 80
 
 # Default command
 CMD ["asic-driver-server"]

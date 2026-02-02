@@ -18,6 +18,10 @@ import (
 	"hasher/internal/client"
 )
 
+const (
+	portFile = "/tmp/hasher-host.port"
+)
+
 func main() {
 	var hasherHostCmd *exec.Cmd
 	hasherHostStarted := false
@@ -42,7 +46,7 @@ func main() {
 		<-sigChan
 		fmt.Println("\nReceived shutdown signal.")
 		cleanupASICDevice(model.Deployer)
-		shutdownHasherHost(hasherHostCmd, hasherHostStarted)
+		shutdownHasherHost(hasherHostCmd, hasherHostStarted, hasherHostPort)
 		os.Exit(0)
 	}()
 
@@ -56,7 +60,7 @@ func main() {
 	model.APIClient = client.NewAPIClient(hasherHostPort)
 
 	// Start the Bubble Tea UI with alternate screen and mouse support
-	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseAllMotion())
 
 	// Start log listener and send log messages to program
 	go func() {
@@ -113,33 +117,25 @@ func startHasherHost(logChan chan string) (*exec.Cmd, bool, int) {
 		// Try looking in the working directory
 		hostPath = findHasherHostExecutable()
 		if hostPath == "" {
-			fmt.Println("hasher-host not found. Run Discovery to provision ASIC devices.")
+			logChan <- "hasher-host not found. Run Discovery to provision ASIC devices."
 			return nil, false, 8080
 		}
 	}
 
 	// Check if hasher-host is already running on common ports
 	if port := findRunningHasherHost(); port > 0 {
+		logChan <- fmt.Sprintf("Found existing hasher-host on port %d.", port)
 		return nil, true, port
 	}
 
-	fmt.Printf("Starting hasher-host from %s...\n", hostPath)
+	logChan <- fmt.Sprintf("Starting hasher-host from %s...", hostPath)
 
-	// Start hasher-host in API mode with port auto-discovery (let it find an open port)
+	// Start hasher-host in API mode with port auto-discovery
 	cmd := exec.Command(hostPath, "--mode=api", "--port=0")
 
-	// Create pipes to capture output
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		logChan <- fmt.Sprintf("Error creating stdout pipe: %v", err)
-		return nil, false, 8080
-	}
-
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		logChan <- fmt.Sprintf("Error creating stderr pipe: %v", err)
-		return nil, false, 8080
-	}
+	// Create pipes to capture output and forward to the UI
+	stdoutPipe, _ := cmd.StdoutPipe()
+	stderrPipe, _ := cmd.StderrPipe()
 
 	if err := cmd.Start(); err != nil {
 		logChan <- fmt.Sprintf("Error starting hasher-host: %v", err)
@@ -148,10 +144,7 @@ func startHasherHost(logChan chan string) (*exec.Cmd, bool, int) {
 
 	logChan <- fmt.Sprintf("hasher-host started with PID %d", cmd.Process.Pid)
 
-	// Create a channel to capture the actual port from hasher-host output
-	portChan := make(chan int, 1)
-
-	// Capture stdout and parse port
+	// Goroutine to forward stdout to the log channel
 	go func() {
 		buf := make([]byte, 1024)
 		for {
@@ -160,28 +153,12 @@ func startHasherHost(logChan chan string) (*exec.Cmd, bool, int) {
 				return
 			}
 			if n > 0 {
-				output := string(buf[:n])
-				logChan <- output
-
-				// Parse port from output like "API server listening on :8081"
-				if strings.Contains(output, "API server listening on") {
-					parts := strings.Fields(output)
-					for _, part := range parts {
-						if strings.HasPrefix(part, ":") {
-							if port, err := strconv.Atoi(strings.TrimPrefix(part, ":")); err == nil {
-								select {
-								case portChan <- port:
-								default:
-								}
-							}
-						}
-					}
-				}
+				logChan <- string(buf[:n])
 			}
 		}
 	}()
 
-	// Capture stderr
+	// Goroutine to forward stderr to the log channel
 	go func() {
 		buf := make([]byte, 1024)
 		for {
@@ -195,31 +172,38 @@ func startHasherHost(logChan chan string) (*exec.Cmd, bool, int) {
 		}
 	}()
 
-	// Wait for server to be ready and get the actual port
-	fmt.Println("Waiting for hasher-host to start...")
+	// --- NEW LOGIC: Wait for port file and health check ---
+	fmt.Println("Waiting for hasher-host to become healthy...")
 	startTime := time.Now()
-	timeout := 10 * time.Second
-	var actualPort int = 8080 // default
+	timeout := 30 * time.Second // Increased timeout
+	var actualPort int
 
 	for time.Since(startTime) < timeout {
-		select {
-		case port := <-portChan:
-			actualPort = port
-			fmt.Printf("hasher-host is ready on port %d!\n", actualPort)
-			return cmd, true, actualPort
-		default:
-			// Check common ports if we haven't received the port message yet
-			if port := findRunningHasherHost(); port > 0 {
+		portBytes, err := os.ReadFile(portFile)
+		if err == nil {
+			port, err := strconv.Atoi(strings.TrimSpace(string(portBytes)))
+			if err == nil {
 				actualPort = port
-				fmt.Printf("hasher-host is ready on port %d!\n", actualPort)
-				return cmd, true, actualPort
+				// Now that we have a port, check the health endpoint
+				if isHasherHostRunning(actualPort) {
+					fmt.Printf("hasher-host is ready on port %d!\n", actualPort)
+					logChan <- fmt.Sprintf("Hasher-host is healthy on port %d.", actualPort)
+					return cmd, true, actualPort
+				}
 			}
 		}
+		// Wait a bit before retrying
 		time.Sleep(500 * time.Millisecond)
 	}
 
 	fmt.Println("hasher-host startup timed out, continuing without orchestrator.")
-	return cmd, false, actualPort
+	logChan <- "Error: hasher-host startup timed out."
+
+	// Attempt to kill the process we started, since it's not healthy
+	if cmd.Process != nil {
+		cmd.Process.Kill()
+	}
+	return cmd, false, 8080 // default port
 }
 
 // findRunningHasherHost checks if hasher-host is already running on any port and returns the port
@@ -313,13 +297,18 @@ func cleanupASICDevice(deployer *analyzer.Deployer) {
 }
 
 // shutdownHasherHost gracefully shuts down the hasher-host process
-func shutdownHasherHost(cmd *exec.Cmd, started bool) {
-	if started && cmd != nil && cmd.Process != nil {
-		fmt.Println("Shutting down hasher-host...")
-		if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
-			// Force kill if SIGTERM fails
-			cmd.Process.Kill()
-		}
+func shutdownHasherHost(cmd *exec.Cmd, started bool, port int) {
+	if !started {
+		return
+	}
+
+	fmt.Println("Shutting down hasher-host...")
+
+	// If we started the process, we can wait for it to exit.
+	if cmd != nil && cmd.Process != nil {
+		// Attempt graceful shutdown via API. Fire and forget is okay.
+		shutdownURL := fmt.Sprintf("http://localhost:%d/api/v1/shutdown", port)
+		http.Post(shutdownURL, "application/json", nil)
 
 		// Wait for process to terminate with timeout
 		done := make(chan error, 1)
@@ -330,9 +319,16 @@ func shutdownHasherHost(cmd *exec.Cmd, started bool) {
 		select {
 		case <-done:
 			fmt.Println("hasher-host shut down successfully.")
-		case <-time.After(5 * time.Second):
+		case <-time.After(15 * time.Second): // Increased timeout
 			fmt.Println("hasher-host shutdown timeout, force killing...")
 			cmd.Process.Kill()
+		}
+	} else if port > 0 { // It was running, but we didn't start it. We can still ask it to shut down.
+		shutdownURL := fmt.Sprintf("http://localhost:%d/api/v1/shutdown", port)
+		resp, err := http.Post(shutdownURL, "application/json", nil)
+		if err == nil {
+			resp.Body.Close()
+			fmt.Println("Shutdown request sent to pre-existing hasher-host.")
 		}
 	}
 }

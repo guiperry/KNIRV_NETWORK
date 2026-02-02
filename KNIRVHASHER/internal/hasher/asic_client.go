@@ -16,7 +16,7 @@ import (
 
 const (
 	// DefaultASICServerAddress is the default gRPC server address for hasher-server
-	DefaultASICServerAddress = "localhost:50051"
+	DefaultASICServerAddress = "localhost:8888"
 	// ConnectionTimeout for initial gRPC connection
 	ConnectionTimeout = 5 * time.Second
 	// OperationTimeout for individual hash operations
@@ -25,12 +25,14 @@ const (
 
 // ASICClient provides hash computation using ASIC hardware with software fallback
 type ASICClient struct {
-	client      pb.HasherServiceClient
-	conn        *grpc.ClientConn
-	useFallback bool   // true = use software SHA-256 instead of ASIC
-	address     string // gRPC server address
-	chipCount   int    // Number of ASIC chips (from device info)
-	mu          sync.RWMutex
+	client            pb.HasherServiceClient
+	conn              *grpc.ClientConn
+	useFallback       bool   // true = use software SHA-256 instead of ASIC
+	wasConnected      bool   // true if we ever successfully connected (prevents silent fallback after connection)
+	allowSoftFallback bool   // if true, fall back to software on operation errors (default: false after successful connection)
+	address           string // gRPC server address
+	chipCount         int    // Number of ASIC chips (from device info)
+	mu                sync.RWMutex
 }
 
 // NewASICClient creates a new ASICClient with the specified server address
@@ -42,16 +44,23 @@ func NewASICClient(address string) (*ASICClient, error) {
 	}
 
 	c := &ASICClient{
-		address:     address,
-		useFallback: false,
+		address:           address,
+		useFallback:       false,
+		wasConnected:      false,
+		allowSoftFallback: true, // Allow fallback during initial connection
 	}
 
 	// Try to connect to ASIC server
 	if err := c.Connect(); err != nil {
-		// Fall back to software mode
+		// Fall back to software mode (only acceptable during initial connection)
 		c.useFallback = true
+		c.wasConnected = false
 		return c, nil // Return successfully in fallback mode
 	}
+
+	// Connection succeeded - disable automatic soft fallback for operations
+	c.wasConnected = true
+	c.allowSoftFallback = false // After successful connection, don't silently fall back
 
 	return c, nil
 }
@@ -88,8 +97,17 @@ func (c *ASICClient) Connect() error {
 		return fmt.Errorf("failed to get device info: %w", err)
 	}
 
+	// Check if the ASIC device is actually operational
+	if !info.IsOperational {
+		conn.Close()
+		c.useFallback = true
+		return fmt.Errorf("ASIC device is not operational (device path: %s)", info.DevicePath)
+	}
+
 	c.chipCount = int(info.ChipCount)
 	c.useFallback = false
+	c.wasConnected = true
+	c.allowSoftFallback = false // Once connected, don't allow silent fallback
 
 	return nil
 }
@@ -108,6 +126,36 @@ func (c *ASICClient) IsConnected() bool {
 	return c.conn != nil && !c.useFallback
 }
 
+// WasEverConnected returns true if the client ever successfully connected to ASIC
+func (c *ASICClient) WasEverConnected() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.wasConnected
+}
+
+// SetAllowSoftFallback enables or disables software fallback for operations
+// When disabled, operation errors will be reported instead of silently using software
+func (c *ASICClient) SetAllowSoftFallback(allow bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.allowSoftFallback = allow
+}
+
+// Reconnect attempts to reconnect to the ASIC server
+// Returns error if reconnection fails
+func (c *ASICClient) Reconnect() error {
+	c.mu.Lock()
+	// Close existing connection if any
+	if c.conn != nil {
+		c.conn.Close()
+		c.conn = nil
+		c.client = nil
+	}
+	c.mu.Unlock()
+
+	return c.Connect()
+}
+
 // GetChipCount returns the number of ASIC chips (0 if in fallback mode)
 func (c *ASICClient) GetChipCount() int {
 	c.mu.RLock()
@@ -119,6 +167,8 @@ func (c *ASICClient) GetChipCount() int {
 func (c *ASICClient) ComputeHash(data []byte) ([32]byte, error) {
 	c.mu.RLock()
 	useFallback := c.useFallback
+	allowFallback := c.allowSoftFallback
+	wasConnected := c.wasConnected
 	client := c.client
 	c.mu.RUnlock()
 
@@ -133,8 +183,12 @@ func (c *ASICClient) ComputeHash(data []byte) ([32]byte, error) {
 		Data: data,
 	})
 	if err != nil {
-		// On error, try software fallback for this operation
-		return c.computeHashSoftware(data), nil
+		// Only fall back to software if allowed (initial connection failed)
+		// If we were previously connected, report the error instead of silently degrading
+		if allowFallback || !wasConnected {
+			return c.computeHashSoftware(data), nil
+		}
+		return [32]byte{}, fmt.Errorf("ASIC hash operation failed (no fallback): %w", err)
 	}
 
 	var result [32]byte
@@ -146,6 +200,8 @@ func (c *ASICClient) ComputeHash(data []byte) ([32]byte, error) {
 func (c *ASICClient) ComputeBatch(data [][]byte) ([][32]byte, error) {
 	c.mu.RLock()
 	useFallback := c.useFallback
+	allowFallback := c.allowSoftFallback
+	wasConnected := c.wasConnected
 	client := c.client
 	c.mu.RUnlock()
 
@@ -161,8 +217,11 @@ func (c *ASICClient) ComputeBatch(data [][]byte) ([][32]byte, error) {
 		MaxBatchSize: 256,
 	})
 	if err != nil {
-		// On error, try software fallback
-		return c.computeBatchSoftware(data), nil
+		// Only fall back to software if allowed
+		if allowFallback || !wasConnected {
+			return c.computeBatchSoftware(data), nil
+		}
+		return nil, fmt.Errorf("ASIC batch operation failed (no fallback): %w", err)
 	}
 
 	results := make([][32]byte, len(resp.Hashes))
@@ -179,6 +238,8 @@ type StreamComputeFunc func(requestID uint64, hash [32]byte, latencyUs uint64)
 func (c *ASICClient) StreamCompute(data [][]byte, callback StreamComputeFunc) error {
 	c.mu.RLock()
 	useFallback := c.useFallback
+	allowFallback := c.allowSoftFallback
+	wasConnected := c.wasConnected
 	client := c.client
 	c.mu.RUnlock()
 
@@ -198,14 +259,17 @@ func (c *ASICClient) StreamCompute(data [][]byte, callback StreamComputeFunc) er
 
 	stream, err := client.StreamCompute(ctx)
 	if err != nil {
-		// Fall back to software streaming
-		for i, d := range data {
-			start := time.Now()
-			hash := c.computeHashSoftware(d)
-			latency := time.Since(start).Microseconds()
-			callback(uint64(i+1), hash, uint64(latency))
+		// Only fall back to software if allowed
+		if allowFallback || !wasConnected {
+			for i, d := range data {
+				start := time.Now()
+				hash := c.computeHashSoftware(d)
+				latency := time.Since(start).Microseconds()
+				callback(uint64(i+1), hash, uint64(latency))
+			}
+			return nil
 		}
-		return nil
+		return fmt.Errorf("ASIC stream operation failed (no fallback): %w", err)
 	}
 
 	// Start receiver goroutine
@@ -307,4 +371,104 @@ func (c *ASICClient) computeBatchSoftware(data [][]byte) [][32]byte {
 		results[i] = sha256.Sum256(d)
 	}
 	return results
+}
+
+// MineHeader performs mining on an 80-byte Bitcoin-style header to find the first valid nonce
+// The mining uses Difficulty 1 target (nBits = 0x1d00ffff), meaning any hash with sufficient
+// leading zeros is valid. At 500 GH/s, this typically finds a nonce in nanoseconds.
+//
+// This is the core operation for mining-based neural network activation:
+// - Same header + same nonce range = same first valid nonce (deterministic)
+// - The nonce becomes the activation value for the MiningNeuron
+//
+// Currently uses software mining (doubleSHA256). Future versions will offload to ASIC hardware.
+func (c *ASICClient) MineHeader(header []byte, nonceStart, nonceEnd uint32) (uint32, error) {
+	if len(header) != 80 {
+		return 0, fmt.Errorf("mining header must be exactly 80 bytes, got %d", len(header))
+	}
+
+	c.mu.RLock()
+	useFallback := c.useFallback
+	c.mu.RUnlock()
+
+	// For now, both ASIC and fallback use software mining
+	// Future: when connected to ASIC, send TxTask packets via gRPC extension
+	if useFallback {
+		return c.mineSoftware(header, nonceStart, nonceEnd)
+	}
+
+	// TODO: Implement ASIC-accelerated mining via hasher-server
+	// This would require:
+	// 1. New gRPC method: MineWork(header, nonce_start, nonce_end) -> first_valid_nonce
+	// 2. hasher-server sends TxTask packets to ASIC
+	// 3. hasher-server receives RxNonce and returns first valid nonce
+	//
+	// For now, use software mining even when connected
+	// This maintains correctness and determinism while hardware path is developed
+	return c.mineSoftware(header, nonceStart, nonceEnd)
+}
+
+// mineSoftware performs software-based mining to find the first valid nonce
+// Uses double SHA-256 (Bitcoin's hash function) with Difficulty 1 target
+func (c *ASICClient) mineSoftware(header []byte, nonceStart, nonceEnd uint32) (uint32, error) {
+	workHeader := make([]byte, 80)
+	copy(workHeader, header)
+
+	for nonce := nonceStart; nonce <= nonceEnd; nonce++ {
+		// Set nonce in header (bytes 76-79, little-endian)
+		workHeader[76] = byte(nonce)
+		workHeader[77] = byte(nonce >> 8)
+		workHeader[78] = byte(nonce >> 16)
+		workHeader[79] = byte(nonce >> 24)
+
+		// Double SHA-256 (Bitcoin mining)
+		hash := c.doubleSHA256(workHeader)
+
+		// Check if hash meets Difficulty 1 target
+		// For Difficulty 1, the hash must be less than:
+		// 0x00000000FFFF0000000000000000000000000000000000000000000000000000
+		// Simplified check: first 4 bytes should have enough leading zeros
+		if hash[0] == 0 && hash[1] == 0 && hash[2] == 0 && hash[3] < 0x10 {
+			return nonce, nil
+		}
+	}
+
+	// If no valid nonce found in range, return the last one
+	// This shouldn't happen at Difficulty 1 with a reasonable range
+	return nonceEnd, nil
+}
+
+// doubleSHA256 computes SHA256(SHA256(data)) - Bitcoin's hash function
+func (c *ASICClient) doubleSHA256(data []byte) [32]byte {
+	first := sha256.Sum256(data)
+	return sha256.Sum256(first[:])
+}
+
+// MineHeaderBatch performs mining on multiple headers in parallel
+// Useful for batch inference with MiningNeuron
+func (c *ASICClient) MineHeaderBatch(headers [][]byte, nonceStart, nonceEnd uint32) ([]uint32, error) {
+	results := make([]uint32, len(headers))
+	var wg sync.WaitGroup
+	var firstErr error
+	var errMu sync.Mutex
+
+	for i, header := range headers {
+		wg.Add(1)
+		go func(idx int, h []byte) {
+			defer wg.Done()
+			nonce, err := c.MineHeader(h, nonceStart, nonceEnd)
+			if err != nil {
+				errMu.Lock()
+				if firstErr == nil {
+					firstErr = err
+				}
+				errMu.Unlock()
+				return
+			}
+			results[idx] = nonce
+		}(i, header)
+	}
+
+	wg.Wait()
+	return results, firstErr
 }

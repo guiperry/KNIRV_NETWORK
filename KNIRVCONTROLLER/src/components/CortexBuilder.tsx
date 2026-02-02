@@ -6,6 +6,7 @@ import { personalKNIRVGRAPHService, GraphNode } from '../services/PersonalKNIRVG
 import { cortexTrainingService, TrainingConfig, CortexModel, TrainingProgress } from '../services/CortexTrainingService';
 import { agentManagementService, Agent, AgentUploadRequest } from '../services/AgentManagementService';
 import { MemoryGraphView } from './chat-brain/MemoryGraphView';
+import { ChatBrainProvider } from '../contexts/ChatBrainContext';
 
 interface CortexBuilderProps {
   isOpen: boolean;
@@ -367,10 +368,13 @@ export const CortexBuilder: React.FC<CortexBuilderProps> = ({ isOpen, onClose })
               <div className="bg-gray-800 rounded-lg p-6">
                 <h3 className="text-lg font-medium text-white mb-4">Memory Graph</h3>
                 <div className="h-96">
-                  <MemoryGraphView
-                    onClose={() => {}}
-                    cognitiveShellOpen={false}
-                  />
+                  <ChatBrainProvider>
+                    <MemoryGraphView
+                      onClose={() => {}}
+                      cognitiveShellOpen={false}
+                      inline={true}
+                    />
+                  </ChatBrainProvider>
                 </div>
               </div>
             </div>

@@ -5,6 +5,10 @@ package host
 import (
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"hasher/internal/analyzer"
@@ -98,11 +102,18 @@ func (d *Deployer) EnsureServerDeployed(deviceIP string) (*hasher.ASICClient, er
 
 // checkExistingServer checks if hasher-server is already running on device
 func (d *Deployer) checkExistingServer(deviceIP string) (*hasher.ASICClient, error) {
-	address := fmt.Sprintf("%s:50051", deviceIP)
+	address := fmt.Sprintf("%s:8888", deviceIP)
 
 	client, err := hasher.NewASICClient(address)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check if client is using software fallback - this means connection failed
+	// and we should trigger deployment instead of pretending server is running
+	if client.IsUsingFallback() {
+		client.Close()
+		return nil, fmt.Errorf("could not connect to hasher-server at %s (using fallback mode)", address)
 	}
 
 	// Simple connection test
@@ -149,7 +160,7 @@ func (d *Deployer) deployHasherServer(deviceIP string) error {
 
 // waitForServer waits for hasher-server to start and accepts connections
 func (d *Deployer) waitForServer(deviceIP string) (*hasher.ASICClient, error) {
-	address := fmt.Sprintf("%s:50051", deviceIP)
+	address := fmt.Sprintf("%s:8888", deviceIP)
 
 	// Try connecting with exponential backoff
 	backoff := 1 * time.Second
@@ -185,6 +196,14 @@ func (d *Deployer) setupCleanup(deviceIP string) {
 	d.cleanupFunc = func() {
 		log.Printf("Cleaning up hasher-server from device %s...", deviceIP)
 
+		// Step 1: Download server logs before cleanup
+		log.Printf("Downloading server logs before cleanup...")
+		if logFile, err := d.DownloadServerLogs(deviceIP); err != nil {
+			log.Printf("Warning: Failed to download server logs: %v", err)
+		} else if logFile != "" {
+			log.Printf("Server logs saved to: %s", logFile)
+		}
+
 		// Connect and cleanup using analyzer's cleanup
 		if err := d.analyzer.Connect(); err != nil {
 			log.Printf("Failed to connect for cleanup: %v", err)
@@ -199,6 +218,58 @@ func (d *Deployer) setupCleanup(deviceIP string) {
 
 		log.Printf("Cleanup complete for device %s", deviceIP)
 	}
+}
+
+// DownloadServerLogs downloads the server logs from the device and saves them locally
+func (d *Deployer) DownloadServerLogs(deviceIP string) (string, error) {
+	return d.DownloadServerLogsWithPath(deviceIP, "/tmp/hasher-server.log")
+}
+
+// DownloadServerLogsWithPath downloads the server logs from a specific path on the device
+func (d *Deployer) DownloadServerLogsWithPath(deviceIP, remoteLogPath string) (string, error) {
+	// Create logs directory if it doesn't exist
+	logsDir := "./logs"
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create logs directory: %w", err)
+	}
+
+	// Generate timestamped filename
+	timestamp := time.Now().Format("20060102_150405")
+	filename := fmt.Sprintf("hasher-server_%s_%s.log", deviceIP, timestamp)
+	localPath := filepath.Join(logsDir, filename)
+
+	// Download logs via SSH using sshpass
+	// Note: Using hardcoded password for automation (keperu100 from CLAUDE.md)
+	sshPassword := "keperu100"
+	sshCmd := fmt.Sprintf("sshpass -p '%s' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@%s "+
+		"\"cat %s 2>/dev/null || echo 'LOG_FILE_NOT_FOUND'\"",
+		sshPassword, deviceIP, remoteLogPath)
+
+	cmd := exec.Command("sh", "-c", sshCmd)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Check if it's just that the log file doesn't exist
+		if strings.Contains(string(output), "LOG_FILE_NOT_FOUND") {
+			log.Printf("Server log file not found on device %s (this is normal for new deployments)", deviceIP)
+			return "", nil
+		}
+		return "", fmt.Errorf("ssh command failed: %v (output: %s)", err, string(output))
+	}
+
+	// Check if log file was not found
+	if strings.Contains(string(output), "LOG_FILE_NOT_FOUND") {
+		log.Printf("Server log file not found on device %s (this is normal for new deployments)", deviceIP)
+		return "", nil
+	}
+
+	// Write logs to file
+	if err := os.WriteFile(localPath, output, 0644); err != nil {
+		return "", fmt.Errorf("failed to write log file: %w", err)
+	}
+
+	log.Printf("Successfully downloaded server logs from %s to %s (size: %d bytes)",
+		deviceIP, localPath, len(output))
+	return localPath, nil
 }
 
 // Cleanup performs cleanup of deployed hasher-server

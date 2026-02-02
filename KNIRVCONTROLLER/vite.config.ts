@@ -58,7 +58,7 @@ export default defineConfig({
     port: 3000,
     open: false,
     headers: {
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss: http://localhost:3001 https://wallet.knirv.com https://generativelanguage.googleapis.com; frame-src 'none';"
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss: wasm: http://localhost:3001 https://wallet.knirv.com https://generativelanguage.googleapis.com; frame-src 'none';"
     },
     proxy: {
       '/api': {

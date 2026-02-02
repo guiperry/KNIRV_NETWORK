@@ -30,7 +30,7 @@ type DiscoveryResult struct {
 // DiscoveryConfig holds configuration for network discovery
 type DiscoveryConfig struct {
 	Subnet          string        `json:"subnet"`           // CIDR notation, e.g., "192.168.1.0/24"
-	Port            int           `json:"port"`             // gRPC port to scan (default: 50051)
+	Port            int           `json:"port"`             // gRPC port to scan (default: 8888)
 	Timeout         time.Duration `json:"timeout"`          // Connection timeout per host
 	ConcurrentScans int           `json:"concurrent_scans"` // Number of concurrent workers
 	SkipLocalhost   bool          `json:"skip_localhost"`   // Skip localhost scanning
@@ -39,8 +39,8 @@ type DiscoveryConfig struct {
 // NewDiscoveryConfig creates a default discovery configuration
 func NewDiscoveryConfig() DiscoveryConfig {
 	return DiscoveryConfig{
-		Subnet:          "192.168.1.0/24", // Common home network
-		Port:            50051,
+		Subnet:          "192.168.12.0/24", // Antminer network
+		Port:            8888,
 		Timeout:         2 * time.Second,
 		ConcurrentScans: 20,
 		SkipLocalhost:   false,
@@ -300,6 +300,12 @@ func DiscoverAndConnect(config DiscoveryConfig) (*ASICClient, *DiscoveryResult, 
 	client, err := NewASICClient(best.Address)
 	if err != nil {
 		return nil, best, fmt.Errorf("failed to connect to best server %s: %w", best.Address, err)
+	}
+
+	// Verify the client actually connected to real hardware, not software fallback
+	if client.IsUsingFallback() {
+		client.Close()
+		return nil, best, fmt.Errorf("connected to %s but server is in fallback mode (ASIC not operational)", best.Address)
 	}
 
 	return client, best, nil

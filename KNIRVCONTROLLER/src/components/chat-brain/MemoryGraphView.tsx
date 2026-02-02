@@ -7,9 +7,10 @@ import { useChatBrain } from '../../contexts/ChatBrainContext';
 interface MemoryGraphViewProps {
   onClose: () => void;
   cognitiveShellOpen?: boolean;
+  inline?: boolean;
 }
 
-export function MemoryGraphView({ onClose, cognitiveShellOpen = true }: MemoryGraphViewProps) {
+export function MemoryGraphView({ onClose, cognitiveShellOpen = true, inline = false }: MemoryGraphViewProps) {
   const { memoryNodes, memoryEdges, refreshMemoryGraph } = useChatBrain();
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
@@ -123,8 +124,12 @@ export function MemoryGraphView({ onClose, cognitiveShellOpen = true }: MemoryGr
   }, [memoryNodes, memoryEdges]);
 
   return (
-    <div className={`fixed top-0 bottom-0 w-[610px] bg-gray-800 border-l border-gray-700 z-50 flex flex-col ${
-      cognitiveShellOpen ? 'right-[600px]' : 'right-0'
+    <div className={`${
+      inline 
+        ? 'h-full w-full flex flex-col bg-gray-800 border border-gray-700' 
+        : `fixed top-0 bottom-0 w-[610px] border-l border-gray-700 z-50 flex flex-col bg-gray-800 ${
+            cognitiveShellOpen ? 'right-[600px]' : 'right-0'
+          }`
     }`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800/50">
@@ -155,7 +160,7 @@ export function MemoryGraphView({ onClose, cognitiveShellOpen = true }: MemoryGr
 
       {/* Graph Container */}
       {memoryNodes.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-gray-400">
+        <div className="flex-1 flex items-center justify-center text-gray-400 bg-gray-900">
           <div className="text-center">
             <p className="text-lg mb-2">No memory nodes yet</p>
             <p className="text-sm text-gray-500">

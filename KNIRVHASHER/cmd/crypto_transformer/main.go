@@ -146,23 +146,6 @@ func createSampleData(numSamples int) []crypto_transformer.DataSample {
 }
 
 func generateConversationalResponse(input string, token int) string {
-	// Generate contextual responses based on the token
-	responses := map[int]string{
-		103: fmt.Sprintf("Hello! I'm a cryptographic transformer, designed to process language using hash-based neural networks. Your input '%s' was processed through SHA-256 operations rather than traditional matrix multiplications.", input),
-		105: fmt.Sprintf("I'm functioning optimally! The cryptographic nature of my architecture means I can provide quantum-resistant AI processing. Regarding '%s', this represents an interesting pattern for hash-based analysis.", input),
-		107: fmt.Sprintf("I'm the Cryptographic Transformer, powered by hash-based neural networks. This breakthrough allows me to perform transformer operations using SHA-256 ASIC hardware, providing 1000× cost reduction over traditional AI. About '%s' - this requires sophisticated hash-based pattern recognition.", input),
-		108: fmt.Sprintf("Goodbye! Remember that the cryptographic transformer represents a paradigm shift in AI - using hash functions as neural operations enables quantum-resistant, ultra-low-cost artificial intelligence. Thanks for exploring '%s' with me!", input),
-		104: fmt.Sprintf("I'd be happy to help! As a hash-based AI, I can process your requests using cryptographic neural operations. For '%s', I can analyze this using my novel architecture that combines transformer capabilities with SHA-256 acceleration.", input),
-		101: fmt.Sprintf("Let me explain how this works: Traditional neural networks use matrix multiplication W·x, but I use hash(H(input, seed)) where the seed encodes the weight matrix. This breakthrough enables training and inference on SHA-256 ASIC hardware. Your query '%s' helps demonstrate this technology.", input),
-		116: fmt.Sprintf("The transformer architecture uses self-attention mechanisms, which I've implemented using hash-based operations. Each attention head computes queries, keys, and values through hash-activated neurons. For '%s', this creates distributed representations processed through cryptographic functions.", input),
-		110: fmt.Sprintf("Neural networks traditionally require GPUs, but my cryptographic approach uses SHA-256 hashing hardware - the same chips used in Bitcoin mining. This provides 2500× better energy efficiency. Your interest in '%s' shows engagement with this innovative approach to AI.", input),
-		102: fmt.Sprintf("Hashing provides cryptographic security and quantum resistance. By encoding neural weights as cryptographic seeds, I protect the model while enabling computation on specialized hardware. The topic '%s' can be analyzed through these secure, hash-based operations.", input),
-	}
-
-	if response, exists := responses[token%len(responses)+100]; exists {
-		return response
-	}
-
-	// Default response
-	return fmt.Sprintf("I processed '%s' using my cryptographic transformer architecture. This represents a breakthrough in AI - using SHA-256 hash functions for neural operations enables quantum-resistant, ultra-low-cost artificial intelligence. Each token is generated through hash-based attention and feed-forward networks.", input)
+	// Return simple token ID instead of hardcoded marketing text
+	return fmt.Sprintf("Generated token: %d", token)
 }

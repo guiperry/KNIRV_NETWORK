@@ -20,7 +20,6 @@ import (
 
 	"hasher/internal/analyzer"
 	"hasher/internal/client"
-	cryptotransformer "hasher/internal/crypto_transformer"
 	"hasher/internal/hasher"
 )
 
@@ -106,6 +105,19 @@ var (
 			Foreground(lipgloss.Color("#FFFF00")).
 			Bold(true).
 			MarginTop(1)
+
+	// Scrollbar styles
+	scrollbarTrackStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color("#374151")).
+				Width(1)
+
+	scrollbarThumbStyle = lipgloss.NewStyle().
+				Background(lipgloss.Color("#6B7280")).
+				Width(1)
+
+	scrollbarThumbHoverStyle = lipgloss.NewStyle().
+					Background(lipgloss.Color("#9CA3AF")).
+					Width(1)
 )
 
 // ASCII art logo for HASHER
@@ -210,6 +222,20 @@ type Model struct {
 	SelectedText    string // Currently selected text
 	ShowCopyNotice  bool   // Whether to show "copied to clipboard" notice
 	CopyNoticeTimer int    // Timer for hiding copy notice
+
+	// Scrollbar state for chat view
+	ChatScrollOffset  int
+	ChatTotalHeight   int
+	ChatVisibleHeight int
+	ChatDragging      bool
+	ChatDragStartY    int
+
+	// Scrollbar state for log view
+	LogScrollOffset  int
+	LogTotalHeight   int
+	LogVisibleHeight int
+	LogDragging      bool
+	LogDragStartY    int
 }
 
 // NewModel creates a new UI model
@@ -228,11 +254,11 @@ func NewModel() Model {
 	menuList.SetShowStatusBar(false)
 	menuList.SetFilteringEnabled(false)
 
-	// Initialize chat view
-	chatView := viewport.New(78, 20)
+	// Initialize chat view (leave space for scrollbar)
+	chatView := viewport.New(77, 20)
 
-	// Initialize log view
-	logView := viewport.New(78, 20)
+	// Initialize log view (leave space for scrollbar)
+	logView := viewport.New(77, 20)
 
 	// Initialize input area
 	input := textarea.New()
@@ -275,6 +301,18 @@ func NewModel() Model {
 		SelectedText:    "",
 		ShowCopyNotice:  false,
 		CopyNoticeTimer: 0,
+
+		// Scrollbar state
+		ChatScrollOffset:  0,
+		ChatTotalHeight:   0,
+		ChatVisibleHeight: 20,
+		ChatDragging:      false,
+		ChatDragStartY:    0,
+		LogScrollOffset:   0,
+		LogTotalHeight:    0,
+		LogVisibleHeight:  20,
+		LogDragging:       false,
+		LogDragStartY:     0,
 	}
 
 	// Initialize views
@@ -369,6 +407,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.ShowCopyNotice = true
 				m.CopyNoticeTimer = 0
 				cmds = append(cmds, m.startCopyNoticeTimer())
+			}
+		}
+
+	case scrollbarUpdateMsg:
+		if msg.IsChat {
+			m.ChatView.YOffset = msg.NewOffset
+			m.ChatScrollOffset = msg.NewOffset
+			if msg.StartDragging {
+				m.ChatDragging = true
+				m.ChatDragStartY = msg.DragStartY
+			} else {
+				// Update drag start position for smooth dragging
+				m.ChatDragStartY = msg.DragStartY
+			}
+		} else {
+			m.LogView.YOffset = msg.NewOffset
+			m.LogScrollOffset = msg.NewOffset
+			if msg.StartDragging {
+				m.LogDragging = true
+				m.LogDragStartY = msg.DragStartY
+			} else {
+				// Update drag start position for smooth dragging
+				m.LogDragStartY = msg.DragStartY
 			}
 		}
 	}
@@ -573,16 +634,37 @@ func (m Model) renderChatView() string {
 	m.LogView.Width = m.Width - 4
 	m.LogView.Height = logHeight
 
-	// Render views - Height() sets content area, border adds 2 more lines
+	// Render scrollbars
+	chatScrollbar := m.renderScrollbar(m.ChatTotalHeight, m.ChatVisibleHeight, m.ChatScrollOffset, m.ChatDragging)
+	logScrollbar := m.renderScrollbar(m.LogTotalHeight, m.LogVisibleHeight, m.LogScrollOffset, m.LogDragging)
+
+	// Render viewport content (without scrollbar space)
+	chatViewportContent := m.ChatView.View()
+	logViewportContent := m.LogView.View()
+
+	// Join viewport content with scrollbars
+	chatWithScrollbar := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		chatViewportContent,
+		chatScrollbar,
+	)
+
+	logWithScrollbar := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		logViewportContent,
+		logScrollbar,
+	)
+
+	// Render views with scrollbars - Height() sets content area, border adds 2 more lines
 	chatContent := chatViewStyle.Copy().
 		Width(m.Width - 2).
 		Height(chatHeight).
-		Render(m.ChatView.View())
+		Render(chatWithScrollbar)
 
 	logContent := logViewStyle.Copy().
 		Width(m.Width - 2).
 		Height(logHeight).
-		Render(m.LogView.View())
+		Render(logWithScrollbar)
 
 	// Stack views vertically
 	columns := lipgloss.JoinVertical(
@@ -649,9 +731,9 @@ func (m Model) handleResize(msg tea.WindowSizeMsg) (Model, tea.Cmd) {
 	chatHeight := contentHeight / 2
 	logHeight := contentHeight - chatHeight
 
-	m.ChatView.Width = msg.Width - 4
+	m.ChatView.Width = msg.Width - 5 // Leave space for scrollbar
 	m.ChatView.Height = chatHeight
-	m.LogView.Width = msg.Width - 4
+	m.LogView.Width = msg.Width - 5 // Leave space for scrollbar
 	m.LogView.Height = logHeight
 
 	m.Input.SetWidth(msg.Width - 6)
@@ -676,7 +758,15 @@ func (m *Model) updateChatView() {
 		content += wrappedMsg + "\n\n"
 	}
 	m.ChatView.SetContent(content)
-	m.ChatView.GotoBottom()
+
+	// Update scrollbar state
+	lines := strings.Split(content, "\n")
+	m.ChatTotalHeight = len(lines)
+	m.ChatVisibleHeight = m.ChatView.Height
+	if m.ChatView.YOffset+m.ChatVisibleHeight > m.ChatTotalHeight {
+		m.ChatView.GotoBottom()
+	}
+	m.ChatScrollOffset = m.ChatView.YOffset
 }
 
 // updateLogView updates the log view with server logs
@@ -689,7 +779,15 @@ func (m *Model) updateLogView() {
 		content += wrappedLog + "\n"
 	}
 	m.LogView.SetContent(content)
-	m.LogView.GotoBottom()
+
+	// Update scrollbar state
+	lines := strings.Split(content, "\n")
+	m.LogTotalHeight = len(lines)
+	m.LogVisibleHeight = m.LogView.Height
+	if m.LogView.YOffset+m.LogVisibleHeight > m.LogTotalHeight {
+		m.LogView.GotoBottom()
+	}
+	m.LogScrollOffset = m.LogView.YOffset
 }
 
 // updateResourceData updates resource usage information
@@ -833,8 +931,8 @@ func (m Model) handleTrainCommand() tea.Cmd {
 				return AppendChatMsg{Msg: thinkingMsg}
 			},
 			func() tea.Msg {
-				// Call hasher-host training API
-				resp, err := cryptotransformer.CallTrainingAPI(5, 0.001, 32, generateTrainingSamples())
+				// Call hasher-host training API via API client
+				resp, err := m.APIClient.CallTraining(5, 0.001, 32, generateTrainingSamples())
 
 				if err != nil {
 					logErr := fmt.Sprintf("[%s] Training API Error: %v", time.Now().Format("15:04:05"), err)
@@ -1407,28 +1505,143 @@ type DeviceSelectedMsg struct {
 	DeviceType string
 }
 
+// scrollbarUpdateMsg is sent when a scrollbar needs to be updated
+type scrollbarUpdateMsg struct {
+	IsChat        bool // true for chat view, false for log view
+	NewOffset     int  // new scroll offset
+	StartDragging bool // whether dragging should start
+	DragStartY    int  // Y position where dragging started
+}
+
 // Mouse and clipboard functionality
 func (m Model) handleMouse(msg tea.MouseMsg) tea.Cmd {
-	if msg.Type == tea.MouseLeft {
-		// Check if we're in chat or log view
-		if m.CurrentView == ChatView || m.CurrentView == LogView {
-			// Get current view content
-			var content string
-			if m.CurrentView == ChatView {
-				content = strings.Join(m.ChatHistory, "\n")
-			} else {
-				content = strings.Join(m.ServerLogs, "\n")
+	switch msg.Type {
+	case tea.MouseLeft:
+		// Handle scrollbar clicks first
+		if m.CurrentView == ChatView {
+			// Calculate chat viewport boundaries
+			chatX := 1                          // Border starts at x=0, content at x=1
+			chatY := 1                          // Header at y=0, chat starts at y=1
+			chatWidth := m.ChatView.Width + 2   // Include border
+			chatHeight := m.ChatView.Height + 2 // Include border
+
+			scrollbarCmd := m.handleScrollbarClick(
+				int(msg.X), int(msg.Y),
+				chatX, chatY, chatWidth, chatHeight,
+				m.ChatTotalHeight, m.ChatVisibleHeight, m.ChatScrollOffset,
+				true, // isChat
+			)
+			if scrollbarCmd != nil {
+				return scrollbarCmd
 			}
 
-			// Extract text selection (simplified version)
-			selectedText := m.extractTextAtPosition(content, int(msg.X), int(msg.Y))
-			if selectedText != "" {
-				return func() tea.Msg {
-					return textSelectedMsg{Text: selectedText}
+			// Handle text selection in chat content area
+			// Convert global coordinates to chat viewport local coordinates
+			localY := int(msg.Y) - chatY
+			localX := int(msg.X) - chatX
+			if localX >= 1 && localX < chatWidth-1 && localY >= 1 && localY < chatHeight-1 {
+				content := strings.Join(m.ChatHistory, "\n")
+				// Account for viewport content area (excluding border) and scroll offset
+				adjustedY := localY - 1 + m.ChatScrollOffset // -1 to account for border
+				selectedText := m.extractTextAtPosition(content, localX-1, adjustedY)
+				if selectedText != "" {
+					return func() tea.Msg {
+						return textSelectedMsg{Text: selectedText}
+					}
 				}
 			}
 		}
-	} else if msg.Type == tea.MouseRight {
+
+		// Check log viewport
+		logY := 1 + (m.ChatView.Height + 2) // Chat height + border + spacing
+		logX := 1
+		logWidth := m.LogView.Width + 2
+		logHeight := m.LogView.Height + 2
+
+		if msg.X >= logX && msg.X < logX+logWidth && msg.Y >= logY && msg.Y < logY+logHeight {
+			scrollbarCmd := m.handleScrollbarClick(
+				int(msg.X), int(msg.Y),
+				logX, logY, logWidth, logHeight,
+				m.LogTotalHeight, m.LogVisibleHeight, m.LogScrollOffset,
+				false, // isChat
+			)
+			if scrollbarCmd != nil {
+				return scrollbarCmd
+			}
+
+			// Handle text selection in log content area
+			// Convert global coordinates to log viewport local coordinates
+			localY := int(msg.Y) - logY
+			localX := int(msg.X) - logX
+			if localX >= 1 && localX < logWidth-1 && localY >= 1 && localY < logHeight-1 {
+				content := strings.Join(m.ServerLogs, "\n")
+				// Account for viewport content area (excluding border) and scroll offset
+				adjustedY := localY - 1 + m.LogScrollOffset // -1 to account for border
+				selectedText := m.extractTextAtPosition(content, localX-1, adjustedY)
+				if selectedText != "" {
+					return func() tea.Msg {
+						return textSelectedMsg{Text: selectedText}
+					}
+				}
+			}
+		}
+
+	case tea.MouseMotion:
+		// Handle scrollbar dragging (MouseMotion is sent during drag)
+		if m.ChatDragging {
+			// Calculate new scroll position based on drag
+			deltaY := int(msg.Y) - m.ChatDragStartY
+			if deltaY != 0 && m.ChatTotalHeight > m.ChatVisibleHeight {
+				newOffset := m.ChatScrollOffset + deltaY
+				if newOffset < 0 {
+					newOffset = 0
+				} else if newOffset > m.ChatTotalHeight-m.ChatVisibleHeight {
+					newOffset = m.ChatTotalHeight - m.ChatVisibleHeight
+				}
+				return func() tea.Msg {
+					return scrollbarUpdateMsg{
+						IsChat:        true,
+						NewOffset:     newOffset,
+						StartDragging: false,
+						DragStartY:    int(msg.Y),
+					}
+				}
+			}
+		}
+
+		if m.LogDragging {
+			// Calculate new scroll position based on drag
+			deltaY := int(msg.Y) - m.LogDragStartY
+			if deltaY != 0 && m.LogTotalHeight > m.LogVisibleHeight {
+				newOffset := m.LogScrollOffset + deltaY
+				if newOffset < 0 {
+					newOffset = 0
+				} else if newOffset > m.LogTotalHeight-m.LogVisibleHeight {
+					newOffset = m.LogTotalHeight - m.LogVisibleHeight
+				}
+				return func() tea.Msg {
+					return scrollbarUpdateMsg{
+						IsChat:        false,
+						NewOffset:     newOffset,
+						StartDragging: false,
+						DragStartY:    int(msg.Y),
+					}
+				}
+			}
+		}
+
+	case tea.MouseRelease:
+		// Stop dragging when mouse is released
+		if m.ChatDragging || m.LogDragging {
+			m.ChatDragging = false
+			m.LogDragging = false
+			// Return the updated model to ensure state changes are applied
+			return func() tea.Msg {
+				return nil
+			}
+		}
+
+	case tea.MouseRight:
 		// Right click to copy selection
 		if m.SelectedText != "" {
 			return func() tea.Msg {
@@ -1440,8 +1653,7 @@ func (m Model) handleMouse(msg tea.MouseMsg) tea.Cmd {
 }
 
 func (m Model) extractTextAtPosition(content string, x, y int) string {
-	// Simplified text extraction - in a real implementation,
-	// this would calculate based on viewport and character positions
+	// Improved text extraction with better handling of content
 	lines := strings.Split(content, "\n")
 	if y >= 0 && y < len(lines) {
 		line := lines[y]
@@ -1450,16 +1662,29 @@ func (m Model) extractTextAtPosition(content string, x, y int) string {
 			start := x
 			end := x
 
-			// Find word boundaries
-			for start > 0 && line[start-1] != ' ' && line[start-1] != '\n' {
+			// Find word boundaries - include common delimiters
+			delimiters := " \t\n.,;:!()[]{}\"'<>?/\\|@#%^&*-_+=~`"
+			for start > 0 && !strings.ContainsRune(delimiters, rune(line[start-1])) {
 				start--
 			}
-			for end < len(line) && line[end] != ' ' && line[end] != '\n' {
+			for end < len(line) && !strings.ContainsRune(delimiters, rune(line[end])) {
 				end++
 			}
 
 			if start < end {
-				return line[start:end]
+				word := line[start:end]
+				// Skip empty or single-character words unless they're meaningful
+				if len(word) > 1 || strings.ContainsAny(word, "aiok") {
+					return word
+				}
+			}
+
+			// If word extraction failed, try character-level extraction
+			if x < len(line) {
+				char := string(line[x])
+				if !strings.ContainsRune(delimiters, rune(char[0])) {
+					return char
+				}
 			}
 		}
 	}
@@ -1470,4 +1695,104 @@ func (m Model) startCopyNoticeTimer() tea.Cmd {
 	return tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 		return hideCopyNoticeMsg{}
 	})
+}
+
+// renderScrollbar renders a vertical scrollbar
+func (m Model) renderScrollbar(totalHeight, visibleHeight, scrollOffset int, isDragging bool) string {
+	if totalHeight <= visibleHeight {
+		// No scrollbar needed if content fits
+		return strings.Repeat(" ", visibleHeight)
+	}
+
+	// Calculate thumb size and position
+	thumbHeight := visibleHeight * visibleHeight / totalHeight
+	if thumbHeight < 1 {
+		thumbHeight = 1
+	}
+
+	maxScrollOffset := totalHeight - visibleHeight
+	thumbPosition := 0
+	if maxScrollOffset > 0 {
+		thumbPosition = scrollOffset * (visibleHeight - thumbHeight) / maxScrollOffset
+	}
+
+	// Build scrollbar track with thumb
+	var scrollbar strings.Builder
+	for i := 0; i < visibleHeight; i++ {
+		if i >= thumbPosition && i < thumbPosition+thumbHeight {
+			if isDragging {
+				scrollbar.WriteString(scrollbarThumbHoverStyle.Render("│"))
+			} else {
+				scrollbar.WriteString(scrollbarThumbStyle.Render("│"))
+			}
+		} else {
+			scrollbar.WriteString(scrollbarTrackStyle.Render(" "))
+		}
+	}
+
+	return scrollbar.String()
+}
+
+// isInScrollbar checks if mouse coordinates are within a scrollbar area
+func (m Model) isInScrollbar(x, y int, viewportX, viewportY, viewportWidth, viewportHeight int) bool {
+	// Scrollbar is positioned at the right edge of the viewport
+	scrollbarX := viewportX + viewportWidth - 1
+	scrollbarY := viewportY
+
+	return x == scrollbarX && y >= scrollbarY && y < scrollbarY+viewportHeight
+}
+
+// handleScrollbarClick handles mouse clicks on scrollbars
+func (m Model) handleScrollbarClick(x, y int, viewportX, viewportY, viewportWidth, viewportHeight int, totalHeight, visibleHeight, scrollOffset int, isChat bool) tea.Cmd {
+	if !m.isInScrollbar(x, y, viewportX, viewportY, viewportWidth, viewportHeight) {
+		return nil
+	}
+
+	// Calculate new scroll position based on click position
+	clickPosition := y - viewportY
+	if totalHeight <= visibleHeight {
+		return nil
+	}
+
+	// Calculate thumb size and position
+	thumbHeight := visibleHeight * visibleHeight / totalHeight
+	if thumbHeight < 1 {
+		thumbHeight = 1
+	}
+
+	maxScrollOffset := totalHeight - visibleHeight
+	if maxScrollOffset <= 0 {
+		return nil
+	}
+
+	// Map click position to scroll offset
+	var newScrollOffset int
+	if clickPosition < thumbHeight/2 {
+		newScrollOffset = 0
+	} else if clickPosition >= visibleHeight-thumbHeight/2 {
+		newScrollOffset = maxScrollOffset
+	} else {
+		newScrollOffset = (clickPosition - thumbHeight/2) * maxScrollOffset / (visibleHeight - thumbHeight)
+	}
+
+	// Create command to update viewport
+	if isChat {
+		return func() tea.Msg {
+			return scrollbarUpdateMsg{
+				IsChat:        true,
+				NewOffset:     newScrollOffset,
+				StartDragging: true,
+				DragStartY:    y,
+			}
+		}
+	} else {
+		return func() tea.Msg {
+			return scrollbarUpdateMsg{
+				IsChat:        false,
+				NewOffset:     newScrollOffset,
+				StartDragging: true,
+				DragStartY:    y,
+			}
+		}
+	}
 }

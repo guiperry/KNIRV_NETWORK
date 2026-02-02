@@ -13,7 +13,7 @@ import (
 
 const (
 	// DefaultHasherServerAddress is the default address for the hasher-server on ASIC device
-	DefaultHasherServerAddress = "192.168.1.99:50051"
+	DefaultHasherServerAddress = "192.168.1.99:8888"
 )
 
 // ASICDevice represents a connection to the ASIC hasher-server

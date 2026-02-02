@@ -13,7 +13,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -24,6 +27,22 @@ import (
 	"hasher/internal/hasher"
 	"hasher/internal/host"
 )
+
+const (
+	portFile = "/tmp/hasher-host.port"
+)
+
+// writePortFile writes the port to a temporary file for the CLI to discover.
+func writePortFile(port int) error {
+	log.Printf("Writing port %d to %s", port, portFile)
+	return os.WriteFile(portFile, []byte(fmt.Sprintf("%d", port)), 0644)
+}
+
+// cleanupPortFile removes the temporary port file.
+func cleanupPortFile() {
+	log.Printf("Cleaning up port file: %s", portFile)
+	os.Remove(portFile)
+}
 
 // Configuration flags
 var (
@@ -61,13 +80,19 @@ var (
 	// Network discovery configuration
 	discoverNetwork  = flag.Bool("discover", true, "enable network discovery for hasher-server")
 	discoverySubnet  = flag.String("subnet", "", "network subnet to scan (CIDR, empty = auto-detect)")
-	discoveryPort    = flag.Int("discovery-port", 50051, "port to scan for hasher-server")
+	discoveryPort    = flag.Int("discovery-port", 80, "port to scan for hasher-server")
 	discoveryTimeout = flag.Duration("discovery-timeout", 2*time.Second, "timeout for each server probe")
 	skipLocalhost    = flag.Bool("skip-localhost", false, "skip localhost during discovery")
 
 	// Auto-deployment configuration
 	autoDeploy    = flag.Bool("auto-deploy", true, "automatically deploy hasher-server to ASIC devices")
 	cleanupOnExit = flag.Bool("cleanup", true, "clean up deployed hasher-server on exit")
+
+	// Server log monitoring configuration
+	monitorServerLogs = flag.Bool("monitor-server-logs", true, "enable automatic monitoring of server logs for auto-recovery")
+	serverLogPath     = flag.String("server-log", "/tmp/hasher-server.log", "path to server log file on ASIC device")
+	serverDeviceIP    = flag.String("server-device-ip", "", "IP address of ASIC device (for log monitoring, auto-detected if empty)")
+	serverSSHPassword = flag.String("server-ssh-password", "keperu100", "SSH password for ASIC device (for log monitoring)")
 )
 
 // Orchestrator manages the recursive inference process
@@ -80,6 +105,17 @@ type Orchestrator struct {
 	startTime       time.Time
 	mu              sync.RWMutex
 	deployer        *host.Deployer // For auto-deployment
+
+	// Connection monitoring
+	connectionHealthy bool          // Current connection health status
+	lastHealthCheck   time.Time     // Last successful health check
+	reconnectAttempts int           // Number of reconnection attempts since last success
+	stopMonitor       chan struct{} // Signal to stop the connection monitor
+
+	// Server log monitoring
+	stopLogMonitorChan chan struct{} // Signal to stop the log monitor
+	serverDeviceIPAddr string        // IP of the ASIC device running server
+	isRebooting        bool          // Flag indicating if we're handling a server reboot
 
 	// Metrics
 	totalInferences  uint64
@@ -106,10 +142,12 @@ type InferResponse struct {
 
 // HealthResponse is the API response for health check
 type HealthResponse struct {
-	Status    string `json:"status"`
-	UsingASIC bool   `json:"using_asic"`
-	ChipCount int    `json:"chip_count"`
-	Uptime    string `json:"uptime"`
+	Status            string `json:"status"`
+	UsingASIC         bool   `json:"using_asic"`
+	ChipCount         int    `json:"chip_count"`
+	Uptime            string `json:"uptime"`
+	ConnectionHealthy bool   `json:"connection_healthy"`
+	LastHealthCheck   string `json:"last_health_check,omitempty"`
 }
 
 // MetricsResponse is the API response for metrics
@@ -208,10 +246,12 @@ func main() {
 	// Discover and connect to ASIC server
 	var asicClient *hasher.ASICClient
 	var discoveryResult *hasher.DiscoveryResult
+	var serverDeviceAddr string // Store the server device IP
 
 	if *asicAddr != "" {
 		// Use explicitly provided address
 		log.Printf("Connecting to specified ASIC server: %s", *asicAddr)
+		serverDeviceAddr = *asicAddr
 		var err error
 		asicClient, err = hasher.NewASICClient(*asicAddr)
 		if err != nil {
@@ -242,15 +282,18 @@ func main() {
 				asicClient, discoveryResult, err = hasher.DiscoverAndConnect(config)
 				if err != nil {
 					log.Printf("Warning: Network discovery failed: %v", err)
-					log.Printf("Creating ASIC client for direct connection...")
+					log.Printf("Creating ASIC client for direct connection attempt...")
 					asicClient, _ = hasher.NewASICClient("") // Create client for direct connection attempt
 				} else {
 					log.Printf("Connected to discovered hasher-server at %s", discoveryResult.Address)
 					log.Printf("Server info: %d chips, %s, latency: %dms",
 						discoveryResult.ChipCount, discoveryResult.Version, discoveryResult.LatencyMs)
+					serverDeviceAddr = discoveryResult.Address
 				}
 			} else {
 				log.Printf("Auto-deployment successful: hasher-server running on discovered device")
+				// Get the deployed device address
+				serverDeviceAddr = deployer.GetDeployedDevice()
 			}
 		} else {
 			// Standard discovery without auto-deployment
@@ -266,22 +309,29 @@ func main() {
 			asicClient, discoveryResult, err = hasher.DiscoverAndConnect(config)
 			if err != nil {
 				log.Printf("Warning: Network discovery failed: %v", err)
-				log.Printf("Creating ASIC client for direct connection...")
+				log.Printf("Creating ASIC client for direct connection attempt...")
 				asicClient, _ = hasher.NewASICClient("") // Create client for direct connection attempt
 			} else {
 				log.Printf("Connected to discovered hasher-server at %s", discoveryResult.Address)
 				log.Printf("Server info: %d chips, %s, latency: %dms",
 					discoveryResult.ChipCount, discoveryResult.Version, discoveryResult.LatencyMs)
+				serverDeviceAddr = discoveryResult.Address
 			}
 		}
 	} else {
 		// Try localhost only
 		log.Printf("Trying localhost hasher-server...")
+		serverDeviceAddr = "localhost:8888"
 		var err error
-		asicClient, err = hasher.NewASICClient("localhost:50051")
+		asicClient, err = hasher.NewASICClient("localhost:8888")
 		if err != nil {
 			log.Printf("Warning: Could not connect to localhost hasher-server: %v", err)
 		}
+	}
+
+	// Override with explicit flag if provided
+	if *serverDeviceIP != "" {
+		serverDeviceAddr = *serverDeviceIP
 	}
 
 	if asicClient != nil {
@@ -332,13 +382,30 @@ func main() {
 
 	// Create orchestrator
 	orch := &Orchestrator{
-		asicClient:      asicClient,
-		engine:          engine,
-		network:         network,
-		cryptoModel:     cryptoModel,
-		discoveryResult: discoveryResult,
-		startTime:       time.Now(),
-		deployer:        deployer,
+		asicClient:         asicClient,
+		engine:             engine,
+		network:            network,
+		cryptoModel:        cryptoModel,
+		discoveryResult:    discoveryResult,
+		startTime:          time.Now(),
+		deployer:           deployer,
+		connectionHealthy:  asicClient != nil && !asicClient.IsUsingFallback(),
+		lastHealthCheck:    time.Now(),
+		stopMonitor:        make(chan struct{}),
+		stopLogMonitorChan: make(chan struct{}),
+		serverDeviceIPAddr: extractIPFromAddress(serverDeviceAddr),
+	}
+
+	// Start connection monitor for ASIC connection health
+	if asicClient != nil && !asicClient.IsUsingFallback() {
+		go orch.runConnectionMonitor()
+	}
+
+	// Start server log monitoring if enabled and we have a server device IP
+	if *monitorServerLogs && orch.serverDeviceIPAddr != "" {
+		go orch.monitorServerLogs()
+	} else if *monitorServerLogs {
+		log.Printf("Warning: Server log monitoring enabled but no server device IP available")
 	}
 
 	// Find available port for API mode
@@ -351,6 +418,11 @@ func main() {
 		}
 		// Update the port variable for the rest of the code
 		*port = apiPort
+
+		// Write port to file for CLI discovery
+		if err := writePortFile(apiPort); err != nil {
+			log.Printf("Warning: failed to write port file: %v", err)
+		}
 	}
 
 	// Run based on mode
@@ -369,6 +441,343 @@ func main() {
 		showInfo(orch)
 	default:
 		log.Fatalf("Unknown mode: %s", *mode)
+	}
+}
+
+// extractIPFromAddress extracts just the IP address from an address string (e.g., "192.168.1.1:8888" -> "192.168.1.1")
+func extractIPFromAddress(addr string) string {
+	if addr == "" {
+		return ""
+	}
+	parts := strings.Split(addr, ":")
+	if len(parts) > 0 {
+		return parts[0]
+	}
+	return addr
+}
+
+// monitorServerLogs monitors the server logs via SSH and handles auto-reboot scenarios
+func (o *Orchestrator) monitorServerLogs() {
+	log.Printf("Starting server log monitor for device %s", o.serverDeviceIPAddr)
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-o.stopLogMonitorChan:
+			log.Printf("Server log monitor stopped")
+			return
+		case <-ticker.C:
+			if o.isRebooting {
+				// Skip monitoring while we're handling a reboot
+				continue
+			}
+
+			// Check for auto-reboot marker in server logs
+			if err := o.checkServerLogs(); err != nil {
+				// Only log errors occasionally to avoid spam
+				if o.reconnectAttempts%10 == 0 {
+					log.Printf("Warning: Failed to check server logs: %v", err)
+				}
+			}
+		}
+	}
+}
+
+// checkServerLogs checks the server logs via SSH for auto-reboot markers
+func (o *Orchestrator) checkServerLogs() error {
+	// SSH into device and tail the log file for recent entries
+	sshCmd := fmt.Sprintf("sshpass -p '%s' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@%s "+
+		"\"tail -n 50 %s 2>/dev/null || echo 'LOG_FILE_NOT_FOUND'\"",
+		*serverSSHPassword, o.serverDeviceIPAddr, *serverLogPath)
+
+	cmd := exec.Command("sh", "-c", sshCmd)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("ssh command failed: %v (output: %s)", err, string(output))
+	}
+
+	logOutput := string(output)
+
+	// Check for auto-reboot marker
+	if strings.Contains(logOutput, "AUTO_REBOOT_TRIGGERED") {
+		log.Printf("AUTO_REBOOT_TRIGGERED marker detected in server logs - server is rebooting")
+		go o.handleServerReboot()
+	}
+
+	return nil
+}
+
+// handleServerReboot handles the full server reboot recovery sequence
+func (o *Orchestrator) handleServerReboot() {
+	o.mu.Lock()
+	if o.isRebooting {
+		o.mu.Unlock()
+		return // Already handling a reboot
+	}
+	o.isRebooting = true
+	o.mu.Unlock()
+
+	log.Printf("=== Starting server reboot recovery sequence ===")
+
+	// Step 1: Log that reboot is in progress
+	log.Printf("Server reboot in progress - waiting for connection to drop...")
+
+	// Step 2: Wait for connection to drop (indicating server is rebooting)
+	connectionDropped := o.waitForConnectionDrop(60 * time.Second)
+	if !connectionDropped {
+		log.Printf("Warning: Connection did not drop within timeout, assuming reboot is complete")
+	} else {
+		log.Printf("Connection dropped - server is rebooting")
+	}
+
+	// Step 3: Poll for server to come back online (retry every 5 seconds for up to 2 minutes)
+	log.Printf("Waiting for server to come back online...")
+	backOnline := o.pollForServerRecovery(120*time.Second, 5*time.Second)
+	if !backOnline {
+		log.Printf("ERROR: Server did not come back online within timeout - manual intervention required")
+		o.mu.Lock()
+		o.isRebooting = false
+		o.mu.Unlock()
+		return
+	}
+	log.Printf("Server is back online")
+
+	// Step 4: Download the server logs with timestamp
+	log.Printf("Downloading server logs...")
+	logFile, err := o.downloadServerLogs()
+	if err != nil {
+		log.Printf("Warning: Failed to download server logs: %v", err)
+	} else {
+		log.Printf("Server logs saved to: %s", logFile)
+	}
+
+	// Step 5: Cleanup old server process
+	log.Printf("Cleaning up old server process...")
+	if err := o.cleanupOldServerProcess(); err != nil {
+		log.Printf("Warning: Failed to cleanup old server process: %v", err)
+	}
+
+	// Step 6: Redeploy the server binary
+	log.Printf("Redeploying server binary...")
+	if err := o.redeployServerBinary(); err != nil {
+		log.Printf("ERROR: Failed to redeploy server binary: %v", err)
+		o.mu.Lock()
+		o.isRebooting = false
+		o.mu.Unlock()
+		return
+	}
+	log.Printf("Server binary redeployed successfully")
+
+	// Step 7: Restart the server
+	log.Printf("Restarting hasher-server...")
+	if err := o.restartServer(); err != nil {
+		log.Printf("ERROR: Failed to restart server: %v", err)
+		o.mu.Lock()
+		o.isRebooting = false
+		o.mu.Unlock()
+		return
+	}
+	log.Printf("Server restarted successfully")
+
+	// Step 8: Reconnect the ASIC client
+	log.Printf("Reconnecting ASIC client...")
+	if err := o.reconnectASICClient(); err != nil {
+		log.Printf("ERROR: Failed to reconnect ASIC client: %v", err)
+		o.mu.Lock()
+		o.isRebooting = false
+		o.mu.Unlock()
+		return
+	}
+	log.Printf("ASIC client reconnected successfully")
+
+	// Step 9: Resume normal operations
+	o.mu.Lock()
+	o.isRebooting = false
+	o.connectionHealthy = true
+	o.lastHealthCheck = time.Now()
+	o.reconnectAttempts = 0
+	o.mu.Unlock()
+
+	log.Printf("=== Server reboot recovery sequence complete - resuming normal operations ===")
+}
+
+// waitForConnectionDrop waits for the SSH connection to drop (indicating server reboot)
+func (o *Orchestrator) waitForConnectionDrop(timeout time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 1 * time.Second
+
+	for time.Now().Before(deadline) {
+		// Try to connect via SSH - if it fails, connection has dropped
+		sshCmd := fmt.Sprintf("sshpass -p '%s' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no -o ConnectTimeout=3 root@%s echo 'OK'",
+			*serverSSHPassword, o.serverDeviceIPAddr)
+		cmd := exec.Command("sh", "-c", sshCmd)
+		if err := cmd.Run(); err != nil {
+			// Connection dropped
+			return true
+		}
+		time.Sleep(pollInterval)
+	}
+
+	return false // Timeout reached
+}
+
+// pollForServerRecovery polls for the server to come back online
+func (o *Orchestrator) pollForServerRecovery(timeout time.Duration, interval time.Duration) bool {
+	deadline := time.Now().Add(timeout)
+
+	for time.Now().Before(deadline) {
+		// Try to SSH into the device
+		sshCmd := fmt.Sprintf("sshpass -p '%s' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@%s echo 'READY'",
+			*serverSSHPassword, o.serverDeviceIPAddr)
+		cmd := exec.Command("sh", "-c", sshCmd)
+		if err := cmd.Run(); err == nil {
+			// Server is back online
+			return true
+		}
+
+		log.Printf("Waiting for server to come back online... (retry in %v)", interval)
+		time.Sleep(interval)
+	}
+
+	return false // Timeout reached
+}
+
+// downloadServerLogs downloads the server logs and saves them with a timestamp
+func (o *Orchestrator) downloadServerLogs() (string, error) {
+	// Create logs directory if it doesn't exist
+	logsDir := "./logs"
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create logs directory: %w", err)
+	}
+
+	// Generate timestamped filename
+	timestamp := time.Now().Format("20060102_150405")
+	filename := fmt.Sprintf("hasher-server_%s_%s.log", o.serverDeviceIPAddr, timestamp)
+	filepath := filepath.Join(logsDir, filename)
+
+	// Download logs via SSH
+	sshCmd := fmt.Sprintf("sshpass -p '%s' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@%s "+
+		"\"cat %s 2>/dev/null || echo 'LOG_FILE_NOT_FOUND'\"",
+		*serverSSHPassword, o.serverDeviceIPAddr, *serverLogPath)
+
+	cmd := exec.Command("sh", "-c", sshCmd)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("ssh command failed: %v (output: %s)", err, string(output))
+	}
+
+	// Write logs to file
+	if err := os.WriteFile(filepath, output, 0644); err != nil {
+		return "", fmt.Errorf("failed to write log file: %w", err)
+	}
+
+	log.Printf("Successfully downloaded server logs to %s (size: %d bytes)", filepath, len(output))
+	return filepath, nil
+}
+
+// cleanupOldServerProcess kills any old hasher-server processes on the device
+func (o *Orchestrator) cleanupOldServerProcess() error {
+	sshCmd := fmt.Sprintf("sshpass -p '%s' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@%s "+
+		"\"pkill -9 hasher-server 2>/dev/null; echo 'DONE'\"",
+		*serverSSHPassword, o.serverDeviceIPAddr)
+
+	cmd := exec.Command("sh", "-c", sshCmd)
+	output, err := cmd.CombinedOutput()
+	if err != nil && !strings.Contains(string(output), "DONE") {
+		// pkill may fail if process doesn't exist, which is OK
+		if !strings.Contains(err.Error(), "exit status 1") {
+			return fmt.Errorf("ssh command failed: %v (output: %s)", err, string(output))
+		}
+	}
+
+	return nil
+}
+
+// redeployServerBinary redeploys the hasher-server binary to the device
+func (o *Orchestrator) redeployServerBinary() error {
+	// If we have a deployer, use it
+	if o.deployer != nil && o.serverDeviceIPAddr != "" {
+		_, err := o.deployer.EnsureServerDeployed(o.serverDeviceIPAddr)
+		if err != nil {
+			return fmt.Errorf("deployer redeployment failed: %w", err)
+		}
+		return nil
+	}
+
+	// Otherwise, use direct SSH to copy and setup the binary
+	// This assumes the binary is available locally
+	return fmt.Errorf("no deployer available for redeployment")
+}
+
+// restartServer restarts the hasher-server on the device
+func (o *Orchestrator) restartServer() error {
+	sshCmd := fmt.Sprintf("sshpass -p '%s' ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@%s "+
+		"\"nohup /tmp/hasher-server --auto-reboot > %s 2>&1 & sleep 2; pgrep hasher-server > /dev/null && echo 'STARTED' || echo 'FAILED'\"",
+		*serverSSHPassword, o.serverDeviceIPAddr, *serverLogPath)
+
+	cmd := exec.Command("sh", "-c", sshCmd)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("ssh command failed: %v (output: %s)", err, string(output))
+	}
+
+	if !strings.Contains(string(output), "STARTED") {
+		return fmt.Errorf("server failed to start (output: %s)", string(output))
+	}
+
+	// Wait for server to be ready
+	time.Sleep(3 * time.Second)
+
+	return nil
+}
+
+// reconnectASICClient reconnects the ASIC client after server restart
+func (o *Orchestrator) reconnectASICClient() error {
+	// Close existing client
+	if o.asicClient != nil {
+		o.asicClient.Close()
+	}
+
+	// Build server address
+	serverAddr := fmt.Sprintf("%s:8888", o.serverDeviceIPAddr)
+
+	// Try to reconnect with retries
+	backoff := 1 * time.Second
+	maxBackoff := 10 * time.Second
+	timeout := 60 * time.Second
+	deadline := time.Now().Add(timeout)
+
+	for time.Now().Before(deadline) {
+		client, err := hasher.NewASICClient(serverAddr)
+		if err == nil {
+			// Test the connection
+			_, err := client.GetDeviceInfo()
+			if err == nil {
+				o.mu.Lock()
+				o.asicClient = client
+				o.mu.Unlock()
+				return nil
+			}
+			client.Close()
+		}
+
+		log.Printf("Reconnection attempt failed, retrying in %v...", backoff)
+		time.Sleep(backoff)
+		backoff *= 2
+		if backoff > maxBackoff {
+			backoff = maxBackoff
+		}
+	}
+
+	return fmt.Errorf("failed to reconnect within timeout (%v)", timeout)
+}
+
+// signalLogMonitorStop signals the log monitor to stop
+func (o *Orchestrator) signalLogMonitorStop() {
+	if o.stopLogMonitorChan != nil {
+		close(o.stopLogMonitorChan)
 	}
 }
 
@@ -400,6 +809,9 @@ func runAPIServer(orch *Orchestrator) {
 		api.POST("/rules", orch.handleAddRule)
 		api.DELETE("/rules/:id", orch.handleDeleteRule)
 		api.GET("/domains", orch.handleListDomains)
+
+		// Shutdown endpoint
+		api.POST("/shutdown", orch.handleShutdown)
 	}
 
 	// Set up graceful shutdown
@@ -421,6 +833,13 @@ func runAPIServer(orch *Orchestrator) {
 	<-quit
 
 	log.Println("Shutting down server...")
+
+	// Stop monitors
+	orch.stopConnectionMonitor()
+	orch.signalLogMonitorStop()
+
+	// Clean up port file right away
+	cleanupPortFile()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -558,11 +977,28 @@ func (o *Orchestrator) handleHealth(c *gin.Context) {
 		chipCount = o.asicClient.GetChipCount()
 	}
 
+	o.mu.RLock()
+	connectionHealthy := o.connectionHealthy
+	lastHealthCheck := o.lastHealthCheck
+	isRebooting := o.isRebooting
+	o.mu.RUnlock()
+
+	// Determine overall status
+	status := "healthy"
+	if o.asicClient != nil && !connectionHealthy {
+		status = "degraded"
+	}
+	if isRebooting {
+		status = "rebooting"
+	}
+
 	c.JSON(http.StatusOK, HealthResponse{
-		Status:    "healthy",
-		UsingASIC: o.engine.IsUsingASIC(),
-		ChipCount: chipCount,
-		Uptime:    time.Since(o.startTime).String(),
+		Status:            status,
+		UsingASIC:         o.engine.IsUsingASIC(),
+		ChipCount:         chipCount,
+		Uptime:            time.Since(o.startTime).String(),
+		ConnectionHealthy: connectionHealthy,
+		LastHealthCheck:   lastHealthCheck.Format(time.RFC3339),
 	})
 }
 
@@ -596,6 +1032,86 @@ func (o *Orchestrator) handleMetrics(c *gin.Context) {
 	})
 }
 
+// runConnectionMonitor periodically checks ASIC connection health and attempts reconnection
+func (o *Orchestrator) runConnectionMonitor() {
+	ticker := time.NewTicker(10 * time.Second) // Check every 10 seconds
+	defer ticker.Stop()
+
+	log.Printf("Connection monitor started for ASIC server")
+
+	for {
+		select {
+		case <-o.stopMonitor:
+			log.Printf("Connection monitor stopped")
+			return
+		case <-ticker.C:
+			if o.isRebooting {
+				// Skip health checks during reboot handling
+				continue
+			}
+			o.checkConnectionHealth()
+		}
+	}
+}
+
+// checkConnectionHealth verifies ASIC connection and attempts reconnection if needed
+func (o *Orchestrator) checkConnectionHealth() {
+	if o.asicClient == nil {
+		return
+	}
+
+	// Try to get device info as a health check
+	_, err := o.asicClient.GetDeviceInfo()
+
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	if err != nil {
+		// Connection is unhealthy
+		if o.connectionHealthy {
+			log.Printf("ASIC connection lost: %v", err)
+			o.connectionHealthy = false
+		}
+
+		// Attempt reconnection with exponential backoff
+		if o.reconnectAttempts < 5 { // Max 5 attempts before giving up temporarily
+			o.reconnectAttempts++
+			log.Printf("Attempting ASIC reconnection (attempt %d/5)...", o.reconnectAttempts)
+
+			if err := o.asicClient.Reconnect(); err != nil {
+				log.Printf("Reconnection failed: %v", err)
+			} else {
+				log.Printf("Successfully reconnected to ASIC server")
+				o.connectionHealthy = true
+				o.lastHealthCheck = time.Now()
+				o.reconnectAttempts = 0
+			}
+		} else if o.reconnectAttempts == 5 {
+			log.Printf("Max reconnection attempts reached. Will retry in 60 seconds.")
+			o.reconnectAttempts++ // Increment to avoid repeated log message
+		} else if o.reconnectAttempts >= 11 { // Reset after ~60 seconds (6 more ticks)
+			o.reconnectAttempts = 0
+		} else {
+			o.reconnectAttempts++
+		}
+	} else {
+		// Connection is healthy
+		if !o.connectionHealthy {
+			log.Printf("ASIC connection restored")
+		}
+		o.connectionHealthy = true
+		o.lastHealthCheck = time.Now()
+		o.reconnectAttempts = 0
+	}
+}
+
+// stopConnectionMonitor signals the connection monitor to stop
+func (o *Orchestrator) stopConnectionMonitor() {
+	if o.stopMonitor != nil {
+		close(o.stopMonitor)
+	}
+}
+
 // handleDeviceInfo handles device info requests
 func (o *Orchestrator) handleDeviceInfo(c *gin.Context) {
 	if o.asicClient == nil {
@@ -622,6 +1138,27 @@ func (o *Orchestrator) handleDeviceInfo(c *gin.Context) {
 		"is_operational":   info.IsOperational,
 		"uptime_seconds":   info.UptimeSeconds,
 	})
+}
+
+// handleShutdown handles a request to gracefully shut down the server.
+func (o *Orchestrator) handleShutdown(c *gin.Context) {
+	log.Println("Received shutdown request via API...")
+	c.JSON(http.StatusOK, gin.H{"message": "shutdown sequence initiated"})
+
+	// Use a goroutine to send the signal after the response has been sent
+	go func() {
+		// A small delay to allow the HTTP response to flush
+		time.Sleep(100 * time.Millisecond)
+		p, err := os.FindProcess(os.Getpid())
+		if err != nil {
+			log.Printf("Error finding process to signal shutdown: %v", err)
+			return
+		}
+		log.Println("Sending SIGTERM to self to trigger graceful shutdown...")
+		if err := p.Signal(syscall.SIGTERM); err != nil {
+			log.Printf("Error sending SIGTERM to self: %v", err)
+		}
+	}()
 }
 
 // handleChat handles crypto-transformer chat requests
@@ -656,6 +1193,17 @@ func (o *Orchestrator) handleChat(c *gin.Context) {
 
 	// Generate contextual response
 	response := o.generateChatResponse(req.Message, generatedToken)
+
+	// Check if generation failed (ASIC not available)
+	if response == "" {
+		log.Printf("ERROR: Token generation failed - ASIC server not available (fallback mode)")
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error":      "Token generation failed: ASIC server not available",
+			"token_id":   generatedToken,
+			"using_asic": o.engine.IsUsingASIC(),
+		})
+		return
+	}
 
 	latency := time.Since(start)
 
@@ -735,22 +1283,16 @@ func (o *Orchestrator) handleCryptoStatus(c *gin.Context) {
 	})
 }
 
-// generateChatResponse generates contextual responses based on input and token
+// generateChatResponse generates a response based on the generated token
+// Returns empty string if token generation failed (ASIC not available)
 func (o *Orchestrator) generateChatResponse(input string, token int) string {
-	responses := map[int]string{
-		103: fmt.Sprintf("Hello! I'm a cryptographic transformer running on ASIC hardware. Your message '%s' was processed using hash-based neural operations for quantum-resistant AI.", input),
-		105: fmt.Sprintf("I'm processing efficiently using SHA-256 ASIC acceleration! Regarding '%s', this represents interesting input for hash-based analysis with ~500 GH/s throughput.", input),
-		107: fmt.Sprintf("I'm Hasher Cryptographic Transformer, powered by hash-based neural networks and ASIC acceleration. Your query '%s' demonstrates the breakthrough of seed-as-weight-matrix architecture.", input),
-		108: fmt.Sprintf("Goodbye! The cryptographic transformer with ASIC support provides ultra-low-cost AI inference. Thanks for testing '%s' with this quantum-resistant system!", input),
-		104: fmt.Sprintf("I can help! As a hash-based AI with ASIC acceleration, I process requests using cryptographic neural operations. For '%s', I can analyze this with hardware-accelerated SHA-256 functions.", input),
-		101: fmt.Sprintf("Hash-based AI transforms traditional matrix multiplication into cryptographic operations. Each weight matrix is encoded as a 32-byte seed. Your message '%s' is processed through this novel architecture.", input),
+	// Check if we're in fallback mode - if so, return empty to signal error
+	if o.asicClient == nil || o.asicClient.IsUsingFallback() {
+		return ""
 	}
 
-	if response, exists := responses[token%len(responses)+100]; exists {
-		return response
-	}
-
-	return fmt.Sprintf("I processed '%s' using cryptographic transformer with ASIC acceleration. This system uses hash-based neural operations for quantum-resistant, cost-effective AI inference.", input)
+	// Return simple token-based acknowledgment instead of hardcoded marketing text
+	return fmt.Sprintf("Token generated: %d (ASIC mode: %v)", token, o.engine.IsUsingASIC())
 }
 
 // handleListRules handles GET /rules requests

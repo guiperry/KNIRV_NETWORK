@@ -404,7 +404,7 @@ The ASIC device (Antminer S3) runs a two part driver (hasher-host and hasher-ser
 
 ```
 Communication Protocol: gRPC over TCP/IP (LAN)
-Target: ASIC's LAN IP address (e.g., 192.168.1.99:50051)
+Target: ASIC's LAN IP address (e.g., 192.168.1.99:8888)
 Interface: Protocol Buffers (version 3)
 Encoding: Binary (Protocol Buffers)
 Transport: HTTP/2
@@ -752,7 +752,7 @@ import (
 
 const (
     // Hasher server address on ASIC device
-    HASHER_SERVER_ADDRESS = "192.168.1.99:50051"
+    HASHER_SERVER_ADDRESS = "192.168.1.99:8888"
 )
 
 type ASICDevice struct {

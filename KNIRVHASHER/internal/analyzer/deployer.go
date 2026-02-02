@@ -739,8 +739,9 @@ func (d *Deployer) RunProvision() (*PhaseResult, error) {
 				output.WriteString(fmt.Sprintf("Deployed to %s\n", remoteBinaryPath))
 
 				// Start hasher-server
+				// Note: Use subshell with & instead of nohup since busybox doesn't have nohup
 				d.log("Starting hasher-server...")
-				startOutput, _ := d.runRemoteCommand(fmt.Sprintf("nohup %s --port=50051 --trace=true > /tmp/hasher-server.log 2>&1 &", remoteBinaryPath))
+				startOutput, _ := d.runRemoteCommand(fmt.Sprintf("( %s --port=8888 --trace=true > /tmp/hasher-server.log 2>&1 ) &", remoteBinaryPath))
 				output.WriteString("Started hasher-server: " + startOutput + "\n")
 			}
 		}

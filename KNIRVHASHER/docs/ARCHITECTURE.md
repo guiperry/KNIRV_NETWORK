@@ -86,7 +86,7 @@ User Input → Hasher Host → [Preprocessing] → ASIC Client → Hasher Server
 
 ### Host ↔ Server Communication
 - **Protocol**: gRPC
-- **Port**: 50051 (default)
+- **Port**: 80 (default)
 - **Serialization**: Protocol Buffers
 - **Security**: TLS optional (for production)
 
@@ -195,7 +195,7 @@ host:
 ### Server Configuration
 ```yaml
 server:
-  grpc_port: 50051
+  grpc_port: 80
   device_path: "/dev/bitmain-asic"
   max_connections: 10
   health_check_interval: 30s

@@ -8,16 +8,16 @@ services:
     container_name: asic-driver-server
     privileged: true  # Required for eBPF
     ports:
-      - "50051:50051"
+      - "80:8888"
     devices:
       - /dev/bitmain-asic:/dev/bitmain-asic  # Mount ASIC device
     environment:
-      - asic-driver_PORT=50051
+      - asic-driver_PORT=80
       - asic-driver_TRACE_ENABLED=true
-    command: ["asic-driver-server", "--port=50051", "--trace=true"]
+    command: ["asic-driver-server", "--port=80", "--trace=true"]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "asic-driver-client", "--addr=localhost:50051", "--mode=info"]
+      test: ["CMD", "asic-driver-client", "--addr=localhost:8888", "--mode=info"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -30,8 +30,8 @@ services:
     depends_on:
       - asic-driver-server
     environment:
-      - asic-driver_SERVER_ADDR=asic-driver-server:50051
-    command: ["sh", "-c", "sleep 5 && asic-driver-client --addr=asic-driver-server:50051 --mode=batch --count=100"]
+      - asic-driver_SERVER_ADDR=asic-driver-server:8888
+    command: ["sh", "-c", "sleep 5 && asic-driver-client --addr=asic-driver-server:8888 --mode=batch --count=100"]
     profiles:
       - demo
 

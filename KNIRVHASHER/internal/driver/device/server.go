@@ -30,10 +30,15 @@ func NewHasherServer(enableTracing bool) (*HasherServer, error) {
 		return nil, fmt.Errorf("open device: %w", err)
 	}
 
+	return NewHasherServerWithDevice(device), nil
+}
+
+// NewHasherServerWithDevice creates a new Hasher gRPC server with a pre-initialized device
+func NewHasherServerWithDevice(dev *Device) *HasherServer {
 	return &HasherServer{
-		device:    device,
+		device:    dev,
 		startTime: time.Now(),
-	}, nil
+	}
 }
 
 // ComputeHash implements single hash computation
