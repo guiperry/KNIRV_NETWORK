@@ -700,15 +700,22 @@ func (d *Device) ComputeBatch(inputs [][]byte) ([][32]byte, error) {
 		// 1. Send TxTask with work
 		txTask := d.buildTxTaskPacket(input, i)
 
+		var writeErr error
 		d.mu.Lock()
-		_, err := d.file.Write(txTask)
+		if d.useUSB && d.usbDevice != nil {
+			writeErr = d.usbDevice.SendPacket(txTask)
+		} else if d.file != nil {
+			_, writeErr = d.file.Write(txTask)
+		} else {
+			writeErr = fmt.Errorf("no device interface available")
+		}
 		d.mu.Unlock()
 
-		if err != nil {
+		if writeErr != nil {
 			d.stats.mu.Lock()
 			d.stats.ErrorCount++
 			d.stats.mu.Unlock()
-			return nil, fmt.Errorf("failed to send TxTask for input %d: %w", i, err)
+			return nil, fmt.Errorf("failed to send TxTask for input %d: %w", i, writeErr)
 		}
 
 		// 2. Poll for RxNonce response
@@ -819,9 +826,21 @@ func (d *Device) pollForNonce(workID int, interval time.Duration, maxPolls int, 
 	for poll := 0; poll < maxPolls; poll++ {
 		time.Sleep(interval)
 
+		var n int
+		var err error
+
 		d.mu.Lock()
-		d.file.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
-		n, err := d.file.Read(response)
+		if d.useUSB && d.usbDevice != nil {
+			// USB mode: use ReadPacket with short timeout
+			n, err = d.usbDevice.ReadPacket(response, 10*time.Millisecond)
+		} else if d.file != nil {
+			// Kernel device mode: use file read with deadline
+			d.file.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
+			n, err = d.file.Read(response)
+		} else {
+			d.mu.Unlock()
+			return [32]byte{}, fmt.Errorf("no device interface available")
+		}
 		d.mu.Unlock()
 
 		if err != nil {

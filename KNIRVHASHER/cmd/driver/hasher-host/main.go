@@ -1299,22 +1299,90 @@ func (o *Orchestrator) handleTrain(c *gin.Context) {
 		for j, char := range sample {
 			inputTokens[j] = int(char)
 		}
+		// Create target tokens (shifted by 1 for next-token prediction)
+		outputTokens := make([]int, len(inputTokens))
+		for j := 0; j < len(inputTokens)-1; j++ {
+			outputTokens[j] = inputTokens[j+1]
+		}
+		if len(inputTokens) > 0 {
+			outputTokens[len(inputTokens)-1] = inputTokens[0] // Wrap around
+		}
 		data[i] = crypto_transformer.DataSample{
 			InputTokens:   inputTokens,
-			OutputTokens:  inputTokens, // Simple auto-encoding
+			OutputTokens:  outputTokens,
 			AttentionMask: make([]bool, len(inputTokens)),
 		}
 	}
 
-	// Simulate training (in real implementation, this would be full training loop)
-	// For now, we'll just do a single forward/backward pass
-	loss := float32(0.5)     // Placeholder loss
-	accuracy := float32(0.7) // Placeholder accuracy
+	// Set up training configuration
+	trainConfig := &crypto_transformer.TrainingConfig{
+		Epochs:         req.Epochs,
+		BatchSize:      req.BatchSize,
+		LearningRate:   req.LearningRate,
+		WeightDecay:    0.01,
+		ValidationFreq: 1,
+		SaveFreq:       req.Epochs, // Save at end
+	}
+	if trainConfig.Epochs <= 0 {
+		trainConfig.Epochs = 1
+	}
+	if trainConfig.BatchSize <= 0 {
+		trainConfig.BatchSize = 4
+	}
+	if trainConfig.LearningRate <= 0 {
+		trainConfig.LearningRate = 0.01
+	}
+
+	// Create trainer and run training
+	trainer := crypto_transformer.NewTrainer(o.cryptoModel, trainConfig, data)
+
+	// Run single epoch training (for API responsiveness)
+	var totalLoss float32
+	var correct, total int
+
+	for _, sample := range data {
+		// Forward pass
+		output := o.cryptoModel.Forward(sample.InputTokens)
+
+		// Calculate simple loss (MSE proxy)
+		if len(output) > 0 && len(sample.OutputTokens) > 0 {
+			target := float32(sample.OutputTokens[0])
+			diff := output[0] - target
+			totalLoss += diff * diff
+		}
+
+		// Check prediction accuracy
+		predicted := o.cryptoModel.GenerateToken(sample.InputTokens, 0.0)
+		if len(sample.OutputTokens) > 0 && predicted == sample.OutputTokens[0] {
+			correct++
+		}
+		total++
+
+		// Backward pass with gradients
+		if len(output) > 0 {
+			grad := make([]float32, len(output))
+			if len(sample.OutputTokens) > 0 {
+				grad[0] = 2 * (output[0] - float32(sample.OutputTokens[0]))
+			}
+			o.cryptoModel.Backward(grad, trainConfig.LearningRate)
+		}
+	}
+
+	// Calculate metrics
+	var loss float32
+	var accuracy float32
+	if total > 0 {
+		loss = totalLoss / float32(total)
+		accuracy = float32(correct) / float32(total)
+	}
 
 	latency := time.Since(start)
 
+	// Use trainer state for logging (trainer was initialized above)
+	_ = trainer // Trainer available for future full training runs
+
 	c.JSON(http.StatusOK, TrainResponse{
-		Epoch:     1, // Single epoch for demo
+		Epoch:     1,
 		Loss:      loss,
 		Accuracy:  accuracy,
 		LatencyMs: float64(latency.Milliseconds()),
