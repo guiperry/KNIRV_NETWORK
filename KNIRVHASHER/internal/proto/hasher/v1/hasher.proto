@@ -20,6 +20,9 @@ service hasherService {
   
   // GetDeviceInfo retrieves ASIC device information
   rpc GetDeviceInfo(GetDeviceInfoRequest) returns (GetDeviceInfoResponse);
+
+  // MineWork performs mining on a Bitcoin-style header to find a valid nonce
+  rpc MineWork(MineWorkRequest) returns (MineWorkResponse);
 }
 
 // ComputeHashRequest contains data for single hash computation
@@ -133,4 +136,25 @@ message GetDeviceInfoResponse {
   
   // Server uptime in seconds
   uint64 uptime_seconds = 5;
+}
+
+// MineWorkRequest contains data for mining a nonce
+message MineWorkRequest {
+  // 80-byte Bitcoin-style block header
+  bytes header = 1;
+  
+  // Starting nonce value for search
+  uint32 nonce_start = 2;
+  
+  // Ending nonce value for search
+  uint32 nonce_end = 3;
+}
+
+// MineWorkResponse contains the found nonce
+message MineWorkResponse {
+  // The first valid nonce found
+  uint32 nonce = 1;
+  
+  // Operation latency in microseconds
+  uint64 latency_us = 2;
 }

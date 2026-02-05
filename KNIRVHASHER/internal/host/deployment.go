@@ -11,8 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/ssh"
+
 	"hasher/internal/analyzer"
 	"hasher/internal/hasher"
+	"hasher/internal/host/embedded" // Added for embedded server binary
 )
 
 // DeploymentConfig defines deployment configuration
@@ -21,6 +24,7 @@ type DeploymentConfig struct {
 	CleanupOnExit  bool          // Clean up deployed binaries on exit
 	ConnectTimeout time.Duration // Timeout for server connection
 	DeployTimeout  time.Duration // Timeout for deployment operations
+	ForceRedeploy  bool          // Force redeployment even if server is detected as running
 }
 
 // DefaultDeploymentConfig returns default deployment configuration
@@ -30,6 +34,7 @@ func DefaultDeploymentConfig() *DeploymentConfig {
 		CleanupOnExit:  true,
 		ConnectTimeout: 30 * time.Second,
 		DeployTimeout:  120 * time.Second,
+		ForceRedeploy:  false, // Default to false
 	}
 }
 
@@ -62,33 +67,100 @@ func NewDeployer(config *DeploymentConfig) (*Deployer, error) {
 	}, nil
 }
 
+// rebootDevice reboots the target device
+func (d *Deployer) rebootDevice(deviceIP string) error {
+	log.Printf("Rebooting device %s...", deviceIP)
+
+	// Create SSH connection for reboot
+	sshConfig := &ssh.ClientConfig{
+		User: "root",
+		Auth: []ssh.AuthMethod{
+			ssh.Password("keperu100"),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         30 * time.Second,
+		HostKeyAlgorithms: []string{
+			"ssh-rsa",
+			"ssh-dss",
+		},
+	}
+
+	client, err := ssh.Dial("tcp", deviceIP+":22", sshConfig)
+	if err != nil {
+		return fmt.Errorf("failed to connect to device for reboot: %w", err)
+	}
+	defer client.Close()
+
+	// Execute reboot command
+	session, err := client.NewSession()
+	if err != nil {
+		return fmt.Errorf("failed to create SSH session for reboot: %w", err)
+	}
+	defer session.Close()
+
+	if err := session.Run("reboot"); err != nil {
+		return fmt.Errorf("failed to execute reboot command: %w", err)
+	}
+
+	log.Printf("Reboot command sent to %s", deviceIP)
+	return nil
+}
+
 // EnsureServerDeployed ensures hasher-server is deployed and running on target device
 func (d *Deployer) EnsureServerDeployed(deviceIP string) (*hasher.ASICClient, error) {
 	log.Printf("Ensuring hasher-server is deployed on device: %s", deviceIP)
 
-	// Step 1: Check if hasher-server is already running
-	client, err := d.checkExistingServer(deviceIP)
-	if err == nil {
-		log.Printf("hasher-server already running on %s", deviceIP)
-		d.deployedDevice = deviceIP
-		return client, nil
-	}
+	var client *hasher.ASICClient // Declare client once
+	var err error                 // Declare err once
 
-	log.Printf("hasher-server not available on %s, attempting deployment...", deviceIP)
+	// If ForceRedeploy is true, skip checking existing server and always redeploy
+	if !d.config.ForceRedeploy {
+		// Step 1: Check if hasher-server is already running
+		client, err = d.checkExistingServer(deviceIP) // Assign to already declared client, err
+		if err == nil {
+			log.Printf("hasher-server already running on %s", deviceIP)
+			d.deployedDevice = deviceIP
+			return client, nil
+		}
+		log.Printf("hasher-server not available on %s, attempting deployment...", deviceIP)
+	} else {
+		log.Printf("Force redeployment enabled. Skipping existing server check.")
+	}
 
 	// Step 2: Deploy hasher-server if auto-deploy is enabled
 	if !d.config.AutoDeploy {
 		return nil, fmt.Errorf("hasher-server not found and auto-deploy is disabled")
 	}
 
-	if err := d.deployHasherServer(deviceIP); err != nil {
+	if err = d.deployHasherServer(deviceIP); err != nil { // Use = for assignment
 		return nil, fmt.Errorf("deployment failed: %w", err)
 	}
 
 	// Step 3: Wait for server to start and verify connection
-	client, err = d.waitForServer(deviceIP)
+	client, err = d.waitForServer(deviceIP) // Assign to already declared client, err
 	if err != nil {
-		return nil, fmt.Errorf("server deployment succeeded but connection failed: %w", err)
+		// If server connection fails, try reboot as last resort
+		log.Printf("Server connection failed, attempting device reboot as fallback...")
+		if rebootErr := d.rebootDevice(deviceIP); rebootErr != nil {
+			log.Printf("Failed to reboot device: %v", rebootErr)
+			return nil, fmt.Errorf("server deployment succeeded but connection failed: %w", err)
+		}
+
+		log.Printf("Device rebooted, waiting 60 seconds for startup...")
+		time.Sleep(60 * time.Second)
+
+		// After reboot, device is wiped clean - restart entire deployment from Step 2
+		log.Printf("Restarting full deployment after reboot (device wipes /tmp on shutdown)...")
+		if err = d.deployHasherServer(deviceIP); err != nil {
+			return nil, fmt.Errorf("post-reboot deployment failed: %w", err)
+		}
+
+		// Try server connection after fresh deployment
+		log.Printf("Retrying server connection after post-reboot deployment...")
+		client, err = d.waitForServer(deviceIP)
+		if err != nil {
+			return nil, fmt.Errorf("server deployment failed even after reboot and redeployment: %w", err)
+		}
 	}
 
 	d.deployedDevice = deviceIP
@@ -155,13 +227,18 @@ func (d *Deployer) deployHasherServer(deviceIP string) error {
 		}
 	}
 
-	// Use provisioning phase to deploy and start hasher-server
+	// Get the embedded hasher-server binary content
+	binaryContent, err := embedded.GetEmbeddedServerBinary()
+	if err != nil {
+		return fmt.Errorf("failed to get embedded hasher-server binary: %w", err)
+	}
+
+	// Use provisioning phase to deploy and start hasher-server with the embedded binary
 	log.Printf("Running provisioning phase to deploy hasher-server...")
-	_, err := d.analyzer.RunProvision()
+	_, err = d.analyzer.RunProvisionWithBinary(binaryContent)
 	if err != nil {
 		return fmt.Errorf("provisioning failed: %w", err)
 	}
-
 	return nil
 }
 

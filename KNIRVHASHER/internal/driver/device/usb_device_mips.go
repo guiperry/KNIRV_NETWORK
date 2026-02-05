@@ -480,99 +480,98 @@ func (d *USBDevice) GetChipCount() int {
 }
 
 // Initialize performs USB-based ASIC initialization
-// Follows the protocol: TxConfig first, then RxStatus query
+// Follows the Bitmain protocol sequence:
+//  1. Send TxConfig to initialize ASICs
+//  2. Wait for initialization to complete
+//  3. Send RxStatus to query device state
+//  4. Read RxStatus response
 func (d *USBDevice) Initialize() error {
 	log.Printf("Initializing ASIC via USB...")
 
-	// Set configuration 1 (most USB devices need this)
-	config := uint32(1)
-	_, _, errno := syscall.Syscall(
-		syscall.SYS_IOCTL,
-		uintptr(d.fd),
-		USBDEVFS_SETCONFIGURATION,
-		uintptr(unsafe.Pointer(&config)),
-	)
-	if errno != 0 {
-		// Non-fatal - device might already be configured
-		log.Printf("Note: SetConfiguration returned %v (may already be configured)", errno)
-	}
+	// Note: SetConfiguration should be called BEFORE claiming interface
+	// Interface is already claimed in OpenUSBDevice, so we skip SetConfiguration here
+	// to avoid "interface 0 claimed by usbfs while setting config" kernel warnings
 
-	// Set interface 0, alternate setting 0
-	setIntf := usbdevfsSetInterface{
-		Interface:  0,
-		AltSetting: 0,
-	}
-	_, _, errno = syscall.Syscall(
-		syscall.SYS_IOCTL,
-		uintptr(d.fd),
-		USBDEVFS_SETINTERFACE,
-		uintptr(unsafe.Pointer(&setIntf)),
-	)
-	if errno != 0 {
-		// Non-fatal - interface might already be set
-		log.Printf("Note: SetInterface returned %v (may already be set)", errno)
-	}
-
-	// Step 1: Send TxConfig packet to initialize ASICs
-	log.Printf("Sending TxConfig packet (28 bytes)...")
+	// Step 1: Send TxConfig packet to initialize ASICs (MUST be first!)
+	log.Printf("Step 1: Sending TxConfig packet (28 bytes)...")
 	txConfigPacket := d.buildTxConfigPacket()
 	log.Printf("TxConfig packet: %x", txConfigPacket)
 	if err := d.SendPacket(txConfigPacket); err != nil {
 		return fmt.Errorf("failed to send TxConfig: %w", err)
 	}
 
-	// Wait for ASICs to initialize (protocol says 1 second)
-	log.Printf("Waiting for ASIC initialization...")
+	// Wait for ASICs to initialize (protocol says at least 1 second)
+	log.Printf("Waiting for ASIC initialization (1 second)...")
 	time.Sleep(1 * time.Second)
 
-	// Step 2: Send RxStatus packet to query device state
-	log.Printf("Sending RxStatus packet (16 bytes)...")
+	// Step 2: Send RxStatus to query device state
+	log.Printf("Step 2: Sending RxStatus packet (16 bytes)...")
 	rxStatusPacket := d.buildRxStatusPacket()
 	log.Printf("RxStatus packet: %x", rxStatusPacket)
 	if err := d.SendPacket(rxStatusPacket); err != nil {
 		return fmt.Errorf("failed to send RxStatus: %w", err)
 	}
 
-	// Read response with timeout (status response can be large)
+	// Try to read response
 	response := make([]byte, 512)
-	n, err := d.ReadPacket(response, 3*time.Second)
+	n, err := d.ReadPacket(response, 2*time.Second)
 	if err != nil {
-		// Log what we tried and the error
-		log.Printf("RxStatus read failed: %v", err)
+		log.Printf("RxStatus read: %v", err)
+	} else if n > 0 {
+		log.Printf("RxStatus response: %d bytes, type=0x%02x", n, response[0])
+	}
 
-		// Try a simpler approach - just verify we can write to the device
-		// The ASICs may need time or may be in an unexpected state
-		log.Printf("Attempting basic device verification...")
+	// Read verification response with retry logic
+	var finalResponse []byte
+	var finalN int
+	for attempt := 0; attempt < 5; attempt++ {
+		if attempt > 0 {
+			log.Printf("Retry attempt %d/5 reading RxStatus response...", attempt)
+			time.Sleep(500 * time.Millisecond)
+		}
 
-		// Clear any stale data by doing a short read
-		shortBuf := make([]byte, 64)
-		d.ReadPacket(shortBuf, 100*time.Millisecond)
+		n, err = d.ReadPacket(response, 2*time.Second)
+		if err == nil && n > 0 {
+			finalResponse = make([]byte, n)
+			copy(finalResponse, response[:n])
+			finalN = n
+			break
+		}
+	}
 
-		// Consider initialization successful if we got this far
-		// The device responded to claims and we sent packets without errors
-		log.Printf("ASIC USB connection established (status query timed out, but device is responsive)")
+	if finalN == 0 {
+		// Device didn't respond to status query, but may still be operational
+		// Some ASICs don't respond to RxStatus until they have work
+		log.Printf("Warning: No RxStatus response received, but device may still be operational")
+		log.Printf("ASIC USB initialization completed (device responsive, status query pending)")
 		return nil
 	}
 
 	// Parse response header
-	if n >= 4 {
-		dataType := response[0]
-		version := response[1]
-		length := binary.LittleEndian.Uint16(response[2:4])
+	if finalN >= 4 {
+		dataType := finalResponse[0]
+		version := finalResponse[1]
+		length := binary.LittleEndian.Uint16(finalResponse[2:4])
 		log.Printf("RxStatus response: type=0x%02x version=%d length=%d total=%d bytes",
-			dataType, version, length, n)
+			dataType, version, length, finalN)
 
-		if dataType == 0xA1 && n >= 12 {
-			// Parse key fields
-			chainNum := response[5]
-			fifoSpace := binary.LittleEndian.Uint16(response[6:8])
-			hwVersion := response[8:12]
+		if dataType == 0xA1 && finalN >= 12 {
+			// Parse key fields from RxStatus response
+			chainNum := finalResponse[5]
+			fifoSpace := binary.LittleEndian.Uint16(finalResponse[6:8])
+			hwVersion := finalResponse[8:12]
 			log.Printf("ASIC Info: chains=%d fifo=%d hw_version=%d.%d.%d.%d",
 				chainNum, fifoSpace, hwVersion[0], hwVersion[1], hwVersion[2], hwVersion[3])
+
+			// Update chip count based on response
+			if chainNum > 0 {
+				d.chipCount = int(chainNum) * 4 // 4 chips per chain on S3
+				log.Printf("Updated chip count: %d", d.chipCount)
+			}
 		}
 	}
 
-	log.Printf("USB ASIC initialization successful (%d bytes response)", n)
+	log.Printf("USB ASIC initialization successful (%d bytes response)", finalN)
 	return nil
 }
 
@@ -592,14 +591,14 @@ func (d *USBDevice) buildTxConfigPacket() []byte {
 	// Control flags: fan, timeout, frequency, voltage enabled = 0x1E
 	packet[4] = 0x1E
 	packet[5] = 0x00 // reserved
-	packet[6] = 0x00 // chain_check_time
+	packet[6] = 0x0C // chain_check_time (12)
 	packet[7] = 0x00 // reserved
 
 	// ASIC configuration
-	packet[8] = 8            // chain_num (8 chains for S3)
-	packet[9] = 32           // asic_num (32 ASICs per chain)
-	packet[10] = 0x60        // fan_pwm_data (96%)
-	packet[11] = 0x10        // timeout_data
+	packet[8] = 8     // chain_num (8 chains for S3)
+	packet[9] = 32    // asic_num (32 ASICs per chain)
+	packet[10] = 0x60 // fan_pwm_data (96%)
+	packet[11] = 0x0C // timeout_data (12)
 
 	// Frequency: 250 MHz in little-endian
 	binary.LittleEndian.PutUint16(packet[12:14], 250)
@@ -649,8 +648,8 @@ func (d *USBDevice) buildRxStatusPacket() []byte {
 	packet[7] = 0x00 // reserved
 
 	// Target addresses
-	packet[8] = 0x00  // chip_address (all chips)
-	packet[9] = 0x00  // reg_address
+	packet[8] = 0x00 // chip_address (all chips)
+	packet[9] = 0x00 // reg_address
 
 	// Padding
 	packet[10] = 0x00

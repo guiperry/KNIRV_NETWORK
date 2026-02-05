@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/google/gousb"
+
+	"hasher/internal/hasher" // Added for CRC and mining utilities
 )
 
 // USBDevice provides direct USB communication with ASIC
@@ -114,6 +116,50 @@ func (d *USBDevice) Close() error {
 	return nil
 }
 
+// claimInterface ensures the USB interface is claimed for operations
+func (d *USBDevice) claimInterface() error {
+	// Check if interface is already claimed
+	if d.intf != nil {
+		return nil
+	}
+
+	// Re-claim the interface if needed
+	intf, err := d.config.Interface(0, 0)
+	if err != nil {
+		return fmt.Errorf("failed to claim USB interface: %w", err)
+	}
+	d.intf = intf
+
+	// Re-open endpoints after claiming interface
+	epOut, err := d.intf.OutEndpoint(EndpointOut)
+	if err != nil {
+		return fmt.Errorf("failed to open OUT endpoint: %w", err)
+	}
+	d.epOut = epOut
+
+	epIn, err := d.intf.InEndpoint(EndpointIn)
+	if err != nil {
+		return fmt.Errorf("failed to open IN endpoint: %w", err)
+	}
+	d.epIn = epIn
+
+	return nil
+}
+
+// releaseInterface releases the USB interface
+func (d *USBDevice) releaseInterface() error {
+	if d.intf == nil {
+		return nil
+	}
+
+	// Close the interface but keep config and device open
+	d.intf.Close()
+	d.intf = nil
+	d.epOut = nil
+	d.epIn = nil
+	return nil
+}
+
 // SendPacket sends a packet to the ASIC via USB
 func (d *USBDevice) SendPacket(data []byte) error {
 	_, err := d.epOut.Write(data)
@@ -123,9 +169,10 @@ func (d *USBDevice) SendPacket(data []byte) error {
 	return nil
 }
 
-// ReadPacket reads a packet from the ASIC via USB
+// ReadPacket reads a packet from the ASIC via USB with optimized timing
 func (d *USBDevice) ReadPacket(buffer []byte, timeout time.Duration) (int, error) {
-	// Use context for timeout
+	// Use a single, well-timed read for ASIC communication
+	// The ASIC typically responds within 100-500ms for Difficulty 1 targets
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -134,6 +181,46 @@ func (d *USBDevice) ReadPacket(buffer []byte, timeout time.Duration) (int, error
 		return 0, fmt.Errorf("USB read failed: %w", err)
 	}
 	return n, nil
+}
+
+// SendTxTaskAndReadRxNonce sends a TxTask packet to the ASIC and reads the RxNonce response
+func (d *USBDevice) SendTxTaskAndReadRxNonce(header []byte, workID uint8, timeout time.Duration) (uint32, error) {
+	if len(header) != 80 {
+		return 0, fmt.Errorf("mining header must be exactly 80 bytes, got %d", len(header))
+	}
+
+	// Ensure interface is claimed for this operation
+	if err := d.claimInterface(); err != nil {
+		return 0, fmt.Errorf("failed to claim USB interface: %w", err)
+	}
+	defer d.releaseInterface()
+
+	// 1. Construct the TxTask packet
+	txTaskPacket := hasher.BuildTxTaskFromHeader(header, workID)
+
+	// 2. Send TxTask packet
+	log.Printf("Sending TxTask packet: %x", txTaskPacket)
+	if err := d.SendPacket(txTaskPacket); err != nil {
+		return 0, fmt.Errorf("failed to send TxTask packet: %w", err)
+	}
+	log.Printf("TxTask packet sent successfully")
+
+	// 3. Read RxNonce response
+	// For Difficulty 1, ASIC should find nonce very quickly (typically <100ms)
+	// Use the full timeout for this single read attempt
+	rxNonceBuffer := make([]byte, MaxUSBPacketSize)
+	n, err := d.ReadPacket(rxNonceBuffer, timeout)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read RxNonce response: %w", err)
+	}
+
+	// 4. Parse RxNonce to extract the found nonce
+	_, nonce, _, ok := hasher.ParseRxNonce(rxNonceBuffer[:n])
+	if !ok {
+		return 0, fmt.Errorf("failed to parse RxNonce response")
+	}
+
+	return nonce, nil
 }
 
 // GetChipCount returns the number of ASIC chips
@@ -195,9 +282,10 @@ func (d *USBDevice) buildTxConfigPacket() []byte {
 	packet[14] = 0x82
 	packet[15] = 0x09
 
-	// CRC (2 bytes) - simplified, should calculate properly
-	packet[26] = 0x00
-	packet[27] = 0x00
+	// CRC (2 bytes)
+	crc := hasher.CalculateCRC16(packet[:26])
+	packet[26] = byte(crc & 0xFF)
+	packet[27] = byte(crc >> 8)
 
 	return packet
 }
@@ -218,8 +306,9 @@ func (d *USBDevice) buildRxStatusPacket() []byte {
 	}
 
 	// CRC (2 bytes)
-	packet[14] = 0x00
-	packet[15] = 0x00
+	crc := hasher.CalculateCRC16(packet[:14])
+	packet[14] = byte(crc & 0xFF)
+	packet[15] = byte(crc >> 8)
 
 	return packet
 }

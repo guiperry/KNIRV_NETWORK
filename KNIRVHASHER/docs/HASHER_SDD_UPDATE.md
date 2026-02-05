@@ -1,15 +1,15 @@
 
 ## HASHER SDD Update: ASIC Nonce-Mining for LSH
 
-**Project HASHSITE: Adaptive Design for BM1382 Hardware Constraints**
+**Project HASHER: Adaptive Design for BM1382 Hardware Constraints**
 
 ---
 
 ### **1. Executive Summary: The Hardware Reality Pivot**
 
-The ASIC is designed for Bitcoin mining (finding nonces where SHA256(SHA256(header+nonce)) < target), but the HASHSITE needs deterministic hashing (SHA256(input || seed) → fixed output). The original design assumed the BM1382 could perform arbitrary SHA-256 hashes. Testing has confirmed the ASIC is hard-wired for the Bitcoin mining loop: .
+The ASIC is designed for Bitcoin mining (finding nonces where SHA256(SHA256(header+nonce)) < target), but the HASHER needs deterministic hashing (SHA256(input || seed) → fixed output). The original design assumed the BM1382 could perform arbitrary SHA-256 hashes. Testing has confirmed the ASIC is hard-wired for the Bitcoin mining loop: .
 
-**Revised Core Innovation:** Instead of using the ASIC as a hash function, HASHSITE now uses it as a **deterministic bucket generator**. By setting a "Difficulty 1" target, we use the first valid **Nonce** discovered as the LSH signature. This maintains the 500 GH/s speed advantage by repurposing the mining hardware's natural state.
+**Revised Core Innovation:** Instead of using the ASIC as a hash function, HASHER now uses it as a **deterministic bucket generator**. By setting a "Difficulty 1" target, we use the first valid **Nonce** discovered as the LSH signature. This maintains the 500 GH/s speed advantage by repurposing the mining hardware's natural state.
 
 ---
 

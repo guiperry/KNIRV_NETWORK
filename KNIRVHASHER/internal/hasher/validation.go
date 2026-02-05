@@ -3,6 +3,7 @@ package hasher
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -33,11 +34,11 @@ func (v *LogicalValidator) Validate(prediction int, domain string, context map[s
 	rules, err := v.KnowledgeBase.GetRules(domain)
 	if err != nil {
 		return &ValidationResult{
-			Prediction: prediction,
-			Valid:      false,
-			Domain:     domain,
+			Prediction:   prediction,
+			Valid:        false,
+			Domain:       domain,
 			ErrorMessage: fmt.Sprintf("failed to get rules: %v", err),
-			Latency:    time.Since(start),
+			Latency:      time.Since(start),
 		}, nil
 	}
 
@@ -97,7 +98,47 @@ func (v *LogicalValidator) checkRule(prediction int, rule *LogicalRule, context 
 
 // checkConstraint implements constraint validation
 func (v *LogicalValidator) checkConstraint(prediction int, rule *LogicalRule, context map[string]interface{}) error {
-	// Example: Check if prediction falls within allowed range
+	// Check rule premises for constraints
+	for _, premise := range rule.Premises {
+		// Parse premise like "prediction >= 0" or "prediction in [1,2,3]"
+		if strings.Contains(premise, ">=") {
+			parts := strings.Split(premise, ">=")
+			if len(parts) == 2 {
+				minStr := strings.TrimSpace(parts[1])
+				if minVal, err := strconv.Atoi(minStr); err == nil && prediction < minVal {
+					return fmt.Errorf("prediction %d violates constraint %s", prediction, premise)
+				}
+			}
+		} else if strings.Contains(premise, "<=") {
+			parts := strings.Split(premise, "<=")
+			if len(parts) == 2 {
+				maxStr := strings.TrimSpace(parts[1])
+				if maxVal, err := strconv.Atoi(maxStr); err == nil && prediction > maxVal {
+					return fmt.Errorf("prediction %d violates constraint %s", prediction, premise)
+				}
+			}
+		} else if strings.Contains(premise, "in") && strings.Contains(premise, "[") {
+			// Parse "prediction in [1,2,3]"
+			start := strings.Index(premise, "[")
+			end := strings.Index(premise, "]")
+			if start != -1 && end != -1 && end > start {
+				listStr := premise[start+1 : end]
+				items := strings.Split(listStr, ",")
+				found := false
+				for _, item := range items {
+					if val, err := strconv.Atoi(strings.TrimSpace(item)); err == nil && prediction == val {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return fmt.Errorf("prediction %d not in allowed set %s", prediction, listStr)
+				}
+			}
+		}
+	}
+
+	// Also check context for constraints (backward compatibility)
 	for key, value := range context {
 		if key == "min_value" {
 			if minVal, ok := value.(int); ok && prediction < minVal {
@@ -116,27 +157,105 @@ func (v *LogicalValidator) checkConstraint(prediction int, rule *LogicalRule, co
 
 // checkSubsumption implements subsumption validation
 func (v *LogicalValidator) checkSubsumption(prediction int, rule *LogicalRule, context map[string]interface{}) error {
-	// Example: Check if prediction is subsumed by another class
-	// This is a placeholder for actual logical reasoning
+	// Subsumption rule: if prediction matches a premise, it should also match the conclusion
+	// Example: "If prediction is Cat, then it's also Animal"
+	for _, premise := range rule.Premises {
+		// Parse premise like "prediction == 1" or "prediction is Cat"
+		if strings.Contains(premise, "==") {
+			parts := strings.Split(premise, "==")
+			if len(parts) == 2 {
+				valStr := strings.TrimSpace(parts[1])
+				if val, err := strconv.Atoi(valStr); err == nil && prediction == val {
+					// Prediction matches premise, check conclusion
+					if strings.Contains(rule.Conclusion, "==") {
+						conclParts := strings.Split(rule.Conclusion, "==")
+						if len(conclParts) == 2 {
+							conclStr := strings.TrimSpace(conclParts[1])
+							if _, err := strconv.Atoi(conclStr); err == nil {
+								// In a real implementation, we would verify that prediction
+								// satisfies the conclusion or enforce logical consistency
+								// For now, we just acknowledge the rule is being applied
+							}
+						}
+					}
+					// Rule applied successfully
+					return nil
+				}
+			}
+		}
+	}
+
+	// Check context for subsumption hierarchies
+	if hierarchy, ok := context["subsumption_hierarchy"].(map[string]interface{}); ok {
+		predStr := strconv.Itoa(prediction)
+		if _, ok := hierarchy[predStr]; ok {
+			// Prediction is in the hierarchy
+			return nil
+		}
+	}
+
 	return nil
 }
 
 // checkDisjoint implements disjointness validation
 func (v *LogicalValidator) checkDisjoint(prediction int, rule *LogicalRule, context map[string]interface{}) error {
-	// Example: Check if prediction conflicts with other classes
-	// This is a placeholder for actual logical reasoning
+	// Disjointness rule: prediction cannot be in multiple disjoint classes
+	// Example: "prediction cannot be both Cat and Dog"
+	for _, premise := range rule.Premises {
+		// Parse premise like "prediction != 1" or "prediction is not Dog"
+		if strings.Contains(premise, "!=") {
+			parts := strings.Split(premise, "!=")
+			if len(parts) == 2 {
+				valStr := strings.TrimSpace(parts[1])
+				if val, err := strconv.Atoi(valStr); err == nil && prediction == val {
+					return fmt.Errorf("prediction %d violates disjointness rule: %s", prediction, premise)
+				}
+			}
+		} else if strings.Contains(premise, "not in") {
+			// Parse "prediction not in [1,2,3]"
+			start := strings.Index(premise, "[")
+			end := strings.Index(premise, "]")
+			if start != -1 && end != -1 && end > start {
+				listStr := premise[start+1 : end]
+				items := strings.Split(listStr, ",")
+				for _, item := range items {
+					if val, err := strconv.Atoi(strings.TrimSpace(item)); err == nil && prediction == val {
+						return fmt.Errorf("prediction %d violates disjointness rule: %s", prediction, premise)
+					}
+				}
+			}
+		}
+	}
+
+	// Check context for disjoint sets
+	if disjointSets, ok := context["disjoint_sets"].([]interface{}); ok {
+		for _, setInterface := range disjointSets {
+			if set, ok := setInterface.([]interface{}); ok {
+				count := 0
+				for _, itemInterface := range set {
+					if item, ok := itemInterface.(int); ok && prediction == item {
+						count++
+						if count > 1 {
+							return fmt.Errorf("prediction %d appears multiple times in disjoint set", prediction)
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
 // ValidationResult contains the result of logical validation
 type ValidationResult struct {
-	Prediction   int                 `json:"prediction"`
-	Valid        bool                `json:"valid"`
-	Domain       string              `json:"domain"`
-	RulesApplied int                 `json:"rules_applied"`
-	Errors       []string            `json:"errors,omitempty"`
-	ErrorMessage string              `json:"error_message,omitempty"`
-	Latency      time.Duration       `json:"latency,omitempty"`
+	Prediction   int           `json:"prediction"`
+	Valid        bool          `json:"valid"`
+	Domain       string        `json:"domain"`
+	RulesApplied int           `json:"rules_applied"`
+	Errors       []string      `json:"errors,omitempty"`
+	ErrorMessage string        `json:"error_message,omitempty"`
+	Latency      time.Duration `json:"latency,omitempty"`
 }
 
 // KnowledgeBase manages logical rules and domains
@@ -212,10 +331,10 @@ func (kb *KnowledgeBase) RemoveRule(domain string, index int) error {
 
 // LogicalRule represents a single logical rule
 type LogicalRule struct {
-	RuleType   string   `json:"rule_type"`   // 'subsumption', 'disjoint', 'constraint'
-	Premises   []string `json:"premises"`    // Array of logical statements
-	Conclusion string   `json:"conclusion"`  // The conclusion
-	Description string  `json:"description"` // Human-readable description
+	RuleType    string   `json:"rule_type"`   // 'subsumption', 'disjoint', 'constraint'
+	Premises    []string `json:"premises"`    // Array of logical statements
+	Conclusion  string   `json:"conclusion"`  // The conclusion
+	Description string   `json:"description"` // Human-readable description
 }
 
 // NewLogicalRule creates a new logical rule
@@ -225,9 +344,9 @@ func NewLogicalRule(ruleType string, premises []string, conclusion string, descr
 	}
 
 	return &LogicalRule{
-		RuleType:   ruleType,
-		Premises:   premises,
-		Conclusion: conclusion,
+		RuleType:    ruleType,
+		Premises:    premises,
+		Conclusion:  conclusion,
 		Description: description,
 	}, nil
 }

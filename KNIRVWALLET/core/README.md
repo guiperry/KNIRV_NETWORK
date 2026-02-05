@@ -1,4 +1,4 @@
-# KNIRVWALLET - Browser Bridge: A Decentralized Wallet for the KNIRV Ecosystem
+# KNIRVWALLET - A Decentralized Wallet for the KNIRV Ecosystem
 
 [![Banner](banner.png)](#)
 
@@ -16,7 +16,7 @@
 
 ## Overview
 
-**KNIRVWALLET - Browser Bridge** is a powerful, open-source, non-custodial wallet providing seamless access to the KNIRV Decentralized Trusted Execution Network (D-TEN).  It allows users to manage NRN tokens, control KNIRV-CORTEX agents, and interact with the KNIRV ecosystem via an intuitive, Web2-like experience powered by XION's Meta Accounts.  For users, it simplifies managing decentralized AI and crypto; for developers, it offers comprehensive APIs for ecosystem and KNIRV-CORTEX agent integration.  KNIRVWALLET - Browser Bridge supports browser extensions, mobile apps, and progressive web apps, all unified under a single interface.
+**KNIRVWALLET** is a powerful, open-source, non-custodial wallet providing seamless access to the KNIRV Decentralized Trusted Execution Network (D-TEN).  It allows users to manage NRN tokens, control KNIRV-CORTEX agents, and interact with the KNIRV ecosystem via an intuitive, Web2-like experience powered by XION's Meta Accounts.  For users, it simplifies managing decentralized AI and crypto; for developers, it offers comprehensive APIs for ecosystem and KNIRV-CORTEX agent integration. KNIRVWALLET supports browser extensions, mobile apps, and progressive web apps, all unified under a single interface.
 
 
 ## Features

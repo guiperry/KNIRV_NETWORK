@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/embedded"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/oracle"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/runtime"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/server"
@@ -38,7 +39,7 @@ func main() {
 	)
 
 	// Initialize runtime and extract embedded files
-	rt, err := runtime.NewRuntime(logger)
+	rt, err := runtime.NewRuntime(logger, embedded.WebGUIFS, embedded.NetworkWebsiteFS, embedded.OracleBinary)
 	if err != nil {
 		logger.Fatal("Failed to initialize runtime", zap.Error(err))
 	}

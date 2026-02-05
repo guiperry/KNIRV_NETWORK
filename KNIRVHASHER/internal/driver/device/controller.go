@@ -13,11 +13,16 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"hasher/internal/hasher" // Added for CRC and mining utilities
 )
 
 const (
-	DevicePath   = "/dev/bitmain-asic"
-	MaxBatchSize = 256
+	DevicePath       = "/dev/bitmain-asic"
+	MaxBatchSize     = 256
+	MaxUSBPacketSize = 512 // Max packet size for USB bulk transfers
+
+	// USB Configuration for Bitmain ASIC
 
 	// USB Configuration for Bitmain ASIC
 	USBVendorID  = 0x4254 // "BT"
@@ -32,7 +37,7 @@ const (
 	DataTypeRxStatus = 0xA1 // BITMAIN_DATA_TYPE_RXSTATUS
 	DataTypeRxNonce  = 0xA2 // BITMAIN_DATA_TYPE_RXNONCE
 
-	// USB endpoints
+	// USB endpoints (from USB descriptor)
 	EndpointOut = 0x01
 	EndpointIn  = 0x81
 
@@ -67,6 +72,15 @@ type Device struct {
 	// USB-based communication (bypasses kernel module entirely)
 	usbDevice *USBDevice
 	useUSB    bool
+
+	// CGMiner-based communication (most reliable)
+	cgMinerClient *CGMinerClient
+	useCGMiner    bool
+	cgMinerMiner  *CGMinerMiner
+
+	// Kernel device-based communication (simple and reliable)
+	kernelDevice *KernelDevice
+	useKernel    bool
 }
 
 // DeviceStats holds device statistics with internal synchronization
@@ -154,7 +168,7 @@ func CheckDeviceState() (map[string]string, error) {
 }
 
 // OpenDevice opens the ASIC device with eBPF tracing
-// Handles device access with USB-first strategy to bypass kernel module crashes
+// Priority: CGMiner API > Simple Kernel Device > USB Direct
 func OpenDevice(enableTracing bool) (*Device, error) {
 	dev := &Device{
 		chipCount:       32,
@@ -164,9 +178,40 @@ func OpenDevice(enableTracing bool) (*Device, error) {
 		isOperational:   false,
 	}
 
-	// Strategy 1: Try USB-based communication FIRST (bypasses kernel module entirely)
-	// This avoids triggering kernel crashes in the bitmain_asic driver
-	log.Printf("Strategy 1: Trying USB-based communication (bypassing kernel module)...")
+	// Strategy 0: Try CGMiner API (most reliable - already proven working)
+	log.Printf("Strategy 0: Checking for CGMiner API...")
+	miner := NewCGMinerMiner()
+	if miner.IsAvailable() {
+		log.Printf("✓ CGMiner is available and mining")
+		dev.cgMinerClient = &CGMinerClient{host: cgminerHost, port: cgminerPort}
+		dev.cgMinerMiner = miner
+		dev.useCGMiner = true
+		dev.isOperational = true
+		dev.chipCount = 32
+		log.Printf("Successfully connected to CGMiner API")
+		return dev.initDevice(enableTracing)
+	}
+	log.Printf("CGMiner not available")
+
+	// Strategy 1: Try simple kernel device
+	log.Printf("Strategy 1: Opening kernel device...")
+	if IsKernelDeviceAvailable() {
+		kd, err := OpenKernelDevice()
+		if err == nil {
+			dev.kernelDevice = kd
+			dev.useKernel = true
+			dev.isOperational = true
+			dev.chipCount = 32
+			log.Printf("Successfully opened kernel device")
+			return dev.initDevice(enableTracing)
+		}
+		log.Printf("Kernel device failed: %v", err)
+	} else {
+		log.Printf("Kernel device not available")
+	}
+
+	// Strategy 2: Try USB-based communication as fallback
+	log.Printf("Strategy 2: Trying USB-based communication (bypassing kernel module)...")
 	if IsUSBDeviceAvailable() {
 		usbDev, usbErr := OpenUSBDevice()
 		if usbErr == nil {
@@ -189,125 +234,39 @@ func OpenDevice(enableTracing bool) (*Device, error) {
 		log.Printf("USB subsystem not available on this system")
 	}
 
-	// Strategy 2: Try direct open with O_RDWR (only if USB fails)
-	// NOTE: This can trigger kernel crashes in bitmain_asic driver on some systems
-	log.Printf("Strategy 2: Opening device via kernel driver (may trigger crashes)...")
-	file, err := os.OpenFile(DevicePath, os.O_RDWR, 0)
-	if err == nil {
-		dev.file = file
-		dev.fd = file.Fd()
-		dev.isOperational = true
-		log.Printf("Successfully opened ASIC device: %s", DevicePath)
-		return dev.initDevice(enableTracing)
-	}
-	log.Printf("Failed to open device with O_RDWR: %v", err)
-
-	// Check if this is a "busy" or "permission" type error that we might recover from
-	if !isDeviceBusyError(err) {
-		// Non-recoverable error - return immediately
-		return nil, fmt.Errorf("open device: %w", err)
-	}
-
-	// Strategy 3: Try opening with O_RDONLY to see if device is accessible at all
-	log.Printf("Strategy 3: Trying O_RDONLY access...")
-	file, err = os.OpenFile(DevicePath, os.O_RDONLY, 0)
-	if err == nil {
-		// We can read but not write - close and try module unload for full access
-		file.Close()
-		log.Printf("Device readable with O_RDONLY, but need O_RDWR - will try alternative methods")
-	} else {
-		log.Printf("Device not accessible even with O_RDONLY: %v", err)
-	}
-
-	// Strategy 4: Try IOCTL-based communication with loaded kernel module
-	log.Printf("Strategy 4: Trying IOCTL-based communication...")
-	ioctlDev, ioctlErr := OpenIOCTLDevice()
-	if ioctlErr == nil {
-		defer ioctlDev.Close()
-
-		// Check if IOCTL is supported
-		if ioctlDev.IsIOCTLSupported() {
-			log.Printf("IOCTL interface is supported, discovering available commands...")
-			validIOCTLs := ioctlDev.DiscoverIOCTLs()
-			if len(validIOCTLs) > 0 {
-				log.Printf("Found %d valid IOCTL commands", len(validIOCTLs))
-				// Try to get device info via IOCTL
-				info, infoErr := ioctlDev.GetDeviceInfoViaIOCTL()
-				if infoErr == nil {
-					log.Printf("Successfully using IOCTL-based device access")
-					dev.ioctlDevice = ioctlDev
-					dev.useIOCTL = true
-					dev.chipCount = int(info.ChipCount)
-					dev.firmwareVersion = info.FirmwareVersion
-					dev.isOperational = info.IsOperational
-					// Don't close - we're keeping it
-					return dev.initDevice(enableTracing)
-				}
-			}
-		}
-		log.Printf("IOCTL approach not viable: %v", ioctlErr)
-	}
-
-	// Strategy 5: Attempt to unload the kernel module that's locking the device
-	log.Printf("Strategy 5: Unloading kernel module to release device...")
-	if err := dev.unloadKernelModule(); err != nil {
-		log.Printf("Failed to unload kernel module: %v", err)
-		log.Printf("Will attempt to proceed with loaded module using alternative access methods...")
-		// Continue anyway - maybe we can work with the loaded module
-	} else {
-		dev.kernelModuleUnloaded = true
-		log.Printf("Successfully unloaded kernel module, waiting for device release...")
-		time.Sleep(1 * time.Second)
-	}
-
-	// Strategy 6: Retry opening with multiple attempts and delays
-	log.Printf("Strategy 6: Retrying device open after module unload...")
-	var openErr error
-	for attempt := 0; attempt < 3; attempt++ {
-		if attempt > 0 {
-			log.Printf("Retry attempt %d/3 after delay...", attempt)
-			time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
-		}
-
-		// Try O_RDWR first
-		file, openErr = os.OpenFile(DevicePath, os.O_RDWR, 0)
-		if openErr == nil {
-			break
-		}
-		log.Printf("O_RDWR attempt %d failed: %v", attempt+1, openErr)
-
-		// Try O_RDONLY as fallback
-		file, openErr = os.OpenFile(DevicePath, os.O_RDONLY, 0)
-		if openErr == nil {
-			log.Printf("Opened with O_RDONLY (read-only access)")
-			break
-		}
-	}
-
-	if openErr != nil {
-		// All attempts failed - try to restore original state
-		if dev.kernelModuleUnloaded {
-			log.Printf("All open attempts failed, restoring kernel module...")
-			dev.reloadKernelModule()
-		}
-		return nil, fmt.Errorf("open device after module unload (tried 3 attempts): %w", openErr)
-	}
-
-	dev.file = file
-	dev.fd = file.Fd()
-	dev.isOperational = true
-
-	if dev.kernelModuleUnloaded {
-		log.Printf("Successfully opened ASIC device after unloading kernel module")
-	} else {
-		log.Printf("Successfully opened ASIC device with kernel module still loaded (read-only may be limited)")
-	}
-
-	return dev.initDevice(enableTracing)
+	// All strategies failed
+	return nil, fmt.Errorf("failed to open ASIC device: kernel device and USB both unavailable")
 }
 
 // initDevice initializes eBPF tracer and performs ASIC initialization
 func (d *Device) initDevice(enableTracing bool) (*Device, error) {
+	// If using CGMiner mode, no initialization needed - CGMiner handles it
+	if d.useCGMiner {
+		log.Printf("Using CGMiner mode - hardware already initialized")
+		if enableTracing {
+			tracer, err := NewTracer()
+			if err != nil {
+				return nil, fmt.Errorf("init tracer: %w", err)
+			}
+			d.tracer = tracer
+		}
+		return d, nil
+	}
+
+	// If using kernel device mode, skip complex initialization
+	// The kernel driver handles ASIC initialization
+	if d.useKernel {
+		log.Printf("Using kernel device mode - skipping complex initialization")
+		if enableTracing {
+			tracer, err := NewTracer()
+			if err != nil {
+				return nil, fmt.Errorf("init tracer: %w", err)
+			}
+			d.tracer = tracer
+		}
+		return d, nil
+	}
+
 	// If using USB mode, skip file-based initialization
 	// USB device is already initialized via usbDev.Initialize() in OpenDevice
 	if d.useUSB {
@@ -326,9 +285,8 @@ func (d *Device) initDevice(enableTracing bool) (*Device, error) {
 	if enableTracing {
 		tracer, err := NewTracer()
 		if err != nil {
-			d.file.Close()
-			if d.kernelModuleUnloaded {
-				d.reloadKernelModule()
+			if d.file != nil {
+				d.file.Close()
 			}
 			return nil, fmt.Errorf("init tracer: %w", err)
 		}
@@ -337,12 +295,11 @@ func (d *Device) initDevice(enableTracing bool) (*Device, error) {
 
 	// Perform ASIC initialization sequence
 	if err := d.initializeASIC(); err != nil {
-		d.file.Close()
+		if d.file != nil {
+			d.file.Close()
+		}
 		if d.tracer != nil {
 			d.tracer.Close()
-		}
-		if d.kernelModuleUnloaded {
-			d.reloadKernelModule()
 		}
 		return nil, fmt.Errorf("ASIC initialization failed: %w", err)
 	}
@@ -748,6 +705,69 @@ func (d *Device) ComputeBatch(inputs [][]byte) ([][32]byte, error) {
 	return results, nil
 }
 
+// MineWork performs mining on an 80-byte Bitcoin-style header to find the first valid nonce.
+// It uses the configured device (USB, kernel, or CGMiner) to find nonces.
+func (d *Device) MineWork(header []byte, nonceStart, nonceEnd uint32, workID uint8, timeout time.Duration) (uint32, error) {
+	log.Printf("Device.MineWork called for header len %d, workID %d", len(header), workID)
+	if len(header) != 80 {
+		return 0, fmt.Errorf("mining header must be exactly 80 bytes, got %d", len(header))
+	}
+	if !d.isOperational {
+		return 0, fmt.Errorf("ASIC device is not operational")
+	}
+
+	// Use CGMiner if available (most reliable)
+	if d.useCGMiner && d.cgMinerMiner != nil {
+		return d.cgMinerMiner.MineWork(header, nonceStart, nonceEnd, timeout)
+	}
+
+	start := time.Now()
+
+	// 1. Construct the TxTask packet
+	txTaskPacket := hasher.BuildTxTaskFromHeader(header, workID)
+	log.Printf("Built TxTask packet (len %d)", len(txTaskPacket))
+
+	// 2. Send TxTask packet
+	log.Printf("Sending TxTask packet...")
+	if err := d.SendPacket(txTaskPacket); err != nil {
+		d.stats.mu.Lock()
+		d.stats.ErrorCount++
+		d.stats.mu.Unlock()
+		log.Printf("Error sending TxTask packet: %v", err)
+		return 0, fmt.Errorf("failed to send TxTask packet for mining: %w", err)
+	}
+	log.Printf("TxTask packet sent.")
+
+	// 3. Read RxNonce response
+	log.Printf("Reading RxNonce response with timeout %v...", timeout)
+	rxNonceBuffer := make([]byte, MaxUSBPacketSize) // Max USB packet size is 512 bytes
+	n, err := d.ReadPacket(rxNonceBuffer, timeout)
+	if err != nil {
+		d.stats.mu.Lock()
+		d.stats.ErrorCount++
+		d.stats.mu.Unlock()
+		log.Printf("Error reading RxNonce response: %v", err)
+		return 0, fmt.Errorf("failed to read RxNonce response: %w", err)
+	}
+	log.Printf("Read %d bytes for RxNonce response.", n)
+
+	// 4. Parse RxNonce to extract the found nonce
+	_, nonce, _, ok := hasher.ParseRxNonce(rxNonceBuffer[:n])
+	if !ok {
+		d.stats.mu.Lock()
+		d.stats.ErrorCount++
+		d.stats.mu.Unlock()
+		log.Printf("Error parsing RxNonce response: not ok")
+		return 0, fmt.Errorf("failed to parse RxNonce response")
+	}
+	log.Printf("Successfully parsed RxNonce. Found nonce: %d", nonce)
+
+	latency := time.Since(start)
+	d.updateStats(1, uint64(len(header)), uint64(latency.Nanoseconds()))
+
+	return nonce, nil
+}
+
 // EasyTarget is the nBits value for minimum difficulty (any hash is valid)
 // Format: 0x207FFFFF means target = 0x7FFFFF × 2^(8×(0x20-3)) ≈ maximum
 // This ensures the ASIC finds a nonce on the first try
@@ -1048,6 +1068,36 @@ func (d *Device) Close() error {
 	}
 
 	return fileErr
+}
+
+// SendPacket sends a packet to the ASIC
+func (d *Device) SendPacket(data []byte) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.useKernel && d.kernelDevice != nil {
+		return d.kernelDevice.SendPacket(data)
+	} else if d.useUSB && d.usbDevice != nil {
+		return d.usbDevice.SendPacket(data)
+	} else if d.file != nil {
+		_, err := d.file.Write(data)
+		return err
+	}
+	return fmt.Errorf("no device interface available for sending")
+}
+
+// ReadPacket reads a packet from the ASIC
+func (d *Device) ReadPacket(buffer []byte, timeout time.Duration) (int, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.useKernel && d.kernelDevice != nil {
+		return d.kernelDevice.ReadPacket(buffer, timeout)
+	} else if d.useUSB && d.usbDevice != nil {
+		return d.usbDevice.ReadPacket(buffer, timeout)
+	} else if d.file != nil {
+		d.file.SetReadDeadline(time.Now().Add(timeout)) // Set deadline for file-based read
+		return d.file.Read(buffer)
+	}
+	return 0, fmt.Errorf("no device interface available for reading")
 }
 
 // Internal helper functions

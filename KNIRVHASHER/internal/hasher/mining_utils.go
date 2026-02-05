@@ -59,8 +59,8 @@ var chCRCLTalbe = [256]uint8{
 	0x41, 0x81, 0x80, 0x40,
 }
 
-// calculateCRC16 computes CRC-16 using Bitmain's Modbus-style lookup tables
-func calculateCRC16(data []byte) uint16 {
+// CalculateCRC16 computes CRC-16 using Bitmain's Modbus-style lookup tables
+func CalculateCRC16(data []byte) uint16 {
 	chCRCHi := uint8(0xFF)
 	chCRCLo := uint8(0xFF)
 
@@ -122,7 +122,7 @@ func BuildTxTaskFromHeader(header []byte, workID uint8) []byte {
 
 	// Header (4 bytes)
 	packet[0] = TokenTxTask
-	packet[1] = 0x00 // Version
+	packet[1] = 0x00                               // Version
 	binary.LittleEndian.PutUint16(packet[2:4], 46) // Length = work_num(1) + ASIC_TASK(45)
 
 	// work_num (1 byte)
@@ -132,8 +132,9 @@ func BuildTxTaskFromHeader(header []byte, workID uint8) []byte {
 	// work_id (1 byte)
 	packet[5] = workID
 
-	// midstate[32] - first 32 bytes of header (or computed midstate)
-	copy(packet[6:38], header[:32])
+	// midstate[32] - compute SHA-256 midstate for first 64 bytes
+	midstate := computeMidstate(header)
+	copy(packet[6:38], midstate[:])
 
 	// data[12] - last 12 bytes relevant for mining
 	// These are: merkle_root_suffix(4) + timestamp(4) + nBits(4)
@@ -143,7 +144,7 @@ func BuildTxTaskFromHeader(header []byte, workID uint8) []byte {
 	}
 
 	// Calculate and append CRC (covers bytes 0-49)
-	crc := calculateCRC16(packet[:50])
+	crc := CalculateCRC16(packet[:50])
 	binary.LittleEndian.PutUint16(packet[50:52], crc)
 
 	return packet

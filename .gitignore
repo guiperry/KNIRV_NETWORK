@@ -102,3 +102,5 @@ KNIRVNEXUS/backend/coverage.out
 KNIRVGATEWAY/internal/embedded/knirv-oracle
 KNIRVROUTER/bin/knirvrouter-headless
 KNIRVROUTER/bin/knirvrouter
+KNIRVHASHER/hasher-host
+KNIRVHASHER/internal/host/embedded/hasher-server-mips

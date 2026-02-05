@@ -66,13 +66,13 @@ func (e *RecursiveEngine) Infer(input []byte) (*RecursiveResult, error) {
 
 	// Aggregate results
 	aggregated := e.aggregateResults(results)
-	
+
 	return &RecursiveResult{
-		Passes:       results,
-		Consensus:    aggregated,
-		Latency:      time.Since(start),
-		ValidPasses:  len(results),
-		TotalPasses:  e.Passes,
+		Passes:      results,
+		Consensus:   aggregated,
+		Latency:     time.Since(start),
+		ValidPasses: len(results),
+		TotalPasses: e.Passes,
 	}, nil
 }
 
@@ -213,7 +213,9 @@ func applyJitter(input []byte, jitter float64, seed int) ([]byte, error) {
 
 	for i := range jittered {
 		// Apply small random jitter to each byte
-		delta := int(rng.Float64()*jitter*255) - int(rng.Float64()*jitter*255)
+		a := int(rng.Float64() * jitter * 255)
+		b := int(rng.Float64() * jitter * 255)
+		delta := a - b
 		newVal := int(jittered[i]) + delta
 		if newVal < 0 {
 			newVal = 0
@@ -254,7 +256,7 @@ func (e *RecursiveEngine) rotateNetworkSeeds(passNum int) *HashNetwork {
 // rotateSeed performs a deterministic seed rotation based on pass number
 func rotateSeed(seed []byte, offset int) {
 	for i := range seed {
-		seed[i] = seed[i] ^ byte((offset+i) % 256)
+		seed[i] = seed[i] ^ byte((offset+i)%256)
 	}
 }
 
@@ -290,39 +292,39 @@ func (e *RecursiveEngine) aggregateResults(passes []*InferencePass) *ConsensusRe
 	averageConfidence := totalConfidence / float64(len(passes))
 
 	return &ConsensusResult{
-		Prediction:       mode,
-		Confidence:       confidence,
+		Prediction:        mode,
+		Confidence:        confidence,
 		AverageConfidence: averageConfidence,
-		VoteCount:        len(passes),
-		Mode:             mode,
+		VoteCount:         len(passes),
+		Mode:              mode,
 	}
 }
 
 // RecursiveResult contains the complete results from recursive inference
 type RecursiveResult struct {
-	Passes       []*InferencePass    // Results from each individual pass
-	Consensus    *ConsensusResult    // Aggregated consensus
-	Latency      time.Duration       // Total inference latency
-	ValidPasses  int                 // Number of valid passes completed
-	TotalPasses  int                 // Total passes attempted
+	Passes      []*InferencePass // Results from each individual pass
+	Consensus   *ConsensusResult // Aggregated consensus
+	Latency     time.Duration    // Total inference latency
+	ValidPasses int              // Number of valid passes completed
+	TotalPasses int              // Total passes attempted
 }
 
 // InferencePass contains the result of a single pass
 type InferencePass struct {
-	PassNumber  int                 // Pass sequence number
-	Prediction  int                 // Predicted class label
-	Confidence  float64             // Neuron confidence [0, 1]
-	Latency     time.Duration       // Total time since start
-	PassLatency time.Duration       // Time for this specific pass
+	PassNumber  int           // Pass sequence number
+	Prediction  int           // Predicted class label
+	Confidence  float64       // Neuron confidence [0, 1]
+	Latency     time.Duration // Total time since start
+	PassLatency time.Duration // Time for this specific pass
 }
 
 // ConsensusResult contains aggregated results from temporal consensus
 type ConsensusResult struct {
-	Prediction       int             // Aggregated prediction
-	Confidence       float64         // Consensus confidence [0, 1]
-	AverageConfidence float64        // Average per-pass confidence
-	VoteCount        int             // Total number of valid votes
-	Mode             int             // Most frequent prediction
+	Prediction        int     // Aggregated prediction
+	Confidence        float64 // Consensus confidence [0, 1]
+	AverageConfidence float64 // Average per-pass confidence
+	VoteCount         int     // Total number of valid votes
+	Mode              int     // Most frequent prediction
 }
 
 // StatisticalSummary returns statistical information about the passes
@@ -352,14 +354,14 @@ func (r *RecursiveResult) StatisticalSummary() *StatisticalSummary {
 
 	return &StatisticalSummary{
 		MeanConfidence:    mean,
-		ConfidenceStdDev: stdDev,
+		ConfidenceStdDev:  stdDev,
 		ClassDistribution: classDistribution,
 	}
 }
 
 // StatisticalSummary contains statistics about confidence values
 type StatisticalSummary struct {
-	MeanConfidence    float64         // Mean per-pass confidence
-	ConfidenceStdDev  float64         // Standard deviation of confidence
-	ClassDistribution map[int]int     // Distribution of predicted classes
+	MeanConfidence    float64     // Mean per-pass confidence
+	ConfidenceStdDev  float64     // Standard deviation of confidence
+	ClassDistribution map[int]int // Distribution of predicted classes
 }

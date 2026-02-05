@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"log" // Added for debugging output
 	"sync"
 	"time"
 
@@ -381,7 +382,7 @@ func (c *ASICClient) computeBatchSoftware(data [][]byte) [][32]byte {
 // - Same header + same nonce range = same first valid nonce (deterministic)
 // - The nonce becomes the activation value for the MiningNeuron
 //
-// Currently uses software mining (doubleSHA256). Future versions will offload to ASIC hardware.
+// Now offloads to ASIC hardware via gRPC MineWork method.
 func (c *ASICClient) MineHeader(header []byte, nonceStart, nonceEnd uint32) (uint32, error) {
 	if len(header) != 80 {
 		return 0, fmt.Errorf("mining header must be exactly 80 bytes, got %d", len(header))
@@ -389,23 +390,33 @@ func (c *ASICClient) MineHeader(header []byte, nonceStart, nonceEnd uint32) (uin
 
 	c.mu.RLock()
 	useFallback := c.useFallback
+	client := c.client // Capture client for gRPC call
 	c.mu.RUnlock()
 
-	// For now, both ASIC and fallback use software mining
-	// Future: when connected to ASIC, send TxTask packets via gRPC extension
 	if useFallback {
 		return c.mineSoftware(header, nonceStart, nonceEnd)
 	}
 
-	// TODO: Implement ASIC-accelerated mining via hasher-server
-	// This would require:
-	// 1. New gRPC method: MineWork(header, nonce_start, nonce_end) -> first_valid_nonce
-	// 2. hasher-server sends TxTask packets to ASIC
-	// 3. hasher-server receives RxNonce and returns first valid nonce
-	//
-	// For now, use software mining even when connected
-	// This maintains correctness and determinism while hardware path is developed
-	return c.mineSoftware(header, nonceStart, nonceEnd)
+	// Use ASIC-accelerated mining via gRPC MineWork method
+	ctx, cancel := context.WithTimeout(context.Background(), OperationTimeout)
+	defer cancel()
+
+	resp, err := client.MineWork(ctx, &pb.MineWorkRequest{
+		Header:    header,
+		NonceStart: nonceStart,
+		NonceEnd:  nonceEnd,
+	})
+	if err != nil {
+		// If ASIC fails, fall back to software if allowed by current configuration (unlikely after successful connection)
+		// Or if we were never successfully connected
+		if c.allowSoftFallback || !c.wasConnected {
+			log.Printf("Warning: ASIC MineWork failed, falling back to software mining: %v", err)
+			return c.mineSoftware(header, nonceStart, nonceEnd)
+		}
+		return 0, fmt.Errorf("ASIC MineWork operation failed (no fallback): %w", err)
+	}
+
+	return resp.Nonce, nil
 }
 
 // mineSoftware performs software-based mining to find the first valid nonce

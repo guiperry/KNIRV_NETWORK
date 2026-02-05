@@ -128,8 +128,8 @@ test-cli:
 	done
 
 run:
-	@echo "Running $(CLI_BINARY_NAME)..."
-	@go run $(CLI_SRC_DIR)
+	@echo "Running Hasher-Host..."
+	@./bin/hasher-host   --device=192.168.12.151   --discover=false
 
 deploy: build
 	@./scripts/deploy.sh
@@ -222,7 +222,7 @@ EMBED_DIR=internal/cli/embedded/bin
 ## build-server-mips: Build hasher-server for MIPS (Antminer) with static linking
 build-server-mips:
 	@echo "🔨 Building hasher-server for MIPS (static)..."
-	@mkdir -p $(BIN_DIR) $(EMBED_DIR)
+	@mkdir -p $(BIN_DIR)
 	@export STAGING_DIR=$(SDK_ROOT)/staging_dir && \
 	CGO_ENABLED=1 \
 	CC=$(SDK_ROOT)/staging_dir/toolchain-mips_24kc_gcc-7.5.0_musl/bin/mips-openwrt-linux-musl-gcc \
@@ -230,9 +230,15 @@ build-server-mips:
 	CGO_LDFLAGS="-L$(SDK_ROOT)/staging_dir/target-mips_24kc_musl/usr/lib -static" \
 	GOOS=linux GOARCH=mips GOMIPS=softfloat \
 	$(GOBUILD) -ldflags '-s -w -extldflags "-static"' -o $(BIN_DIR)/hasher-server-mips ./cmd/driver/hasher-server
-	@cp $(BIN_DIR)/hasher-server-mips $(EMBED_DIR)/
 	@echo "✅ Build complete: $(BIN_DIR)/hasher-server-mips"
 	@ls -lh $(BIN_DIR)/hasher-server-mips
+
+# New target for embedding hasher-server into hasher-host
+embed-host-server-mips: build-server-mips
+	@echo "Embedding hasher-server-mips into hasher-host..."
+	@mkdir -p internal/host/embedded
+	@cp $(BIN_DIR)/hasher-server-mips internal/host/embedded/hasher-server-mips
+	@echo "✅ hasher-server-mips prepared for host embedding."
 
 ## build-host-linux-amd64: Build hasher-host for Linux x86_64
 build-host-linux-amd64:
@@ -286,6 +292,7 @@ build-host:
 	@echo "🔨 Building hasher-host for current platform..."
 	@mkdir -p $(BIN_DIR)
 	$(GOBUILD) $(LDFLAGS) -o $(BIN_DIR)/$(HOST_BINARY) ./cmd/driver/hasher-host
+	# This copy is for CLI embedding, so it remains here
 	@cp $(BIN_DIR)/hasher-host $(EMBED_DIR)/
 	@echo "✅ Build complete: $(BIN_DIR)/$(HOST_BINARY)"
 
@@ -294,7 +301,7 @@ build-host-all: build-host-linux-amd64
 	@echo "✅ All hasher-host binaries built"
 
 ## build-all: Build all binaries for embedding
-build-driver: build-server-mips build-host
+build-driver: embed-host-server-mips build-host
 	@echo "✅ All binaries built and ready for embedding"
 	@echo "📦 Embedded binaries in: $(EMBED_DIR)"
 	@ls -la $(EMBED_DIR)/

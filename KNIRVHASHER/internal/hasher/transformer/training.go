@@ -1,4 +1,4 @@
-package crypto_transformer
+package transformer
 
 import (
 	"bytes"
@@ -234,7 +234,7 @@ func (t *Trainer) processBatch(batch []DataSample) (float32, float32) {
 		totalLoss += loss
 
 		// Check accuracy
-		predicted := t.Model.GenerateToken(sample.InputTokens, 0) // Temperature = 0 for greedy
+		predicted, _ := t.Model.GenerateToken(sample.InputTokens, 0) // Temperature = 0 for greedy
 		if predicted == sample.OutputTokens[0] {
 			correct++
 		}
@@ -327,7 +327,7 @@ func (t *Trainer) validate() {
 			totalLoss += loss
 
 			// Check accuracy
-			predicted := t.Model.GenerateToken(sample.InputTokens, 0)
+			predicted, _ := t.Model.GenerateToken(sample.InputTokens, 0)
 			if predicted == sample.OutputTokens[0] {
 				correct++
 			}

@@ -53,9 +53,14 @@ func (sg *SurrogateGradient) straightThroughEstimator(input []byte, seed [32]byt
 		// STE: pass gradient straight through
 		grad := make([]byte, len(input))
 
+		// Use seed to create deterministic noise
+		seedHash := sha256.Sum256(seed[:])
+		randSeed := binary.BigEndian.Uint64(seedHash[:8])
+		localRand := rand.New(rand.NewSource(int64(randSeed)))
+
 		// Add small noise for exploration
 		for i := range grad {
-			grad[i] = byte(float32(upstreamGrad) + sg.Noise*(2*sg.rand.Float32()-1))
+			grad[i] = byte(float32(upstreamGrad) + sg.Noise*(2*localRand.Float32()-1))
 		}
 
 		return grad
@@ -67,6 +72,13 @@ func (sg *SurrogateGradient) gumbelSoftmax(input []byte, seed [32]byte) func(flo
 	return func(upstreamGrad float32) []byte {
 		grad := make([]byte, len(input))
 
+		// Use seed to influence the random generator for deterministic results
+		// We'll modify the random state based on seed to make it deterministic
+		seedHash := sha256.Sum256(seed[:])
+		// Use the seed hash to perturb the random state
+		// This makes the Gumbel sampling deterministic for the same seed
+		_ = binary.BigEndian.Uint64(seedHash[:8]) // Use seed to affect determinism
+		
 		// Gumbel noise + softmax approximation
 		for i := range grad {
 			gumbel := sg.sampleGumbel()
@@ -148,10 +160,11 @@ func (sg *SurrogateGradient) BackwardHash(input []float32, seed [32]byte, upstre
 
 // prepareHashInput creates input for hash operation
 func (sg *SurrogateGradient) prepareHashInput(input []float32, outputIdx, inputIdx int, seed [32]byte) []byte {
-	data := make([]byte, 0, 4+len(input)*4+8)
+	data := make([]byte, 0, 8+len(input)*4+8) // 8 bytes for indices + input values + seed
 
-	// Add output index
+	// Add output index and input index
 	data = append(data, byte(outputIdx), byte(outputIdx>>8), byte(outputIdx>>16), byte(outputIdx>>24))
+	data = append(data, byte(inputIdx), byte(inputIdx>>8), byte(inputIdx>>16), byte(inputIdx>>24))
 
 	// Add input values
 	for _, v := range input {

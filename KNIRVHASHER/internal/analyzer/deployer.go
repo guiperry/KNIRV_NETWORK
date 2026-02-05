@@ -711,44 +711,81 @@ func (d *Deployer) RunProvision() (*PhaseResult, error) {
 		output.WriteString("Disk Space:\n" + df + "\n\n")
 	}
 
-	// Step 2: Stop CGMiner and release device
-	d.log("Stopping CGMiner and releasing ASIC device...")
-	output.WriteString("Stopping CGMiner and releasing device:\n")
+	// Step 2: Stop CGMiner and release device, stop existing hasher-server, and aggressively manage kernel module
+	d.log("Aggressively stopping competing processes and managing kernel module for clean USB access...")
+	output.WriteString("Aggressive Device Cleanup and Kernel Module Management:\n")
 	output.WriteString(strings.Repeat("-", 30) + "\n")
 
-	stopOutput, _ := d.runRemoteCommand(`
-		echo "Stopping CGMiner processes..."
-		if pgrep cgminer > /dev/null 2>&1; then
-			/etc/init.d/cgminer stop 2>/dev/null || true
-			sleep 3
-			killall -9 cgminer bmminer 2>/dev/null || true
-			sleep 1
-			if pgrep cgminer > /dev/null 2>&1; then
-				echo "WARNING: CGMiner still running"
-			else
-				echo "SUCCESS: CGMiner stopped"
-			fi
-		else
-			echo "CGMiner was not running"
-		fi
-		
-		echo "Releasing ASIC device..."
-		# Try multiple approaches to release the device
-		echo "  - Attempting to unload kernel module..."
-		rmmod bitmain_asic 2>/dev/null || echo "  - Module unload failed (may be in use)"
-		sleep 2
-		
-		# Try killall for any lingering processes
-		killall -9 cgminer bmminer 2>/dev/null || true
-		
-		# Final check
-		if lsmod | grep -q bitmain_asic; then
-			echo "  - WARNING: bitmain_asic module still loaded"
-		else
-			echo "  - SUCCESS: bitmain_asic module unloaded"
-		fi
-	`)
-	output.WriteString(stopOutput + "\n\n")
+	// Upload and run the force reset script first
+	d.log("Uploading force reset script...")
+	forceResetScript := `#!/bin/bash
+# Force reset ASIC device when stuck in usbfs claim
+echo "=== FORCE RESET OF ASIC DEVICE ==="
+
+# Kill any remaining hasher-server processes
+echo "Killing hasher-server processes..."
+killall -9 hasher-server 2>/dev/null || true
+sleep 3
+
+# Kill CGMiner processes
+echo "Stopping CGMiner processes..."
+if pgrep cgminer > /dev/null 2>&1; then
+    /etc/init.d/cgminer stop 2>/dev/null || true
+    sleep 3
+    killall -9 cgminer bmminer 2>/dev/null || true
+    sleep 1
+    if pgrep cgminer > /dev/null 2>&1; then
+        echo "WARNING: CGMiner still running"
+    else
+        echo "SUCCESS: CGMiner stopped"
+    fi
+else
+    echo "CGMiner was not running"
+fi
+
+# Try to unload modules
+echo "Attempting to unload modules..."
+rmmod bitmain_asic 2>/dev/null || echo "Module busy (expected)"
+rmmod usb_bitmain 2>/dev/null || echo "USB module busy (expected)"
+
+# Force USB reset by writing to sysfs
+echo "Forcing USB reset via sysfs..."
+if [ -d /sys/bus/usb/devices/1-1.1 ]; then
+    echo '0' > /sys/bus/usb/devices/1-1.1/bConfiguration 2>/dev/null || true
+    sleep 1
+fi
+
+# Now try to reload module
+echo "Reloading kernel module..."
+sleep 2
+modprobe -r bitmain_asic 2>/dev/null || true
+sleep 2
+modprobe bitmain_asic 2>/dev/null || echo "Module reload failed"
+sleep 3
+
+# Create device nodes with correct major/minor
+echo "Creating device nodes..."
+rm -f /dev/bitmain-asic /dev/bitmain0 2>/dev/null || true
+mknod /dev/bitmain-asic c 10 60 2>/dev/null || echo "Failed to create /dev/bitmain-asic"
+mknod /dev/bitmain0 c 180 0 2>/dev/null || echo "Failed to create /dev/bitmain0"
+chmod 666 /dev/bitmain-asic /dev/bitmain0 2>/dev/null || true
+
+echo "=== FORCE RESET COMPLETE ==="
+echo "Final device status:"
+ls -la /dev/bitmain* 2>/dev/null || echo "No devices found"
+echo "Kernel module status:"
+lsmod | grep bitmain || echo "No bitmain modules"
+`
+
+	// Upload script to device
+	if err := d.uploadFile("/tmp/force-reset-device.sh", []byte(forceResetScript)); err != nil {
+		output.WriteString(fmt.Sprintf("Failed to upload force reset script: %v\n", err))
+	} else {
+		// Make script executable and run it
+		d.runRemoteCommand("chmod +x /tmp/force-reset-device.sh")
+		stopOutput, _ := d.runRemoteCommand("/tmp/force-reset-device.sh")
+		output.WriteString(stopOutput + "\n\n")
+	}
 
 	// Step 3: Deploy hasher-server
 	d.log("Checking for hasher-server binary...")
@@ -766,48 +803,81 @@ func (d *Deployer) RunProvision() (*PhaseResult, error) {
 		d.log("Using local hasher-server binary at %s", serverBinaryPath)
 
 		// Read binary
-		binary, err := os.ReadFile(serverBinaryPath)
+		binaryContent, err := os.ReadFile(serverBinaryPath) // Changed variable name from 'binary' to 'binaryContent'
 		if err != nil {
-			output.WriteString(fmt.Sprintf("Failed to read binary: %v\n", err))
+			output.WriteString(fmt.Sprintf("Failed to read local binary: %v\n", err))
 		} else {
-			// Use the same binary name as uploaded (strip mips suffix for remote execution)
-			remoteBinaryName := "hasher-server" // Always use hasher-server on remote device
+			remoteBinaryName := "hasher-server"
 			remoteBinaryPath := filepath.Join(d.config.RemoteDir, remoteBinaryName)
-			if err := d.uploadFile(remoteBinaryPath, binary); err != nil {
-				output.WriteString(fmt.Sprintf("Failed to upload: %v\n", err))
+
+			d.log("Uploading %s to %s...", remoteBinaryName, remoteBinaryPath)
+			if err := d.uploadFile(remoteBinaryPath, binaryContent); err != nil { // Use binaryContent
+				output.WriteString(fmt.Sprintf("Failed to upload binary: %v\n", err))
 			} else {
+				d.log("Binary uploaded successfully.")
 				// Store the remote binary path for execution
-				remoteServerPath := remoteBinaryPath // This is now /tmp/hasher-server after line 758
+				remoteServerPath := remoteBinaryPath
+				d.log("Setting executable permissions on %s...", remoteBinaryPath)
 				d.runRemoteCommand(fmt.Sprintf("chmod +x %s", remoteBinaryPath))
 				output.WriteString(fmt.Sprintf("Deployed to %s\n", remoteBinaryPath))
 				d.log("✅ hasher-server deployed successfully at %s", remoteBinaryPath)
 
-				// Start hasher-server with proper initialization
-				// Note: Use subshell with & instead of nohup since busybox doesn't have nohup
-				d.log("Starting hasher-server...")
-				startCmd := fmt.Sprintf("( echo 'Starting hasher-server...'; %s --port=8888 --trace=true > /tmp/hasher-server.log 2>&1; echo 'Hasher-server exited with code: $?' ) &", remoteServerPath)
+				// Get MD5 sum of deployed binary for verification
+				d.log("Getting MD5 sum of deployed binary...")
+				md5sumOutput, _ := d.runRemoteCommand(fmt.Sprintf("md5sum %s", remoteBinaryPath))
+				d.log("Deployed hasher-server MD5 sum on ASIC: %s", md5sumOutput)
+				output.WriteString(fmt.Sprintf("Deployed hasher-server MD5 sum: %s\n", md5sumOutput))
+
+				// Clear old log file before starting new server
+				d.log("Clearing old hasher-server log file...")
+				d.runRemoteCommand(fmt.Sprintf("rm -f %s/hasher-server.log", d.config.RemoteDir))
+				output.WriteString("Old hasher-server.log cleared.\n")
+
+				// Start hasher-server with proper initialization using a subshell for BusyBox compatibility
+				d.log("Starting hasher-server using sh -c '... & '...")
+				startCmd := fmt.Sprintf("sh -c '%s --port=8888 --trace=true > %s/hasher-server.log 2>&1 &' && echo 'SERVER_START_PID:$!' && sleep 1", remoteServerPath, d.config.RemoteDir)
 				startOutput, _ := d.runRemoteCommand(startCmd)
 				output.WriteString("Started hasher-server: " + startOutput + "\n")
-
-				// Give hasher-server time to initialize and start listening
+				d.log("sh -c '... & ' command executed to start hasher-server.") // Give hasher-server more time to initialize and start listening
 				d.log("Waiting for hasher-server to initialize...")
-				d.runRemoteCommand("sleep 5") // Give server time to start
+				d.runRemoteCommand("sleep 3") // Initial wait
 
-				// Verify the process is actually running
+				// Verify the process is actually running and get its PID
 				d.log("Verifying hasher-server process...")
 				psOutput, _ := d.runRemoteCommand("ps w | grep hasher-server | grep -v grep || echo 'PROCESS_NOT_FOUND'")
 				if strings.Contains(psOutput, "PROCESS_NOT_FOUND") {
 					output.WriteString("WARNING: hasher-server process not found after startup\n")
+					d.log("WARNING: hasher-server process not found after startup.")
 				} else {
-					output.WriteString("hasher-server process confirmed running\n")
+					output.WriteString("hasher-server process confirmed running:\n" + psOutput + "\n")
+					d.log("hasher-server process confirmed running.")
+
+					// Additional wait to ensure server is fully initialized
+					d.log("Giving hasher-server additional time to bind to port...")
+					d.runRemoteCommand("sleep 2")
+
+					// Check if port 8888 is listening
+					portOutput, _ := d.runRemoteCommand("netstat -ln | grep :8888 || echo 'PORT_NOT_BOUND'")
+					if strings.Contains(portOutput, "PORT_NOT_BOUND") {
+						output.WriteString("WARNING: hasher-server not listening on port 8888 yet\n")
+						d.log("WARNING: hasher-server not listening on port 8888 yet.")
+					} else {
+						output.WriteString("hasher-server confirmed listening on port 8888\n" + portOutput + "\n")
+						d.log("hasher-server confirmed listening on port 8888.")
+					}
 				}
 			}
 		}
 	} else {
-		output.WriteString("hasher-server binary not found.\n")
+		output.WriteString("hasher-server binary not found locally.\n")
 		output.WriteString("Build it first with:\n")
 		output.WriteString("  make build-server-mips\n")
 		output.WriteString("Or place it in: " + serverBinaryPath + "\n\n")
+		d.log("ERROR: hasher-server binary not found locally at %s", serverBinaryPath)
+		result.Error = fmt.Sprintf("hasher-server binary not found locally: %s", serverBinaryPath)
+		result.Duration = time.Since(start).Seconds()
+		d.addResult(*result)
+		return result, fmt.Errorf("%s", result.Error)
 	}
 
 	// Step 4: Verify provisioning
@@ -816,6 +886,244 @@ func (d *Deployer) RunProvision() (*PhaseResult, error) {
 	output.WriteString(strings.Repeat("-", 30) + "\n")
 
 	verifyOutput, _ := d.runRemoteCommand(`
+		echo "CGMiner: $(pgrep cgminer > /dev/null 2>&1 && echo 'RUNNING' || echo 'STOPPED')"
+		echo "Device: $(test -c /dev/bitmain-asic && echo 'AVAILABLE' || echo 'NOT FOUND')"
+		echo "Hasher: $(test -x /tmp/hasher-server && echo 'DEPLOYED' || echo 'NOT DEPLOYED')"
+	`)
+	output.WriteString(verifyOutput + "\n")
+
+	result.Success = true
+	result.Output = output.String()
+	result.Duration = time.Since(start).Seconds()
+	d.addResult(*result)
+
+	return result, nil
+}
+
+// RunProvisionWithBinary runs the provisioning phase using the provided binary content.
+func (d *Deployer) RunProvisionWithBinary(binaryContent []byte) (*PhaseResult, error) {
+	start := time.Now()
+	result := &PhaseResult{
+		Phase:     PhaseProvision,
+		Timestamp: start,
+	}
+
+	if d.activeDevice == nil {
+		result.Error = "no device selected"
+		result.Duration = time.Since(start).Seconds()
+		d.addResult(*result)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+
+	d.log("Provisioning device %s...", d.activeDevice.IPAddress)
+
+	// Connect if not connected
+	if d.sshClient == nil {
+		if err := d.Connect(); err != nil {
+			result.Error = err.Error()
+			result.Duration = time.Since(start).Seconds()
+			d.addResult(*result)
+			return result, err
+		}
+		defer d.Disconnect()
+	}
+
+	// Check if CGMiner is already running and responding to API
+	d.log("Checking CGMiner status...")
+	cgminerRunning := false
+	if cgStatus, err := d.runRemoteCommand("pgrep cgminer > /dev/null 2>&1 && echo 'RUNNING' || echo 'NOT_RUNNING'"); err == nil && strings.Contains(cgStatus, "RUNNING") {
+		// CGMiner is running, check if API is responding
+		d.log("CGMiner process found, checking API...")
+		if apiTest, err := d.runRemoteCommand("echo '{\"command\":\"summary\"}' | nc 127.0.0.1 4028 2>/dev/null | head -c 50 || echo 'API_NOT_RESPONDING'"); err == nil && !strings.Contains(apiTest, "API_NOT_RESPONDING") && len(apiTest) > 10 {
+			d.log("✓ CGMiner is running and API is responding - will use CGMiner mode")
+			cgminerRunning = true
+		} else {
+			d.log("CGMiner running but API not responding, will restart...")
+		}
+	}
+
+	// If CGMiner is not running or not responding, start it
+	if !cgminerRunning {
+		d.log("Starting CGMiner...")
+		startScript := `#!/bin/ash
+# Start CGMiner for hasher-server integration
+echo "=== STARTING CGMINER ==="
+
+# Kill any existing CGMiner first to ensure clean start
+killall -9 cgminer bmminer 2>/dev/null || true
+sleep 2
+
+# Start CGMiner in benchmark mode with API enabled
+cgminer --benchmark --bitmain-options 115200:32:8:16:250:0982 --api-listen --api-allow W:0/0 --api-port 4028 --quiet &
+sleep 5
+
+# Verify it's running
+if pgrep cgminer > /dev/null 2>&1; then
+    echo "SUCCESS: CGMiner started"
+    # Test API
+    echo "Testing API..."
+    echo '{"command":"summary"}' | nc 127.0.0.1 4028 2>/dev/null | head -c 20 || echo "API_TEST_FAILED"
+else
+    echo "ERROR: CGMiner failed to start"
+fi
+echo "=== CGMINER START COMPLETE ==="
+`
+		if err := d.uploadFile("/tmp/start-cgminer.sh", []byte(startScript)); err == nil {
+			d.runRemoteCommand("chmod +x /tmp/start-cgminer.sh && ash /tmp/start-cgminer.sh")
+		}
+
+		// Wait a bit for CGMiner to initialize
+		time.Sleep(3 * time.Second)
+	}
+
+	// Check for zombie processes that might cause issues
+	d.log("Checking for zombie processes...")
+	zombieCheck, _ := d.runRemoteCommand("ps w | grep -E 'hasher-server|cgminer' | grep -i zombie || echo 'NO_ZOMBIES'")
+	if strings.Contains(zombieCheck, "zombie") || strings.Contains(zombieCheck, "Z") {
+		d.log("WARNING: Zombie processes detected, will clean up...")
+		// Only do aggressive cleanup if zombies are present
+		d.runRemoteCommand("killall -9 hasher-server cgminer bmminer 2>/dev/null || true")
+		time.Sleep(2 * time.Second)
+	}
+
+	// Minimal cleanup: just kill old hasher-server processes
+	d.log("Cleaning up old hasher-server processes...")
+	d.runRemoteCommand("killall -9 hasher-server 2>/dev/null || true")
+	time.Sleep(1 * time.Second)
+
+	d.log("CGMiner-first deployment ready")
+
+	var output strings.Builder
+	output.WriteString(fmt.Sprintf("Provisioning Results (%s)\n", d.activeDevice.IPAddress))
+	output.WriteString(strings.Repeat("=", 50) + "\n\n")
+
+	// Step 1: Check available disk space
+	d.log("Checking available disk space...")
+	if df, err := d.runRemoteCommand("df -h /tmp"); err == nil {
+		output.WriteString("Disk Space:\n" + df + "\n\n")
+	}
+
+	// Step 2: Verify device is ready after pre-cleanup
+	d.log("Verifying device status after pre-cleanup...")
+	output.WriteString("Device Status Verification:\n")
+	output.WriteString(strings.Repeat("-", 30) + "\n")
+
+	var verifyOutput string
+	var err error
+	verifyOutput, err = d.runRemoteCommand(`
+		echo "Checking device accessibility..."
+		if [ -e /dev/bitmain-asic ]; then
+			echo "✅ /dev/bitmain-asic exists"
+			ls -la /dev/bitmain-asic
+		else
+			echo "❌ /dev/bitmain-asic not found"
+		fi
+		
+		echo "Checking kernel module status..."
+		if lsmod | grep -q bitmain_asic; then
+			echo "✅ bitmain_asic module loaded"
+		else
+			echo "❌ bitmain_asic module not loaded"
+		fi
+		
+		echo "Checking for competing processes..."
+		if pgrep -f "cgminer\|bmminer" > /dev/null; then
+			echo "⚠️  Mining processes still running:"
+			ps w | grep -E "cgminer|bmminer" | grep -v grep
+		else
+			echo "✅ No competing mining processes found"
+		fi
+	`)
+	if err == nil {
+		output.WriteString(verifyOutput + "\n\n")
+	} else {
+		output.WriteString(fmt.Sprintf("Failed to verify device status: %v\n\n", err))
+	}
+
+	// Step 3: Deploy hasher-server
+	d.log("Checking for hasher-server binary...")
+	output.WriteString("Deploying hasher-server:\n")
+	output.WriteString(strings.Repeat("-", 30) + "\n")
+
+	if len(binaryContent) == 0 {
+		output.WriteString("ERROR: binary content is empty\n")
+		result.Error = "binary content is empty"
+		result.Duration = time.Since(start).Seconds()
+		d.addResult(*result)
+		return result, fmt.Errorf("%s", result.Error)
+	}
+
+	remoteBinaryName := "hasher-server"
+	remoteBinaryPath := filepath.Join(d.config.RemoteDir, remoteBinaryName)
+
+	d.log("Uploading %s to %s...", remoteBinaryName, remoteBinaryPath)
+	if err := d.uploadFile(remoteBinaryPath, binaryContent); err != nil {
+		output.WriteString(fmt.Sprintf("Failed to upload binary: %v\n", err))
+		result.Error = err.Error()
+		result.Duration = time.Since(start).Seconds()
+		d.addResult(*result)
+		return result, err
+	}
+	d.log("Binary uploaded successfully.")
+	// Store the remote binary path for execution
+	remoteServerPath := remoteBinaryPath
+	d.log("Setting executable permissions on %s...", remoteBinaryPath)
+	d.runRemoteCommand(fmt.Sprintf("chmod +x %s", remoteBinaryPath))
+	output.WriteString(fmt.Sprintf("Deployed to %s\n", remoteBinaryPath))
+	d.log("✅ hasher-server deployed successfully at %s", remoteBinaryPath)
+
+	// Get MD5 sum of deployed binary for verification
+	d.log("Getting MD5 sum of deployed binary...")
+	md5sumOutput, _ := d.runRemoteCommand(fmt.Sprintf("md5sum %s", remoteBinaryPath))
+	d.log("Deployed hasher-server MD5 sum on ASIC: %s", md5sumOutput)
+	output.WriteString(fmt.Sprintf("Deployed hasher-server MD5 sum: %s\n", md5sumOutput))
+
+	// Clear old log file before starting new server
+	d.log("Clearing old hasher-server log file...")
+	d.runRemoteCommand(fmt.Sprintf("rm -f %s/hasher-server.log", d.config.RemoteDir))
+	output.WriteString("Old hasher-server.log cleared.\n")
+
+	// Start hasher-server with proper initialization using a subshell for BusyBox compatibility
+	d.log("Starting hasher-server using sh -c '... & '...")
+	startCmd := fmt.Sprintf("sh -c '%s --port=8888 --trace=true > %s/hasher-server.log 2>&1 &' && echo 'SERVER_START_PID:$!' && sleep 1", remoteServerPath, d.config.RemoteDir)
+	startOutput, _ := d.runRemoteCommand(startCmd)
+	output.WriteString("Started hasher-server: " + startOutput + "\n")
+	d.log("sh -c '... & ' command executed to start hasher-server.")
+	// Give hasher-server more time to initialize and start listening
+	d.log("Waiting for hasher-server to initialize...")
+	d.runRemoteCommand("sleep 3") // Initial wait
+
+	// Verify the process is actually running and get its PID
+	d.log("Verifying hasher-server process...")
+	psOutput, _ := d.runRemoteCommand("ps w | grep hasher-server | grep -v grep || echo 'PROCESS_NOT_FOUND'")
+	if strings.Contains(psOutput, "PROCESS_NOT_FOUND") {
+		output.WriteString("WARNING: hasher-server process not found after startup\n")
+		d.log("WARNING: hasher-server process not found after startup.")
+	} else {
+		output.WriteString("hasher-server process confirmed running:\n" + psOutput + "\n")
+		d.log("hasher-server process confirmed running.")
+
+		// Additional wait to ensure server is fully initialized
+		d.log("Giving hasher-server additional time to bind to port...")
+		d.runRemoteCommand("sleep 2")
+
+		// Check if port 8888 is listening
+		portOutput, _ := d.runRemoteCommand("netstat -ln | grep :8888 || echo 'PORT_NOT_BOUND'")
+		if strings.Contains(portOutput, "PORT_NOT_BOUND") {
+			output.WriteString("WARNING: hasher-server not listening on port 8888 yet\n")
+			d.log("WARNING: hasher-server not listening on port 8888 yet.")
+		} else {
+			output.WriteString("hasher-server confirmed listening on port 8888\n" + portOutput + "\n")
+			d.log("hasher-server confirmed listening on port 8888.")
+		}
+	}
+
+	// Step 4: Verify provisioning
+	d.log("Verifying provisioning...")
+	output.WriteString("\nProvisioning Status:\n")
+	output.WriteString(strings.Repeat("-", 30) + "\n")
+
+	verifyOutput, _ = d.runRemoteCommand(`
 		echo "CGMiner: $(pgrep cgminer > /dev/null 2>&1 && echo 'RUNNING' || echo 'STOPPED')"
 		echo "Device: $(test -c /dev/bitmain-asic && echo 'AVAILABLE' || echo 'NOT FOUND')"
 		echo "Hasher: $(test -x /tmp/hasher-server && echo 'DEPLOYED' || echo 'NOT DEPLOYED')"

@@ -23,8 +23,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"hasher/internal/crypto_transformer"
 	"hasher/internal/hasher"
+	"hasher/internal/hasher/tokenizer" // Added for tokenization/detokenization
+	"hasher/internal/hasher/transformer"
 	"hasher/internal/host"
 )
 
@@ -88,6 +89,7 @@ var (
 	// Auto-deployment configuration
 	autoDeploy    = flag.Bool("auto-deploy", true, "automatically deploy hasher-server to ASIC devices")
 	cleanupOnExit = flag.Bool("cleanup", true, "clean up deployed hasher-server on exit")
+	forceRedeploy = flag.Bool("force-redeploy", false, "force redeployment of hasher-server even if it's already running")
 
 	// Server log monitoring configuration
 	monitorServerLogs = flag.Bool("monitor-server-logs", true, "enable automatic monitoring of server logs for auto-recovery")
@@ -101,7 +103,8 @@ type Orchestrator struct {
 	asicClient      *hasher.ASICClient
 	engine          *hasher.RecursiveEngine
 	network         *hasher.HashNetwork
-	cryptoModel     *crypto_transformer.HasherTransformer
+	cryptoModel     *transformer.HasherTransformer
+	miningNeuron    *hasher.MiningNeuron // New field for Nonce generation
 	discoveryResult *hasher.DiscoveryResult
 	startTime       time.Time
 	mu              sync.RWMutex
@@ -236,6 +239,7 @@ func main() {
 			CleanupOnExit:  *cleanupOnExit,
 			ConnectTimeout: 30 * time.Second,
 			DeployTimeout:  120 * time.Second,
+			ForceRedeploy:  *forceRedeploy, // Pass the new flag
 		}
 		var err error
 		deployer, err = host.NewDeployer(deployConfig)
@@ -423,10 +427,11 @@ func main() {
 	log.Printf("Recursive engine created: %d passes, jitter=%.3f, seed_rotation=%v", *passes, *jitter, *seedRotation)
 
 	// Create crypto-transformer if enabled
-	var cryptoModel *crypto_transformer.HasherTransformer
+	var cryptoModel *transformer.HasherTransformer
+	var miningNeuron *hasher.MiningNeuron
 	if *enableCrypto {
 		log.Printf("Initializing crypto-transformer...")
-		config := &crypto_transformer.TransformerConfig{
+		transformerConfig := &transformer.TransformerConfig{
 			VocabSize:    *vocabSize,
 			EmbedDim:     *embedDim,
 			NumLayers:    *numLayers,
@@ -436,9 +441,23 @@ func main() {
 			FFNHiddenDim: *ffnHiddenDim,
 			Activation:   *cryptoActivation,
 		}
-		cryptoModel = crypto_transformer.NewHasherTransformer(config)
+		cryptoModel = transformer.NewHasherTransformer(transformerConfig)
 		log.Printf("Crypto-transformer created: vocab=%d, embed=%d, layers=%d, heads=%d",
 			*vocabSize, *embedDim, *numLayers, *numHeads)
+
+		// Initialize MiningNeuron for converting transformer output to nonces
+		miningNeuronConfig := hasher.MiningNeuronConfig{
+			InputDim:   *vocabSize, // Input to MiningNeuron is the tokenScores (logits)
+			OutputDim:  8,          // Generate 8 projections for the mining header
+			Salt:       0xDEADBEEF, // Fixed salt for now
+			NonceStart: 0,
+			NonceEnd:   1000000, // Search range for nonce
+		}
+		miningNeuron = hasher.NewMiningNeuron(miningNeuronConfig)
+		if asicClient != nil {
+			miningNeuron.SetASICClient(asicClient)
+		}
+		log.Printf("MiningNeuron created with InputDim=%d, OutputDim=%d", miningNeuronConfig.InputDim, miningNeuronConfig.OutputDim)
 	}
 
 	// Create orchestrator
@@ -447,6 +466,7 @@ func main() {
 		engine:             engine,
 		network:            network,
 		cryptoModel:        cryptoModel,
+		miningNeuron:       miningNeuron, // Add miningNeuron to orchestrator
 		discoveryResult:    discoveryResult,
 		startTime:          time.Now(),
 		deployer:           deployer,
@@ -489,7 +509,13 @@ func main() {
 	// Run based on mode
 	switch *mode {
 	case "api":
-		runAPIServer(orch)
+		if *enableAPI {
+			runAPIServer(orch)
+		} else {
+			log.Println("API server disabled by flag --api=false")
+			log.Println("Running in single mode instead")
+			runSingleMode(orch)
+		}
 	case "single":
 		runSingleMode(orch)
 	case "batch":
@@ -1176,13 +1202,16 @@ func (o *Orchestrator) stopConnectionMonitor() {
 // handleDeviceInfo handles device info requests
 func (o *Orchestrator) handleDeviceInfo(c *gin.Context) {
 	if o.asicClient == nil {
-		c.JSON(http.StatusOK, gin.H{
+		response := gin.H{
 			"device_path":      "software",
 			"chip_count":       0,
 			"firmware_version": "software-fallback",
 			"is_operational":   true,
 			"uptime_seconds":   uint64(time.Since(o.startTime).Seconds()),
-		})
+		}
+		// Log the response in pretty JSON for debugging
+		log.Printf("Device info (software fallback): %s", prettyJSON(response))
+		c.JSON(http.StatusOK, response)
 		return
 	}
 
@@ -1192,13 +1221,16 @@ func (o *Orchestrator) handleDeviceInfo(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	response := gin.H{
 		"device_path":      info.DevicePath,
 		"chip_count":       info.ChipCount,
 		"firmware_version": info.FirmwareVersion,
 		"is_operational":   info.IsOperational,
 		"uptime_seconds":   info.UptimeSeconds,
-	})
+	}
+	// Log the response in pretty JSON for debugging
+	log.Printf("Device info: %s", prettyJSON(response))
+	c.JSON(http.StatusOK, response)
 }
 
 // handleShutdown handles a request to gracefully shut down the server.
@@ -1228,6 +1260,10 @@ func (o *Orchestrator) handleChat(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "crypto-transformer not enabled"})
 		return
 	}
+	if o.miningNeuron == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "mining neuron not initialized"})
+		return
+	}
 
 	var req ChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -1237,43 +1273,68 @@ func (o *Orchestrator) handleChat(c *gin.Context) {
 
 	start := time.Now()
 
-	// Convert message to token IDs
-	tokenIDs := make([]int, len(req.Message))
-	for i, char := range req.Message {
-		tokenIDs[i] = int(char) % o.cryptoModel.Config.VocabSize
-	}
+	// Convert message to token IDs using the tokenizer package
+	inputTokenIDs := tokenizer.Tokenize(req.Message, o.cryptoModel.Config.VocabSize)
 
-	// Use provided context or generate new
+	// Use provided context or initialize with input token IDs
 	context := req.Context
 	if len(context) == 0 {
-		context = tokenIDs
+		context = inputTokenIDs
 	}
 
-	// Generate response using crypto-transformer
-	generatedToken := o.cryptoModel.GenerateToken(context, req.Temperature)
+	// Language Generation Loop
+	generatedTokens := make([]int, 0)
+	currentContext := context // Use context for subsequent token generation
+	var generatedResponse strings.Builder
+	const maxGenerationLen = 50 // Limit the length of the generated response
 
-	// Generate contextual response
-	response := o.generateChatResponse(req.Message, generatedToken)
+	for i := 0; i < maxGenerationLen; i++ {
+		// Generate the next token ID and its scores (projections) using the crypto-transformer
+		nextTokenID, tokenScores := o.cryptoModel.GenerateToken(currentContext, req.Temperature)
 
-	// Check if generation failed (ASIC not available)
-	if response == "" {
-		log.Printf("ERROR: Token generation failed - ASIC server not available (fallback mode)")
-		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error":      "Token generation failed: ASIC server not available",
-			"token_id":   generatedToken,
-			"using_asic": o.engine.IsUsingASIC(),
-		})
-		return
+		// If the token scores are not valid for mining (e.g., too few), break or handle error
+		if len(tokenScores) < len(o.miningNeuron.Weights) {
+			log.Printf("Warning: Transformer output tokenScores length (%d) is less than MiningNeuron.OutputDim (%d). Cannot generate nonce.", len(tokenScores), len(o.miningNeuron.Weights))
+			generatedResponse.WriteString("[ERR_PROJ_LEN]")
+			break
+		}
+
+		// Use MiningNeuron to convert tokenScores (projections) into a nonce
+		nonce, err := o.miningNeuron.Forward(tokenScores)
+		if err != nil {
+			log.Printf("ERROR: MiningNeuron forward pass failed: %v", err)
+			generatedResponse.WriteString("[ERR_NONCE_GEN]")
+			break // Stop generation on error
+		}
+
+		// Detokenize the generated Nonce into a character
+		detokenizedChar := tokenizer.DetokenizeNonce(nonce, o.cryptoModel.Config.VocabSize)
+		generatedResponse.WriteString(detokenizedChar)
+
+		// Append the next token ID to the list of generated tokens
+		generatedTokens = append(generatedTokens, nextTokenID)
+
+		// Update the context for the next iteration (sliding window)
+		currentContext = append(currentContext, nextTokenID)
+		if len(currentContext) > o.cryptoModel.Config.ContextLen {
+			currentContext = currentContext[len(currentContext)-o.cryptoModel.Config.ContextLen:]
+		}
+
+		// Add a simple stop condition for demonstration
+		// In a real scenario, an explicit <EOS> token would be used
+		if nextTokenID == int('.') || nextTokenID == int('?') || nextTokenID == int('!') {
+			break
+		}
 	}
 
 	latency := time.Since(start)
 
 	c.JSON(http.StatusOK, ChatResponse{
-		Response:   response,
-		TokenID:    generatedToken,
-		Confidence: 0.8, // Placeholder confidence
+		Response:   generatedResponse.String(),
+		TokenID:    generatedTokens[len(generatedTokens)-1], // Return last token ID for context building
+		Confidence: 0.8,                                     // Placeholder confidence (could be derived from tokenScores)
 		LatencyMs:  float64(latency.Milliseconds()),
-		UsingASIC:  o.engine.IsUsingASIC(),
+		UsingASIC:  o.asicClient != nil && !o.asicClient.IsUsingFallback(),
 	})
 }
 
@@ -1293,12 +1354,11 @@ func (o *Orchestrator) handleTrain(c *gin.Context) {
 	start := time.Now()
 
 	// Create training data
-	data := make([]crypto_transformer.DataSample, len(req.DataSamples))
+	data := make([]transformer.DataSample, len(req.DataSamples))
 	for i, sample := range req.DataSamples {
-		inputTokens := make([]int, len(sample))
-		for j, char := range sample {
-			inputTokens[j] = int(char)
-		}
+		// Tokenize input and output using the tokenizer package
+		inputTokens := tokenizer.Tokenize(sample, o.cryptoModel.Config.VocabSize)
+
 		// Create target tokens (shifted by 1 for next-token prediction)
 		outputTokens := make([]int, len(inputTokens))
 		for j := 0; j < len(inputTokens)-1; j++ {
@@ -1307,7 +1367,7 @@ func (o *Orchestrator) handleTrain(c *gin.Context) {
 		if len(inputTokens) > 0 {
 			outputTokens[len(inputTokens)-1] = inputTokens[0] // Wrap around
 		}
-		data[i] = crypto_transformer.DataSample{
+		data[i] = transformer.DataSample{
 			InputTokens:   inputTokens,
 			OutputTokens:  outputTokens,
 			AttentionMask: make([]bool, len(inputTokens)),
@@ -1315,7 +1375,7 @@ func (o *Orchestrator) handleTrain(c *gin.Context) {
 	}
 
 	// Set up training configuration
-	trainConfig := &crypto_transformer.TrainingConfig{
+	trainConfig := &transformer.TrainingConfig{
 		Epochs:         req.Epochs,
 		BatchSize:      req.BatchSize,
 		LearningRate:   req.LearningRate,
@@ -1334,7 +1394,7 @@ func (o *Orchestrator) handleTrain(c *gin.Context) {
 	}
 
 	// Create trainer and run training
-	trainer := crypto_transformer.NewTrainer(o.cryptoModel, trainConfig, data)
+	trainer := transformer.NewTrainer(o.cryptoModel, trainConfig, data)
 
 	// Run single epoch training (for API responsiveness)
 	var totalLoss float32
@@ -1352,7 +1412,7 @@ func (o *Orchestrator) handleTrain(c *gin.Context) {
 		}
 
 		// Check prediction accuracy
-		predicted := o.cryptoModel.GenerateToken(sample.InputTokens, 0.0)
+		predicted, _ := o.cryptoModel.GenerateToken(sample.InputTokens, 0.0)
 		if len(sample.OutputTokens) > 0 && predicted == sample.OutputTokens[0] {
 			correct++
 		}
@@ -1410,18 +1470,6 @@ func (o *Orchestrator) handleCryptoStatus(c *gin.Context) {
 		"activation":     o.cryptoModel.Config.Activation,
 		"using_asic":     o.engine.IsUsingASIC(),
 	})
-}
-
-// generateChatResponse generates a response based on the generated token
-// Returns empty string if token generation failed (ASIC not available)
-func (o *Orchestrator) generateChatResponse(input string, token int) string {
-	// Check if we're in fallback mode - if so, return empty to signal error
-	if o.asicClient == nil || o.asicClient.IsUsingFallback() {
-		return ""
-	}
-
-	// Return simple token-based acknowledgment instead of hardcoded marketing text
-	return fmt.Sprintf("Token generated: %d (ASIC mode: %v)", token, o.engine.IsUsingASIC())
 }
 
 // handleListRules handles GET /rules requests
@@ -1582,32 +1630,53 @@ func runSingleMode(orch *Orchestrator) {
 }
 
 func runBatchMode(orch *Orchestrator) {
-	log.Printf("Computing batch of %d hashes...", *count)
+	log.Printf("Computing %d hashes with batch size %d...", *count, *batchSize)
 
 	if orch.asicClient == nil {
 		log.Fatal("ASIC client not available")
 	}
 
-	// Prepare batch data
+	// Prepare all data
 	data := make([][]byte, *count)
 	for i := 0; i < *count; i++ {
 		data[i] = randomData(*dataSize)
 	}
 
 	start := time.Now()
+	var totalHashes [][32]byte
 
-	hashes, err := orch.asicClient.ComputeBatch(data)
-	elapsed := time.Since(start)
+	// Process in batches if batchSize is specified and smaller than total count
+	if *batchSize > 0 && *batchSize < *count {
+		for i := 0; i < *count; i += *batchSize {
+			end := i + *batchSize
+			if end > *count {
+				end = *count
+			}
+			batch := data[i:end]
 
-	if err != nil {
-		log.Fatalf("ComputeBatch failed: %v", err)
+			log.Printf("Processing batch %d-%d...", i, end-1)
+			hashes, err := orch.asicClient.ComputeBatch(batch)
+			if err != nil {
+				log.Fatalf("ComputeBatch failed at batch %d-%d: %v", i, end-1, err)
+			}
+			totalHashes = append(totalHashes, hashes...)
+		}
+	} else {
+		// Single batch
+		hashes, err := orch.asicClient.ComputeBatch(data)
+		if err != nil {
+			log.Fatalf("ComputeBatch failed: %v", err)
+		}
+		totalHashes = hashes
 	}
 
-	log.Printf("Computed %d hashes in %v", len(hashes), elapsed)
-	log.Printf("Throughput: %.2f hashes/sec", float64(len(hashes))/elapsed.Seconds())
+	elapsed := time.Since(start)
 
-	if len(hashes) > 0 {
-		log.Printf("First hash: %x", hashes[0][:8])
+	log.Printf("Computed %d hashes in %v", len(totalHashes), elapsed)
+	log.Printf("Throughput: %.2f hashes/sec", float64(len(totalHashes))/elapsed.Seconds())
+
+	if len(totalHashes) > 0 {
+		log.Printf("First hash: %x", totalHashes[0][:8])
 	}
 }
 

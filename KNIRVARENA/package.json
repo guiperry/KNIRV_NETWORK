@@ -80,7 +80,8 @@
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.5.0",
     "zod": "^3.24.3",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "flatbuffers": "^24.3.25"
   },
   "description": "Unified KNIRV Controller - Frontend application with integrated manager interface and slideout functionality",
   "devDependencies": {
@@ -195,6 +196,8 @@
     "build": "tsc --noEmit && npm run build:wasm && vite build",
     "build:android": "npm run build:eas -- --platform android",
     "build:eas": "sh scripts/build-with-eas.sh",
+    "build:flatbuffers": "mkdir -p src/flatbuffers && flatc --ts -o src/flatbuffers/ schemas/player.fbs schemas/agent.fbs",
+    "build:flatbuffers:all": "mkdir -p src/flatbuffers && flatc --ts -o src/flatbuffers/ schemas/*.fbs",
     "build:frontend": "vite build",
     "build:ios": "npm run build:eas -- --platform ios",
     "build:pwa": "node scripts/build-pwa.js",

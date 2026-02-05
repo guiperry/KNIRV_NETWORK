@@ -1,4 +1,4 @@
-package crypto_transformer
+package transformer
 
 import (
 	"hasher/internal/hasher"
@@ -301,8 +301,8 @@ func (ht *HasherTransformer) updateLayerWeights(layer *hasher.MatrixHashNeuron, 
 	layer.UpdateWeights(weights, bias)
 }
 
-// GenerateToken generates next token using hash-based transformer
-func (ht *HasherTransformer) GenerateToken(context []int, temperature float32) int {
+// GenerateToken generates next token using hash-based transformer, returning the chosen token ID and all token scores.
+func (ht *HasherTransformer) GenerateToken(context []int, temperature float32) (int, []float32) {
 	// Forward pass
 	hidden := ht.Forward(context)
 
@@ -339,15 +339,15 @@ func (ht *HasherTransformer) GenerateToken(context []int, temperature float32) i
 		// Sample from distribution
 		// For now, use simple deterministic selection
 		// In production, use proper random sampling
-		rand := float32(0.5) // Placeholder for deterministic behavior
+		randVal := float32(0.5) // Placeholder for deterministic behavior
 		cumsum := float32(0)
 		for i, prob := range probs {
 			cumsum += prob
-			if rand < cumsum {
-				return i
+			if randVal < cumsum {
+				return i, tokenScores
 			}
 		}
-		return 0 // Fallback
+		return 0, tokenScores // Fallback
 	}
 
 	// Argmax for temperature = 0
@@ -359,5 +359,6 @@ func (ht *HasherTransformer) GenerateToken(context []int, temperature float32) i
 			maxIdx = i
 		}
 	}
-	return maxIdx
+	return maxIdx, tokenScores
 }
+

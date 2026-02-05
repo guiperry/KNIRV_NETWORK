@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log" // Added for logging
 	"sync"
 	"time"
 
@@ -181,10 +182,36 @@ func (s *HasherServer) GetDeviceInfo(ctx context.Context, req *pb.GetDeviceInfoR
 
 	return &pb.GetDeviceInfoResponse{
 		DevicePath:      info.DevicePath,
-		ChipCount:       info.ChipCount,
+		ChipCount:       uint32(info.ChipCount),
 		FirmwareVersion: info.FirmwareVersion,
 		IsOperational:   info.IsOperational,
 		UptimeSeconds:   uint64(uptime.Seconds()),
+	}, nil
+}
+
+// MineWork implements mining on a Bitcoin-style header to find a valid nonce
+func (s *HasherServer) MineWork(ctx context.Context, req *pb.MineWorkRequest) (*pb.MineWorkResponse, error) {
+	log.Printf("MineWork RPC received for header len %d, nonceStart %d, nonceEnd %d", len(req.Header), req.NonceStart, req.NonceEnd) // Log RPC call
+	if len(req.Header) != 80 {
+		return nil, status.Error(codes.InvalidArgument, "mining header must be exactly 80 bytes")
+	}
+
+	start := time.Now()
+
+	// Use a fixed workID for now, and a default timeout
+	// The MineWork method in Device handles the actual interaction
+	nonce, err := s.device.MineWork(req.Header, req.NonceStart, req.NonceEnd, 1, 5*time.Second) // Increased timeout
+	if err != nil {
+		log.Printf("Error from s.device.MineWork: %v", err) // Log internal error
+		return nil, status.Errorf(codes.Internal, "mining failed: %v", err)
+	}
+
+	latency := time.Since(start)
+
+	log.Printf("MineWork RPC successful! Nonce: %d, Latency: %d us", nonce, latency.Microseconds()) // Log success
+	return &pb.MineWorkResponse{
+		Nonce:     nonce,
+		LatencyUs: uint64(latency.Microseconds()),
 	}, nil
 }
 

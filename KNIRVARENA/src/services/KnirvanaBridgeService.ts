@@ -6,6 +6,10 @@
 
 import { personalKNIRVGRAPHService, GraphNode, PersonalGraph } from './PersonalKNIRVGRAPHService';
 import { knirvbaseService } from './KNIRVBASEService';
+import { flatbuffers } from 'flatbuffers';
+import { Player } from '../flatbuffers/knirv/schema/player';
+import { Agent } from '../flatbuffers/knirv/schema/agent';
+import { Vec3 } from '../flatbuffers/knirv/schema/vec3';
 
 // Import node data types for proper typing
 interface ErrorNodeData {
@@ -218,12 +222,86 @@ export class KnirvanaBridgeService {
     console.log('Starting KNIRVANA game session');
     this.gameState.gamePhase = 'playing';
     this.startGameLoop();
+    this.demonstrateFlatBuffers();
   }
 
   pauseGame(): void {
     console.log('Pausing KNIRVANA game session');
     this.gameState.gamePhase = 'paused';
     this.stopGameLoop();
+  }
+
+  private demonstrateFlatBuffers(): void {
+    console.log('--- FlatBuffers Demonstration ---');
+
+    // 1. Create a FlatBufferBuilder
+    const builder = new flatbuffers.Builder(1024);
+
+    // --- Player Demonstration ---
+    const playerId = builder.createString('player-1');
+    const playerHealth = 100;
+    
+    Player.startPlayer(builder);
+    Player.addId(builder, playerId);
+    Player.addPosition(builder, Vec3.createVec3(builder, 1.0, 2.0, 3.0));
+    Player.addHealth(builder, playerHealth);
+    const playerOffset = Player.endPlayer(builder);
+
+    builder.finish(playerOffset);
+
+    const playerBuf = builder.asUint8Array();
+    console.log('Serialized Player FlatBuffer:', playerBuf);
+
+    const playerByteBuffer = new flatbuffers.ByteBuffer(playerBuf);
+    const receivedPlayer = Player.getRootAsPlayer(playerByteBuffer);
+
+    console.log('--- Reading Player FlatBuffer Data ---');
+    console.log('Player ID:', receivedPlayer.id());
+    console.log('Player Health:', receivedPlayer.health());
+    console.log('Player Position:', {
+      x: receivedPlayer.position()?.x(),
+      y: receivedPlayer.position()?.y(),
+      z: receivedPlayer.position()?.z(),
+    });
+    console.log('------------------------------------');
+
+    // --- Agent Demonstration ---
+    builder.clear(); // Clear the builder for a new object
+
+    const agentId = builder.createString('agent-alpha');
+    const agentType = builder.createString('Analyzer');
+    const agentStatus = builder.createString('working');
+    const agentTarget = builder.createString('error-node-xyz');
+
+    Agent.startAgent(builder);
+    Agent.addId(builder, agentId);
+    Agent.addType(builder, agentType);
+    Agent.addPosition(builder, Vec3.createVec3(builder, 10.0, 5.0, 20.0));
+    Agent.addStatus(builder, agentStatus);
+    Agent.addTarget(builder, agentTarget);
+    const agentOffset = Agent.endAgent(builder);
+
+    builder.finish(agentOffset);
+
+    const agentBuf = builder.asUint8Array();
+    console.log('Serialized Agent FlatBuffer:', agentBuf);
+
+    const agentByteBuffer = new flatbuffers.ByteBuffer(agentBuf);
+    const receivedAgent = Agent.getRootAsAgent(agentByteBuffer);
+
+    console.log('--- Reading Agent FlatBuffer Data ---');
+    console.log('Agent ID:', receivedAgent.id());
+    console.log('Agent Type:', receivedAgent.type());
+    console.log('Agent Status:', receivedAgent.status());
+    console.log('Agent Target:', receivedAgent.target());
+    console.log('Agent Position:', {
+      x: receivedAgent.position()?.x(),
+      y: receivedAgent.position()?.y(),
+      z: receivedAgent.position()?.z(),
+    });
+    console.log('-----------------------------------');
+
+    console.log('--- End FlatBuffers Demonstration ---');
   }
 
   private gameLoopCallback = (): void => {

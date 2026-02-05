@@ -8,7 +8,6 @@ package hasherv1
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -33,6 +32,8 @@ type HasherServiceClient interface {
 	GetMetrics(ctx context.Context, in *GetMetricsRequest, opts ...grpc.CallOption) (*GetMetricsResponse, error)
 	// GetDeviceInfo retrieves ASIC device information
 	GetDeviceInfo(ctx context.Context, in *GetDeviceInfoRequest, opts ...grpc.CallOption) (*GetDeviceInfoResponse, error)
+	// MineWork performs mining on a Bitcoin-style header to find a valid nonce
+	MineWork(ctx context.Context, in *MineWorkRequest, opts ...grpc.CallOption) (*MineWorkResponse, error)
 }
 
 type hasherServiceClient struct {
@@ -110,6 +111,15 @@ func (c *hasherServiceClient) GetDeviceInfo(ctx context.Context, in *GetDeviceIn
 	return out, nil
 }
 
+func (c *hasherServiceClient) MineWork(ctx context.Context, in *MineWorkRequest, opts ...grpc.CallOption) (*MineWorkResponse, error) {
+	out := new(MineWorkResponse)
+	err := c.cc.Invoke(ctx, "/hasher.v1.hasherService/MineWork", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HasherServiceServer is the server API for HasherService service.
 // All implementations must embed UnimplementedHasherServiceServer
 // for forward compatibility
@@ -124,6 +134,8 @@ type HasherServiceServer interface {
 	GetMetrics(context.Context, *GetMetricsRequest) (*GetMetricsResponse, error)
 	// GetDeviceInfo retrieves ASIC device information
 	GetDeviceInfo(context.Context, *GetDeviceInfoRequest) (*GetDeviceInfoResponse, error)
+	// MineWork performs mining on a Bitcoin-style header to find a valid nonce
+	MineWork(context.Context, *MineWorkRequest) (*MineWorkResponse, error)
 	mustEmbedUnimplementedHasherServiceServer()
 }
 
@@ -145,6 +157,9 @@ func (UnimplementedHasherServiceServer) GetMetrics(context.Context, *GetMetricsR
 }
 func (UnimplementedHasherServiceServer) GetDeviceInfo(context.Context, *GetDeviceInfoRequest) (*GetDeviceInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDeviceInfo not implemented")
+}
+func (UnimplementedHasherServiceServer) MineWork(context.Context, *MineWorkRequest) (*MineWorkResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MineWork not implemented")
 }
 func (UnimplementedHasherServiceServer) mustEmbedUnimplementedHasherServiceServer() {}
 
@@ -257,6 +272,24 @@ func _HasherService_GetDeviceInfo_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HasherService_MineWork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MineWorkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HasherServiceServer).MineWork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hasher.v1.hasherService/MineWork",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HasherServiceServer).MineWork(ctx, req.(*MineWorkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HasherService_ServiceDesc is the grpc.ServiceDesc for HasherService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -279,6 +312,10 @@ var HasherService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDeviceInfo",
 			Handler:    _HasherService_GetDeviceInfo_Handler,
+		},
+		{
+			MethodName: "MineWork",
+			Handler:    _HasherService_MineWork_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

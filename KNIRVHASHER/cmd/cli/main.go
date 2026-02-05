@@ -144,7 +144,7 @@ func startHasherHost(logChan chan string) (*exec.Cmd, bool, int) {
 
 	// Add device-specific flags if provided
 	if *deviceIP != "" {
-		args = append(args, "--device", *deviceIP, "--discover=false")
+		args = append(args, "--device="+*deviceIP, "--discover=false")
 		logChan <- fmt.Sprintf("Using device %s (discovery disabled)", *deviceIP)
 	} else {
 		if !*discoveryFlag {
@@ -164,7 +164,7 @@ func startHasherHost(logChan chan string) (*exec.Cmd, bool, int) {
 
 	if err := cmd.Start(); err != nil {
 		logChan <- fmt.Sprintf("Error starting hasher-host: %v", err)
-		return nil, false, 8080
+		return nil, false, 8081
 	}
 
 	logChan <- fmt.Sprintf("hasher-host started with PID %d", cmd.Process.Pid)
