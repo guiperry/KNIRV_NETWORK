@@ -225,27 +225,27 @@ func (h *DVEHandlers) GetDVENode(w http.ResponseWriter, r *http.Request) {
 
 	node, err := h.dveManager.GetNode(nodeID)
 	if err != nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "Failed to fetch node: " + err.Error(),
-			Timestamp: getCurrentTimestamp(),
+		if strings.Contains(err.Error(), "node not found") {
+			response := DVENodeResponse{
+				Success:   false,
+				Error:     "Node not found",
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(response)
+			return
+		} else {
+			response := DVENodeResponse{
+				Success:   false,
+				Error:     "Failed to fetch node: " + err.Error(),
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	if node == nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "Node not found",
-			Timestamp: getCurrentTimestamp(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(response)
-		return
 	}
 
 	response := DVENodeResponse{
@@ -372,27 +372,27 @@ func (h *DVEHandlers) GetDVENodeEndpoints(w http.ResponseWriter, r *http.Request
 	// Get node details
 	node, err := h.dveManager.GetNode(nodeID)
 	if err != nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "Failed to fetch node: " + err.Error(),
-			Timestamp: getCurrentTimestamp(),
+		if strings.Contains(err.Error(), "node not found") {
+			response := DVENodeResponse{
+				Success:   false,
+				Error:     "Node not found",
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(response)
+			return
+		} else {
+			response := DVENodeResponse{
+				Success:   false,
+				Error:     "Failed to fetch node: " + err.Error(),
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	if node == nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "Node not found",
-			Timestamp: getCurrentTimestamp(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(response)
-		return
 	}
 
 	// Return endpoint information
@@ -442,32 +442,32 @@ func (h *DVEHandlers) GetDVENodeSSHEndpoint(w http.ResponseWriter, r *http.Reque
 
 	node, err := h.dveManager.GetNode(nodeID)
 	if err != nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "Failed to fetch node: " + err.Error(),
-			Timestamp: getCurrentTimestamp(),
+		if strings.Contains(err.Error(), "node not found") {
+			response := DVENodeResponse{
+				Success:   false,
+				Error:     "Node not found",
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(response)
+			return
+		} else {
+			response := DVENodeResponse{
+				Success:   false,
+				Error:     "Failed to fetch node: " + err.Error(),
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	if node == nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "Node not found",
-			Timestamp: getCurrentTimestamp(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(response)
-		return
 	}
 
 	endpoint := map[string]interface{}{
-		"port": node.SSHPort,
-		"host": node.IPAddress,
+		"port":     node.SSHPort,
+		"host":     node.IPAddress,
 		"protocol": "ssh",
 	}
 
@@ -501,34 +501,34 @@ func (h *DVEHandlers) GetDVENodeValidationEndpoint(w http.ResponseWriter, r *htt
 
 	node, err := h.dveManager.GetNode(nodeID)
 	if err != nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "Failed to fetch node: " + err.Error(),
-			Timestamp: getCurrentTimestamp(),
+		if strings.Contains(err.Error(), "node not found") {
+			response := DVENodeResponse{
+				Success:   false,
+				Error:     "Node not found",
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(response)
+			return
+		} else {
+			response := DVENodeResponse{
+				Success:   false,
+				Error:     "Failed to fetch node: " + err.Error(),
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	if node == nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "Node not found",
-			Timestamp: getCurrentTimestamp(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(response)
-		return
 	}
 
 	endpoint := map[string]interface{}{
-		"port": node.ValidationPort,
-		"host": node.IPAddress,
+		"port":     node.ValidationPort,
+		"host":     node.IPAddress,
 		"protocol": "http",
-		"url": fmt.Sprintf("http://%s:%d", node.IPAddress, node.ValidationPort),
+		"url":      fmt.Sprintf("http://%s:%d", node.IPAddress, node.ValidationPort),
 	}
 
 	response := DVENodeResponse{
@@ -561,34 +561,34 @@ func (h *DVEHandlers) GetDVENodeErrorResolutionEndpoint(w http.ResponseWriter, r
 
 	node, err := h.dveManager.GetNode(nodeID)
 	if err != nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "Failed to fetch node: " + err.Error(),
-			Timestamp: getCurrentTimestamp(),
+		if strings.Contains(err.Error(), "node not found") {
+			response := DVENodeResponse{
+				Success:   false,
+				Error:     "Node not found",
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(response)
+			return
+		} else {
+			response := DVENodeResponse{
+				Success:   false,
+				Error:     "Failed to fetch node: " + err.Error(),
+				Timestamp: getCurrentTimestamp(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	if node == nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "Node not found",
-			Timestamp: getCurrentTimestamp(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(response)
-		return
 	}
 
 	endpoint := map[string]interface{}{
-		"port": node.ErrorResPort,
-		"host": node.IPAddress,
+		"port":     node.ErrorResPort,
+		"host":     node.IPAddress,
 		"protocol": "http",
-		"url": fmt.Sprintf("http://%s:%d", node.IPAddress, node.ErrorResPort),
+		"url":      fmt.Sprintf("http://%s:%d", node.IPAddress, node.ErrorResPort),
 	}
 
 	response := DVENodeResponse{
@@ -611,38 +611,34 @@ func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.A
 	if authMiddleware != nil {
 		optionalAuthRouter := dveRouter.PathPrefix("").Subrouter()
 		optionalAuthRouter.Use(authMiddleware.OptionalAuth)
-		optionalAuthRouter.HandleFunc("", h.GetDVENodes).Methods("GET")
-		optionalAuthRouter.HandleFunc("/{id}", h.GetDVENode).Methods("GET")
-		optionalAuthRouter.HandleFunc("/{id}/endpoints", h.GetDVENodeEndpoints).Methods("GET")
-		optionalAuthRouter.HandleFunc("/{id}/ssh-endpoint", h.GetDVENodeSSHEndpoint).Methods("GET")
-		optionalAuthRouter.HandleFunc("/{id}/validation-endpoint", h.GetDVENodeValidationEndpoint).Methods("GET")
-		optionalAuthRouter.HandleFunc("/{id}/error-resolution-endpoint", h.GetDVENodeErrorResolutionEndpoint).Methods("GET")
+		optionalAuthRouter.HandleFunc("", h.GetDVENodes).Methods("GET", "OPTIONS")
+		optionalAuthRouter.HandleFunc("/{id}", h.GetDVENode).Methods("GET", "OPTIONS")
+		optionalAuthRouter.HandleFunc("/{id}/endpoints", h.GetDVENodeEndpoints).Methods("GET", "OPTIONS")
+		optionalAuthRouter.HandleFunc("/{id}/ssh-endpoint", h.GetDVENodeSSHEndpoint).Methods("GET", "OPTIONS")
+		optionalAuthRouter.HandleFunc("/{id}/validation-endpoint", h.GetDVENodeValidationEndpoint).Methods("GET", "OPTIONS")
+		optionalAuthRouter.HandleFunc("/{id}/error-resolution-endpoint", h.GetDVENodeErrorResolutionEndpoint).Methods("GET", "OPTIONS")
 	} else {
 		// If no auth middleware, allow public access
-		dveRouter.HandleFunc("", h.GetDVENodes).Methods("GET")
-		dveRouter.HandleFunc("/{id}", h.GetDVENode).Methods("GET")
-		dveRouter.HandleFunc("/{id}/endpoints", h.GetDVENodeEndpoints).Methods("GET")
-		dveRouter.HandleFunc("/{id}/ssh-endpoint", h.GetDVENodeSSHEndpoint).Methods("GET")
-		dveRouter.HandleFunc("/{id}/validation-endpoint", h.GetDVENodeValidationEndpoint).Methods("GET")
-		dveRouter.HandleFunc("/{id}/error-resolution-endpoint", h.GetDVENodeErrorResolutionEndpoint).Methods("GET")
+		dveRouter.HandleFunc("", h.GetDVENodes).Methods("GET", "OPTIONS")
+		dveRouter.HandleFunc("/{id}", h.GetDVENode).Methods("GET", "OPTIONS")
+		dveRouter.HandleFunc("/{id}/endpoints", h.GetDVENodeEndpoints).Methods("GET", "OPTIONS")
+		dveRouter.HandleFunc("/{id}/ssh-endpoint", h.GetDVENodeSSHEndpoint).Methods("GET", "OPTIONS")
+		dveRouter.HandleFunc("/{id}/validation-endpoint", h.GetDVENodeValidationEndpoint).Methods("GET", "OPTIONS")
+		dveRouter.HandleFunc("/{id}/error-resolution-endpoint", h.GetDVENodeErrorResolutionEndpoint).Methods("GET", "OPTIONS")
 	}
 
 	// Protected routes for management
 	if authMiddleware != nil {
 		protectedDVERouter := dveRouter.PathPrefix("").Subrouter()
 		protectedDVERouter.Use(authMiddleware.RequireAuth)
-		protectedDVERouter.HandleFunc("", h.PostDVENodes).Methods("POST")
-		protectedDVERouter.HandleFunc("/{id}", h.UpdateDVENode).Methods("PUT")
-		protectedDVERouter.HandleFunc("/{id}", h.DeleteDVENode).Methods("DELETE")
+		protectedDVERouter.HandleFunc("", h.PostDVENodes).Methods("POST", "OPTIONS")
+		protectedDVERouter.HandleFunc("/{id}", h.UpdateDVENode).Methods("PUT", "OPTIONS")
+		protectedDVERouter.HandleFunc("/{id}", h.DeleteDVENode).Methods("DELETE", "OPTIONS")
 	} else {
 		// If no auth middleware, allow all routes (for testnet mode)
-		dveRouter.HandleFunc("", h.PostDVENodes).Methods("POST")
-		dveRouter.HandleFunc("/{id}", h.UpdateDVENode).Methods("PUT")
-		dveRouter.HandleFunc("/{id}", h.DeleteDVENode).Methods("DELETE")
+		dveRouter.HandleFunc("", h.PostDVENodes).Methods("POST", "OPTIONS")
+		dveRouter.HandleFunc("/{id}", h.UpdateDVENode).Methods("PUT", "OPTIONS")
+		dveRouter.HandleFunc("/{id}", h.DeleteDVENode).Methods("DELETE", "OPTIONS")
 	}
 
-	// Handle OPTIONS requests for CORS
-	dveRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
 }

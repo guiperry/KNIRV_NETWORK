@@ -128,7 +128,7 @@ export const CognitiveEnginePanel: React.FC<CognitiveEnginePanelProps> = ({ clas
             </div>
           </CardTitle>
           <CardDescription>
-            Model: {cognitiveEngine?.model_version || 'Loading...'}
+            Fabric Version: {cognitiveEngine?.model_version || 'Loading...'}
           </CardDescription>
         </CardHeader>
         <CardContent>

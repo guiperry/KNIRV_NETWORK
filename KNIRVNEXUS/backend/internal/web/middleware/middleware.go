@@ -88,46 +88,21 @@ func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Allow multiple origins for development
 		origin := c.GetHeader("Origin")
-		allowedOrigins := []string{
-			"http://localhost:3000",
-			"http://localhost:8090", // Frontend port
-			"http://localhost:8080",
-			"http://localhost:8082", // Backend API port
-			"http://127.0.0.1:3000",
-			"http://127.0.0.1:8090",
-			"http://127.0.0.1:8080",
-			"http://127.0.0.1:8082",
-			"https://nexus.knirv.com",
-		}
-		// Check if origin is allowed
-		isAllowed := false
-		for _, allowedOrigin := range allowedOrigins {
-			if origin == allowedOrigin {
-				c.Header("Access-Control-Allow-Origin", origin)
-				isAllowed = true
-				break
-			}
-		}
-		// If no specific origin matched, allow all for development
-		// But when Access-Control-Allow-Credentials is true, we can't use *
-		// So we need to either not set credentials or echo back the origin
-		if !isAllowed && origin != "" {
-			// For development, echo back the request origin if it's not empty
-			// This is more permissive but should work for development
+		
+		// For development, we'll be more permissive with origins
+		// If there's an origin, we'll allow it and set credentials to true
+		if origin != "" {
 			c.Header("Access-Control-Allow-Origin", origin)
-			isAllowed = true
-		} else if !isAllowed {
-			// If origin is empty or we don't want to echo it back, use *
-			// But we can't use * with credentials, so we need to handle this case
+			c.Header("Access-Control-Allow-Credentials", "true")
+		} else {
 			c.Header("Access-Control-Allow-Origin", "*")
-			// When using *, we shouldn't allow credentials
-			// But we'll set it anyway for compatibility
 		}
+		
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token")
-		c.Header("Access-Control-Allow-Credentials", "true")
 		c.Header("Access-Control-Expose-Headers", "X-Request-ID, Content-Length")
 		c.Header("Access-Control-Max-Age", "86400") // 24 hours
+		
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusOK)
 			return
@@ -140,52 +115,34 @@ func CORSMiddleware() gin.HandlerFunc {
 func CORSMiddlewareHTTP() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Allow multiple origins for development
 			origin := r.Header.Get("Origin")
-			allowedOrigins := []string{
-				"http://localhost:3000",
-				"http://localhost:8090", // Frontend port
-				"http://localhost:8080",
-				"http://localhost:8082", // Backend API port
-				"http://127.0.0.1:3000",
-				"http://127.0.0.1:8090",
-				"http://127.0.0.1:8080",
-				"http://127.0.0.1:8082",
-				"https://nexus.knirv.com",
-			}
-			// Check if origin is allowed
-			isAllowed := false
-			for _, allowedOrigin := range allowedOrigins {
-				if origin == allowedOrigin {
-					w.Header().Set("Access-Control-Allow-Origin", origin)
-					isAllowed = true
-					break
-				}
-			}
-			// If no specific origin matched, allow all for development
-			// But when Access-Control-Allow-Credentials is true, we can't use *
-			// So we need to either not set credentials or echo back the origin
-			if !isAllowed && origin != "" {
-				// For development, echo back the request origin if it's not empty
-				// This is more permissive but should work for development
+			
+			if origin != "" {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
-				isAllowed = true
-			} else if !isAllowed {
-				// If origin is empty or we don't want to echo it back, use *
-				// But we can't use * with credentials, so we need to handle this case
+				w.Header().Set("Access-Control-Allow-Credentials", "true")
+			} else {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
-				// When using *, we shouldn't allow credentials
-				// But we'll set it anyway for compatibility
 			}
+			
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token")
-			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Content-Length")
-			w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
+			
+			// Echo back requested headers to be as permissive as possible in development
+			reqHeaders := r.Header.Get("Access-Control-Request-Headers")
+			if reqHeaders != "" {
+				w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
+			} else {
+				w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token, X-CSRF-Token")
+			}
+			
+			w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Content-Length, Content-Range")
+			w.Header().Set("Access-Control-Max-Age", "86400")
+			
+			// Handle preflight requests
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusOK)
 				return
 			}
+			
 			next.ServeHTTP(w, r)
 		})
 	}

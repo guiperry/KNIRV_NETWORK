@@ -55,7 +55,7 @@ export const DemoModeToggle: React.FC = () => {
             <div className="text-sm text-muted-foreground space-y-2">
               <p><strong>Demo Mode Active:</strong></p>
               <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>Mock data for DVE nodes, validation tasks, and models</li>
+                <li>Mock data for DVE nodes, validation tasks, and fabric items</li>
                 <li>Simulated real-time updates and metrics</li>
                 <li>No actual backend connections required</li>
                 <li>Safe for testing and demonstrations</li>

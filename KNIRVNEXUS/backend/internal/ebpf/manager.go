@@ -33,6 +33,9 @@ func NewManager() *Manager {
 
 // Initialize sets up the eBPF Manager with the given configuration
 func (m *Manager) Initialize(ctx context.Context, config *Config) error {
+	if m == nil {
+		return fmt.Errorf("ebpf manager is nil")
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -56,6 +59,9 @@ func (m *Manager) Initialize(ctx context.Context, config *Config) error {
 
 // Shutdown cleans up all eBPF resources
 func (m *Manager) Shutdown() error {
+	if m == nil {
+		return nil
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -84,6 +90,9 @@ func (m *Manager) Shutdown() error {
 
 // GetMetrics returns current eBPF metrics
 func (m *Manager) GetMetrics() *Metrics {
+	if m == nil {
+		return &Metrics{}
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

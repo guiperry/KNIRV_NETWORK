@@ -2,17 +2,17 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import ModelManagement from '../model-management';
-import type { Model, ModelSummary } from '@/types/api';
-import { useModelManagement } from '@/hooks/use-model-management';
+import FabricManagement from '../fabric-management';
+import type { Fabric, FabricSummary } from '@/types/api';
+import { useFabricManagement } from '@/hooks/use-fabric-management';
 
 // Mock the hooks
-const mockUseModelManagement = {
-  models: [],
-  selectedModel: null,
-  modelMetrics: {},
-  modelLogs: {},
-  modelEvents: [],
+const mockUseFabricManagement = {
+  fabrics: [],
+  selectedFabric: null,
+  fabricMetrics: {},
+  fabricLogs: {},
+  fabricEvents: [],
   templates: [],
   summary: {
     total_models: 0,
@@ -21,34 +21,34 @@ const mockUseModelManagement = {
     stopped_models: 0,
     error_models: 0,
     uploaded_models: 0,
-  } as ModelSummary,
+  } as FabricSummary,
   isLoading: false,
   error: null,
   isConnected: false,
-  fetchModels: jest.fn(),
-  fetchModel: jest.fn(),
-  createModel: jest.fn(),
-  updateModel: jest.fn(),
-  deleteModel: jest.fn(),
-  executeModelAction: jest.fn(),
-  deployModel: jest.fn(),
-  startModel: jest.fn(),
-  stopModel: jest.fn(),
-  restartModel: jest.fn(),
-  fetchModelMetrics: jest.fn(),
-  fetchModelLogs: jest.fn(),
-  fetchModelEvents: jest.fn(),
+  fetchFabrics: jest.fn(),
+  fetchFabric: jest.fn(),
+  createFabric: jest.fn(),
+  updateFabric: jest.fn(),
+  deleteFabric: jest.fn(),
+  executeFabricAction: jest.fn(),
+  deployFabric: jest.fn(),
+  startFabric: jest.fn(),
+  stopFabric: jest.fn(),
+  restartFabric: jest.fn(),
+  fetchFabricMetrics: jest.fn(),
+  fetchFabricLogs: jest.fn(),
+  fetchFabricEvents: jest.fn(),
   fetchTemplates: jest.fn(),
   createTemplate: jest.fn(),
   fetchSummary: jest.fn(),
   refreshAll: jest.fn(),
   connectWebSocket: jest.fn(),
   disconnectWebSocket: jest.fn(),
-  setSelectedModel: jest.fn(),
+  setSelectedFabric: jest.fn(),
 };
 
-jest.mock('@/hooks/use-model-management', () => ({
-  useModelManagement: jest.fn(() => mockUseModelManagement),
+jest.mock('@/hooks/use-fabric-management', () => ({
+  useFabricManagement: jest.fn(() => mockUseFabricManagement),
 }));
 
 const mockToast = jest.fn();
@@ -129,6 +129,7 @@ jest.mock('lucide-react', () => ({
   Cpu: (props: any) => <div data-testid="Cpu-icon" {...props} />,
   HardDrive: (props: any) => <div data-testid="HardDrive-icon" {...props} />,
   Network: (props: any) => <div data-testid="Network-icon" {...props} />,
+  Layers: (props: any) => <div data-testid="Layers-icon" {...props} />,
 }));
 
 // Mock window.confirm
@@ -137,16 +138,16 @@ Object.defineProperty(window, 'confirm', {
   value: jest.fn(),
 });
 
-const mockModels: Model[] = [
+const mockFabrics: Fabric[] = [
   {
-    id: 'model-1',
-    name: 'Test Model 1',
-    description: 'A test model',
+    id: 'fabric-1',
+    name: 'Test Fabric 1',
+    description: 'A test fabric',
     version: '1.0.0',
     author: 'test-author',
     type: 'WASM',
     status: 'running',
-    file_path: '/models/model-1.wasm',
+    file_path: '/fabrics/fabric-1.wasm',
     file_size: 1024000,
     file_hash: 'abc123',
     capabilities: ['compute', 'storage'],
@@ -159,14 +160,14 @@ const mockModels: Model[] = [
     uploaded_by: 'test-user'
   },
   {
-    id: 'model-2',
-    name: 'Test Model 2',
-    description: 'Another test model',
+    id: 'fabric-2',
+    name: 'Test Fabric 2',
+    description: 'Another test fabric',
     version: '2.0.0',
     author: 'test-author-2',
     type: 'LoRA',
     status: 'stopped',
-    file_path: '/models/model-2.wasm',
+    file_path: '/fabrics/fabric-2.wasm',
     file_size: 2048000,
     file_hash: 'def456',
     capabilities: ['ai', 'nlp'],
@@ -180,7 +181,7 @@ const mockModels: Model[] = [
   }
 ];
 
-describe('ModelManagement Component', () => {
+describe('FabricManagement Component', () => {
   const defaultProps = {
     isOpen: true,
     onClose: jest.fn(),
@@ -192,119 +193,119 @@ describe('ModelManagement Component', () => {
   });
 
   it('renders without crashing', () => {
-    render(<ModelManagement {...defaultProps} />);
-    expect(screen.getByText('Model Management')).toBeInTheDocument();
+    render(<FabricManagement {...defaultProps} />);
+    expect(screen.getByText('Fabric Management')).toBeInTheDocument();
   });
 
   it('displays loading state', () => {
     const mockHook = {
-      ...mockUseModelManagement,
+      ...mockUseFabricManagement,
       isLoading: true,
     };
 
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
 
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
     // Component shows loading via refresh button animation, not text
     expect(screen.getByTestId('RefreshCw-icon')).toBeInTheDocument();
   });
 
   it('displays error state', () => {
     const mockHook = {
-      ...mockUseModelManagement,
-      error: 'Failed to load models',
+      ...mockUseFabricManagement,
+      error: 'Failed to load fabrics',
     };
 
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
 
-    render(<ModelManagement {...defaultProps} />);
-    expect(screen.getByText('Failed to load models')).toBeInTheDocument();
+    render(<FabricManagement {...defaultProps} />);
+    expect(screen.getByText('Failed to load fabrics')).toBeInTheDocument();
   });
 
-  it('displays models list', () => {
+  it('displays fabrics list', () => {
     const mockHook = {
-      ...mockUseModelManagement,
-      models: mockModels,
+      ...mockUseFabricManagement,
+      fabrics: mockFabrics,
     };
     
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
     
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
     
-    expect(screen.getByText('Test Model 1')).toBeInTheDocument();
-    expect(screen.getByText('Test Model 2')).toBeInTheDocument();
+    expect(screen.getByText('Test Fabric 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Fabric 2')).toBeInTheDocument();
   });
 
-  it('filters models by status', () => {
+  it('filters fabrics by status', () => {
     const mockHook = {
-      ...mockUseModelManagement,
-      models: mockModels,
+      ...mockUseFabricManagement,
+      fabrics: mockFabrics,
     };
     
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
     
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
     
-    // Both models should be visible initially
-    expect(screen.getByText('Test Model 1')).toBeInTheDocument();
-    expect(screen.getByText('Test Model 2')).toBeInTheDocument();
+    // Both fabrics should be visible initially
+    expect(screen.getByText('Test Fabric 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Fabric 2')).toBeInTheDocument();
   });
 
-  it('handles model deletion', async () => {
-    const mockDeleteModel = jest.fn().mockResolvedValue(true);
+  it('handles fabric deletion', async () => {
+    const mockDeleteFabric = jest.fn().mockResolvedValue(true);
     const mockHook = {
-      ...mockUseModelManagement,
-      models: mockModels,
-      deleteModel: mockDeleteModel,
+      ...mockUseFabricManagement,
+      fabrics: mockFabrics,
+      deleteFabric: mockDeleteFabric,
     };
     
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
     
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
     
     const deleteButtons = screen.getAllByTestId('Trash2-icon');
     fireEvent.click(deleteButtons[0]);
     
     await waitFor(() => {
-      expect(mockDeleteModel).toHaveBeenCalledWith('model-1');
+      expect(mockDeleteFabric).toHaveBeenCalledWith('fabric-1');
       expect(mockToast).toHaveBeenCalledWith({
-        title: "Model Deleted",
-        description: 'Successfully deleted model "Test Model 1"',
+        title: "Fabric Deleted",
+        description: 'Successfully deleted fabric item "Test Fabric 1"',
       });
     });
   });
 
-  it('handles model deletion cancellation', async () => {
+  it('handles fabric deletion cancellation', async () => {
     (window.confirm as jest.Mock).mockReturnValue(false);
     
-    const mockDeleteModel = jest.fn();
+    const mockDeleteFabric = jest.fn();
     const mockHook = {
-      ...mockUseModelManagement,
-      models: mockModels,
-      deleteModel: mockDeleteModel,
+      ...mockUseFabricManagement,
+      fabrics: mockFabrics,
+      deleteFabric: mockDeleteFabric,
     };
     
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
     
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
     
     const deleteButtons = screen.getAllByTestId('Trash2-icon');
     fireEvent.click(deleteButtons[0]);
     
-    expect(mockDeleteModel).not.toHaveBeenCalled();
+    expect(mockDeleteFabric).not.toHaveBeenCalled();
   });
 
   it('handles refresh action', () => {
     const mockRefreshAll = jest.fn();
     const mockHook = {
-      ...mockUseModelManagement,
-      models: mockModels,
+      ...mockUseFabricManagement,
+      fabrics: mockFabrics,
       refreshAll: mockRefreshAll,
     };
     
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
     
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
     
     const refreshButton = screen.getByTestId('RefreshCw-icon');
     fireEvent.click(refreshButton);
@@ -312,8 +313,8 @@ describe('ModelManagement Component', () => {
     expect(mockRefreshAll).toHaveBeenCalled();
   });
 
-  it('displays model summary statistics', () => {
-    const mockSummary: ModelSummary = {
+  it('displays fabric summary statistics', () => {
+    const mockSummary: FabricSummary = {
       total_models: 10,
       running_models: 3,
       deployed_models: 2,
@@ -323,13 +324,13 @@ describe('ModelManagement Component', () => {
     };
 
     const mockHook = {
-      ...mockUseModelManagement,
+      ...mockUseFabricManagement,
       summary: mockSummary,
     };
 
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
 
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
 
     expect(screen.getAllByText('10')).toHaveLength(2); // Total - in summary and settings
     expect(screen.getByText('3')).toBeInTheDocument();  // Running - in summary
@@ -337,22 +338,22 @@ describe('ModelManagement Component', () => {
     expect(screen.getByText('4')).toBeInTheDocument();  // Stopped
   });
 
-  it('handles model actions', async () => {
+  it('handles fabric actions', async () => {
     const mockHook = {
-      ...mockUseModelManagement,
-      models: mockModels,
+      ...mockUseFabricManagement,
+      fabrics: mockFabrics,
     };
     
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
     
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
     
     const playButton = screen.getAllByTestId('Play-icon')[0];
     fireEvent.click(playButton);
     
     await waitFor(() => {
       expect(mockToast).toHaveBeenCalledWith({
-        title: "Model Action",
+        title: "Fabric Action",
         description: expect.stringContaining("Feature coming soon"),
         variant: "default",
       });
@@ -361,13 +362,13 @@ describe('ModelManagement Component', () => {
 
   it('displays correct status badges', () => {
     const mockHook = {
-      ...mockUseModelManagement,
-      models: mockModels,
+      ...mockUseFabricManagement,
+      fabrics: mockFabrics,
     };
 
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
 
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
 
     expect(screen.getAllByText('Running')).toHaveLength(3); // Label, select option, badge
     expect(screen.getAllByText('Stopped')).toHaveLength(3); // Label, select option, badge
@@ -375,13 +376,13 @@ describe('ModelManagement Component', () => {
 
   it('displays correct type badges', () => {
     const mockHook = {
-      ...mockUseModelManagement,
-      models: mockModels,
+      ...mockUseFabricManagement,
+      fabrics: mockFabrics,
     };
 
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
 
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
 
     expect(screen.getAllByText('WASM')).toHaveLength(2); // One in badge, one in select
     expect(screen.getAllByText('LoRA')).toHaveLength(2); // One in badge, one in select
@@ -389,13 +390,13 @@ describe('ModelManagement Component', () => {
 
   it('formats file sizes correctly', () => {
     const mockHook = {
-      ...mockUseModelManagement,
-      models: mockModels,
+      ...mockUseFabricManagement,
+      fabrics: mockFabrics,
     };
 
-    jest.mocked(useModelManagement).mockReturnValue(mockHook);
+    jest.mocked(useFabricManagement).mockReturnValue(mockHook);
 
-    render(<ModelManagement {...defaultProps} />);
+    render(<FabricManagement {...defaultProps} />);
 
     expect(screen.getByText('1000 KB')).toBeInTheDocument(); // 1024000 bytes
     expect(screen.getByText('1.95 MB')).toBeInTheDocument(); // 2048000 bytes
@@ -404,10 +405,8 @@ describe('ModelManagement Component', () => {
   it('calls onClose when close button is clicked', () => {
     const onCloseMock = jest.fn();
     
-    render(<ModelManagement {...defaultProps} onClose={onCloseMock} />);
+    render(<FabricManagement {...defaultProps} onClose={onCloseMock} />);
     
-    // Assuming there's a close button - this would need to be adjusted based on actual implementation
-    // For now, we'll test that the component renders with the onClose prop
     expect(onCloseMock).toBeDefined();
   });
 });

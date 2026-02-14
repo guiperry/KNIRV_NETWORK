@@ -104,7 +104,7 @@ export const useCognitiveEngine = () => {
   const resetMetrics = useCallback(() => performAction({ action: 'reset_metrics' }), [performAction]);
   const clearConversationHistory = useCallback(() => performAction({ action: 'clear_conversation_history' }), [performAction]);
   
-  const updateModel = useCallback((modelVersion: string) =>
+  const updateFabricVersion = useCallback((modelVersion: string) =>
     performAction({ action: 'update_model', parameters: { model_version: modelVersion } }),
     [performAction]
   );
@@ -200,7 +200,7 @@ export const useCognitiveEngine = () => {
     stopTraining,
     resetMetrics,
     clearConversationHistory,
-    updateModel,
+    updateFabricVersion,
     startPolling,
     stopPolling,
     connectWebSocket,

@@ -1474,9 +1474,9 @@ func (h *DVERentalHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middle
 	if authMiddleware != nil {
 		protectedRouter := r.PathPrefix("/api/sessions").Subrouter()
 		protectedRouter.Use(authMiddleware.RequireAuth)
-		protectedRouter.HandleFunc("/ssh/{sessionId}/private-key", h.DownloadSSHPrivateKey).Methods("GET")
+		protectedRouter.HandleFunc("/ssh/{sessionId}/private-key", h.DownloadSSHPrivateKey).Methods("GET", "OPTIONS")
 	} else {
-		r.HandleFunc("/api/sessions/ssh/{sessionId}/private-key", h.DownloadSSHPrivateKey).Methods("GET")
+		r.HandleFunc("/api/sessions/ssh/{sessionId}/private-key", h.DownloadSSHPrivateKey).Methods("GET", "OPTIONS")
 	}
 
 	// Create a subrouter for DVE rental endpoints
@@ -1521,7 +1521,6 @@ func (h *DVERentalHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middle
 		rentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET", "OPTIONS")
 		rentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.TerminateErrorResolutionSession).Methods("DELETE", "OPTIONS")
 	}
-
 	// CORS headers are handled by the CORSMiddleware
 	// No need for explicit OPTIONS handler as middleware handles it
 }

@@ -50,7 +50,7 @@ export const useModelManagement = () => {
     setError(null);
     
     try {
-      let url = `${API_BASE_URL}/api/model-management/objects`;
+      let url = `${API_BASE_URL}/api/fabric-management/objects`;
       
       if (filter) {
         const params = new URLSearchParams();
@@ -88,7 +88,7 @@ export const useModelManagement = () => {
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/model-management/objects/${modelId}`;
+      const url = `${API_BASE_URL}/api/fabric-management/objects/${modelId}`;
       const response: APIResponse<Model> = await apiRequest(url, { method: 'GET' });
       
       if (response.success && response.data) {
@@ -113,7 +113,7 @@ export const useModelManagement = () => {
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/model-management/objects`;
+      const url = `${API_BASE_URL}/api/fabric-management/objects`;
       const response: APIResponse<Model> = await apiRequest(url, {
         method: 'POST',
         body: JSON.stringify(model),
@@ -141,7 +141,7 @@ export const useModelManagement = () => {
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/model-management/objects/${modelId}`;
+      const url = `${API_BASE_URL}/api/fabric-management/objects/${modelId}`;
       const response: APIResponse = await apiRequest(url, {
         method: 'PUT',
         body: JSON.stringify(updates),
@@ -179,7 +179,7 @@ export const useModelManagement = () => {
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/model-management/objects/${modelId}`;
+      const url = `${API_BASE_URL}/api/fabric-management/objects/${modelId}`;
       const response: APIResponse = await apiRequest(url, { method: 'DELETE' });
       
       if (response.success) {
@@ -209,7 +209,7 @@ export const useModelManagement = () => {
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/model-management/objects/${modelId}/actions`;
+      const url = `${API_BASE_URL}/api/fabric-management/objects/${modelId}/actions`;
       const response: APIResponse = await apiRequest(url, {
         method: 'POST',
         body: JSON.stringify(action),
@@ -249,7 +249,7 @@ export const useModelManagement = () => {
   // Fetch model metrics
   const fetchModelMetrics = useCallback(async (modelId: string, limit: number = 100) => {
     try {
-      const url = `${API_BASE_URL}/api/model-management/objects/${modelId}/metrics?limit=${limit}`;
+      const url = `${API_BASE_URL}/api/fabric-management/objects/${modelId}/metrics?limit=${limit}`;
       const response: APIResponse<ModelMetrics[]> = await apiRequest(url, { method: 'GET' });
 
       if (response.success) {
@@ -266,7 +266,7 @@ export const useModelManagement = () => {
   // Fetch model logs
   const fetchModelLogs = useCallback(async (modelId: string, limit: number = 100) => {
     try {
-      const url = `${API_BASE_URL}/api/model-management/objects/${modelId}/logs?limit=${limit}`;
+      const url = `${API_BASE_URL}/api/fabric-management/objects/${modelId}/logs?limit=${limit}`;
       const response: APIResponse<ModelLog[]> = await apiRequest(url, { method: 'GET' });
 
       if (response.success) {
@@ -284,8 +284,8 @@ export const useModelManagement = () => {
   const fetchModelEvents = useCallback(async (modelId?: string, limit: number = 100) => {
     try {
       const url = modelId 
-        ? `${API_BASE_URL}/api/model-management/objects/${modelId}/events?limit=${limit}`
-        : `${API_BASE_URL}/api/model-management/events?limit=${limit}`;
+        ? `${API_BASE_URL}/api/fabric-management/objects/${modelId}/events?limit=${limit}`
+        : `${API_BASE_URL}/api/fabric-management/events?limit=${limit}`;
       const response: APIResponse<ModelEvent[]> = await apiRequest(url, { method: 'GET' });
 
       if (response.success) {
@@ -302,7 +302,7 @@ export const useModelManagement = () => {
   // Fetch model templates
   const fetchTemplates = useCallback(async () => {
     try {
-      const url = `${API_BASE_URL}/api/model-management/templates`;
+      const url = `${API_BASE_URL}/api/fabric-management/templates`;
       const response: APIResponse<ModelTemplate[]> = await apiRequest(url, { method: 'GET' });
 
       if (response.success) {
@@ -322,7 +322,7 @@ export const useModelManagement = () => {
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/model-management/templates`;
+      const url = `${API_BASE_URL}/api/fabric-management/templates`;
       const response: APIResponse<ModelTemplate> = await apiRequest(url, {
         method: 'POST',
         body: JSON.stringify(template),
@@ -347,7 +347,7 @@ export const useModelManagement = () => {
   // Fetch model summary
   const fetchSummary = useCallback(async () => {
     try {
-      const url = `${API_BASE_URL}/api/model-management/summary`;
+      const url = `${API_BASE_URL}/api/fabric-management/summary`;
       const response: APIResponse<ModelSummary> = await apiRequest(url, { method: 'GET' });
       
       if (response.success && response.data) {

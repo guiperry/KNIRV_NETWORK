@@ -6,12 +6,9 @@ import type { APIResponse, APIError } from '@/types/api';
 
 // API configuration - detect if running in production or development
 export const getApiBaseUrl = (): string => {
-  // In production (static export), use relative URLs that will be proxied
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return '';
-  }
-  // In development, use the backend API port (8082 as configured in backend config)
-  return 'http://localhost:8082';
+  // Use relative URLs to leverage the built-in proxy in the wrapper (port 8090)
+  // or the relative path in production. This avoids CORS issues.
+  return '';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -116,7 +113,13 @@ export class APIRequestError extends Error {
 
 // WebSocket utilities
 export const getWebSocketUrl = (): string => {
-  return `${API_BASE_URL.replace('http', 'ws')}/ws`;
+  // In development on localhost, point directly to the backend port 8082
+  // since the wrapper proxy doesn't handle WebSockets yet.
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'ws://localhost:8082/ws';
+  }
+  // In production or other environments, use relative URL
+  return '/ws';
 };
 
 export interface WebSocketMessage {

@@ -1,4 +1,4 @@
-package objectserver
+package fabricserver
 
 import (
 	"encoding/json"
@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// HandleStartModel handles the /runtime/start endpoint
-func (as *ModelServer) HandleStartModel(w http.ResponseWriter, r *http.Request) {
+// HandleStartFabric handles the /runtime/start endpoint
+func (as *FabricServer) HandleStartFabric(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -37,20 +37,20 @@ func (as *ModelServer) HandleStartModel(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	model, err := as.runtimeManager.StartModel(request.Name, request.Binary, request.Config)
+	fabric, err := as.runtimeManager.StartFabric(request.Name, request.Binary, request.Config)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error starting model: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error starting fabric: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(model)
+	json.NewEncoder(w).Encode(fabric)
 
-	log.Printf("Started model %s (%s) from %s", request.Name, request.Binary, r.RemoteAddr)
+	log.Printf("Started fabric %s (%s) from %s", request.Name, request.Binary, r.RemoteAddr)
 }
 
-// HandleStopModel handles the /runtime/stop/{id} endpoint
-func (as *ModelServer) HandleStopModel(w http.ResponseWriter, r *http.Request) {
+// HandleStopFabric handles the /runtime/stop/{id} endpoint
+func (as *FabricServer) HandleStopFabric(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -61,85 +61,85 @@ func (as *ModelServer) HandleStopModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	modelID := strings.TrimPrefix(r.URL.Path, "/runtime/stop/")
-	if modelID == "" {
-		http.Error(w, "Model ID is required", http.StatusBadRequest)
+	fabricID := strings.TrimPrefix(r.URL.Path, "/runtime/stop/")
+	if fabricID == "" {
+		http.Error(w, "Fabric ID is required", http.StatusBadRequest)
 		return
 	}
 
-	if err := as.runtimeManager.StopModel(modelID); err != nil {
-		http.Error(w, fmt.Sprintf("Error stopping model: %v", err), http.StatusInternalServerError)
+	if err := as.runtimeManager.StopFabric(fabricID); err != nil {
+		http.Error(w, fmt.Sprintf("Error stopping fabric unit: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"success": true, "message": "Model stopped successfully"}`)
+	fmt.Fprintf(w, `{"success": true, "message": "Fabric unit stopped successfully"}`)
 
-	log.Printf("Stopped model %s from %s", modelID, r.RemoteAddr)
+	log.Printf("Stopped fabric %s from %s", fabricID, r.RemoteAddr)
 }
 
-// HandleListRunningModels handles the /runtime/objects endpoint
-func (as *ModelServer) HandleListRunningModels(w http.ResponseWriter, r *http.Request) {
+// HandleListRunningFabrics handles the /runtime/objects endpoint
+func (as *FabricServer) HandleListRunningFabrics(w http.ResponseWriter, r *http.Request) {
 	if as.runtimeManager == nil {
 		http.Error(w, "Runtime management not enabled", http.StatusServiceUnavailable)
 		return
 	}
 
-	objects := as.runtimeManager.GetModelList()
+	fabricUnits := as.runtimeManager.GetFabricList()
 
 	response := struct {
-		Models []interface{} `json:"objects"`
-		Count  int           `json:"count"`
+		Fabrics []interface{} `json:"objects"`
+		Count   int           `json:"count"`
 	}{
-		Models: make([]interface{}, len(objects)),
-		Count:  len(objects),
+		Fabrics: make([]interface{}, len(fabricUnits)),
+		Count:   len(fabricUnits),
 	}
 
-	for i, model := range objects {
-		response.Models[i] = model
+	for i, fabric := range fabricUnits {
+		response.Fabrics[i] = fabric
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
-// HandleGetModel handles the /runtime/model/{id} endpoint
-func (as *ModelServer) HandleGetModel(w http.ResponseWriter, r *http.Request) {
+// HandleGetFabric handles the /runtime/fabric/{id} endpoint
+func (as *FabricServer) HandleGetFabric(w http.ResponseWriter, r *http.Request) {
 	if as.runtimeManager == nil {
 		http.Error(w, "Runtime management not enabled", http.StatusServiceUnavailable)
 		return
 	}
 
-	modelID := strings.TrimPrefix(r.URL.Path, "/runtime/model/")
-	if modelID == "" {
-		http.Error(w, "Model ID is required", http.StatusBadRequest)
+	fabricID := strings.TrimPrefix(r.URL.Path, "/runtime/fabric/")
+	if fabricID == "" {
+		http.Error(w, "Fabric ID is required", http.StatusBadRequest)
 		return
 	}
 
-	model, err := as.runtimeManager.GetModel(modelID)
+	fabric, err := as.runtimeManager.GetFabric(fabricID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Model not found: %v", err), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Fabric unit not found: %v", err), http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(model)
+	json.NewEncoder(w).Encode(fabric)
 }
 
 // HandleRuntimeStatus handles the /runtime/status endpoint
-func (as *ModelServer) HandleRuntimeStatus(w http.ResponseWriter, r *http.Request) {
+func (as *FabricServer) HandleRuntimeStatus(w http.ResponseWriter, r *http.Request) {
 	if as.runtimeManager == nil {
 		http.Error(w, "Runtime management not enabled", http.StatusServiceUnavailable)
 		return
 	}
 
-	objects := as.runtimeManager.GetModelList()
+	fabricUnits := as.runtimeManager.GetFabricList()
 
 	status := map[string]interface{}{
-		"running":     true,
-		"model_count": len(objects),
-		"max_objects": as.maxModels,
-		"uptime":      time.Since(as.startTime).String(),
+		"running":      true,
+		"fabric_count": len(fabricUnits),
+		"max_objects":  as.maxFabrics,
+		"uptime":       time.Since(as.startTime).String(),
 	}
 
 	// Add resource pool status if available

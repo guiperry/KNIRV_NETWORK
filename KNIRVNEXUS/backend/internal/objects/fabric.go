@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// Model represents a WASM-based AI model
-type Model struct {
+// Fabric represents a WASM-based Agentic Memory Fabric unit
+type Fabric struct {
 	ID              string                 `json:"id" buntdb:"id"`
 	Name            string                 `json:"name" buntdb:"name"`
 	Description     string                 `json:"description" buntdb:"description"`
@@ -20,17 +20,17 @@ type Model struct {
 	Hash            string                 `json:"hash" buntdb:"hash"`
 	Status          string                 `json:"status" buntdb:"status"` // uploaded, deployed, running, stopped, error
 	Configuration   map[string]interface{} `json:"configuration" buntdb:"configuration"`
-	ResourceLimits  *ModelResourceLimits   `json:"resource_limits" buntdb:"resource_limits"`
+	ResourceLimits  *FabricResourceLimits  `json:"resource_limits" buntdb:"resource_limits"`
 	Tags            []string               `json:"tags" buntdb:"tags"`
 	DeployedAt      *time.Time             `json:"deployed_at,omitempty" buntdb:"deployed_at"`
 	LastActivity    *time.Time             `json:"last_activity,omitempty" buntdb:"last_activity"`
 
 	// Runtime information
-	RuntimeInstance *ModelRuntimeInstance `json:"runtime_instance,omitempty" buntdb:"runtime_instance"`
+	RuntimeInstance *FabricRuntimeInstance `json:"runtime_instance,omitempty" buntdb:"runtime_instance"`
 }
 
-// ModelResourceLimits defines resource constraints for model execution
-type ModelResourceLimits struct {
+// FabricResourceLimits defines resource constraints for fabric execution
+type FabricResourceLimits struct {
 	MaxMemoryMB      int     `json:"max_memory_mb" buntdb:"max_memory_mb"`
 	MaxCPUPercent    float64 `json:"max_cpu_percent" buntdb:"max_cpu_percent"`
 	MaxExecutionTime int     `json:"max_execution_time" buntdb:"max_execution_time"` // seconds
@@ -40,8 +40,8 @@ type ModelResourceLimits struct {
 	FileSystemAccess bool    `json:"filesystem_access" buntdb:"filesystem_access"`
 }
 
-// ModelRuntimeInstance represents a running model instance
-type ModelRuntimeInstance struct {
+// FabricRuntimeInstance represents a running fabric instance
+type FabricRuntimeInstance struct {
 	InstanceID      string                    `json:"instance_id" buntdb:"instance_id"`
 	StartedAt       time.Time                 `json:"started_at" buntdb:"started_at"`
 	Status          string                    `json:"status" buntdb:"status"` // starting, running, stopping, stopped, failed
@@ -49,14 +49,14 @@ type ModelRuntimeInstance struct {
 	Environment     map[string]string         `json:"environment" buntdb:"environment"`
 	HealthStatus    string                    `json:"health_status" buntdb:"health_status"`
 	RestartCount    int                       `json:"restart_count" buntdb:"restart_count"`
-	ResourceUsage   *ModelResourceUsage       `json:"resource_usage" buntdb:"resource_usage"`
-	ResourceLimits  *ModelResourceLimits      `json:"resource_limits" buntdb:"resource_limits"`
+	ResourceUsage   *FabricResourceUsage      `json:"resource_usage" buntdb:"resource_usage"`
+	ResourceLimits  *FabricResourceLimits     `json:"resource_limits" buntdb:"resource_limits"`
 	LastHealthCheck *time.Time                `json:"last_health_check,omitempty" buntdb:"last_health_check"`
 	HealthEndpoint  string                    `json:"health_endpoint" buntdb:"health_endpoint"`
 }
 
-// ModelResourceUsage tracks actual resource consumption
-type ModelResourceUsage struct {
+// FabricResourceUsage tracks actual resource consumption
+type FabricResourceUsage struct {
 	MemoryUsageMB   float64 `json:"memory_usage_mb" buntdb:"memory_usage_mb"`
 	CPUUsagePercent float64 `json:"cpu_usage_percent" buntdb:"cpu_usage_percent"`
 	DiskUsageMB     float64 `json:"disk_usage_mb" buntdb:"disk_usage_mb"`
@@ -66,32 +66,32 @@ type ModelResourceUsage struct {
 	LastUpdated     time.Time `json:"last_updated" buntdb:"last_updated"`
 }
 
-// ModelMetrics represents performance and health metrics
-type ModelMetrics struct {
-	ModelID           string              `json:"model_id" buntdb:"model_id"`
-	InstanceID        string              `json:"instance_id" buntdb:"instance_id"`
-	Timestamp         time.Time           `json:"timestamp" buntdb:"timestamp"`
-	RequestsPerSecond float64             `json:"requests_per_second" buntdb:"requests_per_second"`
-	AverageLatency    float64             `json:"average_latency" buntdb:"average_latency"` // milliseconds
-	ErrorRate         float64             `json:"error_rate" buntdb:"error_rate"`
-	Throughput        float64             `json:"throughput" buntdb:"throughput"` // requests/second
-	ResourceUsage     *ModelResourceUsage `json:"resource_usage" buntdb:"resource_usage"`
+// FabricMetrics represents performance and health metrics
+type FabricMetrics struct {
+	FabricID          string               `json:"fabric_id" buntdb:"fabric_id"`
+	InstanceID        string               `json:"instance_id" buntdb:"instance_id"`
+	Timestamp         time.Time            `json:"timestamp" buntdb:"timestamp"`
+	RequestsPerSecond float64              `json:"requests_per_second" buntdb:"requests_per_second"`
+	AverageLatency    float64              `json:"average_latency" buntdb:"average_latency"` // milliseconds
+	ErrorRate         float64              `json:"error_rate" buntdb:"error_rate"`
+	Throughput        float64              `json:"throughput" buntdb:"throughput"` // requests/second
+	ResourceUsage     *FabricResourceUsage `json:"resource_usage" buntdb:"resource_usage"`
 }
 
-// ModelLog represents a log entry from model execution
-type ModelLog struct {
+// FabricLog represents a log entry from fabric execution
+type FabricLog struct {
 	ID        string    `json:"id" buntdb:"id"`
-	ModelID   string    `json:"model_id" buntdb:"model_id"`
+	FabricID  string    `json:"fabric_id" buntdb:"fabric_id"`
 	InstanceID string   `json:"instance_id" buntdb:"instance_id"`
 	Level     string    `json:"level" buntdb:"level"` // DEBUG, INFO, WARN, ERROR
 	Message   string    `json:"message" buntdb:"message"`
 	Timestamp time.Time `json:"timestamp" buntdb:"timestamp"`
 }
 
-// ModelEvent represents a lifecycle event for a model
-type ModelEvent struct {
+// FabricEvent represents a lifecycle event for a fabric item
+type FabricEvent struct {
 	ID          string    `json:"id" buntdb:"id"`
-	ModelID     string    `json:"model_id" buntdb:"model_id"`
+	FabricID    string    `json:"fabric_id" buntdb:"fabric_id"`
 	InstanceID  string    `json:"instance_id,omitempty" buntdb:"instance_id"`
 	Type        string    `json:"type" buntdb:"type"` // uploaded, deployed, started, stopped, failed, scaled
 	Description string    `json:"description" buntdb:"description"`
@@ -99,8 +99,8 @@ type ModelEvent struct {
 	UserID      string    `json:"user_id,omitempty" buntdb:"user_id"`
 }
 
-// ModelFilter provides filtering options for model queries
-type ModelFilter struct {
+// FabricFilter provides filtering options for fabric queries
+type FabricFilter struct {
 	Status        []string  `json:"status,omitempty"`
 	Type          []string  `json:"type,omitempty"`
 	Author        string    `json:"author,omitempty"`
@@ -110,43 +110,43 @@ type ModelFilter struct {
 	Offset        int       `json:"offset,omitempty"`
 }
 
-// ModelAction represents an action to perform on a model
-type ModelAction struct {
+// FabricAction represents an action to perform on a fabric item
+type FabricAction struct {
 	Action     string                 `json:"action"` // deploy, start, stop, restart, scale
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
 	UserID     string                 `json:"user_id,omitempty"`
 }
 
-// ModelSummary provides a summary of model statistics
-type ModelSummary struct {
-	TotalModels     int `json:"total_models"`
-	RunningModels   int `json:"running_models"`
-	StoppedModels   int `json:"stopped_models"`
-	ErrorModels     int `json:"error_models"`
-	DeployedModels  int `json:"deployed_models"`
-	UploadedModels  int `json:"uploaded_models"`
+// FabricSummary provides a summary of fabric statistics
+type FabricSummary struct {
+	TotalFabrics     int `json:"total_fabrics"`
+	RunningFabrics   int `json:"running_fabrics"`
+	StoppedFabrics   int `json:"stopped_fabrics"`
+	ErrorFabrics     int `json:"error_fabrics"`
+	DeployedFabrics  int `json:"deployed_fabrics"`
+	UploadedFabrics  int `json:"uploaded_fabrics"`
 }
 
-// ModelDeployment represents a deployment configuration
-type ModelDeployment struct {
-	ID          string                      `json:"id" buntdb:"id"`
-	ModelID     string                      `json:"model_id" buntdb:"model_id"`
-	Name        string                      `json:"name" buntdb:"name"`
-	Description string                      `json:"description" buntdb:"description"`
-	Status      string                      `json:"status" buntdb:"status"` // pending, deploying, deployed, failed
-	CreatedAt   time.Time                   `json:"created_at" buntdb:"created_at"`
-	UpdatedAt   time.Time                   `json:"updated_at" buntdb:"updated_at"`
-	Config      *ModelDeploymentConfig      `json:"config" buntdb:"config"`
-	Instances   []*ModelRuntimeInstance     `json:"instances" buntdb:"instances"`
-	Replicas    int                         `json:"replicas" buntdb:"replicas"`
+// FabricDeployment represents a deployment configuration
+type FabricDeployment struct {
+	ID          string                        `json:"id" buntdb:"id"`
+	FabricID    string                        `json:"fabric_id" buntdb:"fabric_id"`
+	Name        string                        `json:"name" buntdb:"name"`
+	Description string                        `json:"description" buntdb:"description"`
+	Status      string                        `json:"status" buntdb:"status"` // pending, deploying, deployed, failed
+	CreatedAt   time.Time                     `json:"created_at" buntdb:"created_at"`
+	UpdatedAt   time.Time                     `json:"updated_at" buntdb:"updated_at"`
+	Config      *FabricDeploymentConfig       `json:"config" buntdb:"config"`
+	Instances   []*FabricRuntimeInstance      `json:"instances" buntdb:"instances"`
+	Replicas    int                           `json:"replicas" buntdb:"replicas"`
 }
 
-// ModelDeploymentConfig defines deployment configuration
-type ModelDeploymentConfig struct {
+// FabricDeploymentConfig defines deployment configuration
+type FabricDeploymentConfig struct {
 	AutoScaling     *AutoScalingConfig     `json:"auto_scaling,omitempty"`
 	LoadBalancing   *LoadBalancingConfig   `json:"load_balancing,omitempty"`
 	HealthChecks    *HealthCheckConfig     `json:"health_checks,omitempty"`
-	ResourceLimits  *ModelResourceLimits   `json:"resource_limits,omitempty"`
+	ResourceLimits  *FabricResourceLimits  `json:"resource_limits,omitempty"`
 	NetworkConfig   *NetworkConfig         `json:"network_config,omitempty"`
 	SecurityConfig  *SecurityConfig        `json:"security_config,omitempty"`
 }
@@ -199,42 +199,42 @@ type SecurityConfig struct {
 	AuditLogging          bool     `json:"audit_logging"`
 }
 
-// ModelTemplate represents a reusable model template
-type ModelTemplate struct {
+// FabricTemplate represents a reusable fabric template
+type FabricTemplate struct {
 	ID          string                 `json:"id" buntdb:"id"`
 	Name        string                 `json:"name" buntdb:"name"`
 	Description string                 `json:"description" buntdb:"description"`
 	Type        string                 `json:"type" buntdb:"type"`
 	Category    string                 `json:"category" buntdb:"category"`
 	Config      map[string]interface{} `json:"config" buntdb:"config"`
-	ResourceLimits *ModelResourceLimits `json:"resource_limits" buntdb:"resource_limits"`
+	ResourceLimits *FabricResourceLimits `json:"resource_limits" buntdb:"resource_limits"`
 	CreatedAt   time.Time              `json:"created_at" buntdb:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at" buntdb:"updated_at"`
 	UsageCount  int                    `json:"usage_count" buntdb:"usage_count"`
 	Tags        []string               `json:"tags" buntdb:"tags"`
 }
 
-// IsValid validates the model data
-func (m *Model) IsValid() bool {
+// IsValid validates the fabric data
+func (m *Fabric) IsValid() bool {
 	return m.ID != "" && m.Name != "" && m.Type != "" && m.FilePath != ""
 }
 
-// CanDeploy checks if the model can be deployed
-func (m *Model) CanDeploy() bool {
+// CanDeploy checks if the fabric item can be deployed
+func (m *Fabric) CanDeploy() bool {
 	return m.Status == "uploaded"
 }
 
-// CanStart checks if the model can be started
-func (m *Model) CanStart() bool {
+// CanStart checks if the fabric item can be started
+func (m *Fabric) CanStart() bool {
 	return m.Status == "deployed" || m.Status == "stopped"
 }
 
-// CanStop checks if the model can be stopped
-func (m *Model) CanStop() bool {
+// CanStop checks if the fabric item can be stopped
+func (m *Fabric) CanStop() bool {
 	return m.Status == "running"
 }
 
-// IsRunning checks if the model is currently running
-func (m *Model) IsRunning() bool {
+// IsRunning checks if the fabric item is currently running
+func (m *Fabric) IsRunning() bool {
 	return m.Status == "running" && m.RuntimeInstance != nil
 }

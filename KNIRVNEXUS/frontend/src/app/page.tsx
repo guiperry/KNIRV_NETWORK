@@ -17,7 +17,7 @@ import { useTEESecurity } from "@/hooks/use-tee-security";
 import { useSystemHealth } from "@/hooks/use-system-health";
 import QRCodeDisplay from "@/components/controller/qr-code-display";
 import DNSManagement from "@/components/dns/dns-management";
-import ModelManagement from "@/components/models/model-management";
+import FabricManagement from "@/components/fabric/fabric-management";
 import DVERentalManagement from "@/components/dve-rental/dve-rental-management";
 import { useAuth } from "@/lib/auth-context";
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
@@ -43,7 +43,7 @@ import {
   Bell,
   QrCode,
   Globe,
-  Bot,
+  Layers,
   CreditCard
 } from "lucide-react";
 
@@ -99,8 +99,9 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [showQRCode, setShowQRCode] = useState(false);
   const [showDNSManagement, setShowDNSManagement] = useState(false);
-  const [showModelManagement, setShowModelManagement] = useState(false);
+  const [showFabricManagement, setShowFabricManagement] = useState(false);
   const [showDVERentalManagement, setShowDVERentalManagement] = useState(false);
+  const [useModularCDE, setUseModularCDE] = useState(false);
 
   // Helper functions to check connection/setup status
   const isControllerConnected = () => {
@@ -113,8 +114,8 @@ export default function Dashboard() {
     return false;
   };
 
-  const hasModelsAdded = () => {
-    // Check if models are added (placeholder logic)
+  const hasFabricItemsAdded = () => {
+    // Check if fabric items are added (placeholder logic)
     return false;
   };
 
@@ -215,7 +216,11 @@ export default function Dashboard() {
   };
 
   return (
-    <DashboardWrapper onRentDVE={() => setShowDVERentalManagement(true)}>
+    <DashboardWrapper 
+      onRentDVE={() => setShowDVERentalManagement(true)}
+      useModularCDE={useModularCDE}
+      setUseModularCDE={setUseModularCDE}
+    >
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
@@ -285,22 +290,22 @@ export default function Dashboard() {
 
         <Card 
           className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
-          onClick={() => setShowModelManagement(true)}
+          onClick={() => setShowFabricManagement(true)}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {hasModelsAdded() ? "Manage Models" : "Add Models"}
+              {hasFabricItemsAdded() ? "Manage Fabric" : "Add Fabric"}
             </CardTitle>
-            <Bot className="h-4 w-4 text-muted-foreground" />
+            <Layers className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {hasModelsAdded() ? "Active" : "Setup Required"}
+              {hasFabricItemsAdded() ? "Active" : "Setup Required"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {hasModelsAdded() 
-                ? "Click to manage your models" 
-                : "Deploy AI models to the network"}
+              {hasFabricItemsAdded() 
+                ? "Click to manage your fabric items" 
+                : "Deploy Agentic Memory Fabric"}
             </p>
           </CardContent>
         </Card>
@@ -376,7 +381,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="mt-4">
-                    <p className="text-sm text-muted-foreground">Model Version</p>
+                    <p className="text-sm text-muted-foreground">Fabric Version</p>
                     <Badge variant="outline">{cognitiveEngine.model_version}</Badge>
                   </div>
                 </CardContent>
@@ -496,10 +501,10 @@ export default function Dashboard() {
         onClose={() => setShowDNSManagement(false)}
       />
 
-      {/* Model Management Modal */}
-      <ModelManagement
-        isOpen={showModelManagement}
-        onClose={() => setShowModelManagement(false)}
+      {/* Fabric Management Modal */}
+      <FabricManagement
+        isOpen={showFabricManagement}
+        onClose={() => setShowFabricManagement(false)}
       />
 
       {/* DVE Rental Management Modal */}

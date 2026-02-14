@@ -13,9 +13,19 @@ interface CDEAccessModalProps {
   nodeId: string;
   nodeName: string;
   onOpenKNIRVEngine: () => void;
+  isModular?: boolean;
+  onToggleMode?: () => void;
 }
 
-export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVEngine }: CDEAccessModalProps) {
+export function CDEAccessModal({ 
+  isOpen, 
+  onClose, 
+  nodeId, 
+  nodeName, 
+  onOpenKNIRVEngine,
+  isModular,
+  onToggleMode
+}: CDEAccessModalProps) {
   const [terminalOutput, setTerminalOutput] = useState([
     '$ Welcome to KNIRV CDE Terminal',
     '$ Node: ' + nodeName + ' (' + nodeId + ')',
@@ -44,11 +54,11 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
       commands: ['tee-init', 'validation-config', 'security-check']
     },
     {
-      id: 'model-deployment',
-      name: 'Model Deployment',
-      description: 'Deploy AI models to the cognitive engine',
+      id: 'fabric-deployment',
+      name: 'Fabric Deployment',
+      description: 'Deploy Agentic Memory Fabric to the cognitive engine',
       icon: <Cpu className="w-4 h-4" />,
-      commands: ['model-load', 'inference-setup', 'performance-test']
+      commands: ['fabric-load', 'inference-setup', 'performance-test']
     },
     {
       id: 'data-processing',
@@ -175,7 +185,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
   };
 
   const problems = [
-    { id: 'prob-001', title: 'Model Inference Failure', severity: 'critical', description: 'AI model fails during inference execution' },
+    { id: 'prob-001', title: 'Fabric Inference Failure', severity: 'critical', description: 'Fabric agent fails during inference execution' },
     { id: 'prob-002', title: 'TEE Attestation Timeout', severity: 'high', description: 'Trusted Execution Environment attestation takes too long' },
     { id: 'prob-003', title: 'Memory Leak in Agent', severity: 'medium', description: 'Memory usage increases without proper cleanup' },
     { id: 'prob-004', title: 'Network Disconnection', severity: 'high', description: 'Unexpected network connectivity loss' },
@@ -204,6 +214,14 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
               </p>
             </div>
             <div className="flex items-center space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-[10px] font-black uppercase border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white"
+                onClick={onToggleMode}
+              >
+                Switch to Modular
+              </Button>
               <Badge variant="secondary">Connected</Badge>
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="w-4 h-4" />
@@ -476,7 +494,7 @@ export function CDEAccessModal({ isOpen, onClose, nodeId, nodeName, onOpenKNIRVE
                       <div>[10:30:15] Validation task completed successfully</div>
                       <div>[10:29:42] TEE enclave initialized</div>
                       <div>[10:28:33] Node heartbeat sent</div>
-                      <div>[10:27:11] Failure detected in model inference</div>
+                      <div>[10:27:11] Failure detected in fabric inference</div>
                       <div className="text-yellow-400">[10:26:45] WARNING: High memory usage detected</div>
                       <div>[10:25:22] Recovery procedure initiated</div>
                       <div className="text-cyan-400">$ Ready for input...</div>

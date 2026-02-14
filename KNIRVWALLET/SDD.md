@@ -1,4 +1,4 @@
-# **Software Design Document: KNIRV-AGENTIFIER - The Adaptive, Intuitive Intelligence Interface**
+# **Software Design Document: KNIRV-CONTROLLER - The Adaptive, Intuitive Intelligence Interface**
 
 **Version:** 1.0
 **Date:** July 13, 2025
@@ -7,15 +7,15 @@
 
 ## 1\. Introduction
 
-The `KNIRV-AGENTIFIER` is the cornerstone of the KNIRV Decentralized Trusted Execution Network (D-TEN), serving as the **primary, intelligent, and adaptive interface** for users to interact with the entire ecosystem. Unlike traditional applications, the `KNIRV-AGENTIFIER` abstracts complex blockchain and AI operations, empowering users to manage and evolve AI agents through natural voice commands and intuitive visual feedback. It embodies the user's personal gateway to the collective intelligence of the KNIRV network and `KNIRVANA`.
+The `KNIRV-CONTROLLER` is the cornerstone of the KNIRV Decentralized Trusted Execution Network (D-TEN), serving as the **primary, intelligent, and adaptive interface** for users to interact with the entire ecosystem. Unlike traditional applications, the `KNIRV-CONTROLLER` abstracts complex blockchain and AI operations, empowering users to manage and evolve AI agents through natural voice commands and intuitive visual feedback. It embodies the user's personal gateway to the collective intelligence of the KNIRV network and `KNIRVANA`.
 
 ### 1.1 Purpose
 
-This document outlines the software design for the `KNIRV-AGENTIFIER`, detailing its architecture, functional components, user experience, and key algorithms, including the pivotal **"The Fabric" algorithm**. It will serve as a blueprint for development, ensuring a cohesive, secure, and user-friendly interface that integrates seamlessly with the underlying KNIRV layers.
+This document outlines the software design for the `KNIRV-CONTROLLER`, detailing its architecture, functional components, user experience, and key algorithms, including the pivotal **"The Fabric" algorithm**. It will serve as a blueprint for development, ensuring a cohesive, secure, and user-friendly interface that integrates seamlessly with the underlying KNIRV layers.
 
 ### 1.2 Scope
 
-This SDD covers the design of the `KNIRV-AGENTIFIER`'s core functionalities, including:
+This SDD covers the design of the `KNIRV-CONTROLLER`'s core functionalities, including:
 
   * Its user interface paradigm (iFrame-like, voice-controlled).
   * Integration of voice input for command and control.
@@ -28,14 +28,14 @@ This SDD covers the design of the `KNIRV-AGENTIFIER`'s core functionalities, inc
 
 ## 2\. Architectural Overview
 
-The `KNIRV-AGENTIFIER` is a sophisticated application designed for deployment on various user devices (desktop, mobile, potentially embedded systems). It comprises several tightly integrated modules built predominantly in Rust (for core logic and WASM LoRAs) and potentially Web technologies (for the iFrame interface and UI elements).
+The `KNIRV-CONTROLLER` is a sophisticated application designed for deployment on various user devices (desktop, mobile, potentially embedded systems). It comprises several tightly integrated modules built predominantly in Rust (for core logic and WASM LoRAs) and potentially Web technologies (for the iFrame interface and UI elements).
 
 ```mermaid
     graph TD
-    A[User Input: Voice / Screenshot / Camera] --> B[KNIRV-AGENTIFIER UI Module]
+    A[User Input: Voice / Screenshot / Camera] --> B[KNIRV-CONTROLLER UI Module]
     B --> C[Voice Control Module]
     B --> D[Visual Input Module]
-    C --> E[KNIRV-AGENTIFIER Core Module]
+    C --> E[KNIRV-CONTROLLER Core Module]
     D --> E
     E -- Internal Data Flow --> F["The Fabric" Algorithm Module]
     E -- Manages LoRA Adapters --> G[Rust WASM LoRA Adapters]
@@ -58,19 +58,19 @@ The `KNIRV-AGENTIFIER` is a sophisticated application designed for deployment on
 
 **Key Modules:**
 
-  * **KNIRV-AGENTIFIER Core Module:** The central processing unit, managing the SEAL loop, `Base LLM` interaction, `LoRA` runtime, and orchestrating other modules.
+  * **KNIRV-CONTROLLER Core Module:** The central processing unit, managing the SEAL loop, `Base LLM` interaction, `LoRA` runtime, and orchestrating other modules.
   * **User Interface Module:** Renders the iFrame-like display, manages visual feedback (edge coloring), and handles sliding UI panels.
   * **Voice Control Module:** Processes speech-to-text, intent recognition, and executes voice commands.
   * **Visual Input Module:** Captures screenshots/camera input and pre-processes images for analysis.
   * **"The Fabric" Algorithm Module:** The novel component responsible for transforming raw problems into actionable `NRV` objects and their visual representation.
   * **Network Interaction Module:** Manages all communication with external KNIRV network layers (XION, `KNIRV-GRAPH`, `DVE`s, `KNIRV-WALLET`, `KNIRV-ROUTERS`, `KNIRVANA`).
-  * **Rust WASM LoRA Adapters:** The encapsulated, self-improving intelligence units unique to each `KNIRV-AGENTIFIER`.
+  * **Rust WASM LoRA Adapters:** The encapsulated, self-improving intelligence units unique to each `KNIRV-CONTROLLER`.
 
 -----
 
 ## 3\. Functional Requirements
 
-The `KNIRV-AGENTIFIER` must fulfill the following core functions:
+The `KNIRV-CONTROLLER` must fulfill the following core functions:
 
 ### 3.1 Core AI Agent Capabilities (Existing)
 
@@ -89,14 +89,14 @@ The `KNIRV-AGENTIFIER` must fulfill the following core functions:
       * **Intent Recognition:** Interpret natural language commands to understand user intent (e.g., "Assign agents to fix this," "Show me the network map," "What's my NRN balance?").
       * **Voice Feedback:** Provide audible responses or confirmations.
   * **Visual Feedback:**
-      * **Edge Coloring:** Dynamically color the edges of the screen/frame to indicate `KNIRV-AGENTIFIER` activity (e.g., green for positive response, red for error, blue for processing).
+      * **Edge Coloring:** Dynamically color the edges of the screen/frame to indicate `KNIRV-CONTROLLER` activity (e.g., green for positive response, red for error, blue for processing).
       * **Sliding Panels:** Context-sensitive menus, input panels, or information displays should smoothly slide out from the invisible edges of the screen/frame when relevant, disappearing when not in use.
   * **User Input Panels:** Provide on-screen input methods for complex parameters, confirmations, or text entry when voice is insufficient or inconvenient.
 
 ### 3.3 Problem Input & NRV Generation (New - "The Fabric")
 
   * **Screenshot Capture:**
-      * **Within Frame:** Allow the `KNIRV-AGENTIFIER` to capture screenshots of content displayed *within* its iFrame.
+      * **Within Frame:** Allow the `KNIRV-CONTROLLER` to capture screenshots of content displayed *within* its iFrame.
       * **Device-Wide:** Integrate with OS-level APIs to capture screenshots of the entire device screen.
       * **Camera Input:** Capture images/video streams from the device camera.
   * **TensorFlow Interpretation:**
@@ -105,15 +105,15 @@ The `KNIRV-AGENTIFIER` must fulfill the following core functions:
   * **"The Fabric" Algorithm: NRV Transformation & Visualization:**
       * **Input Translation:** Receive raw error, obstacle, and problem inputs (from visual analysis, voice commands, or system logs).
       * **NRV Creation:** Translate these inputs into structured **`Network Resolution Vectors (NRVs)`**, capturing context, severity, and potential solution paths.
-      * **Visual Representation:** Render these `NRVs` as dynamic **visual objects** that appear within the `KNIRV-AGENTIFIER`'s iFrame display, representing the identified problem areas.
+      * **Visual Representation:** Render these `NRVs` as dynamic **visual objects** that appear within the `KNIRV-CONTROLLER`'s iFrame display, representing the identified problem areas.
       * **Mapping to GRAPH:** Provide an intuitive visual mechanism for the user to "map" these local `NRV` objects to the `KNIRV-GRAPH`, thereby submitting them as `ErrorNodes` for collective resolution.
-      * **Agent Assignment:** Allow the user to visually **assign pretrained `KNIRV-AGENTIFIER` agent units** (from `KNIRVANA` or general network pool) to resolve specific `NRV` objects, initiating `Skill` invocation and NRN consumption.
+      * **Agent Assignment:** Allow the user to visually **assign pretrained `KNIRV-CONTROLLER` agent units** (from `KNIRVANA` or general network pool) to resolve specific `NRV` objects, initiating `Skill` invocation and NRN consumption.
 
 ### 3.4 Network & Ecosystem Interactions
 
   * **`KNIRV-GRAPH` Integration:**
       * Submit `ErrorNodes` (NRVs) for problems identified via "The Fabric."
-      * Submit `SkillNodes` for solutions validated by the `KNIRV-AGENTIFIER`.
+      * Submit `SkillNodes` for solutions validated by the `KNIRV-CONTROLLER`.
       * Query the `KNIRV-GRAPH` for existing `SkillNodes` to resolve identified `NRVs`.
   * **`KNIRVCHAIN` Integration:**
       * Query the `KNIRVCHAIN` for the latest `Base LLM` version.
@@ -127,7 +127,7 @@ The `KNIRV-AGENTIFIER` must fulfill the following core functions:
       * Initiate NRN acquisition from `KNIRV-ROOT`'s faucet via a `KNIRV-ROUTER` connection.
   * **`KNIRVANA` Integration:**
       * Act as the primary control interface for agent units within the `KNIRVANA` game.
-      * Send task assignments to `KNIRV-AGENTIFIER` agents operating within `KNIRVANA`.
+      * Send task assignments to `KNIRV-CONTROLLER` agents operating within `KNIRVANA`.
       * Receive feedback (successes/failures) from `KNIRVANA` agents to feed back into "The Fabric" for `NRV`/`SkillNode` generation.
 
 -----
@@ -137,7 +137,7 @@ The `KNIRV-AGENTIFIER` must fulfill the following core functions:
   * **Performance:** Low latency for voice command processing and visual feedback. Efficient processing of visual inputs (TensorFlow) to avoid lag. Responsive UI.
   * **Security:**
       * **zkTLS:** Secure all sensitive network communications.
-      * **TEE Utilization:** Leverage hardware TEEs on supported devices for protecting `KNIRV-AGENTIFIER` core logic, `LoRA` parameters, and cryptographic keys.
+      * **TEE Utilization:** Leverage hardware TEEs on supported devices for protecting `KNIRV-CONTROLLER` core logic, `LoRA` parameters, and cryptographic keys.
       * **Input Sanitization:** Robust validation and sanitization of all user inputs (voice, text, visual metadata) to prevent injection attacks or exploits.
       * **Access Control:** Granular permissions for device resources (camera, microphone, screen capture).
   * **Privacy:** Minimize data collection. Process sensitive visual/voice data locally where possible. User consent for data sharing.
@@ -150,7 +150,7 @@ The `KNIRV-AGENTIFIER` must fulfill the following core functions:
 
 ## 5\. High-Level Design
 
-### 5.1 KNIRV-AGENTIFIER Core Module
+### 5.1 KNIRV-CONTROLLER Core Module
 
   * **Responsibility:** Orchestrates all other modules, manages the `Base LLM` instance, `LoRA` runtime, and the SEAL learning loop.
   * **Components:**
@@ -174,7 +174,7 @@ The `KNIRV-AGENTIFIER` must fulfill the following core functions:
   * **Components:**
       * Speech-to-Text (STT) Engine: Converts audio input to text (local or cloud-based, prioritized local).
       * Natural Language Understanding (NLU) Engine: Interprets text to extract intent, entities, and context.
-      * Speech Synthesizer (TTS): Converts `KNIRV-AGENTIFIER` responses into audible speech.
+      * Speech Synthesizer (TTS): Converts `KNIRV-CONTROLLER` responses into audible speech.
       * Wake Word Detector: Low-power listener for activation phrases.
 
 ### 5.4 Visual Input Module
@@ -189,12 +189,12 @@ The `KNIRV-AGENTIFIER` must fulfill the following core functions:
 
   * **Responsibility:** Translates raw problems into actionable `NRVs` and their visual representations.
   * **Components:**
-      * **Input Ingestor:** Receives data from Voice Control (e.g., "This isn't working"), Visual Input (TensorFlow output), and internal `KNIRV-AGENTIFIER` monitoring.
-      * **Problem Contextualizer:** Uses `KNIRV-AGENTIFIER`'s `Base LLM` and `LoRA` to enrich the raw input with contextual understanding (e.g., "What was the `SHELL` trying to do when this error occurred?").
+      * **Input Ingestor:** Receives data from Voice Control (e.g., "This isn't working"), Visual Input (TensorFlow output), and internal `KNIRV-CONTROLLER` monitoring.
+      * **Problem Contextualizer:** Uses `KNIRV-CONTROLLER`'s `Base LLM` and `LoRA` to enrich the raw input with contextual understanding (e.g., "What was the `SHELL` trying to do when this error occurred?").
       * **NRV Formatter:** Structures the identified problem and context into the official `NRV` schema.
-      * **Visualizer Engine:** Dynamically generates visual elements (icons, overlays, outlines) to represent the `NRV` within the `KNIRV-AGENTIFIER`'s `iFrame` UI. This allows the user to see the problem directly overlaid on the problematic content.
+      * **Visualizer Engine:** Dynamically generates visual elements (icons, overlays, outlines) to represent the `NRV` within the `KNIRV-CONTROLLER`'s `iFrame` UI. This allows the user to see the problem directly overlaid on the problematic content.
       * **Mapping Interface:** Facilitates the user's gesture/voice command to "drag and drop" or "map" the visual `NRV` object to the `KNIRV-GRAPH`.
-      * **Agent Assignment Logic:** Interfaces with the `KNIRV-GRAPH` (to find suitable `SkillNodes`) and `KNIRV-WALLET` (to manage NRNs) to assign `KNIRV-AGENTIFIER` units to resolve the `NRV`.
+      * **Agent Assignment Logic:** Interfaces with the `KNIRV-GRAPH` (to find suitable `SkillNodes`) and `KNIRV-WALLET` (to manage NRNs) to assign `KNIRV-CONTROLLER` units to resolve the `NRV`.
 
 ### 5.6 Network Interaction Module
 
@@ -219,14 +219,14 @@ The `KNIRV-AGENTIFIER` must fulfill the following core functions:
       * **Visual:** If image/video, `Visual Input Module`'s TensorFlow identifies objects, UI elements, text, and potentially error messages or unusual states.
       * **Voice:** If voice, `Voice Control Module`'s NLU identifies keywords and intent (e.g., "problem," "error," "not working").
       * **Internal:** Log parsing for structured error codes, stack traces, etc.
-3.  **Contextualization (Leveraging `KNIRV-AGENTIFIER`'s AI):**
-      * The `KNIRV-AGENTIFIER Core Module`'s `Base LLM` and `LoRA` are engaged.
-      * The raw problem is fed into the `KNIRV-AGENTIFIER`'s intelligence along with recent operational history (e.g., "What was I trying to do?", "What was the previous command?", "What's the current game state in `KNIRVANA`?").
-      * The `KNIRV-AGENTIFIER` attempts to synthesize a coherent description of the problem, its symptoms, and potential root causes.
+3.  **Contextualization (Leveraging `KNIRV-CONTROLLER`'s AI):**
+      * The `KNIRV-CONTROLLER Core Module`'s `Base LLM` and `LoRA` are engaged.
+      * The raw problem is fed into the `KNIRV-CONTROLLER`'s intelligence along with recent operational history (e.g., "What was I trying to do?", "What was the previous command?", "What's the current game state in `KNIRVANA`?").
+      * The `KNIRV-CONTROLLER` attempts to synthesize a coherent description of the problem, its symptoms, and potential root causes.
 4.  **NRV Structuring & Proposal:**
       * The contextualized problem is formatted into a formal `NRV` data structure. This includes:
           * `problemDescription`: Natural language summary.
-          * `sourceID`: ID of the `KNIRV-AGENTIFIER` or `KNIRVANA` instance.
+          * `sourceID`: ID of the `KNIRV-CONTROLLER` or `KNIRVANA` instance.
           * `inputType`: (Voice, Screenshot, Log).
           * `visualContext`: (if applicable) Bounding boxes, OCR text, interpreted objects from TensorFlow.
           * `temporalContext`: Timestamp, recent actions.
@@ -243,14 +243,14 @@ The `KNIRV-AGENTIFIER` must fulfill the following core functions:
       * The user sees the visual `NRV` object(s).
       * **Mapping to GRAPH:** A simple voice command ("Map this to graph") or drag-and-drop action on the visual object triggers its submission as an `ErrorNode` to the `KNIRV-GRAPH` (via the `Network Interaction Module`).
       * **Agent Assignment:** The user can then select the `NRV` (verbally or visually) and issue a command ("Assign agents," "Fix this").
-          * The `KNIRV-AGENTIFIER` queries the `KNIRV-GRAPH` for relevant `SkillNodes` that might resolve the `NRV`.
-          * It then presents options for **assigning available agent units (other `KNIRV-AGENTIFIER`s, perhaps managed in `KNIRVANA`)** to execute the necessary `SkillNode`s, prompting the `KNIRV-WALLET` for NRN payment if required.
+          * The `KNIRV-CONTROLLER` queries the `KNIRV-GRAPH` for relevant `SkillNodes` that might resolve the `NRV`.
+          * It then presents options for **assigning available agent units (other `KNIRV-CONTROLLER`s, perhaps managed in `KNIRVANA`)** to execute the necessary `SkillNode`s, prompting the `KNIRV-WALLET` for NRN payment if required.
 
 -----
 
 ## 7\. Data Model
 
-The `KNIRV-AGENTIFIER` will maintain a local, transient data store for its operational state, mirroring certain critical elements from the `KNIRVCHAIN` and `KNIRV-GRAPH` for responsiveness.
+The `KNIRV-CONTROLLER` will maintain a local, transient data store for its operational state, mirroring certain critical elements from the `KNIRVCHAIN` and `KNIRV-GRAPH` for responsiveness.
 
   * **Local KNIRVCHAIN Instance Data:**
       * Current `Base LLM` version pointer.
@@ -272,10 +272,10 @@ The `KNIRV-AGENTIFIER` will maintain a local, transient data store for its opera
 
 ## 8\. Security Considerations
 
-Beyond the network-wide security (zkTLS, TEEs in DVEs), the `KNIRV-AGENTIFIER`'s interactive nature introduces specific considerations:
+Beyond the network-wide security (zkTLS, TEEs in DVEs), the `KNIRV-CONTROLLER`'s interactive nature introduces specific considerations:
 
   * **Input Integrity:** Rigorous sanitization of all voice and visual input to prevent malicious commands or data injections that could exploit the underlying AI or system.
-  * **Privacy of Visual/Voice Data:** All sensitive input (screenshots, camera, voice recordings) should be processed locally within the `KNIRV-AGENTIFIER`'s TEE where possible, minimizing transmission of raw data. Only processed, anonymized `NRV` metadata or ZKPs should be transmitted to the `KNIRV-GRAPH` or `KNIRVCHAIN`.
+  * **Privacy of Visual/Voice Data:** All sensitive input (screenshots, camera, voice recordings) should be processed locally within the `KNIRV-CONTROLLER`'s TEE where possible, minimizing transmission of raw data. Only processed, anonymized `NRV` metadata or ZKPs should be transmitted to the `KNIRV-GRAPH` or `KNIRVCHAIN`.
   * **Permissions Management:** Granular operating system permissions for microphone, camera, and screen capture access, with clear user consent flows.
   * **UI Sandboxing:** The `iFrame`-like display and sliding panels should be securely sandboxed to prevent malicious content from escaping or compromising the host device.
   * **LoRA Security:** Rust WASM's sandbox provides a strong security boundary for LoRA execution, mitigating risks from malicious LoRA code.
@@ -286,8 +286,8 @@ Beyond the network-wide security (zkTLS, TEEs in DVEs), the `KNIRV-AGENTIFIER`'s
 
   * **Advanced XR Integration:** Expand the `iFrame` concept into AR/VR overlays for truly immersive agent interaction.
   * **Multi-Modal AI:** Deeper integration of various sensor inputs (e.g., haptic, biometric) for richer problem context.
-  * **Predictive Problem Identification:** `KNIRV-AGENTIFIER` leveraging its intelligence to anticipate potential `NRVs` before they fully manifest, offering proactive solutions.
-  * **Adaptive UI/UX:** The `KNIRV-AGENTIFIER`'s UI dynamically adapting its layout and interaction patterns based on user behavior and current task context.
+  * **Predictive Problem Identification:** `KNIRV-CONTROLLER` leveraging its intelligence to anticipate potential `NRVs` before they fully manifest, offering proactive solutions.
+  * **Adaptive UI/UX:** The `KNIRV-CONTROLLER`'s UI dynamically adapting its layout and interaction patterns based on user behavior and current task context.
 
 -----
 

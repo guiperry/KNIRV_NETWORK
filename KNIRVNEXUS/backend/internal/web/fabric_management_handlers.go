@@ -7,21 +7,21 @@ import (
 	"time"
 
 	"backend_server/internal/objects"
-	"backend_server/internal/services/modelmanagement"
+	"backend_server/internal/services/fabricmanagement"
 	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )
 
-type ModelManagementHandlers struct {
-	modelManagementService *modelmanagement.ModelManagementService
+type FabricManagementHandlers struct {
+	fabricManagementService *fabricmanagement.FabricManagementService
 }
 
-func NewModelManagementHandlers(modelManagementService *modelmanagement.ModelManagementService) *ModelManagementHandlers {
-	return &ModelManagementHandlers{modelManagementService: modelManagementService}
+func NewFabricManagementHandlers(fabricManagementService *fabricmanagement.FabricManagementService) *FabricManagementHandlers {
+	return &FabricManagementHandlers{fabricManagementService: fabricManagementService}
 }
 
-type ModelManagementResponse struct {
+type FabricManagementResponse struct {
 	Success   bool        `json:"success"`
 	Data      interface{} `json:"data,omitempty"`
 	Message   string      `json:"message,omitempty"`
@@ -29,24 +29,20 @@ type ModelManagementResponse struct {
 	Timestamp string      `json:"timestamp"`
 }
 
-// GetModels handles GET /api/model-management/objects
-func (h *ModelManagementHandlers) GetModels(w http.ResponseWriter, r *http.Request) {
+// GetFabrics handles GET /api/fabric-management/objects
+func (h *FabricManagementHandlers) GetFabrics(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters for filtering
-	filter := &objects.ModelFilter{}
+	filter := &objects.FabricFilter{}
 
 	if status := r.URL.Query().Get("status"); status != "" {
 		filter.Status = []string{status}
 	}
-	if modelType := r.URL.Query().Get("type"); modelType != "" {
-		filter.Type = []string{modelType}
+	if fabricType := r.URL.Query().Get("type"); fabricType != "" {
+		filter.Type = []string{fabricType}
 	}
 	if author := r.URL.Query().Get("author"); author != "" {
 		filter.Author = author
 	}
-	// Note: Search field not available in current ModelFilter struct
-	// if search := r.URL.Query().Get("search"); search != "" {
-	//	filter.Search = search
-	// }
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 		if limit, err := strconv.Atoi(limitStr); err == nil {
 			filter.Limit = limit
@@ -58,11 +54,11 @@ func (h *ModelManagementHandlers) GetModels(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	objects, err := h.modelManagementService.GetAllModels(filter)
+	objects, err := h.fabricManagementService.GetAllFabrics(filter)
 	if err != nil {
-		response := ModelManagementResponse{
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Failed to retrieve objects: " + err.Error(),
+			Error:     "Failed to retrieve fabric objects: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -71,7 +67,7 @@ func (h *ModelManagementHandlers) GetModels(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
 		Data:      objects,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -81,15 +77,15 @@ func (h *ModelManagementHandlers) GetModels(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetModel handles GET /api/model-management/objects/{id}
-func (h *ModelManagementHandlers) GetModel(w http.ResponseWriter, r *http.Request) {
+// GetFabric handles GET /api/fabric-management/objects/{id}
+func (h *FabricManagementHandlers) GetFabric(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	modelID := vars["id"]
+	fabricID := vars["id"]
 
-	if modelID == "" {
-		response := ModelManagementResponse{
+	if fabricID == "" {
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Model ID is required",
+			Error:     "Fabric ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -98,11 +94,11 @@ func (h *ModelManagementHandlers) GetModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	model, err := h.modelManagementService.GetModel(modelID)
+	fabric, err := h.fabricManagementService.GetFabric(fabricID)
 	if err != nil {
-		response := ModelManagementResponse{
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Failed to retrieve model: " + err.Error(),
+			Error:     "Failed to retrieve fabric unit: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -111,9 +107,9 @@ func (h *ModelManagementHandlers) GetModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
-		Data:      model,
+		Data:      fabric,
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
@@ -121,11 +117,11 @@ func (h *ModelManagementHandlers) GetModel(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(response)
 }
 
-// PostModel handles POST /api/model-management/objects
-func (h *ModelManagementHandlers) PostModel(w http.ResponseWriter, r *http.Request) {
-	var model objects.Model
-	if err := json.NewDecoder(r.Body).Decode(&model); err != nil {
-		response := ModelManagementResponse{
+// PostFabric handles POST /api/fabric-management/objects
+func (h *FabricManagementHandlers) PostFabric(w http.ResponseWriter, r *http.Request) {
+	var fabric objects.Fabric
+	if err := json.NewDecoder(r.Body).Decode(&fabric); err != nil {
+		response := FabricManagementResponse{
 			Success:   false,
 			Error:     "Invalid request body",
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -136,10 +132,10 @@ func (h *ModelManagementHandlers) PostModel(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := h.modelManagementService.CreateModel(&model); err != nil {
-		response := ModelManagementResponse{
+	if err := h.fabricManagementService.CreateFabric(&fabric); err != nil {
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Failed to create model: " + err.Error(),
+			Error:     "Failed to create fabric item: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -148,10 +144,10 @@ func (h *ModelManagementHandlers) PostModel(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
-		Data:      &model,
-		Message:   "Model created successfully",
+		Data:      &fabric,
+		Message:   "Fabric item created successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
@@ -160,15 +156,15 @@ func (h *ModelManagementHandlers) PostModel(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(response)
 }
 
-// PutModel handles PUT /api/model-management/objects/{id}
-func (h *ModelManagementHandlers) PutModel(w http.ResponseWriter, r *http.Request) {
+// PutFabric handles PUT /api/fabric-management/objects/{id}
+func (h *FabricManagementHandlers) PutFabric(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	modelID := vars["id"]
+	fabricID := vars["id"]
 
-	if modelID == "" {
-		response := ModelManagementResponse{
+	if fabricID == "" {
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Model ID is required",
+			Error:     "Fabric ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -177,9 +173,9 @@ func (h *ModelManagementHandlers) PutModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var updates objects.Model
+	var updates objects.Fabric
 	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
-		response := ModelManagementResponse{
+		response := FabricManagementResponse{
 			Success:   false,
 			Error:     "Invalid request body",
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -190,10 +186,10 @@ func (h *ModelManagementHandlers) PutModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.modelManagementService.UpdateModel(modelID, &updates); err != nil {
-		response := ModelManagementResponse{
+	if err := h.fabricManagementService.UpdateFabric(fabricID, &updates); err != nil {
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Failed to update model: " + err.Error(),
+			Error:     "Failed to update fabric item: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -202,9 +198,9 @@ func (h *ModelManagementHandlers) PutModel(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
-		Message:   "Model updated successfully",
+		Message:   "Fabric item updated successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
@@ -212,15 +208,15 @@ func (h *ModelManagementHandlers) PutModel(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(response)
 }
 
-// DeleteModel handles DELETE /api/model-management/objects/{id}
-func (h *ModelManagementHandlers) DeleteModel(w http.ResponseWriter, r *http.Request) {
+// DeleteFabric handles DELETE /api/fabric-management/objects/{id}
+func (h *FabricManagementHandlers) DeleteFabric(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	modelID := vars["id"]
+	fabricID := vars["id"]
 
-	if modelID == "" {
-		response := ModelManagementResponse{
+	if fabricID == "" {
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Model ID is required",
+			Error:     "Fabric ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -229,10 +225,10 @@ func (h *ModelManagementHandlers) DeleteModel(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := h.modelManagementService.DeleteModel(modelID); err != nil {
-		response := ModelManagementResponse{
+	if err := h.fabricManagementService.DeleteFabric(fabricID); err != nil {
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Failed to delete model: " + err.Error(),
+			Error:     "Failed to delete fabric unit: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -241,9 +237,9 @@ func (h *ModelManagementHandlers) DeleteModel(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
-		Message:   "Model deleted successfully",
+		Message:   "Fabric unit deleted successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
@@ -251,15 +247,15 @@ func (h *ModelManagementHandlers) DeleteModel(w http.ResponseWriter, r *http.Req
 	json.NewEncoder(w).Encode(response)
 }
 
-// PostModelAction handles POST /api/model-management/objects/{id}/actions
-func (h *ModelManagementHandlers) PostModelAction(w http.ResponseWriter, r *http.Request) {
+// PostFabricAction handles POST /api/fabric-management/objects/{id}/actions
+func (h *FabricManagementHandlers) PostFabricAction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	modelID := vars["id"]
+	fabricID := vars["id"]
 
-	if modelID == "" {
-		response := ModelManagementResponse{
+	if fabricID == "" {
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Model ID is required",
+			Error:     "Fabric ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -268,9 +264,9 @@ func (h *ModelManagementHandlers) PostModelAction(w http.ResponseWriter, r *http
 		return
 	}
 
-	var action objects.ModelAction
+	var action objects.FabricAction
 	if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
-		response := ModelManagementResponse{
+		response := FabricManagementResponse{
 			Success:   false,
 			Error:     "Invalid request body",
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -281,8 +277,8 @@ func (h *ModelManagementHandlers) PostModelAction(w http.ResponseWriter, r *http
 		return
 	}
 
-	if err := h.modelManagementService.ExecuteModelAction(modelID, &action); err != nil {
-		response := ModelManagementResponse{
+	if err := h.fabricManagementService.ExecuteFabricAction(fabricID, &action); err != nil {
+		response := FabricManagementResponse{
 			Success:   false,
 			Error:     "Failed to execute action: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -293,7 +289,7 @@ func (h *ModelManagementHandlers) PostModelAction(w http.ResponseWriter, r *http
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
 		Message:   "Action executed successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -303,11 +299,11 @@ func (h *ModelManagementHandlers) PostModelAction(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetModelSummary handles GET /api/model-management/summary
-func (h *ModelManagementHandlers) GetModelSummary(w http.ResponseWriter, r *http.Request) {
-	summary := h.modelManagementService.GetModelSummary()
+// GetFabricSummary handles GET /api/fabric-management/summary
+func (h *FabricManagementHandlers) GetFabricSummary(w http.ResponseWriter, r *http.Request) {
+	summary := h.fabricManagementService.GetFabricSummary()
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
 		Data:      summary,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -317,15 +313,15 @@ func (h *ModelManagementHandlers) GetModelSummary(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetModelMetrics handles GET /api/model-management/objects/{id}/metrics
-func (h *ModelManagementHandlers) GetModelMetrics(w http.ResponseWriter, r *http.Request) {
+// GetFabricMetrics handles GET /api/fabric-management/objects/{id}/metrics
+func (h *FabricManagementHandlers) GetFabricMetrics(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	modelID := vars["id"]
+	fabricID := vars["id"]
 
-	if modelID == "" {
-		response := ModelManagementResponse{
+	if fabricID == "" {
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Model ID is required",
+			Error:     "Fabric ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -341,9 +337,9 @@ func (h *ModelManagementHandlers) GetModelMetrics(w http.ResponseWriter, r *http
 		}
 	}
 
-	metrics, err := h.modelManagementService.GetModelMetrics(modelID, limit)
+	metrics, err := h.fabricManagementService.GetFabricMetrics(fabricID, limit)
 	if err != nil {
-		response := ModelManagementResponse{
+		response := FabricManagementResponse{
 			Success:   false,
 			Error:     "Failed to retrieve metrics: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -354,7 +350,7 @@ func (h *ModelManagementHandlers) GetModelMetrics(w http.ResponseWriter, r *http
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
 		Data:      metrics,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -364,15 +360,15 @@ func (h *ModelManagementHandlers) GetModelMetrics(w http.ResponseWriter, r *http
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetModelLogs handles GET /api/model-management/objects/{id}/logs
-func (h *ModelManagementHandlers) GetModelLogs(w http.ResponseWriter, r *http.Request) {
+// GetFabricLogs handles GET /api/fabric-management/objects/{id}/logs
+func (h *FabricManagementHandlers) GetFabricLogs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	modelID := vars["id"]
+	fabricID := vars["id"]
 
-	if modelID == "" {
-		response := ModelManagementResponse{
+	if fabricID == "" {
+		response := FabricManagementResponse{
 			Success:   false,
-			Error:     "Model ID is required",
+			Error:     "Fabric ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -388,9 +384,9 @@ func (h *ModelManagementHandlers) GetModelLogs(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	logs, err := h.modelManagementService.GetModelLogs(modelID, limit)
+	logs, err := h.fabricManagementService.GetFabricLogs(fabricID, limit)
 	if err != nil {
-		response := ModelManagementResponse{
+		response := FabricManagementResponse{
 			Success:   false,
 			Error:     "Failed to retrieve logs: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -401,7 +397,7 @@ func (h *ModelManagementHandlers) GetModelLogs(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
 		Data:      logs,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -411,10 +407,10 @@ func (h *ModelManagementHandlers) GetModelLogs(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetModelEvents handles GET /api/model-management/objects/{id}/events
-func (h *ModelManagementHandlers) GetModelEvents(w http.ResponseWriter, r *http.Request) {
+// GetFabricEvents handles GET /api/fabric-management/objects/{id}/events
+func (h *FabricManagementHandlers) GetFabricEvents(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	modelID := vars["id"]
+	fabricID := vars["id"]
 
 	limit := 100
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
@@ -423,9 +419,9 @@ func (h *ModelManagementHandlers) GetModelEvents(w http.ResponseWriter, r *http.
 		}
 	}
 
-	events, err := h.modelManagementService.GetModelEvents(modelID, limit)
+	events, err := h.fabricManagementService.GetFabricEvents(fabricID, limit)
 	if err != nil {
-		response := ModelManagementResponse{
+		response := FabricManagementResponse{
 			Success:   false,
 			Error:     "Failed to retrieve events: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -436,7 +432,7 @@ func (h *ModelManagementHandlers) GetModelEvents(w http.ResponseWriter, r *http.
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
 		Data:      events,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -446,11 +442,11 @@ func (h *ModelManagementHandlers) GetModelEvents(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetModelTemplates handles GET /api/model-management/templates
-func (h *ModelManagementHandlers) GetModelTemplates(w http.ResponseWriter, r *http.Request) {
-	templates, err := h.modelManagementService.GetModelTemplates()
+// GetFabricTemplates handles GET /api/fabric-management/templates
+func (h *FabricManagementHandlers) GetFabricTemplates(w http.ResponseWriter, r *http.Request) {
+	templates, err := h.fabricManagementService.GetFabricTemplates()
 	if err != nil {
-		response := ModelManagementResponse{
+		response := FabricManagementResponse{
 			Success:   false,
 			Error:     "Failed to retrieve templates: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -461,7 +457,7 @@ func (h *ModelManagementHandlers) GetModelTemplates(w http.ResponseWriter, r *ht
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
 		Data:      templates,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -471,11 +467,11 @@ func (h *ModelManagementHandlers) GetModelTemplates(w http.ResponseWriter, r *ht
 	json.NewEncoder(w).Encode(response)
 }
 
-// PostModelTemplate handles POST /api/model-management/templates
-func (h *ModelManagementHandlers) PostModelTemplate(w http.ResponseWriter, r *http.Request) {
-	var template objects.ModelTemplate
+// PostFabricTemplate handles POST /api/fabric-management/templates
+func (h *FabricManagementHandlers) PostFabricTemplate(w http.ResponseWriter, r *http.Request) {
+	var template objects.FabricTemplate
 	if err := json.NewDecoder(r.Body).Decode(&template); err != nil {
-		response := ModelManagementResponse{
+		response := FabricManagementResponse{
 			Success:   false,
 			Error:     "Invalid request body",
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -486,8 +482,8 @@ func (h *ModelManagementHandlers) PostModelTemplate(w http.ResponseWriter, r *ht
 		return
 	}
 
-	if err := h.modelManagementService.CreateModelTemplate(&template); err != nil {
-		response := ModelManagementResponse{
+	if err := h.fabricManagementService.CreateFabricTemplate(&template); err != nil {
+		response := FabricManagementResponse{
 			Success:   false,
 			Error:     "Failed to create template: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -498,7 +494,7 @@ func (h *ModelManagementHandlers) PostModelTemplate(w http.ResponseWriter, r *ht
 		return
 	}
 
-	response := ModelManagementResponse{
+	response := FabricManagementResponse{
 		Success:   true,
 		Data:      &template,
 		Message:   "Template created successfully",
@@ -510,46 +506,35 @@ func (h *ModelManagementHandlers) PostModelTemplate(w http.ResponseWriter, r *ht
 	json.NewEncoder(w).Encode(response)
 }
 
-// RegisterRoutes registers the model management routes with the router
-func (h *ModelManagementHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
-	// Create a subrouter for model management endpoints
-	modelRouter := r.PathPrefix("/api/model-management").Subrouter()
+// RegisterRoutes registers the fabric management routes with the router
+func (h *FabricManagementHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
+	// Create a subrouter for fabric management endpoints
+	fabricRouter := r.PathPrefix("/api/fabric-management").Subrouter()
 
-	// For development, make routes public (remove auth requirement)
-	// TODO: Re-enable authentication for production
-	// if authMiddleware != nil {
-	//	protectedModelRouter := modelRouter.PathPrefix("").Subrouter()
-	//	protectedModelRouter.Use(authMiddleware.RequireAuth)
-
-	// Model CRUD operations (public for development)
-	modelRouter.HandleFunc("/objects", h.GetModels).Methods("GET")
-	modelRouter.HandleFunc("/objects", h.PostModel).Methods("POST")
-	modelRouter.HandleFunc("/objects/{id}", h.GetModel).Methods("GET")
-	modelRouter.HandleFunc("/objects/{id}", h.PutModel).Methods("PUT")
-	modelRouter.HandleFunc("/objects/{id}", h.DeleteModel).Methods("DELETE")
-
-	// Model actions
-	modelRouter.HandleFunc("/objects/{id}/actions", h.PostModelAction).Methods("POST")
-
-	// Model monitoring (public for development)
-	modelRouter.HandleFunc("/objects/{id}/metrics", h.GetModelMetrics).Methods("GET")
-	modelRouter.HandleFunc("/objects/{id}/logs", h.GetModelLogs).Methods("GET")
-	modelRouter.HandleFunc("/objects/{id}/events", h.GetModelEvents).Methods("GET")
-
-	// Templates (public for development)
-	modelRouter.HandleFunc("/templates", h.GetModelTemplates).Methods("GET")
-	modelRouter.HandleFunc("/templates", h.PostModelTemplate).Methods("POST")
-
-	// Summary (public for development)
-	modelRouter.HandleFunc("/summary", h.GetModelSummary).Methods("GET")
-	// }
-
-	// Handle OPTIONS requests for CORS (ensure CORS headers are set)
-	modelRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token")
-		w.Header().Set("Access-Control-Max-Age", "86400")
+	// Handle OPTIONS preflight requests globally for this subrouter
+	fabricRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+
+	// Fabric CRUD operations (public for development)
+	fabricRouter.HandleFunc("/objects", h.GetFabrics).Methods("GET")
+	fabricRouter.HandleFunc("/objects", h.PostFabric).Methods("POST")
+	fabricRouter.HandleFunc("/objects/{id}", h.GetFabric).Methods("GET")
+	fabricRouter.HandleFunc("/objects/{id}", h.PutFabric).Methods("PUT")
+	fabricRouter.HandleFunc("/objects/{id}", h.DeleteFabric).Methods("DELETE")
+
+	// Fabric actions
+	fabricRouter.HandleFunc("/objects/{id}/actions", h.PostFabricAction).Methods("POST")
+
+	// Fabric monitoring (public for development)
+	fabricRouter.HandleFunc("/objects/{id}/metrics", h.GetFabricMetrics).Methods("GET")
+	fabricRouter.HandleFunc("/objects/{id}/logs", h.GetFabricLogs).Methods("GET")
+	fabricRouter.HandleFunc("/objects/{id}/events", h.GetFabricEvents).Methods("GET")
+
+	// Templates (public for development)
+	fabricRouter.HandleFunc("/templates", h.GetFabricTemplates).Methods("GET")
+	fabricRouter.HandleFunc("/templates", h.PostFabricTemplate).Methods("POST")
+
+	// Summary (public for development)
+	fabricRouter.HandleFunc("/summary", h.GetFabricSummary).Methods("GET")
 }

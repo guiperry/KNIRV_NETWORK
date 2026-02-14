@@ -1,4 +1,4 @@
-package objectserver
+package fabricserver
 
 import (
 	"fmt"
@@ -6,17 +6,17 @@ import (
 	"time"
 )
 
-// NewModelScheduler creates a new model scheduler
-func NewModelScheduler() (*ModelScheduler, error) {
-	return &ModelScheduler{
+// NewFabricScheduler creates a new fabric scheduler
+func NewFabricScheduler() (*FabricScheduler, error) {
+	return &FabricScheduler{
 		schedulingPolicy: "resource-aware",
-		queue:            make([]*ModelScheduleRequest, 0),
+		queue:            make([]*FabricScheduleRequest, 0),
 		running:          false,
 	}, nil
 }
 
 // Start starts the scheduler
-func (as *ModelScheduler) Start() error {
+func (as *FabricScheduler) Start() error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
@@ -29,7 +29,7 @@ func (as *ModelScheduler) Start() error {
 }
 
 // Stop stops the scheduler
-func (as *ModelScheduler) Stop() error {
+func (as *FabricScheduler) Stop() error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
@@ -37,8 +37,8 @@ func (as *ModelScheduler) Stop() error {
 	return nil
 }
 
-// ScheduleModel adds an model to the scheduling queue
-func (as *ModelScheduler) ScheduleModel(request *ModelScheduleRequest) error {
+// ScheduleFabric adds a fabric item to the scheduling queue
+func (as *FabricScheduler) ScheduleFabric(request *FabricScheduleRequest) error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
@@ -56,7 +56,7 @@ func (as *ModelScheduler) ScheduleModel(request *ModelScheduleRequest) error {
 }
 
 // ProcessQueue processes the scheduling queue
-func (as *ModelScheduler) ProcessQueue() {
+func (as *FabricScheduler) ProcessQueue() {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
@@ -78,7 +78,7 @@ func (as *ModelScheduler) ProcessQueue() {
 }
 
 // sortQueue sorts the queue based on the scheduling policy
-func (as *ModelScheduler) sortQueue() {
+func (as *FabricScheduler) sortQueue() {
 	switch as.schedulingPolicy {
 	case "priority":
 		// Sort by priority (higher priority first)
@@ -101,7 +101,7 @@ func (as *ModelScheduler) sortQueue() {
 }
 
 // calculateResourceScore calculates a score for resource requirements
-func (as *ModelScheduler) calculateResourceScore(resources *ResourceAllocation) float64 {
+func (as *FabricScheduler) calculateResourceScore(resources *ResourceAllocation) float64 {
 	if resources == nil {
 		return 0
 	}
@@ -116,7 +116,7 @@ func (as *ModelScheduler) calculateResourceScore(resources *ResourceAllocation) 
 }
 
 // processRoundRobin processes queue in round-robin fashion
-func (as *ModelScheduler) processRoundRobin() {
+func (as *FabricScheduler) processRoundRobin() {
 	// In round-robin, we just process in FIFO order
 	// This is a simplified implementation
 	if len(as.queue) > 0 {
@@ -126,7 +126,7 @@ func (as *ModelScheduler) processRoundRobin() {
 }
 
 // processResourceAware processes queue based on resource availability
-func (as *ModelScheduler) processResourceAware() {
+func (as *FabricScheduler) processResourceAware() {
 	// This would integrate with the resource pool to check availability
 	// For now, just process the first request that can fit
 
@@ -141,7 +141,7 @@ func (as *ModelScheduler) processResourceAware() {
 }
 
 // processPriority processes queue based on priority
-func (as *ModelScheduler) processPriority() {
+func (as *FabricScheduler) processPriority() {
 	// Process highest priority first
 	if len(as.queue) > 0 {
 		// Remove the first request (highest priority due to sorting)
@@ -150,7 +150,7 @@ func (as *ModelScheduler) processPriority() {
 }
 
 // canSchedule checks if a request can be scheduled
-func (as *ModelScheduler) canSchedule(request *ModelScheduleRequest) bool {
+func (as *FabricScheduler) canSchedule(request *FabricScheduleRequest) bool {
 	// This is a simplified check
 	// In a real implementation, this would check with the resource pool
 	return request.Resources != nil &&
@@ -159,14 +159,14 @@ func (as *ModelScheduler) canSchedule(request *ModelScheduleRequest) bool {
 }
 
 // GetQueueStatus returns the current queue status
-func (as *ModelScheduler) GetQueueStatus() map[string]interface{} {
+func (as *FabricScheduler) GetQueueStatus() map[string]interface{} {
 	as.mu.RLock()
 	defer as.mu.RUnlock()
 
 	queueInfo := make([]map[string]interface{}, len(as.queue))
 	for i, request := range as.queue {
 		queueInfo[i] = map[string]interface{}{
-			"model_name":   request.ModelName,
+			"fabric_name":  request.FabricName,
 			"binary":       request.Binary,
 			"priority":     request.Priority,
 			"request_time": request.RequestTime,
@@ -187,7 +187,7 @@ func (as *ModelScheduler) GetQueueStatus() map[string]interface{} {
 }
 
 // SetSchedulingPolicy sets the scheduling policy
-func (as *ModelScheduler) SetSchedulingPolicy(policy string) error {
+func (as *FabricScheduler) SetSchedulingPolicy(policy string) error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
@@ -204,26 +204,26 @@ func (as *ModelScheduler) SetSchedulingPolicy(policy string) error {
 }
 
 // GetSchedulingPolicy returns the current scheduling policy
-func (as *ModelScheduler) GetSchedulingPolicy() string {
+func (as *FabricScheduler) GetSchedulingPolicy() string {
 	as.mu.RLock()
 	defer as.mu.RUnlock()
 	return as.schedulingPolicy
 }
 
 // ClearQueue clears the scheduling queue
-func (as *ModelScheduler) ClearQueue() {
+func (as *FabricScheduler) ClearQueue() {
 	as.mu.Lock()
 	defer as.mu.Unlock()
-	as.queue = make([]*ModelScheduleRequest, 0)
+	as.queue = make([]*FabricScheduleRequest, 0)
 }
 
 // RemoveFromQueue removes a specific request from the queue
-func (as *ModelScheduler) RemoveFromQueue(modelName string) bool {
+func (as *FabricScheduler) RemoveFromQueue(fabricName string) bool {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
 	for i, request := range as.queue {
-		if request.ModelName == modelName {
+		if request.FabricName == fabricName {
 			as.queue = append(as.queue[:i], as.queue[i+1:]...)
 			return true
 		}
@@ -233,23 +233,23 @@ func (as *ModelScheduler) RemoveFromQueue(modelName string) bool {
 }
 
 // GetQueueSize returns the current queue size
-func (as *ModelScheduler) GetQueueSize() int {
+func (as *FabricScheduler) GetQueueSize() int {
 	as.mu.RLock()
 	defer as.mu.RUnlock()
 	return len(as.queue)
 }
 
 // IsRunning returns whether the scheduler is running
-func (as *ModelScheduler) IsRunning() bool {
+func (as *FabricScheduler) IsRunning() bool {
 	as.mu.RLock()
 	defer as.mu.RUnlock()
 	return as.running
 }
 
-// NewModelScheduleRequest creates a new schedule request
-func NewModelScheduleRequest(modelName, binary string, resources *ResourceAllocation, config map[string]interface{}, priority int) *ModelScheduleRequest {
-	return &ModelScheduleRequest{
-		ModelName:   modelName,
+// NewFabricScheduleRequest creates a new schedule request
+func NewFabricScheduleRequest(fabricName, binary string, resources *ResourceAllocation, config map[string]interface{}, priority int) *FabricScheduleRequest {
+	return &FabricScheduleRequest{
+		FabricName:  fabricName,
 		Binary:      binary,
 		Resources:   resources,
 		Config:      config,
@@ -258,20 +258,20 @@ func NewModelScheduleRequest(modelName, binary string, resources *ResourceAlloca
 	}
 }
 
-// ScheduleModelWithDefaults schedules an model with default resource allocation
-func (as *ModelScheduler) ScheduleModelWithDefaults(modelName, binary string, config map[string]interface{}) error {
+// ScheduleFabricWithDefaults schedules a fabric unit with default resource allocation
+func (as *FabricScheduler) ScheduleFabricWithDefaults(fabricName, binary string, config map[string]interface{}) error {
 	defaultResources := &ResourceAllocation{
 		CPUCores:    0.5,
 		MemoryBytes: 256 * 1024 * 1024,  // 256MB
 		DiskBytes:   1024 * 1024 * 1024, // 1GB
 	}
 
-	request := NewModelScheduleRequest(modelName, binary, defaultResources, config, 0)
-	return as.ScheduleModel(request)
+	request := NewFabricScheduleRequest(fabricName, binary, defaultResources, config, 0)
+	return as.ScheduleFabric(request)
 }
 
-// ScheduleModelWithPriority schedules an model with specific priority
-func (as *ModelScheduler) ScheduleModelWithPriority(modelName, binary string, resources *ResourceAllocation, config map[string]interface{}, priority int) error {
-	request := NewModelScheduleRequest(modelName, binary, resources, config, priority)
-	return as.ScheduleModel(request)
+// ScheduleFabricWithPriority schedules a fabric item with specific priority
+func (as *FabricScheduler) ScheduleFabricWithPriority(fabricName, binary string, resources *ResourceAllocation, config map[string]interface{}, priority int) error {
+	request := NewFabricScheduleRequest(fabricName, binary, resources, config, priority)
+	return as.ScheduleFabric(request)
 }

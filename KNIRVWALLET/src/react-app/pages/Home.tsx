@@ -38,17 +38,17 @@ export default function Home() {
   return (
     <Layout>
       <div className="p-4 pb-24 space-y-6">
-        {/* Welcome Section */}
+        {/* Welcome Section - Gradient Text */}
         <div className="text-center py-6">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+          <h2 className="text-2xl font-bold gradient-text mb-2">
             Autonomous Gateway Active
           </h2>
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-400 text-sm font-mono uppercase tracking-wider">
             Your AI agents are connected to the D-TEN network
           </p>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Glass Panel Style */}
         <div className="grid grid-cols-2 gap-4">
           <StatsCard
             title="Active Agents"
@@ -80,21 +80,21 @@ export default function Home() {
           />
         </div>
 
-        {/* SEAL Loop Status */}
+        {/* SEAL Loop Status - Blue Accent */}
         <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600/50 to-cyan-600/50 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-300"></div>
-          <div className="relative bg-slate-800/80 backdrop-blur-xl rounded-xl p-4 border border-green-500/30">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600/50 to-blue-800/50 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-300"></div>
+          <div className="relative glass-panel p-4 glow-hover">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse pulse-blue"></div>
                 <div>
                   <h3 className="font-semibold text-white">SEAL Loop Active</h3>
-                  <p className="text-sm text-green-400">Continuous optimization running</p>
+                  <p className="text-sm text-blue-400 font-mono">Continuous optimization running</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm text-slate-400">Next cycle</p>
-                <p className="text-xs text-slate-500">in 3m 24s</p>
+                <p className="text-sm text-slate-400 font-mono">Next cycle</p>
+                <p className="text-xs text-slate-500 font-mono">in 3m 24s</p>
               </div>
             </div>
           </div>
@@ -104,7 +104,7 @@ export default function Home() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">Your Agents</h3>
-            <button className="text-sm text-purple-400 hover:text-purple-300 transition-colors">
+            <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors font-mono uppercase">
               View All
             </button>
           </div>
@@ -156,11 +156,11 @@ interface ActionButtonProps {
 function ActionButton({ icon: Icon, title, description }: ActionButtonProps) {
   return (
     <button className="relative group">
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600/30 to-cyan-600/30 rounded-xl blur opacity-20 group-hover:opacity-50 group-active:opacity-75 transition duration-200"></div>
-      <div className="relative bg-slate-800/60 backdrop-blur-xl rounded-xl p-4 border border-slate-700/50 hover:border-purple-500/50 group-active:scale-95 transition-all text-left">
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600/30 to-blue-800/30 rounded-xl blur opacity-20 group-hover:opacity-50 group-active:opacity-75 transition duration-200"></div>
+      <div className="relative glass-panel p-4 hover:border-blue-500/50 group-active:scale-95 transition-all text-left glow-hover">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center border border-purple-500/20">
-            <Icon className="w-5 h-5 text-purple-400" />
+          <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/20">
+            <Icon className="w-5 h-5 text-blue-400" />
           </div>
           <div>
             <h4 className="font-medium text-white text-sm">{title}</h4>

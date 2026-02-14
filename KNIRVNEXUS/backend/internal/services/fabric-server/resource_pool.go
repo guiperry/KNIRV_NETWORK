@@ -1,4 +1,4 @@
-package objectserver
+package fabricserver
 
 import (
 	"fmt"
@@ -82,7 +82,7 @@ func (rp *ResourcePool) getDiskInfo(path string) (uint64, error) {
 	return totalSpace, nil
 }
 
-// AllocateResources allocates resources for an model
+// AllocateResources allocates resources for a fabric unit
 func (rp *ResourcePool) AllocateResources(requested *ResourceAllocation) (*ResourceAllocation, error) {
 	rp.mu.Lock()
 	defer rp.mu.Unlock()

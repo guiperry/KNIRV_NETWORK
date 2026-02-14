@@ -249,7 +249,7 @@ func (vc *ValidationCore) GetValidationTasks(filter *TaskFilter) ([]*objects.Val
 	}
 
 	// Convert to objects.ValidationTask
-	var result []*objects.ValidationTask
+	result := make([]*objects.ValidationTask, 0)
 	for _, task := range localTasks {
 		// Set default timeout if not set
 		timeoutAt := time.Time{}

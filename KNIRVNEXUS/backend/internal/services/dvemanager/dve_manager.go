@@ -750,13 +750,22 @@ func (dm *DVEManager) GetNode(nodeID string) (*objects.DVENode, error) {
 	dm.mu.RLock()
 	defer dm.mu.RUnlock()
 
-	if dm.nodeTracker == nil {
-		return nil, fmt.Errorf("node tracker not initialized")
+	// First try to get from in-memory tracker
+	if dm.nodeTracker != nil {
+		if node, exists := dm.nodeTracker.GetNode(nodeID); exists {
+			return node, nil
+		}
 	}
 
-	node, exists := dm.nodeTracker.GetNode(nodeID)
-	if !exists {
+	// Fall back to database lookup
+	node, err := dm.getNodeFromDB(nodeID)
+	if err != nil {
 		return nil, fmt.Errorf("node not found")
+	}
+
+	// Add to tracker for future lookups (best effort, don't fail if tracker is nil)
+	if dm.nodeTracker != nil {
+		dm.nodeTracker.AddNode(node)
 	}
 
 	return node, nil

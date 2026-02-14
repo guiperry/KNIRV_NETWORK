@@ -16,11 +16,8 @@ import (
 	"backend_server/internal/config"
 	data_engine "backend_server/internal/data_engine"
 	"backend_server/internal/database"
-	"backend_server/internal/demos/deployment"
 	"backend_server/internal/ebpf"
-	"backend_server/internal/mlcengine"
 	"backend_server/internal/runtime"
-	"backend_server/internal/services/cortex"
 	"backend_server/internal/services/blockchain"
 	"backend_server/internal/services/cde"
 	"backend_server/internal/services/cognitiveengine"
@@ -30,9 +27,9 @@ import (
 	"backend_server/internal/services/dvemanager"
 	"backend_server/internal/services/dverental"
 	"backend_server/internal/services/endpoints"
+	fabricserver "backend_server/internal/services/fabric-server"
+	"backend_server/internal/services/fabricmanagement"
 	inference "backend_server/internal/services/inferencer"
-	modelserver "backend_server/internal/services/model-server"
-	"backend_server/internal/services/modelmanagement"
 	"backend_server/internal/services/p2p"
 	"backend_server/internal/services/payment"
 	"backend_server/internal/services/session"
@@ -75,13 +72,13 @@ type Server struct {
 	validationCore               *validation.ValidationCore
 	cdeService                   *cde.CDEService
 	dnsService                   *dns.DynamicDNSService
-	modelServer                  *modelserver.ModelServer
+	fabricServer                 *fabricserver.FabricServer
 	dataEngine                   *data_engine.BuntDBDataEngine
 	inferenceService             *inference.InferenceService
 	websocketService             *websocket.WebSocketService
 	teeSecurityService           *teesecurity.TEESecurityService
 	systemHealthService          *systemhealth.SystemHealthService
-	modelManagementService       *modelmanagement.ModelManagementService
+	fabricManagementService      *fabricmanagement.FabricManagementService
 	controllerIntegrationService *controllerintegration.ControllerIntegrationService
 	dveRentalService             *dverental.DVERentalService
 	cognitiveEngine              *cognitiveengine.CognitiveEngine
@@ -93,7 +90,6 @@ type Server struct {
 
 	// Object Nest subsystem
 	unifiedContainerManager *runtime.UnifiedContainerManager
-	demoDeployer            *deployment.DemoDeployer
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -289,27 +285,22 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize DVE manager: %w", err)
 	}
 
-	// Ensure model server storage path is explicitly set to app data directory if empty
+	// Ensure fabric server storage path is explicitly set to app data directory if empty
 	if cfg.ModelServer.StoragePath == "" {
 		appDataDir, err := getOSAppDataDir()
 		if err != nil {
 			// Log the error but proceed with a fallback that logs a warning.
-			// The user explicitly stated they want it in the app data dir,
-			// so if we can't determine it, it's a critical warning.
-			logger.Warn("Could not determine app data directory for model server storage, falling back to a relative 'models' directory", zap.Error(err))
-			// This fallback still creates 'models' in CWD, but it's a last resort after trying appDataDir.
-			// The problem description implies this is the source of the issue,
-			// but we can't create an absolute path without appDataDir.
+			logger.Warn("Could not determine app data directory for fabric server storage, falling back to a relative 'models' directory", zap.Error(err))
 			cfg.ModelServer.StoragePath = "models"
 		} else {
 			cfg.ModelServer.StoragePath = filepath.Join(appDataDir, "models")
-			logger.Info("Setting model server storage path to app data directory", zap.String("path", cfg.ModelServer.StoragePath))
+			logger.Info("Setting fabric server storage path to app data directory", zap.String("path", cfg.ModelServer.StoragePath))
 		}
 	}
 
-	modelServer, err := modelserver.NewModelServer(cfg, dbManager)
+	fabricServer, err := fabricserver.NewFabricServer(cfg, dbManager)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize model server: %w", err)
+		return nil, fmt.Errorf("failed to initialize fabric server: %w", err)
 	}
 
 	// Initialize data engine
@@ -372,9 +363,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	systemHealthService := systemhealth.NewSystemHealthService(dbManager.GetDB())
 	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService)
 
-	// Initialize Model Management service
-	modelManagementService := modelmanagement.NewModelManagementService(dbManager.GetDB())
-	modelManagementService.SetModelServerReference(modelServer)
+	// Initialize Fabric Management service
+	fabricManagementService := fabricmanagement.NewFabricManagementService(dbManager.GetDB())
+	fabricManagementService.SetFabricServerReference(fabricServer)
 
 	// Initialize Controller Integration service
 	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager.GetDB())
@@ -512,7 +503,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	)
 
 	// Initialize Cognitive Engine
-	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager.GetDB(), validationCore, inferenceService, modelManagementService)
+	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager.GetDB(), validationCore, inferenceService, fabricManagementService)
 
 	// Initialize Object Nest subsystem
 	unifiedContainerManager := runtime.NewUnifiedContainerManager(
@@ -520,9 +511,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		ebpfManager,
 		virtualContainerManager,
 	)
-
-	// Initialize demo deployer (manages all demo NOCs)
-	demoDeployer := deployment.NewDemoDeployer(unifiedContainerManager)
 
 	// Create context for service lifecycle management
 	ctx, cancel := context.WithCancel(context.Background())
@@ -539,13 +527,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		validationCore:               validationCore,
 		cdeService:                   cdeService,
 		dnsService:                   dnsService,
-		modelServer:                  modelServer,
+		fabricServer:                 fabricServer,
 		dataEngine:                   dataEngine,
 		inferenceService:             inferenceService,
 		websocketService:             nil, // Will be set in setupRoutes
 		teeSecurityService:           teeSecurityService,
 		systemHealthService:          systemHealthService,
-		modelManagementService:       modelManagementService,
+		fabricManagementService:      fabricManagementService,
 		controllerIntegrationService: controllerIntegrationService,
 		dveRentalService:             dveRentalService,
 		cognitiveEngine:              cognitiveEngine,
@@ -555,7 +543,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		stripeService:                stripeService,
 		paypalService:                paypalService,
 		unifiedContainerManager:      unifiedContainerManager,
-		demoDeployer:                 demoDeployer,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -569,9 +556,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 
 // setupRoutes configures all HTTP routes for the unified server
 func (s *Server) setupRoutes() {
-	// Add CORS middleware
-	s.router.Use(middleware.CORSMiddlewareHTTP())
-
 	// Health check endpoint
 	s.router.HandleFunc("/health", s.handleHealth).Methods("GET")
 	s.router.HandleFunc("/api/health", s.handleHealth).Methods("GET")
@@ -641,9 +625,9 @@ func (s *Server) setupRoutes() {
 		s.validationCore.RegisterRoutes(s.router, authMiddleware)
 	}
 
-	// Register model server routes
-	if s.modelServer != nil {
-		s.modelServer.RegisterRoutes(s.router)
+	// Register fabric server routes
+	if s.fabricServer != nil {
+		s.fabricServer.RegisterRoutes(s.router)
 	}
 
 	// Register CDE service routes (when available)
@@ -697,11 +681,11 @@ func (s *Server) setupRoutes() {
 		log.Println("System health service routes configured")
 	}
 
-	// Register model management service routes
-	if s.modelManagementService != nil {
-		modelManagementHandlers := web.NewModelManagementHandlers(s.modelManagementService)
-		modelManagementHandlers.RegisterRoutes(s.router, authMiddleware)
-		log.Println("Model management service routes configured")
+	// Register fabric management service routes
+	if s.fabricManagementService != nil {
+		fabricManagementHandlers := web.NewFabricManagementHandlers(s.fabricManagementService)
+		fabricManagementHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("Fabric management service routes configured")
 	}
 
 	// Register controller integration service routes
@@ -780,7 +764,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"virtual_container_mgr":  s.virtualContainerManager != nil,
 			"dve_manager":            s.dveManager != nil,
 			"validation_core":        s.validationCore != nil,
-			"model_server":           s.modelServer != nil,
+			"fabric_server":          s.fabricServer != nil,
 			"data_engine":            s.dataEngine != nil,
 			"inference_service":      s.inferenceService != nil,
 			"websocket_service":      s.websocketService != nil,
@@ -844,13 +828,13 @@ func (s *Server) Start() error {
 		}
 	}
 
-	// Start model server
-	if s.modelServer != nil {
-		if err := s.modelServer.Start(); err != nil {
-			log.Printf("Warning: Failed to start model server: %v", err)
-			// Continue - model server failure shouldn't stop basic server operation
+	// Start fabric server
+	if s.fabricServer != nil {
+		if err := s.fabricServer.Start(); err != nil {
+			log.Printf("Warning: Failed to start fabric server: %v", err)
+			// Continue - fabric server failure shouldn't stop basic server operation
 		} else {
-			log.Println("Model Server started")
+			log.Println("Fabric Server started")
 		}
 	}
 
@@ -909,13 +893,13 @@ func (s *Server) Start() error {
 		}
 	}
 
-	// Start Model Management service
-	if s.modelManagementService != nil {
-		if err := s.modelManagementService.Start(); err != nil {
-			log.Printf("Warning: Failed to start Model Management service: %v", err)
-			// Continue - model management failure shouldn't stop basic server operation
+	// Start Fabric Management service
+	if s.fabricManagementService != nil {
+		if err := s.fabricManagementService.Start(); err != nil {
+			log.Printf("Warning: Failed to start Fabric Management service: %v", err)
+			// Continue - fabric management failure shouldn't stop basic server operation
 		} else {
-			log.Println("Model Management Service started")
+			log.Println("Fabric Management Service started")
 		}
 	}
 
@@ -969,31 +953,14 @@ func (s *Server) Start() error {
 		}
 	}
 
-	// Deploy demo NOCs if enabled (auto-deploy by default)
-	if s.demoDeployer != nil && (s.config.DemoMode || s.config.AutoDeployDemos) {
-		log.Println("🚀 Auto-deploying demo NOCs...")
-		go func() {
-			// Wait for services to be ready
-			time.Sleep(5 * time.Second)
-
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-			defer cancel()
-
-			if err := s.demoDeployer.DeployAll(ctx); err != nil {
-				log.Printf("ERROR: Demo deployment failed: %v", err)
-			}
-		}()
-	}
-
 	// Validate server configuration before creating HTTP server
 	if s.config == nil || s.config.API.BindAddress == "" || s.config.API.Port <= 0 {
 		return fmt.Errorf("invalid server configuration: bind address and port must be specified")
 	}
 
-	// Create HTTP server
 	s.httpServer = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", s.config.API.BindAddress, s.config.API.Port),
-		Handler:      s.router,
+		Handler:      middleware.CORSMiddlewareHTTP()(s.router),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -1051,16 +1018,6 @@ func (s *Server) Stop() error {
 		}
 	}
 
-	// Cleanup demo NOCs
-	if s.demoDeployer != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		if err := s.demoDeployer.Cleanup(ctx); err != nil {
-			log.Printf("Error cleaning up demos: %v", err)
-		}
-	}
-
 	if s.websocketService != nil {
 		if err := s.websocketService.Stop(); err != nil {
 			log.Printf("Error stopping WebSocket service: %v", err)
@@ -1079,9 +1036,9 @@ func (s *Server) Stop() error {
 		}
 	}
 
-	if s.modelManagementService != nil {
-		if err := s.modelManagementService.Stop(); err != nil {
-			log.Printf("Error stopping Model Management service: %v", err)
+	if s.fabricManagementService != nil {
+		if err := s.fabricManagementService.Stop(); err != nil {
+			log.Printf("Error stopping Fabric Management service: %v", err)
 		}
 	}
 
@@ -1121,9 +1078,9 @@ func (s *Server) Stop() error {
 		}
 	}
 
-	if s.modelServer != nil {
-		if err := s.modelServer.Stop(); err != nil {
-			log.Printf("Error stopping model server: %v", err)
+	if s.fabricServer != nil {
+		if err := s.fabricServer.Stop(); err != nil {
+			log.Printf("Error stopping fabric server: %v", err)
 		}
 	}
 
@@ -1323,18 +1280,6 @@ func run() error {
 	}
 
 	log.Println("--- KNIRVNEXUS STARTUP ---")
-
-	// 1. Check/Build the AI Engine
-	if err := mlcengine.EnsureEngine(); err != nil {
-		log.Fatalf("Critical Failure: AI Engine could not be initialized: %v", err)
-	}
-
-	// 2. Initialize the Cortex (Wasm/Plugin host)
-	// Passing a reference to the Engine we just built
-	nexus, err := cortex.NewNexusDaemon()
-	if err != nil {
-		log.Fatalf("Failed to start Nexus Daemon: %v", err)
-	}
 
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)

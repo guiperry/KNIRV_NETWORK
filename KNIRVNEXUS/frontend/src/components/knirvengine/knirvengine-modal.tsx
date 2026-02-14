@@ -100,7 +100,7 @@ export function KNIRVEngineModal({ isOpen, onClose, nodeId }: KNIRVEngineModalPr
             <Tabs defaultValue="dashboard" className="space-y-6">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                <TabsTrigger value="models">Models</TabsTrigger>
+                <TabsTrigger value="fabric">Fabric</TabsTrigger>
                 <TabsTrigger value="tasks">Tasks</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
@@ -209,7 +209,7 @@ export function KNIRVEngineModal({ isOpen, onClose, nodeId }: KNIRVEngineModalPr
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">{engineMetrics.accuracy}</div>
-                      <p className="text-xs text-muted-foreground">Average model accuracy</p>
+                      <p className="text-xs text-muted-foreground">Average fabric accuracy</p>
                     </CardContent>
                   </Card>
 
@@ -225,13 +225,13 @@ export function KNIRVEngineModal({ isOpen, onClose, nodeId }: KNIRVEngineModalPr
                 </div>
               </TabsContent>
 
-              <TabsContent value="models" className="space-y-4">
+              <TabsContent value="fabric" className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Active Models</h3>
+                  <h3 className="text-lg font-semibold">Active Fabric Items</h3>
                   <div className="flex space-x-2">
                     <Button variant="outline" size="sm">
                       <Download className="w-4 h-4 mr-2" />
-                      Export Model Data
+                      Export Fabric Data
                     </Button>
                     <Button variant="outline" size="sm">
                       <Share2 className="w-4 h-4 mr-2" />
@@ -261,7 +261,7 @@ export function KNIRVEngineModal({ isOpen, onClose, nodeId }: KNIRVEngineModalPr
                         </div>
                         <Button variant="outline" size="sm" className="w-full mt-2">
                           <Download className="w-3 h-3 mr-1" />
-                          Model Reports
+                          Fabric Reports
                         </Button>
                       </CardContent>
                     </Card>

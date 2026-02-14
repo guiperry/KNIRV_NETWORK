@@ -17,23 +17,22 @@ export default function StatsCard({ title, value, change, icon: Icon, trend = 'n
 
   return (
     <div className="relative group">
-      {/* Card Glow Effect */}
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600/50 to-cyan-600/50 rounded-xl blur opacity-20 group-hover:opacity-50 transition duration-300"></div>
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600/30 to-blue-800/30 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
       
-      <div className="relative bg-slate-800/80 backdrop-blur-xl rounded-xl p-4 border border-slate-700/50 hover:border-purple-500/30 transition-all">
+      <div className="relative glass-panel p-4 glow-hover">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <p className="text-sm text-slate-400 mb-1">{title}</p>
+            <p className="text-xs text-slate-500 mb-1 font-mono uppercase tracking-wider">{title}</p>
             <p className="text-2xl font-bold text-white">{value}</p>
             {change && (
-              <p className={`text-xs ${trendColors[trend]} mt-1`}>
+              <p className={`text-xs ${trendColors[trend]} mt-1 font-mono`}>
                 {change}
               </p>
             )}
           </div>
           <div className="ml-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-xl flex items-center justify-center border border-purple-500/20">
-              <Icon className="w-6 h-6 text-purple-400" />
+            <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center border border-blue-500/20">
+              <Icon className="w-6 h-6 text-blue-400" />
             </div>
           </div>
         </div>

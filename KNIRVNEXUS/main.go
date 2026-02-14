@@ -23,10 +23,9 @@ import (
 
 // Embed the Next.js build output
 //
-////go:embed all:frontend/out/*  <-- commented out
-//var embeddedFiles embed.FS  <-- commented out
-// Temporarily provide an empty embed.FS if frontend is disabled, to allow compilation
-var embeddedFiles embed.FS // Provide a dummy empty embed.FS
+//go:embed all:frontend/out/*
+var embeddedFiles embed.FS  
+
 
 // Embed the unified backend binary
 //
@@ -174,12 +173,28 @@ func NewNexusApp(config *Config) (*NexusApp, error) {
 
 	// CORS middleware
 	app.router.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
+		origin := c.GetHeader("Origin")
+		if origin != "" {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Credentials", "true")
+		} else {
+			c.Header("Access-Control-Allow-Origin", "*")
+		}
+		
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		
+		reqHeaders := c.GetHeader("Access-Control-Request-Headers")
+		if reqHeaders != "" {
+			c.Header("Access-Control-Allow-Headers", reqHeaders)
+		} else {
+			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token, X-CSRF-Token")
+		}
+		
+		c.Header("Access-Control-Expose-Headers", "X-Request-ID, Content-Length, Content-Range")
+		c.Header("Access-Control-Max-Age", "86400")
 
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+			c.AbortWithStatus(200)
 			return
 		}
 
@@ -366,7 +381,8 @@ func (app *NexusApp) setupRoutes() error {
 	{
 		api.Any("/*path", func(c *gin.Context) {
 			// Proxy to backend running on configured port
-			backendURL := fmt.Sprintf("http://localhost:%d%s", app.config.BackendPort, c.Request.URL.Path)
+			// Use the full original URL path and query string
+			backendURL := fmt.Sprintf("http://localhost:%d%s", app.config.BackendPort, c.Request.RequestURI)
 
 			// Create proxy request
 			req, err := http.NewRequest(c.Request.Method, backendURL, c.Request.Body)
@@ -383,9 +399,16 @@ func (app *NexusApp) setupRoutes() error {
 			}
 
 			// Make request to backend
-			client := &http.Client{Timeout: 30 * time.Second}
+			client := &http.Client{
+				Timeout: 60 * time.Second,
+				// Do not follow redirects automatically
+				CheckRedirect: func(req *http.Request, via []*http.Request) error {
+					return http.ErrUseLastResponse
+				},
+			}
 			resp, err := client.Do(req)
 			if err != nil {
+				log.Printf("Proxy error: %v", err)
 				c.JSON(500, gin.H{"error": "Backend service unavailable"})
 				return
 			}
@@ -398,7 +421,7 @@ func (app *NexusApp) setupRoutes() error {
 				}
 			}
 
-			// Copy response
+			// Copy response status and body
 			c.Status(resp.StatusCode)
 			io.Copy(c.Writer, resp.Body)
 		})

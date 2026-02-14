@@ -228,7 +228,7 @@ describe('useCognitiveEngine', () => {
     });
 
     await act(async () => {
-      await result.current.updateModel('v3.0.0');
+      await result.current.updateFabricVersion('v3.0.0');
     });
 
     expect(mockApiRequest).toHaveBeenCalledWith(

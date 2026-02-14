@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔍 Verifying KNIRV-AGENTIFIER Voice Integration...\n');
+console.log('🔍 Verifying KNIRV-CONTROLLER Voice Integration...\n');
 
 // Check if all required files exist
 const requiredFiles = [

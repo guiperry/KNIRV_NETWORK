@@ -1,4 +1,4 @@
-package objectserver
+package fabricserver
 
 import (
 	"context"
@@ -13,21 +13,21 @@ import (
 	"backend_server/internal/objects"
 )
 
-// RuntimeManager manages live model runtime hosting
+// RuntimeManager manages live fabric runtime hosting
 type RuntimeManager struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	mu     sync.RWMutex
 
-	activeModels map[string]*ModelInstance
-	resourcePool *ResourcePool
-	scheduler    *ModelScheduler
-	processMgr   *NativeProcessManager
-	wasmRuntime  *WASMRuntime
+	activeFabrics map[string]*FabricInstance
+	resourcePool  *ResourcePool
+	scheduler     *FabricScheduler
+	processMgr    *NativeProcessManager
+	wasmRuntime   *WASMRuntime
 
 	// Configuration
-	modelDir       string
-	maxModels      int
+	fabricDir      string
+	maxFabrics     int
 	resourceLimits *ResourceLimits
 
 	// Monitoring
@@ -35,22 +35,22 @@ type RuntimeManager struct {
 	running    bool
 }
 
-// ModelInstance represents a running model instance
-type ModelInstance struct {
-	ID            string      `json:"id"`
-	Name          string      `json:"name"`
-	Binary        string      `json:"binary"`
-	Status        ModelStatus `json:"status"`
-	PID           int         `json:"pid"`
-	StartTime     time.Time   `json:"start_time"`
-	LastHeartbeat time.Time   `json:"last_heartbeat"`
+// FabricInstance represents a running fabric instance
+type FabricInstance struct {
+	ID            string       `json:"id"`
+	Name          string       `json:"name"`
+	Binary        string       `json:"binary"`
+	Status        FabricStatus `json:"status"`
+	PID           int          `json:"pid"`
+	StartTime     time.Time    `json:"start_time"`
+	LastHeartbeat time.Time    `json:"last_heartbeat"`
 
 	// Resource allocation
 	Resources *ResourceAllocation `json:"resources"`
-	Metrics   *ModelMetrics       `json:"metrics"`
+	Metrics   *FabricMetrics      `json:"metrics"`
 
 	// Communication
-	Communication *ModelComm `json:"communication"`
+	Communication *FabricComm `json:"communication"`
 
 	// Process management
 	Process *os.Process `json:"-"`
@@ -73,19 +73,19 @@ type ModelInstance struct {
 	Chroot       string   `json:"chroot,omitempty"`
 }
 
-// ModelStatus represents the status of an model
-type ModelStatus string
+// FabricStatus represents the status of a fabric item
+type FabricStatus string
 
 const (
-	ModelStatusStarting   ModelStatus = "starting"
-	ModelStatusRunning    ModelStatus = "running"
-	ModelStatusStopping   ModelStatus = "stopping"
-	ModelStatusStopped    ModelStatus = "stopped"
-	ModelStatusFailed     ModelStatus = "failed"
-	ModelStatusRestarting ModelStatus = "restarting"
+	FabricStatusStarting   FabricStatus = "starting"
+	FabricStatusRunning    FabricStatus = "running"
+	FabricStatusStopping   FabricStatus = "stopping"
+	FabricStatusStopped    FabricStatus = "stopped"
+	FabricStatusFailed     FabricStatus = "failed"
+	FabricStatusRestarting FabricStatus = "restarting"
 )
 
-// ResourceAllocation represents allocated resources for an model
+// ResourceAllocation represents allocated resources for a fabric unit
 type ResourceAllocation struct {
 	CPUCores         float64 `json:"cpu_cores"`
 	MemoryBytes      uint64  `json:"memory_bytes"`
@@ -102,8 +102,8 @@ type ResourceAllocation struct {
 	SystemdSlice string `json:"systemd_slice"`
 }
 
-// ModelMetrics represents runtime metrics for an model
-type ModelMetrics struct {
+// FabricMetrics represents runtime metrics for a fabric item
+type FabricMetrics struct {
 	CPUUsage    float64 `json:"cpu_usage"`
 	MemoryUsage uint64  `json:"memory_usage"`
 	DiskUsage   uint64  `json:"disk_usage"`
@@ -123,8 +123,8 @@ type ModelMetrics struct {
 	CollectedAt time.Time `json:"collected_at"`
 }
 
-// ModelComm represents communication settings for an model
-type ModelComm struct {
+// FabricComm represents communication settings for a fabric item
+type FabricComm struct {
 	SocketPath string `json:"socket_path"`
 	Port       int    `json:"port,omitempty"`
 	Protocol   string `json:"protocol"` // unix, tcp, http
@@ -153,18 +153,18 @@ type ResourcePool struct {
 	AllocatedDisk   uint64  `json:"allocated_disk"`
 }
 
-// ModelScheduler handles model scheduling and placement
-type ModelScheduler struct {
+// FabricScheduler handles fabric scheduling and placement
+type FabricScheduler struct {
 	mu sync.RWMutex
 
 	schedulingPolicy string // round-robin, resource-aware, priority
-	queue            []*ModelScheduleRequest
+	queue            []*FabricScheduleRequest
 	running          bool
 }
 
-// ModelScheduleRequest represents a request to schedule an model
-type ModelScheduleRequest struct {
-	ModelName   string                 `json:"model_name"`
+// FabricScheduleRequest represents a request to schedule a fabric item
+type FabricScheduleRequest struct {
+	FabricName  string                 `json:"fabric_name"`
 	Binary      string                 `json:"binary"`
 	Resources   *ResourceAllocation    `json:"resources"`
 	Config      map[string]interface{} `json:"config"`
@@ -183,7 +183,7 @@ type NativeProcessManager struct {
 // ProcessInfo contains information about a managed process
 type ProcessInfo struct {
 	PID       int       `json:"pid"`
-	ModelID   string    `json:"model_id"`
+	FabricID  string    `json:"fabric_id"`
 	Command   string    `json:"command"`
 	StartTime time.Time `json:"start_time"`
 	Status    string    `json:"status"`
@@ -204,9 +204,9 @@ type CgroupManager struct {
 
 // ResourceLimits defines system-wide resource limits
 type ResourceLimits struct {
-	MaxCPUPerModel    float64 `json:"max_cpu_per_model"`
-	MaxMemoryPerModel uint64  `json:"max_memory_per_model"`
-	MaxDiskPerModel   uint64  `json:"max_disk_per_model"`
+	MaxCPUPerFabric    float64 `json:"max_cpu_per_fabric"`
+	MaxMemoryPerFabric uint64  `json:"max_memory_per_fabric"`
+	MaxDiskPerFabric   uint64  `json:"max_disk_per_fabric"`
 
 	MaxTotalCPU    float64 `json:"max_total_cpu"`
 	MaxTotalMemory uint64  `json:"max_total_memory"`
@@ -218,22 +218,22 @@ type ResourceLimits struct {
 }
 
 // NewRuntimeManager creates a new runtime manager
-func NewRuntimeManager(ctx context.Context, modelDir string, maxModels int) (*RuntimeManager, error) {
+func NewRuntimeManager(ctx context.Context, fabricDir string, maxFabrics int) (*RuntimeManager, error) {
 	runtimeCtx, cancel := context.WithCancel(ctx)
 
 	rm := &RuntimeManager{
-		ctx:          runtimeCtx,
-		cancel:       cancel,
-		activeModels: make(map[string]*ModelInstance),
-		modelDir:     modelDir,
-		maxModels:    maxModels,
+		ctx:           runtimeCtx,
+		cancel:        cancel,
+		activeFabrics: make(map[string]*FabricInstance),
+		fabricDir:     fabricDir,
+		maxFabrics:    maxFabrics,
 		resourceLimits: &ResourceLimits{
-			MaxCPUPerModel:    2.0,
-			MaxMemoryPerModel: 1024 * 1024 * 1024,      // 1GB
-			MaxDiskPerModel:   10 * 1024 * 1024 * 1024, // 10GB
-			DefaultCPU:        0.5,
-			DefaultMemory:     256 * 1024 * 1024,  // 256MB
-			DefaultDisk:       1024 * 1024 * 1024, // 1GB
+			MaxCPUPerFabric:    2.0,
+			MaxMemoryPerFabric: 1024 * 1024 * 1024,      // 1GB
+			MaxDiskPerFabric:   10 * 1024 * 1024 * 1024, // 10GB
+			DefaultCPU:         0.5,
+			DefaultMemory:      256 * 1024 * 1024,  // 256MB
+			DefaultDisk:        1024 * 1024 * 1024, // 1GB
 		},
 	}
 
@@ -246,7 +246,7 @@ func NewRuntimeManager(ctx context.Context, modelDir string, maxModels int) (*Ru
 		return nil, fmt.Errorf("failed to create resource pool: %w", err)
 	}
 
-	rm.scheduler, err = NewModelScheduler()
+	rm.scheduler, err = NewFabricScheduler()
 	if err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to create scheduler: %w", err)
@@ -265,7 +265,7 @@ func NewRuntimeManager(ctx context.Context, modelDir string, maxModels int) (*Ru
 		MaxInstances:     10,
 		EnableProfiling:  true,
 		EnableDebugging:  false,
-		ResourceLimits:   nil, // Will be set per model
+		ResourceLimits:   nil, // Will be set per fabric unit
 	}
 	rm.wasmRuntime, err = NewWASMRuntime(wasmConfig)
 	if err != nil {
@@ -274,7 +274,7 @@ func NewRuntimeManager(ctx context.Context, modelDir string, maxModels int) (*Ru
 	}
 
 	// Set default resource limits for the WASM runtime
-	defaultLimits := &objects.ModelResourceLimits{
+	defaultLimits := &objects.FabricResourceLimits{
 		MaxCPUPercent:    50.0, // 50% CPU limit
 		MaxMemoryMB:      256,  // 256MB memory limit
 		MaxExecutionTime: 30,   // 30 seconds execution time
@@ -329,10 +329,10 @@ func (rm *RuntimeManager) Stop() error {
 
 	rm.running = false
 
-	// Stop all objects
-	for _, model := range rm.activeModels {
-		if err := rm.stopModelInternal(model); err != nil {
-			fmt.Printf("Error stopping model %s: %v\n", model.ID, err)
+	// Stop all fabrics
+	for _, fabric := range rm.activeFabrics {
+		if err := rm.stopFabricInternal(fabric); err != nil {
+			fmt.Printf("Error stopping fabric item %s: %v\n", fabric.ID, err)
 		}
 	}
 
@@ -346,8 +346,8 @@ func (rm *RuntimeManager) Stop() error {
 	return nil
 }
 
-// StartModel starts a new model instance
-func (rm *RuntimeManager) StartModel(name, binary string, config map[string]interface{}) (*ModelInstance, error) {
+// StartFabric starts a new fabric instance
+func (rm *RuntimeManager) StartFabric(name, binary string, config map[string]interface{}) (*FabricInstance, error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
@@ -355,30 +355,30 @@ func (rm *RuntimeManager) StartModel(name, binary string, config map[string]inte
 		return nil, fmt.Errorf("runtime manager is not running")
 	}
 
-	// Check if model already exists
-	for _, model := range rm.activeModels {
-		if model.Name == name {
-			return nil, fmt.Errorf("model %s is already running", name)
+	// Check if fabric item already exists
+	for _, fabric := range rm.activeFabrics {
+		if fabric.Name == name {
+			return nil, fmt.Errorf("fabric item %s is already running", name)
 		}
 	}
 
-	// Check model limit
-	if len(rm.activeModels) >= rm.maxModels {
-		return nil, fmt.Errorf("maximum number of objects (%d) reached", rm.maxModels)
+	// Check fabric limit
+	if len(rm.activeFabrics) >= rm.maxFabrics {
+		return nil, fmt.Errorf("maximum number of fabric units (%d) reached", rm.maxFabrics)
 	}
 
 	// Verify binary exists
-	binaryPath := filepath.Join(rm.modelDir, binary)
+	binaryPath := filepath.Join(rm.fabricDir, binary)
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("model binary %s not found", binary)
+		return nil, fmt.Errorf("fabric binary %s not found", binary)
 	}
 
-	// Create model instance
-	model := &ModelInstance{
+	// Create fabric instance
+	fabric := &FabricInstance{
 		ID:            fmt.Sprintf("%s-%d", name, time.Now().Unix()),
 		Name:          name,
 		Binary:        binary,
-		Status:        ModelStatusStarting,
+		Status:        FabricStatusStarting,
 		StartTime:     time.Now(),
 		Config:        config,
 		Environment:   make(map[string]string),
@@ -397,11 +397,11 @@ func (rm *RuntimeManager) StartModel(name, binary string, config map[string]inte
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate resources: %w", err)
 	}
-	model.Resources = resources
+	fabric.Resources = resources
 
 	// Setup communication
-	model.Communication = &ModelComm{
-		SocketPath:          fmt.Sprintf("/tmp/knirv-model-%s.sock", model.ID),
+	fabric.Communication = &FabricComm{
+		SocketPath:          fmt.Sprintf("/tmp/knirv-fabric-%s.sock", fabric.ID),
 		Protocol:            "unix",
 		Encrypted:           true,
 		HealthCheckPath:     "/health",
@@ -409,80 +409,80 @@ func (rm *RuntimeManager) StartModel(name, binary string, config map[string]inte
 		HealthCheckTimeout:  5 * time.Second,
 	}
 
-	// Start the model process
-	if err := rm.startModelProcess(model); err != nil {
+	// Start the fabric process
+	if err := rm.startFabricProcess(fabric); err != nil {
 		rm.resourcePool.ReleaseResources(resources)
-		return nil, fmt.Errorf("failed to start model process: %w", err)
+		return nil, fmt.Errorf("failed to start fabric process: %w", err)
 	}
 
-	// Add to active objects
-	rm.activeModels[model.ID] = model
+	// Add to active fabrics
+	rm.activeFabrics[fabric.ID] = fabric
 
-	return model, nil
+	return fabric, nil
 }
 
-// StopModel stops an model instance
-func (rm *RuntimeManager) StopModel(modelID string) error {
+// StopFabric stops a fabric instance
+func (rm *RuntimeManager) StopFabric(fabricID string) error {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
-	model, exists := rm.activeModels[modelID]
+	fabric, exists := rm.activeFabrics[fabricID]
 	if !exists {
-		return fmt.Errorf("model %s not found", modelID)
+		return fmt.Errorf("fabric item %s not found", fabricID)
 	}
 
-	return rm.stopModelInternal(model)
+	return rm.stopFabricInternal(fabric)
 }
 
-// GetModelList returns list of active objects
-func (rm *RuntimeManager) GetModelList() []*ModelInstance {
+// GetFabricList returns list of active fabric units
+func (rm *RuntimeManager) GetFabricList() []*FabricInstance {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 
-	var objects []*ModelInstance
-	for _, model := range rm.activeModels {
+	var fabricUnits []*FabricInstance
+	for _, fabric := range rm.activeFabrics {
 		// Return a copy to prevent modification
-		modelCopy := *model
-		objects = append(objects, &modelCopy)
+		fabricCopy := *fabric
+		fabricUnits = append(fabricUnits, &fabricCopy)
 	}
 
-	return objects
+	return fabricUnits
 }
 
-// GetModel returns a specific model instance
-func (rm *RuntimeManager) GetModel(modelID string) (*ModelInstance, error) {
+// GetFabric returns a specific fabric instance
+func (rm *RuntimeManager) GetFabric(fabricID string) (*FabricInstance, error) {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 
-	model, exists := rm.activeModels[modelID]
+	fabric, exists := rm.activeFabrics[fabricID]
 	if !exists {
-		return nil, fmt.Errorf("model %s not found", modelID)
+		return nil, fmt.Errorf("fabric item %s not found", fabricID)
 	}
 
 	// Return a copy to prevent modification
-	modelCopy := *model
-	return &modelCopy, nil
+	fabricCopy := *fabric
+	return &fabricCopy, nil
 }
 
-// startModelProcess starts the actual model process
-func (rm *RuntimeManager) startModelProcess(model *ModelInstance) error {
-	binaryPath := filepath.Join(rm.modelDir, model.Binary)
+// startFabricProcess starts the actual fabric process
+func (rm *RuntimeManager) startFabricProcess(fabric *FabricInstance) error {
+	binaryPath := filepath.Join(rm.fabricDir, fabric.Binary)
 
 	// Create command
-	cmd := exec.Command(binaryPath, model.Arguments...)
+	cmd := exec.Command(binaryPath, fabric.Arguments...)
 
 	// Set environment
 	cmd.Env = os.Environ()
-	for key, value := range model.Environment {
+	for key, value := range fabric.Environment {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
 	}
 
 	// Set working directory
-	cmd.Dir = rm.modelDir
+	cmd.Dir = rm.fabricDir
 
 	// Setup resource isolation if available
 	if rm.processMgr.cgroupManager.enabled {
-		if err := rm.setupResourceIsolation(model); err != nil {
+		if err := rm.setupResourceIsolation(fabric); err != nil {
 			return fmt.Errorf("failed to setup resource isolation: %w", err)
 		}
 	}
@@ -492,45 +492,45 @@ func (rm *RuntimeManager) startModelProcess(model *ModelInstance) error {
 		return fmt.Errorf("failed to start process: %w", err)
 	}
 
-	model.Command = cmd
-	model.Process = cmd.Process
-	model.PID = cmd.Process.Pid
-	model.Status = ModelStatusRunning
-	model.LastHeartbeat = time.Now()
+	fabric.Command = cmd
+	fabric.Process = cmd.Process
+	fabric.PID = cmd.Process.Pid
+	fabric.Status = FabricStatusRunning
+	fabric.LastHeartbeat = time.Now()
 
 	// Register with process manager
 	processInfo := &ProcessInfo{
-		PID:       model.PID,
-		ModelID:   model.ID,
+		PID:       fabric.PID,
+		FabricID:  fabric.ID,
 		Command:   binaryPath,
-		StartTime: model.StartTime,
+		StartTime: fabric.StartTime,
 		Status:    "running",
 	}
 
 	rm.processMgr.mu.Lock()
-	rm.processMgr.processes[model.PID] = processInfo
+	rm.processMgr.processes[fabric.PID] = processInfo
 	rm.processMgr.mu.Unlock()
 
 	// Start monitoring the process
-	go rm.monitorModelProcess(model)
+	go rm.monitorFabricProcess(fabric)
 
 	return nil
 }
 
-// stopModelInternal stops an model (internal method, assumes lock is held)
-func (rm *RuntimeManager) stopModelInternal(model *ModelInstance) error {
-	model.Status = ModelStatusStopping
+// stopFabricInternal stops a fabric item (internal method, assumes lock is held)
+func (rm *RuntimeManager) stopFabricInternal(fabric *FabricInstance) error {
+	fabric.Status = FabricStatusStopping
 
-	if model.Process != nil {
+	if fabric.Process != nil {
 		// Send SIGTERM first
-		if err := model.Process.Signal(syscall.SIGTERM); err != nil {
+		if err := fabric.Process.Signal(syscall.SIGTERM); err != nil {
 			return fmt.Errorf("failed to send SIGTERM: %w", err)
 		}
 
 		// Wait for graceful shutdown
 		done := make(chan error, 1)
 		go func() {
-			_, err := model.Process.Wait()
+			_, err := fabric.Process.Wait()
 			done <- err
 		}()
 
@@ -539,52 +539,52 @@ func (rm *RuntimeManager) stopModelInternal(model *ModelInstance) error {
 			// Process exited gracefully
 		case <-time.After(10 * time.Second):
 			// Force kill after timeout
-			if err := model.Process.Kill(); err != nil {
+			if err := fabric.Process.Kill(); err != nil {
 				return fmt.Errorf("failed to kill process: %w", err)
 			}
 		}
 	}
 
 	// Clean up resources
-	if model.Resources != nil {
-		rm.resourcePool.ReleaseResources(model.Resources)
+	if fabric.Resources != nil {
+		rm.resourcePool.ReleaseResources(fabric.Resources)
 	}
 
 	// Clean up communication socket
-	if model.Communication != nil && model.Communication.SocketPath != "" {
-		os.Remove(model.Communication.SocketPath)
+	if fabric.Communication != nil && fabric.Communication.SocketPath != "" {
+		os.Remove(fabric.Communication.SocketPath)
 	}
 
 	// Remove from process manager
-	if model.PID > 0 {
+	if fabric.PID > 0 {
 		rm.processMgr.mu.Lock()
-		delete(rm.processMgr.processes, model.PID)
+		delete(rm.processMgr.processes, fabric.PID)
 		rm.processMgr.mu.Unlock()
 	}
 
-	// Remove from active objects
-	delete(rm.activeModels, model.ID)
+	// Remove from active fabric units
+	delete(rm.activeFabrics, fabric.ID)
 
-	model.Status = ModelStatusStopped
+	fabric.Status = FabricStatusStopped
 
 	return nil
 }
 
 // setupResourceIsolation sets up cgroup-based resource isolation
-func (rm *RuntimeManager) setupResourceIsolation(model *ModelInstance) error {
-	// Create cgroup for the model
-	cgroupPath := fmt.Sprintf("/sys/fs/cgroup/knirv-objects/%s", model.ID)
-	model.Resources.CgroupPath = cgroupPath
+func (rm *RuntimeManager) setupResourceIsolation(fabric *FabricInstance) error {
+	// Create cgroup for the fabric item
+	cgroupPath := fmt.Sprintf("/sys/fs/cgroup/knirv-objects/%s", fabric.ID)
+	fabric.Resources.CgroupPath = cgroupPath
 
 	// This would implement actual cgroup setup
 	// For now, just set the systemd slice
-	model.Resources.SystemdSlice = fmt.Sprintf("knirv-model-%s.slice", model.ID)
+	fabric.Resources.SystemdSlice = fmt.Sprintf("knirv-fabric-%s.slice", fabric.ID)
 
 	return nil
 }
 
-// monitorModelProcess monitors an model process
-func (rm *RuntimeManager) monitorModelProcess(model *ModelInstance) {
+// monitorFabricProcess monitors a fabric process
+func (rm *RuntimeManager) monitorFabricProcess(fabric *FabricInstance) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
@@ -594,51 +594,51 @@ func (rm *RuntimeManager) monitorModelProcess(model *ModelInstance) {
 			return
 		case <-ticker.C:
 			// Check if process is still running
-			if model.Process != nil {
-				if err := model.Process.Signal(syscall.Signal(0)); err != nil {
+			if fabric.Process != nil {
+				if err := fabric.Process.Signal(syscall.Signal(0)); err != nil {
 					// Process is dead
-					model.Status = ModelStatusFailed
+					fabric.Status = FabricStatusFailed
 
 					// Handle restart policy
-					if model.RestartPolicy == "always" ||
-						(model.RestartPolicy == "on-failure" && model.RestartCount < model.MaxRestarts) {
-						rm.restartModel(model)
+					if fabric.RestartPolicy == "always" ||
+						(fabric.RestartPolicy == "on-failure" && fabric.RestartCount < fabric.MaxRestarts) {
+						rm.restartFabric(fabric)
 					}
 					return
 				}
 			}
 
 			// Update metrics
-			rm.updateModelMetrics(model)
+			rm.updateFabricMetrics(fabric)
 		}
 	}
 }
 
-// restartModel restarts a failed model
-func (rm *RuntimeManager) restartModel(model *ModelInstance) {
-	model.RestartCount++
-	model.Status = ModelStatusRestarting
+// restartFabric restarts a failed fabric unit
+func (rm *RuntimeManager) restartFabric(fabric *FabricInstance) {
+	fabric.RestartCount++
+	fabric.Status = FabricStatusRestarting
 
 	// Wait a bit before restarting
 	time.Sleep(5 * time.Second)
 
 	// Restart the process
-	if err := rm.startModelProcess(model); err != nil {
-		fmt.Printf("Failed to restart model %s: %v\n", model.ID, err)
-		model.Status = ModelStatusFailed
+	if err := rm.startFabricProcess(fabric); err != nil {
+		fmt.Printf("Failed to restart fabric item %s: %v\n", fabric.ID, err)
+		fabric.Status = FabricStatusFailed
 	}
 }
 
-// updateModelMetrics updates model metrics
-func (rm *RuntimeManager) updateModelMetrics(model *ModelInstance) {
-	if model.Metrics == nil {
-		model.Metrics = &ModelMetrics{}
+// updateFabricMetrics updates fabric metrics
+func (rm *RuntimeManager) updateFabricMetrics(fabric *FabricInstance) {
+	if fabric.Metrics == nil {
+		fabric.Metrics = &FabricMetrics{}
 	}
 
 	// This would implement actual metrics collection
 	// For now, just update the timestamp
-	model.Metrics.CollectedAt = time.Now()
-	model.LastHeartbeat = time.Now()
+	fabric.Metrics.CollectedAt = time.Now()
+	fabric.LastHeartbeat = time.Now()
 }
 
 // monitorLoop runs the main monitoring loop
@@ -670,7 +670,7 @@ func (rm *RuntimeManager) monitorLoop() {
 	}
 }
 
-// healthCheckLoop runs health checks on objects
+// healthCheckLoop runs health checks on fabric units
 func (rm *RuntimeManager) healthCheckLoop() {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
@@ -681,38 +681,38 @@ func (rm *RuntimeManager) healthCheckLoop() {
 			return
 		case <-ticker.C:
 			rm.mu.RLock()
-			objects := make([]*ModelInstance, 0, len(rm.activeModels))
-			for _, model := range rm.activeModels {
-				objects = append(objects, model)
+			fabricUnits := make([]*FabricInstance, 0, len(rm.activeFabrics))
+			for _, fabric := range rm.activeFabrics {
+				fabricUnits = append(fabricUnits, fabric)
 			}
 			rm.mu.RUnlock()
 
 			// Perform health checks
-			for _, model := range objects {
-				rm.performHealthCheck(model)
+			for _, fabric := range fabricUnits {
+				rm.performHealthCheck(fabric)
 			}
 		}
 	}
 }
 
-// performHealthCheck performs a health check on an model
-func (rm *RuntimeManager) performHealthCheck(model *ModelInstance) {
-	if model.Status != ModelStatusRunning {
+// performHealthCheck performs a health check on a fabric item
+func (rm *RuntimeManager) performHealthCheck(fabric *FabricInstance) {
+	if fabric.Status != FabricStatusRunning {
 		return
 	}
 
 	// This would implement actual health checking
 	// For now, just check if the process is alive
-	if model.Process != nil {
-		if err := model.Process.Signal(syscall.Signal(0)); err != nil {
-			model.Status = ModelStatusFailed
-			if model.Metrics != nil {
-				model.Metrics.HealthScore = 0.0
+	if fabric.Process != nil {
+		if err := fabric.Process.Signal(syscall.Signal(0)); err != nil {
+			fabric.Status = FabricStatusFailed
+			if fabric.Metrics != nil {
+				fabric.Metrics.HealthScore = 0.0
 			}
 		} else {
-			if model.Metrics != nil {
-				model.Metrics.HealthScore = 1.0
-				model.Metrics.LastHealthCheck = time.Now()
+			if fabric.Metrics != nil {
+				fabric.Metrics.HealthScore = 1.0
+				fabric.Metrics.LastHealthCheck = time.Now()
 			}
 		}
 	}

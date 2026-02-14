@@ -1,4 +1,4 @@
-package objectserver
+package fabricserver
 
 import (
 	"fmt"
@@ -46,7 +46,7 @@ func (npm *NativeProcessManager) Stop() error {
 
 	// Clean up any remaining processes
 	for pid, processInfo := range npm.processes {
-		fmt.Printf("Cleaning up process %d (%s)\n", pid, processInfo.ModelID)
+		fmt.Printf("Cleaning up process %d (%s)\n", pid, processInfo.FabricID)
 
 		// Clean up cgroup if it exists
 		if npm.cgroupManager.enabled && processInfo.CgroupPath != "" {
@@ -69,7 +69,7 @@ func (npm *NativeProcessManager) RegisterProcess(processInfo *ProcessInfo) error
 
 	// Setup cgroup if available
 	if npm.cgroupManager.enabled {
-		cgroupPath := fmt.Sprintf("knirv-objects/%s", processInfo.ModelID)
+		cgroupPath := fmt.Sprintf("knirv-objects/%s", processInfo.FabricID)
 		if err := npm.cgroupManager.CreateCgroup(cgroupPath); err != nil {
 			fmt.Printf("Warning: failed to create cgroup for process %d: %v\n", processInfo.PID, err)
 		} else {
@@ -136,14 +136,14 @@ func (npm *NativeProcessManager) GetAllProcesses() []*ProcessInfo {
 	return processes
 }
 
-// GetProcessesByModel returns processes for a specific model
-func (npm *NativeProcessManager) GetProcessesByModel(modelID string) []*ProcessInfo {
+// GetProcessesByFabric returns processes for a specific fabric item
+func (npm *NativeProcessManager) GetProcessesByFabric(fabricID string) []*ProcessInfo {
 	npm.mu.RLock()
 	defer npm.mu.RUnlock()
 
 	var processes []*ProcessInfo
 	for _, processInfo := range npm.processes {
-		if processInfo.ModelID == modelID {
+		if processInfo.FabricID == fabricID {
 			// Return copy
 			info := *processInfo
 			processes = append(processes, &info)
@@ -200,7 +200,7 @@ func (npm *NativeProcessManager) GetProcessStats(pid int) (map[string]interface{
 
 	stats := map[string]interface{}{
 		"pid":        processInfo.PID,
-		"model_id":   processInfo.ModelID,
+		"fabric_id":  processInfo.FabricID,
 		"command":    processInfo.Command,
 		"start_time": processInfo.StartTime,
 		"status":     processInfo.Status,

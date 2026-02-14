@@ -39,8 +39,8 @@ export interface DVENode {
   longitude?: number; // float64 from backend
 }
 
-// Model types - Aligned with backend models/model.go
-export interface Model {
+// Fabric types - Aligned with backend models/fabric.go
+export interface Fabric {
   id: string;
   name: string;
   description: string;
@@ -53,7 +53,7 @@ export interface Model {
   file_hash: string;
   capabilities: string[];
   dependencies: string[];
-  resource_limits?: ModelResourceLimits;
+  resource_limits?: FabricResourceLimits;
   configuration: Record<string, any>;
   metadata: Record<string, any>;
   tags: string[];
@@ -63,10 +63,10 @@ export interface Model {
   last_activity?: string; // ISO 8601 timestamp
   uploaded_by: string;
   deployed_by?: string;
-  runtime_instance?: ModelRuntimeInstance;
+  runtime_instance?: FabricRuntimeInstance;
 }
 
-export interface ModelResourceLimits {
+export interface FabricResourceLimits {
   max_memory_mb: number;
   max_cpu_percent: number;
   max_execution_time_seconds: number;
@@ -76,12 +76,12 @@ export interface ModelResourceLimits {
   file_system_access: boolean;
 }
 
-export interface ModelRuntimeInstance {
+export interface FabricRuntimeInstance {
   instance_id: string;
   process_id?: number;
   started_at: string; // ISO 8601 timestamp
   status: "starting" | "running" | "stopping" | "stopped" | "crashed";
-  resource_usage?: ModelResourceUsage;
+  resource_usage?: FabricResourceUsage;
   configuration: Record<string, any>;
   environment: Record<string, string>;
   health_check_url?: string;
@@ -92,7 +92,7 @@ export interface ModelRuntimeInstance {
   uptime_seconds: number;
 }
 
-export interface ModelResourceUsage {
+export interface FabricResourceUsage {
   cpu_percent: number;
   memory_mb: number;
   disk_read_mb: number;
@@ -104,14 +104,14 @@ export interface ModelResourceUsage {
   timestamp: string; // ISO 8601 timestamp
 }
 
-export interface ModelDeployment {
+export interface FabricDeployment {
   id: string;
   model_id: string;
   name: string;
   description: string;
   environment: string;
   replicas: number;
-  resource_limits: ModelResourceLimits;
+  resource_limits: FabricResourceLimits;
   environment_variables: Record<string, string>;
   auto_restart: boolean;
   restart_policy: "always" | "on-failure" | "never";
@@ -119,10 +119,10 @@ export interface ModelDeployment {
   updated_at: string; // ISO 8601 timestamp
   created_by: string;
   status: "pending" | "deploying" | "deployed" | "failed" | "stopped";
-  instances: ModelRuntimeInstance[];
+  instances: FabricRuntimeInstance[];
 }
 
-export interface ModelMetrics {
+export interface FabricMetrics {
   model_id: string;
   timestamp: string; // ISO 8601 timestamp
   cpu_usage_percent: number;
@@ -136,7 +136,7 @@ export interface ModelMetrics {
   response_time_ms: number;
 }
 
-export interface ModelLog {
+export interface FabricLog {
   id: string;
   model_id: string;
   level: "debug" | "info" | "warn" | "error" | "fatal";
@@ -146,7 +146,7 @@ export interface ModelLog {
   metadata: Record<string, any>;
 }
 
-export interface ModelEvent {
+export interface FabricEvent {
   id: string;
   model_id: string;
   type: string;
@@ -155,7 +155,7 @@ export interface ModelEvent {
   metadata: Record<string, any>;
 }
 
-export interface ModelSummary {
+export interface FabricSummary {
   total_models: number;
   running_models: number;
   stopped_models: number;
@@ -164,18 +164,18 @@ export interface ModelSummary {
   uploaded_models: number;
 }
 
-export interface ModelTemplate {
+export interface FabricTemplate {
   id: string;
   name: string;
   description: string;
   type: string;
   default_configuration: Record<string, any>;
-  default_resource_limits: ModelResourceLimits;
+  default_resource_limits: FabricResourceLimits;
   created_at: string; // ISO 8601 timestamp
   created_by: string;
 }
 
-export interface ModelAction {
+export interface FabricAction {
   action: "deploy" | "start" | "stop" | "restart" | "scale";
   parameters?: Record<string, any>;
 }
@@ -323,7 +323,7 @@ export interface UserProfile {
 export interface UserPermissions {
   can_manage_users: boolean;
   can_manage_nodes: boolean;
-  can_manage_models: boolean;
+  can_manage_fabric: boolean;
   can_view_metrics: boolean;
   can_manage_dns: boolean;
   can_access_admin_panel: boolean;

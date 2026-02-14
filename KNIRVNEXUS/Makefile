@@ -111,7 +111,7 @@ deployer: deps-go ## Build container_deployer binary
 	@echo "$(GREEN)container_deployer build completed: backend/cmd/container_deployer/container_deployer$(NC)"
 
 # Unified Binary (Frontend + Unified Backend)
-binary: ebpf-generate backend ## Build unified binary with embedded eBPF, frontend, and backend
+binary: ebpf-generate frontend backend ## Build unified binary with embedded eBPF, frontend, and backend
 	@echo "$(BLUE)Creating unified binary with embedded eBPF...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-nexus .

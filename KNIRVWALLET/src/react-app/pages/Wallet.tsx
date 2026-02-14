@@ -47,36 +47,36 @@ export default function WalletPage() {
   return (
     <Layout>
       <div className="p-4 pb-24 space-y-6">
-        {/* Header */}
+        {/* Header - Gradient Text */}
         <div className="text-center py-4">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+          <h2 className="text-2xl font-bold gradient-text mb-2">
             KNIRV Wallet
           </h2>
-          <p className="text-slate-400 text-sm">
+          <p className="text-slate-400 text-sm font-mono uppercase tracking-wider">
             Manage your NRN tokens and transaction history
           </p>
         </div>
 
-        {/* Balance Card */}
+        {/* Balance Card - Glass Panel */}
         <div className="relative group">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600/50 to-cyan-600/50 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600/50 to-blue-800/50 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
           
-          <div className="relative bg-slate-800/90 backdrop-blur-xl rounded-2xl p-6 border border-purple-500/30">
+          <div className="relative glass-panel p-6 glow-hover">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-white">NRN Balance</h3>
-                  <p className="text-sm text-slate-400">Neural Resource Network</p>
+                  <p className="text-sm text-slate-400 font-mono">Neural Resource Network</p>
                 </div>
               </div>
               
               <div className={`px-3 py-1 rounded-full ${walletData.change24h >= 0 ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
                 <div className="flex items-center space-x-1">
                   <TrendingUp className={`w-3 h-3 ${walletData.change24h >= 0 ? 'text-green-400' : 'text-red-400 rotate-180'}`} />
-                  <span className={`text-xs font-medium ${walletData.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  <span className={`text-xs font-medium font-mono ${walletData.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {walletData.change24h >= 0 ? '+' : ''}{walletData.change24h}%
                   </span>
                 </div>
@@ -87,7 +87,7 @@ export default function WalletPage() {
               <div className="text-3xl font-bold text-white">
                 {walletData.nrnBalance.toLocaleString()} NRN
               </div>
-              <div className="text-lg text-slate-300">
+              <div className="text-lg text-slate-300 font-mono">
                 ≈ ${walletData.usdValue.toFixed(2)} USD
               </div>
             </div>
@@ -97,19 +97,19 @@ export default function WalletPage() {
         {/* Wallet Address */}
         <div className="space-y-3">
           <h3 className="text-lg font-semibold text-white">Wallet Address</h3>
-          <div className="flex items-center space-x-3 p-4 bg-slate-800/60 backdrop-blur-xl rounded-xl border border-slate-700/50">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-cyan-500/20 rounded-lg flex items-center justify-center border border-purple-500/20">
-              <Wallet className="w-5 h-5 text-purple-400" />
+          <div className="flex items-center space-x-3 p-4 glass-panel glow-hover">
+            <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/20">
+              <Wallet className="w-5 h-5 text-blue-400" />
             </div>
             <div className="flex-1">
               <p className="font-mono text-sm text-white">{walletData.walletAddress}</p>
-              <p className="text-xs text-slate-400">KNIRV Network</p>
+              <p className="text-xs text-slate-500 font-mono">KNIRV Network</p>
             </div>
             <div className="flex space-x-2">
-              <button className="p-2 hover:bg-slate-700/50 rounded-lg text-slate-400 hover:text-white transition-all">
+              <button className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-all">
                 <Copy className="w-4 h-4" />
               </button>
-              <button className="p-2 hover:bg-slate-700/50 rounded-lg text-slate-400 hover:text-white transition-all">
+              <button className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-all">
                 <ExternalLink className="w-4 h-4" />
               </button>
             </div>
@@ -118,13 +118,13 @@ export default function WalletPage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3">
-          <button className="flex items-center justify-center space-x-3 py-4 bg-gradient-to-r from-green-600/20 to-emerald-600/20 hover:from-green-600/30 hover:to-emerald-600/30 rounded-xl border border-green-500/30 text-green-400 hover:text-green-300 transition-all">
+          <button className="flex items-center justify-center space-x-3 py-4 bg-green-600/20 hover:bg-green-600/30 rounded-xl border border-green-500/30 text-green-400 hover:text-green-300 transition-all glow-hover">
             <ArrowDownLeft className="w-5 h-5" />
-            <span className="font-medium">Add Funds</span>
+            <span className="font-medium font-mono">Add Funds</span>
           </button>
-          <button className="flex items-center justify-center space-x-3 py-4 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 hover:from-blue-600/30 hover:to-cyan-600/30 rounded-xl border border-blue-500/30 text-blue-400 hover:text-blue-300 transition-all">
+          <button className="flex items-center justify-center space-x-3 py-4 bg-blue-600/20 hover:bg-blue-600/30 rounded-xl border border-blue-500/30 text-blue-400 hover:text-blue-300 transition-all glow-hover">
             <ArrowUpRight className="w-5 h-5" />
-            <span className="font-medium">Send NRN</span>
+            <span className="font-medium font-mono">Send NRN</span>
           </button>
         </div>
 
@@ -132,7 +132,7 @@ export default function WalletPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">Recent Transactions</h3>
-            <button className="text-sm text-purple-400 hover:text-purple-300 transition-colors">
+            <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors font-mono uppercase">
               View All
             </button>
           </div>
@@ -146,17 +146,17 @@ export default function WalletPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-slate-800/50 backdrop-blur-xl rounded-xl border border-slate-700/50">
+          <div className="glass-panel p-4 text-center glow-hover">
             <div className="text-xl font-bold text-green-400">+127</div>
-            <div className="text-xs text-slate-400">Earned Today</div>
+            <div className="text-xs text-slate-500 font-mono uppercase tracking-wider">Earned Today</div>
           </div>
-          <div className="text-center p-4 bg-slate-800/50 backdrop-blur-xl rounded-xl border border-slate-700/50">
+          <div className="glass-panel p-4 text-center glow-hover">
             <div className="text-xl font-bold text-red-400">-89</div>
-            <div className="text-xs text-slate-400">Spent Today</div>
+            <div className="text-xs text-slate-500 font-mono uppercase tracking-wider">Spent Today</div>
           </div>
-          <div className="text-center p-4 bg-slate-800/50 backdrop-blur-xl rounded-xl border border-slate-700/50">
-            <div className="text-xl font-bold text-purple-400">15</div>
-            <div className="text-xs text-slate-400">Transactions</div>
+          <div className="glass-panel p-4 text-center glow-hover">
+            <div className="text-xl font-bold text-blue-400">15</div>
+            <div className="text-xs text-slate-500 font-mono uppercase tracking-wider">Transactions</div>
           </div>
         </div>
       </div>
@@ -201,14 +201,14 @@ function TransactionItem({ type, amount, description, timestamp, agentName }: Tr
   const Icon = config.icon;
 
   return (
-    <div className="flex items-center justify-between p-4 bg-slate-800/60 backdrop-blur-xl rounded-xl border border-slate-700/50 hover:border-purple-500/30 transition-all">
+    <div className="flex items-center justify-between p-4 glass-panel glow-hover">
       <div className="flex items-center space-x-3">
         <div className={`w-10 h-10 ${config.bg} ${config.border} border rounded-xl flex items-center justify-center`}>
           <Icon className={`w-5 h-5 ${config.color}`} />
         </div>
         <div>
           <p className="font-medium text-white">{description}</p>
-          <div className="flex items-center space-x-2 text-xs text-slate-400">
+          <div className="flex items-center space-x-2 text-xs text-slate-400 font-mono">
             {agentName && <span>{agentName}</span>}
             <span>•</span>
             <span>{new Date(timestamp).toLocaleTimeString()}</span>
@@ -216,7 +216,7 @@ function TransactionItem({ type, amount, description, timestamp, agentName }: Tr
         </div>
       </div>
       <div className="text-right">
-        <p className={`font-semibold ${config.color}`}>
+        <p className={`font-semibold ${config.color} font-mono`}>
           {config.prefix}{Math.abs(amount)} NRN
         </p>
       </div>

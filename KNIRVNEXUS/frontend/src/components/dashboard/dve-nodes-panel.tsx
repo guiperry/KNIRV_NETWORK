@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Server, Cpu, HardDrive, Shield, MapPin, Clock, AlertCircle, CheckCircle, Activity, CreditCard, Info, Play, Square, Zap } from 'lucide-react';
+import { Server, Cpu, HardDrive, Shield, MapPin, Clock, AlertCircle, CheckCircle, Activity, CreditCard, Play, Square, Zap, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ import { useDVENodes } from '@/hooks/use-dve-nodes';
 import { useDVERental } from '@/hooks/use-dve-rental';
 import { useAuth } from '@/lib/auth-context';
 import { CDEAccessModal } from '@/components/cde/cde-access-modal';
-import DVECardModal from './dve-card-modal';
 import type { DVENode, DVEAccessInfo } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -43,15 +42,23 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
 
   const [filter, setFilter] = useState<string>('all');
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
-  const [cardModalOpen, setCardModalOpen] = useState(false);
   const [cdeOpen, setCDEOpen] = useState(false);
   const [activeNodeId, setActiveNodeId] = useState<{ [key: string]: boolean }>({});
   const [provisioningNodes, setProvisioningNodes] = useState<Set<string>>(new Set());
-  const [accessInfo, setAccessInfo] = useState<DVEAccessInfo | null>(null);
 
   // ⭐ NEW: Handle Start button - provision container for rental
   const handleStartDVE = async (node: DVENode) => {
     if (provisioningNodes.has(node.id)) return;
+
+    if (activeNodeId[node.id]) {
+      // Stop logic
+      setActiveNodeId(prev => ({ ...prev, [node.id]: false }));
+      toast({
+        title: "Node Stopped",
+        description: `DVE instance ${node.name} has been disconnected.`,
+      });
+      return;
+    }
 
     setProvisioningNodes(prev => new Set(prev).add(node.id));
 
@@ -60,12 +67,11 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
       const endpoints = await getNodeEndpoints(node.id);
 
       if (endpoints && endpoints.length > 0) {
-        // Node is already rented - show access modal
-        setSelectedNode(node);
-        setCDEOpen(true);
+        // Node is already rented
+        setActiveNodeId(prev => ({ ...prev, [node.id]: true }));
         toast({
-          title: "Node Already Rented",
-          description: "Opening CDE access modal for your rented node.",
+          title: "Node Ready",
+          description: "DVE instance is active. You can now access the modular CDE.",
         });
       } else {
         // Node not rented - redirect to rental modal
@@ -93,30 +99,12 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
     }
   };
 
-  // ⭐ NEW: Handle Access button - fetch and display access information
-  const handleAccessDVE = async (node: DVENode) => {
-    try {
-      // For node access, we need to get endpoints for this node
-      // This would typically be for nodes that are already rented
-      const endpoints = await getNodeEndpoints(node.id);
-
-      if (endpoints && endpoints.length > 0) {
-        // Show access modal with endpoint information
-        setSelectedNode(node);
-        setCDEOpen(true);
-      } else {
-        toast({
-          title: "No Access Available",
-          description: "No active endpoints found for this node. Please ensure you have an active rental.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Access Failed",
-        description: "Failed to retrieve access information. Please try again.",
-        variant: "destructive",
-      });
+  const handleAccessDVE = (node: DVENode) => {
+    if (onNodeConnect) {
+      onNodeConnect(node.id, node.name);
+    } else {
+      setSelectedNode(node);
+      setCDEOpen(true);
     }
   };
 
@@ -141,7 +129,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
   };
 
   const getTEEIcon = (teeType: string) => {
-    switch (teeType) {
+    switch (teeType.toUpperCase()) {
       case 'SGX': return <Shield className="w-4 h-4 text-blue-500" />;
       case 'SEV-SNP': return <Shield className="w-4 h-4 text-green-500" />;
       case 'TDX': return <Shield className="w-4 h-4 text-purple-500" />;
@@ -334,18 +322,18 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredNodes.map((node) => (
-                <Card key={node.id} className="knirv-card-gradient border">
+                <Card key={node.id} className="knirv-card-gradient border hover:border-blue-500/50 transition-all duration-300 group">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium">{node.name}</CardTitle>
+                      <CardTitle className="text-sm font-black uppercase tracking-tighter text-slate-200 group-hover:text-blue-400 transition-colors">{node.name}</CardTitle>
                       <div className="flex items-center space-x-2">
                         <Badge 
                           variant="secondary" 
                           className={`${
                             activeNodeId[node.id]
-                              ? 'bg-green-500/80 text-white'
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                               : 'bg-muted text-muted-foreground'
-                          } text-xs`}
+                          } text-[10px] font-black uppercase`}
                         >
                           <div className="flex items-center space-x-1">
                             {activeNodeId[node.id] ? (
@@ -358,78 +346,75 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
                         </Badge>
                       </div>
                     </div>
-                    <CardDescription className="text-xs">
-                      ID: {node.id}
+                    <CardDescription className="text-[10px] font-mono">
+                      ID: {node.id.substring(0, 12)}...
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-4">
                     {/* Performance Metrics */}
                     <div className="space-y-2">
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex justify-between items-center text-[11px] font-mono">
                         <div className="flex items-center space-x-1">
-                          <Cpu className="w-3 h-3" />
+                          <Cpu className="w-3 h-3 text-blue-500" />
                           <span>CPU:</span>
                         </div>
-                        <span>{node.cpu_usage}%</span>
+                        <span className="text-slate-300">{node.cpu_usage}%</span>
                       </div>
-                      <Progress value={node.cpu_usage} className="h-1" />
+                      <Progress value={node.cpu_usage} className="h-1 bg-slate-800" />
                       
-                      <div className="flex justify-between items-center text-sm">
+                      <div className="flex justify-between items-center text-[11px] font-mono">
                         <div className="flex items-center space-x-1">
-                          <HardDrive className="w-3 h-3" />
-                          <span>Memory:</span>
+                          <HardDrive className="w-3 h-3 text-purple-500" />
+                          <span>MEM:</span>
                         </div>
-                        <span>{node.memory_usage}%</span>
+                        <span className="text-slate-300">{node.memory_usage}%</span>
                       </div>
-                      <Progress value={node.memory_usage} className="h-1" />
+                      <Progress value={node.memory_usage} className="h-1 bg-slate-800" />
                     </div>
 
                     {/* Node Details */}
-                    <div className="space-y-1 text-xs">
+                    <div className="space-y-1.5 text-[10px] font-bold uppercase tracking-wider bg-slate-950/30 p-2 rounded-lg border border-slate-800/50">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center space-x-1">
                           {getTEEIcon(node.tee_type)}
-                          <span>TEE:</span>
+                          <span className="text-slate-500">TEE:</span>
                         </div>
-                        <span>{node.tee_type}</span>
+                        <span className="text-blue-400 font-black">{node.tee_type}</span>
                       </div>
                       
                       <div className="flex justify-between items-center">
-                        <span>Stake:</span>
-                        <span>{node.stake_amount.toLocaleString()} NRN</span>
+                        <span className="text-slate-500">STAKE:</span>
+                        <span className="text-slate-300">{node.stake_amount.toLocaleString()} NRN</span>
                       </div>
                       
                       <div className="flex justify-between items-center">
-                        <span>Reputation:</span>
-                        <span>{node.reputation_score}/100</span>
+                        <span className="text-slate-500">REPUTATION:</span>
+                        <span className={`font-black ${node.reputation_score > 80 ? 'text-green-500' : 'text-yellow-500'}`}>
+                          {node.reputation_score}/100
+                        </span>
                       </div>
                       
                       {node.location && (
                         <div className="flex justify-between items-center">
-                          <div className="flex items-center space-x-1">
+                          <div className="flex items-center space-x-1 text-slate-500">
                             <MapPin className="w-3 h-3" />
-                            <span>Location:</span>
+                            <span>LOC:</span>
                           </div>
-                          <span>{node.location}</span>
+                          <span className="text-slate-300">{node.location}</span>
                         </div>
                       )}
-                      
-                      <div className="flex justify-between items-center">
-                        <span>Last Heartbeat:</span>
-                        <span>{formatLastHeartbeat(node.last_heartbeat)}</span>
-                      </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex space-x-2 pt-2">
+                    <div className="grid grid-cols-2 gap-2 pt-2">
                       {/* Start/Stop Button */}
                       <Button
                         variant="default"
                         size="sm"
-                        className={`flex-1 text-xs font-semibold transition-all ${
+                        className={`text-[10px] font-black uppercase transition-all ${
                           activeNodeId[node.id]
-                            ? 'bg-green-600 hover:bg-green-700'
-                            : 'bg-primary hover:bg-primary/90'
+                            ? 'bg-red-900/20 text-red-500 border border-red-500/20 hover:bg-red-600 hover:text-white'
+                            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
                         }`}
                         onClick={() => handleStartDVE(node)}
                         disabled={provisioningNodes.has(node.id)}
@@ -437,46 +422,32 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
                         {provisioningNodes.has(node.id) ? (
                           <>
                             <Activity className="w-3 h-3 mr-1 animate-spin" />
-                            Starting...
+                            Provisioning
                           </>
                         ) : activeNodeId[node.id] ? (
                           <>
-                            <Square className="w-3 h-3 mr-1" />
-                            Stop
+                            <Square className="w-3 h-3 mr-1 fill-current" />
+                            Terminate
                           </>
                         ) : (
                           <>
-                            <Play className="w-3 h-3 mr-1" />
-                            Start
+                            <Play className="w-3 h-3 mr-1 fill-current" />
+                            Initialize
                           </>
                         )}
                       </Button>
 
-                      {/* Details Button */}
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1 text-xs"
-                        onClick={() => {
-                          setSelectedNode(node);
-                          setCardModalOpen(true);
-                        }}
-                      >
-                        Details
-                      </Button>
-
                       {/* Access Button - Only shown when active */}
-                      {activeNodeId[node.id] && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="flex-1 text-xs bg-secondary hover:bg-secondary/90"
-                          onClick={() => handleAccessDVE(node)}
-                        >
-                          <Zap className="w-3 h-3 mr-1" />
-                          Access
-                        </Button>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!activeNodeId[node.id]}
+                        className={`text-[10px] font-black uppercase border-blue-600/30 ${activeNodeId[node.id] ? 'text-blue-400 hover:bg-blue-600 hover:text-white' : 'text-slate-600'}`}
+                        onClick={() => handleAccessDVE(node)}
+                      >
+                        <Zap className="w-3 h-3 mr-1" />
+                        Access
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -486,16 +457,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
         </CardContent>
       </Card>
 
-      {/* DVE Card Modal */}
-      {selectedNode && (
-        <DVECardModal
-          isOpen={cardModalOpen}
-          onClose={() => setCardModalOpen(false)}
-          node={selectedNode}
-        />
-      )}
-
-      {/* CDE Access Modal */}
+      {/* CDE Access Modal (Legacy fallback) */}
       {selectedNode && (
         <CDEAccessModal
           isOpen={cdeOpen}

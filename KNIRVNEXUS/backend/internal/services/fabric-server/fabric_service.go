@@ -1,4 +1,4 @@
-package objectserver
+package fabricserver
 
 import (
 	"context"
@@ -12,14 +12,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-// ModelServer represents the model server service
-type ModelServer struct {
+// FabricServer represents the fabric server service
+type FabricServer struct {
 	config *config.Config
 	db     *database.BuntDBManager
 
 	// Configuration
-	modelDir      string
-	maxModels     int
+	fabricDir     string
+	maxFabrics    int
 	enableRuntime bool
 	enableCORS    bool
 
@@ -36,13 +36,13 @@ type ModelServer struct {
 type ServerInfo struct {
 	Name      string    `json:"name"`
 	Port      int       `json:"port"`
-	ModelDir  string    `json:"model_dir"`
+	FabricDir string    `json:"fabric_dir"`
 	StartTime time.Time `json:"start_time"`
 	Version   string    `json:"version"`
 }
 
-// ModelInfo represents information about a plugin model
-type ModelInfo struct {
+// FabricInfo represents information about a fabric unit
+type FabricInfo struct {
 	Name         string    `json:"name"`
 	Size         int64     `json:"size"`
 	LastModified time.Time `json:"last_modified"`
@@ -59,20 +59,20 @@ type UploadResponse struct {
 
 // ListResponse represents the response from a list operation
 type ListResponse struct {
-	Models []ModelInfo `json:"objects"`
-	Count  int         `json:"count"`
+	Fabrics []FabricInfo `json:"objects"`
+	Count   int          `json:"count"`
 }
 
-// NewModelServer creates a new model server instance
-func NewModelServer(config *config.Config, db *database.BuntDBManager) (*ModelServer, error) {
+// NewFabricServer creates a new fabric server instance
+func NewFabricServer(config *config.Config, db *database.BuntDBManager) (*FabricServer, error) {
 	// Set default values from config with fallbacks
-	modelDir := viper.GetString("model_server.storage_path")
-	if modelDir == "" {
-		modelDir = "./models" // fallback
+	fabricDir := viper.GetString("model_server.storage_path")
+	if fabricDir == "" {
+		fabricDir = "./models" // fallback (keeping backend config keys for now)
 	}
-	maxModels := config.ModelServer.MaxModels
-	if maxModels <= 0 {
-		maxModels = 10 // fallback
+	maxFabrics := config.ModelServer.MaxModels
+	if maxFabrics <= 0 {
+		maxFabrics = 10 // fallback
 	}
 	enableRuntime := true
 	enableCORS := config.ModelServer.EnableCORS
@@ -81,24 +81,24 @@ func NewModelServer(config *config.Config, db *database.BuntDBManager) (*ModelSe
 		enableCORS = true
 	}
 
-	// Create model directory if it doesn't exist
-	if err := ensureModelDirectory(modelDir); err != nil {
-		return nil, fmt.Errorf("failed to create model directory: %w", err)
+	// Create fabric directory if it doesn't exist
+	if err := ensureFabricDirectory(fabricDir); err != nil {
+		return nil, fmt.Errorf("failed to create fabric directory: %w", err)
 	}
 
 	serverInfo := &ServerInfo{
-		Name:      "KNIRV-NEXUS Plugin Model Server",
+		Name:      "KNIRV-NEXUS Agentic Memory Fabric Server",
 		Port:      0, // Will be set by the main server
-		ModelDir:  modelDir,
+		FabricDir: fabricDir,
 		StartTime: time.Now(),
 		Version:   "2.0.0",
 	}
 
-	service := &ModelServer{
+	service := &FabricServer{
 		config:        config,
 		db:            db,
-		modelDir:      modelDir,
-		maxModels:     maxModels,
+		fabricDir:     fabricDir,
+		maxFabrics:    maxFabrics,
 		enableRuntime: enableRuntime,
 		enableCORS:    enableCORS,
 		serverInfo:    serverInfo,
@@ -109,15 +109,15 @@ func NewModelServer(config *config.Config, db *database.BuntDBManager) (*ModelSe
 	return service, nil
 }
 
-// Start starts the model server service
-func (as *ModelServer) Start() error {
-	log.Println("Starting Model Server service...")
+// Start starts the fabric server service
+func (as *FabricServer) Start() error {
+	log.Println("Starting Fabric Server service...")
 
 	// Initialize runtime manager if enabled
 	if as.enableRuntime {
 		ctx := context.Background()
 		var err error
-		as.runtimeManager, err = NewRuntimeManager(ctx, as.modelDir, as.maxModels)
+		as.runtimeManager, err = NewRuntimeManager(ctx, as.fabricDir, as.maxFabrics)
 		if err != nil {
 			return fmt.Errorf("failed to create runtime manager: %w", err)
 		}
@@ -126,17 +126,17 @@ func (as *ModelServer) Start() error {
 			return fmt.Errorf("failed to start runtime manager: %w", err)
 		}
 
-		log.Printf("Runtime manager started with max %d objects", as.maxModels)
+		log.Printf("Runtime manager started with max %d fabrics", as.maxFabrics)
 	}
 
 	as.running = true
-	log.Println("Model Server service started successfully")
+	log.Println("Fabric Server service started successfully")
 	return nil
 }
 
-// Stop stops the model server service
-func (as *ModelServer) Stop() error {
-	log.Println("Stopping Model Server service...")
+// Stop stops the fabric server service
+func (as *FabricServer) Stop() error {
+	log.Println("Stopping Fabric Server service...")
 
 	as.running = false
 
@@ -147,26 +147,26 @@ func (as *ModelServer) Stop() error {
 		}
 	}
 
-	log.Println("Model Server service stopped")
+	log.Println("Fabric Server service stopped")
 	return nil
 }
 
 // IsRunning returns whether the service is running
-func (as *ModelServer) IsRunning() bool {
+func (as *FabricServer) IsRunning() bool {
 	return as.running
 }
 
 // GetServerInfo returns server information
-func (as *ModelServer) GetServerInfo() *ServerInfo {
+func (as *FabricServer) GetServerInfo() *ServerInfo {
 	return as.serverInfo
 }
 
 // GetRuntimeManager returns the runtime manager (if enabled)
-func (as *ModelServer) GetRuntimeManager() *RuntimeManager {
+func (as *FabricServer) GetRuntimeManager() *RuntimeManager {
 	return as.runtimeManager
 }
 
-// ensureModelDirectory creates the model directory if it doesn't exist
-func ensureModelDirectory(modelDir string) error {
-	return os.MkdirAll(modelDir, 0755)
+// ensureFabricDirectory creates the fabric directory if it doesn't exist
+func ensureFabricDirectory(fabricDir string) error {
+	return os.MkdirAll(fabricDir, 0755)
 }

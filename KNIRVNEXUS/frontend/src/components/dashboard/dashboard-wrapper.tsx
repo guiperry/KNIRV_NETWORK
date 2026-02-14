@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { CDEAccessModal } from '@/components/cde/cde-access-modal';
+import CDEPanel from './cde-panel'; // Modular CDE Panel
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
@@ -34,22 +35,26 @@ import {
   Monitor,
   Zap,
   Download,
-  Share2
+  Share2,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 
 interface DashboardWrapperProps {
   children: React.ReactNode;
   onRentDVE?: () => void;
+  useModularCDE: boolean;
+  setUseModularCDE: (value: boolean) => void;
 }
 
-export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps) {
+export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseModularCDE }: DashboardWrapperProps) {
   const { user, isLoading } = useAuth();
   const [cdeModalOpen, setCdeModalOpen] = useState(false);
   const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<{id: string, name: string} | null>(null);
+  const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
 
-  const handleNodeAccess = (nodeId: string, nodeName: string) => {
-    setSelectedNode({ id: nodeId, name: nodeName });
+  const handleNodeAccess = (node: DVENode) => {
+    setSelectedNode(node);
     setCdeModalOpen(true);
   };
 
@@ -87,6 +92,39 @@ export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps)
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* CDE Toggle for Dev Preview */}
+              <div className="hidden md:flex items-center space-x-2 bg-muted/50 p-1.5 rounded-full border">
+                <span 
+                  className={`text-xs px-2 cursor-pointer ${!useModularCDE ? 'font-bold text-primary' : 'text-muted-foreground'}`} 
+                  onClick={() => {
+                    console.log('Toggling to Legacy');
+                    setUseModularCDE(false);
+                  }}
+                >
+                  Legacy CDE
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 w-10 p-0 rounded-full" 
+                  onClick={() => {
+                    console.log('Toggling modular state:', !useModularCDE);
+                    setUseModularCDE(!useModularCDE);
+                  }}
+                >
+                  {useModularCDE ? <ToggleRight className="h-6 w-6 text-primary" /> : <ToggleLeft className="h-6 w-6 text-muted-foreground" />}
+                </Button>
+                <span 
+                  className={`text-xs px-2 cursor-pointer ${useModularCDE ? 'font-bold text-primary' : 'text-muted-foreground'}`} 
+                  onClick={() => {
+                    console.log('Toggling to Modular');
+                    setUseModularCDE(true);
+                  }}
+                >
+                  Modular CDE
+                </span>
+              </div>
+
               <div className="flex items-center space-x-2 text-sm">
                 <span className="text-muted-foreground">Welcome,</span>
                 <span className="font-medium">{user.user}</span>
@@ -679,15 +717,33 @@ export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps)
         </div>
       </nav>
 
-      {/* CDE Access Modal */}
+      {/* CDE Access Modal / Panel */}
       {selectedNode && (
-        <CDEAccessModal
-          isOpen={cdeModalOpen}
-          onClose={() => setCdeModalOpen(false)}
-          nodeId={selectedNode.id}
-          nodeName={selectedNode.name}
-          onOpenKNIRVEngine={handleOpenKNIRVEngine}
-        />
+        useModularCDE ? (
+          <CDEPanel
+            isOpen={cdeModalOpen}
+            onClose={() => setCdeModalOpen(false)}
+            node={selectedNode}
+            isModular={true}
+            onToggleMode={() => {
+              setUseModularCDE(false);
+              setCdeModalOpen(true);
+            }}
+          />
+        ) : (
+          <CDEAccessModal
+            isOpen={cdeModalOpen}
+            onClose={() => setCdeModalOpen(false)}
+            nodeId={selectedNode.id}
+            nodeName={selectedNode.name}
+            onOpenKNIRVEngine={handleOpenKNIRVEngine}
+            isModular={false}
+            onToggleMode={() => {
+              setUseModularCDE(true);
+              setCdeModalOpen(true);
+            }}
+          />
+        )
       )}
 
       {/* KNIRVENGINE Modal */}

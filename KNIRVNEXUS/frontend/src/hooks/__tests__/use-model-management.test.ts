@@ -1,5 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useModelManagement } from '../use-model-management';
+import { useModelManagement } from '../use-fabric-management';
 import type { Model, ModelSummary, ModelMetrics, ModelLog, ModelEvent, ModelTemplate, APIResponse, ModelResourceLimits } from '@/types/api';
 import { apiRequest } from '@/lib/api';
 
@@ -293,7 +293,7 @@ describe('useModelManagement Hook', () => {
       createdModel = await result.current.createModel(modelData);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/fabric-management/objects', {
       method: 'POST',
       body: JSON.stringify(modelData)
     });
@@ -331,7 +331,7 @@ describe('useModelManagement Hook', () => {
       deleted = await result.current.deleteModel('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/fabric-management/objects/model-1', {
       method: 'DELETE'
     });
     expect(deleted).toBe(true);
@@ -352,7 +352,7 @@ describe('useModelManagement Hook', () => {
       executed = await result.current.executeModelAction('model-1', actionData);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/actions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/fabric-management/objects/model-1/actions', {
       method: 'POST',
       body: JSON.stringify(actionData)
     });
@@ -374,7 +374,7 @@ describe('useModelManagement Hook', () => {
       deployed = await result.current.deployModel('model-1', deploymentConfig);
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/actions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/fabric-management/objects/model-1/actions', {
       method: 'POST',
       body: JSON.stringify({ action: 'deploy', parameters: deploymentConfig })
     });
@@ -391,7 +391,7 @@ describe('useModelManagement Hook', () => {
       started = await result.current.startModel('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/actions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/fabric-management/objects/model-1/actions', {
       method: 'POST',
       body: JSON.stringify({ action: 'start' })
     });
@@ -408,7 +408,7 @@ describe('useModelManagement Hook', () => {
       stopped = await result.current.stopModel('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/actions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/fabric-management/objects/model-1/actions', {
       method: 'POST',
       body: JSON.stringify({ action: 'stop' })
     });
@@ -425,7 +425,7 @@ describe('useModelManagement Hook', () => {
       restarted = await result.current.restartModel('model-1');
     });
 
-    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/model-management/objects/model-1/actions', {
+    expect(mockApiRequest).toHaveBeenCalledWith('http://localhost:8082/api/fabric-management/objects/model-1/actions', {
       method: 'POST',
       body: JSON.stringify({ action: 'restart' })
     });

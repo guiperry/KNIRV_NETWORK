@@ -1,7 +1,7 @@
 # Voice Integration Merge Summary
 
 ## Overview
-Successfully merged monitoring, pop-up alerts, and border coloring functionality from `KNIRVAGENTIFIER/Base_Agentifier` into the parent `KNIRVAGENTIFIER` application while preserving all existing design and functionality.
+Successfully merged monitoring, pop-up alerts, and border coloring functionality from `KNIRVCONTROLLER/Base_Agentifier` into the parent `KNIRVCONTROLLER` application while preserving all existing design and functionality.
 
 ## Files Added/Modified
 
@@ -25,8 +25,8 @@ src/react-app/types/
 ### Modified Components
 ```
 src/react-app/components/Layout.tsx    # Integrated voice controls and edge coloring
-KNIRVAGENTIFIER/README.md              # Updated documentation
-KNIRVAGENTIFIER/tsconfig.app.json      # Fixed TypeScript configuration
+KNIRVCONTROLLER/README.md              # Updated documentation
+KNIRVCONTROLLER/tsconfig.app.json      # Fixed TypeScript configuration
 ```
 
 ### Test Files

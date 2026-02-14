@@ -28,49 +28,50 @@ import {
   Zap,
   Cpu,
   HardDrive,
-  Network
+  Network,
+  Layers
 } from 'lucide-react';
-import { useModelManagement, ModelFilter } from '@/hooks/use-model-management';
-import type { Model, ModelAction } from '@/types/api';
+import { useFabricManagement, FabricFilter } from '@/hooks/use-fabric-management';
+import type { Fabric, FabricAction } from '@/types/api';
 
-interface ModelManagementProps {
+interface FabricManagementProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export default function ModelManagement({ isOpen, onClose }: ModelManagementProps) {
+export default function FabricManagement({ isOpen, onClose }: FabricManagementProps) {
   const { toast } = useToast();
-  const [selectedModel, setSelectedModel] = useState<Model | null>(null);
+  const [selectedFabric, setSelectedFabric] = useState<Fabric | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
 
   const {
-    models,
+    fabrics,
     summary,
     isLoading,
     error,
-    deleteModel,
+    deleteFabric,
     refreshAll
-  } = useModelManagement();
+  } = useFabricManagement();
 
-  const handleModelAction = async (modelId: string, action: ModelAction['action']) => {
-    // TODO: Implement model actions when backend API is available
+  const handleFabricAction = async (fabricId: string, action: FabricAction['action']) => {
+    // TODO: Implement fabric actions when backend API is available
     toast({
-      title: "Model Action",
-      description: `${action} action for model ${modelId} - Feature coming soon`,
+      title: "Fabric Action",
+      description: `${action} action for fabric item ${fabricId} - Feature coming soon`,
       variant: "default",
     });
   };
 
-  const handleDeleteModel = async (modelId: string, modelName: string) => {
-    const confirmed = window.confirm(`Are you sure you want to delete model "${modelName}"?`);
+  const handleDeleteFabric = async (fabricId: string, fabricName: string) => {
+    const confirmed = window.confirm(`Are you sure you want to delete fabric item "${fabricName}"?`);
     if (!confirmed) return;
 
-    const success = await deleteModel(modelId);
+    const success = await deleteFabric(fabricId);
     if (success) {
       toast({
-        title: "Model Deleted",
-        description: `Successfully deleted model "${modelName}"`,
+        title: "Fabric Deleted",
+        description: `Successfully deleted fabric item "${fabricName}"`,
       });
     }
   };
@@ -105,9 +106,9 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
     return <Badge className={colors[type] || 'bg-gray-500'}>{type}</Badge>;
   };
 
-  const filteredModels = models.filter(model => {
-    const statusMatch = selectedStatus === 'all' || model.status === selectedStatus;
-    const typeMatch = selectedType === 'all' || model.type === selectedType;
+  const filteredFabrics = fabrics.filter(fabric => {
+    const statusMatch = selectedStatus === 'all' || fabric.status === selectedStatus;
+    const typeMatch = selectedType === 'all' || fabric.type === selectedType;
     return statusMatch && typeMatch;
   });
 
@@ -128,12 +129,12 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
           <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-primary/10 to-secondary/10">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-gradient-to-r from-primary to-secondary rounded-lg flex items-center justify-center">
-                <Bot className="w-6 h-6 text-white" />
+                <Layers className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold">Model Management</h2>
+                <h2 className="text-2xl font-bold">Fabric Management</h2>
                 <p className="text-muted-foreground">
-                  Manage WASM models and runtime instances
+                  Manage Agentic Memory Fabric and Validation Guardrails
                 </p>
               </div>
             </div>
@@ -159,18 +160,18 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
             <Tabs defaultValue="overview" className="space-y-4">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="models">Models</TabsTrigger>
+                <TabsTrigger value="fabric">Fabric Items</TabsTrigger>
                 <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4">
-                {/* Model Summary */}
+                {/* Fabric Summary */}
                 <Card className="knirv-card-gradient">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Activity className="h-5 w-5" />
-                      Model Summary
+                      Fabric Summary
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -202,7 +203,7 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
                         </div>
                       </div>
                     ) : (
-                      <p className="text-muted-foreground">Loading model summary...</p>
+                      <p className="text-muted-foreground">Loading fabric summary...</p>
                     )}
                   </CardContent>
                 </Card>
@@ -216,7 +217,7 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <Button className="h-20 flex flex-col items-center justify-center">
                         <Upload className="w-6 h-6 mb-2" />
-                        Upload Model
+                        Upload Fabric Item
                       </Button>
                       <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
                         <Settings className="w-6 h-6 mb-2" />
@@ -231,7 +232,7 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
                 </Card>
               </TabsContent>
 
-              <TabsContent value="models" className="space-y-4">
+              <TabsContent value="fabric" className="space-y-4">
                 {/* Filters and Actions */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -271,68 +272,68 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
                   </div>
                   <Button>
                     <Upload className="w-4 h-4 mr-2" />
-                    Upload Model
+                    Upload Fabric Item
                   </Button>
                 </div>
 
-                {/* Models List */}
+                {/* Fabrics List */}
                 <Card className="knirv-card-gradient">
                   <CardHeader>
-                    <CardTitle>Models ({filteredModels.length})</CardTitle>
+                    <CardTitle>Fabric Items ({filteredFabrics.length})</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      {filteredModels.map((model) => (
-                        <div key={model.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
+                      {filteredFabrics.map((fabric) => (
+                        <div key={fabric.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
                           <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
                             <div>
-                              <p className="font-medium">{model.name}</p>
-                              <p className="text-sm text-muted-foreground">{model.description}</p>
-                              <p className="text-xs text-muted-foreground">v{model.version} by {model.author}</p>
+                              <p className="font-medium">{fabric.name}</p>
+                              <p className="text-sm text-muted-foreground">{fabric.description}</p>
+                              <p className="text-xs text-muted-foreground">v{fabric.version} by {fabric.author}</p>
                             </div>
                             <div className="flex flex-col space-y-1">
-                              {getTypeBadge(model.type)}
-                              {getStatusBadge(model.status)}
+                              {getTypeBadge(fabric.type)}
+                              {getStatusBadge(fabric.status)}
                             </div>
                             <div>
-                              <p className="text-sm font-mono">{formatFileSize(model.file_size)}</p>
-                              <p className="text-xs text-muted-foreground">{model.capabilities?.length || 0} capabilities</p>
+                              <p className="text-sm font-mono">{formatFileSize(fabric.file_size)}</p>
+                              <p className="text-xs text-muted-foreground">{fabric.capabilities?.length || 0} capabilities</p>
                             </div>
                             <div>
                               <p className="text-xs text-muted-foreground">Uploaded</p>
-                              <p className="text-sm">{new Date(model.uploaded_at).toLocaleDateString()}</p>
-                              {model.last_activity && (
+                              <p className="text-sm">{new Date(fabric.uploaded_at).toLocaleDateString()}</p>
+                              {fabric.last_activity && (
                                 <p className="text-xs text-muted-foreground">
-                                  Active: {new Date(model.last_activity).toLocaleDateString()}
+                                  Active: {new Date(fabric.last_activity).toLocaleDateString()}
                                 </p>
                               )}
                             </div>
                             <div className="flex items-center space-x-1">
-                              {model.status === 'uploaded' && (
+                              {fabric.status === 'uploaded' && (
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => handleModelAction(model.id, 'deploy')}
+                                  onClick={() => handleFabricAction(fabric.id, 'deploy')}
                                   disabled={isLoading}
                                 >
                                   <Zap className="w-3 h-3" />
                                 </Button>
                               )}
-                              {(model.status === 'deployed' || model.status === 'stopped') && (
+                              {(fabric.status === 'deployed' || fabric.status === 'stopped') && (
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => handleModelAction(model.id, 'start')}
+                                  onClick={() => handleFabricAction(fabric.id, 'start')}
                                   disabled={isLoading}
                                 >
                                   <Play className="w-3 h-3" />
                                 </Button>
                               )}
-                              {model.status === 'running' && (
+                              {fabric.status === 'running' && (
                                 <Button 
                                   variant="outline" 
                                   size="sm" 
-                                  onClick={() => handleModelAction(model.id, 'stop')}
+                                  onClick={() => handleFabricAction(fabric.id, 'stop')}
                                   disabled={isLoading}
                                 >
                                   <Square className="w-3 h-3" />
@@ -341,14 +342,14 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => setSelectedModel(model)}
+                                onClick={() => setSelectedFabric(fabric)}
                               >
                                 <Eye className="w-3 h-3" />
                               </Button>
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => handleDeleteModel(model.id, model.name)}
+                                onClick={() => handleDeleteFabric(fabric.id, fabric.name)}
                                 disabled={isLoading}
                               >
                                 <Trash2 className="w-3 h-3" />
@@ -357,9 +358,9 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
                           </div>
                         </div>
                       ))}
-                      {filteredModels.length === 0 && (
+                      {filteredFabrics.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
-                          No models found matching the current filters.
+                          No fabric items found matching the current filters.
                         </div>
                       )}
                     </div>
@@ -372,10 +373,10 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <BarChart3 className="h-5 w-5" />
-                      Model Monitoring
+                      Fabric Monitoring
                     </CardTitle>
                     <CardDescription>
-                      Real-time monitoring and metrics for running models
+                      Real-time monitoring and metrics for running fabric items
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -387,7 +388,7 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
                             <span className="text-sm font-medium">CPU Usage</span>
                           </div>
                           <p className="text-2xl font-bold">--</p>
-                          <p className="text-xs text-muted-foreground">Average across all models</p>
+                          <p className="text-xs text-muted-foreground">Average across all items</p>
                         </div>
                         <div className="p-4 border rounded-lg">
                           <div className="flex items-center gap-2 mb-2">
@@ -408,8 +409,8 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
                       </div>
                       <div className="p-4 border rounded-lg bg-muted/50">
                         <p className="text-sm text-muted-foreground">
-                          Real-time monitoring data will be displayed here when models are running.
-                          Select an model from the Models tab to view detailed metrics.
+                          Real-time monitoring data will be displayed here when fabric items are running.
+                          Select an item from the Fabric Items tab to view detailed metrics.
                         </p>
                       </div>
                     </div>
@@ -422,27 +423,27 @@ export default function ModelManagement({ isOpen, onClose }: ModelManagementProp
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Settings className="h-5 w-5" />
-                      Model Runtime Configuration
+                      Fabric Runtime Configuration
                     </CardTitle>
                     <CardDescription>
-                      Configure model runtime settings and resource limits
+                      Configure fabric runtime settings and resource limits
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       <div className="p-4 border rounded-lg bg-muted/50">
                         <p className="text-sm text-muted-foreground">
-                          Model runtime configuration is managed through the backend configuration files.
-                          Contact your system administrator to modify model runtime settings.
+                          Fabric runtime configuration is managed through the backend configuration files.
+                          Contact your system administrator to modify runtime settings.
                         </p>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label>Max Models</Label>
+                          <Label>Max Items</Label>
                           <p className="font-mono">100</p>
                         </div>
                         <div>
-                          <Label>Max Instances per Model</Label>
+                          <Label>Max Instances per Item</Label>
                           <p className="font-mono">10</p>
                         </div>
                         <div>
