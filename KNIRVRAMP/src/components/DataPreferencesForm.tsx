@@ -15,13 +15,15 @@ import {
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Home
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface DataPreferencesFormProps {
   onSubmit: () => void;
   onBack: () => void;
+  onReset?: () => void;
 }
 
 interface PrivacySettings {
@@ -35,7 +37,7 @@ interface PrivacySettings {
   thirdPartyIntegrations: boolean;
 }
 
-const DataPreferencesForm = ({ onSubmit, onBack }: DataPreferencesFormProps) => {
+const DataPreferencesForm = ({ onSubmit, onBack, onReset }: DataPreferencesFormProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [settings, setSettings] = useState<PrivacySettings>({
@@ -132,6 +134,16 @@ const DataPreferencesForm = ({ onSubmit, onBack }: DataPreferencesFormProps) => 
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-[10px] mono text-slate-500 font-bold uppercase tracking-widest">Step 05 / 05</span>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="flex items-center space-x-1 text-xs text-slate-500 hover:text-red-400 transition-colors ml-4"
+              title="Exit onboarding and return to home"
+            >
+              <Home size={14} />
+              <span className="hidden sm:inline">Exit</span>
+            </button>
+          )}
         </div>
       </nav>
 

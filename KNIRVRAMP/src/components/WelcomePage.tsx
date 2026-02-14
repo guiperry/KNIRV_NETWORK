@@ -11,14 +11,18 @@ import {
   CheckCircle2,
   Shield,
   ChevronRight,
+  ChevronLeft,
   Copy,
   RefreshCw,
-  Clock
+  Clock,
+  Home
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface WelcomePageProps {
   onContinue: () => void;
+  onBack?: () => void;
+  onReset?: () => void;
 }
 
 interface ConnectionData {
@@ -34,7 +38,7 @@ const RELEASE_LINKS = {
   android: "https://releases.knirv.network/knirvcontroller-android-pwa.zip"
 };
 
-const WelcomePage = ({ onContinue }: WelcomePageProps) => {
+const WelcomePage = ({ onContinue, onBack, onReset }: WelcomePageProps) => {
   const { toast } = useToast();
   const [connectionData, setConnectionData] = useState<ConnectionData | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(900); // 15 minutes
@@ -148,6 +152,16 @@ const WelcomePage = ({ onContinue }: WelcomePageProps) => {
             <span className="flex h-2 w-2 rounded-full bg-green-500 mr-2" />
             Email Verified
           </Badge>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="flex items-center space-x-1 text-xs text-slate-500 hover:text-red-400 transition-colors ml-4"
+              title="Exit onboarding and return to home"
+            >
+              <Home size={14} />
+              <span className="hidden sm:inline">Exit</span>
+            </button>
+          )}
         </div>
       </nav>
 
@@ -326,14 +340,26 @@ const WelcomePage = ({ onContinue }: WelcomePageProps) => {
               )}
             </div>
 
-            {/* Continue Button */}
-            <Button
-              onClick={onContinue}
-              className="mt-8 group bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition-all transform active:scale-95 flex items-center space-x-3 h-auto"
-            >
-              <span>I&apos;ve Downloaded the App</span>
-              <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </Button>
+            {/* Navigation Buttons */}
+            <div className="mt-8 flex flex-col sm:flex-row gap-4 w-full">
+              {onBack && (
+                <Button
+                  variant="ghost"
+                  onClick={onBack}
+                  className="text-slate-500 hover:text-white transition-colors flex items-center justify-center space-x-2 text-sm font-bold uppercase tracking-widest"
+                >
+                  <ChevronLeft size={16} />
+                  <span>Back</span>
+                </Button>
+              )}
+              <Button
+                onClick={onContinue}
+                className="flex-1 group bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center space-x-3 h-auto"
+              >
+                <span>I&apos;ve Downloaded the App</span>
+                <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </div>
           </div>
         </div>
       </main>

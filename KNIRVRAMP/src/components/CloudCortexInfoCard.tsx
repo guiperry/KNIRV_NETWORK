@@ -26,7 +26,8 @@ import {
   Copy,
   Settings,
   BarChart3,
-  Clock
+  Clock,
+  Home
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -150,6 +151,16 @@ const CloudCortexInfoCard = ({ onReset }: CloudCortexInfoCardProps) => {
             }`} />
             {serviceStatus.status.toUpperCase()}
           </Badge>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="flex items-center space-x-1 text-xs text-slate-500 hover:text-red-400 transition-colors ml-4"
+              title="Return to home"
+            >
+              <Home size={14} />
+              <span className="hidden sm:inline">Exit</span>
+            </button>
+          )}
         </div>
       </nav>
 

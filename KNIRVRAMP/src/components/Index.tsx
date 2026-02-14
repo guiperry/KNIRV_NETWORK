@@ -105,6 +105,10 @@ const Index = () => {
     goToStep('guide');
   };
 
+  const handleWelcomeBack = () => {
+    goToStep('preferences');
+  };
+
   // Welcome Page: Continue to Verification
   const handleWelcomeContinue = () => {
     setVerificationModalOpen(true);
@@ -198,40 +202,7 @@ const Index = () => {
                   </span>
                 </div>
 
-                {isAuthenticated && user ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-2 text-white/70">
-                      {user.picture && (
-                        <img
-                          src={user.picture}
-                          alt={user.name}
-                          className="w-6 h-6 rounded-full"
-                        />
-                      )}
-                      <span className="text-sm">Hello, {user.name}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      onClick={logout}
-                      className="text-white/70 hover:text-white hover:bg-white/10 text-sm"
-                    >
-                      Logout
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-amber-500/20 border border-amber-500/30 rounded-full px-3 py-1">
-                      <span className="text-amber-300 text-xs font-medium">Demo Mode</span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => setLoginModalOpen(true)}
-                      className="border-blue-500/50 text-blue-400 hover:bg-blue-400/10"
-                    >
-                      Sign In
-                    </Button>
-                  </div>
-                )}
+
               </div>
 
               {/* Center: Step Indicator */}
@@ -241,15 +212,6 @@ const Index = () => {
 
               {/* Right: Empty space for balance */}
               <div className="flex items-center space-x-4">
-                {/* Reset button */}
-                <Button
-                  variant="ghost"
-                  onClick={handleReset}
-                  className="text-slate-500 hover:text-white text-sm"
-                  size="sm"
-                >
-                  Reset
-                </Button>
               </div>
             </div>
           </div>
@@ -261,7 +223,8 @@ const Index = () => {
         {/* Step 1-4: Onboarding Guide */}
         {currentStep === 'guide' && (
           <OnboardingGuide 
-            onComplete={(walletConfig: DataWalletConfig) => handleGuideComplete(walletConfig)} 
+            onComplete={(walletConfig: DataWalletConfig) => handleGuideComplete(walletConfig)}
+            onReset={handleReset}
           />
         )}
 
@@ -279,12 +242,17 @@ const Index = () => {
               thirdPartyIntegrations: false
             })}
             onBack={handlePreferencesBack}
+            onReset={handleReset}
           />
         )}
 
         {/* Step 6: Welcome Page with QR Code */}
         {currentStep === 'welcome' && (
-          <WelcomePage onContinue={handleWelcomeContinue} />
+          <WelcomePage 
+            onContinue={handleWelcomeContinue}
+            onBack={handleWelcomeBack}
+            onReset={handleReset}
+          />
         )}
 
         {/* Step 7: Cloud Cortex Info Card (Final) */}

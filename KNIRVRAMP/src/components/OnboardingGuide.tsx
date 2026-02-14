@@ -18,7 +18,9 @@ import {
   Lock,
   Smartphone,
   Download,
-  Settings
+  Settings,
+  RotateCcw,
+  Home
 } from "lucide-react";
 import { APIKeysModal, type APIKeyEntry } from "./modals/APIKeysModal";
 import { MCPServersModal, type MCPServerEntry } from "./modals/MCPServersModal";
@@ -42,6 +44,7 @@ interface OnboardingGuideProps {
     };
     completedConnections: string[];
   }) => void;
+  onReset?: () => void;
 }
 
 interface FormData {
@@ -74,7 +77,7 @@ const guardrailPolicies = [
   { id: 'compute-cost', label: 'Compute Cost Cap', value: '$100.00 / Session', defaultEnabled: true }
 ];
 
-const OnboardingGuide = ({ onComplete }: OnboardingGuideProps) => {
+const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(25);
   const [formData, setFormData] = useState<FormData>({
@@ -230,6 +233,16 @@ const OnboardingGuide = ({ onComplete }: OnboardingGuideProps) => {
             />
           </div>
           <span className="text-[10px] mono text-slate-500 font-bold uppercase tracking-widest">Step 0{step} / 04</span>
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="flex items-center space-x-1 text-xs text-slate-500 hover:text-red-400 transition-colors ml-4"
+              title="Exit onboarding and return to home"
+            >
+              <Home size={14} />
+              <span className="hidden sm:inline">Exit</span>
+            </button>
+          )}
         </div>
       </nav>
 
