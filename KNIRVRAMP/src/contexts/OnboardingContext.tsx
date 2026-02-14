@@ -1,6 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { APIKeyEntry } from '@/components/modals/APIKeysModal';
+import type { MCPServerEntry } from '@/components/modals/MCPServersModal';
+import type { PolicyCert } from '@/components/modals/PolicyCertsModal';
+import type { CustomRule } from '@/components/modals/CustomRulesModal';
 
 // New simplified onboarding flow
 // Old flow: hero -> connect -> configure -> deploy -> dashboard
@@ -42,6 +46,13 @@ export interface DataWalletConfig {
     filesystemAccess: boolean;
     computeCostCap: boolean;
   };
+  connectionData: {
+    apiKeys: APIKeyEntry[];
+    mcpServers: MCPServerEntry[];
+    policyCerts: PolicyCert[];
+    customRules: CustomRule[];
+  };
+  completedConnections: string[];
 }
 
 export interface PrivacyPreferences {
@@ -76,6 +87,15 @@ interface OnboardingState {
   isEmailVerified: boolean;
   isDeviceVerified: boolean;
   
+  // Connection data (for backward compatibility during transition)
+  connectionData: {
+    apiKeys: APIKeyEntry[];
+    mcpServers: MCPServerEntry[];
+    policyCerts: PolicyCert[];
+    customRules: CustomRule[];
+  };
+  completedConnections: string[];
+  
   // Legacy support (for migration/compatibility)
   connectedApp: {url: string, name: string, type: string} | null;
   appConfig: Record<string, unknown> | null;
@@ -108,6 +128,14 @@ const defaultState: OnboardingState = {
   
   isEmailVerified: false,
   isDeviceVerified: false,
+  
+  connectionData: {
+    apiKeys: [],
+    mcpServers: [],
+    policyCerts: [],
+    customRules: []
+  },
+  completedConnections: [],
   
   // Legacy defaults
   connectedApp: null,

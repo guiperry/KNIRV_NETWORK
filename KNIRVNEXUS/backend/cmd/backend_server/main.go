@@ -17,6 +17,7 @@ import (
 	data_engine "backend_server/internal/data_engine"
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
+	"backend_server/internal/nexus"
 	"backend_server/internal/runtime"
 	"backend_server/internal/services/blockchain"
 	"backend_server/internal/services/cde"
@@ -43,6 +44,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	"github.com/tidwall/buntdb"
+	"github.com/apache/arrow/go/v14/arrow/memory"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -66,6 +68,10 @@ type Server struct {
 	// eBPF subsystem
 	ebpfManager             ebpf.ManagerInterface
 	virtualContainerManager *ebpf.VirtualContainerManager
+
+	// Nexus Memory Fabric
+	nexusServer *nexus.NexusMemoryServer
+	nexusAllocator memory.Allocator
 
 	// All services are held here
 	dveManager                   *dvemanager.DVEManager
@@ -512,6 +518,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		virtualContainerManager,
 	)
 
+	// Initialize Nexus Memory Fabric
+	nexusAllocator := memory.DefaultAllocator
+	nexusServer := nexus.NewNexusMemoryServer(nexusAllocator)
+	if err := nexusServer.StartGuardian(); err != nil {
+		log.Printf("Warning: Failed to start Nexus Guardian (eBPF): %v", err)
+	}
+
 	// Create context for service lifecycle management
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -523,6 +536,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		logger:                       logger,
 		ebpfManager:                  ebpfManager,
 		virtualContainerManager:      virtualContainerManager,
+		nexusServer:                  nexusServer,
+		nexusAllocator:               nexusAllocator,
 		dveManager:                   dveManager,
 		validationCore:               validationCore,
 		cdeService:                   cdeService,
@@ -628,6 +643,11 @@ func (s *Server) setupRoutes() {
 	// Register fabric server routes
 	if s.fabricServer != nil {
 		s.fabricServer.RegisterRoutes(s.router)
+	}
+
+	// Register Nexus Memory Fabric routes
+	if s.nexusServer != nil {
+		s.nexusServer.RegisterRoutes(s.router)
 	}
 
 	// Register CDE service routes (when available)
@@ -953,6 +973,15 @@ func (s *Server) Start() error {
 		}
 	}
 
+	// Start Nexus Memory Fabric (Arrow Flight)
+	if s.nexusServer != nil {
+		go func() {
+			if err := s.nexusServer.Serve(":50051"); err != nil {
+				log.Printf("Nexus Memory Fabric server error: %v", err)
+			}
+		}()
+	}
+
 	// Validate server configuration before creating HTTP server
 	if s.config == nil || s.config.API.BindAddress == "" || s.config.API.Port <= 0 {
 		return fmt.Errorf("invalid server configuration: bind address and port must be specified")
@@ -1015,6 +1044,12 @@ func (s *Server) Stop() error {
 	if s.cognitiveEngine != nil {
 		if err := s.cognitiveEngine.Stop(); err != nil {
 			log.Printf("Error stopping Cognitive Engine: %v", err)
+		}
+	}
+
+	if s.nexusServer != nil {
+		if err := s.nexusServer.Stop(); err != nil {
+			log.Printf("Error stopping Nexus Memory Fabric: %v", err)
 		}
 	}
 

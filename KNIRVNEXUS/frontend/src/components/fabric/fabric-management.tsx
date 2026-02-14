@@ -32,6 +32,7 @@ import {
   Layers
 } from 'lucide-react';
 import { useFabricManagement, FabricFilter } from '@/hooks/use-fabric-management';
+import { useNexusEvents } from '@/hooks/use-nexus-events';
 import type { Fabric, FabricAction } from '@/types/api';
 
 interface FabricManagementProps {
@@ -53,6 +54,12 @@ export default function FabricManagement({ isOpen, onClose }: FabricManagementPr
     deleteFabric,
     refreshAll
   } = useFabricManagement();
+
+  const {
+    events: nexusEvents,
+    isLoading: nexusLoading,
+    error: nexusError
+  } = useNexusEvents();
 
   const handleFabricAction = async (fabricId: string, action: FabricAction['action']) => {
     // TODO: Implement fabric actions when backend API is available
@@ -158,9 +165,10 @@ export default function FabricManagement({ isOpen, onClose }: FabricManagementPr
             )}
 
             <Tabs defaultValue="overview" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="fabric">Fabric Items</TabsTrigger>
+                <TabsTrigger value="memory">Memory Fabric</TabsTrigger>
                 <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
@@ -366,6 +374,99 @@ export default function FabricManagement({ isOpen, onClose }: FabricManagementPr
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="memory" className="space-y-4">
+                <Card className="knirv-card-gradient">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-yellow-500" />
+                      Active Memory Fabric (Arrow Flight)
+                    </CardTitle>
+                    <CardDescription>
+                      Real-time Intent-Action Correlation via eBPF Guardian
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {nexusLoading ? (
+                        <p className="text-center py-4">Loading memory fabric events...</p>
+                      ) : nexusEvents.length === 0 ? (
+                        <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                          <Bot className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                          <p className="text-muted-foreground">No active agent sessions detected</p>
+                          <p className="text-xs text-muted-foreground mt-1">Deploy an agent to see real-time correlation</p>
+                        </div>
+                      ) : (
+                        <div className="rounded-md border">
+                          <table className="min-w-full divide-y divide-border">
+                            <thead className="bg-muted/50">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Timestamp</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Agent ID</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Intent</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Observed Action</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {nexusEvents.map((event, i) => (
+                                <tr key={i} className="hover:bg-muted/30 transition-colors">
+                                  <td className="px-4 py-3 text-xs font-mono">
+                                    {new Date(event.timestamp / 1000000).toLocaleTimeString()}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm font-medium">{event.agent_id}</td>
+                                  <td className="px-4 py-3 text-sm">{event.intent}</td>
+                                  <td className="px-4 py-3 text-sm font-mono text-blue-400">{event.observed_action}</td>
+                                  <td className="px-4 py-3 text-sm">
+                                    {event.verified ? (
+                                      <Badge className="bg-green-500/20 text-green-500 border-green-500/50">Verified</Badge>
+                                    ) : (
+                                      <Badge className="bg-red-500/20 text-red-500 border-red-500/50">Anomaly</Badge>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card className="knirv-card-gradient">
+                    <CardHeader>
+                      <CardTitle className="text-sm">Zero-Copy Handover Status</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">Arrow Flight RPC Port</p>
+                        <Badge variant="outline">50051</Badge>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">Active Streams</p>
+                        <p className="text-sm font-bold">{nexusEvents.length > 0 ? 1 : 0}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="knirv-card-gradient">
+                    <CardHeader>
+                      <CardTitle className="text-sm">eBPF Kernel Probes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">Kprobe Status</p>
+                        <Badge className="bg-green-500">Active</Badge>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">Intercepted Syscalls</p>
+                        <p className="text-sm font-bold">sys_connect</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
 
               <TabsContent value="monitoring" className="space-y-4">

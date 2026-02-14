@@ -35,3 +35,5 @@ package ebpf
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target amd64,arm64 -type virtual_container virtualNs ./programs/virtual_ns.c
 
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target amd64,arm64 -type process_stats telemetry ./programs/telemetry.c
+
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -target amd64,arm64 -type guardian_event NexusGuardian ./programs/nexus_guardian.c

@@ -160,8 +160,39 @@ paths:
         '200':
           description: Current learning state and metrics
 
+  # Nexus Memory Fabric
+  /api/nexus/events:
+    get:
+      tags:
+        - fabric
+      summary: Get Nexus Memory Events
+      description: Retrieve recent Intent-Action correlation events captured by eBPF
+      responses:
+        '200':
+          description: List of memory fabric events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NexusEvent'
+
 components:
   schemas:
+    NexusEvent:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+        agent_id:
+          type: string
+        intent:
+          type: string
+        observed_action:
+          type: string
+        verified:
+          type: boolean
     Fabric:
       type: object
       properties:

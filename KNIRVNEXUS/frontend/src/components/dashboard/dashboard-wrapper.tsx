@@ -16,6 +16,7 @@ import CDEPanel from './cde-panel'; // Modular CDE Panel
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
+import type { DVENode } from '@/types/api';
 import {
   Shield,
   Server,

@@ -48,20 +48,25 @@ const Index = () => {
   // Extract current step
   const { currentStep } = state;
 
-  // Initial loading effect
+  // Initial loading effect - simple and reliable
   useEffect(() => {
-    const loadingInterval = setInterval(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      setLoadingProgress(100);
+    }, 2000); // Show loading for 2 seconds
+
+    // Progress animation
+    const progressInterval = setInterval(() => {
       setLoadingProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(loadingInterval);
-          setTimeout(() => setIsLoading(false), 500);
-          return 100;
-        }
+        if (prev >= 90) return prev;
         return prev + 10;
       });
-    }, 300);
+    }, 150);
 
-    return () => clearInterval(loadingInterval);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(progressInterval);
+    };
   }, []);
 
   // Save progress whenever state changes
@@ -256,15 +261,7 @@ const Index = () => {
         {/* Step 1-4: Onboarding Guide */}
         {currentStep === 'guide' && (
           <OnboardingGuide 
-            onComplete={() => handleGuideComplete({
-              walletName: 'DEFAULT-WALLET',
-              fabricInputs: [],
-              guardrails: {
-                networkDrift: true,
-                filesystemAccess: true,
-                computeCostCap: true
-              }
-            })} 
+            onComplete={(walletConfig: DataWalletConfig) => handleGuideComplete(walletConfig)} 
           />
         )}
 

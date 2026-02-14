@@ -17,11 +17,31 @@ import {
   Plus,
   Lock,
   Smartphone,
-  Download
+  Download,
+  Settings
 } from "lucide-react";
+import { APIKeysModal, type APIKeyEntry } from "./modals/APIKeysModal";
+import { MCPServersModal, type MCPServerEntry } from "./modals/MCPServersModal";
+import { PolicyCertsModal, type PolicyCert } from "./modals/PolicyCertsModal";
+import { CustomRulesModal, type CustomRule } from "./modals/CustomRulesModal";
 
 interface OnboardingGuideProps {
-  onComplete: () => void;
+  onComplete: (walletConfig: {
+    walletName: string;
+    fabricInputs: string[];
+    guardrails: {
+      networkDrift: boolean;
+      filesystemAccess: boolean;
+      computeCostCap: boolean;
+    };
+    connectionData: {
+      apiKeys: APIKeyEntry[];
+      mcpServers: MCPServerEntry[];
+      policyCerts: PolicyCert[];
+      customRules: CustomRule[];
+    };
+    completedConnections: string[];
+  }) => void;
 }
 
 interface FormData {
@@ -32,13 +52,20 @@ interface FormData {
     filesystemAccess: boolean;
     computeCostCap: boolean;
   };
+  connectionData: {
+    apiKeys: APIKeyEntry[];
+    mcpServers: MCPServerEntry[];
+    policyCerts: PolicyCert[];
+    customRules: CustomRule[];
+  };
+  completedConnections: string[];
 }
 
 const fabricInputs = [
   { id: 'api-keys', icon: Key, label: 'API Keys', desc: 'Secure LLM & Service Credentials' },
   { id: 'mcp-servers', icon: Terminal, label: 'MCP Servers', desc: 'Model Context Protocol Integrations' },
-  { id: 'custom-certs', icon: Database, label: 'Custom Certs', desc: 'Private TLS/Identity Certificates' },
-  { id: 'asic-nodes', icon: Cpu, label: 'ASIC Nodes', desc: 'Custom Hardware Compute IDs' }
+  { id: 'policy-certs', icon: Database, label: 'Policy Certs', desc: 'Kernel Guardrails & Thresholds' },
+  { id: 'custom-rules', icon: Cpu, label: 'Custom Rules', desc: 'Behavioral Rules & Instructions' }
 ];
 
 const guardrailPolicies = [
@@ -57,8 +84,18 @@ const OnboardingGuide = ({ onComplete }: OnboardingGuideProps) => {
       networkDrift: true,
       filesystemAccess: true,
       computeCostCap: true
-    }
+    },
+    connectionData: {
+      apiKeys: [],
+      mcpServers: [],
+      policyCerts: [],
+      customRules: []
+    },
+    completedConnections: []
   });
+
+  // Modal states
+  const [activeModal, setActiveModal] = useState<string | null>(null);
 
   const steps = [
     { id: 1, title: 'Identity', description: 'Initialize Data Fabric' },
@@ -72,7 +109,13 @@ const OnboardingGuide = ({ onComplete }: OnboardingGuideProps) => {
       setStep(step + 1);
       setProgress((step + 1) * 25);
     } else {
-      onComplete();
+      onComplete({
+        walletName: formData.walletName || 'DEFAULT-WALLET',
+        fabricInputs: formData.selectedInputs,
+        guardrails: formData.guardrails,
+        connectionData: formData.connectionData,
+        completedConnections: formData.completedConnections
+      });
     }
   };
 
@@ -89,6 +132,69 @@ const OnboardingGuide = ({ onComplete }: OnboardingGuideProps) => {
       selectedInputs: prev.selectedInputs.includes(inputId)
         ? prev.selectedInputs.filter(id => id !== inputId)
         : [...prev.selectedInputs, inputId]
+    }));
+  };
+
+  const openModal = (modalId: string) => {
+    setActiveModal(modalId);
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+  };
+
+  const isConnectionComplete = (connectionId: string) => {
+    switch (connectionId) {
+      case 'api-keys':
+        return formData.connectionData.apiKeys.length > 0;
+      case 'mcp-servers':
+        return formData.connectionData.mcpServers.length > 0;
+      case 'policy-certs':
+        return formData.connectionData.policyCerts.length > 0;
+      case 'custom-rules':
+        return formData.connectionData.customRules.length > 0;
+      default:
+        return false;
+    }
+  };
+
+  const handleSaveAPIKeys = (apiKeys: APIKeyEntry[]) => {
+    setFormData(prev => ({
+      ...prev,
+      connectionData: { ...prev.connectionData, apiKeys },
+      completedConnections: prev.completedConnections.includes('api-keys')
+        ? prev.completedConnections
+        : [...prev.completedConnections, 'api-keys']
+    }));
+  };
+
+  const handleSaveMCPServers = (mcpServers: MCPServerEntry[]) => {
+    setFormData(prev => ({
+      ...prev,
+      connectionData: { ...prev.connectionData, mcpServers },
+      completedConnections: prev.completedConnections.includes('mcp-servers')
+        ? prev.completedConnections
+        : [...prev.completedConnections, 'mcp-servers']
+    }));
+  };
+
+  const handleSavePolicyCerts = (policyCerts: PolicyCert[]) => {
+    setFormData(prev => ({
+      ...prev,
+      connectionData: { ...prev.connectionData, policyCerts },
+      completedConnections: prev.completedConnections.includes('policy-certs')
+        ? prev.completedConnections
+        : [...prev.completedConnections, 'policy-certs']
+    }));
+  };
+
+  const handleSaveCustomRules = (customRules: CustomRule[]) => {
+    setFormData(prev => ({
+      ...prev,
+      connectionData: { ...prev.connectionData, customRules },
+      completedConnections: prev.completedConnections.includes('custom-rules')
+        ? prev.completedConnections
+        : [...prev.completedConnections, 'custom-rules']
     }));
   };
 
@@ -184,40 +290,59 @@ const OnboardingGuide = ({ onComplete }: OnboardingGuideProps) => {
               <div className="grid md:grid-cols-2 gap-4">
                 {fabricInputs.map((item) => {
                   const Icon = item.icon;
-                  const isSelected = formData.selectedInputs.includes(item.id);
+                  const isComplete = isConnectionComplete(item.id);
                   return (
                     <div 
                       key={item.id} 
-                      onClick={() => toggleInput(item.id)}
+                      onClick={() => openModal(item.id)}
                       className={`group cursor-pointer p-6 rounded-2xl transition-all ${
-                        isSelected 
-                          ? 'bg-blue-500/10 border border-blue-500' 
+                        isComplete 
+                          ? 'bg-green-500/10 border border-green-500' 
                           : 'bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-white/10'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-4">
                         <div className={`p-3 rounded-lg transition-colors ${
-                          isSelected ? 'bg-blue-600/20' : 'bg-blue-600/10 group-hover:bg-blue-600/20'
+                          isComplete ? 'bg-green-600/20' : 'bg-blue-600/10 group-hover:bg-blue-600/20'
                         }`}>
-                          <Icon className="text-blue-500" size={24} />
+                          <Icon className={isComplete ? 'text-green-500' : 'text-blue-500'} size={24} />
                         </div>
                         <div className={`w-5 h-5 border rounded-full flex items-center justify-center transition-all ${
-                          isSelected 
-                            ? 'border-blue-500 bg-blue-500' 
+                          isComplete 
+                            ? 'border-green-500 bg-green-500' 
                             : 'border-white/20 group-hover:border-blue-500'
                         }`}>
-                          {isSelected ? (
+                          {isComplete ? (
                             <CheckCircle2 size={14} className="text-white" />
                           ) : (
-                            <Plus size={14} className="text-blue-500" />
+                            <Settings size={14} className="text-blue-500" />
                           )}
                         </div>
                       </div>
                       <h4 className="font-bold mb-1">{item.label}</h4>
                       <p className="text-xs text-slate-500">{item.desc}</p>
+                      {isComplete && (
+                        <p className="text-xs text-green-400 mt-2 font-medium">Configured</p>
+                      )}
                     </div>
                   );
                 })}
+              </div>
+              
+              {/* Completion Progress */}
+              <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs uppercase font-bold text-slate-500 tracking-wider">Configuration Progress</span>
+                  <span className="text-sm text-slate-400">
+                    {formData.completedConnections.length} of {fabricInputs.length} completed
+                  </span>
+                </div>
+                <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-600 transition-all duration-500"
+                    style={{ width: `${(formData.completedConnections.length / fabricInputs.length) * 100}%` }}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -341,6 +466,32 @@ const OnboardingGuide = ({ onComplete }: OnboardingGuideProps) => {
           <span>Sovereign Encryption Active</span>
         </div>
       </footer>
+
+      {/* Connection Modals */}
+      <APIKeysModal
+        isOpen={activeModal === 'api-keys'}
+        onClose={closeModal}
+        onSave={handleSaveAPIKeys}
+        initialEntries={formData.connectionData.apiKeys}
+      />
+      <MCPServersModal
+        isOpen={activeModal === 'mcp-servers'}
+        onClose={closeModal}
+        onSave={handleSaveMCPServers}
+        initialServers={formData.connectionData.mcpServers}
+      />
+      <PolicyCertsModal
+        isOpen={activeModal === 'policy-certs'}
+        onClose={closeModal}
+        onSave={handleSavePolicyCerts}
+        initialCerts={formData.connectionData.policyCerts}
+      />
+      <CustomRulesModal
+        isOpen={activeModal === 'custom-rules'}
+        onClose={closeModal}
+        onSave={handleSaveCustomRules}
+        initialRules={formData.connectionData.customRules}
+      />
     </div>
   );
 };

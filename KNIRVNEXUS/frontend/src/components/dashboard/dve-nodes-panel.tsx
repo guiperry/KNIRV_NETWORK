@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 interface DVENodesPanelProps {
   className?: string;
   onRentClick?: () => void;
-  onNodeConnect?: (nodeId: string, nodeName: string) => void;
+  onNodeConnect?: (node: DVENode) => void;
 }
 
 export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentClick, onNodeConnect }) => {
@@ -101,7 +101,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
 
   const handleAccessDVE = (node: DVENode) => {
     if (onNodeConnect) {
-      onNodeConnect(node.id, node.name);
+      onNodeConnect(node);
     } else {
       setSelectedNode(node);
       setCDEOpen(true);
