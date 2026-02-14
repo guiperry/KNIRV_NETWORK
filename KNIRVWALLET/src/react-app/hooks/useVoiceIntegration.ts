@@ -64,7 +64,11 @@ export const useVoiceIntegration = () => {
       navigate('/wallet');
     } else if (lowerCommand.includes('udc') || lowerCommand.includes('certificate')) {
       navigate('/udc');
-    } else if (lowerCommand.includes('home') || lowerCommand.includes('agents')) {
+    } else if (lowerCommand.includes('scan') || lowerCommand.includes('scanner')) {
+      navigate('/scanner');
+    } else if (lowerCommand.includes('workflow')) {
+      navigate('/workflows');
+    } else if (lowerCommand.includes('home') || lowerCommand.includes('verifier') || lowerCommand.includes('node')) {
       navigate('/');
     }
 
@@ -80,11 +84,11 @@ export const useVoiceIntegration = () => {
       console.log('Skill deactivation requested:', command);
     }
 
-    // Agent commands
-    else if (lowerCommand.includes('check agent') || lowerCommand.includes('agent status')) {
-      console.log('Agent status check requested');
-    } else if (lowerCommand.includes('deploy agent')) {
-      console.log('Agent deployment requested');
+    // Workflow commands
+    else if (lowerCommand.includes('check workflow') || lowerCommand.includes('workflow status')) {
+      console.log('Workflow status check requested');
+    } else if (lowerCommand.includes('deploy workflow')) {
+      console.log('Workflow deployment requested');
     }
 
     // System commands

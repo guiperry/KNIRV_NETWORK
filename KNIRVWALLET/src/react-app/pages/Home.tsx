@@ -1,10 +1,10 @@
 import { Bot, Zap, Shield, Activity, TrendingUp, Clock } from 'lucide-react';
 import Layout from '@/react-app/components/Layout';
 import StatsCard from '@/react-app/components/StatsCard';
-import AgentCard from '@/react-app/components/AgentCard';
+import WorkflowCard from '@/react-app/components/WorkflowCard';
 
 export default function Home() {
-  const agents = [
+  const workflows = [
     {
       name: 'CodeT5-Alpha',
       status: 'active' as const,
@@ -44,14 +44,14 @@ export default function Home() {
             Autonomous Gateway Active
           </h2>
           <p className="text-slate-400 text-sm font-mono uppercase tracking-wider">
-            Your AI agents are connected to the D-TEN network
+            Your AI workflows are connected to the D-TEN network
           </p>
         </div>
 
         {/* Stats Grid - Glass Panel Style */}
         <div className="grid grid-cols-2 gap-4">
           <StatsCard
-            title="Active Agents"
+            title="Active Workflows"
             value={2}
             change="+25% from last hour"
             icon={Bot}
@@ -100,18 +100,18 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Agents Section */}
+        {/* Workflows Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Your Agents</h3>
+            <h3 className="text-lg font-semibold text-white">Your Workflows</h3>
             <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors font-mono uppercase">
               View All
             </button>
           </div>
           
           <div className="space-y-4">
-            {agents.map((agent) => (
-              <AgentCard key={agent.name} {...agent} />
+            {workflows.map((workflow) => (
+              <WorkflowCard key={workflow.name} {...workflow} />
             ))}
           </div>
         </div>
@@ -122,8 +122,8 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-3">
             <ActionButton
               icon={Bot}
-              title="Deploy Agent"
-              description="Launch new AI agent"
+              title="Deploy Workflow"
+              description="Launch new AI workflow"
             />
             <ActionButton
               icon={TrendingUp}

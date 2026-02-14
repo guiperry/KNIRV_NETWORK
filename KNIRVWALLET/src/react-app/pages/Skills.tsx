@@ -29,8 +29,8 @@ export default function Skills() {
       isActive: false
     },
     {
-      name: 'Agent Communication',
-      description: 'Secure inter-agent messaging and coordination protocols',
+      name: 'Workflow Communication',
+      description: 'Secure inter-workflow messaging and coordination protocols',
       category: 'communication' as const,
       complexity: 6,
       nrnCost: 20,
@@ -63,10 +63,10 @@ export default function Skills() {
         {/* Header - Gradient Text */}
         <div className="text-center py-4">
           <h2 className="text-2xl font-bold gradient-text mb-2">
-            Agent Skills
+            Workflow Skills
           </h2>
           <p className="text-slate-400 text-sm font-mono uppercase tracking-wider">
-            Manage and configure your AI agent capabilities
+            Manage and configure your AI workflow capabilities
           </p>
         </div>
 

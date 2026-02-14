@@ -3,19 +3,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { APIKeyEntry } from '@/components/modals/APIKeysModal';
 import type { MCPServerEntry } from '@/components/modals/MCPServersModal';
-import type { PolicyCert } from '@/components/modals/PolicyCertsModal';
-import type { CustomRule } from '@/components/modals/CustomRulesModal';
+import type { PolicyCert, CustomRule } from '@/components/modals/PolicyCertsModal';
 
 // New simplified onboarding flow
 // Old flow: hero -> connect -> configure -> deploy -> dashboard
-// New flow: guide -> preferences -> welcome -> verification -> cortex
+// New flow: guide (4 steps in one) -> hosting -> [local download or cloud signup]
 
-export type NewOnboardingStep = 
-  | 'guide'           // Step 1-4: Animated guide for data wallet setup
-  | 'preferences'     // Step 5: Private Data Management Preferences form
-  | 'welcome'         // Welcome page with QR code for mobile app download
-  | 'verification'    // QR code verification modal
-  | 'cortex';         // Final: Cloud Cortex info card/dashboard
+export type NewOnboardingStep =
+  | 'guide'           // Steps 1-4: Identity, Connections, Governance, Sovereignty
+  | 'hosting';        // Final: Choose between local sovereign edition or cloud hosting
 
 export type LegacyStep = 
   | 'hero' 
@@ -224,9 +220,9 @@ export const OnboardingProvider: React.FC<{children: React.ReactNode}> = ({ chil
   };
 
   const completeOnboarding = () => {
-    updateState({ 
+    updateState({
       isOnboardingComplete: true,
-      currentStep: 'cortex'
+      currentStep: 'hosting'
     });
   };
 

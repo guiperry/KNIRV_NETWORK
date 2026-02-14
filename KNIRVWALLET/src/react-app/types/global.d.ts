@@ -78,8 +78,8 @@ export interface CognitiveState {
   skillsActive: string[];
 }
 
-// Agent types
-export interface AgentMetrics {
+// Workflow types
+export interface WorkflowMetrics {
   performance: number;
   tasksCompleted: number;
   errorRate: number;
@@ -89,7 +89,7 @@ export interface AgentMetrics {
 // NRV (Network Resource Virtualization) types
 export interface NRVData {
   id: string;
-  type: 'skill' | 'agent' | 'system';
+  type: 'skill' | 'workflow' | 'system';
   status: 'active' | 'idle' | 'error';
-  metrics: AgentMetrics;
+  metrics: WorkflowMetrics;
 }

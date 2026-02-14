@@ -9,26 +9,26 @@ import {
   Shield, 
   Key, 
   Database, 
-  Cpu, 
   Terminal,
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
-  Plus,
   Lock,
   Smartphone,
   Download,
   Settings,
-  RotateCcw,
-  Home
+  Home,
+  SlidersHorizontal,
+  Cpu,
+  Mail
 } from "lucide-react";
 import { APIKeysModal, type APIKeyEntry } from "./modals/APIKeysModal";
 import { MCPServersModal, type MCPServerEntry } from "./modals/MCPServersModal";
-import { PolicyCertsModal, type PolicyCert } from "./modals/PolicyCertsModal";
-import { CustomRulesModal, type CustomRule } from "./modals/CustomRulesModal";
+import { PolicyCertsModal, type PolicyCert, type CustomRule } from "./modals/PolicyCertsModal";
+import { PreferencesModal, type PrivacySettings } from "./modals/PreferencesModal";
 
 interface OnboardingGuideProps {
-  onComplete: (walletConfig: {
+  onComplete: (config: {
     walletName: string;
     fabricInputs: string[];
     guardrails: {
@@ -43,6 +43,7 @@ interface OnboardingGuideProps {
       customRules: CustomRule[];
     };
     completedConnections: string[];
+    privacySettings: PrivacySettings;
   }) => void;
   onReset?: () => void;
 }
@@ -62,13 +63,14 @@ interface FormData {
     customRules: CustomRule[];
   };
   completedConnections: string[];
+  privacySettings: PrivacySettings;
 }
 
 const fabricInputs = [
   { id: 'api-keys', icon: Key, label: 'API Keys', desc: 'Secure LLM & Service Credentials' },
   { id: 'mcp-servers', icon: Terminal, label: 'MCP Servers', desc: 'Model Context Protocol Integrations' },
-  { id: 'policy-certs', icon: Database, label: 'Policy Certs', desc: 'Kernel Guardrails & Thresholds' },
-  { id: 'custom-rules', icon: Cpu, label: 'Custom Rules', desc: 'Behavioral Rules & Instructions' }
+  { id: 'policy-certs', icon: Database, label: 'Policy Certs', desc: 'Kernel Guardrails & Custom Rules' },
+  { id: 'preferences', icon: SlidersHorizontal, label: 'Preferences', desc: 'Data Management & Privacy Settings' }
 ];
 
 const guardrailPolicies = [
@@ -94,7 +96,17 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
       policyCerts: [],
       customRules: []
     },
-    completedConnections: []
+    completedConnections: [],
+    privacySettings: {
+      dataEncryption: true,
+      localProcessing: true,
+      anonymizeMetrics: true,
+      shareErrorLogs: false,
+      allowAnalytics: false,
+      dataRetentionDays: 90,
+      autoDeleteInactive: true,
+      thirdPartyIntegrations: false
+    }
   });
 
   // Modal states
@@ -117,7 +129,8 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
         fabricInputs: formData.selectedInputs,
         guardrails: formData.guardrails,
         connectionData: formData.connectionData,
-        completedConnections: formData.completedConnections
+        completedConnections: formData.completedConnections,
+        privacySettings: formData.privacySettings
       });
     }
   };
@@ -153,9 +166,9 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
       case 'mcp-servers':
         return formData.connectionData.mcpServers.length > 0;
       case 'policy-certs':
-        return formData.connectionData.policyCerts.length > 0;
-      case 'custom-rules':
-        return formData.connectionData.customRules.length > 0;
+        return formData.connectionData.policyCerts.length > 0 || formData.connectionData.customRules.length > 0;
+      case 'preferences':
+        return formData.completedConnections.includes('preferences');
       default:
         return false;
     }
@@ -181,23 +194,23 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     }));
   };
 
-  const handleSavePolicyCerts = (policyCerts: PolicyCert[]) => {
+  const handleSavePolicyCerts = (policyCerts: PolicyCert[], customRules: CustomRule[]) => {
     setFormData(prev => ({
       ...prev,
-      connectionData: { ...prev.connectionData, policyCerts },
+      connectionData: { ...prev.connectionData, policyCerts, customRules },
       completedConnections: prev.completedConnections.includes('policy-certs')
         ? prev.completedConnections
         : [...prev.completedConnections, 'policy-certs']
     }));
   };
 
-  const handleSaveCustomRules = (customRules: CustomRule[]) => {
+  const handleSavePreferences = (privacySettings: PrivacySettings) => {
     setFormData(prev => ({
       ...prev,
-      connectionData: { ...prev.connectionData, customRules },
-      completedConnections: prev.completedConnections.includes('custom-rules')
+      privacySettings,
+      completedConnections: prev.completedConnections.includes('preferences')
         ? prev.completedConnections
-        : [...prev.completedConnections, 'custom-rules']
+        : [...prev.completedConnections, 'preferences']
     }));
   };
 
@@ -397,50 +410,133 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
           )}
 
           {step === 4 && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 text-center">
-              <div className="mb-12 space-y-4">
-                <div className="inline-block p-4 bg-blue-600/20 rounded-full mb-4 animate-pulse">
-                  <Lock className="text-blue-500" size={48} />
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+              {/* Success Message */}
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center p-3 bg-green-500/10 rounded-full mb-4">
+                  <CheckCircle2 className="text-green-500" size={32} />
                 </div>
-                <h2 className="text-4xl font-extrabold tracking-tight">Secure the <span className="text-blue-500">Vault.</span></h2>
-                <p className="text-slate-400 max-w-lg mx-auto">
-                  To finalize sovereignty, your Data Fabric must be anchored to your physical device with a Data Wallet. KNIRV does not store your private keys.
+                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-3">
+                  Welcome to Your <span className="text-blue-500">Data Fabric.</span>
+                </h2>
+                <p className="text-slate-400 max-w-2xl mx-auto">
+                  Your private cloud cortex is ready. Download the mobile app to complete your setup and secure your vault.
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-12 items-center">
-                <div className="space-y-6 text-left">
-                  <div className="p-6 bg-white/5 border border-white/10 rounded-2xl space-y-4">
-                    <div className="flex items-center space-x-3 text-blue-400">
-                      <Smartphone size={20} />
-                      <h4 className="font-bold uppercase text-sm tracking-widest">Mobile Validation Required</h4>
+              <div className="grid md:grid-cols-2 gap-8 items-start">
+                {/* Left Column - Instructions */}
+                <div className="space-y-4">
+                  {/* Email Confirmation Notice */}
+                  <div className="p-5 bg-green-500/5 border border-green-500/20 rounded-xl">
+                    <div className="flex items-start space-x-3">
+                      <Mail className="text-green-500 shrink-0 mt-1" size={20} />
+                      <div>
+                        <h3 className="font-bold mb-1 text-green-400">Configuration Complete</h3>
+                        <p className="text-sm text-slate-400">
+                          Your Data Fabric has been configured. Download the mobile wallet 
+                          to complete your setup and manage your vault on the go.
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-sm text-slate-400">
-                      1. Download the KNIRV Mobile Wallet<br />
-                      2. Scan the secure handshake QR code<br />
-                      3. Biometrically authorize your Nexus Vault
-                    </p>
-                    <div className="flex space-x-3 pt-4">
-                      <button className="flex-1 bg-white/10 hover:bg-white/20 px-4 py-3 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                        <Download size={16} />
-                        <span className="text-xs font-bold">iOS</span>
+                  </div>
+
+                  {/* Download Options */}
+                  <div className="p-5 bg-white/5 border border-white/10 rounded-xl">
+                    <h3 className="font-bold mb-3 flex items-center text-sm">
+                      <Download className="mr-2 text-blue-500" size={16} />
+                      Download Options
+                    </h3>
+                    
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => window.open('https://beta-controller.knirv.com/', '_blank')}
+                        className="w-full flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg hover:border-blue-500/50 hover:bg-white/5 transition-colors text-left"
+                      >
+                        <div className="flex items-center">
+                          <Smartphone className="mr-3 text-blue-500" size={18} />
+                          <div>
+                            <div className="font-bold text-sm">Open Live PWA</div>
+                            <div className="text-xs text-slate-500">Install directly on your device</div>
+                          </div>
+                        </div>
+                        <ChevronRight size={16} className="text-slate-500" />
                       </button>
-                      <button className="flex-1 bg-white/10 hover:bg-white/20 px-4 py-3 rounded-lg flex items-center justify-center space-x-2 transition-colors">
-                        <Download size={16} />
-                        <span className="text-xs font-bold">Android</span>
-                      </button>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => window.open('https://releases.knirv.network/knirvcontroller-ios-pwa.zip', '_blank')}
+                          className="p-3 bg-white/5 border border-white/10 rounded-lg hover:border-blue-500/50 hover:bg-white/5 transition-colors text-center text-sm"
+                        >
+                          <Download size={14} className="inline mr-1" />
+                          iOS ZIP
+                        </button>
+                        <button
+                          onClick={() => window.open('https://releases.knirv.network/knirvcontroller-android-pwa.zip', '_blank')}
+                          className="p-3 bg-white/5 border border-white/10 rounded-lg hover:border-blue-500/50 hover:bg-white/5 transition-colors text-center text-sm"
+                        >
+                          <Download size={14} className="inline mr-1" />
+                          Android
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Setup Steps */}
+                  <div className="p-5 bg-white/5 border border-white/10 rounded-xl">
+                    <h3 className="font-bold mb-3 text-sm">Setup Steps</h3>
+                    <div className="space-y-3">
+                      {[
+                        { step: 1, text: 'Download the KNIRV Mobile Wallet app' },
+                        { step: 2, text: 'Install and open the application' },
+                        { step: 3, text: 'Scan the QR code to pair your device' },
+                        { step: 4, text: 'Complete biometric authorization' }
+                      ].map((item) => (
+                        <div key={item.step} className="flex items-center space-x-3">
+                          <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold shrink-0">
+                            {item.step}
+                          </div>
+                          <span className="text-sm text-slate-300">{item.text}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="p-4 bg-white rounded-xl shadow-[0_0_50px_rgba(59,130,246,0.2)]">
-                    <div className="w-48 h-48 bg-slate-100 flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-lg">
-                      <Shield className="text-slate-300 mb-2" size={32} />
-                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Scan to Secure</span>
+                {/* Right Column - QR Code */}
+                <div className="flex flex-col items-center">
+                  <div className="bg-white/5 border border-white/10 p-6 rounded-xl w-full">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold flex items-center text-sm">
+                        <Shield className="mr-2 text-blue-500" size={16} />
+                        Secure Download
+                      </h3>
+                      <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded border border-blue-500/30">
+                        Valid for 15 min
+                      </span>
+                    </div>
+
+                    {/* QR Code */}
+                    <div className="flex flex-col items-center space-y-3 mb-4">
+                      <div className="p-3 bg-white rounded-lg shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+                        <div className="w-40 h-40 bg-slate-100 flex items-center justify-center">
+                          <span className="text-xs text-slate-400 text-center px-4">
+                            QR Code will be generated
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-400 text-center">
+                        Scan with your mobile device to download
+                      </p>
+                    </div>
+
+                    {/* Connection Info */}
+                    <div className="pt-4 border-t border-white/10">
+                      <div className="text-xs text-slate-500 space-y-1 font-mono text-center">
+                        <div>Session: <span className="text-slate-400">FABRIC-{Math.random().toString(36).substr(2, 6).toUpperCase()}</span></div>
+                      </div>
                     </div>
                   </div>
-                  <span className="mono text-[10px] text-slate-600 font-bold">VAULT_HANDSHAKE_ID: NEX-882-991</span>
                 </div>
               </div>
             </div>
@@ -498,12 +594,13 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
         onClose={closeModal}
         onSave={handleSavePolicyCerts}
         initialCerts={formData.connectionData.policyCerts}
-      />
-      <CustomRulesModal
-        isOpen={activeModal === 'custom-rules'}
-        onClose={closeModal}
-        onSave={handleSaveCustomRules}
         initialRules={formData.connectionData.customRules}
+      />
+      <PreferencesModal
+        isOpen={activeModal === 'preferences'}
+        onClose={closeModal}
+        onSave={handleSavePreferences}
+        initialSettings={formData.privacySettings}
       />
     </div>
   );

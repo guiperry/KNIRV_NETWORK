@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useLocation, Link } from 'react-router';
-import { Cpu, Zap, Shield, Wallet, Mic, Brain } from 'lucide-react';
+import { Zap, Shield, Wallet, Mic, Brain, QrCode } from 'lucide-react';
 import { EdgeColoring } from './EdgeColoring';
 import { VoiceControl } from './VoiceControl';
 import { useVoiceIntegration } from '../hooks/useVoiceIntegration';
@@ -89,8 +89,9 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Bottom Navigation - Glass Panel Style */}
       <nav className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/5 backdrop-blur-xl bg-[#0a0a0c]/90">
-        <div className="grid grid-cols-4 px-2 py-2">
-          <NavItem to="/" icon={Cpu} label="Agents" active={location.pathname === '/'} />
+        <div className="grid grid-cols-5 px-2 py-2">
+          <NavItem to="/" icon={Shield} label="Nodes" active={location.pathname === '/'} />
+          <NavItem to="/scanner" icon={QrCode} label="Scanner" active={location.pathname === '/scanner'} />
           <NavItem to="/skills" icon={Zap} label="Skills" active={location.pathname === '/skills'} />
           <NavItem to="/udc" icon={Shield} label="UDC" active={location.pathname === '/udc'} />
           <NavItem to="/wallet" icon={Wallet} label="Wallet" active={location.pathname === '/wallet'} />

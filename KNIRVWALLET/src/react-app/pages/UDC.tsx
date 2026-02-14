@@ -8,7 +8,7 @@ export default function UDC() {
     issuedAt: '2024-08-01T10:30:00Z',
     expiresAt: '2024-08-08T10:30:00Z',
     permissions: [
-      'agent.deploy',
+      'workflow.deploy',
       'skill.activate',
       'nrn.transfer',
       'dten.access',

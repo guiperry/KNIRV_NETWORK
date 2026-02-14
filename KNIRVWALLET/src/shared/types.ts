@@ -1,21 +1,21 @@
 import z from "zod";
 
-// Agent status types
-export const AgentStatusSchema = z.enum(['active', 'idle', 'error', 'deploying']);
-export type AgentStatus = z.infer<typeof AgentStatusSchema>;
+// Workflow status types
+export const WorkflowStatusSchema = z.enum(['active', 'idle', 'error', 'deploying']);
+export type WorkflowStatus = z.infer<typeof WorkflowStatusSchema>;
 
-// Agent configuration
-export const AgentConfigSchema = z.object({
+// Workflow configuration
+export const WorkflowConfigSchema = z.object({
   id: z.string(),
   name: z.string(),
   type: z.enum(['CodeT5', 'SEAL', 'LoRA', 'NRN']),
-  status: AgentStatusSchema,
+  status: WorkflowStatusSchema,
   tasks: z.number().int(),
   performance: z.number().min(0).max(100),
   lastActive: z.string(),
   config: z.record(z.any()).optional(),
 });
-export type AgentConfig = z.infer<typeof AgentConfigSchema>;
+export type WorkflowConfig = z.infer<typeof WorkflowConfigSchema>;
 
 // User Delegation Certificate (UDC)
 export const UDCSchema = z.object({
@@ -33,7 +33,7 @@ export type UDC = z.infer<typeof UDCSchema>;
 export const NRNTransactionSchema = z.object({
   id: z.string(),
   userId: z.string(),
-  agentId: z.string(),
+  workflowId: z.string(),
   amount: z.number(),
   type: z.enum(['consumption', 'reward', 'transfer']),
   timestamp: z.string(),

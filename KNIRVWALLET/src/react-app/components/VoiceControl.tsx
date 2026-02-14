@@ -93,7 +93,7 @@ export const VoiceControl: React.FC<VoiceControlProps> = ({
     const phrases = [
       'Show skills page',
       'Navigate to wallet',
-      'Check agent status',
+      'Check workflow status',
       'Open UDC panel',
       'Show network status',
       'Activate skill analysis',

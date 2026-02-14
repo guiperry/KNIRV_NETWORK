@@ -4,7 +4,7 @@ import React from 'react';
 
 // Support both legacy and new onboarding steps
 type LegacyStep = 'hero' | 'connect' | 'configure' | 'deploy' | 'dashboard';
-type NewStep = 'guide' | 'preferences' | 'welcome' | 'verification' | 'cortex';
+type NewStep = 'guide' | 'hosting';
 type Step = LegacyStep | NewStep;
 
 interface StepIndicatorProps {
@@ -12,12 +12,10 @@ interface StepIndicatorProps {
 }
 
 const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => {
-  // New flow steps
+  // New flow steps - simplified 2-step flow
   const newSteps = [
-    { id: 'guide', label: 'Setup Guide', steps: ['guide'] },
-    { id: 'preferences', label: 'Preferences', steps: ['preferences'] },
-    { id: 'welcome', label: 'Welcome', steps: ['welcome'] },
-    { id: 'cortex', label: 'Cloud Cortex', steps: ['verification', 'cortex'] }
+    { id: 'guide', label: 'Setup', steps: ['guide'] },
+    { id: 'hosting', label: 'Deploy', steps: ['hosting'] }
   ];
 
   // Legacy flow steps
@@ -29,7 +27,7 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => {
   ];
 
   // Determine which flow we're in
-  const isNewFlow = ['guide', 'preferences', 'welcome', 'verification', 'cortex'].includes(currentStep);
+  const isNewFlow = ['guide', 'hosting'].includes(currentStep);
   const steps = isNewFlow ? newSteps : legacySteps;
 
   // Determine which steps are active based on the current step

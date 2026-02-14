@@ -16,7 +16,7 @@ export default function WalletPage() {
       amount: -25,
       description: 'Code Analysis Skill',
       timestamp: '2024-08-06T01:15:00Z',
-      agentName: 'CodeT5-Alpha'
+      workflowName: 'CodeT5-Alpha'
     },
     {
       id: '2',
@@ -24,7 +24,7 @@ export default function WalletPage() {
       amount: 50,
       description: 'Task completion bonus',
       timestamp: '2024-08-06T00:45:00Z',
-      agentName: 'SEAL-Beta'
+      workflowName: 'SEAL-Beta'
     },
     {
       id: '3',
@@ -32,7 +32,7 @@ export default function WalletPage() {
       amount: -30,
       description: 'Task Orchestration',
       timestamp: '2024-08-05T23:20:00Z',
-      agentName: 'CodeT5-Alpha'
+      workflowName: 'CodeT5-Alpha'
     },
     {
       id: '4',
@@ -40,7 +40,7 @@ export default function WalletPage() {
       amount: 100,
       description: 'Wallet funding',
       timestamp: '2024-08-05T22:10:00Z',
-      agentName: null
+      workflowName: null
     }
   ];
 
@@ -169,10 +169,10 @@ interface TransactionItemProps {
   amount: number;
   description: string;
   timestamp: string;
-  agentName: string | null;
+  workflowName: string | null;
 }
 
-function TransactionItem({ type, amount, description, timestamp, agentName }: TransactionItemProps) {
+function TransactionItem({ type, amount, description, timestamp, workflowName }: TransactionItemProps) {
   const typeConfig = {
     consumption: { 
       icon: ArrowUpRight, 
@@ -209,7 +209,7 @@ function TransactionItem({ type, amount, description, timestamp, agentName }: Tr
         <div>
           <p className="font-medium text-white">{description}</p>
           <div className="flex items-center space-x-2 text-xs text-slate-400 font-mono">
-            {agentName && <span>{agentName}</span>}
+            {workflowName && <span>{workflowName}</span>}
             <span>•</span>
             <span>{new Date(timestamp).toLocaleTimeString()}</span>
           </div>

@@ -1,6 +1,6 @@
 import { Bot, Zap, AlertCircle, CheckCircle } from 'lucide-react';
 
-interface AgentCardProps {
+interface WorkflowCardProps {
   name: string;
   status: 'active' | 'idle' | 'error';
   tasks: number;
@@ -8,7 +8,7 @@ interface AgentCardProps {
   lastActive: string;
 }
 
-export default function AgentCard({ name, status, tasks, performance, lastActive }: AgentCardProps) {
+export default function WorkflowCard({ name, status, tasks, performance, lastActive }: WorkflowCardProps) {
   const statusConfig = {
     active: { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/20', border: 'border-green-500/30' },
     idle: { icon: Zap, color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' },

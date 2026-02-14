@@ -6,10 +6,7 @@ import { Network } from "lucide-react";
 
 // New Onboarding Components
 import OnboardingGuide from "@/components/OnboardingGuide";
-import DataPreferencesForm from "@/components/DataPreferencesForm";
-import WelcomePage from "@/components/WelcomePage";
-import VerificationQRModal from "@/components/VerificationQRModal";
-import CloudCortexInfoCard from "@/components/CloudCortexInfoCard";
+import HostingChoicePage from "@/components/HostingChoicePage";
 
 // Legacy Components (for backward compatibility)
 import Hero from "@/components/Hero";
@@ -38,7 +35,6 @@ const Index = () => {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   
   // Legacy state support
   const [dashboardIsActive, setDashboardIsActive] = useState(true);
@@ -78,53 +74,34 @@ const Index = () => {
 
   // Step 1-4: Onboarding Guide Complete
   const handleGuideComplete = (walletConfig: DataWalletConfig) => {
-    updateState({ 
+    updateState({
       dataWalletConfig: walletConfig,
-      currentStep: 'preferences'
+      currentStep: 'hosting'
     });
     toast({
-      title: "Setup Guide Complete",
-      description: "Now let's configure your privacy preferences",
+      title: "Setup Complete",
+      description: "Choose your deployment option to get started",
     });
   };
 
-  // Step 5: Data Preferences Form Submit
-  const handlePreferencesSubmit = (preferences: PrivacyPreferences) => {
-    updateState({ 
-      privacyPreferences: preferences,
-      isEmailVerified: true, // Simulated - in real app, wait for email click
-      currentStep: 'welcome'
-    });
+  // Hosting Selection: Local Sovereign Edition
+  const handleSelectLocal = () => {
     toast({
-      title: "Preferences Saved",
-      description: "Confirmation email sent. Please check your inbox.",
+      title: "Local Edition Selected",
+      description: "Your download will begin shortly",
     });
+    // Trigger download
+    window.open('https://releases.knirv.network/knirvnexus-local.zip', '_blank');
   };
 
-  const handlePreferencesBack = () => {
-    goToStep('guide');
-  };
-
-  const handleWelcomeBack = () => {
-    goToStep('preferences');
-  };
-
-  // Welcome Page: Continue to Verification
-  const handleWelcomeContinue = () => {
-    setVerificationModalOpen(true);
-  };
-
-  // Verification Complete
-  const handleVerificationComplete = () => {
-    setVerificationModalOpen(false);
-    updateState({ 
-      isDeviceVerified: true,
-      currentStep: 'cortex'
-    });
+  // Hosting Selection: Cloud
+  const handleSelectCloud = () => {
     toast({
-      title: "Device Verified",
-      description: "Welcome to your Cloud Cortex!",
+      title: "Cloud Hosting Selected",
+      description: "Redirecting to payment gateway...",
     });
+    // Redirect to payment/signup
+    window.open('https://billing.knirv.network/signup', '_blank');
   };
 
   // ============ LEGACY FLOW HANDLERS ============
@@ -198,7 +175,7 @@ const Index = () => {
                     KNIRV
                   </span>
                   <span className="text-sm font-light text-gray-400 tracking-wider hidden sm:block">
-                    Data Fabric
+                    Key Neural Intelligence Reasoning Validation
                   </span>
                 </div>
 
@@ -220,56 +197,33 @@ const Index = () => {
 
       {/* Main Content - New Onboarding Flow */}
       <main className="relative">
-        {/* Step 1-4: Onboarding Guide */}
+        {/* Steps 1-4: Onboarding Guide (Identity, Connections, Governance, Sovereignty) */}
         {currentStep === 'guide' && (
-          <OnboardingGuide 
+          <OnboardingGuide
             onComplete={(walletConfig: DataWalletConfig) => handleGuideComplete(walletConfig)}
             onReset={handleReset}
           />
         )}
 
-        {/* Step 5: Data Preferences Form */}
-        {currentStep === 'preferences' && (
-          <DataPreferencesForm 
-            onSubmit={() => handlePreferencesSubmit({
-              dataEncryption: true,
-              localProcessing: true,
-              anonymizeMetrics: true,
-              shareErrorLogs: false,
-              allowAnalytics: false,
-              dataRetentionDays: 90,
-              autoDeleteInactive: true,
-              thirdPartyIntegrations: false
-            })}
-            onBack={handlePreferencesBack}
+        {/* Hosting Choice Page: Local vs Cloud */}
+        {currentStep === 'hosting' && (
+          <HostingChoicePage
+            onSelectLocal={handleSelectLocal}
+            onSelectCloud={handleSelectCloud}
             onReset={handleReset}
           />
-        )}
-
-        {/* Step 6: Welcome Page with QR Code */}
-        {currentStep === 'welcome' && (
-          <WelcomePage 
-            onContinue={handleWelcomeContinue}
-            onBack={handleWelcomeBack}
-            onReset={handleReset}
-          />
-        )}
-
-        {/* Step 7: Cloud Cortex Info Card (Final) */}
-        {currentStep === 'cortex' && (
-          <CloudCortexInfoCard onReset={handleReset} />
         )}
 
         {/* ============ LEGACY FLOW (for backward compatibility) ============ */}
-        
+
         {currentStep === 'hero' && (
           <Hero onGetStarted={() => goToStep('guide')} />
         )}
-        
+
         {currentStep === 'connect' && (
           <AppConnector onAppConnect={handleAppConnect} />
         )}
-        
+
         {currentStep === 'configure' && (
           <ModelConfig
             connectedApp={state.connectedApp}
@@ -288,7 +242,7 @@ const Index = () => {
             onReset={handleReset}
           />
         )}
-        
+
         {currentStep === 'deploy' && state.modelConfig && (
           <ModelDeployer
             modelConfig={state.modelConfig as unknown as ModelConfiguration}
@@ -297,7 +251,7 @@ const Index = () => {
             onReset={handleReset}
           />
         )}
-        
+
         {currentStep === 'dashboard' && (
           <Dashboard
             connectedApp={state.connectedApp}
@@ -313,13 +267,6 @@ const Index = () => {
           />
         )}
       </main>
-
-      {/* Verification QR Modal */}
-      <VerificationQRModal
-        isOpen={verificationModalOpen}
-        onClose={() => setVerificationModalOpen(false)}
-        onVerified={handleVerificationComplete}
-      />
 
       {/* Login Modal */}
       <LoginModal

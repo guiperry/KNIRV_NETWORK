@@ -11,11 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Database, Shield, Lock, Globe, DollarSign, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Database, Shield, Lock, Globe, DollarSign, Clock, AlertTriangle, CheckCircle2, Cpu, Plus, Trash2, FileText, Code, Terminal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface PolicyCert {
   id: string;
@@ -26,11 +28,20 @@ export interface PolicyCert {
   enabled: boolean;
 }
 
+export interface CustomRule {
+  id: string;
+  name: string;
+  description: string;
+  ruleType: 'instruction' | 'code' | 'constraint';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+}
+
 interface PolicyCertsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (certs: PolicyCert[]) => void;
+  onSave: (certs: PolicyCert[], rules: CustomRule[]) => void;
   initialCerts?: PolicyCert[];
+  initialRules?: CustomRule[];
 }
 
 const defaultPolicies: PolicyCert[] = [
@@ -87,10 +98,32 @@ const defaultPolicies: PolicyCert[] = [
 const networkOptions = ['Internal Only', 'External Limited', 'External Full', 'Blocked'];
 const filesystemOptions = ['Sandboxed', 'User Home', 'Full Access', 'Read Only'];
 
-export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [] }: PolicyCertsModalProps) {
+const ruleTypeOptions = [
+  { value: 'instruction', label: 'Instruction', icon: FileText },
+  { value: 'code', label: 'Code Rule', icon: Code },
+  { value: 'constraint', label: 'Constraint', icon: Terminal },
+];
+
+const priorityOptions = [
+  { value: 'low', label: 'Low', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+  { value: 'medium', label: 'Medium', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  { value: 'high', label: 'High', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+  { value: 'critical', label: 'Critical', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+];
+
+export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], initialRules = [] }: PolicyCertsModalProps) {
   const [policies, setPolicies] = useState<PolicyCert[]>(
     initialCerts.length > 0 ? initialCerts : defaultPolicies
   );
+  const [rules, setRules] = useState<CustomRule[]>(initialRules);
+  const [showAddRuleForm, setShowAddRuleForm] = useState(false);
+  const [newRule, setNewRule] = useState<Partial<CustomRule>>({
+    name: '',
+    description: '',
+    ruleType: 'instruction',
+    priority: 'medium',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const togglePolicy = (id: string) => {
     setPolicies(policies.map(p => 
@@ -104,9 +137,57 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [] }:
     ));
   };
 
+  const addRule = () => {
+    const validationErrors: Record<string, string> = {};
+    
+    if (!newRule.name?.trim()) {
+      validationErrors.name = 'Rule name is required';
+    }
+    if (!newRule.description?.trim()) {
+      validationErrors.description = 'Rule description is required';
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    const rule: CustomRule = {
+      id: crypto.randomUUID(),
+      name: newRule.name!,
+      description: newRule.description!,
+      ruleType: newRule.ruleType || 'instruction',
+      priority: newRule.priority || 'medium',
+    };
+
+    setRules([...rules, rule]);
+    setNewRule({
+      name: '',
+      description: '',
+      ruleType: 'instruction',
+      priority: 'medium',
+    });
+    setErrors({});
+    setShowAddRuleForm(false);
+  };
+
+  const removeRule = (id: string) => {
+    setRules(rules.filter(r => r.id !== id));
+  };
+
   const handleSave = () => {
-    onSave(policies);
+    onSave(policies, rules);
     onClose();
+  };
+
+  const getRuleTypeIcon = (type: string) => {
+    const option = ruleTypeOptions.find(o => o.value === type);
+    const Icon = option?.icon || FileText;
+    return <Icon size={16} />;
+  };
+
+  const getPriorityStyle = (priority: string) => {
+    return priorityOptions.find(o => o.value === priority)?.color || '';
   };
 
   const enabledCount = policies.filter(p => p.enabled).length;
@@ -327,6 +408,160 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [] }:
                 and are cryptographically signed for integrity verification.
               </p>
             </div>
+          </div>
+
+          {/* Custom Rules Section */}
+          <div className="border-t border-white/10 pt-6 mt-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-purple-600/20 rounded-lg">
+                <Cpu className="text-purple-500" size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-white">Custom Rules</h3>
+                <p className="text-xs text-slate-400">Define behavioral rules and instructions</p>
+              </div>
+              <Badge variant="outline" className="ml-auto text-slate-400 border-white/10">
+                {rules.length} rule{rules.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+
+            <ScrollArea className="h-[200px] border border-white/10 rounded-xl mb-4">
+              <div className="p-4 space-y-3">
+                {rules.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-slate-500">
+                    <p className="text-sm">No custom rules configured</p>
+                    <p className="text-xs text-slate-600 mt-1">Add rules to define specific behaviors</p>
+                  </div>
+                ) : (
+                  rules.map((rule, index) => (
+                    <div
+                      key={rule.id}
+                      className="p-3 bg-white/5 border border-white/10 rounded-lg group hover:border-white/20 transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-slate-600 text-xs font-mono">
+                              {String(index + 1).padStart(2, '0')}
+                            </span>
+                            <h4 className="font-bold text-white truncate">{rule.name}</h4>
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[10px] ${getPriorityStyle(rule.priority)}`}
+                            >
+                              {rule.priority}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-slate-400 line-clamp-2">{rule.description}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                              {getRuleTypeIcon(rule.ruleType)}
+                              <span className="capitalize">{rule.ruleType}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeRule(rule.id)}
+                          className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity p-1"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+
+            {showAddRuleForm ? (
+              <div className="p-4 bg-white/5 border border-purple-500/30 rounded-xl space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-slate-500 tracking-wider">
+                    Rule Name *
+                  </Label>
+                  <Input
+                    value={newRule.name}
+                    onChange={(e) => setNewRule({ ...newRule, name: e.target.value })}
+                    placeholder="e.g. Code Style Enforcement"
+                    className="bg-black/40 border-white/10 text-white"
+                  />
+                  {errors.name && (
+                    <p className="text-xs text-red-400">{errors.name}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase font-bold text-slate-500 tracking-wider">
+                    Description *
+                  </Label>
+                  <Textarea
+                    value={newRule.description}
+                    onChange={(e) => setNewRule({ ...newRule, description: e.target.value })}
+                    placeholder="Describe what this rule enforces..."
+                    className="bg-black/40 border-white/10 text-white min-h-[60px] resize-none"
+                  />
+                  {errors.description && (
+                    <p className="text-xs text-red-400">{errors.description}</p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase font-bold text-slate-500 tracking-wider">
+                      Rule Type
+                    </Label>
+                    <select
+                      value={newRule.ruleType}
+                      onChange={(e) => setNewRule({ ...newRule, ruleType: e.target.value as CustomRule['ruleType'] })}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                    >
+                      {ruleTypeOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs uppercase font-bold text-slate-500 tracking-wider">
+                      Priority
+                    </Label>
+                    <select
+                      value={newRule.priority}
+                      onChange={(e) => setNewRule({ ...newRule, priority: e.target.value as CustomRule['priority'] })}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                    >
+                      {priorityOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddRuleForm(false);
+                      setErrors({});
+                    }}
+                    className="flex-1 border-white/20 text-slate-400"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={addRule}
+                    className="flex-1 bg-purple-600 hover:bg-purple-500 text-white"
+                  >
+                    Add Rule
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => setShowAddRuleForm(true)}
+                className="w-full border-dashed border-white/20 text-slate-400 hover:text-white hover:border-purple-500/50 hover:bg-purple-500/10"
+              >
+                <Plus size={18} className="mr-2" />
+                Add Custom Rule
+              </Button>
+            )}
           </div>
         </div>
 
