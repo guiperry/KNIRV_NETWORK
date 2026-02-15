@@ -1,13 +1,19 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { QrCode, Shield, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { QrCode, Shield, CheckCircle, XCircle, RefreshCw, ArrowRight } from 'lucide-react';
 import Layout from '@/react-app/components/Layout';
+import { useBackend } from '@/react-app/hooks/useBackend';
+import { useWallet } from '@/react-app/hooks/useWallet';
 
 const Scanner: React.FC = () => {
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error' | 'confirm_send'>('idle');
+  const [sendDetails, setSendDetails] = useState<{ address: string, amount: number } | null>(null);
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+  
+  const { currentAccount } = useWallet();
+  const { sendNRN } = useBackend(currentAccount ? currentAccount.getAddress('knirv') : null);
 
   useEffect(() => {
     if (verificationStatus === 'idle' && !scanResult) {
@@ -34,7 +40,7 @@ const Scanner: React.FC = () => {
     if (scannerRef.current) {
       scannerRef.current.clear().then(() => {
         setScanResult(decodedText);
-        verifySession(decodedText);
+        handleScanResult(decodedText);
       }).catch(error => {
         console.error("Failed to clear scanner after success", error);
       });
@@ -45,9 +51,25 @@ const Scanner: React.FC = () => {
     // console.warn(`Code scan error = ${_error}`);
   }
 
-  const verifySession = (data: string) => {
+  const handleScanResult = (data: string) => {
     setIsVerifying(true);
-    // Simulate session verification logic
+    
+    // Check if it's a Send transaction
+    if (data.startsWith('send:')) {
+      const parts = data.split(':');
+      if (parts.length === 3) {
+        const address = parts[1];
+        const amount = parseFloat(parts[2]);
+        if (address && amount) {
+          setSendDetails({ address, amount });
+          setVerificationStatus('confirm_send');
+          setIsVerifying(false);
+          return;
+        }
+      }
+    }
+
+    // Simulate session verification logic for other QR codes
     setTimeout(() => {
       setIsVerifying(false);
       // In a real app, you'd validate the 'data' against a backend
@@ -59,9 +81,23 @@ const Scanner: React.FC = () => {
     }, 2000);
   };
 
+  const confirmSend = async () => {
+    if (sendDetails) {
+      setIsVerifying(true);
+      const result = await sendNRN(sendDetails.address, sendDetails.amount);
+      setIsVerifying(false);
+      if (result.success) {
+        setVerificationStatus('success');
+      } else {
+        setVerificationStatus('error');
+      }
+    }
+  };
+
   const resetScanner = () => {
     setScanResult(null);
     setVerificationStatus('idle');
+    setSendDetails(null);
   };
 
   return (
@@ -69,10 +105,10 @@ const Scanner: React.FC = () => {
       <div className="p-4 pb-24 space-y-6">
         <div className="text-center py-6">
           <h2 className="text-2xl font-bold gradient-text mb-2 uppercase tracking-tight">
-            Session Verifier
+            Scanner
           </h2>
           <p className="text-slate-400 text-sm font-mono uppercase tracking-wider">
-            Scan QR code to authorize session access
+            Scan QR code to authorize session or pay
           </p>
         </div>
 
@@ -101,8 +137,44 @@ const Scanner: React.FC = () => {
                 </div>
               </div>
               <div>
-                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Verifying Session</h3>
-                <p className="text-slate-500 text-xs font-mono mt-2 animate-pulse">Establishing secure handshake...</p>
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Processing</h3>
+                <p className="text-slate-500 text-xs font-mono mt-2 animate-pulse">Verifying transaction data...</p>
+              </div>
+            </div>
+          )}
+
+          {verificationStatus === 'confirm_send' && sendDetails && (
+            <div className="bg-slate-950 border border-yellow-500/30 rounded-2xl p-8 flex flex-col items-center justify-center space-y-6 text-center shadow-[0_0_30px_rgba(234,179,8,0.1)]">
+              <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center border border-yellow-500/30">
+                <ArrowRight className="w-8 h-8 text-yellow-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Confirm Transaction</h3>
+                <p className="text-slate-400 text-sm font-mono mt-2">Send NRN to Address</p>
+                <div className="mt-4 p-4 bg-slate-900 rounded-xl border border-slate-800 text-left space-y-2">
+                   <div className="flex justify-between">
+                     <span className="text-xs text-slate-500 uppercase">To:</span>
+                     <span className="text-xs text-white font-mono break-all pl-2">{sendDetails.address}</span>
+                   </div>
+                   <div className="flex justify-between">
+                     <span className="text-xs text-slate-500 uppercase">Amount:</span>
+                     <span className="text-sm text-yellow-400 font-bold font-mono">{sendDetails.amount} NRN</span>
+                   </div>
+                </div>
+              </div>
+              <div className="flex space-x-3 w-full">
+                <button 
+                  onClick={resetScanner}
+                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmSend}
+                  className="flex-1 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
+                >
+                  Confirm Send
+                </button>
               </div>
             </div>
           )}
@@ -113,8 +185,8 @@ const Scanner: React.FC = () => {
                 <CheckCircle className="w-10 h-10 text-green-400" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Session Verified</h3>
-                <p className="text-slate-400 text-sm font-mono mt-2">D-TEN Access Token Generated</p>
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Success</h3>
+                <p className="text-slate-400 text-sm font-mono mt-2">Operation Completed Successfully</p>
                 <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
                   <p className="text-[10px] font-mono text-green-400 break-all">{scanResult}</p>
                 </div>
@@ -135,8 +207,8 @@ const Scanner: React.FC = () => {
                 <XCircle className="w-10 h-10 text-red-400" />
               </div>
               <div>
-                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Verification Failed</h3>
-                <p className="text-slate-400 text-sm font-mono mt-2">Invalid or Expired Session Token</p>
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Failed</h3>
+                <p className="text-slate-400 text-sm font-mono mt-2">Invalid or Expired Token</p>
               </div>
               <button 
                 onClick={resetScanner}

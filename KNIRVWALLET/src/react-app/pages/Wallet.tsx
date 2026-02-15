@@ -1,60 +1,91 @@
-import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
+import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, ExternalLink, Lock, Loader, RefreshCw } from 'lucide-react';
 import Layout from '@/react-app/components/Layout';
+import { useWallet } from '@/react-app/hooks/useWallet';
+import { useBackend } from '@/react-app/hooks/useBackend';
 
 export default function WalletPage() {
-  const walletData = {
-    nrnBalance: 1247,
-    usdValue: 312.75,
-    change24h: 5.2,
-    walletAddress: '0x742d35Cc6aa34567...8B9fA2e1C4D'
+  const navigate = useNavigate();
+  const { status, currentAccount, unlockWallet, lockWallet } = useWallet();
+  const { walletData, transactions, isLoading, refresh, sendNRN } = useBackend(currentAccount ? currentAccount.getAddress('knirv') : null);
+  
+  const [password, setPassword] = useState('');
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendAddress, setSendAddress] = useState('');
+  const [sendAmount, setSendAmount] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [txError, setTxError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (status === 'no_wallet') {
+      navigate('/onboarding');
+    } else if (status === 'locked') {
+      setShowUnlockModal(true);
+    } else {
+      setShowUnlockModal(false);
+    }
+  }, [status, navigate]);
+
+  const handleUnlock = async () => {
+    try {
+      await unlockWallet(password);
+      setPassword('');
+    } catch (err) {
+      // Error handled in hook
+    }
   };
 
-  const transactions = [
-    {
-      id: '1',
-      type: 'consumption' as const,
-      amount: -25,
-      description: 'Code Analysis Skill',
-      timestamp: '2024-08-06T01:15:00Z',
-      workflowName: 'CodeT5-Alpha'
-    },
-    {
-      id: '2',
-      type: 'reward' as const,
-      amount: 50,
-      description: 'Task completion bonus',
-      timestamp: '2024-08-06T00:45:00Z',
-      workflowName: 'SEAL-Beta'
-    },
-    {
-      id: '3',
-      type: 'consumption' as const,
-      amount: -30,
-      description: 'Task Orchestration',
-      timestamp: '2024-08-05T23:20:00Z',
-      workflowName: 'CodeT5-Alpha'
-    },
-    {
-      id: '4',
-      type: 'transfer' as const,
-      amount: 100,
-      description: 'Wallet funding',
-      timestamp: '2024-08-05T22:10:00Z',
-      workflowName: null
+  const handleSend = async () => {
+    if (!sendAddress || !sendAmount) return;
+    
+    setIsProcessing(true);
+    setTxError(null);
+    try {
+      const result = await sendNRN(sendAddress, parseFloat(sendAmount));
+      if (result.success) {
+        setShowSendModal(false);
+        setSendAddress('');
+        setSendAmount('');
+        refresh();
+      } else {
+        setTxError(result.error || 'Transaction failed');
+      }
+    } catch (err) {
+      setTxError('Transaction failed');
+    } finally {
+      setIsProcessing(false);
     }
-  ];
+  };
+
+  if (status === 'initializing') {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="p-4 pb-24 space-y-6">
+      <div className="p-4 pb-24 space-y-6 relative">
         {/* Header - Gradient Text */}
-        <div className="text-center py-4">
+        <div className="text-center py-4 relative">
           <h2 className="text-2xl font-bold gradient-text mb-2">
             KNIRV Wallet
           </h2>
           <p className="text-slate-400 text-sm font-mono uppercase tracking-wider">
             Manage your NRN tokens and transaction history
           </p>
+          <button 
+            onClick={lockWallet}
+            className="absolute right-0 top-4 p-2 text-slate-500 hover:text-white transition-colors"
+          >
+            <Lock className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Balance Card - Glass Panel */}
@@ -73,23 +104,31 @@ export default function WalletPage() {
                 </div>
               </div>
               
-              <div className={`px-3 py-1 rounded-full ${walletData.change24h >= 0 ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
-                <div className="flex items-center space-x-1">
-                  <TrendingUp className={`w-3 h-3 ${walletData.change24h >= 0 ? 'text-green-400' : 'text-red-400 rotate-180'}`} />
-                  <span className={`text-xs font-medium font-mono ${walletData.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {walletData.change24h >= 0 ? '+' : ''}{walletData.change24h}%
-                  </span>
+              {walletData && (
+                <div className={`px-3 py-1 rounded-full ${walletData.change24h >= 0 ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
+                  <div className="flex items-center space-x-1">
+                    <TrendingUp className={`w-3 h-3 ${walletData.change24h >= 0 ? 'text-green-400' : 'text-red-400 rotate-180'}`} />
+                    <span className={`text-xs font-medium font-mono ${walletData.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {walletData.change24h >= 0 ? '+' : ''}{walletData.change24h}%
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="space-y-2">
-              <div className="text-3xl font-bold text-white">
-                {walletData.nrnBalance.toLocaleString()} NRN
-              </div>
-              <div className="text-lg text-slate-300 font-mono">
-                ≈ ${walletData.usdValue.toFixed(2)} USD
-              </div>
+              {isLoading ? (
+                <div className="h-16 animate-pulse bg-slate-800 rounded-lg"></div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold text-white">
+                    {walletData?.nrnBalance.toLocaleString() ?? '0'} NRN
+                  </div>
+                  <div className="text-lg text-slate-300 font-mono">
+                    ≈ ${walletData?.usdValue.toFixed(2) ?? '0.00'} USD
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -101,12 +140,21 @@ export default function WalletPage() {
             <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/20">
               <Wallet className="w-5 h-5 text-blue-400" />
             </div>
-            <div className="flex-1">
-              <p className="font-mono text-sm text-white">{walletData.walletAddress}</p>
+            <div className="flex-1 overflow-hidden">
+              <p className="font-mono text-sm text-white truncate">
+                {currentAccount ? currentAccount.getAddress('knirv') : 'Loading...'}
+              </p>
               <p className="text-xs text-slate-500 font-mono">KNIRV Network</p>
             </div>
             <div className="flex space-x-2">
-              <button className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-all">
+              <button 
+                onClick={() => {
+                  if (currentAccount) {
+                    navigator.clipboard.writeText(currentAccount.getAddress('knirv'));
+                  }
+                }}
+                className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-all"
+              >
                 <Copy className="w-4 h-4" />
               </button>
               <button className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-all">
@@ -122,7 +170,10 @@ export default function WalletPage() {
             <ArrowDownLeft className="w-5 h-5" />
             <span className="font-medium font-mono">Add Funds</span>
           </button>
-          <button className="flex items-center justify-center space-x-3 py-4 bg-blue-600/20 hover:bg-blue-600/30 rounded-xl border border-blue-500/30 text-blue-400 hover:text-blue-300 transition-all glow-hover">
+          <button 
+            onClick={() => setShowSendModal(true)}
+            className="flex items-center justify-center space-x-3 py-4 bg-blue-600/20 hover:bg-blue-600/30 rounded-xl border border-blue-500/30 text-blue-400 hover:text-blue-300 transition-all glow-hover"
+          >
             <ArrowUpRight className="w-5 h-5" />
             <span className="font-medium font-mono">Send NRN</span>
           </button>
@@ -132,8 +183,12 @@ export default function WalletPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">Recent Transactions</h3>
-            <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors font-mono uppercase">
-              View All
+            <button 
+              onClick={refresh}
+              className="text-sm text-blue-400 hover:text-blue-300 transition-colors font-mono uppercase flex items-center space-x-1"
+            >
+              <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
             </button>
           </div>
           
@@ -144,21 +199,92 @@ export default function WalletPage() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="glass-panel p-4 text-center glow-hover">
-            <div className="text-xl font-bold text-green-400">+127</div>
-            <div className="text-xs text-slate-500 font-mono uppercase tracking-wider">Earned Today</div>
+        {/* Unlock Modal */}
+        {showUnlockModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-6 space-y-4">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Lock className="w-6 h-6 text-blue-400" />
+                </div>
+                <h3 className="text-xl font-bold text-white">Unlock Wallet</h3>
+                <p className="text-sm text-slate-400">Enter your password to access your funds</p>
+              </div>
+              
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none"
+                placeholder="Password"
+              />
+              
+              <button
+                onClick={handleUnlock}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm uppercase tracking-wide transition-all"
+              >
+                Unlock
+              </button>
+            </div>
           </div>
-          <div className="glass-panel p-4 text-center glow-hover">
-            <div className="text-xl font-bold text-red-400">-89</div>
-            <div className="text-xs text-slate-500 font-mono uppercase tracking-wider">Spent Today</div>
+        )}
+
+        {/* Send Modal */}
+        {showSendModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-6 space-y-4">
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-white">Send NRN</h3>
+                <p className="text-sm text-slate-400">Transfer tokens to another address</p>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-mono text-slate-500 uppercase">Recipient Address</label>
+                  <input
+                    type="text"
+                    value={sendAddress}
+                    onChange={(e) => setSendAddress(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none text-sm font-mono"
+                    placeholder="knirv1..."
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-mono text-slate-500 uppercase">Amount (NRN)</label>
+                  <input
+                    type="number"
+                    value={sendAmount}
+                    onChange={(e) => setSendAmount(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+              
+              {txError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs text-center">
+                  {txError}
+                </div>
+              )}
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowSendModal(false)}
+                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm uppercase tracking-wide transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={isProcessing || !sendAddress || !sendAmount}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl font-bold text-sm uppercase tracking-wide transition-all flex items-center justify-center"
+                >
+                  {isProcessing ? <Loader className="w-4 h-4 animate-spin" /> : 'Send'}
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="glass-panel p-4 text-center glow-hover">
-            <div className="text-xl font-bold text-blue-400">15</div>
-            <div className="text-xs text-slate-500 font-mono uppercase tracking-wider">Transactions</div>
-          </div>
-        </div>
+        )}
       </div>
     </Layout>
   );
@@ -169,7 +295,7 @@ interface TransactionItemProps {
   amount: number;
   description: string;
   timestamp: string;
-  workflowName: string | null;
+  workflowName?: string;
 }
 
 function TransactionItem({ type, amount, description, timestamp, workflowName }: TransactionItemProps) {
@@ -193,7 +319,7 @@ function TransactionItem({ type, amount, description, timestamp, workflowName }:
       color: 'text-blue-400', 
       bg: 'bg-blue-500/20', 
       border: 'border-blue-500/30',
-      prefix: amount > 0 ? '+' : '-'
+      prefix: amount > 0 ? '+' : ''
     }
   };
 

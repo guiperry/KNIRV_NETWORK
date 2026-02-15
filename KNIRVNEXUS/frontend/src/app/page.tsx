@@ -19,6 +19,9 @@ import QRCodeDisplay from "@/components/controller/qr-code-display";
 import DNSManagement from "@/components/dns/dns-management";
 import FabricManagement from "@/components/fabric/fabric-management";
 import DVERentalManagement from "@/components/dve-rental/dve-rental-management";
+import { DVENodesPanel } from "@/components/dashboard/dve-nodes-panel";
+import { CognitiveEnginePanel } from "@/components/dashboard/cognitive-engine-panel";
+import CDEPanel from "@/components/dashboard/cde-panel";
 import { useAuth } from "@/lib/auth-context";
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
 import { DemoModeToggle } from "@/components/admin/demo-mode-toggle";
@@ -102,6 +105,17 @@ export default function Dashboard() {
   const [showFabricManagement, setShowFabricManagement] = useState(false);
   const [showDVERentalManagement, setShowDVERentalManagement] = useState(false);
   const [useModularCDE, setUseModularCDE] = useState(false);
+
+  // Normal users (validators/observers) are sent directly to the modular view (inside a DVE)
+  const isNormalUser = user?.role === 'validator' || user?.role === 'observer';
+  const displayModular = useModularCDE || isNormalUser;
+
+  // Set initial modular state based on role
+  useEffect(() => {
+    if (isNormalUser && !useModularCDE) {
+      setUseModularCDE(true);
+    }
+  }, [isNormalUser, useModularCDE]);
 
   // Helper functions to check connection/setup status
   const isControllerConnected = () => {
@@ -222,271 +236,276 @@ export default function Dashboard() {
       setUseModularCDE={setUseModularCDE}
     >
       <div className="space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2">
-            <h1 className="text-4xl font-bold knirv-gradient-text">KNIRV-NEXUS DVE</h1>
-            <div className="flex items-center gap-2">
-              {isConnected ? (
-                <Badge className="bg-green-500"><Wifi className="w-3 h-3 mr-1" /> Live</Badge>
-              ) : (
-                <Badge className="bg-red-500"><WifiOff className="w-3 h-3 mr-1" /> Offline</Badge>
-              )}
-              {securityAlerts.length > 0 && (
-                <Badge className="bg-red-500"><Bell className="w-3 h-3 mr-1" /> {securityAlerts.length}</Badge>
-              )}
-            </div>
+        {displayModular ? (
+          <div className="relative h-[calc(100vh-200px)] min-h-[600px]">
+            <CDEPanel
+              isOpen={true}
+              onClose={() => {
+                if (user?.role === 'admin') setUseModularCDE(false);
+              }}
+              nodeId={user?.node_id || 'LOCAL-DVE-01'}
+              nodeName={user?.node_id ? `Assigned Node (${user.node_id})` : 'Integrated DVE Context'}
+              isModular={true}
+              onToggleMode={() => setUseModularCDE(false)}
+            />
           </div>
-          <p className="text-lg text-muted-foreground">
-            The Crucible of Verifiable AI Intelligence
-          </p>
-        </div>
-
-      {/* Getting Started Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card 
-          className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
-          onClick={() => setShowQRCode(true)}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {isControllerConnected() ? "Update Controller" : "Connect Controller"}
-            </CardTitle>
-            <QrCode className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isControllerConnected() ? "Connected" : "Setup Required"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {isControllerConnected() 
-                ? "Click to update controller settings" 
-                : "Pair your device to get started"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
-          onClick={() => setShowDNSManagement(true)}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {isDNSPorted() ? "Manage DNS" : "Port DNS"}
-            </CardTitle>
-            <Globe className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {isDNSPorted() ? "Active" : "Setup Required"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {isDNSPorted() 
-                ? "Click to manage DNS settings" 
-                : "Configure DNS for network access"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
-          onClick={() => setShowFabricManagement(true)}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {hasFabricItemsAdded() ? "Manage Fabric" : "Add Fabric"}
-            </CardTitle>
-            <Layers className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {hasFabricItemsAdded() ? "Active" : "Setup Required"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {hasFabricItemsAdded() 
-                ? "Click to manage your fabric items" 
-                : "Deploy Agentic Memory Fabric"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card 
-          className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
-          onClick={() => setShowDVERentalManagement(true)}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {hasDVERentals() ? "Manage DVE Rentals" : "Rent DVE Instance"}
-            </CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {hasDVERentals() ? `${rentalStats?.active_rentals || 0} Active` : "Get Started"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {hasDVERentals() 
-                ? "Click to manage your rentals" 
-                : "Rent computing resources"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="cognitive" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="cognitive">Cognitive Engine</TabsTrigger>
-          <TabsTrigger value="security">TEE Security</TabsTrigger>
-          <TabsTrigger value="admin">Admin</TabsTrigger>
-        </TabsList>
-
-
-
-
-
-        <TabsContent value="cognitive" className="space-y-4">
-          {cognitiveEngine && (
-            <div className="grid gap-4">
-              <Card className="knirv-card-gradient">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Brain className="h-5 w-5" />
-                    Cognitive Engine Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Status</p>
-                      {getStatusBadge(cognitiveEngine.status)}
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Accuracy</p>
-                      <div className="flex items-center gap-2">
-                        <Progress value={cognitiveEngine.accuracy} className="flex-1" />
-                        <span className="text-sm">{cognitiveEngine.accuracy}%</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Tasks Processed</p>
-                      <p className="text-2xl font-bold">{cognitiveEngine.tasks_processed.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Adaptation Rate</p>
-                      <div className="flex items-center gap-2">
-                        <Progress value={cognitiveEngine.adaptation_rate * 100} className="flex-1" />
-                        <span className="text-sm">{(cognitiveEngine.adaptation_rate * 100).toFixed(1)}%</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-sm text-muted-foreground">Fabric Version</p>
-                    <Badge variant="outline">{cognitiveEngine.model_version}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="security" className="space-y-4">
-          {teeSecurityStatus && (
-            <div className="grid gap-4">
-              <Card className="knirv-card-gradient">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    TEE Security Status
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Attestation Status</p>
-                      {getStatusBadge(teeSecurityStatus.attestation_status)}
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Security Score</p>
-                      <div className="flex items-center gap-2">
-                        <Progress value={teeSecurityStatus.security_score} className="flex-1" />
-                        <span className="text-sm">{teeSecurityStatus.security_score}%</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Active Enclaves</p>
-                      <p className="text-2xl font-bold">{teeSecurityStatus.enclave_count}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Last Audit</p>
-                      <p className="font-semibold">{new Date(teeSecurityStatus.last_audit).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Threats Detected</p>
-                      <p className="font-semibold">{teeSecurityStatus.threats_detected}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {teeSecurityStatus.threats_detected > 0 && (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    {teeSecurityStatus.threats_detected} potential threats detected. Security team has been notified.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          )}
-        </TabsContent>
-
-
-
-        <TabsContent value="admin" className="space-y-4">
-          <div className="grid gap-4">
-            <DemoModeToggle />
-
-            <DHTToggle />
-
-            <Card className="knirv-card-gradient">
-              <CardHeader>
-                <CardTitle>System Information</CardTitle>
-                <CardDescription>
-                  Current system status and configuration
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">WebSocket Status:</span>
-                    <Badge variant={isConnected ? "default" : "destructive"} className="ml-2">
-                      {isConnected ? "Connected" : "Disconnected"}
-                    </Badge>
-                  </div>
-                  <div>
-                    <span className="font-medium">Backend URL:</span>
-                    <span className="ml-2 text-muted-foreground">http://localhost:8082</span>
-                  </div>
-                  <div>
-                    <span className="font-medium">DVE Nodes:</span>
-                    <span className="ml-2">{dveNodes.length} registered</span>
-                  </div>
-                  <div>
-                    <span className="font-medium">Active Tasks:</span>
-                    <span className="ml-2">{validationTasks.length} tasks</span>
-                  </div>
+        ) : (
+          <>
+            <div className="text-center space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <h1 className="text-4xl font-bold knirv-gradient-text">KNIRV-NEXUS DVE</h1>
+                <div className="flex items-center gap-2">
+                  {isConnected ? (
+                    <Badge className="bg-green-500"><Wifi className="w-3 h-3 mr-1" /> Live</Badge>
+                  ) : (
+                    <Badge className="bg-red-500"><WifiOff className="w-3 h-3 mr-1" /> Offline</Badge>
+                  )}
+                  {securityAlerts.length > 0 && (
+                    <Badge className="bg-red-500"><Bell className="w-3 h-3 mr-1" /> {securityAlerts.length}</Badge>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+              </div>
+              <p className="text-lg text-muted-foreground">
+                The Crucible of Verifiable AI Intelligence
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card 
+                className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
+                onClick={() => setShowQRCode(true)}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {isControllerConnected() ? "Update Controller" : "Connect Controller"}
+                  </CardTitle>
+                  <QrCode className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {isControllerConnected() ? "Connected" : "Setup Required"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {isControllerConnected() 
+                      ? "Click to update controller settings" 
+                      : "Pair your device to get started"}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
+                onClick={() => setShowDNSManagement(true)}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {isDNSPorted() ? "Manage DNS" : "Port DNS"}
+                  </CardTitle>
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {isDNSPorted() ? "Active" : "Setup Required"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {isDNSPorted() 
+                      ? "Click to manage DNS settings" 
+                      : "Configure DNS for network access"}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
+                onClick={() => setShowFabricManagement(true)}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {hasFabricItemsAdded() ? "Manage Fabric" : "Add Fabric"}
+                  </CardTitle>
+                  <Layers className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {hasFabricItemsAdded() ? "Active" : "Setup Required"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {hasFabricItemsAdded() 
+                      ? "Click to manage your fabric items" 
+                      : "Deploy Agentic Memory Fabric"}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
+                onClick={() => setShowDVERentalManagement(true)}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {hasDVERentals() ? "Manage DVE Rentals" : "Rent DVE Instance"}
+                  </CardTitle>
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {hasDVERentals() ? `${rentalStats?.active_rentals || 0} Active` : "Get Started"}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {hasDVERentals() 
+                      ? "Click to manage your rentals" 
+                      : "Rent computing resources"}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Tabs defaultValue="cognitive" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="cognitive">Cognitive Engine</TabsTrigger>
+                <TabsTrigger value="security">TEE Security</TabsTrigger>
+                <TabsTrigger value="admin">Admin</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="cognitive" className="space-y-4">
+                {cognitiveEngine && (
+                  <div className="grid gap-4">
+                    <Card className="knirv-card-gradient">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Brain className="h-5 w-5" />
+                          Cognitive Engine Status
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Status</p>
+                            {getStatusBadge(cognitiveEngine.status)}
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Accuracy</p>
+                            <div className="flex items-center gap-2">
+                              <Progress value={cognitiveEngine.accuracy} className="flex-1" />
+                              <span className="text-sm">{cognitiveEngine.accuracy}%</span>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Tasks Processed</p>
+                            <p className="text-2xl font-bold">{cognitiveEngine.tasks_processed.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Adaptation Rate</p>
+                            <div className="flex items-center gap-2">
+                              <Progress value={cognitiveEngine.adaptation_rate * 100} className="flex-1" />
+                              <span className="text-sm">{(cognitiveEngine.adaptation_rate * 100).toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <p className="text-sm text-muted-foreground">Fabric Version</p>
+                          <Badge variant="outline">{cognitiveEngine.model_version}</Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="security" className="space-y-4">
+                {teeSecurityStatus && (
+                  <div className="grid gap-4">
+                    <Card className="knirv-card-gradient">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Shield className="h-5 w-5" />
+                          TEE Security Status
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Attestation Status</p>
+                            {getStatusBadge(teeSecurityStatus.attestation_status)}
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Security Score</p>
+                            <div className="flex items-center gap-2">
+                              <Progress value={teeSecurityStatus.security_score} className="flex-1" />
+                              <span className="text-sm">{teeSecurityStatus.security_score}%</span>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Active Enclaves</p>
+                            <p className="text-2xl font-bold">{teeSecurityStatus.enclave_count}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Last Audit</p>
+                            <p className="font-semibold">{new Date(teeSecurityStatus.last_audit).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Threats Detected</p>
+                            <p className="font-semibold">{teeSecurityStatus.threats_detected}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    {teeSecurityStatus.threats_detected > 0 && (
+                      <Alert>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          {teeSecurityStatus.threats_detected} potential threats detected. Security team has been notified.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="admin" className="space-y-4">
+                <div className="grid gap-4">
+                  <DemoModeToggle />
+                  <DHTToggle />
+                  <Card className="knirv-card-gradient">
+                    <CardHeader>
+                      <CardTitle>System Information</CardTitle>
+                      <CardDescription>
+                        Current system status and configuration
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">WebSocket Status:</span>
+                          <Badge variant={isConnected ? "default" : "destructive"} className="ml-2">
+                            {isConnected ? "Connected" : "Disconnected"}
+                          </Badge>
+                        </div>
+                        <div>
+                          <span className="font-medium">Backend URL:</span>
+                          <span className="ml-2 text-muted-foreground">http://localhost:8082</span>
+                        </div>
+                        <div>
+                          <span className="font-medium">DVE Nodes:</span>
+                          <span className="ml-2">{dveNodes.length} registered</span>
+                        </div>
+                        <div>
+                          <span className="font-medium">Active Tasks:</span>
+                          <span className="ml-2">{validationTasks.length} tasks</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
       </div>
 
-      {/* QR Code Display Modal */}
       <QRCodeDisplay
         isOpen={showQRCode}
         onClose={() => setShowQRCode(false)}
@@ -495,19 +514,16 @@ export default function Dashboard() {
         capabilities={['remote_control', 'file_transfer', 'screen_share', 'dve_access']}
       />
 
-      {/* DNS Management Modal */}
       <DNSManagement
         isOpen={showDNSManagement}
         onClose={() => setShowDNSManagement(false)}
       />
 
-      {/* Fabric Management Modal */}
       <FabricManagement
         isOpen={showFabricManagement}
         onClose={() => setShowFabricManagement(false)}
       />
 
-      {/* DVE Rental Management Modal */}
       <DVERentalManagement
         isOpen={showDVERentalManagement}
         onClose={() => setShowDVERentalManagement(false)}

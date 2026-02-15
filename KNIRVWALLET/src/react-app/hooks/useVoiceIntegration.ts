@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router';
+// import { useWallet } from './useWallet';
+// import { useBackend } from './useBackend';
 
 export type VoiceStatus = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';
 
@@ -14,6 +16,10 @@ interface VoiceIntegrationState {
 
 export const useVoiceIntegration = () => {
   const navigate = useNavigate();
+  // In a real implementation, we would use these hooks here to get data for voice responses
+  // const { currentAccount } = useWallet();
+  // const { walletData } = useBackend(currentAccount?.getAddress('knirv') ?? null);
+
   const [state, setState] = useState<VoiceIntegrationState>({
     isVoiceActive: false,
     voiceStatus: 'idle',
@@ -77,6 +83,16 @@ export const useVoiceIntegration = () => {
       setState(prev => ({ ...prev, cognitiveMode: !prev.cognitiveMode }));
     }
 
+    // Wallet & Balance commands
+    else if (lowerCommand.includes('balance') || lowerCommand.includes('how much')) {
+       // In a real app, we would speak the actual balance here using TTS
+       console.log('Checking balance...');
+    } else if (lowerCommand.includes('send') || lowerCommand.includes('transfer')) {
+       navigate('/wallet');
+       // In a real app, we might open the send modal or parse parameters "Send 10 to Bob"
+       console.log('Initiating transfer...');
+    }
+
     // Skill-specific commands
     else if (lowerCommand.includes('activate') && lowerCommand.includes('skill')) {
       console.log('Skill activation requested:', command);
@@ -94,9 +110,7 @@ export const useVoiceIntegration = () => {
     // System commands
     else if (lowerCommand.includes('status') || lowerCommand.includes('health')) {
       console.log('System status check requested');
-    } else if (lowerCommand.includes('balance') || lowerCommand.includes('nrn')) {
-      console.log('NRN balance check requested');
-    }
+    } 
 
     // Simulate processing time and voice response
     setTimeout(() => {

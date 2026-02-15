@@ -1,6 +1,5 @@
 import CryptoJS from 'crypto-js';
-import { encryptAES as knirvEncryptAES, decryptAES as knirvDecryptAES, makeCryptKey as knirvMakeCryptKey, sha256 } from '@knirvsdk/crypto';
-
+import { sha256 } from '../crypto';
 import { Argon2id, isArgon2idOptions } from '../crypto';
 import { toAscii, toHex } from '../encoding';
 
@@ -28,8 +27,8 @@ export async function executeKdf(
     throw new Error(`Unsupported KDF algorithm: ${configuration.algorithm}`);
   }
 
-  // Use KNIRV crypto implementation for all KDF operations
-  const hexKey = await knirvMakeCryptKey(password, salt);
+  // Use crypto-js implementation for KDF operations
+  const hexKey = await makeCryptKey(password);
   // Convert hex string to Uint8Array
   const bytes = new Uint8Array(hexKey.length / 2);
   for (let i = 0; i < hexKey.length; i += 2) {
@@ -39,20 +38,21 @@ export async function executeKdf(
 }
 
 export const makeCryptKey = async (password: string) => {
-  // Use KNIRV crypto implementation with consistent salt
   const SALT_KEY = process.env.SALT_KEY ?? 'knirv-default-salt';
-  return await knirvMakeCryptKey(password, SALT_KEY);
+  return CryptoJS.PBKDF2(password, SALT_KEY, { keySize: 256/32, iterations: 1000 }).toString();
 };
 
 export const encryptSha256 = async (password: string) => {
   const cryptKey = await makeCryptKey(password);
-  return await sha256(cryptKey);
+  const hash = sha256(new TextEncoder().encode(cryptKey));
+  return toHex(hash);
 };
 
 export const encryptAES = async (value: string, password: string) => {
-  return await knirvEncryptAES(value, password);
+  return CryptoJS.AES.encrypt(value, password).toString();
 };
 
 export const decryptAES = async (encryptedValue: string, password: string) => {
-  return await knirvDecryptAES(encryptedValue, password);
+  const bytes = CryptoJS.AES.decrypt(encryptedValue, password);
+  return bytes.toString(CryptoJS.enc.Utf8);
 };

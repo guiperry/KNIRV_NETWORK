@@ -5,6 +5,7 @@ import Scanner from "@/react-app/pages/Scanner";
 import Skills from "@/react-app/pages/Skills";
 import UDC from "@/react-app/pages/UDC";
 import WalletPage from "@/react-app/pages/Wallet";
+import Onboarding from "@/react-app/pages/Onboarding";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/skills" element={<Skills />} />
         <Route path="/udc" element={<UDC />} />
         <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/onboarding" element={<Onboarding />} />
       </Routes>
     </Router>
   );

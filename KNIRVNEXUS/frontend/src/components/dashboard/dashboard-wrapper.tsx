@@ -93,38 +93,31 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
             </div>
             
             <div className="flex items-center space-x-4">
-              {/* CDE Toggle for Dev Preview */}
-              <div className="hidden md:flex items-center space-x-2 bg-muted/50 p-1.5 rounded-full border">
-                <span 
-                  className={`text-xs px-2 cursor-pointer ${!useModularCDE ? 'font-bold text-primary' : 'text-muted-foreground'}`} 
-                  onClick={() => {
-                    console.log('Toggling to Legacy');
-                    setUseModularCDE(false);
-                  }}
-                >
-                  Legacy CDE
-                </span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 w-10 p-0 rounded-full" 
-                  onClick={() => {
-                    console.log('Toggling modular state:', !useModularCDE);
-                    setUseModularCDE(!useModularCDE);
-                  }}
-                >
-                  {useModularCDE ? <ToggleRight className="h-6 w-6 text-primary" /> : <ToggleLeft className="h-6 w-6 text-muted-foreground" />}
-                </Button>
-                <span 
-                  className={`text-xs px-2 cursor-pointer ${useModularCDE ? 'font-bold text-primary' : 'text-muted-foreground'}`} 
-                  onClick={() => {
-                    console.log('Toggling to Modular');
-                    setUseModularCDE(true);
-                  }}
-                >
-                  Modular CDE
-                </span>
-              </div>
+              {/* Dashboard View Toggle - Only for Admins/Devs */}
+              {(user.role === 'admin' || user.role === 'observer') && (
+                <div className="hidden md:flex items-center space-x-2 bg-muted/50 p-1.5 rounded-full border">
+                  <span 
+                    className={`text-xs px-2 cursor-pointer ${!useModularCDE ? 'font-bold text-primary' : 'text-muted-foreground'}`} 
+                    onClick={() => setUseModularCDE(false)}
+                  >
+                    Network Center
+                  </span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 w-10 p-0 rounded-full" 
+                    onClick={() => setUseModularCDE(!useModularCDE)}
+                  >
+                    {useModularCDE ? <ToggleRight className="h-6 w-6 text-primary" /> : <ToggleLeft className="h-6 w-6 text-muted-foreground" />}
+                  </Button>
+                  <span 
+                    className={`text-xs px-2 cursor-pointer ${useModularCDE ? 'font-bold text-primary' : 'text-muted-foreground'}`} 
+                    onClick={() => setUseModularCDE(true)}
+                  >
+                    DVE Node
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-center space-x-2 text-sm">
                 <span className="text-muted-foreground">Welcome,</span>

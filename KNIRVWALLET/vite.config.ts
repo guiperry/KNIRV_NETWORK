@@ -1,12 +1,20 @@
 import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-// import { cloudflare } from "@cloudflare/vite-plugin";
-// import { mochaPlugins } from "@getmocha/vite-plugins";
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  plugins: [react()], // Temporarily disable other plugins
+  plugins: [
+    react(),
+    nodePolyfills({
+      include: ['buffer', 'process', 'util', 'stream', 'events'],
+      globals: {
+        Buffer: true,
+        global: true,
+        process: true,
+      },
+    }),
+  ],
   server: {
     allowedHosts: true,
   },
@@ -16,6 +24,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "knirvwallet-module": path.resolve(__dirname, "./core/packages/knirvwallet-module/src"),
     },
   },
+  define: {
+    'process.env': {},
+  }
 });

@@ -1,22 +1,23 @@
-import { Shield, Clock, Key, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Shield, Clock, Key, CheckCircle, AlertTriangle, RefreshCw, Loader } from 'lucide-react';
 import Layout from '@/react-app/components/Layout';
+import { useWallet } from '@/react-app/hooks/useWallet';
+import { useBackend } from '@/react-app/hooks/useBackend';
 
 export default function UDC() {
-  const udc = {
-    id: 'UDC-7A8B9C2D',
-    status: 'valid' as const,
-    issuedAt: '2024-08-01T10:30:00Z',
-    expiresAt: '2024-08-08T10:30:00Z',
-    permissions: [
-      'workflow.deploy',
-      'skill.activate',
-      'nrn.transfer',
-      'dten.access',
-      'wallet.connect'
-    ]
-  };
+  const { currentAccount } = useWallet();
+  const { udcData, isLoading, refresh } = useBackend(currentAccount ? currentAccount.getAddress('knirv') : null);
 
-  const daysUntilExpiry = Math.ceil((new Date(udc.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  if (isLoading || !udcData) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      </Layout>
+    );
+  }
+
+  const daysUntilExpiry = Math.ceil((new Date(udcData.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   const isExpiringSoon = daysUntilExpiry <= 2;
 
   const statusConfig = {
@@ -26,7 +27,7 @@ export default function UDC() {
     pending: { icon: Clock, color: 'text-yellow-400', bg: 'bg-yellow-500/20', border: 'border-yellow-500/30' }
   };
 
-  const config = statusConfig[udc.status];
+  const config = statusConfig[udcData.status] || statusConfig.pending;
   const StatusIcon = config.icon;
 
   return (
@@ -54,7 +55,7 @@ export default function UDC() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-white">Certificate Active</h3>
-                  <p className={`text-sm ${config.color} capitalize font-mono`}>{udc.status}</p>
+                  <p className={`text-sm ${config.color} capitalize font-mono`}>{udcData.status}</p>
                 </div>
               </div>
               
@@ -69,7 +70,7 @@ export default function UDC() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-slate-500 font-mono uppercase tracking-wider">Certificate ID</p>
-                  <p className="text-sm font-mono text-white">{udc.id}</p>
+                  <p className="text-sm font-mono text-white">{udcData.id}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 font-mono uppercase tracking-wider">Expires In</p>
@@ -82,7 +83,7 @@ export default function UDC() {
               <div>
                 <p className="text-xs text-slate-500 font-mono uppercase tracking-wider mb-1">Valid Until</p>
                 <p className="text-sm text-white font-mono">
-                  {new Date(udc.expiresAt).toLocaleDateString()} at {new Date(udc.expiresAt).toLocaleTimeString()}
+                  {new Date(udcData.expiresAt).toLocaleDateString()} at {new Date(udcData.expiresAt).toLocaleTimeString()}
                 </p>
               </div>
             </div>
@@ -93,7 +94,7 @@ export default function UDC() {
         <div>
           <h3 className="text-lg font-semibold text-white mb-4">Granted Permissions</h3>
           <div className="space-y-3">
-            {udc.permissions.map((permission, index) => (
+            {udcData.permissions.map((permission, index) => (
               <div key={index} className="flex items-center justify-between p-3 glass-panel glow-hover">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center border border-blue-500/20">
@@ -112,7 +113,10 @@ export default function UDC() {
 
         {/* Actions */}
         <div className="space-y-3">
-          <button className="w-full flex items-center justify-center space-x-3 py-4 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-semibold transition-all transform hover:scale-[1.02] glow-hover">
+          <button 
+            onClick={refresh}
+            className="w-full flex items-center justify-center space-x-3 py-4 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-semibold transition-all transform hover:scale-[1.02] glow-hover"
+          >
             <RefreshCw className="w-5 h-5" />
             <span>Renew Certificate</span>
           </button>
