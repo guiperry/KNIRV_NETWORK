@@ -764,3 +764,281 @@ export interface PaginatedResponse<T> extends APIResponse<T[]> {
   has_next: boolean;
   has_prev: boolean;
 }
+
+// ============================================
+// FinTech Validator Types (Phases 1-4)
+// ============================================
+
+// Phase 1: Evidence Pack types
+export interface EvidencePack {
+  id: string;
+  name: string;
+  description: string;
+  agent_id: string;
+  agent_type: string;
+  validation_id: string;
+  context_records: ContextRecord[];
+  regulatory_checks: RegulatoryCheck[];
+  certificates: Certificate[];
+  trajectories: string[];
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContextRecord {
+  id: string;
+  timestamp: string;
+  reasoning_step: string;
+  action: string;
+  input_data: Record<string, any>;
+  output_data: Record<string, any>;
+  confidence: number;
+  embeddings?: number[];
+}
+
+export interface RegulatoryCheck {
+  id: string;
+  rule_id: string;
+  rule_name: string;
+  status: "passed" | "failed" | "warning" | "error";
+  details: string;
+  severity: "low" | "medium" | "high" | "critical";
+  evidence: Record<string, any>;
+  timestamp: string;
+}
+
+export interface Certificate {
+  id: string;
+  type: string;
+  issued_at: string;
+  expires_at: string;
+  issuer: string;
+  subject: string;
+  serial_number: string;
+  signature: string;
+  public_key: string;
+  metadata: Record<string, any>;
+}
+
+// Phase 1: Validation types
+export interface FinTechValidationRequest {
+  agent_id: string;
+  agent_type: string;
+  input_data: Record<string, any>;
+  expected_output?: Record<string, any>;
+  compliance_requirements?: string[];
+  scenario_id?: string;
+}
+
+export interface FinTechValidationResult {
+  id: string;
+  agent_id: string;
+  agent_type: string;
+  status: "success" | "failure" | "error";
+  score: number;
+  compliance_results: ComplianceResult[];
+  regulatory_violations: RegulatoryViolation[];
+  evidence_pack_id?: string;
+  validation_timestamp: string;
+  execution_time_ms: number;
+}
+
+export interface ComplianceResult {
+  requirement: string;
+  status: "compliant" | "non_compliant" | "not_applicable";
+  details: string;
+  evidence: Record<string, any>;
+}
+
+export interface RegulatoryViolation {
+  regulation: string;
+  rule_id: string;
+  severity: "low" | "medium" | "high" | "critical";
+  description: string;
+  remediation: string;
+  evidence: Record<string, any>;
+}
+
+// Phase 2: Ontology types
+export interface FinancialOntology {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  domain: string;
+  rules: OntologyRule[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OntologyRule {
+  id: string;
+  name: string;
+  description: string;
+  condition: string;
+  action: string;
+  severity: "low" | "medium" | "high" | "critical";
+  metadata: Record<string, any>;
+}
+
+// Phase 2: Scenario types
+export interface RegulatoryScenario {
+  id: string;
+  name: string;
+  description: string;
+  ontology_id: string;
+  test_cases: ScenarioTestCase[];
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScenarioTestCase {
+  id: string;
+  name: string;
+  description: string;
+  input_data: Record<string, any>;
+  expected_output: Record<string, any>;
+  compliance_requirements: string[];
+}
+
+export interface ScenarioValidationResult {
+  scenario_id: string;
+  test_results: TestCaseResult[];
+  overall_status: "passed" | "failed" | "partial";
+  summary: string;
+  timestamp: string;
+}
+
+export interface TestCaseResult {
+  test_case_id: string;
+  status: "passed" | "failed" | "error";
+  details: string;
+  execution_time_ms: number;
+}
+
+// Phase 3: Trajectory types
+export interface ExecutionTrajectory {
+  id: string;
+  agent_id: string;
+  session_id: string;
+  steps: TrajectoryStep[];
+  captured_at: string;
+  duration_ms: number;
+}
+
+export interface TrajectoryStep {
+  step_number: number;
+  timestamp: string;
+  action: string;
+  input_data: Record<string, any>;
+  output_data: Record<string, any>;
+  state_hash: string;
+  stack_trace?: string;
+}
+
+export interface ReplayResult {
+  trajectory_id: string;
+  replay_id: string;
+  status: "success" | "failure" | "divergence";
+  original_output: Record<string, any>;
+  replay_output: Record<string, any>;
+  divergence_details?: string;
+  execution_time_ms: number;
+}
+
+// Phase 4: NRV Trace & Fidelity types
+export interface NRVTrace {
+  id: string;
+  agent_id: string;
+  session_id: string;
+  reasoning_steps: NRVReasoningStep[];
+  financial_context: FinancialContext;
+  metadata: Record<string, any>;
+  created_at: string;
+}
+
+export interface NRVReasoningStep {
+  step_number: number;
+  timestamp: string;
+  reasoning: string;
+  action: string;
+  amount?: number;
+  counterparty?: string;
+  instrument?: string;
+  position_change?: number;
+  confidence: number;
+}
+
+export interface FinancialContext {
+  transaction_type?: string;
+  amount?: number;
+  currency?: string;
+  counterparties: string[];
+  instruments: string[];
+  positions: Record<string, number>;
+  kyc_status?: string;
+  risk_category?: string;
+}
+
+export interface FidelityScore {
+  trace_id: string;
+  overall_score: number;
+  risk_level: "low" | "medium" | "high" | "critical";
+  component_scores: {
+    intent: number;
+    action: number;
+    compliance: number;
+    outcome: number;
+  };
+  violations: FidelityViolation[];
+  recommendations: string[];
+  calculated_at: string;
+}
+
+export interface FidelityViolation {
+  category: string;
+  description: string;
+  severity: "low" | "medium" | "high" | "critical";
+  evidence: string;
+}
+
+export interface SemanticDistance {
+  trace_id: string;
+  distance: number;
+  components: {
+    intent_distance: number;
+    action_distance: number;
+    compliance_distance: number;
+    outcome_distance: number;
+  };
+  details: string;
+  calculated_at: string;
+}
+
+export interface KYCBypassDetection {
+  trace_id: string;
+  detected: boolean;
+  confidence: number;
+  indicators: string[];
+  evidence: string;
+  timestamp: string;
+}
+
+export interface PositionLimitViolation {
+  trace_id: string;
+  detected: boolean;
+  violations: PositionViolation[];
+  current_positions: Record<string, number>;
+  limits: Record<string, number>;
+  timestamp: string;
+}
+
+export interface PositionViolation {
+  instrument: string;
+  current_position: number;
+  limit: number;
+  excess: number;
+  severity: "low" | "medium" | "high" | "critical";
+}

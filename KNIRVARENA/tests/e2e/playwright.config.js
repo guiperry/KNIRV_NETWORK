@@ -1,7 +1,7 @@
 // Playwright Configuration for KNIRVWALLET E2E Tests
-const { defineConfig, devices } = require('@playwright/test');
+import { defineConfig, devices } from '@playwright/test';
 
-module.exports = defineConfig({
+export default defineConfig({
   // Test directory
   testDir: './tests/e2e',
   
@@ -151,8 +151,8 @@ module.exports = defineConfig({
   ],
 
   // Global setup and teardown
-  globalSetup: require.resolve('./tests/e2e/global-setup.js'),
-  globalTeardown: require.resolve('./tests/e2e/global-teardown.js'),
+  globalSetup: './tests/e2e/global-setup.js',
+  globalTeardown: './tests/e2e/global-teardown.js',
 
   // Web server configuration for local development
   webServer: process.env.CI ? undefined : [

@@ -36,12 +36,17 @@ type FabricEvent struct {
 	Verified       bool   `json:"verified"`
 }
 
+type ActiveMemoryProvider interface {
+	StreamToArrow(agentID string, fs flight.FlightService_DoGetServer) error
+}
+
 // NexusMemoryServer implements the Arrow Flight server for the Memory Fabric
 type NexusMemoryServer struct {
 	flight.BaseFlightServer
 	mem             memory.Allocator
 	guardianManager *ebpf.NexusGuardianManager
 	eventsChan      <-chan ebpf.NexusGuardianGuardianEvent
+	memoryProvider  ActiveMemoryProvider
 	
 	intentsMu sync.Mutex
 	intents   map[uint32]*Intent // Map PID to Intent
@@ -57,6 +62,11 @@ func NewNexusMemoryServer(mem memory.Allocator) *NexusMemoryServer {
 		intents:      make(map[uint32]*Intent),
 		recentEvents: make([]FabricEvent, 0),
 	}
+}
+
+// SetMemoryProvider sets the provider for active memory streaming
+func (s *NexusMemoryServer) SetMemoryProvider(provider ActiveMemoryProvider) {
+	s.memoryProvider = provider
 }
 
 // RegisterIntent registers an agent's intent
@@ -124,6 +134,10 @@ func (s *NexusMemoryServer) StartGuardian() error {
 func (s *NexusMemoryServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoGetServer) error {
 	agentID := string(tkt.Ticket)
 	log.Printf("Streaming memory fabric for agent: %s", agentID)
+
+	if s.memoryProvider != nil {
+		return s.memoryProvider.StreamToArrow(agentID, fs)
+	}
 
 	schema := NewAgentMemorySchema()
 	writer := flight.NewRecordWriter(fs, ipc.WithSchema(schema))

@@ -10,17 +10,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useKnirvSocket } from "@/hooks/use-knirv-socket";
 import { useDVENodes } from "@/hooks/use-dve-nodes";
-import { useDVERental } from "@/hooks/use-dve-rental";
 import { useValidationTasks } from "@/hooks/use-validation-tasks";
 import { useCognitiveEngine } from "@/hooks/use-cognitive-engine";
 import { useTEESecurity } from "@/hooks/use-tee-security";
 import { useSystemHealth } from "@/hooks/use-system-health";
-import QRCodeDisplay from "@/components/controller/qr-code-display";
-import DNSManagement from "@/components/dns/dns-management";
-import FabricManagement from "@/components/fabric/fabric-management";
-import DVERentalManagement from "@/components/dve-rental/dve-rental-management";
 import { DVENodesPanel } from "@/components/dashboard/dve-nodes-panel";
 import { CognitiveEnginePanel } from "@/components/dashboard/cognitive-engine-panel";
+import { ActiveMemoryPanel } from "@/components/dashboard/active-memory/active-memory-panel";
+import { PluginVaultPanel } from "@/components/dashboard/active-memory/plugin-vault-panel";
 import CDEPanel from "@/components/dashboard/cde-panel";
 import { useAuth } from "@/lib/auth-context";
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
@@ -47,7 +44,8 @@ import {
   QrCode,
   Globe,
   Layers,
-  CreditCard
+  CreditCard,
+  Database
 } from "lucide-react";
 
 interface DVENode {
@@ -100,10 +98,6 @@ interface NRNStaking {
 export default function Dashboard() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [showQRCode, setShowQRCode] = useState(false);
-  const [showDNSManagement, setShowDNSManagement] = useState(false);
-  const [showFabricManagement, setShowFabricManagement] = useState(false);
-  const [showDVERentalManagement, setShowDVERentalManagement] = useState(false);
   const [useModularCDE, setUseModularCDE] = useState(false);
 
   // Normal users (validators/observers) are sent directly to the modular view (inside a DVE)
@@ -117,30 +111,8 @@ export default function Dashboard() {
     }
   }, [isNormalUser, useModularCDE]);
 
-  // Helper functions to check connection/setup status
-  const isControllerConnected = () => {
-    // Check if controller is connected (placeholder logic)
-    return false;
-  };
-
-  const isDNSPorted = () => {
-    // Check if DNS is ported (placeholder logic) 
-    return false;
-  };
-
-  const hasFabricItemsAdded = () => {
-    // Check if fabric items are added (placeholder logic)
-    return false;
-  };
-
-  const hasDVERentals = () => {
-    // Check if DVE rentals exist
-    return (rentalStats?.active_rentals || 0) > 0;
-  };
-
   // Use real backend hooks instead of mock data
   const { nodes: dveNodes, isLoading: dveLoading, error: dveError } = useDVENodes();
-  const { rentals, stats: rentalStats, isLoading: rentalLoading } = useDVERental();
   const { tasks: validationTasks, isLoading: tasksLoading } = useValidationTasks();
   const { cognitiveEngine, isLoading: cognitiveLoading } = useCognitiveEngine();
   const { securityStatus: teeSecurityStatus, isLoading: teeLoading } = useTEESecurity();
@@ -273,99 +245,95 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card 
                 className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
-                onClick={() => setShowQRCode(true)}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    {isControllerConnected() ? "Update Controller" : "Connect Controller"}
+                    Active Memory Fabric
                   </CardTitle>
-                  <QrCode className="h-4 w-4 text-muted-foreground" />
+                  <Database className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {isControllerConnected() ? "Connected" : "Setup Required"}
-                  </div>
+                  <div className="text-2xl font-bold">Encrypted</div>
                   <p className="text-xs text-muted-foreground">
-                    {isControllerConnected() 
-                      ? "Click to update controller settings" 
-                      : "Pair your device to get started"}
+                    PQC Markdown persistence active
                   </p>
                 </CardContent>
               </Card>
 
               <Card 
                 className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
-                onClick={() => setShowDNSManagement(true)}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    {isDNSPorted() ? "Manage DNS" : "Port DNS"}
+                    Reasoning Graph
+                  </CardTitle>
+                  <Network className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">142 Traces</div>
+                  <p className="text-xs text-muted-foreground">
+                    Context records in .md fabric
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    Solution Vault
+                  </CardTitle>
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">28 Nodes</div>
+                  <p className="text-xs text-muted-foreground">
+                    Verifiable executable logic
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    P2P Transport
                   </CardTitle>
                   <Globe className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {isDNSPorted() ? "Active" : "Setup Required"}
-                  </div>
+                  <div className="text-2xl font-bold">TURN Active</div>
                   <p className="text-xs text-muted-foreground">
-                    {isDNSPorted() 
-                      ? "Click to manage DNS settings" 
-                      : "Configure DNS for network access"}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
-                onClick={() => setShowFabricManagement(true)}
-              >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    {hasFabricItemsAdded() ? "Manage Fabric" : "Add Fabric"}
-                  </CardTitle>
-                  <Layers className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {hasFabricItemsAdded() ? "Active" : "Setup Required"}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {hasFabricItemsAdded() 
-                      ? "Click to manage your fabric items" 
-                      : "Deploy Agentic Memory Fabric"}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className="knirv-card-gradient cursor-pointer hover:bg-primary/5 transition-colors border-white/20 hover:border-primary/50"
-                onClick={() => setShowDVERentalManagement(true)}
-              >
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    {hasDVERentals() ? "Manage DVE Rentals" : "Rent DVE Instance"}
-                  </CardTitle>
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {hasDVERentals() ? `${rentalStats?.active_rentals || 0} Active` : "Get Started"}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {hasDVERentals() 
-                      ? "Click to manage your rentals" 
-                      : "Rent computing resources"}
+                    Secure NAT traversal established
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            <Tabs defaultValue="cognitive" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3">
+            <Tabs defaultValue="fabric" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="fabric">Markdown Fabric</TabsTrigger>
                 <TabsTrigger value="cognitive">Cognitive Engine</TabsTrigger>
                 <TabsTrigger value="security">TEE Security</TabsTrigger>
                 <TabsTrigger value="admin">Admin</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="fabric" className="space-y-4">
+                <Tabs defaultValue="traces">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="traces">Reasoning Explorer</TabsTrigger>
+                    <TabsTrigger value="vault">Solution Vault</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="traces">
+                    <ActiveMemoryPanel />
+                  </TabsContent>
+                  <TabsContent value="vault">
+                    <PluginVaultPanel />
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
 
               <TabsContent value="cognitive" className="space-y-4">
                 {cognitiveEngine && (
@@ -505,29 +473,6 @@ export default function Dashboard() {
           </>
         )}
       </div>
-
-      <QRCodeDisplay
-        isOpen={showQRCode}
-        onClose={() => setShowQRCode(false)}
-        userId={user?.user || 'anonymous'}
-        deviceType="desktop"
-        capabilities={['remote_control', 'file_transfer', 'screen_share', 'dve_access']}
-      />
-
-      <DNSManagement
-        isOpen={showDNSManagement}
-        onClose={() => setShowDNSManagement(false)}
-      />
-
-      <FabricManagement
-        isOpen={showFabricManagement}
-        onClose={() => setShowFabricManagement(false)}
-      />
-
-      <DVERentalManagement
-        isOpen={showDVERentalManagement}
-        onClose={() => setShowDVERentalManagement(false)}
-      />
     </DashboardWrapper>
   );
 }

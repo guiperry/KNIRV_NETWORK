@@ -12,7 +12,9 @@ class WebSocketService {
   private subscribers = new Set<string>();
 
   private constructor() {
-    this.connect();
+    if (typeof window !== 'undefined') {
+      this.connect();
+    }
   }
 
   public static getInstance(): WebSocketService {

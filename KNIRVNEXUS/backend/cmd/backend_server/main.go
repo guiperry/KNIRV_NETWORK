@@ -18,8 +18,9 @@ import (
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
 	"backend_server/internal/nexus"
+	"backend_server/internal/reasoning/graph"
 	"backend_server/internal/runtime"
-	"backend_server/internal/services/blockchain"
+	"backend_server/internal/services/active_memory"
 	"backend_server/internal/services/cde"
 	"backend_server/internal/services/cognitiveengine"
 	"backend_server/internal/services/container"
@@ -30,21 +31,25 @@ import (
 	"backend_server/internal/services/endpoints"
 	fabricserver "backend_server/internal/services/fabric-server"
 	"backend_server/internal/services/fabricmanagement"
+	"backend_server/internal/services/fintech_validator"
 	inference "backend_server/internal/services/inferencer"
 	"backend_server/internal/services/p2p"
-	"backend_server/internal/services/payment"
 	"backend_server/internal/services/session"
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
+	"backend_server/internal/services/transport"
 	"backend_server/internal/services/validation"
+	"backend_server/internal/services/vault"
 	"backend_server/internal/services/websocket"
+	"backend_server/internal/storage/mdstorage"
+	"backend_server/internal/storage/pqc"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
 
+	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	"github.com/tidwall/buntdb"
-	"github.com/apache/arrow/go/v14/arrow/memory"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -70,11 +75,12 @@ type Server struct {
 	virtualContainerManager *ebpf.VirtualContainerManager
 
 	// Nexus Memory Fabric
-	nexusServer *nexus.NexusMemoryServer
+	nexusServer    *nexus.NexusMemoryServer
 	nexusAllocator memory.Allocator
 
 	// All services are held here
 	dveManager                   *dvemanager.DVEManager
+	dveRentalService             *dverental.DVERentalService
 	validationCore               *validation.ValidationCore
 	cdeService                   *cde.CDEService
 	dnsService                   *dns.DynamicDNSService
@@ -86,13 +92,21 @@ type Server struct {
 	systemHealthService          *systemhealth.SystemHealthService
 	fabricManagementService      *fabricmanagement.FabricManagementService
 	controllerIntegrationService *controllerintegration.ControllerIntegrationService
-	dveRentalService             *dverental.DVERentalService
 	cognitiveEngine              *cognitiveengine.CognitiveEngine
 	containerOrchestrator        *container.ContainerOrchestrator
 	sessionManager               *session.SessionManager
 	endpointRegistry             *endpoints.EndpointRegistry
-	stripeService                *payment.StripeService
-	paypalService                *payment.PayPalService
+	turnServer                   *transport.TURNServer
+
+	// Active Memory Layer (Markdown Fabric)
+	pqcManager          *pqc.EncryptionManager
+	mdStorage           *mdstorage.MarkdownStorageDriver
+	vaultService        *vault.VaultService
+	reasoningEngine     *graph.ReasoningEngine
+	activeMemoryService *active_memory.ActiveMemoryService
+
+	// FinTech Validator Service
+	fintechValidatorService *fintech_validator.FinTechValidatorService
 
 	// Object Nest subsystem
 	unifiedContainerManager *runtime.UnifiedContainerManager
@@ -291,6 +305,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize DVE manager: %w", err)
 	}
 
+	// Initialize DVE Rental Service
+	dveRentalService, err := dverental.NewDVERentalService(dbManager.GetDB())
+	if err != nil {
+		log.Printf("Warning: Failed to initialize DVE rental service: %v", err)
+		dveRentalService = nil
+	}
+
 	// Ensure fabric server storage path is explicitly set to app data directory if empty
 	if cfg.ModelServer.StoragePath == "" {
 		appDataDir, err := getOSAppDataDir()
@@ -442,71 +463,69 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize container orchestrator: %w", err)
 	}
 
-	// Initialize DVE Rental service
-	dveRentalService, err := dverental.NewDVERentalService(dbManager.GetDB())
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize DVE rental service: %w", err)
-	}
-	dveRentalService.SetServiceReferences(dveManager, cdeService)
-	dveRentalService.SetContainerOrchestrator(containerOrchestrator)
-
-	// Initialize NRN blockchain client for payment verification
-	nrnEndpoint := os.Getenv("NRN_BLOCKCHAIN_ENDPOINT")
-	if nrnEndpoint == "" {
-		nrnEndpoint = "http://localhost:8082" // Default for development
-	}
-	nrnClient := blockchain.NewNRNClient(nrnEndpoint)
-	dveRentalService.SetBlockchainClient(nrnClient)
-
 	// Initialize Session Manager
 	sessionManager := session.NewSessionManager(dbManager.GetDB())
 
 	// Initialize Endpoint Registry
 	endpointRegistry := endpoints.NewEndpointRegistry(dbManager.GetDB())
 
-	// Initialize Payment Services
-	// Load Stripe credentials from environment
-	stripeSecretKey := os.Getenv("STRIPE_SECRET_KEY")
-	if stripeSecretKey == "" {
-		stripeSecretKey = "___test_example" // Development fallback
+	// Initialize Active Memory Layer (Markdown Fabric)
+	pqcManager := pqc.NewEncryptionManager()
+
+	// Generate or Load Master Key for PQC
+	masterKey, err := pqc.GeneratePQCKeyPair("nexus-master", "master")
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate PQC master key: %w", err)
 	}
-	stripePublicKey := os.Getenv("STRIPE_PUBLIC_KEY")
-	if stripePublicKey == "" {
-		stripePublicKey = "pk_test_example" // Development fallback
-	}
-	stripeWebhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
-	if stripeWebhookSecret == "" {
-		stripeWebhookSecret = "whsec_example" // Development fallback
+	pqcManager.SetMasterKey(masterKey)
+	pqcManager.CacheKey(masterKey.ID, masterKey)
+
+	// Markdown Storage Driver
+	appDataDir, _ := getOSAppDataDir()
+	memoryDir := filepath.Join(appDataDir, "active_memory")
+	mdStorage, err := mdstorage.NewMarkdownStorageDriver(memoryDir, pqcManager, masterKey.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize markdown storage: %w", err)
 	}
 
-	stripeService := payment.NewStripeService(
-		stripeSecretKey,
-		stripePublicKey,
-		stripeWebhookSecret,
-		"usd",
-		"2023-10-16",
+	// Vault Service (Error/Solution Nodes)
+	vaultService := vault.NewVaultService(mdStorage)
+
+	// Reasoning Engine (Graph Traces)
+	reasoningEngine := graph.NewReasoningEngine(mdStorage)
+
+	// Active Memory Coordinator
+	activeMemoryService := active_memory.NewActiveMemoryService(vaultService, reasoningEngine, mdStorage)
+
+	// Initialize FinTech Validator Service
+	fintechValidatorService, err := fintech_validator.NewFinTechValidatorService(
+		validationCore,
+		pqcManager,
+		mdStorage,
+		&fintech_validator.Config{
+			EnableAMLChecks:       true,
+			EnableKYCCheks:        true,
+			EnableSECCheks:        true,
+			EnableBaselCheks:      true,
+			AutoSignEvidencePacks: true,
+			MasterKeyID:           "nexus-master",
+			EnableScenarioTesting: true,
+			EnableCertification:   true,
+			CertificateValidity:   90 * 24 * time.Hour, // 90 days
+		},
 	)
-
-	// Load PayPal credentials from environment
-	paypalClientID := os.Getenv("PAYPAL_CLIENT_ID")
-	if paypalClientID == "" {
-		paypalClientID = "client_id_example" // Development fallback
-	}
-	paypalSecret := os.Getenv("PAYPAL_SECRET")
-	if paypalSecret == "" {
-		paypalSecret = "secret_example" // Development fallback
-	}
-	paypalMode := os.Getenv("PAYPAL_MODE")
-	if paypalMode == "" {
-		paypalMode = "sandbox" // Development default
+	if err != nil {
+		log.Printf("Warning: Failed to initialize FinTech validator service: %v", err)
+		fintechValidatorService = nil
+	} else {
+		log.Println("FinTech Validator Service initialized successfully")
 	}
 
-	paypalService := payment.NewPayPalService(
-		paypalClientID,
-		paypalSecret,
-		paypalMode,
-		"USD",
-	)
+	// Initialize TURN Server (Transport)
+	turnServer, err := transport.NewTURNServer("0.0.0.0", 3478, cfg.ChainID)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize TURN server: %v", err)
+	}
 
 	// Initialize Cognitive Engine
 	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager.GetDB(), validationCore, inferenceService, fabricManagementService)
@@ -521,6 +540,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize Nexus Memory Fabric
 	nexusAllocator := memory.DefaultAllocator
 	nexusServer := nexus.NewNexusMemoryServer(nexusAllocator)
+	if activeMemoryService != nil {
+		nexusServer.SetMemoryProvider(activeMemoryService)
+	}
 	if err := nexusServer.StartGuardian(); err != nil {
 		log.Printf("Warning: Failed to start Nexus Guardian (eBPF): %v", err)
 	}
@@ -539,6 +561,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		nexusServer:                  nexusServer,
 		nexusAllocator:               nexusAllocator,
 		dveManager:                   dveManager,
+		dveRentalService:             dveRentalService,
 		validationCore:               validationCore,
 		cdeService:                   cdeService,
 		dnsService:                   dnsService,
@@ -550,13 +573,17 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		systemHealthService:          systemHealthService,
 		fabricManagementService:      fabricManagementService,
 		controllerIntegrationService: controllerIntegrationService,
-		dveRentalService:             dveRentalService,
 		cognitiveEngine:              cognitiveEngine,
 		containerOrchestrator:        containerOrchestrator,
 		sessionManager:               sessionManager,
 		endpointRegistry:             endpointRegistry,
-		stripeService:                stripeService,
-		paypalService:                paypalService,
+		turnServer:                   turnServer,
+		pqcManager:                   pqcManager,
+		mdStorage:                    mdStorage,
+		vaultService:                 vaultService,
+		reasoningEngine:              reasoningEngine,
+		activeMemoryService:          activeMemoryService,
+		fintechValidatorService:      fintechValidatorService,
 		unifiedContainerManager:      unifiedContainerManager,
 		ctx:                          ctx,
 		cancel:                       cancel,
@@ -680,6 +707,13 @@ func (s *Server) setupRoutes() {
 		log.Println("DVE manager routes configured")
 	}
 
+	// Register DVE rental routes
+	if s.dveRentalService != nil {
+		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db.GetDB())
+		dveRentalHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("DVE rental routes configured")
+	}
+
 	// Register validation service routes
 	if s.validationCore != nil {
 		validationHandlers := web.NewValidationHandlers(s.validationCore)
@@ -715,15 +749,6 @@ func (s *Server) setupRoutes() {
 		log.Println("Controller integration service routes configured")
 	}
 
-	// Register DVE rental service routes
-	if s.dveRentalService != nil {
-		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db.GetDB())
-
-		// Pass the main router directly - the handler will create its own subrouter with the correct prefix
-		dveRentalHandlers.RegisterRoutes(s.router, authMiddleware)
-		log.Println("DVE rental service routes configured")
-	}
-
 	// Register cognitive engine routes
 	if s.cognitiveEngine != nil {
 		cognitiveEngineHandlers := web.NewCognitiveEngineHandlers(s.cognitiveEngine)
@@ -731,10 +756,19 @@ func (s *Server) setupRoutes() {
 		log.Println("Cognitive engine routes configured")
 	}
 
-	// Register payment service routes
-	paymentHandlers := web.NewPaymentHandlers(s.stripeService, s.paypalService)
-	paymentHandlers.RegisterRoutes(s.router, authMiddleware)
-	log.Println("Payment service routes configured")
+	// Register Active Memory handlers
+	if s.activeMemoryService != nil {
+		memoryHandlers := web.NewActiveMemoryHandlers(s.activeMemoryService)
+		memoryHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("Active Memory (Markdown Fabric) routes configured")
+	}
+
+	// Register FinTech Validator routes
+	if s.fintechValidatorService != nil {
+		fintechHandlers := fintech_validator.NewHandlers(s.fintechValidatorService)
+		fintechHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("FinTech Validator routes configured")
+	}
 
 	// Register system settings routes
 	systemSettingsHandlers := web.NewSystemSettingsHandlers(s.config)
@@ -778,21 +812,21 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"build_time": BuildTime,
 		"git_commit": GitCommit,
 		"services": map[string]bool{
-			"database":               s.db != nil,
-			"p2p_manager":            s.p2pManager != nil,
-			"ebpf_manager":           s.ebpfManager != nil,
-			"virtual_container_mgr":  s.virtualContainerManager != nil,
-			"dve_manager":            s.dveManager != nil,
-			"validation_core":        s.validationCore != nil,
-			"fabric_server":          s.fabricServer != nil,
-			"data_engine":            s.dataEngine != nil,
-			"inference_service":      s.inferenceService != nil,
-			"websocket_service":      s.websocketService != nil,
-			"cde_service":            s.cdeService != nil,
-			"dns_service":            s.dnsService != nil,
-			"dve_rental_service":     s.dveRentalService != nil,
-			"tee_security_service":   s.teeSecurityService != nil,
-			"container_orchestrator": s.containerOrchestrator != nil,
+			"database":              s.db != nil,
+			"p2p_manager":           s.p2pManager != nil,
+			"ebpf_manager":          s.ebpfManager != nil,
+			"virtual_container_mgr": s.virtualContainerManager != nil,
+			"dve_manager":           s.dveManager != nil,
+			"validation_core":       s.validationCore != nil,
+			"fabric_server":         s.fabricServer != nil,
+			"data_engine":           s.dataEngine != nil,
+			"inference_service":     s.inferenceService != nil,
+			"websocket_service":     s.websocketService != nil,
+			"dns_service":           s.dnsService != nil,
+			"turn_server":           s.turnServer != nil,
+			"active_memory_service": s.activeMemoryService != nil,
+			"pqc_manager":           s.pqcManager != nil,
+			"fintech_validator":     s.fintechValidatorService != nil,
 		},
 		"ebpf": ebpfMetrics,
 	}
@@ -838,7 +872,14 @@ func (s *Server) Start() error {
 		}
 	}
 
-	// Start validation core
+	// Start TURN Server
+	if s.turnServer != nil {
+		if err := s.turnServer.Start(); err != nil {
+			log.Printf("Warning: Failed to start TURN server: %v", err)
+		} else {
+			log.Println("TURN Server started")
+		}
+	}
 	if s.validationCore != nil {
 		if err := s.validationCore.Start(s.ctx); err != nil {
 			log.Printf("Warning: Failed to start validation core: %v", err)
@@ -940,16 +981,6 @@ func (s *Server) Start() error {
 			// Continue - container orchestrator failure shouldn't stop basic server operation
 		} else {
 			log.Println("Container Orchestrator started")
-		}
-	}
-
-	// Start DVE Rental service
-	if s.dveRentalService != nil {
-		if err := s.dveRentalService.Start(); err != nil {
-			log.Printf("Warning: Failed to start DVE Rental service: %v", err)
-			// Continue - DVE rental failure shouldn't stop basic server operation
-		} else {
-			log.Println("DVE Rental Service started")
 		}
 	}
 
@@ -1083,21 +1114,9 @@ func (s *Server) Stop() error {
 		}
 	}
 
-	if s.dveRentalService != nil {
-		if err := s.dveRentalService.Stop(); err != nil {
-			log.Printf("Error stopping DVE Rental service: %v", err)
-		}
-	}
-
-	if s.containerOrchestrator != nil {
-		if err := s.containerOrchestrator.Stop(); err != nil {
-			log.Printf("Error stopping Container Orchestrator: %v", err)
-		}
-	}
-
-	if s.cdeService != nil {
-		if err := s.cdeService.Stop(); err != nil {
-			log.Printf("Error stopping CDE service: %v", err)
+	if s.turnServer != nil {
+		if err := s.turnServer.Stop(); err != nil {
+			log.Printf("Error stopping TURN server: %v", err)
 		}
 	}
 

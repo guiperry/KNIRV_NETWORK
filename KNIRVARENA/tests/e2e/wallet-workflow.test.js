@@ -1,6 +1,6 @@
 // Comprehensive End-to-End Tests for KNIRVWALLET - Complete Wallet Workflow
-const { chromium, firefox, webkit } = require('playwright');
-const { expect } = require('@playwright/test');
+import { chromium, firefox, webkit } from 'playwright';
+import { expect } from '@playwright/test';
 
 describe('KNIRVWALLET End-to-End Wallet Workflow', () => {
   let browser;

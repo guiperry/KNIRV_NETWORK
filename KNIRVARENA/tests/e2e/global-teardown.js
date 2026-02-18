@@ -1,6 +1,6 @@
 // Global Teardown for KNIRVWALLET E2E Tests
-const fs = require('fs').promises;
-const path = require('path');
+import fs from 'fs/promises';
+import path from 'path';
 
 async function globalTeardown(config) {
   console.log('🧹 Starting KNIRVWALLET E2E Test Global Teardown...');
@@ -327,9 +327,9 @@ async function main() {
 }
 
 // Export for Playwright
-module.exports = globalTeardown;
+export default globalTeardown;
 
 // Run directly if called from command line
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }

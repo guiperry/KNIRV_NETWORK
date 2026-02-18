@@ -16,6 +16,7 @@ import CDEPanel from './cde-panel'; // Modular CDE Panel
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
+import { FinancialComplianceDashboard } from '@/components/dashboard/financial-compliance-dashboard';
 import type { DVENode } from '@/types/api';
 import {
   Shield,
@@ -38,7 +39,8 @@ import {
   Download,
   Share2,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Scale
 } from 'lucide-react';
 
 interface DashboardWrapperProps {
@@ -136,10 +138,15 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 h-12">
+            <TabsList className="grid w-full grid-cols-5 h-12">
               <TabsTrigger value="overview" className="flex items-center space-x-2">
                 <BarChart3 className="w-4 h-4" />
                 <span>Overview</span>
+              </TabsTrigger>
+
+              <TabsTrigger value="compliance" className="flex items-center space-x-2">
+                <Scale className="w-4 h-4" />
+                <span>Compliance</span>
               </TabsTrigger>
 
               <SystemAccess operation="read" showError={false}>
@@ -165,6 +172,18 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
             <div className="py-6">
               <TabsContent value="overview">
                 {children}
+              </TabsContent>
+              
+              <TabsContent value="compliance">
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold">Financial Compliance Dashboard</h2>
+                    <p className="text-muted-foreground">
+                      Deterministic Validation of Financial AI Agents - Evidence Packs, Fidelity Scoring, and Regulatory Compliance
+                    </p>
+                  </div>
+                  <FinancialComplianceDashboard />
+                </div>
               </TabsContent>
               
 

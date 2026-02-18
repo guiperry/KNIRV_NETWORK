@@ -144,6 +144,9 @@ export class StandardWebSocket {
   public onMessage?: (message: WebSocketMessage) => void;
 
   constructor() {
+    if (typeof window === 'undefined') {
+      return;
+    }
     this.connect();
   }
 
