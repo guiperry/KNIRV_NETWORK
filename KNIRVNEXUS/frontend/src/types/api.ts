@@ -824,24 +824,37 @@ export interface Certificate {
 // Phase 1: Validation types
 export interface FinTechValidationRequest {
   agent_id: string;
-  agent_type: string;
-  input_data: Record<string, any>;
-  expected_output?: Record<string, any>;
-  compliance_requirements?: string[];
-  scenario_id?: string;
+  agent_name?: string;
+  agent_code?: string;
+  validation_type?: string;
+  parameters?: Record<string, any>;
+  financial_actions?: any[];
+  simple_financial_actions?: SimpleFinancialAction[];
+  categories?: string[];
+  test_cases?: any[];
+  requested_by?: string;
+}
+
+export interface SimpleFinancialAction {
+  action_type: string;
+  instrument: string;
+  quantity: number;
+  price: number;
+  timestamp: string;
+  account_id: string;
 }
 
 export interface FinTechValidationResult {
-  id: string;
-  agent_id: string;
-  agent_type: string;
-  status: "success" | "failure" | "error";
-  score: number;
-  compliance_results: ComplianceResult[];
-  regulatory_violations: RegulatoryViolation[];
-  evidence_pack_id?: string;
-  validation_timestamp: string;
-  execution_time_ms: number;
+  validation_id: string;
+  evidence_pack_id: string;
+  status: string;
+  overall_score: number;
+  is_compliant: boolean;
+  validation_result?: any;
+  compliance_result?: any;
+  evidence_pack_url?: string;
+  completed_at?: string;
+  duration?: number;
 }
 
 export interface ComplianceResult {

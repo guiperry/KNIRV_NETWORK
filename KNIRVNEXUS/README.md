@@ -14,7 +14,7 @@ NEXUS transforms all intelligence artifacts into human-readable, machine-executa
 
 ### 2. Living Memory Projection (Apache Arrow Flight)
 While data is persisted as Markdown, it is projected in real-time into the **Memory Fabric** using **Apache Arrow**.
-*   **Sub-millisecond Streaming**: Context records are प्रोजेक्टed into Arrow buffers for immediate delivery to agents.
+*   **Sub-millisecond Streaming**: Context records are saved into Arrow buffers for immediate delivery to agents.
 *   **Binary Portability**: Cross-language memory access for agents written in Python, Rust, or Go.
 *   **Tick Data Streaming**: Phase 6 implements high-performance financial tick data streaming with Arrow IPC format.
 

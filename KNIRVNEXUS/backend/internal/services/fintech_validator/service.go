@@ -209,15 +209,26 @@ func NewFinTechValidatorService(
 
 // ValidationRequest represents a request to validate a financial AI agent
 type ValidationRequest struct {
-	AgentID          string                        `json:"agent_id"`
-	AgentName        string                        `json:"agent_name,omitempty"`
-	AgentCode        string                        `json:"agent_code,omitempty"`
-	ValidationType   string                        `json:"validation_type"` // compliance, audit, trade, etc.
-	Categories       []ontology.RegulationCategory `json:"categories,omitempty"`
-	TestCases        []fintech.TestCaseResult      `json:"test_cases,omitempty"`
-	FinancialActions []*ontology.FinancialAction   `json:"financial_actions,omitempty"`
-	Parameters       map[string]interface{}        `json:"parameters,omitempty"`
-	RequestedBy      string                        `json:"requested_by,omitempty"`
+	AgentID                string                        `json:"agent_id"`
+	AgentName              string                        `json:"agent_name,omitempty"`
+	AgentCode              string                        `json:"agent_code,omitempty"`
+	ValidationType         string                        `json:"validation_type,omitempty"` // compliance, audit, trade, etc.
+	Categories             []ontology.RegulationCategory `json:"categories,omitempty"`
+	TestCases              []fintech.TestCaseResult      `json:"test_cases,omitempty"`
+	FinancialActions       []*ontology.FinancialAction   `json:"financial_actions,omitempty"`
+	SimpleFinancialActions []SimpleFinancialAction       `json:"simple_financial_actions,omitempty"`
+	Parameters             map[string]interface{}        `json:"parameters,omitempty"`
+	RequestedBy            string                        `json:"requested_by,omitempty"`
+}
+
+// SimpleFinancialAction is a simplified financial action format for easier frontend integration
+type SimpleFinancialAction struct {
+	ActionType string  `json:"action_type"` // BUY, SELL, TRANSFER, etc.
+	Instrument string  `json:"instrument"`  // AAPL, BTC, etc.
+	Quantity   float64 `json:"quantity"`
+	Price      float64 `json:"price"`
+	Timestamp  string  `json:"timestamp"`
+	AccountID  string  `json:"account_id"`
 }
 
 // ValidationResponse represents the response from validation
@@ -237,6 +248,37 @@ type ValidationResponse struct {
 // Validate performs comprehensive FinTech validation
 func (s *FinTechValidatorService) Validate(ctx context.Context, req *ValidationRequest) (*ValidationResponse, error) {
 	startTime := time.Now()
+
+	// Convert simple financial actions to full format if provided
+	if len(req.SimpleFinancialActions) > 0 {
+		for _, simple := range req.SimpleFinancialActions {
+			timestamp, _ := time.Parse(time.RFC3339, simple.Timestamp)
+			if timestamp.IsZero() {
+				timestamp = time.Now()
+			}
+			action := &ontology.FinancialAction{
+				ID:        fmt.Sprintf("action-%d", time.Now().UnixNano()),
+				AgentID:   req.AgentID,
+				Type:      ontology.ActionType(simple.ActionType),
+				Timestamp: timestamp,
+				Intent:    fmt.Sprintf("%s %s", simple.ActionType, simple.Instrument),
+				Parameters: map[string]interface{}{
+					"quantity": simple.Quantity,
+					"price":    simple.Price,
+				},
+				Context: map[string]interface{}{
+					"account_id": simple.AccountID,
+				},
+				Instrument: &ontology.FinancialInstrument{
+					Symbol:   simple.Instrument,
+					Name:     simple.Instrument,
+					Type:     "EQUITY",
+					Exchange: "NASDAQ",
+				},
+			}
+			req.FinancialActions = append(req.FinancialActions, action)
+		}
+	}
 
 	// Create validation task through existing ValidationCore
 	validationTask, err := s.validationCore.CreateValidationTask(&validation.CreateTaskRequest{

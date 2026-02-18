@@ -146,18 +146,29 @@ export function FinancialComplianceDashboard({ className }: FinancialComplianceD
   const runDemoValidation = async () => {
     const result = await validate({
       agent_id: 'demo-agent-001',
-      agent_type: 'trading_bot',
-      input_data: {
+      agent_name: 'Demo Trading Bot',
+      validation_type: 'trade',
+      parameters: {
         action: 'buy',
         instrument: 'AAPL',
         quantity: 100,
         price: 150.00,
       },
+      simple_financial_actions: [
+        {
+          action_type: 'BUY',
+          instrument: 'AAPL',
+          quantity: 100,
+          price: 150.00,
+          timestamp: new Date().toISOString(),
+          account_id: 'demo-account-001',
+        },
+      ],
     });
     if (result) {
       toast({
         title: 'Validation Complete',
-        description: `Validation score: ${(result.score * 100).toFixed(1)}%`,
+        description: `Validation score: ${(result.overall_score * 100).toFixed(1)}%`,
       });
     }
   };
