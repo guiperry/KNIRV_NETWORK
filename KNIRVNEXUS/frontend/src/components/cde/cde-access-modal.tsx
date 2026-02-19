@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-interface CDEAccessModalProps {
+interface NetworkAccessModalProps {
   isOpen: boolean;
   onClose: () => void;
   nodeId: string;
@@ -17,15 +17,15 @@ interface CDEAccessModalProps {
   onToggleMode?: () => void;
 }
 
-export function CDEAccessModal({ 
-  isOpen, 
-  onClose, 
-  nodeId, 
-  nodeName, 
+export function NetworkAccessModal({
+  isOpen,
+  onClose,
+  nodeId,
+  nodeName,
   onOpenKNIRVEngine,
   isModular,
   onToggleMode
-}: CDEAccessModalProps) {
+}: NetworkAccessModalProps) {
   const [terminalOutput, setTerminalOutput] = useState([
     '$ Welcome to KNIRV CDE Terminal',
     '$ Node: ' + nodeName + ' (' + nodeId + ')',
@@ -208,7 +208,7 @@ export function CDEAccessModal({
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <div>
-              <h2 className="text-2xl font-bold">Cloud Development Environment</h2>
+              <h2 className="text-2xl font-bold">Network Access Panel</h2>
               <p className="text-muted-foreground">
                 {nodeName} ({nodeId})
               </p>
@@ -251,13 +251,13 @@ export function CDEAccessModal({
                   </CardHeader>
                   <CardContent>
                     <div className="bg-black rounded-lg p-4 font-mono text-sm">
-                      <div className="text-green-400 space-y-1 max-h-96 overflow-y-auto">
+                      <div className="text-blue-400 space-y-1 max-h-96 overflow-y-auto">
                         {terminalOutput.map((line, index) => (
                           <div key={index}>{line}</div>
                         ))}
                       </div>
                       <div className="flex items-center mt-2">
-                        <span className="text-green-400">$ </span>
+                        <span className="text-blue-400">$ </span>
                         <input
                           type="text"
                           value={currentCommand}
@@ -267,7 +267,7 @@ export function CDEAccessModal({
                               executeCommand(currentCommand.trim());
                             }
                           }}
-                          className="flex-1 bg-transparent text-green-400 outline-none ml-2"
+                          className="flex-1 bg-transparent text-blue-400 outline-none ml-2"
                           placeholder="Enter command..."
                           autoFocus
                         />
@@ -489,7 +489,7 @@ export function CDEAccessModal({
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="p-4 bg-black rounded-b-lg max-h-80 overflow-y-auto font-mono text-xs text-green-400">
+                  <div className="p-4 bg-black rounded-b-lg max-h-80 overflow-y-auto font-mono text-xs text-blue-400">
                     <div className="space-y-1">
                       <div>[10:30:15] Validation task completed successfully</div>
                       <div>[10:29:42] TEE enclave initialized</div>
@@ -586,7 +586,7 @@ export function CDEAccessModal({
                         <span className="text-cyan-400 font-semibold">8/10</span>
                       </div>
                       <div className="w-full bg-slate-700 rounded-full h-2">
-                        <div className="bg-green-500 h-2 rounded-full" style={{width: '80%'}}></div>
+                        <div className="bg-blue-500 h-2 rounded-full" style={{width: '80%'}}></div>
                       </div>
                     </div>
                   </div>
@@ -655,10 +655,10 @@ export function CDEAccessModal({
                       </>
                     ) : (
                       <>
-                        <div className="bg-green-500/10 border border-green-500/30 rounded p-3">
+                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
                           <div className="flex items-center space-x-2 mb-1">
-                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span className="text-xs font-semibold text-green-400">Complete</span>
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                            <span className="text-xs font-semibold text-blue-400">Complete</span>
                           </div>
                           <div className="text-xs text-slate-400 space-y-0.5">
                             <div>Problem: {validationResults?.problemTitle}</div>
@@ -671,7 +671,7 @@ export function CDEAccessModal({
                             <BarChart3 className="w-2.5 h-2.5" />
                             <span>Logs</span>
                           </h5>
-                          <div className="bg-black rounded p-2 font-mono text-xs text-green-400 space-y-0.5 max-h-32 overflow-y-auto">
+                          <div className="bg-black rounded p-2 font-mono text-xs text-blue-400 space-y-0.5 max-h-32 overflow-y-auto">
                             {validationResults?.logs.map((log: string, idx: number) => (
                               <div key={idx}>{log}</div>
                             ))}

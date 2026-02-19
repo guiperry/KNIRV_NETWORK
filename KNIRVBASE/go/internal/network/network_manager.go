@@ -49,6 +49,14 @@ type DHTNode struct {
 	LastSeen time.Time
 }
 
+// DHTValue represents a value stored in the DHT
+type DHTValue struct {
+	Key       string      `json:"key"`
+	Value     interface{} `json:"value"`
+	TTL       int64       `json:"ttl"`
+	Timestamp int64       `json:"timestamp"`
+}
+
 // NetworkManager is a custom P2P implementation with DHT-like functionality
 type NetworkManager struct {
 	ctx      context.Context
@@ -59,8 +67,9 @@ type NetworkManager struct {
 	mu          sync.RWMutex
 	networks    map[string]*types.NetworkConfig
 	peers       map[string]*types.PeerInfo
-	dht         map[string][]DHTNode // Simple DHT: key -> list of nodes
-	connections map[string]net.Conn  // peerID -> connection
+	dht         map[string][]DHTNode  // Simple DHT: key -> list of nodes holding the value
+	kvStore     map[string][]DHTValue // Simple DHT: key -> values
+	connections map[string]net.Conn   // peerID -> connection
 	stats       map[string]*types.NetworkStats
 	handlers    map[types.MessageType][]MessageHandler
 	initialized bool
@@ -80,10 +89,59 @@ func NewNetworkManager(ctx context.Context) *NetworkManager {
 		networks:    make(map[string]*types.NetworkConfig),
 		peers:       make(map[string]*types.PeerInfo),
 		dht:         make(map[string][]DHTNode),
+		kvStore:     make(map[string][]DHTValue),
 		connections: make(map[string]net.Conn),
 		stats:       make(map[string]*types.NetworkStats),
 		handlers:    make(map[types.MessageType][]MessageHandler),
 	}
+}
+
+// DHT methods for global indexing
+
+func (n *NetworkManager) PutDHT(key string, value interface{}, ttl time.Duration) error {
+	n.mu.Lock()
+	entry := DHTValue{
+		Key:       key,
+		Value:     value,
+		TTL:       int64(ttl.Seconds()),
+		Timestamp: time.Now().Unix(),
+	}
+	n.kvStore[key] = append(n.kvStore[key], entry)
+	n.mu.Unlock()
+
+	// In a real DHT, we would find the closest nodes to the key and store it there.
+	// For this implementation, we broadcast a DHT announcement.
+	return n.BroadcastMessage("", types.ProtocolMessage{
+		Type:      types.MsgDHTPut,
+		SenderID:  n.peerID,
+		Timestamp: time.Now().UnixMilli(),
+		Payload: map[string]interface{}{
+			"key":   key,
+			"value": value,
+			"ttl":   ttl.Seconds(),
+		},
+	})
+}
+
+func (n *NetworkManager) GetDHT(key string) ([]interface{}, error) {
+	n.mu.RLock()
+	entries, ok := n.kvStore[key]
+	n.mu.RUnlock()
+
+	var results []interface{}
+	now := time.Now().Unix()
+
+	if ok {
+		for _, entry := range entries {
+			if entry.TTL == 0 || entry.Timestamp+entry.TTL > now {
+				results = append(results, entry.Value)
+			}
+		}
+	}
+
+	// In a real DHT, if not found locally, we would query other nodes.
+	// For now we just return what we have.
+	return results, nil
 }
 
 func (n *NetworkManager) Initialize() error {
@@ -101,6 +159,27 @@ func (n *NetworkManager) Initialize() error {
 
 	n.listener = listener
 	n.initialized = true
+
+	// Register DHT handlers
+	n.OnMessage(types.MsgDHTPut, func(msg types.ProtocolMessage) {
+		payload, ok := msg.Payload.(map[string]interface{})
+		if !ok {
+			return
+		}
+
+		key, _ := payload["key"].(string)
+		value := payload["value"]
+		ttlFloat, _ := payload["ttl"].(float64)
+
+		n.mu.Lock()
+		n.kvStore[key] = append(n.kvStore[key], DHTValue{
+			Key:       key,
+			Value:     value,
+			TTL:       int64(ttlFloat),
+			Timestamp: time.Now().Unix(),
+		})
+		n.mu.Unlock()
+	})
 
 	// Start accepting connections
 	go n.acceptConnections()

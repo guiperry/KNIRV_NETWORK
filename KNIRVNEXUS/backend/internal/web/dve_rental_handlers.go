@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/container"
 	"backend_server/internal/services/dverental"
@@ -25,11 +26,11 @@ type DVERentalHandlers struct {
 	containerOrchestrator *container.ContainerOrchestrator
 	sessionManager        *session.SessionManager
 	endpointRegistry      *endpoints.EndpointRegistry
-	db                    *buntdb.DB
+	db                    *database.BuntDBManager
 }
 
 // NewDVERentalHandlers creates new DVE rental handlers
-func NewDVERentalHandlers(dveRentalService *dverental.DVERentalService, containerOrchestrator *container.ContainerOrchestrator, sessionManager *session.SessionManager, endpointRegistry *endpoints.EndpointRegistry, db *buntdb.DB) *DVERentalHandlers {
+func NewDVERentalHandlers(dveRentalService *dverental.DVERentalService, containerOrchestrator *container.ContainerOrchestrator, sessionManager *session.SessionManager, endpointRegistry *endpoints.EndpointRegistry, db *database.BuntDBManager) *DVERentalHandlers {
 	return &DVERentalHandlers{
 		dveRentalService:      dveRentalService,
 		containerOrchestrator: containerOrchestrator,
@@ -1601,7 +1602,7 @@ func (h *DVERentalHandlers) logAccessAttempt(entry *AccessLogEntry) {
 		return
 	}
 
-	err := h.db.Update(func(tx *buntdb.Tx) error {
+	err := h.db.Transaction(func(tx *buntdb.Tx) error {
 		data, err := json.Marshal(entry)
 		if err != nil {
 			return err
@@ -1637,7 +1638,7 @@ func (h *DVERentalHandlers) logPerformanceMetrics(metrics *DVEPerformanceMetrics
 		return
 	}
 
-	err := h.db.Update(func(tx *buntdb.Tx) error {
+	err := h.db.Transaction(func(tx *buntdb.Tx) error {
 		data, err := json.Marshal(metrics)
 		if err != nil {
 			return err
@@ -1672,7 +1673,7 @@ func (h *DVERentalHandlers) logError(entry *ErrorLogEntry) {
 		return
 	}
 
-	err := h.db.Update(func(tx *buntdb.Tx) error {
+	err := h.db.Transaction(func(tx *buntdb.Tx) error {
 		data, err := json.Marshal(entry)
 		if err != nil {
 			return err

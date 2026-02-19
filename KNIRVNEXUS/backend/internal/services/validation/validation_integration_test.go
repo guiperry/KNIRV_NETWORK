@@ -33,14 +33,14 @@ func TestSkillNodeValidationEndToEnd(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db, true, nil)
 	require.NoError(t, err)
 
 	// Create mock inference service
 	inferenceService := &mockInferenceService{}
 
 	// Create validation core
-	validationCore, err := validation.NewValidationCore(db.GetDB(), p2pManager, cfg, inferenceService)
+	validationCore, err := validation.NewValidationCore(db, p2pManager, cfg, inferenceService)
 	require.NoError(t, err)
 
 	// Start validation core
@@ -111,14 +111,14 @@ func TestBaseLLMValidationEndToEnd(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db, true, nil)
 	require.NoError(t, err)
 
 	// Create mock inference service
 	inferenceService := &mockInferenceService{}
 
 	// Create validation core
-	validationCore, err := validation.NewValidationCore(db.GetDB(), p2pManager, cfg, inferenceService)
+	validationCore, err := validation.NewValidationCore(db, p2pManager, cfg, inferenceService)
 	require.NoError(t, err)
 
 	// Start validation core
@@ -183,11 +183,11 @@ func TestConcurrentTaskExecution(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db, true, nil)
 	require.NoError(t, err)
 
 	inferenceService := &mockInferenceService{}
-	validationCore, err := validation.NewValidationCore(db.GetDB(), p2pManager, cfg, inferenceService)
+	validationCore, err := validation.NewValidationCore(db, p2pManager, cfg, inferenceService)
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -254,13 +254,13 @@ func TestTimeoutHandling(t *testing.T) {
 		},
 	}
 
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db, true, nil)
 	require.NoError(t, err)
 
 	// Create slow inference service
 	slowInferenceService := &slowInferenceService{delay: 5 * time.Second}
 
-	validationCore, err := validation.NewValidationCore(db.GetDB(), p2pManager, cfg, slowInferenceService)
+	validationCore, err := validation.NewValidationCore(db, p2pManager, cfg, slowInferenceService)
 	require.NoError(t, err)
 
 	ctx := context.Background()

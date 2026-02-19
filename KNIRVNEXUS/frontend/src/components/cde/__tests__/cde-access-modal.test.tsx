@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { CDEAccessModal } from '../cde-access-modal';
+import { NetworkAccessModal } from '../cde-access-modal';
 
 // Mock UI components
 jest.mock('@/components/ui/button', () => ({
@@ -61,7 +61,7 @@ jest.mock('lucide-react', () => ({
   Upload: () => <div data-testid="upload-icon" />,
 }));
 
-describe('CDEAccessModal', () => {
+describe('NetworkAccessModal', () => {
   const mockOnClose = jest.fn();
   const mockOnOpenKNIRVEngine = jest.fn();
 
@@ -78,20 +78,20 @@ describe('CDEAccessModal', () => {
   });
 
   it('should render modal when open', () => {
-    render(<CDEAccessModal {...defaultProps} />);
+    render(<NetworkAccessModal {...defaultProps} />);
 
     expect(screen.getByText(/welcome to knirv cde terminal/i)).toBeInTheDocument();
-    expect(screen.getByText(/cloud development environment/i)).toBeInTheDocument();
+    expect(screen.getByText(/network access panel/i)).toBeInTheDocument();
   });
 
   it('should not render modal when closed', () => {
-    render(<CDEAccessModal {...defaultProps} isOpen={false} />);
+    render(<NetworkAccessModal {...defaultProps} isOpen={false} />);
 
     expect(screen.queryByText(/welcome to knirv cde terminal/i)).not.toBeInTheDocument();
   });
 
   it('should display node information', () => {
-    render(<CDEAccessModal {...defaultProps} />);
+    render(<NetworkAccessModal {...defaultProps} />);
 
     const nodeElements = screen.getAllByText(/test node \(node-123\)/i);
     expect(nodeElements.length).toBeGreaterThan(0);
@@ -99,24 +99,24 @@ describe('CDEAccessModal', () => {
   });
 
   it('should display terminal output', () => {
-    render(<CDEAccessModal {...defaultProps} />);
+    render(<NetworkAccessModal {...defaultProps} />);
 
     expect(screen.getByText(/welcome to knirv cde terminal/i)).toBeInTheDocument();
     expect(screen.getByText(/type "help" for available commands/i)).toBeInTheDocument();
   });
 
   it('should display workflow templates', () => {
-    render(<CDEAccessModal {...defaultProps} />);
+    render(<NetworkAccessModal {...defaultProps} />);
 
     expect(screen.getByText('Validation Setup')).toBeInTheDocument();
-    expect(screen.getByText('Model Deployment')).toBeInTheDocument();
+    expect(screen.getByText('Fabric Deployment')).toBeInTheDocument();
     expect(screen.getByText('Data Processing')).toBeInTheDocument();
   });
 
   it('should handle close button click', async () => {
     const user = userEvent.setup();
 
-    render(<CDEAccessModal {...defaultProps} />);
+    render(<NetworkAccessModal {...defaultProps} />);
 
     // The close button is the X icon button
     const closeButton = screen.getByTestId('x-icon').closest('button');
@@ -128,7 +128,7 @@ describe('CDEAccessModal', () => {
   it('should handle KNIRV Engine button click', async () => {
     const user = userEvent.setup();
 
-    render(<CDEAccessModal {...defaultProps} />);
+    render(<NetworkAccessModal {...defaultProps} />);
 
     // Find the KNIRVENGINE button (second Open button)
     const openButtons = screen.getAllByText('Open');
@@ -139,14 +139,14 @@ describe('CDEAccessModal', () => {
   });
 
   it('should handle escape key press', () => {
-    render(<CDEAccessModal {...defaultProps} />);
+    render(<NetworkAccessModal {...defaultProps} />);
 
     // The component doesn't currently handle escape key, so let's test that it renders properly
-    expect(screen.getByText(/cloud development environment/i)).toBeInTheDocument();
+    expect(screen.getByText(/network access panel/i)).toBeInTheDocument();
   });
 
   it('should display tabs for different views', () => {
-    render(<CDEAccessModal {...defaultProps} />);
+    render(<NetworkAccessModal {...defaultProps} />);
 
     expect(screen.getByTestId('tabs')).toBeInTheDocument();
     expect(screen.getByText('Terminal')).toBeInTheDocument();
@@ -155,7 +155,7 @@ describe('CDEAccessModal', () => {
   });
 
   it('should show workflow execution buttons', () => {
-    render(<CDEAccessModal {...defaultProps} />);
+    render(<NetworkAccessModal {...defaultProps} />);
 
     const executeButtons = screen.getAllByText('Execute Workflow');
     expect(executeButtons.length).toBeGreaterThan(0);

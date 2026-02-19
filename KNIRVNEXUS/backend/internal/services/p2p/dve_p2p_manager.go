@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"context"
 	"crypto/rand"
@@ -20,59 +21,14 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/multiformats/go-multihash"
-	"github.com/tidwall/buntdb"
 )
-
-const (
-	// DHT configuration
-	NetworkControlTopic    = "network-control"
-	DVEAnnouncementTopic   = "dve-announcements"
-	ValidationRequestTopic = "validation-requests"
-
-	// Network pause timeout
-	NetworkPauseTimeout = 30 * time.Minute
-
-	// Peer reputation constants
-	MaxReputationScore     = 100.0
-	MinReputationScore     = 0.0
-	DefaultReputationScore = 50.0
-	ReputationDecayRate    = 0.95 // Daily decay factor
-	BadBehaviorPenalty     = 10.0
-	GoodBehaviorReward     = 1.0
-
-	// Message encryption
-	MessageEncryptionProtocol = "/knirv/p2p-encryption/1.0.0"
-)
-
-// Bootstrap nodes for KNIRV network
-var DefaultBootstrapPeers = []string{
-	"/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-	"/dnsaddr/bootstrap.libp2p.io/p2p/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-	"/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
-	"/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
-	"/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",
-}
-
-// STUN servers for NAT traversal
-var DefaultSTUNServers = []string{
-	"stun.l.google.com:19302",
-	"stun1.l.google.com:19302",
-	"stun2.l.google.com:19302",
-	"stun3.l.google.com:19302",
-	"stun4.l.google.com:19302",
-}
-
-// TURN servers for NAT traversal (fallback)
-var DefaultTURNServers = []string{
-	"turn:turn.example.com:3478", // Placeholder - should be configured
-}
 
 // DVEP2PManager implements P2P networking for DVE nodes aligned with KNIRV-ORACLE
 type DVEP2PManager struct {
 	host   host.Host
 	dht    *dht.IpfsDHT
 	pubsub *pubsub.PubSub
-	db     *buntdb.DB
+	db     *database.BuntDBManager
 	ctx    context.Context
 	cancel context.CancelFunc
 
@@ -170,9 +126,33 @@ const (
 	DVEValidationTopic      = "dve-validation"
 	DVEResultTopic          = "dve-results"
 	DVENodeTopic            = "dve-nodes"
+	NetworkControlTopic     = "network-control"
+	DVEAnnouncementTopic    = "dve-announcements"
 	DVEValidationProtocolID = "/knirv/dve-validation/1.0.0"
 	DVEResultProtocolID     = "/knirv/dve-results/1.0.0"
 	DVENodeSyncProtocolID   = "/knirv/dve-sync/1.0.0"
+)
+
+// Network Constants
+const (
+	NetworkPauseTimeout = 30 * time.Minute
+)
+
+// Bootstrap and NAT Traversal Configuration
+var (
+	DefaultBootstrapPeers = []string{} // Empty by default - should be configured
+	DefaultSTUNServers    = []string{"stun:stun.l.google.com:19302"}
+	DefaultTURNServers    = []string{} // Empty by default - should be configured
+)
+
+// Reputation Constants
+const (
+	DefaultReputationScore = 100.0
+	MinReputationScore     = 0.0
+	MaxReputationScore     = 1000.0
+	ReputationDecayRate    = 0.95
+	GoodBehaviorReward     = 10.0
+	BadBehaviorPenalty     = 20.0
 )
 
 // DVE Message Types
@@ -186,7 +166,7 @@ const (
 )
 
 // NewDVEP2PManager creates a new DVE P2P manager with integrated security
-func NewDVEP2PManager(chainID, nodeRole string, db *buntdb.DB, dhtEnabled bool, securityService *P2PService) (*DVEP2PManager, error) {
+func NewDVEP2PManager(chainID, nodeRole string, db *database.BuntDBManager, dhtEnabled bool, securityService *P2PService) (*DVEP2PManager, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Create libp2p host (aligned with KNIRV-ORACLE configuration)

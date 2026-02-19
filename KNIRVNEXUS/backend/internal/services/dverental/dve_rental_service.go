@@ -1,6 +1,7 @@
 package dverental
 
 import (
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/blockchain"
 	"backend_server/internal/services/cde"
@@ -27,7 +28,7 @@ type BlockchainClientInterface interface {
 
 // DVERentalService manages DVE rental operations
 type DVERentalService struct {
-	db               *buntdb.DB
+	db               *database.BuntDBManager
 	mu               sync.RWMutex
 	running          bool
 	blockchainClient BlockchainClientInterface
@@ -48,7 +49,7 @@ type DVERentalService struct {
 }
 
 // NewDVERentalService creates a new DVE rental service
-func NewDVERentalService(db *buntdb.DB) (*DVERentalService, error) {
+func NewDVERentalService(db *database.BuntDBManager) (*DVERentalService, error) {
 	log.Printf("[DVE Rental] Creating new DVE rental service")
 	service := &DVERentalService{
 		db:              db,
@@ -318,7 +319,7 @@ func (drs *DVERentalService) GetAllUserRentals(userID string) ([]*objects.DVERen
 	var userRentals []*objects.DVERental
 
 	// Query database for all rentals belonging to this user
-	err := drs.db.View(func(tx *buntdb.Tx) error {
+	err := drs.db.ViewTransaction(func(tx *buntdb.Tx) error {
 		return tx.Ascend("", func(key, value string) bool {
 			if len(key) > 8 && key[:8] == "rental:" {
 				var rental objects.DVERental
@@ -371,7 +372,7 @@ func (drs *DVERentalService) GetRentalByID(rentalID string) (*objects.DVERental,
 
 	// If not in active rentals, check database
 	var rental objects.DVERental
-	err := drs.db.View(func(tx *buntdb.Tx) error {
+	err := drs.db.ViewTransaction(func(tx *buntdb.Tx) error {
 		val, err := tx.Get("rental:" + rentalID)
 		if err != nil {
 			return err

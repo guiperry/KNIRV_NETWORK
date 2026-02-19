@@ -22,22 +22,83 @@ func newMockStorage() *mockStorage {
 	}
 }
 
-func (m *mockStorage) Put(key, value []byte) error {
-	m.data[string(key)] = value
+func (m *mockStorage) Put(ctx context.Context, key string, value []byte) error {
+	m.data[key] = value
 	return nil
 }
 
-func (m *mockStorage) Get(key []byte) ([]byte, error) {
-	val, ok := m.data[string(key)]
+func (m *mockStorage) Get(ctx context.Context, key string) ([]byte, error) {
+	val, ok := m.data[key]
 	if !ok {
 		return nil, assert.AnError
 	}
 	return val, nil
 }
 
-func (m *mockStorage) Has(key []byte) (bool, error) {
-	_, ok := m.data[string(key)]
+func (m *mockStorage) DeleteKey(ctx context.Context, key string) error {
+	delete(m.data, key)
+	return nil
+}
+
+func (m *mockStorage) StoreObject(ctx context.Context, key string, obj interface{}) error {
+	return nil
+}
+
+func (m *mockStorage) GetObject(ctx context.Context, key string, dest interface{}) error {
+	return nil
+}
+
+func (m *mockStorage) ProjectToMarkdown(ctx context.Context, key string, targetPath string) error {
+	return nil
+}
+
+func (m *mockStorage) Insert(ctx context.Context, collection string, doc map[string]interface{}) error {
+	return nil
+}
+
+func (m *mockStorage) Update(ctx context.Context, collection, id string, update map[string]interface{}) error {
+	return nil
+}
+
+func (m *mockStorage) Delete(ctx context.Context, collection, id string) error {
+	return nil
+}
+
+func (m *mockStorage) Find(ctx context.Context, collection, id string) (map[string]interface{}, error) {
+	return nil, nil
+}
+
+func (m *mockStorage) FindAll(ctx context.Context, collection string) ([]map[string]interface{}, error) {
+	return nil, nil
+}
+
+func (m *mockStorage) CreateIndex(ctx context.Context, collection, name string, indexType storage.IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error {
+	return nil
+}
+
+func (m *mockStorage) DropIndex(ctx context.Context, collection, name string) error {
+	return nil
+}
+
+func (m *mockStorage) GetIndex(ctx context.Context, collection, name string) *storage.Index {
+	return nil
+}
+
+func (m *mockStorage) GetIndexesForCollection(ctx context.Context, collection string) []*storage.Index {
+	return nil
+}
+
+func (m *mockStorage) QueryIndex(ctx context.Context, collection, indexName string, query map[string]interface{}) ([]string, error) {
+	return nil, nil
+}
+
+func (m *mockStorage) Has(ctx context.Context, key string) (bool, error) {
+	_, ok := m.data[key]
 	return ok, nil
+}
+
+func (m *mockStorage) Close() error {
+	return nil
 }
 
 // TestTokenize tests the tokenization function
@@ -281,7 +342,7 @@ func TestTFIDFEmbedder_Fit(t *testing.T) {
 	assert.True(t, embedder.fitted)
 
 	// Verify vocabulary was saved to storage
-	has, err := stor.Has([]byte("embedding:vocabulary"))
+	has, err := stor.Has(ctx, "embedding:vocabulary")
 	require.NoError(t, err)
 	assert.True(t, has)
 }

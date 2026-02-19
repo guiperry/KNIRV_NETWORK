@@ -4,15 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/validation"
-
-	"github.com/tidwall/buntdb"
 )
 
 func TestNewCognitiveEngine(t *testing.T) {
 	// Create a temporary database for testing
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -272,7 +271,7 @@ func TestFailurePattern(t *testing.T) {
 
 func TestExponentialMovingAverage(t *testing.T) {
 	// Create a mock engine for testing
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	engine := NewCognitiveEngine(db, nil, nil, nil)
@@ -292,7 +291,7 @@ func TestExponentialMovingAverage(t *testing.T) {
 }
 
 func TestCalculateReliabilityScore(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	engine := NewCognitiveEngine(db, nil, nil, nil)
@@ -319,7 +318,7 @@ func TestCalculateReliabilityScore(t *testing.T) {
 }
 
 func TestGenerateFailureKey(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	engine := NewCognitiveEngine(db, nil, nil, nil)
@@ -341,7 +340,7 @@ func TestGenerateFailureKey(t *testing.T) {
 }
 
 func TestCreateFailurePattern(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	engine := NewCognitiveEngine(db, nil, nil, nil)
@@ -371,7 +370,7 @@ func TestCreateFailurePattern(t *testing.T) {
 }
 
 func TestSuggestActionForPattern(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	engine := NewCognitiveEngine(db, nil, nil, nil)
@@ -432,7 +431,7 @@ type mockModelManagerClient struct{}
 // Use strings.Contains for testing
 
 func TestCognitiveEngineStartStop(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -471,7 +470,7 @@ func TestProcessValidationResult(t *testing.T) {
 }
 
 func TestGetCognitiveMetrics(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -495,7 +494,7 @@ func TestGetCognitiveMetrics(t *testing.T) {
 }
 
 func TestGetLearningState(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -522,7 +521,7 @@ func TestGetLearningState(t *testing.T) {
 }
 
 func TestGetAdaptationHistory(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -548,7 +547,7 @@ func TestGetAdaptationHistory(t *testing.T) {
 }
 
 func TestLearningLoop(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -582,7 +581,7 @@ func TestPerformLearningCycle(t *testing.T) {
 }
 
 func TestMetricsCollectionLoop(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -616,7 +615,7 @@ func TestCollectMetrics(t *testing.T) {
 }
 
 func TestPatternAnalysisLoop(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -645,7 +644,7 @@ func TestPatternAnalysisLoop(t *testing.T) {
 }
 
 func TestAnalyzePatterns(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -665,7 +664,7 @@ func TestAnalyzePatterns(t *testing.T) {
 }
 
 func TestUpdateTaskMetrics(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -717,7 +716,7 @@ func TestUpdateTaskMetrics(t *testing.T) {
 }
 
 func TestUpdateNodeMetrics(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -765,7 +764,7 @@ func TestUpdateOverallMetrics(t *testing.T) {
 }
 
 func TestAnalyzeFailurePatterns(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -804,7 +803,7 @@ func TestAnalyzeFailurePatterns(t *testing.T) {
 }
 
 func TestEvaluateAdaptations(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -823,7 +822,7 @@ func TestEvaluateAdaptations(t *testing.T) {
 }
 
 func TestPerformPeriodicAdaptations(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -847,7 +846,7 @@ func TestUpdateLearningProgress(t *testing.T) {
 }
 
 func TestShouldSaveState(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -874,7 +873,7 @@ func TestShouldSaveState(t *testing.T) {
 }
 
 func TestInitializeAdaptationRules(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -906,7 +905,7 @@ func TestInitializeAdaptationRules(t *testing.T) {
 }
 
 func TestLoadLearningState(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -925,7 +924,7 @@ func TestLoadLearningState(t *testing.T) {
 }
 
 func TestSaveLearningState(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -944,7 +943,7 @@ func TestSaveLearningState(t *testing.T) {
 }
 
 func TestCalculateAdaptationScore(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -991,7 +990,7 @@ func TestCalculateResourceUtilization(t *testing.T) {
 }
 
 func TestExtractFailurePattern(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -1039,7 +1038,7 @@ func TestShouldApplyRule(t *testing.T) {
 }
 
 func TestApplyAdaptationRule(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -1076,7 +1075,7 @@ func TestApplyAdaptationRule(t *testing.T) {
 }
 
 func TestAdaptTaskPriorities(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -1099,7 +1098,7 @@ func TestAdaptTaskPriorities(t *testing.T) {
 }
 
 func TestAdaptResourceAllocation(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -1122,7 +1121,7 @@ func TestAdaptResourceAllocation(t *testing.T) {
 }
 
 func TestAdaptLoadDistribution(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -1141,7 +1140,7 @@ func TestAdaptLoadDistribution(t *testing.T) {
 }
 
 func TestPerformLoadBalancingAdaptation(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -1160,7 +1159,7 @@ func TestPerformLoadBalancingAdaptation(t *testing.T) {
 }
 
 func TestPerformResourceOptimizationAdaptation(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -1179,7 +1178,7 @@ func TestPerformResourceOptimizationAdaptation(t *testing.T) {
 }
 
 func TestGetLastAdaptationTime(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -1212,7 +1211,7 @@ func TestGetLastAdaptationTime(t *testing.T) {
 }
 
 func TestCalculateAdaptationSuccessRate(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}

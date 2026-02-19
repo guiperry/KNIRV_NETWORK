@@ -74,6 +74,7 @@ func main() {
 
 	// Store memories in file storage
 	fmt.Println("\nStoring memories with new categories:")
+	ctx := context.Background()
 	for _, memory := range memories {
 		doc := map[string]interface{}{
 			"id":        memory.ID.String(),
@@ -84,7 +85,7 @@ func main() {
 			"payload":   memory.Data,
 		}
 
-		err := fileStorage.Insert("memories", doc)
+		err := fileStorage.Insert(ctx, "memories", doc)
 		if err != nil {
 			log.Printf("Error storing memory %s: %v", memory.ID, err)
 			continue
@@ -96,7 +97,6 @@ func main() {
 	fmt.Println("\nIndexing memories by category:")
 	categoryIndex := indexing.NewCategoryIndex()
 
-	ctx := context.Background()
 	for _, memory := range memories {
 		err := categoryIndex.Add(ctx, memory)
 		if err != nil {
@@ -125,7 +125,7 @@ func main() {
 
 	// Example: Retrieving stored memories
 	fmt.Println("\nRetrieving stored memories:")
-	allDocs, err := fileStorage.FindAll("memories")
+	allDocs, err := fileStorage.FindAll(ctx, "memories")
 	if err != nil {
 		log.Printf("Error retrieving memories: %v", err)
 		return

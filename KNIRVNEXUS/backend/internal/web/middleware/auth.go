@@ -163,25 +163,92 @@ func (am *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 
 		tokenString := parts[1]
 
-		// Validate token
+		// 1. Try validating as JWT
 		claims, err := am.ValidateToken(tokenString)
-		if err != nil {
-			writeError(w, http.StatusUnauthorized, "Invalid token")
+		if err == nil {
+			// Valid JWT
+			authCtx := &AuthContext{
+				UserID:   claims.UserID,
+				Username: claims.Username,
+				Role:     claims.Role,
+				Token:    tokenString,
+			}
+			ctx := context.WithValue(r.Context(), AuthContextKey, authCtx)
+			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 
-		// Create auth context
-		authCtx := &AuthContext{
-			UserID:   claims.UserID,
-			Username: claims.Username,
-			Role:     claims.Role,
-			Token:    tokenString,
+		// 2. Try validating as Session Token (User session or DVE Access Token)
+		authCtx, err := am.validateSessionToken(tokenString)
+		if err == nil {
+			// Valid session token
+			ctx := context.WithValue(r.Context(), AuthContextKey, authCtx)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
 		}
 
-		// Add auth context to request context
-		ctx := context.WithValue(r.Context(), AuthContextKey, authCtx)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		writeError(w, http.StatusUnauthorized, "Invalid token")
 	})
+}
+
+// validateSessionToken checks for a session token in the database
+func (am *AuthMiddleware) validateSessionToken(token string) (*AuthContext, error) {
+	var authCtx *AuthContext
+
+	err := am.db.ViewTransaction(func(tx *buntdb.Tx) error {
+		// Check user sessions
+		found := false
+		tx.AscendKeys("sessions:*", func(key, value string) bool {
+			var s struct {
+				UserID   string    `json:"user_id"`
+				Token    string    `json:"token"`
+				IsActive bool      `json:"is_active"`
+				ExpiresAt time.Time `json:"expires_at"`
+			}
+			if err := json.Unmarshal([]byte(value), &s); err == nil && s.Token == token && s.IsActive && time.Now().Before(s.ExpiresAt) {
+				authCtx = &AuthContext{
+					UserID: s.UserID,
+					Token:  token,
+					Role:   "user", // Default for session
+				}
+				found = true
+				return false
+			}
+			return true
+		})
+
+		if found {
+			return nil
+		}
+
+		// Check DVE rentals (access tokens)
+		tx.AscendKeys("rental:*", func(key, value string) bool {
+			var r struct {
+				UserID      string    `json:"user_id"`
+				AccessToken string    `json:"access_token"`
+				Status      string    `json:"status"`
+				EndTime     time.Time `json:"end_time"`
+			}
+			if err := json.Unmarshal([]byte(value), &r); err == nil && r.AccessToken == token && r.Status == "active" && time.Now().Before(r.EndTime) {
+				authCtx = &AuthContext{
+					UserID: r.UserID,
+					Token:  token,
+					Role:   "validator", // DVE tokens act as validator role
+				}
+				found = true
+				return false
+			}
+			return true
+		})
+
+		if found {
+			return nil
+		}
+
+		return fmt.Errorf("session token not found")
+	})
+
+	return authCtx, err
 }
 
 // RequireRole middleware that requires a specific role
@@ -215,17 +282,18 @@ func (am *AuthMiddleware) OptionalAuth(next http.Handler) http.Handler {
 			if len(parts) == 2 && parts[0] == "Bearer" {
 				tokenString := parts[1]
 
-				// Validate token
+				// Try validating as JWT
 				if claims, err := am.ValidateToken(tokenString); err == nil {
-					// Create auth context
 					authCtx := &AuthContext{
 						UserID:   claims.UserID,
 						Username: claims.Username,
 						Role:     claims.Role,
 						Token:    tokenString,
 					}
-
-					// Add auth context to request context
+					ctx := context.WithValue(r.Context(), AuthContextKey, authCtx)
+					r = r.WithContext(ctx)
+				} else if authCtx, err := am.validateSessionToken(tokenString); err == nil {
+					// Try validating as Session Token
 					ctx := context.WithValue(r.Context(), AuthContextKey, authCtx)
 					r = r.WithContext(ctx)
 				}

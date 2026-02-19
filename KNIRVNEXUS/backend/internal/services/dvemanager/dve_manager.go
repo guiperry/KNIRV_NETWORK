@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
+	
 	"sync"
 	"time"
 
 	"backend_server/internal/config"
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/p2p"
 
@@ -19,7 +20,7 @@ import (
 
 // DVEManager manages DVE nodes and their operations
 type DVEManager struct {
-	db               *buntdb.DB
+	db               *database.BuntDBManager
 	p2pManager       *p2p.DVEP2PManager
 	config           *config.Config
 	nodeTracker      *NodeTracker
@@ -43,7 +44,7 @@ type LoadBalancer struct {
 }
 
 // NewDVEManager creates a new DVE Manager instance
-func NewDVEManager(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Config) (*DVEManager, error) {
+func NewDVEManager(db *database.BuntDBManager, p2pManager *p2p.DVEP2PManager, cfg *config.Config) (*DVEManager, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Initialize instance registry for remote DVE discovery
@@ -188,27 +189,20 @@ func (dm *DVEManager) GetNodes(filter *NodeFilter) ([]*objects.DVENode, error) {
 
 	var nodes []*objects.DVENode
 
-	err := dm.db.View(func(tx *buntdb.Tx) error {
-		return tx.Ascend("", func(key, value string) bool {
-			// Only process DVE node keys
-			if !strings.HasPrefix(key, "dve:nodes:") {
-				return true
-			}
-
-			var node objects.DVENode
-			if err := json.Unmarshal([]byte(value), &node); err != nil {
-				log.Printf("Error unmarshaling node: %v", err)
-				return true
-			}
-
-			// Apply filters
-			if filter != nil && !filter.Matches(&node) {
-				return true
-			}
-
-			nodes = append(nodes, &node)
+	err := dm.db.GetObjectsByPrefix("dve:nodes:", func(key string, value []byte) bool {
+		var node objects.DVENode
+		if err := json.Unmarshal(value, &node); err != nil {
+			log.Printf("Error unmarshaling node: %v", err)
 			return true
-		})
+		}
+
+		// Apply filters
+		if filter != nil && !filter.Matches(&node) {
+			return true
+		}
+
+		nodes = append(nodes, &node)
+		return true
 	})
 
 	return nodes, err
@@ -352,7 +346,7 @@ func (nf *NodeFilter) Matches(node *objects.DVENode) bool {
 
 // storeNode stores a node in the database
 func (dm *DVEManager) storeNode(node *objects.DVENode) error {
-	return dm.db.Update(func(tx *buntdb.Tx) error {
+	return dm.db.Transaction(func(tx *buntdb.Tx) error {
 		nodeJSON, err := json.Marshal(node)
 		if err != nil {
 			return err
@@ -365,7 +359,7 @@ func (dm *DVEManager) storeNode(node *objects.DVENode) error {
 // getNodeFromDB retrieves a node from the database
 func (dm *DVEManager) getNodeFromDB(nodeID string) (*objects.DVENode, error) {
 	var node objects.DVENode
-	err := dm.db.View(func(tx *buntdb.Tx) error {
+	err := dm.db.ViewTransaction(func(tx *buntdb.Tx) error {
 		value, err := tx.Get(fmt.Sprintf("dve:nodes:%s", nodeID))
 		if err != nil {
 			return err
@@ -377,7 +371,7 @@ func (dm *DVEManager) getNodeFromDB(nodeID string) (*objects.DVENode, error) {
 
 // storeTask stores a task in the database
 func (dm *DVEManager) storeTask(task *objects.ValidationTask) error {
-	return dm.db.Update(func(tx *buntdb.Tx) error {
+	return dm.db.Transaction(func(tx *buntdb.Tx) error {
 		taskJSON, err := json.Marshal(task)
 		if err != nil {
 			return err
@@ -389,21 +383,14 @@ func (dm *DVEManager) storeTask(task *objects.ValidationTask) error {
 
 // loadNodesFromDB loads existing nodes from database
 func (dm *DVEManager) loadNodesFromDB() error {
-	return dm.db.View(func(tx *buntdb.Tx) error {
-		return tx.Ascend("", func(key, value string) bool {
-			// Only process DVE node keys
-			if !strings.HasPrefix(key, "dve:nodes:") {
-				return true
-			}
-
-			var node objects.DVENode
-			if err := json.Unmarshal([]byte(value), &node); err != nil {
-				log.Printf("Error loading node from DB: %v", err)
-				return true
-			}
-			dm.nodeTracker.AddNode(&node)
+	return dm.db.GetObjectsByPrefix("dve:nodes:", func(key string, value []byte) bool {
+		var node objects.DVENode
+		if err := json.Unmarshal(value, &node); err != nil {
+			log.Printf("Error loading node from DB: %v", err)
 			return true
-		})
+		}
+		dm.nodeTracker.AddNode(&node)
+		return true
 	})
 }
 
@@ -650,7 +637,7 @@ func (dm *DVEManager) collectAndStoreMetrics() {
 
 // storeMetricsSnapshot stores a metrics snapshot
 func (dm *DVEManager) storeMetricsSnapshot(snapshot *objects.MetricsSnapshot) error {
-	return dm.db.Update(func(tx *buntdb.Tx) error {
+	return dm.db.Transaction(func(tx *buntdb.Tx) error {
 		snapshotJSON, err := json.Marshal(snapshot)
 		if err != nil {
 			return err
@@ -663,37 +650,22 @@ func (dm *DVEManager) storeMetricsSnapshot(snapshot *objects.MetricsSnapshot) er
 
 // Helper calculation methods
 func (dm *DVEManager) getTaskStats() (pending, completed, failed int, err error) {
-	// Try to query validation tasks from database
-	err = dm.db.View(func(tx *buntdb.Tx) error {
-		// Use a more general pattern to find validation tasks
-		return tx.Ascend("", func(key, value string) bool {
-			// Look for keys that contain validation task data
-			if !strings.Contains(key, "validation") && !strings.Contains(key, "task") {
-				return true // Continue iteration
-			}
-
-			var task objects.ValidationTask
-			if err := json.Unmarshal([]byte(value), &task); err != nil {
-				return true // Continue iteration if unmarshal fails
-			}
-
-			switch task.Status {
-			case "pending", "assigned", "running":
-				pending++
-			case "completed":
-				completed++
-			case "failed":
-				failed++
-			}
+	err = dm.db.GetObjectsByPrefix("validation:tasks:", func(key string, value []byte) bool {
+		var task objects.ValidationTask
+		if err := json.Unmarshal(value, &task); err != nil {
 			return true
-		})
-	})
+		}
 
-	// If database query fails (e.g., "not found"), return default values instead of error
-	if err != nil && err.Error() == "not found" {
-		// Return default values when no validation tasks exist yet
-		return 0, 0, 0, nil
-	}
+		switch task.Status {
+		case "pending", "assigned", "running":
+			pending++
+		case "completed":
+			completed++
+		case "failed":
+			failed++
+		}
+		return true
+	})
 
 	return
 }
@@ -833,7 +805,7 @@ func (dm *DVEManager) RemoveNode(nodeID string) error {
 	}
 
 	// Remove from database
-	err = dm.db.Update(func(tx *buntdb.Tx) error {
+	err = dm.db.Transaction(func(tx *buntdb.Tx) error {
 		_, err := tx.Delete(fmt.Sprintf("dve:nodes:%s", nodeID))
 		return err
 	})

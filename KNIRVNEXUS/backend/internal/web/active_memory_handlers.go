@@ -26,6 +26,10 @@ func NewActiveMemoryHandlers(service *active_memory.ActiveMemoryService) *Active
 func (h *ActiveMemoryHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
 	memoryRouter := r.PathPrefix("/api/memory").Subrouter()
 
+	if authMiddleware != nil {
+		memoryRouter.Use(authMiddleware.RequireAuth)
+	}
+
 	// MCP-like tool endpoints
 	memoryRouter.HandleFunc("/mcp/store", h.StoreInteraction).Methods("POST", "OPTIONS")
 	memoryRouter.HandleFunc("/mcp/execute/{id}", h.ExecuteSolution).Methods("POST", "OPTIONS")

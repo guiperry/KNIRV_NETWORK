@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/knirvcorp/knirvbase/go/internal/indexing"
+	typ "github.com/knirvcorp/knirvbase/go/internal/types"
 )
 
 // IndexType represents the type of index
@@ -19,6 +21,7 @@ const (
 	IndexTypeBTree IndexType = "btree"
 	IndexTypeGIN   IndexType = "gin"
 	IndexTypeHNSW  IndexType = "hnsw"
+	IndexTypeTag   IndexType = "tag"
 )
 
 // Index represents a secondary index
@@ -35,6 +38,7 @@ type Index struct {
 	btreeIndex *BTreeIndex
 	ginIndex   *GINIndex
 	hnswIndex  *HNSWIndex
+	tagIndex   *indexing.TagIndex
 
 	mu sync.RWMutex
 }
@@ -120,6 +124,8 @@ func (im *IndexManager) CreateIndex(collection, name string, indexType IndexType
 			index: indexing.NewHNSWIndex(dim, m, efConstruction),
 			vectors: make(map[string][]float32),
 		}
+	case IndexTypeTag:
+		index.tagIndex = indexing.NewTagIndex()
 	}
 
 	im.indexes[key] = index
@@ -190,6 +196,8 @@ func (im *IndexManager) Insert(collection string, doc map[string]interface{}) er
 			im.insertGIN(idx, docID, doc)
 		case IndexTypeHNSW:
 			im.insertHNSW(idx, docID, doc)
+		case IndexTypeTag:
+			im.insertTag(idx, docID, doc)
 		}
 	}
 
@@ -208,6 +216,8 @@ func (im *IndexManager) Delete(collection, docID string) error {
 			im.deleteGIN(idx, docID)
 		case IndexTypeHNSW:
 			im.deleteHNSW(idx, docID)
+		case IndexTypeTag:
+			im.deleteTag(idx, docID)
 		}
 	}
 
@@ -228,6 +238,8 @@ func (im *IndexManager) QueryIndex(collection, indexName string, query map[strin
 		return im.queryGIN(idx, query)
 	case IndexTypeHNSW:
 		return im.queryHNSW(idx, query)
+	case IndexTypeTag:
+		return im.queryTag(idx, query)
 	default:
 		return nil, fmt.Errorf("unsupported index type: %s", idx.Type)
 	}
@@ -254,6 +266,107 @@ func (im *IndexManager) matchesPartial(idx *Index, doc map[string]interface{}) b
 	}
 
 	return false
+}
+
+// Tag index operations
+func (im *IndexManager) insertTag(idx *Index, docID string, doc map[string]interface{}) {
+	if idx.tagIndex == nil {
+		return
+	}
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
+
+	block := &blockWrapper{doc: doc}
+	idx.tagIndex.Add(context.TODO(), block)
+}
+
+func (im *IndexManager) deleteTag(idx *Index, docID string) {
+	if idx.tagIndex == nil {
+		return
+	}
+	idx.mu.Lock()
+	defer idx.mu.Unlock()
+
+	id, _ := uuid.Parse(docID)
+	idx.tagIndex.Remove(context.TODO(), id)
+}
+
+func (im *IndexManager) queryTag(idx *Index, query map[string]interface{}) ([]string, error) {
+	if idx.tagIndex == nil {
+		return nil, fmt.Errorf("tag index not initialized")
+	}
+	idx.mu.RLock()
+	defer idx.mu.RUnlock()
+
+	tags, ok := query["tags"].([]string)
+	if !ok {
+		// Try single tag
+		if tag, ok := query["tag"].(string); ok {
+			tags = []string{tag}
+		} else {
+			return nil, fmt.Errorf("invalid query for tag index")
+		}
+	}
+
+	resultIDs, err := idx.tagIndex.Search(context.TODO(), tags)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]string, len(resultIDs))
+	for i, id := range resultIDs {
+		out[i] = id.String()
+	}
+	return out, nil
+}
+
+// blockWrapper adapts map[string]interface{} to indexing.Block and indexing.Taggable
+type blockWrapper struct {
+	doc map[string]interface{}
+}
+
+func (w *blockWrapper) GetBlockID() uuid.UUID {
+	idStr, _ := w.doc["id"].(string)
+	id, _ := uuid.Parse(idStr)
+	return id
+}
+
+func (w *blockWrapper) GetTimestamp() int64 {
+	ts, _ := w.doc["_timestamp"].(int64)
+	return ts
+}
+
+func (w *blockWrapper) GetCategory() typ.MemoryCategory {
+	cat, _ := w.doc["category"].(string)
+	return typ.MemoryCategory(cat)
+}
+
+func (w *blockWrapper) GetSemanticVector() []float32 {
+	if payload, ok := w.doc["payload"].(map[string]interface{}); ok {
+		if vector, ok := payload["vector"].([]interface{}); ok {
+			vec := make([]float32, len(vector))
+			for i, v := range vector {
+				if f, ok := v.(float64); ok {
+					vec[i] = float32(f)
+				}
+			}
+			return vec
+		}
+	}
+	return nil
+}
+
+func (w *blockWrapper) GetTags() []string {
+	if payload, ok := w.doc["payload"].(map[string]interface{}); ok {
+		if tags, ok := payload["tags"].([]interface{}); ok {
+			out := make([]string, len(tags))
+			for i, t := range tags {
+				out[i], _ = t.(string)
+			}
+			return out
+		}
+	}
+	return nil
 }
 
 // B-Tree index operations

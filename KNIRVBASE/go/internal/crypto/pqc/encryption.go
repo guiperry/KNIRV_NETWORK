@@ -9,7 +9,8 @@ import (
 	"github.com/cloudflare/circl/kem"
 )
 
-// EncryptionManager manages PQC encryption for sensitive data
+// EncryptionManager manages PQC encryption for sensitive data.
+// It simulates Hardware TEE Integration by keeping master keys in memory for the duration of the process.
 type EncryptionManager struct {
 	mu        sync.RWMutex
 	masterKey *PQCKeyPair

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -30,6 +31,9 @@ func TestFileStorage_PQCEncryption(t *testing.T) {
 	storage.encryptionMgr.CacheKey(masterKey.ID, masterKey) // Explicitly cache the key
 	t.Logf("Master key ID: %s", masterKey.ID)
 
+	// Create a context with session token
+	ctx := context.WithValue(context.Background(), "session_token", "test-session")
+
 	// Create a document with sensitive data
 	doc := map[string]interface{}{
 		"id":        "test-cred-1",
@@ -43,13 +47,13 @@ func TestFileStorage_PQCEncryption(t *testing.T) {
 	}
 
 	// Insert document (should be encrypted)
-	err = storage.Insert("credentials", doc)
+	err = storage.Insert(ctx, "credentials", doc)
 	if err != nil {
 		t.Fatalf("Failed to insert document: %v", err)
 	}
 
 	// Read document back (should be decrypted)
-	retrieved, err := storage.Find("credentials", "test-cred-1")
+	retrieved, err := storage.Find(ctx, "credentials", "test-cred-1")
 	if err != nil {
 		t.Fatalf("Failed to find document: %v", err)
 	}
@@ -80,10 +84,12 @@ func TestFileStorage_PQCEncryption(t *testing.T) {
 	}
 
 	// Parse the encrypted document
-	var encryptedDoc map[string]interface{}
-	if err := json.Unmarshal(encryptedData, &encryptedDoc); err != nil {
+	var wrappedDoc map[string]interface{}
+	if err := json.Unmarshal(encryptedData, &wrappedDoc); err != nil {
 		t.Fatalf("Failed to parse encrypted document: %v", err)
 	}
+
+	encryptedDoc := wrappedDoc["data"].(map[string]interface{})
 
 	// Should have encryption metadata
 	if _, ok := encryptedDoc["encrypted"]; !ok {
@@ -121,6 +127,8 @@ func TestFileStorage_EncryptionAtRest_AllCollections(t *testing.T) {
 
 	storage.SetMasterKey(masterKey)
 	storage.encryptionMgr.CacheKey(masterKey.ID, masterKey)
+
+	ctx := context.WithValue(context.Background(), "session_token", "test-session")
 
 	testCases := []struct {
 		collection      string
@@ -218,13 +226,13 @@ func TestFileStorage_EncryptionAtRest_AllCollections(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.collection, func(t *testing.T) {
 			// Insert document (should encrypt sensitive fields)
-			err := storage.Insert(tc.collection, tc.doc)
+			err := storage.Insert(ctx, tc.collection, tc.doc)
 			if err != nil {
 				t.Fatalf("Failed to insert document: %v", err)
 			}
 
 			// Read document back (should decrypt sensitive fields)
-			retrieved, err := storage.Find(tc.collection, tc.doc["id"].(string))
+			retrieved, err := storage.Find(ctx, tc.collection, tc.doc["id"].(string))
 			if err != nil {
 				t.Fatalf("Failed to find document: %v", err)
 			}
@@ -276,10 +284,12 @@ func TestFileStorage_EncryptionAtRest_AllCollections(t *testing.T) {
 			}
 
 			// Parse the encrypted document
-			var encryptedDoc map[string]interface{}
-			if err := json.Unmarshal(encryptedData, &encryptedDoc); err != nil {
+			var wrappedDoc map[string]interface{}
+			if err := json.Unmarshal(encryptedData, &wrappedDoc); err != nil {
 				t.Fatalf("Failed to parse encrypted document: %v", err)
 			}
+
+			encryptedDoc := wrappedDoc["data"].(map[string]interface{})
 
 			// Should have encryption metadata
 			if _, ok := encryptedDoc["encrypted"]; !ok {

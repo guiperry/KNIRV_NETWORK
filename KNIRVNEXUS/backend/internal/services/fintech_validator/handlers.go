@@ -25,6 +25,11 @@ func NewHandlers(service *FinTechValidatorService) *Handlers {
 
 // RegisterRoutes registers all FinTech validation routes
 func (h *Handlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
+	// Skip registration if the service is not enabled
+	if h.service.Config == nil || !h.service.Config.Enabled {
+		return
+	}
+
 	// Create subrouter for FinTech endpoints
 	fintechRouter := r.PathPrefix("/api/fintech").Subrouter()
 

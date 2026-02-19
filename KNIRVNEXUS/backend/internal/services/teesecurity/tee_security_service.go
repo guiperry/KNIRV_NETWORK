@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 
 	"github.com/tidwall/buntdb"
@@ -19,11 +20,11 @@ import (
 type TEESecurityService struct {
 	kaliProfile    *KaliLinuxProfile
 	runtimeManager *ContainerRuntimeManager
-	db             *buntdb.DB
+	db             *database.BuntDBManager
 }
 
 // NewTEESecurityService initializes the TEE security service with Kali environment detection
-func NewTEESecurityService(db *buntdb.DB) (*TEESecurityService, error) {
+func NewTEESecurityService(db *database.BuntDBManager) (*TEESecurityService, error) {
 	// Detect Kali Linux environment and available security tools
 	kaliProfile, err := DetectKaliEnvironment()
 	if err != nil {
@@ -58,7 +59,7 @@ func NewTEESecurityService(db *buntdb.DB) (*TEESecurityService, error) {
 
 // storeKaliProfile saves Kali Linux profile and security tools to database
 func (ts *TEESecurityService) storeKaliProfile() error {
-	return ts.db.Update(func(tx *buntdb.Tx) error {
+	return ts.db.Transaction(func(tx *buntdb.Tx) error {
 		profile := map[string]interface{}{
 			"os":               ts.kaliProfile.OS,
 			"is_kali":          ts.kaliProfile.IsKaliLinux,
@@ -362,7 +363,7 @@ func (ts *TEESecurityService) calculateSecurityScore(checks []SecurityCheck) flo
 
 // storeSecurityScanResults stores security scan results in database
 func (ts *TEESecurityService) storeSecurityScanResults(results *SecurityScanResults) error {
-	return ts.db.Update(func(tx *buntdb.Tx) error {
+	return ts.db.Transaction(func(tx *buntdb.Tx) error {
 		data, err := json.Marshal(results)
 		if err != nil {
 			return err

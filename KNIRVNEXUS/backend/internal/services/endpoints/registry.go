@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 
 	"github.com/tidwall/buntdb"
@@ -16,13 +17,13 @@ import (
 type EndpointRegistry struct {
 	endpoints       map[string]*objects.TEEEndpoint       // endpointID -> endpoint
 	rentalEndpoints map[string][]*objects.TEEEndpoint     // rentalID -> endpoints
-	db              *buntdb.DB
+	db              *database.BuntDBManager
 	mutex           sync.RWMutex
 }
 
 // NewEndpointRegistry creates a new endpoint registry with optional database persistence
-func NewEndpointRegistry(db ...*buntdb.DB) *EndpointRegistry {
-	var database *buntdb.DB
+func NewEndpointRegistry(db ...*database.BuntDBManager) *EndpointRegistry {
+	var database *database.BuntDBManager
 	if len(db) > 0 {
 		database = db[0]
 	}
@@ -369,7 +370,7 @@ func (er *EndpointRegistry) cleanupExpiredEndpoints() {
 
 			// Remove from database
 			if er.db != nil {
-				er.db.Update(func(tx *buntdb.Tx) error {
+				er.db.Transaction(func(tx *buntdb.Tx) error {
 					key := fmt.Sprintf("endpoint:%s", endpointID)
 					_, err := tx.Delete(key)
 					return err
@@ -403,32 +404,30 @@ func (er *EndpointRegistry) loadEndpointsFromDB() error {
 		return fmt.Errorf("database not available")
 	}
 
-	return er.db.View(func(tx *buntdb.Tx) error {
-		return tx.AscendKeys("endpoint:*", func(key, value string) bool {
-			var endpoint objects.TEEEndpoint
-			if err := json.Unmarshal([]byte(value), &endpoint); err != nil {
-				log.Printf("Warning: Failed to unmarshal endpoint %s: %v", key, err)
-				return true // Continue with next
-			}
+	return er.db.GetObjectsByPrefix("endpoint:", func(key string, value []byte) bool {
+		var endpoint objects.TEEEndpoint
+		if err := json.Unmarshal(value, &endpoint); err != nil {
+			log.Printf("Warning: Failed to unmarshal endpoint %s: %v", key, err)
+			return true // Continue with next
+		}
 
-			// Skip expired endpoints
-			if time.Now().After(endpoint.ExpiresAt) {
-				log.Printf("Skipping expired endpoint %s", endpoint.ID)
-				return true
-			}
+		// Skip expired endpoints
+		if time.Now().After(endpoint.ExpiresAt) {
+			log.Printf("Skipping expired endpoint %s", endpoint.ID)
+			return true
+		}
 
-			// Load into memory
-			er.endpoints[endpoint.ID] = &endpoint
+		// Load into memory
+		er.endpoints[endpoint.ID] = &endpoint
 
-			// Add to rental's endpoint list
-			if er.rentalEndpoints[endpoint.RentalID] == nil {
-				er.rentalEndpoints[endpoint.RentalID] = make([]*objects.TEEEndpoint, 0)
-			}
-			er.rentalEndpoints[endpoint.RentalID] = append(er.rentalEndpoints[endpoint.RentalID], &endpoint)
+		// Add to rental's endpoint list
+		if er.rentalEndpoints[endpoint.RentalID] == nil {
+			er.rentalEndpoints[endpoint.RentalID] = make([]*objects.TEEEndpoint, 0)
+		}
+		er.rentalEndpoints[endpoint.RentalID] = append(er.rentalEndpoints[endpoint.RentalID], &endpoint)
 
-			log.Printf("Loaded endpoint %s for rental %s from database", endpoint.ID, endpoint.RentalID)
-			return true // Continue
-		})
+		log.Printf("Loaded endpoint %s for rental %s from database", endpoint.ID, endpoint.RentalID)
+		return true // Continue
 	})
 }
 
@@ -438,7 +437,7 @@ func (er *EndpointRegistry) saveEndpointToDB(endpoint *objects.TEEEndpoint) erro
 		return fmt.Errorf("database not available")
 	}
 
-	return er.db.Update(func(tx *buntdb.Tx) error {
+	return er.db.Transaction(func(tx *buntdb.Tx) error {
 		data, err := json.Marshal(endpoint)
 		if err != nil {
 			return err
@@ -456,7 +455,7 @@ func (er *EndpointRegistry) deleteEndpointFromDB(endpointID string) error {
 		return fmt.Errorf("database not available")
 	}
 
-	return er.db.Update(func(tx *buntdb.Tx) error {
+	return er.db.Transaction(func(tx *buntdb.Tx) error {
 		key := fmt.Sprintf("endpoint:%s", endpointID)
 		_, err := tx.Delete(key)
 		return err

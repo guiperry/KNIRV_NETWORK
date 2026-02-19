@@ -41,7 +41,7 @@ func TestKNIRVQLIndexCommands(t *testing.T) {
 	}
 
 	// Verify index was created
-	indexes := database.GetIndexesForCollection("users")
+	indexes := database.GetIndexesForCollection(context.TODO(), "users")
 	if len(indexes) != 1 {
 		t.Fatalf("Expected 1 index, got %d", len(indexes))
 	}
@@ -85,7 +85,7 @@ func TestKNIRVQLIndexCommands(t *testing.T) {
 	}
 
 	// Verify index was dropped
-	indexes = database.GetIndexesForCollection("users")
+	indexes = database.GetIndexesForCollection(context.TODO(), "users")
 	if len(indexes) != 0 {
 		t.Fatalf("Expected 0 indexes after drop, got %d", len(indexes))
 	}
@@ -110,7 +110,7 @@ func TestKNIRVQLInsertWithIndex(t *testing.T) {
 	collection := database.Collection("credentials", store)
 
 	// Create index
-	err = database.CreateIndex("credentials", "username", stor.IndexTypeBTree, []string{"username"}, true, "", nil)
+	err = database.CreateIndex(context.TODO(), "credentials", "username", stor.IndexTypeBTree, []string{"username"}, true, "", nil)
 	if err != nil {
 		t.Fatalf("Failed to create index: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestKNIRVQLInsertWithIndex(t *testing.T) {
 	}
 
 	// Query index
-	results, err := database.QueryIndex("credentials", "username", map[string]interface{}{
+	results, err := database.QueryIndex(context.TODO(), "credentials", "username", map[string]interface{}{
 		"value": "alice@example.com",
 	})
 	if err != nil {
@@ -158,13 +158,13 @@ func TestQueryOptimizer(t *testing.T) {
 	defer database.Shutdown()
 
 	// Create index
-	err = database.CreateIndex("test", "name", stor.IndexTypeBTree, []string{"name"}, false, "", nil)
+	err = database.CreateIndex(context.TODO(), "test", "name", stor.IndexTypeBTree, []string{"name"}, false, "", nil)
 	if err != nil {
 		t.Fatalf("Failed to create index: %v", err)
 	}
 
 	// Create optimizer
-	indexes := database.GetIndexesForCollection("test")
+	indexes := database.GetIndexesForCollection(context.TODO(), "test")
 	optimizer := NewQueryOptimizer("test", indexes, nil)
 
 	// Create query

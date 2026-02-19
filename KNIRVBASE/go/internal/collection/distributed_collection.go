@@ -30,23 +30,23 @@ func (c *LocalCollection) Insert(ctx context.Context, doc map[string]interface{}
 	// Store a deep-cloned copy to avoid accidental shared references between
 	// callers and the underlying storage implementation.
 	cloned := cloneMap(doc)
-	if err := c.store.Insert(c.name, cloned); err != nil {
+	if err := c.store.Insert(ctx, c.name, cloned); err != nil {
 		return nil, err
 	}
 	// Return another clone so the caller cannot mutate the stored value
 	return cloneMap(cloned), nil
 }
 
-func (c *LocalCollection) Update(id string, update map[string]interface{}) (int, error) {
-	return 1, c.store.Update(c.name, id, update)
+func (c *LocalCollection) Update(ctx context.Context, id string, update map[string]interface{}) (int, error) {
+	return 1, c.store.Update(ctx, c.name, id, update)
 }
 
-func (c *LocalCollection) Delete(id string) (int, error) {
-	return 1, c.store.Delete(c.name, id)
+func (c *LocalCollection) Delete(ctx context.Context, id string) (int, error) {
+	return 1, c.store.Delete(ctx, c.name, id)
 }
 
-func (c *LocalCollection) Find(id string) (map[string]interface{}, error) {
-	return c.store.Find(c.name, id)
+func (c *LocalCollection) Find(ctx context.Context, id string) (map[string]interface{}, error) {
+	return c.store.Find(ctx, c.name, id)
 }
 
 func cloneMap(m map[string]interface{}) map[string]interface{} {
@@ -221,21 +221,21 @@ func (dc *DistributedCollection) Insert(ctx context.Context, doc map[string]inte
 	return inserted, nil
 }
 
-func (dc *DistributedCollection) Update(id string, update map[string]interface{}) (int, error) {
-	affected, err := dc.local.Update(id, update)
+func (dc *DistributedCollection) Update(ctx context.Context, id string, update map[string]interface{}) (int, error) {
+	affected, err := dc.local.Update(ctx, id, update)
 	if err != nil {
 		return 0, err
 	}
 	if dc.networkID != "" && affected > 0 {
-		doc, _ := dc.local.Find(id)
+		doc, _ := dc.local.Find(ctx, id)
 		op := typ.CRDTOperation{ID: fmt.Sprintf("%s-%d", dc.network.GetPeerID(), time.Now().UnixMilli()), Type: typ.OpUpdate, Collection: dc.Name, DocumentID: id, Data: resolver.ToDistributed(doc, dc.network.GetPeerID()), Vector: dc.getCurrentVector(), Timestamp: time.Now().UnixMilli(), PeerID: dc.network.GetPeerID()}
 		dc.broadcastOperation(op)
 	}
 	return affected, nil
 }
 
-func (dc *DistributedCollection) Delete(id string) (int, error) {
-	affected, err := dc.local.Delete(id)
+func (dc *DistributedCollection) Delete(ctx context.Context, id string) (int, error) {
+	affected, err := dc.local.Delete(ctx, id)
 	if err != nil {
 		return 0, err
 	}
@@ -246,11 +246,11 @@ func (dc *DistributedCollection) Delete(id string) (int, error) {
 	return affected, nil
 }
 
-func (dc *DistributedCollection) Find(id string) (map[string]interface{}, error) {
-	return dc.local.Find(id)
+func (dc *DistributedCollection) Find(ctx context.Context, id string) (map[string]interface{}, error) {
+	return dc.local.Find(ctx, id)
 }
-func (dc *DistributedCollection) FindAll() ([]map[string]interface{}, error) {
-	return dc.local.store.FindAll(dc.Name)
+func (dc *DistributedCollection) FindAll(ctx context.Context) ([]map[string]interface{}, error) {
+	return dc.local.store.FindAll(ctx, dc.Name)
 }
 
 func (dc *DistributedCollection) GetSyncState() *typ.SyncState {
@@ -281,8 +281,9 @@ func (dc *DistributedCollection) broadcastOperation(op typ.CRDTOperation) {
 }
 
 func (dc *DistributedCollection) handleRemoteOperation(op typ.CRDTOperation) {
+	ctx := context.Background()
 	// Apply CRDT operation to local document
-	existing, _ := dc.local.Find(op.DocumentID)
+	existing, _ := dc.local.Find(ctx, op.DocumentID)
 	var existingDist *typ.DistributedDocument
 	if existing != nil {
 		existingDist = resolver.ToDistributed(existing, op.PeerID)
@@ -292,12 +293,12 @@ func (dc *DistributedCollection) handleRemoteOperation(op typ.CRDTOperation) {
 
 	if result == nil {
 		// delete
-		_, _ = dc.local.Delete(op.DocumentID)
+		_, _ = dc.local.Delete(ctx, op.DocumentID)
 	} else if result.Deleted {
-		_, _ = dc.local.Delete(op.DocumentID)
+		_, _ = dc.local.Delete(ctx, op.DocumentID)
 	} else {
 		// upsert
-		_, _ = dc.local.Insert(context.Background(), resolver.ToRegular(result))
+		_, _ = dc.local.Insert(ctx, resolver.ToRegular(result))
 	}
 
 	// merge vector

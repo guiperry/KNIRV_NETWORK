@@ -49,7 +49,6 @@ import (
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
-	"github.com/tidwall/buntdb"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -246,6 +245,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		logger.Error("Failed to initialize database", zap.Error(err))
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
+	dbManager.EnableKNIRVBASE(cfg.Database.UseKNIRVBASE)
+	log.Printf("Database initialized (KNIRVBASE bridge: %v)", cfg.Database.UseKNIRVBASE)
 
 	// Initialize eBPF Manager first (required for P2P security integration)
 	ebpfManager := ebpf.NewManager()
@@ -291,7 +292,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	// Initialize P2P manager with security integration
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, cfg.NodeRole, dbManager.GetDB(), cfg.P2P.DHTEnabled, p2pSecurityService)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, cfg.NodeRole, dbManager, cfg.P2P.DHTEnabled, p2pSecurityService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize P2P manager: %w", err)
 	}
@@ -300,13 +301,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	router := mux.NewRouter()
 
 	// Initialize services
-	dveManager, err := dvemanager.NewDVEManager(dbManager.GetDB(), p2pManager, cfg)
+	dveManager, err := dvemanager.NewDVEManager(dbManager, p2pManager, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize DVE manager: %w", err)
 	}
 
 	// Initialize DVE Rental Service
-	dveRentalService, err := dverental.NewDVERentalService(dbManager.GetDB())
+	dveRentalService, err := dverental.NewDVERentalService(dbManager)
 	if err != nil {
 		log.Printf("Warning: Failed to initialize DVE rental service: %v", err)
 		dveRentalService = nil
@@ -357,19 +358,19 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize inference service: %w", err)
 	}
 
-	validationCore, err := validation.NewValidationCore(dbManager.GetDB(), p2pManager, cfg, inferenceService)
+	validationCore, err := validation.NewValidationCore(dbManager, p2pManager, cfg, inferenceService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize validation core: %w", err)
 	}
 
 	// Initialize TEE Security service with Kali environment detection
-	teeSecurityService, err := teesecurity.NewTEESecurityService(dbManager.GetDB())
+	teeSecurityService, err := teesecurity.NewTEESecurityService(dbManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize TEE security service: %w", err)
 	}
 
 	// Initialize TEE environment with Kali-focused detection
-	if err := initializeTEEEnvironment(context.Background(), dbManager.GetDB()); err != nil {
+	if err := initializeTEEEnvironment(context.Background(), dbManager); err != nil {
 		log.Printf("Warning: TEE environment initialization failed: %v", err)
 		// Continue - TEE initialization is not critical for basic operation
 	}
@@ -387,15 +388,14 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	// Initialize System Health service
-	systemHealthService := systemhealth.NewSystemHealthService(dbManager.GetDB())
-	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService)
+	systemHealthService := systemhealth.NewSystemHealthService(dbManager)
 
 	// Initialize Fabric Management service
-	fabricManagementService := fabricmanagement.NewFabricManagementService(dbManager.GetDB())
+	fabricManagementService := fabricmanagement.NewFabricManagementService(dbManager)
 	fabricManagementService.SetFabricServerReference(fabricServer)
 
 	// Initialize Controller Integration service
-	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager.GetDB())
+	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager)
 
 	// Initialize CDE service with TEE security integration and eBPF virtual containers
 	cdeService, err := cde.NewCDEService(teeSecurityService, dataEngine, virtualContainerManager, cde.CDEConfig{
@@ -464,10 +464,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	// Initialize Session Manager
-	sessionManager := session.NewSessionManager(dbManager.GetDB())
+	sessionManager := session.NewSessionManager(dbManager)
 
 	// Initialize Endpoint Registry
-	endpointRegistry := endpoints.NewEndpointRegistry(dbManager.GetDB())
+	endpointRegistry := endpoints.NewEndpointRegistry(dbManager)
 
 	// Initialize Active Memory Layer (Markdown Fabric)
 	pqcManager := pqc.NewEncryptionManager()
@@ -488,6 +488,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize markdown storage: %w", err)
 	}
 
+	// Upgrade KNIRVBASE bridge with real storage and PQC
+	if dbManager != nil {
+		kbManager := database.NewKNIRVBASEManager(cfg.Database.UseKNIRVBASE, mdStorage, pqcManager, memoryDir)
+		dbManager.SetKNIRVBASE(kbManager)
+		log.Printf("KNIRVBASE persistence layer upgraded with PQC support (dir: %s)", memoryDir)
+	}
+
 	// Vault Service (Error/Solution Nodes)
 	vaultService := vault.NewVaultService(mdStorage)
 
@@ -503,6 +510,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		pqcManager,
 		mdStorage,
 		&fintech_validator.Config{
+			Enabled:               cfg.Fintech.Enabled,
 			EnableAMLChecks:       true,
 			EnableKYCCheks:        true,
 			EnableSECCheks:        true,
@@ -521,6 +529,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		log.Println("FinTech Validator Service initialized successfully")
 	}
 
+	// Update system health service references
+	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService, fintechValidatorService)
+
 	// Initialize TURN Server (Transport)
 	turnServer, err := transport.NewTURNServer("0.0.0.0", 3478, cfg.ChainID)
 	if err != nil {
@@ -528,7 +539,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	// Initialize Cognitive Engine
-	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager.GetDB(), validationCore, inferenceService, fabricManagementService)
+	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager, validationCore, inferenceService, fabricManagementService)
 
 	// Initialize Object Nest subsystem
 	unifiedContainerManager := runtime.NewUnifiedContainerManager(
@@ -709,7 +720,7 @@ func (s *Server) setupRoutes() {
 
 	// Register DVE rental routes
 	if s.dveRentalService != nil {
-		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db.GetDB())
+		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db)
 		dveRentalHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE rental routes configured")
 	}
@@ -806,6 +817,8 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	knirvbaseStatus, _ := s.db.GetKNIRVBASEStatus()
+
 	response := map[string]any{
 		"status":     "healthy",
 		"version":    Version,
@@ -813,6 +826,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"git_commit": GitCommit,
 		"services": map[string]bool{
 			"database":              s.db != nil,
+			"knirvbase":             knirvbaseStatus == "healthy",
 			"p2p_manager":           s.p2pManager != nil,
 			"ebpf_manager":          s.ebpfManager != nil,
 			"virtual_container_mgr": s.virtualContainerManager != nil,
@@ -826,7 +840,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"turn_server":           s.turnServer != nil,
 			"active_memory_service": s.activeMemoryService != nil,
 			"pqc_manager":           s.pqcManager != nil,
-			"fintech_validator":     s.fintechValidatorService != nil,
+			"fintech_validator":     s.fintechValidatorService != nil && s.fintechValidatorService.Config.Enabled,
 		},
 		"ebpf": ebpfMetrics,
 	}
@@ -1191,7 +1205,7 @@ func (s *Server) Stop() error {
 }
 
 // initializeTEEEnvironment sets up the TEE environment with Kali-focused detection
-func initializeTEEEnvironment(ctx context.Context, db *buntdb.DB) error {
+func initializeTEEEnvironment(ctx context.Context, db *database.BuntDBManager) error {
 	// Initialize TEE Security Service (detects Kali and available tools)
 	teeService, err := teesecurity.NewTEESecurityService(db)
 	if err != nil {

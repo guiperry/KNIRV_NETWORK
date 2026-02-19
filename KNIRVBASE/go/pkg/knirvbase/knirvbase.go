@@ -91,10 +91,10 @@ func (d *DB) Shutdown() error {
 // Collection is a thin interface representing collection operations consumers need
 type Collection interface {
 	Insert(ctx context.Context, doc map[string]interface{}) (map[string]interface{}, error)
-	Update(id string, update map[string]interface{}) (int, error)
-	Delete(id string) (int, error)
-	Find(id string) (map[string]interface{}, error)
-	FindAll() ([]map[string]interface{}, error)
+	Update(ctx context.Context, id string, update map[string]interface{}) (int, error)
+	Delete(ctx context.Context, id string) (int, error)
+	Find(ctx context.Context, id string) (map[string]interface{}, error)
+	FindAll(ctx context.Context) ([]map[string]interface{}, error)
 	AttachToNetwork(networkID string) error
 	DetachFromNetwork() error
 	ForceSync() error
@@ -115,12 +115,18 @@ func (a *collectionAdapter) Insert(ctx context.Context, doc map[string]interface
 	}
 	return a.c.Insert(ctx, doc)
 }
-func (a *collectionAdapter) Update(id string, update map[string]interface{}) (int, error) {
-	return a.c.Update(id, update)
+func (a *collectionAdapter) Update(ctx context.Context, id string, update map[string]interface{}) (int, error) {
+	return a.c.Update(ctx, id, update)
 }
-func (a *collectionAdapter) Delete(id string) (int, error)                  { return a.c.Delete(id) }
-func (a *collectionAdapter) Find(id string) (map[string]interface{}, error) { return a.c.Find(id) }
-func (a *collectionAdapter) FindAll() ([]map[string]interface{}, error)     { return a.c.FindAll() }
+func (a *collectionAdapter) Delete(ctx context.Context, id string) (int, error) {
+	return a.c.Delete(ctx, id)
+}
+func (a *collectionAdapter) Find(ctx context.Context, id string) (map[string]interface{}, error) {
+	return a.c.Find(ctx, id)
+}
+func (a *collectionAdapter) FindAll(ctx context.Context) ([]map[string]interface{}, error) {
+	return a.c.FindAll(ctx)
+}
 func (a *collectionAdapter) AttachToNetwork(networkID string) error {
 	return a.c.AttachToNetwork(networkID)
 }

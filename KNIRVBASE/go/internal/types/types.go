@@ -144,6 +144,8 @@ const (
 	MsgHeartbeat          MessageType = "heartbeat"
 	MsgCollectionAnnounce MessageType = "collection_announce"
 	MsgCollectionRequest  MessageType = "collection_request"
+	MsgDHTPut             MessageType = "dht_put"
+	MsgDHTGet             MessageType = "dht_get"
 )
 
 // ProtocolMessage generic envelope

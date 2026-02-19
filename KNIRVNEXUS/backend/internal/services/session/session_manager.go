@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 
 	"github.com/tidwall/buntdb"
@@ -16,13 +17,13 @@ import (
 
 // SessionManager manages access sessions for DVE rentals
 type SessionManager struct {
-	db       *buntdb.DB
+	db       *database.BuntDBManager
 	sessions map[string]interface{} // sessionID -> session object
 	mutex    sync.RWMutex
 }
 
 // NewSessionManager creates a new session manager
-func NewSessionManager(db *buntdb.DB) *SessionManager {
+func NewSessionManager(db *database.BuntDBManager) *SessionManager {
 	sm := &SessionManager{
 		db:       db,
 		sessions: make(map[string]interface{}),
@@ -430,49 +431,45 @@ func (sm *SessionManager) loadSessionsFromDatabase() error {
 		return fmt.Errorf("database not initialized")
 	}
 
-	return sm.db.View(func(tx *buntdb.Tx) error {
-		return tx.Ascend("", func(key, value string) bool {
-			if len(key) > 8 && key[:8] == "session:" {
-				var sessionData struct {
-					Type string      `json:"type"`
-					Data interface{} `json:"data"`
-				}
+	return sm.db.GetObjectsByPrefix("session:", func(key string, value []byte) bool {
+		var sessionData struct {
+			Type string      `json:"type"`
+			Data interface{} `json:"data"`
+		}
 
-				if err := json.Unmarshal([]byte(value), &sessionData); err != nil {
-					log.Printf("Warning: Failed to unmarshal session %s: %v", key, err)
-					return true
-				}
-
-				var session interface{}
-				switch sessionData.Type {
-				case "ssh":
-					var sshSession objects.SSHSession
-					dataBytes, _ := json.Marshal(sessionData.Data)
-					if err := json.Unmarshal(dataBytes, &sshSession); err == nil {
-						session = &sshSession
-					}
-				case "validation":
-					var valSession objects.ValidationSession
-					dataBytes, _ := json.Marshal(sessionData.Data)
-					if err := json.Unmarshal(dataBytes, &valSession); err == nil {
-						session = &valSession
-					}
-				case "error-resolution":
-					var errSession objects.ErrorResolutionSession
-					dataBytes, _ := json.Marshal(sessionData.Data)
-					if err := json.Unmarshal(dataBytes, &errSession); err == nil {
-						session = &errSession
-					}
-				}
-
-				if session != nil {
-					sessionID := key[8:] // Remove "session:" prefix
-					sm.sessions[sessionID] = session
-					log.Printf("Loaded session %s from database", sessionID)
-				}
-			}
+		if err := json.Unmarshal(value, &sessionData); err != nil {
+			log.Printf("Warning: Failed to unmarshal session %s: %v", key, err)
 			return true
-		})
+		}
+
+		var session interface{}
+		switch sessionData.Type {
+		case "ssh":
+			var sshSession objects.SSHSession
+			dataBytes, _ := json.Marshal(sessionData.Data)
+			if err := json.Unmarshal(dataBytes, &sshSession); err == nil {
+				session = &sshSession
+			}
+		case "validation":
+			var valSession objects.ValidationSession
+			dataBytes, _ := json.Marshal(sessionData.Data)
+			if err := json.Unmarshal(dataBytes, &valSession); err == nil {
+				session = &valSession
+			}
+		case "error-resolution":
+			var errSession objects.ErrorResolutionSession
+			dataBytes, _ := json.Marshal(sessionData.Data)
+			if err := json.Unmarshal(dataBytes, &errSession); err == nil {
+				session = &errSession
+			}
+		}
+
+		if session != nil {
+			sessionID := key[8:] // Remove "session:" prefix
+			sm.sessions[sessionID] = session
+			log.Printf("Loaded session %s from database", sessionID)
+		}
+		return true
 	})
 }
 
@@ -506,7 +503,7 @@ func (sm *SessionManager) saveSessionToDatabase(sessionID string, session interf
 		return fmt.Errorf("failed to marshal session data: %w", err)
 	}
 
-	return sm.db.Update(func(tx *buntdb.Tx) error {
+	return sm.db.Transaction(func(tx *buntdb.Tx) error {
 		_, _, err := tx.Set("session:"+sessionID, string(data), nil)
 		return err
 	})
@@ -518,7 +515,7 @@ func (sm *SessionManager) deleteSessionFromDatabase(sessionID string) error {
 		return fmt.Errorf("database not initialized")
 	}
 
-	return sm.db.Update(func(tx *buntdb.Tx) error {
+	return sm.db.Transaction(func(tx *buntdb.Tx) error {
 		_, err := tx.Delete("session:" + sessionID)
 		return err
 	})

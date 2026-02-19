@@ -1,6 +1,7 @@
 package systemhealth
 
 import (
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"context"
 	"encoding/json"
@@ -19,7 +20,7 @@ import (
 
 // SystemHealthService manages comprehensive system health monitoring
 type SystemHealthService struct {
-	db                *buntdb.DB
+	db                *database.BuntDBManager
 	mu                sync.RWMutex
 	running           bool
 	monitoringEnabled bool
@@ -29,10 +30,11 @@ type SystemHealthService struct {
 	cancel context.CancelFunc
 
 	// Service references for health checks (using any interface{} for flexibility)
-	dveManager         interface{}
-	validationCore     interface{}
-	inferenceService   interface{}
-	teeSecurityService interface{}
+	dveManager              interface{}
+	validationCore          interface{}
+	inferenceService        interface{}
+	teeSecurityService      interface{}
+	fintechValidatorService interface{}
 
 	// Health data
 	systemHealth *objects.SystemHealth
@@ -46,7 +48,7 @@ type SystemHealthService struct {
 }
 
 // NewSystemHealthService creates a new system health service
-func NewSystemHealthService(db *buntdb.DB) *SystemHealthService {
+func NewSystemHealthService(db *database.BuntDBManager) *SystemHealthService {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	service := &SystemHealthService{
@@ -90,6 +92,7 @@ func (shs *SystemHealthService) SetServiceReferences(
 	validationCore interface{},
 	inferenceService interface{},
 	teeSecurityService interface{},
+	fintechValidatorService interface{},
 ) {
 	shs.mu.Lock()
 	defer shs.mu.Unlock()
@@ -98,6 +101,7 @@ func (shs *SystemHealthService) SetServiceReferences(
 	shs.validationCore = validationCore
 	shs.inferenceService = inferenceService
 	shs.teeSecurityService = teeSecurityService
+	shs.fintechValidatorService = fintechValidatorService
 }
 
 // Start begins the system health monitoring
@@ -296,7 +300,7 @@ func (shs *SystemHealthService) RunDiagnostics() *objects.DiagnosticsResult {
 
 // Private methods for internal operations
 func (shs *SystemHealthService) initializeDatabase() {
-	shs.db.Update(func(tx *buntdb.Tx) error {
+	shs.db.Transaction(func(tx *buntdb.Tx) error {
 		tx.CreateIndex("health:alerts", "health:alerts:*", buntdb.IndexString)
 		tx.CreateIndex("health:metrics", "health:metrics:*", buntdb.IndexString)
 		tx.CreateIndex("health:diagnostics", "health:diagnostics:*", buntdb.IndexString)
@@ -306,7 +310,7 @@ func (shs *SystemHealthService) initializeDatabase() {
 
 func (shs *SystemHealthService) loadHealthData() {
 	// Load alerts from database
-	shs.db.View(func(tx *buntdb.Tx) error {
+	shs.db.ViewTransaction(func(tx *buntdb.Tx) error {
 		if value, err := tx.Get("health:alerts"); err == nil {
 			var alerts []*objects.SystemAlert
 			if json.Unmarshal([]byte(value), &alerts) == nil {
@@ -320,7 +324,7 @@ func (shs *SystemHealthService) loadHealthData() {
 func (shs *SystemHealthService) storeHealthData() {
 	// Store alerts
 	if data, err := json.Marshal(shs.alerts); err == nil {
-		shs.db.Update(func(tx *buntdb.Tx) error {
+		shs.db.Transaction(func(tx *buntdb.Tx) error {
 			tx.Set("health:alerts", string(data), nil)
 			return nil
 		})
@@ -328,7 +332,7 @@ func (shs *SystemHealthService) storeHealthData() {
 
 	// Store current health status
 	if data, err := json.Marshal(shs.systemHealth); err == nil {
-		shs.db.Update(func(tx *buntdb.Tx) error {
+		shs.db.Transaction(func(tx *buntdb.Tx) error {
 			tx.Set("health:status", string(data), nil)
 			return nil
 		})
@@ -409,6 +413,14 @@ func (shs *SystemHealthService) updateComponentHealth() {
 	// TEE Security component
 	if shs.teeSecurityService != nil {
 		shs.systemHealth.Components["tee_security"] = shs.getTEESecurityHealth()
+	}
+
+	// FinTech Validator component
+	if shs.fintechValidatorService != nil {
+		health := shs.getFinTechValidatorHealth()
+		if health != nil {
+			shs.systemHealth.Components["fintech_validator"] = health
+		}
 	}
 
 	// Network component
@@ -645,6 +657,40 @@ func (shs *SystemHealthService) getTEESecurityHealth() *objects.ComponentHealth 
 			"security_score":     securityStatus.SecurityScore,
 			"threats_detected":   securityStatus.ThreatsDetected,
 			"active_threats":     len(securityStatus.ActiveThreats),
+		},
+	}
+}
+
+func (shs *SystemHealthService) getFinTechValidatorHealth() *objects.ComponentHealth {
+	// Use type assertion to check if service has required methods
+	type FinTechValidatorInterface interface {
+		IsRunning() bool
+		IsEnabled() bool
+	}
+
+	fintechValidator, ok := shs.fintechValidatorService.(FinTechValidatorInterface)
+	if !ok {
+		return nil // Service doesn't implement required interface
+	}
+
+	if !fintechValidator.IsEnabled() {
+		return nil // Service is disabled, hide it
+	}
+
+	status := "healthy"
+	message := "FinTech Validator is operating normally"
+
+	if !fintechValidator.IsRunning() {
+		status = "critical"
+		message = "FinTech Validator is enabled but not running"
+	}
+
+	return &objects.ComponentHealth{
+		Status:  status,
+		Message: message,
+		Metrics: map[string]interface{}{
+			"enabled": true,
+			"running": fintechValidator.IsRunning(),
 		},
 	}
 }
@@ -936,7 +982,7 @@ func (shs *SystemHealthService) testDatabaseConnectivity() *objects.DiagnosticTe
 	}
 
 	// Test database connection
-	err := shs.db.View(func(tx *buntdb.Tx) error {
+	err := shs.db.ViewTransaction(func(tx *buntdb.Tx) error {
 		// Simple read test
 		_, err := tx.Get("health:status")
 		return err // It's OK if the key doesn't exist

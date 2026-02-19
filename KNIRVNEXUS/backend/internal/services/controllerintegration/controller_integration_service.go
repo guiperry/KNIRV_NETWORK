@@ -1,6 +1,7 @@
 package controllerintegration
 
 import (
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/websocket"
 	"crypto/aes"
@@ -18,7 +19,7 @@ import (
 
 // ControllerIntegrationService manages advanced controller integration
 type ControllerIntegrationService struct {
-	db      *buntdb.DB
+	db      *database.BuntDBManager
 	mu      sync.RWMutex
 	running bool
 
@@ -46,7 +47,7 @@ type ControllerIntegrationService struct {
 }
 
 // NewControllerIntegrationService creates a new controller integration service
-func NewControllerIntegrationService(db *buntdb.DB) *ControllerIntegrationService {
+func NewControllerIntegrationService(db *database.BuntDBManager) *ControllerIntegrationService {
 	service := &ControllerIntegrationService{
 		db:                   db,
 		activeSessions:       make(map[string]*objects.ControllerSession),
@@ -490,7 +491,7 @@ func (cis *ControllerIntegrationService) countUserSessions(userID string) int {
 }
 
 func (cis *ControllerIntegrationService) initializeDatabase() {
-	cis.db.Update(func(tx *buntdb.Tx) error {
+	cis.db.Transaction(func(tx *buntdb.Tx) error {
 		tx.CreateIndex("controller:sessions", "controller:session:*", buntdb.IndexString)
 		tx.CreateIndex("controller:qrcodes", "controller:qrcode:*", buntdb.IndexString)
 		tx.CreateIndex("controller:pairings", "controller:pairing:*", buntdb.IndexString)
@@ -500,45 +501,36 @@ func (cis *ControllerIntegrationService) initializeDatabase() {
 
 func (cis *ControllerIntegrationService) loadControllerData() {
 	// Load sessions from database
-	cis.db.View(func(tx *buntdb.Tx) error {
-		tx.Ascend("controller:sessions", func(key, value string) bool {
-			var session objects.ControllerSession
-			if json.Unmarshal([]byte(value), &session) == nil {
-				cis.activeSessions[session.ID] = &session
-			}
-			return true
-		})
-		return nil
+	cis.db.GetObjectsByPrefix("controller:session:", func(key string, value []byte) bool {
+		var session objects.ControllerSession
+		if json.Unmarshal(value, &session) == nil {
+			cis.activeSessions[session.ID] = &session
+		}
+		return true
 	})
 
 	// Load QR codes from database
-	cis.db.View(func(tx *buntdb.Tx) error {
-		tx.Ascend("controller:qrcodes", func(key, value string) bool {
-			var qrCode objects.QRCode
-			if json.Unmarshal([]byte(value), &qrCode) == nil {
-				cis.qrCodes[qrCode.ID] = &qrCode
-			}
-			return true
-		})
-		return nil
+	cis.db.GetObjectsByPrefix("controller:qrcode:", func(key string, value []byte) bool {
+		var qrCode objects.QRCode
+		if json.Unmarshal(value, &qrCode) == nil {
+			cis.qrCodes[qrCode.ID] = &qrCode
+		}
+		return true
 	})
 
 	// Load pairing requests from database
-	cis.db.View(func(tx *buntdb.Tx) error {
-		tx.Ascend("controller:pairings", func(key, value string) bool {
-			var pairingRequest objects.PairingRequest
-			if json.Unmarshal([]byte(value), &pairingRequest) == nil {
-				cis.pairingRequests[pairingRequest.ID] = &pairingRequest
-			}
-			return true
-		})
-		return nil
+	cis.db.GetObjectsByPrefix("controller:pairing:", func(key string, value []byte) bool {
+		var pairingRequest objects.PairingRequest
+		if json.Unmarshal(value, &pairingRequest) == nil {
+			cis.pairingRequests[pairingRequest.ID] = &pairingRequest
+		}
+		return true
 	})
 }
 
 func (cis *ControllerIntegrationService) storeSession(session *objects.ControllerSession) {
 	if data, err := json.Marshal(session); err == nil {
-		cis.db.Update(func(tx *buntdb.Tx) error {
+		cis.db.Transaction(func(tx *buntdb.Tx) error {
 			tx.Set("controller:session:"+session.ID, string(data), nil)
 			return nil
 		})
@@ -547,7 +539,7 @@ func (cis *ControllerIntegrationService) storeSession(session *objects.Controlle
 
 func (cis *ControllerIntegrationService) storeQRCode(qrCode *objects.QRCode) {
 	if data, err := json.Marshal(qrCode); err == nil {
-		cis.db.Update(func(tx *buntdb.Tx) error {
+		cis.db.Transaction(func(tx *buntdb.Tx) error {
 			tx.Set("controller:qrcode:"+qrCode.ID, string(data), nil)
 			return nil
 		})
@@ -556,7 +548,7 @@ func (cis *ControllerIntegrationService) storeQRCode(qrCode *objects.QRCode) {
 
 func (cis *ControllerIntegrationService) storePairingRequest(pairingRequest *objects.PairingRequest) {
 	if data, err := json.Marshal(pairingRequest); err == nil {
-		cis.db.Update(func(tx *buntdb.Tx) error {
+		cis.db.Transaction(func(tx *buntdb.Tx) error {
 			tx.Set("controller:pairing:"+pairingRequest.ID, string(data), nil)
 			return nil
 		})
@@ -768,7 +760,7 @@ func (cis *ControllerIntegrationService) storeOfflineMessages(sessionID string, 
 	for _, message := range messages {
 		offlineKey := fmt.Sprintf("controller:offline:%s:%s", sessionID, message.ID)
 		if data, err := json.Marshal(message); err == nil {
-			cis.db.Update(func(tx *buntdb.Tx) error {
+			cis.db.Transaction(func(tx *buntdb.Tx) error {
 				tx.Set(offlineKey, string(data), nil)
 				return nil
 			})

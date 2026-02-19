@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,9 +31,10 @@ func getAppDataDir() (string, error) {
 
 // BuntDBManager manages BuntDB operations with custom indexes and corruption prevention
 type BuntDBManager struct {
-	db     *buntdb.DB
-	dbPath string
-	mu     sync.RWMutex
+	db        *buntdb.DB
+	dbPath    string
+	mu        sync.RWMutex
+	knirvbase *KNIRVBASEManager
 
 	// Corruption prevention
 	backupDir      string
@@ -99,6 +101,7 @@ func NewBuntDB(path string) (*BuntDBManager, error) {
 		cancel:          cancel,
 		lastHealthCheck: time.Now(),
 		isHealthy:       true,
+		knirvbase:       NewKNIRVBASEManager(false, nil, nil, ""), // Disabled by default during Phase 1
 	}
 
 	// Create backup directory
@@ -213,7 +216,8 @@ func (bm *BuntDBManager) Close() error {
 
 // StoreJSON stores a JSON object with the given key
 func (bm *BuntDBManager) StoreJSON(key string, data interface{}) error {
-	return bm.db.Update(func(tx *buntdb.Tx) error {
+	// 1. Store in BuntDB (Primary)
+	err := bm.db.Update(func(tx *buntdb.Tx) error {
 		jsonData, err := json.Marshal(data)
 		if err != nil {
 			return err
@@ -221,10 +225,31 @@ func (bm *BuntDBManager) StoreJSON(key string, data interface{}) error {
 		_, _, err = tx.Set(key, string(jsonData), nil)
 		return err
 	})
+
+	// 2. Dual-write to KNIRVBASE (Secondary/Bridge)
+	if bm.knirvbase != nil {
+		// Asynchronous write to avoid slowing down main flow
+		go func() {
+			_ = bm.knirvbase.StoreObject(context.Background(), key, data)
+		}()
+	}
+
+	return err
 }
 
 // GetJSON retrieves and unmarshals a JSON object
 func (bm *BuntDBManager) GetJSON(key string, dest interface{}) error {
+	// 1. Try KNIRVBASE first if enabled (Primary/Bridge)
+	if bm.knirvbase != nil && bm.knirvbase.enabled {
+		err := bm.knirvbase.GetObject(context.Background(), key, dest)
+		if err == nil {
+			return nil
+		}
+		// If error is anything other than "not found", we might want to log it
+		// but we still fall back to BuntDB
+	}
+
+	// 2. Fallback to BuntDB (Legacy)
 	return bm.db.View(func(tx *buntdb.Tx) error {
 		value, err := tx.Get(key)
 		if err != nil {
@@ -281,10 +306,77 @@ func (bm *BuntDBManager) CountKeys(pattern string) (int, error) {
 
 // SetWithTTL stores a key-value pair with a time-to-live
 func (bm *BuntDBManager) SetWithTTL(key, value string, ttl time.Duration) error {
-	return bm.db.Update(func(tx *buntdb.Tx) error {
+	// 1. Store in BuntDB
+	err := bm.db.Update(func(tx *buntdb.Tx) error {
 		opts := &buntdb.SetOptions{Expires: true, TTL: ttl}
 		_, _, err := tx.Set(key, value, opts)
 		return err
+	})
+
+	// 2. Dual-write to KNIRVBASE
+	if bm.knirvbase != nil {
+		go func() {
+			_ = bm.knirvbase.SetWithTTL(context.Background(), key, value, ttl)
+		}()
+	}
+
+	return err
+}
+
+// EnableKNIRVBASE enables or disables the KNIRVBASE bridge
+func (bm *BuntDBManager) EnableKNIRVBASE(enabled bool) {
+	bm.mu.Lock()
+	defer bm.mu.Unlock()
+	if bm.knirvbase != nil {
+		bm.knirvbase.enabled = enabled
+	}
+}
+
+// SetKNIRVBASE sets the KNIRVBASE manager instance
+func (bm *BuntDBManager) SetKNIRVBASE(knirvbase *KNIRVBASEManager) {
+	bm.mu.Lock()
+	defer bm.mu.Unlock()
+	bm.knirvbase = knirvbase
+}
+
+// GetKNIRVBASEStatus returns the status of the KNIRVBASE persistence layer
+func (bm *BuntDBManager) GetKNIRVBASEStatus() (string, map[string]interface{}) {
+	if bm.knirvbase == nil {
+		return "not_initialized", nil
+	}
+	return bm.knirvbase.GetStatus()
+}
+
+// GetObjectsByPrefix retrieves all objects with a given prefix, unmarshaling them into a slice
+func (bm *BuntDBManager) GetObjectsByPrefix(prefix string, handler func(key string, value []byte) bool) error {
+	// 1. Try KNIRVBASE first if enabled
+	if bm.knirvbase != nil && bm.knirvbase.enabled {
+		// This is a simplified implementation for the prototype
+		// In a real system, we'd use the Query method with tags
+		keys, err := bm.knirvbase.Query(context.Background(), strings.TrimSuffix(prefix, ":"))
+		if err == nil && len(keys) > 0 {
+			for _, key := range keys {
+				// Filter by prefix (Query might return more broad results)
+				if !strings.HasPrefix(key, prefix) {
+					continue
+				}
+
+				var data json.RawMessage
+				if err := bm.knirvbase.GetObject(context.Background(), key, &data); err == nil {
+					if !handler(key, data) {
+						return nil
+					}
+				}
+			}
+			return nil
+		}
+	}
+
+	// 2. Fallback to BuntDB
+	return bm.db.View(func(tx *buntdb.Tx) error {
+		return tx.AscendKeys(prefix+"*", func(key, value string) bool {
+			return handler(key, []byte(value))
+		})
 	})
 }
 

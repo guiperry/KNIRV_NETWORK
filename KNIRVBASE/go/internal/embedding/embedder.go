@@ -24,9 +24,9 @@ type Embedder interface {
 
 // Storage interface for persisting vocabulary
 type Storage interface {
-	Put(key, value []byte) error
-	Get(key []byte) ([]byte, error)
-	Has(key []byte) (bool, error)
+	Put(ctx context.Context, key string, value []byte) error
+	Get(ctx context.Context, key string) ([]byte, error)
+	Has(ctx context.Context, key string) (bool, error)
 }
 
 // TFIDFEmbedder implements the Embedder interface using TF-IDF + LSA
@@ -208,16 +208,17 @@ func (e *TFIDFEmbedder) saveVocabulary() error {
 	}
 
 	// Store in database
-	if err := e.storage.Put([]byte("embedding:vocabulary"), vocabData); err != nil {
+	ctx := context.TODO()
+	if err := e.storage.Put(ctx, "embedding:vocabulary", vocabData); err != nil {
 		return err
 	}
-	if err := e.storage.Put([]byte("embedding:idf"), idfData); err != nil {
+	if err := e.storage.Put(ctx, "embedding:idf", idfData); err != nil {
 		return err
 	}
-	if err := e.storage.Put([]byte("embedding:word_doc_counts"), wordDocCountsData); err != nil {
+	if err := e.storage.Put(ctx, "embedding:word_doc_counts", wordDocCountsData); err != nil {
 		return err
 	}
-	if err := e.storage.Put([]byte("embedding:doc_count"), docCountData); err != nil {
+	if err := e.storage.Put(ctx, "embedding:doc_count", docCountData); err != nil {
 		return err
 	}
 
@@ -231,13 +232,14 @@ func (e *TFIDFEmbedder) loadVocabulary() error {
 	}
 
 	// Check if vocabulary exists
-	exists, err := e.storage.Has([]byte("embedding:vocabulary"))
+	ctx := context.TODO()
+	exists, err := e.storage.Has(ctx, "embedding:vocabulary")
 	if err != nil || !exists {
 		return fmt.Errorf("vocabulary not found in storage")
 	}
 
 	// Load vocabulary
-	vocabData, err := e.storage.Get([]byte("embedding:vocabulary"))
+	vocabData, err := e.storage.Get(ctx, "embedding:vocabulary")
 	if err != nil {
 		return fmt.Errorf("failed to load vocabulary: %w", err)
 	}
@@ -246,7 +248,7 @@ func (e *TFIDFEmbedder) loadVocabulary() error {
 	}
 
 	// Load IDF values
-	idfData, err := e.storage.Get([]byte("embedding:idf"))
+	idfData, err := e.storage.Get(ctx, "embedding:idf")
 	if err != nil {
 		return fmt.Errorf("failed to load IDF: %w", err)
 	}
@@ -255,7 +257,7 @@ func (e *TFIDFEmbedder) loadVocabulary() error {
 	}
 
 	// Load word-document counts
-	wordDocCountsData, err := e.storage.Get([]byte("embedding:word_doc_counts"))
+	wordDocCountsData, err := e.storage.Get(ctx, "embedding:word_doc_counts")
 	if err != nil {
 		return fmt.Errorf("failed to load word doc counts: %w", err)
 	}
@@ -264,7 +266,7 @@ func (e *TFIDFEmbedder) loadVocabulary() error {
 	}
 
 	// Load document count
-	docCountData, err := e.storage.Get([]byte("embedding:doc_count"))
+	docCountData, err := e.storage.Get(ctx, "embedding:doc_count")
 	if err != nil {
 		return fmt.Errorf("failed to load doc count: %w", err)
 	}

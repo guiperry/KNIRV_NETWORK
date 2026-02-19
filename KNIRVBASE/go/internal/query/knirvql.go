@@ -68,6 +68,16 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 					}
 				}
 				break
+			} else if parts[i] == "WITH" && i+1 < len(parts) && parts[i+1] == "TAGS" {
+				i += 2
+				if i < len(parts) && strings.HasPrefix(parts[i], "(") {
+					tagStr := strings.Trim(parts[i], "()")
+					tagParts := strings.Split(tagStr, ",")
+					for _, t := range tagParts {
+						filters = append(filters, Filter{Key: "tags", Operator: "CONTAINS", Value: strings.TrimSpace(t)})
+					}
+					i++
+				}
 			} else if parts[i] == "LIMIT" {
 				i++
 				if i < len(parts) {
@@ -312,6 +322,7 @@ type Filter struct {
 
 // Execute executes the query on the database
 func (q *Query) Execute(db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
+	ctx := context.TODO()
 	switch q.Type {
 	case QueryGet:
 		return q.executeGet(db, collection)
@@ -324,23 +335,25 @@ func (q *Query) Execute(db *db.DistributedDatabase, collection *coll.Distributed
 				"value": q.Value,
 			},
 		}
-		_, err := collection.Insert(context.TODO(), doc)
+		_, err := collection.Insert(ctx, doc)
 		return nil, err
 	case QueryDelete:
-		_, err := collection.Delete(q.ID)
+		_, err := collection.Delete(ctx, q.ID)
 		return nil, err
 	case QueryCreateIndex:
 		// Default to B-Tree index
 		indexType := stor.IndexTypeBTree
 		if q.IndexName == "vector" {
 			indexType = stor.IndexTypeHNSW
+		} else if q.IndexName == "tag" {
+			indexType = stor.IndexTypeTag
 		}
-		return nil, db.CreateIndex(q.Collection, q.IndexName, indexType, q.Fields, q.Unique, "", nil)
+		return nil, db.CreateIndex(ctx, q.Collection, q.IndexName, indexType, q.Fields, q.Unique, "", nil)
 	case QueryCreateCollection:
 		// Collections are created implicitly when accessed
 		return nil, nil
 	case QueryDropIndex:
-		return nil, db.DropIndex(q.Collection, q.IndexName)
+		return nil, db.DropIndex(ctx, q.Collection, q.IndexName)
 	case QueryDropCollection:
 		// For now, just return success - actual drop would need more implementation
 		return nil, nil
@@ -362,7 +375,7 @@ func (q *Query) executeGet(db *db.DistributedDatabase, collection *coll.Distribu
 	}
 
 	// Get indexes for the collection
-	indexes := db.GetIndexesForCollection(collectionName)
+	indexes := db.GetIndexesForCollection(context.TODO(), collectionName)
 
 	// Create optimizer
 	optimizer := NewQueryOptimizer(collectionName, indexes, nil)
@@ -393,7 +406,8 @@ func (q *Query) executePlan(plan *QueryPlan, db *db.DistributedDatabase, collect
 
 // executeFullScan performs a full collection scan
 func (q *Query) executeFullScan(plan *QueryPlan, collection *coll.DistributedCollection) (interface{}, error) {
-	docs, err := collection.FindAll()
+	ctx := context.TODO()
+	docs, err := collection.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -414,8 +428,9 @@ func (q *Query) executeFullScan(plan *QueryPlan, collection *coll.DistributedCol
 
 // executeIndexScan performs an index scan followed by post-filtering
 func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
+	ctx := context.TODO()
 	// Query the index to get candidate document IDs
-	docIDs, err := db.QueryIndex(plan.IndexName, plan.IndexName, map[string]interface{}{
+	docIDs, err := db.QueryIndex(ctx, plan.IndexName, plan.IndexName, map[string]interface{}{
 		"value": plan.IndexFilters[0].Value, // Simplified - assumes single filter
 	})
 	if err != nil {
@@ -424,7 +439,7 @@ func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, co
 
 	var results []map[string]interface{}
 	for _, docID := range docIDs {
-		doc, err := collection.Find(docID)
+		doc, err := collection.Find(ctx, docID)
 		if err != nil {
 			continue
 		}
@@ -443,7 +458,7 @@ func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, co
 // executeIndexOnlyScan performs an index-only scan (no document access needed)
 func (q *Query) executeIndexOnlyScan(plan *QueryPlan, db *db.DistributedDatabase) (interface{}, error) {
 	// For index-only scans, we can return document IDs directly
-	docIDs, err := db.QueryIndex(plan.IndexName, plan.IndexName, map[string]interface{}{
+	docIDs, err := db.QueryIndex(context.TODO(), plan.IndexName, plan.IndexName, map[string]interface{}{
 		"value": plan.IndexFilters[0].Value, // Simplified - assumes single filter
 	})
 	if err != nil {

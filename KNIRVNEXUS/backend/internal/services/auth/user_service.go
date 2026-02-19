@@ -524,15 +524,13 @@ func (us *UserService) validatePassword(password string) error {
 
 func (us *UserService) usernameExists(username string) (bool, error) {
 	exists := false
-	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
-		return tx.Ascend("users_by_username", func(key, value string) bool {
-			var user objects.User
-			if err := us.db.GetJSON(key, &user); err == nil && user.Username == username {
-				exists = true
-				return false
-			}
-			return true
-		})
+	err := us.db.GetObjectsByPrefix("users:profiles:", func(key string, value []byte) bool {
+		var user objects.User
+		if err := json.Unmarshal(value, &user); err == nil && user.Username == username {
+			exists = true
+			return false
+		}
+		return true
 	})
 
 	return exists, err
@@ -541,15 +539,13 @@ func (us *UserService) usernameExists(username string) (bool, error) {
 func (us *UserService) emailExists(email string) (bool, error) {
 	exists := false
 	emailLower := strings.ToLower(email)
-	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
-		return tx.Ascend("users_by_email", func(key, value string) bool {
-			var user objects.User
-			if err := us.db.GetJSON(key, &user); err == nil && strings.ToLower(user.Email) == emailLower {
-				exists = true
-				return false
-			}
-			return true
-		})
+	err := us.db.GetObjectsByPrefix("users:profiles:", func(key string, value []byte) bool {
+		var user objects.User
+		if err := json.Unmarshal(value, &user); err == nil && strings.ToLower(user.Email) == emailLower {
+			exists = true
+			return false
+		}
+		return true
 	})
 
 	return exists, err
@@ -667,16 +663,14 @@ func (us *UserService) GetSessionByToken(token string) (*objects.UserSession, er
 	var session objects.UserSession
 	found := false
 
-	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
-		return tx.AscendKeys("sessions:*", func(key, value string) bool {
-			var s objects.UserSession
-			if err := json.Unmarshal([]byte(value), &s); err == nil && s.Token == token {
-				session = s
-				found = true
-				return false // Stop iteration
-			}
-			return true // Continue
-		})
+	err := us.db.GetObjectsByPrefix("sessions:", func(key string, value []byte) bool {
+		var s objects.UserSession
+		if err := json.Unmarshal(value, &s); err == nil && s.Token == token {
+			session = s
+			found = true
+			return false // Stop iteration
+		}
+		return true // Continue
 	})
 
 	if err != nil {
@@ -703,8 +697,7 @@ func (us *UserService) ValidateSession(token string) (*objects.UserSession, erro
 
 	// Update last activity
 	session.UpdateActivity()
-	sessionKey := fmt.Sprintf("sessions:%s", session.ID)
-	if err := us.db.StoreJSON(sessionKey, session); err != nil {
+	if err := us.db.StoreJSON(fmt.Sprintf("sessions:%s", session.ID), session); err != nil {
 		log.Printf("Failed to update session activity: %v", err)
 	}
 
@@ -726,8 +719,7 @@ func (us *UserService) RefreshSession(sessionID string) error {
 	session.ExpiresAt = time.Now().Add(us.config.SessionTimeout)
 	session.UpdateActivity()
 
-	sessionKey := fmt.Sprintf("sessions:%s", session.ID)
-	if err := us.db.StoreJSON(sessionKey, session); err != nil {
+	if err := us.db.StoreJSON(fmt.Sprintf("sessions:%s", session.ID), session); err != nil {
 		return fmt.Errorf("failed to refresh session: %w", err)
 	}
 
@@ -743,8 +735,7 @@ func (us *UserService) ExpireSession(sessionID string) error {
 	}
 
 	session.IsActive = false
-	sessionKey := fmt.Sprintf("sessions:%s", session.ID)
-	if err := us.db.StoreJSON(sessionKey, session); err != nil {
+	if err := us.db.StoreJSON(fmt.Sprintf("sessions:%s", session.ID), session); err != nil {
 		return fmt.Errorf("failed to expire session: %w", err)
 	}
 
@@ -757,14 +748,12 @@ func (us *UserService) ExpireUserSessions(userID string) error {
 	var sessions []objects.UserSession
 
 	// Find all sessions for the user
-	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
-		return tx.AscendKeys("sessions:*", func(key, value string) bool {
-			var s objects.UserSession
-			if err := json.Unmarshal([]byte(value), &s); err == nil && s.UserID == userID {
-				sessions = append(sessions, s)
-			}
-			return true // Continue
-		})
+	err := us.db.GetObjectsByPrefix("sessions:", func(key string, value []byte) bool {
+		var s objects.UserSession
+		if err := json.Unmarshal(value, &s); err == nil && s.UserID == userID {
+			sessions = append(sessions, s)
+		}
+		return true // Continue
 	})
 
 	if err != nil {
@@ -787,14 +776,12 @@ func (us *UserService) CleanupExpiredSessions() error {
 	var expiredSessions []string
 
 	// Find expired sessions
-	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
-		return tx.AscendKeys("sessions:*", func(key, value string) bool {
-			var s objects.UserSession
-			if err := json.Unmarshal([]byte(value), &s); err == nil && s.IsExpired() {
-				expiredSessions = append(expiredSessions, key)
-			}
-			return true
-		})
+	err := us.db.GetObjectsByPrefix("sessions:", func(key string, value []byte) bool {
+		var s objects.UserSession
+		if err := json.Unmarshal(value, &s); err == nil && s.IsExpired() {
+			expiredSessions = append(expiredSessions, key)
+		}
+		return true
 	})
 
 	if err != nil {

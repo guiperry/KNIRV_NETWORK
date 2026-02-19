@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"backend_server/internal/config"
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 
 	"github.com/tidwall/buntdb"
@@ -16,7 +17,7 @@ import (
 
 // InstanceRegistry manages remote DVE instance connections and health
 type InstanceRegistry struct {
-	db        *buntdb.DB
+	db        *database.BuntDBManager
 	config    *config.DVEDiscoveryConfig
 	clients   map[string]*DVEClient // URL -> client mapping
 	instances map[string]*RemoteInstance
@@ -41,7 +42,7 @@ type RemoteInstance struct {
 }
 
 // NewInstanceRegistry creates a new instance registry
-func NewInstanceRegistry(db *buntdb.DB, cfg *config.DVEDiscoveryConfig) (*InstanceRegistry, error) {
+func NewInstanceRegistry(db *database.BuntDBManager, cfg *config.DVEDiscoveryConfig) (*InstanceRegistry, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	registry := &InstanceRegistry{
@@ -292,7 +293,7 @@ func (ir *InstanceRegistry) persistNodeToDatabase(node *objects.DVENode) error {
 	}
 
 	key := fmt.Sprintf("dve:nodes:%s", node.ID)
-	return ir.db.Update(func(tx *buntdb.Tx) error {
+	return ir.db.Transaction(func(tx *buntdb.Tx) error {
 		_, _, err := tx.Set(key, string(nodeJSON), nil)
 		return err
 	})

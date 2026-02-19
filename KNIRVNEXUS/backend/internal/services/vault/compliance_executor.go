@@ -207,8 +207,14 @@ func (e *ComplianceScriptExecutor) executeJavaScript(
 			return
 		}
 
+		// Execute code - wrap in self-invoking function if it contains return
+		execCode := code
+		if strings.Contains(strings.TrimSpace(code), "return") {
+			execCode = "(function() { " + code + " })()"
+		}
+
 		// Execute code
-		result, err := vm.Run(code)
+		result, err := vm.Run(execCode)
 		if err != nil {
 			errChan <- err
 			return

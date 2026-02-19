@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { CDEAccessModal } from '@/components/cde/cde-access-modal';
+import { NetworkAccessModal } from '@/components/cde/cde-access-modal';
 import CDEPanel from './cde-panel'; // Modular CDE Panel
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
@@ -55,6 +55,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
   const [cdeModalOpen, setCdeModalOpen] = useState(false);
   const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
+  const [showAdminAccess, setShowAdminAccess] = useState(false);
 
   const handleNodeAccess = (node: DVENode) => {
     setSelectedNode(node);
@@ -138,16 +139,18 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 h-12">
+            <TabsList className="inline-flex h-12 w-full">
               <TabsTrigger value="overview" className="flex items-center space-x-2">
                 <BarChart3 className="w-4 h-4" />
                 <span>Overview</span>
               </TabsTrigger>
 
-              <TabsTrigger value="compliance" className="flex items-center space-x-2">
-                <Scale className="w-4 h-4" />
-                <span>Compliance</span>
-              </TabsTrigger>
+              {user?.nexus_access?.includes('compliance:read') && (
+                <TabsTrigger value="compliance" className="flex items-center space-x-2">
+                  <Scale className="w-4 h-4" />
+                  <span>Compliance</span>
+                </TabsTrigger>
+              )}
 
               <SystemAccess operation="read" showError={false}>
                 <TabsTrigger value="system" className="flex items-center space-x-2">
@@ -157,10 +160,13 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
               </SystemAccess>
 
               <RoleGuard allowedRoles={['admin']} showError={false}>
-                <TabsTrigger value="admin" className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowAdminAccess(true)}
+                  className="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-white/20 px-2 py-1 text-sm font-medium whitespace-nowrap transition-all text-foreground hover:bg-blue-500/20 hover:border-blue-400/50 disabled:pointer-events-none disabled:opacity-50"
+                >
                   <User className="w-4 h-4" />
-                  <span>Admin</span>
-                </TabsTrigger>
+                  <span>Admin Access</span>
+                </button>
               </RoleGuard>
 
               <TabsTrigger value="profile" className="flex items-center space-x-2">
@@ -174,17 +180,19 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                 {children}
               </TabsContent>
               
-              <TabsContent value="compliance">
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold">Financial Compliance Dashboard</h2>
-                    <p className="text-muted-foreground">
-                      Deterministic Validation of Financial AI Agents - Evidence Packs, Fidelity Scoring, and Regulatory Compliance
-                    </p>
+              {user?.nexus_access?.includes('compliance:read') && (
+                <TabsContent value="compliance">
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-2xl font-bold">Financial Compliance Dashboard</h2>
+                      <p className="text-muted-foreground">
+                        Deterministic Validation of Financial AI Agents - Evidence Packs, Fidelity Scoring, and Regulatory Compliance
+                      </p>
+                    </div>
+                    <FinancialComplianceDashboard />
                   </div>
-                  <FinancialComplianceDashboard />
-                </div>
-              </TabsContent>
+                </TabsContent>
+              )}
               
 
               
@@ -206,55 +214,87 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
 
                     {/* Network Overview Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <Card className="knirv-card-gradient">
+                      <Card className="knirv-card-gradient border hover:border-blue-500/50 transition-all group">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">Network Nodes</CardTitle>
-                          <Network className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center space-x-2">
+                            <CardTitle className="text-sm font-medium">Active Memory (KNIRVBASE)</CardTitle>
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="Status: Online" />
+                          </div>
+                          <Database className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">24</div>
-                          <p className="text-xs text-muted-foreground">
-                            18 active, 6 standby
+                          <div className="text-2xl font-bold">Encrypted</div>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            PQC Markdown persistence active
                           </p>
+                          <div className="bg-black/40 rounded p-2 font-mono text-[9px] text-blue-400/80 h-16 overflow-hidden">
+                            <div className="line-clamp-1">[10:45:21] Kyber-768 Handshake OK</div>
+                            <div className="line-clamp-1">[10:45:22] Committing .md fabric slice...</div>
+                            <div className="line-clamp-1">[10:45:23] Dilithium-3 Signature Valid</div>
+                          </div>
                         </CardContent>
                       </Card>
 
-                      <Card className="knirv-card-gradient">
+                      <Card className="knirv-card-gradient border hover:border-blue-500/50 transition-all group">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">CPU Utilization</CardTitle>
-                          <Cpu className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center space-x-2">
+                            <CardTitle className="text-sm font-medium">Reasoning Graph (KNIRVGRAPH)</CardTitle>
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="Status: Synced" />
+                          </div>
+                          <Network className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">67%</div>
-                          <p className="text-xs text-muted-foreground">
-                            Across all nodes
+                          <div className="text-2xl font-bold">142 Traces</div>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Context records in .md fabric
                           </p>
+                          <div className="bg-black/40 rounded p-2 font-mono text-[9px] text-blue-400/80 h-16 overflow-hidden">
+                            <div className="line-clamp-1">[10:45:18] Querying NRV-8472...</div>
+                            <div className="line-clamp-1">[10:45:20] Edge verified via Consensus</div>
+                            <div className="line-clamp-1">[10:45:23] Graph re-indexing complete</div>
+                          </div>
                         </CardContent>
                       </Card>
 
-                      <Card className="knirv-card-gradient">
+                      <Card className="knirv-card-gradient border hover:border-blue-500/50 transition-all group">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
-                          <HardDrive className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center space-x-2">
+                            <CardTitle className="text-sm font-medium">Solution Vault (KNIRVCHAIN)</CardTitle>
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="Status: Minting" />
+                          </div>
+                          <Lock className="h-4 w-4 text-muted-foreground group-hover:text-amber-400 transition-colors" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">2.4TB</div>
-                          <p className="text-xs text-muted-foreground">
-                            Of 5.2TB total
+                          <div className="text-2xl font-bold">28 Nodes</div>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Verifiable executable logic
                           </p>
+                          <div className="bg-black/40 rounded p-2 font-mono text-[9px] text-amber-400/80 h-16 overflow-hidden">
+                            <div className="line-clamp-1">[10:45:15] Validating Proof-of-Skill...</div>
+                            <div className="line-clamp-1">[10:45:19] New block minted: 0x7a8b...</div>
+                            <div className="line-clamp-1">[10:45:23] Distributing rewards...</div>
+                          </div>
                         </CardContent>
                       </Card>
 
-                      <Card className="knirv-card-gradient">
+                      <Card className="knirv-card-gradient border hover:border-blue-500/50 transition-all group">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">Network Bandwidth</CardTitle>
-                          <Wifi className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex items-center space-x-2">
+                            <CardTitle className="text-sm font-medium">P2P Transport</CardTitle>
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="Status: Active" />
+                          </div>
+                          <Globe className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">1.2GB/s</div>
-                          <p className="text-xs text-muted-foreground">
-                            Current throughput
+                          <div className="text-2xl font-bold">TURN Active</div>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Secure NAT traversal established
                           </p>
+                          <div className="bg-black/40 rounded p-2 font-mono text-[9px] text-blue-400/80 h-16 overflow-hidden">
+                            <div className="line-clamp-1">[10:45:10] Relay node assigned: BK-4</div>
+                            <div className="line-clamp-1">[10:45:16] Hole-punching successful</div>
+                            <div className="line-clamp-1">[10:45:23] Connected peers: 24</div>
+                          </div>
                         </CardContent>
                       </Card>
                     </div>
@@ -394,70 +434,6 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                     </Tabs>
                   </div>
                 </SystemAccess>
-              </TabsContent>
-              
-              <TabsContent value="admin">
-                <RoleGuard allowedRoles={['admin']}>
-                  <div className="space-y-4">
-                    <h2 className="text-2xl font-bold">Administration</h2>
-                    <p className="text-muted-foreground">
-                      Administrative controls and system configuration.
-                    </p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center space-x-2">
-                            <User className="w-5 h-5" />
-                            <span>User Management</span>
-                          </CardTitle>
-                          <CardDescription>
-                            Manage user roles and permissions
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Button variant="outline" className="w-full">
-                            Manage Users
-                          </Button>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center space-x-2">
-                            <Settings className="w-5 h-5" />
-                            <span>System Config</span>
-                          </CardTitle>
-                          <CardDescription>
-                            Configure system parameters
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Button variant="outline" className="w-full">
-                            Configure
-                          </Button>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center space-x-2">
-                            <Shield className="w-5 h-5" />
-                            <span>Security</span>
-                          </CardTitle>
-                          <CardDescription>
-                            Security settings and audit logs
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <Button variant="outline" className="w-full">
-                            Security Center
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                </RoleGuard>
               </TabsContent>
               
               <TabsContent value="profile">
@@ -744,7 +720,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
             }}
           />
         ) : (
-          <CDEAccessModal
+          <NetworkAccessModal
             isOpen={cdeModalOpen}
             onClose={() => setCdeModalOpen(false)}
             nodeId={selectedNode.id}
@@ -767,6 +743,17 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
           nodeId={selectedNode.id}
         />
       )}
+
+      {/* Admin Access Modal */}
+      <NetworkAccessModal
+        isOpen={showAdminAccess}
+        onClose={() => setShowAdminAccess(false)}
+        nodeId="ADMIN-NODE-01"
+        nodeName="Administrative Node"
+        onOpenKNIRVEngine={() => {
+          setShowAdminAccess(false);
+        }}
+      />
     </div>
   );
 }

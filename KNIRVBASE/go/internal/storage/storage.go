@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -14,18 +16,33 @@ import (
 
 // Storage interface for persistence
 type Storage interface {
-	Insert(collection string, doc map[string]interface{}) error
-	Update(collection, id string, update map[string]interface{}) error
-	Delete(collection, id string) error
-	Find(collection, id string) (map[string]interface{}, error)
-	FindAll(collection string) ([]map[string]interface{}, error)
+	// Collection-based API
+	Insert(ctx context.Context, collection string, doc map[string]interface{}) error
+	Update(ctx context.Context, collection, id string, update map[string]interface{}) error
+	Delete(ctx context.Context, collection, id string) error
+	Find(ctx context.Context, collection, id string) (map[string]interface{}, error)
+	FindAll(ctx context.Context, collection string) ([]map[string]interface{}, error)
+
+	// Key-Value API (Unified Storage)
+	Put(ctx context.Context, key string, value []byte) error
+	Get(ctx context.Context, key string) ([]byte, error)
+	DeleteKey(ctx context.Context, key string) error
+
+	// JSON Support
+	StoreObject(ctx context.Context, key string, obj interface{}) error
+	GetObject(ctx context.Context, key string, dest interface{}) error
+
+	// Markdown Projection
+	ProjectToMarkdown(ctx context.Context, key string, targetPath string) error
 
 	// Index management
-	CreateIndex(collection, name string, indexType IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error
-	DropIndex(collection, name string) error
-	GetIndex(collection, name string) *Index
-	GetIndexesForCollection(collection string) []*Index
-	QueryIndex(collection, indexName string, query map[string]interface{}) ([]string, error)
+	CreateIndex(ctx context.Context, collection, name string, indexType IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error
+	DropIndex(ctx context.Context, collection, name string) error
+	GetIndex(ctx context.Context, collection, name string) *Index
+	GetIndexesForCollection(ctx context.Context, collection string) []*Index
+	QueryIndex(ctx context.Context, collection, indexName string, query map[string]interface{}) ([]string, error)
+
+	Close() error
 }
 
 // FileStorage implements Storage using files
@@ -79,7 +96,7 @@ func (fs *FileStorage) IsEncryptedCollection(collection string) bool {
 	return false
 }
 
-func (fs *FileStorage) Insert(collection string, doc map[string]interface{}) error {
+func (fs *FileStorage) Insert(ctx context.Context, collection string, doc map[string]interface{}) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -101,8 +118,8 @@ func (fs *FileStorage) Insert(collection string, doc map[string]interface{}) err
 		}
 	}
 
-	// Encrypt sensitive collections (only if master key is set)
-	if fs.IsEncryptedCollection(collection) && fs.encryptionMgr.GetMasterKey() != nil {
+	// Encrypt all documents (mandatory PQC encryption at rest)
+	if fs.encryptionMgr.GetMasterKey() != nil {
 		encryptedDoc, err := fs.encryptDocument(collection, docCopy)
 		if err != nil {
 			return fmt.Errorf("failed to encrypt document: %w", err)
@@ -115,6 +132,20 @@ func (fs *FileStorage) Insert(collection string, doc map[string]interface{}) err
 		return err
 	}
 
+	// Sign the write operation for integrity (Dilithium-3)
+	if fs.encryptionMgr.GetMasterKey() != nil {
+		signature, err := fs.encryptionMgr.GetMasterKey().Sign(data)
+		if err == nil {
+			// Store signature in a companion file or wrap the data
+			// For simplicity, we'll wrap it
+			signedData := map[string]interface{}{
+				"data":      docCopy,
+				"signature": signature,
+			}
+			data, _ = json.Marshal(signedData)
+		}
+	}
+
 	err = os.WriteFile(path, data, 0644)
 	if err != nil {
 		return err
@@ -124,11 +155,11 @@ func (fs *FileStorage) Insert(collection string, doc map[string]interface{}) err
 	return fs.indexManager.Insert(collection, doc)
 }
 
-func (fs *FileStorage) Update(collection, id string, update map[string]interface{}) error {
+func (fs *FileStorage) Update(ctx context.Context, collection, id string, update map[string]interface{}) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
-	doc, err := fs.Find(collection, id)
+	doc, err := fs.Find(ctx, collection, id)
 	if err != nil {
 		return err
 	}
@@ -140,10 +171,10 @@ func (fs *FileStorage) Update(collection, id string, update map[string]interface
 		doc[k] = v
 	}
 
-	return fs.Insert(collection, doc)
+	return fs.Insert(ctx, collection, doc)
 }
 
-func (fs *FileStorage) Delete(collection, id string) error {
+func (fs *FileStorage) Delete(ctx context.Context, collection, id string) error {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
 
@@ -161,7 +192,7 @@ func (fs *FileStorage) Delete(collection, id string) error {
 	return fs.indexManager.Delete(collection, id)
 }
 
-func (fs *FileStorage) Find(collection, id string) (map[string]interface{}, error) {
+func (fs *FileStorage) Find(ctx context.Context, collection, id string) (map[string]interface{}, error) {
 	fs.mu.RLock()
 	defer fs.mu.RUnlock()
 
@@ -179,8 +210,30 @@ func (fs *FileStorage) Find(collection, id string) (map[string]interface{}, erro
 		return nil, err
 	}
 
+	// Unwrap and verify signature if present
+	if signedData, ok := doc["data"].(map[string]interface{}); ok {
+		if signatureStr, ok := doc["signature"].(string); ok && fs.encryptionMgr.GetMasterKey() != nil {
+			// Verify signature (Dilithium-3)
+			originalBytes, _ := json.Marshal(signedData)
+			signature, err := base64.StdEncoding.DecodeString(signatureStr)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode signature: %w", err)
+			}
+			
+			if !fs.encryptionMgr.GetMasterKey().Verify(originalBytes, signature) {
+				return nil, fmt.Errorf("integrity violation: document signature verification failed")
+			}
+			doc = signedData
+		}
+	}
+
 	// Decrypt if document is encrypted and we have a master key
 	if encrypted, ok := doc["encrypted"].(bool); ok && encrypted && fs.encryptionMgr.GetMasterKey() != nil {
+		// Decryption-on-Demand: Check for valid session token in context
+		if !fs.authorizeAccess(ctx, doc) {
+			return nil, fmt.Errorf("unauthorized: valid session token required for decryption")
+		}
+
 		decryptedDoc, err := fs.decryptDocument(doc)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decrypt document: %w", err)
@@ -204,7 +257,7 @@ func (fs *FileStorage) Find(collection, id string) (map[string]interface{}, erro
 	return doc, nil
 }
 
-func (fs *FileStorage) FindAll(collection string) ([]map[string]interface{}, error) {
+func (fs *FileStorage) FindAll(ctx context.Context, collection string) ([]map[string]interface{}, error) {
 	fs.mu.RLock()
 	defer fs.mu.RUnlock()
 
@@ -221,7 +274,7 @@ func (fs *FileStorage) FindAll(collection string) ([]map[string]interface{}, err
 	for _, file := range files {
 		if filepath.Ext(file.Name()) == ".json" {
 			id := file.Name()[:len(file.Name())-5]
-			doc, err := fs.Find(collection, id)
+			doc, err := fs.Find(ctx, collection, id)
 			if err != nil {
 				continue
 			}
@@ -255,56 +308,133 @@ func (fs *FileStorage) loadBlob(blobRef string) (interface{}, error) {
 
 // Index management methods
 
-func (fs *FileStorage) CreateIndex(collection, name string, indexType IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error {
+func (fs *FileStorage) CreateIndex(ctx context.Context, collection, name string, indexType IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error {
 	return fs.indexManager.CreateIndex(collection, name, indexType, fields, unique, partialExpr, options)
 }
 
-func (fs *FileStorage) DropIndex(collection, name string) error {
+func (fs *FileStorage) DropIndex(ctx context.Context, collection, name string) error {
 	return fs.indexManager.DropIndex(collection, name)
 }
 
-func (fs *FileStorage) GetIndex(collection, name string) *Index {
+func (fs *FileStorage) GetIndex(ctx context.Context, collection, name string) *Index {
 	return fs.indexManager.GetIndex(collection, name)
 }
 
-func (fs *FileStorage) GetIndexesForCollection(collection string) []*Index {
+func (fs *FileStorage) GetIndexesForCollection(ctx context.Context, collection string) []*Index {
 	return fs.indexManager.GetIndexesForCollection(collection)
 }
 
-func (fs *FileStorage) QueryIndex(collection, indexName string, query map[string]interface{}) ([]string, error) {
+func (fs *FileStorage) QueryIndex(ctx context.Context, collection, indexName string, query map[string]interface{}) ([]string, error) {
 	return fs.indexManager.QueryIndex(collection, indexName, query)
 }
 
-// Get retrieves a value by key - implements embedding.Storage interface
-func (fs *FileStorage) Get(key []byte) ([]byte, error) {
-	keyStr := string(key)
-	path := filepath.Join(fs.baseDir, "kv", keyStr)
+// Get retrieves a value by key - implements Key-Value API
+func (fs *FileStorage) Get(ctx context.Context, key string) ([]byte, error) {
+	fs.mu.RLock()
+	defer fs.mu.RUnlock()
+
+	path := filepath.Join(fs.baseDir, "kv", key)
 
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("key not found: %s", keyStr)
+			return nil, fmt.Errorf("key not found: %s", key)
 		}
 		return nil, err
+	}
+
+	// Decrypt if it's PQC encrypted
+	if fs.encryptionMgr.GetMasterKey() != nil {
+		// For raw KV, we might not have document metadata, so we just try to decrypt
+		// but we still check for authorization if we want to enforce it.
+		if !fs.authorizeAccess(ctx, nil) {
+			// If not authorized, return raw (encrypted) data or error
+			// The requirement says "Data should only be decrypted if..."
+			return data, nil
+		}
+
+		decrypted, err := fs.encryptionMgr.DecryptData(string(data))
+		if err == nil {
+			return decrypted, nil
+		}
 	}
 
 	return data, nil
 }
 
-// Put stores a value by key - implements embedding.Storage interface
-func (fs *FileStorage) Put(key, value []byte) error {
-	keyStr := string(key)
+// Put stores a value by key - implements Key-Value API
+func (fs *FileStorage) Put(ctx context.Context, key string, value []byte) error {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
 	kvDir := filepath.Join(fs.baseDir, "kv")
 	os.MkdirAll(kvDir, 0755)
 
-	path := filepath.Join(kvDir, keyStr)
-	return os.WriteFile(path, value, 0644)
+	path := filepath.Join(kvDir, key)
+
+	dataToSave := value
+	if fs.encryptionMgr.GetMasterKey() != nil {
+		encrypted, err := fs.encryptionMgr.EncryptData(value, fs.encryptionMgr.GetMasterKey().ID)
+		if err == nil {
+			dataToSave = []byte(encrypted)
+		}
+	}
+
+	return os.WriteFile(path, dataToSave, 0644)
 }
 
-// Has checks if a key exists - implements embedding.Storage interface
-func (fs *FileStorage) Has(key []byte) (bool, error) {
-	keyStr := string(key)
-	path := filepath.Join(fs.baseDir, "kv", keyStr)
+// DeleteKey removes a key from the Key-Value store
+func (fs *FileStorage) DeleteKey(ctx context.Context, key string) error {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+
+	path := filepath.Join(fs.baseDir, "kv", key)
+	return os.Remove(path)
+}
+
+// StoreObject stores a JSON object by key
+func (fs *FileStorage) StoreObject(ctx context.Context, key string, obj interface{}) error {
+	data, err := json.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	return fs.Put(ctx, key, data)
+}
+
+// GetObject retrieves a JSON object by key
+func (fs *FileStorage) GetObject(ctx context.Context, key string, dest interface{}) error {
+	data, err := fs.Get(ctx, key)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, dest)
+}
+
+// ProjectToMarkdown projects structured data into a .md file
+func (fs *FileStorage) ProjectToMarkdown(ctx context.Context, key string, targetPath string) error {
+	data, err := fs.Get(ctx, key)
+	if err != nil {
+		return err
+	}
+
+	var obj map[string]interface{}
+	if err := json.Unmarshal(data, &obj); err != nil {
+		// If not JSON, just write as raw markdown
+		return os.WriteFile(targetPath, []byte(fmt.Sprintf("# Projected Data: %s\n\n%s", key, string(data))), 0644)
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("# %s\n\n", key))
+	for k, v := range obj {
+		sb.WriteString(fmt.Sprintf("## %s\n%v\n\n", k, v))
+	}
+
+	return os.WriteFile(targetPath, []byte(sb.String()), 0644)
+}
+
+// Has checks if a key exists
+func (fs *FileStorage) Has(ctx context.Context, key string) (bool, error) {
+	path := filepath.Join(fs.baseDir, "kv", key)
 
 	_, err := os.Stat(path)
 	if err != nil {
@@ -322,6 +452,20 @@ func (fs *FileStorage) Close() error {
 	// FileStorage doesn't have explicit resources to close
 	// but we implement this for compatibility
 	return nil
+}
+
+// authorizeAccess checks if the context has a valid session token for decryption
+func (fs *FileStorage) authorizeAccess(ctx context.Context, doc map[string]interface{}) bool {
+	// For now, we assume the token is passed in the context under a "session_token" key
+	token, ok := ctx.Value("session_token").(string)
+	if !ok {
+		return false
+	}
+
+	// In a real implementation, we would validate this token against our Auth service
+	// or check if it matches a session stored in the document or DHT.
+	// For this prototype, any non-empty token is considered authorized if it's present.
+	return token != ""
 }
 
 // deepCopyDoc creates a deep copy of a document

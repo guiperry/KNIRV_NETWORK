@@ -140,7 +140,7 @@ func BenchmarkCredentialQuery(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		username := fmt.Sprintf("query_user%d", i%1000)
 
-		doc, err := credentialsColl.Find(username)
+		doc, err := credentialsColl.Find(benchmarkCtx, username)
 		if err != nil {
 			b.Fatalf("Query failed: %v", err)
 		}
@@ -236,7 +236,7 @@ func BenchmarkAuthWorkflow(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		// 1. Lookup credential by username
-		doc, err := credentialsColl.Find(username)
+		doc, err := credentialsColl.Find(benchmarkCtx, username)
 		if err != nil {
 			b.Fatalf("Credential lookup failed: %v", err)
 		}
@@ -294,7 +294,7 @@ func BenchmarkAuthWorkflow(b *testing.B) {
 			update := map[string]interface{}{
 				"last_used": time.Now().UnixMilli(),
 			}
-			_, err = credentialsColl.Update(username, map[string]interface{}{
+			_, err = credentialsColl.Update(benchmarkCtx, username, map[string]interface{}{
 				"payload": update,
 			})
 			if err != nil {
@@ -327,7 +327,7 @@ func BenchmarkLargeScale(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		username := fmt.Sprintf("scale_user%05d", i%10000)
 
-		doc, err := credentialsColl.Find(username)
+		doc, err := credentialsColl.Find(benchmarkCtx, username)
 		if err != nil {
 			b.Fatalf("Query failed: %v", err)
 		}

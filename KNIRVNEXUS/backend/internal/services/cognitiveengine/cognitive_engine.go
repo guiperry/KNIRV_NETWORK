@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/validation"
 
@@ -19,7 +20,7 @@ import (
 
 // CognitiveEngine manages AI-driven learning and adaptation for the DVE network
 type CognitiveEngine struct {
-	db               *buntdb.DB
+	db               *database.BuntDBManager
 	validationCore   ValidationClient
 	inferenceService InferenceClient
 	modelManager     ModelManagerClient
@@ -153,7 +154,7 @@ type ModelManagerClient interface {
 }
 
 // NewCognitiveEngine creates a new cognitive engine instance
-func NewCognitiveEngine(db *buntdb.DB, validationClient ValidationClient, inferenceClient InferenceClient, modelManager ModelManagerClient) *CognitiveEngine {
+func NewCognitiveEngine(db *database.BuntDBManager, validationClient ValidationClient, inferenceClient InferenceClient, modelManager ModelManagerClient) *CognitiveEngine {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	ce := &CognitiveEngine{
@@ -669,14 +670,7 @@ func (ce *CognitiveEngine) loadLearningState() {
 	ce.mu.Lock()
 	defer ce.mu.Unlock()
 
-	err := ce.db.View(func(tx *buntdb.Tx) error {
-		val, err := tx.Get("cognitive:learning_state")
-		if err != nil {
-			return err
-		}
-
-		return json.Unmarshal([]byte(val), ce.learningState)
-	})
+	err := ce.db.GetJSON("cognitive:learning_state", ce.learningState)
 
 	if err != nil {
 		log.Printf("Failed to load learning state, starting fresh: %v", err)
@@ -688,7 +682,7 @@ func (ce *CognitiveEngine) saveLearningState() {
 	ce.mu.RLock()
 	defer ce.mu.RUnlock()
 
-	ce.db.Update(func(tx *buntdb.Tx) error {
+	ce.db.Transaction(func(tx *buntdb.Tx) error {
 		data, err := json.Marshal(ce.learningState)
 		if err != nil {
 			return err

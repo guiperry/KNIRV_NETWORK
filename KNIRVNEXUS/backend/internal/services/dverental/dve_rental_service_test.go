@@ -1,6 +1,7 @@
 package dverental
 
 import (
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/blockchain"
 	"os"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/buntdb"
 )
 
 // MockNRNClient is a mock implementation of the blockchain client for testing
@@ -44,12 +44,12 @@ func (m *MockNRNClient) GetAccountBalance(address string) (int64, error) {
 	return 1000000, nil
 }
 
-func setupTestDVERentalService(t *testing.T) (*DVERentalService, *buntdb.DB) {
+func setupTestDVERentalService(t *testing.T) (*DVERentalService, *database.BuntDBManager) {
 	// Create temporary database
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "test_dve_rental.db")
 
-	db, err := buntdb.Open(dbPath)
+	db, err := database.NewBuntDB(dbPath)
 	require.NoError(t, err)
 
 	service, err := NewDVERentalService(db)

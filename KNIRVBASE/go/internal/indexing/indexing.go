@@ -16,6 +16,7 @@ const (
 	IndexTypeTemporal IndexType = "temporal"
 	IndexTypeCategory IndexType = "category"
 	IndexTypeFullText IndexType = "fulltext"
+	IndexTypeTag      IndexType = "tag"
 )
 
 // Block represents the minimal interface needed by indexing operations
@@ -256,4 +257,105 @@ func (ci *CategoryIndex) Remove(ctx context.Context, blockID uuid.UUID) error {
 
 func (ci *CategoryIndex) Rebuild(ctx context.Context) error {
 	return nil
+}
+
+// TagIndex implements tag-based indexing for multi-tag queries
+type TagIndex struct {
+	tags map[string]map[uuid.UUID]bool
+	mu   sync.RWMutex
+}
+
+func NewTagIndex() *TagIndex {
+	return &TagIndex{
+		tags: make(map[string]map[uuid.UUID]bool),
+	}
+}
+
+func (ti *TagIndex) Add(ctx context.Context, block Block) error {
+	ti.mu.Lock()
+	defer ti.mu.Unlock()
+
+	// In a real implementation, we would extract tags from the block.
+	// For now, we assume the block can provide tags if it implements a Taggable interface.
+	if taggable, ok := block.(Taggable); ok {
+		for _, tag := range taggable.GetTags() {
+			if _, exists := ti.tags[tag]; !exists {
+				ti.tags[tag] = make(map[uuid.UUID]bool)
+			}
+			ti.tags[tag][block.GetBlockID()] = true
+		}
+	}
+
+	return nil
+}
+
+func (ti *TagIndex) Search(ctx context.Context, query interface{}) ([]uuid.UUID, error) {
+	ti.mu.RLock()
+	defer ti.mu.RUnlock()
+
+	tags, ok := query.([]string)
+	if !ok {
+		return nil, fmt.Errorf("invalid query type for tag search, expected []string")
+	}
+
+	if len(tags) == 0 {
+		return nil, nil
+	}
+
+	// Find intersection of all tags
+	var resultIDs map[uuid.UUID]bool
+
+	for i, tag := range tags {
+		peerIDs, exists := ti.tags[tag]
+		if !exists {
+			return nil, nil // One of the tags doesn't exist, so intersection is empty
+		}
+
+		if i == 0 {
+			resultIDs = make(map[uuid.UUID]bool)
+			for id := range peerIDs {
+				resultIDs[id] = true
+			}
+		} else {
+			// Intersect with current results
+			newResults := make(map[uuid.UUID]bool)
+			for id := range peerIDs {
+				if resultIDs[id] {
+					newResults[id] = true
+				}
+			}
+			resultIDs = newResults
+		}
+
+		if len(resultIDs) == 0 {
+			break
+		}
+	}
+
+	out := make([]uuid.UUID, 0, len(resultIDs))
+	for id := range resultIDs {
+		out = append(out, id)
+	}
+
+	return out, nil
+}
+
+func (ti *TagIndex) Remove(ctx context.Context, blockID uuid.UUID) error {
+	ti.mu.Lock()
+	defer ti.mu.Unlock()
+
+	for tag := range ti.tags {
+		delete(ti.tags[tag], blockID)
+	}
+
+	return nil
+}
+
+func (ti *TagIndex) Rebuild(ctx context.Context) error {
+	return nil
+}
+
+// Taggable interface for blocks that support tagging
+type Taggable interface {
+	GetTags() []string
 }

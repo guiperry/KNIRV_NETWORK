@@ -18,9 +18,10 @@ const (
 )
 
 type Claims struct {
-	UserID      string       `json:"user_id"`
-	WalletAddr  string       `json:"wallet_addr"`
-	Permissions []Permission `json:"permissions"`
+	UserID       string       `json:"user_id"`
+	WalletAddr   string       `json:"wallet_addr"`
+	SessionToken string       `json:"session_token,omitempty"` // Hybrid Token support
+	Permissions  []Permission `json:"permissions"`
 	jwt.RegisteredClaims
 }
 
@@ -78,6 +79,36 @@ func (tm *TokenManager) ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	return nil, fmt.Errorf("invalid token")
+}
+
+// GenerateHybridToken creates a new hybrid JWT + Session token
+func (tm *TokenManager) GenerateHybridToken(
+	userID, walletAddr, sessionToken string,
+	permissions []Permission,
+) (string, error) {
+	claims := Claims{
+		UserID:       userID,
+		WalletAddr:   walletAddr,
+		SessionToken: sessionToken,
+		Permissions:  permissions,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tm.tokenDuration)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(tm.secretKey)
+}
+
+// ValidateSessionToken checks if a token matches the expected session
+func (tm *TokenManager) ValidateSessionToken(tokenString, expectedSession string) bool {
+	claims, err := tm.ValidateToken(tokenString)
+	if err != nil {
+		return false
+	}
+	return claims.SessionToken == expectedSession
 }
 
 // RefreshToken generates a new token with extended expiration

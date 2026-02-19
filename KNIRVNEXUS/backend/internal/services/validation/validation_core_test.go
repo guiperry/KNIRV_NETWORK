@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"backend_server/internal/config"
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/p2p"
 	"backend_server/internal/web/middleware"
@@ -20,7 +21,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/tidwall/buntdb"
 )
 
 // MockInferenceClient is a mock implementation of InferenceClient
@@ -40,7 +40,7 @@ func (m *MockInferenceClient) Generate(ctx context.Context, prompt string, optio
 
 func TestNewValidationCore(t *testing.T) {
 	// Setup test dependencies
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -64,7 +64,7 @@ func TestNewValidationCore(t *testing.T) {
 
 func TestCreateValidationTask(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -97,7 +97,7 @@ func TestCreateValidationTask(t *testing.T) {
 
 func TestGetValidationTask(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -123,7 +123,7 @@ func TestGetValidationTask(t *testing.T) {
 
 func TestGetValidationTasksLocal(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -167,7 +167,7 @@ func TestGetValidationTasksLocal(t *testing.T) {
 
 func TestGetValidationTasks(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -208,7 +208,7 @@ func TestGetValidationTasks(t *testing.T) {
 
 func TestExecuteValidation(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -292,7 +292,7 @@ func TestTaskFilter_Matches(t *testing.T) {
 
 func TestValidationCore_Lifecycle(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -311,7 +311,7 @@ func TestValidationCore_Lifecycle(t *testing.T) {
 
 func TestGetValidationResults(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -326,7 +326,7 @@ func TestGetValidationResults(t *testing.T) {
 
 func TestTaskQueueOperations(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -1001,7 +1001,7 @@ func TestBaseLLMValidator(t *testing.T) {
 
 func TestRegisterRoutes(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -1077,7 +1077,7 @@ func TestWriteError(t *testing.T) {
 
 func TestHandleGetValidationStatus(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -1107,7 +1107,7 @@ func TestHandleGetValidationStatus(t *testing.T) {
 
 func TestHandleGetValidationMetrics(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -1171,7 +1171,7 @@ func TestHandleGetValidationMetrics(t *testing.T) {
 
 func TestHandleGetTaskQueue(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -1235,7 +1235,7 @@ func TestHandleGetTaskQueue(t *testing.T) {
 
 func TestHandleGetTaskResults(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -1273,7 +1273,7 @@ func TestHandleGetTaskResults(t *testing.T) {
 
 func TestHandleCreateTask(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -1425,7 +1425,7 @@ func TestHandleCreateTask(t *testing.T) {
 
 func TestHandleListTasks(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -1578,7 +1578,7 @@ func TestHandleListTasks(t *testing.T) {
 
 func TestHandleGetTask(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -1691,7 +1691,7 @@ func TestHandleGetTask(t *testing.T) {
 
 func TestHandleExecuteTask(t *testing.T) {
 	// Setup
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	assert.NoError(t, err)
 	defer db.Close()
 

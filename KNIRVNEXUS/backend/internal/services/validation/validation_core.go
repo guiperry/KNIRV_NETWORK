@@ -2,19 +2,19 @@ package validation
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"backend_server/internal/config"
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/p2p"
-
-	"github.com/tidwall/buntdb"
 )
 
 // ValidationCore is the main validation service
 type ValidationCore struct {
-	db             *buntdb.DB
+	db             *database.BuntDBManager
 	p2pManager     *p2p.DVEP2PManager
 	config         *config.Config
 	inference      InferenceClient
@@ -125,7 +125,7 @@ type TaskQueue struct {
 }
 
 // NewValidationCore creates a new ValidationCore instance
-func NewValidationCore(db *buntdb.DB, p2pManager *p2p.DVEP2PManager, cfg *config.Config, inferenceService InferenceClient) (*ValidationCore, error) {
+func NewValidationCore(db *database.BuntDBManager, p2pManager *p2p.DVEP2PManager, cfg *config.Config, inferenceService InferenceClient) (*ValidationCore, error) {
 	executor := &ValidationExecutor{
 		running:       make(map[string]*ValidationExecution),
 		maxConcurrent: 10, // Default max concurrent executions
@@ -164,8 +164,11 @@ func (vc *ValidationCore) CreateValidationTask(req *CreateTaskRequest) (*Validat
 		AssignedNodeID: "", // Will be assigned when executed
 	}
 
-	// Store task in database (simplified)
-	// In real implementation, would store in buntdb
+	// Store task in database
+	if err := vc.db.StoreJSON(fmt.Sprintf("validation:tasks:%s", task.ID), task); err != nil {
+		return nil, fmt.Errorf("failed to persist validation task: %w", err)
+	}
+
 	vc.mu.Lock()
 	vc.runningTasks[task.ID] = task
 	vc.taskQueue.AddTask(task)

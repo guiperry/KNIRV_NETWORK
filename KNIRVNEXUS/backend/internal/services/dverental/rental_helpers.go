@@ -13,38 +13,33 @@ import (
 
 // loadFromDatabase loads rental data from the database
 func (drs *DVERentalService) loadFromDatabase() error {
-	return drs.db.View(func(tx *buntdb.Tx) error {
-		// Load active rentals
-		tx.Ascend("", func(key, value string) bool {
-			if len(key) > 8 && key[:8] == "rental:" {
-				var rental objects.DVERental
-				if err := json.Unmarshal([]byte(value), &rental); err == nil {
-					if rental.Status == "active" {
-						drs.activeRentals[rental.ID] = &rental
-					}
-				}
+	// Load active rentals
+	err := drs.db.GetObjectsByPrefix("rental:", func(key string, value []byte) bool {
+		var rental objects.DVERental
+		if err := json.Unmarshal(value, &rental); err == nil {
+			if rental.Status == "active" {
+				drs.activeRentals[rental.ID] = &rental
 			}
-			return true
-		})
+		}
+		return true
+	})
+	if err != nil {
+		return err
+	}
 
-		// Load rental plans
-		tx.Ascend("", func(key, value string) bool {
-			if len(key) > 5 && key[:5] == "plan:" {
-				var plan objects.RentalPlan
-				if err := json.Unmarshal([]byte(value), &plan); err == nil {
-					drs.rentalPlans[plan.ID] = &plan
-				}
-			}
-			return true
-		})
-
-		return nil
+	// Load rental plans
+	return drs.db.GetObjectsByPrefix("plan:", func(key string, value []byte) bool {
+		var plan objects.RentalPlan
+		if err := json.Unmarshal(value, &plan); err == nil {
+			drs.rentalPlans[plan.ID] = &plan
+		}
+		return true
 	})
 }
 
 // saveToDatabase saves all rental data to the database
 func (drs *DVERentalService) saveToDatabase() error {
-	return drs.db.Update(func(tx *buntdb.Tx) error {
+	return drs.db.Transaction(func(tx *buntdb.Tx) error {
 		// Save active rentals
 		for _, rental := range drs.activeRentals {
 			if data, err := json.Marshal(rental); err == nil {
@@ -65,7 +60,7 @@ func (drs *DVERentalService) saveToDatabase() error {
 
 // saveRentalToDatabase saves a single rental to the database
 func (drs *DVERentalService) saveRentalToDatabase(rental *objects.DVERental) error {
-	return drs.db.Update(func(tx *buntdb.Tx) error {
+	return drs.db.Transaction(func(tx *buntdb.Tx) error {
 		if data, err := json.Marshal(rental); err == nil {
 			tx.Set("rental:"+rental.ID, string(data), nil)
 		}

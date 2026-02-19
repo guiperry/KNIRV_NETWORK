@@ -5,16 +5,16 @@ import (
 	"testing"
 	"time"
 
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/buntdb"
 )
 
 func TestNewDVEP2PManager(t *testing.T) {
 	// Create a test database
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -36,7 +36,7 @@ func TestNewDVEP2PManager(t *testing.T) {
 
 func TestNewDVEP2PManager_NoDHT(t *testing.T) {
 	// Create a test database
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -50,7 +50,7 @@ func TestNewDVEP2PManager_NoDHT(t *testing.T) {
 
 func TestDVEP2PManager_Start_Stop(t *testing.T) {
 	// Create a test database
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -68,7 +68,7 @@ func TestDVEP2PManager_Start_Stop(t *testing.T) {
 }
 
 func TestDVEP2PManager_RegisterMessageHandler(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -91,7 +91,7 @@ func TestDVEP2PManager_RegisterMessageHandler(t *testing.T) {
 }
 
 func TestDVEP2PManager_IsNetworkPaused(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -119,7 +119,7 @@ func TestDVEP2PManager_IsNetworkPaused(t *testing.T) {
 }
 
 func TestDVEP2PManager_GetConnectedPeers(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -133,7 +133,7 @@ func TestDVEP2PManager_GetConnectedPeers(t *testing.T) {
 }
 
 func TestDVEP2PManager_GetNetworkTopology(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -152,7 +152,7 @@ func TestDVEP2PManager_GetNetworkTopology(t *testing.T) {
 }
 
 func TestDVEP2PManager_UpdatePeerReputation(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -168,7 +168,7 @@ func TestDVEP2PManager_UpdatePeerReputation(t *testing.T) {
 }
 
 func TestDVEP2PManager_getPeerReputation(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -181,7 +181,7 @@ func TestDVEP2PManager_getPeerReputation(t *testing.T) {
 }
 
 func TestDVEP2PManager_setPeerReputation(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -194,7 +194,7 @@ func TestDVEP2PManager_setPeerReputation(t *testing.T) {
 }
 
 func TestDVEP2PManager_calculatePeerScore(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -207,7 +207,7 @@ func TestDVEP2PManager_calculatePeerScore(t *testing.T) {
 }
 
 func TestDVEP2PManager_GetPeerStats(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -226,7 +226,7 @@ func TestDVEP2PManager_GetPeerStats(t *testing.T) {
 }
 
 func TestDVEP2PManager_EncryptMessage(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -242,7 +242,7 @@ func TestDVEP2PManager_EncryptMessage(t *testing.T) {
 }
 
 func TestDVEP2PManager_DecryptMessage(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -258,7 +258,7 @@ func TestDVEP2PManager_DecryptMessage(t *testing.T) {
 }
 
 func TestDVEP2PManager_OptimizeNetworkTopology(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -271,7 +271,7 @@ func TestDVEP2PManager_OptimizeNetworkTopology(t *testing.T) {
 }
 
 func TestDVEP2PManager_AnnounceValidationRequest(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -289,7 +289,7 @@ func TestDVEP2PManager_AnnounceValidationRequest(t *testing.T) {
 }
 
 func TestDVEP2PManager_AnnounceValidationRequest_NetworkPaused(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -312,7 +312,7 @@ func TestDVEP2PManager_AnnounceValidationRequest_NetworkPaused(t *testing.T) {
 }
 
 func TestDVEP2PManager_AnnounceValidationResult_NetworkPaused(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -335,7 +335,7 @@ func TestDVEP2PManager_AnnounceValidationResult_NetworkPaused(t *testing.T) {
 }
 
 func TestDVEP2PManager_AnnounceNodeStatus_NetworkPaused(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -363,7 +363,7 @@ func TestDVEP2PManager_bootstrapToNetwork_NoPeers(t *testing.T) {
 	DefaultBootstrapPeers = []string{}
 	defer func() { DefaultBootstrapPeers = originalPeers }()
 
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -377,7 +377,7 @@ func TestDVEP2PManager_bootstrapToNetwork_NoPeers(t *testing.T) {
 }
 
 func TestDVEP2PManager_calculatePeerScore_NoConnections(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -393,7 +393,7 @@ func TestDVEP2PManager_calculatePeerScore_NoConnections(t *testing.T) {
 }
 
 func TestDVEP2PManager_UpdatePeerReputation_Bounds(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -419,7 +419,7 @@ func TestDVEP2PManager_UpdatePeerReputation_Bounds(t *testing.T) {
 }
 
 func TestDVEP2PManager_GetPeerStats_EmptyNetwork(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -443,7 +443,7 @@ func TestDVEP2PManager_setupTopics_Error(t *testing.T) {
 }
 
 func TestDVEP2PManager_handleNetworkControl_InvalidJSON(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -457,7 +457,7 @@ func TestDVEP2PManager_handleNetworkControl_InvalidJSON(t *testing.T) {
 }
 
 func TestDVEP2PManager_processValidationRequestAnnouncement_InvalidData(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -479,7 +479,7 @@ func TestDVEP2PManager_processValidationRequestAnnouncement_InvalidData(t *testi
 }
 
 func TestDVEP2PManager_processValidationResultAnnouncement_InvalidData(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -501,7 +501,7 @@ func TestDVEP2PManager_processValidationResultAnnouncement_InvalidData(t *testin
 }
 
 func TestDVEP2PManager_processNodeStatusAnnouncement_InvalidData(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -523,7 +523,7 @@ func TestDVEP2PManager_processNodeStatusAnnouncement_InvalidData(t *testing.T) {
 }
 
 func TestDVEP2PManager_AnnounceValidationResult(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -540,7 +540,7 @@ func TestDVEP2PManager_AnnounceValidationResult(t *testing.T) {
 }
 
 func TestDVEP2PManager_AnnounceNodeStatus(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 
@@ -557,7 +557,7 @@ func TestDVEP2PManager_AnnounceNodeStatus(t *testing.T) {
 }
 
 func TestDVEP2PManager_createCIDFromServiceID(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 

@@ -140,7 +140,7 @@ func TestCollection_Find(t *testing.T) {
 	}
 
 	// Find it
-	result, err := coll.Find("test1")
+	result, err := coll.Find(ctx, "test1")
 	if err != nil {
 		t.Fatalf("Find() failed: %v", err)
 	}

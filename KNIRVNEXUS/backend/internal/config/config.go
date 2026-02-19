@@ -43,6 +43,11 @@ type ReverseProxyConfig struct {
 	ListenAddr string `mapstructure:"listen_addr"`
 }
 
+// FintechConfig defines FinTech validator configuration
+type FintechConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+}
+
 // Config represents the application configuration
 type Config struct {
 	Environment string            `mapstructure:"environment"`
@@ -60,6 +65,7 @@ type Config struct {
 	Roles       RolesConfig       `mapstructure:"roles"`
 	Network     NetworkConfig     `mapstructure:"network"`
 	Validation  ValidationConfig  `mapstructure:"validation"`
+	Fintech     FintechConfig     `mapstructure:"fintech"`
 	TEE         TEEConfig         `mapstructure:"tee"`
 	CDE         CDEConfig         `mapstructure:"cde"`
 	Reports     ReportsConfig     `mapstructure:"reports"`
@@ -88,7 +94,8 @@ type Config struct {
 
 // DatabaseConfig represents database configuration
 type DatabaseConfig struct {
-	Path string `mapstructure:"path"`
+	Path          string `mapstructure:"path"`
+	UseKNIRVBASE  bool   `mapstructure:"use_knirvbase"`
 }
 
 // APIConfig represents API server configuration
@@ -517,6 +524,14 @@ func setDefaults() {
 	viper.SetDefault("roles.admin.scoped_access", false)
 	viper.SetDefault("roles.observer.permissions", []string{"*:read"})
 	viper.SetDefault("roles.observer.scoped_access", false)
+
+	// Validation configuration
+	viper.SetDefault("validation.timeout", "30s")
+	viper.SetDefault("validation.max_concurrent", 10)
+	viper.SetDefault("validation.enable_tee", true)
+
+	// FinTech configuration - disabled by default for official rollout
+	viper.SetDefault("fintech.enabled", false)
 
 	// Database defaults - use XDG Base Directory
 	viper.SetDefault("database.path", filepath.Join(appDataDir, "data", "nexus.db"))

@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
 
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/buntdb"
 )
 
 // TestP2PSecurityServiceIntegration tests the P2P security service integration with eBPF/XDP
@@ -319,8 +319,8 @@ func TestConcurrentPeerOperations(t *testing.T) {
 }
 
 // Helper function to setup test database
-func setupTestDB(t *testing.T) *buntdb.DB {
-	db, err := buntdb.Open(":memory:")
+func setupTestDB(t *testing.T) *database.BuntDBManager {
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	return db
 }

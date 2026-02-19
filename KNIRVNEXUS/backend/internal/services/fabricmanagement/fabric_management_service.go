@@ -1,6 +1,7 @@
 package fabricmanagement
 
 import (
+	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"encoding/json"
 	"fmt"
@@ -13,7 +14,7 @@ import (
 
 // FabricManagementService provides comprehensive fabric unit administration
 type FabricManagementService struct {
-	db      *buntdb.DB
+	db      *database.BuntDBManager
 	mu      sync.RWMutex
 	running bool
 
@@ -46,7 +47,7 @@ type FabricInfo struct {
 }
 
 // NewFabricManagementService creates a new fabric management service
-func NewFabricManagementService(db *buntdb.DB) *FabricManagementService {
+func NewFabricManagementService(db *database.BuntDBManager) *FabricManagementService {
 	service := &FabricManagementService{
 		db:                   db,
 		objects:              make(map[string]*objects.Fabric),
@@ -288,7 +289,7 @@ func (ams *FabricManagementService) DeleteFabric(fabricID string) error {
 	delete(ams.logs, fabricID)
 
 	// Remove from database
-	ams.db.Update(func(tx *buntdb.Tx) error {
+	ams.db.Transaction(func(tx *buntdb.Tx) error {
 		tx.Delete("fabric:" + fabricID)
 		return nil
 	})
@@ -364,7 +365,7 @@ func (ams *FabricManagementService) GetFabricSummary() *objects.FabricSummary {
 
 // Private methods for internal operations
 func (ams *FabricManagementService) initializeDatabase() {
-	ams.db.Update(func(tx *buntdb.Tx) error {
+	ams.db.Transaction(func(tx *buntdb.Tx) error {
 		tx.CreateIndex("fabrics", "fabric:*", buntdb.IndexString)
 		tx.CreateIndex("fabric_deployments", "fabric_deployment:*", buntdb.IndexString)
 		tx.CreateIndex("fabric_templates", "fabric_template:*", buntdb.IndexString)
@@ -375,45 +376,36 @@ func (ams *FabricManagementService) initializeDatabase() {
 
 func (ams *FabricManagementService) loadFabricData() {
 	// Load fabrics from database
-	ams.db.View(func(tx *buntdb.Tx) error {
-		tx.Ascend("fabrics", func(key, value string) bool {
-			var fabric objects.Fabric
-			if json.Unmarshal([]byte(value), &fabric) == nil {
-				ams.objects[fabric.ID] = &fabric
-			}
-			return true
-		})
-		return nil
+	ams.db.GetObjectsByPrefix("fabric:", func(key string, value []byte) bool {
+		var fabric objects.Fabric
+		if json.Unmarshal(value, &fabric) == nil {
+			ams.objects[fabric.ID] = &fabric
+		}
+		return true
 	})
 
 	// Load deployments from database
-	ams.db.View(func(tx *buntdb.Tx) error {
-		tx.Ascend("fabric_deployments", func(key, value string) bool {
-			var deployment objects.FabricDeployment
-			if json.Unmarshal([]byte(value), &deployment) == nil {
-				ams.deployments[deployment.ID] = &deployment
-			}
-			return true
-		})
-		return nil
+	ams.db.GetObjectsByPrefix("fabric_deployment:", func(key string, value []byte) bool {
+		var deployment objects.FabricDeployment
+		if json.Unmarshal(value, &deployment) == nil {
+			ams.deployments[deployment.ID] = &deployment
+		}
+		return true
 	})
 
 	// Load templates from database
-	ams.db.View(func(tx *buntdb.Tx) error {
-		tx.Ascend("fabric_templates", func(key, value string) bool {
-			var template objects.FabricTemplate
-			if json.Unmarshal([]byte(value), &template) == nil {
-				ams.templates[template.ID] = &template
-			}
-			return true
-		})
-		return nil
+	ams.db.GetObjectsByPrefix("fabric_template:", func(key string, value []byte) bool {
+		var template objects.FabricTemplate
+		if json.Unmarshal(value, &template) == nil {
+			ams.templates[template.ID] = &template
+		}
+		return true
 	})
 }
 
 func (ams *FabricManagementService) storeFabric(fabric *objects.Fabric) {
 	if data, err := json.Marshal(fabric); err == nil {
-		ams.db.Update(func(tx *buntdb.Tx) error {
+		ams.db.Transaction(func(tx *buntdb.Tx) error {
 			tx.Set("fabric:"+fabric.ID, string(data), nil)
 			return nil
 		})
@@ -430,7 +422,7 @@ func (ams *FabricManagementService) recordEvent(event *objects.FabricEvent) {
 
 	// Store in database
 	if data, err := json.Marshal(event); err == nil {
-		ams.db.Update(func(tx *buntdb.Tx) error {
+		ams.db.Transaction(func(tx *buntdb.Tx) error {
 			tx.Set("fabric_event:"+event.ID, string(data), nil)
 			return nil
 		})
@@ -875,7 +867,7 @@ func (ams *FabricManagementService) CreateFabricTemplate(template *objects.Fabri
 
 	// Store in database
 	if data, err := json.Marshal(template); err == nil {
-		ams.db.Update(func(tx *buntdb.Tx) error {
+		ams.db.Transaction(func(tx *buntdb.Tx) error {
 			tx.Set("fabric_template:"+template.ID, string(data), nil)
 			return nil
 		})
@@ -927,7 +919,7 @@ func (ams *FabricManagementService) CreateFabricDeployment(deployment *objects.F
 
 	// Store in database
 	if data, err := json.Marshal(deployment); err == nil {
-		ams.db.Update(func(tx *buntdb.Tx) error {
+		ams.db.Transaction(func(tx *buntdb.Tx) error {
 			tx.Set("fabric_deployment:"+deployment.ID, string(data), nil)
 			return nil
 		})

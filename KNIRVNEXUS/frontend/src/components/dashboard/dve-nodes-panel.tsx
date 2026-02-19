@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDVENodes } from '@/hooks/use-dve-nodes';
 import { useDVERental } from '@/hooks/use-dve-rental';
 import { useAuth } from '@/lib/auth-context';
-import { CDEAccessModal } from '@/components/cde/cde-access-modal';
+import { NetworkAccessModal } from '@/components/cde/cde-access-modal';
 import type { DVENode, DVEAccessInfo } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -459,7 +459,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
 
       {/* CDE Access Modal (Legacy fallback) */}
       {selectedNode && (
-        <CDEAccessModal
+        <NetworkAccessModal
           isOpen={cdeOpen}
           onClose={() => setCDEOpen(false)}
           nodeId={selectedNode.id}

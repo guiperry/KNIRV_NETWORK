@@ -36,6 +36,7 @@ type TrajectoryStore interface {
 
 // FinTechValidatorService provides financial AI agent validation
 type FinTechValidatorService struct {
+	Config                *Config
 	validationCore        *validation.ValidationCore
 	ontologyRegistry      *ontology.OntologyRegistry
 	complianceEngine      *ontology.ComplianceEngine
@@ -61,6 +62,7 @@ type FinTechValidatorService struct {
 
 // Config holds configuration for the FinTech validator service
 type Config struct {
+	Enabled               bool
 	EnableAMLChecks       bool
 	EnableKYCCheks        bool
 	EnableSECCheks        bool
@@ -189,6 +191,7 @@ func NewFinTechValidatorService(
 	}
 
 	return &FinTechValidatorService{
+		Config:                config,
 		validationCore:        validationCore,
 		ontologyRegistry:      registry,
 		complianceEngine:      complianceEngine,
@@ -1387,4 +1390,15 @@ func (s *FinTechValidatorService) FlushTickStream(symbol string) error {
 // IsTickStreamingEnabled returns whether tick data streaming is enabled
 func (s *FinTechValidatorService) IsTickStreamingEnabled() bool {
 	return s.tickStreamManager != nil
+}
+
+// IsEnabled returns whether the FinTech validator service is enabled
+func (s *FinTechValidatorService) IsEnabled() bool {
+	return s.Config != nil && s.Config.Enabled
+}
+
+// IsRunning returns whether the FinTech validator service is running
+func (s *FinTechValidatorService) IsRunning() bool {
+	// For now, if it's initialized and enabled, we consider it running
+	return s.IsEnabled()
 }

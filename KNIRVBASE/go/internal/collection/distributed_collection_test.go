@@ -11,20 +11,39 @@ import (
 
 type mockStorage struct{}
 
-func (m *mockStorage) Insert(collection string, doc map[string]interface{}) error        { return nil }
-func (m *mockStorage) Update(collection, id string, update map[string]interface{}) error { return nil }
-func (m *mockStorage) Delete(collection, id string) error                                { return nil }
-func (m *mockStorage) Find(collection, id string) (map[string]interface{}, error)        { return nil, nil }
-func (m *mockStorage) FindAll(collection string) ([]map[string]interface{}, error)       { return nil, nil }
-func (m *mockStorage) CreateIndex(collection, name string, indexType stor.IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error {
+func (m *mockStorage) Insert(ctx context.Context, collection string, doc map[string]interface{}) error {
 	return nil
 }
-func (m *mockStorage) DropIndex(collection, name string) error                 { return nil }
-func (m *mockStorage) GetIndex(collection, name string) *stor.Index            { return nil }
-func (m *mockStorage) GetIndexesForCollection(collection string) []*stor.Index { return nil }
-func (m *mockStorage) QueryIndex(collection, indexName string, query map[string]interface{}) ([]string, error) {
+func (m *mockStorage) Update(ctx context.Context, collection, id string, update map[string]interface{}) error {
+	return nil
+}
+func (m *mockStorage) Delete(ctx context.Context, collection, id string) error { return nil }
+func (m *mockStorage) Find(ctx context.Context, collection, id string) (map[string]interface{}, error) {
 	return nil, nil
 }
+func (m *mockStorage) FindAll(ctx context.Context, collection string) ([]map[string]interface{}, error) {
+	return nil, nil
+}
+func (m *mockStorage) CreateIndex(ctx context.Context, collection, name string, indexType stor.IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error {
+	return nil
+}
+func (m *mockStorage) DropIndex(ctx context.Context, collection, name string) error      { return nil }
+func (m *mockStorage) GetIndex(ctx context.Context, collection, name string) *stor.Index { return nil }
+func (m *mockStorage) GetIndexesForCollection(ctx context.Context, collection string) []*stor.Index {
+	return nil
+}
+func (m *mockStorage) QueryIndex(ctx context.Context, collection, indexName string, query map[string]interface{}) ([]string, error) {
+	return nil, nil
+}
+func (m *mockStorage) Put(ctx context.Context, key string, value []byte) error            { return nil }
+func (m *mockStorage) Get(ctx context.Context, key string) ([]byte, error)                { return nil, nil }
+func (m *mockStorage) DeleteKey(ctx context.Context, key string) error                    { return nil }
+func (m *mockStorage) StoreObject(ctx context.Context, key string, obj interface{}) error { return nil }
+func (m *mockStorage) GetObject(ctx context.Context, key string, dest interface{}) error  { return nil }
+func (m *mockStorage) ProjectToMarkdown(ctx context.Context, key string, targetPath string) error {
+	return nil
+}
+func (m *mockStorage) Close() error { return nil }
 
 type mockNetwork struct{}
 
@@ -67,7 +86,7 @@ func TestLocalCollectionInsert(t *testing.T) {
 func TestLocalCollectionFind(t *testing.T) {
 	store := &mockStorage{}
 	coll := NewLocalCollection("test", store)
-	_, err := coll.Find("1")
+	_, err := coll.Find(context.Background(), "1")
 	if err != nil {
 		t.Errorf("Find failed: %v", err)
 	}
@@ -100,7 +119,7 @@ func TestDistributedCollectionFind(t *testing.T) {
 	store := &mockStorage{}
 	net := &mockNetwork{}
 	coll := NewDistributedCollection("test", net, store)
-	_, err := coll.Find("1")
+	_, err := coll.Find(context.Background(), "1")
 	if err != nil {
 		t.Errorf("Find failed: %v", err)
 	}
