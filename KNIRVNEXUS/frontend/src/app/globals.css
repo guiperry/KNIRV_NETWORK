@@ -140,13 +140,13 @@
   }
   
   .knirv-card-gradient {
-    background: linear-gradient(135deg, rgba(0, 192, 250, 0.1) 0%, rgba(43, 86, 245, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(0, 100, 255, 0.15) 0%, rgba(30, 64, 175, 0.15) 100%);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 192, 250, 0.2);
+    border: 1px solid rgba(37, 99, 235, 0.3);
   }
   
   .knirv-glow {
-    box-shadow: 0 0 20px rgba(0, 192, 250, 0.3);
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
   }
   
   .knirv-border-gradient {

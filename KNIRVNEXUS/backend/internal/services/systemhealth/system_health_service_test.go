@@ -3,12 +3,12 @@ package systemhealth
 import (
 	"testing"
 
-	"github.com/tidwall/buntdb"
+	"backend_server/internal/database"
 )
 
 func TestNewSystemHealthService(t *testing.T) {
 	// Create temporary database
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestNewSystemHealthService(t *testing.T) {
 }
 
 func TestSystemHealthService_Start(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestSystemHealthService_Start(t *testing.T) {
 }
 
 func TestSystemHealthService_Stop(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestSystemHealthService_Stop(t *testing.T) {
 }
 
 func TestSystemHealthService_IsRunning(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestSystemHealthService_IsRunning(t *testing.T) {
 }
 
 func TestSystemHealthService_GetSystemHealth(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestSystemHealthService_GetSystemHealth(t *testing.T) {
 }
 
 func TestSystemHealthService_AddAlert(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -221,7 +221,7 @@ func TestSystemHealthService_AddAlert(t *testing.T) {
 }
 
 func TestSystemHealthService_GetAlerts(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestSystemHealthService_GetAlerts(t *testing.T) {
 }
 
 func TestSystemHealthService_ResolveAlert(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -303,7 +303,7 @@ func TestSystemHealthService_ResolveAlert(t *testing.T) {
 }
 
 func TestSystemHealthService_RunDiagnostics(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -347,7 +347,7 @@ func TestSystemHealthService_RunDiagnostics(t *testing.T) {
 }
 
 func TestSystemHealthService_SetServiceReferences(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -360,6 +360,7 @@ func TestSystemHealthService_SetServiceReferences(t *testing.T) {
 	mockValidationCore := &struct{}{}
 	mockInferenceService := &struct{}{}
 	mockTEESecurityService := &struct{}{}
+	mockCognitiveEngine := &struct{}{}
 
 	// Set service references
 	service.SetServiceReferences(
@@ -367,6 +368,7 @@ func TestSystemHealthService_SetServiceReferences(t *testing.T) {
 		mockValidationCore,
 		mockInferenceService,
 		mockTEESecurityService,
+		mockCognitiveEngine,
 	)
 
 	// Verify references are set (we can't directly access private fields,

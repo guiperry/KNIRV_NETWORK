@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTEESecurity } from "@/hooks/use-tee-security";
+import { useCognitiveEngine } from "@/hooks/use-cognitive-engine";
 import { useAuth, ROLES } from '@/lib/auth-context';
 import { LoginForm } from '@/components/auth/login-form';
 import { UserProfile } from '@/components/auth/user-profile';
@@ -12,11 +14,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { NetworkAccessModal } from '@/components/cde/cde-access-modal';
+import { ActiveMemoryAccessModal, KNIRVGraphAccessModal, KNIRVChainAccessModal, P2PTransportAccessModal } from '@/components/cde/access-panels';
 import CDEPanel from './cde-panel'; // Modular CDE Panel
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
 import { FinancialComplianceDashboard } from '@/components/dashboard/financial-compliance-dashboard';
+import { useOnboarding } from "@/contexts/onboarding-context";
+import OnboardingGuide from "@/components/onboarding/onboarding-guide";
 import type { DVENode } from '@/types/api';
 import {
   Shield,
@@ -38,9 +43,11 @@ import {
   Zap,
   Download,
   Share2,
-  ToggleLeft,
-  ToggleRight,
-  Scale
+  Scale,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  Brain
 } from 'lucide-react';
 
 interface DashboardWrapperProps {
@@ -52,19 +59,63 @@ interface DashboardWrapperProps {
 
 export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseModularCDE }: DashboardWrapperProps) {
   const { user, isLoading } = useAuth();
+  const { state: onboardingState, updateState: updateOnboardingState, completeOnboarding, resetOnboarding } = useOnboarding();
+  const { securityStatus: teeSecurityStatus, isLoading: teeLoading } = useTEESecurity();
+  const { cognitiveEngine, isLoading: cognitiveLoading } = useCognitiveEngine();
   const [cdeModalOpen, setCdeModalOpen] = useState(false);
+  const [activeMemoryOpen, setActiveMemoryOpen] = useState(false);
+  const [knirvGraphOpen, setKnirvGraphOpen] = useState(false);
+  const [knirvChainOpen, setKnirvChainOpen] = useState(false);
+  const [p2pTransportOpen, setP2PTransportOpen] = useState(false);
   const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
   const [showAdminAccess, setShowAdminAccess] = useState(false);
 
   const handleNodeAccess = (node: DVENode) => {
     setSelectedNode(node);
+    setUseModularCDE(true);
     setCdeModalOpen(true);
   };
 
   const handleOpenKNIRVEngine = () => {
     setCdeModalOpen(false);
     setKnirvEngineModalOpen(true);
+  };
+
+  const handleOnboardingComplete = (config: any) => {
+    updateOnboardingState({
+      dataWalletConfig: {
+        walletName: config.walletName,
+        fabricInputs: config.fabricInputs,
+        guardrails: config.guardrails,
+        connectionData: config.connectionData,
+        completedConnections: config.completedConnections
+      },
+      privacyPreferences: config.privacySettings,
+      isOnboardingComplete: true,
+      currentStep: 'hosting'
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "online":
+      case "active":
+      case "completed":
+      case "verified":
+        return <Badge className="bg-green-500"><CheckCircle className="w-3 h-3 mr-1" /> {status}</Badge>;
+      case "offline":
+      case "failed":
+        return <Badge className="bg-red-500"><AlertTriangle className="w-3 h-3 mr-1" /> {status}</Badge>;
+      case "maintenance":
+      case "pending":
+        return <Badge className="bg-yellow-500"><Clock className="w-3 h-3 mr-1" /> {status}</Badge>;
+      case "running":
+      case "learning":
+        return <Badge className="bg-blue-500"><Activity className="w-3 h-3 mr-1" /> {status}</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
   };
 
   if (isLoading) {
@@ -96,31 +147,6 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
             </div>
             
             <div className="flex items-center space-x-4">
-              {/* Dashboard View Toggle - Only for Admins/Devs */}
-              {(user.role === 'admin' || user.role === 'observer') && (
-                <div className="hidden md:flex items-center space-x-2 bg-muted/50 p-1.5 rounded-full border">
-                  <span 
-                    className={`text-xs px-2 cursor-pointer ${!useModularCDE ? 'font-bold text-primary' : 'text-muted-foreground'}`} 
-                    onClick={() => setUseModularCDE(false)}
-                  >
-                    Network Center
-                  </span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 w-10 p-0 rounded-full" 
-                    onClick={() => setUseModularCDE(!useModularCDE)}
-                  >
-                    {useModularCDE ? <ToggleRight className="h-6 w-6 text-primary" /> : <ToggleLeft className="h-6 w-6 text-muted-foreground" />}
-                  </Button>
-                  <span 
-                    className={`text-xs px-2 cursor-pointer ${useModularCDE ? 'font-bold text-primary' : 'text-muted-foreground'}`} 
-                    onClick={() => setUseModularCDE(true)}
-                  >
-                    DVE Node
-                  </span>
-                </div>
-              )}
 
               <div className="flex items-center space-x-2 text-sm">
                 <span className="text-muted-foreground">Welcome,</span>
@@ -177,7 +203,16 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
             
             <div className="py-6">
               <TabsContent value="overview">
-                {children}
+                {!onboardingState.isOnboardingComplete ? (
+                  <div className="rounded-xl overflow-hidden border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                    <OnboardingGuide 
+                      onComplete={handleOnboardingComplete} 
+                      onReset={resetOnboarding}
+                    />
+                  </div>
+                ) : (
+                  children
+                )}
               </TabsContent>
               
               {user?.nexus_access?.includes('compliance:read') && (
@@ -214,7 +249,10 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
 
                     {/* Network Overview Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <Card className="knirv-card-gradient border hover:border-blue-500/50 transition-all group">
+                      <Card 
+                        className="knirv-card-gradient border hover:border-blue-500/50 transition-all group cursor-pointer"
+                        onClick={() => setActiveMemoryOpen(true)}
+                      >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center space-x-2">
                             <CardTitle className="text-sm font-medium">Active Memory (KNIRVBASE)</CardTitle>
@@ -235,7 +273,10 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                         </CardContent>
                       </Card>
 
-                      <Card className="knirv-card-gradient border hover:border-blue-500/50 transition-all group">
+                      <Card 
+                        className="knirv-card-gradient border hover:border-blue-500/50 transition-all group cursor-pointer"
+                        onClick={() => setKnirvGraphOpen(true)}
+                      >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center space-x-2">
                             <CardTitle className="text-sm font-medium">Reasoning Graph (KNIRVGRAPH)</CardTitle>
@@ -256,7 +297,10 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                         </CardContent>
                       </Card>
 
-                      <Card className="knirv-card-gradient border hover:border-blue-500/50 transition-all group">
+                      <Card 
+                        className="knirv-card-gradient border hover:border-blue-500/50 transition-all group cursor-pointer"
+                        onClick={() => setKnirvChainOpen(true)}
+                      >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center space-x-2">
                             <CardTitle className="text-sm font-medium">Solution Vault (KNIRVCHAIN)</CardTitle>
@@ -277,7 +321,10 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                         </CardContent>
                       </Card>
 
-                      <Card className="knirv-card-gradient border hover:border-blue-500/50 transition-all group">
+                      <Card 
+                        className="knirv-card-gradient border hover:border-blue-500/50 transition-all group cursor-pointer"
+                        onClick={() => setP2PTransportOpen(true)}
+                      >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center space-x-2">
                             <CardTitle className="text-sm font-medium">P2P Transport</CardTitle>
@@ -363,72 +410,165 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </TabsContent>
 
                       <TabsContent value="tee" className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold">TEE Security Status</h3>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Download className="w-4 h-4 mr-2" />
-                              Export
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Share2 className="w-4 h-4 mr-2" />
-                              Share
-                            </Button>
+                        {teeSecurityStatus && (
+                          <div className="grid gap-4">
+                            <Card className="knirv-card-gradient">
+                              <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                  <Shield className="h-5 w-5" />
+                                  TEE Security Status
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Attestation Status</p>
+                                    {getStatusBadge(teeSecurityStatus.attestation_status)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Security Score</p>
+                                    <div className="flex items-center gap-2">
+                                      <Progress value={teeSecurityStatus.security_score} className="flex-1" />
+                                      <span className="text-sm">{teeSecurityStatus.security_score}%</span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Active Enclaves</p>
+                                    <p className="text-2xl font-bold">{teeSecurityStatus.enclave_count}</p>
+                                  </div>
+                                </div>
+                                <div className="mt-4 grid grid-cols-2 gap-4">
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Last Audit</p>
+                                    <p className="font-semibold">{new Date(teeSecurityStatus.last_audit).toLocaleString()}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Threats Detected</p>
+                                    <p className="font-semibold">{teeSecurityStatus.threats_detected}</p>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                            
+                            {teeSecurityStatus.threats_detected > 0 && (
+                              <Alert>
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertDescription>
+                                  {teeSecurityStatus.threats_detected} potential threats detected. Security team has been notified.
+                                </AlertDescription>
+                              </Alert>
+                            )}
+
+                            <div className="flex items-center justify-between mt-6">
+                              <h3 className="text-lg font-semibold">TEE Technology Overview</h3>
+                              <div className="flex space-x-2">
+                                <Button variant="outline" size="sm">
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Export
+                                </Button>
+                                <Button variant="outline" size="sm">
+                                  <Share2 className="w-4 h-4 mr-2" />
+                                  Share
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                              <Card className="knirv-card-gradient">
+                                <CardHeader>
+                                  <CardTitle className="flex items-center space-x-2">
+                                    <Shield className="w-5 h-5" />
+                                    <span>SGX Enclaves</span>
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold">18</div>
+                                  <p className="text-sm text-muted-foreground">Active secure enclaves</p>
+                                  <Button variant="outline" size="sm" className="w-full mt-4">
+                                    <Download className="w-3 h-3 mr-1" />
+                                    Security Reports
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                              <Card className="knirv-card-gradient">
+                                <CardHeader>
+                                  <CardTitle className="flex items-center space-x-2">
+                                    <Lock className="w-5 h-5" />
+                                    <span>SEV-SNP</span>
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold">6</div>
+                                  <p className="text-sm text-muted-foreground">Secure VMs running</p>
+                                  <Button variant="outline" size="sm" className="w-full mt-4">
+                                    <Download className="w-3 h-3 mr-1" />
+                                    VM Reports
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                              <Card className="knirv-card-gradient">
+                                <CardHeader>
+                                  <CardTitle className="flex items-center space-x-2">
+                                    <Zap className="w-5 h-5" />
+                                    <span>TDX</span>
+                                  </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="text-2xl font-bold">3</div>
+                                  <p className="text-sm text-muted-foreground">Trust domains active</p>
+                                  <Button variant="outline" size="sm" className="w-full mt-4">
+                                    <Download className="w-3 h-3 mr-1" />
+                                    Trust Reports
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            </div>
                           </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <Card className="knirv-card-gradient">
-                            <CardHeader>
-                              <CardTitle className="flex items-center space-x-2">
-                                <Shield className="w-5 h-5" />
-                                <span>SGX Enclaves</span>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold">18</div>
-                              <p className="text-sm text-muted-foreground">Active secure enclaves</p>
-                              <Button variant="outline" size="sm" className="w-full mt-4">
-                                <Download className="w-3 h-3 mr-1" />
-                                Security Reports
-                              </Button>
-                            </CardContent>
-                          </Card>
-                          <Card className="knirv-card-gradient">
-                            <CardHeader>
-                              <CardTitle className="flex items-center space-x-2">
-                                <Lock className="w-5 h-5" />
-                                <span>SEV-SNP</span>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold">6</div>
-                              <p className="text-sm text-muted-foreground">Secure VMs running</p>
-                              <Button variant="outline" size="sm" className="w-full mt-4">
-                                <Download className="w-3 h-3 mr-1" />
-                                VM Reports
-                              </Button>
-                            </CardContent>
-                          </Card>
-                          <Card className="knirv-card-gradient">
-                            <CardHeader>
-                              <CardTitle className="flex items-center space-x-2">
-                                <Zap className="w-5 h-5" />
-                                <span>TDX</span>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-2xl font-bold">3</div>
-                              <p className="text-sm text-muted-foreground">Trust domains active</p>
-                              <Button variant="outline" size="sm" className="w-full mt-4">
-                                <Download className="w-3 h-3 mr-1" />
-                                Trust Reports
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        </div>
+                        )}
                       </TabsContent>
 
                       <TabsContent value="cognitive" className="space-y-4">
+                        {cognitiveEngine && (
+                          <div className="grid gap-4">
+                            <Card className="knirv-card-gradient">
+                              <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                  <Brain className="h-5 w-5" />
+                                  Cognitive Engine Status
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Status</p>
+                                    {getStatusBadge(cognitiveEngine.status)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Accuracy</p>
+                                    <div className="flex items-center gap-2">
+                                      <Progress value={cognitiveEngine.accuracy} className="flex-1" />
+                                      <span className="text-sm">{cognitiveEngine.accuracy}%</span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Tasks Processed</p>
+                                    <p className="text-2xl font-bold">{cognitiveEngine.tasks_processed.toLocaleString()}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm text-muted-foreground">Adaptation Rate</p>
+                                    <div className="flex items-center gap-2">
+                                      <Progress value={cognitiveEngine.adaptation_rate * 100} className="flex-1" />
+                                      <span className="text-sm">{(cognitiveEngine.adaptation_rate * 100).toFixed(1)}%</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="mt-4">
+                                  <p className="text-sm text-muted-foreground">Fabric Version</p>
+                                  <Badge variant="outline">{cognitiveEngine.model_version}</Badge>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )}
                         <CognitiveEnginePanel />
                       </TabsContent>
                     </Tabs>
@@ -753,6 +893,27 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
         onOpenKNIRVEngine={() => {
           setShowAdminAccess(false);
         }}
+      />
+
+      {/* Network Resource Access Modals */}
+      <ActiveMemoryAccessModal
+        isOpen={activeMemoryOpen}
+        onClose={() => setActiveMemoryOpen(false)}
+      />
+
+      <KNIRVGraphAccessModal
+        isOpen={knirvGraphOpen}
+        onClose={() => setKnirvGraphOpen(false)}
+      />
+
+      <KNIRVChainAccessModal
+        isOpen={knirvChainOpen}
+        onClose={() => setKnirvChainOpen(false)}
+      />
+
+      <P2PTransportAccessModal
+        isOpen={p2pTransportOpen}
+        onClose={() => setP2PTransportOpen(false)}
       />
     </div>
   );

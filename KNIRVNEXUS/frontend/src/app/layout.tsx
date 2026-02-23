@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/lib/auth-context";
 import { DemoModeProvider } from "@/contexts/demo-mode-context";
 import { DHTProvider } from "@/contexts/dht-context";
+import { OnboardingProvider } from "@/contexts/onboarding-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -48,8 +49,10 @@ export default function RootLayout({
         <AuthProvider>
           <DemoModeProvider>
             <DHTProvider>
-              {children}
-              <Toaster />
+              <OnboardingProvider>
+                {children}
+                <Toaster />
+              </OnboardingProvider>
             </DHTProvider>
           </DemoModeProvider>
         </AuthProvider>

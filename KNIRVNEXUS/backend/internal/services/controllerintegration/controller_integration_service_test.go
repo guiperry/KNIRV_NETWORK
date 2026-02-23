@@ -8,11 +8,11 @@ import (
 
 	"backend_server/internal/objects"
 	"backend_server/internal/services/websocket"
-	"github.com/tidwall/buntdb"
+	"backend_server/internal/database"
 )
 
 func TestNewControllerIntegrationService(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestNewControllerIntegrationService(t *testing.T) {
 }
 
 func TestControllerIntegrationService_Start(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestControllerIntegrationService_Start(t *testing.T) {
 }
 
 func TestControllerIntegrationService_Stop(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestControllerIntegrationService_Stop(t *testing.T) {
 }
 
 func TestControllerIntegrationService_IsRunning(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestControllerIntegrationService_IsRunning(t *testing.T) {
 }
 
 func TestControllerIntegrationService_SetWebSocketService(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestControllerIntegrationService_SetWebSocketService(t *testing.T) {
 }
 
 func TestControllerIntegrationService_GenerateQRCode(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -189,7 +189,7 @@ func TestControllerIntegrationService_GenerateQRCode(t *testing.T) {
 }
 
 func TestControllerIntegrationService_ScanQRCode(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -240,7 +240,7 @@ func TestControllerIntegrationService_ScanQRCode(t *testing.T) {
 }
 
 func TestControllerIntegrationService_ConfirmPairing(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -296,7 +296,7 @@ func TestControllerIntegrationService_ConfirmPairing(t *testing.T) {
 }
 
 func TestControllerIntegrationService_GetActiveSession(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -349,7 +349,7 @@ func TestControllerIntegrationService_GetActiveSession(t *testing.T) {
 }
 
 func TestControllerIntegrationService_GetUserSessions(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -406,7 +406,7 @@ func TestControllerIntegrationService_GetUserSessions(t *testing.T) {
 }
 
 func TestControllerIntegrationService_SendMessage(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -465,7 +465,7 @@ func TestControllerIntegrationService_SendMessage(t *testing.T) {
 }
 
 func TestControllerIntegrationService_TerminateSession(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -518,7 +518,7 @@ func TestControllerIntegrationService_TerminateSession(t *testing.T) {
 }
 
 func TestControllerIntegrationService_HandleControllerCommand(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -602,7 +602,7 @@ func TestControllerIntegrationService_HandleControllerCommand(t *testing.T) {
 }
 
 func TestControllerIntegrationService_NegotiateCapabilities(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}
@@ -657,7 +657,7 @@ func TestControllerIntegrationService_NegotiateCapabilities(t *testing.T) {
 }
 
 func TestControllerIntegrationService_SendPushNotification(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to open test database: %v", err)
 	}

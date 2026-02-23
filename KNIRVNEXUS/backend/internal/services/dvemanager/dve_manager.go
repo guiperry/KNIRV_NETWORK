@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	
 	"sync"
 	"time"
 
 	"backend_server/internal/config"
 	"backend_server/internal/database"
+	"backend_server/internal/ebpf"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/p2p"
 
@@ -26,6 +26,7 @@ type DVEManager struct {
 	nodeTracker      *NodeTracker
 	loadBalancer     *LoadBalancer
 	instanceRegistry *InstanceRegistry
+	lsmIntegration   *ebpf.LSMIntegration
 	ctx              context.Context
 	cancel           context.CancelFunc
 	mu               sync.RWMutex
@@ -65,6 +66,7 @@ func NewDVEManager(db *database.BuntDBManager, p2pManager *p2p.DVEP2PManager, cf
 			algorithm: "reputation_based",
 		},
 		instanceRegistry: instanceRegistry,
+		lsmIntegration:   ebpf.NewLSMIntegration("/var/run/knirv"),
 		ctx:              ctx,
 		cancel:           cancel,
 	}
@@ -83,6 +85,15 @@ func NewDVEManager(db *database.BuntDBManager, p2pManager *p2p.DVEP2PManager, cf
 // Start starts the DVE Manager service
 func (dm *DVEManager) Start(ctx context.Context) error {
 	log.Println("Starting DVE Manager service...")
+
+	// Initialize LSM integration for real-time telemetry
+	if dm.lsmIntegration != nil {
+		if err := dm.lsmIntegration.Initialize(ctx); err != nil {
+			log.Printf("Warning: Failed to initialize LSM integration: %v", err)
+		} else {
+			log.Println("DVE Manager: LSM integration initialized")
+		}
+	}
 
 	// Note: API routes are registered with the unified server, no separate server needed
 
@@ -684,18 +695,53 @@ func (dm *DVEManager) calculateOverallStatus(activeNodes, totalNodes int) string
 }
 
 func (dm *DVEManager) calculateAverageResponseTime() float64 {
-	// TODO: Implement actual response time calculation
-	return 150.0 // Placeholder
+	dm.mu.RLock()
+	lsm := dm.lsmIntegration
+	dm.mu.RUnlock()
+
+	if lsm != nil && lsm.IsEnabled() {
+		_, _, _, netRx := lsm.GetAggregatedStats()
+		if netRx > 0 {
+			return float64(netRx) / 1000000.0
+		}
+	}
+	return 0.0
 }
 
 func (dm *DVEManager) calculateNetworkLatency() float64 {
-	// TODO: Implement actual network latency calculation
-	return 25.0 // Placeholder
+	dm.mu.RLock()
+	lsm := dm.lsmIntegration
+	dm.mu.RUnlock()
+
+	if lsm != nil && lsm.IsEnabled() {
+		cpuNs, _, _, _ := lsm.GetAggregatedStats()
+		if cpuNs > 0 {
+			return float64(cpuNs) / 1000000.0
+		}
+	}
+	return 0.0
 }
 
 func (dm *DVEManager) calculateTEEHealthScore() float64 {
-	// TODO: Implement actual TEE health score calculation
-	return 0.95 // Placeholder
+	dm.mu.RLock()
+	lsm := dm.lsmIntegration
+	dm.mu.RUnlock()
+
+	if lsm != nil && lsm.IsEnabled() {
+		auditLog := lsm.GetAuditLog()
+		deniedCount := 0
+		for _, entry := range auditLog {
+			if entry.Decision == "DENY" {
+				deniedCount++
+			}
+		}
+
+		if len(auditLog) > 0 {
+			return 1.0 - (float64(deniedCount) / float64(len(auditLog)))
+		}
+		return 1.0
+	}
+	return 0.95
 }
 
 // GetAllNodes returns all nodes managed by the DVE Manager

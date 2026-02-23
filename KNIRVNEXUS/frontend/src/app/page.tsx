@@ -11,8 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useKnirvSocket } from "@/hooks/use-knirv-socket";
 import { useDVENodes } from "@/hooks/use-dve-nodes";
 import { useValidationTasks } from "@/hooks/use-validation-tasks";
-import { useCognitiveEngine } from "@/hooks/use-cognitive-engine";
-import { useTEESecurity } from "@/hooks/use-tee-security";
 import { useSystemHealth } from "@/hooks/use-system-health";
 import { DVENodesPanel } from "@/components/dashboard/dve-nodes-panel";
 import { CognitiveEnginePanel } from "@/components/dashboard/cognitive-engine-panel";
@@ -100,30 +98,17 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [useModularCDE, setUseModularCDE] = useState(false);
 
-  // Normal users (validators/observers) are sent directly to the modular view (inside a DVE)
-  const isNormalUser = user?.role === 'validator' || user?.role === 'observer';
-  const displayModular = useModularCDE || isNormalUser;
-
-  // Set initial modular state based on role
-  useEffect(() => {
-    if (isNormalUser && !useModularCDE) {
-      setUseModularCDE(true);
-    }
-  }, [isNormalUser, useModularCDE]);
+  const displayModular = useModularCDE;
 
   // Use real backend hooks instead of mock data
   const { nodes: dveNodes, isLoading: dveLoading, error: dveError } = useDVENodes();
   const { tasks: validationTasks, isLoading: tasksLoading } = useValidationTasks();
-  const { cognitiveEngine, isLoading: cognitiveLoading } = useCognitiveEngine();
-  const { securityStatus: teeSecurityStatus, isLoading: teeLoading } = useTEESecurity();
   const { systemHealth, isLoading: healthLoading } = useSystemHealth();
   
   const {
     isConnected,
     dveNodeUpdates,
     validationTaskUpdates,
-    cognitiveEngineUpdates,
-    teeSecurityUpdates,
     nrnStakingUpdates,
     securityAlerts,
     systemNotifications,
@@ -203,7 +188,7 @@ export default function Dashboard() {
 
   return (
     <DashboardWrapper 
-      onRentDVE={() => setShowDVERentalManagement(true)}
+      onRentDVE={() => {}}
       useModularCDE={useModularCDE}
       setUseModularCDE={setUseModularCDE}
     >
@@ -313,10 +298,8 @@ export default function Dashboard() {
             </div>
 
             <Tabs defaultValue="fabric" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="fabric">Markdown Fabric</TabsTrigger>
-                <TabsTrigger value="cognitive">Cognitive Engine</TabsTrigger>
-                <TabsTrigger value="security">TEE Security</TabsTrigger>
                 <TabsTrigger value="admin">Admin</TabsTrigger>
               </TabsList>
 
@@ -333,104 +316,6 @@ export default function Dashboard() {
                     <PluginVaultPanel />
                   </TabsContent>
                 </Tabs>
-              </TabsContent>
-
-              <TabsContent value="cognitive" className="space-y-4">
-                {cognitiveEngine && (
-                  <div className="grid gap-4">
-                    <Card className="knirv-card-gradient">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Brain className="h-5 w-5" />
-                          Cognitive Engine Status
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Status</p>
-                            {getStatusBadge(cognitiveEngine.status)}
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Accuracy</p>
-                            <div className="flex items-center gap-2">
-                              <Progress value={cognitiveEngine.accuracy} className="flex-1" />
-                              <span className="text-sm">{cognitiveEngine.accuracy}%</span>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Tasks Processed</p>
-                            <p className="text-2xl font-bold">{cognitiveEngine.tasks_processed.toLocaleString()}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Adaptation Rate</p>
-                            <div className="flex items-center gap-2">
-                              <Progress value={cognitiveEngine.adaptation_rate * 100} className="flex-1" />
-                              <span className="text-sm">{(cognitiveEngine.adaptation_rate * 100).toFixed(1)}%</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <p className="text-sm text-muted-foreground">Fabric Version</p>
-                          <Badge variant="outline">{cognitiveEngine.model_version}</Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="security" className="space-y-4">
-                {teeSecurityStatus && (
-                  <div className="grid gap-4">
-                    <Card className="knirv-card-gradient">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Shield className="h-5 w-5" />
-                          TEE Security Status
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Attestation Status</p>
-                            {getStatusBadge(teeSecurityStatus.attestation_status)}
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Security Score</p>
-                            <div className="flex items-center gap-2">
-                              <Progress value={teeSecurityStatus.security_score} className="flex-1" />
-                              <span className="text-sm">{teeSecurityStatus.security_score}%</span>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Active Enclaves</p>
-                            <p className="text-2xl font-bold">{teeSecurityStatus.enclave_count}</p>
-                          </div>
-                        </div>
-                        <div className="mt-4 grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Last Audit</p>
-                            <p className="font-semibold">{new Date(teeSecurityStatus.last_audit).toLocaleString()}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Threats Detected</p>
-                            <p className="font-semibold">{teeSecurityStatus.threats_detected}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    {teeSecurityStatus.threats_detected > 0 && (
-                      <Alert>
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
-                          {teeSecurityStatus.threats_detected} potential threats detected. Security team has been notified.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-                )}
               </TabsContent>
 
               <TabsContent value="admin" className="space-y-4">

@@ -12,17 +12,17 @@ import (
 	"backend_server/internal/services/dverental"
 	"backend_server/internal/services/endpoints"
 	"backend_server/internal/services/session"
+	"backend_server/internal/database"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/buntdb"
 )
 
 func TestNewDVERentalHandlers(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
 
@@ -40,7 +40,7 @@ func TestDownloadSSHPrivateKey_Success(t *testing.T) {
 	// Setup mocks
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
 
@@ -67,7 +67,7 @@ func TestDownloadSSHPrivateKey_Success(t *testing.T) {
 func TestDownloadSSHPrivateKey_SessionNotFound(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
 
@@ -93,7 +93,7 @@ func TestDownloadSSHPrivateKey_SessionNotFound(t *testing.T) {
 func TestDownloadSSHPrivateKey_SessionExpired(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
 
@@ -126,7 +126,7 @@ func TestDownloadSSHPrivateKey_SessionExpired(t *testing.T) {
 func TestDownloadSSHPrivateKey_MissingSessionID(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
 
@@ -147,7 +147,7 @@ func TestDownloadSSHPrivateKey_MissingSessionID(t *testing.T) {
 }
 
 func TestTerminateValidationSession_Success(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	dveRentalService, err := dverental.NewDVERentalService(db)
 	require.NoError(t, err)
 	// Enable test mode to skip blockchain verification
@@ -192,7 +192,7 @@ func TestTerminateValidationSession_Success(t *testing.T) {
 }
 
 func TestTerminateValidationSession_RentalNotFound(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	dveRentalService, _ := dverental.NewDVERentalService(db)
 	containerOrchestrator := &container.ContainerOrchestrator{}
 	sessionManager := session.NewSessionManager(db)
@@ -218,7 +218,7 @@ func TestTerminateValidationSession_RentalNotFound(t *testing.T) {
 }
 
 func TestTerminateValidationSession_NoValidationSession(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	dveRentalService, err := dverental.NewDVERentalService(db)
 	require.NoError(t, err)
 	// Enable test mode to skip blockchain verification
@@ -263,7 +263,7 @@ func TestTerminateValidationSession_NoValidationSession(t *testing.T) {
 }
 
 func TestTerminateErrorResolutionSession_Success(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	dveRentalService, err := dverental.NewDVERentalService(db)
 	require.NoError(t, err)
 	// Enable test mode to skip blockchain verification
@@ -309,7 +309,7 @@ func TestTerminateErrorResolutionSession_Success(t *testing.T) {
 }
 
 func TestTerminateErrorResolutionSession_RentalNotFound(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	dveRentalService, err := dverental.NewDVERentalService(db)
 	require.NoError(t, err)
 	containerOrchestrator := &container.ContainerOrchestrator{}
@@ -336,7 +336,7 @@ func TestTerminateErrorResolutionSession_RentalNotFound(t *testing.T) {
 }
 
 func TestTerminateErrorResolutionSession_NoErrorResolutionSession(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	dveRentalService, err := dverental.NewDVERentalService(db)
 	require.NoError(t, err)
 	// Enable test mode to skip blockchain verification
@@ -383,7 +383,7 @@ func TestTerminateErrorResolutionSession_NoErrorResolutionSession(t *testing.T) 
 func TestTerminateValidationSession_MissingRentalID(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
 
@@ -406,7 +406,7 @@ func TestTerminateValidationSession_MissingRentalID(t *testing.T) {
 func TestTerminateErrorResolutionSession_MissingRentalID(t *testing.T) {
 	dveRentalService := &dverental.DVERentalService{}
 	containerOrchestrator := &container.ContainerOrchestrator{}
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	sessionManager := session.NewSessionManager(db)
 	endpointRegistry := &endpoints.EndpointRegistry{}
 

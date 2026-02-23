@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"backend_server/internal/config"
+	"backend_server/internal/database"
 	"backend_server/internal/fintech"
 	"backend_server/internal/fintech/ontology"
 	"backend_server/internal/services/p2p"
@@ -14,12 +15,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/buntdb"
 )
 
 func TestNewFinTechValidatorService(t *testing.T) {
 	// Setup test dependencies
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	require.NoError(t, err)
 	defer db.Close()
 

@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tidwall/buntdb"
+	"backend_server/internal/database"
 )
 
 func TestNewTEESecurityService(t *testing.T) {
 	// Create in-memory database for testing
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -38,7 +38,7 @@ func TestNewTEESecurityService(t *testing.T) {
 }
 
 func TestTEESecurityService_GetKaliProfile(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestTEESecurityService_GetKaliProfile(t *testing.T) {
 }
 
 func TestTEESecurityService_GetRuntimeManager(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestTEESecurityService_GetRuntimeManager(t *testing.T) {
 }
 
 func TestTEESecurityService_Start(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestTEESecurityService_Start(t *testing.T) {
 }
 
 func TestTEESecurityService_Stop(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -114,7 +114,7 @@ func TestTEESecurityService_Stop(t *testing.T) {
 }
 
 func TestTEESecurityService_IsRunning(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestTEESecurityService_IsRunning(t *testing.T) {
 }
 
 func TestTEESecurityService_GetSecurityStatus(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -182,7 +182,7 @@ func TestTEESecurityService_GetSecurityStatus(t *testing.T) {
 }
 
 func TestTEESecurityService_RunSecurityScan(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestTEESecurityService_RunSecurityScan(t *testing.T) {
 }
 
 func TestTEESecurityService_PerformAttestation(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -218,7 +218,7 @@ func TestTEESecurityService_PerformAttestation(t *testing.T) {
 }
 
 func TestTEESecurityService_UpdateAttestationStatus(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -237,7 +237,7 @@ func TestTEESecurityService_UpdateAttestationStatus(t *testing.T) {
 }
 
 func TestTEESecurityService_ResolveThreat(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -256,7 +256,7 @@ func TestTEESecurityService_ResolveThreat(t *testing.T) {
 }
 
 func TestTEESecurityService_StoreKaliProfile(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -267,20 +267,13 @@ func TestTEESecurityService_StoreKaliProfile(t *testing.T) {
 		t.Fatalf("Failed to create TEE security service: %v", err)
 	}
 
-	// Verify profile was stored
-	err = db.View(func(tx *buntdb.Tx) error {
-		val, err := tx.Get("tee:kali_profile")
-		if err != nil {
-			return err
-		}
-		if val == "" {
-			t.Error("Kali profile should be stored in database")
-		}
-		return nil
-	})
-
+	// Verify profile was stored (using database manager interface instead of direct buntdb)
+	val, err := db.GetValue("tee:kali_profile")
 	if err != nil {
 		t.Fatalf("Failed to verify Kali profile storage: %v", err)
+	}
+	if val == "" {
+		t.Error("Kali profile should be stored in database")
 	}
 
 	// Use service to avoid unused variable error
@@ -288,7 +281,7 @@ func TestTEESecurityService_StoreKaliProfile(t *testing.T) {
 }
 
 func TestTEESecurityService_SecurityStatusFields(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -344,7 +337,7 @@ func TestTEESecurityService_SecurityStatusFields(t *testing.T) {
 }
 
 func TestTEESecurityService_MultipleOperations(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}
@@ -393,7 +386,7 @@ func TestTEESecurityService_MultipleOperations(t *testing.T) {
 }
 
 func TestTEESecurityService_StatusConsistency(t *testing.T) {
-	db, err := buntdb.Open(":memory:")
+	db, err := database.NewBuntDB(":memory:")
 	if err != nil {
 		t.Fatalf("Failed to create test database: %v", err)
 	}

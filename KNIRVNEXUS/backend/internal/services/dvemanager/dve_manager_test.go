@@ -4,8 +4,7 @@ import (
 	"testing"
 
 	"backend_server/internal/config"
-
-	"github.com/tidwall/buntdb"
+	"backend_server/internal/database"
 )
 
 func TestNewDVEManager(t *testing.T) {
@@ -30,7 +29,7 @@ func TestNodeFilter(t *testing.T) {
 
 func TestUpdateNodeStatus(t *testing.T) {
 	// Setup
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	cfg := &config.Config{ChainID: "test-chain"}
@@ -71,7 +70,7 @@ func TestUpdateNodeStatus(t *testing.T) {
 
 func TestGetSystemHealth(t *testing.T) {
 	// Setup
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	cfg := &config.Config{ChainID: "test-chain"}
@@ -113,7 +112,7 @@ func TestGetSystemHealth(t *testing.T) {
 }
 
 func TestCalculateOverallStatus(t *testing.T) {
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	cfg := &config.Config{ChainID: "test-chain"}
@@ -141,7 +140,7 @@ func TestCalculateOverallStatus(t *testing.T) {
 
 func TestGetAllNodes(t *testing.T) {
 	// Setup
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	cfg := &config.Config{ChainID: "test-chain"}
@@ -172,7 +171,7 @@ func TestGetAllNodes(t *testing.T) {
 
 func TestUpdateNode(t *testing.T) {
 	// Setup
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	cfg := &config.Config{ChainID: "test-chain"}
@@ -227,7 +226,7 @@ func TestUpdateNode(t *testing.T) {
 
 func TestRemoveNode(t *testing.T) {
 	// Setup
-	db, _ := buntdb.Open(":memory:")
+	db, _ := database.NewBuntDB(":memory:")
 	defer db.Close()
 
 	cfg := &config.Config{ChainID: "test-chain"}

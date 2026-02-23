@@ -196,6 +196,9 @@ func (ep *EvidencePack) GenerateMarkdown() ([]byte, error) {
 	md += fmt.Sprintf("**Type:** %s  \n", ep.Type)
 	md += fmt.Sprintf("**Status:** %s  \n", ep.Status)
 	md += fmt.Sprintf("**Agent ID:** %s  \n", ep.AgentID)
+	if ep.AgentName != "" {
+		md += fmt.Sprintf("**Agent Name:** %s  \n", ep.AgentName)
+	}
 	md += fmt.Sprintf("**Validation ID:** %s  \n", ep.ValidationID)
 	md += fmt.Sprintf("**Created:** %s  \n", ep.CreatedAt.Format(time.RFC3339))
 	if ep.CompletedAt != nil {

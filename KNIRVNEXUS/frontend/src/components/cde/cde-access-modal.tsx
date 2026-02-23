@@ -1,11 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Terminal, Play, Code, Database, Settings, Cpu, Zap, FileText, Download, Share2, Radio, Shield, BarChart3, Upload } from 'lucide-react';
+import { X, Terminal, Play, Code, Database, Settings, Cpu, Zap, FileText, Download, Share2, Radio, Shield, BarChart3, Upload, AlertTriangle, TestTube, Network, WifiOff, Loader2, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useDemoMode } from '@/contexts/demo-mode-context';
+import { useDHT } from '@/contexts/dht-context';
+import { useToast } from '@/hooks/use-toast';
 
 interface NetworkAccessModalProps {
   isOpen: boolean;
@@ -44,6 +49,15 @@ export function NetworkAccessModal({
   const [isValidating, setIsValidating] = useState(false);
   const [validationResults, setValidationResults] = useState<any>(null);
   const [showValidationReport, setShowValidationReport] = useState(false);
+
+  // Admin Tab State
+  const { isDemoMode, toggleDemoMode } = useDemoMode();
+  const { isDHTEnabled, setDHTEnabled } = useDHT();
+  const { toast } = useToast();
+  const [isDHTUpdating, setIsDHTUpdating] = useState(false);
+  const [wsConnected] = useState(true); // Simulated WebSocket status
+  const [dveNodeCount] = useState(8); // Simulated node count
+  const [activeTasks] = useState(24); // Simulated active tasks
 
   const workflowTemplates = [
     {
@@ -192,6 +206,31 @@ export function NetworkAccessModal({
     { id: 'prob-005', title: 'Consensus Divergence', severity: 'critical', description: 'Nodes disagree on validation results' },
   ];
 
+  const handleDHTToggle = async (checked: boolean) => {
+    setIsDHTUpdating(true);
+    try {
+      const response = await fetch('/api/system/dht', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: checked }),
+      });
+      if (!response.ok) throw new Error('Failed to update DHT settings');
+      setDHTEnabled(checked);
+      toast({
+        title: "DHT Settings Updated",
+        description: `DHT has been ${checked ? 'enabled' : 'disabled'} successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update DHT settings. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDHTUpdating(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -214,14 +253,6 @@ export function NetworkAccessModal({
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-[10px] font-black uppercase border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white"
-                onClick={onToggleMode}
-              >
-                Switch to Modular
-              </Button>
               <Badge variant="secondary">Connected</Badge>
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="w-4 h-4" />
@@ -233,10 +264,11 @@ export function NetworkAccessModal({
           <div className="flex-1 overflow-auto">
             <Tabs defaultValue="terminal" className="h-full">
               <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="terminal">Terminal</TabsTrigger>
                   <TabsTrigger value="workflows">Workflows</TabsTrigger>
                   <TabsTrigger value="tools">Tools</TabsTrigger>
+                  <TabsTrigger value="admin">Admin</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -468,6 +500,186 @@ export function NetworkAccessModal({
                     </CardContent>
                   </Card>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="admin" className="px-6 pb-6 space-y-4">
+                {/* Demo Mode Toggle */}
+                <Card className="w-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      {isDemoMode ? (
+                        <TestTube className="h-5 w-5 text-blue-500" />
+                      ) : (
+                        <Database className="h-5 w-5 text-green-500" />
+                      )}
+                      Demo Mode Configuration
+                    </CardTitle>
+                    <CardDescription>
+                      Control whether the application shows demo data or connects to real backend services
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="demo-mode" className="text-base font-medium">
+                          Demo Mode
+                        </Label>
+                        <div className="text-sm text-muted-foreground">
+                          {isDemoMode 
+                            ? "Showing mock data and simulated responses" 
+                            : "Connected to live backend services and database"
+                          }
+                        </div>
+                      </div>
+                      <Switch
+                        id="demo-mode"
+                        checked={isDemoMode}
+                        onCheckedChange={toggleDemoMode}
+                      />
+                    </div>
+
+                    <div className="rounded-lg border p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        Current Mode: {isDemoMode ? "Demo" : "Production"}
+                      </div>
+                      
+                      {isDemoMode ? (
+                        <div className="text-sm text-muted-foreground space-y-2">
+                          <p><strong>Demo Mode Active:</strong></p>
+                          <ul className="list-disc list-inside space-y-1 ml-4">
+                            <li>Mock data for DVE nodes, validation tasks, and fabric items</li>
+                            <li>Simulated real-time updates and metrics</li>
+                            <li>No actual backend connections required</li>
+                            <li>Safe for testing and demonstrations</li>
+                          </ul>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground space-y-2">
+                          <p><strong>Production Mode Active:</strong></p>
+                          <ul className="list-disc list-inside space-y-1 ml-4">
+                            <li>Live data from backend database</li>
+                            <li>Real WebSocket connections for updates</li>
+                            <li>Actual DVE node management and validation</li>
+                            <li>Empty states shown when no data available</li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* DHT Toggle */}
+                <Card className="w-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      {isDHTEnabled ? (
+                        <Network className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <WifiOff className="h-5 w-5 text-red-500" />
+                      )}
+                      DHT Configuration
+                    </CardTitle>
+                    <CardDescription>
+                      Control whether the Distributed Hash Table (DHT) is enabled for peer discovery and resource sharing
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="dht-toggle" className="text-base font-medium">
+                          Enable DHT
+                        </Label>
+                        <div className="text-sm text-muted-foreground">
+                          {isDHTEnabled
+                            ? "DHT is active for peer discovery and network coordination"
+                            : "DHT is disabled to reduce network noise and resource usage"
+                          }
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`relative ${!isDHTEnabled ? "ring-2 ring-red-500 rounded-full" : ""}`}>
+                          <Switch
+                            id="dht-toggle"
+                            checked={isDHTEnabled}
+                            onCheckedChange={handleDHTToggle}
+                            disabled={isDHTUpdating}
+                          />
+                          {!isDHTEnabled && (
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                          )}
+                        </div>
+                        {isDHTUpdating && (
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        Current Status: {isDHTEnabled ? "Enabled" : "Disabled"}
+                      </div>
+
+                      {isDHTEnabled ? (
+                        <div className="text-sm text-muted-foreground space-y-2">
+                          <p><strong>DHT Active:</strong></p>
+                          <ul className="list-disc list-inside space-y-1 ml-4">
+                            <li>Peer discovery and network coordination enabled</li>
+                            <li>Resource announcements and lookups active</li>
+                            <li>Increased network traffic and resource usage</li>
+                            <li>Full P2P functionality available</li>
+                          </ul>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground space-y-2">
+                          <p><strong>DHT Disabled:</strong></p>
+                          <ul className="list-disc list-inside space-y-1 ml-4">
+                            <li>Reduced network noise and background activity</li>
+                            <li>Limited peer discovery capabilities</li>
+                            <li>Lower resource consumption</li>
+                            <li>Local operations only (no network-wide coordination)</li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* System Information */}
+                <Card className="knirv-card-gradient">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Server className="h-5 w-5" />
+                      System Information
+                    </CardTitle>
+                    <CardDescription>
+                      Current system status and configuration
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium">WebSocket Status:</span>
+                        <Badge variant={wsConnected ? "default" : "destructive"} className="ml-2">
+                          {wsConnected ? "Connected" : "Disconnected"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <span className="font-medium">Backend URL:</span>
+                        <span className="ml-2 text-muted-foreground">http://localhost:8082</span>
+                      </div>
+                      <div>
+                        <span className="font-medium">DVE Nodes:</span>
+                        <span className="ml-2">{dveNodeCount} registered</span>
+                      </div>
+                      <div>
+                        <span className="font-medium">Active Tasks:</span>
+                        <span className="ml-2">{activeTasks} tasks</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
 
