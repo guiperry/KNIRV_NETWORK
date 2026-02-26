@@ -1,8 +1,6 @@
 import type {
   APIResponse,
   DVENode,
-  Model,
-  ModelResourceLimits,
   DNSRecord,
   DVERentalPlan,
   ValidationTask,
@@ -94,54 +92,9 @@ describe('API Types', () => {
     });
   });
 
-  describe('Model', () => {
-    it('should have all required fields', () => {
-      const model: Model = {
-        id: 'model-1',
-        name: 'Test Model',
-        description: 'Test description',
-        version: '1.0.0',
-        author: 'Test Author',
-        type: 'WASM',
-        status: 'uploaded',
-        file_path: '/path/to/model.wasm',
-        file_size: 1024,
-        file_hash: 'sha256-hash',
-        capabilities: ['inference'],
-        dependencies: [],
-        configuration: {},
-        metadata: {},
-        tags: ['test'],
-        uploaded_at: '2024-01-01T00:00:00Z',
-        last_modified: '2024-01-01T00:00:00Z',
-        uploaded_by: 'user-1',
-      };
 
-      expect(model.id).toBe('model-1');
-      expect(model.type).toBe('WASM');
-      expect(model.status).toBe('uploaded');
-      expect(Array.isArray(model.capabilities)).toBe(true);
-      expect(typeof model.configuration).toBe('object');
-    });
-  });
 
-  describe('ModelResourceLimits', () => {
-    it('should have correct resource limit structure', () => {
-      const limits: ModelResourceLimits = {
-        max_memory_mb: 512,
-        max_cpu_percent: 50,
-        max_execution_time_seconds: 300,
-        max_concurrency: 10,
-        max_disk_mb: 1024,
-        network_access: true,
-        file_system_access: false,
-      };
 
-      expect(typeof limits.max_memory_mb).toBe('number');
-      expect(typeof limits.network_access).toBe('boolean');
-      expect(typeof limits.file_system_access).toBe('boolean');
-    });
-  });
 
   describe('DNSRecord', () => {
     it('should have all required fields', () => {
@@ -281,7 +234,7 @@ describe('API Types', () => {
         permissions: {
           can_manage_users: true,
           can_manage_nodes: true,
-          can_manage_models: true,
+          can_manage_fabric: true,
           can_view_metrics: true,
           can_manage_dns: true,
           can_access_admin_panel: true,

@@ -83,13 +83,13 @@ export function PluginVaultPanel() {
         <CardContent className="flex-1 bg-black/5 rounded-lg m-4 mt-0 p-6 font-mono text-sm overflow-auto">
           {selectedSolution ? (
             <div className="space-y-4">
-              <div className="text-muted-foreground">// Solution Logic for {selectedSolution}</div>
+              <div className="text-muted-foreground">{/* Solution Logic for {selectedSolution} */}</div>
               <div className="text-blue-400">package main</div>
               <div className="text-blue-400">import "github.com/knirv/sdk"</div>
               <br />
               <div>func Resolve(ctx *sdk.Context) error {'{'}</div>
               <div className="pl-4 text-green-400">
-                // Logic to reset the network interface securely
+                {/* Logic to reset the network interface securely */}
                 <br />
                 return sdk.ResetInterface("eth0")
               </div>

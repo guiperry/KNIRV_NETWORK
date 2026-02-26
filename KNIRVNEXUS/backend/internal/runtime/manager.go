@@ -107,6 +107,16 @@ func (ucm *UnifiedContainerManager) CreateContainer(
 		container.GLBRenderer = glbRenderer
 	}
 
+	// Initialize viewport proxy for agent type (provides terminal interface)
+	if objectType == ObjectTypeAgent && container.ObjectConfig != nil && container.ObjectConfig.EnableViewport {
+		viewportProxy := NewViewportProxyImpl(container, []string{"http", "websocket"})
+		if err := viewportProxy.Start(); err != nil {
+			log.Printf("Warning: Agent viewport proxy failed: %v", err)
+		} else {
+			container.ViewportProxy = viewportProxy
+		}
+	}
+
 	// Create container via runtime
 	if err := runtime.Create(spec); err != nil {
 		return nil, fmt.Errorf("container creation failed: %w", err)
@@ -308,6 +318,35 @@ func (ucm *UnifiedContainerManager) buildSpecForObjectType(config *NestedObjectC
 		spec.Resources.MemoryMB = 32768
 		spec.Ports = []PortMapping{
 			{ContainerPort: 11434, HostPort: 0, Protocol: "tcp"},
+		}
+
+	case ObjectTypeAgent:
+		// oh-my-pi agentic runtime container
+		spec.Image = "knirv-agent-oh-my-pi:latest"
+		spec.Command = []string{"/usr/local/bin/oh-my-pi", "--serve", "--port", "8080"}
+		spec.Environment = map[string]string{
+			"OH_MY_PI_MODE":       "server",
+			"OH_MY_PI_WORKSPACE":  "/workspace/active-memory",
+			"OH_MY_PI_TOOLS":      "git,python,curl,browser,lsp",
+			"MARKDOWN_OUTPUT_DIR": "/workspace/active-memory/agent-output",
+			"VIEWPORT_PORT":       "8080",
+			"JUPYTER_PORT":        "8888",
+			"LSP_ENABLED":         "true",
+			"HEADLESS_BROWSER":    "true",
+		}
+		spec.Ports = []PortMapping{
+			{ContainerPort: 8080, HostPort: 0, Protocol: "tcp"}, // Agent viewport
+			{ContainerPort: 8888, HostPort: 0, Protocol: "tcp"}, // Jupyter kernel
+			{ContainerPort: 9090, HostPort: 0, Protocol: "tcp"}, // LSP server
+		}
+		spec.Volumes = []VolumeMount{
+			{Source: "/var/knirv/active-memory", Target: "/workspace/active-memory", ReadOnly: false},
+			{Source: "/var/knirv/workspace", Target: "/workspace", ReadOnly: false},
+		}
+		spec.Resources = ResourceLimits{
+			CPUCores: 4,
+			MemoryMB: 8192,
+			DiskMB:   40960,
 		}
 	}
 

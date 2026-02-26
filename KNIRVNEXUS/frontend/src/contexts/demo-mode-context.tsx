@@ -29,7 +29,7 @@ interface DemoModeContextType {
   isDemoMode: boolean;
   toggleDemoMode: () => void;
   setDemoMode: (enabled: boolean) => void;
-  demoData: DemoData | {};
+  demoData: DemoData | Record<string, never>;
 }
 
 const DemoModeContext = createContext<DemoModeContextType | undefined>(undefined);

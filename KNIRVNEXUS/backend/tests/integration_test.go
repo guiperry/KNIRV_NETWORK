@@ -64,16 +64,16 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 	}
 
 	// Initialize P2P manager
-	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db.GetDB(), true, nil)
+	p2pManager, err := p2p.NewDVEP2PManager(cfg.ChainID, "test-node", db, true, nil)
 	require.NoError(t, err)
 
 	// Initialize DVE Manager
-	dveManager, err := dvemanager.NewDVEManager(db.GetDB(), p2pManager, cfg)
+	dveManager, err := dvemanager.NewDVEManager(db, p2pManager, cfg)
 	require.NoError(t, err)
 
 	// Initialize Validation Core with nil inference service for testing
 	// Note: Some validation features may be limited without inference service
-	validationCore, err := validation.NewValidationCore(db.GetDB(), p2pManager, cfg, nil)
+	validationCore, err := validation.NewValidationCore(db, p2pManager, cfg, nil)
 	require.NoError(t, err)
 
 	// Initialize SSE Manager

@@ -81,6 +81,7 @@ describe('useSystemHealth', () => {
     mockApiRequest.mockResolvedValueOnce({
       success: true,
       data: mockSystemHealthData,
+      timestamp: new Date().toISOString(),
     });
 
     const { result } = renderHook(() => useSystemHealth());
@@ -102,6 +103,7 @@ describe('useSystemHealth', () => {
     mockApiRequest.mockResolvedValueOnce({
       success: true,
       data: mockSystemHealthData,
+      timestamp: new Date().toISOString(),
     });
 
     const { result } = renderHook(() => useSystemHealth());
@@ -137,10 +139,12 @@ describe('useSystemHealth', () => {
       .mockResolvedValueOnce({
         success: true,
         data: mockSystemHealthData,
+        timestamp: new Date().toISOString(),
       })
       .mockResolvedValueOnce({
         success: true,
         data: [mockAlert],
+        timestamp: new Date().toISOString(),
       });
 
     const { result } = renderHook(() => useSystemHealth());
@@ -175,10 +179,12 @@ describe('useSystemHealth', () => {
       .mockResolvedValueOnce({
         success: true,
         data: mockSystemHealthData,
+        timestamp: new Date().toISOString(),
       })
       .mockResolvedValueOnce({
         success: true,
         data: mockMetrics,
+        timestamp: new Date().toISOString(),
       });
 
     const { result } = renderHook(() => useSystemHealth());
@@ -211,10 +217,12 @@ describe('useSystemHealth', () => {
       .mockResolvedValueOnce({
         success: true,
         data: mockSystemHealthData,
+        timestamp: new Date().toISOString(),
       })
       .mockResolvedValueOnce({
         success: true,
         data: mockComponents,
+        timestamp: new Date().toISOString(),
       });
 
     const { result } = renderHook(() => useSystemHealth());
@@ -239,14 +247,17 @@ describe('useSystemHealth', () => {
       .mockResolvedValueOnce({
         success: true,
         data: mockSystemHealthData,
+        timestamp: new Date().toISOString(),
       })
       .mockResolvedValueOnce({
         success: true,
         data: { message: 'Diagnostics completed' },
+        timestamp: new Date().toISOString(),
       })
       .mockResolvedValueOnce({
         success: true,
         data: mockSystemHealthData,
+        timestamp: new Date().toISOString(),
       });
 
     const { result } = renderHook(() => useSystemHealth());
@@ -281,10 +292,12 @@ describe('useSystemHealth', () => {
       .mockResolvedValueOnce({
         success: true,
         data: mockSystemHealthData,
+        timestamp: new Date().toISOString(),
       })
       .mockResolvedValueOnce({
         success: true,
         data: { message: 'Alert resolved' },
+        timestamp: new Date().toISOString(),
       });
 
     const { result } = renderHook(() => useSystemHealth());
@@ -312,6 +325,7 @@ describe('useSystemHealth', () => {
       .mockResolvedValueOnce({
         success: true,
         data: mockSystemHealthData,
+        timestamp: new Date().toISOString(),
       })
       .mockResolvedValueOnce({
         success: true,
@@ -322,6 +336,7 @@ describe('useSystemHealth', () => {
           summary: 'All tests passed',
           tests: [],
         },
+        timestamp: new Date().toISOString(),
       });
 
     const { result } = renderHook(() => useSystemHealth());
@@ -332,7 +347,7 @@ describe('useSystemHealth', () => {
 
     let diagnosticsResult: any;
     await act(async () => {
-      diagnosticsResult = await result.current.runDiagnostics(['database', 'api']);
+      diagnosticsResult = await result.current.runDiagnostics();
     });
 
     expect(diagnosticsResult).toBeDefined();
@@ -345,14 +360,17 @@ describe('useSystemHealth', () => {
       .mockResolvedValueOnce({
         success: true,
         data: mockSystemHealthData,
+        timestamp: new Date().toISOString(),
       })
       .mockResolvedValueOnce({
         success: true,
         data: newAlert,
+        timestamp: new Date().toISOString(),
       })
       .mockResolvedValueOnce({
         success: true,
         data: mockSystemHealthData,
+        timestamp: new Date().toISOString(),
       });
 
     const { result } = renderHook(() => useSystemHealth());
@@ -373,6 +391,7 @@ describe('useSystemHealth', () => {
     mockApiRequest.mockResolvedValue({
       success: true,
       data: mockSystemHealthData,
+      timestamp: new Date().toISOString(),
     });
 
     const { result } = renderHook(() => useSystemHealth());
@@ -408,6 +427,7 @@ describe('useSystemHealth', () => {
     mockApiRequest.mockResolvedValueOnce({
       success: true,
       data: mockSystemHealthData,
+      timestamp: new Date().toISOString(),
     });
 
     mockWebSocketService.on.mockImplementation((event, handler) => {

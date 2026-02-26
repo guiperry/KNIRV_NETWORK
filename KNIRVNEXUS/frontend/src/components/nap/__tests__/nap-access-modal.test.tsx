@@ -2,7 +2,10 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { NetworkAccessModal } from '../cde-access-modal';
+import { DemoModeProvider } from '@/contexts/demo-mode-context';
+import { DHTProvider } from '@/contexts/dht-context';
+
+import { NetworkAccessModal } from '../nap-access-modal';
 
 // Mock UI components
 jest.mock('@/components/ui/button', () => ({
@@ -29,6 +32,21 @@ jest.mock('@/components/ui/card', () => ({
 
 jest.mock('@/components/ui/badge', () => ({
   Badge: ({ children, variant }: any) => <span data-testid="badge" data-variant={variant}>{children}</span>,
+}));
+
+jest.mock('@/components/ui/switch', () => ({
+  Switch: ({ checked, onCheckedChange }: any) => (
+    <input 
+      type="checkbox" 
+      data-testid="switch" 
+      checked={checked} 
+      onChange={(e) => onCheckedChange?.(e.target.checked)} 
+    />
+  ),
+}));
+
+jest.mock('@/components/ui/label', () => ({
+  Label: ({ children }: any) => <label data-testid="label">{children}</label>,
 }));
 
 jest.mock('@/components/ui/tabs', () => ({
@@ -59,6 +77,19 @@ jest.mock('lucide-react', () => ({
   Shield: () => <div data-testid="shield-icon" />,
   BarChart3: () => <div data-testid="bar-chart3-icon" />,
   Upload: () => <div data-testid="upload-icon" />,
+  AlertTriangle: () => <div data-testid="alert-triangle-icon" />,
+  TestTube: () => <div data-testid="test-tube-icon" />,
+  Network: () => <div data-testid="network-icon" />,
+  WifiOff: () => <div data-testid="wifi-off-icon" />,
+  Loader2: () => <div data-testid="loader2-icon" />,
+  Server: () => <div data-testid="server-icon" />,
+}));
+
+// Mock useToast hook
+jest.mock('@/hooks/use-toast', () => ({
+  useToast: jest.fn(() => ({
+    toast: jest.fn(),
+  })),
 }));
 
 describe('NetworkAccessModal', () => {
@@ -78,20 +109,38 @@ describe('NetworkAccessModal', () => {
   });
 
   it('should render modal when open', () => {
-    render(<NetworkAccessModal {...defaultProps} />);
+    render(
+      <DemoModeProvider>
+        <DHTProvider>
+          <NetworkAccessModal {...defaultProps} />
+        </DHTProvider>
+      </DemoModeProvider>
+    );
 
-    expect(screen.getByText(/welcome to knirv cde terminal/i)).toBeInTheDocument();
-    expect(screen.getByText(/network access panel/i)).toBeInTheDocument();
+    expect(screen.getByText(/welcome to knirv network access panel \(nap\) terminal/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/network access panel/i).length).toBeGreaterThan(0);
   });
 
   it('should not render modal when closed', () => {
-    render(<NetworkAccessModal {...defaultProps} isOpen={false} />);
+    render(
+      <DemoModeProvider>
+        <DHTProvider>
+          <NetworkAccessModal {...defaultProps} isOpen={false} />
+        </DHTProvider>
+      </DemoModeProvider>
+    );
 
-    expect(screen.queryByText(/welcome to knirv cde terminal/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/welcome to knirv network access panel \(nap\) terminal/i)).not.toBeInTheDocument();
   });
 
   it('should display node information', () => {
-    render(<NetworkAccessModal {...defaultProps} />);
+    render(
+      <DemoModeProvider>
+        <DHTProvider>
+          <NetworkAccessModal {...defaultProps} />
+        </DHTProvider>
+      </DemoModeProvider>
+    );
 
     const nodeElements = screen.getAllByText(/test node \(node-123\)/i);
     expect(nodeElements.length).toBeGreaterThan(0);
@@ -99,14 +148,26 @@ describe('NetworkAccessModal', () => {
   });
 
   it('should display terminal output', () => {
-    render(<NetworkAccessModal {...defaultProps} />);
+    render(
+      <DemoModeProvider>
+        <DHTProvider>
+          <NetworkAccessModal {...defaultProps} />
+        </DHTProvider>
+      </DemoModeProvider>
+    );
 
-    expect(screen.getByText(/welcome to knirv cde terminal/i)).toBeInTheDocument();
+    expect(screen.getByText(/welcome to knirv network access panel \(nap\) terminal/i)).toBeInTheDocument();
     expect(screen.getByText(/type "help" for available commands/i)).toBeInTheDocument();
   });
 
   it('should display workflow templates', () => {
-    render(<NetworkAccessModal {...defaultProps} />);
+    render(
+      <DemoModeProvider>
+        <DHTProvider>
+          <NetworkAccessModal {...defaultProps} />
+        </DHTProvider>
+      </DemoModeProvider>
+    );
 
     expect(screen.getByText('Validation Setup')).toBeInTheDocument();
     expect(screen.getByText('Fabric Deployment')).toBeInTheDocument();
@@ -116,7 +177,13 @@ describe('NetworkAccessModal', () => {
   it('should handle close button click', async () => {
     const user = userEvent.setup();
 
-    render(<NetworkAccessModal {...defaultProps} />);
+    render(
+      <DemoModeProvider>
+        <DHTProvider>
+          <NetworkAccessModal {...defaultProps} />
+        </DHTProvider>
+      </DemoModeProvider>
+    );
 
     // The close button is the X icon button
     const closeButton = screen.getByTestId('x-icon').closest('button');
@@ -128,7 +195,13 @@ describe('NetworkAccessModal', () => {
   it('should handle KNIRV Engine button click', async () => {
     const user = userEvent.setup();
 
-    render(<NetworkAccessModal {...defaultProps} />);
+    render(
+      <DemoModeProvider>
+        <DHTProvider>
+          <NetworkAccessModal {...defaultProps} />
+        </DHTProvider>
+      </DemoModeProvider>
+    );
 
     // Find the KNIRVENGINE button (second Open button)
     const openButtons = screen.getAllByText('Open');
@@ -139,14 +212,26 @@ describe('NetworkAccessModal', () => {
   });
 
   it('should handle escape key press', () => {
-    render(<NetworkAccessModal {...defaultProps} />);
+    render(
+      <DemoModeProvider>
+        <DHTProvider>
+          <NetworkAccessModal {...defaultProps} />
+        </DHTProvider>
+      </DemoModeProvider>
+    );
 
     // The component doesn't currently handle escape key, so let's test that it renders properly
-    expect(screen.getByText(/network access panel/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/network access panel/i).length).toBeGreaterThan(0);
   });
 
   it('should display tabs for different views', () => {
-    render(<NetworkAccessModal {...defaultProps} />);
+    render(
+      <DemoModeProvider>
+        <DHTProvider>
+          <NetworkAccessModal {...defaultProps} />
+        </DHTProvider>
+      </DemoModeProvider>
+    );
 
     expect(screen.getByTestId('tabs')).toBeInTheDocument();
     expect(screen.getByText('Terminal')).toBeInTheDocument();
@@ -155,7 +240,13 @@ describe('NetworkAccessModal', () => {
   });
 
   it('should show workflow execution buttons', () => {
-    render(<NetworkAccessModal {...defaultProps} />);
+    render(
+      <DemoModeProvider>
+        <DHTProvider>
+          <NetworkAccessModal {...defaultProps} />
+        </DHTProvider>
+      </DemoModeProvider>
+    );
 
     const executeButtons = screen.getAllByText('Execute Workflow');
     expect(executeButtons.length).toBeGreaterThan(0);

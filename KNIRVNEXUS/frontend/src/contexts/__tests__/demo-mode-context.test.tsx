@@ -23,6 +23,7 @@ const TestComponent: React.FC = () => {
 };
 
 // Component to test context outside provider
+// eslint-disable-next-line react-hooks/rules-of-hooks
 const TestComponentWithoutProvider: React.FC = () => {
   try {
     const { isDemoMode } = useDemoMode();

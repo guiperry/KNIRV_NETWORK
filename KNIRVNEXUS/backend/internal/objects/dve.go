@@ -37,10 +37,10 @@ type DVENode struct {
 	IsRemote          bool      `json:"is_remote"`
 
 	// ⭐ NEW ENDPOINT FIELDS
-	SSHPort         int       `json:"ssh_port"`         // SSH port (default 22)
-	ValidationPort  int       `json:"validation_port"`  // Reasoning validation port
-	ErrorResPort    int       `json:"error_resolution_port"` // Error resolution port
-	SupportedTags   []string  `json:"supported_tags"`   // e.g., ["reasoning", "error-resolution"]
+	SSHPort        int      `json:"ssh_port"`              // SSH port (default 22)
+	ValidationPort int      `json:"validation_port"`       // Reasoning validation port
+	ErrorResPort   int      `json:"error_resolution_port"` // Error resolution port
+	SupportedTags  []string `json:"supported_tags"`        // e.g., ["reasoning", "error-resolution"]
 }
 
 // ValidationTask represents a validation task in the DVE network
@@ -376,4 +376,101 @@ type P2PConnectionInfo struct {
 	Latency   int64     `json:"latency"`
 	Bandwidth int64     `json:"bandwidth"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type DVECreation struct {
+	ID                 string         `json:"id"`
+	Name               string         `json:"name"`
+	OwnerID            string         `json:"owner_id"`
+	OwnerAddress       string         `json:"owner_address"`
+	DVENodeID          string         `json:"dve_node_id"`
+	StakeAmount        int64          `json:"stake_amount"`
+	RegistrationTxHash string         `json:"registration_tx_hash"`
+	Status             string         `json:"status"` // "pending", "active", "suspended", "decommissioned"
+	TEEType            string         `json:"tee_type"`
+	TEEAttestation     string         `json:"tee_attestation"`
+	SessionKeyID       string         `json:"session_key_id"`
+	Capabilities       []string       `json:"capabilities"`
+	ResourceLimits     ResourceLimits `json:"resource_limits"`
+	ChainSessionID     string         `json:"chain_session_id"`
+	RegisteredAt       time.Time      `json:"registered_at"`
+	ActivatedAt        *time.Time     `json:"activated_at,omitempty"`
+	LastHeartbeat      time.Time      `json:"last_heartbeat"`
+	UpdatedAt          time.Time      `json:"updated_at"`
+
+	Persistent  bool  `json:"persistent"`   // True = permanent ownership, False = rental-based
+	GracePeriod int64 `json:"grace_period"` // Seconds after stake drops before decommissioning
+}
+
+type DVESession struct {
+	ID             string    `json:"id"`
+	DVECreationID  string    `json:"dve_creation_id"`
+	DVENodeID      string    `json:"dve_node_id"`
+	OwnerID        string    `json:"owner_id"`
+	SessionKey     []byte    `json:"session_key"`
+	SessionKeyID   string    `json:"session_key_id"`
+	TEEBinding     string    `json:"tee_binding"` // TEE measurement/hash
+	ChainSessionID string    `json:"chain_session_id"`
+	Status         string    `json:"status"` // "pending", "active", "expired", "revoked"
+	CreatedAt      time.Time `json:"created_at"`
+	ExpiresAt      time.Time `json:"expires_at"`
+	LastValidated  time.Time `json:"last_validated"`
+	PQCSignature   []byte    `json:"pqc_signature"`
+}
+
+type DVECreationRequest struct {
+	OwnerID        string         `json:"owner_id"`
+	OwnerAddress   string         `json:"owner_address"`
+	Name           string         `json:"name"`
+	TEEType        string         `json:"tee_type"`
+	TEEAttestation string         `json:"tee_attestation"`
+	StakeAmount    int64          `json:"stake_amount"`
+	Capabilities   []string       `json:"capabilities"`
+	ResourceLimits ResourceLimits `json:"resource_limits"`
+	Persistent     bool           `json:"persistent"`
+}
+
+type DVECreationResponse struct {
+	Success            bool          `json:"success"`
+	DVECreation        *DVECreation  `json:"dve_creation,omitempty"`
+	Session            *DVESession   `json:"session,omitempty"`
+	RegistrationTxHash string        `json:"registration_tx_hash,omitempty"`
+	ChainSession       *ChainSession `json:"chain_session,omitempty"`
+	Error              string        `json:"error,omitempty"`
+	Message            string        `json:"message,omitempty"`
+}
+
+type ChainSessionInfo struct {
+	SessionID    string    `json:"session_id"`
+	DVENodeID    string    `json:"dve_node_id"`
+	OwnerAddress string    `json:"owner_address"`
+	SessionKeyID string    `json:"session_key_id"`
+	BlockHeight  uint64    `json:"block_height"`
+	ChainID      string    `json:"chain_id"`
+	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:"created_at"`
+	ExpiresAt    time.Time `json:"expires_at"`
+}
+
+type ChainSession struct {
+	SessionID     string    `json:"session_id"`
+	DVENodeID     string    `json:"dve_node_id"`
+	OwnerAddress  string    `json:"owner_address"`
+	SessionKey    []byte    `json:"session_key"`
+	SessionToken  string    `json:"session_token"`
+	BlockHeight   uint64    `json:"block_height"`
+	ChainID       string    `json:"chain_id"`
+	CreatedAt     time.Time `json:"created_at"`
+	ExpiresAt     time.Time `json:"expires_at"`
+	LastValidated time.Time `json:"last_validated"`
+	Status        string    `json:"status"`
+	PQCSignature  []byte    `json:"pqc_signature"`
+}
+
+func (s *ChainSession) IsValid() bool {
+	return s.Status == "active" && time.Now().Before(s.ExpiresAt)
+}
+
+func (s *ChainSession) TimeUntilExpiry() time.Duration {
+	return time.Until(s.ExpiresAt)
 }

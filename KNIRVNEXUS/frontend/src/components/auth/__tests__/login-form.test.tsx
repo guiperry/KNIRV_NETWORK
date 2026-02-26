@@ -49,7 +49,12 @@ jest.mock('lucide-react', () => ({
   Eye: (props: any) => <div data-testid="Eye-icon" {...props} />,
 }));
 
-const mockUseAuth = require('@/lib/auth-context').useAuth as jest.MockedFunction<typeof import('@/lib/auth-context').useAuth>;
+import { useAuth } from '@/lib/auth-context';
+import type { AuthContextType } from '@/lib/auth-context';
+
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+
+
 
 describe('LoginForm', () => {
   const mockLogin = jest.fn();
@@ -64,7 +69,8 @@ describe('LoginForm', () => {
       loginWithCredentials: mockLoginWithCredentials,
       logout: jest.fn(),
       isLoading: false,
-      error: null,
+      hasPermission: jest.fn(),
+      hasNodeAccess: jest.fn(),
     });
   });
 
@@ -187,7 +193,8 @@ describe('LoginForm', () => {
       loginWithCredentials: mockLoginWithCredentials,
       logout: jest.fn(),
       isLoading: true,
-      error: null,
+      hasPermission: jest.fn(),
+      hasNodeAccess: jest.fn(),
     });
 
     render(<LoginForm />);

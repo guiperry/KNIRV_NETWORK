@@ -37,28 +37,28 @@ jest.mock('@/lib/websocket-service', () => ({
   },
 }));
 
-const mockApiRequest = require('@/lib/api').apiRequest as jest.MockedFunction<typeof import('@/lib/api').apiRequest>;
+import { apiRequest } from '@/lib/api';
+
+const mockApiRequest = apiRequest as jest.MockedFunction<typeof apiRequest>;
 
 describe('useDVENodes Hook', () => {
   const mockNode: DVENode = {
     id: 'node-1',
     name: 'Test Node',
-    status: 'active',
+    status: 'online',
     capabilities: ['compute', 'storage'],
-    stake: 1000,
+    stake_amount: 1000,
     location: 'US-East',
-    lastSeen: new Date().toISOString(),
-    performance: {
-      cpu: 80,
-      memory: 60,
-      storage: 40,
-      network: 90,
-    },
-    earnings: {
-      total: 500,
-      thisMonth: 50,
-      lastMonth: 45,
-    },
+    last_heartbeat: new Date().toISOString(),
+    tee_type: 'sgx',
+    reputation_score: 95,
+    ip_address: '192.168.1.1',
+    public_key: 'test-public-key',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    cpu_usage: 50.5,
+    memory_usage: 75.2,
+    network_latency: 10,
   };
 
   beforeEach(() => {
@@ -78,6 +78,7 @@ describe('useDVENodes Hook', () => {
     const mockResponse = {
       success: true,
       data: [mockNode],
+      timestamp: new Date().toISOString(),
     };
 
     mockApiRequest.mockResolvedValue(mockResponse);
@@ -101,11 +102,12 @@ describe('useDVENodes Hook', () => {
     const mockResponse = {
       success: true,
       data: [mockNode],
+      timestamp: new Date().toISOString(),
     };
 
     const filter: DVENodeFilter = {
-      status: 'active',
-      minStake: 500,
+      status: 'online',
+      min_stake: 500,
     };
 
     mockApiRequest.mockResolvedValue(mockResponse);
@@ -117,7 +119,7 @@ describe('useDVENodes Hook', () => {
     });
 
     expect(mockApiRequest).toHaveBeenCalledWith(
-      'http://localhost:8082/api/dve-nodes?status=active&minStake=500',
+      'http://localhost:8082/api/dve-nodes?status=online&min_stake=500',
       { method: 'GET' }
     );
   });
@@ -141,6 +143,7 @@ describe('useDVENodes Hook', () => {
     const mockResponse = {
       success: true,
       data: mockNode,
+      timestamp: new Date().toISOString(),
     };
 
     mockApiRequest.mockResolvedValue(mockResponse);
@@ -179,8 +182,9 @@ describe('useDVENodes Hook', () => {
     const registerRequest: RegisterNodeRequest = {
       name: 'New Node',
       capabilities: ['compute'],
-      stake: 1000,
+      stake_amount: 1000,
       location: 'US-West',
+      tee_type: 'software', // Added tee_type
     };
 
     const mockResponse = {
@@ -189,7 +193,7 @@ describe('useDVENodes Hook', () => {
         ...mockNode,
         name: 'New Node',
         capabilities: ['compute'],
-        stake: 1000,
+        stake_amount: 1000,
         location: 'US-West',
         lastSeen: '2025-09-16T17:42:02.578Z',
         performance: {
@@ -204,6 +208,7 @@ describe('useDVENodes Hook', () => {
           lastMonth: 45,
         }
       },
+      timestamp: new Date().toISOString(),
     };
 
     mockApiRequest.mockResolvedValue(mockResponse);
@@ -230,15 +235,16 @@ describe('useDVENodes Hook', () => {
     const registerRequest: RegisterNodeRequest = {
       name: 'New Node',
       capabilities: ['compute'],
-      stake: 1000,
+      stake_amount: 1000,
       location: 'US-West',
+      tee_type: 'software', // Added tee_type
     };
 
     mockApiRequest.mockRejectedValue(new Error('Registration failed'));
 
     const { result } = renderHook(() => useDVENodes());
 
-    let registeredNode: DVENode | null = false;
+    let registeredNode: DVENode | null = null;
 
     await act(async () => {
       registeredNode = await result.current.registerNode(registerRequest);
@@ -252,6 +258,7 @@ describe('useDVENodes Hook', () => {
     const mockResponse = {
       success: true,
       data: { ...mockNode, status: 'inactive' as const },
+      timestamp: new Date().toISOString(),
     };
 
     mockApiRequest.mockResolvedValue(mockResponse);
@@ -293,6 +300,7 @@ describe('useDVENodes Hook', () => {
     const mockResponse = {
       success: true,
       data: null,
+      timestamp: new Date().toISOString(),
     };
 
     mockApiRequest.mockResolvedValue(mockResponse);
@@ -331,6 +339,7 @@ describe('useDVENodes Hook', () => {
     const mockResponse = {
       success: true,
       data: [mockNode],
+      timestamp: new Date().toISOString(),
     };
 
     mockApiRequest.mockResolvedValue(mockResponse);

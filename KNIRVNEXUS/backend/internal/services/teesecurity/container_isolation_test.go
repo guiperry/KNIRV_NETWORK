@@ -270,6 +270,11 @@ func TestFallbackToMonitoring(t *testing.T) {
 
 	result, err := runtime.RunContainer(ctx, opts)
 	if err != nil {
+		// Skip if the environment lacks required privileges (cgroups, /var/tmp write)
+		if strings.Contains(err.Error(), "permission denied") ||
+			strings.Contains(err.Error(), "read-only filesystem") {
+			t.Skipf("Skipping: insufficient privileges for container isolation test: %v", err)
+		}
 		t.Errorf("Fallback RunContainer failed: %v", err)
 	}
 

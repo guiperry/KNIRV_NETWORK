@@ -13,8 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { NetworkAccessModal } from '@/components/cde/cde-access-modal';
-import { ActiveMemoryAccessModal, KNIRVGraphAccessModal, KNIRVChainAccessModal, P2PTransportAccessModal } from '@/components/cde/access-panels';
+import { NetworkAccessModal } from '@/components/nap/nap-access-modal';
+import { ActiveMemoryAccessModal, KNIRVGraphAccessModal, KNIRVChainAccessModal, P2PTransportAccessModal } from '@/components/nap/access-panels';
 import CDEPanel from './cde-panel'; // Modular CDE Panel
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';

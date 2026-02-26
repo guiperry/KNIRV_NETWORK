@@ -372,13 +372,13 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
                       <div className="bg-black/40 rounded-lg p-4 font-mono text-sm h-full overflow-auto">
                         {selectedSolution ? (
                           <div className="space-y-3">
-                            <div className="text-muted-foreground">// Solution Logic for {selectedSolution}</div>
+                            <div className="text-muted-foreground">{/* Solution Logic for {selectedSolution} */}</div>
                             <div className="text-blue-400">package main</div>
                             <div className="text-blue-400">import "github.com/knirv/sdk"</div>
                             <br />
                             <div>func Resolve(ctx *sdk.Context) error {'{'}</div>
                             <div className="pl-4 text-green-400">
-                              // Logic to resolve {solutions.find(s => s.id === selectedSolution)?.error_id}
+                              {/* Logic to resolve {solutions.find(s => s.id === selectedSolution)?.error_id} */}
                               <br />
                               return sdk.ResolveError("{solutions.find(s => s.id === selectedSolution)?.error_id}")
                             </div>

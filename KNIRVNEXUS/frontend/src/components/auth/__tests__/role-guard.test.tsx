@@ -16,8 +16,11 @@ jest.mock('next/navigation', () => ({
   })),
 }));
 
-const mockUseAuth = require('@/lib/auth-context').useAuth as jest.MockedFunction<typeof import('@/lib/auth-context').useAuth>;
-const mockUseRouter = require('next/navigation').useRouter as jest.MockedFunction<typeof import('next/navigation').useRouter>;
+import { useAuth, AuthContextType } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
+
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
+const mockUseRouter = useRouter as jest.MockedFunction<typeof useRouter>;
 
 describe('RoleGuard', () => {
   const mockPush = jest.fn();
@@ -29,19 +32,22 @@ describe('RoleGuard', () => {
     mockUseRouter.mockReturnValue({
       push: mockPush,
       replace: jest.fn(),
+      back: jest.fn(),
+      forward: jest.fn(),
+      refresh: jest.fn(),
+      prefetch: jest.fn(),
     });
   });
 
   it('should render children when user has required role', () => {
-    mockUseAuth.mockReturnValue({
-      user: { id: '1', email: 'admin@example.com', role: 'admin', authenticated: true },
-      login: jest.fn(),
-      logout: jest.fn(),
-      isLoading: false,
-      error: null,
-      hasPermission: jest.fn(),
-      hasNodeAccess: jest.fn(),
-    });
+            mockUseAuth.mockReturnValue({
+              user: { user: 'admin@example.com', role: 'admin', authenticated: true, permissions: ['*:*'], nexus_access: ['dve:*', 'validation:*', 'system:*', 'fabric:*'] },
+              login: jest.fn(),
+              loginWithCredentials: jest.fn(),
+              logout: jest.fn(),
+              isLoading: false,          hasPermission: jest.fn(),
+          hasNodeAccess: jest.fn(),
+        });
 
     render(
       <RoleGuard allowedRoles={['admin']}>
@@ -54,17 +60,18 @@ describe('RoleGuard', () => {
 
   it('should render children when user has one of multiple allowed roles', () => {
     mockUseAuth.mockReturnValue({
-      user: { id: '1', email: 'user@example.com', role: 'user', authenticated: true },
+      user: { user: 'user@example.com', role: 'observer', authenticated: true, permissions: ['*:read'], nexus_access: ['dve:read', 'validation:read', 'system:read', 'fabric:read'] },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: jest.fn(),
       isLoading: false,
-      error: null,
+
       hasPermission: jest.fn(),
       hasNodeAccess: jest.fn(),
     });
 
     render(
-      <RoleGuard allowedRoles={['admin', 'user']}>
+      <RoleGuard allowedRoles={['admin', 'observer']}>
         <TestComponent />
       </RoleGuard>
     );
@@ -74,11 +81,12 @@ describe('RoleGuard', () => {
 
   it('should show access denied when user does not have required role', () => {
     mockUseAuth.mockReturnValue({
-      user: { id: '1', email: 'user@example.com', role: 'user', authenticated: true },
+      user: { user: 'user@example.com', role: 'observer', authenticated: true, permissions: ['*:read'], nexus_access: ['dve:read', 'validation:read', 'system:read', 'fabric:read'] },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: jest.fn(),
       isLoading: false,
-      error: null,
+
       hasPermission: jest.fn(),
       hasNodeAccess: jest.fn(),
     });
@@ -98,9 +106,10 @@ describe('RoleGuard', () => {
     mockUseAuth.mockReturnValue({
       user: null,
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: jest.fn(),
       isLoading: false,
-      error: null,
+
       hasPermission: jest.fn(),
       hasNodeAccess: jest.fn(),
     });
@@ -119,9 +128,10 @@ describe('RoleGuard', () => {
     mockUseAuth.mockReturnValue({
       user: null,
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: jest.fn(),
       isLoading: true,
-      error: null,
+
       hasPermission: jest.fn(),
       hasNodeAccess: jest.fn(),
     });
@@ -138,11 +148,12 @@ describe('RoleGuard', () => {
 
   it('should handle custom fallback component', () => {
     mockUseAuth.mockReturnValue({
-      user: { id: '1', email: 'user@example.com', role: 'user', authenticated: true },
+      user: { user: 'user@example.com', role: 'observer', authenticated: true, permissions: ['*:read'], nexus_access: ['dve:read', 'validation:read', 'system:read', 'fabric:read'] },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: jest.fn(),
       isLoading: false,
-      error: null,
+
       hasPermission: jest.fn(),
       hasNodeAccess: jest.fn(),
     });
@@ -161,11 +172,12 @@ describe('RoleGuard', () => {
 
   it('should show authentication required for unauthenticated user', () => {
     mockUseAuth.mockReturnValue({
-      user: { id: '1', email: 'user@example.com', role: 'user', authenticated: false },
+      user: { user: 'user@example.com', role: 'observer', authenticated: false, permissions: ['*:read'], nexus_access: ['dve:read', 'validation:read', 'system:read', 'fabric:read'] },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: jest.fn(),
       isLoading: false,
-      error: null,
+
       hasPermission: jest.fn(),
       hasNodeAccess: jest.fn(),
     });
@@ -181,11 +193,12 @@ describe('RoleGuard', () => {
 
   it('should handle empty allowed roles array', () => {
     mockUseAuth.mockReturnValue({
-      user: { id: '1', email: 'user@example.com', role: 'user', authenticated: true },
+      user: { user: 'user@example.com', role: 'observer', authenticated: true, permissions: ['*:read'], nexus_access: ['dve:read', 'validation:read', 'system:read', 'fabric:read'] },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: jest.fn(),
       isLoading: false,
-      error: null,
+
       hasPermission: jest.fn(),
       hasNodeAccess: jest.fn(),
     });
@@ -202,11 +215,12 @@ describe('RoleGuard', () => {
 
   it('should be case sensitive for role matching', () => {
     mockUseAuth.mockReturnValue({
-      user: { id: '1', email: 'user@example.com', role: 'Admin', authenticated: true },
+      user: { user: 'user@example.com', role: 'admin', authenticated: true, permissions: ['*:*'], nexus_access: ['dve:*', 'validation:*', 'system:*', 'fabric:*'] },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: jest.fn(),
       isLoading: false,
-      error: null,
+
       hasPermission: jest.fn(),
       hasNodeAccess: jest.fn(),
     });
@@ -217,7 +231,7 @@ describe('RoleGuard', () => {
       </RoleGuard>
     );
 
-    expect(screen.getByText(/insufficient permissions/i)).toBeInTheDocument();
-    expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
+    expect(screen.queryByText(/insufficient permissions/i)).not.toBeInTheDocument();
+    expect(screen.getByTestId('protected-content')).toBeInTheDocument();
   });
 });

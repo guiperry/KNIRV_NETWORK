@@ -32,7 +32,7 @@ export function NetworkAccessModal({
   onToggleMode
 }: NetworkAccessModalProps) {
   const [terminalOutput, setTerminalOutput] = useState([
-    '$ Welcome to KNIRV CDE Terminal',
+    '$ Welcome to KNIRV Network Access Panel (NAP) Terminal',
     '$ Node: ' + nodeName + ' (' + nodeId + ')',
     '$ Type "help" for available commands',
     '$ '
@@ -683,10 +683,10 @@ export function NetworkAccessModal({
               </TabsContent>
             </Tabs>
 
-            {/* NESTED PANELS - Slide out from CDE modal */}
+            {/* NESTED PANELS - Slide out from NAP modal */}
             
 
-            {/* Console Panel - Slides out from left edge of CDE modal */}
+            {/* Console Panel - Slides out from left edge of NAP modal */}
             {showConsole && (
               <div className="absolute z-50 pointer-events-auto transform transition-all duration-300 ease-out translate-x-0" style={{top: '100px', right: '896px'}}>
                 <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-80">
@@ -716,7 +716,7 @@ export function NetworkAccessModal({
               </div>
             )}
 
-            {/* Policy Panel - Slides out from left edge of CDE modal, below Console */}
+            {/* Policy Panel - Slides out from left edge of NAP modal, below Console */}
             {showPolicy && (
               <div className="absolute z-50 pointer-events-auto transform transition-all duration-300 ease-out translate-x-0" style={{top: '420px', right: '896px'}}>
                 <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-80">

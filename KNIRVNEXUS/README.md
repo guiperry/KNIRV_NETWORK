@@ -70,6 +70,50 @@ KNIRV-NEXUS includes a comprehensive **FinTech Validator** for deterministic val
 
 ---
 
+## 🤖 Agentic Runtime: oh-my-pi Integration
+
+KNIRV-NEXUS transforms each DVE into an autonomous, intelligent workspace via the **oh-my-pi** agentic runtime. This provides every DVE with a "batteries-included" capability for coding, research, and validation.
+
+### Architecture
+
+- **`ObjectTypeAgent`** — New runtime object type routed via the Unified Container Manager
+- **Container Image**: `knirv-agent-oh-my-pi:latest` — includes oh-my-pi Rust engine, Python/IPython kernels, LSP servers for 40+ languages, and a headless browser
+- **Viewport Proxy** — Real HTTP/WebSocket reverse proxy tunneling the agent terminal into the NEXUS dashboard
+- **eBPF Security Profile** — 70-syscall allowlist specific to agent tooling (git, python, curl, browser) enforcing DVE isolation
+- **Active Memory Integration** — Agent task results written as Markdown to the DVE's persistent Markdown Fabric via `ActiveMemoryService.RecordInteraction`
+
+### Agent Command Center (Frontend)
+
+Accessible from the DVE dashboard, the Agent Command Center provides:
+- Agent launch/stop controls with live status badge
+- Viewport iframe for direct terminal interaction
+- Task submission form (type: research / coding / validation / analysis; priority: low → critical)
+- Real-time task list with expandable detail panels
+- Task statistics (total, pending, completed, failed)
+
+### Agent API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/dve/{id}/agent/status` | GET | Agent running status + task counts |
+| `/api/dve/{id}/agent/launch` | POST | Provision oh-my-pi container for DVE |
+| `/api/dve/{id}/agent` | DELETE | Stop and destroy agent container |
+| `/api/dve/{id}/agent/tasks` | GET | List all tasks for DVE |
+| `/api/dve/{id}/agent/tasks` | POST | Submit a new agent task |
+| `/api/dve/{id}/agent/tasks/{taskID}` | GET | Get single task with Markdown output |
+
+---
+
+## 🏗️ Codebase Unification
+
+The runtime and node-management layers have been consolidated for a stable foundation:
+
+- **`internal/runtime/provisioning.go`** — `PortAllocator` and `SSHProvisioner` now live in the `runtime` package; `UnifiedContainerManagerWithProvisioning` wraps them into an atomic `ProvisionAndCreate` call
+- **`internal/services/dvemanager/node_lifecycle.go`** — `DVEManager` gains `RegisterDVENode`, `Heartbeat`, and `GetNodeSession` methods, centralising node lifecycle without a dependency on the `dvecreation` package
+- All HTTP handlers are registered through `internal/web` following the single-package handler pattern
+
+---
+
 ## 🛠️ Technical Stack
 
 -   **Backend**: Go 1.24+ (Strict concurrency, ported PQC primitives).

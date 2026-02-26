@@ -375,7 +375,7 @@ func TestInitializeTEEEnvironment(t *testing.T) {
 	defer db.Close()
 
 	ctx := context.Background()
-	err = initializeTEEEnvironment(ctx, db.GetDB())
+	err = initializeTEEEnvironment(ctx, db)
 	assert.NoError(t, err)
 }
 

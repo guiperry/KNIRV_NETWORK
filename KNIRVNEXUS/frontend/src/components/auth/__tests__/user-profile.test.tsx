@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { UserProfile } from '../user-profile';
+import type { AuthUser } from '@/lib/auth-context';
 
 // Mock the auth context
 jest.mock('@/lib/auth-context', () => ({
@@ -60,11 +61,12 @@ jest.mock('lucide-react', () => ({
   Key: (props: any) => <div data-testid="Key-icon" {...props} />,
 }));
 
-const mockUseAuth = require('@/lib/auth-context').useAuth as jest.MockedFunction<typeof import('@/lib/auth-context').useAuth>;
+import { useAuth } from '@/lib/auth-context';
+
+const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 
 describe('UserProfile', () => {
-  const mockUser = {
-    id: '1',
+  const mockUser: AuthUser = {
     user: 'test-user',
     role: 'admin',
     authenticated: true,
@@ -81,9 +83,11 @@ describe('UserProfile', () => {
     mockUseAuth.mockReturnValue({
       user: mockUser,
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: mockLogout,
       isLoading: false,
-      error: null,
+      hasPermission: jest.fn(),
+      hasNodeAccess: jest.fn(),
     });
   });
 
@@ -155,9 +159,11 @@ describe('UserProfile', () => {
     mockUseAuth.mockReturnValue({
       user: { ...mockUser, role: 'validator' },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: mockLogout,
       isLoading: false,
-      error: null,
+      hasPermission: jest.fn(),
+      hasNodeAccess: jest.fn(),
     });
 
     render(<UserProfile />);
@@ -175,9 +181,11 @@ describe('UserProfile', () => {
     mockUseAuth.mockReturnValue({
       user: { ...mockUser, role: 'observer' },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: mockLogout,
       isLoading: false,
-      error: null,
+      hasPermission: jest.fn(),
+      hasNodeAccess: jest.fn(),
     });
 
     render(<UserProfile />);
@@ -193,9 +201,11 @@ describe('UserProfile', () => {
     mockUseAuth.mockReturnValue({
       user: { ...mockUser, authenticated: false },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: mockLogout,
       isLoading: false,
-      error: null,
+      hasPermission: jest.fn(),
+      hasNodeAccess: jest.fn(),
     });
 
     const { container } = render(<UserProfile />);
@@ -206,9 +216,11 @@ describe('UserProfile', () => {
     mockUseAuth.mockReturnValue({
       user: null,
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: mockLogout,
       isLoading: false,
-      error: null,
+      hasPermission: jest.fn(),
+      hasNodeAccess: jest.fn(),
     });
 
     const { container } = render(<UserProfile />);
@@ -221,9 +233,11 @@ describe('UserProfile', () => {
     mockUseAuth.mockReturnValue({
       user: { ...mockUser, node_id: undefined },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: mockLogout,
       isLoading: false,
-      error: null,
+      hasPermission: jest.fn(),
+      hasNodeAccess: jest.fn(),
     });
 
     render(<UserProfile />);
@@ -241,9 +255,11 @@ describe('UserProfile', () => {
     mockUseAuth.mockReturnValue({
       user: { ...mockUser, permissions: [] },
       login: jest.fn(),
+      loginWithCredentials: jest.fn(),
       logout: mockLogout,
       isLoading: false,
-      error: null,
+      hasPermission: jest.fn(),
+      hasNodeAccess: jest.fn(),
     });
 
     render(<UserProfile />);

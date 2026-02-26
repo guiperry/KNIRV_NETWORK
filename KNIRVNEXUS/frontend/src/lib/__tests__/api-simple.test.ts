@@ -1,5 +1,3 @@
-import { API_BASE_URL, getApiBaseUrl, getAuthHeaders, apiRequest } from '../api';
-
 // Mock fetch for testing
 global.fetch = jest.fn();
 
@@ -14,10 +12,35 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
+Object.defineProperty(process.env, 'NEXT_PUBLIC_API_BASE_URL', {
+  value: 'http://localhost:8082',
+  writable: true,
+});
+
+// Mock the API module to control API_BASE_URL and getApiBaseUrl explicitly
+jest.mock('../api', () => {
+  const actual = jest.requireActual('../api');
+  return {
+    ...actual, // This includes actual apiRequest, getAuthHeaders
+    API_BASE_URL: 'http://localhost:8082', // Override
+    getApiBaseUrl: jest.fn(() => 'http://localhost:8082'), // Override
+  };
+});
+
+import { API_BASE_URL, getApiBaseUrl, getAuthHeaders, apiRequest } from '../api';
+
 describe('API Module', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorageMock.getItem.mockReturnValue(null);
+  });
+
+  afterEach(() => {
+    // Restore original process.env.NEXT_PUBLIC_API_BASE_URL
+    Object.defineProperty(process.env, 'NEXT_PUBLIC_API_BASE_URL', {
+      value: undefined,
+      writable: true,
+    });
   });
 
   describe('getApiBaseUrl', () => {

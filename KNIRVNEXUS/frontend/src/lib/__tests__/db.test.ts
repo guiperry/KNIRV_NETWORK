@@ -1,71 +1,60 @@
-// Mock PrismaClient before any imports
-const mockPrismaClient = jest.fn().mockImplementation(() => ({
-  $connect: jest.fn(),
-  $disconnect: jest.fn(),
+jest.mock('../db', () => ({
+  db: {
+    $connect: jest.fn(), // Return jest.fn() directly in the mock factory
+    $disconnect: jest.fn(), // Return jest.fn() directly in the mock factory
+    // Add any other methods of the 'db' instance that are used
+  },
 }));
 
-jest.mock('@prisma/client', () => ({
-  PrismaClient: mockPrismaClient,
-}));
+// Import the mocked db
+import { db } from '../db';
 
 describe('Database Client', () => {
   let originalEnv: string | undefined;
 
   beforeEach(() => {
-    // Store original values
     originalEnv = process.env.NODE_ENV;
+    jest.clearAllMocks(); // Clear call history on all mocks
 
-    // Clear the PrismaClient mock
-    mockPrismaClient.mockClear();
+    // Explicitly re-assign new jest.fn() to db.$connect and db.$disconnect
+    // This ensures they are fresh mocks for *this* test.
+    db.$connect = jest.fn();
+    db.$disconnect = jest.fn();
   });
 
   afterEach(() => {
-    // Restore original values
-    process.env.NODE_ENV = originalEnv;
+    Object.defineProperty(process.env, 'NODE_ENV', { writable: true, value: originalEnv });
+    // No jest.restoreAllMocks() needed here, as we explicitly re-assign in beforeEach
   });
 
   it('should create a PrismaClient instance with query logging', () => {
-    const { db } = require('../db');
-
     expect(db).toBeDefined();
     expect(typeof db).toBe('object');
   });
 
   it('should have PrismaClient mock available', () => {
-    // Verify that our mock is properly set up
-    expect(mockPrismaClient).toBeDefined();
-    expect(typeof mockPrismaClient).toBe('function');
+    expect(db.$connect).toEqual(expect.any(Function));
+    expect(db.$disconnect).toEqual(expect.any(Function));
   });
 
   it('should export a db instance', () => {
-    const { db } = require('../db');
-
     expect(db).toBeDefined();
     expect(db).toHaveProperty('$connect');
     expect(db).toHaveProperty('$disconnect');
   });
 
   it('should handle production environment', () => {
-    process.env.NODE_ENV = 'production';
-
-    // The db should still be created regardless of environment
-    const { db } = require('../db');
+    Object.defineProperty(process.env, 'NODE_ENV', { writable: true, value: 'production' });
     expect(db).toBeDefined();
   });
 
   it('should handle development environment', () => {
-    process.env.NODE_ENV = 'development';
-
-    // The db should still be created regardless of environment
-    const { db } = require('../db');
+    Object.defineProperty(process.env, 'NODE_ENV', { writable: true, value: 'development' });
     expect(db).toBeDefined();
   });
 
   it('should handle test environment', () => {
-    process.env.NODE_ENV = 'test';
-
-    // The db should still be created regardless of environment
-    const { db } = require('../db');
+    Object.defineProperty(process.env, 'NODE_ENV', { writable: true, value: 'test' });
     expect(db).toBeDefined();
   });
 });

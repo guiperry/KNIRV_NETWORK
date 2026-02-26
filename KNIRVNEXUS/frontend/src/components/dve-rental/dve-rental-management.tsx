@@ -130,8 +130,8 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
     }
   };
 
-  // ⭐ NEW: Handle Access CDE button - fetch and display access information
-  const handleAccessCDE = async (rental: DVERental) => {
+  // ⭐ NEW: Handle Access NAP button - fetch and display access information
+  const handleAccessNAP = async (rental: DVERental) => {
     try {
       const info = await getFullAccessInfo(rental.id);
       if (info) {
@@ -310,7 +310,7 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
                       </Button>
                       <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
                         <Settings className="w-6 h-6 mb-2" />
-                        Manage CDEs
+                        Manage NAPs
                       </Button>
                       <Button variant="outline" className="h-20 flex flex-col items-center justify-center">
                         <BarChart3 className="w-6 h-6 mb-2" />
@@ -410,10 +410,10 @@ export default function DVERentalManagement({ isOpen, onClose }: DVERentalManage
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleAccessCDE(rental)}
+                                    onClick={() => handleAccessNAP(rental)}
                                   >
                                     <Eye className="w-3 h-3 mr-1" />
-                                    Access CDE
+                                    Access NAP
                                   </Button>
                                 </>
                               )}

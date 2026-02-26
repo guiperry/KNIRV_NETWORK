@@ -1,6 +1,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useControllerIntegration } from '../use-controller-integration';
-import type { QRCode, PairingRequest, ControllerSession, ControllerDevice, ControllerStats } from '../use-controller-integration';
+import type { QRCode, PairingRequest, ControllerSession, ControllerMessage } from '../use-controller-integration';
+import type { ControllerDevice, ControllerStats } from '@/types/api';
 import { apiRequest } from '@/lib/api';
 
 // Mock the API module
@@ -18,10 +19,9 @@ jest.mock('@/lib/websocket-service', () => ({
     disconnect: jest.fn(),
     subscribe: jest.fn(),
     unsubscribe: jest.fn(),
-    isConnected: jest.fn().mockReturnValue(true),
+    getConnectionStatus: jest.fn().mockReturnValue(true),
     on: jest.fn(),
     off: jest.fn(),
-    getConnectionStatus: jest.fn().mockReturnValue(true),
   },
 }));
 
@@ -93,7 +93,14 @@ const mockPairingRequests: PairingRequest[] = [
     status: 'pending',
     created_at: '2024-01-01T00:00:00Z',
     expires_at: '2024-01-01T01:00:00Z',
-    capabilities: ['wallet', 'model-control']
+    capabilities: ['wallet', 'model-control'],
+    device_info: {
+      device_id: 'mobile-1',
+      device_type: 'mobile',
+      platform: 'iOS',
+      version: '17.0',
+      user_model: 'iPhone 15'
+    }
   },
   {
     id: 'pairing-2',
@@ -106,13 +113,21 @@ const mockPairingRequests: PairingRequest[] = [
     created_at: '2024-01-02T00:00:00Z',
     expires_at: '2024-01-02T01:00:00Z',
     confirmed_at: '2024-01-02T00:30:00Z',
-    capabilities: ['monitoring']
+    capabilities: ['monitoring'],
+    device_info: {
+      device_id: 'mobile-2',
+      device_type: 'tablet',
+      platform: 'iPadOS',
+      version: '17.0',
+      user_model: 'iPad Pro'
+    }
   }
 ];
 
 const mockSessions: ControllerSession[] = [
   {
     id: 'session-1',
+    session_id: 'session-1',
     desktop_id: 'desktop-1',
     mobile_device_id: 'mobile-1',
     user_id: 'user-1',
@@ -120,18 +135,53 @@ const mockSessions: ControllerSession[] = [
     capabilities: ['wallet', 'model-control'],
     created_at: '2024-01-01T00:00:00Z',
     last_activity: '2024-01-01T00:30:00Z',
-    expires_at: '2024-01-01T02:00:00Z'
+    expires_at: '2024-01-01T02:00:00Z',
+    device_info: {
+      device_id: 'mobile-1',
+      device_type: 'mobile',
+      platform: 'iOS',
+      version: '17.0',
+      user_model: 'iPhone 15'
+    },
+    connection_info: {
+      ip_address: '192.168.1.1',
+      user_model: 'desktop',
+      connection_type: 'wifi',
+      encrypted: true
+    },
+    session_data: {
+      last_command: 'wallet.getBalance'
+    },
+    message_count: 5
   },
   {
     id: 'session-2',
+    session_id: 'session-2',
     desktop_id: 'desktop-2',
-    mobile_device_id: 'mobile-2',
     user_id: 'user-2',
+    mobile_device_id: 'mobile-2',
     status: 'inactive',
     capabilities: ['monitoring'],
     created_at: '2024-01-02T00:00:00Z',
     last_activity: '2024-01-02T01:00:00Z',
-    expires_at: '2024-01-02T02:00:00Z'
+    expires_at: '2024-01-02T02:00:00Z',
+    device_info: {
+      device_id: 'mobile-2',
+      device_type: 'tablet',
+      platform: 'iPadOS',
+      version: '17.0',
+      user_model: 'iPad Pro'
+    },
+    connection_info: {
+      ip_address: '192.168.1.2',
+      user_model: 'desktop',
+      connection_type: 'cellular',
+      encrypted: true
+    },
+    session_data: {
+      last_report: 'system_status'
+    },
+    message_count: 10
   }
 ];
 
@@ -176,11 +226,12 @@ describe('useControllerIntegration Hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockApiRequest.mockClear();
-    mockWebSocketService.connect.mockClear();
-    mockWebSocketService.disconnect.mockClear();
+    mockWebSocketService.on.mockClear();
+    mockWebSocketService.off.mockClear();
     mockWebSocketService.subscribe.mockClear();
     mockWebSocketService.unsubscribe.mockClear();
-    mockWebSocketService.isConnected.mockReturnValue(true);
+    mockWebSocketService.getConnectionStatus.mockClear().mockReturnValue(true);
+    mockWebSocketService.disconnect.mockClear();
   });
 
   it('initializes with default state', () => {
@@ -200,7 +251,8 @@ describe('useControllerIntegration Hook', () => {
     const mockQRCode = mockQRCodes[0];
     mockApiRequest.mockResolvedValueOnce({
       success: true,
-      data: mockQRCode
+      data: mockQRCode,
+      timestamp: new Date().toISOString()
     });
 
     const { result } = renderHook(() => useControllerIntegration());
@@ -259,7 +311,8 @@ describe('useControllerIntegration Hook', () => {
     const mockPairingRequest = mockPairingRequests[0];
     mockApiRequest.mockResolvedValueOnce({
       success: true,
-      data: mockPairingRequest
+      data: mockPairingRequest,
+      timestamp: new Date().toISOString()
     });
 
     const { result } = renderHook(() => useControllerIntegration());
@@ -286,7 +339,8 @@ describe('useControllerIntegration Hook', () => {
     const mockSession = mockSessions[0];
     mockApiRequest.mockResolvedValueOnce({
       success: true,
-      data: mockSession
+      data: mockSession,
+      timestamp: new Date().toISOString()
     });
 
     const { result } = renderHook(() => useControllerIntegration());
@@ -308,7 +362,8 @@ describe('useControllerIntegration Hook', () => {
   it('rejects pairing request successfully', async () => {
     mockApiRequest.mockResolvedValueOnce({
       success: true,
-      data: null
+      data: null,
+      timestamp: new Date().toISOString()
     });
 
     const { result } = renderHook(() => useControllerIntegration());
@@ -329,7 +384,8 @@ describe('useControllerIntegration Hook', () => {
   it('gets user sessions successfully', async () => {
     mockApiRequest.mockResolvedValueOnce({
       success: true,
-      data: mockSessions
+      data: mockSessions,
+      timestamp: new Date().toISOString()
     });
 
     const { result } = renderHook(() => useControllerIntegration());
@@ -346,7 +402,8 @@ describe('useControllerIntegration Hook', () => {
 
   it('terminates session successfully', async () => {
     mockApiRequest.mockResolvedValueOnce({
-      success: true
+      success: true,
+      timestamp: new Date().toISOString()
     });
 
     const { result } = renderHook(() => useControllerIntegration());
@@ -366,22 +423,25 @@ describe('useControllerIntegration Hook', () => {
     const mockMessage = {
       id: 'msg-1',
       session_id: 'session-1',
-      type: 'text',
+      type: 'notification',
       content: 'Hello from desktop',
-      timestamp: Date.now(),
+      timestamp: new Date().toISOString(),
       direction: 'outbound'
     };
     mockApiRequest.mockResolvedValueOnce({
       success: true,
-      data: mockMessage
+      data: mockMessage,
+      timestamp: new Date().toISOString()
     });
 
     const { result } = renderHook(() => useControllerIntegration());
 
-    const messageData = {
-      type: 'text',
-      content: 'Hello from desktop',
-      timestamp: Date.now()
+    const messageData: Partial<ControllerMessage> = {
+      type: 'notification',
+      payload: {
+        content: 'Hello from desktop',
+      },
+      timestamp: new Date().toISOString()
     };
 
     let sent: boolean = false;
@@ -406,11 +466,12 @@ describe('useControllerIntegration Hook', () => {
         command: 'wallet.getBalance',
         parameters: { address: '0x123' }
       },
-      timestamp: Date.now()
+      timestamp: new Date().toISOString()
     };
     mockApiRequest.mockResolvedValueOnce({
       success: true,
-      data: mockCommandMessage
+      data: mockCommandMessage,
+      timestamp: new Date().toISOString()
     });
 
     const { result } = renderHook(() => useControllerIntegration());
@@ -437,7 +498,8 @@ describe('useControllerIntegration Hook', () => {
   it('refreshes user sessions successfully', async () => {
     mockApiRequest.mockResolvedValueOnce({
       success: true,
-      data: mockSessions
+      data: mockSessions,
+      timestamp: new Date().toISOString()
     });
 
     const { result } = renderHook(() => useControllerIntegration());

@@ -45,21 +45,21 @@ describe('AuthContext', () => {
   it('should test ROLES constant', () => {
     expect(ROLES.admin).toEqual({
       permissions: ['*:*'],
-      nexus_access: ['dve:*', 'validation:*', 'system:*'],
+      nexus_access: ['dve:*', 'validation:*', 'system:*', 'fabric:*'],
       description: 'Full administrative access',
       displayName: 'Root'
     });
 
     expect(ROLES.validator).toEqual({
       permissions: ['nexus:read', 'nexus:validate', 'nexus:update_assigned'],
-      nexus_access: ['dve:read', 'validation:read', 'validation:execute', 'system:read'],
+      nexus_access: ['dve:read', 'validation:read', 'validation:execute', 'system:read', 'fabric:read'],
       description: 'Validator node operator with scoped access',
       displayName: 'Operator'
     });
 
     expect(ROLES.observer).toEqual({
       permissions: ['*:read'],
-      nexus_access: ['dve:read', 'validation:read', 'system:read'],
+      nexus_access: ['dve:read', 'validation:read', 'system:read', 'fabric:read'],
       description: 'Read-only access to all services',
       displayName: 'Developer'
     });

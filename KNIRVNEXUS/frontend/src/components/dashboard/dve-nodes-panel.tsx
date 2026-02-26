@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDVENodes } from '@/hooks/use-dve-nodes';
 import { useDVERental } from '@/hooks/use-dve-rental';
 import { useAuth } from '@/lib/auth-context';
-import { NetworkAccessModal } from '@/components/cde/cde-access-modal';
+
 import type { DVENode, DVEAccessInfo } from '@/types/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -42,7 +42,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
 
   const [filter, setFilter] = useState<string>('all');
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
-  const [cdeOpen, setCDEOpen] = useState(false);
+
   const [activeNodeId, setActiveNodeId] = useState<{ [key: string]: boolean }>({});
   const [provisioningNodes, setProvisioningNodes] = useState<Set<string>>(new Set());
 
@@ -71,7 +71,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
         setActiveNodeId(prev => ({ ...prev, [node.id]: true }));
         toast({
           title: "Node Ready",
-          description: "DVE instance is active. You can now access the modular CDE.",
+
         });
       } else {
         // Node not rented - redirect to rental modal
@@ -99,14 +99,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
     }
   };
 
-  const handleAccessDVE = (node: DVENode) => {
-    if (onNodeConnect) {
-      onNodeConnect(node);
-    } else {
-      setSelectedNode(node);
-      setCDEOpen(true);
-    }
-  };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -443,7 +436,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
                         size="sm"
                         disabled={!activeNodeId[node.id]}
                         className={`text-[10px] font-black uppercase border-blue-600/30 ${activeNodeId[node.id] ? 'text-blue-400 hover:bg-blue-600 hover:text-white' : 'text-slate-600'}`}
-                        onClick={() => handleAccessDVE(node)}
+                        onClick={() => onNodeConnect?.(node)}
                       >
                         <Zap className="w-3 h-3 mr-1" />
                         Access
@@ -457,16 +450,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
         </CardContent>
       </Card>
 
-      {/* CDE Access Modal (Legacy fallback) */}
-      {selectedNode && (
-        <NetworkAccessModal
-          isOpen={cdeOpen}
-          onClose={() => setCDEOpen(false)}
-          nodeId={selectedNode.id}
-          nodeName={selectedNode.name}
-          onOpenKNIRVEngine={() => {}}
-        />
-      )}
+
     </div>
   );
 };

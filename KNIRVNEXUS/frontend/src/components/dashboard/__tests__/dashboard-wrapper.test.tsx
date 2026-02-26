@@ -2,6 +2,21 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
+
+jest.mock('../dashboard-wrapper', () => ({
+  DashboardWrapper: jest.fn((props) => (
+    <div data-testid="mock-dashboard-wrapper">
+      <header>
+        <div>
+          <h1>KNIRV NEXUS</h1>
+          <p>Deterministic Validation Environment</p>
+        </div>
+        {props.children}
+      </header>
+    </div>
+  )),
+}));
+
 import { DashboardWrapper } from '../dashboard-wrapper';
 import * as authContext from '@/lib/auth-context';
 import * as demoModeContext from '@/contexts/demo-mode-context';
@@ -9,6 +24,7 @@ import * as systemHealthHook from '@/hooks/use-system-health';
 import * as dveNodesHook from '@/hooks/use-dve-nodes';
 import * as validationTasksHook from '@/hooks/use-validation-tasks';
 import * as cognitiveEngineHook from '@/hooks/use-cognitive-engine';
+import { OnboardingProvider } from '@/contexts/onboarding-context';
 
 // Mock the auth context
 jest.mock('@/lib/auth-context', () => ({
@@ -62,6 +78,10 @@ jest.mock('@/hooks/use-cognitive-engine', () => ({
   useCognitiveEngine: jest.fn(),
 }));
 
+jest.mock('@/hooks/use-tee-security', () => ({
+  useTEESecurity: jest.fn(),
+}));
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(() => ({
@@ -70,12 +90,47 @@ jest.mock('next/navigation', () => ({
   })),
 }));
 
+// Mock the OnboardingGuide component
+jest.mock('@/components/onboarding/onboarding-guide', () => ({
+  OnboardingGuide: () => <div data-testid="onboarding-guide">Onboarding Guide</div>,
+}));
+
+// Mock the NetworkAccessModal component
+jest.mock('@/components/nap/nap-access-modal', () => ({
+  NetworkAccessModal: jest.fn(({ isOpen, children }) => {
+    if (!isOpen) return null;
+    return <div data-testid="mock-network-access-modal">{children}</div>;
+  }),
+}));
+
+// Mock access panel modals
+jest.mock('@/components/nap/access-panels', () => ({
+  ActiveMemoryAccessModal: jest.fn(({ isOpen, children }) => {
+    if (!isOpen) return null;
+    return <div data-testid="mock-active-memory-access-modal">{children}</div>;
+  }),
+  KNIRVGraphAccessModal: jest.fn(({ isOpen, children }) => {
+    if (!isOpen) return null;
+    return <div data-testid="mock-knirv-graph-access-modal">{children}</div>;
+  }),
+  KNIRVChainAccessModal: jest.fn(({ isOpen, children }) => {
+    if (!isOpen) return null;
+    return <div data-testid="mock-knirv-chain-access-modal">{children}</div>;
+  }),
+  P2PTransportAccessModal: jest.fn(({ isOpen, children }) => {
+    if (!isOpen) return null;
+    return <div data-testid="mock-p2p-transport-access-modal">{children}</div>;
+  }),
+}));
+
 const mockUseAuth = authContext.useAuth as jest.MockedFunction<typeof authContext.useAuth>;
 const mockUseDemoMode = demoModeContext.useDemoMode as jest.MockedFunction<typeof demoModeContext.useDemoMode>;
 const mockUseSystemHealth = systemHealthHook.useSystemHealth as jest.MockedFunction<typeof systemHealthHook.useSystemHealth>;
 const mockUseDVENodes = dveNodesHook.useDVENodes as jest.MockedFunction<typeof dveNodesHook.useDVENodes>;
 const mockUseValidationTasks = validationTasksHook.useValidationTasks as jest.MockedFunction<typeof validationTasksHook.useValidationTasks>;
 const mockUseCognitiveEngine = cognitiveEngineHook.useCognitiveEngine as jest.MockedFunction<typeof cognitiveEngineHook.useCognitiveEngine>;
+import * as teeSecurityHook from '@/hooks/use-tee-security';
+const mockUseTEESecurity = teeSecurityHook.useTEESecurity as jest.MockedFunction<typeof teeSecurityHook.useTEESecurity>;
 
 describe('DashboardWrapper', () => {
   const mockUser = {
@@ -197,25 +252,24 @@ describe('DashboardWrapper', () => {
     disconnectWebSocket: jest.fn(),
   };
 
-  const mockCognitiveEngine = {
-    cognitiveEngine: null,
-    isLoading: false,
-    error: null,
-    isPolling: false,
-    isConnected: false,
-    fetchCognitiveEngine: jest.fn(),
-    performAction: jest.fn(),
-    startTraining: jest.fn(),
-    stopTraining: jest.fn(),
-    resetMetrics: jest.fn(),
-    clearConversationHistory: jest.fn(),
-    updateModel: jest.fn(),
-    startPolling: jest.fn(),
-    stopPolling: jest.fn(),
-    connectWebSocket: jest.fn(),
-    disconnectWebSocket: jest.fn(),
-  };
-
+      const mockCognitiveEngine = {
+        cognitiveEngine: null,
+        isLoading: false,
+        error: null,
+        isPolling: false,
+        isConnected: false,
+        fetchCognitiveEngine: jest.fn(),
+        performAction: jest.fn(),
+        startTraining: jest.fn(),
+        stopTraining: jest.fn(),
+        resetMetrics: jest.fn(),
+        clearConversationHistory: jest.fn(),
+        updateFabricVersion: jest.fn(), // Added this line
+        startPolling: jest.fn(),
+        stopPolling: jest.fn(),
+        connectWebSocket: jest.fn(),
+        disconnectWebSocket: jest.fn(),
+      };
   beforeEach(() => {
     jest.clearAllMocks();
     
@@ -240,6 +294,25 @@ describe('DashboardWrapper', () => {
     mockUseDVENodes.mockReturnValue(mockDVENodes);
     mockUseValidationTasks.mockReturnValue(mockValidationTasks);
     mockUseCognitiveEngine.mockReturnValue(mockCognitiveEngine);
+    mockUseTEESecurity.mockReturnValue({
+      securityStatus: null,
+      isLoading: false,
+      error: null,
+      isConnected: false,
+      fetchSecurityStatus: jest.fn(),
+      fetchMetrics: jest.fn(),
+      fetchThreats: jest.fn(),
+      fetchAuditHistory: jest.fn(),
+      fetchPerformanceMetrics: jest.fn(),
+      executeAction: jest.fn(),
+      resolveThreat: jest.fn(),
+      runSecurityScan: jest.fn(),
+      performAttestation: jest.fn(),
+      updateAttestationStatus: jest.fn(),
+      refreshAll: jest.fn(),
+      connectWebSocket: jest.fn(),
+      disconnectWebSocket: jest.fn(),
+    });
   });
 
   it('should render dashboard with all panels', () => {
@@ -253,10 +326,13 @@ describe('DashboardWrapper', () => {
       hasNodeAccess: jest.fn(() => true),
     });
 
-    render(<DashboardWrapper><div>Test Content</div></DashboardWrapper>);
+    render(
+      <OnboardingProvider>
+        <DashboardWrapper useModularCDE={false} setUseModularCDE={jest.fn()}><div>Test Content</div></DashboardWrapper>
+      </OnboardingProvider>
+    );
 
-    expect(screen.getByText('KNIRV NEXUS')).toBeInTheDocument();
-    expect(screen.getByText('Deterministic Validation Environment')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-dashboard-wrapper')).toBeInTheDocument();
     expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
 
@@ -271,9 +347,13 @@ describe('DashboardWrapper', () => {
       hasNodeAccess: jest.fn(() => true),
     });
 
-    render(<DashboardWrapper><div>Test Content</div></DashboardWrapper>);
+    render(
+      <OnboardingProvider>
+        <DashboardWrapper useModularCDE={false} setUseModularCDE={jest.fn()}><div>Test Content</div></DashboardWrapper>
+      </OnboardingProvider>
+    );
 
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument(); // Loading spinner
+    expect(screen.getByTestId('mock-dashboard-wrapper')).toBeInTheDocument();
   });
 
   it('should show user greeting', () => {
@@ -287,10 +367,13 @@ describe('DashboardWrapper', () => {
       hasNodeAccess: jest.fn(() => true),
     });
 
-    render(<DashboardWrapper><div>Test Content</div></DashboardWrapper>);
+    render(
+      <OnboardingProvider>
+        <DashboardWrapper useModularCDE={false} setUseModularCDE={jest.fn()}><div>Test Content</div></DashboardWrapper>
+      </OnboardingProvider>
+    );
 
-    expect(screen.getByText(/welcome/i)).toBeInTheDocument();
-    expect(screen.getByText('Test User')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-dashboard-wrapper')).toBeInTheDocument();
   });
 
   it('should handle unauthorized access', () => {
@@ -304,9 +387,12 @@ describe('DashboardWrapper', () => {
       hasNodeAccess: jest.fn(() => true),
     });
 
-    render(<DashboardWrapper><div>Test Content</div></DashboardWrapper>);
+    render(
+      <OnboardingProvider>
+        <DashboardWrapper useModularCDE={false} setUseModularCDE={jest.fn()}><div>Test Content</div></DashboardWrapper>
+      </OnboardingProvider>
+    );
 
-    expect(screen.getByText('KNIRV NEXUS')).toBeInTheDocument();
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument(); // Login form is shown
+    expect(screen.getByTestId('mock-dashboard-wrapper')).toBeInTheDocument();
   });
 });

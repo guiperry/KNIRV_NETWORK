@@ -21,6 +21,7 @@ import (
 	"backend_server/internal/reasoning/graph"
 	"backend_server/internal/runtime"
 	"backend_server/internal/services/active_memory"
+	agentsvc "backend_server/internal/services/agent"
 	"backend_server/internal/services/cde"
 	"backend_server/internal/services/cognitiveengine"
 	"backend_server/internal/services/container"
@@ -109,6 +110,9 @@ type Server struct {
 
 	// Object Nest subsystem
 	unifiedContainerManager *runtime.UnifiedContainerManager
+
+	// Agent runtime (oh-my-pi)
+	agentService *agentsvc.AgentService
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -548,6 +552,12 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		virtualContainerManager,
 	)
 
+	// Initialize Agent Service (oh-my-pi agentic runtime)
+	agentService := agentsvc.NewAgentService(dbManager, unifiedContainerManager, activeMemoryService)
+	if err := agentService.Start(); err != nil {
+		log.Printf("Warning: Failed to start agent service: %v", err)
+	}
+
 	// Initialize Nexus Memory Fabric
 	nexusAllocator := memory.DefaultAllocator
 	nexusServer := nexus.NewNexusMemoryServer(nexusAllocator)
@@ -596,6 +606,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		activeMemoryService:          activeMemoryService,
 		fintechValidatorService:      fintechValidatorService,
 		unifiedContainerManager:      unifiedContainerManager,
+		agentService:                 agentService,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -781,6 +792,13 @@ func (s *Server) setupRoutes() {
 		log.Println("FinTech Validator routes configured")
 	}
 
+	// Register Agent Command Center routes (oh-my-pi)
+	if s.agentService != nil {
+		agentHandlers := web.NewAgentHandlers(s.agentService)
+		agentHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("Agent Command Center routes configured")
+	}
+
 	// Register system settings routes
 	systemSettingsHandlers := web.NewSystemSettingsHandlers(s.config)
 	systemSettingsHandlers.RegisterRoutes(s.router, authMiddleware)
@@ -841,6 +859,9 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"active_memory_service": s.activeMemoryService != nil,
 			"pqc_manager":           s.pqcManager != nil,
 			"fintech_validator":     s.fintechValidatorService != nil && s.fintechValidatorService.Config.Enabled,
+			"cde_service":           s.cdeService != nil,
+			"model_server":          s.unifiedContainerManager != nil,
+			"agent_service":         s.agentService != nil,
 		},
 		"ebpf": ebpfMetrics,
 	}

@@ -34,6 +34,7 @@ const (
 	ObjectTypeP2P        ObjectType = "p2p"        // P2P router/node
 	ObjectTypeFile       ObjectType = "file"       // File server
 	ObjectTypeCustom     ObjectType = "custom"     // Custom service
+	ObjectTypeAgent      ObjectType = "agent"      // oh-my-pi agentic runtime
 )
 
 // SecurityLevel defines the isolation strength
@@ -177,6 +178,16 @@ type TextureInfo struct {
 	Type       string `json:"type"`
 	Resolution string `json:"resolution"`
 	Format     string `json:"format"`
+}
+
+// AgentRuntimeCapability advertises agentic runtime support for P2P discovery
+type AgentRuntimeCapability struct {
+	NodeID            string   `json:"node_id"`
+	AgentEngineVer    string   `json:"agent_engine_version"`   // e.g. "oh-my-pi-0.1"
+	SupportedTools    []string `json:"supported_tools"`        // git, python, curl, browser
+	ActiveMemoryMount string   `json:"active_memory_mount"`    // path in DVE
+	MaxConcurrent     int      `json:"max_concurrent_agents"`
+	ViewportEnabled   bool     `json:"viewport_enabled"`
 }
 
 // ContainerRuntime represents the runtime interface

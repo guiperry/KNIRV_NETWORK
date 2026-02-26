@@ -39,6 +39,29 @@ export interface DVENode {
   longitude?: number; // float64 from backend
 }
 
+export interface ControllerDevice {
+  id: string;
+  user_id: string;
+  device_type: string;
+  device_name: string;
+  os_version: string;
+  app_version: string;
+  capabilities: string[];
+  status: "online" | "offline";
+  last_seen: string;
+  registered_at: string;
+}
+
+export interface ControllerStats {
+  total_qr_codes: number;
+  active_qr_codes: number;
+  total_pairing_requests: number;
+  pending_pairing_requests: number;
+  active_sessions: number;
+  total_devices: number;
+  online_devices: number;
+}
+
 // Fabric types - Aligned with backend models/fabric.go
 export interface Fabric {
   id: string;

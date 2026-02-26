@@ -34,6 +34,7 @@ require (
 	golang.org/x/crypto v0.46.0
 	golang.org/x/sys v0.39.0
 	golang.org/x/term v0.38.0
+	google.golang.org/grpc v1.79.1
 	lukechampine.com/blake3 v1.2.1
 )
 
@@ -79,7 +80,6 @@ require (
 	golang.org/x/telemetry v0.0.0-20251111182119-bc8e575c7b54 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect
-	google.golang.org/grpc v1.79.1 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
 

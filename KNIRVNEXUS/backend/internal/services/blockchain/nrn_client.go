@@ -168,4 +168,7 @@ type Transaction struct {
 	Type            string `json:"type"`
 	Fee             uint64 `json:"fee"`
 	Status          string `json:"status"`
+	ChainID         string `json:"chain_id"`
+	BlockHeight     uint64 `json:"block_height"`
+	PQCSignature    []byte `json:"pqc_signature"`
 }
