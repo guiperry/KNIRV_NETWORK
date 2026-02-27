@@ -22,13 +22,14 @@ import (
 	"backend_server/internal/runtime"
 	"backend_server/internal/services/active_memory"
 	agentsvc "backend_server/internal/services/agent"
-	"backend_server/internal/services/cde"
+	"backend_server/internal/services/blockchain"
 	"backend_server/internal/services/cognitiveengine"
 	"backend_server/internal/services/container"
 	"backend_server/internal/services/controllerintegration"
 	"backend_server/internal/services/dns"
+	"backend_server/internal/services/dvecreation"
 	"backend_server/internal/services/dvemanager"
-	"backend_server/internal/services/dverental"
+	dverental "backend_server/internal/services/dverental"
 	"backend_server/internal/services/endpoints"
 	fabricserver "backend_server/internal/services/fabric-server"
 	"backend_server/internal/services/fabricmanagement"
@@ -68,6 +69,7 @@ type Server struct {
 	router     *mux.Router
 	httpServer *http.Server
 	p2pManager *p2p.DVEP2PManager
+	nrnClient  *blockchain.NRNClient
 	logger     *zap.Logger
 
 	// eBPF subsystem
@@ -80,9 +82,9 @@ type Server struct {
 
 	// All services are held here
 	dveManager                   *dvemanager.DVEManager
+	dveCreationService           *dvecreation.DVECreationService
 	dveRentalService             *dverental.DVERentalService
 	validationCore               *validation.ValidationCore
-	cdeService                   *cde.CDEService
 	dnsService                   *dns.DynamicDNSService
 	fabricServer                 *fabricserver.FabricServer
 	dataEngine                   *data_engine.BuntDBDataEngine
@@ -310,11 +312,26 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize DVE manager: %w", err)
 	}
 
-	// Initialize DVE Rental Service
-	dveRentalService, err := dverental.NewDVERentalService(dbManager)
+	// Initialize DVE Creation Service
+	dveCreationService, err := dvecreation.NewDVECreationService(dbManager)
 	if err != nil {
-		log.Printf("Warning: Failed to initialize DVE rental service: %v", err)
-		dveRentalService = nil
+		log.Printf("Warning: Failed to initialize DVE creation service: %v", err)
+		dveCreationService = nil
+	}
+
+	// Initialize blockchain client
+	var nrnClient *blockchain.NRNClient
+	if cfg.Blockchain.URL != "" {
+		client, err := blockchain.NewNRNClient(cfg.Blockchain.URL, cfg.Blockchain.UseTLS, cfg.Blockchain.CertFile)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize blockchain client: %v", err)
+		} else {
+			nrnClient = client
+			if dveCreationService != nil {
+				dveCreationService.SetChainClient(nrnClient)
+				log.Println("Blockchain client integrated with DVE creation service")
+			}
+		}
 	}
 
 	// Ensure fabric server storage path is explicitly set to app data directory if empty
@@ -401,27 +418,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize Controller Integration service
 	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager)
 
-	// Initialize CDE service with TEE security integration and eBPF virtual containers
-	cdeService, err := cde.NewCDEService(teeSecurityService, dataEngine, virtualContainerManager, cde.CDEConfig{
-		BaseImagePath:          cfg.CDE.BaseImagePath,
-		WorkspaceRoot:          cfg.CDE.WorkspaceRoot,
-		MaxEnvironments:        cfg.CDE.MaxEnvironments,
-		DefaultTimeout:         cfg.CDE.DefaultTimeout,
-		MaxCPUPerEnv:           cfg.CDE.MaxCPUPerEnv,
-		MaxMemoryPerEnv:        cfg.CDE.MaxMemoryPerEnv,
-		MaxDiskPerEnv:          cfg.CDE.MaxDiskPerEnv,
-		EnableSandboxing:       cfg.CDE.EnableSandboxing,
-		EnableNetworkIsolation: cfg.CDE.EnableNetworkIsolation,
-		AllowedPorts:           cfg.CDE.AllowedPorts,
-		SessionTimeout:         cfg.CDE.SessionTimeout,
-		MaxSessionsPerUser:     cfg.CDE.MaxSessionsPerUser,
-		MaxProjectsPerUser:     cfg.CDE.MaxProjectsPerUser,
-		ProjectStoragePath:     cfg.CDE.ProjectStoragePath,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize CDE service: %w", err)
-	}
-
 	// Initialize DNS service with minimal configuration for development
 	dnsConfig := dns.DNSConfig{
 		CloudFlareAPIToken:  "dev-token", // Placeholder for development
@@ -472,6 +468,12 @@ func NewServer(cfg *config.Config) (*Server, error) {
 
 	// Initialize Endpoint Registry
 	endpointRegistry := endpoints.NewEndpointRegistry(dbManager)
+
+	// Initialize DVE Rental Service
+	dveRentalService, err := dverental.NewDVERentalService(dbManager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize DVE rental service: %w", err)
+	}
 
 	// Initialize Active Memory Layer (Markdown Fabric)
 	pqcManager := pqc.NewEncryptionManager()
@@ -576,15 +578,16 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		db:                           dbManager,
 		router:                       router,
 		p2pManager:                   p2pManager,
+		nrnClient:                    nrnClient,
 		logger:                       logger,
 		ebpfManager:                  ebpfManager,
 		virtualContainerManager:      virtualContainerManager,
 		nexusServer:                  nexusServer,
 		nexusAllocator:               nexusAllocator,
 		dveManager:                   dveManager,
+		dveCreationService:           dveCreationService,
 		dveRentalService:             dveRentalService,
 		validationCore:               validationCore,
-		cdeService:                   cdeService,
 		dnsService:                   dnsService,
 		fabricServer:                 fabricServer,
 		dataEngine:                   dataEngine,
@@ -699,11 +702,6 @@ func (s *Server) setupRoutes() {
 		s.nexusServer.RegisterRoutes(s.router)
 	}
 
-	// Register CDE service routes (when available)
-	if s.cdeService != nil {
-		s.cdeService.RegisterRoutes(s.router, authMiddleware)
-	}
-
 	// Register DNS service routes (when available)
 	if s.dnsService != nil {
 		s.dnsService.RegisterRoutes(s.router, authMiddleware)
@@ -724,16 +722,23 @@ func (s *Server) setupRoutes() {
 
 	// Register DVE manager routes
 	if s.dveManager != nil {
-		dveHandlers := web.NewDVEHandlers(s.dveManager, s.dveRentalService)
+		dveHandlers := web.NewDVEHandlers(s.dveManager, s.dveCreationService)
 		dveHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE manager routes configured")
 	}
 
-	// Register DVE rental routes
+	// Register DVE creation routes
+	if s.dveCreationService != nil {
+		dveCreationHandlers := web.NewDVECreationHandlers(s.dveCreationService)
+		dveCreationHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("DVE creation routes configured")
+	}
+
+	// Register DVE rental/instances routes (services and stats)
 	if s.dveRentalService != nil {
 		dveRentalHandlers := web.NewDVERentalHandlers(s.dveRentalService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db)
 		dveRentalHandlers.RegisterRoutes(s.router, authMiddleware)
-		log.Println("DVE rental routes configured")
+		log.Println("DVE rental service routes configured")
 	}
 
 	// Register validation service routes
@@ -790,6 +795,13 @@ func (s *Server) setupRoutes() {
 		fintechHandlers := fintech_validator.NewHandlers(s.fintechValidatorService)
 		fintechHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("FinTech Validator routes configured")
+	}
+
+	// Register NRN payment routes
+	if s.nrnClient != nil {
+		nrnHandlers := web.NewNRNPaymentHandlers(s.nrnClient)
+		nrnHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("NRN payment routes configured")
 	}
 
 	// Register Agent Command Center routes (oh-my-pi)
@@ -859,7 +871,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"active_memory_service": s.activeMemoryService != nil,
 			"pqc_manager":           s.pqcManager != nil,
 			"fintech_validator":     s.fintechValidatorService != nil && s.fintechValidatorService.Config.Enabled,
-			"cde_service":           s.cdeService != nil,
+			"dve_creation_service":  s.dveCreationService != nil,
 			"model_server":          s.unifiedContainerManager != nil,
 			"agent_service":         s.agentService != nil,
 		},
@@ -924,6 +936,15 @@ func (s *Server) Start() error {
 		}
 	}
 
+	// Start DVE creation service
+	if s.dveCreationService != nil {
+		if err := s.dveCreationService.Start(); err != nil {
+			log.Printf("Warning: Failed to start DVE creation service: %v", err)
+		} else {
+			log.Println("DVE Creation Service started")
+		}
+	}
+
 	// Start fabric server
 	if s.fabricServer != nil {
 		if err := s.fabricServer.Start(); err != nil {
@@ -931,16 +952,6 @@ func (s *Server) Start() error {
 			// Continue - fabric server failure shouldn't stop basic server operation
 		} else {
 			log.Println("Fabric Server started")
-		}
-	}
-
-	// Start CDE service
-	if s.cdeService != nil {
-		if err := s.cdeService.Start(); err != nil {
-			log.Printf("Warning: Failed to start CDE service: %v", err)
-			// Continue - CDE service failure shouldn't stop basic server operation
-		} else {
-			log.Println("CDE Service started")
 		}
 	}
 
@@ -1177,6 +1188,12 @@ func (s *Server) Stop() error {
 	stopCtx, stopCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer stopCancel()
 
+	if s.dveCreationService != nil {
+		if err := s.dveCreationService.Stop(); err != nil {
+			log.Printf("Error stopping DVE creation service: %v", err)
+		}
+	}
+
 	if s.validationCore != nil {
 		if err := s.validationCore.Stop(stopCtx); err != nil {
 			log.Printf("Error stopping validation core: %v", err)
@@ -1191,6 +1208,12 @@ func (s *Server) Stop() error {
 
 	if s.p2pManager != nil {
 		s.p2pManager.Stop() // P2P manager stop doesn't return error
+	}
+
+	if s.nrnClient != nil {
+		if err := s.nrnClient.Close(); err != nil {
+			log.Printf("Error closing blockchain client: %v", err)
+		}
 	}
 
 	// Shutdown eBPF resources

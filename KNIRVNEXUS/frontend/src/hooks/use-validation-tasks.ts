@@ -153,17 +153,12 @@ export const useValidationTasks = () => {
       );
     };
 
-    const handleSystemNotification = (payload: any) => {
-      console.log('Validation Tasks system notification:', payload);
-    };
-
     // Register event handlers
     webSocketService.on('connection', handleConnection);
     webSocketService.on('validation-task-updated', handleValidationTaskUpdate);
-    webSocketService.on('system-notification', handleSystemNotification);
 
     // Subscribe to events
-    webSocketService.subscribe(['validation-task-updated', 'system-notification']);
+    webSocketService.subscribe(['validation-task-updated']);
 
     // Set initial connection status
     setIsConnected(webSocketService.getConnectionStatus());
@@ -172,7 +167,6 @@ export const useValidationTasks = () => {
     return () => {
       webSocketService.off('connection', handleConnection);
       webSocketService.off('validation-task-updated', handleValidationTaskUpdate);
-      webSocketService.off('system-notification', handleSystemNotification);
     };
   }, []);
 

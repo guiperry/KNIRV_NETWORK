@@ -4,8 +4,8 @@ import React, { useState } from 'react';
 import { X, Terminal, Shield, Monitor, Network, Settings, Info, Box, Activity, Zap } from 'lucide-react';
 import ConsolePanel from './console-panel';
 import PolicyEditor from './policy-editor';
-import MonitorPanel from './monitor-panel';
-import ConnectionsPanel from './connections-panel';
+import MonitorPanel, { type DVETask } from './monitor-panel';
+import ConnectionsPanel, { type ActiveWorker } from './connections-panel';
 import MetadataPanel from './metadata-panel';
 import DVESolverPanel from './dve-solver-panel';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,8 @@ const CDEPanel: React.FC<CDEPanelProps> = ({
   const [showConnections, setShowConnections] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
   const [showSolver, setShowSolver] = useState(false);
+  const [selectedWorker, setSelectedWorker] = useState<ActiveWorker | null>(null);
+  const [selectedTask, setSelectedTask] = useState<DVETask | null>(null);
 
   if (!isOpen) return null;
 
@@ -44,7 +46,7 @@ const CDEPanel: React.FC<CDEPanelProps> = ({
   const actualNodeName = node?.name || nodeName;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md transition-all duration-500">
+    <div className="fixed inset-0 z-50 bg-black/70 transition-all duration-300">
       {/* Main CDE Container */}
       <div className="absolute inset-0 flex flex-col bg-[#03050a] border-l border-blue-600/50">
         
@@ -55,7 +57,7 @@ const CDEPanel: React.FC<CDEPanelProps> = ({
               <Box className="w-6 h-6 text-blue-500 animate-pulse" />
               <div>
                 <h1 className="text-sm font-black tracking-tighter text-blue-100 uppercase">
-                  Cloud Development Environment
+                  Deterministic Validation Environment
                 </h1>
                 <p className="text-[10px] font-mono text-slate-500">
                   Secure Enclave Context: {actualNodeName || 'UNSET'} ({actualNodeId || 'unknown'})
@@ -74,14 +76,6 @@ const CDEPanel: React.FC<CDEPanelProps> = ({
           </div>
 
           <div className="flex items-center space-x-3">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="text-[10px] font-black uppercase border-blue-500/30 text-blue-400 hover:bg-blue-500 hover:text-white"
-              onClick={onToggleMode}
-            >
-              Switch to Legacy
-            </Button>
             <div className="flex bg-slate-950/50 p-1 rounded-lg border border-slate-800">
               <button
                 onClick={() => setShowConnections(!showConnections)}
@@ -133,19 +127,22 @@ const CDEPanel: React.FC<CDEPanelProps> = ({
           {/* Connections Sidebar - Modular Slide-out */}
           {showConnections && (
             <div
-              className={`absolute left-0 top-0 bottom-0 z-[60] transition-all duration-500 ease-in-out translate-x-0`}
+              className={`absolute left-0 top-0 bottom-0 z-[60] transition-all duration-200 ease-in-out translate-x-0`}
             >
               <ConnectionsPanel 
                 isOpen={showConnections} 
-                onClose={() => setShowConnections(false)} 
-                onSelectNRV={() => setShowSolver(true)}
+                onClose={() => setShowConnections(false)}
+                onSelectWorker={(worker) => {
+                  setSelectedWorker(worker);
+                  setShowMetadata(true);
+                }}
               />
             </div>
           )}
 
           {/* Centered Main Area */}
           <div 
-            className={`h-full flex flex-col items-center justify-center p-8 transition-all duration-500 ${showConnections ? 'ml-[300px]' : 'ml-0'}`}
+            className={`h-full flex flex-col items-center justify-center p-8 transition-all duration-200 ${showConnections ? 'ml-[300px]' : 'ml-0'}`}
           >
             <div className="max-w-3xl w-full space-y-8 text-center">
               <div className="inline-flex p-4 rounded-3xl bg-blue-600/10 border border-blue-600/30 relative">
@@ -191,10 +188,15 @@ const CDEPanel: React.FC<CDEPanelProps> = ({
               
               <div className="pt-8">
                 <Button 
-                  onClick={() => setShowMetadata(true)}
+                  onClick={() => {
+                    setShowConsole(true);
+                    setShowPolicy(true);
+                    setShowMonitor(true);
+                    setShowConnections(true);
+                  }}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-black px-8 py-6 rounded-2xl shadow-[0_0_30px_rgba(37,99,235,0.3)] transition-all transform hover:scale-105 active:scale-95"
                 >
-                  INITIALIZE SECURE SHELL
+                  OPEN MONITOR PANELS
                 </Button>
               </div>
             </div>
@@ -204,7 +206,10 @@ const CDEPanel: React.FC<CDEPanelProps> = ({
           {showMetadata && (
             <MetadataPanel 
               isOpen={showMetadata} 
-              onClose={() => setShowMetadata(false)} 
+              onClose={() => {
+                setShowMetadata(false);
+                setSelectedWorker(null);
+              }} 
               node={node || ({
                 id: actualNodeId || '',
                 name: actualNodeName || 'Unknown Node',
@@ -223,15 +228,22 @@ const CDEPanel: React.FC<CDEPanelProps> = ({
                 memory_usage: 0,
                 network_latency: 0,
               } as DVENode)}
+              worker={selectedWorker}
               isMonitorOpen={showMonitor}
+              isSidebarOpen={showConnections}
             />
           )}
 
           {/* DVE Solver Panel - Modular Center View */}
           <DVESolverPanel 
             isOpen={showSolver} 
-            onClose={() => setShowSolver(false)} 
+            onClose={() => {
+              setShowSolver(false);
+              setSelectedTask(null);
+            }} 
             isMonitorOpen={showMonitor}
+            initialTask={selectedTask}
+            onTaskSelect={setSelectedTask}
           />
 
           {/* Console Panel - Modular Slide-out */}
@@ -257,6 +269,7 @@ const CDEPanel: React.FC<CDEPanelProps> = ({
             nodeId={actualNodeId}
             isSidebarOpen={showConnections}
             onOpenSolver={() => setShowSolver(true)}
+            onSelectTask={(task) => setSelectedTask(task)}
           />
         </div>
       </div>

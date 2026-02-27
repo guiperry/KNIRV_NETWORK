@@ -296,6 +296,10 @@ describe('DashboardWrapper', () => {
     mockUseCognitiveEngine.mockReturnValue(mockCognitiveEngine);
     mockUseTEESecurity.mockReturnValue({
       securityStatus: null,
+      metrics: null,
+      threats: [],
+      auditHistory: [],
+      performanceMetrics: null,
       isLoading: false,
       error: null,
       isConnected: false,

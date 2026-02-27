@@ -114,11 +114,6 @@ func (dm *DVEManager) Start(ctx context.Context) error {
 		log.Printf("Warning: Failed to load nodes from database: %v", err)
 	}
 
-	// Seed demo nodes if database is empty
-	if err := dm.seedDemoDVENodesIfEmpty(); err != nil {
-		log.Printf("Warning: Failed to seed demo DVE nodes: %v", err)
-	}
-
 	log.Println("DVE Manager service started successfully")
 	return nil
 }

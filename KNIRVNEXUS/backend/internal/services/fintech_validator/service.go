@@ -2,6 +2,7 @@ package fintech_validator
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -560,13 +561,22 @@ func (s *MarkdownEvidenceStore) Sign(id string, keyID string) error {
 		return fmt.Errorf("failed to load evidence pack for signing: %w", err)
 	}
 
+	// Get the key pair from PQC manager
+	keyPair, err := s.pqcManager.GetKey(keyID)
+	if err != nil {
+		return fmt.Errorf("failed to get PQC key for signing: %w", err)
+	}
+
 	// Sign the content
-	// Note: This is a simplified implementation
-	// In production, you'd use proper PQC signing
+	sigBytes, err := keyPair.Sign(doc.Content)
+	if err != nil {
+		return fmt.Errorf("failed to sign evidence pack: %w", err)
+	}
+
 	signature := &fintech.PQCSignature{
-		Algorithm:   "ML-DSA-65",
+		Algorithm:   keyPair.Algorithm,
 		PublicKeyID: keyID,
-		Signature:   "placeholder-signature",
+		Signature:   base64.StdEncoding.EncodeToString(sigBytes),
 		SignedAt:    time.Now(),
 	}
 

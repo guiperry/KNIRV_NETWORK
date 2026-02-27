@@ -464,6 +464,8 @@ func (s *FidelityScorer) identifyComplianceGaps(trace *NRVTrace, distanceResult 
 		"kyc-global-v1":     "KYC",
 		"aml-fincen-v1":     "AML",
 		"sec-regulation-v1": "SEC",
+		"mica-eu-v1":        "MiCA",
+		"gdpr-privacy-v1":   "GDPR",
 	}
 
 	for ontologyID, category := range requiredOntologies {

@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package blockchain;
+
+option go_package = "backend_server/internal/proto/blockchain";
+
+import "google/protobuf/timestamp.proto";
+
+service BlockchainService {
+    rpc VerifyPayment(VerifyPaymentRequest) returns (VerifyPaymentResponse);
+    rpc SubmitTransaction(SubmitTransactionRequest) returns (SubmitTransactionResponse);
+    rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+    rpc GetBlockHeight(GetBlockHeightRequest) returns (GetBlockHeightResponse);
+    rpc RegisterDVENode(RegisterDVENodeRequest) returns (RegisterDVENodeResponse);
+    rpc CreateChainSession(CreateChainSessionRequest) returns (CreateChainSessionResponse);
+    rpc ValidateSession(ValidateSessionRequest) returns (ValidateSessionResponse);
+    rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
+}
+
+message VerifyPaymentRequest {
+    string tx_hash = 1;
+    int64 expected_amount = 2;
+    string expected_recipient = 3;
+}
+
+message VerifyPaymentResponse {
+    bool verified = 1;
+    string payment_id = 2;
+    int64 amount = 3;
+    string status = 4;
+    int64 block_height = 5;
+    google.protobuf.Timestamp confirmed_at = 6;
+}
+
+message SubmitTransactionRequest {
+    string from = 1;
+    string to = 2;
+    int64 value = 3;
+    bytes data = 4;
+    bytes signature = 5;
+    string public_key = 6;
+    bytes pqc_signature = 7;
+}
+
+message SubmitTransactionResponse {
+    string tx_hash = 1;
+    string status = 2;
+}
+
+message GetBalanceRequest {
+    string address = 1;
+}
+
+message GetBalanceResponse {
+    int64 balance = 1;
+}
+
+message GetBlockHeightRequest {}
+
+message GetBlockHeightResponse {
+    uint64 height = 1;
+}
+
+message RegisterDVENodeRequest {
+    string node_id = 1;
+    string owner_address = 2;
+    int64 stake_amount = 3;
+}
+
+message RegisterDVENodeResponse {
+    string tx_hash = 1;
+    bool success = 2;
+}
+
+message CreateChainSessionRequest {
+    string dve_node_id = 1;
+    string owner_address = 2;
+}
+
+message CreateChainSessionResponse {
+    string session_id = 1;
+    google.protobuf.Timestamp expires_at = 2;
+    bytes pqc_signature = 3;
+}
+
+message ValidateSessionRequest {
+    string session_id = 1;
+}
+
+message ValidateSessionResponse {
+    bool valid = 1;
+    google.protobuf.Timestamp expires_at = 2;
+}
+
+message GetSecretRequest {
+    string session_id = 1;
+    string secret_key = 2;
+}
+
+message GetSecretResponse {
+    string secret_value = 1;
+    bool success = 2;
+}

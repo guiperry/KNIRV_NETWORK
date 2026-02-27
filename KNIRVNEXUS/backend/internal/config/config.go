@@ -48,6 +48,13 @@ type FintechConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
+// BlockchainConfig defines blockchain connection settings
+type BlockchainConfig struct {
+	URL      string `mapstructure:"url"`
+	UseTLS   bool   `mapstructure:"use_tls"`
+	CertFile string `mapstructure:"cert_file"`
+}
+
 // Config represents the application configuration
 type Config struct {
 	Environment string            `mapstructure:"environment"`
@@ -66,6 +73,7 @@ type Config struct {
 	Network     NetworkConfig     `mapstructure:"network"`
 	Validation  ValidationConfig  `mapstructure:"validation"`
 	Fintech     FintechConfig     `mapstructure:"fintech"`
+	Blockchain  BlockchainConfig  `mapstructure:"blockchain"`
 	TEE         TEEConfig         `mapstructure:"tee"`
 	CDE         CDEConfig         `mapstructure:"cde"`
 	Reports     ReportsConfig     `mapstructure:"reports"`
@@ -593,6 +601,10 @@ func setDefaults() {
 	viper.SetDefault("model_server.storage_path", filepath.Join(appDataDir, "models"))
 	viper.SetDefault("model_server.max_models", 10)
 	viper.SetDefault("model_server.enable_cors", true)
+
+	// Blockchain configuration defaults
+	viper.SetDefault("blockchain.url", "localhost:50051")
+	viper.SetDefault("blockchain.use_tls", false)
 
 	// Legacy defaults for backward compatibility
 	viper.SetDefault("chain_id", "knirv-nexus-mainnet")

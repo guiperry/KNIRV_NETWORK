@@ -298,18 +298,13 @@ export const useSystemHealth = () => {
       setAlerts(prevAlerts => [payload, ...prevAlerts]);
     };
 
-    const handleSystemNotification = (payload: any) => {
-      console.log('System Health system notification:', payload);
-    };
-
     // Register event handlers
     webSocketService.on('connection', handleConnection);
     webSocketService.on('system-health-updated', handleSystemHealthUpdate);
     webSocketService.on('system-alert-added', handleSystemAlertAdded);
-    webSocketService.on('system-notification', handleSystemNotification);
 
     // Subscribe to events
-    webSocketService.subscribe(['system-health-updated', 'system-alert-added', 'system-notification']);
+    webSocketService.subscribe(['system-health-updated', 'system-alert-added']);
 
     // Set initial connection status
     setIsConnected(webSocketService.getConnectionStatus());
@@ -319,7 +314,6 @@ export const useSystemHealth = () => {
       webSocketService.off('connection', handleConnection);
       webSocketService.off('system-health-updated', handleSystemHealthUpdate);
       webSocketService.off('system-alert-added', handleSystemAlertAdded);
-      webSocketService.off('system-notification', handleSystemNotification);
     };
   }, []);
 

@@ -37,6 +37,7 @@ import {
   Cpu,
   HardDrive,
   Wifi,
+  WifiOff,
   Globe,
   Database,
   Monitor,
@@ -47,7 +48,8 @@ import {
   CheckCircle,
   AlertTriangle,
   Clock,
-  Brain
+  Brain,
+  Bell
 } from 'lucide-react';
 
 interface DashboardWrapperProps {
@@ -164,11 +166,11 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
       {/* Role-based navigation */}
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
-          <Tabs defaultValue="overview" className="w-full">
+          <Tabs defaultValue="system" className="w-full">
             <TabsList className="inline-flex h-12 w-full">
-              <TabsTrigger value="overview" className="flex items-center space-x-2">
-                <BarChart3 className="w-4 h-4" />
-                <span>Overview</span>
+              <TabsTrigger value="setup" className="flex items-center space-x-2">
+                <Settings className="w-4 h-4" />
+                <span>Setup</span>
               </TabsTrigger>
 
               {user?.nexus_access?.includes('compliance:read') && (
@@ -202,7 +204,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
             </TabsList>
             
             <div className="py-6">
-              <TabsContent value="overview">
+              <TabsContent value="setup">
                 {!onboardingState.isOnboardingComplete ? (
                   <div className="rounded-xl overflow-hidden border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
                     <OnboardingGuide 
@@ -211,7 +213,131 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                     />
                   </div>
                 ) : (
-                  children
+                  <div className="space-y-6">
+                    <div className="rounded-xl overflow-hidden border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                      <div className="bg-blue-950/30 p-6 border-b border-blue-500/30">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h2 className="text-2xl font-bold text-blue-100">Network Settings</h2>
+                            <p className="text-blue-300/70">
+                              Configure global network-wide settings for your KNIRV deployment
+                            </p>
+                          </div>
+                          <Button 
+                            onClick={() => {
+                              updateOnboardingState({
+                                currentStep: 'guide',
+                                isOnboardingComplete: false
+                              });
+                            }}
+                            className="bg-blue-600 hover:bg-blue-500"
+                          >
+                            <Settings className="w-4 h-4 mr-2" />
+                            Reconfigure Settings
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="p-6 bg-slate-950/50">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          <Card className="knirv-card-gradient border-blue-500/30">
+                            <CardHeader>
+                              <CardTitle className="flex items-center space-x-2">
+                                <Shield className="w-5 h-5 text-blue-400" />
+                                <span>Data Wallet Configuration</span>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Wallet Name:</span>
+                                  <span className="font-mono">{onboardingState.dataWalletConfig?.walletName || 'Not configured'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Fabric Inputs:</span>
+                                  <span className="font-mono">{onboardingState.dataWalletConfig?.fabricInputs?.length || 0} configured</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Guardrails:</span>
+                                  <Badge variant="outline">
+                                    {onboardingState.dataWalletConfig?.guardrails 
+                                      ? Object.values(onboardingState.dataWalletConfig.guardrails).filter(Boolean).length 
+                                      : 0} active
+                                  </Badge>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="knirv-card-gradient border-blue-500/30">
+                            <CardHeader>
+                              <CardTitle className="flex items-center space-x-2">
+                                <Lock className="w-5 h-5 text-amber-400" />
+                                <span>Privacy Preferences</span>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Encryption:</span>
+                                  <Badge variant="outline">{onboardingState.privacyPreferences?.dataEncryption ? 'Enabled' : 'Disabled'}</Badge>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Analytics:</span>
+                                  <Badge variant="outline">{onboardingState.privacyPreferences?.allowAnalytics ? 'Enabled' : 'Disabled'}</Badge>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Local Processing:</span>
+                                  <Badge variant="outline">{onboardingState.privacyPreferences?.localProcessing ? 'Enabled' : 'Disabled'}</Badge>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card className="knirv-card-gradient border-blue-500/30">
+                            <CardHeader>
+                              <CardTitle className="flex items-center space-x-2">
+                                <Network className="w-5 h-5 text-green-400" />
+                                <span>Connection Status</span>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">API Keys:</span>
+                                  <span className="font-mono">{onboardingState.connectionData?.apiKeys?.length || 0}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">MCP Servers:</span>
+                                  <span className="font-mono">{onboardingState.connectionData?.mcpServers?.length || 0}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Onboarding:</span>
+                                  <Badge className="bg-green-500">Complete</Badge>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+
+                        <div className="mt-6 p-4 bg-blue-950/30 rounded-lg border border-blue-500/20">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <CheckCircle className="w-5 h-5 text-green-400" />
+                              <div>
+                                <p className="font-medium">Onboarding Completed</p>
+                                <p className="text-sm text-muted-foreground">
+                                  Your network is configured and ready. Click "Reconfigure Settings" to modify your network configuration.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right text-sm text-muted-foreground">
+                              <p>Status: Active</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </TabsContent>
               
@@ -234,6 +360,17 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
               <TabsContent value="system">
                 <SystemAccess operation="read">
                   <div className="space-y-6">
+                    {/* Main Title */}
+                    <div className="text-center space-y-2 pb-6 border-b border-blue-500/20">
+                      <div className="flex items-center justify-center gap-2">
+                        <h1 className="text-4xl font-bold knirv-gradient-text">KNIRV-NEXUS DVE</h1>
+                        <Badge className="bg-green-500"><Wifi className="w-3 h-3 mr-1" /> Live</Badge>
+                      </div>
+                      <p className="text-lg text-muted-foreground">
+                        The Crucible of Verifiable AI Intelligence
+                      </p>
+                    </div>
+
                     <div className="flex items-center justify-between">
                       <div>
                         <h2 className="text-2xl font-bold">Network & Resource Explorer</h2>

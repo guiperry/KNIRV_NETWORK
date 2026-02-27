@@ -1480,47 +1480,47 @@ func (h *DVERentalHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middle
 		r.HandleFunc("/api/sessions/ssh/{sessionId}/private-key", h.DownloadSSHPrivateKey).Methods("GET", "OPTIONS")
 	}
 
-	// Create a subrouter for DVE rental endpoints
-	rentalRouter := r.PathPrefix("/api/dve-rental").Subrouter()
+	// Create a subrouter for DVE endpoints
+	rentalRouter := r.PathPrefix("/api/dve").Subrouter()
 
-	// Public routes for viewing plans and stats
-	rentalRouter.HandleFunc("/plans", h.GetRentalPlans).Methods("GET", "OPTIONS")
+	// Public routes for viewing available services and stats
+	rentalRouter.HandleFunc("/services", h.GetRentalPlans).Methods("GET", "OPTIONS")
 	rentalRouter.HandleFunc("/stats", h.GetRentalStats).Methods("GET", "OPTIONS")
 
-	// Protected routes for rental management
+	// Protected routes for DVE instance management
 	if authMiddleware != nil {
 		protectedRentalRouter := rentalRouter.PathPrefix("").Subrouter()
 		protectedRentalRouter.Use(authMiddleware.RequireAuth)
-		protectedRentalRouter.HandleFunc("/rentals", h.CreateRental).Methods("POST", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals", h.GetUserRentals).Methods("GET", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/extend", h.ExtendRental).Methods("POST", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}", h.CancelRental).Methods("DELETE", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/full-access-info", h.GetFullAccessInfo).Methods("GET", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.CreateSSHSession).Methods("POST", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.GetSSHSession).Methods("GET", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.TerminateSSHSession).Methods("DELETE", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/validation-session", h.CreateValidationSession).Methods("POST", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/validation-session", h.GetValidationSession).Methods("GET", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/validation-session", h.TerminateValidationSession).Methods("DELETE", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.CreateErrorResolutionSession).Methods("POST", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET", "OPTIONS")
-		protectedRentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.TerminateErrorResolutionSession).Methods("DELETE", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances", h.CreateRental).Methods("POST", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances", h.GetUserRentals).Methods("GET", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/extend", h.ExtendRental).Methods("POST", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}", h.CancelRental).Methods("DELETE", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/full-access-info", h.GetFullAccessInfo).Methods("GET", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/ssh-session", h.CreateSSHSession).Methods("POST", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/ssh-session", h.GetSSHSession).Methods("GET", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/ssh-session", h.TerminateSSHSession).Methods("DELETE", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/validation-session", h.CreateValidationSession).Methods("POST", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/validation-session", h.GetValidationSession).Methods("GET", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/validation-session", h.TerminateValidationSession).Methods("DELETE", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/error-resolution-session", h.CreateErrorResolutionSession).Methods("POST", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET", "OPTIONS")
+		protectedRentalRouter.HandleFunc("/instances/{id}/error-resolution-session", h.TerminateErrorResolutionSession).Methods("DELETE", "OPTIONS")
 	} else {
 		// If no auth middleware, allow all routes (for testnet mode)
-		rentalRouter.HandleFunc("/rentals", h.CreateRental).Methods("POST", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals", h.GetUserRentals).Methods("GET", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/extend", h.ExtendRental).Methods("POST", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}", h.CancelRental).Methods("DELETE", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/full-access-info", h.GetFullAccessInfo).Methods("GET", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.CreateSSHSession).Methods("POST", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.GetSSHSession).Methods("GET", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/ssh-session", h.TerminateSSHSession).Methods("DELETE", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/validation-session", h.CreateValidationSession).Methods("POST", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/validation-session", h.GetValidationSession).Methods("GET", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/validation-session", h.TerminateValidationSession).Methods("DELETE", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.CreateErrorResolutionSession).Methods("POST", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET", "OPTIONS")
-		rentalRouter.HandleFunc("/rentals/{id}/error-resolution-session", h.TerminateErrorResolutionSession).Methods("DELETE", "OPTIONS")
+		rentalRouter.HandleFunc("/instances", h.CreateRental).Methods("POST", "OPTIONS")
+		rentalRouter.HandleFunc("/instances", h.GetUserRentals).Methods("GET", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/extend", h.ExtendRental).Methods("POST", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}", h.CancelRental).Methods("DELETE", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/full-access-info", h.GetFullAccessInfo).Methods("GET", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/ssh-session", h.CreateSSHSession).Methods("POST", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/ssh-session", h.GetSSHSession).Methods("GET", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/ssh-session", h.TerminateSSHSession).Methods("DELETE", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/validation-session", h.CreateValidationSession).Methods("POST", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/validation-session", h.GetValidationSession).Methods("GET", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/validation-session", h.TerminateValidationSession).Methods("DELETE", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/error-resolution-session", h.CreateErrorResolutionSession).Methods("POST", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET", "OPTIONS")
+		rentalRouter.HandleFunc("/instances/{id}/error-resolution-session", h.TerminateErrorResolutionSession).Methods("DELETE", "OPTIONS")
 	}
 	// CORS headers are handled by the CORSMiddleware
 	// No need for explicit OPTIONS handler as middleware handles it

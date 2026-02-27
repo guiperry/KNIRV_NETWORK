@@ -28,6 +28,7 @@ type ChainClientInterface interface {
 	RegisterDVENode(nodeID, ownerAddress string, stakeAmount int64) (string, error)
 	CreateChainSession(dveNodeID, ownerAddress string) (*objects.ChainSession, error)
 	ValidateSession(sessionID string) (*objects.ChainSession, error)
+	GetSecret(sessionID, secretKey string) (string, error)
 	Close() error
 }
 
@@ -505,6 +506,17 @@ func (dcs *DVECreationService) Heartbeat(creationID string) error {
 	}
 
 	return nil
+}
+
+func (dcs *DVECreationService) GetSecret(sessionID, secretKey string) (string, error) {
+	dcs.mu.RLock()
+	defer dcs.mu.RUnlock()
+
+	if dcs.chainClient == nil {
+		return "", fmt.Errorf("chain client not configured")
+	}
+
+	return dcs.chainClient.GetSecret(sessionID, secretKey)
 }
 
 func (dcs *DVECreationService) GetStats() (*DVECreationStats, error) {

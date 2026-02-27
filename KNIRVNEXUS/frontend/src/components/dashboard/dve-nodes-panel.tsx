@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Server, Cpu, HardDrive, Shield, MapPin, Clock, AlertCircle, CheckCircle, Activity, CreditCard, Play, Square, Zap, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,20 +67,20 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
       const endpoints = await getNodeEndpoints(node.id);
 
       if (endpoints && endpoints.length > 0) {
-        // Node is already rented
+        // Node is already created
         setActiveNodeId(prev => ({ ...prev, [node.id]: true }));
         toast({
           title: "Node Ready",
 
         });
       } else {
-        // Node not rented - redirect to rental modal
+        // Node not created - redirect to creation modal
         if (onRentClick) {
           onRentClick();
         } else {
           toast({
-            title: "Rental Required",
-            description: "Please use the Rent button to create a rental first.",
+            title: "Creation Required",
+            description: "Please use the Create button to register a DVE first.",
           });
         }
       }
@@ -101,7 +101,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
 
 
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'online': return 'bg-green-500';
       case 'offline': return 'bg-red-500';
@@ -109,9 +109,9 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
       case 'error': return 'bg-red-600';
       default: return 'bg-gray-500';
     }
-  };
+  }, []);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case 'online': return <CheckCircle className="w-4 h-4" />;
       case 'offline': return <AlertCircle className="w-4 h-4" />;
@@ -119,18 +119,18 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
       case 'error': return <AlertCircle className="w-4 h-4" />;
       default: return <Server className="w-4 h-4" />;
     }
-  };
+  }, []);
 
-  const getTEEIcon = (teeType: string) => {
+  const getTEEIcon = useCallback((teeType: string) => {
     switch (teeType.toUpperCase()) {
       case 'SGX': return <Shield className="w-4 h-4 text-blue-500" />;
       case 'SEV-SNP': return <Shield className="w-4 h-4 text-green-500" />;
       case 'TDX': return <Shield className="w-4 h-4 text-purple-500" />;
       default: return <Shield className="w-4 h-4 text-gray-500" />;
     }
-  };
+  }, []);
 
-  const formatLastHeartbeat = (heartbeat: string) => {
+  const formatLastHeartbeat = useCallback((heartbeat: string) => {
     const date = new Date(heartbeat);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -142,22 +142,22 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
     if (diffHours < 24) return `${diffHours}h ago`;
     const diffDays = Math.floor(diffHours / 24);
     return `${diffDays}d ago`;
-  };
+  }, []);
 
-  const filteredNodes = nodes.filter(node => {
+  const filteredNodes = useMemo(() => nodes.filter(node => {
     if (filter === 'all') return true;
     if (filter === 'online') return node.status === 'online';
     if (filter === 'offline') return node.status === 'offline';
     if (filter === 'maintenance') return node.status === 'maintenance';
     return true;
-  });
+  }), [nodes, filter]);
 
-  const nodeStats = {
+  const nodeStats = useMemo(() => ({
     total: nodes.length,
     online: nodes.filter(n => n.status === 'online').length,
     offline: nodes.filter(n => n.status === 'offline').length,
     maintenance: nodes.filter(n => n.status === 'maintenance').length,
-  };
+  }), [nodes]);
 
   if (error) {
     return (
@@ -192,71 +192,30 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
         <Alert className="border-blue-200 bg-blue-50">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
-            <strong>Developer View:</strong> You are viewing only the DVE instances you have rented. 
+            <strong>Developer View:</strong> You are viewing only the DVE instances you have created. 
             Root and Operator roles can see all network resources.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="knirv-card-gradient">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Server className="w-5 h-5 text-primary" />
-              <div>
-                <div className="text-2xl font-bold">{nodeStats.total}</div>
-                <div className="text-xs text-muted-foreground">Total Nodes</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="knirv-card-gradient">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
-              <div>
-                <div className="text-2xl font-bold">{nodeStats.online}</div>
-                <div className="text-xs text-muted-foreground">Online</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="knirv-card-gradient">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="w-5 h-5 text-red-500" />
-              <div>
-                <div className="text-2xl font-bold">{nodeStats.offline}</div>
-                <div className="text-xs text-muted-foreground">Offline</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="knirv-card-gradient">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Clock className="w-5 h-5 text-yellow-500" />
-              <div>
-                <div className="text-2xl font-bold">{nodeStats.maintenance}</div>
-                <div className="text-xs text-muted-foreground">Maintenance</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Filter Controls */}
       <Card className="knirv-card-gradient">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2">
-              <Server className="w-5 h-5" />
-              <span>{user?.role === 'observer' ? 'My DVE Instances' : 'DVE Nodes'}</span>
-            </CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="flex items-center space-x-2">
+                <Server className="w-5 h-5" />
+                <span>{user?.role === 'observer' ? 'My DVE Instances' : 'DVE Nodes'}</span>
+              </CardTitle>
+              {/* Node Status Indicators */}
+              <div className="flex items-center gap-2 text-[10px] bg-slate-900/50 px-2 py-1 rounded-full border border-slate-700">
+                <span className="text-blue-400 font-bold">{nodeStats.total}</span>
+                <span className="text-slate-600">|</span>
+                <span className="text-green-400">{nodeStats.online}</span>
+                <span className="text-red-400">{nodeStats.offline}</span>
+                <span className="text-yellow-400">{nodeStats.maintenance}</span>
+              </div>
+            </div>
             <div className="flex space-x-2">
               <Button
                 variant={filter === 'all' ? 'default' : 'outline'}
@@ -296,7 +255,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
                   className="bg-primary hover:bg-primary/90"
                 >
                   <CreditCard className="w-4 h-4 mr-2" />
-                  Rent
+                  Create
                 </Button>
               )}
             </div>

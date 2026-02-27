@@ -8,22 +8,22 @@ import (
 	"strings"
 	"time"
 
+	"backend_server/internal/services/dvecreation"
 	"backend_server/internal/services/dvemanager"
-	"backend_server/internal/services/dverental"
 	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )
 
 type DVEHandlers struct {
-	dveManager       *dvemanager.DVEManager
-	dveRentalService *dverental.DVERentalService
+	dveManager         *dvemanager.DVEManager
+	dveCreationService *dvecreation.DVECreationService
 }
 
-func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveRentalService *dverental.DVERentalService) *DVEHandlers {
+func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveCreationService *dvecreation.DVECreationService) *DVEHandlers {
 	return &DVEHandlers{
-		dveManager:       dveManager,
-		dveRentalService: dveRentalService,
+		dveManager:         dveManager,
+		dveCreationService: dveCreationService,
 	}
 }
 
@@ -87,11 +87,11 @@ func (h *DVEHandlers) GetDVENodes(w http.ResponseWriter, r *http.Request) {
 
 	// Apply role-based filtering for observer (Developer) role
 	authCtx := middleware.GetAuthContext(r)
-	if authCtx != nil && authCtx.Role == "observer" && h.dveRentalService != nil {
-		// Get the list of node IDs that this user has rented
-		rentedNodeIDs, err := h.dveRentalService.GetUserRentedNodeIDs(authCtx.UserID)
+	if authCtx != nil && authCtx.Role == "observer" && h.dveCreationService != nil {
+		// Get the list of creations for this user
+		creations, err := h.dveCreationService.GetUserDVECreations(authCtx.UserID)
 		if err != nil {
-			// Log error but don't fail the request - return empty array for developers with no rentals
+			// Log error but don't fail the request - return empty array for developers with no creations
 			response := DVENodeResponse{
 				Success:   true,
 				Data:      []interface{}{}, // Empty array
@@ -103,17 +103,16 @@ func (h *DVEHandlers) GetDVENodes(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Create a map for quick lookup
-		rentedNodeMap := make(map[string]bool)
-		for _, nodeID := range rentedNodeIDs {
-			rentedNodeMap[nodeID] = true
+		// Create a map of node IDs for quick lookup
+		userNodeMap := make(map[string]bool)
+		for _, creation := range creations {
+			userNodeMap[creation.DVENodeID] = true
 		}
 
-		// Filter nodes to only include those the user has rented
+		// Filter nodes to only include those the user owns
 		filteredNodes := make([]interface{}, 0)
 		for _, node := range nodes {
-			// Access ID field directly from the DVENode struct
-			if rentedNodeMap[node.ID] {
+			if userNodeMap[node.ID] {
 				filteredNodes = append(filteredNodes, node)
 			}
 		}

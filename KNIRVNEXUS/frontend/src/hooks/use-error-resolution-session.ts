@@ -15,7 +15,7 @@ export const useErrorResolutionSession = () => {
     setError(null);
 
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/error-resolution-session`;
+      const url = `${API_BASE_URL}/api/dve/instances/${rentalId}/error-resolution-session`;
       const response: APIResponse<ErrorResolutionSession> = await apiRequest(url, { method: 'POST' });
 
       if (response.success && response.data && !Array.isArray(response.data)) {
@@ -40,7 +40,7 @@ export const useErrorResolutionSession = () => {
     setError(null);
 
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/error-resolution-session`;
+      const url = `${API_BASE_URL}/api/dve/instances/${rentalId}/error-resolution-session`;
       const response: APIResponse<ErrorResolutionSession> = await apiRequest(url, { method: 'GET' });
 
       if (response.success && response.data && !Array.isArray(response.data)) {
@@ -65,7 +65,7 @@ export const useErrorResolutionSession = () => {
     setError(null);
 
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/error-resolution-session`;
+      const url = `${API_BASE_URL}/api/dve/instances/${rentalId}/error-resolution-session`;
       const response: APIResponse = await apiRequest(url, { method: 'DELETE' });
 
       if (response.success) {

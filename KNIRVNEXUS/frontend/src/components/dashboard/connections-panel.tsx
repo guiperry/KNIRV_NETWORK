@@ -1,39 +1,106 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Network, X, Search, Activity, Globe, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, X, Search, Activity, Bot, GitBranch, Wifi, User } from 'lucide-react';
+import { useDemoMode } from '@/contexts/demo-mode-context';
 
-interface NRV {
+export interface ActiveWorker {
   id: string;
-  title: string;
-  domain: string;
-  severity: 'high' | 'medium' | 'low';
-  timestamp: string;
-  sourceNode?: string;
+  name: string;
+  type: 'agent' | 'workflow' | 'user' | 'connection';
+  status: 'active' | 'idle' | 'error' | 'disconnected';
+  lastActivity: string;
+  tasksCompleted: number;
+  cpuUsage?: number;
+  memoryUsage?: number;
+  metadata?: Record<string, string>;
 }
 
 interface ConnectionsPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectNRV?: (nrv: NRV) => void;
+  onSelectWorker?: (worker: ActiveWorker) => void;
 }
 
-const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, onSelectNRV }) => {
-  const [selectedNRV, setSelectedNRV] = useState<string | null>(null);
+const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, onSelectWorker }) => {
+  const [selectedWorker, setSelectedWorker] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const { isDemoMode } = useDemoMode();
+  const [workers, setWorkers] = useState<ActiveWorker[]>([]);
 
-  const mockNRVs: NRV[] = [
-    { id: 'NRV-001', title: 'Fabric Reasoning Hallucination', domain: 'Medical', severity: 'high', timestamp: '2025-10-21T10:30:00Z', sourceNode: 'NODE-AX-1' },
-    { id: 'NRV-002', title: 'Kernel Privilege Escalation', domain: 'Cybersec', severity: 'high', timestamp: '2025-10-21T09:15:00Z', sourceNode: 'NODE-BK-4' },
-    { id: 'NRV-003', title: 'Data Sovereignty Violation', domain: 'Compliance', severity: 'medium', timestamp: '2025-10-21T08:45:00Z', sourceNode: 'NODE-CX-2' },
-    { id: 'NRV-004', title: 'Neural Weights Divergence', domain: 'Validation', severity: 'low', timestamp: '2025-10-21T07:20:00Z', sourceNode: 'NODE-AX-1' },
+  useEffect(() => {
+    if (isOpen) {
+      loadWorkers();
+    }
+  }, [isOpen, isDemoMode]);
+
+  const loadWorkers = async () => {
+    if (isDemoMode) {
+      setWorkers(getDemoWorkers());
+    } else {
+      try {
+        const response = await fetch('/api/dve/workers');
+        if (response.ok) {
+          const data = await response.json();
+          setWorkers(data.workers || []);
+        } else {
+          setWorkers([]);
+        }
+      } catch (error) {
+        console.error('Failed to load workers:', error);
+        setWorkers([]);
+      }
+    }
+  };
+
+  const getDemoWorkers = (): ActiveWorker[] => [
+    { id: 'WORKER-001', name: 'Claude Agent Alpha', type: 'agent', status: 'active', lastActivity: new Date().toISOString(), tasksCompleted: 47, cpuUsage: 23, memoryUsage: 512 },
+    { id: 'WORKER-002', name: 'Data Pipeline Workflow', type: 'workflow', status: 'active', lastActivity: new Date().toISOString(), tasksCompleted: 12, cpuUsage: 45, memoryUsage: 1024 },
+    { id: 'WORKER-003', name: 'User Session #4821', type: 'user', status: 'active', lastActivity: new Date().toISOString(), tasksCompleted: 3, cpuUsage: 5, memoryUsage: 128 },
+    { id: 'WORKER-004', name: 'API Gateway Connection', type: 'connection', status: 'idle', lastActivity: new Date(Date.now() - 300000).toISOString(), tasksCompleted: 156, cpuUsage: 2, memoryUsage: 64 },
+    { id: 'WORKER-005', name: 'GPT-4 Agent Beta', type: 'agent', status: 'error', lastActivity: new Date(Date.now() - 120000).toISOString(), tasksCompleted: 89, cpuUsage: 0, memoryUsage: 0, metadata: { error: 'Connection timeout' } },
+    { id: 'WORKER-006', name: 'Image Processing Flow', type: 'workflow', status: 'active', lastActivity: new Date().toISOString(), tasksCompleted: 8, cpuUsage: 78, memoryUsage: 2048 },
+    { id: 'WORKER-007', name: 'User Session #4822', type: 'user', status: 'disconnected', lastActivity: new Date(Date.now() - 600000).toISOString(), tasksCompleted: 0 },
+    { id: 'WORKER-008', name: 'WebSocket Pool', type: 'connection', status: 'active', lastActivity: new Date().toISOString(), tasksCompleted: 234, cpuUsage: 12, memoryUsage: 256 },
   ];
 
-  const filteredNRVs = mockNRVs.filter(nrv =>
-    nrv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    nrv.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    nrv.domain.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredWorkers = workers.filter(worker =>
+    worker.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    worker.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getWorkerIcon = (type: string) => {
+    switch (type) {
+      case 'agent': return <Bot className="w-4 h-4 text-blue-400" />;
+      case 'workflow': return <GitBranch className="w-4 h-4 text-purple-400" />;
+      case 'user': return <User className="w-4 h-4 text-green-400" />;
+      case 'connection': return <Wifi className="w-4 h-4 text-amber-400" />;
+      default: return <Activity className="w-4 h-4 text-slate-400" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'idle': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'error': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'disconnected': return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+    }
+  };
+
+  const formatLastActivity = (timestamp: string) => {
+    const diff = Date.now() - new Date(timestamp).getTime();
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    
+    if (seconds < 60) return `${seconds}s ago`;
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return new Date(timestamp).toLocaleDateString();
+  };
 
   if (!isOpen) return null;
 
@@ -42,15 +109,15 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
       className="absolute left-0 top-0 h-full z-[60] transition-all duration-500 transform ease-in-out bg-slate-950 border-r border-blue-600/50 shadow-[10px_0_40px_rgba(0,0,0,0.5)] overflow-hidden"
       style={{
         width: '300px',
-        paddingTop: '1rem', // adjusted for relative positioning
+        paddingTop: '1rem',
       }}
     >
       <div className="h-full flex flex-col p-4 overflow-hidden">
         <div className="flex items-center justify-between mb-6 border-b border-blue-600/30 pb-4">
           <div className="flex items-center space-x-2">
-            <Globe className="w-5 h-5 text-blue-400 animate-spin-slow" />
+            <Users className="w-5 h-5 text-blue-400 animate-pulse" />
             <h2 className="text-sm font-bold uppercase tracking-widest text-blue-300">
-              Network Fabric
+              Active Workers
             </h2>
           </div>
           <button
@@ -61,12 +128,12 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
           </button>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="relative group">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
             <input
               type="text"
-              placeholder="Filter by ID, Domain..."
+              placeholder="Filter by ID, Name, Type..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 group-hover:border-blue-600/50 rounded-full pl-10 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -74,57 +141,101 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
-          <div className="text-[10px] font-bold text-slate-500 uppercase mb-2 px-1">Active Failure Contexts</div>
-          
-          {filteredNRVs.map(nrv => (
+        <div className="flex items-center justify-between mb-3 px-1">
+          <span className="text-[10px] font-bold text-slate-500 uppercase">
+            {filteredWorkers.length} Workers
+          </span>
+          <div className="flex space-x-2">
+            <span className="text-[9px] text-green-400 flex items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1" />
+              {workers.filter(w => w.status === 'active').length}
+            </span>
+            <span className="text-[9px] text-yellow-400 flex items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 mr-1" />
+              {workers.filter(w => w.status === 'idle').length}
+            </span>
+            <span className="text-[9px] text-red-400 flex items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />
+              {workers.filter(w => w.status === 'error').length}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
+          {filteredWorkers.map(worker => (
             <div
-              key={nrv.id}
+              key={worker.id}
               onClick={() => {
-                setSelectedNRV(nrv.id);
-                onSelectNRV?.(nrv);
+                setSelectedWorker(worker.id);
+                onSelectWorker?.(worker);
               }}
               className={`group relative p-3 rounded-lg cursor-pointer transition-all duration-300 border-l-4 ${
-                selectedNRV === nrv.id
+                selectedWorker === worker.id
                   ? 'bg-blue-600/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
                   : 'bg-slate-900/50 hover:bg-slate-800 border-slate-800 hover:border-slate-700'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="font-mono text-[10px] text-blue-400/80 font-bold">{nrv.id}</span>
-                <div className={`flex items-center space-x-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
-                  nrv.severity === 'high' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                  nrv.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
-                  'bg-green-500/20 text-green-400 border border-green-500/30'
-                }`}>
-                  <ShieldAlert className="w-2.5 h-2.5" />
-                  <span>{nrv.severity}</span>
+                <div className="flex items-center space-x-2">
+                  {getWorkerIcon(worker.type)}
+                  <span className="font-mono text-[10px] text-blue-400/80 font-bold">{worker.id}</span>
                 </div>
+                <span className={`flex items-center text-[9px] font-black uppercase px-1.5 py-0.5 rounded border ${getStatusColor(worker.status)}`}>
+                  {worker.status}
+                </span>
               </div>
-              <div className="text-xs font-bold text-slate-100 group-hover:text-white transition-colors mb-1 line-clamp-1">{nrv.title}</div>
+              <div className="text-xs font-bold text-slate-100 group-hover:text-white transition-colors mb-1 line-clamp-1">{worker.name}</div>
               <div className="flex items-center justify-between text-[10px]">
-                <span className="text-slate-500 italic">{nrv.domain}</span>
-                <span className="text-slate-600 font-mono">{nrv.sourceNode}</span>
+                <span className="text-slate-500 capitalize">{worker.type}</span>
+                <span className="text-slate-600 font-mono">{formatLastActivity(worker.lastActivity)}</span>
               </div>
               
-              {selectedNRV === nrv.id && (
+              {worker.tasksCompleted > 0 && (
+                <div className="mt-2 pt-2 border-t border-slate-800/50">
+                  <div className="flex items-center justify-between text-[9px]">
+                    <span className="text-slate-500">Tasks</span>
+                    <span className="text-blue-400 font-bold">{worker.tasksCompleted}</span>
+                  </div>
+                </div>
+              )}
+
+              {worker.cpuUsage !== undefined && worker.memoryUsage !== undefined && worker.status === 'active' && (
+                <div className="mt-2 pt-2 border-t border-slate-800/50 grid grid-cols-2 gap-2">
+                  <div className="flex items-center justify-between text-[9px]">
+                    <span className="text-slate-500">CPU</span>
+                    <span className="text-purple-400 font-mono">{worker.cpuUsage}%</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[9px]">
+                    <span className="text-slate-500">MEM</span>
+                    <span className="text-amber-400 font-mono">{worker.memoryUsage}MB</span>
+                  </div>
+                </div>
+              )}
+
+              {worker.metadata?.error && (
+                <div className="mt-2 pt-2 border-t border-red-500/20">
+                  <div className="text-[9px] text-red-400 italic">{worker.metadata.error}</div>
+                </div>
+              )}
+              
+              {selectedWorker === worker.id && (
                 <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-full animate-pulse" />
               )}
             </div>
           ))}
           
-          {filteredNRVs.length === 0 && (
+          {filteredWorkers.length === 0 && (
             <div className="text-center py-10">
               <Activity className="w-8 h-8 text-slate-800 mx-auto mb-2" />
-              <div className="text-xs text-slate-600">No active contexts matching filters</div>
+              <div className="text-xs text-slate-600">No active workers matching filters</div>
             </div>
           )}
         </div>
         
         <div className="mt-4 pt-4 border-t border-blue-600/20">
           <div className="flex items-center justify-between text-[10px] text-slate-500 px-1">
-            <span>Global Consensus:</span>
-            <span className="text-green-500 font-bold">99.98% SYNC</span>
+            <span>Total Sessions:</span>
+            <span className="text-blue-500 font-bold">{workers.length}</span>
           </div>
         </div>
       </div>

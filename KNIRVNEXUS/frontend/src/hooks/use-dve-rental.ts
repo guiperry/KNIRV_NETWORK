@@ -24,40 +24,40 @@ export const useDVERental = () => {
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Fetch available rental plans
+  // Fetch available services
   const fetchPlans = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/plans`;
-      console.log('[DVE Rental] Fetching plans from:', url);
+      const url = `${API_BASE_URL}/api/dve/services`;
+      console.log('[DVE] Fetching services from:', url);
       const response: APIResponse<DVERentalPlan[]> = await apiRequest(url, { method: 'GET' });
-      console.log('[DVE Rental] Plans response:', response);
+      console.log('[DVE] Services response:', response);
 
       if (response.success && Array.isArray(response.data)) {
-        console.log('[DVE Rental] Loaded plans:', response.data.length, response.data);
+        console.log('[DVE] Loaded services:', response.data.length, response.data);
         setPlans(response.data);
       } else {
-        throw new Error(response.error || 'Failed to fetch rental plans');
+        throw new Error(response.error || 'Failed to fetch available services');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      console.error('Failed to fetch rental plans:', err);
+      console.error('Failed to fetch available services:', err);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Fetch user's active rentals
+  // Fetch user's DVE instances
   const fetchRentals = useCallback(async (userId?: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
       const queryParams = userId ? `?user_id=${userId}` : '';
-      const url = `${API_BASE_URL}/api/dve-rental/rentals${queryParams}`;
+      const url = `${API_BASE_URL}/api/dve/instances${queryParams}`;
       const response: APIResponse<DVERental[]> = await apiRequest(url, { method: 'GET' });
       
       if (response.success && Array.isArray(response.data)) {
@@ -74,24 +74,24 @@ export const useDVERental = () => {
     }
   }, []);
 
-  // Fetch rental statistics
+  // Fetch DVE statistics
   const fetchStats = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/stats`;
+      const url = `${API_BASE_URL}/api/dve/stats`;
       const response: APIResponse<DVERentalStats> = await apiRequest(url, { method: 'GET' });
       
       if (response.success && response.data && !Array.isArray(response.data)) {
         setStats(response.data);
       } else {
-        throw new Error(response.error || 'Failed to fetch rental stats');
+        throw new Error(response.error || 'Failed to fetch DVE stats');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      console.error('Failed to fetch rental stats:', err);
+      console.error('Failed to fetch DVE stats:', err);
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +103,7 @@ export const useDVERental = () => {
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/rentals`;
+      const url = `${API_BASE_URL}/api/dve/instances`;
       const response: APIResponse<DVERental> = await apiRequest(url, {
         method: 'POST',
         body: JSON.stringify(rentalRequest),
@@ -136,7 +136,7 @@ export const useDVERental = () => {
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/extend`;
+      const url = `${API_BASE_URL}/api/dve/instances/${rentalId}/extend`;
       const response: APIResponse = await apiRequest(url, {
         method: 'POST',
         body: JSON.stringify({
@@ -168,7 +168,7 @@ export const useDVERental = () => {
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}`;
+      const url = `${API_BASE_URL}/api/dve/instances/${rentalId}`;
       const response: APIResponse = await apiRequest(url, { method: 'DELETE' });
       
       if (response.success) {
@@ -229,12 +229,12 @@ export const useDVERental = () => {
 
     // Register event handlers
     webSocketService.on('connection', handleConnection);
-    webSocketService.on('dve-rental-updated', handleDVERentalUpdate);
-    webSocketService.on('dve-rental-expired', handleDVERentalExpired);
+    webSocketService.on('dve-updated', handleDVERentalUpdate);
+    webSocketService.on('dve-expired', handleDVERentalExpired);
     webSocketService.on('system-notification', handleSystemNotification);
 
     // Subscribe to events
-    webSocketService.subscribe(['dve-rental-updated', 'dve-rental-expired', 'system-notification']);
+    webSocketService.subscribe(['dve-updated', 'dve-expired', 'system-notification']);
 
     // Set initial connection status
     setIsConnected(webSocketService.getConnectionStatus());
@@ -242,8 +242,8 @@ export const useDVERental = () => {
     // Return cleanup function
     return () => {
       webSocketService.off('connection', handleConnection);
-      webSocketService.off('dve-rental-updated', handleDVERentalUpdate);
-      webSocketService.off('dve-rental-expired', handleDVERentalExpired);
+      webSocketService.off('dve-updated', handleDVERentalUpdate);
+      webSocketService.off('dve-expired', handleDVERentalExpired);
       webSocketService.off('system-notification', handleSystemNotification);
     };
   }, []);
@@ -259,7 +259,7 @@ export const useDVERental = () => {
     setError(null);
 
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/full-access-info`;
+      const url = `${API_BASE_URL}/api/dve/instances/${rentalId}/full-access-info`;
       const response: APIResponse<DVEAccessInfo> = await apiRequest(url, { method: 'GET' });
 
       if (response.success && response.data && !Array.isArray(response.data)) {
@@ -283,7 +283,7 @@ export const useDVERental = () => {
     setError(null);
 
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/ssh-session`;
+      const url = `${API_BASE_URL}/api/dve/instances/${rentalId}/ssh-session`;
       const response: APIResponse<SSHSession> = await apiRequest(url, { method: 'POST' });
 
       if (response.success && response.data && !Array.isArray(response.data)) {
@@ -307,7 +307,7 @@ export const useDVERental = () => {
     setError(null);
 
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/validation-session`;
+      const url = `${API_BASE_URL}/api/dve/instances/${rentalId}/validation-session`;
       const response: APIResponse<ValidationSession> = await apiRequest(url, { method: 'POST' });
 
       if (response.success && response.data && !Array.isArray(response.data)) {
@@ -331,7 +331,7 @@ export const useDVERental = () => {
     setError(null);
 
     try {
-      const url = `${API_BASE_URL}/api/dve-rental/rentals/${rentalId}/error-resolution-session`;
+      const url = `${API_BASE_URL}/api/dve/instances/${rentalId}/error-resolution-session`;
       const response: APIResponse<ErrorResolutionSession> = await apiRequest(url, { method: 'POST' });
 
       if (response.success && response.data && !Array.isArray(response.data)) {

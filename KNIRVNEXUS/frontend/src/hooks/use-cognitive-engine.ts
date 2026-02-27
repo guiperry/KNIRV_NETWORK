@@ -126,17 +126,12 @@ export const useCognitiveEngine = () => {
       setCognitiveEngine(payload);
     };
 
-    const handleSystemNotification = (payload: any) => {
-      console.log('Cognitive Engine system notification:', payload);
-    };
-
     // Register event handlers
     webSocketService.on('connection', handleConnection);
     webSocketService.on('cognitive-engine-updated', handleCognitiveEngineUpdate);
-    webSocketService.on('system-notification', handleSystemNotification);
 
     // Subscribe to events
-    webSocketService.subscribe(['cognitive-engine-updated', 'system-notification']);
+    webSocketService.subscribe(['cognitive-engine-updated']);
 
     // Set initial connection status
     setIsConnected(webSocketService.getConnectionStatus());
@@ -145,7 +140,6 @@ export const useCognitiveEngine = () => {
     return () => {
       webSocketService.off('connection', handleConnection);
       webSocketService.off('cognitive-engine-updated', handleCognitiveEngineUpdate);
-      webSocketService.off('system-notification', handleSystemNotification);
     };
   }, []);
 
