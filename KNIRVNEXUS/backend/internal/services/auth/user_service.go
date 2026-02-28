@@ -103,13 +103,27 @@ func (us *UserService) CreateUser(registration *objects.UserRegistration) (*obje
 
 	// Create user
 	now := time.Now()
+
+	// Determine user role - default to "user" if not provided or invalid
+	role := registration.Role
+	if role == "" {
+		role = "user"
+	}
+	// Validate role is one of the allowed values
+	switch role {
+	case "admin", "validator", "observer", "user":
+		// Valid role
+	default:
+		role = "user"
+	}
+
 	user := &objects.User{
 		ID:                     fmt.Sprintf("user_%d", now.UnixNano()),
 		Username:               registration.Username,
 		Email:                  strings.ToLower(registration.Email),
 		PasswordHash:           hash,
 		Salt:                   salt,
-		Role:                   "user", // Default role
+		Role:                   role,
 		Status:                 "pending_verification",
 		EmailVerified:          false,
 		EmailVerificationToken: verificationToken,

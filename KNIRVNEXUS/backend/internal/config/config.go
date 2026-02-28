@@ -98,12 +98,15 @@ type Config struct {
 	WalletPort     uint64 `mapstructure:"wallet_port"`
 	NoWalletServer bool   `mapstructure:"no_wallet_server"`
 	UseGUI         bool   `mapstructure:"use_gui"`
+
+	// ICME - Intentional Context Memory Engine
+	ICME ICMEConfig `mapstructure:"icme"`
 }
 
 // DatabaseConfig represents database configuration
 type DatabaseConfig struct {
-	Path          string `mapstructure:"path"`
-	UseKNIRVBASE  bool   `mapstructure:"use_knirvbase"`
+	Path         string `mapstructure:"path"`
+	UseKNIRVBASE bool   `mapstructure:"use_knirvbase"`
 }
 
 // APIConfig represents API server configuration
@@ -285,6 +288,23 @@ type ModelServerConfig struct {
 	StoragePath string `mapstructure:"storage_path"`
 	MaxModels   int    `mapstructure:"max_models"`
 	EnableCORS  bool   `mapstructure:"enable_cors"`
+}
+
+// ICMEConfig represents Intentional Context Memory Engine configuration
+type ICMEConfig struct {
+	Enabled                 bool          `mapstructure:"enabled"`
+	CloudflareEmbeddingsURL string        `mapstructure:"cloudflare_embeddings_url"`
+	OllamaBaseURL           string        `mapstructure:"ollama_base_url"`
+	OllamaEmbeddingModel    string        `mapstructure:"ollama_embedding_model"`
+	SpacyModel              string        `mapstructure:"spacy_model"`
+	GraphWindowSize         time.Duration `mapstructure:"graph_window_size"`
+	GraphMaxNodes           int           `mapstructure:"graph_max_nodes"`
+	EmbedDimension          int           `mapstructure:"embed_dimension"`
+	DefaultTopK             int           `mapstructure:"default_top_k"`
+	AlignmentEvalInterval   time.Duration `mapstructure:"alignment_eval_interval"`
+	DriftThreshold          float64       `mapstructure:"drift_threshold"`
+	SignalQueueSize         int           `mapstructure:"signal_queue_size"`
+	SignalWorkers           int           `mapstructure:"signal_workers"`
 }
 
 // Load loads configuration from environment variables and config files
@@ -605,6 +625,21 @@ func setDefaults() {
 	// Blockchain configuration defaults
 	viper.SetDefault("blockchain.url", "localhost:50051")
 	viper.SetDefault("blockchain.use_tls", false)
+
+	// ICME (Intentional Context Memory Engine) defaults
+	viper.SetDefault("icme.enabled", false)
+	viper.SetDefault("icme.cloudflare_embeddings_url", "https://embeddings.knirv.com")
+	viper.SetDefault("icme.ollama_base_url", "http://localhost:11434")
+	viper.SetDefault("icme.ollama_embedding_model", "nomic-embed-text")
+	viper.SetDefault("icme.spacy_model", "en_core_web_sm")
+	viper.SetDefault("icme.graph_window_size", "10m")
+	viper.SetDefault("icme.graph_max_nodes", 10000)
+	viper.SetDefault("icme.embed_dimension", 768)
+	viper.SetDefault("icme.default_top_k", 10)
+	viper.SetDefault("icme.alignment_eval_interval", "5m")
+	viper.SetDefault("icme.drift_threshold", 0.20)
+	viper.SetDefault("icme.signal_queue_size", 512)
+	viper.SetDefault("icme.signal_workers", 4)
 
 	// Legacy defaults for backward compatibility
 	viper.SetDefault("chain_id", "knirv-nexus-mainnet")

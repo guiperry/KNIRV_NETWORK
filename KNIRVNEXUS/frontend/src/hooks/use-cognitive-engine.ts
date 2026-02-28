@@ -3,13 +3,16 @@
 import { useState, useEffect, useCallback } from 'react';
 
 export interface CognitiveEngine {
-  status: "active" | "idle" | "learning" | "error";
+  status: "active" | "idle" | "learning" | "error" | "running" | "stopped";
   accuracy: number;
   tasks_processed: number;
   adaptation_rate: number;
   model_version: string;
   uptime: number;
   last_training: string;
+  current_task_status?: string;
+  health_status?: string;
+  last_validation?: string;
   performance_metrics: {
     inference_latency: number;
     throughput: number;
@@ -101,6 +104,11 @@ export const useCognitiveEngine = () => {
   // Convenience methods for common actions
   const startTraining = useCallback(() => performAction({ action: 'start_training' }), [performAction]);
   const stopTraining = useCallback(() => performAction({ action: 'stop_training' }), [performAction]);
+  const startEngine = useCallback(() => performAction({ action: 'start_engine' }), [performAction]);
+  const stopEngine = useCallback(() => performAction({ action: 'stop_engine' }), [performAction]);
+  const healthCheck = useCallback(() => performAction({ action: 'health_check' }), [performAction]);
+  const selfValidate = useCallback(() => performAction({ action: 'self_validate' }), [performAction]);
+  const makeRequest = useCallback((message: string) => performAction({ action: 'make_request', parameters: { message } }), [performAction]);
   const resetMetrics = useCallback(() => performAction({ action: 'reset_metrics' }), [performAction]);
   const clearConversationHistory = useCallback(() => performAction({ action: 'clear_conversation_history' }), [performAction]);
   
@@ -192,6 +200,11 @@ export const useCognitiveEngine = () => {
     performAction,
     startTraining,
     stopTraining,
+    startEngine,
+    stopEngine,
+    healthCheck,
+    selfValidate,
+    makeRequest,
     resetMetrics,
     clearConversationHistory,
     updateFabricVersion,

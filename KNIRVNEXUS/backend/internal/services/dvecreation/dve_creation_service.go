@@ -655,14 +655,11 @@ func (dcs *DVECreationService) cleanupRoutine() {
 	ticker := time.NewTicker(dcs.cleanupInterval)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !dcs.running {
-				return
-			}
-			dcs.cleanupExpiredSessions()
+	for range ticker.C {
+		if !dcs.running {
+			return
 		}
+		dcs.cleanupExpiredSessions()
 	}
 }
 
@@ -691,14 +688,11 @@ func (dcs *DVECreationService) sessionValidationRoutine() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			if !dcs.running {
-				return
-			}
-			dcs.validateChainSessions()
+	for range ticker.C {
+		if !dcs.running {
+			return
 		}
+		dcs.validateChainSessions()
 	}
 }
 

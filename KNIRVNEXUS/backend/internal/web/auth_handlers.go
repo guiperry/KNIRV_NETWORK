@@ -2,6 +2,8 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -59,6 +61,7 @@ type RegisterRequest struct {
 	LastName  string `json:"last_name" validate:"required,min=1,max=50"`
 	Company   string `json:"company,omitempty"`
 	Phone     string `json:"phone,omitempty"`
+	Role      string `json:"role,omitempty"`
 }
 
 type RegisterResponse struct {
@@ -88,12 +91,18 @@ type ChangePasswordRequest struct {
 }
 
 type UpdateProfileRequest struct {
-	FirstName string `json:"first_name,omitempty" validate:"omitempty,min=1,max=50"`
-	LastName  string `json:"last_name,omitempty" validate:"omitempty,min=1,max=50"`
-	Company   string `json:"company,omitempty"`
-	Phone     string `json:"phone,omitempty"`
-	Timezone  string `json:"timezone,omitempty"`
-	Language  string `json:"language,omitempty"`
+	FirstName      string                 `json:"first_name,omitempty" validate:"omitempty,min=1,max=50"`
+	LastName       string                 `json:"last_name,omitempty" validate:"omitempty,min=1,max=50"`
+	Company        string                 `json:"company,omitempty"`
+	Phone          string                 `json:"phone,omitempty"`
+	Timezone       string                 `json:"timezone,omitempty"`
+	Language       string                 `json:"language,omitempty"`
+	OnboardingData map[string]interface{} `json:"onboarding_data,omitempty"`
+}
+
+type UserPreferencesResponse struct {
+	OnboardingData map[string]interface{} `json:"onboarding_data,omitempty"`
+	UserID         string                 `json:"user_id"`
 }
 
 func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
@@ -201,6 +210,7 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 		LastName:  req.LastName,
 		Company:   req.Company,
 		Phone:     req.Phone,
+		Role:      req.Role,
 	}
 
 	// Create user
@@ -354,8 +364,44 @@ func (h *AuthHandlers) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Save onboarding data if provided
+	if req.OnboardingData != nil {
+		preferencesKey := fmt.Sprintf("users:preferences:%s", authCtx.UserID)
+		if err := h.db.StoreJSON(preferencesKey, req.OnboardingData); err != nil {
+			log.Printf("Failed to save onboarding data: %v", err)
+			// Don't fail the request, just log the error
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Profile updated successfully"})
+}
+
+func (h *AuthHandlers) GetPreferences(w http.ResponseWriter, r *http.Request) {
+	// Get auth context from middleware
+	authCtx := middleware.GetAuthContext(r)
+	if authCtx == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Load onboarding data
+	preferencesKey := fmt.Sprintf("users:preferences:%s", authCtx.UserID)
+	var onboardingData map[string]interface{}
+
+	err := h.db.GetJSON(preferencesKey, &onboardingData)
+	if err != nil {
+		// No preferences saved yet, return empty
+		onboardingData = make(map[string]interface{})
+	}
+
+	response := UserPreferencesResponse{
+		OnboardingData: onboardingData,
+		UserID:         authCtx.UserID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *AuthHandlers) Me(w http.ResponseWriter, r *http.Request) {

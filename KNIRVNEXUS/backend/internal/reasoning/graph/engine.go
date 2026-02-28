@@ -5,6 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
+
+	"backend_server/internal/services/icme"
 	"backend_server/internal/storage/mdstorage"
 )
 
@@ -47,12 +50,12 @@ func (e *ReasoningEngine) GenerateTrace(agentID, errorID string, steps []string,
 	md.WriteString(fmt.Sprintf("**Agent:** %s  \n", record.AgentID))
 	md.WriteString(fmt.Sprintf("**Error ID:** %s  \n", record.ErrorID))
 	md.WriteString(fmt.Sprintf("**Timestamp:** %s  \n\n", record.Timestamp.Format(time.RFC1123)))
-	
+
 	md.WriteString("## Reasoning Steps\n")
 	for i, step := range record.Trace {
 		md.WriteString(fmt.Sprintf("%d. %s\n", i+1, step))
 	}
-	
+
 	md.WriteString("\n## Result\n")
 	md.WriteString(record.Result + "\n")
 
@@ -68,4 +71,42 @@ func (e *ReasoningEngine) GenerateTrace(agentID, errorID string, steps []string,
 	}
 
 	return e.storage.SaveDocument(doc)
+}
+
+// KNIRVGRAPHEngine extends ReasoningEngine with temporal hypergraph capabilities for ICME
+type KNIRVGRAPHEngine struct {
+	*ReasoningEngine
+	hypergraph *icme.TemporalHypergraph
+	logger     *zap.Logger
+}
+
+// NewKNIRVGRAPHEngine creates a new KNIRVGRAPH engine with temporal hypergraph
+func NewKNIRVGRAPHEngine(
+	storage *mdstorage.MarkdownStorageDriver,
+	windowSize time.Duration,
+	maxNodes int,
+	logger *zap.Logger,
+) *KNIRVGRAPHEngine {
+	reasoning := NewReasoningEngine(storage)
+	hypergraph := icme.NewTemporalHypergraph(windowSize, maxNodes, logger)
+
+	return &KNIRVGRAPHEngine{
+		ReasoningEngine: reasoning,
+		hypergraph:      hypergraph,
+		logger:          logger,
+	}
+}
+
+// Hypergraph returns the temporal hypergraph for ICME integration
+func (e *KNIRVGRAPHEngine) Hypergraph() *icme.TemporalHypergraph {
+	return e.hypergraph
+}
+
+// InsertSignal adds an ICME signal to the temporal hypergraph
+func (e *KNIRVGRAPHEngine) InsertSignal(sig *icme.IntentionalSignal) {
+	e.hypergraph.InsertSignal(sig)
+	e.logger.Debug("signal inserted into KNIRVGRAPH",
+		zap.String("signal_id", sig.ID),
+		zap.String("objective", sig.ObjectiveName),
+	)
 }

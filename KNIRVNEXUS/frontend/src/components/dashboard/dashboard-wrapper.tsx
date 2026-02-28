@@ -13,12 +13,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NetworkAccessModal } from '@/components/nap/nap-access-modal';
 import { ActiveMemoryAccessModal, KNIRVGraphAccessModal, KNIRVChainAccessModal, P2PTransportAccessModal } from '@/components/nap/access-panels';
 import CDEPanel from './cde-panel'; // Modular CDE Panel
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
+import { DVECreationForm } from '@/components/dashboard/dve-creation-form';
 import { FinancialComplianceDashboard } from '@/components/dashboard/financial-compliance-dashboard';
 import { useOnboarding } from "@/contexts/onboarding-context";
 import OnboardingGuide from "@/components/onboarding/onboarding-guide";
@@ -65,13 +70,124 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
   const { securityStatus: teeSecurityStatus, isLoading: teeLoading } = useTEESecurity();
   const { cognitiveEngine, isLoading: cognitiveLoading } = useCognitiveEngine();
   const [cdeModalOpen, setCdeModalOpen] = useState(false);
+  const [dveCreationModalOpen, setDveCreationModalOpen] = useState(false);
   const [activeMemoryOpen, setActiveMemoryOpen] = useState(false);
   const [knirvGraphOpen, setKnirvGraphOpen] = useState(false);
   const [knirvChainOpen, setKnirvChainOpen] = useState(false);
-  const [p2pTransportOpen, setP2PTransportOpen] = useState(false);
+  const [p2pTransportOpen, setP2pTransportOpen] = useState(false);
   const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
   const [showAdminAccess, setShowAdminAccess] = useState(false);
+  
+  // Persist active DVE nodes across navigation
+  const [activeNodeIds, setActiveNodeIds] = useState<{ [key: string]: boolean }>({});
+
+  // Report generation helper
+  const generateReport = (reportType: string, data: any) => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `${reportType}-report-${timestamp}.json`;
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleTaskReports = () => {
+    generateReport('task-report', {
+      type: 'Active Task Report',
+      generatedAt: new Date().toISOString(),
+      summary: {
+        activeTasks: 127,
+        status: 'Processing',
+        lastUpdated: new Date().toISOString()
+      },
+      details: {
+        tasks: Array.from({ length: 10 }, (_, i) => ({
+          id: `task-${i + 1}`,
+          name: `Validation Task ${i + 1}`,
+          status: i < 7 ? 'active' : 'pending',
+          priority: ['high', 'medium', 'low'][i % 3]
+        }))
+      }
+    });
+  };
+
+  const handlePerformanceReports = () => {
+    generateReport('performance-report', {
+      type: 'Performance Report',
+      generatedAt: new Date().toISOString(),
+      summary: {
+        completedToday: 1847,
+        successRate: 98.2,
+        averageLatency: 145,
+        throughput: 1250
+      },
+      metrics: {
+        accuracy: 98.2,
+        errorRate: 1.8,
+        uptime: 99.9
+      }
+    });
+  };
+
+  const handleSecurityReports = () => {
+    generateReport('security-report', {
+      type: 'SGX Enclaves Security Report',
+      generatedAt: new Date().toISOString(),
+      summary: {
+        enclaveCount: 18,
+        attestationStatus: 'Active',
+        securityScore: teeSecurityStatus?.security_score || 0
+      },
+      enclaves: Array.from({ length: 18 }, (_, i) => ({
+        id: `enclave-${i + 1}`,
+        status: 'active',
+        cpu: Math.floor(Math.random() * 40 + 20),
+        memory: Math.floor(Math.random() * 60 + 30)
+      }))
+    });
+  };
+
+  const handleVMReports = () => {
+    generateReport('vm-report', {
+      type: 'SEV-SNP VM Report',
+      generatedAt: new Date().toISOString(),
+      summary: {
+        vmCount: 6,
+        status: 'Running',
+        securityLevel: 'High'
+      },
+      vms: Array.from({ length: 6 }, (_, i) => ({
+        id: `vm-${i + 1}`,
+        status: 'running',
+        cpu: Math.floor(Math.random() * 50 + 30),
+        memory: Math.floor(Math.random() * 70 + 20)
+      }))
+    });
+  };
+
+  const handleTrustReports = () => {
+    generateReport('trust-report', {
+      type: 'TDX Trust Report',
+      generatedAt: new Date().toISOString(),
+      summary: {
+        trustDomains: 3,
+        attestationStatus: 'Verified',
+        trustLevel: 'High'
+      },
+      trustDomains: Array.from({ length: 3 }, (_, i) => ({
+        id: `tdx-${i + 1}`,
+        status: 'active',
+        attestation: 'verified',
+        trustScore: Math.floor(Math.random() * 20 + 80)
+      }))
+    });
+  };
 
   const handleNodeAccess = (node: DVENode) => {
     setSelectedNode(node);
@@ -82,6 +198,10 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
   const handleOpenKNIRVEngine = () => {
     setCdeModalOpen(false);
     setKnirvEngineModalOpen(true);
+  };
+
+  const handleDVECreation = () => {
+    setDveCreationModalOpen(true);
   };
 
   const handleOnboardingComplete = (config: any) => {
@@ -493,7 +613,14 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </TabsList>
 
                       <TabsContent value="nodes" className="space-y-4">
-                        <DVENodesPanel onRentClick={onRentDVE} onNodeConnect={handleNodeAccess} />
+                        <DVENodesPanel 
+                          onRentClick={handleDVECreation}
+                          onNodeConnect={handleNodeAccess}
+                          activeNodeIds={activeNodeIds}
+                          onActiveNodeChange={(nodeId, isActive) => {
+                            setActiveNodeIds(prev => ({ ...prev, [nodeId]: isActive }));
+                          }}
+                        />
                       </TabsContent>
 
                       <TabsContent value="validation" className="space-y-4">
@@ -521,7 +648,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                             <CardContent>
                               <div className="text-3xl font-bold">127</div>
                               <p className="text-sm text-muted-foreground">Currently processing</p>
-                              <Button variant="outline" size="sm" className="w-full mt-4">
+                              <Button variant="outline" size="sm" className="w-full mt-4" onClick={handleTaskReports}>
                                 <Download className="w-3 h-3 mr-1" />
                                 Task Reports
                               </Button>
@@ -537,7 +664,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                             <CardContent>
                               <div className="text-3xl font-bold">1,847</div>
                               <p className="text-sm text-muted-foreground">98.2% success rate</p>
-                              <Button variant="outline" size="sm" className="w-full mt-4">
+                              <Button variant="outline" size="sm" className="w-full mt-4" onClick={handlePerformanceReports}>
                                 <Download className="w-3 h-3 mr-1" />
                                 Performance Reports
                               </Button>
@@ -620,7 +747,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                                 <CardContent>
                                   <div className="text-2xl font-bold">18</div>
                                   <p className="text-sm text-muted-foreground">Active secure enclaves</p>
-                                  <Button variant="outline" size="sm" className="w-full mt-4">
+                                  <Button variant="outline" size="sm" className="w-full mt-4" onClick={handleSecurityReports}>
                                     <Download className="w-3 h-3 mr-1" />
                                     Security Reports
                                   </Button>
@@ -636,7 +763,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                                 <CardContent>
                                   <div className="text-2xl font-bold">6</div>
                                   <p className="text-sm text-muted-foreground">Secure VMs running</p>
-                                  <Button variant="outline" size="sm" className="w-full mt-4">
+                                  <Button variant="outline" size="sm" className="w-full mt-4" onClick={handleVMReports}>
                                     <Download className="w-3 h-3 mr-1" />
                                     VM Reports
                                   </Button>
@@ -652,7 +779,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                                 <CardContent>
                                   <div className="text-2xl font-bold">3</div>
                                   <p className="text-sm text-muted-foreground">Trust domains active</p>
-                                  <Button variant="outline" size="sm" className="w-full mt-4">
+                                  <Button variant="outline" size="sm" className="w-full mt-4" onClick={handleTrustReports}>
                                     <Download className="w-3 h-3 mr-1" />
                                     Trust Reports
                                   </Button>
@@ -1052,6 +1179,25 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
         isOpen={p2pTransportOpen}
         onClose={() => setP2PTransportOpen(false)}
       />
+
+      {/* DVE Creation Modal */}
+      <Dialog open={dveCreationModalOpen} onOpenChange={setDveCreationModalOpen}>
+        <DialogContent className="sm:max-w-[600px] bg-slate-900 border-slate-700 text-slate-100">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Server className="w-5 h-5 text-blue-500" />
+              Create New DVE Instance
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Configure a new Deterministic Validation Environment instance. This will initialize a container with the specified parameters.
+            </DialogDescription>
+          </DialogHeader>
+          <DVECreationForm 
+            onClose={() => setDveCreationModalOpen(false)}
+            onCreated={() => setDveCreationModalOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

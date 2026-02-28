@@ -167,11 +167,33 @@ export const OnboardingProvider: React.FC<{children: React.ReactNode}> = ({ chil
     setState(defaultState);
   };
 
-  const saveProgress = () => {
+  const saveProgress = async () => {
     try {
+      // Save to localStorage for quick access
       localStorage.setItem('knirvOnboardingV2', JSON.stringify(state));
-      // Also save to old key for backward compatibility
       localStorage.setItem('onboardingState', JSON.stringify(state));
+      
+      // Also save to backend database per user
+      const token = localStorage.getItem('knirv_nexus_token');
+      if (token) {
+        try {
+          const response = await fetch('/api/user/preferences', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              onboardingData: state,
+            }),
+          });
+          if (response.ok) {
+            console.log('Onboarding data saved to database');
+          }
+        } catch (dbError) {
+          console.warn('Failed to save onboarding to database, using localStorage only:', dbError);
+        }
+      }
     } catch (e) {
       console.error('Failed to save onboarding state', e);
     }
@@ -179,7 +201,35 @@ export const OnboardingProvider: React.FC<{children: React.ReactNode}> = ({ chil
 
   const loadProgress = (): boolean => {
     try {
-      // Try new format first
+      // Try to load from backend database first (for cross-device persistence)
+      const token = localStorage.getItem('knirv_nexus_token');
+      let loadedFromDB = false;
+      
+      // We'll try to load from DB in the background but also check localStorage
+      if (token) {
+        fetch('/api/user/preferences', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+          throw new Error('Failed to load preferences');
+        })
+        .then(data => {
+          if (data.onboardingData) {
+            setState(prev => ({ ...prev, ...data.onboardingData }));
+            // Also update localStorage
+            localStorage.setItem('knirvOnboardingV2', JSON.stringify({ ...state, ...data.onboardingData }));
+          }
+        })
+        .catch(err => console.warn('Could not load from DB, using localStorage:', err));
+      }
+      
+      // Try new format first from localStorage
       const savedV2 = localStorage.getItem('knirvOnboardingV2');
       if (savedV2) {
         const parsed = JSON.parse(savedV2);

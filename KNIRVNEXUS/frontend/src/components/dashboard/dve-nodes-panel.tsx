@@ -18,9 +18,11 @@ interface DVENodesPanelProps {
   className?: string;
   onRentClick?: () => void;
   onNodeConnect?: (node: DVENode) => void;
+  effectiveActiveNodeIdss?: { [key: string]: boolean };
+  onActiveNodeChange?: (nodeId: string, isActive: boolean) => void;
 }
 
-export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentClick, onNodeConnect }) => {
+export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentClick, onNodeConnect, effectiveActiveNodeIdss = {}, onActiveNodeChange }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const {
@@ -43,16 +45,24 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
   const [filter, setFilter] = useState<string>('all');
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
 
-  const [activeNodeId, setActiveNodeId] = useState<{ [key: string]: boolean }>({});
   const [provisioningNodes, setProvisioningNodes] = useState<Set<string>>(new Set());
+
+  // Use external effectiveActiveNodeIdss if provided, otherwise fallback to local state for backwards compatibility
+  const [localActiveNodeId, setLocalActiveNodeId] = useState<{ [key: string]: boolean }>({});
+  const isControlled = onActiveNodeChange !== undefined;
+  const effectiveActiveNodeIds = isControlled ? effectiveActiveNodeIdss : localActiveNodeId;
 
   // ⭐ NEW: Handle Start button - provision container for rental
   const handleStartDVE = async (node: DVENode) => {
     if (provisioningNodes.has(node.id)) return;
 
-    if (activeNodeId[node.id]) {
+    if (effectiveActiveNodeIds[node.id]) {
       // Stop logic
-      setActiveNodeId(prev => ({ ...prev, [node.id]: false }));
+      if (isControlled) {
+        onActiveNodeChange(node.id, false);
+      } else {
+        setLocalActiveNodeId(prev => ({ ...prev, [node.id]: false }));
+      }
       toast({
         title: "Node Stopped",
         description: `DVE instance ${node.name} has been disconnected.`,
@@ -68,10 +78,13 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
 
       if (endpoints && endpoints.length > 0) {
         // Node is already created
-        setActiveNodeId(prev => ({ ...prev, [node.id]: true }));
+        if (isControlled) {
+          onActiveNodeChange(node.id, true);
+        } else {
+          setLocalActiveNodeId(prev => ({ ...prev, [node.id]: true }));
+        }
         toast({
           title: "Node Ready",
-
         });
       } else {
         // Node not created - redirect to creation modal
@@ -282,18 +295,18 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
                         <Badge 
                           variant="secondary" 
                           className={`${
-                            activeNodeId[node.id]
+                            effectiveActiveNodeIds[node.id]
                               ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                               : 'bg-muted text-muted-foreground'
                           } text-[10px] font-black uppercase`}
                         >
                           <div className="flex items-center space-x-1">
-                            {activeNodeId[node.id] ? (
+                            {effectiveActiveNodeIds[node.id] ? (
                               <CheckCircle className="w-3 h-3" />
                             ) : (
                               <AlertCircle className="w-3 h-3" />
                             )}
-                            <span>{activeNodeId[node.id] ? 'online' : 'offline'}</span>
+                            <span>{effectiveActiveNodeIds[node.id] ? 'online' : 'offline'}</span>
                           </div>
                         </Badge>
                       </div>
@@ -364,7 +377,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
                         variant="default"
                         size="sm"
                         className={`text-[10px] font-black uppercase transition-all ${
-                          activeNodeId[node.id]
+                          effectiveActiveNodeIds[node.id]
                             ? 'bg-red-900/20 text-red-500 border border-red-500/20 hover:bg-red-600 hover:text-white'
                             : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
                         }`}
@@ -376,7 +389,7 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
                             <Activity className="w-3 h-3 mr-1 animate-spin" />
                             Provisioning
                           </>
-                        ) : activeNodeId[node.id] ? (
+                        ) : effectiveActiveNodeIds[node.id] ? (
                           <>
                             <Square className="w-3 h-3 mr-1 fill-current" />
                             Terminate
@@ -393,8 +406,8 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={!activeNodeId[node.id]}
-                        className={`text-[10px] font-black uppercase border-blue-600/30 ${activeNodeId[node.id] ? 'text-blue-400 hover:bg-blue-600 hover:text-white' : 'text-slate-600'}`}
+                        disabled={!effectiveActiveNodeIds[node.id]}
+                        className={`text-[10px] font-black uppercase border-blue-600/30 ${effectiveActiveNodeIds[node.id] ? 'text-blue-400 hover:bg-blue-600 hover:text-white' : 'text-slate-600'}`}
                         onClick={() => onNodeConnect?.(node)}
                       >
                         <Zap className="w-3 h-3 mr-1" />

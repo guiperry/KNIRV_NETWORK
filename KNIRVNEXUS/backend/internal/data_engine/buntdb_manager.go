@@ -1022,3 +1022,60 @@ func (m *BuntDBManager) GetSession(sessionID string) (*SessionEntry, error) {
 
 	return &session, nil
 }
+
+// StoreJSON stores a JSON value for a given key
+func (m *BuntDBManager) StoreJSON(key string, data []byte) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.db.Update(func(tx *buntdb.Tx) error {
+		_, _, err := tx.Set(key, string(data), nil)
+		return err
+	})
+}
+
+// GetJSON retrieves a JSON value for a given key
+func (m *BuntDBManager) GetJSON(key string, dest interface{}) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var value string
+	err := m.db.View(func(tx *buntdb.Tx) error {
+		var err error
+		value, err = tx.Get(key)
+		return err
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal([]byte(value), dest)
+}
+
+// DeleteJSON deletes a key from the database
+func (m *BuntDBManager) DeleteJSON(key string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return m.db.Update(func(tx *buntdb.Tx) error {
+		_, err := tx.Delete(key)
+		return err
+	})
+}
+
+// GetAllKeysWithPrefix retrieves all keys with a given prefix
+func (m *BuntDBManager) GetAllKeysWithPrefix(prefix string) ([]string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var keys []string
+	err := m.db.View(func(tx *buntdb.Tx) error {
+		return tx.Ascend(prefix+"*", func(key, value string) bool {
+			keys = append(keys, key)
+			return true
+		})
+	})
+
+	return keys, err
+}

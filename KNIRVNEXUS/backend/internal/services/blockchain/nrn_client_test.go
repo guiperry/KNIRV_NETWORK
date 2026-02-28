@@ -10,19 +10,17 @@ import (
 
 func TestNewNRNClient(t *testing.T) {
 	baseURL := "http://localhost:8080"
-	client := NewNRNClient(baseURL)
-
-	if client.baseURL != baseURL {
-		t.Errorf("Expected baseURL %s, got %s", baseURL, client.baseURL)
+	client, err := NewNRNClient(baseURL, false, "")
+	if err != nil {
+		t.Fatalf("Failed to create NRN client: %v", err)
 	}
 
-	if client.httpClient == nil {
-		t.Error("Expected httpClient to be initialized")
+	if client == nil {
+		t.Error("Expected client to be initialized")
 	}
-
-	if client.httpClient.Timeout != 30*time.Second {
-		t.Errorf("Expected timeout 30s, got %v", client.httpClient.Timeout)
-	}
+	
+	// Note: The actual NRNClient is gRPC-based, not HTTP-based
+	// so we can't check for baseURL or httpClient fields
 }
 
 func TestVerifyPaymentTransaction(t *testing.T) {
@@ -54,7 +52,10 @@ func TestVerifyPaymentTransaction(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewNRNClient(server.URL)
+	client, err := NewNRNClient(server.URL, false, "")
+	if err != nil {
+		t.Fatalf("Failed to create NRN client: %v", err)
+	}
 
 	// Test successful verification
 	payment, err := client.VerifyPaymentTransaction("tx123", 1000, "recipient")
@@ -111,7 +112,10 @@ func TestGetTransactionPool(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewNRNClient(server.URL)
+	client, err := NewNRNClient(server.URL, false, "")
+	if err != nil {
+		t.Fatalf("Failed to create NRN client: %v", err)
+	}
 
 	pool, err := client.GetTransactionPool()
 	if err != nil {
@@ -148,7 +152,10 @@ func TestSubmitTransaction(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewNRNClient(server.URL)
+	client, err := NewNRNClient(server.URL, false, "")
+	if err != nil {
+		t.Fatalf("Failed to create NRN client: %v", err)
+	}
 
 	tx := &Transaction{
 		TransactionHash: "test_tx",
@@ -169,7 +176,10 @@ func TestSubmitTransaction(t *testing.T) {
 }
 
 func TestGetAccountBalance(t *testing.T) {
-	client := NewNRNClient("http://localhost:8080")
+	client, err := NewNRNClient("http://localhost:8080", false, "")
+	if err != nil {
+		t.Fatalf("Failed to create NRN client: %v", err)
+	}
 
 	// Test valid address
 	balance, err := client.GetAccountBalance("valid_address")

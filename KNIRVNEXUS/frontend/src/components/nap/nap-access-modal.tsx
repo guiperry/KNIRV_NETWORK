@@ -206,6 +206,20 @@ export function NetworkAccessModal({
     { id: 'prob-005', title: 'Consensus Divergence', severity: 'critical', description: 'Nodes disagree on validation results' },
   ];
 
+  // Global connections data
+  const globalConnections = [
+    { id: 'conn-001', nodeId: 'node-001', nodeName: 'Alpha-7', status: 'active', latency: 12, location: 'US-East', type: 'DVE' },
+    { id: 'conn-002', nodeId: 'node-002', nodeName: 'Beta-3', status: 'active', latency: 18, location: 'US-West', type: 'DVE' },
+    { id: 'conn-003', nodeId: 'node-003', nodeName: 'Gamma-9', status: 'active', latency: 25, location: 'EU-Central', type: 'DVE' },
+    { id: 'conn-004', nodeId: 'node-004', nodeName: 'Delta-2', status: 'active', latency: 31, location: 'Asia-Pacific', type: 'DVE' },
+    { id: 'conn-005', nodeId: 'node-005', nodeName: 'Epsilon-5', status: 'active', latency: 15, location: 'US-East', type: 'Router' },
+    { id: 'conn-006', nodeId: 'node-006', nodeName: 'Zeta-8', status: 'active', latency: 22, location: 'EU-West', type: 'Router' },
+    { id: 'conn-007', nodeId: 'node-007', nodeName: 'Eta-1', status: 'active', latency: 28, location: 'Asia-East', type: 'DVE' },
+    { id: 'conn-008', nodeId: 'node-008', nodeName: 'Theta-4', status: 'active', latency: 19, location: 'US-Central', type: 'DVE' },
+    { id: 'conn-009', nodeId: 'node-009', nodeName: 'Iota-6', status: 'active', latency: 35, location: 'South-America', type: 'DVE' },
+    { id: 'conn-010', nodeId: 'node-010', nodeName: 'Kappa-0', status: 'active', latency: 14, location: 'Canada', type: 'Oracle' },
+  ];
+
   const handleDHTToggle = async (checked: boolean) => {
     setIsDHTUpdating(true);
     try {
@@ -387,7 +401,7 @@ export function NetworkAccessModal({
                     </CardContent>
                   </Card>
 
-                  {/* Connections Tool */}
+                  {/* Connections Tool - Opens Global Connections Panel */}
                   <Card className="knirv-card-gradient">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center space-x-2 text-sm">
@@ -395,7 +409,7 @@ export function NetworkAccessModal({
                         <span>Connections</span>
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Connected NRV nodes list
+                        Global active connections list
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -429,73 +443,6 @@ export function NetworkAccessModal({
                         onClick={() => setShowMonitor(!showMonitor)}
                       >
                         {showMonitor ? 'Hide' : 'Show'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  {/* DVE Solver Tool */}
-                  <Card className="knirv-card-gradient">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center space-x-2 text-sm">
-                        <Zap className="w-4 h-4" />
-                        <span>DVE Solver</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Distributed validation engine
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button 
-                        variant={showDVESolver ? "default" : "outline"}
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => setShowDVESolver(!showDVESolver)}
-                      >
-                        <Zap className="w-3 h-3 mr-1" />
-                        {showDVESolver ? 'Hide' : 'Open'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  {/* KNIRVENGINE Tool */}
-                  <Card className="knirv-card-gradient border-primary/50">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center space-x-2 text-sm">
-                        <Cpu className="w-4 h-4" />
-                        <span>KNIRVENGINE</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        AI Engine interface
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="w-full"
-                        onClick={onOpenKNIRVEngine}
-                      >
-                        <Cpu className="w-3 h-3 mr-1" />
-                        Open
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  {/* Code Editor Tool */}
-                  <Card className="knirv-card-gradient">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center space-x-2 text-sm">
-                        <Code className="w-4 h-4" />
-                        <span>Code Editor</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Web-based development IDE
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Code className="w-3 h-3 mr-1" />
-                        Open
                       </Button>
                     </CardContent>
                   </Card>
@@ -806,105 +753,59 @@ export function NetworkAccessModal({
               </div>
             )}
 
-            {/* DVE Solver Modal - Replaces Connected NRVs panel on left side */}
-            {showDVESolver && (
-              <div className="fixed left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 w-80">
+            {/* Global Connections Panel - Slides out from left side when clicking Connections */}
+            {showConnections && (
+              <div className="fixed left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 w-96">
                 <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
-                      <Zap className="w-4 h-4 text-cyan-400" />
-                      <h3 className="font-semibold text-sm">DVE Solver</h3>
+                      <Radio className="w-4 h-4 text-cyan-400" />
+                      <h3 className="font-semibold text-sm">Global Active Connections</h3>
                     </div>
                     <button
-                      onClick={() => setShowDVESolver(false)}
+                      onClick={() => setShowConnections(false)}
                       className="p-1 hover:bg-slate-800 rounded transition-colors">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
                   <div className="p-4 space-y-4 overflow-y-auto" style={{maxHeight: 'calc(100% - 60px)'}}>
-                    {!showValidationReport ? (
-                      <>
-                        <div>
-                          <h4 className="text-xs font-semibold text-cyan-400 mb-3 flex items-center space-x-2">
-                            <FileText className="w-3 h-3" />
-                            <span>Select Problem:</span>
-                          </h4>
-                          <div className="space-y-2">
-                            {problems.map((prob) => (
-                              <button
-                                key={prob.id}
-                                onClick={() => setSelectedProblem(prob.id)}
-                                className={`w-full text-left p-3 border rounded transition-all ${selectedProblem === prob.id ? 'bg-blue-600/20 border-blue-600/50' : 'bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50'}`}>
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <div className="text-xs font-medium">{prob.title}</div>
-                                    <div className="text-xs text-slate-400 mt-1">{prob.description}</div>
-                                  </div>
-                                  <span className={`text-xs px-1.5 py-0.5 rounded font-semibold whitespace-nowrap ml-2 ${prob.severity === 'critical' ? 'bg-red-500/20 text-red-400' : prob.severity === 'high' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'}`}>
-                                    {prob.severity.toUpperCase()}
-                                  </span>
-                                </div>
-                              </button>
-                            ))}
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>Total: {globalConnections.length} connections</span>
+                      <Badge variant="secondary" className="bg-green-500/20 text-green-400">All Active</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      {globalConnections.map((conn) => (
+                        <div
+                          key={conn.id}
+                          className="w-full text-left p-3 border rounded bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50 transition-all cursor-pointer"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="text-xs font-medium text-slate-200">{conn.nodeName}</div>
+                              <div className="text-xs text-slate-400 mt-0.5">{conn.nodeId}</div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-[10px] h-4">
+                                  {conn.type}
+                                </Badge>
+                                <span className="text-[10px] text-slate-500">{conn.location}</span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                <span className="text-xs text-green-400">Active</span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 mt-1">{conn.latency}ms</div>
+                            </div>
                           </div>
                         </div>
-                        <button
-                          onClick={runValidation}
-                          disabled={!selectedProblem || isValidating}
-                          className="w-full bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 disabled:cursor-not-allowed text-slate-900 font-semibold py-2 rounded text-xs transition-colors flex items-center justify-center space-x-1">
-                          {isValidating ? (
-                            <>
-                              <div className="w-3 h-3 border border-slate-900/30 border-t-slate-900 rounded-full animate-spin"></div>
-                              <span>Running...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-3 h-3" />
-                              <span>Run Validation</span>
-                            </>
-                          )}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                            <span className="text-xs font-semibold text-blue-400">Complete</span>
-                          </div>
-                          <div className="text-xs text-slate-400 space-y-0.5">
-                            <div>Problem: {validationResults?.problemTitle}</div>
-                            <div>Tests: {validationResults?.testsPassed}/{validationResults?.testsPassed + validationResults?.testsFailed}</div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h5 className="text-xs font-semibold text-cyan-400 mb-1 flex items-center space-x-1">
-                            <BarChart3 className="w-2.5 h-2.5" />
-                            <span>Logs</span>
-                          </h5>
-                          <div className="bg-black rounded p-2 font-mono text-xs text-blue-400 space-y-0.5 max-h-32 overflow-y-auto">
-                            {validationResults?.logs.map((log: string, idx: number) => (
-                              <div key={idx}>{log}</div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <button
-                            onClick={() => setShowValidationReport(false)}
-                            className="w-full bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-1.5 rounded text-xs transition-colors">
-                            Run Another
-                          </button>
-                          <button
-                            onClick={submitToConsensus}
-                            className="w-full bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-semibold py-1.5 rounded text-xs transition-colors flex items-center justify-center space-x-1">
-                            <Upload className="w-3 h-3" />
-                            <span>Submit</span>
-                          </button>
-                        </div>
-                      </>
-                    )}
+                      ))}
+                    </div>
+                    <div className="pt-2 border-t border-blue-600/20">
+                      <div className="text-xs text-slate-500 text-center">
+                        Last updated: {new Date().toLocaleTimeString()}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -10,36 +10,36 @@ import (
 
 // User represents a system user with authentication and authorization data
 type User struct {
-	ID                string    `json:"id" buntdb:"id"`
-	Username          string    `json:"username" buntdb:"username"`
-	Email             string    `json:"email" buntdb:"email"`
-	PasswordHash      string    `json:"password_hash" buntdb:"password_hash"`
-	Salt              string    `json:"salt" buntdb:"salt"`
-	Role              string    `json:"role" buntdb:"role"`
-	Status            string    `json:"status" buntdb:"status"` // active, inactive, suspended, pending_verification
-	EmailVerified     bool      `json:"email_verified" buntdb:"email_verified"`
-	EmailVerificationToken string `json:"email_verification_token" buntdb:"email_verification_token"`
-	PasswordResetToken string   `json:"password_reset_token" buntdb:"password_reset_token"`
-	PasswordResetExpires *time.Time `json:"password_reset_expires" buntdb:"password_reset_expires"`
-	CreatedAt         time.Time `json:"created_at" buntdb:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at" buntdb:"updated_at"`
-	LastLoginAt       *time.Time `json:"last_login_at,omitempty" buntdb:"last_login_at"`
-	LoginAttempts     int       `json:"login_attempts" buntdb:"login_attempts"`
-	LockedUntil       *time.Time `json:"locked_until" buntdb:"locked_until"`
+	ID                     string     `json:"id" buntdb:"id"`
+	Username               string     `json:"username" buntdb:"username"`
+	Email                  string     `json:"email" buntdb:"email"`
+	PasswordHash           string     `json:"password_hash" buntdb:"password_hash"`
+	Salt                   string     `json:"salt" buntdb:"salt"`
+	Role                   string     `json:"role" buntdb:"role"`
+	Status                 string     `json:"status" buntdb:"status"` // active, inactive, suspended, pending_verification
+	EmailVerified          bool       `json:"email_verified" buntdb:"email_verified"`
+	EmailVerificationToken string     `json:"email_verification_token" buntdb:"email_verification_token"`
+	PasswordResetToken     string     `json:"password_reset_token" buntdb:"password_reset_token"`
+	PasswordResetExpires   *time.Time `json:"password_reset_expires" buntdb:"password_reset_expires"`
+	CreatedAt              time.Time  `json:"created_at" buntdb:"created_at"`
+	UpdatedAt              time.Time  `json:"updated_at" buntdb:"updated_at"`
+	LastLoginAt            *time.Time `json:"last_login_at,omitempty" buntdb:"last_login_at"`
+	LoginAttempts          int        `json:"login_attempts" buntdb:"login_attempts"`
+	LockedUntil            *time.Time `json:"locked_until" buntdb:"locked_until"`
 
 	// Profile information
-	FirstName         string `json:"first_name" buntdb:"first_name"`
-	LastName          string `json:"last_name" buntdb:"last_name"`
-	Company           string `json:"company,omitempty" buntdb:"company"`
-	Phone             string `json:"phone,omitempty" buntdb:"phone"`
+	FirstName string `json:"first_name" buntdb:"first_name"`
+	LastName  string `json:"last_name" buntdb:"last_name"`
+	Company   string `json:"company,omitempty" buntdb:"company"`
+	Phone     string `json:"phone,omitempty" buntdb:"phone"`
 
 	// Security settings
-	TwoFactorEnabled  bool   `json:"two_factor_enabled" buntdb:"two_factor_enabled"`
-	TwoFactorSecret   string `json:"two_factor_secret" buntdb:"two_factor_secret"`
+	TwoFactorEnabled bool   `json:"two_factor_enabled" buntdb:"two_factor_enabled"`
+	TwoFactorSecret  string `json:"two_factor_secret" buntdb:"two_factor_secret"`
 
 	// Preferences
-	Timezone          string `json:"timezone" buntdb:"timezone"`
-	Language          string `json:"language" buntdb:"language"`
+	Timezone string `json:"timezone" buntdb:"timezone"`
+	Language string `json:"language" buntdb:"language"`
 }
 
 // UserSession represents an active user session
@@ -64,6 +64,7 @@ type UserRegistration struct {
 	LastName  string `json:"last_name" validate:"required,min=1,max=50"`
 	Company   string `json:"company,omitempty"`
 	Phone     string `json:"phone,omitempty"`
+	Role      string `json:"role,omitempty"`
 }
 
 // UserLogin represents login credentials
@@ -101,37 +102,37 @@ type ChangePassword struct {
 
 // Permission represents a system permission
 type Permission struct {
-	ID          string `json:"id" buntdb:"id"`
-	Name        string `json:"name" buntdb:"name"`
-	Description string `json:"description" buntdb:"description"`
-	Resource    string `json:"resource" buntdb:"resource"`
-	Action      string `json:"action" buntdb:"action"`
+	ID          string    `json:"id" buntdb:"id"`
+	Name        string    `json:"name" buntdb:"name"`
+	Description string    `json:"description" buntdb:"description"`
+	Resource    string    `json:"resource" buntdb:"resource"`
+	Action      string    `json:"action" buntdb:"action"`
 	CreatedAt   time.Time `json:"created_at" buntdb:"created_at"`
 }
 
 // Role represents a user role with associated permissions
 type Role struct {
-	ID          string       `json:"id" buntdb:"id"`
-	Name        string       `json:"name" buntdb:"name"`
-	Description string       `json:"description" buntdb:"description"`
-	Permissions []string     `json:"permissions" buntdb:"permissions"` // Permission IDs
-	CreatedAt   time.Time    `json:"created_at" buntdb:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at" buntdb:"updated_at"`
-	IsSystem    bool         `json:"is_system" buntdb:"is_system"` // Cannot be deleted
+	ID          string    `json:"id" buntdb:"id"`
+	Name        string    `json:"name" buntdb:"name"`
+	Description string    `json:"description" buntdb:"description"`
+	Permissions []string  `json:"permissions" buntdb:"permissions"` // Permission IDs
+	CreatedAt   time.Time `json:"created_at" buntdb:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" buntdb:"updated_at"`
+	IsSystem    bool      `json:"is_system" buntdb:"is_system"` // Cannot be deleted
 }
 
 // AuditLog represents an authentication/authorization audit event
 type AuditLog struct {
-	ID          string    `json:"id" buntdb:"id"`
-	UserID      string    `json:"user_id" buntdb:"user_id"`
-	Action      string    `json:"action" buntdb:"action"`
-	Resource    string    `json:"resource" buntdb:"resource"`
-	ResourceID  string    `json:"resource_id,omitempty" buntdb:"resource_id"`
-	IPAddress   string    `json:"ip_address" buntdb:"ip_address"`
-	UserAgent   string    `json:"user_agent" buntdb:"user_agent"`
-	Timestamp   time.Time `json:"timestamp" buntdb:"timestamp"`
-	Success     bool      `json:"success" buntdb:"success"`
-	Details     string    `json:"details,omitempty" buntdb:"details"`
+	ID         string    `json:"id" buntdb:"id"`
+	UserID     string    `json:"user_id" buntdb:"user_id"`
+	Action     string    `json:"action" buntdb:"action"`
+	Resource   string    `json:"resource" buntdb:"resource"`
+	ResourceID string    `json:"resource_id,omitempty" buntdb:"resource_id"`
+	IPAddress  string    `json:"ip_address" buntdb:"ip_address"`
+	UserAgent  string    `json:"user_agent" buntdb:"user_agent"`
+	Timestamp  time.Time `json:"timestamp" buntdb:"timestamp"`
+	Success    bool      `json:"success" buntdb:"success"`
+	Details    string    `json:"details,omitempty" buntdb:"details"`
 }
 
 // UserRole represents different user roles in the system
@@ -193,9 +194,9 @@ func GetPermissionsForRole(role UserRole) UserPermissions {
 
 // RateLimit represents rate limiting data for login attempts
 type RateLimit struct {
-	Key       string    `json:"key" buntdb:"key"` // IP or username
-	Attempts  int       `json:"attempts" buntdb:"attempts"`
-	LastAttempt time.Time `json:"last_attempt" buntdb:"last_attempt"`
+	Key         string     `json:"key" buntdb:"key"` // IP or username
+	Attempts    int        `json:"attempts" buntdb:"attempts"`
+	LastAttempt time.Time  `json:"last_attempt" buntdb:"last_attempt"`
 	LockedUntil *time.Time `json:"locked_until,omitempty" buntdb:"locked_until"`
 }
 

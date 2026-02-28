@@ -34,6 +34,7 @@ import (
 	fabricserver "backend_server/internal/services/fabric-server"
 	"backend_server/internal/services/fabricmanagement"
 	"backend_server/internal/services/fintech_validator"
+	icme "backend_server/internal/services/icme"
 	inference "backend_server/internal/services/inferencer"
 	"backend_server/internal/services/p2p"
 	"backend_server/internal/services/session"
@@ -115,6 +116,9 @@ type Server struct {
 
 	// Agent runtime (oh-my-pi)
 	agentService *agentsvc.AgentService
+
+	// ICME - Intentional Context Memory Engine
+	icmeService *icme.Service
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -560,6 +564,93 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		log.Printf("Warning: Failed to start agent service: %v", err)
 	}
 
+	// Initialize ICME - Intentional Context Memory Engine
+	var icmeService *icme.Service
+	if cfg.ICME.Enabled {
+		icmeConfig := cfg.ICME
+
+		embeddingProvider, err := icme.NewEmbeddingProvider(logger)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize ICME embedding provider: %v", err)
+		} else {
+			nerProvider, err := icme.NewNERProvider(logger)
+			if err != nil {
+				log.Printf("Warning: Failed to initialize ICME NER provider: %v", err)
+			} else {
+				faissManager, err := icme.NewFAISSIndexManager(dbManager, logger)
+				if err != nil {
+					log.Printf("Warning: Failed to initialize ICME FAISS manager: %v", err)
+				} else {
+					graphEngine := icme.NewTemporalHypergraph(
+						icmeConfig.GraphWindowSize,
+						icmeConfig.GraphMaxNodes,
+						logger,
+					)
+
+					intentRegistry, err := icme.NewIntentRegistry(dbManager, logger)
+					if err != nil {
+						log.Printf("Warning: Failed to initialize ICME intent registry: %v", err)
+					} else {
+						factualityAdapter := icme.NewFactualityAdapter(
+							"",
+							intentRegistry,
+							dbManager,
+							logger,
+						)
+
+						delegation := icme.NewDelegationFramework(intentRegistry, logger)
+
+						alignmentLoop := icme.NewAlignmentLoop(
+							intentRegistry,
+							factualityAdapter,
+							icmeConfig.AlignmentEvalInterval,
+							icmeConfig.DriftThreshold,
+							logger,
+						)
+
+						signalRouter := icme.NewSignalRouter(
+							intentRegistry,
+							nerProvider,
+							embeddingProvider,
+							graphEngine,
+							faissManager,
+							nil,
+							logger,
+						)
+
+						searchEngine := icme.NewHybridSearchEngine(
+							faissManager,
+							graphEngine,
+							embeddingProvider,
+							intentRegistry,
+							logger,
+						)
+
+						icmeService = icme.NewService(
+							intentRegistry,
+							graphEngine,
+							faissManager,
+							searchEngine,
+							delegation,
+							alignmentLoop,
+							signalRouter,
+							logger,
+						)
+
+						icmeCtx, icmeCancel := context.WithCancel(context.Background())
+						go signalRouter.Start(icmeCtx)
+						go alignmentLoop.Start(icmeCtx)
+						_ = icmeCancel
+
+						log.Println("ICME Service initialized successfully")
+					}
+				}
+			}
+		}
+	} else {
+		log.Println("ICME Service disabled via configuration")
+	}
+
 	// Initialize Nexus Memory Fabric
 	nexusAllocator := memory.DefaultAllocator
 	nexusServer := nexus.NewNexusMemoryServer(nexusAllocator)
@@ -610,6 +701,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		fintechValidatorService:      fintechValidatorService,
 		unifiedContainerManager:      unifiedContainerManager,
 		agentService:                 agentService,
+		icmeService:                  icmeService,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -674,8 +766,16 @@ func (s *Server) setupRoutes() {
 		protectedAuthRouter.HandleFunc("/me", authHandlers.Me).Methods("GET", "OPTIONS")
 		protectedAuthRouter.HandleFunc("/change-password", authHandlers.ChangePassword).Methods("POST", "OPTIONS")
 		protectedAuthRouter.HandleFunc("/update-profile", authHandlers.UpdateProfile).Methods("PUT", "OPTIONS")
+		protectedAuthRouter.HandleFunc("/preferences", authHandlers.GetPreferences).Methods("GET", "OPTIONS")
 		log.Println("Auth routes configured")
 	}
+
+	// Register KNIRVGRAPH routes
+	knirvGraphHandlers := web.NewKnirvGraphHandlers(s.db)
+	s.router.HandleFunc("/api/knirvgraph/error-node", knirvGraphHandlers.CreateErrorNode).Methods("POST", "OPTIONS")
+	s.router.HandleFunc("/api/knirvgraph/error-nodes", knirvGraphHandlers.GetErrorNodes).Methods("GET", "OPTIONS")
+	s.router.HandleFunc("/api/knirvgraph/error-queue", knirvGraphHandlers.GetErrorQueue).Methods("GET", "OPTIONS")
+	log.Println("KNIRVGRAPH routes configured")
 
 	// Register data engine routes
 	if s.dataEngine != nil {
@@ -811,6 +911,12 @@ func (s *Server) setupRoutes() {
 		log.Println("Agent Command Center routes configured")
 	}
 
+	// Register ICME routes (Intentional Context Memory Engine)
+	if s.icmeService != nil {
+		s.icmeService.RegisterRoutes(s.router)
+		log.Println("ICME routes configured")
+	}
+
 	// Register system settings routes
 	systemSettingsHandlers := web.NewSystemSettingsHandlers(s.config)
 	systemSettingsHandlers.RegisterRoutes(s.router, authMiddleware)
@@ -874,6 +980,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"dve_creation_service":  s.dveCreationService != nil,
 			"model_server":          s.unifiedContainerManager != nil,
 			"agent_service":         s.agentService != nil,
+			"icme_service":          s.icmeService != nil,
 		},
 		"ebpf": ebpfMetrics,
 	}

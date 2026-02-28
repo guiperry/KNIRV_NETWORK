@@ -153,3 +153,19 @@ production:
   enable_auto_scaling: false
   min_replicas: 1
   max_replicas: 10
+
+# ICME (Intentional Context Memory Engine) Configuration
+icme:
+  enabled: true
+  cloudflare_embeddings_url: "https://embeddings.knirv.com"
+  ollama_base_url: "http://localhost:11434"
+  ollama_embedding_model: "nomic-embed-text"
+  spacy_model: "en_core_web_sm"
+  graph_window_size: "10m"
+  graph_max_nodes: 10000
+  embed_dimension: 768
+  default_top_k: 10
+  alignment_eval_interval: "5m"
+  drift_threshold: 0.20
+  signal_queue_size: 512
+  signal_workers: 4

@@ -96,6 +96,11 @@ func (m *MockChainClient) ValidateSession(sessionID string) (*objects.ChainSessi
 	return session, nil
 }
 
+func (m *MockChainClient) GetSecret(sessionID, secretKey string) (string, error) {
+	// Return a mock secret
+	return "mock-secret-value", nil
+}
+
 func (m *MockChainClient) Close() error {
 	return nil
 }

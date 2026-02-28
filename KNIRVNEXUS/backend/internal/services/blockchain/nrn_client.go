@@ -22,7 +22,7 @@ type NRNClient struct {
 // NewNRNClient creates a new NRN blockchain client
 func NewNRNClient(address string, useTLS bool, certFile string) (*NRNClient, error) {
 	var opts []grpc.DialOption
-	
+
 	if useTLS && certFile != "" {
 		creds, err := credentials.NewClientTLSFromFile(certFile, "")
 		if err != nil {
@@ -259,4 +259,13 @@ type Transaction struct {
 	ChainID         string `json:"chain_id"`
 	BlockHeight     uint64 `json:"block_height"`
 	PQCSignature    []byte `json:"pqc_signature"`
+}
+
+// Block represents a blockchain block (kept for compatibility)
+type Block struct {
+	BlockNumber  uint64         `json:"block_number"`
+	Transactions []*Transaction `json:"transactions"`
+	Timestamp    int64          `json:"timestamp"`
+	Hash         string         `json:"hash"`
+	PrevHash     string         `json:"prev_hash"`
 }
