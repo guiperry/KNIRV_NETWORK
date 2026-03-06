@@ -1,0 +1,35 @@
+KNIRV-SERVER v6f873548-dirty (built 2026-01-07T03:58:29Z, commit 6f873548)
+2026/01/07 08:10:44 Extracted config file: /root/.local/share/knirvnexus/config/development.yaml
+2026/01/07 08:10:44 Extracted config file: /root/.local/share/knirvnexus/config/production.yaml
+2026/01/07 08:10:44 Extracted config file: /root/.local/share/knirvnexus/config/schema.prisma
+2026/01/07 08:10:44 Extracted config file: /root/.local/share/knirvnexus/config/test.yaml
+2026/01/07 08:10:44 Extracted config file: /root/.local/share/knirvnexus/config/testnet.yaml
+2026/01/07 08:10:44 Extracted config file: /root/.local/share/knirvnexus/config/validation_methods.json
+2026/01/07 08:10:44 Using environment from KNIRV_ENV: development
+2026/01/07 08:10:44 Extracted development environment file to .env
+[GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
+ - using env:	export GIN_MODE=release
+ - using code:	gin.SetMode(gin.ReleaseMode)
+
+[GIN-debug] GET    /health                   --> main.(*NexusApp).setupRoutes.func1 (4 handlers)
+[GIN-debug] GET    /version                  --> main.(*NexusApp).setupRoutes.func2 (4 handlers)
+[GIN-debug] GET    /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
+[GIN-debug] POST   /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
+[GIN-debug] PUT    /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
+[GIN-debug] PATCH  /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
+[GIN-debug] HEAD   /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
+[GIN-debug] OPTIONS /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
+[GIN-debug] DELETE /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
+[GIN-debug] CONNECT /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
+[GIN-debug] TRACE  /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
+2026/01/07 08:10:44 DEBUG: Listing embedded files:
+2026/01/07 08:10:44 DEBUG: Found 0 embedded entries
+2026/01/07 08:10:44 Starting unified backend service on port 8082...
+2026/01/07 08:10:44 Passing config file to backend: /root/.local/share/knirvnexus/config/development.yaml
+2026/01/07 08:10:44 Unified backend started (PID: 14)
+2026/01/07 08:10:44 Registered Anthropic provider constructor with gollm registry
+2026/01/07 08:10:44 Registered Cerebras provider constructor with gollm registry
+2026/01/07 08:10:44 Registered Deepseek provider constructor with gollm registry
+2026/01/07 08:10:44 Registering Gemini provider constructor with gollm registry
+KNIRV-SERVER Complete Backend Server v6f873548-dirty (built 2026-01-07T03:58:29Z, commit 6f873548)
+2026/01/07 08:10:47 Starting KNIRV-SERVER on 0.0.0.0:8090

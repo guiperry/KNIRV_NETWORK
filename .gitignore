@@ -104,3 +104,4 @@ KNIRVROUTER/bin/knirvrouter-headless
 KNIRVROUTER/bin/knirvrouter
 KNIRVHASHER/hasher-host
 KNIRVHASHER/internal/host/embedded/hasher-server-mips
+/KNIRVSERVER/KNIRVCLI

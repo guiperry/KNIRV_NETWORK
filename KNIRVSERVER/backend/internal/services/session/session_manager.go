@@ -1,0 +1,589 @@
+package session
+
+import (
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"log"
+	"sync"
+	"time"
+
+	"backend_server/internal/database"
+	"backend_server/internal/objects"
+
+	"github.com/tidwall/buntdb"
+)
+
+// SessionManager manages access sessions for DVE rentals
+type SessionManager struct {
+	db       *database.BuntDBManager
+	sessions map[string]interface{} // sessionID -> session object
+	mutex    sync.RWMutex
+}
+
+// NewSessionManager creates a new session manager
+func NewSessionManager(db *database.BuntDBManager) *SessionManager {
+	sm := &SessionManager{
+		db:       db,
+		sessions: make(map[string]interface{}),
+	}
+
+	// Load existing sessions from database
+	if err := sm.loadSessionsFromDatabase(); err != nil {
+		log.Printf("Warning: Failed to load sessions from database: %v", err)
+	}
+
+	// Start cleanup routine
+	go sm.cleanupExpiredSessions()
+
+	return sm
+}
+
+// CreateSSHSession creates a new SSH session for a creation
+func (sm *SessionManager) CreateSSHSession(creationID, containerID, username, privateKey string) (*objects.SSHSession, error) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	sessionID := sm.generateSessionID()
+	expiresAt := time.Now().Add(24 * time.Hour) // 24 hours
+
+	session := &objects.SSHSession{
+		ID:            sessionID,
+		CreationID:    creationID,
+		ContainerID:   containerID,
+		Username:      username,
+		PublicKeyHash: "", // Will be set when keys are generated
+		PrivateKey:    privateKey,
+		PrivateKeyURL: fmt.Sprintf("/api/sessions/ssh/%s/private-key", sessionID),
+		ExpiresAt:     expiresAt,
+		CreatedAt:     time.Now(),
+		LastUsed:      time.Now(),
+	}
+
+	sm.sessions[sessionID] = session
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, session); err != nil {
+		log.Printf("Warning: Failed to save SSH session to database: %v", err)
+	}
+
+	log.Printf("Created SSH session %s for creation %s", sessionID, creationID)
+	return session, nil
+}
+
+// GetSSHSession retrieves an SSH session by ID
+func (sm *SessionManager) GetSSHSession(sessionID string) (*objects.SSHSession, error) {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("SSH session not found: %s", sessionID)
+	}
+
+	sshSession, ok := session.(*objects.SSHSession)
+	if !ok {
+		return nil, fmt.Errorf("invalid session type for SSH session: %s", sessionID)
+	}
+
+	// Check if expired
+	if time.Now().After(sshSession.ExpiresAt) {
+		return nil, fmt.Errorf("SSH session expired: %s", sessionID)
+	}
+
+	// Update last used
+	sshSession.LastUsed = time.Now()
+	return sshSession, nil
+}
+
+// UpdateSSHSessionPublicKey updates the public key hash for an SSH session
+func (sm *SessionManager) UpdateSSHSessionPublicKey(sessionID, publicKeyHash string) error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return fmt.Errorf("SSH session not found: %s", sessionID)
+	}
+
+	sshSession, ok := session.(*objects.SSHSession)
+	if !ok {
+		return fmt.Errorf("invalid session type for SSH session: %s", sessionID)
+	}
+
+	sshSession.PublicKeyHash = publicKeyHash
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, sshSession); err != nil {
+		log.Printf("Warning: Failed to save updated SSH session to database: %v", err)
+	}
+
+	log.Printf("Updated public key hash for SSH session %s", sessionID)
+	return nil
+}
+
+// TerminateSSHSession terminates an SSH session
+func (sm *SessionManager) TerminateSSHSession(sessionID string) error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return fmt.Errorf("SSH session not found: %s", sessionID)
+	}
+
+	if _, ok := session.(*objects.SSHSession); !ok {
+		return fmt.Errorf("invalid session type for SSH session: %s", sessionID)
+	}
+
+	delete(sm.sessions, sessionID)
+
+	// Delete from database
+	if err := sm.deleteSessionFromDatabase(sessionID); err != nil {
+		log.Printf("Warning: Failed to delete SSH session from database: %v", err)
+	}
+
+	log.Printf("Terminated SSH session %s", sessionID)
+	return nil
+}
+
+// CreateValidationSession creates a new reasoning validation session
+func (sm *SessionManager) CreateValidationSession(creationID string, validationType string) (*objects.ValidationSession, error) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	sessionID := sm.generateSessionID()
+	sessionToken := sm.generateSessionToken()
+	expiresAt := time.Now().Add(24 * time.Hour)
+
+	session := &objects.ValidationSession{
+		ID:             sessionID,
+		CreationID:     creationID,
+		SessionToken:   sessionToken,
+		EndpointURL:    "", // Will be set by endpoint registry
+		Port:           0,  // Will be set by endpoint registry
+		ExpiresAt:      expiresAt,
+		CreatedAt:      time.Now(),
+		ValidationType: validationType,
+	}
+
+	sm.sessions[sessionID] = session
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, session); err != nil {
+		log.Printf("Warning: Failed to save validation session to database: %v", err)
+	}
+
+	log.Printf("Created validation session %s for creation %s", sessionID, creationID)
+	return session, nil
+}
+
+// GetValidationSession retrieves a validation session by ID
+func (sm *SessionManager) GetValidationSession(sessionID string) (*objects.ValidationSession, error) {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("validation session not found: %s", sessionID)
+	}
+
+	valSession, ok := session.(*objects.ValidationSession)
+	if !ok {
+		return nil, fmt.Errorf("invalid session type for validation session: %s", sessionID)
+	}
+
+	if time.Now().After(valSession.ExpiresAt) {
+		return nil, fmt.Errorf("validation session expired: %s", sessionID)
+	}
+
+	return valSession, nil
+}
+
+// UpdateValidationEndpoint updates the endpoint information for a validation session
+func (sm *SessionManager) UpdateValidationEndpoint(sessionID, endpointURL string, port int) error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return fmt.Errorf("validation session not found: %s", sessionID)
+	}
+
+	valSession, ok := session.(*objects.ValidationSession)
+	if !ok {
+		return fmt.Errorf("invalid session type for validation session: %s", sessionID)
+	}
+
+	valSession.EndpointURL = endpointURL
+	valSession.Port = port
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, valSession); err != nil {
+		log.Printf("Warning: Failed to save updated validation session to database: %v", err)
+	}
+
+	log.Printf("Updated endpoint for validation session %s: %s:%d", sessionID, endpointURL, port)
+	return nil
+}
+
+// TerminateValidationSession terminates a validation session
+func (sm *SessionManager) TerminateValidationSession(sessionID string) error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return fmt.Errorf("validation session not found: %s", sessionID)
+	}
+
+	if _, ok := session.(*objects.ValidationSession); !ok {
+		return fmt.Errorf("invalid session type for validation session: %s", sessionID)
+	}
+
+	delete(sm.sessions, sessionID)
+
+	// Delete from database
+	if err := sm.deleteSessionFromDatabase(sessionID); err != nil {
+		log.Printf("Warning: Failed to delete validation session from database: %v", err)
+	}
+
+	log.Printf("Terminated validation session %s", sessionID)
+	return nil
+}
+
+// CreateErrorResolutionSession creates a new error resolution session
+func (sm *SessionManager) CreateErrorResolutionSession(creationID string, supportedTypes []string) (*objects.ErrorResolutionSession, error) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	sessionID := sm.generateSessionID()
+	sessionToken := sm.generateSessionToken()
+	expiresAt := time.Now().Add(24 * time.Hour)
+
+	session := &objects.ErrorResolutionSession{
+		ID:             sessionID,
+		CreationID:     creationID,
+		SessionToken:   sessionToken,
+		EndpointURL:    "", // Will be set by endpoint registry
+		Port:           0,  // Will be set by endpoint registry
+		ExpiresAt:      expiresAt,
+		CreatedAt:      time.Now(),
+		SupportedTypes: supportedTypes,
+	}
+
+	sm.sessions[sessionID] = session
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, session); err != nil {
+		log.Printf("Warning: Failed to save error resolution session to database: %v", err)
+	}
+
+	log.Printf("Created error resolution session %s for creation %s", sessionID, creationID)
+	return session, nil
+}
+
+// GetErrorResolutionSession retrieves an error resolution session by ID
+func (sm *SessionManager) GetErrorResolutionSession(sessionID string) (*objects.ErrorResolutionSession, error) {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("error resolution session not found: %s", sessionID)
+	}
+
+	errSession, ok := session.(*objects.ErrorResolutionSession)
+	if !ok {
+		return nil, fmt.Errorf("invalid session type for error resolution session: %s", sessionID)
+	}
+
+	if time.Now().After(errSession.ExpiresAt) {
+		return nil, fmt.Errorf("error resolution session expired: %s", sessionID)
+	}
+
+	return errSession, nil
+}
+
+// UpdateErrorResolutionEndpoint updates the endpoint information for an error resolution session
+func (sm *SessionManager) UpdateErrorResolutionEndpoint(sessionID, endpointURL string, port int) error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return fmt.Errorf("error resolution session not found: %s", sessionID)
+	}
+
+	errSession, ok := session.(*objects.ErrorResolutionSession)
+	if !ok {
+		return fmt.Errorf("invalid session type for error resolution session: %s", sessionID)
+	}
+
+	errSession.EndpointURL = endpointURL
+	errSession.Port = port
+
+	// Save to database
+	if err := sm.saveSessionToDatabase(sessionID, errSession); err != nil {
+		log.Printf("Warning: Failed to save updated error resolution session to database: %v", err)
+	}
+
+	log.Printf("Updated endpoint for error resolution session %s: %s:%d", sessionID, endpointURL, port)
+	return nil
+}
+
+// TerminateErrorResolutionSession terminates an error resolution session
+func (sm *SessionManager) TerminateErrorResolutionSession(sessionID string) error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return fmt.Errorf("error resolution session not found: %s", sessionID)
+	}
+
+	if _, ok := session.(*objects.ErrorResolutionSession); !ok {
+		return fmt.Errorf("invalid session type for error resolution session: %s", sessionID)
+	}
+
+	delete(sm.sessions, sessionID)
+
+	// Delete from database
+	if err := sm.deleteSessionFromDatabase(sessionID); err != nil {
+		log.Printf("Warning: Failed to delete error resolution session from database: %v", err)
+	}
+
+	log.Printf("Terminated error resolution session %s", sessionID)
+	return nil
+}
+
+// GetSessionsByCreationID returns all sessions for a creation
+func (sm *SessionManager) GetSessionsByCreationID(creationID string) ([]interface{}, error) {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	sessions := make([]interface{}, 0)
+	for _, session := range sm.sessions {
+		switch s := session.(type) {
+		case *objects.SSHSession:
+			if s.CreationID == creationID {
+				sessions = append(sessions, s)
+			}
+		case *objects.ValidationSession:
+			if s.CreationID == creationID {
+				sessions = append(sessions, s)
+			}
+		case *objects.ErrorResolutionSession:
+			if s.CreationID == creationID {
+				sessions = append(sessions, s)
+			}
+		}
+	}
+
+	return sessions, nil
+}
+
+// TerminateAllSessionsForCreation terminates all sessions for a creation
+func (sm *SessionManager) TerminateAllSessionsForCreation(creationID string) error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	sessionIDsToDelete := make([]string, 0)
+	for sessionID, session := range sm.sessions {
+		switch s := session.(type) {
+		case *objects.SSHSession:
+			if s.CreationID == creationID {
+				sessionIDsToDelete = append(sessionIDsToDelete, sessionID)
+			}
+		case *objects.ValidationSession:
+			if s.CreationID == creationID {
+				sessionIDsToDelete = append(sessionIDsToDelete, sessionID)
+			}
+		case *objects.ErrorResolutionSession:
+			if s.CreationID == creationID {
+				sessionIDsToDelete = append(sessionIDsToDelete, sessionID)
+			}
+		}
+	}
+
+	for _, sessionID := range sessionIDsToDelete {
+		delete(sm.sessions, sessionID)
+
+		// Delete from database
+		if err := sm.deleteSessionFromDatabase(sessionID); err != nil {
+			log.Printf("Warning: Failed to delete session %s from database: %v", sessionID, err)
+		}
+
+		log.Printf("Terminated session %s for creation %s", sessionID, creationID)
+	}
+
+	if len(sessionIDsToDelete) > 0 {
+		log.Printf("Terminated %d sessions for creation %s", len(sessionIDsToDelete), creationID)
+	}
+
+	return nil
+}
+
+// GetSessionsByRentalID returns all sessions for a rental (alias for GetSessionsByCreationID)
+func (sm *SessionManager) GetSessionsByRentalID(rentalID string) ([]interface{}, error) {
+	return sm.GetSessionsByCreationID(rentalID)
+}
+
+// TerminateAllSessionsForRental terminates all sessions for a rental (alias for TerminateAllSessionsForCreation)
+func (sm *SessionManager) TerminateAllSessionsForRental(rentalID string) error {
+	return sm.TerminateAllSessionsForCreation(rentalID)
+}
+
+// loadSessionsFromDatabase loads all active sessions from the database
+func (sm *SessionManager) loadSessionsFromDatabase() error {
+	if sm.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	return sm.db.GetObjectsByPrefix("session:", func(key string, value []byte) bool {
+		var sessionData struct {
+			Type string      `json:"type"`
+			Data interface{} `json:"data"`
+		}
+
+		if err := json.Unmarshal(value, &sessionData); err != nil {
+			log.Printf("Warning: Failed to unmarshal session %s: %v", key, err)
+			return true
+		}
+
+		var session interface{}
+		switch sessionData.Type {
+		case "ssh":
+			var sshSession objects.SSHSession
+			dataBytes, _ := json.Marshal(sessionData.Data)
+			if err := json.Unmarshal(dataBytes, &sshSession); err == nil {
+				session = &sshSession
+			}
+		case "validation":
+			var valSession objects.ValidationSession
+			dataBytes, _ := json.Marshal(sessionData.Data)
+			if err := json.Unmarshal(dataBytes, &valSession); err == nil {
+				session = &valSession
+			}
+		case "error-resolution":
+			var errSession objects.ErrorResolutionSession
+			dataBytes, _ := json.Marshal(sessionData.Data)
+			if err := json.Unmarshal(dataBytes, &errSession); err == nil {
+				session = &errSession
+			}
+		}
+
+		if session != nil {
+			sessionID := key[8:] // Remove "session:" prefix
+			sm.sessions[sessionID] = session
+			log.Printf("Loaded session %s from database", sessionID)
+		}
+		return true
+	})
+}
+
+// saveSessionToDatabase saves a session to the database
+func (sm *SessionManager) saveSessionToDatabase(sessionID string, session interface{}) error {
+	if sm.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	sessionData := struct {
+		Type string      `json:"type"`
+		Data interface{} `json:"data"`
+	}{}
+
+	switch s := session.(type) {
+	case *objects.SSHSession:
+		sessionData.Type = "ssh"
+		sessionData.Data = s
+	case *objects.ValidationSession:
+		sessionData.Type = "validation"
+		sessionData.Data = s
+	case *objects.ErrorResolutionSession:
+		sessionData.Type = "error-resolution"
+		sessionData.Data = s
+	default:
+		return fmt.Errorf("unknown session type")
+	}
+
+	data, err := json.Marshal(sessionData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal session data: %w", err)
+	}
+
+	return sm.db.Transaction(func(tx *buntdb.Tx) error {
+		_, _, err := tx.Set("session:"+sessionID, string(data), nil)
+		return err
+	})
+}
+
+// deleteSessionFromDatabase removes a session from the database
+func (sm *SessionManager) deleteSessionFromDatabase(sessionID string) error {
+	if sm.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	return sm.db.Transaction(func(tx *buntdb.Tx) error {
+		_, err := tx.Delete("session:" + sessionID)
+		return err
+	})
+}
+
+// generateSessionID generates a unique session ID
+func (sm *SessionManager) generateSessionID() string {
+	bytes := make([]byte, 16)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
+}
+
+// generateSessionToken generates a session token
+func (sm *SessionManager) generateSessionToken() string {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
+}
+
+// cleanupExpiredSessions periodically cleans up expired sessions
+func (sm *SessionManager) cleanupExpiredSessions() {
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		sm.mutex.Lock()
+		now := time.Now()
+		expiredSessions := make([]string, 0)
+
+		for sessionID, session := range sm.sessions {
+			var expiresAt time.Time
+			switch s := session.(type) {
+			case *objects.SSHSession:
+				expiresAt = s.ExpiresAt
+			case *objects.ValidationSession:
+				expiresAt = s.ExpiresAt
+			case *objects.ErrorResolutionSession:
+				expiresAt = s.ExpiresAt
+			}
+
+			if now.After(expiresAt) {
+				expiredSessions = append(expiredSessions, sessionID)
+			}
+		}
+
+		for _, sessionID := range expiredSessions {
+			delete(sm.sessions, sessionID)
+
+			// Delete from database
+			if err := sm.deleteSessionFromDatabase(sessionID); err != nil {
+				log.Printf("Warning: Failed to delete expired session %s from database: %v", sessionID, err)
+			}
+		}
+
+		sm.mutex.Unlock()
+
+		if len(expiredSessions) > 0 {
+			log.Printf("Cleaned up %d expired sessions", len(expiredSessions))
+		}
+	}
+}

@@ -1,0 +1,253 @@
+[
+  {
+    "Time": "2026-01-07T08:17:12.353315112Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestAppArmorManager_Creation",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.35345426Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestAppArmorManager_DefaultProfile",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.354225285Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestAppArmorManager_ProfileGeneration",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.354443711Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestAppArmorManager_SupportCheck",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.354625798Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestAppArmorManager_StatusCheck",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.354769151Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestAppArmorManager_ProfilePath",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.35517889Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestAppArmorManager_FileExists",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.356212438Z",
+    "Action": "fail",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestNewCgroupManager",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.357268208Z",
+    "Action": "fail",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestCgroupManager_ApplyLimits",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.357993579Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestCgroupManager_AddProcess",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.358761716Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestCgroupManager_GetStats",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.35984264Z",
+    "Action": "skip",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestCgroupManager_Cleanup",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.360764963Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestNewCgroupManagerWithDelegation",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.362429999Z",
+    "Action": "fail",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestNewCgroupManagerWithDelegation_CustomParent",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.362792372Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestCapabilityManagement",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.364473169Z",
+    "Action": "skip",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestHardenedContainerExecution",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.365245283Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestNamespaceManager_CreateNamespaces",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.365692134Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestNamespaceManager_SetupUTSNamespace",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.366154406Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestNetworkManager_CreateVethPair",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.366676447Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestNetworkManager_ConfigureDNS",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.366837146Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestNetworkManager_ParseIP",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.36810484Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestNetworkManager_DeleteVethPair",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.368173724Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestNativeRuntimeUsesLookPath",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.368218244Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestContainerRuntimeManagerUsesLookPath",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.369804968Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestPrivilegedEnvironmentSetup/RootAccess",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.36982839Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestPrivilegedEnvironmentSetup/CgroupWritable",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.369850976Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestPrivilegedEnvironmentSetup/CgroupMountOptions",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.369873599Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestPrivilegedEnvironmentSetup/Capabilities",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.369898379Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestPrivilegedEnvironmentSetup/NetworkCapabilities",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.369907834Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestPrivilegedEnvironmentSetup",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.370020526Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestSeccompManager_Creation",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.370197019Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestSeccompManager_DefaultProfile",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.371011741Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestSeccompManager_SupportCheck",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.371148164Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestSeccompManager_CustomProfile",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.375416286Z",
+    "Action": "pass",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Test": "TestSeccompManager_BlockedSyscalls",
+    "Elapsed": 0
+  },
+  {
+    "Time": "2026-01-07T08:17:12.377176357Z",
+    "Action": "fail",
+    "Package": "backend_server/internal/services/teesecurity",
+    "Elapsed": 0.028
+  }
+]

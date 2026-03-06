@@ -1,0 +1,43 @@
+Detected environment: Docker container
+Using native-go runtime (bare-metal or Kata)
+=== Kernel Feature Check ===
+5.15.0-164-generic
+
+Cgroups:
+cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime)
+
+Namespaces:
+total 0
+dr-x--x--x 2 root root 0 Jan  6 22:56 .
+dr-xr-xr-x 9 root root 0 Jan  6 22:56 ..
+lrwxrwxrwx 1 root root 0 Jan  6 22:56 cgroup -> cgroup:[4026531835]
+lrwxrwxrwx 1 root root 0 Jan  6 22:56 ipc -> ipc:[4026533188]
+lrwxrwxrwx 1 root root 0 Jan  6 22:56 mnt -> mnt:[4026533169]
+lrwxrwxrwx 1 root root 0 Jan  6 22:56 net -> net:[4026533191]
+lrwxrwxrwx 1 root root 0 Jan  6 22:56 pid -> pid:[4026533189]
+lrwxrwxrwx 1 root root 0 Jan  6 22:56 pid_for_children -> pid:[4026533189]
+lrwxrwxrwx 1 root root 0 Jan  6 22:56 time -> time:[4026531834]
+lrwxrwxrwx 1 root root 0 Jan  6 22:56 time_for_children -> time:[4026531834]
+lrwxrwxrwx 1 root root 0 Jan  6 22:56 user -> user:[4026531837]
+lrwxrwxrwx 1 root root 0 Jan  6 22:56 uts -> uts:[4026533186]
+
+go: downloading github.com/seccomp/libseccomp-golang v0.10.0
+go: downloading github.com/tidwall/buntdb v1.3.0
+go: downloading golang.org/x/sys v0.31.0
+go: downloading github.com/stretchr/testify v1.11.1
+go: downloading golang.org/x/crypto v0.36.0
+{"ImportPath":"golang.org/x/crypto/argon2","Action":"build-output","Output":"# backend_server/internal/services/teesecurity\n"}
+{"ImportPath":"golang.org/x/crypto/argon2","Action":"build-output","Output":"internal/objects/user.go:8:2: golang.org/x/crypto@v0.36.0: Get \"https://proxy.golang.org/golang.org/x/crypto/@v/v0.36.0.zip\": dial tcp: lookup proxy.golang.org on 127.0.0.11:53: read udp 127.0.0.1:55395-\u003e127.0.0.11:53: i/o timeout\n"}
+{"ImportPath":"golang.org/x/crypto/argon2","Action":"build-fail"}
+{"ImportPath":"github.com/seccomp/libseccomp-golang","Action":"build-output","Output":"# backend_server/internal/services/teesecurity\n"}
+{"ImportPath":"github.com/seccomp/libseccomp-golang","Action":"build-output","Output":"internal/services/teesecurity/seccomp_manager.go:8:2: github.com/seccomp/libseccomp-golang@v0.10.0: Get \"https://proxy.golang.org/github.com/seccomp/libseccomp-golang/@v/v0.10.0.zip\": dial tcp: lookup proxy.golang.org on 127.0.0.11:53: read udp 127.0.0.1:55395-\u003e127.0.0.11:53: i/o timeout\n"}
+{"ImportPath":"github.com/seccomp/libseccomp-golang","Action":"build-fail"}
+{"ImportPath":"github.com/tidwall/buntdb","Action":"build-output","Output":"# backend_server/internal/services/teesecurity\n"}
+{"ImportPath":"github.com/tidwall/buntdb","Action":"build-output","Output":"internal/services/teesecurity/tee_security_service.go:15:2: github.com/tidwall/buntdb@v1.3.0: Get \"https://proxy.golang.org/github.com/tidwall/buntdb/@v/v1.3.0.zip\": dial tcp: lookup proxy.golang.org on 127.0.0.11:53: read udp 127.0.0.1:55395-\u003e127.0.0.11:53: i/o timeout\n"}
+{"ImportPath":"github.com/tidwall/buntdb","Action":"build-fail"}
+{"ImportPath":"golang.org/x/sys/unix","Action":"build-output","Output":"# backend_server/internal/services/teesecurity\n"}
+{"ImportPath":"golang.org/x/sys/unix","Action":"build-output","Output":"internal/services/teesecurity/container_exec.go:12:2: golang.org/x/sys@v0.31.0: Get \"https://proxy.golang.org/golang.org/x/sys/@v/v0.31.0.zip\": dial tcp: lookup proxy.golang.org on 127.0.0.11:53: read udp 127.0.0.1:55395-\u003e127.0.0.11:53: i/o timeout\n"}
+{"ImportPath":"golang.org/x/sys/unix","Action":"build-fail"}
+{"Time":"2026-01-06T22:56:38.219667296Z","Action":"start","Package":"backend_server/internal/services/teesecurity"}
+{"Time":"2026-01-06T22:56:38.219717124Z","Action":"output","Package":"backend_server/internal/services/teesecurity","Output":"FAIL\tbackend_server/internal/services/teesecurity [setup failed]\n"}
+{"Time":"2026-01-06T22:56:38.219730871Z","Action":"fail","Package":"backend_server/internal/services/teesecurity","Elapsed":0,"FailedBuild":"golang.org/x/crypto/argon2"}

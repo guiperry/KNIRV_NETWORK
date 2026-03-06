@@ -1,0 +1,24 @@
+Detected environment: Docker container
+Using native-go runtime (bare-metal or Kata)
+=== Kernel Feature Check ===
+5.15.0-164-generic
+
+Cgroups:
+cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime)
+
+Namespaces:
+total 0
+dr-x--x--x 2 root root 0 Jan  6 21:53 .
+dr-xr-xr-x 9 root root 0 Jan  6 21:53 ..
+lrwxrwxrwx 1 root root 0 Jan  6 21:53 cgroup -> cgroup:[4026531835]
+lrwxrwxrwx 1 root root 0 Jan  6 21:53 ipc -> ipc:[4026533053]
+lrwxrwxrwx 1 root root 0 Jan  6 21:53 mnt -> mnt:[4026532967]
+lrwxrwxrwx 1 root root 0 Jan  6 21:53 net -> net:[4026533188]
+lrwxrwxrwx 1 root root 0 Jan  6 21:53 pid -> pid:[4026533169]
+lrwxrwxrwx 1 root root 0 Jan  6 21:53 pid_for_children -> pid:[4026533169]
+lrwxrwxrwx 1 root root 0 Jan  6 21:53 time -> time:[4026531834]
+lrwxrwxrwx 1 root root 0 Jan  6 21:53 time_for_children -> time:[4026531834]
+lrwxrwxrwx 1 root root 0 Jan  6 21:53 user -> user:[4026531837]
+lrwxrwxrwx 1 root root 0 Jan  6 21:53 uts -> uts:[4026533052]
+
+bash: line 46: go: command not found

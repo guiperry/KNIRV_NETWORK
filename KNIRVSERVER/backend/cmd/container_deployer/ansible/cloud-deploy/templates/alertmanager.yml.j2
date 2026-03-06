@@ -1,0 +1,192 @@
+# Alertmanager Configuration for KNIRV-SERVER
+
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alertmanager@knirv.com'
+  smtp_auth_username: ''
+  smtp_auth_password: ''
+
+# Templates
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route configuration
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default'
+  routes:
+    # Critical alerts
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      repeat_interval: 5m
+
+    # Warning alerts
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 30m
+
+    # Application-specific alerts
+    - match:
+        service: knirv-server
+      receiver: 'knirv-server-alerts'
+      group_wait: 10s
+      repeat_interval: 15m
+
+    # Infrastructure alerts
+    - match:
+        alertname: InstanceDown
+      receiver: 'infrastructure-alerts'
+      group_wait: 5s
+      repeat_interval: 5m
+
+# Inhibit rules
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+
+# Receivers
+receivers:
+  # Default receiver
+  - name: 'default'
+    email_configs:
+      - to: '{{ alert_email }}'
+        subject: '[KNIRV-SERVER] Alert: {{ "{{ .GroupLabels.alertname }}" }}'
+        body: |
+          {{ "{{ range .Alerts }}" }}
+          Alert: {{ "{{ .Annotations.summary }}" }}
+          Description: {{ "{{ .Annotations.description }}" }}
+          Labels: {{ "{{ range .Labels.SortedPairs }}" }}{{ "{{ .Name }}" }}={{ "{{ .Value }}" }} {{ "{{ end }}" }}
+          {{ "{{ end }}" }}
+
+  # Critical alerts
+  - name: 'critical-alerts'
+    email_configs:
+      - to: '{{ alert_email }}'
+        subject: '[CRITICAL] KNIRV-SERVER Alert: {{ "{{ .GroupLabels.alertname }}" }}'
+        body: |
+          🚨 CRITICAL ALERT 🚨
+          
+          {{ "{{ range .Alerts }}" }}
+          Alert: {{ "{{ .Annotations.summary }}" }}
+          Description: {{ "{{ .Annotations.description }}" }}
+          Severity: {{ "{{ .Labels.severity }}" }}
+          Instance: {{ "{{ .Labels.instance }}" }}
+          Time: {{ "{{ .StartsAt }}" }}
+          
+          Labels: {{ "{{ range .Labels.SortedPairs }}" }}{{ "{{ .Name }}" }}={{ "{{ .Value }}" }} {{ "{{ end }}" }}
+          {{ "{{ end }}" }}
+{% if slack_webhook_url %}
+    slack_configs:
+      - api_url: '{{ slack_webhook_url }}'
+        channel: '#alerts'
+        title: '🚨 CRITICAL: KNIRV-SERVER Alert'
+        text: |
+          {{ "{{ range .Alerts }}" }}
+          *Alert:* {{ "{{ .Annotations.summary }}" }}
+          *Description:* {{ "{{ .Annotations.description }}" }}
+          *Instance:* {{ "{{ .Labels.instance }}" }}
+          *Time:* {{ "{{ .StartsAt }}" }}
+          {{ "{{ end }}" }}
+        color: 'danger'
+{% endif %}
+
+  # Warning alerts
+  - name: 'warning-alerts'
+    email_configs:
+      - to: '{{ alert_email }}'
+        subject: '[WARNING] KNIRV-SERVER Alert: {{ "{{ .GroupLabels.alertname }}" }}'
+        body: |
+          ⚠️ WARNING ALERT ⚠️
+          
+          {{ "{{ range .Alerts }}" }}
+          Alert: {{ "{{ .Annotations.summary }}" }}
+          Description: {{ "{{ .Annotations.description }}" }}
+          Severity: {{ "{{ .Labels.severity }}" }}
+          Instance: {{ "{{ .Labels.instance }}" }}
+          Time: {{ "{{ .StartsAt }}" }}
+          {{ "{{ end }}" }}
+{% if slack_webhook_url %}
+    slack_configs:
+      - api_url: '{{ slack_webhook_url }}'
+        channel: '#alerts'
+        title: '⚠️ WARNING: KNIRV-SERVER Alert'
+        text: |
+          {{ "{{ range .Alerts }}" }}
+          *Alert:* {{ "{{ .Annotations.summary }}" }}
+          *Description:* {{ "{{ .Annotations.description }}" }}
+          *Instance:* {{ "{{ .Labels.instance }}" }}
+          {{ "{{ end }}" }}
+        color: 'warning'
+{% endif %}
+
+  # KNIRV-SERVER specific alerts
+  - name: 'knirv-server-alerts'
+    email_configs:
+      - to: '{{ alert_email }}'
+        subject: '[KNIRV-SERVER] Application Alert: {{ "{{ .GroupLabels.alertname }}" }}'
+        body: |
+          🔧 KNIRV-SERVER APPLICATION ALERT 🔧
+          
+          {{ "{{ range .Alerts }}" }}
+          Alert: {{ "{{ .Annotations.summary }}" }}
+          Description: {{ "{{ .Annotations.description }}" }}
+          Service: {{ "{{ .Labels.service }}" }}
+          Instance: {{ "{{ .Labels.instance }}" }}
+          Environment: {{ "{{ .Labels.environment }}" }}
+          Time: {{ "{{ .StartsAt }}" }}
+          
+          Runbook: {{ "{{ .Annotations.runbook_url }}" }}
+          {{ "{{ end }}" }}
+{% if slack_webhook_url %}
+    slack_configs:
+      - api_url: '{{ slack_webhook_url }}'
+        channel: '#knirv-server'
+        title: '🔧 KNIRV-SERVER Application Alert'
+        text: |
+          {{ "{{ range .Alerts }}" }}
+          *Alert:* {{ "{{ .Annotations.summary }}" }}
+          *Description:* {{ "{{ .Annotations.description }}" }}
+          *Service:* {{ "{{ .Labels.service }}" }}
+          *Environment:* {{ "{{ .Labels.environment }}" }}
+          {{ "{{ end }}" }}
+        color: 'warning'
+{% endif %}
+
+  # Infrastructure alerts
+  - name: 'infrastructure-alerts'
+    email_configs:
+      - to: '{{ alert_email }}'
+        subject: '[INFRASTRUCTURE] KNIRV-SERVER Alert: {{ "{{ .GroupLabels.alertname }}" }}'
+        body: |
+          🏗️ INFRASTRUCTURE ALERT 🏗️
+          
+          {{ "{{ range .Alerts }}" }}
+          Alert: {{ "{{ .Annotations.summary }}" }}
+          Description: {{ "{{ .Annotations.description }}" }}
+          Instance: {{ "{{ .Labels.instance }}" }}
+          Job: {{ "{{ .Labels.job }}" }}
+          Time: {{ "{{ .StartsAt }}" }}
+          {{ "{{ end }}" }}
+{% if slack_webhook_url %}
+    slack_configs:
+      - api_url: '{{ slack_webhook_url }}'
+        channel: '#infrastructure'
+        title: '🏗️ Infrastructure Alert'
+        text: |
+          {{ "{{ range .Alerts }}" }}
+          *Alert:* {{ "{{ .Annotations.summary }}" }}
+          *Instance:* {{ "{{ .Labels.instance }}" }}
+          *Job:* {{ "{{ .Labels.job }}" }}
+          {{ "{{ end }}" }}
+        color: 'danger'
+{% endif %}

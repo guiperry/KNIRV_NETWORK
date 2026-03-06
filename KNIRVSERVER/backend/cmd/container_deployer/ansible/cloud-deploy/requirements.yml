@@ -1,0 +1,63 @@
+# Ansible Collections Requirements for KNIRV-SERVER Deployment
+
+collections:
+  # AWS Collection
+  - name: amazon.aws
+    version: ">=6.0.0"
+    source: https://galaxy.ansible.com
+  
+  # Community General Collection
+  - name: community.general
+    version: ">=7.0.0"
+    source: https://galaxy.ansible.com
+  
+  # Community Crypto Collection (for SSL/TLS)
+  - name: community.crypto
+    version: ">=2.0.0"
+    source: https://galaxy.ansible.com
+  
+  # Community Docker Collection
+  - name: community.docker
+    version: ">=3.0.0"
+    source: https://galaxy.ansible.com
+  
+  # Ansible Posix Collection
+  - name: ansible.posix
+    version: ">=1.0.0"
+    source: https://galaxy.ansible.com
+  
+  # Community MySQL Collection (if using MySQL)
+  - name: community.mysql
+    version: ">=3.0.0"
+    source: https://galaxy.ansible.com
+  
+  # Community PostgreSQL Collection (if using PostgreSQL)
+  - name: community.postgresql
+    version: ">=2.0.0"
+    source: https://galaxy.ansible.com
+
+roles:
+  # Geerlingguy roles for common tasks
+  - name: geerlingguy.docker
+    version: ">=6.0.0"
+    source: https://galaxy.ansible.com
+  
+  - name: geerlingguy.nginx
+    version: ">=3.0.0"
+    source: https://galaxy.ansible.com
+  
+  - name: geerlingguy.security
+    version: ">=2.0.0"
+    source: https://galaxy.ansible.com
+  
+  - name: geerlingguy.firewall
+    version: ">=3.0.0"
+    source: https://galaxy.ansible.com
+  
+  - name: geerlingguy.git
+    version: ">=3.0.0"
+    source: https://galaxy.ansible.com
+  
+  - name: geerlingguy.nodejs
+    version: ">=6.0.0"
+    source: https://galaxy.ansible.com

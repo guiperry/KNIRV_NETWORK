@@ -1,0 +1,381 @@
+---
+# KNIRV-SERVER Security Hardening Playbook
+- name: Security Hardening for KNIRV-SERVER
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    # Security Configuration
+    ssh_port: 22
+    allowed_ssh_users: ['ec2-user', 'server', 'ubuntu']
+    fail2ban_enabled: true
+    
+    # SSL Configuration
+    ssl_enabled: "{{ enable_ssl | default(false) }}"
+    domain_name: "{{ domain_name | default('server.knirv.com') }}"
+    ssl_email: "{{ ssl_email | default('admin@knirv.com') }}"
+    
+    # Firewall Configuration
+    allowed_ports:
+      - 22    # SSH
+      - 80    # HTTP
+      - 443   # HTTPS
+      - 8082  # Application
+    
+    # Application Configuration
+    app_name: "knirv-server"
+    app_user: "server"
+
+  tasks:
+    # System Updates and Security Packages
+    - name: Update all packages
+      package:
+        name: "*"
+        state: latest
+      when: ansible_os_family == "RedHat"
+
+    - name: Update all packages (Debian/Ubuntu)
+      apt:
+        upgrade: dist
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    - name: Install security packages
+      package:
+        name:
+          - fail2ban
+          - ufw
+          - unattended-upgrades
+          - aide
+          - rkhunter
+          - chkrootkit
+          - lynis
+          - auditd
+        state: present
+
+    # SSH Hardening
+    - name: Configure SSH security
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        backup: true
+      loop:
+        - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
+        - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+        - { regexp: '^#?PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+        - { regexp: '^#?AuthorizedKeysFile', line: 'AuthorizedKeysFile .ssh/authorized_keys' }
+        - { regexp: '^#?PermitEmptyPasswords', line: 'PermitEmptyPasswords no' }
+        - { regexp: '^#?X11Forwarding', line: 'X11Forwarding no' }
+        - { regexp: '^#?MaxAuthTries', line: 'MaxAuthTries 3' }
+        - { regexp: '^#?ClientAliveInterval', line: 'ClientAliveInterval 300' }
+        - { regexp: '^#?ClientAliveCountMax', line: 'ClientAliveCountMax 2' }
+        - { regexp: '^#?Protocol', line: 'Protocol 2' }
+        - { regexp: '^#?LogLevel', line: 'LogLevel VERBOSE' }
+      notify: restart ssh
+
+    - name: Restrict SSH to specific users
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: "AllowUsers {{ allowed_ssh_users | join(' ') }}"
+        backup: true
+      notify: restart ssh
+
+    # Firewall Configuration
+    - name: Reset UFW to defaults
+      ufw:
+        state: reset
+
+    - name: Set UFW default policies
+      ufw:
+        direction: "{{ item.direction }}"
+        policy: "{{ item.policy }}"
+      loop:
+        - { direction: 'incoming', policy: 'deny' }
+        - { direction: 'outgoing', policy: 'allow' }
+
+    - name: Allow SSH
+      ufw:
+        rule: allow
+        port: "{{ ssh_port }}"
+        proto: tcp
+
+    - name: Allow application ports
+      ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ allowed_ports }}"
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+
+    # Fail2Ban Configuration
+    - name: Configure Fail2Ban for SSH
+      template:
+        src: jail.local.j2
+        dest: /etc/fail2ban/jail.local
+        mode: '0644'
+      notify: restart fail2ban
+      when: fail2ban_enabled
+
+    - name: Start and enable Fail2Ban
+      systemd:
+        name: fail2ban
+        state: started
+        enabled: true
+      when: fail2ban_enabled
+
+    # Kernel Security
+    - name: Configure kernel security parameters
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: true
+      loop:
+        # Network security
+        - { name: 'net.ipv4.ip_forward', value: '0' }
+        - { name: 'net.ipv4.conf.all.send_redirects', value: '0' }
+        - { name: 'net.ipv4.conf.default.send_redirects', value: '0' }
+        - { name: 'net.ipv4.conf.all.accept_redirects', value: '0' }
+        - { name: 'net.ipv4.conf.default.accept_redirects', value: '0' }
+        - { name: 'net.ipv4.conf.all.secure_redirects', value: '0' }
+        - { name: 'net.ipv4.conf.default.secure_redirects', value: '0' }
+        - { name: 'net.ipv4.conf.all.accept_source_route', value: '0' }
+        - { name: 'net.ipv4.conf.default.accept_source_route', value: '0' }
+        - { name: 'net.ipv4.conf.all.log_martians', value: '1' }
+        - { name: 'net.ipv4.conf.default.log_martians', value: '1' }
+        - { name: 'net.ipv4.icmp_echo_ignore_broadcasts', value: '1' }
+        - { name: 'net.ipv4.icmp_ignore_bogus_error_responses', value: '1' }
+        - { name: 'net.ipv4.tcp_syncookies', value: '1' }
+        # Memory protection
+        - { name: 'kernel.dmesg_restrict', value: '1' }
+        - { name: 'kernel.kptr_restrict', value: '2' }
+        - { name: 'kernel.yama.ptrace_scope', value: '1' }
+        - { name: 'fs.suid_dumpable', value: '0' }
+
+    # File System Security
+    - name: Set secure permissions on sensitive files
+      file:
+        path: "{{ item.path }}"
+        mode: "{{ item.mode }}"
+        owner: "{{ item.owner | default('root') }}"
+        group: "{{ item.group | default('root') }}"
+      loop:
+        - { path: '/etc/passwd', mode: '0644' }
+        - { path: '/etc/shadow', mode: '0640', group: 'shadow' }
+        - { path: '/etc/group', mode: '0644' }
+        - { path: '/etc/gshadow', mode: '0640', group: 'shadow' }
+        - { path: '/etc/ssh/sshd_config', mode: '0600' }
+        - { path: '/etc/crontab', mode: '0600' }
+
+    # Audit Configuration
+    - name: Configure auditd rules
+      template:
+        src: audit.rules.j2
+        dest: /etc/audit/rules.d/knirv-server.rules
+        mode: '0640'
+      notify: restart auditd
+
+    - name: Start and enable auditd
+      systemd:
+        name: auditd
+        state: started
+        enabled: true
+
+    # Automatic Security Updates
+    - name: Configure automatic security updates (Debian/Ubuntu)
+      template:
+        src: 50unattended-upgrades.j2
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        mode: '0644'
+      when: ansible_os_family == "Debian"
+
+    - name: Enable automatic updates (Debian/Ubuntu)
+      template:
+        src: 20auto-upgrades.j2
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        mode: '0644'
+      when: ansible_os_family == "Debian"
+
+    # Application Security
+    - name: Create application security configuration
+      template:
+        src: app-security.conf.j2
+        dest: "/opt/{{ app_name }}/config/security.conf"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: '0640'
+      when: app_user is defined
+
+    # SSL/TLS Configuration
+    - name: SSL/TLS Setup
+      block:
+        - name: Install Certbot
+          package:
+            name:
+              - certbot
+              - python3-certbot-nginx
+            state: present
+
+        - name: Generate SSL certificate with Certbot
+          shell: |
+            certbot --nginx -d {{ domain_name }} \
+              --non-interactive \
+              --agree-tos \
+              --email {{ ssl_email }} \
+              --redirect
+          args:
+            creates: "/etc/letsencrypt/live/{{ domain_name }}/fullchain.pem"
+
+        - name: Setup SSL certificate renewal
+          cron:
+            name: "Renew SSL certificates"
+            minute: "0"
+            hour: "2"
+            job: "/usr/bin/certbot renew --quiet"
+
+        - name: Configure SSL security headers
+          template:
+            src: ssl-security.conf.j2
+            dest: /etc/nginx/snippets/ssl-security.conf
+            mode: '0644'
+          notify: restart nginx
+
+      when: ssl_enabled | bool
+
+    # Security Monitoring
+    - name: Create security monitoring script
+      template:
+        src: security-monitor.sh.j2
+        dest: /usr/local/bin/security-monitor.sh
+        mode: '0755'
+
+    - name: Setup security monitoring cron
+      cron:
+        name: "Security monitoring"
+        minute: "0"
+        hour: "*/6"
+        job: "/usr/local/bin/security-monitor.sh"
+
+    # Intrusion Detection
+    - name: Initialize AIDE database
+      shell: aide --init
+      args:
+        creates: /var/lib/aide/aide.db.new
+
+    - name: Move AIDE database
+      shell: mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+      args:
+        creates: /var/lib/aide/aide.db
+
+    - name: Setup AIDE check cron
+      cron:
+        name: "AIDE integrity check"
+        minute: "0"
+        hour: "3"
+        job: "/usr/bin/aide --check"
+
+    # Rootkit Detection
+    - name: Setup rkhunter check
+      cron:
+        name: "Rootkit check"
+        minute: "0"
+        hour: "4"
+        job: "/usr/bin/rkhunter --check --skip-keypress --report-warnings-only"
+
+    # Log Security
+    - name: Secure log files
+      file:
+        path: "{{ item }}"
+        mode: '0640'
+        owner: root
+        group: adm
+      loop:
+        - /var/log/auth.log
+        - /var/log/syslog
+        - /var/log/kern.log
+      ignore_errors: true
+
+    # Remove unnecessary packages
+    - name: Remove unnecessary packages
+      package:
+        name:
+          - telnet
+          - rsh-client
+          - rsh-redone-client
+          - talk
+          - ntalk
+        state: absent
+      ignore_errors: true
+
+    # Disable unnecessary services
+    - name: Disable unnecessary services
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - avahi-daemon
+        - cups
+        - bluetooth
+      ignore_errors: true
+
+  handlers:
+    - name: restart ssh
+      systemd:
+        name: sshd
+        state: restarted
+
+    - name: restart fail2ban
+      systemd:
+        name: fail2ban
+        state: restarted
+
+    - name: restart auditd
+      shell: service auditd restart
+
+    - name: restart nginx
+      systemd:
+        name: nginx
+        state: restarted
+
+# Security validation
+- name: Security Validation
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Run Lynis security audit
+      shell: lynis audit system --quick
+      register: lynis_output
+      ignore_errors: true
+
+    - name: Display security audit summary
+      debug:
+        msg: "Lynis security audit completed. Check /var/log/lynis.log for details."
+
+    - name: Verify firewall status
+      shell: ufw status
+      register: ufw_status
+
+    - name: Display firewall status
+      debug:
+        var: ufw_status.stdout_lines
+
+    - name: Check for security updates
+      shell: |
+        if command -v apt &> /dev/null; then
+          apt list --upgradable 2>/dev/null | grep -i security | wc -l
+        elif command -v yum &> /dev/null; then
+          yum --security check-update 2>/dev/null | wc -l
+        else
+          echo "0"
+        fi
+      register: security_updates
+
+    - name: Display security updates available
+      debug:
+        msg: "Security updates available: {{ security_updates.stdout }}"
