@@ -9,6 +9,8 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -426,6 +428,26 @@ func (app *NexusApp) setupRoutes() error {
 			io.Copy(c.Writer, resp.Body)
 		})
 	}
+
+	// WebSocket proxy — must be registered before NoRoute so the upgrade
+	// request reaches the backend instead of being served as a static file.
+	// httputil.ReverseProxy handles the 101 Switching Protocols upgrade by
+	// hijacking the underlying net.Conn, which works through Gin's wrapper.
+	backendWS, _ := url.Parse(fmt.Sprintf("http://localhost:%d", app.config.BackendPort))
+	wsProxy := httputil.NewSingleHostReverseProxy(backendWS)
+	wsProxy.FlushInterval = -1 // flush immediately; required for streaming / WebSocket
+	wsProxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		// The error handler is only invoked before the connection is hijacked,
+		// so it is safe to write an HTTP error response here.
+		log.Printf("WebSocket proxy error for %s: %v", r.URL.Path, err)
+		http.Error(w, "WebSocket backend unavailable", http.StatusBadGateway)
+	}
+
+	wsHandler := func(c *gin.Context) {
+		wsProxy.ServeHTTP(c.Writer, c.Request)
+	}
+	app.router.GET("/ws", wsHandler)
+	app.router.GET("/ws/*path", wsHandler)
 
 	// Serve embedded frontend files
 	app.router.NoRoute(func(c *gin.Context) {
