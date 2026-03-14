@@ -51,6 +51,8 @@ export const CognitiveEnginePanel: React.FC<CognitiveEnginePanelProps> = ({ clas
       case 'learning': return 'bg-blue-500';
       case 'idle': return 'bg-yellow-500';
       case 'error': return 'bg-red-500';
+      case 'degraded': return 'bg-orange-500';
+      case 'stopped': return 'bg-gray-500';
       default: return 'bg-gray-500';
     }
   };
@@ -61,6 +63,8 @@ export const CognitiveEnginePanel: React.FC<CognitiveEnginePanelProps> = ({ clas
       case 'learning': return <Activity className="w-4 h-4" />;
       case 'idle': return <Clock className="w-4 h-4" />;
       case 'error': return <AlertCircle className="w-4 h-4" />;
+      case 'degraded': return <AlertCircle className="w-4 h-4" />;
+      case 'stopped': return <Square className="w-4 h-4" />;
       default: return <Brain className="w-4 h-4" />;
     }
   };
@@ -114,19 +118,19 @@ export const CognitiveEnginePanel: React.FC<CognitiveEnginePanelProps> = ({ clas
         <CardContent>
           <div className="flex flex-wrap gap-2">
             <Button
-              variant={cognitiveEngine?.status === 'running' ? 'secondary' : 'default'}
+              variant={cognitiveEngine?.status === 'active' ? 'secondary' : 'default'}
               size="sm"
               onClick={startEngine}
-              disabled={isLoading || cognitiveEngine?.status === 'running'}
+              disabled={isLoading || cognitiveEngine?.status === 'active'}
             >
               <Play className="w-4 h-4 mr-2" />
               Start Engine
             </Button>
             <Button
-              variant={cognitiveEngine?.status === 'running' ? 'destructive' : 'secondary'}
+              variant={cognitiveEngine?.status === 'active' ? 'destructive' : 'secondary'}
               size="sm"
               onClick={stopEngine}
-              disabled={isLoading || cognitiveEngine?.status !== 'running'}
+              disabled={isLoading || cognitiveEngine?.status !== 'active'}
             >
               <Square className="w-4 h-4 mr-2" />
               Stop Engine

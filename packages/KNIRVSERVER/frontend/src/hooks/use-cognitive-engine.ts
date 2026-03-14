@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 export interface CognitiveEngine {
-  status: "active" | "idle" | "learning" | "error" | "running" | "stopped";
+  status: "active" | "idle" | "learning" | "error" | "stopped" | "degraded";
   accuracy: number;
   tasks_processed: number;
   adaptation_rate: number;
