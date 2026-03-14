@@ -421,7 +421,7 @@ async function main() {
     const healthOutput = gather_health();
 
     // Candidate services to inspect
-    const services = ['knirvgraph', 'knirvoracle', 'knirvchain', 'knirvrouter', 'knirvnexus', 'knirvgateway'];
+    const services = ['knirvgraph', 'knirvoracle', 'knirvchain', 'knirvrouter', 'knirvserver', 'knirvgateway'];
 
     const journalOutput = gather_journalctl(services, SINCE_MINUTES);
     const systemStatus = systemctl_status(services);

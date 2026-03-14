@@ -1,4 +1,4 @@
-// File: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/src/app/api/cognitive-engine/route.ts
+// File: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSERVER/src/app/api/cognitive-engine/route.ts
 import * as entry from '../../../../../src/app/api/cognitive-engine/route.js'
 import type { NextRequest } from 'next/server.js'
 

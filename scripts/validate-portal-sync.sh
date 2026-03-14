@@ -80,20 +80,20 @@ validate_nexus_portals() {
         test_result "KNIRVTESTNET Nexus Portal" "fail" "Directory or package.json not found"
     fi
     
-    # KNIRVNEXUS
-    local nexus_portal="$PROJECT_ROOT/KNIRVNEXUS"
+    # KNIRVSERVER
+    local nexus_portal="$PROJECT_ROOT/KNIRVSERVER"
     if [[ -d "$nexus_portal" && -f "$nexus_portal/package.json" ]]; then
         local version=$(jq -r '.version // "unknown"' "$nexus_portal/package.json" 2>/dev/null || echo "unknown")
-        test_result "KNIRVNEXUS Portal" "pass" "Found version $version"
+        test_result "KNIRVSERVER Portal" "pass" "Found version $version"
         
         # Check for Next.js structure
         if [[ -f "$nexus_portal/src/app/page.tsx" ]]; then
-            test_result "KNIRVNEXUS Next.js Structure" "pass" "Next.js page component exists"
+            test_result "KNIRVSERVER Next.js Structure" "pass" "Next.js page component exists"
         else
-            test_result "KNIRVNEXUS Next.js Structure" "fail" "Next.js page component missing"
+            test_result "KNIRVSERVER Next.js Structure" "fail" "Next.js page component missing"
         fi
     else
-        test_result "KNIRVNEXUS Portal" "fail" "Directory or package.json not found"
+        test_result "KNIRVSERVER Portal" "fail" "Directory or package.json not found"
     fi
 }
 
@@ -228,11 +228,11 @@ validate_version_compatibility() {
         fi
     done
     
-    # Check KNIRVNEXUS React version
-    local nexus_package="$PROJECT_ROOT/KNIRVNEXUS/package.json"
+    # Check KNIRVSERVER React version
+    local nexus_package="$PROJECT_ROOT/KNIRVSERVER/package.json"
     if [[ -f "$nexus_package" ]]; then
         local react_version=$(jq -r '.dependencies.react // "not found"' "$nexus_package" 2>/dev/null || echo "not found")
-        react_versions+=("KNIRVNEXUS:$react_version")
+        react_versions+=("KNIRVSERVER:$react_version")
     fi
     
     if [[ ${#react_versions[@]} -gt 0 ]]; then
@@ -259,13 +259,13 @@ validate_build_capability() {
         fi
     fi
     
-    # Test KNIRVNEXUS build readiness
-    local nexus_portal="$PROJECT_ROOT/KNIRVNEXUS"
+    # Test KNIRVSERVER build readiness
+    local nexus_portal="$PROJECT_ROOT/KNIRVSERVER"
     if [[ -d "$nexus_portal" && -f "$nexus_portal/package.json" ]]; then
         if [[ -d "$nexus_portal/node_modules" ]]; then
-            test_result "KNIRVNEXUS Build Ready" "pass" "Dependencies installed"
+            test_result "KNIRVSERVER Build Ready" "pass" "Dependencies installed"
         else
-            test_result "KNIRVNEXUS Build Ready" "fail" "Dependencies not installed (run npm install)"
+            test_result "KNIRVSERVER Build Ready" "fail" "Dependencies not installed (run npm install)"
         fi
     fi
 }

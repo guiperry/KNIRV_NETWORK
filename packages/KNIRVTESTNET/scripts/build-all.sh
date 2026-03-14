@@ -44,7 +44,7 @@ mkdir -p bin data logs
 echo "Building KNIRV-TESTNET with real components..."
 
 # Create data directories
-mkdir -p data/{knirvoracle,knirvchain,knirvgraph,knirvnexus,knirvrouter,knirvgateway,ipfs}
+mkdir -p data/{knirvoracle,knirvchain,knirvgraph,knirvserver,knirvrouter,knirvgateway,ipfs}
 
 # Build components with testnet features
 echo "1/6 Building KNIRV-ORACLE with testnet mode..."
@@ -57,17 +57,17 @@ echo "3/6 Building KNIRVGRAPH with testnet mode..."
 ./scripts/build-knirvgraph.sh
 
 echo "4/7 Building KNIRV-NEXUS (optional - for private/corporate testing)..."
-if [ -f "scripts/build-knirvnexus.sh" ]; then
+if [ -f "scripts/build-knirvserver.sh" ]; then
     echo "  ℹ️  KNIRV-NEXUS is optional and only used for private testing"
     read -p "  Build KNIRV-NEXUS? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        ./scripts/build-knirvnexus.sh $FORCE_REBUILD
+        ./scripts/build-knirvserver.sh $FORCE_REBUILD
     else
         echo "  ⏭️  Skipping KNIRV-NEXUS build (public testnet mode)"
     fi
 else
-    echo "  ⚠️  build-knirvnexus.sh not found, skipping"
+    echo "  ⚠️  build-knirvserver.sh not found, skipping"
 fi
 
 echo "5/6 Building KNIRV-ROUTER with simplified connectivity..."

@@ -2,12 +2,12 @@
 2026/01/19 23:43:37 Registered Cerebras provider constructor with gollm registry
 2026/01/19 23:43:37 Registered Deepseek provider constructor with gollm registry
 2026/01/19 23:43:37 Registering Gemini provider constructor with gollm registry
-{"level":"error","timestamp":"2026-01-19T23:43:37.467-0500","caller":"backend_server/main.go:228","message":"Failed to initialize database","error":"failed to open BuntDB even after recovery: failed to create new database file: open /invalid/path/test.db: no such file or directory","stacktrace":"backend_server/cmd/backend_server.NewServer\n\t/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/backend/cmd/backend_server/main.go:228\nbackend_server/cmd/backend_server.TestNewServer_DatabaseError\n\t/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/backend/cmd/backend_server/main_test.go:113\ntesting.tRunner\n\t/home/gperry/.gvm/gos/go1.24.1/src/testing/testing.go:1792"}
-{"level":"info","timestamp":"2026-01-19T23:43:37.569-0500","caller":"backend_server/main.go:304","message":"Setting model server storage path to app data directory","path":"/home/gperry/.config/knirvnexus/models"}
+{"level":"error","timestamp":"2026-01-19T23:43:37.467-0500","caller":"backend_server/main.go:228","message":"Failed to initialize database","error":"failed to open BuntDB even after recovery: failed to create new database file: open /invalid/path/test.db: no such file or directory","stacktrace":"backend_server/cmd/backend_server.NewServer\n\t/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVSERVER/backend/cmd/backend_server/main.go:228\nbackend_server/cmd/backend_server.TestNewServer_DatabaseError\n\t/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVSERVER/backend/cmd/backend_server/main_test.go:113\ntesting.tRunner\n\t/home/gperry/.gvm/gos/go1.24.1/src/testing/testing.go:1792"}
+{"level":"info","timestamp":"2026-01-19T23:43:37.569-0500","caller":"backend_server/main.go:304","message":"Setting model server storage path to app data directory","path":"/home/gperry/.config/knirvserver/models"}
 KNIRV-SERVER Complete Backend Server vdev (built unknown, commit unknown)
 {"level":"info","timestamp":"2026-01-19T23:43:50.586-0500","caller":"backend_server/main_test.go:497","message":"Test log message"}
 {"level":"debug","timestamp":"2026-01-19T23:43:50.587-0500","caller":"backend_server/main_test.go:518","message":"Test debug message"}
-{"level":"error","timestamp":"2026-01-19T23:43:50.587-0500","caller":"backend_server/main_test.go:535","message":"Test error message","stacktrace":"backend_server/cmd/backend_server.TestInitLogging_ErrorLevel\n\t/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVNEXUS/backend/cmd/backend_server/main_test.go:535\ntesting.tRunner\n\t/home/gperry/.gvm/gos/go1.24.1/src/testing/testing.go:1792"}
+{"level":"error","timestamp":"2026-01-19T23:43:50.587-0500","caller":"backend_server/main_test.go:535","message":"Test error message","stacktrace":"backend_server/cmd/backend_server.TestInitLogging_ErrorLevel\n\t/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVSERVER/backend/cmd/backend_server/main_test.go:535\ntesting.tRunner\n\t/home/gperry/.gvm/gos/go1.24.1/src/testing/testing.go:1792"}
 {"level":"info","timestamp":"2026-01-19T23:43:50.588-0500","caller":"backend_server/main_test.go:552","message":"Test default level message"}
 PASS
 ok  	backend_server/cmd/backend_server	13.433s
@@ -24,40 +24,40 @@ Running data cleanup at 2026-01-19 23:43:52.266958421 -0500 EST m=+0.346167144
 2026/01/19 23:43:59 Anomaly detected for pid 100: CPU spike detected
 PASS
 ok  	backend_server/internal/data_engine	7.763s
-2026/01/19 23:43:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestNewBuntDB2723279759/001/test.db)
-2026/01/19 23:43:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234359.db
-2026/01/19 23:43:59 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_233950.db
-2026/01/19 23:43:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_StoreJSON1185601484/001/test.db)
-2026/01/19 23:43:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234359.db
-2026/01/19 23:43:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_GetJSON2395386262/001/test.db)
-2026/01/19 23:43:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234359.db
-2026/01/19 23:43:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_DeleteKey2495116642/001/test.db)
-2026/01/19 23:43:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234359.db
-2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_ListKeys2833669212/001/test.db)
-2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234400.db
-2026/01/19 23:44:00 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_233957.db
-2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_CountKeys822386346/001/test.db)
-2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234400.db
-2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_SetWithTTL2579335495/001/test.db)
-2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234400.db
-2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_Transaction1416144338/001/test.db)
-2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234400.db
-2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_ViewTransaction3229780501/001/test.db)
-2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234400.db
-2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_GetValue1630690414/001/test.db)
-2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234400.db
-2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_SetValue3023075193/001/test.db)
-2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234400.db
+2026/01/19 23:43:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestNewBuntDB2723279759/001/test.db)
+2026/01/19 23:43:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234359.db
+2026/01/19 23:43:59 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_233950.db
+2026/01/19 23:43:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_StoreJSON1185601484/001/test.db)
+2026/01/19 23:43:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234359.db
+2026/01/19 23:43:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_GetJSON2395386262/001/test.db)
+2026/01/19 23:43:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234359.db
+2026/01/19 23:43:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_DeleteKey2495116642/001/test.db)
+2026/01/19 23:43:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234359.db
+2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_ListKeys2833669212/001/test.db)
+2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234400.db
+2026/01/19 23:44:00 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_233957.db
+2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_CountKeys822386346/001/test.db)
+2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234400.db
+2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_SetWithTTL2579335495/001/test.db)
+2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234400.db
+2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_Transaction1416144338/001/test.db)
+2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234400.db
+2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_ViewTransaction3229780501/001/test.db)
+2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234400.db
+2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_GetValue1630690414/001/test.db)
+2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234400.db
+2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_SetValue3023075193/001/test.db)
+2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234400.db
 2026/01/19 23:44:00 Attempting to recover database: /tmp/TestRecoverDatabase1671709314/001/data/test.db
-2026/01/19 23:44:00 Restoring from backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_backup_test_TestRecoverDatabase_1768884240750279762.db
+2026/01/19 23:44:00 Restoring from backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_backup_test_TestRecoverDatabase_1768884240750279762.db
 2026/01/19 23:44:00 Database recovered from backup successfully
-2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_performHealthCheck2349757283/001/test.db)
-2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234400.db
-2026/01/19 23:44:00 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234002.db
-2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBuntDBManager_createBackup3731086833/001/test.db)
-2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_test_20260119_234400.db
-2026/01/19 23:44:00 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234004.db
-2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234400.db
+2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_performHealthCheck2349757283/001/test.db)
+2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234400.db
+2026/01/19 23:44:00 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234002.db
+2026/01/19 23:44:00 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBuntDBManager_createBackup3731086833/001/test.db)
+2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_test_20260119_234400.db
+2026/01/19 23:44:00 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234004.db
+2026/01/19 23:44:00 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234400.db
 2026/01/19 23:44:00 Removed old backup: /tmp/TestBuntDBManager_cleanupOldBackups357605323/001/backups/nexus_backup_20260119_194400.db
 2026/01/19 23:44:00 Removed old backup: /tmp/TestBuntDBManager_cleanupOldBackups357605323/001/backups/nexus_backup_20260119_204400.db
 2026/01/19 23:44:00 Removed old backup: /tmp/TestBuntDBManager_cleanupOldBackups357605323/001/backups/nexus_backup_20260119_214400.db
@@ -125,10 +125,10 @@ ok  	backend_server/internal/password	0.964s
 ?   	backend_server/internal/renderer	[no test files]
 ?   	backend_server/internal/routing	[no test files]
 ?   	backend_server/internal/runtime	[no test files]
-2026/01/19 23:44:15 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestPasswordValidation3006308219/001/test.db)
-2026/01/19 23:44:15 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234415.db
-2026/01/19 23:44:15 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234015.db
-2026/01/19 23:44:15 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestSessionManagement164022244/001/test.db)
+2026/01/19 23:44:15 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestPasswordValidation3006308219/001/test.db)
+2026/01/19 23:44:15 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234415.db
+2026/01/19 23:44:15 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234015.db
+2026/01/19 23:44:15 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestSessionManagement164022244/001/test.db)
 2026/01/19 23:44:15 AuthService: Session created for user user123: session_1768884255418876675
 2026/01/19 23:44:15 AuthService: Session created for user user456: session_1768884255419331456
 2026/01/19 23:44:15 AuthService: Session created for user user789: session_1768884255419498843
@@ -146,119 +146,119 @@ ok  	backend_server/internal/password	0.964s
 2026/01/19 23:44:15 AuthService: Expired 3 sessions for user user_multi_sessions
 2026/01/19 23:44:15 AuthService: Session created for user user_cleanup: session_1768884255521886982
 2026/01/19 23:44:15 AuthService: Cleaned up 1 expired sessions
-2026/01/19 23:44:15 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234415.db
-2026/01/19 23:44:15 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestUserCreationWithPasswordPolicies4115140906/001/test.db)
+2026/01/19 23:44:15 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234415.db
+2026/01/19 23:44:15 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestUserCreationWithPasswordPolicies4115140906/001/test.db)
 2026/01/19 23:44:15 DEBUG: Storing user with hash: 168426559fe270ddac9d21890d32c7ac7f28eaa7f37e1a53b2d455069ae8dcfd, salt: 6c2c2431a6d6d31cd620eef95caa85f9f850656272730112d5b8591c2da23574
 2026/01/19 23:44:15 DEBUG: User stored successfully
 2026/01/19 23:44:15 User created: strictuser (user_1768884255764393656)
 2026/01/19 23:44:15 DEBUG: Storing user with hash: bb339e085fdf05c3a2faf27e711822423e433a0644fb9cd15cdff233d79acecd, salt: 560e3d4d2cc02aa7ede47258483a328bdd34dbf85d8f6166f3b88010c8c03cfb
 2026/01/19 23:44:15 DEBUG: User stored successfully
 2026/01/19 23:44:15 User created: lenientuser (user_1768884255861533014)
-2026/01/19 23:44:15 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234415.db
-2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAuthenticationFlow1882843163/001/test.db)
+2026/01/19 23:44:15 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234415.db
+2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAuthenticationFlow1882843163/001/test.db)
 2026/01/19 23:44:16 DEBUG: Storing user with hash: b81db3073faefe155072d391c6ae9c73e3a1513079836c99df414374b1ba1da9, salt: ad2703a4cc9b89e3978d3ede0eff4ee496172b452618e0127e97e87e4a5d0119
 2026/01/19 23:44:16 DEBUG: User stored successfully
 2026/01/19 23:44:16 User created: authuser (user_1768884256233389856)
 2026/01/19 23:44:16 AuthService: Session created for user user_1768884256233389856: session_1768884256309036134
 2026/01/19 23:44:16 AuthService: Session expired: session_1768884256309036134
-2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234416.db
-2026/01/19 23:44:16 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234016.db
-2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884256403384929.db)
-2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234416.db
+2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234416.db
+2026/01/19 23:44:16 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234016.db
+2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884256403384929.db)
+2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234416.db
 2026/01/19 23:44:16 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884256493766989.db)
-2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234416.db
+2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884256493766989.db)
+2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234416.db
 2026/01/19 23:44:16 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884256534459005.db)
-2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234416.db
+2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884256534459005.db)
+2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234416.db
 2026/01/19 23:44:16 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884256574909286.db)
-2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234416.db
+2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884256574909286.db)
+2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234416.db
 2026/01/19 23:44:16 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884256625423515.db)
+2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884256625423515.db)
 2026/01/19 23:44:16 DEBUG: Storing user with hash: a8577e90ca54c333e1088d0e43ccaf59fe8d13b1b63a66b1d542edbfb5216057, salt: daafce426c84ca40e18535e228f6d61da5e2001d387c0695e75d2c740939fe1b
 2026/01/19 23:44:16 DEBUG: User stored successfully
 2026/01/19 23:44:16 User created: testuser (user_1768884256721442853)
-2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234416.db
+2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234416.db
 2026/01/19 23:44:16 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884256768793051.db)
+2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884256768793051.db)
 2026/01/19 23:44:16 DEBUG: Storing user with hash: 927d2ef593af8c12bc558b881f6fbe1b13e28383cd79ce524b7a72c119952990, salt: 606e2814d3e66df0a578ecb56ecb5be12b95fa8e97438fd974fb4963efb005f3
 2026/01/19 23:44:16 DEBUG: User stored successfully
 2026/01/19 23:44:16 User created: testuser (user_1768884256848740963)
-2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234416.db
+2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234416.db
 2026/01/19 23:44:16 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884256897183189.db)
+2026/01/19 23:44:16 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884256897183189.db)
 2026/01/19 23:44:16 DEBUG: Storing user with hash: c6c65cd7d2d51f57ec9ad334ee18372c3a7cd77b90bd46c48fa8a505d90bc650, salt: a242bb9fc3c930573efac7158213e0da298a6398fb4e63fa29737cc2a164ad7e
 2026/01/19 23:44:16 DEBUG: User stored successfully
 2026/01/19 23:44:16 User created: testuser (user_1768884256980707742)
-2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234416.db
+2026/01/19 23:44:16 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234416.db
 2026/01/19 23:44:17 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:17 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884257028131199.db)
+2026/01/19 23:44:17 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884257028131199.db)
 2026/01/19 23:44:17 DEBUG: Storing user with hash: 6dfbfb5104de8f757d1c43be74408edf5d1c7c2eb01d873a37de23e2e9208680, salt: 417139db8be36c3c4a53d15a001e027166ced69bd35991f450d2aadb20b9e3aa
 2026/01/19 23:44:17 DEBUG: User stored successfully
 2026/01/19 23:44:17 User created: testuser (user_1768884257123081856)
-2026/01/19 23:44:17 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234417.db
-2026/01/19 23:44:17 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234017.db
+2026/01/19 23:44:17 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234417.db
+2026/01/19 23:44:17 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234017.db
 2026/01/19 23:44:17 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:17 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884257168814876.db)
+2026/01/19 23:44:17 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884257168814876.db)
 2026/01/19 23:44:17 DEBUG: Storing user with hash: 2246d8137374b92d90acda223981e3ae3b108fbfa24d7e54001645643e9f929b, salt: bd11bbb71a250e280fee281638121bbbb27c12b392ebe616495fe2fd00dc4052
 2026/01/19 23:44:17 DEBUG: User stored successfully
 2026/01/19 23:44:17 User created: testuser (user_1768884257240122458)
-2026/01/19 23:44:17 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234417.db
+2026/01/19 23:44:17 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234417.db
 2026/01/19 23:44:17 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:17 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884257289589902.db)
+2026/01/19 23:44:17 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884257289589902.db)
 2026/01/19 23:44:17 DEBUG: Storing user with hash: dbc30d1141f07f8fba97c4cb16157f2d5534b2c713174178793987cf81cdbe16, salt: 9045cdc67622016ee68b453a6b77e7ade72eecda0efce33659c0e6b6350396e6
 2026/01/19 23:44:17 DEBUG: User stored successfully
 2026/01/19 23:44:17 User created: testuser (user_1768884257360061002)
-2026/01/19 23:44:17 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234417.db
+2026/01/19 23:44:17 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234417.db
 2026/01/19 23:44:17 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:17 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884257410368275.db)
+2026/01/19 23:44:17 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884257410368275.db)
 2026/01/19 23:44:17 DEBUG: Storing user with hash: b0c20d66593c72b0d0222a04d4f74a417e9d4b52d1272a3ff3e09db3fa78db33, salt: 5ea2536b2693d61da7b5e1b874ff50b0f272240fff8ac21fff430768f8d34467
 2026/01/19 23:44:17 DEBUG: User stored successfully
 2026/01/19 23:44:17 User created: testuser (user_1768884257498056733)
-2026/01/19 23:44:17 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234417.db
+2026/01/19 23:44:17 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234417.db
 2026/01/19 23:44:17 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:17 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884257661649434.db)
+2026/01/19 23:44:17 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884257661649434.db)
 2026/01/19 23:44:17 DEBUG: Storing user with hash: 68f5e5db248f99f9b4af374b3273ae4aff9b79f7b3fdfa1e8e59bf791786bced, salt: 0040f27ebdf6e17643ef5b0433417479074134a4ef39c7128e7183af0d52a73d
 2026/01/19 23:44:17 DEBUG: User stored successfully
 2026/01/19 23:44:17 User created: testuser (user_1768884257755780589)
-2026/01/19 23:44:17 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234417.db
+2026/01/19 23:44:17 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234417.db
 2026/01/19 23:44:18 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884258083574293.db)
+2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884258083574293.db)
 2026/01/19 23:44:18 DEBUG: Storing user with hash: 67e8e892d7790905f6f55727871aa77e92d6a85ed3c3349740ff99349daa08b2, salt: 8f44be905b55b321e0d7e7b58d84e9be4a5bcef96cc17b8e41e4de05d5429866
 2026/01/19 23:44:18 DEBUG: User stored successfully
 2026/01/19 23:44:18 User created: testuser (user_1768884258154302197)
-2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234418.db
-2026/01/19 23:44:18 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234101.db
+2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234418.db
+2026/01/19 23:44:18 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234101.db
 2026/01/19 23:44:18 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884258204698276.db)
+2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884258204698276.db)
 2026/01/19 23:44:18 DEBUG: Storing user with hash: a7e4aeb6121387c9adfc79d0a2f0227c1ef0d8ac1246668f264d6f8b0729aecd, salt: b8ad2b94f77e31384d4e1e8da0850e4c9d1e65a77941360777d490c3aee1b78e
 2026/01/19 23:44:18 DEBUG: User stored successfully
 2026/01/19 23:44:18 User created: testuser (user_1768884258278075875)
 2026/01/19 23:44:18 Password reset initiated for user: test@example.com
-2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234418.db
+2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234418.db
 2026/01/19 23:44:18 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884258337947716.db)
+2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884258337947716.db)
 2026/01/19 23:44:18 DEBUG: Storing user with hash: ac0b50cdda08d9858957cf17f632bbef8dec49cb4a47f124a08fa9fb5975be93, salt: 0a315145c8ddfa2b011704fc90927241e0d3c88bfe0bf2fdfb2f9aab9a2a3a99
 2026/01/19 23:44:18 DEBUG: User stored successfully
 2026/01/19 23:44:18 User created: testuser (user_1768884258401831567)
 2026/01/19 23:44:18 Password reset initiated for user: test@example.com
-2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234418.db
+2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234418.db
 2026/01/19 23:44:18 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884258518048066.db)
+2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884258518048066.db)
 2026/01/19 23:44:18 DEBUG: Storing user with hash: d0c4df0ba183ebf87230f949b464a873506d6ef9cd4112744377a7b71dcd13ea, salt: 3aacb520477f3fc4322b0a0e5bfb43133bf26988d9fbca83d90db1adce52dafd
 2026/01/19 23:44:18 DEBUG: User stored successfully
 2026/01/19 23:44:18 User created: testuser (user_1768884258585424302)
-2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234418.db
+2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234418.db
 2026/01/19 23:44:18 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884258637361015.db)
+2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884258637361015.db)
 2026/01/19 23:44:18 DEBUG: Storing user with hash: eef33b3bd979e35195149f25c515989e4864b9635bb640cac386d9dc838e1f7d, salt: 5898f20d5b835ee7801031b1d5e16bdce60f0470b63044edf6fca6c3209f67bd
 2026/01/19 23:44:18 DEBUG: User stored successfully
 2026/01/19 23:44:18 User created: testuser (user_1768884258694636414)
-2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234418.db
+2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234418.db
 2026/01/19 23:44:18 Warning: Failed to create final backup: failed to write backup: database closed
-2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/test_db_1768884258879122921.db)
-2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234418.db
+2026/01/19 23:44:18 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/test_db_1768884258879122921.db)
+2026/01/19 23:44:18 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234418.db
 2026/01/19 23:44:18 Warning: Failed to create final backup: failed to write backup: database closed
 PASS
 ok  	backend_server/internal/services/auth	3.668s
@@ -676,9 +676,9 @@ ok  	backend_server/internal/services/dverental	0.763s
 2026/01/19 23:44:59 Registered api endpoint ep-1768884299020460275 for rental rental-123: localhost:8080
 PASS
 ok  	backend_server/internal/services/endpoints	0.112s
-2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
-2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234459.db
-2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
+2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234459.db
+2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:44:59 Starting Failover Service...
 2026/01/19 23:44:59 Warning: No healthy root nodes available for initial selection
 2026/01/19 23:44:59 Failover Service started successfully
@@ -686,37 +686,37 @@ ok  	backend_server/internal/services/endpoints	0.112s
 2026/01/19 23:44:59 Stopping Failover Service...
 2026/01/19 23:44:59 Health monitor stopping...
 2026/01/19 23:44:59 Failover Service stopped gracefully
-2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234459.db
-2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234459.db
+2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:44:59 Registered bootnode: bootnode-1 (http://bootnode1:8080) with priority 10
-2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234459.db
-2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
-2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234459.db
-2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234459.db
+2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
+2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234459.db
+2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:44:59 Registered bootnode: bootnode-1 (http://bootnode1:8080) with priority 10
-2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234459.db
-2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
-2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234459.db
-2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234459.db
+2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
+2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234459.db
+2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:44:59 Warning: No healthy root nodes available for initial selection
 2026/01/19 23:44:59 Registered bootnode: bootnode-1 (http://bootnode1:8080) with priority 10
-2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234459.db
-2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234459.db
+2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:44:59 Registered bootnode: test-bootnode (http://127.0.0.1:40749) with priority 10
 2026/01/19 23:44:59 Node test-bootnode status changed: unknown -> healthy
-2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234459.db
-2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:44:59 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234459.db
+2026/01/19 23:44:59 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:44:59 Registered bootnode: test-bootnode (http://nonexistent:9999) with priority 10
 2026/01/19 23:45:04 Node test-bootnode status changed: unknown -> unhealthy
-2026/01/19 23:45:04 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234504.db
-2026/01/19 23:45:04 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234115.db
-2026/01/19 23:45:04 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:45:04 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234504.db
+2026/01/19 23:45:04 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234115.db
+2026/01/19 23:45:04 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:45:04 Warning: No healthy root nodes available for initial selection
 2026/01/19 23:45:04 Registered bootnode: bootnode-1 (http://healthy-bootnode:8080) with priority 10
 2026/01/19 23:45:04 Root node root-1 has failed 4 health checks - initiating failover
 2026/01/19 23:45:04 Failover completed: bootnode-1 promoted from bootnode to root (replacing root-1)
 2026/01/19 23:45:04 Failover notification: Root changed from root-1 to bootnode-1
-2026/01/19 23:45:04 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234504.db
+2026/01/19 23:45:04 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234504.db
 PASS
 ok  	backend_server/internal/services/failover	5.184s
 2026/01/19 23:45:04 Starting Model Server service...
@@ -1658,42 +1658,42 @@ Ensure container is running with:
 2026/01/19 23:45:19 Native container runtime initialized (OS: linux, Tools available: strace, bash)
 PASS
 ok  	backend_server/internal/services/teesecurity	0.677s
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestNewAPIServer632353633/001/test.db)
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestNewAPIServer632353633/001/test.db)
 2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
-2026/01/19 23:45:20 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234350.db
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAPIServer_Start1573570921/001/test.db)
-2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-Validation Core API server started on http://:0
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAPIServer_Stop2018436622/001/test.db)
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234350.db
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAPIServer_Start1573570921/001/test.db)
 2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
 Validation Core API server started on http://:0
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAPIServer_corsMiddleware1500185122/001/test.db)
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAPIServer_Stop2018436622/001/test.db)
 2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAPIServer_handleHealth1774765545/001/test.db)
+Validation Core API server started on http://:0
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAPIServer_corsMiddleware1500185122/001/test.db)
 2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAPIServer_handleValidationTasks3709132492/001/test.db)
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAPIServer_handleHealth1774765545/001/test.db)
 2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAPIServer_handleValidationTaskDetails2984884124/001/test.db)
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAPIServer_handleValidationTasks3709132492/001/test.db)
 2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAPIServer_handleValidationResults824539578/001/test.db)
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAPIServer_handleValidationTaskDetails2984884124/001/test.db)
 2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAPIServer_handleValidationResultDetails2857763975/001/test.db)
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAPIServer_handleValidationResults824539578/001/test.db)
 2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAPIServer_handleSystemStatus1414799514/001/test.db)
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAPIServer_handleValidationResultDetails2857763975/001/test.db)
 2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
-2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestAPIServer_handleSystemMetrics4207329752/001/test.db)
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAPIServer_handleSystemStatus1414799514/001/test.db)
 2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
+2026/01/19 23:45:20 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestAPIServer_handleSystemMetrics4207329752/001/test.db)
+2026/01/19 23:45:20 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
+2026/01/19 23:45:20 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234520.db
 2026/01/19 23:45:20 Proof verification succeeded for task test-task-1
 2026/01/19 23:45:20 Node ID mismatch: expected validator-node-002, got validator-node-001
 2026/01/19 23:45:20 Starting validation of model 'test-model' with 2 test cases
@@ -1725,19 +1725,19 @@ Validation Core API server started on http://:0
 2026/01/19 23:45:20 Skill executed successfully for test case test-case-1: output length=11
 2026/01/19 23:45:20 Test case test-case-1: status=passed, score=1.00
 2026/01/19 23:45:20 Test execution completed: score=1.00, status=success
-2026/01/19 23:45:21 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestSkillNodeValidationEndToEnd710441561/001/test.db)
+2026/01/19 23:45:21 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestSkillNodeValidationEndToEnd710441561/001/test.db)
 2026/01/19 23:45:21 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:21 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234521.db
-2026/01/19 23:45:21 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234359.db
-2026/01/19 23:45:21 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestBaseLLMValidationEndToEnd2721455114/001/test.db)
+2026/01/19 23:45:21 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234521.db
+2026/01/19 23:45:21 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234359.db
+2026/01/19 23:45:21 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestBaseLLMValidationEndToEnd2721455114/001/test.db)
 2026/01/19 23:45:21 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:21 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234521.db
-2026/01/19 23:45:21 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestConcurrentTaskExecution1893892783/001/test.db)
+2026/01/19 23:45:21 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234521.db
+2026/01/19 23:45:21 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestConcurrentTaskExecution1893892783/001/test.db)
 2026/01/19 23:45:21 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:21 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234521.db
-2026/01/19 23:45:21 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: /tmp/TestTimeoutHandling3101425805/001/test.db)
+2026/01/19 23:45:21 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234521.db
+2026/01/19 23:45:21 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: /tmp/TestTimeoutHandling3101425805/001/test.db)
 2026/01/19 23:45:21 [DVE][test-node] P2P topics initialized: test-chain.dve-validation, test-chain.dve-results, test-chain.dve-nodes, network-control, dve-announcements
-2026/01/19 23:45:21 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234521.db
+2026/01/19 23:45:21 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234521.db
 goos: linux
 goarch: amd64
 pkg: backend_server/internal/services/validation
@@ -1970,7 +1970,7 @@ ok  	backend_server/internal/web/middleware	0.205s
 2026/01/19 23:46:09 Terminated Docker container dve-full-flow-test-20260119234604-1768884365
 2026/01/19 23:46:09 Terminated session 573a0887a6d08af29818ab0445930ba3 for rental full-flow-test-20260119234604
 2026/01/19 23:46:09 Terminated 1 sessions for rental full-flow-test-20260119234604
-2026/01/19 23:46:09 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:46:09 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:10 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
 2026/01/19 23:46:10 Starting DVE Manager service...
 2026/01/19 23:46:10 Starting DVE Instance Registry...
@@ -1983,21 +1983,21 @@ ok  	backend_server/internal/web/middleware	0.205s
 2026/01/19 23:46:10 Stopping DVE Instance Registry...
 2026/01/19 23:46:10 DVE Instance Registry stopped
 2026/01/19 23:46:10 DVE Manager service stopped
-2026/01/19 23:46:10 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234610.db
-2026/01/19 23:46:10 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_backup_test_TestRecoverDatabase_1768884240750279762.db
+2026/01/19 23:46:10 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234610.db
+2026/01/19 23:46:10 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_backup_test_TestRecoverDatabase_1768884240750279762.db
 2026/01/19 23:46:10 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:10 [DVE][test-node] P2P manager stopped
-2026/01/19 23:46:10 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:46:10 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:10 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
-2026/01/19 23:46:10 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234610.db
+2026/01/19 23:46:10 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234610.db
 2026/01/19 23:46:10 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:10 [DVE][test-node] P2P manager stopped
-2026/01/19 23:46:10 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:46:10 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:10 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
-2026/01/19 23:46:10 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234610.db
+2026/01/19 23:46:10 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234610.db
 2026/01/19 23:46:10 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:10 [DVE][test-node] P2P manager stopped
-2026/01/19 23:46:10 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:46:10 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:10 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
 2026/01/19 23:46:10 [DVE][test-node] Node 8210bad7-f525-4f45-ba17-758425c70921 announced to network
 2026/01/19 23:46:10 DVE node 8210bad7-f525-4f45-ba17-758425c70921 (test-node-1) registered successfully
@@ -2014,10 +2014,10 @@ ok  	backend_server/internal/web/middleware	0.205s
 2026/01/19 23:46:10 Stopping DVE Instance Registry...
 2026/01/19 23:46:10 DVE Instance Registry stopped
 2026/01/19 23:46:10 DVE Manager service stopped
-2026/01/19 23:46:10 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234610.db
+2026/01/19 23:46:10 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234610.db
 2026/01/19 23:46:10 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:10 [DVE][test-node] P2P manager stopped
-2026/01/19 23:46:10 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:46:10 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:10 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
 2026/01/19 23:46:10 [DVE][test-node] Starting P2P manager...
 2026/01/19 23:46:10 [DVE][test-node] Bootstrapping to KNIRV network...
@@ -2106,18 +2106,18 @@ ok  	backend_server/internal/web/middleware	0.205s
 2026/01/19 23:46:22 [DVE][test-node] Could not extract IP from multiaddr for peer 12D3KooWAfrdkk2L5C2d69Fp2hobM1DVzkyNPX1UXAX1RC8Mhd9T: /ip4/46.5.94.152/tcp/4001
 2026/01/19 23:46:22 [DVE][test-node] Could not extract IP from multiaddr for peer 12D3KooWRh3LwbNEirKCrUv7sU7UqdZLT1o1x9cEKpseCbvHVHL8: /ip4/172.103.217.37/udp/24580/quic-v1
 2026/01/19 23:46:22 [DVE][test-node] P2P manager stopped
-2026/01/19 23:46:22 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234622.db
-2026/01/19 23:46:22 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234400.db
+2026/01/19 23:46:22 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234622.db
+2026/01/19 23:46:22 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234400.db
 2026/01/19 23:46:22 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:22 [DVE][test-node] P2P manager stopped
-2026/01/19 23:46:22 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:46:22 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:22 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
-2026/01/19 23:46:22 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234622.db
+2026/01/19 23:46:22 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234622.db
 2026/01/19 23:46:22 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:22 [DVE][test-node] P2P manager stopped
-2026/01/19 23:46:22 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:46:22 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:22 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
-2026/01/19 23:46:22 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234622.db
+2026/01/19 23:46:22 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234622.db
 2026/01/19 23:46:22 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:22 [DVE][test-node] P2P manager stopped
 goos: linux
@@ -2125,26 +2125,26 @@ goarch: amd64
 pkg: backend_server/tests
 cpu: Intel(R) Core(TM) i7 CPU         950  @ 3.07GHz
 BenchmarkArchitecture/BackendStartup-8         	       1	2004119015 ns/op	      2004 startup_ms	  668304 B/op	    4713 allocs/op
-2026/01/19 23:46:24 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:46:24 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:24 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
-2026/01/19 23:46:24 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234624.db
-2026/01/19 23:46:24 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_test_20260119_234400.db
+2026/01/19 23:46:24 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234624.db
+2026/01/19 23:46:24 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_test_20260119_234400.db
 2026/01/19 23:46:24 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:24 [DVE][test-node] P2P manager stopped
-BenchmarkValidationThroughput-8                	2026/01/19 23:46:24 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+BenchmarkValidationThroughput-8                	2026/01/19 23:46:24 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:24 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
-2026/01/19 23:46:24 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234624.db
+2026/01/19 23:46:24 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234624.db
 2026/01/19 23:46:24 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:24 [DVE][test-node] P2P manager stopped
-2026/01/19 23:46:24 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:46:24 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:24 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
-2026/01/19 23:46:24 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234624.db
+2026/01/19 23:46:24 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234624.db
 2026/01/19 23:46:24 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:24 [DVE][test-node] P2P manager stopped
-2026/01/19 23:46:24 Database backup directory set to: /home/gperry/.local/share/knirvnexus/backend_server/backups (for db path: :memory:)
+2026/01/19 23:46:24 Database backup directory set to: /home/gperry/.local/share/knirvserver/backend_server/backups (for db path: :memory:)
 2026/01/19 23:46:24 [DVE][test-node] P2P topics initialized: knirv-server-testnet.dve-validation, knirv-server-testnet.dve-results, knirv-server-testnet.dve-nodes, network-control, dve-announcements
-2026/01/19 23:46:26 Database backup created: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234626.db
-2026/01/19 23:46:26 Removed old backup: /home/gperry/.local/share/knirvnexus/backend_server/backups/nexus_final_20260119_234415.db
+2026/01/19 23:46:26 Database backup created: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234626.db
+2026/01/19 23:46:26 Removed old backup: /home/gperry/.local/share/knirvserver/backend_server/backups/nexus_final_20260119_234415.db
 2026/01/19 23:46:26 [DVE][test-node] Stopping P2P manager...
 2026/01/19 23:46:26 [DVE][test-node] P2P manager stopped
   750759	      2595 ns/op	     398 B/op	       6 allocs/op

@@ -216,9 +216,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Deploy to KNIRVNEXUS
-    if (deployment_targets.knirvnexus) {
-      deploymentResults.knirvnexus = await deployToKNIRVNexus(
+    // Deploy to KNIRVSERVER
+    if (deployment_targets.knirvserver) {
+      deploymentResults.knirvserver = await deployToKNIRVNexus(
         model_id,
         wasmData,
         model_config
@@ -300,7 +300,7 @@ export async function GET(request: NextRequest) {
           url: `https://controller.knirv.com/models/${modelId}`,
           last_updated: new Date().toISOString()
         },
-        knirvnexus: {
+        knirvserver: {
           status: 'active',
           url: 'https://knirv.com/nexus-portal',
           last_updated: new Date().toISOString()

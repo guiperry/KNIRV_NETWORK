@@ -209,7 +209,7 @@ func (ee *EconomicsEngine) ProcessValidationReward(req *ValidationRewardRequest)
 	ee.transactions = append(ee.transactions, tx)
 
 	// Update metrics
-	ee.updateServiceMetrics("knirvnexus", reward, "earned")
+	ee.updateServiceMetrics("knirvserver", reward, "earned")
 	ee.metrics.TotalSupply.Add(ee.metrics.TotalSupply, reward)
 	ee.metrics.TransactionVolume.Add(ee.metrics.TransactionVolume, reward)
 

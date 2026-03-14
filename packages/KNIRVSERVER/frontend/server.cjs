@@ -53,7 +53,7 @@ app.prepare().then(() => {
     }
   }).listen(PORT, (err) => {
     if (err) throw err;
-    console.log(`> KNIRVNEXUS Frontend Server ready on http://localhost:${PORT}`);
+    console.log(`> KNIRVSERVER Frontend Server ready on http://localhost:${PORT}`);
     console.log(`> Proxying API requests to backend on http://localhost:${BACKEND_PORT}`);
   });
 });

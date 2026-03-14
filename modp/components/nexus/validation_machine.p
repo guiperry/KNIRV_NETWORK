@@ -1,6 +1,6 @@
-// validation_machine.p - Validation Environment State Machine for KNIRVNEXUS
+// validation_machine.p - Validation Environment State Machine for KNIRVSERVER
 // Models the Distributed Validation Environment (DVE) for task validation
-// Based on: KNIRVNEXUS validation implementation
+// Based on: KNIRVSERVER validation implementation
 
 // Validator state tracking - defined at file level
 type ValidatorState = (

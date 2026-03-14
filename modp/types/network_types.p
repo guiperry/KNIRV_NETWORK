@@ -388,7 +388,7 @@ type RoutedMessage = (
 );
 
 // =====================================================================
-// KNIRVNEXUS SPECIFIC TYPES
+// KNIRVSERVER SPECIFIC TYPES
 // =====================================================================
 
 // Validation task

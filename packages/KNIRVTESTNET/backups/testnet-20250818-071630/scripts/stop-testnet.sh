@@ -98,7 +98,7 @@ stop_service "KNIRV-GATEWAY" "data/knirvgateway.pid"
 stop_service "KNIRV-ROUTER" "data/knirvrouter.pid"
 
 # 4. Stop KNIRV-NEXUS
-stop_service "KNIRV-NEXUS" "data/knirvnexus.pid"
+stop_service "KNIRV-NEXUS" "data/knirvserver.pid"
 
 # 3. Stop KNIRVGRAPH
 stop_service "KNIRVGRAPH" "data/knirvgraph.pid"
@@ -149,7 +149,7 @@ echo ""
 
 # Display final status
 echo "Final Status:"
-if [ -f "data/knirvoracle.pid" ] || [ -f "data/knirvchain.pid" ] || [ -f "data/knirvgraph.pid" ] || [ -f "data/knirvnexus.pid" ] || [ -f "data/knirvrouter.pid" ] || [ -f "data/knirvgateway.pid" ]; then
+if [ -f "data/knirvoracle.pid" ] || [ -f "data/knirvchain.pid" ] || [ -f "data/knirvgraph.pid" ] || [ -f "data/knirvserver.pid" ] || [ -f "data/knirvrouter.pid" ] || [ -f "data/knirvgateway.pid" ]; then
     print_warning "Some PID files still exist - manual cleanup may be required"
 else
     print_success "Clean shutdown - no PID files remaining"

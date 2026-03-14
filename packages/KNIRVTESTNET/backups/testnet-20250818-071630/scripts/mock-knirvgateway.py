@@ -26,7 +26,7 @@ class MockKNIRVGATEWAYHandler(BaseHTTPRequestHandler):
                     "knirvoracle": "http://localhost:1317",
                     "knirvchain": "http://localhost:8080",
                     "knirvgraph": "http://localhost:8081",
-                    "knirvnexus": ["http://localhost:8082", "http://localhost:8083"],
+                    "knirvserver": ["http://localhost:8082", "http://localhost:8083"],
                     "knirvrouter": "http://localhost:8086"
                 },
                 "load_balancer": "round_robin",

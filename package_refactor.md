@@ -10,7 +10,7 @@ Following the migration of all KNIRV submodules into the `packages/` directory, 
 
 | Old Name | New Name | Notes |
 |----------|----------|-------|
-| KNIRVNEXUS | KNIRVSERVER | DVE/Validation Environment |
+| KNIRVSERVER | KNIRVSERVER | DVE/Validation Environment |
 | KNIRVCONTROLLER | KNIRVWALLET | AI Controller PWA (future rename to KNIRVCONTROLLER planned) |
 
 ---
@@ -68,19 +68,19 @@ KNIRV_NETWORK/
 
 ### Name Change Mappings
 - All `KNIRVCONTROLLER` references → `KNIRVWALLET` (keep future rename capability via alias)
-- All `KNIRVNEXUS` references → `KNIRVSERVER`
+- All `KNIRVSERVER` references → `KNIRVSERVER`
 
 ### Critical Files
 | File | Changes |
 |------|---------|
 | `scripts/deploy-testnet-services.sh` | TESTNET_DIR, docker contexts, service starts |
-| `scripts/kill_knirv.sh` | Service detection, KNIRVNEXUS→KNIRVSERVER |
+| `scripts/kill_knirv.sh` | Service detection, KNIRVSERVER→KNIRVSERVER |
 | `scripts/manage-knirv.sh` | Module paths |
 | `scripts/deploy-controller-pwa.sh` | CONTROLLER_DIR path |
 | `scripts/run-full-demo.sh` | CONTROLLER_DIR path |
 | `scripts/validate-demo-setup.sh` | KNIRVCONTROLLER directory check |
 | `scripts/sync_controller_to_public.sh` | Keep sync path flexible for future rename |
-| `scripts/sync-portal-versions.sh` | KNIRVNEXUS→KNIRVSERVER |
+| `scripts/sync-portal-versions.sh` | KNIRVSERVER→KNIRVSERVER |
 
 ---
 
@@ -124,7 +124,7 @@ KNIRV_NETWORK/
 
 | File | Changes |
 |------|---------|
-| `integration-tests/run_all_integration_tests.sh` | Docker build paths, KNIRVNEXUS→KNIRVSERVER |
+| `integration-tests/run_all_integration_tests.sh` | Docker build paths, KNIRVSERVER→KNIRVSERVER |
 | `integration-tests/config/run-tests.sh` | Service startup paths |
 | `integration-tests/config/setup.sh` | Build directory references |
 

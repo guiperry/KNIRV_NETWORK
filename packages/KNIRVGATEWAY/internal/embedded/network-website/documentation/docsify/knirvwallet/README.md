@@ -258,7 +258,7 @@ KNIRVWALLET seamlessly integrates with the broader KNIRV ecosystem:
 - **[KNIRV-ORACLE](../KNIRVORACLE/)**: Foundational blockchain for NRN tokens
 - **[KNIRVCHAIN](../KNIRVCHAIN/)**: Smart contract platform for Skills and Base LLMs  
 - **[KNIRV-INFERENCE](../KNIRVINFERENCE/)**: AI agent framework
-- **[KNIRV-NEXUS](../KNIRVNEXUS/)**: Distributed verification engine
+- **[KNIRV-NEXUS](../KNIRVSERVER/)**: Distributed verification engine
 - **[KNIRVGATEWAY](../KNIRVGATEWAY/)**: Unified API gateway
 - **[KNIRVSDK](../KNIRVSDK/)**: Development tools and libraries
 

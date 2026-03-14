@@ -443,7 +443,7 @@ Total Events: %d
 		)
 	}
 
-	content += "\n---\n*Trajectory captured by KNIRVNEXUS FinTech Validator*\n"
+	content += "\n---\n*Trajectory captured by KNIRVSERVER FinTech Validator*\n"
 
 	return []byte(content), nil
 }

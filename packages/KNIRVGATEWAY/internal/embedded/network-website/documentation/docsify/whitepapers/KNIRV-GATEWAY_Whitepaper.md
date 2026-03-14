@@ -57,7 +57,7 @@ graph TD
         G[KNIRVROOT]
         H[KNIRVCHAIN]
         I[KNIRVGRAPH]
-        J[KNIRVNEXUS]
+        J[KNIRVSERVER]
     end
 
     F --> G
@@ -87,7 +87,7 @@ The API gateway exposes a series of endpoints to manage the gateway itself, moni
 
 ### **5. Integration with the KNIRV Ecosystem**
 
-The KNIRV-GATEWAY is designed to be the central point of contact for the entire D-TEN. It is configured to interact with other sovereign layers through environment variables. Specifically, it establishes connections to `KNIRVROOT`, `KNIRVCHAIN`, `KNIRVGRAPH`, and `KNIRVNEXUS`, acting as a front-facing proxy that streamlines communication and provides a single, secure entry point to the entire network.
+The KNIRV-GATEWAY is designed to be the central point of contact for the entire D-TEN. It is configured to interact with other sovereign layers through environment variables. Specifically, it establishes connections to `KNIRVROOT`, `KNIRVCHAIN`, `KNIRVGRAPH`, and `KNIRVSERVER`, acting as a front-facing proxy that streamlines communication and provides a single, secure entry point to the entire network.
 
 ### **6. Conclusion**
 

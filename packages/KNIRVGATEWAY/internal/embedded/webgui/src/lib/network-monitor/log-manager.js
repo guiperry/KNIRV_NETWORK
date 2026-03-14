@@ -92,7 +92,7 @@ class LogManager {
 
   // Generate sample logs for testing
   generateSampleLogs() {
-    const services = ['knirvoracle', 'knirvchain', 'knirvgraph', 'knirvnexus', 'ipfs'];
+    const services = ['knirvoracle', 'knirvchain', 'knirvgraph', 'knirvserver', 'ipfs'];
     const levels = ['info', 'warn', 'error', 'debug'];
     const messages = [
       'Service started successfully',

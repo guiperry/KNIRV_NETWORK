@@ -118,7 +118,7 @@ The CONTROLLER integrates four core components into a unified platform:
 
 ### Network Integration
 - **Universal Connectivity**: Connect with all KNIRV network services
-- **QR Code Scanning**: Seamless integration with KNIRVHUB and KNIRVNEXUS
+- **QR Code Scanning**: Seamless integration with KNIRVHUB and KNIRVSERVER
 - **Primary Neural Intelligence Model Cloning**: Consistent behavior across platforms
 - **Cross-Platform Synchronization**: Real-time NIM configuration sync
 

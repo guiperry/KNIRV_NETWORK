@@ -26,7 +26,7 @@ validation:
   zkTLS_enabled: false  # Simplified for testnet
 
 storage:
-  results_path: "./data/knirvnexus/validations"
+  results_path: "./data/knirvserver/validations"
   cache_size: "50MB"
 
 staking:

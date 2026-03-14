@@ -56,14 +56,14 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("knirv.services.knirvgateway.endpoints.health", "/health")
 	v.SetDefault("knirv.services.knirvgateway.endpoints.poaud", "/poaud")
 
-	// KNIRVNEXUS service defaults
-	v.SetDefault("knirv.services.knirvnexus.url", "http://localhost:8080")
-	v.SetDefault("knirv.services.knirvnexus.enabled", true)
-	v.SetDefault("knirv.services.knirvnexus.timeout", "30s")
-	v.SetDefault("knirv.services.knirvnexus.retries", 3)
-	v.SetDefault("knirv.services.knirvnexus.endpoints.agentic", "/agentic")
-	v.SetDefault("knirv.services.knirvnexus.endpoints.inference", "/inference")
-	v.SetDefault("knirv.services.knirvnexus.endpoints.plugins", "/plugins")
+	// KNIRVSERVER service defaults
+	v.SetDefault("knirv.services.knirvserver.url", "http://localhost:8080")
+	v.SetDefault("knirv.services.knirvserver.enabled", true)
+	v.SetDefault("knirv.services.knirvserver.timeout", "30s")
+	v.SetDefault("knirv.services.knirvserver.retries", 3)
+	v.SetDefault("knirv.services.knirvserver.endpoints.agentic", "/agentic")
+	v.SetDefault("knirv.services.knirvserver.endpoints.inference", "/inference")
+	v.SetDefault("knirv.services.knirvserver.endpoints.plugins", "/plugins")
 
 	// KNIRVGRAPH service defaults
 	v.SetDefault("knirv.services.knirvgraph.url", "http://localhost:7080")

@@ -8,7 +8,7 @@ const SERVICES = {
   'knirvoracle': { port: 1317, path: '/health' },
   'knirvchain': { port: 8090, path: '/health' },
   'knirvgraph': { port: 8082, path: '/health' },
-  'knirvnexus': { port: 8084, path: '/health' },
+  'knirvserver': { port: 8084, path: '/health' },
   'knirvrouter': { port: 8086, path: '/health' },
   'knirvcontroller': { port: 8089, path: '/health' }
 };

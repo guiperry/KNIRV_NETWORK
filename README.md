@@ -102,7 +102,7 @@ graph TB
 **Technology**: Rust-based Layer 1 with Tendermint consensus and IBC
 - **Purpose**: Network governance authority, cross-chain transfers, and token economics
 - **Key Features**:
-  - **Cross-Chain Transfers**: IBC-based transfers to KNIRVCHAIN, KNIRVNEXUS, XION, and Cosmos chains
+  - **Cross-Chain Transfers**: IBC-based transfers to KNIRVCHAIN, KNIRVSERVER, XION, and Cosmos chains
   - **Network Governance**: Sole authority for proposals, voting, parameter changes, emergency actions
   - **Token Economics**: NRN minting rules, staking, rewards, and burn tracking
   - **Bridge Support**: Native XION bridge, multi-chain asset transfers
@@ -226,7 +226,7 @@ GET  /auth/validate           # Token validation
 # Component Proxying
 GET  /knirvchain/*           # KNIRVCHAIN operations
 GET  /knirvgraph/*           # KNIRVGRAPH queries
-GET  /knirvnexus/*           # KNIRV-NEXUS validation
+GET  /knirvserver/*           # KNIRV-NEXUS validation
 GET  /knirvoracle/*            # KNIRV-ORACLE transactions
 GET  /knirvrouter/*          # KNIRV-ROUTER connectivity
 ```
@@ -350,7 +350,7 @@ cd KNIRVCHAIN && cargo run
 cd KNIRVGRAPH && go run main.go --port 8081
 
 # KNIRV-NEXUS (Validation Engine)
-cd KNIRVNEXUS && go run main.go --port 8082
+cd KNIRVSERVER && go run main.go --port 8082
 
 # KNIRV-ROUTER (Network Layer & Connectivity Proofs)
 cd KNIRVROUTER && go run main.go --port 3478
@@ -408,7 +408,7 @@ This command orchestrates testing across all components:
 - **KNIRVSDK**: Multi-language SDK (Go, Python, TypeScript)
 - **KNIRVGRAPH**: Blockchain Explorer (Go backend + TypeScript frontend)
 - **KNIRVWALLET**: Wallet System (React Native + Web)
-- **KNIRVNEXUS**: Admin Portal (React + Go backend)
+- **KNIRVSERVER**: Admin Portal (React + Go backend)
 - **KNIRVORACLE**: Core Network (Go blockchain)
 - **Integration Tests**: Cross-component validation
 
@@ -809,7 +809,7 @@ For compatibility, these commands are still available:
 # Component-specific legacy testing
 cd KNIRVORACLE && go test ./...
 cd KNIRVCHAIN && cargo test
-cd KNIRVNEXUS && go test ./...
+cd KNIRVSERVER && go test ./...
 
 # Real network testing (simulation mode)
 ./scripts/real-network-test.sh --dry-run --full-suite

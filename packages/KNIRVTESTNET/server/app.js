@@ -93,14 +93,14 @@ const environment = {
 if (environment.isLocal) {
   // Local development - serve from testnet-gateway
   app.use('/', express.static(path.join(__dirname, '../data/testnet-gateway')));
-  app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvnexus/portal')));
+  app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvserver/portal')));
   app.use('/graphchain-explorer', express.static(path.join(__dirname, '../graphchain-explorer')));
   app.use('/developer-portal', express.static(path.join(__dirname, '../developer-portal')));
   app.use('/nanda-ans', express.static(path.join(__dirname, '../nanda_ans/.next')));
 } else {
   // Staging/Production - serve from testnet-gateway with Netlify functions
   app.use('/', express.static(path.join(__dirname, '../data/testnet-gateway')));
-  app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvnexus/portal')));
+  app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvserver/portal')));
 }
 
 // Simple health check for Render.com
@@ -414,10 +414,10 @@ app.get('/graphchain-explorer/*', (req, res) => {
   }
 });
 
-// Nexus Portal routes - Serve KNIRVNEXUS native frontend
+// Nexus Portal routes - Serve KNIRVSERVER native frontend
 app.get('/nexus-portal', (req, res) => {
-  const nexusIndexPath = path.join(__dirname, '../data/knirvnexus/portal/index.html');
-  const nexusNextPath = path.join(__dirname, '../data/knirvnexus/portal/.next/server/app/page.html');
+  const nexusIndexPath = path.join(__dirname, '../data/knirvserver/portal/index.html');
+  const nexusNextPath = path.join(__dirname, '../data/knirvserver/portal/.next/server/app/page.html');
 
   // Try to serve local NEXUS frontend files
   if (fs.existsSync(nexusIndexPath)) {

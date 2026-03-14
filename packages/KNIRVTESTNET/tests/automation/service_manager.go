@@ -93,7 +93,7 @@ func getServiceConfig(serviceName string) ServiceConfig {
 			ShutdownTimeout: 10 * time.Second,
 		},
 		"knirv-nexus": {
-			StartCommand:    "./scripts/start-knirvnexus.sh",
+			StartCommand:    "./scripts/start-knirvserver.sh",
 			WorkingDir:      "../",
 			HealthEndpoint:  "/health",
 			Port:            8084,

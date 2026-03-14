@@ -8,7 +8,7 @@ KNIRV Network is a Decentralized Trusted Execution Network (D-TEN) - a multi-com
 
 ## Tech Stack
 
-- **Go 1.21+**: KNIRVCHAIN, KNIRVGRAPH, KNIRVROUTER, KNIRVNEXUS
+- **Go 1.21+**: KNIRVCHAIN, KNIRVGRAPH, KNIRVROUTER, KNIRVSERVER
 - **Rust 1.70+**: KNIRVORACLE, KNIRVCONTROLLER (WASM)
 - **Node.js 18+**: KNIRVGATEWAY, KNIRVCONTROLLER PWA, KNIRVWALLET
 - **Ansible**: Infrastructure deployment
@@ -20,7 +20,7 @@ KNIRV Network is a Decentralized Trusted Execution Network (D-TEN) - a multi-com
 | KNIRVCHAIN | Skill/LLM registry, MCP capabilities, node transformation mining | Go |
 | KNIRVORACLE | Cross-chain transfers, network governance, token economics | Rust |
 | KNIRVGRAPH | Knowledge graphchain for AI errors/solutions | Go |
-| KNIRVNEXUS | Distributed Validation Environment (DVE) | Go |
+| KNIRVSERVER | Distributed Validation Environment (DVE) | Go |
 | KNIRVROUTER | P2P network backbone, Proof-of-Connectivity | Go |
 | KNIRVCONTROLLER | User's autonomous AI gateway | Rust/WASM |
 | KNIRVGATEWAY | API gateway, documentation website | Node.js |
@@ -81,7 +81,7 @@ make deploy-full ENVIRONMENT=production CLOUD_PROVIDER=aws
 ## Running Individual Go Tests
 
 ```bash
-cd KNIRVNEXUS && go test -v ./backend/tests/...
+cd KNIRVSERVER && go test -v ./backend/tests/...
 cd integration-tests && go test -v -run "TestKNIRVNEXUS.*"
 ```
 

@@ -9,7 +9,7 @@ The KNIRV Unified SDK combines all KNIRV Network functionality into a single, ea
 - **Badge System**: Skills, Capabilities, and Properties badges
 - **XION Integration**: Meta Accounts, Treasury Contracts, Gasless transactions
 - **NRN Token Management**: Minting, treasury operations, faucet integration
-- **KNIRVNEXUS DVE**: Development environment management
+- **KNIRVSERVER DVE**: Development environment management
 - **KNIRVORACLE Services**: Treasury management, badge validation
 - **KNIRVCONTROLLER**: Agent management, skill invocation, workflows
 - **KNIRVROUTER**: Proof-of-connectivity, network routing, NRV management
@@ -80,7 +80,7 @@ const newBadge = await client.badges.issueBadge({
 });
 ```
 
-### KNIRVNEXUS DVE (Development Environments)
+### KNIRVSERVER DVE (Development Environments)
 
 ```typescript
 // Manage development environments

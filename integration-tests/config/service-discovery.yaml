@@ -58,7 +58,7 @@ services:
     timeout: 30s
     retry_count: 3
     
-  knirvnexus:
+  knirvserver:
     name: "KNIRV-NEXUS"
     url: "http://localhost:8083"
     health_endpoint: "/health"
@@ -126,7 +126,7 @@ dependencies:
     depends_on:
       - ipfs
       - knirvoracle
-  knirvnexus:
+  knirvserver:
     depends_on:
       - ipfs
       - knirvoracle
@@ -142,7 +142,7 @@ dependencies:
       - knirvoracle
       - knirvchain
       - knirvgraph
-      - knirvnexus
+      - knirvserver
       - knirvrouter
 
 # Expected Response Formats
@@ -157,7 +157,7 @@ response_formats:
     knirvgraph:
       expected_fields: ["height"]
       expected_type: "number"
-    knirvnexus:
+    knirvserver:
       expected_fields: ["status", "timestamp"]
       expected_status: "healthy"
     knirvrouter:

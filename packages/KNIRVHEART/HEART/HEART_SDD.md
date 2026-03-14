@@ -1324,7 +1324,7 @@ info:
   description: Multimodal advisor for HashNet DRQ training
 
 servers:
-  - url: https://heart.knirvnexus.io/api/v1
+  - url: https://heart.knirvserver.io/api/v1
 
 paths:
   /advisor/query:

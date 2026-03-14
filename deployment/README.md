@@ -93,7 +93,7 @@ deployment/
 - **API Gateway** (Port 8000)
 - **KNIRVCHAIN** (Port 8080) - Blockchain layer
 - **KNIRVGRAPH** (Port 8081) - NRV graph processing
-- **KNIRVNEXUS** (Port 8082) - LLM inference engine
+- **KNIRVSERVER** (Port 8082) - LLM inference engine
 - **KNIRVORACLE** (Port 8083) - Core orchestration with XION bridge
 - **KNIRVROUTER** (Ports 3478/5349/9090) - Connectivity with proof engine
 

@@ -191,7 +191,7 @@ configure_podman() {
     print_status "Configuring Podman for KNIRV testnet..."
     
     # Create necessary directories
-    mkdir -p data/ipfs data/knirvoracle data/knirvchain data/knirvgraph data/knirvnexus data/knirvrouter logs
+    mkdir -p data/ipfs data/knirvoracle data/knirvchain data/knirvgraph data/knirvserver data/knirvrouter logs
     
     # Set proper permissions for rootless Podman
     chmod -R 755 data config logs

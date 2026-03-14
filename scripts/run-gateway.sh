@@ -89,7 +89,7 @@ show_usage() {
     echo "  NRN_CONTRACT             NRN token contract address"
     echo "  XION_RPC                 XION RPC endpoint"
     echo "  KNIRVCHAIN_URL           KNIRVCHAIN service URL"
-    echo "  KNIRVNEXUS_URL           KNIRVNEXUS service URL"
+    echo "  KNIRVNEXUS_URL           KNIRVSERVER service URL"
     echo "  KNIRVORACLE_URL            KNIRVORACLE service URL"
     echo "  KNIRVGRAPH_URL           KNIRVGRAPH service URL"
 }

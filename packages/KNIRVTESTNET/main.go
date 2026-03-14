@@ -334,10 +334,10 @@ func (sm *ServiceManager) DefineServices() {
 		},
 	}
 
-	// KNIRVNEXUS is optional - only add if binary exists (for private/corporate testing)
-	nexusBinary := filepath.Join(sm.deployDir, "bin", "knirvnexus")
+	// KNIRVSERVER is optional - only add if binary exists (for private/corporate testing)
+	nexusBinary := filepath.Join(sm.deployDir, "bin", "knirvserver")
 	if _, err := os.Stat(nexusBinary); err == nil {
-		log.Printf("ℹ️ KNIRVNEXUS binary found - enabling for private testing")
+		log.Printf("ℹ️ KNIRVSERVER binary found - enabling for private testing")
 		sm.services["KNIRV-NEXUS"] = &Service{
 			Name:       "KNIRV-NEXUS",
 			BinaryPath: nexusBinary,
@@ -347,14 +347,14 @@ func (sm *ServiceManager) DefineServices() {
 				"--host", "0.0.0.0",
 				"--config", filepath.Join(sm.deployDir, "config", "nexus-testnet.yaml"),
 			},
-			LogFile:         filepath.Join(sm.deployDir, "logs", "knirvnexus.log"),
-			PidFile:         filepath.Join(sm.deployDir, "data", "knirvnexus.pid"),
+			LogFile:         filepath.Join(sm.deployDir, "logs", "knirvserverr.log"),
+			PidFile:         filepath.Join(sm.deployDir, "data", "knirvserverr.pid"),
 			HealthCheck:     "/",
 			HealthCheckPort: "8084",
 			StartDelay:      2 * time.Second,
 		}
 	} else {
-		log.Printf("ℹ️ KNIRVNEXUS binary not found - skipping (public testnet mode)")
+		log.Printf("ℹ️ KNIRVSERVER binary not found - skipping (public testnet mode)")
 	}
 }
 
@@ -470,7 +470,7 @@ func (sm *ServiceManager) StartAll() error {
 		"KNIRV-ROUTER",
 	}
 
-	// Add KNIRVNEXUS if it's available (private/corporate testing only)
+	// Add KNIRVSERVER if it's available (private/corporate testing only)
 	if _, hasNexus := sm.services["KNIRV-NEXUS"]; hasNexus {
 		// Insert NEXUS before ROUTER
 		serviceOrder = []string{
@@ -659,7 +659,7 @@ func extractEmbeddedFiles(deployDir string) error {
 
 	// Verify critical binaries were extracted (NEXUS is optional)
 	criticalBinaries := []string{"knirvoracle", "knirvchain", "knirvgraph", "knirvrouter"}
-	optionalBinaries := []string{"knirvnexus"}
+	optionalBinaries := []string{"knirvserverr"}
 
 	for _, bin := range criticalBinaries {
 		binPath := filepath.Join(deployDir, "bin", bin)

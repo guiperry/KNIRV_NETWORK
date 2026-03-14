@@ -232,7 +232,7 @@ perform_validation() {
     check_binary_exists "bin/knirvoracle" "KNIRV-ORACLE"
     check_binary_exists "bin/knirvchain" "KNIRVCHAIN"
     check_binary_exists "bin/knirvgraph" "KNIRVGRAPH"
-    check_binary_exists "bin/knirvnexus" "KNIRV-NEXUS"
+    check_binary_exists "bin/knirvserver" "KNIRV-NEXUS"
     check_binary_exists "bin/knirvrouter" "KNIRV-ROUTER"
     echo ""
     
@@ -267,7 +267,7 @@ perform_validation() {
     
     # 6. Check KNIRV-NEXUS configuration
     print_status "Validating KNIRV-NEXUS configuration..."
-    check_file_exists "config/knirvnexus-testnet-config.yaml" "KNIRV-NEXUS testnet config"
+    check_file_exists "config/knirvserver-testnet-config.yaml" "KNIRV-NEXUS testnet config"
     echo ""
     
     # 7. Check KNIRV-ROUTER configuration

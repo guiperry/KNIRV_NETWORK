@@ -89,18 +89,18 @@ This document outlines the current discrepancies, missing functionality, and arc
     *   Many UI updates still rely on polling or manual refreshes.
     *   Comprehensive event mapping between backend state changes (node status, task completion, policy violation) and frontend Redux/Context updates via WebSockets is missing for most components.
 
-## 9. AetherDashboard vs KNIRVNEXUS Integration
+## 9. AetherDashboard vs KNIRVSERVER Integration
 *   **Current State:** 
     *   **AetherDashboard has now been implemented in the frontend.** It exists as a specialized view for autonomous agent interaction.
 *   **Requirement:** 
     *   Ensure backend services operate with `AetherDashboard` as needed.
-    *   Integrate Aether's autonomous reasoning engine (`GeminiAgentService`) as a capability within the KNIRVNEXUS Agent Command Center, allowing the Nexus to leverage Aether's planning and execution logic.
+    *   Integrate Aether's autonomous reasoning engine (`GeminiAgentService`) as a capability within the KNIRVSERVER Agent Command Center, allowing the Nexus to leverage Aether's planning and execution logic.
 
 ## 10. KNIRVCLI Backend Integration
 *   **Current State:** 
     *   `KNIRVCLI` exists as a powerful standalone tool.
 *   **Requirement:**
-    *   Integrate `KNIRVCLI` as the backend communication layer for `KNIRVNEXUS`.
+    *   Integrate `KNIRVCLI` as the backend communication layer for `KNIRVSERVER`.
     *   Replace direct REST/HTTP calls with `KNIRVCLI`'s unified API client abstraction.
     *   Utilize `KNIRVCLI`'s wallet and token management for FinTech functionality.
     *   **Unified Interface:** `KNIRVCLI` is the primary interface for all terminal interactions within the Nexus and its DVE instances.

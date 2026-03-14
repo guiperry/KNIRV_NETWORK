@@ -7,7 +7,7 @@ echo "Starting KNIRV-NEXUS Frontend..."
 mkdir -p logs data
 
 # Check if NEXUS frontend build exists
-if [ ! -d "./data/knirvnexus/portal" ]; then
+if [ ! -d "./data/knirvserver/portal" ]; then
     echo "Error: NEXUS frontend not found. Please run build-nexus-frontend.sh first."
     exit 1
 fi
@@ -19,7 +19,7 @@ if ! command -v node &> /dev/null; then
 fi
 
 # Navigate to NEXUS frontend directory
-cd data/knirvnexus/portal
+cd data/knirvserver/portal
 
 # Check if package.json exists
 if [ ! -f "package.json" ]; then
@@ -40,19 +40,19 @@ export TESTNET_MODE=true
 
 # Start NEXUS frontend using custom server
 echo "Starting NEXUS frontend on port 8083..."
-node server.js > ../../../logs/knirvnexus-frontend.log 2>&1 &
+node server.js > ../../../logs/knirvserver-frontend.log 2>&1 &
 
 NEXUS_FRONTEND_PID=$!
-echo $NEXUS_FRONTEND_PID > ../../../data/knirvnexus-frontend.pid
+echo $NEXUS_FRONTEND_PID > ../../../data/knirvserver-frontend.pid
 cd ../../..
 
 # Wait a moment for startup
 sleep 3
 
 # Check if the process is still running
-if ! kill -0 $(cat ./data/knirvnexus-frontend.pid) 2>/dev/null; then
+if ! kill -0 $(cat ./data/knirvserver-frontend.pid) 2>/dev/null; then
     echo "Error: NEXUS frontend failed to start. Check logs:"
-    tail -20 ./logs/knirvnexus-frontend.log
+    tail -20 ./logs/knirvserver-frontend.log
     exit 1
 fi
 

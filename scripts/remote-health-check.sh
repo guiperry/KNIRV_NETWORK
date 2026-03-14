@@ -44,8 +44,8 @@ discover_services() {
         ["8080"]="IPFS-Gateway"
         ["8081"]="IPFS-Gateway-Alt"
         ["8082"]="KNIRVGRAPH"
-        ["8084"]="KNIRVNEXUS-1"
-        ["8085"]="KNIRVNEXUS-2"
+        ["8084"]="KNIRVSERVER-1"
+        ["8085"]="KNIRVSERVER-2"
         ["8086"]="KNIRVROUTER"
         ["8090"]="KNIRVCHAIN"
         ["10000"]="TESTNET-GATEWAY"
@@ -101,7 +101,7 @@ check_service_health() {
         "KNIRVGRAPH")
             health_endpoint="/health"
             ;;
-        "KNIRVNEXUS"*)
+        "KNIRVSERVER"*)
             health_endpoint="/health"
             ;;
         "KNIRVROUTER")
@@ -137,7 +137,7 @@ check_service_health() {
                 "IPFS-API")
                     details=$(curl -s --max-time 2 "http://localhost:$port/api/v0/version" 2>/dev/null | jq -r '.Version // "unknown"' 2>/dev/null || echo "ipfs")
                     ;;
-                "KNIRVORACLE"|"KNIRVCHAIN"|"KNIRVGRAPH"|"KNIRVNEXUS"*|"KNIRVROUTER")
+                "KNIRVORACLE"|"KNIRVCHAIN"|"KNIRVGRAPH"|"KNIRVSERVER"*|"KNIRVROUTER")
                     details=$(curl -s --max-time 2 "http://localhost:$port$health_endpoint" 2>/dev/null | jq -r '.status // .message // "healthy"' 2>/dev/null || echo "service")
                     ;;
             esac

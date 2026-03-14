@@ -113,7 +113,7 @@ func ValidateAWSConfig(config *BuildConfig) error {
 	}
 
 	if config.Description == "" {
-		config.Description = "KNIRVNEXUS Kali Linux - Native deployment ready"
+		config.Description = "KNIRVSERVER Kali Linux - Native deployment ready"
 	}
 
 	// Check if AWS credentials are available
@@ -207,11 +207,11 @@ func FindAMIID(output string) (string, error) {
 func GetDefaultBuildConfig(workDir string) *BuildConfig {
 	return &BuildConfig{
 		Region:          "us-east-1",
-		AMIName:         fmt.Sprintf("knirvnexus-kali-%s", time.Now().Format("2006-01-02")),
+		AMIName:         fmt.Sprintf("knirvserver-kali-%s", time.Now().Format("2006-01-02")),
 		InstanceType:    "t3.medium",
 		SubnetID:        "",
 		SecurityGroupID: "",
-		Description:     "KNIRVNEXUS Kali Linux - Native deployment ready",
+		Description:     "KNIRVSERVER Kali Linux - Native deployment ready",
 		WorkDir:         workDir,
 	}
 }

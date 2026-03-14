@@ -82,7 +82,7 @@ export class HealthService {
         // Check other KNIRV services
         const services = {
             knirvchain: this.config.serviceURLs.knirvchain,
-            knirvnexus: this.config.serviceURLs.knirvnexus,
+            knirvserver: this.config.serviceURLs.knirvserver,
             knirvoracle: this.config.serviceURLs.knirvoracle,
             knirvgraph: this.config.serviceURLs.knirvgraph,
         };

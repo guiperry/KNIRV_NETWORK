@@ -218,7 +218,7 @@ Remove from:
       │   ├─ KNIRVORACLE                 │
       │   ├─ KNIRVCHAIN                  │
       │   ├─ KNIRVGRAPH                  │
-      │   ├─ KNIRVNEXUS                  │
+      │   ├─ KNIRVSERVER                  │
       │   └─ KNIRVROUTER                 │
       └──────────────────────────────────┘
 ```

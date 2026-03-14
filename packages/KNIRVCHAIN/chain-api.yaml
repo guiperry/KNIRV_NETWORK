@@ -566,7 +566,7 @@ paths:
         - knirvchain
         - mining
       summary: Validate skill mining proposal
-      description: Validates a skill mining proposal using KNIRVNEXUS DVE
+      description: Validates a skill mining proposal using KNIRVSERVER DVE
       operationId: validateSkillProposal
       requestBody:
         required: true
@@ -1940,7 +1940,7 @@ components:
           $ref: '#/components/schemas/LoRAAdapterPointer'
         validation_proof:
           type: string
-          description: Proof from KNIRVNEXUS DVE validation
+          description: Proof from KNIRVSERVER DVE validation
         performance:
           $ref: '#/components/schemas/SkillPerformance'
         miner_address:

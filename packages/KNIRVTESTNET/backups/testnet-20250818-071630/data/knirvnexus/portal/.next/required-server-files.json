@@ -95,7 +95,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS",
+    "outputFileTracingRoot": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSERVER",
     "experimental": {
       "nodeMiddleware": false,
       "cacheLife": {
@@ -278,10 +278,10 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
     "turbopack": {
-      "root": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS"
+      "root": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSERVER"
     }
   },
-  "appDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS",
+  "appDir": "/home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSERVER",
   "relativeAppDir": "",
   "files": [
     ".next/routes-manifest.json",

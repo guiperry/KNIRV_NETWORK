@@ -1,4 +1,4 @@
-// File: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/src/app/api/nrn-staking/route.ts
+// File: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSERVER/src/app/api/nrn-staking/route.ts
 import * as entry from '../../../../../src/app/api/nrn-staking/route.js'
 import type { NextRequest } from 'next/server.js'
 

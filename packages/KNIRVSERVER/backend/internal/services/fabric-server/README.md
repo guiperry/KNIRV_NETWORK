@@ -1,6 +1,6 @@
 # Model Server
 
-A standalone HTTP server for serving, uploading, and managing WASM Plugin Model files in the KNIRVNEXUS ecosystem.
+A standalone HTTP server for serving, uploading, and managing WASM Plugin Model files in the KNIRVSERVER ecosystem.
 
 ## Overview
 
@@ -65,9 +65,9 @@ make clean
 |------|---------|-------------|
 | `--port` | `8082` | Port to listen on |
 | `--models` | `./models` | Directory containing Plugin Models |
-| `--name` | `"KNIRVNEXUS Plugin Model Server"` | Name of this server instance |
-| `--register` | `false` | Register this server with the KNIRVNEXUS system |
-| `--api` | `http://localhost:3000` | URL of the KNIRVNEXUS API |
+| `--name` | `"KNIRVSERVER Plugin Model Server"` | Name of this server instance |
+| `--register` | `false` | Register this server with the KNIRVSERVER system |
+| `--api` | `http://localhost:3000` | URL of the KNIRVSERVER API |
 | `--cors` | `true` | Enable CORS headers |
 
 ## API Endpoints
@@ -78,7 +78,7 @@ Get server information and status.
 **Response:**
 ```json
 {
-  "name": "KNIRVNEXUS Plugin Model Server",
+  "name": "KNIRVSERVER Plugin Model Server",
   "port": 8082,
   "model_dir": "./models",
   "start_time": "2024-01-01T12:00:00Z",
@@ -175,9 +175,9 @@ curl -X DELETE http://localhost:8082/delete/my-model.wasm
 - Only regular files are served (no directories or special files)
 - CORS can be disabled for production environments
 
-## Integration with KNIRVNEXUS
+## Integration with KNIRVSERVER
 
-The server can be registered with the KNIRVNEXUS system using the `--register` flag. This allows the blockchain to track server instances and their available plugin models.
+The server can be registered with the KNIRVSERVER system using the `--register` flag. This allows the blockchain to track server instances and their available plugin models.
 
 When registered, the server provides a reliable endpoint for:
 - Plugin model distribution

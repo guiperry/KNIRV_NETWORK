@@ -14,7 +14,7 @@ FRONTEND_DIR := $(ROOT_DIR)/frontend
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
-APPDATA_DIR := $(HOME)/.local/share/knirvnexus
+APPDATA_DIR := $(HOME)/.local/share/knirvserver
 
 # Go Configuration
 GO_VERSION := 1.21
@@ -245,8 +245,8 @@ clean-all: ## Clean build artifacts
 	rm -rf $(FRONTEND_DIR)/node_modules
 	rm -rf node_modules/.cache
 	cd $(BACKEND_DIR) && go clean -modcache
-	docker stop knirvnexus-kali-local
-	docker rm knirvnexus-kali-local
+	docker stop knirvserver-kali-local
+	docker rm knirvserver-kali-local
 	docker system prune -f
 	
 
@@ -254,7 +254,7 @@ clean: ## Clean everything including dependencies
 	@echo "$(BLUE)Cleaning all artifacts and dependencies...$(NC)"
 	rm -rf $(FRONTEND_DIR)/node_modules
 	cd $(BACKEND_DIR) && go clean -modcache
-	docker rmi knirvnexus-kali-base:latest
+	docker rmi knirvserver-kali-base:latest
 
 install: binary ## Install binary to system
 	@echo "$(BLUE)Installing binary...$(NC)"

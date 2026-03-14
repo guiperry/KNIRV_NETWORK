@@ -48,7 +48,7 @@ type NetworkConfig struct {
 type ServicesConfig struct {
 	KNIRVRoot    ServiceConfig `mapstructure:"knirvoracle"`
 	KNIRVGateway ServiceConfig `mapstructure:"knirvgateway"`
-	KNIRVNexus   ServiceConfig `mapstructure:"knirvnexus"`
+	KNIRVNexus   ServiceConfig `mapstructure:"knirvserver"`
 	KNIRVGraph   ServiceConfig `mapstructure:"knirvgraph"`
 }
 

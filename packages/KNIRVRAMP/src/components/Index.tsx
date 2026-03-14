@@ -91,7 +91,7 @@ const Index = () => {
       description: "Your download will begin shortly",
     });
     // Trigger download
-    window.open('https://releases.knirv.network/knirvnexus-local.zip', '_blank');
+    window.open('https://releases.knirv.network/knirvserver-local.zip', '_blank');
   };
 
   // Hosting Selection: Cloud

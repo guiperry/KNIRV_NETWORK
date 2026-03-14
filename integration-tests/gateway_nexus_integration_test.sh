@@ -69,7 +69,7 @@ test_gateway_health() {
 }
 
 test_nexus_api_routes() {
-    log "Testing KNIRVNEXUS API routes through KNIRVGATEWAY..."
+    log "Testing KNIRVSERVER API routes through KNIRVGATEWAY..."
 
     local gateway_url="${KNIRV_GATEWAY_URL:-http://localhost:8888}"
 
@@ -78,9 +78,9 @@ test_nexus_api_routes() {
     local http_code="${response: -3}"
 
     if [ "$http_code" = "200" ] || [ "$http_code" = "403" ]; then
-        success "KNIRVNEXUS DVE nodes endpoint is accessible through gateway"
+        success "KNIRVSERVER DVE nodes endpoint is accessible through gateway"
     else
-        error "KNIRVNEXUS DVE nodes endpoint returned unexpected status: $http_code"
+        error "KNIRVSERVER DVE nodes endpoint returned unexpected status: $http_code"
         return 1
     fi
 
@@ -89,9 +89,9 @@ test_nexus_api_routes() {
     http_code="${response: -3}"
 
     if [ "$http_code" = "200" ] || [ "$http_code" = "403" ]; then
-        success "KNIRVNEXUS validation tasks endpoint is accessible through gateway"
+        success "KNIRVSERVER validation tasks endpoint is accessible through gateway"
     else
-        error "KNIRVNEXUS validation tasks endpoint returned unexpected status: $http_code"
+        error "KNIRVSERVER validation tasks endpoint returned unexpected status: $http_code"
         return 1
     fi
 
@@ -100,15 +100,15 @@ test_nexus_api_routes() {
     http_code="${response: -3}"
 
     if [ "$http_code" = "200" ] || [ "$http_code" = "403" ]; then
-        success "KNIRVNEXUS system status endpoint is accessible through gateway"
+        success "KNIRVSERVER system status endpoint is accessible through gateway"
     else
-        error "KNIRVNEXUS system status endpoint returned unexpected status: $http_code"
+        error "KNIRVSERVER system status endpoint returned unexpected status: $http_code"
         return 1
     fi
 }
 
 test_authentication() {
-    log "Testing KNIRVNEXUS role-based authentication through KNIRVGATEWAY..."
+    log "Testing KNIRVSERVER role-based authentication through KNIRVGATEWAY..."
 
     local gateway_url="${KNIRV_GATEWAY_URL:-http://localhost:8888}"
 
@@ -120,7 +120,7 @@ test_authentication() {
     if [ "$http_code" = "200" ]; then
         success "Admin role authentication works correctly"
     else
-        warning "Admin authentication test returned status: $http_code (may be expected if KNIRVNEXUS services are not running)"
+        warning "Admin authentication test returned status: $http_code (may be expected if KNIRVSERVER services are not running)"
     fi
 
     # Test validator token

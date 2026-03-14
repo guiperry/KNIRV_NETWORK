@@ -149,8 +149,8 @@ cd backend/cmd/os_builder
 ```
 
 This creates:
-- Custom Kali kernel: `~/.local/share/knirvnexus/os_builder/artifacts/output-kata-guest/vmlinuz-kali-clean-tee`
-- Custom Kali rootfs: `~/.local/share/knirvnexus/os_builder/artifacts/output-kata-guest/kata-rootfs-kali-clean-tee.img`
+- Custom Kali kernel: `~/.local/share/knirvserver/os_builder/artifacts/output-kata-guest/vmlinuz-kali-clean-tee`
+- Custom Kali rootfs: `~/.local/share/knirvserver/os_builder/artifacts/output-kata-guest/kata-rootfs-kali-clean-tee.img`
 
 ### System Requirements
 
@@ -225,7 +225,7 @@ kata-runtime kata-env
 
 ```bash
 # Build container_deployer
-cd /path/to/KNIRVNEXUS
+cd /path/to/KNIRVSERVER
 make deployer
 
 # Run container_deployer
@@ -255,7 +255,7 @@ cd backend/cmd/container_deployer
 - No Kata Containers required
 - No custom kernel/rootfs needed
 
-**Network**: Uses custom bridge network `knirvnexus-local`
+**Network**: Uses custom bridge network `knirvserver-local`
 
 **Ports Exposed**:
 - `8082`: Backend API
@@ -305,8 +305,8 @@ Custom Kata configuration is stored at:
 Key settings:
 ```toml
 [hypervisor.qemu]
-kernel = "/home/USER/.local/share/knirvnexus/os_builder/artifacts/output-kata-guest/vmlinuz-kali-clean-tee"
-image = "/home/USER/.local/share/knirvnexus/os_builder/artifacts/output-kata-guest/kata-rootfs-kali-clean-tee.img"
+kernel = "/home/USER/.local/share/knirvserver/os_builder/artifacts/output-kata-guest/vmlinuz-kali-clean-tee"
+image = "/home/USER/.local/share/knirvserver/os_builder/artifacts/output-kata-guest/kata-rootfs-kali-clean-tee.img"
 default_vcpus = 1
 default_memory = 2048  # MB
 machine_type = "q35"
@@ -325,7 +325,7 @@ The deployer respects these environment variables:
 
 Runtime data is stored in:
 ```
-~/.local/share/knirvnexus/container_deployer/
+~/.local/share/knirvserver/container_deployer/
 ├── artifacts/
 │   └── golang-app-source/    # KNIRV-SERVER application binary
 └── resources/
@@ -402,32 +402,32 @@ Future versions will support CLI flags for automation:
 
 ```bash
 # Real-time logs
-docker logs -f knirvnexus-go-local
+docker logs -f knirvserver-go-local
 
 # Last 100 lines
-docker logs --tail 100 knirvnexus-go-local
+docker logs --tail 100 knirvserver-go-local
 
 # Logs since timestamp
-docker logs --since "2025-01-01T00:00:00" knirvnexus-go-local
+docker logs --since "2025-01-01T00:00:00" knirvserver-go-local
 ```
 
 ### Managing Containers
 
 ```bash
 # List running containers
-docker ps | grep knirvnexus
+docker ps | grep knirvserver
 
 # Stop container
-docker stop knirvnexus-go-local
+docker stop knirvserver-go-local
 
 # Remove container
-docker rm knirvnexus-go-local
+docker rm knirvserver-go-local
 
 # Inspect container
-docker inspect knirvnexus-go-local
+docker inspect knirvserver-go-local
 
 # Execute command in container
-docker exec -it knirvnexus-go-local /bin/bash
+docker exec -it knirvserver-go-local /bin/bash
 ```
 
 ## Directory Structure
@@ -491,7 +491,7 @@ sudo systemctl restart docker
 ip link show docker0
 
 # If still failing, use custom network (deployer does this automatically)
-docker network create knirvnexus-local
+docker network create knirvserver-local
 ```
 
 #### 2. Permission Denied Running Binary
@@ -503,10 +503,10 @@ docker network create knirvnexus-local
 **Solution**: The deployer automatically fixes this, but if you see this error:
 ```bash
 # Check permissions
-ls -l ~/.local/share/knirvnexus/container_deployer/artifacts/golang-app-source/knirv-server
+ls -l ~/.local/share/knirvserver/container_deployer/artifacts/golang-app-source/knirv-server
 
 # Fix permissions
-chmod +x ~/.local/share/knirvnexus/container_deployer/artifacts/golang-app-source/knirv-server
+chmod +x ~/.local/share/knirvserver/container_deployer/artifacts/golang-app-source/knirv-server
 ```
 
 #### 3. Kata Runtime Not Found
@@ -538,7 +538,7 @@ cd backend/cmd/os_builder
 # Wait for build to complete
 
 # Verify artifacts exist
-ls -lh ~/.local/share/knirvnexus/os_builder/artifacts/output-kata-guest/
+ls -lh ~/.local/share/knirvserver/os_builder/artifacts/output-kata-guest/
 ```
 
 #### 5. Container Exits Immediately
@@ -548,7 +548,7 @@ ls -lh ~/.local/share/knirvnexus/os_builder/artifacts/output-kata-guest/
 **Check**:
 ```bash
 # View container logs
-docker logs knirvnexus-go-local
+docker logs knirvserver-go-local
 
 # Common causes:
 # - Binary not found (check golang-app-source/)
@@ -560,9 +560,9 @@ docker logs knirvnexus-go-local
 ```bash
 # Run container interactively
 docker run -it --rm --runtime kata-runtime \
-  --network knirvnexus-local \
+  --network knirvserver-local \
   -p 8082:8082 -p 8089:8089 \
-  knirvnexus-go-app:latest /bin/bash
+  knirvserver-go-app:latest /bin/bash
 
 # Test binary manually
 /app/knirv-server --help
@@ -579,8 +579,8 @@ sudo lsof -i :8082
 sudo lsof -i :8089
 
 # Kill existing container
-docker stop knirvnexus-go-local
-docker rm knirvnexus-go-local
+docker stop knirvserver-go-local
+docker rm knirvserver-go-local
 
 # Or use different ports (modify playbook)
 ```
@@ -603,10 +603,10 @@ log.Printf("Executing: %s %v", name, args)
 
 ```bash
 # Check if container is running
-docker ps | grep knirvnexus
+docker ps | grep knirvserver
 
 # Check container resource usage
-docker stats knirvnexus-go-local
+docker stats knirvserver-go-local
 
 # Check Kata VM info
 kata-runtime kata-env
@@ -618,7 +618,7 @@ curl http://localhost:8089
 
 ### Getting Help
 
-1. **Check logs**: `docker logs knirvnexus-go-local`
+1. **Check logs**: `docker logs knirvserver-go-local`
 2. **Run configuration check**: `./scripts/local-dev-config.sh --check-only`
 3. **Verify prerequisites**: Ensure all required software is installed
 4. **Check GitHub issues**: https://github.com/KNIRV/KNIRV_NETWORK/issues
@@ -663,9 +663,9 @@ go test ./...
 ./container_deployer  # Run through full deployment
 
 # Cleanup after testing
-docker stop knirvnexus-go-local
-docker rm knirvnexus-go-local
-docker rmi knirvnexus-go-app:latest
+docker stop knirvserver-go-local
+docker rm knirvserver-go-local
+docker rmi knirvserver-go-app:latest
 ```
 
 ### Code Structure
@@ -695,7 +695,7 @@ See project root LICENSE file.
 ## Related Documentation
 
 - [os_builder README](../os_builder/README.md) - Building Kali artifacts
-- [KNIRVNEXUS Architecture](../../../docs/architecture.md) - Overall system design
+- [KNIRVSERVER Architecture](../../../docs/architecture.md) - Overall system design
 - [Kata Containers Documentation](https://github.com/kata-containers/kata-containers/tree/main/docs)
 - [Docker Documentation](https://docs.docker.com/)
 - [Ansible Documentation](https://docs.ansible.com/)

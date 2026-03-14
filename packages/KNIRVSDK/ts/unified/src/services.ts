@@ -114,7 +114,7 @@ export class BadgeService extends BaseService {
 }
 
 /**
- * KNIRVNEXUS DVE Service
+ * KNIRVSERVER DVE Service
  */
 export class DVEService extends BaseService {
   async listEnvironments(userId?: string): Promise<DVEEnvironment[]> {

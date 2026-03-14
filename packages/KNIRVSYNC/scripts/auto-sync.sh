@@ -144,7 +144,7 @@ validate_config() {
         "KNIRVORACLE"
         "KNIRVCHAIN" 
         "KNIRVGRAPH"
-        "KNIRVNEXUS"
+        "KNIRVSERVER"
         "KNIRVROUTER"
         "KNIRVGATEWAY"
     )

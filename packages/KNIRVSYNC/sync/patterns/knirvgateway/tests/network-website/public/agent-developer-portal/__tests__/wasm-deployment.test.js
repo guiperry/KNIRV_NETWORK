@@ -88,7 +88,7 @@ describe('WASM Deployment Documentation', () => {
     });
 
     it('should document step 4: Network Deployment', () => {
-      expect(deploymentPageContent).toContain('Upload to secure KNIRVNEXUS environment');
+      expect(deploymentPageContent).toContain('Upload to secure KNIRVSERVER environment');
       expect(deploymentPageContent).toContain('Agent registration with KNIRVORACLE');
       expect(deploymentPageContent).toContain('Network capability announcement');
       expect(deploymentPageContent).toContain('Health check and monitoring setup');
@@ -134,7 +134,7 @@ describe('WASM Deployment Documentation', () => {
   describe('Content Accuracy', () => {
     it('should reference correct KNIRV components', () => {
       expect(deploymentPageContent).toContain('KNIRVCONTROLLER');
-      expect(deploymentPageContent).toContain('KNIRVNEXUS');
+      expect(deploymentPageContent).toContain('KNIRVSERVER');
       expect(deploymentPageContent).toContain('KNIRVORACLE');
       expect(deploymentPageContent).toContain('D-TEN');
     });
@@ -171,7 +171,7 @@ describe('WASM Deployment Documentation', () => {
 
   describe('Integration Points', () => {
     it('should document integration with other KNIRV components', () => {
-      expect(deploymentPageContent).toContain('KNIRVNEXUS DVE');
+      expect(deploymentPageContent).toContain('KNIRVSERVER DVE');
       expect(deploymentPageContent).toContain('KNIRVORACLE registration');
       expect(deploymentPageContent).toContain('KNIRVCONTROLLER build pipeline');
     });

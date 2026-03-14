@@ -46,8 +46,8 @@ header() {
 run_operational_modes_tests() {
     header "Running Operational Modes Tests"
     
-    if [ -f "$PROJECT_ROOT/KNIRVNEXUS/scripts/test-operational-modes.sh" ]; then
-        cd "$PROJECT_ROOT/KNIRVNEXUS"
+    if [ -f "$PROJECT_ROOT/KNIRVSERVER/scripts/test-operational-modes.sh" ]; then
+        cd "$PROJECT_ROOT/KNIRVSERVER"
         if ./scripts/test-operational-modes.sh; then
             success "Operational modes tests passed"
             return 0
@@ -139,15 +139,15 @@ run_phase6_comprehensive_tests() {
 
     log "Testing unified binary deployment and architecture..."
 
-    # Test 1: KNIRVNEXUS unified binary tests
-    log "Testing KNIRVNEXUS unified binary on port 8084..."
+    # Test 1: KNIRVSERVER unified binary tests
+    log "Testing KNIRVSERVER unified binary on port 8084..."
     local nexus_tests_passed=true
 
-    # Check if KNIRVNEXUS is running on correct port
+    # Check if KNIRVSERVER is running on correct port
     if curl -s -f http://localhost:8084/health >/dev/null 2>&1; then
-        success "KNIRVNEXUS unified binary health check passed"
+        success "KNIRVSERVER unified binary health check passed"
     else
-        warning "KNIRVNEXUS unified binary health check failed (service may not be running)"
+        warning "KNIRVSERVER unified binary health check failed (service may not be running)"
         nexus_tests_passed=false
     fi
 
@@ -163,12 +163,12 @@ run_phase6_comprehensive_tests() {
 
     # Test 2: Component integration tests
     log "Testing component integration..."
-    if [ -f "$PROJECT_ROOT/KNIRVNEXUS/backend/tests/phase6_comprehensive_unit_test.go" ]; then
-        cd "$PROJECT_ROOT/KNIRVNEXUS"
+    if [ -f "$PROJECT_ROOT/KNIRVSERVER/backend/tests/phase6_comprehensive_unit_test.go" ]; then
+        cd "$PROJECT_ROOT/KNIRVSERVER"
         if go test -v ./backend/tests/...; then
-            success "KNIRVNEXUS unit tests passed"
+            success "KNIRVSERVER unit tests passed"
         else
-            error "KNIRVNEXUS unit tests failed"
+            error "KNIRVSERVER unit tests failed"
             nexus_tests_passed=false
         fi
     else
@@ -180,9 +180,9 @@ run_phase6_comprehensive_tests() {
     if [ -f "$PROJECT_ROOT/integration-tests/knirvnexus_phase6_comprehensive_test.go" ]; then
         cd "$PROJECT_ROOT/integration-tests"
         if go test -v -run "TestKNIRVNEXUS.*"; then
-            success "KNIRVNEXUS integration tests passed"
+            success "KNIRVSERVER integration tests passed"
         else
-            error "KNIRVNEXUS integration tests failed"
+            error "KNIRVSERVER integration tests failed"
             nexus_tests_passed=false
         fi
     else
@@ -194,9 +194,9 @@ run_phase6_comprehensive_tests() {
     if [ -f "$PROJECT_ROOT/integration-tests/knirvnexus_performance_test.go" ]; then
         cd "$PROJECT_ROOT/integration-tests"
         if go test -v -run "TestPerformance.*" -timeout=10m; then
-            success "KNIRVNEXUS performance tests passed"
+            success "KNIRVSERVER performance tests passed"
         else
-            error "KNIRVNEXUS performance tests failed"
+            error "KNIRVSERVER performance tests failed"
             nexus_tests_passed=false
         fi
     else
@@ -208,9 +208,9 @@ run_phase6_comprehensive_tests() {
     if [ -f "$PROJECT_ROOT/integration-tests/knirvnexus_security_test.go" ]; then
         cd "$PROJECT_ROOT/integration-tests"
         if go test -v -run "TestSecurity.*"; then
-            success "KNIRVNEXUS security tests passed"
+            success "KNIRVSERVER security tests passed"
         else
-            error "KNIRVNEXUS security tests failed"
+            error "KNIRVSERVER security tests failed"
             nexus_tests_passed=false
         fi
     else
@@ -229,8 +229,8 @@ run_phase6_comprehensive_tests() {
 run_frontend_tests() {
     header "Running Frontend Tests"
     
-    if [ -f "$PROJECT_ROOT/KNIRVNEXUS/scripts/test-frontend.sh" ]; then
-        cd "$PROJECT_ROOT/KNIRVNEXUS"
+    if [ -f "$PROJECT_ROOT/KNIRVSERVER/scripts/test-frontend.sh" ]; then
+        cd "$PROJECT_ROOT/KNIRVSERVER"
         if ./scripts/test-frontend.sh; then
             success "Frontend tests passed"
             return 0

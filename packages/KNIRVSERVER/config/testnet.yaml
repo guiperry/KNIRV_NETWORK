@@ -40,7 +40,7 @@ gui:
 
 # Database Configuration
 database:
-  path: ~/.local/share/knirvnexus/backend_server/data/server-testnet.db
+  path: ~/.local/share/knirvserver/backend_server/data/server-testnet.db
 
 # Security Configuration
 security:
@@ -168,8 +168,8 @@ inference:
 
 # Cloud Development Environment (CDE) Configuration
 cde:
-  base_image_path: "~/.local/share/knirvnexus/backend_server/images"
-  workspace_root: "~/.local/share/knirvnexus/backend_server/workspaces"
+  base_image_path: "~/.local/share/knirvserver/backend_server/images"
+  workspace_root: "~/.local/share/knirvserver/backend_server/workspaces"
   max_environments: 50
   default_timeout: "1h"
   max_cpu_per_env: 2.0
@@ -185,11 +185,11 @@ cde:
   session_timeout: "2h"
   max_sessions_per_user: 5
   max_projects_per_user: 20
-  project_storage_path: "~/.local/share/knirvnexus/backend_server/projects"
+  project_storage_path: "~/.local/share/knirvserver/backend_server/projects"
 
 # Reports Configuration
 reports:
-  storage_path: "~/.local/share/knirvnexus/backend_server/reports"
+  storage_path: "~/.local/share/knirvserver/backend_server/reports"
   max_file_size: 104857600  # 100MB
   retention_days: 30
   enable_sharing: true
@@ -199,8 +199,8 @@ reports:
 logging:
   level: "info"  # debug | info | warn | error
   format: "text"
-  output: "~/.local/share/knirvnexus/backend_server/logs/knirvbackend_server.log"
-  file: "~/.local/share/knirvnexus/backend_server/logs/knirvbackend_server.log"
+  output: "~/.local/share/knirvserver/backend_server/logs/knirvbackend_server.log"
+  file: "~/.local/share/knirvserver/backend_server/logs/knirvbackend_server.log"
   max_size: 100    # MB
   max_backups: 5
   max_age: 30      # days
@@ -209,7 +209,7 @@ logging:
 log:
   level: "info"
   format: "text"
-  output: "~/.local/share/knirvnexus/backend_server/logs/knirvbackend_server.log"
+  output: "~/.local/share/knirvserver/backend_server/logs/knirvbackend_server.log"
 
 # Monitoring Configuration
 monitoring:

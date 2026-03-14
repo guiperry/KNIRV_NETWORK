@@ -14,9 +14,9 @@ Welcome to the KNIRV Network documentation. This comprehensive guide provides in
 
 * [KNIRVGRAPH - Decentralized Knowledge Graph with Economics](knirvgraph/README.md) - User guide for KNIRVGRAPH
 
-### KNIRVNEXUS Documentation
+### KNIRVSERVER Documentation
 
-* [KNIRV-NEXUS: Deterministic Validation Environment](knirvnexus/README.md) - User guide for KNIRVNEXUS
+* [KNIRV-NEXUS: Deterministic Validation Environment](knirvserver/README.md) - User guide for KNIRVSERVER
 
 ### KNIRVORACLE Documentation
 

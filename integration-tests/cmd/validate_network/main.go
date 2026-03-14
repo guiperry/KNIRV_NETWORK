@@ -46,7 +46,7 @@ func NewNetworkValidator() *NetworkValidator {
 				URL:       "http://localhost:8082",
 				HealthURL: "http://localhost:8082/height",
 			},
-			"knirvnexus": {
+			"knirvserver": {
 				Name:      "KNIRV-NEXUS",
 				URL:       "http://localhost:8083",
 				HealthURL: "http://localhost:8083/health",
@@ -176,8 +176,8 @@ func (nv *NetworkValidator) testCrossComponentCommunication() error {
 		fmt.Printf(" ✅ OK\n")
 	}
 	
-	// Test KNIRVNEXUS with authentication
-	fmt.Printf("  Testing KNIRVNEXUS (authenticated)...")
+	// Test KNIRVSERVER with authentication
+	fmt.Printf("  Testing KNIRVSERVER (authenticated)...")
 	if err := nv.testServiceEndpoint("http://localhost:8083/health", true); err != nil {
 		fmt.Printf(" ❌ %v\n", err)
 	} else {

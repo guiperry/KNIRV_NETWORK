@@ -1,6 +1,6 @@
-# KNIRVNEXUS: Unification and Agentic Runtime Implementation Plan
+# KNIRVSERVER: Unification and Agentic Runtime Implementation Plan
 
-This document details the strategy for unifying redundant functionality within the KNIRVNEXUS codebase and provides a comprehensive implementation plan for integrating the `oh-my-pi` agentic runtime into the Deterministic Validation Environment (DVE) ecosystem.
+This document details the strategy for unifying redundant functionality within the KNIRVSERVER codebase and provides a comprehensive implementation plan for integrating the `oh-my-pi` agentic runtime into the Deterministic Validation Environment (DVE) ecosystem.
 
 ---
 

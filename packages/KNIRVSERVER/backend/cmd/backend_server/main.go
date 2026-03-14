@@ -218,15 +218,15 @@ func getOSAppDataDir() (string, error) {
 
 	// Try to get user config directory (XDG Base Directory on Linux)
 	if userConfigDir, configErr := os.UserConfigDir(); configErr == nil {
-		appDataDir = filepath.Join(userConfigDir, "knirvnexus")
+		appDataDir = filepath.Join(userConfigDir, "knirvserver")
 	} else {
 		// Fallback to home directory
 		if homeDir, homeErr := os.UserHomeDir(); homeErr == nil {
 			// Use XDG_DATA_HOME or fallback to ~/.local/share
 			if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
-				appDataDir = filepath.Join(xdgDataHome, "knirvnexus")
+				appDataDir = filepath.Join(xdgDataHome, "knirvserver")
 			} else {
-				appDataDir = filepath.Join(homeDir, ".local", "share", "knirvnexus")
+				appDataDir = filepath.Join(homeDir, ".local", "share", "knirvserver")
 			}
 		} else {
 			return "", fmt.Errorf("could not determine application data directory")
@@ -1558,7 +1558,7 @@ func run() error {
 		return fmt.Errorf("failed to start server: %v", err)
 	}
 
-	log.Println("--- KNIRVNEXUS STARTUP ---")
+	log.Println("--- KNIRVSERVER STARTUP ---")
 
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)

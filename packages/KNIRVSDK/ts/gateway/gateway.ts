@@ -118,7 +118,7 @@ export class GatewayService {
     }
 
     // Test other KNIRV services if URLs are configured
-    const services = ['knirvchain', 'knirvnexus', 'knirvoracle', 'knirvgraph'];
+    const services = ['knirvchain', 'knirvserver', 'knirvoracle', 'knirvgraph'];
     
     for (const service of services) {
       const serviceURL = this.config.serviceURLs[service];

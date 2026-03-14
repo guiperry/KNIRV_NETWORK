@@ -32,7 +32,7 @@ router.all('/graph/*', (req, res) => {
 });
 
 router.all('/nexus/*', (req, res) => {
-  // Proxy to KNIRVNEXUS
+  // Proxy to KNIRVSERVER
   const targetUrl = process.env.KNIRVNEXUS_API || 'http://localhost:8082';
   proxyRequest(req, res, targetUrl);
 });

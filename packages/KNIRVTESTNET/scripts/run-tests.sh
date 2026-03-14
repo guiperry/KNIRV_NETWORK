@@ -387,7 +387,7 @@ test_nexus_unified_architecture() {
 
     # Test that old portal directory is NOT being used
     print_info "Verifying old portal copying logic has been removed..."
-    if [ ! -d "data/knirvnexus/portal" ]; then
+    if [ ! -d "data/knirvserver/portal" ]; then
         print_success "Old portal directory not present (correct)"
         arch_tests_passed=$((arch_tests_passed + 1))
     else
@@ -396,12 +396,12 @@ test_nexus_unified_architecture() {
 
     # Test that unified binary exists
     print_info "Checking for KNIRV-NEXUS unified binary..."
-    if [ -f "bin/knirvnexus" ]; then
+    if [ -f "bin/knirvserver" ]; then
         print_success "KNIRV-NEXUS unified binary found"
         arch_tests_passed=$((arch_tests_passed + 1))
 
         # Check binary size (should be substantial due to embedded frontend)
-        local binary_size=$(du -m bin/knirvnexus | cut -f1)
+        local binary_size=$(du -m bin/knirvserver | cut -f1)
         if [ "$binary_size" -gt 10 ]; then
             print_success "Binary size appropriate for embedded frontend: ${binary_size}MB"
             arch_tests_passed=$((arch_tests_passed + 1))
@@ -1164,7 +1164,7 @@ start_testnet() {
     print_step "Starting core blockchain services..."
 
     # Start services in dependency order, letting gateway coordinate ports
-    local services=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter")
+    local services=("knirvoracle" "knirvchain" "knirvgraph" "knirvserver" "knirvrouter")
 
     for service in "${services[@]}"; do
         print_step "Starting $service..."
@@ -1197,7 +1197,7 @@ start_testnet() {
             "knirvgraph")
                 service_health_url="http://localhost:8082/health"
                 ;;
-            "knirvnexus")
+            "knirvserver")
                 service_health_url="http://localhost:8084/health"
                 ;;
             "knirvrouter")

@@ -1,6 +1,6 @@
-// execution_sandbox.p - Execution Sandbox State Machine for KNIRVNEXUS
+// execution_sandbox.p - Execution Sandbox State Machine for KNIRVSERVER
 // Models isolated execution environments for secure code/model validation
-// Based on: KNIRVNEXUS sandbox implementation
+// Based on: KNIRVSERVER sandbox implementation
 
 // Sandbox instance tracking - defined at file level
 type SandboxInstance = (

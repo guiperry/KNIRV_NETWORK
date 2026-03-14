@@ -42,7 +42,7 @@ const SERVICE_REGISTRY = {
     features: ['graph', 'dht', 'error_context', 'skill_mapping'],
     status: 'unknown'
   },
-  'knirvnexus': {
+  'knirvserver': {
     name: 'KNIRV-NEXUS',
     description: 'Unified DVE (Deterministic Validation Environment) service',
     port: 8084,

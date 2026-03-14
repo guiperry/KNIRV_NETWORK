@@ -17,7 +17,7 @@ export interface ClientOptions {
   verbose?: boolean;
   serviceURLs?: {
     knirvchain?: string;
-    knirvnexus?: string;
+    knirvserver?: string;
     knirvoracle?: string;
     knirvgraph?: string;
   };
@@ -44,7 +44,7 @@ export function defaultClientOptions(): RequestConfig {
     verbose: process.env.KNIRV_VERBOSE === 'true',
     serviceURLs: {
       knirvchain: process.env.KNIRVCHAIN_URL || 'http://localhost:8080',
-      knirvnexus: process.env.KNIRVNEXUS_URL || 'http://localhost:8081',
+      knirvserver: process.env.KNIRVNEXUS_URL || 'http://localhost:8081',
       knirvoracle: process.env.KNIRVORACLE_URL || 'http://localhost:8082',
       knirvgraph: process.env.KNIRVGRAPH_URL || 'http://localhost:8083',
     },

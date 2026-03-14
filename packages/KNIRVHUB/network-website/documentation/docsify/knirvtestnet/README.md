@@ -306,7 +306,7 @@ Overall Status: All services are healthy (6/6)
 - ✅ Gateway discovers knirvoracle
 - ✅ Gateway discovers knirvchain
 - ✅ Gateway discovers knirvgraph
-- ✅ Gateway discovers knirvnexus
+- ✅ Gateway discovers knirvserver
 - ✅ Gateway discovers knirvrouter
 
 #### Authentication System

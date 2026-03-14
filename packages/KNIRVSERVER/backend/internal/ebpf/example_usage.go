@@ -75,7 +75,7 @@ func ExampleUsage() {
 	// 8. Cleanup happens via defer monitor.Close()
 }
 
-// Integration with KNIRVNEXUS native runtime
+// Integration with KNIRVSERVER native runtime
 func IntegrationExample() {
 	// This shows how to integrate eBPF monitoring into skill validation
 

@@ -174,9 +174,9 @@
       "enabled": true
     },
     {
-      "name": "KNIRVNEXUS",
-      "production_path": "KNIRVNEXUS",
-      "testnet_path": "sync/patterns/knirvnexus",
+      "name": "KNIRVSERVER",
+      "production_path": "KNIRVSERVER",
+      "testnet_path": "sync/patterns/knirvserver",
       "enabled": true
     },
     {

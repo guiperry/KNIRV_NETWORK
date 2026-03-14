@@ -24,7 +24,7 @@ func (c ChainID) String() string {
 	case ChainKnirvOracle:
 		return "knirvoracle"
 	case ChainKnirvNexus:
-		return "knirvnexus"
+		return "knirvserver"
 	case ChainKnirvRouter:
 		return "knirvrouter"
 	case ChainKnirvGraph:
@@ -47,7 +47,7 @@ func ChainIDFromString(s string) (ChainID, error) {
 		return ChainKnirvChain, nil
 	case "knirvoracle":
 		return ChainKnirvOracle, nil
-	case "knirvnexus":
+	case "knirvserverr":
 		return ChainKnirvNexus, nil
 	case "knirvrouter":
 		return ChainKnirvRouter, nil

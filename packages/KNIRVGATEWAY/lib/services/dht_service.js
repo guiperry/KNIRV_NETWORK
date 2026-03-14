@@ -23,7 +23,7 @@ class DHTService {
       services: {
         knirvgraph: { status: 'unknown', lastSeen: null },
         knirvchain: { status: 'unknown', lastSeen: null },
-        knirvnexus: { status: 'unknown', lastSeen: null },
+        knirvserver: { status: 'unknown', lastSeen: null },
         knirvrouter: { status: 'unknown', lastSeen: null },
         knirvoracle: { status: 'unknown', lastSeen: null }
       },
@@ -108,7 +108,7 @@ class DHTService {
 
     // Nexus announcements
     this.dhtManager.addEventListener('nexusAnnouncement', (data) => {
-      this.handleServiceAnnouncement('knirvnexus', data);
+      this.handleServiceAnnouncement('knirvserver', data);
     });
 
     // Router announcements

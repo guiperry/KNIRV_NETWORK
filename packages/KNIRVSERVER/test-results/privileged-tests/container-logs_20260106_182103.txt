@@ -1,10 +1,10 @@
 KNIRV-SERVER v9b197f78-dirty (built 2026-01-06T21:10:27Z, commit 9b197f78)
-2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvnexus/config/development.yaml
-2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvnexus/config/production.yaml
-2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvnexus/config/schema.prisma
-2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvnexus/config/test.yaml
-2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvnexus/config/testnet.yaml
-2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvnexus/config/validation_methods.json
+2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvserver/config/development.yaml
+2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvserver/config/production.yaml
+2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvserver/config/schema.prisma
+2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvserver/config/test.yaml
+2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvserver/config/testnet.yaml
+2026/01/06 23:23:25 Extracted config file: /root/.local/share/knirvserver/config/validation_methods.json
 2026/01/06 23:23:25 Using environment from KNIRV_ENV: development
 2026/01/06 23:23:25 Extracted development environment file to .env
 [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
@@ -26,7 +26,7 @@ KNIRV-SERVER v9b197f78-dirty (built 2026-01-06T21:10:27Z, commit 9b197f78)
 [GIN-debug] CONNECT /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
 [GIN-debug] TRACE  /api/*path                --> main.(*NexusApp).setupRoutes.func3 (4 handlers)
 2026/01/06 23:23:25 Starting unified backend service on port 8082...
-2026/01/06 23:23:25 Passing config file to backend: /root/.local/share/knirvnexus/config/development.yaml
+2026/01/06 23:23:25 Passing config file to backend: /root/.local/share/knirvserver/config/development.yaml
 2026/01/06 23:23:25 Unified backend started (PID: 15)
 2026/01/06 23:23:25 Registered Anthropic provider constructor with gollm registry
 2026/01/06 23:23:25 Registered Cerebras provider constructor with gollm registry

@@ -74,7 +74,7 @@ func (suite *WebSocketTestSuite) TearDownSuite() {
 }
 
 func (suite *WebSocketTestSuite) waitForServices() {
-	services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvoracle", "knirvrouter"}
+	services := []string{"knirvchain", "knirvgraph", "knirvserver", "knirvoracle", "knirvrouter"}
 
 	for _, service := range services {
 		suite.T().Logf("Waiting for service: %s", service)
@@ -246,7 +246,7 @@ func (suite *WebSocketTestSuite) TestServiceSubscriptionAndRealTimeUpdates() {
 		// Test 2.3: Subscribe to multiple services
 		suite.T().Log("Testing subscription to multiple services...")
 
-		services := []string{"knirvgraph", "knirvnexus", "knirvoracle"}
+		services := []string{"knirvgraph", "knirvserverr", "knirvoracle"}
 
 		for _, service := range services {
 			subscribeMsg := WebSocketMessage{
@@ -283,7 +283,7 @@ func (suite *WebSocketTestSuite) TestLiveMetricsStreaming() {
 		metricsRequestMsg := WebSocketMessage{
 			Type: "start_metrics_stream",
 			Data: map[string]interface{}{
-				"services": []string{"knirvchain", "knirvgraph", "knirvnexus"},
+				"services": []string{"knirvchain", "knirvgraph", "knirvserverr"},
 				"interval": 5, // 5 seconds
 			},
 		}

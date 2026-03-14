@@ -197,7 +197,7 @@ func NewDVEP2PManager(chainID, nodeRole string, db *database.BuntDBManager, dhtE
 		return nil, fmt.Errorf("failed to create pubsub: %w", err)
 	}
 
-	serviceID := fmt.Sprintf("knirvnexus-%s-%s", chainID, nodeRole)
+	serviceID := fmt.Sprintf("knirvserver-%s-%s", chainID, nodeRole)
 
 	manager := &DVEP2PManager{
 		host:               host,
@@ -646,7 +646,7 @@ func (dpm *DVEP2PManager) findDVENodes() {
 	log.Printf("[DVE][%s] Discovering DVE nodes...", dpm.nodeRole)
 
 	// Create a CID for DVE node resources
-	cid, err := dpm.createCIDFromServiceID("knirvnexus-dve")
+	cid, err := dpm.createCIDFromServiceID("knirvserver-dve")
 	if err != nil {
 		log.Printf("[DVE][%s] Failed to create CID for DVE discovery: %v", dpm.nodeRole, err)
 		return
@@ -705,7 +705,7 @@ func (dpm *DVEP2PManager) announceServiceToDHT() {
 	}
 
 	// Create a CID from the service ID
-	cid, err := dpm.createCIDFromServiceID("knirvnexus-dve")
+	cid, err := dpm.createCIDFromServiceID("knirvserver-dve")
 	if err != nil {
 		log.Printf("[DVE][%s] Failed to create CID for service announcement: %v", dpm.nodeRole, err)
 		return

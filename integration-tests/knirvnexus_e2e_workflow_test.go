@@ -38,7 +38,7 @@ type E2ESystemHealth struct {
 
 func TestKNIRVNEXUSE2ECompleteWorkflows(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for E2E testing")
+		t.Skip("KNIRVSERVER service not available for E2E testing")
 	}
 
 	t.Run("TestDVENodeRegistrationWorkflow", func(t *testing.T) {
@@ -141,7 +141,7 @@ func TestKNIRVNEXUSE2ECompleteWorkflows(t *testing.T) {
 
 func TestKNIRVNEXUSE2ESystemHealthMonitoring(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for system health testing")
+		t.Skip("KNIRVSERVER service not available for system health testing")
 	}
 
 	t.Run("TestSystemHealthMonitoringWorkflow", func(t *testing.T) {
@@ -216,7 +216,7 @@ func TestKNIRVNEXUSE2ESystemHealthMonitoring(t *testing.T) {
 
 func TestKNIRVNEXUSE2EUserAuthenticationWorkflow(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for authentication testing")
+		t.Skip("KNIRVSERVER service not available for authentication testing")
 	}
 
 	t.Run("TestUserAuthenticationWorkflow", func(t *testing.T) {
@@ -275,7 +275,7 @@ func TestKNIRVNEXUSE2EUserAuthenticationWorkflow(t *testing.T) {
 
 func TestKNIRVNEXUSE2ERealTimeDataUpdates(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for real-time testing")
+		t.Skip("KNIRVSERVER service not available for real-time testing")
 	}
 
 	t.Run("TestRealTimeDataUpdatesWorkflow", func(t *testing.T) {
@@ -366,7 +366,7 @@ func TestKNIRVNEXUSE2ERealTimeDataUpdates(t *testing.T) {
 
 func TestKNIRVNEXUSE2EErrorRecoveryWorkflow(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for error recovery testing")
+		t.Skip("KNIRVSERVER service not available for error recovery testing")
 	}
 
 	t.Run("TestErrorRecoveryWorkflow", func(t *testing.T) {

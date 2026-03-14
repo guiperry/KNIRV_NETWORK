@@ -197,7 +197,7 @@ type SkillNode struct {
 	Name            string                 `json:"name"`
 	ErrorNodeID     string                 `json:"error_node_id"`     // link to source error
 	LoRAPointer     *LoRAAdapterPointer    `json:"lora_pointer"`      // result artifact
-	ValidationProof string                 `json:"validation_proof"`  // from KNIRVNEXUS DVE
+	ValidationProof string                 `json:"validation_proof"`  // from KNIRVSERVER DVE
 	Performance     SkillPerformance       `json:"performance"`
 	MinerAddress    string                 `json:"miner_address"`
 	NRNReward       uint64                 `json:"nrn_reward"`

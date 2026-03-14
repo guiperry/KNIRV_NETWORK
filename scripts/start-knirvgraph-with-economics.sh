@@ -28,7 +28,7 @@ echo "📊 Economics integration enabled"
 echo "🌐 Service URLs configured:"
 echo "  - KNIRVORACLE: $KNIRVORACLE_URL"
 echo "  - KNIRVCHAIN: $KNIRVCHAIN_URL"
-echo "  - KNIRVNEXUS: $KNIRVNEXUS_URL"
+echo "  - KNIRVSERVER: $KNIRVNEXUS_URL"
 echo "  - KNIRVGATEWAY: $KNIRVGATEWAY_URL"
 echo "  - KNIRVGRAPH Port: $KNIRVGRAPH_PORT"
 

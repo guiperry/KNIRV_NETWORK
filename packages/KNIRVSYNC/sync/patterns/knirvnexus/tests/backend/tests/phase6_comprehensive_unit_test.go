@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// Phase 6 Unit Tests for KNIRVNEXUS Unified Binary Architecture
+// Phase 6 Unit Tests for KNIRVSERVER Unified Binary Architecture
 
 func TestUnifiedBinaryStartup(t *testing.T) {
 	t.Run("TestServerInitialization", func(t *testing.T) {
@@ -38,7 +38,7 @@ func TestUnifiedBinaryStartup(t *testing.T) {
 		router.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"status":       "healthy",
-				"service":      "knirvnexus",
+				"service":      "knirvserver",
 				"port":         8084,
 				"architecture": "unified_binary",
 			})
@@ -56,7 +56,7 @@ func TestUnifiedBinaryStartup(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, "healthy", response["status"])
-		assert.Equal(t, "knirvnexus", response["service"])
+		assert.Equal(t, "knirvserver", response["service"])
 		assert.Equal(t, float64(8084), response["port"])
 		assert.Equal(t, "unified_binary", response["architecture"])
 	})

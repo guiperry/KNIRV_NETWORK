@@ -1198,7 +1198,7 @@ sync-service: ## Synchronize fixes for a specific service (usage: make sync-serv
 	@if [ -z "$(SERVICE)" ]; then \
 		echo "$(RED)Error: SERVICE parameter is required$(NC)"; \
 		echo "Usage: make sync-service SERVICE=<service_name>"; \
-		echo "Available services: knirvoracle, knirvchain, knirvgraph, knirvnexus, knirvrouter, knirvgateway"; \
+		echo "Available services: knirvoracle, knirvchain, knirvgraph, knirvserver, knirvrouter, knirvgateway"; \
 		exit 1; \
 	fi
 	@echo "$(BLUE)Synchronizing fixes for service: $(SERVICE)...$(NC)"

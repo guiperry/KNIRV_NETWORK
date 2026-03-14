@@ -43,8 +43,8 @@ knirv:
         health: "/health"
         poaud: "/poaud"
     
-    # KNIRVNEXUS - Distributed Virtual Environments
-    knirvnexus:
+    # KNIRVSERVER - Distributed Virtual Environments
+    knirvserver:
       url: "http://localhost:8080"
       enabled: true
       timeout: "30s"

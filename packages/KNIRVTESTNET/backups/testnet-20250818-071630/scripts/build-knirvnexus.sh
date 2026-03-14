@@ -5,8 +5,8 @@ echo "Building KNIRV-NEXUS for testnet..."
 
 # Build KNIRV-NEXUS backend services
 echo "Building KNIRV-NEXUS backend services..."
-if [ -d "../KNIRVNEXUS/backend" ]; then
-    cd ../KNIRVNEXUS/backend
+if [ -d "../KNIRVSERVER/backend" ]; then
+    cd ../KNIRVSERVER/backend
 
     # Build DVE Manager
     echo "Building DVE Manager..."
@@ -18,8 +18,8 @@ if [ -d "../KNIRVNEXUS/backend" ]; then
     go build -tags testnet -o validation-core ./cmd/validation-core/main.go
 
     # Copy binaries to testnet bin directory
-    cp dve-manager ../../KNIRVTESTNET/bin/knirvnexus-dve-manager
-    cp validation-core ../../KNIRVTESTNET/bin/knirvnexus-validation-core
+    cp dve-manager ../../KNIRVTESTNET/bin/knirvserver-dve-manager
+    cp validation-core ../../KNIRVTESTNET/bin/knirvserver-validation-core
 
     cd ../../KNIRVTESTNET
     echo "✅ Built and copied KNIRV-NEXUS backend services"
@@ -30,11 +30,11 @@ fi
 
 # Create testnet data directories
 echo "Setting up testnet data directories..."
-mkdir -p data/knirvnexus
+mkdir -p data/knirvserver
 
 # Create testnet-specific configuration
 echo "Creating testnet configuration..."
-cat > data/knirvnexus/config.yaml << 'EOF'
+cat > data/knirvserver/config.yaml << 'EOF'
 testnet:
   enabled: true
   tee:
@@ -59,10 +59,10 @@ validation:
 database:
   clean_on_start: true
   in_memory: false
-  path: "./data/knirvnexus/testnet.db"
+  path: "./data/knirvserver/testnet.db"
 EOF
 
 # Copy configuration to config directory as well
-cp data/knirvnexus/config.yaml config/knirvnexus-testnet-config.yaml
+cp data/knirvserver/config.yaml config/knirvserver-testnet-config.yaml
 
 echo "KNIRV-NEXUS testnet build completed successfully!"

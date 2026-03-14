@@ -19,7 +19,7 @@ go install github.com/cilium/ebpf/cmd/bpf2go@latest
 ## Generate eBPF Code
 
 ```bash
-# From KNIRVNEXUS root
+# From KNIRVSERVER root
 cd backend/internal/ebpf
 go generate
 
@@ -33,7 +33,7 @@ go generate
 
 ## Add to Makefile
 
-Add this target to `KNIRVNEXUS/Makefile`:
+Add this target to `KNIRVSERVER/Makefile`:
 
 ```makefile
 .PHONY: ebpf-generate
@@ -126,7 +126,7 @@ make test-privileged
 ## Verify eBPF Programs Load
 
 ```bash
-# Run KNIRVNEXUS
+# Run KNIRVSERVER
 ./dist/knirv-server
 
 # In another terminal, verify programs are loaded
@@ -183,6 +183,6 @@ See `README.md` for comprehensive documentation, including:
 - Detailed architecture overview
 - All four eBPF program descriptions
 - Go package structure and usage
-- Integration with KNIRVNEXUS TEE security
+- Integration with KNIRVSERVER TEE security
 - Performance characteristics
 - Production deployment guide

@@ -1,14 +1,14 @@
-# KNIRVNEXUS eBPF Subsystem
+# KNIRVSERVER eBPF Subsystem
 
 ## Overview
 
-The KNIRVNEXUS eBPF subsystem provides kernel-level security monitoring and enforcement for skill container validation. It leverages four distinct eBPF programs to create a comprehensive security layer that operates at the kernel boundary without requiring modification to skill containers.
+The KNIRVSERVER eBPF subsystem provides kernel-level security monitoring and enforcement for skill container validation. It leverages four distinct eBPF programs to create a comprehensive security layer that operates at the kernel boundary without requiring modification to skill containers.
 
 ## Architecture
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│                    KNIRVNEXUS Backend                      │
+│                    KNIRVSERVER Backend                      │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │              eBPF Manager (manager.go)               │  │
 │  │    - Lifecycle management                            │  │
@@ -300,11 +300,11 @@ func (l *Loader) LoadSyscallTrace() error {
 }
 ```
 
-### Build KNIRVNEXUS
+### Build KNIRVSERVER
 
 The eBPF bytecode is embedded in the binary:
 ```bash
-cd KNIRVNEXUS
+cd KNIRVSERVER
 make ebpf-generate  # Runs go generate
 make binary         # Builds with embedded eBPF
 ```
@@ -432,7 +432,7 @@ func main() {
 }
 ```
 
-## Integration with KNIRVNEXUS
+## Integration with KNIRVSERVER
 
 The eBPF subsystem integrates with the TEE security layer:
 
@@ -553,7 +553,7 @@ go test -v ./...
 
 Run privileged tests (requires root):
 ```bash
-cd KNIRVNEXUS
+cd KNIRVSERVER
 make test-privileged
 ```
 

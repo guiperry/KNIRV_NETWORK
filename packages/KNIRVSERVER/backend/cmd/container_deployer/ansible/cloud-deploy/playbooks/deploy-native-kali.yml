@@ -1,6 +1,6 @@
 ---
-# KNIRVNEXUS Native Deployment Playbook - Deploy directly on Kali Linux EC2
-- name: Deploy KNIRVNEXUS Binary Natively on Kali Linux EC2
+# KNIRVSERVER Native Deployment Playbook - Deploy directly on Kali Linux EC2
+- name: Deploy KNIRVSERVER Binary Natively on Kali Linux EC2
   hosts: kali_servers
   become: true
   gather_facts: true
@@ -116,7 +116,7 @@
       copy:
         content: |
           [Unit]
-          Description=KNIRVNEXUS Distributed Validation Environment with eBPF Support
+          Description=KNIRVSERVER Distributed Validation Environment with eBPF Support
           Documentation=https://github.com/guiperry/KNIRV_NETWORK
           After=network-online.target
           Wants=network-online.target
@@ -260,7 +260,7 @@
     - name: Display deployment success
       debug:
         msg:
-          - "✓ KNIRVNEXUS deployed successfully on native Kali Linux!"
+          - "✓ KNIRVSERVER deployed successfully on native Kali Linux!"
           - "Environment: {{ environment }}"
           - "Binary: {{ install_path }}"
           - "Config: {{ config_dir }}/production.yaml"

@@ -15,7 +15,7 @@ variable "aws_region" {
 
 variable "aws_ami_name" {
   type    = string
-  default = "knirvnexus-kali-{{timestamp}}"
+  default = "knirvserver-kali-{{timestamp}}"
   description = "Name for the AMI"
 }
 
@@ -39,7 +39,7 @@ variable "aws_security_group_id" {
 
 variable "aws_ami_description" {
   type    = string
-  default = "KNIRVNEXUS Kali Linux - Native deployment ready"
+  default = "KNIRVSERVER Kali Linux - Native deployment ready"
   description = "Description for the AMI"
 }
 
@@ -70,7 +70,7 @@ source "amazon-ebs" "kali-server" {
   ssh_port     = 22
 
   tags = {
-    Name        = "KNIRVNEXUS Kali Linux"
+    Name        = "KNIRVSERVER Kali Linux"
     Environment = "production"
     Purpose     = "native-deployment"
     BuiltBy     = "packer"
@@ -199,7 +199,7 @@ build {
   provisioner "shell" {
     inline = [
       "echo '=== AMI Build Complete ==='",
-      "echo 'AMI is ready for KNIRVNEXUS native deployment'",
+      "echo 'AMI is ready for KNIRVSERVER native deployment'",
       "uname -a",
       "echo 'Go version:'",
       "/usr/local/go/bin/go version"

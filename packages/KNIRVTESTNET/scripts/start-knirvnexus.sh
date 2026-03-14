@@ -7,10 +7,10 @@ echo "🚀 Starting KNIRV-SERVER unified testnet node with new architecture..."
 mkdir -p logs data config
 
 # Check if unified binary exists
-if [ ! -f "./bin/knirvnexus" ]; then
+if [ ! -f "./bin/knirvserver" ]; then
     echo "❌ Error: KNIRV-SERVER unified binary not found."
     echo "   Please run: npm run build:nexus"
-    echo "   Or: bash scripts/build-knirvnexus.sh"
+    echo "   Or: bash scripts/build-knirvserver.sh"
     exit 1
 fi
 
@@ -19,9 +19,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Verify binary is executable
-if [ ! -x "./bin/knirvnexus" ]; then
+if [ ! -x "./bin/knirvserver" ]; then
     echo "🔧 Making binary executable..."
-    chmod +x ./bin/knirvnexus
+    chmod +x ./bin/knirvserver
 fi
 
 # Setup testnet configuration
@@ -44,7 +44,7 @@ EOF
 fi
 
 # Create data directory for NEXUS
-mkdir -p data/knirvnexus
+mkdir -p data/knirvserver
 
 # Set environment variables for testnet mode
 export NEXUS_HOST="0.0.0.0"
@@ -62,15 +62,15 @@ echo "   Mode: Testnet with simplified security"
 
 cd $BASE_DIR && (
     # Start with proper testnet configuration
-    exec ./bin/knirvnexus \
+    exec ./bin/knirvserver \
         --testnet \
         --port 8084 \
         --host 0.0.0.0 \
         --config config/nexus-testnet.yaml
-) > ./logs/knirvnexus.log 2>&1 &
+) > ./logs/knirvserver.log 2>&1 &
 
 NEXUS_PID=$!
-echo $NEXUS_PID > data/knirvnexus.pid
+echo $NEXUS_PID > data/knirvserver.pid
 
 echo "📋 Process started with PID: $NEXUS_PID"
 
@@ -79,16 +79,16 @@ echo "⏳ Waiting for KNIRV-SERVER to initialize..."
 sleep 8
 
 # Check if the process is still running
-if ! kill -0 $(cat ./data/knirvnexus.pid) 2>/dev/null; then
+if ! kill -0 $(cat ./data/knirvserver.pid) 2>/dev/null; then
     echo "❌ Error: KNIRV-SERVER failed to start. Check logs:"
     echo ""
     echo "=== Last 30 lines of log ==="
-    tail -30 ./logs/knirvnexus.log
+    tail -30 ./logs/knirvserver.log
     echo "=========================="
     echo ""
     echo "💡 Troubleshooting tips:"
     echo "   1. Check if port 8084 is already in use: lsof -i :8084"
-    echo "   2. Verify binary was built correctly: ls -la bin/knirvnexus"
+    echo "   2. Verify binary was built correctly: ls -la bin/knirvserver"
     echo "   3. Check configuration: cat config/nexus-testnet.yaml"
     exit 1
 fi
@@ -122,10 +122,10 @@ echo "   Health Check:           http://localhost:8084/health"
 echo "   Version Info:           http://localhost:8084/version"
 echo ""
 echo "📋 Management:"
-echo "   Logs:                   ./logs/knirvnexus.log"
-echo "   PID file:               ./data/knirvnexus.pid"
+echo "   Logs:                   ./logs/knirvserver.log"
+echo "   PID file:               ./data/knirvserver.pid"
 echo "   Configuration:          ./config/nexus-testnet.yaml"
-echo "   Data directory:         ./data/knirvnexus"
+echo "   Data directory:         ./data/knirvserver"
 echo ""
 echo "🧪 Testnet Features Enabled:"
 echo "   ✅ Unified binary with embedded frontend and backend"

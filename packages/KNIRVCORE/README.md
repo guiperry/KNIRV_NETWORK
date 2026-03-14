@@ -427,7 +427,7 @@ OpenTelemetry integration with Jaeger support for distributed tracing.
 - **KNIRVANA**: Gaming platform integration
 - **KNIRVGRAPH**: Knowledge graph visualization
 - **KNIRVCHAIN**: Private LoRA Blockchain MCP Server
-- **KNIRVNEXUS**: Model hosting gateway
+- **KNIRVSERVER**: Model hosting gateway
 - **KNIRVCLI**: Command-line tools
 
 ## 📚 Documentation

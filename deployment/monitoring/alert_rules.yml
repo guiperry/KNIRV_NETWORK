@@ -105,7 +105,7 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "KNIRVNEXUS inference queue is high"
+          summary: "KNIRVSERVER inference queue is high"
           description: "Inference queue size is above 100 for more than 5 minutes."
 
       # Database alerts

@@ -52,7 +52,7 @@ const DeploymentPanel = ({ repoUrl, agentConfig, onDeployComplete, compiledPlugi
 
   const deploymentPlatforms = [
     { id: "knirvcontroller", name: "Mobile: KNIRVCONTROLLER", icon: "📱", description: "Deploy to TypeScript mobile runtime", type: "knirv" },
-    { id: "knirvnexus", name: "Cloud: KNIRVNEXUS", icon: "☁️", description: "Deploy to KNIRV cloud infrastructure", type: "knirv" },
+    { id: "knirvserver", name: "Cloud: KNIRVSERVER", icon: "☁️", description: "Deploy to KNIRV cloud infrastructure", type: "knirv" },
     { id: "knirvana", name: "Game: KNIRVANA", icon: "🎮", description: "Deploy to game environment runtime", type: "knirv" },
     { id: "blockchain-aws", name: "Blockchain AWS", icon: "🔗", description: "Deploy to custom blockchain application on AWS", type: "blockchain" },
     { id: "vercel", name: "Vercel", icon: "⚡", description: "Fast, scalable deployment", type: "cloud" },

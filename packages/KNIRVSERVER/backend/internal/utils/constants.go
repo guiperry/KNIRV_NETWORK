@@ -12,7 +12,7 @@ const (
 	DECIMAL                = 100
 	BLOCKCHAIN_ADDRESS     = "KNIRVNEXUSb53c1e30b8a578c091dd40612bfd1433991b4e09"
 	BLOCKCHAIN_PRIVATE_KEY = "0x1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a"
-	ADDRESS_PREFIX         = "KNIRVNEXUS"
+	ADDRESS_PREFIX         = "KNIRVSERVER"
 	MASTER_WALLET_KEY      = "master_wallet_key"                   // Key for storing/retrieving master wallet
 	WALLET_ENCRYPTION_KEY  = "KNIRVNEXUS_wallet_encryption_key_v1" // Key for wallet encryption/decryption
 	// Timing constants (seconds)
@@ -48,7 +48,7 @@ var ROOTCHAIN_URL = "http://localhost:9999" // Default value
 
 // Display/logging constants (moved from config.json)
 var (
-	BLOCKCHAIN_NAME                = "KNIRVNEXUS"
+	BLOCKCHAIN_NAME                = "KNIRVSERVER"
 	BLOCKCHAIN_STATUS              = "RUNNING"
 	ROOT_IDENTITY_KEY_NAME_IN_FILE = "ROOT_PRIVATE_KEY"
 	SUCCESS                        = "SUCCESS"

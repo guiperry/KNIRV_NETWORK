@@ -251,7 +251,7 @@ func runNetworkConnect(cmd *cobra.Command, args []string) error {
 			client = core.NewKNIRVRootClient(service.Config, log)
 		case "knirvgateway":
 			client = core.NewKNIRVGatewayClient(service.Config, log)
-		case "knirvnexus":
+		case "knirvserver":
 			client = core.NewKNIRVNexusClient(service.Config, log)
 		case "knirvgraph":
 			client = core.NewKNIRVGraphClient(service.Config, log)
@@ -310,7 +310,7 @@ func getNetworkEnvironments() map[string]NetworkEnvironment {
 			Services: map[string]string{
 				"knirvoracle":     "https://testnet.knirv.com:1317",
 				"knirvgateway":    "https://testnet-gateway.knirv.com",
-				"knirvnexus":      "https://testnet-nexus.knirv.com",
+				"knirvserver":      "https://testnet-nexus.knirv.com",
 				"knirvgraph":      "https://testnet-graph.knirv.com",
 				"knirvrouter":     "https://testnet-router.knirv.com",
 				"knirvcontroller": "https://testnet-controller.knirv.com",
@@ -329,7 +329,7 @@ func getNetworkEnvironments() map[string]NetworkEnvironment {
 			Services: map[string]string{
 				"knirvoracle":     "https://oracle.knirv.com:1317",
 				"knirvgateway":    "https://gateway.knirv.com",
-				"knirvnexus":      "https://nexus.knirv.com",
+				"knirvserver":      "https://nexus.knirv.com",
 				"knirvgraph":      "https://graph.knirv.com",
 				"knirvrouter":     "https://router.knirv.com",
 				"knirvcontroller": "https://controller.knirv.com",
@@ -348,7 +348,7 @@ func getNetworkEnvironments() map[string]NetworkEnvironment {
 			Services: map[string]string{
 				"knirvoracle":     "http://localhost:1317",
 				"knirvgateway":    "http://localhost:8888",
-				"knirvnexus":      "http://localhost:8084",
+				"knirvserver":      "http://localhost:8084",
 				"knirvgraph":      "http://localhost:8082",
 				"knirvrouter":     "http://localhost:8086",
 				"knirvcontroller": "http://localhost:8088",
@@ -367,7 +367,7 @@ func getNetworkEnvironments() map[string]NetworkEnvironment {
 			Services: map[string]string{
 				"knirvoracle":     "http://localhost:9317",
 				"knirvgateway":    "http://localhost:9888",
-				"knirvnexus":      "http://localhost:9084",
+				"knirvserver":      "http://localhost:9084",
 				"knirvgraph":      "http://localhost:9082",
 				"knirvrouter":     "http://localhost:9086",
 				"knirvcontroller": "http://localhost:9088",
@@ -442,7 +442,7 @@ func runNetworkSwitch(cmd *cobra.Command, args []string) error {
 			cfg.KNIRV.Services.KNIRVRoot.URL = serviceURL
 		case "knirvgateway":
 			cfg.KNIRV.Services.KNIRVGateway.URL = serviceURL
-		case "knirvnexus":
+		case "knirvserver":
 			cfg.KNIRV.Services.KNIRVNexus.URL = serviceURL
 		case "knirvgraph":
 			cfg.KNIRV.Services.KNIRVGraph.URL = serviceURL

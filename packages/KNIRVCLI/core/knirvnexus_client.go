@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// KNIRVNexusClient handles communication with KNIRVNEXUS service
+// KNIRVNexusClient handles communication with KNIRVSERVER service
 type KNIRVNexusClient struct {
 	*APIClient
 	config      *config.ServiceConfig
@@ -76,7 +76,7 @@ type CognitiveEngineResponse struct {
 	Status   string                 `json:"status"`
 }
 
-// NewKNIRVNexusClient creates a new KNIRVNEXUS client
+// NewKNIRVNexusClient creates a new KNIRVSERVER client
 func NewKNIRVNexusClient(cfg *config.ServiceConfig, logger *logrus.Logger) *KNIRVNexusClient {
 	apiClient := NewAPIClient(cfg.URL, 
 		WithTimeout(cfg.Timeout),
@@ -88,48 +88,48 @@ func NewKNIRVNexusClient(cfg *config.ServiceConfig, logger *logrus.Logger) *KNIR
 		APIClient:   apiClient,
 		config:      cfg,
 		logger:      logger,
-		serviceName: "knirvnexus",
+		serviceName: "knirvserver",
 		capabilities: []string{"dve", "inference", "validation", "cognitive-engine", "tee-security"},
 	}
 }
 
-// Connect establishes connection to KNIRVNEXUS
+// Connect establishes connection to KNIRVSERVER
 func (c *KNIRVNexusClient) Connect(ctx context.Context) error {
-	c.logger.Info("Connecting to KNIRVNEXUS service")
+	c.logger.Info("Connecting to KNIRVSERVER service")
 	
 	// Test connection with a health check
 	err := c.HealthCheck(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to connect to KNIRVNEXUS: %w", err)
+		return fmt.Errorf("failed to connect to KNIRVSERVER: %w", err)
 	}
 	
 	c.connected = true
-	c.logger.Info("Successfully connected to KNIRVNEXUS")
+	c.logger.Info("Successfully connected to KNIRVSERVER")
 	return nil
 }
 
-// Disconnect closes connection to KNIRVNEXUS
+// Disconnect closes connection to KNIRVSERVER
 func (c *KNIRVNexusClient) Disconnect() error {
-	c.logger.Info("Disconnecting from KNIRVNEXUS service")
+	c.logger.Info("Disconnecting from KNIRVSERVER service")
 	c.connected = false
 	return nil
 }
 
-// HealthCheck performs a health check on KNIRVNEXUS
+// HealthCheck performs a health check on KNIRVSERVER
 func (c *KNIRVNexusClient) HealthCheck(ctx context.Context) error {
 	var response interface{}
 	return c.Get(ctx, "/api/health", &response)
 }
 
-// GetCapabilities returns the capabilities of KNIRVNEXUS
+// GetCapabilities returns the capabilities of KNIRVSERVER
 func (c *KNIRVNexusClient) GetCapabilities() []string {
 	return c.capabilities
 }
 
-// Subscribe subscribes to events from KNIRVNEXUS
+// Subscribe subscribes to events from KNIRVSERVER
 func (c *KNIRVNexusClient) Subscribe(events []string, handler EventHandler) error {
 	// TODO: Implement WebSocket subscription
-	c.logger.Infof("Subscribing to KNIRVNEXUS events: %v", events)
+	c.logger.Infof("Subscribing to KNIRVSERVER events: %v", events)
 	return nil
 }
 

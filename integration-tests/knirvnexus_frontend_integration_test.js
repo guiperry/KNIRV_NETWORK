@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * KNIRVNEXUS Frontend Integration Test Suite
+ * KNIRVSERVER Frontend Integration Test Suite
  * Tests the Next.js frontend application and Socket.IO connectivity
  */
 
@@ -187,7 +187,7 @@ class KNIRVNEXUSFrontendTester {
     }
 
     async testBuildArtifacts() {
-        const knirvnexusPath = path.join(__dirname, '..', 'KNIRVNEXUS');
+        const knirvnexusPath = path.join(__dirname, '..', 'KNIRVSERVER');
         const nextPath = path.join(knirvnexusPath, '.next');
 
         if (!fs.existsSync(nextPath)) {
@@ -209,11 +209,11 @@ class KNIRVNEXUSFrontendTester {
     }
 
     async testPackageIntegrity() {
-        const knirvnexusPath = path.join(__dirname, '..', 'KNIRVNEXUS');
+        const knirvnexusPath = path.join(__dirname, '..', 'KNIRVSERVER');
         const packageJsonPath = path.join(knirvnexusPath, 'package.json');
 
         if (!fs.existsSync(packageJsonPath)) {
-            throw new Error('package.json not found in KNIRVNEXUS directory');
+            throw new Error('package.json not found in KNIRVSERVER directory');
         }
 
         const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
@@ -281,7 +281,7 @@ class KNIRVNEXUSFrontendTester {
         };
 
         // Save report to file
-        const reportPath = path.join(__dirname, 'reports', `knirvnexus-frontend-test-${endTime.toISOString().replace(/[:.]/g, '-')}.json`);
+        const reportPath = path.join(__dirname, 'reports', `knirvserver-frontend-test-${endTime.toISOString().replace(/[:.]/g, '-')}.json`);
         
         // Ensure reports directory exists
         const reportsDir = path.dirname(reportPath);
@@ -296,7 +296,7 @@ class KNIRVNEXUSFrontendTester {
     }
 
     async runAllTests() {
-        this.log('Starting KNIRVNEXUS Frontend Integration Tests');
+        this.log('Starting KNIRVSERVER Frontend Integration Tests');
 
         await this.runTest('Frontend Health Check', () => this.testFrontendHealth());
         await this.runTest('Package Integrity Check', () => this.testPackageIntegrity());
@@ -309,7 +309,7 @@ class KNIRVNEXUSFrontendTester {
 
         const report = this.generateReport();
 
-        this.log(`\n=== KNIRVNEXUS Frontend Integration Test Results ===`);
+        this.log(`\n=== KNIRVSERVER Frontend Integration Test Results ===`);
         this.log(`Total Tests: ${report.summary.total}`);
         this.log(`Passed: ${report.summary.passed}`, 'success');
         this.log(`Failed: ${report.summary.failed}`, report.summary.failed > 0 ? 'error' : 'success');

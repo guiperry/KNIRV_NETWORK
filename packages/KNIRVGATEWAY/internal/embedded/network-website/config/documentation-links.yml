@@ -69,8 +69,8 @@ components:
     description: "Graph database and analytics"
     icon: "📊"
     
-  knirvnexus:
-    title: "KNIRVNEXUS Documentation"
+  knirvserver:
+    title: "KNIRVSERVER Documentation"
     description: "Development environment and tools"
     icon: "🔧"
     

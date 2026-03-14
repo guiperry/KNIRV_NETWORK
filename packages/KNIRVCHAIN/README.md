@@ -99,7 +99,7 @@ KNIRVCHAIN implements three core mining/minting processes that transform network
 
 ### 1. ErrorNode → SkillNode Mining (Result: LoRA Adapter Pointer)
 
-When NIMs encounter errors, they create ErrorNodes. Miners propose SkillNodes containing LoRA adapters that resolve these errors. KNIRVNEXUS DVE validates the solution, and successful miners earn NRN rewards.
+When NIMs encounter errors, they create ErrorNodes. Miners propose SkillNodes containing LoRA adapters that resolve these errors. KNIRVSERVER DVE validates the solution, and successful miners earn NRN rewards.
 
 **Transaction Types:**
 - `TransactionTypeErrorNodeSubmit` - Submit new error to graph

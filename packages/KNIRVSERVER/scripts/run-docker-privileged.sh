@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# KNIRVNEXUS Docker Runner with Full Cgroup Access
-# This script runs the KNIRVNEXUS container with full filesystem privileges
+# KNIRVSERVER Docker Runner with Full Cgroup Access
+# This script runs the KNIRVSERVER container with full filesystem privileges
 # required for cgroup and namespace manipulation.
 #
 # Architecture:
@@ -22,8 +22,8 @@ NC='\033[0m' # No Color
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KNIRVNEXUS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CONTAINER_NAME="knirvnexus-kali-local"
-IMAGE_NAME="knirvnexus-test:latest"
+CONTAINER_NAME="knirvserver-kali-local"
+IMAGE_NAME="knirvserver-test:latest"
 BUILD_DOCKERFILE="${KNIRVNEXUS_ROOT}/Dockerfile.test"
 
 # Parse command line arguments
@@ -153,8 +153,8 @@ run_container() {
         --cap-add=ALL
         --security-opt apparmor=unconfined
         --security-opt seccomp=unconfined
-        -v "${KNIRVNEXUS_ROOT}":/workspace/KNIRVNEXUS:rw
-        -w /workspace/KNIRVNEXUS
+        -v "${KNIRVNEXUS_ROOT}":/workspace/KNIRVSERVER:rw
+        -w /workspace/KNIRVSERVER
     )
 
     if [ "$RUN_INTERACTIVE" = true ]; then
@@ -183,7 +183,7 @@ run_container() {
         log_info "Executing tests inside container..."
         docker exec "${CONTAINER_NAME}" bash -c "
             set -e
-            cd /workspace/KNIRVNEXUS/backend
+            cd /workspace/KNIRVSERVER/backend
 
             # Detect and export environment
             if [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
@@ -276,7 +276,7 @@ verify_cgroup_access() {
 
 # Main execution
 main() {
-    log_info "KNIRVNEXUS Docker Runner with Full Privileges"
+    log_info "KNIRVSERVER Docker Runner with Full Privileges"
 
     check_docker
 

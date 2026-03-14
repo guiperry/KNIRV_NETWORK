@@ -153,7 +153,7 @@ export interface EconomicMetrics {
   priceUSD?: string;
 }
 
-// KNIRVNEXUS DVE Types
+// KNIRVSERVER DVE Types
 export interface DVEEnvironment {
   id: string;
   name: string;

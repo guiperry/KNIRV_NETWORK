@@ -311,8 +311,8 @@ perform_health_check() {
         "KNIRV-ORACLE|1317|/health|data/knirvoracle.pid"
         "KNIRVCHAIN|8090|/health|data/knirvchain.pid"
         "KNIRVGRAPH|8082|/height|data/knirvgraph.pid"
-        "KNIRV-NEXUS-DVE|8084|/health|data/knirvnexus-dve-manager.pid"
-        "KNIRV-NEXUS-VAL|8085|/health|data/knirvnexus-validation-core.pid"
+        "KNIRV-NEXUS-DVE|8084|/health|data/knirvserver-dve-manager.pid"
+        "KNIRV-NEXUS-VAL|8085|/health|data/knirvserver-validation-core.pid"
         "KNIRV-ROUTER|8086|/status|data/knirvrouter.pid"
         "KNIRV-GATEWAY|8888|/gateway/health|data/knirvgateway.pid"
     )

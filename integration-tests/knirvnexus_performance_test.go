@@ -41,7 +41,7 @@ type RequestResult struct {
 
 func TestKNIRVNEXUSPerformanceLoad(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for performance testing")
+		t.Skip("KNIRVSERVER service not available for performance testing")
 	}
 
 	t.Run("TestBasicLoadTesting", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestKNIRVNEXUSPerformanceLoad(t *testing.T) {
 
 func TestKNIRVNEXUSConcurrentUsers(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for concurrent user testing")
+		t.Skip("KNIRVSERVER service not available for concurrent user testing")
 	}
 
 	t.Run("TestConcurrentUserScaling", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestKNIRVNEXUSConcurrentUsers(t *testing.T) {
 
 func TestKNIRVNEXUSMemoryUsage(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for memory testing")
+		t.Skip("KNIRVSERVER service not available for memory testing")
 	}
 
 	t.Run("TestMemoryUsageUnderLoad", func(t *testing.T) {
@@ -213,7 +213,7 @@ func TestKNIRVNEXUSMemoryUsage(t *testing.T) {
 
 func TestKNIRVNEXUSNetworkLatency(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for latency testing")
+		t.Skip("KNIRVSERVER service not available for latency testing")
 	}
 
 	t.Run("TestNetworkLatencyMeasurement", func(t *testing.T) {

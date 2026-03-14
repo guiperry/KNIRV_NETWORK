@@ -177,7 +177,7 @@ async function integrationExample() {
     environment: 'development',
     serviceURLs: {
       knirvchain: 'http://localhost:8080',
-      knirvnexus: 'http://localhost:8081',
+      knirvserver: 'http://localhost:8081',
       knirvoracle: 'http://localhost:8082',
       knirvgraph: 'http://localhost:8083',
     },

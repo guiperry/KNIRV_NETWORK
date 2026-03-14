@@ -579,7 +579,7 @@ class KNIRVConfigLoader {
         // Track rental analytics
         if (typeof gtag !== 'undefined') {
             gtag('event', 'dve_rental', {
-                'event_category': 'KNIRVNEXUS',
+                'event_category': 'KNIRVSERVER',
                 'event_label': plan
             });
         }

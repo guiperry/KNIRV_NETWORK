@@ -102,7 +102,7 @@ output "container_registry_urls" {
     oracle     = "${var.container_registry}/${var.project_name}/knirvoracle:${var.container_image_tag}"
     chain      = "${var.container_registry}/${var.project_name}/knirvchain:${var.container_image_tag}"
     graph      = "${var.container_registry}/${var.project_name}/knirvgraph:${var.container_image_tag}"
-    nexus      = "${var.container_registry}/${var.project_name}/knirvnexus:${var.container_image_tag}"
+    nexus      = "${var.container_registry}/${var.project_name}/knirvserver:${var.container_image_tag}"
     router     = "${var.container_registry}/${var.project_name}/knirvrouter:${var.container_image_tag}"
     controller = "${var.container_registry}/${var.project_name}/knirvcontroller:${var.container_image_tag}"
     gateway    = "${var.container_registry}/${var.project_name}/knirvgateway:${var.container_image_tag}"

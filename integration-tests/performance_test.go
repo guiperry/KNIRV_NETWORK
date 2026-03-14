@@ -261,7 +261,7 @@ func (pt *PerformanceTester) TestKNIRVGRAPHPerformance(t *testing.T) {
 	})
 }
 
-// Test KNIRVNEXUS Performance
+// Test KNIRVSERVER Performance
 func (pt *PerformanceTester) TestKNIRVNEXUSPerformance(t *testing.T) {
 	config := LoadTestConfig{
 		ConcurrentUsers: 8,
@@ -309,7 +309,7 @@ func (pt *PerformanceTester) TestKNIRVNEXUSPerformance(t *testing.T) {
 		assert.Greater(t, pt.metrics.SuccessfulRequests, int64(0))
 		assert.Less(t, pt.metrics.ErrorRate, 8.0)
 
-		t.Logf("KNIRVNEXUS Agent Management Metrics: %+v", pt.metrics)
+		t.Logf("KNIRVSERVER Agent Management Metrics: %+v", pt.metrics)
 	})
 }
 
@@ -457,7 +457,7 @@ func (pt *PerformanceTester) TestGatewayPerformance(t *testing.T) {
 		var wg sync.WaitGroup
 		startTime := time.Now()
 
-		services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvoracle", "knirvrouter"}
+		services := []string{"knirvchain", "knirvgraph", "knirvserver", "knirvoracle", "knirvrouter"}
 
 		for i := 0; i < config.ConcurrentUsers; i++ {
 			wg.Add(1)

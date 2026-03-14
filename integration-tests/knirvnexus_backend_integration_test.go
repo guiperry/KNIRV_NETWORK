@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// KNIRVNEXUSBackendTestSuite tests the new KNIRVNEXUS backend architecture
+// KNIRVNEXUSBackendTestSuite tests the new KNIRVSERVER backend architecture
 type KNIRVNEXUSBackendTestSuite struct {
 	suite.Suite
 	apiGatewayURL   string
@@ -91,7 +91,7 @@ func (suite *KNIRVNEXUSBackendTestSuite) SetupSuite() {
 	// Authenticate (if required)
 	suite.authenticate()
 
-	suite.T().Log("KNIRVNEXUS Backend Integration Test Suite initialized")
+	suite.T().Log("KNIRVSERVER Backend Integration Test Suite initialized")
 }
 
 func (suite *KNIRVNEXUSBackendTestSuite) waitForServices() {
@@ -325,7 +325,7 @@ func TestKNIRVNEXUSBackendIntegration(t *testing.T) {
 	client := &http.Client{Timeout: 2 * time.Second}
 	_, err := client.Get("http://localhost:8080/health")
 	if err != nil {
-		t.Skip("KNIRVNEXUS backend services not running - skipping integration tests")
+		t.Skip("KNIRVSERVER backend services not running - skipping integration tests")
 		return
 	}
 

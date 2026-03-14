@@ -103,7 +103,7 @@ start_all_services() {
     wait_for_service "http://localhost:8082/height" "KNIRVGRAPH" 30 3
     
     print_step "Starting KNIRV-NEXUS..."
-    ./scripts/manage-knirv.sh start knirvnexus
+    ./scripts/manage-knirv.sh start knirvserver
     wait_for_service "http://localhost:8083/health" "KNIRV-NEXUS" 30 3
     
     print_step "Starting KNIRV-ROUTER..."

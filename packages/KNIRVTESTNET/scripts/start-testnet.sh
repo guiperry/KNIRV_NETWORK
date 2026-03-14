@@ -386,7 +386,7 @@ if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
 
     # Check if binaries exist (excluding knirvgateway which is a Node.js app)
     missing_binaries=()
-    binary_components=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter")
+    binary_components=("knirvoracle" "knirvchain" "knirvgraph" "knirvserver" "knirvrouter")
 
     for component in "${binary_components[@]}"; do
         if [ ! -f "bin/$component" ]; then
@@ -414,7 +414,7 @@ if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
 else
     print_step "Building all components..."
 
-    components=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter" "knirvgateway")
+    components=("knirvoracle" "knirvchain" "knirvgraph" "knirvserver" "knirvrouter" "knirvgateway")
 
     for component in "${components[@]}"; do
         print_status "Building $component..."
@@ -472,10 +472,10 @@ else
 fi
 
 # 4. Start KNIRV-NEXUS (optional - for private/corporate testing only)
-if [ -f "bin/knirvnexus" ]; then
+if [ -f "bin/knirvserver" ]; then
     print_status "Starting KNIRV-NEXUS (optional - private testing mode)..."
-    if ./scripts/start-knirvnexus.sh; then
-        wait_for_service "KNIRV-NEXUS" "8084" "/" "data/knirvnexus.pid" || print_warning "KNIRV-NEXUS health check failed, continuing..."
+    if ./scripts/start-knirvserver.sh; then
+        wait_for_service "KNIRV-NEXUS" "8084" "/" "data/knirvserver.pid" || print_warning "KNIRV-NEXUS health check failed, continuing..."
     else
         print_warning "Failed to start KNIRV-NEXUS, continuing without it..."
     fi
@@ -584,8 +584,8 @@ echo "  🌐 KNIRV-ROUTER:  http://localhost:8086"
 echo "  🚪 KNIRV-GATEWAY: http://localhost:8888"
 
 # Only show NEXUS if it's running
-if [ -f "data/knirvnexus.pid" ]; then
-    NEXUS_PID=$(cat "data/knirvnexus.pid" 2>/dev/null || echo "")
+if [ -f "data/knirvserver.pid" ]; then
+    NEXUS_PID=$(cat "data/knirvserver.pid" 2>/dev/null || echo "")
     if [ -n "$NEXUS_PID" ] && kill -0 "$NEXUS_PID" 2>/dev/null; then
         echo ""
         echo "Private Testing Services (Corporate):"

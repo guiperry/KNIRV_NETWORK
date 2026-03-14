@@ -190,7 +190,7 @@ func (c *EconomicsConfig) GetComponentURLs() map[string]string {
 		urls["knirvchain"] = c.KNIRVChainURL
 	}
 	if c.KNIRVNexusURL != "" {
-		urls["knirvnexus"] = c.KNIRVNexusURL
+		urls["knirvserver"] = c.KNIRVNexusURL
 	}
 	if c.KNIRVRootURL != "" {
 		urls["knirvchain"] = c.KNIRVRootURL

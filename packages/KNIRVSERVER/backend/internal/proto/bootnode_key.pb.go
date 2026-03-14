@@ -130,7 +130,7 @@ var File_bootnode_key_proto protoreflect.FileDescriptor
 const file_bootnode_key_proto_rawDesc = "" +
 	"\n" +
 	"\x12bootnode_key.proto\x12\n" +
-	"KNIRVNEXUS\"I\n" +
+	"KNIRVSERVER\"I\n" +
 	"\x1bBootnodeKeyFileContentProto\x12*\n" +
 	"\x11master_wallet_key\x18\x01 \x01(\tR\x0fmasterWalletKey\"q\n" +
 	"\x18EncryptedBootnodeKeyFile\x12+\n" +
@@ -153,8 +153,8 @@ func file_bootnode_key_proto_rawDescGZIP() []byte {
 
 var file_bootnode_key_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_bootnode_key_proto_goTypes = []any{
-	(*BootnodeKeyFileContentProto)(nil), // 0: KNIRVNEXUS.BootnodeKeyFileContentProto
-	(*EncryptedBootnodeKeyFile)(nil),    // 1: KNIRVNEXUS.EncryptedBootnodeKeyFile
+	(*BootnodeKeyFileContentProto)(nil), // 0: KNIRVSERVER.BootnodeKeyFileContentProto
+	(*EncryptedBootnodeKeyFile)(nil),    // 1: KNIRVSERVER.EncryptedBootnodeKeyFile
 }
 var file_bootnode_key_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type

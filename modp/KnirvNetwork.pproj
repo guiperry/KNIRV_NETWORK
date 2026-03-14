@@ -26,7 +26,7 @@
     <PFile>components/router/p2p_network.p</PFile>
     <PFile>components/router/proof_of_connectivity.p</PFile>
 
-    <!-- KNIRVNEXUS Components -->
+    <!-- KNIRVSERVER Components -->
     <PFile>components/nexus/validation_machine.p</PFile>
     <PFile>components/nexus/execution_sandbox.p</PFile>
 

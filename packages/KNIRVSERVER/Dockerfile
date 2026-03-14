@@ -9,7 +9,7 @@ RUN apk add --no-cache git
 
 WORKDIR /app/frontend
 
-# Copy package files (relative to current build context `./KNIRVNEXUS/`)
+# Copy package files (relative to current build context `./KNIRVSERVER/`)
 COPY frontend/package*.json ./
 COPY frontend/tsconfig.json ./
 COPY frontend/next.config.ts ./
@@ -20,7 +20,7 @@ COPY frontend/components.json ./
 # Install dependencies
 RUN npm ci
 
-# Copy source code (relative to current build context `./KNIRVNEXUS/`)
+# Copy source code (relative to current build context `./KNIRVSERVER/`)
 COPY frontend/src/ ./src/
 COPY frontend/public/ ./public/
 COPY frontend/scripts/ ./scripts/
@@ -36,11 +36,11 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app
 
-# Copy Go modules (relative to current build context `./KNIRVNEXUS/`)
+# Copy Go modules (relative to current build context `./KNIRVSERVER/`)
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
-# Copy backend source (relative to current build context `./KNIRVNEXUS/`)
+# Copy backend source (relative to current build context `./KNIRVSERVER/`)
 COPY backend/ ./
 
 # Copy frontend build output to embed location
@@ -87,7 +87,7 @@ WORKDIR /opt/knirv-server
 # Copy binary from builder
 COPY --from=backend-builder /app/bin/knirv-server ./bin/ 
 
-# Copy configuration files (relative to current build context `./KNIRVNEXUS/`)
+# Copy configuration files (relative to current build context `./KNIRVSERVER/`)
 COPY config/ ./config/ 
 
 # Set permissions

@@ -267,7 +267,7 @@ if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
 
     # Check if binaries exist (excluding knirvgateway which is a Node.js app)
     missing_binaries=()
-    binary_components=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter")
+    binary_components=("knirvoracle" "knirvchain" "knirvgraph" "knirvserver" "knirvrouter")
 
     for component in "${binary_components[@]}"; do
         if [ ! -f "bin/$component" ]; then
@@ -295,7 +295,7 @@ if [ "$RENDER" = "true" ] || [ -n "$RENDER_SERVICE_ID" ]; then
 else
     print_step "Building all components..."
 
-    components=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter" "knirvgateway")
+    components=("knirvoracle" "knirvchain" "knirvgraph" "knirvserver" "knirvrouter" "knirvgateway")
 
     for component in "${components[@]}"; do
         print_status "Building $component..."
@@ -353,8 +353,8 @@ fi
 
 # 4. Start KNIRV-NEXUS (TEE simulation)
 print_status "Starting KNIRV-NEXUS..."
-if ./scripts/start-knirvnexus.sh; then
-    wait_for_service "KNIRV-NEXUS" "8084" "/health" "data/knirvnexus.pid" || exit 1
+if ./scripts/start-knirvserver.sh; then
+    wait_for_service "KNIRV-NEXUS" "8084" "/health" "data/knirvserver.pid" || exit 1
 else
     print_error "Failed to start KNIRV-NEXUS"
     exit 1
@@ -362,8 +362,8 @@ fi
 
 # 4b. Start KNIRV-NEXUS Frontend
 print_status "Starting KNIRV-NEXUS Frontend..."
-if ./scripts/start-knirvnexus-frontend.sh; then
-    wait_for_service "KNIRV-NEXUS Frontend" "8083" "/" "data/knirvnexus-frontend.pid" || exit 1
+if ./scripts/start-knirvserver-frontend.sh; then
+    wait_for_service "KNIRV-NEXUS Frontend" "8083" "/" "data/knirvserver-frontend.pid" || exit 1
 else
     print_error "Failed to start KNIRV-NEXUS Frontend"
     exit 1

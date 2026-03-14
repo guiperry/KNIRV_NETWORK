@@ -87,7 +87,7 @@ func (suite *E2ETestSuite) TearDownSuite() {
 }
 
 func (suite *E2ETestSuite) waitForServices() {
-	services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvoracle", "knirvrouter"}
+	services := []string{"knirvchain", "knirvgraph", "knirvserver", "knirvoracle", "knirvrouter"}
 
 	for _, service := range services {
 		suite.T().Logf("Waiting for service: %s", service)
@@ -328,7 +328,7 @@ func (suite *E2ETestSuite) TestCompleteWorkflow() {
 			},
 		}
 
-		resp := suite.makeAuthenticatedRequest("POST", "/knirvnexus/agents/create", agentData)
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvserverr/agents/create", agentData)
 		assert.True(suite.T(), resp.Success, "Agent creation failed: %s", resp.Error)
 
 		agentID := resp.Data["id"].(string)
@@ -337,7 +337,7 @@ func (suite *E2ETestSuite) TestCompleteWorkflow() {
 		suite.T().Logf("NEXUS agent created: %s", agentID)
 
 		// Verify agent exists
-		agentResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvnexus/agents/%s", agentID), nil)
+		agentResp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvserverr/agents/%s", agentID), nil)
 		assert.True(suite.T(), agentResp.Success, "Failed to retrieve agent")
 	})
 
@@ -427,7 +427,7 @@ func (suite *E2ETestSuite) TestCompleteWorkflow() {
 			},
 		}
 
-		resp := suite.makeAuthenticatedRequest("POST", "/knirvnexus/workflows/execute", workflowData)
+		resp := suite.makeAuthenticatedRequest("POST", "/knirvserverr/workflows/execute", workflowData)
 		assert.True(suite.T(), resp.Success, "Workflow execution failed: %s", resp.Error)
 
 		workflowID := resp.Data["workflow_id"].(string)
@@ -516,7 +516,7 @@ func (suite *E2ETestSuite) TestCompleteWorkflow() {
 // Helper method for waiting for workflow completion
 func (suite *E2ETestSuite) waitForWorkflowCompletion(workflowID string) {
 	for i := 0; i < 60; i++ { // Wait up to 60 seconds
-		resp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvnexus/workflows/%s/status", workflowID), nil)
+		resp := suite.makeAuthenticatedRequest("GET", fmt.Sprintf("/knirvserverr/workflows/%s/status", workflowID), nil)
 		if resp.Success {
 			status := resp.Data["status"].(string)
 			if status == "completed" || status == "failed" {

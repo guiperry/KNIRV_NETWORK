@@ -13,7 +13,7 @@ A comprehensive command-line interface that provides full integration with the e
 ### 2. Complete KNIRV Network Integration
 - **KNIRVORACLE Client**: Blockchain operations, agent management, economics integration
 - **KNIRVGATEWAY Client**: Unified API gateway access, health monitoring, authentication
-- **KNIRVNEXUS Client**: DVE rental, KNIRVENGINE, inference API integration
+- **KNIRVSERVER Client**: DVE rental, KNIRVENGINE, inference API integration
 - **KNIRVGRAPH Client**: NRV system, ErrorNode/SkillNode operations, graph queries
 
 ### 3. Wallet and Economics Integration

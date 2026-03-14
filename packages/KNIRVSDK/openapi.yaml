@@ -13,7 +13,7 @@ info:
     This specification serves as the source of truth for KNIRV SDK implementations
     that interact with KNIRVORACLE nodes. Wallet operations are primarily handled client-side via the SDK.
 
-    For other KNIRV services (KNIRVNEXUS, KNIRVGATEWAY, etc.), see their respective documentation.
+    For other KNIRV services (KNIRVSERVER, KNIRVGATEWAY, etc.), see their respective documentation.
   version: "2.0.0"
   contact:
     name: KNIRV Network Support

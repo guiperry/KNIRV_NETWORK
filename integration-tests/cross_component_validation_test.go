@@ -126,11 +126,11 @@ func (v *CrossComponentValidator) TestKNIRVCHAINGraphIntegration(t *testing.T) {
 	})
 }
 
-// Test KNIRVNEXUS <-> KNIRVORACLE Integration
+// Test KNIRVSERVER <-> KNIRVORACLE Integration
 func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 	// Test 1: Agent creation in NEXUS triggers blockchain transaction in ROOT
 	t.Run("AgentCreationBlockchainRecord", func(t *testing.T) {
-		// Create agent in KNIRVNEXUS
+		// Create agent in KNIRVSERVER
 		agentData := map[string]interface{}{
 			"name":         "CrossTestAgent",
 			"description":  "Agent for cross-component testing",
@@ -146,7 +146,7 @@ func (v *CrossComponentValidator) TestKNIRVNEXUSRootIntegration(t *testing.T) {
 		require.NoError(t, err)
 
 		agentID := agent["id"].(string)
-		t.Logf("Agent created in KNIRVNEXUS with ID: %s", agentID)
+		t.Logf("Agent created in KNIRVSERVER with ID: %s", agentID)
 
 		// Wait for blockchain propagation
 		time.Sleep(5 * time.Second)

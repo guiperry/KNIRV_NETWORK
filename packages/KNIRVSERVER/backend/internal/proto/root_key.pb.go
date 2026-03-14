@@ -162,7 +162,7 @@ var File_root_key_proto protoreflect.FileDescriptor
 const file_root_key_proto_rawDesc = "" +
 	"\n" +
 	"\x0eroot_key.proto\x12\n" +
-	"KNIRVNEXUS\"\x8c\x02\n" +
+	"KNIRVSERVER\"\x8c\x02\n" +
 	"\x17RootKeyFileContentProto\x12*\n" +
 	"\x11stripe_secret_key\x18\x01 \x01(\tR\x0fstripeSecretKey\x122\n" +
 	"\x15stripe_webhook_secret\x18\x02 \x01(\tR\x13stripeWebhookSecret\x12(\n" +
@@ -189,8 +189,8 @@ func file_root_key_proto_rawDescGZIP() []byte {
 
 var file_root_key_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_root_key_proto_goTypes = []any{
-	(*RootKeyFileContentProto)(nil), // 0: KNIRVNEXUS.RootKeyFileContentProto
-	(*EncryptedRootKeyFile)(nil),    // 1: KNIRVNEXUS.EncryptedRootKeyFile
+	(*RootKeyFileContentProto)(nil), // 0: KNIRVSERVER.RootKeyFileContentProto
+	(*EncryptedRootKeyFile)(nil),    // 1: KNIRVSERVER.EncryptedRootKeyFile
 }
 var file_root_key_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type

@@ -51,7 +51,7 @@ func TestGetOsBuilderArtifactDirectory(t *testing.T) {
 	}
 
 	// Verify it contains expected path components
-	expectedSuffix := ".local/share/knirvnexus/os_builder/artifacts"
+	expectedSuffix := ".local/share/knirvserver/os_builder/artifacts"
 	if len(dir) < len(expectedSuffix) || dir[len(dir)-len(expectedSuffix):] != expectedSuffix {
 		t.Errorf("Expected directory to end with %s, got %s", expectedSuffix, dir)
 	}

@@ -15,7 +15,7 @@ const services = {
     knirvoracle: 'https://oracle-test.knirv.com',
     knirvchain: 'https://chain-test.knirv.com',
     knirvgraph: 'https://graph-test.knirv.com',
-    knirvnexus: 'https://nexus-test.knirv.com',
+    knirvserver: 'https://nexus-test.knirv.com',
     knirvrouter: 'https://router-test.knirv.com',
     knirvgateway: 'https://testnet.knirv.com',
     nanda_ans: 'https://nanda-test.knirv.com'

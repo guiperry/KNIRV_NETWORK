@@ -18,7 +18,7 @@ func TestKNIRVInfrastructure(t *testing.T) {
 		services := map[string]string{
 			"KNIRVCHAIN":      KNIRVChainURL + "/health",
 			"KNIRVGRAPH":      KNIRVGraphURL + "/health",
-			"KNIRVNEXUS":      KNIRVNexusURL + "/api/v1/health",
+			"KNIRVSERVER":      KNIRVNexusURL + "/api/v1/health",
 			"KNIRVCONTROLLER": KNIRVControllerURL + "/health",
 		}
 
@@ -86,14 +86,14 @@ func TestKNIRVInfrastructure(t *testing.T) {
 			// Test NEXUS API info endpoint
 			resp, err := client.Get(KNIRVNexusURL + "/api/v1/info")
 			if err != nil {
-				t.Logf("⚠️  KNIRVNEXUS /api/v1/info endpoint not available: %v", err)
+				t.Logf("⚠️  KNIRVSERVER /api/v1/info endpoint not available: %v", err)
 				return // Skip if endpoint doesn't exist
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode == http.StatusOK {
 				body, _ := io.ReadAll(resp.Body)
-				t.Logf("✅ KNIRVNEXUS /api/v1/info response: %s", string(body))
+				t.Logf("✅ KNIRVSERVER /api/v1/info response: %s", string(body))
 			}
 		})
 
@@ -145,7 +145,7 @@ func TestKNIRVInfrastructure(t *testing.T) {
 		expectedPorts := map[string]string{
 			"KNIRVCHAIN":      "8080",
 			"KNIRVGRAPH":      "8081",
-			"KNIRVNEXUS":      "8090",
+			"KNIRVSERVER":      "8090",
 			"KNIRVCONTROLLER": "3000",
 		}
 
@@ -157,7 +157,7 @@ func TestKNIRVInfrastructure(t *testing.T) {
 					serviceURL = KNIRVChainURL
 				case "KNIRVGRAPH":
 					serviceURL = KNIRVGraphURL
-				case "KNIRVNEXUS":
+				case "KNIRVSERVER":
 					serviceURL = KNIRVNexusURL
 				case "KNIRVCONTROLLER":
 					serviceURL = KNIRVControllerURL
@@ -192,12 +192,12 @@ func TestKNIRVIntegrationFlow(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp2.StatusCode)
 		t.Log("✅ Step 2: KNIRVGRAPH health check passed")
 
-		// Step 3: Check KNIRVNEXUS
+		// Step 3: Check KNIRVSERVER
 		resp3, err3 := client.Get(KNIRVNexusURL + "/api/v1/health")
-		require.NoError(t, err3, "KNIRVNEXUS should be accessible")
+		require.NoError(t, err3, "KNIRVSERVER should be accessible")
 		resp3.Body.Close()
 		assert.Equal(t, http.StatusOK, resp3.StatusCode)
-		t.Log("✅ Step 3: KNIRVNEXUS health check passed")
+		t.Log("✅ Step 3: KNIRVSERVER health check passed")
 
 		// Step 4: Check KNIRVCONTROLLER
 		resp4, err4 := client.Get(KNIRVControllerURL + "/health")
@@ -217,7 +217,7 @@ func TestKNIRVServiceVersions(t *testing.T) {
 
 		// Try to get version info from services that might support it
 		versionEndpoints := map[string]string{
-			"KNIRVNEXUS": KNIRVNexusURL + "/api/v1/version",
+			"KNIRVSERVER": KNIRVNexusURL + "/api/v1/version",
 		}
 
 		for service, versionURL := range versionEndpoints {

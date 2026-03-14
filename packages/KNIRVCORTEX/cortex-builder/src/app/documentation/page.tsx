@@ -61,7 +61,7 @@ export default function DocumentationPage() {
         'Mobile (KNIRVCONTROLLER)',
         'Desktop (KNIRVENGINE)',
         'Game (KNIRVANA)',
-        'Cloud (KNIRVNEXUS)'
+        'Cloud (KNIRVSERVER)'
       ]
     },
     {

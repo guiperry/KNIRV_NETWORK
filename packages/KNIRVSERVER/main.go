@@ -242,16 +242,16 @@ func (app *NexusApp) extractBackend() error {
 func getAppDataDir() (string, error) {
 	// Try XDG_DATA_HOME first
 	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
-		return filepath.Join(xdgDataHome, "knirvnexus"), nil
+		return filepath.Join(xdgDataHome, "knirvserver"), nil
 	}
 
-	// Fallback to ~/.local/share/knirvnexus
+	// Fallback to ~/.local/share/knirvserver
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
-	return filepath.Join(homeDir, ".local", "share", "knirvnexus"), nil
+	return filepath.Join(homeDir, ".local", "share", "knirvserver"), nil
 }
 
 // extractEnvFile extracts the embedded environment file based on the specified environment

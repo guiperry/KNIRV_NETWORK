@@ -165,7 +165,7 @@ run_nexus_deployment_tests() {
     log_info "Running NEXUS deployment tests..."
     
     # Test NEXUS deployment if available
-    NEXUS_DIR="$ROOT_DIR/KNIRVNEXUS"
+    NEXUS_DIR="$ROOT_DIR/KNIRVSERVER"
     if [ -d "$NEXUS_DIR" ]; then
         cd "$NEXUS_DIR"
         
@@ -183,7 +183,7 @@ run_nexus_deployment_tests() {
             log_warning "NEXUS deployment scripts not found"
         fi
     else
-        log_warning "KNIRVNEXUS directory not found"
+        log_warning "KNIRVSERVER directory not found"
     fi
 }
 

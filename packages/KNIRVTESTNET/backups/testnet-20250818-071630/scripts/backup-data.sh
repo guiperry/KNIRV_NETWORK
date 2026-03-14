@@ -29,8 +29,8 @@ if [ -d "data/knirvgraph" ]; then
     echo "  ✅ KNIRVGRAPH data backed up"
 fi
 
-if [ -d "data/knirvnexus" ]; then
-    cp -r data/knirvnexus "$BACKUP_DIR/"
+if [ -d "data/knirvserver" ]; then
+    cp -r data/knirvserver "$BACKUP_DIR/"
     echo "  ✅ KNIRV-NEXUS data backed up"
 fi
 

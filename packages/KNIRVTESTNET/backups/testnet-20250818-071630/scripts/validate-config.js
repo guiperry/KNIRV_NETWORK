@@ -104,7 +104,7 @@ function validateConfig() {
     if (!testnetConfig.endpoints) {
       issues.push('testnet-config.yaml missing endpoints section');
     } else {
-      const requiredEndpoints = ['knirvchain', 'knirvgraph', 'knirvnexus', 'knirvoracle', 'knirvrouter', 'knirvana'];
+      const requiredEndpoints = ['knirvchain', 'knirvgraph', 'knirvserver', 'knirvoracle', 'knirvrouter', 'knirvana'];
       requiredEndpoints.forEach(endpoint => {
         if (!testnetConfig.endpoints[endpoint]) {
           warnings.push(`Missing endpoint in testnet-config.yaml: ${endpoint}`);

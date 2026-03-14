@@ -27,8 +27,8 @@ nexus_portals:
       - "package.json"
       - "vite.config.ts"
     
-  knirvnexus:
-    path: "KNIRVNEXUS"
+  knirvserver:
+    path: "KNIRVSERVER"
     type: "nextjs"
     package_manager: "npm"
     build_command: "npm run build"

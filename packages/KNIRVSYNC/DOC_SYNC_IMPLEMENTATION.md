@@ -85,8 +85,8 @@ Documentation Flow:
 Service Sources (Source of Truth)
 ├── KNIRVCHAIN/README.md
 ├── KNIRVCHAIN/api.yaml
-├── KNIRVNEXUS/README.md
-├── KNIRVNEXUS/api.yaml
+├── KNIRVSERVER/README.md
+├── KNIRVSERVER/api.yaml
 └── [other services...]
         ↓
     KNIRVSYNC (Documentation Sync Manager)
@@ -94,7 +94,7 @@ Service Sources (Source of Truth)
 Central Documentation Targets
 ├── KNIRVGATEWAY/network-website/public/documentation/
 │   ├── knirvchain.md
-│   ├── knirvnexus.md
+│   ├── knirvserver.md
 │   └── [other services...]
 ├── KNIRVRAMP/src/app/documentation/
 │   ├── knirvchain.md

@@ -51,7 +51,7 @@ KNIRV-NEXUS implements a **unified architecture** with embedded frontend and bac
 ## 🧪 Phase 7 Testing Infrastructure
 
 ### Testing Architecture
-KNIRVNEXUS implements comprehensive testing across multiple layers:
+KNIRVSERVER implements comprehensive testing across multiple layers:
 
 #### Backend Testing (Go)
 ```bash
@@ -78,10 +78,10 @@ npm run lint
 
 #### Integration with Network Tests
 ```bash
-# From project root - run KNIRVNEXUS network integration tests
+# From project root - run KNIRVSERVER network integration tests
 cd integration-tests && go test -v -run TestKNIRVNEXUS
 
-# Run comprehensive KNIRVNEXUS test suite
+# Run comprehensive KNIRVSERVER test suite
 make test-nexus
 
 # Run specific test categories
@@ -230,7 +230,7 @@ docker run -p 8090:8090 knirv/nexus:latest
 ```bash
 # 1. Clone repository
 git clone https://github.com/knirv/KNIRV_NETWORK.git
-cd KNIRV_NETWORK/KNIRVNEXUS
+cd KNIRV_NETWORK/KNIRVSERVER
 
 # 2. Install frontend dependencies
 npm install
@@ -269,7 +269,7 @@ go run main.go --config config/development.yaml  # Runs on http://localhost:8080
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/knirv/KNIRV_NETWORK.git
-   cd KNIRV_NETWORK/KNIRVNEXUS
+   cd KNIRV_NETWORK/KNIRVSERVER
    ```
 
 2. **Build the components**:
@@ -462,7 +462,7 @@ go run main.go --config config/development.yaml  # Runs on http://localhost:8080
 ## 📁 Project Structure
 
 ```
-KNIRVNEXUS/
+KNIRVSERVER/
 ├── src/                        # Next.js Frontend
 │   ├── app/                   # Next.js App Router
 │   │   ├── layout.tsx         # Root layout

@@ -30,8 +30,8 @@ func isPrivilegedTestEnvironment() bool {
 		return true
 	}
 
-	// Check if /workspace/KNIRVNEXUS exists (our test container marker)
-	if _, err := os.Stat("/workspace/KNIRVNEXUS"); err == nil {
+	// Check if /workspace/KNIRVSERVER exists (our test container marker)
+	if _, err := os.Stat("/workspace/KNIRVSERVER"); err == nil {
 		return true
 	}
 

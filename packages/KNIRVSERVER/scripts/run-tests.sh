@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# KNIRVNEXUS Test Runner Script
+# KNIRVSERVER Test Runner Script
 # Comprehensive test execution with coverage reporting
-# Aligned with KNIRVNEXUS Makefile test targets
+# Aligned with KNIRVSERVER Makefile test targets
 
 set -euo pipefail
 
-# Script configuration - paths adjusted for KNIRVNEXUS/scripts location
+# Script configuration - paths adjusted for KNIRVSERVER/scripts location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KNIRVNEXUS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BACKEND_DIR="${KNIRVNEXUS_ROOT}/backend"
@@ -46,7 +46,7 @@ log_error() {
 # Help function
 show_help() {
     cat << EOF
-KNIRVNEXUS Test Runner
+KNIRVSERVER Test Runner
 
 Usage: $0 [OPTIONS] [TEST_TYPE]
 
@@ -324,7 +324,7 @@ generate_test_report() {
     local report_file="${KNIRVNEXUS_ROOT}/test-results/test-report-$(date +%Y%m%d-%H%M%S).md"
 
     cat > "$report_file" << EOF
-# KNIRVNEXUS Test Report
+# KNIRVSERVER Test Report
 
 **Date:** $(date)
 **Test Type:** $TEST_TYPE
@@ -362,7 +362,7 @@ EOF
 
 # Main test execution
 main() {
-    log_info "Starting KNIRVNEXUS test execution..."
+    log_info "Starting KNIRVSERVER test execution..."
     log_info "Test type: $TEST_TYPE"
 
     # Setup

@@ -38,7 +38,7 @@ info:
     - AI model and skill management
     - Governance and consensus
 
-    ### 🚀 KNIRVNEXUS (`/nexus/*`)
+    ### 🚀 KNIRVSERVER (`/nexus/*`)
     - Platform and DVE management
     - Model validation and deployment
     - Cognitive services
@@ -486,7 +486,7 @@ paths:
           description: List of models
 
   # ========================================
-  # KNIRVNEXUS PLATFORM API ENDPOINTS
+  # KNIRVSERVER PLATFORM API ENDPOINTS
   # ========================================
 
   /nexus/api/auth/login:
@@ -494,7 +494,7 @@ paths:
       tags:
         - platform
       summary: Platform login
-      description: Authenticate with KNIRVNEXUS platform
+      description: Authenticate with KNIRVSERVER platform
       responses:
         '200':
           description: Authentication successful
@@ -534,7 +534,7 @@ paths:
       tags:
         - platform
       summary: Platform health
-      description: KNIRVNEXUS platform health status
+      description: KNIRVSERVER platform health status
       responses:
         '200':
           description: Platform health

@@ -18,7 +18,7 @@ const (
 
 func TestKNIRVNEXUSSecurityAuthentication(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for security testing")
+		t.Skip("KNIRVSERVER service not available for security testing")
 	}
 
 	t.Run("TestAuthenticationBypass", func(t *testing.T) {
@@ -148,7 +148,7 @@ func TestKNIRVNEXUSSecurityAuthentication(t *testing.T) {
 
 func TestKNIRVNEXUSSecurityInputValidation(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for input validation testing")
+		t.Skip("KNIRVSERVER service not available for input validation testing")
 	}
 
 	t.Run("TestSQLInjectionPrevention", func(t *testing.T) {
@@ -238,7 +238,7 @@ func TestKNIRVNEXUSSecurityInputValidation(t *testing.T) {
 
 func TestKNIRVNEXUSSecurityHeaders(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for security header testing")
+		t.Skip("KNIRVSERVER service not available for security header testing")
 	}
 
 	t.Run("TestSecurityHeaders", func(t *testing.T) {
@@ -296,7 +296,7 @@ func TestKNIRVNEXUSSecurityHeaders(t *testing.T) {
 
 func TestKNIRVNEXUSSecurityRateLimiting(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for rate limiting testing")
+		t.Skip("KNIRVSERVER service not available for rate limiting testing")
 	}
 
 	t.Run("TestRateLimiting", func(t *testing.T) {
@@ -347,7 +347,7 @@ func TestKNIRVNEXUSSecurityRateLimiting(t *testing.T) {
 
 func TestKNIRVNEXUSSecurityTEE(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for TEE security testing")
+		t.Skip("KNIRVSERVER service not available for TEE security testing")
 	}
 
 	t.Run("TestTEESecurityEndpoint", func(t *testing.T) {
@@ -389,7 +389,7 @@ func TestKNIRVNEXUSSecurityTEE(t *testing.T) {
 
 func TestKNIRVNEXUSSecurityNetworkCommunication(t *testing.T) {
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", 10*time.Second) {
-		t.Skip("KNIRVNEXUS service not available for network security testing")
+		t.Skip("KNIRVSERVER service not available for network security testing")
 	}
 
 	t.Run("TestHTTPSRedirection", func(t *testing.T) {

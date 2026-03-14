@@ -53,7 +53,7 @@ run_test() {
 
 # Test 1: Service Health Checks
 test_service_health() {
-    local services=("knirvchain" "knirvgraph" "knirvnexus" "knirvoracle")
+    local services=("knirvchain" "knirvgraph" "knirvserver" "knirvoracle")
 
     for service in "${services[@]}"; do
         local response=$(curl -s -o /dev/null -w "%{http_code}" "$GATEWAY_URL/$service/health")

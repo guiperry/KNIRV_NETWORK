@@ -108,7 +108,7 @@ func TestGetAppDataDir(t *testing.T) {
 	}
 
 	// Check if directory contains expected path
-	expected := filepath.Join(".local", "share", "knirvnexus", "backend_server")
+	expected := filepath.Join(".local", "share", "knirvserver", "backend_server")
 	if !strings.HasSuffix(dir, expected) {
 		t.Errorf("Expected path to end with '%s', got '%s'", expected, dir)
 	}

@@ -267,7 +267,7 @@ main() {
         log_success "╚════════════════════════════════════════════════════════════════╝"
         echo ""
         log_success "You can now restart the deployer with:"
-        log_success "  cd /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/backend/cmd/continer-deployer"
+        log_success "  cd /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSERVER/backend/cmd/continer-deployer"
         log_success "  ./continer-deployer"
         echo ""
         exit 0

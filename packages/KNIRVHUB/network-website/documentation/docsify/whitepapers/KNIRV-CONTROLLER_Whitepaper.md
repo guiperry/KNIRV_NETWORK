@@ -2,7 +2,7 @@
 
 ### **Abstract**
 
-The **KNIRV-CONTROLLER** serves as the comprehensive agent management platform within the KNIRV D-TEN ecosystem, representing a major architectural evolution that unifies agent management, skill development, wallet functionality, and network interaction capabilities. This unified platform allows users to manage agents, skills, UDCs, and wallets for network interaction while providing an integrated shell for minting agents on the oracle with trained capabilities. The CONTROLLER's primary agent-cortex serves as the foundation for user interactions across KNIRVENGINE and KNIRVNEXUS interfaces when linked through QR code scanning functionality.
+The **KNIRV-CONTROLLER** serves as the comprehensive agent management platform within the KNIRV D-TEN ecosystem, representing a major architectural evolution that unifies agent management, skill development, wallet functionality, and network interaction capabilities. This unified platform allows users to manage agents, skills, UDCs, and wallets for network interaction while providing an integrated shell for minting agents on the oracle with trained capabilities. The CONTROLLER's primary agent-cortex serves as the foundation for user interactions across KNIRVENGINE and KNIRVSERVER interfaces when linked through QR code scanning functionality.
 
 ### **1. Introduction**
 
@@ -49,8 +49,8 @@ The CONTROLLER's unified architecture provides comprehensive agent management ca
 #### **3.2. Network Integration & Connectivity**
 
 *   **Universal Service Connectivity**: The CONTROLLER can connect with all services in the network as needed, providing a unified interface for network interaction and service discovery.
-*   **QR Code Connectivity**: Seamless QR code scanning functionality enables the CONTROLLER to link with KNIRVENGINE and KNIRVNEXUS interfaces, creating a unified agent ecosystem.
-*   **Primary Agent-Cortex Cloning**: The CONTROLLER's primary agent-cortex is cloned within linked KNIRVENGINE and KNIRVNEXUS interfaces, ensuring consistent agent behavior across platforms.
+*   **QR Code Connectivity**: Seamless QR code scanning functionality enables the CONTROLLER to link with KNIRVENGINE and KNIRVSERVER interfaces, creating a unified agent ecosystem.
+*   **Primary Agent-Cortex Cloning**: The CONTROLLER's primary agent-cortex is cloned within linked KNIRVENGINE and KNIRVSERVER interfaces, ensuring consistent agent behavior across platforms.
 *   **Cross-Platform Synchronization**: Agent configurations and capabilities are synchronized across connected platforms, maintaining consistency and enabling seamless transitions between interfaces.
 
 

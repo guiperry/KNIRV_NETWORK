@@ -195,14 +195,14 @@ func (sr *ServiceRegistry) registerConfiguredServices() error {
 		sr.RegisterService(endpoint)
 	}
 
-	// Register KNIRVNEXUS
+	// Register KNIRVSERVER
 	if services.KNIRVNexus.Enabled {
 		endpoint := &ServiceEndpoint{
-			Name:         "knirvnexus",
+			Name:         "knirvserver",
 			URL:          services.KNIRVNexus.URL,
 			Status:       ServiceStatusUnknown,
 			Capabilities: []string{"dve", "inference", "validation"},
-			Metadata:     map[string]string{"type": "knirvnexus"},
+			Metadata:     map[string]string{"type": "knirvserver"},
 			Config:       &services.KNIRVNexus,
 		}
 		sr.RegisterService(endpoint)

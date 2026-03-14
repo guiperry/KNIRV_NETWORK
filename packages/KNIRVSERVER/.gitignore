@@ -57,10 +57,10 @@ bin/*
 backend/bin/*
 dist/
 
-KNIRVNEXUS/backend/cmd/container_deployer/golang-app-source/knirv-server
+KNIRVSERVER/backend/cmd/container_deployer/golang-app-source/knirv-server
 
-KNIRVNEXUS/backend/cmd/container_deployer/container_deployer
-KNIRVNEXUS/backend/cmd/os_builder/os_builder
+KNIRVSERVER/backend/cmd/container_deployer/container_deployer
+KNIRVSERVER/backend/cmd/os_builder/os_builder
 
-# KNIRVBASE should not be copied into KNIRVNEXUS
+# KNIRVBASE should not be copied into KNIRVSERVER
 KNIRVBASE/

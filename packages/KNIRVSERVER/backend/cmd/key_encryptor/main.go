@@ -74,7 +74,7 @@ func main() {
 	flag.Parse()
 
 	a := app.New()
-	w := a.NewWindow("KNIRVNEXUS Root Key Encryptor")
+	w := a.NewWindow("KNIRVSERVER Root Key Encryptor")
 	w.Resize(fyne.NewSize(700, 600))
 
 	// Load values from .key file

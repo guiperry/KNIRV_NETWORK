@@ -2,7 +2,7 @@
 
 # Cgroup Access Verification Script
 # This script verifies that the system has proper cgroup v2 access
-# for KNIRVNEXUS container isolation features
+# for KNIRVSERVER container isolation features
 
 set -e
 
@@ -37,7 +37,7 @@ log_error() {
 }
 
 echo "========================================="
-echo "  KNIRVNEXUS Cgroup Access Verification"
+echo "  KNIRVSERVER Cgroup Access Verification"
 echo "========================================="
 echo ""
 
@@ -176,7 +176,7 @@ echo "========================================="
 if [ $ERRORS -eq 0 ] && [ $WARNINGS -eq 0 ]; then
     log_success "All checks passed! Cgroup access is properly configured."
     echo ""
-    echo "You can now run KNIRVNEXUS with full cgroup isolation."
+    echo "You can now run KNIRVSERVER with full cgroup isolation."
     exit 0
 elif [ $ERRORS -eq 0 ]; then
     log_warning "Verification completed with $WARNINGS warning(s)"
@@ -188,7 +188,7 @@ else
     log_error "Verification failed with $ERRORS error(s) and $WARNINGS warning(s)"
     echo ""
     echo "Cgroup access is not properly configured."
-    echo "Please address the errors above before running KNIRVNEXUS."
+    echo "Please address the errors above before running KNIRVSERVER."
     echo ""
     echo "Common fixes:"
     echo "1. For Docker containers:"

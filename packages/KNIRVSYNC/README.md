@@ -91,7 +91,7 @@ The synchronization manager supports multiple pattern types:
 
 - Script Patterns: Build scripts, test scripts, deployment scripts
 - Test Patterns: Unit tests, integration tests, performance tests
-- Component Patterns: KNIRVCONTROLLER, KNIRVCORTEX, KNIRVNEXUS
+- Component Patterns: KNIRVCONTROLLER, KNIRVCORTEX, KNIRVSERVER
 
 ### Environment Transformations
 - Build Transformations: Add testnet build tags
@@ -219,8 +219,8 @@ $ make scan
 [DOC-SYNC] Scanning for documentation gaps...
 [DOC-SYNC] Scanning service: KNIRVCHAIN
 [DOC-SYNC] Found 3 documentation gaps in KNIRVCHAIN
-[DOC-SYNC] Scanning service: KNIRVNEXUS
-[DOC-SYNC] Found 1 documentation gaps in KNIRVNEXUS
+[DOC-SYNC] Scanning service: KNIRVSERVER
+[DOC-SYNC] Found 1 documentation gaps in KNIRVSERVER
 ...
 [DOC-SYNC] Gap report generated: reports/doc-gaps-report.md
 ```

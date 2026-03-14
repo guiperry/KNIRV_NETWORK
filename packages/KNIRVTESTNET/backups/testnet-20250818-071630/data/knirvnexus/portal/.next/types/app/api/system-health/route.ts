@@ -1,4 +1,4 @@
-// File: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/src/app/api/system-health/route.ts
+// File: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSERVER/src/app/api/system-health/route.ts
 import * as entry from '../../../../../src/app/api/system-health/route.js'
 import type { NextRequest } from 'next/server.js'
 

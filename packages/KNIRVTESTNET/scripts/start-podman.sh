@@ -54,7 +54,7 @@ print_success "Podman and podman-compose are available"
 
 # Create necessary directories
 print_status "Creating necessary directories..."
-mkdir -p data/ipfs data/knirvoracle data/knirvchain data/knirvgraph data/knirvnexus data/knirvrouter logs
+mkdir -p data/ipfs data/knirvoracle data/knirvchain data/knirvgraph data/knirvserver data/knirvrouter logs
 
 # Initialize IPFS directory structure if needed
 print_status "Setting up IPFS for KNIRV network..."

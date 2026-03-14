@@ -56,7 +56,7 @@ const CONFIG = {
     // Subproduct categories
     'knirvchain': 'KNIRVCHAIN Documentation',
     'knirvgraph': 'KNIRVGRAPH Documentation',
-    'knirvnexus': 'KNIRVNEXUS Documentation',
+    'knirvserver': 'KNIRVSERVER Documentation',
     'knirvoracle': 'KNIRVORACLE Documentation',
     'knirvrouter': 'KNIRVROUTER Documentation',
     'knirvsdk': 'KNIRVSDK Documentation',
@@ -85,7 +85,7 @@ const CONFIG = {
     'KNIRVCORTEX',
     'KNIRVGATEWAY',
     'KNIRVGRAPH',
-    'KNIRVNEXUS',
+    'KNIRVSERVER',
     'KNIRVORACLE',
     'KNIRVROUTER',
     'KNIRVSDK',
@@ -894,7 +894,7 @@ function determineCategory(subproductName) {
   const categoryMap = {
     'KNIRVCHAIN': 'knirvchain',
     'KNIRVGRAPH': 'knirvgraph',
-    'KNIRVNEXUS': 'knirvnexus',
+    'KNIRVSERVER': 'knirvserver',
     'KNIRVORACLE': 'knirvoracle',
     'KNIRVROUTER': 'knirvrouter',
     'KNIRVSDK': 'knirvsdk',
@@ -996,7 +996,7 @@ async function organizeDocumentationWithAI(hashes) {
       const geminiPrompt = `
 You are a technical documentation organizer for the KNIRV Network project. Analyze this README.md file from the ${fileInfo.subproductName} sub-project and transform it into user-friendly documentation:
 
-1. CATEGORY: Choose the most appropriate category from: guides, deployment, development, api, security, architecture, contribute, legal, knirvchain, knirvgraph, knirvnexus, knirvoracle, knirvrouter, knirvsdk, knirvcortex, knirvengine
+1. CATEGORY: Choose the most appropriate category from: guides, deployment, development, api, security, architecture, contribute, legal, knirvchain, knirvgraph, knirvserver, knirvoracle, knirvrouter, knirvsdk, knirvcortex, knirvengine
 2. TITLE: A clear, user-friendly title (e.g., "${fileInfo.subproductName} User Guide" or "${fileInfo.subproductName} Troubleshooting Guide")
 3. DESCRIPTION: A brief 1-2 sentence description (max 160 characters)
 4. PRIVACY_LEVEL: Either "PUBLIC" (safe for external users) or "PRIVATE" (contains admin-only or sensitive information)

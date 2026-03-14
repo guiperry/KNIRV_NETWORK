@@ -59,7 +59,7 @@ The host CPU only supports **36-bit physical address space** (max 64GB addressab
 
 5. **Docker Bridge Network Deletion**
    - **Problem**: docker0 bridge interface repeatedly deleted by system
-   - **Solution**: Created custom bridge network `knirvnexus-local`
+   - **Solution**: Created custom bridge network `knirvserver-local`
    - **Status**: ✅ FIXED - Playbook uses custom network
 
 ## Attempted Solutions
@@ -87,8 +87,8 @@ The host CPU only supports **36-bit physical address space** (max 64GB addressab
 ```toml
 [hypervisor.qemu]
 path = "/opt/kata/bin/qemu-system-x86_64"
-kernel = "/home/gperry/.local/share/knirvnexus/os_builder/artifacts/output-kata-guest/vmlinuz-kali-clean-tee"
-initrd = "/home/gperry/.local/share/knirvnexus/os_builder/artifacts/output-kata-guest/kata-rootfs-kali-clean-tee-raw.img"
+kernel = "/home/gperry/.local/share/knirvserver/os_builder/artifacts/output-kata-guest/vmlinuz-kali-clean-tee"
+initrd = "/home/gperry/.local/share/knirvserver/os_builder/artifacts/output-kata-guest/kata-rootfs-kali-clean-tee-raw.img"
 machine_type = "microvm"
 default_vcpus = 1
 default_memory = 1024
@@ -135,7 +135,7 @@ subsystem=sandbox
 ### Built and Working
 - ✅ Custom Kali kernel: `vmlinuz-kali-clean-tee` (13MB)
 - ✅ Custom Kali rootfs: `kata-rootfs-kali-clean-tee-raw.img` (175MB, decompressed)
-- ✅ Container image: `knirvnexus-go-app:latest` (built with FROM scratch)
+- ✅ Container image: `knirvserver-go-app:latest` (built with FROM scratch)
 - ✅ Ansible playbooks: local-deploy and cloud-deploy
 - ✅ Configuration scripts: `local-dev-config.sh`
 

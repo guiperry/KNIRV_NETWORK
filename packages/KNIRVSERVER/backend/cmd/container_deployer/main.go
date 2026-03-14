@@ -32,14 +32,14 @@ var deploymentLogger *log.Logger
 var deploymentLogFile *os.File
 
 const (
-	appName              = "knirvnexus"
+	appName              = "knirvserver"
 	ansibleCloudDir      = "ansible/cloud-deploy"
 	ansibleLocalDir      = "ansible/local-deploy"
 	golangAppSourceDir   = "golang-app-source"
 	outputKataGuestDir   = "output-kata-guest"
 	kataConfigDir        = "/etc/kata-containers"
 	customKataKernelName = "kali-clean-tee"
-	containerImageName   = "knirvnexus-kali-base"
+	containerImageName   = "knirvserver-kali-base"
 	artifactsDirName     = "artifacts"
 )
 
@@ -98,14 +98,14 @@ func closeDeploymentLog() {
 }
 
 // getAppDataDirectory returns the Linux XDG Base Directory for app data
-// Following Linux standards: ~/.local/share/knirvnexus/container_deployer
+// Following Linux standards: ~/.local/share/knirvserver/container_deployer
 func getAppDataDirectory() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current user: %v", err)
 	}
 
-	// Use ~/.local/share/knirvnexus/container_deployer (XDG Base Directory Specification)
+	// Use ~/.local/share/knirvserver/container_deployer (XDG Base Directory Specification)
 	appDataDir := filepath.Join(usr.HomeDir, ".local", "share", appName, "container_deployer")
 	if err := os.MkdirAll(appDataDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create app data directory %s: %v", appDataDir, err)
@@ -544,13 +544,13 @@ func checkKataArtifacts() bool {
 // LoadKaliDockerImageFromArchive attempts to load the Kali Docker image from a tar archive
 // in the os_builder's artifacts directory if it's not already present in the Docker daemon.
 func LoadKaliDockerImageFromArchive(osBuilderArtifactDir string) error {
-	imageTarPath := filepath.Join(osBuilderArtifactDir, "knirvnexus-kali-base.tar")
+	imageTarPath := filepath.Join(osBuilderArtifactDir, "knirvserver-kali-base.tar")
 
 	// Check if the image already exists in Docker daemon
-	cmd := exec.Command("docker", "images", "-q", "knirvnexus-kali-base:latest")
+	cmd := exec.Command("docker", "images", "-q", "knirvserver-kali-base:latest")
 	output, err := cmd.Output()
 	if err == nil && strings.TrimSpace(string(output)) != "" {
-		log.Println("knirvnexus-kali-base:latest already exists in Docker daemon. Skipping load from archive.")
+		log.Println("knirvserver-kali-base:latest already exists in Docker daemon. Skipping load from archive.")
 		return nil
 	}
 
@@ -698,15 +698,15 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, en
 
 		// Check if the Kali base Docker image exists locally after attempting to load
 		if *skipImageBuild { // Use the global flag variable (pointer dereference)
-			log.Println("skip-image-build flag is set. Verifying knirvnexus-kali-base:latest locally...")
-			cmd := exec.Command("docker", "images", "-q", "knirvnexus-kali-base:latest")
+			log.Println("skip-image-build flag is set. Verifying knirvserver-kali-base:latest locally...")
+			cmd := exec.Command("docker", "images", "-q", "knirvserver-kali-base:latest")
 			output, err := cmd.Output()
 			if err == nil && strings.TrimSpace(string(output)) != "" {
-				log.Println("knirvnexus-kali-base:latest found locally. Skipping image build.")
+				log.Println("knirvserver-kali-base:latest found locally. Skipping image build.")
 				skipImageBuildVal = true
 			} else {
 				// This case should ideally not be reached if LoadKaliDockerImageFromArchive worked
-				log.Fatalf("Error: knirvnexus-kali-base:latest not found locally even after attempting to load from archive. This indicates an issue with the archive or Docker.")
+				log.Fatalf("Error: knirvserver-kali-base:latest not found locally even after attempting to load from archive. This indicates an issue with the archive or Docker.")
 			}
 		} else { // If the flag is not set, default to building
 			log.Println("skip-image-build flag not set. Image will be built by Ansible.")
@@ -766,7 +766,7 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, en
 	fmt.Println("--- New container deployed successfully! ---")
 
 	// Check container status and tail logs
-	containerName := "knirvnexus-kali-local"
+	containerName := "knirvserver-kali-local"
 
 	// Wait a moment for container to fully start
 	time.Sleep(2 * time.Second)
@@ -900,8 +900,8 @@ func runNativeDeployment(resourcesDir, artifactDir, deployType, environment stri
 func buildKNIRVNexusBinary(artifactDir, environment string) string {
 	fmt.Println("Compiling knirv-nexus with embedded environment...")
 
-	// Navigate to KNIRVNEXUS directory
-	knirvNexusDir := filepath.Join(getCurrentRepoRoot(), "KNIRVNEXUS")
+	// Navigate to KNIRVSERVER directory
+	knirvNexusDir := filepath.Join(getCurrentRepoRoot(), "KNIRVSERVER")
 
 	// Build output path
 	outputPath := filepath.Join(artifactDir, "knirv-nexus")
@@ -941,7 +941,7 @@ func getCurrentRepoRoot() string {
 	dir := cwd
 	for {
 		// Check for common repository indicators
-		if _, err := os.Stat(filepath.Join(dir, "KNIRVNEXUS")); err == nil {
+		if _, err := os.Stat(filepath.Join(dir, "KNIRVSERVER")); err == nil {
 			return dir
 		}
 		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
@@ -979,7 +979,7 @@ func findRepoRootFromEnv() string {
 
 	for _, candidate := range candidates {
 		if candidate != "" {
-			if _, err := os.Stat(filepath.Join(candidate, "KNIRVNEXUS")); err == nil {
+			if _, err := os.Stat(filepath.Join(candidate, "KNIRVSERVER")); err == nil {
 				return candidate
 			}
 			if _, err := os.Stat(filepath.Join(candidate, ".git")); err == nil {

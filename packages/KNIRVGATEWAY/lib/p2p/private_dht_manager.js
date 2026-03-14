@@ -229,7 +229,7 @@ class PrivateDHTManager extends EventEmitter {
 
     try {
       // Look for other KNIRV services
-      const serviceTypes = ['knirvoracle', 'knirvgraph', 'knirvchain', 'knirvnexus', 'knirvrouter', 'knirvoracle'];
+      const serviceTypes = ['knirvoracle', 'knirvgraph', 'knirvchain', 'knirvserver', 'knirvrouter', 'knirvoracle'];
       
       for (const serviceType of serviceTypes) {
         const serviceKey = `service:${serviceType}-${this.chainID}`;

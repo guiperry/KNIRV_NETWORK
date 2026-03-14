@@ -20,7 +20,7 @@
 # GraphChain Explorer (local testnet version)
 /graphchain-explorer/* /graphchain-explorer/:splat 200
 
-# NEXUS Portal - redirect to local KNIRVNEXUS instance
+# NEXUS Portal - redirect to local KNIRVSERVER instance
 /nexus-portal/* http://localhost:8084/:splat 302
 /nexus/* http://localhost:8084/:splat 302
 

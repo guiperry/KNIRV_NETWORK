@@ -11,7 +11,7 @@ nexus:
 database:
   clean_on_start: true
   in_memory: false
-  path: "./data/knirvnexus/testnet.db"
+  path: "./data/knirvserver/testnet.db"
 
 dve:
   enabled: true

@@ -267,7 +267,7 @@ else
     print_success "  ├── KNIRV Oracle: knirv-knirvoracle:latest"
     print_success "  ├── KNIRV Chain: knirv-knirvchain:latest"
     print_success "  ├── KNIRV Graph: knirv-knirvgraph:latest"
-    print_success "  ├── KNIRV Nexus: knirv-knirvnexus:latest"
+    print_success "  ├── KNIRV Nexus: knirv-knirvserver:latest"
     print_success "  └── KNIRV Router: knirv-knirvrouter:latest"
     echo ""
     print_status "🚀 NEXT STEPS:"

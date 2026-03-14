@@ -14,10 +14,10 @@ set -e
 #   RENDER_SERVICE_ID    - Automatically set on Render
 #
 # Usage:
-#   ./build-knirvnexus.sh                    # Auto-detect mode (smart rebuild)
-#   ./build-knirvnexus.sh --force            # Force rebuild
-#   ./build-knirvnexus.sh --prebuilt         # Force use prebuilt
-#   USE_PREBUILT=true ./build-knirvnexus.sh  # Force prebuilt mode (env var)
+#   ./build-knirvserver.sh                    # Auto-detect mode (smart rebuild)
+#   ./build-knirvserver.sh --force            # Force rebuild
+#   ./build-knirvserver.sh --prebuilt         # Force use prebuilt
+#   USE_PREBUILT=true ./build-knirvserver.sh  # Force prebuilt mode (env var)
 
 echo "🚀 Building KNIRV-SERVER unified binary for testnet using new Makefile architecture..."
 
@@ -128,7 +128,7 @@ cd ../packages/KNIRVSERVER
 check_build_needed() {
     local build_log_file="build.log"
     local binary_file="dist/knirv-nexus"
-    local testnet_binary_file="../../KNIRVTESTNET/bin/knirvnexus"
+    local testnet_binary_file="../../KNIRVTESTNET/bin/knirvserver"
 
     # If no build log exists, we need to build
     if [ ! -f "$build_log_file" ]; then
@@ -326,12 +326,12 @@ fi
 # Copy unified binary to testnet bin directory
 print_status "Copying unified binary to testnet..."
 mkdir -p ../../KNIRVTESTNET/bin
-cp dist/knirv-nexus ../../KNIRVTESTNET/bin/knirvnexus
+cp dist/knirv-nexus ../../KNIRVTESTNET/bin/knirvserver
 
 cd ../../KNIRVTESTNET
 
 # Verify the binary was copied successfully
-if [ ! -f "bin/knirvnexus" ]; then
+if [ ! -f "bin/knirvserver" ]; then
     print_error "Failed to copy unified binary to testnet"
     exit 1
 fi
@@ -340,7 +340,7 @@ print_success "Built and copied KNIRV-SERVER unified binary"
 
 # Create testnet data directories
 print_status "Setting up testnet data directories..."
-mkdir -p data/knirvnexus
+mkdir -p data/knirvserver
 mkdir -p logs
 mkdir -p config
 
@@ -386,7 +386,7 @@ testnet:
 # Database configuration
 database:
   type: "sqlite"
-  path: "./data/knirvnexus/testnet.db"
+  path: "./data/knirvserver/testnet.db"
   clean_on_start: true
   auto_migrate: true
 
@@ -407,7 +407,7 @@ tee:
 logging:
   level: "info"
   format: "json"
-  output: "./logs/knirvnexus.log"
+  output: "./logs/knirvserver.log"
   max_size: 100
   max_backups: 5
   max_age: 30
@@ -417,7 +417,7 @@ fi
 
 # Create a simplified config for backward compatibility
 print_status "Creating backward compatibility configuration..."
-cat > data/knirvnexus/config.yaml << 'EOF'
+cat > data/knirvserver/config.yaml << 'EOF'
 # Legacy configuration format for backward compatibility
 testnet:
   enabled: true
@@ -431,7 +431,7 @@ nexus:
 database:
   clean_on_start: true
   in_memory: false
-  path: "./data/knirvnexus/testnet.db"
+  path: "./data/knirvserver/testnet.db"
 
 dve:
   enabled: true
@@ -443,10 +443,10 @@ tee:
 EOF
 
 # Copy configuration to config directory as well for backward compatibility
-cp data/knirvnexus/config.yaml config/knirvnexus-testnet-config.yaml
+cp data/knirvserver/config.yaml config/knirvserver-testnet-config.yaml
 
 print_status "Setting executable permissions..."
-chmod +x bin/knirvnexus
+chmod +x bin/knirvserver
 
 echo ""
 print_success "🎉 KNIRV-SERVER testnet build completed successfully!"
@@ -461,16 +461,16 @@ else
     print_success "  ✅ Backend built as unified Go service"
     print_success "  ✅ Unified binary created with embedded components"
 fi
-print_success "  ✅ Binary copied to testnet ($(du -h bin/knirvnexus | cut -f1))"
+print_success "  ✅ Binary copied to testnet ($(du -h bin/knirvserver | cut -f1))"
 print_success "  ✅ Testnet configuration created"
 print_success "  ✅ Backward compatibility configs created"
 echo ""
 print_status "🚀 Ready to start with:"
-print_status "  ./bin/knirvnexus --config config/nexus-testnet.yaml"
+print_status "  ./bin/knirvserver --config config/nexus-testnet.yaml"
 print_status "  OR"
-print_status "  ./scripts/start-knirvnexus.sh (if available)"
+print_status "  ./scripts/start-knirvserver.sh (if available)"
 echo ""
 print_status "🔍 Binary info:"
-print_status "  Location: $(pwd)/bin/knirvnexus"
-print_status "  Size: $(du -h bin/knirvnexus | cut -f1)"
-print_status "  Permissions: $(ls -la bin/knirvnexus | cut -d' ' -f1)"
+print_status "  Location: $(pwd)/bin/knirvserver"
+print_status "  Size: $(du -h bin/knirvserver | cut -f1)"
+print_status "  Permissions: $(ls -la bin/knirvserver | cut -d' ' -f1)"

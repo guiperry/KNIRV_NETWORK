@@ -7,7 +7,7 @@ const path = require('path');
 const services = {
   knirvchain: process.env.KNIRVCHAIN_URL || "https://chain.knirv.com",
   knirvgraph: process.env.KNIRVGRAPH_URL || "https://graph.knirv.com",
-  knirvnexus: process.env.KNIRVNEXUS_URL || "https://nexus.knirv.com",
+  knirvserver: process.env.KNIRVNEXUS_URL || "https://nexus.knirv.com",
   knirvoracle: process.env.KNIRVORACLE_URL || "https://root.knirv.com"
 };
 

@@ -67,7 +67,7 @@ exports.handler = async (event, context) => {
       getServiceMetrics('knirvoracle', 'http://localhost:1317/health'),
       getServiceMetrics('knirvchain', 'http://localhost:8090/health'),
       getServiceMetrics('knirvgraph', 'http://localhost:8082/health'),
-      getServiceMetrics('knirvnexus', 'http://localhost:8084/health'),
+      getServiceMetrics('knirvserver', 'http://localhost:8084/health'),
       getServiceMetrics('knirvrouter', 'http://localhost:8086/health'),
       getServiceMetrics('knirvcontroller', 'http://localhost:8089/health')
     ];

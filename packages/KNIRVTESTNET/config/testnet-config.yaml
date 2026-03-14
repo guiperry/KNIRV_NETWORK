@@ -5,7 +5,7 @@
 endpoints:
   knirvchain: "https://chain-test.knirv.com"
   knirvgraph: "https://graph-test.knirv.com"
-  knirvnexus: "https://nexus-test.knirv.com"
+  knirvserver: "https://nexus-test.knirv.com"
   knirvnexus_gui: "https://nexus-test.knirv.com"
   knirvnexus_dve: "https://nexus-dve-test.knirv.com"
   knirvnexus_validation: "https://nexus-validation-test.knirv.com"

@@ -175,8 +175,8 @@ discover_service_ports() {
         fi
     fi
 
-    if [ -f "data/knirvnexus-dve-manager.pid" ]; then
-        local pid=$(cat data/knirvnexus-dve-manager.pid 2>/dev/null)
+    if [ -f "data/knirvserver-dve-manager.pid" ]; then
+        local pid=$(cat data/knirvserver-dve-manager.pid 2>/dev/null)
         if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
             local port=$(lsof -Pan -p "$pid" -i 2>/dev/null | grep LISTEN | head -1 | sed 's/.*:\([0-9]*\).*/\1/')
             [ -n "$port" ] && KNIRVSERVER_PORT=$port
@@ -378,7 +378,7 @@ perform_integration_tests() {
     test_service_discovery "knirvoracle"
     test_service_discovery "knirvchain"
     test_service_discovery "knirvgraph"
-    test_service_discovery "knirvnexus"
+    test_service_discovery "knirvserver"
     test_service_discovery "knirvrouter"
     echo ""
     

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to kill all KNIRVNEXUS services
+# Script to kill all KNIRVSERVER services
 # Usage: ./kill-all-services.sh [--force]
 
 set -e
@@ -9,7 +9,7 @@ if [[ "$1" == "--force" ]]; then
     FORCE=true
 fi
 
-echo "=== Killing all KNIRVNEXUS services ==="
+echo "=== Killing all KNIRVSERVER services ==="
 
 # Function to kill process by name pattern
 kill_by_pattern() {

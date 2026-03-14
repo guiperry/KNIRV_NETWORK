@@ -139,7 +139,7 @@ validate_component() {
 validate_scripts() {
     log_info "Validating script patterns..."
     
-    local components=("KNIRVORACLE" "KNIRVCHAIN" "KNIRVGRAPH" "KNIRVNEXUS" "KNIRVROUTER" "KNIRVGATEWAY")
+    local components=("KNIRVORACLE" "KNIRVCHAIN" "KNIRVGRAPH" "KNIRVSERVER" "KNIRVROUTER" "KNIRVGATEWAY")
     local total_issues=0
     
     for component in "${components[@]}"; do
@@ -161,7 +161,7 @@ validate_scripts() {
 validate_tests() {
     log_info "Validating test patterns..."
     
-    local components=("KNIRVORACLE" "KNIRVCHAIN" "KNIRVGRAPH" "KNIRVNEXUS" "KNIRVROUTER" "KNIRVGATEWAY")
+    local components=("KNIRVORACLE" "KNIRVCHAIN" "KNIRVGRAPH" "KNIRVSERVER" "KNIRVROUTER" "KNIRVGATEWAY")
     local total_issues=0
     
     for component in "${components[@]}"; do
@@ -231,7 +231,7 @@ generate_detailed_report() {
         echo ""
         
         echo "PRODUCTION COMPONENTS:"
-        for component in KNIRVORACLE KNIRVCHAIN KNIRVGRAPH KNIRVNEXUS KNIRVROUTER KNIRVGATEWAY; do
+        for component in KNIRVORACLE KNIRVCHAIN KNIRVGRAPH KNIRVSERVER KNIRVROUTER KNIRVGATEWAY; do
             if [[ -d "$PRODUCTION_ROOT/$component" ]]; then
                 echo "✓ $component"
                 
@@ -253,7 +253,7 @@ generate_detailed_report() {
         
         echo ""
         echo "TESTNET SYNC PATTERNS:"
-        for component in knirvoracle knirvchain knirvgraph knirvnexus knirvrouter knirvgateway; do
+        for component in knirvoracle knirvchain knirvgraph knirvserver knirvrouter knirvgateway; do
             local testnet_path="$TESTNET_ROOT/sync/patterns/$component"
             if [[ -d "$testnet_path" ]]; then
                 echo "✓ $component"

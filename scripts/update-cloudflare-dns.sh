@@ -273,7 +273,7 @@ main() {
                 ["KNIRVORACLE"]="1317:/health"
                 ["KNIRVCHAIN"]="8090:/health"
                 ["KNIRVGRAPH"]="8082:/health"
-                ["KNIRVNEXUS"]="8084:/health"
+                ["KNIRVSERVER"]="8084:/health"
                 ["KNIRVROUTER"]="8086:/status"
                 ["GATEWAY"]="10000:/health"
                 ["KNIRVANA"]="3000:/health"

@@ -5,7 +5,7 @@ info:
     Unified API specification for the KNIRV Network ecosystem.
 
     This specification serves as the single source of truth for all KNIRV SDK implementations
-    and CLI tools. It integrates endpoints from KNIRVCHAIN, KNIRVORACLE, KNIRVNEXUS,
+    and CLI tools. It integrates endpoints from KNIRVCHAIN, KNIRVORACLE, KNIRVSERVER,
     and related services. Wallet operations are primarily handled client-side via the SDK.
 
     ## Services Included
@@ -39,7 +39,7 @@ info:
     - URI generation (moved from KNIRVCHAIN)
     - Model and skill management
 
-    ### 🏗️ KNIRVNEXUS (`/nexus/*`)
+    ### 🏗️ KNIRVSERVER (`/nexus/*`)
     - Platform and DVE management
     - Model validation and deployment
     - Cognitive services
@@ -56,7 +56,7 @@ servers:
   - url: http://localhost:5000
     description: Local KNIRVCHAIN development server
   - url: http://localhost:8090
-    description: Local KNIRVNEXUS development server
+    description: Local KNIRVSERVER development server
   - url: http://localhost:3000/api
     description: Local Agentify development server
   - url: https://api.knirv.com/v1
@@ -950,7 +950,7 @@ paths:
           description: List of models
 
   # ========================================
-  # KNIRVNEXUS PLATFORM ENDPOINTS
+  # KNIRVSERVER PLATFORM ENDPOINTS
   # ========================================
 
   /nexus/api/auth/login:
@@ -958,7 +958,7 @@ paths:
       tags:
         - auth
       summary: Platform login
-      description: Authenticate with KNIRVNEXUS platform
+      description: Authenticate with KNIRVSERVER platform
       requestBody:
         required: true
         content:
@@ -982,7 +982,7 @@ paths:
       tags:
         - auth
       summary: User registration
-      description: Register a new user account on KNIRVNEXUS
+      description: Register a new user account on KNIRVSERVER
       responses:
         '201':
           description: User registered successfully
@@ -1092,7 +1092,7 @@ paths:
       tags:
         - cognitive
       summary: Cognitive analysis
-      description: Perform advanced cognitive analysis using KNIRVNEXUS
+      description: Perform advanced cognitive analysis using KNIRVSERVER
       responses:
         '200':
           description: Analysis completed

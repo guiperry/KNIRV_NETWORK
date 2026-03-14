@@ -69,7 +69,7 @@ func (suite *SecurityTestSuite) SetupSuite() {
 }
 
 func (suite *SecurityTestSuite) waitForServices() {
-	services := []string{"knirvchain", "knirvgraph", "knirvnexus", "knirvoracle", "knirvrouter"}
+	services := []string{"knirvchain", "knirvgraph", "knirvserver", "knirvoracle", "knirvrouter"}
 
 	for _, service := range services {
 		suite.T().Logf("Waiting for service: %s", service)
@@ -219,7 +219,7 @@ func (suite *SecurityTestSuite) TestAuthorizationSecurity() {
 		unauthorizedEndpoints := []string{
 			"/knirvchain/llm/register",
 			"/knirvgraph/nrv/errors",
-			"/knirvnexus/agents/create",
+			"/knirvserverr/agents/create",
 			"/knirvwallet/wallet/create",
 		}
 
@@ -336,7 +336,7 @@ func (suite *SecurityTestSuite) TestInputValidationSecurity() {
 		suite.T().Log("Testing command injection protection...")
 		cmdInjectionPayload := "; rm -rf /"
 
-		cmdResp := suite.makeAuthenticatedRequest("POST", "/knirvnexus/agents/create", map[string]interface{}{
+		cmdResp := suite.makeAuthenticatedRequest("POST", "/knirvserverr/agents/create", map[string]interface{}{
 			"name":        cmdInjectionPayload,
 			"description": "Test agent",
 			"type":        "go_plugin",

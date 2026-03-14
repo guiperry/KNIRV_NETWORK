@@ -16,14 +16,14 @@ This directory contains the complete integration testing suite for the KNIRV D-T
 # Run specific test suite
 ./config/run-tests.sh performance
 
-# Run KNIRVNEXUS tests (both backend and frontend)
-./config/run-tests.sh knirvnexus
+# Run KNIRVSERVER tests (both backend and frontend)
+./config/run-tests.sh knirvserver
 
-# Run KNIRVNEXUS backend tests only
+# Run KNIRVSERVER backend tests only
 ./config/run-tests.sh knirvbackend-server
 
-# Run KNIRVNEXUS frontend tests only
-./config/run-tests.sh knirvnexus-frontend
+# Run KNIRVSERVER frontend tests only
+./config/run-tests.sh knirvserver-frontend
 
 # Run JavaScript tests only
 ./config/run-tests.sh javascript
@@ -78,7 +78,7 @@ node validate-portal.js
 ### 1. Basic Integration Tests (`xion-integration-test.go`)
 - **Purpose**: Validate core functionality of each KNIRV component
 - **Coverage**: API endpoints, health checks, basic operations
-- **Components**: KNIRVCHAIN, KNIRVGRAPH, KNIRVNEXUS (Frontend + Backend), KNIRVORACLE, KNIRVROUTER
+- **Components**: KNIRVCHAIN, KNIRVGRAPH, KNIRVSERVER (Frontend + Backend), KNIRVORACLE, KNIRVROUTER
 
 ### 2. Cross-Component Validation (`cross-component-validation.go`)
 - **Purpose**: Verify inter-component communication and data flow
@@ -101,14 +101,14 @@ node validate-portal.js
 - **Key Tests**: Enable/disable PoAu-D, NAP management, PAP delegation, gateway integration
 - **Validation**: Hybrid mining, delegation statistics, error handling
 
-### 6. KNIRVNEXUS Backend Integration Testing (`knirvnexus_backend_integration_test.go`) ⭐ NEW
-- **Purpose**: Validate KNIRVNEXUS backend services (API Gateway, DVE Manager, Validation Core)
+### 6. KNIRVSERVER Backend Integration Testing (`knirvnexus_backend_integration_test.go`) ⭐ NEW
+- **Purpose**: Validate KNIRVSERVER backend services (API Gateway, DVE Manager, Validation Core)
 - **Coverage**: Service health, DVE node management, validation task creation, system metrics
 - **Key Tests**: API Gateway endpoints, DVE node registration, validation task lifecycle, P2P networking
 - **Validation**: Service communication, data persistence, error handling, performance metrics
 
-### 7. KNIRVNEXUS Frontend Integration Testing (`knirvnexus_frontend_integration_test.js`) ⭐ NEW
-- **Purpose**: Validate KNIRVNEXUS Next.js frontend functionality and Socket.IO connectivity
+### 7. KNIRVSERVER Frontend Integration Testing (`knirvnexus_frontend_integration_test.js`) ⭐ NEW
+- **Purpose**: Validate KNIRVSERVER Next.js frontend functionality and Socket.IO connectivity
 - **Coverage**: Frontend health, page accessibility, static assets, API endpoints, Socket.IO
 - **Key Tests**: Next.js build artifacts, package integrity, environment configuration, real-time updates
 - **Validation**: Frontend-backend integration, responsive design, WebSocket connectivity
@@ -126,7 +126,7 @@ node validate-portal.js
 - **Validation**: Portal readiness, user experience, deployment configuration
 
 ### 10. KNIRVGATEWAY NEXUS Integration Testing (`gateway_nexus_integration_test.sh`) ⭐ NEW
-- **Purpose**: Validate KNIRVGATEWAY integration with KNIRVNEXUS services and role-based authentication
+- **Purpose**: Validate KNIRVGATEWAY integration with KNIRVSERVER services and role-based authentication
 - **Coverage**: Gateway health, NEXUS API routing, authentication, CORS, SSE endpoints, NEXUS Portal
 - **Key Tests**: Gateway endpoints, role-based access control, real-time features, cross-origin requests
 - **Validation**: Service integration, authentication flows, portal accessibility, API gateway functionality
@@ -164,7 +164,7 @@ node validate-portal.js
 ### Component Integration
 ```
 ┌─────────────┐    ┌─────────────┐    ┌────────────────────────────┐
-│ KNIRVCHAIN  │◄──►│ KNIRVGRAPH  │◄──►│      KNIRVNEXUS            │
+│ KNIRVCHAIN  │◄──►│ KNIRVGRAPH  │◄──►│      KNIRVSERVER            │
 │   (8080)    │    │   (8081)    │    │  ┌───────────────────────┐ │
 └─────────────┘    └─────────────┘    │  │ Frontend (Next.js)    │ │
        │                   │          │  │      (3000)           │ │
@@ -230,7 +230,7 @@ KNIRV_TEST_LOGS_DIR=./logs             # Test logs directory
 
 ### Integration Coverage
 - ✅ KNIRVCHAIN ↔ KNIRVGRAPH: LLM registration and skill invocation
-- ✅ KNIRVNEXUS ↔ KNIRVORACLE: Agent creation and execution payments
+- ✅ KNIRVSERVER ↔ KNIRVORACLE: Agent creation and execution payments
 - ✅ KNIRVROUTER ↔ KNIRVORACLE: Connectivity proofs and rewards
 - ✅ Cross-chain bridge functionality
 
@@ -290,7 +290,7 @@ KNIRV_TEST_LOGS_DIR=./logs             # Test logs directory
    # Manual cleanup of test databases if needed
    rm -rf ./database ./database_reflection ./data/testnet ./testdata/node1/db
    rm -rf integration-tests/data KNIRVCHAIN/sledchain.db KNIRVGRAPH/data
-   rm -rf KNIRVNEXUS/db KNIRVORACLE/data KNIRVROUTER/data
+   rm -rf KNIRVSERVER/db KNIRVORACLE/data KNIRVROUTER/data
    ```
 
 ### Debug Mode
@@ -410,7 +410,7 @@ KNIRVCONTROLLER serves as the unified frontend and backend interface for the KNI
 │  KNIRVCHAIN    KNIRVGRAPH    KNIRVROUTER    KNIRVORACLE    │
 │  (8080)        (8081)        (8085)        (8086)         │
 │                                                             │
-│                    KNIRVNEXUS                               │
+│                    KNIRVSERVER                               │
 │                    (8084)                                   │
 └─────────────────────────────────────────────────────────────┘
 ```

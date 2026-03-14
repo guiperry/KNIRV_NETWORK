@@ -50,7 +50,7 @@ const config = {
           type: 'cosmos'
         },
         {
-          name: 'knirvnexus',
+          name: 'knirvserver',
           url: process.env.KNIRVNEXUS_URL || 'http://localhost:8082',
           healthEndpoint: '/health',
           metricsEndpoint: '/metrics',

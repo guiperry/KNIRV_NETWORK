@@ -127,7 +127,7 @@ display_summary() {
     echo "  • KNIRVCHAIN  - Skill Registry, LLM Registry, MCP, Node Transformation"
     echo "  • KNIRVGRAPH  - Knowledge Graph"
     echo "  • KNIRVROUTER - P2P Network, Proof of Connectivity"
-    echo "  • KNIRVNEXUS  - Validation, Execution Sandbox"
+    echo "  • KNIRVSERVER  - Validation, Execution Sandbox"
     echo "  • KNIRVBASE   - Base Layer"
     echo ""
     echo "Network-wide monitors:"

@@ -116,8 +116,8 @@ else
 fi
 
 print_status "Building KNIRV-NEXUS..."
-if [ -f "scripts/build-knirvnexus.sh" ]; then
-    bash scripts/build-knirvnexus.sh
+if [ -f "scripts/build-knirvserver.sh" ]; then
+    bash scripts/build-knirvserver.sh
 else
     print_warning "KNIRV-NEXUS build script not found, skipping"
 fi

@@ -163,7 +163,7 @@ services:
     restart: unless-stopped
 
   knirv-nexus:
-    image: $CONTAINER_REGISTRY/$PROJECT_NAME/knirvnexus:$CONTAINER_IMAGE_TAG
+    image: $CONTAINER_REGISTRY/$PROJECT_NAME/knirvserver:$CONTAINER_IMAGE_TAG
     container_name: knirv-nexus
     ports:
       - "8084:8084"

@@ -62,7 +62,7 @@ func (sd *ServiceDiscovery) LoadServices() error {
 			APIEndpoints:   []string{"/graphql", "/nodes", "/edges"},
 			RetryCount:     3,
 		},
-		"knirvnexus": {
+		"knirvserver": {
 			Name:           "KNIRV-NEXUS",
 			URL:            getEnvOrDefault("KNIRVNEXUS_URL", "http://localhost:8083"),
 			HealthEndpoint: "/health",

@@ -48,8 +48,8 @@ scrape_configs:
     scrape_interval: 30s
     scrape_timeout: 10s
 
-  # KNIRVNEXUS
-  - job_name: 'knirvnexus'
+  # KNIRVSERVER
+  - job_name: 'knirvserver'
     static_configs:
       - targets: ['knirv-service:8082']
     metrics_path: '/metrics'

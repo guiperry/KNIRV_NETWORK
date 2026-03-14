@@ -76,7 +76,7 @@ const ModelConfig = ({
   const [exportTargets, setExportTargets] = useState<('cortex_wasm' | 'onnx' | 'safetensors' | 'pytorch')[]>(['cortex_wasm']);
   const [deploymentTargets, setDeploymentTargets] = useState({
     knirvcontroller: true,
-    knirvnexus: false,
+    knirvserver: false,
     cloud_hosting: null as any
   });
 
@@ -942,8 +942,8 @@ const ModelConfig = ({
                       <p className="text-sm text-slate-400">Deploy to KNIRV-NEXUS cloud portal</p>
                     </div>
                     <Switch
-                      checked={deploymentTargets.knirvnexus}
-                      onCheckedChange={(checked) => setDeploymentTargets(prev => ({...prev, knirvnexus: checked}))}
+                      checked={deploymentTargets.knirvserver}
+                      onCheckedChange={(checked) => setDeploymentTargets(prev => ({...prev, knirvserver: checked}))}
                     />
                   </div>
                 </CardContent>

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# KNIRVNEXUS Privileged Tests with Full Docker Instance Deployment
-# This script deploys a complete KNIRVNEXUS Docker instance with Debian + Kali tools
+# KNIRVSERVER Privileged Tests with Full Docker Instance Deployment
+# This script deploys a complete KNIRVSERVER Docker instance with Debian + Kali tools
 # and runs all tests that require root privileges (cgroups, namespaces, etc.)
 #
 # Architecture:
@@ -19,11 +19,11 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Configuration - paths adjusted for KNIRVNEXUS/scripts location
+# Configuration - paths adjusted for KNIRVSERVER/scripts location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 KNIRVNEXUS_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PROJECT_ROOT="$(cd "${KNIRVNEXUS_ROOT}/.." && pwd)"
-CONTAINER_NAME="knirvnexus-kali-local"
+CONTAINER_NAME="knirvserver-kali-local"
 CONTAINER_DEPLOYER_DIR="${KNIRVNEXUS_ROOT}/backend/cmd/container_deployer"
 TEST_RESULTS_DIR="${KNIRVNEXUS_ROOT}/test-results/privileged-tests"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
@@ -113,10 +113,10 @@ log_error() {
 }
 
 # Initialize log file
-log_header "KNIRVNEXUS Privileged Tests"
+log_header "KNIRVSERVER Privileged Tests"
 log "Started: $(date)"
 log "Container: ${CONTAINER_NAME}"
-log "KNIRVNEXUS Root: ${KNIRVNEXUS_ROOT}"
+log "KNIRVSERVER Root: ${KNIRVNEXUS_ROOT}"
 log "Project Root: ${PROJECT_ROOT}"
 log "Results Directory: ${TEST_RESULTS_DIR}"
 log ""
@@ -151,11 +151,11 @@ check_prerequisites() {
         log_success "Container deployer found"
     fi
 
-    # Check KNIRVNEXUS backend tests
+    # Check KNIRVSERVER backend tests
     if [ ! -d "${KNIRVNEXUS_ROOT}/backend/tests" ]; then
-        log_warning "KNIRVNEXUS backend tests directory not found"
+        log_warning "KNIRVSERVER backend tests directory not found"
     else
-        log_success "KNIRVNEXUS backend tests found"
+        log_success "KNIRVSERVER backend tests found"
     fi
 
     if [ "$missing_deps" = true ]; then
@@ -168,7 +168,7 @@ check_prerequisites() {
 
 # Deploy Docker container
 deploy_container() {
-    log_header "Deploying KNIRVNEXUS Docker Container"
+    log_header "Deploying KNIRVSERVER Docker Container"
 
     # The Kali Docker base image is assumed to be built by os_builder previously.
     # If not found, container_deployer will provide guidance.
@@ -275,14 +275,14 @@ run_privileged_tests() {
     log "${CYAN}Test pattern: ${test_pattern}${NC}"
     log ""
 
-    # Copy KNIRVNEXUS source to container if needed
-    log "Ensuring KNIRVNEXUS source is available in container..."
-    if ! docker exec "${CONTAINER_NAME}" bash -c "test -d /workspace/KNIRVNEXUS/backend" 2>/dev/null; then
-        log "Copying KNIRVNEXUS source to container..."
+    # Copy KNIRVSERVER source to container if needed
+    log "Ensuring KNIRVSERVER source is available in container..."
+    if ! docker exec "${CONTAINER_NAME}" bash -c "test -d /workspace/KNIRVSERVER/backend" 2>/dev/null; then
+        log "Copying KNIRVSERVER source to container..."
         # Create workspace directory first
         docker exec "${CONTAINER_NAME}" mkdir -p /workspace
-        # Copy the entire KNIRVNEXUS directory
-        docker cp "${KNIRVNEXUS_ROOT}/." "${CONTAINER_NAME}:/workspace/KNIRVNEXUS/"
+        # Copy the entire KNIRVSERVER directory
+        docker cp "${KNIRVNEXUS_ROOT}/." "${CONTAINER_NAME}:/workspace/KNIRVSERVER/"
         log "Source copied successfully"
     else
         log "Source already present in container"
@@ -290,7 +290,7 @@ run_privileged_tests() {
 
     # Verify the path exists
     log "Verifying source path..."
-    if ! docker exec "${CONTAINER_NAME}" bash -c "test -d /workspace/KNIRVNEXUS/backend"; then
+    if ! docker exec "${CONTAINER_NAME}" bash -c "test -d /workspace/KNIRVSERVER/backend"; then
         log_error "Backend directory not found in container"
         log "Listing /workspace contents:"
         docker exec "${CONTAINER_NAME}" ls -la /workspace/
@@ -301,7 +301,7 @@ run_privileged_tests() {
     log "Installing test dependencies..."
     docker exec "${CONTAINER_NAME}" bash -c "
         export PATH=\"/usr/local/go/bin:\$PATH\" && \
-        cd /workspace/KNIRVNEXUS/backend && \
+        cd /workspace/KNIRVSERVER/backend && \
         go mod download && \
         go mod tidy
     " | tee -a "${LOG_FILE}"
@@ -403,7 +403,7 @@ run_privileged_tests() {
             echo 'Using native-go runtime (bare-metal or Kata)' >&2
         fi
         
-        cd /workspace/KNIRVNEXUS/backend
+        cd /workspace/KNIRVSERVER/backend
 
         # Check kernel features
         echo '=== Kernel Feature Check ===' >&2
@@ -506,7 +506,7 @@ generate_test_report() {
     local report_file="${TEST_RESULTS_DIR}/test-report_${TIMESTAMP}.md"
 
     cat > "${report_file}" <<EOF
-# KNIRVNEXUS Privileged Tests Report
+# KNIRVSERVER Privileged Tests Report
 
 **Generated:** $(date)
 **Container:** ${CONTAINER_NAME}

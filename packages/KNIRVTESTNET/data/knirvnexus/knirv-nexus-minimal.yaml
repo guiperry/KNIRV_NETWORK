@@ -23,4 +23,4 @@ api:
 log:
   level: "info"
   format: "text"
-  output: "./logs/knirvnexus.log"
+  output: "./logs/knirvserver.log"

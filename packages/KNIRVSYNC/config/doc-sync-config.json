@@ -22,8 +22,8 @@
       "enabled": true
     },
     {
-      "name": "KNIRVNEXUS",
-      "path": "KNIRVNEXUS",
+      "name": "KNIRVSERVER",
+      "path": "KNIRVSERVER",
       "has_api": true,
       "api_spec_path": "api.yaml",
       "enabled": true

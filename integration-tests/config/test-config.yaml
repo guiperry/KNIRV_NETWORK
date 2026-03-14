@@ -20,7 +20,7 @@ endpoints:
     health_endpoint: "/health"
     timeout: "30s"
   
-  knirvnexus:
+  knirvserver:
     # Phase 6 Unified Binary Architecture - Single service on port 8084
     unified_binary:
       url: "http://localhost:8084"
@@ -220,12 +220,12 @@ production_deployment:
       services:
         knirvchain: "http://localhost:8080"
         knirvgraph: "http://localhost:8081"
-        knirvnexus: "http://localhost:8084"  # Phase 6 Unified Binary
+        knirvserver: "http://localhost:8084"  # Phase 6 Unified Binary
         knirvoracle: "http://localhost:8083"
         knirvrouter: "http://localhost:8085"
         knirvrouter_api: "http://localhost:9090"
         knirvcontroller: "http://localhost:3000"  # Unified Frontend + Backend
-        # Legacy KNIRVNEXUS endpoints (deprecated in Phase 6)
+        # Legacy KNIRVSERVER endpoints (deprecated in Phase 6)
         knirvnexus_frontend_legacy: "http://localhost:3000"
         knirvnexus_api_gateway_legacy: "http://localhost:8080"
         knirvnexus_dve_manager_legacy: "http://localhost:8081"

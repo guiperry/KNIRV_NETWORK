@@ -33,7 +33,7 @@ The **KNIRV SDK's** primary interaction model is through a Unified **API Gateway
 > **Expanded Information:**
 >
 > -   **Single Endpoint:** Developers interact with a single, well-defined API endpoint provided by the APIGateway, eliminating the need to manage multiple RPC URLs or understand the underlying network topology of individual KNIRV components.
-> -   **Service Routing:** The APIGateway intelligently routes incoming requests to the appropriate backend KNIRV service (`knirvchain`, `knirvgraph`, `knirvnexus`, `knirvroot`, `knirvrouter`). This abstraction simplifies client-side code and ensures future compatibility as the D-TEN evolves.
+> -   **Service Routing:** The APIGateway intelligently routes incoming requests to the appropriate backend KNIRV service (`knirvchain`, `knirvgraph`, `knirvserver`, `knirvroot`, `knirvrouter`). This abstraction simplifies client-side code and ensures future compatibility as the D-TEN evolves.
 > -   **Centralized Features:** The APIGateway provides centralized services such as:
 >     -   **Authentication & Authorization:** Managing API tokens and verifying access rights for different services and routes.
 >     -   **Rate Limiting:** Protecting backend services from abuse and ensuring fair resource allocation.
@@ -109,7 +109,7 @@ The SDK includes a client for the **API Gateway**, providing structured access t
 >     -   `knirv.chain.getLLMVersion()` (proxied to `knirvchain` service)
 >     -   `knirv.graph.getNRVStatus(nrvId)` (proxied to `knirvgraph` service)
 >     -   `knirv.root.mintNRN(proof)` (proxied to `knirvroot` service)
->     -   `knirv.nexus.submitValidationTask(task)` (proxied to `knirvnexus` service)
+>     -   `knirv.nexus.submitValidationTask(task)` (proxied to `knirvserver` service)
 > -   **Authentication & Authorization:** The SDK handles token management (e.g., acquiring and attaching authentication tokens from the APIGateway's AuthenticationService) for routes requiring authorization.
 > -   **WebSocket Integration:** The SDK provides client-side WebSocket capabilities to subscribe to real-time updates from the APIGateway (e.g., service health changes, NRV status updates, **KNIRV-SHELL** activity).
 
@@ -277,7 +277,7 @@ async def main():
 
         # --- Example 3: Monitoring KNIRV-NEXUS DVE Health ---
         print("\n--- Monitoring KNIRV-NEXUS DVE Health ---")
-        dve_health = await api_client.call_service("knirvnexus", "/health", "GET")
+        dve_health = await api_client.call_service("knirvserver", "/health", "GET")
         print(f"KNIRV-NEXUS DVE Health: {dve_health.get('status')}")
 
     except KnirvClientError as e:

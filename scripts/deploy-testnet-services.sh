@@ -1394,7 +1394,7 @@ prepare_testnet_files() {
     cp "$TESTNET_DIR/bin/knirvoracle" "$TEMP_DIR/bin/" 2>/dev/null || true
     cp "$TESTNET_DIR/bin/knirvchain" "$TEMP_DIR/bin/" 2>/dev/null || true
     cp "$TESTNET_DIR/bin/knirvgraph" "$TEMP_DIR/bin/" 2>/dev/null || true
-    cp "$TESTNET_DIR/bin/knirvnexus" "$TEMP_DIR/bin/" 2>/dev/null || true
+    cp "$TESTNET_DIR/bin/knirvserver" "$TEMP_DIR/bin/" 2>/dev/null || true
     cp "$TESTNET_DIR/bin/knirvrouter" "$TEMP_DIR/bin/" 2>/dev/null || true
     cp "$TESTNET_DIR/bin/knirv-server.wasm" "$TEMP_DIR/bin/" 2>/dev/null || true
     cp "$TESTNET_DIR/bin/wasmtime" "$TEMP_DIR/bin/" 2>/dev/null || true
@@ -1419,15 +1419,15 @@ prepare_testnet_files() {
         cp "$TESTNET_DIR/data/knirvgraph"/*.yml "$TEMP_DIR/data/knirvgraph/" 2>/dev/null || true
     fi
 
-    # Copy knirvnexus data (config files only, NOT the portal directory)
-    if [ -d "$TESTNET_DIR/data/knirvnexus" ]; then
-        mkdir -p "$TEMP_DIR/data/knirvnexus"
-        cp "$TESTNET_DIR/data/knirvnexus"/*.yaml "$TEMP_DIR/data/knirvnexus/" 2>/dev/null || true
-        cp "$TESTNET_DIR/data/knirvnexus"/*.yml "$TEMP_DIR/data/knirvnexus/" 2>/dev/null || true
-        cp "$TESTNET_DIR/data/knirvnexus"/*.db "$TEMP_DIR/data/knirvnexus/" 2>/dev/null || true
-        cp "$TESTNET_DIR/data/knirvnexus"/*.config "$TEMP_DIR/data/knirvnexus/" 2>/dev/null || true
+    # Copy knirvserver data (config files only, NOT the portal directory)
+    if [ -d "$TESTNET_DIR/data/knirvserver" ]; then
+        mkdir -p "$TEMP_DIR/data/knirvserver"
+        cp "$TESTNET_DIR/data/knirvserver"/*.yaml "$TEMP_DIR/data/knirvserver/" 2>/dev/null || true
+        cp "$TESTNET_DIR/data/knirvserver"/*.yml "$TEMP_DIR/data/knirvserver/" 2>/dev/null || true
+        cp "$TESTNET_DIR/data/knirvserver"/*.db "$TEMP_DIR/data/knirvserver/" 2>/dev/null || true
+        cp "$TESTNET_DIR/data/knirvserver"/*.config "$TEMP_DIR/data/knirvserver/" 2>/dev/null || true
         # Copy small directories but exclude portal
-        [ -d "$TESTNET_DIR/data/knirvnexus/reports" ] && cp -r "$TESTNET_DIR/data/knirvnexus/reports" "$TEMP_DIR/data/knirvnexus/" 2>/dev/null || true
+        [ -d "$TESTNET_DIR/data/knirvserver/reports" ] && cp -r "$TESTNET_DIR/data/knirvserver/reports" "$TEMP_DIR/data/knirvserver/" 2>/dev/null || true
     fi
 
     # Copy knirvoracle data (small config files only)
@@ -1550,10 +1550,10 @@ prepare_testnet_files() {
     expose:
       - "8084"        # Internal port only
     volumes:
-      - ./bin/knirvnexus:/usr/local/bin/knirvnexus:ro
-      - ./data/knirvnexus:/app/data
+      - ./bin/knirvserver:/usr/local/bin/knirvserver:ro
+      - ./data/knirvserver:/app/data
       - ./config:/app/config:ro
-    command: /usr/local/bin/knirvnexus --port 8084
+    command: /usr/local/bin/knirvserver --port 8084
     depends_on:
       - knirv-oracle
     networks:
@@ -1711,14 +1711,14 @@ services:
       - GO_ENV=testnet
     restart: unless-stopped
 
-  knirvnexus-1:
-    image: knirvnexus:latest
+  knirvserver-1:
+    image: knirvserver:latest
     container_name: knirv-testnet-nexus-1
     ports:
       - "8082:8082"
     volumes:
-      - ./data/knirvnexus/node-1:/app/data:Z
-      - ./config/knirvnexus-config.yaml:/app/config.yaml:Z
+      - ./data/knirvserver/node-1:/app/data:Z
+      - ./config/knirvserver-config.yaml:/app/config.yaml:Z
     environment:
       - NODE_ID=1
       - MOCK_TEE=true
@@ -1728,14 +1728,14 @@ services:
       - knirv-testnet
     restart: unless-stopped
 
-  knirvnexus-2:
-    image: knirvnexus:latest
+  knirvserver-2:
+    image: knirvserver:latest
     container_name: knirv-testnet-nexus-2
     ports:
       - "8083:8083"
     volumes:
-      - ./data/knirvnexus/node-2:/app/data:Z
-      - ./config/knirvnexus-config.yaml:/app/config.yaml:Z
+      - ./data/knirvserver/node-2:/app/data:Z
+      - ./config/knirvserver-config.yaml:/app/config.yaml:Z
     environment:
       - NODE_ID=2
       - MOCK_TEE=true
@@ -1771,8 +1771,8 @@ services:
       - knirvoracle
       - knirvchain
       - knirvgraph
-      - knirvnexus-1
-      - knirvnexus-2
+      - knirvserver-1
+      - knirvserver-2
       - knirvrouter
     networks:
       - knirv-testnet
@@ -1860,14 +1860,14 @@ services:
       - GO_ENV=testnet
     restart: unless-stopped
 
-  knirvnexus-1:
-    image: knirvnexus:latest
+  knirvserver-1:
+    image: knirvserver:latest
     container_name: knirv-testnet-nexus-1
     ports:
       - "8082:8082"
     volumes:
-      - ./data/knirvnexus/node-1:/app/data
-      - ./config/knirvnexus-config.yaml:/app/config.yaml
+      - ./data/knirvserver/node-1:/app/data
+      - ./config/knirvserver-config.yaml:/app/config.yaml
     environment:
       - NODE_ID=1
       - MOCK_TEE=true
@@ -1877,14 +1877,14 @@ services:
       - knirv-testnet
     restart: unless-stopped
 
-  knirvnexus-2:
-    image: knirvnexus:latest
+  knirvserver-2:
+    image: knirvserver:latest
     container_name: knirv-testnet-nexus-2
     ports:
       - "8083:8083"
     volumes:
-      - ./data/knirvnexus/node-2:/app/data
-      - ./config/knirvnexus-config.yaml:/app/config.yaml
+      - ./data/knirvserver/node-2:/app/data
+      - ./config/knirvserver-config.yaml:/app/config.yaml
     environment:
       - NODE_ID=2
       - MOCK_TEE=true
@@ -1920,8 +1920,8 @@ services:
       - knirvoracle
       - knirvchain
       - knirvgraph
-      - knirvnexus-1
-      - knirvnexus-2
+      - knirvserver-1
+      - knirvserver-2
       - knirvrouter
     networks:
       - knirv-testnet
@@ -2118,14 +2118,14 @@ EXPOSE 8081
 CMD ["./knirvgraph"]
 CONTAINERFILE
 
-echo "Building KNIRVNEXUS..."
-podman build -t knirvnexus:latest -f - . << 'CONTAINERFILE'
+echo "Building KNIRVSERVER..."
+podman build -t knirvserver:latest -f - . << 'CONTAINERFILE'
 FROM ubuntu:22.04
 RUN apt-get update && apt-get install -y curl ca-certificates
-COPY bin/knirvnexus /app/knirvnexus
+COPY bin/knirvserver /app/knirvserver
 WORKDIR /app
 EXPOSE 8082 8083
-CMD ["./knirvnexus"]
+CMD ["./knirvserver"]
 CONTAINERFILE
 
 echo "Building KNIRVROUTER..."
@@ -2187,14 +2187,14 @@ EXPOSE 8081
 CMD ["./knirvgraph"]
 DOCKERFILE
 
-echo "Building KNIRVNEXUS..."
-docker build -t knirvnexus:latest -f - . << 'DOCKERFILE'
+echo "Building KNIRVSERVER..."
+docker build -t knirvserver:latest -f - . << 'DOCKERFILE'
 FROM ubuntu:22.04
 RUN apt-get update && apt-get install -y curl ca-certificates
-COPY bin/knirvnexus /app/knirvnexus
+COPY bin/knirvserver /app/knirvserver
 WORKDIR /app
 EXPOSE 8082 8083
-CMD ["./knirvnexus"]
+CMD ["./knirvserver"]
 DOCKERFILE
 
 echo "Building KNIRVROUTER..."
@@ -2280,7 +2280,7 @@ curl -s http://localhost:8082/height && echo "  ✅ GRAPH healthy" || echo "  �
 curl -s http://localhost:8086/status && echo "  ✅ ROUTER healthy" || echo "  ⚠️  ROUTER not ready yet"
 
 # Only check NEXUS if the binary exists (private/corporate testing)
-if [ -f /usr/local/bin/knirvnexus ] || [ -f /opt/knirv-testnet/bin/knirvnexus ]; then
+if [ -f /usr/local/bin/knirvserver ] || [ -f /opt/knirv-testnet/bin/knirvserver ]; then
     curl -s http://localhost:8084/ && echo "  ✅ NEXUS healthy (private mode)" || echo "  ⚠️  NEXUS not ready yet"
 fi
 
@@ -2541,8 +2541,8 @@ verify_service_ports() {
         ["knirvoracle"]="1317"
         ["knirvchain"]="8090"
         ["knirvgraph"]="8082"
-        ["knirvnexus-dve"]="8084"
-        ["knirvnexus-val"]="8085"
+        ["knirvserver-dve"]="8084"
+        ["knirvserver-val"]="8085"
         ["knirvrouter"]="8086"
         ["testnet-gateway"]="10000"
         ["knirvana"]="3000"

@@ -464,7 +464,7 @@ networks:
         check_interval: "30s"
         timeout: "10s"
         critical: true
-      - name: "knirvnexus"
+      - name: "knirvserver"
         url: "http://localhost:8082"
         health_endpoint: "/health"
         check_interval: "30s"

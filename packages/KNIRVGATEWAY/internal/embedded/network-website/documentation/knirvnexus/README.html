@@ -29,7 +29,7 @@
                 <a href="../index.html">← Back to Documentation</a>
             </nav>
             <h1>KNIRV-NEXUS: Deterministic Validation Environment</h1>
-            <p class="doc-description">User guide for KNIRVNEXUS</p>
+            <p class="doc-description">User guide for KNIRVSERVER</p>
         </div>
     </header>
 
@@ -61,7 +61,7 @@
 - <strong>Real-time</strong>: WebSocket support for live data streaming
 - <strong>Container Runtime</strong>: Podman (rootless containers) for production
 - <strong>Orchestration</strong>: Kubernetes with production-ready configurations</p><p><h2>🧪 Phase 7 Testing Infrastructure</h2></p><p><h3>Testing Architecture</h3>
-KNIRVNEXUS implements comprehensive testing across multiple layers:</p><p><h4>Backend Testing (Go)</h4>
+KNIRVSERVER implements comprehensive testing across multiple layers:</p><p><h4>Backend Testing (Go)</h4>
 <code></code>`bash
 <h1>Run backend unit tests</h1>
 cd backend && go test -v ./tests/...</p><p><h1>Run specific test suites</h1>
@@ -76,8 +76,8 @@ npm run type-check</p><p><h1>Linting</h1>
 npm run lint
 <code></code>`</p><p><h4>Integration with Network Tests</h4>
 <code></code>`bash
-<h1>From project root - run KNIRVNEXUS network integration tests</h1>
-cd integration-tests && go test -v -run TestKNIRVNEXUS</p><p><h1>Run comprehensive KNIRVNEXUS test suite</h1>
+<h1>From project root - run KNIRVSERVER network integration tests</h1>
+cd integration-tests && go test -v -run TestKNIRVNEXUS</p><p><h1>Run comprehensive KNIRVSERVER test suite</h1>
 make test-nexus</p><p><h1>Run specific test categories</h1>
 make test-nexus-unit          # Unit tests only
 make test-nexus-integration   # Integration tests only
@@ -154,7 +154,7 @@ docker run -p 8090:8090 knirv/nexus:latest
 - <strong>Git</strong>: Version control for cloning repository</p><p><h3>Quick Development Setup</h3></p><p><strong>Get started in 5 minutes:</strong></p><p><code></code>`bash
 <h1>1. Clone repository</h1>
 git clone https://github.com/knirv/KNIRV_NETWORK.git
-cd KNIRV_NETWORK/KNIRVNEXUS</p><p><h1>2. Install frontend dependencies</h1>
+cd KNIRV_NETWORK/KNIRVSERVER</p><p><h1>2. Install frontend dependencies</h1>
 npm install</p><p><h1>3. Build frontend</h1>
 npm run build</p><p><h1>4. Build backend</h1>
 cd backend
@@ -171,7 +171,7 @@ go run main.go --config config/development.yaml  # Runs on http://localhost:8080
 <code></code>`</p><p><h3>Deployment</h3></p><p>1. <strong>Clone the repository</strong>:
    <code></code>`bash
    git clone https://github.com/knirv/KNIRV_NETWORK.git
-   cd KNIRV_NETWORK/KNIRVNEXUS
+   cd KNIRV_NETWORK/KNIRVSERVER
    <code></code>`</p><p>2. <strong>Build the components</strong>:
    <code></code>`bash
    chmod +x scripts/build.sh
@@ -276,7 +276,7 @@ go run main.go --config config/development.yaml  # Runs on http://localhost:8080
    - Frontend: http://localhost:3000 (development)
    - GUI Mode: http://localhost:9080 (DVE Manager), http://localhost:9081 (Validation Core)
    - API: http://localhost:8080 (DVE Manager), http://localhost:8081 (Validation Core)</p><p><h2>📁 Project Structure</h2></p><p><code></code>`
-KNIRVNEXUS/
+KNIRVSERVER/
 ├── src/                        # Next.js Frontend
 │   ├── app/                   # Next.js App Router
 │   │   ├── layout.tsx         # Root layout

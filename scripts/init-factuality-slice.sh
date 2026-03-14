@@ -119,7 +119,7 @@ validate_network() {
         "KNIRVGRAPH:$KNIRV_GRAPH_URL"
         "KNIRVCHAIN:$KNIRV_CHAIN_URL"
         "KNIRVORACLE:$KNIRV_ORACLE_URL"
-        "KNIRVNEXUS:$KNIRV_NEXUS_URL"
+        "KNIRVSERVER:$KNIRV_NEXUS_URL"
     )
     
     local failed_services=()
@@ -244,7 +244,7 @@ perform_health_check() {
         "KNIRVGRAPH:$KNIRV_GRAPH_URL"
         "KNIRVCHAIN:$KNIRV_CHAIN_URL"
         "KNIRVORACLE:$KNIRV_ORACLE_URL"
-        "KNIRVNEXUS:$KNIRV_NEXUS_URL"
+        "KNIRVSERVER:$KNIRV_NEXUS_URL"
     )
     
     for service_info in "${services[@]}"; do

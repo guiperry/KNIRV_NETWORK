@@ -16,7 +16,7 @@ The `modp` directory is structured as a standard P project:
     -   `chain/`: Models the KNIRVCHAIN component.
     -   `graph/`: Models the KNIRVGRAPH component.
     -   `router/`: Models the KNIRVROUTER component.
-    -   `nexus/`: Models the KNIRVNEXUS component.
+    -   `nexus/`: Models the KNIRVSERVER component.
     -   `base/`: Models the KNIRVBASE component.
 -   `monitors/`: Contains P monitors that specify safety and liveness properties of the system.
     -   `network_invariants.p`: Defines the global invariants that must hold true for the network to be considered correct.

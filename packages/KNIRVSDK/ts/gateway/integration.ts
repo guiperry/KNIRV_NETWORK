@@ -99,7 +99,7 @@ export class IntegrationService {
     
     const services = {
       knirvchain: this.config.serviceURLs.knirvchain,
-      knirvnexus: this.config.serviceURLs.knirvnexus,
+      knirvserver: this.config.serviceURLs.knirvserver,
       knirvoracle: this.config.serviceURLs.knirvoracle,
       knirvgraph: this.config.serviceURLs.knirvgraph,
     };
@@ -278,7 +278,7 @@ export class IntegrationService {
   private getComponentCapabilities(componentName: string): string[] {
     const capabilities: Record<string, string[]> = {
       knirvchain: ['skill_execution', 'llm_management', 'transaction_processing'],
-      knirvnexus: ['agent_orchestration', 'workflow_management', 'validation'],
+      knirvserver: ['agent_orchestration', 'workflow_management', 'validation'],
       knirvoracle: ['blockchain_operations', 'wallet_management', 'consensus'],
       knirvgraph: ['network_topology', 'routing', 'discovery'],
     };

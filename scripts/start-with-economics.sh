@@ -31,7 +31,7 @@ echo "📊 Economics service will run in LOCAL mode"
 echo "🌐 Service URLs configured:"
 echo "  - KNIRVCHAIN: $KNIRVCHAIN_URL"
 echo "  - KNIRVGRAPH: $KNIRVGRAPH_URL"
-echo "  - KNIRVNEXUS: $KNIRVNEXUS_URL"
+echo "  - KNIRVSERVER: $KNIRVNEXUS_URL"
 echo "  - KNIRVORACLE: $KNIRVORACLE_URL"
 
 # Change to KNIRVORACLE directory

@@ -17,7 +17,7 @@ This directory contains all configuration files for the KNIRVTESTNET deployment.
 ### Service-Specific Configuration
 - **`knirvchain-config.toml`** - KNIRVCHAIN configuration
 - **`knirvgraph-config.yaml`** - KNIRVGRAPH configuration
-- **`knirvnexus-config.yaml`** - KNIRVNEXUS configuration
+- **`knirvserver-config.yaml`** - KNIRVSERVER configuration
 - **`knirvrouter-config.yaml`** - KNIRVROUTER configuration
 - **`knirvroot-config.yaml`** - KNIRVROOT configuration
 - **`knirvsdk-config.yaml`** - KNIRV SDK configuration

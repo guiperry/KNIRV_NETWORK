@@ -21,7 +21,7 @@ type BuildState struct {
 // DefaultStatePath returns the default path for build state files
 func DefaultStatePath() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".knirvnexus", "builds")
+	return filepath.Join(home, ".knirvserver", "builds")
 }
 
 // SaveBuildState saves the build state to a file

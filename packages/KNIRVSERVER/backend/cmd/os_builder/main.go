@@ -34,7 +34,7 @@ var deploymentLogger *log.Logger
 var deploymentLogFile *os.File
 
 const (
-	appName              = "knirvnexus"
+	appName              = "knirvserver"
 	packerBaseKaliDir    = "packer-base-kali"
 	packerKaliDockerDir  = "packer-kali-docker" // New constant
 	outputBaseKaliDir    = "output-kali-base-box"
@@ -101,14 +101,14 @@ func closeDeploymentLog() {
 }
 
 // getAppDataDirectory returns the Linux XDG Base Directory for app data
-// Following Linux standards: ~/.local/share/knirvnexus/os_builder
+// Following Linux standards: ~/.local/share/knirvserver/os_builder
 func getAppDataDirectory() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current user: %v", err)
 	}
 
-	// Use ~/.local/share/knirvnexus/os_builder (XDG Base Directory Specification)
+	// Use ~/.local/share/knirvserver/os_builder (XDG Base Directory Specification)
 	appDataDir := filepath.Join(usr.HomeDir, ".local", "share", appName, "os_builder")
 	if err := os.MkdirAll(appDataDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create app data directory %s: %v", appDataDir, err)
@@ -531,9 +531,9 @@ func runBuildAWSAMI(resourcesDir, _ string) {
 		"build",
 		"-force",
 		"-var", fmt.Sprintf("aws_region=%s", region),
-		"-var", fmt.Sprintf("aws_ami_name=knirvnexus-kali-%s", time.Now().Format("2006-01-02")),
+		"-var", fmt.Sprintf("aws_ami_name=knirvserver-kali-%s", time.Now().Format("2006-01-02")),
 		"-var", "aws_instance_type=t3.medium",
-		"-var", "aws_ami_description=KNIRVNEXUS Kali Linux - Native deployment ready",
+		"-var", "aws_ami_description=KNIRVSERVER Kali Linux - Native deployment ready",
 		"kali-aws-ami.pkr.hcl",
 	}
 
@@ -630,19 +630,19 @@ func runBuildKaliDocker(resourcesDir, artifactDir string) {
 		log.Fatalf("Kali Docker Packer build failed: %v", err)
 	}
 
-	fmt.Printf("✓ Kali Docker image successfully built and tagged as 'knirvnexus-kali-base:latest'\n")
-	fmt.Println("You can verify with 'docker images knirvnexus-kali-base'")
+	fmt.Printf("✓ Kali Docker image successfully built and tagged as 'knirvserver-kali-base:latest'\n")
+	fmt.Println("You can verify with 'docker images knirvserver-kali-base'")
 
 	// Export the Docker image to a tar archive and save it to the artifacts directory
 	fmt.Println("Exporting Kali Docker image to artifacts directory...")
-	imageTarPath := filepath.Join(artifactDir, "knirvnexus-kali-base.tar")
+	imageTarPath := filepath.Join(artifactDir, "knirvserver-kali-base.tar")
 
 	// Ensure the artifacts directory exists
 	if err := os.MkdirAll(artifactDir, 0755); err != nil {
 		log.Fatalf("Failed to create artifact directory %s: %v", artifactDir, err)
 	}
 
-	saveCmdArgs := []string{"save", "-o", imageTarPath, "knirvnexus-kali-base:latest"}
+	saveCmdArgs := []string{"save", "-o", imageTarPath, "knirvserver-kali-base:latest"}
 	err = runCmd("docker", saveCmdArgs, "") // Run in current directory
 	if err != nil {
 		log.Fatalf("Failed to save Docker image to archive: %v", err)

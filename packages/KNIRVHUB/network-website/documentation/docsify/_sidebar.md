@@ -8,9 +8,9 @@
 
 * [KNIRVGRAPH - Decentralized Knowledge Graph with Economics](knirvgraph/README.md)
 
-## KNIRVNEXUS Documentation
+## KNIRVSERVER Documentation
 
-* [KNIRV-NEXUS: Deterministic Validation Environment](knirvnexus/README.md)
+* [KNIRV-NEXUS: Deterministic Validation Environment](knirvserver/README.md)
 
 ## KNIRVORACLE Documentation
 

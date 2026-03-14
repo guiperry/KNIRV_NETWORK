@@ -9,7 +9,7 @@ packer {
 
 variable "image_name" {
   type    = string
-  default = "knirvnexus-kali-base"
+  default = "knirvserver-kali-base"
 }
 
 variable "knirv_nexus_binary_path" {

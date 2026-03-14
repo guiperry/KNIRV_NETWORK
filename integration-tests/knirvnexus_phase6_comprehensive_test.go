@@ -20,7 +20,7 @@ import (
 func TestMain(m *testing.M) {
 	// Wait for services to be ready
 	if !waitForService(KNIRVNEXUS_BASE_URL+"/health", TEST_TIMEOUT) {
-		fmt.Printf("Warning: KNIRVNEXUS service not available at %s\n", KNIRVNEXUS_BASE_URL)
+		fmt.Printf("Warning: KNIRVSERVER service not available at %s\n", KNIRVNEXUS_BASE_URL)
 		fmt.Println("Integration tests will run in mock mode")
 	}
 
@@ -63,13 +63,13 @@ func makePhase6Request(method, url string, body interface{}, headers map[string]
 	return client.Do(req)
 }
 
-// Phase 6 Integration Tests for KNIRVNEXUS Unified Binary
+// Phase 6 Integration Tests for KNIRVSERVER Unified Binary
 
 func TestKNIRVNEXUSUnifiedBinaryIntegration(t *testing.T) {
 	t.Run("TestHealthEndpoint", func(t *testing.T) {
 		resp, err := makePhase6Request("GET", KNIRVNEXUS_BASE_URL+"/health", nil, nil)
 		if err != nil {
-			t.Skipf("KNIRVNEXUS service not available: %v", err)
+			t.Skipf("KNIRVSERVER service not available: %v", err)
 			return
 		}
 		defer resp.Body.Close()
@@ -86,7 +86,7 @@ func TestKNIRVNEXUSUnifiedBinaryIntegration(t *testing.T) {
 
 		// Verify unified binary architecture
 		if service, ok := health["service"]; ok {
-			assert.Equal(t, "knirvnexus", service)
+			assert.Equal(t, "knirvserver", service)
 		}
 
 		if port, ok := health["port"]; ok {
@@ -111,7 +111,7 @@ func TestKNIRVNEXUSUnifiedBinaryIntegration(t *testing.T) {
 			t.Run(fmt.Sprintf("Test%s", endpoint.path), func(t *testing.T) {
 				resp, err := makePhase6Request("GET", KNIRVNEXUS_BASE_URL+endpoint.path, nil, nil)
 				if err != nil {
-					t.Skipf("KNIRVNEXUS service not available: %v", err)
+					t.Skipf("KNIRVSERVER service not available: %v", err)
 					return
 				}
 				defer resp.Body.Close()
@@ -148,7 +148,7 @@ func TestKNIRVNEXUSAuthenticationIntegration(t *testing.T) {
 		for _, endpoint := range protectedEndpoints {
 			resp, err := makePhase6Request("GET", KNIRVNEXUS_BASE_URL+endpoint, nil, nil)
 			if err != nil {
-				t.Skipf("KNIRVNEXUS service not available: %v", err)
+				t.Skipf("KNIRVSERVER service not available: %v", err)
 				return
 			}
 			defer resp.Body.Close()
@@ -167,7 +167,7 @@ func TestKNIRVNEXUSAuthenticationIntegration(t *testing.T) {
 
 		resp, err := makePhase6Request("GET", KNIRVNEXUS_BASE_URL+"/api/system-health", nil, headers)
 		if err != nil {
-			t.Skipf("KNIRVNEXUS service not available: %v", err)
+			t.Skipf("KNIRVSERVER service not available: %v", err)
 			return
 		}
 		defer resp.Body.Close()
@@ -185,7 +185,7 @@ func TestKNIRVNEXUSCrossServiceIntegration(t *testing.T) {
 			name string
 			url  string
 		}{
-			{"KNIRVNEXUS", KNIRVNEXUS_BASE_URL + "/health"},
+			{"KNIRVSERVER", KNIRVNEXUS_BASE_URL + "/health"},
 			// Add other services when available
 		}
 
@@ -206,7 +206,7 @@ func TestKNIRVNEXUSCrossServiceIntegration(t *testing.T) {
 		// Test database operations through API
 		resp, err := makePhase6Request("GET", KNIRVNEXUS_BASE_URL+"/api/system-health", nil, nil)
 		if err != nil {
-			t.Skipf("KNIRVNEXUS service not available: %v", err)
+			t.Skipf("KNIRVSERVER service not available: %v", err)
 			return
 		}
 		defer resp.Body.Close()

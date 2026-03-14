@@ -18,13 +18,13 @@ This document outlines the current discrepancies and missing functionality betwe
     *   TUI (Terminal User Interface) for interactive CLI usage
     *   Event bus and WebSocket client for real-time updates
 *   **Integration Requirement:**
-    *   Seamlessly integrate KNIRVCLI as the backend communication layer for KNIRVNEXUS
+    *   Seamlessly integrate KNIRVCLI as the backend communication layer for KNIRVSERVER
     *   Replace direct REST/HTTP calls from frontend to backend services with KNIRVCLI's unified API client abstraction
     *   Leverage KNIRVCLI's existing clients (knirvgateway_client, knirvoracled_client, knirvroot_client, knirvgraph_client, knirvnexus_client) for cross-component communication
     *   Utilize KNIRVCLI's wallet and token management for FinTech functionality within the Nexus
     *   Integrate KNIRVCLI's event bus and WebSocket manager for real-time streaming to frontend
-    *   Expose KNIRVCLI's MCP procedure execution capabilities through KNIRVNEXUS for capability invocation
-    *   Maintain KNIRVCLI as a standalone CLI while embedding its core library in KNIRVNEXUS backend
+    *   Expose KNIRVCLI's MCP procedure execution capabilities through KNIRVSERVER for capability invocation
+    *   Maintain KNIRVCLI as a standalone CLI while embedding its core library in KNIRVSERVER backend
 
 ## 2. Dynamic Policy Enforcement
 *   **Current State:** The `PolicyEditor` provides a sophisticated UI for configuring network whitelists, eBPF forensics, and TEE attestation.
@@ -75,7 +75,7 @@ This document outlines the current discrepancies and missing functionality betwe
 
 # KNIRV-SERVER: Production Implementation Plan
 
-This document outlines the roadmap to transition KNIRVNEXUS from its current development/demo state to a production-ready **Deterministic Validation & Active Memory Fabric**.
+This document outlines the roadmap to transition KNIRVSERVER from its current development/demo state to a production-ready **Deterministic Validation & Active Memory Fabric**.
 
 ---
 

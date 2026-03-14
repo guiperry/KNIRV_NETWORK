@@ -195,7 +195,7 @@ func TestFullWorkflow(t *testing.T) {
 	})
 }
 
-// Test KNIRVNEXUS Agent Management
+// Test KNIRVSERVER Agent Management
 func TestKNIRVNEXUSAgentManagement(t *testing.T) {
 	suite := NewIntegrationTestSuite()
 

@@ -243,7 +243,7 @@ show_sync_status() {
     # Check production components
     echo ""
     echo "Production Components:"
-    for component in KNIRVORACLE KNIRVCHAIN KNIRVGRAPH KNIRVNEXUS KNIRVROUTER KNIRVGATEWAY; do
+    for component in KNIRVORACLE KNIRVCHAIN KNIRVGRAPH KNIRVSERVER KNIRVROUTER KNIRVGATEWAY; do
         if [[ -d "$PRODUCTION_ROOT/$component" ]]; then
             echo "  ✓ $component"
         else
@@ -254,7 +254,7 @@ show_sync_status() {
     # Check sync patterns
     echo ""
     echo "Sync Patterns:"
-    for component in knirvoracle knirvchain knirvgraph knirvnexus knirvrouter knirvgateway; do
+    for component in knirvoracle knirvchain knirvgraph knirvserver knirvrouter knirvgateway; do
         if [[ -d "$SYNC_ROOT/patterns/$component" ]]; then
             echo "  ✓ $component"
         else

@@ -105,7 +105,7 @@ Static files are generated in:
 ├── index.html
 ├── knirvchain.html
 ├── knirvgraph.html
-├── knirvnexus.html
+├── knirvserver.html
 └── ... (all documentation pages)
 ```
 

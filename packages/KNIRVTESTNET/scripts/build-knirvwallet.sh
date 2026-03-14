@@ -78,7 +78,7 @@ cat > "$TESTNET_ROOT/config/knirvwallet/testnet-config.json" << 'EOF'
   "services": {
     "knirvchain": "http://localhost:8090",
     "knirvgraph": "http://localhost:8082",
-    "knirvnexus": "http://localhost:8084",
+    "knirvserver": "http://localhost:8084",
     "knirvoracle": "http://localhost:1317",
     "knirvrouter": "http://localhost:8086",
     "knirvgateway": "http://localhost:8888"

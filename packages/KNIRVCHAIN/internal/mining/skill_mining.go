@@ -135,7 +135,7 @@ func (sm *SkillMiner) createMiningProposalTransaction(proposal *MiningProposal) 
 	return tx, nil
 }
 
-// ValidateSkillProposal validates a skill proposal using KNIRVNEXUS DVE
+// ValidateSkillProposal validates a skill proposal using KNIRVSERVER DVE
 func (sm *SkillMiner) ValidateSkillProposal(proposal *MiningProposal) (*types.SkillNode, error) {
 	// Update proposal status
 	proposal.Status = MiningStatusValidating
@@ -146,7 +146,7 @@ func (sm *SkillMiner) ValidateSkillProposal(proposal *MiningProposal) (*types.Sk
 		return nil, fmt.Errorf("error node not found: %w", err)
 	}
 
-	// Call KNIRVNEXUS DVE for validation
+	// Call KNIRVSERVER DVE for validation
 	validationResult, err := sm.validateWithKNIRVNEXUS(errorNode, proposal.LoRAAdapter)
 	if err != nil {
 		proposal.Status = MiningStatusRejected
@@ -177,12 +177,12 @@ type ValidationResult struct {
 	Reason        string                 `json:"reason,omitempty"`
 }
 
-// validateWithKNIRVNEXUS simulates validation with KNIRVNEXUS DVE
-// In a real implementation, this would make an actual call to KNIRVNEXUS
+// validateWithKNIRVNEXUS simulates validation with KNIRVSERVER DVE
+// In a real implementation, this would make an actual call to KNIRVSERVER
 func (sm *SkillMiner) validateWithKNIRVNEXUS(errorNode *types.ErrorNode, loraAdapter *types.LoRAAdapterPointer) (*ValidationResult, error) {
 	// This is a placeholder implementation
 	// In the real system, this would:
-	// 1. Send the error node and LoRA adapter to KNIRVNEXUS DVE
+	// 1. Send the error node and LoRA adapter to KNIRVSERVER DVE
 	// 2. DVE would run the LoRA adapter against test cases derived from the error
 	// 3. DVE would return performance metrics and validation proof
 

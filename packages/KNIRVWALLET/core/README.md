@@ -84,7 +84,7 @@ KNIRVWALLET - Browser Bridge is part of the broader KNIRV ecosystem:
 - [KNIRV-ORACLE](../KNIRVORACLE/) - The foundational blockchain for NRN tokens
 - [KNIRVCHAIN](../KNIRVCHAIN/) - Smart contract platform for Skills and Base LLMs
 - [KNIRV-CORTEX](../KNIRVCORTEX/) - AI agent framework
-- [KNIRV-NEXUS](../KNIRVNEXUS/) - Distributed verification engine
+- [KNIRV-NEXUS](../KNIRVSERVER/) - Distributed verification engine
 
 
 ## Contributing

@@ -73,7 +73,7 @@ build-graph: ## Build KNIRVGRAPH
 
 build-nexus: ## Build KNIRV-NEXUS
 	@echo "$(BLUE)Building KNIRV-NEXUS...$(NC)"
-	@$(SCRIPTS_DIR)/build-knirvnexus.sh
+	@$(SCRIPTS_DIR)/build-knirvserver.sh
 
 build-router: ## Build KNIRV-ROUTER
 	@echo "$(BLUE)Building KNIRV-ROUTER...$(NC)"

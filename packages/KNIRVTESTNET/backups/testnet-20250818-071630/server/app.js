@@ -79,14 +79,14 @@ const environment = {
 if (environment.isLocal) {
   // Local development - serve from testnet-gateway
   app.use('/', express.static(path.join(__dirname, '../data/testnet-gateway')));
-  app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvnexus/portal')));
+  app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvserver/portal')));
   app.use('/graphchain-explorer', express.static(path.join(__dirname, '../graphchain-explorer')));
   app.use('/developer-portal', express.static(path.join(__dirname, '../developer-portal')));
   app.use('/nanda-ans', express.static(path.join(__dirname, '../nanda_ans/.next')));
 } else {
   // Staging/Production - serve from testnet-gateway with Netlify functions
   app.use('/', express.static(path.join(__dirname, '../data/testnet-gateway')));
-  app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvnexus/portal')));
+  app.use('/nexus-portal', express.static(path.join(__dirname, '../data/knirvserver/portal')));
 }
 
 // API Routes
@@ -153,11 +153,11 @@ app.get('/graphchain-explorer/*', (req, res) => {
   }
 });
 
-// Nexus Portal routes - Serve KNIRVNEXUS native frontend
+// Nexus Portal routes - Serve KNIRVSERVER native frontend
 app.get('/nexus-portal', (req, res) => {
   if (environment.isLocal) {
     // Serve local NEXUS frontend
-    res.sendFile(path.join(__dirname, '../data/knirvnexus/portal/.next/server/app/page.html'));
+    res.sendFile(path.join(__dirname, '../data/knirvserver/portal/.next/server/app/page.html'));
   } else {
     // Redirect to testnet subdomain
     res.redirect('https://nexus-test.knirv.com');
@@ -167,7 +167,7 @@ app.get('/nexus-portal', (req, res) => {
 app.get('/nexus-portal/*', (req, res) => {
   if (environment.isLocal) {
     // Serve local NEXUS frontend (SPA routing)
-    res.sendFile(path.join(__dirname, '../data/knirvnexus/portal/.next/server/app/page.html'));
+    res.sendFile(path.join(__dirname, '../data/knirvserver/portal/.next/server/app/page.html'));
   } else {
     // Redirect to testnet subdomain
     res.redirect('https://nexus-test.knirv.com');

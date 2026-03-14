@@ -336,7 +336,7 @@ class DHTManager extends EventEmitter {
   }
 
   /**
-   * Handle nexus announcements from KNIRVNEXUS
+   * Handle nexus announcements from KNIRVSERVER
    */
   handleNexusAnnouncement(data) {
     console.log('Received nexus announcement:', data);

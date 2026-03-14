@@ -18,10 +18,10 @@ class NexusHealthChecker {
     // Helper method to find the NEXUS unified binary
     getNexusBinaryPath() {
         const possibleBinaryPaths = [
-            path.join(process.cwd(), '../KNIRVTESTNET/bin/knirvnexus'), // KNIRVTESTNET location
-            path.join(process.cwd(), '../../KNIRVNEXUS/dist/knirv-nexus'), // KNIRVNEXUS build location
-            path.join(process.cwd(), '../bin/knirvnexus'), // Alternative location
-            '/usr/local/bin/knirvnexus' // System installation
+            path.join(process.cwd(), '../KNIRVTESTNET/bin/knirvserver'), // KNIRVTESTNET location
+            path.join(process.cwd(), '../../KNIRVSERVER/dist/knirv-nexus'), // KNIRVSERVER build location
+            path.join(process.cwd(), '../bin/knirvserver'), // Alternative location
+            '/usr/local/bin/knirvserver' // System installation
         ];
 
         for (const testPath of possibleBinaryPaths) {

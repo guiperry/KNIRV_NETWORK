@@ -95,7 +95,7 @@ func Decrypt(data, key []byte) ([]byte, error) {
 // DeriveEncryptionKey generates a 32-byte encryption key from the base key string
 func DeriveEncryptionKey() []byte {
 	// Use a proper key derivation function (PBKDF2) to generate a 32-byte key
-	salt := []byte("KNIRVNEXUS-salt") // In production, use a secure random salt
+	salt := []byte("KNIRVSERVER-salt") // In production, use a secure random salt
 	key := pbkdf2.Key([]byte(WALLET_ENCRYPTION_KEY), salt, 4096, 32, sha256.New)
 	return key
 }

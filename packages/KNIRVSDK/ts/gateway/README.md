@@ -150,7 +150,7 @@ const client = new KNIRVGatewayClient({
   // KNIRV services
   serviceURLs: {
     knirvchain: 'https://chain.knirv.network',
-    knirvnexus: 'https://nexus.knirv.network',
+    knirvserver: 'https://nexus.knirv.network',
     knirvoracle: 'https://root.knirv.network',
     knirvgraph: 'https://graph.knirv.network',
   },

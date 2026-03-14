@@ -147,7 +147,7 @@ func TestPrivilegedEnvironmentSetup(t *testing.T) {
 		t.Error("    --cap-add=ALL \\")
 		t.Error("    --security-opt apparmor=unconfined \\")
 		t.Error("    --security-opt seccomp=unconfined \\")
-		t.Error("    knirvnexus-test:latest")
+		t.Error("    knirvserver-test:latest")
 		t.Error("")
 		t.Fatal("Cannot proceed with tests without required privileges")
 	}

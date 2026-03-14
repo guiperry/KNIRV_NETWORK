@@ -49,7 +49,7 @@ This is a standalone, pure JavaScript implementation that provides:
 │   ├─ KNIRVORACLE                    │
 │   ├─ KNIRVCHAIN                     │
 │   ├─ KNIRVGRAPH                     │
-│   ├─ KNIRVNEXUS                     │
+│   ├─ KNIRVSERVER                     │
 │   └─ KNIRVROUTER                    │
 └──────────────────────────────────────┘
 ```

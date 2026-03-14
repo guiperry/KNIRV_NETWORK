@@ -35,7 +35,7 @@ echo ""
 # Step 2: Verify all required binaries exist
 echo -e "${BLUE}Step 2: Verifying binaries...${NC}"
 REQUIRED_BINS=("knirvoracle" "knirvchain" "knirvgraph" "knirvrouter")
-OPTIONAL_BINS=("knirvnexus")
+OPTIONAL_BINS=("knirvserver")
 MISSING_BINS=()
 
 echo "Required binaries (public testnet):"

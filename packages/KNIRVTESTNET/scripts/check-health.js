@@ -20,7 +20,7 @@ function checkHealth() {
   const requiredDirs = [
     'graphchain-explorer',
     'data/testnet-gateway',
-    'data/knirvnexus',
+    'data/knirvserver',
     'developer-portal',
 
     'server',
@@ -108,7 +108,7 @@ function checkHealth() {
   }
   
   // NEXUS Frontend (integrated)
-  const nexusFrontendPath = path.join(__dirname, '..', 'data', 'knirvnexus', 'portal');
+  const nexusFrontendPath = path.join(__dirname, '..', 'data', 'knirvserver', 'portal');
   if (fs.existsSync(nexusFrontendPath)) {
     console.log('✅ NEXUS Frontend build exists');
 

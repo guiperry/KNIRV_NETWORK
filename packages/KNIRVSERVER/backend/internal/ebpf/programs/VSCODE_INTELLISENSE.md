@@ -33,7 +33,7 @@ Created `.vscode/c_cpp_properties.json` with proper include paths:
 
 2. Generate vmlinux.h manually:
    ```bash
-   cd KNIRVNEXUS/backend/internal/ebpf/programs
+   cd KNIRVSERVER/backend/internal/ebpf/programs
    make vmlinux.h
    ```
 

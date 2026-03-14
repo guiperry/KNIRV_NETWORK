@@ -60,7 +60,7 @@ graph TD
         G[KNIRVROOT]
         H[KNIRVCHAIN]
         I[KNIRVGRAPH]
-        J[KNIRVNEXUS]
+        J[KNIRVSERVER]
     end</p><p>    F --> G
     F --> H
     F --> I
@@ -76,7 +76,7 @@ graph TD
 *   <strong>Gateway Management</strong>: Endpoints like <code>GET /gateway/health</code> and <code>GET /gateway/services</code> provide status and metrics for the gateway.
 *   <strong>Health Monitoring</strong>: <code>GET /health-monitor/status</code> and <code>GET /health-monitor/events</code> provide real-time service health updates via SSE.
 *   <strong>Authentication</strong>: <code>POST /auth/login</code> and <code>POST /auth/logout</code> manage user sessions and token verification.
-<em>   <strong>Service Proxy</strong>: The gateway acts as a proxy for key KNIRV services, including endpoints for <code>KNIRVROOT</code> (<code>/api/</em></code>), economics (<code>/economics/<em></code>), and the tunnel registry (<code>/tunnel/</em></code>).</p><p><h3><strong>5. Integration with the KNIRV Ecosystem</strong></h3></p><p>The KNIRV-GATEWAY is designed to be the central point of contact for the entire D-TEN. It is configured to interact with other sovereign layers through environment variables. Specifically, it establishes connections to <code>KNIRVROOT</code>, <code>KNIRVCHAIN</code>, <code>KNIRVGRAPH</code>, and <code>KNIRVNEXUS</code>, acting as a front-facing proxy that streamlines communication and provides a single, secure entry point to the entire network.</p><p><h3><strong>6. Conclusion</strong></h3></p><p>The KNIRV-GATEWAY is an essential layer of the KNIRV ecosystem, serving as the "Unified Web Portal and API Gateway". Its serverless, modular, and secure design provides developers with a powerful platform to build on and users with a clear window into the capabilities of the D-TEN. It is the crucial bridge that connects our decentralized architecture to the broader digital world, solidifying KNIRV's position as a leader in decentralized AI and trusted execution networks.</p>
+<em>   <strong>Service Proxy</strong>: The gateway acts as a proxy for key KNIRV services, including endpoints for <code>KNIRVROOT</code> (<code>/api/</em></code>), economics (<code>/economics/<em></code>), and the tunnel registry (<code>/tunnel/</em></code>).</p><p><h3><strong>5. Integration with the KNIRV Ecosystem</strong></h3></p><p>The KNIRV-GATEWAY is designed to be the central point of contact for the entire D-TEN. It is configured to interact with other sovereign layers through environment variables. Specifically, it establishes connections to <code>KNIRVROOT</code>, <code>KNIRVCHAIN</code>, <code>KNIRVGRAPH</code>, and <code>KNIRVSERVER</code>, acting as a front-facing proxy that streamlines communication and provides a single, secure entry point to the entire network.</p><p><h3><strong>6. Conclusion</strong></h3></p><p>The KNIRV-GATEWAY is an essential layer of the KNIRV ecosystem, serving as the "Unified Web Portal and API Gateway". Its serverless, modular, and secure design provides developers with a powerful platform to build on and users with a clear window into the capabilities of the D-TEN. It is the crucial bridge that connects our decentralized architecture to the broader digital world, solidifying KNIRV's position as a leader in decentralized AI and trusted execution networks.</p>
             </article>
         </div>
     </main>

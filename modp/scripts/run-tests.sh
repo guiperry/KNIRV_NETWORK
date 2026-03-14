@@ -276,7 +276,7 @@ using the ModP (Model-based Programming) framework.
 - P2PNetworkMachine: P2P networking
 - ProofOfConnectivityMachine: PoC consensus
 
-### KNIRVNEXUS
+### KNIRVSERVER
 - ValidationMachine: Distributed validation
 - ExecutionSandboxMachine: Sandbox execution
 

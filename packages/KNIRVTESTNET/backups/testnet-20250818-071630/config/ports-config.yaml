@@ -5,7 +5,7 @@
 core_services:
   knirvchain: 8080
   knirvgraph: 8081
-  knirvnexus: 8082
+  knirvserver: 8082
   knirvoracle: 1317
   knirvrouter: 8086
   knirvana: 3000

@@ -116,8 +116,8 @@ class HealthChecker {
         // Check for nexus-portal in multiple possible locations
         const possibleNexusPaths = [
             path.join(process.cwd(), 'nexus-portal'), // Original location
-            path.join(process.cwd(), '../data/knirvnexus/portal'), // KNIRVTESTNET location
-            path.join(process.cwd(), 'data/knirvnexus/portal') // Alternative location
+            path.join(process.cwd(), '../data/knirvserver/portal'), // KNIRVTESTNET location
+            path.join(process.cwd(), 'data/knirvserver/portal') // Alternative location
         ];
 
         let nexusPath = null;

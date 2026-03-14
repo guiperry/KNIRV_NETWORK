@@ -112,7 +112,7 @@
 
     - name: Build frontend
       shell: |
-        cd {{ app_dir }}/source/KNIRVNEXUS
+        cd {{ app_dir }}/source/KNIRVSERVER
         npm install
         npm run build
       become_user: "{{ app_user }}"
@@ -122,7 +122,7 @@
 
     - name: Build backend
       shell: |
-        cd {{ app_dir }}/source/KNIRVNEXUS/backend
+        cd {{ app_dir }}/source/KNIRVSERVER/backend
         go mod tidy
         go build -o {{ app_dir }}/bin/server-server ./cmd/server-server
       become_user: "{{ app_user }}"

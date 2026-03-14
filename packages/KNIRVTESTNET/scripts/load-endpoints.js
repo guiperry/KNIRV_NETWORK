@@ -198,7 +198,7 @@ window.NEXUS_CONFIG = {
 };`;
 
     // Create NEXUS config directory if it doesn't exist
-    const nexusConfigDir = path.join(testnetRoot, 'data', 'knirvnexus', 'portal', 'public');
+    const nexusConfigDir = path.join(testnetRoot, 'data', 'knirvserver', 'portal', 'public');
     if (!fs.existsSync(nexusConfigDir)) {
       fs.mkdirSync(nexusConfigDir, { recursive: true });
     }
@@ -216,7 +216,7 @@ window.NEXUS_CONFIG = {
     console.log('✅ Configuration files generated successfully');
     console.log('📁 Generated:');
     console.log('   - graphchain-explorer/js/config.js');
-    console.log('   - data/knirvnexus/portal/public/config.js');
+    console.log('   - data/knirvserver/portal/public/config.js');
     
   } catch (error) {
     console.error('❌ Error generating config files:', error.message);

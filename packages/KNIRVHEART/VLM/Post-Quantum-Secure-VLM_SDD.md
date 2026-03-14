@@ -1000,7 +1000,7 @@ Both modes leverage the same PQ-VL-JEPA infrastructure:
 │         ┌────────────────────┼──────────────────┐                   │
 │         │                    │                  │                   │
 │  ┌──────▼──────┐     ┌───────▼─────┐     ┌──────▼──────┐            │
-│  │ KNIRVROUTER │     │ KNIRVNEXUS  │     │  KNIRVBASE  │            │
+│  │ KNIRVROUTER │     │ KNIRVSERVER  │     │  KNIRVBASE  │            │
 │  │  (P2P Net)  │     │    (DVE)    │     │(Persistence)│            │
 │  └─────────────┘     └─────────────┘     └─────────────┘            │
 │                                                                     │
@@ -1010,7 +1010,7 @@ HEART provides:
 - Error analysis → KNIRVGRAPH (AI error/solution graphchain)
 - Skill recommendations → KNIRVCHAIN (LLM/Skill registry)
 - Network threat detection → KNIRVROUTER (P2P backbone)
-- Validation heuristics → KNIRVNEXUS (Distributed Validation)
+- Validation heuristics → KNIRVSERVER (Distributed Validation)
 ```
 
 ---

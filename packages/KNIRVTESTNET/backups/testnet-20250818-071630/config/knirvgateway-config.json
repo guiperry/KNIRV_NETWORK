@@ -20,7 +20,7 @@
       "endpoint": "http://localhost:8081",
       "timeout": "30s"
     },
-    "knirvnexus": {
+    "knirvserver": {
       "endpoints": [
         "http://localhost:8082",
         "http://localhost:8083"

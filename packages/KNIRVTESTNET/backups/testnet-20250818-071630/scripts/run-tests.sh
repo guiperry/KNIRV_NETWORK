@@ -371,7 +371,7 @@ start_testnet() {
     print_step "Starting core blockchain services..."
 
     # Start services in dependency order, letting gateway coordinate ports
-    local services=("knirvoracle" "knirvchain" "knirvgraph" "knirvnexus" "knirvrouter")
+    local services=("knirvoracle" "knirvchain" "knirvgraph" "knirvserver" "knirvrouter")
 
     for service in "${services[@]}"; do
         print_step "Starting $service..."
@@ -404,7 +404,7 @@ start_testnet() {
             "knirvgraph")
                 service_health_url="http://localhost:8082/health"
                 ;;
-            "knirvnexus")
+            "knirvserver")
                 service_health_url="http://localhost:8084/health"
                 ;;
             "knirvrouter")

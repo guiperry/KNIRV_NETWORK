@@ -13,7 +13,7 @@ path_mappings:
     "KNIRVTESTNET/data/knirvoracle": "KNIRVORACLE/data"
     "KNIRVTESTNET/data/knirvchain": "KNIRVCHAIN/data"
     "KNIRVTESTNET/data/knirvgraph": "KNIRVGRAPH/data"
-    "KNIRVTESTNET/data/knirvnexus": "KNIRVNEXUS/data"
+    "KNIRVTESTNET/data/knirvserver": "KNIRVSERVER/data"
     "KNIRVTESTNET/data/knirvrouter": "KNIRVROUTER/data"
 
   production_to_testnet:
@@ -23,7 +23,7 @@ path_mappings:
     "KNIRVORACLE/data": "KNIRVTESTNET/data/knirvoracle"
     "KNIRVCHAIN/data": "KNIRVTESTNET/data/knirvchain"
     "KNIRVGRAPH/data": "KNIRVTESTNET/data/knirvgraph"
-    "KNIRVNEXUS/data": "KNIRVTESTNET/data/knirvnexus"
+    "KNIRVSERVER/data": "KNIRVTESTNET/data/knirvserver"
     "KNIRVROUTER/data": "KNIRVTESTNET/data/knirvrouter"
 
 # =============================================================================
@@ -151,7 +151,7 @@ services:
       - "internal/economics/nrn_integration.go"
     priority: medium
 
-  knirvnexus:
+  knirvserver:
     config_files:
       - "config/knirv-nexus.yaml"
       - ".env.production"

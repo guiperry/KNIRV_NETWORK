@@ -46,7 +46,7 @@ type TinyLLMCore struct {
 	Capabilities []string
 }
 
-// NEXUSDeployment represents KNIRVNEXUS deployment sequence
+// NEXUSDeployment represents KNIRVSERVER deployment sequence
 type NEXUSDeployment struct {
 	Enabled       bool
 	DeploymentURL string
@@ -306,7 +306,7 @@ func (suite *AgentBuilderUpdatesTestSuite) TestPreTrainingFunctionality() {
 func (suite *AgentBuilderUpdatesTestSuite) TestDeploymentSequence() {
 	suite.T().Log("Testing deployment sequence...")
 
-	// Test KNIRVNEXUS deployment configuration
+	// Test KNIRVSERVER deployment configuration
 	deploymentConfig := map[string]interface{}{
 		"environment": "testing",
 		"resources": map[string]interface{}{

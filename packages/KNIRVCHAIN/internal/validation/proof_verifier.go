@@ -11,7 +11,7 @@ import (
 	"KNIRVCHAIN/internal/types"
 )
 
-// ProofVerifier handles verification of validation proofs from KNIRVNEXUS DVE
+// ProofVerifier handles verification of validation proofs from KNIRVSERVER DVE
 type ProofVerifier struct {
 	knirvNexusClient *KNIRVNexusClient
 }
@@ -23,12 +23,12 @@ func NewProofVerifier(knirvNexusEndpoint string) *ProofVerifier {
 	}
 }
 
-// KNIRVNexusClient handles communication with KNIRVNEXUS DVE
+// KNIRVNexusClient handles communication with KNIRVSERVER DVE
 type KNIRVNexusClient struct {
 	endpoint string
 }
 
-// NewKNIRVNexusClient creates a new KNIRVNEXUS client
+// NewKNIRVNexusClient creates a new KNIRVSERVER client
 func NewKNIRVNexusClient(endpoint string) *KNIRVNexusClient {
 	return &KNIRVNexusClient{
 		endpoint: endpoint,
@@ -52,7 +52,7 @@ type TestCase struct {
 	Context     map[string]interface{} `json:"context"`
 }
 
-// ValidationResponse represents the response from KNIRVNEXUS DVE
+// ValidationResponse represents the response from KNIRVSERVER DVE
 type ValidationResponse struct {
 	RequestID       string                 `json:"request_id"`
 	IsValid         bool                   `json:"is_valid"`
@@ -72,7 +72,7 @@ type TestResult struct {
 	Error       string `json:"error,omitempty"`
 }
 
-// ValidateSkill sends a validation request to KNIRVNEXUS DVE
+// ValidateSkill sends a validation request to KNIRVSERVER DVE
 func (pv *ProofVerifier) ValidateSkill(ctx context.Context, errorNode *types.ErrorNode, loraAdapter *types.LoRAAdapterPointer) (*ValidationResponse, error) {
 	// Generate test cases from the error node
 	testCases, err := pv.generateTestCases(errorNode)
@@ -89,10 +89,10 @@ func (pv *ProofVerifier) ValidateSkill(ctx context.Context, errorNode *types.Err
 		RequestedAt: time.Now().Unix(),
 	}
 
-	// Send request to KNIRVNEXUS DVE
+	// Send request to KNIRVSERVER DVE
 	response, err := pv.knirvNexusClient.ValidateSkill(ctx, request)
 	if err != nil {
-		return nil, fmt.Errorf("KNIRVNEXUS validation failed: %w", err)
+		return nil, fmt.Errorf("KNIRVSERVER validation failed: %w", err)
 	}
 
 	// Verify the response
@@ -140,12 +140,12 @@ func (pv *ProofVerifier) generateRequestID(errorNodeID, adapterID string) string
 	return hex.EncodeToString(hash[:])
 }
 
-// ValidateSkill sends the validation request to KNIRVNEXUS DVE
+// ValidateSkill sends the validation request to KNIRVSERVER DVE
 func (knc *KNIRVNexusClient) ValidateSkill(ctx context.Context, request *ValidationRequest) (*ValidationResponse, error) {
 	// This is a placeholder implementation
-	// In a real system, this would make an HTTP/gRPC call to KNIRVNEXUS DVE
+	// In a real system, this would make an HTTP/gRPC call to KNIRVSERVER DVE
 
-	log.Printf("Sending validation request to KNIRVNEXUS DVE: %s", request.RequestID)
+	log.Printf("Sending validation request to KNIRVSERVER DVE: %s", request.RequestID)
 
 	// Simulate network delay
 	select {
@@ -155,7 +155,7 @@ func (knc *KNIRVNexusClient) ValidateSkill(ctx context.Context, request *Validat
 	}
 
 	// Simulate validation response
-	// In reality, this would come from the actual KNIRVNEXUS DVE
+	// In reality, this would come from the actual KNIRVSERVER DVE
 	response := &ValidationResponse{
 		RequestID:   request.RequestID,
 		IsValid:     true, // Assume validation passes for this example

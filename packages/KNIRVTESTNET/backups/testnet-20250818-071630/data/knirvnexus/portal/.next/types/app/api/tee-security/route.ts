@@ -1,4 +1,4 @@
-// File: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVNEXUS/src/app/api/tee-security/route.ts
+// File: /home/gperry/Documents/GitHub/cloud-equities/KNIRV_NETWORK/KNIRVSERVER/src/app/api/tee-security/route.ts
 import * as entry from '../../../../../src/app/api/tee-security/route.js'
 import type { NextRequest } from 'next/server.js'
 

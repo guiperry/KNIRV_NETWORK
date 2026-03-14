@@ -14,7 +14,7 @@ export interface ClientOptions {
     verbose?: boolean;
     serviceURLs?: {
         knirvchain?: string;
-        knirvnexus?: string;
+        knirvserver?: string;
         knirvoracle?: string;
         knirvgraph?: string;
     };

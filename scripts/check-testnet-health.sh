@@ -106,7 +106,7 @@ test_cloudflare_endpoints() {
     local cloudflare_endpoints=(
         "KNIRVCHAIN:https://chain-testnet.knirv.network:/health"
         "KNIRVGRAPH:https://graph-testnet.knirv.network:/health"
-        "KNIRVNEXUS:https://nexus-testnet.knirv.network:/health"
+        "KNIRVSERVER:https://nexus-testnet.knirv.network:/health"
         "KNIRVNEXUS_GUI:https://nexus-gui-testnet.knirv.network:/health"
         "KNIRVNEXUS_DVE:https://nexus-dve-testnet.knirv.network:/health"
         "KNIRVORACLE:https://oracle-testnet.knirv.network:/health"

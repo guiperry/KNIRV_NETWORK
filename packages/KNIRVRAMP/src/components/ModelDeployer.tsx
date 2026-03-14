@@ -88,7 +88,7 @@ const ModelDeployer = ({ modelConfig, onDeployed, onConnectToTargets, onCompilat
       },
       deployment_targets: {
         knirvcontroller: true,
-        knirvnexus: false,
+        knirvserver: false,
         cloud_hosting: {
           provider: 'vercel'
         }

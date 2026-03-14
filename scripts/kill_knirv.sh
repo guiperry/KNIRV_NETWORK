@@ -42,7 +42,7 @@ PORTS_TO_CHECK=(
     9000 9001              # Monitoring/metrics
 )
 
-TEMP_DIRS=("/tmp/go-build*" "/tmp/KNIRV*" "/tmp/knirvnexus*" "/tmp/economics*")
+TEMP_DIRS=("/tmp/go-build*" "/tmp/KNIRV*" "/tmp/knirvserver*" "/tmp/economics*")
 # Lock files to clean (excluding package-lock.json to prevent npm corruption)
 LOCK_FILES=("gateway.lock" "economics.lock" "*.pid" "knirv*.lock")
 
@@ -55,7 +55,7 @@ KNIRV_PATTERNS=(
     "KNIRVROUTER"
     "economics"
     "knirvserver"
-    "knirvnexus"
+    "knirvserver"
     "knirvchain"
     "knirvgraph"
     "knirvoracle"
@@ -203,7 +203,7 @@ cleanup() {
     echo -e "${YELLOW}  Cleaning database directories...${NC}"
     rm -rf database database_reflection 2>/dev/null
     rm -rf knirvserver.db knirvchain.db knirvgraph.db 2>/dev/null
-    rm -rf knirvnexus.db 2>/dev/null  # Legacy name
+    rm -rf knirvserver.db 2>/dev/null  # Legacy name
 
     # Clean log files
     echo -e "${YELLOW}  Cleaning log files...${NC}"

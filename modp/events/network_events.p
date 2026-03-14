@@ -163,7 +163,7 @@ event eBroadcastMessage: (messageType: string, msgPayload: seq[int], ttl: int);
 event eBroadcastDelivered: BroadcastDeliveredData;
 
 // =====================================================================
-// KNIRVNEXUS EVENTS - Distributed Validation
+// KNIRVSERVER EVENTS - Distributed Validation
 // =====================================================================
 
 // Task Submission Events

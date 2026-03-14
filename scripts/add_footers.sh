@@ -15,7 +15,7 @@ FILES=(
     "KNIRVGATEWAY/documentation/docsify/knirvcontroller/README.md"
     "KNIRVGATEWAY/documentation/docsify/knirvgateway/README.md"
     "KNIRVGATEWAY/documentation/docsify/knirvgraph/README.md"
-    "KNIRVGATEWAY/documentation/docsify/knirvnexus/README.md"
+    "KNIRVGATEWAY/documentation/docsify/knirvserver/README.md"
     "KNIRVGATEWAY/documentation/docsify/knirvoracle/README.md"
     "KNIRVGATEWAY/documentation/docsify/knirvrouter/README.md"
     "KNIRVGATEWAY/documentation/docsify/knirvsdk/README.md"

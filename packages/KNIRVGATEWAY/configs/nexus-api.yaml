@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
-  title: KNIRVNEXUS API
+  title: KNIRVSERVER API
   description: |
-    KNIRVNEXUS - Comprehensive platform layer for the KNIRV Network ecosystem.
+    KNIRVSERVER - Comprehensive platform layer for the KNIRV Network ecosystem.
 
     This API provides:
     - Authentication and user management

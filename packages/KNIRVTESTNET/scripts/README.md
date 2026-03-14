@@ -291,7 +291,7 @@ cd ../tests/automation
 | `build-knirvcontroller.sh` | **Controller build** - TypeScript controller app | `./build-knirvcontroller.sh [--production] [--mobile]` |
 | `build-knirvgateway.sh` | **Gateway build** - Web gateway and portal | `./build-knirvgateway.sh [--netlify] [--functions]` |
 | `build-knirvgraph.sh` | **Graph build** - Knowledge graph service | `./build-knirvgraph.sh [--frontend] [--backend]` |
-| `build-knirvnexus.sh` | **Nexus build** - Validation environment | `./build-knirvnexus.sh [--binary] [--frontend]` |
+| `build-knirvserver.sh` | **Nexus build** - Validation environment | `./build-knirvserver.sh [--binary] [--frontend]` |
 | `build-knirvoracle.sh` | **Oracle build** - Core blockchain oracle | `./build-knirvoracle.sh [--economics] [--network-monitor]` |
 | `build-knirvrouter.sh` | **Router build** - P2P networking service | `./build-knirvrouter.sh [--gui] [--headless]` |
 | `build-local-release.sh` | **Local release** - Complete local deployment build | `./build-local-release.sh [--version <ver>] [--package]` |

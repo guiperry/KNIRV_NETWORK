@@ -368,7 +368,7 @@ machine NetworkTestDriver {
     }
 
     // ===================================================================
-    // Phase 7: Validation (KNIRVNEXUS)
+    // Phase 7: Validation (KNIRVSERVER)
     // ===================================================================
     state TestValidation {
         entry {
