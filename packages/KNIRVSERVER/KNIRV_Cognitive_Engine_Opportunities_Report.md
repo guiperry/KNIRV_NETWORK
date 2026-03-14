@@ -40,7 +40,17 @@ The engine processes `ValidationResult` and `ValidationTask` objects, and its `A
     *   Performing a rollback to a known compliant DVE state.
 *   **Feedback Loop for Policy Refinement:** The `learningState` and `PatternAnalyzer` identify operational patterns. **Opportunity:** Use this intelligence to provide feedback for DVE policy refinement. The engine could suggest adjustments to policies that are either too strict (leading to excessive false positives) or too lenient (failing to prevent critical issues), thereby continuously improving DVE governance.
 
-## IV. Ontological Data Organization Reflecting KNIRVGRAPH
+## IV. Enhanced Guardrail Enforcement via eBPF
+
+Analysis of the `backend/internal/ebpf` directory and `main.go` reveals a sophisticated eBPF subsystem with capabilities for syscall monitoring, LSM-based security enforcement (file/network), and XDP-based network filtering. However, there is a significant architectural gap in how the Cognitive Engine utilizes these capabilities.
+
+*   **Direct Cognitive Engine-to-eBPF Control Plane:** Currently, the `CognitiveEngine` does not have a reference to the `ebpf.Manager`. **Opportunity:** Establish a direct control plane between the Cognitive Engine and the eBPF subsystem. This would allow the engine to dynamically inject kernel-level guardrails (e.g., new LSM path restrictions or XDP drop rules) in response to detected adversarial patterns or system instability.
+*   **Kernel-Level Isolation (The "Panic" Switch):** While the `AdaptationEngine` can suggest "redistribute_load", it lacks the teeth for immediate enforcement. **Opportunity:** Implement an eBPF-powered "Panic Switch." Upon detecting a critical DVE breach or a runaway process, the Cognitive Engine could trigger immediate, kernel-level isolation of the affected container or node, preventing lateral movement or further resource exhaustion before user-space components can even react.
+*   **Real-time eBPF Security Event Feedback:** `LSMIntegration` logs "DENY" decisions to an audit log, and `DVEManager` uses this for health scoring. **Opportunity:** Feed these kernel-level security events directly back into the Cognitive Engine's learning loop. A burst of blocked syscalls or denied file accesses is a high-fidelity signal of an active threat, allowing the engine to adapt its security posture much faster than relying on high-level validation results.
+*   **Hardware-Accelerated Validation Guardrails:** Some validation logic currently resides in the `ValidationCore` in user-space. **Opportunity:** Offload simpler, high-volume guardrails (e.g., protocol format checks, IP/port whitelisting, basic packet inspection) to XDP programs. This reduces latency and CPU overhead, allowing the Cognitive Engine to focus its resources on higher-level reasoning and complex pattern analysis.
+*   **Granular Resource Quotas via eBPF:** The engine currently "adapts resource allocation" via log messages. **Opportunity:** Use eBPF to enforce granular, real-time resource quotas (CPU cycles, memory bandwidth, I/O priority) on a per-DVE basis. This ensures that a single misbehaving DVE cannot compromise the performance or stability of the entire KNIRVSERVER.
+
+## V. Ontological Data Organization Reflecting KNIRVGRAPH
 
 The existence of `backend/internal/reasoning/graph/engine.go` with `ReasoningEngine` and `KNIRVGRAPHEngine` suggests a graph-based reasoning capability. However, the `CognitiveEngine`'s data organization could be more deeply integrated with this concept.
 

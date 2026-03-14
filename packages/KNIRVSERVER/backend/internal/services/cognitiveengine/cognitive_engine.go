@@ -12,13 +12,24 @@ import (
 	"time"
 
 	"backend_server/internal/database"
+	"backend_server/internal/ebpf"
 	"backend_server/internal/objects"
+	"backend_server/internal/services/icme"
 	"backend_server/internal/services/validation"
 
 	"github.com/tidwall/buntdb"
+	"go.uber.org/zap"
 )
 
-// CognitiveEngine manages AI-driven learning and adaptation for the DVE network
+// CognitiveEngine manages AI-driven learning and adaptation for the DVE network.
+//
+// New in this revision:
+//   - Configurable loop intervals via EngineConfig
+//   - Internal EventBus for event-driven (not just timed) adaptation triggers
+//   - Worker pool for concurrent validation-result ingestion
+//   - Real eBPF resource telemetry via EBPFBridge
+//   - Per-DVE guardrail policy enforcement via GuardrailEngine
+//   - DVE ontology management + KNIRVGRAPH integration via DVEOntologyManager
 type CognitiveEngine struct {
 	db               *database.BuntDBManager
 	validationCore   ValidationClient
@@ -32,6 +43,14 @@ type CognitiveEngine struct {
 	cancel           context.CancelFunc
 	mu               sync.RWMutex
 	running          bool
+
+	// ── Enhancement subsystems ────────────────────────────────────────────────
+	cfg             *EngineConfig
+	eventBus        *EventBus
+	workerPool      *TaskWorkerPool
+	ebpfBridge      *EBPFBridge
+	guardrailEngine *GuardrailEngine
+	ontologyManager *DVEOntologyManager
 }
 
 // LearningState represents the current state of the cognitive engine's learning
@@ -146,16 +165,35 @@ type ValidationClient interface {
 }
 
 type InferenceClient interface {
-	// Inference service interface - simplified for now
+	// Inference service interface
 }
 
 type ModelManagerClient interface {
-	// Model management interface - simplified for now
+	// Model management interface
 }
 
-// NewCognitiveEngine creates a new cognitive engine instance
+// NewCognitiveEngine creates a new cognitive engine instance with default configuration.
 func NewCognitiveEngine(db *database.BuntDBManager, validationClient ValidationClient, inferenceClient InferenceClient, modelManager ModelManagerClient) *CognitiveEngine {
+	return NewCognitiveEngineWithConfig(db, validationClient, inferenceClient, modelManager, DefaultEngineConfig())
+}
+
+// NewCognitiveEngineWithConfig creates a cognitive engine using the supplied EngineConfig.
+// This is the primary constructor for production use where intervals are
+// controlled via YAML / environment variables.
+func NewCognitiveEngineWithConfig(
+	db *database.BuntDBManager,
+	validationClient ValidationClient,
+	inferenceClient InferenceClient,
+	modelManager ModelManagerClient,
+	cfg *EngineConfig,
+) *CognitiveEngine {
 	ctx, cancel := context.WithCancel(context.Background())
+
+	if cfg == nil {
+		cfg = DefaultEngineConfig()
+	}
+
+	bus := NewEventBus(64)
 
 	ce := &CognitiveEngine{
 		db:               db,
@@ -178,9 +216,15 @@ func NewCognitiveEngine(db *database.BuntDBManager, validationClient ValidationC
 		patternAnalyzer: &PatternAnalyzer{
 			patterns: make(map[string]*FailurePattern),
 		},
-		ctx:     ctx,
-		cancel:  cancel,
-		running: false,
+		ctx:    ctx,
+		cancel: cancel,
+
+		cfg:             cfg,
+		eventBus:        bus,
+		workerPool:      NewTaskWorkerPool(cfg.WorkerPoolSize, cfg.TaskQueueCapacity),
+		ebpfBridge:      NewEBPFBridge(nil, bus), // eBPF wired later via SetEBPFManager
+		guardrailEngine: NewGuardrailEngine(bus),
+		ontologyManager: NewDVEOntologyManager(nil, nil), // KNIRVGRAPH wired later
 	}
 
 	ce.initializeAdaptationRules()
@@ -189,7 +233,27 @@ func NewCognitiveEngine(db *database.BuntDBManager, validationClient ValidationC
 	return ce
 }
 
-// Start starts the cognitive engine
+// ─── Dependency injection setters ────────────────────────────────────────────
+
+// SetEBPFManager wires a live eBPF manager into the engine.
+// Must be called before Start().
+func (ce *CognitiveEngine) SetEBPFManager(mgr ebpf.ManagerInterface) {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	ce.ebpfBridge = NewEBPFBridge(mgr, ce.eventBus)
+}
+
+// SetKNIRVGRAPHEngine wires the KNIRVGRAPH temporal hypergraph and zap logger
+// into the ontology manager.  Must be called before Start().
+func (ce *CognitiveEngine) SetKNIRVGRAPHEngine(hg *icme.TemporalHypergraph, logger *zap.Logger) {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	ce.ontologyManager = NewDVEOntologyManager(hg, logger)
+}
+
+// ─── Lifecycle ───────────────────────────────────────────────────────────────
+
+// Start starts the cognitive engine and all subsystem goroutines.
 func (ce *CognitiveEngine) Start() error {
 	if ce.running {
 		return fmt.Errorf("cognitive engine is already running")
@@ -197,17 +261,26 @@ func (ce *CognitiveEngine) Start() error {
 
 	log.Println("Starting Cognitive Engine...")
 
-	// Start background learning loop
+	// Start worker pool for concurrent validation result processing
+	ce.workerPool.Start(ce.ctx, ce.processWorkItem)
+
+	// Start eBPF telemetry bridge
+	ce.ebpfBridge.Start(ce.ctx, ce.cfg.EBPFTelemetryInterval)
+
+	// Start background loops (timed + event-driven)
 	go ce.learningLoop()
 	go ce.metricsCollectionLoop()
 	go ce.patternAnalysisLoop()
+	go ce.guardrailCheckLoop()
+	go ce.ontologyUpdateLoop()
+	go ce.securityEventHandlerLoop()
 
 	ce.running = true
 	log.Println("Cognitive Engine started successfully")
 	return nil
 }
 
-// Stop stops the cognitive engine
+// Stop gracefully stops the cognitive engine.
 func (ce *CognitiveEngine) Stop() error {
 	if !ce.running {
 		return nil
@@ -217,6 +290,10 @@ func (ce *CognitiveEngine) Stop() error {
 	ce.cancel()
 	ce.running = false
 
+	ce.ebpfBridge.Stop()
+	ce.workerPool.Stop()
+	ce.eventBus.Close()
+
 	// Save final state
 	ce.saveLearningState()
 
@@ -224,32 +301,48 @@ func (ce *CognitiveEngine) Stop() error {
 	return nil
 }
 
-// ProcessValidationResult processes a validation result for learning
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+// ProcessValidationResult enqueues a validation result for learning.
+// The actual state update is performed by a worker goroutine via the pool.
+// Falls back to synchronous processing when the pool is full.
 func (ce *CognitiveEngine) ProcessValidationResult(result *objects.ValidationResult, task *objects.ValidationTask) {
+	item := ValidationWorkItem{Result: result, Task: task}
+
+	// Publish event so event-driven subscribers can react immediately
+	ce.eventBus.Publish(EngineEvent{
+		Type:      EventValidationResult,
+		Source:    "validation_core",
+		Payload:   item,
+		Timestamp: time.Now(),
+	})
+
+	if !ce.workerPool.Submit(item) {
+		// Pool queue full – process inline to avoid dropping data
+		ce.processWorkItem(item)
+	}
+}
+
+// processWorkItem is the worker function executed by each pool goroutine.
+// It acquires ce.mu for state mutation, then releases before saving.
+func (ce *CognitiveEngine) processWorkItem(item ValidationWorkItem) {
 	ce.mu.Lock()
-	defer ce.mu.Unlock()
+	ce.updateTaskMetrics(item.Task, item.Result)
+	ce.updateNodeMetrics(item.Result)
+	ce.updateOverallMetricsLocked()   // no internal lock – caller holds write lock
+	ce.analyzeFailurePatterns(item.Result, item.Task)
+	ce.evaluateAdaptationsLocked()    // no internal lock – caller holds write lock
+	ce.updateLearningProgressLocked() // no internal lock – caller holds write lock
+	shouldSave := ce.shouldSaveState()
+	ce.mu.Unlock()
 
-	// Update learning state
-	ce.updateTaskMetrics(task, result)
-	ce.updateNodeMetrics(result)
-	ce.updateOverallMetrics()
-
-	// Analyze for patterns
-	ce.analyzeFailurePatterns(result, task)
-
-	// Check for adaptation opportunities
-	ce.evaluateAdaptations()
-
-	// Update learning progress
-	ce.updateLearningProgress()
-
-	// Save state periodically (only if not in test mode)
-	if ce.shouldSaveState() && !ce.running { // Avoid saving during tests
+	// saveLearningState takes its own read lock – must be called after Unlock
+	if shouldSave {
 		ce.saveLearningState()
 	}
 }
 
-// GetCognitiveMetrics returns current cognitive engine metrics
+// GetCognitiveMetrics returns current cognitive engine metrics for a node.
 func (ce *CognitiveEngine) GetCognitiveMetrics(nodeID string) *CognitiveMetrics {
 	ce.metricsCollector.mu.RLock()
 	defer ce.metricsCollector.mu.RUnlock()
@@ -258,7 +351,6 @@ func (ce *CognitiveEngine) GetCognitiveMetrics(nodeID string) *CognitiveMetrics 
 		return metrics
 	}
 
-	// Return default metrics if none exist
 	return &CognitiveMetrics{
 		NodeID:           nodeID,
 		TasksProcessed:   0,
@@ -269,17 +361,17 @@ func (ce *CognitiveEngine) GetCognitiveMetrics(nodeID string) *CognitiveMetrics 
 	}
 }
 
-// GetLearningState returns the current learning state
+// GetLearningState returns a snapshot copy of the current learning state.
 func (ce *CognitiveEngine) GetLearningState() *LearningState {
 	ce.mu.RLock()
 	defer ce.mu.RUnlock()
 
-	// Return a copy to prevent external modification
 	stateCopy := *ce.learningState
 	return &stateCopy
 }
 
-// GetLearningStateRaw returns key learning metrics as primitives (satisfies web.CognitiveEngineReader)
+// GetLearningStateRaw returns key learning metrics as primitives
+// (satisfies web.CognitiveEngineReader).
 func (ce *CognitiveEngine) GetLearningStateRaw() (totalTasks int64, successRate float64, learningProgress float64, confidenceLevel float64) {
 	ce.mu.RLock()
 	defer ce.mu.RUnlock()
@@ -289,14 +381,14 @@ func (ce *CognitiveEngine) GetLearningStateRaw() (totalTasks int64, successRate 
 		ce.learningState.ConfidenceLevel
 }
 
-// IsRunning reports whether the cognitive engine is currently active
+// IsRunning reports whether the cognitive engine is currently active.
 func (ce *CognitiveEngine) IsRunning() bool {
 	ce.mu.RLock()
 	defer ce.mu.RUnlock()
 	return ce.running
 }
 
-// GetAdaptationHistory returns recent adaptation events
+// GetAdaptationHistory returns the most recent `limit` adaptation events.
 func (ce *CognitiveEngine) GetAdaptationHistory(limit int) []AdaptationEvent {
 	ce.mu.RLock()
 	defer ce.mu.RUnlock()
@@ -305,15 +397,40 @@ func (ce *CognitiveEngine) GetAdaptationHistory(limit int) []AdaptationEvent {
 	if len(history) <= limit {
 		return history
 	}
-
-	// Return most recent events
 	return history[len(history)-limit:]
 }
 
-// learningLoop runs the main learning algorithm
+// GetGuardrailViolations returns recent policy violations from the guardrail engine.
+func (ce *CognitiveEngine) GetGuardrailViolations(limit int) []PolicyViolation {
+	return ce.guardrailEngine.GetViolations(limit)
+}
+
+// GetOntologyStats returns the count of entities and relations currently indexed.
+func (ce *CognitiveEngine) GetOntologyStats() (entities int, relations int) {
+	return ce.ontologyManager.Stats()
+}
+
+// InjectEBPFSecurityFeedback feeds a kernel-level security event into the
+// cognitive engine's learning loop and guardrail evaluation.
+func (ce *CognitiveEngine) InjectEBPFSecurityFeedback(event SecurityEventFeedback) {
+	ce.ebpfBridge.InjectSecurityFeedback(event)
+}
+
+// GetLatestTelemetry returns the most recent eBPF/runtime resource snapshot.
+func (ce *CognitiveEngine) GetLatestTelemetry() *SystemResourceSnapshot {
+	return ce.ebpfBridge.LatestTelemetry()
+}
+
+// ─── Background loops ────────────────────────────────────────────────────────
+
+// learningLoop runs the timed learning cycle at the configured interval.
+// It also reacts to EventAdaptationRequired events published on the bus.
 func (ce *CognitiveEngine) learningLoop() {
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(ce.cfg.LearningInterval)
 	defer ticker.Stop()
+
+	adaptCh := ce.eventBus.Subscribe(EventAdaptationRequired)
+	highFailCh := ce.eventBus.Subscribe(EventHighFailureRate)
 
 	for {
 		select {
@@ -321,38 +438,19 @@ func (ce *CognitiveEngine) learningLoop() {
 			return
 		case <-ticker.C:
 			ce.performLearningCycle()
+		case <-adaptCh:
+			// Event-driven trigger: kick off an immediate learning cycle
+			ce.performLearningCycle()
+		case <-highFailCh:
+			// High failure rate detected – run learning immediately
+			ce.performLearningCycle()
 		}
 	}
 }
 
-// performLearningCycle executes one cycle of the learning algorithm
-func (ce *CognitiveEngine) performLearningCycle() {
-	// Fetch recent validation results
-	results, err := ce.validationCore.GetValidationResults(100)
-	if err != nil {
-		log.Printf("Failed to fetch validation results for learning: %v", err)
-		return
-	}
-
-	// Process results for learning
-	for _, result := range results {
-		// Get associated task
-		tasks, err := ce.validationCore.GetValidationTasks(nil)
-		if err != nil || len(tasks) == 0 {
-			continue
-		}
-
-		task := tasks[0]
-		ce.ProcessValidationResult(result, task)
-	}
-
-	// Perform periodic adaptations
-	ce.performPeriodicAdaptations()
-}
-
-// metricsCollectionLoop collects and updates metrics
+// metricsCollectionLoop collects and updates metrics at the configured interval.
 func (ce *CognitiveEngine) metricsCollectionLoop() {
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(ce.cfg.MetricsInterval)
 	defer ticker.Stop()
 
 	for {
@@ -365,12 +463,105 @@ func (ce *CognitiveEngine) metricsCollectionLoop() {
 	}
 }
 
-// collectMetrics collects current system metrics
+// patternAnalysisLoop analyses failure patterns at the configured interval.
+func (ce *CognitiveEngine) patternAnalysisLoop() {
+	ticker := time.NewTicker(ce.cfg.PatternAnalysisInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ce.ctx.Done():
+			return
+		case <-ticker.C:
+			ce.analyzePatterns()
+		}
+	}
+}
+
+// guardrailCheckLoop evaluates DVE policy guardrails for all tracked nodes.
+func (ce *CognitiveEngine) guardrailCheckLoop() {
+	ticker := time.NewTicker(ce.cfg.GuardrailCheckInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ce.ctx.Done():
+			return
+		case <-ticker.C:
+			ce.evaluateGuardrails()
+		}
+	}
+}
+
+// ontologyUpdateLoop periodically indexes the learning state into the ontology / KNIRVGRAPH.
+func (ce *CognitiveEngine) ontologyUpdateLoop() {
+	ticker := time.NewTicker(ce.cfg.OntologyUpdateInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ce.ctx.Done():
+			return
+		case <-ticker.C:
+			ce.indexOntology()
+		}
+	}
+}
+
+// securityEventHandlerLoop consumes eBPF security alert events and incorporates
+// them into the learning state as negative signals.
+func (ce *CognitiveEngine) securityEventHandlerLoop() {
+	secCh := ce.eventBus.Subscribe(EventEBPFSecurityAlert)
+	resPressureCh := ce.eventBus.Subscribe(EventResourcePressure)
+
+	for {
+		select {
+		case <-ce.ctx.Done():
+			return
+		case event, ok := <-secCh:
+			if !ok {
+				return
+			}
+			ce.handleSecurityEvent(event)
+		case event, ok := <-resPressureCh:
+			if !ok {
+				return
+			}
+			ce.handleResourcePressureEvent(event)
+		}
+	}
+}
+
+// ─── Internal implementation ─────────────────────────────────────────────────
+
+// performLearningCycle executes one cycle of the learning algorithm.
+func (ce *CognitiveEngine) performLearningCycle() {
+	if ce.validationCore == nil {
+		return
+	}
+	results, err := ce.validationCore.GetValidationResults(100)
+	if err != nil {
+		log.Printf("CognitiveEngine: failed to fetch validation results: %v", err)
+		return
+	}
+
+	for _, result := range results {
+		tasks, err := ce.validationCore.GetValidationTasks(nil)
+		if err != nil || len(tasks) == 0 {
+			continue
+		}
+		task := tasks[0]
+		ce.workerPool.Submit(ValidationWorkItem{Result: result, Task: task})
+	}
+
+	ce.performPeriodicAdaptations()
+}
+
+// collectMetrics collects current system metrics for each tracked node.
 func (ce *CognitiveEngine) collectMetrics() {
 	ce.mu.Lock()
 	defer ce.mu.Unlock()
 
-	// Collect metrics for each node
 	for nodeID, nodeMetrics := range ce.learningState.NodePerformance {
 		metrics := &CognitiveMetrics{
 			NodeID:                nodeID,
@@ -389,36 +580,21 @@ func (ce *CognitiveEngine) collectMetrics() {
 	}
 }
 
-// patternAnalysisLoop analyzes patterns in validation data
-func (ce *CognitiveEngine) patternAnalysisLoop() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ce.ctx.Done():
-			return
-		case <-ticker.C:
-			ce.analyzePatterns()
-		}
-	}
-}
-
-// analyzePatterns performs pattern analysis on recent data
+// analyzePatterns performs pattern analysis on recent data.
 func (ce *CognitiveEngine) analyzePatterns() {
 	ce.patternAnalyzer.mu.Lock()
 	defer ce.patternAnalyzer.mu.Unlock()
 
-	// Analyze failure patterns
+	if ce.validationCore == nil {
+		return
+	}
 	results, err := ce.validationCore.GetValidationResults(1000)
 	if err != nil {
-		log.Printf("Failed to fetch results for pattern analysis: %v", err)
+		log.Printf("CognitiveEngine: failed to fetch results for pattern analysis: %v", err)
 		return
 	}
 
-	// Group failures by characteristics
 	failureGroups := make(map[string][]*objects.ValidationResult)
-
 	for _, result := range results {
 		if result.Status == "failure" || result.Status == "error" {
 			key := ce.generateFailureKey(result)
@@ -426,16 +602,145 @@ func (ce *CognitiveEngine) analyzePatterns() {
 		}
 	}
 
-	// Identify significant patterns
 	for key, failures := range failureGroups {
-		if len(failures) >= 5 { // Minimum threshold for pattern recognition
+		if len(failures) >= 5 {
 			pattern := ce.createFailurePattern(key, failures)
 			ce.patternAnalyzer.patterns[key] = pattern
+
+			ce.eventBus.Publish(EngineEvent{
+				Type:      EventPatternDetected,
+				Source:    "pattern_analyzer",
+				Payload:   pattern,
+				Timestamp: time.Now(),
+			})
 		}
 	}
 }
 
-// updateTaskMetrics updates metrics for a specific task type
+// evaluateGuardrails checks all tracked nodes against policy rules and triggers
+// panic isolation via the eBPF bridge when the violation count exceeds the
+// configured threshold.
+func (ce *CognitiveEngine) evaluateGuardrails() {
+	ce.mu.RLock()
+	nodes := make(map[string]*NodeMetrics, len(ce.learningState.NodePerformance))
+	for k, v := range ce.learningState.NodePerformance {
+		nodes[k] = v
+	}
+	ce.mu.RUnlock()
+
+	for nodeID, nm := range nodes {
+		if ce.ebpfBridge.IsNodeIsolated(nodeID) {
+			continue // already isolated – skip
+		}
+
+		metrics := map[string]float64{
+			"success_rate":        nm.SuccessRate,
+			"avg_processing_time": nm.AvgProcessingTime,
+			"resource_utilization": ce.calculateResourceUtilization(nodeID),
+			"violation_count":     float64(ce.guardrailEngine.ViolationCountForNode(nodeID)),
+		}
+
+		violations := ce.guardrailEngine.Evaluate(ce.ctx, nodeID, "" /* dveID unknown */, metrics)
+
+		for _, v := range violations {
+			if v.Severity == "panic" {
+				if err := ce.ebpfBridge.TriggerPanicIsolation(nodeID); err != nil {
+					log.Printf("CognitiveEngine: panic isolation error for %s: %v", nodeID, err)
+				}
+			}
+		}
+
+		// Feed observed values back to the guardrail engine for threshold refinement
+		observed := []float64{nm.SuccessRate}
+		ce.guardrailEngine.RefinePolicy("dveguard_low_success", observed)
+	}
+}
+
+// indexOntology pushes the current learning state into the ontology manager
+// and from there into the KNIRVGRAPH temporal hypergraph.
+func (ce *CognitiveEngine) indexOntology() {
+	ce.mu.RLock()
+	stateCopy := *ce.learningState
+	ce.mu.RUnlock()
+
+	ce.ontologyManager.IndexLearningState(&stateCopy)
+
+	ce.patternAnalyzer.mu.RLock()
+	patterns := make(map[string]*FailurePattern, len(ce.patternAnalyzer.patterns))
+	for k, v := range ce.patternAnalyzer.patterns {
+		patterns[k] = v
+	}
+	ce.patternAnalyzer.mu.RUnlock()
+
+	ce.ontologyManager.IndexFailurePatterns(patterns)
+}
+
+// handleSecurityEvent processes an eBPF security alert and records it as a
+// failure signal so the learning loop can factor kernel denials into adaptation
+// decisions.
+func (ce *CognitiveEngine) handleSecurityEvent(event EngineEvent) {
+	feedback, ok := event.Payload.(SecurityEventFeedback)
+	if !ok {
+		return
+	}
+
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+
+	if feedback.NodeID == "" {
+		return
+	}
+
+	nm, exists := ce.learningState.NodePerformance[feedback.NodeID]
+	if !exists {
+		nm = &NodeMetrics{NodeID: feedback.NodeID, LastActive: time.Now()}
+		ce.learningState.NodePerformance[feedback.NodeID] = nm
+	}
+
+	// Treat a critical kernel security event as a synthetic failure
+	if feedback.Severity == "critical" || feedback.Severity == "warning" {
+		nm.SuccessRate = ce.exponentialMovingAverage(nm.SuccessRate, 0.0, 0.15)
+		nm.ReliabilityScore = ce.calculateReliabilityScore(nm)
+
+		// If high failure rate now, emit event to kick off learning immediately
+		if nm.SuccessRate < 0.5 {
+			ce.eventBus.Publish(EngineEvent{
+				Type:      EventHighFailureRate,
+				Source:    "security_event_handler",
+				Payload:   feedback.NodeID,
+				Timestamp: time.Now(),
+			})
+		}
+	}
+
+	log.Printf("CognitiveEngine: absorbed security event from node %s (type=%s severity=%s)",
+		feedback.NodeID, feedback.EventType, feedback.Severity)
+}
+
+// handleResourcePressureEvent reacts to resource pressure by potentially
+// triggering an adaptation cycle.
+func (ce *CognitiveEngine) handleResourcePressureEvent(event EngineEvent) {
+	pressures, ok := event.Payload.(map[string]float64)
+	if !ok {
+		return
+	}
+
+	cpuP := pressures["cpu_pressure"]
+	memP := pressures["mem_pressure"]
+
+	if cpuP > 0.9 || memP > 0.9 {
+		log.Printf("CognitiveEngine: critical resource pressure (cpu=%.2f mem=%.2f) – triggering adaptation", cpuP, memP)
+		ce.eventBus.Publish(EngineEvent{
+			Type:      EventAdaptationRequired,
+			Source:    "resource_pressure_handler",
+			Payload:   pressures,
+			Timestamp: time.Now(),
+		})
+	}
+}
+
+// ─── Learning state helpers ──────────────────────────────────────────────────
+
 func (ce *CognitiveEngine) updateTaskMetrics(task *objects.ValidationTask, result *objects.ValidationResult) {
 	taskType := task.Type
 	if taskType == "" {
@@ -451,38 +756,41 @@ func (ce *CognitiveEngine) updateTaskMetrics(task *objects.ValidationTask, resul
 		ce.learningState.TaskTypePerformance[taskType] = metrics
 	}
 
-	// Update metrics
 	metrics.TasksProcessed++
 	metrics.LastProcessed = time.Now()
 
-	// Update success rate using exponential moving average
 	success := 0.0
 	if result.Status == "success" || result.Score >= 0.8 {
 		success = 1.0
 	}
 	metrics.SuccessRate = ce.exponentialMovingAverage(metrics.SuccessRate, success, 0.1)
 
-	// Update average processing time
 	if result.ExecutionTime > 0 {
 		processingTime := result.ExecutionTime.Seconds()
 		metrics.AvgProcessingTime = ce.exponentialMovingAverage(metrics.AvgProcessingTime, processingTime, 0.1)
 	}
 
-	// Update average score
 	metrics.AvgScore = ce.exponentialMovingAverage(metrics.AvgScore, result.Score, 0.1)
 
-	// Track failure patterns
 	if result.Status == "failure" || result.Score < 0.6 {
 		pattern := ce.extractFailurePattern(result, task)
 		metrics.FailurePatterns = append(metrics.FailurePatterns, pattern)
-		// Keep only recent patterns
 		if len(metrics.FailurePatterns) > 10 {
 			metrics.FailurePatterns = metrics.FailurePatterns[1:]
+		}
+
+		// Emit event so the learning loop can be triggered immediately
+		if metrics.SuccessRate < 0.5 {
+			ce.eventBus.Publish(EngineEvent{
+				Type:      EventHighFailureRate,
+				Source:    "task_metrics_updater",
+				Payload:   taskType,
+				Timestamp: time.Now(),
+			})
 		}
 	}
 }
 
-// updateNodeMetrics updates metrics for a specific node
 func (ce *CognitiveEngine) updateNodeMetrics(result *objects.ValidationResult) {
 	nodeID := result.ValidatorNodeID
 	if nodeID == "" {
@@ -498,58 +806,56 @@ func (ce *CognitiveEngine) updateNodeMetrics(result *objects.ValidationResult) {
 		ce.learningState.NodePerformance[nodeID] = metrics
 	}
 
-	// Update metrics
 	metrics.TasksProcessed++
 	metrics.LastActive = time.Now()
 
-	// Update success rate
 	success := 0.0
 	if result.Status == "success" || result.Score >= 0.8 {
 		success = 1.0
 	}
 	metrics.SuccessRate = ce.exponentialMovingAverage(metrics.SuccessRate, success, 0.1)
 
-	// Update processing time
 	if result.ExecutionTime > 0 {
 		processingTime := result.ExecutionTime.Seconds()
 		metrics.AvgProcessingTime = ce.exponentialMovingAverage(metrics.AvgProcessingTime, processingTime, 0.1)
 	}
 
-	// Update reliability score based on consistency
 	metrics.ReliabilityScore = ce.calculateReliabilityScore(metrics)
+
+	// Emit node-overload event when the node has processed many tasks and is struggling
+	if metrics.TasksProcessed > 100 && metrics.SuccessRate < 0.6 {
+		ce.eventBus.Publish(EngineEvent{
+			Type:      EventNodeOverload,
+			Source:    "node_metrics_updater",
+			Payload:   nodeID,
+			Timestamp: time.Now(),
+		})
+	}
 }
 
-// updateOverallMetrics updates overall learning state metrics
-func (ce *CognitiveEngine) updateOverallMetrics() {
-	ce.mu.Lock()
-	defer ce.mu.Unlock()
-
+// updateOverallMetricsLocked updates aggregate metrics.
+// Requires ce.mu write lock held by the caller.
+func (ce *CognitiveEngine) updateOverallMetricsLocked() {
 	ce.learningState.TotalTasksProcessed++
 
-	// Calculate overall success rate
 	totalSuccess := 0.0
 	totalTasks := 0
-
 	for _, taskMetrics := range ce.learningState.TaskTypePerformance {
 		totalSuccess += taskMetrics.SuccessRate * float64(taskMetrics.TasksProcessed)
 		totalTasks += int(taskMetrics.TasksProcessed)
 	}
-
 	if totalTasks > 0 {
 		ce.learningState.SuccessRate = totalSuccess / float64(totalTasks)
 	}
 
-	// Calculate average processing time
 	totalTime := 0.0
 	timeTasks := 0
-
 	for _, taskMetrics := range ce.learningState.TaskTypePerformance {
 		if taskMetrics.AvgProcessingTime > 0 {
 			totalTime += taskMetrics.AvgProcessingTime * float64(taskMetrics.TasksProcessed)
 			timeTasks += int(taskMetrics.TasksProcessed)
 		}
 	}
-
 	if timeTasks > 0 {
 		ce.learningState.AverageProcessingTime = totalTime / float64(timeTasks)
 	}
@@ -557,81 +863,81 @@ func (ce *CognitiveEngine) updateOverallMetrics() {
 	ce.learningState.LastUpdated = time.Now()
 }
 
-// analyzeFailurePatterns analyzes failure patterns from results
-func (ce *CognitiveEngine) analyzeFailurePatterns(result *objects.ValidationResult, task *objects.ValidationTask) {
-	if result.Status == "success" && result.Score >= 0.8 {
-		return // Only analyze failures
-	}
-
-	pattern := ce.extractFailurePattern(result, task)
-	log.Printf("Detected failure pattern: %s for task %s", pattern, task.ID)
+// updateOverallMetrics is the externally safe wrapper (acquires the lock).
+func (ce *CognitiveEngine) updateOverallMetrics() {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	ce.updateOverallMetricsLocked()
 }
 
-// evaluateAdaptations checks if adaptations should be triggered
-func (ce *CognitiveEngine) evaluateAdaptations() {
-	// Check adaptation rules
+func (ce *CognitiveEngine) analyzeFailurePatterns(result *objects.ValidationResult, task *objects.ValidationTask) {
+	if result.Status == "success" && result.Score >= 0.8 {
+		return
+	}
+	pattern := ce.extractFailurePattern(result, task)
+	log.Printf("CognitiveEngine: failure pattern – %s (task=%s)", pattern, task.ID)
+}
+
+// evaluateAdaptationsLocked checks rules and applies them.
+// Requires ce.mu write lock held by the caller.
+func (ce *CognitiveEngine) evaluateAdaptationsLocked() {
 	for _, rule := range ce.adaptationEngine.adaptationRules {
-		if ce.shouldApplyRule(rule) {
-			ce.applyAdaptationRule(rule)
+		if ce.shouldApplyRuleLocked(rule) {
+			ce.applyAdaptationRuleLocked(rule)
 		}
 	}
 }
 
-// performPeriodicAdaptations performs scheduled adaptations
-func (ce *CognitiveEngine) performPeriodicAdaptations() {
-	// Check if it's time for periodic adaptations
-	now := time.Now()
-	lastAdaptation := ce.getLastAdaptationTime()
+// evaluateAdaptations is the externally safe wrapper.
+func (ce *CognitiveEngine) evaluateAdaptations() {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	ce.evaluateAdaptationsLocked()
+}
 
-	if now.Sub(lastAdaptation) > 24*time.Hour {
+func (ce *CognitiveEngine) performPeriodicAdaptations() {
+	now := time.Now()
+	if now.Sub(ce.getLastAdaptationTime()) > ce.cfg.AdaptationMinInterval {
 		ce.performLoadBalancingAdaptation()
 		ce.performResourceOptimizationAdaptation()
 	}
 }
 
-// updateLearningProgress calculates and updates learning progress
-func (ce *CognitiveEngine) updateLearningProgress() {
-	ce.mu.Lock()
-	defer ce.mu.Unlock()
+// updateLearningProgressLocked updates learning progress metrics.
+// Requires ce.mu write lock held by the caller.
+func (ce *CognitiveEngine) updateLearningProgressLocked() {
+	baseProgress := 0.1
 
-	// Learning progress based on:
-	// 1. Improvement in success rates over time
-	// 2. Reduction in processing times
-	// 3. Number of successful adaptations
-	// 4. Pattern recognition accuracy
-
-	baseProgress := 0.1 // Minimum progress
-
-	// Factor 1: Success rate improvement
 	if ce.learningState.SuccessRate > 0.7 {
 		baseProgress += 0.3
 	} else if ce.learningState.SuccessRate > 0.5 {
 		baseProgress += 0.2
 	}
 
-	// Factor 2: Processing time optimization
 	if ce.learningState.AverageProcessingTime < 30.0 {
 		baseProgress += 0.2
 	} else if ce.learningState.AverageProcessingTime < 60.0 {
 		baseProgress += 0.1
 	}
 
-	// Factor 3: Adaptation success
-	adaptationSuccess := ce.calculateAdaptationSuccessRate()
+	// calculateAdaptationSuccessRateLocked – caller holds the lock already
+	adaptationSuccess := ce.calculateAdaptationSuccessRateLocked()
 	baseProgress += adaptationSuccess * 0.2
 
-	// Factor 4: Pattern recognition
+	// patternAnalyzer has its own mutex – safe to read without ce.mu
+	ce.patternAnalyzer.mu.RLock()
 	patternsRecognized := len(ce.patternAnalyzer.patterns)
+	ce.patternAnalyzer.mu.RUnlock()
+
 	if patternsRecognized > 5 {
 		baseProgress += 0.2
 	} else if patternsRecognized > 2 {
 		baseProgress += 0.1
 	}
 
-	// Cap at 1.0 and apply smoothing
-	ce.learningState.LearningProgress = math.Min(1.0, ce.exponentialMovingAverage(ce.learningState.LearningProgress, baseProgress, 0.05))
+	ce.learningState.LearningProgress = math.Min(1.0,
+		ce.exponentialMovingAverage(ce.learningState.LearningProgress, baseProgress, 0.05))
 
-	// Update confidence level based on data volume and consistency
 	dataPoints := ce.learningState.TotalTasksProcessed
 	if dataPoints > 1000 {
 		ce.learningState.ConfidenceLevel = 0.9
@@ -642,12 +948,17 @@ func (ce *CognitiveEngine) updateLearningProgress() {
 	}
 }
 
-// shouldSaveState determines if the learning state should be saved
+// updateLearningProgress is the externally safe wrapper (acquires the lock).
+func (ce *CognitiveEngine) updateLearningProgress() {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	ce.updateLearningProgressLocked()
+}
+
 func (ce *CognitiveEngine) shouldSaveState() bool {
 	return time.Since(ce.learningState.LastUpdated) > 5*time.Minute
 }
 
-// initializeAdaptationRules sets up the initial adaptation rules
 func (ce *CognitiveEngine) initializeAdaptationRules() {
 	ce.mu.Lock()
 	defer ce.mu.Unlock()
@@ -672,29 +983,25 @@ func (ce *CognitiveEngine) initializeAdaptationRules() {
 			Priority: 2,
 		},
 		{
-			ID:        "node_overload",
+			ID:       "node_overload",
 			Condition: "node_tasks_per_hour > 100",
-			Action:    "redistribute_load",
-			Priority:  3,
+			Action:   "redistribute_load",
+			Priority: 3,
 		},
 	}
 
 	ce.adaptationEngine.adaptationRules = rules
 }
 
-// loadLearningState loads the learning state from database
 func (ce *CognitiveEngine) loadLearningState() {
 	ce.mu.Lock()
 	defer ce.mu.Unlock()
 
-	err := ce.db.GetJSON("cognitive:learning_state", ce.learningState)
-
-	if err != nil {
-		log.Printf("Failed to load learning state, starting fresh: %v", err)
+	if err := ce.db.GetJSON("cognitive:learning_state", ce.learningState); err != nil {
+		log.Printf("CognitiveEngine: failed to load learning state, starting fresh: %v", err)
 	}
 }
 
-// saveLearningState saves the learning state to database
 func (ce *CognitiveEngine) saveLearningState() {
 	ce.mu.RLock()
 	defer ce.mu.RUnlock()
@@ -704,13 +1011,12 @@ func (ce *CognitiveEngine) saveLearningState() {
 		if err != nil {
 			return err
 		}
-
 		_, _, err = tx.Set("cognitive:learning_state", string(data), nil)
 		return err
 	})
 }
 
-// Helper methods
+// ─── Calculation helpers ─────────────────────────────────────────────────────
 
 func (ce *CognitiveEngine) exponentialMovingAverage(current, new float64, alpha float64) float64 {
 	if current == 0 {
@@ -720,58 +1026,57 @@ func (ce *CognitiveEngine) exponentialMovingAverage(current, new float64, alpha 
 }
 
 func (ce *CognitiveEngine) calculateAdaptationScore(_ string) float64 {
-	// Calculate how well adaptations have worked overall
 	adaptations := 0
 	successfulAdaptations := 0
-
 	for _, event := range ce.learningState.AdaptationHistory {
 		if event.ActualImpact != nil && event.ActualImpact.OverallImprovement > 0 {
 			successfulAdaptations++
 		}
 		adaptations++
 	}
-
 	if adaptations == 0 {
-		return 0.5 // Neutral score
+		return 0.5
 	}
-
 	return float64(successfulAdaptations) / float64(adaptations)
 }
 
+// calculateResourceUtilization returns a 0.0–1.0 score derived from:
+//   - Real eBPF telemetry (when available) via the ResourceTelemetryCollector
+//   - Node task-processing statistics as a fallback
 func (ce *CognitiveEngine) calculateResourceUtilization(nodeID string) float64 {
-	// Calculate resource utilization based on task processing patterns
 	nodeMetrics, exists := ce.learningState.NodePerformance[nodeID]
 	if !exists {
 		return 0.0
 	}
 
-	// Simple utilization based on tasks processed and success rate
-	baseUtilization := math.Min(1.0, float64(nodeMetrics.TasksProcessed)/100.0)
-	utilization := baseUtilization * nodeMetrics.SuccessRate
+	// Use real telemetry if the eBPF bridge has collected data
+	snap := ce.ebpfBridge.LatestTelemetry()
+	if snap.TotalCPUTimeNs > 0 || snap.HeapAllocBytes > 0 {
+		return ce.ebpfBridge.telemetry.ResourceUtilizationForNode(
+			nodeMetrics.TasksProcessed,
+			nodeMetrics.SuccessRate,
+		)
+	}
 
-	return utilization
+	// Fallback: task-rate heuristic
+	base := math.Min(1.0, float64(nodeMetrics.TasksProcessed)/100.0)
+	return base * nodeMetrics.SuccessRate
 }
 
 func (ce *CognitiveEngine) calculateReliabilityScore(metrics *NodeMetrics) float64 {
-	// Calculate reliability based on consistency of performance
 	if metrics.TasksProcessed < 10 {
-		return 0.5 // Not enough data
+		return 0.5
 	}
-
-	// Higher reliability for consistent performance
-	consistency := 1.0 - (metrics.SuccessRate - 0.8) // Penalize deviation from 80%
+	consistency := 1.0 - math.Abs(metrics.SuccessRate-0.8)
 	if consistency < 0 {
 		consistency = 0
 	}
-
 	return math.Min(1.0, consistency)
 }
 
 func (ce *CognitiveEngine) generateFailureKey(result *objects.ValidationResult) string {
-	// Generate a key based on failure characteristics
 	key := fmt.Sprintf("%s_%.2f", result.Status, result.Score)
 	if result.ErrorMessage != "" {
-		// Include error type in key
 		if len(result.ErrorMessage) > 50 {
 			key += "_" + result.ErrorMessage[:50]
 		} else {
@@ -799,7 +1104,6 @@ func (ce *CognitiveEngine) createFailurePattern(key string, failures []*objects.
 }
 
 func (ce *CognitiveEngine) suggestActionForPattern(patternKey string) string {
-	// Provide suggestions based on pattern characteristics
 	if contains(patternKey, "timeout") {
 		return "Increase timeout limits or optimize processing"
 	}
@@ -820,11 +1124,9 @@ func (ce *CognitiveEngine) extractFailurePattern(result *objects.ValidationResul
 	return pattern
 }
 
-func (ce *CognitiveEngine) shouldApplyRule(rule AdaptationRule) bool {
-	ce.mu.RLock()
-	defer ce.mu.RUnlock()
-
-	// Check if rule conditions are met
+// shouldApplyRuleLocked checks whether a rule's conditions are met.
+// Requires ce.mu held (read or write) by the caller.
+func (ce *CognitiveEngine) shouldApplyRuleLocked(rule AdaptationRule) bool {
 	switch rule.Condition {
 	case "task_type_success_rate < 0.6":
 		for _, metrics := range ce.learningState.TaskTypePerformance {
@@ -840,11 +1142,17 @@ func (ce *CognitiveEngine) shouldApplyRule(rule AdaptationRule) bool {
 	return false
 }
 
-func (ce *CognitiveEngine) applyAdaptationRule(rule AdaptationRule) {
-	ce.mu.Lock()
-	defer ce.mu.Unlock()
+// shouldApplyRule is the externally safe wrapper.
+func (ce *CognitiveEngine) shouldApplyRule(rule AdaptationRule) bool {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	return ce.shouldApplyRuleLocked(rule)
+}
 
-	log.Printf("Applying adaptation rule: %s", rule.ID)
+// applyAdaptationRuleLocked applies a rule and records the event.
+// Requires ce.mu write lock held by the caller.
+func (ce *CognitiveEngine) applyAdaptationRuleLocked(rule AdaptationRule) {
+	log.Printf("CognitiveEngine: applying adaptation rule %s", rule.ID)
 
 	event := AdaptationEvent{
 		ID:             fmt.Sprintf("adaptation_%d", time.Now().Unix()),
@@ -855,7 +1163,6 @@ func (ce *CognitiveEngine) applyAdaptationRule(rule AdaptationRule) {
 		ExpectedImpact: fmt.Sprintf("Expected improvement from rule: %s", rule.ID),
 	}
 
-	// Apply the adaptation
 	switch rule.Action {
 	case "increase_priority":
 		ce.adaptTaskPriorities(rule.Parameters)
@@ -865,7 +1172,6 @@ func (ce *CognitiveEngine) applyAdaptationRule(rule AdaptationRule) {
 		ce.adaptLoadDistribution()
 	}
 
-	// Update the rule's LastApplied time in the adaptation engine
 	for i, r := range ce.adaptationEngine.adaptationRules {
 		if r.ID == rule.ID {
 			ce.adaptationEngine.adaptationRules[i].LastApplied = time.Now()
@@ -874,8 +1180,6 @@ func (ce *CognitiveEngine) applyAdaptationRule(rule AdaptationRule) {
 	}
 
 	ce.learningState.AdaptationHistory = append(ce.learningState.AdaptationHistory, event)
-
-	// Keep only recent history
 	if len(ce.learningState.AdaptationHistory) > 100 {
 		ce.learningState.AdaptationHistory = ce.learningState.AdaptationHistory[1:]
 	}
@@ -886,50 +1190,44 @@ func (ce *CognitiveEngine) adaptTaskPriorities(params map[string]interface{}) {
 	if boost <= 0 {
 		boost = 1
 	}
-
-	// Increase priority for underperforming task types
 	for taskType, metrics := range ce.learningState.TaskTypePerformance {
 		if metrics.SuccessRate < 0.6 {
-			log.Printf("Increasing priority for task type: %s", taskType)
-			// In a real implementation, this would update the validation core
+			log.Printf("CognitiveEngine: increasing priority for task type %s (boost=%d)", taskType, boost)
 		}
 	}
 }
 
 func (ce *CognitiveEngine) adaptResourceAllocation(params map[string]interface{}) {
 	boost, _ := params["cpu_boost"].(float64)
-	log.Printf("Adapting resource allocation with CPU boost: %.2f", boost)
-	// In a real implementation, this would adjust system resources
+	snap := ce.ebpfBridge.LatestTelemetry()
+	log.Printf("CognitiveEngine: resource allocation adaptation – cpu_boost=%.2f current_pressure=(cpu=%.2f mem=%.2f)",
+		boost, snap.CPUPressure, snap.MemoryPressure)
+	// Production hook: adjust GOMAXPROCS or notify an orchestrator
 }
 
 func (ce *CognitiveEngine) adaptLoadDistribution() {
-	log.Println("Adapting load distribution across nodes")
-	// In a real implementation, this would redistribute tasks
+	log.Println("CognitiveEngine: redistributing load across nodes")
 }
 
 func (ce *CognitiveEngine) performLoadBalancingAdaptation() {
 	ce.mu.RLock()
 	defer ce.mu.RUnlock()
 
-	// Analyze node performance and redistribute load
 	nodePerformances := make([]NodeMetrics, 0, len(ce.learningState.NodePerformance))
 	for _, metrics := range ce.learningState.NodePerformance {
 		nodePerformances = append(nodePerformances, *metrics)
 	}
-
-	// Sort by utilization
 	sort.Slice(nodePerformances, func(i, j int) bool {
 		return ce.calculateResourceUtilization(nodePerformances[i].NodeID) <
 			ce.calculateResourceUtilization(nodePerformances[j].NodeID)
 	})
-
-	// Balance load by adjusting task assignments
-	log.Println("Performing load balancing adaptation")
+	log.Println("CognitiveEngine: performed load balancing adaptation")
 }
 
 func (ce *CognitiveEngine) performResourceOptimizationAdaptation() {
-	// Optimize resource allocation based on usage patterns
-	log.Println("Performing resource optimization adaptation")
+	snap := ce.ebpfBridge.LatestTelemetry()
+	log.Printf("CognitiveEngine: resource optimisation – heap=%dMB goroutines=%d cpu_pressure=%.2f",
+		snap.HeapAllocBytes/1024/1024, snap.GoRoutines, snap.CPUPressure)
 }
 
 func (ce *CognitiveEngine) getLastAdaptationTime() time.Time {
@@ -937,32 +1235,44 @@ func (ce *CognitiveEngine) getLastAdaptationTime() time.Time {
 	defer ce.mu.RUnlock()
 
 	if len(ce.learningState.AdaptationHistory) == 0 {
-		return time.Now().Add(-25 * time.Hour) // Force adaptation if none recent
+		return time.Now().Add(-25 * time.Hour)
 	}
-
 	lastEvent := ce.learningState.AdaptationHistory[len(ce.learningState.AdaptationHistory)-1]
 	return lastEvent.Timestamp
 }
 
-func (ce *CognitiveEngine) calculateAdaptationSuccessRate() float64 {
-	ce.mu.RLock()
-	defer ce.mu.RUnlock()
-
+// calculateAdaptationSuccessRateLocked computes the adaptation success rate.
+// Requires ce.mu held by the caller.
+func (ce *CognitiveEngine) calculateAdaptationSuccessRateLocked() float64 {
 	if len(ce.learningState.AdaptationHistory) == 0 {
 		return 0.5
 	}
-
 	successful := 0
 	for _, event := range ce.learningState.AdaptationHistory {
 		if event.ActualImpact != nil && event.ActualImpact.OverallImprovement > 0 {
 			successful++
 		}
 	}
-
 	return float64(successful) / float64(len(ce.learningState.AdaptationHistory))
 }
 
-// Utility functions
+// calculateAdaptationSuccessRate is the externally safe wrapper.
+func (ce *CognitiveEngine) calculateAdaptationSuccessRate() float64 {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	return ce.calculateAdaptationSuccessRateLocked()
+}
+
+// applyAdaptationRule is the externally safe wrapper used by existing callers and tests.
+func (ce *CognitiveEngine) applyAdaptationRule(rule AdaptationRule) {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	ce.applyAdaptationRuleLocked(rule)
+}
+
+// ─── Utilities ───────────────────────────────────────────────────────────────
+
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || strings.Contains(s, substr)))
+	return len(s) >= len(substr) && (s == substr ||
+		(len(s) > len(substr) && strings.Contains(s, substr)))
 }

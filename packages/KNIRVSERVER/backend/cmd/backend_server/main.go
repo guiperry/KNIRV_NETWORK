@@ -555,8 +555,14 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		log.Printf("Warning: Failed to initialize TURN server: %v", err)
 	}
 
-	// Initialize Cognitive Engine
+	// Initialize Cognitive Engine with configurable parameters
 	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager, validationCore, inferenceService, fabricManagementService)
+
+	// Wire eBPF manager for real resource telemetry and kernel-level guardrails
+	if ebpfManager != nil {
+		cognitiveEngine.SetEBPFManager(ebpfManager)
+		log.Println("CognitiveEngine: eBPF manager wired for real resource telemetry")
+	}
 
 	// Initialize Object Nest subsystem
 	unifiedContainerManager := runtime.NewUnifiedContainerManager(
@@ -593,6 +599,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 						icmeConfig.GraphMaxNodes,
 						logger,
 					)
+
+					// Wire KNIRVGRAPH into the Cognitive Engine for ontological data organization
+					cognitiveEngine.SetKNIRVGRAPHEngine(graphEngine, logger)
+					log.Println("CognitiveEngine: KNIRVGRAPH temporal hypergraph wired for ontology indexing")
 
 					intentRegistry, err := icme.NewIntentRegistry(dbManager, logger)
 					if err != nil {

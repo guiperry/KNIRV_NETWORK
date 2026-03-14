@@ -104,6 +104,103 @@ Accessible from the DVE dashboard, the Agent Command Center provides:
 
 ---
 
+## 🧠 Cognitive Engine — Enhanced Architecture
+
+The `backend/internal/services/cognitiveengine` package has been substantially upgraded with five new production subsystems. All features are wired automatically during server initialization in `main.go`.
+
+### I. Configurable Background Operation (`config.go`)
+
+All loop intervals are now controlled via `EngineConfig` (previously hardcoded):
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `LearningInterval` | 30 s | How often the main learning cycle runs |
+| `MetricsInterval` | 60 s | How often node metrics are collected |
+| `PatternAnalysisInterval` | 5 m | How often failure patterns are analysed |
+| `WorkerPoolSize` | 4 | Number of concurrent validation-result workers |
+| `TaskQueueCapacity` | 256 | Buffered work queue depth |
+| `GuardrailCheckInterval` | 10 s | How often DVE policies are evaluated |
+| `EBPFTelemetryInterval` | 15 s | eBPF process_telemetry polling interval |
+| `OntologyUpdateInterval` | 2 m | How often the KNIRVGRAPH hypergraph is synced |
+
+The engine also reacts to *events* immediately — a burst of validation failures or a resource-pressure alert triggers an out-of-band learning cycle without waiting for the next ticker tick.
+
+### II. Worker Pool for Concurrent Ingestion (`task_worker.go`)
+
+Validation results are now processed by a **goroutine pool** rather than inline. This decouples result ingestion from learning-state mutation:
+
+```
+ValidationResult → ProcessValidationResult() → EventBus (EventValidationResult)
+                                              → TaskWorkerPool.Submit()
+                                                   └─ worker.processWorkItem() → updateTaskMetrics / updateNodeMetrics / ...
+```
+
+Back-pressure: when the queue is full the engine falls back to synchronous processing so no result is ever dropped.
+
+### III. Real eBPF Resource Telemetry (`resource_telemetry.go`, `ebpf_bridge.go`)
+
+`ResourceTelemetryCollector` reads the kernel-level `process_telemetry` eBPF map (CPU time, memory, net I/O, context switches, page faults) via `ebpf.Manager.GetProcessMetrics()`, merging it with Go runtime stats. This data replaces the previous task-rate heuristic in `calculateResourceUtilization`.
+
+`EBPFBridge` wraps the collector with:
+- **Telemetry polling loop** — fires `EventResourcePressure` when CPU > 85 % or memory > 85 %
+- **Security feedback ingestion** — `InjectEBPFSecurityFeedback()` accepts pre-parsed LSM/XDP events and reduces a node's success rate accordingly, triggering immediate re-learning
+- **Panic isolation switch** — `TriggerPanicIsolation(nodeID)` records kernel-level isolation and stops task routing to the compromised node
+
+```go
+// Wire from DVEManager's LSM audit parser:
+cognitiveEngine.InjectEBPFSecurityFeedback(cognitiveengine.SecurityEventFeedback{
+    NodeID: nodeID, EventType: "lsm_block", Severity: "critical", ...
+})
+```
+
+### IV. Per-DVE Guardrail Policy Enforcement (`guardrail_engine.go`)
+
+`GuardrailEngine` evaluates configurable `PolicyRule` objects against every node's live metrics every 10 seconds. Built-in rules:
+
+| Rule ID | Metric | Condition | Severity | Remediation |
+|---------|--------|-----------|----------|-------------|
+| `dveguard_low_success` | `success_rate` | < 0.4 | critical | quarantine node |
+| `dveguard_slow_response` | `avg_processing_time` | > 300 s | warning | redistribute tasks |
+| `dveguard_high_resource` | `resource_utilization` | > 0.95 | critical | scale resources |
+| `dveguard_panic_trigger` | `violation_count` | > 5 | panic | kernel isolation |
+
+Custom rules and remediators can be registered at runtime:
+
+```go
+ce.guardrailEngine.AddPolicy(&cognitiveengine.PolicyRule{...})
+ce.guardrailEngine.RegisterRemediator("my_action", func(ctx, v) error { ... })
+```
+
+**Feedback loop**: after each evaluation cycle `RefinePolicy()` auto-adjusts thresholds when trigger rate exceeds 50%, preventing alert fatigue while tightening governance over time.
+
+### V. DVE Ontology & KNIRVGRAPH Integration (`ontology.go`)
+
+`DVEOntologyManager` converts the engine's `LearningState` into typed knowledge-graph entities (`dve_node`, `validation_task`, `adaptation_event`, `failure_pattern`, …) and pushes them into the KNIRVGRAPH `TemporalHypergraph` as `IntentionalSignal` objects every 2 minutes.
+
+This enables graph-based reasoning queries such as:
+- Which nodes are consistently associated with failure patterns of type `timeout`?
+- Which adaptation events correlate with improved success rates on `inference` tasks?
+
+The hypergraph is wired automatically when ICME is enabled:
+
+```go
+// Happens automatically in main.go when ICME is enabled:
+cognitiveEngine.SetKNIRVGRAPHEngine(graphEngine, logger)
+```
+
+### Cognitive Engine API additions
+
+| Method | Description |
+|--------|-------------|
+| `GetGuardrailViolations(limit)` | Recent policy violations with remediation status |
+| `GetOntologyStats()` | Count of entities and relations currently indexed |
+| `GetLatestTelemetry()` | Most recent eBPF/runtime resource snapshot |
+| `InjectEBPFSecurityFeedback(event)` | Feed kernel security event into learning loop |
+| `SetEBPFManager(mgr)` | Wire eBPF manager (called from `main.go`) |
+| `SetKNIRVGRAPHEngine(hg, logger)` | Wire KNIRVGRAPH hypergraph (called from `main.go`) |
+
+---
+
 ## 🏗️ Codebase Unification
 
 The runtime and node-management layers have been consolidated for a stable foundation:
