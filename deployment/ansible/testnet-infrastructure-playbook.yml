@@ -17,8 +17,8 @@
       - 5001   # IPFS API
       - 8080   # IPFS Gateway / KNIRVCHAIN
       - 8081   # KNIRVGRAPH
-      - 8082   # KNIRVNEXUS-1
-      - 8083   # KNIRVNEXUS-2
+      - 8082   # KNIRVSERVER-1
+      - 8083   # KNIRVSERVER-2
       - 8086   # KNIRVROUTER
       - 8087   # KNIRVGATEWAY
       - 3000   # KNIRVANA
@@ -112,8 +112,8 @@
               - 5001   # IPFS API
               - 8080   # IPFS Gateway / KNIRVCHAIN
               - 8081   # KNIRVGRAPH
-              - 8082   # KNIRVNEXUS-1
-              - 8083   # KNIRVNEXUS-2
+              - 8082   # KNIRVSERVER-1
+              - 8083   # KNIRVSERVER-2
               - 8086   # KNIRVROUTER
               - 8087   # KNIRVGATEWAY
               - 3000   # KNIRVANA
@@ -376,8 +376,8 @@
             - '5001'   # IPFS API
             - '8080'   # IPFS Gateway / KNIRVCHAIN
             - '8081'   # KNIRVGRAPH
-            - '8082'   # KNIRVNEXUS-1
-            - '8083'   # KNIRVNEXUS-2
+            - '8082'   # KNIRVSERVER-1
+            - '8083'   # KNIRVSERVER-2
             - '8086'   # KNIRVROUTER
             - '8087'   # KNIRVGATEWAY
             - '3000'   # KNIRVANA

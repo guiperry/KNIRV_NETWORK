@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# KNIRVCONTROLLER PWA Deployment Script
-# Deploys KNIRVCONTROLLER PWA to CloudFlare CDN with environment-specific configuration
+# KNIRVWALLET PWA Deployment Script
+# Deploys KNIRVWALLET PWA to CloudFlare CDN with environment-specific configuration
 # Integrates with existing KNIRV network deployment infrastructure
 
 set -e
@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 # Script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CONTROLLER_DIR="$PROJECT_ROOT/KNIRVCONTROLLER"
+CONTROLLER_DIR="$PROJECT_ROOT/packages/KNIRVWALLET"
 
 # Environment configuration
 ENVIRONMENT="${1:-production}"
@@ -27,7 +27,7 @@ DEPLOYMENT_CONFIG_FILE="$PROJECT_ROOT/deployment/ansible/environments/${ENVIRONM
 # Functions
 print_header() {
     echo -e "${BLUE}========================================${NC}"
-    echo -e "${BLUE}🚀 KNIRVCONTROLLER PWA Deployment${NC}"
+    echo -e "${BLUE}🚀 KNIRVWALLET PWA Deployment${NC}"
     echo -e "${BLUE}========================================${NC}"
     echo ""
     echo -e "${YELLOW}Environment: ${ENVIRONMENT}${NC}"
@@ -59,9 +59,9 @@ print_status() {
 check_prerequisites() {
     print_step "Checking prerequisites..."
 
-    # Check if KNIRVCONTROLLER directory exists
+    # Check if KNIRVWALLET directory exists
     if [ ! -d "$CONTROLLER_DIR" ]; then
-        print_error "KNIRVCONTROLLER directory not found at $CONTROLLER_DIR"
+        print_error "KNIRVWALLET directory not found at $CONTROLLER_DIR"
         exit 1
     fi
 
@@ -97,7 +97,7 @@ check_prerequisites() {
 
 # Install dependencies
 install_dependencies() {
-    print_step "Installing KNIRVCONTROLLER dependencies..."
+    print_step "Installing KNIRVWALLET dependencies..."
     
     cd "$CONTROLLER_DIR"
     
@@ -114,7 +114,7 @@ install_dependencies() {
 
 # Build PWA packages
 build_pwa_packages() {
-    print_step "Building KNIRVCONTROLLER PWA packages..."
+    print_step "Building KNIRVWALLET PWA packages..."
     
     cd "$CONTROLLER_DIR"
     
@@ -243,7 +243,7 @@ generate_deployment_report() {
     mkdir -p "$(dirname "$REPORT_FILE")"
     
     cat > "$REPORT_FILE" << EOF
-KNIRVCONTROLLER PWA Deployment Report
+KNIRVWALLET PWA Deployment Report
 =====================================
 
 Deployment Date: $(date)
@@ -270,7 +270,7 @@ EOF
 # Display deployment summary
 display_summary() {
     echo ""
-    echo -e "${GREEN}🎉 KNIRVCONTROLLER PWA Deployment Complete!${NC}"
+    echo -e "${GREEN}🎉 KNIRVWALLET PWA Deployment Complete!${NC}"
     echo -e "${BLUE}=============================================${NC}"
     echo ""
     echo -e "${YELLOW}Environment: ${ENVIRONMENT}${NC}"

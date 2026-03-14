@@ -15,9 +15,9 @@ CLOUD_PROVIDER ?= aws
 PROJECT_ROOT := $(shell pwd)
 ANSIBLE_DIR := $(PROJECT_ROOT)/deployment/ansible
 SCRIPTS_DIR := $(PROJECT_ROOT)/scripts
-KNIRVGATEWAY_DIR := $(PROJECT_ROOT)/KNIRVGATEWAY
-KNIRVCONTROLLER_DIR := $(PROJECT_ROOT)/KNIRVCONTROLLER
-DOCS_DIR := $(PROJECT_ROOT)/KNIRVGATEWAY/documentation
+KNIRVGATEWAY_DIR := $(PROJECT_ROOT)/packages/KNIRVGATEWAY
+KNIRVWALLET_DIR := $(PROJECT_ROOT)/packages/KNIRVWALLET
+DOCS_DIR := $(PROJECT_ROOT)/packages/KNIRVGATEWAY/documentation
 DEPLOYMENT_DIR := $(PROJECT_ROOT)/deployment
 
 # Colors for output
@@ -60,7 +60,7 @@ help: ## Show this help message
 	@echo "  make deploy-full ENVIRONMENT=development CLOUD_PROVIDER=aws"
 	@echo "  make deploy-controller-pwa ENVIRONMENT=production"
 	@echo "  make health-check-controller-pwa"
-	@echo "  make setup-controller-db     # Setup KNIRVCONTROLLER database with accounts"
+	@echo "  make setup-controller-db     # Setup KNIRVWALLET database with accounts"
 	@echo "  make seed-controller-db      # Seed database with default accounts"
 	@echo "  make docs && make deploy-website"
 
@@ -146,43 +146,43 @@ docs-clean: ## Clean generated documentation
 .PHONY: doc-sync-build
 doc-sync-build: ## Build the documentation sync tool
 	@echo "$(BLUE)Building documentation sync tool...$(NC)"
-	@cd KNIRVSYNC && make build
+	@cd packages/KNIRVSYNC && make build
 	@echo "$(GREEN)✓ Documentation sync tool built$(NC)"
 
 .PHONY: doc-scan
 doc-scan: doc-sync-build ## Scan for documentation gaps across all services
 	@echo "$(BLUE)Scanning for documentation gaps...$(NC)"
-	@cd KNIRVSYNC && make scan
+	@cd packages/KNIRVSYNC && make scan
 	@echo "$(GREEN)✓ Gap scan complete. Check KNIRVSYNC/reports/doc-gaps-report.md$(NC)"
 
 .PHONY: doc-sync
 doc-sync: doc-sync-build ## Sync all documentation (README + API specs + unified API)
 	@echo "$(BLUE)Synchronizing all documentation...$(NC)"
-	@cd KNIRVSYNC && make sync-all
+	@cd packages/KNIRVSYNC && make sync-all
 	@echo "$(GREEN)✓ Documentation synchronized$(NC)"
 
 .PHONY: doc-sync-readme
 doc-sync-readme: doc-sync-build ## Sync README files to central documentation
 	@echo "$(BLUE)Synchronizing README files...$(NC)"
-	@cd KNIRVSYNC && make sync-readme
+	@cd packages/KNIRVSYNC && make sync-readme
 	@echo "$(GREEN)✓ README files synchronized$(NC)"
 
 .PHONY: doc-sync-api
 doc-sync-api: doc-sync-build ## Sync API specifications to central locations
 	@echo "$(BLUE)Synchronizing API specifications...$(NC)"
-	@cd KNIRVSYNC && make sync-api
+	@cd packages/KNIRVSYNC && make sync-api
 	@echo "$(GREEN)✓ API specifications synchronized$(NC)"
 
 .PHONY: doc-sync-unified
 doc-sync-unified: doc-sync-build ## Generate unified OpenAPI specification
 	@echo "$(BLUE)Generating unified OpenAPI specification...$(NC)"
-	@cd KNIRVSYNC && make sync-unified
+	@cd packages/KNIRVSYNC && make sync-unified
 	@echo "$(GREEN)✓ Unified API specification generated: KNIRVGATEWAY/config/unified-openapi.yaml$(NC)"
 
 .PHONY: doc-sync-clean
 doc-sync-clean: ## Clean documentation sync build artifacts
 	@echo "$(BLUE)Cleaning documentation sync artifacts...$(NC)"
-	@cd KNIRVSYNC && make clean
+	@cd packages/KNIRVSYNC && make clean
 	@echo "$(GREEN)✓ Documentation sync artifacts cleaned$(NC)"
 
 # =============================================================================
@@ -294,22 +294,22 @@ check-testnet: ## Check status of KNIRVTESTNET deployment
 	@./scripts/check-testnet-state.sh
 
 .PHONY: deploy-controller-pwa
-deploy-controller-pwa: check-prereqs ## Deploy KNIRVCONTROLLER PWA to CloudFlare CDN
-	@echo "$(BLUE)Deploying KNIRVCONTROLLER PWA...$(NC)"
+deploy-controller-pwa: check-prereqs ## Deploy KNIRVWALLET PWA to CloudFlare CDN
+	@echo "$(BLUE)Deploying KNIRVWALLET PWA...$(NC)"
 	@cd $(PROJECT_ROOT) && ./scripts/deploy-controller-pwa.sh $(ENVIRONMENT)
-	@echo "$(GREEN)✓ KNIRVCONTROLLER PWA deployed$(NC)"
+	@echo "$(GREEN)✓ KNIRVWALLET PWA deployed$(NC)"
 
 .PHONY: build-controller-pwa
-build-controller-pwa: ## Build KNIRVCONTROLLER PWA packages
-	@echo "$(BLUE)Building KNIRVCONTROLLER PWA packages...$(NC)"
-	@cd $(KNIRVCONTROLLER_DIR) && npm run build:pwa
-	@echo "$(GREEN)✓ KNIRVCONTROLLER PWA packages built$(NC)"
+build-controller-pwa: ## Build KNIRVWALLET PWA packages
+	@echo "$(BLUE)Building KNIRVWALLET PWA packages...$(NC)"
+	@cd $(KNIRVWALLET_DIR) && npm run build:pwa
+	@echo "$(GREEN)✓ KNIRVWALLET PWA packages built$(NC)"
 
 .PHONY: setup-controller-db
-setup-controller-db: ## Setup KNIRVCONTROLLER database with default accounts
-	@echo "$(BLUE)Setting up KNIRVCONTROLLER database...$(NC)"
-	@cd $(KNIRVCONTROLLER_DIR) && npm run db:setup
-	@echo "$(GREEN)✓ KNIRVCONTROLLER database setup completed$(NC)"
+setup-controller-db: ## Setup KNIRVWALLET database with default accounts
+	@echo "$(BLUE)Setting up KNIRVWALLET database...$(NC)"
+	@cd $(KNIRVWALLET_DIR) && npm run db:setup
+	@echo "$(GREEN)✓ KNIRVWALLET database setup completed$(NC)"
 	@echo "$(YELLOW)🔐 Default credentials:$(NC)"
 	@echo "$(YELLOW)  Admin: admin@knirv.com / admin123$(NC)"
 	@echo "$(YELLOW)  Demo: demo@knirv.com / demo123$(NC)"
@@ -317,10 +317,10 @@ setup-controller-db: ## Setup KNIRVCONTROLLER database with default accounts
 	@echo "$(YELLOW)  Test User: test@example.com / test123$(NC)"
 
 .PHONY: seed-controller-db
-seed-controller-db: ## Seed KNIRVCONTROLLER database with default accounts
-	@echo "$(BLUE)Seeding KNIRVCONTROLLER database...$(NC)"
-	@cd $(KNIRVCONTROLLER_DIR) && npm run db:seed
-	@echo "$(GREEN)✓ KNIRVCONTROLLER database seeded$(NC)"
+seed-controller-db: ## Seed KNIRVWALLET database with default accounts
+	@echo "$(BLUE)Seeding KNIRVWALLET database...$(NC)"
+	@cd $(KNIRVWALLET_DIR) && npm run db:seed
+	@echo "$(GREEN)✓ KNIRVWALLET database seeded$(NC)"
 
 # =============================================================================
 # TESTNET INSTANCE MANAGEMENT
@@ -397,30 +397,30 @@ tests: test-setup ## Run comprehensive test suite for entire KNIRV network
 	@echo "$(YELLOW)📈 View coverage at: $(COVERAGE_DIR)$(NC)"
 
 .PHONY: test-controller
-test-controller: ## Test KNIRVCONTROLLER (AI Agent Framework)
-	@echo "$(BLUE)Testing KNIRVCONTROLLER...$(NC)"
-	@if [ -f "KNIRVCONTROLLER/scripts/run-tests.sh" ]; then \
-		cd KNIRVCONTROLLER && ./scripts/run-tests.sh; \
-		echo "$(GREEN)✓ KNIRVCONTROLLER tests completed$(NC)"; \
+test-controller: ## Test KNIRVWALLET (AI Agent Framework)
+	@echo "$(BLUE)Testing KNIRVWALLET...$(NC)"
+	@if [ -f "packages/KNIRVWALLET/scripts/run-tests.sh" ]; then \
+		cd packages/KNIRVWALLET && ./scripts/run-tests.sh; \
+		echo "$(GREEN)✓ KNIRVWALLET tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVCONTROLLER test script not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVWALLET test script not found$(NC)"; \
 	fi
 
 .PHONY: test-controller-pwa
-test-controller-pwa: ## Test KNIRVCONTROLLER PWA functionality
-	@echo "$(BLUE)Testing KNIRVCONTROLLER PWA...$(NC)"
-	@if [ -f "KNIRVCONTROLLER/scripts/test-pwa.sh" ]; then \
-		cd KNIRVCONTROLLER && ./scripts/test-pwa.sh; \
-		echo "$(GREEN)✓ KNIRVCONTROLLER PWA tests completed$(NC)"; \
+test-controller-pwa: ## Test KNIRVWALLET PWA functionality
+	@echo "$(BLUE)Testing KNIRVWALLET PWA...$(NC)"
+	@if [ -f "packages/KNIRVWALLET/scripts/test-pwa.sh" ]; then \
+		cd packages/KNIRVWALLET && ./scripts/test-pwa.sh; \
+		echo "$(GREEN)✓ KNIRVWALLET PWA tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVCONTROLLER PWA test script not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVWALLET PWA test script not found$(NC)"; \
 	fi
 
 .PHONY: test-sdk
 test-sdk: ## Test KNIRVSDK (Multi-language SDK)
 	@echo "$(BLUE)Testing KNIRVSDK...$(NC)"
-	@if [ -f "KNIRVSDK/scripts/run-all-tests.sh" ]; then \
-		cd KNIRVSDK && ./scripts/run-all-tests.sh; \
+	@if [ -f "packages/KNIRVSDK/scripts/run-all-tests.sh" ]; then \
+		cd packages/KNIRVSDK && ./scripts/run-all-tests.sh; \
 		echo "$(GREEN)✓ KNIRVSDK tests completed$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠ KNIRVSDK test script not found$(NC)"; \
@@ -429,8 +429,8 @@ test-sdk: ## Test KNIRVSDK (Multi-language SDK)
 .PHONY: test-graph
 test-graph: ## Test KNIRVGRAPH (Blockchain Explorer)
 	@echo "$(BLUE)Testing KNIRVGRAPH...$(NC)"
-	@if [ -f "KNIRVGRAPH/scripts/run-comprehensive-tests.sh" ]; then \
-		cd KNIRVGRAPH && ./scripts/run-comprehensive-tests.sh; \
+	@if [ -f "packages/KNIRVGRAPH/scripts/run-comprehensive-tests.sh" ]; then \
+		cd packages/KNIRVGRAPH && ./scripts/run-comprehensive-tests.sh; \
 		echo "$(GREEN)✓ KNIRVGRAPH tests completed$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠ KNIRVGRAPH test script not found$(NC)"; \
@@ -439,120 +439,129 @@ test-graph: ## Test KNIRVGRAPH (Blockchain Explorer)
 .PHONY: test-wallet
 test-wallet: ## Test KNIRVWALLET (Wallet System)
 	@echo "$(BLUE)Testing KNIRVWALLET...$(NC)"
-	@if [ -f "KNIRVWALLET/agentic-wallet/package.json" ]; then \
-		cd KNIRVWALLET/agentic-wallet && npm test; \
+	@if [ -f "packages/KNIRVWALLET/agentic-wallet/package.json" ]; then \
+		cd packages/KNIRVWALLET/agentic-wallet && npm test; \
 		echo "$(GREEN)✓ KNIRVWALLET agentic-wallet tests completed$(NC)"; \
-	elif [ -f "KNIRVWALLET/browser-bridge/package.json" ]; then \
-		cd KNIRVWALLET/browser-bridge && npm test; \
+	elif [ -f "packages/KNIRVWALLET/browser-bridge/package.json" ]; then \
+		cd packages/KNIRVWALLET/browser-bridge && npm test; \
 		echo "$(GREEN)✓ KNIRVWALLET browser-bridge tests completed$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠ KNIRVWALLET test scripts not found$(NC)"; \
-		echo "$(YELLOW)   Run 'cd KNIRVWALLET/scripts && ./test_basic.js' for basic testing$(NC)"; \
+		echo "$(YELLOW)   Run 'cd packages/KNIRVWALLET/scripts && ./test_basic.js' for basic testing$(NC)"; \
 	fi
 
 .PHONY: test-nexus
-test-nexus: ## Test KNIRVNEXUS (Admin Portal)
-	@echo "$(BLUE)Testing KNIRVNEXUS...$(NC)"
+test-nexus: ## Test KNIRVSERVER (Admin Portal)
+	@echo "$(BLUE)Testing KNIRVSERVER...$(NC)"
 	@$(MAKE) test-nexus-unit
 	@$(MAKE) test-nexus-integration
 	@$(MAKE) test-nexus-e2e
 	@$(MAKE) test-nexus-performance
 	@$(MAKE) test-nexus-security
-	@echo "$(GREEN)✓ KNIRVNEXUS comprehensive tests completed$(NC)"
+	@echo "$(GREEN)✓ KNIRVSERVER comprehensive tests completed$(NC)"
 
 .PHONY: test-nexus-privileged
-test-nexus-privileged: ## Test KNIRVNEXUS with full Docker instance (root privileges)
-	@echo "$(BLUE)Testing KNIRVNEXUS with privileged tests in Docker...$(NC)"
-	@cd KNIRVNEXUS && $(MAKE) test-privileged
+test-nexus-privileged: ## Test KNIRVSERVER with full Docker instance (root privileges)
+	@echo "$(BLUE)Testing KNIRVSERVER with privileged tests in Docker...$(NC)"
+	@cd packages/KNIRVSERVER && $(MAKE) test-privileged
 
 .PHONY: test-nexus-privileged-quick
 test-nexus-privileged-quick: ## Quick privileged test (use existing container)
 	@echo "$(BLUE)Running quick privileged tests...$(NC)"
-	@cd KNIRVNEXUS && $(MAKE) test-privileged-quick
+	@cd packages/KNIRVSERVER && $(MAKE) test-privileged-quick
 
 .PHONY: test-nexus-privileged-full
 test-nexus-privileged-full: ## Full privileged test with cleanup
 	@echo "$(BLUE)Running full privileged tests with cleanup...$(NC)"
-	@cd KNIRVNEXUS && $(MAKE) test-privileged-full
+	@cd packages/KNIRVSERVER && $(MAKE) test-privileged-full
 
 .PHONY: test-nexus-unit
-test-nexus-unit: ## Run KNIRVNEXUS unit tests
-	@echo "$(BLUE)Running KNIRVNEXUS unit tests...$(NC)"
-	@if [ -f "KNIRVNEXUS/backend/tests/phase6_comprehensive_unit_test.go" ]; then \
-		cd KNIRVNEXUS && go test -v ./backend/tests/...; \
-		echo "$(GREEN)✓ KNIRVNEXUS unit tests completed$(NC)"; \
+test-nexus-unit: ## Run KNIRVSERVER unit tests
+	@echo "$(BLUE)Running KNIRVSERVER unit tests...$(NC)"
+	@if [ -f "packages/KNIRVSERVER/backend/tests/phase6_comprehensive_unit_test.go" ]; then \
+		cd packages/KNIRVSERVER && go test -v ./backend/tests/...; \
+		echo "$(GREEN)✓ KNIRVSERVER unit tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVNEXUS unit tests not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVSERVER unit tests not found$(NC)"; \
 	fi
 
 .PHONY: test-nexus-integration
-test-nexus-integration: ## Run KNIRVNEXUS integration tests
-	@echo "$(BLUE)Running KNIRVNEXUS integration tests...$(NC)"
+test-nexus-integration: ## Run KNIRVSERVER integration tests
+	@echo "$(BLUE)Running KNIRVSERVER integration tests...$(NC)"
 	@if [ -f "integration-tests/knirvnexus_phase6_comprehensive_test.go" ]; then \
-		cd integration-tests && go test -v -run "TestKNIRVNEXUS.*"; \
-		echo "$(GREEN)✓ KNIRVNEXUS integration tests completed$(NC)"; \
+ 		cd integration-tests && go test -v -run "TestKNIRVSERVER.*"; \
+		echo "$(GREEN)✓ KNIRVSERVER integration tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVNEXUS integration tests not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVSERVER integration tests not found$(NC)"; \
 	fi
 
 .PHONY: test-nexus-e2e
-test-nexus-e2e: ## Run KNIRVNEXUS end-to-end tests
-	@echo "$(BLUE)Running KNIRVNEXUS end-to-end tests...$(NC)"
+test-nexus-e2e: ## Run KNIRVSERVER end-to-end tests
+	@echo "$(BLUE)Running KNIRVSERVER end-to-end tests...$(NC)"
 	@if [ -f "integration-tests/knirvnexus_e2e_workflow_test.go" ]; then \
 		cd integration-tests && go test -v -run "TestE2E.*"; \
-		echo "$(GREEN)✓ KNIRVNEXUS E2E tests completed$(NC)"; \
+		echo "$(GREEN)✓ KNIRVSERVER E2E tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVNEXUS E2E tests not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVSERVER E2E tests not found$(NC)"; \
 	fi
 
 .PHONY: test-nexus-performance
-test-nexus-performance: ## Run KNIRVNEXUS performance tests
-	@echo "$(BLUE)Running KNIRVNEXUS performance tests...$(NC)"
+test-nexus-performance: ## Run KNIRVSERVER performance tests
+	@echo "$(BLUE)Running KNIRVSERVER performance tests...$(NC)"
 	@if [ -f "integration-tests/knirvnexus_performance_test.go" ]; then \
 		cd integration-tests && go test -v -run "TestPerformance.*" -timeout=10m; \
-		echo "$(GREEN)✓ KNIRVNEXUS performance tests completed$(NC)"; \
+		echo "$(GREEN)✓ KNIRVSERVER performance tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVNEXUS performance tests not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVSERVER performance tests not found$(NC)"; \
 	fi
 
 .PHONY: test-nexus-security
-test-nexus-security: ## Run KNIRVNEXUS security tests
-	@echo "$(BLUE)Running KNIRVNEXUS security tests...$(NC)"
+test-nexus-security: ## Run KNIRVSERVER security tests
+	@echo "$(BLUE)Running KNIRVSERVER security tests...$(NC)"
 	@if [ -f "integration-tests/knirvnexus_security_test.go" ]; then \
 		cd integration-tests && go test -v -run "TestSecurity.*"; \
-		echo "$(GREEN)✓ KNIRVNEXUS security tests completed$(NC)"; \
+		echo "$(GREEN)✓ KNIRVSERVER security tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVNEXUS security tests not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVSERVER security tests not found$(NC)"; \
 	fi
 
 .PHONY: test-root
 test-root: ## Test KNIRVORACLE (Core Network)
 	@echo "$(BLUE)Testing KNIRVORACLE...$(NC)"
-	@if [ -f "KNIRVORACLE/go.mod" ]; then \
+	@if [ -f "packages/KNIRVORACLE/go.mod" ]; then \
+		cd packages/KNIRVORACLE && go test -v ./...; \
+		echo "$(GREEN)✓ KNIRVORACLE tests completed$(NC)"; \
+	elif [ -f "KNIRVORACLE/go.mod" ]; then \
 		cd KNIRVORACLE && go test -v ./...; \
 		echo "$(GREEN)✓ KNIRVORACLE tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVORACLE go.mod not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVORACLE not found (expected at packages/KNIRVORACLE or KNIRVORACLE)$(NC)"; \
 	fi
 
 .PHONY: test-engine
 test-engine: ## Test KNIRVENGINE (Desktop Client)
 	@echo "$(BLUE)Testing KNIRVENGINE Desktop Client...$(NC)"
-	@if [ -f "KNIRVENGINE/desktop-client/go.mod" ]; then \
+	@if [ -f "packages/KNIRVENGINE/desktop-client/go.mod" ]; then \
+		cd packages/KNIRVENGINE/desktop-client && go test -v -cover ./agentify/... ./desktop/... ./services/... ./utils/... ./inference/... ./database/... ./api/...; \
+		echo "$(GREEN)✓ KNIRVENGINE Desktop Client tests completed$(NC)"; \
+	elif [ -f "KNIRVENGINE/desktop-client/go.mod" ]; then \
 		cd KNIRVENGINE/desktop-client && go test -v -cover ./agentify/... ./desktop/... ./services/... ./utils/... ./inference/... ./database/... ./api/...; \
 		echo "$(GREEN)✓ KNIRVENGINE Desktop Client tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVENGINE desktop-client go.mod not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVENGINE not found (expected at packages/KNIRVENGINE or KNIRVENGINE)$(NC)"; \
 	fi
 
 .PHONY: test-engine-frontend
 test-engine-frontend: ## Test KNIRVENGINE Frontend (React/TypeScript)
 	@echo "$(BLUE)Testing KNIRVENGINE Frontend...$(NC)"
-	@if [ -f "KNIRVENGINE/desktop-client/gui/package.json" ]; then \
+	@if [ -f "packages/KNIRVENGINE/desktop-client/gui/package.json" ]; then \
+		cd packages/KNIRVENGINE/desktop-client/gui && npm test -- --watchAll=false --coverage; \
+		echo "$(GREEN)✓ KNIRVENGINE Frontend tests completed$(NC)"; \
+	elif [ -f "KNIRVENGINE/desktop-client/gui/package.json" ]; then \
 		cd KNIRVENGINE/desktop-client/gui && npm test -- --watchAll=false --coverage; \
 		echo "$(GREEN)✓ KNIRVENGINE Frontend tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVENGINE GUI package.json not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVENGINE GUI not found (expected at packages/KNIRVENGINE or KNIRVENGINE)$(NC)"; \
 	fi
 
 .PHONY: test-integration
@@ -572,11 +581,11 @@ test-reports: ## Generate comprehensive test reports
 	@echo "Generated: $(TIMESTAMP)" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "## Test Results Summary" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
-	@echo "- KNIRVCONTROLLER: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVWALLET: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVSDK: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVGRAPH: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVWALLET: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
-	@echo "- KNIRVNEXUS: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
+	@echo "- KNIRVSERVER: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVORACLE: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- KNIRVENGINE: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
 	@echo "- Integration Tests: ✓ Completed" >> $(TEST_REPORTS_DIR)/summary_$(TIMESTAMP).md
@@ -618,8 +627,8 @@ test-clean: ## Clean test reports and coverage data
 testnet-tests: ## Start KNIRVTESTNET and run comprehensive tests
 	@echo "$(BLUE)🧪 Starting KNIRVTESTNET and running comprehensive tests...$(NC)"
 	@echo "========================================================"
-	@if [ -f "KNIRVTESTNET/Makefile" ]; then \
-		cd KNIRVTESTNET && $(MAKE) testnet; \
+	@if [ -f "packages/KNIRVTESTNET/Makefile" ]; then \
+		cd packages/KNIRVTESTNET && $(MAKE) testnet; \
 		echo "$(GREEN)✓ KNIRVTESTNET tests completed$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠ KNIRVTESTNET Makefile not found$(NC)"; \
@@ -699,13 +708,13 @@ test-phase6-reports: ## Generate Phase 6 test reports
 	@echo "$(GREEN)✓ Phase 6 test reports generated$(NC)"
 
 .PHONY: test-controller-unit
-test-controller-unit: ## Run KNIRVCONTROLLER unit tests
-	@echo "$(BLUE)Running KNIRVCONTROLLER unit tests...$(NC)"
-	@if [ -d "KNIRVCONTROLLER" ]; then \
-		cd KNIRVCONTROLLER && npm test; \
-		echo "$(GREEN)✓ KNIRVCONTROLLER unit tests completed$(NC)"; \
+test-controller-unit: ## Run KNIRVWALLET unit tests
+	@echo "$(BLUE)Running KNIRVWALLET unit tests...$(NC)"
+	@if [ -d "packages/KNIRVWALLET" ]; then \
+		cd packages/KNIRVWALLET && npm test; \
+		echo "$(GREEN)✓ KNIRVWALLET unit tests completed$(NC)"; \
 	else \
-		echo "$(YELLOW)⚠ KNIRVCONTROLLER directory not found$(NC)"; \
+		echo "$(YELLOW)⚠ KNIRVWALLET directory not found$(NC)"; \
 	fi
 
 .PHONY: test-component-integration
@@ -905,7 +914,7 @@ test-modp-list: ## List available ModP verification tests
 		echo "  - NodeTransformation            KNIRVCHAIN node transformation"; \
 		echo "  - KnowledgeGraphConsistency     KNIRVGRAPH knowledge graph"; \
 		echo "  - P2PConnectivity               KNIRVROUTER P2P network"; \
-		echo "  - ValidationExecution           KNIRVNEXUS validation"; \
+		echo "  - ValidationExecution           KNIRVSERVER validation"; \
 		echo "  - BaseLayerStorage              KNIRVBASE data availability"; \
 	fi
 
@@ -951,7 +960,7 @@ modp-help: ## Show help for ModP formal verification commands
 	@echo "  - KNIRVCHAIN   Skill Registry, LLM Registry, MCP, Node Transformation"
 	@echo "  - KNIRVGRAPH   Knowledge Graph (Error/Solution)"
 	@echo "  - KNIRVROUTER  P2P Network, Proof of Connectivity"
-	@echo "  - KNIRVNEXUS   Validation, Execution Sandbox"
+	@echo "  - KNIRVSERVER   Validation, Execution Sandbox"
 	@echo "  - KNIRVBASE    Base Layer (Data Availability)"
 	@echo ""
 	@echo "$(YELLOW)Examples:$(NC)"
@@ -991,8 +1000,8 @@ health-check: ## Check health of all KNIRV services
 	fi
 
 .PHONY: health-check-controller-pwa
-health-check-controller-pwa: ## Check health of KNIRVCONTROLLER PWA endpoints
-	@echo "$(BLUE)Checking KNIRVCONTROLLER PWA health...$(NC)"
+health-check-controller-pwa: ## Check health of KNIRVWALLET PWA endpoints
+	@echo "$(BLUE)Checking KNIRVWALLET PWA health...$(NC)"
 	@if command -v curl >/dev/null 2>&1; then \
 		for endpoint in "https://beta-controller.knirv.network" "https://beta-controller.knirv.network/manifest.json" "https://beta-controller.knirv.network/sw.js"; do \
 			if curl -s -f "$$endpoint" >/dev/null 2>&1; then \
@@ -1072,19 +1081,37 @@ update-deps: ## Update Ansible collections and documentation dependencies
 .PHONY: backup-nodejs-deps
 backup-nodejs-deps: ## Backup manually created KNIRVORACLE Node.js dependency files
 	@echo "$(BLUE)Backing up KNIRVORACLE Node.js dependencies...$(NC)"
-	@cd KNIRVORACLE/scripts && ./backup-nodejs-deps.sh
+	@if [ -d "packages/KNIRVORACLE/scripts" ]; then \
+		cd packages/KNIRVORACLE/scripts && ./backup-nodejs-deps.sh; \
+	elif [ -d "KNIRVORACLE/scripts" ]; then \
+		cd KNIRVORACLE/scripts && ./backup-nodejs-deps.sh; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVORACLE scripts not found$(NC)"; \
+	fi
 	@echo "$(GREEN)✓ Node.js dependencies backed up$(NC)"
 
 .PHONY: restore-nodejs-deps
 restore-nodejs-deps: ## Restore manually created KNIRVORACLE Node.js dependency files
 	@echo "$(BLUE)Restoring KNIRVORACLE Node.js dependencies...$(NC)"
-	@cd KNIRVORACLE/scripts && ./restore-nodejs-deps.sh
+	@if [ -d "packages/KNIRVORACLE/scripts" ]; then \
+		cd packages/KNIRVORACLE/scripts && ./restore-nodejs-deps.sh; \
+	elif [ -d "KNIRVORACLE/scripts" ]; then \
+		cd KNIRVORACLE/scripts && ./restore-nodejs-deps.sh; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVORACLE scripts not found$(NC)"; \
+	fi
 	@echo "$(GREEN)✓ Node.js dependencies restored$(NC)"
 
 .PHONY: verify-nodejs-deps
 verify-nodejs-deps: ## Verify KNIRVORACLE Node.js dependencies are properly installed
 	@echo "$(BLUE)Verifying KNIRVORACLE Node.js dependencies...$(NC)"
-	@cd KNIRVORACLE/scripts && ./verify-nodejs-deps.sh
+	@if [ -d "packages/KNIRVORACLE/scripts" ]; then \
+		cd packages/KNIRVORACLE/scripts && ./verify-nodejs-deps.sh; \
+	elif [ -d "KNIRVORACLE/scripts" ]; then \
+		cd KNIRVORACLE/scripts && ./verify-nodejs-deps.sh; \
+	else \
+		echo "$(YELLOW)⚠ KNIRVORACLE scripts not found$(NC)"; \
+	fi
 
 # =============================================================================
 # PROTOBUF SYNCHRONIZATION
@@ -1240,7 +1267,7 @@ sync-clean-backups: ## Clean old synchronization backups (keeps last 10)
 # =============================================================================
 
 .PHONY: demo
-demo: ## Run full KNIRV Network demo with testnet and KNIRVCONTROLLER
+demo: ## Run full KNIRV Network demo with testnet and KNIRVWALLET
 	@echo "$(BLUE)🚀 Starting KNIRV Network Full Demo...$(NC)"
 	@./run-full-demo.sh
 
@@ -1531,7 +1558,7 @@ deploy-testnet-gateway: ## Deploy KNIRVGATEWAY with testnet endpoints (automatic
 	@ansible-playbook deployment/ansible/update-gateway-endpoints.yml \
 		-e environment=testnet \
 		-e @deployment/ansible/environments/testnet.yml
-	@cd KNIRVGATEWAY && npm run load-endpoints:testnet && npm run build && npm run deploy
+	@cd packages/KNIRVGATEWAY && npm run load-endpoints:testnet && npm run build && npm run deploy
 	@echo "$(GREEN)✅ KNIRVGATEWAY deployed to testnet successfully$(NC)"
 
 .PHONY: generate-production-endpoints
@@ -1557,7 +1584,7 @@ deploy-production-gateway: ## Deploy KNIRVGATEWAY with production endpoints (man
 	@echo ""
 	@read -p "$(YELLOW)Continue with production deployment? [y/N]: $(NC)" confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-		cd KNIRVGATEWAY && npm run load-endpoints:production && npm run build && npm run deploy; \
+		cd packages/KNIRVGATEWAY && npm run load-endpoints:production && npm run build && npm run deploy; \
 		echo "$(GREEN)✅ KNIRVGATEWAY deployed to production successfully$(NC)"; \
 	else \
 		echo "$(YELLOW)⏸️  Production deployment cancelled$(NC)"; \
@@ -1569,7 +1596,7 @@ update-testnet-endpoints: ## Update KNIRVGATEWAY endpoints for testnet (without 
 	@ansible-playbook deployment/ansible/update-gateway-endpoints.yml \
 		-e environment=testnet \
 		-e @deployment/ansible/environments/testnet.yml
-	@cd KNIRVGATEWAY && npm run load-endpoints:testnet
+	@cd packages/KNIRVGATEWAY && npm run load-endpoints:testnet
 	@echo "$(GREEN)✅ Testnet endpoints updated$(NC)"
 
 # =============================================================================
@@ -1618,14 +1645,21 @@ watch-rust-client-ci: ## Watch the progress of KNIRVANA Rust client CI workflow
 .PHONY: sync-failover-page
 sync-failover-page: ## Synchronize network-website content to the KNIRVGATEWAY failover page
 	@echo "$(BLUE)Syncing network-website content to KNIRVGATEWAY/home.html...$(NC)"
-	@if [ -f "KNIRVGATEWAY/network-website/public/index.html" ]; then \
+	@if [ -f "packages/KNIRVGATEWAY/network-website/public/index.html" ]; then \
+		cp packages/KNIRVGATEWAY/network-website/public/index.html packages/KNIRVGATEWAY/home.html; \
+		echo "$(GREEN)✓ Copied index.html$(NC)"; \
+	elif [ -f "KNIRVGATEWAY/network-website/public/index.html" ]; then \
 		cp KNIRVGATEWAY/network-website/public/index.html KNIRVGATEWAY/home.html; \
 		echo "$(GREEN)✓ Copied index.html$(NC)"; \
 	else \
 		echo "$(RED)Error: KNIRVGATEWAY/network-website/public/index.html not found.$(NC)"; \
 		exit 1; \
 	fi
-	@if [ -d "KNIRVGATEWAY/network-website/public/assets" ]; then \
+	@if [ -d "packages/KNIRVGATEWAY/network-website/public/assets" ]; then \
+		rm -rf packages/KNIRVGATEWAY/assets; \
+		cp -r packages/KNIRVGATEWAY/network-website/public/assets packages/KNIRVGATEWAY/assets; \
+		echo "$(GREEN)✓ Copied assets directory$(NC)"; \
+	elif [ -d "KNIRVGATEWAY/network-website/public/assets" ]; then \
 		rm -rf KNIRVGATEWAY/assets; \
 		cp -r KNIRVGATEWAY/network-website/public/assets KNIRVGATEWAY/assets; \
 		echo "$(GREEN)✓ Copied assets directory$(NC)"; \

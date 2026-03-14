@@ -7,7 +7,10 @@ set -euo pipefail
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-KNIRVORACLE_DIR="$PROJECT_ROOT/KNIRVORACLE"
+KNIRVORACLE_DIR="$PROJECT_ROOT/packages/KNIRVORACLE"
+if [[ ! -d "$KNIRVORACLE_DIR" ]]; then
+    KNIRVORACLE_DIR="$PROJECT_ROOT/KNIRVORACLE"
+fi
 ANSIBLE_DIR="$SCRIPT_DIR"
 
 # Colors for output

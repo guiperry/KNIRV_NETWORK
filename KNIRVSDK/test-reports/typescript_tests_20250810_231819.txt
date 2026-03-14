@@ -1,5 +1,0 @@
-
-> @knirv/gateway-sdk@1.0.0 test
-> jest
-
-sh: 1: jest: not found

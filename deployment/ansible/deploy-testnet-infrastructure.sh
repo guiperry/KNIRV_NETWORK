@@ -359,7 +359,7 @@ display_summary() {
         echo -e "  📊 IPFS Gateway: http://$TESTNET_IP:8080"
         echo -e "  ⛓️  KNIRVCHAIN: http://$TESTNET_IP:8080"
         echo -e "  📈 KNIRVGRAPH: http://$TESTNET_IP:8081"
-        echo -e "  🤖 KNIRVNEXUS: http://$TESTNET_IP:8082"
+        echo -e "  🤖 KNIRVSERVER: http://$TESTNET_IP:8082"
         echo -e "  🏛️  KNIRVORACLE: http://$TESTNET_IP:1317"
         echo -e "  🌐 KNIRVGATEWAY: http://$TESTNET_IP:8087"
         echo ""

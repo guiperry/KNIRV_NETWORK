@@ -26,11 +26,11 @@ build_images() {
     
     # Mapping of service name in docker-compose to local directory
     declare -A services_to_build
-    services_to_build["chain"]="KNIRVCHAIN"
-    services_to_build["graph"]="KNIRVGRAPH"
-    services_to_build["nexus"]="KNIRVNEXUS"
-    services_to_build["router"]="KNIRVROUTER"
-    services_to_build["oracle"]="KNIRVGATEWAY" # For knirv-gateway image: knirv/oracle
+    services_to_build["chain"]="packages/KNIRVCHAIN"
+    services_to_build["graph"]="packages/KNIRVGRAPH"
+    services_to_build["server"]="packages/KNIRVSERVER"
+    services_to_build["router"]="packages/KNIRVROUTER"
+    services_to_build["oracle"]="packages/KNIRVGATEWAY" # For knirv-gateway image: knirv/oracle
     # services_to_build["oracled"] and services_to_build["gateway"] will be handled by KNIRVGATEWAY as well.
 
     for service_tag_name in "${!services_to_build[@]}"; do
@@ -39,9 +39,9 @@ build_images() {
 
         echo "--- Processing $local_dir ---"
         # Temporarily copy KNIRVBASE into the service directory to make it available for Docker build context
-        if [ -d "./KNIRVBASE" ] && [ -d "./$local_dir" ]; then
+        if [ -d "./packages/KNIRVBASE" ] && [ -d "./$local_dir" ]; then
             echo "Copying KNIRVBASE into $local_dir..."
-            cp -R ./KNIRVBASE "./$local_dir/KNIRVBASE"
+            cp -R ./packages/KNIRVBASE "./$local_dir/KNIRVBASE"
         fi
 
         echo "Building $image_full_tag from $local_dir (build context: ./$local_dir/)..."
@@ -62,29 +62,29 @@ build_images() {
     # For now, we will explicitly build knirv/oracled and knirv/gateway using KNIRVGATEWAY context
     
     # For knirv/oracled:latest
-    echo "Building knirv/oracled:$VERSION from KNIRVGATEWAY..."
-    if [ -d "./KNIRVBASE" ] && [ -d "./KNIRVGATEWAY" ]; then
-        echo "Copying KNIRVBASE into KNIRVGATEWAY..."
-        cp -R ./KNIRVBASE "./KNIRVGATEWAY/KNIRVBASE"
+    echo "Building knirv/oracled:$VERSION from packages/KNIRVGATEWAY..."
+    if [ -d "./packages/KNIRVBASE" ] && [ -d "./packages/KNIRVGATEWAY" ]; then
+        echo "Copying KNIRVBASE into packages/KNIRVGATEWAY..."
+        cp -R ./packages/KNIRVBASE "./packages/KNIRVGATEWAY/KNIRVBASE"
     fi
-    docker build -t "$DOCKER_REGISTRY/oracled:$VERSION" "./KNIRVGATEWAY/"
+    docker build -t "$DOCKER_REGISTRY/oracled:$VERSION" "./packages/KNIRVGATEWAY/"
     echo "Successfully built knirv/oracled:$VERSION."
-    if [ -d "./KNIRVGATEWAY/KNIRVBASE" ]; then
-        echo "Cleaning up copied KNIRVBASE from KNIRVGATEWAY..."
-        rm -rf "./KNIRVGATEWAY/KNIRVBASE"
+    if [ -d "./packages/KNIRVGATEWAY/KNIRVBASE" ]; then
+        echo "Cleaning up copied KNIRVBASE from packages/KNIRVGATEWAY..."
+        rm -rf "./packages/KNIRVGATEWAY/KNIRVBASE"
     fi
 
     # For knirv/gateway:latest (api-gateway)
-    echo "Building knirv/gateway:$VERSION from KNIRVGATEWAY..."
-    if [ -d "./KNIRVBASE" ] && [ -d "./KNIRVGATEWAY" ]; then
-        echo "Copying KNIRVBASE into KNIRVGATEWAY..."
-        cp -R ./KNIRVBASE "./KNIRVGATEWAY/KNIRVBASE"
+    echo "Building knirv/gateway:$VERSION from packages/KNIRVGATEWAY..."
+    if [ -d "./packages/KNIRVBASE" ] && [ -d "./packages/KNIRVGATEWAY" ]; then
+        echo "Copying KNIRVBASE into packages/KNIRVGATEWAY..."
+        cp -R ./packages/KNIRVBASE "./packages/KNIRVGATEWAY/KNIRVBASE"
     fi
-    docker build -t "$DOCKER_REGISTRY/gateway:$VERSION" "./KNIRVGATEWAY/"
+    docker build -t "$DOCKER_REGISTRY/gateway:$VERSION" "./packages/KNIRVGATEWAY/"
     echo "Successfully built knirv/gateway:$VERSION."
-    if [ -d "./KNIRVGATEWAY/KNIRVBASE" ]; then
-        echo "Cleaning up copied KNIRVBASE from KNIRVGATEWAY..."
-        rm -rf "./KNIRVGATEWAY/KNIRVBASE"
+    if [ -d "./packages/KNIRVGATEWAY/KNIRVBASE" ]; then
+        echo "Cleaning up copied KNIRVBASE from packages/KNIRVGATEWAY..."
+        rm -rf "./packages/KNIRVGATEWAY/KNIRVBASE"
     fi
 
     echo "All Docker images built."

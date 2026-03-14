@@ -1,0 +1,261 @@
+# Docker Compose Configuration for KNIRV Testnet Production Deployment
+# This configuration uses pre-built Docker images for production deployment
+version: '3.8'
+
+services:
+  # NGINX Network Manager - Handles all port routing and load balancing
+  nginx:
+    image: nginx:alpine
+    container_name: knirv-testnet-nginx
+    ports:
+      - "80:80"
+      - "1317:1317"
+      - "8090:8090"
+      - "8082:8082"
+      - "8084:8084"
+      - "8085:8085"
+      - "8086:8086"
+      - "3000:3000"
+      - "8088:8088"
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - knirvoracle
+      - knirvchain
+      - knirvgraph
+      - knirvserver-1
+      - knirvserver-2
+      - knirvrouter
+    networks:
+      - knirv-testnet
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # IPFS for distributed storage
+  ipfs:
+    image: ipfs/kubo:latest
+    container_name: knirv-testnet-ipfs
+    ports:
+      - "5001:5001"
+      - "8081:8080"  # Changed from 8080 to 8081 to avoid conflict
+    volumes:
+      - ./data/ipfs:/data/ipfs
+    environment:
+      - IPFS_PROFILE=server
+    networks:
+      - knirv-testnet
+    restart: unless-stopped
+
+  # KNIRV Oracle - Network coordinator
+  knirvoracle:
+    image: knirvoracle:latest
+    container_name: knirv-testnet-oracle
+    expose:
+      - "1317"  # Internal port only, NGINX handles external routing
+    volumes:
+      - ./data/knirvoracle:/app/data
+      - ./config/knirvoracle-config.yaml:/app/config.yaml
+    depends_on:
+      - ipfs
+    networks:
+      - knirv-testnet
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+
+  # KNIRV Chain - Blockchain service
+  knirvchain:
+    image: knirvchain:latest
+    container_name: knirv-testnet-chain
+    expose:
+      - "8090"  # Internal port only, NGINX handles external routing
+    volumes:
+      - ./data/knirvchain:/app/data
+      - ./config/knirvchain-config.toml:/app/config.toml
+    depends_on:
+      - knirvoracle
+      - ipfs
+    networks:
+      - knirv-testnet
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+
+  # KNIRV Graph - Graph processing service
+  knirvgraph:
+    image: knirvgraph:latest
+    container_name: knirv-testnet-graph
+    expose:
+      - "8082"  # Internal port only, NGINX handles external routing
+      - "4001"
+    volumes:
+      - ./data/knirvgraph:/app/data
+      - ./config/knirvgraph-config.yaml:/app/config.yaml
+    depends_on:
+      - knirvoracle
+      - ipfs
+    networks:
+      - knirv-testnet
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+
+  # KNIRV Server - Development environment (instance 1)
+  knirvserver-1:
+    image: knirvserver:latest
+    container_name: knirv-testnet-server-1
+    expose:
+      - "8084"  # Internal port only, NGINX handles external routing
+    volumes:
+      - ./data/knirvserver:/app/data
+      - ./config/knirv-server.yaml:/app/config.yaml
+    depends_on:
+      - knirvoracle
+      - ipfs
+    networks:
+      - knirv-testnet
+    environment:
+      - RUST_LOG=info
+      - SERVER_INSTANCE=1
+    restart: unless-stopped
+
+  # KNIRV Server - Development environment (instance 2)
+  knirvserver-2:
+    image: knirvserver:latest
+    container_name: knirv-testnet-server-2
+    expose:
+      - "8084"  # Internal port only, NGINX handles external routing
+    volumes:
+      - ./data/knirvserver:/app/data
+      - ./config/knirv-server-minimal.yaml:/app/config.yaml
+    depends_on:
+      - knirvoracle
+      - ipfs
+    networks:
+      - knirv-testnet
+    environment:
+      - RUST_LOG=info
+      - SERVER_INSTANCE=2
+    restart: unless-stopped
+
+  # KNIRV Router - Network routing service
+  knirvrouter:
+    image: knirvrouter:latest
+    container_name: knirv-testnet-router
+    expose:
+      - "8086"  # Internal port only, NGINX handles external routing
+    volumes:
+      - ./data/knirvrouter:/app/data
+      - ./config/knirvrouter-config.yaml:/app/config.yaml
+    depends_on:
+      - knirvoracle
+      - ipfs
+    networks:
+      - knirv-testnet
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+
+  # KNIRV Gateway - Web interface (WASM)
+  knirvgateway:
+    image: knirvgateway:latest
+    container_name: knirv-testnet-gateway
+    ports:
+      - "10000:10000"
+    volumes:
+      - ./data/testnet-gateway:/app/data
+    depends_on:
+      - knirvoracle
+      - knirvchain
+      - knirvgraph
+      - knirvserver-1
+      - knirvrouter
+    networks:
+      - knirv-testnet
+    environment:
+      - RUST_LOG=info
+      - GATEWAY_PORT=10000
+    restart: unless-stopped
+    command: ["./wasmtime", "knirv-server.wasm"]
+
+  # TODO: Add KNIRVANA and XION Bridge services after uploading source code
+  # KNIRVANA - Game client service
+  # knirvana:
+  #   build:
+  #     context: ./data/knirvana
+  #     dockerfile: Dockerfile
+  #   container_name: knirv-testnet-knirvana
+  #   expose:
+  #     - "3000"  # Internal port only, NGINX handles external routing
+  #   volumes:
+  #     - ./data/knirvana:/app
+  #     - ./logs/knirvana:/app/logs
+  #   depends_on:
+  #     - knirvoracle
+  #     - knirvgraph
+  #     - knirvchain
+  #   networks:
+  #     - knirv-testnet
+  #   environment:
+  #     - NODE_ENV=production
+  #     - PORT=3000
+  #     - KNIRVGRAPH_API=http://knirv-testnet-graph:8082
+  #     - KNIRVCHAIN_API=http://knirv-testnet-chain:8090
+  #     - KNIRVORACLE_API=http://knirv-testnet-oracle:1317
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+  # XION Bridge - Cross-chain bridge service
+  # xion-bridge:
+  #   build:
+  #     context: ./data/xion-bridge
+  #     dockerfile: Dockerfile
+  #   container_name: knirv-testnet-xion-bridge
+  #   expose:
+  #     - "8088"  # Internal port only, NGINX handles external routing
+  #   volumes:
+  #     - ./data/xion-bridge:/app
+  #     - ./logs/xion-bridge:/app/logs
+  #   depends_on:
+  #     - knirvoracle
+  #     - knirvchain
+  #   networks:
+  #     - knirv-testnet
+  #   environment:
+  #     - NODE_ENV=production
+  #     - PORT=8088
+  #     - KNIRVCHAIN_API=http://knirv-testnet-chain:8090
+  #     - KNIRVORACLE_API=http://knirv-testnet-oracle:1317
+  #     - XION_RPC_URL=https://rpc.xion-testnet-1.burnt.com:443
+  #     - BRIDGE_CONTRACT_ADDRESS=xion1bridge...
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+networks:
+  knirv-testnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+
+volumes:
+  ipfs_data:
+  knirvoracle_data:
+  knirvchain_data:
+  knirvgraph_data:
+  knirvserver_data:
+  knirvrouter_data:
+  knirvgateway_data:

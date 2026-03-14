@@ -2,7 +2,7 @@
 # KNIRV Network Process Termination Script
 #
 # This script comprehensively terminates all KNIRV-related processes across the entire network.
-# It handles all KNIRV services including KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVORACLE,
+# It handles all KNIRV services including KNIRVCHAIN, KNIRVSERVER, KNIRVGRAPH, KNIRVORACLE,
 # KNIRVROUTER, KNIRVGATEWAY, Economics Service, and associated frontend processes.
 #
 # Features:
@@ -28,8 +28,8 @@
 PORTS_TO_CHECK=(
     # Core KNIRV Services
     8000    # KNIRVGATEWAY API Gateway
-    8080    # KNIRVCHAIN / KNIRVNEXUS Frontend
-    8081    # KNIRVNEXUS API
+    8080    # KNIRVCHAIN / KNIRVSERVER Frontend
+    8081    # KNIRVSERVER API
     8082    # KNIRVORACLE
     8083    # KNIRVGRAPH
     8090    # Economics Service
@@ -50,10 +50,11 @@ LOCK_FILES=("gateway.lock" "economics.lock" "*.pid" "knirv*.lock")
 KNIRV_PATTERNS=(
     "KNIRVORACLE"
     "KNIRVCHAIN"
-    "KNIRVNEXUS"
+    "KNIRVSERVER"
     "KNIRVGRAPH"
     "KNIRVROUTER"
     "economics"
+    "knirvserver"
     "knirvnexus"
     "knirvchain"
     "knirvgraph"
@@ -201,7 +202,8 @@ cleanup() {
     # Clean database directories used by various KNIRV services
     echo -e "${YELLOW}  Cleaning database directories...${NC}"
     rm -rf database database_reflection 2>/dev/null
-    rm -rf knirvnexus.db knirvchain.db knirvgraph.db 2>/dev/null
+    rm -rf knirvserver.db knirvchain.db knirvgraph.db 2>/dev/null
+    rm -rf knirvnexus.db 2>/dev/null  # Legacy name
 
     # Clean log files
     echo -e "${YELLOW}  Cleaning log files...${NC}"
@@ -233,7 +235,7 @@ show_help() {
     echo "  --no-cleanup   Skip cleanup of temp files and logs"
     echo ""
     echo "This script will terminate all KNIRV network processes including:"
-    echo "  - KNIRVCHAIN, KNIRVNEXUS, KNIRVGRAPH, KNIRVORACLE, KNIRVROUTER"
+    echo "  - KNIRVCHAIN, KNIRVSERVER, KNIRVGRAPH, KNIRVORACLE, KNIRVROUTER"
     echo "  - KNIRVGATEWAY and Economics Service"
     echo "  - Associated Node.js/Vite frontend processes"
     echo "  - All child processes and related services"

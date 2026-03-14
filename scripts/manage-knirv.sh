@@ -19,17 +19,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Component directories
-KNIRVCHAIN_DIR="$PROJECT_ROOT/KNIRVCHAIN"
-KNIRVNEXUS_DIR="$PROJECT_ROOT/KNIRVNEXUS"
-KNIRVORACLE_DIR="$PROJECT_ROOT/KNIRVORACLE"
-KNIRVGRAPH_DIR="$PROJECT_ROOT/KNIRVGRAPH"
-KNIRVROUTER_DIR="$PROJECT_ROOT/KNIRVROUTER"
-KNIRVGATEWAY_DIR="$PROJECT_ROOT/KNIRVGATEWAY"
+KNIRVCHAIN_DIR="$PROJECT_ROOT/packages/KNIRVCHAIN"
+KNIRVSERVER_DIR="$PROJECT_ROOT/packages/KNIRVSERVER"
+KNIRVORACLE_DIR="$PROJECT_ROOT/packages/KNIRVORACLE"
+KNIRVGRAPH_DIR="$PROJECT_ROOT/packages/KNIRVGRAPH"
+KNIRVROUTER_DIR="$PROJECT_ROOT/packages/KNIRVROUTER"
+KNIRVGATEWAY_DIR="$PROJECT_ROOT/packages/KNIRVGATEWAY"
 INTEGRATION_TESTS_DIR="$PROJECT_ROOT/integration-tests"
 
 # Default ports
 DEFAULT_KNIRVCHAIN_PORT=8080
-DEFAULT_KNIRVNEXUS_PORT=8081
+DEFAULT_KNIRVSERVER_PORT=8081
 DEFAULT_KNIRVORACLE_PORT=8082
 DEFAULT_KNIRVGRAPH_PORT=8083
 DEFAULT_KNIRVROUTER_PORT=8084
@@ -84,7 +84,7 @@ show_usage() {
     echo "Components:"
     echo "  all                      All KNIRV components (default)"
     echo "  knirvchain               KNIRVCHAIN service"
-    echo "  knirvnexus               KNIRVNEXUS service"
+    echo "  knirvserver               KNIRVSERVER service"
     echo "  knirvoracle                KNIRVORACLE service"
     echo "  knirvgraph               KNIRVGRAPH service"
     echo "  knirvrouter              KNIRVROUTER service"
@@ -231,10 +231,10 @@ start_component() {
                 fi
             fi
             ;;
-        "knirvnexus")
-            print_component "Starting KNIRVNEXUS..."
-            if check_component_dir "KNIRVNEXUS" "$KNIRVNEXUS_DIR"; then
-                cd "$KNIRVNEXUS_DIR"
+        "knirvserver")
+            print_component "Starting KNIRVSERVER..."
+            if check_component_dir "KNIRVSERVER" "$KNIRVSERVER_DIR"; then
+                cd "$KNIRVSERVER_DIR"
 
                 # Check if Go is available
                 if ! command -v go &> /dev/null; then
@@ -248,25 +248,25 @@ start_component() {
 
                 # Check if backend binary exists
                 if [ ! -f "./backend/bin/dve-manager" ]; then
-                    print_info "Building KNIRVNEXUS backend..."
+                    print_info "Building KNIRVSERVER backend..."
                     cd backend
                     go build -o bin/dve-manager cmd/dve-manager/main.go
                     cd ..
                 fi
 
-                # Start KNIRVNEXUS backend in testnet mode
-                print_info "Starting KNIRVNEXUS backend on port 8083..."
-                # Run from KNIRVNEXUS directory to ensure proper working directory
-                ./backend/bin/dve-manager -testnet -port 8083 > ./logs/knirvnexus.log 2>&1 &
-                NEXUS_PID=$!
-                echo $NEXUS_PID > ./data/knirvnexus.pid
+                # Start KNIRVSERVER backend in testnet mode
+                print_info "Starting KNIRVSERVER backend on port 8083..."
+                # Run from KNIRVSERVER directory to ensure proper working directory
+                ./backend/bin/dve-manager -testnet -port 8083 > ./logs/knirvserver.log 2>&1 &
+                SERVER_PID=$!
+                echo $SERVER_PID > ./data/knirvserver.pid
 
-                print_success "KNIRVNEXUS started with PID $NEXUS_PID on port 8083"
+                print_success "KNIRVSERVER started with PID $NEXUS_PID on port 8083"
 
                 # Wait a moment and check if process is still running
                 sleep 3
                 if ! kill -0 $NEXUS_PID 2>/dev/null; then
-                    print_error "KNIRVNEXUS failed to start. Check logs: ./logs/knirvnexus.log"
+                    print_error "KNIRVSERVER failed to start. Check logs: ./logs/knirvserver.log"
                     return 1
                 fi
             fi
@@ -458,7 +458,7 @@ start_component() {
                 export KNIRVORACLE_URL=http://localhost:1317
                 export KNIRVCHAIN_URL=http://localhost:8090
                 export KNIRVGRAPH_URL=http://localhost:8082
-                export KNIRVNEXUS_URL=http://localhost:8083
+                export KNIRVSERVER_URL=http://localhost:8083
                 export KNIRVROUTER_URL=http://localhost:5001
 
                 # Start Netlify Dev server
@@ -562,19 +562,19 @@ stop_component() {
             print_component "Stopping Economics Service..."
             "$SCRIPT_DIR/run-gateway.sh" economics stop
             ;;
-        "knirvnexus")
-            print_component "Stopping KNIRVNEXUS..."
-            if [ -f "$KNIRVNEXUS_DIR/data/knirvnexus.pid" ]; then
-                local pid=$(cat "$KNIRVNEXUS_DIR/data/knirvnexus.pid")
+        "knirvserver")
+            print_component "Stopping KNIRVSERVER..."
+            if [ -f "$KNIRVSERVER_DIR/data/knirvserver.pid" ]; then
+                local pid=$(cat "$KNIRVSERVER_DIR/data/knirvserver.pid")
                 if kill -0 "$pid" 2>/dev/null; then
                     kill "$pid"
-                    print_success "KNIRVNEXUS stopped (PID: $pid)"
+                    print_success "KNIRVSERVER stopped (PID: $pid)"
                 else
-                    print_warning "KNIRVNEXUS process not running"
+                    print_warning "KNIRVSERVER process not running"
                 fi
-                rm -f "$KNIRVNEXUS_DIR/data/knirvnexus.pid"
+                rm -f "$KNIRVSERVER_DIR/data/knirvserver.pid"
             else
-                print_warning "KNIRVNEXUS PID file not found"
+                print_warning "KNIRVSERVER PID file not found"
             fi
             ;;
         "knirvrouter")
@@ -653,8 +653,8 @@ check_component_status() {
         "knirvchain")
             check_service_health "http://localhost:8090/health" "KNIRVCHAIN"
             ;;
-        "knirvnexus")
-            check_service_health "http://localhost:8083/health" "KNIRVNEXUS"
+        "knirvserver")
+            check_service_health "http://localhost:8083/health" "KNIRVSERVER"
             ;;
         "knirvoracle")
             check_service_health "http://localhost:1317/health" "KNIRVORACLE"
@@ -723,7 +723,7 @@ build_component() {
 check_all_health() {
     print_header "Checking Health of All KNIRV Services"
     
-    local components=("knirvchain" "knirvnexus" "knirvoracle" "knirvgraph" "knirvrouter" "gateway")
+    local components=("knirvchain" "knirvserver" "knirvoracle" "knirvgraph" "knirvrouter" "gateway")
     local healthy_count=0
     local total_count=${#components[@]}
     
@@ -760,7 +760,7 @@ while [[ $# -gt 0 ]]; do
             COMMAND="$1"
             shift
             ;;
-        all|knirvchain|knirvnexus|knirvoracle|knirvgraph|knirvrouter|gateway|economics|integration)
+        all|knirvchain|knirvserver|knirvoracle|knirvgraph|knirvrouter|gateway|economics|integration)
             COMPONENT="$1"
             shift
             ;;
@@ -812,7 +812,7 @@ case $COMMAND in
             sleep 2
             start_component "knirvchain"
             sleep 2
-            start_component "knirvnexus"
+            start_component "knirvserver"
             sleep 2
             start_component "knirvgraph"
             sleep 2
@@ -830,7 +830,7 @@ case $COMMAND in
             stop_component "gateway"
             stop_component "knirvrouter"
             stop_component "knirvgraph"
-            stop_component "knirvnexus"
+            stop_component "knirvserver"
             stop_component "knirvchain"
             stop_component "knirvoracle"
             stop_component "ipfs"

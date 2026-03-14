@@ -1,6 +1,0 @@
-main.go:8:2: module github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway provides package github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway and is replaced but not required; to add it:
-	go get github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/gateway
-main.go:9:2: module github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction provides package github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction and is replaced but not required; to add it:
-	go get github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transaction
-main.go:10:2: module github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transmission provides package github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transmission and is replaced but not required; to add it:
-	go get github.com/guiperry/KNIRV_NETWORK/KNIRVSDK/go/transmission

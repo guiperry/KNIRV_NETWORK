@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # KNIRV Portal Version Synchronization Script
-# Synchronizes static site contents from KNIRVNEXUS/out to the corporate nexus-portal
+# Synchronizes static site contents from KNIRVSERVER/out to the corporate nexus-portal
 # Clones all static files without preserving styling differences
 
 set -euo pipefail
@@ -29,8 +29,8 @@ FORCE=false
 VERBOSE=false
 
 # Source and target directories
-SOURCE_DIR="$PROJECT_ROOT/KNIRVNEXUS/out"
-TARGET_DIR="$PROJECT_ROOT/KNIRVGATEWAY/primary-website/public/nexus-portal"
+SOURCE_DIR="$PROJECT_ROOT/packages/KNIRVSERVER/out"
+TARGET_DIR="$PROJECT_ROOT/packages/KNIRVGATEWAY/primary-website/public/nexus-portal"
 
 # Protected files that must be preserved in target
 PROTECTED_FILES=(
@@ -41,7 +41,7 @@ PROTECTED_FILES=(
 )
 
 # File renaming map: source -> target
-# The cloned index.html from KNIRVNEXUS/out will be renamed to app.html
+# The cloned index.html from KNIRVSERVER/out will be renamed to app.html
 RENAME_MAP=(
     "index.html:app.html"
 )
@@ -156,7 +156,7 @@ sync_static_site() {
     # Check if source directory exists
     if [[ ! -d "$SOURCE_DIR" ]]; then
         log "ERROR" "Source directory does not exist: $SOURCE_DIR"
-        log "INFO" "Please ensure KNIRVNEXUS has been built and the 'out' directory exists"
+        log "INFO" "Please ensure KNIRVSERVER has been built and the 'out' directory exists"
         return 1
     fi
     
@@ -189,7 +189,7 @@ sync_static_site() {
             rsync -av --delete "$SOURCE_DIR/" "$TARGET_DIR/"
             
             if [[ $? -eq 0 ]]; then
-                log "SUCCESS" "Synced all static files from KNIRVNEXUS/out to GATEWAY nexus-portal"
+                log "SUCCESS" "Synced all static files from KNIRVSERVER/out to GATEWAY nexus-portal"
                 
                 # Rename cloned files before restoring protected files
                 log "INFO" "Renaming cloned files to avoid conflicts..."
@@ -213,20 +213,20 @@ sync_static_site() {
 # =============================================================================
 
 show_usage() {
-    cat << EOF
+cat << EOF
 KNIRV Portal Version Synchronization Script
-Syncs static site contents from KNIRVNEXUS/out to GATEWAY nexus-portal
+Syncs static site contents from KNIRVSERVER/out to GATEWAY nexus-portal
 
 Usage: $0 [OPTIONS]
 
 OPTIONS:
     -n, --dry-run         Show what would be done without making changes
-    -f, --force           Force sync even if target files are newer
-    -v, --verbose         Enable verbose logging
-    -h, --help            Show this help message
+    -f, --force          Force sync even if target files are newer
+    -v, --verbose        Enable verbose logging
+    -h, --help           Show this help message
 
 EXAMPLES:
-    $0                           # Sync static site from KNIRVNEXUS to GATEWAY
+    $0                           # Sync static site from KNIRVSERVER to GATEWAY
     $0 -n                        # Dry run - show what would be synced
     $0 -f -v                     # Force sync with verbose output
 
@@ -278,7 +278,7 @@ main() {
     
     if [[ "$success" == "true" ]]; then
         log "SUCCESS" "Static site synchronization completed successfully"
-        log "INFO" "All static files copied from KNIRVNEXUS/out to the corporate nexus-portal"
+        log "INFO" "All static files copied from KNIRVSERVER/out to the corporate nexus-portal"
         log "INFO" "Backend config and redirect logic preserved in target directory"
         exit 0
     else

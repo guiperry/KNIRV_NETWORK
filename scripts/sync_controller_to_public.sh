@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# KNIRVCONTROLLER to KNIRVCONTROLLER_public Sync Script
+# KNIRVWALLET to KNIRVWALLET_public Sync Script
 # Safely copies changed files with backup/restore functionality
 # Idempotent - can be run multiple times without issues
 
 set -euo pipefail
 
 # Configuration
-SOURCE_DIR="KNIRVCONTROLLER"
-TARGET_DIR="../KNIRVCONTROLLER_public"
+SOURCE_DIR="KNIRVWALLET"
+TARGET_DIR="../KNIRVWALLET_public"
 BACKUP_DIR="./.sync-backups"
 LOG_FILE="./logs/sync_controller.log"
 DRY_RUN=false
@@ -157,6 +157,12 @@ done
 
 # Validate directories exist
 validate_directories() {
+    # Support legacy KNIRVCONTROLLER directory name
+    if [[ ! -d "$SOURCE_DIR" && -d "KNIRVCONTROLLER" ]]; then
+        log "INFO" "Using legacy KNIRVCONTROLLER directory (KNIRVWALLET not found)"
+        SOURCE_DIR="KNIRVCONTROLLER"
+    fi
+    
     if [[ ! -d "$SOURCE_DIR" ]]; then
         log "ERROR" "Source directory '$SOURCE_DIR' does not exist"
         exit 1
@@ -476,7 +482,7 @@ sync_files() {
 
 # Main execution
 main() {
-    log "INFO" "KNIRVCONTROLLER to KNIRVCONTROLLER_public Sync Script"
+    log "INFO" "KNIRVWALLET to KNIRVWALLET_public Sync Script"
     log "INFO" "==================================================="
     
     validate_directories

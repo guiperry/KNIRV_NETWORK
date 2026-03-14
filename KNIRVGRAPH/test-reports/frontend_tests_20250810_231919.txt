@@ -1,5 +1,0 @@
-npm error Missing script: "test"
-npm error
-npm error To see a list of scripts, run:
-npm error   npm run
-npm error A complete log of this run can be found in: /home/gperry/.npm/_logs/2025-08-11T03_29_46_298Z-debug-0.log

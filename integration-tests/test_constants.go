@@ -9,17 +9,17 @@ import (
 // Shared test configuration constants
 const (
 	// Service URLs
-	KNIRVControllerURL = "http://localhost:3000" // KNIRVCONTROLLER Unified Server
-	KNIRVRouterURL     = "http://localhost:8085" // KNIRVROUTER
-	KNIRVGraphURL      = "http://localhost:8081" // KNIRVGRAPH
-	KNIRVChainURL      = "http://localhost:8080" // KNIRVCHAIN
-	KNIRVOracleURL     = "http://localhost:8086" // KNIRVORACLE
-	KNIRVNexusURL      = "http://localhost:8090" // KNIRVNEXUS (updated port)
-	KNIRVNEXUS_BASE_URL = "http://localhost:8090" // Alternative name for compatibility
+	KNIRVWALLETURL       = "http://localhost:3000" // KNIRVWALLET Unified Server
+	KNIRVRouterURL       = "http://localhost:8085" // KNIRVROUTER
+	KNIRVGraphURL        = "http://localhost:8081" // KNIRVGRAPH
+	KNIRVChainURL        = "http://localhost:8080" // KNIRVCHAIN
+	KNIRVOracleURL       = "http://localhost:8086" // KNIRVORACLE
+	KNIRVServerURL       = "http://localhost:8090" // KNIRVSERVER (updated port)
+	KNIRVSERVER_BASE_URL = "http://localhost:8090" // Alternative name for compatibility
 
 	// Timeouts
-	TestTimeout   = 60 * time.Second // Standard test timeout
-	TEST_TIMEOUT  = 30 * time.Second // Alternative name for compatibility
+	TestTimeout  = 60 * time.Second // Standard test timeout
+	TEST_TIMEOUT = 30 * time.Second // Alternative name for compatibility
 )
 
 // Shared data structures
@@ -72,22 +72,22 @@ func waitForService(url string, timeout time.Duration) bool {
 
 func makeHTTPRequest(method, url string, body interface{}) (*http.Response, error) {
 	client := &http.Client{Timeout: TestTimeout}
-	
+
 	var req *http.Request
 	var err error
-	
+
 	if body != nil {
 		// Handle different body types as needed
 		req, err = http.NewRequest(method, url, nil)
 	} else {
 		req, err = http.NewRequest(method, url, nil)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	return client.Do(req)
 }

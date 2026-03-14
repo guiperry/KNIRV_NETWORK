@@ -87,17 +87,17 @@ fi
 
 # Check 2: Required directories
 print_check "KNIRVTESTNET directory"
-if [ -d "$PROJECT_ROOT/KNIRVTESTNET" ]; then
+if [ -d "$PROJECT_ROOT/packages/KNIRVTESTNET" ]; then
     print_pass
 else
     print_fail "KNIRVTESTNET directory not found"
 fi
 
-print_check "KNIRVCONTROLLER directory"
-if [ -d "$PROJECT_ROOT/KNIRVCONTROLLER" ]; then
+print_check "KNIRVWALLET directory"
+if [ -d "$PROJECT_ROOT/packages/KNIRVWALLET" ]; then
     print_pass
 else
-    print_fail "KNIRVCONTROLLER directory not found"
+    print_fail "KNIRVWALLET directory not found"
 fi
 
 # Check 3: System tools
@@ -141,51 +141,51 @@ else
 fi
 
 # Check 4: KNIRVTESTNET setup
-if [ -d "$PROJECT_ROOT/KNIRVTESTNET" ]; then
+if [ -d "$PROJECT_ROOT/packages/KNIRVTESTNET" ]; then
     print_check "KNIRVTESTNET package.json"
-    if [ -f "$PROJECT_ROOT/KNIRVTESTNET/package.json" ]; then
+    if [ -f "$PROJECT_ROOT/packages/KNIRVTESTNET/package.json" ]; then
         print_pass
     else
         print_fail "KNIRVTESTNET/package.json not found"
     fi
     
     print_check "KNIRVTESTNET node_modules"
-    if [ -d "$PROJECT_ROOT/KNIRVTESTNET/node_modules" ]; then
+    if [ -d "$PROJECT_ROOT/packages/KNIRVTESTNET/node_modules" ]; then
         print_pass
     else
-        print_warning "KNIRVTESTNET dependencies not installed. Run: cd KNIRVTESTNET && npm install"
+        print_warning "KNIRVTESTNET dependencies not installed. Run: cd packages/KNIRVTESTNET && npm install"
     fi
     
     print_check "KNIRVTESTNET scripts directory"
-    if [ -d "$PROJECT_ROOT/KNIRVTESTNET/scripts" ]; then
+    if [ -d "$PROJECT_ROOT/packages/KNIRVTESTNET/scripts" ]; then
         print_pass
     else
         print_fail "KNIRVTESTNET/scripts directory not found"
     fi
     
     print_check "KNIRVTESTNET binaries"
-    if [ -d "$PROJECT_ROOT/KNIRVTESTNET/bin" ] && [ "$(ls -A $PROJECT_ROOT/KNIRVTESTNET/bin 2>/dev/null)" ]; then
+    if [ -d "$PROJECT_ROOT/packages/KNIRVTESTNET/bin" ] && [ "$(ls -A $PROJECT_ROOT/packages/KNIRVTESTNET/bin 2>/dev/null)" ]; then
         print_pass
-        print_info "Found $(ls $PROJECT_ROOT/KNIRVTESTNET/bin | wc -l) binaries"
+        print_info "Found $(ls $PROJECT_ROOT/packages/KNIRVTESTNET/bin | wc -l) binaries"
     else
         print_warning "KNIRVTESTNET binaries not found or empty. Some services may not start"
     fi
 fi
 
-# Check 5: KNIRVCONTROLLER setup
-if [ -d "$PROJECT_ROOT/KNIRVCONTROLLER" ]; then
-    print_check "KNIRVCONTROLLER package.json"
-    if [ -f "$PROJECT_ROOT/KNIRVCONTROLLER/package.json" ]; then
+# Check 5: KNIRVWALLET setup
+if [ -d "$PROJECT_ROOT/packages/KNIRVWALLET" ]; then
+    print_check "KNIRVWALLET package.json"
+    if [ -f "$PROJECT_ROOT/packages/KNIRVWALLET/package.json" ]; then
         print_pass
     else
-        print_fail "KNIRVCONTROLLER/package.json not found"
+        print_fail "KNIRVWALLET/package.json not found"
     fi
     
-    print_check "KNIRVCONTROLLER node_modules"
-    if [ -d "$PROJECT_ROOT/KNIRVCONTROLLER/node_modules" ]; then
+    print_check "KNIRVWALLET node_modules"
+    if [ -d "$PROJECT_ROOT/packages/KNIRVWALLET/node_modules" ]; then
         print_pass
     else
-        print_warning "KNIRVCONTROLLER dependencies not installed. Run: cd KNIRVCONTROLLER && npm install"
+        print_warning "KNIRVWALLET dependencies not installed. Run: cd packages/KNIRVWALLET && npm install"
     fi
 fi
 
@@ -271,8 +271,8 @@ else
     echo ""
     echo "Common fixes:"
     echo "  chmod +x run-full-demo.sh"
-    echo "  cd KNIRVTESTNET && npm install"
-    echo "  cd KNIRVCONTROLLER && npm install"
+    echo "  cd packages/KNIRVTESTNET && npm install"
+    echo "  cd packages/KNIRVWALLET && npm install"
     echo "  sudo apt-get install build-essential curl"
     echo ""
     exit 1

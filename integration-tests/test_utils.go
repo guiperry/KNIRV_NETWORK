@@ -15,19 +15,19 @@ import (
 
 // IntegrationTestSuite holds common utilities and configurations for integration tests.
 type IntegrationTestSuite struct {
-	knirvchainURL           string
-	knirvgraphURL           string
-	knirvnexusFrontendURL   string
-	knirvnexusAPIGatewayURL string
-	knirvnexusDVEManagerURL string
-	knirvnexusValidationURL string
-	knirvwalletURL          string
-	knirvshellURL           string
-	knirvroterURL           string
-	knirvGatewayAPIURL      string // Renamed from knirvRootURL (old oracle/web gateway)
-	knirvOracledRPCURL      string // New field for the activated knirv-oracled blockchain RPC
-	xionRPC                 string
-	testWallet              *TestWallet
+	knirvchainURL            string
+	knirvgraphURL            string
+	knirvserverFrontendURL   string
+	knirvserverAPIGatewayURL string
+	knirvserverDVEManagerURL string
+	knirvserverValidationURL string
+	knirvwalletURL           string
+	knirvshellURL            string
+	knirvroterURL            string
+	knirvGatewayAPIURL       string // Renamed from knirvRootURL (old oracle/web gateway)
+	knirvOracledRPCURL       string // New field for the activated knirv-oracled blockchain RPC
+	xionRPC                  string
+	testWallet               *TestWallet
 }
 
 // TestWallet represents a simple wallet structure for testing purposes.
@@ -41,18 +41,18 @@ type TestWallet struct {
 // NewIntegrationTestSuite creates a new IntegrationTestSuite instance with default URLs.
 func NewIntegrationTestSuite() *IntegrationTestSuite {
 	return &IntegrationTestSuite{
-		knirvchainURL:           "http://localhost:8080",
-		knirvgraphURL:           "http://localhost:8081",
-		knirvnexusFrontendURL:   "http://localhost:3000", // KNIRVNEXUS Frontend (Next.js)
-		knirvnexusAPIGatewayURL: "http://localhost:8080", // KNIRVNEXUS API Gateway
-		knirvnexusDVEManagerURL: "http://localhost:8081", // KNIRVNEXUS DVE Manager
-		knirvnexusValidationURL: "http://localhost:8082", // KNIRVNEXUS Validation Core
-		knirvwalletURL:          "http://localhost:8083", // KNIRVWALLET
-		knirvshellURL:           "http://localhost:8084", // KNIRVCORTEX
-		knirvroterURL:           "http://localhost:8085", // KNIRVROUTER
-		knirvGatewayAPIURL:      "http://localhost:8086", // KNIRVORACLE (now web gateway)
-		knirvOracledRPCURL:      "http://localhost:26657", // Activated knirv-oracled blockchain RPC
-		xionRPC:                 "https://rpc.xion-testnet-1.burnt.com:443",
+		knirvchainURL:            "http://localhost:8080",
+		knirvgraphURL:            "http://localhost:8081",
+		knirvserverFrontendURL:   "http://localhost:3000",  // KNIRVSERVER Frontend (Next.js)
+		knirvserverAPIGatewayURL: "http://localhost:8080",  // KNIRVSERVER API Gateway
+		knirvserverDVEManagerURL: "http://localhost:8081",  // KNIRVSERVER DVE Manager
+		knirvserverValidationURL: "http://localhost:8082",  // KNIRVSERVER Validation Core
+		knirvwalletURL:           "http://localhost:8083",  // KNIRVWALLET
+		knirvshellURL:            "http://localhost:8084",  // KNIRVCORTEX
+		knirvroterURL:            "http://localhost:8085",  // KNIRVROUTER
+		knirvGatewayAPIURL:       "http://localhost:8086",  // KNIRVORACLE (now web gateway)
+		knirvOracledRPCURL:       "http://localhost:26657", // Activated knirv-oracled blockchain RPC
+		xionRPC:                  "https://rpc.xion-testnet-1.burnt.com:443",
 	}
 }
 
@@ -179,10 +179,10 @@ type OracleStatus struct {
 	ChainID   string `json:"chain_id"`
 	NetworkID string `json:"network_id"`
 	Token     struct {
-		Name          string `json:"name"`
-		Symbol        string `json:"symbol"`
-		TotalSupply   string `json:"total_supply"`
-		MaxSupply     string `json:"max_supply"`
+		Name            string `json:"name"`
+		Symbol          string `json:"symbol"`
+		TotalSupply     string `json:"total_supply"`
+		MaxSupply       string `json:"max_supply"`
 		ContractAddress string `json:"contract_address"`
 	} `json:"token"`
 	Consensus struct {
@@ -201,7 +201,7 @@ type OracleStatus struct {
 func (suite *IntegrationTestSuite) GetOracledStatus(t *testing.T) (*OracleStatus, error) {
 	url := suite.knirvOracledRPCURL + "/status"
 	client := &http.Client{Timeout: 10 * time.Second} // 10-second timeout for RPC calls
-	
+
 	req, err := http.NewRequestWithContext(context.Background(), "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request for oracled status: %w", err)

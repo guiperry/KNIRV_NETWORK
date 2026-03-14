@@ -72,11 +72,11 @@ start_real_services() {
     nohup cargo run > "$TEST_DIR/logs/knirvchain.log" 2>&1 &
     echo $! > "$TEST_DIR/logs/knirvchain.pid"
 
-    # Start KNIRVNEXUS (Management Portal)
-    print_status "Starting KNIRVNEXUS on port 8083..."
-    cd "$PROJECT_ROOT/KNIRVNEXUS"
-    nohup npm run dev > "$TEST_DIR/logs/knirvnexus.log" 2>&1 &
-    echo $! > "$TEST_DIR/logs/knirvnexus.pid"
+    # Start KNIRVSERVER (Management Portal)
+    print_status "Starting KNIRVSERVER on port 8083..."
+    cd "$PROJECT_ROOT/packages/KNIRVSERVER"
+    nohup npm run dev > "$TEST_DIR/logs/knirvserver.log" 2>&1 &
+    echo $! > "$TEST_DIR/logs/knirvserver.pid"
 
     # Start KNIRVROUTER (Router)
     print_status "Starting KNIRVROUTER on port 5001..."
@@ -118,10 +118,10 @@ start_real_services() {
                 tail -3 "$TEST_DIR/logs/knirvgateway.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
             fi
 
-            # Check KNIRVNEXUS Node.js startup
-            if [ -f "$TEST_DIR/logs/knirvnexus.log" ]; then
-                echo "KNIRVNEXUS (Node.js/TypeScript):"
-                tail -3 "$TEST_DIR/logs/knirvnexus.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
+            # Check KNIRVSERVER Node.js startup
+            if [ -f "$TEST_DIR/logs/knirvserver.log" ]; then
+                echo "KNIRVSERVER (Node.js/TypeScript):"
+                tail -3 "$TEST_DIR/logs/knirvserver.log" 2>/dev/null | sed 's/^/  /' || echo "  No output yet..."
             fi
 
             # Check KNIRVORACLE startup
@@ -170,7 +170,7 @@ verify_services_running() {
                 # Look for port in startup messages
                 grep -o "port \([0-9]*\)" "$log_file" | tail -1 | grep -o "[0-9]*$"
                 ;;
-            "KNIRVNEXUS")
+            "KNIRVSERVER")
                 # Look for "Server running on port PORT" or similar
                 grep -o "[Ss]erver.*port \([0-9]*\)" "$log_file" | tail -1 | grep -o "[0-9]*$"
                 ;;
@@ -200,7 +200,7 @@ verify_services_running() {
             "KNIRVGRAPH")
                 echo "http://localhost:$port/height"
                 ;;
-            "KNIRVNEXUS")
+            "KNIRVSERVER")
                 echo "http://localhost:$port/health"
                 ;;
             "KNIRVGATEWAY")
@@ -270,8 +270,8 @@ verify_services_running() {
         services_ok=false
     fi
 
-    # Check KNIRVNEXUS health (fallback to expected port)
-    if ! check_service_with_retries "KNIRVNEXUS" "http://localhost:8083/health"; then
+    # Check KNIRVSERVER health (fallback to expected port)
+    if ! check_service_with_retries "KNIRVSERVER" "http://localhost:8083/health"; then
         services_ok=false
     fi
 
@@ -315,7 +315,7 @@ stop_services_gracefully() {
     print_status "Stopping services gracefully..."
 
     # Stop services by PID files
-    for service in knirvoracle knirvgraph knirvchain knirvnexus knirvrouter knirvgateway; do
+    for service in knirvoracle knirvgraph knirvchain knirvserver knirvrouter knirvgateway; do
         local pid_file="$TEST_DIR/logs/${service}.pid"
         if [ -f "$pid_file" ]; then
             local pid=$(cat "$pid_file")
@@ -340,7 +340,7 @@ check_services_stopped() {
 
     # Check each service port
     local ports=(1317 8082 8090 8083 5001 8888)
-    local service_names=("KNIRVORACLE" "KNIRVGRAPH" "KNIRVCHAIN" "KNIRVNEXUS" "KNIRVROUTER" "KNIRVGATEWAY")
+    local service_names=("KNIRVORACLE" "KNIRVGRAPH" "KNIRVCHAIN" "KNIRVSERVER" "KNIRVROUTER" "KNIRVGATEWAY")
 
     for i in "${!ports[@]}"; do
         local port=${ports[$i]}
@@ -531,14 +531,19 @@ run_test_suite() {
             go test -v -run "TestKNIRVWalletIntegration" ./...
             ;;
         "knirvbackend-server")
-            go test -v -run "TestKNIRVNEXUSBackendIntegration" ./...
+            go test -v -run "TestKNIRVSERVERBackendIntegration" ./...
             ;;
-        "knirvnexus-frontend")
-            node knirvnexus_frontend_integration_test.js
+        "knirvserver-backend")
+            go test -v -run "TestKNIRVSERVERBackendIntegration" ./...
             ;;
-        "knirvnexus")
-            go test -v -run "TestKNIRVNEXUSBackendIntegration" ./...
-            node knirvnexus_frontend_integration_test.js
+
+        "knirvserver-frontend")
+            node knirvserver_frontend_integration_test.js
+            ;;
+
+        "knirvserver")
+            go test -v -run "TestKNIRVSERVERBackendIntegration" ./...
+            node knirvserver_frontend_integration_test.js
             ;;
         "graphchain-explorer")
             node knirv-graphchain-explorer.test.js
@@ -594,7 +599,7 @@ generate_test_report() {
             "health_endpoint": "http://localhost:8090/health",
             "status": "$(curl -s http://localhost:8090/health > /dev/null && echo 'running' || echo 'stopped')"
         },
-        "knirvnexus": {
+        "knirvserver": {
             "port": 8083,
             "health_endpoint": "http://localhost:8083/health",
             "status": "$(curl -s http://localhost:8083/health > /dev/null && echo 'running' || echo 'stopped')"
@@ -673,7 +678,7 @@ EOF
                 <p>Health: http://localhost:8090/health</p>
             </div>
             <div class="service $(curl -s http://localhost:8083/health > /dev/null && echo 'running' || echo 'stopped')">
-                <h4>KNIRVNEXUS (Management Portal)</h4>
+                <h4>KNIRVSERVER (Management Portal)</h4>
                 <p>Port: 8083</p>
                 <p>Status: <span class="$(curl -s http://localhost:8083/health > /dev/null && echo 'running' || echo 'stopped')">$(curl -s http://localhost:8083/health > /dev/null && echo 'RUNNING' || echo 'STOPPED')</span></p>
                 <p>Health: http://localhost:8083/health</p>
@@ -735,7 +740,7 @@ EOF
         <ul>
             <li><strong>KNIRVORACLE ↔ KNIRVGRAPH:</strong> Core network to graph database communication</li>
             <li><strong>KNIRVCHAIN ↔ KNIRVORACLE:</strong> Blockchain to core network integration</li>
-            <li><strong>KNIRVNEXUS ↔ All Services:</strong> Management portal service discovery</li>
+            <li><strong>KNIRVSERVER ↔ All Services:</strong> Management portal service discovery</li>
             <li><strong>KNIRVROUTER ↔ Network:</strong> P2P routing and connectivity</li>
             <li><strong>KNIRVGATEWAY ↔ Frontend:</strong> API gateway and web interface</li>
             <li><strong>Cross-Component Validation:</strong> End-to-end workflow testing</li>
@@ -831,13 +836,13 @@ while [[ $# -gt 0 ]]; do
             usage
             exit 0
             ;;
-        all|basic|cross-component|performance|e2e|economics|gateway|wallet|graphchain-explorer|portal|javascript|gateway-nexus|knirvnexus|knirvbackend-server|knirvnexus-frontend)
+        all|basic|cross-component|performance|e2e|economics|gateway|wallet|graphchain-explorer|portal|javascript|gateway-nexus|knirvserver|knirvbackend-server|knirvserver-frontend)
             COMMAND="$1"
             shift
             ;;
         *)
             print_error "Unknown option: $1"
-            print_error "Available test suites: all, basic, cross-component, performance, e2e, economics, gateway, wallet, graphchain-explorer, portal, javascript, gateway-nexus, knirvnexus, knirvbackend-server, knirvnexus-frontend"
+            print_error "Available test suites: all, basic, cross-component, performance, e2e, economics, gateway, wallet, graphchain-explorer, portal, javascript, gateway-nexus, knirvserver, knirvbackend-server, knirvserver-frontend"
             exit 1
             ;;
     esac
@@ -880,7 +885,7 @@ main() {
             run_integration_tests
             test_result=$?
             ;;
-        "basic"|"cross-component"|"performance"|"e2e"|"economics"|"gateway"|"wallet"|"graphchain-explorer"|"portal"|"javascript"|"gateway-nexus"|"knirvnexus"|"knirvbackend-server"|"knirvnexus-frontend")
+        "basic"|"cross-component"|"performance"|"e2e"|"economics"|"gateway"|"wallet"|"graphchain-explorer"|"portal"|"javascript"|"gateway-nexus"|"knirvserver"|"knirvbackend-server"|"knirvserver-frontend")
             run_test_suite "$COMMAND"
             test_result=$?
             ;;

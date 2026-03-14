@@ -155,15 +155,15 @@ services:
       timeout: 10s
       retries: 3
 
-  # KNIRVNEXUS - LLM Inference Engine
-  knirvnexus:
-    image: knirv/nexus:latest
-    container_name: knirv-production-nexus
+  # KNIRVSERVER - LLM Inference Engine
+  knirvserver:
+    image: knirv/server:latest
+    container_name: knirv-production-server
     ports:
-      - "8082:8082"  # Production Nexus port
+      - "8082:8082"  # Production Server port
     volumes:
-      - nexus-data:/app/data
-      - ./config/nexus-production.yaml:/app/config.yaml:ro
+      - server-data:/app/data
+      - ./config/server-production.yaml:/app/config.yaml:ro
     depends_on:
       - ipfs-production
       - knirv-gateway
@@ -173,8 +173,8 @@ services:
     networks:
       - knirv-production
     environment:
-      - NEXUS_HOST=0.0.0.0
-      - NEXUS_PORT=8082
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8082
       - IPFS_API_URL=http://ipfs-production:5001
       - ORACLE_URL=http://knirv-oracled:26657 # Point to the new oracled service
       - CHAIN_URL=http://knirvchain:8080
@@ -227,7 +227,7 @@ services:
       - knirv-gateway
       - knirvchain
       - knirvgraph
-      - knirvnexus
+      - knirvserver
       - knirvrouter
     networks:
       - knirv-production
@@ -239,7 +239,7 @@ services:
       - ORACLE_URL=http://knirv-gateway:8083
       - CHAIN_URL=http://knirvchain:8080
       - GRAPH_URL=http://knirvgraph:8081
-      - NEXUS_URL=http://knirvnexus:8082
+      - SERVER_URL=http://knirvserver:8082
       - ROUTER_URL=http://knirvrouter:5001
     restart: unless-stopped
     healthcheck:
@@ -269,7 +269,7 @@ volumes:
     name: knirv-production-chain-data
   graph-data:
     name: knirv-production-graph-data
-  nexus-data:
-    name: knirv-production-nexus-data
+  server-data:
+    name: knirv-production-server-data
   router-data:
     name: knirv-production-router-data

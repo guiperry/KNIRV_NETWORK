@@ -35,7 +35,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Configuration
-TESTNET_DIR="$PROJECT_ROOT/KNIRVTESTNET"
+TESTNET_DIR="$PROJECT_ROOT/packages/KNIRVTESTNET"
 ANSIBLE_DIR="$PROJECT_ROOT/deployment/ansible"
 TESTNET_IP_FILE="$ANSIBLE_DIR/testnet_ip.txt"
 TESTNET_INSTANCE_ID_FILE="$ANSIBLE_DIR/testnet_instance_id.txt"
@@ -956,8 +956,8 @@ sudo ufw allow 443/tcp
 sudo ufw allow 1317/tcp   # KNIRVORACLE
 sudo ufw allow 8090/tcp   # KNIRVCHAIN
 sudo ufw allow 8082/tcp   # KNIRVGRAPH
-sudo ufw allow 8084/tcp   # KNIRVNEXUS DVE
-sudo ufw allow 8085/tcp   # KNIRVNEXUS Validation
+    sudo ufw allow 8084/tcp   # KNIRVSERVER DVE
+    sudo ufw allow 8085/tcp   # KNIRVSERVER Validation
 sudo ufw allow 8086/tcp   # KNIRVROUTER
 sudo ufw allow 10000/tcp  # TESTNET GATEWAY
 sudo ufw allow 3000/tcp   # KNIRVANA
@@ -1005,8 +1005,8 @@ services:
       - "1317:1317"   # KNIRVORACLE
       - "8090:8090"   # KNIRVCHAIN
       - "8082:8082"   # KNIRVGRAPH
-      - "8084:8084"   # KNIRVNEXUS-1
-      - "8085:8085"   # KNIRVNEXUS-2
+      - "8084:8084"   # KNIRVSERVER-1
+      - "8085:8085"   # KNIRVSERVER-2
       - "8086:8086"   # KNIRVROUTER
       - "10000:10000" # TESTNET-GATEWAY
       - "3000:3000"   # KNIRVANA
@@ -1473,7 +1473,7 @@ prepare_testnet_files() {
       - KNIRVORACLE_API=http://knirv-oracle:1317
       - KNIRVCHAIN_API=http://knirv-chain:8090
       - KNIRVGRAPH_API=http://knirv-graph:8082
-      - KNIRVNEXUS_API=http://knirv-nexus:8084
+      - KNIRVSERVER_API=http://knirv-nexus:8084
       - KNIRVROUTER_API=http://knirv-router:8086
     volumes:
       - ./data/testnet-gateway:/app
@@ -2708,8 +2708,8 @@ display_summary() {
     echo -e "  🏛️ KNIRVORACLE: http://$TESTNET_IP:1317"
     echo -e "  ⛓️ KNIRVCHAIN: http://$TESTNET_IP:8090"
     echo -e "  📈 KNIRVGRAPH: http://$TESTNET_IP:8082"
-    echo -e "  🤖 KNIRVNEXUS DVE: http://$TESTNET_IP:8084"
-    echo -e "  🤖 KNIRVNEXUS VAL: http://$TESTNET_IP:8085"
+    echo -e "  🤖 KNIRVSERVER DVE: http://$TESTNET_IP:8084"
+    echo -e "  🤖 KNIRVSERVER VAL: http://$TESTNET_IP:8085"
     echo -e "  🌐 KNIRVROUTER: http://$TESTNET_IP:8086"
     echo -e "  🎮 KNIRVANA Game: http://$TESTNET_IP:3000"
     echo -e "  🌉 XION Bridge: http://$TESTNET_IP:8088"

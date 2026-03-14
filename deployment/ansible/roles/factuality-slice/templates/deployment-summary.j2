@@ -12,7 +12,7 @@
     "total_deployed": {{ deployment_summary.services_deployed }},
     "core_services": [
       {
-        "name": "KNIRVCONTROLLER",
+        "name": "KNIRVWALLET",
         "port": 3000,
         "status": "deployed",
         "health_endpoint": "http://{{ deployment_summary.deployment_ip }}:3000/health"
@@ -42,7 +42,7 @@
         "health_endpoint": "http://{{ deployment_summary.deployment_ip }}:8086/health"
       },
       {
-        "name": "KNIRVNEXUS",
+        "name": "KNIRVSERVER",
         "port": 8090,
         "status": "deployed",
         "health_endpoint": "http://{{ deployment_summary.deployment_ip }}:8090/health"

@@ -49,14 +49,14 @@ cdn_redirects:
 production_endpoints:
   KNIRVCHAIN_API: "https://chain.knirv.com"
   KNIRVGRAPH_API: "https://graph.knirv.com"
-  KNIRVNEXUS_API: "https://nexus.knirv.com"
+  KNIRVSERVER_API: "https://nexus.knirv.com"
   KNIRVORACLE_API: "https://oracle.knirv.com"
   KNIRVROUTER_API: "https://router.knirv.com"
   KNIRVANA_API: "https://knirvana.knirv.com"
   KNIRVANA_INTERACTIVE_GRAPH: "https://knirvana.knirv.com"
-  KNIRVCONTROLLER_PWA: "https://controller.knirv.com"
-  KNIRVCONTROLLER_ANDROID: "https://controller.knirv.com/android"
-  KNIRVCONTROLLER_IOS: "https://controller.knirv.com/ios"
+  KNIRVWALLET_PWA: "https://wallet.knirv.com"
+  KNIRVWALLET_ANDROID: "https://wallet.knirv.com/android"
+  KNIRVWALLET_IOS: "https://wallet.knirv.com/ios"
 
 # =============================================================================
 # SECURITY CONFIGURATION
@@ -220,20 +220,20 @@ external_services:
   newrelic_license_key: "{{ vault_newrelic_license_key }}"
 
 # =============================================================================
-# KNIRVCONTROLLER PWA CONFIGURATION
+# KNIRVWALLET PWA CONFIGURATION
 # =============================================================================
 
 # PWA deployment configuration
-controller_pwa:
+wallet_pwa:
   enabled: true
-  domain: "controller.knirv.com"
-  beta_domain: "beta-controller.knirv.network"
+  domain: "wallet.knirv.com"
+  beta_domain: "beta-wallet.knirv.network"
   build_dir: "dist"
   packages_dir: "packages"
 
 # CloudFlare Pages configuration for PWA
 cloudflare_pages:
-  project_name: "knirv-controller-pwa"
+  project_name: "knirv-wallet-pwa"
   production_branch: "main"
   preview_branch: "develop"
   build_command: "npm run build:pwa"
@@ -241,8 +241,8 @@ cloudflare_pages:
 
 # Mobile app distribution
 mobile_distribution:
-  android_package: "knirvcontroller-android.zip"
-  ios_package: "knirvcontroller-ios.zip"
+  android_package: "knirvwallet-android.zip"
+  ios_package: "knirvwallet-ios.zip"
   max_package_size: "50MB"
 
 # PWA authentication configuration

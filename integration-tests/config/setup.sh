@@ -139,14 +139,14 @@ build_components() {
     cd "$PROJECT_ROOT/KNIRVGRAPH"
     make build
     
-    # Build KNIRVNEXUS using Makefile (unified binary)
-    print_status "Building KNIRVNEXUS using make binary..."
-    cd "$PROJECT_ROOT/KNIRVNEXUS"
+    # Build KNIRVSERVER using Makefile (unified binary)
+    print_status "Building KNIRVSERVER using make binary..."
+    cd "$PROJECT_ROOT/packages/KNIRVSERVER"
     make binary
     
     # Build KNIRVORACLE
     print_status "Building KNIRVORACLE..."
-    cd "$PROJECT_ROOT/KNIRVORACLE"
+    cd "$PROJECT_ROOT/packages/KNIRVORACLE"
     go build -o bin/knirvoracle .
     
     # Build KNIRVROUTER
@@ -223,11 +223,11 @@ start_services() {
     ./build/graphchain-node -rpc-port 8081 > "$TEST_DIR/logs/knirvgraph.log" 2>&1 &
     echo $! > "$TEST_DIR/pids/knirvgraph.pid"
     
-    # Start KNIRVNEXUS Unified Binary
-    print_status "Starting KNIRVNEXUS unified binary on port 8090..."
-    cd "$PROJECT_ROOT/KNIRVNEXUS"
-    KNIRV_NEXUS_PORT=8090 ./dist/knirv-nexus > "$TEST_DIR/logs/knirvnexus.log" 2>&1 &
-    echo $! > "$TEST_DIR/pids/knirvnexus.pid"
+    # Start KNIRVSERVER Unified Binary
+    print_status "Starting KNIRVSERVER unified binary on port 8090..."
+    cd "$PROJECT_ROOT/packages/KNIRVSERVER"
+    KNIRV_SERVER_PORT=8090 ./dist/knirv-server > "$TEST_DIR/logs/knirvserver.log" 2>&1 &
+    echo $! > "$TEST_DIR/pids/knirvserver.pid"
     
     # Start KNIRVORACLE
     print_status "Starting KNIRVORACLE on port 8086..."
@@ -241,11 +241,11 @@ start_services() {
     ./bin/knirvrouter --port 8085 > "$TEST_DIR/logs/knirvrouter.log" 2>&1 &
     echo $! > "$TEST_DIR/pids/knirvrouter.pid"
 
-    # Start KNIRVCONTROLLER
-    print_status "Starting KNIRVCONTROLLER on port 3000..."
-    cd "$PROJECT_ROOT/KNIRVCONTROLLER"
-    npm run start > "$TEST_DIR/logs/knirvcontroller.log" 2>&1 &
-    echo $! > "$TEST_DIR/pids/knirvcontroller.pid"
+    # Start KNIRVWALLET
+    print_status "Starting KNIRVWALLET on port 3000..."
+    cd "$PROJECT_ROOT/packages/KNIRVWALLET"
+    npm run start > "$TEST_DIR/logs/knirvwallet.log" 2>&1 &
+    echo $! > "$TEST_DIR/pids/knirvwallet.pid"
 
     # Wait for services to be ready
     sleep 10
@@ -269,8 +269,8 @@ run_health_checks() {
     local services=(
         "KNIRVCHAIN:http://localhost:8080/health"
         "KNIRVGRAPH:http://localhost:8081/health"
-        "KNIRVNEXUS:http://localhost:8090/api/v1/health"
-        "KNIRVCONTROLLER:http://localhost:3000/health"
+        "KNIRVSERVER:http://localhost:8090/api/v1/health"
+        "KNIRVWALLET:http://localhost:3000/health"
         # Skip KNIRVROUTER and KNIRVORACLE health checks for now due to build/runtime issues
         # "KNIRVROUTER:http://localhost:8085/status"
         # "KNIRVORACLE:http://localhost:8086/health"

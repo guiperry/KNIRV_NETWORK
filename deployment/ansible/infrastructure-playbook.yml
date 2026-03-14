@@ -31,8 +31,8 @@
       - 3009  # KNIRVORACLE NANDA-ANS
       - 8080  # KNIRVCHAIN
       - 8081  # KNIRVGRAPH
-      - 8082  # KNIRVNEXUS-1
-      - 8083  # KNIRVNEXUS-2
+      - 8082  # KNIRVSERVER-1
+      - 8083  # KNIRVSERVER-2
       - 8084  # KNIRVROUTER
       - 8085  # KNIRVGATEWAY
       - 8086  # KNIRVWALLET
@@ -305,8 +305,8 @@
             - '3009'  # KNIRVORACLE NANDA-ANS
             - '8080'  # KNIRVCHAIN
             - '8081'  # KNIRVGRAPH
-            - '8082'  # KNIRVNEXUS-1
-            - '8083'  # KNIRVNEXUS-2
+            - '8082'  # KNIRVSERVER-1
+            - '8083'  # KNIRVSERVER-2
             - '8084'  # KNIRVROUTER
             - '8085'  # KNIRVGATEWAY
             - '8086'  # KNIRVWALLET

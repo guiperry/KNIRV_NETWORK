@@ -14,6 +14,10 @@
     knirvoracle_user: "knirv"
     knirvoracle_binary: "knirvoracle"
     
+    # Source path - uses packages/ if exists, otherwise legacy path
+    knirvoracle_src_base: "{{ playbook_dir }}/../../packages/KNIRVORACLE"
+    knirvoracle_legacy_src: "{{ playbook_dir }}/../../KNIRVORACLE"
+    
     # Service Configuration
     oracle_main_port: "{{ oracle_main_port | default('1317', true) }}"
     bootnode_registry_port: "{{ bootnode_registry_port | default('3006', true) }}"
@@ -102,7 +106,7 @@
 
     - name: Copy KNIRVORACLE binary
       copy:
-        src: "{{ playbook_dir }}/../../KNIRVORACLE/bin/{{ knirvoracle_binary }}"
+        src: "{{ knirvoracle_src_base }}/bin/{{ knirvoracle_binary }}"
         dest: "{{ knirvoracle_home }}/bin/{{ knirvoracle_binary }}"
         owner: "{{ knirvoracle_user }}"
         group: "{{ knirvoracle_user }}"
@@ -120,7 +124,7 @@
 
     - name: Copy Node.js services for KNIRVORACLE
       synchronize:
-        src: "{{ playbook_dir }}/../../KNIRVORACLE/nodejs-services/"
+        src: "{{ knirvoracle_src_base }}/nodejs-services/"
         dest: "{{ knirvoracle_home }}/nodejs-services/"
         delete: true
         recursive: true

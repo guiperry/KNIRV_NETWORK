@@ -191,22 +191,22 @@ api_endpoints:
   testnet_base: "https://testnet.knirv.network"
   chain_api: "https://chain-api-testnet.knirv.network:8080"
   graph_api: "https://graph-api-testnet.knirv.network:8081"
-  nexus_api: "https://nexus-api-testnet.knirv.network:8082"
+  server_api: "https://nexus-api-testnet.knirv.network:8082"
   oracle_api: "https://oracle-api-testnet.knirv.network:1317"
   router_api: "https://router-api-testnet.knirv.network:8086"
   gateway_api: "https://gateway-api-testnet.knirv.network:8087"
   knirvana_api: "https://knirvana-api-testnet.knirv.network:3000"
-  controller_pwa: "https://controller-testnet.knirv.network"
+  wallet_pwa: "https://wallet-testnet.knirv.network"
 
 # KNIRVGATEWAY endpoint configuration (auto-updated for testnet)
 gateway_endpoints:
   KNIRVCHAIN_API: "https://chain-api-testnet.knirv.network:8080"
   KNIRVGRAPH_API: "https://graph-api-testnet.knirv.network:8081"
-  KNIRVNEXUS_API: "https://nexus-api-testnet.knirv.network:8082"
+  KNIRVSERVER_API: "https://nexus-api-testnet.knirv.network:8082"
   KNIRVORACLE_API: "https://oracle-api-testnet.knirv.network:1317"
   KNIRVROUTER_API: "https://router-api-testnet.knirv.network:8086"
   KNIRVANA_API: "https://knirvana-api-testnet.knirv.network:3000"
-  KNIRVCONTROLLER_PWA: "https://controller-testnet.knirv.network"
+  KNIRVWALLET_PWA: "https://wallet-testnet.knirv.network"
   
 # =============================================================================
 # DEPLOYMENT CONFIGURATION
@@ -225,8 +225,8 @@ service_startup_order:
   - knirvoracle
   - knirvchain
   - knirvgraph
-  - knirvnexus-1
-  - knirvnexus-2
+  - knirvserver-1
+  - knirvserver-2
   - knirvrouter
   - knirvana
   - knirvgateway
@@ -245,14 +245,14 @@ dev_features:
   log_level: debug
 
 # =============================================================================
-# KNIRVCONTROLLER PWA TESTNET CONFIGURATION
+# KNIRVWALLET PWA TESTNET CONFIGURATION
 # =============================================================================
 
 # PWA deployment configuration for testnet
-controller_pwa_testnet:
+wallet_pwa_testnet:
   enabled: true
-  domain: "controller-testnet.knirv.network"
-  beta_domain: "beta-controller-testnet.knirv.network"
+  domain: "wallet-testnet.knirv.network"
+  beta_domain: "beta-wallet-testnet.knirv.network"
   build_dir: "dist"
   packages_dir: "packages"
 

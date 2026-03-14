@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # KNIRV Network Full Demo Script
-# This script provides a comprehensive demonstration of the KNIRV testnet and KNIRVCONTROLLER
+# This script provides a comprehensive demonstration of the KNIRV testnet and KNIRVWALLET
 # Utilizes the Makefile for infrastructure management and testing
 
 set -e
@@ -28,7 +28,7 @@ CLEANUP_AFTER=${CLEANUP_AFTER:-true}
 # Project directories
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TESTNET_DIR="$PROJECT_ROOT/KNIRVTESTNET"
-CONTROLLER_DIR="$PROJECT_ROOT/KNIRVCONTROLLER"
+CONTROLLER_DIR="$PROJECT_ROOT/packages/KNIRVWALLET"
 
 # =============================================================================
 # UTILITY FUNCTIONS
@@ -87,7 +87,7 @@ check_prerequisites() {
     fi
     
     if [ ! -d "$CONTROLLER_DIR" ]; then
-        print_error "KNIRVCONTROLLER directory not found"
+        print_error "KNIRVWALLET directory not found"
         exit 1
     fi
     
@@ -111,7 +111,7 @@ phase_1_introduction() {
     echo ""
     echo "This demonstration will showcase:"
     echo "  🧪 Complete KNIRV Testnet deployment"
-    echo "  🎮 KNIRVCONTROLLER cognitive interface"
+    echo "  🎮 KNIRVWALLET cognitive interface"
     echo "  🔗 Service integration and communication"
     echo "  📊 Real-time monitoring and analytics"
     echo "  🧪 Comprehensive testing suite"
@@ -172,9 +172,9 @@ phase_3_testnet_deployment() {
 }
 
 phase_4_controller_integration() {
-    print_header "PHASE 4: KNIRVCONTROLLER INTEGRATION"
+    print_header "PHASE 4: KNIRVWALLET INTEGRATION"
     
-    print_step "Starting KNIRVCONTROLLER in testnet mode..."
+    print_step "Starting KNIRVWALLET in testnet mode..."
     cd "$CONTROLLER_DIR"
     
     # Set testnet environment variables
@@ -182,18 +182,18 @@ phase_4_controller_integration() {
     export KNIRV_TESTNET_MODE=true
     export PORT=3000
     
-    print_step "Starting KNIRVCONTROLLER development server..."
+    print_step "Starting KNIRVWALLET development server..."
     npm run dev &
     CONTROLLER_PID=$!
     
-    print_step "Waiting for KNIRVCONTROLLER to initialize..."
+    print_step "Waiting for KNIRVWALLET to initialize..."
     sleep 15
     
     # Test controller endpoint
     if curl -s http://localhost:3000 >/dev/null; then
-        print_success "KNIRVCONTROLLER is running on http://localhost:3000"
+        print_success "KNIRVWALLET is running on http://localhost:3000"
     else
-        print_warning "KNIRVCONTROLLER may still be starting up"
+        print_warning "KNIRVWALLET may still be starting up"
     fi
     
     cd "$PROJECT_ROOT"
@@ -231,7 +231,7 @@ phase_5_service_demonstration() {
     print_step "Displaying service URLs for manual testing..."
     echo ""
     echo "🌐 Access Points:"
-    echo "  KNIRVCONTROLLER:    http://localhost:3000"
+    echo "  KNIRVWALLET:       http://localhost:3000"
     echo "  KNIRV-NEXUS:        http://localhost:8084"
     echo "  KNIRV-GATEWAY:      http://localhost:8888"
     echo "  KNIRVCHAIN:         http://localhost:8090"
@@ -330,7 +330,7 @@ phase_8_interactive_demo() {
     echo -e "${CYAN}Demo Environment Active!${NC}"
     echo ""
     echo "You can now:"
-    echo "  • Interact with KNIRVCONTROLLER cognitive interface"
+    echo "  • Interact with KNIRVWALLET cognitive interface"
     echo "  • Explore KNIRV-NEXUS validation engine"
     echo "  • Test API endpoints and service integration"
     echo "  • Monitor real-time network activity"
@@ -345,7 +345,7 @@ phase_9_cleanup() {
     print_header "PHASE 9: CLEANUP AND SUMMARY"
     
     if [ "$CLEANUP_AFTER" = "true" ]; then
-        print_step "Stopping KNIRVCONTROLLER..."
+        print_step "Stopping KNIRVWALLET..."
         if [ -n "$CONTROLLER_PID" ]; then
             kill "$CONTROLLER_PID" 2>/dev/null || true
         fi
@@ -366,7 +366,7 @@ phase_9_cleanup() {
     print_step "Demo Summary:"
     echo ""
     echo "✅ KNIRV Testnet deployed and tested"
-    echo "✅ KNIRVCONTROLLER integrated and functional"
+    echo "✅ KNIRVWALLET integrated and functional"
     echo "✅ Service communication verified"
     echo "✅ Comprehensive testing completed"
     echo "✅ Real-time monitoring demonstrated"

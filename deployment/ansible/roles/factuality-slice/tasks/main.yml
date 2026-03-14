@@ -40,12 +40,12 @@
   retries: 30
   delay: 10
   loop:
-    - { name: "KNIRVCONTROLLER", url: "http://{{ ansible_default_ipv4.address }}:3000" }
+    - { name: "KNIRVWALLET", url: "http://{{ ansible_default_ipv4.address }}:3000" }
     - { name: "KNIRVROUTER", url: "http://{{ ansible_default_ipv4.address }}:8085" }
     - { name: "KNIRVGRAPH", url: "http://{{ ansible_default_ipv4.address }}:8081" }
     - { name: "KNIRVCHAIN", url: "http://{{ ansible_default_ipv4.address }}:8080" }
     - { name: "KNIRVORACLE", url: "http://{{ ansible_default_ipv4.address }}:8086" }
-    - { name: "KNIRVNEXUS", url: "http://{{ ansible_default_ipv4.address }}:8090" }
+    - { name: "KNIRVSERVER", url: "http://{{ ansible_default_ipv4.address }}:8090" }
   ignore_errors: yes
   tags:
     - factuality-slice
@@ -54,12 +54,12 @@
 - name: Set environment variables for factuality slice initialization
   set_fact:
     factuality_env:
-      KNIRV_CONTROLLER_URL: "http://{{ ansible_default_ipv4.address }}:3000"
+      KNIRV_WALLET_URL: "http://{{ ansible_default_ipv4.address }}:3000"
       KNIRV_ROUTER_URL: "http://{{ ansible_default_ipv4.address }}:8085"
       KNIRV_GRAPH_URL: "http://{{ ansible_default_ipv4.address }}:8081"
       KNIRV_CHAIN_URL: "http://{{ ansible_default_ipv4.address }}:8080"
       KNIRV_ORACLE_URL: "http://{{ ansible_default_ipv4.address }}:8086"
-      KNIRV_NEXUS_URL: "http://{{ ansible_default_ipv4.address }}:8090"
+      KNIRV_SERVER_URL: "http://{{ ansible_default_ipv4.address }}:8090"
       DEPLOYMENT_ENV: "{{ env | default('production') }}"
   tags:
     - factuality-slice

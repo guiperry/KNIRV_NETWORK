@@ -6,7 +6,7 @@
   hosts: localhost
   gather_facts: false
   vars:
-    gateway_root: "{{ playbook_dir }}/../../KNIRVGATEWAY"
+    gateway_root: "{{ playbook_dir }}/../../packages/KNIRVGATEWAY"
     
   tasks:
     # =============================================================================
@@ -24,7 +24,7 @@
               # Service Endpoints (Testnet)
               KNIRVCHAIN_API={{ gateway_endpoints.KNIRVCHAIN_API }}
               KNIRVGRAPH_API={{ gateway_endpoints.KNIRVGRAPH_API }}
-              KNIRVNEXUS_API={{ gateway_endpoints.KNIRVNEXUS_API }}
+              KNIRVSERVER_API={{ gateway_endpoints.KNIRVSERVER_API }}
               KNIRVORACLE_API={{ gateway_endpoints.KNIRVORACLE_API }}
               KNIRVROUTER_API={{ gateway_endpoints.KNIRVROUTER_API }}
               KNIRVANA_API={{ gateway_endpoints.KNIRVANA_API }}
@@ -52,7 +52,7 @@
                 apiEndpoints: {
                   chain: '{{ gateway_endpoints.KNIRVCHAIN_API }}',
                   graph: '{{ gateway_endpoints.KNIRVGRAPH_API }}',
-                  nexus: '{{ gateway_endpoints.KNIRVNEXUS_API }}',
+                  nexus: '{{ gateway_endpoints.KNIRVSERVER_API }}',
                   oracle: '{{ gateway_endpoints.KNIRVORACLE_API }}',
                   router: '{{ gateway_endpoints.KNIRVROUTER_API }}',
                   knirvana: '{{ gateway_endpoints.KNIRVANA_API }}'
@@ -76,7 +76,7 @@
               window.NEXUS_CONFIG = {
                 environment: 'testnet',
                 apiEndpoints: {
-                  nexus: '{{ gateway_endpoints.KNIRVNEXUS_API }}',
+                  nexus: '{{ gateway_endpoints.KNIRVSERVER_API }}',
                   chain: '{{ gateway_endpoints.KNIRVCHAIN_API }}',
                   oracle: '{{ gateway_endpoints.KNIRVORACLE_API }}',
                   router: '{{ gateway_endpoints.KNIRVROUTER_API }}'
@@ -111,7 +111,7 @@
               Endpoints:
               - KNIRVCHAIN: {{ gateway_endpoints.KNIRVCHAIN_API }}
               - KNIRVGRAPH: {{ gateway_endpoints.KNIRVGRAPH_API }}
-              - KNIRVNEXUS: {{ gateway_endpoints.KNIRVNEXUS_API }}
+              - KNIRVSERVER: {{ gateway_endpoints.KNIRVSERVER_API }}
               - KNIRVORACLE: {{ gateway_endpoints.KNIRVORACLE_API }}
               - KNIRVROUTER: {{ gateway_endpoints.KNIRVROUTER_API }}
               - KNIRVANA: {{ gateway_endpoints.KNIRVANA_API }}
@@ -140,7 +140,7 @@
               endpoints:
                 KNIRVCHAIN_API: "{{ production_endpoints.KNIRVCHAIN_API | default('https://chain.knirv.com') }}"
                 KNIRVGRAPH_API: "{{ production_endpoints.KNIRVGRAPH_API | default('https://graph.knirv.com') }}"
-                KNIRVNEXUS_API: "{{ production_endpoints.KNIRVNEXUS_API | default('https://nexus.knirv.com') }}"
+                KNIRVSERVER_API: "{{ production_endpoints.KNIRVSERVER_API | default('https://nexus.knirv.com') }}"
                 KNIRVORACLE_API: "{{ production_endpoints.KNIRVORACLE_API | default('https://oracle.knirv.com') }}"
                 KNIRVROUTER_API: "{{ production_endpoints.KNIRVROUTER_API | default('https://router.knirv.com') }}"
                 KNIRVANA_API: "{{ production_endpoints.KNIRVANA_API | default('https://knirvana.knirv.com') }}"
@@ -180,7 +180,7 @@
               Production Endpoints:
               - KNIRVCHAIN: {{ production_endpoints.KNIRVCHAIN_API | default('https://chain.knirv.com') }}
               - KNIRVGRAPH: {{ production_endpoints.KNIRVGRAPH_API | default('https://graph.knirv.com') }}
-              - KNIRVNEXUS: {{ production_endpoints.KNIRVNEXUS_API | default('https://nexus.knirv.com') }}
+              - KNIRVSERVER: {{ production_endpoints.KNIRVSERVER_API | default('https://nexus.knirv.com') }}
               - KNIRVORACLE: {{ production_endpoints.KNIRVORACLE_API | default('https://oracle.knirv.com') }}
               - KNIRVROUTER: {{ production_endpoints.KNIRVROUTER_API | default('https://router.knirv.com') }}
               - KNIRVANA: {{ production_endpoints.KNIRVANA_API | default('https://knirvana.knirv.com') }}
