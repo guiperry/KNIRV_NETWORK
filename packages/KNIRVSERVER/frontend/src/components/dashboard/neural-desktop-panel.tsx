@@ -123,9 +123,19 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
     }
   }, [thoughts]);
 
+  // Must be declared before the useEffect below that uses it as a dependency.
+  const addThought = useCallback((thought: Thought) => {
+    setThoughts(prev => {
+      if (prev.some(t => t.content === thought.content)) {
+        return prev;
+      }
+      return [thought, ...prev].slice(0, 100);
+    });
+  }, []);
+
   // Subscribe to WebSocket neural_task_response events (Gap 9 / Gap 12)
   useEffect(() => {
-    setWsConnected(webSocketService.isConnected());
+    setWsConnected(webSocketService.getConnectionStatus());
 
     const handleConnection = (data: { connected: boolean }) => {
       setWsConnected(data.connected);
@@ -165,15 +175,6 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
     };
   }, [addThought]);
 
-  const addThought = useCallback((thought: Thought) => {
-    setThoughts(prev => {
-      if (prev.some(t => t.content === thought.content)) {
-        return prev;
-      }
-      return [thought, ...prev].slice(0, 100);
-    });
-  }, []);
-
   const toggleListening = () => {
     if (!recognitionRef.current) {
       alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
@@ -203,7 +204,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
     });
 
     // Route through the backend Inference Engine via WebSocket (Gap 12 / Gap 9)
-    if (webSocketService.isConnected()) {
+    if (webSocketService.getConnectionStatus()) {
       addThought({
         id: generateId(`ROUTING: ${goal}`),
         timestamp: Date.now(),
@@ -213,7 +214,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
       setStatus(AgentStatus.EXECUTING);
 
       // Send to backend — response comes back as neural_task_response event
-      webSocketService.send({ type: 'neural_task', goal });
+      webSocketService.send({ type: 'neural_task', payload: { goal } });
     } else {
       // Fallback: local simulation when WebSocket is not available
       setTimeout(() => {

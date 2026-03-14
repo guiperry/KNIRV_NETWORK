@@ -88,6 +88,12 @@ func (h *DVECreationHandlers) GetUserCreations(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Ensure a nil slice serialises as [] not null so the frontend
+	// Array.isArray() check succeeds when the user has no creations yet.
+	if creations == nil {
+		creations = make([]*objects.DVECreation, 0)
+	}
+
 	h.sendJSON(w, creations, "User DVE creations retrieved successfully", http.StatusOK)
 }
 
