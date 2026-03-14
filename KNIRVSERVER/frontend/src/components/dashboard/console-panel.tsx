@@ -8,6 +8,7 @@ import type { WebLinksAddon as XTermWebLinksAddon } from '@xterm/addon-web-links
 import '@xterm/xterm/css/xterm.css';
 import { useFabricManagement } from '@/hooks/use-fabric-management';
 import { Button } from '@/components/ui/button';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface ConsolePanelProps {
   isOpen: boolean;
@@ -21,9 +22,49 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTermTerminal | null>(null);
   const fitAddonRef = useRef<XTermFitAddon | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
-  
+  const [sshConnected, setSshConnected] = useState(false);
+
   const { fetchFabricLogs } = useFabricManagement();
+
+  // Attempt to connect the terminal to the backend SSH WebSocket for the given node.
+  const connectSSH = useCallback(async (term: XTermTerminal) => {
+    if (!nodeId) return false;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/dve/${nodeId}/ssh-session`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ username: 'dve-admin' }),
+      });
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = window.location.host;
+      const ws = new WebSocket(`${wsProto}//${wsHost}${data.ws_url}`);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setSshConnected(true);
+        term.writeln('\x1b[32m[CONNECTED] SSH tunnel established via TEE enclave.\x1b[0m');
+        term.write('\x1b[1;32m$ \x1b[0m');
+      };
+      ws.onmessage = (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === 'data') term.write(msg.data);
+      };
+      ws.onerror = () => {
+        setSshConnected(false);
+        term.writeln('\x1b[31m[SSH] Connection error — falling back to local shell.\x1b[0m');
+      };
+      ws.onclose = () => {
+        setSshConnected(false);
+      };
+      return true;
+    } catch {
+      return false;
+    }
+  }, [nodeId]);
 
   const loadRealLogs = useCallback(async () => {
     if (!fabricId || !xtermRef.current) return;
@@ -86,20 +127,28 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
         xtermRef.current = term;
         fitAddonRef.current = fitAddon;
 
-        // Simulated initialization delay
-        setTimeout(() => {
-          setIsInitializing(false);
+        setIsInitializing(false);
+
+        // Try to connect to backend SSH; fall back to local simulation if unavailable
+        const didConnect = await connectSSH(term);
+        if (!didConnect) {
           term.write('\x1b[1;32mroot@fabric-server:~# \x1b[0m');
           loadRealLogs();
-        }, 1000);
+        }
 
         term.onData((data) => {
-          if (data === '\r') {
-            term.write('\r\n\x1b[1;32mroot@fabric-server:~# \x1b[0m');
-          } else if (data === '\u007f') { // backspace
-            term.write('\b \b');
+          // If SSH WebSocket is open, route input to backend
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'input', data }));
           } else {
-            term.write(data);
+            // Local simulation fallback
+            if (data === '\r') {
+              term.write('\r\n\x1b[1;32mroot@fabric-server:~# \x1b[0m');
+            } else if (data === '\u007f') {
+              term.write('\b \b');
+            } else {
+              term.write(data);
+            }
           }
         });
 
@@ -108,6 +157,10 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
 
         return () => {
           window.removeEventListener('resize', handleResize);
+          if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
+          }
           term.dispose();
           xtermRef.current = null;
         };
@@ -120,7 +173,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
         if (cleanup) cleanup();
       };
     }
-  }, [isOpen, nodeId, loadRealLogs]);
+  }, [isOpen, nodeId, loadRealLogs, connectSSH]);
 
   if (!isOpen) return null;
 
@@ -185,8 +238,8 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
         <div className="p-2 border-t border-blue-600/20 bg-slate-900/50 flex justify-between items-center px-4">
           <div className="flex items-center space-x-4">
             <div className="flex items-center text-[9px] text-slate-500 font-bold uppercase">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5" />
-              SSH: ACTIVE
+              <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${sshConnected ? 'bg-green-500' : 'bg-yellow-500'}`} />
+              SSH: {sshConnected ? 'ACTIVE' : 'LOCAL'}
             </div>
             <div className="flex items-center text-[9px] text-slate-500 font-bold uppercase">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5" />

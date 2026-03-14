@@ -427,6 +427,37 @@ func (h *AuthHandlers) GetPreferences(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func (h *AuthHandlers) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
+	authCtx := middleware.GetAuthContext(r)
+	if authCtx == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		OnboardingData map[string]interface{} `json:"onboarding_data,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	preferencesKey := fmt.Sprintf("users:preferences:%s", authCtx.UserID)
+
+	if req.OnboardingData != nil {
+		err := h.db.SetJSON(preferencesKey, req.OnboardingData)
+		if err != nil {
+			log.Printf("Error saving preferences: %v", err)
+			http.Error(w, "failed to save preferences", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Preferences updated successfully"})
+}
+
 func (h *AuthHandlers) Me(w http.ResponseWriter, r *http.Request) {
 	// Get auth context from middleware
 	authCtx := middleware.GetAuthContext(r)

@@ -2,15 +2,12 @@ package dvemanager
 
 import (
 	"testing"
+	"time"
 
 	"backend_server/internal/config"
 	"backend_server/internal/database"
+	"backend_server/internal/objects"
 )
-
-func TestNewDVEManager(t *testing.T) {
-	// Skip this test for now due to P2P manager interface issues
-	t.Skip("Skipping DVE manager test due to P2P interface compatibility issues")
-}
 
 func TestRegisterNode(t *testing.T) {
 	// Skip this test for now due to P2P manager interface issues
@@ -258,5 +255,351 @@ func TestRemoveNode(t *testing.T) {
 	_, err = manager.getNodeFromDB(node.ID)
 	if err == nil {
 		t.Error("Expected error when getting removed node")
+	}
+}
+
+func TestCreateAndGetTask(t *testing.T) {
+	db, err := database.NewBuntDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create in-memory database: %v", err)
+	}
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, err := NewDVEManager(db, nil, nil, cfg)
+	if err != nil {
+		t.Fatalf("Failed to create DVE manager: %v", err)
+	}
+
+	nodeReq := &RegisterNodeRequest{
+		Name:         "test-node",
+		TEEType:      "sgx",
+		StakeAmount:  100000,
+		Location:     "us-east-1",
+		IPAddress:    "192.168.1.100",
+		PublicKey:    "test-public-key",
+		Capabilities: []string{"validation"},
+	}
+
+	node, err := manager.RegisterNode(nodeReq)
+	if err != nil {
+		t.Fatalf("Failed to register node: %v", err)
+	}
+
+	task := &objects.ValidationTask{
+		ID:              "test-task-1",
+		Type:            "skillnode",
+		Status:          "pending",
+		Priority:        5,
+		RequiredTEEType: "sgx",
+		AssignedNodeID:  node.ID,
+		RequestedBy:     "test-user",
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		TimeoutAt:       time.Now().Add(1 * time.Hour),
+	}
+
+	err = manager.CreateTask(task)
+	if err != nil {
+		t.Fatalf("Failed to create task: %v", err)
+	}
+
+	retrievedTask, err := manager.GetTask(task.ID)
+	if err != nil {
+		t.Fatalf("Failed to get task: %v", err)
+	}
+
+	if retrievedTask.ID != task.ID {
+		t.Errorf("Expected task ID %s, got %s", task.ID, retrievedTask.ID)
+	}
+
+	if retrievedTask.Status != "pending" {
+		t.Errorf("Expected task status 'pending', got %s", retrievedTask.Status)
+	}
+}
+
+func TestGetNodeTasks(t *testing.T) {
+	db, err := database.NewBuntDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create in-memory database: %v", err)
+	}
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, err := NewDVEManager(db, nil, nil, cfg)
+	if err != nil {
+		t.Fatalf("Failed to create DVE manager: %v", err)
+	}
+
+	nodeReq := &RegisterNodeRequest{
+		Name:         "test-node",
+		TEEType:      "sgx",
+		StakeAmount:  100000,
+		Location:     "us-east-1",
+		IPAddress:    "192.168.1.100",
+		PublicKey:    "test-public-key",
+		Capabilities: []string{"validation"},
+	}
+
+	node, err := manager.RegisterNode(nodeReq)
+	if err != nil {
+		t.Fatalf("Failed to register node: %v", err)
+	}
+
+	for i := 0; i < 3; i++ {
+		task := &objects.ValidationTask{
+			ID:              "test-task-" + string(rune(i+'0')),
+			Type:            "skillnode",
+			Status:          "pending",
+			Priority:        5,
+			RequiredTEEType: "sgx",
+			AssignedNodeID:  node.ID,
+			RequestedBy:     "test-user",
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+			TimeoutAt:       time.Now().Add(1 * time.Hour),
+		}
+		err := manager.CreateTask(task)
+		if err != nil {
+			t.Fatalf("Failed to create task %d: %v", i, err)
+		}
+	}
+
+	tasks, err := manager.GetNodeTasks(node.ID)
+	if err != nil {
+		t.Fatalf("Failed to get node tasks: %v", err)
+	}
+
+	if len(tasks) != 3 {
+		t.Errorf("Expected 3 tasks, got %d", len(tasks))
+	}
+}
+
+func TestUpdateTask(t *testing.T) {
+	db, err := database.NewBuntDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create in-memory database: %v", err)
+	}
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, err := NewDVEManager(db, nil, nil, cfg)
+	if err != nil {
+		t.Fatalf("Failed to create DVE manager: %v", err)
+	}
+
+	nodeReq := &RegisterNodeRequest{
+		Name:         "test-node",
+		TEEType:      "sgx",
+		StakeAmount:  100000,
+		Location:     "us-east-1",
+		IPAddress:    "192.168.1.100",
+		PublicKey:    "test-public-key",
+		Capabilities: []string{"validation"},
+	}
+
+	node, err := manager.RegisterNode(nodeReq)
+	if err != nil {
+		t.Fatalf("Failed to register node: %v", err)
+	}
+
+	task := &objects.ValidationTask{
+		ID:              "test-task-1",
+		Type:            "skillnode",
+		Status:          "pending",
+		Priority:        5,
+		RequiredTEEType: "sgx",
+		AssignedNodeID:  node.ID,
+		RequestedBy:     "test-user",
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		TimeoutAt:       time.Now().Add(1 * time.Hour),
+	}
+
+	err = manager.CreateTask(task)
+	if err != nil {
+		t.Fatalf("Failed to create task: %v", err)
+	}
+
+	updates := map[string]interface{}{
+		"status": "running",
+	}
+	updatedTask, err := manager.UpdateTask(task.ID, updates)
+	if err != nil {
+		t.Fatalf("Failed to update task: %v", err)
+	}
+
+	if updatedTask.Status != "running" {
+		t.Errorf("Expected task status 'running', got %s", updatedTask.Status)
+	}
+}
+
+func TestListTasks(t *testing.T) {
+	db, err := database.NewBuntDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create in-memory database: %v", err)
+	}
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, err := NewDVEManager(db, nil, nil, cfg)
+	if err != nil {
+		t.Fatalf("Failed to create DVE manager: %v", err)
+	}
+
+	nodeReq := &RegisterNodeRequest{
+		Name:         "test-node",
+		TEEType:      "sgx",
+		StakeAmount:  100000,
+		Location:     "us-east-1",
+		IPAddress:    "192.168.1.100",
+		PublicKey:    "test-public-key",
+		Capabilities: []string{"validation"},
+	}
+
+	node, err := manager.RegisterNode(nodeReq)
+	if err != nil {
+		t.Fatalf("Failed to register node: %v", err)
+	}
+
+	for i := 0; i < 5; i++ {
+		status := "pending"
+		if i >= 2 {
+			status = "completed"
+		}
+		task := &objects.ValidationTask{
+			ID:              "test-task-" + string(rune(i+'0')),
+			Type:            "skillnode",
+			Status:          status,
+			Priority:        5,
+			RequiredTEEType: "sgx",
+			AssignedNodeID:  node.ID,
+			RequestedBy:     "test-user",
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+			TimeoutAt:       time.Now().Add(1 * time.Hour),
+		}
+		err := manager.CreateTask(task)
+		if err != nil {
+			t.Fatalf("Failed to create task %d: %v", i, err)
+		}
+	}
+
+	allTasks, err := manager.ListTasks("", "")
+	if err != nil {
+		t.Fatalf("Failed to list tasks: %v", err)
+	}
+	if len(allTasks) != 5 {
+		t.Errorf("Expected 5 tasks, got %d", len(allTasks))
+	}
+
+	pendingTasks, err := manager.ListTasks("pending", "")
+	if err != nil {
+		t.Fatalf("Failed to list pending tasks: %v", err)
+	}
+	if len(pendingTasks) != 2 {
+		t.Errorf("Expected 2 pending tasks, got %d", len(pendingTasks))
+	}
+}
+
+func TestGetNodeMetrics(t *testing.T) {
+	db, err := database.NewBuntDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create in-memory database: %v", err)
+	}
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, err := NewDVEManager(db, nil, nil, cfg)
+	if err != nil {
+		t.Fatalf("Failed to create DVE manager: %v", err)
+	}
+
+	nodeReq := &RegisterNodeRequest{
+		Name:         "test-node",
+		TEEType:      "sgx",
+		StakeAmount:  100000,
+		Location:     "us-east-1",
+		IPAddress:    "192.168.1.100",
+		PublicKey:    "test-public-key",
+		Capabilities: []string{"validation"},
+	}
+
+	node, err := manager.RegisterNode(nodeReq)
+	if err != nil {
+		t.Fatalf("Failed to register node: %v", err)
+	}
+
+	metrics, err := manager.GetNodeMetrics(node.ID)
+	if err != nil {
+		t.Fatalf("Failed to get node metrics: %v", err)
+	}
+
+	if metrics["node_id"] != node.ID {
+		t.Errorf("Expected node_id %s, got %v", node.ID, metrics["node_id"])
+	}
+
+	if metrics["status"] != "online" {
+		t.Errorf("Expected status 'online', got %v", metrics["status"])
+	}
+}
+
+func TestCalculateNetworkLatency(t *testing.T) {
+	db, err := database.NewBuntDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create in-memory database: %v", err)
+	}
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, err := NewDVEManager(db, nil, nil, cfg)
+	if err != nil {
+		t.Fatalf("Failed to create DVE manager: %v", err)
+	}
+
+	latency := manager.calculateNetworkLatency()
+
+	if latency < 0 {
+		t.Errorf("Expected non-negative latency, got %f", latency)
+	}
+}
+
+func TestCalculateAverageResponseTime(t *testing.T) {
+	db, err := database.NewBuntDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create in-memory database: %v", err)
+	}
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, err := NewDVEManager(db, nil, nil, cfg)
+	if err != nil {
+		t.Fatalf("Failed to create DVE manager: %v", err)
+	}
+
+	responseTime := manager.calculateAverageResponseTime()
+
+	if responseTime < 0 {
+		t.Errorf("Expected non-negative response time, got %f", responseTime)
+	}
+}
+
+func TestCalculateTEEHealthScore(t *testing.T) {
+	db, err := database.NewBuntDB(":memory:")
+	if err != nil {
+		t.Fatalf("Failed to create in-memory database: %v", err)
+	}
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, err := NewDVEManager(db, nil, nil, cfg)
+	if err != nil {
+		t.Fatalf("Failed to create DVE manager: %v", err)
+	}
+
+	healthScore := manager.calculateTEEHealthScore()
+
+	if healthScore < 0 || healthScore > 1 {
+		t.Errorf("Expected health score between 0 and 1, got %f", healthScore)
 	}
 }

@@ -119,6 +119,7 @@ logging:
 
 # Security Configuration
 security:
+  auth_required: true
   enable_tls: false
   tls_cert_file: ""
   tls_key_file: ""

@@ -279,6 +279,23 @@ func (ce *CognitiveEngine) GetLearningState() *LearningState {
 	return &stateCopy
 }
 
+// GetLearningStateRaw returns key learning metrics as primitives (satisfies web.CognitiveEngineReader)
+func (ce *CognitiveEngine) GetLearningStateRaw() (totalTasks int64, successRate float64, learningProgress float64, confidenceLevel float64) {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	return ce.learningState.TotalTasksProcessed,
+		ce.learningState.SuccessRate,
+		ce.learningState.LearningProgress,
+		ce.learningState.ConfidenceLevel
+}
+
+// IsRunning reports whether the cognitive engine is currently active
+func (ce *CognitiveEngine) IsRunning() bool {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	return ce.running
+}
+
 // GetAdaptationHistory returns recent adaptation events
 func (ce *CognitiveEngine) GetAdaptationHistory(limit int) []AdaptationEvent {
 	ce.mu.RLock()

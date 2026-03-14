@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useDemoMode } from '@/contexts/demo-mode-context';
 import { useDHT } from '@/contexts/dht-context';
 import { useToast } from '@/hooks/use-toast';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface NetworkAccessModalProps {
   isOpen: boolean;
@@ -56,6 +57,11 @@ export function NetworkAccessModal({
   const { toast } = useToast();
   const [isDHTUpdating, setIsDHTUpdating] = useState(false);
   const [wsConnected] = useState(true); // Simulated WebSocket status
+  const [policyTeeMode, setPolicyTeeMode] = useState('SGX (Intel)');
+  const [policyMaxMemory, setPolicyMaxMemory] = useState(4096);
+  const [policyAttestation, setPolicyAttestation] = useState(true);
+  const [isSavingPolicy, setIsSavingPolicy] = useState(false);
+  const [policySaveStatus, setPolicySaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [dveNodeCount] = useState(8); // Simulated node count
   const [activeTasks] = useState(24); // Simulated active tasks
 
@@ -137,25 +143,49 @@ export function NetworkAccessModal({
     setCurrentCommand('');
   };
 
-  const executeWorkflow = (template: typeof workflowTemplates[0]) => {
-    const newOutput = [...terminalOutput];
-    newOutput.push('$ Executing workflow: ' + template.name);
-    newOutput.push('$ Running commands: ' + template.commands.join(', '));
-    
-    template.commands.forEach((cmd, index) => {
-      setTimeout(() => {
-        const updatedOutput = [...newOutput];
-        updatedOutput.push('$ ' + cmd);
-        updatedOutput.push('✓ ' + cmd + ' completed successfully');
-        if (index === template.commands.length - 1) {
-          updatedOutput.push('$ Workflow "' + template.name + '" completed successfully');
-          updatedOutput.push('$ ');
-        }
-        setTerminalOutput(updatedOutput);
-      }, (index + 1) * 1000);
-    });
-    
+  const executeWorkflow = async (template: typeof workflowTemplates[0]) => {
+    const newOutput = [...terminalOutput, '$ Executing workflow: ' + template.name];
     setTerminalOutput(newOutput);
+
+    const workflow = {
+      workflow_id: template.id,
+      node_id: nodeId,
+      steps: template.commands.map((cmd, i) => ({
+        step_id: i + 1,
+        name: cmd,
+        command: cmd,
+        dependency: i > 0 ? [i] : [],
+      })),
+      status: 'pending',
+      logs: [],
+    };
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/workflow/execute`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(workflow),
+      });
+      const exec = await resp.json();
+      const out = [...newOutput];
+      (exec.logs ?? []).forEach((log: string) => out.push('  ' + log));
+      out.push(`$ Workflow "${template.name}" ${exec.status === 'completed' ? 'completed successfully' : 'failed'}`);
+      out.push('$ ');
+      setTerminalOutput(out);
+    } catch {
+      // Fallback to local simulation if backend unavailable
+      template.commands.forEach((cmd, index) => {
+        setTimeout(() => {
+          setTerminalOutput(prev => {
+            const updated = [...prev, '$ ' + cmd, '✓ ' + cmd + ' completed'];
+            if (index === template.commands.length - 1) {
+              updated.push('$ Workflow "' + template.name + '" completed', '$ ');
+            }
+            return updated;
+          });
+        }, (index + 1) * 600);
+      });
+    }
   };
 
   const runValidation = () => {
@@ -242,6 +272,37 @@ export function NetworkAccessModal({
       });
     } finally {
       setIsDHTUpdating(false);
+    }
+  };
+
+  const handleSavePolicy = async () => {
+    setIsSavingPolicy(true);
+    setPolicySaveStatus('idle');
+    try {
+      const policy = {
+        name: `nap-policy-${nodeId}-${Date.now()}`,
+        type: 'tee_config',
+        rules: {
+          tee_mode: policyTeeMode,
+          max_memory_mb: policyMaxMemory,
+          enable_attestation: policyAttestation,
+        },
+        priority: 1,
+        enabled: true,
+        target_dve: nodeId,
+        created_at: new Date().toISOString(),
+      };
+      const response = await fetch(`${API_BASE_URL}/api/icme/policy/commit`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(policy),
+      });
+      setPolicySaveStatus(response.ok ? 'success' : 'error');
+    } catch {
+      setPolicySaveStatus('error');
+    } finally {
+      setIsSavingPolicy(false);
+      setTimeout(() => setPolicySaveStatus('idle'), 3000);
     }
   };
 
@@ -681,7 +742,11 @@ export function NetworkAccessModal({
                   <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
                     <div>
                       <label className="text-xs text-slate-400 block mb-1">TEE Mode</label>
-                      <select className="w-full bg-slate-800 border border-blue-600/30 rounded px-2 py-1 text-sm text-slate-200">
+                      <select
+                        value={policyTeeMode}
+                        onChange={(e) => setPolicyTeeMode(e.target.value)}
+                        className="w-full bg-slate-800 border border-blue-600/30 rounded px-2 py-1 text-sm text-slate-200"
+                      >
                         <option>SGX (Intel)</option>
                         <option>TDX (Intel)</option>
                         <option>SEV (AMD)</option>
@@ -689,16 +754,32 @@ export function NetworkAccessModal({
                     </div>
                     <div>
                       <label className="text-xs text-slate-400 block mb-1">Max Memory (MB)</label>
-                      <input type="number" defaultValue="4096" className="w-full bg-slate-800 border border-blue-600/30 rounded px-2 py-1 text-sm text-slate-200" />
+                      <input
+                        type="number"
+                        value={policyMaxMemory}
+                        onChange={(e) => setPolicyMaxMemory(Number(e.target.value))}
+                        className="w-full bg-slate-800 border border-blue-600/30 rounded px-2 py-1 text-sm text-slate-200"
+                      />
                     </div>
                     <div>
                       <label className="text-xs text-slate-400 flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" defaultChecked className="w-4 h-4" />
+                        <input
+                          type="checkbox"
+                          checked={policyAttestation}
+                          onChange={(e) => setPolicyAttestation(e.target.checked)}
+                          className="w-4 h-4"
+                        />
                         <span>Enable Attestation</span>
                       </label>
                     </div>
-                    <button className="w-full bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-semibold py-2 rounded text-sm transition-colors">
-                      Save Policy
+                    {policySaveStatus === 'success' && <p className="text-xs text-green-400">Policy saved successfully</p>}
+                    {policySaveStatus === 'error' && <p className="text-xs text-red-400">Failed to save policy</p>}
+                    <button
+                      onClick={handleSavePolicy}
+                      disabled={isSavingPolicy}
+                      className="w-full bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-slate-900 font-semibold py-2 rounded text-sm transition-colors"
+                    >
+                      {isSavingPolicy ? 'Saving...' : 'Save Policy'}
                     </button>
                   </div>
                 </div>

@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface PolicyEditorProps {
   isOpen: boolean;
@@ -21,6 +22,42 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
   const [allowReadOnly, setAllowReadOnly] = useState(false);
   const [enableForensics, setEnableForensics] = useState(true);
   const [enforceAttestation, setEnableAttestation] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleCommitPolicy = async () => {
+    setIsSaving(true);
+    setSaveStatus('idle');
+    try {
+      const policy = {
+        name: `guardrail-${nodeId ?? 'global'}-${Date.now()}`,
+        type: 'guardrail',
+        rules: {
+          network_whitelist: networkWhitelist.split('\n').filter(Boolean),
+          sensitivity,
+          block_file_io: blockFileIO,
+          allow_read_only: allowReadOnly,
+          enable_forensics: enableForensics,
+          enforce_attestation: enforceAttestation,
+        },
+        priority: 1,
+        enabled: true,
+        target_dve: nodeId ?? '',
+        created_at: new Date().toISOString(),
+      };
+      const response = await fetch(`${API_BASE_URL}/api/icme/policy/commit`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(policy),
+      });
+      setSaveStatus(response.ok ? 'success' : 'error');
+    } catch {
+      setSaveStatus('error');
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -128,9 +165,21 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
           </div>
         </div>
 
-        <div className="p-4 border-t border-blue-600/30 bg-slate-950/50 flex justify-end">
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6">
-            Commit Policy to Blockchain
+        <div className="p-4 border-t border-blue-600/30 bg-slate-950/50 flex items-center justify-between">
+          {saveStatus === 'success' && (
+            <span className="text-[10px] text-green-400 font-mono">Policy committed successfully</span>
+          )}
+          {saveStatus === 'error' && (
+            <span className="text-[10px] text-red-400 font-mono">Failed to commit policy</span>
+          )}
+          {saveStatus === 'idle' && <span />}
+          <Button
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6"
+            onClick={handleCommitPolicy}
+            disabled={isSaving}
+          >
+            {isSaving ? 'Committing...' : 'Commit Policy to Blockchain'}
           </Button>
         </div>
       </div>

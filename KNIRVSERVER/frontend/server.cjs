@@ -1,13 +1,14 @@
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
+const http = require('http');
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
 const PORT = process.env.PORT || 3000;
-const BACKEND_PORT = process.env.BACKEND_PORT || 8082;
+const BACKEND_PORT = process.env.BACKEND_PORT || 8090;
 
 app.prepare().then(() => {
   createServer(async (req, res) => {
@@ -19,7 +20,7 @@ app.prepare().then(() => {
       if (pathname.startsWith('/api/')) {
         const backendUrl = `http://localhost:${BACKEND_PORT}${pathname}`;
         
-        const proxyReq = require('http').request(
+        const proxyReq = http.request(
           backendUrl,
           {
             method: req.method,

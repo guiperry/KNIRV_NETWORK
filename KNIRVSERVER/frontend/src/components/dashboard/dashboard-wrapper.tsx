@@ -23,6 +23,7 @@ import DVEWorkspacePanel from './dve-workspace-panel'; // Modular DVE Workspace
 import DVECreationManagement from '@/components/dve-management/dve-creation-management';
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
+import { BadgeLabPanel } from '@/components/dashboard/badge-lab-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
 import { DVECreationForm } from '@/components/dashboard/dve-creation-form';
 import { FinancialComplianceDashboard } from '@/components/dashboard/financial-compliance-dashboard';
@@ -55,7 +56,8 @@ import {
   AlertTriangle,
   Clock,
   Brain,
-  Bell
+  Bell,
+  Award
 } from 'lucide-react';
 
 interface DashboardWrapperProps {
@@ -205,7 +207,8 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
     setDveCreationModalOpen(true);
   };
 
-  const handleOnboardingComplete = (config: any) => {
+  const handleOnboardingComplete = async (config: any) => {
+    // First update local state
     updateOnboardingState({
       dataWalletConfig: {
         walletName: config.walletName,
@@ -218,6 +221,43 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
       isOnboardingComplete: true,
       currentStep: 'hosting'
     });
+
+    // Get user info for the API call
+    const token = localStorage.getItem('knirv_nexus_token');
+    const userId = localStorage.getItem('knirv_user_id') || 'default';
+
+    // Call the onboarding completion API to save to KNIRVBASE and optionally commit policies to blockchain
+    try {
+      const response = await fetch('/api/icme/onboarding/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          wallet_name: config.walletName,
+          fabric_inputs: config.fabricInputs,
+          guardrails: config.guardrails,
+          connection_data: config.connectionData,
+          privacy_settings: config.privacySettings,
+          commit_to_chain: true // Commit policies to blockchain
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Onboarding completed and policies committed:', result);
+        if (result.policy_tx_hashes && result.policy_tx_hashes.length > 0) {
+          console.log('Policy transaction hashes:', result.policy_tx_hashes);
+        }
+      } else {
+        console.warn('Failed to complete onboarding via API, data saved locally');
+      }
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      // Data is still saved locally via updateOnboardingState
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -254,55 +294,53 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+    <div className="min-h-screen aether-dashboard-bg text-gray-100 overflow-hidden font-inter selection:bg-indigo-500/30">
+      <div className="aether-scanline"></div>
       {/* Header with user profile */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Shield className="w-8 h-8 text-primary" />
-                <div>
-                  <h1 className="text-2xl font-bold">KNIRV SERVER</h1>
-                  <p className="text-sm text-muted-foreground">Deterministic Validation Environment</p>
-                </div>
-              </div>
+      <header className="h-16 border-b border-gray-800/50 flex items-center justify-between px-6 bg-[#02040a]/80 backdrop-blur-xl z-20">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl aether-bevel-dark flex items-center justify-center">
+              <Shield className="w-6 h-6 text-indigo-400" />
             </div>
-            
-            <div className="flex items-center space-x-4">
-
-              <div className="flex items-center space-x-2 text-sm">
-                <span className="text-muted-foreground">Welcome,</span>
-                <span className="font-medium">{user.user}</span>
-                <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'validator' ? 'secondary' : 'outline'}>
-                  {ROLES[user.role]?.displayName || user.role.toUpperCase()}
-                </Badge>
-              </div>
-              <UserProfile />
+            <div>
+              <h1 className="text-lg font-black tracking-tighter text-white uppercase tracking-widest">KNIRV Server</h1>
+              <p className="text-[9px] text-gray-500 font-mono">Deterministic Validation Environment</p>
             </div>
           </div>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-500">Welcome,</span>
+            <span className="font-medium text-gray-300">{user.user}</span>
+            <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'validator' ? 'secondary' : 'outline'}>
+              {ROLES[user.role]?.displayName || user.role.toUpperCase()}
+            </Badge>
+          </div>
+          <UserProfile />
         </div>
       </header>
 
       {/* Role-based navigation */}
-      <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4">
+      <nav className="border-b border-gray-800/50 bg-[#02040a]/60 backdrop-blur-xl">
+        <div className="container mx-auto px-4 py-2">
           <Tabs defaultValue="system" className="w-full">
-            <TabsList className="inline-flex h-12 w-full">
-              <TabsTrigger value="setup" className="flex items-center space-x-2">
+            <TabsList className="inline-flex h-12 w-full bg-transparent">
+              <TabsTrigger value="setup" className="flex items-center space-x-2 text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">
                 <Settings className="w-4 h-4" />
                 <span>Setup</span>
               </TabsTrigger>
 
               {user?.nexus_access?.includes('compliance:read') && (
-                <TabsTrigger value="compliance" className="flex items-center space-x-2">
+                <TabsTrigger value="compliance" className="flex items-center space-x-2 text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">
                   <Scale className="w-4 h-4" />
                   <span>Compliance</span>
                 </TabsTrigger>
               )}
 
               <SystemAccess operation="read" showError={false}>
-                <TabsTrigger value="system" className="flex items-center space-x-2">
+                <TabsTrigger value="system" className="flex items-center space-x-2 text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">
                   <Settings className="w-4 h-4" />
                   <span>Network & Resources</span>
                 </TabsTrigger>
@@ -311,14 +349,14 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
               <RoleGuard allowedRoles={['admin']} showError={false}>
                 <button
                   onClick={() => setShowAdminAccess(true)}
-                  className="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-white/20 px-2 py-1 text-sm font-medium whitespace-nowrap transition-all text-foreground hover:bg-blue-500/20 hover:border-blue-400/50 disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-white/20 px-2 py-1 text-sm font-medium whitespace-nowrap transition-all text-gray-400 hover:bg-indigo-500/20 hover:text-indigo-400 hover:border-indigo-400/50 disabled:pointer-events-none disabled:opacity-50"
                 >
                   <User className="w-4 h-4" />
                   <span>Admin Access</span>
                 </button>
               </RoleGuard>
 
-              <TabsTrigger value="profile" className="flex items-center space-x-2">
+              <TabsTrigger value="profile" className="flex items-center space-x-2 text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">
                 <Eye className="w-4 h-4" />
                 <span>Profile</span>
               </TabsTrigger>
@@ -327,7 +365,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
             <div className="py-6">
               <TabsContent value="setup">
                 {!onboardingState.isOnboardingComplete ? (
-                  <div className="rounded-xl overflow-hidden border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                  <div className="rounded-3xl overflow-hidden aether-bevel-dark">
                     <OnboardingGuide 
                       onComplete={handleOnboardingComplete} 
                       onReset={resetOnboarding}
@@ -335,15 +373,14 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    <div className="rounded-xl overflow-hidden border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
-                      <div className="bg-blue-950/30 p-6 border-b border-blue-500/30">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h2 className="text-2xl font-bold text-blue-100">Network Settings</h2>
-                            <p className="text-blue-300/70">
-                              Configure global network-wide settings for your KNIRV deployment
-                            </p>
-                          </div>
+                    <div className="rounded-3xl overflow-hidden aether-bevel-dark p-6">
+                      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-800">
+                        <div>
+                          <h2 className="text-2xl font-bold text-gray-200">Network Settings</h2>
+                          <p className="text-gray-500">
+                            Configure global network-wide settings for your KNIRV deployment
+                          </p>
+                        </div>
                           <Button 
                             onClick={() => {
                               updateOnboardingState({
@@ -351,34 +388,32 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                                 isOnboardingComplete: false
                               });
                             }}
-                            className="bg-blue-600 hover:bg-blue-500"
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white"
                           >
                             <Settings className="w-4 h-4 mr-2" />
                             Reconfigure Settings
                           </Button>
-                        </div>
                       </div>
-                      <div className="p-6 bg-slate-950/50">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          <Card className="knirv-card-gradient border-blue-500/30">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          <Card className="aether-bevel-dark-light rounded-2xl">
                             <CardHeader>
-                              <CardTitle className="flex items-center space-x-2">
-                                <Shield className="w-5 h-5 text-blue-400" />
+                              <CardTitle className="flex items-center space-x-2 text-gray-300">
+                                <Shield className="w-5 h-5 text-indigo-400" />
                                 <span>Data Wallet Configuration</span>
                               </CardTitle>
                             </CardHeader>
                             <CardContent>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Wallet Name:</span>
-                                  <span className="font-mono">{onboardingState.dataWalletConfig?.walletName || 'Not configured'}</span>
+                                  <span className="text-gray-500">Wallet Name:</span>
+                                  <span className="font-mono text-gray-300">{onboardingState.dataWalletConfig?.walletName || 'Not configured'}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Fabric Inputs:</span>
-                                  <span className="font-mono">{onboardingState.dataWalletConfig?.fabricInputs?.length || 0} configured</span>
+                                  <span className="text-gray-500">Fabric Inputs:</span>
+                                  <span className="font-mono text-gray-300">{onboardingState.dataWalletConfig?.fabricInputs?.length || 0} configured</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Guardrails:</span>
+                                  <span className="text-gray-500">Guardrails:</span>
                                   <Badge variant="outline">
                                     {onboardingState.dataWalletConfig?.guardrails 
                                       ? Object.values(onboardingState.dataWalletConfig.guardrails).filter(Boolean).length 
@@ -389,9 +424,9 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                             </CardContent>
                           </Card>
 
-                          <Card className="knirv-card-gradient border-blue-500/30">
+                          <Card className="aether-bevel-dark-light rounded-2xl">
                             <CardHeader>
-                              <CardTitle className="flex items-center space-x-2">
+                              <CardTitle className="flex items-center space-x-2 text-gray-300">
                                 <Lock className="w-5 h-5 text-amber-400" />
                                 <span>Privacy Preferences</span>
                               </CardTitle>
@@ -399,24 +434,24 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                             <CardContent>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Encryption:</span>
+                                  <span className="text-gray-500">Encryption:</span>
                                   <Badge variant="outline">{onboardingState.privacyPreferences?.dataEncryption ? 'Enabled' : 'Disabled'}</Badge>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Analytics:</span>
+                                  <span className="text-gray-500">Analytics:</span>
                                   <Badge variant="outline">{onboardingState.privacyPreferences?.allowAnalytics ? 'Enabled' : 'Disabled'}</Badge>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Local Processing:</span>
+                                  <span className="text-gray-500">Local Processing:</span>
                                   <Badge variant="outline">{onboardingState.privacyPreferences?.localProcessing ? 'Enabled' : 'Disabled'}</Badge>
                                 </div>
                               </div>
                             </CardContent>
                           </Card>
 
-                          <Card className="knirv-card-gradient border-blue-500/30">
+                          <Card className="aether-bevel-dark-light rounded-2xl">
                             <CardHeader>
-                              <CardTitle className="flex items-center space-x-2">
+                              <CardTitle className="flex items-center space-x-2 text-gray-300">
                                 <Network className="w-5 h-5 text-green-400" />
                                 <span>Connection Status</span>
                               </CardTitle>
@@ -424,15 +459,15 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                             <CardContent>
                               <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">API Keys:</span>
-                                  <span className="font-mono">{onboardingState.connectionData?.apiKeys?.length || 0}</span>
+                                  <span className="text-gray-500">API Keys:</span>
+                                  <span className="font-mono text-gray-300">{onboardingState.connectionData?.apiKeys?.length || 0}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">MCP Servers:</span>
-                                  <span className="font-mono">{onboardingState.connectionData?.mcpServers?.length || 0}</span>
+                                  <span className="text-gray-500">MCP Servers:</span>
+                                  <span className="font-mono text-gray-300">{onboardingState.connectionData?.mcpServers?.length || 0}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Onboarding:</span>
+                                  <span className="text-gray-500">Onboarding:</span>
                                   <Badge className="bg-green-500">Complete</Badge>
                                 </div>
                               </div>
@@ -440,23 +475,22 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                           </Card>
                         </div>
 
-                        <div className="mt-6 p-4 bg-blue-950/30 rounded-lg border border-blue-500/20">
+                        <div className="mt-6 p-4 aether-glass-panel rounded-xl">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <CheckCircle className="w-5 h-5 text-green-400" />
                               <div>
-                                <p className="font-medium">Onboarding Completed</p>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="font-medium text-gray-200">Onboarding Completed</p>
+                                <p className="text-sm text-gray-500">
                                   Your network is configured and ready. Click "Reconfigure Settings" to modify your network configuration.
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right text-sm text-muted-foreground">
+                            <div className="text-right text-sm text-gray-500">
                               <p>Status: Active</p>
                             </div>
                           </div>
                         </div>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -482,24 +516,24 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                 <SystemAccess operation="read">
                   <div className="space-y-6">
                     {/* Main Title */}
-                    <div className="text-center space-y-2 pb-6 border-b border-blue-500/20">
+                    <div className="text-center space-y-2 pb-6 border-b border-gray-800">
                       <div className="flex items-center justify-center gap-2">
                         <h1 className="text-4xl font-bold knirv-gradient-text">KNIRV-SERVER DVE</h1>
                         <Badge className="bg-green-500"><Wifi className="w-3 h-3 mr-1" /> Live</Badge>
                       </div>
-                      <p className="text-lg text-muted-foreground">
+                      <p className="text-lg text-gray-500">
                         The Crucible of Verifiable AI Intelligence
                       </p>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-2xl font-bold">Network & Resource Explorer</h2>
-                        <p className="text-muted-foreground">
+                        <h2 className="text-2xl font-bold text-gray-200">Network & Resource Explorer</h2>
+                        <p className="text-gray-500">
                           Monitor network topology, resource allocation, and system performance across the KNIRV ecosystem.
                         </p>
                       </div>
-                      <Button variant="outline" className="flex items-center space-x-2">
+                      <Button variant="outline" className="flex items-center space-x-2 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                         <Download className="w-4 h-4" />
                         <span>Export Report</span>
                       </Button>
@@ -508,22 +542,22 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                     {/* Network Overview Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <Card 
-                        className="knirv-card-gradient border hover:border-blue-500/50 transition-all group cursor-pointer"
+                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-all"
                         onClick={() => setActiveMemoryOpen(true)}
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center space-x-2">
-                            <CardTitle className="text-sm font-medium">Active Memory (KNIRVBASE)</CardTitle>
-                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="Status: Online" />
+                            <CardTitle className="text-sm font-medium text-gray-300">Active Memory (KNIRVBASE)</CardTitle>
+                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Online" />
                           </div>
-                          <Database className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors" />
+                          <Database className="h-4 w-4 text-gray-500 group-hover:text-indigo-400 transition-colors" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">Encrypted</div>
-                          <p className="text-xs text-muted-foreground mb-3">
+                          <div className="text-2xl font-bold text-gray-200">Encrypted</div>
+                          <p className="text-xs text-gray-500 mb-3">
                             PQC Markdown persistence active
                           </p>
-                          <div className="bg-black/40 rounded p-2 font-mono text-[9px] text-blue-400/80 h-16 overflow-hidden">
+                          <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
                             <div className="line-clamp-1">[10:45:21] Kyber-768 Handshake OK</div>
                             <div className="line-clamp-1">[10:45:22] Committing .md fabric slice...</div>
                             <div className="line-clamp-1">[10:45:23] Dilithium-3 Signature Valid</div>
@@ -532,22 +566,22 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </Card>
 
                       <Card 
-                        className="knirv-card-gradient border hover:border-blue-500/50 transition-all group cursor-pointer"
+                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-all"
                         onClick={() => setKnirvGraphOpen(true)}
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center space-x-2">
-                            <CardTitle className="text-sm font-medium">Reasoning Graph (KNIRVGRAPH)</CardTitle>
-                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="Status: Synced" />
+                            <CardTitle className="text-sm font-medium text-gray-300">Reasoning Graph (KNIRVGRAPH)</CardTitle>
+                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Synced" />
                           </div>
-                          <Network className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors" />
+                          <Network className="h-4 w-4 text-gray-500 group-hover:text-indigo-400 transition-colors" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">142 Traces</div>
-                          <p className="text-xs text-muted-foreground mb-3">
+                          <div className="text-2xl font-bold text-gray-200">142 Traces</div>
+                          <p className="text-xs text-gray-500 mb-3">
                             Context records in .md fabric
                           </p>
-                          <div className="bg-black/40 rounded p-2 font-mono text-[9px] text-blue-400/80 h-16 overflow-hidden">
+                          <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
                             <div className="line-clamp-1">[10:45:18] Querying NRV-8472...</div>
                             <div className="line-clamp-1">[10:45:20] Edge verified via Consensus</div>
                             <div className="line-clamp-1">[10:45:23] Graph re-indexing complete</div>
@@ -556,22 +590,22 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </Card>
 
                       <Card 
-                        className="knirv-card-gradient border hover:border-blue-500/50 transition-all group cursor-pointer"
+                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-all"
                         onClick={() => setKnirvChainOpen(true)}
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center space-x-2">
-                            <CardTitle className="text-sm font-medium">Solution Vault (KNIRVCHAIN)</CardTitle>
-                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="Status: Minting" />
+                            <CardTitle className="text-sm font-medium text-gray-300">Solution Vault (KNIRVCHAIN)</CardTitle>
+                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Minting" />
                           </div>
-                          <Lock className="h-4 w-4 text-muted-foreground group-hover:text-amber-400 transition-colors" />
+                          <Lock className="h-4 w-4 text-gray-500 group-hover:text-amber-400 transition-colors" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">28 Nodes</div>
-                          <p className="text-xs text-muted-foreground mb-3">
+                          <div className="text-2xl font-bold text-gray-200">28 Nodes</div>
+                          <p className="text-xs text-gray-500 mb-3">
                             Verifiable executable logic
                           </p>
-                          <div className="bg-black/40 rounded p-2 font-mono text-[9px] text-amber-400/80 h-16 overflow-hidden">
+                          <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-amber-400/80 h-16 overflow-hidden">
                             <div className="line-clamp-1">[10:45:15] Validating Proof-of-Skill...</div>
                             <div className="line-clamp-1">[10:45:19] New block minted: 0x7a8b...</div>
                             <div className="line-clamp-1">[10:45:23] Distributing rewards...</div>
@@ -580,22 +614,22 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </Card>
 
                       <Card 
-                        className="knirv-card-gradient border hover:border-blue-500/50 transition-all group cursor-pointer"
+                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-all"
                         onClick={() => setP2PTransportOpen(true)}
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center space-x-2">
-                            <CardTitle className="text-sm font-medium">P2P Transport</CardTitle>
-                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]" title="Status: Active" />
+                            <CardTitle className="text-sm font-medium text-gray-300">P2P Transport</CardTitle>
+                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Active" />
                           </div>
-                          <Globe className="h-4 w-4 text-muted-foreground group-hover:text-blue-400 transition-colors" />
+                          <Globe className="h-4 w-4 text-gray-500 group-hover:text-indigo-400 transition-colors" />
                         </CardHeader>
                         <CardContent>
-                          <div className="text-2xl font-bold">TURN Active</div>
-                          <p className="text-xs text-muted-foreground mb-3">
+                          <div className="text-2xl font-bold text-gray-200">TURN Active</div>
+                          <p className="text-xs text-gray-500 mb-3">
                             Secure NAT traversal established
                           </p>
-                          <div className="bg-black/40 rounded p-2 font-mono text-[9px] text-blue-400/80 h-16 overflow-hidden">
+                          <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
                             <div className="line-clamp-1">[10:45:10] Relay node assigned: BK-4</div>
                             <div className="line-clamp-1">[10:45:16] Hole-punching successful</div>
                             <div className="line-clamp-1">[10:45:23] Connected peers: 24</div>
@@ -605,12 +639,13 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                     </div>
 
                     {/* Resource Explorer Tabs */}
-                    <Tabs defaultValue="nodes" className="space-y-4">
-                      <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="nodes">DVE Nodes</TabsTrigger>
-                        <TabsTrigger value="validation">Validation Tasks</TabsTrigger>
-                        <TabsTrigger value="tee">TEE Security</TabsTrigger>
-                        <TabsTrigger value="cognitive">Cognitive Engine</TabsTrigger>
+                      <Tabs defaultValue="nodes" className="space-y-4">
+                      <TabsList className="grid w-full grid-cols-5 bg-gray-900/50 border border-gray-800">
+                        <TabsTrigger value="nodes" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">DVE Nodes</TabsTrigger>
+                        <TabsTrigger value="validation" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Validation Tasks</TabsTrigger>
+                        <TabsTrigger value="tee" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">TEE Security</TabsTrigger>
+                        <TabsTrigger value="cognitive" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Cognitive Engine</TabsTrigger>
+                        <TabsTrigger value="badgelab" className="text-gray-400 data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10">Badge Lab</TabsTrigger>
                       </TabsList>
 
                       <TabsContent value="nodes" className="space-y-4">
@@ -626,46 +661,46 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
 
                       <TabsContent value="validation" className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold">Validation Task Status</h3>
+                          <h3 className="text-lg font-semibold text-gray-200">Validation Task Status</h3>
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                               <Download className="w-4 h-4 mr-2" />
                               Export
                             </Button>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                               <Share2 className="w-4 h-4 mr-2" />
                               Share
                             </Button>
                           </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Card className="knirv-card-gradient">
+                          <Card className="aether-bevel-dark rounded-2xl">
                             <CardHeader>
-                              <CardTitle className="flex items-center space-x-2">
-                                <Activity className="w-5 h-5" />
+                              <CardTitle className="flex items-center space-x-2 text-gray-300">
+                                <Activity className="w-5 h-5 text-indigo-400" />
                                 <span>Active Tasks</span>
                               </CardTitle>
                             </CardHeader>
                             <CardContent>
-                              <div className="text-3xl font-bold">127</div>
-                              <p className="text-sm text-muted-foreground">Currently processing</p>
-                              <Button variant="outline" size="sm" className="w-full mt-4" onClick={handleTaskReports}>
+                              <div className="text-3xl font-bold text-gray-200">127</div>
+                              <p className="text-sm text-gray-500">Currently processing</p>
+                              <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleTaskReports}>
                                 <Download className="w-3 h-3 mr-1" />
                                 Task Reports
                               </Button>
                             </CardContent>
                           </Card>
-                          <Card className="knirv-card-gradient">
+                          <Card className="aether-bevel-dark rounded-2xl">
                             <CardHeader>
-                              <CardTitle className="flex items-center space-x-2">
-                                <BarChart3 className="w-5 h-5" />
+                              <CardTitle className="flex items-center space-x-2 text-gray-300">
+                                <BarChart3 className="w-5 h-5 text-indigo-400" />
                                 <span>Completed Today</span>
                               </CardTitle>
                             </CardHeader>
                             <CardContent>
-                              <div className="text-3xl font-bold">1,847</div>
-                              <p className="text-sm text-muted-foreground">98.2% success rate</p>
-                              <Button variant="outline" size="sm" className="w-full mt-4" onClick={handlePerformanceReports}>
+                              <div className="text-3xl font-bold text-gray-200">1,847</div>
+                              <p className="text-sm text-gray-500">98.2% success rate</p>
+                              <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handlePerformanceReports}>
                                 <Download className="w-3 h-3 mr-1" />
                                 Performance Reports
                               </Button>
@@ -677,34 +712,34 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       <TabsContent value="tee" className="space-y-4">
                         {teeSecurityStatus && (
                           <div className="grid gap-4">
-                            <Card className="knirv-card-gradient">
+                            <Card className="aether-bevel-dark rounded-2xl">
                               <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <Shield className="h-5 w-5" />
+                                <CardTitle className="flex items-center gap-2 text-gray-300">
+                                  <Shield className="h-5 w-5 text-indigo-400" />
                                   TEE Security Status
                                 </CardTitle>
                               </CardHeader>
                               <CardContent>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                   <div>
-                                    <p className="text-sm text-muted-foreground">Attestation Status</p>
+                                    <p className="text-sm text-gray-500">Attestation Status</p>
                                     {getStatusBadge(teeSecurityStatus.attestation_status)}
                                   </div>
                                   <div>
-                                    <p className="text-sm text-muted-foreground">Security Score</p>
+                                    <p className="text-sm text-gray-500">Security Score</p>
                                     <div className="flex items-center gap-2">
                                       <Progress value={teeSecurityStatus.security_score} className="flex-1" />
-                                      <span className="text-sm">{teeSecurityStatus.security_score}%</span>
+                                      <span className="text-sm text-gray-300">{teeSecurityStatus.security_score}%</span>
                                     </div>
                                   </div>
                                   <div>
-                                    <p className="text-sm text-muted-foreground">Active Enclaves</p>
-                                    <p className="text-2xl font-bold">{teeSecurityStatus.enclave_count}</p>
+                                    <p className="text-sm text-gray-500">Active Enclaves</p>
+                                    <p className="text-2xl font-bold text-gray-200">{teeSecurityStatus.enclave_count}</p>
                                   </div>
                                 </div>
                                 <div className="mt-4 grid grid-cols-2 gap-4">
                                   <div>
-                                    <p className="text-sm text-muted-foreground">Last Audit</p>
+                                    <p className="text-sm text-gray-500">Last Audit</p>
                                     <p className="font-semibold">{new Date(teeSecurityStatus.last_audit).toLocaleString()}</p>
                                   </div>
                                   <div>
@@ -725,62 +760,62 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                             )}
 
                             <div className="flex items-center justify-between mt-6">
-                              <h3 className="text-lg font-semibold">TEE Technology Overview</h3>
+                              <h3 className="text-lg font-semibold text-gray-200">TEE Technology Overview</h3>
                               <div className="flex space-x-2">
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                   <Download className="w-4 h-4 mr-2" />
                                   Export
                                 </Button>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                   <Share2 className="w-4 h-4 mr-2" />
                                   Share
                                 </Button>
                               </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                              <Card className="knirv-card-gradient">
+                              <Card className="aether-bevel-dark rounded-2xl">
                                 <CardHeader>
-                                  <CardTitle className="flex items-center space-x-2">
-                                    <Shield className="w-5 h-5" />
+                                  <CardTitle className="flex items-center space-x-2 text-gray-300">
+                                    <Shield className="w-5 h-5 text-indigo-400" />
                                     <span>SGX Enclaves</span>
                                   </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                  <div className="text-2xl font-bold">18</div>
-                                  <p className="text-sm text-muted-foreground">Active secure enclaves</p>
-                                  <Button variant="outline" size="sm" className="w-full mt-4" onClick={handleSecurityReports}>
+                                  <div className="text-2xl font-bold text-gray-200">18</div>
+                                  <p className="text-sm text-gray-500">Active secure enclaves</p>
+                                  <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleSecurityReports}>
                                     <Download className="w-3 h-3 mr-1" />
                                     Security Reports
                                   </Button>
                                 </CardContent>
                               </Card>
-                              <Card className="knirv-card-gradient">
+                              <Card className="aether-bevel-dark rounded-2xl">
                                 <CardHeader>
-                                  <CardTitle className="flex items-center space-x-2">
-                                    <Lock className="w-5 h-5" />
+                                  <CardTitle className="flex items-center space-x-2 text-gray-300">
+                                    <Lock className="w-5 h-5 text-amber-400" />
                                     <span>SEV-SNP</span>
                                   </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                  <div className="text-2xl font-bold">6</div>
-                                  <p className="text-sm text-muted-foreground">Secure VMs running</p>
-                                  <Button variant="outline" size="sm" className="w-full mt-4" onClick={handleVMReports}>
+                                  <div className="text-2xl font-bold text-gray-200">6</div>
+                                  <p className="text-sm text-gray-500">Secure VMs running</p>
+                                  <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleVMReports}>
                                     <Download className="w-3 h-3 mr-1" />
                                     VM Reports
                                   </Button>
                                 </CardContent>
                               </Card>
-                              <Card className="knirv-card-gradient">
+                              <Card className="aether-bevel-dark rounded-2xl">
                                 <CardHeader>
-                                  <CardTitle className="flex items-center space-x-2">
-                                    <Zap className="w-5 h-5" />
+                                  <CardTitle className="flex items-center space-x-2 text-gray-300">
+                                    <Zap className="w-5 h-5 text-indigo-400" />
                                     <span>TDX</span>
                                   </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                  <div className="text-2xl font-bold">3</div>
-                                  <p className="text-sm text-muted-foreground">Trust domains active</p>
-                                  <Button variant="outline" size="sm" className="w-full mt-4" onClick={handleTrustReports}>
+                                  <div className="text-2xl font-bold text-gray-200">3</div>
+                                  <p className="text-sm text-gray-500">Trust domains active</p>
+                                  <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleTrustReports}>
                                     <Download className="w-3 h-3 mr-1" />
                                     Trust Reports
                                   </Button>
@@ -794,40 +829,40 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       <TabsContent value="cognitive" className="space-y-4">
                         {cognitiveEngine && (
                           <div className="grid gap-4">
-                            <Card className="knirv-card-gradient">
+                            <Card className="aether-bevel-dark rounded-2xl">
                               <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <Brain className="h-5 w-5" />
+                                <CardTitle className="flex items-center gap-2 text-gray-300">
+                                  <Brain className="h-5 w-5 text-indigo-400" />
                                   Cognitive Engine Status
                                 </CardTitle>
                               </CardHeader>
                               <CardContent>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                   <div>
-                                    <p className="text-sm text-muted-foreground">Status</p>
+                                    <p className="text-sm text-gray-500">Status</p>
                                     {getStatusBadge(cognitiveEngine.status)}
                                   </div>
                                   <div>
-                                    <p className="text-sm text-muted-foreground">Accuracy</p>
+                                    <p className="text-sm text-gray-500">Accuracy</p>
                                     <div className="flex items-center gap-2">
                                       <Progress value={cognitiveEngine.accuracy} className="flex-1" />
-                                      <span className="text-sm">{cognitiveEngine.accuracy}%</span>
+                                      <span className="text-sm text-gray-300">{cognitiveEngine.accuracy}%</span>
                                     </div>
                                   </div>
                                   <div>
-                                    <p className="text-sm text-muted-foreground">Tasks Processed</p>
-                                    <p className="text-2xl font-bold">{cognitiveEngine.tasks_processed.toLocaleString()}</p>
+                                    <p className="text-sm text-gray-500">Tasks Processed</p>
+                                    <p className="text-2xl font-bold text-gray-200">{cognitiveEngine.tasks_processed.toLocaleString()}</p>
                                   </div>
                                   <div>
-                                    <p className="text-sm text-muted-foreground">Adaptation Rate</p>
+                                    <p className="text-sm text-gray-500">Adaptation Rate</p>
                                     <div className="flex items-center gap-2">
                                       <Progress value={cognitiveEngine.adaptation_rate * 100} className="flex-1" />
-                                      <span className="text-sm">{(cognitiveEngine.adaptation_rate * 100).toFixed(1)}%</span>
+                                      <span className="text-sm text-gray-300">{(cognitiveEngine.adaptation_rate * 100).toFixed(1)}%</span>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="mt-4">
-                                  <p className="text-sm text-muted-foreground">Fabric Version</p>
+                                  <p className="text-sm text-gray-500">Fabric Version</p>
                                   <Badge variant="outline">{cognitiveEngine.model_version}</Badge>
                                 </div>
                               </CardContent>
@@ -835,6 +870,10 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                           </div>
                         )}
                         <CognitiveEnginePanel />
+                      </TabsContent>
+
+                      <TabsContent value="badgelab" className="space-y-4">
+                        <BadgeLabPanel />
                       </TabsContent>
                     </Tabs>
                   </div>
@@ -845,12 +884,12 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-2xl font-bold">User Profile</h2>
-                      <p className="text-muted-foreground">
+                      <h2 className="text-2xl font-bold text-gray-200">User Profile</h2>
+                      <p className="text-gray-500">
                         Your account information, permissions, and usage analytics.
                       </p>
                     </div>
-                    <Button variant="outline" className="flex items-center space-x-2">
+                    <Button variant="outline" className="flex items-center space-x-2 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                       <Download className="w-4 h-4" />
                       <span>Export Profile</span>
                     </Button>
@@ -858,18 +897,18 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Account Information */}
-                    <Card>
+                    <Card className="aether-bevel-dark rounded-2xl">
                       <CardHeader>
-                        <CardTitle>Account Information</CardTitle>
+                        <CardTitle className="text-gray-300">Account Information</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">Username</p>
-                            <p className="text-lg">{user.user}</p>
+                            <p className="text-sm font-medium text-gray-500">Username</p>
+                            <p className="text-lg text-gray-200">{user.user}</p>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">Role</p>
+                            <p className="text-sm font-medium text-gray-500">Role</p>
                             <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'validator' ? 'secondary' : 'outline'}>
                               {user.role.toUpperCase()}
                             </Badge>
@@ -897,36 +936,36 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                     </Card>
 
                     {/* Billing & Usage Summary */}
-                    <Card>
+                    <Card className="aether-bevel-dark rounded-2xl">
                       <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <BarChart3 className="w-5 h-5" />
+                        <CardTitle className="flex items-center space-x-2 text-gray-300">
+                          <BarChart3 className="w-5 h-5 text-indigo-400" />
                           <span>Usage Summary</span>
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">Compute Hours</p>
-                            <p className="text-2xl font-bold">247.3</p>
-                            <p className="text-xs text-muted-foreground">This month</p>
+                            <p className="text-sm font-medium text-gray-500">Compute Hours</p>
+                            <p className="text-2xl font-bold text-gray-200">247.3</p>
+                            <p className="text-xs text-gray-600">This month</p>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">Storage Used</p>
-                            <p className="text-2xl font-bold">1.2TB</p>
-                            <p className="text-xs text-muted-foreground">Current usage</p>
+                            <p className="text-sm font-medium text-gray-500">Storage Used</p>
+                            <p className="text-2xl font-bold text-gray-200">1.2TB</p>
+                            <p className="text-xs text-gray-600">Current usage</p>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">API Calls</p>
-                            <p className="text-2xl font-bold">12.4K</p>
-                            <p className="text-xs text-muted-foreground">This month</p>
+                            <p className="text-sm font-medium text-gray-500">API Calls</p>
+                            <p className="text-2xl font-bold text-gray-200">12.4K</p>
+                            <p className="text-xs text-gray-600">This month</p>
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">NRN Spent</p>
-                            <p className="text-2xl font-bold">1,847</p>
-                            <p className="text-xs text-muted-foreground">Total this month</p>
+                            <p className="text-sm font-medium text-gray-500">NRN Spent</p>
+                            <p className="text-2xl font-bold text-gray-200">1,847</p>
+                            <p className="text-xs text-gray-600">Total this month</p>
                           </div>
                         </div>
                       </CardContent>
@@ -934,48 +973,48 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                   </div>
 
                   {/* Billing & Usage Reports */}
-                  <Card>
+                  <Card className="aether-bevel-dark rounded-2xl">
                     <CardHeader>
                       <div className="flex items-center justify-between">
-                        <CardTitle className="flex items-center space-x-2">
-                          <Download className="w-5 h-5" />
+                        <CardTitle className="flex items-center space-x-2 text-gray-300">
+                          <Download className="w-5 h-5 text-indigo-400" />
                           <span>Billing & Usage Reports</span>
                         </CardTitle>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                             <Download className="w-4 h-4 mr-2" />
                             Download All
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                             <Share2 className="w-4 h-4 mr-2" />
                             Share Reports
                           </Button>
                         </div>
                       </div>
-                      <CardDescription>
+                      <CardDescription className="text-gray-500">
                         Generate and download detailed usage and billing reports for your account.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <Card className="knirv-card-gradient">
+                        <Card className="aether-bevel-dark-light rounded-xl">
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Monthly Usage Report</CardTitle>
-                            <CardDescription className="text-xs">
+                            <CardTitle className="text-sm text-gray-300">Monthly Usage Report</CardTitle>
+                            <CardDescription className="text-xs text-gray-500">
                               Detailed breakdown of compute, storage, and API usage
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-2">
                             <div className="flex justify-between text-sm">
-                              <span>Last Generated:</span>
-                              <span>Dec 15, 2024</span>
+                              <span className="text-gray-500">Last Generated:</span>
+                              <span className="text-gray-300">Dec 15, 2024</span>
                             </div>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                 <Share2 className="w-3 h-3 mr-1" />
                                 Share
                               </Button>
@@ -983,24 +1022,24 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                           </CardContent>
                         </Card>
 
-                        <Card className="knirv-card-gradient">
+                        <Card className="aether-bevel-dark-light rounded-xl">
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Billing Statement</CardTitle>
-                            <CardDescription className="text-xs">
+                            <CardTitle className="text-sm text-gray-300">Billing Statement</CardTitle>
+                            <CardDescription className="text-xs text-gray-500">
                               NRN transactions and payment history
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-2">
                             <div className="flex justify-between text-sm">
-                              <span>Last Generated:</span>
-                              <span>Dec 1, 2024</span>
+                              <span className="text-gray-500">Last Generated:</span>
+                              <span className="text-gray-300">Dec 1, 2024</span>
                             </div>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                 <Share2 className="w-3 h-3 mr-1" />
                                 Share
                               </Button>
@@ -1008,24 +1047,24 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                           </CardContent>
                         </Card>
 
-                        <Card className="knirv-card-gradient">
+                        <Card className="aether-bevel-dark-light rounded-xl">
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Performance Analytics</CardTitle>
-                            <CardDescription className="text-xs">
+                            <CardTitle className="text-sm text-gray-300">Performance Analytics</CardTitle>
+                            <CardDescription className="text-xs text-gray-500">
                               Task completion rates and efficiency metrics
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-2">
                             <div className="flex justify-between text-sm">
-                              <span>Last Generated:</span>
-                              <span>Dec 16, 2024</span>
+                              <span className="text-gray-500">Last Generated:</span>
+                              <span className="text-gray-300">Dec 16, 2024</span>
                             </div>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                 <Share2 className="w-3 h-3 mr-1" />
                                 Share
                               </Button>
@@ -1033,24 +1072,24 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                           </CardContent>
                         </Card>
 
-                        <Card className="knirv-card-gradient">
+                        <Card className="aether-bevel-dark-light rounded-xl">
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Security Audit Log</CardTitle>
-                            <CardDescription className="text-xs">
+                            <CardTitle className="text-sm text-gray-300">Security Audit Log</CardTitle>
+                            <CardDescription className="text-xs text-gray-500">
                               Access logs and security events
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-2">
                             <div className="flex justify-between text-sm">
-                              <span>Last Generated:</span>
-                              <span>Dec 16, 2024</span>
+                              <span className="text-gray-500">Last Generated:</span>
+                              <span className="text-gray-300">Dec 16, 2024</span>
                             </div>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                 <Share2 className="w-3 h-3 mr-1" />
                                 Share
                               </Button>
@@ -1058,24 +1097,24 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                           </CardContent>
                         </Card>
 
-                        <Card className="knirv-card-gradient">
+                        <Card className="aether-bevel-dark-light rounded-xl">
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Resource Utilization</CardTitle>
-                            <CardDescription className="text-xs">
+                            <CardTitle className="text-sm text-gray-300">Resource utilization</CardTitle>
+                            <CardDescription className="text-xs text-gray-500">
                               Detailed resource consumption patterns
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-2">
                             <div className="flex justify-between text-sm">
-                              <span>Last Generated:</span>
-                              <span>Dec 15, 2024</span>
+                              <span className="text-gray-500">Last Generated:</span>
+                              <span className="text-gray-300">Dec 15, 2024</span>
                             </div>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                                 <Share2 className="w-3 h-3 mr-1" />
                                 Share
                               </Button>
@@ -1083,19 +1122,19 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                           </CardContent>
                         </Card>
 
-                        <Card className="knirv-card-gradient">
+                        <Card className="aether-bevel-dark-light rounded-xl">
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Custom Report</CardTitle>
-                            <CardDescription className="text-xs">
+                            <CardTitle className="text-sm text-gray-300">Custom Report</CardTitle>
+                            <CardDescription className="text-xs text-gray-500">
                               Generate custom reports with specific parameters
                             </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-2">
                             <div className="flex justify-between text-sm">
-                              <span>Status:</span>
-                              <span>Ready to generate</span>
+                              <span className="text-gray-500">Status:</span>
+                              <span className="text-gray-300">Ready to generate</span>
                             </div>
-                            <Button variant="outline" size="sm" className="w-full">
+                            <Button variant="outline" size="sm" className="w-full border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                               <Settings className="w-3 h-3 mr-1" />
                               Configure & Generate
                             </Button>

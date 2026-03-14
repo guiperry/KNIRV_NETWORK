@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 import type { APIKeyEntry } from '@/components/onboarding/modals/APIKeysModal';
 import type { MCPServerEntry } from '@/components/onboarding/modals/MCPServersModal';
 import type { PolicyCert, CustomRule } from '@/components/onboarding/modals/PolicyCertsModal';
@@ -108,7 +109,7 @@ interface OnboardingContextType {
   
   // Helper methods
   goToStep: (step: OnboardingStep) => void;
-  completeOnboarding: () => void;
+  completeOnboarding: () => Promise<void>;
   
   // Legacy compatibility
   isLegacyFlow: () => boolean;
@@ -177,7 +178,7 @@ export const OnboardingProvider: React.FC<{children: React.ReactNode}> = ({ chil
       const token = localStorage.getItem('knirv_nexus_token');
       if (token) {
         try {
-          const response = await fetch('/api/user/preferences', {
+          const response = await fetch(`${API_BASE_URL}/api/auth/preferences`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -207,7 +208,7 @@ export const OnboardingProvider: React.FC<{children: React.ReactNode}> = ({ chil
       
       // We'll try to load from DB in the background but also check localStorage
       if (token) {
-        fetch('/api/user/preferences', {
+        fetch(`${API_BASE_URL}/api/auth/preferences`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -269,11 +270,39 @@ export const OnboardingProvider: React.FC<{children: React.ReactNode}> = ({ chil
     updateState({ currentStep: step });
   };
 
-  const completeOnboarding = () => {
+  const completeOnboarding = async () => {
     updateState({
       isOnboardingComplete: true,
       currentStep: 'hosting'
     });
+
+    // Persist onboarding data to ICME for policy enforcement guardrails (Gap 11)
+    const token = localStorage.getItem('knirv_nexus_token');
+    const userStr = localStorage.getItem('knirv_nexus_user');
+    const userId = userStr ? JSON.parse(userStr)?.id ?? '' : '';
+
+    if (state.dataWalletConfig) {
+      try {
+        await fetch(`${API_BASE_URL}/api/icme/onboarding/complete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            wallet_name: state.dataWalletConfig.walletName,
+            fabric_inputs: state.dataWalletConfig.fabricInputs,
+            guardrails: state.dataWalletConfig.guardrails,
+            connection_data: state.dataWalletConfig.connectionData,
+            privacy_settings: state.privacyPreferences ?? {},
+            commit_to_chain: false,
+          }),
+        });
+      } catch (err) {
+        console.warn('ICME onboarding commit failed (non-blocking):', err);
+      }
+    }
   };
 
   const isLegacyFlow = () => {

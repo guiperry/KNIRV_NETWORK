@@ -48,7 +48,7 @@ database:
 
 # Security Configuration
 security:
-  auth_required: false  # false for testnet, true for production
+  auth_required: true
   tls_enabled: false    # false for development, true for production
   tls_cert_file: ""
   tls_key_file: ""

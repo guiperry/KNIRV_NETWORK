@@ -113,9 +113,10 @@ export class APIRequestError extends Error {
 
 // WebSocket utilities
 export const getWebSocketUrl = (): string => {
-  // In development on localhost, point directly to the backend port 8090
+  const backendPort = process.env.NEXT_PUBLIC_BACKEND_PORT || '8090';
+  // In development on localhost, point directly to the backend
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    return 'ws://localhost:8090/ws';
+    return `ws://localhost:${backendPort}/ws`;
   }
   // In production or other environments, use relative URL
   return '/ws';

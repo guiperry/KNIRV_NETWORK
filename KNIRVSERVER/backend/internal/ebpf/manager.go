@@ -108,6 +108,9 @@ func (m *Manager) GetMetrics() *Metrics {
 
 // GetProcessMetrics reads the process telemetry map and returns a map[pid]*ProcessStats
 func (m *Manager) GetProcessMetrics() (map[uint32]*ProcessStats, error) {
+	if m == nil {
+		return nil, fmt.Errorf("manager not initialized")
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

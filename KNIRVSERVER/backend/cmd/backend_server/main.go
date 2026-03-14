@@ -642,6 +642,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 							alignmentLoop,
 							signalRouter,
 							logger,
+							dbManager,
 						)
 
 						icmeCtx, icmeCancel := context.WithCancel(context.Background())
@@ -717,7 +718,35 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Setup routes for all services
 	server.setupRoutes()
 
+	// Integrate blockchain client with services after server creation
+	if nrnClient != nil && server.icmeService != nil {
+		blockchainAdapter := &blockchainClientAdapter{client: nrnClient}
+		server.icmeService.SetBlockchainClient(blockchainAdapter)
+		log.Println("Blockchain client integrated with ICME service")
+	}
+
 	return server, nil
+}
+
+type blockchainClientAdapter struct {
+	client *blockchain.NRNClient
+}
+
+func (a *blockchainClientAdapter) SubmitTransaction(tx interface{}) (string, error) {
+	txMap, ok := tx.(map[string]interface{})
+	if !ok {
+		return "", fmt.Errorf("invalid transaction format")
+	}
+
+	txType, _ := txMap["type"].(string)
+	txData, _ := txMap["data"].(string)
+
+	blockchainTx := &blockchain.Transaction{
+		Type: txType,
+		Data: []byte(txData),
+	}
+
+	return a.client.SubmitTransaction(blockchainTx)
 }
 
 // setupRoutes configures all HTTP routes for the unified server
@@ -748,6 +777,10 @@ func (s *Server) setupRoutes() {
 		wsService.SetAuthMiddleware(authMiddleware)
 	}
 	wsService.SetDatabase(s.db)
+	// Wire real Cognitive Engine into WebSocket for live metric broadcasts (Gap 8 + 12)
+	if s.cognitiveEngine != nil {
+		wsService.SetCognitiveEngine(s.cognitiveEngine)
+	}
 	s.websocketService = wsService
 
 	// Wire Controller Integration service with WebSocket service
@@ -774,6 +807,7 @@ func (s *Server) setupRoutes() {
 		protectedAuthRouter.HandleFunc("/change-password", authHandlers.ChangePassword).Methods("POST", "OPTIONS")
 		protectedAuthRouter.HandleFunc("/update-profile", authHandlers.UpdateProfile).Methods("PUT", "OPTIONS")
 		protectedAuthRouter.HandleFunc("/preferences", authHandlers.GetPreferences).Methods("GET", "OPTIONS")
+		protectedAuthRouter.HandleFunc("/preferences", authHandlers.UpdatePreferences).Methods("PUT", "OPTIONS")
 		log.Println("Auth routes configured")
 	}
 
@@ -817,6 +851,10 @@ func (s *Server) setupRoutes() {
 	// Register inference service routes
 	if s.inferenceService != nil {
 		inferenceHandlers := web.NewInferenceHandlers(s.inferenceService)
+		// Wire real Cognitive Engine into inference endpoint (Gap 12)
+		if s.cognitiveEngine != nil {
+			inferenceHandlers.SetCognitiveEngine(s.cognitiveEngine)
+		}
 		inferenceHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("Inference service routes configured")
 	}
@@ -830,6 +868,9 @@ func (s *Server) setupRoutes() {
 	// Register DVE manager routes
 	if s.dveManager != nil {
 		dveHandlers := web.NewDVEHandlers(s.dveManager, s.dveCreationService)
+		if s.sessionManager != nil {
+			dveHandlers.SetSessionManager(s.sessionManager)
+		}
 		dveHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE manager routes configured")
 	}
@@ -842,6 +883,13 @@ func (s *Server) setupRoutes() {
 	}
 
 	// DVE Rental has been removed/deprecated in exchange for direct DVE Creation
+
+	// Register workflow execution routes (Gap 4)
+	{
+		workflowHandlers := web.NewWorkflowHandlers(s.dveManager, nil)
+		workflowHandlers.RegisterRoutes(s.router)
+		log.Println("Workflow execution routes configured")
+	}
 
 	// Register validation service routes
 	if s.validationCore != nil {

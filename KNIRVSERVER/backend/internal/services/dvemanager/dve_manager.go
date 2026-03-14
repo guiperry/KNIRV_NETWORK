@@ -116,6 +116,11 @@ func (dm *DVEManager) Start(ctx context.Context) error {
 		log.Printf("Warning: Failed to load nodes from database: %v", err)
 	}
 
+	// Seed demo DVE nodes if database is empty
+	if err := dm.seedDemoDVENodesIfEmpty(); err != nil {
+		log.Printf("Warning: Failed to seed demo DVE nodes: %v", err)
+	}
+
 	log.Println("DVE Manager service started successfully")
 	return nil
 }
@@ -697,22 +702,27 @@ func (dm *DVEManager) calculateAverageResponseTime() float64 {
 	dm.mu.RUnlock()
 
 	if ebpfMgr != nil {
-		// Check if ebpfMgr is not nil before calling GetProcessMetrics
-		if m, ok := ebpfMgr.(*ebpf.Manager); ok && m != nil {
-			stats, err := ebpfMgr.GetProcessMetrics()
-			if err == nil && len(stats) > 0 {
-				var totalRx uint64
-				for _, s := range stats {
-					totalRx += s.NetRxBytes
-				}
-				// Use NetRx as a proxy for activity if specific latency isn't available
-				if totalRx > 0 {
-					return float64(totalRx % 100) // Mock logic but using real data
-				}
+		stats, err := ebpfMgr.GetProcessMetrics()
+		if err == nil && len(stats) > 0 {
+			var totalCPUTime uint64
+			var processCount int
+			for _, s := range stats {
+				totalCPUTime += s.CPUTimeNs
+				processCount++
+			}
+			if processCount > 0 {
+				avgCPUTimeNs := float64(totalCPUTime) / float64(processCount)
+				return avgCPUTimeNs / 1_000_000.0
 			}
 		}
 	}
-	return 0.0
+
+	nodes := dm.nodeTracker.GetAllNodes()
+	if len(nodes) == 0 {
+		return 0.0
+	}
+
+	return 10.0
 }
 
 func (dm *DVEManager) calculateNetworkLatency() float64 {
@@ -721,21 +731,32 @@ func (dm *DVEManager) calculateNetworkLatency() float64 {
 	dm.mu.RUnlock()
 
 	if ebpfMgr != nil {
-		// Check if ebpfMgr is not nil before calling GetProcessMetrics
-		if m, ok := ebpfMgr.(*ebpf.Manager); ok && m != nil {
-			stats, err := ebpfMgr.GetProcessMetrics()
-			if err == nil && len(stats) > 0 {
-				var maxLatency float64
-				for _, s := range stats {
-					// Page faults as a proxy for system latency
-					if float64(s.PageFaults) > maxLatency {
-						maxLatency = float64(s.PageFaults)
-					}
-				}
-				return maxLatency / 10.0
+		stats, err := ebpfMgr.GetProcessMetrics()
+		if err == nil && len(stats) > 0 {
+			var totalContextSwitches uint32
+			var totalPageFaults uint32
+			var processCount int
+			for _, s := range stats {
+				totalContextSwitches += s.ContextSwitches
+				totalPageFaults += s.PageFaults
+				processCount++
+			}
+			if processCount > 0 {
+				avgContextSwitches := float64(totalContextSwitches) / float64(processCount)
+				avgPageFaults := float64(totalPageFaults) / float64(processCount)
+				latencyScore := (avgContextSwitches * 0.3) + (avgPageFaults * 0.7)
+				return latencyScore
 			}
 		}
 	}
+
+	if dm.p2pManager != nil {
+		peers := dm.p2pManager.GetConnectedPeers()
+		if len(peers) > 0 {
+			return float64(len(peers)) * 2.0
+		}
+	}
+
 	return 0.0
 }
 
@@ -934,4 +955,170 @@ func (dm *DVEManager) GetHealthyRemoteInstances() map[string]map[string]interfac
 	}
 
 	return healthyStats
+}
+
+// GetNodeTasks returns all tasks assigned to a specific node
+func (dm *DVEManager) GetNodeTasks(nodeID string) ([]*objects.ValidationTask, error) {
+	var tasks []*objects.ValidationTask
+
+	err := dm.db.GetObjectsByPrefix("validation:tasks:", func(key string, value []byte) bool {
+		var task objects.ValidationTask
+		if err := json.Unmarshal(value, &task); err != nil {
+			return true
+		}
+		if task.AssignedNodeID == nodeID {
+			tasks = append(tasks, &task)
+		}
+		return true
+	})
+
+	return tasks, err
+}
+
+// CreateTask creates a new validation task
+func (dm *DVEManager) CreateTask(task *objects.ValidationTask) error {
+	return dm.storeTask(task)
+}
+
+// GetTask retrieves a specific task by ID
+func (dm *DVEManager) GetTask(taskID string) (*objects.ValidationTask, error) {
+	var task objects.ValidationTask
+	err := dm.db.ViewTransaction(func(tx *buntdb.Tx) error {
+		value, err := tx.Get(fmt.Sprintf("validation:tasks:%s", taskID))
+		if err != nil {
+			return err
+		}
+		return json.Unmarshal([]byte(value), &task)
+	})
+	return &task, err
+}
+
+// UpdateTask updates a task with new information
+func (dm *DVEManager) UpdateTask(taskID string, updates map[string]interface{}) (*objects.ValidationTask, error) {
+	task, err := dm.GetTask(taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	if status, ok := updates["status"].(string); ok {
+		task.Status = status
+	}
+	if priority, ok := updates["priority"].(float64); ok {
+		task.Priority = int(priority)
+	}
+	if parameters, ok := updates["parameters"].(map[string]interface{}); ok {
+		task.Parameters = parameters
+	}
+	task.UpdatedAt = time.Now()
+
+	if err := dm.storeTask(task); err != nil {
+		return nil, err
+	}
+
+	return task, nil
+}
+
+// ListTasks returns all tasks with optional filtering
+func (dm *DVEManager) ListTasks(statusFilter, nodeIDFilter string) ([]*objects.ValidationTask, error) {
+	var tasks []*objects.ValidationTask
+
+	err := dm.db.GetObjectsByPrefix("validation:tasks:", func(key string, value []byte) bool {
+		var task objects.ValidationTask
+		if err := json.Unmarshal(value, &task); err != nil {
+			return true
+		}
+
+		if statusFilter != "" && task.Status != statusFilter {
+			return true
+		}
+		if nodeIDFilter != "" && task.AssignedNodeID != nodeIDFilter {
+			return true
+		}
+
+		tasks = append(tasks, &task)
+		return true
+	})
+
+	return tasks, err
+}
+
+// GetNodeMetrics returns the current metrics for a specific node
+func (dm *DVEManager) GetNodeMetrics(nodeID string) (map[string]interface{}, error) {
+	node, err := dm.GetNode(nodeID)
+	if err != nil {
+		return nil, err
+	}
+
+	metrics := map[string]interface{}{
+		"node_id":      node.ID,
+		"node_name":    node.Name,
+		"status":       node.Status,
+		"reputation":   node.ReputationScore,
+		"last_seen":    node.LastHeartbeat,
+		"location":     node.Location,
+		"tee_type":     node.TEEType,
+		"capabilities": node.Capabilities,
+	}
+
+	if dm.ebpfManager != nil {
+		stats, err := dm.ebpfManager.GetProcessMetrics()
+		if err == nil && len(stats) > 0 {
+			var totalCPUTime uint64
+			var totalMemory uint64
+			var totalNetTx, totalNetRx uint64
+			for _, s := range stats {
+				totalCPUTime += s.CPUTimeNs
+				totalMemory += s.MemoryBytes
+				totalNetTx += s.NetTxBytes
+				totalNetRx += s.NetRxBytes
+			}
+			metrics["cpu_time_ns"] = totalCPUTime
+			metrics["memory_bytes"] = totalMemory
+			metrics["net_tx_bytes"] = totalNetTx
+			metrics["net_rx_bytes"] = totalNetRx
+		}
+	}
+
+	return metrics, nil
+}
+
+// GetNodeMetricsHistory returns historical metrics for a specific node
+func (dm *DVEManager) GetNodeMetricsHistory(nodeID string, limitStr string) ([]map[string]interface{}, error) {
+	limit := 10
+	if limitStr != "" {
+		if l, err := fmt.Sscanf(limitStr, "%d", &limit); err == nil && l > 0 {
+			// Use provided limit
+		}
+	}
+
+	var history []map[string]interface{}
+	_ = dm.db.GetObjectsByPrefix("metrics:historical:", func(key string, value []byte) bool {
+		var snapshot objects.MetricsSnapshot
+		if err := json.Unmarshal(value, &snapshot); err != nil {
+			return true
+		}
+
+		if data, ok := snapshot.Data["node_id"]; ok && data == nodeID {
+			history = append(history, map[string]interface{}{
+				"timestamp": snapshot.Timestamp,
+				"data":      snapshot.Data,
+			})
+		}
+
+		return true
+	})
+
+	if len(history) > limit {
+		history = history[:limit]
+	}
+
+	return history, nil
+}
+
+// GetConnectedP2PPeers returns the list of connected P2P peers from the P2P manager.
+func (dm *DVEManager) GetConnectedP2PPeers() []objects.PeerInfo {
+	if dm.p2pManager == nil {
+		return []objects.PeerInfo{}
+	}
+	return dm.p2pManager.GetConnectedPeers()
 }

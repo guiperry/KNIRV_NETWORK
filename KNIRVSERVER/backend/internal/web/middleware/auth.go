@@ -187,6 +187,14 @@ func (am *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 			return
 		}
 
+		// 3. Check for development testnet tokens
+		if testnetCtx := getTestnetAuthContext(tokenString); testnetCtx != nil {
+			testnetCtx.Token = tokenString
+			ctx := context.WithValue(r.Context(), AuthContextKey, testnetCtx)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
 		writeError(w, http.StatusUnauthorized, "Invalid token")
 	})
 }
@@ -339,4 +347,36 @@ func writeError(w http.ResponseWriter, statusCode int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
+// testnetTokens maps development testnet tokens to their auth contexts.
+// These tokens are only for local development and match the frontend's hardcoded testnet tokens.
+var testnetTokens = map[string]*AuthContext{
+	"testnet-admin-123": {
+		UserID:   "testnet-admin",
+		Username: "testnet-admin",
+		Role:     "admin",
+	},
+	"testnet-validator-456": {
+		UserID:   "testnet-validator",
+		Username: "testnet-validator",
+		Role:     "validator",
+	},
+	"testnet-observer-789": {
+		UserID:   "testnet-observer",
+		Username: "testnet-observer",
+		Role:     "observer",
+	},
+}
+
+// getTestnetAuthContext returns an AuthContext for known development testnet tokens, or nil.
+func getTestnetAuthContext(token string) *AuthContext {
+	if ctx, ok := testnetTokens[token]; ok {
+		return &AuthContext{
+			UserID:   ctx.UserID,
+			Username: ctx.Username,
+			Role:     ctx.Role,
+		}
+	}
+	return nil
 }

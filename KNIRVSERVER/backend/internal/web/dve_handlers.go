@@ -8,8 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"backend_server/internal/objects"
 	"backend_server/internal/services/dvecreation"
 	"backend_server/internal/services/dvemanager"
+	"backend_server/internal/services/session"
 	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
@@ -18,6 +20,7 @@ import (
 type DVEHandlers struct {
 	dveManager         *dvemanager.DVEManager
 	dveCreationService *dvecreation.DVECreationService
+	sessionManager     *session.SessionManager
 }
 
 func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveCreationService *dvecreation.DVECreationService) *DVEHandlers {
@@ -25,6 +28,246 @@ func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveCreationService *dvecr
 		dveManager:         dveManager,
 		dveCreationService: dveCreationService,
 	}
+}
+
+// SetSessionManager wires in the session manager for SSH session creation.
+func (h *DVEHandlers) SetSessionManager(sm *session.SessionManager) {
+	h.sessionManager = sm
+}
+
+// GetDVEWorkers handles GET /api/dve/workers — aggregates DVE nodes + tasks as active workers
+func (h *DVEHandlers) GetDVEWorkers(w http.ResponseWriter, r *http.Request) {
+	type ActiveWorker struct {
+		ID             string            `json:"id"`
+		Name           string            `json:"name"`
+		Type           string            `json:"type"`
+		Status         string            `json:"status"`
+		LastActivity   string            `json:"lastActivity"`
+		TasksCompleted int               `json:"tasksCompleted"`
+		CPUUsage       float64           `json:"cpuUsage,omitempty"`
+		MemoryUsage    float64           `json:"memoryUsage,omitempty"`
+		Metadata       map[string]string `json:"metadata,omitempty"`
+	}
+
+	workers := make([]ActiveWorker, 0)
+
+	if h.dveManager != nil {
+		nodes := h.dveManager.GetAllNodes()
+		for _, node := range nodes {
+			workerStatus := "idle"
+			switch node.Status {
+			case "online", "active":
+				workerStatus = "active"
+			case "offline":
+				workerStatus = "disconnected"
+			case "error":
+				workerStatus = "error"
+			}
+
+			tasks, _ := h.dveManager.GetNodeTasks(node.ID)
+			completed := 0
+			for _, t := range tasks {
+				if t.Status == "completed" {
+					completed++
+				}
+			}
+
+			workers = append(workers, ActiveWorker{
+				ID:             node.ID,
+				Name:           node.Name,
+				Type:           "agent",
+				Status:         workerStatus,
+				LastActivity:   node.LastHeartbeat.Format(time.RFC3339),
+				TasksCompleted: completed,
+				CPUUsage:       node.CPUUsage,
+				MemoryUsage:    node.MemoryUsage,
+				Metadata: map[string]string{
+					"tee_type": node.TEEType,
+					"location": node.Location,
+				},
+			})
+		}
+
+		// Add running tasks as workflow workers
+		allTasks, err := h.dveManager.ListTasks("running", "")
+		if err == nil {
+			for _, task := range allTasks {
+				workers = append(workers, ActiveWorker{
+					ID:           task.ID,
+					Name:         fmt.Sprintf("Task: %s", task.Type),
+					Type:         "workflow",
+					Status:       "active",
+					LastActivity: task.UpdatedAt.Format(time.RFC3339),
+					Metadata: map[string]string{
+						"node_id": task.AssignedNodeID,
+						"type":    task.Type,
+					},
+				})
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"workers":   workers,
+		"total":     len(workers),
+		"timestamp": getCurrentTimestamp(),
+	})
+}
+
+// GetDVENodeTasksAlias handles GET /api/dve/{nodeId}/tasks (alias for monitor-panel compatibility)
+func (h *DVEHandlers) GetDVENodeTasksAlias(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	nodeID := vars["nodeId"]
+
+	if h.dveManager == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]string{"error": "DVE manager not available"})
+		return
+	}
+
+	tasks, err := h.dveManager.GetNodeTasks(nodeID)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	if tasks == nil {
+		tasks = []*objects.ValidationTask{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"node_id": nodeID,
+		"tasks":   tasks,
+		"total":   len(tasks),
+	})
+}
+
+// GetDVENodeMetricsAlias handles GET /api/dve/{nodeId}/metrics (alias for monitor-panel compatibility)
+func (h *DVEHandlers) GetDVENodeMetricsAlias(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	nodeID := vars["nodeId"]
+
+	if h.dveManager == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]string{"error": "DVE manager not available"})
+		return
+	}
+
+	metrics, err := h.dveManager.GetNodeMetrics(nodeID)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	metrics["timestamp"] = getCurrentTimestamp()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(metrics)
+}
+
+// GetP2PPeers handles GET /api/p2p/peers — returns connected P2P peer list from P2PManager
+func (h *DVEHandlers) GetP2PPeers(w http.ResponseWriter, r *http.Request) {
+	type PeerEntry struct {
+		ID      string `json:"id"`
+		Address string `json:"address"`
+		Role    string `json:"role"`
+		Status  string `json:"status"`
+		Latency int64  `json:"latency_ms"`
+	}
+
+	peers := make([]PeerEntry, 0)
+
+	if h.dveManager != nil {
+		rawPeers := h.dveManager.GetConnectedP2PPeers()
+		for _, p := range rawPeers {
+			status := p.Status
+			if status == "" {
+				status = "connected"
+			}
+			peers = append(peers, PeerEntry{
+				ID:      p.ID,
+				Address: p.Address,
+				Role:    p.Role,
+				Status:  status,
+				Latency: p.Latency,
+			})
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"peers":     peers,
+		"total":     len(peers),
+		"timestamp": getCurrentTimestamp(),
+	})
+}
+
+// CreateNodeSSHSession handles POST /api/dve/{nodeId}/ssh-session (Gap 1)
+// Creates an SSH session for a DVE node so the ConsolePanel can connect via WebSocket.
+func (h *DVEHandlers) CreateNodeSSHSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	nodeID := vars["nodeId"]
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if h.sessionManager == nil || h.dveManager == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]string{"error": "session manager not available"})
+		return
+	}
+
+	node, err := h.dveManager.GetNode(nodeID)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "node not found"})
+		return
+	}
+
+	// Decode optional request body for username/key overrides
+	var req struct {
+		Username   string `json:"username"`
+		PrivateKey string `json:"private_key"`
+	}
+	json.NewDecoder(r.Body).Decode(&req)
+	if req.Username == "" {
+		req.Username = "dve-admin"
+	}
+	if req.PrivateKey == "" {
+		// Use node public key as placeholder; real deployment provides actual private key
+		req.PrivateKey = node.PublicKey
+	}
+
+	sess, err := h.sessionManager.CreateSSHSession(nodeID, node.ID, req.Username, req.PrivateKey)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "failed to create session: " + err.Error()})
+		return
+	}
+
+	// Populate endpoint details from the node
+	sess.Endpoint = node.IPAddress
+	port := node.SSHPort
+	if port == 0 {
+		port = 22
+	}
+	sess.Port = port
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"session_id": sess.ID,
+		"endpoint":   sess.Endpoint,
+		"port":       sess.Port,
+		"username":   sess.Username,
+		"expires_at": sess.ExpiresAt,
+		"ws_url":     fmt.Sprintf("/ws/ssh/%s", sess.ID),
+	})
 }
 
 // getCurrentTimestamp returns the current timestamp in RFC3339 format
@@ -652,4 +895,16 @@ func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.A
 		dveRouter.HandleFunc("/{id}", h.DeleteDVENode).Methods("DELETE", "OPTIONS")
 	}
 
+	// /api/dve/ aliases — frontend monitor-panel and connections-panel use these paths
+	dveAliasRouter := r.PathPrefix("/api/dve").Subrouter()
+	dveAliasRouter.HandleFunc("/workers", h.GetDVEWorkers).Methods("GET", "OPTIONS")
+	dveAliasRouter.HandleFunc("/{nodeId}/tasks", h.GetDVENodeTasksAlias).Methods("GET", "OPTIONS")
+	dveAliasRouter.HandleFunc("/{nodeId}/metrics", h.GetDVENodeMetricsAlias).Methods("GET", "OPTIONS")
+
+	// /api/p2p/ — P2P network topology endpoints (Gap 5)
+	p2pRouter := r.PathPrefix("/api/p2p").Subrouter()
+	p2pRouter.HandleFunc("/peers", h.GetP2PPeers).Methods("GET", "OPTIONS")
+
+	// SSH session creation for DVE nodes — used by ConsolePanel (Gap 1)
+	dveAliasRouter.HandleFunc("/{nodeId}/ssh-session", h.CreateNodeSSHSession).Methods("POST", "OPTIONS")
 }

@@ -1,11 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Terminal, Play, Globe, Settings, BarChart3, FileText, Radio, Shield, Wifi, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
+
+interface P2PPeer {
+  id: string;
+  address: string;
+  role: string;
+  status: string;
+  latency_ms: number;
+}
 
 interface P2PTransportAccessModalProps {
   isOpen: boolean;
@@ -23,6 +32,18 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
   const [showPeers, setShowPeers] = useState(false);
   const [showRelay, setShowRelay] = useState(false);
   const [showNAT, setShowNAT] = useState(false);
+  const [peers, setPeers] = useState<P2PPeer[]>([]);
+  const [peersLoading, setPeersLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setPeersLoading(true);
+    fetch(`${API_BASE_URL}/api/p2p/peers`, { headers: getAuthHeaders() })
+      .then(r => r.json())
+      .then(data => setPeers(data.peers ?? []))
+      .catch(() => setPeers([]))
+      .finally(() => setPeersLoading(false));
+  }, [isOpen]);
 
   const workflowTemplates = [
     {
@@ -66,13 +87,15 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
           newOutput.push('Transport Status: Active');
           newOutput.push('TURN Relay: Active (BK-4)');
           newOutput.push('NAT Type: Full Cone');
-          newOutput.push('Connected Peers: 24');
+          newOutput.push(`Connected Peers: ${peers.length}`);
           break;
         case 'peers':
-          newOutput.push('Connected Peers: 24');
-          newOutput.push('  Peer-001: 192.168.1.101:45678');
-          newOutput.push('  Peer-002: 10.0.0.52:39281');
-          newOutput.push('  Peer-003: 172.16.0.88:54321');
+          newOutput.push(`Connected Peers: ${peers.length}`);
+          if (peers.length > 0) {
+            peers.forEach(p => newOutput.push(`  ${p.id.slice(0, 12)}: ${p.address} [${p.role || 'peer'}, ${p.latency_ms}ms]`));
+          } else {
+            newOutput.push('  No connected peers found');
+          }
           break;
         case 'relay':
           newOutput.push('TURN Relay: Active');
@@ -196,16 +219,28 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center space-x-2 text-sm">
                         <Users className="w-4 h-4" />
-                        <span>Peers</span>
+                        <span>Peers {!peersLoading && <span className="text-muted-foreground">({peers.length})</span>}</span>
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Connected peer list
+                        {peersLoading ? 'Loading...' : 'Connected peer list'}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-1">
                       <Button variant={showPeers ? "default" : "outline"} size="sm" className="w-full" onClick={() => setShowPeers(!showPeers)}>
                         {showPeers ? 'Hide' : 'View'}
                       </Button>
+                      {showPeers && (
+                        <div className="text-xs font-mono space-y-1 mt-2 max-h-32 overflow-y-auto">
+                          {peers.length === 0 ? (
+                            <div className="text-muted-foreground">No peers connected</div>
+                          ) : peers.map(p => (
+                            <div key={p.id} className="flex justify-between">
+                              <span className="text-blue-400 truncate">{p.id.slice(0, 12)}</span>
+                              <span className="text-muted-foreground ml-2">{p.latency_ms}ms</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 
