@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Terminal, Database, Shield, RefreshCw, Key, ShieldAlert,
+  Terminal, Database, Shield, RefreshCw, ShieldAlert,
   CheckCircle, AlertCircle, Search, Compass, Loader2, Send, ChevronRight,
-  Mic, MicOff, GitBranch, Network, Server, Users, FileText, Activity
+  Mic, MicOff, GitBranch, Network, Server, Users, Activity
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -71,11 +71,6 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
     const loadedThoughts = loadThoughts();
     if (loadedThoughts.length > 0) {
       setThoughts(loadedThoughts);
-    } else {
-      setThoughts([
-        { id: 'core-1', type: 'instruction' as const, content: 'Utilize Kimi-class autonomous reasoning for all mission objectives.', timestamp: Date.now() },
-        { id: 'core-2', type: 'fact' as const, content: 'Aether Agent Core v3.2.2 initialized with secure neural link.', timestamp: Date.now() }
-      ]);
     }
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -203,48 +198,25 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
       type: 'plan',
     });
 
-    // Route through the backend Inference Engine via WebSocket (Gap 12 / Gap 9)
+    // Route through the backend Inference Engine via WebSocket
     if (webSocketService.getConnectionStatus()) {
       addThought({
         id: generateId(`ROUTING: ${goal}`),
         timestamp: Date.now(),
-        content: `ROUTING: Dispatching to KNIRV Inference Engine for policy-enforced reasoning...`,
+        content: `Dispatching to KNIRV Inference Engine: "${goal}"`,
         type: 'observation',
       });
       setStatus(AgentStatus.EXECUTING);
-
-      // Send to backend — response comes back as neural_task_response event
+      // Response arrives as neural_task_result / neural_task_error event
       webSocketService.send({ type: 'neural_task', payload: { goal } });
     } else {
-      // Fallback: local simulation when WebSocket is not available
-      setTimeout(() => {
-        addThought({
-          id: generateId(`ANALYZING: ${goal}`),
-          timestamp: Date.now(),
-          content: `ANALYZING: Deconstructing objective "${goal}" into verification steps...`,
-          type: 'observation',
-        });
-      }, 1500);
-
-      setTimeout(() => {
-        addThought({
-          id: generateId(`EXECUTING: ${goal}`),
-          timestamp: Date.now(),
-          content: `EXECUTING: Initiating autonomous heuristic reasoning pipeline...`,
-          type: 'observation',
-        });
-        setStatus(AgentStatus.EXECUTING);
-      }, 3000);
-
-      setTimeout(() => {
-        addThought({
-          id: generateId(`COMPLETED: ${goal.substring(0, 30)}`),
-          timestamp: Date.now(),
-          content: `RESULT: Autonomous workflow completed for objective "${goal.substring(0, 30)}..."`,
-          type: 'conclusion',
-        });
-        setStatus(AgentStatus.IDLE);
-      }, 5000);
+      addThought({
+        id: generateId(`OFFLINE: ${goal}`),
+        timestamp: Date.now(),
+        content: `Inference engine offline — WebSocket not connected. Please wait for reconnection.`,
+        type: 'error',
+      });
+      setStatus(AgentStatus.IDLE);
     }
   }, [status, addThought]);
 
@@ -502,146 +474,92 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
   );
 };
 
+interface ProcessingActivity {
+  id: string;
+  timestamp: string;
+  type: string;
+  title: string;
+  description: string;
+  status: 'active' | 'completed';
+}
+
+const activityIcon = (type: string): React.ReactNode => {
+  switch (type) {
+    case 'learning_cycle':   return <GitBranch className="w-3 h-3" />;
+    case 'metrics_collection': return <Database className="w-3 h-3" />;
+    case 'pattern_analysis': return <Network className="w-3 h-3" />;
+    case 'guardrail_check':  return <Shield className="w-3 h-3" />;
+    case 'increase_priority': return <Activity className="w-3 h-3" />;
+    case 'optimize_resources': return <Server className="w-3 h-3" />;
+    case 'redistribute_load': return <Users className="w-3 h-3" />;
+    default:                 return <RefreshCw className="w-3 h-3" />;
+  }
+};
+
 const CurrentProcessingBox: React.FC = () => {
-  const [activities, setActivities] = useState<Array<{
-    id: string;
-    icon: React.ReactNode;
-    title: string;
-    description: string;
-    status: 'active' | 'pending' | 'completed';
-    timestamp: Date;
-  }>>([]);
-  
+  const [activities, setActivities] = useState<ProcessingActivity[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const initialActivities = [
-      {
-        id: '1',
-        icon: <GitBranch className="w-3 h-3" />,
-        title: 'Creating Workflow',
-        description: 'Analyzing recent activity patterns to generate new workflow',
-        status: 'active' as const,
-        timestamp: new Date(),
-      },
-      {
-        id: '2',
-        icon: <Network className="w-3 h-3" />,
-        title: 'Organizing Ontology',
-        description: 'Resolving pending error nodes in the knowledge graph',
-        status: 'pending' as const,
-        timestamp: new Date(Date.now() - 5000),
-      },
-      {
-        id: '3',
-        icon: <Server className="w-3 h-3" />,
-        title: 'DVE Monitoring',
-        description: 'Monitoring new connection activity in DVE instances',
-        status: 'pending' as const,
-        timestamp: new Date(Date.now() - 10000),
-      },
-      {
-        id: '4',
-        icon: <Users className="w-3 h-3" />,
-        title: 'Agent Activity',
-        description: 'Tracking active agent tasks across all DVE nodes',
-        status: 'pending' as const,
-        timestamp: new Date(Date.now() - 15000),
-      },
-      {
-        id: '5',
-        icon: <FileText className="w-3 h-3" />,
-        title: 'Guardrails Report',
-        description: 'Generating security guardrails compliance report',
-        status: 'pending' as const,
-        timestamp: new Date(Date.now() - 20000),
-      },
-      {
-        id: '6',
-        icon: <Database className="w-3 h-3" />,
-        title: 'Cache Allocation',
-        description: 'Allocating memory resources to active DVE containers',
-        status: 'pending' as const,
-        timestamp: new Date(Date.now() - 25000),
-      },
-    ];
-    
-    setActivities(initialActivities);
+    const handleActivity = (payload: any) => {
+      if (Array.isArray(payload?.activities)) {
+        setActivities(payload.activities);
+      }
+    };
 
-    const interval = setInterval(() => {
-      setActivities(prev => {
-        if (prev.length === 0) return prev;
-        const updated = [...prev];
-        const first = updated.shift();
-        if (first) {
-          updated.push({
-            ...first,
-            status: 'completed',
-            timestamp: new Date(),
-          });
-        }
-        const nextPending = updated.find(a => a.status === 'pending');
-        if (nextPending) {
-          nextPending.status = 'active';
-        }
-        return updated;
-      });
-    }, 5000);
+    webSocketService.on('cognitive-engine-activity', handleActivity);
+    webSocketService.subscribe(['cognitive-engine-activity']);
 
-    return () => clearInterval(interval);
+    return () => {
+      webSocketService.off('cognitive-engine-activity', handleActivity);
+    };
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'text-blue-400';
-      case 'completed': return 'text-green-400';
-      default: return 'text-gray-400';
-    }
-  };
+  if (activities.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-gray-700 space-y-2">
+        <Loader2 className="animate-spin text-blue-500/40" size={20} />
+        <p className="text-[9px] uppercase tracking-widest opacity-40">Awaiting engine activity</p>
+      </div>
+    );
+  }
 
-  const getIconColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-blue-500/20 text-blue-400';
-      case 'completed': return 'bg-green-500/20 text-green-400';
-      default: return 'bg-gray-500/20 text-gray-400';
-    }
-  };
+  const active = activities.filter(a => a.status === 'active');
+  const completed = activities.filter(a => a.status === 'completed');
 
   return (
     <div ref={scrollRef} className="space-y-2">
       {activities.map((activity) => (
-        <div 
+        <div
           key={activity.id}
           className={`flex items-start gap-2 p-2 rounded-lg transition-all ${
             activity.status === 'active' ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-gray-900/30'
           }`}
         >
-          <div className={`p-1 rounded-md ${getIconColor(activity.status)} ${activity.status === 'active' ? 'animate-pulse' : ''}`}>
-            {activity.icon}
+          <div className={`p-1 rounded-md shrink-0 ${
+            activity.status === 'active'
+              ? 'bg-blue-500/20 text-blue-400 animate-pulse'
+              : 'bg-green-500/20 text-green-400'
+          }`}>
+            {activityIcon(activity.type)}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <span className={`text-[10px] font-medium ${getStatusColor(activity.status)}`}>
+              <span className={`text-[10px] font-medium ${activity.status === 'active' ? 'text-blue-400' : 'text-green-400'}`}>
                 {activity.title}
               </span>
-              {activity.status === 'active' && (
-                <Badge variant="outline" className="text-[8px] h-4 bg-blue-500/20 text-blue-400 border-blue-500/30">
-                  ACTIVE
-                </Badge>
-              )}
-              {activity.status === 'completed' && (
-                <CheckCircle className="w-3 h-3 text-green-400" />
-              )}
+              {activity.status === 'active'
+                ? <Badge variant="outline" className="text-[8px] h-4 bg-blue-500/20 text-blue-400 border-blue-500/30">ACTIVE</Badge>
+                : <CheckCircle className="w-3 h-3 text-green-400" />
+              }
             </div>
-            <p className="text-[9px] text-gray-500 truncate">
-              {activity.description}
-            </p>
+            <p className="text-[9px] text-gray-500 truncate">{activity.description}</p>
           </div>
-          <ChevronRight className={`w-3 h-3 ${getStatusColor(activity.status)} opacity-50 shrink-0`} />
+          <ChevronRight className={`w-3 h-3 ${activity.status === 'active' ? 'text-blue-400' : 'text-green-400'} opacity-50 shrink-0`} />
         </div>
       ))}
       <div className="text-[9px] text-gray-600 text-center pt-2">
-        Processing: {activities.filter(a => a.status === 'active').length} active • {activities.filter(a => a.status === 'pending').length} pending
+        {active.length} active • {completed.length} completed
       </div>
     </div>
   );

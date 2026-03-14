@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useTEESecurity } from "@/hooks/use-tee-security";
-import { useCognitiveEngine } from "@/hooks/use-cognitive-engine";
 import { useAuth, ROLES } from '@/lib/auth-context';
 import { LoginForm } from '@/components/auth/login-form';
 import { UserProfile } from '@/components/auth/user-profile';
@@ -71,7 +70,6 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
   const { user, isLoading } = useAuth();
   const { state: onboardingState, updateState: updateOnboardingState, completeOnboarding, resetOnboarding } = useOnboarding();
   const { securityStatus: teeSecurityStatus, isLoading: teeLoading } = useTEESecurity();
-  const { cognitiveEngine, isLoading: cognitiveLoading } = useCognitiveEngine();
   const [cdeModalOpen, setCdeModalOpen] = useState(false);
   const [dveCreationModalOpen, setDveCreationModalOpen] = useState(false);
   const [activeMemoryOpen, setActiveMemoryOpen] = useState(false);
@@ -827,48 +825,6 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </TabsContent>
 
                       <TabsContent value="cognitive" className="space-y-4">
-                        {cognitiveEngine && (
-                          <div className="grid gap-4">
-                            <Card className="aether-bevel-dark rounded-2xl">
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-gray-300">
-                                  <Brain className="h-5 w-5 text-indigo-400" />
-                                  Cognitive Engine Status
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                  <div>
-                                    <p className="text-sm text-gray-500">Status</p>
-                                    {getStatusBadge(cognitiveEngine.status)}
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-gray-500">Accuracy</p>
-                                    <div className="flex items-center gap-2">
-                                      <Progress value={cognitiveEngine.accuracy} className="flex-1" />
-                                      <span className="text-sm text-gray-300">{cognitiveEngine.accuracy}%</span>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-gray-500">Tasks Processed</p>
-                                    <p className="text-2xl font-bold text-gray-200">{cognitiveEngine.tasks_processed.toLocaleString()}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-gray-500">Adaptation Rate</p>
-                                    <div className="flex items-center gap-2">
-                                      <Progress value={cognitiveEngine.adaptation_rate * 100} className="flex-1" />
-                                      <span className="text-sm text-gray-300">{(cognitiveEngine.adaptation_rate * 100).toFixed(1)}%</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="mt-4">
-                                  <p className="text-sm text-gray-500">Fabric Version</p>
-                                  <Badge variant="outline">{cognitiveEngine.model_version}</Badge>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </div>
-                        )}
                         <CognitiveEnginePanel />
                       </TabsContent>
 
