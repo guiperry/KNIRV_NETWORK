@@ -43,6 +43,7 @@ type CognitiveEngine struct {
 	cancel           context.CancelFunc
 	mu               sync.RWMutex
 	running          bool
+	startedAt        time.Time
 
 	// ── Enhancement subsystems ────────────────────────────────────────────────
 	cfg             *EngineConfig
@@ -276,6 +277,7 @@ func (ce *CognitiveEngine) Start() error {
 	go ce.securityEventHandlerLoop()
 
 	ce.running = true
+	ce.startedAt = time.Now()
 	log.Println("Cognitive Engine started successfully")
 	return nil
 }
@@ -386,6 +388,20 @@ func (ce *CognitiveEngine) IsRunning() bool {
 	ce.mu.RLock()
 	defer ce.mu.RUnlock()
 	return ce.running
+}
+
+// StartedAt returns the time the engine was last started, or zero if never started.
+func (ce *CognitiveEngine) StartedAt() time.Time {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	return ce.startedAt
+}
+
+// GetAverageProcessingTime returns the current rolling average task processing time in seconds.
+func (ce *CognitiveEngine) GetAverageProcessingTime() float64 {
+	ce.mu.RLock()
+	defer ce.mu.RUnlock()
+	return ce.learningState.AverageProcessingTime
 }
 
 // GetAdaptationHistory returns the most recent `limit` adaptation events.

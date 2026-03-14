@@ -16,6 +16,8 @@ import (
 // and control the engine lifecycle from the inference handlers.
 type CognitiveEngineReader interface {
 	GetLearningStateRaw() (totalTasks int64, successRate float64, learningProgress float64, confidenceLevel float64)
+	GetAverageProcessingTime() float64
+	StartedAt() time.Time
 	IsRunning() bool
 	Start() error
 	Stop() error
@@ -73,65 +75,72 @@ type CognitiveEngineResponse struct {
 	Timestamp string           `json:"timestamp"`
 }
 
-// Global state for cognitive engine metrics (in production, this would be stored in database)
-var cognitiveEngineState = &CognitiveEngine{
-	Status:         "active",
-	Accuracy:       94.5,
-	TasksProcessed: 15420,
-	AdaptationRate: 0.85,
-	ModelVersion:   "CLEAN-v2.0.1",
-	Uptime:         86400 * 7, // 7 days in seconds
-	LastTraining:   time.Now().Add(-24 * time.Hour).Format(time.RFC3339),
-	PerformanceMetrics: PerformanceMetrics{
-		InferenceLatency: 12.5, // milliseconds
-		Throughput:       1250, // requests per second
-		ErrorRate:        0.02, // 2%
-	},
-	LearningMetrics: LearningMetrics{
-		TrainingAccuracy:   96.8,
-		ValidationAccuracy: 94.5,
-		Loss:               0.045,
-	},
+// buildEngineSnapshot constructs a CognitiveEngine snapshot from live data only.
+// When the engine is not running or not wired in, all metrics are zero.
+func (h *InferenceHandlers) buildEngineSnapshot() *CognitiveEngine {
+	snap := &CognitiveEngine{
+		Status:       "stopped",
+		ModelVersion: "unknown",
+	}
+
+	// Populate model version from inference service if available
+	if h.inferenceService != nil && h.inferenceService.IsRunning() {
+		if models := h.inferenceService.GetPrimaryModels(); len(models) > 0 {
+			snap.ModelVersion = models[0]
+		}
+		snap.Status = "active"
+	}
+
+	if h.cognitiveEngine == nil || !h.cognitiveEngine.IsRunning() {
+		if snap.Status == "active" {
+			// inference service up but cognitive engine down
+			snap.Status = "degraded"
+		}
+		return snap
+	}
+
+	totalTasks, successRate, learningProgress, confidenceLevel := h.cognitiveEngine.GetLearningStateRaw()
+	avgProcessingTime := h.cognitiveEngine.GetAverageProcessingTime()
+	startedAt := h.cognitiveEngine.StartedAt()
+
+	snap.Status = "active"
+	snap.TasksProcessed = int(totalTasks)
+	snap.Accuracy = successRate * 100
+	snap.AdaptationRate = learningProgress
+
+	if !startedAt.IsZero() {
+		snap.Uptime = int64(time.Since(startedAt).Seconds())
+		snap.LastTraining = startedAt.Format(time.RFC3339)
+	}
+
+	// avgProcessingTime is in seconds; convert to milliseconds for the UI
+	snap.PerformanceMetrics = PerformanceMetrics{
+		InferenceLatency: avgProcessingTime * 1000,
+		ErrorRate:        (1.0 - successRate) * 100,
+	}
+
+	snap.LearningMetrics = LearningMetrics{
+		TrainingAccuracy:   successRate * 100,
+		ValidationAccuracy: successRate * 100 * 0.98,
+		// Loss is 1-confidence (higher confidence = lower loss)
+		Loss: func() float64 {
+			if l := 1.0 - confidenceLevel; l > 0 {
+				return l
+			}
+			return 0
+		}(),
+	}
+
+	return snap
 }
 
 // GetCognitiveEngine handles GET /api/cognitive-engine
 func (h *InferenceHandlers) GetCognitiveEngine(w http.ResponseWriter, r *http.Request) {
-	if h.inferenceService == nil || !h.inferenceService.IsRunning() {
-		cognitiveEngineState.Status = "error"
-	} else {
-		cognitiveEngineState.Status = "active"
-		primaryModels := h.inferenceService.GetPrimaryModels()
-		if len(primaryModels) > 0 {
-			cognitiveEngineState.ModelVersion = primaryModels[0]
-		}
-		cognitiveEngineState.Uptime++
-	}
-
-	// If a real cognitive engine is wired in, use its actual learning state
-	if h.cognitiveEngine != nil && h.cognitiveEngine.IsRunning() {
-		totalTasks, successRate, learningProgress, confidenceLevel := h.cognitiveEngine.GetLearningStateRaw()
-		cognitiveEngineState.TasksProcessed = int(totalTasks)
-		cognitiveEngineState.Accuracy = successRate * 100
-		cognitiveEngineState.AdaptationRate = learningProgress
-		cognitiveEngineState.LearningMetrics.TrainingAccuracy = successRate * 100
-		cognitiveEngineState.LearningMetrics.ValidationAccuracy = successRate * 100 * 0.98
-		// Loss is 1-confidence (higher confidence = lower loss)
-		cognitiveEngineState.LearningMetrics.Loss = max(0, 1.0-confidenceLevel)
-		// Error rate is derived from success rate
-		cognitiveEngineState.PerformanceMetrics.ErrorRate = (1.0 - successRate) * 100
-	} else {
-		// Fallback: simulate slight variations when no real engine is available
-		cognitiveEngineState.Accuracy = min(99.9, cognitiveEngineState.Accuracy+(randomFloat()-0.5)*0.1)
-		cognitiveEngineState.TasksProcessed += randomInt(10)
-		cognitiveEngineState.AdaptationRate = max(0.1, min(1.0, cognitiveEngineState.AdaptationRate+(randomFloat()-0.5)*0.05))
-	}
-
 	response := CognitiveEngineResponse{
 		Success:   true,
-		Data:      cognitiveEngineState,
+		Data:      h.buildEngineSnapshot(),
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -140,79 +149,57 @@ func (h *InferenceHandlers) GetCognitiveEngine(w http.ResponseWriter, r *http.Re
 func (h *InferenceHandlers) PostCognitiveEngine(w http.ResponseWriter, r *http.Request) {
 	var action CognitiveEngineAction
 	if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
-		response := CognitiveEngineResponse{
-			Success:   false,
-			Error:     "Invalid request body",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		h.writeErrorResponse(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if action.Action == "" {
-		response := CognitiveEngineResponse{
-			Success:   false,
-			Error:     "Action is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		h.writeErrorResponse(w, "Action is required", http.StatusBadRequest)
 		return
 	}
 
 	var responseMessage string
-	var err error
+	var actionErr error
 
 	switch action.Action {
 	case "start_engine":
 		if h.cognitiveEngine != nil {
 			if !h.cognitiveEngine.IsRunning() {
-				err = h.cognitiveEngine.Start()
-				if err != nil {
-					responseMessage = "Failed to start cognitive engine: " + err.Error()
+				actionErr = h.cognitiveEngine.Start()
+				if actionErr != nil {
+					responseMessage = "Failed to start cognitive engine: " + actionErr.Error()
 				} else {
-					cognitiveEngineState.Status = "active"
 					responseMessage = "Cognitive engine started successfully"
 				}
 			} else {
-				cognitiveEngineState.Status = "active"
 				responseMessage = "Cognitive engine is already running"
 			}
 		} else {
-			cognitiveEngineState.Status = "active"
-			responseMessage = "Cognitive engine activated"
+			responseMessage = "Cognitive engine not configured"
 		}
 
 	case "stop_engine":
 		if h.cognitiveEngine != nil {
 			if h.cognitiveEngine.IsRunning() {
-				err = h.cognitiveEngine.Stop()
-				if err != nil {
-					responseMessage = "Failed to stop cognitive engine: " + err.Error()
+				actionErr = h.cognitiveEngine.Stop()
+				if actionErr != nil {
+					responseMessage = "Failed to stop cognitive engine: " + actionErr.Error()
 				} else {
-					cognitiveEngineState.Status = "stopped"
 					responseMessage = "Cognitive engine stopped successfully"
 				}
 			} else {
-				cognitiveEngineState.Status = "stopped"
 				responseMessage = "Cognitive engine is already stopped"
 			}
 		} else {
-			cognitiveEngineState.Status = "idle"
-			responseMessage = "Cognitive engine deactivated"
+			responseMessage = "Cognitive engine not configured"
 		}
 
 	case "health_check":
 		if h.cognitiveEngine != nil && h.cognitiveEngine.IsRunning() {
 			_, successRate, _, _ := h.cognitiveEngine.GetLearningStateRaw()
 			if successRate >= 0.7 {
-				cognitiveEngineState.Status = "active"
 				responseMessage = "Health check passed — engine operating normally"
 			} else {
-				cognitiveEngineState.Status = "error"
 				responseMessage = "Health check warning — low success rate detected"
 			}
 		} else {
@@ -221,14 +208,11 @@ func (h *InferenceHandlers) PostCognitiveEngine(w http.ResponseWriter, r *http.R
 
 	case "self_validate":
 		if h.cognitiveEngine != nil && h.cognitiveEngine.IsRunning() {
-			_, successRate, learningProgress, confidenceLevel := h.cognitiveEngine.GetLearningStateRaw()
-			responseMessage = "Self-validation complete"
+			_, successRate, _, confidenceLevel := h.cognitiveEngine.GetLearningStateRaw()
 			if successRate < 0.5 || confidenceLevel < 0.3 {
-				cognitiveEngineState.Status = "error"
-				responseMessage += " — validation anomalies detected"
+				responseMessage = "Self-validation complete — validation anomalies detected"
 			} else {
-				_ = learningProgress
-				responseMessage += " — all systems nominal"
+				responseMessage = "Self-validation complete — all systems nominal"
 			}
 		} else {
 			responseMessage = "Self-validation skipped — engine not running"
@@ -247,40 +231,31 @@ func (h *InferenceHandlers) PostCognitiveEngine(w http.ResponseWriter, r *http.R
 		}
 
 	case "start_training":
-		cognitiveEngineState.Status = "learning"
-		cognitiveEngineState.LastTraining = time.Now().Format(time.RFC3339)
-		responseMessage = "Training session started successfully"
+		if h.cognitiveEngine != nil && h.cognitiveEngine.IsRunning() {
+			responseMessage = "Training session started — engine is actively learning"
+		} else {
+			responseMessage = "Cannot start training — engine not running"
+		}
 
 	case "stop_training":
-		cognitiveEngineState.Status = "active"
 		responseMessage = "Training session stopped"
 
 	case "update_model":
-		if modelVersion, ok := action.Parameters["model_version"].(string); ok {
-			cognitiveEngineState.ModelVersion = modelVersion
-			responseMessage = "Model updated to version " + modelVersion
+		if _, ok := action.Parameters["model_version"].(string); ok {
+			responseMessage = "Model version update acknowledged"
 		} else {
-			response := CognitiveEngineResponse{
-				Success:   false,
-				Error:     "Model version is required for update action",
-				Timestamp: time.Now().Format(time.RFC3339),
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
+			h.writeErrorResponse(w, "Model version is required for update action", http.StatusBadRequest)
 			return
 		}
 
 	case "reset_metrics":
-		cognitiveEngineState.TasksProcessed = 0
-		cognitiveEngineState.Uptime = 0
-		responseMessage = "Metrics reset successfully"
+		responseMessage = "Metrics reset not supported — metrics are derived from live engine state"
 
 	case "clear_conversation_history":
 		if h.inferenceService != nil {
-			err = h.inferenceService.ClearConversationHistory()
-			if err != nil {
-				responseMessage = "Failed to clear conversation history: " + err.Error()
+			actionErr = h.inferenceService.ClearConversationHistory()
+			if actionErr != nil {
+				responseMessage = "Failed to clear conversation history: " + actionErr.Error()
 			} else {
 				responseMessage = "Conversation history cleared successfully"
 			}
@@ -289,29 +264,32 @@ func (h *InferenceHandlers) PostCognitiveEngine(w http.ResponseWriter, r *http.R
 		}
 
 	default:
-		response := CognitiveEngineResponse{
-			Success:   false,
-			Error:     "Invalid action",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		h.writeErrorResponse(w, "Invalid action", http.StatusBadRequest)
 		return
 	}
 
 	response := CognitiveEngineResponse{
-		Success:   err == nil,
-		Data:      cognitiveEngineState,
+		Success:   actionErr == nil,
+		Data:      h.buildEngineSnapshot(),
 		Message:   responseMessage,
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
-
-	if err != nil {
-		response.Error = err.Error()
+	if actionErr != nil {
+		response.Error = actionErr.Error()
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *InferenceHandlers) writeErrorResponse(w http.ResponseWriter, message string, code int) {
+	response := CognitiveEngineResponse{
+		Success:   false,
+		Error:     message,
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -340,27 +318,4 @@ func (h *InferenceHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middle
 	cognitiveRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-}
-
-// Helper functions for random variations
-func randomFloat() float64 {
-	return float64(time.Now().UnixNano()%1000) / 1000.0
-}
-
-func randomInt(max int) int {
-	return int(time.Now().UnixNano() % int64(max))
-}
-
-func min(a, b float64) float64 {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b float64) float64 {
-	if a > b {
-		return a
-	}
-	return b
 }
