@@ -216,10 +216,10 @@ func TestGetCurrentRepoRoot(t *testing.T) {
 func TestNativeDeploymentBinaryPath(t *testing.T) {
 	artifactDir := "/test/artifacts"
 
-	// The binary path would be artifactDir + "knirv-nexus"
-	expectedPath := filepath.Join(artifactDir, "knirv-nexus")
+	// The binary path would be artifactDir + "knirv-server"
+	expectedPath := filepath.Join(artifactDir, "knirv-server")
 
-	if expectedPath != "/test/artifacts/knirv-nexus" {
+	if expectedPath != "/test/artifacts/knirv-server" {
 		t.Errorf("Unexpected path: %s", expectedPath)
 	}
 }

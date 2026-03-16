@@ -151,7 +151,7 @@ func NewSecurityManager(ctx context.Context, config *HostConfig) (*SecurityManag
 	if config.EnableAuditLog {
 		sm.auditLogger = &AuditLogger{
 			enabled:   true,
-			logPath:   "/var/log/knirv-nexus/audit.log",
+			logPath:   "/var/log/knirv-server/audit.log",
 			maxSize:   100 * 1024 * 1024,   // 100MB
 			retention: 30 * 24 * time.Hour, // 30 days
 		}

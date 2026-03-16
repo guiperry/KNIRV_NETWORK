@@ -2,7 +2,7 @@
 # This Makefile orchestrates the complete build, test, and deployment pipeline
 
 # Project Configuration
-PROJECT_NAME := knirv-nexus
+PROJECT_NAME := knirv-server
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BUILD_TIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -32,7 +32,7 @@ NODE_VERSION := 18
 NPM_CMD := npm
 
 # Docker Configuration
-DOCKER_IMAGE := knirv-nexus
+DOCKER_IMAGE := knirv-server
 DOCKER_TAG := $(VERSION)
 
 # AWS Configuration
@@ -96,11 +96,11 @@ backend: deps-go ## Build complete Go backend service package
 binary: frontend backend ## Build unified binary with embedded frontend and backend
 	@echo "$(BLUE)Creating unified binary...$(NC)"
 	@mkdir -p $(DIST_DIR)
-	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-nexus .
-	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/knirv-nexus$(NC)"
+	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
+	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/knirv-server$(NC)"
 	@echo "$(BLUE)Copying binary to container_deployer golang-app-source...$(NC)"
 	@mkdir -p $(ROOT_DIR)/backend/cmd/container_deployer/golang-app-source
-	cp $(DIST_DIR)/knirv-nexus $(ROOT_DIR)/backend/cmd/container_deployer/golang-app-source/
+	cp $(DIST_DIR)/knirv-server $(ROOT_DIR)/backend/cmd/container_deployer/golang-app-source/
 	@echo "$(GREEN)Binary copied to container_deployer golang-app-source$(NC)"
 
 # Testing
@@ -234,12 +234,12 @@ clean-all: clean ## Clean everything including dependencies
 
 install: binary ## Install binary to system
 	@echo "$(BLUE)Installing binary...$(NC)"
-	sudo cp $(DIST_DIR)/knirv-nexus /usr/local/bin/
-	sudo chmod +x /usr/local/bin/knirv-nexus
+	sudo cp $(DIST_DIR)/knirv-server /usr/local/bin/
+	sudo chmod +x /usr/local/bin/knirv-server
 
 uninstall: ## Uninstall binary from system
 	@echo "$(BLUE)Uninstalling binary...$(NC)"
-	sudo rm -f /usr/local/bin/knirv-nexus
+	sudo rm -f /usr/local/bin/knirv-server
 
 # Health checks
 health: ## Check system health

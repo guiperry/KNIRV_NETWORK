@@ -474,7 +474,7 @@ func (cm *ContainerManager) setupKNIRVNetworks() error {
 	// Check if KNIRV network exists
 	knirvNetworkExists := false
 	for _, network := range cm.networks {
-		if network.Name == "knirv-nexus" {
+		if network.Name == "knirv-server" {
 			knirvNetworkExists = true
 			break
 		}
@@ -486,13 +486,13 @@ func (cm *ContainerManager) setupKNIRVNetworks() error {
 			"--driver", "bridge",
 			"--subnet", "172.20.0.0/16",
 			"--opt", "encrypted=true",
-			"knirv-nexus")
+			"knirv-server")
 
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to create KNIRV network: %w", err)
 		}
 
-		fmt.Println("Created KNIRV network: knirv-nexus")
+		fmt.Println("Created KNIRV network: knirv-server")
 	}
 
 	return nil

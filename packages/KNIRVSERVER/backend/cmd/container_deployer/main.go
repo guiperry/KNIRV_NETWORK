@@ -881,10 +881,10 @@ func runInstallGoAppOnly(resourcesDir, artifactDir, deployType, deployMode strin
 
 // runNativeDeployment handles native deployment to EC2 or local system
 func runNativeDeployment(resourcesDir, artifactDir, deployType, environment string) {
-	fmt.Printf("--- Deploying knirv-nexus NATIVELY (%s deployment, %s environment) ---\n", deployType, environment)
+	fmt.Printf("--- Deploying knirv-server NATIVELY (%s deployment, %s environment) ---\n", deployType, environment)
 
 	// Build the binary first
-	fmt.Println("Building knirv-nexus binary...")
+	fmt.Println("Building knirv-server binary...")
 	binaryPath := buildKNIRVNexusBinary(artifactDir, environment)
 
 	if deployType == "local" {
@@ -896,15 +896,15 @@ func runNativeDeployment(resourcesDir, artifactDir, deployType, environment stri
 	}
 }
 
-// buildKNIRVNexusBinary builds the knirv-nexus binary
+// buildKNIRVNexusBinary builds the knirv-server binary
 func buildKNIRVNexusBinary(artifactDir, environment string) string {
-	fmt.Println("Compiling knirv-nexus with embedded environment...")
+	fmt.Println("Compiling knirv-server with embedded environment...")
 
 	// Navigate to KNIRVSERVER directory
 	knirvNexusDir := filepath.Join(getCurrentRepoRoot(), "KNIRVSERVER")
 
 	// Build output path
-	outputPath := filepath.Join(artifactDir, "knirv-nexus")
+	outputPath := filepath.Join(artifactDir, "knirv-server")
 
 	buildCmd := exec.Command("bash", "-c", fmt.Sprintf(`
 		cd %s &&
@@ -920,7 +920,7 @@ func buildKNIRVNexusBinary(artifactDir, environment string) string {
 	buildCmd.Stderr = os.Stderr
 
 	if err := buildCmd.Run(); err != nil {
-		log.Fatalf("Failed to build knirv-nexus binary: %v", err)
+		log.Fatalf("Failed to build knirv-server binary: %v", err)
 	}
 
 	fmt.Printf("✓ Binary built successfully: %s\n", outputPath)
@@ -1033,7 +1033,7 @@ func runLocalNativeDeployment(binaryPath, environment string) {
 	fmt.Printf("Environment: %s\n", environment)
 	fmt.Println("")
 	fmt.Println("To run locally:")
-	fmt.Printf("  sudo %s --config /etc/knirv-nexus/production.yaml\n", binaryPath)
+	fmt.Printf("  sudo %s --config /etc/knirv-server/production.yaml\n", binaryPath)
 	fmt.Println("")
 	fmt.Println("Note: This is for testing only. For production, use cloud deployment.")
 }
@@ -1044,7 +1044,7 @@ func runNativeBinaryInstall(resourcesDir, artifactDir, deployType string) {
 
 	// Path to the pre-compiled binary in golang-app-source
 	goAppSourcePath := filepath.Join(resourcesDir, golangAppSourceDir)
-	preCompiledBinaryPath := filepath.Join(goAppSourcePath, "knirv-nexus")
+	preCompiledBinaryPath := filepath.Join(goAppSourcePath, "knirv-server")
 
 	var binaryPath string
 
@@ -1062,8 +1062,8 @@ func runNativeBinaryInstall(resourcesDir, artifactDir, deployType string) {
 	if deployType == "local" {
 		fmt.Printf("\nBinary available at: %s\n", binaryPath)
 		fmt.Println("Copy to target system and run:")
-		fmt.Printf("  sudo cp %s /usr/local/bin/knirv-nexus\n", binaryPath)
-		fmt.Printf("  sudo chmod +x /usr/local/bin/knirv-nexus\n")
+		fmt.Printf("  sudo cp %s /usr/local/bin/knirv-server\n", binaryPath)
+		fmt.Printf("  sudo chmod +x /usr/local/bin/knirv-server\n")
 		fmt.Println("")
 	}
 

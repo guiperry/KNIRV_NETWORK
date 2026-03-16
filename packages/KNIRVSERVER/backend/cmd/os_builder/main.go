@@ -127,20 +127,20 @@ func getEmbeddedResourcesDirectory(appDataDir string) string {
 	return filepath.Join(appDataDir, "resources")
 }
 
-// getContainerDeployerBinaryPath returns the path to the knirv-nexus binary in container_deployer's golang-app-source
+// getContainerDeployerBinaryPath returns the path to the knirv-server binary in container_deployer's golang-app-source
 func getContainerDeployerBinaryPath() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current user: %v", err)
 	}
-	// Path to knirv-nexus binary in container_deployer's golang-app-source
-	binaryPath := filepath.Join(usr.HomeDir, ".local", "share", appName, "container_deployer", "resources", "golang-app-source", "knirv-nexus")
+	// Path to knirv-server binary in container_deployer's golang-app-source
+	binaryPath := filepath.Join(usr.HomeDir, ".local", "share", appName, "container_deployer", "resources", "golang-app-source", "knirv-server")
 
 	// Verify the binary exists
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("knirv-nexus binary not found at expected location: %s. Please ensure 'make binary' has been run.", binaryPath)
+		return "", fmt.Errorf("knirv-server binary not found at expected location: %s. Please ensure 'make binary' has been run.", binaryPath)
 	} else if err != nil {
-		return "", fmt.Errorf("error checking for knirv-nexus binary: %v", err)
+		return "", fmt.Errorf("error checking for knirv-server binary: %v", err)
 	}
 
 	return binaryPath, nil
@@ -604,10 +604,10 @@ func runBuildKaliDocker(resourcesDir, artifactDir string) {
 	fmt.Println("--- Building Kali Docker Image (packer-kali-docker) ---")
 	packerKaliDockerWorkDir := filepath.Join(resourcesDir, packerKaliDockerDir)
 
-	// Get the path to the knirv-nexus binary
+	// Get the path to the knirv-server binary
 	knirvNexusBinaryPath, err := getContainerDeployerBinaryPath()
 	if err != nil {
-		log.Fatalf("Failed to get knirv-nexus binary path: %v", err)
+		log.Fatalf("Failed to get knirv-server binary path: %v", err)
 	}
 
 	// Initialize Packer plugins for the Docker builder

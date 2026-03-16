@@ -214,7 +214,7 @@ func NewNexusApp(config *Config) (*NexusApp, error) {
 // extractBackend extracts the embedded unified backend binary
 func (app *NexusApp) extractBackend() error {
 	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "knirv-nexus-*")
+	tempDir, err := os.MkdirTemp("", "knirv-server-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}

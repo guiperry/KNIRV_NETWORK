@@ -81,9 +81,9 @@ func TestHardenedContainerExecution(t *testing.T) {
 	}
 
 	// Skip test if cgroups v2 is not available
-	if _, err := os.Stat("/sys/fs/cgroup/knirv-nexus"); err == nil {
+	if _, err := os.Stat("/sys/fs/cgroup/knirv-server"); err == nil {
 		// Clean up existing test cgroup if it exists
-		os.RemoveAll("/sys/fs/cgroup/knirv-nexus")
+		os.RemoveAll("/sys/fs/cgroup/knirv-server")
 	}
 
 	// Create a mock KaliLinuxProfile
@@ -161,9 +161,9 @@ func TestContainerWithResourceLimits(t *testing.T) {
 	}
 
 	// Skip test if cgroups v2 is not available
-	if _, err := os.Stat("/sys/fs/cgroup/knirv-nexus"); err == nil {
+	if _, err := os.Stat("/sys/fs/cgroup/knirv-server"); err == nil {
 		// Clean up existing test cgroup if it exists
-		os.RemoveAll("/sys/fs/cgroup/knirv-nexus")
+		os.RemoveAll("/sys/fs/cgroup/knirv-server")
 	}
 
 	// Create a mock KaliLinuxProfile

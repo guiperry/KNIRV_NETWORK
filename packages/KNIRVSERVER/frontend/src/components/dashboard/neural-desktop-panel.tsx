@@ -71,6 +71,23 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
     const loadedThoughts = loadThoughts();
     if (loadedThoughts.length > 0) {
       setThoughts(loadedThoughts);
+    } else {
+      // Add demo thoughts for visual feedback when no data exists
+      const demoThoughts: Thought[] = [
+        {
+          id: 'demo-1',
+          timestamp: Date.now(),
+          content: 'NEURAL_DESKTOP_INITIALIZED: System ready for autonomous heuristic reasoning',
+          type: 'fact'
+        },
+        {
+          id: 'demo-2',
+          timestamp: Date.now() - 1000,
+          content: 'COGNITIVE_ENGINE_STANDBY: Waiting for mission parameters',
+          type: 'observation'
+        }
+      ];
+      setThoughts(demoThoughts);
     }
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -498,22 +515,58 @@ const activityIcon = (type: string): React.ReactNode => {
 
 const CurrentProcessingBox: React.FC = () => {
   const [activities, setActivities] = useState<ProcessingActivity[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const handleConnection = (data: { connected: boolean }) => {
+      setIsConnected(data.connected);
+    };
+
     const handleActivity = (payload: any) => {
       if (Array.isArray(payload?.activities)) {
         setActivities(payload.activities);
       }
     };
 
+    webSocketService.on('connection', handleConnection);
     webSocketService.on('cognitive-engine-activity', handleActivity);
-    webSocketService.subscribe(['cognitive-engine-activity']);
+    setIsConnected(webSocketService.getConnectionStatus());
+    webSocketService.subscribe(['connection', 'cognitive-engine-activity']);
+
+    // Fallback: show demo activities if no real data arrives after 3 seconds
+    const fallbackTimeout = setTimeout(() => {
+      if (activities.length === 0 && isConnected) {
+        setActivities([
+          {
+            id: 'demo-learning',
+            timestamp: new Date().toISOString(),
+            type: 'learning_cycle',
+            title: 'Learning State',
+            description: 'Tasks: 0 | Success Rate: 0% | Learning: 0% | Confidence: 0%',
+            status: 'active'
+          },
+          {
+            id: 'demo-telemetry',
+            timestamp: new Date().toISOString(),
+            type: 'metrics_collection',
+            title: 'System Telemetry',
+            description: 'CPU: 0% | Memory: 0% | Goroutines: 0 | Heap: 0MB',
+            status: 'active'
+          }
+        ]);
+      }
+    }, 3000);
 
     return () => {
+      webSocketService.off('connection', handleConnection);
       webSocketService.off('cognitive-engine-activity', handleActivity);
+      clearTimeout(fallbackTimeout);
     };
-  }, []);
+  }, [isConnected]);
+
+  const active = activities.filter(a => a.status === 'active');
+  const completed = activities.filter(a => a.status === 'completed');
 
   if (activities.length === 0) {
     return (
@@ -523,9 +576,6 @@ const CurrentProcessingBox: React.FC = () => {
       </div>
     );
   }
-
-  const active = activities.filter(a => a.status === 'active');
-  const completed = activities.filter(a => a.status === 'completed');
 
   return (
     <div ref={scrollRef} className="space-y-2">

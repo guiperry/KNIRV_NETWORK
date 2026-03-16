@@ -98,7 +98,7 @@ func NewNetworkManager(ctx context.Context, config *HostConfig) (*NetworkManager
 		config: config,
 		p2pConfig: &P2PNetworkConfig{
 			ListenAddresses:    []string{"/ip4/0.0.0.0/tcp/4001", "/ip6/::/tcp/4001"},
-			NetworkID:          "knirv-nexus",
+			NetworkID:          "knirv-server",
 			ProtocolVersion:    "1.0.0",
 			MaxPeers:           50,
 			EnableNATTraversal: true,

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	pb "knirv-nexus/proto"
+	pb "knirv-server/proto"
 )
 
 func TestPasswordPromptIntegration(t *testing.T) {

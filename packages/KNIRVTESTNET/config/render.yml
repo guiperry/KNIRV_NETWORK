@@ -24,7 +24,7 @@ services:
       - key: KNIRVGRAPH_API
         value: http://knirv-graph:8082
       - key: KNIRVNEXUS_API
-        value: http://knirv-nexus:8084
+        value: http://knirv-server:8084
       - key: KNIRVROUTER_API
         value: http://knirv-router:8086
       - key: POSTGRES_CONNECTION_STRING
@@ -82,7 +82,7 @@ services:
 
   # 5. KNIRV Nexus (Private Service)
   - type: pserv
-    name: knirv-nexus
+    name: knirv-server
     runtime: docker
     plan: starter
     region: oregon
@@ -95,9 +95,9 @@ services:
       - key: NEXUS_LOG_LEVEL
         value: info
       - key: NEXUS_CONFIG
-        value: /opt/knirv-nexus/config/nexus.yaml
+        value: /opt/knirv-server/config/nexus.yaml
       - key: NEXUS_DATA_DIR
-        value: /var/lib/knirv-nexus
+        value: /var/lib/knirv-server
 
   # 6. KNIRV Router (Private Service)
   - type: pserv

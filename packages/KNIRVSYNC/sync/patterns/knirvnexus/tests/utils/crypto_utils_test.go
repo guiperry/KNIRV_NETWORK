@@ -3,7 +3,7 @@ package utils
 import (
 	"testing"
 
-	pb "knirv-nexus/proto"
+	pb "knirv-server/proto"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -126,7 +126,7 @@ func TestContainerManager_GetKNIRVContainers(t *testing.T) {
 	// Add test containers
 	knirvContainer := &Container{
 		ID:               "knirv123",
-		Name:             "knirv-nexus",
+		Name:             "knirv-server",
 		IsKNIRVContainer: true,
 		ServiceType:      "nexus",
 	}
@@ -203,7 +203,7 @@ func TestContainerManager_identifyKNIRVContainer(t *testing.T) {
 		expectedService string
 		expectedP2P     bool
 	}{
-		{"KNIRV nexus", "knirv-nexus", "knirv/nexus:latest", true, "knirv-other", false},
+		{"KNIRV nexus", "knirv-server", "knirv/nexus:latest", true, "knirv-other", false},
 		{"DVE manager", "dve-manager", "knirv/dve:latest", true, "dve-manager", true},
 		{"Validation core", "validation-core", "knirv/validation:latest", true, "validation-core", false},
 		{"Model server", "model-server", "knirv/model:latest", true, "model-server", false},
@@ -250,7 +250,7 @@ func TestContainerManager_identifyKNIRVNetwork(t *testing.T) {
 		expectedP2P   bool
 		expectedEnc   bool
 	}{
-		{"KNIRV network", "knirv-nexus", true, false, true},
+		{"KNIRV network", "knirv-server", true, false, true},
 		{"P2P network", "knirv-p2p", true, true, true},
 		{"DVE network", "dve-network", true, false, true},
 		{"Regular network", "bridge", false, false, false},

@@ -566,7 +566,7 @@ func setDefaults() {
 	viper.SetDefault("database.path", filepath.Join(appDataDir, "data", "nexus.db"))
 
 	// Network configuration
-	viper.SetDefault("network.chain_id", "knirv-nexus-mainnet")
+	viper.SetDefault("network.chain_id", "knirv-server-mainnet")
 	viper.SetDefault("network.p2p_port", 4001)
 	viper.SetDefault("network.discovery_enabled", true)
 
@@ -643,20 +643,20 @@ func setDefaults() {
 	viper.SetDefault("icme.signal_workers", 4)
 
 	// Legacy defaults for backward compatibility
-	viper.SetDefault("chain_id", "knirv-nexus-mainnet")
+	viper.SetDefault("chain_id", "knirv-server-mainnet")
 	viper.SetDefault("node_role", "dve-manager")
 	viper.SetDefault("p2p.port", 4001)
 	viper.SetDefault("p2p.dht_enabled", false) // DHT disabled by default to reduce noise
 	viper.SetDefault("auth.jwt_secret", "")
 }
 
-// GetConfigDir returns the base configuration directory (e.g., ~/.config/knirv-nexus)
+// GetConfigDir returns the base configuration directory (e.g., ~/.config/knirv-server)
 func GetConfigDir() (string, error) {
 	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user config directory: %w", err)
 	}
-	appConfigDir := filepath.Join(userConfigDir, "knirv-nexus")
+	appConfigDir := filepath.Join(userConfigDir, "knirv-server")
 	if err := os.MkdirAll(appConfigDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create app config directory %s: %w", appConfigDir, err)
 	}

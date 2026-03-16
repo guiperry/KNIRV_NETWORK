@@ -356,7 +356,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
 
               <TabsTrigger value="profile" className="flex items-center space-x-2 text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">
                 <Eye className="w-4 h-4" />
-                <span>Profile</span>
+                <span>Reports</span>
               </TabsTrigger>
             </TabsList>
             
@@ -840,14 +840,14 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-200">User Profile</h2>
+                      <h2 className="text-2xl font-bold text-gray-200">Reports</h2>
                       <p className="text-gray-500">
-                        Your account information, permissions, and usage analytics.
+                        Validation, Security, and Usage Reports
                       </p>
                     </div>
                     <Button variant="outline" className="flex items-center space-x-2 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
                       <Download className="w-4 h-4" />
-                      <span>Export Profile</span>
+                      <span>Export Report</span>
                     </Button>
                   </div>
 
@@ -890,6 +890,102 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                         </div>
                       </CardContent>
                     </Card>
+
+                    {/* Validation Tasks Section - Moved from Network & Resources */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-200">Validation Tasks</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card className="aether-bevel-dark rounded-2xl">
+                          <CardHeader>
+                            <CardTitle className="flex items-center space-x-2 text-gray-300">
+                              <Activity className="w-5 h-5 text-indigo-400" />
+                              <span>Active Tasks</span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-3xl font-bold text-gray-200">127</div>
+                            <p className="text-sm text-gray-500">Currently processing</p>
+                            <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleTaskReports}>
+                              <Download className="w-3 h-3 mr-1" />
+                              Task Reports
+                            </Button>
+                          </CardContent>
+                        </Card>
+                        <Card className="aether-bevel-dark rounded-2xl">
+                          <CardHeader>
+                            <CardTitle className="flex items-center space-x-2 text-gray-300">
+                              <BarChart3 className="w-5 h-5 text-indigo-400" />
+                              <span>Completed Today</span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-3xl font-bold text-gray-200">1,847</div>
+                            <p className="text-sm text-gray-500">98.2% success rate</p>
+                            <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handlePerformanceReports}>
+                              <Download className="w-3 h-3 mr-1" />
+                              Performance Reports
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+
+                    {/* TEE Security Section - Moved from Network & Resources */}
+                    {teeSecurityStatus && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-gray-200">TEE Security</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <Card className="aether-bevel-dark rounded-2xl">
+                            <CardHeader>
+                              <CardTitle className="flex items-center space-x-2 text-gray-300">
+                                <Shield className="w-5 h-5 text-indigo-400" />
+                                <span>SGX Enclaves</span>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">18</div>
+                              <p className="text-sm text-gray-500">Active secure enclaves</p>
+                              <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleSecurityReports}>
+                                <Download className="w-3 h-3 mr-1" />
+                                Security Reports
+                              </Button>
+                            </CardContent>
+                          </Card>
+                          <Card className="aether-bevel-dark rounded-2xl">
+                            <CardHeader>
+                              <CardTitle className="flex items-center space-x-2 text-gray-300">
+                                <Lock className="w-5 h-5 text-amber-400" />
+                                <span>SEV-SNP</span>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">6</div>
+                              <p className="text-sm text-gray-500">Secure VMs running</p>
+                              <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleVMReports}>
+                                <Download className="w-3 h-3 mr-1" />
+                                VM Reports
+                              </Button>
+                            </CardContent>
+                          </Card>
+                          <Card className="aether-bevel-dark rounded-2xl">
+                            <CardHeader>
+                              <CardTitle className="flex items-center space-x-2 text-gray-300">
+                                <Zap className="w-5 h-5 text-indigo-400" />
+                                <span>TDX</span>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">3</div>
+                              <p className="text-sm text-gray-500">Trust domains active</p>
+                              <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleTrustReports}>
+                                <Download className="w-3 h-3 mr-1" />
+                                Trust Reports
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Billing & Usage Summary */}
                     <Card className="aether-bevel-dark rounded-2xl">

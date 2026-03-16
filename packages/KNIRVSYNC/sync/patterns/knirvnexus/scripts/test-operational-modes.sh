@@ -258,7 +258,7 @@ main() {
     
     # Check if project builds
     log "Building project..."
-    if go build -o "$TEST_DIR/knirv-nexus" cmd/main.go; then
+    if go build -o "$TEST_DIR/knirv-server" cmd/main.go; then
         success "Project builds successfully"
     else
         error "Project build failed"

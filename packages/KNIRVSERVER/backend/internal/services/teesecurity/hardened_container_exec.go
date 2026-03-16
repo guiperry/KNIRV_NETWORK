@@ -39,7 +39,7 @@ func (ncr *NativeContainerRuntime) executeHardenedContainer(
 	// Load AppArmor profile before starting container (Phase 3 - Security Hardening)
 	if ncr.config.Security.AppArmorEnabled {
 		apparmorMgr := NewAppArmorManager(MACConfig{
-			Profile:      "knirv-nexus-skill-container",
+			Profile:      "knirv-server-skill-container",
 			AutoGenerate: true,
 		})
 		if err := apparmorMgr.LoadProfile(); err != nil {
@@ -185,7 +185,7 @@ func containerInit(
 	// 5. Apply AppArmor profile (Phase 3 - Security Hardening)
 	if ncr.config.Security.AppArmorEnabled {
 		apparmorMgr := NewAppArmorManager(MACConfig{
-			Profile:      "knirv-nexus-skill-container",
+			Profile:      "knirv-server-skill-container",
 			AutoGenerate: true,
 		})
 		if err := apparmorMgr.ApplyToProcess(); err != nil {

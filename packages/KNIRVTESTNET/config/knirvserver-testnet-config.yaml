@@ -1,0 +1,22 @@
+# Legacy configuration format for backward compatibility
+testnet:
+  enabled: true
+  simulation_mode: true
+
+nexus:
+  port: 8084
+  api_port: 8084
+  log_level: "info"
+
+database:
+  clean_on_start: true
+  in_memory: false
+  path: "./data/knirvserver/testnet.db"
+
+dve:
+  enabled: true
+  max_environments: 10
+
+tee:
+  simulation_mode: true
+  mock_validation: true

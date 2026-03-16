@@ -108,3 +108,4 @@ KNIRVHASHER/internal/host/embedded/hasher-server-mips
 packages/KNIRVHEART/HEART/CERERAS_SDK/sdk-cbcore-202505230211-4-9382352f.sif
 packages/KNIRVSERVER/backend/cmd/container_deployer/golang-app-source/knirv-server
 /packages/KNIRVSERVER/frontend/out
+/packages/KNIRVTESTNET/backups

@@ -2,9 +2,13 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -25,12 +29,15 @@ import (
 
 	"KNIRVCHAIN/internal/blockchain"
 	"KNIRVCHAIN/internal/dataengine"
+	"KNIRVCHAIN/internal/enum/StatusType"
 	"KNIRVCHAIN/internal/inference"
 	"KNIRVCHAIN/internal/inference/agentify"
 	"KNIRVCHAIN/internal/network"
 	"KNIRVCHAIN/internal/p2p"
 
 	"github.com/joho/godotenv"
+	gouprovider "github.com/mouuff/go-rocket-update/pkg/provider"
+	goupdater "github.com/mouuff/go-rocket-update/pkg/updater"
 
 	"KNIRVCHAIN/config" // Use your actual module path
 	// Local package imports for types used in the code
@@ -384,6 +391,181 @@ func convertRelayConfig(cfg config.RelayConfig) network.RelayConfig {
 // This should be set at build time using ldflags:
 // go build -ldflags="-X main.AppVersion=v1.0.1"
 var AppVersion = "dev" // Default if not set by ldflags
+
+// Constants for go-rocket-update (GitHub releases)
+const (
+	GitHubRepoOwner = "guiperry"
+	GitHubRepoName  = "KNIRVCHAIN"
+)
+
+// fetchUpdateManifestFromServer checks GitHub releases for a new version using go-rocket-update.
+// Returns nil, nil when no update is available. Returns an error only on failure.
+func fetchUpdateManifestFromServer() (*goupdater.UpdateStatus, error) {
+	log.Printf("Updater: Checking for updates (current version: %s)", AppVersion)
+
+	publicKeyStr := os.Getenv("DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES")
+	if publicKeyStr == "" {
+		publicKeyStr = utils.DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES
+		log.Printf("Updater: Using default public key from constants for secure updates")
+	}
+
+	block, _ := pem.Decode([]byte(publicKeyStr))
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block containing public key")
+	}
+	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %w", err)
+	}
+	rsaPubKey, ok := pubKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("expected RSA public key but got %T", pubKey)
+	}
+
+	ghProvider := &gouprovider.Github{
+		RepositoryURL: "https://github.com/" + GitHubRepoOwner + "/" + GitHubRepoName,
+		ArchiveName:   "{{bin_name}}_{{tag}}_{{os}}_{{arch}}",
+	}
+
+	secureProvider := &gouprovider.Secure{
+		BackendProvider: ghProvider,
+		PublicKey:       rsaPubKey,
+	}
+
+	u := &goupdater.Updater{
+		Provider:       secureProvider,
+		ExecutableName: filepath.Base(os.Args[0]),
+		Version:        AppVersion,
+	}
+
+	canUpdate, err := u.CanUpdate()
+	if err != nil {
+		errMsg := fmt.Sprintf("failed to check for updates: %v", err)
+		if strings.Contains(err.Error(), "cannot unmarshal object into Go value of type []provider.githubTag") {
+			errMsg += "\nPossible causes:\n- GitHub API response format changed\n- Package expects array but received object\n- Check package version compatibility"
+		}
+		return nil, errors.New(errMsg)
+	}
+	if !canUpdate {
+		log.Println("Updater: No new update available.")
+		return nil, nil
+	}
+
+	status, err := u.Update()
+	if err != nil {
+		return nil, fmt.Errorf("failed to update: %w", err)
+	}
+
+	log.Printf("Updater: Update status: %v", status)
+	return &status, nil
+}
+
+// applyUpdateAndRestart applies a successful update and restarts the process.
+func applyUpdateAndRestart(status *goupdater.UpdateStatus) {
+	if status == nil {
+		log.Println("Updater: No update status provided")
+		return
+	}
+	if !StatusType.IsValid(int(*status)) || *status != goupdater.UpdateStatus(StatusType.Success) {
+		log.Printf("Updater: Update failed with status: %v", status)
+		return
+	}
+
+	log.Println("Updater: Update applied successfully! Preparing to restart application...")
+
+	executablePath, err := os.Executable()
+	if err != nil {
+		log.Printf("Updater: Could not get executable path: %v. Please restart manually.", err)
+		os.Exit(1)
+		return
+	}
+
+	var scriptContent, scriptName, shellCmd, shellArg string
+
+	if runtime.GOOS == "windows" {
+		scriptName = "restart_wrapper.bat"
+		scriptContent = fmt.Sprintf(`
+@echo off
+echo Restarting application shortly...
+timeout /t 2 /nobreak > nul
+start "" /B "%s" %s
+(goto) 2>nul & del "%%~f0"
+`, executablePath, strings.Join(os.Args[1:], " "))
+		shellCmd = "cmd.exe"
+		shellArg = "/C"
+	} else {
+		scriptName = "restart_wrapper.sh"
+		argsString := ""
+		for _, arg := range os.Args[1:] {
+			argsString += fmt.Sprintf(" '%s'", strings.ReplaceAll(arg, "'", "'\\''"))
+		}
+		scriptContent = fmt.Sprintf(`#!/bin/sh
+echo "Restarting application shortly..."
+sleep 2
+nohup "%s"%s > /dev/null 2>&1 &
+rm -- "$0"
+`, executablePath, argsString)
+		shellCmd = "/bin/sh"
+	}
+
+	tempDir := os.TempDir()
+	scriptPath := filepath.Join(tempDir, scriptName)
+
+	if err = os.WriteFile(scriptPath, []byte(scriptContent), 0755); err != nil {
+		log.Printf("Updater: Failed to write temporary restart script: %v. Please restart manually.", err)
+		os.Exit(1)
+		return
+	}
+	log.Printf("Updater: Temporary restart script written to: %s", scriptPath)
+
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command(shellCmd, shellArg, scriptPath)
+	} else {
+		cmd = exec.Command(shellCmd, scriptPath)
+	}
+
+	if err = cmd.Start(); err != nil {
+		log.Printf("Updater: Failed to start restart wrapper: %v. Please restart manually.", err)
+		_ = os.Remove(scriptPath)
+		os.Exit(1)
+		return
+	}
+
+	log.Printf("Updater: Restart wrapper (%s) started with PID %d. Old application exiting.", scriptPath, cmd.Process.Pid)
+	os.Exit(0)
+}
+
+// startUpdateCheckGoroutine launches a background goroutine that checks for updates.
+// On error the goroutine logs and returns; the application continues normally.
+func startUpdateCheckGoroutine() {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("Updater goroutine panicked: %v. Update check aborted.", r)
+			}
+		}()
+		log.Println("Updater: Starting update check goroutine...")
+		time.Sleep(15 * time.Second)
+
+		log.Println("Updater: Checking for application updates...")
+		log.Println("Updater: Starting update check with timeout...")
+		log.Println("Updater: Executing fetchUpdateManifestFromServer...")
+
+		updateInfo, errUpdater := fetchUpdateManifestFromServer()
+		log.Println("Updater: Update check completed successfully")
+		if errUpdater != nil {
+			log.Printf("Updater: Error checking for updates: %v", errUpdater)
+			return
+		}
+		if updateInfo == nil {
+			return
+		}
+
+		log.Println("Updater: New version available. Initiating update...")
+		applyUpdateAndRestart(updateInfo)
+	}()
+}
 
 // Constants for custom update mechanism
 const (
@@ -1662,6 +1844,9 @@ func main() {
 			}
 		}
 	}
+
+	// Launch background update check — non-blocking, errors are logged and ignored.
+	startUpdateCheckGoroutine()
 
 	// Wait for SIGINT/SIGTERM for all modes
 	log.Println("Application started. Press Ctrl+C to exit.")

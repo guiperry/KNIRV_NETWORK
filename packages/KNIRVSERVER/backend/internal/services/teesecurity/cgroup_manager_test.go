@@ -15,8 +15,8 @@ func TestNewCgroupManager(t *testing.T) {
 	RequiresCgroupAccess(t, "TestNewCgroupManager")
 
 	// Clean up existing test cgroup if it exists
-	if _, err := os.Stat("/sys/fs/cgroup/knirv-nexus"); err == nil {
-		os.RemoveAll("/sys/fs/cgroup/knirv-nexus")
+	if _, err := os.Stat("/sys/fs/cgroup/knirv-server"); err == nil {
+		os.RemoveAll("/sys/fs/cgroup/knirv-server")
 	}
 
 	config := CgroupConfig{
@@ -52,10 +52,10 @@ func TestNewCgroupManager(t *testing.T) {
 		t.Error("CgroupManager config mismatch")
 	}
 
-	// Verify the cgroup path ends with knirv-nexus/test-container
+	// Verify the cgroup path ends with knirv-server/test-container
 	// The actual path depends on the container environment (bare metal vs Docker)
-	if !strings.HasSuffix(mgr.cgroupPath, "knirv-nexus/test-container") {
-		t.Errorf("Expected cgroup path to end with knirv-nexus/test-container, got %s", mgr.cgroupPath)
+	if !strings.HasSuffix(mgr.cgroupPath, "knirv-server/test-container") {
+		t.Errorf("Expected cgroup path to end with knirv-server/test-container, got %s", mgr.cgroupPath)
 	}
 
 	// Verify the cgroup directory was created
@@ -71,8 +71,8 @@ func TestCgroupManager_ApplyLimits(t *testing.T) {
 	RequiresCgroupAccess(t, "TestCgroupManager_ApplyLimits")
 
 	// Clean up existing test cgroup if it exists
-	if _, err := os.Stat("/sys/fs/cgroup/knirv-nexus"); err == nil {
-		os.RemoveAll("/sys/fs/cgroup/knirv-nexus")
+	if _, err := os.Stat("/sys/fs/cgroup/knirv-server"); err == nil {
+		os.RemoveAll("/sys/fs/cgroup/knirv-server")
 	}
 
 	config := CgroupConfig{
@@ -159,9 +159,9 @@ func TestCgroupManager_ApplyLimits(t *testing.T) {
 // TestCgroupManager_AddProcess tests adding a process to cgroup
 func TestCgroupManager_AddProcess(t *testing.T) {
 	// Skip test if cgroups v2 is not available
-	if _, err := os.Stat("/sys/fs/cgroup/knirv-nexus"); err == nil {
+	if _, err := os.Stat("/sys/fs/cgroup/knirv-server"); err == nil {
 		// Clean up existing test cgroup if it exists
-		os.RemoveAll("/sys/fs/cgroup/knirv-nexus")
+		os.RemoveAll("/sys/fs/cgroup/knirv-server")
 	}
 
 	config := CgroupConfig{
@@ -218,9 +218,9 @@ func TestCgroupManager_AddProcess(t *testing.T) {
 // TestCgroupManager_GetStats tests getting cgroup statistics
 func TestCgroupManager_GetStats(t *testing.T) {
 	// Skip test if cgroups v2 is not available
-	if _, err := os.Stat("/sys/fs/cgroup/knirv-nexus"); err == nil {
+	if _, err := os.Stat("/sys/fs/cgroup/knirv-server"); err == nil {
 		// Clean up existing test cgroup if it exists
-		os.RemoveAll("/sys/fs/cgroup/knirv-nexus")
+		os.RemoveAll("/sys/fs/cgroup/knirv-server")
 	}
 
 	config := CgroupConfig{
@@ -275,9 +275,9 @@ func TestCgroupManager_GetStats(t *testing.T) {
 // TestCgroupManager_Cleanup tests cgroup cleanup
 func TestCgroupManager_Cleanup(t *testing.T) {
 	// Skip test if cgroups v2 is not available
-	if _, err := os.Stat("/sys/fs/cgroup/knirv-nexus"); err == nil {
+	if _, err := os.Stat("/sys/fs/cgroup/knirv-server"); err == nil {
 		// Clean up existing test cgroup if it exists
-		os.RemoveAll("/sys/fs/cgroup/knirv-nexus")
+		os.RemoveAll("/sys/fs/cgroup/knirv-server")
 	}
 
 	config := CgroupConfig{
@@ -395,7 +395,7 @@ func TestNewCgroupManagerWithDelegation(t *testing.T) {
 	}
 
 	// Clean up existing test cgroup if it exists
-	cleanupPath := filepath.Join(actualDelegation.CgroupParent, "knirv-nexus")
+	cleanupPath := filepath.Join(actualDelegation.CgroupParent, "knirv-server")
 	if _, err := os.Stat(cleanupPath); err == nil {
 		os.RemoveAll(cleanupPath)
 	}
@@ -442,7 +442,7 @@ func TestNewCgroupManagerWithDelegation(t *testing.T) {
 	}
 
 	// Verify the cgroup path uses the delegated parent
-	expectedPath := filepath.Join(delegation.CgroupParent, "knirv-nexus", "test-delegation")
+	expectedPath := filepath.Join(delegation.CgroupParent, "knirv-server", "test-delegation")
 	if mgr.cgroupPath != expectedPath {
 		t.Errorf("Expected cgroup path %s, got %s", expectedPath, mgr.cgroupPath)
 	}
@@ -506,14 +506,14 @@ func TestNewCgroupManagerWithDelegation_CustomParent(t *testing.T) {
 	}
 	defer mgr.Cleanup()
 
-	// Verify the cgroup path uses the custom parent + knirv-nexus + container ID
-	expectedPath := filepath.Join(customParent, "knirv-nexus", "custom-parent-test")
+	// Verify the cgroup path uses the custom parent + knirv-server + container ID
+	expectedPath := filepath.Join(customParent, "knirv-server", "custom-parent-test")
 	if mgr.cgroupPath != expectedPath {
 		t.Errorf("Expected cgroup path %s, got %s", expectedPath, mgr.cgroupPath)
 	}
 
 	// Verify the custom parent was created
-	if _, err := os.Stat(filepath.Join(customParent, "knirv-nexus")); err != nil {
+	if _, err := os.Stat(filepath.Join(customParent, "knirv-server")); err != nil {
 		t.Errorf("Custom parent cgroup was not created: %v", err)
 	}
 }

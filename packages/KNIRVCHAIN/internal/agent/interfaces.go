@@ -2,8 +2,18 @@ package agent
 
 import (
 	"context"
+	"sync"
 	"time"
+
+	chromem "github.com/philippgille/chromem-go"
 )
+
+// ChromemManager provides NFT, agent, badge, and plugin storage for the agent package.
+type ChromemManager struct {
+	mu                       sync.RWMutex
+	transactionCollection    *chromem.Collection
+	contextRecordCollection  *chromem.Collection
+}
 
 // AgentManagerInterface defines the interface for agent management operations
 type AgentManagerInterface interface {

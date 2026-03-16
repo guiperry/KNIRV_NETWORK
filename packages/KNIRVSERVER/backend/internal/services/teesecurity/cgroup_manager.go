@@ -19,7 +19,7 @@ type CgroupDelegationStatus struct {
 
 // CgroupManager manages cgroup v2 configuration and resource limits
 type CgroupManager struct {
-	cgroupPath string // /sys/fs/cgroup/knirv-nexus/skill-<id>
+	cgroupPath string // /sys/fs/cgroup/knirv-server/skill-<id>
 	config     CgroupConfig
 	delegation *CgroupDelegationStatus
 }
@@ -32,7 +32,7 @@ func NewCgroupManager(containerID string, config CgroupConfig) (*CgroupManager, 
 // NewCgroupManagerWithDelegation creates a new CgroupManager with explicit delegation settings
 func NewCgroupManagerWithDelegation(containerID string, config CgroupConfig, delegation *CgroupDelegationStatus) (*CgroupManager, error) {
 	// Use cgroups v2 unified hierarchy
-	basePath := "/sys/fs/cgroup/knirv-nexus"
+	basePath := "/sys/fs/cgroup/knirv-server"
 
 	// Detect cgroup delegation status if not provided
 	if delegation == nil {
@@ -45,7 +45,7 @@ func NewCgroupManagerWithDelegation(containerID string, config CgroupConfig, del
 
 	// Use delegated parent if available, otherwise use default path
 	if delegation.IsDelegated && delegation.CgroupParent != "" {
-		basePath = filepath.Join(delegation.CgroupParent, "knirv-nexus")
+		basePath = filepath.Join(delegation.CgroupParent, "knirv-server")
 	}
 
 	// Check if cgroup filesystem is mounted and writable
@@ -201,9 +201,9 @@ func findDockerCgroupParent() string {
 		// Remove leading slash for consistency
 		cgroupPath = strings.TrimPrefix(cgroupPath, "/")
 
-		// If the path contains "knirv-nexus", strip it and everything after it
+		// If the path contains "knirv-server", strip it and everything after it
 		// This prevents path doubling when tests run inside cgroups they created
-		if idx := strings.Index(cgroupPath, "/knirv-nexus"); idx >= 0 {
+		if idx := strings.Index(cgroupPath, "/knirv-server"); idx >= 0 {
 			cgroupPath = cgroupPath[:idx]
 		}
 

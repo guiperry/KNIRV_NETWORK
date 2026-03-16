@@ -67,7 +67,7 @@ func (am *AuthMiddleware) GenerateToken(userID, username, role string, duration 
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "knirv-nexus",
+			Issuer:    "knirv-server",
 			Subject:   userID,
 		},
 	}

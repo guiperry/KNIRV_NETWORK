@@ -42,7 +42,7 @@ func SetupTestSuite(t *testing.T) *TestSuite {
 
 	// Create test configuration
 	cfg := &config.Config{
-		ChainID:     "knirv-nexus-testnet",
+		ChainID:     "knirv-server-testnet",
 		Environment: "test",
 		Database: config.DatabaseConfig{
 			Path: ":memory:",

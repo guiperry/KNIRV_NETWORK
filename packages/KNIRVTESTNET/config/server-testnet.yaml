@@ -1,0 +1,50 @@
+# KNIRV-NEXUS Testnet Configuration
+# This configuration is optimized for testnet deployment with embedded frontend
+
+# Server settings (for main.go wrapper)
+host: "0.0.0.0"
+port: 8084
+backend_port: 8085
+log_level: "info"
+testnet: true
+
+# API Configuration (used by both wrapper and backend)
+api:
+  port: 8085
+  host: "0.0.0.0"
+  enable_cors: true
+  cors_origins:
+    - "http://localhost:8084"
+    - "http://localhost:8888"  # KNIRVGATEWAY
+    - "http://testnet.knirv.com"
+  jwt_secret: "testnet-jwt-secret-change-this-in-production"
+  rate_limit_rps: 50
+  request_timeout: "15s"
+
+# Backend configuration (for embedded backend)
+mode: headless
+chain_id: knirv-server-testnet
+node_role: dve-manager
+
+# Security configuration - provide JWT secret to satisfy validation
+security:
+  auth_required: true
+  tls_enabled: false
+  audit_logging: false
+  jwt_secret: "testnet-jwt-secret-change-this-in-production"
+
+# Auth configuration (fallback)
+auth:
+  jwt_secret: "testnet-jwt-secret-change-this-in-production"
+  token_expiry: "24h"
+  enable_oauth: false
+
+# Database configuration
+database:
+  path: "./data/nexus-testnet.db"
+
+# Logging configuration
+log:
+  level: "info"
+  format: "text"
+  output: "./logs/knirvbackend-server.log"

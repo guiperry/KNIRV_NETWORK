@@ -227,7 +227,7 @@ func (s *NexusMemoryServer) Serve(addr string) error {
 		return err
 	}
 
-	log.Printf("KNIRV NEXUS: Arrow Flight Memory Fabric active on %s", addr)
+	log.Printf("KNIRV SERVER: Arrow Flight Memory Fabric active on %s", addr)
 	return server.Serve()
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Terminal, Play, Code, Database, Settings, Cpu, Zap, FileText, Download, Share2, Radio, Shield, BarChart3, Upload, AlertTriangle, TestTube, Network, WifiOff, Loader2, Server } from 'lucide-react';
+import { X, Terminal, Play, Code, Database, Settings, Cpu, Zap, FileText, Download, Share2, Radio, Shield, BarChart3, Upload, AlertTriangle, TestTube, Network, WifiOff, Loader2, Server, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -339,11 +339,11 @@ export function NetworkAccessModal({
           <div className="flex-1 overflow-auto">
             <Tabs defaultValue="terminal" className="h-full">
               <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="terminal">Terminal</TabsTrigger>
                   <TabsTrigger value="workflows">Workflows</TabsTrigger>
                   <TabsTrigger value="tools">Tools</TabsTrigger>
-                  <TabsTrigger value="admin">Admin</TabsTrigger>
+                  <TabsTrigger value="profile">Profile</TabsTrigger>
                 </TabsList>
               </div>
 
@@ -510,7 +510,44 @@ export function NetworkAccessModal({
                 </div>
               </TabsContent>
 
-              <TabsContent value="admin" className="px-6 pb-6 space-y-4">
+              <TabsContent value="profile" className="px-6 pb-6 space-y-4">
+                {/* Account Information - Moved from Reports */}
+                <Card className="w-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <User className="h-5 w-5 text-indigo-400" />
+                      Account Information
+                    </CardTitle>
+                    <CardDescription>
+                      Your account details and permissions
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Username</p>
+                        <p className="text-lg text-gray-200">Admin User</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Role</p>
+                        <Badge variant="destructive">ADMIN</Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-2">Permissions</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="secondary" className="text-xs">compliance:read</Badge>
+                        <Badge variant="secondary" className="text-xs">validation:write</Badge>
+                        <Badge variant="secondary" className="text-xs">system:admin</Badge>
+                      </div>
+                    </div>
+                    <Button variant="outline" className="w-full border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                      <Download className="w-4 h-4 mr-2" />
+                      Export Profile
+                    </Button>
+                  </CardContent>
+                </Card>
+
                 {/* Demo Mode Toggle */}
                 <Card className="w-full">
                   <CardHeader>
