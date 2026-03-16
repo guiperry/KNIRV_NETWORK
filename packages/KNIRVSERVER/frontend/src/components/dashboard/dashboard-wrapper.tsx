@@ -891,8 +891,45 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </CardContent>
                     </Card>
 
-                    {/* Validation Tasks Section - Moved from Network & Resources */}
-                    <div className="space-y-4">
+                    {/* Usage Summary */}
+                    <Card className="aether-bevel-dark rounded-2xl">
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2 text-gray-300">
+                          <BarChart3 className="w-5 h-5 text-indigo-400" />
+                          <span>Usage Summary</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">Compute Hours</p>
+                            <p className="text-2xl font-bold text-gray-200">247.3</p>
+                            <p className="text-xs text-gray-600">This month</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">Storage Used</p>
+                            <p className="text-2xl font-bold text-gray-200">1.2TB</p>
+                            <p className="text-xs text-gray-600">Current usage</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">API Calls</p>
+                            <p className="text-2xl font-bold text-gray-200">12.4K</p>
+                            <p className="text-xs text-gray-600">This month</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-500">NRN Spent</p>
+                            <p className="text-2xl font-bold text-gray-200">1,847</p>
+                            <p className="text-xs text-gray-600">Total this month</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Validation Tasks Section */}
+                  <div className="space-y-4 mt-6">
                       <h3 className="text-lg font-semibold text-gray-200">Validation Tasks</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Card className="aether-bevel-dark rounded-2xl">
@@ -986,43 +1023,6 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                         </div>
                       </div>
                     )}
-
-                    {/* Billing & Usage Summary */}
-                    <Card className="aether-bevel-dark rounded-2xl">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2 text-gray-300">
-                          <BarChart3 className="w-5 h-5 text-indigo-400" />
-                          <span>Usage Summary</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">Compute Hours</p>
-                            <p className="text-2xl font-bold text-gray-200">247.3</p>
-                            <p className="text-xs text-gray-600">This month</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">Storage Used</p>
-                            <p className="text-2xl font-bold text-gray-200">1.2TB</p>
-                            <p className="text-xs text-gray-600">Current usage</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">API Calls</p>
-                            <p className="text-2xl font-bold text-gray-200">12.4K</p>
-                            <p className="text-xs text-gray-600">This month</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">NRN Spent</p>
-                            <p className="text-2xl font-bold text-gray-200">1,847</p>
-                            <p className="text-xs text-gray-600">Total this month</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
 
                   {/* Billing & Usage Reports */}
                   <Card className="aether-bevel-dark rounded-2xl">
