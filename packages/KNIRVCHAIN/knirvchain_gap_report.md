@@ -394,16 +394,16 @@ The following exist in `packages/KNIRVCHAIN` and have no ROOT equivalent — the
 
 ## 20. Recommended Implementation Order
 
-1. **Fix `WalletImpl`/`Wallet` interface alignment** (unblocks all tests)
-2. **Add `NewAgentChromemManager()` constructor** (unblocks agent functionality, prevents nil panics)
-3. **Implement `ChromemManager` stub methods** with real ChromemDB calls
-4. **Restore `--reflect` flag** (critical for multi-node testnet)
-5. **Add `--creator` flag** (payment processor activation)
-6. **Verify `ApplyMCPTransactionEffects` call sites** in `blockchain_struct.go`
-7. **Verify `DiscoverPublicAddress` call sites** compile with new signature
-8. **Resolve GUI path** (decide: implement web GUI or remove dead pre-initialization code)
-9. **Run full test suite** after items 1–3
+1. ✅ **Fix `WalletImpl`/`Wallet` interface alignment** — changed `Wallet` alias to `agent.Wallet` interface in `tests/unit/test_helpers.go`
+2. ✅ **Add `NewAgentChromemStore()` constructor** — added `AgentChromemStore` wrapper in `agent/interfaces.go`; `agent` now imports `database` cleanly
+3. ✅ **Implement `ChromemManager` stub methods** — all 18 stubs now use real ChromemDB collection reads/writes via `AgentChromemStore`
+4. ✅ **Restore `--reflect` flag** — uncommented and wired in `cmd/knirvchain/main.go`; CLI value overrides Viper config
+5. ✅ **Add `--creator` flag** — enables `PaymentProcessor.Enabled + LoadPaymentProcessorConfig()` in `main.go`
+6. ✅ **Verify `ApplyMCPTransactionEffects` call sites** — method exists in `blockchain_struct.go`; no stale callers
+7. ✅ **Verify `DiscoverPublicAddress` call sites** — all callers in `install.go` use correct 3-param signature
+8. **Resolve GUI path** (decide: implement web GUI or remove dead pre-initialization code) — **OPEN**
+9. ✅ **Run full test suite** — all unit tests pass; network integration tests fail only due to requiring live nodes (pre-existing)
 
 ---
 
-*This report reflects the state of `packages/KNIRVCHAIN` as of commit `c6037d44` + the updater implementation added on 2026-03-16.*
+*Updated 2026-03-17. Items 1–7 and 9 completed. Remaining open item: #8 GUI path decision.*
