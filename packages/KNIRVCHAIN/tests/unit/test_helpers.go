@@ -25,7 +25,7 @@ type Agent = agent.Agent
 type BadgeAttachment = agent.BadgeAttachment
 type AgentManager = agent.AgentManager
 type ChromemManager = database.ChromemManager
-type Wallet = wallet.Wallet
+type Wallet = agent.Wallet
 type Capability = agent.Capability
 type AgentRelationship = agent.AgentRelationship
 type WalletManager = wallet.WalletManager
@@ -54,9 +54,9 @@ type CerebrasEmbeddingClient = crypto.CerebrasEmbeddingClient
 // Constructor function aliases
 var NewAgentManager = agent.NewAgentManager
 
-// NewChromemManager creates a new agent ChromemManager (simplified for tests)
-func NewChromemManager(config *config.ChromemConfig) (*ChromemManager, error) {
-	return &ChromemManager{}, nil
+// NewChromemManager creates a new ChromemManager for tests.
+func NewChromemManager(cfg *config.ChromemConfig) (*ChromemManager, error) {
+	return database.NewChromemManager(cfg)
 }
 
 var NewWallet = wallet.NewWallet
@@ -197,7 +197,7 @@ func ConvertForSigning(bcTx *blockchain.Transaction) wallet.Transaction {
 }
 
 // setupTestEnvironment creates a test environment with temporary directories and initialized managers
-func setupTestEnvironment(t *testing.T) (string, *ChromemManager, Wallet, *AgentManager) {
+func setupTestEnvironment(t *testing.T) (string, *ChromemManager, *wallet.WalletImpl, *AgentManager) {
 	// Create temporary directory
 	tempDir, err := os.MkdirTemp("", "agent_test")
 	if err != nil {
@@ -222,7 +222,7 @@ func setupTestEnvironment(t *testing.T) (string, *ChromemManager, Wallet, *Agent
 	}
 
 	// Create AgentManager
-	agentManager := NewAgentManager(chromemManager, nil, walletImpl, nil)
+	agentManager := NewAgentManager(agent.NewAgentChromemStore(chromemManager), nil, walletImpl, nil)
 
 	return tempDir, chromemManager, walletImpl, agentManager
 }

@@ -5,14 +5,20 @@ import (
 	"sync"
 	"time"
 
-	chromem "github.com/philippgille/chromem-go"
+	"KNIRVCHAIN/internal/database"
 )
 
-// ChromemManager provides NFT, agent, badge, and plugin storage for the agent package.
-type ChromemManager struct {
-	mu                       sync.RWMutex
-	transactionCollection    *chromem.Collection
-	contextRecordCollection  *chromem.Collection
+// AgentChromemStore wraps database.ChromemManager with agent-specific NFT and entity
+// persistence. The agent package owns the serialisation logic; the database package owns
+// the chromem connection and collection lifecycle.
+type AgentChromemStore struct {
+	db *database.ChromemManager
+	mu sync.RWMutex
+}
+
+// NewAgentChromemStore creates an AgentChromemStore backed by an existing ChromemManager.
+func NewAgentChromemStore(db *database.ChromemManager) *AgentChromemStore {
+	return &AgentChromemStore{db: db}
 }
 
 // AgentManagerInterface defines the interface for agent management operations

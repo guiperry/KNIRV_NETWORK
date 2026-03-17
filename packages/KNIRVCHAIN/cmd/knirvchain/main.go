@@ -944,16 +944,17 @@ func main() {
 	skipInstall := flag.Bool("skip-install", false, "Skip installation process even if InstallComplete is false")
 	testnetMode := flag.Bool("testnet", false, "Run in testnet mode with simplified configuration")
 	disableP2P := flag.Bool("disable-p2p", false, "Disable P2P messaging and consensus (reduces memory usage and network traffic)")
+	creator := flag.Bool("creator", false, "Run as a creator node with payment processor enabled")
 
 	// The -role flag helps determine which section of the config to load if other role flags aren't set.
 	roleFlag := flag.String("role", "", "Node role (Root, Bootnode, Peer, Client) - overrides auto-detection if other role flags are absent.")
 
 	logLevelFlag := flag.String("logLevel", "info", "Set the logging level (e.g., debug, info, warn, error)")
-	// var reflectFlags []string // Viper can load string slices from config.
-	// flag.Func("reflect", "Add a reflection URL (can be specified multiple times)", func(url string) error {
-	// reflectFlags = append(reflectFlags, url)
-	// return nil
-	// })
+	var reflectFlags []string
+	flag.Func("reflect", "Add a reflection URL (can be specified multiple times)", func(url string) error {
+		reflectFlags = append(reflectFlags, url)
+		return nil
+	})
 
 	// Parse ALL flags ONCE
 	flag.Parse()
@@ -1223,9 +1224,9 @@ func main() {
 		// cfg.ClientOnly and cfg.IsRoot are now primarily set by viper_loader based on nodeRole.
 		// Flags -client-only and -root are used to determine nodeRole initially.
 
-		// if len(reflectFlags) > 0 { // Viper loads ReflectionURLs from config file
-		// cfg.ReflectionURLs = reflectFlags
-		// }
+		if len(reflectFlags) > 0 { // CLI --reflect flags override Viper config
+			cfg.ReflectionURLs = reflectFlags
+		}
 
 		// Update nodeRole based on the config after all flag overrides have been applied
 		// This ensures nodeRole is consistent with the final config state
@@ -1258,8 +1259,9 @@ func main() {
 			log.Println("Running in testnet mode with simplified configuration")
 		}
 
-		// If root flag is set, enable payment processor
-		if nodeRole == config.Root {
+		// If root flag is set, or --creator flag is used, enable payment processor
+		if nodeRole == config.Root || *creator {
+			cfg.PaymentProcessor.Enabled = true
 			// Load payment processor config from environment variables
 			LoadPaymentProcessorConfig(&cfg.PaymentProcessor)
 		}

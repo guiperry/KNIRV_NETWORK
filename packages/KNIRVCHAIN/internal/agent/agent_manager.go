@@ -419,7 +419,7 @@ const (
 
 // AgentManager handles Agent operations
 type AgentManager struct {
-	chromeManager    *ChromemManager
+	chromeManager    *AgentChromemStore
 	mcpProcessor     *MCPProcessor
 	wallet           Wallet
 	pluginManager    *PluginManager
@@ -431,7 +431,7 @@ type PluginManager struct {
 }
 
 // NewAgentManager creates a new Agent manager
-func NewAgentManager(chromemManager *ChromemManager, mcpProcessor *MCPProcessor, wallet Wallet, discoveryManager *DiscoveryManager) *AgentManager {
+func NewAgentManager(chromemManager *AgentChromemStore, mcpProcessor *MCPProcessor, wallet Wallet, discoveryManager *DiscoveryManager) *AgentManager {
 	return &AgentManager{
 		chromeManager:    chromemManager,
 		mcpProcessor:     mcpProcessor,
@@ -447,16 +447,20 @@ type NFTManager struct {
 }
 
 // NewNFTManager creates a new NFT manager (legacy wrapper)
-func NewNFTManager(chromemManager *ChromemManager, mcpProcessor *MCPProcessor, wallet Wallet, discoveryManager *DiscoveryManager) *NFTManager {
+func NewNFTManager(chromemManager *AgentChromemStore, mcpProcessor *MCPProcessor, wallet Wallet, discoveryManager *DiscoveryManager) *NFTManager {
 	return &NFTManager{
 		agentManager: NewAgentManager(chromemManager, mcpProcessor, wallet, discoveryManager),
 	}
 }
 
 // StoreNFT stores an NFT in ChromeDB
-func (mgr *ChromemManager) StoreNFT(nft *NFT) error {
+func (mgr *AgentChromemStore) StoreNFT(nft *NFT) error {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+
+	if mgr.db == nil || mgr.db.GetTransactionCollection() == nil {
+		return fmt.Errorf("transaction collection not initialized")
+	}
 
 	// Convert NFT to JSON
 	nftJSON, err := json.Marshal(nft)
@@ -472,7 +476,7 @@ func (mgr *ChromemManager) StoreNFT(nft *NFT) error {
 
 	// Store in ChromeDB using the collection
 	ctx := context.Background()
-	err = mgr.transactionCollection.Add(
+	err = mgr.db.GetTransactionCollection().Add(
 		ctx,
 		[]string{nft.ID},
 		nil, // No embeddings needed
@@ -483,9 +487,13 @@ func (mgr *ChromemManager) StoreNFT(nft *NFT) error {
 }
 
 // GetNFT retrieves an NFT from ChromeDB
-func (mgr *ChromemManager) GetNFT(id string) (*NFT, error) {
+func (mgr *AgentChromemStore) GetNFT(id string) (*NFT, error) {
 	mgr.mu.RLock()
 	defer mgr.mu.RUnlock()
+
+	if mgr.db == nil || mgr.db.GetTransactionCollection() == nil {
+		return nil, fmt.Errorf("transaction collection not initialized")
+	}
 
 	// Get the document from ChromeDB
 	ctx := context.Background()
@@ -493,7 +501,7 @@ func (mgr *ChromemManager) GetNFT(id string) (*NFT, error) {
 		"documents": "true",
 	}
 
-	results, err := mgr.transactionCollection.Query(
+	results, err := mgr.db.GetTransactionCollection().Query(
 		ctx,
 		id, // Query by ID
 		1,  // Limit to 1 result
@@ -518,9 +526,13 @@ func (mgr *ChromemManager) GetNFT(id string) (*NFT, error) {
 }
 
 // GetNFTsByOwner retrieves all NFTs owned by a specific address from ChromeDB
-func (mgr *ChromemManager) GetNFTsByOwner(owner string) ([]*NFT, error) {
+func (mgr *AgentChromemStore) GetNFTsByOwner(owner string) ([]*NFT, error) {
 	mgr.mu.RLock()
 	defer mgr.mu.RUnlock()
+
+	if mgr.db == nil || mgr.db.GetTransactionCollection() == nil {
+		return nil, fmt.Errorf("transaction collection not initialized")
+	}
 
 	// Query by owner metadata
 	where := map[string]string{
@@ -534,7 +546,7 @@ func (mgr *ChromemManager) GetNFTsByOwner(owner string) ([]*NFT, error) {
 		"documents": "true",
 	}
 
-	results, err := mgr.transactionCollection.Query(
+	results, err := mgr.db.GetTransactionCollection().Query(
 		ctx,
 		"",  // Empty query to match only where clause
 		100, // Limit to 100 results
@@ -560,9 +572,13 @@ func (mgr *ChromemManager) GetNFTsByOwner(owner string) ([]*NFT, error) {
 }
 
 // StoreNFTCapabilityAttachment stores an NFT-capability attachment in ChromeDB
-func (mgr *ChromemManager) StoreNFTCapabilityAttachment(attachment *NFTCapabilityAttachment) error {
+func (mgr *AgentChromemStore) StoreNFTCapabilityAttachment(attachment *NFTCapabilityAttachment) error {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+
+	if mgr.db == nil || mgr.db.GetContextCollection() == nil {
+		return fmt.Errorf("context record collection not initialized")
+	}
 
 	// Convert attachment to JSON
 	attachmentJSON, err := json.Marshal(attachment)
@@ -579,7 +595,7 @@ func (mgr *ChromemManager) StoreNFTCapabilityAttachment(attachment *NFTCapabilit
 
 	// Store in ChromeDB using the collection
 	ctx := context.Background()
-	err = mgr.contextRecordCollection.Add(
+	err = mgr.db.GetContextCollection().Add(
 		ctx,
 		[]string{attachment.ID},
 		nil, // No embeddings needed
@@ -590,9 +606,13 @@ func (mgr *ChromemManager) StoreNFTCapabilityAttachment(attachment *NFTCapabilit
 }
 
 // GetNFTCapabilityAttachments retrieves all capability attachments for an NFT from ChromeDB
-func (mgr *ChromemManager) GetNFTCapabilityAttachments(nftId string) ([]*NFTCapabilityAttachment, error) {
+func (mgr *AgentChromemStore) GetNFTCapabilityAttachments(nftId string) ([]*NFTCapabilityAttachment, error) {
 	mgr.mu.RLock()
 	defer mgr.mu.RUnlock()
+
+	if mgr.db == nil || mgr.db.GetContextCollection() == nil {
+		return nil, fmt.Errorf("context record collection not initialized")
+	}
 
 	// Query by NFT ID metadata
 	where := map[string]string{
@@ -606,7 +626,7 @@ func (mgr *ChromemManager) GetNFTCapabilityAttachments(nftId string) ([]*NFTCapa
 		"documents": "true",
 	}
 
-	results, err := mgr.contextRecordCollection.Query(
+	results, err := mgr.db.GetContextCollection().Query(
 		ctx,
 		"",  // Empty query to match only where clause
 		100, // Limit to 100 results
@@ -2738,6 +2758,6 @@ func generateUniqueID() string {
 }
 
 // GetChromeManager returns the chrome manager for testing purposes
-func (am *AgentManager) GetChromeManager() *ChromemManager {
+func (am *AgentManager) GetChromeManager() *AgentChromemStore {
 	return am.chromeManager
 }
