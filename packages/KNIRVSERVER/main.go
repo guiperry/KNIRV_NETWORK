@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"embed"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
@@ -26,8 +28,7 @@ import (
 // Embed the Next.js build output
 //
 //go:embed all:frontend/out/*
-var embeddedFiles embed.FS  
-
+var embeddedFiles embed.FS
 
 // Embed the unified backend binary
 //
@@ -47,6 +48,11 @@ var envDevelopment []byte
 //go:embed .env.testnet
 var envTestnet []byte
 
+// Embed the dashboard dist files
+//
+//go:embed all:dashboard/dist/*
+var dashboardFiles embed.FS
+
 // Version information (set by build flags)
 var (
 	Version   = "dev"
@@ -61,6 +67,7 @@ type Config struct {
 	BackendPort int    `mapstructure:"backend_port"`
 	LogLevel    string `mapstructure:"log_level"`
 	Testnet     bool   `mapstructure:"testnet"`
+	Dashboard   bool   `mapstructure:"dashboard"`
 }
 
 // EmbeddedFS wraps the embedded filesystem for serving static files
@@ -72,6 +79,18 @@ type EmbeddedFS struct {
 func NewEmbeddedFS() (*EmbeddedFS, error) {
 	return &EmbeddedFS{
 		files: embeddedFiles,
+	}, nil
+}
+
+// DashboardFS wraps the embedded dashboard filesystem
+type DashboardFS struct {
+	files fs.FS
+}
+
+// NewDashboardFS creates a new dashboard filesystem
+func NewDashboardFS() (*DashboardFS, error) {
+	return &DashboardFS{
+		files: dashboardFiles,
 	}, nil
 }
 
@@ -142,12 +161,15 @@ func (efs *EmbeddedFS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // NexusApp represents the main application
 type NexusApp struct {
-	config      *Config
-	router      *gin.Engine
-	server      *http.Server
-	backendCmd  *exec.Cmd
-	backendPath string
-	tempDir     string
+	config        *Config
+	router        *gin.Engine
+	server        *http.Server
+	backendCmd    *exec.Cmd
+	backendPath   string
+	dashboardCmd  *exec.Cmd
+	tempDir       string
+	shutdownToken string
+	shutdownChan  chan struct{}
 }
 
 // NewNexusApp creates a new KNIRV-NEXUS application
@@ -159,9 +181,17 @@ func NewNexusApp(config *Config) (*NexusApp, error) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	// Generate a random single-use shutdown token so only the dashboard can trigger shutdown
+	tokenBytes := make([]byte, 16)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return nil, fmt.Errorf("failed to generate shutdown token: %w", err)
+	}
+
 	app := &NexusApp{
-		config: config,
-		router: gin.New(),
+		config:        config,
+		router:        gin.New(),
+		shutdownToken: hex.EncodeToString(tokenBytes),
+		shutdownChan:  make(chan struct{}, 1),
 	}
 
 	// Extract backend binary
@@ -182,16 +212,16 @@ func NewNexusApp(config *Config) (*NexusApp, error) {
 		} else {
 			c.Header("Access-Control-Allow-Origin", "*")
 		}
-		
+
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		
+
 		reqHeaders := c.GetHeader("Access-Control-Request-Headers")
 		if reqHeaders != "" {
 			c.Header("Access-Control-Allow-Headers", reqHeaders)
 		} else {
 			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token, X-CSRF-Token")
 		}
-		
+
 		c.Header("Access-Control-Expose-Headers", "X-Request-ID, Content-Length, Content-Range")
 		c.Header("Access-Control-Max-Age", "86400")
 
@@ -218,6 +248,10 @@ func (app *NexusApp) extractBackend() error {
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
+	// Make temp dir traversable by non-root users (e.g. Electron running as SUDO_USER).
+	if err := os.Chmod(tempDir, 0755); err != nil {
+		return fmt.Errorf("failed to chmod temp directory: %w", err)
+	}
 	app.tempDir = tempDir
 
 	// Extract unified backend binary
@@ -240,6 +274,151 @@ func (app *NexusApp) extractBackend() error {
 	return nil
 }
 
+// extractDashboard extracts the embedded dashboard files
+func (app *NexusApp) extractDashboard() error {
+	// Create dashboard directory in temp directory
+	dashboardDir := filepath.Join(app.tempDir, "dashboard")
+	if err := os.MkdirAll(dashboardDir, 0755); err != nil {
+		return fmt.Errorf("failed to create dashboard directory: %w", err)
+	}
+
+	// Walk through embedded dashboard files
+	err := fs.WalkDir(dashboardFiles, "dashboard/dist", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Create subdirectories
+		if d.IsDir() {
+			relPath := strings.TrimPrefix(path, "dashboard/dist/")
+			if relPath != "" {
+				fullPath := filepath.Join(dashboardDir, relPath)
+				if err := os.MkdirAll(fullPath, 0755); err != nil {
+					return fmt.Errorf("failed to create dashboard subdirectory: %w", err)
+				}
+			}
+			return nil
+		}
+
+		// Read embedded file
+		data, err := dashboardFiles.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to read dashboard file %s: %w", path, err)
+		}
+
+		// Extract just the filename (remove "dashboard/dist/" prefix)
+		filename := strings.TrimPrefix(path, "dashboard/dist/")
+		destPath := filepath.Join(dashboardDir, filename)
+
+		// Write to local filesystem
+		if err := os.WriteFile(destPath, data, 0644); err != nil {
+			return fmt.Errorf("failed to write dashboard file %s: %w", destPath, err)
+		}
+
+		return nil
+	})
+
+	return err
+}
+
+// startDashboard starts the Electron dashboard application
+func (app *NexusApp) startDashboard() error {
+	log.Println("Starting KNIRV Dashboard...")
+
+	// Resolve electron binary: ELECTRON_PATH env > node_modules relative to exe > node_modules relative to CWD > PATH
+	electronPath := os.Getenv("ELECTRON_PATH")
+	if electronPath == "" {
+		// Build candidate paths to search
+		candidates := []string{filepath.Join("dashboard", "node_modules", ".bin", "electron")}
+		if exePath, err := os.Executable(); err == nil {
+			exeDir := filepath.Dir(exePath)
+			// Binary may live at dist/knirv-server; dashboard is at ../dashboard relative to dist/
+			candidates = append(candidates,
+				filepath.Join(exeDir, "dashboard", "node_modules", ".bin", "electron"),
+				filepath.Join(exeDir, "..", "dashboard", "node_modules", ".bin", "electron"),
+			)
+		}
+		for _, c := range candidates {
+			if abs, err := filepath.Abs(c); err == nil {
+				if _, statErr := os.Stat(abs); statErr == nil {
+					electronPath = abs
+					break
+				}
+			}
+		}
+	}
+	if electronPath == "" {
+		if p, err := exec.LookPath("electron"); err == nil {
+			electronPath = p
+		}
+	}
+	if electronPath == "" {
+		log.Printf("Warning: Electron not found. Dashboard will not be started.")
+		log.Printf("Run 'make dashboard-build' or set ELECTRON_PATH to the electron binary.")
+		return nil
+	}
+
+	// Extract dashboard files
+	if err := app.extractDashboard(); err != nil {
+		return fmt.Errorf("failed to extract dashboard: %w", err)
+	}
+
+	dashboardDir := filepath.Join(app.tempDir, "dashboard")
+
+	// Set the KNIRV server URL for the dashboard
+	serverUrl := fmt.Sprintf("http://localhost:%d", app.config.Port)
+
+	// Launch Electron with the dashboard.
+	// Run electron with the explicit entry point so no package.json is needed.
+	// If running under sudo, launch as the original user so Electron has access
+	// to the user's display server. We use a login shell to load the user's
+	// profile (nvm, etc.) so that node is on PATH.
+	mainJsPath := filepath.Join(dashboardDir, "main.js")
+
+	sudoUser := os.Getenv("SUDO_USER")
+	if sudoUser != "" {
+		// Run as the original user with --set-home so $HOME is correct.
+		// Explicitly source ~/.nvm/nvm.sh so node is on PATH regardless of
+		// whether nvm is in .bashrc (interactive) or .bash_profile (login).
+		shellCmd := fmt.Sprintf(
+			`. "$HOME/.nvm/nvm.sh" 2>/dev/null; `+
+				`export XDG_RUNTIME_DIR="/run/user/$(id -u)"; `+
+				`export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"; `+
+				`KNIRV_SERVER_URL=%s KNIRV_SHUTDOWN_TOKEN=%s KNIRV_SERVER_PORT=%s exec %s %s`,
+			shellEscape(serverUrl), shellEscape(app.shutdownToken),
+			shellEscape(fmt.Sprintf("%d", app.config.Port)),
+			shellEscape(electronPath), shellEscape(mainJsPath),
+		)
+		app.dashboardCmd = exec.Command("sudo", "-u", sudoUser, "--set-home", "--", "bash", "-c", shellCmd)
+	} else {
+		app.dashboardCmd = exec.Command(electronPath, mainJsPath)
+		app.dashboardCmd.Env = append(os.Environ(),
+			fmt.Sprintf("KNIRV_SERVER_URL=%s", serverUrl),
+			fmt.Sprintf("KNIRV_SHUTDOWN_TOKEN=%s", app.shutdownToken),
+			fmt.Sprintf("KNIRV_SERVER_PORT=%d", app.config.Port),
+		)
+	}
+	app.dashboardCmd.Dir = dashboardDir
+	app.dashboardCmd.Stdout = os.Stdout
+	app.dashboardCmd.Stderr = os.Stderr
+
+	if err := app.dashboardCmd.Start(); err != nil {
+		return fmt.Errorf("failed to start dashboard: %w", err)
+	}
+
+	log.Printf("KNIRV Dashboard started (PID: %d)", app.dashboardCmd.Process.Pid)
+	return nil
+}
+
+// stopDashboard stops the Electron dashboard application
+func (app *NexusApp) stopDashboard() {
+	if app.dashboardCmd != nil && app.dashboardCmd.Process != nil {
+		log.Printf("Stopping KNIRV Dashboard (PID: %d)", app.dashboardCmd.Process.Pid)
+		app.dashboardCmd.Process.Signal(syscall.SIGTERM)
+		app.dashboardCmd.Wait()
+	}
+}
+
 // getAppDataDir returns the application data directory path
 func getAppDataDir() (string, error) {
 	// Try XDG_DATA_HOME first
@@ -257,6 +436,11 @@ func getAppDataDir() (string, error) {
 }
 
 // extractEnvFile extracts the embedded environment file based on the specified environment
+// shellEscape wraps a string in single quotes for safe use in a shell command.
+func shellEscape(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
+}
+
 func extractEnvFile(environment string) error {
 	var envData []byte
 	var envName string
@@ -376,6 +560,19 @@ func (app *NexusApp) setupRoutes() error {
 			"build_time": BuildTime,
 			"git_commit": GitCommit,
 		})
+	})
+
+	// Shutdown endpoint — only accepts requests bearing the per-run token
+	app.router.POST("/shutdown", func(c *gin.Context) {
+		if c.GetHeader("X-Shutdown-Token") != app.shutdownToken {
+			c.JSON(http.StatusForbidden, gin.H{"error": "invalid token"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "shutting down"})
+		select {
+		case app.shutdownChan <- struct{}{}:
+		default:
+		}
 	})
 
 	// API proxy to backend
@@ -538,11 +735,24 @@ func (app *NexusApp) Start() error {
 		}
 	}()
 
+	// Wait for server to be ready
+	time.Sleep(2 * time.Second)
+
+	// Start dashboard if enabled
+	if app.config.Dashboard {
+		if err := app.startDashboard(); err != nil {
+			log.Printf("Warning: Failed to start dashboard: %v", err)
+		}
+	}
+
 	return nil
 }
 
 // Stop stops the KNIRV-NEXUS application
 func (app *NexusApp) Stop() error {
+	// Stop dashboard first
+	app.stopDashboard()
+
 	// Stop HTTP server
 	if app.server != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -581,6 +791,7 @@ func loadConfig() (*Config, error) {
 	var (
 		configFile  = flag.String("config", "", "Path to configuration file")
 		testnet     = flag.Bool("testnet", false, "Enable testnet mode")
+		dashboard   = flag.Bool("dashboard", false, "Enable the KNIRV Dashboard GUI")
 		environment = flag.String("env", "production", "Environment: development, testnet, or production")
 		port        = flag.Int("port", 0, "Server port (overrides config)")
 		host        = flag.String("host", "", "Server host (overrides config)")
@@ -624,6 +835,7 @@ func loadConfig() (*Config, error) {
 	viper.SetDefault("backend_port", 8082)
 	viper.SetDefault("log_level", "info")
 	viper.SetDefault("testnet", false)
+	viper.SetDefault("dashboard", false)
 
 	// Enable environment variable support
 	viper.AutomaticEnv()
@@ -645,6 +857,9 @@ func loadConfig() (*Config, error) {
 	// Override with command line flags
 	if *testnet {
 		config.Testnet = true
+	}
+	if *dashboard {
+		config.Dashboard = true
 	}
 	if *port != 0 {
 		config.Port = *port
@@ -676,6 +891,11 @@ func main() {
 		log.Println("🧪 Starting KNIRV-NEXUS in testnet mode")
 	}
 
+	// Log dashboard mode if enabled
+	if config.Dashboard {
+		log.Println("🖥️  Starting KNIRV-NEXUS with Dashboard GUI")
+	}
+
 	// Create application
 	app, err := NewNexusApp(config)
 	if err != nil {
@@ -691,8 +911,12 @@ func main() {
 		log.Fatalf("Failed to start application: %v", err)
 	}
 
-	// Wait for shutdown signal
-	<-sigChan
+	// Wait for shutdown signal (OS signal or dashboard /shutdown request)
+	select {
+	case <-sigChan:
+	case <-app.shutdownChan:
+		log.Println("Shutdown requested by dashboard")
+	}
 	log.Println("Shutting down...")
 
 	if err := app.Stop(); err != nil {

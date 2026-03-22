@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transparent Dashboard - Browser Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #00ffff;
+            position: relative;
+        }
+
+        /* Background simulation (would be desktop in Electron) */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 50% 50%, rgba(0, 100, 200, 0.3) 0%, transparent 50%),
+                linear-gradient(45deg, #001 0%, #003 100%);
+            z-index: -1;
+        }
+
+        .panel {
+            background: rgba(0, 10, 20, 0.85);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 255, 0.2),
+                inset 0 0 20px rgba(0, 100, 150, 0.1);
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            position: fixed;
+            z-index: 1000;
+        }
+
+        .top-panel {
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-bottom: 2px solid rgba(0, 255, 255, 0.5);
+        }
+
+        .panel-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .label {
+            font-size: 10px;
+            color: rgba(0, 255, 255, 0.6);
+            letter-spacing: 2px;
+        }
+
+        .value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ffff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+
+        .value.active {
+            color: #00ff00;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+
+        .left-panel {
+            left: 0;
+            top: 60px;
+            bottom: 60px;
+            width: 250px;
+            border-right: 2px solid rgba(0, 255, 255, 0.5);
+            overflow-y: auto;
+        }
+
+        .panel-header {
+            font-size: 12px;
+            color: #00ffff;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            letter-spacing: 3px;
+        }
+
+        .metric-item {
+            margin-bottom: 20px;
+        }
+
+        .metric-label {
+            display: block;
+            font-size: 10px;
+            color: rgba(0, 255, 255, 0.7);
+            margin-bottom: 5px;
+        }
+
+        .metric-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 50, 100, 0.5);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .metric-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #0099ff);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+            transition: width 0.5s ease;
+        }
+
+        .metric-value {
+            font-size: 11px;
+            color: #00ffff;
+        }
+
+        .stat-item {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+            font-size: 11px;
+            color: rgba(0, 255, 255, 0.8);
+        }
+
+        .right-panel {
+            right: 0;
+            top: 60px;
+            bottom: 60px;
+            width: 250px;
+            border-left: 2px solid rgba(0, 255, 255, 0.5);
+            overflow-y: auto;
+        }
+
+        #performance-chart {
+            width: 100%;
+            height: 100px;
+            margin: 10px 0;
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 11px;
+            color: rgba(0, 255, 255, 0.7);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+        }
+
+        .notification-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+        }
+
+        .notification-dot.active {
+            background: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 11px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+        }
+
+        .info-label {
+            color: rgba(0, 255, 255, 0.6);
+        }
+
+        .info-value {
+            color: #00ffff;
+        }
+
+        .bottom-panel {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 2px solid rgba(0, 255, 255, 0.5);
+        }
+
+        .control-btn {
+            background: rgba(0, 100, 150, 0.5);
+            border: 1px solid rgba(0, 255, 255, 0.5);
+            color: #00ffff;
+            padding: 5px 15px;
+            margin: 0 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 150, 200, 0.7);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+            transform: scale(1.05);
+        }
+
+        .corner {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(0, 255, 255, 0.5);
+            z-index: 1001;
+        }
+
+        .corner.top-left {
+            top: 10px;
+            left: 10px;
+            border-right: none;
+            border-bottom: none;
+            box-shadow: -5px -5px 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .corner.top-right {
+            top: 10px;
+            right: 10px;
+            border-left: none;
+            border-bottom: none;
+            box-shadow: 5px -5px 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .corner.bottom-left {
+            bottom: 10px;
+            left: 10px;
+            border-right: none;
+            border-top: none;
+            box-shadow: -5px 5px 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .corner.bottom-right {
+            bottom: 10px;
+            right: 10px;
+            border-left: none;
+            border-top: none;
+            box-shadow: 5px 5px 15px rgba(0, 255, 255, 0.3);
+        }
+
+        .transparent-center {
+            position: fixed;
+            top: 60px;
+            left: 250px;
+            right: 250px;
+            bottom: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: rgba(0, 255, 255, 0.3);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 20, 40, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 255, 0.5);
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(0, 255, 255, 0.5), 
+                transparent);
+            animation: scan 3s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Panel -->
+    <div class="panel top-panel">
+        <div class="panel-section">
+            <span class="label">SYSTEM STATUS</span>
+            <span class="value active">ONLINE</span>
+        </div>
+        <div class="panel-section">
+            <span class="label">CPU</span>
+            <span class="value" id="cpu-usage">0%</span>
+        </div>
+        <div class="panel-section">
+            <span class="label">MEMORY</span>
+            <span class="value" id="memory-usage">0%</span>
+        </div>
+        <div class="panel-section">
+            <span class="label">TIME</span>
+            <span class="value" id="current-time">00:00:00</span>
+        </div>
+        <div class="panel-section">
+            <span class="label">SESSION</span>
+            <span class="value" id="uptime">0m 0s</span>
+        </div>
+    </div>
+
+    <!-- Left Panel -->
+    <div class="panel left-panel">
+        <div class="panel-header">SYSTEM METRICS</div>
+        <div class="metric-item">
+            <span class="metric-label">NETWORK</span>
+            <div class="metric-bar">
+                <div class="metric-fill" id="network-bar" style="width: 45%"></div>
+            </div>
+            <span class="metric-value" id="network-value">45%</span>
+        </div>
+        <div class="metric-item">
+            <span class="metric-label">DISK I/O</span>
+            <div class="metric-bar">
+                <div class="metric-fill" id="disk-bar" style="width: 60%"></div>
+            </div>
+            <span class="metric-value" id="disk-value">60%</span>
+        </div>
+        <div class="metric-item">
+            <span class="metric-label">PROCESSES</span>
+            <div class="metric-bar">
+                <div class="metric-fill" id="process-bar" style="width: 30%"></div>
+            </div>
+            <span class="metric-value" id="process-value">234</span>
+        </div>
+        <div class="panel-header" style="margin-top: 20px;">QUICK STATS</div>
+        <div class="stat-item">
+            <span>THREADS: <span id="threads">512</span></span>
+        </div>
+        <div class="stat-item">
+            <span>TEMP: <span id="temp">45°C</span></span>
+        </div>
+        <div class="stat-item">
+            <span>FAN: <span id="fan">2400 RPM</span></span>
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="panel right-panel">
+        <div class="panel-header">PERFORMANCE</div>
+        <canvas id="performance-chart" width="200" height="100"></canvas>
+        <div class="panel-header" style="margin-top: 20px;">NOTIFICATIONS</div>
+        <div class="notification-item">
+            <div class="notification-dot active"></div>
+            <span>System operational</span>
+        </div>
+        <div class="notification-item">
+            <div class="notification-dot"></div>
+            <span>No errors detected</span>
+        </div>
+        <div class="notification-item">
+            <div class="notification-dot"></div>
+            <span>All services running</span>
+        </div>
+        <div class="panel-header" style="margin-top: 20px;">SYSTEM INFO</div>
+        <div class="info-item">
+            <span class="info-label">PLATFORM:</span>
+            <span class="info-value" id="os-info">Web Browser</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">VERSION:</span>
+            <span class="info-value" id="version-info">1.0.0</span>
+        </div>
+    </div>
+
+    <!-- Bottom Panel -->
+    <div class="panel bottom-panel">
+        <div class="panel-section">
+            <span class="label">NET RX</span>
+            <span class="value" id="net-rx">0 KB/s</span>
+        </div>
+        <div class="panel-section">
+            <span class="label">NET TX</span>
+            <span class="value" id="net-tx">0 KB/s</span>
+        </div>
+        <div class="panel-section">
+            <span class="label">DISK READ</span>
+            <span class="value" id="disk-read">0 MB/s</span>
+        </div>
+        <div class="panel-section">
+            <span class="label">DISK WRITE</span>
+            <span class="value" id="disk-write">0 MB/s</span>
+        </div>
+        <div class="panel-section">
+            <button class="control-btn" onclick="toggleFullscreen()">⛶</button>
+            <button class="control-btn" onclick="resetMetrics()">↻</button>
+        </div>
+    </div>
+
+    <!-- Corner Decorations -->
+    <div class="corner top-left"></div>
+    <div class="corner top-right"></div>
+    <div class="corner bottom-left"></div>
+    <div class="corner bottom-right"></div>
+
+    <!-- Central Transparent Area -->
+    <div class="transparent-center">
+        <div>
+            DESKTOP VIEW<br>
+            <small style="font-size: 14px;">(In Electron, your desktop would show through here)</small>
+        </div>
+    </div>
+
+    <script>
+        // Performance chart
+        const canvas = document.getElementById('performance-chart');
+        const ctx = canvas.getContext('2d');
+        let performanceData = new Array(50).fill(0);
+        let startTime = Date.now();
+
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById('current-time').textContent = timeString;
+        }
+
+        function updateUptime() {
+            const uptime = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(uptime / 60);
+            const seconds = uptime % 60;
+            document.getElementById('uptime').textContent = `${minutes}m ${seconds}s`;
+        }
+
+        function drawPerformanceChart() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+                const y = (canvas.height / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw performance line
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            const pointSpacing = canvas.width / performanceData.length;
+            
+            performanceData.forEach((value, index) => {
+                const x = index * pointSpacing;
+                const y = canvas.height - (value / 100) * canvas.height;
+                
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Draw glow effect
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = 'rgba(0, 255, 255, 0.5)';
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        function updateMetrics() {
+            // Simulate CPU usage
+            const cpuUsage = Math.min(100, Math.max(10, 30 + Math.random() * 40));
+            document.getElementById('cpu-usage').textContent = `${Math.round(cpuUsage)}%`;
+            
+            // Simulate memory usage
+            const memUsage = Math.min(100, Math.max(20, 50 + Math.random() * 30));
+            document.getElementById('memory-usage').textContent = `${Math.round(memUsage)}%`;
+            
+            // Update performance chart
+            performanceData.shift();
+            performanceData.push(cpuUsage);
+            drawPerformanceChart();
+            
+            // Update bars
+            const networkUsage = Math.min(100, Math.max(0, 45 + Math.random() * 30 - 15));
+            document.getElementById('network-bar').style.width = `${networkUsage}%`;
+            document.getElementById('network-value').textContent = `${Math.round(networkUsage)}%`;
+            
+            const diskUsage = Math.min(100, Math.max(0, 60 + Math.random() * 20 - 10));
+            document.getElementById('disk-bar').style.width = `${diskUsage}%`;
+            document.getElementById('disk-value').textContent = `${Math.round(diskUsage)}%`;
+            
+            // Network speeds
+            const netRx = (Math.random() * 1000).toFixed(0);
+            const netTx = (Math.random() * 500).toFixed(0);
+            document.getElementById('net-rx').textContent = `${netRx} KB/s`;
+            document.getElementById('net-tx').textContent = `${netTx} KB/s`;
+            
+            // Disk speeds
+            const diskRead = (Math.random() * 50).toFixed(1);
+            const diskWrite = (Math.random() * 30).toFixed(1);
+            document.getElementById('disk-read').textContent = `${diskRead} MB/s`;
+            document.getElementById('disk-write').textContent = `${diskWrite} MB/s`;
+            
+            // Process count
+            const processes = 200 + Math.floor(Math.random() * 100);
+            document.getElementById('process-bar').style.width = `${(processes / 400) * 100}%`;
+            document.getElementById('process-value').textContent = `${processes}`;
+            
+            // Other stats
+            document.getElementById('threads').textContent = Math.floor(processes * 2.5);
+            document.getElementById('temp').textContent = `${40 + Math.floor(Math.random() * 15)}°C`;
+            document.getElementById('fan').textContent = `${2000 + Math.floor(Math.random() * 1000)} RPM`;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function resetMetrics() {
+            performanceData = new Array(50).fill(0);
+            startTime = Date.now();
+        }
+
+        // Initialize
+        updateTime();
+        updateUptime();
+        updateMetrics();
+        drawPerformanceChart();
+
+        // Update intervals
+        setInterval(updateTime, 1000);
+        setInterval(updateUptime, 1000);
+        setInterval(updateMetrics, 2000);
+
+        console.log('Dashboard initialized!');
+    </script>
+</body>
+</html>

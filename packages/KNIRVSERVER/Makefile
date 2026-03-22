@@ -11,6 +11,7 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 ROOT_DIR := $(shell pwd)
 BACKEND_DIR := $(ROOT_DIR)/backend
 FRONTEND_DIR := $(ROOT_DIR)/frontend
+DASHBOARD_DIR := $(ROOT_DIR)/dashboard
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -47,10 +48,30 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate kali-docker-image
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate kali-docker-image dashboard dashboard-deps dashboard-build dash
 
 # Default target
-all: clean deps frontend backend binary
+all: clean deps frontend dashboard-build backend binary
+
+# Dashboard (Electron)
+dashboard-deps: ## Install dashboard dependencies
+	@echo "$(BLUE)Installing dashboard dependencies...$(NC)"
+	cd $(DASHBOARD_DIR) && $(NPM_CMD) install
+
+dashboard-build: dashboard-deps ## Build dashboard TypeScript and copy assets to dist/
+	@echo "$(BLUE)Building dashboard...$(NC)"
+	cd $(DASHBOARD_DIR) && $(NPM_CMD) run build
+	@echo "$(GREEN)Dashboard build completed$(NC)"
+
+dashboard: dashboard-build ## Build dashboard and launch standalone (for development)
+	@echo "$(BLUE)Starting dashboard...$(NC)"
+	cd $(DASHBOARD_DIR) && $(NPM_CMD) run start
+
+dash: dashboard-build ## Rebuild dashboard and relink into binary (fast path, skips frontend/backend/eBPF)
+	@echo "$(BLUE)Rebuilding binary with updated dashboard...$(NC)"
+	@mkdir -p $(DIST_DIR)
+	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
+	@echo "$(GREEN)Done — run: sudo ./dist/knirv-server --dashboard$(NC)"
 
 help: ## Show this help message
 	@echo "$(BLUE)KNIRV-SERVER Build System$(NC)"
@@ -78,7 +99,7 @@ deps-node: ## Install Node.js dependencies
 
 deps-ansible: ## Install Ansible dependencies
 	@echo "$(BLUE)Installing Ansible dependencies...$(NC)"
-	cd $(DEPLOYMENT_DIR)/ansible && ansible-galaxy collection install -r requirements.yml
+	-cd $(DEPLOYMENT_DIR)/ansible && ansible-galaxy collection install -r requirements.yml 2>/dev/null || true
 
 # Frontend Build
 frontend: deps-node ## Build Next.js frontend
@@ -110,8 +131,8 @@ deployer: deps-go ## Build container_deployer binary
 	cd $(BACKEND_DIR)/cmd/container_deployer && go build -ldflags "$(LDFLAGS)" -o container_deployer main.go
 	@echo "$(GREEN)container_deployer build completed: backend/cmd/container_deployer/container_deployer$(NC)"
 
-# Unified Binary (Frontend + Unified Backend)
-binary: ebpf-generate frontend backend ## Build unified binary with embedded eBPF, frontend, and backend
+# Unified Binary (Frontend + Dashboard + Unified Backend)
+binary: ebpf-generate frontend dashboard-build backend ## Build unified binary with embedded eBPF, frontend, dashboard, and backend
 	@echo "$(BLUE)Creating unified binary with embedded eBPF...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
@@ -254,7 +275,7 @@ clean: ## Clean everything including dependencies
 	@echo "$(BLUE)Cleaning all artifacts and dependencies...$(NC)"
 	rm -rf $(FRONTEND_DIR)/node_modules
 	cd $(BACKEND_DIR) && go clean -modcache
-	docker rmi knirvserver-kali-base:latest
+	-docker rmi knirvserver-kali-base:latest 2>/dev/null || true
 
 install: binary ## Install binary to system
 	@echo "$(BLUE)Installing binary...$(NC)"
