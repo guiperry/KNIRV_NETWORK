@@ -3,7 +3,6 @@
 /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/net8.0/KnirvNetwork.runtimeconfig.json
 /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/net8.0/KnirvNetwork.dll
 /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/net8.0/KnirvNetwork.pdb
-/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/net8.0/PCheckerCore.dll
 /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/net8.0/PCheckerCore.pdb
 /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/net8.0/PCheckerCore.xml
 /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/modp/output/PChecker/obj/Release/net8.0/KnirvNetwork.csproj.AssemblyReference.cache

@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,12 +33,15 @@ import (
 	"backend_server/internal/services/dvemanager"
 	dverental "backend_server/internal/services/dverental"
 	"backend_server/internal/services/endpoints"
+	"backend_server/internal/services/evidence"
 	fabricserver "backend_server/internal/services/fabric-server"
-	"backend_server/internal/services/fabricmanagement"
-	"backend_server/internal/services/fintech_validator"
+	fabricmanagement "backend_server/internal/services/fabricmanagement"
+	fintech_validator "backend_server/internal/services/fintech_validator"
+	"backend_server/internal/services/guardrails"
 	icme "backend_server/internal/services/icme"
 	inference "backend_server/internal/services/inferencer"
 	"backend_server/internal/services/p2p"
+	secrets "backend_server/internal/services/secrets"
 	"backend_server/internal/services/session"
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
@@ -45,6 +49,7 @@ import (
 	"backend_server/internal/services/validation"
 	"backend_server/internal/services/vault"
 	"backend_server/internal/services/websocket"
+	"backend_server/internal/services/workflow"
 	"backend_server/internal/storage/mdstorage"
 	"backend_server/internal/storage/pqc"
 	"backend_server/internal/web"
@@ -120,6 +125,14 @@ type Server struct {
 
 	// ICME - Intentional Context Memory Engine
 	icmeService *icme.Service
+
+	// Production Services (Phase 3, 4, 8)
+	eventBroadcaster *websocket.EventBroadcaster
+	anchoringService *evidence.AnchoringService
+	secretManager    *secrets.SecretManager
+	workflowService  *workflow.WorkflowService
+	guardrailManager *guardrails.DynamicGuardrailManager
+	policyEngine     *guardrails.PolicyEngine
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -217,7 +230,6 @@ func initLogging(cfg *config.Config) (*zap.Logger, error) {
 
 	// Create logger
 	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
-
 
 	// Also redirect standard log output to both files for compatibility
 	log.SetOutput(multiWriter)
@@ -698,6 +710,73 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		log.Printf("Warning: Failed to start Nexus Guardian (eBPF): %v", err)
 	}
 
+	// ============================================
+	// Production Services (Phase 3, 4, 8)
+	// ============================================
+
+	// Initialize EventBroadcaster for comprehensive WebSocket event streaming
+	eventBroadcaster := websocket.NewEventBroadcaster(nil)
+	eventBroadcaster.Start()
+	log.Println("EventBroadcaster initialized")
+
+	// Initialize AnchoringService for PQC-signed evidence pack anchoring
+	anchoringService := evidence.NewAnchoringService(dbManager, pqcManager, "nexus-master")
+	if nrnClient != nil {
+		anchoringService.SetChainClient(&nrnChainAdapter{client: nrnClient})
+		log.Println("AnchoringService: blockchain client wired for chain anchoring")
+	}
+	if err := anchoringService.LoadEvidencePacks(); err != nil {
+		log.Printf("Warning: Failed to load evidence packs: %v", err)
+	}
+	log.Println("AnchoringService initialized")
+
+	// Initialize SecretManager for session-based secret management
+	secretManager := secrets.NewSecretManager(dbManager)
+	secretManager.SetEncryptionKey([]byte(cfg.Security.JWTSecret))
+	if err := secretManager.LoadSecrets(); err != nil {
+		log.Printf("Warning: Failed to load secrets: %v", err)
+	}
+	if err := secretManager.LoadSessions(); err != nil {
+		log.Printf("Warning: Failed to load secret sessions: %v", err)
+	}
+	log.Println("SecretManager initialized")
+
+	// Initialize WorkflowService for real workflow execution orchestration
+	workflowService := workflow.NewWorkflowService(dbManager)
+	workflowService.SetDVEManager(dveManager)
+	workflowService.SetValidationCore(validationCore)
+	workflowService.RegisterExecutor("validation", workflow.NewDVETaskExecutor(dveManager, validationCore))
+	workflowService.SetEventBroadcaster(eventBroadcaster)
+	if err := workflowService.LoadExecutionsFromDB(); err != nil {
+		log.Printf("Warning: Failed to load workflow executions: %v", err)
+	}
+	log.Println("WorkflowService initialized")
+
+	// Initialize GuardrailManager for dynamic guardrails and policy enforcement
+	guardrailManager := guardrails.NewDynamicGuardrailManager(dbManager)
+	guardrailManager.SetEventBroadcaster(eventBroadcaster)
+	if err := guardrailManager.LoadConfigurations(); err != nil {
+		log.Printf("Warning: Failed to load guardrail configurations: %v", err)
+	}
+	if err := guardrailManager.LoadOntologyRules(); err != nil {
+		log.Printf("Warning: Failed to load ontology rules: %v", err)
+	}
+
+	// Initialize PolicyEngine for ICME policy integration
+	policyEngine := guardrails.NewPolicyEngine(dbManager, guardrailManager)
+	if icmeService != nil {
+		icmeAdapter := &icmePolicyAdapter{icme: icmeService}
+		policyEngine.SetICMEService(icmeAdapter)
+		log.Println("PolicyEngine: ICME service wired for intent objective management")
+	}
+	if err := policyEngine.LoadPolicies(); err != nil {
+		log.Printf("Warning: Failed to load policies: %v", err)
+	}
+	log.Println("GuardrailManager and PolicyEngine initialized")
+
+	// Wire EventBroadcaster to WebSocket service (will be set in setupRoutes)
+	_ = eventBroadcaster
+
 	// Create context for service lifecycle management
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -739,6 +818,12 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		unifiedContainerManager:      unifiedContainerManager,
 		agentService:                 agentService,
 		icmeService:                  icmeService,
+		eventBroadcaster:             eventBroadcaster,
+		anchoringService:             anchoringService,
+		secretManager:                secretManager,
+		workflowService:              workflowService,
+		guardrailManager:             guardrailManager,
+		policyEngine:                 policyEngine,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -778,6 +863,79 @@ func (a *blockchainClientAdapter) SubmitTransaction(tx interface{}) (string, err
 	return a.client.SubmitTransaction(blockchainTx)
 }
 
+type nrnChainAdapter struct {
+	client *blockchain.NRNClient
+}
+
+func (a *nrnChainAdapter) SubmitTransaction(tx *evidence.ChainTransaction) (string, error) {
+	return a.client.SubmitTransaction(&blockchain.Transaction{
+		Type: tx.Type,
+		Data: tx.Data,
+	})
+}
+
+func (a *nrnChainAdapter) GetBlockHeight() (uint64, error) {
+	return 0, nil
+}
+
+type icmePolicyAdapter struct {
+	icme *icme.Service
+}
+
+func (a *icmePolicyAdapter) RegisterObjective(obj *guardrails.IntentObjective) error {
+	icmeObj := &icme.IntentObjective{
+		Name:           obj.Name,
+		Scope:          icme.IntentScope(obj.Scope),
+		HardBoundaries: []string{},
+	}
+	for k, v := range obj.HardBoundaries {
+		icmeObj.HardBoundaries = append(icmeObj.HardBoundaries, fmt.Sprintf("%s=%.2f", k, v))
+	}
+	for k, v := range obj.SoftLimits {
+		icmeObj.HardBoundaries = append(icmeObj.HardBoundaries, fmt.Sprintf("%s=%.2f(soft)", k, v))
+	}
+	for k, v := range obj.TradeOffs {
+		icmeObj.TradeOffs[k] = v
+	}
+	return a.icme.RegisterObjective(icmeObj)
+}
+
+func (a *icmePolicyAdapter) GetObjectiveForAgent(agentID, dveID string) *guardrails.IntentObjective {
+	icmeObj := a.icme.GetObjectiveForAgent(agentID, dveID)
+	if icmeObj == nil {
+		return nil
+	}
+	obj := &guardrails.IntentObjective{
+		Name:    icmeObj.Name,
+		Scope:   string(icmeObj.Scope),
+		Version: icmeObj.Version,
+	}
+	for _, hb := range icmeObj.HardBoundaries {
+		if parts := strings.SplitN(hb, "=", 2); len(parts) == 2 {
+			var val float64
+			fmt.Sscanf(parts[1], "%f", &val)
+			if strings.HasSuffix(parts[1], "(soft)") {
+				if obj.SoftLimits == nil {
+					obj.SoftLimits = make(map[string]float64)
+				}
+				obj.SoftLimits[strings.TrimSuffix(parts[0], "(soft)")] = val
+			} else {
+				if obj.HardBoundaries == nil {
+					obj.HardBoundaries = make(map[string]float64)
+				}
+				obj.HardBoundaries[parts[0]] = val
+			}
+		}
+	}
+	for k, v := range icmeObj.TradeOffs {
+		if obj.TradeOffs == nil {
+			obj.TradeOffs = make(map[string]float64)
+		}
+		obj.TradeOffs[k] = v
+	}
+	return obj
+}
+
 // setupRoutes configures all HTTP routes for the unified server
 func (s *Server) setupRoutes() {
 	// Health check endpoint
@@ -812,9 +970,26 @@ func (s *Server) setupRoutes() {
 	}
 	s.websocketService = wsService
 
+	// Wire EventBroadcaster into WebSocket for comprehensive event streaming
+	if s.eventBroadcaster != nil {
+		s.eventBroadcaster = websocket.NewEventBroadcaster(wsService)
+		s.eventBroadcaster.Start()
+		log.Println("EventBroadcaster wired into WebSocket service")
+	}
+
 	// Wire Controller Integration service with WebSocket service
 	if s.controllerIntegrationService != nil {
 		s.controllerIntegrationService.SetWebSocketService(wsService)
+	}
+
+	// Wire GuardrailManager with EventBroadcaster
+	if s.guardrailManager != nil {
+		s.guardrailManager.SetEventBroadcaster(s.eventBroadcaster)
+	}
+
+	// Wire WorkflowService with EventBroadcaster
+	if s.workflowService != nil {
+		s.workflowService.SetEventBroadcaster(s.eventBroadcaster)
 	}
 
 	// Auth routes (before other protected routes)
@@ -913,11 +1088,32 @@ func (s *Server) setupRoutes() {
 
 	// DVE Rental has been removed/deprecated in exchange for direct DVE Creation
 
-	// Register workflow execution routes (Gap 4)
-	{
-		workflowHandlers := web.NewWorkflowHandlers(s.dveManager, nil)
+	// Register workflow execution routes with real WorkflowService (Phase 4)
+	if s.workflowService != nil {
+		workflowHandlers := web.NewWorkflowHandlers(s.dveManager, s.workflowService)
 		workflowHandlers.RegisterRoutes(s.router)
-		log.Println("Workflow execution routes configured")
+		log.Println("Workflow execution routes configured with WorkflowService")
+	}
+
+	// Register guardrail and policy routes
+	if s.guardrailManager != nil {
+		guardrailHandlers := web.NewGuardrailHandlers(s.guardrailManager, s.policyEngine)
+		guardrailHandlers.RegisterRoutes(s.router)
+		log.Println("Guardrail and Policy routes configured")
+	}
+
+	// Register secret manager routes
+	if s.secretManager != nil {
+		secretHandlers := web.NewSecretHandlers(s.secretManager)
+		secretHandlers.RegisterRoutes(s.router)
+		log.Println("Secret manager routes configured")
+	}
+
+	// Register anchoring service routes
+	if s.anchoringService != nil {
+		anchoringHandlers := web.NewAnchoringHandlers(s.anchoringService)
+		anchoringHandlers.RegisterRoutes(s.router)
+		log.Println("Anchoring service routes configured")
 	}
 
 	// Register validation service routes
@@ -1060,6 +1256,12 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"model_server":          s.unifiedContainerManager != nil,
 			"agent_service":         s.agentService != nil,
 			"icme_service":          s.icmeService != nil,
+			"event_broadcaster":     s.eventBroadcaster != nil,
+			"anchoring_service":     s.anchoringService != nil,
+			"secret_manager":        s.secretManager != nil,
+			"workflow_service":      s.workflowService != nil,
+			"guardrail_manager":     s.guardrailManager != nil,
+			"policy_engine":         s.policyEngine != nil,
 		},
 		"ebpf": ebpfMetrics,
 	}
@@ -1220,10 +1422,32 @@ func (s *Server) Start() error {
 	if s.websocketService != nil {
 		if err := s.websocketService.Start(); err != nil {
 			log.Printf("Warning: Failed to start WebSocket service: %v", err)
-			// Continue - WebSocket service failure shouldn't stop basic server operation
 		} else {
 			log.Println("WebSocket Service started")
 		}
+	}
+
+	// Start EventBroadcaster (Phase 8 - comprehensive event streaming)
+	if s.eventBroadcaster != nil {
+		s.eventBroadcaster.Start()
+		log.Println("EventBroadcaster started")
+	}
+
+	// Start SecretManager session cleanup routine
+	if s.secretManager != nil {
+		go func() {
+			ticker := time.NewTicker(5 * time.Minute)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					s.secretManager.CleanupExpiredSessions()
+				case <-s.ctx.Done():
+					return
+				}
+			}
+		}()
+		log.Println("SecretManager started")
 	}
 
 	// Start Cognitive Engine
@@ -1320,6 +1544,12 @@ func (s *Server) Stop() error {
 		if err := s.websocketService.Stop(); err != nil {
 			log.Printf("Error stopping WebSocket service: %v", err)
 		}
+	}
+
+	// Stop EventBroadcaster
+	if s.eventBroadcaster != nil {
+		s.eventBroadcaster.Stop()
+		log.Println("EventBroadcaster stopped")
 	}
 
 	if s.teeSecurityService != nil {

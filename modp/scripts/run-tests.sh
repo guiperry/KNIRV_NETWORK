@@ -139,9 +139,9 @@ run_network_tests() {
 
     for test in "${NETWORK_TESTS[@]}"; do
         if run_test "$test"; then
-            ((passed++))
+            ((++passed))
         else
-            ((failed++)) || true
+            ((++failed)) || true
         fi
         echo ""
     done
@@ -170,9 +170,9 @@ run_component_tests() {
 
     for test in "${COMPONENT_TESTS[@]}"; do
         if run_test "$test"; then
-            ((passed++))
+            ((++passed))
         else
-            ((failed++)) || true
+            ((++failed)) || true
         fi
         echo ""
     done

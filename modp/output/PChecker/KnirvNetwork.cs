@@ -2149,38 +2149,41 @@ namespace PImplementation
             PNamedTuple TMP_tmp31 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             PBool TMP_tmp32 = ((PBool)false);
             PMachineValue TMP_tmp33 = null;
-            Event TMP_tmp34 = null;
-            PString TMP_tmp35 = ((PString)"");
-            PNamedTuple TMP_tmp36 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp37 = ((PInt)0);
-            PNamedTuple TMP_tmp38 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp39 = ((PInt)0);
-            PBool TMP_tmp40 = ((PBool)false);
-            PMachineValue TMP_tmp41 = null;
-            Event TMP_tmp42 = null;
-            PString TMP_tmp43 = ((PString)"");
-            PNamedTuple TMP_tmp44 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp45 = ((PInt)0);
+            PMachineValue TMP_tmp34 = null;
+            Event TMP_tmp35 = null;
+            PString TMP_tmp36 = ((PString)"");
+            PNamedTuple TMP_tmp37 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp38 = ((PInt)0);
+            PNamedTuple TMP_tmp39 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp40 = ((PInt)0);
+            PBool TMP_tmp41 = ((PBool)false);
+            PMachineValue TMP_tmp42 = null;
+            PMachineValue TMP_tmp43 = null;
+            Event TMP_tmp44 = null;
+            PString TMP_tmp45 = ((PString)"");
             PNamedTuple TMP_tmp46 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp47 = ((PInt)0);
-            PInt TMP_tmp48 = ((PInt)0);
-            PNamedTuple TMP_tmp49 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PNamedTuple TMP_tmp48 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp49 = ((PInt)0);
             PInt TMP_tmp50 = ((PInt)0);
             PNamedTuple TMP_tmp51 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp52 = ((PInt)0);
-            PInt TMP_tmp53 = ((PInt)0);
-            PNamedTuple TMP_tmp54 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp55 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PSeq TMP_tmp56 = new PSeq();
+            PNamedTuple TMP_tmp53 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp54 = ((PInt)0);
+            PInt TMP_tmp55 = ((PInt)0);
+            PNamedTuple TMP_tmp56 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp57 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp58 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PSeq TMP_tmp58 = new PSeq();
             PNamedTuple TMP_tmp59 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp60 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp61 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PNamedTuple TMP_tmp62 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PMachineValue TMP_tmp63 = null;
-            Event TMP_tmp64 = null;
-            PNamedTuple TMP_tmp65 = (new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"from","recipient","amount","fee","timestamp","txHash"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"bytes"},new PSeq()))))));
+            PNamedTuple TMP_tmp61 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp62 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp63 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PNamedTuple TMP_tmp64 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PMachineValue TMP_tmp65 = null;
+            PMachineValue TMP_tmp66 = null;
+            Event TMP_tmp67 = null;
+            PNamedTuple TMP_tmp68 = (new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"from","recipient","amount","fee","timestamp","txHash"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"bytes"},new PSeq()))))));
             TMP_tmp0_1 = (PNamedTuple)(((PNamedTuple)payload)["from"]);
             TMP_tmp1_1 = (PBool)(((PBool)(((PMap)balances).ContainsKey(TMP_tmp0_1))));
             if (TMP_tmp1_1)
@@ -2232,68 +2235,71 @@ namespace PImplementation
             TMP_tmp32 = (PBool)(!(transfersEnabled));
             if (TMP_tmp32)
             {
-                TMP_tmp33 = (PMachineValue)(currentMachine.self);
-                TMP_tmp34 = (Event)(new eTransferFailed(((PString)"")));
-                TMP_tmp35 = (PString)(((PString) String.Format("Transfers are disabled")));
-                TMP_tmp34.Payload = TMP_tmp35;
-                currentMachine.SendEvent(TMP_tmp33, (Event)TMP_tmp34);
+                TMP_tmp33 = (PMachineValue)(((PNamedTuple)payload)["caller"]);
+                TMP_tmp34 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp33)?.Clone()));
+                TMP_tmp35 = (Event)(new eTransferFailed(((PString)"")));
+                TMP_tmp36 = (PString)(((PString) String.Format("Transfers are disabled")));
+                TMP_tmp35.Payload = TMP_tmp36;
+                currentMachine.SendEvent(TMP_tmp34, (Event)TMP_tmp35);
                 return ;
             }
-            TMP_tmp36 = (PNamedTuple)(((PNamedTuple)fromBalance)["available"]);
-            TMP_tmp37 = (PInt)(((PNamedTuple)TMP_tmp36)["value"]);
-            TMP_tmp38 = (PNamedTuple)(((PNamedTuple)payload)["amount"]);
-            TMP_tmp39 = (PInt)(((PNamedTuple)TMP_tmp38)["value"]);
-            TMP_tmp40 = (PBool)((TMP_tmp37) < (TMP_tmp39));
-            if (TMP_tmp40)
+            TMP_tmp37 = (PNamedTuple)(((PNamedTuple)fromBalance)["available"]);
+            TMP_tmp38 = (PInt)(((PNamedTuple)TMP_tmp37)["value"]);
+            TMP_tmp39 = (PNamedTuple)(((PNamedTuple)payload)["amount"]);
+            TMP_tmp40 = (PInt)(((PNamedTuple)TMP_tmp39)["value"]);
+            TMP_tmp41 = (PBool)((TMP_tmp38) < (TMP_tmp40));
+            if (TMP_tmp41)
             {
-                TMP_tmp41 = (PMachineValue)(currentMachine.self);
-                TMP_tmp42 = (Event)(new eTransferFailed(((PString)"")));
-                TMP_tmp43 = (PString)(((PString) String.Format("Insufficient balance")));
-                TMP_tmp42.Payload = TMP_tmp43;
-                currentMachine.SendEvent(TMP_tmp41, (Event)TMP_tmp42);
+                TMP_tmp42 = (PMachineValue)(((PNamedTuple)payload)["caller"]);
+                TMP_tmp43 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp42)?.Clone()));
+                TMP_tmp44 = (Event)(new eTransferFailed(((PString)"")));
+                TMP_tmp45 = (PString)(((PString) String.Format("Insufficient balance")));
+                TMP_tmp44.Payload = TMP_tmp45;
+                currentMachine.SendEvent(TMP_tmp43, (Event)TMP_tmp44);
                 return ;
             }
-            TMP_tmp44 = (PNamedTuple)(((PNamedTuple)fromBalance)["available"]);
-            TMP_tmp45 = (PInt)(((PNamedTuple)TMP_tmp44)["value"]);
-            TMP_tmp46 = (PNamedTuple)(((PNamedTuple)payload)["amount"]);
+            TMP_tmp46 = (PNamedTuple)(((PNamedTuple)fromBalance)["available"]);
             TMP_tmp47 = (PInt)(((PNamedTuple)TMP_tmp46)["value"]);
-            TMP_tmp48 = (PInt)((TMP_tmp45) - (TMP_tmp47));
-            ((PNamedTuple)((PNamedTuple)fromBalance)["available"])["value"] = TMP_tmp48;
-            TMP_tmp49 = (PNamedTuple)(((PNamedTuple)toBalance)["available"]);
-            TMP_tmp50 = (PInt)(((PNamedTuple)TMP_tmp49)["value"]);
-            TMP_tmp51 = (PNamedTuple)(((PNamedTuple)payload)["amount"]);
+            TMP_tmp48 = (PNamedTuple)(((PNamedTuple)payload)["amount"]);
+            TMP_tmp49 = (PInt)(((PNamedTuple)TMP_tmp48)["value"]);
+            TMP_tmp50 = (PInt)((TMP_tmp47) - (TMP_tmp49));
+            ((PNamedTuple)((PNamedTuple)fromBalance)["available"])["value"] = TMP_tmp50;
+            TMP_tmp51 = (PNamedTuple)(((PNamedTuple)toBalance)["available"]);
             TMP_tmp52 = (PInt)(((PNamedTuple)TMP_tmp51)["value"]);
-            TMP_tmp53 = (PInt)((TMP_tmp50) + (TMP_tmp52));
-            ((PNamedTuple)((PNamedTuple)toBalance)["available"])["value"] = TMP_tmp53;
-            TMP_tmp54 = (PNamedTuple)(((PNamedTuple)payload)["from"]);
-            ((PMap)balances)[TMP_tmp54] = (PNamedTuple)(((PNamedTuple)((IPValue)fromBalance)?.Clone()));
-            TMP_tmp55 = (PNamedTuple)(((PNamedTuple)payload)["recipient"]);
-            ((PMap)balances)[TMP_tmp55] = (PNamedTuple)(((PNamedTuple)((IPValue)toBalance)?.Clone()));
+            TMP_tmp53 = (PNamedTuple)(((PNamedTuple)payload)["amount"]);
+            TMP_tmp54 = (PInt)(((PNamedTuple)TMP_tmp53)["value"]);
+            TMP_tmp55 = (PInt)((TMP_tmp52) + (TMP_tmp54));
+            ((PNamedTuple)((PNamedTuple)toBalance)["available"])["value"] = TMP_tmp55;
+            TMP_tmp56 = (PNamedTuple)(((PNamedTuple)payload)["from"]);
+            ((PMap)balances)[TMP_tmp56] = (PNamedTuple)(((PNamedTuple)((IPValue)fromBalance)?.Clone()));
+            TMP_tmp57 = (PNamedTuple)(((PNamedTuple)payload)["recipient"]);
+            ((PMap)balances)[TMP_tmp57] = (PNamedTuple)(((PNamedTuple)((IPValue)toBalance)?.Clone()));
             ((PNamedTuple)tmpBigInt)["value"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)tmpBigInt)["isNegative"] = (PBool)(((PBool)false));
             ((PNamedTuple)tmpTimestamp)["milliseconds"] = (PInt)(((PInt)(0)));
-            TMP_tmp56 = (PSeq)(new PSeq());
-            ((PNamedTuple)tmpHash)["bytes"] = TMP_tmp56;
-            TMP_tmp57 = (PNamedTuple)(((PNamedTuple)payload)["from"]);
-            TMP_tmp58 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp57)?.Clone()));
-            ((PNamedTuple)tmpReceipt)["from"] = TMP_tmp58;
-            TMP_tmp59 = (PNamedTuple)(((PNamedTuple)payload)["recipient"]);
+            TMP_tmp58 = (PSeq)(new PSeq());
+            ((PNamedTuple)tmpHash)["bytes"] = TMP_tmp58;
+            TMP_tmp59 = (PNamedTuple)(((PNamedTuple)payload)["from"]);
             TMP_tmp60 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp59)?.Clone()));
-            ((PNamedTuple)tmpReceipt)["recipient"] = TMP_tmp60;
-            TMP_tmp61 = (PNamedTuple)(((PNamedTuple)payload)["amount"]);
+            ((PNamedTuple)tmpReceipt)["from"] = TMP_tmp60;
+            TMP_tmp61 = (PNamedTuple)(((PNamedTuple)payload)["recipient"]);
             TMP_tmp62 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp61)?.Clone()));
-            ((PNamedTuple)tmpReceipt)["amount"] = TMP_tmp62;
+            ((PNamedTuple)tmpReceipt)["recipient"] = TMP_tmp62;
+            TMP_tmp63 = (PNamedTuple)(((PNamedTuple)payload)["amount"]);
+            TMP_tmp64 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp63)?.Clone()));
+            ((PNamedTuple)tmpReceipt)["amount"] = TMP_tmp64;
             ((PNamedTuple)tmpReceipt)["fee"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpBigInt)?.Clone()));
             ((PNamedTuple)tmpReceipt)["timestamp"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpTimestamp)?.Clone()));
             ((PNamedTuple)tmpReceipt)["txHash"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpHash)?.Clone()));
             ((PNamedTuple)tmpResponse)["success"] = (PBool)(((PBool)true));
             ((PNamedTuple)tmpResponse)["receipt"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpReceipt)?.Clone()));
             currentMachine.Announce((Event)new eTransferResponse((new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"from","recipient","amount","fee","timestamp","txHash"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"bytes"},new PSeq()))))))), tmpResponse);
-            TMP_tmp63 = (PMachineValue)(currentMachine.self);
-            TMP_tmp64 = (Event)(new eTransferResponse((new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"from","recipient","amount","fee","timestamp","txHash"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"bytes"},new PSeq()))))))));
-            TMP_tmp65 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpResponse)?.Clone()));
-            TMP_tmp64.Payload = TMP_tmp65;
-            currentMachine.SendEvent(TMP_tmp63, (Event)TMP_tmp64);
+            TMP_tmp65 = (PMachineValue)(((PNamedTuple)payload)["caller"]);
+            TMP_tmp66 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp65)?.Clone()));
+            TMP_tmp67 = (Event)(new eTransferResponse((new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"from","recipient","amount","fee","timestamp","txHash"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"bytes"},new PSeq()))))))));
+            TMP_tmp68 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpResponse)?.Clone()));
+            TMP_tmp67.Payload = TMP_tmp68;
+            currentMachine.SendEvent(TMP_tmp66, (Event)TMP_tmp67);
         }
         public void Anon_4(Event currentMachine_dequeuedEvent)
         {
@@ -2306,123 +2312,129 @@ namespace PImplementation
             PBool TMP_tmp1_2 = ((PBool)false);
             PString TMP_tmp2_2 = ((PString)"");
             PMachineValue TMP_tmp3_2 = null;
-            Event TMP_tmp4_2 = null;
-            PString TMP_tmp5_2 = ((PString)"");
-            PInt TMP_tmp6_2 = ((PInt)0);
-            PNamedTuple TMP_tmp7_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp8_2 = ((PInt)0);
+            PMachineValue TMP_tmp4_2 = null;
+            Event TMP_tmp5_2 = null;
+            PString TMP_tmp6_2 = ((PString)"");
+            PInt TMP_tmp7_2 = ((PInt)0);
+            PNamedTuple TMP_tmp8_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp9_2 = ((PInt)0);
             PInt TMP_tmp10_1 = ((PInt)0);
-            PBool TMP_tmp11_1 = ((PBool)false);
-            PString TMP_tmp12_1 = ((PString)"");
-            PMachineValue TMP_tmp13_1 = null;
-            Event TMP_tmp14_1 = null;
-            PString TMP_tmp15_1 = ((PString)"");
-            PNamedTuple TMP_tmp16_1 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PBool TMP_tmp17_1 = ((PBool)false);
+            PInt TMP_tmp11_1 = ((PInt)0);
+            PBool TMP_tmp12_1 = ((PBool)false);
+            PString TMP_tmp13_1 = ((PString)"");
+            PMachineValue TMP_tmp14_1 = null;
+            PMachineValue TMP_tmp15_1 = null;
+            Event TMP_tmp16_1 = null;
+            PString TMP_tmp17_1 = ((PString)"");
             PNamedTuple TMP_tmp18_1 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp19_1 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
-            PNamedTuple TMP_tmp20_1 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
-            PNamedTuple TMP_tmp21_1 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PInt TMP_tmp22_1 = ((PInt)0);
-            PBool TMP_tmp23_1 = ((PBool)false);
-            PNamedTuple TMP_tmp24_1 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp25_1 = ((PInt)0);
-            PBool TMP_tmp26_1 = ((PBool)false);
-            PNamedTuple TMP_tmp27_1 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp28_1 = ((PInt)0);
-            PBool TMP_tmp29_1 = ((PBool)false);
-            PNamedTuple TMP_tmp30_1 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PNamedTuple TMP_tmp31_1 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
+            PBool TMP_tmp19_1 = ((PBool)false);
+            PNamedTuple TMP_tmp20_1 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp21_1 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
+            PNamedTuple TMP_tmp22_1 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
+            PNamedTuple TMP_tmp23_1 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PInt TMP_tmp24_1 = ((PInt)0);
+            PBool TMP_tmp25_1 = ((PBool)false);
+            PNamedTuple TMP_tmp26_1 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp27_1 = ((PInt)0);
+            PBool TMP_tmp28_1 = ((PBool)false);
+            PNamedTuple TMP_tmp29_1 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp30_1 = ((PInt)0);
+            PBool TMP_tmp31_1 = ((PBool)false);
             PNamedTuple TMP_tmp32_1 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp33_1 = ((PInt)0);
+            PNamedTuple TMP_tmp33_1 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             PNamedTuple TMP_tmp34_1 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp35_1 = ((PInt)0);
-            PInt TMP_tmp36_1 = ((PInt)0);
-            PNamedTuple TMP_tmp37_1 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PBool TMP_tmp38_1 = ((PBool)false);
-            PNamedTuple TMP_tmp39_1 = (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
-            PNamedTuple TMP_tmp40_1 = (new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
-            PMachineValue TMP_tmp41_1 = null;
-            Event TMP_tmp42_1 = null;
-            PBool TMP_tmp43_1 = ((PBool)false);
-            PNamedTuple TMP_tmp44_1 = (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
-            PNamedTuple TMP_tmp45_1 = (new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
+            PNamedTuple TMP_tmp36_1 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp37_1 = ((PInt)0);
+            PInt TMP_tmp38_1 = ((PInt)0);
+            PNamedTuple TMP_tmp39_1 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PBool TMP_tmp40_1 = ((PBool)false);
+            PNamedTuple TMP_tmp41_1 = (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
+            PNamedTuple TMP_tmp42_1 = (new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
+            PMachineValue TMP_tmp43_1 = null;
+            PMachineValue TMP_tmp44_1 = null;
+            Event TMP_tmp45_1 = null;
+            PBool TMP_tmp46_1 = ((PBool)false);
+            PNamedTuple TMP_tmp47_1 = (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
+            PNamedTuple TMP_tmp48_1 = (new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
             TMP_tmp0_2 = (PBool)(((PNamedTuple)payload_1)["authorized"]);
             TMP_tmp1_2 = (PBool)(!(TMP_tmp0_2));
             if (TMP_tmp1_2)
             {
                 TMP_tmp2_2 = (PString)(((PString) String.Format("Unauthorized minting attempt")));
                 currentMachine.Announce((Event)new eMintFailed(((PString)"")), TMP_tmp2_2);
-                TMP_tmp3_2 = (PMachineValue)(currentMachine.self);
-                TMP_tmp4_2 = (Event)(new eMintFailed(((PString)"")));
-                TMP_tmp5_2 = (PString)(((PString) String.Format("Unauthorized minting attempt")));
-                TMP_tmp4_2.Payload = TMP_tmp5_2;
-                currentMachine.SendEvent(TMP_tmp3_2, (Event)TMP_tmp4_2);
+                TMP_tmp3_2 = (PMachineValue)(((PNamedTuple)payload_1)["caller"]);
+                TMP_tmp4_2 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp3_2)?.Clone()));
+                TMP_tmp5_2 = (Event)(new eMintFailed(((PString)"")));
+                TMP_tmp6_2 = (PString)(((PString) String.Format("Unauthorized minting attempt")));
+                TMP_tmp5_2.Payload = TMP_tmp6_2;
+                currentMachine.SendEvent(TMP_tmp4_2, (Event)TMP_tmp5_2);
                 return ;
             }
-            TMP_tmp6_2 = (PInt)(((PNamedTuple)totalSupply)["value"]);
-            TMP_tmp7_2 = (PNamedTuple)(((PNamedTuple)payload_1)["amount"]);
-            TMP_tmp8_2 = (PInt)(((PNamedTuple)TMP_tmp7_2)["value"]);
-            TMP_tmp9_2 = (PInt)((TMP_tmp6_2) + (TMP_tmp8_2));
-            newSupply = TMP_tmp9_2;
-            TMP_tmp10_1 = (PInt)(((PNamedTuple)maxSupply)["value"]);
-            TMP_tmp11_1 = (PBool)((newSupply) > (TMP_tmp10_1));
-            if (TMP_tmp11_1)
+            TMP_tmp7_2 = (PInt)(((PNamedTuple)totalSupply)["value"]);
+            TMP_tmp8_2 = (PNamedTuple)(((PNamedTuple)payload_1)["amount"]);
+            TMP_tmp9_2 = (PInt)(((PNamedTuple)TMP_tmp8_2)["value"]);
+            TMP_tmp10_1 = (PInt)((TMP_tmp7_2) + (TMP_tmp9_2));
+            newSupply = TMP_tmp10_1;
+            TMP_tmp11_1 = (PInt)(((PNamedTuple)maxSupply)["value"]);
+            TMP_tmp12_1 = (PBool)((newSupply) > (TMP_tmp11_1));
+            if (TMP_tmp12_1)
             {
-                TMP_tmp12_1 = (PString)(((PString) String.Format("Would exceed max supply")));
-                currentMachine.Announce((Event)new eMintFailed(((PString)"")), TMP_tmp12_1);
-                TMP_tmp13_1 = (PMachineValue)(currentMachine.self);
-                TMP_tmp14_1 = (Event)(new eMintFailed(((PString)"")));
-                TMP_tmp15_1 = (PString)(((PString) String.Format("Would exceed max supply")));
-                TMP_tmp14_1.Payload = TMP_tmp15_1;
-                currentMachine.SendEvent(TMP_tmp13_1, (Event)TMP_tmp14_1);
+                TMP_tmp13_1 = (PString)(((PString) String.Format("Would exceed max supply")));
+                currentMachine.Announce((Event)new eMintFailed(((PString)"")), TMP_tmp13_1);
+                TMP_tmp14_1 = (PMachineValue)(((PNamedTuple)payload_1)["caller"]);
+                TMP_tmp15_1 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp14_1)?.Clone()));
+                TMP_tmp16_1 = (Event)(new eMintFailed(((PString)"")));
+                TMP_tmp17_1 = (PString)(((PString) String.Format("Would exceed max supply")));
+                TMP_tmp16_1.Payload = TMP_tmp17_1;
+                currentMachine.SendEvent(TMP_tmp15_1, (Event)TMP_tmp16_1);
                 return ;
             }
-            TMP_tmp16_1 = (PNamedTuple)(((PNamedTuple)payload_1)["recipient"]);
-            TMP_tmp17_1 = (PBool)(((PBool)(((PMap)balances).ContainsKey(TMP_tmp16_1))));
-            if (TMP_tmp17_1)
+            TMP_tmp18_1 = (PNamedTuple)(((PNamedTuple)payload_1)["recipient"]);
+            TMP_tmp19_1 = (PBool)(((PBool)(((PMap)balances).ContainsKey(TMP_tmp18_1))));
+            if (TMP_tmp19_1)
             {
-                TMP_tmp18_1 = (PNamedTuple)(((PNamedTuple)payload_1)["recipient"]);
-                TMP_tmp19_1 = (PNamedTuple)(((PMap)balances)[TMP_tmp18_1]);
-                TMP_tmp20_1 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_1)?.Clone()));
-                toBalance_1 = TMP_tmp20_1;
+                TMP_tmp20_1 = (PNamedTuple)(((PNamedTuple)payload_1)["recipient"]);
+                TMP_tmp21_1 = (PNamedTuple)(((PMap)balances)[TMP_tmp20_1]);
+                TMP_tmp22_1 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp21_1)?.Clone()));
+                toBalance_1 = TMP_tmp22_1;
             }
             else
             {
-                TMP_tmp21_1 = (PNamedTuple)(((PNamedTuple)payload_1)["recipient"]);
-                TMP_tmp22_1 = (PInt)(((PInt)(0)));
-                TMP_tmp23_1 = (PBool)(((PBool)false));
-                TMP_tmp24_1 = (PNamedTuple)((new PNamedTuple(new string[]{"value","isNegative"}, TMP_tmp22_1, TMP_tmp23_1)));
-                TMP_tmp25_1 = (PInt)(((PInt)(0)));
-                TMP_tmp26_1 = (PBool)(((PBool)false));
-                TMP_tmp27_1 = (PNamedTuple)((new PNamedTuple(new string[]{"value","isNegative"}, TMP_tmp25_1, TMP_tmp26_1)));
-                TMP_tmp28_1 = (PInt)(((PInt)(0)));
-                TMP_tmp29_1 = (PBool)(((PBool)false));
-                TMP_tmp30_1 = (PNamedTuple)((new PNamedTuple(new string[]{"value","isNegative"}, TMP_tmp28_1, TMP_tmp29_1)));
-                TMP_tmp31_1 = (PNamedTuple)((new PNamedTuple(new string[]{"owner","available","staked","locked"}, TMP_tmp21_1, TMP_tmp24_1, TMP_tmp27_1, TMP_tmp30_1)));
-                toBalance_1 = TMP_tmp31_1;
+                TMP_tmp23_1 = (PNamedTuple)(((PNamedTuple)payload_1)["recipient"]);
+                TMP_tmp24_1 = (PInt)(((PInt)(0)));
+                TMP_tmp25_1 = (PBool)(((PBool)false));
+                TMP_tmp26_1 = (PNamedTuple)((new PNamedTuple(new string[]{"value","isNegative"}, TMP_tmp24_1, TMP_tmp25_1)));
+                TMP_tmp27_1 = (PInt)(((PInt)(0)));
+                TMP_tmp28_1 = (PBool)(((PBool)false));
+                TMP_tmp29_1 = (PNamedTuple)((new PNamedTuple(new string[]{"value","isNegative"}, TMP_tmp27_1, TMP_tmp28_1)));
+                TMP_tmp30_1 = (PInt)(((PInt)(0)));
+                TMP_tmp31_1 = (PBool)(((PBool)false));
+                TMP_tmp32_1 = (PNamedTuple)((new PNamedTuple(new string[]{"value","isNegative"}, TMP_tmp30_1, TMP_tmp31_1)));
+                TMP_tmp33_1 = (PNamedTuple)((new PNamedTuple(new string[]{"owner","available","staked","locked"}, TMP_tmp23_1, TMP_tmp26_1, TMP_tmp29_1, TMP_tmp32_1)));
+                toBalance_1 = TMP_tmp33_1;
             }
-            TMP_tmp32_1 = (PNamedTuple)(((PNamedTuple)toBalance_1)["available"]);
-            TMP_tmp33_1 = (PInt)(((PNamedTuple)TMP_tmp32_1)["value"]);
-            TMP_tmp34_1 = (PNamedTuple)(((PNamedTuple)payload_1)["amount"]);
+            TMP_tmp34_1 = (PNamedTuple)(((PNamedTuple)toBalance_1)["available"]);
             TMP_tmp35_1 = (PInt)(((PNamedTuple)TMP_tmp34_1)["value"]);
-            TMP_tmp36_1 = (PInt)((TMP_tmp33_1) + (TMP_tmp35_1));
-            ((PNamedTuple)((PNamedTuple)toBalance_1)["available"])["value"] = TMP_tmp36_1;
-            TMP_tmp37_1 = (PNamedTuple)(((PNamedTuple)payload_1)["recipient"]);
-            ((PMap)balances)[TMP_tmp37_1] = (PNamedTuple)(((PNamedTuple)((IPValue)toBalance_1)?.Clone()));
+            TMP_tmp36_1 = (PNamedTuple)(((PNamedTuple)payload_1)["amount"]);
+            TMP_tmp37_1 = (PInt)(((PNamedTuple)TMP_tmp36_1)["value"]);
+            TMP_tmp38_1 = (PInt)((TMP_tmp35_1) + (TMP_tmp37_1));
+            ((PNamedTuple)((PNamedTuple)toBalance_1)["available"])["value"] = TMP_tmp38_1;
+            TMP_tmp39_1 = (PNamedTuple)(((PNamedTuple)payload_1)["recipient"]);
+            ((PMap)balances)[TMP_tmp39_1] = (PNamedTuple)(((PNamedTuple)((IPValue)toBalance_1)?.Clone()));
             ((PNamedTuple)totalSupply)["value"] = (PInt)(((PInt)((IPValue)newSupply)?.Clone()));
-            TMP_tmp38_1 = (PBool)(((PBool)true));
-            TMP_tmp39_1 = (PNamedTuple)((new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))))));
-            TMP_tmp40_1 = (PNamedTuple)((new PNamedTuple(new string[]{"success","receipt"}, TMP_tmp38_1, TMP_tmp39_1)));
-            currentMachine.Announce((Event)new eMintResponse((new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))))), TMP_tmp40_1);
-            TMP_tmp41_1 = (PMachineValue)(currentMachine.self);
-            TMP_tmp42_1 = (Event)(new eMintResponse((new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))))));
-            TMP_tmp43_1 = (PBool)(((PBool)true));
-            TMP_tmp44_1 = (PNamedTuple)((new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))))));
-            TMP_tmp45_1 = (PNamedTuple)((new PNamedTuple(new string[]{"success","receipt"}, TMP_tmp43_1, TMP_tmp44_1)));
-            TMP_tmp42_1.Payload = TMP_tmp45_1;
-            currentMachine.SendEvent(TMP_tmp41_1, (Event)TMP_tmp42_1);
+            TMP_tmp40_1 = (PBool)(((PBool)true));
+            TMP_tmp41_1 = (PNamedTuple)((new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))))));
+            TMP_tmp42_1 = (PNamedTuple)((new PNamedTuple(new string[]{"success","receipt"}, TMP_tmp40_1, TMP_tmp41_1)));
+            currentMachine.Announce((Event)new eMintResponse((new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))))), TMP_tmp42_1);
+            TMP_tmp43_1 = (PMachineValue)(((PNamedTuple)payload_1)["caller"]);
+            TMP_tmp44_1 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp43_1)?.Clone()));
+            TMP_tmp45_1 = (Event)(new eMintResponse((new PNamedTuple(new string[]{"success","receipt"},((PBool)false), (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))))));
+            TMP_tmp46_1 = (PBool)(((PBool)true));
+            TMP_tmp47_1 = (PNamedTuple)((new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))))));
+            TMP_tmp48_1 = (PNamedTuple)((new PNamedTuple(new string[]{"success","receipt"}, TMP_tmp46_1, TMP_tmp47_1)));
+            TMP_tmp45_1.Payload = TMP_tmp48_1;
+            currentMachine.SendEvent(TMP_tmp44_1, (Event)TMP_tmp45_1);
         }
         public void Anon_5(Event currentMachine_dequeuedEvent)
         {
@@ -2436,31 +2448,34 @@ namespace PImplementation
             PNamedTuple TMP_tmp3_3 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             PNamedTuple TMP_tmp4_3 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             PMachineValue TMP_tmp5_3 = null;
-            Event TMP_tmp6_3 = null;
-            PString TMP_tmp7_3 = ((PString)"");
-            PNamedTuple TMP_tmp8_3 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp9_3 = ((PInt)0);
-            PNamedTuple TMP_tmp10_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp11_2 = ((PInt)0);
-            PBool TMP_tmp12_2 = ((PBool)false);
-            PMachineValue TMP_tmp13_2 = null;
-            Event TMP_tmp14_2 = null;
-            PString TMP_tmp15_2 = ((PString)"");
-            PNamedTuple TMP_tmp16_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp17_2 = ((PInt)0);
+            PMachineValue TMP_tmp6_3 = null;
+            Event TMP_tmp7_3 = null;
+            PString TMP_tmp8_3 = ((PString)"");
+            PNamedTuple TMP_tmp9_3 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp10_2 = ((PInt)0);
+            PNamedTuple TMP_tmp11_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp12_2 = ((PInt)0);
+            PBool TMP_tmp13_2 = ((PBool)false);
+            PMachineValue TMP_tmp14_2 = null;
+            PMachineValue TMP_tmp15_2 = null;
+            Event TMP_tmp16_2 = null;
+            PString TMP_tmp17_2 = ((PString)"");
             PNamedTuple TMP_tmp18_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp19_2 = ((PInt)0);
-            PInt TMP_tmp20_2 = ((PInt)0);
-            PNamedTuple TMP_tmp21_2 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp20_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp21_2 = ((PInt)0);
             PInt TMP_tmp22_2 = ((PInt)0);
-            PNamedTuple TMP_tmp23_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PNamedTuple TMP_tmp23_2 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PInt TMP_tmp24_2 = ((PInt)0);
-            PInt TMP_tmp25_2 = ((PInt)0);
-            PMachineValue TMP_tmp26_2 = null;
-            Event TMP_tmp27_2 = null;
-            PBool TMP_tmp28_2 = ((PBool)false);
-            PNamedTuple TMP_tmp29_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PNamedTuple TMP_tmp30_2 = (new PNamedTuple(new string[]{"success","amount"},((PBool)false), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
+            PNamedTuple TMP_tmp25_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp26_2 = ((PInt)0);
+            PInt TMP_tmp27_2 = ((PInt)0);
+            PMachineValue TMP_tmp28_2 = null;
+            PMachineValue TMP_tmp29_2 = null;
+            Event TMP_tmp30_2 = null;
+            PBool TMP_tmp31_2 = ((PBool)false);
+            PNamedTuple TMP_tmp32_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PNamedTuple TMP_tmp33_2 = (new PNamedTuple(new string[]{"success","amount"},((PBool)false), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             TMP_tmp0_3 = (PNamedTuple)(((PNamedTuple)payload_2)["from"]);
             TMP_tmp1_3 = (PBool)(((PBool)(((PMap)balances).ContainsKey(TMP_tmp0_3))));
             if (TMP_tmp1_3)
@@ -2472,47 +2487,50 @@ namespace PImplementation
             }
             else
             {
-                TMP_tmp5_3 = (PMachineValue)(currentMachine.self);
-                TMP_tmp6_3 = (Event)(new eBurnFailed(((PString)"")));
-                TMP_tmp7_3 = (PString)(((PString) String.Format("No balance to burn")));
-                TMP_tmp6_3.Payload = TMP_tmp7_3;
-                currentMachine.SendEvent(TMP_tmp5_3, (Event)TMP_tmp6_3);
+                TMP_tmp5_3 = (PMachineValue)(((PNamedTuple)payload_2)["caller"]);
+                TMP_tmp6_3 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp5_3)?.Clone()));
+                TMP_tmp7_3 = (Event)(new eBurnFailed(((PString)"")));
+                TMP_tmp8_3 = (PString)(((PString) String.Format("No balance to burn")));
+                TMP_tmp7_3.Payload = TMP_tmp8_3;
+                currentMachine.SendEvent(TMP_tmp6_3, (Event)TMP_tmp7_3);
                 return ;
             }
-            TMP_tmp8_3 = (PNamedTuple)(((PNamedTuple)fromBalance_1)["available"]);
-            TMP_tmp9_3 = (PInt)(((PNamedTuple)TMP_tmp8_3)["value"]);
-            TMP_tmp10_2 = (PNamedTuple)(((PNamedTuple)payload_2)["amount"]);
-            TMP_tmp11_2 = (PInt)(((PNamedTuple)TMP_tmp10_2)["value"]);
-            TMP_tmp12_2 = (PBool)((TMP_tmp9_3) < (TMP_tmp11_2));
-            if (TMP_tmp12_2)
+            TMP_tmp9_3 = (PNamedTuple)(((PNamedTuple)fromBalance_1)["available"]);
+            TMP_tmp10_2 = (PInt)(((PNamedTuple)TMP_tmp9_3)["value"]);
+            TMP_tmp11_2 = (PNamedTuple)(((PNamedTuple)payload_2)["amount"]);
+            TMP_tmp12_2 = (PInt)(((PNamedTuple)TMP_tmp11_2)["value"]);
+            TMP_tmp13_2 = (PBool)((TMP_tmp10_2) < (TMP_tmp12_2));
+            if (TMP_tmp13_2)
             {
-                TMP_tmp13_2 = (PMachineValue)(currentMachine.self);
-                TMP_tmp14_2 = (Event)(new eBurnFailed(((PString)"")));
-                TMP_tmp15_2 = (PString)(((PString) String.Format("Insufficient balance to burn")));
-                TMP_tmp14_2.Payload = TMP_tmp15_2;
-                currentMachine.SendEvent(TMP_tmp13_2, (Event)TMP_tmp14_2);
+                TMP_tmp14_2 = (PMachineValue)(((PNamedTuple)payload_2)["caller"]);
+                TMP_tmp15_2 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp14_2)?.Clone()));
+                TMP_tmp16_2 = (Event)(new eBurnFailed(((PString)"")));
+                TMP_tmp17_2 = (PString)(((PString) String.Format("Insufficient balance to burn")));
+                TMP_tmp16_2.Payload = TMP_tmp17_2;
+                currentMachine.SendEvent(TMP_tmp15_2, (Event)TMP_tmp16_2);
                 return ;
             }
-            TMP_tmp16_2 = (PNamedTuple)(((PNamedTuple)fromBalance_1)["available"]);
-            TMP_tmp17_2 = (PInt)(((PNamedTuple)TMP_tmp16_2)["value"]);
-            TMP_tmp18_2 = (PNamedTuple)(((PNamedTuple)payload_2)["amount"]);
+            TMP_tmp18_2 = (PNamedTuple)(((PNamedTuple)fromBalance_1)["available"]);
             TMP_tmp19_2 = (PInt)(((PNamedTuple)TMP_tmp18_2)["value"]);
-            TMP_tmp20_2 = (PInt)((TMP_tmp17_2) - (TMP_tmp19_2));
-            ((PNamedTuple)((PNamedTuple)fromBalance_1)["available"])["value"] = TMP_tmp20_2;
-            TMP_tmp21_2 = (PNamedTuple)(((PNamedTuple)payload_2)["from"]);
-            ((PMap)balances)[TMP_tmp21_2] = (PNamedTuple)(((PNamedTuple)((IPValue)fromBalance_1)?.Clone()));
-            TMP_tmp22_2 = (PInt)(((PNamedTuple)totalSupply)["value"]);
-            TMP_tmp23_2 = (PNamedTuple)(((PNamedTuple)payload_2)["amount"]);
-            TMP_tmp24_2 = (PInt)(((PNamedTuple)TMP_tmp23_2)["value"]);
-            TMP_tmp25_2 = (PInt)((TMP_tmp22_2) - (TMP_tmp24_2));
-            ((PNamedTuple)totalSupply)["value"] = TMP_tmp25_2;
-            TMP_tmp26_2 = (PMachineValue)(currentMachine.self);
-            TMP_tmp27_2 = (Event)(new eBurnResponse((new PNamedTuple(new string[]{"success","amount"},((PBool)false), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
-            TMP_tmp28_2 = (PBool)(((PBool)true));
-            TMP_tmp29_2 = (PNamedTuple)(((PNamedTuple)payload_2)["amount"]);
-            TMP_tmp30_2 = (PNamedTuple)((new PNamedTuple(new string[]{"success","amount"}, TMP_tmp28_2, TMP_tmp29_2)));
-            TMP_tmp27_2.Payload = TMP_tmp30_2;
-            currentMachine.SendEvent(TMP_tmp26_2, (Event)TMP_tmp27_2);
+            TMP_tmp20_2 = (PNamedTuple)(((PNamedTuple)payload_2)["amount"]);
+            TMP_tmp21_2 = (PInt)(((PNamedTuple)TMP_tmp20_2)["value"]);
+            TMP_tmp22_2 = (PInt)((TMP_tmp19_2) - (TMP_tmp21_2));
+            ((PNamedTuple)((PNamedTuple)fromBalance_1)["available"])["value"] = TMP_tmp22_2;
+            TMP_tmp23_2 = (PNamedTuple)(((PNamedTuple)payload_2)["from"]);
+            ((PMap)balances)[TMP_tmp23_2] = (PNamedTuple)(((PNamedTuple)((IPValue)fromBalance_1)?.Clone()));
+            TMP_tmp24_2 = (PInt)(((PNamedTuple)totalSupply)["value"]);
+            TMP_tmp25_2 = (PNamedTuple)(((PNamedTuple)payload_2)["amount"]);
+            TMP_tmp26_2 = (PInt)(((PNamedTuple)TMP_tmp25_2)["value"]);
+            TMP_tmp27_2 = (PInt)((TMP_tmp24_2) - (TMP_tmp26_2));
+            ((PNamedTuple)totalSupply)["value"] = TMP_tmp27_2;
+            TMP_tmp28_2 = (PMachineValue)(((PNamedTuple)payload_2)["caller"]);
+            TMP_tmp29_2 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp28_2)?.Clone()));
+            TMP_tmp30_2 = (Event)(new eBurnResponse((new PNamedTuple(new string[]{"success","amount"},((PBool)false), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
+            TMP_tmp31_2 = (PBool)(((PBool)true));
+            TMP_tmp32_2 = (PNamedTuple)(((PNamedTuple)payload_2)["amount"]);
+            TMP_tmp33_2 = (PNamedTuple)((new PNamedTuple(new string[]{"success","amount"}, TMP_tmp31_2, TMP_tmp32_2)));
+            TMP_tmp30_2.Payload = TMP_tmp33_2;
+            currentMachine.SendEvent(TMP_tmp29_2, (Event)TMP_tmp30_2);
         }
         public void Anon_6(Event currentMachine_dequeuedEvent)
         {
@@ -2537,8 +2555,9 @@ namespace PImplementation
             PNamedTuple TMP_tmp14_3 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PNamedTuple TMP_tmp15_3 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             PMachineValue TMP_tmp16_3 = null;
-            Event TMP_tmp17_3 = null;
-            PNamedTuple TMP_tmp18_3 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
+            PMachineValue TMP_tmp17_3 = null;
+            Event TMP_tmp18_3 = null;
+            PNamedTuple TMP_tmp19_3 = (new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             TMP_tmp0_4 = (PNamedTuple)(((PNamedTuple)payload_3)["address"]);
             TMP_tmp1_4 = (PBool)(((PBool)(((PMap)balances).ContainsKey(TMP_tmp0_4))));
             if (TMP_tmp1_4)
@@ -2563,11 +2582,12 @@ namespace PImplementation
                 TMP_tmp15_3 = (PNamedTuple)((new PNamedTuple(new string[]{"owner","available","staked","locked"}, TMP_tmp5_4, TMP_tmp8_4, TMP_tmp11_3, TMP_tmp14_3)));
                 balance = TMP_tmp15_3;
             }
-            TMP_tmp16_3 = (PMachineValue)(currentMachine.self);
-            TMP_tmp17_3 = (Event)(new eBalanceResponse((new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
-            TMP_tmp18_3 = (PNamedTuple)(((PNamedTuple)((IPValue)balance)?.Clone()));
-            TMP_tmp17_3.Payload = TMP_tmp18_3;
-            currentMachine.SendEvent(TMP_tmp16_3, (Event)TMP_tmp17_3);
+            TMP_tmp16_3 = (PMachineValue)(((PNamedTuple)payload_3)["caller"]);
+            TMP_tmp17_3 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp16_3)?.Clone()));
+            TMP_tmp18_3 = (Event)(new eBalanceResponse((new PNamedTuple(new string[]{"owner","available","staked","locked"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
+            TMP_tmp19_3 = (PNamedTuple)(((PNamedTuple)((IPValue)balance)?.Clone()));
+            TMP_tmp18_3.Payload = TMP_tmp19_3;
+            currentMachine.SendEvent(TMP_tmp17_3, (Event)TMP_tmp18_3);
         }
         public void Anon_7(Event currentMachine_dequeuedEvent)
         {
@@ -3066,64 +3086,67 @@ namespace PImplementation
             PInt TMP_tmp2_6 = ((PInt)0);
             PBool TMP_tmp3_5 = ((PBool)false);
             PMachineValue TMP_tmp4_5 = null;
-            Event TMP_tmp5_5 = null;
-            PString TMP_tmp6_5 = ((PString)"");
-            PInt TMP_tmp7_5 = ((PInt)0);
+            PMachineValue TMP_tmp5_5 = null;
+            Event TMP_tmp6_5 = null;
+            PString TMP_tmp7_5 = ((PString)"");
             PInt TMP_tmp8_5 = ((PInt)0);
-            PString TMP_tmp9_5 = ((PString)"");
-            PNamedTuple TMP_tmp10_4 = (new PNamedTuple(new string[]{"typeName"},((PString)"")));
+            PInt TMP_tmp9_5 = ((PInt)0);
+            PString TMP_tmp10_4 = ((PString)"");
             PNamedTuple TMP_tmp11_4 = (new PNamedTuple(new string[]{"typeName"},((PString)"")));
-            PString TMP_tmp12_4 = ((PString)"");
+            PNamedTuple TMP_tmp12_4 = (new PNamedTuple(new string[]{"typeName"},((PString)"")));
             PString TMP_tmp13_4 = ((PString)"");
             PString TMP_tmp14_4 = ((PString)"");
             PString TMP_tmp15_4 = ((PString)"");
-            PNamedTuple TMP_tmp16_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PString TMP_tmp16_4 = ((PString)"");
             PNamedTuple TMP_tmp17_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp18_4 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PNamedTuple TMP_tmp19_3 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PMap TMP_tmp20_3 = new PMap();
+            PNamedTuple TMP_tmp18_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp19_4 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PNamedTuple TMP_tmp20_3 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PMap TMP_tmp21_3 = new PMap();
             PMap TMP_tmp22_3 = new PMap();
-            PMachineValue TMP_tmp23_3 = null;
-            Event TMP_tmp24_3 = null;
-            PNamedTuple TMP_tmp25_3 = (new PNamedTuple(new string[]{"id","proposalType","title","description","proposer","deposit","status","votingStart","votingEnd","yesVotes","noVotes","abstainVotes","vetoVotes","contentPayload"},((PString)""), (new PNamedTuple(new string[]{"typeName"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"status"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), new PMap()));
+            PMap TMP_tmp23_3 = new PMap();
+            PMachineValue TMP_tmp24_3 = null;
+            PMachineValue TMP_tmp25_3 = null;
+            Event TMP_tmp26_3 = null;
+            PNamedTuple TMP_tmp27_3 = (new PNamedTuple(new string[]{"id","proposalType","title","description","proposer","deposit","status","votingStart","votingEnd","yesVotes","noVotes","abstainVotes","vetoVotes","contentPayload"},((PString)""), (new PNamedTuple(new string[]{"typeName"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"status"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), new PMap()));
             TMP_tmp0_6 = (PNamedTuple)(((PNamedTuple)payload_4)["deposit"]);
             TMP_tmp1_6 = (PInt)(((PNamedTuple)TMP_tmp0_6)["value"]);
             TMP_tmp2_6 = (PInt)(((PNamedTuple)minDeposit)["value"]);
             TMP_tmp3_5 = (PBool)((TMP_tmp1_6) < (TMP_tmp2_6));
             if (TMP_tmp3_5)
             {
-                TMP_tmp4_5 = (PMachineValue)(currentMachine.self);
-                TMP_tmp5_5 = (Event)(new eProposalCreationFailed(((PString)"")));
-                TMP_tmp6_5 = (PString)(((PString) String.Format("Insufficient deposit")));
-                TMP_tmp5_5.Payload = TMP_tmp6_5;
-                currentMachine.SendEvent(TMP_tmp4_5, (Event)TMP_tmp5_5);
+                TMP_tmp4_5 = (PMachineValue)(((PNamedTuple)payload_4)["caller"]);
+                TMP_tmp5_5 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp4_5)?.Clone()));
+                TMP_tmp6_5 = (Event)(new eProposalCreationFailed(((PString)"")));
+                TMP_tmp7_5 = (PString)(((PString) String.Format("Insufficient deposit")));
+                TMP_tmp6_5.Payload = TMP_tmp7_5;
+                currentMachine.SendEvent(TMP_tmp5_5, (Event)TMP_tmp6_5);
                 return ;
             }
-            TMP_tmp7_5 = (PInt)((proposalCounter) + (((PInt)(1))));
-            proposalCounter = TMP_tmp7_5;
-            TMP_tmp8_5 = (PInt)(((PInt)((IPValue)proposalCounter)?.Clone()));
-            TMP_tmp9_5 = (PString)(((PString) String.Format("prop_{0}",TMP_tmp8_5)));
-            tempProposalID = TMP_tmp9_5;
+            TMP_tmp8_5 = (PInt)((proposalCounter) + (((PInt)(1))));
+            proposalCounter = TMP_tmp8_5;
+            TMP_tmp9_5 = (PInt)(((PInt)((IPValue)proposalCounter)?.Clone()));
+            TMP_tmp10_4 = (PString)(((PString) String.Format("prop_{0}",TMP_tmp9_5)));
+            tempProposalID = TMP_tmp10_4;
             ((PNamedTuple)tempStatus)["status"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)tempBigInt)["value"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)tempBigInt)["isNegative"] = (PBool)(((PBool)false));
             ((PNamedTuple)tempProposal)["id"] = (PString)(((PString)((IPValue)tempProposalID)?.Clone()));
-            TMP_tmp10_4 = (PNamedTuple)(((PNamedTuple)payload_4)["proposalType"]);
-            TMP_tmp11_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp10_4)?.Clone()));
-            ((PNamedTuple)tempProposal)["proposalType"] = TMP_tmp11_4;
-            TMP_tmp12_4 = (PString)(((PNamedTuple)payload_4)["title"]);
-            TMP_tmp13_4 = (PString)(((PString)((IPValue)TMP_tmp12_4)?.Clone()));
-            ((PNamedTuple)tempProposal)["title"] = TMP_tmp13_4;
-            TMP_tmp14_4 = (PString)(((PNamedTuple)payload_4)["description"]);
-            TMP_tmp15_4 = (PString)(((PString)((IPValue)TMP_tmp14_4)?.Clone()));
-            ((PNamedTuple)tempProposal)["description"] = TMP_tmp15_4;
-            TMP_tmp16_4 = (PNamedTuple)(((PNamedTuple)payload_4)["proposer"]);
-            TMP_tmp17_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp16_4)?.Clone()));
-            ((PNamedTuple)tempProposal)["proposer"] = TMP_tmp17_4;
-            TMP_tmp18_4 = (PNamedTuple)(((PNamedTuple)payload_4)["deposit"]);
-            TMP_tmp19_3 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp18_4)?.Clone()));
-            ((PNamedTuple)tempProposal)["deposit"] = TMP_tmp19_3;
+            TMP_tmp11_4 = (PNamedTuple)(((PNamedTuple)payload_4)["proposalType"]);
+            TMP_tmp12_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp11_4)?.Clone()));
+            ((PNamedTuple)tempProposal)["proposalType"] = TMP_tmp12_4;
+            TMP_tmp13_4 = (PString)(((PNamedTuple)payload_4)["title"]);
+            TMP_tmp14_4 = (PString)(((PString)((IPValue)TMP_tmp13_4)?.Clone()));
+            ((PNamedTuple)tempProposal)["title"] = TMP_tmp14_4;
+            TMP_tmp15_4 = (PString)(((PNamedTuple)payload_4)["description"]);
+            TMP_tmp16_4 = (PString)(((PString)((IPValue)TMP_tmp15_4)?.Clone()));
+            ((PNamedTuple)tempProposal)["description"] = TMP_tmp16_4;
+            TMP_tmp17_4 = (PNamedTuple)(((PNamedTuple)payload_4)["proposer"]);
+            TMP_tmp18_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp17_4)?.Clone()));
+            ((PNamedTuple)tempProposal)["proposer"] = TMP_tmp18_4;
+            TMP_tmp19_4 = (PNamedTuple)(((PNamedTuple)payload_4)["deposit"]);
+            TMP_tmp20_3 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_4)?.Clone()));
+            ((PNamedTuple)tempProposal)["deposit"] = TMP_tmp20_3;
             ((PNamedTuple)tempProposal)["status"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempStatus)?.Clone()));
             ((PNamedTuple)tempTimestamp)["milliseconds"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)tempProposal)["votingStart"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempTimestamp)?.Clone()));
@@ -3133,21 +3156,22 @@ namespace PImplementation
             ((PNamedTuple)tempProposal)["noVotes"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempBigInt)?.Clone()));
             ((PNamedTuple)tempProposal)["abstainVotes"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempBigInt)?.Clone()));
             ((PNamedTuple)tempProposal)["vetoVotes"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempBigInt)?.Clone()));
-            TMP_tmp20_3 = (PMap)(((PNamedTuple)payload_4)["content"]);
-            TMP_tmp21_3 = (PMap)(((PMap)((IPValue)TMP_tmp20_3)?.Clone()));
-            ((PNamedTuple)tempProposal)["contentPayload"] = TMP_tmp21_3;
+            TMP_tmp21_3 = (PMap)(((PNamedTuple)payload_4)["content"]);
+            TMP_tmp22_3 = (PMap)(((PMap)((IPValue)TMP_tmp21_3)?.Clone()));
+            ((PNamedTuple)tempProposal)["contentPayload"] = TMP_tmp22_3;
             ((PMap)proposals)[tempProposalID] = (PNamedTuple)(((PNamedTuple)((IPValue)tempProposal)?.Clone()));
-            TMP_tmp22_3 = (PMap)(new PMap());
-            ((PMap)votes)[tempProposalID] = TMP_tmp22_3;
+            TMP_tmp23_3 = (PMap)(new PMap());
+            ((PMap)votes)[tempProposalID] = TMP_tmp23_3;
             ((PNamedTuple)tempStatus)["status"] = (PInt)(((PInt)(1)));
             ((PNamedTuple)tempProposal)["status"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempStatus)?.Clone()));
             ((PMap)proposals)[tempProposalID] = (PNamedTuple)(((PNamedTuple)((IPValue)tempProposal)?.Clone()));
             currentMachine.Announce((Event)new eProposalCreated((new PNamedTuple(new string[]{"id","proposalType","title","description","proposer","deposit","status","votingStart","votingEnd","yesVotes","noVotes","abstainVotes","vetoVotes","contentPayload"},((PString)""), (new PNamedTuple(new string[]{"typeName"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"status"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), new PMap()))), tempProposal);
-            TMP_tmp23_3 = (PMachineValue)(currentMachine.self);
-            TMP_tmp24_3 = (Event)(new eProposalCreated((new PNamedTuple(new string[]{"id","proposalType","title","description","proposer","deposit","status","votingStart","votingEnd","yesVotes","noVotes","abstainVotes","vetoVotes","contentPayload"},((PString)""), (new PNamedTuple(new string[]{"typeName"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"status"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), new PMap()))));
-            TMP_tmp25_3 = (PNamedTuple)(((PNamedTuple)((IPValue)tempProposal)?.Clone()));
-            TMP_tmp24_3.Payload = TMP_tmp25_3;
-            currentMachine.SendEvent(TMP_tmp23_3, (Event)TMP_tmp24_3);
+            TMP_tmp24_3 = (PMachineValue)(((PNamedTuple)payload_4)["caller"]);
+            TMP_tmp25_3 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp24_3)?.Clone()));
+            TMP_tmp26_3 = (Event)(new eProposalCreated((new PNamedTuple(new string[]{"id","proposalType","title","description","proposer","deposit","status","votingStart","votingEnd","yesVotes","noVotes","abstainVotes","vetoVotes","contentPayload"},((PString)""), (new PNamedTuple(new string[]{"typeName"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"status"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), new PMap()))));
+            TMP_tmp27_3 = (PNamedTuple)(((PNamedTuple)((IPValue)tempProposal)?.Clone()));
+            TMP_tmp26_3.Payload = TMP_tmp27_3;
+            currentMachine.SendEvent(TMP_tmp25_3, (Event)TMP_tmp26_3);
         }
         public void Anon_14(Event currentMachine_dequeuedEvent)
         {
@@ -3173,21 +3197,21 @@ namespace PImplementation
             PString TMP_tmp16_5 = ((PString)"");
             PString TMP_tmp17_5 = ((PString)"");
             PMachineValue TMP_tmp18_5 = null;
-            Event TMP_tmp19_4 = null;
+            Event TMP_tmp19_5 = null;
             PNamedTuple TMP_tmp20_4 = (new PNamedTuple(new string[]{"proposalID","reason"},((PString)""), ((PString)"")));
             PString TMP_tmp21_4 = ((PString)"");
             PMap TMP_tmp22_4 = new PMap();
             PMap TMP_tmp23_4 = new PMap();
             PNamedTuple TMP_tmp24_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PBool TMP_tmp25_4 = ((PBool)false);
-            PString TMP_tmp26_3 = ((PString)"");
-            PString TMP_tmp27_3 = ((PString)"");
+            PString TMP_tmp26_4 = ((PString)"");
+            PString TMP_tmp27_4 = ((PString)"");
             PString TMP_tmp28_3 = ((PString)"");
             PMachineValue TMP_tmp29_3 = null;
             Event TMP_tmp30_3 = null;
-            PNamedTuple TMP_tmp31_2 = (new PNamedTuple(new string[]{"proposalID","reason"},((PString)""), ((PString)"")));
-            PString TMP_tmp32_2 = ((PString)"");
-            PString TMP_tmp33_2 = ((PString)"");
+            PNamedTuple TMP_tmp31_3 = (new PNamedTuple(new string[]{"proposalID","reason"},((PString)""), ((PString)"")));
+            PString TMP_tmp32_3 = ((PString)"");
+            PString TMP_tmp33_3 = ((PString)"");
             PNamedTuple TMP_tmp34_2 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp35_2 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp36_2 = (new PNamedTuple(new string[]{"option"},((PInt)0)));
@@ -3200,9 +3224,9 @@ namespace PImplementation
             PInt TMP_tmp43_2 = ((PInt)0);
             PBool TMP_tmp44_2 = ((PBool)false);
             PNamedTuple TMP_tmp45_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp46_1 = ((PInt)0);
-            PNamedTuple TMP_tmp47_1 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp48_1 = ((PInt)0);
+            PInt TMP_tmp46_2 = ((PInt)0);
+            PNamedTuple TMP_tmp47_2 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp48_2 = ((PInt)0);
             PInt TMP_tmp49_1 = ((PInt)0);
             PNamedTuple TMP_tmp50_1 = (new PNamedTuple(new string[]{"option"},((PInt)0)));
             PInt TMP_tmp51_1 = ((PInt)0);
@@ -3220,9 +3244,9 @@ namespace PImplementation
             PNamedTuple TMP_tmp63_1 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp64_1 = ((PInt)0);
             PInt TMP_tmp65_1 = ((PInt)0);
-            PNamedTuple TMP_tmp66 = (new PNamedTuple(new string[]{"option"},((PInt)0)));
-            PInt TMP_tmp67 = ((PInt)0);
-            PBool TMP_tmp68 = ((PBool)false);
+            PNamedTuple TMP_tmp66_1 = (new PNamedTuple(new string[]{"option"},((PInt)0)));
+            PInt TMP_tmp67_1 = ((PInt)0);
+            PBool TMP_tmp68_1 = ((PBool)false);
             PNamedTuple TMP_tmp69 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp70 = ((PInt)0);
             PNamedTuple TMP_tmp71 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
@@ -3268,10 +3292,10 @@ namespace PImplementation
                 TMP_tmp17_5 = (PString)(((PString) String.Format("Proposal not in voting period")));
                 ((PNamedTuple)tempVoteFailed)["reason"] = TMP_tmp17_5;
                 TMP_tmp18_5 = (PMachineValue)(currentMachine.self);
-                TMP_tmp19_4 = (Event)(new eVoteFailed((new PNamedTuple(new string[]{"proposalID","reason"},((PString)""), ((PString)"")))));
+                TMP_tmp19_5 = (Event)(new eVoteFailed((new PNamedTuple(new string[]{"proposalID","reason"},((PString)""), ((PString)"")))));
                 TMP_tmp20_4 = (PNamedTuple)(((PNamedTuple)((IPValue)tempVoteFailed)?.Clone()));
-                TMP_tmp19_4.Payload = TMP_tmp20_4;
-                currentMachine.SendEvent(TMP_tmp18_5, (Event)TMP_tmp19_4);
+                TMP_tmp19_5.Payload = TMP_tmp20_4;
+                currentMachine.SendEvent(TMP_tmp18_5, (Event)TMP_tmp19_5);
                 return ;
             }
             TMP_tmp21_4 = (PString)(((PNamedTuple)payload_5)["proposalID"]);
@@ -3282,22 +3306,22 @@ namespace PImplementation
             TMP_tmp25_4 = (PBool)(((PBool)(((PMap)tempProposalVotes).ContainsKey(TMP_tmp24_4))));
             if (TMP_tmp25_4)
             {
-                TMP_tmp26_3 = (PString)(((PNamedTuple)payload_5)["proposalID"]);
-                TMP_tmp27_3 = (PString)(((PString)((IPValue)TMP_tmp26_3)?.Clone()));
-                ((PNamedTuple)tempVoteFailed)["proposalID"] = TMP_tmp27_3;
+                TMP_tmp26_4 = (PString)(((PNamedTuple)payload_5)["proposalID"]);
+                TMP_tmp27_4 = (PString)(((PString)((IPValue)TMP_tmp26_4)?.Clone()));
+                ((PNamedTuple)tempVoteFailed)["proposalID"] = TMP_tmp27_4;
                 TMP_tmp28_3 = (PString)(((PString) String.Format("Already voted")));
                 ((PNamedTuple)tempVoteFailed)["reason"] = TMP_tmp28_3;
                 TMP_tmp29_3 = (PMachineValue)(currentMachine.self);
                 TMP_tmp30_3 = (Event)(new eVoteFailed((new PNamedTuple(new string[]{"proposalID","reason"},((PString)""), ((PString)"")))));
-                TMP_tmp31_2 = (PNamedTuple)(((PNamedTuple)((IPValue)tempVoteFailed)?.Clone()));
-                TMP_tmp30_3.Payload = TMP_tmp31_2;
+                TMP_tmp31_3 = (PNamedTuple)(((PNamedTuple)((IPValue)tempVoteFailed)?.Clone()));
+                TMP_tmp30_3.Payload = TMP_tmp31_3;
                 currentMachine.SendEvent(TMP_tmp29_3, (Event)TMP_tmp30_3);
                 return ;
             }
             ((PNamedTuple)tempTimestamp)["milliseconds"] = (PInt)(((PInt)(0)));
-            TMP_tmp32_2 = (PString)(((PNamedTuple)payload_5)["proposalID"]);
-            TMP_tmp33_2 = (PString)(((PString)((IPValue)TMP_tmp32_2)?.Clone()));
-            ((PNamedTuple)tempVote)["proposalID"] = TMP_tmp33_2;
+            TMP_tmp32_3 = (PString)(((PNamedTuple)payload_5)["proposalID"]);
+            TMP_tmp33_3 = (PString)(((PString)((IPValue)TMP_tmp32_3)?.Clone()));
+            ((PNamedTuple)tempVote)["proposalID"] = TMP_tmp33_3;
             TMP_tmp34_2 = (PNamedTuple)(((PNamedTuple)payload_5)["voter"]);
             TMP_tmp35_2 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp34_2)?.Clone()));
             ((PNamedTuple)tempVote)["voter"] = TMP_tmp35_2;
@@ -3318,10 +3342,10 @@ namespace PImplementation
             if (TMP_tmp44_2)
             {
                 TMP_tmp45_2 = (PNamedTuple)(((PNamedTuple)tempProposal)["abstainVotes"]);
-                TMP_tmp46_1 = (PInt)(((PNamedTuple)TMP_tmp45_2)["value"]);
-                TMP_tmp47_1 = (PNamedTuple)(((PNamedTuple)payload_5)["votingPower"]);
-                TMP_tmp48_1 = (PInt)(((PNamedTuple)TMP_tmp47_1)["value"]);
-                TMP_tmp49_1 = (PInt)((TMP_tmp46_1) + (TMP_tmp48_1));
+                TMP_tmp46_2 = (PInt)(((PNamedTuple)TMP_tmp45_2)["value"]);
+                TMP_tmp47_2 = (PNamedTuple)(((PNamedTuple)payload_5)["votingPower"]);
+                TMP_tmp48_2 = (PInt)(((PNamedTuple)TMP_tmp47_2)["value"]);
+                TMP_tmp49_1 = (PInt)((TMP_tmp46_2) + (TMP_tmp48_2));
                 ((PNamedTuple)((PNamedTuple)tempProposal)["abstainVotes"])["value"] = TMP_tmp49_1;
             }
             else
@@ -3354,10 +3378,10 @@ namespace PImplementation
                     }
                     else
                     {
-                        TMP_tmp66 = (PNamedTuple)(((PNamedTuple)payload_5)["option"]);
-                        TMP_tmp67 = (PInt)(((PNamedTuple)TMP_tmp66)["option"]);
-                        TMP_tmp68 = (PBool)((PValues.SafeEquals(TMP_tmp67,((PInt)(3)))));
-                        if (TMP_tmp68)
+                        TMP_tmp66_1 = (PNamedTuple)(((PNamedTuple)payload_5)["option"]);
+                        TMP_tmp67_1 = (PInt)(((PNamedTuple)TMP_tmp66_1)["option"]);
+                        TMP_tmp68_1 = (PBool)((PValues.SafeEquals(TMP_tmp67_1,((PInt)(3)))));
+                        if (TMP_tmp68_1)
                         {
                             TMP_tmp69 = (PNamedTuple)(((PNamedTuple)tempProposal)["vetoVotes"]);
                             TMP_tmp70 = (PInt)(((PNamedTuple)TMP_tmp69)["value"]);
@@ -3408,7 +3432,7 @@ namespace PImplementation
             PString TMP_tmp16_6 = ((PString)"");
             PString TMP_tmp17_6 = ((PString)"");
             PMachineValue TMP_tmp18_6 = null;
-            Event TMP_tmp19_5 = null;
+            Event TMP_tmp19_6 = null;
             PNamedTuple TMP_tmp20_5 = (new PNamedTuple(new string[]{"proposalID","reason"},((PString)""), ((PString)"")));
             PString TMP_tmp21_5 = ((PString)"");
             PString TMP_tmp22_5 = ((PString)"");
@@ -3447,10 +3471,10 @@ namespace PImplementation
                 TMP_tmp17_6 = (PString)(((PString) String.Format("Proposal not passed")));
                 ((PNamedTuple)tempExecFailed)["reason"] = TMP_tmp17_6;
                 TMP_tmp18_6 = (PMachineValue)(currentMachine.self);
-                TMP_tmp19_5 = (Event)(new eProposalExecutionFailed((new PNamedTuple(new string[]{"proposalID","reason"},((PString)""), ((PString)"")))));
+                TMP_tmp19_6 = (Event)(new eProposalExecutionFailed((new PNamedTuple(new string[]{"proposalID","reason"},((PString)""), ((PString)"")))));
                 TMP_tmp20_5 = (PNamedTuple)(((PNamedTuple)((IPValue)tempExecFailed)?.Clone()));
-                TMP_tmp19_5.Payload = TMP_tmp20_5;
-                currentMachine.SendEvent(TMP_tmp18_6, (Event)TMP_tmp19_5);
+                TMP_tmp19_6.Payload = TMP_tmp20_5;
+                currentMachine.SendEvent(TMP_tmp18_6, (Event)TMP_tmp19_6);
                 return ;
             }
             ((PNamedTuple)tempStatus)["status"] = (PInt)(((PInt)(4)));
@@ -4118,21 +4142,21 @@ namespace PImplementation
             PInt TMP_tmp16_8 = ((PInt)0);
             PInt TMP_tmp17_7 = ((PInt)0);
             PInt TMP_tmp18_7 = ((PInt)0);
-            PInt TMP_tmp19_6 = ((PInt)0);
+            PInt TMP_tmp19_7 = ((PInt)0);
             PInt TMP_tmp20_6 = ((PInt)0);
             PNamedTuple TMP_tmp21_6 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp22_6 = ((PInt)0);
             PInt TMP_tmp23_6 = ((PInt)0);
             PNamedTuple TMP_tmp24_6 = (new PNamedTuple(new string[]{"feeName"},((PString)"")));
             PString TMP_tmp25_6 = ((PString)"");
-            PString TMP_tmp26_4 = ((PString)"");
-            PNamedTuple TMP_tmp27_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PString TMP_tmp26_5 = ((PString)"");
+            PNamedTuple TMP_tmp27_5 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp28_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp29_4 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PNamedTuple TMP_tmp30_4 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PMachineValue TMP_tmp31_3 = null;
-            Event TMP_tmp32_3 = null;
-            PNamedTuple TMP_tmp33_3 = (new PNamedTuple(new string[]{"user","feePaid","treasuryAmount"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
+            PMachineValue TMP_tmp31_4 = null;
+            Event TMP_tmp32_4 = null;
+            PNamedTuple TMP_tmp33_4 = (new PNamedTuple(new string[]{"user","feePaid","treasuryAmount"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             TMP_tmp0_15 = (PNamedTuple)(((PNamedTuple)payload_10)["amount"]);
             TMP_tmp1_14 = (PInt)(((PNamedTuple)TMP_tmp0_15)["value"]);
             TMP_tmp2_14 = (PBool)((TMP_tmp1_14) <= (((PInt)(0))));
@@ -4168,8 +4192,8 @@ namespace PImplementation
             ((PNamedTuple)tempToTreasury)["isNegative"] = (PBool)(((PBool)false));
             TMP_tmp17_7 = (PInt)(((PNamedTuple)treasuryBalance)["value"]);
             TMP_tmp18_7 = (PInt)(((PNamedTuple)tempToTreasury)["value"]);
-            TMP_tmp19_6 = (PInt)((TMP_tmp17_7) + (TMP_tmp18_7));
-            ((PNamedTuple)treasuryBalance)["value"] = TMP_tmp19_6;
+            TMP_tmp19_7 = (PInt)((TMP_tmp17_7) + (TMP_tmp18_7));
+            ((PNamedTuple)treasuryBalance)["value"] = TMP_tmp19_7;
             TMP_tmp20_6 = (PInt)(((PNamedTuple)totalFeesCollected)["value"]);
             TMP_tmp21_6 = (PNamedTuple)(((PNamedTuple)payload_10)["amount"]);
             TMP_tmp22_6 = (PInt)(((PNamedTuple)TMP_tmp21_6)["value"]);
@@ -4178,22 +4202,22 @@ namespace PImplementation
             ((PNamedTuple)tempDeposit)["amount"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempToTreasury)?.Clone()));
             TMP_tmp24_6 = (PNamedTuple)(((PNamedTuple)payload_10)["feeType"]);
             TMP_tmp25_6 = (PString)(((PNamedTuple)TMP_tmp24_6)["feeName"]);
-            TMP_tmp26_4 = (PString)(((PString)((IPValue)TMP_tmp25_6)?.Clone()));
-            ((PNamedTuple)tempDeposit)["source"] = TMP_tmp26_4;
+            TMP_tmp26_5 = (PString)(((PString)((IPValue)TMP_tmp25_6)?.Clone()));
+            ((PNamedTuple)tempDeposit)["source"] = TMP_tmp26_5;
             currentMachine.Announce((Event)new eTreasuryDeposit((new PNamedTuple(new string[]{"amount","source"},(new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)"")))), tempDeposit);
-            TMP_tmp27_4 = (PNamedTuple)(((PNamedTuple)payload_10)["from"]);
-            TMP_tmp28_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp27_4)?.Clone()));
+            TMP_tmp27_5 = (PNamedTuple)(((PNamedTuple)payload_10)["from"]);
+            TMP_tmp28_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp27_5)?.Clone()));
             ((PNamedTuple)tempFeeProcessed)["user"] = TMP_tmp28_4;
             TMP_tmp29_4 = (PNamedTuple)(((PNamedTuple)payload_10)["amount"]);
             TMP_tmp30_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp29_4)?.Clone()));
             ((PNamedTuple)tempFeeProcessed)["feePaid"] = TMP_tmp30_4;
             ((PNamedTuple)tempFeeProcessed)["treasuryAmount"] = (PNamedTuple)(((PNamedTuple)((IPValue)treasuryBalance)?.Clone()));
             currentMachine.Announce((Event)new eFeeProcessed((new PNamedTuple(new string[]{"user","feePaid","treasuryAmount"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))), tempFeeProcessed);
-            TMP_tmp31_3 = (PMachineValue)(currentMachine.self);
-            TMP_tmp32_3 = (Event)(new eFeeProcessed((new PNamedTuple(new string[]{"user","feePaid","treasuryAmount"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
-            TMP_tmp33_3 = (PNamedTuple)(((PNamedTuple)((IPValue)tempFeeProcessed)?.Clone()));
-            TMP_tmp32_3.Payload = TMP_tmp33_3;
-            currentMachine.SendEvent(TMP_tmp31_3, (Event)TMP_tmp32_3);
+            TMP_tmp31_4 = (PMachineValue)(currentMachine.self);
+            TMP_tmp32_4 = (Event)(new eFeeProcessed((new PNamedTuple(new string[]{"user","feePaid","treasuryAmount"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
+            TMP_tmp33_4 = (PNamedTuple)(((PNamedTuple)((IPValue)tempFeeProcessed)?.Clone()));
+            TMP_tmp32_4.Payload = TMP_tmp33_4;
+            currentMachine.SendEvent(TMP_tmp31_4, (Event)TMP_tmp32_4);
         }
         public void Anon_26(Event currentMachine_dequeuedEvent)
         {
@@ -4266,15 +4290,15 @@ namespace PImplementation
             PSeq TMP_tmp16_10 = new PSeq();
             PSeq TMP_tmp17_8 = new PSeq();
             PSeq TMP_tmp18_8 = new PSeq();
-            PInt TMP_tmp19_7 = ((PInt)0);
+            PInt TMP_tmp19_8 = ((PInt)0);
             PNamedTuple TMP_tmp20_7 = (new PNamedTuple(new string[]{"staker","validator","amount","startTime","lockPeriod","rewards"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             PNamedTuple TMP_tmp21_7 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PInt TMP_tmp22_7 = ((PInt)0);
             PNamedTuple TMP_tmp23_7 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp24_7 = ((PInt)0);
             PInt TMP_tmp25_7 = ((PInt)0);
-            PMachineValue TMP_tmp26_5 = null;
-            Event TMP_tmp27_5 = null;
+            PMachineValue TMP_tmp26_6 = null;
+            Event TMP_tmp27_6 = null;
             PNamedTuple TMP_tmp28_5 = (new PNamedTuple(new string[]{"staker","validator","amount","startTime","lockPeriod","rewards"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             TMP_tmp0_17 = (PNamedTuple)(((PNamedTuple)payload_12)["amount"]);
             TMP_tmp1_16 = (PInt)(((PNamedTuple)TMP_tmp0_17)["value"]);
@@ -4317,9 +4341,9 @@ namespace PImplementation
                 TMP_tmp18_8 = (PSeq)(new PSeq());
                 tempStakerStakes = TMP_tmp18_8;
             }
-            TMP_tmp19_7 = (PInt)(((PInt)(tempStakerStakes).Count));
+            TMP_tmp19_8 = (PInt)(((PInt)(tempStakerStakes).Count));
             TMP_tmp20_7 = (PNamedTuple)(((PNamedTuple)((IPValue)tempNewStake)?.Clone()));
-            ((PSeq)tempStakerStakes).Insert(TMP_tmp19_7, TMP_tmp20_7);
+            ((PSeq)tempStakerStakes).Insert(TMP_tmp19_8, TMP_tmp20_7);
             TMP_tmp21_7 = (PNamedTuple)(((PNamedTuple)payload_12)["staker"]);
             ((PMap)stakes)[TMP_tmp21_7] = (PSeq)(((PSeq)((IPValue)tempStakerStakes)?.Clone()));
             TMP_tmp22_7 = (PInt)(((PNamedTuple)totalStaked)["value"]);
@@ -4327,11 +4351,11 @@ namespace PImplementation
             TMP_tmp24_7 = (PInt)(((PNamedTuple)TMP_tmp23_7)["value"]);
             TMP_tmp25_7 = (PInt)((TMP_tmp22_7) + (TMP_tmp24_7));
             ((PNamedTuple)totalStaked)["value"] = TMP_tmp25_7;
-            TMP_tmp26_5 = (PMachineValue)(currentMachine.self);
-            TMP_tmp27_5 = (Event)(new eStaked((new PNamedTuple(new string[]{"staker","validator","amount","startTime","lockPeriod","rewards"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
+            TMP_tmp26_6 = (PMachineValue)(currentMachine.self);
+            TMP_tmp27_6 = (Event)(new eStaked((new PNamedTuple(new string[]{"staker","validator","amount","startTime","lockPeriod","rewards"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
             TMP_tmp28_5 = (PNamedTuple)(((PNamedTuple)((IPValue)tempNewStake)?.Clone()));
-            TMP_tmp27_5.Payload = TMP_tmp28_5;
-            currentMachine.SendEvent(TMP_tmp26_5, (Event)TMP_tmp27_5);
+            TMP_tmp27_6.Payload = TMP_tmp28_5;
+            currentMachine.SendEvent(TMP_tmp26_6, (Event)TMP_tmp27_6);
         }
         public void Anon_28(Event currentMachine_dequeuedEvent)
         {
@@ -4357,7 +4381,7 @@ namespace PImplementation
             PInt TMP_tmp16_11 = ((PInt)0);
             PInt TMP_tmp17_9 = ((PInt)0);
             PInt TMP_tmp18_9 = ((PInt)0);
-            PNamedTuple TMP_tmp19_8 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp19_9 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp20_8 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PMachineValue TMP_tmp21_8 = null;
             Event TMP_tmp22_8 = null;
@@ -4396,8 +4420,8 @@ namespace PImplementation
             TMP_tmp17_9 = (PInt)(((PNamedTuple)tempToUnstake)["value"]);
             TMP_tmp18_9 = (PInt)((TMP_tmp16_11) - (TMP_tmp17_9));
             ((PNamedTuple)totalStaked)["value"] = TMP_tmp18_9;
-            TMP_tmp19_8 = (PNamedTuple)(((PNamedTuple)payload_13)["staker"]);
-            TMP_tmp20_8 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_8)?.Clone()));
+            TMP_tmp19_9 = (PNamedTuple)(((PNamedTuple)payload_13)["staker"]);
+            TMP_tmp20_8 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_9)?.Clone()));
             ((PNamedTuple)tempUnstakeData)["staker"] = TMP_tmp20_8;
             ((PNamedTuple)tempUnstakeData)["amount"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempToUnstake)?.Clone()));
             TMP_tmp21_8 = (PMachineValue)(currentMachine.self);
@@ -4430,21 +4454,21 @@ namespace PImplementation
             PInt TMP_tmp16_12 = ((PInt)0);
             PBool TMP_tmp17_10 = ((PBool)false);
             PBool TMP_tmp18_10 = ((PBool)false);
-            PNamedTuple TMP_tmp19_9 = (new PNamedTuple(new string[]{"staker","validator","amount","startTime","lockPeriod","rewards"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
+            PNamedTuple TMP_tmp19_10 = (new PNamedTuple(new string[]{"staker","validator","amount","startTime","lockPeriod","rewards"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             PNamedTuple TMP_tmp20_9 = (new PNamedTuple(new string[]{"staker","validator","amount","startTime","lockPeriod","rewards"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             PNamedTuple TMP_tmp21_9 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp22_9 = ((PInt)0);
             PInt TMP_tmp23_9 = ((PInt)0);
             PInt TMP_tmp24_8 = ((PInt)0);
             PInt TMP_tmp25_8 = ((PInt)0);
-            PInt TMP_tmp26_6 = ((PInt)0);
-            PInt TMP_tmp27_6 = ((PInt)0);
+            PInt TMP_tmp26_7 = ((PInt)0);
+            PInt TMP_tmp27_7 = ((PInt)0);
             PInt TMP_tmp28_6 = ((PInt)0);
             PInt TMP_tmp29_5 = ((PInt)0);
             PBool TMP_tmp30_5 = ((PBool)false);
-            PString TMP_tmp31_4 = ((PString)"");
-            PInt TMP_tmp32_4 = ((PInt)0);
-            PInt TMP_tmp33_4 = ((PInt)0);
+            PString TMP_tmp31_5 = ((PString)"");
+            PInt TMP_tmp32_5 = ((PInt)0);
+            PInt TMP_tmp33_5 = ((PInt)0);
             PInt TMP_tmp34_3 = ((PInt)0);
             PNamedTuple TMP_tmp35_3 = (new PNamedTuple(new string[]{"recipient","amount","rewardType","epoch","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
             PMachineValue TMP_tmp36_3 = null;
@@ -4495,8 +4519,8 @@ namespace PImplementation
                     {
                         break;
                     }
-                    TMP_tmp19_9 = (PNamedTuple)(((PSeq)tempStakerStakes)[tempIdx]);
-                    TMP_tmp20_9 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_9)?.Clone()));
+                    TMP_tmp19_10 = (PNamedTuple)(((PSeq)tempStakerStakes)[tempIdx]);
+                    TMP_tmp20_9 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_10)?.Clone()));
                     tempStake = TMP_tmp20_9;
                     TMP_tmp21_9 = (PNamedTuple)(((PNamedTuple)tempStake)["amount"]);
                     TMP_tmp22_9 = (PInt)(((PNamedTuple)TMP_tmp21_9)["value"]);
@@ -4505,9 +4529,9 @@ namespace PImplementation
                     ((PNamedTuple)tempReward)["value"] = TMP_tmp24_8;
                     ((PNamedTuple)tempReward)["isNegative"] = (PBool)(((PBool)false));
                     TMP_tmp25_8 = (PInt)(((PNamedTuple)tempTotalStakerReward)["value"]);
-                    TMP_tmp26_6 = (PInt)(((PNamedTuple)tempReward)["value"]);
-                    TMP_tmp27_6 = (PInt)((TMP_tmp25_8) + (TMP_tmp26_6));
-                    ((PNamedTuple)tempTotalStakerReward)["value"] = TMP_tmp27_6;
+                    TMP_tmp26_7 = (PInt)(((PNamedTuple)tempReward)["value"]);
+                    TMP_tmp27_7 = (PInt)((TMP_tmp25_8) + (TMP_tmp26_7));
+                    ((PNamedTuple)tempTotalStakerReward)["value"] = TMP_tmp27_7;
                     TMP_tmp28_6 = (PInt)((tempIdx) + (((PInt)(1))));
                     tempIdx = TMP_tmp28_6;
                 }
@@ -4518,11 +4542,11 @@ namespace PImplementation
                     ((PNamedTuple)tempTimestamp_1)["milliseconds"] = (PInt)(((PInt)(0)));
                     ((PNamedTuple)tempDist)["recipient"] = (PNamedTuple)(((PNamedTuple)((IPValue)staker)?.Clone()));
                     ((PNamedTuple)tempDist)["amount"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempTotalStakerReward)?.Clone()));
-                    TMP_tmp31_4 = (PString)(((PString) String.Format("staking")));
-                    ((PNamedTuple)tempDist)["rewardType"] = TMP_tmp31_4;
-                    TMP_tmp32_4 = (PInt)(((PNamedTuple)payload_14)["epoch"]);
-                    TMP_tmp33_4 = (PInt)(((PInt)((IPValue)TMP_tmp32_4)?.Clone()));
-                    ((PNamedTuple)tempDist)["epoch"] = TMP_tmp33_4;
+                    TMP_tmp31_5 = (PString)(((PString) String.Format("staking")));
+                    ((PNamedTuple)tempDist)["rewardType"] = TMP_tmp31_5;
+                    TMP_tmp32_5 = (PInt)(((PNamedTuple)payload_14)["epoch"]);
+                    TMP_tmp33_5 = (PInt)(((PInt)((IPValue)TMP_tmp32_5)?.Clone()));
+                    ((PNamedTuple)tempDist)["epoch"] = TMP_tmp33_5;
                     ((PNamedTuple)tempDist)["timestamp"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempTimestamp_1)?.Clone()));
                     TMP_tmp34_3 = (PInt)(((PInt)(tempDistributions).Count));
                     TMP_tmp35_3 = (PNamedTuple)(((PNamedTuple)((IPValue)tempDist)?.Clone()));
@@ -5140,7 +5164,7 @@ namespace PImplementation
             PInt TMP_tmp16_13 = ((PInt)0);
             PNamedTuple TMP_tmp17_11 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp18_11 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PSeq TMP_tmp19_10 = new PSeq();
+            PSeq TMP_tmp19_11 = new PSeq();
             PInt TMP_tmp20_10 = ((PInt)0);
             PString TMP_tmp21_10 = ((PString)"");
             PMap TMP_tmp22_10 = new PMap();
@@ -5182,8 +5206,8 @@ namespace PImplementation
                 TMP_tmp17_11 = (PNamedTuple)(((PSeq)tempValidatorList)[tempProposerIndex]);
                 TMP_tmp18_11 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp17_11)?.Clone()));
                 proposer = TMP_tmp18_11;
-                TMP_tmp19_10 = (PSeq)(new PSeq());
-                ((PNamedTuple)tempHash)["bytes"] = TMP_tmp19_10;
+                TMP_tmp19_11 = (PSeq)(new PSeq());
+                ((PNamedTuple)tempHash)["bytes"] = TMP_tmp19_11;
                 ((PNamedTuple)tempTimestamp_2)["milliseconds"] = (PInt)(((PInt)(0)));
                 TMP_tmp20_10 = (PInt)((currentHeight) + (((PInt)(1))));
                 ((PNamedTuple)pendingBlock)["height"] = TMP_tmp20_10;
@@ -6653,123 +6677,129 @@ namespace PImplementation
             PString TMP_tmp0_43 = ((PString)"");
             PBool TMP_tmp1_35 = ((PBool)false);
             PMachineValue TMP_tmp2_34 = null;
-            Event TMP_tmp3_30 = null;
-            PString TMP_tmp4_28 = ((PString)"");
+            PMachineValue TMP_tmp3_30 = null;
+            Event TMP_tmp4_28 = null;
             PString TMP_tmp5_26 = ((PString)"");
             PString TMP_tmp6_26 = ((PString)"");
-            PBool TMP_tmp7_26 = ((PBool)false);
-            PMachineValue TMP_tmp8_22 = null;
-            Event TMP_tmp9_22 = null;
-            PString TMP_tmp10_20 = ((PString)"");
-            PInt TMP_tmp11_19 = ((PInt)0);
-            PInt TMP_tmp12_19 = ((PInt)0);
-            PString TMP_tmp13_19 = ((PString)"");
-            PString TMP_tmp14_17 = ((PString)"");
+            PString TMP_tmp7_26 = ((PString)"");
+            PBool TMP_tmp8_22 = ((PBool)false);
+            PMachineValue TMP_tmp9_22 = null;
+            PMachineValue TMP_tmp10_20 = null;
+            Event TMP_tmp11_19 = null;
+            PString TMP_tmp12_19 = ((PString)"");
+            PInt TMP_tmp13_19 = ((PInt)0);
+            PInt TMP_tmp14_17 = ((PInt)0);
             PString TMP_tmp15_17 = ((PString)"");
             PString TMP_tmp16_17 = ((PString)"");
             PString TMP_tmp17_15 = ((PString)"");
             PString TMP_tmp18_15 = ((PString)"");
-            PNamedTuple TMP_tmp19_11 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp20_11 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PString TMP_tmp21_11 = ((PString)"");
-            PString TMP_tmp22_11 = ((PString)"");
-            PMap TMP_tmp23_11 = new PMap();
-            PMap TMP_tmp24_9 = new PMap();
-            PString TMP_tmp25_9 = ((PString)"");
-            PNamedTuple TMP_tmp26_7 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PBool TMP_tmp27_7 = ((PBool)false);
+            PString TMP_tmp19_12 = ((PString)"");
+            PString TMP_tmp20_11 = ((PString)"");
+            PNamedTuple TMP_tmp21_11 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp22_11 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PString TMP_tmp23_11 = ((PString)"");
+            PString TMP_tmp24_9 = ((PString)"");
+            PMap TMP_tmp25_9 = new PMap();
+            PMap TMP_tmp26_8 = new PMap();
+            PString TMP_tmp27_8 = ((PString)"");
             PNamedTuple TMP_tmp28_7 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PSeq TMP_tmp29_6 = new PSeq();
-            PSeq TMP_tmp30_6 = new PSeq();
-            PSeq TMP_tmp31_5 = new PSeq();
-            PInt TMP_tmp32_5 = ((PInt)0);
-            PNamedTuple TMP_tmp33_5 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp34_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PString TMP_tmp35_4 = ((PString)"");
-            PMachineValue TMP_tmp36_4 = null;
-            Event TMP_tmp37_4 = null;
-            PNamedTuple TMP_tmp38_4 = (new PNamedTuple(new string[]{"id","name","version","owner","loraPointer","metadataPayload","createdAt","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
+            PBool TMP_tmp29_6 = ((PBool)false);
+            PNamedTuple TMP_tmp30_6 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PSeq TMP_tmp31_6 = new PSeq();
+            PSeq TMP_tmp32_6 = new PSeq();
+            PSeq TMP_tmp33_6 = new PSeq();
+            PInt TMP_tmp34_4 = ((PInt)0);
+            PNamedTuple TMP_tmp35_4 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp36_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PString TMP_tmp37_4 = ((PString)"");
+            PMachineValue TMP_tmp38_4 = null;
+            PMachineValue TMP_tmp39_3 = null;
+            Event TMP_tmp40_3 = null;
+            PNamedTuple TMP_tmp41_3 = (new PNamedTuple(new string[]{"id","name","version","owner","loraPointer","metadataPayload","createdAt","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             TMP_tmp0_43 = (PString)(((PNamedTuple)payload_24)["name"]);
             TMP_tmp1_35 = (PBool)(((PBool)(((PMap)skillsByName).ContainsKey(TMP_tmp0_43))));
             if (TMP_tmp1_35)
             {
-                TMP_tmp2_34 = (PMachineValue)(currentMachine.self);
-                TMP_tmp3_30 = (Event)(new eSkillRegistrationFailed(((PString)"")));
-                TMP_tmp4_28 = (PString)(((PString) String.Format("Skill name already registered")));
-                TMP_tmp3_30.Payload = TMP_tmp4_28;
-                currentMachine.SendEvent(TMP_tmp2_34, (Event)TMP_tmp3_30);
+                TMP_tmp2_34 = (PMachineValue)(((PNamedTuple)payload_24)["caller"]);
+                TMP_tmp3_30 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp2_34)?.Clone()));
+                TMP_tmp4_28 = (Event)(new eSkillRegistrationFailed(((PString)"")));
+                TMP_tmp5_26 = (PString)(((PString) String.Format("Skill name already registered")));
+                TMP_tmp4_28.Payload = TMP_tmp5_26;
+                currentMachine.SendEvent(TMP_tmp3_30, (Event)TMP_tmp4_28);
                 return ;
             }
-            TMP_tmp5_26 = (PString)(((PNamedTuple)payload_24)["loraPointer"]);
-            TMP_tmp6_26 = (PString)(((PString) String.Format("")));
-            TMP_tmp7_26 = (PBool)((PValues.SafeEquals(TMP_tmp5_26,TMP_tmp6_26)));
-            if (TMP_tmp7_26)
+            TMP_tmp6_26 = (PString)(((PNamedTuple)payload_24)["loraPointer"]);
+            TMP_tmp7_26 = (PString)(((PString) String.Format("")));
+            TMP_tmp8_22 = (PBool)((PValues.SafeEquals(TMP_tmp6_26,TMP_tmp7_26)));
+            if (TMP_tmp8_22)
             {
-                TMP_tmp8_22 = (PMachineValue)(currentMachine.self);
-                TMP_tmp9_22 = (Event)(new eSkillRegistrationFailed(((PString)"")));
-                TMP_tmp10_20 = (PString)(((PString) String.Format("Invalid LoRA pointer")));
-                TMP_tmp9_22.Payload = TMP_tmp10_20;
-                currentMachine.SendEvent(TMP_tmp8_22, (Event)TMP_tmp9_22);
+                TMP_tmp9_22 = (PMachineValue)(((PNamedTuple)payload_24)["caller"]);
+                TMP_tmp10_20 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp9_22)?.Clone()));
+                TMP_tmp11_19 = (Event)(new eSkillRegistrationFailed(((PString)"")));
+                TMP_tmp12_19 = (PString)(((PString) String.Format("Invalid LoRA pointer")));
+                TMP_tmp11_19.Payload = TMP_tmp12_19;
+                currentMachine.SendEvent(TMP_tmp10_20, (Event)TMP_tmp11_19);
                 return ;
             }
-            TMP_tmp11_19 = (PInt)((skillCounter) + (((PInt)(1))));
-            skillCounter = TMP_tmp11_19;
-            TMP_tmp12_19 = (PInt)(((PInt)((IPValue)skillCounter)?.Clone()));
-            TMP_tmp13_19 = (PString)(((PString) String.Format("skill_{0}",TMP_tmp12_19)));
-            ((PNamedTuple)tempSkillID)["value"] = TMP_tmp13_19;
+            TMP_tmp13_19 = (PInt)((skillCounter) + (((PInt)(1))));
+            skillCounter = TMP_tmp13_19;
+            TMP_tmp14_17 = (PInt)(((PInt)((IPValue)skillCounter)?.Clone()));
+            TMP_tmp15_17 = (PString)(((PString) String.Format("skill_{0}",TMP_tmp14_17)));
+            ((PNamedTuple)tempSkillID)["value"] = TMP_tmp15_17;
             ((PNamedTuple)tempTimestamp_4)["milliseconds"] = (PInt)(((PInt)(0)));
-            TMP_tmp14_17 = (PString)(((PString) String.Format("pending")));
-            ((PNamedTuple)tempStatus_1)["status"] = TMP_tmp14_17;
+            TMP_tmp16_17 = (PString)(((PString) String.Format("pending")));
+            ((PNamedTuple)tempStatus_1)["status"] = TMP_tmp16_17;
             ((PNamedTuple)tempNewSkill)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempSkillID)?.Clone()));
-            TMP_tmp15_17 = (PString)(((PNamedTuple)payload_24)["name"]);
-            TMP_tmp16_17 = (PString)(((PString)((IPValue)TMP_tmp15_17)?.Clone()));
-            ((PNamedTuple)tempNewSkill)["name"] = TMP_tmp16_17;
-            TMP_tmp17_15 = (PString)(((PNamedTuple)payload_24)["version"]);
+            TMP_tmp17_15 = (PString)(((PNamedTuple)payload_24)["name"]);
             TMP_tmp18_15 = (PString)(((PString)((IPValue)TMP_tmp17_15)?.Clone()));
-            ((PNamedTuple)tempNewSkill)["version"] = TMP_tmp18_15;
-            TMP_tmp19_11 = (PNamedTuple)(((PNamedTuple)payload_24)["owner"]);
-            TMP_tmp20_11 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_11)?.Clone()));
-            ((PNamedTuple)tempNewSkill)["owner"] = TMP_tmp20_11;
-            TMP_tmp21_11 = (PString)(((PNamedTuple)payload_24)["loraPointer"]);
-            TMP_tmp22_11 = (PString)(((PString)((IPValue)TMP_tmp21_11)?.Clone()));
-            ((PNamedTuple)tempNewSkill)["loraPointer"] = TMP_tmp22_11;
-            TMP_tmp23_11 = (PMap)(((PNamedTuple)payload_24)["metadata"]);
-            TMP_tmp24_9 = (PMap)(((PMap)((IPValue)TMP_tmp23_11)?.Clone()));
-            ((PNamedTuple)tempNewSkill)["metadataPayload"] = TMP_tmp24_9;
+            ((PNamedTuple)tempNewSkill)["name"] = TMP_tmp18_15;
+            TMP_tmp19_12 = (PString)(((PNamedTuple)payload_24)["version"]);
+            TMP_tmp20_11 = (PString)(((PString)((IPValue)TMP_tmp19_12)?.Clone()));
+            ((PNamedTuple)tempNewSkill)["version"] = TMP_tmp20_11;
+            TMP_tmp21_11 = (PNamedTuple)(((PNamedTuple)payload_24)["owner"]);
+            TMP_tmp22_11 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp21_11)?.Clone()));
+            ((PNamedTuple)tempNewSkill)["owner"] = TMP_tmp22_11;
+            TMP_tmp23_11 = (PString)(((PNamedTuple)payload_24)["loraPointer"]);
+            TMP_tmp24_9 = (PString)(((PString)((IPValue)TMP_tmp23_11)?.Clone()));
+            ((PNamedTuple)tempNewSkill)["loraPointer"] = TMP_tmp24_9;
+            TMP_tmp25_9 = (PMap)(((PNamedTuple)payload_24)["metadata"]);
+            TMP_tmp26_8 = (PMap)(((PMap)((IPValue)TMP_tmp25_9)?.Clone()));
+            ((PNamedTuple)tempNewSkill)["metadataPayload"] = TMP_tmp26_8;
             ((PNamedTuple)tempNewSkill)["createdAt"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempTimestamp_4)?.Clone()));
             ((PNamedTuple)tempNewSkill)["status"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempStatus_1)?.Clone()));
             ((PMap)skills)[tempSkillID] = (PNamedTuple)(((PNamedTuple)((IPValue)tempNewSkill)?.Clone()));
-            TMP_tmp25_9 = (PString)(((PNamedTuple)payload_24)["name"]);
-            ((PMap)skillsByName)[TMP_tmp25_9] = (PNamedTuple)(((PNamedTuple)((IPValue)tempSkillID)?.Clone()));
-            TMP_tmp26_7 = (PNamedTuple)(((PNamedTuple)payload_24)["owner"]);
-            TMP_tmp27_7 = (PBool)(((PBool)(((PMap)skillsByOwner).ContainsKey(TMP_tmp26_7))));
-            if (TMP_tmp27_7)
+            TMP_tmp27_8 = (PString)(((PNamedTuple)payload_24)["name"]);
+            ((PMap)skillsByName)[TMP_tmp27_8] = (PNamedTuple)(((PNamedTuple)((IPValue)tempSkillID)?.Clone()));
+            TMP_tmp28_7 = (PNamedTuple)(((PNamedTuple)payload_24)["owner"]);
+            TMP_tmp29_6 = (PBool)(((PBool)(((PMap)skillsByOwner).ContainsKey(TMP_tmp28_7))));
+            if (TMP_tmp29_6)
             {
-                TMP_tmp28_7 = (PNamedTuple)(((PNamedTuple)payload_24)["owner"]);
-                TMP_tmp29_6 = (PSeq)(((PMap)skillsByOwner)[TMP_tmp28_7]);
-                TMP_tmp30_6 = (PSeq)(((PSeq)((IPValue)TMP_tmp29_6)?.Clone()));
-                tempOwnerSkills = TMP_tmp30_6;
+                TMP_tmp30_6 = (PNamedTuple)(((PNamedTuple)payload_24)["owner"]);
+                TMP_tmp31_6 = (PSeq)(((PMap)skillsByOwner)[TMP_tmp30_6]);
+                TMP_tmp32_6 = (PSeq)(((PSeq)((IPValue)TMP_tmp31_6)?.Clone()));
+                tempOwnerSkills = TMP_tmp32_6;
             }
             else
             {
-                TMP_tmp31_5 = (PSeq)(new PSeq());
-                tempOwnerSkills = TMP_tmp31_5;
+                TMP_tmp33_6 = (PSeq)(new PSeq());
+                tempOwnerSkills = TMP_tmp33_6;
             }
-            TMP_tmp32_5 = (PInt)(((PInt)(tempOwnerSkills).Count));
-            TMP_tmp33_5 = (PNamedTuple)(((PNamedTuple)((IPValue)tempSkillID)?.Clone()));
-            ((PSeq)tempOwnerSkills).Insert(TMP_tmp32_5, TMP_tmp33_5);
-            TMP_tmp34_4 = (PNamedTuple)(((PNamedTuple)payload_24)["owner"]);
-            ((PMap)skillsByOwner)[TMP_tmp34_4] = (PSeq)(((PSeq)((IPValue)tempOwnerSkills)?.Clone()));
-            TMP_tmp35_4 = (PString)(((PString) String.Format("active")));
-            ((PNamedTuple)tempStatus_1)["status"] = TMP_tmp35_4;
+            TMP_tmp34_4 = (PInt)(((PInt)(tempOwnerSkills).Count));
+            TMP_tmp35_4 = (PNamedTuple)(((PNamedTuple)((IPValue)tempSkillID)?.Clone()));
+            ((PSeq)tempOwnerSkills).Insert(TMP_tmp34_4, TMP_tmp35_4);
+            TMP_tmp36_4 = (PNamedTuple)(((PNamedTuple)payload_24)["owner"]);
+            ((PMap)skillsByOwner)[TMP_tmp36_4] = (PSeq)(((PSeq)((IPValue)tempOwnerSkills)?.Clone()));
+            TMP_tmp37_4 = (PString)(((PString) String.Format("active")));
+            ((PNamedTuple)tempStatus_1)["status"] = TMP_tmp37_4;
             ((PNamedTuple)tempNewSkill)["status"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempStatus_1)?.Clone()));
             ((PMap)skills)[tempSkillID] = (PNamedTuple)(((PNamedTuple)((IPValue)tempNewSkill)?.Clone()));
             currentMachine.Announce((Event)new eSkillRegistered((new PNamedTuple(new string[]{"id","name","version","owner","loraPointer","metadataPayload","createdAt","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))))), tempNewSkill);
-            TMP_tmp36_4 = (PMachineValue)(currentMachine.self);
-            TMP_tmp37_4 = (Event)(new eSkillRegistered((new PNamedTuple(new string[]{"id","name","version","owner","loraPointer","metadataPayload","createdAt","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))))));
-            TMP_tmp38_4 = (PNamedTuple)(((PNamedTuple)((IPValue)tempNewSkill)?.Clone()));
-            TMP_tmp37_4.Payload = TMP_tmp38_4;
-            currentMachine.SendEvent(TMP_tmp36_4, (Event)TMP_tmp37_4);
+            TMP_tmp38_4 = (PMachineValue)(((PNamedTuple)payload_24)["caller"]);
+            TMP_tmp39_3 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp38_4)?.Clone()));
+            TMP_tmp40_3 = (Event)(new eSkillRegistered((new PNamedTuple(new string[]{"id","name","version","owner","loraPointer","metadataPayload","createdAt","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))))));
+            TMP_tmp41_3 = (PNamedTuple)(((PNamedTuple)((IPValue)tempNewSkill)?.Clone()));
+            TMP_tmp40_3.Payload = TMP_tmp41_3;
+            currentMachine.SendEvent(TMP_tmp39_3, (Event)TMP_tmp40_3);
         }
         public void Anon_72(Event currentMachine_dequeuedEvent)
         {
@@ -6908,15 +6938,15 @@ namespace PImplementation
             PString TMP_tmp16_19 = ((PString)"");
             PString TMP_tmp17_16 = ((PString)"");
             PMap TMP_tmp18_16 = new PMap();
-            PNamedTuple TMP_tmp19_12 = (new PNamedTuple(new string[]{"id","derivedFrom","loraAdapter","trainer","validationScore","reward","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
+            PNamedTuple TMP_tmp19_13 = (new PNamedTuple(new string[]{"id","derivedFrom","loraAdapter","trainer","validationScore","reward","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
             PNamedTuple TMP_tmp20_12 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PBool TMP_tmp21_12 = ((PBool)false);
             PNamedTuple TMP_tmp22_12 = (new PNamedTuple(new string[]{"id","derivedFrom","loraAdapter","trainer","validationScore","reward","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
             PNamedTuple TMP_tmp23_12 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PSeq TMP_tmp24_10 = new PSeq();
             PSeq TMP_tmp25_10 = new PSeq();
-            PSeq TMP_tmp26_8 = new PSeq();
-            PInt TMP_tmp27_8 = ((PInt)0);
+            PSeq TMP_tmp26_9 = new PSeq();
+            PInt TMP_tmp27_9 = ((PInt)0);
             PNamedTuple TMP_tmp28_8 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp29_7 = (new PNamedTuple(new string[]{"id","derivedFrom","loraAdapter","trainer","validationScore","reward","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
             PNamedTuple TMP_tmp30_7 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
@@ -6952,8 +6982,8 @@ namespace PImplementation
             ((PNamedTuple)tempNewSkill)["createdAt"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempTimestamp_4)?.Clone()));
             ((PNamedTuple)tempNewSkill)["status"] = (PNamedTuple)(((PNamedTuple)((IPValue)tempStatus_1)?.Clone()));
             ((PMap)skills)[tempSkillID] = (PNamedTuple)(((PNamedTuple)((IPValue)tempNewSkill)?.Clone()));
-            TMP_tmp19_12 = (PNamedTuple)(((PNamedTuple)payload_28)["skillNode"]);
-            TMP_tmp20_12 = (PNamedTuple)(((PNamedTuple)TMP_tmp19_12)["trainer"]);
+            TMP_tmp19_13 = (PNamedTuple)(((PNamedTuple)payload_28)["skillNode"]);
+            TMP_tmp20_12 = (PNamedTuple)(((PNamedTuple)TMP_tmp19_13)["trainer"]);
             TMP_tmp21_12 = (PBool)(((PBool)(((PMap)skillsByOwner).ContainsKey(TMP_tmp20_12))));
             if (TMP_tmp21_12)
             {
@@ -6965,12 +6995,12 @@ namespace PImplementation
             }
             else
             {
-                TMP_tmp26_8 = (PSeq)(new PSeq());
-                tempOwnerSkills = TMP_tmp26_8;
+                TMP_tmp26_9 = (PSeq)(new PSeq());
+                tempOwnerSkills = TMP_tmp26_9;
             }
-            TMP_tmp27_8 = (PInt)(((PInt)(tempOwnerSkills).Count));
+            TMP_tmp27_9 = (PInt)(((PInt)(tempOwnerSkills).Count));
             TMP_tmp28_8 = (PNamedTuple)(((PNamedTuple)((IPValue)tempSkillID)?.Clone()));
-            ((PSeq)tempOwnerSkills).Insert(TMP_tmp27_8, TMP_tmp28_8);
+            ((PSeq)tempOwnerSkills).Insert(TMP_tmp27_9, TMP_tmp28_8);
             TMP_tmp29_7 = (PNamedTuple)(((PNamedTuple)payload_28)["skillNode"]);
             TMP_tmp30_7 = (PNamedTuple)(((PNamedTuple)TMP_tmp29_7)["trainer"]);
             ((PMap)skillsByOwner)[TMP_tmp30_7] = (PSeq)(((PSeq)((IPValue)tempOwnerSkills)?.Clone()));
@@ -7509,36 +7539,36 @@ namespace PImplementation
             PSeq TMP_tmp16_20 = new PSeq();
             PInt TMP_tmp17_17 = ((PInt)0);
             PBool TMP_tmp18_17 = ((PBool)false);
-            PMachineValue TMP_tmp19_13 = null;
+            PMachineValue TMP_tmp19_14 = null;
             Event TMP_tmp20_13 = null;
             PString TMP_tmp21_13 = ((PString)"");
             PSeq TMP_tmp22_13 = new PSeq();
             PString TMP_tmp23_13 = ((PString)"");
             PString TMP_tmp24_11 = ((PString)"");
             PBool TMP_tmp25_11 = ((PBool)false);
-            PMachineValue TMP_tmp26_9 = null;
-            Event TMP_tmp27_9 = null;
+            PMachineValue TMP_tmp26_10 = null;
+            Event TMP_tmp27_10 = null;
             PString TMP_tmp28_9 = ((PString)"");
             PInt TMP_tmp29_8 = ((PInt)0);
             PInt TMP_tmp30_8 = ((PInt)0);
-            PString TMP_tmp31_6 = ((PString)"");
-            PString TMP_tmp32_6 = ((PString)"");
-            PString TMP_tmp33_6 = ((PString)"");
+            PString TMP_tmp31_7 = ((PString)"");
+            PString TMP_tmp32_7 = ((PString)"");
+            PString TMP_tmp33_7 = ((PString)"");
             PString TMP_tmp34_5 = ((PString)"");
             PNamedTuple TMP_tmp35_5 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp36_5 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PString TMP_tmp37_5 = ((PString)"");
             PString TMP_tmp38_5 = ((PString)"");
-            PString TMP_tmp39_3 = ((PString)"");
-            PString TMP_tmp40_3 = ((PString)"");
-            PSeq TMP_tmp41_3 = new PSeq();
+            PString TMP_tmp39_4 = ((PString)"");
+            PString TMP_tmp40_4 = ((PString)"");
+            PSeq TMP_tmp41_4 = new PSeq();
             PSeq TMP_tmp42_3 = new PSeq();
             PNamedTuple TMP_tmp43_3 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PNamedTuple TMP_tmp44_3 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PString TMP_tmp45_3 = ((PString)"");
-            PInt TMP_tmp46_2 = ((PInt)0);
-            PNamedTuple TMP_tmp47_2 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp48_2 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PInt TMP_tmp46_3 = ((PInt)0);
+            PNamedTuple TMP_tmp47_3 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp48_3 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PString TMP_tmp49_2 = ((PString)"");
             PMachineValue TMP_tmp50_2 = null;
             Event TMP_tmp51_2 = null;
@@ -7579,11 +7609,11 @@ namespace PImplementation
                 TMP_tmp18_17 = (PBool)((TMP_tmp17_17) >= (maxLLMsPerProvider));
                 if (TMP_tmp18_17)
                 {
-                    TMP_tmp19_13 = (PMachineValue)(currentMachine.self);
+                    TMP_tmp19_14 = (PMachineValue)(currentMachine.self);
                     TMP_tmp20_13 = (Event)(new eLLMRegistrationFailed(((PString)"")));
                     TMP_tmp21_13 = (PString)(((PString) String.Format("Provider has reached maximum LLM limit")));
                     TMP_tmp20_13.Payload = TMP_tmp21_13;
-                    currentMachine.SendEvent(TMP_tmp19_13, (Event)TMP_tmp20_13);
+                    currentMachine.SendEvent(TMP_tmp19_14, (Event)TMP_tmp20_13);
                     return ;
                 }
             }
@@ -7597,23 +7627,23 @@ namespace PImplementation
             TMP_tmp25_11 = (PBool)((PValues.SafeEquals(TMP_tmp23_13,TMP_tmp24_11)));
             if (TMP_tmp25_11)
             {
-                TMP_tmp26_9 = (PMachineValue)(currentMachine.self);
-                TMP_tmp27_9 = (Event)(new eLLMRegistrationFailed(((PString)"")));
+                TMP_tmp26_10 = (PMachineValue)(currentMachine.self);
+                TMP_tmp27_10 = (Event)(new eLLMRegistrationFailed(((PString)"")));
                 TMP_tmp28_9 = (PString)(((PString) String.Format("Invalid API endpoint")));
-                TMP_tmp27_9.Payload = TMP_tmp28_9;
-                currentMachine.SendEvent(TMP_tmp26_9, (Event)TMP_tmp27_9);
+                TMP_tmp27_10.Payload = TMP_tmp28_9;
+                currentMachine.SendEvent(TMP_tmp26_10, (Event)TMP_tmp27_10);
                 return ;
             }
             TMP_tmp29_8 = (PInt)((registrationCounter) + (((PInt)(1))));
             registrationCounter = TMP_tmp29_8;
             TMP_tmp30_8 = (PInt)(((PInt)((IPValue)registrationCounter)?.Clone()));
-            TMP_tmp31_6 = (PString)(((PString) String.Format("llm_{0}",TMP_tmp30_8)));
-            ((PNamedTuple)tmpLLMID)["value"] = TMP_tmp31_6;
-            TMP_tmp32_6 = (PString)(((PString) String.Format("registered")));
-            ((PNamedTuple)tmpStatus)["status"] = TMP_tmp32_6;
+            TMP_tmp31_7 = (PString)(((PString) String.Format("llm_{0}",TMP_tmp30_8)));
+            ((PNamedTuple)tmpLLMID)["value"] = TMP_tmp31_7;
+            TMP_tmp32_7 = (PString)(((PString) String.Format("registered")));
+            ((PNamedTuple)tmpStatus)["status"] = TMP_tmp32_7;
             ((PNamedTuple)tmpNewRegistration)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpLLMID)?.Clone()));
-            TMP_tmp33_6 = (PString)(((PNamedTuple)payload_29)["name"]);
-            TMP_tmp34_5 = (PString)(((PString)((IPValue)TMP_tmp33_6)?.Clone()));
+            TMP_tmp33_7 = (PString)(((PNamedTuple)payload_29)["name"]);
+            TMP_tmp34_5 = (PString)(((PString)((IPValue)TMP_tmp33_7)?.Clone()));
             ((PNamedTuple)tmpNewRegistration)["name"] = TMP_tmp34_5;
             TMP_tmp35_5 = (PNamedTuple)(((PNamedTuple)payload_29)["provider"]);
             TMP_tmp36_5 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp35_5)?.Clone()));
@@ -7621,11 +7651,11 @@ namespace PImplementation
             TMP_tmp37_5 = (PString)(((PNamedTuple)payload_29)["modelType"]);
             TMP_tmp38_5 = (PString)(((PString)((IPValue)TMP_tmp37_5)?.Clone()));
             ((PNamedTuple)tmpNewRegistration)["modelType"] = TMP_tmp38_5;
-            TMP_tmp39_3 = (PString)(((PNamedTuple)payload_29)["apiEndpoint"]);
-            TMP_tmp40_3 = (PString)(((PString)((IPValue)TMP_tmp39_3)?.Clone()));
-            ((PNamedTuple)tmpNewRegistration)["apiEndpoint"] = TMP_tmp40_3;
-            TMP_tmp41_3 = (PSeq)(((PNamedTuple)payload_29)["capabilities"]);
-            TMP_tmp42_3 = (PSeq)(((PSeq)((IPValue)TMP_tmp41_3)?.Clone()));
+            TMP_tmp39_4 = (PString)(((PNamedTuple)payload_29)["apiEndpoint"]);
+            TMP_tmp40_4 = (PString)(((PString)((IPValue)TMP_tmp39_4)?.Clone()));
+            ((PNamedTuple)tmpNewRegistration)["apiEndpoint"] = TMP_tmp40_4;
+            TMP_tmp41_4 = (PSeq)(((PNamedTuple)payload_29)["capabilities"]);
+            TMP_tmp42_3 = (PSeq)(((PSeq)((IPValue)TMP_tmp41_4)?.Clone()));
             ((PNamedTuple)tmpNewRegistration)["capabilities"] = TMP_tmp42_3;
             TMP_tmp43_3 = (PNamedTuple)(((PNamedTuple)payload_29)["stakingAmount"]);
             TMP_tmp44_3 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp43_3)?.Clone()));
@@ -7634,11 +7664,11 @@ namespace PImplementation
             ((PMap)registrations)[tmpLLMID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewRegistration)?.Clone()));
             TMP_tmp45_3 = (PString)(((PNamedTuple)payload_29)["name"]);
             ((PMap)registrationsByName)[TMP_tmp45_3] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpLLMID)?.Clone()));
-            TMP_tmp46_2 = (PInt)(((PInt)(tmpProviderLLMs).Count));
-            TMP_tmp47_2 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpLLMID)?.Clone()));
-            ((PSeq)tmpProviderLLMs).Insert(TMP_tmp46_2, TMP_tmp47_2);
-            TMP_tmp48_2 = (PNamedTuple)(((PNamedTuple)payload_29)["provider"]);
-            ((PMap)registrationsByProvider)[TMP_tmp48_2] = (PSeq)(((PSeq)((IPValue)tmpProviderLLMs)?.Clone()));
+            TMP_tmp46_3 = (PInt)(((PInt)(tmpProviderLLMs).Count));
+            TMP_tmp47_3 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpLLMID)?.Clone()));
+            ((PSeq)tmpProviderLLMs).Insert(TMP_tmp46_3, TMP_tmp47_3);
+            TMP_tmp48_3 = (PNamedTuple)(((PNamedTuple)payload_29)["provider"]);
+            ((PMap)registrationsByProvider)[TMP_tmp48_3] = (PSeq)(((PSeq)((IPValue)tmpProviderLLMs)?.Clone()));
             TMP_tmp49_2 = (PString)(((PString) String.Format("active")));
             ((PNamedTuple)((PNamedTuple)tmpNewRegistration)["status"])["status"] = TMP_tmp49_2;
             ((PMap)registrations)[tmpLLMID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewRegistration)?.Clone()));
@@ -7673,7 +7703,7 @@ namespace PImplementation
             PInt TMP_tmp16_21 = ((PInt)0);
             PInt TMP_tmp17_18 = ((PInt)0);
             PInt TMP_tmp18_18 = ((PInt)0);
-            PMachineValue TMP_tmp19_14 = null;
+            PMachineValue TMP_tmp19_15 = null;
             Event TMP_tmp20_14 = null;
             PNamedTuple TMP_tmp21_14 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             TMP_tmp0_53 = (PNamedTuple)(((PNamedTuple)payload_30)["llmID"]);
@@ -7711,11 +7741,11 @@ namespace PImplementation
                 ((PNamedTuple)tmpSlashAmount)["value"] = TMP_tmp18_18;
                 ((PNamedTuple)tmpSlashAmount)["isNegative"] = (PBool)(((PBool)false));
             }
-            TMP_tmp19_14 = (PMachineValue)(currentMachine.self);
+            TMP_tmp19_15 = (PMachineValue)(currentMachine.self);
             TMP_tmp20_14 = (Event)(new eLLMSuspended((new PNamedTuple(new string[]{"value"},((PString)"")))));
             TMP_tmp21_14 = (PNamedTuple)(((PNamedTuple)payload_30)["llmID"]);
             TMP_tmp20_14.Payload = TMP_tmp21_14;
-            currentMachine.SendEvent(TMP_tmp19_14, (Event)TMP_tmp20_14);
+            currentMachine.SendEvent(TMP_tmp19_15, (Event)TMP_tmp20_14);
         }
         public void Anon_84(Event currentMachine_dequeuedEvent)
         {
@@ -8403,29 +8433,29 @@ namespace PImplementation
             PString TMP_tmp16_23 = ((PString)"");
             PString TMP_tmp17_19 = ((PString)"");
             PBool TMP_tmp18_19 = ((PBool)false);
-            PMachineValue TMP_tmp19_15 = null;
+            PMachineValue TMP_tmp19_16 = null;
             Event TMP_tmp20_15 = null;
             PString TMP_tmp21_15 = ((PString)"");
             PInt TMP_tmp22_14 = ((PInt)0);
             PInt TMP_tmp23_14 = ((PInt)0);
             PString TMP_tmp24_12 = ((PString)"");
             PString TMP_tmp25_12 = ((PString)"");
-            PString TMP_tmp26_10 = ((PString)"");
-            PString TMP_tmp27_10 = ((PString)"");
+            PString TMP_tmp26_11 = ((PString)"");
+            PString TMP_tmp27_11 = ((PString)"");
             PString TMP_tmp28_10 = ((PString)"");
             PString TMP_tmp29_9 = ((PString)"");
             PString TMP_tmp30_9 = ((PString)"");
-            PString TMP_tmp31_7 = ((PString)"");
-            PNamedTuple TMP_tmp32_7 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp33_7 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PString TMP_tmp31_8 = ((PString)"");
+            PNamedTuple TMP_tmp32_8 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp33_8 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PSeq TMP_tmp34_6 = new PSeq();
             PSeq TMP_tmp35_6 = new PSeq();
             PString TMP_tmp36_6 = ((PString)"");
             PInt TMP_tmp37_6 = ((PInt)0);
             PNamedTuple TMP_tmp38_6 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp39_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PMachineValue TMP_tmp40_4 = null;
-            Event TMP_tmp41_4 = null;
+            PNamedTuple TMP_tmp39_5 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PMachineValue TMP_tmp40_5 = null;
+            Event TMP_tmp41_5 = null;
             PNamedTuple TMP_tmp42_4 = (new PNamedTuple(new string[]{"id","name","version","serverPointer","owner","permissions","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             TMP_tmp0_61 = (PString)(((PNamedTuple)payload_33)["name"]);
             TMP_tmp1_50 = (PBool)(((PBool)(((PMap)capabilitiesByName).ContainsKey(TMP_tmp0_61))));
@@ -8468,11 +8498,11 @@ namespace PImplementation
             TMP_tmp18_19 = (PBool)((PValues.SafeEquals(TMP_tmp16_23,TMP_tmp17_19)));
             if (TMP_tmp18_19)
             {
-                TMP_tmp19_15 = (PMachineValue)(currentMachine.self);
+                TMP_tmp19_16 = (PMachineValue)(currentMachine.self);
                 TMP_tmp20_15 = (Event)(new eMCPCapabilityFailed(((PString)"")));
                 TMP_tmp21_15 = (PString)(((PString) String.Format("Invalid MCP server pointer")));
                 TMP_tmp20_15.Payload = TMP_tmp21_15;
-                currentMachine.SendEvent(TMP_tmp19_15, (Event)TMP_tmp20_15);
+                currentMachine.SendEvent(TMP_tmp19_16, (Event)TMP_tmp20_15);
                 return ;
             }
             TMP_tmp22_14 = (PInt)((capabilityCounter) + (((PInt)(1))));
@@ -8483,18 +8513,18 @@ namespace PImplementation
             TMP_tmp25_12 = (PString)(((PString) String.Format("available")));
             ((PNamedTuple)tmpStatus_1)["status"] = TMP_tmp25_12;
             ((PNamedTuple)tmpNewCapability)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpCapabilityID)?.Clone()));
-            TMP_tmp26_10 = (PString)(((PNamedTuple)payload_33)["name"]);
-            TMP_tmp27_10 = (PString)(((PString)((IPValue)TMP_tmp26_10)?.Clone()));
-            ((PNamedTuple)tmpNewCapability)["name"] = TMP_tmp27_10;
+            TMP_tmp26_11 = (PString)(((PNamedTuple)payload_33)["name"]);
+            TMP_tmp27_11 = (PString)(((PString)((IPValue)TMP_tmp26_11)?.Clone()));
+            ((PNamedTuple)tmpNewCapability)["name"] = TMP_tmp27_11;
             TMP_tmp28_10 = (PString)(((PNamedTuple)payload_33)["version"]);
             TMP_tmp29_9 = (PString)(((PString)((IPValue)TMP_tmp28_10)?.Clone()));
             ((PNamedTuple)tmpNewCapability)["version"] = TMP_tmp29_9;
             TMP_tmp30_9 = (PString)(((PNamedTuple)payload_33)["serverPointer"]);
-            TMP_tmp31_7 = (PString)(((PString)((IPValue)TMP_tmp30_9)?.Clone()));
-            ((PNamedTuple)tmpNewCapability)["serverPointer"] = TMP_tmp31_7;
-            TMP_tmp32_7 = (PNamedTuple)(((PNamedTuple)payload_33)["owner"]);
-            TMP_tmp33_7 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp32_7)?.Clone()));
-            ((PNamedTuple)tmpNewCapability)["owner"] = TMP_tmp33_7;
+            TMP_tmp31_8 = (PString)(((PString)((IPValue)TMP_tmp30_9)?.Clone()));
+            ((PNamedTuple)tmpNewCapability)["serverPointer"] = TMP_tmp31_8;
+            TMP_tmp32_8 = (PNamedTuple)(((PNamedTuple)payload_33)["owner"]);
+            TMP_tmp33_8 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp32_8)?.Clone()));
+            ((PNamedTuple)tmpNewCapability)["owner"] = TMP_tmp33_8;
             TMP_tmp34_6 = (PSeq)(((PNamedTuple)payload_33)["permissions"]);
             TMP_tmp35_6 = (PSeq)(((PSeq)((IPValue)TMP_tmp34_6)?.Clone()));
             ((PNamedTuple)tmpNewCapability)["permissions"] = TMP_tmp35_6;
@@ -8506,14 +8536,14 @@ namespace PImplementation
             TMP_tmp37_6 = (PInt)(((PInt)(tmpOwnerCapabilities).Count));
             TMP_tmp38_6 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpCapabilityID)?.Clone()));
             ((PSeq)tmpOwnerCapabilities).Insert(TMP_tmp37_6, TMP_tmp38_6);
-            TMP_tmp39_4 = (PNamedTuple)(((PNamedTuple)payload_33)["owner"]);
-            ((PMap)capabilitiesByOwner)[TMP_tmp39_4] = (PSeq)(((PSeq)((IPValue)tmpOwnerCapabilities)?.Clone()));
+            TMP_tmp39_5 = (PNamedTuple)(((PNamedTuple)payload_33)["owner"]);
+            ((PMap)capabilitiesByOwner)[TMP_tmp39_5] = (PSeq)(((PSeq)((IPValue)tmpOwnerCapabilities)?.Clone()));
             currentMachine.Announce((Event)new eMCPCapabilityRegistered((new PNamedTuple(new string[]{"id","name","version","serverPointer","owner","permissions","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"status"},((PString)"")))))), tmpNewCapability);
-            TMP_tmp40_4 = (PMachineValue)(currentMachine.self);
-            TMP_tmp41_4 = (Event)(new eMCPCapabilityRegistered((new PNamedTuple(new string[]{"id","name","version","serverPointer","owner","permissions","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"status"},((PString)"")))))));
+            TMP_tmp40_5 = (PMachineValue)(currentMachine.self);
+            TMP_tmp41_5 = (Event)(new eMCPCapabilityRegistered((new PNamedTuple(new string[]{"id","name","version","serverPointer","owner","permissions","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"status"},((PString)"")))))));
             TMP_tmp42_4 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewCapability)?.Clone()));
-            TMP_tmp41_4.Payload = TMP_tmp42_4;
-            currentMachine.SendEvent(TMP_tmp40_4, (Event)TMP_tmp41_4);
+            TMP_tmp41_5.Payload = TMP_tmp42_4;
+            currentMachine.SendEvent(TMP_tmp40_5, (Event)TMP_tmp41_5);
         }
         public void Anon_93(Event currentMachine_dequeuedEvent)
         {
@@ -8539,36 +8569,36 @@ namespace PImplementation
             PMap TMP_tmp16_24 = new PMap();
             PNamedTuple TMP_tmp17_20 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp18_20 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PMachineValue TMP_tmp19_16 = null;
+            PMachineValue TMP_tmp19_17 = null;
             Event TMP_tmp20_16 = null;
             PNamedTuple TMP_tmp21_16 = (new PNamedTuple(new string[]{"capabilityID","result","success"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PMap(), ((PBool)false)));
             PNamedTuple TMP_tmp22_15 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp23_15 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PInt TMP_tmp24_13 = ((PInt)0);
             PInt TMP_tmp25_13 = ((PInt)0);
-            PNamedTuple TMP_tmp26_11 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PBool TMP_tmp27_11 = ((PBool)false);
+            PNamedTuple TMP_tmp26_12 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PBool TMP_tmp27_12 = ((PBool)false);
             PNamedTuple TMP_tmp28_11 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PMap TMP_tmp29_10 = new PMap();
             PMap TMP_tmp30_10 = new PMap();
-            PMap TMP_tmp31_8 = new PMap();
-            PNamedTuple TMP_tmp32_8 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PBool TMP_tmp33_8 = ((PBool)false);
+            PMap TMP_tmp31_9 = new PMap();
+            PNamedTuple TMP_tmp32_9 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PBool TMP_tmp33_9 = ((PBool)false);
             PNamedTuple TMP_tmp34_7 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp35_7 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PInt TMP_tmp36_7 = ((PInt)0);
             PInt TMP_tmp37_7 = ((PInt)0);
             PNamedTuple TMP_tmp38_7 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp39_5 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PMap TMP_tmp40_5 = new PMap();
-            PString TMP_tmp41_5 = ((PString)"");
+            PNamedTuple TMP_tmp39_6 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PMap TMP_tmp40_6 = new PMap();
+            PString TMP_tmp41_6 = ((PString)"");
             PString TMP_tmp42_5 = ((PString)"");
             PString TMP_tmp43_4 = ((PString)"");
             PString TMP_tmp44_4 = ((PString)"");
             PString TMP_tmp45_4 = ((PString)"");
-            PNamedTuple TMP_tmp46_3 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp47_3 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PMachineValue TMP_tmp48_3 = null;
+            PNamedTuple TMP_tmp46_4 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp47_4 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PMachineValue TMP_tmp48_4 = null;
             Event TMP_tmp49_3 = null;
             PNamedTuple TMP_tmp50_3 = (new PNamedTuple(new string[]{"capabilityID","result","success"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PMap(), ((PBool)false)));
             TMP_tmp0_62 = (PNamedTuple)(((PNamedTuple)payload_34)["capabilityID"]);
@@ -8607,11 +8637,11 @@ namespace PImplementation
                 ((PNamedTuple)tmpCapResult)["capabilityID"] = TMP_tmp18_20;
                 ((PNamedTuple)tmpCapResult)["result"] = (PMap)(((PMap)((IPValue)tmpResult)?.Clone()));
                 ((PNamedTuple)tmpCapResult)["success"] = (PBool)(((PBool)false));
-                TMP_tmp19_16 = (PMachineValue)(currentMachine.self);
+                TMP_tmp19_17 = (PMachineValue)(currentMachine.self);
                 TMP_tmp20_16 = (Event)(new eMCPCapabilityResult((new PNamedTuple(new string[]{"capabilityID","result","success"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PMap(), ((PBool)false)))));
                 TMP_tmp21_16 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpCapResult)?.Clone()));
                 TMP_tmp20_16.Payload = TMP_tmp21_16;
-                currentMachine.SendEvent(TMP_tmp19_16, (Event)TMP_tmp20_16);
+                currentMachine.SendEvent(TMP_tmp19_17, (Event)TMP_tmp20_16);
                 return ;
             }
             TMP_tmp22_15 = (PNamedTuple)(((PNamedTuple)payload_34)["capabilityID"]);
@@ -8619,9 +8649,9 @@ namespace PImplementation
             TMP_tmp24_13 = (PInt)(((PMap)usageCount)[TMP_tmp23_15]);
             TMP_tmp25_13 = (PInt)((TMP_tmp24_13) + (((PInt)(1))));
             ((PMap)usageCount)[TMP_tmp22_15] = TMP_tmp25_13;
-            TMP_tmp26_11 = (PNamedTuple)(((PNamedTuple)payload_34)["caller"]);
-            TMP_tmp27_11 = (PBool)(((PBool)(((PMap)usageByInvoker).ContainsKey(TMP_tmp26_11))));
-            if (TMP_tmp27_11)
+            TMP_tmp26_12 = (PNamedTuple)(((PNamedTuple)payload_34)["caller"]);
+            TMP_tmp27_12 = (PBool)(((PBool)(((PMap)usageByInvoker).ContainsKey(TMP_tmp26_12))));
+            if (TMP_tmp27_12)
             {
                 TMP_tmp28_11 = (PNamedTuple)(((PNamedTuple)payload_34)["caller"]);
                 TMP_tmp29_10 = (PMap)(((PMap)usageByInvoker)[TMP_tmp28_11]);
@@ -8630,12 +8660,12 @@ namespace PImplementation
             }
             else
             {
-                TMP_tmp31_8 = (PMap)(new PMap());
-                tmpInvokerUsage = TMP_tmp31_8;
+                TMP_tmp31_9 = (PMap)(new PMap());
+                tmpInvokerUsage = TMP_tmp31_9;
             }
-            TMP_tmp32_8 = (PNamedTuple)(((PNamedTuple)payload_34)["capabilityID"]);
-            TMP_tmp33_8 = (PBool)(((PBool)(((PMap)tmpInvokerUsage).ContainsKey(TMP_tmp32_8))));
-            if (TMP_tmp33_8)
+            TMP_tmp32_9 = (PNamedTuple)(((PNamedTuple)payload_34)["capabilityID"]);
+            TMP_tmp33_9 = (PBool)(((PBool)(((PMap)tmpInvokerUsage).ContainsKey(TMP_tmp32_9))));
+            if (TMP_tmp33_9)
             {
                 TMP_tmp34_7 = (PNamedTuple)(((PNamedTuple)payload_34)["capabilityID"]);
                 TMP_tmp35_7 = (PNamedTuple)(((PNamedTuple)payload_34)["capabilityID"]);
@@ -8648,27 +8678,27 @@ namespace PImplementation
                 TMP_tmp38_7 = (PNamedTuple)(((PNamedTuple)payload_34)["capabilityID"]);
                 ((PMap)tmpInvokerUsage)[TMP_tmp38_7] = (PInt)(((PInt)(1)));
             }
-            TMP_tmp39_5 = (PNamedTuple)(((PNamedTuple)payload_34)["caller"]);
-            ((PMap)usageByInvoker)[TMP_tmp39_5] = (PMap)(((PMap)((IPValue)tmpInvokerUsage)?.Clone()));
-            TMP_tmp40_5 = (PMap)(new PMap());
-            tmpResult = TMP_tmp40_5;
-            TMP_tmp41_5 = (PString)(((PString) String.Format("status")));
+            TMP_tmp39_6 = (PNamedTuple)(((PNamedTuple)payload_34)["caller"]);
+            ((PMap)usageByInvoker)[TMP_tmp39_6] = (PMap)(((PMap)((IPValue)tmpInvokerUsage)?.Clone()));
+            TMP_tmp40_6 = (PMap)(new PMap());
+            tmpResult = TMP_tmp40_6;
+            TMP_tmp41_6 = (PString)(((PString) String.Format("status")));
             TMP_tmp42_5 = (PString)(((PString) String.Format("success")));
-            ((PMap)tmpResult)[TMP_tmp41_5] = (IPValue)TMP_tmp42_5;
+            ((PMap)tmpResult)[TMP_tmp41_6] = (IPValue)TMP_tmp42_5;
             TMP_tmp43_4 = (PString)(((PString) String.Format("capability")));
             TMP_tmp44_4 = (PString)(((PNamedTuple)tmpCapability)["name"]);
             TMP_tmp45_4 = (PString)(((PString)((IPValue)TMP_tmp44_4)?.Clone()));
             ((PMap)tmpResult)[TMP_tmp43_4] = (IPValue)TMP_tmp45_4;
-            TMP_tmp46_3 = (PNamedTuple)(((PNamedTuple)payload_34)["capabilityID"]);
-            TMP_tmp47_3 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp46_3)?.Clone()));
-            ((PNamedTuple)tmpCapResult)["capabilityID"] = TMP_tmp47_3;
+            TMP_tmp46_4 = (PNamedTuple)(((PNamedTuple)payload_34)["capabilityID"]);
+            TMP_tmp47_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp46_4)?.Clone()));
+            ((PNamedTuple)tmpCapResult)["capabilityID"] = TMP_tmp47_4;
             ((PNamedTuple)tmpCapResult)["result"] = (PMap)(((PMap)((IPValue)tmpResult)?.Clone()));
             ((PNamedTuple)tmpCapResult)["success"] = (PBool)(((PBool)true));
-            TMP_tmp48_3 = (PMachineValue)(currentMachine.self);
+            TMP_tmp48_4 = (PMachineValue)(currentMachine.self);
             TMP_tmp49_3 = (Event)(new eMCPCapabilityResult((new PNamedTuple(new string[]{"capabilityID","result","success"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PMap(), ((PBool)false)))));
             TMP_tmp50_3 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpCapResult)?.Clone()));
             TMP_tmp49_3.Payload = TMP_tmp50_3;
-            currentMachine.SendEvent(TMP_tmp48_3, (Event)TMP_tmp49_3);
+            currentMachine.SendEvent(TMP_tmp48_4, (Event)TMP_tmp49_3);
         }
         public void Anon_94(Event currentMachine_dequeuedEvent)
         {
@@ -8694,7 +8724,7 @@ namespace PImplementation
             PSeq TMP_tmp16_25 = new PSeq();
             PSeq TMP_tmp17_21 = new PSeq();
             PSeq TMP_tmp18_21 = new PSeq();
-            PInt TMP_tmp19_17 = ((PInt)0);
+            PInt TMP_tmp19_18 = ((PInt)0);
             PNamedTuple TMP_tmp20_17 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp21_17 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             TMP_tmp0_63 = (PInt)((capabilityCounter) + (((PInt)(1))));
@@ -8736,9 +8766,9 @@ namespace PImplementation
                 TMP_tmp18_21 = (PSeq)(new PSeq());
                 tmpOwnerCapabilities = TMP_tmp18_21;
             }
-            TMP_tmp19_17 = (PInt)(((PInt)(tmpOwnerCapabilities).Count));
+            TMP_tmp19_18 = (PInt)(((PInt)(tmpOwnerCapabilities).Count));
             TMP_tmp20_17 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpCapabilityID)?.Clone()));
-            ((PSeq)tmpOwnerCapabilities).Insert(TMP_tmp19_17, TMP_tmp20_17);
+            ((PSeq)tmpOwnerCapabilities).Insert(TMP_tmp19_18, TMP_tmp20_17);
             TMP_tmp21_17 = (PNamedTuple)(((PNamedTuple)capabilityNode)["creator"]);
             ((PMap)capabilitiesByOwner)[TMP_tmp21_17] = (PSeq)(((PSeq)((IPValue)tmpOwnerCapabilities)?.Clone()));
             currentMachine.Announce((Event)new eMCPCapabilityRegistered((new PNamedTuple(new string[]{"id","name","version","serverPointer","owner","permissions","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"status"},((PString)"")))))), tmpMintedCapability);
@@ -9398,19 +9428,19 @@ namespace PImplementation
             PString TMP_tmp16_26 = ((PString)"");
             PMachineValue TMP_tmp17_22 = null;
             Event TMP_tmp18_22 = null;
-            PNamedTuple TMP_tmp19_18 = (new PNamedTuple(new string[]{"errorNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
+            PNamedTuple TMP_tmp19_19 = (new PNamedTuple(new string[]{"errorNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
             PString TMP_tmp20_18 = ((PString)"");
             PString TMP_tmp21_18 = ((PString)"");
             PBool TMP_tmp22_16 = ((PBool)false);
             PNamedTuple TMP_tmp23_16 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp24_14 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp25_14 = ((PString)"");
-            PMachineValue TMP_tmp26_12 = null;
-            Event TMP_tmp27_12 = null;
+            PMachineValue TMP_tmp26_13 = null;
+            Event TMP_tmp27_13 = null;
             PNamedTuple TMP_tmp28_12 = (new PNamedTuple(new string[]{"errorNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
             PNamedTuple TMP_tmp29_11 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp30_11 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp31_9 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp31_10 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             TMP_tmp0_69 = (PNamedTuple)(((PNamedTuple)payload_37)["errorNodeID"]);
             TMP_tmp1_57 = (PBool)(((PBool)(((PMap)errorNodes).ContainsKey(TMP_tmp0_69))));
             TMP_tmp2_55 = (PBool)(!(TMP_tmp1_57));
@@ -9443,8 +9473,8 @@ namespace PImplementation
                 ((PNamedTuple)tmpSkillMiningFailed)["reason"] = TMP_tmp16_26;
                 TMP_tmp17_22 = (PMachineValue)(currentMachine.self);
                 TMP_tmp18_22 = (Event)(new eSkillMiningFailed((new PNamedTuple(new string[]{"errorNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
-                TMP_tmp19_18 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSkillMiningFailed)?.Clone()));
-                TMP_tmp18_22.Payload = TMP_tmp19_18;
+                TMP_tmp19_19 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSkillMiningFailed)?.Clone()));
+                TMP_tmp18_22.Payload = TMP_tmp19_19;
                 currentMachine.SendEvent(TMP_tmp17_22, (Event)TMP_tmp18_22);
                 return ;
             }
@@ -9458,17 +9488,17 @@ namespace PImplementation
                 ((PNamedTuple)tmpSkillMiningFailed)["errorNodeID"] = TMP_tmp24_14;
                 TMP_tmp25_14 = (PString)(((PString) String.Format("Invalid LoRA adapter")));
                 ((PNamedTuple)tmpSkillMiningFailed)["reason"] = TMP_tmp25_14;
-                TMP_tmp26_12 = (PMachineValue)(currentMachine.self);
-                TMP_tmp27_12 = (Event)(new eSkillMiningFailed((new PNamedTuple(new string[]{"errorNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
+                TMP_tmp26_13 = (PMachineValue)(currentMachine.self);
+                TMP_tmp27_13 = (Event)(new eSkillMiningFailed((new PNamedTuple(new string[]{"errorNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
                 TMP_tmp28_12 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSkillMiningFailed)?.Clone()));
-                TMP_tmp27_12.Payload = TMP_tmp28_12;
-                currentMachine.SendEvent(TMP_tmp26_12, (Event)TMP_tmp27_12);
+                TMP_tmp27_13.Payload = TMP_tmp28_12;
+                currentMachine.SendEvent(TMP_tmp26_13, (Event)TMP_tmp27_13);
                 return ;
             }
             TMP_tmp29_11 = (PNamedTuple)(((PNamedTuple)payload_37)["errorNodeID"]);
             TMP_tmp30_11 = (PNamedTuple)(((PNamedTuple)payload_37)["trainer"]);
-            TMP_tmp31_9 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp30_11)?.Clone()));
-            ((PMap)pendingSkillMining)[TMP_tmp29_11] = TMP_tmp31_9;
+            TMP_tmp31_10 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp30_11)?.Clone()));
+            ((PMap)pendingSkillMining)[TMP_tmp29_11] = TMP_tmp31_10;
             currentMachine.RaiseGotoStateEvent<ValidatingSkill>();
             return;
         }
@@ -9496,21 +9526,21 @@ namespace PImplementation
             PBool TMP_tmp16_27 = ((PBool)false);
             PInt TMP_tmp17_23 = ((PInt)0);
             PNamedTuple TMP_tmp18_23 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp19_19 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp19_20 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp20_19 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp21_19 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PInt TMP_tmp22_17 = ((PInt)0);
             PInt TMP_tmp23_17 = ((PInt)0);
             PString TMP_tmp24_15 = ((PString)"");
             PNamedTuple TMP_tmp25_15 = (new PNamedTuple(new string[]{"id","errorType","errorMessage","contextPayload","sourceModel","timestamp","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), new PMap(), (new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
-            PNamedTuple TMP_tmp26_13 = (new PNamedTuple(new string[]{"id","errorType","errorMessage","contextPayload","sourceModel","timestamp","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), new PMap(), (new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
-            PString TMP_tmp27_13 = ((PString)"");
+            PNamedTuple TMP_tmp26_14 = (new PNamedTuple(new string[]{"id","errorType","errorMessage","contextPayload","sourceModel","timestamp","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), new PMap(), (new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
+            PString TMP_tmp27_14 = ((PString)"");
             PNamedTuple TMP_tmp28_13 = (new PNamedTuple(new string[]{"taskID","validator","passed","score","detailsPayload","executionTime","resourcesUsed","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), ((PInt)0), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
             PInt TMP_tmp29_12 = ((PInt)0);
             PInt TMP_tmp30_12 = ((PInt)0);
-            PString TMP_tmp31_10 = ((PString)"");
-            PMachineValue TMP_tmp32_9 = null;
-            Event TMP_tmp33_9 = null;
+            PString TMP_tmp31_11 = ((PString)"");
+            PMachineValue TMP_tmp32_10 = null;
+            Event TMP_tmp33_10 = null;
             PNamedTuple TMP_tmp34_8 = (new PNamedTuple(new string[]{"skillNode","reward"},(new PNamedTuple(new string[]{"id","derivedFrom","loraAdapter","trainer","validationScore","reward","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
             TMP_tmp0_70 = (PNamedTuple)(((PNamedTuple)payload_38)["result"]);
             TMP_tmp1_58 = (PNamedTuple)(((PNamedTuple)TMP_tmp0_70)["taskID"]);
@@ -9548,8 +9578,8 @@ namespace PImplementation
                     TMP_tmp17_23 = (PInt)((TMP_i_iterErrorNodeID_tmp10) + (((PInt)(1))));
                     TMP_i_iterErrorNodeID_tmp10 = TMP_tmp17_23;
                     TMP_tmp18_23 = (PNamedTuple)(((PSeq)TMP_tmp9_37)[TMP_i_iterErrorNodeID_tmp10]);
-                    TMP_tmp19_19 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp18_23)?.Clone()));
-                    iterErrorNodeID = TMP_tmp19_19;
+                    TMP_tmp19_20 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp18_23)?.Clone()));
+                    iterErrorNodeID = TMP_tmp19_20;
                     TMP_tmp20_19 = (PNamedTuple)(((PMap)pendingSkillMining)[iterErrorNodeID]);
                     TMP_tmp21_19 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp20_19)?.Clone()));
                     tmpTrainer = TMP_tmp21_19;
@@ -9559,13 +9589,13 @@ namespace PImplementation
                     TMP_tmp24_15 = (PString)(((PString) String.Format("skillnode_{0}",TMP_tmp23_17)));
                     ((PNamedTuple)tmpSkillNodeID)["value"] = TMP_tmp24_15;
                     TMP_tmp25_15 = (PNamedTuple)(((PMap)errorNodes)[iterErrorNodeID]);
-                    TMP_tmp26_13 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp25_15)?.Clone()));
-                    tmpErrorNode = TMP_tmp26_13;
+                    TMP_tmp26_14 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp25_15)?.Clone()));
+                    tmpErrorNode = TMP_tmp26_14;
                     ((PNamedTuple)tmpTimestamp_1)["milliseconds"] = (PInt)(((PInt)(0)));
                     ((PNamedTuple)tmpNewSkillNode)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSkillNodeID)?.Clone()));
                     ((PNamedTuple)tmpNewSkillNode)["derivedFrom"] = (PNamedTuple)(((PNamedTuple)((IPValue)iterErrorNodeID)?.Clone()));
-                    TMP_tmp27_13 = (PString)(((PString) String.Format("lora://trained_adapter")));
-                    ((PNamedTuple)tmpNewSkillNode)["loraAdapter"] = TMP_tmp27_13;
+                    TMP_tmp27_14 = (PString)(((PString) String.Format("lora://trained_adapter")));
+                    ((PNamedTuple)tmpNewSkillNode)["loraAdapter"] = TMP_tmp27_14;
                     ((PNamedTuple)tmpNewSkillNode)["trainer"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpTrainer)?.Clone()));
                     TMP_tmp28_13 = (PNamedTuple)(((PNamedTuple)payload_38)["result"]);
                     TMP_tmp29_12 = (PInt)(((PNamedTuple)TMP_tmp28_13)["score"]);
@@ -9574,18 +9604,18 @@ namespace PImplementation
                     ((PNamedTuple)tmpNewSkillNode)["reward"] = (PNamedTuple)(((PNamedTuple)((IPValue)skillMiningReward)?.Clone()));
                     ((PNamedTuple)tmpNewSkillNode)["timestamp"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpTimestamp_1)?.Clone()));
                     ((PMap)skillNodes)[tmpSkillNodeID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewSkillNode)?.Clone()));
-                    TMP_tmp31_10 = (PString)(((PString) String.Format("transformed")));
-                    ((PNamedTuple)((PNamedTuple)tmpErrorNode)["status"])["status"] = TMP_tmp31_10;
+                    TMP_tmp31_11 = (PString)(((PString) String.Format("transformed")));
+                    ((PNamedTuple)((PNamedTuple)tmpErrorNode)["status"])["status"] = TMP_tmp31_11;
                     ((PMap)errorNodes)[iterErrorNodeID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorNode)?.Clone()));
                     ((PMap)pendingSkillMining).Remove(iterErrorNodeID);
                     ((PNamedTuple)tmpSkillNodeMined)["skillNode"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewSkillNode)?.Clone()));
                     ((PNamedTuple)tmpSkillNodeMined)["reward"] = (PNamedTuple)(((PNamedTuple)((IPValue)skillMiningReward)?.Clone()));
                     currentMachine.Announce((Event)new eSkillNodeMined((new PNamedTuple(new string[]{"skillNode","reward"},(new PNamedTuple(new string[]{"id","derivedFrom","loraAdapter","trainer","validationScore","reward","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))), tmpSkillNodeMined);
-                    TMP_tmp32_9 = (PMachineValue)(currentMachine.self);
-                    TMP_tmp33_9 = (Event)(new eSkillNodeMined((new PNamedTuple(new string[]{"skillNode","reward"},(new PNamedTuple(new string[]{"id","derivedFrom","loraAdapter","trainer","validationScore","reward","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
+                    TMP_tmp32_10 = (PMachineValue)(currentMachine.self);
+                    TMP_tmp33_10 = (Event)(new eSkillNodeMined((new PNamedTuple(new string[]{"skillNode","reward"},(new PNamedTuple(new string[]{"id","derivedFrom","loraAdapter","trainer","validationScore","reward","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))))), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
                     TMP_tmp34_8 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSkillNodeMined)?.Clone()));
-                    TMP_tmp33_9.Payload = TMP_tmp34_8;
-                    currentMachine.SendEvent(TMP_tmp32_9, (Event)TMP_tmp33_9);
+                    TMP_tmp33_10.Payload = TMP_tmp34_8;
+                    currentMachine.SendEvent(TMP_tmp32_10, (Event)TMP_tmp33_10);
                     break;
                 }
             }
@@ -9651,15 +9681,15 @@ namespace PImplementation
             Event TMP_tmp16_28 = null;
             PNamedTuple TMP_tmp17_24 = (new PNamedTuple(new string[]{"contextNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
             PInt TMP_tmp18_24 = ((PInt)0);
-            PInt TMP_tmp19_20 = ((PInt)0);
+            PInt TMP_tmp19_21 = ((PInt)0);
             PString TMP_tmp20_20 = ((PString)"");
             PNamedTuple TMP_tmp21_20 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp22_18 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp23_18 = ((PString)"");
             PString TMP_tmp24_16 = ((PString)"");
             PNamedTuple TMP_tmp25_16 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp26_14 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PMachineValue TMP_tmp27_14 = null;
+            PNamedTuple TMP_tmp26_15 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PMachineValue TMP_tmp27_15 = null;
             Event TMP_tmp28_14 = null;
             PNamedTuple TMP_tmp29_13 = (new PNamedTuple(new string[]{"id","derivedFrom","mcpServer","creator","usageCount","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
             TMP_tmp0_72 = (PNamedTuple)(((PNamedTuple)payload_40)["contextNodeID"]);
@@ -9698,8 +9728,8 @@ namespace PImplementation
             }
             TMP_tmp18_24 = (PInt)((capabilityNodeCounter) + (((PInt)(1))));
             capabilityNodeCounter = TMP_tmp18_24;
-            TMP_tmp19_20 = (PInt)(((PInt)((IPValue)capabilityNodeCounter)?.Clone()));
-            TMP_tmp20_20 = (PString)(((PString) String.Format("capnode_{0}",TMP_tmp19_20)));
+            TMP_tmp19_21 = (PInt)(((PInt)((IPValue)capabilityNodeCounter)?.Clone()));
+            TMP_tmp20_20 = (PString)(((PString) String.Format("capnode_{0}",TMP_tmp19_21)));
             ((PNamedTuple)tmpCapabilityNodeID)["value"] = TMP_tmp20_20;
             ((PNamedTuple)tmpTimestamp_1)["milliseconds"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)tmpNewCapabilityNode)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpCapabilityNodeID)?.Clone()));
@@ -9710,17 +9740,17 @@ namespace PImplementation
             TMP_tmp24_16 = (PString)(((PString)((IPValue)TMP_tmp23_18)?.Clone()));
             ((PNamedTuple)tmpNewCapabilityNode)["mcpServer"] = TMP_tmp24_16;
             TMP_tmp25_16 = (PNamedTuple)(((PNamedTuple)payload_40)["creator"]);
-            TMP_tmp26_14 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp25_16)?.Clone()));
-            ((PNamedTuple)tmpNewCapabilityNode)["creator"] = TMP_tmp26_14;
+            TMP_tmp26_15 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp25_16)?.Clone()));
+            ((PNamedTuple)tmpNewCapabilityNode)["creator"] = TMP_tmp26_15;
             ((PNamedTuple)tmpNewCapabilityNode)["usageCount"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)tmpNewCapabilityNode)["timestamp"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpTimestamp_1)?.Clone()));
             ((PMap)capabilityNodes)[tmpCapabilityNodeID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewCapabilityNode)?.Clone()));
             currentMachine.Announce((Event)new eCapabilityNodeMinted((new PNamedTuple(new string[]{"id","derivedFrom","mcpServer","creator","usageCount","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))), tmpNewCapabilityNode);
-            TMP_tmp27_14 = (PMachineValue)(currentMachine.self);
+            TMP_tmp27_15 = (PMachineValue)(currentMachine.self);
             TMP_tmp28_14 = (Event)(new eCapabilityNodeMinted((new PNamedTuple(new string[]{"id","derivedFrom","mcpServer","creator","usageCount","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
             TMP_tmp29_13 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewCapabilityNode)?.Clone()));
             TMP_tmp28_14.Payload = TMP_tmp29_13;
-            currentMachine.SendEvent(TMP_tmp27_14, (Event)TMP_tmp28_14);
+            currentMachine.SendEvent(TMP_tmp27_15, (Event)TMP_tmp28_14);
         }
         public void Anon_107(Event currentMachine_dequeuedEvent)
         {
@@ -9785,7 +9815,7 @@ namespace PImplementation
             PInt TMP_tmp16_29 = ((PInt)0);
             PInt TMP_tmp17_25 = ((PInt)0);
             PMachineValue TMP_tmp18_25 = null;
-            Event TMP_tmp19_21 = null;
+            Event TMP_tmp19_22 = null;
             PNamedTuple TMP_tmp20_21 = (new PNamedTuple(new string[]{"ideaNodeID","votes"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)));
             TMP_tmp0_74 = (PNamedTuple)(((PNamedTuple)payload_42)["ideaNodeID"]);
             TMP_tmp1_62 = (PBool)(((PBool)(((PMap)ideaNodes).ContainsKey(TMP_tmp0_74))));
@@ -9820,10 +9850,10 @@ namespace PImplementation
             ((PNamedTuple)tmpIdeaVoted)["votes"] = TMP_tmp17_25;
             currentMachine.Announce((Event)new eIdeaVoted((new PNamedTuple(new string[]{"ideaNodeID","votes"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))), tmpIdeaVoted);
             TMP_tmp18_25 = (PMachineValue)(currentMachine.self);
-            TMP_tmp19_21 = (Event)(new eIdeaVoted((new PNamedTuple(new string[]{"ideaNodeID","votes"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))));
+            TMP_tmp19_22 = (Event)(new eIdeaVoted((new PNamedTuple(new string[]{"ideaNodeID","votes"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))));
             TMP_tmp20_21 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpIdeaVoted)?.Clone()));
-            TMP_tmp19_21.Payload = TMP_tmp20_21;
-            currentMachine.SendEvent(TMP_tmp18_25, (Event)TMP_tmp19_21);
+            TMP_tmp19_22.Payload = TMP_tmp20_21;
+            currentMachine.SendEvent(TMP_tmp18_25, (Event)TMP_tmp19_22);
         }
         public void Anon_109(Event currentMachine_dequeuedEvent)
         {
@@ -9849,36 +9879,36 @@ namespace PImplementation
             PInt TMP_tmp16_30 = ((PInt)0);
             PInt TMP_tmp17_26 = ((PInt)0);
             PString TMP_tmp18_26 = ((PString)"");
-            PMachineValue TMP_tmp19_22 = null;
+            PMachineValue TMP_tmp19_23 = null;
             Event TMP_tmp20_22 = null;
             PNamedTuple TMP_tmp21_21 = (new PNamedTuple(new string[]{"ideaNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
             PString TMP_tmp22_19 = ((PString)"");
             PString TMP_tmp23_19 = ((PString)"");
             PBool TMP_tmp24_17 = ((PBool)false);
             PNamedTuple TMP_tmp25_17 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp26_15 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp27_15 = ((PString)"");
+            PNamedTuple TMP_tmp26_16 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp27_16 = ((PString)"");
             PMachineValue TMP_tmp28_15 = null;
             Event TMP_tmp29_14 = null;
             PNamedTuple TMP_tmp30_13 = (new PNamedTuple(new string[]{"ideaNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
-            PInt TMP_tmp31_11 = ((PInt)0);
-            PBool TMP_tmp32_10 = ((PBool)false);
-            PInt TMP_tmp33_10 = ((PInt)0);
+            PInt TMP_tmp31_12 = ((PInt)0);
+            PBool TMP_tmp32_11 = ((PBool)false);
+            PInt TMP_tmp33_11 = ((PInt)0);
             PBool TMP_tmp34_9 = ((PBool)false);
             PBool TMP_tmp35_8 = ((PBool)false);
             PNamedTuple TMP_tmp36_8 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp37_8 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp38_8 = ((PString)"");
-            PMachineValue TMP_tmp39_6 = null;
-            Event TMP_tmp40_6 = null;
-            PNamedTuple TMP_tmp41_6 = (new PNamedTuple(new string[]{"ideaNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
+            PMachineValue TMP_tmp39_7 = null;
+            Event TMP_tmp40_7 = null;
+            PNamedTuple TMP_tmp41_7 = (new PNamedTuple(new string[]{"ideaNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
             PInt TMP_tmp42_6 = ((PInt)0);
             PInt TMP_tmp43_5 = ((PInt)0);
             PString TMP_tmp44_5 = ((PString)"");
             PNamedTuple TMP_tmp45_5 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp46_4 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp47_4 = ((PString)"");
-            PString TMP_tmp48_4 = ((PString)"");
+            PNamedTuple TMP_tmp46_5 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp47_5 = ((PString)"");
+            PString TMP_tmp48_5 = ((PString)"");
             PNamedTuple TMP_tmp49_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp50_4 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PInt TMP_tmp51_3 = ((PInt)0);
@@ -9918,11 +9948,11 @@ namespace PImplementation
                 TMP_tmp17_26 = (PInt)(((PInt)((IPValue)minIdeaVotesForProperty)?.Clone()));
                 TMP_tmp18_26 = (PString)(((PString) String.Format("Insufficient votes: {0}/{1}",TMP_tmp16_30,TMP_tmp17_26)));
                 ((PNamedTuple)tmpPropMakingFailed)["reason"] = TMP_tmp18_26;
-                TMP_tmp19_22 = (PMachineValue)(currentMachine.self);
+                TMP_tmp19_23 = (PMachineValue)(currentMachine.self);
                 TMP_tmp20_22 = (Event)(new ePropertyMakingFailed((new PNamedTuple(new string[]{"ideaNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
                 TMP_tmp21_21 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpPropMakingFailed)?.Clone()));
                 TMP_tmp20_22.Payload = TMP_tmp21_21;
-                currentMachine.SendEvent(TMP_tmp19_22, (Event)TMP_tmp20_22);
+                currentMachine.SendEvent(TMP_tmp19_23, (Event)TMP_tmp20_22);
                 return ;
             }
             TMP_tmp22_19 = (PString)(((PNamedTuple)payload_43)["inferenceNFT"]);
@@ -9931,10 +9961,10 @@ namespace PImplementation
             if (TMP_tmp24_17)
             {
                 TMP_tmp25_17 = (PNamedTuple)(((PNamedTuple)payload_43)["ideaNodeID"]);
-                TMP_tmp26_15 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp25_17)?.Clone()));
-                ((PNamedTuple)tmpPropMakingFailed)["ideaNodeID"] = TMP_tmp26_15;
-                TMP_tmp27_15 = (PString)(((PString) String.Format("Invalid inference NFT pointer")));
-                ((PNamedTuple)tmpPropMakingFailed)["reason"] = TMP_tmp27_15;
+                TMP_tmp26_16 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp25_17)?.Clone()));
+                ((PNamedTuple)tmpPropMakingFailed)["ideaNodeID"] = TMP_tmp26_16;
+                TMP_tmp27_16 = (PString)(((PString) String.Format("Invalid inference NFT pointer")));
+                ((PNamedTuple)tmpPropMakingFailed)["reason"] = TMP_tmp27_16;
                 TMP_tmp28_15 = (PMachineValue)(currentMachine.self);
                 TMP_tmp29_14 = (Event)(new ePropertyMakingFailed((new PNamedTuple(new string[]{"ideaNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
                 TMP_tmp30_13 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpPropMakingFailed)?.Clone()));
@@ -9942,16 +9972,16 @@ namespace PImplementation
                 currentMachine.SendEvent(TMP_tmp28_15, (Event)TMP_tmp29_14);
                 return ;
             }
-            TMP_tmp31_11 = (PInt)(((PNamedTuple)payload_43)["royaltyRate"]);
-            TMP_tmp32_10 = (PBool)((TMP_tmp31_11) < (((PInt)(0))));
-            TMP_tmp35_8 = (PBool)(((PBool)((IPValue)TMP_tmp32_10)?.Clone()));
+            TMP_tmp31_12 = (PInt)(((PNamedTuple)payload_43)["royaltyRate"]);
+            TMP_tmp32_11 = (PBool)((TMP_tmp31_12) < (((PInt)(0))));
+            TMP_tmp35_8 = (PBool)(((PBool)((IPValue)TMP_tmp32_11)?.Clone()));
             if (TMP_tmp35_8)
             {
             }
             else
             {
-                TMP_tmp33_10 = (PInt)(((PNamedTuple)payload_43)["royaltyRate"]);
-                TMP_tmp34_9 = (PBool)((TMP_tmp33_10) > (((PInt)(100))));
+                TMP_tmp33_11 = (PInt)(((PNamedTuple)payload_43)["royaltyRate"]);
+                TMP_tmp34_9 = (PBool)((TMP_tmp33_11) > (((PInt)(100))));
                 TMP_tmp35_8 = (PBool)(((PBool)((IPValue)TMP_tmp34_9)?.Clone()));
             }
             if (TMP_tmp35_8)
@@ -9961,11 +9991,11 @@ namespace PImplementation
                 ((PNamedTuple)tmpPropMakingFailed)["ideaNodeID"] = TMP_tmp37_8;
                 TMP_tmp38_8 = (PString)(((PString) String.Format("Invalid royalty rate")));
                 ((PNamedTuple)tmpPropMakingFailed)["reason"] = TMP_tmp38_8;
-                TMP_tmp39_6 = (PMachineValue)(currentMachine.self);
-                TMP_tmp40_6 = (Event)(new ePropertyMakingFailed((new PNamedTuple(new string[]{"ideaNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
-                TMP_tmp41_6 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpPropMakingFailed)?.Clone()));
-                TMP_tmp40_6.Payload = TMP_tmp41_6;
-                currentMachine.SendEvent(TMP_tmp39_6, (Event)TMP_tmp40_6);
+                TMP_tmp39_7 = (PMachineValue)(currentMachine.self);
+                TMP_tmp40_7 = (Event)(new ePropertyMakingFailed((new PNamedTuple(new string[]{"ideaNodeID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
+                TMP_tmp41_7 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpPropMakingFailed)?.Clone()));
+                TMP_tmp40_7.Payload = TMP_tmp41_7;
+                currentMachine.SendEvent(TMP_tmp39_7, (Event)TMP_tmp40_7);
                 return ;
             }
             TMP_tmp42_6 = (PInt)((propertyNodeCounter) + (((PInt)(1))));
@@ -9976,11 +10006,11 @@ namespace PImplementation
             ((PNamedTuple)tmpTimestamp_1)["milliseconds"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)tmpNewPropertyNode)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpPropertyNodeID)?.Clone()));
             TMP_tmp45_5 = (PNamedTuple)(((PNamedTuple)payload_43)["ideaNodeID"]);
-            TMP_tmp46_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp45_5)?.Clone()));
-            ((PNamedTuple)tmpNewPropertyNode)["derivedFrom"] = TMP_tmp46_4;
-            TMP_tmp47_4 = (PString)(((PNamedTuple)payload_43)["inferenceNFT"]);
-            TMP_tmp48_4 = (PString)(((PString)((IPValue)TMP_tmp47_4)?.Clone()));
-            ((PNamedTuple)tmpNewPropertyNode)["inferenceNFT"] = TMP_tmp48_4;
+            TMP_tmp46_5 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp45_5)?.Clone()));
+            ((PNamedTuple)tmpNewPropertyNode)["derivedFrom"] = TMP_tmp46_5;
+            TMP_tmp47_5 = (PString)(((PNamedTuple)payload_43)["inferenceNFT"]);
+            TMP_tmp48_5 = (PString)(((PString)((IPValue)TMP_tmp47_5)?.Clone()));
+            ((PNamedTuple)tmpNewPropertyNode)["inferenceNFT"] = TMP_tmp48_5;
             TMP_tmp49_4 = (PNamedTuple)(((PNamedTuple)payload_43)["owner"]);
             TMP_tmp50_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp49_4)?.Clone()));
             ((PNamedTuple)tmpNewPropertyNode)["owner"] = TMP_tmp50_4;
@@ -10654,35 +10684,37 @@ namespace PImplementation
             PInt TMP_tmp8_45 = ((PInt)0);
             PInt TMP_tmp9_45 = ((PInt)0);
             PMachineValue TMP_tmp10_37 = null;
-            Event TMP_tmp11_35 = null;
-            PNamedTuple TMP_tmp12_36 = (new PNamedTuple(new string[]{"existingID","occurrences"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)));
-            PString TMP_tmp13_35 = ((PString)"");
-            PInt TMP_tmp14_33 = ((PInt)0);
+            PMachineValue TMP_tmp11_35 = null;
+            Event TMP_tmp12_36 = null;
+            PNamedTuple TMP_tmp13_35 = (new PNamedTuple(new string[]{"existingID","occurrences"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)));
+            PString TMP_tmp14_33 = ((PString)"");
             PInt TMP_tmp15_31 = ((PInt)0);
-            PString TMP_tmp16_31 = ((PString)"");
+            PInt TMP_tmp16_31 = ((PInt)0);
             PString TMP_tmp17_27 = ((PString)"");
             PString TMP_tmp18_27 = ((PString)"");
-            PString TMP_tmp19_23 = ((PString)"");
+            PString TMP_tmp19_24 = ((PString)"");
             PString TMP_tmp20_23 = ((PString)"");
-            PMap TMP_tmp21_22 = new PMap();
+            PString TMP_tmp21_22 = ((PString)"");
             PMap TMP_tmp22_20 = new PMap();
-            PSeq TMP_tmp23_20 = new PSeq();
-            PString TMP_tmp24_18 = ((PString)"");
-            PBool TMP_tmp25_18 = ((PBool)false);
-            PString TMP_tmp26_16 = ((PString)"");
-            PSeq TMP_tmp27_16 = new PSeq();
+            PMap TMP_tmp23_20 = new PMap();
+            PSeq TMP_tmp24_18 = new PSeq();
+            PString TMP_tmp25_18 = ((PString)"");
+            PBool TMP_tmp26_17 = ((PBool)false);
+            PString TMP_tmp27_17 = ((PString)"");
             PSeq TMP_tmp28_16 = new PSeq();
             PSeq TMP_tmp29_15 = new PSeq();
-            PInt TMP_tmp30_14 = ((PInt)0);
-            PNamedTuple TMP_tmp31_12 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp32_11 = ((PString)"");
-            PNamedTuple TMP_tmp33_11 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp34_10 = ((PString)"");
-            PMap TMP_tmp35_9 = new PMap();
-            PMachineValue TMP_tmp36_9 = null;
-            Event TMP_tmp37_9 = null;
-            PNamedTuple TMP_tmp38_9 = (new PNamedTuple(new string[]{"id","errorHash","errorType","stackTrace","contextPayload","occurrences","firstSeen","lastSeen","solutions"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), ((PString)""), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq()));
-            PString TMP_tmp39_7 = ((PString)"");
+            PSeq TMP_tmp30_14 = new PSeq();
+            PInt TMP_tmp31_13 = ((PInt)0);
+            PNamedTuple TMP_tmp32_12 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp33_12 = ((PString)"");
+            PNamedTuple TMP_tmp34_10 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp35_9 = ((PString)"");
+            PMap TMP_tmp36_9 = new PMap();
+            PMachineValue TMP_tmp37_9 = null;
+            PMachineValue TMP_tmp38_9 = null;
+            Event TMP_tmp39_8 = null;
+            PNamedTuple TMP_tmp40_8 = (new PNamedTuple(new string[]{"id","errorHash","errorType","stackTrace","contextPayload","occurrences","firstSeen","lastSeen","solutions"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), ((PString)""), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq()));
+            PString TMP_tmp41_8 = ((PString)"");
             TMP_tmp0_83 = (PSeq)(new PSeq());
             ((PNamedTuple)tmpErrorHash)["bytes"] = TMP_tmp0_83;
             TMP_tmp1_67 = (PBool)(((PBool)(((PMap)errorsByHash).ContainsKey(tmpErrorHash))));
@@ -10704,69 +10736,71 @@ namespace PImplementation
                 TMP_tmp9_45 = (PInt)(((PInt)((IPValue)TMP_tmp8_45)?.Clone()));
                 ((PNamedTuple)tmpErrorDuplicateData)["occurrences"] = TMP_tmp9_45;
                 currentMachine.Announce((Event)new eErrorDuplicate((new PNamedTuple(new string[]{"existingID","occurrences"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))), tmpErrorDuplicateData);
-                TMP_tmp10_37 = (PMachineValue)(currentMachine.self);
-                TMP_tmp11_35 = (Event)(new eErrorDuplicate((new PNamedTuple(new string[]{"existingID","occurrences"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))));
-                TMP_tmp12_36 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorDuplicateData)?.Clone()));
-                TMP_tmp11_35.Payload = TMP_tmp12_36;
-                currentMachine.SendEvent(TMP_tmp10_37, (Event)TMP_tmp11_35);
-                TMP_tmp13_35 = (PString)(((PNamedTuple)payload_44)["errorType"]);
-                CheckForPattern(TMP_tmp13_35);
+                TMP_tmp10_37 = (PMachineValue)(((PNamedTuple)payload_44)["caller"]);
+                TMP_tmp11_35 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp10_37)?.Clone()));
+                TMP_tmp12_36 = (Event)(new eErrorDuplicate((new PNamedTuple(new string[]{"existingID","occurrences"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))));
+                TMP_tmp13_35 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorDuplicateData)?.Clone()));
+                TMP_tmp12_36.Payload = TMP_tmp13_35;
+                currentMachine.SendEvent(TMP_tmp11_35, (Event)TMP_tmp12_36);
+                TMP_tmp14_33 = (PString)(((PNamedTuple)payload_44)["errorType"]);
+                CheckForPattern(TMP_tmp14_33);
                 return ;
             }
-            TMP_tmp14_33 = (PInt)((errorCounter) + (((PInt)(1))));
-            errorCounter = TMP_tmp14_33;
-            TMP_tmp15_31 = (PInt)(((PInt)((IPValue)errorCounter)?.Clone()));
-            TMP_tmp16_31 = (PString)(((PString) String.Format("error_rec_{0}",TMP_tmp15_31)));
-            ((PNamedTuple)tmpErrorID)["value"] = TMP_tmp16_31;
+            TMP_tmp15_31 = (PInt)((errorCounter) + (((PInt)(1))));
+            errorCounter = TMP_tmp15_31;
+            TMP_tmp16_31 = (PInt)(((PInt)((IPValue)errorCounter)?.Clone()));
+            TMP_tmp17_27 = (PString)(((PString) String.Format("error_rec_{0}",TMP_tmp16_31)));
+            ((PNamedTuple)tmpErrorID)["value"] = TMP_tmp17_27;
             ((PNamedTuple)tmpNewRecord)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorID)?.Clone()));
             ((PNamedTuple)tmpNewRecord)["errorHash"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorHash)?.Clone()));
-            TMP_tmp17_27 = (PString)(((PNamedTuple)payload_44)["errorType"]);
-            TMP_tmp18_27 = (PString)(((PString)((IPValue)TMP_tmp17_27)?.Clone()));
-            ((PNamedTuple)tmpNewRecord)["errorType"] = TMP_tmp18_27;
-            TMP_tmp19_23 = (PString)(((PNamedTuple)payload_44)["stackTrace"]);
-            TMP_tmp20_23 = (PString)(((PString)((IPValue)TMP_tmp19_23)?.Clone()));
-            ((PNamedTuple)tmpNewRecord)["stackTrace"] = TMP_tmp20_23;
-            TMP_tmp21_22 = (PMap)(((PNamedTuple)payload_44)["context"]);
-            TMP_tmp22_20 = (PMap)(((PMap)((IPValue)TMP_tmp21_22)?.Clone()));
-            ((PNamedTuple)tmpNewRecord)["contextPayload"] = TMP_tmp22_20;
+            TMP_tmp18_27 = (PString)(((PNamedTuple)payload_44)["errorType"]);
+            TMP_tmp19_24 = (PString)(((PString)((IPValue)TMP_tmp18_27)?.Clone()));
+            ((PNamedTuple)tmpNewRecord)["errorType"] = TMP_tmp19_24;
+            TMP_tmp20_23 = (PString)(((PNamedTuple)payload_44)["stackTrace"]);
+            TMP_tmp21_22 = (PString)(((PString)((IPValue)TMP_tmp20_23)?.Clone()));
+            ((PNamedTuple)tmpNewRecord)["stackTrace"] = TMP_tmp21_22;
+            TMP_tmp22_20 = (PMap)(((PNamedTuple)payload_44)["context"]);
+            TMP_tmp23_20 = (PMap)(((PMap)((IPValue)TMP_tmp22_20)?.Clone()));
+            ((PNamedTuple)tmpNewRecord)["contextPayload"] = TMP_tmp23_20;
             ((PNamedTuple)tmpNewRecord)["occurrences"] = (PInt)(((PInt)(1)));
             ((PNamedTuple)((PNamedTuple)tmpNewRecord)["firstSeen"])["milliseconds"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)((PNamedTuple)tmpNewRecord)["lastSeen"])["milliseconds"] = (PInt)(((PInt)(0)));
-            TMP_tmp23_20 = (PSeq)(new PSeq());
-            ((PNamedTuple)tmpNewRecord)["solutions"] = TMP_tmp23_20;
+            TMP_tmp24_18 = (PSeq)(new PSeq());
+            ((PNamedTuple)tmpNewRecord)["solutions"] = TMP_tmp24_18;
             ((PMap)errorRecords)[tmpErrorID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewRecord)?.Clone()));
             ((PMap)errorsByHash)[tmpErrorHash] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorID)?.Clone()));
-            TMP_tmp24_18 = (PString)(((PNamedTuple)payload_44)["errorType"]);
-            TMP_tmp25_18 = (PBool)(((PBool)(((PMap)errorsByType).ContainsKey(TMP_tmp24_18))));
-            if (TMP_tmp25_18)
+            TMP_tmp25_18 = (PString)(((PNamedTuple)payload_44)["errorType"]);
+            TMP_tmp26_17 = (PBool)(((PBool)(((PMap)errorsByType).ContainsKey(TMP_tmp25_18))));
+            if (TMP_tmp26_17)
             {
-                TMP_tmp26_16 = (PString)(((PNamedTuple)payload_44)["errorType"]);
-                TMP_tmp27_16 = (PSeq)(((PMap)errorsByType)[TMP_tmp26_16]);
-                TMP_tmp28_16 = (PSeq)(((PSeq)((IPValue)TMP_tmp27_16)?.Clone()));
-                tmpTypeErrors = TMP_tmp28_16;
+                TMP_tmp27_17 = (PString)(((PNamedTuple)payload_44)["errorType"]);
+                TMP_tmp28_16 = (PSeq)(((PMap)errorsByType)[TMP_tmp27_17]);
+                TMP_tmp29_15 = (PSeq)(((PSeq)((IPValue)TMP_tmp28_16)?.Clone()));
+                tmpTypeErrors = TMP_tmp29_15;
             }
             else
             {
-                TMP_tmp29_15 = (PSeq)(new PSeq());
-                tmpTypeErrors = TMP_tmp29_15;
+                TMP_tmp30_14 = (PSeq)(new PSeq());
+                tmpTypeErrors = TMP_tmp30_14;
             }
-            TMP_tmp30_14 = (PInt)(((PInt)(tmpTypeErrors).Count));
-            TMP_tmp31_12 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorID)?.Clone()));
-            ((PSeq)tmpTypeErrors).Insert(TMP_tmp30_14, TMP_tmp31_12);
-            TMP_tmp32_11 = (PString)(((PNamedTuple)payload_44)["errorType"]);
-            ((PMap)errorsByType)[TMP_tmp32_11] = (PSeq)(((PSeq)((IPValue)tmpTypeErrors)?.Clone()));
-            TMP_tmp33_11 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorID)?.Clone()));
-            TMP_tmp34_10 = (PString)(((PString) String.Format("error")));
-            TMP_tmp35_9 = (PMap)(((PNamedTuple)payload_44)["context"]);
-            CreateKnowledgeNode(TMP_tmp33_11, TMP_tmp34_10, TMP_tmp35_9);
+            TMP_tmp31_13 = (PInt)(((PInt)(tmpTypeErrors).Count));
+            TMP_tmp32_12 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorID)?.Clone()));
+            ((PSeq)tmpTypeErrors).Insert(TMP_tmp31_13, TMP_tmp32_12);
+            TMP_tmp33_12 = (PString)(((PNamedTuple)payload_44)["errorType"]);
+            ((PMap)errorsByType)[TMP_tmp33_12] = (PSeq)(((PSeq)((IPValue)tmpTypeErrors)?.Clone()));
+            TMP_tmp34_10 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorID)?.Clone()));
+            TMP_tmp35_9 = (PString)(((PString) String.Format("error")));
+            TMP_tmp36_9 = (PMap)(((PNamedTuple)payload_44)["context"]);
+            CreateKnowledgeNode(TMP_tmp34_10, TMP_tmp35_9, TMP_tmp36_9);
             currentMachine.Announce((Event)new eErrorRecorded((new PNamedTuple(new string[]{"id","errorHash","errorType","stackTrace","contextPayload","occurrences","firstSeen","lastSeen","solutions"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), ((PString)""), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq()))), tmpNewRecord);
-            TMP_tmp36_9 = (PMachineValue)(currentMachine.self);
-            TMP_tmp37_9 = (Event)(new eErrorRecorded((new PNamedTuple(new string[]{"id","errorHash","errorType","stackTrace","contextPayload","occurrences","firstSeen","lastSeen","solutions"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), ((PString)""), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq()))));
-            TMP_tmp38_9 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewRecord)?.Clone()));
-            TMP_tmp37_9.Payload = TMP_tmp38_9;
-            currentMachine.SendEvent(TMP_tmp36_9, (Event)TMP_tmp37_9);
-            TMP_tmp39_7 = (PString)(((PNamedTuple)payload_44)["errorType"]);
-            CheckForPattern(TMP_tmp39_7);
+            TMP_tmp37_9 = (PMachineValue)(((PNamedTuple)payload_44)["caller"]);
+            TMP_tmp38_9 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp37_9)?.Clone()));
+            TMP_tmp39_8 = (Event)(new eErrorRecorded((new PNamedTuple(new string[]{"id","errorHash","errorType","stackTrace","contextPayload","occurrences","firstSeen","lastSeen","solutions"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), ((PString)""), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq()))));
+            TMP_tmp40_8 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewRecord)?.Clone()));
+            TMP_tmp39_8.Payload = TMP_tmp40_8;
+            currentMachine.SendEvent(TMP_tmp38_9, (Event)TMP_tmp39_8);
+            TMP_tmp41_8 = (PString)(((PNamedTuple)payload_44)["errorType"]);
+            CheckForPattern(TMP_tmp41_8);
         }
         public void Anon_118(Event currentMachine_dequeuedEvent)
         {
@@ -10777,175 +10811,181 @@ namespace PImplementation
             PBool TMP_tmp1_68 = ((PBool)false);
             PBool TMP_tmp2_66 = ((PBool)false);
             PMachineValue TMP_tmp3_62 = null;
-            Event TMP_tmp4_58 = null;
-            PString TMP_tmp5_55 = ((PString)"");
-            PNamedTuple TMP_tmp6_51 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp7_51 = (new PNamedTuple(new string[]{"id","errorHash","errorType","stackTrace","contextPayload","occurrences","firstSeen","lastSeen","solutions"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), ((PString)""), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq()));
+            PMachineValue TMP_tmp4_58 = null;
+            Event TMP_tmp5_55 = null;
+            PString TMP_tmp6_51 = ((PString)"");
+            PNamedTuple TMP_tmp7_51 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp8_46 = (new PNamedTuple(new string[]{"id","errorHash","errorType","stackTrace","contextPayload","occurrences","firstSeen","lastSeen","solutions"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), ((PString)""), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq()));
-            PSeq TMP_tmp9_46 = new PSeq();
-            PInt TMP_tmp10_38 = ((PInt)0);
-            PBool TMP_tmp11_36 = ((PBool)false);
-            PMachineValue TMP_tmp12_37 = null;
-            Event TMP_tmp13_36 = null;
-            PString TMP_tmp14_34 = ((PString)"");
-            PInt TMP_tmp15_32 = ((PInt)0);
-            PInt TMP_tmp16_32 = ((PInt)0);
-            PString TMP_tmp17_28 = ((PString)"");
-            PNamedTuple TMP_tmp18_28 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp19_24 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp20_24 = ((PString)"");
-            PString TMP_tmp21_23 = ((PString)"");
+            PNamedTuple TMP_tmp9_46 = (new PNamedTuple(new string[]{"id","errorHash","errorType","stackTrace","contextPayload","occurrences","firstSeen","lastSeen","solutions"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), ((PString)""), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq()));
+            PSeq TMP_tmp10_38 = new PSeq();
+            PInt TMP_tmp11_36 = ((PInt)0);
+            PBool TMP_tmp12_37 = ((PBool)false);
+            PMachineValue TMP_tmp13_36 = null;
+            PMachineValue TMP_tmp14_34 = null;
+            Event TMP_tmp15_32 = null;
+            PString TMP_tmp16_32 = ((PString)"");
+            PInt TMP_tmp17_28 = ((PInt)0);
+            PInt TMP_tmp18_28 = ((PInt)0);
+            PString TMP_tmp19_25 = ((PString)"");
+            PNamedTuple TMP_tmp20_24 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp21_23 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp22_21 = ((PString)"");
             PString TMP_tmp23_21 = ((PString)"");
-            PNamedTuple TMP_tmp24_19 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp25_19 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PSeq TMP_tmp26_17 = new PSeq();
-            PInt TMP_tmp27_17 = ((PInt)0);
-            PNamedTuple TMP_tmp28_17 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp29_16 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp24_19 = ((PString)"");
+            PString TMP_tmp25_19 = ((PString)"");
+            PNamedTuple TMP_tmp26_18 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp27_18 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PSeq TMP_tmp28_17 = new PSeq();
+            PInt TMP_tmp29_16 = ((PInt)0);
             PNamedTuple TMP_tmp30_15 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PBool TMP_tmp31_13 = ((PBool)false);
-            PNamedTuple TMP_tmp32_12 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PSeq TMP_tmp33_12 = new PSeq();
-            PSeq TMP_tmp34_11 = new PSeq();
+            PNamedTuple TMP_tmp31_14 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp32_13 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PBool TMP_tmp33_13 = ((PBool)false);
+            PNamedTuple TMP_tmp34_11 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PSeq TMP_tmp35_10 = new PSeq();
-            PInt TMP_tmp36_10 = ((PInt)0);
-            PNamedTuple TMP_tmp37_10 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp38_10 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp39_8 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PBool TMP_tmp40_7 = ((PBool)false);
-            PNamedTuple TMP_tmp41_7 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PSeq TMP_tmp42_7 = new PSeq();
-            PSeq TMP_tmp43_6 = new PSeq();
+            PSeq TMP_tmp36_10 = new PSeq();
+            PSeq TMP_tmp37_10 = new PSeq();
+            PInt TMP_tmp38_10 = ((PInt)0);
+            PNamedTuple TMP_tmp39_9 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp40_9 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp41_9 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PBool TMP_tmp42_7 = ((PBool)false);
+            PNamedTuple TMP_tmp43_6 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PSeq TMP_tmp44_6 = new PSeq();
-            PInt TMP_tmp45_6 = ((PInt)0);
-            PNamedTuple TMP_tmp46_5 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp47_5 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PMap TMP_tmp48_5 = new PMap();
-            PString TMP_tmp49_5 = ((PString)"");
-            PString TMP_tmp50_5 = ((PString)"");
+            PSeq TMP_tmp45_6 = new PSeq();
+            PSeq TMP_tmp46_6 = new PSeq();
+            PInt TMP_tmp47_6 = ((PInt)0);
+            PNamedTuple TMP_tmp48_6 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp49_5 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PMap TMP_tmp50_5 = new PMap();
             PString TMP_tmp51_4 = ((PString)"");
-            PNamedTuple TMP_tmp52_4 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp52_4 = ((PString)"");
             PString TMP_tmp53_3 = ((PString)"");
-            PMap TMP_tmp54_3 = new PMap();
-            PNamedTuple TMP_tmp55_3 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp56_2 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PMachineValue TMP_tmp57_2 = null;
-            Event TMP_tmp58_2 = null;
-            PNamedTuple TMP_tmp59_2 = (new PNamedTuple(new string[]{"id","forError","solutionType","content","author","effectiveness","validations","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
+            PNamedTuple TMP_tmp54_3 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp55_3 = ((PString)"");
+            PMap TMP_tmp56_2 = new PMap();
+            PNamedTuple TMP_tmp57_2 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp58_2 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PMachineValue TMP_tmp59_2 = null;
+            PMachineValue TMP_tmp60_2 = null;
+            Event TMP_tmp61_2 = null;
+            PNamedTuple TMP_tmp62_2 = (new PNamedTuple(new string[]{"id","forError","solutionType","content","author","effectiveness","validations","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
             TMP_tmp0_84 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
             TMP_tmp1_68 = (PBool)(((PBool)(((PMap)errorRecords).ContainsKey(TMP_tmp0_84))));
             TMP_tmp2_66 = (PBool)(!(TMP_tmp1_68));
             if (TMP_tmp2_66)
             {
-                TMP_tmp3_62 = (PMachineValue)(currentMachine.self);
-                TMP_tmp4_58 = (Event)(new eSolutionSubmissionFailed(((PString)"")));
-                TMP_tmp5_55 = (PString)(((PString) String.Format("Error not found")));
-                TMP_tmp4_58.Payload = TMP_tmp5_55;
-                currentMachine.SendEvent(TMP_tmp3_62, (Event)TMP_tmp4_58);
+                TMP_tmp3_62 = (PMachineValue)(((PNamedTuple)payload_45)["caller"]);
+                TMP_tmp4_58 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp3_62)?.Clone()));
+                TMP_tmp5_55 = (Event)(new eSolutionSubmissionFailed(((PString)"")));
+                TMP_tmp6_51 = (PString)(((PString) String.Format("Error not found")));
+                TMP_tmp5_55.Payload = TMP_tmp6_51;
+                currentMachine.SendEvent(TMP_tmp4_58, (Event)TMP_tmp5_55);
                 return ;
             }
-            TMP_tmp6_51 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
-            TMP_tmp7_51 = (PNamedTuple)(((PMap)errorRecords)[TMP_tmp6_51]);
-            TMP_tmp8_46 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp7_51)?.Clone()));
-            tmpErrorRecord = TMP_tmp8_46;
-            TMP_tmp9_46 = (PSeq)(((PNamedTuple)tmpErrorRecord)["solutions"]);
-            TMP_tmp10_38 = (PInt)(((PInt)(TMP_tmp9_46).Count));
-            TMP_tmp11_36 = (PBool)((TMP_tmp10_38) >= (maxSolutionsPerError));
-            if (TMP_tmp11_36)
+            TMP_tmp7_51 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
+            TMP_tmp8_46 = (PNamedTuple)(((PMap)errorRecords)[TMP_tmp7_51]);
+            TMP_tmp9_46 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp8_46)?.Clone()));
+            tmpErrorRecord = TMP_tmp9_46;
+            TMP_tmp10_38 = (PSeq)(((PNamedTuple)tmpErrorRecord)["solutions"]);
+            TMP_tmp11_36 = (PInt)(((PInt)(TMP_tmp10_38).Count));
+            TMP_tmp12_37 = (PBool)((TMP_tmp11_36) >= (maxSolutionsPerError));
+            if (TMP_tmp12_37)
             {
-                TMP_tmp12_37 = (PMachineValue)(currentMachine.self);
-                TMP_tmp13_36 = (Event)(new eSolutionSubmissionFailed(((PString)"")));
-                TMP_tmp14_34 = (PString)(((PString) String.Format("Maximum solutions reached for this error")));
-                TMP_tmp13_36.Payload = TMP_tmp14_34;
-                currentMachine.SendEvent(TMP_tmp12_37, (Event)TMP_tmp13_36);
+                TMP_tmp13_36 = (PMachineValue)(((PNamedTuple)payload_45)["caller"]);
+                TMP_tmp14_34 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp13_36)?.Clone()));
+                TMP_tmp15_32 = (Event)(new eSolutionSubmissionFailed(((PString)"")));
+                TMP_tmp16_32 = (PString)(((PString) String.Format("Maximum solutions reached for this error")));
+                TMP_tmp15_32.Payload = TMP_tmp16_32;
+                currentMachine.SendEvent(TMP_tmp14_34, (Event)TMP_tmp15_32);
                 return ;
             }
-            TMP_tmp15_32 = (PInt)((solutionCounter) + (((PInt)(1))));
-            solutionCounter = TMP_tmp15_32;
-            TMP_tmp16_32 = (PInt)(((PInt)((IPValue)solutionCounter)?.Clone()));
-            TMP_tmp17_28 = (PString)(((PString) String.Format("solution_{0}",TMP_tmp16_32)));
-            ((PNamedTuple)tmpSolutionID)["value"] = TMP_tmp17_28;
+            TMP_tmp17_28 = (PInt)((solutionCounter) + (((PInt)(1))));
+            solutionCounter = TMP_tmp17_28;
+            TMP_tmp18_28 = (PInt)(((PInt)((IPValue)solutionCounter)?.Clone()));
+            TMP_tmp19_25 = (PString)(((PString) String.Format("solution_{0}",TMP_tmp18_28)));
+            ((PNamedTuple)tmpSolutionID)["value"] = TMP_tmp19_25;
             ((PNamedTuple)tmpNewSolution)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
-            TMP_tmp18_28 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
-            TMP_tmp19_24 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp18_28)?.Clone()));
-            ((PNamedTuple)tmpNewSolution)["forError"] = TMP_tmp19_24;
-            TMP_tmp20_24 = (PString)(((PNamedTuple)payload_45)["solutionType"]);
-            TMP_tmp21_23 = (PString)(((PString)((IPValue)TMP_tmp20_24)?.Clone()));
-            ((PNamedTuple)tmpNewSolution)["solutionType"] = TMP_tmp21_23;
-            TMP_tmp22_21 = (PString)(((PNamedTuple)payload_45)["content"]);
+            TMP_tmp20_24 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
+            TMP_tmp21_23 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp20_24)?.Clone()));
+            ((PNamedTuple)tmpNewSolution)["forError"] = TMP_tmp21_23;
+            TMP_tmp22_21 = (PString)(((PNamedTuple)payload_45)["solutionType"]);
             TMP_tmp23_21 = (PString)(((PString)((IPValue)TMP_tmp22_21)?.Clone()));
-            ((PNamedTuple)tmpNewSolution)["content"] = TMP_tmp23_21;
-            TMP_tmp24_19 = (PNamedTuple)(((PNamedTuple)payload_45)["author"]);
-            TMP_tmp25_19 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp24_19)?.Clone()));
-            ((PNamedTuple)tmpNewSolution)["author"] = TMP_tmp25_19;
+            ((PNamedTuple)tmpNewSolution)["solutionType"] = TMP_tmp23_21;
+            TMP_tmp24_19 = (PString)(((PNamedTuple)payload_45)["content"]);
+            TMP_tmp25_19 = (PString)(((PString)((IPValue)TMP_tmp24_19)?.Clone()));
+            ((PNamedTuple)tmpNewSolution)["content"] = TMP_tmp25_19;
+            TMP_tmp26_18 = (PNamedTuple)(((PNamedTuple)payload_45)["author"]);
+            TMP_tmp27_18 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp26_18)?.Clone()));
+            ((PNamedTuple)tmpNewSolution)["author"] = TMP_tmp27_18;
             ((PNamedTuple)tmpNewSolution)["effectiveness"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)tmpNewSolution)["validations"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)((PNamedTuple)tmpNewSolution)["timestamp"])["milliseconds"] = (PInt)(((PInt)(0)));
             ((PMap)solutionRecords)[tmpSolutionID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewSolution)?.Clone()));
-            TMP_tmp26_17 = (PSeq)(((PNamedTuple)tmpErrorRecord)["solutions"]);
-            TMP_tmp27_17 = (PInt)(((PInt)(TMP_tmp26_17).Count));
-            TMP_tmp28_17 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
-            ((PSeq)((PNamedTuple)tmpErrorRecord)["solutions"]).Insert(TMP_tmp27_17, TMP_tmp28_17);
-            TMP_tmp29_16 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
-            ((PMap)errorRecords)[TMP_tmp29_16] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorRecord)?.Clone()));
-            TMP_tmp30_15 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
-            TMP_tmp31_13 = (PBool)(((PBool)(((PMap)solutionsByError).ContainsKey(TMP_tmp30_15))));
-            if (TMP_tmp31_13)
+            TMP_tmp28_17 = (PSeq)(((PNamedTuple)tmpErrorRecord)["solutions"]);
+            TMP_tmp29_16 = (PInt)(((PInt)(TMP_tmp28_17).Count));
+            TMP_tmp30_15 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
+            ((PSeq)((PNamedTuple)tmpErrorRecord)["solutions"]).Insert(TMP_tmp29_16, TMP_tmp30_15);
+            TMP_tmp31_14 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
+            ((PMap)errorRecords)[TMP_tmp31_14] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpErrorRecord)?.Clone()));
+            TMP_tmp32_13 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
+            TMP_tmp33_13 = (PBool)(((PBool)(((PMap)solutionsByError).ContainsKey(TMP_tmp32_13))));
+            if (TMP_tmp33_13)
             {
-                TMP_tmp32_12 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
-                TMP_tmp33_12 = (PSeq)(((PMap)solutionsByError)[TMP_tmp32_12]);
-                TMP_tmp34_11 = (PSeq)(((PSeq)((IPValue)TMP_tmp33_12)?.Clone()));
-                tmpErrorSolutions = TMP_tmp34_11;
+                TMP_tmp34_11 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
+                TMP_tmp35_10 = (PSeq)(((PMap)solutionsByError)[TMP_tmp34_11]);
+                TMP_tmp36_10 = (PSeq)(((PSeq)((IPValue)TMP_tmp35_10)?.Clone()));
+                tmpErrorSolutions = TMP_tmp36_10;
             }
             else
             {
-                TMP_tmp35_10 = (PSeq)(new PSeq());
-                tmpErrorSolutions = TMP_tmp35_10;
+                TMP_tmp37_10 = (PSeq)(new PSeq());
+                tmpErrorSolutions = TMP_tmp37_10;
             }
-            TMP_tmp36_10 = (PInt)(((PInt)(tmpErrorSolutions).Count));
-            TMP_tmp37_10 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
-            ((PSeq)tmpErrorSolutions).Insert(TMP_tmp36_10, TMP_tmp37_10);
-            TMP_tmp38_10 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
-            ((PMap)solutionsByError)[TMP_tmp38_10] = (PSeq)(((PSeq)((IPValue)tmpErrorSolutions)?.Clone()));
-            TMP_tmp39_8 = (PNamedTuple)(((PNamedTuple)payload_45)["author"]);
-            TMP_tmp40_7 = (PBool)(((PBool)(((PMap)solutionsByAuthor).ContainsKey(TMP_tmp39_8))));
-            if (TMP_tmp40_7)
+            TMP_tmp38_10 = (PInt)(((PInt)(tmpErrorSolutions).Count));
+            TMP_tmp39_9 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
+            ((PSeq)tmpErrorSolutions).Insert(TMP_tmp38_10, TMP_tmp39_9);
+            TMP_tmp40_9 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
+            ((PMap)solutionsByError)[TMP_tmp40_9] = (PSeq)(((PSeq)((IPValue)tmpErrorSolutions)?.Clone()));
+            TMP_tmp41_9 = (PNamedTuple)(((PNamedTuple)payload_45)["author"]);
+            TMP_tmp42_7 = (PBool)(((PBool)(((PMap)solutionsByAuthor).ContainsKey(TMP_tmp41_9))));
+            if (TMP_tmp42_7)
             {
-                TMP_tmp41_7 = (PNamedTuple)(((PNamedTuple)payload_45)["author"]);
-                TMP_tmp42_7 = (PSeq)(((PMap)solutionsByAuthor)[TMP_tmp41_7]);
-                TMP_tmp43_6 = (PSeq)(((PSeq)((IPValue)TMP_tmp42_7)?.Clone()));
-                tmpAuthorSolutions = TMP_tmp43_6;
+                TMP_tmp43_6 = (PNamedTuple)(((PNamedTuple)payload_45)["author"]);
+                TMP_tmp44_6 = (PSeq)(((PMap)solutionsByAuthor)[TMP_tmp43_6]);
+                TMP_tmp45_6 = (PSeq)(((PSeq)((IPValue)TMP_tmp44_6)?.Clone()));
+                tmpAuthorSolutions = TMP_tmp45_6;
             }
             else
             {
-                TMP_tmp44_6 = (PSeq)(new PSeq());
-                tmpAuthorSolutions = TMP_tmp44_6;
+                TMP_tmp46_6 = (PSeq)(new PSeq());
+                tmpAuthorSolutions = TMP_tmp46_6;
             }
-            TMP_tmp45_6 = (PInt)(((PInt)(tmpAuthorSolutions).Count));
-            TMP_tmp46_5 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
-            ((PSeq)tmpAuthorSolutions).Insert(TMP_tmp45_6, TMP_tmp46_5);
-            TMP_tmp47_5 = (PNamedTuple)(((PNamedTuple)payload_45)["author"]);
-            ((PMap)solutionsByAuthor)[TMP_tmp47_5] = (PSeq)(((PSeq)((IPValue)tmpAuthorSolutions)?.Clone()));
-            TMP_tmp48_5 = (PMap)(new PMap());
-            tmpSolutionContext = TMP_tmp48_5;
-            TMP_tmp49_5 = (PString)(((PString) String.Format("solution_type")));
-            TMP_tmp50_5 = (PString)(((PNamedTuple)payload_45)["solutionType"]);
-            TMP_tmp51_4 = (PString)(((PString)((IPValue)TMP_tmp50_5)?.Clone()));
-            ((PMap)tmpSolutionContext)[TMP_tmp49_5] = (IPValue)TMP_tmp51_4;
-            TMP_tmp52_4 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
-            TMP_tmp53_3 = (PString)(((PString) String.Format("solution")));
-            TMP_tmp54_3 = (PMap)(((PMap)((IPValue)tmpSolutionContext)?.Clone()));
-            CreateKnowledgeNode(TMP_tmp52_4, TMP_tmp53_3, TMP_tmp54_3);
-            TMP_tmp55_3 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
-            TMP_tmp56_2 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
-            LinkKnowledgeNodes(TMP_tmp55_3, TMP_tmp56_2);
+            TMP_tmp47_6 = (PInt)(((PInt)(tmpAuthorSolutions).Count));
+            TMP_tmp48_6 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
+            ((PSeq)tmpAuthorSolutions).Insert(TMP_tmp47_6, TMP_tmp48_6);
+            TMP_tmp49_5 = (PNamedTuple)(((PNamedTuple)payload_45)["author"]);
+            ((PMap)solutionsByAuthor)[TMP_tmp49_5] = (PSeq)(((PSeq)((IPValue)tmpAuthorSolutions)?.Clone()));
+            TMP_tmp50_5 = (PMap)(new PMap());
+            tmpSolutionContext = TMP_tmp50_5;
+            TMP_tmp51_4 = (PString)(((PString) String.Format("solution_type")));
+            TMP_tmp52_4 = (PString)(((PNamedTuple)payload_45)["solutionType"]);
+            TMP_tmp53_3 = (PString)(((PString)((IPValue)TMP_tmp52_4)?.Clone()));
+            ((PMap)tmpSolutionContext)[TMP_tmp51_4] = (IPValue)TMP_tmp53_3;
+            TMP_tmp54_3 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
+            TMP_tmp55_3 = (PString)(((PString) String.Format("solution")));
+            TMP_tmp56_2 = (PMap)(((PMap)((IPValue)tmpSolutionContext)?.Clone()));
+            CreateKnowledgeNode(TMP_tmp54_3, TMP_tmp55_3, TMP_tmp56_2);
+            TMP_tmp57_2 = (PNamedTuple)(((PNamedTuple)payload_45)["forError"]);
+            TMP_tmp58_2 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionID)?.Clone()));
+            LinkKnowledgeNodes(TMP_tmp57_2, TMP_tmp58_2);
             currentMachine.Announce((Event)new eSolutionSubmitted((new PNamedTuple(new string[]{"id","forError","solutionType","content","author","effectiveness","validations","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))), tmpNewSolution);
-            TMP_tmp57_2 = (PMachineValue)(currentMachine.self);
-            TMP_tmp58_2 = (Event)(new eSolutionSubmitted((new PNamedTuple(new string[]{"id","forError","solutionType","content","author","effectiveness","validations","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
-            TMP_tmp59_2 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewSolution)?.Clone()));
-            TMP_tmp58_2.Payload = TMP_tmp59_2;
-            currentMachine.SendEvent(TMP_tmp57_2, (Event)TMP_tmp58_2);
+            TMP_tmp59_2 = (PMachineValue)(((PNamedTuple)payload_45)["caller"]);
+            TMP_tmp60_2 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp59_2)?.Clone()));
+            TMP_tmp61_2 = (Event)(new eSolutionSubmitted((new PNamedTuple(new string[]{"id","forError","solutionType","content","author","effectiveness","validations","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
+            TMP_tmp62_2 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewSolution)?.Clone()));
+            TMP_tmp61_2.Payload = TMP_tmp62_2;
+            currentMachine.SendEvent(TMP_tmp60_2, (Event)TMP_tmp61_2);
         }
         public void Anon_119(Event currentMachine_dequeuedEvent)
         {
@@ -10971,15 +11011,15 @@ namespace PImplementation
             PInt TMP_tmp16_33 = ((PInt)0);
             PInt TMP_tmp17_29 = ((PInt)0);
             PInt TMP_tmp18_29 = ((PInt)0);
-            PInt TMP_tmp19_25 = ((PInt)0);
+            PInt TMP_tmp19_26 = ((PInt)0);
             PInt TMP_tmp20_25 = ((PInt)0);
             PInt TMP_tmp21_24 = ((PInt)0);
             PNamedTuple TMP_tmp22_22 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp23_22 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp24_20 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PInt TMP_tmp25_20 = ((PInt)0);
-            PInt TMP_tmp26_18 = ((PInt)0);
-            PMachineValue TMP_tmp27_18 = null;
+            PInt TMP_tmp26_19 = ((PInt)0);
+            PMachineValue TMP_tmp27_19 = null;
             Event TMP_tmp28_18 = null;
             PNamedTuple TMP_tmp29_17 = (new PNamedTuple(new string[]{"solutionID","newEffectiveness"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)));
             TMP_tmp0_85 = (PNamedTuple)(((PNamedTuple)payload_46)["solutionID"]);
@@ -11013,9 +11053,9 @@ namespace PImplementation
                 TMP_tmp16_33 = (PInt)(((PNamedTuple)tmpSolution)["effectiveness"]);
                 TMP_tmp17_29 = (PInt)(((PNamedTuple)tmpSolution)["validations"]);
                 TMP_tmp18_29 = (PInt)((TMP_tmp17_29) - (((PInt)(1))));
-                TMP_tmp19_25 = (PInt)((TMP_tmp16_33) * (TMP_tmp18_29));
+                TMP_tmp19_26 = (PInt)((TMP_tmp16_33) * (TMP_tmp18_29));
                 TMP_tmp20_25 = (PInt)(((PNamedTuple)tmpSolution)["validations"]);
-                TMP_tmp21_24 = (PInt)((TMP_tmp19_25) / (TMP_tmp20_25));
+                TMP_tmp21_24 = (PInt)((TMP_tmp19_26) / (TMP_tmp20_25));
                 ((PNamedTuple)tmpSolution)["effectiveness"] = TMP_tmp21_24;
             }
             TMP_tmp22_22 = (PNamedTuple)(((PNamedTuple)payload_46)["solutionID"]);
@@ -11024,14 +11064,14 @@ namespace PImplementation
             TMP_tmp24_20 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp23_22)?.Clone()));
             ((PNamedTuple)tmpSolutionValidatedData)["solutionID"] = TMP_tmp24_20;
             TMP_tmp25_20 = (PInt)(((PNamedTuple)tmpSolution)["effectiveness"]);
-            TMP_tmp26_18 = (PInt)(((PInt)((IPValue)TMP_tmp25_20)?.Clone()));
-            ((PNamedTuple)tmpSolutionValidatedData)["newEffectiveness"] = TMP_tmp26_18;
+            TMP_tmp26_19 = (PInt)(((PInt)((IPValue)TMP_tmp25_20)?.Clone()));
+            ((PNamedTuple)tmpSolutionValidatedData)["newEffectiveness"] = TMP_tmp26_19;
             currentMachine.Announce((Event)new eSolutionValidated((new PNamedTuple(new string[]{"solutionID","newEffectiveness"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))), tmpSolutionValidatedData);
-            TMP_tmp27_18 = (PMachineValue)(currentMachine.self);
+            TMP_tmp27_19 = (PMachineValue)(currentMachine.self);
             TMP_tmp28_18 = (Event)(new eSolutionValidated((new PNamedTuple(new string[]{"solutionID","newEffectiveness"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))));
             TMP_tmp29_17 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSolutionValidatedData)?.Clone()));
             TMP_tmp28_18.Payload = TMP_tmp29_17;
-            currentMachine.SendEvent(TMP_tmp27_18, (Event)TMP_tmp28_18);
+            currentMachine.SendEvent(TMP_tmp27_19, (Event)TMP_tmp28_18);
         }
         public void Anon_120(Event currentMachine_dequeuedEvent)
         {
@@ -11057,36 +11097,36 @@ namespace PImplementation
             PBool TMP_tmp16_34 = ((PBool)false);
             PBool TMP_tmp17_30 = ((PBool)false);
             PBool TMP_tmp18_30 = ((PBool)false);
-            PBool TMP_tmp19_26 = ((PBool)false);
+            PBool TMP_tmp19_27 = ((PBool)false);
             PNamedTuple TMP_tmp20_26 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PBool TMP_tmp21_25 = ((PBool)false);
             PInt TMP_tmp22_23 = ((PInt)0);
             PNamedTuple TMP_tmp23_23 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp24_21 = (new PNamedTuple(new string[]{"id","nodeType","contentPayload","embedding","connections","createdAt","updatedAt"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
             PInt TMP_tmp25_21 = ((PInt)0);
-            PString TMP_tmp26_19 = ((PString)"");
-            PString TMP_tmp27_19 = ((PString)"");
+            PString TMP_tmp26_20 = ((PString)"");
+            PString TMP_tmp27_20 = ((PString)"");
             PBool TMP_tmp28_19 = ((PBool)false);
             PString TMP_tmp29_18 = ((PString)"");
             PMap TMP_tmp30_16 = new PMap();
-            PBool TMP_tmp31_14 = ((PBool)false);
-            PMap TMP_tmp32_13 = new PMap();
-            PString TMP_tmp33_13 = ((PString)"");
+            PBool TMP_tmp31_15 = ((PBool)false);
+            PMap TMP_tmp32_14 = new PMap();
+            PString TMP_tmp33_14 = ((PString)"");
             IPValue TMP_tmp34_12 = null;
             PString TMP_tmp35_11 = ((PString)"");
             PBool TMP_tmp36_11 = ((PBool)false);
             PSeq TMP_tmp37_11 = new PSeq();
             PSeq TMP_tmp38_11 = new PSeq();
-            PInt TMP_tmp39_9 = ((PInt)0);
-            PBool TMP_tmp40_8 = ((PBool)false);
-            PBool TMP_tmp41_8 = ((PBool)false);
+            PInt TMP_tmp39_10 = ((PInt)0);
+            PBool TMP_tmp40_10 = ((PBool)false);
+            PBool TMP_tmp41_10 = ((PBool)false);
             PNamedTuple TMP_tmp42_8 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PBool TMP_tmp43_7 = ((PBool)false);
             PInt TMP_tmp44_7 = ((PInt)0);
             PNamedTuple TMP_tmp45_7 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp46_6 = (new PNamedTuple(new string[]{"id","nodeType","contentPayload","embedding","connections","createdAt","updatedAt"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
-            PInt TMP_tmp47_6 = ((PInt)0);
-            PString TMP_tmp48_6 = ((PString)"");
+            PNamedTuple TMP_tmp46_7 = (new PNamedTuple(new string[]{"id","nodeType","contentPayload","embedding","connections","createdAt","updatedAt"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
+            PInt TMP_tmp47_7 = ((PInt)0);
+            PString TMP_tmp48_7 = ((PString)"");
             PString TMP_tmp49_6 = ((PString)"");
             PBool TMP_tmp50_6 = ((PBool)false);
             PSeq TMP_tmp51_5 = new PSeq();
@@ -11098,13 +11138,13 @@ namespace PImplementation
             PBool TMP_tmp57_3 = ((PBool)false);
             PBool TMP_tmp58_3 = ((PBool)false);
             PInt TMP_tmp59_3 = ((PInt)0);
-            PNamedTuple TMP_tmp60_2 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp61_2 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PInt TMP_tmp62_2 = ((PInt)0);
+            PNamedTuple TMP_tmp60_3 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp61_3 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PInt TMP_tmp62_3 = ((PInt)0);
             PNamedTuple TMP_tmp63_2 = (new PNamedTuple(new string[]{"id","patternName","description","errorTypes","frequency","suggestedSolutions"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), new PSeq(), ((PInt)0), new PSeq()));
             PMachineValue TMP_tmp64_2 = null;
             Event TMP_tmp65_2 = null;
-            PNamedTuple TMP_tmp66_1 = (new PNamedTuple(new string[]{"nodes","patterns"},new PSeq(), new PSeq()));
+            PNamedTuple TMP_tmp66_2 = (new PNamedTuple(new string[]{"nodes","patterns"},new PSeq(), new PSeq()));
             TMP_tmp0_86 = (PSeq)(new PSeq());
             tmpResultNodes = TMP_tmp0_86;
             TMP_tmp1_70 = (PSeq)(new PSeq());
@@ -11141,8 +11181,8 @@ namespace PImplementation
                                 TMP_tmp17_30 = (PBool)((tmpI) < (((PInt)(100))));
                                 TMP_tmp18_30 = (PBool)(((PBool)((IPValue)TMP_tmp17_30)?.Clone()));
                             }
-                            TMP_tmp19_26 = (PBool)(((PBool)((IPValue)TMP_tmp18_30)?.Clone()));
-                            if (TMP_tmp19_26)
+                            TMP_tmp19_27 = (PBool)(((PBool)((IPValue)TMP_tmp18_30)?.Clone()));
+                            if (TMP_tmp19_27)
                             {
                             }
                             else
@@ -11166,19 +11206,19 @@ namespace PImplementation
             }
             else
             {
-                TMP_tmp26_19 = (PString)(((PNamedTuple)payload_47)["queryType"]);
-                TMP_tmp27_19 = (PString)(((PString) String.Format("solutions_for_error")));
-                TMP_tmp28_19 = (PBool)((PValues.SafeEquals(TMP_tmp26_19,TMP_tmp27_19)));
+                TMP_tmp26_20 = (PString)(((PNamedTuple)payload_47)["queryType"]);
+                TMP_tmp27_20 = (PString)(((PString) String.Format("solutions_for_error")));
+                TMP_tmp28_19 = (PBool)((PValues.SafeEquals(TMP_tmp26_20,TMP_tmp27_20)));
                 if (TMP_tmp28_19)
                 {
                     TMP_tmp29_18 = (PString)(((PString) String.Format("error_id")));
                     TMP_tmp30_16 = (PMap)(((PNamedTuple)payload_47)["params"]);
-                    TMP_tmp31_14 = (PBool)(((PBool)(((PMap)TMP_tmp30_16).ContainsKey(TMP_tmp29_18))));
-                    if (TMP_tmp31_14)
+                    TMP_tmp31_15 = (PBool)(((PBool)(((PMap)TMP_tmp30_16).ContainsKey(TMP_tmp29_18))));
+                    if (TMP_tmp31_15)
                     {
-                        TMP_tmp32_13 = (PMap)(((PNamedTuple)payload_47)["params"]);
-                        TMP_tmp33_13 = (PString)(((PString) String.Format("error_id")));
-                        TMP_tmp34_12 = (IPValue)(((PMap)TMP_tmp32_13)[TMP_tmp33_13]);
+                        TMP_tmp32_14 = (PMap)(((PNamedTuple)payload_47)["params"]);
+                        TMP_tmp33_14 = (PString)(((PString) String.Format("error_id")));
+                        TMP_tmp34_12 = (IPValue)(((PMap)TMP_tmp32_14)[TMP_tmp33_14]);
                         TMP_tmp35_11 = (PString)(((PString)((IPValue)((IPValue)TMP_tmp34_12)?.Clone())));
                         tmpErrorIDStr = TMP_tmp35_11;
                         ((PNamedTuple)tmpQueryErrorID)["value"] = (PString)(((PString)((IPValue)tmpErrorIDStr)?.Clone()));
@@ -11191,10 +11231,10 @@ namespace PImplementation
                             tmpI = (PInt)(((PInt)(0)));
                             while (((PBool)true))
                             {
-                                TMP_tmp39_9 = (PInt)(((PInt)(tmpSolutionIDs).Count));
-                                TMP_tmp40_8 = (PBool)((tmpI) < (TMP_tmp39_9));
-                                TMP_tmp41_8 = (PBool)(((PBool)((IPValue)TMP_tmp40_8)?.Clone()));
-                                if (TMP_tmp41_8)
+                                TMP_tmp39_10 = (PInt)(((PInt)(tmpSolutionIDs).Count));
+                                TMP_tmp40_10 = (PBool)((tmpI) < (TMP_tmp39_10));
+                                TMP_tmp41_10 = (PBool)(((PBool)((IPValue)TMP_tmp40_10)?.Clone()));
+                                if (TMP_tmp41_10)
                                 {
                                 }
                                 else
@@ -11207,20 +11247,20 @@ namespace PImplementation
                                 {
                                     TMP_tmp44_7 = (PInt)(((PInt)(tmpResultNodes).Count));
                                     TMP_tmp45_7 = (PNamedTuple)(((PSeq)tmpSolutionIDs)[tmpI]);
-                                    TMP_tmp46_6 = (PNamedTuple)(((PMap)knowledgeNodes)[TMP_tmp45_7]);
-                                    ((PSeq)tmpResultNodes).Insert(TMP_tmp44_7, TMP_tmp46_6);
+                                    TMP_tmp46_7 = (PNamedTuple)(((PMap)knowledgeNodes)[TMP_tmp45_7]);
+                                    ((PSeq)tmpResultNodes).Insert(TMP_tmp44_7, TMP_tmp46_7);
                                 }
-                                TMP_tmp47_6 = (PInt)((tmpI) + (((PInt)(1))));
-                                tmpI = TMP_tmp47_6;
+                                TMP_tmp47_7 = (PInt)((tmpI) + (((PInt)(1))));
+                                tmpI = TMP_tmp47_7;
                             }
                         }
                     }
                 }
                 else
                 {
-                    TMP_tmp48_6 = (PString)(((PNamedTuple)payload_47)["queryType"]);
+                    TMP_tmp48_7 = (PString)(((PNamedTuple)payload_47)["queryType"]);
                     TMP_tmp49_6 = (PString)(((PString) String.Format("patterns")));
-                    TMP_tmp50_6 = (PBool)((PValues.SafeEquals(TMP_tmp48_6,TMP_tmp49_6)));
+                    TMP_tmp50_6 = (PBool)((PValues.SafeEquals(TMP_tmp48_7,TMP_tmp49_6)));
                     if (TMP_tmp50_6)
                     {
                         TMP_tmp54_4 = (PSeq)((errorPatterns).CloneKeys());
@@ -11242,12 +11282,12 @@ namespace PImplementation
                             }
                             TMP_tmp59_3 = (PInt)((TMP_i_patternID_tmp52) + (((PInt)(1))));
                             TMP_i_patternID_tmp52 = TMP_tmp59_3;
-                            TMP_tmp60_2 = (PNamedTuple)(((PSeq)TMP_tmp51_5)[TMP_i_patternID_tmp52]);
-                            TMP_tmp61_2 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp60_2)?.Clone()));
-                            patternID = TMP_tmp61_2;
-                            TMP_tmp62_2 = (PInt)(((PInt)(tmpResultPatterns).Count));
+                            TMP_tmp60_3 = (PNamedTuple)(((PSeq)TMP_tmp51_5)[TMP_i_patternID_tmp52]);
+                            TMP_tmp61_3 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp60_3)?.Clone()));
+                            patternID = TMP_tmp61_3;
+                            TMP_tmp62_3 = (PInt)(((PInt)(tmpResultPatterns).Count));
                             TMP_tmp63_2 = (PNamedTuple)(((PMap)errorPatterns)[patternID]);
-                            ((PSeq)tmpResultPatterns).Insert(TMP_tmp62_2, TMP_tmp63_2);
+                            ((PSeq)tmpResultPatterns).Insert(TMP_tmp62_3, TMP_tmp63_2);
                         }
                     }
                 }
@@ -11256,8 +11296,8 @@ namespace PImplementation
             ((PNamedTuple)tmpKnowledgeGraphResult)["patterns"] = (PSeq)(((PSeq)((IPValue)tmpResultPatterns)?.Clone()));
             TMP_tmp64_2 = (PMachineValue)(currentMachine.self);
             TMP_tmp65_2 = (Event)(new eKnowledgeGraphResult((new PNamedTuple(new string[]{"nodes","patterns"},new PSeq(), new PSeq()))));
-            TMP_tmp66_1 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpKnowledgeGraphResult)?.Clone()));
-            TMP_tmp65_2.Payload = TMP_tmp66_1;
+            TMP_tmp66_2 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpKnowledgeGraphResult)?.Clone()));
+            TMP_tmp65_2.Payload = TMP_tmp66_2;
             currentMachine.SendEvent(TMP_tmp64_2, (Event)TMP_tmp65_2);
         }
         public void Anon_121(Event currentMachine_dequeuedEvent)
@@ -11358,19 +11398,19 @@ namespace PImplementation
             PInt TMP_tmp16_35 = ((PInt)0);
             PInt TMP_tmp17_31 = ((PInt)0);
             PInt TMP_tmp18_31 = ((PInt)0);
-            PInt TMP_tmp19_27 = ((PInt)0);
+            PInt TMP_tmp19_28 = ((PInt)0);
             PInt TMP_tmp20_27 = ((PInt)0);
             PString TMP_tmp21_26 = ((PString)"");
             PSeq TMP_tmp22_24 = new PSeq();
             PString TMP_tmp23_24 = ((PString)"");
             PString TMP_tmp24_22 = ((PString)"");
             PString TMP_tmp25_22 = ((PString)"");
-            PString TMP_tmp26_20 = ((PString)"");
-            PString TMP_tmp27_20 = ((PString)"");
+            PString TMP_tmp26_21 = ((PString)"");
+            PString TMP_tmp27_21 = ((PString)"");
             PInt TMP_tmp28_20 = ((PInt)0);
             PSeq TMP_tmp29_19 = new PSeq();
             PSeq TMP_tmp30_17 = new PSeq();
-            PNamedTuple TMP_tmp31_15 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp31_16 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             TMP_tmp0_89 = (PBool)(((PBool)(((PMap)errorsByType).ContainsKey(errorType))));
             TMP_tmp1_73 = (PBool)(!(TMP_tmp0_89));
             if (TMP_tmp1_73)
@@ -11416,8 +11456,8 @@ namespace PImplementation
                 }
                 else
                 {
-                    TMP_tmp19_27 = (PInt)((patternCounter) + (((PInt)(1))));
-                    patternCounter = TMP_tmp19_27;
+                    TMP_tmp19_28 = (PInt)((patternCounter) + (((PInt)(1))));
+                    patternCounter = TMP_tmp19_28;
                     TMP_tmp20_27 = (PInt)(((PInt)((IPValue)patternCounter)?.Clone()));
                     TMP_tmp21_26 = (PString)(((PString) String.Format("pattern_{0}",TMP_tmp20_27)));
                     ((PNamedTuple)tmpPatternID)["value"] = TMP_tmp21_26;
@@ -11429,9 +11469,9 @@ namespace PImplementation
                     TMP_tmp24_22 = (PString)(((PString)((IPValue)errorType)?.Clone()));
                     TMP_tmp25_22 = (PString)(((PString) String.Format("Pattern_{0}",TMP_tmp24_22)));
                     ((PNamedTuple)tmpNewPattern)["patternName"] = TMP_tmp25_22;
-                    TMP_tmp26_20 = (PString)(((PString)((IPValue)errorType)?.Clone()));
-                    TMP_tmp27_20 = (PString)(((PString) String.Format("Recurring {0} errors detected",TMP_tmp26_20)));
-                    ((PNamedTuple)tmpNewPattern)["description"] = TMP_tmp27_20;
+                    TMP_tmp26_21 = (PString)(((PString)((IPValue)errorType)?.Clone()));
+                    TMP_tmp27_21 = (PString)(((PString) String.Format("Recurring {0} errors detected",TMP_tmp26_21)));
+                    ((PNamedTuple)tmpNewPattern)["description"] = TMP_tmp27_21;
                     ((PNamedTuple)tmpNewPattern)["errorTypes"] = (PSeq)(((PSeq)((IPValue)tmpErrorTypes)?.Clone()));
                     TMP_tmp28_20 = (PInt)(((PInt)(tmpTypeErrors).Count));
                     ((PNamedTuple)tmpNewPattern)["frequency"] = TMP_tmp28_20;
@@ -11440,8 +11480,8 @@ namespace PImplementation
                     ((PMap)errorPatterns)[tmpPatternID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewPattern)?.Clone()));
                     TMP_tmp30_17 = (PSeq)(new PSeq());
                     tmpTypePatterns = TMP_tmp30_17;
-                    TMP_tmp31_15 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpPatternID)?.Clone()));
-                    ((PSeq)tmpTypePatterns).Insert(((PInt)(0)), TMP_tmp31_15);
+                    TMP_tmp31_16 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpPatternID)?.Clone()));
+                    ((PSeq)tmpTypePatterns).Insert(((PInt)(0)), TMP_tmp31_16);
                     ((PMap)patternsByType)[errorType] = (PSeq)(((PSeq)((IPValue)tmpTypePatterns)?.Clone()));
                     currentMachine.Announce((Event)new ePatternDetected((new PNamedTuple(new string[]{"id","patternName","description","errorTypes","frequency","suggestedSolutions"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), new PSeq(), ((PInt)0), new PSeq()))), tmpNewPattern);
                 }
@@ -12070,7 +12110,9 @@ namespace PImplementation
             PMachineValue TMP_tmp11_41 = null;
             Event TMP_tmp12_42 = null;
             PNamedTuple TMP_tmp13_41 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
-            PInt TMP_tmp14_39 = ((PInt)0);
+            PMachineValue TMP_tmp14_39 = null;
+            PNamedTuple TMP_tmp15_37 = (new PNamedTuple(new string[]{"peer","caller"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), null));
+            PInt TMP_tmp16_36 = ((PInt)0);
             tmpI_1 = (PInt)(((PInt)(0)));
             while (((PBool)true))
             {
@@ -12099,14 +12141,16 @@ namespace PImplementation
                     if (TMP_tmp10_43)
                     {
                         TMP_tmp11_41 = (PMachineValue)(currentMachine.self);
-                        TMP_tmp12_42 = (Event)(new eConnectToPeer((new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)))));
+                        TMP_tmp12_42 = (Event)(new eConnectToPeer((new PNamedTuple(new string[]{"peer","caller"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), null))));
                         TMP_tmp13_41 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpPeer)?.Clone()));
-                        TMP_tmp12_42.Payload = TMP_tmp13_41;
+                        TMP_tmp14_39 = (PMachineValue)(currentMachine.self);
+                        TMP_tmp15_37 = (PNamedTuple)((new PNamedTuple(new string[]{"peer","caller"}, TMP_tmp13_41, TMP_tmp14_39)));
+                        TMP_tmp12_42.Payload = TMP_tmp15_37;
                         currentMachine.SendEvent(TMP_tmp11_41, (Event)TMP_tmp12_42);
                     }
                 }
-                TMP_tmp14_39 = (PInt)((tmpI_1) + (((PInt)(1))));
-                tmpI_1 = TMP_tmp14_39;
+                TMP_tmp16_36 = (PInt)((tmpI_1) + (((PInt)(1))));
+                tmpI_1 = TMP_tmp16_36;
             }
             currentMachine.RaiseGotoStateEvent<Active>();
             return;
@@ -12120,114 +12164,156 @@ namespace PImplementation
         public void Anon_132(Event currentMachine_dequeuedEvent)
         {
             P2PNetworkMachine currentMachine = this;
-            PNamedTuple peer = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_50 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
-            PNamedTuple TMP_tmp0_98 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PBool TMP_tmp1_78 = ((PBool)false);
-            PNamedTuple TMP_tmp2_76 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PBool TMP_tmp3_72 = ((PBool)false);
+            PNamedTuple TMP_tmp0_98 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp1_78 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PBool TMP_tmp2_76 = ((PBool)false);
+            PNamedTuple TMP_tmp3_72 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
             PNamedTuple TMP_tmp4_67 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PBool TMP_tmp5_64 = ((PBool)false);
-            PString TMP_tmp6_60 = ((PString)"");
-            PMachineValue TMP_tmp7_60 = null;
-            Event TMP_tmp8_55 = null;
-            PNamedTuple TMP_tmp9_53 = (new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")));
-            PInt TMP_tmp10_44 = ((PInt)0);
-            PBool TMP_tmp11_42 = ((PBool)false);
-            PString TMP_tmp12_43 = ((PString)"");
+            PNamedTuple TMP_tmp6_60 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp7_60 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PBool TMP_tmp8_55 = ((PBool)false);
+            PNamedTuple TMP_tmp9_53 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp10_44 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PString TMP_tmp11_42 = ((PString)"");
+            PMachineValue TMP_tmp12_43 = null;
             PMachineValue TMP_tmp13_42 = null;
             Event TMP_tmp14_40 = null;
-            PNamedTuple TMP_tmp15_37 = (new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")));
-            PInt TMP_tmp16_36 = ((PInt)0);
+            PNamedTuple TMP_tmp15_38 = (new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")));
+            PInt TMP_tmp16_37 = ((PInt)0);
             PBool TMP_tmp17_32 = ((PBool)false);
-            PString TMP_tmp18_32 = ((PString)"");
-            PMachineValue TMP_tmp19_28 = null;
-            Event TMP_tmp20_28 = null;
-            PNamedTuple TMP_tmp21_27 = (new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")));
-            PNamedTuple TMP_tmp22_25 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp23_25 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp24_23 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp25_23 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp26_21 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PString TMP_tmp27_21 = ((PString)"");
-            PNamedTuple TMP_tmp28_21 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PMachineValue TMP_tmp29_20 = null;
-            Event TMP_tmp30_18 = null;
-            PNamedTuple TMP_tmp31_16 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
-            TMP_tmp0_98 = (PNamedTuple)(((PNamedTuple)peer)["nodeID"]);
-            TMP_tmp1_78 = (PBool)(((PBool)(((PSet)connectedPeers).Contains(TMP_tmp0_98))));
-            if (TMP_tmp1_78)
+            PNamedTuple TMP_tmp18_32 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp19_29 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PString TMP_tmp20_28 = ((PString)"");
+            PMachineValue TMP_tmp21_27 = null;
+            PMachineValue TMP_tmp22_25 = null;
+            Event TMP_tmp23_25 = null;
+            PNamedTuple TMP_tmp24_23 = (new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")));
+            PNamedTuple TMP_tmp25_23 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PInt TMP_tmp26_22 = ((PInt)0);
+            PBool TMP_tmp27_22 = ((PBool)false);
+            PNamedTuple TMP_tmp28_21 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp29_20 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PString TMP_tmp30_18 = ((PString)"");
+            PMachineValue TMP_tmp31_17 = null;
+            PMachineValue TMP_tmp32_15 = null;
+            Event TMP_tmp33_15 = null;
+            PNamedTuple TMP_tmp34_13 = (new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")));
+            PNamedTuple TMP_tmp35_12 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp36_12 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp37_12 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp38_12 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp39_11 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp40_11 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp41_11 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp42_9 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp43_8 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp44_8 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PString TMP_tmp45_8 = ((PString)"");
+            PNamedTuple TMP_tmp46_8 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp47_8 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp48_8 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PMachineValue TMP_tmp49_7 = null;
+            PMachineValue TMP_tmp50_7 = null;
+            Event TMP_tmp51_6 = null;
+            PNamedTuple TMP_tmp52_5 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            TMP_tmp0_98 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            TMP_tmp1_78 = (PNamedTuple)(((PNamedTuple)TMP_tmp0_98)["nodeID"]);
+            TMP_tmp2_76 = (PBool)(((PBool)(((PSet)connectedPeers).Contains(TMP_tmp1_78))));
+            if (TMP_tmp2_76)
             {
                 return ;
             }
-            TMP_tmp2_76 = (PNamedTuple)(((PNamedTuple)peer)["nodeID"]);
-            TMP_tmp3_72 = (PBool)(((PBool)(((PSet)pendingConnections).Contains(TMP_tmp2_76))));
-            if (TMP_tmp3_72)
-            {
-                return ;
-            }
-            TMP_tmp4_67 = (PNamedTuple)(((PNamedTuple)peer)["nodeID"]);
-            TMP_tmp5_64 = (PBool)(((PBool)(((PSet)bannedPeers).Contains(TMP_tmp4_67))));
+            TMP_tmp3_72 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            TMP_tmp4_67 = (PNamedTuple)(((PNamedTuple)TMP_tmp3_72)["nodeID"]);
+            TMP_tmp5_64 = (PBool)(((PBool)(((PSet)pendingConnections).Contains(TMP_tmp4_67))));
             if (TMP_tmp5_64)
             {
-                ((PNamedTuple)failure_data)["peer"] = (PNamedTuple)(((PNamedTuple)((IPValue)peer)?.Clone()));
-                TMP_tmp6_60 = (PString)(((PString) String.Format("Peer is banned")));
-                ((PNamedTuple)failure_data)["reason"] = TMP_tmp6_60;
-                TMP_tmp7_60 = (PMachineValue)(currentMachine.self);
-                TMP_tmp8_55 = (Event)(new ePeerConnectionFailed((new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")))));
-                TMP_tmp9_53 = (PNamedTuple)(((PNamedTuple)((IPValue)failure_data)?.Clone()));
-                TMP_tmp8_55.Payload = TMP_tmp9_53;
-                currentMachine.SendEvent(TMP_tmp7_60, (Event)TMP_tmp8_55);
                 return ;
             }
-            TMP_tmp10_44 = (PInt)(((PInt)(connectedPeers).Count));
-            TMP_tmp11_42 = (PBool)((TMP_tmp10_44) >= (maxPeers));
-            if (TMP_tmp11_42)
+            TMP_tmp6_60 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            TMP_tmp7_60 = (PNamedTuple)(((PNamedTuple)TMP_tmp6_60)["nodeID"]);
+            TMP_tmp8_55 = (PBool)(((PBool)(((PSet)bannedPeers).Contains(TMP_tmp7_60))));
+            if (TMP_tmp8_55)
             {
-                ((PNamedTuple)failure_data)["peer"] = (PNamedTuple)(((PNamedTuple)((IPValue)peer)?.Clone()));
-                TMP_tmp12_43 = (PString)(((PString) String.Format("Max peers reached")));
-                ((PNamedTuple)failure_data)["reason"] = TMP_tmp12_43;
-                TMP_tmp13_42 = (PMachineValue)(currentMachine.self);
+                TMP_tmp9_53 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+                TMP_tmp10_44 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp9_53)?.Clone()));
+                ((PNamedTuple)failure_data)["peer"] = TMP_tmp10_44;
+                TMP_tmp11_42 = (PString)(((PString) String.Format("Peer is banned")));
+                ((PNamedTuple)failure_data)["reason"] = TMP_tmp11_42;
+                TMP_tmp12_43 = (PMachineValue)(((PNamedTuple)payload_50)["caller"]);
+                TMP_tmp13_42 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp12_43)?.Clone()));
                 TMP_tmp14_40 = (Event)(new ePeerConnectionFailed((new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")))));
-                TMP_tmp15_37 = (PNamedTuple)(((PNamedTuple)((IPValue)failure_data)?.Clone()));
-                TMP_tmp14_40.Payload = TMP_tmp15_37;
+                TMP_tmp15_38 = (PNamedTuple)(((PNamedTuple)((IPValue)failure_data)?.Clone()));
+                TMP_tmp14_40.Payload = TMP_tmp15_38;
                 currentMachine.SendEvent(TMP_tmp13_42, (Event)TMP_tmp14_40);
                 return ;
             }
-            TMP_tmp16_36 = (PInt)(((PNamedTuple)peer)["reputation"]);
-            TMP_tmp17_32 = (PBool)((TMP_tmp16_36) < (reputationThreshold));
+            TMP_tmp16_37 = (PInt)(((PInt)(connectedPeers).Count));
+            TMP_tmp17_32 = (PBool)((TMP_tmp16_37) >= (maxPeers));
             if (TMP_tmp17_32)
             {
-                ((PNamedTuple)failure_data)["peer"] = (PNamedTuple)(((PNamedTuple)((IPValue)peer)?.Clone()));
-                TMP_tmp18_32 = (PString)(((PString) String.Format("Low reputation")));
-                ((PNamedTuple)failure_data)["reason"] = TMP_tmp18_32;
-                TMP_tmp19_28 = (PMachineValue)(currentMachine.self);
-                TMP_tmp20_28 = (Event)(new ePeerConnectionFailed((new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")))));
-                TMP_tmp21_27 = (PNamedTuple)(((PNamedTuple)((IPValue)failure_data)?.Clone()));
-                TMP_tmp20_28.Payload = TMP_tmp21_27;
-                currentMachine.SendEvent(TMP_tmp19_28, (Event)TMP_tmp20_28);
+                TMP_tmp18_32 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+                TMP_tmp19_29 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp18_32)?.Clone()));
+                ((PNamedTuple)failure_data)["peer"] = TMP_tmp19_29;
+                TMP_tmp20_28 = (PString)(((PString) String.Format("Max peers reached")));
+                ((PNamedTuple)failure_data)["reason"] = TMP_tmp20_28;
+                TMP_tmp21_27 = (PMachineValue)(((PNamedTuple)payload_50)["caller"]);
+                TMP_tmp22_25 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp21_27)?.Clone()));
+                TMP_tmp23_25 = (Event)(new ePeerConnectionFailed((new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")))));
+                TMP_tmp24_23 = (PNamedTuple)(((PNamedTuple)((IPValue)failure_data)?.Clone()));
+                TMP_tmp23_25.Payload = TMP_tmp24_23;
+                currentMachine.SendEvent(TMP_tmp22_25, (Event)TMP_tmp23_25);
                 return ;
             }
-            TMP_tmp22_25 = (PNamedTuple)(((PNamedTuple)peer)["nodeID"]);
-            ((PMap)peers)[TMP_tmp22_25] = (PNamedTuple)(((PNamedTuple)((IPValue)peer)?.Clone()));
-            TMP_tmp23_25 = (PNamedTuple)(((PNamedTuple)peer)["nodeID"]);
-            TMP_tmp24_23 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp23_25)?.Clone()));
-            ((PNamedTuple)tmpRoute)["destination"] = TMP_tmp24_23;
-            TMP_tmp25_23 = (PNamedTuple)(((PNamedTuple)peer)["nodeID"]);
-            TMP_tmp26_21 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp25_23)?.Clone()));
-            ((PNamedTuple)tmpRoute)["nextHop"] = TMP_tmp26_21;
+            TMP_tmp25_23 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            TMP_tmp26_22 = (PInt)(((PNamedTuple)TMP_tmp25_23)["reputation"]);
+            TMP_tmp27_22 = (PBool)((TMP_tmp26_22) < (reputationThreshold));
+            if (TMP_tmp27_22)
+            {
+                TMP_tmp28_21 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+                TMP_tmp29_20 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp28_21)?.Clone()));
+                ((PNamedTuple)failure_data)["peer"] = TMP_tmp29_20;
+                TMP_tmp30_18 = (PString)(((PString) String.Format("Low reputation")));
+                ((PNamedTuple)failure_data)["reason"] = TMP_tmp30_18;
+                TMP_tmp31_17 = (PMachineValue)(((PNamedTuple)payload_50)["caller"]);
+                TMP_tmp32_15 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp31_17)?.Clone()));
+                TMP_tmp33_15 = (Event)(new ePeerConnectionFailed((new PNamedTuple(new string[]{"peer","reason"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), ((PString)"")))));
+                TMP_tmp34_13 = (PNamedTuple)(((PNamedTuple)((IPValue)failure_data)?.Clone()));
+                TMP_tmp33_15.Payload = TMP_tmp34_13;
+                currentMachine.SendEvent(TMP_tmp32_15, (Event)TMP_tmp33_15);
+                return ;
+            }
+            TMP_tmp35_12 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            TMP_tmp36_12 = (PNamedTuple)(((PNamedTuple)TMP_tmp35_12)["nodeID"]);
+            TMP_tmp37_12 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            TMP_tmp38_12 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp37_12)?.Clone()));
+            ((PMap)peers)[TMP_tmp36_12] = TMP_tmp38_12;
+            TMP_tmp39_11 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            TMP_tmp40_11 = (PNamedTuple)(((PNamedTuple)TMP_tmp39_11)["nodeID"]);
+            TMP_tmp41_11 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp40_11)?.Clone()));
+            ((PNamedTuple)tmpRoute)["destination"] = TMP_tmp41_11;
+            TMP_tmp42_9 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            TMP_tmp43_8 = (PNamedTuple)(((PNamedTuple)TMP_tmp42_9)["nodeID"]);
+            TMP_tmp44_8 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp43_8)?.Clone()));
+            ((PNamedTuple)tmpRoute)["nextHop"] = TMP_tmp44_8;
             ((PNamedTuple)tmpRoute)["metric"] = (PInt)(((PInt)(1)));
             ((PNamedTuple)((PNamedTuple)tmpRoute)["lastUpdated"])["milliseconds"] = (PInt)(((PInt)(0)));
-            TMP_tmp27_21 = (PString)(((PString) String.Format("active")));
-            ((PNamedTuple)((PNamedTuple)tmpRoute)["status"])["status"] = TMP_tmp27_21;
-            TMP_tmp28_21 = (PNamedTuple)(((PNamedTuple)peer)["nodeID"]);
-            ((PMap)routingTable)[TMP_tmp28_21] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpRoute)?.Clone()));
-            currentMachine.Announce((Event)new ePeerConnected((new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)))), peer);
-            TMP_tmp29_20 = (PMachineValue)(currentMachine.self);
-            TMP_tmp30_18 = (Event)(new ePeerConnected((new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)))));
-            TMP_tmp31_16 = (PNamedTuple)(((PNamedTuple)((IPValue)peer)?.Clone()));
-            TMP_tmp30_18.Payload = TMP_tmp31_16;
-            currentMachine.SendEvent(TMP_tmp29_20, (Event)TMP_tmp30_18);
+            TMP_tmp45_8 = (PString)(((PString) String.Format("active")));
+            ((PNamedTuple)((PNamedTuple)tmpRoute)["status"])["status"] = TMP_tmp45_8;
+            TMP_tmp46_8 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            TMP_tmp47_8 = (PNamedTuple)(((PNamedTuple)TMP_tmp46_8)["nodeID"]);
+            ((PMap)routingTable)[TMP_tmp47_8] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpRoute)?.Clone()));
+            TMP_tmp48_8 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            currentMachine.Announce((Event)new ePeerConnected((new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)))), TMP_tmp48_8);
+            TMP_tmp49_7 = (PMachineValue)(((PNamedTuple)payload_50)["caller"]);
+            TMP_tmp50_7 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp49_7)?.Clone()));
+            TMP_tmp51_6 = (Event)(new ePeerConnected((new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)))));
+            TMP_tmp52_5 = (PNamedTuple)(((PNamedTuple)payload_50)["peer"]);
+            TMP_tmp51_6.Payload = TMP_tmp52_5;
+            currentMachine.SendEvent(TMP_tmp50_7, (Event)TMP_tmp51_6);
         }
         public void Anon_133(Event currentMachine_dequeuedEvent)
         {
@@ -12284,44 +12370,44 @@ namespace PImplementation
             PString TMP_tmp12_44 = ((PString)"");
             PBool TMP_tmp13_43 = ((PBool)false);
             PNamedTuple TMP_tmp14_41 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp15_38 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PSeq TMP_tmp16_37 = new PSeq();
+            PNamedTuple TMP_tmp15_39 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PSeq TMP_tmp16_38 = new PSeq();
             PInt TMP_tmp17_33 = ((PInt)0);
             PMachineValue TMP_tmp18_33 = null;
-            Event TMP_tmp19_29 = null;
+            Event TMP_tmp19_30 = null;
             PNamedTuple TMP_tmp20_29 = (new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)));
             PNamedTuple TMP_tmp21_28 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PBool TMP_tmp22_26 = ((PBool)false);
             PNamedTuple TMP_tmp23_26 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PNamedTuple TMP_tmp24_24 = (new PNamedTuple(new string[]{"destination","nextHop","metric","lastUpdated","status"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             PNamedTuple TMP_tmp25_24 = (new PNamedTuple(new string[]{"destination","nextHop","metric","lastUpdated","status"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
-            PNamedTuple TMP_tmp26_22 = (new PNamedTuple(new string[]{"status"},((PString)"")));
-            PString TMP_tmp27_22 = ((PString)"");
+            PNamedTuple TMP_tmp26_23 = (new PNamedTuple(new string[]{"status"},((PString)"")));
+            PString TMP_tmp27_23 = ((PString)"");
             PString TMP_tmp28_22 = ((PString)"");
             PBool TMP_tmp29_21 = ((PBool)false);
             PInt TMP_tmp30_19 = ((PInt)0);
-            PInt TMP_tmp31_17 = ((PInt)0);
-            PSeq TMP_tmp32_14 = new PSeq();
-            PInt TMP_tmp33_14 = ((PInt)0);
-            PNamedTuple TMP_tmp34_13 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp35_12 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp36_12 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PSeq TMP_tmp37_12 = new PSeq();
-            PInt TMP_tmp38_12 = ((PInt)0);
-            PMachineValue TMP_tmp39_10 = null;
-            Event TMP_tmp40_9 = null;
-            PNamedTuple TMP_tmp41_9 = (new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)));
-            PInt TMP_tmp42_9 = ((PInt)0);
-            PBool TMP_tmp43_8 = ((PBool)false);
-            PInt TMP_tmp44_8 = ((PInt)0);
-            PInt TMP_tmp45_8 = ((PInt)0);
-            PSeq TMP_tmp46_7 = new PSeq();
-            PInt TMP_tmp47_7 = ((PInt)0);
-            PNamedTuple TMP_tmp48_7 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp49_7 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp50_7 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PSeq TMP_tmp51_6 = new PSeq();
-            PInt TMP_tmp52_5 = ((PInt)0);
+            PInt TMP_tmp31_18 = ((PInt)0);
+            PSeq TMP_tmp32_16 = new PSeq();
+            PInt TMP_tmp33_16 = ((PInt)0);
+            PNamedTuple TMP_tmp34_14 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp35_13 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp36_13 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PSeq TMP_tmp37_13 = new PSeq();
+            PInt TMP_tmp38_13 = ((PInt)0);
+            PMachineValue TMP_tmp39_12 = null;
+            Event TMP_tmp40_12 = null;
+            PNamedTuple TMP_tmp41_12 = (new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)));
+            PInt TMP_tmp42_10 = ((PInt)0);
+            PBool TMP_tmp43_9 = ((PBool)false);
+            PInt TMP_tmp44_9 = ((PInt)0);
+            PInt TMP_tmp45_9 = ((PInt)0);
+            PSeq TMP_tmp46_9 = new PSeq();
+            PInt TMP_tmp47_9 = ((PInt)0);
+            PNamedTuple TMP_tmp48_9 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp49_8 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp50_8 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PSeq TMP_tmp51_7 = new PSeq();
+            PInt TMP_tmp52_6 = ((PInt)0);
             PMachineValue TMP_tmp53_4 = null;
             Event TMP_tmp54_5 = null;
             PNamedTuple TMP_tmp55_5 = (new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)));
@@ -12329,8 +12415,8 @@ namespace PImplementation
             PNamedTuple TMP_tmp57_4 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp58_4 = ((PString)"");
             PMachineValue TMP_tmp59_4 = null;
-            Event TMP_tmp60_3 = null;
-            PNamedTuple TMP_tmp61_3 = (new PNamedTuple(new string[]{"messageID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
+            Event TMP_tmp60_4 = null;
+            PNamedTuple TMP_tmp61_4 = (new PNamedTuple(new string[]{"messageID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
             tmpMessage = (PNamedTuple)(((PNamedTuple)((IPValue)message_1)?.Clone()));
             TMP_tmp0_100 = (PInt)(((PNamedTuple)tmpMessage)["ttl"]);
             TMP_tmp1_80 = (PBool)((TMP_tmp0_100) <= (((PInt)(0))));
@@ -12361,17 +12447,17 @@ namespace PImplementation
             if (TMP_tmp13_43)
             {
                 TMP_tmp14_41 = (PNamedTuple)(((PNamedTuple)tmpMessage)["id"]);
-                TMP_tmp15_38 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp14_41)?.Clone()));
-                ((PNamedTuple)tmpMsgRoutedData)["messageID"] = TMP_tmp15_38;
-                TMP_tmp16_37 = (PSeq)(((PNamedTuple)tmpMessage)["hops"]);
-                TMP_tmp17_33 = (PInt)(((PInt)(TMP_tmp16_37).Count));
+                TMP_tmp15_39 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp14_41)?.Clone()));
+                ((PNamedTuple)tmpMsgRoutedData)["messageID"] = TMP_tmp15_39;
+                TMP_tmp16_38 = (PSeq)(((PNamedTuple)tmpMessage)["hops"]);
+                TMP_tmp17_33 = (PInt)(((PInt)(TMP_tmp16_38).Count));
                 ((PNamedTuple)tmpMsgRoutedData)["hopCount"] = TMP_tmp17_33;
                 currentMachine.Announce((Event)new eMessageRouted((new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))), tmpMsgRoutedData);
                 TMP_tmp18_33 = (PMachineValue)(currentMachine.self);
-                TMP_tmp19_29 = (Event)(new eMessageRouted((new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))));
+                TMP_tmp19_30 = (Event)(new eMessageRouted((new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))));
                 TMP_tmp20_29 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpMsgRoutedData)?.Clone()));
-                TMP_tmp19_29.Payload = TMP_tmp20_29;
-                currentMachine.SendEvent(TMP_tmp18_33, (Event)TMP_tmp19_29);
+                TMP_tmp19_30.Payload = TMP_tmp20_29;
+                currentMachine.SendEvent(TMP_tmp18_33, (Event)TMP_tmp19_30);
                 return ;
             }
             TMP_tmp21_28 = (PNamedTuple)(((PNamedTuple)tmpMessage)["destination"]);
@@ -12382,51 +12468,51 @@ namespace PImplementation
                 TMP_tmp24_24 = (PNamedTuple)(((PMap)routingTable)[TMP_tmp23_26]);
                 TMP_tmp25_24 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp24_24)?.Clone()));
                 tmpRoute = TMP_tmp25_24;
-                TMP_tmp26_22 = (PNamedTuple)(((PNamedTuple)tmpRoute)["status"]);
-                TMP_tmp27_22 = (PString)(((PNamedTuple)TMP_tmp26_22)["status"]);
+                TMP_tmp26_23 = (PNamedTuple)(((PNamedTuple)tmpRoute)["status"]);
+                TMP_tmp27_23 = (PString)(((PNamedTuple)TMP_tmp26_23)["status"]);
                 TMP_tmp28_22 = (PString)(((PString) String.Format("active")));
-                TMP_tmp29_21 = (PBool)((PValues.SafeEquals(TMP_tmp27_22,TMP_tmp28_22)));
+                TMP_tmp29_21 = (PBool)((PValues.SafeEquals(TMP_tmp27_23,TMP_tmp28_22)));
                 if (TMP_tmp29_21)
                 {
                     TMP_tmp30_19 = (PInt)(((PNamedTuple)tmpMessage)["ttl"]);
-                    TMP_tmp31_17 = (PInt)((TMP_tmp30_19) - (((PInt)(1))));
-                    ((PNamedTuple)tmpMessage)["ttl"] = TMP_tmp31_17;
-                    TMP_tmp32_14 = (PSeq)(((PNamedTuple)tmpMessage)["hops"]);
-                    TMP_tmp33_14 = (PInt)(((PInt)(TMP_tmp32_14).Count));
-                    TMP_tmp34_13 = (PNamedTuple)(((PNamedTuple)((IPValue)localNode)?.Clone()));
-                    ((PSeq)((PNamedTuple)tmpMessage)["hops"]).Insert(TMP_tmp33_14, TMP_tmp34_13);
-                    TMP_tmp35_12 = (PNamedTuple)(((PNamedTuple)tmpMessage)["id"]);
-                    TMP_tmp36_12 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp35_12)?.Clone()));
-                    ((PNamedTuple)tmpMsgRoutedData)["messageID"] = TMP_tmp36_12;
-                    TMP_tmp37_12 = (PSeq)(((PNamedTuple)tmpMessage)["hops"]);
-                    TMP_tmp38_12 = (PInt)(((PInt)(TMP_tmp37_12).Count));
-                    ((PNamedTuple)tmpMsgRoutedData)["hopCount"] = TMP_tmp38_12;
+                    TMP_tmp31_18 = (PInt)((TMP_tmp30_19) - (((PInt)(1))));
+                    ((PNamedTuple)tmpMessage)["ttl"] = TMP_tmp31_18;
+                    TMP_tmp32_16 = (PSeq)(((PNamedTuple)tmpMessage)["hops"]);
+                    TMP_tmp33_16 = (PInt)(((PInt)(TMP_tmp32_16).Count));
+                    TMP_tmp34_14 = (PNamedTuple)(((PNamedTuple)((IPValue)localNode)?.Clone()));
+                    ((PSeq)((PNamedTuple)tmpMessage)["hops"]).Insert(TMP_tmp33_16, TMP_tmp34_14);
+                    TMP_tmp35_13 = (PNamedTuple)(((PNamedTuple)tmpMessage)["id"]);
+                    TMP_tmp36_13 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp35_13)?.Clone()));
+                    ((PNamedTuple)tmpMsgRoutedData)["messageID"] = TMP_tmp36_13;
+                    TMP_tmp37_13 = (PSeq)(((PNamedTuple)tmpMessage)["hops"]);
+                    TMP_tmp38_13 = (PInt)(((PInt)(TMP_tmp37_13).Count));
+                    ((PNamedTuple)tmpMsgRoutedData)["hopCount"] = TMP_tmp38_13;
                     currentMachine.Announce((Event)new eMessageRouted((new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))), tmpMsgRoutedData);
-                    TMP_tmp39_10 = (PMachineValue)(currentMachine.self);
-                    TMP_tmp40_9 = (Event)(new eMessageRouted((new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))));
-                    TMP_tmp41_9 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpMsgRoutedData)?.Clone()));
-                    TMP_tmp40_9.Payload = TMP_tmp41_9;
-                    currentMachine.SendEvent(TMP_tmp39_10, (Event)TMP_tmp40_9);
+                    TMP_tmp39_12 = (PMachineValue)(currentMachine.self);
+                    TMP_tmp40_12 = (Event)(new eMessageRouted((new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))));
+                    TMP_tmp41_12 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpMsgRoutedData)?.Clone()));
+                    TMP_tmp40_12.Payload = TMP_tmp41_12;
+                    currentMachine.SendEvent(TMP_tmp39_12, (Event)TMP_tmp40_12);
                     return ;
                 }
             }
-            TMP_tmp42_9 = (PInt)(((PInt)(connectedPeers).Count));
-            TMP_tmp43_8 = (PBool)((TMP_tmp42_9) > (((PInt)(0))));
-            if (TMP_tmp43_8)
+            TMP_tmp42_10 = (PInt)(((PInt)(connectedPeers).Count));
+            TMP_tmp43_9 = (PBool)((TMP_tmp42_10) > (((PInt)(0))));
+            if (TMP_tmp43_9)
             {
-                TMP_tmp44_8 = (PInt)(((PNamedTuple)tmpMessage)["ttl"]);
-                TMP_tmp45_8 = (PInt)((TMP_tmp44_8) - (((PInt)(1))));
-                ((PNamedTuple)tmpMessage)["ttl"] = TMP_tmp45_8;
-                TMP_tmp46_7 = (PSeq)(((PNamedTuple)tmpMessage)["hops"]);
-                TMP_tmp47_7 = (PInt)(((PInt)(TMP_tmp46_7).Count));
-                TMP_tmp48_7 = (PNamedTuple)(((PNamedTuple)((IPValue)localNode)?.Clone()));
-                ((PSeq)((PNamedTuple)tmpMessage)["hops"]).Insert(TMP_tmp47_7, TMP_tmp48_7);
-                TMP_tmp49_7 = (PNamedTuple)(((PNamedTuple)tmpMessage)["id"]);
-                TMP_tmp50_7 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp49_7)?.Clone()));
-                ((PNamedTuple)tmpMsgRoutedData)["messageID"] = TMP_tmp50_7;
-                TMP_tmp51_6 = (PSeq)(((PNamedTuple)tmpMessage)["hops"]);
-                TMP_tmp52_5 = (PInt)(((PInt)(TMP_tmp51_6).Count));
-                ((PNamedTuple)tmpMsgRoutedData)["hopCount"] = TMP_tmp52_5;
+                TMP_tmp44_9 = (PInt)(((PNamedTuple)tmpMessage)["ttl"]);
+                TMP_tmp45_9 = (PInt)((TMP_tmp44_9) - (((PInt)(1))));
+                ((PNamedTuple)tmpMessage)["ttl"] = TMP_tmp45_9;
+                TMP_tmp46_9 = (PSeq)(((PNamedTuple)tmpMessage)["hops"]);
+                TMP_tmp47_9 = (PInt)(((PInt)(TMP_tmp46_9).Count));
+                TMP_tmp48_9 = (PNamedTuple)(((PNamedTuple)((IPValue)localNode)?.Clone()));
+                ((PSeq)((PNamedTuple)tmpMessage)["hops"]).Insert(TMP_tmp47_9, TMP_tmp48_9);
+                TMP_tmp49_8 = (PNamedTuple)(((PNamedTuple)tmpMessage)["id"]);
+                TMP_tmp50_8 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp49_8)?.Clone()));
+                ((PNamedTuple)tmpMsgRoutedData)["messageID"] = TMP_tmp50_8;
+                TMP_tmp51_7 = (PSeq)(((PNamedTuple)tmpMessage)["hops"]);
+                TMP_tmp52_6 = (PInt)(((PInt)(TMP_tmp51_7).Count));
+                ((PNamedTuple)tmpMsgRoutedData)["hopCount"] = TMP_tmp52_6;
                 currentMachine.Announce((Event)new eMessageRouted((new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))), tmpMsgRoutedData);
                 TMP_tmp53_4 = (PMachineValue)(currentMachine.self);
                 TMP_tmp54_5 = (Event)(new eMessageRouted((new PNamedTuple(new string[]{"messageID","hopCount"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0)))));
@@ -12442,10 +12528,10 @@ namespace PImplementation
                 TMP_tmp58_4 = (PString)(((PString) String.Format("No route and no peers")));
                 ((PNamedTuple)tmpMsgFailedData)["reason"] = TMP_tmp58_4;
                 TMP_tmp59_4 = (PMachineValue)(currentMachine.self);
-                TMP_tmp60_3 = (Event)(new eMessageRoutingFailed((new PNamedTuple(new string[]{"messageID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
-                TMP_tmp61_3 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpMsgFailedData)?.Clone()));
-                TMP_tmp60_3.Payload = TMP_tmp61_3;
-                currentMachine.SendEvent(TMP_tmp59_4, (Event)TMP_tmp60_3);
+                TMP_tmp60_4 = (Event)(new eMessageRoutingFailed((new PNamedTuple(new string[]{"messageID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
+                TMP_tmp61_4 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpMsgFailedData)?.Clone()));
+                TMP_tmp60_4.Payload = TMP_tmp61_4;
+                currentMachine.SendEvent(TMP_tmp59_4, (Event)TMP_tmp60_4);
             }
         }
         public void Anon_135(Event currentMachine_dequeuedEvent)
@@ -12539,7 +12625,7 @@ namespace PImplementation
         public void Anon_137(Event currentMachine_dequeuedEvent)
         {
             P2PNetworkMachine currentMachine = this;
-            PNamedTuple payload_50 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_51 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_103 = ((PInt)0);
             PInt TMP_tmp1_83 = ((PInt)0);
@@ -12584,18 +12670,18 @@ namespace PImplementation
             PBool TMP_tmp12_46 = ((PBool)false);
             PNamedTuple TMP_tmp13_45 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PString TMP_tmp14_42 = ((PString)"");
-            PString TMP_tmp15_39 = ((PString)"");
-            PBool TMP_tmp16_38 = ((PBool)false);
+            PString TMP_tmp15_40 = ((PString)"");
+            PBool TMP_tmp16_39 = ((PBool)false);
             PInt TMP_tmp17_34 = ((PInt)0);
             PBool TMP_tmp18_34 = ((PBool)false);
-            PNamedTuple TMP_tmp19_30 = (new PNamedTuple(new string[]{"destination","nextHop","metric","lastUpdated","status"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
+            PNamedTuple TMP_tmp19_31 = (new PNamedTuple(new string[]{"destination","nextHop","metric","lastUpdated","status"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             PNamedTuple TMP_tmp20_30 = (new PNamedTuple(new string[]{"destination","nextHop","metric","lastUpdated","status"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             PString TMP_tmp21_29 = ((PString)"");
             PInt TMP_tmp22_27 = ((PInt)0);
             PString TMP_tmp23_27 = ((PString)"");
             PString TMP_tmp24_25 = ((PString)"");
             PMap TMP_tmp25_25 = new PMap();
-            PNamedTuple TMP_tmp26_23 = (new PNamedTuple(new string[]{"monitorName","violationType","details"},((PString)""), ((PString)""), new PMap()));
+            PNamedTuple TMP_tmp26_24 = (new PNamedTuple(new string[]{"monitorName","violationType","details"},((PString)""), ((PString)""), new PMap()));
             networkPartitioned = (PBool)(((PBool)true));
             TMP_tmp0_104 = (PSeq)((routingTable).CloneKeys());
             allRoutingTableKeys = TMP_tmp0_104;
@@ -12638,9 +12724,9 @@ namespace PImplementation
                         }
                         TMP_tmp13_45 = (PNamedTuple)(((PSeq)tmpOurPartition)[tmpJ]);
                         TMP_tmp14_42 = (PString)(((PNamedTuple)TMP_tmp13_45)["id"]);
-                        TMP_tmp15_39 = (PString)(((PNamedTuple)tmpNodeID)["id"]);
-                        TMP_tmp16_38 = (PBool)((PValues.SafeEquals(TMP_tmp14_42,TMP_tmp15_39)));
-                        if (TMP_tmp16_38)
+                        TMP_tmp15_40 = (PString)(((PNamedTuple)tmpNodeID)["id"]);
+                        TMP_tmp16_39 = (PBool)((PValues.SafeEquals(TMP_tmp14_42,TMP_tmp15_40)));
+                        if (TMP_tmp16_39)
                         {
                             tmpInOurPartition = (PBool)(((PBool)true));
                             break;
@@ -12652,8 +12738,8 @@ namespace PImplementation
                 TMP_tmp18_34 = (PBool)(!(tmpInOurPartition));
                 if (TMP_tmp18_34)
                 {
-                    TMP_tmp19_30 = (PNamedTuple)(((PMap)routingTable)[tmpNodeID]);
-                    TMP_tmp20_30 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_30)?.Clone()));
+                    TMP_tmp19_31 = (PNamedTuple)(((PMap)routingTable)[tmpNodeID]);
+                    TMP_tmp20_30 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_31)?.Clone()));
                     tmpRoute = TMP_tmp20_30;
                     TMP_tmp21_29 = (PString)(((PString) String.Format("unreachable")));
                     ((PNamedTuple)((PNamedTuple)tmpRoute)["status"])["status"] = TMP_tmp21_29;
@@ -12665,8 +12751,8 @@ namespace PImplementation
             TMP_tmp23_27 = (PString)(((PString) String.Format("NetworkTopology")));
             TMP_tmp24_25 = (PString)(((PString) String.Format("Network partition detected")));
             TMP_tmp25_25 = (PMap)(new PMap());
-            TMP_tmp26_23 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","violationType","details"}, TMP_tmp23_27, TMP_tmp24_25, TMP_tmp25_25)));
-            currentMachine.Announce((Event)new eMonitorViolation((new PNamedTuple(new string[]{"monitorName","violationType","details"},((PString)""), ((PString)""), new PMap()))), TMP_tmp26_23);
+            TMP_tmp26_24 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","violationType","details"}, TMP_tmp23_27, TMP_tmp24_25, TMP_tmp25_25)));
+            currentMachine.Announce((Event)new eMonitorViolation((new PNamedTuple(new string[]{"monitorName","violationType","details"},((PString)""), ((PString)""), new PMap()))), TMP_tmp26_24);
         }
         public void Anon_139(Event currentMachine_dequeuedEvent)
         {
@@ -13334,11 +13420,11 @@ namespace PImplementation
             PInt TMP_tmp12_47 = ((PInt)0);
             PNamedTuple TMP_tmp13_46 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PInt TMP_tmp14_43 = ((PInt)0);
-            PBool TMP_tmp15_40 = ((PBool)false);
-            PNamedTuple TMP_tmp16_39 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PBool TMP_tmp15_41 = ((PBool)false);
+            PNamedTuple TMP_tmp16_40 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PNamedTuple TMP_tmp17_35 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PMachineValue TMP_tmp18_35 = null;
-            Event TMP_tmp19_31 = null;
+            Event TMP_tmp19_32 = null;
             PNamedTuple TMP_tmp20_31 = (new PNamedTuple(new string[]{"proof","valid"},(new PNamedTuple(new string[]{"prover","verifier","proofData","timestamp","validUntil","signature"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq())), ((PBool)false)));
             tmpIsValid = (PBool)(((PBool)true));
             TMP_tmp0_112 = (PNamedTuple)(((PNamedTuple)proof)["prover"]);
@@ -13371,11 +13457,11 @@ namespace PImplementation
                         ((PMap)connectivityScores)[TMP_tmp11_48] = TMP_tmp12_47;
                         TMP_tmp13_46 = (PNamedTuple)(((PNamedTuple)proof)["prover"]);
                         TMP_tmp14_43 = (PInt)(((PMap)connectivityScores)[TMP_tmp13_46]);
-                        TMP_tmp15_40 = (PBool)((TMP_tmp14_43) > (((PInt)(100))));
-                        if (TMP_tmp15_40)
+                        TMP_tmp15_41 = (PBool)((TMP_tmp14_43) > (((PInt)(100))));
+                        if (TMP_tmp15_41)
                         {
-                            TMP_tmp16_39 = (PNamedTuple)(((PNamedTuple)proof)["prover"]);
-                            ((PMap)connectivityScores)[TMP_tmp16_39] = (PInt)(((PInt)(100)));
+                            TMP_tmp16_40 = (PNamedTuple)(((PNamedTuple)proof)["prover"]);
+                            ((PMap)connectivityScores)[TMP_tmp16_40] = (PInt)(((PInt)(100)));
                         }
                     }
                 }
@@ -13389,15 +13475,15 @@ namespace PImplementation
             ((PNamedTuple)tmpVerifiedData)["valid"] = (PBool)(((PBool)((IPValue)tmpIsValid)?.Clone()));
             currentMachine.Announce((Event)new eConnectivityProofVerified((new PNamedTuple(new string[]{"proof","valid"},(new PNamedTuple(new string[]{"prover","verifier","proofData","timestamp","validUntil","signature"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq())), ((PBool)false)))), tmpVerifiedData);
             TMP_tmp18_35 = (PMachineValue)(currentMachine.self);
-            TMP_tmp19_31 = (Event)(new eConnectivityProofVerified((new PNamedTuple(new string[]{"proof","valid"},(new PNamedTuple(new string[]{"prover","verifier","proofData","timestamp","validUntil","signature"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq())), ((PBool)false)))));
+            TMP_tmp19_32 = (Event)(new eConnectivityProofVerified((new PNamedTuple(new string[]{"proof","valid"},(new PNamedTuple(new string[]{"prover","verifier","proofData","timestamp","validUntil","signature"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), new PSeq())), ((PBool)false)))));
             TMP_tmp20_31 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpVerifiedData)?.Clone()));
-            TMP_tmp19_31.Payload = TMP_tmp20_31;
-            currentMachine.SendEvent(TMP_tmp18_35, (Event)TMP_tmp19_31);
+            TMP_tmp19_32.Payload = TMP_tmp20_31;
+            currentMachine.SendEvent(TMP_tmp18_35, (Event)TMP_tmp19_32);
         }
         public void Anon_149(Event currentMachine_dequeuedEvent)
         {
             ProofOfConnectivityMachine currentMachine = this;
-            PNamedTuple payload_51 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_52 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_113 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PBool TMP_tmp1_90 = ((PBool)false);
@@ -13414,30 +13500,30 @@ namespace PImplementation
             PNamedTuple TMP_tmp12_48 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PInt TMP_tmp13_47 = ((PInt)0);
             PNamedTuple TMP_tmp14_44 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PBool TMP_tmp15_41 = ((PBool)false);
-            PNamedTuple TMP_tmp16_40 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PBool TMP_tmp15_42 = ((PBool)false);
+            PNamedTuple TMP_tmp16_41 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PInt TMP_tmp17_36 = ((PInt)0);
             PBool TMP_tmp18_36 = ((PBool)false);
-            PNamedTuple TMP_tmp19_32 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp19_33 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PInt TMP_tmp20_32 = ((PInt)0);
             PNamedTuple TMP_tmp21_30 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PInt TMP_tmp22_28 = ((PInt)0);
             PNamedTuple TMP_tmp23_28 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PNamedTuple TMP_tmp24_26 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PNamedTuple TMP_tmp25_26 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PMachineValue TMP_tmp26_24 = null;
-            Event TMP_tmp27_23 = null;
+            PMachineValue TMP_tmp26_25 = null;
+            Event TMP_tmp27_24 = null;
             PNamedTuple TMP_tmp28_23 = (new PNamedTuple(new string[]{"prover","passed"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false)));
-            TMP_tmp0_113 = (PNamedTuple)(((PNamedTuple)payload_51)["prover"]);
+            TMP_tmp0_113 = (PNamedTuple)(((PNamedTuple)payload_52)["prover"]);
             TMP_tmp1_90 = (PBool)(((PBool)(((PMap)activeProofs).ContainsKey(TMP_tmp0_113))));
             TMP_tmp2_88 = (PBool)(!(TMP_tmp1_90));
             if (TMP_tmp2_88)
             {
-                TMP_tmp3_83 = (PNamedTuple)(((PNamedTuple)payload_51)["prover"]);
+                TMP_tmp3_83 = (PNamedTuple)(((PNamedTuple)payload_52)["prover"]);
                 UpdateScoreForFailure(TMP_tmp3_83);
                 TMP_tmp4_78 = (PInt)((challengesFailed) + (((PInt)(1))));
                 challengesFailed = TMP_tmp4_78;
-                TMP_tmp5_74 = (PNamedTuple)(((PNamedTuple)payload_51)["prover"]);
+                TMP_tmp5_74 = (PNamedTuple)(((PNamedTuple)payload_52)["prover"]);
                 TMP_tmp6_70 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp5_74)?.Clone()));
                 ((PNamedTuple)tmpChallengeResult)["prover"] = TMP_tmp6_70;
                 ((PNamedTuple)tmpChallengeResult)["passed"] = (PBool)(((PBool)false));
@@ -13448,48 +13534,48 @@ namespace PImplementation
                 currentMachine.SendEvent(TMP_tmp7_69, (Event)TMP_tmp8_63);
                 return ;
             }
-            TMP_tmp10_52 = (PNamedTuple)(((PNamedTuple)payload_51)["prover"]);
-            TMP_tmp11_49 = (PNamedTuple)(((PNamedTuple)payload_51)["challenger"]);
+            TMP_tmp10_52 = (PNamedTuple)(((PNamedTuple)payload_52)["prover"]);
+            TMP_tmp11_49 = (PNamedTuple)(((PNamedTuple)payload_52)["challenger"]);
             TMP_tmp12_48 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp11_49)?.Clone()));
             ((PMap)pendingChallenges)[TMP_tmp10_52] = TMP_tmp12_48;
             TMP_tmp13_47 = (PInt)((totalChallengesIssued) + (((PInt)(1))));
             totalChallengesIssued = TMP_tmp13_47;
             tmpPassed = (PBool)(((PBool)false));
-            TMP_tmp14_44 = (PNamedTuple)(((PNamedTuple)payload_51)["prover"]);
-            TMP_tmp15_41 = (PBool)(((PBool)(((PMap)connectivityScores).ContainsKey(TMP_tmp14_44))));
-            if (TMP_tmp15_41)
+            TMP_tmp14_44 = (PNamedTuple)(((PNamedTuple)payload_52)["prover"]);
+            TMP_tmp15_42 = (PBool)(((PBool)(((PMap)connectivityScores).ContainsKey(TMP_tmp14_44))));
+            if (TMP_tmp15_42)
             {
-                TMP_tmp16_40 = (PNamedTuple)(((PNamedTuple)payload_51)["prover"]);
-                TMP_tmp17_36 = (PInt)(((PMap)connectivityScores)[TMP_tmp16_40]);
+                TMP_tmp16_41 = (PNamedTuple)(((PNamedTuple)payload_52)["prover"]);
+                TMP_tmp17_36 = (PInt)(((PMap)connectivityScores)[TMP_tmp16_41]);
                 TMP_tmp18_36 = (PBool)((TMP_tmp17_36) >= (minConnectivityScore));
                 tmpPassed = TMP_tmp18_36;
             }
             if (tmpPassed)
             {
-                TMP_tmp19_32 = (PNamedTuple)(((PNamedTuple)payload_51)["prover"]);
-                UpdateScoreForSuccess(TMP_tmp19_32);
+                TMP_tmp19_33 = (PNamedTuple)(((PNamedTuple)payload_52)["prover"]);
+                UpdateScoreForSuccess(TMP_tmp19_33);
                 TMP_tmp20_32 = (PInt)((challengesPassed) + (((PInt)(1))));
                 challengesPassed = TMP_tmp20_32;
             }
             else
             {
-                TMP_tmp21_30 = (PNamedTuple)(((PNamedTuple)payload_51)["prover"]);
+                TMP_tmp21_30 = (PNamedTuple)(((PNamedTuple)payload_52)["prover"]);
                 UpdateScoreForFailure(TMP_tmp21_30);
                 TMP_tmp22_28 = (PInt)((challengesFailed) + (((PInt)(1))));
                 challengesFailed = TMP_tmp22_28;
             }
-            TMP_tmp23_28 = (PNamedTuple)(((PNamedTuple)payload_51)["prover"]);
+            TMP_tmp23_28 = (PNamedTuple)(((PNamedTuple)payload_52)["prover"]);
             ((PMap)pendingChallenges).Remove(TMP_tmp23_28);
-            TMP_tmp24_26 = (PNamedTuple)(((PNamedTuple)payload_51)["prover"]);
+            TMP_tmp24_26 = (PNamedTuple)(((PNamedTuple)payload_52)["prover"]);
             TMP_tmp25_26 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp24_26)?.Clone()));
             ((PNamedTuple)tmpChallengeResult)["prover"] = TMP_tmp25_26;
             ((PNamedTuple)tmpChallengeResult)["passed"] = (PBool)(((PBool)((IPValue)tmpPassed)?.Clone()));
             currentMachine.Announce((Event)new eConnectivityChallengeResult((new PNamedTuple(new string[]{"prover","passed"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false)))), tmpChallengeResult);
-            TMP_tmp26_24 = (PMachineValue)(currentMachine.self);
-            TMP_tmp27_23 = (Event)(new eConnectivityChallengeResult((new PNamedTuple(new string[]{"prover","passed"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false)))));
+            TMP_tmp26_25 = (PMachineValue)(currentMachine.self);
+            TMP_tmp27_24 = (Event)(new eConnectivityChallengeResult((new PNamedTuple(new string[]{"prover","passed"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false)))));
             TMP_tmp28_23 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpChallengeResult)?.Clone()));
-            TMP_tmp27_23.Payload = TMP_tmp28_23;
-            currentMachine.SendEvent(TMP_tmp26_24, (Event)TMP_tmp27_23);
+            TMP_tmp27_24.Payload = TMP_tmp28_23;
+            currentMachine.SendEvent(TMP_tmp26_25, (Event)TMP_tmp27_24);
         }
         public void Anon_150(Event currentMachine_dequeuedEvent)
         {
@@ -13517,11 +13603,11 @@ namespace PImplementation
             PBool TMP_tmp12_49 = ((PBool)false);
             PBool TMP_tmp13_48 = ((PBool)false);
             PBool TMP_tmp14_45 = ((PBool)false);
-            PSeq TMP_tmp15_42 = new PSeq();
-            PSeq TMP_tmp16_41 = new PSeq();
+            PSeq TMP_tmp15_43 = new PSeq();
+            PSeq TMP_tmp16_42 = new PSeq();
             PInt TMP_tmp17_37 = ((PInt)0);
             PBool TMP_tmp18_37 = ((PBool)false);
-            PBool TMP_tmp19_33 = ((PBool)false);
+            PBool TMP_tmp19_34 = ((PBool)false);
             PNamedTuple TMP_tmp20_33 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PInt TMP_tmp21_31 = ((PInt)0);
             PInt TMP_tmp22_29 = ((PInt)0);
@@ -13573,16 +13659,16 @@ namespace PImplementation
                     TMP_tmp14_45 = (PBool)((!PValues.SafeEquals(tmpI_2,tmpLargestIdx_1)));
                     if (TMP_tmp14_45)
                     {
-                        TMP_tmp15_42 = (PSeq)(((PSeq)partitions_1)[tmpI_2]);
-                        TMP_tmp16_41 = (PSeq)(((PSeq)((IPValue)TMP_tmp15_42)?.Clone()));
-                        tmpPartition_1 = TMP_tmp16_41;
+                        TMP_tmp15_43 = (PSeq)(((PSeq)partitions_1)[tmpI_2]);
+                        TMP_tmp16_42 = (PSeq)(((PSeq)((IPValue)TMP_tmp15_43)?.Clone()));
+                        tmpPartition_1 = TMP_tmp16_42;
                         tmpJ_1 = (PInt)(((PInt)(0)));
                         while (((PBool)true))
                         {
                             TMP_tmp17_37 = (PInt)(((PInt)(tmpPartition_1).Count));
                             TMP_tmp18_37 = (PBool)((tmpJ_1) < (TMP_tmp17_37));
-                            TMP_tmp19_33 = (PBool)(((PBool)((IPValue)TMP_tmp18_37)?.Clone()));
-                            if (TMP_tmp19_33)
+                            TMP_tmp19_34 = (PBool)(((PBool)((IPValue)TMP_tmp18_37)?.Clone()));
+                            if (TMP_tmp19_34)
                             {
                             }
                             else
@@ -14186,83 +14272,87 @@ namespace PImplementation
         public void Anon_158(Event currentMachine_dequeuedEvent)
         {
             ValidationMachine currentMachine = this;
-            PNamedTuple payload_52 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_53 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_120 = ((PInt)0);
             PBool TMP_tmp1_97 = ((PBool)false);
             PString TMP_tmp2_94 = ((PString)"");
             PMachineValue TMP_tmp3_88 = null;
-            Event TMP_tmp4_83 = null;
-            PNamedTuple TMP_tmp5_77 = (new PNamedTuple(new string[]{"reason"},((PString)"")));
-            PInt TMP_tmp6_72 = ((PInt)0);
+            PMachineValue TMP_tmp4_83 = null;
+            Event TMP_tmp5_77 = null;
+            PNamedTuple TMP_tmp6_72 = (new PNamedTuple(new string[]{"reason"},((PString)"")));
             PInt TMP_tmp7_71 = ((PInt)0);
-            PString TMP_tmp8_65 = ((PString)"");
-            PNamedTuple TMP_tmp9_63 = (new PNamedTuple(new string[]{"typeName"},((PString)"")));
+            PInt TMP_tmp8_65 = ((PInt)0);
+            PString TMP_tmp9_63 = ((PString)"");
             PNamedTuple TMP_tmp10_54 = (new PNamedTuple(new string[]{"typeName"},((PString)"")));
-            PMap TMP_tmp11_51 = new PMap();
+            PNamedTuple TMP_tmp11_51 = (new PNamedTuple(new string[]{"typeName"},((PString)"")));
             PMap TMP_tmp12_50 = new PMap();
-            PNamedTuple TMP_tmp13_49 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PMap TMP_tmp13_49 = new PMap();
             PNamedTuple TMP_tmp14_46 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PInt TMP_tmp15_43 = ((PInt)0);
-            PInt TMP_tmp16_42 = ((PInt)0);
-            PNamedTuple TMP_tmp17_38 = (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)));
+            PNamedTuple TMP_tmp15_44 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PInt TMP_tmp16_43 = ((PInt)0);
+            PInt TMP_tmp17_38 = ((PInt)0);
             PNamedTuple TMP_tmp18_38 = (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)));
-            PString TMP_tmp19_34 = ((PString)"");
-            PNamedTuple TMP_tmp20_34 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
-            PMachineValue TMP_tmp21_32 = null;
-            Event TMP_tmp22_30 = null;
-            PNamedTuple TMP_tmp23_29 = (new PNamedTuple(new string[]{"task"},(new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))))));
+            PNamedTuple TMP_tmp19_35 = (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)));
+            PString TMP_tmp20_34 = ((PString)"");
+            PNamedTuple TMP_tmp21_32 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
+            PMachineValue TMP_tmp22_30 = null;
+            PMachineValue TMP_tmp23_29 = null;
+            Event TMP_tmp24_27 = null;
+            PNamedTuple TMP_tmp25_27 = (new PNamedTuple(new string[]{"task"},(new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))))));
             TMP_tmp0_120 = (PInt)(((PInt)(taskQueue).Count));
             TMP_tmp1_97 = (PBool)((TMP_tmp0_120) >= (maxQueueSize));
             if (TMP_tmp1_97)
             {
                 TMP_tmp2_94 = (PString)(((PString) String.Format("Task queue is full")));
                 ((PNamedTuple)tmpValidationRejectedReason)["reason"] = TMP_tmp2_94;
-                TMP_tmp3_88 = (PMachineValue)(currentMachine.self);
-                TMP_tmp4_83 = (Event)(new eValidationTaskRejected((new PNamedTuple(new string[]{"reason"},((PString)"")))));
-                TMP_tmp5_77 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidationRejectedReason)?.Clone()));
-                TMP_tmp4_83.Payload = TMP_tmp5_77;
-                currentMachine.SendEvent(TMP_tmp3_88, (Event)TMP_tmp4_83);
+                TMP_tmp3_88 = (PMachineValue)(((PNamedTuple)payload_53)["caller"]);
+                TMP_tmp4_83 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp3_88)?.Clone()));
+                TMP_tmp5_77 = (Event)(new eValidationTaskRejected((new PNamedTuple(new string[]{"reason"},((PString)"")))));
+                TMP_tmp6_72 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidationRejectedReason)?.Clone()));
+                TMP_tmp5_77.Payload = TMP_tmp6_72;
+                currentMachine.SendEvent(TMP_tmp4_83, (Event)TMP_tmp5_77);
                 return ;
             }
-            TMP_tmp6_72 = (PInt)((taskCounter) + (((PInt)(1))));
-            taskCounter = TMP_tmp6_72;
-            TMP_tmp7_71 = (PInt)(((PInt)((IPValue)taskCounter)?.Clone()));
-            TMP_tmp8_65 = (PString)(((PString) String.Format("task_{0}",TMP_tmp7_71)));
-            ((PNamedTuple)tmpTaskID_1)["value"] = TMP_tmp8_65;
+            TMP_tmp7_71 = (PInt)((taskCounter) + (((PInt)(1))));
+            taskCounter = TMP_tmp7_71;
+            TMP_tmp8_65 = (PInt)(((PInt)((IPValue)taskCounter)?.Clone()));
+            TMP_tmp9_63 = (PString)(((PString) String.Format("task_{0}",TMP_tmp8_65)));
+            ((PNamedTuple)tmpTaskID_1)["value"] = TMP_tmp9_63;
             ((PNamedTuple)tmpNewTask)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpTaskID_1)?.Clone()));
-            TMP_tmp9_63 = (PNamedTuple)(((PNamedTuple)payload_52)["taskType"]);
-            TMP_tmp10_54 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp9_63)?.Clone()));
-            ((PNamedTuple)tmpNewTask)["taskType"] = TMP_tmp10_54;
-            TMP_tmp11_51 = (PMap)(((PNamedTuple)payload_52)["taskPayload"]);
-            TMP_tmp12_50 = (PMap)(((PMap)((IPValue)TMP_tmp11_51)?.Clone()));
-            ((PNamedTuple)tmpNewTask)["payload"] = TMP_tmp12_50;
-            TMP_tmp13_49 = (PNamedTuple)(((PNamedTuple)payload_52)["submitter"]);
-            TMP_tmp14_46 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp13_49)?.Clone()));
-            ((PNamedTuple)tmpNewTask)["submitter"] = TMP_tmp14_46;
-            TMP_tmp15_43 = (PInt)(((PNamedTuple)payload_52)["priority"]);
-            TMP_tmp16_42 = (PInt)(((PInt)((IPValue)TMP_tmp15_43)?.Clone()));
-            ((PNamedTuple)tmpNewTask)["priority"] = TMP_tmp16_42;
-            TMP_tmp17_38 = (PNamedTuple)(((PNamedTuple)payload_52)["deadline"]);
-            TMP_tmp18_38 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp17_38)?.Clone()));
-            ((PNamedTuple)tmpNewTask)["deadline"] = TMP_tmp18_38;
-            TMP_tmp19_34 = (PString)(((PString) String.Format("queued")));
-            ((PNamedTuple)((PNamedTuple)tmpNewTask)["status"])["status"] = TMP_tmp19_34;
-            TMP_tmp20_34 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewTask)?.Clone()));
-            InsertTaskByPriority(TMP_tmp20_34);
+            TMP_tmp10_54 = (PNamedTuple)(((PNamedTuple)payload_53)["taskType"]);
+            TMP_tmp11_51 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp10_54)?.Clone()));
+            ((PNamedTuple)tmpNewTask)["taskType"] = TMP_tmp11_51;
+            TMP_tmp12_50 = (PMap)(((PNamedTuple)payload_53)["taskPayload"]);
+            TMP_tmp13_49 = (PMap)(((PMap)((IPValue)TMP_tmp12_50)?.Clone()));
+            ((PNamedTuple)tmpNewTask)["payload"] = TMP_tmp13_49;
+            TMP_tmp14_46 = (PNamedTuple)(((PNamedTuple)payload_53)["submitter"]);
+            TMP_tmp15_44 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp14_46)?.Clone()));
+            ((PNamedTuple)tmpNewTask)["submitter"] = TMP_tmp15_44;
+            TMP_tmp16_43 = (PInt)(((PNamedTuple)payload_53)["priority"]);
+            TMP_tmp17_38 = (PInt)(((PInt)((IPValue)TMP_tmp16_43)?.Clone()));
+            ((PNamedTuple)tmpNewTask)["priority"] = TMP_tmp17_38;
+            TMP_tmp18_38 = (PNamedTuple)(((PNamedTuple)payload_53)["deadline"]);
+            TMP_tmp19_35 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp18_38)?.Clone()));
+            ((PNamedTuple)tmpNewTask)["deadline"] = TMP_tmp19_35;
+            TMP_tmp20_34 = (PString)(((PString) String.Format("queued")));
+            ((PNamedTuple)((PNamedTuple)tmpNewTask)["status"])["status"] = TMP_tmp20_34;
+            TMP_tmp21_32 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewTask)?.Clone()));
+            InsertTaskByPriority(TMP_tmp21_32);
             ((PNamedTuple)tmpValidationTaskPayload)["task"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewTask)?.Clone()));
             currentMachine.Announce((Event)new eValidationTaskQueued((new PNamedTuple(new string[]{"task"},(new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))))))), tmpValidationTaskPayload);
-            TMP_tmp21_32 = (PMachineValue)(currentMachine.self);
-            TMP_tmp22_30 = (Event)(new eValidationTaskQueued((new PNamedTuple(new string[]{"task"},(new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))))))));
-            TMP_tmp23_29 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidationTaskPayload)?.Clone()));
-            TMP_tmp22_30.Payload = TMP_tmp23_29;
-            currentMachine.SendEvent(TMP_tmp21_32, (Event)TMP_tmp22_30);
+            TMP_tmp22_30 = (PMachineValue)(((PNamedTuple)payload_53)["caller"]);
+            TMP_tmp23_29 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp22_30)?.Clone()));
+            TMP_tmp24_27 = (Event)(new eValidationTaskQueued((new PNamedTuple(new string[]{"task"},(new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))))))));
+            TMP_tmp25_27 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidationTaskPayload)?.Clone()));
+            TMP_tmp24_27.Payload = TMP_tmp25_27;
+            currentMachine.SendEvent(TMP_tmp23_29, (Event)TMP_tmp24_27);
             TryStartNextTask();
         }
         public void Anon_159(Event currentMachine_dequeuedEvent)
         {
             ValidationMachine currentMachine = this;
-            PNamedTuple payload_53 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_54 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_121 = ((PInt)0);
             PBool TMP_tmp1_98 = ((PBool)false);
@@ -14279,43 +14369,43 @@ namespace PImplementation
             PBool TMP_tmp12_51 = ((PBool)false);
             PNamedTuple TMP_tmp13_50 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PNamedTuple TMP_tmp14_47 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PNamedTuple TMP_tmp15_44 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PBool TMP_tmp16_43 = ((PBool)false);
+            PNamedTuple TMP_tmp15_45 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
+            PBool TMP_tmp16_44 = ((PBool)false);
             PBool TMP_tmp17_39 = ((PBool)false);
             PNamedTuple TMP_tmp18_39 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
-            PNamedTuple TMP_tmp19_35 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
+            PNamedTuple TMP_tmp19_36 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             PString TMP_tmp20_35 = ((PString)"");
             PSeq TMP_tmp21_33 = new PSeq();
             PInt TMP_tmp22_31 = ((PInt)0);
             PBool TMP_tmp23_30 = ((PBool)false);
-            PBool TMP_tmp24_27 = ((PBool)false);
-            PBool TMP_tmp25_27 = ((PBool)false);
-            PInt TMP_tmp26_25 = ((PInt)0);
-            PNamedTuple TMP_tmp27_24 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
+            PBool TMP_tmp24_28 = ((PBool)false);
+            PBool TMP_tmp25_28 = ((PBool)false);
+            PInt TMP_tmp26_26 = ((PInt)0);
+            PNamedTuple TMP_tmp27_25 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             PInt TMP_tmp28_24 = ((PInt)0);
             PNamedTuple TMP_tmp29_22 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp30_20 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PBool TMP_tmp31_18 = ((PBool)false);
-            PNamedTuple TMP_tmp32_15 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp33_15 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PNamedTuple TMP_tmp34_14 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PNamedTuple TMP_tmp35_13 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp36_13 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PString TMP_tmp37_13 = ((PString)"");
-            PNamedTuple TMP_tmp38_13 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp39_11 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp40_10 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp41_10 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp42_10 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PMachineValue TMP_tmp43_9 = null;
-            Event TMP_tmp44_9 = null;
-            PNamedTuple TMP_tmp45_9 = (new PNamedTuple(new string[]{"taskID"},(new PNamedTuple(new string[]{"value"},((PString)"")))));
-            PMachineValue TMP_tmp46_8 = null;
-            Event TMP_tmp47_8 = null;
-            PNamedTuple TMP_tmp48_8 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PSeq TMP_tmp49_8 = new PSeq();
-            PMap TMP_tmp50_8 = new PMap();
-            PNamedTuple TMP_tmp51_7 = (new PNamedTuple(new string[]{"sandboxID","code","inputs"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PSeq(), new PMap()));
+            PBool TMP_tmp31_19 = ((PBool)false);
+            PNamedTuple TMP_tmp32_17 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp33_17 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
+            PNamedTuple TMP_tmp34_15 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
+            PNamedTuple TMP_tmp35_14 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp36_14 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PString TMP_tmp37_14 = ((PString)"");
+            PNamedTuple TMP_tmp38_14 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp39_13 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp40_13 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp41_13 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp42_11 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PMachineValue TMP_tmp43_10 = null;
+            Event TMP_tmp44_10 = null;
+            PNamedTuple TMP_tmp45_10 = (new PNamedTuple(new string[]{"taskID"},(new PNamedTuple(new string[]{"value"},((PString)"")))));
+            PMachineValue TMP_tmp46_10 = null;
+            Event TMP_tmp47_10 = null;
+            PNamedTuple TMP_tmp48_10 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PSeq TMP_tmp49_9 = new PSeq();
+            PMap TMP_tmp50_9 = new PMap();
+            PNamedTuple TMP_tmp51_8 = (new PNamedTuple(new string[]{"sandboxID","code","inputs"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PSeq(), new PMap()));
             tmpFound = (PBool)(((PBool)false));
             tmpTaskIdx = (PInt)(((PInt)(0)));
             tmpI_3 = (PInt)(((PInt)(0)));
@@ -14334,7 +14424,7 @@ namespace PImplementation
                 TMP_tmp3_89 = (PNamedTuple)(((PSeq)taskQueue)[tmpI_3]);
                 TMP_tmp4_84 = (PNamedTuple)(((PNamedTuple)TMP_tmp3_89)["id"]);
                 TMP_tmp5_78 = (PString)(((PNamedTuple)TMP_tmp4_84)["value"]);
-                TMP_tmp6_73 = (PNamedTuple)(((PNamedTuple)payload_53)["taskID"]);
+                TMP_tmp6_73 = (PNamedTuple)(((PNamedTuple)payload_54)["taskID"]);
                 TMP_tmp7_72 = (PString)(((PNamedTuple)TMP_tmp6_73)["value"]);
                 TMP_tmp8_66 = (PBool)((PValues.SafeEquals(TMP_tmp5_78,TMP_tmp7_72)));
                 if (TMP_tmp8_66)
@@ -14351,24 +14441,24 @@ namespace PImplementation
             {
                 return ;
             }
-            TMP_tmp11_52 = (PNamedTuple)(((PNamedTuple)payload_53)["validator"]);
+            TMP_tmp11_52 = (PNamedTuple)(((PNamedTuple)payload_54)["validator"]);
             TMP_tmp12_51 = (PBool)(((PBool)(((PMap)validators_1).ContainsKey(TMP_tmp11_52))));
             if (TMP_tmp12_51)
             {
-                TMP_tmp13_50 = (PNamedTuple)(((PNamedTuple)payload_53)["validator"]);
+                TMP_tmp13_50 = (PNamedTuple)(((PNamedTuple)payload_54)["validator"]);
                 TMP_tmp14_47 = (PNamedTuple)(((PMap)validators_1)[TMP_tmp13_50]);
-                TMP_tmp15_44 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp14_47)?.Clone()));
-                tmpValidatorState = TMP_tmp15_44;
-                TMP_tmp16_43 = (PBool)(((PNamedTuple)tmpValidatorState)["available"]);
-                TMP_tmp17_39 = (PBool)(!(TMP_tmp16_43));
+                TMP_tmp15_45 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp14_47)?.Clone()));
+                tmpValidatorState = TMP_tmp15_45;
+                TMP_tmp16_44 = (PBool)(((PNamedTuple)tmpValidatorState)["available"]);
+                TMP_tmp17_39 = (PBool)(!(TMP_tmp16_44));
                 if (TMP_tmp17_39)
                 {
                     return ;
                 }
             }
             TMP_tmp18_39 = (PNamedTuple)(((PSeq)taskQueue)[tmpTaskIdx]);
-            TMP_tmp19_35 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp18_39)?.Clone()));
-            tmpTask = TMP_tmp19_35;
+            TMP_tmp19_36 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp18_39)?.Clone()));
+            tmpTask = TMP_tmp19_36;
             TMP_tmp20_35 = (PString)(((PString) String.Format("running")));
             ((PNamedTuple)((PNamedTuple)tmpTask)["status"])["status"] = TMP_tmp20_35;
             TMP_tmp21_33 = (PSeq)(new PSeq());
@@ -14378,20 +14468,20 @@ namespace PImplementation
             {
                 TMP_tmp22_31 = (PInt)(((PInt)(taskQueue).Count));
                 TMP_tmp23_30 = (PBool)((tmpI_3) < (TMP_tmp22_31));
-                TMP_tmp24_27 = (PBool)(((PBool)((IPValue)TMP_tmp23_30)?.Clone()));
-                if (TMP_tmp24_27)
+                TMP_tmp24_28 = (PBool)(((PBool)((IPValue)TMP_tmp23_30)?.Clone()));
+                if (TMP_tmp24_28)
                 {
                 }
                 else
                 {
                     break;
                 }
-                TMP_tmp25_27 = (PBool)((!PValues.SafeEquals(tmpI_3,tmpTaskIdx)));
-                if (TMP_tmp25_27)
+                TMP_tmp25_28 = (PBool)((!PValues.SafeEquals(tmpI_3,tmpTaskIdx)));
+                if (TMP_tmp25_28)
                 {
-                    TMP_tmp26_25 = (PInt)(((PInt)(tmpNewQueue).Count));
-                    TMP_tmp27_24 = (PNamedTuple)(((PSeq)taskQueue)[tmpI_3]);
-                    ((PSeq)tmpNewQueue).Insert(TMP_tmp26_25, TMP_tmp27_24);
+                    TMP_tmp26_26 = (PInt)(((PInt)(tmpNewQueue).Count));
+                    TMP_tmp27_25 = (PNamedTuple)(((PSeq)taskQueue)[tmpI_3]);
+                    ((PSeq)tmpNewQueue).Insert(TMP_tmp26_26, TMP_tmp27_25);
                 }
                 TMP_tmp28_24 = (PInt)((tmpI_3) + (((PInt)(1))));
                 tmpI_3 = TMP_tmp28_24;
@@ -14399,55 +14489,55 @@ namespace PImplementation
             taskQueue = (PSeq)(((PSeq)((IPValue)tmpNewQueue)?.Clone()));
             TMP_tmp29_22 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
             ((PMap)runningTasks)[TMP_tmp29_22] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpTask)?.Clone()));
-            TMP_tmp30_20 = (PNamedTuple)(((PNamedTuple)payload_53)["validator"]);
-            TMP_tmp31_18 = (PBool)(((PBool)(((PMap)validators_1).ContainsKey(TMP_tmp30_20))));
-            if (TMP_tmp31_18)
+            TMP_tmp30_20 = (PNamedTuple)(((PNamedTuple)payload_54)["validator"]);
+            TMP_tmp31_19 = (PBool)(((PBool)(((PMap)validators_1).ContainsKey(TMP_tmp30_20))));
+            if (TMP_tmp31_19)
             {
-                TMP_tmp32_15 = (PNamedTuple)(((PNamedTuple)payload_53)["validator"]);
-                TMP_tmp33_15 = (PNamedTuple)(((PMap)validators_1)[TMP_tmp32_15]);
-                TMP_tmp34_14 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp33_15)?.Clone()));
-                tmpValidatorState = TMP_tmp34_14;
+                TMP_tmp32_17 = (PNamedTuple)(((PNamedTuple)payload_54)["validator"]);
+                TMP_tmp33_17 = (PNamedTuple)(((PMap)validators_1)[TMP_tmp32_17]);
+                TMP_tmp34_15 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp33_17)?.Clone()));
+                tmpValidatorState = TMP_tmp34_15;
             }
             else
             {
-                TMP_tmp35_13 = (PNamedTuple)(((PNamedTuple)payload_53)["validator"]);
-                TMP_tmp36_13 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp35_13)?.Clone()));
-                ((PNamedTuple)tmpValidatorState)["nodeID"] = TMP_tmp36_13;
+                TMP_tmp35_14 = (PNamedTuple)(((PNamedTuple)payload_54)["validator"]);
+                TMP_tmp36_14 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp35_14)?.Clone()));
+                ((PNamedTuple)tmpValidatorState)["nodeID"] = TMP_tmp36_14;
                 ((PNamedTuple)tmpValidatorState)["available"] = (PBool)(((PBool)true));
-                TMP_tmp37_13 = (PString)(((PString) String.Format("")));
-                ((PNamedTuple)((PNamedTuple)tmpValidatorState)["currentTask"])["value"] = TMP_tmp37_13;
+                TMP_tmp37_14 = (PString)(((PString) String.Format("")));
+                ((PNamedTuple)((PNamedTuple)tmpValidatorState)["currentTask"])["value"] = TMP_tmp37_14;
                 ((PNamedTuple)tmpValidatorState)["completedCount"] = (PInt)(((PInt)(0)));
                 ((PNamedTuple)tmpValidatorState)["failedCount"] = (PInt)(((PInt)(0)));
                 ((PNamedTuple)tmpValidatorState)["averageTime"] = (PInt)(((PInt)(0)));
             }
             ((PNamedTuple)tmpValidatorState)["available"] = (PBool)(((PBool)false));
-            TMP_tmp38_13 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            TMP_tmp39_11 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp38_13)?.Clone()));
-            ((PNamedTuple)tmpValidatorState)["currentTask"] = TMP_tmp39_11;
-            TMP_tmp40_10 = (PNamedTuple)(((PNamedTuple)payload_53)["validator"]);
-            ((PMap)validators_1)[TMP_tmp40_10] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidatorState)?.Clone()));
-            TMP_tmp41_10 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            TMP_tmp42_10 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp41_10)?.Clone()));
-            ((PNamedTuple)tmpValidationStartedPayload)["taskID"] = TMP_tmp42_10;
+            TMP_tmp38_14 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
+            TMP_tmp39_13 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp38_14)?.Clone()));
+            ((PNamedTuple)tmpValidatorState)["currentTask"] = TMP_tmp39_13;
+            TMP_tmp40_13 = (PNamedTuple)(((PNamedTuple)payload_54)["validator"]);
+            ((PMap)validators_1)[TMP_tmp40_13] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidatorState)?.Clone()));
+            TMP_tmp41_13 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
+            TMP_tmp42_11 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp41_13)?.Clone()));
+            ((PNamedTuple)tmpValidationStartedPayload)["taskID"] = TMP_tmp42_11;
             currentMachine.Announce((Event)new eValidationStarted((new PNamedTuple(new string[]{"taskID"},(new PNamedTuple(new string[]{"value"},((PString)"")))))), tmpValidationStartedPayload);
-            TMP_tmp43_9 = (PMachineValue)(currentMachine.self);
-            TMP_tmp44_9 = (Event)(new eValidationStarted((new PNamedTuple(new string[]{"taskID"},(new PNamedTuple(new string[]{"value"},((PString)"")))))));
-            TMP_tmp45_9 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidationStartedPayload)?.Clone()));
-            TMP_tmp44_9.Payload = TMP_tmp45_9;
-            currentMachine.SendEvent(TMP_tmp43_9, (Event)TMP_tmp44_9);
-            TMP_tmp46_8 = (PMachineValue)(currentMachine.self);
-            TMP_tmp47_8 = (Event)(new eExecuteInSandbox((new PNamedTuple(new string[]{"sandboxID","code","inputs"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PSeq(), new PMap()))));
-            TMP_tmp48_8 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            TMP_tmp49_8 = (PSeq)(new PSeq());
-            TMP_tmp50_8 = (PMap)(((PNamedTuple)tmpTask)["payload"]);
-            TMP_tmp51_7 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","code","inputs"}, TMP_tmp48_8, TMP_tmp49_8, TMP_tmp50_8)));
-            TMP_tmp47_8.Payload = TMP_tmp51_7;
-            currentMachine.SendEvent(TMP_tmp46_8, (Event)TMP_tmp47_8);
+            TMP_tmp43_10 = (PMachineValue)(currentMachine.self);
+            TMP_tmp44_10 = (Event)(new eValidationStarted((new PNamedTuple(new string[]{"taskID"},(new PNamedTuple(new string[]{"value"},((PString)"")))))));
+            TMP_tmp45_10 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidationStartedPayload)?.Clone()));
+            TMP_tmp44_10.Payload = TMP_tmp45_10;
+            currentMachine.SendEvent(TMP_tmp43_10, (Event)TMP_tmp44_10);
+            TMP_tmp46_10 = (PMachineValue)(currentMachine.self);
+            TMP_tmp47_10 = (Event)(new eExecuteInSandbox((new PNamedTuple(new string[]{"sandboxID","code","inputs"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PSeq(), new PMap()))));
+            TMP_tmp48_10 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
+            TMP_tmp49_9 = (PSeq)(new PSeq());
+            TMP_tmp50_9 = (PMap)(((PNamedTuple)tmpTask)["payload"]);
+            TMP_tmp51_8 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","code","inputs"}, TMP_tmp48_10, TMP_tmp49_9, TMP_tmp50_9)));
+            TMP_tmp47_10.Payload = TMP_tmp51_8;
+            currentMachine.SendEvent(TMP_tmp46_10, (Event)TMP_tmp47_10);
         }
         public void Anon_160(Event currentMachine_dequeuedEvent)
         {
             ValidationMachine currentMachine = this;
-            PNamedTuple payload_54 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_55 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_122 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PBool TMP_tmp1_99 = ((PBool)false);
@@ -14464,31 +14554,31 @@ namespace PImplementation
             PNamedTuple TMP_tmp12_52 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp13_51 = ((PString)"");
             PBool TMP_tmp14_48 = ((PBool)false);
-            PInt TMP_tmp15_45 = ((PInt)0);
-            PNamedTuple TMP_tmp16_44 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PInt TMP_tmp15_46 = ((PInt)0);
+            PNamedTuple TMP_tmp16_45 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp17_40 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PMap TMP_tmp18_40 = new PMap();
-            PMap TMP_tmp19_36 = new PMap();
+            PMap TMP_tmp19_37 = new PMap();
             PNamedTuple TMP_tmp20_36 = (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)));
             PInt TMP_tmp21_34 = ((PInt)0);
             PInt TMP_tmp22_32 = ((PInt)0);
             PNamedTuple TMP_tmp23_31 = (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PNamedTuple TMP_tmp24_28 = (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PNamedTuple TMP_tmp25_28 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp26_26 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PInt TMP_tmp27_25 = ((PInt)0);
+            PNamedTuple TMP_tmp24_29 = (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)));
+            PNamedTuple TMP_tmp25_29 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp26_27 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PInt TMP_tmp27_26 = ((PInt)0);
             PString TMP_tmp28_25 = ((PString)"");
             PString TMP_tmp29_23 = ((PString)"");
             PBool TMP_tmp30_21 = ((PBool)false);
-            PNamedTuple TMP_tmp31_19 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PNamedTuple TMP_tmp32_16 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PString TMP_tmp33_16 = ((PString)"");
-            PInt TMP_tmp34_15 = ((PInt)0);
-            PInt TMP_tmp35_14 = ((PInt)0);
-            PMachineValue TMP_tmp36_14 = null;
-            Event TMP_tmp37_14 = null;
-            PNamedTuple TMP_tmp38_14 = (new PNamedTuple(new string[]{"result"},(new PNamedTuple(new string[]{"taskID","validator","passed","score","detailsPayload","executionTime","resourcesUsed","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), ((PInt)0), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
-            TMP_tmp0_122 = (PNamedTuple)(((PNamedTuple)payload_54)["sandboxID"]);
+            PNamedTuple TMP_tmp31_20 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
+            PNamedTuple TMP_tmp32_18 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
+            PString TMP_tmp33_18 = ((PString)"");
+            PInt TMP_tmp34_16 = ((PInt)0);
+            PInt TMP_tmp35_15 = ((PInt)0);
+            PMachineValue TMP_tmp36_15 = null;
+            Event TMP_tmp37_15 = null;
+            PNamedTuple TMP_tmp38_15 = (new PNamedTuple(new string[]{"result"},(new PNamedTuple(new string[]{"taskID","validator","passed","score","detailsPayload","executionTime","resourcesUsed","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), ((PInt)0), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
+            TMP_tmp0_122 = (PNamedTuple)(((PNamedTuple)payload_55)["sandboxID"]);
             TMP_tmp1_99 = (PBool)(((PBool)(((PMap)runningTasks).ContainsKey(TMP_tmp0_122))));
             TMP_tmp2_96 = (PBool)(!(TMP_tmp1_99));
             if (TMP_tmp2_96)
@@ -14523,61 +14613,61 @@ namespace PImplementation
                 {
                     break;
                 }
-                TMP_tmp15_45 = (PInt)((tmpI_3) + (((PInt)(1))));
-                tmpI_3 = TMP_tmp15_45;
+                TMP_tmp15_46 = (PInt)((tmpI_3) + (((PInt)(1))));
+                tmpI_3 = TMP_tmp15_46;
             }
-            TMP_tmp16_44 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            TMP_tmp17_40 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp16_44)?.Clone()));
+            TMP_tmp16_45 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
+            TMP_tmp17_40 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp16_45)?.Clone()));
             ((PNamedTuple)tmpResult_2)["taskID"] = TMP_tmp17_40;
             ((PNamedTuple)tmpResult_2)["validator"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidatorID)?.Clone()));
             ((PNamedTuple)tmpResult_2)["passed"] = (PBool)(((PBool)true));
             ((PNamedTuple)tmpResult_2)["score"] = (PInt)(((PInt)(100)));
-            TMP_tmp18_40 = (PMap)(((PNamedTuple)payload_54)["output"]);
-            TMP_tmp19_36 = (PMap)(((PMap)((IPValue)TMP_tmp18_40)?.Clone()));
-            ((PNamedTuple)tmpResult_2)["detailsPayload"] = TMP_tmp19_36;
-            TMP_tmp20_36 = (PNamedTuple)(((PNamedTuple)payload_54)["resourcesUsed"]);
+            TMP_tmp18_40 = (PMap)(((PNamedTuple)payload_55)["output"]);
+            TMP_tmp19_37 = (PMap)(((PMap)((IPValue)TMP_tmp18_40)?.Clone()));
+            ((PNamedTuple)tmpResult_2)["detailsPayload"] = TMP_tmp19_37;
+            TMP_tmp20_36 = (PNamedTuple)(((PNamedTuple)payload_55)["resourcesUsed"]);
             TMP_tmp21_34 = (PInt)(((PNamedTuple)TMP_tmp20_36)["cpuMillis"]);
             TMP_tmp22_32 = (PInt)(((PInt)((IPValue)TMP_tmp21_34)?.Clone()));
             ((PNamedTuple)tmpResult_2)["executionTime"] = TMP_tmp22_32;
-            TMP_tmp23_31 = (PNamedTuple)(((PNamedTuple)payload_54)["resourcesUsed"]);
-            TMP_tmp24_28 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp23_31)?.Clone()));
-            ((PNamedTuple)tmpResult_2)["resourcesUsed"] = TMP_tmp24_28;
+            TMP_tmp23_31 = (PNamedTuple)(((PNamedTuple)payload_55)["resourcesUsed"]);
+            TMP_tmp24_29 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp23_31)?.Clone()));
+            ((PNamedTuple)tmpResult_2)["resourcesUsed"] = TMP_tmp24_29;
             ((PNamedTuple)((PNamedTuple)tmpResult_2)["timestamp"])["milliseconds"] = (PInt)(((PInt)(0)));
-            TMP_tmp25_28 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            ((PMap)runningTasks).Remove(TMP_tmp25_28);
-            TMP_tmp26_26 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            ((PMap)completedTasks)[TMP_tmp26_26] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpResult_2)?.Clone()));
-            TMP_tmp27_25 = (PInt)((totalTasksCompleted) + (((PInt)(1))));
-            totalTasksCompleted = TMP_tmp27_25;
+            TMP_tmp25_29 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
+            ((PMap)runningTasks).Remove(TMP_tmp25_29);
+            TMP_tmp26_27 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
+            ((PMap)completedTasks)[TMP_tmp26_27] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpResult_2)?.Clone()));
+            TMP_tmp27_26 = (PInt)((totalTasksCompleted) + (((PInt)(1))));
+            totalTasksCompleted = TMP_tmp27_26;
             TMP_tmp28_25 = (PString)(((PNamedTuple)tmpValidatorID)["id"]);
             TMP_tmp29_23 = (PString)(((PString) String.Format("")));
             TMP_tmp30_21 = (PBool)((!PValues.SafeEquals(TMP_tmp28_25,TMP_tmp29_23)));
             if (TMP_tmp30_21)
             {
-                TMP_tmp31_19 = (PNamedTuple)(((PMap)validators_1)[tmpValidatorID]);
-                TMP_tmp32_16 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp31_19)?.Clone()));
-                tmpValidatorState = TMP_tmp32_16;
+                TMP_tmp31_20 = (PNamedTuple)(((PMap)validators_1)[tmpValidatorID]);
+                TMP_tmp32_18 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp31_20)?.Clone()));
+                tmpValidatorState = TMP_tmp32_18;
                 ((PNamedTuple)tmpValidatorState)["available"] = (PBool)(((PBool)true));
-                TMP_tmp33_16 = (PString)(((PString) String.Format("")));
-                ((PNamedTuple)((PNamedTuple)tmpValidatorState)["currentTask"])["value"] = TMP_tmp33_16;
-                TMP_tmp34_15 = (PInt)(((PNamedTuple)tmpValidatorState)["completedCount"]);
-                TMP_tmp35_14 = (PInt)((TMP_tmp34_15) + (((PInt)(1))));
-                ((PNamedTuple)tmpValidatorState)["completedCount"] = TMP_tmp35_14;
+                TMP_tmp33_18 = (PString)(((PString) String.Format("")));
+                ((PNamedTuple)((PNamedTuple)tmpValidatorState)["currentTask"])["value"] = TMP_tmp33_18;
+                TMP_tmp34_16 = (PInt)(((PNamedTuple)tmpValidatorState)["completedCount"]);
+                TMP_tmp35_15 = (PInt)((TMP_tmp34_16) + (((PInt)(1))));
+                ((PNamedTuple)tmpValidatorState)["completedCount"] = TMP_tmp35_15;
                 ((PMap)validators_1)[tmpValidatorID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidatorState)?.Clone()));
             }
             ((PNamedTuple)validationResultPayload_1)["result"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpResult_2)?.Clone()));
             currentMachine.Announce((Event)new eValidationComplete((new PNamedTuple(new string[]{"result"},(new PNamedTuple(new string[]{"taskID","validator","passed","score","detailsPayload","executionTime","resourcesUsed","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), ((PInt)0), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))))), validationResultPayload_1);
-            TMP_tmp36_14 = (PMachineValue)(currentMachine.self);
-            TMP_tmp37_14 = (Event)(new eValidationComplete((new PNamedTuple(new string[]{"result"},(new PNamedTuple(new string[]{"taskID","validator","passed","score","detailsPayload","executionTime","resourcesUsed","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), ((PInt)0), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))))));
-            TMP_tmp38_14 = (PNamedTuple)(((PNamedTuple)((IPValue)validationResultPayload_1)?.Clone()));
-            TMP_tmp37_14.Payload = TMP_tmp38_14;
-            currentMachine.SendEvent(TMP_tmp36_14, (Event)TMP_tmp37_14);
+            TMP_tmp36_15 = (PMachineValue)(currentMachine.self);
+            TMP_tmp37_15 = (Event)(new eValidationComplete((new PNamedTuple(new string[]{"result"},(new PNamedTuple(new string[]{"taskID","validator","passed","score","detailsPayload","executionTime","resourcesUsed","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), ((PInt)0), new PMap(), ((PInt)0), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0))), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))))));
+            TMP_tmp38_15 = (PNamedTuple)(((PNamedTuple)((IPValue)validationResultPayload_1)?.Clone()));
+            TMP_tmp37_15.Payload = TMP_tmp38_15;
+            currentMachine.SendEvent(TMP_tmp36_15, (Event)TMP_tmp37_15);
             TryStartNextTask();
         }
         public void Anon_161(Event currentMachine_dequeuedEvent)
         {
             ValidationMachine currentMachine = this;
-            PNamedTuple payload_55 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_56 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_123 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PBool TMP_tmp1_100 = ((PBool)false);
@@ -14594,29 +14684,29 @@ namespace PImplementation
             PNamedTuple TMP_tmp12_53 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp13_52 = ((PString)"");
             PBool TMP_tmp14_49 = ((PBool)false);
-            PInt TMP_tmp15_46 = ((PInt)0);
-            PNamedTuple TMP_tmp16_45 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PInt TMP_tmp15_47 = ((PInt)0);
+            PNamedTuple TMP_tmp16_46 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp17_41 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp18_41 = ((PString)"");
-            PString TMP_tmp19_37 = ((PString)"");
+            PString TMP_tmp19_38 = ((PString)"");
             PInt TMP_tmp20_37 = ((PInt)0);
             PString TMP_tmp21_35 = ((PString)"");
             PString TMP_tmp22_33 = ((PString)"");
             PBool TMP_tmp23_32 = ((PBool)false);
-            PNamedTuple TMP_tmp24_29 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PNamedTuple TMP_tmp25_29 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PString TMP_tmp26_27 = ((PString)"");
-            PInt TMP_tmp27_26 = ((PInt)0);
+            PNamedTuple TMP_tmp24_30 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
+            PNamedTuple TMP_tmp25_30 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
+            PString TMP_tmp26_28 = ((PString)"");
+            PInt TMP_tmp27_27 = ((PInt)0);
             PInt TMP_tmp28_26 = ((PInt)0);
             PNamedTuple TMP_tmp29_24 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp30_22 = ((PString)"");
-            PNamedTuple TMP_tmp31_20 = (new PNamedTuple(new string[]{"taskID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
-            PMachineValue TMP_tmp32_17 = null;
-            Event TMP_tmp33_17 = null;
-            PNamedTuple TMP_tmp34_16 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp35_15 = ((PString)"");
-            PNamedTuple TMP_tmp36_15 = (new PNamedTuple(new string[]{"taskID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
-            TMP_tmp0_123 = (PNamedTuple)(((PNamedTuple)payload_55)["sandboxID"]);
+            PNamedTuple TMP_tmp31_21 = (new PNamedTuple(new string[]{"taskID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
+            PMachineValue TMP_tmp32_19 = null;
+            Event TMP_tmp33_19 = null;
+            PNamedTuple TMP_tmp34_17 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp35_16 = ((PString)"");
+            PNamedTuple TMP_tmp36_16 = (new PNamedTuple(new string[]{"taskID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
+            TMP_tmp0_123 = (PNamedTuple)(((PNamedTuple)payload_56)["sandboxID"]);
             TMP_tmp1_100 = (PBool)(((PBool)(((PMap)runningTasks).ContainsKey(TMP_tmp0_123))));
             TMP_tmp2_97 = (PBool)(!(TMP_tmp1_100));
             if (TMP_tmp2_97)
@@ -14651,15 +14741,15 @@ namespace PImplementation
                 {
                     break;
                 }
-                TMP_tmp15_46 = (PInt)((tmpI_3) + (((PInt)(1))));
-                tmpI_3 = TMP_tmp15_46;
+                TMP_tmp15_47 = (PInt)((tmpI_3) + (((PInt)(1))));
+                tmpI_3 = TMP_tmp15_47;
             }
-            TMP_tmp16_45 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            ((PMap)runningTasks).Remove(TMP_tmp16_45);
+            TMP_tmp16_46 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
+            ((PMap)runningTasks).Remove(TMP_tmp16_46);
             TMP_tmp17_41 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            TMP_tmp18_41 = (PString)(((PNamedTuple)payload_55)["reason"]);
-            TMP_tmp19_37 = (PString)(((PString)((IPValue)TMP_tmp18_41)?.Clone()));
-            ((PMap)failedTasks)[TMP_tmp17_41] = TMP_tmp19_37;
+            TMP_tmp18_41 = (PString)(((PNamedTuple)payload_56)["reason"]);
+            TMP_tmp19_38 = (PString)(((PString)((IPValue)TMP_tmp18_41)?.Clone()));
+            ((PMap)failedTasks)[TMP_tmp17_41] = TMP_tmp19_38;
             TMP_tmp20_37 = (PInt)((totalTasksFailed) + (((PInt)(1))));
             totalTasksFailed = TMP_tmp20_37;
             TMP_tmp21_35 = (PString)(((PNamedTuple)tmpValidatorID)["id"]);
@@ -14667,34 +14757,34 @@ namespace PImplementation
             TMP_tmp23_32 = (PBool)((!PValues.SafeEquals(TMP_tmp21_35,TMP_tmp22_33)));
             if (TMP_tmp23_32)
             {
-                TMP_tmp24_29 = (PNamedTuple)(((PMap)validators_1)[tmpValidatorID]);
-                TMP_tmp25_29 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp24_29)?.Clone()));
-                tmpValidatorState = TMP_tmp25_29;
+                TMP_tmp24_30 = (PNamedTuple)(((PMap)validators_1)[tmpValidatorID]);
+                TMP_tmp25_30 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp24_30)?.Clone()));
+                tmpValidatorState = TMP_tmp25_30;
                 ((PNamedTuple)tmpValidatorState)["available"] = (PBool)(((PBool)true));
-                TMP_tmp26_27 = (PString)(((PString) String.Format("")));
-                ((PNamedTuple)((PNamedTuple)tmpValidatorState)["currentTask"])["value"] = TMP_tmp26_27;
-                TMP_tmp27_26 = (PInt)(((PNamedTuple)tmpValidatorState)["failedCount"]);
-                TMP_tmp28_26 = (PInt)((TMP_tmp27_26) + (((PInt)(1))));
+                TMP_tmp26_28 = (PString)(((PString) String.Format("")));
+                ((PNamedTuple)((PNamedTuple)tmpValidatorState)["currentTask"])["value"] = TMP_tmp26_28;
+                TMP_tmp27_27 = (PInt)(((PNamedTuple)tmpValidatorState)["failedCount"]);
+                TMP_tmp28_26 = (PInt)((TMP_tmp27_27) + (((PInt)(1))));
                 ((PNamedTuple)tmpValidatorState)["failedCount"] = TMP_tmp28_26;
                 ((PMap)validators_1)[tmpValidatorID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidatorState)?.Clone()));
             }
             TMP_tmp29_24 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            TMP_tmp30_22 = (PString)(((PNamedTuple)payload_55)["reason"]);
-            TMP_tmp31_20 = (PNamedTuple)((new PNamedTuple(new string[]{"taskID","reason"}, TMP_tmp29_24, TMP_tmp30_22)));
-            currentMachine.Announce((Event)new eValidationFailed((new PNamedTuple(new string[]{"taskID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))), TMP_tmp31_20);
-            TMP_tmp32_17 = (PMachineValue)(currentMachine.self);
-            TMP_tmp33_17 = (Event)(new eValidationFailed((new PNamedTuple(new string[]{"taskID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
-            TMP_tmp34_16 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            TMP_tmp35_15 = (PString)(((PNamedTuple)payload_55)["reason"]);
-            TMP_tmp36_15 = (PNamedTuple)((new PNamedTuple(new string[]{"taskID","reason"}, TMP_tmp34_16, TMP_tmp35_15)));
-            TMP_tmp33_17.Payload = TMP_tmp36_15;
-            currentMachine.SendEvent(TMP_tmp32_17, (Event)TMP_tmp33_17);
+            TMP_tmp30_22 = (PString)(((PNamedTuple)payload_56)["reason"]);
+            TMP_tmp31_21 = (PNamedTuple)((new PNamedTuple(new string[]{"taskID","reason"}, TMP_tmp29_24, TMP_tmp30_22)));
+            currentMachine.Announce((Event)new eValidationFailed((new PNamedTuple(new string[]{"taskID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))), TMP_tmp31_21);
+            TMP_tmp32_19 = (PMachineValue)(currentMachine.self);
+            TMP_tmp33_19 = (Event)(new eValidationFailed((new PNamedTuple(new string[]{"taskID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
+            TMP_tmp34_17 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
+            TMP_tmp35_16 = (PString)(((PNamedTuple)payload_56)["reason"]);
+            TMP_tmp36_16 = (PNamedTuple)((new PNamedTuple(new string[]{"taskID","reason"}, TMP_tmp34_17, TMP_tmp35_16)));
+            TMP_tmp33_19.Payload = TMP_tmp36_16;
+            currentMachine.SendEvent(TMP_tmp32_19, (Event)TMP_tmp33_19);
             TryStartNextTask();
         }
         public void Anon_162(Event currentMachine_dequeuedEvent)
         {
             ValidationMachine currentMachine = this;
-            PNamedTuple payload_56 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_57 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_124 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PBool TMP_tmp1_101 = ((PBool)false);
@@ -14711,35 +14801,35 @@ namespace PImplementation
             PBool TMP_tmp12_54 = ((PBool)false);
             PNamedTuple TMP_tmp13_53 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PNamedTuple TMP_tmp14_50 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp15_47 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PNamedTuple TMP_tmp16_46 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp15_48 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
+            PNamedTuple TMP_tmp16_47 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp17_42 = ((PString)"");
             PNamedTuple TMP_tmp18_42 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp19_38 = ((PString)"");
+            PString TMP_tmp19_39 = ((PString)"");
             PBool TMP_tmp20_38 = ((PBool)false);
             PInt TMP_tmp21_36 = ((PInt)0);
             PNamedTuple TMP_tmp22_34 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp23_33 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp24_30 = ((PString)"");
-            PInt TMP_tmp25_30 = ((PInt)0);
-            PString TMP_tmp26_28 = ((PString)"");
-            PString TMP_tmp27_27 = ((PString)"");
+            PString TMP_tmp24_31 = ((PString)"");
+            PInt TMP_tmp25_31 = ((PInt)0);
+            PString TMP_tmp26_29 = ((PString)"");
+            PString TMP_tmp27_28 = ((PString)"");
             PBool TMP_tmp28_27 = ((PBool)false);
             PNamedTuple TMP_tmp29_25 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
             PNamedTuple TMP_tmp30_23 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PString TMP_tmp31_21 = ((PString)"");
-            PInt TMP_tmp32_18 = ((PInt)0);
-            PInt TMP_tmp33_18 = ((PInt)0);
-            PNamedTuple TMP_tmp34_17 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp35_16 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            TMP_tmp0_124 = (PNamedTuple)(((PNamedTuple)payload_56)["taskID"]);
+            PString TMP_tmp31_22 = ((PString)"");
+            PInt TMP_tmp32_20 = ((PInt)0);
+            PInt TMP_tmp33_20 = ((PInt)0);
+            PNamedTuple TMP_tmp34_18 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp35_17 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            TMP_tmp0_124 = (PNamedTuple)(((PNamedTuple)payload_57)["taskID"]);
             TMP_tmp1_101 = (PBool)(((PBool)(((PMap)runningTasks).ContainsKey(TMP_tmp0_124))));
             TMP_tmp2_98 = (PBool)(!(TMP_tmp1_101));
             if (TMP_tmp2_98)
             {
                 return ;
             }
-            TMP_tmp3_92 = (PNamedTuple)(((PNamedTuple)payload_56)["taskID"]);
+            TMP_tmp3_92 = (PNamedTuple)(((PNamedTuple)payload_57)["taskID"]);
             TMP_tmp4_87 = (PNamedTuple)(((PMap)runningTasks)[TMP_tmp3_92]);
             TMP_tmp5_81 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp4_87)?.Clone()));
             tmpTask = TMP_tmp5_81;
@@ -14767,12 +14857,12 @@ namespace PImplementation
                 TMP_tmp13_53 = (PNamedTuple)(((PSeq)allValidatorKeys)[tmpI_3]);
                 TMP_tmp14_50 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp13_53)?.Clone()));
                 tmpValidatorID = TMP_tmp14_50;
-                TMP_tmp15_47 = (PNamedTuple)(((PMap)validators_1)[tmpValidatorID]);
-                TMP_tmp16_46 = (PNamedTuple)(((PNamedTuple)TMP_tmp15_47)["currentTask"]);
-                TMP_tmp17_42 = (PString)(((PNamedTuple)TMP_tmp16_46)["value"]);
+                TMP_tmp15_48 = (PNamedTuple)(((PMap)validators_1)[tmpValidatorID]);
+                TMP_tmp16_47 = (PNamedTuple)(((PNamedTuple)TMP_tmp15_48)["currentTask"]);
+                TMP_tmp17_42 = (PString)(((PNamedTuple)TMP_tmp16_47)["value"]);
                 TMP_tmp18_42 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-                TMP_tmp19_38 = (PString)(((PNamedTuple)TMP_tmp18_42)["value"]);
-                TMP_tmp20_38 = (PBool)((PValues.SafeEquals(TMP_tmp17_42,TMP_tmp19_38)));
+                TMP_tmp19_39 = (PString)(((PNamedTuple)TMP_tmp18_42)["value"]);
+                TMP_tmp20_38 = (PBool)((PValues.SafeEquals(TMP_tmp17_42,TMP_tmp19_39)));
                 if (TMP_tmp20_38)
                 {
                     break;
@@ -14783,36 +14873,36 @@ namespace PImplementation
             TMP_tmp22_34 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
             ((PMap)runningTasks).Remove(TMP_tmp22_34);
             TMP_tmp23_33 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            TMP_tmp24_30 = (PString)(((PString) String.Format("Timeout")));
-            ((PMap)failedTasks)[TMP_tmp23_33] = TMP_tmp24_30;
-            TMP_tmp25_30 = (PInt)((totalTasksFailed) + (((PInt)(1))));
-            totalTasksFailed = TMP_tmp25_30;
-            TMP_tmp26_28 = (PString)(((PNamedTuple)tmpValidatorID)["id"]);
-            TMP_tmp27_27 = (PString)(((PString) String.Format("")));
-            TMP_tmp28_27 = (PBool)((!PValues.SafeEquals(TMP_tmp26_28,TMP_tmp27_27)));
+            TMP_tmp24_31 = (PString)(((PString) String.Format("Timeout")));
+            ((PMap)failedTasks)[TMP_tmp23_33] = TMP_tmp24_31;
+            TMP_tmp25_31 = (PInt)((totalTasksFailed) + (((PInt)(1))));
+            totalTasksFailed = TMP_tmp25_31;
+            TMP_tmp26_29 = (PString)(((PNamedTuple)tmpValidatorID)["id"]);
+            TMP_tmp27_28 = (PString)(((PString) String.Format("")));
+            TMP_tmp28_27 = (PBool)((!PValues.SafeEquals(TMP_tmp26_29,TMP_tmp27_28)));
             if (TMP_tmp28_27)
             {
                 TMP_tmp29_25 = (PNamedTuple)(((PMap)validators_1)[tmpValidatorID]);
                 TMP_tmp30_23 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp29_25)?.Clone()));
                 tmpValidatorState = TMP_tmp30_23;
                 ((PNamedTuple)tmpValidatorState)["available"] = (PBool)(((PBool)true));
-                TMP_tmp31_21 = (PString)(((PString) String.Format("")));
-                ((PNamedTuple)((PNamedTuple)tmpValidatorState)["currentTask"])["value"] = TMP_tmp31_21;
-                TMP_tmp32_18 = (PInt)(((PNamedTuple)tmpValidatorState)["failedCount"]);
-                TMP_tmp33_18 = (PInt)((TMP_tmp32_18) + (((PInt)(1))));
-                ((PNamedTuple)tmpValidatorState)["failedCount"] = TMP_tmp33_18;
+                TMP_tmp31_22 = (PString)(((PString) String.Format("")));
+                ((PNamedTuple)((PNamedTuple)tmpValidatorState)["currentTask"])["value"] = TMP_tmp31_22;
+                TMP_tmp32_20 = (PInt)(((PNamedTuple)tmpValidatorState)["failedCount"]);
+                TMP_tmp33_20 = (PInt)((TMP_tmp32_20) + (((PInt)(1))));
+                ((PNamedTuple)tmpValidatorState)["failedCount"] = TMP_tmp33_20;
                 ((PMap)validators_1)[tmpValidatorID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidatorState)?.Clone()));
             }
-            TMP_tmp34_17 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
-            TMP_tmp35_16 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp34_17)?.Clone()));
-            ((PNamedTuple)tmpValidationTimeoutPayload)["taskID"] = TMP_tmp35_16;
+            TMP_tmp34_18 = (PNamedTuple)(((PNamedTuple)tmpTask)["id"]);
+            TMP_tmp35_17 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp34_18)?.Clone()));
+            ((PNamedTuple)tmpValidationTimeoutPayload)["taskID"] = TMP_tmp35_17;
             currentMachine.Announce((Event)new eValidationTimeout((new PNamedTuple(new string[]{"taskID"},(new PNamedTuple(new string[]{"value"},((PString)"")))))), tmpValidationTimeoutPayload);
             TryStartNextTask();
         }
         public void Anon_163(Event currentMachine_dequeuedEvent)
         {
             ValidationMachine currentMachine = this;
-            PNamedTuple payload_57 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_58 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_125 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PBool TMP_tmp1_102 = ((PBool)false);
@@ -14825,18 +14915,18 @@ namespace PImplementation
             PNamedTuple TMP_tmp8_70 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PInt TMP_tmp9_68 = ((PInt)0);
             PNamedTuple TMP_tmp10_59 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            TMP_tmp0_125 = (PNamedTuple)(((PNamedTuple)payload_57)["validatorID"]);
+            TMP_tmp0_125 = (PNamedTuple)(((PNamedTuple)payload_58)["validatorID"]);
             TMP_tmp1_102 = (PBool)(((PBool)(((PMap)validators_1).ContainsKey(TMP_tmp0_125))));
             if (TMP_tmp1_102)
             {
-                TMP_tmp2_99 = (PNamedTuple)(((PNamedTuple)payload_57)["validatorID"]);
+                TMP_tmp2_99 = (PNamedTuple)(((PNamedTuple)payload_58)["validatorID"]);
                 TMP_tmp3_93 = (PNamedTuple)(((PMap)validators_1)[TMP_tmp2_99]);
                 TMP_tmp4_88 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp3_93)?.Clone()));
                 tmpValidatorState = TMP_tmp4_88;
             }
             else
             {
-                TMP_tmp5_82 = (PNamedTuple)(((PNamedTuple)payload_57)["validatorID"]);
+                TMP_tmp5_82 = (PNamedTuple)(((PNamedTuple)payload_58)["validatorID"]);
                 TMP_tmp6_77 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp5_82)?.Clone()));
                 ((PNamedTuple)tmpValidatorState)["nodeID"] = TMP_tmp6_77;
                 ((PNamedTuple)tmpValidatorState)["available"] = (PBool)(((PBool)true));
@@ -14847,17 +14937,17 @@ namespace PImplementation
                 ((PNamedTuple)tmpValidatorState)["averageTime"] = (PInt)(((PInt)(0)));
             }
             ((PNamedTuple)tmpValidatorState)["available"] = (PBool)(((PBool)true));
-            TMP_tmp8_70 = (PNamedTuple)(((PNamedTuple)payload_57)["validatorID"]);
+            TMP_tmp8_70 = (PNamedTuple)(((PNamedTuple)payload_58)["validatorID"]);
             ((PMap)validators_1)[TMP_tmp8_70] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidatorState)?.Clone()));
             TMP_tmp9_68 = (PInt)(((PInt)(validatorQueue).Count));
-            TMP_tmp10_59 = (PNamedTuple)(((PNamedTuple)payload_57)["validatorID"]);
+            TMP_tmp10_59 = (PNamedTuple)(((PNamedTuple)payload_58)["validatorID"]);
             ((PSeq)validatorQueue).Insert(TMP_tmp9_68, TMP_tmp10_59);
             TryStartNextTask();
         }
         public void Anon_164(Event currentMachine_dequeuedEvent)
         {
             ValidationMachine currentMachine = this;
-            PNamedTuple payload_58 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_59 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_126 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PBool TMP_tmp1_103 = ((PBool)false);
@@ -14865,16 +14955,16 @@ namespace PImplementation
             PNamedTuple TMP_tmp3_94 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
             PNamedTuple TMP_tmp4_89 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
             PNamedTuple TMP_tmp5_83 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            TMP_tmp0_126 = (PNamedTuple)(((PNamedTuple)payload_58)["validatorID"]);
+            TMP_tmp0_126 = (PNamedTuple)(((PNamedTuple)payload_59)["validatorID"]);
             TMP_tmp1_103 = (PBool)(((PBool)(((PMap)validators_1).ContainsKey(TMP_tmp0_126))));
             if (TMP_tmp1_103)
             {
-                TMP_tmp2_100 = (PNamedTuple)(((PNamedTuple)payload_58)["validatorID"]);
+                TMP_tmp2_100 = (PNamedTuple)(((PNamedTuple)payload_59)["validatorID"]);
                 TMP_tmp3_94 = (PNamedTuple)(((PMap)validators_1)[TMP_tmp2_100]);
                 TMP_tmp4_89 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp3_94)?.Clone()));
                 tmpValidatorState = TMP_tmp4_89;
                 ((PNamedTuple)tmpValidatorState)["available"] = (PBool)(((PBool)false));
-                TMP_tmp5_83 = (PNamedTuple)(((PNamedTuple)payload_58)["validatorID"]);
+                TMP_tmp5_83 = (PNamedTuple)(((PNamedTuple)payload_59)["validatorID"]);
                 ((PMap)validators_1)[TMP_tmp5_83] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidatorState)?.Clone()));
             }
         }
@@ -14914,8 +15004,8 @@ namespace PImplementation
             PInt TMP_tmp12_55 = ((PInt)0);
             PNamedTuple TMP_tmp13_54 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             PInt TMP_tmp14_51 = ((PInt)0);
-            PBool TMP_tmp15_48 = ((PBool)false);
-            PInt TMP_tmp16_47 = ((PInt)0);
+            PBool TMP_tmp15_49 = ((PBool)false);
+            PInt TMP_tmp16_48 = ((PInt)0);
             PNamedTuple TMP_tmp17_43 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             tmpInserted = (PBool)(((PBool)false));
             TMP_tmp0_127 = (PSeq)(new PSeq());
@@ -14956,12 +15046,12 @@ namespace PImplementation
                 TMP_tmp14_51 = (PInt)((tmpI_3) + (((PInt)(1))));
                 tmpI_3 = TMP_tmp14_51;
             }
-            TMP_tmp15_48 = (PBool)(!(tmpInserted));
-            if (TMP_tmp15_48)
+            TMP_tmp15_49 = (PBool)(!(tmpInserted));
+            if (TMP_tmp15_49)
             {
-                TMP_tmp16_47 = (PInt)(((PInt)(tmpNewQueue).Count));
+                TMP_tmp16_48 = (PInt)(((PInt)(tmpNewQueue).Count));
                 TMP_tmp17_43 = (PNamedTuple)(((PNamedTuple)((IPValue)task)?.Clone()));
-                ((PSeq)tmpNewQueue).Insert(TMP_tmp16_47, TMP_tmp17_43);
+                ((PSeq)tmpNewQueue).Insert(TMP_tmp16_48, TMP_tmp17_43);
             }
             taskQueue = (PSeq)(((PSeq)((IPValue)tmpNewQueue)?.Clone()));
         }
@@ -14983,17 +15073,17 @@ namespace PImplementation
             PNamedTuple TMP_tmp12_56 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
             PNamedTuple TMP_tmp13_55 = (new PNamedTuple(new string[]{"nodeID","available","currentTask","completedCount","failedCount","averageTime"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PBool)false), (new PNamedTuple(new string[]{"value"},((PString)""))), ((PInt)0), ((PInt)0), ((PInt)0)));
             PBool TMP_tmp14_52 = ((PBool)false);
-            PInt TMP_tmp15_49 = ((PInt)0);
-            PString TMP_tmp16_48 = ((PString)"");
+            PInt TMP_tmp15_50 = ((PInt)0);
+            PString TMP_tmp16_49 = ((PString)"");
             PString TMP_tmp17_44 = ((PString)"");
             PBool TMP_tmp18_43 = ((PBool)false);
-            PNamedTuple TMP_tmp19_39 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
+            PNamedTuple TMP_tmp19_40 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             PNamedTuple TMP_tmp20_39 = (new PNamedTuple(new string[]{"id","taskType","payload","submitter","priority","deadline","status"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"status"},((PString)"")))));
             PMachineValue TMP_tmp21_37 = null;
             Event TMP_tmp22_35 = null;
             PNamedTuple TMP_tmp23_34 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp24_31 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
-            PNamedTuple TMP_tmp25_31 = (new PNamedTuple(new string[]{"taskID","validator"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))))));
+            PNamedTuple TMP_tmp24_32 = (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))));
+            PNamedTuple TMP_tmp25_32 = (new PNamedTuple(new string[]{"taskID","validator"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))))));
             TMP_tmp0_128 = (PInt)(((PInt)(runningTasks).Count));
             TMP_tmp1_105 = (PBool)((TMP_tmp0_128) >= (maxConcurrentTasks));
             if (TMP_tmp1_105)
@@ -15036,25 +15126,25 @@ namespace PImplementation
                 {
                     break;
                 }
-                TMP_tmp15_49 = (PInt)((tmpI_3) + (((PInt)(1))));
-                tmpI_3 = TMP_tmp15_49;
+                TMP_tmp15_50 = (PInt)((tmpI_3) + (((PInt)(1))));
+                tmpI_3 = TMP_tmp15_50;
             }
-            TMP_tmp16_48 = (PString)(((PNamedTuple)tmpAvailableValidator)["id"]);
+            TMP_tmp16_49 = (PString)(((PNamedTuple)tmpAvailableValidator)["id"]);
             TMP_tmp17_44 = (PString)(((PString) String.Format("")));
-            TMP_tmp18_43 = (PBool)((PValues.SafeEquals(TMP_tmp16_48,TMP_tmp17_44)));
+            TMP_tmp18_43 = (PBool)((PValues.SafeEquals(TMP_tmp16_49,TMP_tmp17_44)));
             if (TMP_tmp18_43)
             {
                 return ;
             }
-            TMP_tmp19_39 = (PNamedTuple)(((PSeq)taskQueue)[((PInt)(0))]);
-            TMP_tmp20_39 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_39)?.Clone()));
+            TMP_tmp19_40 = (PNamedTuple)(((PSeq)taskQueue)[((PInt)(0))]);
+            TMP_tmp20_39 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp19_40)?.Clone()));
             tmpNextTask = TMP_tmp20_39;
             TMP_tmp21_37 = (PMachineValue)(currentMachine.self);
             TMP_tmp22_35 = (Event)(new eStartValidation((new PNamedTuple(new string[]{"taskID","validator"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))))))));
             TMP_tmp23_34 = (PNamedTuple)(((PNamedTuple)tmpNextTask)["id"]);
-            TMP_tmp24_31 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAvailableValidator)?.Clone()));
-            TMP_tmp25_31 = (PNamedTuple)((new PNamedTuple(new string[]{"taskID","validator"}, TMP_tmp23_34, TMP_tmp24_31)));
-            TMP_tmp22_35.Payload = TMP_tmp25_31;
+            TMP_tmp24_32 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAvailableValidator)?.Clone()));
+            TMP_tmp25_32 = (PNamedTuple)((new PNamedTuple(new string[]{"taskID","validator"}, TMP_tmp23_34, TMP_tmp24_32)));
+            TMP_tmp22_35.Payload = TMP_tmp25_32;
             currentMachine.SendEvent(TMP_tmp21_37, (Event)TMP_tmp22_35);
         }
         public PInt GetQueueSize()
@@ -15575,7 +15665,7 @@ namespace PImplementation
         public void Anon_171(Event currentMachine_dequeuedEvent)
         {
             ExecutionSandboxMachine currentMachine = this;
-            PNamedTuple payload_59 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_60 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PSeq TMP_tmp0_133 = new PSeq();
             PInt TMP_tmp1_108 = ((PInt)0);
@@ -15592,33 +15682,36 @@ namespace PImplementation
             PString TMP_tmp12_57 = ((PString)"");
             PBool TMP_tmp13_56 = ((PBool)false);
             PBool TMP_tmp14_53 = ((PBool)false);
-            PInt TMP_tmp15_50 = ((PInt)0);
-            PInt TMP_tmp16_49 = ((PInt)0);
+            PInt TMP_tmp15_51 = ((PInt)0);
+            PInt TMP_tmp16_50 = ((PInt)0);
             PBool TMP_tmp17_45 = ((PBool)false);
             PMachineValue TMP_tmp18_44 = null;
-            Event TMP_tmp19_40 = null;
-            PString TMP_tmp20_40 = ((PString)"");
-            PNamedTuple TMP_tmp21_38 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
-            PInt TMP_tmp22_36 = ((PInt)0);
-            PBool TMP_tmp23_35 = ((PBool)false);
-            PNamedTuple TMP_tmp24_32 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
-            PInt TMP_tmp25_32 = ((PInt)0);
-            PBool TMP_tmp26_29 = ((PBool)false);
-            PBool TMP_tmp27_28 = ((PBool)false);
-            PMachineValue TMP_tmp28_28 = null;
-            Event TMP_tmp29_26 = null;
-            PString TMP_tmp30_24 = ((PString)"");
-            PInt TMP_tmp31_22 = ((PInt)0);
-            PInt TMP_tmp32_19 = ((PInt)0);
-            PString TMP_tmp33_19 = ((PString)"");
-            PNamedTuple TMP_tmp34_18 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
-            PNamedTuple TMP_tmp35_17 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
-            PString TMP_tmp36_16 = ((PString)"");
-            PNamedTuple TMP_tmp37_15 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
-            PNamedTuple TMP_tmp38_15 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
-            PMachineValue TMP_tmp39_12 = null;
-            Event TMP_tmp40_11 = null;
-            PNamedTuple TMP_tmp41_11 = (new PNamedTuple(new string[]{"sandboxID"},(new PNamedTuple(new string[]{"value"},((PString)"")))));
+            PMachineValue TMP_tmp19_41 = null;
+            Event TMP_tmp20_40 = null;
+            PString TMP_tmp21_38 = ((PString)"");
+            PNamedTuple TMP_tmp22_36 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
+            PInt TMP_tmp23_35 = ((PInt)0);
+            PBool TMP_tmp24_33 = ((PBool)false);
+            PNamedTuple TMP_tmp25_33 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
+            PInt TMP_tmp26_30 = ((PInt)0);
+            PBool TMP_tmp27_29 = ((PBool)false);
+            PBool TMP_tmp28_28 = ((PBool)false);
+            PMachineValue TMP_tmp29_26 = null;
+            PMachineValue TMP_tmp30_24 = null;
+            Event TMP_tmp31_23 = null;
+            PString TMP_tmp32_21 = ((PString)"");
+            PInt TMP_tmp33_21 = ((PInt)0);
+            PInt TMP_tmp34_19 = ((PInt)0);
+            PString TMP_tmp35_18 = ((PString)"");
+            PNamedTuple TMP_tmp36_17 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
+            PNamedTuple TMP_tmp37_16 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
+            PString TMP_tmp38_16 = ((PString)"");
+            PNamedTuple TMP_tmp39_14 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
+            PNamedTuple TMP_tmp40_14 = (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")));
+            PMachineValue TMP_tmp41_14 = null;
+            PMachineValue TMP_tmp42_12 = null;
+            Event TMP_tmp43_11 = null;
+            PNamedTuple TMP_tmp44_11 = (new PNamedTuple(new string[]{"sandboxID"},(new PNamedTuple(new string[]{"value"},((PString)"")))));
             tmpActiveSandboxes = (PInt)(((PInt)(0)));
             TMP_tmp0_133 = (PSeq)((sandboxes).CloneKeys());
             allSandboxKeys = TMP_tmp0_133;
@@ -15656,77 +15749,80 @@ namespace PImplementation
                 }
                 if (TMP_tmp14_53)
                 {
-                    TMP_tmp15_50 = (PInt)((tmpActiveSandboxes) + (((PInt)(1))));
-                    tmpActiveSandboxes = TMP_tmp15_50;
+                    TMP_tmp15_51 = (PInt)((tmpActiveSandboxes) + (((PInt)(1))));
+                    tmpActiveSandboxes = TMP_tmp15_51;
                 }
-                TMP_tmp16_49 = (PInt)((tmpI_4) + (((PInt)(1))));
-                tmpI_4 = TMP_tmp16_49;
+                TMP_tmp16_50 = (PInt)((tmpI_4) + (((PInt)(1))));
+                tmpI_4 = TMP_tmp16_50;
             }
             TMP_tmp17_45 = (PBool)((tmpActiveSandboxes) >= (maxConcurrentSandboxes));
             if (TMP_tmp17_45)
             {
-                TMP_tmp18_44 = (PMachineValue)(currentMachine.self);
-                TMP_tmp19_40 = (Event)(new eSandboxCreationFailed(((PString)"")));
-                TMP_tmp20_40 = (PString)(((PString) String.Format("Maximum concurrent sandboxes reached")));
-                TMP_tmp19_40.Payload = TMP_tmp20_40;
-                currentMachine.SendEvent(TMP_tmp18_44, (Event)TMP_tmp19_40);
+                TMP_tmp18_44 = (PMachineValue)(((PNamedTuple)payload_60)["caller"]);
+                TMP_tmp19_41 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp18_44)?.Clone()));
+                TMP_tmp20_40 = (Event)(new eSandboxCreationFailed(((PString)"")));
+                TMP_tmp21_38 = (PString)(((PString) String.Format("Maximum concurrent sandboxes reached")));
+                TMP_tmp20_40.Payload = TMP_tmp21_38;
+                currentMachine.SendEvent(TMP_tmp19_41, (Event)TMP_tmp20_40);
                 return ;
             }
-            TMP_tmp21_38 = (PNamedTuple)(((PNamedTuple)payload_59)["config"]);
-            TMP_tmp22_36 = (PInt)(((PNamedTuple)TMP_tmp21_38)["maxCPU"]);
-            TMP_tmp23_35 = (PBool)((TMP_tmp22_36) <= (((PInt)(0))));
-            TMP_tmp27_28 = (PBool)(((PBool)((IPValue)TMP_tmp23_35)?.Clone()));
-            if (TMP_tmp27_28)
+            TMP_tmp22_36 = (PNamedTuple)(((PNamedTuple)payload_60)["config"]);
+            TMP_tmp23_35 = (PInt)(((PNamedTuple)TMP_tmp22_36)["maxCPU"]);
+            TMP_tmp24_33 = (PBool)((TMP_tmp23_35) <= (((PInt)(0))));
+            TMP_tmp28_28 = (PBool)(((PBool)((IPValue)TMP_tmp24_33)?.Clone()));
+            if (TMP_tmp28_28)
             {
             }
             else
             {
-                TMP_tmp24_32 = (PNamedTuple)(((PNamedTuple)payload_59)["config"]);
-                TMP_tmp25_32 = (PInt)(((PNamedTuple)TMP_tmp24_32)["maxMemory"]);
-                TMP_tmp26_29 = (PBool)((TMP_tmp25_32) <= (((PInt)(0))));
-                TMP_tmp27_28 = (PBool)(((PBool)((IPValue)TMP_tmp26_29)?.Clone()));
+                TMP_tmp25_33 = (PNamedTuple)(((PNamedTuple)payload_60)["config"]);
+                TMP_tmp26_30 = (PInt)(((PNamedTuple)TMP_tmp25_33)["maxMemory"]);
+                TMP_tmp27_29 = (PBool)((TMP_tmp26_30) <= (((PInt)(0))));
+                TMP_tmp28_28 = (PBool)(((PBool)((IPValue)TMP_tmp27_29)?.Clone()));
             }
-            if (TMP_tmp27_28)
+            if (TMP_tmp28_28)
             {
-                TMP_tmp28_28 = (PMachineValue)(currentMachine.self);
-                TMP_tmp29_26 = (Event)(new eSandboxCreationFailed(((PString)"")));
-                TMP_tmp30_24 = (PString)(((PString) String.Format("Invalid sandbox configuration")));
-                TMP_tmp29_26.Payload = TMP_tmp30_24;
-                currentMachine.SendEvent(TMP_tmp28_28, (Event)TMP_tmp29_26);
+                TMP_tmp29_26 = (PMachineValue)(((PNamedTuple)payload_60)["caller"]);
+                TMP_tmp30_24 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp29_26)?.Clone()));
+                TMP_tmp31_23 = (Event)(new eSandboxCreationFailed(((PString)"")));
+                TMP_tmp32_21 = (PString)(((PString) String.Format("Invalid sandbox configuration")));
+                TMP_tmp31_23.Payload = TMP_tmp32_21;
+                currentMachine.SendEvent(TMP_tmp30_24, (Event)TMP_tmp31_23);
                 return ;
             }
-            TMP_tmp31_22 = (PInt)((sandboxCounter) + (((PInt)(1))));
-            sandboxCounter = TMP_tmp31_22;
-            TMP_tmp32_19 = (PInt)(((PInt)((IPValue)sandboxCounter)?.Clone()));
-            TMP_tmp33_19 = (PString)(((PString) String.Format("sandbox_{0}",TMP_tmp32_19)));
-            ((PNamedTuple)tmpSandboxID)["value"] = TMP_tmp33_19;
+            TMP_tmp33_21 = (PInt)((sandboxCounter) + (((PInt)(1))));
+            sandboxCounter = TMP_tmp33_21;
+            TMP_tmp34_19 = (PInt)(((PInt)((IPValue)sandboxCounter)?.Clone()));
+            TMP_tmp35_18 = (PString)(((PString) String.Format("sandbox_{0}",TMP_tmp34_19)));
+            ((PNamedTuple)tmpSandboxID)["value"] = TMP_tmp35_18;
             ((PNamedTuple)tmpNewSandbox)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxID)?.Clone()));
-            TMP_tmp34_18 = (PNamedTuple)(((PNamedTuple)payload_59)["config"]);
-            TMP_tmp35_17 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp34_18)?.Clone()));
-            ((PNamedTuple)tmpNewSandbox)["config"] = TMP_tmp35_17;
-            TMP_tmp36_16 = (PString)(((PString) String.Format("created")));
-            ((PNamedTuple)tmpNewSandbox)["sandboxState"] = TMP_tmp36_16;
+            TMP_tmp36_17 = (PNamedTuple)(((PNamedTuple)payload_60)["config"]);
+            TMP_tmp37_16 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp36_17)?.Clone()));
+            ((PNamedTuple)tmpNewSandbox)["config"] = TMP_tmp37_16;
+            TMP_tmp38_16 = (PString)(((PString) String.Format("created")));
+            ((PNamedTuple)tmpNewSandbox)["sandboxState"] = TMP_tmp38_16;
             ((PNamedTuple)((PNamedTuple)tmpNewSandbox)["createdAt"])["milliseconds"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)((PNamedTuple)tmpNewSandbox)["resourcesUsed"])["cpuMillis"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)((PNamedTuple)tmpNewSandbox)["resourcesUsed"])["memoryBytes"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)((PNamedTuple)tmpNewSandbox)["resourcesUsed"])["storageBytes"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)((PNamedTuple)tmpNewSandbox)["resourcesUsed"])["networkBytes"] = (PInt)(((PInt)(0)));
             ((PMap)sandboxes)[tmpSandboxID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewSandbox)?.Clone()));
-            TMP_tmp37_15 = (PNamedTuple)(((PNamedTuple)payload_59)["config"]);
-            TMP_tmp38_15 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp37_15)?.Clone()));
-            ((PMap)sandboxConfigs)[tmpSandboxID] = TMP_tmp38_15;
+            TMP_tmp39_14 = (PNamedTuple)(((PNamedTuple)payload_60)["config"]);
+            TMP_tmp40_14 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp39_14)?.Clone()));
+            ((PMap)sandboxConfigs)[tmpSandboxID] = TMP_tmp40_14;
             ((PNamedTuple)tmpSandboxCreatedPayload)["sandboxID"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxID)?.Clone()));
             currentMachine.Announce((Event)new eSandboxCreated((new PNamedTuple(new string[]{"sandboxID"},(new PNamedTuple(new string[]{"value"},((PString)"")))))), tmpSandboxCreatedPayload);
-            TMP_tmp39_12 = (PMachineValue)(currentMachine.self);
-            TMP_tmp40_11 = (Event)(new eSandboxCreated((new PNamedTuple(new string[]{"sandboxID"},(new PNamedTuple(new string[]{"value"},((PString)"")))))));
-            TMP_tmp41_11 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxCreatedPayload)?.Clone()));
-            TMP_tmp40_11.Payload = TMP_tmp41_11;
-            currentMachine.SendEvent(TMP_tmp39_12, (Event)TMP_tmp40_11);
+            TMP_tmp41_14 = (PMachineValue)(((PNamedTuple)payload_60)["caller"]);
+            TMP_tmp42_12 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp41_14)?.Clone()));
+            TMP_tmp43_11 = (Event)(new eSandboxCreated((new PNamedTuple(new string[]{"sandboxID"},(new PNamedTuple(new string[]{"value"},((PString)"")))))));
+            TMP_tmp44_11 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxCreatedPayload)?.Clone()));
+            TMP_tmp43_11.Payload = TMP_tmp44_11;
+            currentMachine.SendEvent(TMP_tmp42_12, (Event)TMP_tmp43_11);
         }
         public void Anon_172(Event currentMachine_dequeuedEvent)
         {
             ExecutionSandboxMachine currentMachine = this;
-            PNamedTuple payload_60 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_61 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_134 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PBool TMP_tmp1_109 = ((PBool)false);
@@ -15743,24 +15839,24 @@ namespace PImplementation
             PBool TMP_tmp12_58 = ((PBool)false);
             PMachineValue TMP_tmp13_57 = null;
             Event TMP_tmp14_54 = null;
-            PNamedTuple TMP_tmp15_51 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp16_50 = ((PString)"");
+            PNamedTuple TMP_tmp15_52 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp16_51 = ((PString)"");
             PNamedTuple TMP_tmp17_46 = (new PNamedTuple(new string[]{"sandboxID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
             PString TMP_tmp18_45 = ((PString)"");
-            PNamedTuple TMP_tmp19_41 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp19_42 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp20_41 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp21_39 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PSeq TMP_tmp22_37 = new PSeq();
             PNamedTuple TMP_tmp23_36 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PInt TMP_tmp24_33 = ((PInt)0);
-            TMP_tmp0_134 = (PNamedTuple)(((PNamedTuple)payload_60)["sandboxID"]);
+            PInt TMP_tmp24_34 = ((PInt)0);
+            TMP_tmp0_134 = (PNamedTuple)(((PNamedTuple)payload_61)["sandboxID"]);
             TMP_tmp1_109 = (PBool)(((PBool)(((PMap)sandboxes).ContainsKey(TMP_tmp0_134))));
             TMP_tmp2_106 = (PBool)(!(TMP_tmp1_109));
             if (TMP_tmp2_106)
             {
                 TMP_tmp3_100 = (PInt)((sandboxCounter) + (((PInt)(1))));
                 sandboxCounter = TMP_tmp3_100;
-                TMP_tmp4_94 = (PNamedTuple)(((PNamedTuple)payload_60)["sandboxID"]);
+                TMP_tmp4_94 = (PNamedTuple)(((PNamedTuple)payload_61)["sandboxID"]);
                 TMP_tmp5_87 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp4_94)?.Clone()));
                 tmpNewSandboxID = TMP_tmp5_87;
                 ((PNamedTuple)tmpNewSandbox)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewSandboxID)?.Clone()));
@@ -15775,7 +15871,7 @@ namespace PImplementation
                 ((PMap)sandboxes)[tmpNewSandboxID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewSandbox)?.Clone()));
                 ((PMap)sandboxConfigs)[tmpNewSandboxID] = (PNamedTuple)(((PNamedTuple)((IPValue)defaultConfig)?.Clone()));
             }
-            TMP_tmp7_80 = (PNamedTuple)(((PNamedTuple)payload_60)["sandboxID"]);
+            TMP_tmp7_80 = (PNamedTuple)(((PNamedTuple)payload_61)["sandboxID"]);
             TMP_tmp8_74 = (PNamedTuple)(((PMap)sandboxes)[TMP_tmp7_80]);
             TMP_tmp9_72 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp8_74)?.Clone()));
             tmpSandbox = TMP_tmp9_72;
@@ -15786,18 +15882,18 @@ namespace PImplementation
             {
                 TMP_tmp13_57 = (PMachineValue)(currentMachine.self);
                 TMP_tmp14_54 = (Event)(new eSandboxExecutionFailed((new PNamedTuple(new string[]{"sandboxID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
-                TMP_tmp15_51 = (PNamedTuple)(((PNamedTuple)payload_60)["sandboxID"]);
-                TMP_tmp16_50 = (PString)(((PString) String.Format("Sandbox not in created state")));
-                TMP_tmp17_46 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","reason"}, TMP_tmp15_51, TMP_tmp16_50)));
+                TMP_tmp15_52 = (PNamedTuple)(((PNamedTuple)payload_61)["sandboxID"]);
+                TMP_tmp16_51 = (PString)(((PString) String.Format("Sandbox not in created state")));
+                TMP_tmp17_46 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","reason"}, TMP_tmp15_52, TMP_tmp16_51)));
                 TMP_tmp14_54.Payload = TMP_tmp17_46;
                 currentMachine.SendEvent(TMP_tmp13_57, (Event)TMP_tmp14_54);
                 return ;
             }
             TMP_tmp18_45 = (PString)(((PString) String.Format("running")));
             ((PNamedTuple)tmpSandbox)["sandboxState"] = TMP_tmp18_45;
-            TMP_tmp19_41 = (PNamedTuple)(((PNamedTuple)payload_60)["sandboxID"]);
-            ((PMap)sandboxes)[TMP_tmp19_41] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandbox)?.Clone()));
-            TMP_tmp20_41 = (PNamedTuple)(((PNamedTuple)payload_60)["sandboxID"]);
+            TMP_tmp19_42 = (PNamedTuple)(((PNamedTuple)payload_61)["sandboxID"]);
+            ((PMap)sandboxes)[TMP_tmp19_42] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandbox)?.Clone()));
+            TMP_tmp20_41 = (PNamedTuple)(((PNamedTuple)payload_61)["sandboxID"]);
             TMP_tmp21_39 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp20_41)?.Clone()));
             ((PNamedTuple)tmpExecState)["sandboxID"] = TMP_tmp21_39;
             ((PNamedTuple)((PNamedTuple)tmpExecState)["startTime"])["milliseconds"] = (PInt)(((PInt)(0)));
@@ -15807,10 +15903,10 @@ namespace PImplementation
             ((PNamedTuple)((PNamedTuple)tmpExecState)["resourcesConsumed"])["networkBytes"] = (PInt)(((PInt)(0)));
             TMP_tmp22_37 = (PSeq)(new PSeq());
             ((PNamedTuple)tmpExecState)["outputBuffer"] = TMP_tmp22_37;
-            TMP_tmp23_36 = (PNamedTuple)(((PNamedTuple)payload_60)["sandboxID"]);
+            TMP_tmp23_36 = (PNamedTuple)(((PNamedTuple)payload_61)["sandboxID"]);
             ((PMap)runningExecutions)[TMP_tmp23_36] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpExecState)?.Clone()));
-            TMP_tmp24_33 = (PInt)((totalExecutions) + (((PInt)(1))));
-            totalExecutions = TMP_tmp24_33;
+            TMP_tmp24_34 = (PInt)((totalExecutions) + (((PInt)(1))));
+            totalExecutions = TMP_tmp24_34;
             currentMachine.RaiseGotoStateEvent<Executing>();
             return;
         }
@@ -15892,44 +15988,44 @@ namespace PImplementation
             PInt TMP_tmp12_60 = ((PInt)0);
             PBool TMP_tmp13_59 = ((PBool)false);
             PString TMP_tmp14_55 = ((PString)"");
-            PInt TMP_tmp15_52 = ((PInt)0);
-            PInt TMP_tmp16_51 = ((PInt)0);
+            PInt TMP_tmp15_53 = ((PInt)0);
+            PInt TMP_tmp16_52 = ((PInt)0);
             PBool TMP_tmp17_47 = ((PBool)false);
             PString TMP_tmp18_46 = ((PString)"");
-            PInt TMP_tmp19_42 = ((PInt)0);
+            PInt TMP_tmp19_43 = ((PInt)0);
             PInt TMP_tmp20_42 = ((PInt)0);
             PBool TMP_tmp21_40 = ((PBool)false);
             PString TMP_tmp22_38 = ((PString)"");
             PInt TMP_tmp23_37 = ((PInt)0);
-            PInt TMP_tmp24_34 = ((PInt)0);
-            PBool TMP_tmp25_33 = ((PBool)false);
-            PString TMP_tmp26_30 = ((PString)"");
-            PInt TMP_tmp27_29 = ((PInt)0);
+            PInt TMP_tmp24_35 = ((PInt)0);
+            PBool TMP_tmp25_34 = ((PBool)false);
+            PString TMP_tmp26_31 = ((PString)"");
+            PInt TMP_tmp27_30 = ((PInt)0);
             PInt TMP_tmp28_29 = ((PInt)0);
             PNamedTuple TMP_tmp29_27 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PString TMP_tmp30_25 = ((PString)"");
-            PInt TMP_tmp31_23 = ((PInt)0);
-            PInt TMP_tmp32_20 = ((PInt)0);
-            PNamedTuple TMP_tmp33_20 = (new PNamedTuple(new string[]{"sandboxID","resourceType","limit","actual"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PInt)0), ((PInt)0)));
-            PNamedTuple TMP_tmp34_19 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp35_18 = ((PString)"");
-            PNamedTuple TMP_tmp36_17 = (new PNamedTuple(new string[]{"sandboxID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
-            PMachineValue TMP_tmp37_16 = null;
-            Event TMP_tmp38_16 = null;
-            PNamedTuple TMP_tmp39_13 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp40_12 = ((PString)"");
-            PNamedTuple TMP_tmp41_12 = (new PNamedTuple(new string[]{"sandboxID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
-            PInt TMP_tmp42_11 = ((PInt)0);
-            PMap TMP_tmp43_10 = new PMap();
-            PString TMP_tmp44_10 = ((PString)"");
-            PString TMP_tmp45_10 = ((PString)"");
-            PString TMP_tmp46_9 = ((PString)"");
-            PInt TMP_tmp47_9 = ((PInt)0);
-            PInt TMP_tmp48_9 = ((PInt)0);
-            PNamedTuple TMP_tmp49_9 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PMap TMP_tmp50_9 = new PMap();
-            PNamedTuple TMP_tmp51_8 = (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)));
-            PNamedTuple TMP_tmp52_6 = (new PNamedTuple(new string[]{"sandboxID","output","resourcesUsed"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)))));
+            PInt TMP_tmp31_24 = ((PInt)0);
+            PInt TMP_tmp32_22 = ((PInt)0);
+            PNamedTuple TMP_tmp33_22 = (new PNamedTuple(new string[]{"sandboxID","resourceType","limit","actual"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PInt)0), ((PInt)0)));
+            PNamedTuple TMP_tmp34_20 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp35_19 = ((PString)"");
+            PNamedTuple TMP_tmp36_18 = (new PNamedTuple(new string[]{"sandboxID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
+            PMachineValue TMP_tmp37_17 = null;
+            Event TMP_tmp38_17 = null;
+            PNamedTuple TMP_tmp39_15 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp40_15 = ((PString)"");
+            PNamedTuple TMP_tmp41_15 = (new PNamedTuple(new string[]{"sandboxID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
+            PInt TMP_tmp42_13 = ((PInt)0);
+            PMap TMP_tmp43_12 = new PMap();
+            PString TMP_tmp44_12 = ((PString)"");
+            PString TMP_tmp45_11 = ((PString)"");
+            PString TMP_tmp46_11 = ((PString)"");
+            PInt TMP_tmp47_11 = ((PInt)0);
+            PInt TMP_tmp48_11 = ((PInt)0);
+            PNamedTuple TMP_tmp49_10 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PMap TMP_tmp50_10 = new PMap();
+            PNamedTuple TMP_tmp51_9 = (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)));
+            PNamedTuple TMP_tmp52_7 = (new PNamedTuple(new string[]{"sandboxID","output","resourcesUsed"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)))));
             PMachineValue TMP_tmp53_5 = null;
             Event TMP_tmp54_6 = null;
             PNamedTuple TMP_tmp55_6 = (new PNamedTuple(new string[]{"value"},((PString)"")));
@@ -15937,9 +16033,9 @@ namespace PImplementation
             PNamedTuple TMP_tmp57_5 = (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)));
             PNamedTuple TMP_tmp58_5 = (new PNamedTuple(new string[]{"sandboxID","output","resourcesUsed"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)))));
             PNamedTuple TMP_tmp59_5 = (new PNamedTuple(new string[]{"id","config","sandboxState","createdAt","resourcesUsed"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)))));
-            PNamedTuple TMP_tmp60_4 = (new PNamedTuple(new string[]{"id","config","sandboxState","createdAt","resourcesUsed"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)))));
-            PString TMP_tmp61_4 = ((PString)"");
-            PInt TMP_tmp62_3 = ((PInt)0);
+            PNamedTuple TMP_tmp60_5 = (new PNamedTuple(new string[]{"id","config","sandboxState","createdAt","resourcesUsed"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)""))), ((PString)""), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)))));
+            PString TMP_tmp61_5 = ((PString)"");
+            PInt TMP_tmp62_4 = ((PInt)0);
             TMP_tmp0_136 = (PSeq)((runningExecutions).CloneKeys());
             allSandboxKeys = TMP_tmp0_136;
             tmpI_4 = (PInt)(((PInt)(0)));
@@ -15980,18 +16076,18 @@ namespace PImplementation
                     TMP_tmp14_55 = (PString)(((PString) String.Format("CPU limit exceeded")));
                     tmpViolationReason = TMP_tmp14_55;
                 }
-                TMP_tmp15_52 = (PInt)(((PNamedTuple)tmpResourcesUsed)["memoryBytes"]);
-                TMP_tmp16_51 = (PInt)(((PNamedTuple)tmpConfig)["maxMemory"]);
-                TMP_tmp17_47 = (PBool)((TMP_tmp15_52) > (TMP_tmp16_51));
+                TMP_tmp15_53 = (PInt)(((PNamedTuple)tmpResourcesUsed)["memoryBytes"]);
+                TMP_tmp16_52 = (PInt)(((PNamedTuple)tmpConfig)["maxMemory"]);
+                TMP_tmp17_47 = (PBool)((TMP_tmp15_53) > (TMP_tmp16_52));
                 if (TMP_tmp17_47)
                 {
                     tmpViolated = (PBool)(((PBool)true));
                     TMP_tmp18_46 = (PString)(((PString) String.Format("Memory limit exceeded")));
                     tmpViolationReason = TMP_tmp18_46;
                 }
-                TMP_tmp19_42 = (PInt)(((PNamedTuple)tmpResourcesUsed)["storageBytes"]);
+                TMP_tmp19_43 = (PInt)(((PNamedTuple)tmpResourcesUsed)["storageBytes"]);
                 TMP_tmp20_42 = (PInt)(((PNamedTuple)tmpConfig)["maxStorage"]);
-                TMP_tmp21_40 = (PBool)((TMP_tmp19_42) > (TMP_tmp20_42));
+                TMP_tmp21_40 = (PBool)((TMP_tmp19_43) > (TMP_tmp20_42));
                 if (TMP_tmp21_40)
                 {
                     tmpViolated = (PBool)(((PBool)true));
@@ -15999,56 +16095,56 @@ namespace PImplementation
                     tmpViolationReason = TMP_tmp22_38;
                 }
                 TMP_tmp23_37 = (PInt)(((PNamedTuple)tmpResourcesUsed)["networkBytes"]);
-                TMP_tmp24_34 = (PInt)(((PNamedTuple)tmpConfig)["maxNetwork"]);
-                TMP_tmp25_33 = (PBool)((TMP_tmp23_37) > (TMP_tmp24_34));
-                if (TMP_tmp25_33)
+                TMP_tmp24_35 = (PInt)(((PNamedTuple)tmpConfig)["maxNetwork"]);
+                TMP_tmp25_34 = (PBool)((TMP_tmp23_37) > (TMP_tmp24_35));
+                if (TMP_tmp25_34)
                 {
                     tmpViolated = (PBool)(((PBool)true));
-                    TMP_tmp26_30 = (PString)(((PString) String.Format("Network limit exceeded")));
-                    tmpViolationReason = TMP_tmp26_30;
+                    TMP_tmp26_31 = (PString)(((PString) String.Format("Network limit exceeded")));
+                    tmpViolationReason = TMP_tmp26_31;
                 }
                 if (tmpViolated)
                 {
-                    TMP_tmp27_29 = (PInt)((resourceViolations) + (((PInt)(1))));
-                    resourceViolations = TMP_tmp27_29;
+                    TMP_tmp27_30 = (PInt)((resourceViolations) + (((PInt)(1))));
+                    resourceViolations = TMP_tmp27_30;
                     TMP_tmp28_29 = (PInt)((failedExecutions) + (((PInt)(1))));
                     failedExecutions = TMP_tmp28_29;
                     TMP_tmp29_27 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxID)?.Clone()));
                     TMP_tmp30_25 = (PString)(((PString)((IPValue)tmpViolationReason)?.Clone()));
-                    TMP_tmp31_23 = (PInt)(((PNamedTuple)tmpConfig)["maxCPU"]);
-                    TMP_tmp32_20 = (PInt)(((PNamedTuple)tmpResourcesUsed)["cpuMillis"]);
-                    TMP_tmp33_20 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","resourceType","limit","actual"}, TMP_tmp29_27, TMP_tmp30_25, TMP_tmp31_23, TMP_tmp32_20)));
-                    currentMachine.Announce((Event)new eResourceLimitExceeded((new PNamedTuple(new string[]{"sandboxID","resourceType","limit","actual"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PInt)0), ((PInt)0)))), TMP_tmp33_20);
-                    TMP_tmp34_19 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxID)?.Clone()));
-                    TMP_tmp35_18 = (PString)(((PString)((IPValue)tmpViolationReason)?.Clone()));
-                    TMP_tmp36_17 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","reason"}, TMP_tmp34_19, TMP_tmp35_18)));
-                    currentMachine.Announce((Event)new eSandboxExecutionFailed((new PNamedTuple(new string[]{"sandboxID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))), TMP_tmp36_17);
-                    TMP_tmp37_16 = (PMachineValue)(currentMachine.self);
-                    TMP_tmp38_16 = (Event)(new eSandboxExecutionFailed((new PNamedTuple(new string[]{"sandboxID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
-                    TMP_tmp39_13 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxID)?.Clone()));
-                    TMP_tmp40_12 = (PString)(((PString)((IPValue)tmpViolationReason)?.Clone()));
-                    TMP_tmp41_12 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","reason"}, TMP_tmp39_13, TMP_tmp40_12)));
-                    TMP_tmp38_16.Payload = TMP_tmp41_12;
-                    currentMachine.SendEvent(TMP_tmp37_16, (Event)TMP_tmp38_16);
+                    TMP_tmp31_24 = (PInt)(((PNamedTuple)tmpConfig)["maxCPU"]);
+                    TMP_tmp32_22 = (PInt)(((PNamedTuple)tmpResourcesUsed)["cpuMillis"]);
+                    TMP_tmp33_22 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","resourceType","limit","actual"}, TMP_tmp29_27, TMP_tmp30_25, TMP_tmp31_24, TMP_tmp32_22)));
+                    currentMachine.Announce((Event)new eResourceLimitExceeded((new PNamedTuple(new string[]{"sandboxID","resourceType","limit","actual"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PInt)0), ((PInt)0)))), TMP_tmp33_22);
+                    TMP_tmp34_20 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxID)?.Clone()));
+                    TMP_tmp35_19 = (PString)(((PString)((IPValue)tmpViolationReason)?.Clone()));
+                    TMP_tmp36_18 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","reason"}, TMP_tmp34_20, TMP_tmp35_19)));
+                    currentMachine.Announce((Event)new eSandboxExecutionFailed((new PNamedTuple(new string[]{"sandboxID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))), TMP_tmp36_18);
+                    TMP_tmp37_17 = (PMachineValue)(currentMachine.self);
+                    TMP_tmp38_17 = (Event)(new eSandboxExecutionFailed((new PNamedTuple(new string[]{"sandboxID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
+                    TMP_tmp39_15 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxID)?.Clone()));
+                    TMP_tmp40_15 = (PString)(((PString)((IPValue)tmpViolationReason)?.Clone()));
+                    TMP_tmp41_15 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","reason"}, TMP_tmp39_15, TMP_tmp40_15)));
+                    TMP_tmp38_17.Payload = TMP_tmp41_15;
+                    currentMachine.SendEvent(TMP_tmp37_17, (Event)TMP_tmp38_17);
                 }
                 else
                 {
-                    TMP_tmp42_11 = (PInt)((successfulExecutions) + (((PInt)(1))));
-                    successfulExecutions = TMP_tmp42_11;
-                    TMP_tmp43_10 = (PMap)(new PMap());
-                    tmpOutput = TMP_tmp43_10;
-                    TMP_tmp44_10 = (PString)(((PString) String.Format("status")));
-                    TMP_tmp45_10 = (PString)(((PString) String.Format("success")));
-                    ((PMap)tmpOutput)[TMP_tmp44_10] = (IPValue)TMP_tmp45_10;
-                    TMP_tmp46_9 = (PString)(((PString) String.Format("execution_time")));
-                    TMP_tmp47_9 = (PInt)(((PNamedTuple)tmpResourcesUsed)["cpuMillis"]);
-                    TMP_tmp48_9 = (PInt)(((PInt)((IPValue)TMP_tmp47_9)?.Clone()));
-                    ((PMap)tmpOutput)[TMP_tmp46_9] = (IPValue)TMP_tmp48_9;
-                    TMP_tmp49_9 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxID)?.Clone()));
-                    TMP_tmp50_9 = (PMap)(((PMap)((IPValue)tmpOutput)?.Clone()));
-                    TMP_tmp51_8 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpResourcesUsed)?.Clone()));
-                    TMP_tmp52_6 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","output","resourcesUsed"}, TMP_tmp49_9, TMP_tmp50_9, TMP_tmp51_8)));
-                    currentMachine.Announce((Event)new eSandboxExecutionResult((new PNamedTuple(new string[]{"sandboxID","output","resourcesUsed"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)))))), TMP_tmp52_6);
+                    TMP_tmp42_13 = (PInt)((successfulExecutions) + (((PInt)(1))));
+                    successfulExecutions = TMP_tmp42_13;
+                    TMP_tmp43_12 = (PMap)(new PMap());
+                    tmpOutput = TMP_tmp43_12;
+                    TMP_tmp44_12 = (PString)(((PString) String.Format("status")));
+                    TMP_tmp45_11 = (PString)(((PString) String.Format("success")));
+                    ((PMap)tmpOutput)[TMP_tmp44_12] = (IPValue)TMP_tmp45_11;
+                    TMP_tmp46_11 = (PString)(((PString) String.Format("execution_time")));
+                    TMP_tmp47_11 = (PInt)(((PNamedTuple)tmpResourcesUsed)["cpuMillis"]);
+                    TMP_tmp48_11 = (PInt)(((PInt)((IPValue)TMP_tmp47_11)?.Clone()));
+                    ((PMap)tmpOutput)[TMP_tmp46_11] = (IPValue)TMP_tmp48_11;
+                    TMP_tmp49_10 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxID)?.Clone()));
+                    TMP_tmp50_10 = (PMap)(((PMap)((IPValue)tmpOutput)?.Clone()));
+                    TMP_tmp51_9 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpResourcesUsed)?.Clone()));
+                    TMP_tmp52_7 = (PNamedTuple)((new PNamedTuple(new string[]{"sandboxID","output","resourcesUsed"}, TMP_tmp49_10, TMP_tmp50_10, TMP_tmp51_9)));
+                    currentMachine.Announce((Event)new eSandboxExecutionResult((new PNamedTuple(new string[]{"sandboxID","output","resourcesUsed"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)))))), TMP_tmp52_7);
                     TMP_tmp53_5 = (PMachineValue)(currentMachine.self);
                     TMP_tmp54_6 = (Event)(new eSandboxExecutionResult((new PNamedTuple(new string[]{"sandboxID","output","resourcesUsed"},(new PNamedTuple(new string[]{"value"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"cpuMillis","memoryBytes","storageBytes","networkBytes"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0)))))));
                     TMP_tmp55_6 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandboxID)?.Clone()));
@@ -16059,15 +16155,15 @@ namespace PImplementation
                     currentMachine.SendEvent(TMP_tmp53_5, (Event)TMP_tmp54_6);
                 }
                 TMP_tmp59_5 = (PNamedTuple)(((PMap)sandboxes)[tmpSandboxID]);
-                TMP_tmp60_4 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp59_5)?.Clone()));
-                tmpSandbox = TMP_tmp60_4;
-                TMP_tmp61_4 = (PString)(((PString) String.Format("completed")));
-                ((PNamedTuple)tmpSandbox)["sandboxState"] = TMP_tmp61_4;
+                TMP_tmp60_5 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp59_5)?.Clone()));
+                tmpSandbox = TMP_tmp60_5;
+                TMP_tmp61_5 = (PString)(((PString) String.Format("completed")));
+                ((PNamedTuple)tmpSandbox)["sandboxState"] = TMP_tmp61_5;
                 ((PNamedTuple)tmpSandbox)["resourcesUsed"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpResourcesUsed)?.Clone()));
                 ((PMap)sandboxes)[tmpSandboxID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpSandbox)?.Clone()));
                 ((PMap)runningExecutions).Remove(tmpSandboxID);
-                TMP_tmp62_3 = (PInt)((tmpI_4) + (((PInt)(1))));
-                tmpI_4 = TMP_tmp62_3;
+                TMP_tmp62_4 = (PInt)((tmpI_4) + (((PInt)(1))));
+                tmpI_4 = TMP_tmp62_4;
             }
             currentMachine.RaiseGotoStateEvent<Active>();
             return;
@@ -16122,8 +16218,8 @@ namespace PImplementation
             PString TMP_tmp12_61 = ((PString)"");
             PBool TMP_tmp13_60 = ((PBool)false);
             PBool TMP_tmp14_56 = ((PBool)false);
-            PInt TMP_tmp15_53 = ((PInt)0);
-            PInt TMP_tmp16_52 = ((PInt)0);
+            PInt TMP_tmp15_54 = ((PInt)0);
+            PInt TMP_tmp16_53 = ((PInt)0);
             tmpCount = (PInt)(((PInt)(0)));
             TMP_tmp0_138 = (PSeq)((sandboxes).CloneKeys());
             allSandboxKeys = TMP_tmp0_138;
@@ -16161,11 +16257,11 @@ namespace PImplementation
                 }
                 if (TMP_tmp14_56)
                 {
-                    TMP_tmp15_53 = (PInt)((tmpCount) + (((PInt)(1))));
-                    tmpCount = TMP_tmp15_53;
+                    TMP_tmp15_54 = (PInt)((tmpCount) + (((PInt)(1))));
+                    tmpCount = TMP_tmp15_54;
                 }
-                TMP_tmp16_52 = (PInt)((tmpI_4) + (((PInt)(1))));
-                tmpI_4 = TMP_tmp16_52;
+                TMP_tmp16_53 = (PInt)((tmpI_4) + (((PInt)(1))));
+                tmpI_4 = TMP_tmp16_53;
             }
             return ((PInt)((IPValue)tmpCount)?.Clone());
         }
@@ -16667,119 +16763,123 @@ namespace PImplementation
         public void Anon_180(Event currentMachine_dequeuedEvent)
         {
             BaseLayerMachine currentMachine = this;
-            PNamedTuple payload_61 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_62 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PSeq TMP_tmp0_141 = new PSeq();
             PInt TMP_tmp1_116 = ((PInt)0);
             PBool TMP_tmp2_113 = ((PBool)false);
             PMachineValue TMP_tmp3_106 = null;
-            Event TMP_tmp4_100 = null;
-            PString TMP_tmp5_92 = ((PString)"");
-            PInt TMP_tmp6_85 = ((PInt)0);
+            PMachineValue TMP_tmp4_100 = null;
+            Event TMP_tmp5_92 = null;
+            PString TMP_tmp6_85 = ((PString)"");
             PInt TMP_tmp7_84 = ((PInt)0);
-            PString TMP_tmp8_78 = ((PString)"");
-            PSeq TMP_tmp9_76 = new PSeq();
-            PNamedTuple TMP_tmp10_67 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PString TMP_tmp11_63 = ((PString)"");
+            PInt TMP_tmp8_78 = ((PInt)0);
+            PString TMP_tmp9_76 = ((PString)"");
+            PSeq TMP_tmp10_67 = new PSeq();
+            PNamedTuple TMP_tmp11_63 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PString TMP_tmp12_62 = ((PString)"");
-            PSeq TMP_tmp13_61 = new PSeq();
+            PString TMP_tmp13_61 = ((PString)"");
             PSeq TMP_tmp14_57 = new PSeq();
-            PString TMP_tmp15_54 = ((PString)"");
-            PBool TMP_tmp16_53 = ((PBool)false);
-            PString TMP_tmp17_48 = ((PString)"");
-            PSeq TMP_tmp18_47 = new PSeq();
-            PSeq TMP_tmp19_43 = new PSeq();
+            PSeq TMP_tmp15_55 = new PSeq();
+            PString TMP_tmp16_54 = ((PString)"");
+            PBool TMP_tmp17_48 = ((PBool)false);
+            PString TMP_tmp18_47 = ((PString)"");
+            PSeq TMP_tmp19_44 = new PSeq();
             PSeq TMP_tmp20_43 = new PSeq();
-            PInt TMP_tmp21_41 = ((PInt)0);
-            PNamedTuple TMP_tmp22_39 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp23_38 = ((PString)"");
-            PSeq TMP_tmp24_35 = new PSeq();
-            PInt TMP_tmp25_34 = ((PInt)0);
-            PInt TMP_tmp26_31 = ((PInt)0);
-            PSeq TMP_tmp27_30 = new PSeq();
-            PInt TMP_tmp28_30 = ((PInt)0);
+            PSeq TMP_tmp21_41 = new PSeq();
+            PInt TMP_tmp22_39 = ((PInt)0);
+            PNamedTuple TMP_tmp23_38 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp24_36 = ((PString)"");
+            PSeq TMP_tmp25_35 = new PSeq();
+            PInt TMP_tmp26_32 = ((PInt)0);
+            PInt TMP_tmp27_31 = ((PInt)0);
+            PSeq TMP_tmp28_30 = new PSeq();
             PInt TMP_tmp29_28 = ((PInt)0);
             PInt TMP_tmp30_26 = ((PInt)0);
-            PBool TMP_tmp31_24 = ((PBool)false);
-            PMachineValue TMP_tmp32_21 = null;
-            Event TMP_tmp33_21 = null;
-            PNamedTuple TMP_tmp34_20 = (new PNamedTuple(new string[]{"record"},(new PNamedTuple(new string[]{"id","dataType","payload","merkleProof","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
-            TMP_tmp0_141 = (PSeq)(((PNamedTuple)payload_61)["payload"]);
+            PInt TMP_tmp31_25 = ((PInt)0);
+            PBool TMP_tmp32_23 = ((PBool)false);
+            PMachineValue TMP_tmp33_23 = null;
+            PMachineValue TMP_tmp34_21 = null;
+            Event TMP_tmp35_20 = null;
+            PNamedTuple TMP_tmp36_19 = (new PNamedTuple(new string[]{"record"},(new PNamedTuple(new string[]{"id","dataType","payload","merkleProof","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
+            TMP_tmp0_141 = (PSeq)(((PNamedTuple)payload_62)["payload"]);
             TMP_tmp1_116 = (PInt)(((PInt)(TMP_tmp0_141).Count));
             TMP_tmp2_113 = (PBool)((TMP_tmp1_116) > (maxRecordSize));
             if (TMP_tmp2_113)
             {
-                TMP_tmp3_106 = (PMachineValue)(currentMachine.self);
-                TMP_tmp4_100 = (Event)(new eDataStorageFailed(((PString)"")));
-                TMP_tmp5_92 = (PString)(((PString) String.Format("Record size exceeds maximum")));
-                TMP_tmp4_100.Payload = TMP_tmp5_92;
-                currentMachine.SendEvent(TMP_tmp3_106, (Event)TMP_tmp4_100);
+                TMP_tmp3_106 = (PMachineValue)(((PNamedTuple)payload_62)["caller"]);
+                TMP_tmp4_100 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp3_106)?.Clone()));
+                TMP_tmp5_92 = (Event)(new eDataStorageFailed(((PString)"")));
+                TMP_tmp6_85 = (PString)(((PString) String.Format("Record size exceeds maximum")));
+                TMP_tmp5_92.Payload = TMP_tmp6_85;
+                currentMachine.SendEvent(TMP_tmp4_100, (Event)TMP_tmp5_92);
                 return ;
             }
-            TMP_tmp6_85 = (PInt)((recordCounter) + (((PInt)(1))));
-            recordCounter = TMP_tmp6_85;
-            TMP_tmp7_84 = (PInt)(((PInt)((IPValue)recordCounter)?.Clone()));
-            TMP_tmp8_78 = (PString)(((PString) String.Format("record_{0}",TMP_tmp7_84)));
-            ((PNamedTuple)tmpRecordID)["value"] = TMP_tmp8_78;
-            TMP_tmp9_76 = (PSeq)(new PSeq());
-            tmpMerkleProof = TMP_tmp9_76;
-            TMP_tmp10_67 = (PNamedTuple)(((PNamedTuple)((IPValue)currentCommitment)?.Clone()));
-            ((PSeq)tmpMerkleProof).Insert(((PInt)(0)), TMP_tmp10_67);
+            TMP_tmp7_84 = (PInt)((recordCounter) + (((PInt)(1))));
+            recordCounter = TMP_tmp7_84;
+            TMP_tmp8_78 = (PInt)(((PInt)((IPValue)recordCounter)?.Clone()));
+            TMP_tmp9_76 = (PString)(((PString) String.Format("record_{0}",TMP_tmp8_78)));
+            ((PNamedTuple)tmpRecordID)["value"] = TMP_tmp9_76;
+            TMP_tmp10_67 = (PSeq)(new PSeq());
+            tmpMerkleProof = TMP_tmp10_67;
+            TMP_tmp11_63 = (PNamedTuple)(((PNamedTuple)((IPValue)currentCommitment)?.Clone()));
+            ((PSeq)tmpMerkleProof).Insert(((PInt)(0)), TMP_tmp11_63);
             ((PNamedTuple)tmpNewRecord_1)["id"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpRecordID)?.Clone()));
-            TMP_tmp11_63 = (PString)(((PNamedTuple)payload_61)["dataType"]);
-            TMP_tmp12_62 = (PString)(((PString)((IPValue)TMP_tmp11_63)?.Clone()));
-            ((PNamedTuple)tmpNewRecord_1)["dataType"] = TMP_tmp12_62;
-            TMP_tmp13_61 = (PSeq)(((PNamedTuple)payload_61)["payload"]);
-            TMP_tmp14_57 = (PSeq)(((PSeq)((IPValue)TMP_tmp13_61)?.Clone()));
-            ((PNamedTuple)tmpNewRecord_1)["payload"] = TMP_tmp14_57;
+            TMP_tmp12_62 = (PString)(((PNamedTuple)payload_62)["dataType"]);
+            TMP_tmp13_61 = (PString)(((PString)((IPValue)TMP_tmp12_62)?.Clone()));
+            ((PNamedTuple)tmpNewRecord_1)["dataType"] = TMP_tmp13_61;
+            TMP_tmp14_57 = (PSeq)(((PNamedTuple)payload_62)["payload"]);
+            TMP_tmp15_55 = (PSeq)(((PSeq)((IPValue)TMP_tmp14_57)?.Clone()));
+            ((PNamedTuple)tmpNewRecord_1)["payload"] = TMP_tmp15_55;
             ((PNamedTuple)tmpNewRecord_1)["merkleProof"] = (PSeq)(((PSeq)((IPValue)tmpMerkleProof)?.Clone()));
             ((PNamedTuple)((PNamedTuple)tmpNewRecord_1)["timestamp"])["milliseconds"] = (PInt)(((PInt)(0)));
             ((PMap)records)[tmpRecordID] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewRecord_1)?.Clone()));
-            TMP_tmp15_54 = (PString)(((PNamedTuple)payload_61)["dataType"]);
-            TMP_tmp16_53 = (PBool)(((PBool)(((PMap)recordsByType).ContainsKey(TMP_tmp15_54))));
-            if (TMP_tmp16_53)
+            TMP_tmp16_54 = (PString)(((PNamedTuple)payload_62)["dataType"]);
+            TMP_tmp17_48 = (PBool)(((PBool)(((PMap)recordsByType).ContainsKey(TMP_tmp16_54))));
+            if (TMP_tmp17_48)
             {
-                TMP_tmp17_48 = (PString)(((PNamedTuple)payload_61)["dataType"]);
-                TMP_tmp18_47 = (PSeq)(((PMap)recordsByType)[TMP_tmp17_48]);
-                TMP_tmp19_43 = (PSeq)(((PSeq)((IPValue)TMP_tmp18_47)?.Clone()));
-                tmpTypeRecords = TMP_tmp19_43;
+                TMP_tmp18_47 = (PString)(((PNamedTuple)payload_62)["dataType"]);
+                TMP_tmp19_44 = (PSeq)(((PMap)recordsByType)[TMP_tmp18_47]);
+                TMP_tmp20_43 = (PSeq)(((PSeq)((IPValue)TMP_tmp19_44)?.Clone()));
+                tmpTypeRecords = TMP_tmp20_43;
             }
             else
             {
-                TMP_tmp20_43 = (PSeq)(new PSeq());
-                tmpTypeRecords = TMP_tmp20_43;
+                TMP_tmp21_41 = (PSeq)(new PSeq());
+                tmpTypeRecords = TMP_tmp21_41;
             }
-            TMP_tmp21_41 = (PInt)(((PInt)(tmpTypeRecords).Count));
-            TMP_tmp22_39 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpRecordID)?.Clone()));
-            ((PSeq)tmpTypeRecords).Insert(TMP_tmp21_41, TMP_tmp22_39);
-            TMP_tmp23_38 = (PString)(((PNamedTuple)payload_61)["dataType"]);
-            ((PMap)recordsByType)[TMP_tmp23_38] = (PSeq)(((PSeq)((IPValue)tmpTypeRecords)?.Clone()));
-            TMP_tmp24_35 = (PSeq)(((PNamedTuple)payload_61)["payload"]);
-            TMP_tmp25_34 = (PInt)(((PInt)(TMP_tmp24_35).Count));
-            TMP_tmp26_31 = (PInt)((totalDataStored) + (TMP_tmp25_34));
-            totalDataStored = TMP_tmp26_31;
-            TMP_tmp27_30 = (PSeq)(((PNamedTuple)payload_61)["payload"]);
-            TMP_tmp28_30 = (PInt)(((PInt)(TMP_tmp27_30).Count));
-            TMP_tmp29_28 = (PInt)((dataSize) + (TMP_tmp28_30));
-            dataSize = TMP_tmp29_28;
-            TMP_tmp30_26 = (PInt)((recordCounter) % (commitmentInterval));
-            TMP_tmp31_24 = (PBool)((PValues.SafeEquals(TMP_tmp30_26,((PInt)(0)))));
-            if (TMP_tmp31_24)
+            TMP_tmp22_39 = (PInt)(((PInt)(tmpTypeRecords).Count));
+            TMP_tmp23_38 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpRecordID)?.Clone()));
+            ((PSeq)tmpTypeRecords).Insert(TMP_tmp22_39, TMP_tmp23_38);
+            TMP_tmp24_36 = (PString)(((PNamedTuple)payload_62)["dataType"]);
+            ((PMap)recordsByType)[TMP_tmp24_36] = (PSeq)(((PSeq)((IPValue)tmpTypeRecords)?.Clone()));
+            TMP_tmp25_35 = (PSeq)(((PNamedTuple)payload_62)["payload"]);
+            TMP_tmp26_32 = (PInt)(((PInt)(TMP_tmp25_35).Count));
+            TMP_tmp27_31 = (PInt)((totalDataStored) + (TMP_tmp26_32));
+            totalDataStored = TMP_tmp27_31;
+            TMP_tmp28_30 = (PSeq)(((PNamedTuple)payload_62)["payload"]);
+            TMP_tmp29_28 = (PInt)(((PInt)(TMP_tmp28_30).Count));
+            TMP_tmp30_26 = (PInt)((dataSize) + (TMP_tmp29_28));
+            dataSize = TMP_tmp30_26;
+            TMP_tmp31_25 = (PInt)((recordCounter) % (commitmentInterval));
+            TMP_tmp32_23 = (PBool)((PValues.SafeEquals(TMP_tmp31_25,((PInt)(0)))));
+            if (TMP_tmp32_23)
             {
                 CommitLayer();
             }
             ((PNamedTuple)tmpDataStoredPayload)["record"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNewRecord_1)?.Clone()));
             currentMachine.Announce((Event)new eDataStored((new PNamedTuple(new string[]{"record"},(new PNamedTuple(new string[]{"id","dataType","payload","merkleProof","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))))), tmpDataStoredPayload);
-            TMP_tmp32_21 = (PMachineValue)(currentMachine.self);
-            TMP_tmp33_21 = (Event)(new eDataStored((new PNamedTuple(new string[]{"record"},(new PNamedTuple(new string[]{"id","dataType","payload","merkleProof","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))))));
-            TMP_tmp34_20 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpDataStoredPayload)?.Clone()));
-            TMP_tmp33_21.Payload = TMP_tmp34_20;
-            currentMachine.SendEvent(TMP_tmp32_21, (Event)TMP_tmp33_21);
+            TMP_tmp33_23 = (PMachineValue)(((PNamedTuple)payload_62)["caller"]);
+            TMP_tmp34_21 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp33_23)?.Clone()));
+            TMP_tmp35_20 = (Event)(new eDataStored((new PNamedTuple(new string[]{"record"},(new PNamedTuple(new string[]{"id","dataType","payload","merkleProof","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))))));
+            TMP_tmp36_19 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpDataStoredPayload)?.Clone()));
+            TMP_tmp35_20.Payload = TMP_tmp36_19;
+            currentMachine.SendEvent(TMP_tmp34_21, (Event)TMP_tmp35_20);
         }
         public void Anon_181(Event currentMachine_dequeuedEvent)
         {
             BaseLayerMachine currentMachine = this;
-            PNamedTuple payload_62 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_63 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_142 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PBool TMP_tmp1_117 = ((PBool)false);
@@ -16794,11 +16894,11 @@ namespace PImplementation
             PMachineValue TMP_tmp10_68 = null;
             Event TMP_tmp11_64 = null;
             PNamedTuple TMP_tmp12_63 = (new PNamedTuple(new string[]{"recordID"},(new PNamedTuple(new string[]{"value"},((PString)"")))));
-            TMP_tmp0_142 = (PNamedTuple)(((PNamedTuple)payload_62)["recordID"]);
+            TMP_tmp0_142 = (PNamedTuple)(((PNamedTuple)payload_63)["recordID"]);
             TMP_tmp1_117 = (PBool)(((PBool)(((PMap)records).ContainsKey(TMP_tmp0_142))));
             if (TMP_tmp1_117)
             {
-                TMP_tmp2_114 = (PNamedTuple)(((PNamedTuple)payload_62)["recordID"]);
+                TMP_tmp2_114 = (PNamedTuple)(((PNamedTuple)payload_63)["recordID"]);
                 TMP_tmp3_107 = (PNamedTuple)(((PMap)records)[TMP_tmp2_114]);
                 TMP_tmp4_101 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp3_107)?.Clone()));
                 ((PNamedTuple)tmpDataRetrievedPayload)["record"] = TMP_tmp4_101;
@@ -16810,7 +16910,7 @@ namespace PImplementation
             }
             else
             {
-                TMP_tmp8_79 = (PNamedTuple)(((PNamedTuple)payload_62)["recordID"]);
+                TMP_tmp8_79 = (PNamedTuple)(((PNamedTuple)payload_63)["recordID"]);
                 TMP_tmp9_77 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp8_79)?.Clone()));
                 ((PNamedTuple)tmpDataNotFoundPayload)["recordID"] = TMP_tmp9_77;
                 TMP_tmp10_68 = (PMachineValue)(currentMachine.self);
@@ -16823,75 +16923,79 @@ namespace PImplementation
         public void Anon_182(Event currentMachine_dequeuedEvent)
         {
             BaseLayerMachine currentMachine = this;
-            PNamedTuple payload_63 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_64 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_143 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PBool TMP_tmp1_118 = ((PBool)false);
             PBool TMP_tmp2_115 = ((PBool)false);
             PMachineValue TMP_tmp3_108 = null;
-            Event TMP_tmp4_102 = null;
-            PNamedTuple TMP_tmp5_94 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp6_87 = ((PString)"");
-            PNamedTuple TMP_tmp7_86 = (new PNamedTuple(new string[]{"recordID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
-            PNamedTuple TMP_tmp8_80 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp9_78 = (new PNamedTuple(new string[]{"id","dataType","payload","merkleProof","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
+            PMachineValue TMP_tmp4_102 = null;
+            Event TMP_tmp5_94 = null;
+            PNamedTuple TMP_tmp6_87 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp7_86 = ((PString)"");
+            PNamedTuple TMP_tmp8_80 = (new PNamedTuple(new string[]{"recordID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")));
+            PNamedTuple TMP_tmp9_78 = (new PNamedTuple(new string[]{"value"},((PString)"")));
             PNamedTuple TMP_tmp10_69 = (new PNamedTuple(new string[]{"id","dataType","payload","merkleProof","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
-            PInt TMP_tmp11_65 = ((PInt)0);
-            PNamedTuple TMP_tmp12_64 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PNamedTuple TMP_tmp11_65 = (new PNamedTuple(new string[]{"id","dataType","payload","merkleProof","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
+            PInt TMP_tmp12_64 = ((PInt)0);
             PNamedTuple TMP_tmp13_62 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PSeq TMP_tmp14_58 = new PSeq();
-            PSeq TMP_tmp15_55 = new PSeq();
-            PSeq TMP_tmp16_54 = new PSeq();
+            PNamedTuple TMP_tmp14_58 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PSeq TMP_tmp15_56 = new PSeq();
+            PSeq TMP_tmp16_55 = new PSeq();
             PSeq TMP_tmp17_49 = new PSeq();
-            PNamedTuple TMP_tmp18_48 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PMachineValue TMP_tmp19_44 = null;
-            Event TMP_tmp20_44 = null;
-            PNamedTuple TMP_tmp21_42 = (new PNamedTuple(new string[]{"proof"},(new PNamedTuple(new string[]{"recordID","commitmentRoot","proofPath","validator","signature"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq()))));
-            TMP_tmp0_143 = (PNamedTuple)(((PNamedTuple)payload_63)["recordID"]);
+            PSeq TMP_tmp18_48 = new PSeq();
+            PNamedTuple TMP_tmp19_45 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PMachineValue TMP_tmp20_44 = null;
+            PMachineValue TMP_tmp21_42 = null;
+            Event TMP_tmp22_40 = null;
+            PNamedTuple TMP_tmp23_39 = (new PNamedTuple(new string[]{"proof"},(new PNamedTuple(new string[]{"recordID","commitmentRoot","proofPath","validator","signature"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq()))));
+            TMP_tmp0_143 = (PNamedTuple)(((PNamedTuple)payload_64)["recordID"]);
             TMP_tmp1_118 = (PBool)(((PBool)(((PMap)records).ContainsKey(TMP_tmp0_143))));
             TMP_tmp2_115 = (PBool)(!(TMP_tmp1_118));
             if (TMP_tmp2_115)
             {
-                TMP_tmp3_108 = (PMachineValue)(currentMachine.self);
-                TMP_tmp4_102 = (Event)(new eDAProofFailed((new PNamedTuple(new string[]{"recordID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
-                TMP_tmp5_94 = (PNamedTuple)(((PNamedTuple)payload_63)["recordID"]);
-                TMP_tmp6_87 = (PString)(((PString) String.Format("Record not found")));
-                TMP_tmp7_86 = (PNamedTuple)((new PNamedTuple(new string[]{"recordID","reason"}, TMP_tmp5_94, TMP_tmp6_87)));
-                TMP_tmp4_102.Payload = TMP_tmp7_86;
-                currentMachine.SendEvent(TMP_tmp3_108, (Event)TMP_tmp4_102);
+                TMP_tmp3_108 = (PMachineValue)(((PNamedTuple)payload_64)["caller"]);
+                TMP_tmp4_102 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp3_108)?.Clone()));
+                TMP_tmp5_94 = (Event)(new eDAProofFailed((new PNamedTuple(new string[]{"recordID","reason"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)"")))));
+                TMP_tmp6_87 = (PNamedTuple)(((PNamedTuple)payload_64)["recordID"]);
+                TMP_tmp7_86 = (PString)(((PString) String.Format("Record not found")));
+                TMP_tmp8_80 = (PNamedTuple)((new PNamedTuple(new string[]{"recordID","reason"}, TMP_tmp6_87, TMP_tmp7_86)));
+                TMP_tmp5_94.Payload = TMP_tmp8_80;
+                currentMachine.SendEvent(TMP_tmp4_102, (Event)TMP_tmp5_94);
                 return ;
             }
-            TMP_tmp8_80 = (PNamedTuple)(((PNamedTuple)payload_63)["recordID"]);
-            TMP_tmp9_78 = (PNamedTuple)(((PMap)records)[TMP_tmp8_80]);
-            TMP_tmp10_69 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp9_78)?.Clone()));
-            tmpRecord = TMP_tmp10_69;
-            TMP_tmp11_65 = (PInt)((proofCounter) + (((PInt)(1))));
-            proofCounter = TMP_tmp11_65;
-            TMP_tmp12_64 = (PNamedTuple)(((PNamedTuple)payload_63)["recordID"]);
-            TMP_tmp13_62 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp12_64)?.Clone()));
-            ((PNamedTuple)tmpProof)["recordID"] = TMP_tmp13_62;
+            TMP_tmp9_78 = (PNamedTuple)(((PNamedTuple)payload_64)["recordID"]);
+            TMP_tmp10_69 = (PNamedTuple)(((PMap)records)[TMP_tmp9_78]);
+            TMP_tmp11_65 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp10_69)?.Clone()));
+            tmpRecord = TMP_tmp11_65;
+            TMP_tmp12_64 = (PInt)((proofCounter) + (((PInt)(1))));
+            proofCounter = TMP_tmp12_64;
+            TMP_tmp13_62 = (PNamedTuple)(((PNamedTuple)payload_64)["recordID"]);
+            TMP_tmp14_58 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp13_62)?.Clone()));
+            ((PNamedTuple)tmpProof)["recordID"] = TMP_tmp14_58;
             ((PNamedTuple)tmpProof)["commitmentRoot"] = (PNamedTuple)(((PNamedTuple)((IPValue)currentCommitment)?.Clone()));
-            TMP_tmp14_58 = (PSeq)(((PNamedTuple)tmpRecord)["merkleProof"]);
-            TMP_tmp15_55 = (PSeq)(((PSeq)((IPValue)TMP_tmp14_58)?.Clone()));
-            ((PNamedTuple)tmpProof)["proofPath"] = TMP_tmp15_55;
-            TMP_tmp16_54 = (PSeq)(new PSeq());
-            ((PNamedTuple)((PNamedTuple)tmpProof)["validator"])["bytes"] = TMP_tmp16_54;
+            TMP_tmp15_56 = (PSeq)(((PNamedTuple)tmpRecord)["merkleProof"]);
+            TMP_tmp16_55 = (PSeq)(((PSeq)((IPValue)TMP_tmp15_56)?.Clone()));
+            ((PNamedTuple)tmpProof)["proofPath"] = TMP_tmp16_55;
             TMP_tmp17_49 = (PSeq)(new PSeq());
-            ((PNamedTuple)tmpProof)["signature"] = TMP_tmp17_49;
-            TMP_tmp18_48 = (PNamedTuple)(((PNamedTuple)payload_63)["recordID"]);
-            ((PMap)daProofs)[TMP_tmp18_48] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpProof)?.Clone()));
+            ((PNamedTuple)((PNamedTuple)tmpProof)["validator"])["bytes"] = TMP_tmp17_49;
+            TMP_tmp18_48 = (PSeq)(new PSeq());
+            ((PNamedTuple)tmpProof)["signature"] = TMP_tmp18_48;
+            TMP_tmp19_45 = (PNamedTuple)(((PNamedTuple)payload_64)["recordID"]);
+            ((PMap)daProofs)[TMP_tmp19_45] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpProof)?.Clone()));
             ((PNamedTuple)tmpDAProofGeneratedPayload)["proof"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpProof)?.Clone()));
             currentMachine.Announce((Event)new eDAProofGenerated((new PNamedTuple(new string[]{"proof"},(new PNamedTuple(new string[]{"recordID","commitmentRoot","proofPath","validator","signature"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq()))))), tmpDAProofGeneratedPayload);
-            TMP_tmp19_44 = (PMachineValue)(currentMachine.self);
-            TMP_tmp20_44 = (Event)(new eDAProofGenerated((new PNamedTuple(new string[]{"proof"},(new PNamedTuple(new string[]{"recordID","commitmentRoot","proofPath","validator","signature"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq()))))));
-            TMP_tmp21_42 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpDAProofGeneratedPayload)?.Clone()));
-            TMP_tmp20_44.Payload = TMP_tmp21_42;
-            currentMachine.SendEvent(TMP_tmp19_44, (Event)TMP_tmp20_44);
+            TMP_tmp20_44 = (PMachineValue)(((PNamedTuple)payload_64)["caller"]);
+            TMP_tmp21_42 = (PMachineValue)(((PMachineValue)((IPValue)TMP_tmp20_44)?.Clone()));
+            TMP_tmp22_40 = (Event)(new eDAProofGenerated((new PNamedTuple(new string[]{"proof"},(new PNamedTuple(new string[]{"recordID","commitmentRoot","proofPath","validator","signature"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq()))))));
+            TMP_tmp23_39 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpDAProofGeneratedPayload)?.Clone()));
+            TMP_tmp22_40.Payload = TMP_tmp23_39;
+            currentMachine.SendEvent(TMP_tmp21_42, (Event)TMP_tmp22_40);
         }
         public void Anon_183(Event currentMachine_dequeuedEvent)
         {
             BaseLayerMachine currentMachine = this;
-            PNamedTuple payload_64 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_65 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_144 = (new PNamedTuple(new string[]{"recordID","commitmentRoot","proofPath","validator","signature"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq()));
             PNamedTuple TMP_tmp1_119 = (new PNamedTuple(new string[]{"value"},((PString)"")));
@@ -16908,11 +17012,11 @@ namespace PImplementation
             PMachineValue TMP_tmp12_65 = null;
             Event TMP_tmp13_63 = null;
             PNamedTuple TMP_tmp14_59 = (new PNamedTuple(new string[]{"recordID","commitmentRoot","proofPath","validator","signature"},(new PNamedTuple(new string[]{"value"},((PString)""))), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), new PSeq()));
-            PNamedTuple TMP_tmp15_56 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PBool TMP_tmp16_55 = ((PBool)false);
+            PNamedTuple TMP_tmp15_57 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PBool TMP_tmp16_56 = ((PBool)false);
             PNamedTuple TMP_tmp17_50 = (new PNamedTuple(new string[]{"recordID","valid"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PBool)false)));
             tmpValid = (PBool)(((PBool)true));
-            TMP_tmp0_144 = (PNamedTuple)(((PNamedTuple)payload_64)["proof"]);
+            TMP_tmp0_144 = (PNamedTuple)(((PNamedTuple)payload_65)["proof"]);
             TMP_tmp1_119 = (PNamedTuple)(((PNamedTuple)TMP_tmp0_144)["recordID"]);
             TMP_tmp2_116 = (PBool)(((PBool)(((PMap)records).ContainsKey(TMP_tmp1_119))));
             TMP_tmp3_109 = (PBool)(!(TMP_tmp2_116));
@@ -16922,7 +17026,7 @@ namespace PImplementation
             }
             if (tmpValid)
             {
-                TMP_tmp4_103 = (PNamedTuple)(((PNamedTuple)payload_64)["proof"]);
+                TMP_tmp4_103 = (PNamedTuple)(((PNamedTuple)payload_65)["proof"]);
                 TMP_tmp5_95 = (PSeq)(((PNamedTuple)TMP_tmp4_103)["proofPath"]);
                 TMP_tmp6_88 = (PInt)(((PInt)(TMP_tmp5_95).Count));
                 TMP_tmp7_87 = (PBool)((PValues.SafeEquals(TMP_tmp6_88,((PInt)(0)))));
@@ -16931,24 +17035,24 @@ namespace PImplementation
                     tmpValid = (PBool)(((PBool)false));
                 }
             }
-            TMP_tmp8_81 = (PNamedTuple)(((PNamedTuple)payload_64)["proof"]);
+            TMP_tmp8_81 = (PNamedTuple)(((PNamedTuple)payload_65)["proof"]);
             TMP_tmp9_79 = (PNamedTuple)(((PNamedTuple)TMP_tmp8_81)["recordID"]);
             TMP_tmp10_70 = (PBool)(((PBool)((IPValue)tmpValid)?.Clone()));
             TMP_tmp11_66 = (PNamedTuple)((new PNamedTuple(new string[]{"recordID","valid"}, TMP_tmp9_79, TMP_tmp10_70)));
             currentMachine.Announce((Event)new eDAProofVerified((new PNamedTuple(new string[]{"recordID","valid"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PBool)false)))), TMP_tmp11_66);
             TMP_tmp12_65 = (PMachineValue)(currentMachine.self);
             TMP_tmp13_63 = (Event)(new eDAProofVerified((new PNamedTuple(new string[]{"recordID","valid"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PBool)false)))));
-            TMP_tmp14_59 = (PNamedTuple)(((PNamedTuple)payload_64)["proof"]);
-            TMP_tmp15_56 = (PNamedTuple)(((PNamedTuple)TMP_tmp14_59)["recordID"]);
-            TMP_tmp16_55 = (PBool)(((PBool)((IPValue)tmpValid)?.Clone()));
-            TMP_tmp17_50 = (PNamedTuple)((new PNamedTuple(new string[]{"recordID","valid"}, TMP_tmp15_56, TMP_tmp16_55)));
+            TMP_tmp14_59 = (PNamedTuple)(((PNamedTuple)payload_65)["proof"]);
+            TMP_tmp15_57 = (PNamedTuple)(((PNamedTuple)TMP_tmp14_59)["recordID"]);
+            TMP_tmp16_56 = (PBool)(((PBool)((IPValue)tmpValid)?.Clone()));
+            TMP_tmp17_50 = (PNamedTuple)((new PNamedTuple(new string[]{"recordID","valid"}, TMP_tmp15_57, TMP_tmp16_56)));
             TMP_tmp13_63.Payload = TMP_tmp17_50;
             currentMachine.SendEvent(TMP_tmp12_65, (Event)TMP_tmp13_63);
         }
         public void Anon_184(Event currentMachine_dequeuedEvent)
         {
             BaseLayerMachine currentMachine = this;
-            PNamedTuple payload_65 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_66 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
         }
         public void Anon_185(Event currentMachine_dequeuedEvent)
@@ -17091,7 +17195,7 @@ namespace PImplementation
         public void Anon_190(Event currentMachine_dequeuedEvent)
         {
             NetworkIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_66 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_67 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_148 = ((PInt)0);
             TMP_tmp0_148 = (PInt)((startedComponents) + (((PInt)(1))));
@@ -17100,7 +17204,7 @@ namespace PImplementation
         public void Anon_191(Event currentMachine_dequeuedEvent)
         {
             NetworkIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_67 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_68 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_149 = ((PInt)0);
             TMP_tmp0_149 = (PInt)((readyComponents) + (((PInt)(1))));
@@ -17109,7 +17213,7 @@ namespace PImplementation
         public void Anon_192(Event currentMachine_dequeuedEvent)
         {
             NetworkIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_68 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_69 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
         }
         public void Anon_193(Event currentMachine_dequeuedEvent)
@@ -17145,7 +17249,7 @@ namespace PImplementation
         public void Anon_199(Event currentMachine_dequeuedEvent)
         {
             NetworkIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_69 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_70 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
         }
         public void Anon_200(Event currentMachine_dequeuedEvent)
@@ -17164,7 +17268,7 @@ namespace PImplementation
         public void Anon_203(Event currentMachine_dequeuedEvent)
         {
             NetworkIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_70 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_71 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_150 = ((PInt)0);
             TMP_tmp0_150 = (PInt)((startedComponents) + (((PInt)(1))));
@@ -17173,7 +17277,7 @@ namespace PImplementation
         public void Anon_204(Event currentMachine_dequeuedEvent)
         {
             NetworkIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_71 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_72 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_151 = ((PInt)0);
             TMP_tmp0_151 = (PInt)((readyComponents) + (((PInt)(1))));
@@ -17182,7 +17286,7 @@ namespace PImplementation
         public void Anon_205(Event currentMachine_dequeuedEvent)
         {
             NetworkIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_72 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_73 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_152 = ((PInt)0);
             PInt TMP_tmp1_122 = ((PInt)0);
@@ -17208,7 +17312,7 @@ namespace PImplementation
         public void Anon_208(Event currentMachine_dequeuedEvent)
         {
             NetworkIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_73 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_74 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_153 = ((PInt)0);
             TMP_tmp0_153 = (PInt)((violationCount) + (((PInt)(1))));
@@ -17310,7 +17414,7 @@ namespace PImplementation
         public void Anon_214(Event currentMachine_dequeuedEvent)
         {
             CrossChainConsistencyMonitor currentMachine = this;
-            PNamedTuple payload_74 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_75 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_154 = ((PInt)0);
             TMP_tmp0_154 = (PInt)((pendingMessageCount) + (((PInt)(1))));
@@ -17328,7 +17432,7 @@ namespace PImplementation
         public void Anon_216(Event currentMachine_dequeuedEvent)
         {
             CrossChainConsistencyMonitor currentMachine = this;
-            PNamedTuple payload_75 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_76 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_156 = ((PInt)0);
             PInt TMP_tmp1_123 = ((PInt)0);
@@ -17340,7 +17444,7 @@ namespace PImplementation
         public void Anon_217(Event currentMachine_dequeuedEvent)
         {
             CrossChainConsistencyMonitor currentMachine = this;
-            PNamedTuple payload_76 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_77 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_157 = ((PInt)0);
             PInt TMP_tmp1_124 = ((PInt)0);
@@ -17409,12 +17513,12 @@ namespace PImplementation
         public void Anon_220(Event currentMachine_dequeuedEvent)
         {
             TokenEconomicsMonitor currentMachine = this;
-            PNamedTuple payload_77 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_78 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PBool TMP_tmp0_159 = ((PBool)false);
             PBool TMP_tmp1_125 = ((PBool)false);
             PInt TMP_tmp2_119 = ((PInt)0);
-            TMP_tmp0_159 = (PBool)(((PNamedTuple)payload_77)["authorized"]);
+            TMP_tmp0_159 = (PBool)(((PNamedTuple)payload_78)["authorized"]);
             TMP_tmp1_125 = (PBool)(!(TMP_tmp0_159));
             if (TMP_tmp1_125)
             {
@@ -17425,39 +17529,27 @@ namespace PImplementation
         public void Anon_221(Event currentMachine_dequeuedEvent)
         {
             TokenEconomicsMonitor currentMachine = this;
-            PNamedTuple payload_78 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PString reason_2 = (PString)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
-            PBool TMP_tmp0_160 = ((PBool)false);
-            PNamedTuple TMP_tmp1_126 = (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
-            PNamedTuple TMP_tmp2_120 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp3_111 = ((PInt)0);
-            PInt TMP_tmp4_105 = ((PInt)0);
-            TMP_tmp0_160 = (PBool)(((PNamedTuple)payload_78)["success"]);
-            if (TMP_tmp0_160)
-            {
-                TMP_tmp1_126 = (PNamedTuple)(((PNamedTuple)payload_78)["receipt"]);
-                TMP_tmp2_120 = (PNamedTuple)(((PNamedTuple)TMP_tmp1_126)["amount"]);
-                TMP_tmp3_111 = (PInt)(((PNamedTuple)TMP_tmp2_120)["value"]);
-                TMP_tmp4_105 = (PInt)((totalMinted) + (TMP_tmp3_111));
-                totalMinted = TMP_tmp4_105;
-            }
         }
         public void Anon_222(Event currentMachine_dequeuedEvent)
         {
             TokenEconomicsMonitor currentMachine = this;
             PNamedTuple payload_79 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
-            PBool TMP_tmp0_161 = ((PBool)false);
-            PNamedTuple TMP_tmp1_127 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp2_121 = ((PInt)0);
-            PInt TMP_tmp3_112 = ((PInt)0);
-            TMP_tmp0_161 = (PBool)(((PNamedTuple)payload_79)["success"]);
-            if (TMP_tmp0_161)
+            PBool TMP_tmp0_160 = ((PBool)false);
+            PNamedTuple TMP_tmp1_126 = (new PNamedTuple(new string[]{"recipient","amount","reason","authorized","timestamp"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PString)""), ((PBool)false), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
+            PNamedTuple TMP_tmp2_120 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp3_111 = ((PInt)0);
+            PInt TMP_tmp4_105 = ((PInt)0);
+            TMP_tmp0_160 = (PBool)(((PNamedTuple)payload_79)["success"]);
+            if (TMP_tmp0_160)
             {
-                TMP_tmp1_127 = (PNamedTuple)(((PNamedTuple)payload_79)["amount"]);
-                TMP_tmp2_121 = (PInt)(((PNamedTuple)TMP_tmp1_127)["value"]);
-                TMP_tmp3_112 = (PInt)((totalBurned) + (TMP_tmp2_121));
-                totalBurned = TMP_tmp3_112;
+                TMP_tmp1_126 = (PNamedTuple)(((PNamedTuple)payload_79)["receipt"]);
+                TMP_tmp2_120 = (PNamedTuple)(((PNamedTuple)TMP_tmp1_126)["amount"]);
+                TMP_tmp3_111 = (PInt)(((PNamedTuple)TMP_tmp2_120)["value"]);
+                TMP_tmp4_105 = (PInt)((totalMinted) + (TMP_tmp3_111));
+                totalMinted = TMP_tmp4_105;
             }
         }
         public void Anon_223(Event currentMachine_dequeuedEvent)
@@ -17465,28 +17557,46 @@ namespace PImplementation
             TokenEconomicsMonitor currentMachine = this;
             PNamedTuple payload_80 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
-            PNamedTuple TMP_tmp0_162 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PInt TMP_tmp1_128 = ((PInt)0);
-            PInt TMP_tmp2_122 = ((PInt)0);
-            TMP_tmp0_162 = (PNamedTuple)(((PNamedTuple)payload_80)["amount"]);
-            TMP_tmp1_128 = (PInt)(((PNamedTuple)TMP_tmp0_162)["value"]);
-            TMP_tmp2_122 = (PInt)((treasuryBalance_1) + (TMP_tmp1_128));
-            treasuryBalance_1 = TMP_tmp2_122;
+            PBool TMP_tmp0_161 = ((PBool)false);
+            PNamedTuple TMP_tmp1_127 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp2_121 = ((PInt)0);
+            PInt TMP_tmp3_112 = ((PInt)0);
+            TMP_tmp0_161 = (PBool)(((PNamedTuple)payload_80)["success"]);
+            if (TMP_tmp0_161)
+            {
+                TMP_tmp1_127 = (PNamedTuple)(((PNamedTuple)payload_80)["amount"]);
+                TMP_tmp2_121 = (PInt)(((PNamedTuple)TMP_tmp1_127)["value"]);
+                TMP_tmp3_112 = (PInt)((totalBurned) + (TMP_tmp2_121));
+                totalBurned = TMP_tmp3_112;
+            }
         }
         public void Anon_224(Event currentMachine_dequeuedEvent)
         {
             TokenEconomicsMonitor currentMachine = this;
             PNamedTuple payload_81 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
+            PNamedTuple TMP_tmp0_162 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PInt TMP_tmp1_128 = ((PInt)0);
+            PInt TMP_tmp2_122 = ((PInt)0);
+            TMP_tmp0_162 = (PNamedTuple)(((PNamedTuple)payload_81)["amount"]);
+            TMP_tmp1_128 = (PInt)(((PNamedTuple)TMP_tmp0_162)["value"]);
+            TMP_tmp2_122 = (PInt)((treasuryBalance_1) + (TMP_tmp1_128));
+            treasuryBalance_1 = TMP_tmp2_122;
+        }
+        public void Anon_225(Event currentMachine_dequeuedEvent)
+        {
+            TokenEconomicsMonitor currentMachine = this;
+            PNamedTuple payload_82 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
             PNamedTuple TMP_tmp0_163 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PInt TMP_tmp1_129 = ((PInt)0);
             PInt TMP_tmp2_123 = ((PInt)0);
-            TMP_tmp0_163 = (PNamedTuple)(((PNamedTuple)payload_81)["amount"]);
+            TMP_tmp0_163 = (PNamedTuple)(((PNamedTuple)payload_82)["amount"]);
             TMP_tmp1_129 = (PInt)(((PNamedTuple)TMP_tmp0_163)["value"]);
             TMP_tmp2_123 = (PInt)((treasuryBalance_1) - (TMP_tmp1_129));
             treasuryBalance_1 = TMP_tmp2_123;
         }
-        public void Anon_225(Event currentMachine_dequeuedEvent)
+        public void Anon_226(Event currentMachine_dequeuedEvent)
         {
             TokenEconomicsMonitor currentMachine = this;
             PNamedTuple stakeInfo_1 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
@@ -17499,7 +17609,7 @@ namespace PImplementation
             TMP_tmp2_124 = (PInt)((totalStaked_1) + (TMP_tmp1_130));
             totalStaked_1 = TMP_tmp2_124;
         }
-        public void Anon_226(Event currentMachine_dequeuedEvent)
+        public void Anon_227(Event currentMachine_dequeuedEvent)
         {
             TokenEconomicsMonitor currentMachine = this;
             PNamedTuple unstakeData = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
@@ -17512,15 +17622,65 @@ namespace PImplementation
             TMP_tmp2_125 = (PInt)((totalStaked_1) - (TMP_tmp1_131));
             totalStaked_1 = TMP_tmp2_125;
         }
+        public void Anon_228(Event currentMachine_dequeuedEvent)
+        {
+            TokenEconomicsMonitor currentMachine = this;
+            PNamedTuple payload_83 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_229(Event currentMachine_dequeuedEvent)
+        {
+            TokenEconomicsMonitor currentMachine = this;
+            PNamedTuple payload_84 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_230(Event currentMachine_dequeuedEvent)
+        {
+            TokenEconomicsMonitor currentMachine = this;
+            PNamedTuple payload_85 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_231(Event currentMachine_dequeuedEvent)
+        {
+            TokenEconomicsMonitor currentMachine = this;
+            PString reason_3 = (PString)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_232(Event currentMachine_dequeuedEvent)
+        {
+            TokenEconomicsMonitor currentMachine = this;
+            PNamedTuple stakeData = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_233(Event currentMachine_dequeuedEvent)
+        {
+            TokenEconomicsMonitor currentMachine = this;
+            PNamedTuple unstakeData_1 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_234(Event currentMachine_dequeuedEvent)
+        {
+            TokenEconomicsMonitor currentMachine = this;
+            PSeq rewards = (PSeq)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
         [Start]
         [OnEntry(nameof(Anon_219))]
         [OnEventDoAction(typeof(eMintRequest), nameof(Anon_220))]
-        [OnEventDoAction(typeof(eMintResponse), nameof(Anon_221))]
-        [OnEventDoAction(typeof(eBurnResponse), nameof(Anon_222))]
-        [OnEventDoAction(typeof(eTreasuryDeposit), nameof(Anon_223))]
-        [OnEventDoAction(typeof(eTreasuryWithdrawal), nameof(Anon_224))]
-        [OnEventDoAction(typeof(eStaked), nameof(Anon_225))]
-        [OnEventDoAction(typeof(eUnstaked), nameof(Anon_226))]
+        [OnEventDoAction(typeof(eMintFailed), nameof(Anon_221))]
+        [OnEventDoAction(typeof(eMintResponse), nameof(Anon_222))]
+        [OnEventDoAction(typeof(eBurnResponse), nameof(Anon_223))]
+        [OnEventDoAction(typeof(eTreasuryDeposit), nameof(Anon_224))]
+        [OnEventDoAction(typeof(eTreasuryWithdrawal), nameof(Anon_225))]
+        [OnEventDoAction(typeof(eStaked), nameof(Anon_226))]
+        [OnEventDoAction(typeof(eUnstaked), nameof(Anon_227))]
+        [OnEventDoAction(typeof(eBurnRequest), nameof(Anon_228))]
+        [OnEventDoAction(typeof(eTransferRequest), nameof(Anon_229))]
+        [OnEventDoAction(typeof(eTransferResponse), nameof(Anon_230))]
+        [OnEventDoAction(typeof(eTransferFailed), nameof(Anon_231))]
+        [OnEventDoAction(typeof(eStake), nameof(Anon_232))]
+        [OnEventDoAction(typeof(eUnstake), nameof(Anon_233))]
+        [OnEventDoAction(typeof(eRewardsDistributed), nameof(Anon_234))]
         class Monitoring : State
         {
         }
@@ -17548,14 +17708,14 @@ namespace PImplementation
             observes.Add(nameof(eVoteFailed));
         }
         
-        public void Anon_227(Event currentMachine_dequeuedEvent)
+        public void Anon_235(Event currentMachine_dequeuedEvent)
         {
             GovernanceProcessMonitor currentMachine = this;
             activeProposalCount = (PInt)(((PInt)(0)));
             doubleVoteAttempts = (PInt)(((PInt)(0)));
             prematureExecutions = (PInt)(((PInt)(0)));
         }
-        public void Anon_228(Event currentMachine_dequeuedEvent)
+        public void Anon_236(Event currentMachine_dequeuedEvent)
         {
             GovernanceProcessMonitor currentMachine = this;
             PNamedTuple proposal = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
@@ -17564,16 +17724,16 @@ namespace PImplementation
             TMP_tmp0_166 = (PInt)((activeProposalCount) + (((PInt)(1))));
             activeProposalCount = TMP_tmp0_166;
         }
-        public void Anon_229(Event currentMachine_dequeuedEvent)
+        public void Anon_237(Event currentMachine_dequeuedEvent)
         {
             GovernanceProcessMonitor currentMachine = this;
-            PNamedTuple payload_82 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_86 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PString TMP_tmp0_167 = ((PString)"");
             PString TMP_tmp1_132 = ((PString)"");
             PBool TMP_tmp2_126 = ((PBool)false);
             PInt TMP_tmp3_113 = ((PInt)0);
-            TMP_tmp0_167 = (PString)(((PNamedTuple)payload_82)["reason"]);
+            TMP_tmp0_167 = (PString)(((PNamedTuple)payload_86)["reason"]);
             TMP_tmp1_132 = (PString)(((PString) String.Format("Already voted")));
             TMP_tmp2_126 = (PBool)((PValues.SafeEquals(TMP_tmp0_167,TMP_tmp1_132)));
             if (TMP_tmp2_126)
@@ -17582,7 +17742,7 @@ namespace PImplementation
                 doubleVoteAttempts = TMP_tmp3_113;
             }
         }
-        public void Anon_230(Event currentMachine_dequeuedEvent)
+        public void Anon_238(Event currentMachine_dequeuedEvent)
         {
             GovernanceProcessMonitor currentMachine = this;
             PString proposalID_2 = (PString)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
@@ -17591,11 +17751,74 @@ namespace PImplementation
             TMP_tmp0_168 = (PInt)((activeProposalCount) - (((PInt)(1))));
             activeProposalCount = TMP_tmp0_168;
         }
+        public void Anon_239(Event currentMachine_dequeuedEvent)
+        {
+            GovernanceProcessMonitor currentMachine = this;
+            PNamedTuple payload_87 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_240(Event currentMachine_dequeuedEvent)
+        {
+            GovernanceProcessMonitor currentMachine = this;
+            PString reason_4 = (PString)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_241(Event currentMachine_dequeuedEvent)
+        {
+            GovernanceProcessMonitor currentMachine = this;
+            PNamedTuple payload_88 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_242(Event currentMachine_dequeuedEvent)
+        {
+            GovernanceProcessMonitor currentMachine = this;
+            PNamedTuple payload_89 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_243(Event currentMachine_dequeuedEvent)
+        {
+            GovernanceProcessMonitor currentMachine = this;
+            PNamedTuple payload_90 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_244(Event currentMachine_dequeuedEvent)
+        {
+            GovernanceProcessMonitor currentMachine = this;
+            PNamedTuple payload_91 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_245(Event currentMachine_dequeuedEvent)
+        {
+            GovernanceProcessMonitor currentMachine = this;
+            PNamedTuple payload_92 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_246(Event currentMachine_dequeuedEvent)
+        {
+            GovernanceProcessMonitor currentMachine = this;
+            PNamedTuple payload_93 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_247(Event currentMachine_dequeuedEvent)
+        {
+            GovernanceProcessMonitor currentMachine = this;
+            PNamedTuple payload_94 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
         [Start]
-        [OnEntry(nameof(Anon_227))]
-        [OnEventDoAction(typeof(eProposalCreated), nameof(Anon_228))]
-        [OnEventDoAction(typeof(eVoteFailed), nameof(Anon_229))]
-        [OnEventDoAction(typeof(eProposalExecuted), nameof(Anon_230))]
+        [OnEntry(nameof(Anon_235))]
+        [OnEventDoAction(typeof(eProposalCreated), nameof(Anon_236))]
+        [OnEventDoAction(typeof(eVoteFailed), nameof(Anon_237))]
+        [OnEventDoAction(typeof(eProposalExecuted), nameof(Anon_238))]
+        [OnEventDoAction(typeof(eCreateProposal), nameof(Anon_239))]
+        [OnEventDoAction(typeof(eProposalCreationFailed), nameof(Anon_240))]
+        [OnEventDoAction(typeof(eCastVote), nameof(Anon_241))]
+        [OnEventDoAction(typeof(eVoteCast), nameof(Anon_242))]
+        [OnEventDoAction(typeof(eProposalStatusChanged), nameof(Anon_243))]
+        [OnEventDoAction(typeof(eExecuteProposal), nameof(Anon_244))]
+        [OnEventDoAction(typeof(eRegisterRequest), nameof(Anon_245))]
+        [OnEventDoAction(typeof(eRegistrationConfirm), nameof(Anon_246))]
+        [OnEventDoAction(typeof(eRegistrationFail), nameof(Anon_247))]
         class Monitoring : State
         {
         }
@@ -17622,7 +17845,7 @@ namespace PImplementation
             observes.Add(nameof(eValidationTimeout));
         }
         
-        public void Anon_231(Event currentMachine_dequeuedEvent)
+        public void Anon_248(Event currentMachine_dequeuedEvent)
         {
             ValidationIntegrityMonitor currentMachine = this;
             queuedTaskCount = (PInt)(((PInt)(0)));
@@ -17631,19 +17854,19 @@ namespace PImplementation
             failedTaskCount = (PInt)(((PInt)(0)));
             resourceViolations_1 = (PInt)(((PInt)(0)));
         }
-        public void Anon_232(Event currentMachine_dequeuedEvent)
+        public void Anon_249(Event currentMachine_dequeuedEvent)
         {
             ValidationIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_83 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_95 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_169 = ((PInt)0);
             TMP_tmp0_169 = (PInt)((queuedTaskCount) + (((PInt)(1))));
             queuedTaskCount = TMP_tmp0_169;
         }
-        public void Anon_233(Event currentMachine_dequeuedEvent)
+        public void Anon_250(Event currentMachine_dequeuedEvent)
         {
             ValidationIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_84 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_96 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_170 = ((PInt)0);
             PInt TMP_tmp1_133 = ((PInt)0);
@@ -17652,10 +17875,10 @@ namespace PImplementation
             TMP_tmp1_133 = (PInt)((runningTaskCount) + (((PInt)(1))));
             runningTaskCount = TMP_tmp1_133;
         }
-        public void Anon_234(Event currentMachine_dequeuedEvent)
+        public void Anon_251(Event currentMachine_dequeuedEvent)
         {
             ValidationIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_85 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_97 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_171 = ((PInt)0);
             PInt TMP_tmp1_134 = ((PInt)0);
@@ -17664,10 +17887,10 @@ namespace PImplementation
             TMP_tmp1_134 = (PInt)((completedTaskCount) + (((PInt)(1))));
             completedTaskCount = TMP_tmp1_134;
         }
-        public void Anon_235(Event currentMachine_dequeuedEvent)
+        public void Anon_252(Event currentMachine_dequeuedEvent)
         {
             ValidationIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_86 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_98 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_172 = ((PInt)0);
             PInt TMP_tmp1_135 = ((PInt)0);
@@ -17676,10 +17899,10 @@ namespace PImplementation
             TMP_tmp1_135 = (PInt)((failedTaskCount) + (((PInt)(1))));
             failedTaskCount = TMP_tmp1_135;
         }
-        public void Anon_236(Event currentMachine_dequeuedEvent)
+        public void Anon_253(Event currentMachine_dequeuedEvent)
         {
             ValidationIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_87 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_99 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_173 = ((PInt)0);
             PInt TMP_tmp1_136 = ((PInt)0);
@@ -17688,23 +17911,44 @@ namespace PImplementation
             TMP_tmp1_136 = (PInt)((failedTaskCount) + (((PInt)(1))));
             failedTaskCount = TMP_tmp1_136;
         }
-        public void Anon_237(Event currentMachine_dequeuedEvent)
+        public void Anon_254(Event currentMachine_dequeuedEvent)
         {
             ValidationIntegrityMonitor currentMachine = this;
-            PNamedTuple payload_88 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_100 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_174 = ((PInt)0);
             TMP_tmp0_174 = (PInt)((resourceViolations_1) + (((PInt)(1))));
             resourceViolations_1 = TMP_tmp0_174;
         }
+        public void Anon_255(Event currentMachine_dequeuedEvent)
+        {
+            ValidationIntegrityMonitor currentMachine = this;
+            PNamedTuple payload_101 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_256(Event currentMachine_dequeuedEvent)
+        {
+            ValidationIntegrityMonitor currentMachine = this;
+            PNamedTuple payload_102 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_257(Event currentMachine_dequeuedEvent)
+        {
+            ValidationIntegrityMonitor currentMachine = this;
+            PNamedTuple payload_103 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
         [Start]
-        [OnEntry(nameof(Anon_231))]
-        [OnEventDoAction(typeof(eValidationTaskQueued), nameof(Anon_232))]
-        [OnEventDoAction(typeof(eValidationStarted), nameof(Anon_233))]
-        [OnEventDoAction(typeof(eValidationComplete), nameof(Anon_234))]
-        [OnEventDoAction(typeof(eValidationFailed), nameof(Anon_235))]
-        [OnEventDoAction(typeof(eValidationTimeout), nameof(Anon_236))]
-        [OnEventDoAction(typeof(eResourceLimitExceeded), nameof(Anon_237))]
+        [OnEntry(nameof(Anon_248))]
+        [OnEventDoAction(typeof(eValidationTaskQueued), nameof(Anon_249))]
+        [OnEventDoAction(typeof(eValidationStarted), nameof(Anon_250))]
+        [OnEventDoAction(typeof(eValidationComplete), nameof(Anon_251))]
+        [OnEventDoAction(typeof(eValidationFailed), nameof(Anon_252))]
+        [OnEventDoAction(typeof(eValidationTimeout), nameof(Anon_253))]
+        [OnEventDoAction(typeof(eResourceLimitExceeded), nameof(Anon_254))]
+        [OnEventDoAction(typeof(eSubmitValidationTask), nameof(Anon_255))]
+        [OnEventDoAction(typeof(eValidationTaskRejected), nameof(Anon_256))]
+        [OnEventDoAction(typeof(eStartValidation), nameof(Anon_257))]
         class Monitoring : State
         {
         }
@@ -17732,7 +17976,7 @@ namespace PImplementation
             observes.Add(nameof(eSubmitSolution));
         }
         
-        public void Anon_238(Event currentMachine_dequeuedEvent)
+        public void Anon_258(Event currentMachine_dequeuedEvent)
         {
             KnowledgeGraphConsistencyMonitor currentMachine = this;
             errorCount = (PInt)(((PInt)(0)));
@@ -17741,7 +17985,7 @@ namespace PImplementation
             patternCount = (PInt)(((PInt)(0)));
             duplicateErrors = (PInt)(((PInt)(0)));
         }
-        public void Anon_239(Event currentMachine_dequeuedEvent)
+        public void Anon_259(Event currentMachine_dequeuedEvent)
         {
             KnowledgeGraphConsistencyMonitor currentMachine = this;
             PNamedTuple record = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
@@ -17750,16 +17994,16 @@ namespace PImplementation
             TMP_tmp0_175 = (PInt)((errorCount) + (((PInt)(1))));
             errorCount = TMP_tmp0_175;
         }
-        public void Anon_240(Event currentMachine_dequeuedEvent)
+        public void Anon_260(Event currentMachine_dequeuedEvent)
         {
             KnowledgeGraphConsistencyMonitor currentMachine = this;
-            PNamedTuple payload_89 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_104 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_176 = ((PInt)0);
             TMP_tmp0_176 = (PInt)((duplicateErrors) + (((PInt)(1))));
             duplicateErrors = TMP_tmp0_176;
         }
-        public void Anon_241(Event currentMachine_dequeuedEvent)
+        public void Anon_261(Event currentMachine_dequeuedEvent)
         {
             KnowledgeGraphConsistencyMonitor currentMachine = this;
             PNamedTuple solution = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
@@ -17768,16 +18012,16 @@ namespace PImplementation
             TMP_tmp0_177 = (PInt)((solutionCount) + (((PInt)(1))));
             solutionCount = TMP_tmp0_177;
         }
-        public void Anon_242(Event currentMachine_dequeuedEvent)
+        public void Anon_262(Event currentMachine_dequeuedEvent)
         {
             KnowledgeGraphConsistencyMonitor currentMachine = this;
-            PNamedTuple payload_90 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_105 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PInt TMP_tmp0_178 = ((PInt)0);
             TMP_tmp0_178 = (PInt)((linkedPairs) + (((PInt)(1))));
             linkedPairs = TMP_tmp0_178;
         }
-        public void Anon_243(Event currentMachine_dequeuedEvent)
+        public void Anon_263(Event currentMachine_dequeuedEvent)
         {
             KnowledgeGraphConsistencyMonitor currentMachine = this;
             PNamedTuple pattern = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
@@ -17786,20 +18030,48 @@ namespace PImplementation
             TMP_tmp0_179 = (PInt)((patternCount) + (((PInt)(1))));
             patternCount = TMP_tmp0_179;
         }
-        public void Anon_244(Event currentMachine_dequeuedEvent)
+        public void Anon_264(Event currentMachine_dequeuedEvent)
         {
             KnowledgeGraphConsistencyMonitor currentMachine = this;
-            PNamedTuple payload_91 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_106 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_265(Event currentMachine_dequeuedEvent)
+        {
+            KnowledgeGraphConsistencyMonitor currentMachine = this;
+            PNamedTuple payload_107 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_266(Event currentMachine_dequeuedEvent)
+        {
+            KnowledgeGraphConsistencyMonitor currentMachine = this;
+            PNamedTuple payload_108 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_267(Event currentMachine_dequeuedEvent)
+        {
+            KnowledgeGraphConsistencyMonitor currentMachine = this;
+            PNamedTuple payload_109 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            this.gotoPayload = null;
+        }
+        public void Anon_268(Event currentMachine_dequeuedEvent)
+        {
+            KnowledgeGraphConsistencyMonitor currentMachine = this;
+            PNamedTuple payload_110 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
         }
         [Start]
-        [OnEntry(nameof(Anon_238))]
-        [OnEventDoAction(typeof(eErrorRecorded), nameof(Anon_239))]
-        [OnEventDoAction(typeof(eErrorDuplicate), nameof(Anon_240))]
-        [OnEventDoAction(typeof(eSolutionSubmitted), nameof(Anon_241))]
-        [OnEventDoAction(typeof(eErrorSolutionLinked), nameof(Anon_242))]
-        [OnEventDoAction(typeof(ePatternDetected), nameof(Anon_243))]
-        [OnEventDoAction(typeof(eSolutionValidated), nameof(Anon_244))]
+        [OnEntry(nameof(Anon_258))]
+        [OnEventDoAction(typeof(eErrorRecorded), nameof(Anon_259))]
+        [OnEventDoAction(typeof(eErrorDuplicate), nameof(Anon_260))]
+        [OnEventDoAction(typeof(eSolutionSubmitted), nameof(Anon_261))]
+        [OnEventDoAction(typeof(eErrorSolutionLinked), nameof(Anon_262))]
+        [OnEventDoAction(typeof(ePatternDetected), nameof(Anon_263))]
+        [OnEventDoAction(typeof(eSolutionValidated), nameof(Anon_264))]
+        [OnEventDoAction(typeof(eRecordError), nameof(Anon_265))]
+        [OnEventDoAction(typeof(eSubmitSolution), nameof(Anon_266))]
+        [OnEventDoAction(typeof(eLinkErrorToSolution), nameof(Anon_267))]
+        [OnEventDoAction(typeof(ePatternUpdated), nameof(Anon_268))]
         class Monitoring : State
         {
         }
@@ -17842,8 +18114,8 @@ namespace PImplementation
         private PNamedTuple tmpProposalType = (new PNamedTuple(new string[]{"typeName"},((PString)"")));
         private PNamedTuple componentReadyPayload = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
         private PNamedTuple tmpComponentStartPayload = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-        private PNamedTuple createSandboxPayload = (new PNamedTuple(new string[]{"config"},(new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")))));
-        private PNamedTuple tmpRequestDAProofPayload = (new PNamedTuple(new string[]{"recordID"},(new PNamedTuple(new string[]{"value"},((PString)"")))));
+        private PNamedTuple createSandboxPayload = (new PNamedTuple(new string[]{"config","caller"},(new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)""))), null));
+        private PNamedTuple tmpRequestDAProofPayload = (new PNamedTuple(new string[]{"recordID","caller"},(new PNamedTuple(new string[]{"value"},((PString)""))), null));
         public class ConstructorEvent : Event{public ConstructorEvent(IPValue val) : base(val) { }}
         
         protected override Event GetConstructorEvent(IPValue value) { return new ConstructorEvent((IPValue)value); }
@@ -18232,7 +18504,7 @@ namespace PImplementation
             this.creates.Add(nameof(I_ValidationMachine));
         }
         
-        public void Anon_245(Event currentMachine_dequeuedEvent)
+        public void Anon_269(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PMachineValue TMP_tmp0_180 = null;
@@ -18250,44 +18522,44 @@ namespace PImplementation
             PMachineValue TMP_tmp12_66 = null;
             PMachineValue TMP_tmp13_64 = null;
             PString TMP_tmp14_60 = ((PString)"");
-            PMachineValue TMP_tmp15_57 = null;
-            Event TMP_tmp16_56 = null;
+            PMachineValue TMP_tmp15_58 = null;
+            Event TMP_tmp16_57 = null;
             PNamedTuple TMP_tmp17_51 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
             PString TMP_tmp18_49 = ((PString)"");
-            PString TMP_tmp19_45 = ((PString)"");
+            PString TMP_tmp19_46 = ((PString)"");
             PMachineValue TMP_tmp20_45 = null;
             Event TMP_tmp21_43 = null;
-            PNamedTuple TMP_tmp22_40 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp23_39 = ((PString)"");
-            PString TMP_tmp24_36 = ((PString)"");
-            PMachineValue TMP_tmp25_35 = null;
-            Event TMP_tmp26_32 = null;
-            PNamedTuple TMP_tmp27_31 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PNamedTuple TMP_tmp22_41 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp23_40 = ((PString)"");
+            PString TMP_tmp24_37 = ((PString)"");
+            PMachineValue TMP_tmp25_36 = null;
+            Event TMP_tmp26_33 = null;
+            PNamedTuple TMP_tmp27_32 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
             PString TMP_tmp28_31 = ((PString)"");
             PString TMP_tmp29_29 = ((PString)"");
             PMachineValue TMP_tmp30_27 = null;
-            Event TMP_tmp31_25 = null;
-            PNamedTuple TMP_tmp32_22 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp33_22 = ((PString)"");
-            PString TMP_tmp34_21 = ((PString)"");
-            PMachineValue TMP_tmp35_19 = null;
-            Event TMP_tmp36_18 = null;
-            PNamedTuple TMP_tmp37_17 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp38_17 = ((PString)"");
-            PString TMP_tmp39_14 = ((PString)"");
-            PMachineValue TMP_tmp40_13 = null;
-            Event TMP_tmp41_13 = null;
-            PNamedTuple TMP_tmp42_12 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp43_11 = ((PString)"");
-            PString TMP_tmp44_11 = ((PString)"");
-            PMachineValue TMP_tmp45_11 = null;
-            Event TMP_tmp46_10 = null;
-            PNamedTuple TMP_tmp47_10 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp48_10 = ((PString)"");
-            PString TMP_tmp49_10 = ((PString)"");
-            PMachineValue TMP_tmp50_10 = null;
-            Event TMP_tmp51_9 = null;
-            PNamedTuple TMP_tmp52_7 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            Event TMP_tmp31_26 = null;
+            PNamedTuple TMP_tmp32_24 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp33_24 = ((PString)"");
+            PString TMP_tmp34_22 = ((PString)"");
+            PMachineValue TMP_tmp35_21 = null;
+            Event TMP_tmp36_20 = null;
+            PNamedTuple TMP_tmp37_18 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp38_18 = ((PString)"");
+            PString TMP_tmp39_16 = ((PString)"");
+            PMachineValue TMP_tmp40_16 = null;
+            Event TMP_tmp41_16 = null;
+            PNamedTuple TMP_tmp42_14 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp43_13 = ((PString)"");
+            PString TMP_tmp44_13 = ((PString)"");
+            PMachineValue TMP_tmp45_12 = null;
+            Event TMP_tmp46_12 = null;
+            PNamedTuple TMP_tmp47_12 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp48_12 = ((PString)"");
+            PString TMP_tmp49_11 = ((PString)"");
+            PMachineValue TMP_tmp50_11 = null;
+            Event TMP_tmp51_10 = null;
+            PNamedTuple TMP_tmp52_8 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
             PString TMP_tmp53_6 = ((PString)"");
             PString TMP_tmp54_7 = ((PString)"");
             PMachineValue TMP_tmp55_7 = null;
@@ -18295,30 +18567,33 @@ namespace PImplementation
             PNamedTuple TMP_tmp57_6 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
             PString TMP_tmp58_6 = ((PString)"");
             PString TMP_tmp59_6 = ((PString)"");
-            PMachineValue TMP_tmp60_5 = null;
-            Event TMP_tmp61_5 = null;
-            PNamedTuple TMP_tmp62_4 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PMachineValue TMP_tmp60_6 = null;
+            Event TMP_tmp61_6 = null;
+            PNamedTuple TMP_tmp62_5 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
             PString TMP_tmp63_3 = ((PString)"");
             PString TMP_tmp64_3 = ((PString)"");
             PMachineValue TMP_tmp65_3 = null;
-            Event TMP_tmp66_2 = null;
-            PNamedTuple TMP_tmp67_1 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp68_1 = ((PString)"");
-            PString TMP_tmp69_1 = ((PString)"");
-            PMachineValue TMP_tmp70_1 = null;
-            Event TMP_tmp71_1 = null;
-            PNamedTuple TMP_tmp72_1 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp73_1 = ((PString)"");
-            PString TMP_tmp74_1 = ((PString)"");
-            PMachineValue TMP_tmp75_1 = null;
-            Event TMP_tmp76_1 = null;
-            PNamedTuple TMP_tmp77_1 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp78_1 = ((PString)"");
-            PString TMP_tmp79_1 = ((PString)"");
-            PMachineValue TMP_tmp80_1 = null;
-            Event TMP_tmp81_1 = null;
-            PNamedTuple TMP_tmp82 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp83 = ((PString)"");
+            Event TMP_tmp66_3 = null;
+            PNamedTuple TMP_tmp67_2 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PMachineValue TMP_tmp68_2 = null;
+            Event TMP_tmp69_1 = null;
+            PSeq TMP_tmp70_1 = new PSeq();
+            PString TMP_tmp71_1 = ((PString)"");
+            PString TMP_tmp72_1 = ((PString)"");
+            PMachineValue TMP_tmp73_1 = null;
+            Event TMP_tmp74_1 = null;
+            PNamedTuple TMP_tmp75_1 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp76_1 = ((PString)"");
+            PString TMP_tmp77_1 = ((PString)"");
+            PMachineValue TMP_tmp78_1 = null;
+            Event TMP_tmp79_1 = null;
+            PNamedTuple TMP_tmp80_1 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp81_1 = ((PString)"");
+            PString TMP_tmp82 = ((PString)"");
+            PMachineValue TMP_tmp83 = null;
+            Event TMP_tmp84 = null;
+            PNamedTuple TMP_tmp85 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp86 = ((PString)"");
             testPhase = (PInt)(((PInt)(0)));
             testsCompleted = (PInt)(((PInt)(0)));
             testsPassed = (PInt)(((PInt)(0)));
@@ -18353,81 +18628,81 @@ namespace PImplementation
             baseLayer = (PMachineValue)TMP_tmp13_64;
             TMP_tmp14_60 = (PString)(((PString) String.Format("tokenMachine")));
             ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp14_60;
-            TMP_tmp15_57 = (PMachineValue)(((PMachineValue)((IPValue)tokenMachine_5)?.Clone()));
-            TMP_tmp16_56 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp15_58 = (PMachineValue)(((PMachineValue)((IPValue)tokenMachine_5)?.Clone()));
+            TMP_tmp16_57 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
             TMP_tmp17_51 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp16_56.Payload = TMP_tmp17_51;
-            currentMachine.SendEvent(TMP_tmp15_57, (Event)TMP_tmp16_56);
+            TMP_tmp16_57.Payload = TMP_tmp17_51;
+            currentMachine.SendEvent(TMP_tmp15_58, (Event)TMP_tmp16_57);
             TMP_tmp18_49 = (PString)(((PString) String.Format("tokenMachine")));
             ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp18_49;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
-            TMP_tmp19_45 = (PString)(((PString) String.Format("governanceMachine")));
-            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp19_45;
+            TMP_tmp19_46 = (PString)(((PString) String.Format("governanceMachine")));
+            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp19_46;
             TMP_tmp20_45 = (PMachineValue)(((PMachineValue)((IPValue)governanceMachine_1)?.Clone()));
             TMP_tmp21_43 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp22_40 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp21_43.Payload = TMP_tmp22_40;
+            TMP_tmp22_41 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp21_43.Payload = TMP_tmp22_41;
             currentMachine.SendEvent(TMP_tmp20_45, (Event)TMP_tmp21_43);
-            TMP_tmp23_39 = (PString)(((PString) String.Format("governanceMachine")));
-            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp23_39;
+            TMP_tmp23_40 = (PString)(((PString) String.Format("governanceMachine")));
+            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp23_40;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
-            TMP_tmp24_36 = (PString)(((PString) String.Format("economicsMachine")));
-            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp24_36;
-            TMP_tmp25_35 = (PMachineValue)(((PMachineValue)((IPValue)economicsMachine_1)?.Clone()));
-            TMP_tmp26_32 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp27_31 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp26_32.Payload = TMP_tmp27_31;
-            currentMachine.SendEvent(TMP_tmp25_35, (Event)TMP_tmp26_32);
+            TMP_tmp24_37 = (PString)(((PString) String.Format("economicsMachine")));
+            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp24_37;
+            TMP_tmp25_36 = (PMachineValue)(((PMachineValue)((IPValue)economicsMachine_1)?.Clone()));
+            TMP_tmp26_33 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp27_32 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp26_33.Payload = TMP_tmp27_32;
+            currentMachine.SendEvent(TMP_tmp25_36, (Event)TMP_tmp26_33);
             TMP_tmp28_31 = (PString)(((PString) String.Format("economicsMachine")));
             ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp28_31;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
             TMP_tmp29_29 = (PString)(((PString) String.Format("consensusMachine")));
             ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp29_29;
             TMP_tmp30_27 = (PMachineValue)(((PMachineValue)((IPValue)consensusMachine)?.Clone()));
-            TMP_tmp31_25 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp32_22 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp31_25.Payload = TMP_tmp32_22;
-            currentMachine.SendEvent(TMP_tmp30_27, (Event)TMP_tmp31_25);
-            TMP_tmp33_22 = (PString)(((PString) String.Format("consensusMachine")));
-            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp33_22;
+            TMP_tmp31_26 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp32_24 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp31_26.Payload = TMP_tmp32_24;
+            currentMachine.SendEvent(TMP_tmp30_27, (Event)TMP_tmp31_26);
+            TMP_tmp33_24 = (PString)(((PString) String.Format("consensusMachine")));
+            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp33_24;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
-            TMP_tmp34_21 = (PString)(((PString) String.Format("ibcMachine")));
-            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp34_21;
-            TMP_tmp35_19 = (PMachineValue)(((PMachineValue)((IPValue)ibcMachine)?.Clone()));
-            TMP_tmp36_18 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp37_17 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp36_18.Payload = TMP_tmp37_17;
-            currentMachine.SendEvent(TMP_tmp35_19, (Event)TMP_tmp36_18);
-            TMP_tmp38_17 = (PString)(((PString) String.Format("ibcMachine")));
-            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp38_17;
+            TMP_tmp34_22 = (PString)(((PString) String.Format("ibcMachine")));
+            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp34_22;
+            TMP_tmp35_21 = (PMachineValue)(((PMachineValue)((IPValue)ibcMachine)?.Clone()));
+            TMP_tmp36_20 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp37_18 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp36_20.Payload = TMP_tmp37_18;
+            currentMachine.SendEvent(TMP_tmp35_21, (Event)TMP_tmp36_20);
+            TMP_tmp38_18 = (PString)(((PString) String.Format("ibcMachine")));
+            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp38_18;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
-            TMP_tmp39_14 = (PString)(((PString) String.Format("skillRegistry")));
-            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp39_14;
-            TMP_tmp40_13 = (PMachineValue)(((PMachineValue)((IPValue)skillRegistry_1)?.Clone()));
-            TMP_tmp41_13 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp42_12 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp41_13.Payload = TMP_tmp42_12;
-            currentMachine.SendEvent(TMP_tmp40_13, (Event)TMP_tmp41_13);
-            TMP_tmp43_11 = (PString)(((PString) String.Format("skillRegistry")));
-            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp43_11;
+            TMP_tmp39_16 = (PString)(((PString) String.Format("skillRegistry")));
+            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp39_16;
+            TMP_tmp40_16 = (PMachineValue)(((PMachineValue)((IPValue)skillRegistry_1)?.Clone()));
+            TMP_tmp41_16 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp42_14 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp41_16.Payload = TMP_tmp42_14;
+            currentMachine.SendEvent(TMP_tmp40_16, (Event)TMP_tmp41_16);
+            TMP_tmp43_13 = (PString)(((PString) String.Format("skillRegistry")));
+            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp43_13;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
-            TMP_tmp44_11 = (PString)(((PString) String.Format("llmRegistry")));
-            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp44_11;
-            TMP_tmp45_11 = (PMachineValue)(((PMachineValue)((IPValue)llmRegistry)?.Clone()));
-            TMP_tmp46_10 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp47_10 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp46_10.Payload = TMP_tmp47_10;
-            currentMachine.SendEvent(TMP_tmp45_11, (Event)TMP_tmp46_10);
-            TMP_tmp48_10 = (PString)(((PString) String.Format("llmRegistry")));
-            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp48_10;
+            TMP_tmp44_13 = (PString)(((PString) String.Format("llmRegistry")));
+            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp44_13;
+            TMP_tmp45_12 = (PMachineValue)(((PMachineValue)((IPValue)llmRegistry)?.Clone()));
+            TMP_tmp46_12 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp47_12 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp46_12.Payload = TMP_tmp47_12;
+            currentMachine.SendEvent(TMP_tmp45_12, (Event)TMP_tmp46_12);
+            TMP_tmp48_12 = (PString)(((PString) String.Format("llmRegistry")));
+            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp48_12;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
-            TMP_tmp49_10 = (PString)(((PString) String.Format("mcpCapability")));
-            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp49_10;
-            TMP_tmp50_10 = (PMachineValue)(((PMachineValue)((IPValue)mcpCapability_1)?.Clone()));
-            TMP_tmp51_9 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp52_7 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp51_9.Payload = TMP_tmp52_7;
-            currentMachine.SendEvent(TMP_tmp50_10, (Event)TMP_tmp51_9);
+            TMP_tmp49_11 = (PString)(((PString) String.Format("mcpCapability")));
+            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp49_11;
+            TMP_tmp50_11 = (PMachineValue)(((PMachineValue)((IPValue)mcpCapability_1)?.Clone()));
+            TMP_tmp51_10 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp52_8 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp51_10.Payload = TMP_tmp52_8;
+            currentMachine.SendEvent(TMP_tmp50_11, (Event)TMP_tmp51_10);
             TMP_tmp53_6 = (PString)(((PString) String.Format("mcpCapability")));
             ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp53_6;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
@@ -18443,59 +18718,64 @@ namespace PImplementation
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
             TMP_tmp59_6 = (PString)(((PString) String.Format("knowledgeGraph")));
             ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp59_6;
-            TMP_tmp60_5 = (PMachineValue)(((PMachineValue)((IPValue)knowledgeGraph)?.Clone()));
-            TMP_tmp61_5 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp62_4 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp61_5.Payload = TMP_tmp62_4;
-            currentMachine.SendEvent(TMP_tmp60_5, (Event)TMP_tmp61_5);
+            TMP_tmp60_6 = (PMachineValue)(((PMachineValue)((IPValue)knowledgeGraph)?.Clone()));
+            TMP_tmp61_6 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp62_5 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp61_6.Payload = TMP_tmp62_5;
+            currentMachine.SendEvent(TMP_tmp60_6, (Event)TMP_tmp61_6);
             TMP_tmp63_3 = (PString)(((PString) String.Format("knowledgeGraph")));
             ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp63_3;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
             TMP_tmp64_3 = (PString)(((PString) String.Format("p2pNetwork")));
             ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp64_3;
             TMP_tmp65_3 = (PMachineValue)(((PMachineValue)((IPValue)p2pNetwork)?.Clone()));
-            TMP_tmp66_2 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp67_1 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp66_2.Payload = TMP_tmp67_1;
-            currentMachine.SendEvent(TMP_tmp65_3, (Event)TMP_tmp66_2);
-            TMP_tmp68_1 = (PString)(((PString) String.Format("p2pNetwork")));
-            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp68_1;
+            TMP_tmp66_3 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp67_2 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp66_3.Payload = TMP_tmp67_2;
+            currentMachine.SendEvent(TMP_tmp65_3, (Event)TMP_tmp66_3);
+            TMP_tmp68_2 = (PMachineValue)(((PMachineValue)((IPValue)p2pNetwork)?.Clone()));
+            TMP_tmp69_1 = (Event)(new ePeersDiscovered(new PSeq()));
+            TMP_tmp70_1 = (PSeq)(new PSeq());
+            TMP_tmp69_1.Payload = TMP_tmp70_1;
+            currentMachine.SendEvent(TMP_tmp68_2, (Event)TMP_tmp69_1);
+            TMP_tmp71_1 = (PString)(((PString) String.Format("p2pNetwork")));
+            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp71_1;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
-            TMP_tmp69_1 = (PString)(((PString) String.Format("validationMachine")));
-            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp69_1;
-            TMP_tmp70_1 = (PMachineValue)(((PMachineValue)((IPValue)validationMachine)?.Clone()));
-            TMP_tmp71_1 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp72_1 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp71_1.Payload = TMP_tmp72_1;
-            currentMachine.SendEvent(TMP_tmp70_1, (Event)TMP_tmp71_1);
-            TMP_tmp73_1 = (PString)(((PString) String.Format("validationMachine")));
-            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp73_1;
+            TMP_tmp72_1 = (PString)(((PString) String.Format("validationMachine")));
+            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp72_1;
+            TMP_tmp73_1 = (PMachineValue)(((PMachineValue)((IPValue)validationMachine)?.Clone()));
+            TMP_tmp74_1 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp75_1 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp74_1.Payload = TMP_tmp75_1;
+            currentMachine.SendEvent(TMP_tmp73_1, (Event)TMP_tmp74_1);
+            TMP_tmp76_1 = (PString)(((PString) String.Format("validationMachine")));
+            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp76_1;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
-            TMP_tmp74_1 = (PString)(((PString) String.Format("executionSandbox")));
-            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp74_1;
-            TMP_tmp75_1 = (PMachineValue)(((PMachineValue)((IPValue)executionSandbox)?.Clone()));
-            TMP_tmp76_1 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp77_1 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp76_1.Payload = TMP_tmp77_1;
-            currentMachine.SendEvent(TMP_tmp75_1, (Event)TMP_tmp76_1);
-            TMP_tmp78_1 = (PString)(((PString) String.Format("executionSandbox")));
-            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp78_1;
+            TMP_tmp77_1 = (PString)(((PString) String.Format("executionSandbox")));
+            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp77_1;
+            TMP_tmp78_1 = (PMachineValue)(((PMachineValue)((IPValue)executionSandbox)?.Clone()));
+            TMP_tmp79_1 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp80_1 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp79_1.Payload = TMP_tmp80_1;
+            currentMachine.SendEvent(TMP_tmp78_1, (Event)TMP_tmp79_1);
+            TMP_tmp81_1 = (PString)(((PString) String.Format("executionSandbox")));
+            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp81_1;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
-            TMP_tmp79_1 = (PString)(((PString) String.Format("baseLayer")));
-            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp79_1;
-            TMP_tmp80_1 = (PMachineValue)(((PMachineValue)((IPValue)baseLayer)?.Clone()));
-            TMP_tmp81_1 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp82 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
-            TMP_tmp81_1.Payload = TMP_tmp82;
-            currentMachine.SendEvent(TMP_tmp80_1, (Event)TMP_tmp81_1);
-            TMP_tmp83 = (PString)(((PString) String.Format("baseLayer")));
-            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp83;
+            TMP_tmp82 = (PString)(((PString) String.Format("baseLayer")));
+            ((PNamedTuple)tmpComponentStartPayload)["componentName"] = TMP_tmp82;
+            TMP_tmp83 = (PMachineValue)(((PMachineValue)((IPValue)baseLayer)?.Clone()));
+            TMP_tmp84 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp85 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayload)?.Clone()));
+            TMP_tmp84.Payload = TMP_tmp85;
+            currentMachine.SendEvent(TMP_tmp83, (Event)TMP_tmp84);
+            TMP_tmp86 = (PString)(((PString) String.Format("baseLayer")));
+            ((PNamedTuple)componentReadyPayload)["componentName"] = TMP_tmp86;
             currentMachine.Announce((Event)new eComponentReady((new PNamedTuple(new string[]{"componentName"},((PString)"")))), componentReadyPayload);
             currentMachine.Announce((Event)new eNetworkStart(null));
             currentMachine.RaiseGotoStateEvent<TestTokenOperations>();
             return;
         }
-        public void Anon_246(Event currentMachine_dequeuedEvent)
+        public void Anon_270(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PSeq TMP_tmp0_181 = new PSeq();
@@ -18504,25 +18784,27 @@ namespace PImplementation
             PNamedTuple TMP_tmp3_115 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp4_107 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PBool TMP_tmp5_98 = ((PBool)false);
-            PNamedTuple TMP_tmp6_91 = (new PNamedTuple(new string[]{"recipient","amount","authorized"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false)));
+            PMachineValue TMP_tmp6_91 = null;
+            PNamedTuple TMP_tmp7_89 = (new PNamedTuple(new string[]{"recipient","amount","authorized","caller"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false), null));
             testPhase = (PInt)(((PInt)(1)));
             TMP_tmp0_181 = (PSeq)(new PSeq());
             ((PNamedTuple)tmpAddress)["bytes"] = TMP_tmp0_181;
             ((PNamedTuple)tmpAmount)["value"] = (PInt)(((PInt)(1000000000)));
             ((PNamedTuple)tmpAmount)["isNegative"] = (PBool)(((PBool)false));
             TMP_tmp1_138 = (PMachineValue)(((PMachineValue)((IPValue)tokenMachine_5)?.Clone()));
-            TMP_tmp2_128 = (Event)(new eMintRequest((new PNamedTuple(new string[]{"recipient","amount","authorized"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false)))));
+            TMP_tmp2_128 = (Event)(new eMintRequest((new PNamedTuple(new string[]{"recipient","amount","authorized","caller"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false), null))));
             TMP_tmp3_115 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress)?.Clone()));
             TMP_tmp4_107 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAmount)?.Clone()));
             TMP_tmp5_98 = (PBool)(((PBool)true));
-            TMP_tmp6_91 = (PNamedTuple)((new PNamedTuple(new string[]{"recipient","amount","authorized"}, TMP_tmp3_115, TMP_tmp4_107, TMP_tmp5_98)));
-            TMP_tmp2_128.Payload = TMP_tmp6_91;
+            TMP_tmp6_91 = (PMachineValue)(currentMachine.self);
+            TMP_tmp7_89 = (PNamedTuple)((new PNamedTuple(new string[]{"recipient","amount","authorized","caller"}, TMP_tmp3_115, TMP_tmp4_107, TMP_tmp5_98, TMP_tmp6_91)));
+            TMP_tmp2_128.Payload = TMP_tmp7_89;
             currentMachine.SendEvent(TMP_tmp1_138, (Event)TMP_tmp2_128);
         }
-        public void Anon_247(Event currentMachine_dequeuedEvent)
+        public void Anon_271(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
-            PNamedTuple payload_92 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_111 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PBool TMP_tmp0_182 = ((PBool)false);
             PInt TMP_tmp1_139 = ((PInt)0);
@@ -18531,10 +18813,11 @@ namespace PImplementation
             PMachineValue TMP_tmp4_108 = null;
             Event TMP_tmp5_99 = null;
             PNamedTuple TMP_tmp6_92 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp7_89 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PNamedTuple TMP_tmp7_90 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PBool TMP_tmp8_83 = ((PBool)false);
-            PNamedTuple TMP_tmp9_81 = (new PNamedTuple(new string[]{"recipient","amount","authorized"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false)));
-            TMP_tmp0_182 = (PBool)(((PNamedTuple)payload_92)["success"]);
+            PMachineValue TMP_tmp9_81 = null;
+            PNamedTuple TMP_tmp10_72 = (new PNamedTuple(new string[]{"recipient","amount","authorized","caller"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false), null));
+            TMP_tmp0_182 = (PBool)(((PNamedTuple)payload_111)["success"]);
             if (TMP_tmp0_182)
             {
                 TMP_tmp1_139 = (PInt)((testsPassed) + (((PInt)(1))));
@@ -18548,15 +18831,16 @@ namespace PImplementation
             TMP_tmp3_116 = (PInt)((testsCompleted) + (((PInt)(1))));
             testsCompleted = TMP_tmp3_116;
             TMP_tmp4_108 = (PMachineValue)(((PMachineValue)((IPValue)tokenMachine_5)?.Clone()));
-            TMP_tmp5_99 = (Event)(new eMintRequest((new PNamedTuple(new string[]{"recipient","amount","authorized"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false)))));
+            TMP_tmp5_99 = (Event)(new eMintRequest((new PNamedTuple(new string[]{"recipient","amount","authorized","caller"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false), null))));
             TMP_tmp6_92 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress)?.Clone()));
-            TMP_tmp7_89 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAmount)?.Clone()));
+            TMP_tmp7_90 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAmount)?.Clone()));
             TMP_tmp8_83 = (PBool)(((PBool)false));
-            TMP_tmp9_81 = (PNamedTuple)((new PNamedTuple(new string[]{"recipient","amount","authorized"}, TMP_tmp6_92, TMP_tmp7_89, TMP_tmp8_83)));
-            TMP_tmp5_99.Payload = TMP_tmp9_81;
+            TMP_tmp9_81 = (PMachineValue)(currentMachine.self);
+            TMP_tmp10_72 = (PNamedTuple)((new PNamedTuple(new string[]{"recipient","amount","authorized","caller"}, TMP_tmp6_92, TMP_tmp7_90, TMP_tmp8_83, TMP_tmp9_81)));
+            TMP_tmp5_99.Payload = TMP_tmp10_72;
             currentMachine.SendEvent(TMP_tmp4_108, (Event)TMP_tmp5_99);
         }
-        public void Anon_248(Event currentMachine_dequeuedEvent)
+        public void Anon_272(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_183 = ((PInt)0);
@@ -18566,22 +18850,24 @@ namespace PImplementation
             PNamedTuple TMP_tmp4_109 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp5_100 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PNamedTuple TMP_tmp6_93 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
-            PNamedTuple TMP_tmp7_90 = (new PNamedTuple(new string[]{"from","recipient","amount"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))));
+            PMachineValue TMP_tmp7_91 = null;
+            PNamedTuple TMP_tmp8_84 = (new PNamedTuple(new string[]{"from","recipient","amount","caller"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), null));
             TMP_tmp0_183 = (PInt)((testsPassed) + (((PInt)(1))));
             testsPassed = TMP_tmp0_183;
             TMP_tmp1_140 = (PInt)((testsCompleted) + (((PInt)(1))));
             testsCompleted = TMP_tmp1_140;
             ((PNamedTuple)tmpAmount)["value"] = (PInt)(((PInt)(100000000)));
             TMP_tmp2_130 = (PMachineValue)(((PMachineValue)((IPValue)tokenMachine_5)?.Clone()));
-            TMP_tmp3_117 = (Event)(new eTransferRequest((new PNamedTuple(new string[]{"from","recipient","amount"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)))))));
+            TMP_tmp3_117 = (Event)(new eTransferRequest((new PNamedTuple(new string[]{"from","recipient","amount","caller"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), null))));
             TMP_tmp4_109 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress)?.Clone()));
             TMP_tmp5_100 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress)?.Clone()));
             TMP_tmp6_93 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAmount)?.Clone()));
-            TMP_tmp7_90 = (PNamedTuple)((new PNamedTuple(new string[]{"from","recipient","amount"}, TMP_tmp4_109, TMP_tmp5_100, TMP_tmp6_93)));
-            TMP_tmp3_117.Payload = TMP_tmp7_90;
+            TMP_tmp7_91 = (PMachineValue)(currentMachine.self);
+            TMP_tmp8_84 = (PNamedTuple)((new PNamedTuple(new string[]{"from","recipient","amount","caller"}, TMP_tmp4_109, TMP_tmp5_100, TMP_tmp6_93, TMP_tmp7_91)));
+            TMP_tmp3_117.Payload = TMP_tmp8_84;
             currentMachine.SendEvent(TMP_tmp2_130, (Event)TMP_tmp3_117);
         }
-        public void Anon_249(Event currentMachine_dequeuedEvent)
+        public void Anon_273(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_184 = ((PInt)0);
@@ -18593,7 +18879,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestGovernance>();
             return;
         }
-        public void Anon_250(Event currentMachine_dequeuedEvent)
+        public void Anon_274(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_185 = ((PInt)0);
@@ -18602,7 +18888,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestGovernance>();
             return;
         }
-        public void Anon_251(Event currentMachine_dequeuedEvent)
+        public void Anon_275(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PString TMP_tmp0_186 = ((PString)"");
@@ -18612,10 +18898,11 @@ namespace PImplementation
             PNamedTuple TMP_tmp4_110 = (new PNamedTuple(new string[]{"typeName"},((PString)"")));
             PString TMP_tmp5_101 = ((PString)"");
             PString TMP_tmp6_94 = ((PString)"");
-            PNamedTuple TMP_tmp7_91 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp8_84 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PNamedTuple TMP_tmp7_92 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp8_85 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PMap TMP_tmp9_82 = new PMap();
-            PNamedTuple TMP_tmp10_72 = (new PNamedTuple(new string[]{"proposalType","title","description","proposer","deposit","content"},(new PNamedTuple(new string[]{"typeName"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), new PMap()));
+            PMachineValue TMP_tmp10_73 = null;
+            PNamedTuple TMP_tmp11_68 = (new PNamedTuple(new string[]{"proposalType","title","description","proposer","deposit","content","caller"},(new PNamedTuple(new string[]{"typeName"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), new PMap(), null));
             testPhase = (PInt)(((PInt)(2)));
             TMP_tmp0_186 = (PString)(((PString) String.Format("NetworkParameter")));
             ((PNamedTuple)tmpProposalType)["typeName"] = TMP_tmp0_186;
@@ -18624,18 +18911,19 @@ namespace PImplementation
             ((PNamedTuple)tmpAmount)["value"] = (PInt)(((PInt)(100000000)));
             ((PNamedTuple)tmpAmount)["isNegative"] = (PBool)(((PBool)false));
             TMP_tmp2_131 = (PMachineValue)(((PMachineValue)((IPValue)governanceMachine_1)?.Clone()));
-            TMP_tmp3_118 = (Event)(new eCreateProposal((new PNamedTuple(new string[]{"proposalType","title","description","proposer","deposit","content"},(new PNamedTuple(new string[]{"typeName"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), new PMap()))));
+            TMP_tmp3_118 = (Event)(new eCreateProposal((new PNamedTuple(new string[]{"proposalType","title","description","proposer","deposit","content","caller"},(new PNamedTuple(new string[]{"typeName"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), new PMap(), null))));
             TMP_tmp4_110 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpProposalType)?.Clone()));
             TMP_tmp5_101 = (PString)(((PString) String.Format("Test Proposal")));
             TMP_tmp6_94 = (PString)(((PString) String.Format("This is a test proposal")));
-            TMP_tmp7_91 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress)?.Clone()));
-            TMP_tmp8_84 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAmount)?.Clone()));
+            TMP_tmp7_92 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress)?.Clone()));
+            TMP_tmp8_85 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAmount)?.Clone()));
             TMP_tmp9_82 = (PMap)(new PMap());
-            TMP_tmp10_72 = (PNamedTuple)((new PNamedTuple(new string[]{"proposalType","title","description","proposer","deposit","content"}, TMP_tmp4_110, TMP_tmp5_101, TMP_tmp6_94, TMP_tmp7_91, TMP_tmp8_84, TMP_tmp9_82)));
-            TMP_tmp3_118.Payload = TMP_tmp10_72;
+            TMP_tmp10_73 = (PMachineValue)(currentMachine.self);
+            TMP_tmp11_68 = (PNamedTuple)((new PNamedTuple(new string[]{"proposalType","title","description","proposer","deposit","content","caller"}, TMP_tmp4_110, TMP_tmp5_101, TMP_tmp6_94, TMP_tmp7_92, TMP_tmp8_85, TMP_tmp9_82, TMP_tmp10_73)));
+            TMP_tmp3_118.Payload = TMP_tmp11_68;
             currentMachine.SendEvent(TMP_tmp2_131, (Event)TMP_tmp3_118);
         }
-        public void Anon_252(Event currentMachine_dequeuedEvent)
+        public void Anon_276(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_187 = ((PInt)0);
@@ -18647,7 +18935,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestSkillRegistry>();
             return;
         }
-        public void Anon_253(Event currentMachine_dequeuedEvent)
+        public void Anon_277(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_188 = ((PInt)0);
@@ -18659,7 +18947,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestSkillRegistry>();
             return;
         }
-        public void Anon_254(Event currentMachine_dequeuedEvent)
+        public void Anon_278(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PSeq TMP_tmp0_189 = new PSeq();
@@ -18669,23 +18957,25 @@ namespace PImplementation
             PString TMP_tmp4_111 = ((PString)"");
             PNamedTuple TMP_tmp5_102 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
             PString TMP_tmp6_95 = ((PString)"");
-            PMap TMP_tmp7_92 = new PMap();
-            PNamedTuple TMP_tmp8_85 = (new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata"},((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap()));
+            PMap TMP_tmp7_93 = new PMap();
+            PMachineValue TMP_tmp8_86 = null;
+            PNamedTuple TMP_tmp9_83 = (new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata","caller"},((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap(), null));
             testPhase = (PInt)(((PInt)(3)));
             TMP_tmp0_189 = (PSeq)(new PSeq());
             ((PNamedTuple)tmpAddress)["bytes"] = TMP_tmp0_189;
             TMP_tmp1_145 = (PMachineValue)(((PMachineValue)((IPValue)skillRegistry_1)?.Clone()));
-            TMP_tmp2_132 = (Event)(new eRegisterSkill((new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata"},((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap()))));
+            TMP_tmp2_132 = (Event)(new eRegisterSkill((new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata","caller"},((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap(), null))));
             TMP_tmp3_119 = (PString)(((PString) String.Format("TestSkill")));
             TMP_tmp4_111 = (PString)(((PString) String.Format("1.0.0")));
             TMP_tmp5_102 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress)?.Clone()));
             TMP_tmp6_95 = (PString)(((PString) String.Format("lora://test_adapter")));
-            TMP_tmp7_92 = (PMap)(new PMap());
-            TMP_tmp8_85 = (PNamedTuple)((new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata"}, TMP_tmp3_119, TMP_tmp4_111, TMP_tmp5_102, TMP_tmp6_95, TMP_tmp7_92)));
-            TMP_tmp2_132.Payload = TMP_tmp8_85;
+            TMP_tmp7_93 = (PMap)(new PMap());
+            TMP_tmp8_86 = (PMachineValue)(currentMachine.self);
+            TMP_tmp9_83 = (PNamedTuple)((new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata","caller"}, TMP_tmp3_119, TMP_tmp4_111, TMP_tmp5_102, TMP_tmp6_95, TMP_tmp7_93, TMP_tmp8_86)));
+            TMP_tmp2_132.Payload = TMP_tmp9_83;
             currentMachine.SendEvent(TMP_tmp1_145, (Event)TMP_tmp2_132);
         }
-        public void Anon_255(Event currentMachine_dequeuedEvent)
+        public void Anon_279(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_190 = ((PInt)0);
@@ -18697,7 +18987,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestNodeTransformation>();
             return;
         }
-        public void Anon_256(Event currentMachine_dequeuedEvent)
+        public void Anon_280(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_191 = ((PInt)0);
@@ -18706,14 +18996,14 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestNodeTransformation>();
             return;
         }
-        public void Anon_257(Event currentMachine_dequeuedEvent)
+        public void Anon_281(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             testPhase = (PInt)(((PInt)(4)));
             currentMachine.RaiseGotoStateEvent<TestKnowledgeGraph>();
             return;
         }
-        public void Anon_258(Event currentMachine_dequeuedEvent)
+        public void Anon_282(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PMachineValue TMP_tmp0_192 = null;
@@ -18722,19 +19012,21 @@ namespace PImplementation
             PString TMP_tmp3_120 = ((PString)"");
             PString TMP_tmp4_112 = ((PString)"");
             PMap TMP_tmp5_103 = new PMap();
-            PNamedTuple TMP_tmp6_96 = (new PNamedTuple(new string[]{"errorType","errorMessage","stackTrace","context"},((PString)""), ((PString)""), ((PString)""), new PMap()));
+            PMachineValue TMP_tmp6_96 = null;
+            PNamedTuple TMP_tmp7_94 = (new PNamedTuple(new string[]{"errorType","errorMessage","stackTrace","context","caller"},((PString)""), ((PString)""), ((PString)""), new PMap(), null));
             testPhase = (PInt)(((PInt)(5)));
             TMP_tmp0_192 = (PMachineValue)(((PMachineValue)((IPValue)knowledgeGraph)?.Clone()));
-            TMP_tmp1_147 = (Event)(new eRecordError((new PNamedTuple(new string[]{"errorType","errorMessage","stackTrace","context"},((PString)""), ((PString)""), ((PString)""), new PMap()))));
+            TMP_tmp1_147 = (Event)(new eRecordError((new PNamedTuple(new string[]{"errorType","errorMessage","stackTrace","context","caller"},((PString)""), ((PString)""), ((PString)""), new PMap(), null))));
             TMP_tmp2_133 = (PString)(((PString) String.Format("ValidationError")));
             TMP_tmp3_120 = (PString)(((PString) String.Format("at line 42")));
             TMP_tmp4_112 = (PString)(((PString) String.Format("stack trace here")));
             TMP_tmp5_103 = (PMap)(new PMap());
-            TMP_tmp6_96 = (PNamedTuple)((new PNamedTuple(new string[]{"errorType","errorMessage","stackTrace","context"}, TMP_tmp2_133, TMP_tmp3_120, TMP_tmp4_112, TMP_tmp5_103)));
-            TMP_tmp1_147.Payload = TMP_tmp6_96;
+            TMP_tmp6_96 = (PMachineValue)(currentMachine.self);
+            TMP_tmp7_94 = (PNamedTuple)((new PNamedTuple(new string[]{"errorType","errorMessage","stackTrace","context","caller"}, TMP_tmp2_133, TMP_tmp3_120, TMP_tmp4_112, TMP_tmp5_103, TMP_tmp6_96)));
+            TMP_tmp1_147.Payload = TMP_tmp7_94;
             currentMachine.SendEvent(TMP_tmp0_192, (Event)TMP_tmp1_147);
         }
-        public void Anon_259(Event currentMachine_dequeuedEvent)
+        public void Anon_283(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PNamedTuple record_1 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
@@ -18746,11 +19038,12 @@ namespace PImplementation
             PSeq TMP_tmp4_113 = new PSeq();
             PMachineValue TMP_tmp5_104 = null;
             Event TMP_tmp6_97 = null;
-            PNamedTuple TMP_tmp7_93 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PString TMP_tmp8_86 = ((PString)"");
-            PString TMP_tmp9_83 = ((PString)"");
-            PNamedTuple TMP_tmp10_73 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp11_68 = (new PNamedTuple(new string[]{"forError","solutionType","content","author"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq()))));
+            PNamedTuple TMP_tmp7_95 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PString TMP_tmp8_87 = ((PString)"");
+            PString TMP_tmp9_84 = ((PString)"");
+            PNamedTuple TMP_tmp10_74 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PMachineValue TMP_tmp11_69 = null;
+            PNamedTuple TMP_tmp12_67 = (new PNamedTuple(new string[]{"forError","solutionType","content","author","caller"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), null));
             TMP_tmp0_193 = (PNamedTuple)(((PNamedTuple)record_1)["id"]);
             TMP_tmp1_148 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp0_193)?.Clone()));
             tmpRecordedErrorID = TMP_tmp1_148;
@@ -18761,16 +19054,17 @@ namespace PImplementation
             TMP_tmp4_113 = (PSeq)(new PSeq());
             ((PNamedTuple)tmpAddress)["bytes"] = TMP_tmp4_113;
             TMP_tmp5_104 = (PMachineValue)(((PMachineValue)((IPValue)knowledgeGraph)?.Clone()));
-            TMP_tmp6_97 = (Event)(new eSubmitSolution((new PNamedTuple(new string[]{"forError","solutionType","content","author"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq()))))));
-            TMP_tmp7_93 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpRecordedErrorID)?.Clone()));
-            TMP_tmp8_86 = (PString)(((PString) String.Format("CodeFix")));
-            TMP_tmp9_83 = (PString)(((PString) String.Format("Fix the validation logic")));
-            TMP_tmp10_73 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress)?.Clone()));
-            TMP_tmp11_68 = (PNamedTuple)((new PNamedTuple(new string[]{"forError","solutionType","content","author"}, TMP_tmp7_93, TMP_tmp8_86, TMP_tmp9_83, TMP_tmp10_73)));
-            TMP_tmp6_97.Payload = TMP_tmp11_68;
+            TMP_tmp6_97 = (Event)(new eSubmitSolution((new PNamedTuple(new string[]{"forError","solutionType","content","author","caller"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), null))));
+            TMP_tmp7_95 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpRecordedErrorID)?.Clone()));
+            TMP_tmp8_87 = (PString)(((PString) String.Format("CodeFix")));
+            TMP_tmp9_84 = (PString)(((PString) String.Format("Fix the validation logic")));
+            TMP_tmp10_74 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress)?.Clone()));
+            TMP_tmp11_69 = (PMachineValue)(currentMachine.self);
+            TMP_tmp12_67 = (PNamedTuple)((new PNamedTuple(new string[]{"forError","solutionType","content","author","caller"}, TMP_tmp7_95, TMP_tmp8_87, TMP_tmp9_84, TMP_tmp10_74, TMP_tmp11_69)));
+            TMP_tmp6_97.Payload = TMP_tmp12_67;
             currentMachine.SendEvent(TMP_tmp5_104, (Event)TMP_tmp6_97);
         }
-        public void Anon_260(Event currentMachine_dequeuedEvent)
+        public void Anon_284(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_194 = ((PInt)0);
@@ -18782,7 +19076,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestP2PNetwork>();
             return;
         }
-        public void Anon_261(Event currentMachine_dequeuedEvent)
+        public void Anon_285(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_195 = ((PInt)0);
@@ -18791,7 +19085,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestP2PNetwork>();
             return;
         }
-        public void Anon_262(Event currentMachine_dequeuedEvent)
+        public void Anon_286(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PString TMP_tmp0_196 = ((PString)"");
@@ -18801,6 +19095,8 @@ namespace PImplementation
             PMachineValue TMP_tmp4_114 = null;
             Event TMP_tmp5_105 = null;
             PNamedTuple TMP_tmp6_98 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PMachineValue TMP_tmp7_96 = null;
+            PNamedTuple TMP_tmp8_88 = (new PNamedTuple(new string[]{"peer","caller"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), null));
             testPhase = (PInt)(((PInt)(6)));
             TMP_tmp0_196 = (PString)(((PString) String.Format("full")));
             ((PNamedTuple)tmpNodeType_1)["typeName"] = TMP_tmp0_196;
@@ -18816,32 +19112,26 @@ namespace PImplementation
             ((PNamedTuple)((PNamedTuple)tmpTestPeer)["lastSeen"])["milliseconds"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)tmpTestPeer)["reputation"] = (PInt)(((PInt)(80)));
             TMP_tmp4_114 = (PMachineValue)(((PMachineValue)((IPValue)p2pNetwork)?.Clone()));
-            TMP_tmp5_105 = (Event)(new eConnectToPeer((new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)))));
+            TMP_tmp5_105 = (Event)(new eConnectToPeer((new PNamedTuple(new string[]{"peer","caller"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), null))));
             TMP_tmp6_98 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpTestPeer)?.Clone()));
-            TMP_tmp5_105.Payload = TMP_tmp6_98;
+            TMP_tmp7_96 = (PMachineValue)(currentMachine.self);
+            TMP_tmp8_88 = (PNamedTuple)((new PNamedTuple(new string[]{"peer","caller"}, TMP_tmp6_98, TMP_tmp7_96)));
+            TMP_tmp5_105.Payload = TMP_tmp8_88;
             currentMachine.SendEvent(TMP_tmp4_114, (Event)TMP_tmp5_105);
         }
-        public void Anon_263(Event currentMachine_dequeuedEvent)
+        public void Anon_287(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_197 = ((PInt)0);
             PInt TMP_tmp1_151 = ((PInt)0);
-            PString TMP_tmp2_136 = ((PString)"");
-            PString TMP_tmp3_123 = ((PString)"");
-            PSeq TMP_tmp4_115 = new PSeq();
             TMP_tmp0_197 = (PInt)((testsPassed) + (((PInt)(1))));
             testsPassed = TMP_tmp0_197;
             TMP_tmp1_151 = (PInt)((testsCompleted) + (((PInt)(1))));
             testsCompleted = TMP_tmp1_151;
-            TMP_tmp2_136 = (PString)(((PString) String.Format("validator")));
-            ((PNamedTuple)tmpNodeType_1)["typeName"] = TMP_tmp2_136;
-            TMP_tmp3_123 = (PString)(((PString) String.Format("verifier_1")));
-            ((PNamedTuple)tmpNodeID_1)["id"] = TMP_tmp3_123;
-            TMP_tmp4_115 = (PSeq)(new PSeq());
-            ((PNamedTuple)tmpNodeID_1)["publicKey"] = TMP_tmp4_115;
-            ((PNamedTuple)tmpNodeID_1)["nodeType"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNodeType_1)?.Clone()));
+            currentMachine.RaiseGotoStateEvent<TestValidation>();
+            return;
         }
-        public void Anon_264(Event currentMachine_dequeuedEvent)
+        public void Anon_288(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_198 = ((PInt)0);
@@ -18850,46 +19140,48 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestValidation>();
             return;
         }
-        public void Anon_265(Event currentMachine_dequeuedEvent)
+        public void Anon_289(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PString TMP_tmp0_199 = ((PString)"");
             PSeq TMP_tmp1_152 = new PSeq();
-            PMachineValue TMP_tmp2_137 = null;
-            Event TMP_tmp3_124 = null;
-            PNamedTuple TMP_tmp4_116 = (new PNamedTuple(new string[]{"typeName"},((PString)"")));
+            PMachineValue TMP_tmp2_136 = null;
+            Event TMP_tmp3_123 = null;
+            PNamedTuple TMP_tmp4_115 = (new PNamedTuple(new string[]{"typeName"},((PString)"")));
             PMap TMP_tmp5_106 = new PMap();
             PNamedTuple TMP_tmp6_99 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PInt TMP_tmp7_94 = ((PInt)0);
-            PNamedTuple TMP_tmp8_87 = (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)));
-            PNamedTuple TMP_tmp9_84 = (new PNamedTuple(new string[]{"taskType","taskPayload","submitter","priority","deadline"},(new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
+            PInt TMP_tmp7_97 = ((PInt)0);
+            PNamedTuple TMP_tmp8_89 = (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)));
+            PMachineValue TMP_tmp9_85 = null;
+            PNamedTuple TMP_tmp10_75 = (new PNamedTuple(new string[]{"taskType","taskPayload","submitter","priority","deadline","caller"},(new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), null));
             testPhase = (PInt)(((PInt)(7)));
             TMP_tmp0_199 = (PString)(((PString) String.Format("code_execution")));
             ((PNamedTuple)tmpTaskType)["typeName"] = TMP_tmp0_199;
             TMP_tmp1_152 = (PSeq)(new PSeq());
             ((PNamedTuple)tmpAddress)["bytes"] = TMP_tmp1_152;
             ((PNamedTuple)tmpDeadline)["milliseconds"] = (PInt)(((PInt)(300000)));
-            TMP_tmp2_137 = (PMachineValue)(((PMachineValue)((IPValue)validationMachine)?.Clone()));
-            TMP_tmp3_124 = (Event)(new eSubmitValidationTask((new PNamedTuple(new string[]{"taskType","taskPayload","submitter","priority","deadline"},(new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))))));
-            TMP_tmp4_116 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpTaskType)?.Clone()));
+            TMP_tmp2_136 = (PMachineValue)(((PMachineValue)((IPValue)validationMachine)?.Clone()));
+            TMP_tmp3_123 = (Event)(new eSubmitValidationTask((new PNamedTuple(new string[]{"taskType","taskPayload","submitter","priority","deadline","caller"},(new PNamedTuple(new string[]{"typeName"},((PString)""))), new PMap(), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), null))));
+            TMP_tmp4_115 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpTaskType)?.Clone()));
             TMP_tmp5_106 = (PMap)(new PMap());
             TMP_tmp6_99 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress)?.Clone()));
-            TMP_tmp7_94 = (PInt)(((PInt)(5)));
-            TMP_tmp8_87 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpDeadline)?.Clone()));
-            TMP_tmp9_84 = (PNamedTuple)((new PNamedTuple(new string[]{"taskType","taskPayload","submitter","priority","deadline"}, TMP_tmp4_116, TMP_tmp5_106, TMP_tmp6_99, TMP_tmp7_94, TMP_tmp8_87)));
-            TMP_tmp3_124.Payload = TMP_tmp9_84;
-            currentMachine.SendEvent(TMP_tmp2_137, (Event)TMP_tmp3_124);
+            TMP_tmp7_97 = (PInt)(((PInt)(5)));
+            TMP_tmp8_89 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpDeadline)?.Clone()));
+            TMP_tmp9_85 = (PMachineValue)(currentMachine.self);
+            TMP_tmp10_75 = (PNamedTuple)((new PNamedTuple(new string[]{"taskType","taskPayload","submitter","priority","deadline","caller"}, TMP_tmp4_115, TMP_tmp5_106, TMP_tmp6_99, TMP_tmp7_97, TMP_tmp8_89, TMP_tmp9_85)));
+            TMP_tmp3_123.Payload = TMP_tmp10_75;
+            currentMachine.SendEvent(TMP_tmp2_136, (Event)TMP_tmp3_123);
         }
-        public void Anon_266(Event currentMachine_dequeuedEvent)
+        public void Anon_290(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_200 = ((PInt)0);
             PInt TMP_tmp1_153 = ((PInt)0);
-            PSeq TMP_tmp2_138 = new PSeq();
-            PString TMP_tmp3_125 = ((PString)"");
-            PMachineValue TMP_tmp4_117 = null;
+            PSeq TMP_tmp2_137 = new PSeq();
+            PString TMP_tmp3_124 = ((PString)"");
+            PMachineValue TMP_tmp4_116 = null;
             Event TMP_tmp5_107 = null;
-            PNamedTuple TMP_tmp6_100 = (new PNamedTuple(new string[]{"config"},(new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")))));
+            PNamedTuple TMP_tmp6_100 = (new PNamedTuple(new string[]{"config","caller"},(new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)""))), null));
             TMP_tmp0_200 = (PInt)((testsPassed) + (((PInt)(1))));
             testsPassed = TMP_tmp0_200;
             TMP_tmp1_153 = (PInt)((testsCompleted) + (((PInt)(1))));
@@ -18899,18 +19191,19 @@ namespace PImplementation
             ((PNamedTuple)tmpConfig_1)["maxStorage"] = (PInt)(((PInt)(104857600)));
             ((PNamedTuple)tmpConfig_1)["maxNetwork"] = (PInt)(((PInt)(10485760)));
             ((PNamedTuple)tmpConfig_1)["timeout"] = (PInt)(((PInt)(60000)));
-            TMP_tmp2_138 = (PSeq)(new PSeq());
-            ((PNamedTuple)tmpConfig_1)["allowedSyscalls"] = TMP_tmp2_138;
-            TMP_tmp3_125 = (PString)(((PString) String.Format("strict")));
-            ((PNamedTuple)tmpConfig_1)["isolationLevel"] = TMP_tmp3_125;
+            TMP_tmp2_137 = (PSeq)(new PSeq());
+            ((PNamedTuple)tmpConfig_1)["allowedSyscalls"] = TMP_tmp2_137;
+            TMP_tmp3_124 = (PString)(((PString) String.Format("strict")));
+            ((PNamedTuple)tmpConfig_1)["isolationLevel"] = TMP_tmp3_124;
             ((PNamedTuple)createSandboxPayload)["config"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpConfig_1)?.Clone()));
-            TMP_tmp4_117 = (PMachineValue)(((PMachineValue)((IPValue)executionSandbox)?.Clone()));
-            TMP_tmp5_107 = (Event)(new eCreateSandbox((new PNamedTuple(new string[]{"config"},(new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)"")))))));
+            ((PNamedTuple)createSandboxPayload)["caller"] = (PMachineValue)(new PMachineValue(currentMachine.self));
+            TMP_tmp4_116 = (PMachineValue)(((PMachineValue)((IPValue)executionSandbox)?.Clone()));
+            TMP_tmp5_107 = (Event)(new eCreateSandbox((new PNamedTuple(new string[]{"config","caller"},(new PNamedTuple(new string[]{"maxCPU","maxMemory","maxStorage","maxNetwork","timeout","allowedSyscalls","isolationLevel"},((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), ((PInt)0), new PSeq(), ((PString)""))), null))));
             TMP_tmp6_100 = (PNamedTuple)(((PNamedTuple)((IPValue)createSandboxPayload)?.Clone()));
             TMP_tmp5_107.Payload = TMP_tmp6_100;
-            currentMachine.SendEvent(TMP_tmp4_117, (Event)TMP_tmp5_107);
+            currentMachine.SendEvent(TMP_tmp4_116, (Event)TMP_tmp5_107);
         }
-        public void Anon_267(Event currentMachine_dequeuedEvent)
+        public void Anon_291(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_201 = ((PInt)0);
@@ -18922,7 +19215,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestBaseLayer>();
             return;
         }
-        public void Anon_268(Event currentMachine_dequeuedEvent)
+        public void Anon_292(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_202 = ((PInt)0);
@@ -18931,7 +19224,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestBaseLayer>();
             return;
         }
-        public void Anon_269(Event currentMachine_dequeuedEvent)
+        public void Anon_293(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_203 = ((PInt)0);
@@ -18940,52 +19233,55 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestBaseLayer>();
             return;
         }
-        public void Anon_270(Event currentMachine_dequeuedEvent)
+        public void Anon_294(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PMachineValue TMP_tmp0_204 = null;
             Event TMP_tmp1_155 = null;
-            PString TMP_tmp2_139 = ((PString)"");
-            PSeq TMP_tmp3_126 = new PSeq();
-            PNamedTuple TMP_tmp4_118 = (new PNamedTuple(new string[]{"dataType","payload"},((PString)""), new PSeq()));
+            PString TMP_tmp2_138 = ((PString)"");
+            PSeq TMP_tmp3_125 = new PSeq();
+            PMachineValue TMP_tmp4_117 = null;
+            PNamedTuple TMP_tmp5_108 = (new PNamedTuple(new string[]{"dataType","payload","caller"},((PString)""), new PSeq(), null));
             testPhase = (PInt)(((PInt)(8)));
             TMP_tmp0_204 = (PMachineValue)(((PMachineValue)((IPValue)baseLayer)?.Clone()));
-            TMP_tmp1_155 = (Event)(new eStoreData((new PNamedTuple(new string[]{"dataType","payload"},((PString)""), new PSeq()))));
-            TMP_tmp2_139 = (PString)(((PString) String.Format("test_data")));
-            TMP_tmp3_126 = (PSeq)(new PSeq());
-            TMP_tmp4_118 = (PNamedTuple)((new PNamedTuple(new string[]{"dataType","payload"}, TMP_tmp2_139, TMP_tmp3_126)));
-            TMP_tmp1_155.Payload = TMP_tmp4_118;
+            TMP_tmp1_155 = (Event)(new eStoreData((new PNamedTuple(new string[]{"dataType","payload","caller"},((PString)""), new PSeq(), null))));
+            TMP_tmp2_138 = (PString)(((PString) String.Format("test_data")));
+            TMP_tmp3_125 = (PSeq)(new PSeq());
+            TMP_tmp4_117 = (PMachineValue)(currentMachine.self);
+            TMP_tmp5_108 = (PNamedTuple)((new PNamedTuple(new string[]{"dataType","payload","caller"}, TMP_tmp2_138, TMP_tmp3_125, TMP_tmp4_117)));
+            TMP_tmp1_155.Payload = TMP_tmp5_108;
             currentMachine.SendEvent(TMP_tmp0_204, (Event)TMP_tmp1_155);
         }
-        public void Anon_271(Event currentMachine_dequeuedEvent)
+        public void Anon_295(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
-            PNamedTuple payload_93 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
+            PNamedTuple payload_112 = (PNamedTuple)(gotoPayload ?? ((Event)currentMachine_dequeuedEvent).Payload);
             this.gotoPayload = null;
             PNamedTuple TMP_tmp0_205 = (new PNamedTuple(new string[]{"id","dataType","payload","merkleProof","timestamp"},(new PNamedTuple(new string[]{"value"},((PString)""))), ((PString)""), new PSeq(), new PSeq(), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0)))));
             PNamedTuple TMP_tmp1_156 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PNamedTuple TMP_tmp2_140 = (new PNamedTuple(new string[]{"value"},((PString)"")));
-            PInt TMP_tmp3_127 = ((PInt)0);
-            PInt TMP_tmp4_119 = ((PInt)0);
-            PMachineValue TMP_tmp5_108 = null;
+            PNamedTuple TMP_tmp2_139 = (new PNamedTuple(new string[]{"value"},((PString)"")));
+            PInt TMP_tmp3_126 = ((PInt)0);
+            PInt TMP_tmp4_118 = ((PInt)0);
+            PMachineValue TMP_tmp5_109 = null;
             Event TMP_tmp6_101 = null;
-            PNamedTuple TMP_tmp7_95 = (new PNamedTuple(new string[]{"recordID"},(new PNamedTuple(new string[]{"value"},((PString)"")))));
-            TMP_tmp0_205 = (PNamedTuple)(((PNamedTuple)payload_93)["record"]);
+            PNamedTuple TMP_tmp7_98 = (new PNamedTuple(new string[]{"recordID","caller"},(new PNamedTuple(new string[]{"value"},((PString)""))), null));
+            TMP_tmp0_205 = (PNamedTuple)(((PNamedTuple)payload_112)["record"]);
             TMP_tmp1_156 = (PNamedTuple)(((PNamedTuple)TMP_tmp0_205)["id"]);
-            TMP_tmp2_140 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp1_156)?.Clone()));
-            tmpStoredRecordID = TMP_tmp2_140;
-            TMP_tmp3_127 = (PInt)((testsPassed) + (((PInt)(1))));
-            testsPassed = TMP_tmp3_127;
-            TMP_tmp4_119 = (PInt)((testsCompleted) + (((PInt)(1))));
-            testsCompleted = TMP_tmp4_119;
+            TMP_tmp2_139 = (PNamedTuple)(((PNamedTuple)((IPValue)TMP_tmp1_156)?.Clone()));
+            tmpStoredRecordID = TMP_tmp2_139;
+            TMP_tmp3_126 = (PInt)((testsPassed) + (((PInt)(1))));
+            testsPassed = TMP_tmp3_126;
+            TMP_tmp4_118 = (PInt)((testsCompleted) + (((PInt)(1))));
+            testsCompleted = TMP_tmp4_118;
             ((PNamedTuple)tmpRequestDAProofPayload)["recordID"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpStoredRecordID)?.Clone()));
-            TMP_tmp5_108 = (PMachineValue)(((PMachineValue)((IPValue)baseLayer)?.Clone()));
-            TMP_tmp6_101 = (Event)(new eRequestDAProof((new PNamedTuple(new string[]{"recordID"},(new PNamedTuple(new string[]{"value"},((PString)"")))))));
-            TMP_tmp7_95 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpRequestDAProofPayload)?.Clone()));
-            TMP_tmp6_101.Payload = TMP_tmp7_95;
-            currentMachine.SendEvent(TMP_tmp5_108, (Event)TMP_tmp6_101);
+            ((PNamedTuple)tmpRequestDAProofPayload)["caller"] = (PMachineValue)(new PMachineValue(currentMachine.self));
+            TMP_tmp5_109 = (PMachineValue)(((PMachineValue)((IPValue)baseLayer)?.Clone()));
+            TMP_tmp6_101 = (Event)(new eRequestDAProof((new PNamedTuple(new string[]{"recordID","caller"},(new PNamedTuple(new string[]{"value"},((PString)""))), null))));
+            TMP_tmp7_98 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpRequestDAProofPayload)?.Clone()));
+            TMP_tmp6_101.Payload = TMP_tmp7_98;
+            currentMachine.SendEvent(TMP_tmp5_109, (Event)TMP_tmp6_101);
         }
-        public void Anon_272(Event currentMachine_dequeuedEvent)
+        public void Anon_296(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_206 = ((PInt)0);
@@ -18997,7 +19293,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestComplete>();
             return;
         }
-        public void Anon_273(Event currentMachine_dequeuedEvent)
+        public void Anon_297(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_207 = ((PInt)0);
@@ -19006,7 +19302,7 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestComplete>();
             return;
         }
-        public void Anon_274(Event currentMachine_dequeuedEvent)
+        public void Anon_298(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PInt TMP_tmp0_208 = ((PInt)0);
@@ -19015,83 +19311,83 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestComplete>();
             return;
         }
-        public void Anon_275(Event currentMachine_dequeuedEvent)
+        public void Anon_299(Event currentMachine_dequeuedEvent)
         {
             NetworkTestDriver currentMachine = this;
             PString TMP_tmp0_209 = ((PString)"");
             PInt TMP_tmp1_158 = ((PInt)0);
-            PInt TMP_tmp2_141 = ((PInt)0);
-            PString TMP_tmp3_128 = ((PString)"");
-            PBool TMP_tmp4_120 = ((PBool)false);
-            PNamedTuple TMP_tmp5_109 = (new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)));
+            PInt TMP_tmp2_140 = ((PInt)0);
+            PString TMP_tmp3_127 = ((PString)"");
+            PBool TMP_tmp4_119 = ((PBool)false);
+            PNamedTuple TMP_tmp5_110 = (new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)));
             TMP_tmp0_209 = (PString)(((PString) String.Format("NetworkCompositionTest")));
             TMP_tmp1_158 = (PInt)(((PInt)((IPValue)testsPassed)?.Clone()));
-            TMP_tmp2_141 = (PInt)(((PInt)((IPValue)testsCompleted)?.Clone()));
-            TMP_tmp3_128 = (PString)(((PString) String.Format("Full network test completed: {0}/{1} tests passed",TMP_tmp1_158,TMP_tmp2_141)));
-            TMP_tmp4_120 = (PBool)((PValues.SafeEquals(testsFailed,((PInt)(0)))));
-            TMP_tmp5_109 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"}, TMP_tmp0_209, TMP_tmp3_128, TMP_tmp4_120)));
-            currentMachine.Announce((Event)new eMonitorAssertion((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)))), TMP_tmp5_109);
+            TMP_tmp2_140 = (PInt)(((PInt)((IPValue)testsCompleted)?.Clone()));
+            TMP_tmp3_127 = (PString)(((PString) String.Format("Full network test completed: {0}/{1} tests passed",TMP_tmp1_158,TMP_tmp2_140)));
+            TMP_tmp4_119 = (PBool)((PValues.SafeEquals(testsFailed,((PInt)(0)))));
+            TMP_tmp5_110 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"}, TMP_tmp0_209, TMP_tmp3_127, TMP_tmp4_119)));
+            currentMachine.Announce((Event)new eMonitorAssertion((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)))), TMP_tmp5_110);
             currentMachine.Announce((Event)new eNetworkShutdown(null));
         }
         [Start]
-        [OnEntry(nameof(Anon_245))]
+        [OnEntry(nameof(Anon_269))]
         class Init : State
         {
         }
-        [OnEntry(nameof(Anon_246))]
-        [OnEventDoAction(typeof(eMintResponse), nameof(Anon_247))]
-        [OnEventDoAction(typeof(eMintFailed), nameof(Anon_248))]
-        [OnEventDoAction(typeof(eTransferResponse), nameof(Anon_249))]
-        [OnEventDoAction(typeof(eTransferFailed), nameof(Anon_250))]
+        [OnEntry(nameof(Anon_270))]
+        [OnEventDoAction(typeof(eMintResponse), nameof(Anon_271))]
+        [OnEventDoAction(typeof(eMintFailed), nameof(Anon_272))]
+        [OnEventDoAction(typeof(eTransferResponse), nameof(Anon_273))]
+        [OnEventDoAction(typeof(eTransferFailed), nameof(Anon_274))]
         class TestTokenOperations : State
         {
         }
-        [OnEntry(nameof(Anon_251))]
-        [OnEventDoAction(typeof(eProposalCreated), nameof(Anon_252))]
-        [OnEventDoAction(typeof(eProposalCreationFailed), nameof(Anon_253))]
+        [OnEntry(nameof(Anon_275))]
+        [OnEventDoAction(typeof(eProposalCreated), nameof(Anon_276))]
+        [OnEventDoAction(typeof(eProposalCreationFailed), nameof(Anon_277))]
         class TestGovernance : State
         {
         }
-        [OnEntry(nameof(Anon_254))]
-        [OnEventDoAction(typeof(eSkillRegistered), nameof(Anon_255))]
-        [OnEventDoAction(typeof(eSkillRegistrationFailed), nameof(Anon_256))]
+        [OnEntry(nameof(Anon_278))]
+        [OnEventDoAction(typeof(eSkillRegistered), nameof(Anon_279))]
+        [OnEventDoAction(typeof(eSkillRegistrationFailed), nameof(Anon_280))]
         class TestSkillRegistry : State
         {
         }
-        [OnEntry(nameof(Anon_257))]
+        [OnEntry(nameof(Anon_281))]
         class TestNodeTransformation : State
         {
         }
-        [OnEntry(nameof(Anon_258))]
-        [OnEventDoAction(typeof(eErrorRecorded), nameof(Anon_259))]
-        [OnEventDoAction(typeof(eSolutionSubmitted), nameof(Anon_260))]
-        [OnEventDoAction(typeof(eSolutionSubmissionFailed), nameof(Anon_261))]
+        [OnEntry(nameof(Anon_282))]
+        [OnEventDoAction(typeof(eErrorRecorded), nameof(Anon_283))]
+        [OnEventDoAction(typeof(eSolutionSubmitted), nameof(Anon_284))]
+        [OnEventDoAction(typeof(eSolutionSubmissionFailed), nameof(Anon_285))]
         class TestKnowledgeGraph : State
         {
         }
-        [OnEntry(nameof(Anon_262))]
-        [OnEventDoAction(typeof(ePeerConnected), nameof(Anon_263))]
-        [OnEventDoAction(typeof(ePeerConnectionFailed), nameof(Anon_264))]
+        [OnEntry(nameof(Anon_286))]
+        [OnEventDoAction(typeof(ePeerConnected), nameof(Anon_287))]
+        [OnEventDoAction(typeof(ePeerConnectionFailed), nameof(Anon_288))]
         class TestP2PNetwork : State
         {
         }
-        [OnEntry(nameof(Anon_265))]
-        [OnEventDoAction(typeof(eValidationTaskQueued), nameof(Anon_266))]
-        [OnEventDoAction(typeof(eSandboxCreated), nameof(Anon_267))]
-        [OnEventDoAction(typeof(eValidationTaskRejected), nameof(Anon_268))]
-        [OnEventDoAction(typeof(eSandboxCreationFailed), nameof(Anon_269))]
+        [OnEntry(nameof(Anon_289))]
+        [OnEventDoAction(typeof(eValidationTaskQueued), nameof(Anon_290))]
+        [OnEventDoAction(typeof(eSandboxCreated), nameof(Anon_291))]
+        [OnEventDoAction(typeof(eValidationTaskRejected), nameof(Anon_292))]
+        [OnEventDoAction(typeof(eSandboxCreationFailed), nameof(Anon_293))]
         class TestValidation : State
         {
         }
-        [OnEntry(nameof(Anon_270))]
-        [OnEventDoAction(typeof(eDataStored), nameof(Anon_271))]
-        [OnEventDoAction(typeof(eDAProofGenerated), nameof(Anon_272))]
-        [OnEventDoAction(typeof(eDataStorageFailed), nameof(Anon_273))]
-        [OnEventDoAction(typeof(eDAProofFailed), nameof(Anon_274))]
+        [OnEntry(nameof(Anon_294))]
+        [OnEventDoAction(typeof(eDataStored), nameof(Anon_295))]
+        [OnEventDoAction(typeof(eDAProofGenerated), nameof(Anon_296))]
+        [OnEventDoAction(typeof(eDataStorageFailed), nameof(Anon_297))]
+        [OnEventDoAction(typeof(eDAProofFailed), nameof(Anon_298))]
         class TestBaseLayer : State
         {
         }
-        [OnEntry(nameof(Anon_275))]
+        [OnEntry(nameof(Anon_299))]
         class TestComplete : State
         {
         }
@@ -19490,101 +19786,101 @@ namespace PImplementation
             this.creates.Add(nameof(I_TokenMachine));
         }
         
-        public void Anon_276(Event currentMachine_dequeuedEvent)
+        public void Anon_300(Event currentMachine_dequeuedEvent)
         {
             CrossChainFlowDriver currentMachine = this;
             PMachineValue TMP_tmp0_210 = null;
             PMachineValue TMP_tmp1_159 = null;
-            PMachineValue TMP_tmp2_142 = null;
-            PMachineValue TMP_tmp3_129 = null;
-            PMachineValue TMP_tmp4_121 = null;
-            PString TMP_tmp5_110 = ((PString)"");
+            PMachineValue TMP_tmp2_141 = null;
+            PMachineValue TMP_tmp3_128 = null;
+            PMachineValue TMP_tmp4_120 = null;
+            PString TMP_tmp5_111 = ((PString)"");
             PMachineValue TMP_tmp6_102 = null;
-            Event TMP_tmp7_96 = null;
-            PNamedTuple TMP_tmp8_88 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp9_85 = ((PString)"");
-            PMachineValue TMP_tmp10_74 = null;
-            Event TMP_tmp11_69 = null;
-            PNamedTuple TMP_tmp12_67 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            Event TMP_tmp7_99 = null;
+            PNamedTuple TMP_tmp8_90 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp9_86 = ((PString)"");
+            PMachineValue TMP_tmp10_76 = null;
+            Event TMP_tmp11_70 = null;
+            PNamedTuple TMP_tmp12_68 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
             PString TMP_tmp13_65 = ((PString)"");
             PMachineValue TMP_tmp14_61 = null;
-            Event TMP_tmp15_58 = null;
-            PNamedTuple TMP_tmp16_57 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            Event TMP_tmp15_59 = null;
+            PNamedTuple TMP_tmp16_58 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
             PString TMP_tmp17_52 = ((PString)"");
             PMachineValue TMP_tmp18_50 = null;
-            Event TMP_tmp19_46 = null;
+            Event TMP_tmp19_47 = null;
             PNamedTuple TMP_tmp20_46 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
             PString TMP_tmp21_44 = ((PString)"");
-            PMachineValue TMP_tmp22_41 = null;
-            Event TMP_tmp23_40 = null;
-            PNamedTuple TMP_tmp24_37 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PMachineValue TMP_tmp22_42 = null;
+            Event TMP_tmp23_41 = null;
+            PNamedTuple TMP_tmp24_38 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
             TMP_tmp0_210 = (PMachineValue)(currentMachine.CreateInterface<I_NodeTransformationMachine>( currentMachine));
             nodeTransformation_1 = (PMachineValue)TMP_tmp0_210;
             TMP_tmp1_159 = (PMachineValue)(currentMachine.CreateInterface<I_SkillRegistryMachine>( currentMachine));
             skillRegistry_2 = (PMachineValue)TMP_tmp1_159;
-            TMP_tmp2_142 = (PMachineValue)(currentMachine.CreateInterface<I_TokenMachine>( currentMachine));
-            tokenMachine_6 = (PMachineValue)TMP_tmp2_142;
-            TMP_tmp3_129 = (PMachineValue)(currentMachine.CreateInterface<I_IBCMachine>( currentMachine));
-            ibcMachine_1 = (PMachineValue)TMP_tmp3_129;
-            TMP_tmp4_121 = (PMachineValue)(currentMachine.CreateInterface<I_EconomicsMachine>( currentMachine));
-            economicsMachine_2 = (PMachineValue)TMP_tmp4_121;
-            TMP_tmp5_110 = (PString)(((PString) String.Format("nodeTransformation")));
-            ((PNamedTuple)tmpComponentStartPayloadCC)["componentName"] = TMP_tmp5_110;
+            TMP_tmp2_141 = (PMachineValue)(currentMachine.CreateInterface<I_TokenMachine>( currentMachine));
+            tokenMachine_6 = (PMachineValue)TMP_tmp2_141;
+            TMP_tmp3_128 = (PMachineValue)(currentMachine.CreateInterface<I_IBCMachine>( currentMachine));
+            ibcMachine_1 = (PMachineValue)TMP_tmp3_128;
+            TMP_tmp4_120 = (PMachineValue)(currentMachine.CreateInterface<I_EconomicsMachine>( currentMachine));
+            economicsMachine_2 = (PMachineValue)TMP_tmp4_120;
+            TMP_tmp5_111 = (PString)(((PString) String.Format("nodeTransformation")));
+            ((PNamedTuple)tmpComponentStartPayloadCC)["componentName"] = TMP_tmp5_111;
             TMP_tmp6_102 = (PMachineValue)(((PMachineValue)((IPValue)nodeTransformation_1)?.Clone()));
-            TMP_tmp7_96 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp8_88 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadCC)?.Clone()));
-            TMP_tmp7_96.Payload = TMP_tmp8_88;
-            currentMachine.SendEvent(TMP_tmp6_102, (Event)TMP_tmp7_96);
-            TMP_tmp9_85 = (PString)(((PString) String.Format("skillRegistry")));
-            ((PNamedTuple)tmpComponentStartPayloadCC)["componentName"] = TMP_tmp9_85;
-            TMP_tmp10_74 = (PMachineValue)(((PMachineValue)((IPValue)skillRegistry_2)?.Clone()));
-            TMP_tmp11_69 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp12_67 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadCC)?.Clone()));
-            TMP_tmp11_69.Payload = TMP_tmp12_67;
-            currentMachine.SendEvent(TMP_tmp10_74, (Event)TMP_tmp11_69);
+            TMP_tmp7_99 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp8_90 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadCC)?.Clone()));
+            TMP_tmp7_99.Payload = TMP_tmp8_90;
+            currentMachine.SendEvent(TMP_tmp6_102, (Event)TMP_tmp7_99);
+            TMP_tmp9_86 = (PString)(((PString) String.Format("skillRegistry")));
+            ((PNamedTuple)tmpComponentStartPayloadCC)["componentName"] = TMP_tmp9_86;
+            TMP_tmp10_76 = (PMachineValue)(((PMachineValue)((IPValue)skillRegistry_2)?.Clone()));
+            TMP_tmp11_70 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp12_68 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadCC)?.Clone()));
+            TMP_tmp11_70.Payload = TMP_tmp12_68;
+            currentMachine.SendEvent(TMP_tmp10_76, (Event)TMP_tmp11_70);
             TMP_tmp13_65 = (PString)(((PString) String.Format("tokenMachine")));
             ((PNamedTuple)tmpComponentStartPayloadCC)["componentName"] = TMP_tmp13_65;
             TMP_tmp14_61 = (PMachineValue)(((PMachineValue)((IPValue)tokenMachine_6)?.Clone()));
-            TMP_tmp15_58 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp16_57 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadCC)?.Clone()));
-            TMP_tmp15_58.Payload = TMP_tmp16_57;
-            currentMachine.SendEvent(TMP_tmp14_61, (Event)TMP_tmp15_58);
+            TMP_tmp15_59 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp16_58 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadCC)?.Clone()));
+            TMP_tmp15_59.Payload = TMP_tmp16_58;
+            currentMachine.SendEvent(TMP_tmp14_61, (Event)TMP_tmp15_59);
             TMP_tmp17_52 = (PString)(((PString) String.Format("ibcMachine")));
             ((PNamedTuple)tmpComponentStartPayloadCC)["componentName"] = TMP_tmp17_52;
             TMP_tmp18_50 = (PMachineValue)(((PMachineValue)((IPValue)ibcMachine_1)?.Clone()));
-            TMP_tmp19_46 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp19_47 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
             TMP_tmp20_46 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadCC)?.Clone()));
-            TMP_tmp19_46.Payload = TMP_tmp20_46;
-            currentMachine.SendEvent(TMP_tmp18_50, (Event)TMP_tmp19_46);
+            TMP_tmp19_47.Payload = TMP_tmp20_46;
+            currentMachine.SendEvent(TMP_tmp18_50, (Event)TMP_tmp19_47);
             TMP_tmp21_44 = (PString)(((PString) String.Format("economicsMachine")));
             ((PNamedTuple)tmpComponentStartPayloadCC)["componentName"] = TMP_tmp21_44;
-            TMP_tmp22_41 = (PMachineValue)(((PMachineValue)((IPValue)economicsMachine_2)?.Clone()));
-            TMP_tmp23_40 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp24_37 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadCC)?.Clone()));
-            TMP_tmp23_40.Payload = TMP_tmp24_37;
-            currentMachine.SendEvent(TMP_tmp22_41, (Event)TMP_tmp23_40);
+            TMP_tmp22_42 = (PMachineValue)(((PMachineValue)((IPValue)economicsMachine_2)?.Clone()));
+            TMP_tmp23_41 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp24_38 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadCC)?.Clone()));
+            TMP_tmp23_41.Payload = TMP_tmp24_38;
+            currentMachine.SendEvent(TMP_tmp22_42, (Event)TMP_tmp23_41);
             currentMachine.RaiseGotoStateEvent<TestComplete>();
             return;
         }
-        public void Anon_277(Event currentMachine_dequeuedEvent)
+        public void Anon_301(Event currentMachine_dequeuedEvent)
         {
             CrossChainFlowDriver currentMachine = this;
             PString TMP_tmp0_211 = ((PString)"");
             PString TMP_tmp1_160 = ((PString)"");
-            PBool TMP_tmp2_143 = ((PBool)false);
-            PNamedTuple TMP_tmp3_130 = (new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)));
+            PBool TMP_tmp2_142 = ((PBool)false);
+            PNamedTuple TMP_tmp3_129 = (new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)));
             TMP_tmp0_211 = (PString)(((PString) String.Format("CrossChainFlowTest")));
             TMP_tmp1_160 = (PString)(((PString) String.Format("Cross-chain flow test initialized")));
-            TMP_tmp2_143 = (PBool)(((PBool)true));
-            TMP_tmp3_130 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"}, TMP_tmp0_211, TMP_tmp1_160, TMP_tmp2_143)));
-            currentMachine.Announce((Event)new eMonitorAssertion((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)))), TMP_tmp3_130);
+            TMP_tmp2_142 = (PBool)(((PBool)true));
+            TMP_tmp3_129 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"}, TMP_tmp0_211, TMP_tmp1_160, TMP_tmp2_142)));
+            currentMachine.Announce((Event)new eMonitorAssertion((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)))), TMP_tmp3_129);
         }
         [Start]
-        [OnEntry(nameof(Anon_276))]
+        [OnEntry(nameof(Anon_300))]
         class Init : State
         {
         }
-        [OnEntry(nameof(Anon_277))]
+        [OnEntry(nameof(Anon_301))]
         class TestComplete : State
         {
         }
@@ -19979,92 +20275,92 @@ namespace PImplementation
             this.creates.Add(nameof(I_ValidationMachine));
         }
         
-        public void Anon_278(Event currentMachine_dequeuedEvent)
+        public void Anon_302(Event currentMachine_dequeuedEvent)
         {
             ValidationPipelineDriver currentMachine = this;
             PMachineValue TMP_tmp0_212 = null;
             PMachineValue TMP_tmp1_161 = null;
-            PMachineValue TMP_tmp2_144 = null;
-            PString TMP_tmp3_131 = ((PString)"");
-            PMachineValue TMP_tmp4_122 = null;
-            Event TMP_tmp5_111 = null;
+            PMachineValue TMP_tmp2_143 = null;
+            PString TMP_tmp3_130 = ((PString)"");
+            PMachineValue TMP_tmp4_121 = null;
+            Event TMP_tmp5_112 = null;
             PNamedTuple TMP_tmp6_103 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp7_97 = ((PString)"");
-            PMachineValue TMP_tmp8_89 = null;
-            Event TMP_tmp9_86 = null;
-            PNamedTuple TMP_tmp10_75 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp11_70 = ((PString)"");
-            PMachineValue TMP_tmp12_68 = null;
+            PString TMP_tmp7_100 = ((PString)"");
+            PMachineValue TMP_tmp8_91 = null;
+            Event TMP_tmp9_87 = null;
+            PNamedTuple TMP_tmp10_77 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp11_71 = ((PString)"");
+            PMachineValue TMP_tmp12_69 = null;
             Event TMP_tmp13_66 = null;
             PNamedTuple TMP_tmp14_62 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp15_59 = ((PString)"");
-            PString TMP_tmp16_58 = ((PString)"");
+            PString TMP_tmp15_60 = ((PString)"");
+            PString TMP_tmp16_59 = ((PString)"");
             PSeq TMP_tmp17_53 = new PSeq();
             PMachineValue TMP_tmp18_51 = null;
-            Event TMP_tmp19_47 = null;
+            Event TMP_tmp19_48 = null;
             PNamedTuple TMP_tmp20_47 = (new PNamedTuple(new string[]{"validatorID"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))))));
             TMP_tmp0_212 = (PMachineValue)(currentMachine.CreateInterface<I_ValidationMachine>( currentMachine));
             validationMachine_1 = (PMachineValue)TMP_tmp0_212;
             TMP_tmp1_161 = (PMachineValue)(currentMachine.CreateInterface<I_ExecutionSandboxMachine>( currentMachine));
             executionSandbox_1 = (PMachineValue)TMP_tmp1_161;
-            TMP_tmp2_144 = (PMachineValue)(currentMachine.CreateInterface<I_KnowledgeGraphMachine>( currentMachine));
-            knowledgeGraph_1 = (PMachineValue)TMP_tmp2_144;
-            TMP_tmp3_131 = (PString)(((PString) String.Format("validationMachine")));
-            ((PNamedTuple)tmpComponentStartPayloadVP)["componentName"] = TMP_tmp3_131;
-            TMP_tmp4_122 = (PMachineValue)(((PMachineValue)((IPValue)validationMachine_1)?.Clone()));
-            TMP_tmp5_111 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp2_143 = (PMachineValue)(currentMachine.CreateInterface<I_KnowledgeGraphMachine>( currentMachine));
+            knowledgeGraph_1 = (PMachineValue)TMP_tmp2_143;
+            TMP_tmp3_130 = (PString)(((PString) String.Format("validationMachine")));
+            ((PNamedTuple)tmpComponentStartPayloadVP)["componentName"] = TMP_tmp3_130;
+            TMP_tmp4_121 = (PMachineValue)(((PMachineValue)((IPValue)validationMachine_1)?.Clone()));
+            TMP_tmp5_112 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
             TMP_tmp6_103 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadVP)?.Clone()));
-            TMP_tmp5_111.Payload = TMP_tmp6_103;
-            currentMachine.SendEvent(TMP_tmp4_122, (Event)TMP_tmp5_111);
-            TMP_tmp7_97 = (PString)(((PString) String.Format("executionSandbox")));
-            ((PNamedTuple)tmpComponentStartPayloadVP)["componentName"] = TMP_tmp7_97;
-            TMP_tmp8_89 = (PMachineValue)(((PMachineValue)((IPValue)executionSandbox_1)?.Clone()));
-            TMP_tmp9_86 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp10_75 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadVP)?.Clone()));
-            TMP_tmp9_86.Payload = TMP_tmp10_75;
-            currentMachine.SendEvent(TMP_tmp8_89, (Event)TMP_tmp9_86);
-            TMP_tmp11_70 = (PString)(((PString) String.Format("knowledgeGraph")));
-            ((PNamedTuple)tmpComponentStartPayloadVP)["componentName"] = TMP_tmp11_70;
-            TMP_tmp12_68 = (PMachineValue)(((PMachineValue)((IPValue)knowledgeGraph_1)?.Clone()));
+            TMP_tmp5_112.Payload = TMP_tmp6_103;
+            currentMachine.SendEvent(TMP_tmp4_121, (Event)TMP_tmp5_112);
+            TMP_tmp7_100 = (PString)(((PString) String.Format("executionSandbox")));
+            ((PNamedTuple)tmpComponentStartPayloadVP)["componentName"] = TMP_tmp7_100;
+            TMP_tmp8_91 = (PMachineValue)(((PMachineValue)((IPValue)executionSandbox_1)?.Clone()));
+            TMP_tmp9_87 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp10_77 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadVP)?.Clone()));
+            TMP_tmp9_87.Payload = TMP_tmp10_77;
+            currentMachine.SendEvent(TMP_tmp8_91, (Event)TMP_tmp9_87);
+            TMP_tmp11_71 = (PString)(((PString) String.Format("knowledgeGraph")));
+            ((PNamedTuple)tmpComponentStartPayloadVP)["componentName"] = TMP_tmp11_71;
+            TMP_tmp12_69 = (PMachineValue)(((PMachineValue)((IPValue)knowledgeGraph_1)?.Clone()));
             TMP_tmp13_66 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
             TMP_tmp14_62 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadVP)?.Clone()));
             TMP_tmp13_66.Payload = TMP_tmp14_62;
-            currentMachine.SendEvent(TMP_tmp12_68, (Event)TMP_tmp13_66);
-            TMP_tmp15_59 = (PString)(((PString) String.Format("validator")));
-            ((PNamedTuple)tmpNodeType_2)["typeName"] = TMP_tmp15_59;
-            TMP_tmp16_58 = (PString)(((PString) String.Format("validator_1")));
-            ((PNamedTuple)tmpNodeID_2)["id"] = TMP_tmp16_58;
+            currentMachine.SendEvent(TMP_tmp12_69, (Event)TMP_tmp13_66);
+            TMP_tmp15_60 = (PString)(((PString) String.Format("validator")));
+            ((PNamedTuple)tmpNodeType_2)["typeName"] = TMP_tmp15_60;
+            TMP_tmp16_59 = (PString)(((PString) String.Format("validator_1")));
+            ((PNamedTuple)tmpNodeID_2)["id"] = TMP_tmp16_59;
             TMP_tmp17_53 = (PSeq)(new PSeq());
             ((PNamedTuple)tmpNodeID_2)["publicKey"] = TMP_tmp17_53;
             ((PNamedTuple)tmpNodeID_2)["nodeType"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNodeType_2)?.Clone()));
             ((PNamedTuple)tmpValidatorAvailablePayload)["validatorID"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNodeID_2)?.Clone()));
             TMP_tmp18_51 = (PMachineValue)(((PMachineValue)((IPValue)validationMachine_1)?.Clone()));
-            TMP_tmp19_47 = (Event)(new eValidatorAvailable((new PNamedTuple(new string[]{"validatorID"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))))))));
+            TMP_tmp19_48 = (Event)(new eValidatorAvailable((new PNamedTuple(new string[]{"validatorID"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)"")))))))));
             TMP_tmp20_47 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpValidatorAvailablePayload)?.Clone()));
-            TMP_tmp19_47.Payload = TMP_tmp20_47;
-            currentMachine.SendEvent(TMP_tmp18_51, (Event)TMP_tmp19_47);
+            TMP_tmp19_48.Payload = TMP_tmp20_47;
+            currentMachine.SendEvent(TMP_tmp18_51, (Event)TMP_tmp19_48);
             currentMachine.RaiseGotoStateEvent<TestComplete>();
             return;
         }
-        public void Anon_279(Event currentMachine_dequeuedEvent)
+        public void Anon_303(Event currentMachine_dequeuedEvent)
         {
             ValidationPipelineDriver currentMachine = this;
             PString TMP_tmp0_213 = ((PString)"");
             PString TMP_tmp1_162 = ((PString)"");
-            PBool TMP_tmp2_145 = ((PBool)false);
-            PNamedTuple TMP_tmp3_132 = (new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)));
+            PBool TMP_tmp2_144 = ((PBool)false);
+            PNamedTuple TMP_tmp3_131 = (new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)));
             TMP_tmp0_213 = (PString)(((PString) String.Format("ValidationPipelineTest")));
             TMP_tmp1_162 = (PString)(((PString) String.Format("Validation pipeline test initialized")));
-            TMP_tmp2_145 = (PBool)(((PBool)true));
-            TMP_tmp3_132 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"}, TMP_tmp0_213, TMP_tmp1_162, TMP_tmp2_145)));
-            currentMachine.Announce((Event)new eMonitorAssertion((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)))), TMP_tmp3_132);
+            TMP_tmp2_144 = (PBool)(((PBool)true));
+            TMP_tmp3_131 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"}, TMP_tmp0_213, TMP_tmp1_162, TMP_tmp2_144)));
+            currentMachine.Announce((Event)new eMonitorAssertion((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)))), TMP_tmp3_131);
         }
         [Start]
-        [OnEntry(nameof(Anon_278))]
+        [OnEntry(nameof(Anon_302))]
         class Init : State
         {
         }
-        [OnEntry(nameof(Anon_279))]
+        [OnEntry(nameof(Anon_303))]
         class TestComplete : State
         {
         }
@@ -20465,97 +20761,107 @@ namespace PImplementation
             this.creates.Add(nameof(I_TokenMachine));
         }
         
-        public void Anon_280(Event currentMachine_dequeuedEvent)
+        public void Anon_304(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             PMachineValue TMP_tmp0_214 = null;
             PMachineValue TMP_tmp1_163 = null;
-            PMachineValue TMP_tmp2_146 = null;
-            PMachineValue TMP_tmp3_133 = null;
-            PString TMP_tmp4_123 = ((PString)"");
-            PMachineValue TMP_tmp5_112 = null;
+            PMachineValue TMP_tmp2_145 = null;
+            PMachineValue TMP_tmp3_132 = null;
+            PString TMP_tmp4_122 = ((PString)"");
+            PMachineValue TMP_tmp5_113 = null;
             Event TMP_tmp6_104 = null;
-            PNamedTuple TMP_tmp7_98 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp8_90 = ((PString)"");
-            PMachineValue TMP_tmp9_87 = null;
-            Event TMP_tmp10_76 = null;
-            PNamedTuple TMP_tmp11_71 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp12_69 = ((PString)"");
+            PNamedTuple TMP_tmp7_101 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp8_92 = ((PString)"");
+            PMachineValue TMP_tmp9_88 = null;
+            Event TMP_tmp10_78 = null;
+            PNamedTuple TMP_tmp11_72 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp12_70 = ((PString)"");
             PMachineValue TMP_tmp13_67 = null;
             Event TMP_tmp14_63 = null;
-            PNamedTuple TMP_tmp15_60 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
-            PString TMP_tmp16_59 = ((PString)"");
+            PNamedTuple TMP_tmp15_61 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PString TMP_tmp16_60 = ((PString)"");
             PMachineValue TMP_tmp17_54 = null;
             Event TMP_tmp18_52 = null;
-            PNamedTuple TMP_tmp19_48 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PNamedTuple TMP_tmp19_49 = (new PNamedTuple(new string[]{"componentName"},((PString)"")));
+            PMachineValue TMP_tmp20_48 = null;
+            Event TMP_tmp21_45 = null;
+            PSeq TMP_tmp22_43 = new PSeq();
             TMP_tmp0_214 = (PMachineValue)(currentMachine.CreateInterface<I_TokenMachine>( currentMachine));
             tokenMachine_7 = (PMachineValue)TMP_tmp0_214;
             TMP_tmp1_163 = (PMachineValue)(currentMachine.CreateInterface<I_GovernanceMachine>( currentMachine));
             governanceMachine_2 = (PMachineValue)TMP_tmp1_163;
-            TMP_tmp2_146 = (PMachineValue)(currentMachine.CreateInterface<I_SkillRegistryMachine>( currentMachine));
-            skillRegistry_3 = (PMachineValue)TMP_tmp2_146;
-            TMP_tmp3_133 = (PMachineValue)(currentMachine.CreateInterface<I_P2PNetworkMachine>( currentMachine));
-            p2pNetwork_1 = (PMachineValue)TMP_tmp3_133;
-            TMP_tmp4_123 = (PString)(((PString) String.Format("tokenMachine")));
-            ((PNamedTuple)tmpComponentStartPayloadMB)["componentName"] = TMP_tmp4_123;
-            TMP_tmp5_112 = (PMachineValue)(((PMachineValue)((IPValue)tokenMachine_7)?.Clone()));
+            TMP_tmp2_145 = (PMachineValue)(currentMachine.CreateInterface<I_SkillRegistryMachine>( currentMachine));
+            skillRegistry_3 = (PMachineValue)TMP_tmp2_145;
+            TMP_tmp3_132 = (PMachineValue)(currentMachine.CreateInterface<I_P2PNetworkMachine>( currentMachine));
+            p2pNetwork_1 = (PMachineValue)TMP_tmp3_132;
+            TMP_tmp4_122 = (PString)(((PString) String.Format("tokenMachine")));
+            ((PNamedTuple)tmpComponentStartPayloadMB)["componentName"] = TMP_tmp4_122;
+            TMP_tmp5_113 = (PMachineValue)(((PMachineValue)((IPValue)tokenMachine_7)?.Clone()));
             TMP_tmp6_104 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp7_98 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadMB)?.Clone()));
-            TMP_tmp6_104.Payload = TMP_tmp7_98;
-            currentMachine.SendEvent(TMP_tmp5_112, (Event)TMP_tmp6_104);
-            TMP_tmp8_90 = (PString)(((PString) String.Format("governanceMachine")));
-            ((PNamedTuple)tmpComponentStartPayloadMB)["componentName"] = TMP_tmp8_90;
-            TMP_tmp9_87 = (PMachineValue)(((PMachineValue)((IPValue)governanceMachine_2)?.Clone()));
-            TMP_tmp10_76 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp11_71 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadMB)?.Clone()));
-            TMP_tmp10_76.Payload = TMP_tmp11_71;
-            currentMachine.SendEvent(TMP_tmp9_87, (Event)TMP_tmp10_76);
-            TMP_tmp12_69 = (PString)(((PString) String.Format("skillRegistry")));
-            ((PNamedTuple)tmpComponentStartPayloadMB)["componentName"] = TMP_tmp12_69;
+            TMP_tmp7_101 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadMB)?.Clone()));
+            TMP_tmp6_104.Payload = TMP_tmp7_101;
+            currentMachine.SendEvent(TMP_tmp5_113, (Event)TMP_tmp6_104);
+            TMP_tmp8_92 = (PString)(((PString) String.Format("governanceMachine")));
+            ((PNamedTuple)tmpComponentStartPayloadMB)["componentName"] = TMP_tmp8_92;
+            TMP_tmp9_88 = (PMachineValue)(((PMachineValue)((IPValue)governanceMachine_2)?.Clone()));
+            TMP_tmp10_78 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
+            TMP_tmp11_72 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadMB)?.Clone()));
+            TMP_tmp10_78.Payload = TMP_tmp11_72;
+            currentMachine.SendEvent(TMP_tmp9_88, (Event)TMP_tmp10_78);
+            TMP_tmp12_70 = (PString)(((PString) String.Format("skillRegistry")));
+            ((PNamedTuple)tmpComponentStartPayloadMB)["componentName"] = TMP_tmp12_70;
             TMP_tmp13_67 = (PMachineValue)(((PMachineValue)((IPValue)skillRegistry_3)?.Clone()));
             TMP_tmp14_63 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp15_60 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadMB)?.Clone()));
-            TMP_tmp14_63.Payload = TMP_tmp15_60;
+            TMP_tmp15_61 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadMB)?.Clone()));
+            TMP_tmp14_63.Payload = TMP_tmp15_61;
             currentMachine.SendEvent(TMP_tmp13_67, (Event)TMP_tmp14_63);
-            TMP_tmp16_59 = (PString)(((PString) String.Format("p2pNetwork")));
-            ((PNamedTuple)tmpComponentStartPayloadMB)["componentName"] = TMP_tmp16_59;
+            TMP_tmp16_60 = (PString)(((PString) String.Format("p2pNetwork")));
+            ((PNamedTuple)tmpComponentStartPayloadMB)["componentName"] = TMP_tmp16_60;
             TMP_tmp17_54 = (PMachineValue)(((PMachineValue)((IPValue)p2pNetwork_1)?.Clone()));
             TMP_tmp18_52 = (Event)(new eComponentStart((new PNamedTuple(new string[]{"componentName"},((PString)"")))));
-            TMP_tmp19_48 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadMB)?.Clone()));
-            TMP_tmp18_52.Payload = TMP_tmp19_48;
+            TMP_tmp19_49 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpComponentStartPayloadMB)?.Clone()));
+            TMP_tmp18_52.Payload = TMP_tmp19_49;
             currentMachine.SendEvent(TMP_tmp17_54, (Event)TMP_tmp18_52);
+            TMP_tmp20_48 = (PMachineValue)(((PMachineValue)((IPValue)p2pNetwork_1)?.Clone()));
+            TMP_tmp21_45 = (Event)(new ePeersDiscovered(new PSeq()));
+            TMP_tmp22_43 = (PSeq)(new PSeq());
+            TMP_tmp21_45.Payload = TMP_tmp22_43;
+            currentMachine.SendEvent(TMP_tmp20_48, (Event)TMP_tmp21_45);
             maliciousAttempts = (PInt)(((PInt)(0)));
             correctlyRejected = (PInt)(((PInt)(0)));
             currentMachine.RaiseGotoStateEvent<TestUnauthorizedMint>();
             return;
         }
-        public void Anon_281(Event currentMachine_dequeuedEvent)
+        public void Anon_305(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             PInt TMP_tmp0_215 = ((PInt)0);
             PSeq TMP_tmp1_164 = new PSeq();
-            PMachineValue TMP_tmp2_147 = null;
-            Event TMP_tmp3_134 = null;
-            PNamedTuple TMP_tmp4_124 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PNamedTuple TMP_tmp5_113 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
+            PMachineValue TMP_tmp2_146 = null;
+            Event TMP_tmp3_133 = null;
+            PNamedTuple TMP_tmp4_123 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
+            PNamedTuple TMP_tmp5_114 = (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false)));
             PBool TMP_tmp6_105 = ((PBool)false);
-            PNamedTuple TMP_tmp7_99 = (new PNamedTuple(new string[]{"recipient","amount","authorized"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false)));
+            PMachineValue TMP_tmp7_102 = null;
+            PNamedTuple TMP_tmp8_93 = (new PNamedTuple(new string[]{"recipient","amount","authorized","caller"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false), null));
             TMP_tmp0_215 = (PInt)((maliciousAttempts) + (((PInt)(1))));
             maliciousAttempts = TMP_tmp0_215;
             TMP_tmp1_164 = (PSeq)(new PSeq());
             ((PNamedTuple)tmpAddress_1)["bytes"] = TMP_tmp1_164;
             ((PNamedTuple)tmpAmount_1)["value"] = (PInt)(((PInt)(2000000000)));
             ((PNamedTuple)tmpAmount_1)["isNegative"] = (PBool)(((PBool)false));
-            TMP_tmp2_147 = (PMachineValue)(((PMachineValue)((IPValue)tokenMachine_7)?.Clone()));
-            TMP_tmp3_134 = (Event)(new eMintRequest((new PNamedTuple(new string[]{"recipient","amount","authorized"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false)))));
-            TMP_tmp4_124 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress_1)?.Clone()));
-            TMP_tmp5_113 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAmount_1)?.Clone()));
+            TMP_tmp2_146 = (PMachineValue)(((PMachineValue)((IPValue)tokenMachine_7)?.Clone()));
+            TMP_tmp3_133 = (Event)(new eMintRequest((new PNamedTuple(new string[]{"recipient","amount","authorized","caller"},(new PNamedTuple(new string[]{"bytes"},new PSeq())), (new PNamedTuple(new string[]{"value","isNegative"},((PInt)0), ((PBool)false))), ((PBool)false), null))));
+            TMP_tmp4_123 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress_1)?.Clone()));
+            TMP_tmp5_114 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAmount_1)?.Clone()));
             TMP_tmp6_105 = (PBool)(((PBool)false));
-            TMP_tmp7_99 = (PNamedTuple)((new PNamedTuple(new string[]{"recipient","amount","authorized"}, TMP_tmp4_124, TMP_tmp5_113, TMP_tmp6_105)));
-            TMP_tmp3_134.Payload = TMP_tmp7_99;
-            currentMachine.SendEvent(TMP_tmp2_147, (Event)TMP_tmp3_134);
+            TMP_tmp7_102 = (PMachineValue)(currentMachine.self);
+            TMP_tmp8_93 = (PNamedTuple)((new PNamedTuple(new string[]{"recipient","amount","authorized","caller"}, TMP_tmp4_123, TMP_tmp5_114, TMP_tmp6_105, TMP_tmp7_102)));
+            TMP_tmp3_133.Payload = TMP_tmp8_93;
+            currentMachine.SendEvent(TMP_tmp2_146, (Event)TMP_tmp3_133);
         }
-        public void Anon_282(Event currentMachine_dequeuedEvent)
+        public void Anon_306(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             PInt TMP_tmp0_216 = ((PInt)0);
@@ -20564,41 +20870,43 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestInvalidSkill>();
             return;
         }
-        public void Anon_283(Event currentMachine_dequeuedEvent)
+        public void Anon_307(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             currentMachine.RaiseGotoStateEvent<TestFailed>();
             return;
         }
-        public void Anon_284(Event currentMachine_dequeuedEvent)
+        public void Anon_308(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             PInt TMP_tmp0_217 = ((PInt)0);
             PSeq TMP_tmp1_165 = new PSeq();
-            PMachineValue TMP_tmp2_148 = null;
-            Event TMP_tmp3_135 = null;
-            PString TMP_tmp4_125 = ((PString)"");
-            PString TMP_tmp5_114 = ((PString)"");
+            PMachineValue TMP_tmp2_147 = null;
+            Event TMP_tmp3_134 = null;
+            PString TMP_tmp4_124 = ((PString)"");
+            PString TMP_tmp5_115 = ((PString)"");
             PNamedTuple TMP_tmp6_106 = (new PNamedTuple(new string[]{"bytes"},new PSeq()));
-            PString TMP_tmp7_100 = ((PString)"");
-            PMap TMP_tmp8_91 = new PMap();
-            PNamedTuple TMP_tmp9_88 = (new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata"},((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap()));
+            PString TMP_tmp7_103 = ((PString)"");
+            PMap TMP_tmp8_94 = new PMap();
+            PMachineValue TMP_tmp9_89 = null;
+            PNamedTuple TMP_tmp10_79 = (new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata","caller"},((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap(), null));
             TMP_tmp0_217 = (PInt)((maliciousAttempts) + (((PInt)(1))));
             maliciousAttempts = TMP_tmp0_217;
             TMP_tmp1_165 = (PSeq)(new PSeq());
             ((PNamedTuple)tmpAddress_1)["bytes"] = TMP_tmp1_165;
-            TMP_tmp2_148 = (PMachineValue)(((PMachineValue)((IPValue)skillRegistry_3)?.Clone()));
-            TMP_tmp3_135 = (Event)(new eRegisterSkill((new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata"},((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap()))));
-            TMP_tmp4_125 = (PString)(((PString) String.Format("MaliciousSkill")));
-            TMP_tmp5_114 = (PString)(((PString) String.Format("1.0.0")));
+            TMP_tmp2_147 = (PMachineValue)(((PMachineValue)((IPValue)skillRegistry_3)?.Clone()));
+            TMP_tmp3_134 = (Event)(new eRegisterSkill((new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata","caller"},((PString)""), ((PString)""), (new PNamedTuple(new string[]{"bytes"},new PSeq())), ((PString)""), new PMap(), null))));
+            TMP_tmp4_124 = (PString)(((PString) String.Format("MaliciousSkill")));
+            TMP_tmp5_115 = (PString)(((PString) String.Format("1.0.0")));
             TMP_tmp6_106 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpAddress_1)?.Clone()));
-            TMP_tmp7_100 = (PString)(((PString) String.Format("")));
-            TMP_tmp8_91 = (PMap)(new PMap());
-            TMP_tmp9_88 = (PNamedTuple)((new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata"}, TMP_tmp4_125, TMP_tmp5_114, TMP_tmp6_106, TMP_tmp7_100, TMP_tmp8_91)));
-            TMP_tmp3_135.Payload = TMP_tmp9_88;
-            currentMachine.SendEvent(TMP_tmp2_148, (Event)TMP_tmp3_135);
+            TMP_tmp7_103 = (PString)(((PString) String.Format("")));
+            TMP_tmp8_94 = (PMap)(new PMap());
+            TMP_tmp9_89 = (PMachineValue)(currentMachine.self);
+            TMP_tmp10_79 = (PNamedTuple)((new PNamedTuple(new string[]{"name","version","owner","loraPointer","metadata","caller"}, TMP_tmp4_124, TMP_tmp5_115, TMP_tmp6_106, TMP_tmp7_103, TMP_tmp8_94, TMP_tmp9_89)));
+            TMP_tmp3_134.Payload = TMP_tmp10_79;
+            currentMachine.SendEvent(TMP_tmp2_147, (Event)TMP_tmp3_134);
         }
-        public void Anon_285(Event currentMachine_dequeuedEvent)
+        public void Anon_309(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             PInt TMP_tmp0_218 = ((PInt)0);
@@ -20607,45 +20915,49 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestLowReputationPeer>();
             return;
         }
-        public void Anon_286(Event currentMachine_dequeuedEvent)
+        public void Anon_310(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             currentMachine.RaiseGotoStateEvent<TestFailed>();
             return;
         }
-        public void Anon_287(Event currentMachine_dequeuedEvent)
+        public void Anon_311(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             PInt TMP_tmp0_219 = ((PInt)0);
             PString TMP_tmp1_166 = ((PString)"");
-            PString TMP_tmp2_149 = ((PString)"");
-            PSeq TMP_tmp3_136 = new PSeq();
-            PString TMP_tmp4_126 = ((PString)"");
-            PMachineValue TMP_tmp5_115 = null;
+            PString TMP_tmp2_148 = ((PString)"");
+            PSeq TMP_tmp3_135 = new PSeq();
+            PString TMP_tmp4_125 = ((PString)"");
+            PMachineValue TMP_tmp5_116 = null;
             Event TMP_tmp6_107 = null;
-            PNamedTuple TMP_tmp7_101 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PNamedTuple TMP_tmp7_104 = (new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)));
+            PMachineValue TMP_tmp8_95 = null;
+            PNamedTuple TMP_tmp9_90 = (new PNamedTuple(new string[]{"peer","caller"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), null));
             TMP_tmp0_219 = (PInt)((maliciousAttempts) + (((PInt)(1))));
             maliciousAttempts = TMP_tmp0_219;
             TMP_tmp1_166 = (PString)(((PString) String.Format("full")));
             ((PNamedTuple)tmpNodeType_3)["typeName"] = TMP_tmp1_166;
-            TMP_tmp2_149 = (PString)(((PString) String.Format("malicious_peer")));
-            ((PNamedTuple)tmpNodeID_3)["id"] = TMP_tmp2_149;
-            TMP_tmp3_136 = (PSeq)(new PSeq());
-            ((PNamedTuple)tmpNodeID_3)["publicKey"] = TMP_tmp3_136;
+            TMP_tmp2_148 = (PString)(((PString) String.Format("malicious_peer")));
+            ((PNamedTuple)tmpNodeID_3)["id"] = TMP_tmp2_148;
+            TMP_tmp3_135 = (PSeq)(new PSeq());
+            ((PNamedTuple)tmpNodeID_3)["publicKey"] = TMP_tmp3_135;
             ((PNamedTuple)tmpNodeID_3)["nodeType"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNodeType_3)?.Clone()));
             ((PNamedTuple)tmpPeer_1)["nodeID"] = (PNamedTuple)(((PNamedTuple)((IPValue)tmpNodeID_3)?.Clone()));
-            TMP_tmp4_126 = (PString)(((PString) String.Format("192.168.1.666")));
-            ((PNamedTuple)tmpPeer_1)["address"] = TMP_tmp4_126;
+            TMP_tmp4_125 = (PString)(((PString) String.Format("192.168.1.666")));
+            ((PNamedTuple)tmpPeer_1)["address"] = TMP_tmp4_125;
             ((PNamedTuple)tmpPeer_1)["port"] = (PInt)(((PInt)(8080)));
             ((PNamedTuple)((PNamedTuple)tmpPeer_1)["lastSeen"])["milliseconds"] = (PInt)(((PInt)(0)));
             ((PNamedTuple)tmpPeer_1)["reputation"] = (PInt)(((PInt)(10)));
-            TMP_tmp5_115 = (PMachineValue)(((PMachineValue)((IPValue)p2pNetwork_1)?.Clone()));
-            TMP_tmp6_107 = (Event)(new eConnectToPeer((new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0)))));
-            TMP_tmp7_101 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpPeer_1)?.Clone()));
-            TMP_tmp6_107.Payload = TMP_tmp7_101;
-            currentMachine.SendEvent(TMP_tmp5_115, (Event)TMP_tmp6_107);
+            TMP_tmp5_116 = (PMachineValue)(((PMachineValue)((IPValue)p2pNetwork_1)?.Clone()));
+            TMP_tmp6_107 = (Event)(new eConnectToPeer((new PNamedTuple(new string[]{"peer","caller"},(new PNamedTuple(new string[]{"nodeID","address","port","lastSeen","reputation"},(new PNamedTuple(new string[]{"id","publicKey","nodeType"},((PString)""), new PSeq(), (new PNamedTuple(new string[]{"typeName"},((PString)""))))), ((PString)""), ((PInt)0), (new PNamedTuple(new string[]{"milliseconds"},((PInt)0))), ((PInt)0))), null))));
+            TMP_tmp7_104 = (PNamedTuple)(((PNamedTuple)((IPValue)tmpPeer_1)?.Clone()));
+            TMP_tmp8_95 = (PMachineValue)(currentMachine.self);
+            TMP_tmp9_90 = (PNamedTuple)((new PNamedTuple(new string[]{"peer","caller"}, TMP_tmp7_104, TMP_tmp8_95)));
+            TMP_tmp6_107.Payload = TMP_tmp9_90;
+            currentMachine.SendEvent(TMP_tmp5_116, (Event)TMP_tmp6_107);
         }
-        public void Anon_288(Event currentMachine_dequeuedEvent)
+        public void Anon_312(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             PInt TMP_tmp0_220 = ((PInt)0);
@@ -20654,71 +20966,71 @@ namespace PImplementation
             currentMachine.RaiseGotoStateEvent<TestComplete>();
             return;
         }
-        public void Anon_289(Event currentMachine_dequeuedEvent)
+        public void Anon_313(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             currentMachine.RaiseGotoStateEvent<TestFailed>();
             return;
         }
-        public void Anon_290(Event currentMachine_dequeuedEvent)
+        public void Anon_314(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             PBool TMP_tmp0_221 = ((PBool)false);
             PString TMP_tmp1_167 = ((PString)"");
-            PInt TMP_tmp2_150 = ((PInt)0);
-            PString TMP_tmp3_137 = ((PString)"");
-            PBool TMP_tmp4_127 = ((PBool)false);
-            PNamedTuple TMP_tmp5_116 = (new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)));
+            PInt TMP_tmp2_149 = ((PInt)0);
+            PString TMP_tmp3_136 = ((PString)"");
+            PBool TMP_tmp4_126 = ((PBool)false);
+            PNamedTuple TMP_tmp5_117 = (new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)));
             TMP_tmp0_221 = (PBool)((PValues.SafeEquals(maliciousAttempts,correctlyRejected)));
             tmpAllRejected = TMP_tmp0_221;
             TMP_tmp1_167 = (PString)(((PString) String.Format("NetworkMaliciousBehaviorTest")));
-            TMP_tmp2_150 = (PInt)(((PInt)((IPValue)maliciousAttempts)?.Clone()));
-            TMP_tmp3_137 = (PString)(((PString) String.Format("All {0} malicious attempts correctly rejected",TMP_tmp2_150)));
-            TMP_tmp4_127 = (PBool)(((PBool)((IPValue)tmpAllRejected)?.Clone()));
-            TMP_tmp5_116 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"}, TMP_tmp1_167, TMP_tmp3_137, TMP_tmp4_127)));
-            currentMachine.Announce((Event)new eMonitorAssertion((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)))), TMP_tmp5_116);
+            TMP_tmp2_149 = (PInt)(((PInt)((IPValue)maliciousAttempts)?.Clone()));
+            TMP_tmp3_136 = (PString)(((PString) String.Format("All {0} malicious attempts correctly rejected",TMP_tmp2_149)));
+            TMP_tmp4_126 = (PBool)(((PBool)((IPValue)tmpAllRejected)?.Clone()));
+            TMP_tmp5_117 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"}, TMP_tmp1_167, TMP_tmp3_136, TMP_tmp4_126)));
+            currentMachine.Announce((Event)new eMonitorAssertion((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)))), TMP_tmp5_117);
         }
-        public void Anon_291(Event currentMachine_dequeuedEvent)
+        public void Anon_315(Event currentMachine_dequeuedEvent)
         {
             MaliciousBehaviorDriver currentMachine = this;
             PString TMP_tmp0_222 = ((PString)"");
             PString TMP_tmp1_168 = ((PString)"");
-            PBool TMP_tmp2_151 = ((PBool)false);
-            PNamedTuple TMP_tmp3_138 = (new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)));
+            PBool TMP_tmp2_150 = ((PBool)false);
+            PNamedTuple TMP_tmp3_137 = (new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)));
             TMP_tmp0_222 = (PString)(((PString) String.Format("NetworkMaliciousBehaviorTest")));
             TMP_tmp1_168 = (PString)(((PString) String.Format("Malicious operation was incorrectly allowed")));
-            TMP_tmp2_151 = (PBool)(((PBool)false));
-            TMP_tmp3_138 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"}, TMP_tmp0_222, TMP_tmp1_168, TMP_tmp2_151)));
-            currentMachine.Announce((Event)new eMonitorAssertion((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)))), TMP_tmp3_138);
+            TMP_tmp2_150 = (PBool)(((PBool)false));
+            TMP_tmp3_137 = (PNamedTuple)((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"}, TMP_tmp0_222, TMP_tmp1_168, TMP_tmp2_150)));
+            currentMachine.Announce((Event)new eMonitorAssertion((new PNamedTuple(new string[]{"monitorName","assertionMessage","passed"},((PString)""), ((PString)""), ((PBool)false)))), TMP_tmp3_137);
         }
         [Start]
-        [OnEntry(nameof(Anon_280))]
+        [OnEntry(nameof(Anon_304))]
         class Init : State
         {
         }
-        [OnEntry(nameof(Anon_281))]
-        [OnEventDoAction(typeof(eMintFailed), nameof(Anon_282))]
-        [OnEventDoAction(typeof(eMintResponse), nameof(Anon_283))]
+        [OnEntry(nameof(Anon_305))]
+        [OnEventDoAction(typeof(eMintFailed), nameof(Anon_306))]
+        [OnEventDoAction(typeof(eMintResponse), nameof(Anon_307))]
         class TestUnauthorizedMint : State
         {
         }
-        [OnEntry(nameof(Anon_284))]
-        [OnEventDoAction(typeof(eSkillRegistrationFailed), nameof(Anon_285))]
-        [OnEventDoAction(typeof(eSkillRegistered), nameof(Anon_286))]
+        [OnEntry(nameof(Anon_308))]
+        [OnEventDoAction(typeof(eSkillRegistrationFailed), nameof(Anon_309))]
+        [OnEventDoAction(typeof(eSkillRegistered), nameof(Anon_310))]
         class TestInvalidSkill : State
         {
         }
-        [OnEntry(nameof(Anon_287))]
-        [OnEventDoAction(typeof(ePeerConnectionFailed), nameof(Anon_288))]
-        [OnEventDoAction(typeof(ePeerConnected), nameof(Anon_289))]
+        [OnEntry(nameof(Anon_311))]
+        [OnEventDoAction(typeof(ePeerConnectionFailed), nameof(Anon_312))]
+        [OnEventDoAction(typeof(ePeerConnected), nameof(Anon_313))]
         class TestLowReputationPeer : State
         {
         }
-        [OnEntry(nameof(Anon_290))]
+        [OnEntry(nameof(Anon_314))]
         class TestComplete : State
         {
         }
-        [OnEntry(nameof(Anon_291))]
+        [OnEntry(nameof(Anon_315))]
         class TestFailed : State
         {
         }

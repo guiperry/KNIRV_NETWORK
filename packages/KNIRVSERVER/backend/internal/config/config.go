@@ -126,11 +126,11 @@ type GUIConfig struct {
 
 // SecurityConfig represents security configuration
 type SecurityConfig struct {
-	AuthRequired         bool   `mapstructure:"auth_required"`
-	TLSEnabled           bool   `mapstructure:"tls_enabled"`
-	AuditLogging         bool   `mapstructure:"audit_logging"`
-	JWTSecret            string `mapstructure:"jwt_secret"`
-	KeyRotationInterval  int    `mapstructure:"key_rotation_interval"` // in hours
+	AuthRequired        bool   `mapstructure:"auth_required"`
+	TLSEnabled          bool   `mapstructure:"tls_enabled"`
+	AuditLogging        bool   `mapstructure:"audit_logging"`
+	JWTSecret           string `mapstructure:"jwt_secret"`
+	KeyRotationInterval int    `mapstructure:"key_rotation_interval"` // in hours
 }
 
 // RolesConfig represents user roles and permissions configuration
@@ -257,7 +257,8 @@ type LogConfig struct {
 
 // DVEConfig represents DVE (Deterministic Validation Environment) configuration
 type DVEConfig struct {
-	Discovery DVEDiscoveryConfig `mapstructure:"discovery"`
+	Discovery            DVEDiscoveryConfig `mapstructure:"discovery"`
+	EnableChainDiscovery bool               `mapstructure:"enable_chain_discovery"`
 }
 
 // DVEDiscoveryConfig represents DVE discovery configuration
@@ -608,6 +609,7 @@ func setDefaults() {
 	viper.SetDefault("dve.discovery.max_retries", 3)
 	viper.SetDefault("dve.discovery.retry_backoff_duration", "2s")
 	viper.SetDefault("dve.discovery.connection_pool_size", 10)
+	viper.SetDefault("dve.enable_chain_discovery", true)
 
 	// Failover configuration defaults
 	viper.SetDefault("failover.enabled", false)

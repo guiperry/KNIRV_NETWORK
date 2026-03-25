@@ -327,6 +327,20 @@ func (s *Service) SetBlockchainClient(client interface {
 	s.blockchainClient = client
 }
 
+func (s *Service) RegisterObjective(obj *IntentObjective) error {
+	if s.intentRegistry == nil {
+		return fmt.Errorf("intent registry not available")
+	}
+	return s.intentRegistry.RegisterObjective(obj)
+}
+
+func (s *Service) GetObjectiveForAgent(agentID, dveID string) *IntentObjective {
+	if s.intentRegistry == nil {
+		return nil
+	}
+	return s.intentRegistry.GetObjectiveForAgent(agentID, dveID)
+}
+
 func (s *Service) GetHypergraph() *TemporalHypergraph {
 	return s.graphEngine
 }

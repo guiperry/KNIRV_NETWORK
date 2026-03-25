@@ -136,6 +136,8 @@ machine NetworkTestDriver {
 
             tmpComponentStartPayload.componentName = "p2pNetwork";
             send p2pNetwork, eComponentStart, tmpComponentStartPayload;
+            // Trigger peer discovery completion (no peers initially)
+            send p2pNetwork, ePeersDiscovered, default(seq[PeerInfo]);
             componentReadyPayload.componentName = "p2pNetwork";
             announce eComponentReady, componentReadyPayload;
 
@@ -597,6 +599,7 @@ machine MaliciousBehaviorDriver {
             send skillRegistry, eComponentStart, tmpComponentStartPayloadMB;
             tmpComponentStartPayloadMB.componentName = "p2pNetwork";
             send p2pNetwork, eComponentStart, tmpComponentStartPayloadMB;
+            send p2pNetwork, ePeersDiscovered, default(seq[PeerInfo]);
 
             maliciousAttempts = 0;
             correctlyRejected = 0;

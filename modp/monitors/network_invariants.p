@@ -221,6 +221,15 @@ spec TokenEconomicsMonitor observes
         on eUnstaked do (unstakeData: UnstakeData) {
             totalStaked = totalStaked - unstakeData.amount.value;
         }
+
+        // Observe but do not compute on these events
+        on eBurnRequest do (payload: (from: Address, amount: BigInt, caller: machine)) { }
+        on eTransferRequest do (payload: (from: Address, recipient: Address, amount: BigInt, caller: machine)) { }
+        on eTransferResponse do (payload: TransferResponseData) { }
+        on eTransferFailed do (reason: string) { }
+        on eStake do (stakeData: StakeData) { }
+        on eUnstake do (unstakeData: UnstakeData) { }
+        on eRewardsDistributed do (rewards: seq[RewardDistribution]) { }
     }
 }
 
@@ -260,6 +269,25 @@ spec GovernanceProcessMonitor observes
         on eProposalExecuted do (proposalID: string) {
             activeProposalCount = activeProposalCount - 1;
         }
+
+        // Observe but do not compute on these events
+        on eCreateProposal do (payload: (
+            proposalType: ProposalType,
+            title: string,
+            description: string,
+            proposer: Address,
+            deposit: BigInt,
+            content: map[string, any],
+            caller: machine
+        )) { }
+        on eProposalCreationFailed do (reason: string) { }
+        on eCastVote do (payload: (proposalID: string, voter: Address, option: VoteOption, votingPower: BigInt)) { }
+        on eVoteCast do (payload: VoteCastData) { }
+        on eProposalStatusChanged do (payload: (proposalID: string, oldStatus: ProposalStatus, newStatus: ProposalStatus)) { }
+        on eExecuteProposal do (payload: (proposalID: string)) { }
+        on eRegisterRequest do (payload: (user: Address, metadata: map[string, any])) { }
+        on eRegistrationConfirm do (payload: RegistrationConfirmData) { }
+        on eRegistrationFail do (payload: RegistrationFailData) { }
     }
 }
 
@@ -316,6 +344,18 @@ spec ValidationIntegrityMonitor observes
         on eResourceLimitExceeded do (payload: (sandboxID: UUID, resourceType: string, limit: int, actual: int)) {
             resourceViolations = resourceViolations + 1;
         }
+
+        // Observe but do not compute on these events
+        on eSubmitValidationTask do (payload: (
+            taskType: ValidationTaskType,
+            taskPayload: map[string, any],
+            submitter: Address,
+            priority: int,
+            deadline: Timestamp,
+            caller: machine
+        )) { }
+        on eValidationTaskRejected do (payload: (reason: string)) { }
+        on eStartValidation do (payload: (taskID: UUID, validator: NodeID)) { }
     }
 }
 
@@ -369,5 +409,23 @@ spec KnowledgeGraphConsistencyMonitor observes
             // Invariant check: effectiveness should be 0-100
             // Note: Using simple tracking instead of assert to avoid compiler issues
         }
+
+        // Observe but do not compute on these events
+        on eRecordError do (payload: (
+            errorType: string,
+            errorMessage: string,
+            stackTrace: string,
+            context: map[string, any],
+            caller: machine
+        )) { }
+        on eSubmitSolution do (payload: (
+            forError: UUID,
+            solutionType: string,
+            content: string,
+            author: Address,
+            caller: machine
+        )) { }
+        on eLinkErrorToSolution do (payload: (errorID: UUID, solutionID: UUID)) { }
+        on ePatternUpdated do (payload: PatternUpdatedData) { }
     }
 }

@@ -20,17 +20,19 @@ import (
 
 // DVEManager manages DVE nodes and their operations
 type DVEManager struct {
-	db               *database.BuntDBManager
-	p2pManager       *p2p.DVEP2PManager
-	ebpfManager      ebpf.ManagerInterface
-	config           *config.Config
-	nodeTracker      *NodeTracker
-	loadBalancer     *LoadBalancer
-	instanceRegistry *InstanceRegistry
-	lsmIntegration   *ebpf.LSMIntegration
-	ctx              context.Context
-	cancel           context.CancelFunc
-	mu               sync.RWMutex
+	db                   *database.BuntDBManager
+	p2pManager           *p2p.DVEP2PManager
+	ebpfManager          ebpf.ManagerInterface
+	config               *config.Config
+	nodeTracker          *NodeTracker
+	loadBalancer         *LoadBalancer
+	instanceRegistry     *InstanceRegistry
+	lsmIntegration       *ebpf.LSMIntegration
+	chainDiscovery       *ChainNativeNodeDiscovery
+	ctx                  context.Context
+	cancel               context.CancelFunc
+	mu                   sync.RWMutex
+	enableChainDiscovery bool
 }
 
 // NodeTracker tracks the status and health of DVE nodes
@@ -56,6 +58,17 @@ func NewDVEManager(db *database.BuntDBManager, p2pManager *p2p.DVEP2PManager, eb
 		// Continue without remote discovery - instance registry will be nil
 	}
 
+	// Initialize chain-native node discovery (replaces seedDemoDVENodesIfEmpty)
+	var chainDiscovery *ChainNativeNodeDiscovery
+	if cfg.DVE.EnableChainDiscovery {
+		reputationEngine := NewDVEDefaultReputationEngine(db)
+		chainDiscovery = NewChainNativeNodeDiscovery(db, nil, reputationEngine)
+		if err := chainDiscovery.loadCacheFromDatabase(); err != nil {
+			log.Printf("Warning: Failed to load chain discovery cache: %v", err)
+		}
+		log.Println("Chain-native node discovery initialized (production mode)")
+	}
+
 	manager := &DVEManager{
 		db:          db,
 		p2pManager:  p2pManager,
@@ -67,10 +80,12 @@ func NewDVEManager(db *database.BuntDBManager, p2pManager *p2p.DVEP2PManager, eb
 		loadBalancer: &LoadBalancer{
 			algorithm: "reputation_based",
 		},
-		instanceRegistry: instanceRegistry,
-		lsmIntegration:   ebpf.NewLSMIntegration("/var/run/knirv"),
-		ctx:              ctx,
-		cancel:           cancel,
+		instanceRegistry:     instanceRegistry,
+		lsmIntegration:       ebpf.NewLSMIntegration("/var/run/knirv"),
+		chainDiscovery:       chainDiscovery,
+		enableChainDiscovery: cfg.DVE.EnableChainDiscovery,
+		ctx:                  ctx,
+		cancel:               cancel,
 	}
 
 	// Note: API routes are registered with the unified server
@@ -82,6 +97,14 @@ func NewDVEManager(db *database.BuntDBManager, p2pManager *p2p.DVEP2PManager, eb
 	}
 
 	return manager, nil
+}
+
+// SetChainRegistry sets the chain node registry for chain-native discovery
+func (dm *DVEManager) SetChainRegistry(registry ChainNodeRegistry) {
+	if dm.chainDiscovery != nil {
+		dm.chainDiscovery.chainRegistry = registry
+		log.Println("Chain registry connected to DVE Manager")
+	}
 }
 
 // Start starts the DVE Manager service
@@ -188,6 +211,13 @@ func (dm *DVEManager) RegisterNode(req *RegisterNodeRequest) (*objects.DVENode, 
 	if dm.p2pManager != nil {
 		if err := dm.p2pManager.AnnounceNode(node); err != nil {
 			log.Printf("Warning: Failed to announce node to P2P network: %v", err)
+		}
+	}
+
+	// Register with chain-native discovery if available
+	if dm.chainDiscovery != nil {
+		if _, err := dm.chainDiscovery.RegisterNodeFromChain(node, req.StakeAmount); err != nil {
+			log.Printf("Warning: Failed to register node with chain-native discovery: %v", err)
 		}
 	}
 
@@ -408,15 +438,53 @@ func (dm *DVEManager) loadNodesFromDB() error {
 }
 
 // seedDemoDVENodesIfEmpty seeds demo DVE nodes if the database is empty
+// In production mode, this uses chain-native discovery instead of demo nodes
 func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
-	// Check if any nodes exist
 	totalNodes := dm.nodeTracker.GetTotalNodes()
 	if totalNodes > 0 {
-		log.Printf("DVE nodes already exist (%d nodes), skipping demo seed", totalNodes)
+		log.Printf("DVE nodes already exist (%d nodes), skipping node seeding", totalNodes)
 		return nil
 	}
 
-	// Create demo DVE nodes
+	if dm.enableChainDiscovery && dm.chainDiscovery != nil {
+		log.Println("Chain-native discovery enabled: syncing nodes from KNIRVCHAIN registry")
+		nodes := dm.chainDiscovery.GetDiscoveredNodes()
+		if len(nodes) > 0 {
+			for _, chainNode := range nodes {
+				dveNode := &objects.DVENode{
+					ID:              chainNode.NodeID,
+					Name:            fmt.Sprintf("DVE Node %s", chainNode.NodeID[:8]),
+					Status:          chainNode.Status,
+					TEEType:         chainNode.TEEType,
+					StakeAmount:     chainNode.StakeAmount,
+					ReputationScore: chainNode.ReputationScore,
+					Location:        chainNode.Location,
+					Capabilities:    chainNode.Capabilities,
+					LastHeartbeat:   chainNode.LastHeartbeat,
+					CreatedAt:       chainNode.RegisteredAt,
+					UpdatedAt:       time.Now(),
+				}
+				if err := dm.storeNode(dveNode); err != nil {
+					log.Printf("Error storing chain-synced node %s: %v", chainNode.NodeID, err)
+					continue
+				}
+				dm.nodeTracker.AddNode(dveNode)
+				log.Printf("Synced DVE node from chain: %s (TEE: %s, Reputation: %d)",
+					chainNode.NodeID[:12], chainNode.TEEType, chainNode.ReputationScore)
+			}
+			log.Printf("Chain-native discovery: synced %d nodes from KNIRVCHAIN", len(nodes))
+			return nil
+		}
+		log.Println("Chain-native discovery: no nodes found on KNIRVCHAIN registry")
+	}
+
+	if dm.chainDiscovery != nil && dm.chainDiscovery.chainRegistry == nil {
+		log.Println("Chain registry not connected - falling back to local demo nodes")
+	} else if dm.enableChainDiscovery {
+		log.Println("Chain-native discovery active - waiting for P2P node announcements")
+		return nil
+	}
+
 	demoDVENodes := []*RegisterNodeRequest{
 		{
 			Name:         "Demo DVE Node 1 (SGX - US-East)",
@@ -475,7 +543,6 @@ func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
 		},
 	}
 
-	// Register each demo node
 	for _, req := range demoDVENodes {
 		node, err := dm.RegisterNode(req)
 		if err != nil {
