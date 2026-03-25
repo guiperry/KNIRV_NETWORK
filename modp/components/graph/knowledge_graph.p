@@ -114,7 +114,8 @@ machine KnowledgeGraphMachine {
             errorType: string,
             errorMessage: string,
             stackTrace: string,
-            context: map[string, any]
+            context: map[string, any],
+            caller: machine
         )) {
             // Compute error hash for deduplication
             tmpErrorHash.bytes = default(seq[int]);  // Simplified hash
@@ -131,7 +132,7 @@ machine KnowledgeGraphMachine {
                 tmpErrorDuplicateData.existingID = tmpExistingID;
                 tmpErrorDuplicateData.occurrences = tmpExistingRecord.occurrences;
                 announce eErrorDuplicate, tmpErrorDuplicateData;
-                send this, eErrorDuplicate, tmpErrorDuplicateData;
+                send payload.caller, eErrorDuplicate, tmpErrorDuplicateData;
 
                 // Check for pattern
                 CheckForPattern(payload.errorType);
@@ -168,7 +169,7 @@ machine KnowledgeGraphMachine {
             CreateKnowledgeNode(tmpErrorID, "error", payload.context);
 
             announce eErrorRecorded, tmpNewRecord;
-            send this, eErrorRecorded, tmpNewRecord;
+            send payload.caller, eErrorRecorded, tmpNewRecord;
 
             // Check for pattern
             CheckForPattern(payload.errorType);
@@ -182,11 +183,12 @@ machine KnowledgeGraphMachine {
             forError: UUID,
             solutionType: string,
             content: string,
-            author: Address
+            author: Address,
+            caller: machine
         )) {
             // Validate error exists
             if (!(payload.forError in errorRecords)) {
-                send this, eSolutionSubmissionFailed, "Error not found";
+                send payload.caller, eSolutionSubmissionFailed, "Error not found";
                 return;
             }
 
@@ -194,7 +196,7 @@ machine KnowledgeGraphMachine {
             tmpErrorRecord = errorRecords[payload.forError];
 
             if (sizeof(tmpErrorRecord.solutions) >= maxSolutionsPerError) {
-                send this, eSolutionSubmissionFailed, "Maximum solutions reached for this error";
+                send payload.caller, eSolutionSubmissionFailed, "Maximum solutions reached for this error";
                 return;
             }
 
@@ -244,7 +246,7 @@ machine KnowledgeGraphMachine {
             LinkKnowledgeNodes(payload.forError, tmpSolutionID);
 
             announce eSolutionSubmitted, tmpNewSolution;
-            send this, eSolutionSubmitted, tmpNewSolution;
+            send payload.caller, eSolutionSubmitted, tmpNewSolution;
         }
 
         on eValidateSolution do (payload: (

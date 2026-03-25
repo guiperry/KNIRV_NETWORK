@@ -325,7 +325,55 @@ perform_validation() {
         check_failed "Python3 is not installed"
     fi
     echo ""
-    
+
+    # 11. Check modp formal verification prerequisites
+    print_status "Checking modp formal verification prerequisites..."
+
+    # Resolve MODP_DIR: honour env var, else use the repo-relative default
+    local REPO_ROOT
+    REPO_ROOT="$(dirname "$(dirname "$TESTNET_ROOT")")"
+    local MODP_DIR_RESOLVED="${MODP_DIR:-$REPO_ROOT/modp}"
+    if [ ! -d "$MODP_DIR_RESOLVED" ]; then
+        # Try the env-var path relative to TESTNET_ROOT as a fallback
+        MODP_DIR_RESOLVED="$TESTNET_ROOT/$MODP_DIR"
+    fi
+
+    if [ -d "$MODP_DIR_RESOLVED" ]; then
+        check_passed "modp directory found: $MODP_DIR_RESOLVED"
+
+        if [ -f "$MODP_DIR_RESOLVED/KnirvNetwork.pproj" ]; then
+            check_passed "modp project file (KnirvNetwork.pproj) found"
+        else
+            check_failed "modp project file (KnirvNetwork.pproj) missing"
+        fi
+
+        if [ -f "$MODP_DIR_RESOLVED/scripts/run-tests.sh" ]; then
+            check_passed "modp run-tests.sh script found"
+        else
+            check_failed "modp run-tests.sh script missing"
+        fi
+
+        # dotnet is required to run the P compiler
+        if command -v dotnet >/dev/null 2>&1; then
+            check_passed "dotnet runtime found: $(dotnet --version 2>/dev/null)"
+        else
+            check_warning "dotnet runtime not found - modp will run in syntax-validation mode only"
+        fi
+
+        # Check for the P compiler DLL (optional - modp degrades gracefully without it)
+        local P_DLL="$HOME/.p-lang/Bld/Drops/Release/Binaries/net8.0/p.dll"
+        if [ -f "$P_DLL" ]; then
+            check_passed "P language compiler found: $P_DLL"
+        else
+            check_warning "P language compiler (p.dll) not found - modp will run in syntax-validation mode"
+            print_verbose "  Install via: cd $MODP_DIR_RESOLVED && bash scripts/setup.sh"
+        fi
+    else
+        check_warning "modp directory not found at $MODP_DIR_RESOLVED (formal verification unavailable)"
+        print_verbose "  Set MODP_DIR in .env to point to the modp directory"
+    fi
+    echo ""
+
     # Summary
     print_header "📊 VALIDATION SUMMARY"
     print_header "===================="

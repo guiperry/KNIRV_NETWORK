@@ -1,8 +1,8 @@
-This implementation plan outlines the integration of **MLC-LLM** into **KNIRVCHAIN** to enable high-performance, local inference capabilities directly within the node architecture.
+This implementation plan outlines the integration of **MLC-LLM** into **KNIRVCORE** to enable high-performance, local inference capabilities directly within the node architecture.
 
 ### **Executive Summary**
 
-This integration transitions KNIRVCHAIN from a purely storage-focused blockchain to a fully autonomous "Thinking Node." We will adopt a **Sidecar Architecture** where the MLC-LLM engine runs as a dedicated high-performance inference server alongside the existing Go-based KNIRVCHAIN node, communicating via a high-speed local loopback (REST/gRPC).
+This integration transitions KNIRVCORE from a purely storage-focused blockchain to a fully autonomous "Thinking Node." We will adopt a **Sidecar Architecture** where the MLC-LLM engine runs as a dedicated high-performance inference server alongside the existing Go-based KNIRVCORE node, communicating via a high-speed local loopback (REST/gRPC).
 
 This approach preserves the stability of the Go codebase while leveraging MLC-LLM's specialized compilation and hardware acceleration (Vulkan/CUDA/Metal).
 
@@ -16,9 +16,9 @@ We will introduce a new component, `knirv-cortex`, which wraps the MLC-LLM engin
 
 ```mermaid
 graph TD
-    User[Client / MCP Tool] -->|REST/MCP| Node[KNIRVCHAIN Go Node]
+    User[Client / MCP Tool] -->|REST/MCP| Node[KNIRVCORE Go Node]
     
-    subgraph "KNIRVCHAIN Node"
+    subgraph "KNIRVCORE Node"
         Orchestrator[Orchestration Layer]
         MemStore[GLB Memory Store]
         Chain[Blockchain Ledger]
@@ -39,7 +39,7 @@ graph TD
 
 #### **Component Breakdown**
 
-1. **KNIRVCHAIN Node (Go)**: Acts as the "Controller." It retrieves GLB memories, formats the prompt, and manages the user's NRN token balance.
+1. **KNIRVCORE Node (Go)**: Acts as the "Controller." It retrieves GLB memories, formats the prompt, and manages the user's NRN token balance.
 2. **Cortex Sidecar (MLC-LLM)**: Acts as the "Engine." A containerized service running the MLC REST server. It is stateless regarding user data but stateful regarding the KV cache.
 3. **Integration Interface**: The Go node will use a new internal package `pkg/cortex` to communicate with the sidecar using standard OpenAI-compatible schemas.
 
@@ -86,7 +86,7 @@ cortex:
 
 #### **Phase 2: GLB-to-Context Injection**
 
-KNIRVCHAIN's unique value is its GLB (Global Language Block) memory. We must efficiently parse these binary blocks into text implementation the LLM can understand.
+KNIRVCORE's unique value is its GLB (Global Language Block) memory. We must efficiently parse these binary blocks into text implementation the LLM can understand.
 
 **Action Items:**
 
@@ -217,10 +217,10 @@ mcpServer.RegisterTool("generate_insight", func(args map[string]interface{}) (st
 
 ### **4. Performance Optimization Strategy**
 
-To ensure KNIRVCHAIN remains "High-Performance," we will leverage specific MLC-LLM features:
+To ensure KNIRVCORE remains "High-Performance," we will leverage specific MLC-LLM features:
 
 1. **KV Cache Persistence**:
-* Since KNIRVCHAIN represents "Long-Term Memory," the "System Prompt" (which defines the persona and core rules) rarely changes.
+* Since KNIRVCORE represents "Long-Term Memory," the "System Prompt" (which defines the persona and core rules) rarely changes.
 * We will configure MLC-LLM to **cache the system prompt prefix**. This drastically reduces latency for subsequent requests.
 
 

@@ -45,7 +45,7 @@ machine TokenMachine {
 
     state Active {
         // Transfer handling
-        on eTransferRequest do (payload: (from: Address, recipient: Address, amount: BigInt)) {
+        on eTransferRequest do (payload: (from: Address, recipient: Address, amount: BigInt, caller: machine)) {
             var fromBalance: TokenBalance;
             var toBalance: TokenBalance;
 
@@ -66,12 +66,12 @@ machine TokenMachine {
 
             // Check sufficient balance
             if (!transfersEnabled) {
-                send this, eTransferFailed, "Transfers are disabled";
+                send payload.caller, eTransferFailed, "Transfers are disabled";
                 return;
             }
 
             if (fromBalance.available.value < payload.amount.value) {
-                send this, eTransferFailed, "Insufficient balance";
+                send payload.caller, eTransferFailed, "Insufficient balance";
                 return;
             }
 
@@ -99,30 +99,31 @@ machine TokenMachine {
 
             // Announce for monitors
             announce eTransferResponse, tmpResponse;
-            send this, eTransferResponse, tmpResponse;
+            send payload.caller, eTransferResponse, tmpResponse;
         }
 
         // Minting handling
-/*        on eMintRequest do (payload: (recipient: Address, amount: BigInt, authorized: bool)) {
+        on eMintRequest do (payload: (recipient: Address, amount: BigInt, authorized: bool, caller: machine)) {
+            var newSupply: int;
+            var toBalance: TokenBalance;
+
             // Check authorization
             if (!payload.authorized) {
                 announce eMintFailed, "Unauthorized minting attempt";
-                send this, eMintFailed, "Unauthorized minting attempt";
+                send payload.caller, eMintFailed, "Unauthorized minting attempt";
                 return;
             }
 
             // Check max supply
-            var newSupply: int;
             newSupply = totalSupply.value + payload.amount.value;
 
             if (newSupply > maxSupply.value) {
                 announce eMintFailed, "Would exceed max supply";
-                send this, eMintFailed, "Would exceed max supply";
+                send payload.caller, eMintFailed, "Would exceed max supply";
                 return;
             }
 
             // Execute mint
-            var toBalance: TokenBalance;
             if (payload.recipient in balances) {
                 toBalance = balances[payload.recipient];
             } else {
@@ -135,25 +136,23 @@ machine TokenMachine {
             totalSupply.value = newSupply;
 
             // Announce for monitors
-            announce eMintResponse, (true, default(MintReceipt));
-
-            send this, eMintResponse, (true, default(MintReceipt));
+            announce eMintResponse, (success = true, receipt = default(MintReceipt));
+            send payload.caller, eMintResponse, (success = true, receipt = default(MintReceipt));
         }
-*/
 
         // Burning handling
-        on eBurnRequest do (payload: (from: Address, amount: BigInt)) {
+        on eBurnRequest do (payload: (from: Address, amount: BigInt, caller: machine)) {
             var fromBalance: TokenBalance;
 
             if (payload.from in balances) {
                 fromBalance = balances[payload.from];
             } else {
-                send this, eBurnFailed, "No balance to burn";
+                send payload.caller, eBurnFailed, "No balance to burn";
                 return;
             }
 
             if (fromBalance.available.value < payload.amount.value) {
-                send this, eBurnFailed, "Insufficient balance to burn";
+                send payload.caller, eBurnFailed, "Insufficient balance to burn";
                 return;
             }
 
@@ -162,11 +161,11 @@ machine TokenMachine {
             balances[payload.from] = fromBalance;
             totalSupply.value = totalSupply.value - payload.amount.value;
 
-            send this, eBurnResponse, (success = true, amount = payload.amount);
+            send payload.caller, eBurnResponse, (success = true, amount = payload.amount);
         }
 
         // Balance query
-        on eQueryBalance do (payload: (address: Address)) {
+        on eQueryBalance do (payload: (address: Address, caller: machine)) {
             var balance: TokenBalance;
 
             if (payload.address in balances) {
@@ -176,7 +175,7 @@ machine TokenMachine {
                           staked = (value = 0, isNegative = false), locked = (value = 0, isNegative = false));
             }
 
-            send this, eBalanceResponse, balance;
+            send payload.caller, eBalanceResponse, balance;
         }
 
         on eNetworkShutdown do {

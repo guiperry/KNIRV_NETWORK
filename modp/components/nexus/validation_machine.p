@@ -98,12 +98,13 @@ machine ValidationMachine {
             taskPayload: map[string, any],
             submitter: Address,
             priority: int,
-            deadline: Timestamp
+            deadline: Timestamp,
+            caller: machine
         )) {
             // Check queue capacity
             if (sizeof(taskQueue) >= maxQueueSize) {
                 tmpValidationRejectedReason.reason = "Task queue is full";
-            send this, eValidationTaskRejected, tmpValidationRejectedReason;
+                send payload.caller, eValidationTaskRejected, tmpValidationRejectedReason;
                 return;
             }
 
@@ -124,7 +125,7 @@ machine ValidationMachine {
 
             tmpValidationTaskPayload.task = tmpNewTask;
             announce eValidationTaskQueued, tmpValidationTaskPayload;
-            send this, eValidationTaskQueued, tmpValidationTaskPayload;
+            send payload.caller, eValidationTaskQueued, tmpValidationTaskPayload;
 
             // Try to start task immediately if validator available
             TryStartNextTask();

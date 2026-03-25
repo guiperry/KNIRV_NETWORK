@@ -1,7 +1,7 @@
 # KNIRV TESTNET Makefile
 # Unified build and test automation for KNIRV Testnet
 
-.PHONY: help build start stop health test clean validate backup all
+.PHONY: help build start stop health test clean validate backup all modp-compile modp-verify modp-network modp-component test-modp
 .DEFAULT_GOAL := help
 
 # Colors for output
@@ -43,6 +43,13 @@ help: ## Show this help message
 	@echo "  test-cortex      Run CORTEX demos"
 	@echo "  test-integration Run integration tests"
 	@echo "  test-economics   Run economics tests"
+	@echo "  test-modp        Run modp formal verification tests"
+	@echo ""
+	@echo "$(GREEN)Formal Verification:$(NC)"
+	@echo "  modp-compile     Compile P model only"
+	@echo "  modp-verify      Run full formal verification suite"
+	@echo "  modp-network     Run network-wide P model tests"
+	@echo "  modp-component   Run component P model tests"
 	@echo ""
 	@echo "$(GREEN)Maintenance:$(NC)"
 	@echo "  validate         Validate configuration"
@@ -133,6 +140,33 @@ test-economics: ## Run economics tests
 	@echo "$(GREEN)Running economics tests...$(NC)"
 	@$(SCRIPTS_DIR)/test-economics.sh
 
+test-modp: ## Run modp formal verification tests as a testnet test category
+	@echo "$(GREEN)Running modp formal verification tests...$(NC)"
+	@$(SCRIPTS_DIR)/run-tests.sh --category formal-verification --no-start
+
+# modp Formal Verification Targets
+MODP_DIR ?= $(shell cd ../.. && pwd)/modp
+
+modp-compile: ## Compile the P formal model only
+	@echo "$(BLUE)Compiling P model...$(NC)"
+	@test -d "$(MODP_DIR)" || (echo "$(RED)modp directory not found: $(MODP_DIR)$(NC)" && exit 1)
+	@cd "$(MODP_DIR)" && bash scripts/run-tests.sh compile
+
+modp-verify: ## Run full modp formal verification suite
+	@echo "$(GREEN)Running full modp verification...$(NC)"
+	@test -d "$(MODP_DIR)" || (echo "$(RED)modp directory not found: $(MODP_DIR)$(NC)" && exit 1)
+	@cd "$(MODP_DIR)" && bash scripts/run-tests.sh all
+
+modp-network: ## Run network-wide P model tests only
+	@echo "$(GREEN)Running network-wide P model tests...$(NC)"
+	@test -d "$(MODP_DIR)" || (echo "$(RED)modp directory not found: $(MODP_DIR)$(NC)" && exit 1)
+	@cd "$(MODP_DIR)" && bash scripts/run-tests.sh network
+
+modp-component: ## Run component P model tests only
+	@echo "$(GREEN)Running component P model tests...$(NC)"
+	@test -d "$(MODP_DIR)" || (echo "$(RED)modp directory not found: $(MODP_DIR)$(NC)" && exit 1)
+	@cd "$(MODP_DIR)" && bash scripts/run-tests.sh component
+
 # Maintenance Commands
 validate: ## Validate configuration
 	@echo "$(BLUE)Validating configuration...$(NC)"
@@ -154,7 +188,7 @@ logs: ## Show recent logs
 	@tail -n 20 logs/*.log 2>/dev/null || echo "No log files found"
 
 # Combined Operations
-all: build-all start test-all ## Build, start, and test everything
+all: build-all start test-all modp-verify ## Build, start, test everything, and run formal verification
 	@echo "$(GREEN)Complete testnet setup and validation finished!$(NC)"
 
 testnet: start test ## Start testnet and run tests

@@ -56,17 +56,18 @@ machine SkillRegistryMachine {
             version: string,
             owner: Address,
             loraPointer: string,
-            metadata: map[string, any]
+            metadata: map[string, any],
+            caller: machine
         )) {
             // Check if skill name already exists
             if (payload.name in skillsByName) {
-                send this, eSkillRegistrationFailed, "Skill name already registered";
+                send payload.caller, eSkillRegistrationFailed, "Skill name already registered";
                 return;
             }
 
             // Validate LoRA pointer
             if (payload.loraPointer == "") {
-                send this, eSkillRegistrationFailed, "Invalid LoRA pointer";
+                send payload.caller, eSkillRegistrationFailed, "Invalid LoRA pointer";
                 return;
             }
 
@@ -106,7 +107,7 @@ machine SkillRegistryMachine {
             skills[tempSkillID] = tempNewSkill;
 
             announce eSkillRegistered, tempNewSkill;
-            send this, eSkillRegistered, tempNewSkill;
+            send payload.caller, eSkillRegistered, tempNewSkill;
         }
 
         // Skill update

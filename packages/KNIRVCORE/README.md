@@ -1,6 +1,6 @@
-# KNIRVCHAIN
+# KNIRVCORE
 
-**KNIRVCHAIN** is a specialized, private blockchain designed to function as a persistent "Long-Term Memory" (LTM) for Large Language Models. By leveraging the **Model Context Protocol (MCP)**, it allows any compatible LLM to read from and write to a secure, immutable ledger of user experiences, facts, and insights.
+**KNIRVCORE** is a specialized, private blockchain designed to function as a persistent "Long-Term Memory" (LTM) for Large Language Models. By leveraging the **Model Context Protocol (MCP)**, it allows any compatible LLM to read from and write to a secure, immutable ledger of user experiences, facts, and insights.
 
 ## 🚀 Key Features
 
@@ -27,7 +27,7 @@
 
 ## 🏗️ Architecture
 
-KNIRVCHAIN consists of three primary layers:
+KNIRVCORE consists of three primary layers:
 
 ### Interface Layer (MCP Server)
 - REST API endpoints for memory operations
@@ -68,7 +68,7 @@ make deps
 
 ## ⚙️ Configuration
 
-KNIRVCHAIN uses YAML configuration files. Copy and modify the example config:
+KNIRVCORE uses YAML configuration files. Copy and modify the example config:
 
 ```bash
 cp config.yaml config.local.yaml
@@ -287,7 +287,7 @@ spec:
 ### Project Structure
 
 ```
-KNIRVCHAIN/
+KNIRVCORE/
 ├── cmd/node/           # Application entry points
 ├── internal/           # Private application code
 │   ├── blockchain/     # Core blockchain logic
@@ -389,7 +389,7 @@ make mocks
 
 ### Metrics
 
-KNIRVCHAIN exposes Prometheus metrics at `/metrics`:
+KNIRVCORE exposes Prometheus metrics at `/metrics`:
 
 - `knirvbase_blocks_committed_total`
 - `knirvbase_memory_store_ops_total`
@@ -424,15 +424,15 @@ OpenTelemetry integration with Jaeger support for distributed tracing.
 
 ## 🌐 Ecosystem
 
-- **KNIRVANA**: Gaming platform integration
+- **KNIRVARENA**: Gaming platform integration
 - **KNIRVGRAPH**: Knowledge graph visualization
-- **KNIRVCHAIN**: Private LoRA Blockchain MCP Server
+- **KNIRVCORE**: Private LoRA Blockchain MCP Server
 - **KNIRVSERVER**: Model hosting gateway
 - **KNIRVCLI**: Command-line tools
 
 ## 📚 Documentation
 
-- [Solution Design Document](./docs/KNIRVCHAIN_SDD.md)
+- [Solution Design Document](./docs/KNIRVCORE_SDD.md)
 - [API Reference](./docs/api.md)
 - [Deployment Guide](./docs/deployment.md)
 - [Contributing Guide](./CONTRIBUTING.md)

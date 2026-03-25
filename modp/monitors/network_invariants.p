@@ -32,6 +32,27 @@ spec NetworkIntegrityMonitor observes
         on eNetworkStart do {
             goto Running;
         }
+
+        // Components may start before eNetworkStart arrives; track them here.
+        on eComponentStart do (payload: (componentName: string)) {
+            startedComponents = startedComponents + 1;
+        }
+
+        on eComponentReady do (payload: (componentName: string)) {
+            readyComponents = readyComponents + 1;
+        }
+
+        // Ignore other events that may arrive before network is running.
+        on eComponentShutdown do (payload: (componentName: string)) { }
+        on eNetworkShutdown do { }
+        on eNetworkReady do { }
+        on eEmergencyHalt do (reason: string) { }
+        on eEmergencyResume do { }
+        on eNetworkPartitionDetected do (partitions: seq[seq[NodeID]]) { }
+        on eNetworkHealed do (timestamp: Timestamp) { }
+        on eMonitorViolation do (payload: (monitorName: string, violationType: string, details: map[string, any])) { }
+        on eNetworkHealthCheck do { }
+        on eNetworkHealthReport do { }
     }
 
     state Running {
@@ -163,10 +184,14 @@ spec TokenEconomicsMonitor observes
             unauthorizedMintAttempts = 0;
         }
 
-        on eMintRequest do (payload: (recipient: Address, amount: BigInt, authorized: bool)) {
+        on eMintRequest do (payload: (recipient: Address, amount: BigInt, authorized: bool, caller: machine)) {
             if (!payload.authorized) {
                 unauthorizedMintAttempts = unauthorizedMintAttempts + 1;
             }
+        }
+
+        on eMintFailed do (reason: string) {
+            // Unauthorized or over-limit mint attempt was correctly rejected
         }
 
         on eMintResponse do (payload: (success: bool, receipt: MintReceipt)) {

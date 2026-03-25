@@ -42,6 +42,8 @@ COMPONENT_TESTS=(
 
 # P compiler configuration
 P_DLL="$HOME/.p-lang/Bld/Drops/Release/Binaries/net8.0/p.dll"
+COMPILED_DLL="$OUTPUT_DIR/PChecker/net8.0/KnirvNetwork.dll"
+P_SCHEDULES="${P_SCHEDULES:-1000}"
 
 # Initialize
 initialize() {
@@ -99,17 +101,20 @@ run_test() {
     local test_name="$1"
     echo -e "${BLUE}Running test: $test_name${NC}"
 
-    cd "$OUTPUT_DIR"
-
     # Run the test using P checker
     local result=0
 
-    if [ -f "KnirvNetwork.dll" ]; then
-        dotnet KnirvNetwork.dll --test "$test_name" 2>&1 | tee -a "$LOG_FILE" || result=$?
-    else
-        echo -e "${YELLOW}  Simulating test execution (P runtime not configured)${NC}"
+    if [ -f "$P_DLL" ] && [ -f "$COMPILED_DLL" ]; then
+        dotnet "$P_DLL" check "$COMPILED_DLL" -tc "$test_name" -s "$P_SCHEDULES" 2>&1 | tee -a "$LOG_FILE"
+        result=${PIPESTATUS[0]}
+    elif [ ! -f "$P_DLL" ]; then
+        echo -e "${YELLOW}  Simulating test execution (P compiler not installed)${NC}"
         echo "Test: $test_name - SIMULATED PASS" >> "$LOG_FILE"
         sleep 0.2
+    else
+        echo -e "${RED}  Compiled DLL not found at $COMPILED_DLL${NC}"
+        echo -e "${RED}  Run 'compile' first${NC}"
+        return 1
     fi
 
     if [ $result -eq 0 ]; then

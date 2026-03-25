@@ -69,11 +69,12 @@ machine GovernanceMachine {
             description: string,
             proposer: Address,
             deposit: BigInt,
-            content: map[string, any]
+            content: map[string, any],
+            caller: machine
         )) {
             // Validate deposit
             if (payload.deposit.value < minDeposit.value) {
-                send this, eProposalCreationFailed, "Insufficient deposit";
+                send payload.caller, eProposalCreationFailed, "Insufficient deposit";
                 return;
             }
 
@@ -112,7 +113,7 @@ machine GovernanceMachine {
             proposals[tempProposalID] = tempProposal;
 
             announce eProposalCreated, tempProposal;
-            send this, eProposalCreated, tempProposal;
+            send payload.caller, eProposalCreated, tempProposal;
         }
 
         // Vote casting

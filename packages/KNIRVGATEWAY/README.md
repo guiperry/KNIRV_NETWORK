@@ -1,4 +1,4 @@
-# KNIRVORACLE: Unified Web Portal and API Gateway
+# KNIRVGATEWAY: Unified Web Portal and API Gateway
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/your-badge-id/deploy-status)](https://app.netlify.com/sites/your-site-name/deploys)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
@@ -34,7 +34,7 @@
 
 ## Overview
 
-KNIRVORACLE serves as the primary web portal and API oracle for the KNIRV D-TEN (Decentralized Trusted Execution Network). It combines a modern, responsive website with serverless API oracle functionality, providing a unified entry point for users, developers, and services within the KNIRV ecosystem. Migrated from a Go-based WebSocket oracle, it now utilizes Netlify Functions and Server-Sent Events (SSE) for improved performance and browser compatibility.  The system has undergone a major update in 2025, shifting from an "Agent"-centric to a "Model"-centric terminology and featuring a modernized WebGUI.
+KNIRVGATEWAY serves as the primary web portal and API oracle for the KNIRV D-TEN (Decentralized Trusted Execution Network). It combines a modern, responsive website with serverless API oracle functionality, providing a unified entry point for users, developers, and services within the KNIRV ecosystem. Migrated from a Go-based WebSocket oracle, it now utilizes Netlify Functions and Server-Sent Events (SSE) for improved performance and browser compatibility.  The system has undergone a major update in 2025, shifting from an "Agent"-centric to a "Model"-centric terminology and featuring a modernized WebGUI.
 
 ### Recent Major Updates (2025)
 
@@ -75,7 +75,7 @@ KNIRVORACLE serves as the primary web portal and API oracle for the KNIRV D-TEN 
 ### Web Portal Components
 
 ```
-KNIRVORACLE/
+KNIRVGATEWAY/
 ├── index.html                    # Main website entry point
 ├── assets/                       # Static assets (CSS, JS, images)
 ├── images/                       # Website images and branding
@@ -119,7 +119,7 @@ netlify/functions/
 
 1. **Clone and navigate to the directory**:
    ```bash
-   cd KNIRVORACLE
+   cd KNIRVGATEWAY
    ```
 
 2. **Install dependencies**:
@@ -171,7 +171,7 @@ netlify/functions/
 - `GET /auth/verify` - Token verification
 
 #### Service Proxy
-- `/api/*` - Proxy to KNIRVORACLE services
+- `/api/*` - Proxy to KNIRVGATEWAY services
 - `/economics/*` - Economics service endpoints
 - `/tunnel/*` - Tunnel registry endpoints
 
@@ -420,7 +420,7 @@ Configure these environment variables for production:
 
 ```bash
 # Service URLs
-KNIRVORACLE_URL=https://root.knirv.com
+KNIRVGATEWAY_URL=https://root.knirv.com
 KNIRVCHAIN_URL=https://chain.knirv.com
 KNIRVGRAPH_URL=https://graph.knirv.com
 KNIRVNEXUS_URL=https://nexus.knirv.com

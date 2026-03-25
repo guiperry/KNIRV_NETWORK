@@ -1,0 +1,320 @@
+Total event coverage: 9.0%
+==========================
+StateMachine: BaseLayerMachine
+==============================
+Event coverage: 10.0%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eEmergencyHalt, eNetworkConfigUpdate, eNetworkShutdown, eRequestDAProof, eRetrieveData, eStoreData, eVerifyDAProof
+		Previous states: Init
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: ConsensusMachine
+==============================
+Event coverage: 6.7%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: WaitingForValidators
+
+	State: WaitingForValidators is uncovered
+		Events not covered: eNetworkShutdown, eStaked
+		Previous states: Init
+
+	State: Proposing is uncovered
+		Events not covered: eEmergencyHalt, eNetworkShutdown
+
+	State: Preparing is uncovered
+		Events not covered: eEmergencyHalt, eNetworkShutdown, eValidationComplete, eValidationTimeout
+
+	State: Committing is uncovered
+		Events not covered: eEmergencyHalt, eNetworkShutdown, eValidationComplete, eValidationTimeout
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: EconomicsMachine
+==============================
+Event coverage: 8.3%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eDistributeRewards, eEmergencyHalt, eFeePayment, eNetworkShutdown, eProcessFee, eStake, eTreasuryBalanceQuery, eTreasuryWithdrawal, eUnstake
+		Previous states: Init
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: ExecutionSandboxMachine
+=====================================
+Event coverage: 14.3%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eCreateSandbox, eEmergencyHalt, eExecuteInSandbox, eNetworkShutdown
+		Previous states: Init
+
+	State: Executing
+		State has no expected events, so coverage is 100%
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: GovernanceMachine
+===============================
+Event coverage: 9.1%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eCastVote, eCreateProposal, eEmergencyHalt, eExecuteProposal, eFeePaymentVerified, eNetworkShutdown, eProposalStatusChanged, eRegisterRequest
+		Previous states: Init
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: IBCMachine
+========================
+Event coverage: 8.3%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eEmergencyHalt, eIBCChannelClose, eIBCChannelOpen, eIBCPacketAcknowledged, eIBCPacketTimeout, eIBCReceivePacket, eIBCSendPacket, eNetworkShutdown, eSendCrossChainMessage
+		Previous states: Init
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: KnowledgeGraphMachine
+===================================
+Event coverage: 9.1%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eEmergencyHalt, eLinkErrorToSolution, eLinkNodes, eNetworkShutdown, eQueryKnowledgeGraph, eRecordError, eSubmitSolution, eValidateSolution
+		Previous states: Init
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: LLMRegistryMachine
+================================
+Event coverage: 11.1%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eEmergencyHalt, eNetworkShutdown, eReactivateLLM, eRegisterLLM, eSubmitError, eSuspendLLM
+		Previous states: Init
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: MCPCapabilityMachine
+==================================
+Event coverage: 11.1%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eCapabilityNodeMinted, eEmergencyHalt, eInvokeMCPCapability, eNetworkConfigUpdate, eNetworkShutdown, eRegisterMCPCapability
+		Previous states: Init
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+Monitor: NetworkIntegrityMonitor
+================================
+Event coverage: 13.6%
+
+	State: Initializing
+		State event coverage: 23.1%
+		Events received: eComponentReady, eComponentStart, eNetworkStart
+		Events not covered: eComponentShutdown, eEmergencyHalt, eEmergencyResume, eMonitorViolation, eNetworkHealed, eNetworkHealthCheck, eNetworkHealthReport, eNetworkPartitionDetected, eNetworkReady, eNetworkShutdown
+		Previous states: Initializing
+		Next states: Initializing, Running
+
+	State: Running is uncovered
+		Events not covered: eComponentReady, eComponentShutdown, eComponentStart, eEmergencyHalt, eMonitorViolation, eNetworkHealed, eNetworkPartitionDetected, eNetworkShutdown
+		Previous states: Initializing
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+	State: Shutdown
+		State has no expected events, so coverage is 100%
+
+StateMachine: NetworkTestDriver
+===============================
+Event coverage: 0.0%
+
+	State: Init
+		State has no expected events, so coverage is 100%
+		Events sent: eComponentStart
+		Next states: TestTokenOperations
+
+	State: TestTokenOperations is uncovered
+		Events sent: eMintRequest
+		Events not covered: eMintFailed, eMintResponse, eTransferFailed, eTransferResponse
+		Previous states: Init
+
+	State: TestGovernance is uncovered
+		Events not covered: eProposalCreated, eProposalCreationFailed
+
+	State: TestSkillRegistry is uncovered
+		Events not covered: eSkillRegistered, eSkillRegistrationFailed
+
+	State: TestNodeTransformation
+		State has no expected events, so coverage is 100%
+
+	State: TestKnowledgeGraph is uncovered
+		Events not covered: eErrorRecorded, eSolutionSubmissionFailed, eSolutionSubmitted
+
+	State: TestP2PNetwork is uncovered
+		Events not covered: ePeerConnected, ePeerConnectionFailed
+
+	State: TestValidation is uncovered
+		Events not covered: eSandboxCreated, eSandboxCreationFailed, eValidationTaskQueued, eValidationTaskRejected
+
+	State: TestBaseLayer is uncovered
+		Events not covered: eDAProofFailed, eDAProofGenerated, eDataStorageFailed, eDataStored
+
+	State: TestComplete
+		State has no expected events, so coverage is 100%
+
+StateMachine: NodeTransformationMachine
+=======================================
+Event coverage: 7.7%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eEmergencyHalt, eMakePropertyFromIdea, eMineSkillFromError, eMintCapabilityFromContext, eNetworkShutdown, eSubmitContext, eSubmitError, eSubmitIdea, eValidationComplete, eVoteOnIdea
+		Previous states: Init
+
+	State: ValidatingSkill
+		State has no expected events, so coverage is 100%
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: P2PNetworkMachine
+===============================
+Event coverage: 6.2%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Discovering
+
+	State: Discovering is uncovered
+		Events not covered: eNetworkShutdown, ePeersDiscovered
+		Previous states: Init
+
+	State: Active is uncovered
+		Events not covered: eBroadcastMessage, eConnectToPeer, eDisconnectPeer, eDiscoverPeers, eEmergencyHalt, eNetworkHealed, eNetworkPartitionDetected, eNetworkShutdown, eQueryRoute, eRouteMessage, eUpdateRoute
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: SkillRegistryMachine
+==================================
+Event coverage: 10.0%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eDeprecateSkill, eEmergencyHalt, eNetworkShutdown, eQuerySkill, eRegisterSkill, eSkillNodeMined, eUpdateSkill
+		Previous states: Init
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: TokenMachine
+==========================
+Event coverage: 22.2%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active
+		State event coverage: 16.7%
+		Events received: eMintRequest
+		Events sent: eMintResponse
+		Events not covered: eBurnRequest, eEmergencyHalt, eNetworkShutdown, eQueryBalance, eTransferRequest
+		Previous states: Init
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+
+StateMachine: ValidationMachine
+===============================
+Event coverage: 8.3%
+
+	State: Init
+		State event coverage: 50.0%
+		Events received: eComponentStart
+		Events not covered: eNetworkStart
+		Next states: Active
+
+	State: Active is uncovered
+		Events not covered: eEmergencyHalt, eNetworkShutdown, eSandboxExecutionFailed, eSandboxExecutionResult, eStartValidation, eSubmitValidationTask, eValidationTimeout, eValidatorAvailable, eValidatorOverloaded
+		Previous states: Init
+
+	State: Halted is uncovered
+		Events not covered: eEmergencyResume
+

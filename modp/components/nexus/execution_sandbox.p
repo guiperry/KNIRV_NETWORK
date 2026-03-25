@@ -94,7 +94,7 @@ machine ExecutionSandboxMachine {
         // SANDBOX CREATION
         // =====================================================================
 
-        on eCreateSandbox do (payload: (config: SandboxConfig)) {
+        on eCreateSandbox do (payload: (config: SandboxConfig, caller: machine)) {
             // Check concurrent sandbox limit
             tmpActiveSandboxes = 0;
             allSandboxKeys = keys(sandboxes); // Assign to the machine-level variable
@@ -108,13 +108,13 @@ machine ExecutionSandboxMachine {
             }
 
             if (tmpActiveSandboxes >= maxConcurrentSandboxes) {
-                send this, eSandboxCreationFailed, "Maximum concurrent sandboxes reached";
+                send payload.caller, eSandboxCreationFailed, "Maximum concurrent sandboxes reached";
                 return;
             }
 
             // Validate config
             if (payload.config.maxCPU <= 0 || payload.config.maxMemory <= 0) {
-                send this, eSandboxCreationFailed, "Invalid sandbox configuration";
+                send payload.caller, eSandboxCreationFailed, "Invalid sandbox configuration";
                 return;
             }
 
@@ -136,7 +136,7 @@ machine ExecutionSandboxMachine {
 
             tmpSandboxCreatedPayload.sandboxID = tmpSandboxID;
             announce eSandboxCreated, tmpSandboxCreatedPayload;
-            send this, eSandboxCreated, tmpSandboxCreatedPayload;
+            send payload.caller, eSandboxCreated, tmpSandboxCreatedPayload;
         }
 
         // =====================================================================

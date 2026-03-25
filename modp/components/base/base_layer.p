@@ -77,10 +77,10 @@ machine BaseLayerMachine {
         // DATA STORAGE
         // =====================================================================
 
-        on eStoreData do (payload: (dataType: string, payload: seq[int])) {
+        on eStoreData do (payload: (dataType: string, payload: seq[int], caller: machine)) {
             // Check record size
             if (sizeof(payload.payload) > maxRecordSize) {
-                send this, eDataStorageFailed, "Record size exceeds maximum";
+                send payload.caller, eDataStorageFailed, "Record size exceeds maximum";
                 return;
             }
 
@@ -121,7 +121,7 @@ machine BaseLayerMachine {
 
             tmpDataStoredPayload.record = tmpNewRecord;
             announce eDataStored, tmpDataStoredPayload;
-            send this, eDataStored, tmpDataStoredPayload;
+            send payload.caller, eDataStored, tmpDataStoredPayload;
         }
 
         // =====================================================================
@@ -142,10 +142,10 @@ machine BaseLayerMachine {
         // DATA AVAILABILITY PROOFS
         // =====================================================================
 
-        on eRequestDAProof do (payload: (recordID: UUID)) {
+        on eRequestDAProof do (payload: (recordID: UUID, caller: machine)) {
             // Check record exists
             if (!(payload.recordID in records)) {
-                send this, eDAProofFailed, (recordID = payload.recordID, reason = "Record not found");
+                send payload.caller, eDAProofFailed, (recordID = payload.recordID, reason = "Record not found");
                 return;
             }
 
@@ -164,7 +164,7 @@ machine BaseLayerMachine {
 
             tmpDAProofGeneratedPayload.proof = tmpProof;
             announce eDAProofGenerated, tmpDAProofGeneratedPayload;
-            send this, eDAProofGenerated, tmpDAProofGeneratedPayload;
+            send payload.caller, eDAProofGenerated, tmpDAProofGeneratedPayload;
         }
 
         on eVerifyDAProof do (payload: (proof: DAProof)) {

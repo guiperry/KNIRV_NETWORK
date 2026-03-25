@@ -100,7 +100,7 @@ machine P2PNetworkMachine {
 
                     // Attempt connection if we have capacity
                     if (sizeof(connectedPeers) < maxPeers) {
-                        send this, eConnectToPeer, tmpPeer;
+                        send this, eConnectToPeer, (peer = tmpPeer, caller = this);
                     }
                 }
 
@@ -121,38 +121,38 @@ machine P2PNetworkMachine {
         // PEER CONNECTION MANAGEMENT
         // =====================================================================
 
-        on eConnectToPeer do (peer: PeerInfo) {
+        on eConnectToPeer do (payload: (peer: PeerInfo, caller: machine)) {
             // Check if already connected
-            if (peer.nodeID in connectedPeers) {
+            if (payload.peer.nodeID in connectedPeers) {
                 return;
             }
 
             // Check if pending
-            if (peer.nodeID in pendingConnections) {
+            if (payload.peer.nodeID in pendingConnections) {
                 return;
             }
 
             // Check if banned
-            if (peer.nodeID in bannedPeers) {
-                failure_data.peer = peer;
+            if (payload.peer.nodeID in bannedPeers) {
+                failure_data.peer = payload.peer;
                 failure_data.reason = "Peer is banned";
-                send this, ePeerConnectionFailed, failure_data;
+                send payload.caller, ePeerConnectionFailed, failure_data;
                 return;
             }
 
             // Check capacity
             if (sizeof(connectedPeers) >= maxPeers) {
-                failure_data.peer = peer;
+                failure_data.peer = payload.peer;
                 failure_data.reason = "Max peers reached";
-                send this, ePeerConnectionFailed, failure_data;
+                send payload.caller, ePeerConnectionFailed, failure_data;
                 return;
             }
 
             // Check reputation
-            if (peer.reputation < reputationThreshold) {
-                failure_data.peer = peer;
+            if (payload.peer.reputation < reputationThreshold) {
+                failure_data.peer = payload.peer;
                 failure_data.reason = "Low reputation";
-                send this, ePeerConnectionFailed, failure_data;
+                send payload.caller, ePeerConnectionFailed, failure_data;
                 return;
             }
 
@@ -160,18 +160,18 @@ machine P2PNetworkMachine {
             // In real system, would do handshake
 
             // Add to connected peers and routing table
-            peers[peer.nodeID] = peer;
+            peers[payload.peer.nodeID] = payload.peer;
 
             // Add to routing table
-            tmpRoute.destination = peer.nodeID;
-            tmpRoute.nextHop = peer.nodeID;  // Direct connection
+            tmpRoute.destination = payload.peer.nodeID;
+            tmpRoute.nextHop = payload.peer.nodeID;  // Direct connection
             tmpRoute.metric = 1;
             tmpRoute.lastUpdated.milliseconds = 0;
             tmpRoute.status.status = "active";
-            routingTable[peer.nodeID] = tmpRoute;
+            routingTable[payload.peer.nodeID] = tmpRoute;
 
-            announce ePeerConnected, peer;
-            send this, ePeerConnected, peer;
+            announce ePeerConnected, payload.peer;
+            send payload.caller, ePeerConnected, payload.peer;
         }
 
         on eDisconnectPeer do (nodeID: NodeID) {

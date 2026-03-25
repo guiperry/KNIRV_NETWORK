@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -161,35 +162,47 @@ func initLogging(cfg *config.Config) (*zap.Logger, error) {
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
-	// Determine log file path
-	logFilePath := cfg.Log.Output
-	if logFilePath == "" {
-		// Use OS-specific application data directory
-		appDataDir, err := getOSAppDataDir()
-		if err != nil {
-			// Fallback to relative path
-			logFilePath = "logs/server.log"
-		} else {
-			logFilePath = filepath.Join(appDataDir, "logs", "server.log")
-		}
-	}
-
-	// Ensure the log directory exists
-	logDir := filepath.Dir(logFilePath)
-	if err := os.MkdirAll(logDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create log directory: %w", err)
-	}
-
-	// Create file writer
-	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	// Get application data directory for log storage
+	appDataDir, err := getOSAppDataDir()
 	if err != nil {
-		return nil, fmt.Errorf("failed to open log file: %w", err)
+		return nil, fmt.Errorf("failed to get application data directory: %w", err)
 	}
 
-	// Create cores for both file and stdout
+	// Primary log path: application data directory
+	appDataLogPath := filepath.Join(appDataDir, "logs", "server.log")
+
+	// Secondary log path: project directory
+	projectLogPath := filepath.Join("packages", "KNIRVSERVER", "logs", "server.log")
+
+	// Ensure both log directories exist
+	appDataLogDir := filepath.Dir(appDataLogPath)
+	if err := os.MkdirAll(appDataLogDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create app data log directory: %w", err)
+	}
+
+	projectLogDir := filepath.Dir(projectLogPath)
+	if err := os.MkdirAll(projectLogDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create project log directory: %w", err)
+	}
+
+	// Create file writers for both locations
+	appDataFile, err := os.OpenFile(appDataLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open app data log file: %w", err)
+	}
+
+	projectFile, err := os.OpenFile(projectLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open project log file: %w", err)
+	}
+
+	// Create a multi-writer that writes to both files
+	multiWriter := io.MultiWriter(appDataFile, projectFile)
+
+	// Create cores for file (both locations) and stdout
 	fileCore := zapcore.NewCore(
 		zapcore.NewJSONEncoder(encoderConfig),
-		zapcore.AddSync(file),
+		zapcore.AddSync(multiWriter),
 		level,
 	)
 
@@ -199,14 +212,20 @@ func initLogging(cfg *config.Config) (*zap.Logger, error) {
 		level,
 	)
 
-	// Combine cores
+	// Combine cores - logs go to both file locations AND stdout
 	core := zapcore.NewTee(fileCore, stdoutCore)
 
 	// Create logger
 	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
-	// Also redirect standard log output to file for compatibility
-	log.SetOutput(file)
+
+	// Also redirect standard log output to both files for compatibility
+	log.SetOutput(multiWriter)
+
+	logger.Info("Logging initialized",
+		zap.String("app_data_log", appDataLogPath),
+		zap.String("project_log", projectLogPath),
+	)
 
 	return logger, nil
 }

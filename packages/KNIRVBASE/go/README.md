@@ -223,4 +223,3 @@ Suggested next steps:
 - Add unit tests for untested modules (network, resolver)
 - Add performance benchmarks for P2P operations
 
-🔧 **Next step:** tell me which of the above you'd like me to implement next (tests, benchmarks, or example scripts).

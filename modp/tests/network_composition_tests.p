@@ -51,8 +51,8 @@ machine NetworkTestDriver {
     var tmpProposalType: ProposalType;
     var componentReadyPayload: (componentName: string);
     var tmpComponentStartPayload: (componentName: string);
-    var createSandboxPayload: (config: SandboxConfig);
-    var tmpRequestDAProofPayload: (recordID: UUID);
+    var createSandboxPayload: (config: SandboxConfig, caller: machine);
+    var tmpRequestDAProofPayload: (recordID: UUID, caller: machine);
 
 
     start state Init {
@@ -176,7 +176,7 @@ machine NetworkTestDriver {
             tmpAmount.value = 1000000000;
             tmpAmount.isNegative = false;
 
-            send tokenMachine, eMintRequest, (recipient = tmpAddress, amount = tmpAmount, authorized = true);
+            send tokenMachine, eMintRequest, (recipient = tmpAddress, amount = tmpAmount, authorized = true, caller = this);
         }
 
         on eMintResponse do (payload: (success: bool, receipt: MintReceipt)) {
@@ -188,7 +188,7 @@ machine NetworkTestDriver {
             testsCompleted = testsCompleted + 1;
 
             // Test unauthorized minting (should fail)
-            send tokenMachine, eMintRequest, (recipient = tmpAddress, amount = tmpAmount, authorized = false);
+            send tokenMachine, eMintRequest, (recipient = tmpAddress, amount = tmpAmount, authorized = false, caller = this);
         }
 
         on eMintFailed do {
@@ -198,7 +198,7 @@ machine NetworkTestDriver {
 
             // Test transfer
             tmpAmount.value = 100000000;
-            send tokenMachine, eTransferRequest, (from = tmpAddress, recipient = tmpAddress, amount = tmpAmount);
+            send tokenMachine, eTransferRequest, (from = tmpAddress, recipient = tmpAddress, amount = tmpAmount, caller = this);
         }
 
         on eTransferResponse do {
@@ -233,7 +233,8 @@ machine NetworkTestDriver {
                 description = "This is a test proposal",
                 proposer = tmpAddress,
                 deposit = tmpAmount,
-                content = default(map[string, any])
+                content = default(map[string, any]),
+                caller = this
             );
         }
 
@@ -260,7 +261,7 @@ machine NetworkTestDriver {
             // Test skill registration
             tmpAddress.bytes = default(seq[int]);
 
-            send skillRegistry, eRegisterSkill, (name = "TestSkill", version = "1.0.0", owner = tmpAddress, loraPointer = "lora://test_adapter", metadata = default(map[string, any]));
+            send skillRegistry, eRegisterSkill, (name = "TestSkill", version = "1.0.0", owner = tmpAddress, loraPointer = "lora://test_adapter", metadata = default(map[string, any]), caller = this);
         }
 
         on eSkillRegistered do {
@@ -293,7 +294,7 @@ machine NetworkTestDriver {
             testPhase = 5;
 
             // Record an error
-            send knowledgeGraph, eRecordError, (errorType = "ValidationError", errorMessage = "at line 42", stackTrace = "stack trace here", context = default(map[string, any]));
+            send knowledgeGraph, eRecordError, (errorType = "ValidationError", errorMessage = "at line 42", stackTrace = "stack trace here", context = default(map[string, any]), caller = this);
         }
 
         on eErrorRecorded do (record: ErrorRecord) {
@@ -303,7 +304,7 @@ machine NetworkTestDriver {
 
             // Submit a solution
             tmpAddress.bytes = default(seq[int]);
-            send knowledgeGraph, eSubmitSolution, (forError = tmpRecordedErrorID, solutionType = "CodeFix", content = "Fix the validation logic", author = tmpAddress);
+            send knowledgeGraph, eSubmitSolution, (forError = tmpRecordedErrorID, solutionType = "CodeFix", content = "Fix the validation logic", author = tmpAddress, caller = this);
         }
 
         on eSolutionSubmitted do {
@@ -337,20 +338,13 @@ machine NetworkTestDriver {
             tmpTestPeer.lastSeen.milliseconds = 0;
             tmpTestPeer.reputation = 80;
 
-            send p2pNetwork, eConnectToPeer, tmpTestPeer;
+            send p2pNetwork, eConnectToPeer, (peer = tmpTestPeer, caller = this);
         }
 
         on ePeerConnected do {
             testsPassed = testsPassed + 1;
             testsCompleted = testsCompleted + 1;
-
-            // Generate connectivity proof
-            tmpNodeType.typeName = "validator";
-            tmpNodeID.id = "verifier_1";
-            tmpNodeID.publicKey = default(seq[int]);
-            tmpNodeID.nodeType = tmpNodeType;
-
-            // send proofOfConnectivity, eGenerateConnectivityProof, (tmpNodeID,);
+            goto TestValidation;
         }
 
         on ePeerConnectionFailed do {
@@ -379,7 +373,7 @@ machine NetworkTestDriver {
             tmpAddress.bytes = default(seq[int]);
             tmpDeadline.milliseconds = 300000;
 
-            send validationMachine, eSubmitValidationTask, (taskType = tmpTaskType, taskPayload = default(map[string, any]), submitter = tmpAddress, priority = 5, deadline = tmpDeadline);
+            send validationMachine, eSubmitValidationTask, (taskType = tmpTaskType, taskPayload = default(map[string, any]), submitter = tmpAddress, priority = 5, deadline = tmpDeadline, caller = this);
         }
 
         on eValidationTaskQueued do {
@@ -396,6 +390,7 @@ machine NetworkTestDriver {
             tmpConfig.isolationLevel = "strict";
 
             createSandboxPayload.config = tmpConfig;
+            createSandboxPayload.caller = this;
             send executionSandbox, eCreateSandbox, createSandboxPayload;
         }
 
@@ -424,7 +419,7 @@ machine NetworkTestDriver {
             testPhase = 8;
 
             // Store data
-            send baseLayer, eStoreData, (dataType = "test_data", payload = default(seq[int]));
+            send baseLayer, eStoreData, (dataType = "test_data", payload = default(seq[int]), caller = this);
         }
 
         on eDataStored do (payload: (record: BaseRecord)) {
@@ -434,6 +429,7 @@ machine NetworkTestDriver {
 
             // Request DA proof
             tmpRequestDAProofPayload.recordID = tmpStoredRecordID;
+            tmpRequestDAProofPayload.caller = this;
             send baseLayer, eRequestDAProof, tmpRequestDAProofPayload;
         }
 
@@ -616,7 +612,7 @@ machine MaliciousBehaviorDriver {
             tmpAmount.value = 2000000000;
             tmpAmount.isNegative = false;
 
-            send tokenMachine, eMintRequest, (recipient = tmpAddress, amount = tmpAmount, authorized = false);
+            send tokenMachine, eMintRequest, (recipient = tmpAddress, amount = tmpAmount, authorized = false, caller = this);
         }
 
         on eMintFailed do {
@@ -635,7 +631,7 @@ machine MaliciousBehaviorDriver {
             maliciousAttempts = maliciousAttempts + 1;
             tmpAddress.bytes = default(seq[int]);
 
-            send skillRegistry, eRegisterSkill, (name = "MaliciousSkill", version = "1.0.0", owner = tmpAddress, loraPointer = "", metadata = default(map[string, any]));
+            send skillRegistry, eRegisterSkill, (name = "MaliciousSkill", version = "1.0.0", owner = tmpAddress, loraPointer = "", metadata = default(map[string, any]), caller = this);
         }
 
         on eSkillRegistrationFailed do {
@@ -663,7 +659,7 @@ machine MaliciousBehaviorDriver {
             tmpPeer.lastSeen.milliseconds = 0;
             tmpPeer.reputation = 10;
 
-            send p2pNetwork, eConnectToPeer, tmpPeer;
+            send p2pNetwork, eConnectToPeer, (peer = tmpPeer, caller = this);
         }
 
         on ePeerConnectionFailed do {
@@ -691,3 +687,82 @@ machine MaliciousBehaviorDriver {
         }
     }
 }
+
+// =====================================================================
+// TEST CASE DECLARATIONS
+// These declarations expose driver machines to PChecker via -tc flag.
+// Network-wide tests
+// =====================================================================
+
+// All machines created by NetworkTestDriver (must be listed for closed module)
+module NetworkTestModule =
+  { NetworkTestDriver, TokenMachine, GovernanceMachine, EconomicsMachine,
+    ConsensusMachine, IBCMachine, SkillRegistryMachine, LLMRegistryMachine,
+    MCPCapabilityMachine, NodeTransformationMachine, KnowledgeGraphMachine,
+    P2PNetworkMachine, ValidationMachine, ExecutionSandboxMachine, BaseLayerMachine };
+
+// All machines created by CrossChainFlowDriver
+module CrossChainModule =
+  { CrossChainFlowDriver, NodeTransformationMachine, SkillRegistryMachine,
+    TokenMachine, IBCMachine, EconomicsMachine };
+
+// All machines created by ValidationPipelineDriver
+module ValidationModule =
+  { ValidationPipelineDriver, ValidationMachine, ExecutionSandboxMachine,
+    KnowledgeGraphMachine };
+
+// All machines created by MaliciousBehaviorDriver
+module MaliciousModule =
+  { MaliciousBehaviorDriver, TokenMachine, GovernanceMachine,
+    SkillRegistryMachine, P2PNetworkMachine };
+
+test FullNetworkComposition [main = NetworkTestDriver]:
+  assert NetworkIntegrityMonitor, CrossChainConsistencyMonitor,
+         TokenEconomicsMonitor, GovernanceProcessMonitor,
+         ValidationIntegrityMonitor, KnowledgeGraphConsistencyMonitor in
+  NetworkTestModule;
+
+test ErrorToSkillToCrossChain [main = CrossChainFlowDriver]:
+  assert CrossChainConsistencyMonitor, TokenEconomicsMonitor in
+  CrossChainModule;
+
+test ValidationPipeline [main = ValidationPipelineDriver]:
+  assert ValidationIntegrityMonitor in
+  ValidationModule;
+
+test NetworkMaliciousBehaviorRejection [main = MaliciousBehaviorDriver]:
+  assert NetworkIntegrityMonitor, TokenEconomicsMonitor in
+  MaliciousModule;
+
+// Component-targeted tests (NetworkTestDriver exercises all components sequentially)
+test TokenTransferConsistency [main = NetworkTestDriver]:
+  assert TokenEconomicsMonitor in
+  NetworkTestModule;
+
+test GovernanceLifecycle [main = NetworkTestDriver]:
+  assert GovernanceProcessMonitor in
+  NetworkTestModule;
+
+test SkillRegistration [main = NetworkTestDriver]:
+  assert NetworkIntegrityMonitor in
+  NetworkTestModule;
+
+test NodeTransformation [main = NetworkTestDriver]:
+  assert NetworkIntegrityMonitor in
+  NetworkTestModule;
+
+test KnowledgeGraphConsistency [main = NetworkTestDriver]:
+  assert KnowledgeGraphConsistencyMonitor in
+  NetworkTestModule;
+
+test P2PConnectivity [main = NetworkTestDriver]:
+  assert NetworkIntegrityMonitor in
+  NetworkTestModule;
+
+test ValidationExecution [main = ValidationPipelineDriver]:
+  assert ValidationIntegrityMonitor in
+  ValidationModule;
+
+test BaseLayerStorage [main = NetworkTestDriver]:
+  assert NetworkIntegrityMonitor in
+  NetworkTestModule;

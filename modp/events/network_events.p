@@ -21,7 +21,7 @@ event eComponentShutdown: (componentName: string);
 // =====================================================================
 
 // Skill Registry Events
-event eRegisterSkill: (name: string, version: string, owner: Address, loraPointer: string, metadata: map[string, any]);
+event eRegisterSkill: (name: string, version: string, owner: Address, loraPointer: string, metadata: map[string, any], caller: machine);
 
 event eSkillRegistered: Skill;
 event eSkillRegistrationFailed: string;
@@ -88,12 +88,12 @@ event ePropertyMakingFailed: PropertyMakingFailedData;
 // =====================================================================
 
 // Error Recording Events
-event eRecordError: (errorType: string, errorMessage: string, stackTrace: string, context: map[string, any]);
+event eRecordError: (errorType: string, errorMessage: string, stackTrace: string, context: map[string, any], caller: machine);
 event eErrorRecorded: ErrorRecord;
 event eErrorDuplicate: ErrorDuplicateData;
 
 // Solution Events
-event eSubmitSolution: (forError: UUID, solutionType: string, content: string, author: Address);
+event eSubmitSolution: (forError: UUID, solutionType: string, content: string, author: Address, caller: machine);
 event eSolutionSubmitted: SolutionRecord;
 event eSolutionSubmissionFailed: string;
 
@@ -123,7 +123,7 @@ event eNodesLinked: NodeLinkData;
 event eDiscoverPeers;
 event ePeersDiscovered: seq[PeerInfo];
 
-event eConnectToPeer: PeerInfo;
+event eConnectToPeer: (peer: PeerInfo, caller: machine);
 event ePeerConnected: PeerInfo;
 event ePeerConnectionFailed: PeerConnectionFailedData;
 
@@ -167,7 +167,7 @@ event eBroadcastDelivered: BroadcastDeliveredData;
 // =====================================================================
 
 // Task Submission Events
-event eSubmitValidationTask: (taskType: ValidationTaskType, taskPayload: map[string, any], submitter: Address, priority: int, deadline: Timestamp);
+event eSubmitValidationTask: (taskType: ValidationTaskType, taskPayload: map[string, any], submitter: Address, priority: int, deadline: Timestamp, caller: machine);
 event eValidationTaskQueued: (task: ValidationTask);
 event eValidationTaskRejected: (reason: string);
 
@@ -182,7 +182,7 @@ event eValidationFailed: (taskID: UUID, reason: string);
 event eValidationTimeout: (taskID: UUID);
 
 // Sandbox Events
-event eCreateSandbox: (config: SandboxConfig);
+event eCreateSandbox: (config: SandboxConfig, caller: machine);
 event eSandboxCreated: (sandboxID: UUID);
 event eSandboxCreationFailed: string;
 
@@ -204,7 +204,7 @@ event eValidatorAvailable: (validatorID: NodeID);
 // =====================================================================
 
 // Data Storage Events
-event eStoreData: (dataType: string, payload: seq[int]);
+event eStoreData: (dataType: string, payload: seq[int], caller: machine);
 event eDataStored: (record: BaseRecord);
 event eDataStorageFailed: string;
 
@@ -213,7 +213,7 @@ event eDataRetrieved: (record: BaseRecord);
 event eDataNotFound: (recordID: UUID);
 
 // Data Availability Events
-event eRequestDAProof: (recordID: UUID);
+event eRequestDAProof: (recordID: UUID, caller: machine);
 event eDAProofGenerated: (proof: DAProof);
 event eDAProofFailed: (recordID: UUID, reason: string);
 
@@ -225,23 +225,23 @@ event eDAProofVerified: (recordID: UUID, valid: bool);
 // =====================================================================
 
 // Token Events
-event eTransferRequest: (from: Address, recipient: Address, amount: BigInt);
+event eTransferRequest: (from: Address, recipient: Address, amount: BigInt, caller: machine);
 event eTransferResponse: TransferResponseData;
 event eTransferFailed: string;
 
-event eMintRequest: (recipient: Address, amount: BigInt, authorized: bool);
+event eMintRequest: (recipient: Address, amount: BigInt, authorized: bool, caller: machine);
 event eMintResponse: (success: bool, receipt: MintReceipt);
 event eMintFailed: string;
 
-event eBurnRequest: (from: Address, amount: BigInt);
+event eBurnRequest: (from: Address, amount: BigInt, caller: machine);
 event eBurnResponse: (success: bool, amount: BigInt);
 event eBurnFailed: string;
 
-event eQueryBalance: (address: Address);
+event eQueryBalance: (address: Address, caller: machine);
 event eBalanceResponse: TokenBalance;
 
 // Governance Events
-event eCreateProposal: (proposalType: ProposalType, title: string, description: string, proposer: Address, deposit: BigInt, content: map[string, any]);
+event eCreateProposal: (proposalType: ProposalType, title: string, description: string, proposer: Address, deposit: BigInt, content: map[string, any], caller: machine);
 event eProposalCreated: Proposal;
 event eProposalCreationFailed: string;
 

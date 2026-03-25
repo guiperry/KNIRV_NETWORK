@@ -46,25 +46,25 @@ The KNIRV D-TEN comprises seven interconnected sovereign layers, each operating 
 ```mermaid
 graph TB
     subgraph "User Interface Layer"
-        KW[KNIRV-WALLET<br/>User Gateway]
-        KN[KNIRVANA<br/>RTS Game]
-        KS[KNIRV-INFERENCE<br/>Neural Intellegence Models]
+        KW[KNIRVWALLET<br/>User Gateway]
+        KN[KNIRVARENA<br/>RTS Game]
+        KS[KNIRVHEART<br/>Neural Intellegence Model]
     end
     
     subgraph "API & Integration Layer"
         AG[Unified API Gateway]
-        SDK[KNIRV SDK]
+        SDK[KNIRVSDK]
     end
     
     subgraph "Core Blockchain Layer"
-        KR[KNIRV-ORACLE<br/>NRN Oracle & Economic Orchestrator]
+        KR[KNIRVORACLE<br/>NRN Oracle & Economic Orchestrator]
         KC[KNIRVCHAIN<br/>Living Base LLM & Skill Registry]
         KG[KNIRVGRAPH<br/>Knowledge Graphchain]
     end
     
     subgraph "Network & Compute Layer"
-        KROUTER[KNIRV-ROUTER<br/>Network Integrity & NRN Production]
-        KNEXUS[KNIRV-NEXUS DVE<br/>Verifiable Execution Environment]
+        KROUTER[KNIRVROUTER<br/>Network Integrity & NRN Production]
+        KSERVER[KNIRVSERVER DVE<br/>Verifiable Execution Environment]
     end
     
     KW --> AG
@@ -74,11 +74,11 @@ graph TB
     AG --> KC
     AG --> KG
     AG --> KROUTER
-    AG --> KNEXUS
+    AG --> KSERVER
     KR <--> KC
     KR <--> KG
     KC <--> KG
-    KS <--> KNEXUS
+    KS <--> KSERVER
     KS <--> KROUTER
 ```
 ![Network Deployment](https://excalidraw.com/#json=c0DUvp6oRMzekylGHCR1z,Nu-JA5lg6oe9tLfwJlIZUA "Network Deployment")
@@ -98,7 +98,7 @@ graph TB
   - Badge system for Skills, Capabilities, and Properties
   - Autonomous failover protocol with 99.9% uptime
 
-### 🏛️ KNIRV-ORACLE: The Governance & Cross-Chain Hub
+### 🏛️ KNIRVORACLE: The Governance & Cross-Chain Hub
 **Technology**: Rust-based Layer 1 with Tendermint consensus and IBC
 - **Purpose**: Network governance authority, cross-chain transfers, and token economics
 - **Key Features**:
@@ -120,7 +120,7 @@ graph TB
   - BluntDB integration for complex graph queries
   - Proof-of-Solution economy
 
-### 🔬 KNIRV-NEXUS: The Validation Crucible
+### 🔬 KNIRVSERVER: The Validation Crucible
 **Technology**: GoLang-based Distribusted Validation Environments(DVE) utilizing Cognitive Logistic Execution Adaptability Network(CLEAN) architecture.
 - **Purpose**: Trustless, deterministic validation environments
 - **Key Features**:
@@ -129,7 +129,7 @@ graph TB
   - NRN staking and slashing mechanisms
   - zkTLS support for private validation
 
-### 🌐 KNIRV-ROUTER: The Network Backbone
+### 🌐 KNIRVROUTER: The Network Backbone
 **Technology**: GoLang-based network nodes with P2P DHT and connectivity proof engine
 - **Purpose**: Network integrity maintenance and NRN production
 - **Key Features**:
@@ -140,7 +140,7 @@ graph TB
   - RESTful API for connectivity status and metrics
   - Production monitoring integration with Prometheus metrics
 
-### 🤖 KNIRV-CONTROLLER: The User's Autonomous Gateway
+### 🤖 KNIRVCONTROLLER: The User's Autonomous Gateway
 **Technology**: Rust WASM-powered Neural Intellegence Models with SEAL loop
 - **Purpose**: A mobile-native adapter that empowers existing AI assistants with autonomous agentic abilities, acting as the primary user gateway to the D-TEN.
 - **Key Features**:
@@ -149,7 +149,7 @@ graph TB
   - User Delegation Certificate (UDC) orchestration
   - Skill invocation and NRN consumption
 
-  ## 💼 KNIRV-WALLET: The Agent's Treasury
+  ## 💼 KNIRVWALLET: The Agent's Treasury
   **Technology**: Multi-platform wallet with XION Meta Accounts
   - **Purpose**: A secure, non-custodial wallet that allows NIMs to autonomously manage user assets and permissions on their behalf. Users will not interact directly with the wallet.
   - **Key Features**:
@@ -164,7 +164,7 @@ graph TB
 
 Clarification: An AI assistant is typically a tool that responds to user commands or queries within a confined scope, performing tasks or providing information based on direct input. In contrast, an AI agent is an autonomous entity that can understand high-level goals and initiate actions to achieve them without constant user intervention. It can proactively manage resources, interact with other systems, and make decisions on behalf of the user, such as a KNIRV Neural Intellegence Model, which will use the KNIRV-WALLET to perform transactions and manage assets autonomously.
 
-### 🎮 KNIRVANA: The Experiential Gateway
+### 🎮 KNIRVARENA: The Experiential Gateway
 **Technology**: Real-Time Strategy game with direct KNIRV-CONTROLLER integration
 - **Purpose**: Gamified interaction with the D-TEN ecosystem
 - **Key Features**:
@@ -226,7 +226,7 @@ GET  /auth/validate           # Token validation
 # Component Proxying
 GET  /knirvchain/*           # KNIRVCHAIN operations
 GET  /knirvgraph/*           # KNIRVGRAPH queries
-GET  /knirvserver/*           # KNIRV-NEXUS validation
+GET  /knirvserver/*           # KNIRV-SERVER validation
 GET  /knirvoracle/*            # KNIRV-ORACLE transactions
 GET  /knirvrouter/*          # KNIRV-ROUTER connectivity
 ```
@@ -329,7 +329,7 @@ make update-testnet-frontend       # Update Netlify frontend integration
 make testnet-tests                  # Start testnet and run all tests
 
 # Access the live testnet
-open https://knirv.com/testnet
+open https://testnet.knirv.network
 
 # Monitor testnet services
 ssh knirv-testnet 'docker ps'
@@ -340,7 +340,7 @@ ssh knirv-testnet 'docker-compose -f /opt/knirv-testnet/docker-compose-prod.yml 
 Each component can be run independently for development:
 
 ```bash
-# KNIRV-ORACLE (NRN Oracle & Bridge)
+# KNIRVORACLE (NRN Oracle & Bridge)
 cd KNIRVORACLE && go run main.go --port 8083
 
 # KNIRVCHAIN (Skill Registry)
@@ -349,10 +349,10 @@ cd KNIRVCHAIN && cargo run
 # KNIRVGRAPH (Knowledge Graph)
 cd KNIRVGRAPH && go run main.go --port 8081
 
-# KNIRV-NEXUS (Validation Engine)
+# KNIRVSERVER (Validation Engine)
 cd KNIRVSERVER && go run main.go --port 8082
 
-# KNIRV-ROUTER (Network Layer & Connectivity Proofs)
+# KNIRVROUTER (Network Layer & Connectivity Proofs)
 cd KNIRVROUTER && go run main.go --port 3478
 ```
 
@@ -432,15 +432,6 @@ All test results and coverage reports are automatically generated in organized d
 ```
 
 **View Reports**: Open any `.html` file in your browser for interactive coverage exploration.
-
-### 🚀 Recent Testing Achievements ⭐
-
-**KNIRVENGINE Testing Suite Expansion:**
-- **Utils Package**: 64.6% coverage with comprehensive unit tests for utility functions, system utilities, application data management, environment loading, and log relay functionality
-- **Inference Package**: 17.5% coverage with comprehensive AI/LLM testing including conversation memory, inference service, and delegator service ⭐ **NEW**
-- **Database Package**: 14.0% coverage with tests for workflow models, user repository operations, and SimpleDomainDB functionality
-- **API Package**: 9.6% coverage with foundational tests for core API server functions
-- **Agent Package**: 43.1% coverage (maintained existing coverage)
 
 **Key Testing Features:**
 - ✅ **TypeSafe Implementation**: All tests follow proper Go testing patterns with comprehensive error handling
@@ -896,7 +887,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Phase 2: Enhanced Intelligence (Q4 2026)
 - ✅ Advanced KNIRVGRAPH querying capabilities
-- ✅ KNIRV-NEXUS DVE specialization
+- ✅ KNIRV-SERVER DVE specialization
 - 🔄 Skill licensing and royalty systems
 - 🔄 Enhanced KNIRV-CONTROLLER SDK
 - ✅ Production monitoring integration
@@ -1096,7 +1087,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### ✅ Fully Implemented & Production Ready
 
 #### Core Infrastructure
-- **All 7 Sovereign Layers**: KNIRV-ORACLE, KNIRVCHAIN, KNIRVGRAPH, KNIRV-NEXUS, KNIRV-ROUTER, KNIRV-CONTROLLER, KNIRV-WALLET
+- **All 7 Sovereign Layers**: KNIRV-ORACLE, KNIRVCHAIN, KNIRVGRAPH, KNIRV-SERVER, KNIRV-ROUTER, KNIRV-CONTROLLER, KNIRV-WALLET
 - **Unified API Gateway**: Complete service orchestration with load balancing and authentication
 - **Cross-Chain Bridge**: XION integration with Meta Accounts and USDC faucet
 - **Economic Model**: NRN token minting, burning, and circulation

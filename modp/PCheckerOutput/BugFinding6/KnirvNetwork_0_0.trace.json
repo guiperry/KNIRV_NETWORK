@@ -1,0 +1,730 @@
+[
+  {
+    "type": "CreateMonitor",
+    "details": {
+      "log": "NetworkIntegrityMonitor was created.",
+      "payload": "null",
+      "monitor": "NetworkIntegrityMonitor",
+      "clock": {
+        "NetworkIntegrityMonitor": 1
+      }
+    }
+  },
+  {
+    "type": "MonitorStateTransition",
+    "details": {
+      "log": "NetworkIntegrityMonitor enters state \u0027Initializing\u0027.",
+      "state": "Initializing",
+      "payload": "null",
+      "isEntry": true,
+      "monitor": "NetworkIntegrityMonitor",
+      "clock": {
+        "NetworkIntegrityMonitor": 2
+      }
+    }
+  },
+  {
+    "type": "CreateMonitor",
+    "details": {
+      "log": "TokenEconomicsMonitor was created.",
+      "payload": "null",
+      "monitor": "TokenEconomicsMonitor",
+      "clock": {
+        "TokenEconomicsMonitor": 1
+      }
+    }
+  },
+  {
+    "type": "MonitorStateTransition",
+    "details": {
+      "log": "TokenEconomicsMonitor enters state \u0027Monitoring\u0027.",
+      "state": "Monitoring",
+      "payload": "null",
+      "isEntry": true,
+      "monitor": "TokenEconomicsMonitor",
+      "clock": {
+        "TokenEconomicsMonitor": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "MaliciousBehaviorDriver(1) was created by task \u00272\u0027.",
+      "id": "MaliciousBehaviorDriver(1)",
+      "payload": "null",
+      "clock": {
+        "MaliciousBehaviorDriver(1)": 1
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "MaliciousBehaviorDriver(1) enters state \u0027Init\u0027.",
+      "id": "MaliciousBehaviorDriver(1)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "MaliciousBehaviorDriver(1)": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "TokenMachine(2) was created by MaliciousBehaviorDriver(1).",
+      "id": "TokenMachine(2)",
+      "creatorName": "MaliciousBehaviorDriver(1)",
+      "creatorType": "MaliciousBehaviorDriver",
+      "payload": "null",
+      "clock": {
+        "TokenMachine(2)": 1
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "TokenMachine(2) enters state \u0027Init\u0027.",
+      "id": "TokenMachine(2)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "TokenMachine(2)": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "GovernanceMachine(3) was created by MaliciousBehaviorDriver(1).",
+      "id": "GovernanceMachine(3)",
+      "creatorName": "MaliciousBehaviorDriver(1)",
+      "creatorType": "MaliciousBehaviorDriver",
+      "payload": "null",
+      "clock": {
+        "GovernanceMachine(3)": 1
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "GovernanceMachine(3) enters state \u0027Init\u0027.",
+      "id": "GovernanceMachine(3)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "GovernanceMachine(3)": 2
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "SkillRegistryMachine(4) was created by MaliciousBehaviorDriver(1).",
+      "id": "SkillRegistryMachine(4)",
+      "creatorName": "MaliciousBehaviorDriver(1)",
+      "creatorType": "MaliciousBehaviorDriver",
+      "payload": "null",
+      "clock": {
+        "SkillRegistryMachine(4)": 1
+      }
+    }
+  },
+  {
+    "type": "CreateStateMachine",
+    "details": {
+      "log": "P2PNetworkMachine(5) was created by MaliciousBehaviorDriver(1).",
+      "id": "P2PNetworkMachine(5)",
+      "creatorName": "MaliciousBehaviorDriver(1)",
+      "creatorType": "MaliciousBehaviorDriver",
+      "payload": "null",
+      "clock": {
+        "P2PNetworkMachine(5)": 1
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "NetworkIntegrityMonitor is processing event \u0027eComponentStart with payload (\u003CcomponentName:\u0022tokenMachine\u0022, \u003E)\u0027 in state \u0027Initializing\u0027.",
+      "event": "eComponentStart",
+      "state": "Initializing",
+      "payload": {
+        "componentName": "tokenMachine"
+      },
+      "sender": "MaliciousBehaviorDriver(1)",
+      "monitor": "NetworkIntegrityMonitor",
+      "clock": {
+        "NetworkIntegrityMonitor": 3,
+        "MaliciousBehaviorDriver(1)": 2
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027MaliciousBehaviorDriver(1)\u0027 in state \u0027Init\u0027 sent event \u0027eComponentStart with payload (\u003CcomponentName:\u0022tokenMachine\u0022, \u003E)\u0027 to \u0027TokenMachine(2)\u0027.",
+      "event": "eComponentStart",
+      "state": "Init",
+      "payload": {
+        "componentName": "tokenMachine"
+      },
+      "sender": "MaliciousBehaviorDriver(1)",
+      "target": "TokenMachine(2)",
+      "isTargetHalted": false,
+      "clock": {
+        "MaliciousBehaviorDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "NetworkIntegrityMonitor is processing event \u0027eComponentStart with payload (\u003CcomponentName:\u0022governanceMachine\u0022, \u003E)\u0027 in state \u0027Initializing\u0027.",
+      "event": "eComponentStart",
+      "state": "Initializing",
+      "payload": {
+        "componentName": "governanceMachine"
+      },
+      "sender": "MaliciousBehaviorDriver(1)",
+      "monitor": "NetworkIntegrityMonitor",
+      "clock": {
+        "NetworkIntegrityMonitor": 4,
+        "MaliciousBehaviorDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "SkillRegistryMachine(4) enters state \u0027Init\u0027.",
+      "id": "SkillRegistryMachine(4)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "SkillRegistryMachine(4)": 2
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027TokenMachine(2)\u0027 dequeued event \u0027eComponentStart with payload (\u003CcomponentName:\u0022tokenMachine\u0022, \u003E)\u0027 in state \u0027Init\u0027.",
+      "id": "TokenMachine(2)",
+      "event": "eComponentStart",
+      "state": "Init",
+      "payload": {
+        "componentName": "tokenMachine"
+      },
+      "clock": {
+        "TokenMachine(2)": 3,
+        "MaliciousBehaviorDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "TokenMachine(2) is transitioning from state \u0027Init\u0027 to state \u0027Active\u0027.",
+      "id": "TokenMachine(2)",
+      "startState": "Init",
+      "endState": "Active",
+      "payload": "null",
+      "clock": {
+        "TokenMachine(2)": 4,
+        "MaliciousBehaviorDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "TokenMachine(2) exits state \u0027Init\u0027.",
+      "id": "TokenMachine(2)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "TokenMachine(2)": 5,
+        "MaliciousBehaviorDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "TokenMachine(2) enters state \u0027Active\u0027.",
+      "id": "TokenMachine(2)",
+      "state": "Active",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "TokenMachine(2)": 6,
+        "MaliciousBehaviorDriver(1)": 3
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "P2PNetworkMachine(5) enters state \u0027Init\u0027.",
+      "id": "P2PNetworkMachine(5)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "P2PNetworkMachine(5)": 2
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027MaliciousBehaviorDriver(1)\u0027 in state \u0027Init\u0027 sent event \u0027eComponentStart with payload (\u003CcomponentName:\u0022governanceMachine\u0022, \u003E)\u0027 to \u0027GovernanceMachine(3)\u0027.",
+      "event": "eComponentStart",
+      "state": "Init",
+      "payload": {
+        "componentName": "governanceMachine"
+      },
+      "sender": "MaliciousBehaviorDriver(1)",
+      "target": "GovernanceMachine(3)",
+      "isTargetHalted": false,
+      "clock": {
+        "MaliciousBehaviorDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "NetworkIntegrityMonitor is processing event \u0027eComponentStart with payload (\u003CcomponentName:\u0022skillRegistry\u0022, \u003E)\u0027 in state \u0027Initializing\u0027.",
+      "event": "eComponentStart",
+      "state": "Initializing",
+      "payload": {
+        "componentName": "skillRegistry"
+      },
+      "sender": "MaliciousBehaviorDriver(1)",
+      "monitor": "NetworkIntegrityMonitor",
+      "clock": {
+        "NetworkIntegrityMonitor": 5,
+        "MaliciousBehaviorDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027GovernanceMachine(3)\u0027 dequeued event \u0027eComponentStart with payload (\u003CcomponentName:\u0022governanceMachine\u0022, \u003E)\u0027 in state \u0027Init\u0027.",
+      "id": "GovernanceMachine(3)",
+      "event": "eComponentStart",
+      "state": "Init",
+      "payload": {
+        "componentName": "governanceMachine"
+      },
+      "clock": {
+        "GovernanceMachine(3)": 3,
+        "MaliciousBehaviorDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "GovernanceMachine(3) is transitioning from state \u0027Init\u0027 to state \u0027Active\u0027.",
+      "id": "GovernanceMachine(3)",
+      "startState": "Init",
+      "endState": "Active",
+      "payload": "null",
+      "clock": {
+        "GovernanceMachine(3)": 4,
+        "MaliciousBehaviorDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "GovernanceMachine(3) exits state \u0027Init\u0027.",
+      "id": "GovernanceMachine(3)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "GovernanceMachine(3)": 5,
+        "MaliciousBehaviorDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "GovernanceMachine(3) enters state \u0027Active\u0027.",
+      "id": "GovernanceMachine(3)",
+      "state": "Active",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "GovernanceMachine(3)": 6,
+        "MaliciousBehaviorDriver(1)": 4
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027MaliciousBehaviorDriver(1)\u0027 in state \u0027Init\u0027 sent event \u0027eComponentStart with payload (\u003CcomponentName:\u0022skillRegistry\u0022, \u003E)\u0027 to \u0027SkillRegistryMachine(4)\u0027.",
+      "event": "eComponentStart",
+      "state": "Init",
+      "payload": {
+        "componentName": "skillRegistry"
+      },
+      "sender": "MaliciousBehaviorDriver(1)",
+      "target": "SkillRegistryMachine(4)",
+      "isTargetHalted": false,
+      "clock": {
+        "MaliciousBehaviorDriver(1)": 5
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "NetworkIntegrityMonitor is processing event \u0027eComponentStart with payload (\u003CcomponentName:\u0022p2pNetwork\u0022, \u003E)\u0027 in state \u0027Initializing\u0027.",
+      "event": "eComponentStart",
+      "state": "Initializing",
+      "payload": {
+        "componentName": "p2pNetwork"
+      },
+      "sender": "MaliciousBehaviorDriver(1)",
+      "monitor": "NetworkIntegrityMonitor",
+      "clock": {
+        "NetworkIntegrityMonitor": 6,
+        "MaliciousBehaviorDriver(1)": 5
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027SkillRegistryMachine(4)\u0027 dequeued event \u0027eComponentStart with payload (\u003CcomponentName:\u0022skillRegistry\u0022, \u003E)\u0027 in state \u0027Init\u0027.",
+      "id": "SkillRegistryMachine(4)",
+      "event": "eComponentStart",
+      "state": "Init",
+      "payload": {
+        "componentName": "skillRegistry"
+      },
+      "clock": {
+        "SkillRegistryMachine(4)": 3,
+        "MaliciousBehaviorDriver(1)": 5
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "SkillRegistryMachine(4) is transitioning from state \u0027Init\u0027 to state \u0027Active\u0027.",
+      "id": "SkillRegistryMachine(4)",
+      "startState": "Init",
+      "endState": "Active",
+      "payload": "null",
+      "clock": {
+        "SkillRegistryMachine(4)": 4,
+        "MaliciousBehaviorDriver(1)": 5
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "SkillRegistryMachine(4) exits state \u0027Init\u0027.",
+      "id": "SkillRegistryMachine(4)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "SkillRegistryMachine(4)": 5,
+        "MaliciousBehaviorDriver(1)": 5
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "SkillRegistryMachine(4) enters state \u0027Active\u0027.",
+      "id": "SkillRegistryMachine(4)",
+      "state": "Active",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "SkillRegistryMachine(4)": 6,
+        "MaliciousBehaviorDriver(1)": 5
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027MaliciousBehaviorDriver(1)\u0027 in state \u0027Init\u0027 sent event \u0027eComponentStart with payload (\u003CcomponentName:\u0022p2pNetwork\u0022, \u003E)\u0027 to \u0027P2PNetworkMachine(5)\u0027.",
+      "event": "eComponentStart",
+      "state": "Init",
+      "payload": {
+        "componentName": "p2pNetwork"
+      },
+      "sender": "MaliciousBehaviorDriver(1)",
+      "target": "P2PNetworkMachine(5)",
+      "isTargetHalted": false,
+      "clock": {
+        "MaliciousBehaviorDriver(1)": 6
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "MaliciousBehaviorDriver(1) is transitioning from state \u0027Init\u0027 to state \u0027TestUnauthorizedMint\u0027.",
+      "id": "MaliciousBehaviorDriver(1)",
+      "startState": "Init",
+      "endState": "TestUnauthorizedMint",
+      "payload": "null",
+      "clock": {
+        "MaliciousBehaviorDriver(1)": 7
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "MaliciousBehaviorDriver(1) exits state \u0027Init\u0027.",
+      "id": "MaliciousBehaviorDriver(1)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "MaliciousBehaviorDriver(1)": 8
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "MaliciousBehaviorDriver(1) enters state \u0027TestUnauthorizedMint\u0027.",
+      "id": "MaliciousBehaviorDriver(1)",
+      "state": "TestUnauthorizedMint",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "MaliciousBehaviorDriver(1)": 9
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "TokenEconomicsMonitor is processing event \u0027eMintRequest with payload (\u003Crecipient:\u003Cbytes:(), \u003E, amount:\u003Cvalue:2000000000, isNegative:False, \u003E, authorized:False, \u003E)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eMintRequest",
+      "state": "Monitoring",
+      "payload": {
+        "recipient": {
+          "bytes": []
+        },
+        "amount": {
+          "value": 2000000000,
+          "isNegative": false
+        },
+        "authorized": false
+      },
+      "sender": "MaliciousBehaviorDriver(1)",
+      "monitor": "TokenEconomicsMonitor",
+      "clock": {
+        "TokenEconomicsMonitor": 3,
+        "MaliciousBehaviorDriver(1)": 9
+      }
+    }
+  },
+  {
+    "type": "SendEvent",
+    "details": {
+      "log": "\u0027MaliciousBehaviorDriver(1)\u0027 in state \u0027TestUnauthorizedMint\u0027 sent event \u0027eMintRequest with payload (\u003Crecipient:\u003Cbytes:(), \u003E, amount:\u003Cvalue:2000000000, isNegative:False, \u003E, authorized:False, \u003E)\u0027 to \u0027TokenMachine(2)\u0027.",
+      "event": "eMintRequest",
+      "state": "TestUnauthorizedMint",
+      "payload": {
+        "recipient": {
+          "bytes": []
+        },
+        "amount": {
+          "value": 2000000000,
+          "isNegative": false
+        },
+        "authorized": false
+      },
+      "sender": "MaliciousBehaviorDriver(1)",
+      "target": "TokenMachine(2)",
+      "isTargetHalted": false,
+      "clock": {
+        "MaliciousBehaviorDriver(1)": 10
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027P2PNetworkMachine(5)\u0027 dequeued event \u0027eComponentStart with payload (\u003CcomponentName:\u0022p2pNetwork\u0022, \u003E)\u0027 in state \u0027Init\u0027.",
+      "id": "P2PNetworkMachine(5)",
+      "event": "eComponentStart",
+      "state": "Init",
+      "payload": {
+        "componentName": "p2pNetwork"
+      },
+      "clock": {
+        "P2PNetworkMachine(5)": 3,
+        "MaliciousBehaviorDriver(1)": 6
+      }
+    }
+  },
+  {
+    "type": "GotoState",
+    "details": {
+      "log": "P2PNetworkMachine(5) is transitioning from state \u0027Init\u0027 to state \u0027Discovering\u0027.",
+      "id": "P2PNetworkMachine(5)",
+      "startState": "Init",
+      "endState": "Discovering",
+      "payload": "null",
+      "clock": {
+        "P2PNetworkMachine(5)": 4,
+        "MaliciousBehaviorDriver(1)": 6
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "P2PNetworkMachine(5) exits state \u0027Init\u0027.",
+      "id": "P2PNetworkMachine(5)",
+      "state": "Init",
+      "payload": "null",
+      "isEntry": false,
+      "clock": {
+        "P2PNetworkMachine(5)": 5,
+        "MaliciousBehaviorDriver(1)": 6
+      }
+    }
+  },
+  {
+    "type": "StateTransition",
+    "details": {
+      "log": "P2PNetworkMachine(5) enters state \u0027Discovering\u0027.",
+      "id": "P2PNetworkMachine(5)",
+      "state": "Discovering",
+      "payload": "null",
+      "isEntry": true,
+      "clock": {
+        "P2PNetworkMachine(5)": 6,
+        "MaliciousBehaviorDriver(1)": 6
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "P2PNetworkMachine(5) announced event eDiscoverPeers.",
+      "id": "P2PNetworkMachine(5)",
+      "event": "eDiscoverPeers",
+      "payload": "null",
+      "clock": {
+        "P2PNetworkMachine(5)": 7,
+        "MaliciousBehaviorDriver(1)": 6
+      }
+    }
+  },
+  {
+    "type": "DequeueEvent",
+    "details": {
+      "log": "\u0027TokenMachine(2)\u0027 dequeued event \u0027eMintRequest with payload (\u003Crecipient:\u003Cbytes:(), \u003E, amount:\u003Cvalue:2000000000, isNegative:False, \u003E, authorized:False, \u003E)\u0027 in state \u0027Active\u0027.",
+      "id": "TokenMachine(2)",
+      "event": "eMintRequest",
+      "state": "Active",
+      "payload": {
+        "recipient": {
+          "bytes": []
+        },
+        "amount": {
+          "value": 2000000000,
+          "isNegative": false
+        },
+        "authorized": false
+      },
+      "clock": {
+        "TokenMachine(2)": 7,
+        "MaliciousBehaviorDriver(1)": 10
+      }
+    }
+  },
+  {
+    "type": "Announce",
+    "details": {
+      "log": "TokenMachine(2) announced event eMintFailed with payload \u0022Unauthorized minting attempt\u0022.",
+      "id": "TokenMachine(2)",
+      "event": "eMintFailed",
+      "payload": "Unauthorized minting attempt",
+      "clock": {
+        "TokenMachine(2)": 8,
+        "MaliciousBehaviorDriver(1)": 10
+      }
+    }
+  },
+  {
+    "type": "MonitorProcessEvent",
+    "details": {
+      "log": "TokenEconomicsMonitor is processing event \u0027eMintFailed with payload (\u0022Unauthorized minting attempt\u0022)\u0027 in state \u0027Monitoring\u0027.",
+      "event": "eMintFailed",
+      "state": "Monitoring",
+      "payload": "Unauthorized minting attempt",
+      "sender": "TokenMachine(2)",
+      "monitor": "TokenEconomicsMonitor",
+      "clock": {
+        "TokenEconomicsMonitor": 4,
+        "MaliciousBehaviorDriver(1)": 10,
+        "TokenMachine(2)": 8
+      }
+    }
+  },
+  {
+    "type": "MonitorStateTransition",
+    "details": {
+      "log": "TokenEconomicsMonitor exits state \u0027Monitoring\u0027.",
+      "state": "Monitoring",
+      "payload": "null",
+      "isEntry": false,
+      "monitor": "TokenEconomicsMonitor",
+      "clock": {
+        "TokenEconomicsMonitor": 5,
+        "MaliciousBehaviorDriver(1)": 10,
+        "TokenMachine(2)": 8
+      }
+    }
+  },
+  {
+    "type": "AssertionFailure",
+    "details": {
+      "log": "PImplementation.TokenEconomicsMonitor received event \u0027PImplementation.eMintFailed\u0027 that cannot be handled.",
+      "error": "PImplementation.TokenEconomicsMonitor received event \u0027PImplementation.eMintFailed\u0027 that cannot be handled.",
+      "payload": "null"
+    }
+  },
+  {
+    "type": "StrategyDescription",
+    "details": {
+      "log": "Found bug using \u0027random\u0027 strategy.",
+      "payload": "null",
+      "strategy": "random",
+      "strategyDescription": "random[seed \u00271979974403\u0027]"
+    }
+  }
+]
