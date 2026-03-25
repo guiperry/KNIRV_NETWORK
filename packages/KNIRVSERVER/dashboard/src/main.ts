@@ -112,6 +112,11 @@ ipcMain.on('close-window', () => {
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-vulkan');
+app.commandLine.appendSwitch('disable-vulkan-surface');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.commandLine.appendSwitch('use-gl=swiftshader');
+app.commandLine.appendSwitch('enable-unsafe-swiftshader');
 
 app.on('ready', createWindow);
 

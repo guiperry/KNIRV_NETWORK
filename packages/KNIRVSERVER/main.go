@@ -380,10 +380,13 @@ func (app *NexusApp) startDashboard() error {
 		// Run as the original user with --set-home so $HOME is correct.
 		// Explicitly source ~/.nvm/nvm.sh so node is on PATH regardless of
 		// whether nvm is in .bashrc (interactive) or .bash_profile (login).
+		// Disable Vulkan/GPU via env vars to suppress driver warnings on headless systems.
 		shellCmd := fmt.Sprintf(
 			`. "$HOME/.nvm/nvm.sh" 2>/dev/null; `+
 				`export XDG_RUNTIME_DIR="/run/user/$(id -u)"; `+
 				`export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"; `+
+				`export VK_ICD_FILENAMES=""; `+
+				`export ELECTRON_OZONE_PLATFORM_HINT=auto; `+
 				`KNIRV_SERVER_URL=%s KNIRV_SHUTDOWN_TOKEN=%s KNIRV_SERVER_PORT=%s exec %s %s`,
 			shellEscape(serverUrl), shellEscape(app.shutdownToken),
 			shellEscape(fmt.Sprintf("%d", app.config.Port)),
@@ -396,6 +399,8 @@ func (app *NexusApp) startDashboard() error {
 			fmt.Sprintf("KNIRV_SERVER_URL=%s", serverUrl),
 			fmt.Sprintf("KNIRV_SHUTDOWN_TOKEN=%s", app.shutdownToken),
 			fmt.Sprintf("KNIRV_SERVER_PORT=%d", app.config.Port),
+			"VK_ICD_FILENAMES=",
+			"ELECTRON_OZONE_PLATFORM_HINT=auto",
 		)
 	}
 	app.dashboardCmd.Dir = dashboardDir
