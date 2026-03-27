@@ -12,13 +12,17 @@ import (
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
 	"backend_server/internal/objects"
+	"backend_server/internal/services/dvecreation"
 	"backend_server/internal/services/p2p"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"
 )
 
-// DVEManager manages DVE nodes and their operations
+// DVEManager manages DVE nodes and their operations.
+// It also owns the DVECreationService (merged from the dvecreation package)
+// so that node registration, session management, and DVE lifecycle are
+// accessible through a single service boundary.
 type DVEManager struct {
 	db                   *database.BuntDBManager
 	p2pManager           *p2p.DVEP2PManager
@@ -33,6 +37,10 @@ type DVEManager struct {
 	cancel               context.CancelFunc
 	mu                   sync.RWMutex
 	enableChainDiscovery bool
+
+	// creationService is the embedded DVE creation and session management service.
+	// Access it via SetCreationService / GetCreationService or the delegation methods below.
+	creationService *dvecreation.DVECreationService
 }
 
 // NodeTracker tracks the status and health of DVE nodes
@@ -162,6 +170,66 @@ func (dm *DVEManager) Stop(ctx context.Context) error {
 	dm.cancel()
 	log.Println("DVE Manager service stopped")
 	return nil
+}
+
+// ── DVE Creation delegation ───────────────────────────────────────────────────
+// SetCreationService wires the DVECreationService into the manager so that all
+// creation and session operations are accessible through a single service boundary.
+func (dm *DVEManager) SetCreationService(svc *dvecreation.DVECreationService) {
+	dm.mu.Lock()
+	defer dm.mu.Unlock()
+	dm.creationService = svc
+}
+
+// GetCreationService returns the embedded DVECreationService.
+func (dm *DVEManager) GetCreationService() *dvecreation.DVECreationService {
+	dm.mu.RLock()
+	defer dm.mu.RUnlock()
+	return dm.creationService
+}
+
+// CreateDVENode delegates to DVECreationService.CreateDVENode.
+func (dm *DVEManager) CreateDVENode(req *objects.DVECreationRequest) (*objects.DVECreationResponse, error) {
+	dm.mu.RLock()
+	svc := dm.creationService
+	dm.mu.RUnlock()
+	if svc == nil {
+		return nil, fmt.Errorf("DVE creation service not available")
+	}
+	return svc.CreateDVENode(req)
+}
+
+// GetDVECreation delegates to DVECreationService.GetDVECreation.
+func (dm *DVEManager) GetDVECreation(creationID string) (*objects.DVECreation, error) {
+	dm.mu.RLock()
+	svc := dm.creationService
+	dm.mu.RUnlock()
+	if svc == nil {
+		return nil, fmt.Errorf("DVE creation service not available")
+	}
+	return svc.GetDVECreation(creationID)
+}
+
+// GetUserDVECreations delegates to DVECreationService.GetUserDVECreations.
+func (dm *DVEManager) GetUserDVECreations(userID string) ([]*objects.DVECreation, error) {
+	dm.mu.RLock()
+	svc := dm.creationService
+	dm.mu.RUnlock()
+	if svc == nil {
+		return nil, fmt.Errorf("DVE creation service not available")
+	}
+	return svc.GetUserDVECreations(userID)
+}
+
+// GetCreationStats delegates to DVECreationService.GetStats.
+func (dm *DVEManager) GetCreationStats() (*dvecreation.DVECreationStats, error) {
+	dm.mu.RLock()
+	svc := dm.creationService
+	dm.mu.RUnlock()
+	if svc == nil {
+		return nil, fmt.Errorf("DVE creation service not available")
+	}
+	return svc.GetStats()
 }
 
 // HandleMessage implements the P2P MessageHandler interface

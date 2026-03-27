@@ -6,6 +6,8 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 	"time"
@@ -468,4 +470,86 @@ func TestAgentStatus_JSONRoundtrip(t *testing.T) {
 	assert.Equal(t, status.ActiveTasks, decoded.ActiveTasks)
 	assert.Equal(t, status.CompletedTasks, decoded.CompletedTasks)
 	assert.Equal(t, status.ViewportURL, decoded.ViewportURL)
+}
+
+func TestAgentTaskRequest_JSONRoundtrip(t *testing.T) {
+	req := AgentTaskRequest{
+		Title:       "Test Task",
+		Description: "Test description",
+		Type:        "coding",
+		Priority:    2,
+		Input:       map[string]string{"source": "test"},
+	}
+
+	data, err := json.Marshal(req)
+	require.NoError(t, err)
+
+	var decoded AgentTaskRequest
+	err = json.Unmarshal(data, &decoded)
+	require.NoError(t, err)
+
+	assert.Equal(t, req.Title, decoded.Title)
+	assert.Equal(t, req.Description, decoded.Description)
+	assert.Equal(t, req.Type, decoded.Type)
+	assert.Equal(t, req.Priority, decoded.Priority)
+	assert.Equal(t, req.Input, decoded.Input)
+}
+
+func TestAgentTaskExecuteTask(t *testing.T) {
+	// Spin up a mock oh-my-pi server that returns a successful task response.
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/task" && r.Method == http.MethodPost {
+			resp := ohMyPiTaskResponse{
+				Success:     true,
+				TaskID:      "mock-task-id",
+				Output:      "mock output",
+				MarkdownLog: "# Agent Task: Execute Task\n\nTask completed successfully.",
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(resp)
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer mockServer.Close()
+
+	db := newTestDB(t)
+	svc := NewAgentService(db, nil, nil)
+	// Override the fallback URL so executeTask reaches our mock server.
+	svc.apiBaseURL = mockServer.URL
+
+	dveID := "dve-execute"
+	svc.agents[dveID] = &AgentStatus{
+		DVEID:       dveID,
+		ContainerID: "ctr-execute",
+		Running:     true,
+	}
+
+	req := &AgentTaskRequest{
+		Title:       "Execute Task",
+		Description: "Task description",
+		Type:        "validation",
+		Priority:    3,
+	}
+
+	task, err := svc.SubmitTask(dveID, req)
+	require.NoError(t, err)
+	require.NotNil(t, task)
+
+	// Give the goroutine time to complete (mock server responds instantly).
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify task has been updated.
+	updatedTask, err := svc.GetTask(task.ID)
+	require.NoError(t, err)
+	require.NotNil(t, updatedTask)
+
+	// Task should have moved to running or completed.
+	assert.Contains(t, []string{"running", "completed"}, updatedTask.Status)
+
+	// Markdown log should be populated when completed.
+	if updatedTask.Status == "completed" {
+		assert.NotEmpty(t, updatedTask.MarkdownLog)
+		assert.Contains(t, updatedTask.MarkdownLog, "Agent Task: Execute Task")
+	}
 }

@@ -1567,13 +1567,68 @@ func (dpm *DVEP2PManager) GetPeerStats() map[string]interface{} {
 	peers := dpm.host.Network().Peers()
 
 	stats := map[string]interface{}{
-		"total_peers":       len(peers),
-		"connected_peers":   len(peers),
-		"bootstrap_peers":   len(DefaultBootstrapPeers),
-		"reputation_range":  fmt.Sprintf("%.1f-%.1f", MinReputationScore, MaxReputationScore),
+		"total_peers":        len(peers),
+		"connected_peers":    len(peers),
+		"bootstrap_peers":    len(DefaultBootstrapPeers),
+		"reputation_range":   fmt.Sprintf("%.1f-%.1f", MinReputationScore, MaxReputationScore),
 		"average_reputation": DefaultReputationScore,
-		"blacklisted_peers":  0, // Would be calculated from database
+		"blacklisted_peers":  0,
 	}
 
 	return stats
+}
+
+// containerRouteMessage is the announcement payload used when a UCM container
+// is registered with or removed from the P2P overlay.
+type containerRouteMessage struct {
+	Type        string `json:"type"`         // "register" | "unregister"
+	ContainerID string `json:"container_id"`
+	CryptoHash  string `json:"crypto_hash"`
+	ObjectType  string `json:"object_type"`
+	NodeID      string `json:"node_id"`
+	Timestamp   int64  `json:"timestamp"`
+}
+
+// PublishContainerRegistration announces a newly started UCM container to the
+// DVE announcement topic so peer nodes can update their routing tables.
+// This satisfies the runtime.ContainerRegisterFunc signature.
+func (dpm *DVEP2PManager) PublishContainerRegistration(ctx context.Context, containerID, cryptoHash, objectType string) error {
+	msg := containerRouteMessage{
+		Type:        "register",
+		ContainerID: containerID,
+		CryptoHash:  cryptoHash,
+		ObjectType:  objectType,
+		NodeID:      dpm.host.ID().String(),
+		Timestamp:   time.Now().Unix(),
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal container registration: %w", err)
+	}
+	if err := dpm.dveAnnouncementTopic.Publish(ctx, data); err != nil {
+		return fmt.Errorf("failed to publish container registration: %w", err)
+	}
+	log.Printf("[DVE][%s] Container %s registered in P2P routing", dpm.nodeRole, containerID)
+	return nil
+}
+
+// PublishContainerDeregistration removes a stopped UCM container from the
+// DVE announcement topic routing tables on peer nodes.
+// This satisfies the runtime.ContainerUnregisterFunc signature.
+func (dpm *DVEP2PManager) PublishContainerDeregistration(ctx context.Context, containerID string) error {
+	msg := containerRouteMessage{
+		Type:        "unregister",
+		ContainerID: containerID,
+		NodeID:      dpm.host.ID().String(),
+		Timestamp:   time.Now().Unix(),
+	}
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal container deregistration: %w", err)
+	}
+	if err := dpm.dveAnnouncementTopic.Publish(ctx, data); err != nil {
+		return fmt.Errorf("failed to publish container deregistration: %w", err)
+	}
+	log.Printf("[DVE][%s] Container %s deregistered from P2P routing", dpm.nodeRole, containerID)
+	return nil
 }

@@ -190,7 +190,7 @@ func (pa *PortAllocator) ExtendAllocation(rentalID string, duration time.Duratio
 		return fmt.Errorf("no allocation found for rental %s", rentalID)
 	}
 
-	alloc.ExpiresAt = time.Now().Add(duration)
+	alloc.ExpiresAt = alloc.ExpiresAt.Add(duration)
 	log.Printf("[PortAllocator] Extended allocation for %s until %s", rentalID, alloc.ExpiresAt)
 	return nil
 }

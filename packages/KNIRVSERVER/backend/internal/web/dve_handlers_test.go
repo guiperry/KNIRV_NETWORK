@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"backend_server/internal/services/dvecreation"
 	"backend_server/internal/services/dvemanager"
 	"backend_server/internal/web/middleware"
 
@@ -19,12 +18,10 @@ import (
 
 func TestNewDVEHandlers(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	assert.NotNil(t, handlers)
 	assert.Equal(t, dveManager, handlers.dveManager)
-	assert.Equal(t, dveCreationService, handlers.dveCreationService)
 }
 
 func TestGetCurrentTimestamp(t *testing.T) {
@@ -38,8 +35,7 @@ func TestGetCurrentTimestamp(t *testing.T) {
 
 func TestDVEHandlers_PostDVENodes_InvalidJSON(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	req := httptest.NewRequest("POST", "/api/dve-nodes", bytes.NewReader([]byte("invalid json")))
 	w := httptest.NewRecorder()
@@ -56,8 +52,7 @@ func TestDVEHandlers_PostDVENodes_InvalidJSON(t *testing.T) {
 
 func TestDVEHandlers_PostDVENodes_MissingName(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	reqBody := dvemanager.RegisterNodeRequest{
 		TEEType: "SGX",
@@ -78,8 +73,7 @@ func TestDVEHandlers_PostDVENodes_MissingName(t *testing.T) {
 
 func TestDVEHandlers_PostDVENodes_MissingTEEType(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	reqBody := dvemanager.RegisterNodeRequest{
 		Name: "test-node",
@@ -100,8 +94,7 @@ func TestDVEHandlers_PostDVENodes_MissingTEEType(t *testing.T) {
 
 func TestDVEHandlers_GetDVENode_MissingID(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	req := httptest.NewRequest("GET", "/api/dve-nodes/", nil)
 	w := httptest.NewRecorder()
@@ -118,8 +111,7 @@ func TestDVEHandlers_GetDVENode_MissingID(t *testing.T) {
 
 func TestDVEHandlers_UpdateDVENode_MissingID(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	req := httptest.NewRequest("PUT", "/api/dve-nodes/", bytes.NewReader([]byte("{}")))
 	w := httptest.NewRecorder()
@@ -136,8 +128,7 @@ func TestDVEHandlers_UpdateDVENode_MissingID(t *testing.T) {
 
 func TestDVEHandlers_UpdateDVENode_InvalidJSON(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	req := httptest.NewRequest("PUT", "/api/dve-nodes/test-id", bytes.NewReader([]byte("invalid json")))
 	w := httptest.NewRecorder()
@@ -157,8 +148,7 @@ func TestDVEHandlers_UpdateDVENode_InvalidJSON(t *testing.T) {
 
 func TestDVEHandlers_DeleteDVENode_MissingID(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	req := httptest.NewRequest("DELETE", "/api/dve-nodes/", nil)
 	w := httptest.NewRecorder()
@@ -175,8 +165,7 @@ func TestDVEHandlers_DeleteDVENode_MissingID(t *testing.T) {
 
 func TestDVEHandlers_GetDVENodeEndpoints_MissingID(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	req := httptest.NewRequest("GET", "/api/dve-nodes//endpoints", nil)
 	w := httptest.NewRecorder()
@@ -193,8 +182,7 @@ func TestDVEHandlers_GetDVENodeEndpoints_MissingID(t *testing.T) {
 
 func TestDVEHandlers_GetDVENodeSSHEndpoint_MissingID(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	req := httptest.NewRequest("GET", "/api/dve-nodes//ssh-endpoint", nil)
 	w := httptest.NewRecorder()
@@ -211,8 +199,7 @@ func TestDVEHandlers_GetDVENodeSSHEndpoint_MissingID(t *testing.T) {
 
 func TestDVEHandlers_GetDVENodeValidationEndpoint_MissingID(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	req := httptest.NewRequest("GET", "/api/dve-nodes//validation-endpoint", nil)
 	w := httptest.NewRecorder()
@@ -229,8 +216,7 @@ func TestDVEHandlers_GetDVENodeValidationEndpoint_MissingID(t *testing.T) {
 
 func TestDVEHandlers_GetDVENodeErrorResolutionEndpoint_MissingID(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	req := httptest.NewRequest("GET", "/api/dve-nodes//error-resolution-endpoint", nil)
 	w := httptest.NewRecorder()
@@ -247,8 +233,7 @@ func TestDVEHandlers_GetDVENodeErrorResolutionEndpoint_MissingID(t *testing.T) {
 
 func TestDVEHandlers_RegisterRoutes(t *testing.T) {
 	dveManager := &dvemanager.DVEManager{}
-	dveCreationService := &dvecreation.DVECreationService{}
-	handlers := NewDVEHandlers(dveManager, dveCreationService)
+	handlers := NewDVEHandlers(dveManager)
 
 	router := mux.NewRouter()
 	authMiddleware := &middleware.AuthMiddleware{}

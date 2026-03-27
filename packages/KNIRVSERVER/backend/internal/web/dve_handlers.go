@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"backend_server/internal/objects"
-	"backend_server/internal/services/dvecreation"
 	"backend_server/internal/services/dvemanager"
 	"backend_server/internal/services/session"
 	"backend_server/internal/web/middleware"
@@ -18,15 +17,15 @@ import (
 )
 
 type DVEHandlers struct {
-	dveManager         *dvemanager.DVEManager
-	dveCreationService *dvecreation.DVECreationService
-	sessionManager     *session.SessionManager
+	dveManager     *dvemanager.DVEManager
+	sessionManager *session.SessionManager
 }
 
-func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveCreationService *dvecreation.DVECreationService) *DVEHandlers {
+// NewDVEHandlers creates the DVE HTTP handler set.  DVE creation operations are
+// accessed through dveManager's delegation methods (merged from dvecreation).
+func NewDVEHandlers(dveManager *dvemanager.DVEManager) *DVEHandlers {
 	return &DVEHandlers{
-		dveManager:         dveManager,
-		dveCreationService: dveCreationService,
+		dveManager: dveManager,
 	}
 }
 
@@ -342,9 +341,9 @@ func (h *DVEHandlers) GetDVENodes(w http.ResponseWriter, r *http.Request) {
 
 	// Apply role-based filtering for observer (Developer) role
 	authCtx := middleware.GetAuthContext(r)
-	if authCtx != nil && authCtx.Role == "observer" && h.dveCreationService != nil {
-		// Get the list of creations for this user
-		creations, err := h.dveCreationService.GetUserDVECreations(authCtx.UserID)
+	if authCtx != nil && authCtx.Role == "observer" && h.dveManager != nil {
+		// Get the list of creations for this user (via DVEManager delegation)
+		creations, err := h.dveManager.GetUserDVECreations(authCtx.UserID)
 		if err != nil {
 			// Log error but don't fail the request - return empty array for developers with no creations
 			response := DVENodeResponse{

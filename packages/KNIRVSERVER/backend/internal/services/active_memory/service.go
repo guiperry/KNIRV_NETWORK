@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"backend_server/internal/nexus"
 	"backend_server/internal/reasoning/graph"
+	nexus "backend_server/internal/server"
 	"backend_server/internal/services/vault"
 	"backend_server/internal/storage/mdstorage"
 	"backend_server/internal/storage/pqc"
@@ -37,37 +37,69 @@ func NewActiveMemoryService(v *vault.VaultService, g *graph.ReasoningEngine, s *
 	}
 }
 
-// StreamToArrow projects encrypted .md records into an Arrow Flight stream
+// StreamToArrow projects encrypted .md records from storage into an Arrow Flight stream.
+// Each document is decoded and its metadata fields are mapped to the AgentMemorySchema columns.
+// Documents whose agent_id metadata field does not match agentID are skipped.
 func (s *ActiveMemoryService) StreamToArrow(agentID string, fs flight.FlightService_DoGetServer) error {
 	schema := nexus.NewAgentMemorySchema()
 	writer := flight.NewRecordWriter(fs, ipc.WithSchema(schema))
 	defer writer.Close()
 
-	// In a real implementation, we would iterate through recent .md files
-	// and project them into Arrow records.
-	// For this prototype, we'll demonstrate the projection logic.
+	if s.storage == nil {
+		return nil
+	}
 
-	builder := array.NewRecordBuilder(s.mem, schema)
-	defer builder.Release()
+	docs, err := s.storage.ListDocuments()
+	if err != nil {
+		return fmt.Errorf("failed to list documents for agent %s: %w", agentID, err)
+	}
 
-	// Mock projection from a hypothetical recent .md ContextRecord
-	timestamp := time.Now().Unix()
-	intent := "Resolving Network Timeout"
-	observed := "Executing SolutionNode: network_fix_v1"
+	for _, doc := range docs {
+		// Filter by agent ID when the metadata field is present and doesn't match.
+		if agentID != "" {
+			if aid, ok := doc.Metadata["agent_id"].(string); ok && aid != agentID {
+				continue
+			}
+		}
 
-	builder.Field(0).(*array.Int64Builder).Append(timestamp)
-	builder.Field(1).(*array.StringBuilder).Append(agentID)
-	builder.Field(2).(*array.StringBuilder).Append(intent)
-	builder.Field(3).(*array.StringBuilder).Append(observed)
-	builder.Field(4).(*array.Int32Builder).Append(120)    // token usage
-	builder.Field(5).(*array.Float64Builder).Append(0.95) // relevance
-	builder.Field(6).(*array.BooleanBuilder).Append(true) // verified
+		intent := ""
+		if v, ok := doc.Metadata["intent"].(string); ok {
+			intent = v
+		}
+		observed := string(doc.Content)
+		if len(observed) > 256 {
+			observed = observed[:256]
+		}
+		tokenUsage := int32(0)
+		if v, ok := doc.Metadata["token_usage"].(float64); ok {
+			tokenUsage = int32(v)
+		}
+		relevance := 1.0
+		if v, ok := doc.Metadata["relevance"].(float64); ok {
+			relevance = v
+		}
+		verified := true
+		if v, ok := doc.Metadata["verified"].(bool); ok {
+			verified = v
+		}
 
-	record := builder.NewRecord()
-	defer record.Release()
+		builder := array.NewRecordBuilder(s.mem, schema)
+		builder.Field(0).(*array.Int64Builder).Append(doc.Timestamp.Unix())
+		builder.Field(1).(*array.StringBuilder).Append(agentID)
+		builder.Field(2).(*array.StringBuilder).Append(intent)
+		builder.Field(3).(*array.StringBuilder).Append(observed)
+		builder.Field(4).(*array.Int32Builder).Append(tokenUsage)
+		builder.Field(5).(*array.Float64Builder).Append(relevance)
+		builder.Field(6).(*array.BooleanBuilder).Append(verified)
 
-	if err := writer.Write(record); err != nil {
-		return fmt.Errorf("failed to write arrow record: %w", err)
+		record := builder.NewRecord()
+		if err := writer.Write(record); err != nil {
+			record.Release()
+			builder.Release()
+			return err
+		}
+		record.Release()
+		builder.Release()
 	}
 
 	return nil

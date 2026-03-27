@@ -78,6 +78,36 @@ func (d *MarkdownStorageDriver) SaveDocument(doc *MarkdownDocument) error {
 	return os.WriteFile(filePath, buf.Bytes(), 0644)
 }
 
+// ListDocuments scans the storage directory and returns all loadable MarkdownDocuments.
+// Documents that cannot be decrypted (e.g. wrong key, corrupt file) are silently skipped.
+func (d *MarkdownStorageDriver) ListDocuments() ([]*MarkdownDocument, error) {
+	entries, err := os.ReadDir(d.baseDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read storage directory: %w", err)
+	}
+
+	var docs []*MarkdownDocument
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+			continue
+		}
+		// Filename format: {type}_{id}.md
+		name := strings.TrimSuffix(entry.Name(), ".md")
+		idx := strings.Index(name, "_")
+		if idx < 0 {
+			continue
+		}
+		docType := name[:idx]
+		id := name[idx+1:]
+		doc, err := d.LoadDocument(docType, id)
+		if err != nil {
+			continue // skip unreadable/unencryptable files
+		}
+		docs = append(docs, doc)
+	}
+	return docs, nil
+}
+
 // LoadDocument reads and decrypts a .md document from disk
 func (d *MarkdownStorageDriver) LoadDocument(docType, id string) (*MarkdownDocument, error) {
 	fileName := fmt.Sprintf("%s_%s.md", strings.ToLower(docType), id)

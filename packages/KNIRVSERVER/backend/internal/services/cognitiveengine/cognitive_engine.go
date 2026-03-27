@@ -52,6 +52,22 @@ type CognitiveEngine struct {
 	ebpfBridge      *EBPFBridge
 	guardrailEngine *GuardrailEngine
 	ontologyManager *DVEOntologyManager
+
+	// ── Per-DVE agent runtime telemetry (implements runtime.CognitiveEngineInterface) ─
+	agentMetrics   map[string]*AgentDVEMetrics
+	agentMetricsMu sync.RWMutex
+}
+
+// AgentDVEMetrics holds the most recent resource and complexity snapshot for a
+// single DVE's oh-my-pi agent container.  This is the bridge between the
+// inner (per-DVE) cognitive engine callbacks and the outer (server-wide)
+// CognitiveEngine learning & guardrail subsystems.
+type AgentDVEMetrics struct {
+	DVEID       string
+	Complexity  int
+	CPUPercent  float64
+	MemoryMB    int64
+	LastUpdated time.Time
 }
 
 // LearningState represents the current state of the cognitive engine's learning
@@ -201,6 +217,7 @@ func NewCognitiveEngineWithConfig(
 		validationCore:   validationClient,
 		inferenceService: inferenceClient,
 		modelManager:     modelManager,
+		agentMetrics:     make(map[string]*AgentDVEMetrics),
 		learningState: &LearningState{
 			TaskTypePerformance: make(map[string]*TaskMetrics),
 			NodePerformance:     make(map[string]*NodeMetrics),
@@ -419,6 +436,112 @@ func (ce *CognitiveEngine) GetAdaptationHistory(limit int) []AdaptationEvent {
 // GetGuardrailViolations returns recent policy violations from the guardrail engine.
 func (ce *CognitiveEngine) GetGuardrailViolations(limit int) []PolicyViolation {
 	return ce.guardrailEngine.GetViolations(limit)
+}
+
+// ── runtime.CognitiveEngineInterface implementation ──────────────────────────
+// These two methods bridge the inner (per-DVE) agent runtime telemetry into the
+// outer (server-wide) cognitive engine learning and guardrail subsystems.
+// The outer CognitiveEngine satisfies runtime.CognitiveEngineInterface structurally
+// (Go duck-typing), so no import of the runtime package is needed here.
+
+// OnAgentTaskComplexity records the complexity estimate for a DVE's oh-my-pi
+// agent container.  High-complexity tasks trigger the adaptation loop so that
+// the outer engine can pre-allocate resources or re-balance the network.
+func (ce *CognitiveEngine) OnAgentTaskComplexity(dveID string, complexity int) error {
+	ce.agentMetricsMu.Lock()
+	m, ok := ce.agentMetrics[dveID]
+	if !ok {
+		m = &AgentDVEMetrics{DVEID: dveID}
+		ce.agentMetrics[dveID] = m
+	}
+	m.Complexity = complexity
+	m.LastUpdated = time.Now()
+	ce.agentMetricsMu.Unlock()
+
+	// Reflect in the outer learning state's node performance map.
+	ce.mu.Lock()
+	if ce.learningState.NodePerformance == nil {
+		ce.learningState.NodePerformance = make(map[string]*NodeMetrics)
+	}
+	nm, exists := ce.learningState.NodePerformance[dveID]
+	if !exists {
+		nm = &NodeMetrics{
+			NodeID:          dveID,
+			Specializations: []string{"agent"},
+		}
+		ce.learningState.NodePerformance[dveID] = nm
+	}
+	nm.TasksProcessed++
+	nm.LastActive = time.Now()
+	ce.mu.Unlock()
+
+	// Publish an internal event so subsystems (e.g. guardrail loop) can react.
+	if ce.eventBus != nil {
+		ce.eventBus.Publish(EngineEvent{
+			Type:      EventAdaptationRequired,
+			Source:    dveID,
+			Payload:   complexity,
+			Timestamp: time.Now(),
+		})
+	}
+
+	log.Printf("[CognitiveEngine] DVE %s agent task complexity: %d", dveID, complexity)
+	return nil
+}
+
+// OnAgentResourceUsage records real-time CPU and memory consumption for a DVE's
+// agent container.  The measurements are forwarded to the metrics collector and
+// evaluated against guardrail policies so the outer engine can trigger automated
+// remediation (e.g. resource scaling) if thresholds are breached.
+func (ce *CognitiveEngine) OnAgentResourceUsage(dveID string, cpuPercent float64, memoryMB int64) error {
+	ce.agentMetricsMu.Lock()
+	m, ok := ce.agentMetrics[dveID]
+	if !ok {
+		m = &AgentDVEMetrics{DVEID: dveID}
+		ce.agentMetrics[dveID] = m
+	}
+	m.CPUPercent = cpuPercent
+	m.MemoryMB = memoryMB
+	m.LastUpdated = time.Now()
+	ce.agentMetricsMu.Unlock()
+
+	// Update the outer metrics collector so dashboard queries reflect agent load.
+	// utilization is a 0-1 score combining CPU and memory pressure.
+	utilization := cpuPercent/100.0 + float64(memoryMB)/65536.0
+	if utilization > 1.0 {
+		utilization = 1.0
+	}
+	ce.metricsCollector.mu.Lock()
+	cm, ok := ce.metricsCollector.metrics[dveID]
+	if !ok {
+		cm = &CognitiveMetrics{NodeID: dveID}
+		ce.metricsCollector.metrics[dveID] = cm
+	}
+	cm.ResourceUtilization = utilization
+	cm.Timestamp = time.Now()
+	ce.metricsCollector.mu.Unlock()
+
+	// Run guardrail evaluation with the resource_utilization metric.
+	if ce.guardrailEngine != nil {
+		ce.guardrailEngine.Evaluate(
+			context.Background(),
+			dveID, dveID,
+			map[string]float64{"resource_utilization": utilization},
+		)
+	}
+
+	// Publish a resource-pressure event for event-driven subscribers.
+	if ce.eventBus != nil {
+		ce.eventBus.Publish(EngineEvent{
+			Type:      EventResourcePressure,
+			Source:    dveID,
+			Payload:   map[string]float64{"cpu_percent": cpuPercent, "memory_mb": float64(memoryMB)},
+			Timestamp: time.Now(),
+		})
+	}
+
+	log.Printf("[CognitiveEngine] DVE %s agent resources: CPU=%.1f%% Mem=%dMB", dveID, cpuPercent, memoryMB)
+	return nil
 }
 
 // GetOntologyStats returns the count of entities and relations currently indexed.

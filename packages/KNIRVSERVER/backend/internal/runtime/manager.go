@@ -18,6 +18,22 @@ import (
 	"lukechampine.com/blake3"
 )
 
+// CognitiveEngineInterface defines the interface for Cognitive Engine integration.
+// It is implemented by cognitiveengine.CognitiveEngine (outer, server-wide engine)
+// and called from within the UCM to report per-DVE agent metrics.
+type CognitiveEngineInterface interface {
+	OnAgentTaskComplexity(dveID string, complexity int) error
+	OnAgentResourceUsage(dveID string, cpuPercent float64, memoryMB int64) error
+}
+
+// ContainerRegisterFunc is the callback invoked when a new container must be
+// announced to the P2P routing layer (e.g. via the DVE announcement topic).
+type ContainerRegisterFunc func(ctx context.Context, containerID, cryptoHash, objectType string) error
+
+// ContainerUnregisterFunc is the callback invoked when a container is torn down
+// and must be removed from the P2P routing layer.
+type ContainerUnregisterFunc func(ctx context.Context, containerID string) error
+
 // UnifiedContainerManager manages all container types
 type UnifiedContainerManager struct {
 	teeService      *teesecurity.TEESecurityService
@@ -25,8 +41,13 @@ type UnifiedContainerManager struct {
 	vcManager       *ebpf.VirtualContainerManager
 	runtimeSelector *RuntimeSelector
 	assetRegistry   *AssetRegistry
-	containers      map[string]*UnifiedContainer
-	mu              sync.RWMutex
+	cognitiveEngine CognitiveEngineInterface
+	// router callbacks wired by SetRouterFuncs from main.go
+	registerFn   ContainerRegisterFunc
+	unregisterFn ContainerUnregisterFunc
+	containers   map[string]*UnifiedContainer
+	agentPolicies map[string]*ebpf.SecurityPolicy
+	mu            sync.RWMutex
 }
 
 // NewUnifiedContainerManager creates a new unified container manager
@@ -42,7 +63,27 @@ func NewUnifiedContainerManager(
 		runtimeSelector: NewRuntimeSelector(),
 		assetRegistry:   NewAssetRegistry(),
 		containers:      make(map[string]*UnifiedContainer),
+		agentPolicies:   make(map[string]*ebpf.SecurityPolicy),
 	}
+}
+
+// SetCognitiveEngine wires the outer (server-wide) CognitiveEngine as the
+// receiver for per-DVE agent task-complexity and resource-usage callbacks.
+// Must be called before containers are created.
+func (ucm *UnifiedContainerManager) SetCognitiveEngine(engine CognitiveEngineInterface) {
+	ucm.mu.Lock()
+	defer ucm.mu.Unlock()
+	ucm.cognitiveEngine = engine
+}
+
+// SetRouterFuncs wires the P2P routing callbacks so that newly created
+// containers are announced to the DVE P2P overlay and removed when they are
+// torn down.  Must be called before containers are created.
+func (ucm *UnifiedContainerManager) SetRouterFuncs(register ContainerRegisterFunc, unregister ContainerUnregisterFunc) {
+	ucm.mu.Lock()
+	defer ucm.mu.Unlock()
+	ucm.registerFn = register
+	ucm.unregisterFn = unregister
 }
 
 // CreateContainer creates a new unified container with the specified mode
@@ -78,14 +119,11 @@ func (ucm *UnifiedContainerManager) CreateContainer(
 		Status:        ContainerStatusCreating,
 	}
 
-	// Initialize eBPF security if available
+	// Initialize eBPF security for all containers
 	if ucm.ebpfManager != nil {
-		// TODO: Fix eBPF initialization - NewSyscallMonitor returns (monitor, error)
-		// monitor, err := ebpf.NewSyscallMonitor()
-		// if err == nil {
-		// 	container.EBPFMonitor = monitor
-		// }
-		// SandboxLSM not available in current implementation
+		if err := ucm.initializeEBPFSecurity(container, objectType); err != nil {
+			log.Printf("Warning: eBPF security initialization failed for %s: %v", container.ID, err)
+		}
 	}
 
 	// Initialize TEE attestation if requested
@@ -108,12 +146,17 @@ func (ucm *UnifiedContainerManager) CreateContainer(
 	}
 
 	// Initialize viewport proxy for agent type (provides terminal interface)
-	if objectType == ObjectTypeAgent && container.ObjectConfig != nil && container.ObjectConfig.EnableViewport {
+	if objectType == ObjectTypeAgent && spec != nil {
 		viewportProxy := NewViewportProxyImpl(container, []string{"http", "websocket"})
 		if err := viewportProxy.Start(); err != nil {
 			log.Printf("Warning: Agent viewport proxy failed: %v", err)
 		} else {
 			container.ViewportProxy = viewportProxy
+		}
+
+		// Initialize agent security policy for oh-my-pi
+		if err := ucm.initializeOhMyPiAgentPolicy(container); err != nil {
+			log.Printf("Warning: oh-my-pi agent policy initialization failed: %v", err)
 		}
 	}
 
@@ -430,26 +473,37 @@ func (ucm *UnifiedContainerManager) generateCryptoHash(c *UnifiedContainer) stri
 	return hex.EncodeToString(hash[:])
 }
 
-// registerWithRouter registers the container with KNIRVROUTER DHT
-func (ucm *UnifiedContainerManager) registerWithRouter(
-	_ context.Context,
-	c *UnifiedContainer,
-) error {
-	// TODO: Implement actual KNIRVROUTER client integration
-	// For now, this is a placeholder that will be implemented in Phase 2
-	log.Printf("Registering container %s with router (hash: %s, type: %s)",
+// registerWithRouter announces the container to the P2P routing layer via the
+// callback registered with SetRouterFuncs.  When no callback is registered
+// (e.g. in standalone / unit-test mode) the call is silently skipped.
+func (ucm *UnifiedContainerManager) registerWithRouter(ctx context.Context, c *UnifiedContainer) error {
+	ucm.mu.RLock()
+	fn := ucm.registerFn
+	ucm.mu.RUnlock()
+	if fn == nil {
+		return nil
+	}
+	if err := fn(ctx, c.ID, c.CryptoHash, string(c.ObjectType)); err != nil {
+		return fmt.Errorf("router registration for container %s failed: %w", c.ID, err)
+	}
+	log.Printf("Container %s registered with P2P router (hash: %s, type: %s)",
 		c.ID, c.CryptoHash, c.ObjectType)
 	return nil
 }
 
-// unregisterFromRouter unregisters the container from KNIRVROUTER DHT
-func (ucm *UnifiedContainerManager) unregisterFromRouter(
-	_ context.Context,
-	c *UnifiedContainer,
-) error {
-	// TODO: Implement actual KNIRVROUTER client integration
-	log.Printf("Unregistering container %s from router (hash: %s)",
-		c.ID, c.CryptoHash)
+// unregisterFromRouter removes the container from the P2P routing layer via
+// the callback registered with SetRouterFuncs.
+func (ucm *UnifiedContainerManager) unregisterFromRouter(ctx context.Context, c *UnifiedContainer) error {
+	ucm.mu.RLock()
+	fn := ucm.unregisterFn
+	ucm.mu.RUnlock()
+	if fn == nil {
+		return nil
+	}
+	if err := fn(ctx, c.ID); err != nil {
+		return fmt.Errorf("router deregistration for container %s failed: %w", c.ID, err)
+	}
+	log.Printf("Container %s unregistered from P2P router", c.ID)
 	return nil
 }
 
@@ -461,4 +515,170 @@ func generateContainerID() string {
 		return fmt.Sprintf("container-%d", time.Now().UnixNano())
 	}
 	return fmt.Sprintf("container-%x", b)
+}
+
+// initializeEBPFSecurity initializes eBPF security for a container
+func (ucm *UnifiedContainerManager) initializeEBPFSecurity(container *UnifiedContainer, objectType ObjectType) error {
+	if ucm.ebpfManager == nil {
+		return fmt.Errorf("eBPF manager not available")
+	}
+
+	// Create syscall monitor with appropriate policy based on object type
+	var policy *ebpf.AgentPolicyConfig
+	switch objectType {
+	case ObjectTypeAgent:
+		policy = NewOhMyPiAgentPolicyConfig()
+	default:
+		// Default minimal policy for other object types
+		policy = &ebpf.AgentPolicyConfig{
+			AllowNetwork:    false,
+			AllowFilesystem: false,
+			RequireTEE:      false,
+			MaxMemoryMB:     4096,
+			MaxCPUPercent:   50,
+			AllowedSyscalls: getMinimalSyscalls(),
+			AllowedPaths:    []string{"/tmp"},
+			AllowedNetworks: []string{},
+		}
+	}
+
+	// Create security policy
+	securityPolicyManager := ebpf.NewSecurityProfileManager()
+	sp, err := securityPolicyManager.CreateAgentPolicy(0, policy)
+	if err != nil {
+		return fmt.Errorf("failed to create security policy: %w", err)
+	}
+
+	// Store the policy for this container
+	ucm.mu.Lock()
+	ucm.agentPolicies[container.ID] = sp
+	ucm.mu.Unlock()
+
+	log.Printf("eBPF security initialized for container %s (type: %s)", container.ID, objectType)
+	return nil
+}
+
+// initializeOhMyPiAgentPolicy initializes the specific security policy for oh-my-pi agents
+func (ucm *UnifiedContainerManager) initializeOhMyPiAgentPolicy(container *UnifiedContainer) error {
+	if container.Spec == nil {
+		return fmt.Errorf("container spec is required")
+	}
+
+	// Get or create security policy
+	ucm.mu.RLock()
+	policy, exists := ucm.agentPolicies[container.ID]
+	ucm.mu.RUnlock()
+
+	if !exists {
+		// Create policy if not already created
+		agentPolicy := NewOhMyPiAgentPolicyConfig()
+		securityPolicyManager := ebpf.NewSecurityProfileManager()
+		var err error
+		policy, err = securityPolicyManager.CreateAgentPolicy(0, agentPolicy)
+		if err != nil {
+			return fmt.Errorf("failed to create oh-my-pi agent policy: %w", err)
+		}
+
+		ucm.mu.Lock()
+		ucm.agentPolicies[container.ID] = policy
+		ucm.mu.Unlock()
+	}
+
+	// Report to Cognitive Engine if available
+	ucm.mu.RLock()
+	cognitiveEngine := ucm.cognitiveEngine
+	ucm.mu.RUnlock()
+
+	if cognitiveEngine != nil {
+		// Estimate complexity based on resource limits
+		complexity := estimateTaskComplexity(container.Spec.Resources)
+		if err := cognitiveEngine.OnAgentTaskComplexity(container.ID, complexity); err != nil {
+			log.Printf("Warning: failed to report task complexity to cognitive engine: %v", err)
+		}
+	}
+
+	log.Printf("oh-my-pi agent policy initialized for container %s", container.ID)
+	return nil
+}
+
+// getMinimalSyscalls returns the minimal set of syscalls for basic containers
+func getMinimalSyscalls() []uint32 {
+	return []uint32{
+		1,   // exit
+		9,   // mmap
+		10,  // munmap
+		11,  // brk
+		21,  // access
+		35,  // nanosleep
+		60,  // exit_group
+		231, // clock_nanosleep
+		257, // openat
+		259, // read
+		262, // newfstatat
+		280, // utimensat
+		281, // write
+	}
+}
+
+// estimateTaskComplexity estimates task complexity based on resource limits
+func estimateTaskComplexity(resources ResourceLimits) int {
+	complexity := 1
+
+	// Factor in CPU cores
+	if resources.CPUCores >= 8 {
+		complexity += 3
+	} else if resources.CPUCores >= 4 {
+		complexity += 2
+	} else if resources.CPUCores >= 2 {
+		complexity += 1
+	}
+
+	// Factor in memory
+	if resources.MemoryMB >= 16384 {
+		complexity += 3
+	} else if resources.MemoryMB >= 8192 {
+		complexity += 2
+	} else if resources.MemoryMB >= 4096 {
+		complexity += 1
+	}
+
+	// Factor in disk
+	if resources.DiskMB >= 20480 {
+		complexity += 2
+	} else if resources.DiskMB >= 10240 {
+		complexity += 1
+	}
+
+	return complexity
+}
+
+// GetAgentPolicy returns the security policy for an agent container
+func (ucm *UnifiedContainerManager) GetAgentPolicy(containerID string) *ebpf.SecurityPolicy {
+	ucm.mu.RLock()
+	defer ucm.mu.RUnlock()
+	return ucm.agentPolicies[containerID]
+}
+
+// UpdateAgentResourceUsage reports resource usage to the Cognitive Engine
+func (ucm *UnifiedContainerManager) UpdateAgentResourceUsage(dveID string, cpuPercent float64, memoryMB int64) error {
+	ucm.mu.RLock()
+	cognitiveEngine := ucm.cognitiveEngine
+	ucm.mu.RUnlock()
+
+	if cognitiveEngine != nil {
+		return cognitiveEngine.OnAgentResourceUsage(dveID, cpuPercent, memoryMB)
+	}
+	return nil
+}
+
+// CreateAgentRuntimeCapability creates the capability advertisement for P2P discovery
+func (ucm *UnifiedContainerManager) CreateAgentRuntimeCapability(nodeID string) *AgentRuntimeCapability {
+	return &AgentRuntimeCapability{
+		NodeID:            nodeID,
+		AgentEngineVer:    "oh-my-pi-1.0",
+		SupportedTools:    []string{"git", "python", "curl", "browser", "lsp", "shell", "docker"},
+		ActiveMemoryMount: "/workspace/active-memory",
+		MaxConcurrent:     4,
+		ViewportEnabled:   true,
+	}
 }

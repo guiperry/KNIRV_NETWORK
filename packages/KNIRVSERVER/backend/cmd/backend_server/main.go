@@ -19,9 +19,9 @@ import (
 	data_engine "backend_server/internal/data_engine"
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
-	"backend_server/internal/nexus"
 	"backend_server/internal/reasoning/graph"
 	"backend_server/internal/runtime"
+	nexus "backend_server/internal/server"
 	"backend_server/internal/services/active_memory"
 	agentsvc "backend_server/internal/services/agent"
 	"backend_server/internal/services/blockchain"
@@ -69,7 +69,7 @@ var (
 	GitCommit = "unknown"
 )
 
-// Server represents the KNIRV-NEXUS backend server
+// Server represents the KNIRV-SERVER backend server
 type Server struct {
 	config     *config.Config
 	db         *database.BuntDBManager
@@ -83,7 +83,7 @@ type Server struct {
 	ebpfManager             ebpf.ManagerInterface
 	virtualContainerManager *ebpf.VirtualContainerManager
 
-	// Nexus Memory Fabric
+	// SERVER Memory Fabric
 	nexusServer    *nexus.NexusMemoryServer
 	nexusAllocator memory.Allocator
 
@@ -272,7 +272,7 @@ func getOSAppDataDir() (string, error) {
 	return appDataDir, nil
 }
 
-// NewServer creates a new KNIRV-NEXUS backend server instance
+// NewServer creates a new KNIRV-SERVER backend server instance
 func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize logging
 	logger, err := initLogging(cfg)
@@ -369,6 +369,18 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		}
 	}
 
+	// Merge dvecreation into dvemanager: wire creation service into the manager
+	// so all DVE lifecycle operations are accessible through a single boundary.
+	if dveCreationService != nil {
+		dveManager.SetCreationService(dveCreationService)
+		dveCreationService.SetDveManager(dveManager)
+		log.Println("DVE creation service merged into DVE manager")
+	}
+
+	// Register the capability query stream handler so peers can interrogate
+	// this node's capabilities via the /knirv/dve/capabilities/1.0.0 protocol.
+	p2pManager.SetupCapabilityStreamHandler()
+
 	// Ensure fabric server storage path is explicitly set to app data directory if empty
 	if cfg.ModelServer.StoragePath == "" {
 		appDataDir, err := getOSAppDataDir()
@@ -461,7 +473,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		ForceUpdateInterval: time.Hour,
 		Records: []dns.DNSRecordConfig{
 			{
-				Name:         "nexus.knirv.com",
+				Name:         "server.knirv.com",
 				Type:         "A",
 				TTL:          300,
 				UpdateWithIP: true,
@@ -515,7 +527,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	pqcManager := pqc.NewEncryptionManager(keyRotationManager)
 
 	// Generate or Load Master Key for PQC
-	masterKey, err := pqc.GeneratePQCKeyPair("nexus-master", "master")
+	masterKey, err := pqc.GeneratePQCKeyPair("server-master", "master")
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate PQC master key: %w", err)
 	}
@@ -564,7 +576,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 			EnableSECCheks:        true,
 			EnableBaselCheks:      true,
 			AutoSignEvidencePacks: true,
-			MasterKeyID:           "nexus-master",
+			MasterKeyID:           "server-master",
 			EnableScenarioTesting: true,
 			EnableCertification:   true,
 			CertificateValidity:   90 * 24 * time.Hour, // 90 days
@@ -601,6 +613,24 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		ebpfManager,
 		virtualContainerManager,
 	)
+
+	// Wire the outer (server-wide) CognitiveEngine as the inner per-DVE
+	// callback receiver so agent task-complexity and resource-usage events
+	// flow into the learning and guardrail subsystems.
+	unifiedContainerManager.SetCognitiveEngine(cognitiveEngine)
+	log.Println("UCM: inner cognitive engine wired to outer CognitiveEngine")
+
+	// Wire P2P router callbacks so newly started containers are announced
+	// to the DVE announcement topic and removed on teardown.
+	unifiedContainerManager.SetRouterFuncs(
+		func(ctx context.Context, containerID, cryptoHash, objectType string) error {
+			return p2pManager.PublishContainerRegistration(ctx, containerID, cryptoHash, objectType)
+		},
+		func(ctx context.Context, containerID string) error {
+			return p2pManager.PublishContainerDeregistration(ctx, containerID)
+		},
+	)
+	log.Println("UCM: P2P router registration callbacks wired")
 
 	// Initialize Agent Service (oh-my-pi agentic runtime)
 	agentService := agentsvc.NewAgentService(dbManager, unifiedContainerManager, activeMemoryService)
@@ -720,7 +750,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	log.Println("EventBroadcaster initialized")
 
 	// Initialize AnchoringService for PQC-signed evidence pack anchoring
-	anchoringService := evidence.NewAnchoringService(dbManager, pqcManager, "nexus-master")
+	anchoringService := evidence.NewAnchoringService(dbManager, pqcManager, "server-master")
 	if nrnClient != nil {
 		anchoringService.SetChainClient(&nrnChainAdapter{client: nrnClient})
 		log.Println("AnchoringService: blockchain client wired for chain anchoring")
@@ -1071,7 +1101,7 @@ func (s *Server) setupRoutes() {
 
 	// Register DVE manager routes
 	if s.dveManager != nil {
-		dveHandlers := web.NewDVEHandlers(s.dveManager, s.dveCreationService)
+		dveHandlers := web.NewDVEHandlers(s.dveManager)
 		if s.sessionManager != nil {
 			dveHandlers.SetSessionManager(s.sessionManager)
 		}
@@ -1081,7 +1111,7 @@ func (s *Server) setupRoutes() {
 
 	// Register DVE creation routes
 	if s.dveCreationService != nil {
-		dveCreationHandlers := web.NewDVECreationHandlers(s.dveCreationService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db)
+		dveCreationHandlers := web.NewDVECreationHandlers(s.dveManager, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db)
 		dveCreationHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE creation routes configured")
 	}
@@ -1253,6 +1283,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"pqc_manager":           s.pqcManager != nil,
 			"fintech_validator":     s.fintechValidatorService != nil && s.fintechValidatorService.Config.Enabled,
 			"dve_creation_service":  s.dveCreationService != nil,
+			"cde_service":           s.cognitiveEngine != nil,
 			"model_server":          s.unifiedContainerManager != nil,
 			"agent_service":         s.agentService != nil,
 			"icme_service":          s.icmeService != nil,
@@ -1276,7 +1307,7 @@ func (s *Server) Start() error {
 		return fmt.Errorf("server is already running")
 	}
 
-	log.Println("Starting KNIRV-NEXUS unified server...")
+	log.Println("Starting KNIRV-SERVER unified server...")
 
 	// Validate server state before starting
 	if s.config == nil {
@@ -1493,7 +1524,7 @@ func (s *Server) Start() error {
 	}()
 
 	s.running = true
-	log.Println("KNIRV-NEXUS backend server started successfully")
+	log.Println("KNIRV-SERVER backend server started successfully")
 	return nil
 }
 
@@ -1503,7 +1534,7 @@ func (s *Server) Stop() error {
 		return nil
 	}
 
-	log.Println("Stopping KNIRV-NEXUS backend server...")
+	log.Println("Stopping KNIRV-SERVER backend server...")
 
 	// Validate server state before stopping
 	if s.config == nil {
@@ -1660,7 +1691,7 @@ func (s *Server) Stop() error {
 	}
 
 	s.running = false
-	log.Println("KNIRV-NEXUS backend server stopped")
+	log.Println("KNIRV-SERVER backend server stopped")
 	return nil
 }
 
@@ -1751,7 +1782,7 @@ func run() error {
 	flag.Parse()
 
 	// Print version information
-	fmt.Printf("KNIRV-NEXUS Complete Backend Server v%s (built %s, commit %s)\n", Version, BuildTime, GitCommit)
+	fmt.Printf("KNIRV-SERVER Complete Backend Server v%s (built %s, commit %s)\n", Version, BuildTime, GitCommit)
 
 	// Validate command line arguments
 	if len(flag.Args()) > 0 {

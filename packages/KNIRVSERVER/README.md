@@ -81,6 +81,28 @@ KNIRV-SERVER transforms each DVE into an autonomous, intelligent workspace via t
 - **Viewport Proxy** — Real HTTP/WebSocket reverse proxy tunneling the agent terminal into the SERVER dashboard
 - **eBPF Security Profile** — 70-syscall allowlist specific to agent tooling (git, python, curl, browser) enforcing DVE isolation
 - **Active Memory Integration** — Agent task results written as Markdown to the DVE's persistent Markdown Fabric via `ActiveMemoryService.RecordInteraction`
+- **Cognitive Engine Integration** — Real-time resource usage reporting for adaptive allocation
+
+### P2P Capability Advertising
+
+The agentic runtime supports P2P discovery through capability advertising:
+
+- **`CapabilityAgenticRuntime`** — Advertises agentic runtime support with version info, supported tools, and configuration
+- **`CapabilityDVERouting`** — Advertises DVE routing capability
+- **`CapabilityTEEAttestation`** — Advertises TEE attestation support
+
+Nodes can discover agentic runtime nodes using `FindAgenticRuntimeNodes()`.
+
+### Security Implementation
+
+The `oh-my-pi` agent runtime includes specialized eBPF security profiles:
+
+| Component | Description |
+|----------|-------------|
+| `OhMyPiAgentSyscalls` | 70+ syscalls including clone, execve, socket, connect for tool execution |
+| `OhMyPiAgentPaths` | Allowed filesystem paths: /workspace, /tmp, /usr, /lib, /bin |
+| `OhMyPiAgentNetworks` | Allowed networks: 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12 |
+| `NewOhMyPiAgentPolicyConfig()` | Creates eBPF `AgentPolicyConfig` with 8GB memory, 80% CPU limits |
 
 ### Agent Command Center (Frontend)
 
@@ -207,7 +229,21 @@ The runtime and node-management layers have been consolidated for a stable found
 
 - **`internal/runtime/provisioning.go`** — `PortAllocator` and `SSHProvisioner` now live in the `runtime` package; `UnifiedContainerManagerWithProvisioning` wraps them into an atomic `ProvisionAndCreate` call
 - **`internal/services/dvemanager/node_lifecycle.go`** — `DVEManager` gains `RegisterDVENode`, `Heartbeat`, and `GetNodeSession` methods, centralising node lifecycle without a dependency on the `dvecreation` package
+- **`internal/services/p2p/capability_advertising.go`** — P2P capability advertising for agentic runtime support
+- **`internal/runtime/agent_security.go`** — eBPF security profiles specific to oh-my-pi agent tooling
 - All HTTP handlers are registered through `internal/web` following the single-package handler pattern
+
+### Unified Container Manager Extensions
+
+The `UnifiedContainerManager` now includes:
+
+| Method | Description |
+|--------|-------------|
+| `SetCognitiveEngine(engine)` | Wire Cognitive Engine for agent resource reporting |
+| `CreateAgentRuntimeCapability(nodeID)` | Create P2P capability advertisement |
+| `GetAgentPolicy(containerID)` | Get security policy for agent container |
+| `UpdateAgentResourceUsage(dveID, cpu, memory)` | Report resource usage to Cognitive Engine |
+| `initializeOhMyPiAgentPolicy(container)` | Initialize oh-my-pi specific security profile |
 
 ---
 
@@ -321,6 +357,7 @@ config := &fintech_validator.Config{
 - **Hardware Enclaves**: TEE features (SGX/TDX) require specific hardware support and BIOS configuration.
 - **eBPF Capabilities**: Requires `CAP_SYS_ADMIN` or `CAP_BPF` privileges for program attachment.
 - **PQC Keys**: Master key rotation requires manual re-encryption of the Markdown Fabric.
+- **Agent Isolation**: oh-my-pi agents run with 70+ syscall allowlist and restricted filesystem/network access.
 
 ---
 

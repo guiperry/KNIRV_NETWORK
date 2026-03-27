@@ -11,6 +11,21 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// MockCognitiveEngine implements CognitiveEngineInterface for testing
+type MockCognitiveEngine struct {
+	mock.Mock
+}
+
+func (m *MockCognitiveEngine) OnAgentTaskComplexity(dveID string, complexity int) error {
+	args := m.Called(dveID, complexity)
+	return args.Error(0)
+}
+
+func (m *MockCognitiveEngine) OnAgentResourceUsage(dveID string, cpuPercent float64, memoryMB int64) error {
+	args := m.Called(dveID, cpuPercent, memoryMB)
+	return args.Error(0)
+}
+
 // MockContainerRuntime is a mock implementation of ContainerRuntime
 type MockContainerRuntime struct {
 	mock.Mock
@@ -355,4 +370,182 @@ func TestCreateContainerWithInvalidSpec(t *testing.T) {
 	_, err = manager.CreateContainer(context.Background(), &ContainerSpec{}, RuntimeModeDocker, ObjectTypeWebApp, SecurityLevelBasic)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "container image is required")
+}
+
+func TestCreateAgentContainer(t *testing.T) {
+	mockRuntime := &MockContainerRuntime{}
+	mockRuntime.On("Create", mock.Anything).Return(nil)
+	mockRuntime.On("Start").Return(nil)
+	mockRuntime.On("GetStatus").Return(ContainerStatusRunning)
+
+	manager := NewUnifiedContainerManager(nil, nil, nil)
+	manager.runtimeSelector.SetTestRuntime(mockRuntime)
+
+	spec := &ContainerSpec{
+		Image: "knirv-agent-oh-my-pi:latest",
+		Resources: ResourceLimits{
+			CPUCores: 4,
+			MemoryMB: 8192,
+			DiskMB:   40960,
+		},
+		Environment: map[string]string{
+			"OH_MY_PI_MODE":      "server",
+			"OH_MY_PI_WORKSPACE": "/workspace/active-memory",
+		},
+	}
+
+	ctx := context.Background()
+	container, err := manager.CreateContainer(ctx, spec, RuntimeModeObject, ObjectTypeAgent, SecurityLevelStrong)
+	assert.NoError(t, err)
+	assert.NotNil(t, container)
+	assert.Equal(t, ObjectTypeAgent, container.ObjectType)
+	assert.Equal(t, RuntimeModeObject, container.Mode)
+	assert.NotNil(t, container.ViewportProxy)
+}
+
+func TestSetCognitiveEngine(t *testing.T) {
+	manager := NewUnifiedContainerManager(nil, nil, nil)
+
+	mockEngine := &MockCognitiveEngine{}
+	manager.SetCognitiveEngine(mockEngine)
+
+	// Verify the cognitive engine was set
+	assert.NotNil(t, manager.cognitiveEngine)
+}
+
+func TestCreateAgentRuntimeCapability(t *testing.T) {
+	manager := NewUnifiedContainerManager(nil, nil, nil)
+
+	capability := manager.CreateAgentRuntimeCapability("node-123")
+
+	assert.Equal(t, "node-123", capability.NodeID)
+	assert.Equal(t, "oh-my-pi-1.0", capability.AgentEngineVer)
+	assert.Contains(t, capability.SupportedTools, "git")
+	assert.Contains(t, capability.SupportedTools, "python")
+	assert.Contains(t, capability.SupportedTools, "curl")
+	assert.Contains(t, capability.SupportedTools, "browser")
+	assert.Equal(t, "/workspace/active-memory", capability.ActiveMemoryMount)
+	assert.Equal(t, 4, capability.MaxConcurrent)
+	assert.True(t, capability.ViewportEnabled)
+}
+
+func TestEstimateTaskComplexity(t *testing.T) {
+	tests := []struct {
+		name          string
+		resources     ResourceLimits
+		minComplexity int
+		maxComplexity int
+	}{
+		{
+			name: "low resource task",
+			resources: ResourceLimits{
+				CPUCores: 1,
+				MemoryMB: 1024,
+				DiskMB:   5120,
+			},
+			minComplexity: 1,
+			maxComplexity: 3,
+		},
+		{
+			name: "medium resource task",
+			resources: ResourceLimits{
+				CPUCores: 2,
+				MemoryMB: 4096,
+				DiskMB:   10240,
+			},
+			minComplexity: 3,
+			maxComplexity: 5,
+		},
+		{
+			name: "high resource task",
+			resources: ResourceLimits{
+				CPUCores: 8,
+				MemoryMB: 16384,
+				DiskMB:   20480,
+			},
+			minComplexity: 7,
+			maxComplexity: 10,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			complexity := estimateTaskComplexity(tt.resources)
+			assert.GreaterOrEqual(t, complexity, tt.minComplexity)
+			assert.LessOrEqual(t, complexity, tt.maxComplexity)
+		})
+	}
+}
+
+func TestGetMinimalSyscalls(t *testing.T) {
+	syscalls := getMinimalSyscalls()
+
+	// Verify essential syscalls are included
+	assert.Contains(t, syscalls, uint32(1))   // exit
+	assert.Contains(t, syscalls, uint32(9))   // mmap
+	assert.Contains(t, syscalls, uint32(10))  // munmap
+	assert.Contains(t, syscalls, uint32(257)) // openat
+	assert.Contains(t, syscalls, uint32(259)) // read
+	assert.Contains(t, syscalls, uint32(281)) // write
+}
+
+func TestAgentPoliciesMapInitialized(t *testing.T) {
+	manager := NewUnifiedContainerManager(nil, nil, nil)
+
+	// Verify agent policies map is initialized
+	assert.NotNil(t, manager.agentPolicies)
+	assert.Empty(t, manager.agentPolicies)
+}
+
+func TestOhMyPiAgentPolicyConfig(t *testing.T) {
+	policy := NewOhMyPiAgentPolicyConfig()
+
+	assert.NotNil(t, policy)
+	assert.True(t, policy.AllowNetwork)
+	assert.True(t, policy.AllowFilesystem)
+	assert.False(t, policy.RequireTEE)
+	assert.Equal(t, uint64(8192), policy.MaxMemoryMB)
+	assert.Equal(t, 80, policy.MaxCPUPercent)
+	assert.NotEmpty(t, policy.AllowedSyscalls)
+	assert.Contains(t, policy.AllowedSyscalls, uint32(59)) // execve
+	assert.NotEmpty(t, policy.AllowedPaths)
+	assert.Contains(t, policy.AllowedPaths, "/workspace")
+	assert.NotEmpty(t, policy.AllowedNetworks)
+	assert.Contains(t, policy.AllowedNetworks, "127.0.0.0/8")
+}
+
+func TestBuildSpecForObjectTypeAgent(t *testing.T) {
+	manager := NewUnifiedContainerManager(nil, nil, nil)
+
+	config := &NestedObjectConfig{
+		ObjectType:        ObjectTypeAgent,
+		EnableViewport:    true,
+		ViewportRenderers: []string{"http", "websocket"},
+		ServicePorts:      map[string]int{"viewport": 8080, "jupyter": 8888},
+	}
+
+	spec := manager.buildSpecForObjectType(config)
+
+	assert.Equal(t, "knirv-agent-oh-my-pi:latest", spec.Image)
+	assert.Equal(t, "bridge", spec.NetworkMode)
+	assert.Equal(t, 4, spec.Resources.CPUCores)
+	assert.Equal(t, int64(8192), spec.Resources.MemoryMB)
+	assert.Equal(t, int64(40960), spec.Resources.DiskMB)
+	assert.Equal(t, "server", spec.Environment["OH_MY_PI_MODE"])
+	assert.Equal(t, "/workspace/active-memory", spec.Environment["OH_MY_PI_WORKSPACE"])
+	assert.Contains(t, spec.Environment["OH_MY_PI_TOOLS"], "git")
+	assert.Contains(t, spec.Environment["OH_MY_PI_TOOLS"], "python")
+	assert.Contains(t, spec.Environment["OH_MY_PI_TOOLS"], "browser")
+	assert.True(t, len(spec.Ports) > 0)
+	assert.True(t, len(spec.Volumes) > 0)
+
+	// Verify Active Memory mount
+	foundActiveMemory := false
+	for _, vol := range spec.Volumes {
+		if vol.Target == "/workspace/active-memory" {
+			foundActiveMemory = true
+			break
+		}
+	}
+	assert.True(t, foundActiveMemory, "Active Memory volume mount should be present")
 }

@@ -4,10 +4,12 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"sync"
 	"time"
 
@@ -59,6 +61,9 @@ type AgentService struct {
 	tasks        map[string]*AgentTask   // taskID -> AgentTask
 	mu           sync.RWMutex
 	running      bool
+	// apiBaseURL overrides the fallback localhost:8080 base URL used when
+	// no container port mapping is available. Set in tests to reach a mock server.
+	apiBaseURL string
 }
 
 // NewAgentService creates a new agent service
@@ -271,7 +276,27 @@ func (s *AgentService) GetTask(taskID string) (*AgentTask, error) {
 	return task, nil
 }
 
-// executeTask runs the agent task and writes results to Active Memory
+// ohMyPiTaskRequest is the JSON body sent to the oh-my-pi container's /api/task endpoint.
+type ohMyPiTaskRequest struct {
+	ID          string            `json:"id"`
+	Title       string            `json:"title"`
+	Description string            `json:"description"`
+	Type        string            `json:"type"`
+	Input       map[string]string `json:"input"`
+	DVEID       string            `json:"dve_id"`
+}
+
+// ohMyPiTaskResponse is the JSON response returned by the oh-my-pi /api/task endpoint.
+type ohMyPiTaskResponse struct {
+	Success     bool   `json:"success"`
+	TaskID      string `json:"task_id"`
+	Output      string `json:"output"`
+	MarkdownLog string `json:"markdown_log"`
+	Error       string `json:"error,omitempty"`
+}
+
+// executeTask POSTs the task to the oh-my-pi container's REST API, waits for the
+// response, writes the markdown output to Active Memory, and updates task state.
 func (s *AgentService) executeTask(task *AgentTask) {
 	s.mu.Lock()
 	now := time.Now()
@@ -282,47 +307,43 @@ func (s *AgentService) executeTask(task *AgentTask) {
 
 	log.Printf("[AgentService] Executing task %s (%s): %s", task.ID, task.Type, task.Title)
 
-	// Simulate agent execution - in production, this communicates with the oh-my-pi container
-	// via its API endpoint. The container processes the task and writes markdown output.
-	markdownOutput := fmt.Sprintf(`# Agent Task: %s
+	apiURL := s.getAgentAPIURL(task.ContainerID)
+	reqBody := ohMyPiTaskRequest{
+		ID:          task.ID,
+		Title:       task.Title,
+		Description: task.Description,
+		Type:        task.Type,
+		Input:       task.Input,
+		DVEID:       task.DVEID,
+	}
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		s.markTaskFailed(task, fmt.Sprintf("failed to marshal task request: %v", err))
+		return
+	}
 
-**Task ID**: %s
-**Type**: %s
-**DVE**: %s
-**Started**: %s
+	httpClient := &http.Client{Timeout: 5 * time.Minute}
+	resp, err := httpClient.Post(apiURL+"/api/task", "application/json", bytes.NewReader(body))
+	if err != nil {
+		s.markTaskFailed(task, fmt.Sprintf("oh-my-pi container unreachable at %s: %v", apiURL, err))
+		return
+	}
+	defer resp.Body.Close()
 
-## Description
+	var taskResp ohMyPiTaskResponse
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&taskResp); decodeErr != nil {
+		s.markTaskFailed(task, fmt.Sprintf("failed to decode container response: %v", decodeErr))
+		return
+	}
+	if !taskResp.Success {
+		s.markTaskFailed(task, taskResp.Error)
+		return
+	}
 
-%s
-
-## Execution Log
-
-Agent runtime (oh-my-pi) processing task...
-
-- Initializing workspace
-- Loading relevant context from Active Memory
-- Executing task with available tools (git, python, curl, browser)
-
-## Results
-
-Task completed by oh-my-pi agent runtime.
-
-**Status**: Completed
-**Completed**: %s
-`,
-		task.Title,
-		task.ID,
-		task.Type,
-		task.DVEID,
-		now.Format(time.RFC3339),
-		task.Description,
-		time.Now().Format(time.RFC3339),
-	)
-
-	// Write output to Active Memory (Markdown Fabric)
+	// Write markdown output to Active Memory (Markdown Fabric).
 	if s.activeMemory != nil {
 		ctx := context.Background()
-		if err := s.activeMemory.RecordInteraction(ctx, task.DVEID, task.Description, markdownOutput); err != nil {
+		if err := s.activeMemory.RecordInteraction(ctx, task.DVEID, task.Description, taskResp.MarkdownLog); err != nil {
 			log.Printf("[AgentService] Warning: failed to write task output to active memory: %v", err)
 		}
 	}
@@ -331,16 +352,54 @@ Task completed by oh-my-pi agent runtime.
 	completedAt := time.Now()
 	task.Status = "completed"
 	task.CompletedAt = &completedAt
-	task.Output = "Task completed successfully"
-	task.MarkdownLog = markdownOutput
+	task.Output = taskResp.Output
+	task.MarkdownLog = taskResp.MarkdownLog
 	task.UpdatedAt = completedAt
 	s.mu.Unlock()
 
 	if err := s.saveTaskToDB(task); err != nil {
 		log.Printf("[AgentService] Warning: failed to persist completed task %s: %v", task.ID, err)
 	}
-
 	log.Printf("[AgentService] Task %s completed", task.ID)
+}
+
+// getAgentAPIURL resolves the base URL for the oh-my-pi container's task API.
+// It inspects the container spec's port mappings for the auto-assigned host port
+// on the agent viewport (container port 8080) and falls back to localhost:8080.
+func (s *AgentService) getAgentAPIURL(containerID string) string {
+	if s.ucm == nil {
+		if s.apiBaseURL != "" {
+			return s.apiBaseURL
+		}
+		return "http://localhost:8080"
+	}
+	container, err := s.ucm.GetContainer(containerID)
+	if err != nil {
+		return "http://localhost:8080"
+	}
+	if container.Spec != nil {
+		for _, pm := range container.Spec.Ports {
+			if pm.ContainerPort == 8080 && pm.HostPort > 0 {
+				return fmt.Sprintf("http://localhost:%d", pm.HostPort)
+			}
+		}
+	}
+	return "http://localhost:8080"
+}
+
+// markTaskFailed records a terminal failure on the task.
+func (s *AgentService) markTaskFailed(task *AgentTask, errMsg string) {
+	log.Printf("[AgentService] Task %s failed: %s", task.ID, errMsg)
+	s.mu.Lock()
+	failedAt := time.Now()
+	task.Status = "failed"
+	task.CompletedAt = &failedAt
+	task.Error = errMsg
+	task.UpdatedAt = failedAt
+	s.mu.Unlock()
+	if err := s.saveTaskToDB(task); err != nil {
+		log.Printf("[AgentService] Warning: failed to persist failed task %s: %v", task.ID, err)
+	}
 }
 
 // AgentTaskRequest is the request payload for submitting a task
