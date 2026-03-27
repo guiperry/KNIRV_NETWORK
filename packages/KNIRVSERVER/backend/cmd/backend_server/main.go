@@ -184,33 +184,36 @@ func initLogging(cfg *config.Config) (*zap.Logger, error) {
 	// Primary log path: application data directory
 	appDataLogPath := filepath.Join(appDataDir, "logs", "server.log")
 
-	// Secondary log path: project directory
-	projectLogPath := filepath.Join("packages", "KNIRVSERVER", "logs", "server.log")
-
-	// Ensure both log directories exist
+	// Ensure app data log directory exists
 	appDataLogDir := filepath.Dir(appDataLogPath)
 	if err := os.MkdirAll(appDataLogDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create app data log directory: %w", err)
 	}
 
-	projectLogDir := filepath.Dir(projectLogPath)
-	if err := os.MkdirAll(projectLogDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create project log directory: %w", err)
-	}
-
-	// Create file writers for both locations
+	// Create file writer for app data log
 	appDataFile, err := os.OpenFile(appDataLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open app data log file: %w", err)
 	}
 
-	projectFile, err := os.OpenFile(projectLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open project log file: %w", err)
+	// Secondary log path: project directory, only when KNIRV_PROJECT_LOG_DIR is explicitly set
+	// to an absolute path by the outer process. Using a relative path here causes spurious log
+	// files scattered across the filesystem depending on CWD at runtime.
+	var multiWriter io.Writer
+	projectLogPath := ""
+	if projectLogDir := os.Getenv("KNIRV_PROJECT_LOG_DIR"); projectLogDir != "" {
+		projectLogPath = filepath.Join(projectLogDir, "server.log")
+		if err := os.MkdirAll(projectLogDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create project log directory: %w", err)
+		}
+		projectFile, err := os.OpenFile(projectLogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open project log file: %w", err)
+		}
+		multiWriter = io.MultiWriter(appDataFile, projectFile)
+	} else {
+		multiWriter = appDataFile
 	}
-
-	// Create a multi-writer that writes to both files
-	multiWriter := io.MultiWriter(appDataFile, projectFile)
 
 	// Create cores for file (both locations) and stdout
 	fileCore := zapcore.NewCore(
@@ -231,13 +234,19 @@ func initLogging(cfg *config.Config) (*zap.Logger, error) {
 	// Create logger
 	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
-	// Also redirect standard log output to both files for compatibility
+	// Also redirect standard log output to file(s) for compatibility
 	log.SetOutput(multiWriter)
 
-	logger.Info("Logging initialized",
-		zap.String("app_data_log", appDataLogPath),
-		zap.String("project_log", projectLogPath),
-	)
+	if projectLogPath != "" {
+		logger.Info("Logging initialized",
+			zap.String("app_data_log", appDataLogPath),
+			zap.String("project_log", projectLogPath),
+		)
+	} else {
+		logger.Info("Logging initialized",
+			zap.String("app_data_log", appDataLogPath),
+		)
+	}
 
 	return logger, nil
 }

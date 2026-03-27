@@ -681,6 +681,12 @@ func (app *NexusApp) startBackend() error {
 		"KNIRV_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
 	)
 
+	// Pass the project log directory as an absolute path so the backend writes
+	// logs to <cwd>/logs/server.log regardless of where the backend binary runs from.
+	if cwd, err := os.Getwd(); err == nil {
+		env = append(env, fmt.Sprintf("KNIRV_PROJECT_LOG_DIR=%s", filepath.Join(cwd, "logs")))
+	}
+
 	// Add testnet environment variable if enabled
 	if app.config.Testnet {
 		env = append(env,

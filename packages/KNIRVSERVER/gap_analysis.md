@@ -5,7 +5,6 @@ This document outlines the current discrepancies, missing functionality, and arc
 ## 1. Terminal and SSH Integration (Unified via KNIRVCLI)
 *   **Current State:** 
     *   The `ConsolePanel` (CDE-Panel) and `NetworkAccessModal` (NAP) feature terminal interfaces.
-    *   `LiveTerminal.tsx` in `AetherDashboard` provides a Gemini-powered Voice/Video terminal.
 *   **Gaps & Requirements:** 
     *   **Unified Backend Terminal:** `KNIRVCLI` must be implemented in the backend to serve as the provider for *all* terminal and console sessions, including those within each DVE workspace.
     *   `ConsolePanel` input must be proxied via `KNIRVCLI` to the target DVE or system shell.
