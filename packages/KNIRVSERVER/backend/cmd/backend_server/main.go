@@ -17,11 +17,11 @@ import (
 
 	"backend_server/internal/config"
 	data_engine "backend_server/internal/data_engine"
+	"backend_server/internal/database"
+	"backend_server/internal/ebpf"
 	"backend_server/internal/oracle"
 	oracleroutes "backend_server/internal/oracle/routes"
 	"backend_server/internal/password"
-	"backend_server/internal/database"
-	"backend_server/internal/ebpf"
 	"backend_server/internal/reasoning/graph"
 	"backend_server/internal/runtime"
 	nexus "backend_server/internal/server"
@@ -40,9 +40,12 @@ import (
 	fabricserver "backend_server/internal/services/fabric-server"
 	fabricmanagement "backend_server/internal/services/fabricmanagement"
 	fintech_validator "backend_server/internal/services/fintech_validator"
+	"backend_server/internal/fintech"
 	"backend_server/internal/services/guardrails"
 	icme "backend_server/internal/services/icme"
 	inference "backend_server/internal/services/inferencer"
+	"backend_server/internal/services/knirvcli"
+	"backend_server/internal/services/onboarding"
 	"backend_server/internal/services/p2p"
 	secrets "backend_server/internal/services/secrets"
 	"backend_server/internal/services/session"
@@ -128,6 +131,17 @@ type Server struct {
 
 	// ICME - Intentional Context Memory Engine
 	icmeService *icme.Service
+
+	// KNIRVCLI Backend Integration Service
+	knirvcliService *knirvcli.KNIRVCLIService
+
+	// Onboarding Service - Value System and Ontology Ingestion
+	onboardingService *onboarding.OnboardingService
+
+	// FinTech Services (Stripe, PayPal, Blockchain)
+	stripeService     *fintech.StripeService
+	paypalService     *fintech.PayPalService
+	blockchainService *fintech.BlockchainService
 
 	// Production Services (Phase 3, 4, 8)
 	eventBroadcaster *websocket.EventBroadcaster
@@ -678,6 +692,36 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		log.Println("CognitiveEngine: eBPF manager wired for real resource telemetry")
 	}
 
+	// Initialize KNIRVCLI Backend Integration Service
+	knirvcliService := knirvcli.NewKNIRVCLIService(dbManager, dveManager, validationCore)
+	log.Println("KNIRVCLI service initialized")
+
+	// Initialize FinTech Services (Stripe, PayPal, Blockchain)
+	var stripeService *fintech.StripeService
+	var paypalService *fintech.PayPalService
+	var blockchainService *fintech.BlockchainService
+
+	if cfg.Stripe.Enabled && cfg.Stripe.APIKey != "" {
+		stripeService = fintech.NewStripeService(cfg.Stripe.APIKey)
+		log.Println("Stripe service initialized")
+	} else {
+		log.Println("Stripe service disabled or API key not configured")
+	}
+
+	if cfg.PayPal.Enabled && cfg.PayPal.ClientID != "" && cfg.PayPal.Secret != "" {
+		paypalService = fintech.NewPayPalService(cfg.PayPal.ClientID, cfg.PayPal.Secret, cfg.PayPal.Sandbox)
+		log.Println("PayPal service initialized")
+	} else {
+		log.Println("PayPal service disabled or credentials not configured")
+	}
+
+	if cfg.Blockchain.URL != "" {
+		blockchainService = fintech.NewBlockchainService(cfg.Blockchain.URL)
+		log.Println("Blockchain service initialized")
+	} else {
+		log.Println("Blockchain service disabled or URL not configured")
+	}
+
 	// Initialize Object Nest subsystem
 	unifiedContainerManager := runtime.NewUnifiedContainerManager(
 		teeSecurityService,
@@ -863,6 +907,10 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		log.Printf("Warning: Failed to load ontology rules: %v", err)
 	}
 
+	// Initialize Onboarding Service - Value System and Ontology Ingestion
+	onboardingService := onboarding.NewOnboardingService(dbManager, cognitiveEngine, guardrailManager)
+	log.Println("Onboarding service initialized")
+
 	// Initialize PolicyEngine for ICME policy integration
 	policyEngine := guardrails.NewPolicyEngine(dbManager, guardrailManager)
 	if icmeService != nil {
@@ -925,6 +973,11 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		workflowService:              workflowService,
 		guardrailManager:             guardrailManager,
 		policyEngine:                 policyEngine,
+		knirvcliService:              knirvcliService,
+		onboardingService:            onboardingService,
+		stripeService:                stripeService,
+		paypalService:                paypalService,
+		blockchainService:            blockchainService,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -1299,6 +1352,32 @@ func (s *Server) setupRoutes() {
 		s.icmeService.RegisterRoutes(s.router)
 		log.Println("ICME routes configured")
 	}
+
+	// Register KNIRVCLI routes
+	if s.knirvcliService != nil {
+		web.NewKNIRVCLIHandlers(s.knirvcliService).RegisterRoutes(s.router, authMiddleware)
+		log.Println("KNIRVCLI routes configured")
+	}
+
+	// Register Onboarding routes
+	if s.onboardingService != nil {
+		web.NewOnboardingHandlers(s.onboardingService).RegisterRoutes(s.router, authMiddleware)
+		log.Println("Onboarding routes configured")
+	}
+
+	// Register unified API router for path unification (Gap 6)
+	apiRouter := web.NewAPIRouter(
+		web.NewDVEHandlers(s.dveManager),
+		web.NewFabricManagementHandlers(s.fabricManagementService),
+		web.NewAgentHandlers(s.agentService),
+		web.NewPaymentHandlers(s.stripeService, s.paypalService, s.blockchainService, s.eventBroadcaster),
+		web.NewKNIRVCLIHandlers(s.knirvcliService),
+		web.NewOnboardingHandlers(s.onboardingService),
+		web.NewCognitiveEngineHandlers(s.cognitiveEngine),
+		authMiddleware,
+	)
+	apiRouter.RegisterRoutes(s.router)
+	log.Println("Unified API router configured")
 
 	// Register system settings routes
 	systemSettingsHandlers := web.NewSystemSettingsHandlers(s.config)

@@ -48,6 +48,21 @@ type FintechConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
+// StripeConfig defines Stripe payment processor configuration
+type StripeConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	APIKey   string `mapstructure:"api_key"`
+	TestMode bool   `mapstructure:"test_mode"`
+}
+
+// PayPalConfig defines PayPal payment processor configuration
+type PayPalConfig struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	ClientID string `mapstructure:"client_id"`
+	Secret   string `mapstructure:"secret"`
+	Sandbox  bool   `mapstructure:"sandbox"`
+}
+
 // BlockchainConfig defines blockchain connection settings
 type BlockchainConfig struct {
 	URL      string `mapstructure:"url"`
@@ -73,6 +88,8 @@ type Config struct {
 	Network     NetworkConfig     `mapstructure:"network"`
 	Validation  ValidationConfig  `mapstructure:"validation"`
 	Fintech     FintechConfig     `mapstructure:"fintech"`
+	Stripe      StripeConfig      `mapstructure:"stripe"`
+	PayPal      PayPalConfig      `mapstructure:"paypal"`
 	Blockchain  BlockchainConfig  `mapstructure:"blockchain"`
 	TEE         TEEConfig         `mapstructure:"tee"`
 	CDE         CDEConfig         `mapstructure:"cde"`
@@ -562,6 +579,17 @@ func setDefaults() {
 
 	// FinTech configuration - disabled by default for official rollout
 	viper.SetDefault("fintech.enabled", false)
+
+	// Stripe configuration - disabled by default
+	viper.SetDefault("stripe.enabled", false)
+	viper.SetDefault("stripe.api_key", "")
+	viper.SetDefault("stripe.test_mode", true)
+
+	// PayPal configuration - disabled by default
+	viper.SetDefault("paypal.enabled", false)
+	viper.SetDefault("paypal.client_id", "")
+	viper.SetDefault("paypal.secret", "")
+	viper.SetDefault("paypal.sandbox", true)
 
 	// Database defaults - use XDG Base Directory
 	viper.SetDefault("database.path", filepath.Join(appDataDir, "data", "nexus.db"))

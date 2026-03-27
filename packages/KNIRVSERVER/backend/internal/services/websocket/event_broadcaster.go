@@ -430,6 +430,16 @@ func (eb *EventBroadcaster) GetRecentEvents(limit int) []Event {
 	return result
 }
 
+// Broadcast sends an event with the given type and payload
+func (eb *EventBroadcaster) Broadcast(eventType string, payload interface{}) {
+	eb.Emit(Event{
+		Type:   EventType(eventType),
+		Source: "payment",
+		Action: "broadcast",
+		Data:   payload,
+	})
+}
+
 func (eb *EventBroadcaster) ExportEventsJSON(limit int) ([]byte, error) {
 	events := eb.GetRecentEvents(limit)
 	return json.MarshalIndent(events, "", "  ")

@@ -56,6 +56,15 @@ type Config struct {
 
 	// KNIRV-ORACLE configuration
 	KnirvOracleURL string
+
+	// TURN Server configuration
+	TurnServerEnabled      bool
+	TurnServerUDPPort      int
+	TurnServerTCPPort      int
+	TurnServerAPIPort      int
+	TurnServerAuthSecret   string
+	TurnServerRealm        string
+	TurnServerMinerAddress string
 }
 
 func Load() (*Config, error) {
@@ -90,6 +99,13 @@ func Load() (*Config, error) {
 		SessionSecret:             getEnv("SESSION_SECRET", generateSessionSecret()),
 		AutoOpenBrowser:           getEnvBool("AUTO_OPEN_BROWSER", true),
 		KnirvOracleURL:            getEnv("KNIRV_ORACLE_URL", "http://localhost:1317"),
+		TurnServerEnabled:         getEnvBool("TURN_SERVER_ENABLED", true),
+		TurnServerUDPPort:         getEnvInt("TURN_SERVER_UDP_PORT", 3478),
+		TurnServerTCPPort:         getEnvInt("TURN_SERVER_TCP_PORT", 3479),
+		TurnServerAPIPort:         getEnvInt("TURN_SERVER_API_PORT", 3476),
+		TurnServerAuthSecret:      getEnv("TURN_SERVER_AUTH_SECRET", "knirvchain-turn-secret"),
+		TurnServerRealm:           getEnv("TURN_SERVER_REALM", "knirvgateway.local"),
+		TurnServerMinerAddress:    getEnv("TURN_SERVER_MINER_ADDRESS", "GATEWAY_MINER"),
 	}
 
 	return cfg, nil

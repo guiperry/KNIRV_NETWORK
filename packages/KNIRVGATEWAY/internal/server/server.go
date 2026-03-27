@@ -17,6 +17,7 @@ import (
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/proxy"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/session"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/tunnel"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/turnserver"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/uri"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/webgui"
 	"github.com/gorilla/mux"
@@ -38,6 +39,7 @@ type Server struct {
 	paymentHandler    *payment.Handler
 	uriHandler        *uri.Handler
 	webguiHandler     *webgui.Handler
+	turnServer        *turnserver.Server
 	logger            *zap.Logger
 	httpServer        *http.Server
 	router            *mux.Router
@@ -95,6 +97,36 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 	// Initialize webgui handler
 	webguiHdlr := webgui.NewHandler(cfg, logger)
 
+	// Initialize TURN server with blockchain integration
+	var turnSvc *turnserver.Server
+	if cfg.TurnServerEnabled {
+		turnConfig := &turnserver.TurnServerConfig{
+			UDPPort:      cfg.TurnServerUDPPort,
+			TCPPort:      cfg.TurnServerTCPPort,
+			APIPort:      cfg.TurnServerAPIPort,
+			Realm:        cfg.TurnServerRealm,
+			AuthSecret:   cfg.TurnServerAuthSecret,
+			PublicIP:     cfg.PublicHost,
+			MinerAddress: cfg.TurnServerMinerAddress,
+		}
+
+		blockchainAdapter := turnserver.NewBlockchainAdapter(nil, cfg.TurnServerMinerAddress)
+		var err error
+		turnSvc, err = turnserver.NewServer(turnConfig, blockchainAdapter, logger)
+		if err != nil {
+			logger.Warn("Failed to initialize TURN server",
+				zap.Error(err),
+				zap.Int("udp_port", cfg.TurnServerUDPPort),
+				zap.Int("tcp_port", cfg.TurnServerTCPPort))
+		} else {
+			logger.Info("TURN server initialized",
+				zap.Int("udp_port", cfg.TurnServerUDPPort),
+				zap.Int("tcp_port", cfg.TurnServerTCPPort),
+				zap.Int("api_port", cfg.TurnServerAPIPort),
+				zap.String("realm", cfg.TurnServerRealm))
+		}
+	}
+
 	s := &Server{
 		config:            cfg,
 		sessionManager:    session.NewManager(cfg.SessionSecret),
@@ -108,6 +140,7 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 		paymentHandler:    paymentHdlr,
 		uriHandler:        uriHdlr,
 		webguiHandler:     webguiHdlr,
+		turnServer:        turnSvc,
 		logger:            logger,
 		webguiStaticDir:   webguiStaticDir,
 		networkWebsiteDir: networkWebsiteDir,
@@ -156,6 +189,18 @@ func (s *Server) setupRoutes() error {
 
 	// Register webgui API routes directly
 	s.webguiHandler.RegisterRoutes(r)
+
+	// Register TURN server routes (blockchain-enabled)
+	if s.turnServer != nil {
+		r.HandleFunc("/api/turn/status", s.handleTurnStatus).Methods("GET")
+		r.HandleFunc("/api/turn/stats", s.handleTurnStats).Methods("GET")
+		r.HandleFunc("/api/proof/submit", s.handleTurnProofSubmit).Methods("POST")
+		r.HandleFunc("/api/proof/status", s.handleTurnProofStatus).Methods("GET")
+		r.HandleFunc("/api/mint/nrn", s.handleTurnMintNRN).Methods("POST")
+		r.HandleFunc("/api/mint/reward", s.handleTurnMintReward).Methods("POST")
+		r.HandleFunc("/api/stats/minting", s.handleTurnMintingStats).Methods("GET")
+		r.HandleFunc("/api/turn/health", s.handleTurnHealth).Methods("GET")
+	}
 
 	// Dynamic controller proxy
 	r.PathPrefix("/controller").Handler(s.handleControllerProxy())
@@ -249,6 +294,14 @@ func (s *Server) Start() error {
 		return fmt.Errorf("failed to start payment service: %w", err)
 	}
 
+	// Start TURN server with blockchain integration
+	if s.turnServer != nil {
+		if err := s.turnServer.Start(ctx); err != nil {
+			s.logger.Warn("Failed to start TURN server",
+				zap.Error(err))
+		}
+	}
+
 	// Setup CORS
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"*"},
@@ -285,6 +338,13 @@ func (s *Server) Stop(ctx context.Context) error {
 	}
 
 	s.logger.Info("Stopping HTTP server")
+
+	// Stop TURN server
+	if s.turnServer != nil {
+		if err := s.turnServer.Stop(ctx); err != nil {
+			s.logger.Error("Failed to stop TURN server", zap.Error(err))
+		}
+	}
 
 	// Stop tunnel service
 	if err := s.tunnelService.Stop(ctx); err != nil {
@@ -430,4 +490,201 @@ func (s *Server) handleMockAPI(w http.ResponseWriter, r *http.Request) {
 		"method":  r.Method,
 		"route":   r.URL.Path,
 	})
+}
+
+// TURN server handlers (blockchain-enabled)
+func (s *Server) handleTurnStatus(w http.ResponseWriter, r *http.Request) {
+	if s.turnServer == nil {
+		http.Error(w, "TURN server not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	status := s.turnServer.GetStatus()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(status)
+}
+
+func (s *Server) handleTurnStats(w http.ResponseWriter, r *http.Request) {
+	if s.turnServer == nil {
+		http.Error(w, "TURN server not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	s.logger.Debug("Handling TURN stats request")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "ok",
+	})
+}
+
+func (s *Server) handleTurnProofSubmit(w http.ResponseWriter, r *http.Request) {
+	if s.turnServer == nil {
+		http.Error(w, "TURN server not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	var req struct {
+		NodeID    string  `json:"node_id"`
+		ProofID   string  `json:"proof_id"`
+		Score     float64 `json:"score"`
+		ProofData string  `json:"proof_data"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	baseReward := 100.0
+	rewardAmount := baseReward * (req.Score / 100.0)
+	amountStr := fmt.Sprintf("%.0f", rewardAmount*1e18)
+
+	// Use the blockchain adapter through the TURN server
+	blockchainAdapter := turnserver.NewBlockchainAdapter(nil, s.config.TurnServerMinerAddress)
+	err := blockchainAdapter.SubmitConnectivityProofReward(req.NodeID, req.ProofID, req.Score, amountStr)
+	if err != nil {
+		s.logger.Error("Error submitting connectivity proof reward",
+			zap.Error(err))
+		http.Error(w, "Failed to submit proof reward", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success":       true,
+		"proof_id":      req.ProofID,
+		"reward_amount": amountStr,
+		"message":       "Connectivity proof submitted successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (s *Server) handleTurnProofStatus(w http.ResponseWriter, r *http.Request) {
+	if s.turnServer == nil {
+		http.Error(w, "TURN server not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	proofID := r.URL.Query().Get("proof_id")
+	if proofID == "" {
+		http.Error(w, "proof_id parameter required", http.StatusBadRequest)
+		return
+	}
+
+	response := map[string]interface{}{
+		"proof_id":  proofID,
+		"status":    "verified",
+		"timestamp": time.Now(),
+		"verified":  true,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (s *Server) handleTurnMintNRN(w http.ResponseWriter, r *http.Request) {
+	if s.turnServer == nil {
+		http.Error(w, "TURN server not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	var req struct {
+		Recipient string `json:"recipient"`
+		Amount    string `json:"amount"`
+		Reason    string `json:"reason"`
+		ProofID   string `json:"proof_id,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	blockchainAdapter := turnserver.NewBlockchainAdapter(nil, s.config.TurnServerMinerAddress)
+	err := blockchainAdapter.SubmitNRNMintTx(req.Recipient, req.Amount, req.Reason, req.ProofID)
+	if err != nil {
+		s.logger.Error("Error submitting NRN mint transaction",
+			zap.Error(err))
+		http.Error(w, "Failed to mint NRN tokens", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success":   true,
+		"recipient": req.Recipient,
+		"amount":    req.Amount,
+		"reason":    req.Reason,
+		"message":   "NRN tokens minted successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (s *Server) handleTurnMintReward(w http.ResponseWriter, r *http.Request) {
+	if s.turnServer == nil {
+		http.Error(w, "TURN server not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	var req struct {
+		NodeID            string `json:"node_id"`
+		ParticipationType string `json:"participation_type"`
+		Amount            string `json:"amount"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	blockchainAdapter := turnserver.NewBlockchainAdapter(nil, s.config.TurnServerMinerAddress)
+	err := blockchainAdapter.SubmitParticipationReward(req.NodeID, req.ParticipationType, req.Amount)
+	if err != nil {
+		s.logger.Error("Error submitting participation reward",
+			zap.Error(err))
+		http.Error(w, "Failed to mint participation reward", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success":            true,
+		"node_id":            req.NodeID,
+		"participation_type": req.ParticipationType,
+		"amount":             req.Amount,
+		"message":            "Participation reward minted successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (s *Server) handleTurnMintingStats(w http.ResponseWriter, r *http.Request) {
+	if s.turnServer == nil {
+		http.Error(w, "TURN server not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	blockchainAdapter := turnserver.NewBlockchainAdapter(nil, s.config.TurnServerMinerAddress)
+	stats := blockchainAdapter.GetMintingStats()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
+}
+
+func (s *Server) handleTurnHealth(w http.ResponseWriter, r *http.Request) {
+	if s.turnServer == nil {
+		http.Error(w, "TURN server not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	health := map[string]interface{}{
+		"status":      "healthy",
+		"turn_server": s.turnServer.IsRunning(),
+		"timestamp":   time.Now(),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(health)
 }

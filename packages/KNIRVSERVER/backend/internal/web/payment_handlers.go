@@ -2,733 +2,464 @@ package web
 
 import (
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
-	"time"
+	"strconv"
 
-	"backend_server/internal/services/payment"
-	"backend_server/internal/web/middleware"
-
-	"github.com/gorilla/mux"
+	"backend_server/internal/fintech"
+	"backend_server/internal/services/websocket"
 )
 
-// PaymentHandlers handles payment API requests
+// PaymentHandlers handles payment-related HTTP requests
 type PaymentHandlers struct {
-	stripeService *payment.StripeService
-	paypalService *payment.PayPalService
+	stripeService     *fintech.StripeService
+	paypalService     *fintech.PayPalService
+	blockchainService *fintech.BlockchainService
+	eventBroadcaster  *websocket.EventBroadcaster
 }
 
-// NewPaymentHandlers creates new payment handlers
-func NewPaymentHandlers(stripeService *payment.StripeService, paypalService *payment.PayPalService) *PaymentHandlers {
+// NewPaymentHandlers creates a new PaymentHandlers instance
+func NewPaymentHandlers(
+	stripeService *fintech.StripeService,
+	paypalService *fintech.PayPalService,
+	blockchainService *fintech.BlockchainService,
+	eventBroadcaster *websocket.EventBroadcaster,
+) *PaymentHandlers {
 	return &PaymentHandlers{
-		stripeService: stripeService,
-		paypalService: paypalService,
+		stripeService:     stripeService,
+		paypalService:     paypalService,
+		blockchainService: blockchainService,
+		eventBroadcaster:  eventBroadcaster,
 	}
 }
 
-// PaymentResponse represents a standard API response for payment operations
-type PaymentResponse struct {
-	Success   bool        `json:"success"`
-	Data      interface{} `json:"data,omitempty"`
-	Error     string      `json:"error,omitempty"`
-	Message   string      `json:"message,omitempty"`
-	Timestamp string      `json:"timestamp"`
-}
+// CreateStripeCheckoutSession creates a Stripe checkout session
+func (h *PaymentHandlers) CreateStripeCheckoutSession(w http.ResponseWriter, r *http.Request) {
+	if h.stripeService == nil {
+		http.Error(w, "Stripe service not configured", http.StatusServiceUnavailable)
+		return
+	}
 
-// CreateStripeSession handles POST /api/payments/stripe/create-session
-func (ph *PaymentHandlers) CreateStripeSession(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		RentalID     string `json:"rental_id"`
-		Amount       int64  `json:"amount"`
-		Currency     string `json:"currency"`
-		SuccessURL   string `json:"success_url"`
-		CancelURL    string `json:"cancel_url"`
+		Amount        int64             `json:"amount"`
+		Currency      string            `json:"currency"`
+		ProductName   string            `json:"product_name"`
+		SuccessURL    string            `json:"success_url"`
+		CancelURL     string            `json:"cancel_url"`
+		CustomerEmail string            `json:"customer_email,omitempty"`
+		Metadata      map[string]string `json:"metadata,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Invalid request body",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Validate required fields
-	if req.RentalID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "rental_id is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	// Set defaults
-	if req.Currency == "" {
-		req.Currency = "usd"
-	}
-	if req.SuccessURL == "" {
-		req.SuccessURL = "https://app.example.com/rentals/success"
-	}
-	if req.CancelURL == "" {
-		req.CancelURL = "https://app.example.com/rentals/cancelled"
-	}
-
-	// Validate currency
-	if !ph.stripeService.IsCurrencySupported(req.Currency) {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     fmt.Sprintf("Unsupported currency: %s", req.Currency),
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	// Validate amount
-	if err := ph.stripeService.ValidateAmount(req.Amount); err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	// Create Stripe session
-	session, err := ph.stripeService.CreateCheckoutSession(req.RentalID, req.Amount, req.Currency, req.SuccessURL, req.CancelURL)
+	session, err := h.stripeService.CreateCheckoutSession(fintech.CheckoutSessionRequest{
+		Amount:        req.Amount,
+		Currency:      req.Currency,
+		ProductName:   req.ProductName,
+		SuccessURL:    req.SuccessURL,
+		CancelURL:     req.CancelURL,
+		CustomerEmail: req.CustomerEmail,
+		Metadata:      req.Metadata,
+	})
 	if err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     fmt.Sprintf("Failed to create Stripe session: %v", err),
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response := PaymentResponse{
-		Success:   true,
-		Data:      session,
-		Message:   "Stripe checkout session created successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
+	// Broadcast payment event
+	if h.eventBroadcaster != nil {
+		h.eventBroadcaster.Broadcast("payment:stripe:session_created", map[string]interface{}{
+			"session_id": session.ID,
+			"amount":     req.Amount,
+			"currency":   req.Currency,
+		})
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(session)
 }
 
-// GetStripeSession handles GET /api/payments/stripe/session/{session_id}
-func (ph *PaymentHandlers) GetStripeSession(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	sessionID := vars["session_id"]
-
-	if sessionID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Session ID is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	// In a real implementation, this would retrieve the session from Stripe
-	// For now, we'll return mock data
-	session := map[string]interface{}{
-		"id":        sessionID,
-		"url":       fmt.Sprintf("https://checkout.stripe.com/pay/%s", sessionID),
-		"status":    "open",
-		"amount":    2999,
-		"currency":  "usd",
-		"expires_at": time.Now().Add(24 * time.Hour),
-	}
-
-	response := PaymentResponse{
-		Success:   true,
-		Data:      session,
-		Message:   "Stripe session retrieved successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// HandleStripeWebhook handles POST /api/payments/stripe/webhook
-func (ph *PaymentHandlers) HandleStripeWebhook(w http.ResponseWriter, r *http.Request) {
-	ph.stripeService.HandleWebhook(w, r)
-}
-
-// GetStripeChargeStatus handles GET /api/payments/stripe/charge/{charge_id}/status
-func (ph *PaymentHandlers) GetStripeChargeStatus(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	chargeID := vars["charge_id"]
-
-	if chargeID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Charge ID is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	status, err := ph.stripeService.GetChargeStatus(chargeID)
-	if err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     fmt.Sprintf("Failed to get charge status: %v", err),
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	response := PaymentResponse{
-		Success:   true,
-		Data:      status,
-		Message:   "Charge status retrieved successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// RefundStripeCharge handles POST /api/payments/stripe/refund
-func (ph *PaymentHandlers) RefundStripeCharge(w http.ResponseWriter, r *http.Request) {
+// CreateStripePaymentIntent creates a Stripe payment intent
+func (h *PaymentHandlers) CreateStripePaymentIntent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		ChargeID string `json:"charge_id"`
-		Reason   string `json:"reason"`
+		Amount      int64             `json:"amount"`
+		Currency    string            `json:"currency"`
+		CustomerID  string            `json:"customer_id,omitempty"`
+		Description string            `json:"description,omitempty"`
+		Metadata    map[string]string `json:"metadata,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Invalid request body",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if req.ChargeID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "charge_id is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	err := ph.stripeService.RefundCharge(req.ChargeID, req.Reason)
+	intent, err := h.stripeService.CreatePaymentIntent(fintech.PaymentIntentRequest{
+		Amount:      req.Amount,
+		Currency:    req.Currency,
+		CustomerID:  req.CustomerID,
+		Description: req.Description,
+		Metadata:    req.Metadata,
+	})
 	if err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     fmt.Sprintf("Failed to refund charge: %v", err),
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response := PaymentResponse{
-		Success:   true,
-		Message:   "Charge refunded successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
+	// Broadcast payment event
+	h.eventBroadcaster.Broadcast("payment:stripe:intent_created", map[string]interface{}{
+		"intent_id": intent.ID,
+		"amount":    req.Amount,
+		"currency":  req.Currency,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(intent)
+}
+
+// GetStripePaymentIntent retrieves a Stripe payment intent
+func (h *PaymentHandlers) GetStripePaymentIntent(w http.ResponseWriter, r *http.Request) {
+	intentID := r.URL.Query().Get("intent_id")
+	if intentID == "" {
+		http.Error(w, "intent_id is required", http.StatusBadRequest)
+		return
+	}
+
+	intent, err := h.stripeService.GetPaymentIntent(intentID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(intent)
 }
 
-// CreatePayPalOrder handles POST /api/payments/paypal/create-order
-func (ph *PaymentHandlers) CreatePayPalOrder(w http.ResponseWriter, r *http.Request) {
+// RefundStripePayment refunds a Stripe payment
+func (h *PaymentHandlers) RefundStripePayment(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		RentalID  string  `json:"rental_id"`
-		Amount    float64 `json:"amount"`
-		Currency  string  `json:"currency"`
-		ReturnURL string  `json:"return_url"`
-		CancelURL string  `json:"cancel_url"`
+		PaymentIntentID string `json:"payment_intent_id"`
+		Amount          int64  `json:"amount,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Invalid request body",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Validate required fields
-	if req.RentalID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "rental_id is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	// Set defaults
-	if req.Currency == "" {
-		req.Currency = "USD"
-	}
-	if req.ReturnURL == "" {
-		req.ReturnURL = "https://app.example.com/rentals/success"
-	}
-	if req.CancelURL == "" {
-		req.CancelURL = "https://app.example.com/rentals/cancelled"
-	}
-
-	// Validate currency
-	if !ph.paypalService.IsCurrencySupported(req.Currency) {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     fmt.Sprintf("Unsupported currency: %s", req.Currency),
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	// Validate amount
-	if err := ph.paypalService.ValidateAmount(req.Amount); err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     err.Error(),
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	// Create PayPal order
-	order, err := ph.paypalService.CreateOrder(req.RentalID, req.Amount, req.Currency, req.ReturnURL, req.CancelURL)
+	refund, err := h.stripeService.CreateRefund(req.PaymentIntentID, req.Amount)
 	if err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     fmt.Sprintf("Failed to create PayPal order: %v", err),
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response := PaymentResponse{
-		Success:   true,
-		Data:      order,
-		Message:   "PayPal order created successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
+	// Broadcast refund event
+	h.eventBroadcaster.Broadcast("payment:stripe:refunded", map[string]interface{}{
+		"refund_id":         refund.ID,
+		"payment_intent_id": req.PaymentIntentID,
+		"amount":            refund.Amount,
+	})
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(refund)
 }
 
-// GetPayPalOrder handles GET /api/payments/paypal/order/{order_id}
-func (ph *PaymentHandlers) GetPayPalOrder(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	orderID := vars["order_id"]
+// CreatePayPalOrder creates a PayPal order
+func (h *PaymentHandlers) CreatePayPalOrder(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Amount        int64  `json:"amount"`
+		Currency      string `json:"currency"`
+		Description   string `json:"description"`
+		ReturnURL     string `json:"return_url"`
+		CancelURL     string `json:"cancel_url"`
+		CustomerEmail string `json:"customer_email,omitempty"`
+	}
 
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	order, err := h.paypalService.CreateOrder(fintech.PayPalOrderRequest{
+		Amount:        req.Amount,
+		Currency:      req.Currency,
+		Description:   req.Description,
+		ReturnURL:     req.ReturnURL,
+		CancelURL:     req.CancelURL,
+		CustomerEmail: req.CustomerEmail,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast payment event
+	h.eventBroadcaster.Broadcast("payment:paypal:order_created", map[string]interface{}{
+		"order_id": order.ID,
+		"amount":   req.Amount,
+		"currency": req.Currency,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(order)
+}
+
+// GetPayPalOrder retrieves a PayPal order
+func (h *PaymentHandlers) GetPayPalOrder(w http.ResponseWriter, r *http.Request) {
+	orderID := r.URL.Query().Get("order_id")
 	if orderID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Order ID is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, "order_id is required", http.StatusBadRequest)
 		return
 	}
 
-	// In a real implementation, this would retrieve the order from PayPal
-	// For now, we'll return mock data
-	order := map[string]interface{}{
-		"id":           orderID,
-		"status":       "CREATED",
-		"checkout_url": fmt.Sprintf("https://www.paypal.com/checkoutnow?token=%s", orderID),
-		"amount":       29.99,
-		"currency":     "USD",
-		"expires_at":   time.Now().Add(24 * time.Hour),
-	}
-
-	response := PaymentResponse{
-		Success:   true,
-		Data:      order,
-		Message:   "PayPal order retrieved successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
+	order, err := h.paypalService.GetOrder(orderID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(order)
 }
 
-// CapturePayPalOrder handles POST /api/payments/paypal/capture
-func (ph *PaymentHandlers) CapturePayPalOrder(w http.ResponseWriter, r *http.Request) {
+// CapturePayPalOrder captures a PayPal order payment
+func (h *PaymentHandlers) CapturePayPalOrder(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		OrderID string `json:"order_id"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Invalid request body",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if req.OrderID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "order_id is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	capture, err := ph.paypalService.CaptureOrder(req.OrderID)
+	capture, err := h.paypalService.CaptureOrder(req.OrderID)
 	if err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     fmt.Sprintf("Failed to capture PayPal order: %v", err),
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response := PaymentResponse{
-		Success:   true,
-		Data:      capture,
-		Message:   "PayPal order captured successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
+	// Broadcast payment event
+	h.eventBroadcaster.Broadcast("payment:paypal:captured", map[string]interface{}{
+		"capture_id": capture.ID,
+		"order_id":   req.OrderID,
+		"status":     capture.Status,
+	})
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(capture)
 }
 
-// HandlePayPalWebhook handles POST /api/payments/paypal/webhook
-func (ph *PaymentHandlers) HandlePayPalWebhook(w http.ResponseWriter, r *http.Request) {
-	ph.paypalService.HandleWebhook(w, r)
-}
-
-// RefundPayPalCapture handles POST /api/payments/paypal/refund
-func (ph *PaymentHandlers) RefundPayPalCapture(w http.ResponseWriter, r *http.Request) {
+// RefundPayPalCapture refunds a PayPal capture
+func (h *PaymentHandlers) RefundPayPalCapture(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		CaptureID string `json:"capture_id"`
-		Reason    string `json:"reason"`
+		Amount    int64  `json:"amount,omitempty"`
+		Currency  string `json:"currency,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Invalid request body",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if req.CaptureID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "capture_id is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
-	err := ph.paypalService.RefundCapture(req.CaptureID, req.Reason)
+	refund, err := h.paypalService.RefundCapture(req.CaptureID, req.Amount, req.Currency)
 	if err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     fmt.Sprintf("Failed to refund PayPal capture: %v", err),
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response := PaymentResponse{
-		Success:   true,
-		Message:   "PayPal capture refunded successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
+	// Broadcast refund event
+	h.eventBroadcaster.Broadcast("payment:paypal:refunded", map[string]interface{}{
+		"refund_id":  refund.ID,
+		"capture_id": req.CaptureID,
+		"amount":     refund.Amount,
+	})
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(refund)
 }
 
-// GetPaymentHistory handles GET /api/payments/history
-func (ph *PaymentHandlers) GetPaymentHistory(w http.ResponseWriter, r *http.Request) {
-	// Extract user ID from JWT token
-	userID := middleware.GetUserIDFromRequest(r)
-	if userID == "" {
-		// Fallback to query parameter for development/testing
-		userID = r.URL.Query().Get("user_id")
-	}
-	if userID == "" {
-		userID = "test-user-default"
-	}
+// GetBlockchainWalletBalance retrieves blockchain wallet balance
+func (h *PaymentHandlers) GetBlockchainWalletBalance(w http.ResponseWriter, r *http.Request) {
+	address := r.URL.Query().Get("address")
+	token := r.URL.Query().Get("token")
 
-	// In a real implementation, this would query the database for payment history
-	// For now, we'll return mock data
-	history := []map[string]interface{}{
-		{
-			"id":         "pay_123",
-			"provider":   "stripe",
-			"amount":     2999,
-			"currency":   "usd",
-			"status":     "completed",
-			"created_at": time.Now().Add(-24 * time.Hour),
-		},
-		{
-			"id":         "pay_456",
-			"provider":   "paypal",
-			"amount":     49.99,
-			"currency":   "usd",
-			"status":     "completed",
-			"created_at": time.Now().Add(-48 * time.Hour),
-		},
-	}
-
-	response := PaymentResponse{
-		Success:   true,
-		Data:      history,
-		Message:   "Payment history retrieved successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// GetPaymentDetails handles GET /api/payments/{payment_id}
-func (ph *PaymentHandlers) GetPaymentDetails(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	paymentID := vars["payment_id"]
-
-	if paymentID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Payment ID is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+	if address == "" || token == "" {
+		http.Error(w, "address and token are required", http.StatusBadRequest)
 		return
 	}
 
-	// In a real implementation, this would query the database for payment details
-	// For now, we'll return mock data
-	payment := map[string]interface{}{
-		"id":         paymentID,
-		"provider":   "stripe",
-		"amount":     2999,
-		"currency":   "usd",
-		"status":     "completed",
-		"rental_id":  "rental-123",
-		"created_at": time.Now().Add(-24 * time.Hour),
-	}
-
-	response := PaymentResponse{
-		Success:   true,
-		Data:      payment,
-		Message:   "Payment details retrieved successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// GetPaymentReceipt handles GET /api/payments/{payment_id}/receipt
-func (ph *PaymentHandlers) GetPaymentReceipt(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	paymentID := vars["payment_id"]
-
-	if paymentID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Payment ID is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+	wallet, err := h.blockchainService.GetWalletBalance(address, token)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// In a real implementation, this would generate or retrieve a receipt
-	// For now, we'll return mock receipt data
-	receipt := map[string]interface{}{
-		"payment_id": paymentID,
-		"receipt_url": fmt.Sprintf("https://receipts.example.com/%s", paymentID),
-		"amount":     29.99,
-		"currency":   "usd",
-		"date":       time.Now().Add(-24 * time.Hour),
-	}
-
-	response := PaymentResponse{
-		Success:   true,
-		Data:      receipt,
-		Message:   "Payment receipt retrieved successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(wallet)
 }
 
-// RequestPaymentRefund handles POST /api/payments/{payment_id}/refund-request
-func (ph *PaymentHandlers) RequestPaymentRefund(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	paymentID := vars["payment_id"]
-
-	if paymentID == "" {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Payment ID is required",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
-		return
-	}
-
+// CreateBlockchainPayment creates a blockchain payment
+func (h *PaymentHandlers) CreateBlockchainPayment(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Reason string `json:"reason"`
+		FromAddress string `json:"from_address"`
+		ToAddress   string `json:"to_address"`
+		Amount      int64  `json:"amount"`
+		Token       string `json:"token"`
+		Memo        string `json:"memo,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response := PaymentResponse{
-			Success:   false,
-			Error:     "Invalid request body",
-			Timestamp: time.Now().Format(time.RFC3339),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// In a real implementation, this would:
-	// 1. Validate the refund request
-	// 2. Check refund eligibility
-	// 3. Process the refund through the payment provider
-	// 4. Update the database
+	payment, err := h.blockchainService.CreatePayment(fintech.BlockchainPaymentRequest{
+		FromAddress: req.FromAddress,
+		ToAddress:   req.ToAddress,
+		Amount:      req.Amount,
+		Token:       req.Token,
+		Memo:        req.Memo,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	log.Printf("Processing refund request for payment %s, reason: %s", paymentID, req.Reason)
+	// Broadcast payment event
+	h.eventBroadcaster.Broadcast("payment:blockchain:created", map[string]interface{}{
+		"tx_hash": payment.TxHash,
+		"from":    req.FromAddress,
+		"to":      req.ToAddress,
+		"amount":  req.Amount,
+		"token":   req.Token,
+	})
 
-	response := PaymentResponse{
-		Success:   true,
-		Message:   "Refund request submitted successfully",
-		Timestamp: time.Now().Format(time.RFC3339),
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(payment)
+}
+
+// GetBlockchainTransaction retrieves a blockchain transaction
+func (h *PaymentHandlers) GetBlockchainTransaction(w http.ResponseWriter, r *http.Request) {
+	txHash := r.URL.Query().Get("tx_hash")
+	if txHash == "" {
+		http.Error(w, "tx_hash is required", http.StatusBadRequest)
+		return
+	}
+
+	tx, err := h.blockchainService.GetTransaction(txHash)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(tx)
 }
 
-// RegisterRoutes registers the payment routes with the router
-func (ph *PaymentHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
-	// Create a subrouter for payment endpoints
-	paymentRouter := r.PathPrefix("/api/payments").Subrouter()
-
-	// Stripe routes
-	paymentRouter.HandleFunc("/stripe/create-session", ph.CreateStripeSession).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/stripe/session/{session_id}", ph.GetStripeSession).Methods("GET", "OPTIONS")
-	paymentRouter.HandleFunc("/stripe/webhook", ph.HandleStripeWebhook).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/stripe/charge/{charge_id}/status", ph.GetStripeChargeStatus).Methods("GET", "OPTIONS")
-	paymentRouter.HandleFunc("/stripe/refund", ph.RefundStripeCharge).Methods("POST", "OPTIONS")
-
-	// PayPal routes
-	paymentRouter.HandleFunc("/paypal/create-order", ph.CreatePayPalOrder).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/paypal/order/{order_id}", ph.GetPayPalOrder).Methods("GET", "OPTIONS")
-	paymentRouter.HandleFunc("/paypal/capture", ph.CapturePayPalOrder).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/paypal/webhook", ph.HandlePayPalWebhook).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/paypal/refund", ph.RefundPayPalCapture).Methods("POST", "OPTIONS")
-
-	// General payment routes (require authentication)
-	if authMiddleware != nil {
-		protectedPaymentRouter := paymentRouter.PathPrefix("").Subrouter()
-		protectedPaymentRouter.Use(authMiddleware.RequireAuth)
-		protectedPaymentRouter.HandleFunc("/history", ph.GetPaymentHistory).Methods("GET", "OPTIONS")
-		protectedPaymentRouter.HandleFunc("/{payment_id}", ph.GetPaymentDetails).Methods("GET", "OPTIONS")
-		protectedPaymentRouter.HandleFunc("/{payment_id}/receipt", ph.GetPaymentReceipt).Methods("GET", "OPTIONS")
-		protectedPaymentRouter.HandleFunc("/{payment_id}/refund-request", ph.RequestPaymentRefund).Methods("POST", "OPTIONS")
+// VerifyBlockchainTransaction verifies a blockchain transaction
+func (h *PaymentHandlers) VerifyBlockchainTransaction(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TxHash          string `json:"tx_hash"`
+		ExpectedAmount  int64  `json:"expected_amount"`
+		ExpectedRecipient string `json:"expected_recipient"`
 	}
 
-	// Handle OPTIONS requests for CORS
-	paymentRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-Auth-Token")
-		w.Header().Set("Access-Control-Max-Age", "86400")
-		w.WriteHeader(http.StatusOK)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	verified, err := h.blockchainService.VerifyTransaction(req.TxHash, req.ExpectedAmount, req.ExpectedRecipient)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast verification event
+	h.eventBroadcaster.Broadcast("payment:blockchain:verified", map[string]interface{}{
+		"tx_hash":  req.TxHash,
+		"verified": verified,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"verified": verified,
+		"tx_hash":  req.TxHash,
+	})
+}
+
+// EstimateBlockchainGas estimates gas for a blockchain transaction
+func (h *PaymentHandlers) EstimateBlockchainGas(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		FromAddress string `json:"from_address"`
+		ToAddress   string `json:"to_address"`
+		Amount      int64  `json:"amount"`
+		Token       string `json:"token"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	gasUsed, gasPrice, err := h.blockchainService.EstimateGas(fintech.BlockchainPaymentRequest{
+		FromAddress: req.FromAddress,
+		ToAddress:   req.ToAddress,
+		Amount:      req.Amount,
+		Token:       req.Token,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"gas_used":  gasUsed,
+		"gas_price": gasPrice,
+		"total_fee": gasUsed * gasPrice,
+	})
+}
+
+// GetBlockchainTransactionHistory retrieves transaction history for a wallet
+func (h *PaymentHandlers) GetBlockchainTransactionHistory(w http.ResponseWriter, r *http.Request) {
+	address := r.URL.Query().Get("address")
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	if address == "" {
+		http.Error(w, "address is required", http.StatusBadRequest)
+		return
+	}
+
+	limit := 10
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	offset := 0
+	if offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	transactions, err := h.blockchainService.GetTransactionHistory(address, limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"transactions": transactions,
+		"limit":        limit,
+		"offset":       offset,
 	})
 }

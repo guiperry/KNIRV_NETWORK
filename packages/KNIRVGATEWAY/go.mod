@@ -8,29 +8,28 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.2.2
 	github.com/joho/godotenv v1.5.1
+	github.com/pion/turn/v2 v2.1.6
 	github.com/rs/cors v1.10.1
 	go.uber.org/zap v1.26.0
 )
 
+require github.com/stripe/stripe-go/v79 v79.12.0
+
 require (
-	github.com/ethereum/go-ethereum v1.16.7
-	github.com/stretchr/testify v1.10.0
-	github.com/stripe/stripe-go/v79 v79.12.0
+	github.com/pion/dtls/v2 v2.2.7 // indirect
+	github.com/pion/logging v0.2.2 // indirect
+	github.com/pion/randutil v0.1.0 // indirect
+	github.com/pion/stun v0.6.1 // indirect
+	github.com/pion/transport/v2 v2.2.1 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
+	go.uber.org/goleak v1.3.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 )
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
-
-require (
-	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251001021608-1fe7b43fc4d6 // indirect
-	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/securecookie v1.1.2 // indirect
-	github.com/holiman/uint256 v1.3.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/crypto v0.36.0
 	golang.org/x/sys v0.36.0 // indirect
 )

@@ -388,7 +388,7 @@ func ImportCertificate(data []byte) (*CertificateOfCorrectness, error) {
 
 // ToMarkdown exports certificate as Markdown document
 func (cert *CertificateOfCorrectness) ToMarkdown() string {
-	md := fmt.Sprintf("# Certificate of Correctness\n\n")
+	md := "# Certificate of Correctness\n\n"
 	md += fmt.Sprintf("**Certificate ID:** %s  \n", cert.ID)
 	md += fmt.Sprintf("**Version:** %s  \n", cert.Version)
 	md += fmt.Sprintf("**Status:** %s  \n", cert.Status)
