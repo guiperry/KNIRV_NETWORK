@@ -106,6 +106,46 @@ security:
     secret: "your-secret-here"
 ```
 
+### Cortex (MLC-LLM) Integration
+
+Use Cortex to route MCP insight generation through local/remote MLC-LLM sidecar:
+
+```yaml
+cortex:
+  enabled: true
+  endpoint: "http://localhost:8000/v1"
+  model: "Llama-3-8B-Instruct-q4f16_1"
+  timeout: "30s"
+```
+
+You can also set env vars (preferred for containerized execution):
+
+- `CORTEX_ENABLED=true`
+- `CORTEX_ENDPOINT=http://localhost:8000/v1`
+- `CORTEX_MODEL=Llama-3-8B-Instruct-q4f16_1`
+- `CORTEX_TIMEOUT=30s`
+
+### `generate_insight` endpoint
+
+After starting KNIRVCORE with Cortex enabled, call:
+
+```bash
+curl -X POST http://localhost:8080/tools/generate_insight \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Summarize recent memory blocks"}'
+```
+
+Response:
+
+```json
+{
+  "query": "Summarize recent memory blocks",
+  "insight": "...generated text...",
+  "source_blocks": ["- [blockid] ...", ...]
+}
+```
+
+
 ## 🔨 Building
 
 ### Using Make

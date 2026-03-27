@@ -116,10 +116,10 @@ func (s *KNIRVBASEStorage) Put(key, value []byte) error {
 	}
 
 	// Check if exists and update or insert
-	existing, err := s.collection.Find(keyToID(key))
+	existing, err := s.collection.Find(s.ctx, keyToID(key))
 	if err == nil && existing != nil {
 		// Update existing
-		_, err = s.collection.Update(keyToID(key), map[string]interface{}{
+		_, err = s.collection.Update(s.ctx, keyToID(key), map[string]interface{}{
 			"value": string(value),
 		})
 		return err
@@ -138,7 +138,7 @@ func (s *KNIRVBASEStorage) Get(key []byte) ([]byte, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	doc, err := s.collection.Find(keyToID(key))
+	doc, err := s.collection.Find(s.ctx, keyToID(key))
 	if err != nil || doc == nil {
 		return nil, fmt.Errorf("key not found")
 	}
@@ -167,7 +167,7 @@ func (s *KNIRVBASEStorage) Delete(key []byte) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	_, err := s.collection.Delete(keyToID(key))
+	_, err := s.collection.Delete(s.ctx, keyToID(key))
 	return err
 }
 
@@ -176,7 +176,7 @@ func (s *KNIRVBASEStorage) Has(key []byte) (bool, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	doc, err := s.collection.Find(keyToID(key))
+	doc, err := s.collection.Find(s.ctx, keyToID(key))
 	if err != nil || doc == nil {
 		return false, nil
 	}
@@ -197,7 +197,7 @@ func (s *KNIRVBASEStorage) NewIterator(prefix []byte) Iterator {
 	defer s.mu.RUnlock()
 
 	// Get all documents
-	docs, err := s.collection.FindAll()
+	docs, err := s.collection.FindAll(s.ctx)
 	if err != nil {
 		return &KNIRVBASEIterator{err: err}
 	}

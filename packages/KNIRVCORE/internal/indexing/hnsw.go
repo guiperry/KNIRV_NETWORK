@@ -22,14 +22,14 @@ type HNSWNode struct {
 // HNSWIndex implements Hierarchical Navigable Small World graph for vector similarity search
 type HNSWIndex struct {
 	dimension      int
-	M              int                       // max number of connections per layer
-	Mmax           int                       // max number of connections for layer 0
-	Mmax0          int                       // max number of connections for higher layers
-	efConstruction int                       // size of dynamic candidate list during construction
-	ef             int                       // size of dynamic candidate list during search
-	ml             float64                   // level generation multiplier
-	nodes          map[uuid.UUID]*HNSWNode   // all nodes in the index
-	entryPoint     *HNSWNode                 // entry point for search (highest layer node)
+	M              int                     // max number of connections per layer
+	Mmax           int                     // max number of connections for layer 0
+	Mmax0          int                     // max number of connections for higher layers
+	efConstruction int                     // size of dynamic candidate list during construction
+	ef             int                     // size of dynamic candidate list during search
+	ml             float64                 // level generation multiplier
+	nodes          map[uuid.UUID]*HNSWNode // all nodes in the index
+	entryPoint     *HNSWNode               // entry point for search (highest layer node)
 	mu             sync.RWMutex
 }
 
@@ -177,6 +177,20 @@ func (h *HNSWIndex) Search(query []float32, k int) ([]uuid.UUID, error) {
 				id:       id,
 				distance: dist,
 			})
+		}
+	}
+
+	// If insufficient candidates were found in search, fallback to brute force over all nodes.
+	if len(entries) < k {
+		seen := make(map[uuid.UUID]bool, len(entries))
+		for _, e := range entries {
+			seen[e.id] = true
+		}
+		for id, node := range h.nodes {
+			if seen[id] {
+				continue
+			}
+			entries = append(entries, distanceEntry{id: id, distance: euclideanDistance(query, node.Vector)})
 		}
 	}
 

@@ -6,17 +6,17 @@ import (
 
 type Config struct {
 	Node struct {
-		ID         string `mapstructure:"id"`
-		Role       string `mapstructure:"role"`
-		ListenAddr string `mapstructure:"listen_addr"`
+		ID          string `mapstructure:"id"`
+		Role        string `mapstructure:"role"`
+		ListenAddr  string `mapstructure:"listen_addr"`
 		RPCEndpoint string `mapstructure:"rpc_endpoint"`
 	} `mapstructure:"node"`
 
 	Blockchain struct {
-		DataDir       string `mapstructure:"data_dir"`
-		MaxBlockSize  int    `mapstructure:"max_block_size"`
-		BlockTime     string `mapstructure:"block_time"`
-		Consensus     string `mapstructure:"consensus"`
+		DataDir      string `mapstructure:"data_dir"`
+		MaxBlockSize int    `mapstructure:"max_block_size"`
+		BlockTime    string `mapstructure:"block_time"`
+		Consensus    string `mapstructure:"consensus"`
 	} `mapstructure:"blockchain"`
 
 	Wallet struct {
@@ -26,17 +26,17 @@ type Config struct {
 	} `mapstructure:"wallet"`
 
 	Cache struct {
-		RedisURL      string `mapstructure:"redis_url"`
-		TTL           string `mapstructure:"ttl"`
+		RedisURL       string `mapstructure:"redis_url"`
+		TTL            string `mapstructure:"ttl"`
 		MaxConnections int    `mapstructure:"max_connections"`
 	} `mapstructure:"cache"`
 
 	Indexing struct {
 		Semantic struct {
-			Enabled   bool `mapstructure:"enabled"`
-			Dimension int  `mapstructure:"dimension"`
-			M         int  `mapstructure:"hnsw_m"`
-			EFConstruction int `mapstructure:"hnsw_ef_construction"`
+			Enabled        bool `mapstructure:"enabled"`
+			Dimension      int  `mapstructure:"dimension"`
+			M              int  `mapstructure:"hnsw_m"`
+			EFConstruction int  `mapstructure:"hnsw_ef_construction"`
 		} `mapstructure:"semantic"`
 		Temporal struct {
 			Enabled bool `mapstructure:"enabled"`
@@ -51,17 +51,17 @@ type Config struct {
 
 	Security struct {
 		TLS struct {
-			Enabled   bool   `mapstructure:"enabled"`
-			CertFile  string `mapstructure:"cert_file"`
-			KeyFile   string `mapstructure:"key_file"`
+			Enabled  bool   `mapstructure:"enabled"`
+			CertFile string `mapstructure:"cert_file"`
+			KeyFile  string `mapstructure:"key_file"`
 		} `mapstructure:"tls"`
 		JWT struct {
 			Secret        string `mapstructure:"secret"`
 			TokenDuration string `mapstructure:"token_duration"`
 		} `mapstructure:"jwt"`
 		Encryption struct {
-			Enabled         bool   `mapstructure:"enabled"`
-			KeyRotationDays int    `mapstructure:"key_rotation_days"`
+			Enabled         bool `mapstructure:"enabled"`
+			KeyRotationDays int  `mapstructure:"key_rotation_days"`
 		} `mapstructure:"encryption"`
 	} `mapstructure:"security"`
 
@@ -77,17 +77,24 @@ type Config struct {
 			Path    string `mapstructure:"path"`
 		} `mapstructure:"prometheus"`
 		Tracing struct {
-			Enabled       bool   `mapstructure:"enabled"`
+			Enabled        bool   `mapstructure:"enabled"`
 			JaegerEndpoint string `mapstructure:"jaeger_endpoint"`
 		} `mapstructure:"tracing"`
 	} `mapstructure:"monitoring"`
 
 	Performance struct {
-		MaxGoroutines    int    `mapstructure:"max_goroutines"`
-		RequestTimeout   string `mapstructure:"request_timeout"`
-		WriteBufferSize  int    `mapstructure:"write_buffer_size"`
-		ReadBufferSize   int    `mapstructure:"read_buffer_size"`
+		MaxGoroutines   int    `mapstructure:"max_goroutines"`
+		RequestTimeout  string `mapstructure:"request_timeout"`
+		WriteBufferSize int    `mapstructure:"write_buffer_size"`
+		ReadBufferSize  int    `mapstructure:"read_buffer_size"`
 	} `mapstructure:"performance"`
+
+	Cortex struct {
+		Enabled  bool   `mapstructure:"enabled"`
+		Endpoint string `mapstructure:"endpoint"`
+		Model    string `mapstructure:"model"`
+		Timeout  string `mapstructure:"timeout"`
+	} `mapstructure:"cortex"`
 }
 
 func LoadConfig(path string) (*Config, error) {

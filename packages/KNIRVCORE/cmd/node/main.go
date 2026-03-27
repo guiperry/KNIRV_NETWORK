@@ -9,10 +9,12 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/knirvchain/internal/blockchain"
+	"github.com/knirvchain/internal/cortex"
 	"github.com/knirvchain/internal/embedding"
 	"github.com/knirvchain/internal/mcp"
 	"github.com/knirvchain/internal/storage"
@@ -196,6 +198,30 @@ func main() {
 	if err != nil {
 		logger.Fatalf("Failed to initialize MCP server: %v", err)
 	}
+
+	// Optional Cortex integration (MLC-LLM sidecar)
+	if strings.EqualFold(getEnv("CORTEX_ENABLED", "false"), "true") {
+		cortexCfg := cortex.Config{
+			Enabled:  true,
+			Endpoint: getEnv("CORTEX_ENDPOINT", "http://localhost:8000/v1"),
+			Model:    getEnv("CORTEX_MODEL", "Llama-3-8B-Instruct-q4f16_1"),
+			Timeout:  30 * time.Second,
+		}
+		if timeoutEnv := getEnv("CORTEX_TIMEOUT", "30s"); timeoutEnv != "" {
+			if d, err := time.ParseDuration(timeoutEnv); err == nil {
+				cortexCfg.Timeout = d
+			}
+		}
+
+		cortexClient := cortex.NewClient(cortexCfg)
+		if err := cortexClient.HealthCheck(context.Background()); err != nil {
+			logger.Printf("WARNING: cortex sidecar health check failed: %v", err)
+		} else {
+			server.SetCortexClient(cortexClient)
+			logger.Println("✓ Cortex sidecar integrated")
+		}
+	}
+
 	logger.Println("✓ MCP server initialized")
 
 	// All components initialized successfully

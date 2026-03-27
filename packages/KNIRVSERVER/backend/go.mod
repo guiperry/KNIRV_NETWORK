@@ -9,6 +9,7 @@ require (
 	github.com/apache/arrow/go/v14 v14.0.2
 	github.com/cilium/ebpf v0.12.3
 	github.com/cloudflare/circl v1.6.3
+	github.com/ethereum/go-ethereum v1.16.7
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/uuid v1.6.0

@@ -17,6 +17,9 @@ import (
 
 	"backend_server/internal/config"
 	data_engine "backend_server/internal/data_engine"
+	"backend_server/internal/oracle"
+	oracleroutes "backend_server/internal/oracle/routes"
+	"backend_server/internal/password"
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
 	"backend_server/internal/reasoning/graph"
@@ -133,6 +136,9 @@ type Server struct {
 	workflowService  *workflow.WorkflowService
 	guardrailManager *guardrails.DynamicGuardrailManager
 	policyEngine     *guardrails.PolicyEngine
+
+	// Oracle service (root-only — only present when root.key is loaded)
+	oracleService *oracle.Oracle
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -282,6 +288,62 @@ func getOSAppDataDir() (string, error) {
 }
 
 // NewServer creates a new KNIRV-SERVER backend server instance
+// initOracleFromKeyFile loads the encrypted root.key file and initialises the oracle service.
+// Returns nil (no error) when the key file is absent — oracle is simply not started.
+// The password is read from ORACLE_KEY_PASSWORD env var (non-interactive/CI) or prompted
+// from stdin when running interactively.
+func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
+	keyPath, err := config.GetRootKeyPath()
+	if err != nil {
+		return nil, fmt.Errorf("oracle: could not resolve root key path: %w", err)
+	}
+
+	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+		logger.Info("Oracle disabled: no root.key found (not a root node)", zap.String("expected_path", keyPath))
+		return nil, nil
+	}
+
+	// Determine password source.
+	var keyPassword []byte
+	if envPwd := os.Getenv("ORACLE_KEY_PASSWORD"); envPwd != "" {
+		keyPassword = []byte(envPwd)
+	} else {
+		keyPassword, err = password.PromptForPassword("Enter root key password to start oracle: ")
+		if err != nil {
+			return nil, fmt.Errorf("oracle: failed to read password: %w", err)
+		}
+	}
+
+	content, err := password.LoadEncryptedKeyFile(keyPath, keyPassword)
+	if err != nil {
+		return nil, fmt.Errorf("oracle: failed to decrypt root.key: %w", err)
+	}
+
+	rootPrivateKey := content.GetRootPrivateKeyHex()
+	if rootPrivateKey == "" {
+		logger.Warn("Oracle disabled: root.key decrypted but ROOT_PRIVATE_KEY is empty")
+		return nil, nil
+	}
+
+	oracleCfg, err := oracle.LoadConfigFromEnv()
+	if err != nil {
+		return nil, fmt.Errorf("oracle: failed to load config from env: %w", err)
+	}
+	oracleCfg.OwnerPrivateKey = rootPrivateKey
+
+	if err := oracle.ValidateConfig(oracleCfg); err != nil {
+		return nil, fmt.Errorf("oracle: invalid config: %w", err)
+	}
+
+	oracleInstance, err := oracle.NewOracle(oracleCfg, logger)
+	if err != nil {
+		return nil, fmt.Errorf("oracle: failed to create instance: %w", err)
+	}
+
+	logger.Info("Oracle initialised from root.key", zap.String("key_path", keyPath))
+	return oracleInstance, nil
+}
+
 func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize logging
 	logger, err := initLogging(cfg)
@@ -868,6 +930,13 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		running:                      false,
 	}
 
+	// Initialise oracle if root.key is present (root node only)
+	oracleInstance, err := initOracleFromKeyFile(logger)
+	if err != nil {
+		logger.Error("Failed to initialise oracle — continuing without it", zap.Error(err))
+	}
+	server.oracleService = oracleInstance
+
 	// Setup routes for all services
 	server.setupRoutes()
 
@@ -1236,6 +1305,15 @@ func (s *Server) setupRoutes() {
 	systemSettingsHandlers.RegisterRoutes(s.router, authMiddleware)
 	log.Println("System settings routes configured")
 
+	// Register oracle routes (root node only — only wired when oracle is active)
+	if s.oracleService != nil {
+		oracleMux := http.NewServeMux()
+		oracleRoutes := oracleroutes.NewOracleRoutes(s.oracleService, s.logger)
+		oracleRoutes.RegisterRoutes(oracleMux)
+		s.router.PathPrefix("/oracle/").Handler(oracleMux)
+		log.Println("Oracle routes configured")
+	}
+
 	log.Println("All routes configured successfully")
 }
 
@@ -1335,6 +1413,15 @@ func (s *Server) Start() error {
 		log.Println("P2P Manager started")
 	} else {
 		log.Println("Warning: P2P Manager not initialized, skipping")
+	}
+
+	// Start oracle (root node only)
+	if s.oracleService != nil {
+		if err := s.oracleService.Start(); err != nil {
+			log.Printf("Warning: Failed to start oracle service: %v", err)
+		} else {
+			log.Println("Oracle service started")
+		}
 	}
 
 	// Start DVE manager
@@ -1564,6 +1651,15 @@ func (s *Server) Stop() error {
 			// Continue with shutdown even if HTTP server shutdown fails
 		} else {
 			log.Println("HTTP server shut down gracefully")
+		}
+	}
+
+	// Stop oracle service (root node only)
+	if s.oracleService != nil {
+		if err := s.oracleService.Stop(); err != nil {
+			log.Printf("Error stopping oracle service: %v", err)
+		} else {
+			log.Println("Oracle service stopped")
 		}
 	}
 

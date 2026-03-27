@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/knirvchain/internal/blockchain"
 	"github.com/knirvchain/internal/bridge"
+	"github.com/knirvchain/internal/cortex"
 	"github.com/knirvchain/internal/embedding"
 	"github.com/knirvchain/internal/storage"
 	"github.com/knirvchain/internal/wallet"
@@ -25,6 +27,7 @@ type MCPServer struct {
 	encoder  *glb.Encoder
 	router   *mux.Router
 	bridge   *bridge.KNIRVGraphBridge // Optional bridge to KNIRVGRAPH
+	cortex   *cortex.Client           // Optional Cortex sidecar for LLM inference
 	logger   *log.Logger
 }
 
@@ -47,6 +50,11 @@ func NewMCPServerWithBridge(nodeID string, chain *blockchain.ChainNode, wallet *
 
 	server.registerRoutes()
 	return server, nil
+}
+
+// SetCortexClient attaches a Cortex sidecar client to the MCP server.
+func (s *MCPServer) SetCortexClient(c *cortex.Client) {
+	s.cortex = c
 }
 
 // NewMCPServerWithDefaults creates a new MCP server with default initialization (for backward compatibility)
@@ -75,6 +83,7 @@ func (s *MCPServer) registerRoutes() {
 	s.router.HandleFunc("/tools/retrieve_memory", s.handleRetrieveMemory).Methods("POST")
 	s.router.HandleFunc("/tools/query_balance", s.handleQueryBalance).Methods("GET")
 	s.router.HandleFunc("/tools/estimate_cost", s.handleEstimateCost).Methods("POST")
+	s.router.HandleFunc("/tools/generate_insight", s.handleGenerateInsight).Methods("POST")
 }
 
 type StoreMemoryRequest struct {
@@ -189,6 +198,88 @@ type Memory struct {
 type RetrieveMemoryResponse struct {
 	Memories []Memory `json:"memories"`
 	Cost     uint64   `json:"cost"`
+}
+
+type GenerateInsightRequest struct {
+	Query string `json:"query"`
+	Limit int    `json:"limit,omitempty"`
+}
+
+type GenerateInsightResponse struct {
+	Query        string   `json:"query"`
+	Insight      string   `json:"insight"`
+	SourceBlocks []string `json:"source_blocks,omitempty"`
+}
+
+func (s *MCPServer) handleGenerateInsight(w http.ResponseWriter, r *http.Request) {
+	if s.cortex == nil {
+		http.Error(w, "cortex integration not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	ctx := r.Context()
+	var req GenerateInsightRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.Query) == "" {
+		http.Error(w, "query is required", http.StatusBadRequest)
+		return
+	}
+
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 5
+	}
+
+	queryEmbedding, err := s.generateEmbedding(ctx, req.Query)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	searchReq := blockchain.SearchRequest{Vector: queryEmbedding, Limit: limit}
+	blocks, err := s.chain.SemanticSearch(ctx, searchReq)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var sourceEntries []string
+	var contextBuilder strings.Builder
+	for _, block := range blocks {
+		decoded, err := s.encoder.Decode(block.Data)
+		if err != nil {
+			continue
+		}
+		text := fmt.Sprintf("- [%s] %s", block.BlockID.String(), decoded.Content)
+		sourceEntries = append(sourceEntries, text)
+		contextBuilder.WriteString(text)
+		contextBuilder.WriteString("\n")
+	}
+
+	if len(sourceEntries) == 0 {
+		contextBuilder.WriteString("No relevant memory found.")
+	}
+
+	systemPrompt := "You are KNIRVCORE assistant. Use memory context to answer concisely."
+	completionInput := fmt.Sprintf("Context:\n%s\n\nUser query: %s", contextBuilder.String(), req.Query)
+
+	insight, err := s.cortex.ChatCompletion(ctx, completionInput, systemPrompt)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := GenerateInsightResponse{
+		Query:        req.Query,
+		Insight:      insight,
+		SourceBlocks: sourceEntries,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 func (s *MCPServer) handleRetrieveMemory(w http.ResponseWriter, r *http.Request) {
