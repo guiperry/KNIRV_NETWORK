@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +19,7 @@ type ContainerManager struct {
 	mu     sync.RWMutex
 
 	runtime    string // docker or podman
+	dockerHost string // custom Docker socket (e.g. "unix:///run/user/1000/docker.sock")
 	containers map[string]*Container
 	networks   []ContainerNetwork
 
@@ -89,6 +92,38 @@ type VolumeMapping struct {
 	Type          string `json:"type"` // bind, volume, tmpfs
 }
 
+// detectDockerSocket finds the Docker daemon socket path.
+// It checks DOCKER_HOST env var first, then probes common socket locations.
+// Returns a docker --host compatible URL (e.g. "unix:///path/docker.sock") or empty string.
+func detectDockerSocket() string {
+	if dockerHost := os.Getenv("DOCKER_HOST"); dockerHost != "" {
+		return dockerHost
+	}
+
+	candidates := []string{
+		"/var/run/docker.sock",
+		"/run/docker.sock",
+	}
+
+	if xdgRuntime := os.Getenv("XDG_RUNTIME_DIR"); xdgRuntime != "" {
+		candidates = append(candidates, filepath.Join(xdgRuntime, "docker.sock"))
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		candidates = append(candidates,
+			filepath.Join(home, ".docker", "run", "docker.sock"),
+			filepath.Join(home, ".docker", "desktop", "docker.sock"),
+		)
+	}
+
+	for _, path := range candidates {
+		if info, err := os.Stat(path); err == nil && !info.IsDir() {
+			return "unix://" + path
+		}
+	}
+
+	return ""
+}
+
 // NewContainerManager creates a new container manager
 func NewContainerManager(ctx context.Context, config *HostConfig) (*ContainerManager, error) {
 	cm := &ContainerManager{
@@ -96,6 +131,11 @@ func NewContainerManager(ctx context.Context, config *HostConfig) (*ContainerMan
 		config:     config,
 		runtime:    config.ContainerRuntime,
 		containers: make(map[string]*Container),
+	}
+
+	// Detect custom Docker socket for docker runtime
+	if config.ContainerRuntime == "docker" {
+		cm.dockerHost = detectDockerSocket()
 	}
 
 	// Verify container runtime is available
@@ -125,9 +165,9 @@ func (cm *ContainerManager) Start() error {
 		return fmt.Errorf("initial network scan failed: %w", err)
 	}
 
-	// Setup KNIRV networks if needed
+	// Setup KNIRV networks if needed (non-fatal: may fail due to permissions)
 	if err := cm.setupKNIRVNetworks(); err != nil {
-		return fmt.Errorf("failed to setup KNIRV networks: %w", err)
+		fmt.Printf("Warning: failed to setup KNIRV networks (continuing): %v\n", err)
 	}
 
 	// Start monitoring loop
@@ -198,9 +238,18 @@ func (cm *ContainerManager) HealthCheck() error {
 	return nil
 }
 
+// dockerCmd creates an exec.Cmd for the container runtime, injecting the
+// custom --host flag when a non-default Docker socket has been detected.
+func (cm *ContainerManager) dockerCmd(args ...string) *exec.Cmd {
+	if cm.dockerHost != "" && cm.runtime == "docker" {
+		args = append([]string{"--host", cm.dockerHost}, args...)
+	}
+	return exec.Command(cm.runtime, args...)
+}
+
 // verifyRuntime verifies the container runtime is available
 func (cm *ContainerManager) verifyRuntime() error {
-	cmd := exec.Command(cm.runtime, "version")
+	cmd := cm.dockerCmd("version")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%s runtime not available: %w", cm.runtime, err)
 	}
@@ -239,7 +288,7 @@ func (cm *ContainerManager) monitorLoop() {
 // scanContainers scans and updates container information
 func (cm *ContainerManager) scanContainers() error {
 	// Get container list
-	cmd := exec.Command(cm.runtime, "ps", "-a", "--format", "json")
+	cmd := cm.dockerCmd("ps", "-a", "--format", "json")
 	output, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("failed to list containers: %w", err)
@@ -317,7 +366,7 @@ func getString(m map[string]interface{}, key string) string {
 // enrichContainerInfo gets detailed container information
 func (cm *ContainerManager) enrichContainerInfo(container *Container) error {
 	// Get detailed container inspect information
-	cmd := exec.Command(cm.runtime, "inspect", container.ID)
+	cmd := cm.dockerCmd("inspect", container.ID)
 	output, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("failed to inspect container: %w", err)
@@ -403,7 +452,7 @@ func (cm *ContainerManager) identifyKNIRVContainer(container *Container) {
 
 // scanNetworks scans container networks
 func (cm *ContainerManager) scanNetworks() error {
-	cmd := exec.Command(cm.runtime, "network", "ls", "--format", "json")
+	cmd := cm.dockerCmd("network", "ls", "--format", "json")
 	output, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("failed to list networks: %w", err)
@@ -482,7 +531,7 @@ func (cm *ContainerManager) setupKNIRVNetworks() error {
 
 	// Create KNIRV network if it doesn't exist
 	if !knirvNetworkExists {
-		cmd := exec.Command(cm.runtime, "network", "create",
+		cmd := cm.dockerCmd("network", "create",
 			"--driver", "bridge",
 			"--subnet", "172.20.0.0/16",
 			"--opt", "encrypted=true",

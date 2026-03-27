@@ -477,12 +477,9 @@ func TestGetOSAppDataDir(t *testing.T) {
 }
 
 func TestInitLogging(t *testing.T) {
-	tmpDir := t.TempDir()
-
 	cfg := &config.Config{
 		Log: config.LogConfig{
-			Level:  "info",
-			Output: filepath.Join(tmpDir, "test.log"),
+			Level: "info",
 		},
 	}
 
@@ -493,18 +490,18 @@ func TestInitLogging(t *testing.T) {
 	// Test logging
 	logger.Info("Test log message")
 
-	// Verify log file was created
-	_, err = os.Stat(cfg.Log.Output)
+	// Verify log file was created in OS app data directory
+	appDataDir, err := getOSAppDataDir()
+	require.NoError(t, err)
+	expectedLogPath := filepath.Join(appDataDir, "logs", "server.log")
+	_, err = os.Stat(expectedLogPath)
 	assert.NoError(t, err)
 }
 
 func TestInitLogging_DebugLevel(t *testing.T) {
-	tmpDir := t.TempDir()
-
 	cfg := &config.Config{
 		Log: config.LogConfig{
-			Level:  "debug",
-			Output: filepath.Join(tmpDir, "debug.log"),
+			Level: "debug",
 		},
 	}
 
@@ -516,12 +513,9 @@ func TestInitLogging_DebugLevel(t *testing.T) {
 }
 
 func TestInitLogging_ErrorLevel(t *testing.T) {
-	tmpDir := t.TempDir()
-
 	cfg := &config.Config{
 		Log: config.LogConfig{
-			Level:  "error",
-			Output: filepath.Join(tmpDir, "error.log"),
+			Level: "error",
 		},
 	}
 
@@ -533,12 +527,9 @@ func TestInitLogging_ErrorLevel(t *testing.T) {
 }
 
 func TestInitLogging_DefaultLevel(t *testing.T) {
-	tmpDir := t.TempDir()
-
 	cfg := &config.Config{
 		Log: config.LogConfig{
-			Level:  "invalid",
-			Output: filepath.Join(tmpDir, "default.log"),
+			Level: "invalid",
 		},
 	}
 
@@ -550,14 +541,9 @@ func TestInitLogging_DefaultLevel(t *testing.T) {
 }
 
 func TestInitLogging_LogDirCreation(t *testing.T) {
-	tmpDir := t.TempDir()
-	logDir := filepath.Join(tmpDir, "nested", "logs")
-	logFile := filepath.Join(logDir, "test.log")
-
 	cfg := &config.Config{
 		Log: config.LogConfig{
-			Level:  "info",
-			Output: logFile,
+			Level: "info",
 		},
 	}
 
@@ -565,7 +551,10 @@ func TestInitLogging_LogDirCreation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, logger)
 
-	// Verify nested directory was created
+	// Verify OS app data log directory was created by initLogging
+	appDataDir, err := getOSAppDataDir()
+	require.NoError(t, err)
+	logDir := filepath.Join(appDataDir, "logs")
 	_, err = os.Stat(logDir)
 	assert.NoError(t, err)
 }

@@ -9,18 +9,17 @@ import (
 )
 
 func TestNewNRNClient(t *testing.T) {
-	baseURL := "http://localhost:8080"
-	client, err := NewNRNClient(baseURL, false, "")
+	// HTTP mode: address with http:// prefix creates an HTTP-mode client
+	client, err := NewNRNClient("http://localhost:8080", false, "")
 	if err != nil {
-		t.Fatalf("Failed to create NRN client: %v", err)
+		t.Fatalf("Failed to create NRN client in HTTP mode: %v", err)
 	}
-
 	if client == nil {
 		t.Error("Expected client to be initialized")
 	}
-	
-	// Note: The actual NRNClient is gRPC-based, not HTTP-based
-	// so we can't check for baseURL or httpClient fields
+	if client.httpBaseURL == "" {
+		t.Error("Expected httpBaseURL to be set for HTTP mode")
+	}
 }
 
 func TestVerifyPaymentTransaction(t *testing.T) {
@@ -176,7 +175,17 @@ func TestSubmitTransaction(t *testing.T) {
 }
 
 func TestGetAccountBalance(t *testing.T) {
-	client, err := NewNRNClient("http://localhost:8080", false, "")
+	// Create a mock server that returns balance for a known address
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/account/valid_address/balance" {
+			json.NewEncoder(w).Encode(struct {
+				Balance int64 `json:"balance"`
+			}{Balance: 1000000})
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewNRNClient(server.URL, false, "")
 	if err != nil {
 		t.Fatalf("Failed to create NRN client: %v", err)
 	}
@@ -191,7 +200,7 @@ func TestGetAccountBalance(t *testing.T) {
 		t.Errorf("Expected balance 1000000, got %d", balance)
 	}
 
-	// Test empty address
+	// Test empty address (validated client-side before any HTTP call)
 	_, err = client.GetAccountBalance("")
 	if err == nil {
 		t.Error("Expected error for empty address")

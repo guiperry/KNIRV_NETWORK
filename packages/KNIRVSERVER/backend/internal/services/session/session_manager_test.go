@@ -42,8 +42,8 @@ func TestSessionManager_CreateSSHSession(t *testing.T) {
 		t.Error("Session ID should not be empty")
 	}
 
-	if session.RentalID != rentalID {
-		t.Errorf("Expected rental ID %s, got %s", rentalID, session.RentalID)
+	if session.CreationID != rentalID {
+		t.Errorf("Expected creation ID %s, got %s", rentalID, session.CreationID)
 	}
 
 	if session.ContainerID != containerID {
@@ -93,8 +93,8 @@ func TestSessionManager_GetSSHSession(t *testing.T) {
 		t.Errorf("Expected session ID %s, got %s", session.ID, retrievedSession.ID)
 	}
 
-	if retrievedSession.RentalID != rentalID {
-		t.Errorf("Expected rental ID %s, got %s", rentalID, retrievedSession.RentalID)
+	if retrievedSession.CreationID != rentalID {
+		t.Errorf("Expected creation ID %s, got %s", rentalID, retrievedSession.CreationID)
 	}
 
 	// Test non-existent session
@@ -190,8 +190,8 @@ func TestSessionManager_CreateValidationSession(t *testing.T) {
 		t.Error("Session ID should not be empty")
 	}
 
-	if session.RentalID != rentalID {
-		t.Errorf("Expected rental ID %s, got %s", rentalID, session.RentalID)
+	if session.CreationID != rentalID {
+		t.Errorf("Expected creation ID %s, got %s", rentalID, session.CreationID)
 	}
 
 	if session.SessionToken == "" {
