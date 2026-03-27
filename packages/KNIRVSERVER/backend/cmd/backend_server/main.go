@@ -19,6 +19,7 @@ import (
 	data_engine "backend_server/internal/data_engine"
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
+	"backend_server/internal/fintech"
 	"backend_server/internal/oracle"
 	oracleroutes "backend_server/internal/oracle/routes"
 	"backend_server/internal/password"
@@ -40,7 +41,6 @@ import (
 	fabricserver "backend_server/internal/services/fabric-server"
 	fabricmanagement "backend_server/internal/services/fabricmanagement"
 	fintech_validator "backend_server/internal/services/fintech_validator"
-	"backend_server/internal/fintech"
 	"backend_server/internal/services/guardrails"
 	icme "backend_server/internal/services/icme"
 	inference "backend_server/internal/services/inferencer"
@@ -51,8 +51,8 @@ import (
 	"backend_server/internal/services/session"
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
-	"backend_server/internal/services/transport"
 	"backend_server/internal/services/validation"
+
 	"backend_server/internal/services/vault"
 	"backend_server/internal/services/websocket"
 	"backend_server/internal/services/workflow"
@@ -60,6 +60,7 @@ import (
 	"backend_server/internal/storage/pqc"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
+	knirvgateway "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway"
 
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
@@ -111,7 +112,7 @@ type Server struct {
 	containerOrchestrator        *container.ContainerOrchestrator
 	sessionManager               *session.SessionManager
 	endpointRegistry             *endpoints.EndpointRegistry
-	turnServer                   *transport.TURNServer
+	gatewayManager               *knirvgateway.Manager
 
 	// Active Memory Layer (Markdown Fabric)
 	pqcManager          *pqc.EncryptionManager
@@ -677,10 +678,30 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Update system health service references
 	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService, fintechValidatorService)
 
-	// Initialize TURN Server (Transport)
-	turnServer, err := transport.NewTURNServer("0.0.0.0", 3478, cfg.ChainID)
-	if err != nil {
-		log.Printf("Warning: Failed to initialize TURN server: %v", err)
+	// Initialize embedded KNIRVGATEWAY for P2P TURN/Tunnel services
+	var gatewayManager *knirvgateway.Manager
+	if cfg.Gateway.Enabled {
+		gatewayConfig := &knirvgateway.ManagerConfig{
+			BinaryPath: cfg.Gateway.BinaryPath,
+			Port:       cfg.Gateway.Port,
+			Ports: &knirvgateway.PortConfig{
+				TurnUDP:     cfg.Gateway.TurnUDPPort,
+				TurnTCP:     cfg.Gateway.TurnTCPPort,
+				TurnAPI:     cfg.Gateway.TurnAPIPort,
+				TunnelHTTP:  cfg.Gateway.TunnelHTTPPort,
+				TunnelCtrl:  cfg.Gateway.TunnelCtrlPort,
+				TunnelRelay: cfg.Gateway.TunnelRelayPort,
+				TunnelSTUN:  cfg.Gateway.TunnelSTUNPort,
+			},
+			DBPath:       cfg.Database.Path,
+			AuthSecret:   cfg.Gateway.AuthSecret,
+			MinerAddress: cfg.Gateway.MinerAddress,
+			StartTimeout: time.Duration(cfg.Gateway.StartTimeout) * time.Second,
+			StopTimeout:  time.Duration(cfg.Gateway.StopTimeout) * time.Second,
+			ChainID:      cfg.ChainID,
+		}
+		gatewayManager = knirvgateway.NewManager(gatewayConfig, logger)
+		log.Println("KNIRVGATEWAY manager initialized")
 	}
 
 	// Initialize Cognitive Engine with configurable parameters
@@ -957,7 +978,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		containerOrchestrator:        containerOrchestrator,
 		sessionManager:               sessionManager,
 		endpointRegistry:             endpointRegistry,
-		turnServer:                   turnServer,
+		gatewayManager:               gatewayManager,
 		pqcManager:                   pqcManager,
 		mdStorage:                    mdStorage,
 		vaultService:                 vaultService,
@@ -1444,7 +1465,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"inference_service":     s.inferenceService != nil,
 			"websocket_service":     s.websocketService != nil,
 			"dns_service":           s.dnsService != nil,
-			"turn_server":           s.turnServer != nil,
+			"gateway_manager":       s.gatewayManager != nil,
 			"active_memory_service": s.activeMemoryService != nil,
 			"pqc_manager":           s.pqcManager != nil,
 			"fintech_validator":     s.fintechValidatorService != nil && s.fintechValidatorService.Config.Enabled,
@@ -1513,12 +1534,12 @@ func (s *Server) Start() error {
 		}
 	}
 
-	// Start TURN Server
-	if s.turnServer != nil {
-		if err := s.turnServer.Start(); err != nil {
-			log.Printf("Warning: Failed to start TURN server: %v", err)
+	// Start embedded KNIRVGATEWAY for P2P TURN/Tunnel
+	if s.gatewayManager != nil {
+		if err := s.gatewayManager.Start(s.ctx); err != nil {
+			log.Printf("Warning: Failed to start KNIRVGATEWAY: %v", err)
 		} else {
-			log.Println("TURN Server started")
+			log.Printf("KNIRVGATEWAY started on port %d", s.gatewayManager.GetConfig().Port)
 		}
 	}
 	if s.validationCore != nil {
@@ -1791,9 +1812,9 @@ func (s *Server) Stop() error {
 		}
 	}
 
-	if s.turnServer != nil {
-		if err := s.turnServer.Stop(); err != nil {
-			log.Printf("Error stopping TURN server: %v", err)
+	if s.gatewayManager != nil {
+		if err := s.gatewayManager.Stop(s.ctx); err != nil {
+			log.Printf("Error stopping KNIRVGATEWAY: %v", err)
 		}
 	}
 

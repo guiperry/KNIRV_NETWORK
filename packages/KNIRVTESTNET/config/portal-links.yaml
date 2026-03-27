@@ -23,7 +23,7 @@ documentation:
     knirv_router: "https://knirv.com/documentation/static/whitepapers/KNIRV-ROUTER_Whitepaper.md"
     knirvgraph: "https://knirv.com/documentation/static/whitepapers/KNIRV-GRAPH_Whitepaper.md"
     knirvchain: "https://knirv.com/documentation/static/whitepapers/KNIRVCHAIN_Whitepaper.md"
-    knirv_nexus: "https://knirv.com/documentation/static/whitepapers/KNIRV-NEXUS_Whitepaper.md"
+    knirv_nexus: "https://knirv.com/documentation/static/whitepapers/KNIRV-SERVER_Whitepaper.md"
     knirv_cortex: "https://knirv.com/documentation/static/whitepapers/KNIRV-AGENTIFIER_Whitepaper.md"
     knirv_wallet: "https://knirv.com/documentation/static/whitepapers/KNIRV-WALLET_Whitepaper.md"
     knirv_gateway: "https://knirv.com/documentation/static/whitepapers/KNIRV-GATEWAY_Whitepaper.md"

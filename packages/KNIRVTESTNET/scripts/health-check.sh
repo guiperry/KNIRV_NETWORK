@@ -216,7 +216,7 @@ get_service_info() {
             "KNIRVGRAPH")
                 details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.height // "unknown"' 2>/dev/null || echo "height")
                 ;;
-            "KNIRV-NEXUS-DVE"|"KNIRV-NEXUS-VAL")
+            "KNIRV-SERVER-DVE"|"KNIRV-SERVER-VAL")
                 details=$(curl -s --max-time 2 "$url" 2>/dev/null | jq -r '.status // "unknown"' 2>/dev/null || echo "")
                 ;;
             "KNIRV-ROUTER")
@@ -311,8 +311,8 @@ perform_health_check() {
         "KNIRV-ORACLE|1317|/health|data/knirvoracle.pid"
         "KNIRVCHAIN|8090|/health|data/knirvchain.pid"
         "KNIRVGRAPH|8082|/height|data/knirvgraph.pid"
-        "KNIRV-NEXUS-DVE|8084|/health|data/knirvserver-dve-manager.pid"
-        "KNIRV-NEXUS-VAL|8085|/health|data/knirvserver-validation-core.pid"
+        "KNIRV-SERVER-DVE|8084|/health|data/knirvserver-dve-manager.pid"
+        "KNIRV-SERVER-VAL|8085|/health|data/knirvserver-validation-core.pid"
         "KNIRV-ROUTER|8086|/status|data/knirvrouter.pid"
         "KNIRV-GATEWAY|8888|/gateway/health|data/knirvgateway.pid"
     )

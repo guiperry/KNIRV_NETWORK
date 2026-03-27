@@ -3,7 +3,7 @@
 /**
  * KNIRVTESTNET Nexus Health Check (Updated for New Architecture)
  *
- * Checks the health of the KNIRV-NEXUS unified binary and its configuration
+ * Checks the health of the KNIRV-SERVER unified binary and its configuration
  * for the new embedded frontend/backend architecture
  */
 
@@ -13,7 +13,7 @@ const { execSync } = require('child_process');
 const http = require('http');
 
 /**
- * Check if KNIRV-NEXUS unified binary exists and is up to date
+ * Check if KNIRV-SERVER unified binary exists and is up to date
  * @returns {object} - Binary status and rebuild recommendation
  */
 function checkUnifiedBinary() {
@@ -25,7 +25,7 @@ function checkUnifiedBinary() {
 
   // Check if binary exists
   if (!fs.existsSync(binaryPath)) {
-    console.log('❌ KNIRV-NEXUS unified binary not found');
+    console.log('❌ KNIRV-SERVER unified binary not found');
     return { needsRebuild: true, reason: 'Binary missing', binaryExists: false };
   }
 
@@ -89,7 +89,7 @@ function checkUnifiedBinary() {
 }
 
 /**
- * Test if KNIRV-NEXUS service is running and responding
+ * Test if KNIRV-SERVER service is running and responding
  * @returns {Promise<object>} - Service status
  */
 async function testNexusService() {
@@ -194,7 +194,7 @@ function makeHttpRequest(host, port, path) {
 }
 
 async function checkNexusHealth() {
-  console.log('🔍 KNIRV-NEXUS Health Check (New Architecture)');
+  console.log('🔍 KNIRV-SERVER Health Check (New Architecture)');
   console.log('===============================================');
 
   const issues = [];
@@ -203,7 +203,7 @@ async function checkNexusHealth() {
   // Check unified binary
   const binaryCheck = checkUnifiedBinary();
   if (!binaryCheck.binaryExists) {
-    issues.push('KNIRV-NEXUS unified binary not found - run: npm run build:nexus');
+    issues.push('KNIRV-SERVER unified binary not found - run: npm run build:nexus');
   } else if (binaryCheck.needsRebuild) {
     warnings.push(`Binary rebuild recommended: ${binaryCheck.reason}`);
   } else {
@@ -281,11 +281,11 @@ async function checkNexusHealth() {
   }
 
   // Summary
-  console.log('\n📊 KNIRV-NEXUS Health Summary');
+  console.log('\n📊 KNIRV-SERVER Health Summary');
   console.log('==============================');
 
   if (issues.length === 0 && warnings.length === 0) {
-    console.log('🎉 KNIRV-NEXUS health check passed!');
+    console.log('🎉 KNIRV-SERVER health check passed!');
     return true;
   }
 
@@ -300,7 +300,7 @@ async function checkNexusHealth() {
     return false;
   }
 
-  console.log('\n✅ KNIRV-NEXUS health check completed with warnings only');
+  console.log('\n✅ KNIRV-SERVER health check completed with warnings only');
 
   // Provide helpful commands
   console.log('\n🔧 Helpful Commands:');

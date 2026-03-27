@@ -53,7 +53,7 @@ curl -X POST http://localhost:8087/api/nexus/validate/skill \
     "resolves": ["error_sim_001"]
   }' > /dev/null 2>&1 && echo "    ✅ Solution proposed via gateway" || echo "    ⚠️  Solution proposal failed (using direct API)"
 
-# Try direct KNIRV-NEXUS API
+# Try direct KNIRV-SERVER API
 curl -X POST http://localhost:8082/validate/skill \
   -H "Content-Type: application/json" \
   -d '{
@@ -63,7 +63,7 @@ curl -X POST http://localhost:8082/validate/skill \
       {"input": "{invalid}", "expected": null}
     ],
     "resolves": ["error_sim_001"]
-  }' > /dev/null 2>&1 && echo "    ✅ Solution validated via KNIRV-NEXUS" || echo "    ⚠️  Solution validation failed"
+  }' > /dev/null 2>&1 && echo "    ✅ Solution validated via KNIRV-SERVER" || echo "    ⚠️  Solution validation failed"
 
 # Simulate SEAL loop iteration
 echo "🔄 Step 3: SEAL loop iteration..."

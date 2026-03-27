@@ -1,17 +1,17 @@
-// KNIRV-NEXUS Admin Gateway Configuration
-// This portal now serves as an administrative gateway for KNIRV-NEXUS management
+// KNIRV-SERVER Admin Gateway Configuration
+// This portal now serves as an administrative gateway for KNIRV-SERVER management
 
 export const adminGatewayConfig = {
   // Gateway identification
-  name: "KNIRV-NEXUS Admin Gateway",
+  name: "KNIRV-SERVER Admin Gateway",
   version: "1.0.0",
-  description: "Administrative interface for KNIRV-NEXUS unified deployment management",
+  description: "Administrative interface for KNIRV-SERVER unified deployment management",
   
   // Service endpoints - Remote API configuration
   services: {
     // Primary NEXUS API (remote production endpoint)
     nexus: {
-      name: "KNIRV-NEXUS Remote API",
+      name: "KNIRV-SERVER Remote API",
       url: "https://nexus-api.knirv.com",
       apiUrl: "https://nexus-api.knirv.com/api",
       healthEndpoint: "/health",

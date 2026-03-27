@@ -60,7 +60,7 @@ func TestNewModelServer(t *testing.T) {
 		t.Error("Server info should not be nil")
 	}
 
-	if server.serverInfo.Name != "KNIRV-NEXUS Plugin Model Server" {
+	if server.serverInfo.Name != "KNIRV-SERVER Plugin Model Server" {
 		t.Error("Server name not set correctly")
 	}
 
@@ -216,7 +216,7 @@ func TestModelServer_GetServerInfo(t *testing.T) {
 		t.Fatal("Server info should not be nil")
 	}
 
-	if info.Name != "KNIRV-NEXUS Plugin Model Server" {
+	if info.Name != "KNIRV-SERVER Plugin Model Server" {
 		t.Error("Server name not set correctly")
 	}
 

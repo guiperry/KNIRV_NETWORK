@@ -209,7 +209,7 @@ Service Status:
   ✓ KNIRV-ORACLE      HEALTHY    PID:12345  45ms http://localhost:1317/health
   ✓ KNIRVCHAIN      HEALTHY    PID:12346  32ms http://localhost:8080/health
   ✓ KNIRVGRAPH      HEALTHY    PID:12347  28ms http://localhost:8081/health
-  ✓ KNIRV-NEXUS     HEALTHY    PID:12348  41ms http://localhost:8082/health
+  ✓ KNIRV-SERVER     HEALTHY    PID:12348  41ms http://localhost:8082/health
   ✓ KNIRV-ROUTER    HEALTHY    PID:12349  35ms http://localhost:5001/health
   ✓ KNIRV-GATEWAY   HEALTHY    PID:12350  22ms http://localhost:8888/gateway/health</p><p>Overall Status: All services are healthy (6/6)
 <code></code>`</p><p><h4>Continuous Health Monitoring</h4>
@@ -240,7 +240,7 @@ Service Status:
 <strong>Expected Results</strong>:
 - ✅ KNIRVCHAIN mock LLM validation works
 - ✅ KNIRVCHAIN mock skill validation works
-- ✅ KNIRV-NEXUS TEE simulation works</p><p><h3>Testnet-Specific Feature Tests</h3></p><p><h4>Mock LLM Validation</h4>
+- ✅ KNIRV-SERVER TEE simulation works</p><p><h3>Testnet-Specific Feature Tests</h3></p><p><h4>Mock LLM Validation</h4>
 <strong>Purpose</strong>: Test KNIRVCHAIN mock LLM validation endpoint
 <strong>Manual Test</strong>:
 <code></code>`bash
@@ -280,7 +280,7 @@ curl -X POST http://localhost:8080/testnet/skill/validate \
   }
 }
 <code></code>`</p><p><h4>TEE Simulation</h4>
-<strong>Purpose</strong>: Test KNIRV-NEXUS TEE simulation endpoint
+<strong>Purpose</strong>: Test KNIRV-SERVER TEE simulation endpoint
 <strong>Manual Test</strong>:
 <code></code>`bash
 curl -X POST http://localhost:8182/testnet/validate/skill \
@@ -424,7 +424,7 @@ Service Startup Times:
 - KNIRV-ORACLE: ~8 seconds
 - KNIRVCHAIN: ~12 seconds
 - KNIRVGRAPH: ~10 seconds
-- KNIRV-NEXUS: ~15 seconds
+- KNIRV-SERVER: ~15 seconds
 - KNIRV-ROUTER: ~6 seconds
 - KNIRV-GATEWAY: ~20 seconds</p><p>API Performance:
 - Health checks: ~50ms
@@ -476,7 +476,7 @@ make clean-all</p><p><h1>Reset testnet to initial state</h1>
 - <strong>Configuration Backup</strong>: Backup and restore of configuration files</p><p><h2>🔗 Integration with KNIRV Ecosystem</h2></p><p><h3><strong>Ecosystem Components</strong></h3>
 - <strong>KNIRVCHAIN</strong>: Blockchain layer with smart contract execution
 - <strong>KNIRVGRAPH</strong>: Graph database for network topology and analytics
-- <strong>KNIRV-NEXUS</strong>: Distributed validation environment for AI agents
+- <strong>KNIRV-SERVER</strong>: Distributed validation environment for AI agents
 - <strong>KNIRV-ROUTER</strong>: Network routing and connectivity management
 - <strong>KNIRV-GATEWAY</strong>: API gateway and service orchestration
 - <strong>KNIRVSDK</strong>: Software development kit for application integration</p><p><h3><strong>Cross-Component Testing</strong></h3>

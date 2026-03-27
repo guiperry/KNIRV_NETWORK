@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# KNIRV-NEXUS Deployment Script
-# This script automates the deployment of KNIRV-NEXUS to AWS EC2
+# KNIRV-SERVER Deployment Script
+# This script automates the deployment of KNIRV-SERVER to AWS EC2
 
 set -euo pipefail
 
@@ -48,7 +48,7 @@ log_error() {
 # Help function
 show_help() {
     cat << EOF
-KNIRV-NEXUS Deployment Script
+KNIRV-SERVER Deployment Script
 
 Usage: $0 [OPTIONS]
 
@@ -178,7 +178,7 @@ validate_prerequisites() {
 
 # Build application
 build_application() {
-    log_info "Building KNIRV-NEXUS application..."
+    log_info "Building KNIRV-SERVER application..."
     
     cd "$PROJECT_ROOT"
     
@@ -287,7 +287,7 @@ deploy_application() {
         return 0
     fi
     
-    log_info "Deploying KNIRV-NEXUS application..."
+    log_info "Deploying KNIRV-SERVER application..."
     
     cd "$ANSIBLE_DIR"
     
@@ -353,7 +353,7 @@ generate_summary() {
     local summary_file="${DEPLOYMENT_DIR}/deployment-summary-${ENVIRONMENT}-$(date +%Y%m%d-%H%M%S).txt"
     
     cat > "$summary_file" << EOF
-KNIRV-NEXUS Deployment Summary
+KNIRV-SERVER Deployment Summary
 ==============================
 
 Deployment Date: $(date)
@@ -390,7 +390,7 @@ EOF
 
 # Main deployment function
 main() {
-    log_info "Starting KNIRV-NEXUS deployment..."
+    log_info "Starting KNIRV-SERVER deployment..."
     log_info "Environment: $ENVIRONMENT"
     log_info "AWS Region: $AWS_REGION"
     log_info "Instance Type: $INSTANCE_TYPE"
@@ -421,7 +421,7 @@ main() {
     # Generate summary
     generate_summary
     
-    log_success "KNIRV-NEXUS deployment completed successfully!"
+    log_success "KNIRV-SERVER deployment completed successfully!"
     
     if [[ "$SKIP_DNS" != "true" && -n "${CLOUDFLARE_ZONE:-}" ]]; then
         log_info "Application should be available at: https://nexus.${CLOUDFLARE_ZONE}"

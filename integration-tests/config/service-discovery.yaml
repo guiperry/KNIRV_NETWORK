@@ -59,7 +59,7 @@ services:
     retry_count: 3
     
   knirvserver:
-    name: "KNIRV-NEXUS"
+    name: "KNIRV-SERVER"
     url: "http://localhost:8083"
     health_endpoint: "/health"
     api_endpoints:

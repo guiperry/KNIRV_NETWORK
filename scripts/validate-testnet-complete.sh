@@ -102,9 +102,9 @@ start_all_services() {
     ./scripts/manage-knirv.sh start knirvgraph
     wait_for_service "http://localhost:8082/height" "KNIRVGRAPH" 30 3
     
-    print_step "Starting KNIRV-NEXUS..."
+    print_step "Starting KNIRV-SERVER..."
     ./scripts/manage-knirv.sh start knirvserver
-    wait_for_service "http://localhost:8083/health" "KNIRV-NEXUS" 30 3
+    wait_for_service "http://localhost:8083/health" "KNIRV-SERVER" 30 3
     
     print_step "Starting KNIRV-ROUTER..."
     ./scripts/manage-knirv.sh start knirvrouter
@@ -136,7 +136,7 @@ validate_service_health() {
         all_healthy=false
     fi
     
-    if ! check_service_health "http://localhost:8083/health" "KNIRV-NEXUS"; then
+    if ! check_service_health "http://localhost:8083/health" "KNIRV-SERVER"; then
         all_healthy=false
     fi
     
@@ -261,13 +261,13 @@ This report documents the complete validation of the KNIRV TESTNET with all iden
 - ✅ KNIRVGRAPH: Running on port 8082
 
 ### Advanced Services  
-- ✅ KNIRV-NEXUS: Running on port 8083 (JWT authentication fixed)
+- ✅ KNIRV-SERVER: Running on port 8083 (JWT authentication fixed)
 - ✅ KNIRV-ROUTER: Running on port 5001 (startup logic implemented)
 - ✅ KNIRV-GATEWAY: Running on port 8888 (Netlify Dev configuration)
 
 ## Issues Fixed
 
-1. **KNIRV-NEXUS JWT Authentication**: Created proper .env file with JWT secret
+1. **KNIRV-SERVER JWT Authentication**: Created proper .env file with JWT secret
 2. **KNIRV-ROUTER Startup**: Implemented actual startup logic in manage-knirv.sh
 3. **KNIRV-GATEWAY Startup**: Fixed Netlify Dev configuration and startup
 4. **Cross-Component Integration**: Updated service discovery and endpoints

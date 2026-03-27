@@ -83,7 +83,7 @@ documentation:
     knirv_router: "../documentation/whitepapers/KNIRV-ROUTER_Whitepaper.html"
     knirvgraph: "../documentation/whitepapers/KNIRV-GRAPH_Whitepaper.html"
     knirvchain: "../documentation/whitepapers/KNIRV-CHAIN_Whitepaper.html"
-    knirv_nexus: "../documentation/whitepapers/KNIRV-NEXUS_Whitepaper.html"
+    knirv_nexus: "../documentation/whitepapers/KNIRV-SERVER_Whitepaper.html"
     knirv_cortex: "../documentation/whitepapers/KNIRV-INFERENCE_Whitepaper.html"
     knirv_sdk: "../documentation/whitepapers/KNIRV-SDK_Whitepaper.html"
     knirvana: "../documentation/whitepapers/KNIRVANA_Whitepaper.html"

@@ -58,7 +58,7 @@ class KNIRVUniversalFooter {
                             <li><a href="${this.getLink('navigation', 'main_site')}" target="_blank">Main Site</a></li>
                             <li><a href="${this.getLink('navigation', 'documentation')}" target="_blank">Documentation</a></li>
                             <li><a href="${this.getLink('footer.resources', 'support')}">Support</a></li>
-                            <li><a href="${this.getLink('navigation', 'nexus_portal')}">KNIRV-NEXUS</a></li>
+                            <li><a href="${this.getLink('navigation', 'nexus_portal')}">KNIRV-SERVER</a></li>
                         </ul>
                     </div>
 

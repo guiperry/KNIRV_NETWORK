@@ -45,7 +45,7 @@
 - <strong>Performance Testing</strong>: Comprehensive model evaluation and comparison framework
 - <strong>TEE Integration</strong>: Support for Intel SGX, AMD TEE, ARM TrustZone secure execution
 - <strong>Governance System</strong>: Validator-based voting for model transitions and network decisions
-- <strong>IBC Communication</strong>: Cross-chain messaging with KNIRV-ORACLE and KNIRV-NEXUS
+- <strong>IBC Communication</strong>: Cross-chain messaging with KNIRV-ORACLE and KNIRV-SERVER
 - <strong>IPFS Storage</strong>: Decentralized model and skill code storage with caching</p><p><h3>🏗️ <strong>Architecture Components</strong></h3></p><p>1. <strong>Multi-Model Engine</strong> (<code>multi_model_engine.rs</code>)
    - Trait-based model abstraction with fallback mechanisms
    - Model metadata management and version control
@@ -53,7 +53,7 @@
    - Automated performance benchmarking
    - Cost efficiency analysis and reliability scoring
    - Model comparison and recommendation system</p><p>3. <strong>Enhanced Model Registry</strong> (<code>model_registry.rs</code>)
-   - KNIRV-NEXUS validation proof verification
+   - KNIRV-SERVER validation proof verification
    - Governance-controlled model transitions
    - Compatibility assessment and deprecation management</p><p>4. <strong>TEE Skill Distribution</strong> (<code>tee_skill_distributor.rs</code>)
    - Multi-TEE platform support (SGX, AMD, ARM, RISC-V)
@@ -66,7 +66,7 @@
    - Block proposal and validation
    - Dynamic validator set management</p><p>7. <strong>IBC Handler</strong> (<code>ibc_handler.rs</code>)
    - KNIRV-ORACLE P2P network integration
-   - KNIRV-NEXUS DVE connections
+   - KNIRV-SERVER DVE connections
    - Cross-chain state synchronization</p><p>8. <strong>IPFS Client</strong> (<code>ipfs_client.rs</code>)
    - Decentralized content storage
    - Content pinning and caching
@@ -104,7 +104,7 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com/chat/completions
 CEREBRAS_BASE_URL=https://api.cerebras.ai/v1/chat/completions
 <code></code>`</p><p><h3>Running</h3></p><p><code></code>`bash
 cargo run
-<code></code>`</p><p>The server will start on <code>http://localhost:8080</code></p><p><h2>🔗 <strong>Integration Points</strong></h2></p><p><h3>KNIRV-NEXUS Integration</h3>
+<code></code>`</p><p>The server will start on <code>http://localhost:8080</code></p><p><h2>🔗 <strong>Integration Points</strong></h2></p><p><h3>KNIRV-SERVER Integration</h3>
 - Validation proof verification for model transitions
 - DVE (Distributed Validation Environment) connections
 - Cryptographic proof validation</p><p><h3>KNIRV-ORACLE Integration</h3>
@@ -123,7 +123,7 @@ cargo run
 - <strong>Reliability Scoring</strong>: Model consistency and accuracy metrics
 - <strong>Throughput Optimization</strong>: Request batching and rate limiting
 - <strong>Fallback Mechanisms</strong>: Automatic failover to backup models</p><p><h2>🔒 <strong>Security Features</strong></h2></p><p>- <strong>TEE Attestation</strong>: Hardware-based security verification
-- <strong>Cryptographic Proofs</strong>: KNIRV-NEXUS validation integration
+- <strong>Cryptographic Proofs</strong>: KNIRV-SERVER validation integration
 - <strong>Governance Controls</strong>: Community-driven security decisions
 - <strong>Secure Storage</strong>: IPFS-based decentralized content storage
 - <strong>Rate Limiting</strong>: API abuse prevention and cost control</p><p><h2>🧪 <strong>Testing</strong></h2></p><p><h3>Run Unit Tests</h3>

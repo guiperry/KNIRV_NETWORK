@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRVROUTER Verifier Node - Blockchain Implementation in Go - KNIRV Network Documentation</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
+    <script src="../js/config-loader.js"></script>
+    <script src="../js/universal-footer.js"></script>
+    <script>
+        // Override footer links for documentation site
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.knirvConfig && window.knirvConfig.config) {
+                // Update legal links to use documentation-specific paths
+                if (window.knirvConfig.config.footer && window.knirvConfig.config.footer.legal) {
+                    window.knirvConfig.config.footer.legal.terms = "../legal/TERMS_AND_CONDITIONS.html";
+                    window.knirvConfig.config.footer.legal.privacy = "../legal/PRIVACY_POLICY.html";
+                    window.knirvConfig.config.footer.legal.contribution = "../legal/CODE_OF_CONDUCT.html";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <header class="doc-header">
+        <div class="container">
+            <nav class="doc-nav">
+                <a href="../index.html">← Back to Documentation</a>
+            </nav>
+            <h1>KNIRVROUTER Verifier Node - Blockchain Implementation in Go</h1>
+            <p class="doc-description">User guide for KNIRVROUTER</p>
+        </div>
+    </header>
+
+    <main class="doc-main">
+        <div class="container">
+            <article class="doc-content">
+                <p><h1>KNIRVROUTER Verifier Node - Blockchain Implementation in Go</h1></p><p>KNIRVROUTER Verifier Node is a specialized blockchain application written in Go, designed to verify and record network traffic data. It features a Proof-of-Work consensus mechanism, peer-to-peer capabilities, wallet management, and an integrated TURN server for P2P communication.</p><p><h2>Features</h2></p><p>-   <strong>Core Blockchain:</strong>
+    -   Basic Proof-of-Work (PoW) consensus mechanism.
+    -   Block creation and mining with configurable difficulty.
+    -   Transaction creation and inclusion in blocks.
+    -   Blockchain state persistence using LevelDB.
+-   <strong>Wallet System:</strong>
+    -   Wallet creation using ECDSA cryptography.
+    -   Generation of public/private key pairs and addresses with a custom prefix.
+    -   Basic transaction signing (verification implementation may be limited).
+-   <strong>Networking (Enhanced):</strong>
+    -   Structures for peer management and network communication.
+    -   Broadcasting mechanisms for transactions and blocks.
+    -   <strong>NEW: Integrated TURN server</strong> for facilitating P2P connections.
+    -   <strong>NEW: Federation with Root Chain</strong> for submitting verified blocks.
+-   <strong>User Interfaces:</strong>
+    -   <strong>Desktop GUI (Fyne):</strong> Provides controls to manage a verifier node, generate wallets, start a wallet server, and control the TURN server. Includes an embedded terminal for verifier node/wallet output.
+    -   <strong>Command-Line Interface:</strong> Enables starting different node types (verifier chain, wallet server) via subcommands and flags.
+-   <strong>Configuration:</strong>
+    -   Configurable mining difficulty and reward.
+    -   Flexible database path configuration using standard OS application data directories, environment variables, or command-line flags.
+    -   Environment variable support via <code>.env</code> files.</p><p><h2>🧪 Phase 7 Testing Infrastructure</h2></p><p><h3>Testing Architecture</h3>
+KNIRVROUTER implements comprehensive testing for network verification and P2P functionality:</p><p><h4>Unit Testing (Go)</h4>
+<code></code>`bash
+<h1>Run all unit tests</h1>
+go test -v ./...</p><p><h1>Run specific test packages</h1>
+go test -v ./blockchain/...
+go test -v ./p2p/...
+go test -v ./wallet/...</p><p><h1>Run tests with coverage</h1>
+go test -v -cover ./...
+<code></code>`</p><p><h4>Integration with Network Tests</h4>
+<code></code>`bash
+<h1>From project root - run KNIRVROUTER network integration tests</h1>
+cd integration-tests && go test -v -run TestKNIRVROUTER</p><p><h1>Run KNIRVROUTER specific tests</h1>
+cd KNIRVROUTER && go test -v ./...
+<code></code>`</p><p><h4>Test Categories</h4>
+- <strong>Blockchain Tests</strong>: Block creation, mining, transaction processing
+- <strong>P2P Network Tests</strong>: Peer discovery, communication, TURN server functionality
+- <strong>Wallet Tests</strong>: Key generation, transaction signing, address creation
+- <strong>Connectivity Tests</strong>: Proof-of-connectivity validation and NRN minting
+- <strong>Integration Tests</strong>: Federation with root chain, cross-component communication</p><p><h4>Test Structure</h4>
+<code></code>`
+KNIRVROUTER/
+├── blockchain/
+│   └── *_test.go          # Blockchain functionality tests
+├── p2p/
+│   └── *_test.go          # P2P networking tests
+├── wallet/
+│   └── *_test.go          # Wallet system tests
+├── connectivity/
+│   └── *_test.go          # Connectivity proof tests
+└── test_helper.go         # Test utilities and helpers
+<code></code>`</p><p><h2>System Requirements</h2></p><p>-   Go 1.21 or higher
+-   Linux, macOS, or Windows operating system
+-   For Fyne Desktop GUI on Linux (Ubuntu/Debian): <code>sudo apt-get install libgl1-mesa-dev xorg-dev</code></p><p><h2>Installation</h2></p><p>1.  Clone the repository:
+    <code></code>`bash
+    git clone https://github.com/yourusername/KNIRVROUTER_GO_Verifyer.git # Replace with your actual repo URL
+    cd KNIRVROUTER_GO_Verifyer
+    <code></code>`</p><p>2.  Install dependencies:
+    <code></code>`bash
+    go mod tidy
+    <code></code>`</p><p><h2>Building the Application</h2></p><p>A build script is provided for convenience:</p><p>1.  Make the build script executable:
+    <code></code>`bash
+    chmod +x build.sh
+    <code></code>`</p><p>2.  Run the build script:
+    <code></code>`bash
+    ./build.sh
+    <code></code>`</p><p>This will create an executable binary named <code>KNIRVROUTER</code> in the project's root directory.</p><p><h2>Running KNIRVROUTER Verifier Node</h2></p><p>The application uses subcommands to determine its operating mode.</p><p><h3>1. Default Mode (Desktop GUI)</h3></p><p>Simply run the binary without any arguments or use <code>go run</code>:</p><p><code></code>`bash
+./KNIRVROUTER
+<code></code>`</p><p>or</p><p><code></code>`bash
+go run .
+<code></code>`</p><p>This starts the Fyne-based desktop GUI, which acts as a manager for the verifier node components.</p><p><h3>2. Verifier Blockchain Node (Command Line)</h3></p><p>Starts the verifier blockchain node, listens for connections, mines, and manages consensus. Output appears in the terminal.</p><p><code></code>`bash
+<h1>Using compiled binary</h1>
+./KNIRVROUTER chain --port=5000 --miners_address=<your_address> --dbpath=<path_to_db> --root_chain=<root_chain_address></p><p><h1>Using go run</h1>
+go run . chain --port=5000 --miners_address=<your_address> --dbpath=<path_to_db> --root_chain=<root_chain_address>
+<code></code>`</p><p>- <code>--port</code>: (Optional) Port for the verifier node (default: 5000).
+- <code>--miners_address</code>: Required. Wallet address to receive mining rewards.
+- <code>--dbpath</code>: (Optional) Path to the database directory. Defaults to a standard OS application data location.
+- <code>--root_chain</code>: (Optional) Address of the root chain for federation.</p><p><h3>3. Wallet Server (Command Line)</h3></p><p>Starts a server providing wallet functionalities via an API.</p><p><code></code>`bash
+<h1>Using compiled binary</h1>
+./KNIRVROUTER wallet --port=8080 --node_address=http://127.0.0.1:5000</p><p><h1>Using go run</h1>
+go run . wallet --port=8080 --node_address=http://127.0.0.1:5000
+<code></code>`</p><p>- <code>--port</code>: (Optional) Port for the wallet server (default: 8080).
+- <code>--node_address</code>: (Optional) URL of the verifier blockchain node to interact with (default: http://127.0.0.1:5000).</p><p><h3>Desktop GUI Interaction Summary</h3></p><p>- <strong>Start Verifier Blockchain</strong>: Launches <code>./KNIRVROUTER chain [flags]</code> based on GUI settings. Output appears in the GUI's embedded terminal.
+- <strong>Start Wallet</strong>: Launches <code>./KNIRVROUTER wallet [flags]</code> based on GUI settings. Output appears in the GUI's embedded terminal.
+- <strong>Generate Wallet</strong>: Creates a new wallet and displays the address, private key, and public key in the GUI.
+- <strong>Start TURN Server</strong>: Initializes and starts the integrated TURN server for P2P communication.
+- <strong>Stop TURN Server</strong>: Stops the running TURN server.</p><p>Configuration</p><p>Configuration is managed through a hierarchy: Command-line Flags > Environment Variables > Default Values.</p><p><h3>Key Parameters & Defaults</h3></p><p>| Parameter | Flag (--chain) | Flag (--wallet) | Environment Variable | Default Value | Description |
+|-----------|---------------|-----------------|----------------------|---------------|-------------|
+| Verifier Node Port | --port | | PORT | 5000 | Port for the verifier blockchain node. |
+| Wallet Port | | --port | WALLET_PORT | 8080 | Port for the wallet server API. |
+| Miner's Address | --miners_address | | MINERS_ADDRESS | KNIRVROUTER-... | Address receiving mining rewards. |
+| Node Address | | --node_address | BLOCKCHAIN_NODE_ADDRESS | http://127.0.0.1:5000 | URL for wallet server to connect to verifier node. |
+| Database Path | --dbpath | | BLOCKCHAIN_DB_PATH | Standard App Data Dir | Path to the LevelDB database directory. |
+| Mining Difficulty | | | MINING_DIFFICULTY | 3 | PoW difficulty target. |
+| Mining Reward | | | MINING_REWARD | 100 | Reward amount per block. |
+| Root Chain Address | --root_chain | | ROOT_CHAIN_ADDRESS | http://root.knirvchain.com:5000 | Address of the root chain for federation. |
+| TURN Port | | | TURN_PORT | 3478 | Port for the TURN server. |
+| Consensus Pause | | | CONSENSUS_PAUSE_TIME | 60 | Pause time (seconds) in consensus logic. |</p><p>Note 1: When launching webgui via the command line, the --port flag is primary. The PORT env var might be read internally by webgui if the flag isn't set, but using the flag is recommended. When launched by the Fyne GUI, the port is set via the flag.</p><p>#Database Path Defaults</p><p>If --dbpath (for chain) or BLOCKCHAIN_DB_PATH (for webgui launched by Fyne GUI) are not provided, the application defaults to standard OS-specific application data directories:</p><p>Linux: ~/.config/KNIRVROUTER/data/
+macOS: ~/Library/Application Support/KNIRVROUTER/data/
+Windows: %APPDATA%\KNIRVROUTER\data\ (e.g., C:\Users\<User>\AppData\Roaming\KNIRVROUTER\data\)</p><p>Within this base directory:</p><p>-The root node (chain command) defaults to: <base_dir>/root/knirvdb
+-A peer node (webgui command on port P) defaults to: <base_dir>/P/knirvdb (e.g., <base_dir>/5001/knirvdb)</p><p>#.env File</p><p>
+You can create a test.env file in the project root to set environment variables easily during development:</p><p>
+MINERS_ADDRESS=KNIRVROUTER-3dd025e8fec7eda7cdd012ddde9c8e978ee7fa33
+PORT=5000 # Default for root node
+MINING_DIFFICULTY=3
+MINING_REWARD=100
+<h1>BLOCKCHAIN_DB_PATH=custom/path/db # Optional: Override default path</h1>
+CONSENSUS_PAUSE_TIME=60
+<h1>WALLET_PORT=8080 # Optional</h1>
+<h1>BLOCKCHAIN_NODE_ADDRESS=http://127.0.0.1:5000 # Optional</h1>
+<h2>Project Structure</h2></p><p><code></code>`
+KNIRVROUTER_GO_Verifyer/
+├── blockchain/         # Core blockchain logic (blocks, mining, PoW, DB interaction)
+├── blockchainserver/   # HTTP server API for the verifier blockchain node
+├── constants/          # System-wide constants and default path logic
+├── gui/                # Desktop GUI (Fyne) implementation
+├── interfaces/         # Go interfaces for component interaction (listeners, events)
+├── network/            # P2P networking logic
+├── starter/            # Handles command-line parsing and delegates startup
+├── turnserver/         # TURN server implementation for P2P communication
+├── types/              # Core data structures (Transaction, PeerManager, etc.)
+├── utils/              # Utility functions and helpers
+├── wallet/             # Wallet generation, signing logic (ECDSA)
+├── walletserver/       # HTTP server API for wallet functions
+├── build.sh            # Build script
+├── main.go             # Application entry point (handles flags/subcommands)
+├── test.env            # Example environment configuration file
+└── README.md           # This file
+<code></code>`
+<h2>Architecture Overview</h2></p><p>The application starts via main.go, which parses initial arguments to determine the mode:</p><p>1. <strong>No args or unrecognized</strong>: Starts the Fyne Desktop GUI (<code>gui.StartFyneGUI</code>).
+2. <strong>chain, wallet</strong>: Calls <code>starter.StartCommandLine</code>.
+   - <code>starter</code> further parses subcommand-specific flags.
+   - The "chain" flag calls <code>starter.StartVerifierBlockchain</code> (runs verifier node logic).
+   - The "wallet" flag calls <code>starter.StartWallet</code> (runs wallet server).</p><p>The Fyne GUI acts as a controller, launching chain and wallet commands as separate processes using <code>exec.Command</code>. The TURN server is integrated directly into the GUI application and runs in the same process.</p><p><h2>Known Issues & Limitations</h2></p><p>- <strong>Consensus</strong>: The current consensus mechanism is basic and lacks robust validation, chain selection (longest-chain rule), and fork resolution.
+- <strong>Security</strong>: Lacks comprehensive transaction signature verification, peer authentication, and encrypted network communication.
+- <strong>Federation</strong>: The root chain submission is implemented as a "fire-and-forget" mechanism without confirmation or complex consensus rules.
+- <strong>TURN Server</strong>: The TURN server uses a simple static authentication mechanism. In production, a more robust credential system should be implemented.
+- <strong>Performance</strong>: Potential bottlenecks exist (e.g., related to mining locks, database operations).
+- <strong>Error Handling</strong>: Chain repair and robust error recovery mechanisms are limited.
+- <strong>Testing</strong>: Test coverage (unit, integration, network simulation) needs expansion.
+<h2>Troubleshooting</h2></p><p>- <strong>Dependencies</strong>: Run <code>go mod tidy</code> to ensure all dependencies are properly installed.
+- <strong>Build Errors</strong>: Ensure you have Go 1.21+ installed correctly.
+- <strong>GUI Won't Start (Linux)</strong>: Install Fyne prerequisites: <code>sudo apt-get install libgl1-mesa-dev xorg-dev</code>.
+- <strong>TURN Server Errors</strong>: Check that the specified TURN port is not already in use by another application.
+- <strong>Database Errors</strong>: Check permissions for the database directory. Ensure the directory exists or can be created by the application. Check logs for specific LevelDB errors.
+- <strong>Port Conflicts</strong>: Ensure the required ports (5000, 8080, 3478, etc.) are not already in use by other applications.
+- <strong>Root Chain Connection Issues</strong>: Verify that the root chain address is correct and that the root chain is running and accessible.
+License
+This project is licensed under the MIT License.</p><p></p>
+            </article>
+        </div>
+    </main>
+
+    <script src="../scripts.js"></script>
+
+    <!-- Footer will be automatically generated by universal-footer.js -->
+</body>
+</html>

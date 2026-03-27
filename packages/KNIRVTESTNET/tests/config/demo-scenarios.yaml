@@ -71,7 +71,7 @@ scenarios:
             expected: true
       
       - step: "validate_skill"
-        description: "Validate skill through KNIRV-NEXUS"
+        description: "Validate skill through KNIRV-SERVER"
         action: "skill_validate"
         target: "knirv-nexus"
         parameters:

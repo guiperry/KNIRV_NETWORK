@@ -45,7 +45,7 @@ The current landscape of Artificial Intelligence is characterized by fragmented 
 *   <strong>KNIRV-ROUTER:</strong> The <code>GoLang</code>-based network integrity layer, producing <code>NRN</code>s via "Proof-of-Connectivity" and embedding URI path certificates.
 *   <strong>KNIRVGRAPH:</strong> The <code>GoLang</code>-based distributed vector graph, deployed as embedded instances within KNIRVANA, with terminology evolved from "blocks" to "vectors" and "height" to "density".
 *   <strong>KNIRVCHAIN:</strong> Transformed into a <code>Rust</code>-compiled WASM inference model embedded within agent-core cognitive shells, featuring LoRA adapter chains and autonomous skill execution.
-*   <strong>KNIRV-NEXUS DVE:</strong> The <code>GoLang</code>-based network of Deterministic Validation Environments (CLEAN), providing verifiable execution, cryptographic proofs, and agent core pre-training infrastructure.
+*   <strong>KNIRV-SERVER DVE:</strong> The <code>GoLang</code>-based network of Deterministic Validation Environments (CLEAN), providing verifiable execution, cryptographic proofs, and agent core pre-training infrastructure.
 *   <strong>KNIRV-CONTROLLER:</strong> The unified agent management platform integrating mobile-controller (manager), KNIRVSHELL (cli), agent-core (receiver), and wallet functionality with QR code connectivity.
 *   <strong>KNIRV-INFERENCE:</strong> The specialized agent intelligence development platform providing WASM compilation pipeline, model training infrastructure, and deployment sequence management.
 *   <strong>KNIRV-ENGINE:</strong> The desktop agent development environment with chromem-go database, electron wrapper, and seamless KNIRV-CONTROLLER integration via QR code connectivity.
@@ -59,7 +59,7 @@ The core vision of the KNIRV D-TEN is to create a permissionless, transparent, a
 >
 > *   <strong>From Isolated Failures to Global Knowledge:</strong> The D-TEN fundamentally shifts the paradigm from private, siloed learning to public, shared intelligence. When an AI fails, that failure becomes a structured <code>ErrorNode</code> within a global knowledge graph (<strong>KNIRVGRAPH</strong>).
 >
-> *   <strong>Revolutionary Competitive Intelligence:</strong> Following the major refactor, the network operates through a revolutionary competitive clustering system where autonomous AI agents (<strong>KNIRV-CONTROLLERs</strong>) compete within error clusters to submit multiple solutions. These solutions are validated in trusted environments (<strong>KNIRV-NEXUS DVEs</strong>) and combined with error data to create LoRA adapter weights and biases that directly train the network's collective intelligence through embedded <strong>KNIRVCHAIN</strong> inference models.
+> *   <strong>Revolutionary Competitive Intelligence:</strong> Following the major refactor, the network operates through a revolutionary competitive clustering system where autonomous AI agents (<strong>KNIRV-CONTROLLERs</strong>) compete within error clusters to submit multiple solutions. These solutions are validated in trusted environments (<strong>KNIRV-SERVER DVEs</strong>) and combined with error data to create LoRA adapter weights and biases that directly train the network's collective intelligence through embedded <strong>KNIRVCHAIN</strong> inference models.
 >
 > *   <strong>The "Active Neural Machine":</strong> The D-TEN operates as an "active neural machine" where intelligence emerges from competitive collaboration. Each error cluster competition, each LoRA adapter skill creation, and each network-wide consensus event contributes to the collective neural network weights, making the entire system smarter through competitive evolution and embedded distributed execution.
 >
@@ -87,7 +87,7 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 >
 > *   <strong>URI Path Certificates:</strong> Each <code>NRN</code> token carries an embedded URI path certificate. This unique, cryptographically signed certificate enables the secure and verifiable invocation of Skill routines on <strong>KNIRVCHAIN</strong> by providing a cryptographically attested pathway. This ensures that every Skill execution is backed by a fresh, validated route.
 >
-> *   <strong>Traffic Routing & P2P Facilitation:</strong> Beyond <code>NRN</code> production, <strong>KNIRV-ROUTER</strong>s perform traditional routing functions, facilitating secure peer-to-peer (<code>P2P</code>) communication between <strong>KNIRV-AGENTIFIER</strong> agents, <strong>KNIRV-NEXUS DVEs</strong>, and <strong>KNIRVANA</strong> clients. They leverage existing <code>GoLang</code> components like the P2P DHT and TURN server for robust connectivity.
+> *   <strong>Traffic Routing & P2P Facilitation:</strong> Beyond <code>NRN</code> production, <strong>KNIRV-ROUTER</strong>s perform traditional routing functions, facilitating secure peer-to-peer (<code>P2P</code>) communication between <strong>KNIRV-AGENTIFIER</strong> agents, <strong>KNIRV-SERVER DVEs</strong>, and <strong>KNIRVANA</strong> clients. They leverage existing <code>GoLang</code> components like the P2P DHT and TURN server for robust connectivity.
 >
 > *   <strong>Economic Incentive:</strong> <strong>KNIRV-ROUTER</strong>s are incentivized with USDC (from <strong>KNIRV-ORACLE</strong>'s Faucet) for each <code>NRN</code> they mint and prove connectivity for, ensuring continuous network validation.
 >
@@ -126,10 +126,10 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 >
 > *   <strong>Base LLM Evolution:</strong> <strong>KNIRVCHAIN</strong> is the ultimate arbiter of the Base LLM's evolution. Validated <code>SkillNode</code>s and resolved <code>ErrorNode</code>s from <strong>KNIRVGRAPH</strong> are aggregated to generate new training data or fine-tuning instructions. New Base LLM versions are proposed (with DVE proofs), and accepted by <strong>KNIRVCHAIN</strong>'s consensus, ensuring continuous improvement across multiple model architectures.
 >
-> <em>   <strong>Dedicated Whitepaper:</strong> For a comprehensive understanding, refer to the </em>KNIRVCHAIN Whitepaper (Version 4.0)*.</p><p><h2>3.5. KNIRV-NEXUS DVE: The Crucible of Verifiable AI Intelligence (CLEAN)</h2>
-<strong>KNIRV-NEXUS DVE</strong> (Deterministic Validation Environment) is a network of specialized, staked computing nodes embodying the Cognitive Logistic Execution Adaptability Network (CLEAN) paradigm. These <code>GoLang</code>-based nodes provide trustless, deterministic, and sandboxed execution environments.</p><p>> <strong>Expanded Information:</strong>
+> <em>   <strong>Dedicated Whitepaper:</strong> For a comprehensive understanding, refer to the </em>KNIRVCHAIN Whitepaper (Version 4.0)*.</p><p><h2>3.5. KNIRV-SERVER DVE: The Crucible of Verifiable AI Intelligence (CLEAN)</h2>
+<strong>KNIRV-SERVER DVE</strong> (Deterministic Validation Environment) is a network of specialized, staked computing nodes embodying the Cognitive Logistic Execution Adaptability Network (CLEAN) paradigm. These <code>GoLang</code>-based nodes provide trustless, deterministic, and sandboxed execution environments.</p><p>> <strong>Expanded Information:</strong>
 >
-> *   <strong>CLEAN Concept:</strong> <strong>KNIRV-NEXUS DVEs</strong> are designed for execution adaptability. Each node integrates a Cognitive Engine (AI/ML) within its Trusted Execution Environment (<code>TEE</code>) to analyze tasks and network conditions, providing recommendations to an Adaptability Orchestrator. This enables dynamic task allocation, resource scaling, and adaptive inference models.
+> *   <strong>CLEAN Concept:</strong> <strong>KNIRV-SERVER DVEs</strong> are designed for execution adaptability. Each node integrates a Cognitive Engine (AI/ML) within its Trusted Execution Environment (<code>TEE</code>) to analyze tasks and network conditions, providing recommendations to an Adaptability Orchestrator. This enables dynamic task allocation, resource scaling, and adaptive inference models.
 >
 > *   <strong>Proactive Security Stack:</strong> DVEs are uniquely built upon a hardened, forked Kali Linux distribution and implemented in <code>GoLang</code>. This stack enables continuous self-auditing, vulnerability scanning, and active threat hunting, fostering a self-healing network.
 >
@@ -139,7 +139,7 @@ The KNIRV D-TEN is comprised of twelve distinct, yet deeply interconnected, sove
 >
 > *   <strong>NRN Staking & Incentives:</strong> DVE operators stake <code>NRN</code> tokens (native to <strong>KNIRV-ORACLE</strong>) and earn <code>NRN</code> rewards (from <strong>KNIRV-ORACLE</strong>'s Ecosystem Fund) for honest validation. Slashing mechanisms deter malicious behavior.
 >
-> <em>   <strong>Dedicated Whitepaper:</strong> For a comprehensive understanding, refer to the </em>KNIRV-NEXUS DVE Whitepaper (Version 2.0)*.</p><p><h2>3.6. KNIRV-AGENTIFIER: The Mobile-Native AI Assistant Adapter</h2>
+> <em>   <strong>Dedicated Whitepaper:</strong> For a comprehensive understanding, refer to the </em>KNIRV-SERVER DVE Whitepaper (Version 2.0)*.</p><p><h2>3.6. KNIRV-AGENTIFIER: The Mobile-Native AI Assistant Adapter</h2>
 <strong>KNIRV-AGENTIFIER</strong> is a sophisticated mobile-native adapter that transforms existing AI assistants into autonomous agents with advanced agentic capabilities, operating as a background enhancement layer that bridges conventional AI assistants with the KNIRV D-TEN ecosystem.</p><p>> <strong>Expanded Information:</strong>
 >
 > *   <strong>Mobile-Native Adapter Architecture:</strong> <strong>KNIRV-AGENTIFIER</strong> operates as a <code>Rust WASM</code>-powered enhancement layer that runs in the background on user devices, transforming reactive AI assistants into proactive, goal-oriented agents without replacing the user's primary interface.
@@ -176,7 +176,7 @@ The <strong>KNIRV-GATEWAY</strong> serves as the primary and unified web portal 
 >
 > *   <strong>Integrated Developer Portal & Documentation Hub:</strong> Comprehensive developer resources including documentation, tools, and tutorials powered by Docsify, creating an easily navigable knowledge hub for builders and integrators.
 >
-> *   <strong>Unified Service Proxy & Integration Layer:</strong> Acts as a sophisticated front-facing proxy that streamlines communication with all sovereign layers (<strong>KNIRV-ORACLE</strong>, <strong>KNIRVCHAIN</strong>, <strong>KNIRVGRAPH</strong>, <strong>KNIRV-NEXUS</strong>), providing a single, secure, and standardized entry point to the entire network.
+> *   <strong>Unified Service Proxy & Integration Layer:</strong> Acts as a sophisticated front-facing proxy that streamlines communication with all sovereign layers (<strong>KNIRV-ORACLE</strong>, <strong>KNIRVCHAIN</strong>, <strong>KNIRVGRAPH</strong>, <strong>KNIRV-SERVER</strong>), providing a single, secure, and standardized entry point to the entire network.
 >
 > *   <strong>Advanced Authentication & Security Management:</strong> Handles secure API access, user management, and session control through dedicated authentication endpoints, complemented by comprehensive health monitoring and real-time performance metrics.
 >
@@ -187,7 +187,7 @@ The <strong>KNIRV-SDK</strong> is a comprehensive suite of tools, libraries, and
 >
 > *   <strong>Complete Gateway SDK Integration:</strong> Features comprehensive integration with <strong>KNIRV-GATEWAY</strong> services including economics management, skill invocation processing, LLM registration, validation rewards, consensus management, and real-time event streaming across <code>Go</code>, <code>TypeScript</code>, and <code>Python</code> implementations.
 >
-> *   <strong>Unified API Gateway Access Model:</strong> The SDK's primary interaction paradigm operates through the <strong>KNIRV-GATEWAY</strong> unified API gateway, serving as the single, standardized entry point for all client-side and external interactions with <strong>KNIRV-ORACLE</strong>, <strong>KNIRVCHAIN</strong>, <strong>KNIRVGRAPH</strong>, <strong>KNIRV-NEXUS DVE</strong>, and <strong>KNIRV-ROUTER</strong> services.
+> *   <strong>Unified API Gateway Access Model:</strong> The SDK's primary interaction paradigm operates through the <strong>KNIRV-GATEWAY</strong> unified API gateway, serving as the single, standardized entry point for all client-side and external interactions with <strong>KNIRV-ORACLE</strong>, <strong>KNIRVCHAIN</strong>, <strong>KNIRVGRAPH</strong>, <strong>KNIRV-SERVER DVE</strong>, and <strong>KNIRV-ROUTER</strong> services.
 >
 > *   <strong>Advanced High-Level Abstraction Layer:</strong> Provides intuitive, developer-friendly functions that completely abstract away blockchain transactions, cryptographic operations, <code>P2P</code> communication complexities, and network topology management, enabling developers to focus purely on application logic and innovation.
 >
@@ -218,12 +218,12 @@ The <strong>KNIRV-SHELL</strong> is a sophisticated, AI-powered command-line int
 >
 > *   <strong>Real-Time Connectivity and Updates:</strong> Integrates WebSockets and Server-Sent Events (SSE) for live updates and event-driven operations, keeping users synchronized with real-time network state changes and service health.
 >
-> *   <strong>Unified Ecosystem Access:</strong> Acts as the single-pane-of-glass interface for the entire KNIRV ecosystem, providing unified API access to <strong>KNIRV-ORACLE</strong>, <strong>KNIRV-NEXUS</strong>, <strong>KNIRV-GATEWAY</strong>, and all other sovereign layers through streamlined command structures.
+> *   <strong>Unified Ecosystem Access:</strong> Acts as the single-pane-of-glass interface for the entire KNIRV ecosystem, providing unified API access to <strong>KNIRV-ORACLE</strong>, <strong>KNIRV-SERVER</strong>, <strong>KNIRV-GATEWAY</strong>, and all other sovereign layers through streamlined command structures.
 >
 > <em>   <strong>Dedicated Whitepaper:</strong> For a comprehensive understanding, refer to the </em>KNIRV-SHELL Whitepaper (Current Version)*.</p><p><h2>3.11. KNIRV-TESTNET: The High-Fidelity Testing Environment</h2>
 The <strong>KNIRV-TESTNET</strong> is a carefully constructed, minimal-viable representation of the full KNIRV D-TEN, designed to provide comprehensive testing capabilities without the resource overhead of a full-scale production deployment.</p><p>> <strong>Expanded Information:</strong>
 >
-> *   <strong>Minimalist Architecture:</strong> Features scaled-down versions of all sovereign layers including a simplified <strong>KNIRV-ORACLE</strong> with minimal validators, emulated <strong>KNIRV-ROUTER</strong> for routing logic testing, and a small cluster of <strong>KNIRV-NEXUS</strong> nodes with TEE capabilities.
+> *   <strong>Minimalist Architecture:</strong> Features scaled-down versions of all sovereign layers including a simplified <strong>KNIRV-ORACLE</strong> with minimal validators, emulated <strong>KNIRV-ROUTER</strong> for routing logic testing, and a small cluster of <strong>KNIRV-SERVER</strong> nodes with TEE capabilities.
 >
 > *   <strong>Single-Shard Implementation:</strong> Utilizes a single-shard <strong>KNIRVCHAIN</strong> or private chain with pre-selected validators, enabling fast iteration, easy resets, and comprehensive testing of PBFT consensus and agent certification processes.
 >
@@ -274,7 +274,7 @@ The <code>NRN</code> token, native to <strong>KNIRV-ORACLE</strong>, is the econ
 >         E -- "6. Trigger NRN Burn (via IBC)" --> B
 >
 >         D -- "7. Detect Failure / Propose Solution" --> F[KNIRVGRAPH: NRV/SkillNode Fabric]
->         F -- "8. Request DVE Validation" --> G[KNIRV-NEXUS DVEs]
+>         F -- "8. Request DVE Validation" --> G[KNIRV-SERVER DVEs]
 >         G -- "9. Generate Validation Proof" --> D
 >         D -- "10. Submit Mint Resolution" --> F
 >         F -- "11. Notify KNIRV-ORACLE of Verified SkillNode" --> B
@@ -306,8 +306,8 @@ The <code>NRN</code> token, native to <strong>KNIRV-ORACLE</strong>, is the econ
 > 5.  <strong>Skill Invocation on KNIRVCHAIN:</strong> <strong>KNIRV-AGENTIFIER</strong> agents invoke Skills from the <code>SkillRegistry</code> on <strong>KNIRVCHAIN</strong>.
 > 6.  <strong><code>NRN</code> Burning Trigger:</strong> <strong>KNIRVCHAIN</strong> sends an <code>IBC</code> message to <strong>KNIRV-ORACLE</strong> to trigger the burning of the <code>NRN</code> token used for Skill invocation. This creates deflationary pressure.
 > 7.  <strong>Failure Detection & Solution Proposal:</strong> <strong>KNIRV-AGENTIFIER</strong> agents detect failures, generate <code>FailureContext</code>, and propose solutions (Skills) to <code>NRV</code>s on <strong>KNIRVGRAPH</strong>.
-> 8.  <strong>DVE Validation Request:</strong> <strong>KNIRV-AGENTIFIER</strong> agents request validation of their proposed Skills from <strong>KNIRV-NEXUS DVEs</strong>.
-> 9.  <strong><code>ValidationProof</code> Generation:</strong> <strong>KNIRV-NEXUS DVEs</strong> execute the Skill in a secure sandbox and generate cryptographic <code>ValidationProof</code>s.
+> 8.  <strong>DVE Validation Request:</strong> <strong>KNIRV-AGENTIFIER</strong> agents request validation of their proposed Skills from <strong>KNIRV-SERVER DVEs</strong>.
+> 9.  <strong><code>ValidationProof</code> Generation:</strong> <strong>KNIRV-SERVER DVEs</strong> execute the Skill in a secure sandbox and generate cryptographic <code>ValidationProof</code>s.
 > 10. <strong><code>MintResolution</code> Submission:</strong> <strong>KNIRV-AGENTIFIER</strong> agents submit the <code>ValidationProof</code> and Skill to <strong>KNIRVGRAPH</strong> via a <code>MintResolution</code> transaction.
 > 11. <strong>KNIRV-ORACLE Orchestration:</strong> <strong>KNIRVGRAPH</strong> notifies <strong>KNIRV-ORACLE</strong> of the verified <code>SkillNode</code>. <strong>KNIRV-ORACLE</strong> performs its own verification.
 > 12. <strong>Canonical <code>SkillNode</code> Minting on KNIRVCHAIN:</strong> After <strong>KNIRV-ORACLE</strong>'s verification, <strong>KNIRV-ORACLE</strong> orchestrates the canonical minting of the <code>SkillNode</code> onto <strong>KNIRVCHAIN</strong>'s <code>SkillRegistry</code>. This makes the Skill globally available for invocation.
@@ -352,7 +352,7 @@ The KNIRV D-TEN is a sophisticated multi-chain and multi-component architecture,
 >
 >         subgraph Decentralized Compute & Network Layer
 >             KNR["KNIRV-ROUTER Nodes (GoLang)"]
->             KND["KNIRV-NEXUS DVE Nodes (GoLang CLEAN)"]
+>             KND["KNIRV-SERVER DVE Nodes (GoLang CLEAN)"]
 >             IPFS["IPFS Network (Off-chain Storage)"]
 >         end
 >     end
@@ -432,7 +432,7 @@ The KNIRV D-TEN is a sophisticated multi-chain and multi-component architecture,
 >         *   <strong>Asset Bridging:</strong> USDC liquidity from <strong>XION</strong> to <strong>KNIRV-ORACLE</strong>'s Faucet; wrapped <code>NRN</code>s between <strong>KNIRV-ORACLE</strong> and <strong>XION</strong>.
 >         *   <strong><code>SkillNode</code> Orchestration:</strong> <strong>KNIRV-ORACLE</strong> orchestrating the canonical minting of verified <code>SkillNode</code>s from <strong>KNIRVGRAPH</strong> onto <strong>KNIRVCHAIN</strong>.
 >     *   <strong>IPFS Network:</strong> A decentralized content-addressed storage layer for large data blobs such as Base LLM binaries (CodeT5), <code>SkillNode</code> executable code, <code>FailureContext</code> data, and <strong>KNIRV-AGENTIFIER</strong> state snapshots. Blockchains (<strong>KNIRVCHAIN</strong>, <strong>KNIRVGRAPH</strong>) store only the cryptographic hashes (<code>CID</code>s) of these files, ensuring integrity without on-chain bloat.
->     *   <strong>KNIRV-NEXUS DVE Network:</strong> Provides off-chain, verifiable computation. <strong>KNIRV-AGENTIFIERs</strong> rent DVEs for Skill validation and Base LLM testing, generating cryptographic proofs submitted to <strong>KNIRVGRAPH</strong>.
+>     *   <strong>KNIRV-SERVER DVE Network:</strong> Provides off-chain, verifiable computation. <strong>KNIRV-AGENTIFIERs</strong> rent DVEs for Skill validation and Base LLM testing, generating cryptographic proofs submitted to <strong>KNIRVGRAPH</strong>.
 >     *   <strong>KNIRV-ROUTER Network:</strong> Facilitates <code>P2P</code> communication across the D-TEN and is the source of <code>NRN</code> production via "Proof-of-Connectivity," feeding into <strong>KNIRV-ORACLE</strong>.</p><p><h1>6. Security & Trust Model: Defense in Depth</h1>
 The KNIRV D-TEN is secured by a multi-layered, defense-in-depth approach, combining the strengths of decentralized consensus, cryptographic proofs, trusted execution environments, and economic incentives across all layers.</p><p>> <strong>Expanded Information:</strong>
 >
@@ -441,7 +441,7 @@ The KNIRV D-TEN is secured by a multi-layered, defense-in-depth approach, combin
 >     *   <strong>KNIRVCHAIN:</strong> Secured by its own Tendermint/CometBFT consensus, providing <code>BFT</code> security and instant finality for Base LLM updates and <code>SkillRegistry</code> integrity.
 >     *   <strong>KNIRVGRAPH:</strong> Secured by its own Tendermint/CometBFT consensus, ensuring the integrity and immutability of the knowledge Graphchain.
 >
-> *   <strong>Trusted Execution Environments (KNIRV-NEXUS DVEs):</strong>
+> *   <strong>Trusted Execution Environments (KNIRV-SERVER DVEs):</strong>
 >     *   <strong>CLEAN Paradigm:</strong> DVEs leverage hardware-level <code>TEE</code>s (where available) and robust software sandboxing (<code>GoLang</code>, hardened Kali Linux) to provide isolated, deterministic, and verifiable execution environments for Skill validation and Base LLM testing.
 >     *   <strong>Cryptographic Proofs:</strong> DVEs generate <code>ValidationProof</code>s (e.g., <code>zkTLS</code>-enhanced attestations) that are cryptographically verified on-chain, ensuring the integrity of off-chain computations.
 >
@@ -471,14 +471,14 @@ The KNIRV D-TEN is governed by its <code>NRN</code> token holders through a mult
 The KNIRV D-TEN's development will proceed in phases, focusing on establishing a robust, interconnected foundation before expanding into advanced features and widespread adoption.</p><p>> <strong>Expanded Information:</strong>
 >
 > *   <strong>Phase 1 (Q2 2026: Core Mainnet Launch & Interoperability)</strong>
->     *   <strong>Focus:</strong> Mainnet deployment of <strong>KNIRV-ORACLE</strong>, <strong>KNIRVCHAIN</strong>, <strong>KNIRVGRAPH</strong>, <strong>KNIRV-ROUTER</strong> network, and initial <strong>KNIRV-NEXUS DVEs</strong>.
+>     *   <strong>Focus:</strong> Mainnet deployment of <strong>KNIRV-ORACLE</strong>, <strong>KNIRVCHAIN</strong>, <strong>KNIRVGRAPH</strong>, <strong>KNIRV-ROUTER</strong> network, and initial <strong>KNIRV-SERVER DVEs</strong>.
 >     *   <strong>Interoperability:</strong> Establish stable <code>IBC</code> channels between <strong>KNIRV-ORACLE</strong>, <strong>KNIRVCHAIN</strong>, <strong>KNIRVGRAPH</strong>, and <strong>XION</strong>.
 >     *   <strong>User Access:</strong> Launch <strong>KNIRV-WALLET</strong> with core <code>NRN</code> management and <strong>KNIRV-AGENTIFIER</strong> <code>UDC</code> issuance.
 >     *   <strong>Developer Access:</strong> Release initial <strong>KNIRV SDK</strong> with Unified API Gateway.
 >     *   <strong>Goal:</strong> Establish a functional, interconnected D-TEN capable of basic Skill invocation, Base LLM updates, and <code>NRN</code> economic loop.
 >
 > *   <strong>Phase 2 (Q4 2026: Enhanced Intelligence & Agent Capabilities)</strong>
->     *   <strong>Focus:</strong> Refine <strong>KNIRVGRAPH</strong>'s knowledge graph querying, implement advanced <strong>KNIRV-NEXUS DVE</strong> specialization and resource management.
+>     *   <strong>Focus:</strong> Refine <strong>KNIRVGRAPH</strong>'s knowledge graph querying, implement advanced <strong>KNIRV-SERVER DVE</strong> specialization and resource management.
 >     *   <strong>KNIRV-AGENTIFIER SDK:</strong> Enhance <strong>KNIRV-AGENTIFIER</strong> SDK for deeper agent control and analytics.
 >     *   <strong>Skill Licensing:</strong> Implement RoyaltyBearing Skill licensing and automated royalty payments (orchestrated by <strong>KNIRV-ORACLE</strong>).
 >     *   <strong>Goal:</strong> Foster a more dynamic Skill marketplace and empower <strong>KNIRV-AGENTIFIER</strong> agents with more sophisticated, verifiable capabilities.
@@ -494,7 +494,7 @@ The KNIRV D-TEN's development will proceed in phases, focusing on establishing a
 >     *   <strong>Decentralized Identity:</strong> Integrate DIDs for enhanced user and agent identity management.
 >     *   <strong>Autonomous Governance:</strong> Explore and implement AI-moderated governance models, where high-reputation <strong>KNIRV-AGENTIFIER</strong> agents participate in protocol decision-making.
 >     *   <strong>Goal:</strong> Establish the KNIRV D-TEN as a foundational, universal layer for decentralized, self-improving AI across the digital landscape.</p><p><h1>9. Conclusion</h1>
-The KNIRV Decentralized Trusted Execution Network (D-TEN) represents a monumental leap towards a future where Artificial Intelligence is not only powerful but also transparent, verifiable, and collectively intelligent. By meticulously designing and integrating twelve sovereign layers—<strong>KNIRV-ORACLE</strong>, <strong>KNIRV-ROUTER</strong>, <strong>KNIRVGRAPH</strong>, <strong>KNIRVCHAIN</strong>, <strong>KNIRV-NEXUS DVE</strong>, <strong>KNIRV-AGENTIFIER</strong>, <strong>KNIRV-WALLET</strong>, <strong>KNIRV-GATEWAY</strong>, <strong>KNIRV-SHELL</strong>, <strong>KNIRV-SDK</strong>, <strong>KNIRV-TESTNET</strong>, and <strong>KNIRVANA</strong>—interconnected by the <strong>KNIRV-GATEWAY</strong> unified portal and API gateway and <code>IBC</code>, the D-TEN creates a robust, self-healing ecosystem.</p><p>This network transforms the challenge of AI failure into an engine for compounding knowledge, driven by a self-sustaining <code>NRN</code> token economy. From the physical validation of <strong>KNIRV-ROUTERs</strong> to the verifiable computation of <strong>KNIRV-NEXUS DVEs</strong>, from the knowledge fabric of <strong>KNIRVGRAPH</strong> to the multi-model living intelligence of <strong>KNIRVCHAIN</strong> with local execution capabilities, through the mobile-native adapter capabilities of <strong>KNIRV-AGENTIFIERs</strong>, the seamless user experience of <strong>KNIRV-WALLET</strong>, the serverless unified access of <strong>KNIRV-GATEWAY</strong>, the AI-powered comprehensive developer tools of <strong>KNIRV-SHELL</strong>, the multi-language development support of <strong>KNIRV-SDK</strong>, the high-fidelity testing environment of <strong>KNIRV-TESTNET</strong>, and culminating in the immersive 3D competitive gameplay of <strong>KNIRVANA</strong>, the KNIRV D-TEN is poised to redefine the landscape of decentralized AI. We are building the economic and coordination backbone for a new era of secure, intelligent, and autonomously evolving systems that spans from enterprise development to consumer gaming experiences, with sophisticated governance frameworks and cutting-edge architectural innovations.</p>
+The KNIRV Decentralized Trusted Execution Network (D-TEN) represents a monumental leap towards a future where Artificial Intelligence is not only powerful but also transparent, verifiable, and collectively intelligent. By meticulously designing and integrating twelve sovereign layers—<strong>KNIRV-ORACLE</strong>, <strong>KNIRV-ROUTER</strong>, <strong>KNIRVGRAPH</strong>, <strong>KNIRVCHAIN</strong>, <strong>KNIRV-SERVER DVE</strong>, <strong>KNIRV-AGENTIFIER</strong>, <strong>KNIRV-WALLET</strong>, <strong>KNIRV-GATEWAY</strong>, <strong>KNIRV-SHELL</strong>, <strong>KNIRV-SDK</strong>, <strong>KNIRV-TESTNET</strong>, and <strong>KNIRVANA</strong>—interconnected by the <strong>KNIRV-GATEWAY</strong> unified portal and API gateway and <code>IBC</code>, the D-TEN creates a robust, self-healing ecosystem.</p><p>This network transforms the challenge of AI failure into an engine for compounding knowledge, driven by a self-sustaining <code>NRN</code> token economy. From the physical validation of <strong>KNIRV-ROUTERs</strong> to the verifiable computation of <strong>KNIRV-SERVER DVEs</strong>, from the knowledge fabric of <strong>KNIRVGRAPH</strong> to the multi-model living intelligence of <strong>KNIRVCHAIN</strong> with local execution capabilities, through the mobile-native adapter capabilities of <strong>KNIRV-AGENTIFIERs</strong>, the seamless user experience of <strong>KNIRV-WALLET</strong>, the serverless unified access of <strong>KNIRV-GATEWAY</strong>, the AI-powered comprehensive developer tools of <strong>KNIRV-SHELL</strong>, the multi-language development support of <strong>KNIRV-SDK</strong>, the high-fidelity testing environment of <strong>KNIRV-TESTNET</strong>, and culminating in the immersive 3D competitive gameplay of <strong>KNIRVANA</strong>, the KNIRV D-TEN is poised to redefine the landscape of decentralized AI. We are building the economic and coordination backbone for a new era of secure, intelligent, and autonomously evolving systems that spans from enterprise development to consumer gaming experiences, with sophisticated governance frameworks and cutting-edge architectural innovations.</p>
             </article>
         </div>
     </main>

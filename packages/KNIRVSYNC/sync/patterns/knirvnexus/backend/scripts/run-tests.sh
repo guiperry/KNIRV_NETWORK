@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# KNIRV-NEXUS Test Runner Script
+# KNIRV-SERVER Test Runner Script
 # Comprehensive test execution with coverage reporting
 
 set -euo pipefail
@@ -44,7 +44,7 @@ log_error() {
 # Help function
 show_help() {
     cat << EOF
-KNIRV-NEXUS Test Runner
+KNIRV-SERVER Test Runner
 
 Usage: $0 [OPTIONS] [TEST_TYPE]
 
@@ -311,7 +311,7 @@ generate_test_report() {
     local report_file="test-results/test-report-$(date +%Y%m%d-%H%M%S).md"
     
     cat > "$report_file" << EOF
-# KNIRV-NEXUS Test Report
+# KNIRV-SERVER Test Report
 
 **Date:** $(date)
 **Test Type:** $TEST_TYPE
@@ -349,7 +349,7 @@ EOF
 
 # Main test execution
 main() {
-    log_info "Starting KNIRV-NEXUS test execution..."
+    log_info "Starting KNIRV-SERVER test execution..."
     log_info "Test type: $TEST_TYPE"
     
     # Setup

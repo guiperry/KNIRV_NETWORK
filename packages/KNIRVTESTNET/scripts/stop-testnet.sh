@@ -96,8 +96,8 @@ stop_service "KNIRV-GATEWAY" "data/knirvgateway.pid"
 # 5. Stop KNIRV-ROUTER
 stop_service "KNIRV-ROUTER" "data/knirvrouter.pid"
 
-# 4. Stop KNIRV-NEXUS
-stop_service "KNIRV-NEXUS" "data/knirvserver.pid"
+# 4. Stop KNIRV-SERVER
+stop_service "KNIRV-SERVER" "data/knirvserver.pid"
 
 # 3. Stop KNIRVGRAPH
 stop_service "KNIRVGRAPH" "data/knirvgraph.pid"

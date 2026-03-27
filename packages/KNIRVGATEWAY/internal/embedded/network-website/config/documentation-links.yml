@@ -117,7 +117,7 @@ whitepapers:
       title: "Development Tools"
       papers:
         - "KNIRV-SDK_Whitepaper"
-        - "KNIRV-NEXUS_Whitepaper"
+        - "KNIRV-SERVER_Whitepaper"
         - "KNIRV-ENGINE_Whitepaper"
     
     applications:

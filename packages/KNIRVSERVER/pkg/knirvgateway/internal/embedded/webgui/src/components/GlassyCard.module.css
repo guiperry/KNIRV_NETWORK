@@ -1,0 +1,19 @@
+.glassyCard {
+  background-color: var(--transparent-white-05);
+  backdrop-filter: blur(8px);
+  border-radius: 15px;
+  border: 1px solid var(--transparent-white-1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.darkerContainer {
+  background-color: var(--transparent-black-3);
+}
+
+.cardTitle {
+  color: var(--bright-blue);
+  margin-top: 0;
+  margin-bottom: 15px;
+}

@@ -338,8 +338,8 @@ func (sm *ServiceManager) DefineServices() {
 	nexusBinary := filepath.Join(sm.deployDir, "bin", "knirvserver")
 	if _, err := os.Stat(nexusBinary); err == nil {
 		log.Printf("ℹ️ KNIRVSERVER binary found - enabling for private testing")
-		sm.services["KNIRV-NEXUS"] = &Service{
-			Name:       "KNIRV-NEXUS",
+		sm.services["KNIRV-SERVER"] = &Service{
+			Name:       "KNIRV-SERVER",
 			BinaryPath: nexusBinary,
 			Args: []string{
 				"--testnet",
@@ -471,16 +471,16 @@ func (sm *ServiceManager) StartAll() error {
 	}
 
 	// Add KNIRVSERVER if it's available (private/corporate testing only)
-	if _, hasNexus := sm.services["KNIRV-NEXUS"]; hasNexus {
+	if _, hasNexus := sm.services["KNIRV-SERVER"]; hasNexus {
 		// Insert NEXUS before ROUTER
 		serviceOrder = []string{
 			"KNIRV-ORACLE",
 			"KNIRVCHAIN",
 			"KNIRVGRAPH",
-			"KNIRV-NEXUS",
+			"KNIRV-SERVER",
 			"KNIRV-ROUTER",
 		}
-		log.Printf("ℹ️ Including KNIRV-NEXUS in startup sequence (private testing mode)")
+		log.Printf("ℹ️ Including KNIRV-SERVER in startup sequence (private testing mode)")
 	}
 
 	for _, serviceName := range serviceOrder {
@@ -585,10 +585,10 @@ func main() {
 	log.Println("  🌐 KNIRV-ROUTER:  http://localhost:8086")
 
 	// Show NEXUS only if it's running
-	if _, hasNexus := sm.services["KNIRV-NEXUS"]; hasNexus {
+	if _, hasNexus := sm.services["KNIRV-SERVER"]; hasNexus {
 		log.Println("")
 		log.Println("Private Service Endpoints (Corporate Testing):")
-		log.Println("  🔒 KNIRV-NEXUS:   http://localhost:8084")
+		log.Println("  🔒 KNIRV-SERVER:   http://localhost:8084")
 	}
 
 	log.Println("")

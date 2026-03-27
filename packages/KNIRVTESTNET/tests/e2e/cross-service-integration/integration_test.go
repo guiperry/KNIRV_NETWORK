@@ -85,12 +85,12 @@ func TestCrossServiceCommunication(t *testing.T) {
 	client := &http.Client{Timeout: Timeout}
 
 	services := map[string]string{
-		"KNIRV-ORACLE":      RootURL + "/health",
-		"KNIRVCHAIN":      ChainURL + "/health",
-		"KNIRVGRAPH":      GraphURL + "/height",
-		"KNIRV-NEXUS-DVE": DVEUrl + "/health",
-		"KNIRV-NEXUS-VAL": ValURL + "/health",
-		"KNIRV-ROUTER":    RouterURL + "/status",
+		"KNIRV-ORACLE":     RootURL + "/health",
+		"KNIRVCHAIN":       ChainURL + "/health",
+		"KNIRVGRAPH":       GraphURL + "/height",
+		"KNIRV-SERVER-DVE": DVEUrl + "/health",
+		"KNIRV-SERVER-VAL": ValURL + "/health",
+		"KNIRV-ROUTER":     RouterURL + "/status",
 	}
 
 	t.Run("All Services Responding", func(t *testing.T) {
@@ -231,7 +231,7 @@ func TestDataFlow(t *testing.T) {
 		}
 
 		if status, ok := dveHealth["status"]; ok && status == "healthy" {
-			t.Logf("✅ KNIRV-NEXUS-DVE is healthy")
+			t.Logf("✅ KNIRV-SERVER-DVE is healthy")
 		}
 
 		// Test Validation service
@@ -252,7 +252,7 @@ func TestDataFlow(t *testing.T) {
 		}
 
 		if status, ok := valHealth["status"]; ok && status == "healthy" {
-			t.Logf("✅ KNIRV-NEXUS-VAL is healthy")
+			t.Logf("✅ KNIRV-SERVER-VAL is healthy")
 		}
 
 		t.Logf("✅ NEXUS services are integrated and healthy")
@@ -321,7 +321,7 @@ func TestGatewayIntegration(t *testing.T) {
 		// Test complete flow through gateway
 		endpoints := []string{
 			"/gateway/health",
-			"/gateway/services", 
+			"/gateway/services",
 			"/gateway/testnet/status",
 			"/auth/testnet-tokens",
 		}

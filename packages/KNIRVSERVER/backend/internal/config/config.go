@@ -48,6 +48,24 @@ type FintechConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
+// GatewayConfig defines embedded KNIRVGATEWAY configuration
+type GatewayConfig struct {
+	Enabled         bool   `mapstructure:"enabled"`
+	BinaryPath      string `mapstructure:"binary_path"`
+	Port            int    `mapstructure:"port"`
+	TurnUDPPort     int    `mapstructure:"turn_udp_port"`
+	TurnTCPPort     int    `mapstructure:"turn_tcp_port"`
+	TurnAPIPort     int    `mapstructure:"turn_api_port"`
+	TunnelHTTPPort  int    `mapstructure:"tunnel_http_port"`
+	TunnelCtrlPort  int    `mapstructure:"tunnel_ctrl_port"`
+	TunnelRelayPort int    `mapstructure:"tunnel_relay_port"`
+	TunnelSTUNPort  int    `mapstructure:"tunnel_stun_port"`
+	AuthSecret      string `mapstructure:"auth_secret"`
+	MinerAddress    string `mapstructure:"miner_address"`
+	StartTimeout    int    `mapstructure:"start_timeout"`
+	StopTimeout     int    `mapstructure:"stop_timeout"`
+}
+
 // StripeConfig defines Stripe payment processor configuration
 type StripeConfig struct {
 	Enabled  bool   `mapstructure:"enabled"`
@@ -118,6 +136,9 @@ type Config struct {
 
 	// ICME - Intentional Context Memory Engine
 	ICME ICMEConfig `mapstructure:"icme"`
+
+	// Gateway - Embedded KNIRVGATEWAY for P2P TURN/Tunnel services
+	Gateway GatewayConfig `mapstructure:"gateway"`
 }
 
 // DatabaseConfig represents database configuration
@@ -678,6 +699,22 @@ func setDefaults() {
 	viper.SetDefault("p2p.port", 4001)
 	viper.SetDefault("p2p.dht_enabled", false) // DHT disabled by default to reduce noise
 	viper.SetDefault("auth.jwt_secret", "")
+
+	// Gateway (embedded KNIRVGATEWAY) configuration defaults
+	viper.SetDefault("gateway.enabled", true)
+	viper.SetDefault("gateway.binary_path", "./knirvgateway")
+	viper.SetDefault("gateway.port", 8081)
+	viper.SetDefault("gateway.turn_udp_port", 3478)
+	viper.SetDefault("gateway.turn_tcp_port", 3479)
+	viper.SetDefault("gateway.turn_api_port", 3476)
+	viper.SetDefault("gateway.tunnel_http_port", 3002)
+	viper.SetDefault("gateway.tunnel_ctrl_port", 3003)
+	viper.SetDefault("gateway.tunnel_relay_port", 3004)
+	viper.SetDefault("gateway.tunnel_stun_port", 3005)
+	viper.SetDefault("gateway.auth_secret", "knirvchain-turn-secret")
+	viper.SetDefault("gateway.miner_address", "GATEWAY_MINER")
+	viper.SetDefault("gateway.start_timeout", 30)
+	viper.SetDefault("gateway.stop_timeout", 10)
 }
 
 // GetConfigDir returns the base configuration directory (e.g., ~/.config/knirv-server)

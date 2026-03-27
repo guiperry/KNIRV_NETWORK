@@ -4,6 +4,8 @@ go 1.24.0
 
 toolchain go1.24.1
 
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway => ./pkg/knirvgateway
+
 require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/spf13/viper v1.20.1

@@ -31,7 +31,7 @@ fi
 
 if [ -d "data/knirvserver" ]; then
     cp -r data/knirvserver "$BACKUP_DIR/"
-    echo "  ✅ KNIRV-NEXUS data backed up"
+    echo "  ✅ KNIRV-SERVER data backed up"
 fi
 
 if [ -d "data/ipfs" ]; then

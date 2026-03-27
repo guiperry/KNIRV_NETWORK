@@ -11,7 +11,7 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 ROOT_DIR := $(shell pwd)
 BACKEND_DIR := $(ROOT_DIR)/backend
 FRONTEND_DIR := $(ROOT_DIR)/frontend
-DASHBOARD_DIR := $(ROOT_DIR)/dashboard
+DESKTOP_DIR := $(ROOT_DIR)/desktop
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -48,30 +48,30 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate kali-docker-image dashboard dashboard-deps dashboard-build dash
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate kali-docker-image desktop desktop-deps desktop-build dash gateway-sync gateway-build gateway-deps
 
 # Default target
-all: clean deps frontend dashboard-build backend binary
+all: clean deps frontend desktop-build backend binary
 
-# Dashboard (Electron)
-dashboard-deps: ## Install dashboard dependencies
-	@echo "$(BLUE)Installing dashboard dependencies...$(NC)"
-	cd $(DASHBOARD_DIR) && $(NPM_CMD) install
+# Desktop (Electron)
+desktop-deps: ## Install desktop dependencies
+	@echo "$(BLUE)Installing desktop dependencies...$(NC)"
+	cd $(DESKTOP_DIR) && $(NPM_CMD) install
 
-dashboard-build: dashboard-deps ## Build dashboard TypeScript and copy assets to dist/
-	@echo "$(BLUE)Building dashboard...$(NC)"
-	cd $(DASHBOARD_DIR) && $(NPM_CMD) run build
-	@echo "$(GREEN)Dashboard build completed$(NC)"
+desktop-build: desktop-deps ## Build desktop TypeScript and copy assets to dist/
+	@echo "$(BLUE)Building desktop...$(NC)"
+	cd $(DESKTOP_DIR) && $(NPM_CMD) run build
+	@echo "$(GREEN)Desktop build completed$(NC)"
 
-dashboard: dashboard-build ## Build dashboard and launch standalone (for development)
-	@echo "$(BLUE)Starting dashboard...$(NC)"
-	cd $(DASHBOARD_DIR) && $(NPM_CMD) run start
+desktop: desktop-build ## Build desktop and launch standalone (for development)
+	@echo "$(BLUE)Starting desktop...$(NC)"
+	cd $(DESKTOP_DIR) && $(NPM_CMD) run start
 
-dash: dashboard-build ## Rebuild dashboard and relink into binary (fast path, skips frontend/backend/eBPF)
-	@echo "$(BLUE)Rebuilding binary with updated dashboard...$(NC)"
+dash: desktop-build ## Rebuild desktop and relink into binary (fast path, skips frontend/backend/eBPF)
+	@echo "$(BLUE)Rebuilding binary with updated desktop...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
-	@echo "$(GREEN)Done — run: sudo ./dist/knirv-server --dashboard$(NC)"
+	@echo "$(GREEN)Done — run: sudo ./dist/knirv-server --desktop$(NC)"
 
 help: ## Show this help message
 	@echo "$(BLUE)KNIRV-SERVER Build System$(NC)"
@@ -131,8 +131,8 @@ deployer: deps-go ## Build container_deployer binary
 	cd $(BACKEND_DIR)/cmd/container_deployer && go build -ldflags "$(LDFLAGS)" -o container_deployer main.go
 	@echo "$(GREEN)container_deployer build completed: backend/cmd/container_deployer/container_deployer$(NC)"
 
-# Unified Binary (Frontend + Dashboard + Unified Backend)
-binary: ebpf-generate frontend dashboard-build backend ## Build unified binary with embedded eBPF, frontend, dashboard, and backend
+# Unified Binary (Frontend + Desktop + Unified Backend)
+binary: ebpf-generate frontend desktop-build backend ## Build unified binary with embedded eBPF, frontend, desktop, and backend
 	@echo "$(BLUE)Creating unified binary with embedded eBPF...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
@@ -347,3 +347,27 @@ security: ## Run security scans
 quick-build: deps frontend backend ## Quick build without tests
 quick-test: test-go ## Quick test (Go only)
 quick-deploy: binary deploy-application ## Quick application deployment
+
+# KNIRVGATEWAY (Embedded) targets
+gateway-sync: ## Sync KNIRVGATEWAY source to embedded package
+	@echo "$(BLUE)Syncing KNIRVGATEWAY to embedded package...$(NC)"
+	@./scripts/sync-knirvgateway.sh
+
+gateway-deps: ## Install KNIRVGATEWAY dependencies
+	@echo "$(BLUE)Installing KNIRVGATEWAY dependencies...$(NC)"
+	cd pkg/knirvgateway && go mod download && go mod tidy
+
+gateway-build: ## Build KNIRVGATEWAY binary
+	@echo "$(BLUE)Building KNIRVGATEWAY binary...$(NC)"
+	@mkdir -p bin
+	cd pkg/knirvgateway && go build -ldflags "-s -w" -o ../../bin/knirvgateway ./cmd/gateway
+	@echo "$(GREEN)KNIRVGATEWAY binary built: bin/knirvgateway$(NC)"
+
+gateway-clean: ## Clean KNIRVGATEWAY build artifacts
+	@echo "$(BLUE)Cleaning KNIRVGATEWAY artifacts...$(NC)"
+	rm -f bin/knirvgateway
+	cd pkg/knirvgateway && go clean
+
+# Full build including embedded KNIRVGATEWAY
+build-full: gateway-deps gateway-build binary ## Build everything including KNIRVGATEWAY
+

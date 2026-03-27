@@ -1,4 +1,4 @@
-# KNIRV-NEXUS Testnet Configuration
+# KNIRV-SERVER Testnet Configuration
 # This configuration is optimized for testnet deployment with embedded frontend
 
 # Server settings (for main.go wrapper)

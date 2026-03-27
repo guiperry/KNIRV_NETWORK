@@ -6,6 +6,7 @@ toolchain go1.24.1
 
 require (
 	fyne.io/fyne/v2 v2.7.1
+	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway v0.0.0-00010101000000-000000000000
 	github.com/apache/arrow/go/v14 v14.0.2
 	github.com/cilium/ebpf v0.12.3
 	github.com/cloudflare/circl v1.6.3
@@ -22,7 +23,6 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.25.0
 	github.com/libp2p/go-libp2p-pubsub v0.10.0
 	github.com/multiformats/go-multihash v0.2.3
-	github.com/pion/turn/v4 v4.1.4
 	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/robertkrimen/otto v0.5.1
 	github.com/seccomp/libseccomp-golang v0.10.0
@@ -43,6 +43,8 @@ require (
 replace github.com/knirvcorp/knirvbase/go => ../../KNIRVBASE/go
 
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY => ../../KNIRVGATEWAY
+
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway => ../pkg/knirvgateway
 
 require (
 	fyne.io/systray v1.11.1-0.20250603113521-ca66a66d8b58 // indirect
@@ -66,16 +68,9 @@ require (
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.5.1 // indirect
 	github.com/opencontainers/runtime-spec v1.1.0 // indirect
-	github.com/pion/dtls/v3 v3.0.7 // indirect
-	github.com/pion/logging v0.2.4 // indirect
-	github.com/pion/randutil v0.1.0 // indirect
-	github.com/pion/stun/v3 v3.0.1 // indirect
-	github.com/pion/transport/v3 v3.0.8 // indirect
-	github.com/pion/transport/v4 v4.0.1 // indirect
 	github.com/rymdport/portal v0.4.2 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
-	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect

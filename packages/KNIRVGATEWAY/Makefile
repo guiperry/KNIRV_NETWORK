@@ -1,7 +1,7 @@
 # KNIRVORACLE Go Build Makefile
 # This Makefile contains targets for building the Go version of KNIRVORACLE
 
-.PHONY: build run test clean install fmt vet lint webgui-build
+.PHONY: build run test clean install fmt vet lint webgui-build copy-to-server
 
 # Go binary outputs
 BINARY_NAME=knirv-gateway
@@ -173,3 +173,16 @@ help:
 	@echo "  docker-run    - Run Docker container"
 	@echo "  setup         - Full setup"
 	@echo "  help          - Show this help"
+
+# Copy to KNIRVSERVER for embedding
+copy-to-server:
+	@echo "Copying KNIRVGATEWAY to KNIRVSERVER..."
+	@mkdir -p ../KNIRVSERVER/pkg/knirvgateway
+	@rsync -av --delete internal/ ../KNIRVSERVER/pkg/knirvgateway/internal/
+	@rsync -av --delete cmd/ ../KNIRVSERVER/pkg/knirvgateway/cmd/
+	@cp go.mod ../KNIRVSERVER/pkg/knirvgateway/
+	@cp go.sum ../KNIRVSERVER/pkg/knirvgateway/ 2>/dev/null || true
+	@cp package.json ../KNIRVSERVER/pkg/knirvgateway/ 2>/dev/null || true
+	@sed -i 's|module github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY|module github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway|' ../KNIRVSERVER/pkg/knirvgateway/go.mod
+	@echo "Copy complete!"
+	@echo "Run 'cd ../KNIRVSERVER && make gateway-deps && make gateway-build' to build the embedded binary"

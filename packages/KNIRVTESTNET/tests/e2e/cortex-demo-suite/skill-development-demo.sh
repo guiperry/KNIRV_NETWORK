@@ -263,7 +263,7 @@ update_knowledge_graph() {
 
 # Step 5: Validate Skill
 validate_skill() {
-    print_step "Step 5: Validating skill through KNIRV-NEXUS..."
+    print_step "Step 5: Validating skill through KNIRV-SERVER..."
     
     local validation_data='{
         "skill_id": "'$SKILL_ID'",
@@ -273,7 +273,7 @@ validate_skill() {
         "creator": "'$AGENT_ID'"
     }'
     
-    # Make request to KNIRV-NEXUS
+    # Make request to KNIRV-SERVER
     local response=$(curl -s -X POST \
         -H "Content-Type: application/json" \
         -d "$validation_data" \

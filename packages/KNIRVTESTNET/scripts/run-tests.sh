@@ -298,21 +298,21 @@ test_skill_invocation() {
     print_success "Skill invocation test completed (${skill_tests_passed}/${total_skill_tests} tests passed)"
 }
 
-# Test DVE validation with real KNIRV-NEXUS unified binary
+# Test DVE validation with real KNIRV-SERVER unified binary
 test_dve_validation() {
-    print_step "Testing DVE validation with real KNIRV-NEXUS unified binary..."
+    print_step "Testing DVE validation with real KNIRV-SERVER unified binary..."
     local dve_tests_passed=0
     local total_dve_tests=5
 
-    # Test KNIRV-NEXUS unified binary health
-    print_info "Checking KNIRV-NEXUS unified binary health..."
+    # Test KNIRV-SERVER unified binary health
+    print_info "Checking KNIRV-SERVER unified binary health..."
     local nexus_health=$(curl -s http://localhost:8084/health 2>/dev/null)
 
     if [ $? -eq 0 ] && echo "$nexus_health" | grep -q "status\|health\|ok"; then
-        print_success "KNIRV-NEXUS unified binary accessible"
+        print_success "KNIRV-SERVER unified binary accessible"
         dve_tests_passed=$((dve_tests_passed + 1))
     else
-        print_warning "KNIRV-NEXUS unified binary not accessible"
+        print_warning "KNIRV-SERVER unified binary not accessible"
     fi
 
     # Test embedded frontend
@@ -380,12 +380,12 @@ test_dve_validation() {
     fi
 
     print_success "DVE validation test completed (${dve_tests_passed}/${total_dve_tests} tests passed)"
-    print_info "✅ Using KNIRV-NEXUS unified binary architecture (no portal copying)"
+    print_info "✅ Using KNIRV-SERVER unified binary architecture (no portal copying)"
 }
 
-# Test KNIRV-NEXUS unified binary architecture
+# Test KNIRV-SERVER unified binary architecture
 test_nexus_unified_architecture() {
-    print_step "Testing KNIRV-NEXUS unified binary architecture..."
+    print_step "Testing KNIRV-SERVER unified binary architecture..."
     local arch_tests_passed=0
     local total_arch_tests=6
 
@@ -399,9 +399,9 @@ test_nexus_unified_architecture() {
     fi
 
     # Test that unified binary exists
-    print_info "Checking for KNIRV-NEXUS unified binary..."
+    print_info "Checking for KNIRV-SERVER unified binary..."
     if [ -f "bin/knirvserver" ]; then
-        print_success "KNIRV-NEXUS unified binary found"
+        print_success "KNIRV-SERVER unified binary found"
         arch_tests_passed=$((arch_tests_passed + 1))
 
         # Check binary size (should be substantial due to embedded frontend)
@@ -413,7 +413,7 @@ test_nexus_unified_architecture() {
             print_warning "Binary size seems small for embedded frontend: ${binary_size}MB"
         fi
     else
-        print_warning "KNIRV-NEXUS unified binary not found"
+        print_warning "KNIRV-SERVER unified binary not found"
     fi
 
     # Test that frontend is served from binary, not separate files
@@ -896,10 +896,10 @@ test_basic_connectivity() {
     fi
 
     if curl -s --max-time 5 http://localhost:8084/status > /dev/null; then
-        print_success "KNIRV-NEXUS reachable"
+        print_success "KNIRV-SERVER reachable"
         connectivity_score=$((connectivity_score + 1))
     else
-        print_error "KNIRV-NEXUS unreachable"
+        print_error "KNIRV-SERVER unreachable"
     fi
 
     if curl -s --max-time 5 http://localhost:8086/status > /dev/null; then
@@ -956,7 +956,7 @@ run_integration_tests() {
     test_skill_invocation
     test_dve_validation
 
-    # KNIRV-NEXUS unified architecture verification
+    # KNIRV-SERVER unified architecture verification
     test_nexus_unified_architecture
 
     # KNIRVWALLET integration

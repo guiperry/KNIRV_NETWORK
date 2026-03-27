@@ -79,7 +79,7 @@ func initDeploymentLog() error {
 	log.SetOutput(multiWriter)
 
 	deploymentLogger.Printf("========================================")
-	deploymentLogger.Printf("KNIRV-NEXUS Deployment Log")
+	deploymentLogger.Printf("KNIRV-SERVER Deployment Log")
 	deploymentLogger.Printf("Started: %s", time.Now().Format("2006-01-02 15:04:05"))
 	deploymentLogger.Printf("Log File: %s", logFilePath)
 	deploymentLogger.Printf("========================================")
@@ -144,7 +144,7 @@ func main() {
 	}
 	defer closeDeploymentLog()
 
-	fmt.Println("KNIRV-NEXUS Deployment Orchestrator")
+	fmt.Println("KNIRV-SERVER Deployment Orchestrator")
 	fmt.Println("----------------------------------")
 
 	if runtime.GOOS != "linux" {
@@ -305,8 +305,8 @@ func main() {
 	// Otherwise, run interactive mode
 	for {
 		fmt.Println("\nSelect an action:")
-		fmt.Println("1. Deploy KNIRV-NEXUS (container or native)")
-		fmt.Println("2. Only install the KNIRV-NEXUS binary on existing setup")
+		fmt.Println("1. Deploy KNIRV-SERVER (container or native)")
+		fmt.Println("2. Only install the KNIRV-SERVER binary on existing setup")
 		fmt.Println("3. Exit")
 		fmt.Print("Enter your choice: ")
 
@@ -315,7 +315,7 @@ func main() {
 
 		switch choice {
 		case "1":
-			fmt.Println("\nStarting KNIRV-NEXUS deployment...")
+			fmt.Println("\nStarting KNIRV-SERVER deployment...")
 			runDeployNewContainer(resourcesDir, artifactDir, selectedDeployType, selectedDeployMode, environment, true, *showBuild, skipImageBuild)
 		case "2":
 			fmt.Println("\nStarting Go app install on existing setup...")
@@ -655,7 +655,7 @@ func getAnsibleDirectory(resourcesDir, deployType string) string {
 }
 
 func runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, environment string, tailLogs bool, showBuild bool, skipImageBuild *bool) {
-	fmt.Printf("--- Deploying new KNIRV-NEXUS (%s deployment, %s mode, %s environment) ---\n", deployType, deployMode, environment)
+	fmt.Printf("--- Deploying new KNIRV-SERVER (%s deployment, %s mode, %s environment) ---\n", deployType, deployMode, environment)
 
 	// Handle native deployment
 	if deployMode == "native" {
@@ -832,7 +832,7 @@ func runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, en
 }
 
 func runInstallGoAppOnly(resourcesDir, artifactDir, deployType, deployMode string) {
-	fmt.Printf("--- Only installing KNIRV-NEXUS Go App on existing setup (%s deployment, %s mode) ---\n", deployType, deployMode)
+	fmt.Printf("--- Only installing KNIRV-SERVER Go App on existing setup (%s deployment, %s mode) ---\n", deployType, deployMode)
 
 	// Handle native deployment binary installation
 	if deployMode == "native" {
@@ -874,7 +874,7 @@ func runInstallGoAppOnly(resourcesDir, artifactDir, deployType, deployMode strin
 	if err != nil {
 		log.Fatalf("Ansible Go app installation failed: %v", err)
 	}
-	fmt.Println("--- KNIRV-NEXUS Go App installed successfully! ---")
+	fmt.Println("--- KNIRV-SERVER Go App installed successfully! ---")
 }
 
 // --- Native Deployment Functions ---
@@ -1040,7 +1040,7 @@ func runLocalNativeDeployment(binaryPath, environment string) {
 
 // runNativeBinaryInstall installs the binary on an already provisioned system
 func runNativeBinaryInstall(resourcesDir, artifactDir, deployType string) {
-	fmt.Println("--- Installing KNIRV-NEXUS Binary on Existing System ---")
+	fmt.Println("--- Installing KNIRV-SERVER Binary on Existing System ---")
 
 	// Path to the pre-compiled binary in golang-app-source
 	goAppSourcePath := filepath.Join(resourcesDir, golangAppSourceDir)
@@ -1074,7 +1074,7 @@ func runNativeBinaryInstall(resourcesDir, artifactDir, deployType string) {
 func executeActionWithDeployType(action string, resourcesDir, artifactDir, deployType, deployMode, environment string, showBuild bool, skipImageBuild *bool) {
 	switch action {
 	case "1":
-		fmt.Println("\nStarting KNIRV-NEXUS deployment...")
+		fmt.Println("\nStarting KNIRV-SERVER deployment...")
 		runDeployNewContainer(resourcesDir, artifactDir, deployType, deployMode, environment, false, showBuild, skipImageBuild)
 	case "2":
 		fmt.Println("\nStarting Go app install on existing setup...")

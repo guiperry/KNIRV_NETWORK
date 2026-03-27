@@ -1,4 +1,4 @@
-# KNIRV-NEXUS Testnet Configuration
+# KNIRV-SERVER Testnet Configuration
 cluster:
   name: "testnet-cluster"
   nodes: 2

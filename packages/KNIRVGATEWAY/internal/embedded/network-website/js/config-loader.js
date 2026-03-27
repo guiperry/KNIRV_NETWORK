@@ -241,7 +241,7 @@ class KNIRVConfigLoader {
                     knirv_router: "documentation/static/whitepapers/KNIRV-ROUTER_Whitepaper.md",
                     knirvgraph: "documentation/static/whitepapers/KNIRV-GRAPH_Whitepaper.md",
                     knirvchain: "documentation/static/whitepapers/KNIRVCHAIN_Whitepaper.md",
-                    knirv_nexus: "documentation/static/whitepapers/KNIRV-NEXUS_Whitepaper.md",
+                    knirv_nexus: "documentation/static/whitepapers/KNIRV-SERVER_Whitepaper.md",
                     knirv_cortex: "documentation/static/whitepapers/KNIRV-AGENTIFIER_Whitepaper.md",
                     knirv_wallet: "documentation/static/whitepapers/KNIRV-WALLET_Whitepaper.md",
                     knirv_oracle: "documentation/static/whitepapers/KNIRV-GATEWAY_Whitepaper.md",

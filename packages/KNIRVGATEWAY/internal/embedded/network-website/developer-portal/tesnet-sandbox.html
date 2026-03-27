@@ -136,7 +136,7 @@
                 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; align-items: center;">
                     <div>
                         <p style="color: var(--white); margin-bottom: 15px; font-size: 1.1rem;">
-                            The KNIRV-ENGINE is deployed within a KNIRV-NEXUS DVE (Deterministic Validation Environment) to provide secure, isolated developer sandboxes.
+                            The KNIRV-ENGINE is deployed within a KNIRV-SERVER DVE (Deterministic Validation Environment) to provide secure, isolated developer sandboxes.
                         </p>
                         <ul style="color: var(--transparent-white-7); margin-bottom: 20px; padding-left: 20px;">
                             <li>Secure TEE (Trusted Execution Environment) isolation</li>
@@ -147,7 +147,7 @@
                         </ul>
                         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                             <button class="btn-primary" onclick="openNexusPortal()">
-                                <i class="fas fa-server" style="margin-right: 8px;"></i>Access KNIRV-NEXUS
+                                <i class="fas fa-server" style="margin-right: 8px;"></i>Access KNIRV-SERVER
                             </button>
                             <button class="btn-secondary" onclick="viewCDEPitch()">
                                 <i class="fas fa-file-alt" style="margin-right: 8px;"></i>View CDE Pitch
@@ -171,7 +171,7 @@
                     <button class="btn-primary" onclick="createSandbox()" style="padding: 20px; text-align: center;">
                         <i class="fas fa-plus-circle" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
                         <h4 style="margin-bottom: 5px;">Create DVE Sandbox</h4>
-                        <p style="font-size: 0.9em; opacity: 0.8;">KNIRV-NEXUS environment</p>
+                        <p style="font-size: 0.9em; opacity: 0.8;">KNIRV-SERVER environment</p>
                     </button>
                     <button class="btn-secondary" onclick="joinTESNET()" style="padding: 20px; text-align: center;">
                         <i class="fas fa-network-wired" style="font-size: 1.5em; margin-bottom: 10px; display: block;"></i>
@@ -266,7 +266,7 @@
         <div class="modal-content" style="max-width: 95vw; max-height: 95vh; padding: 0;">
             <div class="modal-header" style="padding: 20px; border-bottom: 1px solid var(--transparent-white-2); display: flex; justify-content: space-between; align-items: center;">
                 <h2 style="color: var(--bright-blue); margin: 0;">
-                    <i class="fas fa-server" style="margin-right: 10px;"></i>KNIRV-NEXUS DVE Portal
+                    <i class="fas fa-server" style="margin-right: 10px;"></i>KNIRV-SERVER DVE Portal
                 </h2>
                 <span class="close" onclick="closeNexusModal()">&times;</span>
             </div>
@@ -275,7 +275,7 @@
                     id="nexusFrame"
                     src="../nexus-portal/"
                     style="width: 100%; height: 100%; border: none;"
-                    title="KNIRV-NEXUS DVE Portal">
+                    title="KNIRV-SERVER DVE Portal">
                 </iframe>
             </div>
         </div>
@@ -300,7 +300,7 @@
 
         function createSandbox() {
             // Show information about DVE sandbox creation
-            const confirmed = confirm('Creating a DVE sandbox will deploy a KNIRV-ENGINE instance within a KNIRV-NEXUS environment. This requires NRN tokens for compute resources. Continue?');
+            const confirmed = confirm('Creating a DVE sandbox will deploy a KNIRV-ENGINE instance within a KNIRV-SERVER environment. This requires NRN tokens for compute resources. Continue?');
             if (confirmed) {
                 openNexusPortal();
             }

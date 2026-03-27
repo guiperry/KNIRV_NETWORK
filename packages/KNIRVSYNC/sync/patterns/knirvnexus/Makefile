@@ -1,4 +1,4 @@
-# KNIRV-NEXUS Unified Build System
+# KNIRV-SERVER Unified Build System
 # This Makefile orchestrates the complete build, test, and deployment pipeline
 
 # Project Configuration
@@ -52,7 +52,7 @@ NC := \033[0m # No Color
 all: clean deps frontend backend binary
 
 help: ## Show this help message
-	@echo "$(BLUE)KNIRV-NEXUS Build System$(NC)"
+	@echo "$(BLUE)KNIRV-SERVER Build System$(NC)"
 	@echo ""
 	@echo "$(YELLOW)Available targets:$(NC)"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)

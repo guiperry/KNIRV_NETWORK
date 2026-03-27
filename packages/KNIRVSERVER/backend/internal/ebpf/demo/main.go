@@ -1,7 +1,7 @@
-// Copyright 2026 KNIRV-NEXUS
+// Copyright 2026 KNIRV-SERVER
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// This demo shows how the eBPF integration would be used in KNIRV-NEXUS
+// This demo shows how the eBPF integration would be used in KNIRV-SERVER
 // Note: This requires root privileges to run actual eBPF programs
 
 package main
@@ -16,7 +16,7 @@ import (
 )
 
 func main() {
-	fmt.Println("KNIRV-NEXUS eBPF Integration Demo")
+	fmt.Println("KNIRV-SERVER eBPF Integration Demo")
 	fmt.Println("==================================")
 
 	// Create eBPF Manager

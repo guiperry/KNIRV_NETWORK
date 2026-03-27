@@ -46,7 +46,7 @@ func NewNetworkValidator() *NetworkValidator {
 				HealthURL: "http://localhost:8082/height",
 			},
 			"knirvserver": {
-				Name:      "KNIRV-NEXUS",
+				Name:      "KNIRV-SERVER",
 				URL:       "http://localhost:8083",
 				HealthURL: "http://localhost:8083/health",
 			},

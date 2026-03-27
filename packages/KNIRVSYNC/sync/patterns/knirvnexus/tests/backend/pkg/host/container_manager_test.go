@@ -115,10 +115,10 @@ func TestContainerManager_GetKNIRVContainers(t *testing.T) {
 
 	// Add test containers
 	knirvContainer := &Container{
-		ID:                "knirv123",
-		Name:              "knirv-server",
-		IsKNIRVContainer:  true,
-		ServiceType:       "nexus",
+		ID:               "knirv123",
+		Name:             "knirv-server",
+		IsKNIRVContainer: true,
+		ServiceType:      "nexus",
 	}
 	regularContainer := &Container{
 		ID:   "regular123",
@@ -186,12 +186,12 @@ func TestContainerManager_identifyKNIRVContainer(t *testing.T) {
 	}
 
 	tests := []struct {
-		name             string
-		containerName    string
-		containerImage   string
-		expectedKNIRV    bool
-		expectedService  string
-		expectedP2P      bool
+		name            string
+		containerName   string
+		containerImage  string
+		expectedKNIRV   bool
+		expectedService string
+		expectedP2P     bool
 	}{
 		{"KNIRV nexus", "knirv-server", "knirv/nexus:latest", true, "knirv-other", false},
 		{"DVE manager", "dve-manager", "knirv/dve:latest", true, "dve-manager", true},
@@ -234,11 +234,11 @@ func TestContainerManager_identifyKNIRVNetwork(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		networkName    string
-		expectedKNIRV  bool
-		expectedP2P    bool
-		expectedEnc    bool
+		name          string
+		networkName   string
+		expectedKNIRV bool
+		expectedP2P   bool
+		expectedEnc   bool
 	}{
 		{"KNIRV network", "knirv-server", true, false, true},
 		{"P2P network", "knirv-p2p", true, true, true},
@@ -531,15 +531,15 @@ func TestContainerManager_identifyKNIRVContainer_EdgeCases(t *testing.T) {
 	}
 
 	tests := []struct {
-		name             string
-		containerName    string
-		containerImage   string
-		expectedKNIRV    bool
-		expectedService  string
-		expectedP2P      bool
+		name            string
+		containerName   string
+		containerImage  string
+		expectedKNIRV   bool
+		expectedService string
+		expectedP2P     bool
 	}{
 		{"empty name and image", "", "", false, "", false},
-		{"uppercase KNIRV", "KNIRV-NEXUS", "KNIRV/NEXUS:LATEST", true, "knirv-other", false},
+		{"uppercase KNIRV", "KNIRV-SERVER", "KNIRV/NEXUS:LATEST", true, "knirv-other", false},
 		{"mixed case", "Dve-Manager", "knirv/dve:latest", true, "dve-manager", true},
 		{"partial match", "myknirvapp", "nginx:latest", true, "knirv-other", false},
 		{"no match", "postgres", "postgres:13", false, "", false},
@@ -576,14 +576,14 @@ func TestContainerManager_identifyKNIRVNetwork_EdgeCases(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		networkName    string
-		expectedKNIRV  bool
-		expectedP2P    bool
-		expectedEnc    bool
+		name          string
+		networkName   string
+		expectedKNIRV bool
+		expectedP2P   bool
+		expectedEnc   bool
 	}{
 		{"empty name", "", false, false, false},
-		{"uppercase KNIRV", "KNIRV-NEXUS", true, false, true},
+		{"uppercase KNIRV", "KNIRV-SERVER", true, false, true},
 		{"partial match", "myknirvnet", true, false, true},
 		{"no match", "bridge", false, false, false},
 		{"p2p network", "knirv-p2p-net", true, true, true},

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# KNIRV-NEXUS Frontend Test Script
+# KNIRV-SERVER Frontend Test Script
 # Tests role-based access, real-time updates, and cross-browser compatibility
 
 set -e
@@ -302,7 +302,7 @@ test_responsive_design() {
 
 # Main test execution
 main() {
-    log "Starting KNIRV-NEXUS Frontend Test Suite"
+    log "Starting KNIRV-SERVER Frontend Test Suite"
     log "Project root: $PROJECT_ROOT"
     log "Test results will be saved to: $TEST_DIR"
     

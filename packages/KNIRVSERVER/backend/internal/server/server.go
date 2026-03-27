@@ -1,4 +1,4 @@
-// Copyright 2026 KNIRV-NEXUS
+// Copyright 2026 KNIRV-SERVER
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 package nexus
@@ -48,7 +48,7 @@ type NexusMemoryServer struct {
 	guardianManager *ebpf.NexusGuardianManager
 	eventsChan      <-chan ebpf.NexusGuardianGuardianEvent
 	memoryProvider  ActiveMemoryProvider
-	
+
 	intentsMu sync.Mutex
 	intents   map[uint32]*Intent // Map PID to Intent
 
@@ -104,11 +104,11 @@ func (s *NexusMemoryServer) StartGuardian() error {
 				intentStr = intent.IntentStr
 			}
 
-			observedAction := fmt.Sprintf("[%s] connect to %s:%d", 
+			observedAction := fmt.Sprintf("[%s] connect to %s:%d",
 				int8ArrayToString(event.Comm),
-				intToIP(event.Addr), 
+				intToIP(event.Addr),
 				ntohs(event.Port))
-			
+
 			verified := s.correlate(intentStr, observedAction)
 
 			fe := FabricEvent{
@@ -219,7 +219,7 @@ func (s *NexusMemoryServer) RegisterRoutes(router *mux.Router) {
 func (s *NexusMemoryServer) HandleGetEvents(w http.ResponseWriter, r *http.Request) {
 	s.recentEventsMu.Lock()
 	defer s.recentEventsMu.Unlock()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(s.recentEvents)
 }
@@ -238,7 +238,7 @@ func int8ArrayToString(arr [16]int8) string {
 
 // Helper: convert uint32 to IP string
 func intToIP(nn uint32) string {
-	return fmt.Sprintf("%d.%d.%d.%d", 
+	return fmt.Sprintf("%d.%d.%d.%d",
 		byte(nn), byte(nn>>8), byte(nn>>16), byte(nn>>24))
 }
 

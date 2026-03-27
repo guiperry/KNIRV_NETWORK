@@ -184,11 +184,11 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       });
     }
 
-    // KNIRV-NEXUS endpoints
+    // KNIRV-SERVER endpoints
     if (this.config.enableNexusIntegration) {
       this.registerEndpoint({
         id: 'knirv-nexus',
-        name: 'KNIRV-NEXUS',
+        name: 'KNIRV-SERVER',
         url: 'http://localhost:8081',
         protocol: 'http',
         authentication: { type: 'none' },
@@ -230,7 +230,7 @@ export class EcosystemCommunicationLayer extends EventEmitter {
       const message = args[0] as EcosystemMessage;
       console.log('Handling skill execution request:', message.payload);
       
-      // Route to KNIRV-NEXUS for execution
+      // Route to KNIRV-SERVER for execution
       const response = await this.sendMessage({
         from: 'knirv-cortex',
         to: 'knirv-nexus',

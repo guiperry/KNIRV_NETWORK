@@ -1,0 +1,120 @@
+.statsCard {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.statsCard:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.icon {
+  font-size: 2rem;
+}
+
+.trend {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.trendPositive {
+  color: #4ade80;
+}
+
+.trendNegative {
+  color: #f87171;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.value {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.title {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Color themes */
+.blue {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.blue .icon {
+  color: #60a5fa;
+}
+
+.blue:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.green {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.1));
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.green .icon {
+  color: #4ade80;
+}
+
+.green:hover {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.purple {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.purple .icon {
+  color: #60a5fa;
+}
+
+.purple:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.orange {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.1), rgba(249, 115, 22, 0.1));
+  border-color: rgba(251, 146, 60, 0.2);
+}
+
+.orange .icon {
+  color: #fb923c;
+}
+
+.orange:hover {
+  border-color: rgba(251, 146, 60, 0.4);
+}
+
+.red {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.red .icon {
+  color: #f87171;
+}
+
+.red:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+}

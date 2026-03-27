@@ -1,4 +1,4 @@
-# Minimal KNIRV-NEXUS configuration for testnet
+# Minimal KNIRV-SERVER configuration for testnet
 mode: headless
 testnet: true
 chain_id: knirv-server-testnet

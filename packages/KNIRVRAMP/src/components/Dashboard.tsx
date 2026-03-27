@@ -189,7 +189,7 @@ const Dashboard = ({
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2">Deploy to DVE</h3>
                 <p className="text-slate-300 text-sm">
-                  Deploy to KNIRV-NEXUS distributed validation environment
+                  Deploy to KNIRV-SERVER distributed validation environment
                 </p>
               </CardContent>
             </Card>

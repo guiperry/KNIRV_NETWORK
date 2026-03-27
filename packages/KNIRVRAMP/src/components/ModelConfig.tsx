@@ -939,7 +939,7 @@ const ModelConfig = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-white font-medium">KNIRV Nexus</h4>
-                      <p className="text-sm text-slate-400">Deploy to KNIRV-NEXUS cloud portal</p>
+                      <p className="text-sm text-slate-400">Deploy to KNIRV-SERVER cloud portal</p>
                     </div>
                     <Switch
                       checked={deploymentTargets.knirvserver}

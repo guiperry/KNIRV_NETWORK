@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="../assets/favicon.png">
+    <title>KNIRV Slide Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        :root {
+            --primary-purple: #7c3aed;
+            --secondary-blue: #3b82f6;
+            --dark-bg: #0a0e27;
+            --glass-bg: rgba(124, 58, 237, 0.1);
+            --glass-border: rgba(124, 58, 237, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background: var(--dark-bg);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .viewer-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide-frame {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        .slide-content {
+            width: 100%;
+            height: 100%;
+            max-width: min(95vw, calc(95vh * 16/9));
+            max-height: min(95vh, calc(95vw * 9/16));
+            aspect-ratio: 16/9;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--glass-border);
+        }
+
+        .slide-content iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .navigation {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50px;
+            padding: 15px 25px;
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+
+        .navigation.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .nav-button {
+            background: var(--primary-purple);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 24px;
+        }
+
+        .nav-button:hover {
+            background: var(--secondary-blue);
+            transform: scale(1.1);
+        }
+
+        .nav-button:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .slide-counter {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            min-width: 120px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .fullscreen-btn {
+            background: var(--secondary-blue);
+            border: none;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 24px;
+        }
+
+        .fullscreen-btn:hover {
+            background: var(--primary-purple);
+            transform: scale(1.1);
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            padding: 10px 20px;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: var(--primary-purple);
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 18px;
+            color: var(--primary-purple);
+        }
+
+        .error {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            font-size: 18px;
+            color: #ef4444;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Fullscreen styles */
+        .fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            background: #000 !important;
+        }
+
+        .fullscreen .slide-content {
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            border-radius: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .fullscreen .back-btn {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .fullscreen .navigation {
+            position: fixed !important;
+            bottom: 20px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            z-index: 10000 !important;
+        }
+
+        /* Auto-hide navigation in fullscreen */
+        .fullscreen .navigation.auto-hide {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .fullscreen:hover .navigation.auto-hide {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        @media (max-width: 768px) {
+            .slide-content {
+                max-width: 100vw !important;
+                max-height: 100vh !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                border-radius: 0 !important;
+            }
+
+            .navigation {
+                bottom: 20px;
+                padding: 10px 20px;
+                gap: 15px;
+            }
+
+            .nav-button, .fullscreen-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+
+            .slide-counter {
+                padding: 8px 16px;
+                font-size: 12px;
+                min-width: 100px;
+            }
+
+            .back-btn {
+                top: 10px;
+                left: 10px;
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .slide-content {
+                max-width: 100vw !important;
+                max-height: 100vh !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                border-radius: 0 !important;
+            }
+
+            .navigation {
+                bottom: 15px;
+                padding: 8px 15px;
+                gap: 10px;
+            }
+
+            .nav-button, .fullscreen-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+            }
+
+            .slide-counter {
+                padding: 6px 12px;
+                font-size: 11px;
+                min-width: 80px;
+            }
+
+            .back-btn {
+                top: 8px;
+                left: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="viewer-container" id="viewerContainer">
+        <a href="#" class="back-btn" id="backBtn" onclick="goBackToIndex()">
+            <i class="material-icons">arrow_back</i>
+            Back to Presentations
+        </a>
+
+        <div class="slide-frame">
+            <div class="slide-content" id="slideContent">
+                <div class="loading">Loading slide...</div>
+            </div>
+        </div>
+
+        <div class="navigation" id="navigation">
+            <button class="nav-button" id="prevBtn">
+                <i class="material-icons">chevron_left</i>
+            </button>
+            <div class="slide-counter">
+                <span id="currentSlide">1</span> / <span id="totalSlides">1</span>
+            </div>
+            <button class="nav-button" id="nextBtn">
+                <i class="material-icons">chevron_right</i>
+            </button>
+            <button class="fullscreen-btn" id="fullscreenBtn">
+                <i class="material-icons">fullscreen</i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Helper function to get base path
+        function getBasePath() {
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/presenter')) {
+                return '/presenter/';
+            } else {
+                return '';
+            }
+        }
+
+        // Function to go back to index with proper path
+        function goBackToIndex() {
+            const basePath = getBasePath();
+            window.location.href = `${basePath}index.html`;
+        }
+
+        class SlideViewer {
+            constructor() {
+                this.currentPresentation = null;
+                this.currentSlide = 1;
+                this.totalSlides = 1;
+                this.isFullscreen = false;
+                this.autoHideTimer = null;
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.loadFromURL();
+            }
+
+            initializeElements() {
+                this.viewerContainer = document.getElementById('viewerContainer');
+                this.slideContent = document.getElementById('slideContent');
+                this.prevBtn = document.getElementById('prevBtn');
+                this.nextBtn = document.getElementById('nextBtn');
+                this.fullscreenBtn = document.getElementById('fullscreenBtn');
+                this.navigation = document.getElementById('navigation');
+                this.currentSlideSpan = document.getElementById('currentSlide');
+                this.totalSlidesSpan = document.getElementById('totalSlides');
+                this.backBtn = document.getElementById('backBtn');
+            }
+
+            bindEvents() {
+                this.prevBtn.addEventListener('click', () => this.previousSlide());
+                this.nextBtn.addEventListener('click', () => this.nextSlide());
+                this.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowLeft') this.previousSlide();
+                    if (e.key === 'ArrowRight') this.nextSlide();
+                    if (e.key === 'Escape') this.exitFullscreen();
+                    if (e.key === 'f' || e.key === 'F') this.toggleFullscreen();
+                    if (e.key >= '1' && e.key <= '9') {
+                        const slideNum = parseInt(e.key);
+                        if (slideNum <= this.totalSlides) {
+                            this.goToSlide(slideNum);
+                        }
+                    }
+                });
+
+                // Listen for browser fullscreen changes
+                document.addEventListener('fullscreenchange', () => this.handleFullscreenChange());
+                document.addEventListener('webkitfullscreenchange', () => this.handleFullscreenChange());
+                document.addEventListener('msfullscreenchange', () => this.handleFullscreenChange());
+
+                // Auto-hide navigation in fullscreen
+                this.viewerContainer.addEventListener('mousemove', () => this.resetAutoHide());
+                this.viewerContainer.addEventListener('mouseleave', () => this.startAutoHide());
+            }
+
+            loadFromURL() {
+                const urlParams = new URLSearchParams(window.location.search);
+                this.currentPresentation = urlParams.get('presentation');
+                this.currentSlide = parseInt(urlParams.get('slide')) || 1;
+                this.totalSlides = parseInt(urlParams.get('total')) || 1;
+                this.isShared = urlParams.get('shared') === 'true';
+
+                if (!this.currentPresentation) {
+                    this.showError('No presentation specified. Please return to the main page.');
+                    return;
+                }
+
+                // Hide back button for shared presentations
+                if (this.isShared) {
+                    this.backBtn.style.display = 'none';
+                }
+
+                this.updateUI();
+                this.loadSlide();
+            }
+
+            async loadSlide() {
+                if (!this.currentPresentation) return;
+
+                const slidePath = `presentations/${this.currentPresentation}/Slide_${this.currentSlide}.html`;
+                console.log('Loading slide from:', slidePath);
+                this.slideContent.innerHTML = '<div class="loading">Loading slide...</div>';
+
+                try {
+                    const response = await fetch(slidePath + '?t=' + Date.now());
+                    console.log('Response status:', response.status, response.statusText);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const html = await response.text();
+                    console.log('HTML loaded, length:', html.length);
+
+                    // Create iframe for isolated slide display
+                    const iframe = document.createElement('iframe');
+                    iframe.style.width = '100%';
+                    iframe.style.height = '100%';
+                    iframe.style.border = 'none';
+
+                    this.slideContent.innerHTML = '';
+                    this.slideContent.appendChild(iframe);
+
+                    // Write slide content to iframe
+                    iframe.contentDocument.open();
+                    iframe.contentDocument.write(html);
+                    iframe.contentDocument.close();
+
+                    // Update URL without page reload
+                    this.updateURL();
+
+                } catch (error) {
+                    console.error('Error loading slide:', error);
+                    this.showError(`Failed to load slide ${this.currentSlide}: ${error.message}`);
+                }
+            }
+
+            showError(message) {
+                this.slideContent.innerHTML = `
+                    <div class="error">
+                        <div>
+                            <i class="material-icons" style="font-size: 48px; margin-bottom: 10px;">error_outline</i><br>
+                            ${message}
+                        </div>
+                    </div>
+                `;
+            }
+
+            previousSlide() {
+                if (this.currentSlide > 1) {
+                    this.currentSlide--;
+                    this.loadSlide();
+                    this.updateUI();
+                }
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides) {
+                    this.currentSlide++;
+                    this.loadSlide();
+                    this.updateUI();
+                }
+            }
+
+            goToSlide(slideNumber) {
+                if (slideNumber >= 1 && slideNumber <= this.totalSlides) {
+                    this.currentSlide = slideNumber;
+                    this.loadSlide();
+                    this.updateUI();
+                }
+            }
+
+            updateUI() {
+                this.currentSlideSpan.textContent = this.currentSlide;
+                this.totalSlidesSpan.textContent = this.totalSlides;
+
+                this.prevBtn.disabled = this.currentSlide === 1;
+                this.nextBtn.disabled = this.currentSlide === this.totalSlides;
+            }
+
+            updateURL() {
+                const url = new URL(window.location);
+                url.searchParams.set('slide', this.currentSlide);
+                window.history.replaceState({}, '', url);
+            }
+
+            toggleFullscreen() {
+                if (this.isFullscreen) {
+                    this.exitFullscreen();
+                } else {
+                    this.enterFullscreen();
+                }
+            }
+
+            async enterFullscreen() {
+                try {
+                    // Try browser fullscreen API first
+                    if (document.documentElement.requestFullscreen) {
+                        await document.documentElement.requestFullscreen();
+                    } else if (document.documentElement.webkitRequestFullscreen) {
+                        await document.documentElement.webkitRequestFullscreen();
+                    } else if (document.documentElement.msRequestFullscreen) {
+                        await document.documentElement.msRequestFullscreen();
+                    }
+
+                    // Add our custom fullscreen class
+                    this.viewerContainer.classList.add('fullscreen');
+                    this.fullscreenBtn.innerHTML = '<i class="material-icons">fullscreen_exit</i>';
+                    this.isFullscreen = true;
+                    this.startAutoHide();
+
+                } catch (error) {
+                    console.log('Browser fullscreen not supported, using custom fullscreen');
+                    // Fallback to custom fullscreen
+                    this.viewerContainer.classList.add('fullscreen');
+                    this.fullscreenBtn.innerHTML = '<i class="material-icons">fullscreen_exit</i>';
+                    this.isFullscreen = true;
+                    this.startAutoHide();
+                }
+            }
+
+            exitFullscreen() {
+                // Exit browser fullscreen if active
+                if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                }
+
+                // Remove our custom fullscreen class
+                this.viewerContainer.classList.remove('fullscreen');
+                this.fullscreenBtn.innerHTML = '<i class="material-icons">fullscreen</i>';
+                this.isFullscreen = false;
+                this.navigation.classList.remove('auto-hide');
+                this.clearAutoHide();
+            }
+
+            handleFullscreenChange() {
+                const isInBrowserFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+
+                if (!isInBrowserFullscreen && this.isFullscreen) {
+                    // User exited fullscreen via browser (ESC key), update our state
+                    this.viewerContainer.classList.remove('fullscreen');
+                    this.fullscreenBtn.innerHTML = '<i class="material-icons">fullscreen</i>';
+                    this.isFullscreen = false;
+                    this.navigation.classList.remove('auto-hide');
+                    this.clearAutoHide();
+                }
+            }
+
+            startAutoHide() {
+                if (this.isFullscreen) {
+                    this.clearAutoHide();
+                    this.autoHideTimer = setTimeout(() => {
+                        this.navigation.classList.add('auto-hide');
+                    }, 3000);
+                }
+            }
+
+            resetAutoHide() {
+                if (this.isFullscreen) {
+                    this.navigation.classList.remove('auto-hide');
+                    this.startAutoHide();
+                }
+            }
+
+            clearAutoHide() {
+                if (this.autoHideTimer) {
+                    clearTimeout(this.autoHideTimer);
+                    this.autoHideTimer = null;
+                }
+            }
+        }
+
+        // Initialize the viewer when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlideViewer();
+        });
+    </script>
+</body>
+</html>

@@ -549,7 +549,7 @@ func TestContainerManager_identifyKNIRVContainer_EdgeCases(t *testing.T) {
 		expectedP2P     bool
 	}{
 		{"empty name and image", "", "", false, "", false},
-		{"uppercase KNIRV", "KNIRV-NEXUS", "KNIRV/NEXUS:LATEST", true, "knirv-other", false},
+		{"uppercase KNIRV", "KNIRV-SERVER", "KNIRV/NEXUS:LATEST", true, "knirv-other", false},
 		{"mixed case", "Dve-Manager", "knirv/dve:latest", true, "dve-manager", true},
 		{"partial match", "myknirvapp", "nginx:latest", true, "knirv-other", false},
 		{"no match", "postgres", "postgres:13", false, "", false},
@@ -593,7 +593,7 @@ func TestContainerManager_identifyKNIRVNetwork_EdgeCases(t *testing.T) {
 		expectedEnc   bool
 	}{
 		{"empty name", "", false, false, false},
-		{"uppercase KNIRV", "KNIRV-NEXUS", true, false, true},
+		{"uppercase KNIRV", "KNIRV-SERVER", true, false, true},
 		{"partial match", "myknirvnet", true, false, true},
 		{"no match", "bridge", false, false, false},
 		{"p2p network", "knirv-p2p-net", true, true, true},

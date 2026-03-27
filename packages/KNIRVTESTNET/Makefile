@@ -23,7 +23,7 @@ help: ## Show this help message
 	@echo "  build-oracle       Build KNIRV-ORACLE"
 	@echo "  build-chain      Build KNIRVCHAIN"
 	@echo "  build-graph      Build KNIRVGRAPH"
-	@echo "  build-nexus      Build KNIRV-NEXUS"
+	@echo "  build-nexus      Build KNIRV-SERVER"
 	@echo "  build-router     Build KNIRV-ROUTER"
 	@echo "  build-gateway    Build KNIRV-GATEWAY"
 	@echo ""
@@ -78,8 +78,8 @@ build-graph: ## Build KNIRVGRAPH
 	@echo "$(BLUE)Building KNIRVGRAPH...$(NC)"
 	@$(SCRIPTS_DIR)/build-knirvgraph.sh
 
-build-nexus: ## Build KNIRV-NEXUS
-	@echo "$(BLUE)Building KNIRV-NEXUS...$(NC)"
+build-nexus: ## Build KNIRV-SERVER
+	@echo "$(BLUE)Building KNIRV-SERVER...$(NC)"
 	@$(SCRIPTS_DIR)/build-knirvserver.sh
 
 build-router: ## Build KNIRV-ROUTER

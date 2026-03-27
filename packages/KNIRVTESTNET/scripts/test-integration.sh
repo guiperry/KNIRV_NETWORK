@@ -293,7 +293,7 @@ test_cross_service_communication() {
         test_passed "KNIRVCHAIN mock skill validation checked (implementation pending)"
     fi
 
-    # Test KNIRV-NEXUS TEE simulation (flexible - may not be implemented)
+    # Test KNIRV-SERVER TEE simulation (flexible - may not be implemented)
     local tee_payload='{"skill_code":"test","test_cases":[{"input":"test","expected":"test","name":"test"}]}'
     local tee_response=$(curl -s --max-time "$TIMEOUT" \
         -H "Content-Type: application/json" \
@@ -301,10 +301,10 @@ test_cross_service_communication() {
         "http://localhost:$KNIRVSERVER_PORT/testnet/validate/skill" 2>/dev/null)
 
     if echo "$tee_response" | grep -q '"valid":true'; then
-        test_passed "KNIRV-NEXUS TEE simulation works"
+        test_passed "KNIRV-SERVER TEE simulation works"
     else
-        print_verbose "KNIRV-NEXUS TEE simulation not fully implemented yet"
-        test_passed "KNIRV-NEXUS TEE simulation checked (implementation pending)"
+        print_verbose "KNIRV-SERVER TEE simulation not fully implemented yet"
+        test_passed "KNIRV-SERVER TEE simulation checked (implementation pending)"
     fi
 }
 
@@ -350,7 +350,7 @@ perform_integration_tests() {
     test_http_endpoint "KNIRV-ORACLE" "http://localhost:$KNIRVORACLE_PORT/health" 200 "ok"
     test_http_endpoint "KNIRVCHAIN" "http://localhost:$KNIRVCHAIN_PORT/health" 200 "healthy"
     test_http_endpoint "KNIRVGRAPH" "http://localhost:$KNIRVGRAPH_PORT/height" 200
-    test_http_endpoint "KNIRV-NEXUS" "http://localhost:$KNIRVSERVER_PORT/health" 200 "healthy"
+    test_http_endpoint "KNIRV-SERVER" "http://localhost:$KNIRVSERVER_PORT/health" 200 "healthy"
     test_http_endpoint "KNIRV-ROUTER" "http://localhost:$KNIRVROUTER_PORT/status" 200
     test_http_endpoint "KNIRV-GATEWAY" "http://localhost:$KNIRVGATEWAY_PORT/gateway/health" 200 "healthy"
     echo ""

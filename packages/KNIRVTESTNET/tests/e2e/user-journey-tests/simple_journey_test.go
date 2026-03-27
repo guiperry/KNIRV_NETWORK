@@ -128,12 +128,12 @@ func TestServiceConnectivity(t *testing.T) {
 	client := &http.Client{Timeout: Timeout}
 
 	services := map[string]string{
-		"KNIRV-ORACLE":      "http://localhost:1317/health",
-		"KNIRVCHAIN":      "http://localhost:8090/health",
-		"KNIRVGRAPH":      "http://localhost:8082/height",
-		"KNIRV-NEXUS-DVE": "http://localhost:8084/health",
-		"KNIRV-NEXUS-VAL": "http://localhost:8085/health",
-		"KNIRV-ROUTER":    "http://localhost:8086/status",
+		"KNIRV-ORACLE":     "http://localhost:1317/health",
+		"KNIRVCHAIN":       "http://localhost:8090/health",
+		"KNIRVGRAPH":       "http://localhost:8082/height",
+		"KNIRV-SERVER-DVE": "http://localhost:8084/health",
+		"KNIRV-SERVER-VAL": "http://localhost:8085/health",
+		"KNIRV-ROUTER":     "http://localhost:8086/status",
 	}
 
 	for serviceName, endpoint := range services {

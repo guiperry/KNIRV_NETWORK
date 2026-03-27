@@ -19,7 +19,6 @@ import (
 	"time"
 )
 
-
 //go:embed all:packer-kali-kata/*
 //go:embed all:packer-kali-aws/*
 // Added for Kali Docker image build
@@ -82,7 +81,7 @@ func initDeploymentLog() error {
 	log.SetOutput(multiWriter)
 
 	deploymentLogger.Printf("========================================")
-	deploymentLogger.Printf("KNIRV-NEXUS Deployment Log")
+	deploymentLogger.Printf("KNIRV-SERVER Deployment Log")
 	deploymentLogger.Printf("Started: %s", time.Now().Format("2006-01-02 15:04:05"))
 	deploymentLogger.Printf("Log File: %s", logFilePath)
 	deploymentLogger.Printf("========================================")
@@ -153,7 +152,7 @@ func main() {
 	}
 	defer closeDeploymentLog()
 
-	fmt.Println("KNIRV-NEXUS Deployment Orchestrator")
+	fmt.Println("KNIRV-SERVER Deployment Orchestrator")
 	fmt.Println("----------------------------------")
 
 	if runtime.GOOS != "linux" {
@@ -222,7 +221,7 @@ func main() {
 		fmt.Println("\nSelect an action:")
 		fmt.Println("0. Build base Kali image (packer-base-kali) - only if rebuilding")
 		fmt.Println("1. Build Kali Docker Image")
-		fmt.Println("2. Build KNIRV-NEXUS Kata Container (using Terraform)")
+		fmt.Println("2. Build KNIRV-SERVER Kata Container (using Terraform)")
 		fmt.Println("3. Build AWS AMI (Kali Linux for native deployment)")
 		fmt.Println("4. Exit")
 		fmt.Print("Enter your choice: ")
@@ -544,7 +543,7 @@ func runBuildAWSAMI(resourcesDir, _ string) {
 
 	fmt.Println("\n✓ AWS AMI build completed successfully!")
 	fmt.Println("The AMI is now available in your AWS account and can be used for native deployment.")
-	fmt.Println("Use the container_deployer with --deploy-mode native to deploy KNIRV-NEXUS to EC2.")
+	fmt.Println("Use the container_deployer with --deploy-mode native to deploy KNIRV-SERVER to EC2.")
 }
 
 // isAWSConfigured checks if AWS credentials are configured

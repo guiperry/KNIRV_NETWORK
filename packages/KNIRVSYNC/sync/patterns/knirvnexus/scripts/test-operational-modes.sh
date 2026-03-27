@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# KNIRV-NEXUS Operational Modes Test Script
+# KNIRV-SERVER Operational Modes Test Script
 # Tests both headless and GUI modes with configuration management
 
 set -e
@@ -155,7 +155,7 @@ test_cli_flags() {
     fi
     
     # Test version flag
-    if go run cmd/main.go --version 2>&1 | grep -q "KNIRV-NEXUS"; then
+    if go run cmd/main.go --version 2>&1 | grep -q "KNIRV-SERVER"; then
         success "Version flag works correctly"
     else
         error "Version flag not working"
@@ -244,7 +244,7 @@ test_role_based_access() {
 
 # Main test execution
 main() {
-    log "Starting KNIRV-NEXUS Operational Modes Test Suite"
+    log "Starting KNIRV-SERVER Operational Modes Test Suite"
     log "Project root: $PROJECT_ROOT"
     log "Test results will be saved to: $TEST_DIR"
     

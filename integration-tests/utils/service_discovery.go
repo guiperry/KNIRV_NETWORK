@@ -11,20 +11,20 @@ import (
 
 // ServiceConfig represents configuration for a KNIRV service
 type ServiceConfig struct {
-	Name            string   `json:"name"`
-	URL             string   `json:"url"`
-	HealthEndpoint  string   `json:"health_endpoint"`
-	APIEndpoints    []string `json:"api_endpoints"`
-	Timeout         string   `json:"timeout"`
-	RetryCount      int      `json:"retry_count"`
-	AuthRequired    bool     `json:"auth_required"`
+	Name           string   `json:"name"`
+	URL            string   `json:"url"`
+	HealthEndpoint string   `json:"health_endpoint"`
+	APIEndpoints   []string `json:"api_endpoints"`
+	Timeout        string   `json:"timeout"`
+	RetryCount     int      `json:"retry_count"`
+	AuthRequired   bool     `json:"auth_required"`
 }
 
 // ServiceDiscovery manages service discovery and health checks
 type ServiceDiscovery struct {
-	Services map[string]ServiceConfig
+	Services  map[string]ServiceConfig
 	AuthToken string
-	Client   *http.Client
+	Client    *http.Client
 }
 
 // NewServiceDiscovery creates a new service discovery instance
@@ -63,7 +63,7 @@ func (sd *ServiceDiscovery) LoadServices() error {
 			RetryCount:     3,
 		},
 		"knirvserver": {
-			Name:           "KNIRV-NEXUS",
+			Name:           "KNIRV-SERVER",
 			URL:            getEnvOrDefault("KNIRVNEXUS_URL", "http://localhost:8083"),
 			HealthEndpoint: "/health",
 			APIEndpoints:   []string{"/validate", "/nodes", "/tasks"},
@@ -85,7 +85,7 @@ func (sd *ServiceDiscovery) LoadServices() error {
 			RetryCount:     3,
 		},
 	}
-	
+
 	sd.Services = services
 	return nil
 }
@@ -94,32 +94,32 @@ func (sd *ServiceDiscovery) LoadServices() error {
 func (sd *ServiceDiscovery) GetAuthToken() error {
 	gatewayURL := sd.Services["knirvgateway"].URL
 	tokenURL := fmt.Sprintf("%s/auth/testnet-tokens", gatewayURL)
-	
+
 	resp, err := sd.Client.Get(tokenURL)
 	if err != nil {
 		return fmt.Errorf("failed to get auth token: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("auth token request failed with status: %d", resp.StatusCode)
 	}
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read auth response: %w", err)
 	}
-	
+
 	var tokenResponse map[string]interface{}
 	if err := json.Unmarshal(body, &tokenResponse); err != nil {
 		return fmt.Errorf("failed to parse auth response: %w", err)
 	}
-	
+
 	if token, ok := tokenResponse["token"].(string); ok {
 		sd.AuthToken = token
 		return nil
 	}
-	
+
 	return fmt.Errorf("no token found in auth response")
 }
 
@@ -129,32 +129,32 @@ func (sd *ServiceDiscovery) CheckServiceHealth(serviceName string) (bool, error)
 	if !exists {
 		return false, fmt.Errorf("service %s not found", serviceName)
 	}
-	
+
 	healthURL := fmt.Sprintf("%s%s", service.URL, service.HealthEndpoint)
-	
+
 	req, err := http.NewRequest("GET", healthURL, nil)
 	if err != nil {
 		return false, fmt.Errorf("failed to create health check request: %w", err)
 	}
-	
+
 	// Add auth token if required
 	if service.AuthRequired && sd.AuthToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", sd.AuthToken))
 	}
-	
+
 	resp, err := sd.Client.Do(req)
 	if err != nil {
 		return false, fmt.Errorf("health check request failed: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	return resp.StatusCode == http.StatusOK, nil
 }
 
 // CheckAllServices checks health of all services
 func (sd *ServiceDiscovery) CheckAllServices() map[string]bool {
 	results := make(map[string]bool)
-	
+
 	for serviceName := range sd.Services {
 		healthy, err := sd.CheckServiceHealth(serviceName)
 		if err != nil {
@@ -164,23 +164,23 @@ func (sd *ServiceDiscovery) CheckAllServices() map[string]bool {
 			results[serviceName] = healthy
 		}
 	}
-	
+
 	return results
 }
 
 // WaitForService waits for a service to become healthy
 func (sd *ServiceDiscovery) WaitForService(serviceName string, timeout time.Duration) error {
 	start := time.Now()
-	
+
 	for time.Since(start) < timeout {
 		healthy, err := sd.CheckServiceHealth(serviceName)
 		if err == nil && healthy {
 			return nil
 		}
-		
+
 		time.Sleep(2 * time.Second)
 	}
-	
+
 	return fmt.Errorf("service %s did not become healthy within %v", serviceName, timeout)
 }
 
@@ -190,18 +190,18 @@ func (sd *ServiceDiscovery) MakeAuthenticatedRequest(serviceName, endpoint strin
 	if !exists {
 		return nil, fmt.Errorf("service %s not found", serviceName)
 	}
-	
+
 	url := fmt.Sprintf("%s%s", service.URL, endpoint)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	// Add auth token if required
 	if service.AuthRequired && sd.AuthToken != "" {
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", sd.AuthToken))
 	}
-	
+
 	return sd.Client.Do(req)
 }
 

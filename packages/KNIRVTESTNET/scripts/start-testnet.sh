@@ -435,7 +435,7 @@ print_status "Memory allocation strategy with optimizations:"
 print_status "  KNIRV-ORACLE: No limit (Go 1.23.3 compatibility) + P2P disabled (-50-70% memory)"
 print_status "  KNIRVCHAIN: 120MB (smart contracts) + Auto-mining disabled (-80% CPU)"
 print_status "  KNIRVGRAPH: No limit (Go 1.23.3 compatibility) + Reduced max nodes (-50% memory)"
-print_status "  KNIRV-NEXUS: No limit (Go 1.23.3 compatibility) + Mock validation (-70% CPU)"
+print_status "  KNIRV-SERVER: No limit (Go 1.23.3 compatibility) + Mock validation (-70% CPU)"
 print_status "  KNIRV-ROUTER: No limit (Go 1.23.1 compatibility) + Local network mode (-60% network)"
 print_status "  KNIRV-GATEWAY: 136MB (optimized for testnet)"
 print_status "  Total limited: 256MB + Go applications (ORACLE, GRAPH, NEXUS, ROUTER managed by system)"
@@ -471,16 +471,16 @@ else
     exit 1
 fi
 
-# 4. Start KNIRV-NEXUS (optional - for private/corporate testing only)
+# 4. Start KNIRV-SERVER (optional - for private/corporate testing only)
 if [ -f "bin/knirvserver" ]; then
-    print_status "Starting KNIRV-NEXUS (optional - private testing mode)..."
+    print_status "Starting KNIRV-SERVER (optional - private testing mode)..."
     if ./scripts/start-knirvserver.sh; then
-        wait_for_service "KNIRV-NEXUS" "8084" "/" "data/knirvserver.pid" || print_warning "KNIRV-NEXUS health check failed, continuing..."
+        wait_for_service "KNIRV-SERVER" "8084" "/" "data/knirvserver.pid" || print_warning "KNIRV-SERVER health check failed, continuing..."
     else
-        print_warning "Failed to start KNIRV-NEXUS, continuing without it..."
+        print_warning "Failed to start KNIRV-SERVER, continuing without it..."
     fi
 else
-    print_status "Skipping KNIRV-NEXUS (not found - public testnet mode)"
+    print_status "Skipping KNIRV-SERVER (not found - public testnet mode)"
 fi
 
 # 5. Start KNIRV-ROUTER (network routing)
@@ -589,7 +589,7 @@ if [ -f "data/knirvserver.pid" ]; then
     if [ -n "$NEXUS_PID" ] && kill -0 "$NEXUS_PID" 2>/dev/null; then
         echo ""
         echo "Private Testing Services (Corporate):"
-        echo "  🔒 KNIRV-NEXUS:   http://localhost:8084 (API) / http://localhost:8083 (GUI)"
+        echo "  🔒 KNIRV-SERVER:   http://localhost:8084 (API) / http://localhost:8083 (GUI)"
     fi
 fi
 
@@ -636,7 +636,7 @@ echo "Resource Optimizations Enabled:"
 echo "  🔧 KNIRV-ORACLE: P2P messaging disabled (50-70% memory reduction, 90% network reduction)"
 echo "  🔧 KNIRVCHAIN: Auto-mining disabled (80% CPU reduction, 20% memory reduction)"
 echo "  🔧 KNIRVGRAPH: Reduced max nodes to 250 (50% memory reduction), in-memory storage"
-echo "  🔧 KNIRV-NEXUS: Mock validation enabled (70% CPU reduction), testnet mode"
+echo "  🔧 KNIRV-SERVER: Mock validation enabled (70% CPU reduction), testnet mode"
 echo "  🔧 KNIRV-ROUTER: Local network mode (60% network reduction), increased mining difficulty (50% CPU reduction), reduced connectivity logging (80% log reduction)"
 echo "  🔧 Combined impact: Massive reduction in resource usage for testnet environment"
 echo ""

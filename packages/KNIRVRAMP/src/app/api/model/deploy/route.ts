@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// KNIRV-NEXUS API integration
+// KNIRV-SERVER API integration
 const NEXUS_API_BASE = process.env.NEXUS_API_BASE || 'http://localhost:8080';
 const NEXUS_API_KEY = process.env.NEXUS_API_KEY || '';
 
@@ -10,7 +10,7 @@ const CONTROLLER_API_KEY = process.env.CONTROLLER_API_KEY || '';
 
 async function deployToKNIRVNexus(modelId: string, cortexWasm: Uint8Array, modelConfig: any) {
   try {
-    // Create agent in KNIRV-NEXUS using the agent management API
+    // Create agent in KNIRV-SERVER using the agent management API
     const agentData = {
       id: modelId,
       name: modelConfig.name || `Cortex Model ${modelId}`,
@@ -48,7 +48,7 @@ async function deployToKNIRVNexus(modelId: string, cortexWasm: Uint8Array, model
     });
 
     if (!agentResponse.ok) {
-      throw new Error(`Failed to create agent in KNIRV-NEXUS: ${agentResponse.statusText}`);
+      throw new Error(`Failed to create agent in KNIRV-SERVER: ${agentResponse.statusText}`);
     }
 
     const agentResult = await agentResponse.json();
@@ -75,7 +75,7 @@ async function deployToKNIRVNexus(modelId: string, cortexWasm: Uint8Array, model
     });
 
     if (!deployResponse.ok) {
-      throw new Error(`Failed to deploy agent in KNIRV-NEXUS: ${deployResponse.statusText}`);
+      throw new Error(`Failed to deploy agent in KNIRV-SERVER: ${deployResponse.statusText}`);
     }
 
     return {
@@ -88,7 +88,7 @@ async function deployToKNIRVNexus(modelId: string, cortexWasm: Uint8Array, model
       status: 'deployed'
     };
   } catch (error) {
-    console.error('KNIRV-NEXUS deployment error:', error);
+    console.error('KNIRV-SERVER deployment error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown deployment error'

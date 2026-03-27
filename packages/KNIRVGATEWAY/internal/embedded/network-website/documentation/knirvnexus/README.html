@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KNIRV-NEXUS: Deterministic Validation Environment - KNIRV Network Documentation</title>
+    <title>KNIRV-SERVER: Deterministic Validation Environment - KNIRV Network Documentation</title>
     <link rel="stylesheet" href="../styles.css">
     <script src="../config/portal-links.yaml" type="text/yaml" id="portal-config"></script>
     <script src="../js/config-loader.js"></script>
@@ -28,7 +28,7 @@
             <nav class="doc-nav">
                 <a href="../index.html">← Back to Documentation</a>
             </nav>
-            <h1>KNIRV-NEXUS: Deterministic Validation Environment</h1>
+            <h1>KNIRV-SERVER: Deterministic Validation Environment</h1>
             <p class="doc-description">User guide for KNIRVSERVER</p>
         </div>
     </header>
@@ -36,7 +36,7 @@
     <main class="doc-main">
         <div class="container">
             <article class="doc-content">
-                <p><h1>KNIRV-NEXUS: Deterministic Validation Environment</h1></p><p>KNIRV-NEXUS is a unified implementation of the Deterministic Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable platform for validating SkillNodes and Base LLMs using a modern architecture that combines Next.js frontend with Go backend services in a single deployable binary.</p><p><h2>🏗️ Architecture Overview</h2></p><p>KNIRV-NEXUS implements a <strong>unified architecture</strong> with embedded frontend and backend services:</p><p><h3>Unified Binary Architecture</h3></p><p>- <strong>Main Wrapper</strong> (<code>main.go</code>): Embeds both frontend and backend into a single executable
+                <p><h1>KNIRV-SERVER: Deterministic Validation Environment</h1></p><p>KNIRV-SERVER is a unified implementation of the Deterministic Validation Environment (DVE) for the KNIRV Network. It provides a secure, scalable platform for validating SkillNodes and Base LLMs using a modern architecture that combines Next.js frontend with Go backend services in a single deployable binary.</p><p><h2>🏗️ Architecture Overview</h2></p><p>KNIRV-SERVER implements a <strong>unified architecture</strong> with embedded frontend and backend services:</p><p><h3>Unified Binary Architecture</h3></p><p>- <strong>Main Wrapper</strong> (<code>main.go</code>): Embeds both frontend and backend into a single executable
 - <strong>Frontend Embedding</strong>: Next.js build output embedded via <code>//go:embed all:out</code>
 - <strong>Backend Embedding</strong>: Unified backend binary embedded via <code>//go:embed bin/backend-server</code>
 - <strong>API Proxy</strong>: Gin-based proxy routing <code>/api/*</code> requests to embedded backend
@@ -46,7 +46,7 @@
 - <strong>Data Engine</strong>: BuntDB-based data processing, metrics aggregation, and alerting
 - <strong>CDE Service</strong>: Cloud Development Environments for isolated execution
 - <strong>DNS Service</strong>: Dynamic DNS management for distributed nodes
-- <strong>P2P Manager</strong>: libp2p-based networking for node discovery and communication</p><p>> <strong>Note</strong>: KNIRV-NEXUS integrates with KNIRVGATEWAY for production routing. The unified architecture enables both standalone deployment and gateway integration.</p><p><h3>Frontend Technology Stack</h3></p><p>- <strong>Framework</strong>: Next.js 15 with App Router
+- <strong>P2P Manager</strong>: libp2p-based networking for node discovery and communication</p><p>> <strong>Note</strong>: KNIRV-SERVER integrates with KNIRVGATEWAY for production routing. The unified architecture enables both standalone deployment and gateway integration.</p><p><h3>Frontend Technology Stack</h3></p><p>- <strong>Framework</strong>: Next.js 15 with App Router
 - <strong>UI Components</strong>: shadcn/ui built on Radix UI primitives
 - <strong>Styling</strong>: Tailwind CSS 4 with custom KNIRV theme
 - <strong>Real-time</strong>: Socket.io for live updates and notifications
@@ -84,7 +84,7 @@ make test-nexus-integration   # Integration tests only
 make test-nexus-e2e          # End-to-end tests only
 make test-nexus-performance  # Performance tests only
 make test-nexus-security     # Security tests only
-<code></code>`</p><p><h2>🛠️ Build System</h2></p><p>KNIRV-NEXUS uses a unified build process that creates a single deployable binary containing both frontend and backend:</p><p><h3>Build Process Overview</h3></p><p>1. <strong>Frontend Build</strong>: Next.js builds static output to <code>out/</code> directory
+<code></code>`</p><p><h2>🛠️ Build System</h2></p><p>KNIRV-SERVER uses a unified build process that creates a single deployable binary containing both frontend and backend:</p><p><h3>Build Process Overview</h3></p><p>1. <strong>Frontend Build</strong>: Next.js builds static output to <code>out/</code> directory
 2. <strong>Backend Build</strong>: Go builds unified backend binary to <code>bin/backend-server</code>
 3. <strong>Embedding</strong>: Main wrapper embeds both frontend and backend using <code>go:embed</code>
 4. <strong>Final Binary</strong>: Single executable containing complete application</p><p><h3>Core Build Commands</h3></p><p><code></code>`bash
@@ -331,7 +331,7 @@ KNIRVSERVER/
 ├── server.ts              # Custom server with Socket.io
 ├── tsconfig.json          # TypeScript configuration
 └── README.md              # This file
-<code></code>`</p><p><h2>🔧 API Documentation</h2></p><p>> <strong>Note</strong>: KNIRV-NEXUS APIs are accessed through the primary KNIRVGATEWAY at <code>/api/nexus/*</code> endpoints. Direct service access is available for development and internal communication.</p><p><h3>Direct Service APIs</h3></p><p>KNIRV-NEXUS exposes two main services with direct API access:</p><p><h4>DVE Manager Service (Port 8080)</h4></p><p><code></code>`bash
+<code></code>`</p><p><h2>🔧 API Documentation</h2></p><p>> <strong>Note</strong>: KNIRV-SERVER APIs are accessed through the primary KNIRVGATEWAY at <code>/api/nexus/*</code> endpoints. Direct service access is available for development and internal communication.</p><p><h3>Direct Service APIs</h3></p><p>KNIRV-SERVER exposes two main services with direct API access:</p><p><h4>DVE Manager Service (Port 8080)</h4></p><p><code></code>`bash
 <h1>Health check</h1>
 curl -X GET http://dve-manager:8080/health</p><p><h1>Register a new DVE node</h1>
 curl -X POST http://dve-manager:8080/api/v1/nodes \
@@ -361,7 +361,7 @@ curl -X POST http://validation-core:8081/api/v1/tasks \
   }'</p><p><h1>List validation tasks</h1>
 curl -X GET http://validation-core:8081/api/v1/tasks</p><p><h1>Get validation results</h1>
 curl -X GET http://validation-core:8081/api/v1/results
-<code></code>`</p><p><h3>Gateway Integration</h3></p><p>For production use, access KNIRV-NEXUS through KNIRVGATEWAY:</p><p><code></code>`bash
+<code></code>`</p><p><h3>Gateway Integration</h3></p><p>For production use, access KNIRV-SERVER through KNIRVGATEWAY:</p><p><code></code>`bash
 <h1>Via KNIRVGATEWAY (Production)</h1>
 curl -X GET https://gateway.knirv.network/api/nexus/nodes
 curl -X POST https://gateway.knirv.network/api/nexus/tasks</p><p><h1>Real-time updates via SSE</h1>
@@ -370,7 +370,7 @@ eventSource.addEventListener('nexus-nodes', function(event) {
   const data = JSON.parse(event.data);
   console.log('Node update:', data);
 });
-<code></code>`</p><p><h2>🔧 Operational Modes</h2></p><p>KNIRV-NEXUS supports two operational modes for different deployment scenarios:</p><p><h3>Headless Mode (Default - Production)</h3></p><p><strong>Use Case</strong>: Production deployments, Kubernetes clusters, cloud environments</p><p><code></code>`bash
+<code></code>`</p><p><h2>🔧 Operational Modes</h2></p><p>KNIRV-SERVER supports two operational modes for different deployment scenarios:</p><p><h3>Headless Mode (Default - Production)</h3></p><p><strong>Use Case</strong>: Production deployments, Kubernetes clusters, cloud environments</p><p><code></code>`bash
 <h1>Default headless mode</h1>
 ./dve-manager
 ./validation-core</p><p><h1>With configuration file</h1>
@@ -402,7 +402,7 @@ eventSource.addEventListener('nexus-nodes', function(event) {
 | <strong>Web Interface</strong> | None | Built-in Next.js frontend |
 | <strong>Network Access</strong> | All interfaces | Localhost only |
 | <strong>Resource Usage</strong> | Minimal | Higher (includes web server) |
-| <strong>Security</strong> | Full RBAC + audit | Local access only |</p><p><h2>⚙️ Configuration</h2></p><p><h3>Configuration Management (Viper)</h3></p><p>KNIRV-NEXUS uses <a href="https://github.com/spf13/viper">Viper</a> for professional configuration management with the following hierarchy (highest to lowest precedence):</p><p>1. <strong>CLI Flags</strong>: <code>--gui</code>, <code>--port</code>, <code>--config</code>
+| <strong>Security</strong> | Full RBAC + audit | Local access only |</p><p><h2>⚙️ Configuration</h2></p><p><h3>Configuration Management (Viper)</h3></p><p>KNIRV-SERVER uses <a href="https://github.com/spf13/viper">Viper</a> for professional configuration management with the following hierarchy (highest to lowest precedence):</p><p>1. <strong>CLI Flags</strong>: <code>--gui</code>, <code>--port</code>, <code>--config</code>
 2. <strong>Environment Variables</strong>: <code>KNIRV_GUI_ENABLED</code>, <code>KNIRV_SERVICE_PORT</code>
 3. <strong>Configuration File</strong>: <code>config/knirv-nexus.yaml</code>
 4. <strong>Default Values</strong>: Hardcoded sensible defaults</p><p><h3>Configuration File Structure</h3></p><p><code></code>`yaml
@@ -444,7 +444,7 @@ mode: headless  # headless | gui</p><p>service:
 | <code>KNIRV_JWT_SECRET</code> | JWT signing secret | Required |</p><p><h3>Kubernetes Configuration</h3></p><p>Key configuration files:</p><p>- <code>k8s/namespace.yaml</code>: Namespace and resource quotas
 - <code>k8s/configmap.yaml</code>: Application configuration
 - <code>k8s/secrets.yaml</code>: Sensitive configuration (JWT secrets, TLS certs)
-- <code>k8s/*-deployment.yaml</code>: Service deployments</p><p><h2>🔒 Security</h2></p><p><h3>TEE Support</h3></p><p>KNIRV-NEXUS supports multiple TEE technologies:</p><p>- <strong>Intel SGX</strong>: Hardware-based secure enclaves
+- <code>k8s/*-deployment.yaml</code>: Service deployments</p><p><h2>🔒 Security</h2></p><p><h3>TEE Support</h3></p><p>KNIRV-SERVER supports multiple TEE technologies:</p><p>- <strong>Intel SGX</strong>: Hardware-based secure enclaves
 - <strong>AMD SEV-SNP</strong>: Secure encrypted virtualization
 - <strong>Intel TDX</strong>: Trust domain extensions
 - <strong>Software TEE</strong>: Simulation for development/testing</p><p><h3>Network Security</h3></p><p>- <strong>P2P Encryption</strong>: All P2P communications are encrypted
@@ -453,7 +453,7 @@ mode: headless  # headless | gui</p><p>service:
 - <strong>RBAC</strong>: Role-based access control</p><p><h3>Container Security</h3></p><p>- <strong>Rootless Containers</strong>: Podman-based rootless execution
 - <strong>Minimal Base Images</strong>: Hardened Kali Linux base
 - <strong>Security Scanning</strong>: Automated vulnerability scanning
-- <strong>Network Policies</strong>: Kubernetes network isolation</p><p><h2>📊 Monitoring and Observability</h2></p><p><h3>Metrics</h3></p><p>KNIRV-NEXUS exposes Prometheus metrics on <code>/metrics</code> endpoints:</p><p>- System health and performance metrics
+- <strong>Network Policies</strong>: Kubernetes network isolation</p><p><h2>📊 Monitoring and Observability</h2></p><p><h3>Metrics</h3></p><p>KNIRV-SERVER exposes Prometheus metrics on <code>/metrics</code> endpoints:</p><p>- System health and performance metrics
 - DVE node status and resource utilization
 - Validation task throughput and success rates
 - P2P network topology and latency</p><p><h3>Logging</h3></p><p>Structured JSON logging with configurable levels:</p><p><code></code>`bash

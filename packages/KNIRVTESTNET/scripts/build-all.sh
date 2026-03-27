@@ -56,15 +56,15 @@ echo "2/6 Building KNIRVCHAIN with testnet features..."
 echo "3/6 Building KNIRVGRAPH with testnet mode..."
 ./scripts/build-knirvgraph.sh
 
-echo "4/7 Building KNIRV-NEXUS (optional - for private/corporate testing)..."
+echo "4/7 Building KNIRV-SERVER (optional - for private/corporate testing)..."
 if [ -f "scripts/build-knirvserver.sh" ]; then
-    echo "  ℹ️  KNIRV-NEXUS is optional and only used for private testing"
-    read -p "  Build KNIRV-NEXUS? (y/N): " -n 1 -r
+    echo "  ℹ️  KNIRV-SERVER is optional and only used for private testing"
+    read -p "  Build KNIRV-SERVER? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         ./scripts/build-knirvserver.sh $FORCE_REBUILD
     else
-        echo "  ⏭️  Skipping KNIRV-NEXUS build (public testnet mode)"
+        echo "  ⏭️  Skipping KNIRV-SERVER build (public testnet mode)"
     fi
 else
     echo "  ⚠️  build-knirvserver.sh not found, skipping"
