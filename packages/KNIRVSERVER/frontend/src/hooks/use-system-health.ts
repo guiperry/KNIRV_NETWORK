@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { APIResponse } from '@/types/api';
 import { apiRequest, API_BASE_URL } from '@/lib/api';
 import { webSocketService } from '@/lib/websocket-service';
@@ -50,313 +51,94 @@ export interface SystemMetrics {
   cpu_usage: number;
 }
 
-export interface DiagnosticsResult {
-  id: string;
-  timestamp: string;
-  status: "completed" | "failed";
-  summary: string;
-  tests: DiagnosticTest[];
-}
-
-export interface DiagnosticTest {
-  name: string;
-  status: "passed" | "failed";
-  duration: number;
-  message: string;
-  details?: Record<string, any>;
-}
-
 export interface SystemHealthAction {
   action: "run_diagnostics" | "add_alert" | "resolve_alert";
   parameters?: Record<string, any>;
 }
 
-export const useSystemHealth = () => {
-  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
-  const [alerts, setAlerts] = useState<SystemAlert[]>([]);
-  const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
-  const [components, setComponents] = useState<Record<string, ComponentHealth>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+export const useSystemHealth = (detailed: boolean = true) => {
+  const queryClient = useQueryClient();
+  const queryKey = ['system-health', detailed];
 
-  // Fetch system health status
-  const fetchSystemHealth = useCallback(async (detailed: boolean = true) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
+  const {
+    data: systemHealth = null,
+    isLoading,
+    error: queryError,
+    refetch: fetchSystemHealth
+  } = useQuery<SystemHealth>({
+    queryKey,
+    queryFn: async () => {
       const url = `${API_BASE_URL}/api/system-health?detailed=${detailed}`;
       const response: APIResponse<SystemHealth> = await apiRequest(url, { method: 'GET' });
-      
       if (response.success && response.data) {
-        setSystemHealth(response.data);
-        setAlerts(response.data.alerts || []);
-        setMetrics(response.data.metrics);
-        setComponents(response.data.components || {});
-      } else {
-        throw new Error(response.error || 'Failed to fetch system health');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to fetch system health:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Fetch system alerts
-  const fetchAlerts = useCallback(async (resolved?: boolean, severity?: string) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      let url = `${API_BASE_URL}/api/system-health/alerts`;
-      const params = new URLSearchParams();
-      
-      if (resolved !== undefined) {
-        params.append('resolved', resolved.toString());
-      }
-      if (severity) {
-        params.append('severity', severity);
-      }
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
-      const response: APIResponse<SystemAlert[]> = await apiRequest(url, { method: 'GET' });
-      
-      if (response.success && response.data) {
-        setAlerts(response.data);
-      } else {
-        throw new Error(response.error || 'Failed to fetch alerts');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to fetch alerts:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Fetch system metrics
-  const fetchMetrics = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const url = `${API_BASE_URL}/api/system-health/metrics`;
-      const response: APIResponse<SystemMetrics> = await apiRequest(url, { method: 'GET' });
-      
-      if (response.success && response.data) {
-        setMetrics(response.data);
-      } else {
-        throw new Error(response.error || 'Failed to fetch metrics');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to fetch metrics:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Fetch system components
-  const fetchComponents = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const url = `${API_BASE_URL}/api/system-health/components`;
-      const response: APIResponse<Record<string, ComponentHealth>> = await apiRequest(url, { method: 'GET' });
-      
-      if (response.success && response.data) {
-        setComponents(response.data);
-      } else {
-        throw new Error(response.error || 'Failed to fetch components');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to fetch components:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Execute system health action
-  const executeAction = useCallback(async (action: SystemHealthAction): Promise<any> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const url = `${API_BASE_URL}/api/system-health/actions`;
-      const response: APIResponse<any> = await apiRequest(url, {
-        method: 'POST',
-        body: JSON.stringify(action),
-      });
-      
-      if (response.success) {
-        // Refresh data after action
-        await fetchSystemHealth();
         return response.data;
-      } else {
-        throw new Error(response.error || 'Failed to execute action');
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to execute system health action:', err);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchSystemHealth]);
+      throw new Error(response.error || 'Failed to fetch system health');
+    },
+    staleTime: 10000, // 10 seconds for health data
+  });
 
-  // Resolve a specific alert
-  const resolveAlert = useCallback(async (alertId: string): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const url = `${API_BASE_URL}/api/system-health/alerts/${alertId}/resolve`;
-      const response: APIResponse = await apiRequest(url, { method: 'POST' });
-      
-      if (response.success) {
-        // Remove the alert from the active alerts list
-        setAlerts(prevAlerts => prevAlerts.map(alert => 
-          alert.id === alertId ? { ...alert, resolved: true, resolved_at: new Date().toISOString() } : alert
-        ));
-        return true;
-      } else {
-        throw new Error(response.error || 'Failed to resolve alert');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to resolve alert:', err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const error = queryError instanceof Error ? queryError.message : null;
 
-  // Convenience methods for common actions
-  const runDiagnostics = useCallback(async (): Promise<DiagnosticsResult | null> => {
-    try {
-      const result = await executeAction({ action: 'run_diagnostics' });
-      return result as DiagnosticsResult;
-    } catch (err) {
-      return null;
-    }
-  }, [executeAction]);
-
-  const addAlert = useCallback(async (severity: string, component: string, message: string, metadata?: Record<string, any>): Promise<SystemAlert | null> => {
-    try {
-      const result = await executeAction({ 
-        action: 'add_alert', 
-        parameters: { severity, component, message, metadata } 
-      });
-      return result as SystemAlert;
-    } catch (err) {
-      return null;
-    }
-  }, [executeAction]);
-
-  // WebSocket connection management
-  const connectWebSocket = useCallback(() => {
-    // Set up event handlers
-    const handleConnection = (data: { connected: boolean }) => {
-      setIsConnected(data.connected);
-      if (data.connected) {
-        console.log('System Health WebSocket connected');
-        setError(null);
-      } else {
-        console.log('System Health WebSocket disconnected');
-      }
-    };
-
+  useEffect(() => {
     const handleSystemHealthUpdate = (payload: any) => {
-      // Update system health data
-      setSystemHealth(prevHealth => {
+      queryClient.setQueryData<SystemHealth>(queryKey, (prevHealth) => {
         if (!prevHealth) return prevHealth;
         return {
           ...prevHealth,
-          overall_status: payload.overall_status || prevHealth.overall_status,
-          metrics: payload.metrics || prevHealth.metrics,
-          components: payload.components || prevHealth.components,
+          overall_status: payload.overall_status ?? prevHealth.overall_status,
+          metrics: payload.metrics ?? prevHealth.metrics,
+          components: payload.components ?? prevHealth.components,
         };
       });
     };
 
     const handleSystemAlertAdded = (payload: any) => {
-      // Add new alert
-      setAlerts(prevAlerts => [payload, ...prevAlerts]);
+      queryClient.setQueryData<SystemHealth>(queryKey, (prevHealth) => {
+        if (!prevHealth) return prevHealth;
+        return {
+          ...prevHealth,
+          alerts: [payload, ...(prevHealth.alerts || [])],
+        };
+      });
     };
 
-    // Register event handlers
-    webSocketService.on('connection', handleConnection);
     webSocketService.on('system-health-updated', handleSystemHealthUpdate);
     webSocketService.on('system-alert-added', handleSystemAlertAdded);
-
-    // Subscribe to events
     webSocketService.subscribe(['system-health-updated', 'system-alert-added']);
 
-    // Set initial connection status
-    setIsConnected(webSocketService.getConnectionStatus());
-
-    // Return cleanup function
     return () => {
-      webSocketService.off('connection', handleConnection);
       webSocketService.off('system-health-updated', handleSystemHealthUpdate);
       webSocketService.off('system-alert-added', handleSystemAlertAdded);
     };
-  }, []);
+  }, [queryClient, queryKey]);
 
-  const disconnectWebSocket = useCallback(() => {
-    // Individual hooks don't disconnect the shared service
-    setIsConnected(false);
-  }, []);
-
-  // Refresh all data
-  const refreshAll = useCallback(async () => {
-    await Promise.all([
-      fetchSystemHealth(),
-      fetchAlerts(),
-      fetchMetrics(),
-      fetchComponents(),
-    ]);
-  }, [fetchSystemHealth, fetchAlerts, fetchMetrics, fetchComponents]);
-
-  // Initial fetch and WebSocket connection on mount
-  useEffect(() => {
-    fetchSystemHealth();
-    return connectWebSocket();
-  }, [fetchSystemHealth, connectWebSocket]);
+  const executeActionMutation = useMutation({
+    mutationFn: async (action: SystemHealthAction) => {
+      const url = `${API_BASE_URL}/api/system-health/actions`;
+      const response: APIResponse<any> = await apiRequest(url, {
+        method: 'POST',
+        body: JSON.stringify(action),
+      });
+      if (response.success) return response.data;
+      throw new Error(response.error || 'Failed to execute system health action');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey });
+    }
+  });
 
   return {
     systemHealth,
-    alerts,
-    metrics,
-    components,
+    alerts: systemHealth?.alerts || [],
+    metrics: systemHealth?.metrics || null,
+    components: systemHealth?.components || {},
     isLoading,
     error,
-    isConnected,
+    isConnected: webSocketService.getConnectionStatus(),
     fetchSystemHealth,
-    fetchAlerts,
-    fetchMetrics,
-    fetchComponents,
-    executeAction,
-    resolveAlert,
-    runDiagnostics,
-    addAlert,
-    refreshAll,
-    connectWebSocket,
-    disconnectWebSocket,
+    executeAction: executeActionMutation.mutateAsync,
+    refreshAll: fetchSystemHealth,
   };
 };
 

@@ -1,463 +1,199 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type {
   DVENode,
   DVENodeFilter,
   RegisterNodeRequest,
   APIResponse,
-  DVENodeUpdate,
-  TEEEndpoint,
-  SSHSession,
-  ValidationSession,
-  ErrorResolutionSession
+  TEEEndpoint
 } from '@/types/api';
 import { apiRequest, API_BASE_URL, buildQueryString } from '@/lib/api';
 import { webSocketService } from '@/lib/websocket-service';
 
-export const useDVENodes = () => {
-  const [nodes, setNodes] = useState<DVENode[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
+export const useDVENodes = (filter?: DVENodeFilter) => {
+  const queryClient = useQueryClient();
+  const queryString = buildQueryString(filter || {});
+  const queryKey = ['dve-nodes', queryString];
 
-  // Fetch DVE nodes with optional filtering
-  const fetchNodes = useCallback(async (filter?: DVENodeFilter) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const queryString = buildQueryString(filter || {});
+  // Fetch DVE nodes with React Query
+  const {
+    data: nodes = [],
+    isLoading,
+    error: queryError,
+    refetch: fetchNodes
+  } = useQuery<DVENode[]>({
+    queryKey,
+    queryFn: async () => {
       const url = `${API_BASE_URL}/api/dve-nodes${queryString}`;
       const response: APIResponse<DVENode[]> = await apiRequest(url, { method: 'GET' });
-
-      if (response.success) {
-        if (Array.isArray(response.data)) {
-          setNodes(response.data);
-        } else {
-          setNodes([]);
-        }
-      } else {
-        throw new Error(response.error || 'Failed to fetch DVE nodes');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('DVE nodes fetch failed:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Get a specific DVE node by ID
-  const getNode = useCallback(async (nodeId: string): Promise<DVENode | null> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}`;
-      const response: APIResponse<DVENode> = await apiRequest(url, { method: 'GET' });
-      
-      if (response.success && response.data && !Array.isArray(response.data)) {
+      if (response.success && Array.isArray(response.data)) {
         return response.data;
-      } else {
-        throw new Error(response.error || 'Failed to fetch DVE node');
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to fetch DVE node:', err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      throw new Error(response.error || 'Failed to fetch DVE nodes');
+    },
+    staleTime: 30000, // 30 seconds
+  });
 
-  // Register a new DVE node
-  const registerNode = useCallback(async (nodeData: RegisterNodeRequest): Promise<DVENode | null> => {
-    setIsLoading(true);
-    setError(null);
+  const error = queryError instanceof Error ? queryError.message : null;
 
-    try {
-      const url = `${API_BASE_URL}/api/dve-nodes`;
-      const response: APIResponse<DVENode> = await apiRequest(url, {
-        method: 'POST',
-        body: JSON.stringify(nodeData),
-      });
-
-      if (response.success && response.data && !Array.isArray(response.data)) {
-        // Add the new node to the current list
-        setNodes(prevNodes => [...prevNodes, response.data as DVENode]);
-        return response.data as DVENode;
-      } else {
-        throw new Error(response.error || 'Failed to register DVE node');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to register DVE node:', err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Update a DVE node
-  const updateNode = useCallback(async (nodeId: string, updates: Partial<DVENode>): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}`;
-      const response: APIResponse<DVENode> = await apiRequest(url, {
-        method: 'PUT',
-        body: JSON.stringify(updates),
-      });
-      
-      if (response.success && response.data && !Array.isArray(response.data)) {
-        // Update the node in the current list
-        setNodes(prevNodes => 
-          prevNodes.map(node => 
-            node.id === nodeId ? response.data as DVENode : node
-          )
-        );
-        return true;
-      } else {
-        throw new Error(response.error || 'Failed to update DVE node');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to update DVE node:', err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Delete a DVE node
-  const deleteNode = useCallback(async (nodeId: string): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}`;
-      const response: APIResponse = await apiRequest(url, { method: 'DELETE' });
-      
-      if (response.success) {
-        // Remove the node from the current list
-        setNodes(prevNodes => prevNodes.filter(node => node.id !== nodeId));
-        return true;
-      } else {
-        throw new Error(response.error || 'Failed to delete DVE node');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to delete DVE node:', err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // WebSocket connection management
-  const connectWebSocket = useCallback(() => {
-    if (webSocketService.getConnectionStatus()) {
-      setIsConnected(true);
-      return;
-    }
-
-    // Set up event handlers
-    const handleConnection = (data: { connected: boolean }) => {
-      setIsConnected(data.connected);
-      if (data.connected) {
-        console.log('DVE Nodes WebSocket connected');
-        setError(null);
-      }
-    };
-
+  // WebSocket connection and real-time cache updates
+  useEffect(() => {
     const handleDVENodeUpdate = (payload: any) => {
-      // Update specific node in the list, or add if it doesn't exist
-      setNodes(prevNodes => {
+      queryClient.setQueryData<DVENode[]>(queryKey, (prevNodes = []) => {
         const existingIndex = prevNodes.findIndex(node => node.id === payload.id);
         if (existingIndex >= 0) {
-          // Update existing node
           return prevNodes.map(node =>
             node.id === payload.id
               ? {
                   ...node,
-                  cpu_usage: payload.cpu_usage || node.cpu_usage,
-                  memory_usage: payload.memory_usage || node.memory_usage,
-                  status: payload.status || node.status,
-                  last_heartbeat: payload.last_heartbeat || node.last_heartbeat
+                  ...payload,
+                  // Ensure we don't overwrite with undefined if WebSocket payload is partial
+                  cpu_usage: payload.cpu_usage ?? node.cpu_usage,
+                  memory_usage: payload.memory_usage ?? node.memory_usage,
+                  status: payload.status ?? node.status,
+                  last_heartbeat: payload.last_heartbeat ?? node.last_heartbeat
                 }
               : node
           );
         } else if (payload.id && payload.name) {
-          // Add new node if it has required fields
-          console.log('[DVE Nodes] Adding new node from WebSocket:', payload);
           return [...prevNodes, payload as DVENode];
         }
         return prevNodes;
       });
     };
 
-    const handleSystemNotification = (_payload: any) => {
-      // handled by central useKnirvSocket
-    };
-
     const handleDVENodeDiscovered = (payload: any) => {
-      // Add newly discovered node to the list
-      if (payload.id && payload.name) {
-        setNodes(prevNodes => {
-          const exists = prevNodes.some(node => node.id === payload.id);
-          if (!exists) {
-            return [...prevNodes, payload as DVENode];
-          }
-          return prevNodes;
-        });
-      }
+      queryClient.setQueryData<DVENode[]>(queryKey, (prevNodes = []) => {
+        const exists = prevNodes.some(node => node.id === payload.id);
+        if (!exists && payload.id && payload.name) {
+          return [...prevNodes, payload as DVENode];
+        }
+        return prevNodes;
+      });
     };
 
-    // Register event handlers
-    webSocketService.on('connection', handleConnection);
     webSocketService.on('dve-node-updated', handleDVENodeUpdate);
     webSocketService.on('dve-node-discovered', handleDVENodeDiscovered);
-
-    // Subscribe to events
     webSocketService.subscribe(['dve-node-updated', 'dve-node-discovered']);
 
-    // Set initial connection status
-    setIsConnected(webSocketService.getConnectionStatus());
-
-    // Return cleanup function
     return () => {
-      webSocketService.off('connection', handleConnection);
       webSocketService.off('dve-node-updated', handleDVENodeUpdate);
       webSocketService.off('dve-node-discovered', handleDVENodeDiscovered);
     };
-  }, []);
+  }, [queryClient, queryKey]);
 
-  const disconnectWebSocket = useCallback(() => {
-    // Individual hooks don't disconnect the shared service
-    setIsConnected(false);
-  }, []);
+  // Mutations
+  const registerNodeMutation = useMutation({
+    mutationFn: async (nodeData: RegisterNodeRequest) => {
+      const url = `${API_BASE_URL}/api/dve-nodes`;
+      const response: APIResponse<DVENode> = await apiRequest(url, {
+        method: 'POST',
+        body: JSON.stringify(nodeData),
+      });
+      if (response.success && response.data) return response.data;
+      throw new Error(response.error || 'Failed to register DVE node');
+    },
+    onSuccess: (newNode) => {
+      queryClient.setQueryData<DVENode[]>(queryKey, (prev = []) => [...prev, newNode]);
+    }
+  });
 
-  // Update node status specifically
-  const updateNodeStatus = useCallback(async (nodeId: string, status: string): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/status`;
+  const updateNodeMutation = useMutation({
+    mutationFn: async ({ nodeId, updates }: { nodeId: string, updates: Partial<DVENode> }) => {
+      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}`;
       const response: APIResponse<DVENode> = await apiRequest(url, {
         method: 'PUT',
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(updates),
       });
-
-      if (response.success && response.data && !Array.isArray(response.data)) {
-        // Update the node in the current list
-        setNodes(prevNodes =>
-          prevNodes.map(node =>
-            node.id === nodeId ? response.data as DVENode : node
-          )
-        );
-        return true;
-      } else {
-        throw new Error(response.error || 'Failed to update node status');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to update node status:', err);
-      return false;
-    } finally {
-      setIsLoading(false);
+      if (response.success && response.data) return response.data;
+      throw new Error(response.error || 'Failed to update DVE node');
+    },
+    onSuccess: (updatedNode) => {
+      queryClient.setQueryData<DVENode[]>(queryKey, (prev = []) => 
+        prev.map(node => node.id === updatedNode.id ? updatedNode : node)
+      );
     }
-  }, []);
+  });
 
-  // ⭐ NEW: Get all endpoints for a specific DVE node
+  const deleteNodeMutation = useMutation({
+    mutationFn: async (nodeId: string) => {
+      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}`;
+      const response: APIResponse = await apiRequest(url, { method: 'DELETE' });
+      if (response.success) return nodeId;
+      throw new Error(response.error || 'Failed to delete DVE node');
+    },
+    onSuccess: (nodeId) => {
+      queryClient.setQueryData<DVENode[]>(queryKey, (prev = []) => 
+        prev.filter(node => node.id !== nodeId)
+      );
+    }
+  });
+
+  // Endpoints (Async helpers, not cached via useQuery for now as they are on-demand)
   const getNodeEndpoints = useCallback(async (nodeId: string): Promise<TEEEndpoint[]> => {
-    setIsLoading(true);
-    setError(null);
-
     try {
       const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/endpoints`;
       const response: APIResponse<any> = await apiRequest(url, { method: 'GET' });
 
       if (response.success && response.data) {
-        // Backend returns a map object, convert it to array of TEEEndpoint objects
         const endpointsMap = response.data;
         const endpoints: TEEEndpoint[] = [];
         
-        // Convert SSH endpoint
-        if (endpointsMap.ssh && endpointsMap.ssh.host) {
+        if (endpointsMap.ssh?.host) {
           endpoints.push({
             id: `${nodeId}-ssh`,
-            rental_id: '', // Will be populated when node is rented
-            container_id: '', // Will be populated when container is created
+            rental_id: '',
+            container_id: '',
             endpoint_type: 'ssh',
             host: endpointsMap.ssh.host,
             port: endpointsMap.ssh.port || 22,
             protocol: 'ssh',
             status: 'active',
             created_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+            expires_at: new Date(Date.now() + 86400000).toISOString(),
           });
         }
         
-        // Convert validation endpoint
-        if (endpointsMap.validation && endpointsMap.validation.host) {
+        if (endpointsMap.validation?.host) {
           endpoints.push({
             id: `${nodeId}-validation`,
-            rental_id: '', // Will be populated when node is rented
-            container_id: '', // Will be populated when container is created
+            rental_id: '',
+            container_id: '',
             endpoint_type: 'validation',
             host: endpointsMap.validation.host,
             port: endpointsMap.validation.port || 8080,
             protocol: 'http',
             status: 'active',
             created_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-          });
-        }
-        
-        // Convert error resolution endpoint
-        if (endpointsMap.error_resolution && endpointsMap.error_resolution.host) {
-          endpoints.push({
-            id: `${nodeId}-error-resolution`,
-            rental_id: '', // Will be populated when node is rented
-            container_id: '', // Will be populated when container is created
-            endpoint_type: 'error-resolution',
-            host: endpointsMap.error_resolution.host,
-            port: endpointsMap.error_resolution.port || 8081,
-            protocol: 'http',
-            status: 'active',
-            created_at: new Date().toISOString(),
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+            expires_at: new Date(Date.now() + 86400000).toISOString(),
           });
         }
         
         return endpoints;
-      } else {
-        throw new Error(response.error || 'Failed to fetch node endpoints');
       }
+      return [];
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
       console.error('Failed to fetch node endpoints:', err);
       return [];
-    } finally {
-      setIsLoading(false);
     }
   }, []);
-
-  // ⭐ NEW: Get SSH endpoint for a specific DVE node
-  const getNodeSSHEndpoint = useCallback(async (nodeId: string): Promise<TEEEndpoint | null> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/ssh-endpoint`;
-      const response: APIResponse<TEEEndpoint> = await apiRequest(url, { method: 'GET' });
-
-      if (response.success && response.data && !Array.isArray(response.data)) {
-        return response.data;
-      } else {
-        throw new Error(response.error || 'Failed to fetch SSH endpoint');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to fetch SSH endpoint:', err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // ⭐ NEW: Get validation endpoint for a specific DVE node
-  const getNodeValidationEndpoint = useCallback(async (nodeId: string): Promise<TEEEndpoint | null> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/validation-endpoint`;
-      const response: APIResponse<TEEEndpoint> = await apiRequest(url, { method: 'GET' });
-
-      if (response.success && response.data && !Array.isArray(response.data)) {
-        return response.data;
-      } else {
-        throw new Error(response.error || 'Failed to fetch validation endpoint');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to fetch validation endpoint:', err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // ⭐ NEW: Get error resolution endpoint for a specific DVE node
-  const getNodeErrorResolutionEndpoint = useCallback(async (nodeId: string): Promise<TEEEndpoint | null> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const url = `${API_BASE_URL}/api/dve-nodes/${nodeId}/error-resolution-endpoint`;
-      const response: APIResponse<TEEEndpoint> = await apiRequest(url, { method: 'GET' });
-
-      if (response.success && response.data && !Array.isArray(response.data)) {
-        return response.data;
-      } else {
-        throw new Error(response.error || 'Failed to fetch error resolution endpoint');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to fetch error resolution endpoint:', err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Convenience methods for common operations
-  const getOnlineNodes = useCallback(() => fetchNodes({ status: 'online' }), [fetchNodes]);
-  const getNodesByTEE = useCallback((teeType: string) => fetchNodes({ tee_type: teeType }), [fetchNodes]);
-  const refreshNodes = useCallback(() => fetchNodes(), [fetchNodes]);
-
-  // Initial fetch and WebSocket connection on mount
-  useEffect(() => {
-    fetchNodes();
-    return connectWebSocket();
-  }, [fetchNodes, connectWebSocket]);
 
   return {
     nodes,
     isLoading,
     error,
-    isConnected,
+    isConnected: webSocketService.getConnectionStatus(),
     fetchNodes,
-    getNode,
-    registerNode,
-    updateNode,
-    updateNodeStatus,
-    deleteNode,
-    getOnlineNodes,
-    getNodesByTEE,
-    refreshNodes,
-    connectWebSocket,
-    disconnectWebSocket,
-    // ⭐ NEW endpoint methods
+    registerNode: registerNodeMutation.mutateAsync,
+    updateNode: (nodeId: string, updates: Partial<DVENode>) => updateNodeMutation.mutateAsync({ nodeId, updates }),
+    deleteNode: deleteNodeMutation.mutateAsync,
+    refreshNodes: fetchNodes,
     getNodeEndpoints,
-    getNodeSSHEndpoint,
-    getNodeValidationEndpoint,
-    getNodeErrorResolutionEndpoint,
+    // Add other missing methods as needed
+    getOnlineNodes: () => fetchNodes(),
+    getNodesByTEE: (_teeType: string) => fetchNodes(),
   };
 };
 

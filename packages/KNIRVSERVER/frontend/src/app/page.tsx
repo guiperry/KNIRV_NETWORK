@@ -130,6 +130,8 @@ export default function Dashboard() {
 
   // Handle security alerts and system notifications
   useEffect(() => {
+    if (securityAlerts.length === 0 && systemNotifications.length === 0) return;
+
     // Show security alerts as toasts
     securityAlerts.forEach(alert => {
       toast({
@@ -148,7 +150,10 @@ export default function Dashboard() {
                 notification.type === 'success' ? 'default' : 'default'
       });
     });
-  }, [securityAlerts, systemNotifications, toast]);
+
+    // Clear updates after processing to prevent redundant toasts on next render
+    clearUpdates();
+  }, [securityAlerts, systemNotifications, toast, clearUpdates]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

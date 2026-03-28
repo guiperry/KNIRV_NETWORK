@@ -14,7 +14,7 @@ interface CognitiveEnginePanelProps {
   className?: string;
 }
 
-export const CognitiveEnginePanel: React.FC<CognitiveEnginePanelProps> = ({ className }) => {
+export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ className }) => {
   const {
     cognitiveEngine,
     isLoading,
@@ -369,6 +369,8 @@ export const CognitiveEnginePanel: React.FC<CognitiveEnginePanelProps> = ({ clas
       </Card>
     </div>
   );
-};
+});
+
+CognitiveEnginePanel.displayName = 'CognitiveEnginePanel';
 
 export default CognitiveEnginePanel;

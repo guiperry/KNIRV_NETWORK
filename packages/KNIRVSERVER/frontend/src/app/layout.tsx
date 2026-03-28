@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { DemoModeProvider } from "@/contexts/demo-mode-context";
 import { DHTProvider } from "@/contexts/dht-context";
 import { OnboardingProvider } from "@/contexts/onboarding-context";
+import QueryProvider from "@/components/providers/query-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,16 +47,18 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <AuthProvider>
-          <DemoModeProvider>
-            <DHTProvider>
-              <OnboardingProvider>
-                {children}
-                <Toaster />
-              </OnboardingProvider>
-            </DHTProvider>
-          </DemoModeProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <DemoModeProvider>
+              <DHTProvider>
+                <OnboardingProvider>
+                  {children}
+                  <Toaster />
+                </OnboardingProvider>
+              </DHTProvider>
+            </DemoModeProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

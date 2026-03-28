@@ -117,3 +117,7 @@ packages/KNIRVSERVER/pkg/knirvgateway/internal/embedded/knirv-oracle
 packages/KNIRVSERVER/knirv-server
 packages/KNIRVSERVER/backend/backend_server
 packages/KNIRVSERVER/backend/backend_server
+devtools/KNIRVSYNC/bin/sync-tool
+devtools/KNIRVSYNC/bin/doc-sync
+devtools/KNIRVSYNC/doc-sync
+devtools/KNIRVSYNC/sync-tool

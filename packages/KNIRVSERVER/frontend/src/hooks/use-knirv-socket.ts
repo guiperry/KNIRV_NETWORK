@@ -177,77 +177,77 @@ export const useKnirvSocket = () => {
   }, []);
 
   // Function to send DVE node update
-  const sendDVENodeUpdate = (update: DVENodeUpdate) => {
+  const sendDVENodeUpdate = useCallback((update: DVENodeUpdate) => {
     if (isConnected) {
       webSocketService.send({
         type: 'dve-node-update',
         payload: update
       });
     }
-  };
+  }, [isConnected]);
 
   // Function to send validation task update
-  const sendValidationTaskUpdate = (update: ValidationTaskUpdate) => {
+  const sendValidationTaskUpdate = useCallback((update: ValidationTaskUpdate) => {
     if (isConnected) {
       webSocketService.send({
         type: 'validation-task-update',
         payload: update
       });
     }
-  };
+  }, [isConnected]);
 
   // Function to send cognitive engine update
-  const sendCognitiveEngineUpdate = (update: CognitiveEngineUpdate) => {
+  const sendCognitiveEngineUpdate = useCallback((update: CognitiveEngineUpdate) => {
     if (isConnected) {
       webSocketService.send({
         type: 'cognitive-engine-update',
         payload: update
       });
     }
-  };
+  }, [isConnected]);
 
   // Function to send TEE security update
-  const sendTEESecurityUpdate = (update: TEESecurityUpdate) => {
+  const sendTEESecurityUpdate = useCallback((update: TEESecurityUpdate) => {
     if (isConnected) {
       webSocketService.send({
         type: 'tee-security-update',
         payload: update
       });
     }
-  };
+  }, [isConnected]);
 
   // Function to send NRN staking update
-  const sendNRNStakingUpdate = (update: NRNStakingUpdate) => {
+  const sendNRNStakingUpdate = useCallback((update: NRNStakingUpdate) => {
     if (isConnected) {
       webSocketService.send({
         type: 'nrn-staking-update',
         payload: update
       });
     }
-  };
+  }, [isConnected]);
 
   // Function to send security alert
-  const sendSecurityAlert = (alert: SecurityAlert) => {
+  const sendSecurityAlert = useCallback((alert: SecurityAlert) => {
     if (isConnected) {
       webSocketService.send({
         type: 'security-alert',
         payload: alert
       });
     }
-  };
+  }, [isConnected]);
 
   // Function to send system notification
-  const sendSystemNotification = (notification: SystemNotification) => {
+  const sendSystemNotification = useCallback((notification: SystemNotification) => {
     if (isConnected) {
       webSocketService.send({
         type: 'system-notification',
         payload: notification
       });
     }
-  };
+  }, [isConnected]);
 
   // Function to clear updates
-  const clearUpdates = () => {
+  const clearUpdates = useCallback(() => {
     setDveNodeUpdates([]);
     setValidationTaskUpdates([]);
     setCognitiveEngineUpdates([]);
@@ -255,7 +255,7 @@ export const useKnirvSocket = () => {
     setNrnStakingUpdates([]);
     setSecurityAlerts([]);
     setSystemNotifications([]);
-  };
+  }, []);
 
   return {
     isConnected,

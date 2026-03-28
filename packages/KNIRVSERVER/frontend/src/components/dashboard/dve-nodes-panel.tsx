@@ -22,7 +22,7 @@ interface DVENodesPanelProps {
   onActiveNodeChange?: (nodeId: string, isActive: boolean) => void;
 }
 
-export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentClick, onNodeConnect, effectiveActiveNodeIdss = {}, onActiveNodeChange }) => {
+export const DVENodesPanel = React.memo<DVENodesPanelProps>(({ className, onRentClick, onNodeConnect, effectiveActiveNodeIdss = {}, onActiveNodeChange }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const {
@@ -422,6 +422,8 @@ export const DVENodesPanel: React.FC<DVENodesPanelProps> = ({ className, onRentC
 
     </div>
   );
-};
+});
+
+DVENodesPanel.displayName = 'DVENodesPanel';
 
 export default DVENodesPanel;

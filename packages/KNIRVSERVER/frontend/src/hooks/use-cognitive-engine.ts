@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest, API_BASE_URL } from '@/lib/api';
+import { webSocketService } from '@/lib/websocket-service';
 
 export interface CognitiveEngine {
   status: "active" | "idle" | "learning" | "error" | "stopped" | "degraded";
@@ -38,180 +41,74 @@ export interface CognitiveEngineAction {
   parameters?: Record<string, any>;
 }
 
-import { apiRequest, API_BASE_URL } from '@/lib/api';
-import { webSocketService } from '@/lib/websocket-service';
-
-
-
 export const useCognitiveEngine = () => {
-  const [cognitiveEngine, setCognitiveEngine] = useState<CognitiveEngine | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isPolling, setIsPolling] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const queryClient = useQueryClient();
+  const queryKey = ['cognitive-engine'];
 
-  // Fetch cognitive engine status
-  const fetchCognitiveEngine = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
+  const {
+    data: cognitiveEngine = null,
+    isLoading,
+    error: queryError,
+    refetch: fetchCognitiveEngine
+  } = useQuery<CognitiveEngine>({
+    queryKey,
+    queryFn: async () => {
       const url = `${API_BASE_URL}/api/cognitive-engine`;
       const response: CognitiveEngineResponse = await apiRequest(url, { method: 'GET' });
-      
-      if (response.success && response.data) {
-        setCognitiveEngine(response.data);
-      } else {
-        throw new Error(response.error || 'Failed to fetch cognitive engine data');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to fetch cognitive engine:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      if (response.success && response.data) return response.data;
+      throw new Error(response.error || 'Failed to fetch cognitive engine data');
+    },
+    staleTime: 30000,
+  });
 
-  // Perform cognitive engine action
-  const performAction = useCallback(async (action: CognitiveEngineAction): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
+  const error = queryError instanceof Error ? queryError.message : null;
+
+  useEffect(() => {
+    const handleCognitiveEngineUpdate = (payload: any) => {
+      queryClient.setQueryData<CognitiveEngine>(queryKey, payload);
+    };
+
+    webSocketService.on('cognitive-engine-updated', handleCognitiveEngineUpdate);
+    webSocketService.subscribe(['cognitive-engine-updated']);
+
+    return () => {
+      webSocketService.off('cognitive-engine-updated', handleCognitiveEngineUpdate);
+    };
+  }, [queryClient, queryKey]);
+
+  const performActionMutation = useMutation({
+    mutationFn: async (action: CognitiveEngineAction) => {
       const url = `${API_BASE_URL}/api/cognitive-engine`;
       const response: CognitiveEngineResponse = await apiRequest(url, {
         method: 'POST',
         body: JSON.stringify(action),
       });
-      
-      if (response.success && response.data) {
-        setCognitiveEngine(response.data);
-        return true;
-      } else {
-        throw new Error(response.error || 'Failed to perform action');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('Failed to perform cognitive engine action:', err);
-      return false;
-    } finally {
-      setIsLoading(false);
+      if (response.success && response.data) return response.data;
+      throw new Error(response.error || 'Failed to perform action');
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKey, data);
     }
-  }, []);
-
-  // Convenience methods for common actions
-  const startTraining = useCallback(() => performAction({ action: 'start_training' }), [performAction]);
-  const stopTraining = useCallback(() => performAction({ action: 'stop_training' }), [performAction]);
-  const startEngine = useCallback(() => performAction({ action: 'start_engine' }), [performAction]);
-  const stopEngine = useCallback(() => performAction({ action: 'stop_engine' }), [performAction]);
-  const healthCheck = useCallback(() => performAction({ action: 'health_check' }), [performAction]);
-  const selfValidate = useCallback(() => performAction({ action: 'self_validate' }), [performAction]);
-  const makeRequest = useCallback((message: string) => performAction({ action: 'make_request', parameters: { message } }), [performAction]);
-  const resetMetrics = useCallback(() => performAction({ action: 'reset_metrics' }), [performAction]);
-  const clearConversationHistory = useCallback(() => performAction({ action: 'clear_conversation_history' }), [performAction]);
-  
-  const updateFabricVersion = useCallback((modelVersion: string) =>
-    performAction({ action: 'update_model', parameters: { model_version: modelVersion } }),
-    [performAction]
-  );
-
-  // WebSocket connection management
-  const connectWebSocket = useCallback(() => {
-    // Set up event handlers
-    const handleConnection = (data: { connected: boolean }) => {
-      setIsConnected(data.connected);
-      if (data.connected) {
-        console.log('Cognitive Engine WebSocket connected');
-        setError(null);
-      } else {
-        console.log('Cognitive Engine WebSocket disconnected');
-      }
-    };
-
-    const handleCognitiveEngineUpdate = (payload: any) => {
-      setCognitiveEngine(payload);
-    };
-
-    // Register event handlers
-    webSocketService.on('connection', handleConnection);
-    webSocketService.on('cognitive-engine-updated', handleCognitiveEngineUpdate);
-
-    // Subscribe to events
-    webSocketService.subscribe(['cognitive-engine-updated']);
-
-    // Set initial connection status
-    setIsConnected(webSocketService.getConnectionStatus());
-
-    // Return cleanup function
-    return () => {
-      webSocketService.off('connection', handleConnection);
-      webSocketService.off('cognitive-engine-updated', handleCognitiveEngineUpdate);
-    };
-  }, []);
-
-  const disconnectWebSocket = useCallback(() => {
-    // Individual hooks don't disconnect the shared service
-    setIsConnected(false);
-  }, []);
-
-  // Start/stop polling for real-time updates
-  const startPolling = useCallback((interval: number = 5000) => {
-    if (isPolling) return;
-    
-    setIsPolling(true);
-    const pollInterval = setInterval(() => {
-      fetchCognitiveEngine();
-    }, interval);
-
-    // Store interval ID for cleanup
-    (window as any).__cognitiveEnginePollingInterval = pollInterval;
-  }, [fetchCognitiveEngine, isPolling]);
-
-  const stopPolling = useCallback(() => {
-    if (!isPolling) return;
-    
-    const pollInterval = (window as any).__cognitiveEnginePollingInterval;
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      delete (window as any).__cognitiveEnginePollingInterval;
-    }
-    setIsPolling(false);
-  }, [isPolling]);
-
-  // Initial fetch and WebSocket connection on mount
-  useEffect(() => {
-    fetchCognitiveEngine();
-    const cleanup = connectWebSocket();
-    return () => {
-      stopPolling();
-      if (cleanup) cleanup();
-    };
-  }, [fetchCognitiveEngine, connectWebSocket, stopPolling]);
+  });
 
   return {
     cognitiveEngine,
     isLoading,
     error,
-    isPolling,
-    isConnected,
+    isConnected: webSocketService.getConnectionStatus(),
     fetchCognitiveEngine,
-    performAction,
-    startTraining,
-    stopTraining,
-    startEngine,
-    stopEngine,
-    healthCheck,
-    selfValidate,
-    makeRequest,
-    resetMetrics,
-    clearConversationHistory,
-    updateFabricVersion,
-    startPolling,
-    stopPolling,
-    connectWebSocket,
-    disconnectWebSocket,
+    startTraining: () => performActionMutation.mutateAsync({ action: 'start_training' }),
+    stopTraining: () => performActionMutation.mutateAsync({ action: 'stop_training' }),
+    startEngine: () => performActionMutation.mutateAsync({ action: 'start_engine' }),
+    stopEngine: () => performActionMutation.mutateAsync({ action: 'stop_engine' }),
+    healthCheck: () => performActionMutation.mutateAsync({ action: 'health_check' }),
+    selfValidate: () => performActionMutation.mutateAsync({ action: 'self_validate' }),
+    makeRequest: (message: string) => performActionMutation.mutateAsync({ action: 'make_request', parameters: { message } }),
+    resetMetrics: () => performActionMutation.mutateAsync({ action: 'reset_metrics' }),
+    clearConversationHistory: () => performActionMutation.mutateAsync({ action: 'clear_conversation_history' }),
+    updateFabricVersion: (modelVersion: string) => performActionMutation.mutateAsync({ action: 'update_model', parameters: { model_version: modelVersion } }),
+    startPolling: () => {}, // Polling removed in favor of React Query / WebSockets
+    stopPolling: () => {},
   };
 };
 

@@ -41,6 +41,7 @@
     "cytoscape": "^3.31.2",
     "dotenv": "^16.3.1",
     "express": "^4.19.2",
+    "flatbuffers": "^24.3.25",
     "helmet": "^8.1.0",
     "hono": "^4.9.5",
     "howler": "^2.2.4",
@@ -56,6 +57,7 @@
     "next": "^14.2.3",
     "next-auth": "^4.24.11",
     "openai": "^6.7.0",
+    "phoenix": "^1.8.5",
     "phosphor-icons": "^1.4.2",
     "pino": "^9.9.1",
     "qr-scanner": "^1.4.2",
@@ -80,8 +82,7 @@
     "vite-plugin-top-level-await": "^1.6.0",
     "vite-plugin-wasm": "^3.5.0",
     "zod": "^3.24.3",
-    "zustand": "^5.0.3",
-    "flatbuffers": "^24.3.25"
+    "zustand": "^5.0.3"
   },
   "description": "Unified KNIRV Controller - Frontend application with integrated manager interface and slideout functionality",
   "devDependencies": {
