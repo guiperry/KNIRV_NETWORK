@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Terminal, Play, Network, Settings, BarChart3, FileText, GitBranch, Search, Cpu, Zap, Shield, Clock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface KNIRVGraphAccessModalProps {
   isOpen: boolean;
@@ -29,11 +30,17 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
     '$ '
   ]);
   const [currentCommand, setCurrentCommand] = useState('');
+  const [isExecuting, setIsExecuting] = useState(false);
   const [showQuery, setShowQuery] = useState(false);
   const [showTraces, setShowTraces] = useState(false);
   const [showConsensus, setShowConsensus] = useState(false);
   const [showReasoningExplorer, setShowReasoningExplorer] = useState(false);
   const [selectedTrace, setSelectedTrace] = useState<string | null>(null);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [terminalOutput]);
 
   const [traces] = useState<Trace[]>([
     { id: 'trace_1740000000', agent_id: 'agent-alpha', error_id: 'err_992', timestamp: '2026-02-16T14:30:00Z', type: 'TRACE' },
@@ -67,44 +74,58 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
     }
   ];
 
-  const executeCommand = (command: string) => {
-    const newOutput = [...terminalOutput];
-    newOutput.push('$ ' + command);
-    
-    setTimeout(() => {
-      switch (command.toLowerCase()) {
-        case 'help':
-          newOutput.push('Available commands:');
-          newOutput.push('  help - Show this help message');
-          newOutput.push('  status - Show graph status');
-          newOutput.push('  query <id> - Query trace by ID');
-          newOutput.push('  edges - List graph edges');
-          newOutput.push('  clear - Clear terminal');
-          break;
-        case 'status':
-          newOutput.push('Graph Status: Synchronized');
-          newOutput.push('Total Traces: 142');
-          newOutput.push('Total Edges: 1,847');
-          newOutput.push('Consensus: Quorum reached');
-          break;
-        case 'edges':
-          newOutput.push('Loading graph edges...');
-          newOutput.push('Edge: NRV-8472 → NRV-1203 (verified)');
-          newOutput.push('Edge: NRV-3321 → NRV-9902 (verified)');
-          newOutput.push('Edge: NRV-5512 → NRV-7721 (pending)');
-          break;
-        case 'clear':
-          setTerminalOutput(['$ ']);
-          return;
-        default:
-          newOutput.push('Command not found: ' + command);
-      }
-      newOutput.push('$ ');
-      setTerminalOutput(newOutput);
-    }, 500);
-    
-    setTerminalOutput(newOutput);
+  const executeCommand = async (command: string) => {
+    const trimmed = command.trim();
+    if (!trimmed) return;
+
+    setTerminalOutput(prev => [...prev, '$ ' + trimmed]);
     setCurrentCommand('');
+
+    if (trimmed.toLowerCase() === 'clear') {
+      setTerminalOutput(['$ ']);
+      return;
+    }
+
+    if (trimmed.toLowerCase() === 'help') {
+      setTerminalOutput(prev => [
+        ...prev,
+        'Available commands:',
+        '  help        - Show this help message',
+        '  status      - Show graph status',
+        '  query <id>  - Query trace by ID',
+        '  edges       - List graph edges',
+        '  clear       - Clear terminal',
+        '  <command>   - Execute via knirvcli',
+        '$ '
+      ]);
+      return;
+    }
+
+    setIsExecuting(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/cli/execute`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: trimmed }),
+      });
+      const data = await resp.json();
+      const output: string[] = [];
+      if (!resp.ok) {
+        output.push(`Error: ${data.error || data.message || 'Command failed'}`);
+      } else if (Array.isArray(data.output) && data.output.length > 0) {
+        output.push(...data.output);
+      } else if (typeof data.output === 'string' && data.output) {
+        output.push(...data.output.split('\n').filter(Boolean));
+      } else {
+        output.push(`Status: ${data.status || 'completed'}`);
+      }
+      if (output.length === 0) output.push('(no output)');
+      setTerminalOutput(prev => [...prev, ...output, '$ ']);
+    } catch {
+      setTerminalOutput(prev => [...prev, 'Error: Failed to reach backend', '$ ']);
+    } finally {
+      setIsExecuting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -112,7 +133,7 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/20 backdrop-blur-sm transition-all duration-300 z-40" onClick={onClose} />
-      
+
       <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-all duration-300 ease-in-out">
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b">
@@ -146,6 +167,7 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
                     <CardTitle className="flex items-center space-x-2">
                       <Terminal className="w-5 h-5" />
                       <span>KNIRVGRAPH Terminal</span>
+                      {isExecuting && <Badge variant="secondary" className="text-xs">running...</Badge>}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -154,6 +176,7 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
                         {terminalOutput.map((line, index) => (
                           <div key={index}>{line}</div>
                         ))}
+                        <div ref={terminalEndRef} />
                       </div>
                       <div className="flex items-center mt-2">
                         <span className="text-blue-400">$ </span>
@@ -161,13 +184,14 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
                           type="text"
                           value={currentCommand}
                           onChange={(e) => setCurrentCommand(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && currentCommand.trim()) {
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && currentCommand.trim() && !isExecuting) {
                               executeCommand(currentCommand.trim());
                             }
                           }}
                           className="flex-1 bg-transparent text-blue-400 outline-none ml-2"
-                          placeholder="Enter command..."
+                          placeholder={isExecuting ? 'Executing...' : 'Enter command...'}
+                          disabled={isExecuting}
                           autoFocus
                         />
                       </div>
@@ -193,7 +217,13 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
                         <div className="text-xs text-muted-foreground">
                           Commands: {template.commands.join(', ')}
                         </div>
-                        <Button variant="outline" size="sm" className="w-full">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          disabled={isExecuting}
+                          onClick={() => executeCommand(template.commands[0])}
+                        >
                           <Play className="w-3 h-3 mr-1" />
                           Execute
                         </Button>
@@ -233,9 +263,9 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Button 
-                        variant={showReasoningExplorer ? "default" : "outline"} 
-                        size="sm" 
+                      <Button
+                        variant={showReasoningExplorer ? "default" : "outline"}
+                        size="sm"
                         className="w-full"
                         onClick={() => setShowReasoningExplorer(!showReasoningExplorer)}
                       >
@@ -282,7 +312,7 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
               </TabsContent>
             </Tabs>
 
-            {/* Reasoning Explorer Panel - Slides out from left side like DVE Solver */}
+            {/* Reasoning Explorer Panel */}
             {showReasoningExplorer && (
               <div className="fixed left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 w-96">
                 <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
@@ -297,9 +327,8 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  
+
                   <div className="flex flex-col h-[calc(100%-56px)]">
-                    {/* Traces List */}
                     <div className="p-4 border-b border-blue-600/30">
                       <h4 className="text-xs font-semibold text-cyan-400 mb-3 flex items-center space-x-2">
                         <Clock className="w-3 h-3" />
@@ -326,8 +355,7 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
                         </div>
                       </ScrollArea>
                     </div>
-                    
-                    {/* Trace Explorer */}
+
                     <div className="flex-1 p-4 overflow-auto">
                       <h4 className="text-xs font-semibold text-cyan-400 mb-3 flex items-center space-x-2">
                         <FileText className="w-3 h-3" />

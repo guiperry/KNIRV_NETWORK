@@ -339,50 +339,42 @@ func (h *DVEHandlers) GetDVENodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Apply role-based filtering for observer (Developer) role
+	// Apply role-based filtering for observer (Developer) role.
+	// When the observer has existing creations, show only their nodes.
+	// When they have no creations yet (new user / demo state), show all nodes
+	// so that demo DVE nodes are visible and the dashboard is not empty.
 	authCtx := middleware.GetAuthContext(r)
 	if authCtx != nil && authCtx.Role == "observer" && h.dveManager != nil {
-		// Get the list of creations for this user (via DVEManager delegation)
 		creations, err := h.dveManager.GetUserDVECreations(authCtx.UserID)
-		if err != nil {
-			// Log error but don't fail the request - return empty array for developers with no creations
+		if err != nil || len(creations) == 0 {
+			// No creations yet — fall through to return all nodes (including demo nodes).
+		} else {
+			// User has creations: filter to only their nodes.
+			userNodeMap := make(map[string]bool)
+			for _, creation := range creations {
+				userNodeMap[creation.DVENodeID] = true
+			}
+
+			filteredNodes := make([]interface{}, 0)
+			for _, node := range nodes {
+				if userNodeMap[node.ID] {
+					filteredNodes = append(filteredNodes, node)
+				}
+			}
+
 			response := DVENodeResponse{
 				Success:   true,
-				Data:      []interface{}{}, // Empty array
-				Total:     0,
+				Data:      filteredNodes,
+				Total:     len(filteredNodes),
 				Timestamp: getCurrentTimestamp(),
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 			return
 		}
-
-		// Create a map of node IDs for quick lookup
-		userNodeMap := make(map[string]bool)
-		for _, creation := range creations {
-			userNodeMap[creation.DVENodeID] = true
-		}
-
-		// Filter nodes to only include those the user owns
-		filteredNodes := make([]interface{}, 0)
-		for _, node := range nodes {
-			if userNodeMap[node.ID] {
-				filteredNodes = append(filteredNodes, node)
-			}
-		}
-
-		response := DVENodeResponse{
-			Success:   true,
-			Data:      filteredNodes,
-			Total:     len(filteredNodes),
-			Timestamp: getCurrentTimestamp(),
-		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
-		return
 	}
 
-	// For admin and validator roles, return all nodes
+	// For admin, validator roles, and observers with no creations, return all nodes.
 	response := DVENodeResponse{
 		Success:   true,
 		Data:      nodes,

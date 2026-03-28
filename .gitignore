@@ -114,3 +114,6 @@ packages/KNIRVCHAIN/bin/KNIRVCHAIN
 packages/KNIRVSERVER/backend/cmd/container_deployer/golang-app-source/knirv-server
 packages/KNIRVSERVER/pkg/knirvgateway/gateway
 packages/KNIRVSERVER/pkg/knirvgateway/internal/embedded/knirv-oracle
+packages/KNIRVSERVER/knirv-server
+packages/KNIRVSERVER/backend/backend_server
+packages/KNIRVSERVER/backend/backend_server

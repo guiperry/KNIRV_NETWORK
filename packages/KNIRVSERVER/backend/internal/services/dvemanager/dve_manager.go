@@ -547,10 +547,11 @@ func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
 	}
 
 	if dm.chainDiscovery != nil && dm.chainDiscovery.chainRegistry == nil {
-		log.Println("Chain registry not connected - falling back to local demo nodes")
-	} else if dm.enableChainDiscovery {
-		log.Println("Chain-native discovery active - waiting for P2P node announcements")
-		return nil
+		log.Println("Chain registry not connected - seeding local demo nodes")
+	} else if dm.enableChainDiscovery && dm.chainDiscovery != nil {
+		// Chain discovery is active and registry is connected but returned no nodes.
+		// Seed demo nodes so the dashboard is not empty during initial setup.
+		log.Println("Chain registry connected but no nodes discovered yet - seeding demo nodes")
 	}
 
 	demoDVENodes := []*RegisterNodeRequest{

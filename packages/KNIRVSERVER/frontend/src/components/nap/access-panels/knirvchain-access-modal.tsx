@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Terminal, Play, Lock, Settings, BarChart3, FileText, Coins, Zap, Shield, GitCommit, Package, Code, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface KNIRVChainAccessModalProps {
   isOpen: boolean;
@@ -28,11 +29,17 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
     '$ '
   ]);
   const [currentCommand, setCurrentCommand] = useState('');
+  const [isExecuting, setIsExecuting] = useState(false);
   const [showMint, setShowMint] = useState(false);
   const [showNodes, setShowNodes] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
   const [showSolutionVault, setShowSolutionVault] = useState(false);
   const [selectedSolution, setSelectedSolution] = useState<string | null>(null);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [terminalOutput]);
 
   const [solutions] = useState<Solution[]>([
     { id: 'sol_network_v1', error_id: 'err_992', language: 'go', timestamp: '2026-02-16T10:00:00Z' },
@@ -66,50 +73,58 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
     }
   ];
 
-  const executeCommand = (command: string) => {
-    const newOutput = [...terminalOutput];
-    newOutput.push('$ ' + command);
-    
-    setTimeout(() => {
-      switch (command.toLowerCase()) {
-        case 'help':
-          newOutput.push('Available commands:');
-          newOutput.push('  help - Show this help message');
-          newOutput.push('  status - Show chain status');
-          newOutput.push('  blocks - View recent blocks');
-          newOutput.push('  nodes - List capability nodes');
-          newOutput.push('  clear - Clear terminal');
-          break;
-        case 'status':
-          newOutput.push('Chain Status: Minting Active');
-          newOutput.push('Current Block: #1,847,293');
-          newOutput.push('Active Nodes: 28');
-          newOutput.push('Last Block: 0x7a8b...c3d2');
-          break;
-        case 'blocks':
-          newOutput.push('Fetching recent blocks...');
-          newOutput.push('#1,847,293: 3 transactions');
-          newOutput.push('#1,847,292: 7 transactions');
-          newOutput.push('#1,847,291: 2 transactions');
-          break;
-        case 'nodes':
-          newOutput.push('Capability Nodes: 28');
-          newOutput.push('  Node-001: SkillNode (verified)');
-          newOutput.push('  Node-002: CapabilityNode (verified)');
-          newOutput.push('  Node-003: PropertyNode (pending)');
-          break;
-        case 'clear':
-          setTerminalOutput(['$ ']);
-          return;
-        default:
-          newOutput.push('Command not found: ' + command);
-      }
-      newOutput.push('$ ');
-      setTerminalOutput(newOutput);
-    }, 500);
-    
-    setTerminalOutput(newOutput);
+  const executeCommand = async (command: string) => {
+    const trimmed = command.trim();
+    if (!trimmed) return;
+
+    setTerminalOutput(prev => [...prev, '$ ' + trimmed]);
     setCurrentCommand('');
+
+    if (trimmed.toLowerCase() === 'clear') {
+      setTerminalOutput(['$ ']);
+      return;
+    }
+
+    if (trimmed.toLowerCase() === 'help') {
+      setTerminalOutput(prev => [
+        ...prev,
+        'Available commands:',
+        '  help        - Show this help message',
+        '  status      - Show chain status',
+        '  blocks      - View recent blocks',
+        '  nodes       - List capability nodes',
+        '  clear       - Clear terminal',
+        '  <command>   - Execute via knirvcli chain',
+        '$ '
+      ]);
+      return;
+    }
+
+    setIsExecuting(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/cli/chain/execute`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: trimmed }),
+      });
+      const data = await resp.json();
+      const output: string[] = [];
+      if (!resp.ok) {
+        output.push(`Error: ${data.error || data.message || 'Command failed'}`);
+      } else if (Array.isArray(data.output) && data.output.length > 0) {
+        output.push(...data.output);
+      } else if (typeof data.output === 'string' && data.output) {
+        output.push(...data.output.split('\n').filter(Boolean));
+      } else {
+        output.push(`Status: ${data.status || 'completed'}`);
+      }
+      if (output.length === 0) output.push('(no output)');
+      setTerminalOutput(prev => [...prev, ...output, '$ ']);
+    } catch {
+      setTerminalOutput(prev => [...prev, 'Error: Failed to reach backend', '$ ']);
+    } finally {
+      setIsExecuting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -117,7 +132,7 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/20 backdrop-blur-sm transition-all duration-300 z-40" onClick={onClose} />
-      
+
       <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-all duration-300 ease-in-out">
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b">
@@ -151,6 +166,7 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
                     <CardTitle className="flex items-center space-x-2">
                       <Terminal className="w-5 h-5" />
                       <span>KNIRVCHAIN Terminal</span>
+                      {isExecuting && <Badge variant="secondary" className="text-xs">running...</Badge>}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -159,6 +175,7 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
                         {terminalOutput.map((line, index) => (
                           <div key={index}>{line}</div>
                         ))}
+                        <div ref={terminalEndRef} />
                       </div>
                       <div className="flex items-center mt-2">
                         <span className="text-blue-400">$ </span>
@@ -166,13 +183,14 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
                           type="text"
                           value={currentCommand}
                           onChange={(e) => setCurrentCommand(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && currentCommand.trim()) {
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && currentCommand.trim() && !isExecuting) {
                               executeCommand(currentCommand.trim());
                             }
                           }}
                           className="flex-1 bg-transparent text-blue-400 outline-none ml-2"
-                          placeholder="Enter command..."
+                          placeholder={isExecuting ? 'Executing...' : 'Enter command...'}
+                          disabled={isExecuting}
                           autoFocus
                         />
                       </div>
@@ -198,7 +216,13 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
                         <div className="text-xs text-muted-foreground">
                           Commands: {template.commands.join(', ')}
                         </div>
-                        <Button variant="outline" size="sm" className="w-full">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          disabled={isExecuting}
+                          onClick={() => executeCommand(template.commands[0])}
+                        >
                           <Play className="w-3 h-3 mr-1" />
                           Execute
                         </Button>
@@ -221,9 +245,9 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Button 
-                        variant={showSolutionVault ? "default" : "outline"} 
-                        size="sm" 
+                      <Button
+                        variant={showSolutionVault ? "default" : "outline"}
+                        size="sm"
                         className="w-full"
                         onClick={() => setShowSolutionVault(!showSolutionVault)}
                       >
@@ -304,7 +328,7 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
               </TabsContent>
             </Tabs>
 
-            {/* Solution Vault Panel - Slides out from left side like DVE Solver */}
+            {/* Solution Vault Panel */}
             {showSolutionVault && (
               <div className="fixed left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 w-96">
                 <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
@@ -319,9 +343,8 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  
+
                   <div className="flex flex-col h-[calc(100%-56px)]">
-                    {/* Solutions List */}
                     <div className="p-4 border-b border-blue-600/30">
                       <h4 className="text-xs font-semibold text-cyan-400 mb-3 flex items-center space-x-2">
                         <Package className="w-3 h-3" />
@@ -350,8 +373,7 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
                         </div>
                       </ScrollArea>
                     </div>
-                    
-                    {/* Logic Descriptor */}
+
                     <div className="flex-1 p-4 overflow-auto">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="text-xs font-semibold text-cyan-400 flex items-center space-x-2">
@@ -372,14 +394,11 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
                       <div className="bg-black/40 rounded-lg p-4 font-mono text-sm h-full overflow-auto">
                         {selectedSolution ? (
                           <div className="space-y-3">
-                            <div className="text-muted-foreground">{/* Solution Logic for {selectedSolution} */}</div>
                             <div className="text-blue-400">package main</div>
                             <div className="text-blue-400">import "github.com/knirv/sdk"</div>
                             <br />
                             <div>func Resolve(ctx *sdk.Context) error {'{'}</div>
                             <div className="pl-4 text-green-400">
-                              {/* Logic to resolve {solutions.find(s => s.id === selectedSolution)?.error_id} */}
-                              <br />
                               return sdk.ResolveError("{solutions.find(s => s.id === selectedSolution)?.error_id}")
                             </div>
                             <div>{'}'}</div>

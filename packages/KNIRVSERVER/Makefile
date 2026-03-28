@@ -12,6 +12,7 @@ ROOT_DIR := $(shell pwd)
 BACKEND_DIR := $(ROOT_DIR)/backend
 FRONTEND_DIR := $(ROOT_DIR)/frontend
 DESKTOP_DIR := $(ROOT_DIR)/desktop
+GATEWAY_DIR := $(ROOT_DIR)/pkg/knirvgateway
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -48,10 +49,10 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate kali-docker-image desktop desktop-deps desktop-build dash gateway-sync gateway-build gateway-deps
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate kali-docker-image desktop desktop-deps desktop-build dash gateway-sync gateway-build gateway-deps gateway-clean build-full
 
 # Default target
-all: clean deps frontend desktop-build backend binary
+all: frontend desktop-build backend binary
 
 # Desktop (Electron)
 desktop-deps: ## Install desktop dependencies
@@ -88,10 +89,12 @@ ebpf-generate: ## Generate eBPF Go code from C programs
 # Dependency Management
 deps: deps-go deps-node deps-ansible ## Install all dependencies
 
-deps-go: ## Install Go dependencies
+deps-go: ## Install Go dependencies (backend + gateway)
 	@echo "$(BLUE)Installing Go dependencies...$(NC)"
 	cd $(BACKEND_DIR) && go mod download
 	cd $(BACKEND_DIR) && go mod tidy
+	cd $(GATEWAY_DIR) && go mod download
+	cd $(GATEWAY_DIR) && go mod tidy
 
 deps-node: ## Install Node.js dependencies
 	@echo "$(BLUE)Installing Node.js dependencies...$(NC)"
@@ -131,12 +134,14 @@ deployer: deps-go ## Build container_deployer binary
 	cd $(BACKEND_DIR)/cmd/container_deployer && go build -ldflags "$(LDFLAGS)" -o container_deployer main.go
 	@echo "$(GREEN)container_deployer build completed: backend/cmd/container_deployer/container_deployer$(NC)"
 
-# Unified Binary (Frontend + Desktop + Unified Backend)
-binary: ebpf-generate frontend desktop-build backend ## Build unified binary with embedded eBPF, frontend, desktop, and backend
-	@echo "$(BLUE)Creating unified binary with embedded eBPF...$(NC)"
+# Unified Binary (Frontend + Desktop + Backend + KNIRVGATEWAY)
+# main.go embeds: bin/backend_server, bin/knirvgateway, config/*, desktop/dist/*, frontend/out/*
+# At runtime the launcher extracts backend_server and knirvgateway to ~/.local/share/knirvserver/bin/
+binary: ebpf-generate frontend desktop-build backend gateway-build ## Build unified binary embedding frontend, desktop, backend, and KNIRVGATEWAY
+	@echo "$(BLUE)Creating unified binary (embeds backend_server + knirvgateway + frontend + desktop)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
-	@echo "$(GREEN)Unified binary created with embedded end-to-end and eBPF programs: $(DIST_DIR)/knirv-server$(NC)"
+	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/knirv-server$(NC)"
 	@echo "$(BLUE)Copying binary to container_deployer golang-app-source in app data directory...$(NC)"
 	@mkdir -p $(APPDATA_DIR)/container_deployer/resources/golang-app-source
 	cp $(DIST_DIR)/knirv-server $(APPDATA_DIR)/container_deployer/resources/golang-app-source
@@ -218,7 +223,7 @@ dev: ## Start development environment
 
 dev-backend: backend ## Start unified backend development server
 	@echo "$(BLUE)Starting unified backend development server...$(NC)"
-	cd $(BACKEND_DIR) && ./bin/backend-server --config config/development.yaml
+	cd $(BACKEND_DIR) && ./bin/backend_server --config config/development.yaml
 
 dev-frontend: ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
@@ -251,7 +256,7 @@ deploy-dev-local: ## Deploy to local development environment
 	cd $(BACKEND_DIR)/cmd/container_deployer && ./container_deployer --deploy-type local --env development --action 1
 
 # Utilities
-clean-all: ## Clean build artifacts
+clean-all: ## Clean all build artifacts (binaries, dist, node_modules, Go cache)
 	@echo "$(BLUE)Cleaning build artifacts...$(NC)"
 	rm -rf $(BUILD_DIR)
 	rm -rf $(DIST_DIR)
@@ -266,16 +271,18 @@ clean-all: ## Clean build artifacts
 	rm -rf $(FRONTEND_DIR)/node_modules
 	rm -rf node_modules/.cache
 	cd $(BACKEND_DIR) && go clean -modcache
-	docker stop knirvserver-kali-local
-	docker rm knirvserver-kali-local
-	docker system prune -f
-	
+	cd $(GATEWAY_DIR) && go clean
+	-docker stop knirvserver-kali-local 2>/dev/null || true
+	-docker rm knirvserver-kali-local 2>/dev/null || true
+	-docker system prune -f 2>/dev/null || true
 
-clean: ## Clean everything including dependencies
-	@echo "$(BLUE)Cleaning all artifacts and dependencies...$(NC)"
-	rm -rf $(FRONTEND_DIR)/node_modules
-	cd $(BACKEND_DIR) && go clean -modcache
-	-docker rmi knirvserver-kali-base:latest 2>/dev/null || true
+clean: ## Clean build outputs (preserves node_modules and Go module cache)
+	@echo "$(BLUE)Cleaning build outputs...$(NC)"
+	rm -rf $(BUILD_DIR) $(DIST_DIR)
+	rm -rf $(BACKEND_DIR)/bin
+	rm -f bin/backend_server bin/knirvgateway
+	rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/out
+	cd $(GATEWAY_DIR) && go clean
 
 install: binary ## Install binary to system
 	@echo "$(BLUE)Installing binary...$(NC)"
@@ -355,19 +362,19 @@ gateway-sync: ## Sync KNIRVGATEWAY source to embedded package
 
 gateway-deps: ## Install KNIRVGATEWAY dependencies
 	@echo "$(BLUE)Installing KNIRVGATEWAY dependencies...$(NC)"
-	cd pkg/knirvgateway && go mod download && go mod tidy
+	cd $(GATEWAY_DIR) && go mod download && go mod tidy
 
-gateway-build: ## Build KNIRVGATEWAY binary
+gateway-build: gateway-deps ## Build KNIRVGATEWAY binary into bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVGATEWAY binary...$(NC)"
 	@mkdir -p bin
-	cd pkg/knirvgateway && go build -ldflags "-s -w" -o ../../bin/knirvgateway ./cmd/gateway
+	cd $(GATEWAY_DIR) && go build -ldflags "-s -w" -o $(ROOT_DIR)/bin/knirvgateway ./cmd/gateway
 	@echo "$(GREEN)KNIRVGATEWAY binary built: bin/knirvgateway$(NC)"
 
 gateway-clean: ## Clean KNIRVGATEWAY build artifacts
 	@echo "$(BLUE)Cleaning KNIRVGATEWAY artifacts...$(NC)"
 	rm -f bin/knirvgateway
-	cd pkg/knirvgateway && go clean
+	cd $(GATEWAY_DIR) && go clean
 
-# Full build including embedded KNIRVGATEWAY
-build-full: gateway-deps gateway-build binary ## Build everything including KNIRVGATEWAY
+# Full build including embedded KNIRVGATEWAY (gateway-build is now a dep of binary)
+build-full: binary ## Build everything including KNIRVGATEWAY (alias for binary)
 

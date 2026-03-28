@@ -4,15 +4,49 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
 
 	"go.uber.org/zap"
 )
+
+// killStaleGateway sends SIGTERM (then SIGKILL after 2 s) to any running
+// processes whose executable matches the given binary name. This prevents
+// port-conflict crashes when the parent process was previously killed
+// without triggering the normal Stop() path.
+func killStaleGateway(binaryPath string) {
+	if binaryPath == "" {
+		return
+	}
+	binaryName := filepath.Base(binaryPath)
+	// SIGTERM first
+	if cmd := exec.Command("pkill", "-TERM", "-x", binaryName); cmd.Run() == nil {
+		time.Sleep(1 * time.Second)
+	}
+	// SIGKILL any survivors
+	exec.Command("pkill", "-KILL", "-x", binaryName).Run() //nolint:errcheck
+}
+
+// waitForPortFree blocks until the given TCP port is no longer occupied or
+// the deadline is reached. Returns true if the port is free.
+func waitForPortFree(port int, deadline time.Duration) bool {
+	end := time.Now().Add(deadline)
+	for time.Now().Before(end) {
+		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		if err == nil {
+			ln.Close()
+			return true
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return false
+}
 
 type Manager struct {
 	binaryPath string
@@ -74,10 +108,10 @@ func DefaultManagerConfig() *ManagerConfig {
 			TurnUDP:     3478,
 			TurnTCP:     3479,
 			TurnAPI:     3476,
-			TunnelHTTP:  3002,
-			TunnelCtrl:  3003,
-			TunnelRelay: 3004,
-			TunnelSTUN:  3005,
+			TunnelHTTP:  13002,
+			TunnelCtrl:  13003,
+			TunnelRelay: 13004,
+			TunnelSTUN:  13005,
 		},
 		StartTimeout: 30 * time.Second,
 		StopTimeout:  10 * time.Second,
@@ -121,8 +155,40 @@ func (m *Manager) Start(ctx context.Context) error {
 		m.config.BinaryPath = "./knirvgateway"
 	}
 
-	if _, err := os.Stat(m.config.BinaryPath); os.IsNotExist(err) {
-		return fmt.Errorf("KNIRVGATEWAY binary not found at %s", m.config.BinaryPath)
+	// Resolve the binary path, trying several candidate locations.
+	resolved, err := resolveBinaryPath(m.config.BinaryPath)
+	if err != nil {
+		return fmt.Errorf("KNIRVGATEWAY binary not found (tried %s and fallbacks): %w", m.config.BinaryPath, err)
+	}
+	m.config.BinaryPath = resolved
+
+	// Pre-flight: if a healthy gateway is already listening (stale process from a
+	// previous run), adopt it rather than starting a duplicate and hitting a port
+	// conflict on the tunnel control port (3003).
+	preflightClient := &http.Client{Timeout: 3 * time.Second}
+	if resp, err := preflightClient.Get(fmt.Sprintf("%s/health", m.baseURL)); err == nil {
+		resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			m.logger.Info("Adopting existing healthy KNIRVGATEWAY process (skipping new spawn)")
+			m.running = true
+			return nil
+		}
+	}
+
+	// Existing process is unhealthy or absent — kill any stale instance so the
+	// ports (especially the tunnel control port 3003) are free before we start.
+	m.logger.Info("Killing any stale KNIRVGATEWAY processes", zap.String("binary", m.config.BinaryPath))
+	killStaleGateway(m.config.BinaryPath)
+
+	// Wait for the tunnel control port to be released before spawning the new
+	// binary. This closes the race window between kill and exec.
+	ctrlPort := 13003
+	if m.config.Ports != nil && m.config.Ports.TunnelCtrl != 0 {
+		ctrlPort = m.config.Ports.TunnelCtrl
+	}
+	if !waitForPortFree(ctrlPort, 5*time.Second) {
+		m.logger.Warn("Tunnel control port still occupied after kill — proceeding anyway",
+			zap.Int("port", ctrlPort))
 	}
 
 	m.logger.Info("Starting KNIRVGATEWAY",
@@ -173,6 +239,44 @@ func (m *Manager) Start(ctx context.Context) error {
 		zap.String("url", m.baseURL))
 
 	return nil
+}
+
+// resolveBinaryPath returns the first path where the knirvgateway binary exists.
+// Priority: KNIRV_GATEWAY_BINARY_PATH env var → configured path → standard fallbacks.
+func resolveBinaryPath(configured string) (string, error) {
+	var candidates []string
+
+	// Highest priority: explicit env var set by the launcher (main.go).
+	if envPath := os.Getenv("KNIRV_GATEWAY_BINARY_PATH"); envPath != "" {
+		candidates = append(candidates, envPath)
+	}
+
+	candidates = append(candidates, configured)
+
+	// Common fallback locations relative to the working directory.
+	dir, _ := os.Getwd()
+	candidates = append(candidates,
+		filepath.Join(dir, "bin", "knirvgateway"),
+		filepath.Join(dir, "..", "bin", "knirvgateway"),
+		filepath.Join(filepath.Dir(configured), "bin", "knirvgateway"),
+	)
+
+	// Also try the directory containing the running executable.
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "knirvgateway"),
+			filepath.Join(exeDir, "..", "bin", "knirvgateway"),
+		)
+	}
+
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			return p, nil
+		}
+	}
+
+	return "", fmt.Errorf("binary not found in any candidate location")
 }
 
 func (m *Manager) waitForHealth(ctx context.Context) error {

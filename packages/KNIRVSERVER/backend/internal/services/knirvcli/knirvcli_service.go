@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"sync"
 	"time"
@@ -86,6 +87,17 @@ type TokenTransaction struct {
 	Status string `json:"status"`
 }
 
+// resolveKNIRVCLIBinary returns the path to the knirvcli binary.
+// Priority: KNIRV_KNIRVCLI_PATH env var → "knirvcli" on PATH.
+func resolveKNIRVCLIBinary() string {
+	if p := os.Getenv("KNIRV_KNIRVCLI_PATH"); p != "" {
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	return "knirvcli"
+}
+
 // NewKNIRVCLIService creates a new KNIRVCLI service
 func NewKNIRVCLIService(db *database.BuntDBManager, dveManager *dvemanager.DVEManager, validationCore *validation.ValidationCore) *KNIRVCLIService {
 	return &KNIRVCLIService{
@@ -129,7 +141,7 @@ func (s *KNIRVCLIService) ExecuteCommand(ctx context.Context, req *CommandReques
 	args = append(args, req.Command)
 
 	// Execute command
-	cmd := exec.CommandContext(ctx, "knirvcli", args...)
+	cmd := exec.CommandContext(ctx, resolveKNIRVCLIBinary(), args...)
 
 	// Set environment variables
 	if req.Env != nil {
@@ -298,7 +310,7 @@ func (s *KNIRVCLIService) SendInput(sessionID string, input string) error {
 
 // GetWalletInfo retrieves wallet information via KNIRVCLI
 func (s *KNIRVCLIService) GetWalletInfo(ctx context.Context, walletAddress string) (*WalletInfo, error) {
-	cmd := exec.CommandContext(ctx, "knirvcli", "wallet", "info", "--address", walletAddress)
+	cmd := exec.CommandContext(ctx, resolveKNIRVCLIBinary(), "wallet", "info", "--address", walletAddress)
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get wallet info: %w", err)
@@ -314,7 +326,7 @@ func (s *KNIRVCLIService) GetWalletInfo(ctx context.Context, walletAddress strin
 
 // SendToken sends tokens via KNIRVCLI
 func (s *KNIRVCLIService) SendToken(ctx context.Context, from, to string, amount int64) (*TokenTransaction, error) {
-	cmd := exec.CommandContext(ctx, "knirvcli", "wallet", "send",
+	cmd := exec.CommandContext(ctx, resolveKNIRVCLIBinary(), "wallet", "send",
 		"--from", from,
 		"--to", to,
 		"--amount", fmt.Sprintf("%d", amount),

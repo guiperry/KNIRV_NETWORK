@@ -23,6 +23,21 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
+// GatewayTURNStatus holds TURN server information sourced from the embedded KNIRVGATEWAY.
+type GatewayTURNStatus struct {
+	Running      bool
+	UDPPort      int
+	TCPPort      int
+	Realm        string
+	SessionCount int64
+	ActiveRelays int64
+}
+
+// GatewayTURNQuery is a function that returns current TURN server status from the embedded
+// KNIRVGATEWAY.  It is set via SetGatewayTURNQuery after the gateway manager starts.
+// Returning nil, nil means the gateway is not yet available.
+type GatewayTURNQuery func(ctx context.Context) (*GatewayTURNStatus, error)
+
 // DVEP2PManager implements P2P networking for DVE nodes aligned with KNIRV-ORACLE
 type DVEP2PManager struct {
 	host   host.Host
@@ -63,6 +78,9 @@ type DVEP2PManager struct {
 
 	// P2P Security Integration
 	p2pSecurityService *P2PService // eBPF/XDP firewall integration
+
+	// Embedded KNIRVGATEWAY integration (optional; set after gateway starts)
+	gatewayTURNQuery GatewayTURNQuery
 }
 
 // MessageHandler defines the interface for handling P2P messages
@@ -1355,23 +1373,59 @@ func (dpm *DVEP2PManager) bootstrapToNetwork() error {
 	return nil
 }
 
-// setupNATTraversal configures NAT traversal using STUN/TURN servers
+// SetGatewayTURNQuery wires the embedded KNIRVGATEWAY into the P2P manager so that
+// setupNATTraversal can query live TURN server status.  Call this after the gateway
+// manager has been initialised (it is initialised after the P2P manager in main.go).
+func (dpm *DVEP2PManager) SetGatewayTURNQuery(fn GatewayTURNQuery) {
+	dpm.mu.Lock()
+	defer dpm.mu.Unlock()
+	dpm.gatewayTURNQuery = fn
+}
+
+// setupNATTraversal configures NAT traversal using STUN/TURN servers.
+// When the embedded KNIRVGATEWAY is running it is queried for live TURN server
+// status and its address is used; otherwise the default public STUN-only
+// configuration is retained.
 func (dpm *DVEP2PManager) setupNATTraversal() {
 	log.Printf("[DVE][%s] Setting up NAT traversal...", dpm.nodeRole)
 
-	// For now, log the STUN/TURN server configuration
-	// In a full implementation, this would integrate with libp2p's NAT traversal
-	log.Printf("[DVE][%s] STUN servers configured: %v", dpm.nodeRole, DefaultSTUNServers)
-	log.Printf("[DVE][%s] TURN servers configured: %v", dpm.nodeRole, DefaultTURNServers)
+	// Retrieve the query function under the read lock so the field is not
+	// modified while we use it.
+	dpm.mu.RLock()
+	queryFn := dpm.gatewayTURNQuery
+	dpm.mu.RUnlock()
 
-	// TODO: Implement actual STUN/TURN client integration
-	// This would involve:
-	// 1. STUN client to discover public IP and NAT type
-	// 2. TURN client for relay when direct connection fails
-	// 3. UPnP integration for port forwarding
-	// 4. Circuit relay configuration for full NAT traversal
+	if queryFn != nil {
+		ctx, cancel := context.WithTimeout(dpm.ctx, 5*time.Second)
+		defer cancel()
 
-	log.Printf("[DVE][%s] NAT traversal setup completed (basic configuration)", dpm.nodeRole)
+		status, err := queryFn(ctx)
+		if err != nil {
+			log.Printf("[DVE][%s] Failed to query embedded gateway TURN status: %v — falling back to STUN only", dpm.nodeRole, err)
+		} else if status != nil && status.Running {
+			// Build the TURN URL: turn:<host>:<udp-port>
+			// The gateway always runs co-located with the backend so localhost is correct.
+			turnURL := fmt.Sprintf("turn:localhost:%d", status.UDPPort)
+			DefaultTURNServers = []string{turnURL}
+			log.Printf("[DVE][%s] TURN server active on embedded gateway — url=%s realm=%s sessions=%d relays=%d",
+				dpm.nodeRole, turnURL, status.Realm, status.SessionCount, status.ActiveRelays)
+
+			// Also expose the TCP relay as an alternative candidate
+			if status.TCPPort > 0 && status.TCPPort != status.UDPPort {
+				tcpURL := fmt.Sprintf("turn:localhost:%d?transport=tcp", status.TCPPort)
+				DefaultTURNServers = append(DefaultTURNServers, tcpURL)
+				log.Printf("[DVE][%s] TURN TCP relay registered: %s", dpm.nodeRole, tcpURL)
+			}
+		} else if status != nil {
+			log.Printf("[DVE][%s] Embedded gateway TURN server not yet active — STUN only", dpm.nodeRole)
+		}
+	} else {
+		log.Printf("[DVE][%s] No embedded gateway wired — using default STUN-only NAT traversal", dpm.nodeRole)
+	}
+
+	log.Printf("[DVE][%s] STUN servers: %v", dpm.nodeRole, DefaultSTUNServers)
+	log.Printf("[DVE][%s] TURN servers: %v", dpm.nodeRole, DefaultTURNServers)
+	log.Printf("[DVE][%s] NAT traversal setup completed", dpm.nodeRole)
 }
 
 // managePeerReputation manages peer reputation scores and blacklisting

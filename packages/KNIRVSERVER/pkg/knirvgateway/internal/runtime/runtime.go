@@ -21,17 +21,32 @@ type Runtime struct {
 	logger            *zap.Logger
 	mu                sync.Mutex
 	extracted         bool
-	
+
 	// Embedded assets
 	webGUIFS         embed.FS
 	networkWebsiteFS embed.FS
 	oracleBinary     []byte
 }
 
+// runtimeBaseDir returns the directory where runtime files should be extracted.
+// Priority: KNIRV_APP_DATA_DIR env → XDG_DATA_HOME → ~/.local/share/knirvserver → /tmp fallback.
+func runtimeBaseDir() string {
+	if appDataDir := os.Getenv("KNIRV_APP_DATA_DIR"); appDataDir != "" {
+		return filepath.Join(appDataDir, "runtime")
+	}
+	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+		return filepath.Join(xdgDataHome, "knirvserver", "runtime")
+	}
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(homeDir, ".local", "share", "knirvserver", "runtime")
+	}
+	// Last resort: temp dir (original behaviour)
+	return filepath.Join(os.TempDir(), "knirvoracle-runtime")
+}
+
 // NewRuntime creates a new runtime manager with embedded assets
 func NewRuntime(logger *zap.Logger, webGUIFS embed.FS, networkWebsiteFS embed.FS, oracleBinary []byte) (*Runtime, error) {
-	// Create runtime directory in system temp
-	baseDir := filepath.Join(os.TempDir(), "knirvoracle-runtime")
+	baseDir := runtimeBaseDir()
 
 	r := &Runtime{
 		BaseDir:           baseDir,
@@ -59,14 +74,24 @@ func (r *Runtime) Setup() error {
 
 	r.logger.Info("Setting up runtime environment", zap.String("baseDir", r.BaseDir))
 
-	// Clean existing directory if it exists
+	// Clean existing directory if it exists. If RemoveAll fails (e.g. previous
+	// root-owned run left the directory), fall back to a fresh unique temp dir
+	// owned by the current user so extraction always succeeds.
 	if err := os.RemoveAll(r.BaseDir); err != nil {
-		r.logger.Warn("Failed to clean existing runtime directory", zap.Error(err))
-	}
-
-	// Create base directory
-	if err := os.MkdirAll(r.BaseDir, 0755); err != nil {
-		return fmt.Errorf("failed to create runtime directory: %w", err)
+		r.logger.Warn("Failed to clean existing runtime directory, using fresh temp dir", zap.Error(err))
+		newDir, mkErr := os.MkdirTemp("", "knirvoracle-runtime-*")
+		if mkErr != nil {
+			return fmt.Errorf("failed to create fallback runtime directory: %w", mkErr)
+		}
+		r.BaseDir = newDir
+		r.WebGUIStaticDir = filepath.Join(newDir, "webgui-static")
+		r.NetworkWebsiteDir = filepath.Join(newDir, "network-website")
+		r.OracleBinaryPath = filepath.Join(newDir, "knirv-oracle")
+	} else {
+		// Create base directory fresh
+		if err := os.MkdirAll(r.BaseDir, 0755); err != nil {
+			return fmt.Errorf("failed to create runtime directory: %w", err)
+		}
 	}
 
 	// Extract webgui static files

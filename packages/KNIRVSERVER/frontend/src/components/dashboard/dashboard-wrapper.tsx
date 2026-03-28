@@ -613,7 +613,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
 
                       <Card 
                         className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-all"
-                        onClick={() => setP2PTransportOpen(true)}
+                        onClick={() => setP2pTransportOpen(true)}
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <div className="flex items-center space-x-2">
@@ -1269,7 +1269,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
 
       <P2PTransportAccessModal
         isOpen={p2pTransportOpen}
-        onClose={() => setP2PTransportOpen(false)}
+        onClose={() => setP2pTransportOpen(false)}
       />
 
       {/* DVE Sovereign Creation & Management Modal */}

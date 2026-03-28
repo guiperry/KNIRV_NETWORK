@@ -284,14 +284,16 @@ func (s *Server) setupRoutes() error {
 func (s *Server) Start() error {
 	ctx := context.Background()
 
-	// Start tunnel service
+	// Start tunnel service — non-fatal: port conflicts (e.g. VS Code on :3003)
+	// must not prevent the HTTP server and WebGUI from starting.
 	if err := s.tunnelService.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start tunnel service: %w", err)
+		s.logger.Warn("Tunnel service unavailable — P2P tunneling disabled",
+			zap.Error(err))
 	}
 
-	// Start payment service
+	// Start payment service — non-fatal: payment failure should not block WebGUI.
 	if err := s.paymentService.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start payment service: %w", err)
+		s.logger.Warn("Payment service unavailable", zap.Error(err))
 	}
 
 	// Start TURN server with blockchain integration

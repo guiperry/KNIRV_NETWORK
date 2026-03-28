@@ -373,8 +373,10 @@ func LoadWithDefaults() (*Config, error) {
 	viper.AddConfigPath("./config")
 	viper.AddConfigPath(".")
 
-	// Environment variable support
+	// Environment variable support — replace dots with underscores so that
+	// nested keys like "gateway.binary_path" map to KNIRV_GATEWAY_BINARY_PATH.
 	viper.SetEnvPrefix("KNIRV")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	// Read configuration file (optional)

@@ -35,6 +35,11 @@ var embeddedFiles embed.FS
 //go:embed bin/backend_server
 var backendBinary []byte
 
+// Embed the KNIRVGATEWAY binary for P2P TURN/Tunnel services
+//
+//go:embed bin/knirvgateway
+var knirvgatewayBinary []byte
+
 // Embed the config files
 //
 //go:embed all:config/*
@@ -241,9 +246,44 @@ func NewNexusApp(config *Config) (*NexusApp, error) {
 	return app, nil
 }
 
-// extractBackend extracts the embedded unified backend binary
+// extractBinaries extracts all embedded binaries to the app data bin directory.
+// Returns the bin directory path.
+func extractBinaries() (string, error) {
+	appDataDir, err := getAppDataDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get app data directory: %w", err)
+	}
+
+	binDir := filepath.Join(appDataDir, "bin")
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create bin directory: %w", err)
+	}
+
+	type entry struct {
+		name string
+		data []byte
+	}
+	bins := []entry{
+		{"backend_server", backendBinary},
+		{"knirvgateway", knirvgatewayBinary},
+	}
+
+	for _, b := range bins {
+		dest := filepath.Join(binDir, b.name)
+		if err := os.WriteFile(dest, b.data, 0755); err != nil {
+			return "", fmt.Errorf("failed to extract %s: %w", b.name, err)
+		}
+		log.Printf("Extracted %s to %s", b.name, dest)
+	}
+
+	return binDir, nil
+}
+
+// extractBackend extracts all embedded binaries to the app data directory and
+// sets app.backendPath. A small temp directory is still kept for ephemeral
+// artefacts (e.g. desktop files).
 func (app *NexusApp) extractBackend() error {
-	// Create temporary directory
+	// Create temp directory for ephemeral artefacts (desktop assets, etc.)
 	tempDir, err := os.MkdirTemp("", "knirv-server-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
@@ -254,23 +294,13 @@ func (app *NexusApp) extractBackend() error {
 	}
 	app.tempDir = tempDir
 
-	// Extract unified backend binary
-	app.backendPath = filepath.Join(tempDir, "backend_server")
-	file, err := os.Create(app.backendPath)
+	// Extract all binaries to the persistent app data bin directory.
+	binDir, err := extractBinaries()
 	if err != nil {
-		return fmt.Errorf("failed to create backend file: %w", err)
-	}
-	defer file.Close()
-
-	if _, err := file.Write(backendBinary); err != nil {
-		return fmt.Errorf("failed to write backend binary: %w", err)
+		return fmt.Errorf("failed to extract binaries: %w", err)
 	}
 
-	// Make executable
-	if err := os.Chmod(app.backendPath, 0755); err != nil {
-		return fmt.Errorf("failed to make backend executable: %w", err)
-	}
-
+	app.backendPath = filepath.Join(binDir, "backend_server")
 	return nil
 }
 
@@ -466,11 +496,18 @@ func extractEnvFile(environment string) error {
 		return fmt.Errorf("unknown environment: %s (must be development, testnet, or production)", environment)
 	}
 
-	// Extract to current working directory so the application can find it
-	envPath := filepath.Join(".", ".env")
+	// Extract to app data directory so the application can find it.
+	appDataDir, err := getAppDataDir()
+	if err != nil {
+		return fmt.Errorf("failed to get app data directory: %w", err)
+	}
+	envPath := filepath.Join(appDataDir, ".env")
 	if err := os.WriteFile(envPath, envData, 0644); err != nil {
 		return fmt.Errorf("failed to write %s to %s: %w", envName, envPath, err)
 	}
+
+	// Propagate the path so subprocesses can locate it.
+	os.Setenv("KNIRV_ENV_FILE", envPath)
 
 	log.Printf("Extracted %s environment file to %s", environment, envPath)
 	return nil
@@ -613,7 +650,7 @@ func (app *NexusApp) setupRoutes() error {
 			resp, err := client.Do(req)
 			if err != nil {
 				log.Printf("Proxy error: %v", err)
-				c.JSON(500, gin.H{"error": "Backend service unavailable"})
+				c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Backend service unavailable"})
 				return
 			}
 			defer resp.Body.Close()
@@ -680,6 +717,19 @@ func (app *NexusApp) startBackend() error {
 		"KNIRV_SECURITY_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
 		"KNIRV_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
 	)
+
+	// Propagate paths to bundled binaries so the backend does not rely on CWD
+	// or system PATH to locate knirvgateway and knirvcli.  Also propagate the
+	// app data directory so the gateway runtime extracts files there instead of
+	// /tmp, and so the backend can locate config/log directories consistently.
+	if appDataDir, err := getAppDataDir(); err == nil {
+		binDir := filepath.Join(appDataDir, "bin")
+		env = append(env,
+			fmt.Sprintf("KNIRV_APP_DATA_DIR=%s", appDataDir),
+			fmt.Sprintf("KNIRV_GATEWAY_BINARY_PATH=%s", filepath.Join(binDir, "knirvgateway")),
+			fmt.Sprintf("KNIRV_KNIRVCLI_PATH=%s", filepath.Join(binDir, "knirvcli")),
+		)
+	}
 
 	// Pass the project log directory as an absolute path so the backend writes
 	// logs to <cwd>/logs/server.log regardless of where the backend binary runs from.

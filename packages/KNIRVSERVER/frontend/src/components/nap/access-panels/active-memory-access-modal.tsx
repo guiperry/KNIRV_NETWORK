@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Terminal, Play, Database, Settings, Shield, BarChart3, Lock, Key, FileText, RefreshCw, HardDrive, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface ActiveMemoryAccessModalProps {
   isOpen: boolean;
@@ -20,9 +21,15 @@ export function ActiveMemoryAccessModal({ isOpen, onClose }: ActiveMemoryAccessM
     '$ '
   ]);
   const [currentCommand, setCurrentCommand] = useState('');
+  const [isExecuting, setIsExecuting] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
   const [showEncryption, setShowEncryption] = useState(false);
   const [showFabric, setShowFabric] = useState(false);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [terminalOutput]);
 
   const workflowTemplates = [
     {
@@ -48,43 +55,57 @@ export function ActiveMemoryAccessModal({ isOpen, onClose }: ActiveMemoryAccessM
     }
   ];
 
-  const executeCommand = (command: string) => {
-    const newOutput = [...terminalOutput];
-    newOutput.push('$ ' + command);
-    
-    setTimeout(() => {
-      switch (command.toLowerCase()) {
-        case 'help':
-          newOutput.push('Available commands:');
-          newOutput.push('  help - Show this help message');
-          newOutput.push('  status - Show memory status');
-          newOutput.push('  sync - Synchronize memory');
-          newOutput.push('  clear - Clear terminal');
-          break;
-        case 'status':
-          newOutput.push('Memory Status: Active');
-          newOutput.push('Encryption: Kyber-768 + Dilithium-3');
-          newOutput.push('Fabric Slices: 12');
-          newOutput.push('Total Encrypted: 2.4 GB');
-          break;
-        case 'sync':
-          newOutput.push('Starting memory synchronization...');
-          newOutput.push('✓ Kyber key exchange complete');
-          newOutput.push('✓ Fabric slices verified');
-          newOutput.push('✓ Sync completed successfully');
-          break;
-        case 'clear':
-          setTerminalOutput(['$ ']);
-          return;
-        default:
-          newOutput.push('Command not found: ' + command);
-      }
-      newOutput.push('$ ');
-      setTerminalOutput(newOutput);
-    }, 500);
-    
-    setTerminalOutput(newOutput);
+  const executeCommand = async (command: string) => {
+    const trimmed = command.trim();
+    if (!trimmed) return;
+
+    setTerminalOutput(prev => [...prev, '$ ' + trimmed]);
     setCurrentCommand('');
+
+    if (trimmed.toLowerCase() === 'clear') {
+      setTerminalOutput(['$ ']);
+      return;
+    }
+
+    if (trimmed.toLowerCase() === 'help') {
+      setTerminalOutput(prev => [
+        ...prev,
+        'Available commands:',
+        '  help        - Show this help message',
+        '  status      - Show memory status',
+        '  sync        - Synchronize memory',
+        '  clear       - Clear terminal',
+        '  <command>   - Execute via knirvcli',
+        '$ '
+      ]);
+      return;
+    }
+
+    setIsExecuting(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/cli/execute`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: trimmed }),
+      });
+      const data = await resp.json();
+      const output: string[] = [];
+      if (!resp.ok) {
+        output.push(`Error: ${data.error || data.message || 'Command failed'}`);
+      } else if (Array.isArray(data.output) && data.output.length > 0) {
+        output.push(...data.output);
+      } else if (typeof data.output === 'string' && data.output) {
+        output.push(...data.output.split('\n').filter(Boolean));
+      } else {
+        output.push(`Status: ${data.status || 'completed'}`);
+      }
+      if (output.length === 0) output.push('(no output)');
+      setTerminalOutput(prev => [...prev, ...output, '$ ']);
+    } catch {
+      setTerminalOutput(prev => [...prev, 'Error: Failed to reach backend', '$ ']);
+    } finally {
+      setIsExecuting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -92,7 +113,7 @@ export function ActiveMemoryAccessModal({ isOpen, onClose }: ActiveMemoryAccessM
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/20 backdrop-blur-sm transition-all duration-300 z-40" onClick={onClose} />
-      
+
       <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-all duration-300 ease-in-out">
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b">
@@ -126,6 +147,7 @@ export function ActiveMemoryAccessModal({ isOpen, onClose }: ActiveMemoryAccessM
                     <CardTitle className="flex items-center space-x-2">
                       <Terminal className="w-5 h-5" />
                       <span>Active Memory Terminal</span>
+                      {isExecuting && <Badge variant="secondary" className="text-xs">running...</Badge>}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -134,6 +156,7 @@ export function ActiveMemoryAccessModal({ isOpen, onClose }: ActiveMemoryAccessM
                         {terminalOutput.map((line, index) => (
                           <div key={index}>{line}</div>
                         ))}
+                        <div ref={terminalEndRef} />
                       </div>
                       <div className="flex items-center mt-2">
                         <span className="text-blue-400">$ </span>
@@ -141,13 +164,14 @@ export function ActiveMemoryAccessModal({ isOpen, onClose }: ActiveMemoryAccessM
                           type="text"
                           value={currentCommand}
                           onChange={(e) => setCurrentCommand(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && currentCommand.trim()) {
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && currentCommand.trim() && !isExecuting) {
                               executeCommand(currentCommand.trim());
                             }
                           }}
                           className="flex-1 bg-transparent text-blue-400 outline-none ml-2"
-                          placeholder="Enter command..."
+                          placeholder={isExecuting ? 'Executing...' : 'Enter command...'}
+                          disabled={isExecuting}
                           autoFocus
                         />
                       </div>
@@ -173,7 +197,13 @@ export function ActiveMemoryAccessModal({ isOpen, onClose }: ActiveMemoryAccessM
                         <div className="text-xs text-muted-foreground">
                           Commands: {template.commands.join(', ')}
                         </div>
-                        <Button variant="outline" size="sm" className="w-full">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          disabled={isExecuting}
+                          onClick={() => executeCommand(template.commands[0])}
+                        >
                           <Play className="w-3 h-3 mr-1" />
                           Execute
                         </Button>

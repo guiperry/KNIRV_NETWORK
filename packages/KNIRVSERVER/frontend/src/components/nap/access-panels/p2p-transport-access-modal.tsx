@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, Terminal, Play, Globe, Settings, BarChart3, FileText, Radio, Shield, Wifi, Users } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Terminal, Play, Globe, Settings, BarChart3, FileText, Radio, Shield, Wifi, Users, ArrowLeft, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,14 @@ interface P2PTransportAccessModalProps {
   onClose: () => void;
 }
 
+// The gateway ALWAYS runs co-located with the backend server.
+// Use an explicit localhost URL — never derive from window.location because
+// the React app is loaded inside an Electron iframe whose window.location
+// reflects the Next.js dev server (port 8090), not the gateway.
+const WEBGUI_PORT = process.env.NEXT_PUBLIC_GATEWAY_PORT || '8081';
+const WEBGUI_BASE = `http://localhost:${WEBGUI_PORT}`;
+const WEBGUI_URL = `${WEBGUI_BASE}/dashboard`;
+
 export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessModalProps) {
   const [terminalOutput, setTerminalOutput] = useState([
     '$ Welcome to P2P Transport Terminal',
@@ -29,11 +37,33 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
     '$ '
   ]);
   const [currentCommand, setCurrentCommand] = useState('');
+  const [isExecuting, setIsExecuting] = useState(false);
   const [showPeers, setShowPeers] = useState(false);
   const [showRelay, setShowRelay] = useState(false);
   const [showNAT, setShowNAT] = useState(false);
   const [peers, setPeers] = useState<P2PPeer[]>([]);
   const [peersLoading, setPeersLoading] = useState(false);
+  const [showWebGui, setShowWebGui] = useState(false);
+  const [webGuiLoading, setWebGuiLoading] = useState(false);
+  const [webGuiError, setWebGuiError] = useState(false);
+  const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  // Pre-flight check: ping the gateway before opening the iframe so the user
+  // sees an actionable error message instead of a blank black screen.
+  const openWebGui = useCallback(async () => {
+    setWebGuiError(false);
+    setWebGuiLoading(true);
+    setShowWebGui(true);
+    try {
+      const resp = await fetch(`${WEBGUI_BASE}/health`, { method: 'HEAD', mode: 'no-cors', signal: AbortSignal.timeout(4000) });
+      // no-cors fetch succeeds even for opaque responses — means server is reachable
+      void resp;
+      setWebGuiLoading(false);
+    } catch {
+      setWebGuiLoading(false);
+      setWebGuiError(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -44,6 +74,10 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
       .catch(() => setPeers([]))
       .finally(() => setPeersLoading(false));
   }, [isOpen]);
+
+  useEffect(() => {
+    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [terminalOutput]);
 
   const workflowTemplates = [
     {
@@ -69,60 +103,157 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
     }
   ];
 
-  const executeCommand = (command: string) => {
-    const newOutput = [...terminalOutput];
-    newOutput.push('$ ' + command);
-    
-    setTimeout(() => {
-      switch (command.toLowerCase()) {
-        case 'help':
-          newOutput.push('Available commands:');
-          newOutput.push('  help - Show this help message');
-          newOutput.push('  status - Show transport status');
-          newOutput.push('  peers - List connected peers');
-          newOutput.push('  relay - Show relay status');
-          newOutput.push('  clear - Clear terminal');
-          break;
-        case 'status':
-          newOutput.push('Transport Status: Active');
-          newOutput.push('TURN Relay: Active (BK-4)');
-          newOutput.push('NAT Type: Full Cone');
-          newOutput.push(`Connected Peers: ${peers.length}`);
-          break;
-        case 'peers':
-          newOutput.push(`Connected Peers: ${peers.length}`);
-          if (peers.length > 0) {
-            peers.forEach(p => newOutput.push(`  ${p.id.slice(0, 12)}: ${p.address} [${p.role || 'peer'}, ${p.latency_ms}ms]`));
-          } else {
-            newOutput.push('  No connected peers found');
-          }
-          break;
-        case 'relay':
-          newOutput.push('TURN Relay: Active');
-          newOutput.push('  Relay ID: BK-4');
-          newOutput.push('  Public IP: 203.0.113.45');
-          newOutput.push('  Port Range: 49152-49172');
-          break;
-        case 'clear':
-          setTerminalOutput(['$ ']);
-          return;
-        default:
-          newOutput.push('Command not found: ' + command);
-      }
-      newOutput.push('$ ');
-      setTerminalOutput(newOutput);
-    }, 500);
-    
-    setTerminalOutput(newOutput);
+  const executeCommand = async (command: string) => {
+    const trimmed = command.trim();
+    if (!trimmed) return;
+
+    setTerminalOutput(prev => [...prev, '$ ' + trimmed]);
     setCurrentCommand('');
+
+    if (trimmed.toLowerCase() === 'clear') {
+      setTerminalOutput(['$ ']);
+      return;
+    }
+
+    if (trimmed.toLowerCase() === 'help') {
+      setTerminalOutput(prev => [
+        ...prev,
+        'Available commands:',
+        '  help        - Show this help message',
+        '  status      - Show transport status',
+        '  peers       - List connected peers',
+        '  relay       - Show relay status',
+        '  clear       - Clear terminal',
+        '  <command>   - Execute via knirvcli p2p',
+        '$ '
+      ]);
+      return;
+    }
+
+    if (trimmed.toLowerCase() === 'peers') {
+      setTerminalOutput(prev => [
+        ...prev,
+        `Connected Peers: ${peers.length}`,
+        ...(peers.length > 0
+          ? peers.map(p => `  ${p.id.slice(0, 12)}: ${p.address} [${p.role || 'peer'}, ${p.latency_ms}ms]`)
+          : ['  No connected peers found']),
+        '$ '
+      ]);
+      return;
+    }
+
+    // Execute via backend knirvcli p2p API
+    setIsExecuting(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/cli/p2p/execute`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: trimmed }),
+      });
+      const data = await resp.json();
+      const output: string[] = [];
+      if (!resp.ok) {
+        output.push(`Error: ${data.error || data.message || 'Command failed'}`);
+      } else if (Array.isArray(data.output) && data.output.length > 0) {
+        output.push(...data.output);
+      } else if (typeof data.output === 'string' && data.output) {
+        output.push(...data.output.split('\n').filter(Boolean));
+      } else {
+        output.push(`Status: ${data.status || 'completed'}`);
+      }
+      if (output.length === 0) output.push('(no output)');
+      setTerminalOutput(prev => [...prev, ...output, '$ ']);
+    } catch {
+      setTerminalOutput(prev => [...prev, 'Error: Failed to reach backend', '$ ']);
+    } finally {
+      setIsExecuting(false);
+    }
   };
 
   if (!isOpen) return null;
 
+  // WebGUI view — overlays the entire modal panel
+  if (showWebGui) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0f1e]">
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-4 py-2 border-b border-indigo-900/40 bg-[#0a0f1e]/95 backdrop-blur-sm shrink-0">
+          <div className="flex items-center space-x-3">
+            <Button variant="ghost" size="sm" onClick={() => { setShowWebGui(false); setWebGuiError(false); }}>
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
+            <span className="text-sm font-medium text-indigo-300">KNIRV Network WebGUI</span>
+            <Badge variant="outline" className="text-xs text-indigo-400 border-indigo-700">
+              {WEBGUI_URL}
+            </Badge>
+          </div>
+          <div className="flex items-center space-x-1">
+            <a href={WEBGUI_URL} target="_blank" rel="noopener noreferrer">
+              <Button variant="ghost" size="sm" title="Open in browser">
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+            </a>
+            <Button variant="ghost" size="sm" onClick={onClose} title="Close">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Content area */}
+        <div className="flex-1 relative overflow-hidden">
+          {webGuiLoading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0a0f1e] z-10">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+              <span className="text-sm text-indigo-300">Connecting to gateway...</span>
+              <span className="text-xs text-muted-foreground">{WEBGUI_URL}</span>
+            </div>
+          )}
+
+          {!webGuiLoading && webGuiError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0a0f1e] z-10">
+              <AlertCircle className="w-10 h-10 text-amber-400" />
+              <div className="text-center space-y-1">
+                <p className="text-sm font-medium text-amber-300">Gateway not reachable</p>
+                <p className="text-xs text-muted-foreground">
+                  No response at <span className="font-mono text-indigo-400">{WEBGUI_URL}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Ensure the KNIRVGATEWAY service is running and <code className="text-indigo-400">gateway.enabled = true</code> in config.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={openWebGui}>
+                  Retry
+                </Button>
+                <a href={WEBGUI_URL} target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="ghost">
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    Open in browser
+                  </Button>
+                </a>
+              </div>
+            </div>
+          )}
+
+          {!webGuiError && (
+            <iframe
+              src={webGuiLoading ? undefined : WEBGUI_URL}
+              className="w-full h-full border-0"
+              title="KNIRV Network WebGUI"
+              onLoad={() => setWebGuiLoading(false)}
+              onError={() => { setWebGuiLoading(false); setWebGuiError(true); }}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex">
       <div className="flex-1 bg-black/20 backdrop-blur-sm transition-all duration-300 z-40" onClick={onClose} />
-      
+
       <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-all duration-300 ease-in-out">
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b">
@@ -133,6 +264,10 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
               </p>
             </div>
             <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm" onClick={openWebGui}>
+                <Globe className="w-4 h-4 mr-1" />
+                WebGUI
+              </Button>
               <Badge variant="secondary">Active</Badge>
               <Button variant="ghost" size="sm" onClick={onClose}>
                 <X className="w-4 h-4" />
@@ -156,6 +291,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
                     <CardTitle className="flex items-center space-x-2">
                       <Terminal className="w-5 h-5" />
                       <span>P2P Transport Terminal</span>
+                      {isExecuting && <Badge variant="secondary" className="text-xs">running...</Badge>}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -164,6 +300,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
                         {terminalOutput.map((line, index) => (
                           <div key={index}>{line}</div>
                         ))}
+                        <div ref={terminalEndRef} />
                       </div>
                       <div className="flex items-center mt-2">
                         <span className="text-blue-400">$ </span>
@@ -171,13 +308,14 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
                           type="text"
                           value={currentCommand}
                           onChange={(e) => setCurrentCommand(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && currentCommand.trim()) {
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && currentCommand.trim() && !isExecuting) {
                               executeCommand(currentCommand.trim());
                             }
                           }}
                           className="flex-1 bg-transparent text-blue-400 outline-none ml-2"
-                          placeholder="Enter command..."
+                          placeholder={isExecuting ? 'Executing...' : 'Enter command...'}
+                          disabled={isExecuting}
                           autoFocus
                         />
                       </div>
@@ -203,7 +341,13 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
                         <div className="text-xs text-muted-foreground">
                           Commands: {template.commands.join(', ')}
                         </div>
-                        <Button variant="outline" size="sm" className="w-full">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          disabled={isExecuting}
+                          onClick={() => executeCommand(template.commands[0])}
+                        >
                           <Play className="w-3 h-3 mr-1" />
                           Execute
                         </Button>
@@ -289,7 +433,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Button variant="outline" size="sm" className="w-full">
+                      <Button variant="outline" size="sm" className="w-full" onClick={openWebGui}>
                         Open
                       </Button>
                     </CardContent>

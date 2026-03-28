@@ -702,6 +702,28 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		}
 		gatewayManager = knirvgateway.NewManager(gatewayConfig, logger)
 		log.Println("KNIRVGATEWAY manager initialized")
+
+		// Wire the embedded gateway into the P2P manager so that setupNATTraversal
+		// can query live TURN server status once the gateway starts.
+		p2pManager.SetGatewayTURNQuery(func(ctx context.Context) (*p2p.GatewayTURNStatus, error) {
+			if !gatewayManager.IsRunning() {
+				return nil, nil
+			}
+			turnStatus, err := gatewayManager.GetTurnStatus(ctx)
+			if err != nil {
+				return nil, err
+			}
+			ports := gatewayManager.GetPorts()
+			return &p2p.GatewayTURNStatus{
+				Running:      turnStatus.Running,
+				UDPPort:      ports.TurnUDP,
+				TCPPort:      ports.TurnTCP,
+				Realm:        turnStatus.Realm,
+				SessionCount: turnStatus.SessionCount,
+				ActiveRelays: turnStatus.ActiveRelays,
+			}, nil
+		})
+		log.Println("KNIRVGATEWAY TURN query wired into P2P manager")
 	}
 
 	// Initialize Cognitive Engine with configurable parameters
