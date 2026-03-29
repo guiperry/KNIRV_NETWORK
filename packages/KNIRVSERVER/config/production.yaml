@@ -202,8 +202,6 @@ reports:
 logging:
   level: "info"  # debug | info | warn | error
   format: "json"
-  output: "../logs/server.log"  # Unified log file in project root logs directory
-  file: "../logs/server.log"
   max_size: 100    # MB
   max_backups: 5
   max_age: 30      # days
@@ -212,7 +210,6 @@ logging:
 log:
   level: "info"
   format: "json"
-  output: "../logs/server.log"  # Unified log file in project root logs directory
 
 # Monitoring Configuration
 monitoring:

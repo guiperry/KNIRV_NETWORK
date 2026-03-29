@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KnirvNetwork")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4a5db357fd53e35f2cc6deef0cf2cef871c1b379")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fe1f66cb113846ebe1da27ca510584abd868d921")]
 [assembly: System.Reflection.AssemblyProductAttribute("KnirvNetwork")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KnirvNetwork")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

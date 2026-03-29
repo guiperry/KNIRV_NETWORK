@@ -493,15 +493,18 @@ func (c *Config) expandPaths() error {
 		}
 	}
 
-	// Expand log output path
+	// Expand log output path — only create the directory when the path is absolute
+	// to avoid creating spurious directories relative to CWD.
 	if c.Log.Output != "" {
 		c.Log.Output, err = expandPath(c.Log.Output)
 		if err != nil {
 			return err
 		}
-		logDir := filepath.Dir(c.Log.Output)
-		if err := os.MkdirAll(logDir, 0755); err != nil {
-			return fmt.Errorf("failed to create logs directory: %v", err)
+		if filepath.IsAbs(c.Log.Output) {
+			logDir := filepath.Dir(c.Log.Output)
+			if err := os.MkdirAll(logDir, 0755); err != nil {
+				return fmt.Errorf("failed to create logs directory: %v", err)
+			}
 		}
 	}
 
