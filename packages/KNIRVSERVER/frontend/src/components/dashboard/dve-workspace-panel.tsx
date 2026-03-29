@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Terminal, Shield, Monitor, Network, Settings, Info, Box, Activity, Zap } from 'lucide-react';
+import { X, Terminal, Shield, Monitor, Network, Settings, Info, Box, Activity, Zap, Globe } from 'lucide-react';
 import ConsolePanel from './console-panel';
 import PolicyEditor from './policy-editor';
 import MonitorPanel, { type DVETask } from './monitor-panel';
 import ConnectionsPanel, { type ActiveWorker } from './connections-panel';
 import MetadataPanel from './metadata-panel';
 import DVESolverPanel from './dve-solver-panel';
+import ViewportPanel from './viewport-panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { DVENode } from '@/types/api';
@@ -37,6 +38,7 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
   const [showConnections, setShowConnections] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
   const [showSolver, setShowSolver] = useState(false);
+  const [showViewport, setShowViewport] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<ActiveWorker | null>(null);
   const [selectedTask, setSelectedTask] = useState<DVETask | null>(null);
 
@@ -104,6 +106,13 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
                 title="Toggle Monitor"
               >
                 <Monitor className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setShowViewport(!showViewport)}
+                className={`p-2 rounded-md transition-all ${showViewport ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-300'}`}
+                title="Toggle Container Viewport"
+              >
+                <Globe className="w-4 h-4" />
               </button>
             </div>
             
@@ -187,7 +196,7 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
               </div>
               
               <div className="pt-8">
-                <Button 
+                <Button
                   onClick={() => {
                     setShowConsole(true);
                     setShowPolicy(true);
@@ -198,6 +207,16 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
                 >
                   OPEN WORKSPACE PANELS
                 </Button>
+                {node?.ip_address && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowViewport(true)}
+                    className="border-purple-500/40 text-purple-400 hover:bg-purple-600/20 font-bold px-6 py-6 rounded-2xl transition-all"
+                  >
+                    <Globe className="w-5 h-5 mr-2" />
+                    OPEN CONTAINER VIEWPORT
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -263,13 +282,23 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
           />
 
           {/* Monitor Panel - Modular Slide-up */}
-          <MonitorPanel 
-            isOpen={showMonitor} 
-            onClose={() => setShowMonitor(false)} 
+          <MonitorPanel
+            isOpen={showMonitor}
+            onClose={() => setShowMonitor(false)}
             nodeId={actualNodeId}
             isSidebarOpen={showConnections}
             onOpenSolver={() => setShowSolver(true)}
             onSelectTask={(task) => setSelectedTask(task)}
+          />
+
+          {/* Viewport Panel - Container default web UI */}
+          <ViewportPanel
+            isOpen={showViewport}
+            onClose={() => setShowViewport(false)}
+            nodeIp={node?.ip_address || ''}
+            nodeName={actualNodeName}
+            isSidebarOpen={showConnections}
+            isMonitorOpen={showMonitor}
           />
         </div>
       </div>

@@ -5,6 +5,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest, API_BASE_URL } from '@/lib/api';
 import { webSocketService } from '@/lib/websocket-service';
 
+export interface BackgroundTask {
+  id: string;
+  category: 'workflow' | 'ontology' | 'error_node' | 'dve_monitor' | 'agent_monitor' | 'guardrails' | 'cache';
+  label: string;
+  status: 'running' | 'completed' | 'failed' | 'queued';
+  detail?: string;
+  timestamp: number;
+}
+
 export interface CognitiveEngine {
   status: "active" | "idle" | "learning" | "error" | "stopped" | "degraded";
   accuracy: number;
@@ -14,6 +23,7 @@ export interface CognitiveEngine {
   uptime: number;
   last_training: string;
   current_task_status?: string;
+  background_tasks?: BackgroundTask[];
   health_status?: string;
   last_validation?: string;
   performance_metrics: {

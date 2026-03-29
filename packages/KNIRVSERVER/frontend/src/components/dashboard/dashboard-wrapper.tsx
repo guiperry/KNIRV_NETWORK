@@ -29,6 +29,7 @@ import { FinancialComplianceDashboard } from '@/components/dashboard/financial-c
 import { useOnboarding } from "@/contexts/onboarding-context";
 import OnboardingGuide from "@/components/onboarding/onboarding-guide";
 import type { DVENode } from '@/types/api';
+import { useDashboardStore } from '@/lib/store';
 import {
   Shield,
   Server,
@@ -79,9 +80,9 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
   const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
   const [showAdminAccess, setShowAdminAccess] = useState(false);
-  
-  // Persist active DVE nodes across navigation
-  const [activeNodeIds, setActiveNodeIds] = useState<{ [key: string]: boolean }>({});
+
+  // Persist active DVE nodes across navigation using Zustand store (survives tab switches)
+  const { activeNodeIds, setActiveNodeId } = useDashboardStore();
 
   // Report generation helper
   const generateReport = (reportType: string, data: any) => {
@@ -637,192 +638,43 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                     </div>
 
                     {/* Resource Explorer Tabs */}
-                      <Tabs defaultValue="nodes" className="space-y-4">
-                      <TabsList className="grid w-full grid-cols-5 bg-gray-900/50 border border-gray-800">
-                        <TabsTrigger value="nodes" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">DVE Nodes</TabsTrigger>
-                        <TabsTrigger value="validation" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Validation Tasks</TabsTrigger>
-                        <TabsTrigger value="tee" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">TEE Security</TabsTrigger>
-                        <TabsTrigger value="cognitive" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Cognitive Engine</TabsTrigger>
-                        <TabsTrigger value="badgelab" className="text-gray-400 data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10">Badge Lab</TabsTrigger>
-                      </TabsList>
+           <Tabs defaultValue="nodes" className="space-y-4">
+           <TabsList className="grid w-full grid-cols-3 bg-gray-900/50 border border-gray-800">
+             <TabsTrigger value="nodes" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">DVE Nodes</TabsTrigger>
+             <TabsTrigger value="cognitive" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Cognitive Engine</TabsTrigger>
+             <TabsTrigger value="badgelab" className="text-gray-400 data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10">Badge Lab</TabsTrigger>
+           </TabsList>
 
-                      <TabsContent value="nodes" className="space-y-4">
-                        <DVENodesPanel 
-                          onRentClick={handleDVEManagement}
-                          onNodeConnect={handleNodeAccess}
-                          effectiveActiveNodeIdss={activeNodeIds}
-                          onActiveNodeChange={(nodeId, isActive) => {
-                            setActiveNodeIds(prev => ({ ...prev, [nodeId]: isActive }));
-                          }}
-                        />
-                      </TabsContent>
+                        <TabsContent value="nodes" className="space-y-4">
+                          <DVENodesPanel
+                            onRentClick={handleDVEManagement}
+                            onNodeConnect={handleNodeAccess}
+                            effectiveActiveNodeIdss={activeNodeIds}
+                            onActiveNodeChange={(nodeId, isActive) => {
+                              setActiveNodeId(nodeId, isActive);
+                            }}
+                          />
+                        </TabsContent>
 
-                      <TabsContent value="validation" className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold text-gray-200">Validation Task Status</h3>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
-                              <Download className="w-4 h-4 mr-2" />
-                              Export
-                            </Button>
-                            <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
-                              <Share2 className="w-4 h-4 mr-2" />
-                              Share
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Card className="aether-bevel-dark rounded-2xl">
-                            <CardHeader>
-                              <CardTitle className="flex items-center space-x-2 text-gray-300">
-                                <Activity className="w-5 h-5 text-indigo-400" />
-                                <span>Active Tasks</span>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-3xl font-bold text-gray-200">127</div>
-                              <p className="text-sm text-gray-500">Currently processing</p>
-                              <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleTaskReports}>
-                                <Download className="w-3 h-3 mr-1" />
-                                Task Reports
-                              </Button>
-                            </CardContent>
-                          </Card>
-                          <Card className="aether-bevel-dark rounded-2xl">
-                            <CardHeader>
-                              <CardTitle className="flex items-center space-x-2 text-gray-300">
-                                <BarChart3 className="w-5 h-5 text-indigo-400" />
-                                <span>Completed Today</span>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="text-3xl font-bold text-gray-200">1,847</div>
-                              <p className="text-sm text-gray-500">98.2% success rate</p>
-                              <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handlePerformanceReports}>
-                                <Download className="w-3 h-3 mr-1" />
-                                Performance Reports
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </TabsContent>
+                        <TabsContent value="cognitive" className="space-y-4">
+                          <CognitiveEnginePanel />
+                        </TabsContent>
 
-                      <TabsContent value="tee" className="space-y-4">
-                        {teeSecurityStatus && (
-                          <div className="grid gap-4">
-                            <Card className="aether-bevel-dark rounded-2xl">
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-gray-300">
-                                  <Shield className="h-5 w-5 text-indigo-400" />
-                                  TEE Security Status
-                                </CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                  <div>
-                                    <p className="text-sm text-gray-500">Attestation Status</p>
-                                    {getStatusBadge(teeSecurityStatus.attestation_status)}
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-gray-500">Security Score</p>
-                                    <div className="flex items-center gap-2">
-                                      <Progress value={teeSecurityStatus.security_score} className="flex-1" />
-                                      <span className="text-sm text-gray-300">{teeSecurityStatus.security_score}%</span>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-gray-500">Active Enclaves</p>
-                                    <p className="text-2xl font-bold text-gray-200">{teeSecurityStatus.enclave_count}</p>
-                                  </div>
-                                </div>
-                                <div className="mt-4 grid grid-cols-2 gap-4">
-                                  <div>
-                                    <p className="text-sm text-gray-500">Last Audit</p>
-                                    <p className="font-semibold">{new Date(teeSecurityStatus.last_audit).toLocaleString()}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-sm text-muted-foreground">Threats Detected</p>
-                                    <p className="font-semibold">{teeSecurityStatus.threats_detected}</p>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                            
-                            {teeSecurityStatus.threats_detected > 0 && (
-                              <Alert>
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertDescription>
-                                  {teeSecurityStatus.threats_detected} potential threats detected. Security team has been notified.
-                                </AlertDescription>
-                              </Alert>
-                            )}
+                        <TabsContent value="badgelab" className="space-y-4">
+                          <BadgeLabPanel />
+                        </TabsContent>
 
-                            <div className="flex items-center justify-between mt-6">
-                              <h3 className="text-lg font-semibold text-gray-200">TEE Technology Overview</h3>
-                              <div className="flex space-x-2">
-                                <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
-                                  <Download className="w-4 h-4 mr-2" />
-                                  Export
-                                </Button>
-                                <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
-                                  <Share2 className="w-4 h-4 mr-2" />
-                                  Share
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                              <Card className="aether-bevel-dark rounded-2xl">
-                                <CardHeader>
-                                  <CardTitle className="flex items-center space-x-2 text-gray-300">
-                                    <Shield className="w-5 h-5 text-indigo-400" />
-                                    <span>SGX Enclaves</span>
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="text-2xl font-bold text-gray-200">18</div>
-                                  <p className="text-sm text-gray-500">Active secure enclaves</p>
-                                  <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleSecurityReports}>
-                                    <Download className="w-3 h-3 mr-1" />
-                                    Security Reports
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                              <Card className="aether-bevel-dark rounded-2xl">
-                                <CardHeader>
-                                  <CardTitle className="flex items-center space-x-2 text-gray-300">
-                                    <Lock className="w-5 h-5 text-amber-400" />
-                                    <span>SEV-SNP</span>
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="text-2xl font-bold text-gray-200">6</div>
-                                  <p className="text-sm text-gray-500">Secure VMs running</p>
-                                  <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleVMReports}>
-                                    <Download className="w-3 h-3 mr-1" />
-                                    VM Reports
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                              <Card className="aether-bevel-dark rounded-2xl">
-                                <CardHeader>
-                                  <CardTitle className="flex items-center space-x-2 text-gray-300">
-                                    <Zap className="w-5 h-5 text-indigo-400" />
-                                    <span>TDX</span>
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="text-2xl font-bold text-gray-200">3</div>
-                                  <p className="text-sm text-gray-500">Trust domains active</p>
-                                  <Button variant="outline" size="sm" className="w-full mt-4 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleTrustReports}>
-                                    <Download className="w-3 h-3 mr-1" />
-                                    Trust Reports
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                            </div>
-                          </div>
-                        )}
-                      </TabsContent>
+                       <TabsContent value="cognitive" className="space-y-4">
+                         <CognitiveEnginePanel />
+                       </TabsContent>
+
+                       <TabsContent value="badgelab" className="space-y-4">
+                         <BadgeLabPanel />
+                       </TabsContent>
+
+
+
+
 
                       <TabsContent value="cognitive" className="space-y-4">
                         <CognitiveEnginePanel />
@@ -1276,6 +1128,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
       <DVECreationManagement
         isOpen={dveCreationModalOpen}
         onClose={() => setDveCreationModalOpen(false)}
+        defaultTab="create"
       />
     </div>
   );

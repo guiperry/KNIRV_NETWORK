@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,12 +40,16 @@ import DVEAccessFlow from './dve-access-flow';
 interface DVECreationManagementProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultTab?: 'creations' | 'create' | 'stats';
 }
 
-export default function DVECreationManagement({ isOpen, onClose }: DVECreationManagementProps) {
+export default function DVECreationManagement({ isOpen, onClose, defaultTab = 'creations' }: DVECreationManagementProps) {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [mounted, setMounted] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
   const [name, setName] = useState('');
   const [stakeAmount, setStakeAmount] = useState(10000);
   const [teeType, setTeeType] = useState('software');
@@ -179,7 +183,7 @@ export default function DVECreationManagement({ isOpen, onClose }: DVECreationMa
 
         {/* Content */}
         <div className="flex-1 overflow-auto p-6">
-          <Tabs defaultValue="creations" className="space-y-4">
+          <Tabs defaultValue={defaultTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="creations">My DVE Instances</TabsTrigger>
               <TabsTrigger value="create">New Sovereign DVE</TabsTrigger>
@@ -377,7 +381,7 @@ export default function DVECreationManagement({ isOpen, onClose }: DVECreationMa
     </div>
   );
 
-  if (typeof window === 'undefined') return null;
+  if (!mounted) return null;
   return createPortal(modalContent, document.body);
 }
 

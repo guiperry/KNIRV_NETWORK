@@ -45,10 +45,18 @@ type Server struct {
 	router            *mux.Router
 	webguiStaticDir   string
 	networkWebsiteDir string
+	// backendAPIURL is the URL of the main backend API server (e.g. http://localhost:8082)
+	// All unhandled /api/* requests are proxied there.
+	backendAPIURL string
 }
 
 // New creates a new HTTP server
 func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *zap.Logger, db ...*sql.DB) (*Server, error) {
+	// Determine backend API URL — can be overridden via env var KNIRV_BACKEND_API_URL
+	backendAPIURL := "http://localhost:8082"
+	if envURL := cfg.BackendAPIURL; envURL != "" {
+		backendAPIURL = envURL
+	}
 	var dbInstance *sql.DB
 	if len(db) > 0 {
 		dbInstance = db[0]
@@ -144,6 +152,7 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 		logger:            logger,
 		webguiStaticDir:   webguiStaticDir,
 		networkWebsiteDir: networkWebsiteDir,
+		backendAPIURL:     backendAPIURL,
 	}
 
 	if err := s.setupRoutes(); err != nil {
@@ -205,8 +214,8 @@ func (s *Server) setupRoutes() error {
 	// Dynamic controller proxy
 	r.PathPrefix("/controller").Handler(s.handleControllerProxy())
 
-	// Mock API endpoint (fallback for any unmatched /api routes)
-	r.PathPrefix("/api").HandlerFunc(s.handleMockAPI)
+	// Proxy all unhandled /api/* requests to the main backend API server
+	r.PathPrefix("/api").Handler(s.proxyHandler.ProxyTo(s.backendAPIURL, nil))
 
 	// IMPORTANT: Next.js static export uses absolute paths like /_next/..., /favicon.ico, etc.
 	// We need to serve these at the root level so the webgui can load its assets
@@ -469,28 +478,6 @@ func (s *Server) handleControllerProxy() http.Handler {
 		}
 
 		return controllerURL, nil
-	})
-}
-
-func (s *Server) handleMockAPI(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" && (r.URL.Path == "/api" || r.URL.Path == "/api/" || strings.HasSuffix(r.URL.Path, "/health")) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status":    "ok",
-			"message":   "Mock KNIRV central API oracle",
-			"chainId":   s.config.ChainID,
-			"timestamp": time.Now().UnixMilli(),
-		})
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error":   "Not Implemented",
-		"message": "Central API routing is not yet implemented. This is a mock endpoint.",
-		"method":  r.Method,
-		"route":   r.URL.Path,
 	})
 }
 

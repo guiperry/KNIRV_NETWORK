@@ -1,13 +1,19 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Terminal, Play, Network, Settings, BarChart3, FileText, GitBranch, Search, Cpu, Zap, Shield, Clock, ShieldCheck } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { X, Terminal, Play, Network, Settings, BarChart3, FileText, GitBranch, Search, Cpu, Zap, Shield, Clock, ShieldCheck, Layers, BookOpen, Code2, Upload, Loader2, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
+
+const GITNEXUS_PORT = process.env.NEXT_PUBLIC_GITNEXUS_PORT || '8091';
+const GITNEXUS_URL = `http://localhost:${GITNEXUS_PORT}`;
+
+const GRAPHRAG_PORT = process.env.NEXT_PUBLIC_GRAPHRAG_PORT || '8092';
+const GRAPHRAG_URL = `http://localhost:${GRAPHRAG_PORT}`;
 
 interface KNIRVGraphAccessModalProps {
   isOpen: boolean;
@@ -37,6 +43,82 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
   const [showReasoningExplorer, setShowReasoningExplorer] = useState(false);
   const [selectedTrace, setSelectedTrace] = useState<string | null>(null);
   const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  // Knowledge Graph (GitNexus + graphrag-rs) state
+  const [gitNexusMode, setGitNexusMode] = useState<'idle' | 'loading' | 'open' | 'error'>('idle');
+  const [graphRagMode, setGraphRagMode] = useState<'idle' | 'loading' | 'open' | 'error'>('idle');
+  const [graphRagQuery, setGraphRagQuery] = useState('');
+  const [graphRagResults, setGraphRagResults] = useState<string[]>([]);
+  const [isQuerying, setIsQuerying] = useState(false);
+  const [ingestUrl, setIngestUrl] = useState('');
+  const [isIngesting, setIsIngesting] = useState(false);
+  const [ingestLog, setIngestLog] = useState<string[]>([]);
+
+  const openGitNexus = useCallback(async () => {
+    setGitNexusMode('loading');
+    try {
+      await fetch(`${GITNEXUS_URL}/health`, { method: 'HEAD', mode: 'no-cors', signal: AbortSignal.timeout(4000) });
+      setGitNexusMode('open');
+    } catch {
+      setGitNexusMode('error');
+    }
+  }, []);
+
+  const openGraphRag = useCallback(async () => {
+    setGraphRagMode('loading');
+    try {
+      await fetch(`${GRAPHRAG_URL}/health`, { method: 'HEAD', mode: 'no-cors', signal: AbortSignal.timeout(4000) });
+      setGraphRagMode('open');
+    } catch {
+      setGraphRagMode('error');
+    }
+  }, []);
+
+  const handleGraphRagQuery = async () => {
+    if (!graphRagQuery.trim() || isQuerying) return;
+    setIsQuerying(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/knirvgraph/graphrag/query`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: graphRagQuery.trim(), top_k: 5 }),
+      });
+      const data = await resp.json();
+      if (resp.ok && Array.isArray(data.results)) {
+        setGraphRagResults(data.results);
+      } else {
+        setGraphRagResults([data.error || data.message || 'No results returned.']);
+      }
+    } catch {
+      setGraphRagResults(['Error: Could not reach graphrag-rs backend.']);
+    } finally {
+      setIsQuerying(false);
+    }
+  };
+
+  const handleIngestRepo = async () => {
+    if (!ingestUrl.trim() || isIngesting) return;
+    setIsIngesting(true);
+    setIngestLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Ingesting: ${ingestUrl.trim()}`]);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/knirvgraph/gitnexus/ingest`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo_url: ingestUrl.trim() }),
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        setIngestLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✓ ${data.message || 'Ingestion queued'}`]);
+        setIngestUrl('');
+      } else {
+        setIngestLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✗ ${data.error || 'Ingestion failed'}`]);
+      }
+    } catch {
+      setIngestLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✗ Network error — backend unreachable`]);
+    } finally {
+      setIsIngesting(false);
+    }
+  };
 
   useEffect(() => {
     terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -154,10 +236,14 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
           <div className="flex-1 overflow-auto">
             <Tabs defaultValue="terminal" className="h-full">
               <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="terminal">Terminal</TabsTrigger>
                   <TabsTrigger value="workflows">Workflows</TabsTrigger>
                   <TabsTrigger value="tools">Tools</TabsTrigger>
+                  <TabsTrigger value="knowledge-graph" className="flex items-center gap-1">
+                    <Layers className="w-3 h-3" />
+                    Knowledge Graph
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -309,6 +395,174 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
                     </CardContent>
                   </Card>
                 </div>
+              </TabsContent>
+
+              {/* Knowledge Graph tab */}
+              <TabsContent value="knowledge-graph" className="px-6 pb-6 space-y-6">
+                {/* GitNexus - Codebase Ingestion */}
+                <Card className="knirv-card-gradient">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 text-sm">
+                        <Code2 className="w-4 h-4 text-blue-400" />
+                        <span>GitNexus — Codebase Ingestion</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <a href="https://github.com/abhigyanpatwari/GitNexus" target="_blank" rel="noreferrer" className="text-[10px] text-blue-400 hover:underline flex items-center gap-1">
+                          <ExternalLink className="w-3 h-3" /> GitHub
+                        </a>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={openGitNexus}>
+                          {gitNexusMode === 'loading' ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Layers className="w-3 h-3 mr-1" />}
+                          Open UI
+                        </Button>
+                      </div>
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Ingest Git repositories into the knowledge graph for code-aware reasoning
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={ingestUrl}
+                        onChange={e => setIngestUrl(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleIngestRepo(); }}
+                        placeholder="https://github.com/org/repo"
+                        className="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      <Button size="sm" variant="default" onClick={handleIngestRepo} disabled={isIngesting || !ingestUrl.trim()}>
+                        {isIngesting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+                        Ingest
+                      </Button>
+                    </div>
+                    {ingestLog.length > 0 && (
+                      <div className="bg-black/40 rounded p-2 font-mono text-[10px] text-green-400 max-h-24 overflow-y-auto space-y-0.5">
+                        {ingestLog.map((line, i) => <div key={i}>{line}</div>)}
+                      </div>
+                    )}
+
+                    {/* GitNexus embedded UI */}
+                    {gitNexusMode !== 'idle' && (
+                      <div className="rounded-lg border border-slate-700 overflow-hidden" style={{ height: '320px' }}>
+                        {gitNexusMode === 'loading' && (
+                          <div className="h-full flex flex-col items-center justify-center bg-slate-950 gap-2 text-muted-foreground text-xs">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                            Connecting to GitNexus at {GITNEXUS_URL}...
+                          </div>
+                        )}
+                        {gitNexusMode === 'error' && (
+                          <div className="h-full flex flex-col items-center justify-center bg-slate-950 gap-3 p-4 text-center">
+                            <AlertTriangle className="w-8 h-8 text-yellow-500" />
+                            <p className="text-xs text-slate-300">GitNexus not reachable at <span className="font-mono text-blue-400">{GITNEXUS_URL}</span></p>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={openGitNexus}>
+                                <RefreshCw className="w-3 h-3 mr-1" /> Retry
+                              </Button>
+                              <a href={GITNEXUS_URL} target="_blank" rel="noreferrer">
+                                <Button size="sm" variant="default"><ExternalLink className="w-3 h-3 mr-1" /> Open Externally</Button>
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                        {gitNexusMode === 'open' && (
+                          <iframe
+                            src={GITNEXUS_URL}
+                            className="w-full h-full border-0"
+                            title="GitNexus — Codebase Knowledge Graph"
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                            onError={() => setGitNexusMode('error')}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* graphrag-rs - Document Ingestion & Retrieval */}
+                <Card className="knirv-card-gradient">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 text-sm">
+                        <BookOpen className="w-4 h-4 text-purple-400" />
+                        <span>graphrag-rs — Document Retrieval</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <a href="https://github.com/automataIA/graphrag-rs" target="_blank" rel="noreferrer" className="text-[10px] text-purple-400 hover:underline flex items-center gap-1">
+                          <ExternalLink className="w-3 h-3" /> GitHub
+                        </a>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={openGraphRag}>
+                          {graphRagMode === 'loading' ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Layers className="w-3 h-3 mr-1" />}
+                          Open UI
+                        </Button>
+                      </div>
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Semantic graph-based document ingestion and retrieval via graphrag-rs
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* Query interface */}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={graphRagQuery}
+                        onChange={e => setGraphRagQuery(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleGraphRagQuery(); }}
+                        placeholder="Ask the knowledge graph..."
+                        className="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      />
+                      <Button size="sm" variant="default" className="bg-purple-600 hover:bg-purple-700" onClick={handleGraphRagQuery} disabled={isQuerying || !graphRagQuery.trim()}>
+                        {isQuerying ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Search className="w-3 h-3 mr-1" />}
+                        Query
+                      </Button>
+                    </div>
+                    {graphRagResults.length > 0 && (
+                      <ScrollArea className="h-28 rounded border border-slate-700 bg-black/30 p-2">
+                        <div className="space-y-1 text-xs font-mono">
+                          {graphRagResults.map((r, i) => (
+                            <div key={i} className="text-slate-300 leading-relaxed">{i + 1}. {r}</div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+
+                    {/* graphrag-rs embedded UI */}
+                    {graphRagMode !== 'idle' && (
+                      <div className="rounded-lg border border-slate-700 overflow-hidden" style={{ height: '280px' }}>
+                        {graphRagMode === 'loading' && (
+                          <div className="h-full flex flex-col items-center justify-center bg-slate-950 gap-2 text-muted-foreground text-xs">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                            Connecting to graphrag-rs at {GRAPHRAG_URL}...
+                          </div>
+                        )}
+                        {graphRagMode === 'error' && (
+                          <div className="h-full flex flex-col items-center justify-center bg-slate-950 gap-3 p-4 text-center">
+                            <AlertTriangle className="w-8 h-8 text-yellow-500" />
+                            <p className="text-xs text-slate-300">graphrag-rs not reachable at <span className="font-mono text-purple-400">{GRAPHRAG_URL}</span></p>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={openGraphRag}>
+                                <RefreshCw className="w-3 h-3 mr-1" /> Retry
+                              </Button>
+                              <a href={GRAPHRAG_URL} target="_blank" rel="noreferrer">
+                                <Button size="sm" variant="default"><ExternalLink className="w-3 h-3 mr-1" /> Open Externally</Button>
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                        {graphRagMode === 'open' && (
+                          <iframe
+                            src={GRAPHRAG_URL}
+                            className="w-full h-full border-0"
+                            title="graphrag-rs — Document Knowledge Graph"
+                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                            onError={() => setGraphRagMode('error')}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
 

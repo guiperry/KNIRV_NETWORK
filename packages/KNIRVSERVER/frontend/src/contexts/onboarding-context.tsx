@@ -185,7 +185,7 @@ export const OnboardingProvider: React.FC<{children: React.ReactNode}> = ({ chil
               'Authorization': `Bearer ${token}`,
             },
             body: JSON.stringify({
-              onboardingData: state,
+              onboarding_data: state,
             }),
           });
           if (response.ok) {
@@ -221,10 +221,11 @@ export const OnboardingProvider: React.FC<{children: React.ReactNode}> = ({ chil
           throw new Error('Failed to load preferences');
         })
         .then(data => {
-          if (data.onboardingData) {
-            setState(prev => ({ ...prev, ...data.onboardingData }));
+          const saved = data.onboarding_data ?? data.onboardingData;
+          if (saved) {
+            setState(prev => ({ ...prev, ...saved }));
             // Also update localStorage
-            localStorage.setItem('knirvOnboardingV2', JSON.stringify({ ...state, ...data.onboardingData }));
+            localStorage.setItem('knirvOnboardingV2', JSON.stringify({ ...state, ...saved }));
           }
         })
         .catch(err => console.warn('Could not load from DB, using localStorage:', err));

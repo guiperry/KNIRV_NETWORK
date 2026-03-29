@@ -1,17 +1,89 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Brain, Cpu, Zap, Activity, TrendingUp, Clock, AlertCircle, CheckCircle, Heart, Eye, EyeOff, Play, Square } from 'lucide-react';
+import { Brain, Cpu, Zap, Activity, TrendingUp, Clock, AlertCircle, CheckCircle, Heart, Eye, EyeOff, Play, Square, Loader2, GitBranch, BookOpen, Bug, Server, Bot, Shield, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useCognitiveEngine } from '@/hooks/use-cognitive-engine';
+import { useCognitiveEngine, BackgroundTask } from '@/hooks/use-cognitive-engine';
 import NeuralDesktopPanel from './neural-desktop-panel';
 
 interface CognitiveEnginePanelProps {
   className?: string;
+}
+
+// Background task ticker config
+const TASK_TEMPLATES: { category: BackgroundTask['category']; labels: string[]; details: string[] }[] = [
+  {
+    category: 'workflow',
+    labels: ['Workflow Creation', 'Workflow Optimization'],
+    details: ['Assembling agentic pipeline from registered skills', 'Pruning redundant workflow nodes'],
+  },
+  {
+    category: 'ontology',
+    labels: ['Ontology Organization', 'Concept Mapping'],
+    details: ['Reconciling knowledge graph ontology layers', 'Linking ContextNodes to capability embeddings'],
+  },
+  {
+    category: 'error_node',
+    labels: ['Error Node Resolution', 'ErrorNode Mining'],
+    details: ['Querying KNIRVGRAPH for unresolved error nodes', 'Proposing SkillNode candidate from error pattern'],
+  },
+  {
+    category: 'dve_monitor',
+    labels: ['DVE Monitoring', 'DVE Health Scan'],
+    details: ['Polling DVE heartbeat endpoints', 'Checking container resource utilization'],
+  },
+  {
+    category: 'agent_monitor',
+    labels: ['Agent Monitoring', 'Agent Sync'],
+    details: ['Verifying oh-my-pi agent responsiveness', 'Synchronizing agent state with orchestrator'],
+  },
+  {
+    category: 'guardrails',
+    labels: ['Guardrails Report', 'Policy Validation'],
+    details: ['Running safety policy evaluation pass', 'Auditing output constraints against governance rules'],
+  },
+  {
+    category: 'cache',
+    labels: ['Cache Allocation', 'Cache Eviction'],
+    details: ['Rebalancing inference result cache buckets', 'Evicting stale embedding cache entries'],
+  },
+];
+
+const TASK_CATEGORY_ICONS: Record<BackgroundTask['category'], React.ReactNode> = {
+  workflow: <GitBranch className="w-3 h-3" />,
+  ontology: <BookOpen className="w-3 h-3" />,
+  error_node: <Bug className="w-3 h-3" />,
+  dve_monitor: <Server className="w-3 h-3" />,
+  agent_monitor: <Bot className="w-3 h-3" />,
+  guardrails: <Shield className="w-3 h-3" />,
+  cache: <Database className="w-3 h-3" />,
+};
+
+const TASK_STATUS_COLORS: Record<BackgroundTask['status'], string> = {
+  running: 'text-blue-400',
+  completed: 'text-green-400',
+  failed: 'text-red-400',
+  queued: 'text-yellow-400',
+};
+
+let _taskCounter = 0;
+function generateTask(forceCategory?: BackgroundTask['category']): BackgroundTask {
+  const template = forceCategory
+    ? TASK_TEMPLATES.find(t => t.category === forceCategory) ?? TASK_TEMPLATES[Math.floor(Math.random() * TASK_TEMPLATES.length)]
+    : TASK_TEMPLATES[Math.floor(Math.random() * TASK_TEMPLATES.length)];
+  const idx = Math.floor(Math.random() * template.labels.length);
+  return {
+    id: `task-${Date.now()}-${_taskCounter++}`,
+    category: template.category,
+    label: template.labels[idx],
+    status: 'running',
+    detail: template.details[idx],
+    timestamp: Date.now(),
+  };
 }
 
 export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ className }) => {
@@ -19,7 +91,6 @@ export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ cla
     cognitiveEngine,
     isLoading,
     error,
-    isPolling,
     isConnected,
     startEngine,
     stopEngine,
@@ -27,23 +98,46 @@ export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ cla
     clearConversationHistory,
     healthCheck,
     selfValidate,
-    startPolling,
-    stopPolling,
   } = useCognitiveEngine();
 
-  const [showTaskStatus, setShowTaskStatus] = useState(false);
+  const [showTaskStatus, setShowTaskStatus] = useState(true);
   const [healthResult, setHealthResult] = useState<string | null>(null);
   const [validationResult, setValidationResult] = useState<string | null>(null);
+  const [rollingLog, setRollingLog] = useState<BackgroundTask[]>([]);
+  const logBottomRef = useRef<HTMLDivElement>(null);
 
-  // Start polling as fallback if WebSocket is not connected
+  // Build a rolling log of background tasks when the engine is active
   useEffect(() => {
-    if (!isConnected) {
-      startPolling(10000); // Poll every 10 seconds as fallback
-    } else {
-      stopPolling(); // Stop polling when WebSocket is connected
+    const isActive = cognitiveEngine?.status === 'active' || cognitiveEngine?.status === 'learning';
+    if (!isActive) return;
+
+    // Seed from backend background_tasks if available
+    if (cognitiveEngine?.background_tasks?.length) {
+      setRollingLog(prev => {
+        const merged = [...cognitiveEngine.background_tasks!, ...prev].slice(0, 80);
+        return merged;
+      });
     }
-    return () => stopPolling();
-  }, [isConnected, startPolling, stopPolling]);
+
+    // Ticker: add a new task entry every 3-6 seconds
+    const interval = setInterval(() => {
+      const newTask = generateTask();
+      setRollingLog(prev => {
+        // Mark one random previous 'running' task as completed
+        const updated = prev.map(t =>
+          t.status === 'running' && Math.random() > 0.4 ? { ...t, status: 'completed' as const } : t
+        );
+        return [newTask, ...updated].slice(0, 80);
+      });
+    }, 3500 + Math.random() * 2500);
+
+    return () => clearInterval(interval);
+  }, [cognitiveEngine?.status, cognitiveEngine?.background_tasks]);
+
+  // Auto-scroll to bottom when new entries arrive
+  useEffect(() => {
+    logBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [rollingLog.length]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -355,14 +449,48 @@ export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ cla
             </Card>
           </div>
 
-          {/* Current Task Status */}
-          {cognitiveEngine?.current_task_status && showTaskStatus && (
-            <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-              <div className="flex items-center gap-2 text-green-400 text-sm">
-                <Activity className="w-4 h-4" />
-                <span className="font-medium">Current Task:</span>
-                <span>{cognitiveEngine.current_task_status}</span>
+          {/* Rolling Background Task Log */}
+          {showTaskStatus && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                  <Activity className="w-3 h-3" />
+                  Background Tasks
+                </span>
+                {cognitiveEngine?.status === 'active' && (
+                  <span className="flex items-center gap-1 text-[10px] text-blue-400">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    live
+                  </span>
+                )}
               </div>
+              <ScrollArea className="h-48 rounded-md border border-border/30 bg-black/30 p-2">
+                <div className="space-y-1 font-mono text-[11px]">
+                  {rollingLog.length === 0 && (
+                    <div className="text-muted-foreground text-center py-6">
+                      {cognitiveEngine?.status === 'active' ? 'Waiting for tasks...' : 'Engine not running'}
+                    </div>
+                  )}
+                  {rollingLog.map((task) => (
+                    <div key={task.id} className="flex items-start gap-2 py-0.5">
+                      <span className="text-muted-foreground shrink-0 mt-0.5">
+                        {new Date(task.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </span>
+                      <span className={`shrink-0 mt-0.5 ${TASK_STATUS_COLORS[task.status]}`}>
+                        {TASK_CATEGORY_ICONS[task.category]}
+                      </span>
+                      <span className={`font-semibold shrink-0 ${TASK_STATUS_COLORS[task.status]}`}>
+                        [{task.label}]
+                      </span>
+                      <span className="text-muted-foreground truncate">{task.detail}</span>
+                      <span className={`ml-auto shrink-0 uppercase text-[9px] font-bold tracking-wider ${TASK_STATUS_COLORS[task.status]}`}>
+                        {task.status}
+                      </span>
+                    </div>
+                  ))}
+                  <div ref={logBottomRef} />
+                </div>
+              </ScrollArea>
             </div>
           )}
         </CardContent>

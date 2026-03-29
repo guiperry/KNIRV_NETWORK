@@ -4,7 +4,7 @@ import { devtools, persist } from 'zustand/middleware';
 interface DashboardState {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  
+
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
   setSidebarOpen: (isOpen: boolean) => void;
@@ -12,9 +12,14 @@ interface DashboardState {
   // Selected entities
   selectedNodeId: string | null;
   setSelectedNodeId: (id: string | null) => void;
-  
+
   selectedTaskId: string | null;
   setSelectedTaskId: (id: string | null) => void;
+
+  // Persist active DVE node state across navigation
+  activeNodeIds: { [key: string]: boolean };
+  setActiveNodeId: (nodeId: string, isActive: boolean) => void;
+  clearActiveNodeIds: () => void;
 
   // Modal states
   modals: {
@@ -42,6 +47,12 @@ export const useDashboardStore = create<DashboardState>()(
         selectedTaskId: null,
         setSelectedTaskId: (id) => set({ selectedTaskId: id }),
 
+        activeNodeIds: {},
+        setActiveNodeId: (nodeId, isActive) => set((state) => ({
+          activeNodeIds: { ...state.activeNodeIds, [nodeId]: isActive }
+        })),
+        clearActiveNodeIds: () => set({ activeNodeIds: {} }),
+
         modals: {
           rentDve: false,
           sshTerminal: false,
@@ -53,9 +64,10 @@ export const useDashboardStore = create<DashboardState>()(
       }),
       {
         name: 'knirv-dashboard-storage',
-        partialize: (state) => ({ 
+        partialize: (state) => ({
           activeTab: state.activeTab,
-          isSidebarOpen: state.isSidebarOpen 
+          isSidebarOpen: state.isSidebarOpen,
+          activeNodeIds: state.activeNodeIds,
         }),
       }
     )

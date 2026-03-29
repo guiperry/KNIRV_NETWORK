@@ -195,6 +195,7 @@ func (h *AuthHandlers) RegisterRoutes(r *mux.Router) {
 	protectedRouter.HandleFunc("/change-password", h.ChangePassword).Methods("POST")
 	protectedRouter.HandleFunc("/update-profile", h.UpdateProfile).Methods("PUT")
 	protectedRouter.HandleFunc("/preferences", h.GetPreferences).Methods("GET")
+	protectedRouter.HandleFunc("/preferences", h.UpdatePreferences).Methods("PUT")
 }
 
 func (h *AuthHandlers) Revoke(w http.ResponseWriter, r *http.Request) {

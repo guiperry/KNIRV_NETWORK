@@ -1,8 +1,220 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, X, Search, Activity, Bot, GitBranch, Wifi, User } from 'lucide-react';
+import { Users, X, Search, Activity, Bot, GitBranch, Wifi, User, Plus, Cpu, Key, Link2, Loader2, ChevronDown } from 'lucide-react';
 import { useDemoMode } from '@/contexts/demo-mode-context';
+
+// oh-my-pi agent types supported by the DVE
+const AGENT_FRAMEWORKS = [
+  { id: 'oh-my-pi', label: 'oh-my-pi Agent', description: 'Agentic framework with built-in DVE integration' },
+  { id: 'openai', label: 'OpenAI-compatible', description: 'Any OpenAI-compatible agent endpoint' },
+  { id: 'custom', label: 'Custom Agent', description: 'Custom HTTP agent endpoint' },
+] as const;
+
+type AgentFramework = typeof AGENT_FRAMEWORKS[number]['id'];
+
+interface AddAgentForm {
+  name: string;
+  framework: AgentFramework;
+  endpoint: string;
+  apiKey: string;
+  model: string;
+}
+
+interface AddAgentModalProps {
+  onClose: () => void;
+  onAdd: (worker: ActiveWorker) => void;
+}
+
+const AddAgentModal: React.FC<AddAgentModalProps> = ({ onClose, onAdd }) => {
+  const [form, setForm] = useState<AddAgentForm>({
+    name: '',
+    framework: 'oh-my-pi',
+    endpoint: '',
+    apiKey: '',
+    model: '',
+  });
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.endpoint.trim()) {
+      setError('Name and endpoint are required.');
+      return;
+    }
+    setError(null);
+    setIsConnecting(true);
+    try {
+      const resp = await fetch('/api/dve/agents/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          framework: form.framework,
+          endpoint: form.endpoint.trim(),
+          api_key: form.apiKey.trim() || undefined,
+          model: form.model.trim() || undefined,
+        }),
+      });
+      const data = resp.ok ? await resp.json() : null;
+      const worker: ActiveWorker = {
+        id: data?.id || `AGENT-${Date.now()}`,
+        name: form.name.trim(),
+        type: 'agent',
+        status: resp.ok ? 'active' : 'error',
+        lastActivity: new Date().toISOString(),
+        tasksCompleted: 0,
+        metadata: {
+          framework: form.framework,
+          endpoint: form.endpoint.trim(),
+          ...(resp.ok ? {} : { error: `Connection failed (${resp.status})` }),
+        },
+      };
+      onAdd(worker);
+      onClose();
+    } catch {
+      // Optimistically add even if network fails (offline-first)
+      const worker: ActiveWorker = {
+        id: `AGENT-${Date.now()}`,
+        name: form.name.trim(),
+        type: 'agent',
+        status: 'idle',
+        lastActivity: new Date().toISOString(),
+        tasksCompleted: 0,
+        metadata: { framework: form.framework, endpoint: form.endpoint.trim() },
+      };
+      onAdd(worker);
+      onClose();
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  return (
+    <div className="absolute inset-0 z-[80] bg-black/70 flex items-center justify-center p-4">
+      <div className="bg-slate-900 border border-blue-600/40 rounded-xl w-full max-w-sm shadow-2xl">
+        <div className="flex items-center justify-between p-4 border-b border-slate-800">
+          <div className="flex items-center gap-2">
+            <Plus className="w-4 h-4 text-blue-400" />
+            <h3 className="text-sm font-bold text-blue-200 uppercase tracking-wide">Add Agent Connection</h3>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-white p-1 rounded transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-3">
+          {/* Agent name */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
+              <Bot className="w-3 h-3" /> Agent Name
+            </label>
+            <input
+              autoFocus
+              type="text"
+              placeholder="My oh-my-pi agent"
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Framework */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
+              <Cpu className="w-3 h-3" /> Framework
+            </label>
+            <div className="relative">
+              <select
+                value={form.framework}
+                onChange={e => setForm(f => ({ ...f, framework: e.target.value as AgentFramework }))}
+                className="w-full appearance-none bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 pr-8"
+              >
+                {AGENT_FRAMEWORKS.map(fw => (
+                  <option key={fw.id} value={fw.id}>{fw.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-2.5 w-3 h-3 text-slate-500 pointer-events-none" />
+            </div>
+            <p className="text-[9px] text-slate-600">
+              {AGENT_FRAMEWORKS.find(fw => fw.id === form.framework)?.description}
+            </p>
+          </div>
+
+          {/* Endpoint */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
+              <Link2 className="w-3 h-3" /> Endpoint URL
+            </label>
+            <input
+              type="text"
+              placeholder={form.framework === 'oh-my-pi' ? 'http://localhost:8888' : 'https://api.openai.com/v1'}
+              value={form.endpoint}
+              onChange={e => setForm(f => ({ ...f, endpoint: e.target.value }))}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* API Key (optional) */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
+              <Key className="w-3 h-3" /> API Key <span className="text-slate-600 normal-case font-normal">(optional)</span>
+            </label>
+            <input
+              type="password"
+              placeholder="sk-..."
+              value={form.apiKey}
+              onChange={e => setForm(f => ({ ...f, apiKey: e.target.value }))}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Model (optional) */}
+          {form.framework !== 'oh-my-pi' && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
+                <Cpu className="w-3 h-3" /> Model <span className="text-slate-600 normal-case font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                placeholder="gpt-4o, claude-3-5-sonnet-20241022..."
+                value={form.model}
+                onChange={e => setForm(f => ({ ...f, model: e.target.value }))}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          )}
+
+          {error && (
+            <p className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-1">{error}</p>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 text-xs text-slate-400 hover:text-white border border-slate-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isConnecting}
+              className="flex-1 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg transition-colors flex items-center justify-center gap-1"
+            >
+              {isConnecting ? (
+                <><Loader2 className="w-3 h-3 animate-spin" /> Connecting...</>
+              ) : (
+                <><Plus className="w-3 h-3" /> Add Agent</>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 export interface ActiveWorker {
   id: string;
@@ -27,6 +239,7 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
   const [searchTerm, setSearchTerm] = useState('');
   const { isDemoMode } = useDemoMode();
   const [workers, setWorkers] = useState<ActiveWorker[]>([]);
+  const [showAddAgent, setShowAddAgent] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -112,6 +325,13 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
         paddingTop: '1rem',
       }}
     >
+      {showAddAgent && (
+        <AddAgentModal
+          onClose={() => setShowAddAgent(false)}
+          onAdd={(worker) => setWorkers(prev => [worker, ...prev])}
+        />
+      )}
+
       <div className="h-full flex flex-col p-4 overflow-hidden">
         <div className="flex items-center justify-between mb-6 border-b border-blue-600/30 pb-4">
           <div className="flex items-center space-x-2">
@@ -120,12 +340,21 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
               Active Workers
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-slate-500 hover:text-white hover:bg-slate-800 p-1 rounded transition-all"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowAddAgent(true)}
+              className="text-slate-400 hover:text-blue-300 hover:bg-blue-600/20 p-1.5 rounded transition-all"
+              title="Add Agent Connection"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onClose}
+              className="text-slate-500 hover:text-white hover:bg-slate-800 p-1 rounded transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         <div className="mb-4">

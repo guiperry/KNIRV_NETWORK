@@ -57,6 +57,10 @@ type Config struct {
 	// KNIRV-ORACLE configuration
 	KnirvOracleURL string
 
+	// BackendAPIURL is the URL of the main KNIRV-SERVER backend API.
+	// All unhandled /api/* requests are proxied there.
+	BackendAPIURL string
+
 	// TURN Server configuration
 	TurnServerEnabled      bool
 	TurnServerUDPPort      int
@@ -99,6 +103,7 @@ func Load() (*Config, error) {
 		SessionSecret:             getEnv("SESSION_SECRET", generateSessionSecret()),
 		AutoOpenBrowser:           getEnvBool("AUTO_OPEN_BROWSER", true),
 		KnirvOracleURL:            getEnv("KNIRV_ORACLE_URL", "http://localhost:1317"),
+		BackendAPIURL:             getEnv("KNIRV_BACKEND_API_URL", "http://localhost:8082"),
 		TurnServerEnabled:         getEnvBool("TURN_SERVER_ENABLED", true),
 		TurnServerUDPPort:         getEnvInt("TURN_SERVER_UDP_PORT", 3478),
 		TurnServerTCPPort:         getEnvInt("TURN_SERVER_TCP_PORT", 3479),
