@@ -682,8 +682,9 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	var gatewayManager *knirvgateway.Manager
 	if cfg.Gateway.Enabled {
 		gatewayConfig := &knirvgateway.ManagerConfig{
-			BinaryPath: cfg.Gateway.BinaryPath,
-			Port:       cfg.Gateway.Port,
+			BinaryPath:     cfg.Gateway.BinaryPath,
+			Port:           cfg.Gateway.Port,
+			BackendAPIPort: cfg.API.Port,
 			Ports: &knirvgateway.PortConfig{
 				TurnUDP:     cfg.Gateway.TurnUDPPort,
 				TurnTCP:     cfg.Gateway.TurnTCPPort,

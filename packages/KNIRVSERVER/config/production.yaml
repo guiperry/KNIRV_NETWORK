@@ -9,6 +9,12 @@ chain_id: knirv-server-mainnet
 node_role: dve-manager
 testnet: false
 
+# Wrapper (main.go) Configuration
+# port: the port the knirvserver wrapper listens on
+# backend_port: the port the embedded backend_server API listens on (must match api.port below)
+port: 8090
+backend_port: 8082
+
 # Service Configuration (wrapper frontend)
 service:
   host: "0.0.0.0"

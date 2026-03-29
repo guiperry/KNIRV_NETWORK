@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -417,14 +418,14 @@ func (app *NexusApp) startDesktop() error {
 				`export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"; `+
 				`export VK_ICD_FILENAMES=""; `+
 				`export ELECTRON_OZONE_PLATFORM_HINT=auto; `+
-				`KNIRV_SERVER_URL=%s KNIRV_SHUTDOWN_TOKEN=%s KNIRV_SERVER_PORT=%s exec %s %s`,
+				`KNIRV_SERVER_URL=%s KNIRV_SHUTDOWN_TOKEN=%s KNIRV_SERVER_PORT=%s exec %s --disable-gpu --disable-software-rasterizer %s`,
 			shellEscape(serverUrl), shellEscape(app.shutdownToken),
 			shellEscape(fmt.Sprintf("%d", app.config.Port)),
 			shellEscape(electronPath), shellEscape(mainJsPath),
 		)
 		app.desktopCmd = exec.Command("sudo", "-u", sudoUser, "--set-home", "--", "bash", "-c", shellCmd)
 	} else {
-		app.desktopCmd = exec.Command(electronPath, mainJsPath)
+		app.desktopCmd = exec.Command(electronPath, "--disable-gpu", "--disable-software-rasterizer", mainJsPath)
 		app.desktopCmd.Env = append(os.Environ(),
 			fmt.Sprintf("KNIRV_SERVER_URL=%s", serverUrl),
 			fmt.Sprintf("KNIRV_SHUTDOWN_TOKEN=%s", app.shutdownToken),
@@ -696,9 +697,45 @@ func (app *NexusApp) setupRoutes() error {
 	return nil
 }
 
+// killStaleBackend sends SIGTERM then SIGKILL to any running backend_server processes
+// so port 4001 (P2P/libp2p) and other ports are free before a new instance starts.
+func killStaleBackend(binaryPath string) {
+	binaryName := filepath.Base(binaryPath)
+	if binaryName == "" || binaryName == "." {
+		binaryName = "backend_server"
+	}
+	if cmd := exec.Command("pkill", "-TERM", "-x", binaryName); cmd.Run() == nil {
+		time.Sleep(2 * time.Second)
+	}
+	exec.Command("pkill", "-KILL", "-x", binaryName).Run() //nolint:errcheck
+}
+
+// waitForPortFreeMain blocks until the given TCP port is no longer occupied or the deadline.
+func waitForPortFreeMain(port int, deadline time.Duration) bool {
+	end := time.Now().Add(deadline)
+	for time.Now().Before(end) {
+		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		if err == nil {
+			ln.Close()
+			return true
+		}
+		time.Sleep(300 * time.Millisecond)
+	}
+	return false
+}
+
 // startBackend starts the embedded unified backend service
 func (app *NexusApp) startBackend() error {
 	log.Printf("Starting unified backend service on port %d...", app.config.BackendPort)
+
+	// Kill any stale backend_server processes from previous runs so they do not
+	// hold the P2P port (4001) or other resources that would cause the new
+	// instance to crash on startup.
+	log.Println("Killing any stale backend_server processes...")
+	killStaleBackend(app.backendPath)
+	if !waitForPortFreeMain(4001, 8*time.Second) {
+		log.Println("Warning: P2P port 4001 still occupied after kill — proceeding anyway")
+	}
 
 	// Pass the config file path used by the wrapper to the backend.
 	// This ensures the backend uses the same configuration.
@@ -757,8 +794,22 @@ func (app *NexusApp) startBackend() error {
 
 	log.Printf("Unified backend started (PID: %d)", app.backendCmd.Process.Pid)
 
-	// Wait for backend to be ready
-	time.Sleep(3 * time.Second)
+	// Wait for backend to accept connections on its health endpoint.
+	healthURL := fmt.Sprintf("http://localhost:%d/health", app.config.BackendPort)
+	client := &http.Client{Timeout: 2 * time.Second}
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(healthURL)
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode < 500 {
+				log.Printf("Backend ready on port %d", app.config.BackendPort)
+				return nil
+			}
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	log.Printf("Warning: backend did not become healthy within 30s — proceeding anyway")
 
 	return nil
 }

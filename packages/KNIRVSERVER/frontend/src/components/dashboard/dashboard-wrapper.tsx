@@ -142,16 +142,18 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
       type: 'SGX Enclaves Security Report',
       generatedAt: new Date().toISOString(),
       summary: {
-        enclaveCount: 18,
-        attestationStatus: 'Active',
-        securityScore: teeSecurityStatus?.security_score || 0
+        enclaveCount: teeSecurityStatus?.enclave_count ?? 0,
+        attestationStatus: teeSecurityStatus?.attestation_status ?? 'unknown',
+        securityScore: teeSecurityStatus?.security_score ?? 0,
+        threatsDetected: teeSecurityStatus?.threats_detected ?? 0,
+        lastAudit: teeSecurityStatus?.last_audit ?? null,
+        lastAttestation: teeSecurityStatus?.last_attestation ?? null,
+        monitoringEnabled: teeSecurityStatus?.monitoring_enabled ?? false,
+        teeType: teeSecurityStatus?.tee_type ?? 'SGX'
       },
-      enclaves: Array.from({ length: 18 }, (_, i) => ({
-        id: `enclave-${i + 1}`,
-        status: 'active',
-        cpu: Math.floor(Math.random() * 40 + 20),
-        memory: Math.floor(Math.random() * 60 + 30)
-      }))
+      activeThreats: teeSecurityStatus?.active_threats ?? [],
+      auditHistory: teeSecurityStatus?.audit_history ?? [],
+      performanceMetrics: teeSecurityStatus?.performance_metrics ?? null
     });
   };
 
@@ -160,35 +162,173 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
       type: 'SEV-SNP VM Report',
       generatedAt: new Date().toISOString(),
       summary: {
-        vmCount: 6,
-        status: 'Running',
-        securityLevel: 'High'
+        attestationStatus: teeSecurityStatus?.attestation_status ?? 'unknown',
+        securityScore: teeSecurityStatus?.security_score ?? 0,
+        threatsDetected: teeSecurityStatus?.threats_detected ?? 0,
+        teeType: teeSecurityStatus?.tee_type ?? 'SEV-SNP',
+        monitoringEnabled: teeSecurityStatus?.monitoring_enabled ?? false
       },
-      vms: Array.from({ length: 6 }, (_, i) => ({
-        id: `vm-${i + 1}`,
-        status: 'running',
-        cpu: Math.floor(Math.random() * 50 + 30),
-        memory: Math.floor(Math.random() * 70 + 20)
-      }))
+      performanceMetrics: teeSecurityStatus?.performance_metrics ?? null,
+      activeThreats: teeSecurityStatus?.active_threats ?? []
     });
   };
 
   const handleTrustReports = () => {
     generateReport('trust-report', {
-      type: 'TDX Trust Report',
+      type: 'TDX Trust Domain Report',
       generatedAt: new Date().toISOString(),
       summary: {
-        trustDomains: 3,
-        attestationStatus: 'Verified',
-        trustLevel: 'High'
+        attestationStatus: teeSecurityStatus?.attestation_status ?? 'unknown',
+        securityScore: teeSecurityStatus?.security_score ?? 0,
+        lastAttestation: teeSecurityStatus?.last_attestation ?? null,
+        teeType: teeSecurityStatus?.tee_type ?? 'TDX',
+        threatsDetected: teeSecurityStatus?.threats_detected ?? 0
       },
-      trustDomains: Array.from({ length: 3 }, (_, i) => ({
-        id: `tdx-${i + 1}`,
-        status: 'active',
-        attestation: 'verified',
-        trustScore: Math.floor(Math.random() * 20 + 80)
-      }))
+      auditHistory: teeSecurityStatus?.audit_history ?? [],
+      activeThreats: teeSecurityStatus?.active_threats ?? [],
+      performanceMetrics: teeSecurityStatus?.performance_metrics ?? null
     });
+  };
+
+  const handleMonthlyUsageReport = () => {
+    generateReport('monthly-usage', {
+      type: 'Monthly Usage Report',
+      generatedAt: new Date().toISOString(),
+      period: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      account: {
+        username: user?.user,
+        role: user?.role,
+        nodeId: user?.node_id
+      },
+      usage: {
+        computeHours: 247.3,
+        storageUsed: '1.2TB',
+        apiCalls: 12400,
+        nrnSpent: 1847
+      }
+    });
+  };
+
+  const handleBillingStatement = () => {
+    generateReport('billing-statement', {
+      type: 'Billing Statement',
+      generatedAt: new Date().toISOString(),
+      period: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      account: {
+        username: user?.user,
+        role: user?.role,
+        nodeId: user?.node_id,
+        permissions: user?.nexus_access
+      },
+      billing: {
+        totalNRNSpent: 1847,
+        computeHours: 247.3,
+        storageUsed: '1.2TB',
+        apiCalls: 12400
+      }
+    });
+  };
+
+  const handlePerformanceAnalytics = () => {
+    generateReport('performance-analytics', {
+      type: 'Performance Analytics',
+      generatedAt: new Date().toISOString(),
+      summary: {
+        activeTasks: 127,
+        completedToday: 1847,
+        successRate: 98.2,
+        averageLatency: 145,
+        throughput: 1250,
+        errorRate: 1.8,
+        uptime: 99.9
+      },
+      teePerformance: teeSecurityStatus?.performance_metrics ?? null,
+      teeSecurityScore: teeSecurityStatus?.security_score ?? 0
+    });
+  };
+
+  const handleSecurityAuditLog = () => {
+    generateReport('security-audit-log', {
+      type: 'Security Audit Log',
+      generatedAt: new Date().toISOString(),
+      summary: {
+        securityScore: teeSecurityStatus?.security_score ?? 0,
+        attestationStatus: teeSecurityStatus?.attestation_status ?? 'unknown',
+        threatsDetected: teeSecurityStatus?.threats_detected ?? 0,
+        lastAudit: teeSecurityStatus?.last_audit ?? null,
+        lastAttestation: teeSecurityStatus?.last_attestation ?? null,
+        monitoringEnabled: teeSecurityStatus?.monitoring_enabled ?? false,
+        teeType: teeSecurityStatus?.tee_type ?? 'unknown',
+        enclaveCount: teeSecurityStatus?.enclave_count ?? 0
+      },
+      auditHistory: teeSecurityStatus?.audit_history ?? [],
+      activeThreats: teeSecurityStatus?.active_threats ?? []
+    });
+  };
+
+  const handleResourceUtilization = () => {
+    generateReport('resource-utilization', {
+      type: 'Resource Utilization',
+      generatedAt: new Date().toISOString(),
+      resources: {
+        computeHours: 247.3,
+        storageUsed: '1.2TB',
+        apiCalls: 12400,
+        nrnSpent: 1847
+      },
+      teeMetrics: teeSecurityStatus?.performance_metrics ?? null,
+      enclaveCount: teeSecurityStatus?.enclave_count ?? 0
+    });
+  };
+
+  const handleDownloadAll = () => {
+    handleMonthlyUsageReport();
+    handleBillingStatement();
+    handlePerformanceAnalytics();
+    handleSecurityAuditLog();
+    handleResourceUtilization();
+  };
+
+  const handleExportReport = () => {
+    generateReport('full-export', {
+      type: 'Full Reports Export',
+      generatedAt: new Date().toISOString(),
+      account: {
+        username: user?.user,
+        role: user?.role,
+        nodeId: user?.node_id,
+        permissions: user?.nexus_access
+      },
+      validationTasks: {
+        activeTasks: 127,
+        completedToday: 1847,
+        successRate: 98.2,
+        averageLatency: 145,
+        throughput: 1250
+      },
+      teeSecurity: teeSecurityStatus ? {
+        securityScore: teeSecurityStatus.security_score,
+        attestationStatus: teeSecurityStatus.attestation_status,
+        enclaveCount: teeSecurityStatus.enclave_count,
+        threatsDetected: teeSecurityStatus.threats_detected,
+        lastAudit: teeSecurityStatus.last_audit,
+        teeType: teeSecurityStatus.tee_type,
+        activeThreats: teeSecurityStatus.active_threats,
+        auditHistory: teeSecurityStatus.audit_history,
+        performanceMetrics: teeSecurityStatus.performance_metrics
+      } : null,
+      usage: {
+        computeHours: 247.3,
+        storageUsed: '1.2TB',
+        apiCalls: 12400,
+        nrnSpent: 1847
+      }
+    });
+  };
+
+  const handleShareReport = (reportType: string, reportData: any) => {
+    const json = JSON.stringify(reportData, null, 2);
+    navigator.clipboard?.writeText(json).catch(() => {});
   };
 
   const handleNodeAccess = (node: DVENode) => {
@@ -663,26 +803,6 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                         <TabsContent value="badgelab" className="space-y-4">
                           <BadgeLabPanel />
                         </TabsContent>
-
-                       <TabsContent value="cognitive" className="space-y-4">
-                         <CognitiveEnginePanel />
-                       </TabsContent>
-
-                       <TabsContent value="badgelab" className="space-y-4">
-                         <BadgeLabPanel />
-                       </TabsContent>
-
-
-
-
-
-                      <TabsContent value="cognitive" className="space-y-4">
-                        <CognitiveEnginePanel />
-                      </TabsContent>
-
-                      <TabsContent value="badgelab" className="space-y-4">
-                        <BadgeLabPanel />
-                      </TabsContent>
                     </Tabs>
                   </div>
                 </SystemAccess>
@@ -697,7 +817,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                         Validation, Security, and Usage Reports
                       </p>
                     </div>
-                    <Button variant="outline" className="flex items-center space-x-2 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                    <Button variant="outline" className="flex items-center space-x-2 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleExportReport}>
                       <Download className="w-4 h-4" />
                       <span>Export Report</span>
                     </Button>
@@ -885,11 +1005,11 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                           <span>Billing & Usage Reports</span>
                         </CardTitle>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                          <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleDownloadAll}>
                             <Download className="w-4 h-4 mr-2" />
                             Download All
                           </Button>
-                          <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                          <Button variant="outline" size="sm" className="border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={() => handleShareReport('full-export', { type: 'Full Reports Export', generatedAt: new Date().toISOString(), account: { username: user?.user, role: user?.role }, teeSecurity: teeSecurityStatus })}>
                             <Share2 className="w-4 h-4 mr-2" />
                             Share Reports
                           </Button>
@@ -914,11 +1034,11 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                               <span className="text-gray-300">Dec 15, 2024</span>
                             </div>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleMonthlyUsageReport}>
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={() => handleShareReport('monthly-usage', { type: 'Monthly Usage Report', account: { username: user?.user, role: user?.role }, usage: { computeHours: 247.3, storageUsed: '1.2TB', apiCalls: 12400, nrnSpent: 1847 } })}>
                                 <Share2 className="w-3 h-3 mr-1" />
                                 Share
                               </Button>
@@ -939,11 +1059,11 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                               <span className="text-gray-300">Dec 1, 2024</span>
                             </div>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleBillingStatement}>
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={() => handleShareReport('billing-statement', { type: 'Billing Statement', account: { username: user?.user, role: user?.role }, billing: { totalNRNSpent: 1847 } })}>
                                 <Share2 className="w-3 h-3 mr-1" />
                                 Share
                               </Button>
@@ -964,11 +1084,11 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                               <span className="text-gray-300">Dec 16, 2024</span>
                             </div>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handlePerformanceAnalytics}>
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={() => handleShareReport('performance-analytics', { type: 'Performance Analytics', summary: { completedTasks: 1847, successRate: 98.2, activeTasks: 127 } })}>
                                 <Share2 className="w-3 h-3 mr-1" />
                                 Share
                               </Button>
@@ -989,11 +1109,11 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                               <span className="text-gray-300">Dec 16, 2024</span>
                             </div>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleSecurityAuditLog}>
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={() => handleShareReport('security-audit-log', { type: 'Security Audit Log', summary: { securityScore: teeSecurityStatus?.security_score, attestationStatus: teeSecurityStatus?.attestation_status, threatsDetected: teeSecurityStatus?.threats_detected }, auditHistory: teeSecurityStatus?.audit_history ?? [] })}>
                                 <Share2 className="w-3 h-3 mr-1" />
                                 Share
                               </Button>
@@ -1003,7 +1123,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
 
                         <Card className="aether-bevel-dark-light rounded-xl">
                           <CardHeader className="pb-2">
-                            <CardTitle className="text-sm text-gray-300">Resource utilization</CardTitle>
+                            <CardTitle className="text-sm text-gray-300">Resource Utilization</CardTitle>
                             <CardDescription className="text-xs text-gray-500">
                               Detailed resource consumption patterns
                             </CardDescription>
@@ -1014,11 +1134,11 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                               <span className="text-gray-300">Dec 15, 2024</span>
                             </div>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleResourceUtilization}>
                                 <Download className="w-3 h-3 mr-1" />
                                 Download
                               </Button>
-                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                              <Button variant="outline" size="sm" className="flex-1 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={() => handleShareReport('resource-utilization', { type: 'Resource Utilization', resources: { computeHours: 247.3, storageUsed: '1.2TB', apiCalls: 12400 }, teeMetrics: teeSecurityStatus?.performance_metrics ?? null })}>
                                 <Share2 className="w-3 h-3 mr-1" />
                                 Share
                               </Button>
@@ -1038,7 +1158,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                               <span className="text-gray-500">Status:</span>
                               <span className="text-gray-300">Ready to generate</span>
                             </div>
-                            <Button variant="outline" size="sm" className="w-full border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
+                            <Button variant="outline" size="sm" className="w-full border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleExportReport}>
                               <Settings className="w-3 h-3 mr-1" />
                               Configure & Generate
                             </Button>

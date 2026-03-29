@@ -60,15 +60,16 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	BinaryPath   string
-	Port         int
-	Ports        *PortConfig
-	DBPath       string
-	AuthSecret   string
-	MinerAddress string
-	StartTimeout time.Duration
-	StopTimeout  time.Duration
-	ChainID      string
+	BinaryPath     string
+	Port           int
+	BackendAPIPort int // Port of the main backend API server; used to set KNIRV_BACKEND_API_URL
+	Ports          *PortConfig
+	DBPath         string
+	AuthSecret     string
+	MinerAddress   string
+	StartTimeout   time.Duration
+	StopTimeout    time.Duration
+	ChainID        string
 }
 
 type PortConfig struct {
@@ -196,7 +197,13 @@ func (m *Manager) Start(ctx context.Context) error {
 		zap.Int("port", m.config.Port))
 
 	env := os.Environ()
+	// Always tell the gateway where the backend API lives so it can proxy /api/* correctly.
+	backendPort := m.config.BackendAPIPort
+	if backendPort <= 0 {
+		backendPort = 9081 // match the default KNIRV_API_PORT used by backend_server
+	}
 	env = append(env,
+		fmt.Sprintf("KNIRV_BACKEND_API_URL=http://127.0.0.1:%d", backendPort),
 		fmt.Sprintf("PORT=%d", m.config.Port),
 		fmt.Sprintf("KNIRV_CHAIN_ID=%s", m.config.ChainID),
 		fmt.Sprintf("TURN_SERVER_ENABLED=true"),
