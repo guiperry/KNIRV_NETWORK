@@ -32,16 +32,17 @@ const middleLabels = [
   { label: "KNIRVTESTNET", angle: 190 },
 ]
 
-// Outer icons positioned around the outer ring
+// Outer icons — each maps to a dashboard section via postMessage navigate
+// section: null means open the local settings modal instead of navigating
 const outerIcons = [
-  { icon: Triangle, angle: 0 },     // Top
-  { icon: Globe, angle: 45 },       // Top-right
-  { icon: Wrench, angle: 90 },      // Right
-  { icon: Cpu, angle: 135 },        // Bottom-right
-  { icon: Layers, angle: 180 },     // Bottom
-  { icon: Settings, angle: 225 },   // Bottom-left
-  { icon: Eye, angle: 270 },        // Left
-  { icon: Box, angle: 315 },        // Top-left
+  { icon: Triangle, angle: 0,   section: "setup",     label: "Setup" },
+  { icon: Globe,    angle: 45,  section: "p2p-webgui", label: "WebGUI" },
+  { icon: Wrench,   angle: 90,  section: "system",    label: "Resources" },
+  { icon: Cpu,      angle: 135, section: "cognitive", label: "Cognitive" },
+  { icon: Layers,   angle: 180, section: "nodes",     label: "DVE Nodes" },
+  { icon: Settings, angle: 225, section: null,        label: "Settings" },
+  { icon: Eye,      angle: 270, section: "profile",   label: "Reports" },
+  { icon: Box,      angle: 315, section: "badgelab",  label: "Badge Lab" },
 ]
 
 function polarToCartesian(angle: number, radius: number) {
@@ -64,13 +65,18 @@ export default function ConstellationMenu() {
 
   const handleLoadingComplete = () => {
     setLoadingComplete(true)
-    // Notify the Electron renderer that the menu animation is done
-    // Use a short delay so the user briefly sees the constellation before the HUD appears
-    setTimeout(() => {
-      if (window.parent && window.parent !== (window as any)) {
-        window.parent.postMessage({ type: 'menu-complete' }, '*')
-      }
-    }, 2000)
+    // Menu is now the home screen — no auto-transition.
+    // Navigation happens when the user clicks an outer icon.
+  }
+
+  const handleIconClick = (section: string | null) => {
+    if (section === null) {
+      setSettingsOpen(true)
+      return
+    }
+    if (window.parent && window.parent !== (window as Window)) {
+      window.parent.postMessage({ type: 'navigate', section }, '*')
+    }
   }
 
   const centerSize = 160
@@ -119,13 +125,13 @@ export default function ConstellationMenu() {
 
       {/* Bottom Horizon Glow */}
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-48">
-        <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 via-cyan-500/5 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-blue-500/10 via-blue-500/5 to-transparent" />
         <div className="absolute bottom-12 left-1/2 h-px w-[80%] -translate-x-1/2 bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
         {/* Crystal/City Silhouettes */}
-        <div className="absolute bottom-0 left-[10%] h-16 w-4 bg-gradient-to-t from-cyan-900/30 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
-        <div className="absolute bottom-0 left-[15%] h-24 w-6 bg-gradient-to-t from-cyan-900/20 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
-        <div className="absolute bottom-0 right-[10%] h-20 w-5 bg-gradient-to-t from-cyan-900/30 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
-        <div className="absolute bottom-0 right-[15%] h-28 w-7 bg-gradient-to-t from-cyan-900/20 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
+        <div className="absolute bottom-0 left-[10%] h-16 w-4 bg-gradient-to-t from-blue-900/30 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
+        <div className="absolute bottom-0 left-[15%] h-24 w-6 bg-gradient-to-t from-blue-900/20 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
+        <div className="absolute bottom-0 right-[10%] h-20 w-5 bg-gradient-to-t from-blue-900/30 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
+        <div className="absolute bottom-0 right-[15%] h-28 w-7 bg-gradient-to-t from-blue-900/20 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
       </div>
 
        {/* Main Container */}
@@ -307,7 +313,7 @@ export default function ConstellationMenu() {
                   cx={pos1.x}
                   cy={pos1.y}
                   r={isCardinal ? 4.5 : 3}
-                  fill="#00d4ff"
+                  fill="#4888ff"
                   filter="url(#glow)"
                   initial={{ scale: 0, opacity: 0 }}
                   animate={mounted ? { scale: 1, opacity: isCardinal ? 1 : 0.8 } : {}}
@@ -317,7 +323,7 @@ export default function ConstellationMenu() {
                   cx={pos2.x}
                   cy={pos2.y}
                   r={2.5}
-                  fill="#00d4ff"
+                  fill="#4888ff"
                   filter="url(#glow)"
                   initial={{ scale: 0, opacity: 0 }}
                   animate={mounted ? { scale: 1, opacity: 0.6 } : {}}
@@ -327,7 +333,7 @@ export default function ConstellationMenu() {
                   cx={pos3.x}
                   cy={pos3.y}
                   r={2}
-                  fill="#00d4ff"
+                  fill="#4888ff"
                   filter="url(#glow)"
                   initial={{ scale: 0, opacity: 0 }}
                   animate={mounted ? { scale: 1, opacity: 0.5 } : {}}
@@ -337,7 +343,7 @@ export default function ConstellationMenu() {
                   cx={pos4.x}
                   cy={pos4.y}
                   r={1.5}
-                  fill="#00d4ff"
+                  fill="#4888ff"
                   initial={{ scale: 0, opacity: 0 }}
                   animate={mounted ? { scale: 1, opacity: 0.4 } : {}}
                   transition={{ duration: 0.3, delay: 1.6 + i * 0.05 }}
@@ -404,7 +410,7 @@ export default function ConstellationMenu() {
                 cy={0}
                 r={ring2Radius}
                 fill="none"
-                stroke="rgba(0, 240, 255, 0.6)"
+                stroke="rgba(100, 160, 255, 0.6)"
                 strokeWidth="2"
                 strokeDasharray="10 20"
                 filter="url(#strongGlow)"
@@ -423,7 +429,7 @@ export default function ConstellationMenu() {
                 cy={0}
                 r={ring3Radius}
                 fill="none"
-                stroke="rgba(0, 240, 255, 0.4)"
+                stroke="rgba(100, 160, 255, 0.4)"
                 strokeWidth="1.5"
                 strokeDasharray="5 30"
                 filter="url(#glow)"
@@ -455,7 +461,7 @@ export default function ConstellationMenu() {
             style={{
               width: centerSize + 16,
               height: centerSize + 16,
-              background: "radial-gradient(circle, transparent 65%, rgba(0, 220, 255, 0.5) 85%, rgba(0, 220, 255, 0.8) 95%, rgba(72, 136, 255,0.4) 100%)",
+              background: "radial-gradient(circle, transparent 65%, rgba(72, 136, 255, 0.5) 85%, rgba(72, 136, 255, 0.8) 95%, rgba(72, 136, 255,0.4) 100%)",
               filter: "blur(4px)",
             }}
           />
@@ -467,8 +473,8 @@ export default function ConstellationMenu() {
               width: centerSize,
               height: centerSize,
               background: "#030a18",
-              border: "2px solid rgba(0, 220, 255, 0.8)",
-              boxShadow: "0 0 15px rgba(0, 220, 255, 0.6), 0 0 30px rgba(0, 220, 255, 0.3)",
+              border: "2px solid rgba(72, 136, 255, 0.8)",
+              boxShadow: "0 0 15px rgba(72, 136, 255, 0.6), 0 0 30px rgba(72, 136, 255, 0.3)",
             }}
           >
             {/* Network pattern overlay - tight geodesic mesh */}
@@ -493,7 +499,7 @@ export default function ConstellationMenu() {
                     cx={x}
                     cy={y}
                     r={size}
-                    fill={distFromCenter > 65 ? "rgba(0, 220, 255, 0.8)" : "rgba(0, 220, 255, 0.5)"}
+                    fill={distFromCenter > 65 ? "rgba(72, 136, 255, 0.8)" : "rgba(72, 136, 255, 0.5)"}
                   />
                 )
               })}
@@ -510,7 +516,7 @@ export default function ConstellationMenu() {
                     cx={x}
                     cy={y}
                     r={0.6 + (i % 2) * 0.3}
-                    fill="rgba(0, 220, 255, 0.7)"
+                    fill="rgba(72, 136, 255, 0.7)"
                   />
                 )
               })}
@@ -595,8 +601,8 @@ export default function ConstellationMenu() {
             style={{
               width: centerSize + 24,
               height: centerSize + 24,
-              border: "2px solid rgba(0, 220, 255, 0.6)",
-              boxShadow: "0 0 30px rgba(0, 220, 255, 0.6), 0 0 60px rgba(72, 136, 255,0.4), inset 0 0 20px rgba(0, 220, 255, 0.3)",
+              border: "2px solid rgba(72, 136, 255, 0.6)",
+              boxShadow: "0 0 30px rgba(72, 136, 255, 0.6), 0 0 60px rgba(72, 136, 255,0.4), inset 0 0 20px rgba(72, 136, 255, 0.3)",
             }}
           />
         </div>
@@ -610,7 +616,7 @@ export default function ConstellationMenu() {
               className="absolute left-1/2 top-1/2 whitespace-nowrap text-[9px] font-medium tracking-wider"
               style={{
                 transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
-                color: "rgba(0, 220, 255, 0.9)",
+                color: "rgba(72, 136, 255, 0.9)",
                 textShadow: "0 0 8px rgba(72, 136, 255,0.6)",
               }}
               initial={{ opacity: 0 }}
@@ -651,54 +657,62 @@ export default function ConstellationMenu() {
           // Calculate absolute position from center (450 is half of 900)
           const absoluteX = 450 + pos.x - 28 // 28 is half of icon size (56)
           const absoluteY = 450 + pos.y - 28
-          const isSettingsIcon = item.icon === Settings
-          
           return (
             <motion.div
               key={`icon-${i}`}
               className="absolute cursor-pointer"
-              style={{
-                left: absoluteX,
-                top: absoluteY,
-              }}
+              style={{ left: absoluteX, top: absoluteY }}
               initial={{ opacity: 0, scale: 0 }}
-animate={loadingComplete ? { opacity: 1, scale: 1 } : {}}
+              animate={loadingComplete ? { opacity: 1, scale: 1 } : {}}
               transition={{ duration: 0.5, delay: 2.6 + i * 0.1, type: "spring" }}
               onMouseEnter={() => setHoveredIcon(i)}
               onMouseLeave={() => setHoveredIcon(null)}
-              onClick={() => {
-                if (isSettingsIcon) {
-                  setSettingsOpen(true)
-                }
-              }}
+              onClick={() => handleIconClick(item.section)}
             >
               <motion.div
                 className="flex items-center justify-center rounded-full"
                 style={{
                   width: 56,
                   height: 56,
-                  background: isHovered 
-                    ? "rgba(0, 100, 150, 0.6)" 
-                    : "rgba(0, 50, 80, 0.4)",
+                  background: isHovered
+                    ? "rgba(20, 60, 180, 0.6)"
+                    : "rgba(4, 20, 80, 0.4)",
                   backdropFilter: "blur(8px)",
-                  border: `2px solid ${isHovered ? "rgba(0, 220, 255, 0.8)" : "rgba(72, 136, 255,0.4)"}`,
+                  border: `2px solid ${isHovered ? "rgba(72, 136, 255, 0.8)" : "rgba(72, 136, 255, 0.4)"}`,
                   boxShadow: isHovered
-                    ? "0 0 30px rgba(72, 136, 255,0.7), 0 0 60px rgba(72, 136, 255,0.4), inset 0 0 20px rgba(72, 136, 255,0.3)"
-                    : "0 0 15px rgba(72, 136, 255,0.3), inset 0 0 10px rgba(72, 136, 255,0.1)",
+                    ? "0 0 30px rgba(72, 136, 255, 0.7), 0 0 60px rgba(72, 136, 255, 0.4), inset 0 0 20px rgba(72, 136, 255, 0.3)"
+                    : "0 0 15px rgba(72, 136, 255, 0.3), inset 0 0 10px rgba(72, 136, 255, 0.1)",
                 }}
-                animate={{
-                  scale: isHovered ? 1.15 : 1,
-                }}
+                animate={{ scale: isHovered ? 1.15 : 1 }}
                 transition={{ duration: 0.2 }}
               >
                 <IconComponent
                   className="h-6 w-6"
                   style={{
-                    color: isHovered ? "#00f0ff" : "rgba(0, 220, 255, 0.8)",
-                    filter: isHovered ? "drop-shadow(0 0 10px rgba(0, 240, 255, 1))" : "drop-shadow(0 0 4px rgba(72, 136, 255,0.5))",
+                    color: isHovered ? "#4888ff" : "rgba(72, 136, 255, 0.8)",
+                    filter: isHovered
+                      ? "drop-shadow(0 0 10px rgba(100, 160, 255, 1))"
+                      : "drop-shadow(0 0 4px rgba(72, 136, 255, 0.5))",
                   }}
                 />
               </motion.div>
+
+              {/* Navigation label */}
+              <div
+                className="absolute whitespace-nowrap text-center pointer-events-none"
+                style={{
+                  top: 62,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  fontSize: 9,
+                  letterSpacing: "0.15em",
+                  color: isHovered ? "rgba(72, 136, 255, 1)" : "rgba(72, 136, 255, 0.45)",
+                  textShadow: isHovered ? "0 0 8px rgba(72, 136, 255, 0.9)" : "none",
+                  transition: "color 0.2s, text-shadow 0.2s",
+                }}
+              >
+                {item.label}
+              </div>
             </motion.div>
           )
         })}

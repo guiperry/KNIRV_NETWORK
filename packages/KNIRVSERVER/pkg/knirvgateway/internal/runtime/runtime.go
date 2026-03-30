@@ -389,13 +389,11 @@ func (r *Runtime) extractNetworkWebsite(targetDir string) error {
 func (r *Runtime) extractOracleBinary(targetPath string) error {
 	r.logger.Info("Extracting embedded knirv-oracle binary", zap.String("target", targetPath))
 
-	// Ensure target directory exists
 	targetDir := filepath.Dir(targetPath)
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		return fmt.Errorf("failed to create target directory: %w", err)
 	}
 
-	// Write the embedded binary to file
 	if err := os.WriteFile(targetPath, r.oracleBinary, 0755); err != nil {
 		return fmt.Errorf("failed to write oracle binary: %w", err)
 	}

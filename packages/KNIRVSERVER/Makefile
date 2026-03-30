@@ -13,6 +13,7 @@ BACKEND_DIR := $(ROOT_DIR)/backend
 FRONTEND_DIR := $(ROOT_DIR)/frontend
 DESKTOP_DIR := $(ROOT_DIR)/desktop
 GATEWAY_DIR := $(ROOT_DIR)/pkg/knirvgateway
+GRAPH_DIR := $(ROOT_DIR)/pkg/knirvgraph
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -49,7 +50,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate kali-docker-image desktop desktop-deps desktop-build dash gateway-sync gateway-build gateway-deps gateway-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate kali-docker-image desktop desktop-deps desktop-build dash gateway-sync gateway-build gateway-deps gateway-clean graph-sync graph-build graph-deps graph-clean build-full
 
 # Default target
 all: frontend desktop-build backend binary
@@ -138,7 +139,7 @@ deployer: deps-go ## Build container_deployer binary
 # Unified Binary (Frontend + Desktop + Backend + KNIRVGATEWAY)
 # main.go embeds: bin/backend_server, bin/knirvgateway, config/*, desktop/dist/*, frontend/out/*
 # At runtime the launcher extracts backend_server and knirvgateway to ~/.local/share/knirvserver/bin/
-binary: ebpf-generate frontend desktop-build backend gateway-build ## Build unified binary embedding frontend, desktop, backend, and KNIRVGATEWAY
+binary: ebpf-generate frontend desktop-build backend gateway-build graph-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, and KNIRVGRAPH
 	@echo "$(BLUE)Creating unified binary (embeds backend_server + knirvgateway + frontend + desktop)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
@@ -369,6 +370,8 @@ gateway-deps: ## Install KNIRVGATEWAY dependencies
 gateway-build: gateway-deps ## Build KNIRVGATEWAY binary into bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVGATEWAY binary...$(NC)"
 	@mkdir -p bin
+	@echo "$(BLUE)Syncing knirv-oracle binary into embedded package...$(NC)"
+	@cp $(ROOT_DIR)/../KNIRVGATEWAY/internal/embedded/knirv-oracle $(GATEWAY_DIR)/internal/embedded/knirv-oracle
 	cd $(GATEWAY_DIR) && go build -ldflags "-s -w" -o $(ROOT_DIR)/bin/knirvgateway ./cmd/gateway
 	@echo "$(GREEN)KNIRVGATEWAY binary built: bin/knirvgateway$(NC)"
 
@@ -376,6 +379,26 @@ gateway-clean: ## Clean KNIRVGATEWAY build artifacts
 	@echo "$(BLUE)Cleaning KNIRVGATEWAY artifacts...$(NC)"
 	rm -f bin/knirvgateway
 	cd $(GATEWAY_DIR) && go clean
+
+# KNIRVGRAPH (Embedded) targets
+graph-sync: ## Sync KNIRVGRAPH source to embedded package
+	@echo "$(BLUE)Syncing KNIRVGRAPH to embedded package...$(NC)"
+	@./scripts/sync-knirvgraph.sh
+
+graph-deps: ## Install KNIRVGRAPH dependencies
+	@echo "$(BLUE)Installing KNIRVGRAPH dependencies...$(NC)"
+	cd $(GRAPH_DIR) && go mod download && go mod tidy
+
+graph-build: graph-deps ## Build KNIRVGRAPH binary into bin/ (required before binary target)
+	@echo "$(BLUE)Building KNIRVGRAPH binary...$(NC)"
+	@mkdir -p bin
+	cd $(GRAPH_DIR)/cmd/node && go build -ldflags "-s -w" -o $(ROOT_DIR)/bin/knirvgraph
+	@echo "$(GREEN)KNIRVGRAPH binary built: bin/knirvgraph$(NC)"
+
+graph-clean: ## Clean KNIRVGRAPH build artifacts
+	@echo "$(BLUE)Cleaning KNIRVGRAPH artifacts...$(NC)"
+	rm -f bin/knirvgraph
+	cd $(GRAPH_DIR) && go clean
 
 # Full build including embedded KNIRVGATEWAY (gateway-build is now a dep of binary)
 build-full: binary ## Build everything including KNIRVGATEWAY (alias for binary)

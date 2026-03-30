@@ -66,6 +66,19 @@ type GatewayConfig struct {
 	StopTimeout     int    `mapstructure:"stop_timeout"`
 }
 
+// GraphConfig defines embedded KNIRVGRAPH configuration
+type GraphConfig struct {
+	Enabled      bool   `mapstructure:"enabled"`
+	BinaryPath   string `mapstructure:"binary_path"`
+	Port         int    `mapstructure:"port"`
+	P2PPort      int    `mapstructure:"p2p_port"`
+	APIPort      int    `mapstructure:"api_port"`
+	DataPath     string `mapstructure:"data_path"`
+	SyncInterval string `mapstructure:"sync_interval"`
+	StartTimeout int    `mapstructure:"start_timeout"`
+	StopTimeout  int    `mapstructure:"stop_timeout"`
+}
+
 // StripeConfig defines Stripe payment processor configuration
 type StripeConfig struct {
 	Enabled  bool   `mapstructure:"enabled"`
@@ -139,6 +152,9 @@ type Config struct {
 
 	// Gateway - Embedded KNIRVGATEWAY for P2P TURN/Tunnel services
 	Gateway GatewayConfig `mapstructure:"gateway"`
+
+	// Graph - Embedded KNIRVGRAPH for knowledge graph and graphchain
+	Graph GraphConfig `mapstructure:"graph"`
 }
 
 // DatabaseConfig represents database configuration
@@ -720,6 +736,18 @@ func setDefaults() {
 	viper.SetDefault("gateway.miner_address", "GATEWAY_MINER")
 	viper.SetDefault("gateway.start_timeout", 30)
 	viper.SetDefault("gateway.stop_timeout", 10)
+
+	usr, _ := user.Current()
+	graphDataDir := filepath.Join(usr.HomeDir, ".local", "share", "knirvserver", "knirvgraph")
+	viper.SetDefault("graph.enabled", true)
+	viper.SetDefault("graph.binary_path", "./knirvgraph")
+	viper.SetDefault("graph.port", 7090)
+	viper.SetDefault("graph.p2p_port", 7091)
+	viper.SetDefault("graph.api_port", 7092)
+	viper.SetDefault("graph.data_path", graphDataDir)
+	viper.SetDefault("graph.sync_interval", "30s")
+	viper.SetDefault("graph.start_timeout", 30)
+	viper.SetDefault("graph.stop_timeout", 10)
 }
 
 // GetConfigDir returns the base configuration directory (e.g., ~/.config/knirv-server)

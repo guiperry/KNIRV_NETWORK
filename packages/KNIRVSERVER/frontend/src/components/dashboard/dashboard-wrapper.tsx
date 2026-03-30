@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTEESecurity } from "@/hooks/use-tee-security";
 import { useAuth, ROLES } from '@/lib/auth-context';
 import { LoginForm } from '@/components/auth/login-form';
@@ -73,6 +73,46 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
   const { user, isLoading } = useAuth();
   const { state: onboardingState, updateState: updateOnboardingState, completeOnboarding, resetOnboarding } = useOnboarding();
   const { securityStatus: teeSecurityStatus, isLoading: teeLoading } = useTEESecurity();
+
+  // ── Controlled tab state (allows postMessage navigation from Electron menu) ──
+  const [mainTab, setMainTab] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const nav = new URLSearchParams(window.location.search).get('nav');
+      // Map inner-tab sections to the 'system' parent tab
+      if (nav === 'cognitive' || nav === 'nodes' || nav === 'badgelab') return 'system';
+      if (nav) return nav;
+    }
+    return 'system';
+  });
+  const [resourceTab, setResourceTab] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const nav = new URLSearchParams(window.location.search).get('nav');
+      if (nav === 'cognitive' || nav === 'nodes' || nav === 'badgelab') return nav;
+    }
+    return 'nodes';
+  });
+
+  // ── Listen for navigate / open-modal messages from the Electron desktop renderer ──
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const { type, section, modal } = event.data || {};
+      if (type === 'navigate' && section) {
+        if (section === 'cognitive' || section === 'nodes' || section === 'badgelab') {
+          setMainTab('system');
+          setResourceTab(section);
+        } else {
+          setMainTab(section);
+        }
+      } else if (type === 'open-modal') {
+        if (modal === 'p2p-webgui') {
+          setP2pTransportOpen(true);
+        }
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const [cdeModalOpen, setCdeModalOpen] = useState(false);
   const [dveCreationModalOpen, setDveCreationModalOpen] = useState(false);
   const [activeMemoryOpen, setActiveMemoryOpen] = useState(false);
@@ -460,6 +500,13 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
               {ROLES[user.role]?.displayName || user.role.toUpperCase()}
             </Badge>
           </div>
+          <button
+            onClick={() => window.parent.postMessage({ type: 'back-to-menu' }, '*')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold tracking-widest border border-indigo-500/40 text-indigo-400/70 bg-indigo-500/5 hover:bg-indigo-500/15 hover:text-indigo-400 hover:border-indigo-400/60 transition-all duration-200 rounded-sm"
+            title="Return to Constellation Menu"
+          >
+            ⬡ MENU
+          </button>
           <UserProfile />
         </div>
       </header>
@@ -467,7 +514,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
       {/* Role-based navigation */}
       <nav className="border-b border-gray-800/50 bg-[#02040a]/60 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-2">
-          <Tabs defaultValue="system" className="w-full">
+          <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
             <TabsList className="inline-flex h-12 w-full bg-transparent">
               <TabsTrigger value="setup" className="flex items-center space-x-2 text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">
                 <Settings className="w-4 h-4" />
@@ -781,7 +828,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                     </div>
 
                     {/* Resource Explorer Tabs */}
-           <Tabs defaultValue="nodes" className="space-y-4">
+           <Tabs value={resourceTab} onValueChange={setResourceTab} className="space-y-4">
            <TabsList className="grid w-full grid-cols-3 bg-gray-900/50 border border-gray-800">
              <TabsTrigger value="nodes" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">DVE Nodes</TabsTrigger>
              <TabsTrigger value="cognitive" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Cognitive Engine</TabsTrigger>

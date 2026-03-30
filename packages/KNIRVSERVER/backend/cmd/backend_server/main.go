@@ -61,6 +61,7 @@ import (
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
 	knirvgateway "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway"
+	knirvgraph "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgraph"
 
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
@@ -113,6 +114,8 @@ type Server struct {
 	sessionManager               *session.SessionManager
 	endpointRegistry             *endpoints.EndpointRegistry
 	gatewayManager               *knirvgateway.Manager
+	graphManager                 *knirvgraph.Manager
+	graphSyncManager             *knirvgraph.SyncManager
 
 	// Active Memory Layer (Markdown Fabric)
 	pqcManager          *pqc.EncryptionManager
@@ -727,6 +730,35 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		log.Println("KNIRVGATEWAY TURN query wired into P2P manager")
 	}
 
+	// Initialize embedded KNIRVGRAPH for knowledge graph and graphchain
+	var graphManager *knirvgraph.Manager
+	var graphSyncManager *knirvgraph.SyncManager
+	if cfg.Graph.Enabled {
+		graphConfig := &knirvgraph.ManagerConfig{
+			BinaryPath:   cfg.Graph.BinaryPath,
+			Port:         cfg.Graph.Port,
+			P2PPort:      cfg.Graph.P2PPort,
+			APIPort:      cfg.Graph.APIPort,
+			DataPath:     cfg.Graph.DataPath,
+			StartTimeout: time.Duration(cfg.Graph.StartTimeout) * time.Second,
+			StopTimeout:  time.Duration(cfg.Graph.StopTimeout) * time.Second,
+		}
+		graphManager = knirvgraph.NewManager(graphConfig, logger)
+		log.Println("KNIRVGRAPH manager initialized")
+
+		// Initialize SyncManager for staging to embedded sync
+		syncInterval, _ := time.ParseDuration(cfg.Graph.SyncInterval)
+		if syncInterval == 0 {
+			syncInterval = 30 * time.Second
+		}
+		graphSyncConfig := &knirvgraph.SyncManagerConfig{
+			GraphURL: fmt.Sprintf("http://localhost:%d", cfg.Graph.Port),
+			Interval: syncInterval,
+		}
+		graphSyncManager = knirvgraph.NewSyncManager(graphSyncConfig, logger)
+		log.Println("KNIRVGRAPH sync manager initialized")
+	}
+
 	// Initialize Cognitive Engine with configurable parameters
 	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager, validationCore, inferenceService, fabricManagementService)
 
@@ -1002,6 +1034,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		sessionManager:               sessionManager,
 		endpointRegistry:             endpointRegistry,
 		gatewayManager:               gatewayManager,
+		graphManager:                 graphManager,
+		graphSyncManager:             graphSyncManager,
 		pqcManager:                   pqcManager,
 		mdStorage:                    mdStorage,
 		vaultService:                 vaultService,
@@ -1221,7 +1255,7 @@ func (s *Server) setupRoutes() {
 	}
 
 	// Register KNIRVGRAPH routes
-	knirvGraphHandlers := web.NewKnirvGraphHandlers(s.db)
+	knirvGraphHandlers := web.NewKnirvGraphHandlers(s.db, s.graphSyncManager)
 	s.router.HandleFunc("/api/knirvgraph/error-node", knirvGraphHandlers.CreateErrorNode).Methods("POST", "OPTIONS")
 	s.router.HandleFunc("/api/knirvgraph/error-nodes", knirvGraphHandlers.GetErrorNodes).Methods("GET", "OPTIONS")
 	s.router.HandleFunc("/api/knirvgraph/error-queue", knirvGraphHandlers.GetErrorQueue).Methods("GET", "OPTIONS")

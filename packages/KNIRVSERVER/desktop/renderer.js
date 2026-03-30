@@ -17,7 +17,9 @@ const { ipcRenderer } = require('electron');
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-let serverUrl = 'http://localhost:8090';  // updated by init-server-url
+let serverUrl     = 'http://localhost:8090';  // updated by init-server-url
+let frontendUrl   = '';                        // set by show-desktop
+let desktopLoaded = false;                     // true after first desktop transition
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 
@@ -129,12 +131,14 @@ function transitionToMenu(menuUrl) {
 }
 
 // Menu → Desktop: fade menu out, fade HUD in
-function transitionToDesktop(frontendUrl) {
-    hudContainer.style.display = 'block';
-    hudContainer.style.opacity  = '0';
-    hudContainer.style.transition = 'opacity 0.8s ease';
+// sectionParam is optional — appended as ?nav=<section> on first load
+function transitionToDesktop(url, sectionParam) {
+    frontendUrl = url;
 
-    menuOverlay.style.transition = 'opacity 0.8s ease';
+    hudContainer.style.display   = 'block';
+    hudContainer.style.opacity   = '0';
+    hudContainer.style.transition = 'opacity 0.8s ease';
+    menuOverlay.style.transition  = 'opacity 0.8s ease';
 
     requestAnimationFrame(() => {
         menuOverlay.style.opacity  = '0';
@@ -143,9 +147,54 @@ function transitionToDesktop(frontendUrl) {
 
     setTimeout(() => {
         menuOverlay.style.display = 'none';
-        // Load the frontend after the HUD is visible
-        contentIframe.src = frontendUrl;
+
+        if (!desktopLoaded) {
+            // First load — encode the section in the URL so the app reads it on mount
+            const loadUrl = sectionParam
+                ? `${url}?nav=${encodeURIComponent(sectionParam)}`
+                : url;
+            contentIframe.src = loadUrl;
+            desktopLoaded = true;
+        } else if (sectionParam) {
+            // Dashboard already loaded — postMessage to navigate in-place
+            navigateInDashboard(sectionParam);
+        }
     }, 900);
+}
+
+// Send a navigation message to the already-loaded content iframe
+function navigateInDashboard(section) {
+    try {
+        contentIframe.contentWindow.postMessage({ type: 'navigate', section }, '*');
+    } catch (e) {
+        console.warn('navigate postMessage failed:', e);
+    }
+}
+
+// Tell the dashboard to open a named modal
+function openDashboardModal(modal) {
+    try {
+        contentIframe.contentWindow.postMessage({ type: 'open-modal', modal }, '*');
+    } catch (e) {
+        console.warn('open-modal postMessage failed:', e);
+    }
+}
+
+// Desktop → Menu: fade HUD out, reveal menu (no iframe reload — constellation stays)
+function backToMenu() {
+    menuOverlay.style.display   = 'flex';
+    menuOverlay.style.opacity   = '0';
+    menuOverlay.style.transition = 'opacity 0.6s ease';
+    hudContainer.style.transition = 'opacity 0.6s ease';
+
+    requestAnimationFrame(() => {
+        hudContainer.style.opacity = '0';
+        menuOverlay.style.opacity  = '1';
+    });
+
+    setTimeout(() => {
+        hudContainer.style.display = 'none';
+    }, 700);
 }
 
 // ─── IPC from main process ────────────────────────────────────────────────────
@@ -161,8 +210,8 @@ ipcRenderer.on('show-menu', (_event, { menuUrl }) => {
 });
 
 // Menu animation done — reveal the HUD desktop frame
-ipcRenderer.on('show-desktop', (_event, { frontendUrl }) => {
-    transitionToDesktop(frontendUrl);
+ipcRenderer.on('show-desktop', (_event, { frontendUrl: url }) => {
+    transitionToDesktop(url, null);
 });
 
 // Frontend connection status updates (used in desktop phase)
@@ -174,10 +223,41 @@ ipcRenderer.on('frontend-status', (_event, status) => {
     }
 });
 
-// ─── postMessage from menu iframe ─────────────────────────────────────────────
+// ─── postMessage from menu iframe or content iframe ───────────────────────────
 
 window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'menu-complete') {
+    const { type, section } = event.data || {};
+
+    if (type === 'navigate') {
+        // Icon clicked in the constellation menu — go to that dashboard section
+        if (section === 'p2p-webgui') {
+            // Special action: open the P2P Transport WebGUI modal in the dashboard
+            if (!desktopLoaded) {
+                // Load desktop first (no specific tab), then open modal once loaded
+                transitionToDesktop(serverUrl, null);
+                setTimeout(() => openDashboardModal('p2p-webgui'), 950);
+            } else {
+                transitionToDesktop(serverUrl, null);
+                setTimeout(() => openDashboardModal('p2p-webgui'), 950);
+            }
+        } else if (!desktopLoaded) {
+            // First visit: encode section in URL for the app to read on mount
+            transitionToDesktop(serverUrl, section);
+        } else {
+            // Dashboard already loaded: show it and navigate in-place
+            menuOverlay.style.display   = 'flex';
+            menuOverlay.style.opacity   = '1';
+            // Trigger back-to-desktop reveal then navigate
+            transitionToDesktop(serverUrl, null);
+            setTimeout(() => navigateInDashboard(section), 950);
+        }
+
+    } else if (type === 'back-to-menu') {
+        // Back button in the dashboard clicked
+        backToMenu();
+
+    } else if (type === 'menu-complete') {
+        // Legacy: kept in case anything still sends this
         ipcRenderer.send('menu-complete');
     }
 });
@@ -374,6 +454,10 @@ registerForm.addEventListener('submit', async (e) => {
 });
 
 // ─── HUD — window controls ────────────────────────────────────────────────────
+
+document.getElementById('menu-back-btn').addEventListener('click', () => {
+    backToMenu();
+});
 
 document.getElementById('minimize-btn').addEventListener('click', () => {
     ipcRenderer.send('minimize-window');

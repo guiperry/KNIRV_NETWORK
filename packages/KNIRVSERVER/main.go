@@ -41,6 +41,11 @@ var backendBinary []byte
 //go:embed bin/knirvgateway
 var knirvgatewayBinary []byte
 
+// Embed the KNIRVGRAPH binary for knowledge graph and graphchain
+//
+//go:embed bin/knirvgraph
+var knirvgraphBinary []byte
+
 // Embed the root key (present only on root-node builds; absent on client builds).
 // The build tag "rootnode" is used to conditionally include this file via
 // the go:embed directive below.  If the file is absent the byte slice stays nil.
@@ -274,6 +279,7 @@ func extractBinaries() (string, error) {
 	bins := []entry{
 		{"backend_server", backendBinary},
 		{"knirvgateway", knirvgatewayBinary},
+		{"knirvgraph", knirvgraphBinary},
 	}
 
 	for _, b := range bins {
@@ -522,7 +528,8 @@ func extractEnvFile(environment string) error {
 }
 
 // extractRootKey copies the embedded root.key to the path the backend expects:
-//   os.UserConfigDir()/knirv-server/root.key
+//
+//	os.UserConfigDir()/knirv-server/root.key
 //
 // The file is only written when rootKeyBytes is non-nil (i.e. the key was
 // compiled in) and the destination does NOT already exist (we never silently

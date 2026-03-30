@@ -10,12 +10,20 @@ import (
 	"backend_server/internal/database"
 )
 
-type KnirvGraphHandlers struct {
-	db *database.BuntDBManager
+type SyncManager interface {
+	QueueChange(change interface{})
 }
 
-func NewKnirvGraphHandlers(db *database.BuntDBManager) *KnirvGraphHandlers {
-	return &KnirvGraphHandlers{db: db}
+type KnirvGraphHandlers struct {
+	db          *database.BuntDBManager
+	syncManager SyncManager
+}
+
+func NewKnirvGraphHandlers(db *database.BuntDBManager, syncManager SyncManager) *KnirvGraphHandlers {
+	return &KnirvGraphHandlers{
+		db:          db,
+		syncManager: syncManager,
+	}
 }
 
 type ErrorNodeRequest struct {
@@ -77,6 +85,16 @@ func (h *KnirvGraphHandlers) CreateErrorNode(w http.ResponseWriter, r *http.Requ
 		log.Printf("Failed to store error node: %v", err)
 		http.Error(w, "failed to store error node", http.StatusInternalServerError)
 		return
+	}
+
+	// Queue for sync to embedded KNIRVGRAPH
+	if h.syncManager != nil {
+		h.syncManager.QueueChange(map[string]interface{}{
+			"type":    "error_node",
+			"data":    errorNode,
+			"message": fmt.Sprintf("Commit error node: %s", nodeID),
+			"author":  "knirvserver",
+		})
 	}
 
 	// Also add to error queue for processing

@@ -11,6 +11,7 @@ import (
 	"KNIRVCHAIN/internal/blockchain"
 	"KNIRVCHAIN/internal/errors"
 	"KNIRVCHAIN/internal/graph"
+	"KNIRVCHAIN/internal/resilience"
 	"KNIRVCHAIN/internal/types"
 )
 
@@ -20,6 +21,8 @@ type SkillMiner struct {
 	nodeStore    *graph.NodeStore
 	relManager   *graph.RelationshipManager
 	blockchain   *blockchain.BlockchainStruct
+	eventBus     *resilience.EventBus
+	nexusClient  *resilience.APIClient
 }
 
 // NewSkillMiner creates a new skill miner
@@ -29,6 +32,18 @@ func NewSkillMiner(graphQueries *graph.GraphQueries, nodeStore *graph.NodeStore,
 		nodeStore:    nodeStore,
 		relManager:   relManager,
 		blockchain:   bc,
+		eventBus:     resilience.NewEventBus(nil),
+	}
+}
+
+func NewSkillMinerWithResilience(graphQueries *graph.GraphQueries, nodeStore *graph.NodeStore, relManager *graph.RelationshipManager, bc *blockchain.BlockchainStruct, eventBus *resilience.EventBus, nexusClient *resilience.APIClient) *SkillMiner {
+	return &SkillMiner{
+		graphQueries: graphQueries,
+		nodeStore:    nodeStore,
+		relManager:   relManager,
+		blockchain:   bc,
+		eventBus:     eventBus,
+		nexusClient:  nexusClient,
 	}
 }
 
@@ -103,6 +118,14 @@ func (sm *SkillMiner) SubmitMiningProposal(errorNodeID, minerAddress string, lor
 
 	log.Printf("Mining proposal submitted: %s for error %s by miner %s", proposedSkillID, errorNodeID, minerAddress)
 
+	if sm.eventBus != nil {
+		sm.eventBus.Publish(resilience.NewEvent(resilience.EventTypeTransactionSubmitted, "skill_miner", map[string]interface{}{
+			"proposal_id":   proposedSkillID,
+			"error_node_id": errorNodeID,
+			"miner_address": minerAddress,
+		}))
+	}
+
 	return proposal, nil
 }
 
@@ -171,10 +194,10 @@ func (sm *SkillMiner) ValidateSkillProposal(proposal *MiningProposal) (*types.Sk
 
 // ValidationResult represents the result of skill validation
 type ValidationResult struct {
-	IsValid       bool                   `json:"is_valid"`
-	Performance   types.SkillPerformance `json:"performance"`
-	ValidationProof string               `json:"validation_proof"`
-	Reason        string                 `json:"reason,omitempty"`
+	IsValid         bool                   `json:"is_valid"`
+	Performance     types.SkillPerformance `json:"performance"`
+	ValidationProof string                 `json:"validation_proof"`
+	Reason          string                 `json:"reason,omitempty"`
 }
 
 // validateWithKNIRVNEXUS simulates validation with KNIRVSERVER DVE
@@ -196,12 +219,12 @@ func (sm *SkillMiner) validateWithKNIRVNEXUS(errorNode *types.ErrorNode, loraAda
 
 	// Generate mock performance metrics
 	performance := types.SkillPerformance{
-		Accuracy:       0.85 + float64(loraAdapter.Rank%10)*0.01, // 0.85-0.94
-		Precision:      0.82 + float64(loraAdapter.Rank%8)*0.01,  // 0.82-0.89
-		Recall:         0.80 + float64(loraAdapter.Rank%12)*0.01, // 0.80-0.91
-		F1Score:        0.83 + float64(loraAdapter.Rank%9)*0.01,  // 0.83-0.91
-		TestCasesRun:   100,
-		TestCasesPass:  uint64(85 + loraAdapter.Rank%10), // 85-94
+		Accuracy:        0.85 + float64(loraAdapter.Rank%10)*0.01, // 0.85-0.94
+		Precision:       0.82 + float64(loraAdapter.Rank%8)*0.01,  // 0.82-0.89
+		Recall:          0.80 + float64(loraAdapter.Rank%12)*0.01, // 0.80-0.91
+		F1Score:         0.83 + float64(loraAdapter.Rank%9)*0.01,  // 0.83-0.91
+		TestCasesRun:    100,
+		TestCasesPass:   uint64(85 + loraAdapter.Rank%10), // 85-94
 		AvgResponseTime: int64(150 - loraAdapter.Rank%50), // 100-149ms
 	}
 
@@ -261,6 +284,16 @@ func (sm *SkillMiner) createValidatedSkillNode(errorNode *types.ErrorNode, propo
 	)
 	if err != nil {
 		log.Printf("Warning: failed to create relationship between error and skill node: %v", err)
+	}
+
+	if sm.eventBus != nil {
+		sm.eventBus.Publish(resilience.NewEvent(resilience.EventTypeSkillMined, "skill_miner", map[string]interface{}{
+			"skill_node_id": skillNode.ID,
+			"error_node_id": errorNode.ID,
+			"miner_address": proposal.MinerAddress,
+			"performance":   validationResult.Performance,
+			"nrn_reward":    skillNode.NRNReward,
+		}))
 	}
 
 	return skillNode, nil
@@ -343,6 +376,14 @@ func (sm *SkillMiner) ConfirmSkillNode(skillNodeID string) error {
 	}
 
 	log.Printf("Skill node confirmed: %s", skillNodeID)
+
+	if sm.eventBus != nil {
+		sm.eventBus.Publish(resilience.NewEvent(resilience.EventTypeTransactionConfirmed, "skill_miner", map[string]interface{}{
+			"skill_node_id": skillNodeID,
+			"miner_address": skillNode.MinerAddress,
+		}))
+	}
+
 	return nil
 }
 

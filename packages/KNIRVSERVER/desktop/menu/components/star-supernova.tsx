@@ -36,11 +36,11 @@ export default function StarSupernova({ onComplete }: { onComplete: () => void }
         const size = Math.random() * 2.5 + 0.5
         const colorVariation = Math.random()
         
-        let color = "rgba(0, 200, 255, "
+        let color = "rgba(72, 136, 255, "
         if (colorVariation > 0.7) {
           color = "rgba(100, 150, 255, "
         } else if (colorVariation > 0.4) {
-          color = "rgba(0, 220, 255, "
+          color = "rgba(72, 136, 255, "
         }
         
         // Calculate target positions for menu formation (ring-like structure)
@@ -150,17 +150,17 @@ export default function StarSupernova({ onComplete }: { onComplete: () => void }
           style={{
             background: `
               radial-gradient(circle at 30% 30%, 
-                rgba(0, 255, 255, 0.9) 0%,
-                rgba(0, 200, 255, 0.8) 10%,
+                rgba(72, 136, 255, 0.9) 0%,
+                rgba(72, 136, 255, 0.8) 10%,
                 rgba(0, 180, 255, 0.7) 25%,
-                rgba(0, 150, 255, 0.6) 50%,
+                rgba(72, 136, 255, 0.6) 50%,
                 rgba(0, 100, 200, 0.4) 75%,
                 transparent 100%
               )
             `,
             boxShadow: `
-              0 0 60px rgba(0, 200, 255, 0.8),
-              0 0 100px rgba(0, 150, 255, 0.6),
+              0 0 60px rgba(72, 136, 255, 0.8),
+              0 0 100px rgba(72, 136, 255, 0.6),
               0 0 150px rgba(0, 100, 200, 0.4),
               inset -10px -10px 20px rgba(0, 50, 150, 0.3)
             `,
@@ -175,9 +175,9 @@ export default function StarSupernova({ onComplete }: { onComplete: () => void }
             height: 40,
             background: `
               radial-gradient(circle,
-                rgba(0, 255, 255, 1) 0%,
-                rgba(0, 220, 255, 0.9) 30%,
-                rgba(0, 200, 255, 0.6) 60%,
+                rgba(72, 136, 255, 1) 0%,
+                rgba(72, 136, 255, 0.9) 30%,
+                rgba(72, 136, 255, 0.6) 60%,
                 transparent 100%
               )
             `,
@@ -205,8 +205,8 @@ export default function StarSupernova({ onComplete }: { onComplete: () => void }
             background: `
               radial-gradient(circle,
                 transparent 40%,
-                rgba(0, 150, 255, 0.1) 60%,
-                rgba(0, 200, 255, 0.05) 80%,
+                rgba(72, 136, 255, 0.1) 60%,
+                rgba(72, 136, 255, 0.05) 80%,
                 transparent 100%
               )
             `,
@@ -236,8 +236,8 @@ export default function StarSupernova({ onComplete }: { onComplete: () => void }
             style={{
               width: 140,
               height: 140,
-              borderColor: "rgba(0, 200, 255, 0.3)",
-              boxShadow: "0 0 20px rgba(0, 200, 255, 0.2)",
+              borderColor: "rgba(72, 136, 255, 0.3)",
+              boxShadow: "0 0 20px rgba(72, 136, 255, 0.2)",
             }}
             animate={{
               scale: [1, 1.6, 1],
@@ -254,8 +254,8 @@ export default function StarSupernova({ onComplete }: { onComplete: () => void }
             style={{
               width: 180,
               height: 180,
-              borderColor: "rgba(0, 200, 255, 0.2)",
-              boxShadow: "0 0 30px rgba(0, 200, 255, 0.1)",
+              borderColor: "rgba(72, 136, 255, 0.2)",
+              boxShadow: "0 0 30px rgba(72, 136, 255, 0.1)",
             }}
             animate={{
               scale: [1, 1.4, 1],
@@ -340,8 +340,8 @@ export default function StarSupernova({ onComplete }: { onComplete: () => void }
               style={{
                 width: radius * 2,
                 height: radius * 2,
-                borderColor: "rgba(0, 200, 255, 0.2)",
-                boxShadow: `0 0 ${20 - i * 3}px rgba(0, 200, 255, 0.1)`,
+                borderColor: "rgba(72, 136, 255, 0.2)",
+                boxShadow: `0 0 ${20 - i * 3}px rgba(72, 136, 255, 0.1)`,
               }}
             />
           ))}
@@ -353,8 +353,8 @@ export default function StarSupernova({ onComplete }: { onComplete: () => void }
               width: 160,
               height: 160,
               background: "rgba(0, 100, 150, 0.1)",
-              border: "2px solid rgba(0, 200, 255, 0.3)",
-              boxShadow: "0 0 30px rgba(0, 200, 255, 0.2)",
+              border: "2px solid rgba(72, 136, 255, 0.3)",
+              boxShadow: "0 0 30px rgba(72, 136, 255, 0.2)",
             }}
           />
         </motion.div>
