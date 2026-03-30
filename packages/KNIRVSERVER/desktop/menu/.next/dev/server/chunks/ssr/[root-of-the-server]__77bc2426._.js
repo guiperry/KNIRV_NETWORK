@@ -1386,6 +1386,15 @@ function ConstellationMenu() {
     }, []);
     const handleLoadingComplete = ()=>{
         setLoadingComplete(true);
+        // Notify the Electron renderer that the menu animation is done
+        // Use a short delay so the user briefly sees the constellation before the HUD appears
+        setTimeout(()=>{
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'menu-complete'
+                }, '*');
+            }
+        }, 2000);
     };
     const centerSize = 160;
     const ring1Radius = 120;
@@ -1400,7 +1409,7 @@ function ConstellationMenu() {
                 onComplete: handleLoadingComplete
             }, void 0, false, {
                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                lineNumber: 79,
+                lineNumber: 86,
                 columnNumber: 28
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1440,12 +1449,12 @@ function ConstellationMenu() {
                                         }
                                     }, i, false, {
                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                        lineNumber: 90,
+                                        lineNumber: 97,
                                         columnNumber: 11
                                     }, this))
                             }, void 0, false, {
                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                lineNumber: 88,
+                                lineNumber: 95,
                                 columnNumber: 7
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1455,14 +1464,14 @@ function ConstellationMenu() {
                                         className: "absolute inset-0 bg-gradient-to-t from-cyan-500/10 via-cyan-500/5 to-transparent"
                                     }, void 0, false, {
                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                        lineNumber: 115,
+                                        lineNumber: 122,
                                         columnNumber: 9
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "absolute bottom-12 left-1/2 h-px w-[80%] -translate-x-1/2 bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent"
                                     }, void 0, false, {
                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                        lineNumber: 116,
+                                        lineNumber: 123,
                                         columnNumber: 9
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1472,7 +1481,7 @@ function ConstellationMenu() {
                                         }
                                     }, void 0, false, {
                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                        lineNumber: 118,
+                                        lineNumber: 125,
                                         columnNumber: 9
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1482,7 +1491,7 @@ function ConstellationMenu() {
                                         }
                                     }, void 0, false, {
                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                        lineNumber: 119,
+                                        lineNumber: 126,
                                         columnNumber: 9
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1492,7 +1501,7 @@ function ConstellationMenu() {
                                         }
                                     }, void 0, false, {
                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                        lineNumber: 120,
+                                        lineNumber: 127,
                                         columnNumber: 9
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1502,13 +1511,13 @@ function ConstellationMenu() {
                                         }
                                     }, void 0, false, {
                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                        lineNumber: 121,
+                                        lineNumber: 128,
                                         columnNumber: 9
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                lineNumber: 114,
+                                lineNumber: 121,
                                 columnNumber: 7
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1545,7 +1554,7 @@ function ConstellationMenu() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 137,
+                                                lineNumber: 144,
                                                 columnNumber: 11
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].circle, {
@@ -1569,7 +1578,7 @@ function ConstellationMenu() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 150,
+                                                lineNumber: 157,
                                                 columnNumber: 11
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].circle, {
@@ -1593,7 +1602,7 @@ function ConstellationMenu() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 163,
+                                                lineNumber: 170,
                                                 columnNumber: 11
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].circle, {
@@ -1617,7 +1626,7 @@ function ConstellationMenu() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 176,
+                                                lineNumber: 183,
                                                 columnNumber: 11
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].circle, {
@@ -1641,7 +1650,7 @@ function ConstellationMenu() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 189,
+                                                lineNumber: 196,
                                                 columnNumber: 11
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].circle, {
@@ -1665,7 +1674,7 @@ function ConstellationMenu() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 202,
+                                                lineNumber: 209,
                                                 columnNumber: 11
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].g, {
@@ -1708,7 +1717,7 @@ function ConstellationMenu() {
                                                             strokeWidth: "0.5"
                                                         }, `tooth-${i}`, false, {
                                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                            lineNumber: 241,
+                                                            lineNumber: 248,
                                                             columnNumber: 17
                                                         }, this);
                                                     }),
@@ -1721,7 +1730,7 @@ function ConstellationMenu() {
                                                         strokeWidth: "1"
                                                     }, void 0, false, {
                                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                        lineNumber: 251,
+                                                        lineNumber: 258,
                                                         columnNumber: 13
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
@@ -1733,13 +1742,13 @@ function ConstellationMenu() {
                                                         strokeWidth: "1"
                                                     }, void 0, false, {
                                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                        lineNumber: 260,
+                                                        lineNumber: 267,
                                                         columnNumber: 13
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 215,
+                                                lineNumber: 222,
                                                 columnNumber: 11
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("defs", {
@@ -1753,49 +1762,6 @@ function ConstellationMenu() {
                                                         children: [
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("feGaussianBlur", {
                                                                 stdDeviation: "3",
-                                                                result: "coloredBlur"
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                lineNumber: 273,
-                                                                columnNumber: 15
-                                                            }, this),
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("feMerge", {
-                                                                children: [
-                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("feMergeNode", {
-                                                                        in: "coloredBlur"
-                                                                    }, void 0, false, {
-                                                                        fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                        lineNumber: 275,
-                                                                        columnNumber: 17
-                                                                    }, this),
-                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("feMergeNode", {
-                                                                        in: "SourceGraphic"
-                                                                    }, void 0, false, {
-                                                                        fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                        lineNumber: 276,
-                                                                        columnNumber: 17
-                                                                    }, this)
-                                                                ]
-                                                            }, void 0, true, {
-                                                                fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                lineNumber: 274,
-                                                                columnNumber: 15
-                                                            }, this)
-                                                        ]
-                                                    }, void 0, true, {
-                                                        fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                        lineNumber: 272,
-                                                        columnNumber: 13
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("filter", {
-                                                        id: "strongGlow",
-                                                        x: "-50%",
-                                                        y: "-50%",
-                                                        width: "200%",
-                                                        height: "200%",
-                                                        children: [
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("feGaussianBlur", {
-                                                                stdDeviation: "6",
                                                                 result: "coloredBlur"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
@@ -1829,11 +1795,54 @@ function ConstellationMenu() {
                                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
                                                         lineNumber: 279,
                                                         columnNumber: 13
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("filter", {
+                                                        id: "strongGlow",
+                                                        x: "-50%",
+                                                        y: "-50%",
+                                                        width: "200%",
+                                                        height: "200%",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("feGaussianBlur", {
+                                                                stdDeviation: "6",
+                                                                result: "coloredBlur"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
+                                                                lineNumber: 287,
+                                                                columnNumber: 15
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("feMerge", {
+                                                                children: [
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("feMergeNode", {
+                                                                        in: "coloredBlur"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
+                                                                        lineNumber: 289,
+                                                                        columnNumber: 17
+                                                                    }, this),
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("feMergeNode", {
+                                                                        in: "SourceGraphic"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
+                                                                        lineNumber: 290,
+                                                                        columnNumber: 17
+                                                                    }, this)
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
+                                                                lineNumber: 288,
+                                                                columnNumber: 15
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
+                                                        lineNumber: 286,
+                                                        columnNumber: 13
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 271,
+                                                lineNumber: 278,
                                                 columnNumber: 11
                                             }, this),
                                             [
@@ -1868,7 +1877,7 @@ function ConstellationMenu() {
                                                             }
                                                         }, void 0, false, {
                                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                            lineNumber: 299,
+                                                            lineNumber: 306,
                                                             columnNumber: 17
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].circle, {
@@ -1891,7 +1900,7 @@ function ConstellationMenu() {
                                                             }
                                                         }, void 0, false, {
                                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                            lineNumber: 309,
+                                                            lineNumber: 316,
                                                             columnNumber: 17
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].circle, {
@@ -1914,7 +1923,7 @@ function ConstellationMenu() {
                                                             }
                                                         }, void 0, false, {
                                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                            lineNumber: 319,
+                                                            lineNumber: 326,
                                                             columnNumber: 17
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].circle, {
@@ -1936,13 +1945,13 @@ function ConstellationMenu() {
                                                             }
                                                         }, void 0, false, {
                                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                            lineNumber: 329,
+                                                            lineNumber: 336,
                                                             columnNumber: 17
                                                         }, this)
                                                     ]
                                                 }, `nodes-${i}`, true, {
                                                     fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                    lineNumber: 298,
+                                                    lineNumber: 305,
                                                     columnNumber: 15
                                                 }, this);
                                             }),
@@ -1973,7 +1982,7 @@ function ConstellationMenu() {
                                                     }
                                                 }, `radial-${i}`, false, {
                                                     fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                    lineNumber: 348,
+                                                    lineNumber: 355,
                                                     columnNumber: 15
                                                 }, this);
                                             }),
@@ -2015,13 +2024,13 @@ function ConstellationMenu() {
                                                         }
                                                     }, `arc-${i}`, false, {
                                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                        lineNumber: 377,
+                                                        lineNumber: 384,
                                                         columnNumber: 17
                                                     }, this);
                                                 })
                                             }, void 0, false, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 364,
+                                                lineNumber: 371,
                                                 columnNumber: 11
                                             }, this),
                                             mounted && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -2051,7 +2060,7 @@ function ConstellationMenu() {
                                                         }
                                                     }, void 0, false, {
                                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                        lineNumber: 395,
+                                                        lineNumber: 402,
                                                         columnNumber: 15
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["motion"].circle, {
@@ -2079,7 +2088,7 @@ function ConstellationMenu() {
                                                         }
                                                     }, void 0, false, {
                                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                        lineNumber: 414,
+                                                        lineNumber: 421,
                                                         columnNumber: 15
                                                     }, this)
                                                 ]
@@ -2087,7 +2096,7 @@ function ConstellationMenu() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                        lineNumber: 130,
+                                        lineNumber: 137,
                                         columnNumber: 9
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2107,7 +2116,7 @@ function ConstellationMenu() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 446,
+                                                lineNumber: 453,
                                                 columnNumber: 11
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2146,7 +2155,7 @@ function ConstellationMenu() {
                                                                     fill: distFromCenter > 65 ? "rgba(0, 220, 255, 0.8)" : "rgba(0, 220, 255, 0.5)"
                                                                 }, `node-${i}`, false, {
                                                                     fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                    lineNumber: 484,
+                                                                    lineNumber: 491,
                                                                     columnNumber: 19
                                                                 }, this);
                                                             }),
@@ -2164,7 +2173,7 @@ function ConstellationMenu() {
                                                                     fill: "rgba(0, 220, 255, 0.7)"
                                                                 }, `edge-${i}`, false, {
                                                                     fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                    lineNumber: 501,
+                                                                    lineNumber: 508,
                                                                     columnNumber: 19
                                                                 }, this);
                                                             }),
@@ -2186,7 +2195,7 @@ function ConstellationMenu() {
                                                                     strokeWidth: "0.4"
                                                                 }, `mesh-${i}`, false, {
                                                                     fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                    lineNumber: 520,
+                                                                    lineNumber: 527,
                                                                     columnNumber: 19
                                                                 }, this);
                                                             }),
@@ -2213,7 +2222,7 @@ function ConstellationMenu() {
                                                                             strokeWidth: "0.35"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                            lineNumber: 545,
+                                                                            lineNumber: 552,
                                                                             columnNumber: 21
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
@@ -2225,7 +2234,7 @@ function ConstellationMenu() {
                                                                             strokeWidth: "0.35"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                            lineNumber: 546,
+                                                                            lineNumber: 553,
                                                                             columnNumber: 21
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
@@ -2237,13 +2246,13 @@ function ConstellationMenu() {
                                                                             strokeWidth: "0.35"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                            lineNumber: 547,
+                                                                            lineNumber: 554,
                                                                             columnNumber: 21
                                                                         }, this)
                                                                     ]
                                                                 }, `tri-${i}`, true, {
                                                                     fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                    lineNumber: 544,
+                                                                    lineNumber: 551,
                                                                     columnNumber: 19
                                                                 }, this);
                                                             }),
@@ -2265,14 +2274,14 @@ function ConstellationMenu() {
                                                                     strokeWidth: "0.5"
                                                                 }, `purple-${i}`, false, {
                                                                     fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                                    lineNumber: 561,
+                                                                    lineNumber: 568,
                                                                     columnNumber: 19
                                                                 }, this);
                                                             })
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                        lineNumber: 468,
+                                                        lineNumber: 475,
                                                         columnNumber: 13
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -2283,13 +2292,13 @@ function ConstellationMenu() {
                                                         children: "KNIRVANA"
                                                     }, void 0, false, {
                                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                        lineNumber: 575,
+                                                        lineNumber: 582,
                                                         columnNumber: 13
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 457,
+                                                lineNumber: 464,
                                                 columnNumber: 11
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2302,13 +2311,13 @@ function ConstellationMenu() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 586,
+                                                lineNumber: 593,
                                                 columnNumber: 11
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                        lineNumber: 438,
+                                        lineNumber: 445,
                                         columnNumber: 10
                                     }, this),
                                     innerLabels.map((item, i)=>{
@@ -2333,7 +2342,7 @@ function ConstellationMenu() {
                                             children: item.label
                                         }, `inner-${i}`, false, {
                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                            lineNumber: 601,
+                                            lineNumber: 608,
                                             columnNumber: 13
                                         }, this);
                                     }),
@@ -2359,7 +2368,7 @@ function ConstellationMenu() {
                                             children: item.label
                                         }, `middle-${i}`, false, {
                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                            lineNumber: 622,
+                                            lineNumber: 629,
                                             columnNumber: 13
                                         }, this);
                                     }),
@@ -2422,17 +2431,17 @@ function ConstellationMenu() {
                                                     }
                                                 }, void 0, false, {
                                                     fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                    lineNumber: 687,
+                                                    lineNumber: 694,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                                lineNumber: 668,
+                                                lineNumber: 675,
                                                 columnNumber: 15
                                             }, this)
                                         }, `icon-${i}`, false, {
                                             fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                            lineNumber: 650,
+                                            lineNumber: 657,
                                             columnNumber: 13
                                         }, this);
                                     }),
@@ -2457,19 +2466,19 @@ function ConstellationMenu() {
                                         children: "KNIRV.COM"
                                     }, void 0, false, {
                                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                        lineNumber: 702,
+                                        lineNumber: 709,
                                         columnNumber: 9
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                                lineNumber: 125,
+                                lineNumber: 132,
                                 columnNumber: 7
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                        lineNumber: 86,
+                        lineNumber: 93,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$Documents$2f$GitHub$2f$KNIRV$2f$KNIRV_NETWORK$2f$packages$2f$KNIRVSERVER$2f$desktop$2f$menu$2f$components$2f$settings$2d$modal$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["default"], {
@@ -2477,13 +2486,13 @@ function ConstellationMenu() {
                         onClose: ()=>setSettingsOpen(false)
                     }, void 0, false, {
                         fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                        lineNumber: 718,
+                        lineNumber: 725,
                         columnNumber: 7
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/desktop/menu/components/constellation-menu.tsx",
-                lineNumber: 82,
+                lineNumber: 89,
                 columnNumber: 7
             }, this)
         ]

@@ -72,7 +72,8 @@ dash: desktop-build ## Rebuild desktop and relink into binary (fast path, skips 
 	@echo "$(BLUE)Rebuilding binary with updated desktop...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
-	@echo "$(GREEN)Done — run: sudo ./dist/knirv-server --desktop$(NC)"
+	chmod 755 $(DIST_DIR)/knirv-server
+	@echo "$(GREEN)Done — run: ./dist/knirv-server --desktop$(NC)"
 
 help: ## Show this help message
 	@echo "$(BLUE)KNIRV-SERVER Build System$(NC)"
@@ -141,6 +142,7 @@ binary: ebpf-generate frontend desktop-build backend gateway-build ## Build unif
 	@echo "$(BLUE)Creating unified binary (embeds backend_server + knirvgateway + frontend + desktop)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
+	chmod 755 $(DIST_DIR)/knirv-server
 	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/knirv-server$(NC)"
 	@echo "$(BLUE)Copying binary to container_deployer golang-app-source in app data directory...$(NC)"
 	@mkdir -p $(APPDATA_DIR)/container_deployer/resources/golang-app-source

@@ -312,6 +312,434 @@ body {
     background: rgba(72, 136, 255, 0.5);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE OVERLAYS — Login & Menu
+   Full-screen layers that sit above the HUD during boot phases.
+════════════════════════════════════════════════════════════════════════════ */
+
+.phase-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #030a18;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* ── Scrolling scanline on login screen ─────────────────────────────────── */
+.login-scanline {
+    position: absolute;
+    top: -4px;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(72, 136, 255, 0.6) 50%,
+        transparent 100%);
+    animation: scanline 4s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes scanline {
+    0%   { top: -4px; }
+    100% { top: 100vh; }
+}
+
+/* ── Animated ring logo ─────────────────────────────────────────────────── */
+.login-logo {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(72, 136, 255, 0.5);
+    animation: spin linear infinite;
+}
+
+.login-ring.lr1 {
+    width: 120px; height: 120px;
+    border-top-color: rgba(72, 136, 255, 0.9);
+    animation-duration: 3s;
+    box-shadow: 0 0 15px rgba(72, 136, 255, 0.3);
+}
+
+.login-ring.lr2 {
+    width: 88px; height: 88px;
+    border-right-color: rgba(0, 200, 255, 0.8);
+    animation-duration: 2s;
+    animation-direction: reverse;
+}
+
+.login-ring.lr3 {
+    width: 56px; height: 56px;
+    border-bottom-color: rgba(72, 136, 255, 0.7);
+    animation-duration: 1.5s;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+.login-core {
+    position: absolute;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    color: #4888ff;
+    text-shadow: 0 0 12px rgba(72, 136, 255, 0.9);
+}
+
+/* ── Login branding ─────────────────────────────────────────────────────── */
+.login-brand-title {
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 8px;
+    color: #4888ff;
+    text-shadow: 0 0 20px rgba(72, 136, 255, 0.7);
+    margin-bottom: 6px;
+}
+
+.login-brand-sub {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: rgba(72, 136, 255, 0.55);
+    margin-bottom: 40px;
+}
+
+/* ── Login form ─────────────────────────────────────────────────────────── */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 340px;
+}
+
+.login-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.login-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: rgba(72, 136, 255, 0.65);
+}
+
+.login-input {
+    background: rgba(4, 14, 40, 0.9);
+    border: 1px solid rgba(72, 136, 255, 0.35);
+    color: #4888ff;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    caret-color: #4888ff;
+}
+
+.login-input::placeholder {
+    color: rgba(72, 136, 255, 0.3);
+}
+
+.login-input:focus {
+    border-color: rgba(72, 136, 255, 0.75);
+    box-shadow: 0 0 12px rgba(72, 136, 255, 0.25),
+                inset 0 0 8px rgba(72, 136, 255, 0.05);
+}
+
+.login-error {
+    font-size: 11px;
+    color: #ff4444;
+    text-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+    letter-spacing: 1px;
+    display: none;
+    min-height: 16px;
+}
+
+.login-btn {
+    margin-top: 4px;
+    padding: 12px;
+    background: rgba(20, 60, 180, 0.4);
+    border: 1px solid rgba(72, 136, 255, 0.6);
+    color: #4888ff;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    text-shadow: 0 0 8px rgba(72, 136, 255, 0.7);
+}
+
+.login-btn:hover:not(:disabled) {
+    background: rgba(40, 100, 220, 0.55);
+    box-shadow: 0 0 20px rgba(72, 136, 255, 0.4);
+}
+
+.login-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Login panel wrapper ────────────────────────────────────────────────── */
+.login-panel {
+    width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* ── Mode tabs ──────────────────────────────────────────────────────────── */
+.login-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border: 1px solid rgba(72, 136, 255, 0.3);
+}
+
+.login-tab {
+    flex: 1;
+    padding: 8px;
+    background: transparent;
+    border: none;
+    color: rgba(72, 136, 255, 0.45);
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.login-tab + .login-tab {
+    border-left: 1px solid rgba(72, 136, 255, 0.3);
+}
+
+.login-tab.active {
+    background: rgba(72, 136, 255, 0.15);
+    color: #4888ff;
+    text-shadow: 0 0 8px rgba(72, 136, 255, 0.6);
+}
+
+.login-tab:hover:not(.active) {
+    background: rgba(72, 136, 255, 0.08);
+    color: rgba(72, 136, 255, 0.7);
+}
+
+/* ── Testnet tokens section ─────────────────────────────────────────────── */
+.testnet-section {
+    margin-top: 16px;
+    padding: 12px;
+    border: 1px solid rgba(72, 136, 255, 0.2);
+    background: rgba(4, 14, 40, 0.6);
+}
+
+.testnet-title {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: rgba(72, 136, 255, 0.5);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.testnet-badge {
+    font-size: 9px;
+    padding: 1px 6px;
+    border: 1px solid rgba(255, 180, 0, 0.5);
+    color: rgba(255, 180, 0, 0.8);
+    letter-spacing: 1px;
+}
+
+.testnet-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(72, 136, 255, 0.1);
+}
+
+.testnet-row:last-child { border-bottom: none; }
+
+.testnet-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.testnet-role {
+    font-size: 11px;
+    color: rgba(72, 136, 255, 0.85);
+}
+
+.testnet-access {
+    font-size: 9px;
+    padding: 1px 6px;
+    letter-spacing: 1px;
+}
+
+.access-full   { border: 1px solid rgba(255, 68, 68, 0.5); color: rgba(255, 68, 68, 0.8); }
+.access-scoped { border: 1px solid rgba(72, 136, 255, 0.5); color: rgba(72, 136, 255, 0.8); }
+.access-read   { border: 1px solid rgba(100, 100, 100, 0.5); color: rgba(150, 150, 150, 0.8); }
+
+.testnet-btn {
+    background: rgba(10, 30, 80, 0.6);
+    border: 1px solid rgba(72, 136, 255, 0.4);
+    color: rgba(72, 136, 255, 0.8);
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.testnet-btn:hover {
+    background: rgba(30, 70, 180, 0.5);
+    box-shadow: 0 0 8px rgba(72, 136, 255, 0.3);
+}
+
+/* ── Register header ────────────────────────────────────────────────────── */
+.register-header {
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 5px;
+    color: #4888ff;
+    text-shadow: 0 0 12px rgba(72, 136, 255, 0.6);
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(72, 136, 255, 0.3);
+}
+
+/* ── Dual-button row ────────────────────────────────────────────────────── */
+.login-btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.login-btn-row .login-btn {
+    flex: 1;
+}
+
+.login-btn-primary {
+    background: rgba(20, 60, 180, 0.4) !important;
+}
+
+.login-btn-secondary {
+    background: rgba(10, 20, 60, 0.4) !important;
+    border-color: rgba(72, 136, 255, 0.35) !important;
+    color: rgba(72, 136, 255, 0.6) !important;
+}
+
+.login-btn-secondary:hover:not(:disabled) {
+    background: rgba(20, 40, 100, 0.5) !important;
+    box-shadow: 0 0 10px rgba(72, 136, 255, 0.2) !important;
+}
+
+/* ── Select element ─────────────────────────────────────────────────────── */
+.login-select {
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(72,136,255,0.6)'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+}
+
+.login-select option {
+    background: #030a18;
+    color: #4888ff;
+}
+
+/* ── Register link ──────────────────────────────────────────────────────── */
+.login-register-link {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgba(72, 136, 255, 0.4);
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: rgba(72, 136, 255, 0.75);
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    padding: 0 4px;
+    transition: color 0.2s;
+}
+
+.link-btn:hover { color: #4888ff; }
+
+/* ── Success message ────────────────────────────────────────────────────── */
+.login-success {
+    font-size: 11px;
+    color: #00cc66;
+    text-shadow: 0 0 8px rgba(0, 200, 100, 0.6);
+    letter-spacing: 1px;
+    padding: 8px 10px;
+    border: 1px solid rgba(0, 200, 100, 0.3);
+    background: rgba(0, 50, 30, 0.4);
+}
+
+/* ── Input label hint ───────────────────────────────────────────────────── */
+.hint {
+    color: rgba(72, 136, 255, 0.4);
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+/* ── Login footer ───────────────────────────────────────────────────────── */
+.login-footer {
+    margin-top: 28px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: rgba(72, 136, 255, 0.35);
+}
+
+/* ── Menu overlay — the iframe fills the full screen ───────────────────── */
+#menu-overlay {
+    background: #030a18;
+}
+
+#menu-overlay iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: #030a18;
+}
+
+/* ── HUD container transitions ─────────────────────────────────────────── */
+#hud-container {
+    transition: opacity 0.8s ease;
+}
+
 /* Glowing effects */
 .panel::before {
     content: '';

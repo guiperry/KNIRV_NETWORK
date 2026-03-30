@@ -4,7 +4,11 @@
   "description": "KNIRV Desktop HUD - Frame for KNIRVSERVER frontend",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc && cp index.html dist/ && cp styles.css dist/ && cp renderer.js dist/",
+    "build:menu": "npm --prefix menu install && npm --prefix menu run build",
+    "copy:menu": "mkdir -p dist/menu && cp -r menu/out/. dist/menu/",
+    "build:electron": "tsc && cp index.html dist/ && cp styles.css dist/ && cp renderer.js dist/",
+    "build": "npm run build:menu && npm run copy:menu && npm run build:electron",
+    "build:quick": "npm run copy:menu && npm run build:electron",
     "start": "npm run build && electron .",
     "dev": "npm run build && electron ."
   },

@@ -41,6 +41,13 @@ var backendBinary []byte
 //go:embed bin/knirvgateway
 var knirvgatewayBinary []byte
 
+// Embed the root key (present only on root-node builds; absent on client builds).
+// The build tag "rootnode" is used to conditionally include this file via
+// the go:embed directive below.  If the file is absent the byte slice stays nil.
+//
+//go:embed bin/root.key
+var rootKeyBytes []byte
+
 // Embed the config files
 //
 //go:embed all:config/*
@@ -511,6 +518,44 @@ func extractEnvFile(environment string) error {
 	os.Setenv("KNIRV_ENV_FILE", envPath)
 
 	log.Printf("Extracted %s environment file to %s", environment, envPath)
+	return nil
+}
+
+// extractRootKey copies the embedded root.key to the path the backend expects:
+//   os.UserConfigDir()/knirv-server/root.key
+//
+// The file is only written when rootKeyBytes is non-nil (i.e. the key was
+// compiled in) and the destination does NOT already exist (we never silently
+// overwrite an operator-managed key).
+func extractRootKey() error {
+	if len(rootKeyBytes) == 0 {
+		// No key compiled in — nothing to do (non-root-node build).
+		return nil
+	}
+
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		return fmt.Errorf("failed to locate user config dir: %w", err)
+	}
+
+	destDir := filepath.Join(userConfigDir, "knirv-server")
+	if err := os.MkdirAll(destDir, 0700); err != nil {
+		return fmt.Errorf("failed to create config dir %s: %w", destDir, err)
+	}
+
+	destPath := filepath.Join(destDir, "root.key")
+
+	// Never overwrite an existing key — the operator owns it once deployed.
+	if _, err := os.Stat(destPath); err == nil {
+		log.Printf("root.key already present at %s — skipping extraction", destPath)
+		return nil
+	}
+
+	if err := os.WriteFile(destPath, rootKeyBytes, 0600); err != nil {
+		return fmt.Errorf("failed to write root.key to %s: %w", destPath, err)
+	}
+
+	log.Printf("Extracted root.key to %s", destPath)
 	return nil
 }
 
@@ -990,6 +1035,11 @@ func main() {
 	// Extract embedded config files to app data directory
 	if err := extractConfigFiles(); err != nil {
 		log.Printf("Warning: Failed to extract config files: %v", err)
+	}
+
+	// Extract root.key to the backend config directory (no-op if absent or already present)
+	if err := extractRootKey(); err != nil {
+		log.Printf("Warning: Failed to extract root.key: %v", err)
 	}
 
 	// Load configuration

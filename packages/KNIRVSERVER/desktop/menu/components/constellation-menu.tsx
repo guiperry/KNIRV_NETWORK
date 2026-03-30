@@ -64,6 +64,13 @@ export default function ConstellationMenu() {
 
   const handleLoadingComplete = () => {
     setLoadingComplete(true)
+    // Notify the Electron renderer that the menu animation is done
+    // Use a short delay so the user briefly sees the constellation before the HUD appears
+    setTimeout(() => {
+      if (window.parent && window.parent !== (window as any)) {
+        window.parent.postMessage({ type: 'menu-complete' }, '*')
+      }
+    }, 2000)
   }
 
   const centerSize = 160
@@ -139,7 +146,7 @@ export default function ConstellationMenu() {
             cy={0}
             r={ring4Radius}
             fill="none"
-            stroke="rgba(0, 200, 255, 0.3)"
+            stroke="rgba(72, 136, 255,0.3)"
             strokeWidth="1.5"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
@@ -152,7 +159,7 @@ export default function ConstellationMenu() {
             cy={0}
             r={355}
             fill="none"
-            stroke="rgba(0, 200, 255, 0.2)"
+            stroke="rgba(72, 136, 255,0.2)"
             strokeWidth="1"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
@@ -165,7 +172,7 @@ export default function ConstellationMenu() {
             cy={0}
             r={365}
             fill="none"
-            stroke="rgba(0, 200, 255, 0.2)"
+            stroke="rgba(72, 136, 255,0.2)"
             strokeWidth="1"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
@@ -178,7 +185,7 @@ export default function ConstellationMenu() {
             cy={0}
             r={ring3Radius}
             fill="none"
-            stroke="rgba(0, 200, 255, 0.25)"
+            stroke="rgba(72, 136, 255,0.25)"
             strokeWidth="1.5"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
@@ -191,7 +198,7 @@ export default function ConstellationMenu() {
             cy={0}
             r={ring2Radius}
             fill="none"
-            stroke="rgba(0, 200, 255, 0.35)"
+            stroke="rgba(72, 136, 255,0.35)"
             strokeWidth="1.5"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
@@ -204,7 +211,7 @@ export default function ConstellationMenu() {
             cy={0}
             r={ring1Radius}
             fill="none"
-            stroke="rgba(0, 200, 255, 0.4)"
+            stroke="rgba(72, 136, 255,0.4)"
             strokeWidth="2"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
@@ -241,8 +248,8 @@ export default function ConstellationMenu() {
                 <polygon
                   key={`tooth-${i}`}
                   points={`${x1},${y1} ${x2},${y2} ${x3},${y3} ${x4},${y4}`}
-                  fill="rgba(0, 200, 255, 0.25)"
-                  stroke="rgba(0, 200, 255, 0.4)"
+                  fill="rgba(72, 136, 255,0.25)"
+                  stroke="rgba(72, 136, 255,0.4)"
                   strokeWidth="0.5"
                 />
               )
@@ -253,7 +260,7 @@ export default function ConstellationMenu() {
               cy={0}
               r={137}
               fill="none"
-              stroke="rgba(0, 200, 255, 0.3)"
+              stroke="rgba(72, 136, 255,0.3)"
               strokeWidth="1"
             />
             {/* Gear outer circle */}
@@ -262,7 +269,7 @@ export default function ConstellationMenu() {
               cy={0}
               r={153}
               fill="none"
-              stroke="rgba(0, 200, 255, 0.3)"
+              stroke="rgba(72, 136, 255,0.3)"
               strokeWidth="1"
             />
           </motion.g>
@@ -351,7 +358,7 @@ export default function ConstellationMenu() {
                 y1={inner.y}
                 x2={outer.x}
                 y2={outer.y}
-                stroke="rgba(0, 200, 255, 0.1)"
+                stroke="rgba(72, 136, 255,0.1)"
                 strokeWidth="1"
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={loadingComplete ? { pathLength: 1, opacity: 1 } : {}}
@@ -378,7 +385,7 @@ export default function ConstellationMenu() {
                   key={`arc-${i}`}
                   d={`M ${start.x} ${start.y} A ${r} ${r} 0 0 1 ${end.x} ${end.y}`}
                   fill="none"
-                  stroke="rgba(0, 200, 255, 0.4)"
+                  stroke="rgba(72, 136, 255,0.4)"
                   strokeWidth="3"
                   filter="url(#glow)"
                   initial={{ pathLength: 0, opacity: 0 }}
@@ -448,7 +455,7 @@ export default function ConstellationMenu() {
             style={{
               width: centerSize + 16,
               height: centerSize + 16,
-              background: "radial-gradient(circle, transparent 65%, rgba(0, 220, 255, 0.5) 85%, rgba(0, 220, 255, 0.8) 95%, rgba(0, 200, 255, 0.4) 100%)",
+              background: "radial-gradient(circle, transparent 65%, rgba(0, 220, 255, 0.5) 85%, rgba(0, 220, 255, 0.8) 95%, rgba(72, 136, 255,0.4) 100%)",
               filter: "blur(4px)",
             }}
           />
@@ -523,7 +530,7 @@ export default function ConstellationMenu() {
                     y1={y1}
                     x2={x2}
                     y2={y2}
-                    stroke="rgba(0, 200, 255, 0.3)"
+                    stroke="rgba(72, 136, 255,0.3)"
                     strokeWidth="0.4"
                   />
                 )
@@ -542,9 +549,9 @@ export default function ConstellationMenu() {
                 const y3 = 20 + ((seed3 * 19) % 120)
                 return (
                   <g key={`tri-${i}`}>
-                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(0, 200, 255, 0.25)" strokeWidth="0.35" />
-                    <line x1={x2} y1={y2} x2={x3} y2={y3} stroke="rgba(0, 200, 255, 0.25)" strokeWidth="0.35" />
-                    <line x1={x3} y1={y3} x2={x1} y2={y1} stroke="rgba(0, 200, 255, 0.25)" strokeWidth="0.35" />
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(72, 136, 255,0.25)" strokeWidth="0.35" />
+                    <line x1={x2} y1={y2} x2={x3} y2={y3} stroke="rgba(72, 136, 255,0.25)" strokeWidth="0.35" />
+                    <line x1={x3} y1={y3} x2={x1} y2={y1} stroke="rgba(72, 136, 255,0.25)" strokeWidth="0.35" />
                   </g>
                 )
               })}
@@ -575,7 +582,7 @@ export default function ConstellationMenu() {
             <span
               className="relative z-10 text-xl font-bold tracking-[0.15em] text-white"
               style={{
-                textShadow: "0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(0, 200, 255, 0.6)",
+                textShadow: "0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(72, 136, 255,0.6)",
               }}
             >
               KNIRVANA
@@ -589,7 +596,7 @@ export default function ConstellationMenu() {
               width: centerSize + 24,
               height: centerSize + 24,
               border: "2px solid rgba(0, 220, 255, 0.6)",
-              boxShadow: "0 0 30px rgba(0, 220, 255, 0.6), 0 0 60px rgba(0, 200, 255, 0.4), inset 0 0 20px rgba(0, 220, 255, 0.3)",
+              boxShadow: "0 0 30px rgba(0, 220, 255, 0.6), 0 0 60px rgba(72, 136, 255,0.4), inset 0 0 20px rgba(0, 220, 255, 0.3)",
             }}
           />
         </div>
@@ -604,7 +611,7 @@ export default function ConstellationMenu() {
               style={{
                 transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
                 color: "rgba(0, 220, 255, 0.9)",
-                textShadow: "0 0 8px rgba(0, 200, 255, 0.6)",
+                textShadow: "0 0 8px rgba(72, 136, 255,0.6)",
               }}
               initial={{ opacity: 0 }}
               animate={loadingComplete ? { opacity: 1 } : {}}
@@ -625,7 +632,7 @@ export default function ConstellationMenu() {
               style={{
                 transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
                 color: "rgba(0, 230, 255, 1)",
-                textShadow: "0 0 10px rgba(0, 200, 255, 0.8)",
+                textShadow: "0 0 10px rgba(72, 136, 255,0.8)",
               }}
               initial={{ opacity: 0 }}
               animate={loadingComplete ? { opacity: 1 } : {}}
@@ -674,10 +681,10 @@ animate={loadingComplete ? { opacity: 1, scale: 1 } : {}}
                     ? "rgba(0, 100, 150, 0.6)" 
                     : "rgba(0, 50, 80, 0.4)",
                   backdropFilter: "blur(8px)",
-                  border: `2px solid ${isHovered ? "rgba(0, 220, 255, 0.8)" : "rgba(0, 200, 255, 0.4)"}`,
+                  border: `2px solid ${isHovered ? "rgba(0, 220, 255, 0.8)" : "rgba(72, 136, 255,0.4)"}`,
                   boxShadow: isHovered
-                    ? "0 0 30px rgba(0, 200, 255, 0.7), 0 0 60px rgba(0, 200, 255, 0.4), inset 0 0 20px rgba(0, 200, 255, 0.3)"
-                    : "0 0 15px rgba(0, 200, 255, 0.3), inset 0 0 10px rgba(0, 200, 255, 0.1)",
+                    ? "0 0 30px rgba(72, 136, 255,0.7), 0 0 60px rgba(72, 136, 255,0.4), inset 0 0 20px rgba(72, 136, 255,0.3)"
+                    : "0 0 15px rgba(72, 136, 255,0.3), inset 0 0 10px rgba(72, 136, 255,0.1)",
                 }}
                 animate={{
                   scale: isHovered ? 1.15 : 1,
@@ -688,7 +695,7 @@ animate={loadingComplete ? { opacity: 1, scale: 1 } : {}}
                   className="h-6 w-6"
                   style={{
                     color: isHovered ? "#00f0ff" : "rgba(0, 220, 255, 0.8)",
-                    filter: isHovered ? "drop-shadow(0 0 10px rgba(0, 240, 255, 1))" : "drop-shadow(0 0 4px rgba(0, 200, 255, 0.5))",
+                    filter: isHovered ? "drop-shadow(0 0 10px rgba(0, 240, 255, 1))" : "drop-shadow(0 0 4px rgba(72, 136, 255,0.5))",
                   }}
                 />
               </motion.div>
@@ -703,7 +710,7 @@ animate={loadingComplete ? { opacity: 1, scale: 1 } : {}}
           className="absolute bottom-4 left-1/2 -translate-x-1/2 text-2xl font-bold tracking-[0.4em]"
           style={{
             color: "rgba(255, 255, 255, 0.95)",
-            textShadow: "0 0 20px rgba(0, 200, 255, 0.6), 0 0 40px rgba(0, 200, 255, 0.3)",
+            textShadow: "0 0 20px rgba(72, 136, 255,0.6), 0 0 40px rgba(72, 136, 255,0.3)",
           }}
           initial={{ opacity: 0, y: 20 }}
           animate={loadingComplete ? { opacity: 1, y: 0 } : {}}

@@ -675,9 +675,9 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                           Monitor network topology, resource allocation, and system performance across the KNIRV ecosystem.
                         </p>
                       </div>
-                      <Button variant="outline" className="flex items-center space-x-2 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400">
-                        <Download className="w-4 h-4" />
-                        <span>Export Report</span>
+                      <Button variant="outline" className="flex items-center space-x-2 border-green-700/50 text-green-400 hover:bg-green-600/20 hover:text-green-300 hover:border-green-500/50" onClick={() => setPaymentGatewayOpen(true)}>
+                        <Coins className="w-4 h-4" />
+                        <span>Buy NRN</span>
                       </Button>
                     </div>
 
@@ -820,9 +820,9 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                         Validation, Security, and Usage Reports
                       </p>
                     </div>
-                    <Button variant="outline" className="flex items-center space-x-2 border-green-700/50 text-green-400 hover:bg-green-600/20 hover:text-green-300 hover:border-green-500/50" onClick={() => setPaymentGatewayOpen(true)}>
-                      <Coins className="w-4 h-4" />
-                      <span>Buy NRN</span>
+                    <Button variant="outline" className="flex items-center space-x-2 border-gray-700 text-gray-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-400" onClick={handleExportReport}>
+                      <Download className="w-4 h-4" />
+                      <span>Export Report</span>
                     </Button>
                   </div>
 
