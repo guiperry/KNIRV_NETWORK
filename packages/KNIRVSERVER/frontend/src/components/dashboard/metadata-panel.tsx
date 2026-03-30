@@ -181,7 +181,7 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({ isOpen, onClose, node, wo
 
   return (
     <div
-      className="absolute z-[100] transition-all duration-500 transform ease-in-out bg-slate-950 border border-blue-600/50 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden rounded-2xl flex flex-col"
+      className="absolute z-[100] transition-slide duration-500 ease-in-out bg-slate-950 border border-blue-600/50 shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden rounded-2xl flex flex-col gpu-accelerated"
       style={{
         left: sidebarOffset + 20,
         top: isMonitorOpen ? '45%' : '50%',
@@ -208,7 +208,7 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({ isOpen, onClose, node, wo
             </div>
             <button
               onClick={onClose}
-              className="text-slate-500 hover:text-white hover:bg-slate-800 p-1.5 rounded-lg transition-all"
+              className="text-slate-500 hover:text-white hover:bg-slate-800 p-1.5 rounded-lg transition-fast"
             >
               <X className="w-5 h-5" />
             </button>
@@ -313,7 +313,7 @@ const MetadataPanel: React.FC<MetadataPanelProps> = ({ isOpen, onClose, node, wo
             </div>
             <button
               onClick={onClose}
-              className="text-slate-500 hover:text-white hover:bg-slate-800 p-1.5 rounded-lg transition-all"
+              className="text-slate-500 hover:text-white hover:bg-slate-800 p-1.5 rounded-lg transition-fast"
             >
               <X className="w-5 h-5" />
             </button>

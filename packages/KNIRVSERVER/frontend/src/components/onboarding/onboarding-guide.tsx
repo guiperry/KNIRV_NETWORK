@@ -20,12 +20,15 @@ import {
   Home,
   SlidersHorizontal,
   Cpu,
-  Mail
+  Mail,
+  Loader2
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { APIKeysModal, type APIKeyEntry } from "./modals/APIKeysModal";
 import { MCPServersModal, type MCPServerEntry } from "./modals/MCPServersModal";
 import { PolicyCertsModal, type PolicyCert, type CustomRule } from "./modals/PolicyCertsModal";
 import { PreferencesModal, type PrivacySettings } from "./modals/PreferencesModal";
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface OnboardingGuideProps {
   onComplete: (config: {
@@ -61,6 +64,7 @@ interface FormData {
     mcpServers: MCPServerEntry[];
     policyCerts: PolicyCert[];
     customRules: CustomRule[];
+    ingestedRepos: string[];
   };
   completedConnections: string[];
   privacySettings: PrivacySettings;
@@ -70,7 +74,8 @@ const fabricInputs = [
   { id: 'api-keys', icon: Key, label: 'API Keys', desc: 'Secure LLM & Service Credentials' },
   { id: 'mcp-servers', icon: Terminal, label: 'MCP Servers', desc: 'Model Context Protocol Integrations' },
   { id: 'policy-certs', icon: Database, label: 'Policy Certs', desc: 'Kernel Guardrails & Custom Rules' },
-  { id: 'preferences', icon: SlidersHorizontal, label: 'Preferences', desc: 'Data Management & Privacy Settings' }
+  { id: 'preferences', icon: SlidersHorizontal, label: 'Preferences', desc: 'Data Management & Privacy Settings' },
+  { id: 'repo-ingest', icon: Database, label: 'Knowledge Ingest', desc: 'Import repositories & documents to graph' }
 ];
 
 const guardrailPolicies = [
@@ -82,6 +87,11 @@ const guardrailPolicies = [
 const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(25);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [ingestUrl, setIngestUrl] = useState('');
+  const [isIngesting, setIsIngesting] = useState(false);
+  const [ingestLog, setIngestLog] = useState<string[]>([]);
   const [formData, setFormData] = useState<FormData>({
     walletName: '',
     selectedInputs: [],
@@ -94,7 +104,8 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
       apiKeys: [],
       mcpServers: [],
       policyCerts: [],
-      customRules: []
+      customRules: [],
+      ingestedRepos: []
     },
     completedConnections: [],
     privacySettings: {
@@ -109,6 +120,82 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     }
   });
 
+  const handleIngestRepo = async () => {
+    if (!ingestUrl.trim() || isIngesting) return;
+    setIsIngesting(true);
+    setIngestLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] Ingesting: ${ingestUrl.trim()}`]);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/knirvgraph/gitnexus/ingest`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo_url: ingestUrl.trim() }),
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        setIngestLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✓ ${data.message || 'Ingestion queued'}`]);
+        setFormData(prev => ({
+          ...prev,
+          connectionData: {
+            ...prev.connectionData,
+            ingestedRepos: [...prev.connectionData.ingestedRepos, ingestUrl.trim()]
+          },
+          completedConnections: prev.completedConnections.includes('repo-ingest')
+            ? prev.completedConnections
+            : [...prev.completedConnections, 'repo-ingest']
+        }));
+        setIngestUrl('');
+      } else {
+        setIngestLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✗ ${data.error || 'Ingestion failed'}`]);
+      }
+    } catch {
+      setIngestLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✗ Network error — backend unreachable`]);
+    } finally {
+      setIsIngesting(false);
+    }
+  };
+
+  const submitGuardrailsToBackend = async (walletName: string, certs: PolicyCert[], rules: CustomRule[]) => {
+    try {
+      const policy = {
+        name: `onboarding-${walletName}-${Date.now()}`,
+        rules: certs.map(cert => ({
+          id: cert.id,
+          description: cert.description,
+          dveId: walletName,
+          metric: cert.category.toLowerCase().replace(' ', '_'),
+          operator: 'eq',
+          threshold: String(cert.value),
+          severity: cert.enabled ? 'high' : 'low',
+          remediationAction: 'notify',
+          enabled: cert.enabled,
+          triggerCount: 0,
+        })),
+        priority: 1,
+        enabled: true,
+        targetDVE: walletName,
+        createdAt: new Date().toISOString(),
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/guardrails/policies`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(policy),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.policy?.id) {
+          await fetch(`${API_BASE_URL}/api/guardrails/policies/${data.policy.id}/commit`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to submit guardrails:', error);
+    }
+  };
+
   // Modal states
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
@@ -119,19 +206,36 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     { id: 4, title: 'Sovereignty', description: 'Secure the Vault' }
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 4) {
       setStep(step + 1);
       setProgress((step + 1) * 25);
     } else {
-      onComplete({
-        walletName: formData.walletName || 'DEFAULT-WALLET',
-        fabricInputs: formData.selectedInputs,
-        guardrails: formData.guardrails,
-        connectionData: formData.connectionData,
-        completedConnections: formData.completedConnections,
-        privacySettings: formData.privacySettings
-      });
+      setIsSubmitting(true);
+      setSubmitError(null);
+      
+      try {
+        const walletName = formData.walletName || 'DEFAULT-WALLET';
+        
+        await submitGuardrailsToBackend(
+          walletName,
+          formData.connectionData.policyCerts,
+          formData.connectionData.customRules
+        );
+
+        onComplete({
+          walletName,
+          fabricInputs: formData.selectedInputs,
+          guardrails: formData.guardrails,
+          connectionData: formData.connectionData,
+          completedConnections: formData.completedConnections,
+          privacySettings: formData.privacySettings
+        });
+      } catch (error) {
+        setSubmitError('Failed to complete onboarding. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -169,6 +273,8 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
         return formData.connectionData.policyCerts.length > 0 || formData.connectionData.customRules.length > 0;
       case 'preferences':
         return formData.completedConnections.includes('preferences');
+      case 'repo-ingest':
+        return formData.connectionData.ingestedRepos.length > 0;
       default:
         return false;
     }
@@ -266,7 +372,7 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
           <div className="absolute top-1/2 left-0 w-full h-[1px] bg-white/5 -z-10" />
           {steps.map((s) => (
             <div key={s.id} className="flex flex-col items-center group">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all duration-500 ${
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border transition-interactive duration-500 ${
                 step >= s.id ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-black border-white/10 text-slate-500'
               }`}>
                 {step > s.id ? <CheckCircle2 size={16} /> : <span className="text-xs font-bold">{s.id}</span>}
@@ -294,7 +400,7 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
                     value={formData.walletName}
                     onChange={(e) => setFormData(prev => ({ ...prev, walletName: e.target.value }))}
                     placeholder="e.g. ALPHA-STRATEGIC-FABRIC"
-                    className="w-full bg-black/40 border-white/10 rounded-xl px-4 py-4 text-xl font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all placeholder:text-slate-700 h-auto"
+                    className="w-full bg-black/40 border-white/10 rounded-xl px-4 py-4 text-xl font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none transition-interactive placeholder:text-slate-700 h-auto"
                   />
                 </div>
                 <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-lg flex items-start space-x-4">
@@ -321,7 +427,7 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
                     <div 
                       key={item.id} 
                       onClick={() => openModal(item.id)}
-                      className={`group cursor-pointer p-6 rounded-2xl transition-all ${
+                      className={`group cursor-pointer p-6 rounded-2xl transition-interactive ${
                         isComplete 
                           ? 'bg-green-500/10 border border-green-500' 
                           : 'bg-white/5 border border-white/10 hover:border-blue-500/50 hover:bg-white/10'
@@ -333,7 +439,7 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
                         }`}>
                           <Icon className={isComplete ? 'text-green-500' : 'text-blue-500'} size={24} />
                         </div>
-                        <div className={`w-5 h-5 border rounded-full flex items-center justify-center transition-all ${
+                        <div className={`w-5 h-5 border rounded-full flex items-center justify-center transition-interactive ${
                           isComplete 
                             ? 'border-green-500 bg-green-500' 
                             : 'border-white/20 group-hover:border-blue-500'
@@ -353,6 +459,48 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
                     </div>
                   );
                 })}
+              </div>
+              
+              {/* Knowledge Repository Ingestion */}
+              <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-xl">
+                <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                  <Database className="w-4 h-4 text-blue-500" />
+                  Knowledge Repository Ingestion
+                </h3>
+                <p className="text-xs text-slate-400 mb-4">
+                  Import Git repositories or documents into your knowledge graph for context-aware reasoning.
+                </p>
+                <div className="flex gap-2">
+                  <Input 
+                    type="text"
+                    value={ingestUrl}
+                    onChange={(e) => setIngestUrl(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleIngestRepo(); }}
+                    placeholder="https://github.com/org/repo"
+                    className="flex-1 bg-black/40 border-white/10 text-white text-sm font-mono"
+                  />
+                  <Button 
+                    onClick={handleIngestRepo} 
+                    disabled={isIngesting || !ingestUrl.trim()}
+                    className="bg-blue-600 hover:bg-blue-500"
+                  >
+                    {isIngesting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Ingest'}
+                  </Button>
+                </div>
+                {ingestLog.length > 0 && (
+                  <div className="mt-3 bg-black/40 rounded p-2 font-mono text-[10px] text-green-400 max-h-20 overflow-y-auto">
+                    {ingestLog.map((line, i) => <div key={i}>{line}</div>)}
+                  </div>
+                )}
+                {formData.connectionData.ingestedRepos.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {formData.connectionData.ingestedRepos.map((repo, i) => (
+                      <Badge key={i} variant="outline" className="border-blue-500/30 text-blue-400 text-xs">
+                        {repo.split('/').slice(-2).join('/')}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
               
               {/* Completion Progress */}
@@ -393,7 +541,7 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
                         <div className="h-12 w-[1px] bg-white/10 mx-4" />
                         <button
                           onClick={() => toggleGuardrail(policy.id)}
-                          className={`text-xs mono font-bold px-3 py-1 rounded border transition-all ${
+                          className={`text-xs mono font-bold px-3 py-1 rounded border transition-interactive ${
                             isEnabled
                               ? 'text-green-500 bg-green-500/10 border-green-500/20'
                               : 'text-slate-500 bg-slate-500/10 border-slate-500/20'
@@ -557,10 +705,20 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
           
           <Button 
             onClick={handleNext}
-            className="group bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition-all transform active:scale-95 flex items-center space-x-3 h-auto"
+            disabled={isSubmitting}
+            className="group bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition-interactive transform active:scale-95 flex items-center space-x-3 h-auto disabled:opacity-50"
           >
-            <span>{step === 4 ? 'Complete Setup' : 'Continue Configuration'}</span>
-            <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            {isSubmitting ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span>Setting up Guardrails...</span>
+              </>
+            ) : (
+              <>
+                <span>{step === 4 ? 'Complete Setup' : 'Continue Configuration'}</span>
+                <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </Button>
         </div>
 

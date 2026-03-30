@@ -193,7 +193,7 @@ export default function DVECreationManagement({ isOpen, onClose, defaultTab = 'c
             <TabsContent value="creations" className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 {creations.map((creation) => (
-                  <Card key={creation.id} className="knirv-card-gradient border hover:border-blue-500/50 transition-all">
+                  <Card key={creation.id} className="knirv-card-gradient border hover:border-blue-500/50 transition-interactive">
                     <CardContent className="p-6">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="space-y-1">

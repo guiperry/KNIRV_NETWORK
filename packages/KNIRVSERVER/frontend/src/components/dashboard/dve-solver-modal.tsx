@@ -111,7 +111,7 @@ const DVESolverModal: React.FC<DVESolverModalProps> = ({ isOpen, onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-white hover:bg-slate-800 p-2 rounded-lg transition-all"
+            className="text-slate-500 hover:text-white hover:bg-slate-800 p-2 rounded-lg transition-interactive"
           >
             <X className="w-6 h-6" />
           </button>
@@ -148,7 +148,7 @@ const DVESolverModal: React.FC<DVESolverModalProps> = ({ isOpen, onClose }) => {
                     <div
                       key={nrv.id}
                       onClick={() => handleLoadProblem(nrv)}
-                      className={`p-3 rounded-lg cursor-pointer transition-all border ${
+                      className={`p-3 rounded-lg cursor-pointer transition-interactive border ${
                         selectedNRV?.id === nrv.id
                           ? 'bg-blue-600/10 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
                           : 'bg-slate-950/50 hover:bg-slate-900 border-slate-800 hover:border-slate-700'
@@ -214,7 +214,7 @@ const DVESolverModal: React.FC<DVESolverModalProps> = ({ isOpen, onClose }) => {
                   <Button
                     onClick={handleRunValidation}
                     disabled={!selectedNRV || isValidating}
-                    className={`w-full py-6 rounded-xl font-black uppercase tracking-widest transition-all ${
+                    className={`w-full py-6 rounded-xl font-black uppercase tracking-widest transition-interactive ${
                       isValidating 
                         ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
                         : 'bg-green-600 hover:bg-green-500 text-white shadow-[0_0_20px_rgba(22,163,74,0.2)]'
@@ -294,7 +294,7 @@ const DVESolverModal: React.FC<DVESolverModalProps> = ({ isOpen, onClose }) => {
                 <Button
                   onClick={handleSubmit}
                   disabled={!validationResult || !validationResult.resolution.pass}
-                  className={`w-full py-6 rounded-xl font-black uppercase tracking-widest transition-all ${
+                  className={`w-full py-6 rounded-xl font-black uppercase tracking-widest transition-interactive ${
                     !validationResult || !validationResult.resolution.pass
                       ? 'bg-slate-800 text-slate-600'
                       : 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_30px_rgba(147,51,234,0.3)]'

@@ -1,12 +1,37 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Shield, X, Lock, Zap, Eye, Terminal, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, X, Lock, Zap, Eye, Terminal, AlertCircle, RefreshCw, Save, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
+
+interface PolicyRule {
+  id: string;
+  description: string;
+  dveId: string;
+  metric: string;
+  operator: string;
+  threshold: string;
+  severity: string;
+  remediationAction: string;
+  enabled: boolean;
+  triggerCount: number;
+}
+
+interface Policy {
+  id: string;
+  name: string;
+  rules: PolicyRule[];
+  priority: number;
+  enabled: boolean;
+  targetDVE: string;
+  createdAt: string;
+  committedAt?: string;
+  txHash?: string;
+}
 
 interface PolicyEditorProps {
   isOpen: boolean;
@@ -23,34 +48,76 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
   const [enableForensics, setEnableForensics] = useState(true);
   const [enforceAttestation, setEnableAttestation] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [isCommitting, setIsCommitting] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [commitStatus, setCommitStatus] = useState<'idle' | 'committing' | 'success' | 'error'>('idle');
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
 
-  const handleCommitPolicy = async () => {
-    setIsSaving(true);
-    setSaveStatus('idle');
+  useEffect(() => {
+    if (isOpen) {
+      loadPolicies();
+    }
+  }, [isOpen, nodeId]);
+
+  const loadPolicies = async () => {
     try {
-      const policy = {
+      const response = await fetch(`${API_BASE_URL}/api/guardrails/policies?node_id=${nodeId ?? ''}`, {
+        headers: getAuthHeaders(),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPolicies(data.policies || []);
+        if (data.policies?.length > 0) {
+          setSelectedPolicy(data.policies[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load policies:', error);
+    }
+  };
+
+  const handleSavePolicy = async () => {
+    setIsSaving(true);
+    setSaveStatus('saving');
+    try {
+      const policyRule: PolicyRule = {
+        id: `rule-${Date.now()}`,
+        description: `Guardrail policy for ${nodeId ?? 'global'}`,
+        dveId: nodeId ?? '',
+        metric: 'network_egress',
+        operator: 'in',
+        threshold: networkWhitelist.split('\n').filter(Boolean).join(','),
+        severity: 'high',
+        remediationAction: 'block',
+        enabled: true,
+        triggerCount: 0,
+      };
+
+      const policy: Partial<Policy> = {
         name: `guardrail-${nodeId ?? 'global'}-${Date.now()}`,
-        type: 'guardrail',
-        rules: {
-          network_whitelist: networkWhitelist.split('\n').filter(Boolean),
-          sensitivity,
-          block_file_io: blockFileIO,
-          allow_read_only: allowReadOnly,
-          enable_forensics: enableForensics,
-          enforce_attestation: enforceAttestation,
-        },
+        rules: [policyRule],
         priority: 1,
         enabled: true,
-        target_dve: nodeId ?? '',
-        created_at: new Date().toISOString(),
+        targetDVE: nodeId ?? '',
+        createdAt: new Date().toISOString(),
       };
-      const response = await fetch(`${API_BASE_URL}/api/icme/policy/commit`, {
+
+      const response = await fetch(`${API_BASE_URL}/api/guardrails/policies`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(policy),
       });
-      setSaveStatus(response.ok ? 'success' : 'error');
+
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedPolicy(data.policy);
+        setSaveStatus('success');
+        await loadPolicies();
+      } else {
+        setSaveStatus('error');
+      }
     } catch {
       setSaveStatus('error');
     } finally {
@@ -59,11 +126,46 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
     }
   };
 
+  const handleCommitPolicy = async () => {
+    if (!selectedPolicy?.id) {
+      await handleSavePolicy();
+    }
+
+    setIsCommitting(true);
+    setCommitStatus('committing');
+    try {
+      const policyId = selectedPolicy?.id || policies[0]?.id;
+      if (!policyId) {
+        setCommitStatus('error');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/guardrails/policies/${policyId}/commit`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTxHash(data.tx_hash);
+        setCommitStatus('success');
+        await loadPolicies();
+      } else {
+        setCommitStatus('error');
+      }
+    } catch {
+      setCommitStatus('error');
+    } finally {
+      setIsCommitting(false);
+      setTimeout(() => setCommitStatus('idle'), 5000);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div
-      className="absolute z-[100] transition-all duration-500 transform ease-in-out bg-slate-900 border border-blue-600/50 shadow-2xl overflow-hidden rounded-xl"
+      className="absolute z-[100] transition-slide duration-500 ease-in-out bg-slate-900 border border-blue-600/50 shadow-2xl overflow-hidden rounded-xl gpu-accelerated"
       style={{
         right: isMonitorOpen ? '40px' : '20px',
         top: isMonitorOpen ? '340px' : '450px',
@@ -167,20 +269,53 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
 
         <div className="p-4 border-t border-blue-600/30 bg-slate-950/50 flex items-center justify-between">
           {saveStatus === 'success' && (
-            <span className="text-[10px] text-green-400 font-mono">Policy committed successfully</span>
+            <span className="text-[10px] text-green-400 font-mono">Policy saved successfully</span>
           )}
           {saveStatus === 'error' && (
-            <span className="text-[10px] text-red-400 font-mono">Failed to commit policy</span>
+            <span className="text-[10px] text-red-400 font-mono">Failed to save policy</span>
           )}
-          {saveStatus === 'idle' && <span />}
-          <Button
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6"
-            onClick={handleCommitPolicy}
-            disabled={isSaving}
-          >
-            {isSaving ? 'Committing...' : 'Commit Policy to Blockchain'}
-          </Button>
+          {saveStatus === 'saving' && (
+            <span className="text-[10px] text-blue-400 font-mono flex items-center">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Saving...
+            </span>
+          )}
+          {commitStatus === 'success' && txHash && (
+            <span className="text-[10px] text-green-400 font-mono">Committed! TX: {txHash.slice(0, 12)}...</span>
+          )}
+          {commitStatus === 'error' && (
+            <span className="text-[10px] text-red-400 font-mono">Failed to commit to blockchain</span>
+          )}
+          {commitStatus === 'committing' && (
+            <span className="text-[10px] text-blue-400 font-mono flex items-center">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Committing to blockchain...
+            </span>
+          )}
+          {saveStatus === 'idle' && commitStatus === 'idle' && (
+            <span className="text-[10px] text-slate-500 font-mono">
+              {policies.length > 0 ? `${policies.length} policies loaded` : 'No policies loaded'}
+            </span>
+          )}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-slate-600 hover:border-blue-500"
+              onClick={handleSavePolicy}
+              disabled={isSaving || isCommitting}
+            >
+              {isSaving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
+              Save Policy
+            </Button>
+            <Button
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6"
+              onClick={handleCommitPolicy}
+              disabled={isSaving || isCommitting}
+            >
+              {isCommitting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Shield className="w-3 h-3 mr-1" />}
+              Commit to Blockchain
+            </Button>
+          </div>
         </div>
       </div>
     </div>

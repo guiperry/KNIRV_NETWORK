@@ -308,3 +308,79 @@ export const formatTimestamp = (timestamp: string | Date): string => {
 export const parseTimestamp = (timestamp: string): Date => {
   return new Date(timestamp);
 };
+
+// Payment API functions
+export interface StripeCheckoutRequest {
+  amount: number;
+  currency: string;
+  nrn_amount: number;
+  success_url?: string;
+  cancel_url?: string;
+}
+
+export interface StripeCheckoutResponse {
+  session_id: string;
+  url: string;
+}
+
+export interface PayPalOrderRequest {
+  amount: number;
+  currency: string;
+  nrn_amount: number;
+}
+
+export interface PayPalOrderResponse {
+  order_id: string;
+  status: string;
+}
+
+export interface NRNPurchaseRequest {
+  amount: number;
+  payment_method: 'stripe' | 'paypal' | 'coinbase';
+  currency?: string;
+}
+
+export interface NRNPurchaseResponse {
+  purchase_id: string;
+  amount: number;
+  status: string;
+  payment_url?: string;
+}
+
+export const createStripeCheckoutSession = async (request: StripeCheckoutRequest): Promise<StripeCheckoutResponse> => {
+  const response = await apiRequest<StripeCheckoutResponse>('/api/v1/payments/stripe/create-session', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  });
+  return response.data;
+};
+
+export const createPayPalOrder = async (request: PayPalOrderRequest): Promise<PayPalOrderResponse> => {
+  const response = await apiRequest<PayPalOrderResponse>('/api/v1/payments/paypal/create-order', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  });
+  return response.data;
+};
+
+export const capturePayPalOrder = async (orderId: string): Promise<any> => {
+  const response = await apiRequest('/api/v1/payments/paypal/capture', {
+    method: 'POST',
+    body: JSON.stringify({ order_id: orderId })
+  });
+  return response.data;
+};
+
+export const getWalletBalance = async (address?: string): Promise<{ balance: number; address: string }> => {
+  const query = address ? `?address=${address}` : '';
+  const response = await apiRequest<{ balance: number; address: string }>(`/api/v1/payments/blockchain/balance${query}`);
+  return response.data;
+};
+
+export const initiateNRNPurchase = async (request: NRNPurchaseRequest): Promise<NRNPurchaseResponse> => {
+  const response = await apiRequest<NRNPurchaseResponse>('/api/v1/payments/nrn/purchase', {
+    method: 'POST',
+    body: JSON.stringify(request)
+  });
+  return response.data;
+};

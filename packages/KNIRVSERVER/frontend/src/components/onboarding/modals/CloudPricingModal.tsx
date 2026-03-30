@@ -86,7 +86,7 @@ export function CloudPricingModal({ isOpen, onClose, onSelectPlan }: CloudPricin
             {cloudTiers.map((tier) => (
               <Card 
                 key={tier.name} 
-                className={`bg-white/5 border-white/10 hover:border-white/20 transition-all relative ${
+                className={`bg-white/5 border-white/10 hover:border-white/20 transition-interactive relative ${
                   tier.popular ? 'border-blue-500/30 shadow-[0_0_30px_rgba(59,130,246,0.1)]' : ''
                 }`}
               >

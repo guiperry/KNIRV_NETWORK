@@ -152,7 +152,7 @@ const DVECardModal: React.FC<DVECardModalProps> = ({ isOpen, onClose, node }) =>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-white hover:bg-slate-800 p-2 rounded-lg transition-all"
+            className="text-slate-500 hover:text-white hover:bg-slate-800 p-2 rounded-lg transition-interactive"
           >
             <X className="w-6 h-6" />
           </button>

@@ -216,7 +216,7 @@ const DVESolverPanel: React.FC<DVESolverPanelProps> = ({ isOpen, onClose, isMoni
 
   return (
     <div
-      className="absolute z-[100] transition-all duration-500 transform ease-in-out bg-slate-950 border border-blue-600/50 shadow-[0_0_60px_rgba(0,0,0,0.9)] overflow-hidden rounded-2xl flex flex-col"
+      className="absolute z-[100] transition-slide duration-500 ease-in-out bg-slate-950 border border-blue-600/50 shadow-[0_0_60px_rgba(0,0,0,0.9)] overflow-hidden rounded-2xl flex flex-col gpu-accelerated"
       style={{
         left: '50%',
         top: isMonitorOpen ? '42%' : '50%',
@@ -241,7 +241,7 @@ const DVESolverPanel: React.FC<DVESolverPanelProps> = ({ isOpen, onClose, isMoni
         </div>
         <button
           onClick={onClose}
-          className="text-slate-500 hover:text-white hover:bg-slate-800 p-2 rounded-lg transition-all"
+          className="text-slate-500 hover:text-white hover:bg-slate-800 p-2 rounded-lg transition-interactive"
         >
           <X className="w-5 h-5" />
         </button>
@@ -266,7 +266,7 @@ const DVESolverPanel: React.FC<DVESolverPanelProps> = ({ isOpen, onClose, isMoni
               <div
                 key={task.id}
                 onClick={() => handleTaskSelect(task)}
-                className={`p-2 rounded-lg cursor-pointer transition-all border ${
+                className={`p-2 rounded-lg cursor-pointer transition-interactive border ${
                   selectedTask?.id === task.id
                     ? 'bg-blue-600/20 border-blue-500'
                     : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
@@ -376,7 +376,7 @@ const DVESolverPanel: React.FC<DVESolverPanelProps> = ({ isOpen, onClose, isMoni
                         return (
                           <div 
                             key={i} 
-                            className={`mb-1 transition-all ${
+                            className={`mb-1 transition-colors ${
                               isError 
                                 ? 'text-red-400' 
                                 : isCurrent 

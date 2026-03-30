@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Users, X, Search, Activity, Bot, GitBranch, Wifi, User, Plus, Cpu, Key, Link2, Loader2, ChevronDown } from 'lucide-react';
+import { Users, X, Search, Activity, Bot, GitBranch, Wifi, User, Plus, Cpu, Key, Link2, Loader2, ChevronDown, RefreshCw } from 'lucide-react';
 import { useDemoMode } from '@/contexts/demo-mode-context';
+import { webSocketService, WS_EVENTS } from '@/lib/websocket-service';
 
 // oh-my-pi agent types supported by the DVE
 const AGENT_FRAMEWORKS = [
@@ -240,19 +241,77 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
   const { isDemoMode } = useDemoMode();
   const [workers, setWorkers] = useState<ActiveWorker[]>([]);
   const [showAddAgent, setShowAddAgent] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       loadWorkers();
+      subscribeToP2PEvents();
     }
+    return () => {
+      unsubscribeFromP2PEvents();
+    };
   }, [isOpen, isDemoMode]);
 
+  const subscribeToP2PEvents = () => {
+    webSocketService.subscribe([
+      WS_EVENTS.P2P_PEERS,
+      WS_EVENTS.P2P_TOPOLOGY,
+      WS_EVENTS.NODE_STATUS,
+      WS_EVENTS.TASK_COMPLETE,
+    ]);
+
+    webSocketService.on(WS_EVENTS.P2P_PEERS, handlePeersUpdate);
+    webSocketService.on(WS_EVENTS.P2P_TOPOLOGY, handleTopologyUpdate);
+    webSocketService.on(WS_EVENTS.NODE_STATUS, handleNodeStatusUpdate);
+    webSocketService.on(WS_EVENTS.TASK_COMPLETE, handleTaskComplete);
+  };
+
+  const unsubscribeFromP2PEvents = () => {
+    webSocketService.off(WS_EVENTS.P2P_PEERS, handlePeersUpdate);
+    webSocketService.off(WS_EVENTS.P2P_TOPOLOGY, handleTopologyUpdate);
+    webSocketService.off(WS_EVENTS.NODE_STATUS, handleNodeStatusUpdate);
+    webSocketService.off(WS_EVENTS.TASK_COMPLETE, handleTaskComplete);
+  };
+
+  const handlePeersUpdate = (payload: { peers?: ActiveWorker[] }) => {
+    if (payload.peers && payload.peers.length > 0) {
+      setWorkers(payload.peers);
+      setLastUpdate(new Date());
+    }
+  };
+
+  const handleTopologyUpdate = (payload: { connections?: ActiveWorker[] }) => {
+    if (payload.connections && payload.connections.length > 0) {
+      setWorkers(prev => {
+        const existingIds = new Set(prev.map(w => w.id));
+        const newWorkers = payload.connections!.filter(w => !existingIds.has(w.id));
+        return [...prev, ...newWorkers];
+      });
+      setLastUpdate(new Date());
+    }
+  };
+
+  const handleNodeStatusUpdate = (payload: { nodeId: string; status: string }) => {
+    setWorkers(prev => prev.map(w => 
+      w.id === payload.nodeId ? { ...w, status: payload.status as ActiveWorker['status'] } : w
+    ));
+  };
+
+  const handleTaskComplete = (payload: { workerId: string }) => {
+    setWorkers(prev => prev.map(w => 
+      w.id === payload.workerId ? { ...w, tasksCompleted: w.tasksCompleted + 1 } : w
+    ));
+  };
+
   const loadWorkers = async () => {
+    setIsLoading(true);
     if (isDemoMode) {
       setWorkers(getDemoWorkers());
     } else {
       try {
-        const response = await fetch('/api/dve/workers');
+        const response = await fetch('/api/v1/dve/workers');
         if (response.ok) {
           const data = await response.json();
           setWorkers(data.workers || []);
@@ -264,6 +323,8 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
         setWorkers([]);
       }
     }
+    setIsLoading(false);
+    setLastUpdate(new Date());
   };
 
   const getDemoWorkers = (): ActiveWorker[] => [
@@ -319,7 +380,7 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
 
   return (
     <div
-      className="absolute left-0 top-0 h-full z-[60] transition-all duration-500 transform ease-in-out bg-slate-950 border-r border-blue-600/50 shadow-[10px_0_40px_rgba(0,0,0,0.5)] overflow-hidden"
+      className="absolute left-0 top-0 h-full z-[60] transition-slide duration-200 gpu-accelerated bg-slate-950 border-r border-blue-600/50 shadow-[10px_0_40px_rgba(0,0,0,0.5)] overflow-hidden"
       style={{
         width: '300px',
         paddingTop: '1rem',
@@ -343,21 +404,21 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
           <div className="flex items-center gap-1">
             <button
               onClick={() => setShowAddAgent(true)}
-              className="text-slate-400 hover:text-blue-300 hover:bg-blue-600/20 p-1.5 rounded transition-all"
+              className="text-slate-400 hover:text-blue-300 hover:bg-blue-600/20 p-1.5 rounded transition-colors duration-150"
               title="Add Agent Connection"
             >
               <Plus className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="text-slate-500 hover:text-white hover:bg-slate-800 p-1 rounded transition-all"
+              className="text-slate-500 hover:text-white hover:bg-slate-800 p-1 rounded transition-colors duration-150"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div className="mb-4">
+        <div className="mb-4 space-y-2">
           <div className="relative group">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
             <input
@@ -365,8 +426,23 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
               placeholder="Filter by ID, Name, Type..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 group-hover:border-blue-600/50 rounded-full pl-10 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              className="w-full bg-slate-900 border border-slate-700 group-hover:border-blue-600/50 rounded-full pl-10 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150"
             />
+          </div>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={loadWorkers}
+              disabled={isLoading}
+              className="text-[10px] text-slate-500 hover:text-blue-400 flex items-center gap-1 transition-colors"
+            >
+              <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            {lastUpdate && (
+              <span className="text-[9px] text-slate-600">
+                Updated: {lastUpdate.toLocaleTimeString()}
+              </span>
+            )}
           </div>
         </div>
 
@@ -398,7 +474,7 @@ const ConnectionsPanel: React.FC<ConnectionsPanelProps> = ({ isOpen, onClose, on
                 setSelectedWorker(worker.id);
                 onSelectWorker?.(worker);
               }}
-              className={`group relative p-3 rounded-lg cursor-pointer transition-all duration-300 border-l-4 ${
+              className={`group relative p-3 rounded-lg cursor-pointer transition-colors duration-150 border-l-4 ${
                 selectedWorker === worker.id
                   ? 'bg-blue-600/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
                   : 'bg-slate-900/50 hover:bg-slate-800 border-slate-800 hover:border-slate-700'

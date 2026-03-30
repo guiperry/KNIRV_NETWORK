@@ -134,7 +134,7 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
                       <button
                         key={value}
                         onClick={() => toggleValue(value)}
-                        className={`px-2 py-1.5 rounded-md text-[9px] font-bold transition-all border ${
+                        className={`px-2 py-1.5 rounded-md text-[9px] font-bold transition-interactive border ${
                           selectedValues.includes(value)
                             ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
                             : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:text-gray-300'
@@ -155,7 +155,7 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
                       <button
                         key={item}
                         onClick={() => toggleOntology(item)}
-                        className={`px-2 py-1.5 rounded-md text-[9px] font-bold transition-all border ${
+                        className={`px-2 py-1.5 rounded-md text-[9px] font-bold transition-interactive border ${
                           selectedOntology.includes(item)
                             ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
                             : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:text-gray-300'
@@ -170,7 +170,7 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
                 <button 
                   onClick={handleGenerateBadge}
                   disabled={isProcessing || !prompt}
-                  className={`w-full py-3 rounded-lg font-black uppercase tracking-widest flex items-center justify-center gap-2 text-xs transition-all ${
+                  className={`w-full py-3 rounded-lg font-black uppercase tracking-widest flex items-center justify-center gap-2 text-xs transition-interactive ${
                     isProcessing 
                       ? 'bg-gray-800 text-gray-500 cursor-wait' 
                       : 'bg-amber-600 hover:bg-amber-500 text-white'
@@ -270,14 +270,14 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
                   <div className="flex gap-2">
                     <button 
                       onClick={() => { setOutputUrl(null); setPrompt(''); setSelectedValues([]); setSelectedOntology([]); }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-gray-400 rounded-lg text-[10px] font-black uppercase transition-all border border-gray-800"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-gray-400 rounded-lg text-[10px] font-black uppercase transition-interactive border border-gray-800"
                     >
                       <RefreshCcw size={12} /> Reset
                     </button>
                     <a 
                       href={outputUrl} 
                       download="badge-design.svg"
-                      className="flex items-center gap-1.5 px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10px] font-black uppercase transition-all"
+                      className="flex items-center gap-1.5 px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10px] font-black uppercase transition-interactive"
                     >
                       <Download size={12} /> Download Badge
                     </a>

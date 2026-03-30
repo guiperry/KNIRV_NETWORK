@@ -226,6 +226,32 @@
     opacity: 0.5;
     pointer-events: none;
     z-index: 9999;
-    animation: aether-scanline 8s linear infinite;
+    animation: aether-scanline 12s linear infinite;
+    will-change: transform;
+  }
+
+  .transition-fast {
+    transition-property: background-color, color, border-color, opacity;
+    transition-duration: 100ms;
+    transition-timing-function: ease-out;
+  }
+
+  .transition-interactive {
+    transition-property: background-color, color, border-color, box-shadow, transform, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .transition-slide {
+    transition-property: transform, opacity;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  .gpu-accelerated {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 }

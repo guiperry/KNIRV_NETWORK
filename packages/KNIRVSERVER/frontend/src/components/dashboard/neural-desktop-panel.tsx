@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { webSocketService } from '@/lib/websocket-service';
+import { webSocketService, WS_EVENTS } from '@/lib/websocket-service';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface Thought {
   id: string;
@@ -66,6 +67,11 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
 
   const recognitionRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<AgentStatus>(AgentStatus.IDLE);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   useEffect(() => {
     const loadedThoughts = loadThoughts();
@@ -215,7 +221,103 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
       type: 'plan',
     });
 
-    // Route through the backend Inference Engine via WebSocket
+    const executeViaCognitiveEngine = async () => {
+      try {
+        addThought({
+          id: generateId(`ROUTING: ${goal}`),
+          timestamp: Date.now(),
+          content: `Dispatching to Cognitive Engine API: "${goal}"`,
+          type: 'observation',
+        });
+        setStatus(AgentStatus.EXECUTING);
+
+        const response = await fetch(`${API_BASE_URL}/api/cognitive-engine`, {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'make_request',
+            parameters: { message: goal },
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.message) {
+          addThought({
+            id: generateId(`RESULT: ${data.message}`),
+            timestamp: Date.now(),
+            content: `INFERENCE RESULT: ${data.message}`,
+            type: 'conclusion',
+          });
+        } else {
+          addThought({
+            id: generateId(`ERROR: ${data.error || 'Unknown error'}`),
+            timestamp: Date.now(),
+            content: `ERROR: Cognitive Engine returned - ${data.error || 'Unknown error'}`,
+            type: 'error',
+          });
+        }
+        setStatus(AgentStatus.IDLE);
+      } catch (error) {
+        addThought({
+          id: generateId(`ERROR: ${error}`),
+          timestamp: Date.now(),
+          content: `ERROR: Failed to execute inference - ${error}`,
+          type: 'error',
+        });
+        setStatus(AgentStatus.IDLE);
+      }
+    };
+
+    const executeViaCLI = async () => {
+      try {
+        addThought({
+          id: generateId(`ROUTING: ${goal}`),
+          timestamp: Date.now(),
+          content: `Dispatching to KNIRV CLI Execute: "${goal}"`,
+          type: 'observation',
+        });
+        setStatus(AgentStatus.EXECUTING);
+
+        const response = await fetch(`${API_BASE_URL}/api/v1/cli/execute`, {
+          method: 'POST',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            command: 'inference:execute',
+            goal,
+            context: {},
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.output) {
+          addThought({
+            id: generateId(`RESULT: ${data.output}`),
+            timestamp: Date.now(),
+            content: `INFERENCE RESULT: ${data.output}`,
+            type: 'conclusion',
+          });
+        } else {
+          addThought({
+            id: generateId(`ERROR: ${data.error || 'Unknown error'}`),
+            timestamp: Date.now(),
+            content: `ERROR: Inference returned - ${data.error || 'Unknown error'}`,
+            type: 'error',
+          });
+        }
+        setStatus(AgentStatus.IDLE);
+      } catch (error) {
+        addThought({
+          id: generateId(`ERROR: ${error}`),
+          timestamp: Date.now(),
+          content: `ERROR: Failed to execute inference - ${error}`,
+          type: 'error',
+        });
+        setStatus(AgentStatus.IDLE);
+      }
+    };
+
     if (webSocketService.getConnectionStatus()) {
       addThought({
         id: generateId(`ROUTING: ${goal}`),
@@ -224,16 +326,21 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
         type: 'observation',
       });
       setStatus(AgentStatus.EXECUTING);
-      // Response arrives as neural_task_result / neural_task_error event
       webSocketService.send({ type: 'neural_task', payload: { goal } });
+      
+      setTimeout(() => {
+        if (statusRef.current === AgentStatus.EXECUTING) {
+          executeViaCognitiveEngine();
+        }
+      }, 5000);
     } else {
       addThought({
         id: generateId(`OFFLINE: ${goal}`),
         timestamp: Date.now(),
-        content: `Inference engine offline — WebSocket not connected. Please wait for reconnection.`,
-        type: 'error',
+        content: `WebSocket not connected — attempting Cognitive Engine fallback...`,
+        type: 'observation',
       });
-      setStatus(AgentStatus.IDLE);
+      await executeViaCognitiveEngine();
     }
   }, [status, addThought]);
 
@@ -317,7 +424,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
                   {thoughts.map((thought, idx) => (
                     <div 
                       key={thought.id}
-                      className={`group relative p-3 rounded-xl border transition-all ${getTypeStyles(thought.type)}`}
+                      className={`group relative p-3 rounded-xl border transition-interactive ${getTypeStyles(thought.type)}`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="mt-0.5 p-1 rounded-lg bg-gray-950/50 border border-white/5">
@@ -353,7 +460,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
                       <ShieldAlert size={14} /> Link Offline
                     </div>
                     <button 
-                      className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-black uppercase text-[10px] tracking-[0.2em] shadow-lg transition-all"
+                      className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-black uppercase text-[10px] tracking-[0.2em] shadow-lg transition-interactive"
                     >
                       Initialize Secure API Link
                     </button>
@@ -363,7 +470,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full transition-all ${isListening ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,1)] animate-pulse' : 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,1)]'}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full transition-colors ${isListening ? 'bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,1)] animate-pulse' : 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,1)]'}`} />
                         Mission Parameters
                       </h3>
                       <div className="text-[9px] font-mono text-gray-600 flex items-center gap-1 italic">
@@ -378,7 +485,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
                         onChange={(e) => setInput(e.target.value)}
                         placeholder={isBusy ? "KIMI_REASONING_IN_PROGRESS..." : isListening ? "Listening to dictation..." : "Define autonomous objective..."}
                         disabled={isBusy}
-                        className={`w-full bg-gray-900 border border-gray-800 rounded-xl py-3 pl-10 pr-24 text-xs font-medium focus:outline-none transition-all placeholder:text-gray-700 placeholder:font-mono text-gray-200 ${
+                        className={`w-full bg-gray-900 border border-gray-800 rounded-xl py-3 pl-10 pr-24 text-xs font-medium focus:outline-none transition-interactive placeholder:text-gray-700 placeholder:font-mono text-gray-200 ${
                           isListening 
                             ? 'border-rose-500/40 ring-1 ring-rose-500/10' 
                             : 'focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/10'
@@ -395,7 +502,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
                         type="button"
                         onClick={toggleListening}
                         disabled={isBusy}
-                        className={`absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
+                        className={`absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-lg transition-interactive ${
                           isListening 
                           ? 'bg-rose-600 text-white' 
                           : 'bg-gray-800 text-gray-500 hover:text-indigo-400'
@@ -407,7 +514,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
                       <button
                         type="submit"
                         disabled={isBusy || !input.trim()}
-                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
+                        className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg transition-interactive ${
                           isBusy 
                           ? 'bg-gray-800 text-gray-600 cursor-not-allowed' 
                           : input.trim() 
@@ -433,7 +540,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
                           key={tag}
                           disabled={isBusy}
                           onClick={() => setInput(prev => `${prev} ${tag}`.trim())}
-                          className="text-[8px] font-black uppercase tracking-widest text-gray-500 hover:text-indigo-300 transition-all border border-gray-800/50 hover:border-indigo-500/30 px-2 py-1 rounded bg-gray-900/30 hover:bg-indigo-500/5"
+                          className="text-[8px] font-black uppercase tracking-widest text-gray-500 hover:text-indigo-300 transition-interactive border border-gray-800/50 hover:border-indigo-500/30 px-2 py-1 rounded bg-gray-900/30 hover:bg-indigo-500/5"
                         >
                           {tag}
                         </button>
@@ -582,7 +689,7 @@ const CurrentProcessingBox: React.FC = () => {
       {activities.map((activity) => (
         <div
           key={activity.id}
-          className={`flex items-start gap-2 p-2 rounded-lg transition-all ${
+          className={`flex items-start gap-2 p-2 rounded-lg transition-interactive ${
             activity.status === 'active' ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-gray-900/30'
           }`}
         >

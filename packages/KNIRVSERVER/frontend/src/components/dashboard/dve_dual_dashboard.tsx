@@ -120,7 +120,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setActiveTab('solver')}
-          className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+          className={`px-6 py-3 rounded-lg font-semibold transition-colors duration-150 ${
             activeTab === 'solver'
               ? 'bg-blue-600 text-white shadow-lg'
               : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -131,7 +131,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
         </button>
         <button
           onClick={() => setActiveTab('enterprise')}
-          className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+          className={`px-6 py-3 rounded-lg font-semibold transition-colors duration-150 ${
             activeTab === 'enterprise'
               ? 'bg-purple-600 text-white shadow-lg'
               : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -165,7 +165,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
                 <div
                   key={nrv.id}
                   onClick={() => handleLoadProblem(nrv)}
-                  className={`p-3 rounded cursor-pointer transition-all ${
+                  className={`p-3 rounded cursor-pointer transition-colors duration-150 ${
                     selectedNRV?.id === nrv.id
                       ? 'bg-blue-900 border border-blue-500'
                       : 'bg-gray-900 hover:bg-gray-700 border border-gray-600'
@@ -210,7 +210,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
               <button
                 onClick={handleRunValidation}
                 disabled={!selectedNRV || isValidating}
-                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg mb-4 transition-all flex items-center justify-center"
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg mb-4 transition-colors duration-150 flex items-center justify-center"
               >
                 <Play className="w-5 h-5 mr-2" />
                 {isValidating ? 'Running Validation...' : 'Run Validation'}
@@ -272,7 +272,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
               <button
                 onClick={handleSubmit}
                 disabled={!validationResult || !validationResult.resolution.pass}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-all flex items-center justify-center"
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition-colors duration-150 flex items-center justify-center"
               >
                 <Lock className="w-5 h-5 mr-2" />
                 Submit to Consensus
@@ -287,7 +287,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
         <div className="relative w-full h-screen bg-gray-900" style={{ paddingTop: '1.5rem' }}>
           {/* Main Content Area */}
           <div 
-            className="w-full transition-all duration-300 p-4"
+            className="w-full transition-slide duration-200 p-4"
             style={{
               marginLeft: showNRVPanel ? '320px' : '0',
               marginRight: showCVEPanel ? '320px' : '0',
@@ -354,7 +354,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
                   </div>
                 </div>
                 
-                <button className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-all">
+                <button className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-150">
                   Save Policy Changes
                 </button>
               </div>
@@ -362,7 +362,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
           </div>
 
           {/* Top-Left: DVE Listing Card */}
-          <div className="fixed top-6 left-6 z-40 transition-all duration-300" style={{ left: showNRVPanel ? 'calc(320px + 1.5rem)' : '1.5rem' }}>
+          <div className="fixed top-6 left-6 z-40 transition-slide duration-200" style={{ left: showNRVPanel ? 'calc(320px + 1.5rem)' : '1.5rem' }}>
             <div className="bg-gray-800 rounded-lg p-4 border border-gray-700 shadow-lg" style={{ width: '280px' }}>
               <h3 className="text-lg font-bold mb-3 flex items-center">
                 <Activity className="w-4 h-4 mr-2 text-green-400" />
@@ -388,7 +388,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
 
           {/* Left Panel: NRV List (Slides from left) */}
           <div 
-            className="fixed left-0 top-0 h-full bg-gray-800 border-r border-gray-700 shadow-lg overflow-hidden transition-all duration-300 z-30"
+            className="fixed left-0 top-0 h-full bg-gray-800 border-r border-gray-700 shadow-lg overflow-hidden transition-slide duration-200 z-30"
             style={{ 
               width: showNRVPanel ? '320px' : '0',
               paddingTop: '1.5rem'
@@ -418,7 +418,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
                   <div
                     key={nrv.id}
                     onClick={() => handleLoadProblem(nrv)}
-                    className={`p-3 rounded cursor-pointer transition-all text-xs ${
+                    className={`p-3 rounded cursor-pointer transition-colors duration-150 text-xs ${
                       selectedNRV?.id === nrv.id
                         ? 'bg-blue-900 border border-blue-500'
                         : 'bg-gray-900 hover:bg-gray-700 border border-gray-600'
@@ -455,7 +455,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
 
           {/* Bottom Panel: Monitor Dashboard (Slides up from bottom) */}
           <div 
-            className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 shadow-lg overflow-hidden transition-all duration-300 z-20"
+            className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 shadow-lg overflow-hidden transition-slide duration-200 z-20"
             style={{ 
               height: showMonitorPanel ? `${monitorHeight}vh` : '0'
             }}
@@ -536,7 +536,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
 
           {/* Right Panel: CVE Panel (Slides from right - placeholder for future) */}
           <div 
-            className="fixed right-0 top-0 h-full bg-gray-800 border-l border-gray-700 shadow-lg overflow-hidden transition-all duration-300 z-30"
+            className="fixed right-0 top-0 h-full bg-gray-800 border-l border-gray-700 shadow-lg overflow-hidden transition-slide duration-200 z-30"
             style={{ 
               width: showCVEPanel ? '320px' : '0',
               paddingTop: '1.5rem'
@@ -565,7 +565,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
           <div className="fixed bottom-6 right-6 z-50 flex gap-3">
             <button
               onClick={() => setShowNRVPanel(!showNRVPanel)}
-              className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-150 flex items-center gap-2 ${
                 showNRVPanel
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
@@ -578,7 +578,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
             
             <button
               onClick={() => setShowMonitorPanel(!showMonitorPanel)}
-              className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-150 flex items-center gap-2 ${
                 showMonitorPanel
                   ? 'bg-purple-600 text-white'
                   : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
@@ -591,7 +591,7 @@ const DVEDualDashboard: React.FC<DVEDualDashboardProps> = ({ nodeId, nodeName })
             
             <button
               onClick={() => setShowCVEPanel(!showCVEPanel)}
-              className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg font-semibold transition-colors duration-150 flex items-center gap-2 ${
                 showCVEPanel
                   ? 'bg-indigo-600 text-white'
                   : 'bg-gray-700 hover:bg-gray-600 text-gray-300'

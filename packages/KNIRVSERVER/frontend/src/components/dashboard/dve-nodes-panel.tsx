@@ -284,7 +284,7 @@ export const DVENodesPanel = React.memo<DVENodesPanelProps>(({ className, onRent
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredNodes.map((node) => (
-                <Card key={node.id} className="knirv-card-gradient border hover:border-blue-500/50 transition-all duration-300 group">
+                <Card key={node.id} className="knirv-card-gradient border hover:border-blue-500/50 transition-interactive group">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-black uppercase tracking-tighter text-slate-200 group-hover:text-blue-400 transition-colors">{node.name}</CardTitle>
@@ -373,7 +373,7 @@ export const DVENodesPanel = React.memo<DVENodesPanelProps>(({ className, onRent
                       <Button
                         variant="default"
                         size="sm"
-                        className={`text-[10px] font-black uppercase transition-all ${
+                        className={`text-[10px] font-black uppercase transition-interactive ${
                           effectiveActiveNodeIds[node.id]
                             ? 'bg-red-900/20 text-red-500 border border-red-500/20 hover:bg-red-600 hover:text-white'
                             : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'

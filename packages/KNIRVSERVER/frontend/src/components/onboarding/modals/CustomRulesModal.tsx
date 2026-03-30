@@ -161,7 +161,7 @@ export function CustomRulesModal({ isOpen, onClose, onSave, initialRules = [] }:
                   rules.map((rule, index) => (
                     <div
                       key={rule.id}
-                      className="p-4 bg-white/5 border border-white/10 rounded-xl group hover:border-white/20 transition-all"
+                      className="p-4 bg-white/5 border border-white/10 rounded-xl group hover:border-white/20 transition-interactive"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
@@ -258,7 +258,7 @@ export function CustomRulesModal({ isOpen, onClose, onSave, initialRules = [] }:
                           <button
                             key={option.value}
                             onClick={() => setNewRule({ ...newRule, ruleType: option.value as CustomRule['ruleType'] })}
-                            className={`p-3 rounded-lg border text-left transition-all ${
+                            className={`p-3 rounded-lg border text-left transition-interactive ${
                               newRule.ruleType === option.value
                                 ? 'bg-blue-500/10 border-blue-500'
                                 : 'bg-black/40 border-white/10 hover:border-white/20'
@@ -286,8 +286,8 @@ export function CustomRulesModal({ isOpen, onClose, onSave, initialRules = [] }:
                         <button
                           key={option.value}
                           onClick={() => setNewRule({ ...newRule, priority: option.value as CustomRule['priority'] })}
-                          className={`p-3 rounded-lg border text-left transition-all ${
-                            newRule.priority === option.value
+className={`p-3 rounded-lg border text-left transition-interactive ${
+                            priority === option.value
                               ? 'bg-blue-500/10 border-blue-500'
                               : 'bg-black/40 border-white/10 hover:border-white/20'
                           }`}

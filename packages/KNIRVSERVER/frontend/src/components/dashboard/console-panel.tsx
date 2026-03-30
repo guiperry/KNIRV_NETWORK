@@ -23,10 +23,78 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const xtermRef = useRef<XTermTerminal | null>(null);
   const fitAddonRef = useRef<XTermFitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [sshConnected, setSshConnected] = useState(false);
+  const [connectionMode, setConnectionMode] = useState<'knirvcli' | 'ssh' | 'local'>('local');
 
   const { fetchFabricLogs } = useFabricManagement();
+
+  // Create a KNIRVCLI session and set up polling for output
+  const connectKNIRVCLI = useCallback(async (term: XTermTerminal) => {
+    if (!nodeId) return false;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/cli/sessions`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ 
+          command: 'terminal:start',
+          node_id: nodeId,
+          streaming: true 
+        }),
+      });
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      sessionIdRef.current = data.session_id;
+      setConnectionMode('knirvcli');
+      
+      term.writeln('\x1b[32m[CONNECTED] KNIRVCLI session established.\x1b[0m');
+      term.write('\x1b[1;32m$ \x1b[0m');
+
+      // Poll for session output
+      const pollOutput = async () => {
+        if (!sessionIdRef.current) return;
+        try {
+          const outputResp = await fetch(
+            `${API_BASE_URL}/api/v1/cli/sessions/${sessionIdRef.current}`,
+            { headers: getAuthHeaders() }
+          );
+          if (outputResp.ok) {
+            const session = await outputResp.json();
+            if (session.output) {
+              term.write(session.output);
+            }
+            if (session.closed) {
+              term.writeln('\x1b[33m[DISCONNECTED] Session closed.\x1b[0m');
+              setSshConnected(false);
+              if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+              }
+            }
+          }
+        } catch { /* ignore polling errors */ }
+      };
+
+      pollIntervalRef.current = setInterval(pollOutput, 500);
+      setSshConnected(true);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [nodeId]);
+
+  // Send input to KNIRVCLI session
+  const sendToKNIRVCLI = useCallback(async (input: string) => {
+    if (!sessionIdRef.current) return;
+    try {
+      await fetch(`${API_BASE_URL}/api/v1/cli/sessions/${sessionIdRef.current}/input`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ input }),
+      });
+    } catch { /* ignore send errors */ }
+  }, []);
 
   // Attempt to connect the terminal to the backend SSH WebSocket for the given node.
   const connectSSH = useCallback(async (term: XTermTerminal) => {
@@ -43,6 +111,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
       const wsHost = window.location.host;
       const ws = new WebSocket(`${wsProto}//${wsHost}${data.ws_url}`);
       wsRef.current = ws;
+      setConnectionMode('ssh');
 
       ws.onopen = () => {
         setSshConnected(true);
@@ -129,16 +198,24 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
 
         setIsInitializing(false);
 
-        // Try to connect to backend SSH; fall back to local simulation if unavailable
-        const didConnect = await connectSSH(term);
+        // Try KNIRVCLI first, then SSH, then fall back to local simulation
+        let didConnect = await connectKNIRVCLI(term);
+        if (!didConnect) {
+          didConnect = await connectSSH(term);
+        }
         if (!didConnect) {
           term.write('\x1b[1;32mroot@fabric-server:~# \x1b[0m');
           loadRealLogs();
         }
 
         term.onData((data) => {
-          // If SSH WebSocket is open, route input to backend
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          // Route input to appropriate backend based on connection mode
+          if (connectionMode === 'knirvcli' && sessionIdRef.current) {
+            sendToKNIRVCLI(data);
+            if (data === '\r') {
+              term.write('\r\n');
+            }
+          } else if (connectionMode === 'ssh' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({ type: 'input', data }));
           } else {
             // Local simulation fallback
@@ -157,6 +234,15 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
 
         return () => {
           window.removeEventListener('resize', handleResize);
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+          }
+          if (sessionIdRef.current) {
+            fetch(`${API_BASE_URL}/api/v1/cli/sessions/${sessionIdRef.current}/stop`, {
+              method: 'POST',
+              headers: getAuthHeaders(),
+            }).catch(() => {});
+          }
           if (wsRef.current) {
             wsRef.current.close();
             wsRef.current = null;
@@ -179,7 +265,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
 
   return (
     <div
-      className="absolute z-[100] transition-all duration-500 transform ease-in-out bg-slate-950 border border-blue-600/50 shadow-[0_0_40px_rgba(0,0,0,0.7)] overflow-hidden rounded-xl animate-in fade-in zoom-in-95"
+      className="absolute z-[100] transition-slide duration-500 ease-in-out bg-slate-950 border border-blue-600/50 shadow-[0_0_40px_rgba(0,0,0,0.7)] overflow-hidden rounded-xl animate-in fade-in zoom-in-95 gpu-accelerated"
       style={{
         right: isMonitorOpen ? '40px' : '20px',
         top: isMonitorOpen ? '20px' : '80px',
@@ -213,7 +299,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
             <div className="h-4 w-px bg-slate-800 mx-1" />
             <button
               onClick={onClose}
-              className="text-slate-500 hover:text-white hover:bg-red-900/30 p-1 rounded transition-all"
+              className="text-slate-500 hover:text-white hover:bg-red-900/30 p-1 rounded transition-interactive"
             >
               <X className="w-4 h-4" />
             </button>
@@ -239,7 +325,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
           <div className="flex items-center space-x-4">
             <div className="flex items-center text-[9px] text-slate-500 font-bold uppercase">
               <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${sshConnected ? 'bg-green-500' : 'bg-yellow-500'}`} />
-              SSH: {sshConnected ? 'ACTIVE' : 'LOCAL'}
+              {connectionMode.toUpperCase()}: {sshConnected ? 'ACTIVE' : 'LOCAL'}
             </div>
             <div className="flex items-center text-[9px] text-slate-500 font-bold uppercase">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5" />

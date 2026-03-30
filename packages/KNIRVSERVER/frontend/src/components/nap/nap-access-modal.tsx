@@ -312,12 +312,12 @@ export function NetworkAccessModal({
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
       <div 
-        className="flex-1 bg-black/20 backdrop-blur-sm transition-all duration-300 z-40"
+        className="flex-1 bg-black/20 backdrop-blur-sm transition-opacity duration-300 z-40"
         onClick={onClose}
       />
       
       {/* Modal Panel - FOUNDATION FOR NESTING */}
-      <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-all duration-300 ease-in-out">
+      <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-slide duration-300 ease-in-out">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
@@ -733,7 +733,7 @@ export function NetworkAccessModal({
 
             {/* Console Panel - Slides out from left edge of NAP modal */}
             {showConsole && (
-              <div className="absolute z-50 pointer-events-auto transform transition-all duration-300 ease-out translate-x-0" style={{top: '100px', right: '896px'}}>
+              <div className="absolute z-50 pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 gpu-accelerated" style={{top: '100px', right: '896px'}}>
                 <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-80">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
@@ -763,7 +763,7 @@ export function NetworkAccessModal({
 
             {/* Policy Panel - Slides out from left edge of NAP modal, below Console */}
             {showPolicy && (
-              <div className="absolute z-50 pointer-events-auto transform transition-all duration-300 ease-out translate-x-0" style={{top: '420px', right: '896px'}}>
+              <div className="absolute z-50 pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 gpu-accelerated" style={{top: '420px', right: '896px'}}>
                 <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-80">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
@@ -825,7 +825,7 @@ export function NetworkAccessModal({
 
             {/* Monitor Panel - Positioned below tools section */}
             {showMonitor && (
-              <div className="absolute left-6 right-6 z-30 pointer-events-auto transform transition-transform duration-300 ease-out translate-y-0" style={{top: '540px'}}>
+              <div className="absolute left-6 right-6 z-30 pointer-events-auto transform transition-transform duration-300 ease-out translate-y-0 gpu-accelerated" style={{top: '540px'}}>
                 <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
@@ -873,7 +873,7 @@ export function NetworkAccessModal({
 
             {/* Global Connections Panel - Slides out from left side when clicking Connections */}
             {showConnections && (
-              <div className="fixed left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 w-96">
+              <div className="fixed left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 w-96 gpu-accelerated">
                 <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
@@ -895,7 +895,7 @@ export function NetworkAccessModal({
                       {globalConnections.map((conn) => (
                         <div
                           key={conn.id}
-                          className="w-full text-left p-3 border rounded bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50 transition-all cursor-pointer"
+                          className="w-full text-left p-3 border rounded bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50 transition-interactive cursor-pointer"
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">

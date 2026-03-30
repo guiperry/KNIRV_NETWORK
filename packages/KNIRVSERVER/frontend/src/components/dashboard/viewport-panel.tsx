@@ -54,7 +54,7 @@ const ViewportPanel: React.FC<ViewportPanelProps> = ({
 
   return (
     <div
-      className="absolute top-0 right-0 bottom-0 z-40 flex flex-col bg-[#080c14] border-l border-blue-600/30 transition-all duration-200"
+      className="absolute top-0 right-0 bottom-0 z-40 flex flex-col bg-[#080c14] border-l border-blue-600/30 transition-interactive duration-200"
       style={{
         left: leftOffset,
         bottom: bottomOffset,

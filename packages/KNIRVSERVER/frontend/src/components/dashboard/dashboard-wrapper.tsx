@@ -28,6 +28,7 @@ import { DVECreationForm } from '@/components/dashboard/dve-creation-form';
 import { FinancialComplianceDashboard } from '@/components/dashboard/financial-compliance-dashboard';
 import { useOnboarding } from "@/contexts/onboarding-context";
 import OnboardingGuide from "@/components/onboarding/onboarding-guide";
+import PaymentGatewayModal from './payment-gateway-modal';
 import type { DVENode } from '@/types/api';
 import { useDashboardStore } from '@/lib/store';
 import {
@@ -57,7 +58,8 @@ import {
   Clock,
   Brain,
   Bell,
-  Award
+  Award,
+  Coins
 } from 'lucide-react';
 
 interface DashboardWrapperProps {
@@ -78,6 +80,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
   const [knirvChainOpen, setKnirvChainOpen] = useState(false);
   const [p2pTransportOpen, setP2pTransportOpen] = useState(false);
   const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
+  const [paymentGatewayOpen, setPaymentGatewayOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
   const [showAdminAccess, setShowAdminAccess] = useState(false);
 
@@ -488,7 +491,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
               <RoleGuard allowedRoles={['admin']} showError={false}>
                 <button
                   onClick={() => setShowAdminAccess(true)}
-                  className="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-white/20 px-2 py-1 text-sm font-medium whitespace-nowrap transition-all text-gray-400 hover:bg-indigo-500/20 hover:text-indigo-400 hover:border-indigo-400/50 disabled:pointer-events-none disabled:opacity-50"
+                  className="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-white/20 px-2 py-1 text-sm font-medium whitespace-nowrap transition-colors duration-150 text-gray-400 hover:bg-indigo-500/20 hover:text-indigo-400 hover:border-indigo-400/50 disabled:pointer-events-none disabled:opacity-50"
                 >
                   <User className="w-4 h-4" />
                   <span>Admin Access</span>
@@ -681,7 +684,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                     {/* Network Overview Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <Card 
-                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-all"
+                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
                         onClick={() => setActiveMemoryOpen(true)}
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -705,7 +708,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </Card>
 
                       <Card 
-                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-all"
+                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
                         onClick={() => setKnirvGraphOpen(true)}
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -729,7 +732,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </Card>
 
                       <Card 
-                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-all"
+                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
                         onClick={() => setKnirvChainOpen(true)}
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -753,7 +756,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </Card>
 
                       <Card 
-                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-all"
+                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
                         onClick={() => setP2pTransportOpen(true)}
                       >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -894,6 +897,15 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                             <p className="text-sm font-medium text-gray-500">NRN Spent</p>
                             <p className="text-2xl font-bold text-gray-200">1,847</p>
                             <p className="text-xs text-gray-600">Total this month</p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-2 border-green-600/50 text-green-400 hover:bg-green-600/20"
+                              onClick={() => setPaymentGatewayOpen(true)}
+                            >
+                              <Coins className="w-3 h-3 mr-1" />
+                              Buy NRN
+                            </Button>
                           </div>
                         </div>
                       </CardContent>
@@ -1249,6 +1261,13 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
         isOpen={dveCreationModalOpen}
         onClose={() => setDveCreationModalOpen(false)}
         defaultTab="create"
+      />
+
+      {/* Payment Gateway Modal */}
+      <PaymentGatewayModal
+        isOpen={paymentGatewayOpen}
+        onClose={() => setPaymentGatewayOpen(false)}
+        currentBalance={1847}
       />
     </div>
   );

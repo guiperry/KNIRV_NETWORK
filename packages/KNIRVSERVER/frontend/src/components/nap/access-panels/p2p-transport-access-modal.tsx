@@ -252,9 +252,9 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/20 backdrop-blur-sm transition-all duration-300 z-40" onClick={onClose} />
+      <div className="flex-1 bg-black/20 backdrop-blur-sm transition-colors duration-300 z-40" onClick={onClose} />
 
-      <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-all duration-300 ease-in-out">
+      <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-slide duration-300 ease-in-out">
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b">
             <div>

@@ -17,6 +17,10 @@ const (
 	EventResourcePressure   EventType = "resource_pressure"
 	EventPatternDetected    EventType = "pattern_detected"
 	EventAdaptationRequired EventType = "adaptation_required"
+	EventNodeMetricsUpdated EventType = "node_metrics_updated"
+	EventScalingDecision    EventType = "scaling_decision"
+	EventLeaderElection     EventType = "leader_election"
+	EventScalingAction      EventType = "scaling_action"
 )
 
 // EngineEvent carries information about an internal engine occurrence.

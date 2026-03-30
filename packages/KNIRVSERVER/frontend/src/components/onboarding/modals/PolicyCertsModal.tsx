@@ -349,7 +349,7 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], i
             {policies.map((policy) => (
               <div
                 key={policy.id}
-                className={`p-4 rounded-xl border transition-all ${
+                className={`p-4 rounded-xl border transition-interactive ${
                   policy.enabled 
                     ? 'bg-white/5 border-blue-500/30' 
                     : 'bg-white/[0.02] border-white/10'
@@ -436,7 +436,7 @@ export function PolicyCertsModal({ isOpen, onClose, onSave, initialCerts = [], i
                   rules.map((rule, index) => (
                     <div
                       key={rule.id}
-                      className="p-3 bg-white/5 border border-white/10 rounded-lg group hover:border-white/20 transition-all"
+                      className="p-3 bg-white/5 border border-white/10 rounded-lg group hover:border-white/20 transition-interactive"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">

@@ -48,7 +48,7 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
   const actualNodeName = node?.name || nodeName;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 transition-all duration-300">
+    <div className="fixed inset-0 z-50 bg-black/70 transition-opacity duration-200">
       {/* Main DVE Workspace Container */}
       <div className="absolute inset-0 flex flex-col bg-[#03050a] border-l border-blue-600/50">
         
@@ -81,35 +81,35 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
             <div className="flex bg-slate-950/50 p-1 rounded-lg border border-slate-800">
               <button
                 onClick={() => setShowConnections(!showConnections)}
-                className={`p-2 rounded-md transition-all ${showConnections ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-300'}`}
+                className={`p-2 rounded-md transition-colors duration-150 ${showConnections ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-300'}`}
                 title="Toggle Connections"
               >
                 <Network className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setShowConsole(!showConsole)}
-                className={`p-2 rounded-md transition-all ${showConsole ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-300'}`}
+                className={`p-2 rounded-md transition-colors duration-150 ${showConsole ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-300'}`}
                 title="Toggle Console"
               >
                 <Terminal className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setShowPolicy(!showPolicy)}
-                className={`p-2 rounded-md transition-all ${showPolicy ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-300'}`}
+                className={`p-2 rounded-md transition-colors duration-150 ${showPolicy ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-300'}`}
                 title="Toggle Policy"
               >
                 <Shield className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setShowMonitor(!showMonitor)}
-                className={`p-2 rounded-md transition-all ${showMonitor ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-300'}`}
+                className={`p-2 rounded-md transition-colors duration-150 ${showMonitor ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-blue-300'}`}
                 title="Toggle Monitor"
               >
                 <Monitor className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setShowViewport(!showViewport)}
-                className={`p-2 rounded-md transition-all ${showViewport ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-300'}`}
+                className={`p-2 rounded-md transition-colors duration-150 ${showViewport ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-300'}`}
                 title="Toggle Container Viewport"
               >
                 <Globe className="w-4 h-4" />
@@ -120,7 +120,7 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
             
             <button
               onClick={onClose}
-              className="bg-red-900/20 hover:bg-red-600 text-red-500 hover:text-white p-2 rounded-lg transition-all border border-red-500/20"
+              className="bg-red-900/20 hover:bg-red-600 text-red-500 hover:text-white p-2 rounded-lg transition-colors duration-150 border border-red-500/20"
             >
               <X className="w-5 h-5" />
             </button>
@@ -136,7 +136,7 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
           {/* Connections Sidebar - Modular Slide-out */}
           {showConnections && (
             <div
-              className={`absolute left-0 top-0 bottom-0 z-[60] transition-all duration-200 ease-in-out translate-x-0`}
+              className={`absolute left-0 top-0 bottom-0 z-[60] transition-slide duration-200`}
             >
               <ConnectionsPanel 
                 isOpen={showConnections} 
@@ -151,7 +151,7 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
 
           {/* Centered Main Area */}
           <div 
-            className={`h-full flex flex-col items-center justify-center p-8 transition-all duration-200 ${showConnections ? 'ml-[300px]' : 'ml-0'}`}
+            className={`h-full flex flex-col items-center justify-center p-8 transition-slide duration-200 ${showConnections ? 'ml-[300px]' : 'ml-0'}`}
           >
             <div className="max-w-3xl w-full space-y-8 text-center">
               <div className="inline-flex p-4 rounded-3xl bg-blue-600/10 border border-blue-600/30 relative">
@@ -203,7 +203,7 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
                     setShowMonitor(true);
                     setShowConnections(true);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-black px-8 py-6 rounded-2xl shadow-[0_0_30px_rgba(37,99,235,0.3)] transition-all transform hover:scale-105 active:scale-95"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-black px-8 py-6 rounded-2xl shadow-[0_0_30px_rgba(37,99,235,0.3)] transition-interactive transform hover:scale-105 active:scale-95"
                 >
                   OPEN WORKSPACE PANELS
                 </Button>
@@ -211,7 +211,7 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
                   <Button
                     variant="outline"
                     onClick={() => setShowViewport(true)}
-                    className="border-purple-500/40 text-purple-400 hover:bg-purple-600/20 font-bold px-6 py-6 rounded-2xl transition-all"
+                    className="border-purple-500/40 text-purple-400 hover:bg-purple-600/20 font-bold px-6 py-6 rounded-2xl transition-colors duration-150"
                   >
                     <Globe className="w-5 h-5 mr-2" />
                     OPEN CONTAINER VIEWPORT

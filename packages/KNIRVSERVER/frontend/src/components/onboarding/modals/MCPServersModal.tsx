@@ -224,7 +224,7 @@ export function MCPServersModal({ isOpen, onClose, onSave, initialServers = [] }
                     <div
                       key={server.id}
                       onClick={() => toggleRegistryServer(server.id)}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      className={`p-3 rounded-lg border cursor-pointer transition-interactive ${
                         selectedRegistryServers.has(server.id)
                           ? 'bg-blue-500/10 border-blue-500'
                           : 'bg-white/5 border-white/10 hover:border-white/20'

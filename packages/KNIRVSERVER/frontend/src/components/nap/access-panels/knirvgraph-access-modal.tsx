@@ -138,23 +138,77 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
       name: 'Query Reasoning Graph',
       description: 'Search and retrieve context traces from the graph',
       icon: <Search className="w-4 h-4" />,
-      commands: ['graph-query', 'trace-retrieve', 'context-build']
+      workflow_id: 'graph-query',
+      steps: [
+        { command: 'graph-query', args: {} },
+        { command: 'trace-retrieve', args: {} },
+        { command: 'context-build', args: {} }
+      ]
     },
     {
       id: 'verify-edge',
       name: 'Verify Edge',
       description: 'Verify graph edge through consensus mechanism',
       icon: <Shield className="w-4 h-4" />,
-      commands: ['edge-select', 'consensus-request', 'verify-signature']
+      workflow_id: 'verify-edge',
+      steps: [
+        { command: 'edge-select', args: {} },
+        { command: 'consensus-request', args: {} },
+        { command: 'verify-signature', args: {} }
+      ]
     },
     {
       id: 'reindex-graph',
       name: 'Re-index Graph',
       description: 'Rebuild graph index for optimal query performance',
       icon: <GitBranch className="w-4 h-4" />,
-      commands: ['index-start', 'rebuild-edges', 'optimize-paths']
+      workflow_id: 'reindex-graph',
+      steps: [
+        { command: 'index-start', args: {} },
+        { command: 'rebuild-edges', args: {} },
+        { command: 'optimize-paths', args: {} }
+      ]
     }
   ];
+
+  const executeWorkflow = async (template: typeof workflowTemplates[0]) => {
+    setIsExecuting(true);
+    setTerminalOutput(prev => [...prev, `$ Executing workflow: ${template.name}`, '$ ']);
+    
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/workflow/execute`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workflow_id: template.workflow_id,
+          node_id: '',
+          steps: template.steps,
+        }),
+      });
+      
+      const data = await resp.json();
+      
+      if (resp.ok) {
+        setTerminalOutput(prev => [
+          ...prev,
+          `Workflow initiated: ${template.name}`,
+          `Execution ID: ${data.execution_id || 'N/A'}`,
+          `Status: ${data.status || 'running'}`,
+          '$ '
+        ]);
+      } else {
+        setTerminalOutput(prev => [
+          ...prev,
+          `Error: ${data.error || 'Workflow execution failed'}`,
+          '$ '
+        ]);
+      }
+    } catch {
+      setTerminalOutput(prev => [...prev, 'Error: Failed to reach workflow service', '$ ']);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
 
   const executeCommand = async (command: string) => {
     const trimmed = command.trim();
@@ -178,6 +232,7 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
         '  edges       - List graph edges',
         '  clear       - Clear terminal',
         '  <command>   - Execute via knirvcli',
+        'Workflows:   - Use the Workflows tab to execute workflows',
         '$ '
       ]);
       return;
@@ -214,9 +269,9 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/20 backdrop-blur-sm transition-all duration-300 z-40" onClick={onClose} />
+      <div className="flex-1 bg-black/20 backdrop-blur-sm transition-colors duration-300 z-40" onClick={onClose} />
 
-      <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-all duration-300 ease-in-out">
+      <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-slide duration-300 ease-in-out">
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b">
             <div>
@@ -301,14 +356,14 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
                       </CardHeader>
                       <CardContent className="space-y-2">
                         <div className="text-xs text-muted-foreground">
-                          Commands: {template.commands.join(', ')}
+                          Steps: {template.steps.map(s => s.command).join(' → ')}
                         </div>
                         <Button
                           variant="outline"
                           size="sm"
                           className="w-full"
                           disabled={isExecuting}
-                          onClick={() => executeCommand(template.commands[0])}
+                          onClick={() => executeWorkflow(template)}
                         >
                           <Play className="w-3 h-3 mr-1" />
                           Execute
@@ -568,7 +623,7 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
 
             {/* Reasoning Explorer Panel */}
             {showReasoningExplorer && (
-              <div className="fixed left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-all duration-300 ease-out translate-x-0 w-96">
+              <div className="fixed left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 w-96 gpu-accelerated">
                 <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">

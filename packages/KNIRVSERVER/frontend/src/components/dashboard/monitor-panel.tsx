@@ -183,7 +183,7 @@ const MonitorPanel: React.FC<MonitorPanelProps> = ({ isOpen, onClose, nodeId, is
 
   return (
     <div
-      className="absolute bottom-0 right-0 z-[90] transition-all duration-500 transform ease-in-out bg-gradient-to-t from-slate-950 via-blue-950/90 to-slate-900 border-t border-blue-600/50 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden"
+      className="absolute bottom-0 right-0 z-[90] transition-slide duration-500 ease-in-out bg-gradient-to-t from-slate-950 via-blue-950/90 to-slate-900 border-t border-blue-600/50 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden gpu-accelerated"
       style={{
         height: '35vh',
         left: isSidebarOpen ? '300px' : '0',
@@ -286,7 +286,7 @@ const MonitorPanel: React.FC<MonitorPanelProps> = ({ isOpen, onClose, nodeId, is
                 {tasks.map((task) => (
                   <tr 
                     key={task.id} 
-                    className={`bg-slate-800/30 hover:bg-blue-900/20 transition-all rounded-md cursor-pointer group ${selectedTask === task.id ? 'bg-blue-900/30' : ''}`}
+                    className={`bg-slate-800/30 hover:bg-blue-900/20 transition-interactive rounded-md cursor-pointer group ${selectedTask === task.id ? 'bg-blue-900/30' : ''}`}
                     onClick={() => handleTaskClick(task)}
                   >
                     <td className="p-1.5">
