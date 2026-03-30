@@ -1,0 +1,22 @@
+{
+  "devFiles": [],
+  "ampDevFiles": [],
+  "polyfillFiles": [
+    "static/chunks/194e6_next_dist_build_polyfills_polyfill-nomodule.js"
+  ],
+  "lowPriorityFiles": [],
+  "rootMainFiles": [
+    "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_958615d4._.js",
+    "static/chunks/194e6_next_dist_compiled_react-dom_53a6ab67._.js",
+    "static/chunks/194e6_next_dist_compiled_react-server-dom-turbopack_0f7ca170._.js",
+    "static/chunks/194e6_next_dist_compiled_next-devtools_index_5d256097.js",
+    "static/chunks/194e6_next_dist_compiled_ed9e2e62._.js",
+    "static/chunks/194e6_next_dist_client_0965f172._.js",
+    "static/chunks/194e6_next_dist_9579f98c._.js",
+    "static/chunks/194e6_@swc_helpers_cjs_796e3eca._.js",
+    "static/chunks/Documents_GitHub_KNIRV_KNIRV_NETWORK_packages_KNIRVSERVER_desktop_menu_a0ff3932._.js",
+    "static/chunks/358b3_GitHub_KNIRV_KNIRV_NETWORK_packages_KNIRVSERVER_desktop_menu_ddeb835d._.js"
+  ],
+  "pages": {},
+  "ampFirstPages": []
+}
