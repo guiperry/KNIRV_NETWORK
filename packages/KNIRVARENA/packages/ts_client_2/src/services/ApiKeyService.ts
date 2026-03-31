@@ -229,8 +229,8 @@ class ApiKeyService {
     try {
       const settings = await knirvbaseService.getUserSettings('api_keys');
       
-      if (settings) {
-        return settings.data || [];
+      if (settings && settings.data) {
+        return settings.data as ApiKey[];
       }
       return [];
     } catch (error) {
@@ -248,11 +248,14 @@ class ApiKeyService {
       
       const usage: ApiKeyUsage[] = [];
       for (const setting of allSettings) {
-        if (setting.type === 'api_usage' && setting.data && setting.data.keyId === keyId) {
-          usage.push({
-            ...setting.data,
-            timestamp: new Date(setting.data.timestamp)
-          } as ApiKeyUsage);
+        if (setting.type === 'api_usage' && setting.data) {
+          const data = setting.data as { keyId?: string; timestamp?: string | number | Date };
+          if (data.keyId === keyId) {
+            usage.push({
+              ...data,
+              timestamp: new Date(data.timestamp || Date.now())
+            } as ApiKeyUsage);
+          }
         }
       }
 

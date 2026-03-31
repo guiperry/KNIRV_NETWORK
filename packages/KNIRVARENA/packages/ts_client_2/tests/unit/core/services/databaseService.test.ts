@@ -40,8 +40,8 @@ describe('DatabaseService', () => {
     const mockAgent = {
       agentId: 'test-agent-1',
       name: 'Test Agent',
-      type: 'wasm',
-      status: 'Available',
+      type: 'wasm' as const,
+      status: 'Available' as const,
       nrnCost: 100,
       capabilities: ['test'],
       metadata: {
@@ -75,7 +75,7 @@ describe('DatabaseService', () => {
     });
 
     test('should update an agent', async () => {
-      const updateData = { status: 'Deployed' };
+      const updateData = { status: 'Deployed' as const };
       (databaseService.updateAgent as jest.Mock).mockResolvedValue({ ...mockAgent, ...updateData });
 
       const result = await databaseService.updateAgent('test-agent-1', updateData);

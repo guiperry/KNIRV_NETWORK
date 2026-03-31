@@ -136,16 +136,16 @@ export class AgentManagementService {
         name: metadata.name,
         version: metadata.version,
         baseModelId: metadata.baseModelId || 'default',
-        type: request.type,
-        status: 'Compiling',
+        type: request.type as 'wasm' | 'lora' | 'hybrid',
+        status: 'Compiling' as const,
         nrnCost: this.calculateNRNCost(metadata.requirements),
         capabilities: metadata.capabilities,
-        metadata: metadata as unknown as Record<string, unknown>,
+        metadata: metadata as AgentMetadata,
         createdAt: new Date().toISOString()
       };
 
       // Save to database
-      const agent = await databaseService.createAgent(agentData);
+      const agent = await databaseService.createAgent(agentData as Partial<Agent>);
 
       // Process the uploaded file based on type
       const convertedAgent = convertDbAgentToAgent(agent as any);
