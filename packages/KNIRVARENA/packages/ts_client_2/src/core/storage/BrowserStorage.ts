@@ -4,8 +4,18 @@
  */
 
 import { RemoteStorageClient, Document } from './RemoteStorageClient';
-import { Index, IndexType } from '../../../../KNIRVBASE/ts/src/components/storage/index';
-import { EntryType } from '../../../../KNIRVBASE/ts/src/components/types/types';
+// import { Index, IndexType, EntryType } from '@knirvcorp/knirvbase-ts';
+
+// Temporary type definitions
+interface Index {
+  // placeholder
+}
+interface IndexType {
+  // placeholder
+}
+interface EntryType {
+  // placeholder
+}
 
 export interface Storage {
   insert(collection: string, doc: Record<string, any>): Promise<void>;

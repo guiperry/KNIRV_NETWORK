@@ -3,7 +3,18 @@
  * Manages KNIRVBASE database operations for the KNIRV Controller
  */
 
-import { DB, Collection, Options } from '@knirvcorp/knirvbase-ts';
+// import { DB, Collection, Options } from '@knirvcorp/knirvbase-ts';
+
+// Temporary type definitions
+interface DB {
+  // placeholder
+}
+interface Collection {
+  // placeholder
+}
+interface Options {
+  // placeholder
+}
 import { BrowserDB, Options as BrowserOptions } from '../core/storage/BrowserDB';
 
 export interface KNIRVBASEConfig {
@@ -244,7 +255,7 @@ export class KNIRVBASEService {
   async getChatHistory(userId?: string): Promise<any[]> {
     const collection = this.getCollection('trainingdata');
     const allData = await collection.findAll();
-    return userId ? allData.filter(item => item.userId === userId) : allData;
+    return userId ? allData.filter((item: any) => item.userId === userId) : allData;
   }
 
   async saveChatMessage(message: any): Promise<any> {
@@ -269,7 +280,7 @@ export class KNIRVBASEService {
     const allData = await collection.findAll();
     const sessions = new Map();
     
-    allData.forEach(item => {
+    allData.forEach((item: any) => {
       if (item.sessionId) {
         if (!sessions.has(item.sessionId)) {
           sessions.set(item.sessionId, {
@@ -295,11 +306,11 @@ export class KNIRVBASEService {
   async getChatSession(sessionId: string): Promise<any> {
     const collection = this.getCollection('trainingdata');
     const allData = await collection.findAll();
-    const sessionData = allData.filter(item => item.sessionId === sessionId);
+    const sessionData = allData.filter((item: any) => item.sessionId === sessionId);
     
     if (sessionData.length === 0) return null;
     
-    const messages = sessionData.map(item => ({
+    const messages = sessionData.map((item: any) => ({
       id: item.id,
       content: item.content,
       sender: item.sender || 'user',
@@ -332,7 +343,7 @@ export class KNIRVBASEService {
   async updateChatSession(sessionId: string, updates: any): Promise<any> {
     const collection = this.getCollection('trainingdata');
     const allData = await collection.findAll();
-    const sessionData = allData.filter(item => item.sessionId === sessionId);
+    const sessionData = allData.filter((item: any) => item.sessionId === sessionId);
     
     if (sessionData.length === 0) {
       throw new Error('Chat session not found');
@@ -350,7 +361,7 @@ export class KNIRVBASEService {
   async deleteChatSession(sessionId: string): Promise<any> {
     const collection = this.getCollection('trainingdata');
     const allData = await collection.findAll();
-    const sessionData = allData.filter(item => item.sessionId === sessionId);
+    const sessionData = allData.filter((item: any) => item.sessionId === sessionId);
     
     let deletedCount = 0;
     for (const session of sessionData) {
@@ -375,14 +386,14 @@ export class KNIRVBASEService {
   async getAgent(agentId: string): Promise<any> {
     const collection = this.getCollection('knowledge');
     const allData = await collection.findAll();
-    const agents = allData.filter(item => item.id === agentId && item.type === 'agent');
+    const agents = allData.filter((item: any) => item.id === agentId && item.type === 'agent');
     return agents.length > 0 ? agents[0] : null;
   }
 
   async updateAgent(agentId: string, updates: any): Promise<any> {
     const collection = this.getCollection('knowledge');
     const allData = await collection.findAll();
-    const agents = allData.filter(item => item.id === agentId && item.type === 'agent');
+    const agents = allData.filter((item: any) => item.id === agentId && item.type === 'agent');
     
     if (agents.length === 0) {
       throw new Error('Agent not found');
@@ -400,7 +411,7 @@ export class KNIRVBASEService {
   async deleteAgent(agentId: string): Promise<any> {
     const collection = this.getCollection('knowledge');
     const allData = await collection.findAll();
-    const agents = allData.filter(item => item.id === agentId && item.type === 'agent');
+    const agents = allData.filter((item: any) => item.id === agentId && item.type === 'agent');
     
     let deletedCount = 0;
     for (const agent of agents) {
@@ -415,7 +426,7 @@ export class KNIRVBASEService {
   async listAgents(): Promise<any[]> {
     const collection = this.getCollection('knowledge');
     const allData = await collection.findAll();
-    return allData.filter(item => item.type === 'agent');
+    return allData.filter((item: any) => item.type === 'agent');
   }
 
   // User settings method

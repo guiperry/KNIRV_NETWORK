@@ -530,8 +530,6 @@ export default function KNIRVANAGameVisualization() {
         <Canvas
           camera={{ position: [0, 5, 20], fov: 75 }}
           shadows
-          events={{ enabled: true }}
-          raycast={{ filter: (obj) => !obj.userData?.isParticles }}
         >
           <OrbitControls
             enablePan={true}

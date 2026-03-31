@@ -1,0 +1,20 @@
+---
+description: P language formal verification model structure and PChecker run patterns for modp/
+globs: ["modp/**/*.p", "modp/**/*.pproj", "integration-tests/modp_formal_verification_test.go"]
+alwaysApply: false
+---
+
+# ModP / P Language Patterns
+
+- Project file: `modp/KnirvNetwork.pproj` — must register every new `.p` source file
+- Events: always import from `modp/events/network_events.p` before using in component machines
+- Component machines go in `modp/components/<layer>/` matching the network layer
+- Network invariants: `modp/monitors/network_invariants.p` — add monitors for new protocol properties
+- Composition tests: `modp/tests/network_composition_tests.p`
+- Run via testnet: `cd packages/KNIRVTESTNET && make test-modp`
+- Run directly: `bash modp/scripts/run-tests.sh`
+- Results land in `modp/results/` and `modp/PCheckerOutput/BugFinding*/`
+- Requires `dotnet` runtime for PChecker; falls back to syntax-validation mode without it
+- Every new async protocol interaction (IBC transfer, oracle governance, DVE validation) needs a P machine
+- Integration test hook: `integration-tests/modp_formal_verification_test.go`
+- KNIRVTESTNET formal verification config: `packages/KNIRVTESTNET/.env` (MODP_DIR setting)

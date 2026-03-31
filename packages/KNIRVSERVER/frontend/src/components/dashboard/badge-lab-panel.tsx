@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Upload, Wand2, Download, Loader2, RefreshCcw, 
-  Settings2, Info, Award 
+import {
+  Upload, Wand2, Download, Loader2, RefreshCcw,
+  Settings2, Info, Award, Zap, CheckCircle2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface BadgeLabPanelProps {
   className?: string;
@@ -41,8 +42,45 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [selectedValues, setSelectedValues] = useState<string[]>([]);
   const [selectedOntology, setSelectedOntology] = useState<string[]>([]);
-  
+  const [isMinting, setIsMinting] = useState(false);
+  const [mintedBadgeId, setMintedBadgeId] = useState<string | null>(null);
+  const [mintError, setMintError] = useState<string | null>(null);
+  const [svgContent, setSvgContent] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleMintToChain = async () => {
+    if (!svgContent) return;
+    setIsMinting(true);
+    setMintError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/knirvcli/chain/badge/create`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: prompt || 'Untitled Badge',
+          badge_type: 'capability',
+          description: `Values: ${selectedValues.join(', ')}. Ontology: ${selectedOntology.join(', ')}`,
+          image_data: svgContent,
+          metadata: {
+            values: selectedValues,
+            ontology: selectedOntology,
+          },
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMintedBadgeId(data.badge_id || data.id || 'created');
+      } else {
+        const err = await response.json().catch(() => ({ error: 'Unknown error' }));
+        setMintError(err.error || 'Minting failed');
+      }
+    } catch {
+      setMintError('Network error — backend unreachable');
+    } finally {
+      setIsMinting(false);
+    }
+  };
 
   const toggleValue = (value: string) => {
     setSelectedValues(prev => 
@@ -61,10 +99,12 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
 
     setIsProcessing(true);
     setOutputUrl(null);
+    setMintedBadgeId(null);
+    setMintError(null);
 
     await new Promise(resolve => setTimeout(resolve, 3000));
 
-    const svgContent = `
+    const generatedSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
         <defs>
           <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -86,8 +126,9 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
       </svg>
     `;
     
-    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const blob = new Blob([generatedSvg], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
+    setSvgContent(generatedSvg);
     setOutputUrl(url);
     setIsProcessing(false);
   };
@@ -268,20 +309,40 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
                   </div>
                   
                   <div className="flex gap-2">
-                    <button 
-                      onClick={() => { setOutputUrl(null); setPrompt(''); setSelectedValues([]); setSelectedOntology([]); }}
+                    <button
+                      onClick={() => { setOutputUrl(null); setSvgContent(null); setPrompt(''); setSelectedValues([]); setSelectedOntology([]); setMintedBadgeId(null); setMintError(null); }}
                       className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 hover:bg-gray-800 text-gray-400 rounded-lg text-[10px] font-black uppercase transition-interactive border border-gray-800"
                     >
                       <RefreshCcw size={12} /> Reset
                     </button>
-                    <a 
-                      href={outputUrl} 
+                    <a
+                      href={outputUrl ?? undefined}
                       download="badge-design.svg"
                       className="flex items-center gap-1.5 px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-[10px] font-black uppercase transition-interactive"
                     >
-                      <Download size={12} /> Download Badge
+                      <Download size={12} /> Download
                     </a>
+                    {mintedBadgeId ? (
+                      <div className="flex items-center gap-1.5 px-4 py-2 bg-emerald-900/40 border border-emerald-500/30 rounded-lg text-[10px] font-black text-emerald-400 uppercase">
+                        <CheckCircle2 size={12} /> Minted
+                      </div>
+                    ) : (
+                      <button
+                        onClick={handleMintToChain}
+                        disabled={isMinting}
+                        className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-[10px] font-black uppercase transition-interactive"
+                      >
+                        {isMinting ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+                        Mint to Chain
+                      </button>
+                    )}
                   </div>
+                  {mintError && (
+                    <p className="text-[9px] text-red-400 font-mono mt-1">{mintError}</p>
+                  )}
+                  {mintedBadgeId && mintedBadgeId !== 'created' && (
+                    <p className="text-[9px] text-emerald-400 font-mono mt-1">Badge ID: {mintedBadgeId}</p>
+                  )}
                 </div>
               )}
             </div>

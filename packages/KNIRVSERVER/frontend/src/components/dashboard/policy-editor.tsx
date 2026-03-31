@@ -114,6 +114,16 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
         const data = await response.json();
         setSelectedPolicy(data.policy);
         setSaveStatus('success');
+
+        // Attach the new policy to the DVE node it was created for
+        if (nodeId && data.policy?.id) {
+          await fetch(`${API_BASE_URL}/api/dve-nodes/nodes/${nodeId}/policies`, {
+            method: 'POST',
+            headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ policy_id: data.policy.id }),
+          });
+        }
+
         await loadPolicies();
       } else {
         setSaveStatus('error');

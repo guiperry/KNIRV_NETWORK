@@ -8,6 +8,10 @@ export * from '../components/resolver/crdt_resolver';
 export * from '../components/crypto/pqc/keys';
 export * from '../components/crypto/pqc/encryption';
 export * from '../components/query/index';
+export * from '../components/auth/index';
+export * from '../components/logging/index';
+export * from '../components/security/index';
+export * from '../components/monitoring/index';
 import { NetworkConfig } from '../components/types/types';
 export interface Options {
     dataDir: string;

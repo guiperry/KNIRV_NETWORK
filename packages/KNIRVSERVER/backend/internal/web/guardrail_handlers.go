@@ -10,9 +10,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// policyEventEmitter is the minimal interface needed to broadcast policy events.
+type policyEventEmitter interface {
+	EmitPolicyUpdate(policyID, source, policyType string, rules map[string]interface{})
+}
+
 type GuardrailHandlers struct {
 	guardrailManager *guardrails.DynamicGuardrailManager
 	policyEngine     *guardrails.PolicyEngine
+	eventBroadcaster policyEventEmitter
 }
 
 func NewGuardrailHandlers(gm *guardrails.DynamicGuardrailManager, pe *guardrails.PolicyEngine) *GuardrailHandlers {
@@ -20,6 +26,12 @@ func NewGuardrailHandlers(gm *guardrails.DynamicGuardrailManager, pe *guardrails
 		guardrailManager: gm,
 		policyEngine:     pe,
 	}
+}
+
+// SetEventBroadcaster wires the broadcaster used to push policy:update events
+// to connected WebSocket clients after a policy is saved or committed.
+func (h *GuardrailHandlers) SetEventBroadcaster(eb policyEventEmitter) {
+	h.eventBroadcaster = eb
 }
 
 func (h *GuardrailHandlers) RegisterRoutes(r *mux.Router) {
@@ -224,6 +236,13 @@ func (h *GuardrailHandlers) CreatePolicy(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if h.eventBroadcaster != nil {
+		h.eventBroadcaster.EmitPolicyUpdate(policy.ID, "guardrail_handler", "created", map[string]interface{}{
+			"name":  policy.Name,
+			"rules": len(policy.Rules),
+		})
+	}
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": "created",
 		"policy": &policy,
@@ -310,6 +329,12 @@ func (h *GuardrailHandlers) CommitPolicy(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
 		return
+	}
+
+	if h.eventBroadcaster != nil {
+		h.eventBroadcaster.EmitPolicyUpdate(policyID, "guardrail_handler", "committed", map[string]interface{}{
+			"tx_hash": txHash,
+		})
 	}
 
 	json.NewEncoder(w).Encode(map[string]interface{}{

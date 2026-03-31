@@ -1,4 +1,4 @@
-import { RFTAgent } from '../types/Agent';
+import { AgentResources } from '../types/Agent';
 
 export enum SabotageType {
     NOISE_INJECTION = 'NOISE_INJECTION', // Adds random chars to context
@@ -8,7 +8,7 @@ export enum SabotageType {
 
 export class SabotageEngine {
     
-    public static applyEffect(type: SabotageType, target: RFTAgent, magnitude: number) {
+    public static applyEffect(type: SabotageType, target: { id: string; resources: AgentResources }, magnitude: number) {
         switch (type) {
             case SabotageType.NOISE_INJECTION:
                 // Logic: Return a "Decorator" function that corrupts the input string

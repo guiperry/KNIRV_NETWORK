@@ -1409,6 +1409,51 @@ func (ce *CognitiveEngine) applyAdaptationRule(rule AdaptationRule) {
 	ce.applyAdaptationRuleLocked(rule)
 }
 
+// InjectOrganizationContext feeds an organization's value system into the
+// cognitive engine's learning state as an adaptation event.  This is called
+// by the OnboardingService once a ValueSystem + Ontology have been processed
+// so that the engine can weight its guardrail evaluations accordingly.
+func (ce *CognitiveEngine) InjectOrganizationContext(orgID, orgName string, guidelines, values []string, riskLevel string) {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+
+	// Map risk level to a confidence offset so high-risk orgs start with
+	// tighter guardrail thresholds.
+	riskOffset := 0.0
+	switch riskLevel {
+	case "low":
+		riskOffset = 0.05
+	case "high":
+		riskOffset = -0.05
+	}
+	if ce.learningState.ConfidenceLevel+riskOffset >= 0 && ce.learningState.ConfidenceLevel+riskOffset <= 1.0 {
+		ce.learningState.ConfidenceLevel += riskOffset
+	}
+
+	changes := map[string]interface{}{
+		"org_id":     orgID,
+		"org_name":   orgName,
+		"guidelines": len(guidelines),
+		"values":     len(values),
+		"risk_level": riskLevel,
+	}
+
+	event := AdaptationEvent{
+		ID:             fmt.Sprintf("org-context-%s", orgID),
+		Timestamp:      time.Now(),
+		TriggerReason:  fmt.Sprintf("Organization onboarded: %s", orgName),
+		AdaptationType: "organization_context",
+		Changes:        changes,
+		ExpectedImpact: "Guardrail thresholds aligned to organizational risk appetite",
+	}
+
+	ce.learningState.AdaptationHistory = append(ce.learningState.AdaptationHistory, event)
+	ce.learningState.LastUpdated = time.Now()
+
+	log.Printf("CognitiveEngine: injected org context for %s (%s) — guidelines=%d values=%d risk=%s",
+		orgName, orgID, len(guidelines), len(values), riskLevel)
+}
+
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
 func contains(s, substr string) bool {

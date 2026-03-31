@@ -349,8 +349,24 @@ func (s *OnboardingService) feedValueSystemToCognitiveEngine(config *Organizatio
 		return fmt.Errorf("cognitive engine not available")
 	}
 
-	// Feed into cognitive engine's learning state
-	log.Printf("Feeding value system for organization %s into cognitive engine", config.OrganizationID)
+	riskLevel := "medium"
+	var guidelines, values []string
+
+	if config.ValueSystem != nil {
+		guidelines = config.ValueSystem.Guidelines
+		values = config.ValueSystem.StatedValues
+		if config.ValueSystem.RiskAppetite != nil {
+			riskLevel = config.ValueSystem.RiskAppetite.Level
+		}
+	}
+
+	s.cognitiveEngine.InjectOrganizationContext(
+		config.OrganizationID,
+		config.Name,
+		guidelines,
+		values,
+		riskLevel,
+	)
 
 	return nil
 }

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { DB, Options } from '@knirvcorp/knirvbase-ts';
+import type { DB, Options } from '@knirvcorp/knirvbase-ts';
 import * as path from 'path';
 import * as os from 'os';
 

@@ -17,6 +17,14 @@ export * from '../components/crypto/pqc/keys';
 export * from '../components/crypto/pqc/encryption';
 // Query
 export * from '../components/query/index';
+// Authentication
+export * from '../components/auth/index';
+// Logging
+export * from '../components/logging/index';
+// Security
+export * from '../components/security/index';
+// Monitoring
+export * from '../components/monitoring/index';
 // Main Database class
 import { NetworkManager } from '../components/network/network_manager';
 import { FileStorage } from '../components/storage/storage';

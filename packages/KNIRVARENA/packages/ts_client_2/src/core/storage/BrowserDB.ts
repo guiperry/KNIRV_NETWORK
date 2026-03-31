@@ -4,8 +4,15 @@
  */
 
 import { BrowserStorage } from './BrowserStorage';
-import { Collection } from '../../../../KNIRVBASE/ts/src/lib/index';
-import { NetworkConfig } from '../../../../KNIRVBASE/ts/src/components/types/types';
+// import { Collection, NetworkConfig } from '@knirvcorp/knirvbase-ts';
+
+// Temporary type definitions
+interface Collection {
+  // placeholder
+}
+interface NetworkConfig {
+  // placeholder
+}
 
 export interface Options {
   dataDir?: string;

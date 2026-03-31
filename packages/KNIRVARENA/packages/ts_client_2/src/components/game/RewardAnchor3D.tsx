@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { RewardAnchor, useKnirvana } from "./stores/useKnirvana";
 
@@ -33,7 +33,7 @@ export default function RewardAnchor3D({ anchor }: RewardAnchor3DProps) {
     }
   });
 
-  const handleClick = (e: THREE.Event) => {
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     selectRewardAnchor(anchor.id);
   };

@@ -1,0 +1,18 @@
+---
+description: TypeScript patterns for KNIRVARENA Three.js game, KNIRVBASE SDK, and KNIRVSERVER Next.js frontend
+globs: ["packages/KNIRVARENA/**/*.ts", "packages/KNIRVARENA/**/*.tsx", "packages/KNIRVBASE/ts/**/*.ts", "packages/KNIRVSERVER/frontend/**/*.tsx"]
+alwaysApply: false
+---
+
+# TypeScript Patterns
+
+- Use `unknown` not `any` — enforced across all KNIRV TypeScript packages
+- Import KNIRVBASE types from `packages/KNIRVBASE/ts/dist/lib/index.js`
+- New KNIRVBASE components go in `packages/KNIRVBASE/ts/dist/components/` (auth, security, monitoring, logging)
+- SDK errors extend `KnirvchainTransactionSDKError` from `packages/KNIRVSDK/ts/transaction/src/core/error.ts`
+- API calls use `APIPromise<T>` from `packages/KNIRVSDK/ts/transaction/src/core/api-promise.ts`
+- KNIRVARENA game components: Three.js patterns in `packages/KNIRVARENA/packages/ts_client_2/src/components/game/`
+- Agent compiler output in `src/core/agent-core-compiler/build/` — each agent is a separate index.ts
+- KNIRVSERVER frontend: Next.js app at `packages/KNIRVSERVER/frontend/` built to `packages/KNIRVSERVER/frontend/out/`
+- Dashboard components: `packages/KNIRVSERVER/frontend/src/components/dashboard/`
+- Storage: browser-side persistence via `src/core/storage/BrowserDB.ts` and `BrowserStorage.ts`

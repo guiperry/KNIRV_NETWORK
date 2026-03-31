@@ -1,15 +1,15 @@
-# Model Server
+# Tool Server
 
-A standalone HTTP server for serving, uploading, and managing WASM Plugin Model files in the KNIRVSERVER ecosystem.
+A standalone HTTP server for serving, uploading, and managing WASM Plugin Tool files in the KNIRVSERVER ecosystem.
 
 ## Overview
 
-The Plugin Model Server provides a simple HTTP API for managing compiled WASM plugin models. It supports:
+The Plugin Tool Server provides a simple HTTP API for managing compiled WASM plugin tools. It supports:
 
-- **File Serving**: Download plugin model files via HTTP
-- **File Upload**: Upload new plugin model files
-- **File Listing**: List all available plugin models
-- **File Management**: Delete plugin model files
+- **File Serving**: Download plugin tool files via HTTP
+- **File Upload**: Upload new plugin tool files
+- **File Listing**: List all available plugin tools
+- **File Management**: Delete plugin tool files
 - **Server Info**: Get server status and configuration
 
 ## Quick Start
@@ -30,16 +30,16 @@ make build-all
 ### Running
 
 ```bash
-# Run with default settings (port 8082, ./models directory)
+# Run with default settings (port 8082, ./tools directory)
 ./plugin-server
 
 # Run with custom settings
-./plugin-server --port 8081 --models ./my-models --name "My Server"
+./plugin-server --port 8081 --tools ./my-tools --name "My Server"
 
 # Run with all options
 ./plugin-server \
   --port 8082 \
-  --models ./models \
+  --tools ./tools \
   --name "Production Server" \
   --register \
   --api http://localhost:3000 \
@@ -64,8 +64,8 @@ make clean
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--port` | `8082` | Port to listen on |
-| `--models` | `./models` | Directory containing Plugin Models |
-| `--name` | `"KNIRVSERVER Plugin Model Server"` | Name of this server instance |
+| `--tools` | `./tools` | Directory containing Plugin Tools |
+| `--name` | `"KNIRVSERVER Plugin Tool Server"` | Name of this server instance |
 | `--register` | `false` | Register this server with the KNIRVSERVER system |
 | `--api` | `http://localhost:3000` | URL of the KNIRVSERVER API |
 | `--cors` | `true` | Enable CORS headers |
@@ -78,23 +78,23 @@ Get server information and status.
 **Response:**
 ```json
 {
-  "name": "KNIRVSERVER Plugin Model Server",
+  "name": "KNIRVSERVER Plugin Tool Server",
   "port": 8082,
-  "model_dir": "./models",
+  "tool_dir": "./tools",
   "start_time": "2024-01-01T12:00:00Z",
   "version": "1.0.0"
 }
 ```
 
 ### GET /list
-List all available plugin models.
+List all available plugin tools.
 
 **Response:**
 ```json
 {
-  "models": [
+  "tools": [
     {
-      "name": "my-model.wasm",
+      "name": "my-tool.wasm",
       "size": 1024,
       "last_modified": "2024-01-01T12:00:00Z"
     }
@@ -103,69 +103,69 @@ List all available plugin models.
 }
 ```
 
-### GET /models/{name}
-Download a specific plugin model file.
+### GET /tools/{name}
+Download a specific plugin tool file.
 
 **Parameters:**
-- `name`: Name of the plugin model file
+- `name`: Name of the plugin tool file
 
 **Response:** Binary file download
 
 ### POST /upload
-Upload a new plugin model file.
+Upload a new plugin tool file.
 
-**Request:** Multipart form with `plugin-model` file field
+**Request:** Multipart form with `plugin-tool` file field
 
 **Response:**
 ```json
 {
   "success": true,
-  "filename": "my-model.wasm",
+  "filename": "my-tool.wasm",
   "size": 1024,
-  "message": "Plugin model uploaded successfully"
+  "message": "Plugin tool uploaded successfully"
 }
 ```
 
 ### DELETE /delete/{name}
-Delete a plugin model file.
+Delete a plugin tool file.
 
 **Parameters:**
-- `name`: Name of the plugin model file to delete
+- `name`: Name of the plugin tool file to delete
 
 **Response:**
 ```json
 {
   "success": true,
-  "message": "Model deleted successfully"
+  "message": "Tool deleted successfully"
 }
 ```
 
 ## Usage Examples
 
-### Upload a Plugin Model
+### Upload a Plugin Tool
 
 ```bash
 curl -X POST \
-  -F "plugin-model=@my-model.wasm" \
+  -F "plugin-tool=@my-tool.wasm" \
   http://localhost:8082/upload
 ```
 
-### Download a Plugin Model
+### Download a Plugin Tool
 
 ```bash
-curl -O http://localhost:8082/models/my-model.wasm
+curl -O http://localhost:8082/tools/my-tool.wasm
 ```
 
-### List Available Models
+### List Available Tools
 
 ```bash
 curl http://localhost:8082/list
 ```
 
-### Delete an Model
+### Delete an Tool
 
 ```bash
-curl -X DELETE http://localhost:8082/delete/my-model.wasm
+curl -X DELETE http://localhost:8082/delete/my-tool.wasm
 ```
 
 ## Security Considerations
@@ -177,10 +177,10 @@ curl -X DELETE http://localhost:8082/delete/my-model.wasm
 
 ## Integration with KNIRVSERVER
 
-The server can be registered with the KNIRVSERVER system using the `--register` flag. This allows the blockchain to track server instances and their available plugin models.
+The server can be registered with the KNIRVSERVER system using the `--register` flag. This allows the blockchain to track server instances and their available plugin tools.
 
 When registered, the server provides a reliable endpoint for:
-- Plugin model distribution
+- Plugin tool distribution
 - Version management
 - Load balancing across multiple server instances
 
@@ -199,8 +199,8 @@ cmd/plugin-server/
 
 ```bash
 # Clone the repository
-git clone https://github.com/guiperry/modelchain.git
-cd modelchain/cmd/plugin-server
+git clone https://github.com/guiperry/toolchain.git
+cd toolchain/cmd/plugin-server
 
 # Install dependencies
 make deps

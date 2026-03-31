@@ -1,4 +1,6 @@
 import { Verifier, ScoreWeights } from '../../../src/engine/Verifier';
+import type { SolutionProposal, AgentPersona } from '../../../src/services/gameLLMService';
+import type { Challenge } from '../../../src/data/challenges';
 
 describe('Verifier', () => {
   let verifier: Verifier;
@@ -9,7 +11,8 @@ describe('Verifier', () => {
   
   describe('initialization', () => {
     it('should initialize with correct default weights', () => {
-      verifier.updateRequirements(42, 1000);
+      // Verifier initializes with default weights, no updateRequirements method
+      expect(verifier).toBeDefined();
     });
   });
   
@@ -29,10 +32,34 @@ describe('Verifier', () => {
     });
   });
   
-  describe('evaluate', () => {
-    it('should evaluate code and return score', async () => {
-      verifier.updateRequirements(42, 1000);
-      const score = await verifier.evaluate('return 42;', {});
+  describe('evaluateProposal', () => {
+    it('should evaluate proposal and return score', async () => {
+      const mockProposal: SolutionProposal = {
+        chainOfThought: ['Simple solution'],
+        solution: 'return 42;',
+        estimatedLatency: 100
+      };
+      const mockChallenge: Challenge = {
+        id: 'test',
+        title: 'Test Challenge',
+        type: 'Logic Error',
+        difficulty: 0.5,
+        bounty: 100,
+        description: 'Return 42',
+        buggyCode: 'return 0;',
+        context: 'Should return 42',
+        hints: []
+      };
+      const mockPersona: AgentPersona = {
+        id: 'test',
+        name: 'Test Agent',
+        systemPrompt: 'You are a test agent',
+        winRate: 0.8,
+        totalEpochs: 10,
+        wins: 8
+      };
+      
+      const score = await verifier.evaluateProposal(mockProposal, mockChallenge, mockPersona);
       
       expect(typeof score).toBe('number');
       expect(score).toBeGreaterThanOrEqual(0);
@@ -40,23 +67,69 @@ describe('Verifier', () => {
     });
     
     it('should apply constraints', async () => {
-      verifier.updateRequirements(42, 1000);
+      const mockProposal: SolutionProposal = {
+        chainOfThought: ['Simple solution'],
+        solution: 'return 42;',
+        estimatedLatency: 100
+      };
+      const mockChallenge: Challenge = {
+        id: 'test',
+        title: 'Test Challenge',
+        type: 'Logic Error',
+        difficulty: 0.5,
+        bounty: 100,
+        description: 'Return 42',
+        buggyCode: 'return 0;',
+        context: 'Should return 42',
+        hints: []
+      };
+      const mockPersona: AgentPersona = {
+        id: 'test',
+        name: 'Test Agent',
+        systemPrompt: 'You are a test agent',
+        winRate: 0.8,
+        totalEpochs: 10,
+        wins: 8
+      };
       
       // Add constraint that returns true (should not affect score)
       verifier.addConstraint('valid-result', (res: any) => res === 42);
       
-      const score = await verifier.evaluate('return 42;', {});
+      const score = await verifier.evaluateProposal(mockProposal, mockChallenge, mockPersona);
       
       expect(typeof score).toBe('number');
     });
     
     it('should penalize failing constraints', async () => {
-      verifier.updateRequirements(42, 1000);
+      const mockProposal: SolutionProposal = {
+        chainOfThought: ['Simple solution'],
+        solution: 'return 42;',
+        estimatedLatency: 100
+      };
+      const mockChallenge: Challenge = {
+        id: 'test',
+        title: 'Test Challenge',
+        type: 'Logic Error',
+        difficulty: 0.5,
+        bounty: 100,
+        description: 'Return 42',
+        buggyCode: 'return 0;',
+        context: 'Should return 42',
+        hints: []
+      };
+      const mockPersona: AgentPersona = {
+        id: 'test',
+        name: 'Test Agent',
+        systemPrompt: 'You are a test agent',
+        winRate: 0.8,
+        totalEpochs: 10,
+        wins: 8
+      };
       
       // Add constraint that returns false
       verifier.addConstraint('invalid-result', (res: any) => res !== 42);
       
-      const score = await verifier.evaluate('return 42;', {});
+      const score = await verifier.evaluateProposal(mockProposal, mockChallenge, mockPersona);
       
       expect(typeof score).toBe('number');
     });

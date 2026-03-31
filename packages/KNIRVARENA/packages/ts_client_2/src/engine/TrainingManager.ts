@@ -1,5 +1,5 @@
 import { TrajectoryStep } from '../types/Trajectory';
-import { RFTAgent } from '../types/Agent';
+import { AgentResources } from '../types/Agent';
 
 export class TrainingManager {
     /**
@@ -14,7 +14,7 @@ export class TrainingManager {
     /**
      * The Hibernate mechanic: Trades speed for Parity.
      */
-    public harden(agent: RFTAgent) {
+    public harden(agent: { resources: AgentResources }) {
         agent.resources.parity += 20; // Build defense
         agent.resources.compute += 50; // Generate passive income
     }
@@ -70,7 +70,7 @@ export class TrainingManager {
     /**
      * The Stress Test mechanic: Runs agent through variations to build robustness
      */
-    public async stressTest(agent: RFTAgent, variations: string[]): Promise<number> {
+    public async stressTest(agent: { id: string; resources: AgentResources }, variations: string[]): Promise<number> {
         // Simulate stress testing
         let successCount = 0;
         

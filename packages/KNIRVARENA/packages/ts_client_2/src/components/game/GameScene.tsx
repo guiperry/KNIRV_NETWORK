@@ -1,5 +1,5 @@
 import React from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame, useThree, ThreeEvent } from "@react-three/fiber";
 import { useRef, useMemo } from "react";
 import * as THREE from "three";
 import GameLights from "./GameLights";
@@ -17,7 +17,7 @@ export default function GameScene() {
   const { themeMode } = useThemeStore();
 
   // Handle floor click for placing reward anchors in sculpt mode
-  const handleFloorClick = (event: THREE.Event) => {
+  const handleFloorClick = (event: ThreeEvent<MouseEvent>) => {
     if (!isSculpting) return;
 
     event.stopPropagation();

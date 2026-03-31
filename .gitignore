@@ -123,3 +123,6 @@ devtools/KNIRVSYNC/doc-sync
 devtools/KNIRVSYNC/sync-tool
 packages/KNIRVSERVER/backend/backend_server
 devtools/network-monitor/bin/knirv-network-monitor
+
+# Caliber local state
+.caliber/

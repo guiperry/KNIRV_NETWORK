@@ -6,7 +6,7 @@
 
 import { personalKNIRVGRAPHService, GraphNode, PersonalGraph } from './PersonalKNIRVGRAPHService';
 import { knirvbaseService } from './KNIRVBASEService';
-import { flatbuffers } from 'flatbuffers';
+import * as flatbuffers from 'flatbuffers';
 import { Player } from '../flatbuffers/knirv/schema/player';
 import { Agent } from '../flatbuffers/knirv/schema/agent';
 import { Vec3 } from '../flatbuffers/knirv/schema/vec3';

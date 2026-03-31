@@ -206,6 +206,43 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     { id: 4, title: 'Sovereignty', description: 'Secure the Vault' }
   ];
 
+  const submitOrganizationContext = async (walletName: string) => {
+    try {
+      const guidelines = formData.connectionData.customRules.map(r => r.description || r.name || '').filter(Boolean);
+      const statedValues = formData.selectedInputs;
+
+      const orgPayload = {
+        organization_id: walletName,
+        name: walletName,
+        value_system: {
+          guidelines,
+          stated_values: statedValues,
+          mission_statement: `Data Fabric for ${walletName}`,
+          risk_appetite: {
+            level: formData.guardrails.computeCostCap ? 'medium' : 'high',
+            tolerance_score: formData.guardrails.networkDrift ? 0.6 : 0.9,
+            max_loss_percent: 10.0,
+            recovery_time: '24h',
+          },
+        },
+        ontology: {
+          policies: formData.connectionData.policyCerts.map(c => c.description || c.name || '').filter(Boolean),
+          regulations: [],
+          trade_secrets: [],
+          rules: formData.connectionData.customRules.map(r => r.description || '').filter(Boolean),
+        },
+      };
+
+      await fetch(`${API_BASE_URL}/api/onboarding/organizations`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(orgPayload),
+      });
+    } catch (error) {
+      console.error('Failed to submit organization context:', error);
+    }
+  };
+
   const handleNext = async () => {
     if (step < 4) {
       setStep(step + 1);
@@ -213,15 +250,18 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
     } else {
       setIsSubmitting(true);
       setSubmitError(null);
-      
+
       try {
         const walletName = formData.walletName || 'DEFAULT-WALLET';
-        
-        await submitGuardrailsToBackend(
-          walletName,
-          formData.connectionData.policyCerts,
-          formData.connectionData.customRules
-        );
+
+        await Promise.all([
+          submitGuardrailsToBackend(
+            walletName,
+            formData.connectionData.policyCerts,
+            formData.connectionData.customRules
+          ),
+          submitOrganizationContext(walletName),
+        ]);
 
         onComplete({
           walletName,

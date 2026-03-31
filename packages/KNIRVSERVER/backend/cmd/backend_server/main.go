@@ -1362,6 +1362,9 @@ func (s *Server) setupRoutes() {
 	// Register guardrail and policy routes
 	if s.guardrailManager != nil {
 		guardrailHandlers := web.NewGuardrailHandlers(s.guardrailManager, s.policyEngine)
+		if s.eventBroadcaster != nil {
+			guardrailHandlers.SetEventBroadcaster(s.eventBroadcaster)
+		}
 		guardrailHandlers.RegisterRoutes(s.router)
 		log.Println("Guardrail and Policy routes configured")
 	}

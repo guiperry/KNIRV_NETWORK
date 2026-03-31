@@ -25,7 +25,7 @@ export class ArenaClient {
     this.lobbyChannel = this.socket.channel("arena:lobby", {});
     this.lobbyChannel.join()
       .receive("ok", () => console.log("Joined KNIRVARENA Lobby"))
-      .receive("error", resp => console.error("Unable to join lobby", resp));
+      .receive("error", (resp: any) => console.error("Unable to join lobby", resp));
       
     // Listen for new bounties
     this.lobbyChannel.on("new_bounty", (payload: BountyContext) => {
@@ -51,7 +51,7 @@ export class ArenaClient {
         // Send join_session message as per implementation in Elixir
         channel.push("join_session", { user_id: userId, reputation_score: reputationScore });
       })
-      .receive("error", resp => console.error("Access Denied", resp));
+      .receive("error", (resp: any) => console.error("Access Denied", resp));
 
     this.resolutionChannels.set(errorId, channel);
     return channel;
@@ -63,11 +63,11 @@ export class ArenaClient {
 
     return new Promise((resolve, reject) => {
       channel.push("submit_solution", { trajectory, user_id: userId })
-        .receive("ok", (msg) => {
+        .receive("ok", (msg: any) => {
           console.log("Solution Validated!", msg);
           resolve(msg);
         })
-        .receive("error", (reasons) => {
+        .receive("error", (reasons: any) => {
           console.error("Logic Failure", reasons);
           reject(reasons);
         });
