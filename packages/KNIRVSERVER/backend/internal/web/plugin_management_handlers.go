@@ -7,21 +7,21 @@ import (
 	"time"
 
 	"backend_server/internal/objects"
-	"backend_server/internal/services/fabricmanagement"
+	"backend_server/internal/services/pluginmanagement"
 	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )
 
-type FabricManagementHandlers struct {
-	fabricManagementService *fabricmanagement.FabricManagementService
+type PluginManagementHandlers struct {
+	pluginManagementService *pluginmanagement.PluginManagementService
 }
 
-func NewFabricManagementHandlers(fabricManagementService *fabricmanagement.FabricManagementService) *FabricManagementHandlers {
-	return &FabricManagementHandlers{fabricManagementService: fabricManagementService}
+func NewPluginManagementHandlers(pluginManagementService *pluginmanagement.PluginManagementService) *PluginManagementHandlers {
+	return &PluginManagementHandlers{pluginManagementService: pluginManagementService}
 }
 
-type FabricManagementResponse struct {
+type PluginManagementResponse struct {
 	Success   bool        `json:"success"`
 	Data      interface{} `json:"data,omitempty"`
 	Message   string      `json:"message,omitempty"`
@@ -29,16 +29,16 @@ type FabricManagementResponse struct {
 	Timestamp string      `json:"timestamp"`
 }
 
-// GetFabrics handles GET /api/fabric-management/objects
-func (h *FabricManagementHandlers) GetFabrics(w http.ResponseWriter, r *http.Request) {
+// GetPlugins handles GET /api/plugin-management/objects
+func (h *PluginManagementHandlers) GetPlugins(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters for filtering
-	filter := &objects.FabricFilter{}
+	filter := &objects.PluginFilter{}
 
 	if status := r.URL.Query().Get("status"); status != "" {
 		filter.Status = []string{status}
 	}
-	if fabricType := r.URL.Query().Get("type"); fabricType != "" {
-		filter.Type = []string{fabricType}
+	if pluginType := r.URL.Query().Get("type"); pluginType != "" {
+		filter.Type = []string{pluginType}
 	}
 	if author := r.URL.Query().Get("author"); author != "" {
 		filter.Author = author
@@ -54,11 +54,11 @@ func (h *FabricManagementHandlers) GetFabrics(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	objects, err := h.fabricManagementService.GetAllFabrics(filter)
+	objects, err := h.pluginManagementService.GetAllPlugins(filter)
 	if err != nil {
-		response := FabricManagementResponse{
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Failed to retrieve fabric objects: " + err.Error(),
+			Error:     "Failed to retrieve plugin objects: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -67,7 +67,7 @@ func (h *FabricManagementHandlers) GetFabrics(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
 		Data:      objects,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -77,15 +77,15 @@ func (h *FabricManagementHandlers) GetFabrics(w http.ResponseWriter, r *http.Req
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetFabric handles GET /api/fabric-management/objects/{id}
-func (h *FabricManagementHandlers) GetFabric(w http.ResponseWriter, r *http.Request) {
+// GetPlugin handles GET /api/plugin-management/objects/{id}
+func (h *PluginManagementHandlers) GetPlugin(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	fabricID := vars["id"]
+	pluginID := vars["id"]
 
-	if fabricID == "" {
-		response := FabricManagementResponse{
+	if pluginID == "" {
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Fabric ID is required",
+			Error:     "Plugin ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -94,11 +94,11 @@ func (h *FabricManagementHandlers) GetFabric(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	fabric, err := h.fabricManagementService.GetFabric(fabricID)
+	plugin, err := h.pluginManagementService.GetPlugin(pluginID)
 	if err != nil {
-		response := FabricManagementResponse{
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Failed to retrieve fabric unit: " + err.Error(),
+			Error:     "Failed to retrieve plugin unit: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -107,9 +107,9 @@ func (h *FabricManagementHandlers) GetFabric(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
-		Data:      fabric,
+		Data:      plugin,
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
@@ -117,11 +117,11 @@ func (h *FabricManagementHandlers) GetFabric(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(response)
 }
 
-// PostFabric handles POST /api/fabric-management/objects
-func (h *FabricManagementHandlers) PostFabric(w http.ResponseWriter, r *http.Request) {
-	var fabric objects.Fabric
-	if err := json.NewDecoder(r.Body).Decode(&fabric); err != nil {
-		response := FabricManagementResponse{
+// PostPlugin handles POST /api/plugin-management/objects
+func (h *PluginManagementHandlers) PostPlugin(w http.ResponseWriter, r *http.Request) {
+	var plugin objects.Plugin
+	if err := json.NewDecoder(r.Body).Decode(&plugin); err != nil {
+		response := PluginManagementResponse{
 			Success:   false,
 			Error:     "Invalid request body",
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -132,10 +132,10 @@ func (h *FabricManagementHandlers) PostFabric(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := h.fabricManagementService.CreateFabric(&fabric); err != nil {
-		response := FabricManagementResponse{
+	if err := h.pluginManagementService.CreatePlugin(&plugin); err != nil {
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Failed to create fabric item: " + err.Error(),
+			Error:     "Failed to create plugin item: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -144,10 +144,10 @@ func (h *FabricManagementHandlers) PostFabric(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
-		Data:      &fabric,
-		Message:   "Fabric item created successfully",
+		Data:      &plugin,
+		Message:   "Plugin item created successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
@@ -156,15 +156,15 @@ func (h *FabricManagementHandlers) PostFabric(w http.ResponseWriter, r *http.Req
 	json.NewEncoder(w).Encode(response)
 }
 
-// PutFabric handles PUT /api/fabric-management/objects/{id}
-func (h *FabricManagementHandlers) PutFabric(w http.ResponseWriter, r *http.Request) {
+// PutPlugin handles PUT /api/plugin-management/objects/{id}
+func (h *PluginManagementHandlers) PutPlugin(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	fabricID := vars["id"]
+	pluginID := vars["id"]
 
-	if fabricID == "" {
-		response := FabricManagementResponse{
+	if pluginID == "" {
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Fabric ID is required",
+			Error:     "Plugin ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -173,9 +173,9 @@ func (h *FabricManagementHandlers) PutFabric(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var updates objects.Fabric
+	var updates objects.Plugin
 	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
-		response := FabricManagementResponse{
+		response := PluginManagementResponse{
 			Success:   false,
 			Error:     "Invalid request body",
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -186,10 +186,10 @@ func (h *FabricManagementHandlers) PutFabric(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.fabricManagementService.UpdateFabric(fabricID, &updates); err != nil {
-		response := FabricManagementResponse{
+	if err := h.pluginManagementService.UpdatePlugin(pluginID, &updates); err != nil {
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Failed to update fabric item: " + err.Error(),
+			Error:     "Failed to update plugin item: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -198,9 +198,9 @@ func (h *FabricManagementHandlers) PutFabric(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
-		Message:   "Fabric item updated successfully",
+		Message:   "Plugin item updated successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
@@ -208,15 +208,15 @@ func (h *FabricManagementHandlers) PutFabric(w http.ResponseWriter, r *http.Requ
 	json.NewEncoder(w).Encode(response)
 }
 
-// DeleteFabric handles DELETE /api/fabric-management/objects/{id}
-func (h *FabricManagementHandlers) DeleteFabric(w http.ResponseWriter, r *http.Request) {
+// DeletePlugin handles DELETE /api/plugin-management/objects/{id}
+func (h *PluginManagementHandlers) DeletePlugin(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	fabricID := vars["id"]
+	pluginID := vars["id"]
 
-	if fabricID == "" {
-		response := FabricManagementResponse{
+	if pluginID == "" {
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Fabric ID is required",
+			Error:     "Plugin ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -225,10 +225,10 @@ func (h *FabricManagementHandlers) DeleteFabric(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := h.fabricManagementService.DeleteFabric(fabricID); err != nil {
-		response := FabricManagementResponse{
+	if err := h.pluginManagementService.DeletePlugin(pluginID); err != nil {
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Failed to delete fabric unit: " + err.Error(),
+			Error:     "Failed to delete plugin unit: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -237,9 +237,9 @@ func (h *FabricManagementHandlers) DeleteFabric(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
-		Message:   "Fabric unit deleted successfully",
+		Message:   "Plugin unit deleted successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
@@ -247,15 +247,15 @@ func (h *FabricManagementHandlers) DeleteFabric(w http.ResponseWriter, r *http.R
 	json.NewEncoder(w).Encode(response)
 }
 
-// PostFabricAction handles POST /api/fabric-management/objects/{id}/actions
-func (h *FabricManagementHandlers) PostFabricAction(w http.ResponseWriter, r *http.Request) {
+// PostPluginAction handles POST /api/plugin-management/objects/{id}/actions
+func (h *PluginManagementHandlers) PostPluginAction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	fabricID := vars["id"]
+	pluginID := vars["id"]
 
-	if fabricID == "" {
-		response := FabricManagementResponse{
+	if pluginID == "" {
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Fabric ID is required",
+			Error:     "Plugin ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -264,9 +264,9 @@ func (h *FabricManagementHandlers) PostFabricAction(w http.ResponseWriter, r *ht
 		return
 	}
 
-	var action objects.FabricAction
+	var action objects.PluginAction
 	if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
-		response := FabricManagementResponse{
+		response := PluginManagementResponse{
 			Success:   false,
 			Error:     "Invalid request body",
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -277,8 +277,8 @@ func (h *FabricManagementHandlers) PostFabricAction(w http.ResponseWriter, r *ht
 		return
 	}
 
-	if err := h.fabricManagementService.ExecuteFabricAction(fabricID, &action); err != nil {
-		response := FabricManagementResponse{
+	if err := h.pluginManagementService.ExecutePluginAction(pluginID, &action); err != nil {
+		response := PluginManagementResponse{
 			Success:   false,
 			Error:     "Failed to execute action: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -289,7 +289,7 @@ func (h *FabricManagementHandlers) PostFabricAction(w http.ResponseWriter, r *ht
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
 		Message:   "Action executed successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -299,11 +299,11 @@ func (h *FabricManagementHandlers) PostFabricAction(w http.ResponseWriter, r *ht
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetFabricSummary handles GET /api/fabric-management/summary
-func (h *FabricManagementHandlers) GetFabricSummary(w http.ResponseWriter, r *http.Request) {
-	summary := h.fabricManagementService.GetFabricSummary()
+// GetPluginSummary handles GET /api/plugin-management/summary
+func (h *PluginManagementHandlers) GetPluginSummary(w http.ResponseWriter, r *http.Request) {
+	summary := h.pluginManagementService.GetPluginSummary()
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
 		Data:      summary,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -313,15 +313,15 @@ func (h *FabricManagementHandlers) GetFabricSummary(w http.ResponseWriter, r *ht
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetFabricMetrics handles GET /api/fabric-management/objects/{id}/metrics
-func (h *FabricManagementHandlers) GetFabricMetrics(w http.ResponseWriter, r *http.Request) {
+// GetPluginMetrics handles GET /api/plugin-management/objects/{id}/metrics
+func (h *PluginManagementHandlers) GetPluginMetrics(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	fabricID := vars["id"]
+	pluginID := vars["id"]
 
-	if fabricID == "" {
-		response := FabricManagementResponse{
+	if pluginID == "" {
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Fabric ID is required",
+			Error:     "Plugin ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -337,9 +337,9 @@ func (h *FabricManagementHandlers) GetFabricMetrics(w http.ResponseWriter, r *ht
 		}
 	}
 
-	metrics, err := h.fabricManagementService.GetFabricMetrics(fabricID, limit)
+	metrics, err := h.pluginManagementService.GetPluginMetrics(pluginID, limit)
 	if err != nil {
-		response := FabricManagementResponse{
+		response := PluginManagementResponse{
 			Success:   false,
 			Error:     "Failed to retrieve metrics: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -350,7 +350,7 @@ func (h *FabricManagementHandlers) GetFabricMetrics(w http.ResponseWriter, r *ht
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
 		Data:      metrics,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -360,15 +360,15 @@ func (h *FabricManagementHandlers) GetFabricMetrics(w http.ResponseWriter, r *ht
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetFabricLogs handles GET /api/fabric-management/objects/{id}/logs
-func (h *FabricManagementHandlers) GetFabricLogs(w http.ResponseWriter, r *http.Request) {
+// GetPluginLogs handles GET /api/plugin-management/objects/{id}/logs
+func (h *PluginManagementHandlers) GetPluginLogs(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	fabricID := vars["id"]
+	pluginID := vars["id"]
 
-	if fabricID == "" {
-		response := FabricManagementResponse{
+	if pluginID == "" {
+		response := PluginManagementResponse{
 			Success:   false,
-			Error:     "Fabric ID is required",
+			Error:     "Plugin ID is required",
 			Timestamp: time.Now().Format(time.RFC3339),
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -384,9 +384,9 @@ func (h *FabricManagementHandlers) GetFabricLogs(w http.ResponseWriter, r *http.
 		}
 	}
 
-	logs, err := h.fabricManagementService.GetFabricLogs(fabricID, limit)
+	logs, err := h.pluginManagementService.GetPluginLogs(pluginID, limit)
 	if err != nil {
-		response := FabricManagementResponse{
+		response := PluginManagementResponse{
 			Success:   false,
 			Error:     "Failed to retrieve logs: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -397,7 +397,7 @@ func (h *FabricManagementHandlers) GetFabricLogs(w http.ResponseWriter, r *http.
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
 		Data:      logs,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -407,10 +407,10 @@ func (h *FabricManagementHandlers) GetFabricLogs(w http.ResponseWriter, r *http.
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetFabricEvents handles GET /api/fabric-management/objects/{id}/events
-func (h *FabricManagementHandlers) GetFabricEvents(w http.ResponseWriter, r *http.Request) {
+// GetPluginEvents handles GET /api/plugin-management/objects/{id}/events
+func (h *PluginManagementHandlers) GetPluginEvents(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	fabricID := vars["id"]
+	pluginID := vars["id"]
 
 	limit := 100
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
@@ -419,9 +419,9 @@ func (h *FabricManagementHandlers) GetFabricEvents(w http.ResponseWriter, r *htt
 		}
 	}
 
-	events, err := h.fabricManagementService.GetFabricEvents(fabricID, limit)
+	events, err := h.pluginManagementService.GetPluginEvents(pluginID, limit)
 	if err != nil {
-		response := FabricManagementResponse{
+		response := PluginManagementResponse{
 			Success:   false,
 			Error:     "Failed to retrieve events: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -432,7 +432,7 @@ func (h *FabricManagementHandlers) GetFabricEvents(w http.ResponseWriter, r *htt
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
 		Data:      events,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -442,11 +442,11 @@ func (h *FabricManagementHandlers) GetFabricEvents(w http.ResponseWriter, r *htt
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetFabricTemplates handles GET /api/fabric-management/templates
-func (h *FabricManagementHandlers) GetFabricTemplates(w http.ResponseWriter, r *http.Request) {
-	templates, err := h.fabricManagementService.GetFabricTemplates()
+// GetPluginTemplates handles GET /api/plugin-management/templates
+func (h *PluginManagementHandlers) GetPluginTemplates(w http.ResponseWriter, r *http.Request) {
+	templates, err := h.pluginManagementService.GetPluginTemplates()
 	if err != nil {
-		response := FabricManagementResponse{
+		response := PluginManagementResponse{
 			Success:   false,
 			Error:     "Failed to retrieve templates: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -457,7 +457,7 @@ func (h *FabricManagementHandlers) GetFabricTemplates(w http.ResponseWriter, r *
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
 		Data:      templates,
 		Timestamp: time.Now().Format(time.RFC3339),
@@ -467,11 +467,11 @@ func (h *FabricManagementHandlers) GetFabricTemplates(w http.ResponseWriter, r *
 	json.NewEncoder(w).Encode(response)
 }
 
-// PostFabricTemplate handles POST /api/fabric-management/templates
-func (h *FabricManagementHandlers) PostFabricTemplate(w http.ResponseWriter, r *http.Request) {
-	var template objects.FabricTemplate
+// PostPluginTemplate handles POST /api/plugin-management/templates
+func (h *PluginManagementHandlers) PostPluginTemplate(w http.ResponseWriter, r *http.Request) {
+	var template objects.PluginTemplate
 	if err := json.NewDecoder(r.Body).Decode(&template); err != nil {
-		response := FabricManagementResponse{
+		response := PluginManagementResponse{
 			Success:   false,
 			Error:     "Invalid request body",
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -482,8 +482,8 @@ func (h *FabricManagementHandlers) PostFabricTemplate(w http.ResponseWriter, r *
 		return
 	}
 
-	if err := h.fabricManagementService.CreateFabricTemplate(&template); err != nil {
-		response := FabricManagementResponse{
+	if err := h.pluginManagementService.CreatePluginTemplate(&template); err != nil {
+		response := PluginManagementResponse{
 			Success:   false,
 			Error:     "Failed to create template: " + err.Error(),
 			Timestamp: time.Now().Format(time.RFC3339),
@@ -494,7 +494,7 @@ func (h *FabricManagementHandlers) PostFabricTemplate(w http.ResponseWriter, r *
 		return
 	}
 
-	response := FabricManagementResponse{
+	response := PluginManagementResponse{
 		Success:   true,
 		Data:      &template,
 		Message:   "Template created successfully",
@@ -506,35 +506,35 @@ func (h *FabricManagementHandlers) PostFabricTemplate(w http.ResponseWriter, r *
 	json.NewEncoder(w).Encode(response)
 }
 
-// RegisterRoutes registers the fabric management routes with the router
-func (h *FabricManagementHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
-	// Create a subrouter for fabric management endpoints
-	fabricRouter := r.PathPrefix("/api/fabric-management").Subrouter()
+// RegisterRoutes registers the plugin management routes with the router
+func (h *PluginManagementHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
+	// Create a subrouter for plugin management endpoints
+	pluginRouter := r.PathPrefix("/api/plugin-management").Subrouter()
 
 	// Handle OPTIONS preflight requests globally for this subrouter
-	fabricRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	pluginRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// Fabric CRUD operations (public for development)
-	fabricRouter.HandleFunc("/objects", h.GetFabrics).Methods("GET")
-	fabricRouter.HandleFunc("/objects", h.PostFabric).Methods("POST")
-	fabricRouter.HandleFunc("/objects/{id}", h.GetFabric).Methods("GET")
-	fabricRouter.HandleFunc("/objects/{id}", h.PutFabric).Methods("PUT")
-	fabricRouter.HandleFunc("/objects/{id}", h.DeleteFabric).Methods("DELETE")
+	// Plugin CRUD operations (public for development)
+	pluginRouter.HandleFunc("/objects", h.GetPlugins).Methods("GET")
+	pluginRouter.HandleFunc("/objects", h.PostPlugin).Methods("POST")
+	pluginRouter.HandleFunc("/objects/{id}", h.GetPlugin).Methods("GET")
+	pluginRouter.HandleFunc("/objects/{id}", h.PutPlugin).Methods("PUT")
+	pluginRouter.HandleFunc("/objects/{id}", h.DeletePlugin).Methods("DELETE")
 
-	// Fabric actions
-	fabricRouter.HandleFunc("/objects/{id}/actions", h.PostFabricAction).Methods("POST")
+	// Plugin actions
+	pluginRouter.HandleFunc("/objects/{id}/actions", h.PostPluginAction).Methods("POST")
 
-	// Fabric monitoring (public for development)
-	fabricRouter.HandleFunc("/objects/{id}/metrics", h.GetFabricMetrics).Methods("GET")
-	fabricRouter.HandleFunc("/objects/{id}/logs", h.GetFabricLogs).Methods("GET")
-	fabricRouter.HandleFunc("/objects/{id}/events", h.GetFabricEvents).Methods("GET")
+	// Plugin monitoring (public for development)
+	pluginRouter.HandleFunc("/objects/{id}/metrics", h.GetPluginMetrics).Methods("GET")
+	pluginRouter.HandleFunc("/objects/{id}/logs", h.GetPluginLogs).Methods("GET")
+	pluginRouter.HandleFunc("/objects/{id}/events", h.GetPluginEvents).Methods("GET")
 
 	// Templates (public for development)
-	fabricRouter.HandleFunc("/templates", h.GetFabricTemplates).Methods("GET")
-	fabricRouter.HandleFunc("/templates", h.PostFabricTemplate).Methods("POST")
+	pluginRouter.HandleFunc("/templates", h.GetPluginTemplates).Methods("GET")
+	pluginRouter.HandleFunc("/templates", h.PostPluginTemplate).Methods("POST")
 
 	// Summary (public for development)
-	fabricRouter.HandleFunc("/summary", h.GetFabricSummary).Methods("GET")
+	pluginRouter.HandleFunc("/summary", h.GetPluginSummary).Methods("GET")
 }

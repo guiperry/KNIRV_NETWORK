@@ -28,8 +28,8 @@ type AgentTask struct {
 	ContainerID string            `json:"container_id"`
 	Title       string            `json:"title"`
 	Description string            `json:"description"`
-	Type        string            `json:"type"`    // research, coding, validation, analysis
-	Status      string            `json:"status"`  // pending, running, completed, failed
+	Type        string            `json:"type"`   // research, coding, validation, analysis
+	Status      string            `json:"status"` // pending, running, completed, failed
 	Priority    int               `json:"priority"`
 	Input       map[string]string `json:"input"`
 	Output      string            `json:"output"`
@@ -168,9 +168,10 @@ func (s *AgentService) GetAgentStatus(dveID string) (*AgentStatus, error) {
 	active, completed := 0, 0
 	for _, t := range s.tasks {
 		if t.DVEID == dveID {
-			if t.Status == "running" || t.Status == "pending" {
+			switch t.Status {
+			case "running", "pending":
 				active++
-			} else if t.Status == "completed" {
+			case "completed":
 				completed++
 			}
 		}
@@ -340,7 +341,7 @@ func (s *AgentService) executeTask(task *AgentTask) {
 		return
 	}
 
-	// Write markdown output to Active Memory (Markdown Fabric).
+	// Write markdown output to Active Memory (Markdown Vault).
 	if s.activeMemory != nil {
 		ctx := context.Background()
 		if err := s.activeMemory.RecordInteraction(ctx, task.DVEID, task.Description, taskResp.MarkdownLog); err != nil {

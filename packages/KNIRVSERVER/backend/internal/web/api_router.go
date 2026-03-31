@@ -11,7 +11,7 @@ import (
 // APIRouter provides unified API routing with versioning
 type APIRouter struct {
 	dveHandlers             *DVEHandlers
-	fabricHandlers          *FabricManagementHandlers
+	pluginHandlers          *PluginManagementHandlers
 	agentHandlers           *AgentHandlers
 	paymentHandlers         *PaymentHandlers
 	knirvcliHandlers        *KNIRVCLIHandlers
@@ -23,7 +23,7 @@ type APIRouter struct {
 // NewAPIRouter creates a new unified API router
 func NewAPIRouter(
 	dveHandlers *DVEHandlers,
-	fabricHandlers *FabricManagementHandlers,
+	pluginHandlers *PluginManagementHandlers,
 	agentHandlers *AgentHandlers,
 	paymentHandlers *PaymentHandlers,
 	knirvcliHandlers *KNIRVCLIHandlers,
@@ -33,7 +33,7 @@ func NewAPIRouter(
 ) *APIRouter {
 	return &APIRouter{
 		dveHandlers:             dveHandlers,
-		fabricHandlers:          fabricHandlers,
+		pluginHandlers:          pluginHandlers,
 		agentHandlers:           agentHandlers,
 		paymentHandlers:         paymentHandlers,
 		knirvcliHandlers:        knirvcliHandlers,
@@ -51,8 +51,8 @@ func (ar *APIRouter) RegisterRoutes(r *mux.Router) {
 	// Register DVE routes under /api/v1/dve/
 	ar.registerDVERoutes(apiV1)
 
-	// Register Fabric routes under /api/v1/fabric/
-	ar.registerFabricRoutes(apiV1)
+	// Register Plugin routes under /api/v1/plugin/
+	ar.registerPluginRoutes(apiV1)
 
 	// Register Agent routes under /api/v1/dve/{id}/agent/
 	ar.registerAgentRoutes(apiV1)
@@ -107,36 +107,36 @@ func (ar *APIRouter) registerDVERoutes(apiV1 *mux.Router) {
 	dveRouter.HandleFunc("/peers", ar.dveHandlers.GetP2PPeers).Methods("GET", "OPTIONS")
 }
 
-// registerFabricRoutes registers Fabric management routes
-func (ar *APIRouter) registerFabricRoutes(apiV1 *mux.Router) {
-	fabricRouter := apiV1.PathPrefix("/fabric").Subrouter()
+// registerPluginRoutes registers Plugin management routes
+func (ar *APIRouter) registerPluginRoutes(apiV1 *mux.Router) {
+	pluginRouter := apiV1.PathPrefix("/plugin").Subrouter()
 
 	// Apply optional auth middleware
 	if ar.authMiddleware != nil {
-		fabricRouter.Use(ar.authMiddleware.OptionalAuth)
+		pluginRouter.Use(ar.authMiddleware.OptionalAuth)
 	}
 
-	// Fabric CRUD operations
-	fabricRouter.HandleFunc("/objects", ar.fabricHandlers.GetFabrics).Methods("GET", "OPTIONS")
-	fabricRouter.HandleFunc("/objects", ar.fabricHandlers.PostFabric).Methods("POST", "OPTIONS")
-	fabricRouter.HandleFunc("/objects/{id}", ar.fabricHandlers.GetFabric).Methods("GET", "OPTIONS")
-	fabricRouter.HandleFunc("/objects/{id}", ar.fabricHandlers.PutFabric).Methods("PUT", "OPTIONS")
-	fabricRouter.HandleFunc("/objects/{id}", ar.fabricHandlers.DeleteFabric).Methods("DELETE", "OPTIONS")
+	// Plugin CRUD operations
+	pluginRouter.HandleFunc("/objects", ar.pluginHandlers.GetPlugins).Methods("GET", "OPTIONS")
+	pluginRouter.HandleFunc("/objects", ar.pluginHandlers.PostPlugin).Methods("POST", "OPTIONS")
+	pluginRouter.HandleFunc("/objects/{id}", ar.pluginHandlers.GetPlugin).Methods("GET", "OPTIONS")
+	pluginRouter.HandleFunc("/objects/{id}", ar.pluginHandlers.PutPlugin).Methods("PUT", "OPTIONS")
+	pluginRouter.HandleFunc("/objects/{id}", ar.pluginHandlers.DeletePlugin).Methods("DELETE", "OPTIONS")
 
-	// Fabric actions
-	fabricRouter.HandleFunc("/objects/{id}/actions", ar.fabricHandlers.PostFabricAction).Methods("POST", "OPTIONS")
+	// Plugin actions
+	pluginRouter.HandleFunc("/objects/{id}/actions", ar.pluginHandlers.PostPluginAction).Methods("POST", "OPTIONS")
 
-	// Fabric monitoring
-	fabricRouter.HandleFunc("/objects/{id}/metrics", ar.fabricHandlers.GetFabricMetrics).Methods("GET", "OPTIONS")
-	fabricRouter.HandleFunc("/objects/{id}/logs", ar.fabricHandlers.GetFabricLogs).Methods("GET", "OPTIONS")
-	fabricRouter.HandleFunc("/objects/{id}/events", ar.fabricHandlers.GetFabricEvents).Methods("GET", "OPTIONS")
+	// Plugin monitoring
+	pluginRouter.HandleFunc("/objects/{id}/metrics", ar.pluginHandlers.GetPluginMetrics).Methods("GET", "OPTIONS")
+	pluginRouter.HandleFunc("/objects/{id}/logs", ar.pluginHandlers.GetPluginLogs).Methods("GET", "OPTIONS")
+	pluginRouter.HandleFunc("/objects/{id}/events", ar.pluginHandlers.GetPluginEvents).Methods("GET", "OPTIONS")
 
 	// Templates
-	fabricRouter.HandleFunc("/templates", ar.fabricHandlers.GetFabricTemplates).Methods("GET", "OPTIONS")
-	fabricRouter.HandleFunc("/templates", ar.fabricHandlers.PostFabricTemplate).Methods("POST", "OPTIONS")
+	pluginRouter.HandleFunc("/templates", ar.pluginHandlers.GetPluginTemplates).Methods("GET", "OPTIONS")
+	pluginRouter.HandleFunc("/templates", ar.pluginHandlers.PostPluginTemplate).Methods("POST", "OPTIONS")
 
 	// Summary
-	fabricRouter.HandleFunc("/summary", ar.fabricHandlers.GetFabricSummary).Methods("GET", "OPTIONS")
+	pluginRouter.HandleFunc("/summary", ar.pluginHandlers.GetPluginSummary).Methods("GET", "OPTIONS")
 }
 
 // registerAgentRoutes registers Agent-related routes
@@ -168,23 +168,14 @@ func (ar *APIRouter) registerPaymentRoutes(apiV1 *mux.Router) {
 
 	// Stripe payment operations
 	paymentRouter.HandleFunc("/stripe/create-session", ar.paymentHandlers.CreateStripeCheckoutSession).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/stripe/create-intent", ar.paymentHandlers.CreateStripePaymentIntent).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/stripe/intent", ar.paymentHandlers.GetStripePaymentIntent).Methods("GET", "OPTIONS")
-	paymentRouter.HandleFunc("/stripe/refund", ar.paymentHandlers.RefundStripePayment).Methods("POST", "OPTIONS")
+	paymentRouter.HandleFunc("/stripe/charge-status", ar.paymentHandlers.GetStripeChargeStatus).Methods("GET", "OPTIONS")
+	paymentRouter.HandleFunc("/stripe/refund", ar.paymentHandlers.RefundStripeCharge).Methods("POST", "OPTIONS")
 
 	// PayPal payment operations
 	paymentRouter.HandleFunc("/paypal/create-order", ar.paymentHandlers.CreatePayPalOrder).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/paypal/order", ar.paymentHandlers.GetPayPalOrder).Methods("GET", "OPTIONS")
+	paymentRouter.HandleFunc("/paypal/order-status", ar.paymentHandlers.GetPayPalOrderStatus).Methods("GET", "OPTIONS")
 	paymentRouter.HandleFunc("/paypal/capture", ar.paymentHandlers.CapturePayPalOrder).Methods("POST", "OPTIONS")
 	paymentRouter.HandleFunc("/paypal/refund", ar.paymentHandlers.RefundPayPalCapture).Methods("POST", "OPTIONS")
-
-	// Blockchain payment operations
-	paymentRouter.HandleFunc("/blockchain/balance", ar.paymentHandlers.GetBlockchainWalletBalance).Methods("GET", "OPTIONS")
-	paymentRouter.HandleFunc("/blockchain/payment", ar.paymentHandlers.CreateBlockchainPayment).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/blockchain/transaction", ar.paymentHandlers.GetBlockchainTransaction).Methods("GET", "OPTIONS")
-	paymentRouter.HandleFunc("/blockchain/verify", ar.paymentHandlers.VerifyBlockchainTransaction).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/blockchain/estimate-gas", ar.paymentHandlers.EstimateBlockchainGas).Methods("POST", "OPTIONS")
-	paymentRouter.HandleFunc("/blockchain/history", ar.paymentHandlers.GetBlockchainTransactionHistory).Methods("GET", "OPTIONS")
 }
 
 // registerKNIRVCLIRoutes registers KNIRVCLI-related routes
@@ -264,10 +255,10 @@ func (ar *APIRouter) registerBackwardCompatibilityRoutes(r *mux.Router) {
 		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
 	})
 
-	// Redirect old /api/fabric-management/ to /api/v1/fabric/
-	r.PathPrefix("/api/fabric-management/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Redirect old /api/plugin-management/ to /api/v1/plugin/
+	r.PathPrefix("/api/plugin-management/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		newPath := "/api/v1/fabric/" + path[len("/api/fabric-management/"):]
+		newPath := "/api/v1/plugin/" + path[len("/api/plugin-management/"):]
 		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
 	})
 

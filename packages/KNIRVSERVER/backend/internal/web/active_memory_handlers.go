@@ -33,7 +33,7 @@ func (h *ActiveMemoryHandlers) RegisterRoutes(r *mux.Router, authMiddleware *mid
 	// MCP-like tool endpoints
 	memoryRouter.HandleFunc("/mcp/store", h.StoreInteraction).Methods("POST", "OPTIONS")
 	memoryRouter.HandleFunc("/mcp/execute/{id}", h.ExecuteSolution).Methods("POST", "OPTIONS")
-	
+
 	// Add more routes as needed
 }
 
@@ -89,6 +89,6 @@ func (h *ActiveMemoryHandlers) StoreInteraction(w http.ResponseWriter, r *http.R
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"message": "Interaction recorded in encrypted Markdown fabric",
+		"message": "Interaction recorded in encrypted Markdown vault",
 	})
 }

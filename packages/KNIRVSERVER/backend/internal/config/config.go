@@ -202,6 +202,8 @@ type SecurityConfig struct {
 	AuditLogging        bool   `mapstructure:"audit_logging"`
 	JWTSecret           string `mapstructure:"jwt_secret"`
 	KeyRotationInterval int    `mapstructure:"key_rotation_interval"` // in hours
+	TLSCert             string `mapstructure:"tls_cert"`
+	TLSKey              string `mapstructure:"tls_key"`
 }
 
 // RolesConfig represents user roles and permissions configuration

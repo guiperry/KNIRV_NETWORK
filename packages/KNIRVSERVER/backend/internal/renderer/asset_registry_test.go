@@ -5,8 +5,6 @@ import (
 	"sync"
 	"testing"
 
-	"knirv-server/backend/internal/runtime"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +20,7 @@ func TestNewAssetRegistry(t *testing.T) {
 func TestRegister(t *testing.T) {
 	registry := NewAssetRegistry()
 
-	metadata := &runtime.AssetMetadata{
+	metadata := &AssetMetadata{
 		FilePath: "/path/to/asset.glb",
 		FileSize: 1024,
 	}
@@ -55,7 +53,7 @@ func TestRegisterWithNilMetadata(t *testing.T) {
 func TestRegisterWithEmptyFilePath(t *testing.T) {
 	registry := NewAssetRegistry()
 
-	metadata := &runtime.AssetMetadata{
+	metadata := &AssetMetadata{
 		FilePath: "",
 		FileSize: 1024,
 	}
@@ -70,7 +68,7 @@ func TestRegisterWithEmptyFilePath(t *testing.T) {
 func TestGet(t *testing.T) {
 	registry := NewAssetRegistry()
 
-	metadata := &runtime.AssetMetadata{
+	metadata := &AssetMetadata{
 		FilePath: "/path/to/asset.glb",
 		FileSize: 1024,
 	}
@@ -107,7 +105,7 @@ func TestGetNonExistentAsset(t *testing.T) {
 func TestGetByPath(t *testing.T) {
 	registry := NewAssetRegistry()
 
-	metadata := &runtime.AssetMetadata{
+	metadata := &AssetMetadata{
 		FilePath: "/path/to/asset.glb",
 		FileSize: 1024,
 	}
@@ -138,11 +136,11 @@ func TestList(t *testing.T) {
 	registry := NewAssetRegistry()
 
 	// Register multiple assets
-	metadata1 := &runtime.AssetMetadata{
+	metadata1 := &AssetMetadata{
 		FilePath: "/path/to/asset1.glb",
 		FileSize: 1024,
 	}
-	metadata2 := &runtime.AssetMetadata{
+	metadata2 := &AssetMetadata{
 		FilePath: "/path/to/asset2.glb",
 		FileSize: 2048,
 	}
@@ -175,7 +173,7 @@ func TestList(t *testing.T) {
 func TestRemove(t *testing.T) {
 	registry := NewAssetRegistry()
 
-	metadata := &runtime.AssetMetadata{
+	metadata := &AssetMetadata{
 		FilePath: "/path/to/asset.glb",
 		FileSize: 1024,
 	}
@@ -213,11 +211,11 @@ func TestCount(t *testing.T) {
 	assert.Equal(t, 0, registry.Count())
 
 	// Register multiple assets
-	metadata1 := &runtime.AssetMetadata{
+	metadata1 := &AssetMetadata{
 		FilePath: "/path/to/asset1.glb",
 		FileSize: 1024,
 	}
-	metadata2 := &runtime.AssetMetadata{
+	metadata2 := &AssetMetadata{
 		FilePath: "/path/to/asset2.glb",
 		FileSize: 2048,
 	}
@@ -260,9 +258,9 @@ func TestAssetRegistryConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
-			metadata := &runtime.AssetMetadata{
+			metadata := &AssetMetadata{
 				FilePath: fmt.Sprintf("/path/to/asset%d.glb", index),
-				FileSize: int64(index * 1024),
+				// FileSize not needed for lookup
 			}
 			registry.Register(metadata)
 		}(i)
@@ -277,9 +275,9 @@ func TestAssetRegistryConcurrentAccess(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		go func(index int) {
 			defer wg.Done()
-			metadata := &runtime.AssetMetadata{
+			metadata := &AssetMetadata{
 				FilePath: fmt.Sprintf("/path/to/asset%d.glb", index),
-				FileSize: int64(index * 1024),
+				// FileSize not needed for lookup
 			}
 
 			// Get the asset first to get its ID

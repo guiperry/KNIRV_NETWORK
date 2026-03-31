@@ -9,7 +9,7 @@ import (
 	"math"
 	"time"
 
-	"backend_server/internal/fintech/ontology"
+	"backend_server/internal/services/plugins/fintech/ontology"
 )
 
 // FidelityScorer calculates fidelity scores for NRV traces

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"backend_server/internal/storage/pqc"
+
 	"github.com/robertkrimen/otto"
 )
 
@@ -244,10 +245,10 @@ func (e *ComplianceScriptExecutor) executeJavaScript(
 
 // executePython runs Python code (placeholder - requires sandbox)
 func (e *ComplianceScriptExecutor) executePython(
-	ctx context.Context,
-	code string,
-	testData map[string]interface{},
-	agentOutput string,
+	_ context.Context,
+	_ string,
+	_ map[string]interface{},
+	_ string,
 ) (interface{}, error) {
 	// Python execution requires a secure sandbox (e.g., gVisor, Firecracker)
 	// This is a placeholder implementation

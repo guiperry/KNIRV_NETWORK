@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"backend_server/internal/fintech"
-	"backend_server/internal/fintech/ontology"
+	"backend_server/internal/services/plugins/fintech"
+	"backend_server/internal/services/plugins/fintech/ontology"
 	"backend_server/internal/services/vault"
 	"backend_server/internal/web/middleware"
 

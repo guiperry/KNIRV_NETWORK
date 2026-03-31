@@ -17,7 +17,7 @@ import (
 	"github.com/apache/arrow/go/v14/arrow/memory"
 )
 
-// ActiveMemoryService coordinates the Markdown Fabric and Arrow Streaming
+// ActiveMemoryService coordinates the Markdown Vault and Arrow Streaming
 type ActiveMemoryService struct {
 	vault    *vault.VaultService
 	graph    *graph.ReasoningEngine

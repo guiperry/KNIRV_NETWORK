@@ -5,10 +5,10 @@ import (
 	"backend_server/internal/config"
 	pb "backend_server/internal/proto"
 	"backend_server/internal/utils"
-	"flag"
 	"bufio"
+	"flag"
 	"fmt"
-	
+
 	"log"
 	"os"
 	"path/filepath"
@@ -119,6 +119,35 @@ func main() {
 	githubPublicKeyEntry.SetPlaceHolder("GitHub Public Key")
 	githubPublicKeyEntry.SetText(dotKeyValues["DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES"])
 
+	// Production secrets
+	jwtSecretEntry := widget.NewEntry()
+	jwtSecretEntry.SetPlaceHolder("JWT Secret")
+	jwtSecretEntry.SetText(dotKeyValues["JWT_SECRET"])
+
+	knirvJwtSecretEntry := widget.NewEntry()
+	knirvJwtSecretEntry.SetPlaceHolder("KNIRV JWT Secret")
+	knirvJwtSecretEntry.SetText(dotKeyValues["KNIRV_JWT_SECRET"])
+
+	geminiApiKeyEntry := widget.NewEntry()
+	geminiApiKeyEntry.SetPlaceHolder("Gemini API Key")
+	geminiApiKeyEntry.SetText(dotKeyValues["GEMINI_API_KEY"])
+
+	deepseekApiKeyEntry := widget.NewEntry()
+	deepseekApiKeyEntry.SetPlaceHolder("DeepSeek API Key")
+	deepseekApiKeyEntry.SetText(dotKeyValues["DEEPSEEK_API_KEY"])
+
+	databaseUrlEntry := widget.NewEntry()
+	databaseUrlEntry.SetPlaceHolder("Database URL")
+	databaseUrlEntry.SetText(dotKeyValues["DATABASE_URL"])
+
+	tlsCertEntry := widget.NewEntry()
+	tlsCertEntry.SetPlaceHolder("TLS Certificate (PEM)")
+	tlsCertEntry.SetText(dotKeyValues["TLS_CERT"])
+
+	tlsKeyEntry := widget.NewEntry()
+	tlsKeyEntry.SetPlaceHolder("TLS Private Key (PEM)")
+	tlsKeyEntry.SetText(dotKeyValues["TLS_KEY"])
+
 	// Password Input
 	passwordEntry := widget.NewPasswordEntry()
 	passwordEntry.SetPlaceHolder("Enter Password to Encrypt Key File")
@@ -165,7 +194,13 @@ func main() {
 			CoinbaseApiKey:        coinbaseAPIKeyEntry.Text,
 			CoinbaseWebhookSecret: coinbaseWebhookSecretEntry.Text,
 			RootPrivateKeyHex:     rootPrivateKeyEntry.Text,
-	
+			JwtSecret:             jwtSecretEntry.Text,
+			KnirvJwtSecret:        knirvJwtSecretEntry.Text,
+			GeminiApiKey:          geminiApiKeyEntry.Text,
+			DeepseekApiKey:        deepseekApiKeyEntry.Text,
+			DatabaseUrl:           databaseUrlEntry.Text,
+			TlsCert:               tlsCertEntry.Text,
+			TlsKey:                tlsKeyEntry.Text,
 		}
 
 		// Marshal to protobuf
@@ -249,6 +284,22 @@ func main() {
 			container.NewVBox(widget.NewLabel("GitHub Token:"), githubTokenEntry),
 			container.NewVBox(widget.NewLabel("GitHub Public Key:"), githubPublicKeyEntry),
 		),
+		widget.NewSeparator(),
+		widget.NewLabel("Production Secrets:"),
+		container.NewGridWithColumns(2,
+			container.NewVBox(widget.NewLabel("JWT Secret:"), jwtSecretEntry),
+			container.NewVBox(widget.NewLabel("KNIRV JWT Secret:"), knirvJwtSecretEntry),
+		),
+		container.NewGridWithColumns(2,
+			container.NewVBox(widget.NewLabel("Gemini API Key:"), geminiApiKeyEntry),
+			container.NewVBox(widget.NewLabel("DeepSeek API Key:"), deepseekApiKeyEntry),
+		),
+		container.NewGridWithColumns(2,
+			container.NewVBox(widget.NewLabel("Database URL:"), databaseUrlEntry),
+		),
+		widget.NewLabel("TLS Certificates (PEM format):"),
+		container.NewVBox(widget.NewLabel("Certificate:"), tlsCertEntry),
+		container.NewVBox(widget.NewLabel("Private Key:"), tlsKeyEntry),
 		widget.NewSeparator(),
 		widget.NewLabel("Set a Password for Encryption:"),
 		passwordEntry,

@@ -247,7 +247,8 @@ async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<str
 }
 
 async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
-  const key = import.meta.env.VITE_GOOGLE_API_KEY;
+  // Support both VITE_GOOGLE_API_KEY and the legacy VITE_PUBLIC_GOOGLE_API_KEY name
+  const key = import.meta.env.VITE_GOOGLE_API_KEY || import.meta.env.VITE_PUBLIC_GOOGLE_API_KEY;
   if (!key) throw new Error('No Gemini key');
 
   const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
@@ -270,7 +271,8 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
 }
 
 async function callDeepSeek(systemPrompt: string, userPrompt: string): Promise<string> {
-  const key = import.meta.env.VITE_DEEPSEEK_API_KEY;
+  // Support both VITE_DEEPSEEK_API_KEY and the server-side DEEPSEEK_API_KEY
+  const key = import.meta.env.VITE_DEEPSEEK_API_KEY || import.meta.env.DEEPSEEK_API_KEY;
   if (!key) throw new Error('No DeepSeek key');
 
   const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -320,7 +322,9 @@ export class GameLLMService {
     this.useMock =
       !import.meta.env.VITE_OPENAI_API_KEY &&
       !import.meta.env.VITE_GOOGLE_API_KEY &&
-      !import.meta.env.VITE_DEEPSEEK_API_KEY;
+      !import.meta.env.VITE_PUBLIC_GOOGLE_API_KEY &&
+      !import.meta.env.VITE_DEEPSEEK_API_KEY &&
+      !import.meta.env.DEEPSEEK_API_KEY;
 
     if (this.useMock) {
       console.warn(

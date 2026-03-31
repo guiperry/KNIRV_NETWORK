@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"backend_server/internal/fintech/ontology"
 	"backend_server/internal/storage/pqc"
 )
 
@@ -15,7 +14,7 @@ import (
 type ComplianceEngine struct {
 	repository       *ScenarioRepository
 	executor         *ComplianceScriptExecutor
-	ontologyRegistry *ontology.OntologyRegistry
+	ontologyRegistry *OntologyRegistry
 
 	// Configuration
 	config ComplianceConfig
@@ -95,7 +94,7 @@ func NewComplianceEngine(
 }
 
 // SetOntologyRegistry sets the ontology registry for rule validation
-func (ce *ComplianceEngine) SetOntologyRegistry(registry *ontology.OntologyRegistry) {
+func (ce *ComplianceEngine) SetOntologyRegistry(registry *OntologyRegistry) {
 	ce.mu.Lock()
 	defer ce.mu.Unlock()
 	ce.ontologyRegistry = registry

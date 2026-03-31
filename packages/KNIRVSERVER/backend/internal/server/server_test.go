@@ -60,13 +60,13 @@ func TestCorrelate(t *testing.T) {
 	assert.True(t, server.correlate("connect to database and verify and update", "will connect to database")) // 2/4 keywords match
 }
 
-// TestHandleGetEvents tests the HTTP handler for getting fabric events
+// TestHandleGetEvents tests the HTTP handler for getting plugin events
 func TestHandleGetEvents(t *testing.T) {
 	allocator := memory.NewGoAllocator()
 	server := NewNexusMemoryServer(allocator)
 
 	// Add a test event
-	event := FabricEvent{
+	event := VaultEvent{
 		Timestamp:      1000,
 		AgentID:        "test-agent",
 		Intent:         "test-intent",
@@ -94,7 +94,7 @@ func TestHandleGetEvents(t *testing.T) {
 	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 
 	// Parse the response
-	var events []FabricEvent
+	var events []VaultEvent
 	if err := json.NewDecoder(rr.Body).Decode(&events); err != nil {
 		t.Fatalf("Failed to decode JSON: %v", err)
 	}

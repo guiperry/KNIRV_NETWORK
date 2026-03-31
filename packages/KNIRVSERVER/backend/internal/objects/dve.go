@@ -41,6 +41,10 @@ type DVENode struct {
 	ValidationPort int      `json:"validation_port"`       // Reasoning validation port
 	ErrorResPort   int      `json:"error_resolution_port"` // Error resolution port
 	SupportedTags  []string `json:"supported_tags"`        // e.g., ["reasoning", "error-resolution"]
+
+	// Policy attachment
+	AttachedPolicies []string `json:"attached_policies"` // Policy IDs attached to this DVE
+	PolicyVersion    string   `json:"policy_version"`    // Hash of active policy set
 }
 
 // ValidationTask represents a validation task in the DVE network

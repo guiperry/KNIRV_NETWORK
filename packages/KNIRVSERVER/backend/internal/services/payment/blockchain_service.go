@@ -1,4 +1,4 @@
-package fintech
+package payment
 
 import (
 	"bytes"

@@ -1,4 +1,4 @@
-package fabricserver
+package pluginserver
 
 import (
 	"context"
@@ -13,21 +13,21 @@ import (
 	"backend_server/internal/objects"
 )
 
-// RuntimeManager manages live fabric runtime hosting
+// RuntimeManager manages live plugin runtime hosting
 type RuntimeManager struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	mu     sync.RWMutex
 
-	activeFabrics map[string]*FabricInstance
+	activePlugins map[string]*PluginInstance
 	resourcePool  *ResourcePool
-	scheduler     *FabricScheduler
+	scheduler     *PluginScheduler
 	processMgr    *NativeProcessManager
 	wasmRuntime   *WASMRuntime
 
 	// Configuration
-	fabricDir      string
-	maxFabrics     int
+	pluginDir      string
+	maxPlugins     int
 	resourceLimits *ResourceLimits
 
 	// Monitoring
@@ -35,22 +35,22 @@ type RuntimeManager struct {
 	running    bool
 }
 
-// FabricInstance represents a running fabric instance
-type FabricInstance struct {
+// PluginInstance represents a running plugin instance
+type PluginInstance struct {
 	ID            string       `json:"id"`
 	Name          string       `json:"name"`
 	Binary        string       `json:"binary"`
-	Status        FabricStatus `json:"status"`
+	Status        PluginStatus `json:"status"`
 	PID           int          `json:"pid"`
 	StartTime     time.Time    `json:"start_time"`
 	LastHeartbeat time.Time    `json:"last_heartbeat"`
 
 	// Resource allocation
 	Resources *ResourceAllocation `json:"resources"`
-	Metrics   *FabricMetrics      `json:"metrics"`
+	Metrics   *PluginMetrics      `json:"metrics"`
 
 	// Communication
-	Communication *FabricComm `json:"communication"`
+	Communication *PluginComm `json:"communication"`
 
 	// Process management
 	Process *os.Process `json:"-"`
@@ -73,19 +73,19 @@ type FabricInstance struct {
 	Chroot       string   `json:"chroot,omitempty"`
 }
 
-// FabricStatus represents the status of a fabric item
-type FabricStatus string
+// PluginStatus represents the status of a plugin item
+type PluginStatus string
 
 const (
-	FabricStatusStarting   FabricStatus = "starting"
-	FabricStatusRunning    FabricStatus = "running"
-	FabricStatusStopping   FabricStatus = "stopping"
-	FabricStatusStopped    FabricStatus = "stopped"
-	FabricStatusFailed     FabricStatus = "failed"
-	FabricStatusRestarting FabricStatus = "restarting"
+	PluginStatusStarting   PluginStatus = "starting"
+	PluginStatusRunning    PluginStatus = "running"
+	PluginStatusStopping   PluginStatus = "stopping"
+	PluginStatusStopped    PluginStatus = "stopped"
+	PluginStatusFailed     PluginStatus = "failed"
+	PluginStatusRestarting PluginStatus = "restarting"
 )
 
-// ResourceAllocation represents allocated resources for a fabric unit
+// ResourceAllocation represents allocated resources for a plugin unit
 type ResourceAllocation struct {
 	CPUCores         float64 `json:"cpu_cores"`
 	MemoryBytes      uint64  `json:"memory_bytes"`
@@ -102,8 +102,8 @@ type ResourceAllocation struct {
 	SystemdSlice string `json:"systemd_slice"`
 }
 
-// FabricMetrics represents runtime metrics for a fabric item
-type FabricMetrics struct {
+// PluginMetrics represents runtime metrics for a plugin item
+type PluginMetrics struct {
 	CPUUsage    float64 `json:"cpu_usage"`
 	MemoryUsage uint64  `json:"memory_usage"`
 	DiskUsage   uint64  `json:"disk_usage"`
@@ -123,8 +123,8 @@ type FabricMetrics struct {
 	CollectedAt time.Time `json:"collected_at"`
 }
 
-// FabricComm represents communication settings for a fabric item
-type FabricComm struct {
+// PluginComm represents communication settings for a plugin item
+type PluginComm struct {
 	SocketPath string `json:"socket_path"`
 	Port       int    `json:"port,omitempty"`
 	Protocol   string `json:"protocol"` // unix, tcp, http
@@ -153,18 +153,18 @@ type ResourcePool struct {
 	AllocatedDisk   uint64  `json:"allocated_disk"`
 }
 
-// FabricScheduler handles fabric scheduling and placement
-type FabricScheduler struct {
+// PluginScheduler handles plugin scheduling and placement
+type PluginScheduler struct {
 	mu sync.RWMutex
 
 	schedulingPolicy string // round-robin, resource-aware, priority
-	queue            []*FabricScheduleRequest
+	queue            []*PluginScheduleRequest
 	running          bool
 }
 
-// FabricScheduleRequest represents a request to schedule a fabric item
-type FabricScheduleRequest struct {
-	FabricName  string                 `json:"fabric_name"`
+// PluginScheduleRequest represents a request to schedule a plugin item
+type PluginScheduleRequest struct {
+	PluginName  string                 `json:"plugin_name"`
 	Binary      string                 `json:"binary"`
 	Resources   *ResourceAllocation    `json:"resources"`
 	Config      map[string]interface{} `json:"config"`
@@ -183,7 +183,7 @@ type NativeProcessManager struct {
 // ProcessInfo contains information about a managed process
 type ProcessInfo struct {
 	PID       int       `json:"pid"`
-	FabricID  string    `json:"fabric_id"`
+	PluginID  string    `json:"plugin_id"`
 	Command   string    `json:"command"`
 	StartTime time.Time `json:"start_time"`
 	Status    string    `json:"status"`
@@ -204,9 +204,9 @@ type CgroupManager struct {
 
 // ResourceLimits defines system-wide resource limits
 type ResourceLimits struct {
-	MaxCPUPerFabric    float64 `json:"max_cpu_per_fabric"`
-	MaxMemoryPerFabric uint64  `json:"max_memory_per_fabric"`
-	MaxDiskPerFabric   uint64  `json:"max_disk_per_fabric"`
+	MaxCPUPerPlugin    float64 `json:"max_cpu_per_plugin"`
+	MaxMemoryPerPlugin uint64  `json:"max_memory_per_plugin"`
+	MaxDiskPerPlugin   uint64  `json:"max_disk_per_plugin"`
 
 	MaxTotalCPU    float64 `json:"max_total_cpu"`
 	MaxTotalMemory uint64  `json:"max_total_memory"`
@@ -218,19 +218,19 @@ type ResourceLimits struct {
 }
 
 // NewRuntimeManager creates a new runtime manager
-func NewRuntimeManager(ctx context.Context, fabricDir string, maxFabrics int) (*RuntimeManager, error) {
+func NewRuntimeManager(ctx context.Context, pluginDir string, maxPlugins int) (*RuntimeManager, error) {
 	runtimeCtx, cancel := context.WithCancel(ctx)
 
 	rm := &RuntimeManager{
 		ctx:           runtimeCtx,
 		cancel:        cancel,
-		activeFabrics: make(map[string]*FabricInstance),
-		fabricDir:     fabricDir,
-		maxFabrics:    maxFabrics,
+		activePlugins: make(map[string]*PluginInstance),
+		pluginDir:     pluginDir,
+		maxPlugins:    maxPlugins,
 		resourceLimits: &ResourceLimits{
-			MaxCPUPerFabric:    2.0,
-			MaxMemoryPerFabric: 1024 * 1024 * 1024,      // 1GB
-			MaxDiskPerFabric:   10 * 1024 * 1024 * 1024, // 10GB
+			MaxCPUPerPlugin:    2.0,
+			MaxMemoryPerPlugin: 1024 * 1024 * 1024,      // 1GB
+			MaxDiskPerPlugin:   10 * 1024 * 1024 * 1024, // 10GB
 			DefaultCPU:         0.5,
 			DefaultMemory:      256 * 1024 * 1024,  // 256MB
 			DefaultDisk:        1024 * 1024 * 1024, // 1GB
@@ -246,7 +246,7 @@ func NewRuntimeManager(ctx context.Context, fabricDir string, maxFabrics int) (*
 		return nil, fmt.Errorf("failed to create resource pool: %w", err)
 	}
 
-	rm.scheduler, err = NewFabricScheduler()
+	rm.scheduler, err = NewPluginScheduler()
 	if err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to create scheduler: %w", err)
@@ -265,7 +265,7 @@ func NewRuntimeManager(ctx context.Context, fabricDir string, maxFabrics int) (*
 		MaxInstances:     10,
 		EnableProfiling:  true,
 		EnableDebugging:  false,
-		ResourceLimits:   nil, // Will be set per fabric unit
+		ResourceLimits:   nil, // Will be set per plugin unit
 	}
 	rm.wasmRuntime, err = NewWASMRuntime(wasmConfig)
 	if err != nil {
@@ -274,7 +274,7 @@ func NewRuntimeManager(ctx context.Context, fabricDir string, maxFabrics int) (*
 	}
 
 	// Set default resource limits for the WASM runtime
-	defaultLimits := &objects.FabricResourceLimits{
+	defaultLimits := &objects.PluginResourceLimits{
 		MaxCPUPercent:    50.0, // 50% CPU limit
 		MaxMemoryMB:      256,  // 256MB memory limit
 		MaxExecutionTime: 30,   // 30 seconds execution time
@@ -329,10 +329,10 @@ func (rm *RuntimeManager) Stop() error {
 
 	rm.running = false
 
-	// Stop all fabrics
-	for _, fabric := range rm.activeFabrics {
-		if err := rm.stopFabricInternal(fabric); err != nil {
-			fmt.Printf("Error stopping fabric item %s: %v\n", fabric.ID, err)
+	// Stop all plugins
+	for _, plugin := range rm.activePlugins {
+		if err := rm.stopPluginInternal(plugin); err != nil {
+			fmt.Printf("Error stopping plugin item %s: %v\n", plugin.ID, err)
 		}
 	}
 
@@ -346,8 +346,8 @@ func (rm *RuntimeManager) Stop() error {
 	return nil
 }
 
-// StartFabric starts a new fabric instance
-func (rm *RuntimeManager) StartFabric(name, binary string, config map[string]interface{}) (*FabricInstance, error) {
+// StartPlugin starts a new plugin instance
+func (rm *RuntimeManager) StartPlugin(name, binary string, config map[string]interface{}) (*PluginInstance, error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
@@ -355,30 +355,30 @@ func (rm *RuntimeManager) StartFabric(name, binary string, config map[string]int
 		return nil, fmt.Errorf("runtime manager is not running")
 	}
 
-	// Check if fabric item already exists
-	for _, fabric := range rm.activeFabrics {
-		if fabric.Name == name {
-			return nil, fmt.Errorf("fabric item %s is already running", name)
+	// Check if plugin item already exists
+	for _, plugin := range rm.activePlugins {
+		if plugin.Name == name {
+			return nil, fmt.Errorf("plugin item %s is already running", name)
 		}
 	}
 
-	// Check fabric limit
-	if len(rm.activeFabrics) >= rm.maxFabrics {
-		return nil, fmt.Errorf("maximum number of fabric units (%d) reached", rm.maxFabrics)
+	// Check plugin limit
+	if len(rm.activePlugins) >= rm.maxPlugins {
+		return nil, fmt.Errorf("maximum number of plugin units (%d) reached", rm.maxPlugins)
 	}
 
 	// Verify binary exists
-	binaryPath := filepath.Join(rm.fabricDir, binary)
+	binaryPath := filepath.Join(rm.pluginDir, binary)
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("fabric binary %s not found", binary)
+		return nil, fmt.Errorf("plugin binary %s not found", binary)
 	}
 
-	// Create fabric instance
-	fabric := &FabricInstance{
+	// Create plugin instance
+	plugin := &PluginInstance{
 		ID:            fmt.Sprintf("%s-%d", name, time.Now().Unix()),
 		Name:          name,
 		Binary:        binary,
-		Status:        FabricStatusStarting,
+		Status:        PluginStatusStarting,
 		StartTime:     time.Now(),
 		Config:        config,
 		Environment:   make(map[string]string),
@@ -397,11 +397,11 @@ func (rm *RuntimeManager) StartFabric(name, binary string, config map[string]int
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate resources: %w", err)
 	}
-	fabric.Resources = resources
+	plugin.Resources = resources
 
 	// Setup communication
-	fabric.Communication = &FabricComm{
-		SocketPath:          fmt.Sprintf("/tmp/knirv-fabric-%s.sock", fabric.ID),
+	plugin.Communication = &PluginComm{
+		SocketPath:          fmt.Sprintf("/tmp/knirv-plugin-%s.sock", plugin.ID),
 		Protocol:            "unix",
 		Encrypted:           true,
 		HealthCheckPath:     "/health",
@@ -409,80 +409,80 @@ func (rm *RuntimeManager) StartFabric(name, binary string, config map[string]int
 		HealthCheckTimeout:  5 * time.Second,
 	}
 
-	// Start the fabric process
-	if err := rm.startFabricProcess(fabric); err != nil {
+	// Start the plugin process
+	if err := rm.startPluginProcess(plugin); err != nil {
 		rm.resourcePool.ReleaseResources(resources)
-		return nil, fmt.Errorf("failed to start fabric process: %w", err)
+		return nil, fmt.Errorf("failed to start plugin process: %w", err)
 	}
 
-	// Add to active fabrics
-	rm.activeFabrics[fabric.ID] = fabric
+	// Add to active plugins
+	rm.activePlugins[plugin.ID] = plugin
 
-	return fabric, nil
+	return plugin, nil
 }
 
-// StopFabric stops a fabric instance
-func (rm *RuntimeManager) StopFabric(fabricID string) error {
+// StopPlugin stops a plugin instance
+func (rm *RuntimeManager) StopPlugin(pluginID string) error {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
 
-	fabric, exists := rm.activeFabrics[fabricID]
+	plugin, exists := rm.activePlugins[pluginID]
 	if !exists {
-		return fmt.Errorf("fabric item %s not found", fabricID)
+		return fmt.Errorf("plugin item %s not found", pluginID)
 	}
 
-	return rm.stopFabricInternal(fabric)
+	return rm.stopPluginInternal(plugin)
 }
 
-// GetFabricList returns list of active fabric units
-func (rm *RuntimeManager) GetFabricList() []*FabricInstance {
+// GetPluginList returns list of active plugin units
+func (rm *RuntimeManager) GetPluginList() []*PluginInstance {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 
-	var fabricUnits []*FabricInstance
-	for _, fabric := range rm.activeFabrics {
+	var pluginUnits []*PluginInstance
+	for _, plugin := range rm.activePlugins {
 		// Return a copy to prevent modification
-		fabricCopy := *fabric
-		fabricUnits = append(fabricUnits, &fabricCopy)
+		pluginCopy := *plugin
+		pluginUnits = append(pluginUnits, &pluginCopy)
 	}
 
-	return fabricUnits
+	return pluginUnits
 }
 
-// GetFabric returns a specific fabric instance
-func (rm *RuntimeManager) GetFabric(fabricID string) (*FabricInstance, error) {
+// GetPlugin returns a specific plugin instance
+func (rm *RuntimeManager) GetPlugin(pluginID string) (*PluginInstance, error) {
 	rm.mu.RLock()
 	defer rm.mu.RUnlock()
 
-	fabric, exists := rm.activeFabrics[fabricID]
+	plugin, exists := rm.activePlugins[pluginID]
 	if !exists {
-		return nil, fmt.Errorf("fabric item %s not found", fabricID)
+		return nil, fmt.Errorf("plugin item %s not found", pluginID)
 	}
 
 	// Return a copy to prevent modification
-	fabricCopy := *fabric
-	return &fabricCopy, nil
+	pluginCopy := *plugin
+	return &pluginCopy, nil
 }
 
-// startFabricProcess starts the actual fabric process
-func (rm *RuntimeManager) startFabricProcess(fabric *FabricInstance) error {
-	binaryPath := filepath.Join(rm.fabricDir, fabric.Binary)
+// startPluginProcess starts the actual plugin process
+func (rm *RuntimeManager) startPluginProcess(plugin *PluginInstance) error {
+	binaryPath := filepath.Join(rm.pluginDir, plugin.Binary)
 
 	// Create command
-	cmd := exec.Command(binaryPath, fabric.Arguments...)
+	cmd := exec.Command(binaryPath, plugin.Arguments...)
 
 	// Set environment
 	cmd.Env = os.Environ()
-	for key, value := range fabric.Environment {
+	for key, value := range plugin.Environment {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", key, value))
 	}
 
 	// Set working directory
-	cmd.Dir = rm.fabricDir
+	cmd.Dir = rm.pluginDir
 
 	// Setup resource isolation if available
 	if rm.processMgr.cgroupManager.enabled {
-		if err := rm.setupResourceIsolation(fabric); err != nil {
+		if err := rm.setupResourceIsolation(plugin); err != nil {
 			return fmt.Errorf("failed to setup resource isolation: %w", err)
 		}
 	}
@@ -492,45 +492,45 @@ func (rm *RuntimeManager) startFabricProcess(fabric *FabricInstance) error {
 		return fmt.Errorf("failed to start process: %w", err)
 	}
 
-	fabric.Command = cmd
-	fabric.Process = cmd.Process
-	fabric.PID = cmd.Process.Pid
-	fabric.Status = FabricStatusRunning
-	fabric.LastHeartbeat = time.Now()
+	plugin.Command = cmd
+	plugin.Process = cmd.Process
+	plugin.PID = cmd.Process.Pid
+	plugin.Status = PluginStatusRunning
+	plugin.LastHeartbeat = time.Now()
 
 	// Register with process manager
 	processInfo := &ProcessInfo{
-		PID:       fabric.PID,
-		FabricID:  fabric.ID,
+		PID:       plugin.PID,
+		PluginID:  plugin.ID,
 		Command:   binaryPath,
-		StartTime: fabric.StartTime,
+		StartTime: plugin.StartTime,
 		Status:    "running",
 	}
 
 	rm.processMgr.mu.Lock()
-	rm.processMgr.processes[fabric.PID] = processInfo
+	rm.processMgr.processes[plugin.PID] = processInfo
 	rm.processMgr.mu.Unlock()
 
 	// Start monitoring the process
-	go rm.monitorFabricProcess(fabric)
+	go rm.monitorPluginProcess(plugin)
 
 	return nil
 }
 
-// stopFabricInternal stops a fabric item (internal method, assumes lock is held)
-func (rm *RuntimeManager) stopFabricInternal(fabric *FabricInstance) error {
-	fabric.Status = FabricStatusStopping
+// stopPluginInternal stops a plugin item (internal method, assumes lock is held)
+func (rm *RuntimeManager) stopPluginInternal(plugin *PluginInstance) error {
+	plugin.Status = PluginStatusStopping
 
-	if fabric.Process != nil {
+	if plugin.Process != nil {
 		// Send SIGTERM first
-		if err := fabric.Process.Signal(syscall.SIGTERM); err != nil {
+		if err := plugin.Process.Signal(syscall.SIGTERM); err != nil {
 			return fmt.Errorf("failed to send SIGTERM: %w", err)
 		}
 
 		// Wait for graceful shutdown
 		done := make(chan error, 1)
 		go func() {
-			_, err := fabric.Process.Wait()
+			_, err := plugin.Process.Wait()
 			done <- err
 		}()
 
@@ -539,52 +539,52 @@ func (rm *RuntimeManager) stopFabricInternal(fabric *FabricInstance) error {
 			// Process exited gracefully
 		case <-time.After(10 * time.Second):
 			// Force kill after timeout
-			if err := fabric.Process.Kill(); err != nil {
+			if err := plugin.Process.Kill(); err != nil {
 				return fmt.Errorf("failed to kill process: %w", err)
 			}
 		}
 	}
 
 	// Clean up resources
-	if fabric.Resources != nil {
-		rm.resourcePool.ReleaseResources(fabric.Resources)
+	if plugin.Resources != nil {
+		rm.resourcePool.ReleaseResources(plugin.Resources)
 	}
 
 	// Clean up communication socket
-	if fabric.Communication != nil && fabric.Communication.SocketPath != "" {
-		os.Remove(fabric.Communication.SocketPath)
+	if plugin.Communication != nil && plugin.Communication.SocketPath != "" {
+		os.Remove(plugin.Communication.SocketPath)
 	}
 
 	// Remove from process manager
-	if fabric.PID > 0 {
+	if plugin.PID > 0 {
 		rm.processMgr.mu.Lock()
-		delete(rm.processMgr.processes, fabric.PID)
+		delete(rm.processMgr.processes, plugin.PID)
 		rm.processMgr.mu.Unlock()
 	}
 
-	// Remove from active fabric units
-	delete(rm.activeFabrics, fabric.ID)
+	// Remove from active plugin units
+	delete(rm.activePlugins, plugin.ID)
 
-	fabric.Status = FabricStatusStopped
+	plugin.Status = PluginStatusStopped
 
 	return nil
 }
 
 // setupResourceIsolation sets up cgroup-based resource isolation
-func (rm *RuntimeManager) setupResourceIsolation(fabric *FabricInstance) error {
-	// Create cgroup for the fabric item
-	cgroupPath := fmt.Sprintf("/sys/fs/cgroup/knirv-objects/%s", fabric.ID)
-	fabric.Resources.CgroupPath = cgroupPath
+func (rm *RuntimeManager) setupResourceIsolation(plugin *PluginInstance) error {
+	// Create cgroup for the plugin item
+	cgroupPath := fmt.Sprintf("/sys/fs/cgroup/knirv-objects/%s", plugin.ID)
+	plugin.Resources.CgroupPath = cgroupPath
 
 	// This would implement actual cgroup setup
 	// For now, just set the systemd slice
-	fabric.Resources.SystemdSlice = fmt.Sprintf("knirv-fabric-%s.slice", fabric.ID)
+	plugin.Resources.SystemdSlice = fmt.Sprintf("knirv-plugin-%s.slice", plugin.ID)
 
 	return nil
 }
 
-// monitorFabricProcess monitors a fabric process
-func (rm *RuntimeManager) monitorFabricProcess(fabric *FabricInstance) {
+// monitorPluginProcess monitors a plugin process
+func (rm *RuntimeManager) monitorPluginProcess(plugin *PluginInstance) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
@@ -594,51 +594,51 @@ func (rm *RuntimeManager) monitorFabricProcess(fabric *FabricInstance) {
 			return
 		case <-ticker.C:
 			// Check if process is still running
-			if fabric.Process != nil {
-				if err := fabric.Process.Signal(syscall.Signal(0)); err != nil {
+			if plugin.Process != nil {
+				if err := plugin.Process.Signal(syscall.Signal(0)); err != nil {
 					// Process is dead
-					fabric.Status = FabricStatusFailed
+					plugin.Status = PluginStatusFailed
 
 					// Handle restart policy
-					if fabric.RestartPolicy == "always" ||
-						(fabric.RestartPolicy == "on-failure" && fabric.RestartCount < fabric.MaxRestarts) {
-						rm.restartFabric(fabric)
+					if plugin.RestartPolicy == "always" ||
+						(plugin.RestartPolicy == "on-failure" && plugin.RestartCount < plugin.MaxRestarts) {
+						rm.restartPlugin(plugin)
 					}
 					return
 				}
 			}
 
 			// Update metrics
-			rm.updateFabricMetrics(fabric)
+			rm.updatePluginMetrics(plugin)
 		}
 	}
 }
 
-// restartFabric restarts a failed fabric unit
-func (rm *RuntimeManager) restartFabric(fabric *FabricInstance) {
-	fabric.RestartCount++
-	fabric.Status = FabricStatusRestarting
+// restartPlugin restarts a failed plugin unit
+func (rm *RuntimeManager) restartPlugin(plugin *PluginInstance) {
+	plugin.RestartCount++
+	plugin.Status = PluginStatusRestarting
 
 	// Wait a bit before restarting
 	time.Sleep(5 * time.Second)
 
 	// Restart the process
-	if err := rm.startFabricProcess(fabric); err != nil {
-		fmt.Printf("Failed to restart fabric item %s: %v\n", fabric.ID, err)
-		fabric.Status = FabricStatusFailed
+	if err := rm.startPluginProcess(plugin); err != nil {
+		fmt.Printf("Failed to restart plugin item %s: %v\n", plugin.ID, err)
+		plugin.Status = PluginStatusFailed
 	}
 }
 
-// updateFabricMetrics updates fabric metrics
-func (rm *RuntimeManager) updateFabricMetrics(fabric *FabricInstance) {
-	if fabric.Metrics == nil {
-		fabric.Metrics = &FabricMetrics{}
+// updatePluginMetrics updates plugin metrics
+func (rm *RuntimeManager) updatePluginMetrics(plugin *PluginInstance) {
+	if plugin.Metrics == nil {
+		plugin.Metrics = &PluginMetrics{}
 	}
 
 	// This would implement actual metrics collection
 	// For now, just update the timestamp
-	fabric.Metrics.CollectedAt = time.Now()
-	fabric.LastHeartbeat = time.Now()
+	plugin.Metrics.CollectedAt = time.Now()
+	plugin.LastHeartbeat = time.Now()
 }
 
 // monitorLoop runs the main monitoring loop
@@ -670,7 +670,7 @@ func (rm *RuntimeManager) monitorLoop() {
 	}
 }
 
-// healthCheckLoop runs health checks on fabric units
+// healthCheckLoop runs health checks on plugin units
 func (rm *RuntimeManager) healthCheckLoop() {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
@@ -681,38 +681,38 @@ func (rm *RuntimeManager) healthCheckLoop() {
 			return
 		case <-ticker.C:
 			rm.mu.RLock()
-			fabricUnits := make([]*FabricInstance, 0, len(rm.activeFabrics))
-			for _, fabric := range rm.activeFabrics {
-				fabricUnits = append(fabricUnits, fabric)
+			pluginUnits := make([]*PluginInstance, 0, len(rm.activePlugins))
+			for _, plugin := range rm.activePlugins {
+				pluginUnits = append(pluginUnits, plugin)
 			}
 			rm.mu.RUnlock()
 
 			// Perform health checks
-			for _, fabric := range fabricUnits {
-				rm.performHealthCheck(fabric)
+			for _, plugin := range pluginUnits {
+				rm.performHealthCheck(plugin)
 			}
 		}
 	}
 }
 
-// performHealthCheck performs a health check on a fabric item
-func (rm *RuntimeManager) performHealthCheck(fabric *FabricInstance) {
-	if fabric.Status != FabricStatusRunning {
+// performHealthCheck performs a health check on a plugin item
+func (rm *RuntimeManager) performHealthCheck(plugin *PluginInstance) {
+	if plugin.Status != PluginStatusRunning {
 		return
 	}
 
 	// This would implement actual health checking
 	// For now, just check if the process is alive
-	if fabric.Process != nil {
-		if err := fabric.Process.Signal(syscall.Signal(0)); err != nil {
-			fabric.Status = FabricStatusFailed
-			if fabric.Metrics != nil {
-				fabric.Metrics.HealthScore = 0.0
+	if plugin.Process != nil {
+		if err := plugin.Process.Signal(syscall.Signal(0)); err != nil {
+			plugin.Status = PluginStatusFailed
+			if plugin.Metrics != nil {
+				plugin.Metrics.HealthScore = 0.0
 			}
 		} else {
-			if fabric.Metrics != nil {
-				fabric.Metrics.HealthScore = 1.0
-				fabric.Metrics.LastHealthCheck = time.Now()
+			if plugin.Metrics != nil {
+				plugin.Metrics.HealthScore = 1.0
+				plugin.Metrics.LastHealthCheck = time.Now()
 			}
 		}
 	}

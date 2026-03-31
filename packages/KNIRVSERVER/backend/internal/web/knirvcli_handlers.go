@@ -42,6 +42,9 @@ func (h *KNIRVCLIHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middlew
 		protectedRouter.HandleFunc("/tee/execute", h.ExecuteTEECommand).Methods("POST", "OPTIONS")
 		protectedRouter.HandleFunc("/p2p/execute", h.ExecuteP2PCommand).Methods("POST", "OPTIONS")
 		protectedRouter.HandleFunc("/chain/execute", h.ExecuteChainCommand).Methods("POST", "OPTIONS")
+		protectedRouter.HandleFunc("/chain/badge/create", h.CreateBadge).Methods("POST", "OPTIONS")
+		protectedRouter.HandleFunc("/chain/badge/mint", h.MintBadge).Methods("POST", "OPTIONS")
+		protectedRouter.HandleFunc("/chain/badge/{id}", h.GetBadge).Methods("GET", "OPTIONS")
 	} else {
 		// No auth required for testnet mode
 		knirvcliRouter.HandleFunc("/execute", h.ExecuteCommand).Methods("POST", "OPTIONS")
@@ -55,6 +58,9 @@ func (h *KNIRVCLIHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middlew
 		knirvcliRouter.HandleFunc("/tee/execute", h.ExecuteTEECommand).Methods("POST", "OPTIONS")
 		knirvcliRouter.HandleFunc("/p2p/execute", h.ExecuteP2PCommand).Methods("POST", "OPTIONS")
 		knirvcliRouter.HandleFunc("/chain/execute", h.ExecuteChainCommand).Methods("POST", "OPTIONS")
+		knirvcliRouter.HandleFunc("/chain/badge/create", h.CreateBadge).Methods("POST", "OPTIONS")
+		knirvcliRouter.HandleFunc("/chain/badge/mint", h.MintBadge).Methods("POST", "OPTIONS")
+		knirvcliRouter.HandleFunc("/chain/badge/{id}", h.GetBadge).Methods("GET", "OPTIONS")
 	}
 }
 
@@ -284,4 +290,87 @@ func (h *KNIRVCLIHandlers) ExecuteChainCommand(w http.ResponseWriter, r *http.Re
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
+}
+
+// BadgeCreateRequest represents a badge creation request
+type BadgeCreateRequest struct {
+	Name        string                 `json:"name"`
+	BadgeType   string                 `json:"badge_type"` // "skill", "capability", "property", "bundle"
+	Description string                 `json:"description"`
+	ImageData   string                 `json:"image_data"` // SVG or image data
+	Metadata    map[string]interface{} `json:"metadata"`
+}
+
+// CreateBadge handles POST /api/knirvcli/chain/badge/create
+func (h *KNIRVCLIHandlers) CreateBadge(w http.ResponseWriter, r *http.Request) {
+	var req BadgeCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.Name == "" || req.BadgeType == "" {
+		http.Error(w, `{"error":"name and badge_type are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	badgeReq := &knirvcli.BadgeCreateRequest{
+		Name:        req.Name,
+		BadgeType:   req.BadgeType,
+		Description: req.Description,
+		ImageData:   req.ImageData,
+		Metadata:    req.Metadata,
+	}
+	result, err := h.knirvcliService.CreateBadge(r.Context(), badgeReq)
+	if err != nil {
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+// MintBadgeRequest represents a badge minting request
+type MintBadgeRequest struct {
+	BadgeID string `json:"badge_id"`
+	AgentID string `json:"agent_id"`
+}
+
+// MintBadge handles POST /api/knirvcli/chain/badge/mint
+func (h *KNIRVCLIHandlers) MintBadge(w http.ResponseWriter, r *http.Request) {
+	var req MintBadgeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	if req.BadgeID == "" || req.AgentID == "" {
+		http.Error(w, `{"error":"badge_id and agent_id are required"}`, http.StatusBadRequest)
+		return
+	}
+
+	result, err := h.knirvcliService.MintBadge(r.Context(), req.BadgeID, req.AgentID)
+	if err != nil {
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+// GetBadge handles GET /api/knirvcli/chain/badge/{id}
+func (h *KNIRVCLIHandlers) GetBadge(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	badgeID := vars["id"]
+
+	badge, err := h.knirvcliService.GetBadge(r.Context(), badgeID)
+	if err != nil {
+		http.Error(w, `{"error":"badge not found"}`, http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(badge)
 }

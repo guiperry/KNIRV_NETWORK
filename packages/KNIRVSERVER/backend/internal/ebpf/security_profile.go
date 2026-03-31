@@ -218,7 +218,7 @@ func (spm *SecurityProfileManager) IsPathAllowed(containerID uint64, path string
 		return true
 	}
 
-	for allowedPath, _ := range policy.AllowedPaths {
+	for allowedPath := range policy.AllowedPaths {
 		if len(path) >= len(allowedPath) && path[:len(allowedPath)] == allowedPath {
 			return true
 		}
@@ -243,7 +243,7 @@ func (spm *SecurityProfileManager) IsNetworkAllowed(containerID uint64, ip strin
 		return true
 	}
 
-	for net, _ := range policy.AllowedNetworkNets {
+	for net := range policy.AllowedNetworkNets {
 		if matchesCIDR(ip, net) {
 			return true
 		}

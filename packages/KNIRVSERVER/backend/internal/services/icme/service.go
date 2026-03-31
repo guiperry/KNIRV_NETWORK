@@ -348,7 +348,7 @@ func (s *Service) GetHypergraph() *TemporalHypergraph {
 type OnboardingCompleteRequest struct {
 	UserID          string                 `json:"user_id"`
 	WalletName      string                 `json:"wallet_name"`
-	FabricInputs    []string               `json:"fabric_inputs"`
+	VaultInputs     []string               `json:"vault_inputs"`
 	Guardrails      map[string]bool        `json:"guardrails"`
 	ConnectionData  map[string]interface{} `json:"connection_data"`
 	PrivacySettings map[string]interface{} `json:"privacy_settings"`
@@ -463,7 +463,7 @@ func (s *Service) handleOnboardingComplete(w http.ResponseWriter, r *http.Reques
 	if s.db != nil && req.UserID != "" {
 		onboardingData := map[string]interface{}{
 			"wallet_name":      req.WalletName,
-			"fabric_inputs":    req.FabricInputs,
+			"vault_inputs":     req.VaultInputs,
 			"guardrails":       req.Guardrails,
 			"connection_data":  req.ConnectionData,
 			"privacy_settings": req.PrivacySettings,

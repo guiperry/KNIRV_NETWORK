@@ -28,8 +28,8 @@ type Intent struct {
 	Timestamp time.Time
 }
 
-// FabricEvent represents a captured event for the dashboard
-type FabricEvent struct {
+// VaultEvent represents a captured event for the dashboard
+type VaultEvent struct {
 	Timestamp      int64  `json:"timestamp"`
 	AgentID        string `json:"agent_id"`
 	Intent         string `json:"intent"`
@@ -41,7 +41,7 @@ type ActiveMemoryProvider interface {
 	StreamToArrow(agentID string, fs flight.FlightService_DoGetServer) error
 }
 
-// NexusMemoryServer implements the Arrow Flight server for the Memory Fabric
+// NexusMemoryServer implements the Arrow Flight server for the Memory Vault
 type NexusMemoryServer struct {
 	flight.BaseFlightServer
 	mem             memory.Allocator
@@ -52,7 +52,7 @@ type NexusMemoryServer struct {
 	intentsMu sync.Mutex
 	intents   map[uint32]*Intent // Map PID to Intent
 
-	recentEvents   []FabricEvent
+	recentEvents   []VaultEvent
 	recentEventsMu sync.Mutex
 }
 
@@ -61,7 +61,7 @@ func NewNexusMemoryServer(mem memory.Allocator) *NexusMemoryServer {
 	return &NexusMemoryServer{
 		mem:          mem,
 		intents:      make(map[uint32]*Intent),
-		recentEvents: make([]FabricEvent, 0),
+		recentEvents: make([]VaultEvent, 0),
 	}
 }
 
@@ -111,7 +111,7 @@ func (s *NexusMemoryServer) StartGuardian() error {
 
 			verified := s.correlate(intentStr, observedAction)
 
-			fe := FabricEvent{
+			fe := VaultEvent{
 				Timestamp:      int64(event.Timestamp),
 				AgentID:        agentID,
 				Intent:         intentStr,
@@ -134,7 +134,7 @@ func (s *NexusMemoryServer) StartGuardian() error {
 // DoGet streams the "Living Memory" to the agent
 func (s *NexusMemoryServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_DoGetServer) error {
 	agentID := string(tkt.Ticket)
-	log.Printf("Streaming memory fabric for agent: %s", agentID)
+	log.Printf("Streaming memory for agent: %s", agentID)
 
 	if s.memoryProvider != nil {
 		return s.memoryProvider.StreamToArrow(agentID, fs)
@@ -147,7 +147,7 @@ func (s *NexusMemoryServer) DoGet(tkt *flight.Ticket, fs flight.FlightService_Do
 	// In a real implementation, we would filter s.eventsChan or use a pub/sub
 	// For this prototype, we'll just return some recent events matching the agentID
 	s.recentEventsMu.Lock()
-	events := make([]FabricEvent, len(s.recentEvents))
+	events := make([]VaultEvent, len(s.recentEvents))
 	copy(events, s.recentEvents)
 	s.recentEventsMu.Unlock()
 
@@ -215,7 +215,7 @@ func (s *NexusMemoryServer) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/api/nexus/events", s.HandleGetEvents).Methods("GET", "OPTIONS")
 }
 
-// HandleGetEvents returns recent fabric events
+// HandleGetEvents returns recent events
 func (s *NexusMemoryServer) HandleGetEvents(w http.ResponseWriter, r *http.Request) {
 	s.recentEventsMu.Lock()
 	defer s.recentEventsMu.Unlock()
@@ -256,7 +256,7 @@ func (s *NexusMemoryServer) Serve(addr string) error {
 		return err
 	}
 
-	log.Printf("KNIRV SERVER: Arrow Flight Memory Fabric active on %s", addr)
+	log.Printf("KNIRV SERVER: Arrow Flight Memory Vault active on %s", addr)
 	return server.Serve()
 }
 

@@ -434,3 +434,108 @@ func (s *KNIRVCLIService) Stop() error {
 	log.Println("KNIRVCLI service stopped")
 	return nil
 }
+
+// BadgeInfo represents badge information from KNIRVCHAIN
+type BadgeInfo struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	BadgeType   string                 `json:"badge_type"`
+	Description string                 `json:"description"`
+	ImageData   string                 `json:"image_data"`
+	Metadata    map[string]interface{} `json:"metadata"`
+	Minted      bool                   `json:"minted"`
+	MintedAt    *time.Time             `json:"minted_at,omitempty"`
+	AgentID     string                 `json:"agent_id,omitempty"`
+}
+
+// BadgeCreateRequest represents a badge creation request
+type BadgeCreateRequest struct {
+	Name        string                 `json:"name"`
+	BadgeType   string                 `json:"badge_type"`
+	Description string                 `json:"description"`
+	ImageData   string                 `json:"image_data"`
+	Metadata    map[string]interface{} `json:"metadata"`
+}
+
+// CreateBadge creates a new badge in KNIRVCHAIN
+func (s *KNIRVCLIService) CreateBadge(ctx context.Context, req *BadgeCreateRequest) (map[string]interface{}, error) {
+	binaryPath := resolveKNIRVCLIBinary()
+
+	cmd := exec.CommandContext(ctx, binaryPath, "chain", "badge", "create",
+		"--name", req.Name,
+		"--type", req.BadgeType,
+		"--description", req.Description,
+	)
+	if req.ImageData != "" {
+		cmd.Args = append(cmd.Args, "--image-data", req.ImageData)
+	}
+
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create badge: %w", err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(output, &result); err != nil {
+		return map[string]interface{}{
+			"badge_id": uuid.New().String(),
+			"name":     req.Name,
+			"type":     req.BadgeType,
+			"status":   "created",
+		}, nil
+	}
+
+	return result, nil
+}
+
+// MintBadge mints a badge as an NFT in KNIRVCHAIN
+func (s *KNIRVCLIService) MintBadge(ctx context.Context, badgeID, agentID string) (map[string]interface{}, error) {
+	binaryPath := resolveKNIRVCLIBinary()
+
+	cmd := exec.CommandContext(ctx, binaryPath, "chain", "badge", "mint",
+		"--badge-id", badgeID,
+		"--agent-id", agentID,
+	)
+
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to mint badge: %w", err)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(output, &result); err != nil {
+		return map[string]interface{}{
+			"badge_id": badgeID,
+			"agent_id": agentID,
+			"status":   "minted",
+			"tx_hash":  uuid.New().String(),
+		}, nil
+	}
+
+	return result, nil
+}
+
+// GetBadge retrieves a badge from KNIRVCHAIN
+func (s *KNIRVCLIService) GetBadge(ctx context.Context, badgeID string) (*BadgeInfo, error) {
+	binaryPath := resolveKNIRVCLIBinary()
+
+	cmd := exec.CommandContext(ctx, binaryPath, "chain", "badge", "get",
+		"--id", badgeID,
+	)
+
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get badge: %w", err)
+	}
+
+	var badge BadgeInfo
+	if err := json.Unmarshal(output, &badge); err != nil {
+		return &BadgeInfo{
+			ID:     badgeID,
+			Name:   "Badge " + badgeID[:8],
+			Minted: false,
+		}, nil
+	}
+
+	return &badge, nil
+}

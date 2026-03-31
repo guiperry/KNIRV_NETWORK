@@ -74,7 +74,7 @@ func TestNewServer(t *testing.T) {
 	assert.NotNil(t, server.dveManager)
 	assert.NotNil(t, server.validationCore)
 	assert.NotNil(t, server.dveCreationService)
-	assert.NotNil(t, server.fabricServer)
+	assert.NotNil(t, server.pluginServer)
 	assert.NotNil(t, server.dataEngine)
 	assert.NotNil(t, server.inferenceService)
 	assert.NotNil(t, server.teeSecurityService)

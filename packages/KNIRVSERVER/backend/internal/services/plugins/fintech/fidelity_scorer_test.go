@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	"backend_server/internal/fintech/ontology"
+	"backend_server/internal/services/plugins/fintech/ontology"
 )
 
 func TestFidelityScorer_NewFidelityScorer(t *testing.T) {

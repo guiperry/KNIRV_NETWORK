@@ -1,4 +1,4 @@
-package fabricserver
+package pluginserver
 
 import (
 	"encoding/json"
@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// HandleStartFabric handles the /runtime/start endpoint
-func (as *FabricServer) HandleStartFabric(w http.ResponseWriter, r *http.Request) {
+// HandleStartPlugin handles the /runtime/start endpoint
+func (as *PluginServer) HandleStartPlugin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -37,20 +37,20 @@ func (as *FabricServer) HandleStartFabric(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	fabric, err := as.runtimeManager.StartFabric(request.Name, request.Binary, request.Config)
+	plugin, err := as.runtimeManager.StartPlugin(request.Name, request.Binary, request.Config)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Error starting fabric: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error starting plugin: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(fabric)
+	json.NewEncoder(w).Encode(plugin)
 
-	log.Printf("Started fabric %s (%s) from %s", request.Name, request.Binary, r.RemoteAddr)
+	log.Printf("Started plugin %s (%s) from %s", request.Name, request.Binary, r.RemoteAddr)
 }
 
-// HandleStopFabric handles the /runtime/stop/{id} endpoint
-func (as *FabricServer) HandleStopFabric(w http.ResponseWriter, r *http.Request) {
+// HandleStopPlugin handles the /runtime/stop/{id} endpoint
+func (as *PluginServer) HandleStopPlugin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -61,84 +61,84 @@ func (as *FabricServer) HandleStopFabric(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	fabricID := strings.TrimPrefix(r.URL.Path, "/runtime/stop/")
-	if fabricID == "" {
-		http.Error(w, "Fabric ID is required", http.StatusBadRequest)
+	pluginID := strings.TrimPrefix(r.URL.Path, "/runtime/stop/")
+	if pluginID == "" {
+		http.Error(w, "Plugin ID is required", http.StatusBadRequest)
 		return
 	}
 
-	if err := as.runtimeManager.StopFabric(fabricID); err != nil {
-		http.Error(w, fmt.Sprintf("Error stopping fabric unit: %v", err), http.StatusInternalServerError)
+	if err := as.runtimeManager.StopPlugin(pluginID); err != nil {
+		http.Error(w, fmt.Sprintf("Error stopping plugin unit: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"success": true, "message": "Fabric unit stopped successfully"}`)
+	fmt.Fprintf(w, `{"success": true, "message": "Plugin unit stopped successfully"}`)
 
-	log.Printf("Stopped fabric %s from %s", fabricID, r.RemoteAddr)
+	log.Printf("Stopped plugin %s from %s", pluginID, r.RemoteAddr)
 }
 
-// HandleListRunningFabrics handles the /runtime/objects endpoint
-func (as *FabricServer) HandleListRunningFabrics(w http.ResponseWriter, r *http.Request) {
+// HandleListRunningPlugins handles the /runtime/objects endpoint
+func (as *PluginServer) HandleListRunningPlugins(w http.ResponseWriter, r *http.Request) {
 	if as.runtimeManager == nil {
 		http.Error(w, "Runtime management not enabled", http.StatusServiceUnavailable)
 		return
 	}
 
-	fabricUnits := as.runtimeManager.GetFabricList()
+	pluginUnits := as.runtimeManager.GetPluginList()
 
 	response := struct {
-		Fabrics []interface{} `json:"objects"`
+		Plugins []interface{} `json:"objects"`
 		Count   int           `json:"count"`
 	}{
-		Fabrics: make([]interface{}, len(fabricUnits)),
-		Count:   len(fabricUnits),
+		Plugins: make([]interface{}, len(pluginUnits)),
+		Count:   len(pluginUnits),
 	}
 
-	for i, fabric := range fabricUnits {
-		response.Fabrics[i] = fabric
+	for i, plugin := range pluginUnits {
+		response.Plugins[i] = plugin
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
-// HandleGetFabric handles the /runtime/fabric/{id} endpoint
-func (as *FabricServer) HandleGetFabric(w http.ResponseWriter, r *http.Request) {
+// HandleGetPlugin handles the /runtime/plugin/{id} endpoint
+func (as *PluginServer) HandleGetPlugin(w http.ResponseWriter, r *http.Request) {
 	if as.runtimeManager == nil {
 		http.Error(w, "Runtime management not enabled", http.StatusServiceUnavailable)
 		return
 	}
 
-	fabricID := strings.TrimPrefix(r.URL.Path, "/runtime/fabric/")
-	if fabricID == "" {
-		http.Error(w, "Fabric ID is required", http.StatusBadRequest)
+	pluginID := strings.TrimPrefix(r.URL.Path, "/runtime/plugin/")
+	if pluginID == "" {
+		http.Error(w, "Plugin ID is required", http.StatusBadRequest)
 		return
 	}
 
-	fabric, err := as.runtimeManager.GetFabric(fabricID)
+	plugin, err := as.runtimeManager.GetPlugin(pluginID)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Fabric unit not found: %v", err), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Plugin unit not found: %v", err), http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(fabric)
+	json.NewEncoder(w).Encode(plugin)
 }
 
 // HandleRuntimeStatus handles the /runtime/status endpoint
-func (as *FabricServer) HandleRuntimeStatus(w http.ResponseWriter, r *http.Request) {
+func (as *PluginServer) HandleRuntimeStatus(w http.ResponseWriter, r *http.Request) {
 	if as.runtimeManager == nil {
 		http.Error(w, "Runtime management not enabled", http.StatusServiceUnavailable)
 		return
 	}
 
-	fabricUnits := as.runtimeManager.GetFabricList()
+	pluginUnits := as.runtimeManager.GetPluginList()
 
 	status := map[string]interface{}{
 		"running":      true,
-		"fabric_count": len(fabricUnits),
-		"max_objects":  as.maxFabrics,
+		"plugin_count": len(pluginUnits),
+		"max_objects":  as.maxPlugins,
 		"uptime":       time.Since(as.startTime).String(),
 	}
 

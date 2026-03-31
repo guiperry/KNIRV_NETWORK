@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"backend_server/internal/fintech/ontology"
+	"backend_server/internal/services/plugins/fintech/ontology"
 	"backend_server/internal/reasoning/graph"
 )
 

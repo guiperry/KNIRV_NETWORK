@@ -1,4 +1,4 @@
-package fabricserver
+package pluginserver
 
 import (
 	"fmt"
@@ -6,17 +6,17 @@ import (
 	"time"
 )
 
-// NewFabricScheduler creates a new fabric scheduler
-func NewFabricScheduler() (*FabricScheduler, error) {
-	return &FabricScheduler{
+// NewPluginScheduler creates a new plugin scheduler
+func NewPluginScheduler() (*PluginScheduler, error) {
+	return &PluginScheduler{
 		schedulingPolicy: "resource-aware",
-		queue:            make([]*FabricScheduleRequest, 0),
+		queue:            make([]*PluginScheduleRequest, 0),
 		running:          false,
 	}, nil
 }
 
 // Start starts the scheduler
-func (as *FabricScheduler) Start() error {
+func (as *PluginScheduler) Start() error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
@@ -29,7 +29,7 @@ func (as *FabricScheduler) Start() error {
 }
 
 // Stop stops the scheduler
-func (as *FabricScheduler) Stop() error {
+func (as *PluginScheduler) Stop() error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
@@ -37,8 +37,8 @@ func (as *FabricScheduler) Stop() error {
 	return nil
 }
 
-// ScheduleFabric adds a fabric item to the scheduling queue
-func (as *FabricScheduler) ScheduleFabric(request *FabricScheduleRequest) error {
+// SchedulePlugin adds a plugin item to the scheduling queue
+func (as *PluginScheduler) SchedulePlugin(request *PluginScheduleRequest) error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
@@ -56,7 +56,7 @@ func (as *FabricScheduler) ScheduleFabric(request *FabricScheduleRequest) error 
 }
 
 // ProcessQueue processes the scheduling queue
-func (as *FabricScheduler) ProcessQueue() {
+func (as *PluginScheduler) ProcessQueue() {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
@@ -78,7 +78,7 @@ func (as *FabricScheduler) ProcessQueue() {
 }
 
 // sortQueue sorts the queue based on the scheduling policy
-func (as *FabricScheduler) sortQueue() {
+func (as *PluginScheduler) sortQueue() {
 	switch as.schedulingPolicy {
 	case "priority":
 		// Sort by priority (higher priority first)
@@ -101,7 +101,7 @@ func (as *FabricScheduler) sortQueue() {
 }
 
 // calculateResourceScore calculates a score for resource requirements
-func (as *FabricScheduler) calculateResourceScore(resources *ResourceAllocation) float64 {
+func (as *PluginScheduler) calculateResourceScore(resources *ResourceAllocation) float64 {
 	if resources == nil {
 		return 0
 	}
@@ -116,7 +116,7 @@ func (as *FabricScheduler) calculateResourceScore(resources *ResourceAllocation)
 }
 
 // processRoundRobin processes queue in round-robin fashion
-func (as *FabricScheduler) processRoundRobin() {
+func (as *PluginScheduler) processRoundRobin() {
 	// In round-robin, we just process in FIFO order
 	// This is a simplified implementation
 	if len(as.queue) > 0 {
@@ -126,7 +126,7 @@ func (as *FabricScheduler) processRoundRobin() {
 }
 
 // processResourceAware processes queue based on resource availability
-func (as *FabricScheduler) processResourceAware() {
+func (as *PluginScheduler) processResourceAware() {
 	// This would integrate with the resource pool to check availability
 	// For now, just process the first request that can fit
 
@@ -141,7 +141,7 @@ func (as *FabricScheduler) processResourceAware() {
 }
 
 // processPriority processes queue based on priority
-func (as *FabricScheduler) processPriority() {
+func (as *PluginScheduler) processPriority() {
 	// Process highest priority first
 	if len(as.queue) > 0 {
 		// Remove the first request (highest priority due to sorting)
@@ -150,7 +150,7 @@ func (as *FabricScheduler) processPriority() {
 }
 
 // canSchedule checks if a request can be scheduled
-func (as *FabricScheduler) canSchedule(request *FabricScheduleRequest) bool {
+func (as *PluginScheduler) canSchedule(request *PluginScheduleRequest) bool {
 	// This is a simplified check
 	// In a real implementation, this would check with the resource pool
 	return request.Resources != nil &&
@@ -159,14 +159,14 @@ func (as *FabricScheduler) canSchedule(request *FabricScheduleRequest) bool {
 }
 
 // GetQueueStatus returns the current queue status
-func (as *FabricScheduler) GetQueueStatus() map[string]interface{} {
+func (as *PluginScheduler) GetQueueStatus() map[string]interface{} {
 	as.mu.RLock()
 	defer as.mu.RUnlock()
 
 	queueInfo := make([]map[string]interface{}, len(as.queue))
 	for i, request := range as.queue {
 		queueInfo[i] = map[string]interface{}{
-			"fabric_name":  request.FabricName,
+			"plugin_name":  request.PluginName,
 			"binary":       request.Binary,
 			"priority":     request.Priority,
 			"request_time": request.RequestTime,
@@ -187,7 +187,7 @@ func (as *FabricScheduler) GetQueueStatus() map[string]interface{} {
 }
 
 // SetSchedulingPolicy sets the scheduling policy
-func (as *FabricScheduler) SetSchedulingPolicy(policy string) error {
+func (as *PluginScheduler) SetSchedulingPolicy(policy string) error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
@@ -204,26 +204,26 @@ func (as *FabricScheduler) SetSchedulingPolicy(policy string) error {
 }
 
 // GetSchedulingPolicy returns the current scheduling policy
-func (as *FabricScheduler) GetSchedulingPolicy() string {
+func (as *PluginScheduler) GetSchedulingPolicy() string {
 	as.mu.RLock()
 	defer as.mu.RUnlock()
 	return as.schedulingPolicy
 }
 
 // ClearQueue clears the scheduling queue
-func (as *FabricScheduler) ClearQueue() {
+func (as *PluginScheduler) ClearQueue() {
 	as.mu.Lock()
 	defer as.mu.Unlock()
-	as.queue = make([]*FabricScheduleRequest, 0)
+	as.queue = make([]*PluginScheduleRequest, 0)
 }
 
 // RemoveFromQueue removes a specific request from the queue
-func (as *FabricScheduler) RemoveFromQueue(fabricName string) bool {
+func (as *PluginScheduler) RemoveFromQueue(pluginName string) bool {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
 	for i, request := range as.queue {
-		if request.FabricName == fabricName {
+		if request.PluginName == pluginName {
 			as.queue = append(as.queue[:i], as.queue[i+1:]...)
 			return true
 		}
@@ -233,23 +233,23 @@ func (as *FabricScheduler) RemoveFromQueue(fabricName string) bool {
 }
 
 // GetQueueSize returns the current queue size
-func (as *FabricScheduler) GetQueueSize() int {
+func (as *PluginScheduler) GetQueueSize() int {
 	as.mu.RLock()
 	defer as.mu.RUnlock()
 	return len(as.queue)
 }
 
 // IsRunning returns whether the scheduler is running
-func (as *FabricScheduler) IsRunning() bool {
+func (as *PluginScheduler) IsRunning() bool {
 	as.mu.RLock()
 	defer as.mu.RUnlock()
 	return as.running
 }
 
-// NewFabricScheduleRequest creates a new schedule request
-func NewFabricScheduleRequest(fabricName, binary string, resources *ResourceAllocation, config map[string]interface{}, priority int) *FabricScheduleRequest {
-	return &FabricScheduleRequest{
-		FabricName:  fabricName,
+// NewPluginScheduleRequest creates a new schedule request
+func NewPluginScheduleRequest(pluginName, binary string, resources *ResourceAllocation, config map[string]interface{}, priority int) *PluginScheduleRequest {
+	return &PluginScheduleRequest{
+		PluginName:  pluginName,
 		Binary:      binary,
 		Resources:   resources,
 		Config:      config,
@@ -258,20 +258,20 @@ func NewFabricScheduleRequest(fabricName, binary string, resources *ResourceAllo
 	}
 }
 
-// ScheduleFabricWithDefaults schedules a fabric unit with default resource allocation
-func (as *FabricScheduler) ScheduleFabricWithDefaults(fabricName, binary string, config map[string]interface{}) error {
+// SchedulePluginWithDefaults schedules a plugin unit with default resource allocation
+func (as *PluginScheduler) SchedulePluginWithDefaults(pluginName, binary string, config map[string]interface{}) error {
 	defaultResources := &ResourceAllocation{
 		CPUCores:    0.5,
 		MemoryBytes: 256 * 1024 * 1024,  // 256MB
 		DiskBytes:   1024 * 1024 * 1024, // 1GB
 	}
 
-	request := NewFabricScheduleRequest(fabricName, binary, defaultResources, config, 0)
-	return as.ScheduleFabric(request)
+	request := NewPluginScheduleRequest(pluginName, binary, defaultResources, config, 0)
+	return as.SchedulePlugin(request)
 }
 
-// ScheduleFabricWithPriority schedules a fabric item with specific priority
-func (as *FabricScheduler) ScheduleFabricWithPriority(fabricName, binary string, resources *ResourceAllocation, config map[string]interface{}, priority int) error {
-	request := NewFabricScheduleRequest(fabricName, binary, resources, config, priority)
-	return as.ScheduleFabric(request)
+// SchedulePluginWithPriority schedules a plugin item with specific priority
+func (as *PluginScheduler) SchedulePluginWithPriority(pluginName, binary string, resources *ResourceAllocation, config map[string]interface{}, priority int) error {
+	request := NewPluginScheduleRequest(pluginName, binary, resources, config, priority)
+	return as.SchedulePlugin(request)
 }

@@ -106,7 +106,7 @@ func (em *EncryptionManager) EncryptData(plaintext []byte, keyID string) (string
 	encrypted := map[string]interface{}{
 		"payload":   payload,
 		"signature": base64.StdEncoding.EncodeToString(signature),
-		"version":   "2.0", // Fabric-compatible version
+		"version":   "2.0", // Plugin-compatible version
 	}
 
 	finalBytes, err := json.Marshal(encrypted)

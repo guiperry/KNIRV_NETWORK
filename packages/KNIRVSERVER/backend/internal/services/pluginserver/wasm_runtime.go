@@ -1,4 +1,4 @@
-package fabricserver
+package pluginserver
 
 import (
 	"context"
@@ -18,11 +18,11 @@ type WASMRuntime struct {
 	config    *WASMConfig
 }
 
-// WASMInstance represents a running WASM fabric instance
+// WASMInstance represents a running WASM plugin instance
 type WASMInstance struct {
 	ID            string
-	Config        *objects.FabricRuntimeInstance
-	ResourceUsage *objects.FabricResourceUsage
+	Config        *objects.PluginRuntimeInstance
+	ResourceUsage *objects.PluginResourceUsage
 	StartTime     time.Time
 	LastActivity  time.Time
 	HealthStatus  string
@@ -36,7 +36,7 @@ type WASMConfig struct {
 	MaxInstances     int
 	EnableProfiling  bool
 	EnableDebugging  bool
-	ResourceLimits   *objects.FabricResourceLimits
+	ResourceLimits   *objects.PluginResourceLimits
 }
 
 // WASMExecutionResult contains the result of WASM execution
@@ -45,7 +45,7 @@ type WASMExecutionResult struct {
 	Output        []byte
 	Error         string
 	ExecutionTime time.Duration
-	ResourceUsage *objects.FabricResourceUsage
+	ResourceUsage *objects.PluginResourceUsage
 }
 
 // NewWASMRuntime creates a new WASM runtime
@@ -70,8 +70,8 @@ func NewWASMRuntime(config *WASMConfig) (*WASMRuntime, error) {
 }
 
 // LoadWASMModule loads a WASM module from file (stub implementation)
-func (wr *WASMRuntime) LoadWASMModule(fabricPath string) (interface{}, error) {
-	wasmBytes, err := os.ReadFile(fabricPath)
+func (wr *WASMRuntime) LoadWASMModule(pluginPath string) (interface{}, error) {
+	wasmBytes, err := os.ReadFile(pluginPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read WASM file: %w", err)
 	}
@@ -82,8 +82,8 @@ func (wr *WASMRuntime) LoadWASMModule(fabricPath string) (interface{}, error) {
 	}
 
 	// Return a placeholder module - full implementation pending
-	log.Printf("WASM module loaded (stub): %s (%d bytes)", fabricPath, len(wasmBytes))
-	return &WASMModuleStub{path: fabricPath, size: len(wasmBytes)}, nil
+	log.Printf("WASM module loaded (stub): %s (%d bytes)", pluginPath, len(wasmBytes))
+	return &WASMModuleStub{path: pluginPath, size: len(wasmBytes)}, nil
 }
 
 // WASMModuleStub represents a loaded WASM module (stub)
@@ -92,8 +92,8 @@ type WASMModuleStub struct {
 	size int
 }
 
-// CreateInstance creates a new WASM instance for a fabric item (stub implementation)
-func (wr *WASMRuntime) CreateInstance(fabricID string, module interface{}, config *objects.FabricRuntimeInstance) (*WASMInstance, error) {
+// CreateInstance creates a new WASM instance for a plugin item (stub implementation)
+func (wr *WASMRuntime) CreateInstance(pluginID string, module interface{}, config *objects.PluginRuntimeInstance) (*WASMInstance, error) {
 	wr.mu.Lock()
 	defer wr.mu.Unlock()
 
@@ -103,18 +103,18 @@ func (wr *WASMRuntime) CreateInstance(fabricID string, module interface{}, confi
 	}
 
 	wasmInstance := &WASMInstance{
-		ID:            fabricID,
+		ID:            pluginID,
 		Config:        config,
-		ResourceUsage: &objects.FabricResourceUsage{},
+		ResourceUsage: &objects.PluginResourceUsage{},
 		StartTime:     time.Now(),
 		LastActivity:  time.Now(),
 		HealthStatus:  "healthy",
 		ProcessID:     1000 + len(wr.instances), // Mock PID
 	}
 
-	wr.instances[fabricID] = wasmInstance
+	wr.instances[pluginID] = wasmInstance
 
-	log.Printf("Created WASM instance for fabric %s (stub implementation)", fabricID)
+	log.Printf("Created WASM instance for plugin %s (stub implementation)", pluginID)
 	return wasmInstance, nil
 }
 
@@ -255,7 +255,7 @@ func (wr *WASMRuntime) validateWASMModule(wasmBytes []byte) error {
 }
 
 // setupResourceLimits configures resource limiting (stub implementation)
-func (wr *WASMRuntime) setupResourceLimits(limits *objects.FabricResourceLimits) error {
+func (wr *WASMRuntime) setupResourceLimits(limits *objects.PluginResourceLimits) error {
 	// This would implement actual resource limiting
 	// For now, just log the limits
 	if limits != nil {
@@ -276,7 +276,7 @@ func (wr *WASMRuntime) setupResourceLimits(limits *objects.FabricResourceLimits)
 				// Apply CPU limiting by updating the instance config
 				if limits.MaxCPUPercent > 0 {
 					if instance.Config.ResourceLimits == nil {
-						instance.Config.ResourceLimits = &objects.FabricResourceLimits{}
+						instance.Config.ResourceLimits = &objects.PluginResourceLimits{}
 					}
 					instance.Config.ResourceLimits.MaxCPUPercent = limits.MaxCPUPercent
 					log.Printf("Applied CPU limit %.1f%% to instance %s", limits.MaxCPUPercent, instanceID)
@@ -285,7 +285,7 @@ func (wr *WASMRuntime) setupResourceLimits(limits *objects.FabricResourceLimits)
 				// Apply memory limiting by updating the instance config
 				if limits.MaxMemoryMB > 0 {
 					if instance.Config.ResourceLimits == nil {
-						instance.Config.ResourceLimits = &objects.FabricResourceLimits{}
+						instance.Config.ResourceLimits = &objects.PluginResourceLimits{}
 					}
 					instance.Config.ResourceLimits.MaxMemoryMB = limits.MaxMemoryMB
 					log.Printf("Applied memory limit %dMB to instance %s", limits.MaxMemoryMB, instanceID)
@@ -294,7 +294,7 @@ func (wr *WASMRuntime) setupResourceLimits(limits *objects.FabricResourceLimits)
 				// Apply execution time limiting by updating the instance config
 				if limits.MaxExecutionTime > 0 {
 					if instance.Config.ResourceLimits == nil {
-						instance.Config.ResourceLimits = &objects.FabricResourceLimits{}
+						instance.Config.ResourceLimits = &objects.PluginResourceLimits{}
 					}
 					instance.Config.ResourceLimits.MaxExecutionTime = limits.MaxExecutionTime
 					log.Printf("Applied execution time limit %ds to instance %s", limits.MaxExecutionTime, instanceID)
@@ -314,10 +314,10 @@ func (wr *WASMRuntime) setupResourceLimits(limits *objects.FabricResourceLimits)
 }
 
 // collectResourceUsage collects actual resource usage from WASM execution
-func (wr *WASMRuntime) collectResourceUsage(instance *WASMInstance) *objects.FabricResourceUsage {
+func (wr *WASMRuntime) collectResourceUsage(instance *WASMInstance) *objects.PluginResourceUsage {
 	// In a real implementation, this would collect actual metrics
 	// For now, return simulated usage
-	return &objects.FabricResourceUsage{
+	return &objects.PluginResourceUsage{
 		MemoryUsageMB:   50.0 + float64(time.Now().Unix()%50),
 		CPUUsagePercent: 15.0 + float64(time.Now().Unix()%30),
 		DiskUsageMB:     10.0 + float64(time.Now().Unix()%20),
@@ -329,7 +329,7 @@ func (wr *WASMRuntime) collectResourceUsage(instance *WASMInstance) *objects.Fab
 }
 
 // updateResourceUsage updates the instance's resource usage
-func (wr *WASMRuntime) updateResourceUsage(instance *WASMInstance, usage *objects.FabricResourceUsage) {
+func (wr *WASMRuntime) updateResourceUsage(instance *WASMInstance, usage *objects.PluginResourceUsage) {
 	if usage != nil {
 		instance.ResourceUsage = usage
 		instance.LastActivity = time.Now()

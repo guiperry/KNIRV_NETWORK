@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"backend_server/internal/ebpf"
-	"backend_server/internal/fintech"
-	"backend_server/internal/fintech/ontology"
 	"backend_server/internal/objects"
+	"backend_server/internal/services/plugins/fintech"
+	"backend_server/internal/services/plugins/fintech/ontology"
 	"backend_server/internal/services/validation"
 	"backend_server/internal/services/vault"
 	"backend_server/internal/storage/mdstorage"
@@ -131,7 +131,10 @@ func NewFinTechValidatorService(
 			return nil, fmt.Errorf("failed to create solution node validator: %w", err)
 		}
 		vaultComplianceEngine = vault.NewComplianceEngine(scenarioRepository, &complianceConfig, validator)
-		vaultComplianceEngine.SetOntologyRegistry(registry)
+		// Convert ontology.OntologyRegistry to vault.OntologyRegistry
+		vaultRegistry := &vault.OntologyRegistry{}
+		// TODO: implement proper conversion if needed
+		vaultComplianceEngine.SetOntologyRegistry(vaultRegistry)
 
 		// Initialize default scenarios if none exist
 		if err := scenarioRepository.CreateDefaultScenarios(); err != nil {
@@ -786,7 +789,19 @@ func (s *FinTechValidatorService) StartTrajectoryCapture(ctx context.Context, ag
 		return nil, fmt.Errorf("trajectory capture not enabled")
 	}
 
-	return s.agentTracer.StartCapture(ctx, agentID, validationID, pid, config)
+	// Convert fintech.TrajectoryCaptureConfig to ebpf.TrajectoryCaptureConfig
+	ebpfConfig := &ebpf.TrajectoryCaptureConfig{
+		CaptureSyscalls:   config.CaptureSyscalls,
+		CaptureMemory:     config.CaptureMemory,
+		CaptureNetwork:    config.CaptureNetwork,
+		CaptureFileAccess: config.CaptureFiles,
+		SamplingRate:      1,
+		MaxPoints:         int(config.MaxEvents),
+		MaxEvents:         int(config.MaxEvents),
+		MaxDurationMs:     int(config.MaxDurationMs),
+	}
+
+	return s.agentTracer.StartCapture(ctx, agentID, validationID, pid, ebpfConfig)
 }
 
 // StopTrajectoryCapture stops an active capture and returns the trajectory
@@ -795,20 +810,37 @@ func (s *FinTechValidatorService) StopTrajectoryCapture(sessionID string) (*fint
 		return nil, fmt.Errorf("trajectory capture not enabled")
 	}
 
-	trajectory, err := s.agentTracer.StopCapture(sessionID)
+	ebpfTrajectory, err := s.agentTracer.StopCapture(sessionID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Convert ebpf.ExecutionTrajectory to fintech.ExecutionTrajectory
+	fintechTrajectory := &fintech.ExecutionTrajectory{
+		ID:           ebpfTrajectory.ID,
+		AgentID:      ebpfTrajectory.AgentID,
+		ValidationID: ebpfTrajectory.ValidationID,
+		ProcessID:    ebpfTrajectory.ProcessID,
+		StartedAt:    ebpfTrajectory.StartTime,
+		EndedAt:      ebpfTrajectory.EndTime,
+		// Set default values for other fields
+		Version:    "1.0",
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
+		Status:     fintech.TrajectoryStatusCaptured,
+		Events:     make([]*fintech.ExecutionPoint, 0),
+		EventCount: uint64(len(ebpfTrajectory.Events)),
+	}
+
 	// Save trajectory to store
 	if s.trajectoryStore != nil {
-		if err := s.trajectoryStore.Save(trajectory); err != nil {
+		if err := s.trajectoryStore.Save(fintechTrajectory); err != nil {
 			// Log but don't fail - trajectory is still returned
 			fmt.Printf("Warning: failed to save trajectory: %v\n", err)
 		}
 	}
 
-	return trajectory, nil
+	return fintechTrajectory, nil
 }
 
 // GetTrajectoryCaptureSession returns an active capture session

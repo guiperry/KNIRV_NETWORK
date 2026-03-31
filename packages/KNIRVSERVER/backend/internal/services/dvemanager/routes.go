@@ -47,6 +47,12 @@ func (dm *DVEManager) RegisterRoutes(r *mux.Router, authMiddleware *middleware.A
 	topologyRouter := dveRouter.PathPrefix("/topology").Subrouter()
 	topologyRouter.HandleFunc("", dm.HandleGetNetworkTopology).Methods("GET")
 
+	// Policy attachment endpoints (Gap 1)
+	nodePoliciesRouter := protectedRouter.PathPrefix("/nodes/{nodeId}/policies").Subrouter()
+	nodePoliciesRouter.HandleFunc("", dm.HandleListNodePolicies).Methods("GET")
+	nodePoliciesRouter.HandleFunc("", dm.HandleAttachPolicy).Methods("POST")
+	nodePoliciesRouter.HandleFunc("/{policyId}", dm.HandleDetachPolicy).Methods("DELETE")
+
 	dveRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})

@@ -19,10 +19,10 @@ import (
 	data_engine "backend_server/internal/data_engine"
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
-	"backend_server/internal/fintech"
 	"backend_server/internal/oracle"
 	oracleroutes "backend_server/internal/oracle/routes"
 	"backend_server/internal/password"
+	pb "backend_server/internal/proto"
 	"backend_server/internal/reasoning/graph"
 	"backend_server/internal/runtime"
 	nexus "backend_server/internal/server"
@@ -38,9 +38,8 @@ import (
 	dverental "backend_server/internal/services/dverental"
 	"backend_server/internal/services/endpoints"
 	"backend_server/internal/services/evidence"
-	fabricserver "backend_server/internal/services/fabric-server"
-	fabricmanagement "backend_server/internal/services/fabricmanagement"
-	fintech_validator "backend_server/internal/services/fintech_validator"
+	pluginserver "backend_server/internal/services/pluginserver"
+	fabricmanagement "backend_server/internal/services/pluginmanagement"
 	"backend_server/internal/services/guardrails"
 	icme "backend_server/internal/services/icme"
 	inference "backend_server/internal/services/inferencer"
@@ -102,13 +101,13 @@ type Server struct {
 	dveRentalService             *dverental.DVERentalService
 	validationCore               *validation.ValidationCore
 	dnsService                   *dns.DynamicDNSService
-	fabricServer                 *fabricserver.FabricServer
+	pluginServer                 *pluginserver.PluginServer
 	dataEngine                   *data_engine.BuntDBDataEngine
 	inferenceService             *inference.InferenceService
 	websocketService             *websocket.WebSocketService
 	teeSecurityService           *teesecurity.TEESecurityService
 	systemHealthService          *systemhealth.SystemHealthService
-	fabricManagementService      *fabricmanagement.FabricManagementService
+	fabricManagementService      *fabricmanagement.PluginManagementService
 	controllerIntegrationService *controllerintegration.ControllerIntegrationService
 	cognitiveEngine              *cognitiveengine.CognitiveEngine
 	containerOrchestrator        *container.ContainerOrchestrator
@@ -126,9 +125,6 @@ type Server struct {
 	reasoningEngine     *graph.ReasoningEngine
 	activeMemoryService *active_memory.ActiveMemoryService
 
-	// FinTech Validator Service
-	fintechValidatorService *fintech_validator.FinTechValidatorService
-
 	// Object Nest subsystem
 	unifiedContainerManager *runtime.UnifiedContainerManager
 
@@ -143,11 +139,6 @@ type Server struct {
 
 	// Onboarding Service - Value System and Ontology Ingestion
 	onboardingService *onboarding.OnboardingService
-
-	// FinTech Services (Stripe, PayPal, Blockchain)
-	stripeService     *fintech.StripeService
-	paypalService     *fintech.PayPalService
-	blockchainService *fintech.BlockchainService
 
 	// Production Services (Phase 3, 4, 8)
 	eventBroadcaster *websocket.EventBroadcaster
@@ -312,6 +303,74 @@ func getOSAppDataDir() (string, error) {
 // Returns nil (no error) when the key file is absent — oracle is simply not started.
 // The password is read from ORACLE_KEY_PASSWORD env var (non-interactive/CI) or prompted
 // from stdin when running interactively.
+func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, error) {
+	keyPath, err := config.GetRootKeyPath()
+	if err != nil {
+		return nil, fmt.Errorf("secrets: could not resolve root key path: %w", err)
+	}
+
+	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+		logger.Info("Secrets not loaded: no root.key found", zap.String("expected_path", keyPath))
+		return nil, nil
+	}
+
+	var keyPassword []byte
+	if envPwd := os.Getenv("ORACLE_KEY_PASSWORD"); envPwd != "" {
+		keyPassword = []byte(envPwd)
+	} else {
+		keyPassword, err = password.PromptForPassword("Enter root key password to load secrets: ")
+		if err != nil {
+			return nil, fmt.Errorf("secrets: failed to read password: %w", err)
+		}
+	}
+
+	content, err := password.LoadEncryptedKeyFile(keyPath, keyPassword)
+	if err != nil {
+		return nil, fmt.Errorf("secrets: failed to decrypt root.key: %w", err)
+	}
+
+	logger.Info("Secrets loaded from root.key", zap.String("key_path", keyPath))
+	return content, nil
+}
+
+func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileContentProto) {
+	if content == nil {
+		return
+	}
+
+	if content.JwtSecret != "" {
+		cfg.Security.JWTSecret = content.JwtSecret
+		log.Printf("JWT Secret loaded from root.key")
+	}
+
+	if content.KnirvJwtSecret != "" {
+		log.Printf("KNIRV JWT Secret loaded from root.key")
+	}
+
+	if content.GeminiApiKey != "" {
+		log.Printf("Gemini API Key loaded from root.key")
+	}
+
+	if content.DeepseekApiKey != "" {
+		log.Printf("DeepSeek API Key loaded from root.key")
+	}
+
+	if content.CerebrasApiKey != "" {
+		log.Printf("Cerebras API Key loaded from root.key")
+	}
+
+	if content.DatabaseUrl != "" {
+		cfg.Database.Path = content.DatabaseUrl
+		log.Printf("Database URL loaded from root.key")
+	}
+
+	if content.TlsCert != "" || content.TlsKey != "" {
+		cfg.Security.TLSCert = content.TlsCert
+		cfg.Security.TLSKey = content.TlsKey
+		log.Printf("TLS certificates loaded from root.key")
+	}
+}
+
 func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 	keyPath, err := config.GetRootKeyPath()
 	if err != nil {
@@ -485,7 +544,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		}
 	}
 
-	fabricServer, err := fabricserver.NewFabricServer(cfg, dbManager)
+	pluginServer, err := pluginserver.NewPluginServer(cfg, dbManager)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize fabric server: %w", err)
 	}
@@ -550,8 +609,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	systemHealthService := systemhealth.NewSystemHealthService(dbManager)
 
 	// Initialize Fabric Management service
-	fabricManagementService := fabricmanagement.NewFabricManagementService(dbManager)
-	fabricManagementService.SetFabricServerReference(fabricServer)
+	fabricManagementService := fabricmanagement.NewPluginManagementService(dbManager)
+	fabricManagementService.SetPluginServerReference(pluginServer)
 
 	// Initialize Controller Integration service
 	controllerIntegrationService := controllerintegration.NewControllerIntegrationService(dbManager)
@@ -655,33 +714,8 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 	activeMemoryService := active_memory.NewActiveMemoryService(vaultService, reasoningEngine, mdStorage, solutionValidator)
 
-	// Initialize FinTech Validator Service
-	fintechValidatorService, err := fintech_validator.NewFinTechValidatorService(
-		validationCore,
-		pqcManager,
-		mdStorage,
-		&fintech_validator.Config{
-			Enabled:               cfg.Fintech.Enabled,
-			EnableAMLChecks:       true,
-			EnableKYCCheks:        true,
-			EnableSECCheks:        true,
-			EnableBaselCheks:      true,
-			AutoSignEvidencePacks: true,
-			MasterKeyID:           "server-master",
-			EnableScenarioTesting: true,
-			EnableCertification:   true,
-			CertificateValidity:   90 * 24 * time.Hour, // 90 days
-		},
-	)
-	if err != nil {
-		log.Printf("Warning: Failed to initialize FinTech validator service: %v", err)
-		fintechValidatorService = nil
-	} else {
-		log.Println("FinTech Validator Service initialized successfully")
-	}
-
 	// Update system health service references
-	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService, fintechValidatorService)
+	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService, nil)
 
 	// Initialize embedded KNIRVGATEWAY for P2P TURN/Tunnel services
 	var gatewayManager *knirvgateway.Manager
@@ -791,32 +825,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	// Initialize KNIRVCLI Backend Integration Service
 	knirvcliService := knirvcli.NewKNIRVCLIService(dbManager, dveManager, validationCore)
 	log.Println("KNIRVCLI service initialized")
-
-	// Initialize FinTech Services (Stripe, PayPal, Blockchain)
-	var stripeService *fintech.StripeService
-	var paypalService *fintech.PayPalService
-	var blockchainService *fintech.BlockchainService
-
-	if cfg.Stripe.Enabled && cfg.Stripe.APIKey != "" {
-		stripeService = fintech.NewStripeService(cfg.Stripe.APIKey)
-		log.Println("Stripe service initialized")
-	} else {
-		log.Println("Stripe service disabled or API key not configured")
-	}
-
-	if cfg.PayPal.Enabled && cfg.PayPal.ClientID != "" && cfg.PayPal.Secret != "" {
-		paypalService = fintech.NewPayPalService(cfg.PayPal.ClientID, cfg.PayPal.Secret, cfg.PayPal.Sandbox)
-		log.Println("PayPal service initialized")
-	} else {
-		log.Println("PayPal service disabled or credentials not configured")
-	}
-
-	if cfg.Blockchain.URL != "" {
-		blockchainService = fintech.NewBlockchainService(cfg.Blockchain.URL)
-		log.Println("Blockchain service initialized")
-	} else {
-		log.Println("Blockchain service disabled or URL not configured")
-	}
 
 	// Initialize Object Nest subsystem
 	unifiedContainerManager := runtime.NewUnifiedContainerManager(
@@ -1041,7 +1049,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		dveRentalService:             dveRentalService,
 		validationCore:               validationCore,
 		dnsService:                   dnsService,
-		fabricServer:                 fabricServer,
+		pluginServer:                 pluginServer,
 		dataEngine:                   dataEngine,
 		inferenceService:             inferenceService,
 		websocketService:             nil, // Will be set in setupRoutes
@@ -1062,7 +1070,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		vaultService:                 vaultService,
 		reasoningEngine:              reasoningEngine,
 		activeMemoryService:          activeMemoryService,
-		fintechValidatorService:      fintechValidatorService,
 		unifiedContainerManager:      unifiedContainerManager,
 		agentService:                 agentService,
 		icmeService:                  icmeService,
@@ -1074,9 +1081,6 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		policyEngine:                 policyEngine,
 		knirvcliService:              knirvcliService,
 		onboardingService:            onboardingService,
-		stripeService:                stripeService,
-		paypalService:                paypalService,
-		blockchainService:            blockchainService,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -1298,8 +1302,8 @@ func (s *Server) setupRoutes() {
 	}
 
 	// Register fabric server routes
-	if s.fabricServer != nil {
-		s.fabricServer.RegisterRoutes(s.router)
+	if s.pluginServer != nil {
+		s.pluginServer.RegisterRoutes(s.router)
 	}
 
 	// Register Nexus Memory Fabric routes
@@ -1399,7 +1403,7 @@ func (s *Server) setupRoutes() {
 
 	// Register fabric management service routes
 	if s.fabricManagementService != nil {
-		fabricManagementHandlers := web.NewFabricManagementHandlers(s.fabricManagementService)
+		fabricManagementHandlers := web.NewPluginManagementHandlers(s.fabricManagementService)
 		fabricManagementHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("Fabric management service routes configured")
 	}
@@ -1423,13 +1427,6 @@ func (s *Server) setupRoutes() {
 		memoryHandlers := web.NewActiveMemoryHandlers(s.activeMemoryService)
 		memoryHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("Active Memory (Markdown Fabric) routes configured")
-	}
-
-	// Register FinTech Validator routes
-	if s.fintechValidatorService != nil {
-		fintechHandlers := fintech_validator.NewHandlers(s.fintechValidatorService)
-		fintechHandlers.RegisterRoutes(s.router, authMiddleware)
-		log.Println("FinTech Validator routes configured")
 	}
 
 	// Register NRN payment routes
@@ -1467,9 +1464,9 @@ func (s *Server) setupRoutes() {
 	// Register unified API router for path unification (Gap 6)
 	apiRouter := web.NewAPIRouter(
 		web.NewDVEHandlers(s.dveManager),
-		web.NewFabricManagementHandlers(s.fabricManagementService),
+		web.NewPluginManagementHandlers(s.fabricManagementService),
 		web.NewAgentHandlers(s.agentService),
-		web.NewPaymentHandlers(s.stripeService, s.paypalService, s.blockchainService, s.eventBroadcaster),
+		web.NewPaymentHandlers(nil, nil, s.eventBroadcaster),
 		web.NewKNIRVCLIHandlers(s.knirvcliService),
 		web.NewOnboardingHandlers(s.onboardingService),
 		web.NewCognitiveEngineHandlers(s.cognitiveEngine),
@@ -1538,7 +1535,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"virtual_container_mgr": s.virtualContainerManager != nil,
 			"dve_manager":           s.dveManager != nil,
 			"validation_core":       s.validationCore != nil,
-			"fabric_server":         s.fabricServer != nil,
+			"fabric_server":         s.pluginServer != nil,
 			"data_engine":           s.dataEngine != nil,
 			"inference_service":     s.inferenceService != nil,
 			"websocket_service":     s.websocketService != nil,
@@ -1546,7 +1543,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"gateway_manager":       s.gatewayManager != nil,
 			"active_memory_service": s.activeMemoryService != nil,
 			"pqc_manager":           s.pqcManager != nil,
-			"fintech_validator":     s.fintechValidatorService != nil && s.fintechValidatorService.Config.Enabled,
 			"dve_creation_service":  s.dveCreationService != nil,
 			"cde_service":           s.cognitiveEngine != nil,
 			"model_server":          s.unifiedContainerManager != nil,
@@ -1639,8 +1635,8 @@ func (s *Server) Start() error {
 	}
 
 	// Start fabric server
-	if s.fabricServer != nil {
-		if err := s.fabricServer.Start(); err != nil {
+	if s.pluginServer != nil {
+		if err := s.pluginServer.Start(); err != nil {
 			log.Printf("Warning: Failed to start fabric server: %v", err)
 			// Continue - fabric server failure shouldn't stop basic server operation
 		} else {
@@ -1908,8 +1904,8 @@ func (s *Server) Stop() error {
 		}
 	}
 
-	if s.fabricServer != nil {
-		if err := s.fabricServer.Stop(); err != nil {
+	if s.pluginServer != nil {
+		if err := s.pluginServer.Stop(); err != nil {
 			log.Printf("Error stopping fabric server: %v", err)
 		}
 	}
@@ -2108,6 +2104,16 @@ func run() error {
 	}
 	if config.Database.Path == "" {
 		return fmt.Errorf("database path is not configured")
+	}
+
+	// Load secrets from root.key and apply to config
+	rootKeySecrets, err := loadSecretsFromKeyFile(nil)
+	if err != nil {
+		log.Printf("Warning: Failed to load secrets from root.key: %v", err)
+	}
+	if rootKeySecrets != nil {
+		applyRootKeySecretsToConfig(config, rootKeySecrets)
+		log.Printf("Applied secrets from root.key to configuration")
 	}
 
 	// Create unified server

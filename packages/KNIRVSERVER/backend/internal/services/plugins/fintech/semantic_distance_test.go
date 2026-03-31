@@ -6,7 +6,7 @@ package fintech
 import (
 	"testing"
 
-	"backend_server/internal/fintech/ontology"
+	"backend_server/internal/services/plugins/fintech/ontology"
 )
 
 func TestSemanticDistanceCalculator_CalculateDistance(t *testing.T) {

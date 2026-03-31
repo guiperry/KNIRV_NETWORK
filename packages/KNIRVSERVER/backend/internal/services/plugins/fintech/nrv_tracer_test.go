@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"backend_server/internal/fintech/ontology"
+	"backend_server/internal/services/plugins/fintech/ontology"
 )
 
 func TestNRVTracer_StartTrace(t *testing.T) {

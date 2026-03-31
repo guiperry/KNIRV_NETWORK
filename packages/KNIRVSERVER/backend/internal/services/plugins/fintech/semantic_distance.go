@@ -8,7 +8,7 @@ import (
 	"math"
 	"strings"
 
-	"backend_server/internal/fintech/ontology"
+	"backend_server/internal/services/plugins/fintech/ontology"
 )
 
 // SemanticDistanceCalculator calculates semantic distance between reasoning and regulatory requirements

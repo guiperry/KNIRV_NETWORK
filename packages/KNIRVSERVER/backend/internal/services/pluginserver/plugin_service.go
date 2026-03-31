@@ -1,4 +1,4 @@
-package fabricserver
+package pluginserver
 
 import (
 	"context"
@@ -9,17 +9,18 @@ import (
 
 	"backend_server/internal/config"
 	"backend_server/internal/database"
+
 	"github.com/spf13/viper"
 )
 
-// FabricServer represents the fabric server service
-type FabricServer struct {
+// PluginServer represents the plugin server service
+type PluginServer struct {
 	config *config.Config
 	db     *database.BuntDBManager
 
 	// Configuration
-	fabricDir     string
-	maxFabrics    int
+	pluginDir     string
+	maxPlugins    int
 	enableRuntime bool
 	enableCORS    bool
 
@@ -36,13 +37,13 @@ type FabricServer struct {
 type ServerInfo struct {
 	Name      string    `json:"name"`
 	Port      int       `json:"port"`
-	FabricDir string    `json:"fabric_dir"`
+	PluginDir string    `json:"plugin_dir"`
 	StartTime time.Time `json:"start_time"`
 	Version   string    `json:"version"`
 }
 
-// FabricInfo represents information about a fabric unit
-type FabricInfo struct {
+// PluginInfo represents information about a plugin unit
+type PluginInfo struct {
 	Name         string    `json:"name"`
 	Size         int64     `json:"size"`
 	LastModified time.Time `json:"last_modified"`
@@ -59,20 +60,20 @@ type UploadResponse struct {
 
 // ListResponse represents the response from a list operation
 type ListResponse struct {
-	Fabrics []FabricInfo `json:"objects"`
+	Plugins []PluginInfo `json:"objects"`
 	Count   int          `json:"count"`
 }
 
-// NewFabricServer creates a new fabric server instance
-func NewFabricServer(config *config.Config, db *database.BuntDBManager) (*FabricServer, error) {
+// NewPluginServer creates a new plugin server instance
+func NewPluginServer(config *config.Config, db *database.BuntDBManager) (*PluginServer, error) {
 	// Set default values from config with fallbacks
-	fabricDir := viper.GetString("model_server.storage_path")
-	if fabricDir == "" {
-		fabricDir = "./models" // fallback (keeping backend config keys for now)
+	pluginDir := viper.GetString("model_server.storage_path")
+	if pluginDir == "" {
+		pluginDir = "./models" // fallback (keeping backend config keys for now)
 	}
-	maxFabrics := config.ModelServer.MaxModels
-	if maxFabrics <= 0 {
-		maxFabrics = 10 // fallback
+	maxPlugins := config.ModelServer.MaxModels
+	if maxPlugins <= 0 {
+		maxPlugins = 10 // fallback
 	}
 	enableRuntime := true
 	enableCORS := config.ModelServer.EnableCORS
@@ -81,24 +82,24 @@ func NewFabricServer(config *config.Config, db *database.BuntDBManager) (*Fabric
 		enableCORS = true
 	}
 
-	// Create fabric directory if it doesn't exist
-	if err := ensureFabricDirectory(fabricDir); err != nil {
-		return nil, fmt.Errorf("failed to create fabric directory: %w", err)
+	// Create plugin directory if it doesn't exist
+	if err := ensurePluginDirectory(pluginDir); err != nil {
+		return nil, fmt.Errorf("failed to create plugin directory: %w", err)
 	}
 
 	serverInfo := &ServerInfo{
-		Name:      "KNIRV-SERVER Agentic Memory Fabric Server",
+		Name:      "KNIRV-SERVER Agentic Memory Plugin Server",
 		Port:      0, // Will be set by the main server
-		FabricDir: fabricDir,
+		PluginDir: pluginDir,
 		StartTime: time.Now(),
 		Version:   "2.0.0",
 	}
 
-	service := &FabricServer{
+	service := &PluginServer{
 		config:        config,
 		db:            db,
-		fabricDir:     fabricDir,
-		maxFabrics:    maxFabrics,
+		pluginDir:     pluginDir,
+		maxPlugins:    maxPlugins,
 		enableRuntime: enableRuntime,
 		enableCORS:    enableCORS,
 		serverInfo:    serverInfo,
@@ -109,15 +110,15 @@ func NewFabricServer(config *config.Config, db *database.BuntDBManager) (*Fabric
 	return service, nil
 }
 
-// Start starts the fabric server service
-func (as *FabricServer) Start() error {
-	log.Println("Starting Fabric Server service...")
+// Start starts the plugin server service
+func (as *PluginServer) Start() error {
+	log.Println("Starting Plugin Server service...")
 
 	// Initialize runtime manager if enabled
 	if as.enableRuntime {
 		ctx := context.Background()
 		var err error
-		as.runtimeManager, err = NewRuntimeManager(ctx, as.fabricDir, as.maxFabrics)
+		as.runtimeManager, err = NewRuntimeManager(ctx, as.pluginDir, as.maxPlugins)
 		if err != nil {
 			return fmt.Errorf("failed to create runtime manager: %w", err)
 		}
@@ -126,17 +127,17 @@ func (as *FabricServer) Start() error {
 			return fmt.Errorf("failed to start runtime manager: %w", err)
 		}
 
-		log.Printf("Runtime manager started with max %d fabrics", as.maxFabrics)
+		log.Printf("Runtime manager started with max %d plugins", as.maxPlugins)
 	}
 
 	as.running = true
-	log.Println("Fabric Server service started successfully")
+	log.Println("Plugin Server service started successfully")
 	return nil
 }
 
-// Stop stops the fabric server service
-func (as *FabricServer) Stop() error {
-	log.Println("Stopping Fabric Server service...")
+// Stop stops the plugin server service
+func (as *PluginServer) Stop() error {
+	log.Println("Stopping Plugin Server service...")
 
 	as.running = false
 
@@ -147,26 +148,26 @@ func (as *FabricServer) Stop() error {
 		}
 	}
 
-	log.Println("Fabric Server service stopped")
+	log.Println("Plugin Server service stopped")
 	return nil
 }
 
 // IsRunning returns whether the service is running
-func (as *FabricServer) IsRunning() bool {
+func (as *PluginServer) IsRunning() bool {
 	return as.running
 }
 
 // GetServerInfo returns server information
-func (as *FabricServer) GetServerInfo() *ServerInfo {
+func (as *PluginServer) GetServerInfo() *ServerInfo {
 	return as.serverInfo
 }
 
 // GetRuntimeManager returns the runtime manager (if enabled)
-func (as *FabricServer) GetRuntimeManager() *RuntimeManager {
+func (as *PluginServer) GetRuntimeManager() *RuntimeManager {
 	return as.runtimeManager
 }
 
-// ensureFabricDirectory creates the fabric directory if it doesn't exist
-func ensureFabricDirectory(fabricDir string) error {
-	return os.MkdirAll(fabricDir, 0755)
+// ensurePluginDirectory creates the plugin directory if it doesn't exist
+func ensurePluginDirectory(pluginDir string) error {
+	return os.MkdirAll(pluginDir, 0755)
 }

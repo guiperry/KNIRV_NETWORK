@@ -438,3 +438,111 @@ func writeError(w http.ResponseWriter, statusCode int, message string) {
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
+
+// HandleListNodePolicies handles listing policies attached to a DVE node
+func (dm *DVEManager) HandleListNodePolicies(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	nodeID := vars["nodeId"]
+
+	node, err := dm.GetNode(nodeID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "DVE node not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"node_id":           nodeID,
+		"attached_policies": node.AttachedPolicies,
+		"policy_version":    node.PolicyVersion,
+	})
+}
+
+// HandleAttachPolicy handles attaching a policy to a DVE node
+func (dm *DVEManager) HandleAttachPolicy(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	nodeID := vars["nodeId"]
+
+	node, err := dm.GetNode(nodeID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "DVE node not found")
+		return
+	}
+
+	var req struct {
+		PolicyID string `json:"policy_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if req.PolicyID == "" {
+		writeError(w, http.StatusBadRequest, "Policy ID is required")
+		return
+	}
+
+	// Check if policy is already attached
+	for _, p := range node.AttachedPolicies {
+		if p == req.PolicyID {
+			writeError(w, http.StatusBadRequest, "Policy already attached")
+			return
+		}
+	}
+
+	node.AttachedPolicies = append(node.AttachedPolicies, req.PolicyID)
+	updatedNode, err := dm.UpdateNode(nodeID, map[string]interface{}{
+		"attached_policies": node.AttachedPolicies,
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to attach policy")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success":           true,
+		"node_id":           nodeID,
+		"attached_policies": updatedNode.AttachedPolicies,
+	})
+}
+
+// HandleDetachPolicy handles detaching a policy from a DVE node
+func (dm *DVEManager) HandleDetachPolicy(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	nodeID := vars["nodeId"]
+	policyID := vars["policyId"]
+
+	node, err := dm.GetNode(nodeID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "DVE node not found")
+		return
+	}
+
+	found := false
+	newPolicies := make([]string, 0)
+	for _, p := range node.AttachedPolicies {
+		if p == policyID {
+			found = true
+			continue
+		}
+		newPolicies = append(newPolicies, p)
+	}
+
+	if !found {
+		writeError(w, http.StatusNotFound, "Policy not attached to this node")
+		return
+	}
+
+	updatedNode, err := dm.UpdateNode(nodeID, map[string]interface{}{
+		"attached_policies": newPolicies,
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to detach policy")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success":           true,
+		"node_id":           nodeID,
+		"attached_policies": updatedNode.AttachedPolicies,
+	})
+}
