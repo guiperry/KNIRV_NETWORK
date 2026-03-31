@@ -25,7 +25,6 @@ import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-pa
 import { BadgeLabPanel } from '@/components/dashboard/badge-lab-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
 import { DVECreationForm } from '@/components/dashboard/dve-creation-form';
-import { FinancialComplianceDashboard } from '@/components/dashboard/financial-compliance-dashboard';
 import { useOnboarding } from "@/contexts/onboarding-context";
 import OnboardingGuide from "@/components/onboarding/onboarding-guide";
 import PaymentGatewayModal from './payment-gateway-modal';
@@ -694,7 +693,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                         Deterministic Validation of Financial AI Agents - Evidence Packs, Fidelity Scoring, and Regulatory Compliance
                       </p>
                     </div>
-                    <FinancialComplianceDashboard />
+                    {/* FinTech dashboard will be loaded dynamically when the plugin runs */}
                   </div>
                 </TabsContent>
               )}

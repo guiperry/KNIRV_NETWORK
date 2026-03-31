@@ -32,13 +32,14 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html')
       },
+      external: ['@knirvcorp/knirvbase-ts'],
       output: {
         manualChunks: {
           // Vendor chunks for better caching
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['lucide-react', '@react-three/fiber', '@react-three/drei', 'three'],
           blockchain: ['@cosmjs/stargate', '@gnolang/tm2-js-client', '@burnt-labs/abstraxion'],
-          database: ['rxdb', 'lokijs'],
+          database: ['lokijs'],
           utils: ['uuid', 'bech32', 'qrcode', 'qr-scanner']
         }
       }
@@ -100,7 +101,8 @@ export default defineConfig({
       '@shared': resolve(__dirname, 'src/shared'),
       '@sensory-shell': resolve(__dirname, 'src/sensory-shell'),
       '@wasm': resolve(__dirname, 'src/wasm-pkg'),
-      '@game': resolve(__dirname, 'src/components/game')
+      '@game': resolve(__dirname, 'src/components/game'),
+      '@knirvcorp/knirvbase-ts': resolve(__dirname, '../../../../packages/KNIRVBASE/ts')
     }
   },
   

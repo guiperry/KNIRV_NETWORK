@@ -1,5 +1,5 @@
 import { TrajectoryStep } from '../types/Trajectory';
-import { AgentResources } from '../types/Agent';
+import { AgentResources, RFTAgent } from '../types/Agent';
 
 export class TrainingManager {
     /**
@@ -70,13 +70,13 @@ export class TrainingManager {
     /**
      * The Stress Test mechanic: Runs agent through variations to build robustness
      */
-    public async stressTest(agent: { id: string; resources: AgentResources }, variations: string[]): Promise<number> {
+    public async stressTest(agent: RFTAgent, variations: string[]): Promise<number> {
         // Simulate stress testing
         let successCount = 0;
         
         for (const variation of variations) {
             try {
-                const response = await agent.proposeSolution(variation);
+                await agent.proposeSolution(variation);
                 // Simulate verification
                 const success = Math.random() > 0.2; // 80% success rate
                 if (success) successCount++;

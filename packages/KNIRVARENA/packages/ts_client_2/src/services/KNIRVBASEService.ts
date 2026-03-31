@@ -3,25 +3,53 @@
  * Manages KNIRVBASE database operations for the KNIRV Controller
  */
 
-// import { DB, Collection, Options } from '@knirvcorp/knirvbase-ts';
-
-// Temporary type definitions
-interface DB {
-  // placeholder
-}
-interface Collection {
-  // placeholder
-}
-interface Options {
-  // placeholder
-}
+import { DB, Collection, Options } from '@knirvcorp/knirvbase-ts';
 import { BrowserDB, Options as BrowserOptions } from '../core/storage/BrowserDB';
+import { Agent } from '../types/common';
 
 export interface KNIRVBASEConfig {
   dataDir: string;
   distributedEnabled?: boolean;
   distributedNetworkID?: string;
   distributedBootstrapPeers?: string[];
+}
+
+// Generic document type for database operations
+export interface Document {
+  id?: string;
+  [key: string]: unknown;
+}
+
+// Skill-specific interface
+export interface Skill extends Document {
+  name: string;
+  description?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Chat message interface
+export interface ChatMessage extends Document {
+  content: string;
+  sender: string;
+  timestamp: number;
+  userId?: string;
+  sessionId?: string;
+  title?: string;
+}
+
+// Chat session interface
+export interface ChatSession {
+  _id: string;
+  title: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  messages: Array<{
+    id: string;
+    content: string;
+    sender: string;
+    timestamp: Date | string;
+  }>;
 }
 
 export class KNIRVBASEService {
@@ -106,22 +134,22 @@ export class KNIRVBASEService {
   }
 
   // API Key operations
-  async createApiKey(apiKey: any): Promise<any> {
+  async createApiKey(apiKey: Document): Promise<Document> {
     const collection = this.getCollection('apikeys');
     return await collection.insert(apiKey);
   }
 
-  async findApiKey(key: string): Promise<any> {
+  async findApiKey(key: string): Promise<Document | null> {
     const collection = this.getCollection('apikeys');
     return await collection.find(key);
   }
 
-  async getAllApiKeys(): Promise<any[]> {
+  async getAllApiKeys(): Promise<Document[]> {
     const collection = this.getCollection('apikeys');
     return await collection.findAll();
   }
 
-  async updateApiKey(key: string, update: any): Promise<number> {
+  async updateApiKey(key: string, update: Document): Promise<number> {
     const collection = this.getCollection('apikeys');
     return await collection.update(key, update);
   }
@@ -132,60 +160,60 @@ export class KNIRVBASEService {
   }
 
   // Knowledge operations
-  async createKnowledgeItem(item: any): Promise<any> {
+  async createKnowledgeItem(item: Document): Promise<Document> {
     const collection = this.getCollection('knowledge');
     return await collection.insert(item);
   }
 
-  async findKnowledgeItem(id: string): Promise<any> {
+  async findKnowledgeItem(id: string): Promise<Document | null> {
     const collection = this.getCollection('knowledge');
     return await collection.find(id);
   }
 
-  async getAllKnowledgeItems(): Promise<any[]> {
+  async getAllKnowledgeItems(): Promise<Document[]> {
     const collection = this.getCollection('knowledge');
     return await collection.findAll();
   }
 
   // User Settings operations
-  async createUserSettings(settings: any): Promise<any> {
+  async createUserSettings(settings: Document): Promise<Document> {
     const collection = this.getCollection('usersettings');
     return await collection.insert(settings);
   }
 
-  async getUserSettings(userId: string): Promise<any> {
+  async getUserSettings(userId: string): Promise<Document | null> {
     const collection = this.getCollection('usersettings');
     return await collection.find(userId);
   }
 
-  async updateUserSettings(userId: string, update: any): Promise<number> {
+  async updateUserSettings(userId: string, update: Document): Promise<number> {
     const collection = this.getCollection('usersettings');
     return await collection.update(userId, update);
   }
 
   // Training Data operations
-  async createTrainingData(data: any): Promise<any> {
+  async createTrainingData(data: Document): Promise<Document> {
     const collection = this.getCollection('trainingdata');
     return await collection.insert(data);
   }
 
-  async getAllTrainingData(): Promise<any[]> {
+  async getAllTrainingData(): Promise<Document[]> {
     const collection = this.getCollection('trainingdata');
     return await collection.findAll();
   }
 
   // Cortex State operations
-  async saveCortexState(state: any): Promise<any> {
+  async saveCortexState(state: Document): Promise<Document> {
     const collection = this.getCollection('cortexstate');
     return await collection.insert(state);
   }
 
-  async getCortexState(id: string): Promise<any> {
+  async getCortexState(id: string): Promise<Document | null> {
     const collection = this.getCollection('cortexstate');
     return await collection.find(id);
   }
 
-  async updateCortexState(id: string, update: any): Promise<number> {
+  async updateCortexState(id: string, update: Document): Promise<number> {
     const collection = this.getCollection('cortexstate');
     return await collection.update(id, update);
   }
@@ -210,17 +238,17 @@ export class KNIRVBASEService {
   }
 
   // Additional methods for compatibility with existing services
-  async listSkills(): Promise<any[]> {
+  async listSkills(): Promise<Document[]> {
     const collection = this.getCollection('knowledge');
     return await collection.findAll();
   }
 
-  async getSkill(skillId: string): Promise<any> {
+  async getSkill(skillId: string): Promise<Document | null> {
     const collection = this.getCollection('knowledge');
     return await collection.find(skillId);
   }
 
-  async createSkill(skillData: any): Promise<any> {
+  async createSkill(skillData: Document): Promise<Document> {
     const collection = this.getCollection('knowledge');
     return await collection.insert({
       ...skillData,
@@ -229,7 +257,7 @@ export class KNIRVBASEService {
     });
   }
 
-  async updateSkill(skillId: string, updateData: any): Promise<number> {
+  async updateSkill(skillId: string, updateData: Document): Promise<number> {
     const collection = this.getCollection('knowledge');
     return await collection.update(skillId, {
       ...updateData,
@@ -242,60 +270,65 @@ export class KNIRVBASEService {
     return await collection.delete(skillId);
   }
 
-  async searchSkills(term: string, limit: number): Promise<any[]> {
+  async searchSkills(term: string, limit: number): Promise<Skill[]> {
     const allSkills = await this.listSkills();
     return allSkills
-      .filter(skill => 
-        skill.name.toLowerCase().includes(term.toLowerCase()) ||
-        (skill.description && skill.description.toLowerCase().includes(term.toLowerCase()))
-      )
-      .slice(0, limit);
+      .filter(skill => {
+        const s = skill as Skill;
+        return (
+          s.name?.toLowerCase().includes(term.toLowerCase()) ||
+          (s.description && s.description.toLowerCase().includes(term.toLowerCase()))
+        );
+      })
+      .slice(0, limit) as Skill[];
   }
 
-  async getChatHistory(userId?: string): Promise<any[]> {
+  async getChatHistory(userId?: string): Promise<ChatMessage[]> {
     const collection = this.getCollection('trainingdata');
     const allData = await collection.findAll();
-    return userId ? allData.filter((item: any) => item.userId === userId) : allData;
+    const messages = allData.map(item => item as ChatMessage);
+    return userId ? messages.filter((item: ChatMessage) => item.userId === userId) : messages;
   }
 
-  async saveChatMessage(message: any): Promise<any> {
+  async saveChatMessage(message: ChatMessage): Promise<ChatMessage> {
     const collection = this.getCollection('trainingdata');
     return await collection.insert({
       ...message,
       timestamp: Date.now()
-    });
+    }) as ChatMessage;
   }
 
-  async getChats(): Promise<any[]> {
+  async getChats(): Promise<ChatMessage[]> {
     return await this.getChatHistory();
   }
 
-  async saveChat(chat: any): Promise<any> {
+  async saveChat(chat: ChatMessage): Promise<ChatMessage> {
     return await this.saveChatMessage(chat);
   }
 
   // Chat session methods for API compatibility
-  async listChatSessions(): Promise<any[]> {
+  async listChatSessions(): Promise<ChatSession[]> {
     const collection = this.getCollection('trainingdata');
-    const allData = await collection.findAll();
-    const sessions = new Map();
+    const allData = await collection.findAll() as ChatMessage[];
+    const sessions = new Map<string, ChatSession>();
     
-    allData.forEach((item: any) => {
+    allData.forEach((item: ChatMessage) => {
       if (item.sessionId) {
         if (!sessions.has(item.sessionId)) {
           sessions.set(item.sessionId, {
             _id: item.sessionId,
             title: item.title || 'Untitled Chat',
-            createdAt: new Date(item.timestamp),
-            updatedAt: new Date(item.timestamp),
+            createdAt: new Date(item.timestamp || Date.now()),
+            updatedAt: new Date(item.timestamp || Date.now()),
             messages: []
           });
         }
-        sessions.get(item.sessionId).messages.push({
-          id: item.id,
-          content: item.content,
+        const session = sessions.get(item.sessionId)!;
+        session.messages.push({
+          id: item.id || '',
+          content: item.content || '',
           sender: item.sender || 'user',
-          timestamp: new Date(item.timestamp)
+          timestamp: new Date(item.timestamp || Date.now())
         });
       }
     });
@@ -303,16 +336,16 @@ export class KNIRVBASEService {
     return Array.from(sessions.values());
   }
 
-  async getChatSession(sessionId: string): Promise<any> {
+  async getChatSession(sessionId: string): Promise<ChatSession | null> {
     const collection = this.getCollection('trainingdata');
-    const allData = await collection.findAll();
-    const sessionData = allData.filter((item: any) => item.sessionId === sessionId);
+    const allData = await collection.findAll() as ChatMessage[];
+    const sessionData = allData.filter((item: ChatMessage) => item.sessionId === sessionId);
     
     if (sessionData.length === 0) return null;
     
-    const messages = sessionData.map((item: any) => ({
-      id: item.id,
-      content: item.content,
+    const messages = sessionData.map((item: ChatMessage) => ({
+      id: item.id || '',
+      content: item.content || '',
       sender: item.sender || 'user',
       timestamp: new Date(item.timestamp)
     }));
@@ -327,11 +360,11 @@ export class KNIRVBASEService {
     };
   }
 
-  async createChatSession(session: any): Promise<any> {
+  async createChatSession(session: Partial<ChatSession>): Promise<Document> {
     const collection = this.getCollection('trainingdata');
     const newSession = {
       sessionId: session._id || `session_${Date.now()}`,
-      title: session.title,
+      title: session.title || 'Untitled Chat',
       content: '',
       sender: 'system',
       timestamp: Date.now(),
@@ -340,10 +373,10 @@ export class KNIRVBASEService {
     return await collection.insert(newSession);
   }
 
-  async updateChatSession(sessionId: string, updates: any): Promise<any> {
+  async updateChatSession(sessionId: string, updates: Partial<ChatSession>): Promise<Document> {
     const collection = this.getCollection('trainingdata');
-    const allData = await collection.findAll();
-    const sessionData = allData.filter((item: any) => item.sessionId === sessionId);
+    const allData = await collection.findAll() as ChatMessage[];
+    const sessionData = allData.filter((item: ChatMessage) => item.sessionId === sessionId);
     
     if (sessionData.length === 0) {
       throw new Error('Chat session not found');
@@ -353,20 +386,20 @@ export class KNIRVBASEService {
     const updatedSession = { ...sessionToUpdate, ...updates, timestamp: Date.now() };
     
     // Always use ID-based update for consistency
-    await collection.update(sessionToUpdate.id, updatedSession);
+    await collection.update(sessionToUpdate.id || '', updatedSession);
     
     return updatedSession;
   }
 
-  async deleteChatSession(sessionId: string): Promise<any> {
+  async deleteChatSession(sessionId: string): Promise<{ deletedCount: number }> {
     const collection = this.getCollection('trainingdata');
-    const allData = await collection.findAll();
-    const sessionData = allData.filter((item: any) => item.sessionId === sessionId);
+    const allData = await collection.findAll() as ChatMessage[];
+    const sessionData = allData.filter((item: ChatMessage) => item.sessionId === sessionId);
     
     let deletedCount = 0;
     for (const session of sessionData) {
       // Always use ID-based delete for consistency
-      await collection.delete(session.id);
+      await collection.delete(session.id || '');
       deletedCount++;
     }
     
@@ -374,7 +407,7 @@ export class KNIRVBASEService {
   }
 
   // Agent management methods
-  async createAgent(agent: any): Promise<any> {
+  async createAgent(agent: Partial<Agent>): Promise<Document> {
     const collection = this.getCollection('knowledge');
     return await collection.insert({
       ...agent,
@@ -383,17 +416,17 @@ export class KNIRVBASEService {
     });
   }
 
-  async getAgent(agentId: string): Promise<any> {
+  async getAgent(agentId: string): Promise<Agent | null> {
     const collection = this.getCollection('knowledge');
-    const allData = await collection.findAll();
-    const agents = allData.filter((item: any) => item.id === agentId && item.type === 'agent');
-    return agents.length > 0 ? agents[0] : null;
+    const allData = await collection.findAll() as Document[];
+    const agents = allData.filter((item: Document) => item.id === agentId && item.type === 'agent');
+    return agents.length > 0 ? agents[0] as unknown as Agent : null;
   }
 
-  async updateAgent(agentId: string, updates: any): Promise<any> {
+  async updateAgent(agentId: string, updates: Partial<Agent>): Promise<Agent> {
     const collection = this.getCollection('knowledge');
-    const allData = await collection.findAll();
-    const agents = allData.filter((item: any) => item.id === agentId && item.type === 'agent');
+    const allData = await collection.findAll() as Document[];
+    const agents = allData.filter((item: Document) => item.id === agentId && item.type === 'agent');
     
     if (agents.length === 0) {
       throw new Error('Agent not found');
@@ -403,34 +436,34 @@ export class KNIRVBASEService {
     const updatedAgent = { ...agentToUpdate, ...updates };
     
     // Always use ID-based update for consistency
-    await collection.update(agentToUpdate.id, updatedAgent);
+    await collection.update(agentToUpdate.id || '', updatedAgent);
     
-    return updatedAgent;
+    return updatedAgent as unknown as Agent;
   }
 
-  async deleteAgent(agentId: string): Promise<any> {
+  async deleteAgent(agentId: string): Promise<{ deletedCount: number }> {
     const collection = this.getCollection('knowledge');
-    const allData = await collection.findAll();
-    const agents = allData.filter((item: any) => item.id === agentId && item.type === 'agent');
+    const allData = await collection.findAll() as Document[];
+    const agents = allData.filter((item: Document) => item.id === agentId && item.type === 'agent');
     
     let deletedCount = 0;
     for (const agent of agents) {
       // Always use ID-based delete for consistency
-      await collection.delete(agent.id);
+      await collection.delete(agent.id || '');
       deletedCount++;
     }
     
     return { deletedCount };
   }
 
-  async listAgents(): Promise<any[]> {
+  async listAgents(): Promise<Agent[]> {
     const collection = this.getCollection('knowledge');
-    const allData = await collection.findAll();
-    return allData.filter((item: any) => item.type === 'agent');
+    const allData = await collection.findAll() as Document[];
+    return allData.filter((item: Document) => item.type === 'agent') as unknown as Agent[];
   }
 
   // User settings method
-  async getAllUserSettings(): Promise<any[]> {
+  async getAllUserSettings(): Promise<Document[]> {
     const collection = this.getCollection('usersettings');
     return await collection.findAll();
   }

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import type { DB, Options } from '@knirvcorp/knirvbase-ts';
+import { DB, Options } from '@knirvcorp/knirvbase-ts';
 import * as path from 'path';
 import * as os from 'os';
 
@@ -222,8 +222,9 @@ export const getDatabaseInfo = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'sessionId is required' });
     }
 
-    const db = getDBInstance(sessionId);
     const dataDir = getAppDataDir();
+    // DB instance is created/retrieved to ensure it exists
+    getDBInstance(sessionId);
 
     res.json({ 
       success: true, 

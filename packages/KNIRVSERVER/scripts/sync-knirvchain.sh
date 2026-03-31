@@ -20,13 +20,16 @@ if [[ "$1" == "--force" || "$1" == "-f" ]]; then
 fi
 
 echo "Creating directory structure..."
-mkdir -p "$DEST_DIR"/{internal,cmd/knirvchain}
+mkdir -p "$DEST_DIR"/{internal,cmd/knirvchain,config}
 
 echo "Copying internal packages..."
 rsync -av $FORCE_FLAG "$KNIRVCHAIN_DIR/internal/" "$DEST_DIR/internal/"
 
 echo "Copying cmd..."
 rsync -av $FORCE_FLAG "$KNIRVCHAIN_DIR/cmd/" "$DEST_DIR/cmd/"
+
+echo "Copying config..."
+rsync -av $FORCE_FLAG "$KNIRVCHAIN_DIR/config/" "$DEST_DIR/config/"
 
 echo "Copying go.mod and go.sum..."
 cp "$KNIRVCHAIN_DIR/go.mod" "$DEST_DIR/go.mod"

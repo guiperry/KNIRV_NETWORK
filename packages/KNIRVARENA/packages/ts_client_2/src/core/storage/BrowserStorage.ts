@@ -4,32 +4,29 @@
  */
 
 import { RemoteStorageClient, Document } from './RemoteStorageClient';
-// import { Index, IndexType, EntryType } from '@knirvcorp/knirvbase-ts';
+// import { Index, IndexType } from '@knirvcorp/knirvbase-ts';
 
 // Temporary type definitions
-interface Index {
-  // placeholder
-}
-interface IndexType {
-  // placeholder
-}
-interface EntryType {
-  // placeholder
+type Index = object;
+type IndexType = object;
+enum EntryType {
+  Memory = 'MEMORY',
+  Auth = 'AUTH',
 }
 
 export interface Storage {
-  insert(collection: string, doc: Record<string, any>): Promise<void>;
-  update(collection: string, id: string, update: Record<string, any>): Promise<number>;
+  insert(collection: string, doc: Record<string, unknown>): Promise<void>;
+  update(collection: string, id: string, update: Record<string, unknown>): Promise<number>;
   delete(collection: string, id: string): Promise<number>;
-  find(collection: string, id: string): Promise<Record<string, any> | null>;
-  findAll(collection: string): Promise<Record<string, any>[]>;
+  find(collection: string, id: string): Promise<Record<string, unknown> | null>;
+  findAll(collection: string): Promise<Record<string, unknown>[]>;
 
   // Index management
-  createIndex(collection: string, name: string, indexType: IndexType, fields: string[], unique: boolean, partialExpr: string, options: Record<string, any>): Promise<void>;
+  createIndex(collection: string, name: string, indexType: IndexType, fields: string[], unique: boolean, partialExpr: string, options: Record<string, unknown>): Promise<void>;
   dropIndex(collection: string, name: string): Promise<void>;
   getIndex(collection: string, name: string): Index | null;
   getIndexesForCollection(collection: string): Index[];
-  queryIndex(collection: string, indexName: string, query: Record<string, any>): Promise<string[]>;
+  queryIndex(collection: string, indexName: string, query: Record<string, unknown>): Promise<string[]>;
 }
 
 export class BrowserStorage implements Storage {
@@ -48,19 +45,20 @@ export class BrowserStorage implements Storage {
   private async ensureInitialized(): Promise<void> {
     try {
       await this.client.getInfo();
-    } catch (error) {
+    } catch {
       // If not initialized, initialize it
       await this.client.initialize();
     }
   }
 
-  async insert(collection: string, doc: Record<string, any>): Promise<void> {
+  async insert(collection: string, doc: Record<string, unknown>): Promise<void> {
     await this.ensureInitialized();
     
     // Handle MEMORY blob (convert to JSON serializable format)
     const docCopy = this.deepCopyDoc(doc);
-    if (docCopy.entryType === EntryType.Memory) {
-      const payload = docCopy.payload;
+    const docWithEntryType = docCopy as { entryType?: EntryType; payload?: Record<string, unknown> };
+    if (docWithEntryType.entryType === EntryType.Memory) {
+      const payload = docWithEntryType.payload;
       if (payload && payload.blob !== undefined) {
         // Store blob as JSON string for browser compatibility
         payload.blobRef = JSON.stringify(payload.blob);
@@ -71,7 +69,7 @@ export class BrowserStorage implements Storage {
     await this.client.insert(collection, docCopy as Document);
   }
 
-  async update(collection: string, id: string, update: Record<string, any>): Promise<number> {
+  async update(collection: string, id: string, update: Record<string, unknown>): Promise<number> {
     await this.ensureInitialized();
     return this.client.update(collection, id, update);
   }
@@ -81,7 +79,7 @@ export class BrowserStorage implements Storage {
     return this.client.delete(collection, id);
   }
 
-  async find(collection: string, id: string): Promise<Record<string, any> | null> {
+  async find(collection: string, id: string): Promise<Record<string, unknown> | null> {
     await this.ensureInitialized();
     const doc = await this.client.find(collection, id);
     
@@ -105,7 +103,7 @@ export class BrowserStorage implements Storage {
     return doc;
   }
 
-  async findAll(collection: string): Promise<Record<string, any>[]> {
+  async findAll(collection: string): Promise<Record<string, unknown>[]> {
     await this.ensureInitialized();
     const docs = await this.client.findAll(collection);
     
@@ -127,7 +125,7 @@ export class BrowserStorage implements Storage {
   }
 
   // Index management - simplified for browser (indexes managed on backend)
-  async createIndex(collection: string, name: string, indexType: IndexType, fields: string[], unique: boolean, partialExpr: string, options: Record<string, any>): Promise<void> {
+  async createIndex(collection: string, name: string, _indexType: IndexType, _fields: string[], _unique: boolean, _partialExpr: string, _options: Record<string, unknown>): Promise<void> {
     // In browser mode, indexes are managed by the backend
     // This is a no-op for now, but could be extended to call the backend
     console.log(`Index creation not supported in browser mode for collection ${collection}, index ${name}`);
@@ -147,12 +145,12 @@ export class BrowserStorage implements Storage {
     return [];
   }
 
-  async queryIndex(collection: string, indexName: string, query: Record<string, any>): Promise<string[]> {
+  async queryIndex(collection: string, indexName: string, _query: Record<string, unknown>): Promise<string[]> {
     console.log(`Index query not supported in browser mode for collection ${collection}, index ${indexName}`);
     return [];
   }
 
-  private deepCopyDoc(doc: Record<string, any>): Record<string, any> {
+  private deepCopyDoc(doc: Record<string, unknown>): Record<string, unknown> {
     return JSON.parse(JSON.stringify(doc));
   }
 

@@ -14,6 +14,7 @@ export interface Skill {
   version: number;
   createdAt: Date;
   updatedAt?: Date;
+  [key: string]: unknown; // Allow additional properties
 }
 
 /**
@@ -21,7 +22,7 @@ export interface Skill {
  */
 export const getSkills = async (req: Request, res: Response) => {
   try {
-    const skills = await databaseService.listSkills();
+    const skills = await databaseService.listSkills() as Skill[];
     res.json({ skills });
   } catch (error) {
     console.error('Error fetching skills:', error);
@@ -164,25 +165,27 @@ export const getSkillsByLoRAConfig = async (req: Request, res: Response) => {
   try {
     const { rank, alpha } = req.query;
     
-    const allSkills = await databaseService.listSkills();
+    const allSkills = await databaseService.listSkills() as Skill[];
     
     let filteredSkills = allSkills.filter(skill => skill.loraAdapter);
     
     if (rank) {
       const rankNum = parseInt(rank as string, 10);
       if (!isNaN(rankNum)) {
-        filteredSkills = filteredSkills.filter(skill => 
-          skill.loraAdapter && skill.loraAdapter.rank === rankNum
-        );
+        filteredSkills = filteredSkills.filter(skill => {
+          const adapter = skill.loraAdapter as { rank?: number; alpha?: number; weightsUri?: string } | undefined;
+          return adapter && adapter.rank === rankNum;
+        });
       }
     }
     
     if (alpha) {
       const alphaNum = parseFloat(alpha as string);
       if (!isNaN(alphaNum)) {
-        filteredSkills = filteredSkills.filter(skill => 
-          skill.loraAdapter && skill.loraAdapter.alpha === alphaNum
-        );
+        filteredSkills = filteredSkills.filter(skill => {
+          const adapter = skill.loraAdapter as { rank?: number; alpha?: number; weightsUri?: string } | undefined;
+          return adapter && adapter.alpha === alphaNum;
+        });
       }
     }
     
@@ -202,7 +205,7 @@ export const getSkillsByLoRAConfig = async (req: Request, res: Response) => {
  */
 export const getSkillStats = async (req: Request, res: Response) => {
   try {
-    const allSkills = await databaseService.listSkills();
+    const allSkills = await databaseService.listSkills() as Skill[];
     
     const stats = {
       total: allSkills.length,
@@ -214,12 +217,12 @@ export const getSkillStats = async (req: Request, res: Response) => {
     
     // Calculate version statistics
     allSkills.forEach(skill => {
-      const version = skill.version || 1;
+      const version = (skill.version as number) || 1;
       stats.versions[version] = (stats.versions[version] || 0) + 1;
     });
     
     if (allSkills.length > 0) {
-      stats.averageVersion = allSkills.reduce((sum, skill) => sum + (skill.version || 1), 0) / allSkills.length;
+      stats.averageVersion = allSkills.reduce((sum, skill) => sum + ((skill.version as number) || 1), 0) / allSkills.length;
     }
     
     res.json({ stats });

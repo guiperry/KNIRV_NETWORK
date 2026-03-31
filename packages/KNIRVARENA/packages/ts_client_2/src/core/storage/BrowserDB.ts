@@ -4,15 +4,15 @@
  */
 
 import { BrowserStorage } from './BrowserStorage';
-// import { Collection, NetworkConfig } from '@knirvcorp/knirvbase-ts';
+import { Collection } from '@knirvcorp/knirvbase-ts';
 
-// Temporary type definitions
-interface Collection {
-  // placeholder
-}
-interface NetworkConfig {
-  // placeholder
-}
+// Temporary type definitions (fallback)
+// interface Collection {
+//   // placeholder
+// }
+// interface NetworkConfig {
+//   // placeholder
+// }
 
 export interface Options {
   dataDir?: string;
@@ -63,11 +63,11 @@ export class BrowserDB {
 }
 
 interface BrowserCollectionInterface {
-  insert(doc: Record<string, any>): Promise<Record<string, any>>;
-  update(id: string, update: Record<string, any>): Promise<number>;
+  insert(doc: Record<string, unknown>): Promise<Record<string, unknown>>;
+  update(id: string, update: Record<string, unknown>): Promise<number>;
   delete(id: string): Promise<number>;
-  find(id: string): Promise<Record<string, any> | null>;
-  findAll(): Promise<Record<string, any>[]>;
+  find(id: string): Promise<Record<string, unknown> | null>;
+  findAll(): Promise<Record<string, unknown>[]>;
   attachToNetwork(networkID: string): Promise<void>;
   detachFromNetwork(): Promise<void>;
   forceSync(): Promise<void>;
@@ -76,7 +76,7 @@ interface BrowserCollectionInterface {
 class BrowserCollection implements Collection, BrowserCollectionInterface {
   constructor(private name: string, private store: BrowserStorage) {}
 
-  async insert(doc: Record<string, any>): Promise<Record<string, any>> {
+  async insert(doc: Record<string, unknown>): Promise<Record<string, unknown>> {
     if (!doc.id) {
       doc.id = `${this.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
@@ -84,7 +84,7 @@ class BrowserCollection implements Collection, BrowserCollectionInterface {
     return doc;
   }
 
-  async update(id: string, update: Record<string, any>): Promise<number> {
+  async update(id: string, update: Record<string, unknown>): Promise<number> {
     return this.store.update(this.name, id, update);
   }
 
@@ -92,15 +92,15 @@ class BrowserCollection implements Collection, BrowserCollectionInterface {
     return this.store.delete(this.name, id);
   }
 
-  async find(id: string): Promise<Record<string, any> | null> {
+  async find(id: string): Promise<Record<string, unknown> | null> {
     return this.store.find(this.name, id);
   }
 
-  async findAll(): Promise<Record<string, any>[]> {
+  async findAll(): Promise<Record<string, unknown>[]> {
     return this.store.findAll(this.name);
   }
 
-  async attachToNetwork(networkID: string): Promise<void> {
+  async attachToNetwork(_networkID: string): Promise<void> {
     console.log(`Network attachment not supported in browser mode for collection ${this.name}`);
   }
 

@@ -4,8 +4,8 @@ import { databaseService } from '../services/databaseService';
 export interface ChatMessage {
   id: string;
   content: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
+  sender: string;
+  timestamp: Date | string;
 }
 
 export interface ChatSession {
@@ -156,7 +156,7 @@ export const addMessage = async (req: Request, res: Response) => {
       id: newMessage.id,
       content: newMessage.content,
       sender: newMessage.sender,
-      timestamp: newMessage.timestamp.toISOString(),
+      timestamp: (newMessage.timestamp instanceof Date ? newMessage.timestamp : new Date(newMessage.timestamp)).toISOString(),
     };
     
     const updatedMessages = [...(session.messages || []), dbMessage];

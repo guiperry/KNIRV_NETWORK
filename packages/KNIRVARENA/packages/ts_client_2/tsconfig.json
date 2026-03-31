@@ -53,6 +53,9 @@
       ],
       "@wasm/*": [
         "src/wasm-pkg/*"
+      ],
+      "@knirvcorp/knirvbase-ts": [
+        "../../../../packages/KNIRVBASE/ts"
       ]
     },
     "types": [
