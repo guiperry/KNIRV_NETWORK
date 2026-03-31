@@ -14,6 +14,7 @@ FRONTEND_DIR := $(ROOT_DIR)/frontend
 DESKTOP_DIR := $(ROOT_DIR)/desktop
 GATEWAY_DIR := $(ROOT_DIR)/pkg/knirvgateway
 GRAPH_DIR := $(ROOT_DIR)/pkg/knirvgraph
+CHAIN_DIR := $(ROOT_DIR)/pkg/knirvchain
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -139,7 +140,7 @@ deployer: deps-go ## Build container_deployer binary
 # Unified Binary (Frontend + Desktop + Backend + KNIRVGATEWAY)
 # main.go embeds: bin/backend_server, bin/knirvgateway, config/*, desktop/dist/*, frontend/out/*
 # At runtime the launcher extracts backend_server and knirvgateway to ~/.local/share/knirvserver/bin/
-binary: ebpf-generate frontend desktop-build backend gateway-build graph-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, and KNIRVGRAPH
+binary: ebpf-generate frontend desktop-build backend gateway-build graph-build chain-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, and KNIRVCHAIN
 	@echo "$(BLUE)Creating unified binary (embeds backend_server + knirvgateway + frontend + desktop)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
@@ -399,6 +400,26 @@ graph-clean: ## Clean KNIRVGRAPH build artifacts
 	@echo "$(BLUE)Cleaning KNIRVGRAPH artifacts...$(NC)"
 	rm -f bin/knirvgraph
 	cd $(GRAPH_DIR) && go clean
+
+# KNIRVCHAIN (Embedded) targets
+chain-sync: ## Sync KNIRVCHAIN source to embedded package
+	@echo "$(BLUE)Syncing KNIRVCHAIN to embedded package...$(NC)"
+	@./scripts/sync-knirvchain.sh
+
+chain-deps: ## Install KNIRVCHAIN dependencies
+	@echo "$(BLUE)Installing KNIRVCHAIN dependencies...$(NC)"
+	cd $(CHAIN_DIR) && go mod download && go mod tidy
+
+chain-build: chain-deps ## Build KNIRVCHAIN binary into bin/ (required before binary target)
+	@echo "$(BLUE)Building KNIRVCHAIN binary...$(NC)"
+	@mkdir -p bin
+	cd $(CHAIN_DIR)/cmd/knirvchain && go build -ldflags "-s -w" -o $(ROOT_DIR)/bin/knirvchain
+	@echo "$(GREEN)KNIRVCHAIN binary built: bin/knirvchain$(NC)"
+
+chain-clean: ## Clean KNIRVCHAIN build artifacts
+	@echo "$(BLUE)Cleaning KNIRVCHAIN artifacts...$(NC)"
+	rm -f bin/knirvchain
+	cd $(CHAIN_DIR) && go clean
 
 # Full build including embedded KNIRVGATEWAY (gateway-build is now a dep of binary)
 build-full: binary ## Build everything including KNIRVGATEWAY (alias for binary)

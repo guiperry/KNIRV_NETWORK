@@ -1,0 +1,852 @@
+{
+  "config": {
+    "configFile": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/playwright.config.ts",
+    "rootDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "test-suite": "KNIRVANA E2E Tests",
+      "environment": "test",
+      "version": "1.0.0",
+      "actualWorkers": 4
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/e2e-results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/e2e-results.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-suite": "KNIRVANA E2E Tests",
+          "environment": "test",
+          "version": "1.0.0",
+          "actualWorkers": 4
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-suite": "KNIRVANA E2E Tests",
+          "environment": "test",
+          "version": "1.0.0",
+          "actualWorkers": 4
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-suite": "KNIRVANA E2E Tests",
+          "environment": "test",
+          "version": "1.0.0",
+          "actualWorkers": 4
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-suite": "KNIRVANA E2E Tests",
+          "environment": "test",
+          "version": "1.0.0",
+          "actualWorkers": 4
+        },
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-suite": "KNIRVANA E2E Tests",
+          "environment": "test",
+          "version": "1.0.0",
+          "actualWorkers": 4
+        },
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-suite": "KNIRVANA E2E Tests",
+          "environment": "test",
+          "version": "1.0.0",
+          "actualWorkers": 4
+        },
+        "id": "Microsoft Edge",
+        "name": "Microsoft Edge",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-suite": "KNIRVANA E2E Tests",
+          "environment": "test",
+          "version": "1.0.0",
+          "actualWorkers": 4
+        },
+        "id": "Google Chrome",
+        "name": "Google Chrome",
+        "testDir": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "3way",
+    "version": "1.57.0",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "game-interaction.spec.ts",
+      "file": "game-interaction.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "KNIRVANA Game Interactions",
+          "file": "game-interaction.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should load the game interface successfully",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "timedOut",
+                      "duration": 30407,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m\n    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:6:8",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                          "column": 8,
+                          "line": 6
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 4 |\u001b[39m   \u001b[36mlet\u001b[39m page\u001b[33m:\u001b[39m \u001b[33mPage\u001b[39m\n \u001b[90m 5 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m   |\u001b[39m        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n \u001b[90m 8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m 9 |\u001b[39m     \u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                            "column": 8,
+                            "line": 6
+                          },
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m\n\n\u001b[0m \u001b[90m 4 |\u001b[39m   \u001b[36mlet\u001b[39m page\u001b[33m:\u001b[39m \u001b[33mPage\u001b[39m\n \u001b[90m 5 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m   |\u001b[39m        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n \u001b[90m 8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m 9 |\u001b[39m     \u001b[0m\n\u001b[2m    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:6:8\u001b[22m"
+                        },
+                        {
+                          "message": "Error: browserContext.newPage: Test timeout of 30000ms exceeded."
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-04T20:40:37.696Z",
+                      "annotations": [],
+                      "attachments": [],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                        "column": 8,
+                        "line": 6
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "b8014162f59e4d74e228-b5e939f4d4f619067cd4",
+              "file": "game-interaction.spec.ts",
+              "line": 17,
+              "column": 3
+            },
+            {
+              "title": "should respond to keyboard controls",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "timedOut",
+                      "duration": 30102,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m\n    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:6:8",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                          "column": 8,
+                          "line": 6
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 4 |\u001b[39m   \u001b[36mlet\u001b[39m page\u001b[33m:\u001b[39m \u001b[33mPage\u001b[39m\n \u001b[90m 5 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m   |\u001b[39m        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n \u001b[90m 8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m 9 |\u001b[39m     \u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                            "column": 8,
+                            "line": 6
+                          },
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m\n\n\u001b[0m \u001b[90m 4 |\u001b[39m   \u001b[36mlet\u001b[39m page\u001b[33m:\u001b[39m \u001b[33mPage\u001b[39m\n \u001b[90m 5 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m   |\u001b[39m        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n \u001b[90m 8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m 9 |\u001b[39m     \u001b[0m\n\u001b[2m    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:6:8\u001b[22m"
+                        },
+                        {
+                          "message": "Error: browserContext.newPage: Test timeout of 30000ms exceeded."
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-04T20:40:37.659Z",
+                      "annotations": [],
+                      "attachments": [],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                        "column": 8,
+                        "line": 6
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "b8014162f59e4d74e228-7c1eaa0a0ec89d70fe94",
+              "file": "game-interaction.spec.ts",
+              "line": 31,
+              "column": 3
+            },
+            {
+              "title": "should handle mouse interactions",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "timedOut",
+                      "duration": 30073,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m\n    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:6:8",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                          "column": 8,
+                          "line": 6
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 4 |\u001b[39m   \u001b[36mlet\u001b[39m page\u001b[33m:\u001b[39m \u001b[33mPage\u001b[39m\n \u001b[90m 5 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m   |\u001b[39m        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n \u001b[90m 8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m 9 |\u001b[39m     \u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                            "column": 8,
+                            "line": 6
+                          },
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m\n\n\u001b[0m \u001b[90m 4 |\u001b[39m   \u001b[36mlet\u001b[39m page\u001b[33m:\u001b[39m \u001b[33mPage\u001b[39m\n \u001b[90m 5 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m   |\u001b[39m        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n \u001b[90m 8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m 9 |\u001b[39m     \u001b[0m\n\u001b[2m    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:6:8\u001b[22m"
+                        },
+                        {
+                          "message": "Error: browserContext.newPage: Test timeout of 30000ms exceeded."
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-04T20:40:37.680Z",
+                      "annotations": [],
+                      "attachments": [],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                        "column": 8,
+                        "line": 6
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "b8014162f59e4d74e228-cc95f4ed3334851753ce",
+              "file": "game-interaction.spec.ts",
+              "line": 59,
+              "column": 3
+            },
+            {
+              "title": "should handle window resize gracefully",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "timedOut",
+                      "duration": 30073,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m\n    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:6:8",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                          "column": 8,
+                          "line": 6
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 4 |\u001b[39m   \u001b[36mlet\u001b[39m page\u001b[33m:\u001b[39m \u001b[33mPage\u001b[39m\n \u001b[90m 5 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m   |\u001b[39m        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n \u001b[90m 8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m 9 |\u001b[39m     \u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                            "column": 8,
+                            "line": 6
+                          },
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded while running \"beforeEach\" hook.\u001b[39m\n\n\u001b[0m \u001b[90m 4 |\u001b[39m   \u001b[36mlet\u001b[39m page\u001b[33m:\u001b[39m \u001b[33mPage\u001b[39m\n \u001b[90m 5 |\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m   |\u001b[39m        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n \u001b[90m 8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m 9 |\u001b[39m     \u001b[0m\n\u001b[2m    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:6:8\u001b[22m"
+                        },
+                        {
+                          "message": "Error: browserContext.newPage: Test timeout of 30000ms exceeded."
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-04T20:40:37.726Z",
+                      "annotations": [],
+                      "attachments": [],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                        "column": 8,
+                        "line": 6
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "b8014162f59e4d74e228-acb3e4bacfecd8a9e8f7",
+              "file": "game-interaction.spec.ts",
+              "line": 103,
+              "column": 3
+            },
+            {
+              "title": "should maintain performance during gameplay",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 28609,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                          "column": 16,
+                          "line": 8
+                        },
+                        "snippet": "\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                            "column": 16,
+                            "line": 8
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n\n\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m\n\u001b[2m    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-04T20:42:41.776Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results/game-interaction-KNIRVANA--41d33-performance-during-gameplay-chromium/video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                        "column": 16,
+                        "line": 8
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "b8014162f59e4d74e228-436e299a1fd4ddb179bc",
+              "file": "game-interaction.spec.ts",
+              "line": 129,
+              "column": 3
+            },
+            {
+              "title": "should handle error states gracefully",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 28277,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                          "column": 16,
+                          "line": 8
+                        },
+                        "snippet": "\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                            "column": 16,
+                            "line": 8
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n\n\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m\n\u001b[2m    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-04T20:42:42.139Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results/game-interaction-KNIRVANA--06027-dle-error-states-gracefully-chromium/video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                        "column": 16,
+                        "line": 8
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "b8014162f59e4d74e228-5d3e9f6279a634652aff",
+              "file": "game-interaction.spec.ts",
+              "line": 170,
+              "column": 3
+            },
+            {
+              "title": "should support fullscreen mode",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 27686,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                          "column": 16,
+                          "line": 8
+                        },
+                        "snippet": "\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                            "column": 16,
+                            "line": 8
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n\n\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m\n\u001b[2m    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-04T20:42:42.356Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results/game-interaction-KNIRVANA--f912b-uld-support-fullscreen-mode-chromium/video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                        "column": 16,
+                        "line": 8
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "b8014162f59e4d74e228-327f0c723cd2aec09326",
+              "file": "game-interaction.spec.ts",
+              "line": 187,
+              "column": 3
+            },
+            {
+              "title": "should handle touch interactions on mobile",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 28544,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                          "column": 16,
+                          "line": 8
+                        },
+                        "snippet": "\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                            "column": 16,
+                            "line": 8
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n\n\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m\n\u001b[2m    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-04T20:42:41.957Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results/game-interaction-KNIRVANA--ef7cc-ouch-interactions-on-mobile-chromium/video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                        "column": 16,
+                        "line": 8
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "b8014162f59e4d74e228-b529570a6ee28e2812ad",
+              "file": "game-interaction.spec.ts",
+              "line": 220,
+              "column": 3
+            },
+            {
+              "title": "should maintain state across page interactions",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 2277,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                          "column": 16,
+                          "line": 8
+                        },
+                        "snippet": "\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                            "column": 16,
+                            "line": 8
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n\n\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m\n\u001b[2m    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-04T20:43:13.223Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results/game-interaction-KNIRVANA--7a971-te-across-page-interactions-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results/game-interaction-KNIRVANA--7a971-te-across-page-interactions-chromium/video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                        "column": 16,
+                        "line": 8
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "b8014162f59e4d74e228-4a0b0537df0ad14189e8",
+              "file": "game-interaction.spec.ts",
+              "line": 289,
+              "column": 3
+            },
+            {
+              "title": "should handle memory management during extended play",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 2246,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16",
+                        "location": {
+                          "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                          "column": 16,
+                          "line": 8
+                        },
+                        "snippet": "\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                            "column": 16,
+                            "line": 8
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5173/\", waiting until \"load\"\u001b[22m\n\n\n\u001b[0m \u001b[90m  6 |\u001b[39m   test\u001b[33m.\u001b[39mbeforeEach(\u001b[36masync\u001b[39m ({ page\u001b[33m:\u001b[39m testPage }) \u001b[33m=>\u001b[39m {\n \u001b[90m  7 |\u001b[39m     page \u001b[33m=\u001b[39m testPage\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mgoto(\u001b[32m'/'\u001b[39m)\n \u001b[90m    |\u001b[39m                \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m     \n \u001b[90m 10 |\u001b[39m     \u001b[90m// Wait for the game to load\u001b[39m\n \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForSelector(\u001b[32m'[data-testid=\"knirvana-game\"]'\u001b[39m\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m30000\u001b[39m })\u001b[0m\n\u001b[2m    at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts:8:16\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-01-04T20:43:13.424Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results/game-interaction-KNIRVANA--2787b-gement-during-extended-play-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/test-results/game-interaction-KNIRVANA--2787b-gement-during-extended-play-chromium/video.webm"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/KNIRVANA/ts-client/src/test/e2e/game-interaction.spec.ts",
+                        "column": 16,
+                        "line": 8
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "b8014162f59e4d74e228-488ae17e6305fcfbd2b4",
+              "file": "game-interaction.spec.ts",
+              "line": 314,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-01-04T20:40:30.683Z",
+    "duration": 168146.76799999992,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 10,
+    "flaky": 0
+  }
+}

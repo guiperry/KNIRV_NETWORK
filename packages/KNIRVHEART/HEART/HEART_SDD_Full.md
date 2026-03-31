@@ -79,7 +79,7 @@ HEART transforms this into a **proactive, memory-augmented adversarial learning 
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│         HEART: ERROR RESOLUTION ADVISOR ARCHITECTURE          │
+│         HEART: ERROR RESOLUTION ADVISOR ARCHITECTURE         │
 │      (For KNIRVGRAPH ErrorNode → SkillNode Transformation)   │
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
@@ -106,7 +106,7 @@ HEART transforms this into a **proactive, memory-augmented adversarial learning 
 │  │    DRQ ADVERSARIAL FRAMEWORK (Strategy Discovery)      │  │
 │  │  - Population: 50 candidate SkillNode strategies       │  │
 │  │  - Arena: Decentralized validation sandbox             │  │
-│  │  - Evolution: Mutation + crossover with advisor bias    │  │
+│  │  - Evolution: Mutation + crossover with advisor bias   │  │
 │  │  - Convergence: 18 generations (vs 45 without HEART)   │  │
 │  └──────────────────┬─────────────────────────────────────┘  │
 │                     │                                        │

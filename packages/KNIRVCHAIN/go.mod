@@ -22,10 +22,12 @@ require (
 
 require (
 	fyne.io/fyne/v2 v2.7.1
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/generative-ai-go v0.19.0
 	github.com/gorilla/mux v1.8.1
 	github.com/guiperry/gollm_cerebras v0.2.1
 	github.com/invopop/jsonschema v0.13.0
+	github.com/mouuff/go-rocket-update v1.5.4
 	github.com/philippgille/chromem-go v0.7.0
 	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/segmentio/kafka-go v0.4.48
@@ -100,7 +102,6 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/mouuff/go-rocket-update v1.5.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect

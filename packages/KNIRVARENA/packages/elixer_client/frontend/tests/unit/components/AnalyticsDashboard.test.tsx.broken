@@ -1,0 +1,324 @@
+/**
+ * AnalyticsDashboard Component Tests
+ * Comprehensive test suite for analytics dashboard functionality
+ */
+
+import * as React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+
+// Mock the analytics service first
+jest.mock('../../../src/services/AnalyticsService', () => ({
+  analyticsService: {
+    getDashboardStats: jest.fn(),
+    getPerformanceMetrics: jest.fn(),
+    getUsageAnalytics: jest.fn(),
+    getAgentAnalytics: jest.fn(),
+    exportData: jest.fn()
+  }
+}));
+
+// Import component after mocking
+import AnalyticsDashboard from '../../../src/components/AnalyticsDashboard';
+import { analyticsService } from '../../../src/services/AnalyticsService';
+
+// Mock URL.createObjectURL and related APIs
+global.URL.createObjectURL = jest.fn(() => 'mock-url');
+global.URL.revokeObjectURL = jest.fn();
+
+// Mock document.createElement for download functionality
+const mockAnchor = {
+  href: '',
+  download: '',
+  click: jest.fn(),
+  style: {}
+};
+
+const originalCreateElement = document.createElement;
+document.createElement = jest.fn((tagName) => {
+  if (tagName === 'a') {
+    return mockAnchor as unknown as HTMLAnchorElement;
+  }
+  return originalCreateElement.call(document, tagName);
+});
+
+// Mock appendChild and removeChild
+document.body.appendChild = jest.fn();
+document.body.removeChild = jest.fn();
+
+// Get the mocked analytics service
+const mockAnalyticsService = analyticsService as jest.Mocked<typeof analyticsService>;
+
+// Mock data for tests
+const mockDashboardStats = {
+  activeAgents: 25,
+  totalSkills: 12,
+  totalTransactions: 1500,
+  networkHealth: 'Good',
+  lastUpdated: new Date()
+};
+
+const mockPerformanceMetrics = {
+  throughput: 45.2,
+  errorRate: 2.1,
+  uptime: 99.8,
+  lastMeasured: new Date()
+};
+
+const mockUsageAnalytics = {
+  totalSessions: 850,
+  averageSessionDuration: 12.5,
+  popularFeatures: [
+    { feature: 'Agent Management', usage: 85 },
+    { feature: 'Skill Execution', usage: 72 },
+    { feature: 'Network Monitor', usage: 68 },
+    { feature: 'Wallet Interface', usage: 45 }
+  ],
+  lastCalculated: new Date()
+};
+
+const mockAgentAnalytics = {
+  successRate: 94.5,
+  averageExecutionTime: 250,
+  resourceUtilization: 67.8,
+  lastAnalyzed: new Date()
+};
+
+// Setup for React Testing Library
+beforeEach(() => {
+  // Reset all mocks
+  jest.clearAllMocks();
+  
+  // Setup default mock implementations
+  mockAnalyticsService.getDashboardStats.mockResolvedValue(mockDashboardStats);
+  mockAnalyticsService.getPerformanceMetrics.mockResolvedValue(mockPerformanceMetrics);
+  mockAnalyticsService.getUsageAnalytics.mockResolvedValue(mockUsageAnalytics);
+  mockAnalyticsService.getAgentAnalytics.mockResolvedValue(mockAgentAnalytics);
+  mockAnalyticsService.exportData.mockResolvedValue('{"data": "test"}');
+});
+
+describe('AnalyticsDashboard', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  describe('Rendering', () => {
+    it('should not render when isOpen is false', () => {
+      render(<AnalyticsDashboard isOpen={false} onClose={jest.fn()} />);
+      
+      expect(screen.queryByText('Analytics Dashboard')).not.toBeInTheDocument();
+    });
+
+    it('should render when isOpen is true', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      expect(screen.getByText('Analytics Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Real-time system metrics and insights')).toBeInTheDocument();
+    });
+
+    it('should render all tabs', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      expect(screen.getByText('Overview')).toBeInTheDocument();
+      expect(screen.getByText('Performance')).toBeInTheDocument();
+      expect(screen.getByText('Usage')).toBeInTheDocument();
+      expect(screen.getByText('Agents')).toBeInTheDocument();
+    });
+  });
+
+  describe('Data Loading', () => {
+    it('should load analytics data on mount', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      await waitFor(() => {
+        expect(mockAnalyticsService.getDashboardStats).toHaveBeenCalled();
+        expect(mockAnalyticsService.getPerformanceMetrics).toHaveBeenCalled();
+        expect(mockAnalyticsService.getUsageAnalytics).toHaveBeenCalled();
+        expect(mockAnalyticsService.getAgentAnalytics).toHaveBeenCalled();
+      });
+    });
+
+    it('should display dashboard stats in overview tab', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('25')).toBeInTheDocument(); // Active Agents
+        expect(screen.getByText('12')).toBeInTheDocument(); // Target Systems
+        expect(screen.getByText('1500')).toBeInTheDocument(); // Inferences Today
+        expect(screen.getByText('Good')).toBeInTheDocument(); // Network Health
+      });
+    });
+
+    it('should handle loading errors gracefully', async () => {
+      mockAnalyticsService.getDashboardStats.mockRejectedValue(new Error('Network error'));
+      
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      // Should not crash and should still render the component
+      expect(screen.getByText('Analytics Dashboard')).toBeInTheDocument();
+    });
+  });
+
+  describe('Tab Navigation', () => {
+    it('should switch to performance tab', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      fireEvent.click(screen.getByText('Performance'));
+      
+      await waitFor(() => {
+        expect(screen.getByText('45.2%')).toBeInTheDocument(); // Throughput
+        expect(screen.getByText('2.1%')).toBeInTheDocument(); // Error Rate
+        expect(screen.getByText('99.8%')).toBeInTheDocument(); // Uptime
+      });
+    });
+
+    it('should switch to usage tab', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      fireEvent.click(screen.getByText('Usage'));
+      
+      await waitFor(() => {
+        expect(screen.getByText('850')).toBeInTheDocument(); // Total Sessions
+        expect(screen.getByText('12.5')).toBeInTheDocument(); // Avg Session Duration
+        expect(screen.getByText('Agent Management')).toBeInTheDocument(); // Popular Feature
+      });
+    });
+
+    it('should switch to agents tab', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      fireEvent.click(screen.getByText('Agents'));
+      
+      await waitFor(() => {
+        expect(screen.getByText('94.5%')).toBeInTheDocument(); // Success Rate
+        expect(screen.getByText('250')).toBeInTheDocument(); // Avg Execution Time
+        expect(screen.getByText('67.8%')).toBeInTheDocument(); // Resource Utilization
+      });
+    });
+
+    it('should highlight active tab', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      const overviewTab = screen.getByText('Overview').closest('button');
+      const performanceTab = screen.getByText('Performance').closest('button');
+      
+      // Overview should be active by default
+      expect(overviewTab).toHaveClass('bg-blue-500');
+      expect(performanceTab).not.toHaveClass('bg-blue-500');
+      
+      // Click performance tab
+      fireEvent.click(screen.getByText('Performance'));
+      
+      await waitFor(() => {
+        expect(performanceTab).toHaveClass('bg-blue-500');
+        expect(overviewTab).not.toHaveClass('bg-blue-500');
+      });
+    });
+  });
+
+  describe('Refresh Functionality', () => {
+    it('should refresh data when refresh button is clicked', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      // Wait for initial load
+      await waitFor(() => {
+        expect(mockAnalyticsService.getDashboardStats).toHaveBeenCalledTimes(1);
+      });
+      
+      const refreshButton = screen.getByRole('button', { name: /refresh/i });
+      fireEvent.click(refreshButton);
+      
+      await waitFor(() => {
+        expect(mockAnalyticsService.getDashboardStats).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it('should show loading state during refresh', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      const refreshButton = screen.getByRole('button', { name: /refresh/i });
+      fireEvent.click(refreshButton);
+      
+      // Should show loading state (disabled button)
+      expect(refreshButton).toBeDisabled();
+    });
+
+    it('should auto-refresh every 30 seconds', async () => {
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      // Wait for initial load
+      await waitFor(() => {
+        expect(mockAnalyticsService.getDashboardStats).toHaveBeenCalledTimes(1);
+      });
+      
+      // Fast-forward 30 seconds
+      jest.advanceTimersByTime(30000);
+      
+      await waitFor(() => {
+        expect(mockAnalyticsService.getDashboardStats).toHaveBeenCalledTimes(2);
+      });
+    });
+  });
+
+  describe('Export Functionality', () => {
+    it('should export data as JSON', async () => {
+      mockAnalyticsService.exportData.mockResolvedValue('{"data": "test"}');
+      
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      const exportButton = screen.getByRole('button', { name: /download/i });
+      fireEvent.click(exportButton);
+      
+      await waitFor(() => {
+        expect(mockAnalyticsService.exportData).toHaveBeenCalled();
+        expect(mockAnchor.click).toHaveBeenCalled();
+      });
+    });
+
+    it('should handle export errors gracefully', async () => {
+      mockAnalyticsService.exportData.mockRejectedValue(new Error('Export failed'));
+      
+      render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      const exportButton = screen.getByRole('button', { name: /download/i });
+      fireEvent.click(exportButton);
+      
+      // Should not crash
+      expect(screen.getByText('Analytics Dashboard')).toBeInTheDocument();
+    });
+  });
+
+  describe('Close Functionality', () => {
+    it('should call onClose when close button is clicked', () => {
+      const onCloseMock = jest.fn();
+      render(<AnalyticsDashboard isOpen={true} onClose={onCloseMock} />);
+      
+      const closeButton = screen.getByText('×');
+      fireEvent.click(closeButton);
+      
+      expect(onCloseMock).toHaveBeenCalled();
+    });
+
+    it('should clear auto-refresh interval when closed', async () => {
+      const { rerender } = render(<AnalyticsDashboard isOpen={true} onClose={jest.fn()} />);
+      
+      // Wait for initial load
+      await waitFor(() => {
+        expect(mockAnalyticsService.getDashboardStats).toHaveBeenCalledTimes(1);
+      });
+      
+      // Close the component
+      rerender(<AnalyticsDashboard isOpen={false} onClose={jest.fn()} />);
+      
+      // Fast-forward 30 seconds
+      jest.advanceTimersByTime(30000);
+      
+      // Should not have called again since component is closed
+      expect(mockAnalyticsService.getDashboardStats).toHaveBeenCalledTimes(1);
+    });
+  });
+});

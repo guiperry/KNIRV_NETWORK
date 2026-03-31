@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "KNIRV Controller",
+    "slug": "knirv-controller",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#111827"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.knirv.controller"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#111827"
+      },
+      "package": "com.knirv.controller"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "16819718-539b-440b-bac2-04e8e8fc0ab0"
+      }
+    }
+  }
+}

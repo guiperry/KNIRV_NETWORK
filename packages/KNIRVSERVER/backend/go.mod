@@ -6,6 +6,7 @@ toolchain go1.24.1
 
 require (
 	fyne.io/fyne/v2 v2.7.1
+	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvchain v0.0.0-00010101000000-000000000000
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway v0.0.0-00010101000000-000000000000
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgraph v0.0.0-00010101000000-000000000000
 	github.com/apache/arrow/go/v14 v14.0.2
@@ -13,7 +14,7 @@ require (
 	github.com/cloudflare/circl v1.6.3
 	github.com/ethereum/go-ethereum v1.16.7
 	github.com/gin-gonic/gin v1.9.1
-	github.com/golang-jwt/jwt/v5 v5.0.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/websocket v1.5.3
@@ -28,7 +29,7 @@ require (
 	github.com/robertkrimen/otto v0.5.1
 	github.com/seccomp/libseccomp-golang v0.10.0
 	github.com/segmentio/kafka-go v0.4.48
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.11.1
 	github.com/subosito/gotenv v1.4.2
@@ -50,6 +51,8 @@ replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway => ../pkg/kn
 replace KNIRVGRAPH => ../../KNIRVGRAPH
 
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgraph => ../pkg/knirvgraph
+
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvchain => ../pkg/knirvchain
 
 require (
 	fyne.io/systray v1.11.1-0.20250603113521-ca66a66d8b58 // indirect

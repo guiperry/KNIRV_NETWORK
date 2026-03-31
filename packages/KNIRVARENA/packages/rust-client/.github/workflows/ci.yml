@@ -1,0 +1,135 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev libudev-dev
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo index
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo build
+      uses: actions/cache@v3
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Check formatting
+      run: cargo fmt -- --check
+
+    - name: Run clippy
+      run: cargo clippy -- -D warnings
+
+    - name: Run tests
+      run: cargo test --verbose
+
+    - name: Build release
+      run: cargo build --release --verbose
+
+  build-and-package:
+    name: Build and Package
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            build-script: ./scripts/build-linux.sh
+          - os: macos-latest
+            build-script: ./scripts/build-macos.sh
+          - os: windows-latest
+            build-script: ./scripts/build-windows.ps1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Run tests
+        run: cargo test --release
+        
+      - name: Create packaging directory
+        run: mkdir -p packaging
+
+      - name: Run build script
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            pwsh ./scripts/build-windows.ps1
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            sh ./scripts/build-macos.sh
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
+            sh ./scripts/build-linux.sh
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: knirvana-game-client-${{ matrix.os }}
+          path: packaging/
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
+    - name: Add Android target
+      run: rustup target add aarch64-linux-android
+
+    - name: Setup Android NDK
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r25c
+
+    - name: Install cargo-apk
+      run: cargo install cargo-apk
+
+    - name: Build Android APK
+      run: cargo apk build --release
+      env:
+        ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}

@@ -1,0 +1,16 @@
+// Example FlatBuffers schema for a Player
+namespace KNIRV.Schema;
+
+struct Vec3 {
+  x:float;
+  y:float;
+  z:float;
+}
+
+table Player {
+  id:string;
+  position:Vec3;
+  health:short;
+}
+
+root_type Player;

@@ -1,9 +1,8 @@
 import axios from 'axios';
 
-// Default to controller backend if env variable is set
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
-
-console.log('[WebGUI API] Backend URL:', API_URL);
+// Use env var when set; otherwise use a relative URL so requests go to
+// whichever host is serving the WebGUI (works both embedded and standalone).
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 const api = axios.create({
   baseURL: API_URL,

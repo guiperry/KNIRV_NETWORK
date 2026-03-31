@@ -60,6 +60,7 @@ import (
 	"backend_server/internal/storage/pqc"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
+	knirvchain "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvchain"
 	knirvgateway "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway"
 	knirvgraph "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgraph"
 
@@ -116,6 +117,7 @@ type Server struct {
 	gatewayManager               *knirvgateway.Manager
 	graphManager                 *knirvgraph.Manager
 	graphSyncManager             *knirvgraph.SyncManager
+	chainManager                 *knirvchain.Manager
 
 	// Active Memory Layer (Markdown Fabric)
 	pqcManager          *pqc.EncryptionManager
@@ -759,6 +761,24 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		log.Println("KNIRVGRAPH sync manager initialized")
 	}
 
+	// Initialize embedded KNIRVCHAIN for blockchain and mining
+	var chainManager *knirvchain.Manager
+	if cfg.Chain.Enabled {
+		chainConfig := &knirvchain.ManagerConfig{
+			BinaryPath:   cfg.Chain.BinaryPath,
+			Port:         cfg.Chain.Port,
+			P2PPort:      cfg.Chain.P2PPort,
+			APIPort:      cfg.Chain.APIPort,
+			DataPath:     cfg.Chain.DataPath,
+			Role:         cfg.Chain.Role,
+			ChainID:      cfg.Chain.ChainID,
+			StartTimeout: time.Duration(cfg.Chain.StartTimeout) * time.Second,
+			StopTimeout:  time.Duration(cfg.Chain.StopTimeout) * time.Second,
+		}
+		chainManager = knirvchain.NewManager(chainConfig, logger)
+		log.Println("KNIRVCHAIN manager initialized")
+	}
+
 	// Initialize Cognitive Engine with configurable parameters
 	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager, validationCore, inferenceService, fabricManagementService)
 
@@ -1036,6 +1056,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		gatewayManager:               gatewayManager,
 		graphManager:                 graphManager,
 		graphSyncManager:             graphSyncManager,
+		chainManager:                 chainManager,
 		pqcManager:                   pqcManager,
 		mdStorage:                    mdStorage,
 		vaultService:                 vaultService,

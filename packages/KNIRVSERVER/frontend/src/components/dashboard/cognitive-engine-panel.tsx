@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Brain, Cpu, Zap, Activity, TrendingUp, Clock, AlertCircle, CheckCircle, Heart, Eye, EyeOff, Play, Square, Loader2, GitBranch, BookOpen, Bug, Server, Bot, Shield, Database } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -104,8 +104,6 @@ export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ cla
   const [healthResult, setHealthResult] = useState<string | null>(null);
   const [validationResult, setValidationResult] = useState<string | null>(null);
   const [rollingLog, setRollingLog] = useState<BackgroundTask[]>([]);
-  const logBottomRef = useRef<HTMLDivElement>(null);
-
   // Build a rolling log of background tasks when the engine is active
   useEffect(() => {
     const isActive = cognitiveEngine?.status === 'active' || cognitiveEngine?.status === 'learning';
@@ -133,11 +131,6 @@ export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ cla
 
     return () => clearInterval(interval);
   }, [cognitiveEngine?.status, cognitiveEngine?.background_tasks]);
-
-  // Auto-scroll to bottom when new entries arrive
-  useEffect(() => {
-    logBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [rollingLog.length]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -488,7 +481,6 @@ export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ cla
                       </span>
                     </div>
                   ))}
-                  <div ref={logBottomRef} />
                 </div>
               </ScrollArea>
             </div>
