@@ -355,3 +355,10 @@ $43
 metrics:historical:1775066954:system_health
 $295
 {"id":"8f0b9c7a-eefe-4553-bd40-6fbc7833445b","timestamp":"2026-04-01T14:09:14.378112676-04:00","type":"system_health","data":{"active_nodes":0,"average_response_time":10,"completed_tasks":0,"failed_tasks":0,"network_latency":0,"pending_tasks":0,"tee_health_score":1,"total_nodes":5},"source":""}
+*3
+$3
+set
+$43
+metrics:historical:1775067014:system_health
+$295
+{"id":"dcf19fc2-43dd-42c5-a72f-154338c0da95","timestamp":"2026-04-01T14:10:14.378447986-04:00","type":"system_health","data":{"active_nodes":0,"average_response_time":10,"completed_tasks":0,"failed_tasks":0,"network_latency":0,"pending_tasks":0,"tee_health_score":1,"total_nodes":5},"source":""}
