@@ -68,6 +68,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/term"
 )
 
 // Version information (set by build flags)
@@ -304,6 +305,9 @@ func getOSAppDataDir() (string, error) {
 // The password is read from ORACLE_KEY_PASSWORD env var (non-interactive/CI) or prompted
 // from stdin when running interactively.
 func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, error) {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	keyPath, err := config.GetRootKeyPath()
 	if err != nil {
 		return nil, fmt.Errorf("secrets: could not resolve root key path: %w", err)
@@ -318,6 +322,10 @@ func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, er
 	if envPwd := os.Getenv("ORACLE_KEY_PASSWORD"); envPwd != "" {
 		keyPassword = []byte(envPwd)
 	} else {
+		// Check if stdin is a terminal
+		if !term.IsTerminal(int(os.Stdin.Fd())) {
+			return nil, fmt.Errorf("secrets: password not provided via ORACLE_KEY_PASSWORD environment variable and stdin is not a terminal")
+		}
 		keyPassword, err = password.PromptForPassword("Enter root key password to load secrets: ")
 		if err != nil {
 			return nil, fmt.Errorf("secrets: failed to read password: %w", err)
@@ -361,7 +369,8 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 
 	if content.DatabaseUrl != "" {
 		cfg.Database.Path = content.DatabaseUrl
-		log.Printf("Database URL loaded from root.key")
+		viper.Set("database.path", content.DatabaseUrl)
+		log.Printf("Database URL loaded from root.key: %s", content.DatabaseUrl)
 	}
 
 	if content.TlsCert != "" || content.TlsKey != "" {
@@ -372,6 +381,9 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 }
 
 func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
 	keyPath, err := config.GetRootKeyPath()
 	if err != nil {
 		return nil, fmt.Errorf("oracle: could not resolve root key path: %w", err)
@@ -387,6 +399,10 @@ func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 	if envPwd := os.Getenv("ORACLE_KEY_PASSWORD"); envPwd != "" {
 		keyPassword = []byte(envPwd)
 	} else {
+		// Check if stdin is a terminal
+		if !term.IsTerminal(int(os.Stdin.Fd())) {
+			return nil, fmt.Errorf("oracle: password not provided via ORACLE_KEY_PASSWORD environment variable and stdin is not a terminal")
+		}
 		keyPassword, err = password.PromptForPassword("Enter root key password to start oracle: ")
 		if err != nil {
 			return nil, fmt.Errorf("oracle: failed to read password: %w", err)
@@ -2117,6 +2133,10 @@ func run() error {
 	if rootKeySecrets != nil {
 		applyRootKeySecretsToConfig(config, rootKeySecrets)
 		log.Printf("Applied secrets from root.key to configuration")
+		// Re-expand paths in case secrets contained paths (like database URL)
+		if err := config.ExpandPaths(); err != nil {
+			log.Printf("Warning: Failed to re-expand paths after applying secrets: %v", err)
+		}
 	}
 
 	// Create unified server

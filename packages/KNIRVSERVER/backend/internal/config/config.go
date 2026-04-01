@@ -428,7 +428,7 @@ func LoadWithDefaults() (*Config, error) {
 	}
 
 	// Expand all paths in configuration
-	if err := config.expandPaths(); err != nil {
+	if err := config.ExpandPaths(); err != nil {
 		return nil, fmt.Errorf("failed to expand paths: %w", err)
 	}
 
@@ -463,14 +463,29 @@ func expandPath(path string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		expanded := filepath.Join(usr.HomeDir, path[1:])
+		var expanded string
+		if len(path) > 1 && (path[1] == '/' || path[1] == '\\') {
+			expanded = filepath.Join(usr.HomeDir, path[2:])
+		} else {
+			expanded = filepath.Join(usr.HomeDir, path[1:])
+		}
 		return expanded, nil
 	}
+
+	// Resolve relative paths to absolute paths
+	if !filepath.IsAbs(path) {
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			return path, nil // Fallback to original path if absolute resolution fails
+		}
+		return absPath, nil
+	}
+
 	return path, nil
 }
 
-// expandPaths expands all paths in the configuration
-func (c *Config) expandPaths() error {
+// ExpandPaths expands all paths in the configuration
+func (c *Config) ExpandPaths() error {
 	var err error
 
 	// Expand database path

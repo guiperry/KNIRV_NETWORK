@@ -22,21 +22,21 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// loadDotKeyFile loads values from the .key file in the project root
-func loadDotKeyFile(keyFilePath string) map[string]string {
+// loadEnvFile loads values from the .env file in the project root
+func loadEnvFile(envFilePath string) map[string]string {
 	values := make(map[string]string)
-	// First, try to load from the standard project root .key file
+	// First, try to load from the standard project root .env file
 	// This makes it easier for developers who have already set up their local env.
-	projectRootKeyFile := ".key"
-	if _, err := os.Stat(projectRootKeyFile); err == nil {
-		log.Printf("Found project root .key file, loading defaults from it.")
-		keyFilePath = projectRootKeyFile
+	projectRootEnvFile := ".env"
+	if _, err := os.Stat(projectRootEnvFile); err == nil {
+		log.Printf("Found project root .env file, loading defaults from it.")
+		envFilePath = projectRootEnvFile
 	}
 
-	// Try to open the .key file
-	file, err := os.Open(keyFilePath)
+	// Try to open the .env file
+	file, err := os.Open(envFilePath)
 	if err != nil {
-		log.Printf("Warning: Could not open key file at '%s': %v", keyFilePath, err)
+		log.Printf("Warning: Could not open env file at '%s': %v", envFilePath, err)
 		return values
 	}
 	defer file.Close()
@@ -61,92 +61,92 @@ func loadDotKeyFile(keyFilePath string) map[string]string {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("Warning: Error reading .key file: %v", err)
+		log.Printf("Warning: Error reading .env file: %v", err)
 	}
 
 	return values
 }
 
 func main() {
-	// Allow specifying a key file to load defaults from
-	defaultKeyFile := filepath.Join("config", "embedded", "default_root.key")
-	keyFileFlag := flag.String("keyfile", defaultKeyFile, "Path to a .key file to load default values from.")
+	// Allow specifying an env file to load defaults from
+	defaultEnvFile := ".env"
+	envFileFlag := flag.String("envfile", defaultEnvFile, "Path to a .env file to load default values from.")
 	flag.Parse()
 
 	a := app.New()
 	w := a.NewWindow("KNIRVSERVER Root Key Encryptor")
 	w.Resize(fyne.NewSize(700, 600))
 
-	// Load values from .key file
-	log.Printf("Loading default values from: %s", *keyFileFlag)
-	dotKeyValues := loadDotKeyFile(*keyFileFlag)
+	// Load values from .env file
+	log.Printf("Loading default values from: %s", *envFileFlag)
+	envValues := loadEnvFile(*envFileFlag)
 
 	// Input Fields for Sensitive Data
 	stripeSecretEntry := widget.NewEntry()
 	stripeSecretEntry.SetPlaceHolder("Stripe Secret Key")
-	stripeSecretEntry.SetText(dotKeyValues["STRIPE_SECRET_KEY"])
+	stripeSecretEntry.SetText(envValues["STRIPE_SECRET_KEY"])
 
 	stripeWebhookSecretEntry := widget.NewEntry()
 	stripeWebhookSecretEntry.SetPlaceHolder("Stripe Webhook Secret")
-	stripeWebhookSecretEntry.SetText(dotKeyValues["STRIPE_WEBHOOK_SECRET"]) // Note: typo in the original file
+	stripeWebhookSecretEntry.SetText(envValues["STRIPE_WEBHOOK_SECRET"]) // Note: typo in the original file
 
 	coinbaseAPIKeyEntry := widget.NewEntry()
 	coinbaseAPIKeyEntry.SetPlaceHolder("Coinbase API Key")
-	coinbaseAPIKeyEntry.SetText(dotKeyValues["COINBASE_API_KEY"])
+	coinbaseAPIKeyEntry.SetText(envValues["COINBASE_API_KEY"])
 
 	coinbaseWebhookSecretEntry := widget.NewEntry()
 	coinbaseWebhookSecretEntry.SetPlaceHolder("Coinbase Webhook Secret")
-	coinbaseWebhookSecretEntry.SetText(dotKeyValues["COINBASE_WEBHOOK_SECRET"])
+	coinbaseWebhookSecretEntry.SetText(envValues["COINBASE_WEBHOOK_SECRET"])
 
 	rootPrivateKeyEntry := widget.NewEntry()
 	rootPrivateKeyEntry.SetPlaceHolder("Root Private Key (Hex)")
 	rootPrivateKeyEntry.Password = true // Mask the input
-	rootPrivateKeyEntry.SetText(dotKeyValues["ROOT_PRIVATE_KEY"])
+	rootPrivateKeyEntry.SetText(envValues["ROOT_PRIVATE_KEY"])
 
 	cerebrasAPIKeyEntry := widget.NewEntry()
 	cerebrasAPIKeyEntry.SetPlaceHolder("Cerebras API Key")
-	cerebrasAPIKeyEntry.SetText(dotKeyValues["DEFAULT_CEREBRAS_API_KEY"])
+	cerebrasAPIKeyEntry.SetText(envValues["DEFAULT_CEREBRAS_API_KEY"])
 
 	cerebrasBaseURLEntry := widget.NewEntry()
 	cerebrasBaseURLEntry.SetPlaceHolder("Cerebras Base URL")
-	cerebrasBaseURLEntry.SetText(dotKeyValues["DEFAULT_CEREBRAS_BASE_URL"])
+	cerebrasBaseURLEntry.SetText(envValues["DEFAULT_CEREBRAS_BASE_URL"])
 
 	githubTokenEntry := widget.NewEntry()
 	githubTokenEntry.SetPlaceHolder("GitHub Token")
-	githubTokenEntry.SetText(dotKeyValues["DEFAULT_GITHUB_TOKEN"])
+	githubTokenEntry.SetText(envValues["DEFAULT_GITHUB_TOKEN"])
 
 	githubPublicKeyEntry := widget.NewEntry()
 	githubPublicKeyEntry.SetPlaceHolder("GitHub Public Key")
-	githubPublicKeyEntry.SetText(dotKeyValues["DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES"])
+	githubPublicKeyEntry.SetText(envValues["DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES"])
 
 	// Production secrets
 	jwtSecretEntry := widget.NewEntry()
 	jwtSecretEntry.SetPlaceHolder("JWT Secret")
-	jwtSecretEntry.SetText(dotKeyValues["JWT_SECRET"])
+	jwtSecretEntry.SetText(envValues["JWT_SECRET"])
 
 	knirvJwtSecretEntry := widget.NewEntry()
 	knirvJwtSecretEntry.SetPlaceHolder("KNIRV JWT Secret")
-	knirvJwtSecretEntry.SetText(dotKeyValues["KNIRV_JWT_SECRET"])
+	knirvJwtSecretEntry.SetText(envValues["KNIRV_JWT_SECRET"])
 
 	geminiApiKeyEntry := widget.NewEntry()
 	geminiApiKeyEntry.SetPlaceHolder("Gemini API Key")
-	geminiApiKeyEntry.SetText(dotKeyValues["GEMINI_API_KEY"])
+	geminiApiKeyEntry.SetText(envValues["GEMINI_API_KEY"])
 
 	deepseekApiKeyEntry := widget.NewEntry()
 	deepseekApiKeyEntry.SetPlaceHolder("DeepSeek API Key")
-	deepseekApiKeyEntry.SetText(dotKeyValues["DEEPSEEK_API_KEY"])
+	deepseekApiKeyEntry.SetText(envValues["DEEPSEEK_API_KEY"])
 
 	databaseUrlEntry := widget.NewEntry()
 	databaseUrlEntry.SetPlaceHolder("Database URL")
-	databaseUrlEntry.SetText(dotKeyValues["DATABASE_URL"])
+	databaseUrlEntry.SetText(envValues["DATABASE_URL"])
 
 	tlsCertEntry := widget.NewEntry()
 	tlsCertEntry.SetPlaceHolder("TLS Certificate (PEM)")
-	tlsCertEntry.SetText(dotKeyValues["TLS_CERT"])
+	tlsCertEntry.SetText(envValues["TLS_CERT"])
 
 	tlsKeyEntry := widget.NewEntry()
 	tlsKeyEntry.SetPlaceHolder("TLS Private Key (PEM)")
-	tlsKeyEntry.SetText(dotKeyValues["TLS_KEY"])
+	tlsKeyEntry.SetText(envValues["TLS_KEY"])
 
 	// Password Input
 	passwordEntry := widget.NewPasswordEntry()

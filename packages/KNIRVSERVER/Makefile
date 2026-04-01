@@ -51,7 +51,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer deploy-dev-local ebpf-generate kali-docker-image desktop desktop-deps desktop-build dash gateway-sync gateway-build gateway-deps gateway-clean graph-sync graph-build graph-deps graph-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image desktop desktop-deps desktop-build dash gateway-sync gateway-build gateway-deps gateway-clean graph-sync graph-build graph-deps graph-clean build-full
 
 # Default target
 all: frontend desktop-build backend binary
@@ -98,6 +98,10 @@ deps-go: ## Install Go dependencies (backend + gateway)
 	cd $(BACKEND_DIR) && go mod tidy
 	cd $(GATEWAY_DIR) && go mod download
 	cd $(GATEWAY_DIR) && go mod tidy
+	cd $(GRAPH_DIR) && go mod download
+	cd $(GRAPH_DIR) && go mod tidy
+	cd $(CHAIN_DIR) && go mod download
+	cd $(CHAIN_DIR) && go mod tidy
 
 deps-node: ## Install Node.js dependencies
 	@echo "$(BLUE)Installing Node.js dependencies...$(NC)"
@@ -120,22 +124,30 @@ frontend-dev: deps-node ## Start frontend development server
 # Backend Build (cmd/backend_server only)
 backend: deps-go ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
-	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o bin/backend_server ./cmd/backend_server
+	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
 	@echo "$(BLUE)Copying backend binary to root...$(NC)"
-	@mkdir -p bin
-	cp $(BACKEND_DIR)/bin/backend_server bin/
+	cp $(BACKEND_DIR)/backend_server bin/
 	@echo "$(GREEN)Backend build completed$(NC)"
+	rm $(BACKEND_DIR)/backend_server
 
 # Specialized Build Tools
 os: deps-go ## Build os_builder binary
 	@echo "$(BLUE)Building os_builder binary...$(NC)"
 	cd $(BACKEND_DIR)/cmd/os_builder && go build -ldflags "$(LDFLAGS)" -o os_builder main.go
 	@echo "$(GREEN)os_builder build completed: backend/cmd/os_builder/os_builder$(NC)"
-
 deployer: deps-go ## Build container_deployer binary
 	@echo "$(BLUE)Building container_deployer binary...$(NC)"
 	cd $(BACKEND_DIR)/cmd/container_deployer && go build -ldflags "$(LDFLAGS)" -o container_deployer main.go
 	@echo "$(GREEN)container_deployer build completed: backend/cmd/container_deployer/container_deployer$(NC)"
+
+key-encryptor: deps-go ## Build key_encryptor binary
+	@echo "$(BLUE)Building key_encryptor binary...$(NC)"
+	cd $(BACKEND_DIR) && CGO_ENABLED=1 go build -ldflags "$(LDFLAGS)" -o key_encryptor ./cmd/key_encryptor
+	@echo "$(BLUE)Copying key_encryptor binary to root...$(NC)"
+	cp $(BACKEND_DIR)/key_encryptor bin/
+	@echo "$(GREEN)key_encryptor build completed$(NC)"
+	rm $(BACKEND_DIR)/key_encryptor
+
 
 # Unified Binary (Frontend + Desktop + Backend + KNIRVGATEWAY)
 # main.go embeds: bin/backend_server, bin/knirvgateway, config/*, desktop/dist/*, frontend/out/*

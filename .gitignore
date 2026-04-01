@@ -126,3 +126,5 @@ devtools/network-monitor/bin/knirv-network-monitor
 
 # Caliber local state
 .caliber/
+/packages/KNIRVSERVER/desktop/menu/out
+/packages/KNIRVSERVER/desktop/menu/.next

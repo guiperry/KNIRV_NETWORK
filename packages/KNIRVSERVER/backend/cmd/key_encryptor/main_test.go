@@ -6,12 +6,12 @@ import (
 	"testing"
 )
 
-func TestLoadDotKeyFile(t *testing.T) {
+func TestLoadEnvFile(t *testing.T) {
 	// Create a temporary directory for test files
 	tempDir := t.TempDir()
 
-	// Test case 1: Valid key file with key=value pairs
-	validKeyFile := filepath.Join(tempDir, "valid.key")
+	// Test case 1: Valid env file with key=value pairs
+	validEnvFile := filepath.Join(tempDir, "valid.env")
 	validContent := `# Comment line
 STRIPE_SECRET_KEY=____test_123
 STRIPE_WEBHOOK_SECRET=whsec_456
@@ -19,12 +19,12 @@ STRIPE_WEBHOOK_SECRET=whsec_456
 COINBASE_API_KEY=api_789
 ROOT_PRIVATE_KEY=0xabc123
 `
-	err := os.WriteFile(validKeyFile, []byte(validContent), 0644)
+	err := os.WriteFile(validEnvFile, []byte(validContent), 0644)
 	if err != nil {
-		t.Fatalf("Failed to create test key file: %v", err)
+		t.Fatalf("Failed to create test env file: %v", err)
 	}
 
-	values := loadDotKeyFile(validKeyFile)
+	values := loadEnvFile(validEnvFile)
 	expected := map[string]string{
 		"STRIPE_SECRET_KEY":     "____test_123",
 		"STRIPE_WEBHOOK_SECRET": "whsec_456",
@@ -39,72 +39,72 @@ ROOT_PRIVATE_KEY=0xabc123
 	}
 
 	// Test case 2: File does not exist
-	nonExistentFile := filepath.Join(tempDir, "nonexistent.key")
-	values = loadDotKeyFile(nonExistentFile)
+	nonExistentFile := filepath.Join(tempDir, "nonexistent.env")
+	values = loadEnvFile(nonExistentFile)
 	if len(values) != 0 {
 		t.Errorf("Expected empty map for non-existent file, got %v", values)
 	}
 
 	// Test case 3: Empty file
-	emptyFile := filepath.Join(tempDir, "empty.key")
+	emptyFile := filepath.Join(tempDir, "empty.env")
 	err = os.WriteFile(emptyFile, []byte(""), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create empty test file: %v", err)
 	}
-	values = loadDotKeyFile(emptyFile)
+	values = loadEnvFile(emptyFile)
 	if len(values) != 0 {
 		t.Errorf("Expected empty map for empty file, got %v", values)
 	}
 
 	// Test case 4: File with only comments and empty lines
-	commentOnlyFile := filepath.Join(tempDir, "comments.key")
+	commentOnlyFile := filepath.Join(tempDir, "comments.env")
 	commentContent := "# This is a comment\n\n# Another comment\n"
 	err = os.WriteFile(commentOnlyFile, []byte(commentContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create comment-only test file: %v", err)
 	}
-	values = loadDotKeyFile(commentOnlyFile)
+	values = loadEnvFile(commentOnlyFile)
 	if len(values) != 0 {
 		t.Errorf("Expected empty map for comment-only file, got %v", values)
 	}
 
 	// Test case 5: Malformed lines (no =)
-	malformedFile := filepath.Join(tempDir, "malformed.key")
+	malformedFile := filepath.Join(tempDir, "malformed.env")
 	malformedContent := "INVALID_LINE\nSTRIPE_SECRET_KEY=valid\nANOTHER_INVALID"
 	err = os.WriteFile(malformedFile, []byte(malformedContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create malformed test file: %v", err)
 	}
-	values = loadDotKeyFile(malformedFile)
+	values = loadEnvFile(malformedFile)
 	if len(values) != 1 || values["STRIPE_SECRET_KEY"] != "valid" {
 		t.Errorf("Expected only one valid key-value pair, got %v", values)
 	}
 
-	// Test case 6: Project root .key file takes precedence
-	projectRootKeyFile := ".key"
+	// Test case 6: Project root .env file takes precedence
+	projectRootEnvFile := ".env"
 	projectRootContent := "ROOT_PRIVATE_KEY=from_root"
-	err = os.WriteFile(projectRootKeyFile, []byte(projectRootContent), 0644)
+	err = os.WriteFile(projectRootEnvFile, []byte(projectRootContent), 0644)
 	if err != nil {
-		t.Fatalf("Failed to create project root .key file: %v", err)
+		t.Fatalf("Failed to create project root .env file: %v", err)
 	}
-	defer os.Remove(projectRootKeyFile) // Clean up
+	defer os.Remove(projectRootEnvFile) // Clean up
 
-	values = loadDotKeyFile(validKeyFile) // Pass a different file, but .key exists
+	values = loadEnvFile(validEnvFile) // Pass a different file, but .env exists
 	if values["ROOT_PRIVATE_KEY"] != "from_root" {
-		t.Errorf("Expected project root .key to take precedence, got %v", values)
+		t.Errorf("Expected project root .env to take precedence, got %v", values)
 	}
 }
 
-func TestLoadDotKeyFile_TrimSpaces(t *testing.T) {
+func TestLoadEnvFile_TrimSpaces(t *testing.T) {
 	tempDir := t.TempDir()
-	keyFile := filepath.Join(tempDir, "trim.key")
+	envFile := filepath.Join(tempDir, "trim.env")
 	content := "  KEY1  =  value1  \nKEY2=value2\n  KEY3 = value3  "
-	err := os.WriteFile(keyFile, []byte(content), 0644)
+	err := os.WriteFile(envFile, []byte(content), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	values := loadDotKeyFile(keyFile)
+	values := loadEnvFile(envFile)
 	expected := map[string]string{
 		"KEY1": "value1",
 		"KEY2": "value2",

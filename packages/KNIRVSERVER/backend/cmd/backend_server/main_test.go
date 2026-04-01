@@ -567,3 +567,17 @@ func TestGetContainerRuntime(t *testing.T) {
 	// Test with TEE service (mock)
 	// This would require more complex setup, so we'll test the basic case
 }
+
+func TestLoadSecretsFromKeyFile_NilLogger(t *testing.T) {
+	// Should not panic with nil logger
+	_, err := loadSecretsFromKeyFile(nil)
+	// We don't care about the error or result, just that it doesn't panic
+	_ = err
+}
+
+func TestInitOracleFromKeyFile_NilLogger(t *testing.T) {
+	// Should not panic with nil logger
+	_, err := initOracleFromKeyFile(nil)
+	// We don't care about the error or result, just that it doesn't panic
+	_ = err
+}

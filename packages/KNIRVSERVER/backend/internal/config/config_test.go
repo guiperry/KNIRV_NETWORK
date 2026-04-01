@@ -218,7 +218,7 @@ func TestConfig_ExpandPaths(t *testing.T) {
 		},
 	}
 
-	err := cfg.expandPaths()
+	err := cfg.ExpandPaths()
 	assert.NoError(t, err)
 }
 
