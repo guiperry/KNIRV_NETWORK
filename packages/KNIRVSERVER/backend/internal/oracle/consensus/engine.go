@@ -11,26 +11,28 @@ import (
 
 // ConsensusEngine manages the consensus process
 type ConsensusEngine struct {
-	app          *ABCIApplication
-	chainID      string
-	blockTime    time.Duration
-	currentState *RoundState
-	logger       *zap.Logger
-	ctx          context.Context
-	cancel       context.CancelFunc
-	mu           sync.RWMutex
+	app           *ABCIApplication
+	chainID       string
+	blockTime     time.Duration
+	currentState  *RoundState
+	validatorMode bool
+	logger        *zap.Logger
+	ctx           context.Context
+	cancel        context.CancelFunc
+	mu            sync.RWMutex
 }
 
 // NewConsensusEngine creates a new consensus engine
-func NewConsensusEngine(chainID string, blockTime time.Duration, logger *zap.Logger) *ConsensusEngine {
+func NewConsensusEngine(chainID string, blockTime time.Duration, validatorMode bool, logger *zap.Logger) *ConsensusEngine {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	app := NewABCIApplication(chainID, logger)
 
 	ce := &ConsensusEngine{
-		app:       app,
-		chainID:   chainID,
-		blockTime: blockTime,
+		app:           app,
+		chainID:       chainID,
+		blockTime:     blockTime,
+		validatorMode: validatorMode,
 		currentState: &RoundState{
 			Height:    1,
 			Round:     0,
@@ -47,9 +49,19 @@ func NewConsensusEngine(chainID string, blockTime time.Duration, logger *zap.Log
 
 // Start starts the consensus engine
 func (ce *ConsensusEngine) Start() error {
+	ce.mu.RLock()
+	validatorCount := ce.app.GetValidators().Size()
+	ce.mu.RUnlock()
+
+	if ce.validatorMode && validatorCount == 0 {
+		return fmt.Errorf("consensus engine started in validator mode but no validators are present")
+	}
+
 	ce.logger.Info("Starting consensus engine",
 		zap.String("chain_id", ce.chainID),
 		zap.Duration("block_time", ce.blockTime),
+		zap.Bool("validator_mode", ce.validatorMode),
+		zap.Int("validators", validatorCount),
 	)
 
 	// Start consensus loop
@@ -230,8 +242,10 @@ func (ce *ConsensusEngine) consensusLoop() {
 		case <-ce.ctx.Done():
 			return
 		case <-ticker.C:
-			if err := ce.produceBlock(); err != nil {
-				ce.logger.Error("Failed to produce block", zap.Error(err))
+			if ce.validatorMode {
+				if err := ce.produceBlock(); err != nil {
+					ce.logger.Error("Failed to produce block", zap.Error(err))
+				}
 			}
 		}
 	}

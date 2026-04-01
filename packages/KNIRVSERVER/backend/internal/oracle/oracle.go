@@ -7,12 +7,15 @@ import (
 	"time"
 
 	"backend_server/internal/oracle/consensus"
+	"backend_server/internal/oracle/crypto"
 	"backend_server/internal/oracle/crosschain"
 	"backend_server/internal/oracle/economics"
 	"backend_server/internal/oracle/governance"
 	"backend_server/internal/oracle/ibc"
 	"backend_server/internal/oracle/p2p"
 	"backend_server/internal/oracle/token"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"go.uber.org/zap"
 )
 
@@ -126,8 +129,38 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	consensusEngine := consensus.NewConsensusEngine(
 		config.ChainID,
 		config.BlockTime,
+		config.ValidatorMode,
 		logger,
 	)
+
+	// Initialize consensus validators
+	var validators []*consensus.ConsensusValidator
+	if config.ValidatorMode && config.ValidatorKey != "" {
+		kp, err := crypto.PrivateKeyFromHex(config.ValidatorKey)
+		if err != nil {
+			cancel()
+			return nil, fmt.Errorf("failed to parse validator key: %w", err)
+		}
+
+		validator := &consensus.ConsensusValidator{
+			Address:          kp.Address,
+			PubKey:           ethcrypto.FromECDSAPub(kp.PublicKey),
+			VotingPower:      big.NewInt(100), // Default voting power
+			ProposerPriority: big.NewInt(0),
+		}
+		validators = append(validators, validator)
+
+		logger.Info("Validator initialized",
+			zap.String("address", kp.Address.String()),
+			zap.Int64("voting_power", 100),
+		)
+	}
+
+	// Initialize chain with validators
+	if err := consensusEngine.InitChain(validators); err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to initialize consensus chain: %w", err)
+	}
 
 	// Initialize bridge manager
 	bridgeManager := crosschain.NewBridgeManager()
