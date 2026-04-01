@@ -62,7 +62,7 @@ func TestNewServer(t *testing.T) {
 		},
 	}
 
-	server, err := NewServer(cfg)
+	server, err := NewServer(cfg, nil)
 	require.NoError(t, err)
 	require.NotNil(t, server)
 
@@ -107,7 +107,7 @@ func TestNewServer_DatabaseError(t *testing.T) {
 		},
 	}
 
-	server, err := NewServer(cfg)
+	server, err := NewServer(cfg, nil)
 	assert.Error(t, err)
 	assert.Nil(t, server)
 	assert.Contains(t, err.Error(), "failed to initialize database")
@@ -132,7 +132,7 @@ func TestNewServer_P2PManagerError(t *testing.T) {
 		},
 	}
 
-	server, err := NewServer(cfg)
+	server, err := NewServer(cfg, nil)
 	// P2P manager may not fail with empty chain ID, so just check that server is created
 	if err != nil {
 		assert.Contains(t, err.Error(), "failed to initialize")
@@ -182,7 +182,7 @@ func TestServerSetupRoutes(t *testing.T) {
 		},
 	}
 
-	server, err := NewServer(cfg)
+	server, err := NewServer(cfg, nil)
 	require.NoError(t, err)
 
 	// setupRoutes is called in NewServer, verify router is configured
@@ -215,7 +215,7 @@ func TestServerHandleHealth(t *testing.T) {
 		},
 	}
 
-	server, err := NewServer(cfg)
+	server, err := NewServer(cfg, nil)
 	require.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/health", nil)
@@ -266,7 +266,7 @@ func TestServerStart_AlreadyRunning(t *testing.T) {
 		},
 	}
 
-	server, err := NewServer(cfg)
+	server, err := NewServer(cfg, nil)
 	require.NoError(t, err)
 
 	// Manually set running to true
@@ -339,7 +339,7 @@ func TestServerStart_InvalidConfig(t *testing.T) {
 		},
 	}
 
-	server, err := NewServer(cfg)
+	server, err := NewServer(cfg, nil)
 	require.NoError(t, err)
 
 	err = server.Start()

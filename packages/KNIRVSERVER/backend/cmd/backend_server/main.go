@@ -380,6 +380,35 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 	}
 }
 
+func initOracleWithSecrets(content *pb.RootKeyFileContentProto, logger *zap.Logger) (*oracle.Oracle, error) {
+	if content == nil {
+		return nil, nil
+	}
+
+	rootPrivateKey := content.GetRootPrivateKeyHex()
+	if rootPrivateKey == "" {
+		logger.Warn("Oracle disabled: root.key decrypted but ROOT_PRIVATE_KEY is empty")
+		return nil, nil
+	}
+
+	oracleCfg, err := oracle.LoadConfigFromEnv()
+	if err != nil {
+		return nil, fmt.Errorf("oracle: failed to load config from env: %w", err)
+	}
+	oracleCfg.OwnerPrivateKey = rootPrivateKey
+
+	if err := oracle.ValidateConfig(oracleCfg); err != nil {
+		return nil, fmt.Errorf("oracle: invalid config: %w", err)
+	}
+
+	oracleInstance, err := oracle.NewOracle(oracleCfg, logger)
+	if err != nil {
+		return nil, fmt.Errorf("oracle: failed to create instance: %w", err)
+	}
+
+	return oracleInstance, nil
+}
+
 func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 	if logger == nil {
 		logger = zap.NewNop()
@@ -414,32 +443,19 @@ func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 		return nil, fmt.Errorf("oracle: failed to decrypt root.key: %w", err)
 	}
 
-	rootPrivateKey := content.GetRootPrivateKeyHex()
-	if rootPrivateKey == "" {
-		logger.Warn("Oracle disabled: root.key decrypted but ROOT_PRIVATE_KEY is empty")
-		return nil, nil
-	}
-
-	oracleCfg, err := oracle.LoadConfigFromEnv()
+	oracleInstance, err := initOracleWithSecrets(content, logger)
 	if err != nil {
-		return nil, fmt.Errorf("oracle: failed to load config from env: %w", err)
-	}
-	oracleCfg.OwnerPrivateKey = rootPrivateKey
-
-	if err := oracle.ValidateConfig(oracleCfg); err != nil {
-		return nil, fmt.Errorf("oracle: invalid config: %w", err)
+		return nil, err
 	}
 
-	oracleInstance, err := oracle.NewOracle(oracleCfg, logger)
-	if err != nil {
-		return nil, fmt.Errorf("oracle: failed to create instance: %w", err)
+	if oracleInstance != nil {
+		logger.Info("Oracle initialised from root.key", zap.String("key_path", keyPath))
 	}
 
-	logger.Info("Oracle initialised from root.key", zap.String("key_path", keyPath))
 	return oracleInstance, nil
 }
 
-func NewServer(cfg *config.Config) (*Server, error) {
+func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (*Server, error) {
 	// Initialize logging
 	logger, err := initLogging(cfg)
 	if err != nil {
@@ -1103,7 +1119,12 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	// Initialise oracle if root.key is present (root node only)
-	oracleInstance, err := initOracleFromKeyFile(logger)
+	var oracleInstance *oracle.Oracle
+	if rootKeySecrets != nil {
+		oracleInstance, err = initOracleWithSecrets(rootKeySecrets, logger)
+	} else {
+		oracleInstance, err = initOracleFromKeyFile(logger)
+	}
 	if err != nil {
 		logger.Error("Failed to initialise oracle — continuing without it", zap.Error(err))
 	}
@@ -2140,7 +2161,7 @@ func run() error {
 	}
 
 	// Create unified server
-	server, err := NewServer(config)
+	server, err := NewServer(config, rootKeySecrets)
 	if err != nil {
 		return fmt.Errorf("failed to create server: %v", err)
 	}

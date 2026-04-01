@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"backend_server/internal/oracle/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -35,6 +36,11 @@ func GenerateKeyPair() (*KeyPair, error) {
 
 // PrivateKeyFromHex creates a KeyPair from a hex-encoded private key
 func PrivateKeyFromHex(privateKeyHex string) (*KeyPair, error) {
+	// Strip 0x prefix if present
+	if strings.HasPrefix(privateKeyHex, "0x") {
+		privateKeyHex = privateKeyHex[2:]
+	}
+
 	privateKey, err := ethcrypto.HexToECDSA(privateKeyHex)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse private key: %w", err)
