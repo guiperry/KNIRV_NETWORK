@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"sync"
 	"time"
 
@@ -110,11 +111,16 @@ type PropertyAnnouncementData struct {
 // NewDHTManager creates a new DHT manager for KNIRVGRAPH
 // NewDHTManager creates a new DHT manager for KNIRVGRAPH (exported for external use)
 func NewDHTManager(serviceID, chainID string, bootstrapPeers []string, enableAutoRelay bool) (DHTManagerInterface, error) {
-	return newDHTManager(serviceID, chainID, bootstrapPeers, enableAutoRelay)
+	return NewDHTManagerWithPort(serviceID, chainID, bootstrapPeers, enableAutoRelay, 0)
+}
+
+// NewDHTManagerWithPort creates a new DHT manager with a specific port (or 0 for auto)
+func NewDHTManagerWithPort(serviceID, chainID string, bootstrapPeers []string, enableAutoRelay bool, port int) (DHTManagerInterface, error) {
+	return newDHTManager(serviceID, chainID, bootstrapPeers, enableAutoRelay, port)
 }
 
 // newDHTManager creates a new DHT manager for KNIRVGRAPH (unexported)
-func newDHTManager(serviceID, chainID string, bootstrapPeers []string, enableAutoRelay bool) (DHTManagerInterface, error) {
+func newDHTManager(serviceID, chainID string, bootstrapPeers []string, enableAutoRelay bool, port int) (DHTManagerInterface, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Generate a new key pair for this node
@@ -124,11 +130,19 @@ func newDHTManager(serviceID, chainID string, bootstrapPeers []string, enableAut
 		return nil, fmt.Errorf("failed to generate key pair: %w", err)
 	}
 
+	// Find an open port if the preferred port is in use
+	p2pPort := findOpenPort(9001, 100)
+	if port > 0 {
+		p2pPort = findOpenPort(port, 100)
+	}
+
+	log.Printf("DHT P2P port: %d", p2pPort)
+
 	opts := []libp2p.Option{
 		libp2p.Identity(priv),
 		libp2p.ListenAddrStrings(
-			"/ip4/0.0.0.0/tcp/9001",
-			"/ip6/::/tcp/9001",
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", p2pPort),
+			fmt.Sprintf("/ip6/::/tcp/%d", p2pPort),
 		),
 	}
 
@@ -615,4 +629,17 @@ func (dm *DHTManager) createCIDFromServiceID(serviceID string) (cid.Cid, error) 
 
 	// Create a CID from the multihash
 	return cid.NewCidV1(cid.Raw, hash), nil
+}
+
+// findOpenPort searches for an open port starting from preferredPort
+func findOpenPort(preferredPort, maxAttempts int) int {
+	for port := preferredPort; port < preferredPort+maxAttempts; port++ {
+		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		if err == nil {
+			ln.Close()
+			return port
+		}
+	}
+	// Let libp2p pick a random port
+	return 0
 }

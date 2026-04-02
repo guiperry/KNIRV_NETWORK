@@ -3,6 +3,7 @@ package knirvgraph
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -58,6 +59,8 @@ type ManagerConfig struct {
 	DataPath     string
 	StartTimeout time.Duration
 	StopTimeout  time.Duration
+	Stdout       io.Writer
+	Stderr       io.Writer
 }
 
 type HealthStatus struct {
@@ -100,6 +103,39 @@ func DefaultConfig() *ManagerConfig {
 	}
 }
 
+func resolveBinaryPath(configured string) (string, error) {
+	var candidates []string
+
+	if envPath := os.Getenv("KNIRV_GRAPH_BINARY_PATH"); envPath != "" {
+		candidates = append(candidates, envPath)
+	}
+
+	candidates = append(candidates, configured)
+
+	dir, _ := os.Getwd()
+	candidates = append(candidates,
+		filepath.Join(dir, "bin", "knirvgraph"),
+		filepath.Join(dir, "..", "bin", "knirvgraph"),
+		filepath.Join(filepath.Dir(configured), "bin", "knirvgraph"),
+	)
+
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "knirvgraph"),
+			filepath.Join(exeDir, "..", "bin", "knirvgraph"),
+		)
+	}
+
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			return p, nil
+		}
+	}
+
+	return "", fmt.Errorf("binary not found in any candidate location")
+}
+
 func (m *Manager) Start() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -116,6 +152,14 @@ func (m *Manager) Start() error {
 		zap.Int("api_port", m.config.APIPort),
 		zap.String("data_path", m.config.DataPath),
 	)
+
+	// Resolve binary path (same logic as knirvgateway/knirvchain)
+	resolved, err := resolveBinaryPath(m.binaryPath)
+	if err != nil {
+		return fmt.Errorf("KNIRVGRAPH binary not found: %w", err)
+	}
+	m.binaryPath = resolved
+	m.logger.Info("Resolved KNIRVGRAPH binary", zap.String("binary", m.binaryPath))
 
 	if err := os.MkdirAll(m.config.DataPath, 0755); err != nil {
 		return fmt.Errorf("failed to create data directory: %w", err)
@@ -141,8 +185,16 @@ func (m *Manager) Start() error {
 		fmt.Sprintf("KNIRVGRAPH_DATA_PATH=%s", m.config.DataPath),
 	)
 
-	m.cmd.Stdout = os.Stdout
-	m.cmd.Stderr = os.Stderr
+	if m.config.Stdout != nil {
+		m.cmd.Stdout = m.config.Stdout
+	} else {
+		m.cmd.Stdout = os.Stdout
+	}
+	if m.config.Stderr != nil {
+		m.cmd.Stderr = m.config.Stderr
+	} else {
+		m.cmd.Stderr = os.Stderr
+	}
 
 	if err := m.cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start KNIRVGRAPH: %w", err)

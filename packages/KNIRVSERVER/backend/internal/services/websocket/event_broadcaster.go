@@ -11,6 +11,7 @@ import (
 type EventType string
 
 const (
+	EventTypeModuleLog        EventType = "module:log"
 	EventTypeNodeStatus       EventType = "node:status"
 	EventTypeNodeMetrics      EventType = "node:metrics"
 	EventTypeNodeTask         EventType = "node:task"

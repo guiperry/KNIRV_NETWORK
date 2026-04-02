@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -61,6 +62,8 @@ type ManagerConfig struct {
 	ChainID      string
 	StartTimeout time.Duration
 	StopTimeout  time.Duration
+	Stdout       io.Writer
+	Stderr       io.Writer
 }
 
 type HealthStatus struct {
@@ -164,8 +167,16 @@ func (m *Manager) Start(ctx context.Context) error {
 
 	m.cmd = exec.Command(m.config.BinaryPath)
 	m.cmd.Env = env
-	m.cmd.Stdout = os.Stdout
-	m.cmd.Stderr = os.Stderr
+	if m.config.Stdout != nil {
+		m.cmd.Stdout = m.config.Stdout
+	} else {
+		m.cmd.Stdout = os.Stdout
+	}
+	if m.config.Stderr != nil {
+		m.cmd.Stderr = m.config.Stderr
+	} else {
+		m.cmd.Stderr = os.Stderr
+	}
 	m.cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}

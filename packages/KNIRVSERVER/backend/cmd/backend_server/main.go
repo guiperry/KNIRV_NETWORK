@@ -19,6 +19,7 @@ import (
 	data_engine "backend_server/internal/data_engine"
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
+	"backend_server/internal/logging"
 	"backend_server/internal/oracle"
 	oracleroutes "backend_server/internal/oracle/routes"
 	"backend_server/internal/password"
@@ -38,14 +39,14 @@ import (
 	dverental "backend_server/internal/services/dverental"
 	"backend_server/internal/services/endpoints"
 	"backend_server/internal/services/evidence"
-	pluginserver "backend_server/internal/services/pluginserver"
-	fabricmanagement "backend_server/internal/services/pluginmanagement"
 	"backend_server/internal/services/guardrails"
 	icme "backend_server/internal/services/icme"
 	inference "backend_server/internal/services/inferencer"
 	"backend_server/internal/services/knirvcli"
 	"backend_server/internal/services/onboarding"
 	"backend_server/internal/services/p2p"
+	fabricmanagement "backend_server/internal/services/pluginmanagement"
+	pluginserver "backend_server/internal/services/pluginserver"
 	secrets "backend_server/internal/services/secrets"
 	"backend_server/internal/services/session"
 	"backend_server/internal/services/systemhealth"
@@ -771,6 +772,8 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			StartTimeout: time.Duration(cfg.Gateway.StartTimeout) * time.Second,
 			StopTimeout:  time.Duration(cfg.Gateway.StopTimeout) * time.Second,
 			ChainID:      cfg.ChainID,
+			Stdout:       logging.NewSubprocessWriter("knirvgateway", os.Stdout),
+			Stderr:       logging.NewSubprocessWriter("knirvgateway", os.Stderr),
 		}
 		gatewayManager = knirvgateway.NewManager(gatewayConfig, logger)
 		log.Println("KNIRVGATEWAY manager initialized")
@@ -810,6 +813,8 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			DataPath:     cfg.Graph.DataPath,
 			StartTimeout: time.Duration(cfg.Graph.StartTimeout) * time.Second,
 			StopTimeout:  time.Duration(cfg.Graph.StopTimeout) * time.Second,
+			Stdout:       logging.NewSubprocessWriter("knirvgraph", os.Stdout),
+			Stderr:       logging.NewSubprocessWriter("knirvgraph", os.Stderr),
 		}
 		graphManager = knirvgraph.NewManager(graphConfig, logger)
 		log.Println("KNIRVGRAPH manager initialized")
@@ -840,6 +845,8 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			ChainID:      cfg.Chain.ChainID,
 			StartTimeout: time.Duration(cfg.Chain.StartTimeout) * time.Second,
 			StopTimeout:  time.Duration(cfg.Chain.StopTimeout) * time.Second,
+			Stdout:       logging.NewSubprocessWriter("knirvchain", os.Stdout),
+			Stderr:       logging.NewSubprocessWriter("knirvchain", os.Stderr),
 		}
 		chainManager = knirvchain.NewManager(chainConfig, logger)
 		log.Println("KNIRVCHAIN manager initialized")
@@ -1271,6 +1278,14 @@ func (s *Server) setupRoutes() {
 	}
 	s.websocketService = wsService
 
+	// Register log streaming routes
+	logStreamHandler := websocket.GetLogStreamHandler()
+	logStreamHandler.RegisterRoutes(s.router)
+	log.Println("Log stream handler routes configured")
+
+	// Wire module logging to SSE handler
+	logging.SetLogStreamHandler(logStreamHandler)
+
 	// Wire EventBroadcaster into WebSocket for comprehensive event streaming
 	if s.eventBroadcaster != nil {
 		s.eventBroadcaster = websocket.NewEventBroadcaster(wsService)
@@ -1633,8 +1648,10 @@ func (s *Server) Start() error {
 	if s.oracleService != nil {
 		if err := s.oracleService.Start(); err != nil {
 			log.Printf("Warning: Failed to start oracle service: %v", err)
+			logging.EmitModuleLog("oracle", "error", fmt.Sprintf("Failed to start: %v", err))
 		} else {
 			log.Println("Oracle service started")
+			logging.EmitModuleLog("oracle", "info", "Oracle service started")
 		}
 	}
 
@@ -1652,8 +1669,32 @@ func (s *Server) Start() error {
 	if s.gatewayManager != nil {
 		if err := s.gatewayManager.Start(s.ctx); err != nil {
 			log.Printf("Warning: Failed to start KNIRVGATEWAY: %v", err)
+			logging.EmitModuleLog("knirvgateway", "error", fmt.Sprintf("Failed to start: %v", err))
 		} else {
 			log.Printf("KNIRVGATEWAY started on port %d", s.gatewayManager.GetConfig().Port)
+			logging.EmitModuleLog("knirvgateway", "info", fmt.Sprintf("Started on port %d", s.gatewayManager.GetConfig().Port))
+		}
+	}
+
+	// Start embedded KNIRVGRAPH
+	if s.graphManager != nil && s.config.Graph.Enabled {
+		if err := s.graphManager.Start(); err != nil {
+			log.Printf("Warning: Failed to start KNIRVGRAPH: %v", err)
+			logging.EmitModuleLog("knirvgraph", "error", fmt.Sprintf("Failed to start: %v", err))
+		} else {
+			log.Printf("KNIRVGRAPH started on port %d", s.graphManager.GetConfig().Port)
+			logging.EmitModuleLog("knirvgraph", "info", fmt.Sprintf("Started on port %d", s.graphManager.GetConfig().Port))
+		}
+	}
+
+	// Start embedded KNIRVCHAIN
+	if s.chainManager != nil && s.config.Chain.Enabled {
+		if err := s.chainManager.Start(s.ctx); err != nil {
+			log.Printf("Warning: Failed to start KNIRVCHAIN: %v", err)
+			logging.EmitModuleLog("knirvchain", "error", fmt.Sprintf("Failed to start: %v", err))
+		} else {
+			log.Printf("KNIRVCHAIN started on port %d", s.chainManager.GetConfig().APIPort)
+			logging.EmitModuleLog("knirvchain", "info", fmt.Sprintf("Started on port %d", s.chainManager.GetConfig().APIPort))
 		}
 	}
 	if s.validationCore != nil {

@@ -25,6 +25,7 @@ import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-pa
 import { BadgeLabPanel } from '@/components/dashboard/badge-lab-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
 import { DVECreationForm } from '@/components/dashboard/dve-creation-form';
+import { ModuleLogViewer } from '@/components/dashboard/module-log-viewer';
 import { useOnboarding } from "@/contexts/onboarding-context";
 import OnboardingGuide from "@/components/onboarding/onboarding-guide";
 import PaymentGatewayModal from './payment-gateway-modal';
@@ -770,9 +771,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                             Context records in .md fabric
                           </p>
                           <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
-                            <div className="line-clamp-1">[10:45:18] Querying NRV-8472...</div>
-                            <div className="line-clamp-1">[10:45:20] Edge verified via Consensus</div>
-                            <div className="line-clamp-1">[10:45:23] Graph re-indexing complete</div>
+                            <ModuleLogViewer module="knirvgraph" maxLines={3} maxHeight="h-14" />
                           </div>
                         </CardContent>
                       </Card>
@@ -794,9 +793,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                             Verifiable executable logic
                           </p>
                           <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-amber-400/80 h-16 overflow-hidden">
-                            <div className="line-clamp-1">[10:45:15] Validating Proof-of-Skill...</div>
-                            <div className="line-clamp-1">[10:45:19] New block minted: 0x7a8b...</div>
-                            <div className="line-clamp-1">[10:45:23] Distributing rewards...</div>
+                            <ModuleLogViewer module="knirvchain" maxLines={3} maxHeight="h-14" />
                           </div>
                         </CardContent>
                       </Card>
@@ -818,9 +815,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                             Secure NAT traversal established
                           </p>
                           <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
-                            <div className="line-clamp-1">[10:45:10] Relay node assigned: BK-4</div>
-                            <div className="line-clamp-1">[10:45:16] Hole-punching successful</div>
-                            <div className="line-clamp-1">[10:45:23] Connected peers: 24</div>
+                            <ModuleLogViewer module="knirvgateway" maxLines={3} maxHeight="h-14" />
                           </div>
                         </CardContent>
                       </Card>

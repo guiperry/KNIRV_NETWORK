@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"net"
 	"net/http"
 	"strconv"
 	"time"
@@ -177,6 +178,13 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 }
 
 func (rpc *RPCServer) Start(ctx context.Context) error {
+	// Find an open port if the configured port is in use
+	actualPort := findOpenPort(rpc.port, 100)
+	if actualPort != rpc.port {
+		rpc.port = actualPort
+		rpc.server.Addr = fmt.Sprintf(":%d", actualPort)
+		rpc.logger.Info("RPC port in use, using alternative port", zap.Int("port", actualPort))
+	}
 	rpc.logger.Info("Starting RPC server", zap.String("addr", rpc.server.Addr))
 
 	go func() {
@@ -779,4 +787,17 @@ func (rpc *RPCServer) healthCheck(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(status)
+}
+
+// findOpenPort searches for an open port starting from preferredPort
+func findOpenPort(preferredPort, maxAttempts int) int {
+	for port := preferredPort; port < preferredPort+maxAttempts; port++ {
+		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+		if err == nil {
+			ln.Close()
+			return port
+		}
+	}
+	// Fall back to the original port and let it fail naturally
+	return preferredPort
 }

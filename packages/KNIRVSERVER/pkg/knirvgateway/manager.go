@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -62,7 +63,7 @@ type Manager struct {
 type ManagerConfig struct {
 	BinaryPath     string
 	Port           int
-	BackendAPIPort int // Port of the main backend API server; used to set KNIRV_BACKEND_API_URL
+	BackendAPIPort int
 	Ports          *PortConfig
 	DBPath         string
 	AuthSecret     string
@@ -70,6 +71,8 @@ type ManagerConfig struct {
 	StartTimeout   time.Duration
 	StopTimeout    time.Duration
 	ChainID        string
+	Stdout         io.Writer
+	Stderr         io.Writer
 }
 
 type PortConfig struct {
@@ -223,8 +226,16 @@ func (m *Manager) Start(ctx context.Context) error {
 
 	m.cmd = exec.Command(m.config.BinaryPath)
 	m.cmd.Env = env
-	m.cmd.Stdout = os.Stdout
-	m.cmd.Stderr = os.Stderr
+	if m.config.Stdout != nil {
+		m.cmd.Stdout = m.config.Stdout
+	} else {
+		m.cmd.Stdout = os.Stdout
+	}
+	if m.config.Stderr != nil {
+		m.cmd.Stderr = m.config.Stderr
+	} else {
+		m.cmd.Stderr = os.Stderr
+	}
 	m.cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}

@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -30,14 +31,14 @@ type TestnetConfig struct {
 
 // Config holds the application configuration
 type Config struct {
-	Testnet   TestnetConfig  `json:"testnet"`
-	Node      NodeConfig     `json:"node"`
-	Network   NetworkConfig  `json:"network"`
-	Storage   StorageConfig  `json:"storage"`
-	DHT       DhtConfig      `json:"dht"`
-	DRQ       DrqConfig      `json:"drq"`
+	Testnet    TestnetConfig    `json:"testnet"`
+	Node       NodeConfig       `json:"node"`
+	Network    NetworkConfig    `json:"network"`
+	Storage    StorageConfig    `json:"storage"`
+	DHT        DhtConfig        `json:"dht"`
+	DRQ        DrqConfig        `json:"drq"`
 	Clustering ClusteringConfig `json:"clustering"`
-	Topology  TopologyConfig `json:"topology"`
+	Topology   TopologyConfig   `json:"topology"`
 	Validation ValidationConfig `json:"validation"`
 }
 
@@ -50,8 +51,8 @@ type NetworkConfig struct {
 
 // StorageConfig holds storage-specific configuration
 type StorageConfig struct {
-	DBType    string `json:"db_type"`
-	Path      string `json:"path"`
+	DBType      string `json:"db_type"`
+	Path        string `json:"path"`
 	CacheSizeGB int    `json:"cache_size_gb"`
 }
 
@@ -72,18 +73,18 @@ type DrqConfig struct {
 
 // ClusteringConfig holds clustering-specific configuration
 type ClusteringConfig struct {
-	EmbeddingModel     string  `json:"embedding_model"` // e.g., "bert_base_768"
+	EmbeddingModel      string  `json:"embedding_model"` // e.g., "bert_base_768"
 	SimilarityThreshold float64 `json:"similarity_threshold"`
-	MaxClusterSize     int     `json:"max_cluster_size"`
-	SpatialIndex       string  `json:"spatial_index"` // e.g., "kdtree"
+	MaxClusterSize      int     `json:"max_cluster_size"`
+	SpatialIndex        string  `json:"spatial_index"` // e.g., "kdtree"
 }
 
 // TopologyConfig holds topology-specific configuration
 type TopologyConfig struct {
-	MinDegree         int     `json:"min_degree"`
-	ScalingExponent   float64 `json:"scaling_exponent"`
-	RewireProbability float64 `json:"rewire_probability"`
-	PageRankIterations int    `json:"pagerank_iterations"`
+	MinDegree          int     `json:"min_degree"`
+	ScalingExponent    float64 `json:"scaling_exponent"`
+	RewireProbability  float64 `json:"rewire_probability"`
+	PageRankIterations int     `json:"pagerank_iterations"`
 }
 
 // ValidationConfig holds validation-specific configuration
@@ -128,8 +129,8 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 			APIPort: 1317,
 		},
 		Storage: StorageConfig{
-			DBType:    "bluntdb",
-			Path:      fmt.Sprintf("%s/data", homeDir),
+			DBType:      "bluntdb",
+			Path:        fmt.Sprintf("%s/data", homeDir),
 			CacheSizeGB: 16,
 		},
 		DHT: DhtConfig{
@@ -144,15 +145,15 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 			SyncInterval:   "10s",
 		},
 		Clustering: ClusteringConfig{
-			EmbeddingModel:     "bert_base_768",
+			EmbeddingModel:      "bert_base_768",
 			SimilarityThreshold: 0.85,
-			MaxClusterSize:     100,
-			SpatialIndex:       "kdtree",
+			MaxClusterSize:      100,
+			SpatialIndex:        "kdtree",
 		},
 		Topology: TopologyConfig{
-			MinDegree:         3,
-			ScalingExponent:   2.7,
-			RewireProbability: 0.01,
+			MinDegree:          3,
+			ScalingExponent:    2.7,
+			RewireProbability:  0.01,
 			PageRankIterations: 100,
 		},
 		Validation: ValidationConfig{
@@ -175,9 +176,20 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
 	// Get KNIRV_ORACLED RPC URL from environment or use default
+	// Priority: env var > local KNIRVSERVER oracle (localhost:1317) > container DNS
 	knirvOracledRPCURL := os.Getenv("KNIRV_ORACLED_RPC_URL")
 	if knirvOracledRPCURL == "" {
-		knirvOracledRPCURL = "http://knirv-oracled:26657" // Default knirv-oracled RPC URL
+		// Try local KNIRVSERVER oracle first
+		if resp, err := http.Get("http://localhost:1317/ping"); err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				knirvOracledRPCURL = "http://localhost:1317"
+			}
+		}
+		// Fallback to container DNS name
+		if knirvOracledRPCURL == "" {
+			knirvOracledRPCURL = "http://knirv-oracled:26657"
+		}
 	}
 
 	// Initialize NRN integration
@@ -253,8 +265,8 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 				APIPort: 1317,
 			},
 			Storage: StorageConfig{
-				DBType:    "bluntdb",
-				Path:      fmt.Sprintf("%s/data", homeDir),
+				DBType:      "bluntdb",
+				Path:        fmt.Sprintf("%s/data", homeDir),
 				CacheSizeGB: 16,
 			},
 			DHT: DhtConfig{
@@ -269,15 +281,15 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 				SyncInterval:   "10s",
 			},
 			Clustering: ClusteringConfig{
-				EmbeddingModel:     "bert_base_768",
+				EmbeddingModel:      "bert_base_768",
 				SimilarityThreshold: 0.85,
-				MaxClusterSize:     100,
-				SpatialIndex:       "kdtree",
+				MaxClusterSize:      100,
+				SpatialIndex:        "kdtree",
 			},
 			Topology: TopologyConfig{
-				MinDegree:         3,
-				ScalingExponent:   2.7,
-				RewireProbability: 0.01,
+				MinDegree:          3,
+				ScalingExponent:    2.7,
+				RewireProbability:  0.01,
 				PageRankIterations: 100,
 			},
 			Validation: ValidationConfig{
@@ -313,9 +325,20 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
 	// Get KNIRV_ORACLED RPC URL from environment or use default
+	// Priority: env var > local KNIRVSERVER oracle (localhost:1317) > container DNS
 	knirvOracledRPCURL := os.Getenv("KNIRV_ORACLED_RPC_URL")
 	if knirvOracledRPCURL == "" {
-		knirvOracledRPCURL = "http://knirv-oracled:26657" // Default knirv-oracled RPC URL
+		// Try local KNIRVSERVER oracle first
+		if resp, err := http.Get("http://localhost:1317/ping"); err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				knirvOracledRPCURL = "http://localhost:1317"
+			}
+		}
+		// Fallback to container DNS name
+		if knirvOracledRPCURL == "" {
+			knirvOracledRPCURL = "http://knirv-oracled:26657"
+		}
 	}
 
 	// Initialize NRN integration
