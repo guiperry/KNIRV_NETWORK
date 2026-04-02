@@ -22,7 +22,23 @@ const (
 	GuardrailTypeExecution  GuardrailType = "execution"
 	GuardrailTypeFileSystem GuardrailType = "filesystem"
 	GuardrailTypeOntology   GuardrailType = "ontology"
+	GuardrailTypeHasher     GuardrailType = "hasher"
 )
+
+type HasherSecurityDecision struct {
+	Allowed      bool
+	Confidence   float64
+	Violations   []string
+	AppliedRules []string
+	SeedID       string
+	DecisionID   string
+	Note         string
+}
+
+type HasherValidator interface {
+	ValidateAction(userID, action string, ctx map[string]string) (*HasherSecurityDecision, error)
+	IsAvailable() bool
+}
 
 type GuardrailConfig struct {
 	Type      GuardrailType `json:"type"`
@@ -63,8 +79,9 @@ type DynamicGuardrailManager struct {
 		EmitGuardrailTrigger(nodeID, source, guardrailType, trigger string, context map[string]interface{})
 		EmitPolicyViolation(nodeID, source, violationType, details string)
 	}
-	cooldowns  map[string]time.Time
-	cooldownMu sync.RWMutex
+	cooldowns       map[string]time.Time
+	cooldownMu      sync.RWMutex
+	hasherValidator HasherValidator
 }
 
 func NewDynamicGuardrailManager(db *database.BuntDBManager) *DynamicGuardrailManager {
@@ -82,6 +99,41 @@ func (gm *DynamicGuardrailManager) SetEventBroadcaster(eb interface {
 	EmitPolicyViolation(nodeID, source, violationType, details string)
 }) {
 	gm.eventBroadcaster = eb
+}
+
+func (gm *DynamicGuardrailManager) SetHasherValidator(validator HasherValidator) {
+	gm.hasherValidator = validator
+}
+
+func (gm *DynamicGuardrailManager) ValidateWithHasher(nodeID string, action string, ctx map[string]string) (*HasherSecurityDecision, error) {
+	if gm.hasherValidator == nil || !gm.hasherValidator.IsAvailable() {
+		return &HasherSecurityDecision{
+			Allowed:    true,
+			Confidence: 0,
+			Note:       "hasher_unavailable",
+		}, nil
+	}
+	return gm.hasherValidator.ValidateAction(nodeID, action, ctx)
+}
+
+func (gm *DynamicGuardrailManager) OnHasherViolation(violation *GuardrailViolation) error {
+	gm.mu.Lock()
+	defer gm.mu.Unlock()
+
+	gm.violations[violation.ID] = violation
+
+	if gm.db == nil {
+		return nil
+	}
+
+	return gm.db.Transaction(func(tx *buntdb.Tx) error {
+		data, err := json.Marshal(violation)
+		if err != nil {
+			return err
+		}
+		_, _, err = tx.Set(fmt.Sprintf("guardrail:violation:%s", violation.ID), string(data), nil)
+		return err
+	})
 }
 
 func (gm *DynamicGuardrailManager) ConfigureGuardrail(nodeID string, config *GuardrailConfig) error {

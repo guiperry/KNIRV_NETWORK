@@ -408,6 +408,12 @@ func LoadWithDefaults() (*Config, error) {
 	viper.AddConfigPath("./config")
 	viper.AddConfigPath(".")
 
+	// Also check the extracted config directory (~/.local/share/knirvserver/config)
+	homeDir := os.Getenv("HOME")
+	if homeDir != "" {
+		viper.AddConfigPath(filepath.Join(homeDir, ".local", "share", "knirvserver", "config"))
+	}
+
 	// Environment variable support — replace dots with underscores so that
 	// nested keys like "gateway.binary_path" map to KNIRV_GATEWAY_BINARY_PATH.
 	viper.SetEnvPrefix("KNIRV")

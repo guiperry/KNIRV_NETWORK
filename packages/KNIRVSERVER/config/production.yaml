@@ -243,6 +243,31 @@ production:
   min_replicas: 1
   max_replicas: 10
 
+# KNIRVCHAIN Configuration
+chain:
+  enabled: true
+  binary_path: ""
+  port: 8082
+  p2p_port: 4001
+  api_port: 9090
+  data_path: ~/.local/share/knirvserver/knirvchain
+  role: "client"
+  chain_id: "knirv-server-mainnet"
+  start_timeout: 30
+  stop_timeout: 10
+
+# KNIRVGRAPH Configuration
+graph:
+  enabled: true
+  binary_path: ""
+  port: 7090
+  p2p_port: 9002
+  api_port: 7092
+  data_path: ~/.local/share/knirvserver/knirvgraph
+  sync_interval: "30s"
+  start_timeout: 30
+  stop_timeout: 10
+
 # DVE (Deterministic Validation Environment) Configuration
 dve:
   discovery:

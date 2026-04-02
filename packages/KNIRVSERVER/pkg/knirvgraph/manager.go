@@ -110,6 +110,21 @@ func resolveBinaryPath(configured string) (string, error) {
 		candidates = append(candidates, envPath)
 	}
 
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "knirvgraph"),
+			filepath.Join(exeDir, "bin", "knirvgraph"),
+			filepath.Join(exeDir, "..", "bin", "knirvgraph"),
+		)
+	}
+
+	embeddedDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "knirvserver", "bin")
+	candidates = append(candidates,
+		filepath.Join(embeddedDir, "knirvgraph"),
+		filepath.Join(embeddedDir, "..", "bin", "knirvgraph"),
+	)
+
 	candidates = append(candidates, configured)
 
 	dir, _ := os.Getwd()
@@ -118,14 +133,6 @@ func resolveBinaryPath(configured string) (string, error) {
 		filepath.Join(dir, "..", "bin", "knirvgraph"),
 		filepath.Join(filepath.Dir(configured), "bin", "knirvgraph"),
 	)
-
-	if exe, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exe)
-		candidates = append(candidates,
-			filepath.Join(exeDir, "knirvgraph"),
-			filepath.Join(exeDir, "..", "bin", "knirvgraph"),
-		)
-	}
 
 	for _, p := range candidates {
 		if _, err := os.Stat(p); err == nil {
@@ -172,8 +179,7 @@ func (m *Manager) Start() error {
 
 	m.cmd = exec.Command(m.binaryPath,
 		"--rpc-port", fmt.Sprintf("%d", m.config.Port),
-		"--p2p-port", fmt.Sprintf("%d", m.config.P2PPort),
-		"--api-port", fmt.Sprintf("%d", m.config.APIPort),
+		"--port", fmt.Sprintf("%d", m.config.P2PPort),
 		"--home", m.config.DataPath,
 		"--headless",
 	)

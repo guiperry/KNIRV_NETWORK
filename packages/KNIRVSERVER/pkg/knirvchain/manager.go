@@ -207,6 +207,21 @@ func resolveBinaryPath(configured string) (string, error) {
 		candidates = append(candidates, envPath)
 	}
 
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "knirvchain"),
+			filepath.Join(exeDir, "bin", "knirvchain"),
+			filepath.Join(exeDir, "..", "bin", "knirvchain"),
+		)
+	}
+
+	embeddedDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "knirvserver", "bin")
+	candidates = append(candidates,
+		filepath.Join(embeddedDir, "knirvchain"),
+		filepath.Join(embeddedDir, "..", "bin", "knirvchain"),
+	)
+
 	candidates = append(candidates, configured)
 
 	dir, _ := os.Getwd()
@@ -215,14 +230,6 @@ func resolveBinaryPath(configured string) (string, error) {
 		filepath.Join(dir, "..", "bin", "knirvchain"),
 		filepath.Join(filepath.Dir(configured), "bin", "knirvchain"),
 	)
-
-	if exe, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exe)
-		candidates = append(candidates,
-			filepath.Join(exeDir, "knirvchain"),
-			filepath.Join(exeDir, "..", "bin", "knirvchain"),
-		)
-	}
 
 	for _, p := range candidates {
 		if _, err := os.Stat(p); err == nil {

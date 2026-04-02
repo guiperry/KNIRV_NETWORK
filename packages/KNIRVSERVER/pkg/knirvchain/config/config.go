@@ -227,7 +227,6 @@ func MergeConfigs(dst, src *Config) *Config {
 		merged.Bootnode = src.Bootnode
 	}
 
-
 	// NANDA-ANS service removed as per refactor plan
 
 	// Merge TunnelClient config
@@ -312,7 +311,6 @@ type RelayConfig struct {
 	DiscoveryNamespace string            `json:"discovery_namespace" mapstructure:"discovery_namespace"`
 }
 
-
 // TunnelClientConfig configuration for nodes that need NAT traversal
 type TunnelClientConfig struct {
 	Enabled        bool   `json:"enabled"`         // Whether to connect to a tunnel server
@@ -364,6 +362,7 @@ type Config struct {
 	IsPeer                  bool                       `json:"is_dev" mapstructure:"is_dev,IsPeer"`                                                        // New field
 	IsNetworkMode           bool                       `json:"is_network_mode" mapstructure:"is_network_mode,isNetworkMode"`                               // Network mode flag
 	CurrentOracleNodeAPIURL string                     `json:"current_oracle_node_api_url,omitempty" mapstructure:"current_oracle_node_api_url,omitempty"` // URL for bootnodes to monitor
+	OracleServerURL         string                     `json:"oracle_server_url,omitempty" mapstructure:"oracle_server_url,omitempty"`                     // URL to KNIRVSERVER with oracle (root.key)
 	PaymentProcessor        PaymentProcessorConfig     `json:"payment_processor" mapstructure:"paymentProcessor"`
 	Bootnode                BootnodeConfig             `json:"bootnode_settings" mapstructure:"bootnodeSettings"`                // Specific bootnode settings
 	ReflectionHTTPPort      uint64                     `json:"reflection_http_port,omitempty" mapstructure:"reflectionHTTPPort"` // Specific for network mode

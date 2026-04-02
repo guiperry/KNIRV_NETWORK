@@ -10,9 +10,28 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// GetKNIRVServerRootKeyPath returns the path where KNIRVSERVER extracts root.key at runtime.
+// KNIRVSERVER extracts the embedded root.key to: ~/.config/knirv-server/root.key
+func GetKNIRVServerRootKeyPath() (string, error) {
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user config dir: %w", err)
+	}
+	return filepath.Join(userConfigDir, "knirv-server", "root.key"), nil
+}
+
 // GetRootKeyPath returns the default path for the Root key file.
-// For Root role, it returns "root.key" in the config directory.
+// It first checks the KNIRVSERVER location (where root.key is extracted at runtime),
+// then falls back to the KNIRVCHAIN config directory.
 func GetRootKeyPath() (string, error) {
+	// First check KNIRVSERVER location (where it's extracted at runtime)
+	if serverPath, err := GetKNIRVServerRootKeyPath(); err == nil {
+		if _, err := os.Stat(serverPath); err == nil {
+			return serverPath, nil
+		}
+	}
+
+	// Fall back to KNIRVCHAIN config directory
 	configDir, err := GetConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get config directory: %w", err)

@@ -150,6 +150,10 @@ type Server struct {
 	guardrailManager *guardrails.DynamicGuardrailManager
 	policyEngine     *guardrails.PolicyEngine
 
+	// KNIRVHASHER integration
+	hasherGRPCServer  *dvemanager.HasherGRPCServer
+	hasherIntegration *dvemanager.HasherIntegration
+
 	// Oracle service (root-only — only present when root.key is loaded)
 	oracleService *oracle.Oracle
 
@@ -834,6 +838,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 
 	// Initialize embedded KNIRVCHAIN for blockchain and mining
 	var chainManager *knirvchain.Manager
+	log.Printf("DEBUG: cfg.Chain.Enabled = %v", cfg.Chain.Enabled)
 	if cfg.Chain.Enabled {
 		chainConfig := &knirvchain.ManagerConfig{
 			BinaryPath:   cfg.Chain.BinaryPath,
@@ -1066,6 +1071,30 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	}
 	log.Println("GuardrailManager and PolicyEngine initialized")
 
+	// Initialize Hasher gRPC Server for KNIRVHASHER integration
+	hasherSocketPath := os.Getenv("HASHER_SOCKET_PATH")
+	if hasherSocketPath == "" {
+		hasherSocketPath = dvemanager.DefaultSocketPath
+	}
+	hasherGRPCServer := dvemanager.NewHasherGRPCServer(hasherSocketPath, dbManager)
+	if err := hasherGRPCServer.Start(); err != nil {
+		log.Printf("Warning: Failed to start Hasher gRPC server: %v (hasher integration disabled)", err)
+	} else {
+		log.Printf("Hasher gRPC server started on %s", hasherSocketPath)
+	}
+
+	// Initialize Hasher Client for connecting to external hasher service
+	hasherIntegration := dvemanager.NewHasherIntegration(hasherSocketPath, dbManager, guardrailManager)
+	if err := hasherIntegration.Connect(context.Background()); err != nil {
+		log.Printf("Warning: Failed to connect to hasher service: %v (hasher validation disabled)", err)
+	} else {
+		log.Printf("Hasher client connected to %s", hasherSocketPath)
+	}
+
+	// Wire hasher validator into guardrail manager for security validation
+	guardrailManager.SetHasherValidator(hasherIntegration)
+	log.Println("Hasher integration wired into GuardrailManager")
+
 	// Wire EventBroadcaster to WebSocket service (will be set in setupRoutes)
 	_ = eventBroadcaster
 
@@ -1120,6 +1149,8 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		policyEngine:                 policyEngine,
 		knirvcliService:              knirvcliService,
 		onboardingService:            onboardingService,
+		hasherGRPCServer:             hasherGRPCServer,
+		hasherIntegration:            hasherIntegration,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -1915,6 +1946,24 @@ func (s *Server) Stop() error {
 			log.Printf("Error stopping oracle service: %v", err)
 		} else {
 			log.Println("Oracle service stopped")
+		}
+	}
+
+	// Stop Hasher gRPC server
+	if s.hasherGRPCServer != nil {
+		if err := s.hasherGRPCServer.Stop(); err != nil {
+			log.Printf("Error stopping Hasher gRPC server: %v", err)
+		} else {
+			log.Println("Hasher gRPC server stopped")
+		}
+	}
+
+	// Stop Hasher integration client
+	if s.hasherIntegration != nil {
+		if err := s.hasherIntegration.Close(); err != nil {
+			log.Printf("Error closing Hasher integration: %v", err)
+		} else {
+			log.Println("Hasher integration closed")
 		}
 	}
 

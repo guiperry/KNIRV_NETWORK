@@ -15,6 +15,7 @@ DESKTOP_DIR := $(ROOT_DIR)/desktop
 GATEWAY_DIR := $(ROOT_DIR)/pkg/knirvgateway
 GRAPH_DIR := $(ROOT_DIR)/pkg/knirvgraph
 CHAIN_DIR := $(ROOT_DIR)/pkg/knirvchain
+HASHER_DIR := $(ROOT_DIR)/pkg/knirvhasher
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -51,10 +52,10 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image desktop desktop-deps desktop-build dash gateway-sync gateway-build gateway-deps gateway-clean graph-sync graph-build graph-deps graph-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image desktop desktop-deps desktop-build dash gateway-sync gateway-build gateway-deps gateway-clean graph-sync graph-build graph-deps graph-clean hasher-sync hasher-deps hasher-build hasher-clean build-full
 
 # Default target
-all: frontend desktop-build backend binary
+all: proto frontend desktop-build backend binary
 
 # Desktop (Electron)
 desktop-deps: ## Install desktop dependencies
@@ -89,6 +90,12 @@ ebpf-generate: ## Generate eBPF Go code from C programs
 	cd backend/internal/ebpf && go generate
 	@echo "eBPF generation completed"
 
+# ProtoBuf Generation
+proto: ## Generate protobuf Go code from .proto files
+	@echo "Generating protobuf files..."
+	cd backend/internal/proto && go generate
+	@echo "Protobuf generation completed"
+
 # Dependency Management
 deps: deps-go deps-node deps-ansible ## Install all dependencies
 
@@ -102,6 +109,8 @@ deps-go: ## Install Go dependencies (backend + gateway)
 	cd $(GRAPH_DIR) && go mod tidy
 	cd $(CHAIN_DIR) && go mod download
 	cd $(CHAIN_DIR) && go mod tidy
+	cd $(HASHER_DIR) && go mod download
+	cd $(HASHER_DIR) && go mod tidy
 
 deps-node: ## Install Node.js dependencies
 	@echo "$(BLUE)Installing Node.js dependencies...$(NC)"
@@ -152,7 +161,7 @@ key-encryptor: deps-go ## Build key_encryptor binary
 # Unified Binary (Frontend + Desktop + Backend + KNIRVGATEWAY)
 # main.go embeds: bin/backend_server, bin/knirvgateway, config/*, desktop/dist/*, frontend/out/*
 # At runtime the launcher extracts backend_server and knirvgateway to ~/.local/share/knirvserver/bin/
-binary: ebpf-generate frontend desktop-build backend gateway-build graph-build chain-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, and KNIRVCHAIN
+binary: proto ebpf-generate frontend desktop-build backend gateway-build graph-build chain-build hasher-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, and KNIRVHASHER
 	@echo "$(BLUE)Creating unified binary (embeds backend_server + knirvgateway + frontend + desktop)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
@@ -296,9 +305,10 @@ clean: ## Clean build outputs (preserves node_modules and Go module cache)
 	@echo "$(BLUE)Cleaning build outputs...$(NC)"
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 	rm -rf $(BACKEND_DIR)/bin
-	rm -f bin/backend_server bin/knirvgateway
+	rm -f bin/backend_server bin/knirvgateway bin/hasher-*
 	rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/out
 	cd $(GATEWAY_DIR) && go clean
+	cd $(HASHER_DIR) && go clean
 
 install: binary ## Install binary to system
 	@echo "$(BLUE)Installing binary...$(NC)"
@@ -435,4 +445,24 @@ chain-clean: ## Clean KNIRVCHAIN build artifacts
 
 # Full build including embedded KNIRVGATEWAY (gateway-build is now a dep of binary)
 build-full: binary ## Build everything including KNIRVGATEWAY (alias for binary)
+
+# KNIRVHASHER (Embedded) targets
+hasher-sync: ## Sync KNIRVHASHER source to embedded package
+	@echo "$(BLUE)Syncing KNIRVHASHER to embedded package...$(NC)"
+	@./scripts/sync-knirvhasher.sh
+
+hasher-deps: ## Install KNIRVHASHER dependencies
+	@echo "$(BLUE)Installing KNIRVHASHER dependencies...$(NC)"
+	cd $(HASHER_DIR) && go mod download && go mod tidy
+
+hasher-build: hasher-deps ## Build KNIRVHASHER pipeline binaries into bin/ (required before binary target)
+	@echo "$(BLUE)Building KNIRVHASHER pipeline binaries...$(NC)"
+	@mkdir -p bin
+	cd $(HASHER_DIR) && $(MAKE) build-pipeline-all
+	@echo "$(GREEN)KNIRVHASHER pipeline binaries built$(NC)"
+
+hasher-clean: ## Clean KNIRVHASHER build artifacts
+	@echo "$(BLUE)Cleaning KNIRVHASHER artifacts...$(NC)"
+	rm -f bin/hasher-*
+	cd $(HASHER_DIR) && go clean
 

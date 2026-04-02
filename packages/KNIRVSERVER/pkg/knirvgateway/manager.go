@@ -269,6 +269,22 @@ func resolveBinaryPath(configured string) (string, error) {
 		candidates = append(candidates, envPath)
 	}
 
+	// Try executable directory first for embedded binaries
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "knirvgateway"),
+			filepath.Join(exeDir, "bin", "knirvgateway"),
+		)
+	}
+
+	// Embedded directory (extracted binaries)
+	embeddedDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "knirvserver", "bin")
+	candidates = append(candidates,
+		filepath.Join(embeddedDir, "knirvgateway"),
+		filepath.Join(embeddedDir, "..", "bin", "knirvgateway"),
+	)
+
 	candidates = append(candidates, configured)
 
 	// Common fallback locations relative to the working directory.
@@ -278,15 +294,6 @@ func resolveBinaryPath(configured string) (string, error) {
 		filepath.Join(dir, "..", "bin", "knirvgateway"),
 		filepath.Join(filepath.Dir(configured), "bin", "knirvgateway"),
 	)
-
-	// Also try the directory containing the running executable.
-	if exe, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exe)
-		candidates = append(candidates,
-			filepath.Join(exeDir, "knirvgateway"),
-			filepath.Join(exeDir, "..", "bin", "knirvgateway"),
-		)
-	}
 
 	for _, p := range candidates {
 		if _, err := os.Stat(p); err == nil {
