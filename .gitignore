@@ -132,3 +132,4 @@ devtools/network-monitor/bin/knirv-network-monitor
 /packages/KNIRVSERVER/desktop/menu/.next
 packages/KNIRVSERVER/data/server.db
 /.climpire-worktrees
+packages/KNIRVGATEWAY/gateway

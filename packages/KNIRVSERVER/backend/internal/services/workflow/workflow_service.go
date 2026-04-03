@@ -11,7 +11,7 @@ import (
 	"backend_server/internal/database"
 	"backend_server/internal/services/dvemanager"
 	"backend_server/internal/services/validation"
-	"backend_server/internal/services/validationchain"
+	"backend_server/internal/services/blockchain/validationchain"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"
@@ -77,12 +77,6 @@ func (e *DVETaskExecutor) SetValidationChainClient(client interface {
 	CommitValidationResult(req validationchain.CommitValidationResultRequest) (string, error)
 }) {
 	e.validationChainClient = client
-}
-
-func (e *DVETaskExecutor) SetBlockchainClient(client interface {
-	CommitValidationResult(req validationchain.CommitValidationResultRequest) (string, error)
-}) {
-	e.SetValidationChainClient(client)
 }
 
 func (e *DVETaskExecutor) ExecuteStep(ctx context.Context, step *WorkflowStep, nodeID string) (*StepResult, error) {

@@ -4,6 +4,36 @@
 
 This document defines the intended separation of concerns for the four chain layers now present in `KNIRVSERVER` and the migration plan needed to move from the current mixed `internal/services/blockchain` package to explicit, role-based chain boundaries.
 
+## Current Status
+
+Status as of 2026-04-03:
+
+- Phases 1 through 8 are now materially in place.
+- `transactionchain`, `validationchain`, and `rollup` packages exist under `internal/services/`.
+- transaction-chain consumers have been rewired to the transaction-chain client boundary.
+- validation-chain consumers have been rewired to validation-specific commit and anchor operations.
+- the embedded transaction-chain runtime now exposes the compatibility endpoints the Go layer expects.
+- the embedded validation-chain runtime now exposes validation-record-oriented endpoints.
+- oracle rollup submission, lookup, finalize, and dispute routes are implemented.
+- `backend_server` now wires the rollup service when both the transaction chain and oracle are active.
+- rollup operational visibility is now exposed through backend API routes:
+  - `GET /api/rollups/status`
+  - `GET /api/rollups`
+  - `GET /api/rollups/{id}`
+- rollup loop cadence is now configurable through:
+  - `rollup.enabled`
+  - `rollup.poll_interval`
+- rollup state is now persisted on disk for both:
+  - backend rollup batches under the app data directory
+  - oracle rollup records under the oracle data directory
+- backend rollup reconciliation now pulls oracle `finalized` and `disputed` results back into local batch state during the rollup loop
+- when the oracle is active, NRN balance reads are now delegated through the `transactionchain` boundary to the oracle rather than being sourced from the transaction execution layer
+- the remaining generic `interface{}`-based ICME policy adapter path in `main.go` has been removed in favor of explicit policy-commit adapters
+- `main.go` now uses validation-specific setter paths directly for ICME and anchoring, and the old alias setter methods removed from those services where no callers remain
+- legacy fallback adapters in `main.go` that translated typed policy and evidence requests into old blockchain transactions have now been removed; these flows are validation-chain-only when chain wiring is present
+
+Remaining work is now mostly cleanup and hardening rather than first-pass architecture wiring.
+
 The target architecture is:
 
 - `KNIRVCHAIN`
@@ -342,6 +372,16 @@ Suggested statuses:
 - `disputed`
 - `failed`
 
+Status:
+
+- complete
+- `internal/services/rollup/` now contains the transaction-chain reader, batch types, status tracking, and oracle submission client hooks
+- `backend_server` now runs a polling loop that builds and submits batches when the transaction chain and oracle are both enabled
+- batch visibility is exposed through `GET /api/rollups/status`, `GET /api/rollups`, and `GET /api/rollups/{id}`
+- rollup cadence is configurable via `rollup.poll_interval`
+- rollup batch state is now persisted to disk and restored on startup
+- submitted rollup batches are now reconciled against oracle status and updated locally
+
 ### Phase 8: Oracle Settlement Integration
 
 Extend:
@@ -362,6 +402,29 @@ Add oracle-side responsibilities:
 - apply economics and fee accounting
 - mint/burn/reward as part of NRN settlement
 - persist settlement records
+
+Status:
+
+- partially complete
+- the oracle exposes submit, lookup, finalize, and dispute endpoints for rollup records
+- the backend rollup service can submit batches into the oracle
+- oracle rollup records are now persisted to disk and restored on startup
+- oracle-side economics and reward distribution still need to move beyond settlement record storage and status changes
+
+## Next Steps
+
+Recommended next work items:
+
+- Retire or reduce the legacy `internal/services/blockchain` shim layer once the remaining callers are flipped.
+- Add focused end-to-end tests that exercise:
+  - transaction chain block production
+  - rollup batch construction
+  - oracle settlement submission
+  - backend API status reporting
+  - oracle-to-rollup reconciliation after finalize/dispute transitions
+- expand oracle-backed balance coverage for any remaining compatibility callers beyond the current NRN client delegation path
+- continue removing compatibility-only adapter structs in `main.go` where explicit transaction-chain or validation-chain request types now exist
+- decide whether validation-chain-dependent flows should remain disabled without `validationChainClient`, or whether a separate explicit local-only persistence path is needed for degraded operation
 
 ## Required Transaction Chain Compatibility Endpoints
 

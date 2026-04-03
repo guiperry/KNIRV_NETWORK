@@ -117,6 +117,12 @@ type ValidationChainConfig struct {
 	StopTimeout  int    `mapstructure:"stop_timeout"`
 }
 
+// RollupConfig defines transaction-chain rollup behavior.
+type RollupConfig struct {
+	Enabled      bool          `mapstructure:"enabled"`
+	PollInterval time.Duration `mapstructure:"poll_interval"`
+}
+
 // StripeConfig defines Stripe payment processor configuration
 type StripeConfig struct {
 	Enabled  bool   `mapstructure:"enabled"`
@@ -202,6 +208,9 @@ type Config struct {
 
 	// ValidationChain - Embedded validation signoff chain
 	ValidationChain ValidationChainConfig `mapstructure:"validation_chain"`
+
+	// Rollup - Transaction-chain rollup submission loop
+	Rollup RollupConfig `mapstructure:"rollup"`
 
 	// SocketDir - Directory for Unix sockets for submodule communication
 	SocketDir string `mapstructure:"socket_dir"`
@@ -442,10 +451,9 @@ func LoadWithDefaults() (*Config, error) {
 	viper.AddConfigPath("./config")
 	viper.AddConfigPath(".")
 
-	// Also check the extracted config directory (~/.local/share/knirvserver/config)
-	homeDir := os.Getenv("HOME")
-	if homeDir != "" {
-		viper.AddConfigPath(filepath.Join(homeDir, ".local", "share", "knirvserver", "config"))
+	// Also check the canonical extracted config directory (~/.config/knirv-server/config).
+	if configDir, err := GetConfigDir(); err == nil {
+		viper.AddConfigPath(filepath.Join(configDir, "config"))
 	}
 
 	// Environment variable support — replace dots with underscores so that
@@ -863,6 +871,9 @@ func setDefaults() {
 	viper.SetDefault("validation_chain.chain_id", "knirv-validation-1")
 	viper.SetDefault("validation_chain.start_timeout", 30)
 	viper.SetDefault("validation_chain.stop_timeout", 10)
+
+	viper.SetDefault("rollup.enabled", true)
+	viper.SetDefault("rollup.poll_interval", "30s")
 }
 
 // GetConfigDir returns the base configuration directory (e.g., ~/.config/knirv-server)
@@ -876,6 +887,21 @@ func GetConfigDir() (string, error) {
 		return "", fmt.Errorf("failed to create app config directory %s: %w", appConfigDir, err)
 	}
 	return appConfigDir, nil
+}
+
+// GetExtractedConfigDir returns the embedded config export directory.
+func GetExtractedConfigDir() (string, error) {
+	configDir, err := GetConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	extractedConfigDir := filepath.Join(configDir, "config")
+	if err := os.MkdirAll(extractedConfigDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create extracted config directory %s: %w", extractedConfigDir, err)
+	}
+
+	return extractedConfigDir, nil
 }
 
 // GetDataDir returns the data directory path based on role

@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"backend_server/internal/database"
-	"backend_server/internal/services/validationchain"
+	"backend_server/internal/services/blockchain/validationchain"
 )
 
 type Service struct {
@@ -319,12 +319,6 @@ func (s *Service) SetValidationChainClient(client interface {
 	CommitPolicy(req validationchain.PolicyCommitRequest) (string, error)
 }) {
 	s.validationChainClient = client
-}
-
-func (s *Service) SetBlockchainClient(client interface {
-	CommitPolicy(req validationchain.PolicyCommitRequest) (string, error)
-}) {
-	s.SetValidationChainClient(client)
 }
 
 func (s *Service) RegisterObjective(obj *IntentObjective) error {

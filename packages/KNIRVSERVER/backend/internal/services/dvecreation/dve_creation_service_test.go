@@ -8,7 +8,7 @@ import (
 
 	"backend_server/internal/database"
 	"backend_server/internal/objects"
-	"backend_server/internal/services/blockchain"
+	"backend_server/internal/services/blockchain/transactionchain"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -43,11 +43,11 @@ func (m *MockChainClient) VerifyPaymentTransaction(txHash string, expectedAmount
 	}, nil
 }
 
-func (m *MockChainClient) GetTransactionPool() ([]*blockchain.Transaction, error) {
+func (m *MockChainClient) GetTransactionPool() ([]*transactionchain.Transaction, error) {
 	return nil, nil
 }
 
-func (m *MockChainClient) SubmitTransaction(tx *blockchain.Transaction) (string, error) {
+func (m *MockChainClient) SubmitTransaction(tx *transactionchain.Transaction) (string, error) {
 	return "mock-tx-hash", nil
 }
 

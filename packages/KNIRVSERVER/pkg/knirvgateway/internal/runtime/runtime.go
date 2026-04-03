@@ -21,7 +21,7 @@ type Runtime struct {
 	logger            *zap.Logger
 	mu                sync.Mutex
 	extracted         bool
-	
+
 	// Embedded assets
 	webGUIFS         embed.FS
 	networkWebsiteFS embed.FS
@@ -81,17 +81,13 @@ func (r *Runtime) Setup() error {
 		return fmt.Errorf("failed to extract network-website: %w", err)
 	}
 
-	// Extract knirv-oracle binary
-	r.logger.Info("Extracting embedded knirv-oracle binary...")
-	if err := r.extractOracleBinary(r.OracleBinaryPath); err != nil {
-		return fmt.Errorf("failed to extract knirv-oracle binary: %w", err)
-	}
+	// Oracle binary extraction removed (oracle moved to KNIRVSERVER)
+	// No longer extracting knirv-oracle binary
 
 	r.extracted = true
 	r.logger.Info("Runtime setup complete",
 		zap.String("webguiStaticDir", r.WebGUIStaticDir),
 		zap.String("networkWebsiteDir", r.NetworkWebsiteDir),
-		zap.String("oracleBinaryPath", r.OracleBinaryPath),
 	)
 
 	return nil
@@ -360,24 +356,7 @@ func (r *Runtime) extractNetworkWebsite(targetDir string) error {
 	return nil
 }
 
-// extractOracleBinary extracts the embedded knirv-oracle binary to the target directory
-func (r *Runtime) extractOracleBinary(targetPath string) error {
-	r.logger.Info("Extracting embedded knirv-oracle binary", zap.String("target", targetPath))
 
-	// Ensure target directory exists
-	targetDir := filepath.Dir(targetPath)
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
-		return fmt.Errorf("failed to create target directory: %w", err)
-	}
-
-	// Write the embedded binary to file
-	if err := os.WriteFile(targetPath, r.oracleBinary, 0755); err != nil {
-		return fmt.Errorf("failed to write oracle binary: %w", err)
-	}
-
-	r.logger.Info("Successfully extracted knirv-oracle binary", zap.String("path", targetPath))
-	return nil
-}
 
 // Cleanup removes the runtime directory
 func (r *Runtime) Cleanup() error {

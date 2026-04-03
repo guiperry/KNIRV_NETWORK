@@ -7,9 +7,6 @@ import (
 	"io"
 	"net/http"
 	"time"
-
-	legacy "backend_server/internal/services/blockchain"
-	"backend_server/internal/services/evidence"
 )
 
 type CommitValidationResultRequest struct {
@@ -110,21 +107,6 @@ func (c *Client) SubmitTransaction(tx interface{}) (string, error) {
 		return "", fmt.Errorf("failed to decode validation-chain response: %w", err)
 	}
 	return result.TransactionHash, nil
-}
-
-func (c *Client) SubmitEvidenceTransaction(tx *evidence.ChainTransaction) (string, error) {
-	return c.AnchorEvidencePack(EvidenceAnchorRequest{
-		Payload: map[string]interface{}{
-			"type": tx.Type,
-			"data": string(tx.Data),
-		},
-		Signature: string(tx.Signature),
-		PublicKey: tx.PublicKey,
-	})
-}
-
-func (c *Client) SubmitLegacyTransaction(tx *legacy.Transaction) (string, error) {
-	return c.SubmitTransaction(tx)
 }
 
 func (c *Client) CommitValidationResult(req CommitValidationResultRequest) (string, error) {

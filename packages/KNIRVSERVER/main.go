@@ -491,6 +491,40 @@ func getAppDataDir() (string, error) {
 	return filepath.Join(homeDir, ".local", "share", "knirvserver"), nil
 }
 
+func getConfigDir() (string, error) {
+	if configDir := os.Getenv("KNIRV_CONFIG_DIR"); configDir != "" {
+		if err := os.MkdirAll(configDir, 0755); err != nil {
+			return "", fmt.Errorf("failed to create config directory %s: %w", configDir, err)
+		}
+		return configDir, nil
+	}
+
+	userConfigDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to locate user config dir: %w", err)
+	}
+
+	configDir := filepath.Join(userConfigDir, "knirv-server")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create config directory %s: %w", configDir, err)
+	}
+	return configDir, nil
+}
+
+func getExtractedConfigDir() (string, error) {
+	configDir, err := getConfigDir()
+	if err != nil {
+		return "", err
+	}
+
+	extractedConfigDir := filepath.Join(configDir, "config")
+	if err := os.MkdirAll(extractedConfigDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create extracted config directory %s: %w", extractedConfigDir, err)
+	}
+
+	return extractedConfigDir, nil
+}
+
 // extractEnvFile extracts the embedded environment file based on the specified environment
 // shellEscape wraps a string in single quotes for safe use in a shell command.
 func shellEscape(s string) string {
@@ -534,27 +568,16 @@ func extractEnvFile(environment string) error {
 	return nil
 }
 
-// extractRootKey copies the embedded root.key to the path the backend expects:
-//
-//	os.UserConfigDir()/knirv-server/root.key
-//
-// The file is only written when rootKeyBytes is non-nil (i.e. the key was
-// compiled in) and the destination does NOT already exist (we never silently
-// overwrite an operator-managed key).
+// extractRootKey copies the embedded root.key to the canonical config directory.
 func extractRootKey() error {
 	if len(rootKeyBytes) == 0 {
 		// No key compiled in — nothing to do (non-root-node build).
 		return nil
 	}
 
-	userConfigDir, err := os.UserConfigDir()
+	destDir, err := getConfigDir()
 	if err != nil {
-		return fmt.Errorf("failed to locate user config dir: %w", err)
-	}
-
-	destDir := filepath.Join(userConfigDir, "knirv-server")
-	if err := os.MkdirAll(destDir, 0700); err != nil {
-		return fmt.Errorf("failed to create config dir %s: %w", destDir, err)
+		return err
 	}
 
 	destPath := filepath.Join(destDir, "root.key")
@@ -573,18 +596,11 @@ func extractRootKey() error {
 	return nil
 }
 
-// extractConfigFiles extracts embedded config files to the application data directory
+// extractConfigFiles extracts embedded config files to the canonical config directory.
 func extractConfigFiles() error {
-	// Get application data directory
-	appDataDir, err := getAppDataDir()
+	configDir, err := getExtractedConfigDir()
 	if err != nil {
 		return err
-	}
-
-	// Create config directory in app data dir
-	configDir := filepath.Join(appDataDir, "config")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
 	// Walk through embedded config files
@@ -1046,9 +1062,9 @@ func loadConfig() (*Config, error) {
 		viper.SetConfigName(*environment)
 		viper.SetConfigType("yaml")
 
-		// Add app data directory config path first (highest priority)
-		if appDataDir, err := getAppDataDir(); err == nil {
-			viper.AddConfigPath(filepath.Join(appDataDir, "config"))
+		// Add canonical config directory first (highest priority)
+		if configDir, err := getExtractedConfigDir(); err == nil {
+			viper.AddConfigPath(configDir)
 		}
 
 		// Add local paths as fallback

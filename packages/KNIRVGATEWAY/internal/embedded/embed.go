@@ -22,12 +22,9 @@ var WebGUIFS embed.FS
 //go:embed all:network-website/*
 var NetworkWebsiteFS embed.FS
 
-//go:embed knirv-oracle
-var OracleBinary []byte
-
-// OracleConfig represents the configuration for the embedded gateway runner.
+// GatewayConfig represents the configuration for the embedded gateway runner.
 // The oracle itself has moved to KNIRVSERVER and is no longer managed here.
-type OracleConfig struct {
+type GatewayConfig struct {
 	Port            int    `json:"port"`
 	ChainID         string `json:"chainID"`
 	Mode            string `json:"mode"`
@@ -35,8 +32,8 @@ type OracleConfig struct {
 }
 
 // DefaultConfig returns a default configuration for the embedded gateway runner.
-func DefaultConfig() *OracleConfig {
-	return &OracleConfig{
+func DefaultConfig() *GatewayConfig {
+	return &GatewayConfig{
 		Port:            8080,
 		ChainID:         "testnet",
 		Mode:            "oracle_nest",
@@ -44,18 +41,17 @@ func DefaultConfig() *OracleConfig {
 	}
 }
 
-// Oracle is the embedded KNIRVGATEWAY runner (name retained for API compatibility).
-// It no longer manages an oracle process; the oracle runs inside KNIRVSERVER.
-type Oracle struct {
-	cfg     *OracleConfig
+
+type Gateway struct {
+	cfg     *GatewayConfig
 	logger  *zap.Logger
 	runtime *runtime.Runtime
 	server  *server.Server
 	stopCh  chan struct{}
 }
 
-// NewOracle creates a new embedded gateway runner.
-func NewOracle(cfg *OracleConfig, logger *zap.Logger) (*Oracle, error) {
+// NewGateway creates a new gateway runner.
+func NewGateway(cfg *GatewayConfig, logger *zap.Logger) (*Gateway, error) {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
@@ -68,12 +64,12 @@ func NewOracle(cfg *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		}
 	}
 
-	rt, err := runtime.NewRuntime(logger, WebGUIFS, NetworkWebsiteFS, OracleBinary)
+	rt, err := runtime.NewRuntime(logger, WebGUIFS, NetworkWebsiteFS, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Oracle{
+	return &Gateway{
 		cfg:     cfg,
 		logger:  logger,
 		runtime: rt,
@@ -81,9 +77,9 @@ func NewOracle(cfg *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	}, nil
 }
 
-// Start initialises and starts the embedded gateway.
-func (g *Oracle) Start() error {
-	g.logger.Info("Starting embedded KNIRVGATEWAY",
+// Start initialises and starts the  gateway.
+func (g *Gateway) Start() error {
+	g.logger.Info("Starting KNIRVGATEWAY",
 		zap.String("mode", g.cfg.Mode),
 		zap.Int("port", g.cfg.Port),
 		zap.String("chainID", g.cfg.ChainID),
@@ -122,7 +118,7 @@ func (g *Oracle) Start() error {
 	return nil
 }
 
-func (g *Oracle) handleSignals() {
+func (g *Gateway) handleSignals() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
@@ -136,7 +132,7 @@ func (g *Oracle) handleSignals() {
 }
 
 // Stop gracefully stops the embedded gateway.
-func (g *Oracle) Stop() error {
+func (g *Gateway) Stop() error {
 	g.logger.Info("Stopping embedded KNIRVGATEWAY")
 
 	close(g.stopCh)
@@ -158,27 +154,27 @@ func (g *Oracle) Stop() error {
 }
 
 // GetRuntime returns the runtime instance.
-func (g *Oracle) GetRuntime() *runtime.Runtime {
+func (g *Gateway) GetRuntime() *runtime.Runtime {
 	return g.runtime
 }
 
 // GetServer returns the server instance.
-func (g *Oracle) GetServer() *server.Server {
+func (g *Gateway) GetServer() *server.Server {
 	return g.server
 }
 
 // GetPort returns the configured port.
-func (g *Oracle) GetPort() int {
+func (g *Gateway) GetPort() int {
 	return g.cfg.Port
 }
 
 // GetChainID returns the configured chain ID.
-func (g *Oracle) GetChainID() string {
+func (g *Gateway) GetChainID() string {
 	return g.cfg.ChainID
 }
 
 // IsRunning returns true if the gateway is running.
-func (g *Oracle) IsRunning() bool {
+func (g *Gateway) IsRunning() bool {
 	select {
 	case <-g.stopCh:
 		return false

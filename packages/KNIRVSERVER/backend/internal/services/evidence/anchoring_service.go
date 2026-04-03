@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"backend_server/internal/database"
+	"backend_server/internal/services/blockchain/validationchain"
 	"backend_server/internal/storage/pqc"
 
 	"github.com/google/uuid"
@@ -15,7 +16,7 @@ import (
 )
 
 type ChainClient interface {
-	AnchorEvidencePack(req EvidenceAnchorRequest) (string, error)
+	AnchorEvidencePack(req validationchain.EvidenceAnchorRequest) (string, error)
 	GetBlockHeight() (uint64, error)
 }
 
@@ -24,17 +25,6 @@ type ChainTransaction struct {
 	Data      []byte
 	Signature []byte
 	PublicKey string
-}
-
-type EvidenceAnchorRequest struct {
-	EvidenceID   string                 `json:"evidence_id,omitempty"`
-	EvidenceType string                 `json:"evidence_type,omitempty"`
-	NodeID       string                 `json:"node_id,omitempty"`
-	ValidationID string                 `json:"validation_id,omitempty"`
-	Payload      map[string]interface{} `json:"payload,omitempty"`
-	Signature    string                 `json:"signature,omitempty"`
-	Algorithm    string                 `json:"algorithm,omitempty"`
-	PublicKey    string                 `json:"public_key,omitempty"`
 }
 
 type EvidencePack struct {
@@ -79,10 +69,6 @@ func NewAnchoringService(db *database.BuntDBManager, pqcManager *pqc.EncryptionM
 
 func (s *AnchoringService) SetValidationChainClient(client ChainClient) {
 	s.chainClient = client
-}
-
-func (s *AnchoringService) SetChainClient(client ChainClient) {
-	s.SetValidationChainClient(client)
 }
 
 func (s *AnchoringService) CreateEvidencePack(packType, nodeID, validationID string, evidence map[string]interface{}) (*EvidencePack, error) {
@@ -174,7 +160,7 @@ func (s *AnchoringService) AnchorToChain(packID string) (*EvidencePack, error) {
 		return nil, fmt.Errorf("failed to marshal anchor data: %w", err)
 	}
 
-	txHash, err := s.chainClient.AnchorEvidencePack(EvidenceAnchorRequest{
+	txHash, err := s.chainClient.AnchorEvidencePack(validationchain.EvidenceAnchorRequest{
 		EvidenceID:   pack.ID,
 		EvidenceType: pack.Type,
 		NodeID:       pack.NodeID,

@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"backend_server/internal/oracle"
 	"backend_server/internal/oracle/crosschain"
@@ -72,6 +74,10 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oracle/v3/p2p/peers", r.handleP2PPeers)
 	mux.HandleFunc("/oracle/v3/p2p/pause", r.handleP2PPause)
 	mux.HandleFunc("/oracle/v3/p2p/resume", r.handleP2PResume)
+
+	// Rollup settlement endpoints
+	mux.HandleFunc("/oracle/v3/rollups/submit", r.handleSubmitRollup)
+	mux.HandleFunc("/oracle/v3/rollups/", r.handleRollup)
 
 	// Health and status
 	mux.HandleFunc("/oracle/v3/health", r.handleHealth)
@@ -557,6 +563,112 @@ func (r *OracleRoutes) handleP2PResume(w http.ResponseWriter, req *http.Request)
 	respondJSON(w, http.StatusOK, map[string]interface{}{
 		"status": "resumed",
 	})
+}
+
+func (r *OracleRoutes) handleSubmitRollup(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var rollupReq struct {
+		ID          string                 `json:"id"`
+		BatchRoot   string                 `json:"batch_root"`
+		ChainID     string                 `json:"chain_id"`
+		StartHeight uint64                 `json:"start_height"`
+		EndHeight   uint64                 `json:"end_height"`
+		BlockCount  int                    `json:"block_count"`
+		TxCount     int                    `json:"tx_count"`
+		Metadata    map[string]interface{} `json:"metadata"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&rollupReq); err != nil {
+		http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	if rollupReq.ID == "" || rollupReq.BatchRoot == "" {
+		http.Error(w, "id and batch_root are required", http.StatusBadRequest)
+		return
+	}
+
+	record := &types.RollupRecord{
+		ID:          rollupReq.ID,
+		BatchRoot:   rollupReq.BatchRoot,
+		ChainID:     rollupReq.ChainID,
+		StartHeight: rollupReq.StartHeight,
+		EndHeight:   rollupReq.EndHeight,
+		BlockCount:  rollupReq.BlockCount,
+		TxCount:     rollupReq.TxCount,
+		Status:      types.RollupStatusSubmitted,
+		SubmittedAt: time.Now().UTC(),
+		Metadata:    rollupReq.Metadata,
+	}
+
+	if err := r.oracle.SubmitRollup(record); err != nil {
+		http.Error(w, fmt.Sprintf("failed to submit rollup: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, record)
+}
+
+func (r *OracleRoutes) handleRollup(w http.ResponseWriter, req *http.Request) {
+	path := strings.TrimPrefix(req.URL.Path, "/oracle/v3/rollups/")
+	if path == "" {
+		http.Error(w, "rollup id is required", http.StatusBadRequest)
+		return
+	}
+
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	id := parts[0]
+
+	if len(parts) == 1 {
+		if req.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		record, ok := r.oracle.GetRollup(id)
+		if !ok {
+			http.Error(w, "rollup not found", http.StatusNotFound)
+			return
+		}
+		respondJSON(w, http.StatusOK, record)
+		return
+	}
+
+	switch parts[1] {
+	case "finalize":
+		if req.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		record, err := r.oracle.FinalizeRollup(id, time.Now().UTC())
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to finalize rollup: %v", err), http.StatusNotFound)
+			return
+		}
+		respondJSON(w, http.StatusOK, record)
+	case "dispute":
+		if req.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var disputeReq struct {
+			Reason string `json:"reason"`
+		}
+		if err := json.NewDecoder(req.Body).Decode(&disputeReq); err != nil {
+			http.Error(w, fmt.Sprintf("Invalid request: %v", err), http.StatusBadRequest)
+			return
+		}
+		record, err := r.oracle.DisputeRollup(id, disputeReq.Reason, time.Now().UTC())
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to dispute rollup: %v", err), http.StatusNotFound)
+			return
+		}
+		respondJSON(w, http.StatusOK, record)
+	default:
+		http.Error(w, "Not found", http.StatusNotFound)
+	}
 }
 
 // ========== Health & Status Handlers ==========

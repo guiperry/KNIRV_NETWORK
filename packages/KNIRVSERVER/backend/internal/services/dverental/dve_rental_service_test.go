@@ -3,7 +3,7 @@ package dverental
 import (
 	"backend_server/internal/database"
 	"backend_server/internal/objects"
-	"backend_server/internal/services/blockchain"
+	"backend_server/internal/services/blockchain/transactionchain"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +15,6 @@ import (
 
 // MockNRNClient is a mock implementation of the blockchain client for testing
 type MockNRNClient struct {
-	blockchain.NRNClient
 }
 
 func (m *MockNRNClient) VerifyPaymentTransaction(txHash string, expectedAmount int64, expectedRecipient string) (*objects.NRNPayment, error) {
@@ -32,11 +31,11 @@ func (m *MockNRNClient) VerifyPaymentTransaction(txHash string, expectedAmount i
 	}, nil
 }
 
-func (m *MockNRNClient) GetTransactionPool() ([]*blockchain.Transaction, error) {
+func (m *MockNRNClient) GetTransactionPool() ([]*transactionchain.Transaction, error) {
 	return nil, nil
 }
 
-func (m *MockNRNClient) SubmitTransaction(tx *blockchain.Transaction) (string, error) {
+func (m *MockNRNClient) SubmitTransaction(tx *transactionchain.Transaction) (string, error) {
 	return "mock-tx-hash", nil
 }
 

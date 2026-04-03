@@ -23,6 +23,7 @@ import (
 	"backend_server/internal/logging"
 	"backend_server/internal/oracle"
 	oracleroutes "backend_server/internal/oracle/routes"
+	oracletypes "backend_server/internal/oracle/types"
 	"backend_server/internal/password"
 	pb "backend_server/internal/proto"
 	"backend_server/internal/reasoning/graph"
@@ -30,7 +31,8 @@ import (
 	nexus "backend_server/internal/server"
 	"backend_server/internal/services/active_memory"
 	agentsvc "backend_server/internal/services/agent"
-	"backend_server/internal/services/blockchain"
+	transactionchain "backend_server/internal/services/blockchain/transactionchain"
+	"backend_server/internal/services/blockchain/validationchain"
 	"backend_server/internal/services/cognitiveengine"
 	"backend_server/internal/services/container"
 	"backend_server/internal/services/controllerintegration"
@@ -48,13 +50,12 @@ import (
 	"backend_server/internal/services/p2p"
 	fabricmanagement "backend_server/internal/services/pluginmanagement"
 	pluginserver "backend_server/internal/services/pluginserver"
+	"backend_server/internal/services/rollup"
 	secrets "backend_server/internal/services/secrets"
 	"backend_server/internal/services/session"
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
-	"backend_server/internal/services/transactionchain"
 	"backend_server/internal/services/validation"
-	"backend_server/internal/services/validationchain"
 
 	knirvchain "backend_server/internal/services/knirvchain"
 	knirvgateway "backend_server/internal/services/knirvgateway"
@@ -89,7 +90,6 @@ type Server struct {
 	router                 *mux.Router
 	httpServer             *http.Server
 	p2pManager             *p2p.DVEP2PManager
-	nrnClient              *blockchain.NRNClient
 	logger                 *zap.Logger
 	transactionChainClient *transactionchain.Client
 	validationChainClient  *validationchain.Client
@@ -150,12 +150,14 @@ type Server struct {
 	onboardingService *onboarding.OnboardingService
 
 	// Production Services (Phase 3, 4, 8)
-	eventBroadcaster *websocket.EventBroadcaster
-	anchoringService *evidence.AnchoringService
-	secretManager    *secrets.SecretManager
-	workflowService  *workflow.WorkflowService
-	guardrailManager *guardrails.DynamicGuardrailManager
-	policyEngine     *guardrails.PolicyEngine
+	eventBroadcaster   *websocket.EventBroadcaster
+	anchoringService   *evidence.AnchoringService
+	secretManager      *secrets.SecretManager
+	workflowService    *workflow.WorkflowService
+	rollupService      *rollup.Service
+	rollupPollInterval time.Duration
+	guardrailManager   *guardrails.DynamicGuardrailManager
+	policyEngine       *guardrails.PolicyEngine
 
 	// KNIRVHASHER integration
 	hasherGRPCServer  *dvemanager.HasherGRPCServer
@@ -226,12 +228,11 @@ func initLogging(cfg *config.Config) (*zap.Logger, error) {
 		return nil, fmt.Errorf("failed to open app data log file: %w", err)
 	}
 
-	// Secondary log path: project directory, only when KNIRV_PROJECT_LOG_DIR is explicitly set
-	// to an absolute path by the outer process. Using a relative path here causes spurious log
-	// files scattered across the filesystem depending on CWD at runtime.
+	// Secondary log path: project directory. Prefer an explicit absolute path from the outer
+	// process, but fall back to the KNIRVSERVER project logs directory when we can locate it.
 	var multiWriter io.Writer
 	projectLogPath := ""
-	if projectLogDir := os.Getenv("KNIRV_PROJECT_LOG_DIR"); projectLogDir != "" {
+	if projectLogDir := getProjectLogDir(); projectLogDir != "" {
 		projectLogPath = filepath.Join(projectLogDir, "server.log")
 		if err := os.MkdirAll(projectLogDir, 0755); err != nil {
 			return nil, fmt.Errorf("failed to create project log directory: %w", err)
@@ -281,26 +282,45 @@ func initLogging(cfg *config.Config) (*zap.Logger, error) {
 	return logger, nil
 }
 
+func getProjectLogDir() string {
+	if projectLogDir := os.Getenv("KNIRV_PROJECT_LOG_DIR"); projectLogDir != "" {
+		return projectLogDir
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	dir := wd
+	for {
+		if filepath.Base(dir) == "KNIRVSERVER" {
+			if _, err := os.Stat(filepath.Join(dir, "main.go")); err == nil {
+				return filepath.Join(dir, "logs")
+			}
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+		dir = parent
+	}
+}
+
 // getOSAppDataDir returns the OS-specific application data directory
 func getOSAppDataDir() (string, error) {
 	var appDataDir string
 	var err error
 
-	// Try to get user config directory (XDG Base Directory on Linux)
-	if userConfigDir, configErr := os.UserConfigDir(); configErr == nil {
-		appDataDir = filepath.Join(userConfigDir, "knirvserver")
+	if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
+		appDataDir = explicit
+	} else if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+		appDataDir = filepath.Join(xdgDataHome, "knirvserver")
+	} else if homeDir, homeErr := os.UserHomeDir(); homeErr == nil {
+		appDataDir = filepath.Join(homeDir, ".local", "share", "knirvserver")
 	} else {
-		// Fallback to home directory
-		if homeDir, homeErr := os.UserHomeDir(); homeErr == nil {
-			// Use XDG_DATA_HOME or fallback to ~/.local/share
-			if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
-				appDataDir = filepath.Join(xdgDataHome, "knirvserver")
-			} else {
-				appDataDir = filepath.Join(homeDir, ".local", "share", "knirvserver")
-			}
-		} else {
-			return "", fmt.Errorf("could not determine application data directory")
-		}
+		return "", fmt.Errorf("could not determine application data directory")
 	}
 
 	// Ensure directory exists
@@ -406,6 +426,13 @@ func initOracleWithSecrets(content *pb.RootKeyFileContentProto, logger *zap.Logg
 	oracleCfg, err := oracle.LoadConfigFromEnv()
 	if err != nil {
 		return nil, fmt.Errorf("oracle: failed to load config from env: %w", err)
+	}
+	if os.Getenv("ORACLE_DATA_DIR") == "" {
+		appDataDir, appDataErr := getOSAppDataDir()
+		if appDataErr != nil {
+			return nil, fmt.Errorf("oracle: failed to determine app data dir: %w", appDataErr)
+		}
+		oracleCfg.DataDir = filepath.Join(appDataDir, "oracle")
 	}
 	oracleCfg.OwnerPrivateKey = rootPrivateKey
 
@@ -535,7 +562,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	// Create router
 	router := mux.NewRouter()
 
-	var nrnClient *blockchain.NRNClient
 	var transactionChainClient *transactionchain.Client
 	var validationChainClient *validationchain.Client
 
@@ -722,6 +748,9 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	// Markdown Storage Driver
 	appDataDir, _ := getOSAppDataDir()
 	memoryDir := filepath.Join(appDataDir, "active_memory")
+	if err := os.MkdirAll(memoryDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create active memory directory: %w", err)
+	}
 	mdStorage, err := mdstorage.NewMarkdownStorageDriver(memoryDir, pqcManager, masterKey.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize markdown storage: %w", err)
@@ -903,7 +932,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			log.Printf("Warning: Failed to initialize transaction chain client: %v", err)
 		} else {
 			transactionChainClient = client
-			nrnClient = client.Legacy()
 			if dveCreationService != nil {
 				dveCreationService.SetTransactionChainClient(transactionChainClient)
 				log.Println("Transaction chain client integrated with DVE creation service")
@@ -1078,11 +1106,10 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	// Initialize AnchoringService for PQC-signed evidence pack anchoring
 	anchoringService := evidence.NewAnchoringService(dbManager, pqcManager, "server-master")
 	if validationChainClient != nil {
-		anchoringService.SetValidationChainClient(&validationChainAdapter{client: validationChainClient})
+		anchoringService.SetValidationChainClient(validationChainClient)
 		log.Println("AnchoringService: validation chain client wired for chain anchoring")
-	} else if nrnClient != nil {
-		anchoringService.SetChainClient(&nrnChainAdapter{client: nrnClient})
-		log.Println("AnchoringService: legacy blockchain client wired for chain anchoring")
+	} else {
+		log.Println("AnchoringService: validation chain client unavailable, chain anchoring will remain disabled")
 	}
 	if err := anchoringService.LoadEvidencePacks(); err != nil {
 		log.Printf("Warning: Failed to load evidence packs: %v", err)
@@ -1187,7 +1214,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		db:                           dbManager,
 		router:                       router,
 		p2pManager:                   p2pManager,
-		nrnClient:                    nrnClient,
 		logger:                       logger,
 		ebpfManager:                  ebpfManager,
 		virtualContainerManager:      virtualContainerManager,
@@ -1228,6 +1254,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		anchoringService:             anchoringService,
 		secretManager:                secretManager,
 		workflowService:              workflowService,
+		rollupService:                nil,
 		guardrailManager:             guardrailManager,
 		policyEngine:                 policyEngine,
 		knirvcliService:              knirvcliService,
@@ -1252,108 +1279,115 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		logger.Error("Failed to initialise oracle — continuing without it", zap.Error(err))
 	}
 	server.oracleService = oracleInstance
+	if oracleInstance != nil {
+		balanceReader := &oracleBalanceAdapter{oracle: oracleInstance}
+		if transactionChainClient != nil {
+			transactionChainClient.SetBalanceReader(balanceReader)
+		}
+	}
+	if cfg.Rollup.PollInterval <= 0 {
+		cfg.Rollup.PollInterval = 30 * time.Second
+	}
+
+	if cfg.Rollup.Enabled && transactionChainManager != nil && oracleInstance != nil {
+		reader := rollup.NewHTTPTransactionChainReader(transactionChainManager.GetBaseURL())
+		server.rollupService = rollup.NewService(reader, &oracleRollupAdapter{oracle: oracleInstance})
+		appDataDir, appDataErr := getOSAppDataDir()
+		if appDataErr != nil {
+			return nil, fmt.Errorf("failed to determine app data dir for rollup persistence: %w", appDataErr)
+		}
+		if err := server.rollupService.SetPersistencePath(filepath.Join(appDataDir, "rollups", "transaction_rollups.json")); err != nil {
+			return nil, fmt.Errorf("failed to initialize rollup persistence: %w", err)
+		}
+		server.rollupPollInterval = cfg.Rollup.PollInterval
+		log.Println("Rollup service initialized")
+	}
 
 	// Setup routes for all services
 	server.setupRoutes()
 
 	// Integrate blockchain client with services after server creation
 	if validationChainClient != nil && server.icmeService != nil {
-		blockchainAdapter := &validationBlockchainAdapter{client: validationChainClient}
-		server.icmeService.SetValidationChainClient(blockchainAdapter)
+		server.icmeService.SetValidationChainClient(validationChainClient)
 		log.Println("Validation chain client integrated with ICME service")
-	} else if nrnClient != nil && server.icmeService != nil {
-		blockchainAdapter := &blockchainClientAdapter{client: nrnClient}
-		server.icmeService.SetBlockchainClient(blockchainAdapter)
-		log.Println("Legacy blockchain client integrated with ICME service")
+	} else if server.icmeService != nil {
+		log.Println("ICME: validation chain client unavailable, policy commits will remain local-only")
 	}
 
 	return server, nil
 }
 
-type blockchainClientAdapter struct {
-	client *blockchain.NRNClient
+type oracleRollupAdapter struct {
+	oracle *oracle.Oracle
 }
 
-func (a *blockchainClientAdapter) SubmitTransaction(tx interface{}) (string, error) {
-	txMap, ok := tx.(map[string]interface{})
+type oracleBalanceAdapter struct {
+	oracle *oracle.Oracle
+}
+
+func (a *oracleBalanceAdapter) GetAccountBalance(address string) (int64, error) {
+	if a == nil || a.oracle == nil {
+		return 0, fmt.Errorf("oracle balance adapter is not configured")
+	}
+
+	parsedAddress, err := oracletypes.AddressFromString(address)
+	if err != nil {
+		return 0, fmt.Errorf("invalid oracle address: %w", err)
+	}
+
+	balance := a.oracle.GetNRNToken().GetBalance(parsedAddress)
+	if !balance.IsInt64() {
+		return 0, fmt.Errorf("oracle balance exceeds int64 range for address %s", address)
+	}
+
+	return balance.Int64(), nil
+}
+
+func (a *oracleRollupAdapter) SubmitRollup(batch *rollup.RollupBatch) (string, error) {
+	record := &oracletypes.RollupRecord{
+		ID:          batch.ID,
+		BatchRoot:   batch.BatchRoot,
+		ChainID:     batch.ChainID,
+		StartHeight: batch.StartHeight,
+		EndHeight:   batch.EndHeight,
+		BlockCount:  len(batch.Blocks),
+		TxCount:     batch.Settlement.TxCount,
+		Status:      oracletypes.RollupStatusSubmitted,
+		SubmittedAt: time.Now().UTC(),
+		Metadata: map[string]interface{}{
+			"batch_root": batch.BatchRoot,
+		},
+	}
+	if err := a.oracle.SubmitRollup(record); err != nil {
+		return "", err
+	}
+	return record.ID, nil
+}
+
+func (a *oracleRollupAdapter) GetRollup(id string) (map[string]interface{}, error) {
+	record, ok := a.oracle.GetRollup(id)
 	if !ok {
-		return "", fmt.Errorf("invalid transaction format")
+		return nil, fmt.Errorf("rollup not found: %s", id)
 	}
-
-	txType, _ := txMap["type"].(string)
-	txData, _ := txMap["data"].(string)
-
-	blockchainTx := &blockchain.Transaction{
-		Type: txType,
-		Data: []byte(txData),
-	}
-
-	return a.client.SubmitTransaction(blockchainTx)
-}
-
-func (a *blockchainClientAdapter) CommitPolicy(req validationchain.PolicyCommitRequest) (string, error) {
-	payload, err := json.Marshal(req)
+	payload, err := json.Marshal(record)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	return a.client.SubmitTransaction(&blockchain.Transaction{
-		Type: "policy_commit",
-		Data: payload,
-	})
-}
-
-type nrnChainAdapter struct {
-	client *blockchain.NRNClient
-}
-
-func (a *nrnChainAdapter) AnchorEvidencePack(req evidence.EvidenceAnchorRequest) (string, error) {
-	payload, err := json.Marshal(req)
-	if err != nil {
-		return "", err
+	var result map[string]interface{}
+	if err := json.Unmarshal(payload, &result); err != nil {
+		return nil, err
 	}
-
-	return a.client.SubmitTransaction(&blockchain.Transaction{
-		Type: "evidence_anchor",
-		Data: payload,
-	})
+	return result, nil
 }
 
-func (a *nrnChainAdapter) GetBlockHeight() (uint64, error) {
-	return a.client.GetBlockHeight()
+func (a *oracleRollupAdapter) FinalizeRollup(id string) error {
+	_, err := a.oracle.FinalizeRollup(id, time.Now().UTC())
+	return err
 }
 
-type validationChainAdapter struct {
-	client *validationchain.Client
-}
-
-func (a *validationChainAdapter) AnchorEvidencePack(req evidence.EvidenceAnchorRequest) (string, error) {
-	return a.client.AnchorEvidencePack(validationchain.EvidenceAnchorRequest{
-		EvidenceID:   req.EvidenceID,
-		EvidenceType: req.EvidenceType,
-		NodeID:       req.NodeID,
-		ValidationID: req.ValidationID,
-		Payload:      req.Payload,
-		Signature:    req.Signature,
-		Algorithm:    req.Algorithm,
-		PublicKey:    req.PublicKey,
-	})
-}
-
-func (a *validationChainAdapter) GetBlockHeight() (uint64, error) {
-	return a.client.GetBlockHeight()
-}
-
-type validationBlockchainAdapter struct {
-	client *validationchain.Client
-}
-
-func (a *validationBlockchainAdapter) SubmitTransaction(tx interface{}) (string, error) {
-	return a.client.SubmitTransaction(tx)
-}
-
-func (a *validationBlockchainAdapter) CommitPolicy(req validationchain.PolicyCommitRequest) (string, error) {
-	return a.client.CommitPolicy(req)
+func (a *oracleRollupAdapter) DisputeRollup(id string, reason string) error {
+	_, err := a.oracle.DisputeRollup(id, reason, time.Now().UTC())
+	return err
 }
 
 type icmePolicyAdapter struct {
@@ -1659,10 +1693,6 @@ func (s *Server) setupRoutes() {
 		nrnHandlers := web.NewNRNPaymentHandlers(s.transactionChainClient)
 		nrnHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("NRN payment routes configured")
-	} else if s.nrnClient != nil {
-		nrnHandlers := web.NewNRNPaymentHandlers(s.nrnClient)
-		nrnHandlers.RegisterRoutes(s.router, authMiddleware)
-		log.Println("NRN payment routes configured")
 	}
 
 	// Register Agent Command Center routes (oh-my-pi)
@@ -1718,7 +1748,60 @@ func (s *Server) setupRoutes() {
 		log.Println("Oracle routes configured")
 	}
 
+	if s.rollupService != nil {
+		rollupHandlers := web.NewRollupHandlers(s.rollupService, s.rollupPollInterval)
+		rollupHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("Rollup routes configured")
+	}
+
 	log.Println("All routes configured successfully")
+}
+
+func (s *Server) runRollupLoop() {
+	if s.rollupService == nil {
+		return
+	}
+
+	pollInterval := s.rollupPollInterval
+	if pollInterval <= 0 {
+		pollInterval = 30 * time.Second
+	}
+
+	ticker := time.NewTicker(pollInterval)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-s.ctx.Done():
+				return
+			case <-ticker.C:
+				batch, err := s.rollupService.BuildNextBatch(s.ctx)
+				if err != nil {
+					log.Printf("Warning: Failed to build rollup batch: %v", err)
+					continue
+				}
+				if batch == nil {
+				} else {
+					submitted, err := s.rollupService.SubmitBatch(s.ctx, batch.ID)
+					if err != nil {
+						log.Printf("Warning: Failed to submit rollup batch %s: %v", batch.ID, err)
+						continue
+					}
+
+					log.Printf("Rollup batch submitted: %s (heights %d-%d)", submitted.ID, submitted.StartHeight, submitted.EndHeight)
+				}
+
+				reconciled, err := s.rollupService.ReconcileWithOracle(s.ctx)
+				if err != nil {
+					log.Printf("Warning: Failed to reconcile rollup batches with oracle: %v", err)
+					continue
+				}
+				if reconciled > 0 {
+					log.Printf("Reconciled %d rollup batch statuses from oracle", reconciled)
+				}
+			}
+		}
+	}()
 }
 
 // handleHealth handles the /health endpoint
@@ -1888,6 +1971,10 @@ func (s *Server) Start() error {
 			log.Printf("Validation chain started on port %d", s.validationChainManager.GetConfig().Port)
 			logging.EmitModuleLog("validationchain", "info", fmt.Sprintf("Started on port %d", s.validationChainManager.GetConfig().Port))
 		}
+	}
+	if s.rollupService != nil {
+		s.runRollupLoop()
+		log.Println("Rollup service started")
 	}
 	if s.validationCore != nil {
 		if err := s.validationCore.Start(s.ctx); err != nil {
@@ -2278,12 +2365,6 @@ func (s *Server) Stop() error {
 
 	if s.p2pManager != nil {
 		s.p2pManager.Stop() // P2P manager stop doesn't return error
-	}
-
-	if s.nrnClient != nil {
-		if err := s.nrnClient.Close(); err != nil {
-			log.Printf("Error closing blockchain client: %v", err)
-		}
 	}
 
 	// Shutdown eBPF resources

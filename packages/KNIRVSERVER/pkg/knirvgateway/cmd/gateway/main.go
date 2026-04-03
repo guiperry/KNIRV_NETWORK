@@ -38,15 +38,15 @@ func main() {
 		cfg.SocketPath = *socketPath
 	}
 
-	logger.Info("KNIRVORACLE starting",
+	logger.Info("KNIRVGATEWAY starting",
 		zap.String("mode", cfg.GatewayMode),
 		zap.String("socketPath", cfg.SocketPath),
 		zap.Int("port", cfg.Port),
 		zap.String("chainID", cfg.ChainID),
 	)
 
-	// Initialize runtime and extract embedded files
-	rt, err := runtime.NewRuntime(logger, embedded.WebGUIFS, embedded.NetworkWebsiteFS, embedded.OracleBinary)
+	// Initialize runtime and extract embedded files (oracle binary removed)
+	rt, err := runtime.NewRuntime(logger, embedded.WebGUIFS, embedded.NetworkWebsiteFS, nil)
 	if err != nil {
 		logger.Fatal("Failed to initialize runtime", zap.Error(err))
 	}
@@ -107,7 +107,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Info("Shutting down KNIRVORACLE")
+	logger.Info("Shutting down KNIRVGATEWAY")
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -118,5 +118,5 @@ func main() {
 		logger.Error("Error stopping server", zap.Error(err))
 	}
 
-	logger.Info("KNIRVORACLE stopped")
+	logger.Info("KNIRVGATEWAY stopped")
 }

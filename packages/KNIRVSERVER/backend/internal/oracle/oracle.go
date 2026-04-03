@@ -2,18 +2,23 @@ package oracle
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
+	"sync"
 	"time"
 
 	"backend_server/internal/oracle/consensus"
-	"backend_server/internal/oracle/crypto"
 	"backend_server/internal/oracle/crosschain"
+	"backend_server/internal/oracle/crypto"
 	"backend_server/internal/oracle/economics"
 	"backend_server/internal/oracle/governance"
 	"backend_server/internal/oracle/ibc"
 	"backend_server/internal/oracle/p2p"
 	"backend_server/internal/oracle/token"
+	"backend_server/internal/oracle/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"go.uber.org/zap"
@@ -31,6 +36,9 @@ type Oracle struct {
 	crossChainRouter *crosschain.Router
 	p2pManager       *p2p.P2PManager
 	bridgeManager    *crosschain.BridgeManager
+	rollupsMu        sync.RWMutex
+	rollups          map[string]*types.RollupRecord
+	rollupsPath      string
 
 	// Configuration
 	config *OracleConfig
@@ -193,10 +201,21 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 		crossChainRouter: crossChainRouter,
 		p2pManager:       p2pManager,
 		bridgeManager:    bridgeManager,
+		rollups:          make(map[string]*types.RollupRecord),
+		rollupsPath:      filepath.Join(config.DataDir, "rollups.json"),
 		config:           config,
 		logger:           logger,
 		ctx:              ctx,
 		cancel:           cancel,
+	}
+
+	if err := os.MkdirAll(config.DataDir, 0755); err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to create oracle data directory: %w", err)
+	}
+	if err := oracle.loadRollups(); err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to load persisted oracle rollups: %w", err)
 	}
 
 	logger.Info("Oracle initialized",
@@ -205,6 +224,115 @@ func NewOracle(config *OracleConfig, logger *zap.Logger) (*Oracle, error) {
 	)
 
 	return oracle, nil
+}
+
+func (o *Oracle) SubmitRollup(record *types.RollupRecord) error {
+	if record == nil {
+		return fmt.Errorf("rollup record is required")
+	}
+	o.rollupsMu.Lock()
+	defer o.rollupsMu.Unlock()
+	o.rollups[record.ID] = record
+	return o.persistRollupsLocked()
+}
+
+func (o *Oracle) GetRollup(id string) (*types.RollupRecord, bool) {
+	o.rollupsMu.RLock()
+	defer o.rollupsMu.RUnlock()
+	record, ok := o.rollups[id]
+	return record, ok
+}
+
+func (o *Oracle) FinalizeRollup(id string, finalizedAt time.Time) (*types.RollupRecord, error) {
+	o.rollupsMu.Lock()
+	defer o.rollupsMu.Unlock()
+
+	record, ok := o.rollups[id]
+	if !ok {
+		return nil, fmt.Errorf("rollup not found: %s", id)
+	}
+
+	record.Status = types.RollupStatusFinalized
+	timestamp := finalizedAt.UTC()
+	record.FinalizedAt = &timestamp
+	if err := o.persistRollupsLocked(); err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (o *Oracle) DisputeRollup(id string, reason string, disputedAt time.Time) (*types.RollupRecord, error) {
+	o.rollupsMu.Lock()
+	defer o.rollupsMu.Unlock()
+
+	record, ok := o.rollups[id]
+	if !ok {
+		return nil, fmt.Errorf("rollup not found: %s", id)
+	}
+
+	record.Status = types.RollupStatusDisputed
+	record.Dispute = reason
+	timestamp := disputedAt.UTC()
+	record.DisputedAt = &timestamp
+	if err := o.persistRollupsLocked(); err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (o *Oracle) loadRollups() error {
+	o.rollupsMu.Lock()
+	defer o.rollupsMu.Unlock()
+
+	data, err := os.ReadFile(o.rollupsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to read oracle rollup state: %w", err)
+	}
+
+	var records []*types.RollupRecord
+	if err := json.Unmarshal(data, &records); err != nil {
+		return fmt.Errorf("failed to decode oracle rollup state: %w", err)
+	}
+
+	o.rollups = make(map[string]*types.RollupRecord, len(records))
+	for _, record := range records {
+		if record == nil {
+			continue
+		}
+		o.rollups[record.ID] = record
+	}
+
+	return nil
+}
+
+func (o *Oracle) persistRollupsLocked() error {
+	if o.rollupsPath == "" {
+		return nil
+	}
+
+	records := make([]*types.RollupRecord, 0, len(o.rollups))
+	for _, record := range o.rollups {
+		records = append(records, record)
+	}
+
+	payload, err := json.MarshalIndent(records, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to encode oracle rollup state: %w", err)
+	}
+
+	tempPath := o.rollupsPath + ".tmp"
+	if err := os.WriteFile(tempPath, payload, 0644); err != nil {
+		return fmt.Errorf("failed to write oracle rollup temp file: %w", err)
+	}
+
+	if err := os.Rename(tempPath, o.rollupsPath); err != nil {
+		return fmt.Errorf("failed to move oracle rollup state into place: %w", err)
+	}
+
+	return nil
 }
 
 // Start starts all oracle services

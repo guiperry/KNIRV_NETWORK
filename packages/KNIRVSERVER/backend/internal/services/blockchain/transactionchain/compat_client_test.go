@@ -1,4 +1,4 @@
-package blockchain
+package transactionchain
 
 import (
 	"encoding/json"

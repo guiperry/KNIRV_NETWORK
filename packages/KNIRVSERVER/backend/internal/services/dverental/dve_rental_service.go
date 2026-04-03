@@ -3,7 +3,7 @@ package dverental
 import (
 	"backend_server/internal/database"
 	"backend_server/internal/objects"
-	"backend_server/internal/services/blockchain"
+	"backend_server/internal/services/blockchain/transactionchain"
 	"backend_server/internal/services/cde"
 	"backend_server/internal/services/container"
 	"crypto/rand"
@@ -21,8 +21,8 @@ import (
 // BlockchainClientInterface defines the interface for blockchain operations
 type BlockchainClientInterface interface {
 	VerifyPaymentTransaction(txHash string, expectedAmount int64, expectedRecipient string) (*objects.NRNPayment, error)
-	GetTransactionPool() ([]*blockchain.Transaction, error)
-	SubmitTransaction(tx *blockchain.Transaction) (string, error)
+	GetTransactionPool() ([]*transactionchain.Transaction, error)
+	SubmitTransaction(tx *transactionchain.Transaction) (string, error)
 	GetAccountBalance(address string) (int64, error)
 }
 
