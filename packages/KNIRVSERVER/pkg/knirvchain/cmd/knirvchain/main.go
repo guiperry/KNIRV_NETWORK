@@ -170,6 +170,64 @@ func LoadPaymentProcessorConfig(config interface{}) {
 	// Placeholder
 }
 
+func applyEmbeddedRuntimeOverrides(cfg *config.Config) {
+	if cfg == nil {
+		return
+	}
+
+	if socketPath := strings.TrimSpace(os.Getenv("KNIRV_SOCKET_PATH")); socketPath != "" {
+		cfg.SocketPath = socketPath
+	}
+	if httpPort := strings.TrimSpace(os.Getenv("KNIRV_HTTP_PORT")); httpPort != "" {
+		if port, err := strconv.ParseUint(httpPort, 10, 64); err == nil && port > 0 {
+			cfg.Port = port
+		}
+	}
+	if p2pPort := strings.TrimSpace(os.Getenv("KNIRV_P2P_PORT")); p2pPort != "" {
+		if port, err := strconv.ParseUint(p2pPort, 10, 64); err == nil && port > 0 {
+			cfg.P2PPort = port
+		}
+	}
+	if chainID := strings.TrimSpace(os.Getenv("KNIRV_CHAIN_ID")); chainID != "" && cfg.ChainID == "" {
+		cfg.ChainID = chainID
+	}
+	if dataDir := strings.TrimSpace(os.Getenv("KNIRV_DATA_DIR")); dataDir != "" && cfg.BlockchainDatabasePath == "" {
+		cfg.BlockchainDatabasePath = filepath.Join(dataDir, "client_KNIRVCHAIN.db")
+	}
+
+	if cfg.SocketPath != "" {
+		cfg.UseGUI = false
+		cfg.DataEngine.EnableWebSocket = false
+		cfg.DataEngine.EnableRESTAPI = false
+	}
+}
+
+func localChainBaseURL(cfg config.Config) string {
+	if cfg.SocketPath != "" {
+		return "http://localhost"
+	}
+	return fmt.Sprintf("http://localhost:%d", cfg.Port)
+}
+
+func guiBackendURL(cfg config.Config, role config.Role) string {
+	if cfg.SocketPath != "" || cfg.ReverseProxy.Enabled {
+		return "/api"
+	}
+
+	publicIP := "localhost"
+	if role == config.Root {
+		if utils.LastIPInfoResponse != nil && utils.LastIPInfoResponse.IP != "" {
+			publicIP = utils.LastIPInfoResponse.IP
+		}
+	} else if cfg.PublicIPInfo != nil {
+		if ip, ok := cfg.PublicIPInfo["ip"].(string); ok && ip != "" {
+			publicIP = ip
+		}
+	}
+
+	return fmt.Sprintf("http://%s:%d", publicIP, cfg.Port)
+}
+
 func Install(configPath string, bootnode bool, role interface{}, nonInteractive bool, walletPath string) (*config.Config, error) {
 	return &config.Config{}, nil
 }
@@ -535,6 +593,23 @@ func main() {
 		log.Fatalf("Configuration could not be loaded or initialized.")
 	}
 
+	if *socketPathFlag != "" {
+		cfg.SocketPath = *socketPathFlag
+	}
+	if *httpPortFlag != 0 {
+		cfg.Port = uint64(*httpPortFlag)
+	}
+	if *p2pPortFlag != 0 {
+		cfg.P2PPort = uint64(*p2pPortFlag)
+	}
+	if *walletPortFlag != 0 {
+		cfg.WalletPort = uint64(*walletPortFlag)
+	}
+	applyEmbeddedRuntimeOverrides(cfg)
+	if cfg.SocketPath != "" {
+		log.Printf("Socket mode requested at startup: %s", cfg.SocketPath)
+	}
+
 	// For Root role, load parameters from env.local
 	if nodeRole == config.Root {
 		if err := loadRootNodeParameters(cfg); err != nil {
@@ -709,16 +784,16 @@ func main() {
 
 	// Apply flag overrides to the Viper-loaded config
 	if !cfg.IsPeer {
-		if flagsSet["port"] && *httpPortFlag != 0 { // Check if flag was set and not its default
+		if *httpPortFlag != 0 { // Check explicit override directly to avoid Visit drift
 			cfg.Port = uint64(*httpPortFlag)
 		}
-		if flagsSet["socket"] && *socketPathFlag != "" {
+		if *socketPathFlag != "" {
 			cfg.SocketPath = *socketPathFlag
 		}
-		if flagsSet["p2p.port"] && *p2pPortFlag != 0 {
+		if *p2pPortFlag != 0 {
 			cfg.P2PPort = uint64(*p2pPortFlag)
 		}
-		if flagsSet["wallet_port"] && *walletPortFlag != 0 {
+		if *walletPortFlag != 0 {
 			cfg.WalletPort = uint64(*walletPortFlag)
 		}
 		if flagsSet["shared_shared_database_path"] && *dbPathFlag != "" {
@@ -791,6 +866,7 @@ func main() {
 	// Database path resolution is now handled inside viper_loader.go's resolveDynamicPathsViper
 	// It considers the role and existing cfg.BlockchainDatabasePath.
 	// If dbPathFlag was set, it would have overridden cfg.BlockchainDatabasePath before resolveDynamicPathsViper.
+	applyEmbeddedRuntimeOverrides(cfg)
 	log.Printf("Final BlockchainDatabasePath after Viper and flag processing: %s", cfg.BlockchainDatabasePath)
 	if cfg.BlockchainDatabasePath != "" {
 		log.Printf("Final BlockchainDatabasePath: %s", cfg.BlockchainDatabasePath)
@@ -840,6 +916,10 @@ func main() {
 		} else {
 			log.Printf("Installation is complete. Continuing with node initialization...")
 		}
+	}
+	applyEmbeddedRuntimeOverrides(cfg)
+	if cfg.SocketPath != "" {
+		log.Printf("Embedded runtime socket path override active: %s", cfg.SocketPath)
 	}
 	// --- Context and WaitGroup ---
 	mainCtx := context.Background()
@@ -913,6 +993,8 @@ func main() {
 			metricsInterval = 10 * time.Second // Default metrics interval
 		}
 
+		standaloneDataEngineAPI := cfg.SocketPath == "" && !cfg.ReverseProxy.EmbedDataEngine
+
 		// Create DataEngine configuration
 		dataEngineConfig := dataengine.DataEngineConfig{
 			KafkaBrokers:     cfg.DataEngine.KafkaBrokers,
@@ -921,12 +1003,16 @@ func main() {
 			ChromaCollection: cfg.DataEngine.ChromaCollection,
 			EnableKafka:      cfg.DataEngine.EnableKafka,
 			EnableChromaDB:   cfg.DataEngine.EnableChromaDB,
-			EnableWebSocket:  cfg.DataEngine.EnableWebSocket && !cfg.ReverseProxy.EmbedDataEngine,
-			EnableRESTAPI:    cfg.DataEngine.EnableRESTAPI && !cfg.ReverseProxy.EmbedDataEngine,
+			EnableWebSocket:  cfg.DataEngine.EnableWebSocket && standaloneDataEngineAPI,
+			EnableRESTAPI:    cfg.DataEngine.EnableRESTAPI && standaloneDataEngineAPI,
 			WebSocketPort:    cfg.DataEngine.WebSocketPort,
 			RESTAPIPort:      cfg.DataEngine.RESTAPIPort,
 			WindowSize:       windowSize,
 			MetricsInterval:  metricsInterval,
+		}
+
+		if cfg.SocketPath != "" && (cfg.DataEngine.EnableWebSocket || cfg.DataEngine.EnableRESTAPI) {
+			log.Printf("DataEngine standalone HTTP listeners disabled because KNIRVCHAIN is bound to socket %s", cfg.SocketPath)
 		}
 
 		// Create DataEngine
@@ -1398,6 +1484,7 @@ func startNodeWithComponents(
 	discoveryMgr p2p.DiscoveryService, // Pre-initialized
 	bc *BlockchainStruct, // Pre-initialized
 ) (*P2PConsensusManager, error) { // Return the manager
+	applyEmbeddedRuntimeOverrides(&cfg)
 	var p2pConsensusMgr *P2PConsensusManager
 
 	// Create P2P Consensus Manager first (skip if disabled)
@@ -1481,7 +1568,7 @@ func startNodeWithComponents(
 		// Legacy Consensus Manager (conditionally initialized)
 		var consensusMgr *ConsensusManager
 		if cfg.IsRoot && isNetworkMode { // isNetworkMode now passed as parameter
-			selfURL := fmt.Sprintf("http://127.0.0.1:%d", cfg.Port)
+			selfURL := localChainBaseURL(cfg)
 			reflectURLsArray := make([]string, len(cfg.ReflectionURLs))
 			copy(reflectURLsArray, cfg.ReflectionURLs)
 			consensusMgr = NewConsensusManager(bc, reflectURLsArray, selfURL)
@@ -1500,7 +1587,7 @@ func startNodeWithComponents(
 		var walletSrv *wallet.WalletServerImpl
 		var stopWallet func()
 		if !disableWallet {
-			walletSrv = wallet.NewWalletServer(uint64(cfg.WalletPort), fmt.Sprintf("http://localhost:%d", cfg.Port))
+			walletSrv = wallet.NewWalletServer(uint64(cfg.WalletPort), localChainBaseURL(cfg))
 			go func() {
 				log.Printf("[%s] Starting Wallet Server on port %d...", cfg.ChainID, cfg.WalletPort)
 				stopWallet = walletSrv.Start()
@@ -1543,7 +1630,7 @@ func startNodeWithComponents(
 		}
 
 		// Update the configuration with the actual port that will be used
-		if actualHTTPPort != cfg.Port {
+		if cfg.SocketPath == "" && actualHTTPPort != cfg.Port {
 			log.Printf("[%s] Port %d is in use, using port %d instead", cfg.ChainID, cfg.Port, actualHTTPPort)
 			cfg.Port = actualHTTPPort
 
@@ -1587,7 +1674,11 @@ func startNodeWithComponents(
 
 		serverStopped := make(chan struct{})
 		go func() {
-			log.Printf("[%s] Starting Server on port %d...", cfg.ChainID, cfg.Port)
+			if cfg.SocketPath != "" {
+				log.Printf("[%s] Starting Server on socket %s...", cfg.ChainID, cfg.SocketPath)
+			} else {
+				log.Printf("[%s] Starting Server on port %d...", cfg.ChainID, cfg.Port)
+			}
 			if err := blockchainSrv.StartListenAndServe(); err != nil && err != http.ErrServerClosed {
 				log.Printf("[%s] ERROR: Blockchain HTTP Server failed: %v", cfg.ChainID, err)
 			}
@@ -1595,38 +1686,7 @@ func startNodeWithComponents(
 			// --- Update the webgui backend.config file with the actual HTTP port ---
 			webguiEnvPath := filepath.Join("..", "..", "internal", "embedded", "nodejs", "webgui", "webGUI", "backend.config") // Use filepath.Join for cross-platform compatibility
 
-			var backendURL string
-			if cfg.ReverseProxy.Enabled {
-				// If reverse proxy is on, Next.js (served from root of proxy)
-				// should call /api for the backend.
-				backendURL = "/api"
-			} else {
-				// No reverse proxy, Next.js calls the Go API directly using its public IP/port
-				var publicIP string
-				// The public IP should have been fetched by fetchAndStorePublicIPInfo in main()
-				// and stored in cfg.PublicIPInfo or LastIPInfoResponse.
-				if cfg.IsRoot {
-					if utils.LastIPInfoResponse != nil && utils.LastIPInfoResponse.IP != "" {
-						publicIP = utils.LastIPInfoResponse.IP
-					} else {
-						log.Printf("[%s][%s] WARNING: Public IP for Root node not available from initial fetch. Using localhost for backendURL.", nodeRole.String(), cfg.ChainID)
-						publicIP = "localhost" // Fallback
-					}
-				} else {
-					if cfg.PublicIPInfo != nil {
-						if ip, ok := cfg.PublicIPInfo["ip"].(string); ok && ip != "" {
-							publicIP = ip
-						} else {
-							log.Printf("[%s][%s] WARNING: Public IP not found or invalid in cfg.PublicIPInfo. Using localhost for backendURL.", nodeRole.String(), cfg.ChainID)
-							publicIP = "localhost" // Fallback
-						}
-					} else {
-						log.Printf("[%s][%s] WARNING: cfg.PublicIPInfo is nil. Using localhost for backendURL.", nodeRole.String(), cfg.ChainID)
-						publicIP = "localhost" // Fallback
-					}
-				}
-				backendURL = fmt.Sprintf("http://%s:%d", publicIP, cfg.Port)
-			}
+			backendURL := guiBackendURL(cfg, nodeRole)
 
 			log.Printf("[%s][%s] Attempting to update NEXT_PUBLIC_BACKEND_URL in %s to %s", nodeRole.String(), cfg.ChainID, webguiEnvPath, backendURL)
 
@@ -1661,6 +1721,7 @@ func startNodeWithComponents(
 // startNode initializes its own components
 // and starts the node with the given configuration.
 func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role config.Role, disableWallet bool, disableP2P bool, isNetworkMode bool) {
+	applyEmbeddedRuntimeOverrides(&cfg)
 	wg.Add(1)
 
 	// Get access to the global chromemManager
@@ -1737,7 +1798,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 		}
 
 		// Update the configuration with the actual port that will be used
-		if actualHTTPPort != cfg.Port {
+		if cfg.SocketPath == "" && actualHTTPPort != cfg.Port {
 			log.Printf("[%s] Port %d is in use, using port %d instead", cfg.ChainID, cfg.Port, actualHTTPPort)
 			cfg.Port = actualHTTPPort
 
@@ -1753,7 +1814,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 					}
 				}
 			}
-		} else {
+		} else if cfg.SocketPath == "" {
 			cfg.Port = actualHTTPPort
 		}
 
@@ -1792,7 +1853,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 		var consensusMgr *ConsensusManager
 		// Legacy Consensus Manager (only for Root node in Network mode)
 		if cfg.IsRoot && isNetworkMode {
-			selfURL := fmt.Sprintf("http://127.0.0.1:%d", cfg.Port)
+			selfURL := localChainBaseURL(cfg)
 			reflectURLsArray := make([]string, len(cfg.ReflectionURLs))
 			copy(reflectURLsArray, cfg.ReflectionURLs)
 			log.Printf("[%s][%s] Initializing legacy consensus manager with MinersAddress: %s", role.String(), cfg.ChainID, cfg.MinersAddress)
@@ -1833,7 +1894,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 		var walletSrv *wallet.WalletServerImpl
 		var stopWallet func()
 		if !disableWallet {
-			walletSrv = wallet.NewWalletServer(uint64(cfg.WalletPort), fmt.Sprintf("http://localhost:%d", cfg.Port))
+			walletSrv = wallet.NewWalletServer(uint64(cfg.WalletPort), localChainBaseURL(cfg))
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -1896,7 +1957,11 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 		// 8. Start blockchain HTTP server
 		serverStopped := make(chan struct{})
 		go func() {
-			log.Printf("[%s][%s] Starting blockchain HTTP server on port %d...", role.String(), cfg.ChainID, cfg.Port)
+			if cfg.SocketPath != "" {
+				log.Printf("[%s][%s] Starting blockchain HTTP server on socket %s...", role.String(), cfg.ChainID, cfg.SocketPath)
+			} else {
+				log.Printf("[%s][%s] Starting blockchain HTTP server on port %d...", role.String(), cfg.ChainID, cfg.Port)
+			}
 			if err := blockchainSrv.StartListenAndServe(); err != nil {
 				log.Printf("[%s][%s] ERROR: Blockchain HTTP server failed: %v", role.String(), cfg.ChainID, err)
 			}

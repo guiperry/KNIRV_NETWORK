@@ -215,6 +215,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		"-skip-install",
 		"-non-interactive",
 		"-no-wallet-server",
+		"-gui=false",
 	}
 	if m.config.SocketPath != "" {
 		args = append(args, "-socket", m.config.SocketPath)

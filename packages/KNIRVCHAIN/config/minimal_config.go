@@ -13,6 +13,7 @@ import (
 // All other values will be derived from the settings matrix
 type MinimalConfig struct {
 	// Core network settings
+	SocketPath string `json:"socket_path,omitempty"`
 	Port       uint64 `json:"port,omitempty"`
 	P2PPort    uint64 `json:"p2p_port,omitempty"`
 	WalletPort uint64 `json:"wallet_port,omitempty"`
@@ -56,6 +57,7 @@ func ToMinimalConfig(cfg *Config, role Role) *MinimalConfig {
 
 	// Create a minimal config with only the essential values
 	minCfg := &MinimalConfig{
+		SocketPath:             cfg.SocketPath,
 		Port:                   cfg.Port,
 		P2PPort:                cfg.P2PPort,
 		WalletPort:             cfg.WalletPort,
@@ -102,6 +104,7 @@ func ToMinimalConfig(cfg *Config, role Role) *MinimalConfig {
 // toMinimalConfigFallback is used when no matrix settings are found
 func toMinimalConfigFallback(cfg *Config) *MinimalConfig {
 	return &MinimalConfig{
+		SocketPath:             cfg.SocketPath,
 		Port:                   cfg.Port,
 		P2PPort:                cfg.P2PPort,
 		WalletPort:             cfg.WalletPort,
