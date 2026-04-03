@@ -303,27 +303,10 @@ func NewConsensusManager(bc *BlockchainStruct, reflectURLs []string, selfURL str
 
 // WalletServer is provided by internal/wallet package; no placeholder here.
 
-type BlockchainServer struct {
-	server           *http.Server
-	discoveryManager p2p.DiscoveryService
-	// Placeholder
-}
-
-func (bs *BlockchainServer) Prepare() (uint64, error) {
-	bs.server = &http.Server{}
-	return 8080, nil
-}
-
-func (bs *BlockchainServer) StartListenAndServe() error {
-	return nil
-}
-
-func (bs *BlockchainServer) Stop(ctx context.Context) error {
-	return nil
-}
+type BlockchainServer = blockchain.BlockchainServer
 
 func NewBlockchainServer(port uint64, socketPath string, bc *BlockchainStruct, db *LevelDB, discoveryMgr p2p.DiscoveryService, p2pPort int) *BlockchainServer {
-	return &BlockchainServer{}
+	return blockchain.NewBlockchainServer(port, socketPath, bc, db, discoveryMgr, p2pPort)
 }
 
 type PaymentProcessor struct {
@@ -1578,13 +1561,17 @@ func startNodeWithComponents(
 			}
 		}
 
-		// Set the listen address for BlockchainServer
-		if cfg.ReverseProxy.Enabled {
-			blockchainSrv.server.Addr = fmt.Sprintf("127.0.0.1:%d", cfg.Port) // Listen on localhost if proxy is active
+		if cfg.SocketPath != "" {
+			log.Printf("[%s] Blockchain Server initialized to listen on socket %s.", cfg.ChainID, cfg.SocketPath)
 		} else {
-			blockchainSrv.server.Addr = fmt.Sprintf(":%d", cfg.Port) // Listen on all interfaces otherwise
+			// Set the listen address for BlockchainServer
+			if cfg.ReverseProxy.Enabled {
+				blockchainSrv.SetListenAddr(fmt.Sprintf("127.0.0.1:%d", cfg.Port)) // Listen on localhost if proxy is active
+			} else {
+				blockchainSrv.SetListenAddr(fmt.Sprintf(":%d", cfg.Port)) // Listen on all interfaces otherwise
+			}
+			log.Printf("[%s] Blockchain Server initialized to listen on %s.", cfg.ChainID, blockchainSrv.ListenAddr())
 		}
-		log.Printf("[%s] Blockchain Server initialized to listen on %s.", cfg.ChainID, blockchainSrv.server.Addr)
 
 		// Save essential root node parameters to env.local if this is the root node
 		if nodeRole == config.Root {
@@ -1777,7 +1764,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 			log.Printf("[%s][%s] ERROR: Failed to initialize discovery manager: %v", role.String(), cfg.ChainID, err)
 			return
 		}
-		blockchainSrv.discoveryManager = discoveryMgr
+		blockchainSrv.SetDiscoveryManager(discoveryMgr)
 		defer func() {
 			log.Printf("[%s][%s] Closing discovery manager...", role.String(), cfg.ChainID)
 			discoveryMgr.Close()

@@ -340,10 +340,10 @@ type PoAuDConfig struct {
 type Config struct {
 	NodeName                string                     `json:"node_name,omitempty" mapstructure:"node_name,nodeName"` // Node name for identification
 	ExperimentalFeatures    ExperimentalFeaturesConfig `json:"experimental_features" mapstructure:"experimentalFeatures"`
-	Port                    uint64                     `json:"port" mapstructure:"port,httpPort"`        // Accept both port and httpPort in config
-	SocketPath              string                     `json:"socket_path" mapstructure:"socketPath"`    // Unix socket path for HTTP server
-	P2PPort                 uint64                     `json:"p2p_port" mapstructure:"p2p_port,p2pPort"` // Accept both p2p_port and p2pPort in config
-	Relay                   RelayConfig                `json:"relay" mapstructure:"relay"`               // Circuit relay configuration
+	Port                    uint64                     `json:"port" mapstructure:"port,httpPort"`                 // Accept both port and httpPort in config
+	SocketPath              string                     `json:"socket_path" mapstructure:"socket_path,socketPath"` // Unix socket path for HTTP server
+	P2PPort                 uint64                     `json:"p2p_port" mapstructure:"p2p_port,p2pPort"`          // Accept both p2p_port and p2pPort in config
+	Relay                   RelayConfig                `json:"relay" mapstructure:"relay"`                        // Circuit relay configuration
 	ConsensusPauseTime      int                        `json:"consensus_pause_time" mapstructure:"consensus_pause_time,consensusPauseTime"`
 	WalletPort              uint64                     `json:"wallet_port" mapstructure:"wallet_port,walletPort"`
 	AltGUIPort              uint64                     `json:"alt_gui_port" mapstructure:"alt_gui_port,altGUIPort"` // Port for alternate GUI (Next.js)
@@ -356,7 +356,7 @@ type Config struct {
 	ClientOnly              bool                       `json:"client_only" mapstructure:"client_only,clientOnly"`
 	UseGUI                  bool                       `json:"use_gui" mapstructure:"use_gui,useGUI"`
 	ReflectionURLs          []string                   `json:"reflection_urls" mapstructure:"reflection_urls,reflectionURLs"`
-	ChainID                 string                     `json:"chain_id" mapstructure:"chainID"` // Changed to just "chainID" to exactly match JSON key
+	ChainID                 string                     `json:"chain_id" mapstructure:"chain_id,chainID"` // Accept both snake_case and camelCase config keys
 	InstallComplete         bool                       `json:"install_complete" mapstructure:"install_complete,installComplete"`
 	IsRoot                  bool                       `json:"is_root" mapstructure:"is_root,IsRoot"`
 	IsBootnode              bool                       `json:"is_bootnode" mapstructure:"is_bootnode,IsBootnode"`                                          // General bootnode flag

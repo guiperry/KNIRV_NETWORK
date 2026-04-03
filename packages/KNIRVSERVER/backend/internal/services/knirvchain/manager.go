@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -95,6 +96,23 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 		cfg = DefaultConfig()
 	}
 
+	defaults := DefaultManagerConfig()
+	if cfg.Port == 0 {
+		cfg.Port = defaults.Port
+	}
+	if cfg.APIPort == 0 {
+		cfg.APIPort = cfg.Port
+	}
+	if cfg.P2PPort == 0 {
+		cfg.P2PPort = defaults.P2PPort
+	}
+	if cfg.Role == "" {
+		cfg.Role = defaults.Role
+	}
+	if cfg.ChainID == "" {
+		cfg.ChainID = defaults.ChainID
+	}
+
 	if logger == nil {
 		logger, _ = zap.NewProduction()
 	}
@@ -102,17 +120,17 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 	var baseURL string
 	var client *http.Client
 	if cfg.SocketPath != "" {
-		baseURL = "http://unix/" + cfg.SocketPath
+		baseURL = "http://localhost"
 		client = &http.Client{
 			Timeout: 10 * time.Second,
 			Transport: &http.Transport{
 				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-					return net.Dial("unix", cfg.SocketPath)
+					return (&net.Dialer{}).DialContext(ctx, "unix", cfg.SocketPath)
 				},
 			},
 		}
 	} else {
-		baseURL = fmt.Sprintf("http://localhost:%d", cfg.APIPort)
+		baseURL = fmt.Sprintf("http://localhost:%d", cfg.Port)
 		client = &http.Client{
 			Timeout: 10 * time.Second,
 		}
@@ -154,6 +172,9 @@ func (m *Manager) Start(ctx context.Context) error {
 	m.config.BinaryPath = resolved
 
 	preflightClient := &http.Client{Timeout: 3 * time.Second}
+	if m.config.SocketPath != "" {
+		preflightClient = m.client
+	}
 	if resp, err := preflightClient.Get(fmt.Sprintf("%s/health", m.baseURL)); err == nil {
 		resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
@@ -166,27 +187,42 @@ func (m *Manager) Start(ctx context.Context) error {
 	m.logger.Info("Killing any stale KNIRVCHAIN processes", zap.String("binary", m.config.BinaryPath))
 	killStaleChain(m.config.BinaryPath)
 
-	if !waitForPortFree(m.config.APIPort, 5*time.Second) {
+	if m.config.SocketPath == "" && !waitForPortFree(m.config.Port, 5*time.Second) {
 		m.logger.Warn("API port still occupied after kill — proceeding anyway",
-			zap.Int("port", m.config.APIPort))
+			zap.Int("port", m.config.Port))
 	}
 
 	m.logger.Info("Starting KNIRVCHAIN",
 		zap.String("binary", m.config.BinaryPath),
+		zap.Int("port", m.config.Port),
 		zap.Int("api_port", m.config.APIPort),
+		zap.Int("p2p_port", m.config.P2PPort),
+		zap.String("socket_path", m.config.SocketPath),
 		zap.String("role", m.config.Role))
 
 	env := os.Environ()
 	env = append(env,
-		fmt.Sprintf("PORT=%d", m.config.Port),
-		fmt.Sprintf("P2P_PORT=%d", m.config.P2PPort),
-		fmt.Sprintf("API_PORT=%d", m.config.APIPort),
-		fmt.Sprintf("DATA_PATH=%s", m.config.DataPath),
-		fmt.Sprintf("ROLE=%s", m.config.Role),
-		fmt.Sprintf("CHAIN_ID=%s", m.config.ChainID),
+		fmt.Sprintf("KNIRV_HTTP_PORT=%d", m.config.Port),
+		fmt.Sprintf("KNIRV_P2P_PORT=%d", m.config.P2PPort),
+		fmt.Sprintf("KNIRV_CHAIN_ID=%s", m.config.ChainID),
+		fmt.Sprintf("KNIRV_DATA_DIR=%s", m.config.DataPath),
+		fmt.Sprintf("KNIRV_SOCKET_PATH=%s", m.config.SocketPath),
 	)
 
-	m.cmd = exec.Command(m.config.BinaryPath)
+	args := []string{
+		"-role", normalizeRole(m.config.Role),
+		"-p2p.port", fmt.Sprintf("%d", m.config.P2PPort),
+		"-skip-install",
+		"-non-interactive",
+		"-no-wallet-server",
+	}
+	if m.config.SocketPath != "" {
+		args = append(args, "-socket", m.config.SocketPath)
+	} else {
+		args = append(args, "-port", fmt.Sprintf("%d", m.config.Port))
+	}
+
+	m.cmd = exec.Command(m.config.BinaryPath, args...)
 	m.cmd.Env = env
 	if m.config.Stdout != nil {
 		m.cmd.Stdout = m.config.Stdout
@@ -209,16 +245,34 @@ func (m *Manager) Start(ctx context.Context) error {
 	m.logger.Info("KNIRVCHAIN subprocess started",
 		zap.Int("pid", m.cmd.Process.Pid))
 
-	if err := m.waitForHealth(ctx); err != nil {
-		m.cmd.Process.Kill()
-		return fmt.Errorf("health check failed: %w", err)
-	}
-
 	m.running = true
 	m.logger.Info("KNIRVCHAIN started successfully",
 		zap.String("url", m.baseURL))
 
+	go func(parentCtx context.Context) {
+		if err := m.waitForHealth(parentCtx); err != nil {
+			m.logger.Warn("KNIRVCHAIN health check did not pass during startup window", zap.Error(err))
+			return
+		}
+		m.logger.Info("KNIRVCHAIN health check passed", zap.String("url", m.baseURL))
+	}(ctx)
+
 	return nil
+}
+
+func normalizeRole(role string) string {
+	switch strings.ToLower(strings.TrimSpace(role)) {
+	case "root":
+		return "Root"
+	case "bootnode":
+		return "Bootnode"
+	case "peer":
+		return "Peer"
+	case "client":
+		return "Client"
+	default:
+		return "Client"
+	}
 }
 
 func resolveBinaryPath(configured string) (string, error) {

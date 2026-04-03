@@ -196,6 +196,22 @@ type NexusApp struct {
 	shutdownChan  chan struct{}
 }
 
+func unixSocketTransport(socketPath string) *http.Transport {
+	dialer := &net.Dialer{}
+	return &http.Transport{
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return dialer.DialContext(ctx, "unix", socketPath)
+		},
+	}
+}
+
+func backendBaseURL(cfg *Config) string {
+	if cfg.BackendSocket != "" {
+		return "http://localhost"
+	}
+	return fmt.Sprintf("http://localhost:%d", cfg.BackendPort)
+}
+
 // NewNexusApp creates a new KNIRV-SERVER application
 func NewNexusApp(config *Config) (*NexusApp, error) {
 	// Set Gin mode
@@ -291,7 +307,7 @@ func extractBinaries() (string, error) {
 
 	for _, b := range bins {
 		dest := filepath.Join(binDir, b.name)
-		if err := os.WriteFile(dest, b.data, 0755); err != nil {
+		if err := writeFileAtomically(dest, b.data, 0755); err != nil {
 			return "", fmt.Errorf("failed to extract %s: %w", b.name, err)
 		}
 		log.Printf("Extracted %s to %s", b.name, dest)
@@ -557,7 +573,7 @@ func extractEnvFile(environment string) error {
 		return fmt.Errorf("failed to get app data directory: %w", err)
 	}
 	envPath := filepath.Join(appDataDir, ".env")
-	if err := os.WriteFile(envPath, envData, 0644); err != nil {
+	if err := writeFileAtomically(envPath, envData, 0644); err != nil {
 		return fmt.Errorf("failed to write %s to %s: %w", envName, envPath, err)
 	}
 
@@ -625,7 +641,7 @@ func extractConfigFiles() error {
 		destPath := filepath.Join(configDir, filename)
 
 		// Write to local filesystem
-		if err := os.WriteFile(destPath, data, 0644); err != nil {
+		if err := writeFileAtomically(destPath, data, 0644); err != nil {
 			return fmt.Errorf("failed to write config file %s: %w", destPath, err)
 		}
 
@@ -634,6 +650,43 @@ func extractConfigFiles() error {
 	})
 
 	return err
+}
+
+func writeFileAtomically(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	tmp, err := os.CreateTemp(dir, "."+filepath.Base(path)+".tmp-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmp.Name()
+	cleanup := true
+	defer func() {
+		if cleanup {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Chmod(perm); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpPath, path); err != nil {
+		return err
+	}
+
+	cleanup = false
+	return nil
 }
 
 // setupRoutes configures the application routes
@@ -698,21 +751,10 @@ func (app *NexusApp) setupRoutes() error {
 	{
 		api.Any("/*path", func(c *gin.Context) {
 			// Construct backend URL
-			var backendURL string
-			var transport *http.Transport
-
+			backendURL := backendBaseURL(app.config) + c.Request.RequestURI
+			transport := &http.Transport{}
 			if app.config.BackendSocket != "" {
-				// Use Unix socket
-				backendURL = "http://localhost" + c.Request.RequestURI
-				transport = &http.Transport{
-					DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-						return net.Dial("unix", app.config.BackendSocket)
-					},
-				}
-			} else {
-				// Use TCP port
-				backendURL = fmt.Sprintf("http://localhost:%d%s", app.config.BackendPort, c.Request.RequestURI)
-				transport = &http.Transport{}
+				transport = unixSocketTransport(app.config.BackendSocket)
 			}
 
 			// Create proxy request
@@ -768,11 +810,7 @@ func (app *NexusApp) setupRoutes() error {
 
 	if app.config.BackendSocket != "" {
 		backendWS, _ = url.Parse("http://localhost")
-		wsTransport = &http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", app.config.BackendSocket)
-			},
-		}
+		wsTransport = unixSocketTransport(app.config.BackendSocket)
 	} else {
 		backendWS, _ = url.Parse(fmt.Sprintf("http://localhost:%d", app.config.BackendPort))
 		wsTransport = &http.Transport{}
@@ -836,7 +874,11 @@ func waitForPortFreeMain(port int, deadline time.Duration) bool {
 
 // startBackend starts the embedded unified backend service
 func (app *NexusApp) startBackend() error {
-	log.Printf("Starting unified backend service on port %d...", app.config.BackendPort)
+	if app.config.BackendSocket != "" {
+		log.Printf("Starting unified backend service on socket %s...", app.config.BackendSocket)
+	} else {
+		log.Printf("Starting unified backend service on port %d...", app.config.BackendPort)
+	}
 
 	// Kill any stale backend_server processes from previous runs so they do not
 	// hold the P2P port (4001) or other resources that would cause the new
@@ -860,7 +902,9 @@ func (app *NexusApp) startBackend() error {
 	// Set environment variables for backend
 	env := append(os.Environ(),
 		fmt.Sprintf("KNIRV_API_PORT=%d", app.config.BackendPort),
+		fmt.Sprintf("KNIRV_API_SOCKET=%s", app.config.BackendSocket),
 		fmt.Sprintf("KNIRV_API_SOCKET_PATH=%s", app.config.BackendSocket),
+		fmt.Sprintf("KNIRV_CONFIG_FILE=%s", configFile),
 		"KNIRV_API_HOST=127.0.0.1",
 		"KNIRV_SECURITY_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
 		"KNIRV_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
@@ -912,12 +956,8 @@ func (app *NexusApp) startBackend() error {
 	if app.config.BackendSocket != "" {
 		healthURL = "http://localhost/health"
 		client = &http.Client{
-			Timeout: 2 * time.Second,
-			Transport: &http.Transport{
-				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-					return net.Dial("unix", app.config.BackendSocket)
-				},
-			},
+			Timeout:   2 * time.Second,
+			Transport: unixSocketTransport(app.config.BackendSocket),
 		}
 	} else {
 		healthURL = fmt.Sprintf("http://localhost:%d/health", app.config.BackendPort)
@@ -1035,7 +1075,7 @@ func loadConfig() (*Config, error) {
 		configFile  = flag.String("config", "", "Path to configuration file")
 		testnet     = flag.Bool("testnet", false, "Enable testnet mode")
 		desktop     = flag.Bool("desktop", false, "Enable the KNIRV Desktop GUI")
-		environment = flag.String("env", "production", "Environment: development, testnet, or production")
+		environment = flag.String("env", "development", "Environment: development, testnet, or production")
 		port        = flag.Int("port", 0, "Server port (overrides config)")
 		host        = flag.String("host", "", "Server host (overrides config)")
 	)
@@ -1076,6 +1116,9 @@ func loadConfig() (*Config, error) {
 	viper.SetDefault("host", "0.0.0.0")
 	viper.SetDefault("port", 8090)
 	viper.SetDefault("backend_port", 8082)
+	if appDataDir, err := getAppDataDir(); err == nil {
+		viper.SetDefault("backend_socket", filepath.Join(appDataDir, "sockets", "backend.sock"))
+	}
 	viper.SetDefault("log_level", "info")
 	viper.SetDefault("testnet", false)
 	viper.SetDefault("desktop", false)

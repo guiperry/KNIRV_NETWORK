@@ -1,6 +1,6 @@
-# KNIRVGRAPH - Decentralized Knowledge Graph with Economics
+# KNIRVGRAPH - Decentralized Knowledge Graph with Database Transactions
 
-A comprehensive graph-based blockchain application featuring Network Resolution Vectors (NRV), Proof-of-Solution consensus, NRN token economics, and seamless integration with the KNIRV ecosystem.
+A comprehensive graph-based application featuring Network Resolution Vectors (NRV), Proof-of-Solution consensus, NRN token economics, and seamless integration with the KNIRV ecosystem. Operations are executed as atomic database transactions with full audit trails.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ A comprehensive graph-based blockchain application featuring Network Resolution 
 │  └─────────────┘ └─────────────┘ └─────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
                               │
-                              │ HTTP/REST API + Economics
+                              │ HTTP/REST API + Database Transactions
                               │
 ┌─────────────────────────────────────────────────────────────┐
 │                    Backend (Go)                             │
@@ -25,8 +25,8 @@ A comprehensive graph-based blockchain application featuring Network Resolution 
 │  │ +Economics  │ │    Core     │ │   (Vectors)         │    │
 │  └─────────────┘ └─────────────┘ └─────────────────────┘    │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐    │
-│  │   Storage   │ │ NRN Token   │ │   KNIRVORACLE       │    │
-│  │  (BluntDB)  │ │ Integration │ │   Integration       │    │
+│  │   Storage   │ │ Operation   │ │   KNIRVORACLE       │    │
+│  │  (BluntDB)  │ │   Log       │ │   Integration       │    │
 │  └─────────────┘ └─────────────┘ └─────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```

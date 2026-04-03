@@ -109,7 +109,7 @@ type HealthStatus struct {
 func DefaultManagerConfig() *ManagerConfig {
 	return &ManagerConfig{
 		SocketPath: "gateway.sock",
-		Port:       8081,
+		Port:       8080,
 		Ports: &PortConfig{
 			TurnUDP:     3478,
 			TurnTCP:     3479,
@@ -135,11 +135,11 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 
 	var baseURL string
 	if cfg.SocketPath != "" {
-		baseURL = "http://unix/" + cfg.SocketPath
+		baseURL = "http://localhost"
 	} else {
 		baseURL = fmt.Sprintf("http://localhost:%d", cfg.Port)
 		if cfg.Port == 0 {
-			baseURL = "http://localhost:8081"
+			baseURL = "http://localhost:8080"
 		}
 	}
 
@@ -186,7 +186,10 @@ func (m *Manager) Start(ctx context.Context) error {
 	// Pre-flight: if a healthy gateway is already listening (stale process from a
 	// previous run), adopt it rather than starting a duplicate and hitting a port
 	// conflict on the tunnel control port (3003).
-	preflightClient := &http.Client{Timeout: 3 * time.Second}
+	preflightClient := &http.Client{
+		Timeout:   3 * time.Second,
+		Transport: m.client.Transport,
+	}
 	if resp, err := preflightClient.Get(fmt.Sprintf("%s/health", m.baseURL)); err == nil {
 		resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
@@ -224,14 +227,15 @@ func (m *Manager) Start(ctx context.Context) error {
 	env = append(env,
 		fmt.Sprintf("KNIRV_BACKEND_API_URL=http://127.0.0.1:%d", backendPort),
 		fmt.Sprintf("KNIRV_CHAIN_ID=%s", m.config.ChainID),
-		fmt.Sprintf("TURN_SERVER_ENABLED=true"),
+		"AUTO_OPEN_BROWSER=false",
+		"TURN_SERVER_ENABLED=true",
 		fmt.Sprintf("TURN_SERVER_UDP_PORT=%d", m.config.Ports.TurnUDP),
 		fmt.Sprintf("TURN_SERVER_TCP_PORT=%d", m.config.Ports.TurnTCP),
 		fmt.Sprintf("TURN_SERVER_API_PORT=%d", m.config.Ports.TurnAPI),
 		fmt.Sprintf("TURN_SERVER_AUTH_SECRET=%s", m.config.AuthSecret),
-		fmt.Sprintf("TURN_SERVER_REALM=knirvgateway.local"),
+		"TURN_SERVER_REALM=knirvgateway.local",
 		fmt.Sprintf("TURN_SERVER_MINER_ADDRESS=%s", m.config.MinerAddress),
-		fmt.Sprintf("TUNNEL_REGISTRY_ENABLED=true"),
+		"TUNNEL_REGISTRY_ENABLED=true",
 		fmt.Sprintf("TUNNEL_REGISTRY_HTTP_PORT=%d", m.config.Ports.TunnelHTTP),
 		fmt.Sprintf("TUNNEL_REGISTRY_CONTROL_PORT=%d", m.config.Ports.TunnelCtrl),
 		fmt.Sprintf("TUNNEL_REGISTRY_PUBLIC_RELAY_PORT=%d", m.config.Ports.TunnelRelay),
@@ -244,7 +248,7 @@ func (m *Manager) Start(ctx context.Context) error {
 	} else {
 		gatewayPort := m.config.Port
 		if gatewayPort <= 0 {
-			gatewayPort = 8081
+			gatewayPort = 8080
 		}
 		env = append(env, fmt.Sprintf("PORT=%d", gatewayPort))
 	}

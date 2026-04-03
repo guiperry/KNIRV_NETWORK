@@ -45,6 +45,27 @@ type BlockchainServer struct {
 	fm                 *FailoverManager     // Reference to failover manager
 }
 
+// SetListenAddr overrides the HTTP server address after Prepare.
+func (bcs *BlockchainServer) SetListenAddr(addr string) {
+	if bcs.server == nil {
+		bcs.server = &http.Server{}
+	}
+	bcs.server.Addr = addr
+}
+
+// ListenAddr returns the current HTTP server address.
+func (bcs *BlockchainServer) ListenAddr() string {
+	if bcs.server == nil {
+		return ""
+	}
+	return bcs.server.Addr
+}
+
+// SetDiscoveryManager attaches a discovery manager after construction.
+func (bcs *BlockchainServer) SetDiscoveryManager(discoveryMgr DiscoveryService) {
+	bcs.discoveryManager = discoveryMgr
+}
+
 // NewBlockchainServerWithFailover creates a new BlockchainServer with failover integration
 func NewBlockchainServerWithFailover(port uint64, socketPath string, blockchain *BlockchainStruct, db *LevelDB, discoveryMgr DiscoveryService, p2pPort int, consensusMgr *P2PConsensusManager, failoverMgr *FailoverManager) *BlockchainServer {
 	bcs := NewBlockchainServer(port, socketPath, blockchain, db, discoveryMgr, p2pPort)
@@ -412,17 +433,18 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 
 	// NANDA-ANS service removed as per refactor plan
 
-	// Find available port
 	actualPort := bcs.port
-	for !utils.IsPortAvailable(actualPort) {
-		log.Printf("Port %d is in use, trying next port for chain %s", actualPort, bcs.BlockchainPtr.ChainID)
-		actualPort++
-	}
+	if bcs.socketPath == "" {
+		for !utils.IsPortAvailable(actualPort) {
+			log.Printf("Port %d is in use, trying next port for chain %s", actualPort, bcs.BlockchainPtr.ChainID)
+			actualPort++
+		}
 
-	if actualPort != bcs.port {
-		log.Printf("Chain %s: HTTP server will use port %d instead of configured port %d", bcs.BlockchainPtr.ChainID, actualPort, bcs.port)
-		bcs.port = actualPort
-		// SetServerPort(actualPort) // Avoid global SetServerPort if possible, rely on returned port.
+		if actualPort != bcs.port {
+			log.Printf("Chain %s: HTTP server will use port %d instead of configured port %d", bcs.BlockchainPtr.ChainID, actualPort, bcs.port)
+			bcs.port = actualPort
+			// SetServerPort(actualPort) // Avoid global SetServerPort if possible, rely on returned port.
+		}
 	}
 
 	// Update Blockchain's ChainID if it's port-dependent and port changed.
@@ -447,7 +469,11 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 		// Addr:    ":" + strconv.Itoa(int(actualPort)), // This will be set by the caller
 		Handler: corsMiddleware(mux), // Wrap the mux with CORS middleware
 	}
-	log.Printf("BlockchainServer for chain %s prepared for port %d", bcs.BlockchainPtr.ChainID, actualPort)
+	if bcs.socketPath != "" {
+		log.Printf("BlockchainServer for chain %s prepared for socket %s", bcs.BlockchainPtr.ChainID, bcs.socketPath)
+	} else {
+		log.Printf("BlockchainServer for chain %s prepared for port %d", bcs.BlockchainPtr.ChainID, actualPort)
+	}
 	return actualPort, nil
 }
 

@@ -76,7 +76,7 @@ dash: desktop-build ## Rebuild desktop and relink into binary (fast path, skips 
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
 	chmod 755 $(DIST_DIR)/knirv-server
-	@echo "$(GREEN)Done — run: ./dist/knirv-server --desktop$(NC)"
+	@echo "$(GREEN)Done — run: ./dist/knirv-server --env development --desktop$(NC)"
 
 help: ## Show this help message
 	@echo "$(BLUE)KNIRV-SERVER Build System$(NC)"
@@ -393,8 +393,6 @@ gateway-deps: ## Install KNIRVGATEWAY dependencies
 gateway-build: gateway-deps ## Build KNIRVGATEWAY binary into bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVGATEWAY binary...$(NC)"
 	@mkdir -p bin
-	@echo "$(BLUE)Syncing knirv-oracle binary into embedded package...$(NC)"
-	@cp $(ROOT_DIR)/../KNIRVGATEWAY/internal/embedded/knirv-oracle $(GATEWAY_DIR)/internal/embedded/knirv-oracle
 	cd $(GATEWAY_DIR) && go build -ldflags "-s -w" -o $(ROOT_DIR)/bin/knirvgateway ./cmd/gateway
 	@echo "$(GREEN)KNIRVGATEWAY binary built: bin/knirvgateway$(NC)"
 
@@ -465,4 +463,3 @@ hasher-clean: ## Clean KNIRVHASHER build artifacts
 	@echo "$(BLUE)Cleaning KNIRVHASHER artifacts...$(NC)"
 	rm -f bin/hasher-*
 	cd $(HASHER_DIR) && go clean
-

@@ -399,12 +399,6 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 		log.Printf("Cerebras API Key loaded from root.key")
 	}
 
-	if content.DatabaseUrl != "" {
-		cfg.Database.Path = content.DatabaseUrl
-		viper.Set("database.path", content.DatabaseUrl)
-		log.Printf("Database URL loaded from root.key: %s", content.DatabaseUrl)
-	}
-
 	if content.TlsCert != "" || content.TlsKey != "" {
 		cfg.Security.TLSCert = content.TlsCert
 		cfg.Security.TLSKey = content.TlsKey
@@ -635,11 +629,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		return nil, fmt.Errorf("failed to initialize inference service: %w", err)
 	}
 
-	validationCore, err := validation.NewValidationCore(dbManager, p2pManager, cfg, inferenceService)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize validation core: %w", err)
-	}
-
 	// Initialize TEE Security service with Kali environment detection
 	teeSecurityService, err := teesecurity.NewTEESecurityService(dbManager)
 	if err != nil {
@@ -776,12 +765,13 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	}
 	activeMemoryService := active_memory.NewActiveMemoryService(vaultService, reasoningEngine, mdStorage, solutionValidator)
 
-	// Update system health service references
-	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService, nil)
-
 	// Initialize embedded KNIRVGATEWAY for P2P TURN/Tunnel services
 	var gatewayManager *knirvgateway.Manager
 	if cfg.Gateway.Enabled {
+		if cfg.Gateway.Port == 0 {
+			cfg.Gateway.Port = 8080
+		}
+
 		// Initialize Gateway socket path if not specified
 		if cfg.Gateway.SocketPath == "" && cfg.SocketDir != "" {
 			cfg.Gateway.SocketPath = filepath.Join(cfg.SocketDir, "gateway.sock")
@@ -874,6 +864,9 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			BinaryPath:    cfg.Chain.BinaryPath,
 			SocketPath:    cfg.Chain.SocketPath,
 			P2PSocketPath: cfg.Chain.P2PSocketPath,
+			Port:          cfg.Chain.Port,
+			P2PPort:       cfg.Chain.P2PPort,
+			APIPort:       cfg.Chain.APIPort,
 			DataPath:      cfg.Chain.DataPath,
 			Role:          cfg.Chain.Role,
 			ChainID:       cfg.Chain.ChainID,
@@ -932,14 +925,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			log.Printf("Warning: Failed to initialize transaction chain client: %v", err)
 		} else {
 			transactionChainClient = client
-			if dveCreationService != nil {
-				dveCreationService.SetTransactionChainClient(transactionChainClient)
-				log.Println("Transaction chain client integrated with DVE creation service")
-			}
-			if dveRentalService != nil {
-				dveRentalService.SetTransactionChainClient(transactionChainClient)
-				log.Println("Transaction chain client integrated with DVE rental service")
-			}
+			log.Println("Transaction chain client initialized")
 		}
 	}
 
@@ -947,6 +933,15 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		validationChainClient = validationchain.NewClient(validationChainManager.GetBaseURL())
 		log.Println("Validation chain client initialized")
 	}
+
+	validationCore, err := validation.NewValidationCore(dbManager, p2pManager, cfg, inferenceService)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize validation core: %w", err)
+	}
+
+	// Wire validation-aware service references only after the chain clients and
+	// validation core are initialized in dependency order.
+	systemHealthService.SetServiceReferences(dveManager, validationCore, inferenceService, teeSecurityService, nil)
 
 	// Initialize Cognitive Engine with configurable parameters
 	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager, validationCore, inferenceService, fabricManagementService)
@@ -991,6 +986,19 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	if err := agentService.Start(); err != nil {
 		log.Printf("Warning: Failed to start agent service: %v", err)
 	}
+
+	// Initialize AnchoringService for PQC-signed evidence pack anchoring
+	anchoringService := evidence.NewAnchoringService(dbManager, pqcManager, "server-master")
+	if validationChainClient != nil {
+		anchoringService.SetValidationChainClient(validationChainClient)
+		log.Println("AnchoringService: validation chain client wired for chain anchoring")
+	} else {
+		log.Println("AnchoringService: validation chain client unavailable, chain anchoring will remain disabled")
+	}
+	if err := anchoringService.LoadEvidencePacks(); err != nil {
+		log.Printf("Warning: Failed to load evidence packs: %v", err)
+	}
+	log.Println("AnchoringService initialized")
 
 	// Initialize ICME - Intentional Context Memory Engine
 	var icmeService *icme.Service
@@ -1069,6 +1077,10 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 							logger,
 							dbManager,
 						)
+						if validationChainClient != nil {
+							icmeService.SetValidationChainClient(validationChainClient)
+							log.Println("ICME: validation chain client wired during initialization")
+						}
 
 						icmeCtx, icmeCancel := context.WithCancel(context.Background())
 						go signalRouter.Start(icmeCtx)
@@ -1082,6 +1094,17 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		}
 	} else {
 		log.Println("ICME Service disabled via configuration")
+	}
+
+	if transactionChainClient != nil {
+		if dveCreationService != nil {
+			dveCreationService.SetTransactionChainClient(transactionChainClient)
+			log.Println("Transaction chain client integrated with DVE creation service")
+		}
+		if dveRentalService != nil {
+			dveRentalService.SetTransactionChainClient(transactionChainClient)
+			log.Println("Transaction chain client integrated with DVE rental service")
+		}
 	}
 
 	// Initialize Nexus Memory Fabric
@@ -1102,19 +1125,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	eventBroadcaster := websocket.NewEventBroadcaster(nil)
 	eventBroadcaster.Start()
 	log.Println("EventBroadcaster initialized")
-
-	// Initialize AnchoringService for PQC-signed evidence pack anchoring
-	anchoringService := evidence.NewAnchoringService(dbManager, pqcManager, "server-master")
-	if validationChainClient != nil {
-		anchoringService.SetValidationChainClient(validationChainClient)
-		log.Println("AnchoringService: validation chain client wired for chain anchoring")
-	} else {
-		log.Println("AnchoringService: validation chain client unavailable, chain anchoring will remain disabled")
-	}
-	if err := anchoringService.LoadEvidencePacks(); err != nil {
-		log.Printf("Warning: Failed to load evidence packs: %v", err)
-	}
-	log.Println("AnchoringService initialized")
 
 	// Initialize SecretManager for session-based secret management
 	secretManager := secrets.NewSecretManager(dbManager)
@@ -1202,11 +1212,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	if cfg.API.SocketPath == "" && cfg.SocketDir != "" {
 		cfg.API.SocketPath = filepath.Join(cfg.SocketDir, "backend.sock")
 		log.Printf("Using default API socket path: %s", cfg.API.SocketPath)
-	}
-
-	// Set default gateway port if not specified
-	if cfg.Gateway.Port == 0 {
-		cfg.Gateway.Port = 8080
 	}
 
 	server := &Server{
@@ -1305,14 +1310,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 
 	// Setup routes for all services
 	server.setupRoutes()
-
-	// Integrate blockchain client with services after server creation
-	if validationChainClient != nil && server.icmeService != nil {
-		server.icmeService.SetValidationChainClient(validationChainClient)
-		log.Println("Validation chain client integrated with ICME service")
-	} else if server.icmeService != nil {
-		log.Println("ICME: validation chain client unavailable, policy commits will remain local-only")
-	}
 
 	return server, nil
 }
@@ -1901,38 +1898,6 @@ func (s *Server) Start() error {
 		log.Println("Warning: P2P Manager not initialized, skipping")
 	}
 
-	// Start oracle (root node only)
-	if s.oracleService != nil {
-		if err := s.oracleService.Start(); err != nil {
-			log.Printf("Warning: Failed to start oracle service: %v", err)
-			logging.EmitModuleLog("oracle", "error", fmt.Sprintf("Failed to start: %v", err))
-		} else {
-			log.Println("Oracle service started")
-			logging.EmitModuleLog("oracle", "info", "Oracle service started")
-		}
-	}
-
-	// Start DVE manager
-	if s.dveManager != nil {
-		if err := s.dveManager.Start(s.ctx); err != nil {
-			log.Printf("Warning: Failed to start DVE manager: %v", err)
-			// Continue starting other services - DVE manager failure shouldn't stop the server
-		} else {
-			log.Println("DVE Manager started")
-		}
-	}
-
-	// Start embedded KNIRVGATEWAY for P2P TURN/Tunnel
-	if s.gatewayManager != nil {
-		if err := s.gatewayManager.Start(s.ctx); err != nil {
-			log.Printf("Warning: Failed to start KNIRVGATEWAY: %v", err)
-			logging.EmitModuleLog("knirvgateway", "error", fmt.Sprintf("Failed to start: %v", err))
-		} else {
-			log.Printf("KNIRVGATEWAY started on port %d", s.gatewayManager.GetConfig().Port)
-			logging.EmitModuleLog("knirvgateway", "info", fmt.Sprintf("Started on port %d", s.gatewayManager.GetConfig().Port))
-		}
-	}
-
 	// Start embedded KNIRVGRAPH
 	if s.graphManager != nil && s.config.Graph.Enabled {
 		if err := s.graphManager.Start(); err != nil {
@@ -1972,16 +1937,34 @@ func (s *Server) Start() error {
 			logging.EmitModuleLog("validationchain", "info", fmt.Sprintf("Started on port %d", s.validationChainManager.GetConfig().Port))
 		}
 	}
-	if s.rollupService != nil {
-		s.runRollupLoop()
-		log.Println("Rollup service started")
+
+	// Start embedded KNIRVGATEWAY for P2P TURN/Tunnel before DVE services rely on it.
+	if s.gatewayManager != nil {
+		if err := s.gatewayManager.Start(s.ctx); err != nil {
+			log.Printf("Warning: Failed to start KNIRVGATEWAY: %v", err)
+			logging.EmitModuleLog("knirvgateway", "error", fmt.Sprintf("Failed to start: %v", err))
+		} else {
+			log.Printf("KNIRVGATEWAY started on port %d", s.gatewayManager.GetConfig().Port)
+			logging.EmitModuleLog("knirvgateway", "info", fmt.Sprintf("Started on port %d", s.gatewayManager.GetConfig().Port))
+		}
 	}
+
 	if s.validationCore != nil {
 		if err := s.validationCore.Start(s.ctx); err != nil {
 			log.Printf("Warning: Failed to start validation core: %v", err)
 			// Continue - validation core failure shouldn't stop basic server operation
 		} else {
 			log.Println("Validation Core started")
+		}
+	}
+
+	// Start DVE manager after its dependent embedded services are ready.
+	if s.dveManager != nil {
+		if err := s.dveManager.Start(s.ctx); err != nil {
+			log.Printf("Warning: Failed to start DVE manager: %v", err)
+			// Continue starting other services - DVE manager failure shouldn't stop the server
+		} else {
+			log.Println("DVE Manager started")
 		}
 	}
 
@@ -2121,6 +2104,22 @@ func (s *Server) Start() error {
 		}
 	}
 
+	// Start oracle only after the dependent chain services and clients are available.
+	if s.oracleService != nil {
+		if err := s.oracleService.Start(); err != nil {
+			log.Printf("Warning: Failed to start oracle service: %v", err)
+			logging.EmitModuleLog("oracle", "error", fmt.Sprintf("Failed to start: %v", err))
+		} else {
+			log.Println("Oracle service started")
+			logging.EmitModuleLog("oracle", "info", "Oracle service started")
+		}
+	}
+
+	if s.rollupService != nil {
+		s.runRollupLoop()
+		log.Println("Rollup service started")
+	}
+
 	// Start Nexus Memory Fabric (Arrow Flight)
 	if s.nexusServer != nil {
 		go func() {
@@ -2139,51 +2138,52 @@ func (s *Server) Start() error {
 		return fmt.Errorf("invalid server configuration: bind address and port must be specified when not using Unix socket")
 	}
 
+	serverAddr := fmt.Sprintf("%s:%d", s.config.API.BindAddress, s.config.API.Port)
+	if s.config.API.SocketPath != "" {
+		serverAddr = s.config.API.SocketPath
+	}
+
 	s.httpServer = &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", s.config.API.BindAddress, s.config.API.Port),
+		Addr:         serverAddr,
 		Handler:      middleware.CORSMiddlewareHTTP()(s.router),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Start HTTP server in goroutine
+	var listener net.Listener
+	var err error
+	if s.config.API.SocketPath != "" {
+		if err := os.MkdirAll(filepath.Dir(s.config.API.SocketPath), 0755); err != nil {
+			return fmt.Errorf("failed to create API socket directory: %w", err)
+		}
+		if err := os.Remove(s.config.API.SocketPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove existing API socket %s: %w", s.config.API.SocketPath, err)
+		}
+		listener, err = net.Listen("unix", s.config.API.SocketPath)
+		if err != nil {
+			return fmt.Errorf("failed to listen on unix socket %s: %w", s.config.API.SocketPath, err)
+		}
+		if err := os.Chmod(s.config.API.SocketPath, 0666); err != nil {
+			log.Printf("Warning: Failed to set API socket permissions: %v", err)
+		}
+	} else {
+		listener, err = net.Listen("tcp", fmt.Sprintf("%s:%d", s.config.API.BindAddress, s.config.API.Port))
+		if err != nil {
+			return fmt.Errorf("failed to listen on %s:%d: %w", s.config.API.BindAddress, s.config.API.Port, err)
+		}
+	}
+
+	// Start HTTP server in goroutine after the listener is bound so startup
+	// fails fast on socket/port issues instead of surfacing asynchronously.
 	go func() {
 		if s.config.API.SocketPath != "" {
-			// Ensure directory exists
-			if err := os.MkdirAll(filepath.Dir(s.config.API.SocketPath), 0755); err != nil {
-				log.Printf("Failed to create socket directory: %v", err)
-				return
-			}
-
-			// Remove existing socket if any
-			if _, err := os.Stat(s.config.API.SocketPath); err == nil {
-				if err := os.Remove(s.config.API.SocketPath); err != nil {
-					log.Printf("Failed to remove existing socket: %v", err)
-					return
-				}
-			}
-
-			listener, err := net.Listen("unix", s.config.API.SocketPath)
-			if err != nil {
-				log.Printf("Failed to listen on unix socket %s: %v", s.config.API.SocketPath, err)
-				return
-			}
-
-			// Ensure socket is accessible
-			if err := os.Chmod(s.config.API.SocketPath, 0777); err != nil {
-				log.Printf("Warning: Failed to set socket permissions: %v", err)
-			}
-
 			log.Printf("Starting HTTP server on unix socket: %s", s.config.API.SocketPath)
-			if err := s.httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
-				log.Printf("HTTP server (unix) error: %v", err)
-			}
 		} else {
 			log.Printf("Starting HTTP server on %s:%d", s.config.API.BindAddress, s.config.API.Port)
-			if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				log.Printf("HTTP server error: %v", err)
-			}
+		}
+		if err := s.httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
+			log.Printf("HTTP server error: %v", err)
 		}
 	}()
 

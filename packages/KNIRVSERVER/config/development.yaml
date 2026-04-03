@@ -20,6 +20,7 @@ database:
 # API Configuration
 api:
   port: 8082
+  socket_path: /home/gperry/.local/share/knirvserver/sockets/backend.sock
   host: "0.0.0.0"
   enable_cors: true
   cors_origins:
@@ -177,6 +178,7 @@ icme:
 gateway:
   enabled: true
   binary_path: /home/gperry/.local/share/knirvserver/bin/knirvgateway
+  port: 8081
   socket_path: /home/gperry/.local/share/knirvserver/sockets/gateway.sock
   turn_udp_port: 3478
   turn_tcp_port: 3479
@@ -207,6 +209,9 @@ chain:
   binary_path: /home/gperry/.local/share/knirvserver/bin/knirvchain
   socket_path: /home/gperry/.local/share/knirvserver/sockets/chain.sock
   p2p_socket_path: /home/gperry/.local/share/knirvserver/sockets/chain-p2p.sock
+  port: 8083
+  p2p_port: 4001
+  api_port: 8083
   data_path: ~/.local/share/knirvserver/knirvchain
   role: "client"
   chain_id: "testnet"

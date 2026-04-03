@@ -136,10 +136,6 @@ func main() {
 	deepseekApiKeyEntry.SetPlaceHolder("DeepSeek API Key")
 	deepseekApiKeyEntry.SetText(envValues["DEEPSEEK_API_KEY"])
 
-	databaseUrlEntry := widget.NewEntry()
-	databaseUrlEntry.SetPlaceHolder("Database URL")
-	databaseUrlEntry.SetText(envValues["DATABASE_URL"])
-
 	tlsCertEntry := widget.NewEntry()
 	tlsCertEntry.SetPlaceHolder("TLS Certificate (PEM)")
 	tlsCertEntry.SetText(envValues["TLS_CERT"])
@@ -198,7 +194,6 @@ func main() {
 			KnirvJwtSecret:        knirvJwtSecretEntry.Text,
 			GeminiApiKey:          geminiApiKeyEntry.Text,
 			DeepseekApiKey:        deepseekApiKeyEntry.Text,
-			DatabaseUrl:           databaseUrlEntry.Text,
 			TlsCert:               tlsCertEntry.Text,
 			TlsKey:                tlsKeyEntry.Text,
 		}
@@ -293,9 +288,6 @@ func main() {
 		container.NewGridWithColumns(2,
 			container.NewVBox(widget.NewLabel("Gemini API Key:"), geminiApiKeyEntry),
 			container.NewVBox(widget.NewLabel("DeepSeek API Key:"), deepseekApiKeyEntry),
-		),
-		container.NewGridWithColumns(2,
-			container.NewVBox(widget.NewLabel("Database URL:"), databaseUrlEntry),
 		),
 		widget.NewLabel("TLS Certificates (PEM format):"),
 		container.NewVBox(widget.NewLabel("Certificate:"), tlsCertEntry),

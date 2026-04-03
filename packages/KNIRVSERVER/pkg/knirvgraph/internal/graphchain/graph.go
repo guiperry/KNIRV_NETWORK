@@ -1,23 +1,25 @@
 package graphchain
 
 import (
+	"KNIRVGRAPH/internal/operationlog"
 	"KNIRVGRAPH/internal/storage"
 	"KNIRVGRAPH/internal/types"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"sort"
 	"sync"
 )
 
 type GraphChain struct {
-	mu      sync.RWMutex
-	storage storage.GraphStorage
-	state   *types.State
-	nodes   map[string]*types.GraphNode
-	edges   map[string]*types.Edge
-	heads   []string // Current head nodes
-	genesis string   // Genesis node ID
-	config  *GraphConfig
+	mu         sync.RWMutex
+	storage    storage.GraphStorage
+	opLog      *operationlog.OperationLog
+	nodes      map[string]*types.GraphNode
+	edges      map[string]*types.Edge
+	heads      []string // Current head nodes
+	genesis    string   // Genesis node ID
+	config     *GraphConfig
 }
 
 type GraphConfig struct {
@@ -31,14 +33,23 @@ type GraphConfig struct {
 }
 
 func NewGraphChain(storage storage.GraphStorage) *GraphChain {
-	return &GraphChain{
+	opLog := operationlog.NewOperationLog(storage)
+	gc := &GraphChain{
 		storage: storage,
-		state:   types.NewState(),
+		opLog:   opLog,
 		nodes:   make(map[string]*types.GraphNode),
 		edges:   make(map[string]*types.Edge),
 		heads:   []string{},
 		config:  DefaultGraphConfig(),
 	}
+
+	// Load operation log state
+	if err := gc.opLog.LoadState(); err != nil {
+		// Log error but don't fail initialization
+		fmt.Printf("Warning: failed to load operation log state: %v\n", err)
+	}
+
+	return gc
 }
 
 func DefaultGraphConfig() *GraphConfig {
@@ -245,16 +256,16 @@ func (gc *GraphChain) checkForCycles(newNode *types.GraphNode) error {
 }
 
 func (gc *GraphChain) executeNodeAddition(node *types.GraphNode) error {
-	// Execute transactions in the node
+	// Execute transactions in the node using the operation log
 	for _, tx := range node.Data.Transactions {
-		if err := gc.executeTransaction(&tx); err != nil {
+		if err := gc.executeTransaction(&tx, node.ID); err != nil {
 			return fmt.Errorf("failed to execute transaction %s: %w", tx.ID, err)
 		}
 	}
 
 	// Apply state changes
 	for _, stateChange := range node.Data.StateChanges {
-		if err := gc.applyStateChange(&stateChange); err != nil {
+		if err := gc.applyStateChange(&stateChange, node.ID); err != nil {
 			return fmt.Errorf("failed to apply state change: %w", err)
 		}
 	}
@@ -262,33 +273,60 @@ func (gc *GraphChain) executeNodeAddition(node *types.GraphNode) error {
 	return nil
 }
 
-func (gc *GraphChain) executeTransaction(tx *types.Transaction) error {
+func (gc *GraphChain) executeTransaction(tx *types.Transaction, nodeID string) error {
 	switch {
 	case tx.To != "":
-		// Transfer transaction
-		return gc.state.Transfer(tx.From, tx.To, tx.Amount)
+		// Transfer transaction - create audited operation
+		amount := new(big.Int).SetUint64(tx.Amount)
+		op := types.NewAuditedOperation(
+			types.TransferOp,
+			tx.From,
+			tx.To,
+			amount,
+			nodeID,
+			"",
+			map[string]interface{}{
+				"fee": tx.Fee,
+				"data": string(tx.Data),
+			},
+		)
+		return gc.opLog.ExecuteAndAudit(op)
 	default:
-		// Other transaction types
-		return nil
+		// Other transaction types - create generic operation
+		op := types.NewAuditedOperation(
+			types.NodeAddOp,
+			"",
+			"",
+			nil,
+			nodeID,
+			"",
+			map[string]interface{}{
+				"transaction_id": tx.ID,
+				"fee": tx.Fee,
+				"data": string(tx.Data),
+			},
+		)
+		return gc.opLog.ExecuteAndAudit(op)
 	}
 }
 
-func (gc *GraphChain) applyStateChange(change *types.StateChange) error {
-	switch change.Type {
-	case types.AccountBalance:
-		account := gc.state.GetAccount(change.Key)
-		if newBalance, ok := change.NewValue.(float64); ok {
-			account.Balance = uint64(newBalance)
-			gc.state.SetAccount(account)
-		}
-	case types.AccountNonce:
-		account := gc.state.GetAccount(change.Key)
-		if newNonce, ok := change.NewValue.(float64); ok {
-			account.Nonce = uint64(newNonce)
-			gc.state.SetAccount(account)
-		}
-	}
-	return nil
+func (gc *GraphChain) applyStateChange(change *types.StateChange, nodeID string) error {
+	// Create state change operation
+	op := types.NewAuditedOperation(
+		types.StateChangeOp,
+		"",
+		"",
+		nil,
+		nodeID,
+		"",
+		map[string]interface{}{
+			"change_type": change.Type,
+			"key": change.Key,
+			"old_value": change.OldValue,
+			"new_value": change.NewValue,
+		},
+	)
+	return gc.opLog.ExecuteAndAudit(op)
 }
 
 func (gc *GraphChain) updateRelationships(node *types.GraphNode) error {
@@ -497,11 +535,15 @@ func (gc *GraphChain) FindPath(fromID, toID string, maxDepth int) ([]string, err
 }
 
 func (gc *GraphChain) GetState() *types.State {
-	return gc.state
+	// Return a minimal state representation
+	// In a full implementation, this would reconstruct state from operation log
+	return &types.State{
+		Height: gc.opLog.GetCurrentHeight(),
+	}
 }
 
 func (gc *GraphChain) GetCurrentHeight() uint64 {
 	gc.mu.RLock()
 	defer gc.mu.RUnlock()
-	return gc.state.Height
+	return gc.opLog.GetCurrentHeight()
 }

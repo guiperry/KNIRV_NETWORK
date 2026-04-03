@@ -16,6 +16,13 @@ import (
 	"go.uber.org/zap"
 )
 
+func browserURL(port int) string {
+	if port <= 0 {
+		port = 8080
+	}
+	return fmt.Sprintf("http://localhost:%d", port)
+}
+
 func main() {
 	socketPath := flag.String("socket", "", "Unix socket path for HTTP server (overrides PORT)")
 
@@ -89,12 +96,7 @@ func main() {
 	if cfg.AutoOpenBrowser {
 		go func() {
 			time.Sleep(2 * time.Second) // Wait for server to be ready
-			var url string
-			if cfg.SocketPath != "" {
-				url = "http://unix/" + cfg.SocketPath
-			} else {
-				url = fmt.Sprintf("http://localhost:%d", cfg.Port)
-			}
+			url := browserURL(cfg.Port)
 			logger.Info("Opening browser to oracle", zap.String("url", url))
 			if err := config.OpenBrowser(url); err != nil {
 				logger.Warn("Failed to open browser", zap.Error(err))

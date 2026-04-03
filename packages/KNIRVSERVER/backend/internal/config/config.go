@@ -85,6 +85,9 @@ type ChainConfig struct {
 	BinaryPath    string `mapstructure:"binary_path"`
 	SocketPath    string `mapstructure:"socket_path"`
 	P2PSocketPath string `mapstructure:"p2p_socket_path"`
+	Port          int    `mapstructure:"port"`
+	P2PPort       int    `mapstructure:"p2p_port"`
+	APIPort       int    `mapstructure:"api_port"`
 	DataPath      string `mapstructure:"data_path"`
 	Role          string `mapstructure:"role"`
 	ChainID       string `mapstructure:"chain_id"`
@@ -445,15 +448,22 @@ func LoadWithDefaults() (*Config, error) {
 	// Set default values
 	setDefaults()
 
-	// Set configuration file name and paths
-	viper.SetConfigName("production")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./config")
-	viper.AddConfigPath(".")
+	// Respect an explicitly requested config file first. This is how the wrapper
+	// forces the backend to use development/testnet configs instead of falling
+	// back to the production search path.
+	if explicitConfig := os.Getenv("KNIRV_CONFIG_FILE"); explicitConfig != "" {
+		viper.SetConfigFile(explicitConfig)
+	} else {
+		// Set configuration file name and paths
+		viper.SetConfigName("production")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath("./config")
+		viper.AddConfigPath(".")
 
-	// Also check the canonical extracted config directory (~/.config/knirv-server/config).
-	if configDir, err := GetConfigDir(); err == nil {
-		viper.AddConfigPath(filepath.Join(configDir, "config"))
+		// Also check the canonical extracted config directory (~/.config/knirv-server/config).
+		if configDir, err := GetConfigDir(); err == nil {
+			viper.AddConfigPath(filepath.Join(configDir, "config"))
+		}
 	}
 
 	// Environment variable support — replace dots with underscores so that
@@ -461,6 +471,7 @@ func LoadWithDefaults() (*Config, error) {
 	viper.SetEnvPrefix("KNIRV")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
+	_ = viper.BindEnv("api.socket_path", "KNIRV_API_SOCKET", "KNIRV_API_SOCKET_PATH")
 
 	// Read configuration file (optional)
 	if err := viper.ReadInConfig(); err != nil {
@@ -670,6 +681,7 @@ func setDefaults() {
 		// Fallback to relative paths if we can't get app data directory
 		appDataDir = "."
 	}
+	socketDir := filepath.Join(appDataDir, "sockets")
 
 	// Operational mode defaults
 	viper.SetDefault("mode", "headless")
@@ -682,12 +694,13 @@ func setDefaults() {
 	viper.SetDefault("api.port", 8082)
 	viper.SetDefault("api.bind_address", "0.0.0.0")
 	viper.SetDefault("api.address", "0.0.0.0")
-	viper.SetDefault("api.socket_path", filepath.Join(appDataDir, "sockets", "backend.sock"))
+	viper.SetDefault("socket_dir", socketDir)
+	viper.SetDefault("api.socket_path", filepath.Join(socketDir, "backend.sock"))
 
 	// Gateway (embedded KNIRVGATEWAY) configuration defaults
 	viper.SetDefault("gateway.enabled", true)
 	viper.SetDefault("gateway.binary_path", "./knirvgateway")
-	viper.SetDefault("gateway.port", 8081)
+	viper.SetDefault("gateway.port", 8080)
 
 	// Security defaults
 	viper.SetDefault("security.auth_required", false) // false for testnet
@@ -812,8 +825,8 @@ func setDefaults() {
 	// Gateway (embedded KNIRVGATEWAY) configuration defaults
 	viper.SetDefault("gateway.enabled", true)
 	viper.SetDefault("gateway.binary_path", "./knirvgateway")
-	viper.SetDefault("gateway.port", 8081)
-	viper.SetDefault("gateway.socket_path", filepath.Join(appDataDir, "sockets", "gateway.sock"))
+	viper.SetDefault("gateway.port", 8080)
+	viper.SetDefault("gateway.socket_path", filepath.Join(socketDir, "gateway.sock"))
 	viper.SetDefault("gateway.turn_udp_port", 3478)
 	viper.SetDefault("gateway.turn_tcp_port", 3479)
 	viper.SetDefault("gateway.turn_api_port", 3476)

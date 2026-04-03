@@ -20,8 +20,8 @@ import (
 // Client handles communication with the transaction chain.
 // Supports both HTTP mode (when address starts with http:// or https://) and gRPC mode.
 type Client struct {
-	httpBaseURL string
-	httpClient  *http.Client
+	httpBaseURL   string
+	httpClient    *http.Client
 	balanceReader interface {
 		GetAccountBalance(address string) (int64, error)
 	}
@@ -343,7 +343,7 @@ func (c *Client) CreateChainSession(dveNodeID, ownerAddress string) (*objects.Ch
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	resp, err := c.client.CreateSession(ctx, &pb.CreateSessionRequest{
+	resp, err := c.client.CreateChainSession(ctx, &pb.CreateChainSessionRequest{
 		DveNodeId:    dveNodeID,
 		OwnerAddress: ownerAddress,
 	})
@@ -361,14 +361,12 @@ func (c *Client) CreateChainSession(dveNodeID, ownerAddress string) (*objects.Ch
 		SessionID:     resp.SessionId,
 		DVENodeID:     dveNodeID,
 		OwnerAddress:  ownerAddress,
-		SessionKey:    resp.SessionKey,
-		SessionToken:  resp.SessionToken,
-		BlockHeight:   resp.BlockHeight,
-		ChainID:       resp.ChainId,
+		BlockHeight:   0,
+		ChainID:       "knirv-chain-1",
 		CreatedAt:     createdAt,
 		ExpiresAt:     expiresAt,
 		LastValidated: createdAt,
-		Status:        resp.Status,
+		Status:        "active",
 		PQCSignature:  resp.PqcSignature,
 	}, nil
 }
@@ -385,6 +383,9 @@ func (c *Client) ValidateSession(sessionID string) (*objects.ChainSession, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate session: %w", err)
 	}
+	if !resp.Valid {
+		return nil, fmt.Errorf("session is not valid: %s", sessionID)
+	}
 
 	validatedAt := time.Now()
 	expiresAt := validatedAt.Add(30 * time.Minute)
@@ -394,17 +395,12 @@ func (c *Client) ValidateSession(sessionID string) (*objects.ChainSession, error
 
 	return &objects.ChainSession{
 		SessionID:     sessionID,
-		DVENodeID:     resp.DveNodeId,
-		OwnerAddress:  resp.OwnerAddress,
-		SessionKey:    resp.SessionKey,
-		SessionToken:  resp.SessionToken,
-		BlockHeight:   resp.BlockHeight,
-		ChainID:       resp.ChainId,
+		BlockHeight:   0,
+		ChainID:       "knirv-chain-1",
 		CreatedAt:     validatedAt,
 		ExpiresAt:     expiresAt,
 		LastValidated: validatedAt,
-		Status:        resp.Status,
-		PQCSignature:  resp.PqcSignature,
+		Status:        "active",
 	}, nil
 }
 

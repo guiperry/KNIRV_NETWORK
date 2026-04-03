@@ -406,7 +406,7 @@ make tests
 This command orchestrates testing across all components:
 - **KNIRVCORTEX**: Neural Intellegence Model Framework (TypeScript/React + WASM)
 - **KNIRVSDK**: Multi-language SDK (Go, Python, TypeScript)
-- **KNIRVGRAPH**: Blockchain Explorer (Go backend + TypeScript frontend)
+- **KNIRVGRAPH**: Graph Database (Go backend + TypeScript frontend)
 - **KNIRVWALLET**: Wallet System (React Native + Web)
 - **KNIRVSERVER**: Admin Portal (React + Go backend)
 - **KNIRVORACLE**: Core Network (Go blockchain)

@@ -27,7 +27,7 @@ type GenesisAppState struct {
 
 func DefaultGenesis() *GenesisDoc {
 	return &GenesisDoc{
-		ChainID:     "blockchain-testnet",
+		ChainID:     "knirvgraph-testnet",
 		GenesisTime: time.Now(),
 		Validators: []GenesisValidator{
 			{

@@ -104,6 +104,7 @@ func LoadConfigurationViper(role Role, cliConfigPath string) (*Config, string, e
 
 	// Additional standardized environment variable bindings
 	v.BindEnv("port", "KNIRV_HTTP_PORT")
+	v.BindEnv("socket_path", "KNIRV_SOCKET_PATH")
 	v.BindEnv("p2p_port", "KNIRV_P2P_PORT")
 	v.BindEnv("wallet_port", "KNIRV_WALLET_PORT")
 	v.BindEnv("chain_id", "KNIRV_CHAIN_ID")

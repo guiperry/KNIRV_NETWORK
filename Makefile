@@ -427,7 +427,7 @@ test-sdk: ## Test KNIRVSDK (Multi-language SDK)
 	fi
 
 .PHONY: test-graph
-test-graph: ## Test KNIRVGRAPH (Blockchain Explorer)
+test-graph: ## Test KNIRVGRAPH (Graph Database)
 	@echo "$(BLUE)Testing KNIRVGRAPH...$(NC)"
 	@if [ -f "packages/KNIRVGRAPH/scripts/run-comprehensive-tests.sh" ]; then \
 		cd packages/KNIRVGRAPH && ./scripts/run-comprehensive-tests.sh; \

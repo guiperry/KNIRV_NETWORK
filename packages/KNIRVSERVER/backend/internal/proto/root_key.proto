@@ -17,7 +17,6 @@ message RootKeyFileContentProto {
   string gemini_api_key = 12;
   string deepseek_api_key = 13;
   string cerebras_api_key = 14;
-  string database_url = 15;
   string tls_cert = 16;
   string tls_key = 17;
 }

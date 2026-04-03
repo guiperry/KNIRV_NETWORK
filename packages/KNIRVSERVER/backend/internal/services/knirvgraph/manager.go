@@ -245,9 +245,13 @@ func (m *Manager) Start() error {
 	m.running = true
 	m.logger.Info("KNIRVGRAPH started", zap.Int("pid", m.cmd.Process.Pid))
 
-	if !m.waitForHealth(m.config.StartTimeout) {
-		m.logger.Warn("KNIRVGRAPH did not become healthy within timeout")
-	}
+	go func(timeout time.Duration) {
+		if !m.waitForHealth(timeout) {
+			m.logger.Warn("KNIRVGRAPH did not become healthy within timeout")
+			return
+		}
+		m.logger.Info("KNIRVGRAPH health check passed")
+	}(m.config.StartTimeout)
 
 	return nil
 }

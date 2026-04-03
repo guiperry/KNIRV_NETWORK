@@ -116,9 +116,11 @@ func TestGraphChainGetCurrentHeight(t *testing.T) {
 
 	// Height is still managed by the state, not by node count
 	height = gc.GetCurrentHeight()
-	if height < 0 {
-		t.Errorf("Expected non-negative height, got %d", height)
-	}
+	// height is uint64, cannot be negative; check for any other condition if needed
+	// The check is redundant but we can keep it as a comment
+	// if height < 0 {
+	// 	t.Errorf("Expected non-negative height, got %d", height)
+	// }
 }
 
 func TestGraphChainGetHeads(t *testing.T) {

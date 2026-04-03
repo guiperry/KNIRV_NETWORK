@@ -12,6 +12,7 @@ import (
 
 	"backend_server/internal/config"
 	"backend_server/internal/database"
+	pb "backend_server/internal/proto"
 	"backend_server/internal/services/teesecurity"
 
 	"github.com/stretchr/testify/assert"
@@ -248,6 +249,28 @@ func TestServerHandleHealth(t *testing.T) {
 	for _, service := range expectedServices {
 		assert.Contains(t, services, service)
 	}
+}
+
+func TestApplyRootKeySecretsToConfigDoesNotOverrideDatabasePath(t *testing.T) {
+	cfg := &config.Config{
+		Database: config.DatabaseConfig{
+			Path: "/tmp/original.db",
+		},
+		Security: config.SecurityConfig{},
+	}
+
+	content := &pb.RootKeyFileContentProto{
+		JwtSecret: "test-jwt-secret",
+		TlsCert:   "test-cert",
+		TlsKey:    "test-key",
+	}
+
+	applyRootKeySecretsToConfig(cfg, content)
+
+	assert.Equal(t, "/tmp/original.db", cfg.Database.Path)
+	assert.Equal(t, "test-jwt-secret", cfg.Security.JWTSecret)
+	assert.Equal(t, "test-cert", cfg.Security.TLSCert)
+	assert.Equal(t, "test-key", cfg.Security.TLSKey)
 }
 
 func TestServerStart_AlreadyRunning(t *testing.T) {

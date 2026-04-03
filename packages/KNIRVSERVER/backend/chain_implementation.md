@@ -9,7 +9,10 @@ This document defines the intended separation of concerns for the four chain lay
 Status as of 2026-04-03:
 
 - Phases 1 through 8 are now materially in place.
-- `transactionchain`, `validationchain`, and `rollup` packages exist under `internal/services/`.
+- `transactionchain`, `validationchain`, and `rollup` packages now exist with the intended role split.
+- the transaction-chain and validation-chain Go integration packages now live under:
+  - `internal/services/blockchain/transactionchain`
+  - `internal/services/blockchain/validationchain`
 - transaction-chain consumers have been rewired to the transaction-chain client boundary.
 - validation-chain consumers have been rewired to validation-specific commit and anchor operations.
 - the embedded transaction-chain runtime now exposes the compatibility endpoints the Go layer expects.
@@ -31,6 +34,7 @@ Status as of 2026-04-03:
 - the remaining generic `interface{}`-based ICME policy adapter path in `main.go` has been removed in favor of explicit policy-commit adapters
 - `main.go` now uses validation-specific setter paths directly for ICME and anchoring, and the old alias setter methods removed from those services where no callers remain
 - legacy fallback adapters in `main.go` that translated typed policy and evidence requests into old blockchain transactions have now been removed; these flows are validation-chain-only when chain wiring is present
+- the old top-level legacy files in `internal/services/blockchain` have been removed, leaving that directory as the parent namespace for nested `transactionchain` and `validationchain` packages
 
 Remaining work is now mostly cleanup and hardening rather than first-pass architecture wiring.
 
@@ -110,9 +114,9 @@ Recommended structure:
   - foreign-language transaction chain runtime only
 - `backend/internal/embedded/validation_chain/`
   - foreign-language validation chain runtime only
-- `backend/internal/services/transactionchain/`
+- `backend/internal/services/blockchain/transactionchain/`
   - Go manager, client, types, adapters
-- `backend/internal/services/validationchain/`
+- `backend/internal/services/blockchain/validationchain/`
   - Go manager, client, types, adapters
 - `backend/internal/services/knirvchain/`
   - existing embedded manager for `KNIRVCHAIN`
@@ -155,20 +159,16 @@ Additional clarification:
 - keep the existing `KNIRVCHAIN` wallet implementation in place for agent wallets only
 - do not use `KNIRVCHAIN` as the long-term wallet authority for human users
 
-### Current Mixed Blockchain Package
+### Blockchain Service Namespace
 
-The current package is overloaded and must be split:
+The old top-level legacy client files under `internal/services/blockchain/` have now been removed.
 
-- [nrn_client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/nrn_client.go)
-- [knirvchain_client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/knirvchain_client.go)
-- [chain_client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/chain_client.go)
+That directory is now retained as the parent namespace for:
 
-These currently mix:
+- [transactionchain](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/transactionchain)
+- [validationchain](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/validationchain)
 
-- transaction/account semantics
-- DVE registration/session logic
-- legacy HTTP/gRPC compatibility
-- anchoring and commit adapters via consumers in `main.go`
+This keeps the import path explicit while avoiding the previous mixed-client package.
 
 ### Validation Is Not Yet A Chain
 
@@ -191,7 +191,7 @@ It does not yet implement:
 
 ## Target Package Split
 
-### `internal/services/transactionchain`
+### `internal/services/blockchain/transactionchain`
 
 This package should own:
 
@@ -213,7 +213,7 @@ Suggested files:
 - `manager.go`
 - `config.go`
 
-### `internal/services/validationchain`
+### `internal/services/blockchain/validationchain`
 
 This package should own:
 
@@ -250,8 +250,8 @@ Suggested files:
 
 Create:
 
-- `packages/KNIRVSERVER/backend/internal/services/transactionchain/`
-- `packages/KNIRVSERVER/backend/internal/services/validationchain/`
+- `packages/KNIRVSERVER/backend/internal/services/blockchain/transactionchain/`
+- `packages/KNIRVSERVER/backend/internal/services/blockchain/validationchain/`
 - `packages/KNIRVSERVER/backend/internal/services/rollup/`
 
 No behavior changes yet. Only introduce the new boundaries.
@@ -260,10 +260,10 @@ No behavior changes yet. Only introduce the new boundaries.
 
 Move or split:
 
-- [nrn_client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/nrn_client.go)
-  - new home: `internal/services/transactionchain/client.go`
-- [knirvchain_client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/knirvchain_client.go)
-  - new home: `internal/services/transactionchain/compat_client.go`
+- legacy transaction client functionality
+  - new home: `internal/services/blockchain/transactionchain/client.go`
+- legacy compatibility client functionality
+  - new home: `internal/services/blockchain/transactionchain/compat_client.go`
 
 Move shared types:
 
@@ -273,13 +273,13 @@ Move shared types:
 
 into:
 
-- `internal/services/transactionchain/types.go`
+- `internal/services/blockchain/transactionchain/types.go`
 
-Keep a short-term shim in:
+Status:
 
-- [blockchain](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain)
-
-so imports do not have to be flipped in one change.
+- completed
+- imports have been flipped to the nested blockchain namespace
+- the old top-level `internal/services/blockchain` client files were removed instead of keeping a long-lived shim package
 
 ### Phase 3: Transaction Chain Consumer Rewiring
 
@@ -301,8 +301,8 @@ Update tests:
 
 Create:
 
-- `internal/services/validationchain/client.go`
-- `internal/services/validationchain/types.go`
+- `internal/services/blockchain/validationchain/client.go`
+- `internal/services/blockchain/validationchain/types.go`
 
 Define a validation-specific interface:
 
@@ -415,15 +415,17 @@ Status:
 
 Recommended next work items:
 
-- Retire or reduce the legacy `internal/services/blockchain` shim layer once the remaining callers are flipped.
 - Add focused end-to-end tests that exercise:
   - transaction chain block production
   - rollup batch construction
   - oracle settlement submission
   - backend API status reporting
   - oracle-to-rollup reconciliation after finalize/dispute transitions
-- expand oracle-backed balance coverage for any remaining compatibility callers beyond the current NRN client delegation path
-- continue removing compatibility-only adapter structs in `main.go` where explicit transaction-chain or validation-chain request types now exist
+- reduce or delete compatibility-only client surfaces inside:
+  - `internal/services/blockchain/transactionchain/compat_client.go`
+  - `internal/services/blockchain/transactionchain/api_client.go`
+  once remaining callers and tests no longer need them
+- expand oracle-backed balance coverage for any remaining compatibility callers beyond the current transaction-chain delegation path
 - decide whether validation-chain-dependent flows should remain disabled without `validationChainClient`, or whether a separate explicit local-only persistence path is needed for degraded operation
 
 ## Required Transaction Chain Compatibility Endpoints
@@ -439,8 +441,8 @@ The current Go transaction clients already expect these HTTP routes and should c
 
 These expectations are encoded in:
 
-- [nrn_client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/nrn_client.go#L123)
-- [knirvchain_client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/knirvchain_client.go#L192)
+- [client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/transactionchain/client.go)
+- [compat_client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/transactionchain/compat_client.go)
 
 Important clarification:
 
@@ -535,7 +537,7 @@ Role:
 
 Add:
 
-- `internal/services/transactionchain/manager.go`
+- `internal/services/blockchain/transactionchain/manager.go`
 
 Manager responsibilities:
 
@@ -567,7 +569,7 @@ Consumers:
 
 Add:
 
-- `internal/services/validationchain/manager.go`
+- `internal/services/blockchain/validationchain/manager.go`
 
 Manager responsibilities:
 
@@ -802,7 +804,7 @@ This reduces the blast radius and keeps the old compatibility surface alive whil
 
 ## Current Implementation Status
 
-The migration has begun and the following work is already in place.
+The migration is materially in place and the following work is already in place.
 
 Completed:
 
@@ -813,10 +815,10 @@ Completed:
   - `validation_chain`
   - in [config.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/config/config.go)
 - added Go integration scaffolding for the new chain roles:
-  - [transactionchain/client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/transactionchain/client.go)
-  - [transactionchain/manager.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/transactionchain/manager.go)
-  - [validationchain/client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/validationchain/client.go)
-  - [validationchain/manager.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/validationchain/manager.go)
+  - [transactionchain/client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/transactionchain/client.go)
+  - [transactionchain/manager.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/transactionchain/manager.go)
+  - [validationchain/client.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/validationchain/client.go)
+  - [validationchain/manager.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/validationchain/manager.go)
 - updated server wiring in:
   - [main.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go)
 - transaction-chain startup/client path is now separated from `KNIRVCHAIN`
@@ -825,41 +827,39 @@ Completed:
 - anchoring prefers the validation-chain client path
 - ICME prefers the validation-chain client path
 - startup and shutdown now include the two new embedded chain managers
-
-Partially completed:
-
-- the new `transactionchain` client still wraps the legacy blockchain client for compatibility during migration
-- the new `validationchain` client currently uses transitional request translation rather than final validation-native request types
-- `main.go` still contains legacy adapters for compatibility fallback
+- imports have been updated to the nested blockchain namespace paths
+- the old top-level legacy files in `internal/services/blockchain/` have been removed
 
 Not yet completed:
 
-- transaction-chain compatibility endpoint implementation in the JS runtime
-- validation-chain health and validation-native route implementation in the Rust runtime
-- rollup service implementation
-- oracle settlement route additions for rollups
-- full consumer migration away from the old `internal/services/blockchain` compatibility layer
-- tests updated to target the new chain boundaries explicitly
+- focused end-to-end test coverage across transaction chain, rollup, and oracle settlement boundaries
+- removal or reduction of compatibility-only clients that remain inside the nested transaction-chain package
+- any final degraded-mode decision for validation-chain-dependent workflows when no validation chain is configured
 
 Verification status:
 
 - touched Go files were formatted
-- targeted Go verification was attempted, but backend package test/compile commands timed out in the current sandbox environment without producing stable compiler output
-- because of that, the migration should currently be treated as in-progress rather than fully verified
+- compile verification passed for:
+  - `./internal/services/blockchain/transactionchain`
+  - `./internal/services/blockchain/validationchain`
+  - `./internal/services/evidence`
+  - `./internal/services/icme`
+  - `./internal/services/workflow`
+  - `./internal/services/dvecreation`
+  - `./internal/services/dverental`
+- backend logging and startup-path smoke verification passed for:
+  - `./cmd/backend_server -run 'Test(GetOSAppDataDir|InitLogging)'`
+- some package tests that use `httptest.NewServer` still cannot run in this sandbox because local socket binding is blocked
 
 ## Where To Go Next
 
 The next implementation sequence should be:
 
-1. Add the transaction-chain compatibility endpoints in the JS runtime under:
-   - [transaction_chain](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/embedded/transaction_chain)
-2. Add `/health` plus validation-native commit routes in the Rust validation chain under:
-   - [validation_chain](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/embedded/validation_chain)
-3. Replace the remaining legacy adapters in:
-   - [main.go](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go)
-   with native `transactionchain` and `validationchain` request types
-4. Add the rollup service and oracle settlement endpoints under:
-   - [internal/oracle](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/oracle)
+1. Add focused end-to-end tests across the transaction chain, rollup loop, oracle settlement, and backend rollup API.
+2. Reduce compatibility-only clients under:
+   - [transactionchain](/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/blockchain/transactionchain)
+3. Decide and document degraded behavior for validation-chain-dependent flows when validation-chain wiring is absent.
+4. Continue hardening oracle settlement and balance authority behavior.
 
 More concretely:
 
