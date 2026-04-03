@@ -10,6 +10,9 @@ port: 8090
 serve_frontend: true
 log_level: "debug"
 
+# Socket paths for submodules (Unix sockets for internal communication)
+socket_dir: /home/gperry/.local/share/knirvserver/sockets
+
 # Database configuration
 database:
   path: ~/.local/share/knirvserver/backend_server/data/server.db
@@ -173,8 +176,8 @@ icme:
 # KNIRVGATEWAY Configuration
 gateway:
   enabled: true
-  binary_path: ./bin/knirvgateway
-  port: 8081
+  binary_path: /home/gperry/.local/share/knirvserver/bin/knirvgateway
+  socket_path: /home/gperry/.local/share/knirvserver/sockets/gateway.sock
   turn_udp_port: 3478
   turn_tcp_port: 3479
   turn_api_port: 3476
@@ -190,10 +193,9 @@ gateway:
 # KNIRVGRAPH Configuration
 graph:
   enabled: true
-  binary_path: ./bin/knirvgraph
-  port: 7090
-  p2p_port: 7091
-  api_port: 7092
+  binary_path: /home/gperry/.local/share/knirvserver/bin/knirvgraph
+  socket_path: /home/gperry/.local/share/knirvserver/sockets/graph.sock
+  p2p_socket_path: /home/gperry/.local/share/knirvserver/sockets/graph-p2p.sock
   data_path: ~/.local/share/knirvserver/knirvgraph
   sync_interval: "30s"
   start_timeout: 30
@@ -202,10 +204,9 @@ graph:
 # KNIRVCHAIN Configuration
 chain:
   enabled: true
-  binary_path: ./bin/knirvchain
-  port: 8082
-  p2p_port: 4001
-  api_port: 9090
+  binary_path: /home/gperry/.local/share/knirvserver/bin/knirvchain
+  socket_path: /home/gperry/.local/share/knirvserver/sockets/chain.sock
+  p2p_socket_path: /home/gperry/.local/share/knirvserver/sockets/chain-p2p.sock
   data_path: ~/.local/share/knirvserver/knirvchain
   role: "client"
   chain_id: "testnet"

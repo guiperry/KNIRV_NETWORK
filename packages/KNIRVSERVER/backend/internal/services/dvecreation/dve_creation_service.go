@@ -71,6 +71,10 @@ func (dcs *DVECreationService) SetChainClient(client ChainClientInterface) {
 	dcs.chainClient = client
 }
 
+func (dcs *DVECreationService) SetTransactionChainClient(client ChainClientInterface) {
+	dcs.SetChainClient(client)
+}
+
 func (dcs *DVECreationService) SetDveManager(manager interface{}) {
 	dcs.mu.Lock()
 	defer dcs.mu.Unlock()

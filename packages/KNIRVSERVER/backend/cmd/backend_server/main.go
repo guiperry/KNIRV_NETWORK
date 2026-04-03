@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -51,8 +52,13 @@ import (
 	"backend_server/internal/services/session"
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
+	"backend_server/internal/services/transactionchain"
 	"backend_server/internal/services/validation"
+	"backend_server/internal/services/validationchain"
 
+	knirvchain "backend_server/internal/services/knirvchain"
+	knirvgateway "backend_server/internal/services/knirvgateway"
+	knirvgraph "backend_server/internal/services/knirvgraph"
 	"backend_server/internal/services/vault"
 	"backend_server/internal/services/websocket"
 	"backend_server/internal/services/workflow"
@@ -60,9 +66,6 @@ import (
 	"backend_server/internal/storage/pqc"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
-	knirvchain "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvchain"
-	knirvgateway "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway"
-	knirvgraph "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgraph"
 
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
@@ -81,13 +84,15 @@ var (
 
 // Server represents the KNIRV-SERVER backend server
 type Server struct {
-	config     *config.Config
-	db         *database.BuntDBManager
-	router     *mux.Router
-	httpServer *http.Server
-	p2pManager *p2p.DVEP2PManager
-	nrnClient  *blockchain.NRNClient
-	logger     *zap.Logger
+	config                 *config.Config
+	db                     *database.BuntDBManager
+	router                 *mux.Router
+	httpServer             *http.Server
+	p2pManager             *p2p.DVEP2PManager
+	nrnClient              *blockchain.NRNClient
+	logger                 *zap.Logger
+	transactionChainClient *transactionchain.Client
+	validationChainClient  *validationchain.Client
 
 	// eBPF subsystem
 	ebpfManager             ebpf.ManagerInterface
@@ -119,6 +124,8 @@ type Server struct {
 	graphManager                 *knirvgraph.Manager
 	graphSyncManager             *knirvgraph.SyncManager
 	chainManager                 *knirvchain.Manager
+	transactionChainManager      *transactionchain.Manager
+	validationChainManager       *validationchain.Manager
 
 	// Active Memory Layer (Markdown Fabric)
 	pqcManager          *pqc.EncryptionManager
@@ -528,6 +535,10 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	// Create router
 	router := mux.NewRouter()
 
+	var nrnClient *blockchain.NRNClient
+	var transactionChainClient *transactionchain.Client
+	var validationChainClient *validationchain.Client
+
 	// Initialize services
 	dveManager, err := dvemanager.NewDVEManager(dbManager, p2pManager, ebpfManager, cfg)
 	if err != nil {
@@ -539,21 +550,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	if err != nil {
 		log.Printf("Warning: Failed to initialize DVE creation service: %v", err)
 		dveCreationService = nil
-	}
-
-	// Initialize blockchain client
-	var nrnClient *blockchain.NRNClient
-	if cfg.Blockchain.URL != "" {
-		client, err := blockchain.NewNRNClient(cfg.Blockchain.URL, cfg.Blockchain.UseTLS, cfg.Blockchain.CertFile)
-		if err != nil {
-			log.Printf("Warning: Failed to initialize blockchain client: %v", err)
-		} else {
-			nrnClient = client
-			if dveCreationService != nil {
-				dveCreationService.SetChainClient(nrnClient)
-				log.Println("Blockchain client integrated with DVE creation service")
-			}
-		}
 	}
 
 	// Merge dvecreation into dvemanager: wire creation service into the manager
@@ -757,8 +753,14 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	// Initialize embedded KNIRVGATEWAY for P2P TURN/Tunnel services
 	var gatewayManager *knirvgateway.Manager
 	if cfg.Gateway.Enabled {
+		// Initialize Gateway socket path if not specified
+		if cfg.Gateway.SocketPath == "" && cfg.SocketDir != "" {
+			cfg.Gateway.SocketPath = filepath.Join(cfg.SocketDir, "gateway.sock")
+		}
+
 		gatewayConfig := &knirvgateway.ManagerConfig{
 			BinaryPath:     cfg.Gateway.BinaryPath,
+			SocketPath:     cfg.Gateway.SocketPath,
 			Port:           cfg.Gateway.Port,
 			BackendAPIPort: cfg.API.Port,
 			Ports: &knirvgateway.PortConfig{
@@ -810,15 +812,14 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	var graphSyncManager *knirvgraph.SyncManager
 	if cfg.Graph.Enabled {
 		graphConfig := &knirvgraph.ManagerConfig{
-			BinaryPath:   cfg.Graph.BinaryPath,
-			Port:         cfg.Graph.Port,
-			P2PPort:      cfg.Graph.P2PPort,
-			APIPort:      cfg.Graph.APIPort,
-			DataPath:     cfg.Graph.DataPath,
-			StartTimeout: time.Duration(cfg.Graph.StartTimeout) * time.Second,
-			StopTimeout:  time.Duration(cfg.Graph.StopTimeout) * time.Second,
-			Stdout:       logging.NewSubprocessWriter("knirvgraph", os.Stdout),
-			Stderr:       logging.NewSubprocessWriter("knirvgraph", os.Stderr),
+			BinaryPath:    cfg.Graph.BinaryPath,
+			SocketPath:    cfg.Graph.SocketPath,
+			P2PSocketPath: cfg.Graph.P2PSocketPath,
+			DataPath:      cfg.Graph.DataPath,
+			StartTimeout:  time.Duration(cfg.Graph.StartTimeout) * time.Second,
+			StopTimeout:   time.Duration(cfg.Graph.StopTimeout) * time.Second,
+			Stdout:        logging.NewSubprocessWriter("knirvgraph", os.Stdout),
+			Stderr:        logging.NewSubprocessWriter("knirvgraph", os.Stderr),
 		}
 		graphManager = knirvgraph.NewManager(graphConfig, logger)
 		log.Println("KNIRVGRAPH manager initialized")
@@ -829,7 +830,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			syncInterval = 30 * time.Second
 		}
 		graphSyncConfig := &knirvgraph.SyncManagerConfig{
-			GraphURL: fmt.Sprintf("http://localhost:%d", cfg.Graph.Port),
+			GraphURL: fmt.Sprintf("http://unix/%s", cfg.Graph.SocketPath),
 			Interval: syncInterval,
 		}
 		graphSyncManager = knirvgraph.NewSyncManager(graphSyncConfig, logger)
@@ -841,20 +842,82 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	log.Printf("DEBUG: cfg.Chain.Enabled = %v", cfg.Chain.Enabled)
 	if cfg.Chain.Enabled {
 		chainConfig := &knirvchain.ManagerConfig{
-			BinaryPath:   cfg.Chain.BinaryPath,
-			Port:         cfg.Chain.Port,
-			P2PPort:      cfg.Chain.P2PPort,
-			APIPort:      cfg.Chain.APIPort,
-			DataPath:     cfg.Chain.DataPath,
-			Role:         cfg.Chain.Role,
-			ChainID:      cfg.Chain.ChainID,
-			StartTimeout: time.Duration(cfg.Chain.StartTimeout) * time.Second,
-			StopTimeout:  time.Duration(cfg.Chain.StopTimeout) * time.Second,
-			Stdout:       logging.NewSubprocessWriter("knirvchain", os.Stdout),
-			Stderr:       logging.NewSubprocessWriter("knirvchain", os.Stderr),
+			BinaryPath:    cfg.Chain.BinaryPath,
+			SocketPath:    cfg.Chain.SocketPath,
+			P2PSocketPath: cfg.Chain.P2PSocketPath,
+			DataPath:      cfg.Chain.DataPath,
+			Role:          cfg.Chain.Role,
+			ChainID:       cfg.Chain.ChainID,
+			StartTimeout:  time.Duration(cfg.Chain.StartTimeout) * time.Second,
+			StopTimeout:   time.Duration(cfg.Chain.StopTimeout) * time.Second,
+			Stdout:        logging.NewSubprocessWriter("knirvchain", os.Stdout),
+			Stderr:        logging.NewSubprocessWriter("knirvchain", os.Stderr),
 		}
 		chainManager = knirvchain.NewManager(chainConfig, logger)
 		log.Println("KNIRVCHAIN manager initialized")
+	}
+
+	var transactionChainManager *transactionchain.Manager
+	if cfg.TransactionChain.Enabled {
+		transactionChainConfig := &transactionchain.ManagerConfig{
+			BinaryPath:   cfg.TransactionChain.BinaryPath,
+			ScriptPath:   cfg.TransactionChain.ScriptPath,
+			WorkDir:      cfg.TransactionChain.WorkDir,
+			Port:         cfg.TransactionChain.Port,
+			DataPath:     cfg.TransactionChain.DataPath,
+			ChainID:      cfg.TransactionChain.ChainID,
+			StartTimeout: time.Duration(cfg.TransactionChain.StartTimeout) * time.Second,
+			StopTimeout:  time.Duration(cfg.TransactionChain.StopTimeout) * time.Second,
+			Stdout:       logging.NewSubprocessWriter("transactionchain", os.Stdout),
+			Stderr:       logging.NewSubprocessWriter("transactionchain", os.Stderr),
+		}
+		transactionChainManager = transactionchain.NewManager(transactionChainConfig, logger)
+		log.Println("Transaction chain manager initialized")
+	}
+
+	var validationChainManager *validationchain.Manager
+	if cfg.ValidationChain.Enabled {
+		validationChainConfig := &validationchain.ManagerConfig{
+			BinaryPath:   cfg.ValidationChain.BinaryPath,
+			WorkDir:      cfg.ValidationChain.WorkDir,
+			Port:         cfg.ValidationChain.Port,
+			DataPath:     cfg.ValidationChain.DataPath,
+			ChainID:      cfg.ValidationChain.ChainID,
+			StartTimeout: time.Duration(cfg.ValidationChain.StartTimeout) * time.Second,
+			StopTimeout:  time.Duration(cfg.ValidationChain.StopTimeout) * time.Second,
+			Stdout:       logging.NewSubprocessWriter("validationchain", os.Stdout),
+			Stderr:       logging.NewSubprocessWriter("validationchain", os.Stderr),
+		}
+		validationChainManager = validationchain.NewManager(validationChainConfig, logger)
+		log.Println("Validation chain manager initialized")
+	}
+
+	transactionChainURL := cfg.Blockchain.URL
+	if transactionChainURL == "" && transactionChainManager != nil {
+		transactionChainURL = transactionChainManager.GetBaseURL()
+	}
+
+	if transactionChainURL != "" {
+		client, err := transactionchain.NewClient(transactionChainURL, cfg.Blockchain.UseTLS, cfg.Blockchain.CertFile)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize transaction chain client: %v", err)
+		} else {
+			transactionChainClient = client
+			nrnClient = client.Legacy()
+			if dveCreationService != nil {
+				dveCreationService.SetTransactionChainClient(transactionChainClient)
+				log.Println("Transaction chain client integrated with DVE creation service")
+			}
+			if dveRentalService != nil {
+				dveRentalService.SetTransactionChainClient(transactionChainClient)
+				log.Println("Transaction chain client integrated with DVE rental service")
+			}
+		}
+	}
+
+	if validationChainManager != nil {
+		validationChainClient = validationchain.NewClient(validationChainManager.GetBaseURL())
+		log.Println("Validation chain client initialized")
 	}
 
 	// Initialize Cognitive Engine with configurable parameters
@@ -1014,9 +1077,12 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 
 	// Initialize AnchoringService for PQC-signed evidence pack anchoring
 	anchoringService := evidence.NewAnchoringService(dbManager, pqcManager, "server-master")
-	if nrnClient != nil {
+	if validationChainClient != nil {
+		anchoringService.SetValidationChainClient(&validationChainAdapter{client: validationChainClient})
+		log.Println("AnchoringService: validation chain client wired for chain anchoring")
+	} else if nrnClient != nil {
 		anchoringService.SetChainClient(&nrnChainAdapter{client: nrnClient})
-		log.Println("AnchoringService: blockchain client wired for chain anchoring")
+		log.Println("AnchoringService: legacy blockchain client wired for chain anchoring")
 	}
 	if err := anchoringService.LoadEvidencePacks(); err != nil {
 		log.Printf("Warning: Failed to load evidence packs: %v", err)
@@ -1038,7 +1104,11 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	workflowService := workflow.NewWorkflowService(dbManager)
 	workflowService.SetDVEManager(dveManager)
 	workflowService.SetValidationCore(validationCore)
-	workflowService.RegisterExecutor("validation", workflow.NewDVETaskExecutor(dveManager, validationCore))
+	dveTaskExecutor := workflow.NewDVETaskExecutor(dveManager, validationCore)
+	if validationChainClient != nil {
+		dveTaskExecutor.SetValidationChainClient(validationChainClient)
+	}
+	workflowService.RegisterExecutor("validation", dveTaskExecutor)
 	workflowService.SetEventBroadcaster(eventBroadcaster)
 	if err := workflowService.LoadExecutionsFromDB(); err != nil {
 		log.Printf("Warning: Failed to load workflow executions: %v", err)
@@ -1101,6 +1171,17 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	// Create context for service lifecycle management
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Initialize SocketPath if SocketDir is present but SocketPath is empty
+	if cfg.API.SocketPath == "" && cfg.SocketDir != "" {
+		cfg.API.SocketPath = filepath.Join(cfg.SocketDir, "backend.sock")
+		log.Printf("Using default API socket path: %s", cfg.API.SocketPath)
+	}
+
+	// Set default gateway port if not specified
+	if cfg.Gateway.Port == 0 {
+		cfg.Gateway.Port = 8080
+	}
+
 	server := &Server{
 		config:                       cfg,
 		db:                           dbManager,
@@ -1133,6 +1214,8 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		graphManager:                 graphManager,
 		graphSyncManager:             graphSyncManager,
 		chainManager:                 chainManager,
+		transactionChainManager:      transactionChainManager,
+		validationChainManager:       validationChainManager,
 		pqcManager:                   pqcManager,
 		mdStorage:                    mdStorage,
 		vaultService:                 vaultService,
@@ -1151,6 +1234,8 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		onboardingService:            onboardingService,
 		hasherGRPCServer:             hasherGRPCServer,
 		hasherIntegration:            hasherIntegration,
+		transactionChainClient:       transactionChainClient,
+		validationChainClient:        validationChainClient,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,
@@ -1172,10 +1257,14 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	server.setupRoutes()
 
 	// Integrate blockchain client with services after server creation
-	if nrnClient != nil && server.icmeService != nil {
+	if validationChainClient != nil && server.icmeService != nil {
+		blockchainAdapter := &validationBlockchainAdapter{client: validationChainClient}
+		server.icmeService.SetValidationChainClient(blockchainAdapter)
+		log.Println("Validation chain client integrated with ICME service")
+	} else if nrnClient != nil && server.icmeService != nil {
 		blockchainAdapter := &blockchainClientAdapter{client: nrnClient}
 		server.icmeService.SetBlockchainClient(blockchainAdapter)
-		log.Println("Blockchain client integrated with ICME service")
+		log.Println("Legacy blockchain client integrated with ICME service")
 	}
 
 	return server, nil
@@ -1202,19 +1291,69 @@ func (a *blockchainClientAdapter) SubmitTransaction(tx interface{}) (string, err
 	return a.client.SubmitTransaction(blockchainTx)
 }
 
+func (a *blockchainClientAdapter) CommitPolicy(req validationchain.PolicyCommitRequest) (string, error) {
+	payload, err := json.Marshal(req)
+	if err != nil {
+		return "", err
+	}
+
+	return a.client.SubmitTransaction(&blockchain.Transaction{
+		Type: "policy_commit",
+		Data: payload,
+	})
+}
+
 type nrnChainAdapter struct {
 	client *blockchain.NRNClient
 }
 
-func (a *nrnChainAdapter) SubmitTransaction(tx *evidence.ChainTransaction) (string, error) {
+func (a *nrnChainAdapter) AnchorEvidencePack(req evidence.EvidenceAnchorRequest) (string, error) {
+	payload, err := json.Marshal(req)
+	if err != nil {
+		return "", err
+	}
+
 	return a.client.SubmitTransaction(&blockchain.Transaction{
-		Type: tx.Type,
-		Data: tx.Data,
+		Type: "evidence_anchor",
+		Data: payload,
 	})
 }
 
 func (a *nrnChainAdapter) GetBlockHeight() (uint64, error) {
-	return 0, nil
+	return a.client.GetBlockHeight()
+}
+
+type validationChainAdapter struct {
+	client *validationchain.Client
+}
+
+func (a *validationChainAdapter) AnchorEvidencePack(req evidence.EvidenceAnchorRequest) (string, error) {
+	return a.client.AnchorEvidencePack(validationchain.EvidenceAnchorRequest{
+		EvidenceID:   req.EvidenceID,
+		EvidenceType: req.EvidenceType,
+		NodeID:       req.NodeID,
+		ValidationID: req.ValidationID,
+		Payload:      req.Payload,
+		Signature:    req.Signature,
+		Algorithm:    req.Algorithm,
+		PublicKey:    req.PublicKey,
+	})
+}
+
+func (a *validationChainAdapter) GetBlockHeight() (uint64, error) {
+	return a.client.GetBlockHeight()
+}
+
+type validationBlockchainAdapter struct {
+	client *validationchain.Client
+}
+
+func (a *validationBlockchainAdapter) SubmitTransaction(tx interface{}) (string, error) {
+	return a.client.SubmitTransaction(tx)
+}
+
+func (a *validationBlockchainAdapter) CommitPolicy(req validationchain.PolicyCommitRequest) (string, error) {
+	return a.client.CommitPolicy(req)
 }
 
 type icmePolicyAdapter struct {
@@ -1516,7 +1655,11 @@ func (s *Server) setupRoutes() {
 	}
 
 	// Register NRN payment routes
-	if s.nrnClient != nil {
+	if s.transactionChainClient != nil {
+		nrnHandlers := web.NewNRNPaymentHandlers(s.transactionChainClient)
+		nrnHandlers.RegisterRoutes(s.router, authMiddleware)
+		log.Println("NRN payment routes configured")
+	} else if s.nrnClient != nil {
 		nrnHandlers := web.NewNRNPaymentHandlers(s.nrnClient)
 		nrnHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("NRN payment routes configured")
@@ -1728,6 +1871,24 @@ func (s *Server) Start() error {
 			logging.EmitModuleLog("knirvchain", "info", fmt.Sprintf("Started on port %d", s.chainManager.GetConfig().APIPort))
 		}
 	}
+	if s.transactionChainManager != nil && s.config.TransactionChain.Enabled {
+		if err := s.transactionChainManager.Start(s.ctx); err != nil {
+			log.Printf("Warning: Failed to start transaction chain: %v", err)
+			logging.EmitModuleLog("transactionchain", "error", fmt.Sprintf("Failed to start: %v", err))
+		} else {
+			log.Printf("Transaction chain started on port %d", s.transactionChainManager.GetConfig().Port)
+			logging.EmitModuleLog("transactionchain", "info", fmt.Sprintf("Started on port %d", s.transactionChainManager.GetConfig().Port))
+		}
+	}
+	if s.validationChainManager != nil && s.config.ValidationChain.Enabled {
+		if err := s.validationChainManager.Start(s.ctx); err != nil {
+			log.Printf("Warning: Failed to start validation chain: %v", err)
+			logging.EmitModuleLog("validationchain", "error", fmt.Sprintf("Failed to start: %v", err))
+		} else {
+			log.Printf("Validation chain started on port %d", s.validationChainManager.GetConfig().Port)
+			logging.EmitModuleLog("validationchain", "info", fmt.Sprintf("Started on port %d", s.validationChainManager.GetConfig().Port))
+		}
+	}
 	if s.validationCore != nil {
 		if err := s.validationCore.Start(s.ctx); err != nil {
 			log.Printf("Warning: Failed to start validation core: %v", err)
@@ -1883,8 +2044,12 @@ func (s *Server) Start() error {
 	}
 
 	// Validate server configuration before creating HTTP server
-	if s.config == nil || s.config.API.BindAddress == "" || s.config.API.Port <= 0 {
-		return fmt.Errorf("invalid server configuration: bind address and port must be specified")
+	if s.config == nil {
+		return fmt.Errorf("invalid server configuration: config is nil")
+	}
+	// When using Unix socket, port is not required
+	if s.config.API.SocketPath == "" && (s.config.API.BindAddress == "" || s.config.API.Port <= 0) {
+		return fmt.Errorf("invalid server configuration: bind address and port must be specified when not using Unix socket")
 	}
 
 	s.httpServer = &http.Server{
@@ -1897,11 +2062,41 @@ func (s *Server) Start() error {
 
 	// Start HTTP server in goroutine
 	go func() {
-		log.Printf("Starting HTTP server on %s:%d", s.config.API.BindAddress, s.config.API.Port)
-		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("HTTP server error: %v", err)
-			// Don't call log.Fatalf here as it would terminate the entire process
-			// Instead, let the server continue and handle the error gracefully
+		if s.config.API.SocketPath != "" {
+			// Ensure directory exists
+			if err := os.MkdirAll(filepath.Dir(s.config.API.SocketPath), 0755); err != nil {
+				log.Printf("Failed to create socket directory: %v", err)
+				return
+			}
+
+			// Remove existing socket if any
+			if _, err := os.Stat(s.config.API.SocketPath); err == nil {
+				if err := os.Remove(s.config.API.SocketPath); err != nil {
+					log.Printf("Failed to remove existing socket: %v", err)
+					return
+				}
+			}
+
+			listener, err := net.Listen("unix", s.config.API.SocketPath)
+			if err != nil {
+				log.Printf("Failed to listen on unix socket %s: %v", s.config.API.SocketPath, err)
+				return
+			}
+
+			// Ensure socket is accessible
+			if err := os.Chmod(s.config.API.SocketPath, 0777); err != nil {
+				log.Printf("Warning: Failed to set socket permissions: %v", err)
+			}
+
+			log.Printf("Starting HTTP server on unix socket: %s", s.config.API.SocketPath)
+			if err := s.httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
+				log.Printf("HTTP server (unix) error: %v", err)
+			}
+		} else {
+			log.Printf("Starting HTTP server on %s:%d", s.config.API.BindAddress, s.config.API.Port)
+			if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Printf("HTTP server error: %v", err)
+			}
 		}
 	}()
 
@@ -1937,6 +2132,15 @@ func (s *Server) Stop() error {
 			// Continue with shutdown even if HTTP server shutdown fails
 		} else {
 			log.Println("HTTP server shut down gracefully")
+		}
+	}
+
+	// Clean up Unix socket file after HTTP server shutdown
+	if s.config != nil && s.config.API.SocketPath != "" {
+		if err := os.Remove(s.config.API.SocketPath); err != nil && !os.IsNotExist(err) {
+			log.Printf("Warning: Failed to remove API socket file %s: %v", s.config.API.SocketPath, err)
+		} else {
+			log.Printf("API socket file removed: %s", s.config.API.SocketPath)
 		}
 	}
 
@@ -2019,6 +2223,16 @@ func (s *Server) Stop() error {
 	if s.gatewayManager != nil {
 		if err := s.gatewayManager.Stop(s.ctx); err != nil {
 			log.Printf("Error stopping KNIRVGATEWAY: %v", err)
+		}
+	}
+	if s.validationChainManager != nil {
+		if err := s.validationChainManager.Stop(s.ctx); err != nil {
+			log.Printf("Error stopping validation chain: %v", err)
+		}
+	}
+	if s.transactionChainManager != nil {
+		if err := s.transactionChainManager.Stop(s.ctx); err != nil {
+			log.Printf("Error stopping transaction chain: %v", err)
 		}
 	}
 

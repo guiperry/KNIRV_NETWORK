@@ -52,6 +52,7 @@ type FintechConfig struct {
 type GatewayConfig struct {
 	Enabled         bool   `mapstructure:"enabled"`
 	BinaryPath      string `mapstructure:"binary_path"`
+	SocketPath      string `mapstructure:"socket_path"`
 	Port            int    `mapstructure:"port"`
 	TurnUDPPort     int    `mapstructure:"turn_udp_port"`
 	TurnTCPPort     int    `mapstructure:"turn_tcp_port"`
@@ -68,26 +69,49 @@ type GatewayConfig struct {
 
 // GraphConfig defines embedded KNIRVGRAPH configuration
 type GraphConfig struct {
-	Enabled      bool   `mapstructure:"enabled"`
-	BinaryPath   string `mapstructure:"binary_path"`
-	Port         int    `mapstructure:"port"`
-	P2PPort      int    `mapstructure:"p2p_port"`
-	APIPort      int    `mapstructure:"api_port"`
-	DataPath     string `mapstructure:"data_path"`
-	SyncInterval string `mapstructure:"sync_interval"`
-	StartTimeout int    `mapstructure:"start_timeout"`
-	StopTimeout  int    `mapstructure:"stop_timeout"`
+	Enabled       bool   `mapstructure:"enabled"`
+	BinaryPath    string `mapstructure:"binary_path"`
+	SocketPath    string `mapstructure:"socket_path"`
+	P2PSocketPath string `mapstructure:"p2p_socket_path"`
+	DataPath      string `mapstructure:"data_path"`
+	SyncInterval  string `mapstructure:"sync_interval"`
+	StartTimeout  int    `mapstructure:"start_timeout"`
+	StopTimeout   int    `mapstructure:"stop_timeout"`
 }
 
 // ChainConfig defines embedded KNIRVCHAIN configuration
 type ChainConfig struct {
+	Enabled       bool   `mapstructure:"enabled"`
+	BinaryPath    string `mapstructure:"binary_path"`
+	SocketPath    string `mapstructure:"socket_path"`
+	P2PSocketPath string `mapstructure:"p2p_socket_path"`
+	DataPath      string `mapstructure:"data_path"`
+	Role          string `mapstructure:"role"`
+	ChainID       string `mapstructure:"chain_id"`
+	StartTimeout  int    `mapstructure:"start_timeout"`
+	StopTimeout   int    `mapstructure:"stop_timeout"`
+}
+
+// TransactionChainConfig defines embedded transaction chain configuration
+type TransactionChainConfig struct {
 	Enabled      bool   `mapstructure:"enabled"`
 	BinaryPath   string `mapstructure:"binary_path"`
+	ScriptPath   string `mapstructure:"script_path"`
+	WorkDir      string `mapstructure:"work_dir"`
 	Port         int    `mapstructure:"port"`
-	P2PPort      int    `mapstructure:"p2p_port"`
-	APIPort      int    `mapstructure:"api_port"`
 	DataPath     string `mapstructure:"data_path"`
-	Role         string `mapstructure:"role"`
+	ChainID      string `mapstructure:"chain_id"`
+	StartTimeout int    `mapstructure:"start_timeout"`
+	StopTimeout  int    `mapstructure:"stop_timeout"`
+}
+
+// ValidationChainConfig defines embedded validation chain configuration
+type ValidationChainConfig struct {
+	Enabled      bool   `mapstructure:"enabled"`
+	BinaryPath   string `mapstructure:"binary_path"`
+	WorkDir      string `mapstructure:"work_dir"`
+	Port         int    `mapstructure:"port"`
+	DataPath     string `mapstructure:"data_path"`
 	ChainID      string `mapstructure:"chain_id"`
 	StartTimeout int    `mapstructure:"start_timeout"`
 	StopTimeout  int    `mapstructure:"stop_timeout"`
@@ -172,6 +196,15 @@ type Config struct {
 
 	// Chain - Embedded KNIRVCHAIN for blockchain and mining
 	Chain ChainConfig `mapstructure:"chain"`
+
+	// TransactionChain - Embedded transaction execution chain
+	TransactionChain TransactionChainConfig `mapstructure:"transaction_chain"`
+
+	// ValidationChain - Embedded validation signoff chain
+	ValidationChain ValidationChainConfig `mapstructure:"validation_chain"`
+
+	// SocketDir - Directory for Unix sockets for submodule communication
+	SocketDir string `mapstructure:"socket_dir"`
 }
 
 // DatabaseConfig represents database configuration
@@ -185,6 +218,7 @@ type APIConfig struct {
 	Address     string `mapstructure:"address"`
 	Port        int    `mapstructure:"port"`
 	BindAddress string `mapstructure:"bind_address"`
+	SocketPath  string `mapstructure:"socket_path"`
 }
 
 // GUIConfig represents GUI mode configuration
@@ -640,6 +674,12 @@ func setDefaults() {
 	viper.SetDefault("api.port", 8082)
 	viper.SetDefault("api.bind_address", "0.0.0.0")
 	viper.SetDefault("api.address", "0.0.0.0")
+	viper.SetDefault("api.socket_path", filepath.Join(appDataDir, "sockets", "backend.sock"))
+
+	// Gateway (embedded KNIRVGATEWAY) configuration defaults
+	viper.SetDefault("gateway.enabled", true)
+	viper.SetDefault("gateway.binary_path", "./knirvgateway")
+	viper.SetDefault("gateway.port", 8081)
 
 	// Security defaults
 	viper.SetDefault("security.auth_required", false) // false for testnet
@@ -765,6 +805,7 @@ func setDefaults() {
 	viper.SetDefault("gateway.enabled", true)
 	viper.SetDefault("gateway.binary_path", "./knirvgateway")
 	viper.SetDefault("gateway.port", 8081)
+	viper.SetDefault("gateway.socket_path", filepath.Join(appDataDir, "sockets", "gateway.sock"))
 	viper.SetDefault("gateway.turn_udp_port", 3478)
 	viper.SetDefault("gateway.turn_tcp_port", 3479)
 	viper.SetDefault("gateway.turn_api_port", 3476)
@@ -777,22 +818,23 @@ func setDefaults() {
 	viper.SetDefault("gateway.start_timeout", 30)
 	viper.SetDefault("gateway.stop_timeout", 10)
 
-	usr, _ := user.Current()
-	graphDataDir := filepath.Join(usr.HomeDir, ".local", "share", "knirvserver", "knirvgraph")
+	graphDataDir := filepath.Join(appDataDir, "knirvgraph")
 	viper.SetDefault("graph.enabled", true)
 	viper.SetDefault("graph.binary_path", "./knirvgraph")
 	viper.SetDefault("graph.port", 7090)
 	viper.SetDefault("graph.p2p_port", 7091)
 	viper.SetDefault("graph.api_port", 7092)
 	viper.SetDefault("graph.data_path", graphDataDir)
+	viper.SetDefault("graph.socket_path", filepath.Join(appDataDir, "sockets", "graph.sock"))
+	viper.SetDefault("graph.p2p_socket_path", filepath.Join(appDataDir, "sockets", "graph-p2p.sock"))
 	viper.SetDefault("graph.sync_interval", "30s")
 	viper.SetDefault("graph.start_timeout", 30)
 	viper.SetDefault("graph.stop_timeout", 10)
 
-	chainDataDir := filepath.Join(usr.HomeDir, ".local", "share", "knirvserver", "knirvchain")
+	chainDataDir := filepath.Join(appDataDir, "knirvchain")
 	viper.SetDefault("chain.enabled", true)
 	viper.SetDefault("chain.binary_path", "./knirvchain")
-	viper.SetDefault("chain.port", 8082)
+	viper.SetDefault("chain.port", 8083)
 	viper.SetDefault("chain.p2p_port", 4001)
 	viper.SetDefault("chain.api_port", 9090)
 	viper.SetDefault("chain.data_path", chainDataDir)
@@ -800,6 +842,27 @@ func setDefaults() {
 	viper.SetDefault("chain.chain_id", "testnet")
 	viper.SetDefault("chain.start_timeout", 30)
 	viper.SetDefault("chain.stop_timeout", 10)
+
+	transactionChainDataDir := filepath.Join(appDataDir, "transaction-chain")
+	viper.SetDefault("transaction_chain.enabled", false)
+	viper.SetDefault("transaction_chain.binary_path", "node")
+	viper.SetDefault("transaction_chain.script_path", "./internal/embedded/transaction_chain/miner.v10.1.3.js")
+	viper.SetDefault("transaction_chain.work_dir", "./internal/embedded/transaction_chain")
+	viper.SetDefault("transaction_chain.port", 9190)
+	viper.SetDefault("transaction_chain.data_path", transactionChainDataDir)
+	viper.SetDefault("transaction_chain.chain_id", "knirv-transaction-1")
+	viper.SetDefault("transaction_chain.start_timeout", 30)
+	viper.SetDefault("transaction_chain.stop_timeout", 10)
+
+	validationChainDataDir := filepath.Join(appDataDir, "validation-chain")
+	viper.SetDefault("validation_chain.enabled", false)
+	viper.SetDefault("validation_chain.binary_path", "./internal/embedded/validation_chain/target/debug/knirvchain")
+	viper.SetDefault("validation_chain.work_dir", "./internal/embedded/validation_chain")
+	viper.SetDefault("validation_chain.port", 9290)
+	viper.SetDefault("validation_chain.data_path", validationChainDataDir)
+	viper.SetDefault("validation_chain.chain_id", "knirv-validation-1")
+	viper.SetDefault("validation_chain.start_timeout", 30)
+	viper.SetDefault("validation_chain.stop_timeout", 10)
 }
 
 // GetConfigDir returns the base configuration directory (e.g., ~/.config/knirv-server)

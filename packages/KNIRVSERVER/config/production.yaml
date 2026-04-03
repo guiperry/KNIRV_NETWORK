@@ -243,13 +243,15 @@ production:
   min_replicas: 1
   max_replicas: 10
 
+# Socket directory for submodule Unix sockets
+socket_dir: ~/.local/share/knirvserver/sockets
+
 # KNIRVCHAIN Configuration
 chain:
   enabled: true
   binary_path: ""
-  port: 8082
-  p2p_port: 4001
-  api_port: 9090
+  socket_path: ~/.local/share/knirvserver/sockets/chain.sock
+  p2p_socket_path: ~/.local/share/knirvserver/sockets/chain-p2p.sock
   data_path: ~/.local/share/knirvserver/knirvchain
   role: "client"
   chain_id: "knirv-server-mainnet"
@@ -260,9 +262,8 @@ chain:
 graph:
   enabled: true
   binary_path: ""
-  port: 7090
-  p2p_port: 9002
-  api_port: 7092
+  socket_path: ~/.local/share/knirvserver/sockets/graph.sock
+  p2p_socket_path: ~/.local/share/knirvserver/sockets/graph-p2p.sock
   data_path: ~/.local/share/knirvserver/knirvgraph
   sync_interval: "30s"
   start_timeout: 30

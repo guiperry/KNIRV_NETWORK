@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -45,18 +47,10 @@ type Server struct {
 	router            *mux.Router
 	webguiStaticDir   string
 	networkWebsiteDir string
-	// backendAPIURL is the URL of the main backend API server (e.g. http://localhost:8082)
-	// All unhandled /api/* requests are proxied there.
-	backendAPIURL string
 }
 
 // New creates a new HTTP server
 func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *zap.Logger, db ...*sql.DB) (*Server, error) {
-	// Determine backend API URL — can be overridden via env var KNIRV_BACKEND_API_URL
-	backendAPIURL := "http://localhost:8082"
-	if envURL := cfg.BackendAPIURL; envURL != "" {
-		backendAPIURL = envURL
-	}
 	var dbInstance *sql.DB
 	if len(db) > 0 {
 		dbInstance = db[0]
@@ -152,7 +146,6 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 		logger:            logger,
 		webguiStaticDir:   webguiStaticDir,
 		networkWebsiteDir: networkWebsiteDir,
-		backendAPIURL:     backendAPIURL,
 	}
 
 	if err := s.setupRoutes(); err != nil {
@@ -214,8 +207,8 @@ func (s *Server) setupRoutes() error {
 	// Dynamic controller proxy
 	r.PathPrefix("/controller").Handler(s.handleControllerProxy())
 
-	// Proxy all unhandled /api/* requests to the main backend API server
-	r.PathPrefix("/api").Handler(s.proxyHandler.ProxyTo(s.backendAPIURL, nil))
+	// Mock API endpoint (fallback for any unmatched /api routes)
+	r.PathPrefix("/api").HandlerFunc(s.handleMockAPI)
 
 	// IMPORTANT: Next.js static export uses absolute paths like /_next/..., /favicon.ico, etc.
 	// We need to serve these at the root level so the webgui can load its assets
@@ -293,16 +286,14 @@ func (s *Server) setupRoutes() error {
 func (s *Server) Start() error {
 	ctx := context.Background()
 
-	// Start tunnel service — non-fatal: port conflicts (e.g. VS Code on :3003)
-	// must not prevent the HTTP server and WebGUI from starting.
+	// Start tunnel service
 	if err := s.tunnelService.Start(ctx); err != nil {
-		s.logger.Warn("Tunnel service unavailable — P2P tunneling disabled",
-			zap.Error(err))
+		return fmt.Errorf("failed to start tunnel service: %w", err)
 	}
 
-	// Start payment service — non-fatal: payment failure should not block WebGUI.
+	// Start payment service
 	if err := s.paymentService.Start(ctx); err != nil {
-		s.logger.Warn("Payment service unavailable", zap.Error(err))
+		return fmt.Errorf("failed to start payment service: %w", err)
 	}
 
 	// Start TURN server with blockchain integration
@@ -323,19 +314,49 @@ func (s *Server) Start() error {
 
 	handler := c.Handler(s.router)
 
+	var listenAddr string
+	if s.config.SocketPath != "" {
+		if err := os.RemoveAll(s.config.SocketPath); err != nil {
+			return fmt.Errorf("failed to remove existing socket: %w", err)
+		}
+		if err := os.MkdirAll(filepath.Dir(s.config.SocketPath), 0755); err != nil && !os.IsExist(err) {
+			return fmt.Errorf("failed to create socket directory: %w", err)
+		}
+		listenAddr = "unix:" + s.config.SocketPath
+	} else {
+		listenAddr = fmt.Sprintf(":%d", s.config.Port)
+	}
+
 	s.httpServer = &http.Server{
-		Addr:         fmt.Sprintf(":%d", s.config.Port),
+		Addr:         listenAddr,
 		Handler:      handler,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
+	var listener net.Listener
+	var err error
+	if s.config.SocketPath != "" {
+		listener, err = net.Listen("unix", s.config.SocketPath)
+	} else {
+		listener, err = net.Listen("tcp", listenAddr)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to listen: %w", err)
+	}
+
+	if s.config.SocketPath != "" {
+		if err := os.Chmod(s.config.SocketPath, 0666); err != nil {
+			s.logger.Warn("Failed to set socket permissions", zap.Error(err))
+		}
+	}
+
 	s.logger.Info("HTTP server listening",
 		zap.String("address", s.httpServer.Addr),
 	)
 
-	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := s.httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("server failed: %w", err)
 	}
 
@@ -478,6 +499,28 @@ func (s *Server) handleControllerProxy() http.Handler {
 		}
 
 		return controllerURL, nil
+	})
+}
+
+func (s *Server) handleMockAPI(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" && (r.URL.Path == "/api" || r.URL.Path == "/api/" || strings.HasSuffix(r.URL.Path, "/health")) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":    "ok",
+			"message":   "Mock KNIRV central API oracle",
+			"chainId":   s.config.ChainID,
+			"timestamp": time.Now().UnixMilli(),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotImplemented)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"error":   "Not Implemented",
+		"message": "Central API routing is not yet implemented. This is a mock endpoint.",
+		"method":  r.Method,
+		"route":   r.URL.Path,
 	})
 }
 

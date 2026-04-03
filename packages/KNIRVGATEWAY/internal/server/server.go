@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -312,19 +314,49 @@ func (s *Server) Start() error {
 
 	handler := c.Handler(s.router)
 
+	var listenAddr string
+	if s.config.SocketPath != "" {
+		if err := os.RemoveAll(s.config.SocketPath); err != nil {
+			return fmt.Errorf("failed to remove existing socket: %w", err)
+		}
+		if err := os.MkdirAll(filepath.Dir(s.config.SocketPath), 0755); err != nil && !os.IsExist(err) {
+			return fmt.Errorf("failed to create socket directory: %w", err)
+		}
+		listenAddr = "unix:" + s.config.SocketPath
+	} else {
+		listenAddr = fmt.Sprintf(":%d", s.config.Port)
+	}
+
 	s.httpServer = &http.Server{
-		Addr:         fmt.Sprintf(":%d", s.config.Port),
+		Addr:         listenAddr,
 		Handler:      handler,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
+	var listener net.Listener
+	var err error
+	if s.config.SocketPath != "" {
+		listener, err = net.Listen("unix", s.config.SocketPath)
+	} else {
+		listener, err = net.Listen("tcp", listenAddr)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to listen: %w", err)
+	}
+
+	if s.config.SocketPath != "" {
+		if err := os.Chmod(s.config.SocketPath, 0666); err != nil {
+			s.logger.Warn("Failed to set socket permissions", zap.Error(err))
+		}
+	}
+
 	s.logger.Info("HTTP server listening",
 		zap.String("address", s.httpServer.Addr),
 	)
 
-	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := s.httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("server failed: %w", err)
 	}
 

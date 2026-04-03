@@ -99,7 +99,7 @@ proto: ## Generate protobuf Go code from .proto files
 # Dependency Management
 deps: deps-go deps-node deps-ansible ## Install all dependencies
 
-deps-go: ## Install Go dependencies (backend + gateway)
+deps-go: ## Install Go dependencies (backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, and KNIRVHASHER)
 	@echo "$(BLUE)Installing Go dependencies...$(NC)"
 	cd $(BACKEND_DIR) && go mod download
 	cd $(BACKEND_DIR) && go mod tidy
@@ -162,7 +162,7 @@ key-encryptor: deps-go ## Build key_encryptor binary
 # main.go embeds: bin/backend_server, bin/knirvgateway, config/*, desktop/dist/*, frontend/out/*
 # At runtime the launcher extracts backend_server and knirvgateway to ~/.local/share/knirvserver/bin/
 binary: proto ebpf-generate frontend desktop-build backend gateway-build graph-build chain-build hasher-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, and KNIRVHASHER
-	@echo "$(BLUE)Creating unified binary (embeds backend_server + knirvgateway + frontend + desktop)...$(NC)"
+	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, and KNIRVHASHER)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
 	chmod 755 $(DIST_DIR)/knirv-server
@@ -248,7 +248,7 @@ dev: ## Start development environment
 
 dev-backend: backend ## Start unified backend development server
 	@echo "$(BLUE)Starting unified backend development server...$(NC)"
-	cd $(BACKEND_DIR) && ./bin/backend_server --config config/development.yaml
+	cd $(BACKEND_DIR) && ./bin/backend_server --config ../config/development.yaml
 
 dev-frontend: ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev

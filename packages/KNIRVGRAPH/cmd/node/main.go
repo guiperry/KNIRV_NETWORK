@@ -5,13 +5,42 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
+	"os/user"
+	"path/filepath"
+	"runtime"
 )
+
+func getAppDataDir() string {
+	switch runtime.GOOS {
+	case "windows":
+		if dir := os.Getenv("APPDATA"); dir != "" {
+			return filepath.Join(dir, "knirvgraph")
+		}
+	case "darwin":
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, "Library", "Application Support", "knirvgraph")
+		}
+	case "linux":
+		if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
+			return filepath.Join(xdg, "knirvgraph")
+		}
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, ".local", "share", "knirvgraph")
+		}
+	}
+	if usr, err := user.Current(); err == nil {
+		return filepath.Join(usr.HomeDir, ".local", "share", "knirvgraph")
+	}
+	return "data"
+}
 
 func main() {
 	var (
-		homeDir     = flag.String("home", "./data", "Home directory for GraphChain data")
+		homeDir     = flag.String("home", "", "Home directory for GraphChain data (empty = auto-detect)")
 		rpcPort     = flag.Int("rpc-port", 8080, "RPC server port")
 		port        = flag.Int("port", 8081, "Alternative port specification")
+		socketPath  = flag.String("socket", "", "Unix socket path for HTTP server (overrides port)")
 		testnetMode = flag.Bool("testnet", false, "Run in testnet mode")
 		inMemory    = flag.Bool("memory", false, "Use in-memory storage")
 		prePopulate = flag.Bool("populate", false, "Pre-populate test data")
@@ -20,19 +49,24 @@ func main() {
 	)
 	flag.Parse()
 
-	// Use port flag if rpc-port is default and port is specified
+	if *homeDir == "" {
+		*homeDir = getAppDataDir()
+	}
+
+	if err := os.MkdirAll(*homeDir, 0755); err != nil {
+		log.Fatalf("Failed to create data directory %s: %v", *homeDir, err)
+	}
+
 	if *rpcPort == 8080 && *port != 8081 {
 		*rpcPort = *port
 	}
 
 	ctx := context.Background()
 
-	// Log headless mode status
 	if *headless {
 		log.Println("Starting KNIRVGRAPH in headless mode (no frontend)")
 	}
 
-	// Create testnet configuration if enabled
 	var config *app.Config
 	if *testnetMode {
 		config = &app.Config{
@@ -49,8 +83,11 @@ func main() {
 		log.Println("Starting KNIRVGRAPH in testnet mode")
 	}
 
-	// Create and start GraphChain application
-	app, err := app.NewAppWithConfig(*homeDir, *rpcPort, config, true)
+	if *socketPath != "" {
+		log.Printf("Using Unix socket: %s", *socketPath)
+	}
+
+	app, err := app.NewAppWithConfig(*homeDir, *rpcPort, config, true, *socketPath)
 	if err != nil {
 		log.Fatalf("Failed to create app: %v", err)
 	}

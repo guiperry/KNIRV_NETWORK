@@ -44,9 +44,10 @@ type Config struct {
 
 // NetworkConfig holds network-specific configuration
 type NetworkConfig struct {
-	P2PPort int `json:"p2p_port"`
-	RPCPort int `json:"rpc_port"`
-	APIPort int `json:"api_port"`
+	P2PPort    int    `json:"p2p_port"`
+	RPCPort    int    `json:"rpc_port"`
+	APIPort    int    `json:"api_port"`
+	SocketPath string `json:"socket_path"`
 }
 
 // StorageConfig holds storage-specific configuration
@@ -230,7 +231,7 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	}
 
 	// Initialize RPC server with app reference
-	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort)
+	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort, config.Network.SocketPath)
 	app.rpc = rpc
 
 	return app, nil
@@ -242,7 +243,7 @@ func (app *App) GetConfig() *Config {
 }
 
 // NewAppWithConfig creates a new App instance with optional configuration
-func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAutoRelay bool) (*App, error) {
+func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAutoRelay bool, socketPath string) (*App, error) {
 	logger, _ := zap.NewProduction()
 
 	// Use provided config or initialize default
@@ -260,9 +261,10 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 			},
 			Node: GetDefaultNodeConfig(NODE_FULL), // Use default full node config
 			Network: NetworkConfig{
-				P2PPort: 9001, // Default libp2p port
-				RPCPort: rpcPort,
-				APIPort: 1317,
+				P2PPort:    9001, // Default libp2p port
+				RPCPort:    rpcPort,
+				APIPort:    1317,
+				SocketPath: socketPath,
 			},
 			Storage: StorageConfig{
 				DBType:      "bluntdb",
@@ -379,7 +381,7 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 	}
 
 	// Initialize RPC server with app reference
-	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort)
+	rpc = network.NewRPCServerWithEconomics(gc, nrvSystem, nrnIntegration, proofOfSolution, app, logger, config.Network.RPCPort, config.Network.SocketPath)
 	app.rpc = rpc
 
 	// Pre-populate test data if testnet mode is enabled

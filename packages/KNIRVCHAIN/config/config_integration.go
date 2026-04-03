@@ -100,7 +100,11 @@ func setDefaultConfig(v *viper.Viper) {
 
 	// Logging settings
 	v.SetDefault("logging.level", "info")
-	v.SetDefault("logging.file", "logs/KNIRVCHAIN.log")
+	appDataDir, _ := GetAppDataDir()
+	if appDataDir == "" {
+		appDataDir = "data"
+	}
+	v.SetDefault("logging.file", filepath.Join(appDataDir, "logs", "KNIRVCHAIN.log"))
 }
 
 // LoadConfig loads the configuration from Viper

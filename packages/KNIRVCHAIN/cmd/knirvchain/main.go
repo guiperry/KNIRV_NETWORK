@@ -322,7 +322,7 @@ func (bs *BlockchainServer) Stop(ctx context.Context) error {
 	return nil
 }
 
-func NewBlockchainServer(port uint64, bc *BlockchainStruct, db *LevelDB, discoveryMgr p2p.DiscoveryService, p2pPort int) *BlockchainServer {
+func NewBlockchainServer(port uint64, socketPath string, bc *BlockchainStruct, db *LevelDB, discoveryMgr p2p.DiscoveryService, p2pPort int) *BlockchainServer {
 	return &BlockchainServer{}
 }
 
@@ -423,14 +423,16 @@ func main() {
 
 	// --- Setup Application Logging to File and Console ---
 
-	var logFilePath = "logs/KNIRVCHAIN.log" // You can make this configurable
-	var errOpenLog error
-
-	// Ensure logs directory exists
-	logDir := filepath.Dir(logFilePath)
+	appDataDir, err := config.GetAppDataDir()
+	if err != nil {
+		log.Fatalf("Failed to get app data directory: %v", err)
+	}
+	logDir := filepath.Join(appDataDir, "logs")
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		log.Fatalf("Failed to create log directory %s: %v", logDir, err)
 	}
+	logFilePath := filepath.Join(logDir, "KNIRVCHAIN.log")
+	var errOpenLog error
 
 	// walletSrv variable is now handled directly where needed
 	appLogFile, errOpenLog = os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0660)
@@ -460,6 +462,7 @@ func main() {
 	// Define ALL flags with default values first
 	// These flags can override Viper-loaded values.
 	httpPortFlag := flag.Uint("port", 0, "HTTP port (overrides config if set, 0 means use config)")
+	socketPathFlag := flag.String("socket", "", "Unix socket path for HTTP server (overrides port)")
 	p2pPortFlag := flag.Uint("p2p.port", 0, "Libp2p host port (overrides config if set, 0 means use config)")
 	walletPortFlag := flag.Uint("wallet_port", 0, "HTTP port for the wallet server (overrides config if set, 0 means use config)")
 	dbPathFlag := flag.String("shared_database_path", "", "Filepath for the chain's database (overrides config if set)")
@@ -725,6 +728,9 @@ func main() {
 	if !cfg.IsPeer {
 		if flagsSet["port"] && *httpPortFlag != 0 { // Check if flag was set and not its default
 			cfg.Port = uint64(*httpPortFlag)
+		}
+		if flagsSet["socket"] && *socketPathFlag != "" {
+			cfg.SocketPath = *socketPathFlag
 		}
 		if flagsSet["p2p.port"] && *p2pPortFlag != 0 {
 			cfg.P2PPort = uint64(*p2pPortFlag)
@@ -1544,7 +1550,7 @@ func startNodeWithComponents(
 		log.Printf("[%s][%s] Node.js services moved to separate components - skipping embedded initialization", cfg.ChainID, nodeRole.String())
 
 		// Blockchain HTTP Server
-		blockchainSrv := NewBlockchainServer(uint64(cfg.Port), bc, db, discoveryMgr, int(cfg.P2PPort))
+		blockchainSrv := NewBlockchainServer(uint64(cfg.Port), cfg.SocketPath, bc, db, discoveryMgr, int(cfg.P2PPort))
 
 		// Prepare the server first to initialize the server field
 		actualHTTPPort, err := blockchainSrv.Prepare()
@@ -1736,7 +1742,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 		}
 
 		// 3. Blockchain HTTP Server preparation
-		blockchainSrv := NewBlockchainServer(uint64(cfg.Port), bc, db, nil, int(cfg.P2PPort))
+		blockchainSrv := NewBlockchainServer(uint64(cfg.Port), cfg.SocketPath, bc, db, nil, int(cfg.P2PPort))
 		actualHTTPPort, err := blockchainSrv.Prepare()
 		if err != nil {
 			log.Printf("[%s][%s] FATAL: Failed to prepare blockchain server: %v", role.String(), cfg.ChainID, err)

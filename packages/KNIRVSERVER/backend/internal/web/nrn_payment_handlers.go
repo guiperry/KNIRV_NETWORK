@@ -5,19 +5,27 @@ import (
 	"net/http"
 	"time"
 
-	"backend_server/internal/services/blockchain"
+	"backend_server/internal/objects"
 	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )
 
 type NRNPaymentHandlers struct {
-	blockchainClient *blockchain.NRNClient
+	transactionChainClient interface {
+		GetAccountBalance(address string) (int64, error)
+		VerifyPaymentTransaction(txHash string, expectedAmount int64, expectedRecipient string) (*objects.NRNPayment, error)
+		GetBlockHeight() (uint64, error)
+	}
 }
 
-func NewNRNPaymentHandlers(client *blockchain.NRNClient) *NRNPaymentHandlers {
+func NewNRNPaymentHandlers(client interface {
+	GetAccountBalance(address string) (int64, error)
+	VerifyPaymentTransaction(txHash string, expectedAmount int64, expectedRecipient string) (*objects.NRNPayment, error)
+	GetBlockHeight() (uint64, error)
+}) *NRNPaymentHandlers {
 	return &NRNPaymentHandlers{
-		blockchainClient: client,
+		transactionChainClient: client,
 	}
 }
 
@@ -36,7 +44,7 @@ func (h *NRNPaymentHandlers) GetBalance(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	balance, err := h.blockchainClient.GetAccountBalance(address)
+	balance, err := h.transactionChainClient.GetAccountBalance(address)
 	if err != nil {
 		h.sendError(w, "Failed to get balance: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -57,7 +65,7 @@ func (h *NRNPaymentHandlers) VerifyPayment(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	payment, err := h.blockchainClient.VerifyPaymentTransaction(req.TxHash, req.ExpectedAmount, req.ExpectedRecipient)
+	payment, err := h.transactionChainClient.VerifyPaymentTransaction(req.TxHash, req.ExpectedAmount, req.ExpectedRecipient)
 	if err != nil {
 		h.sendError(w, "Payment verification failed: "+err.Error(), http.StatusPaymentRequired)
 		return
@@ -67,7 +75,7 @@ func (h *NRNPaymentHandlers) VerifyPayment(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *NRNPaymentHandlers) GetBlockHeight(w http.ResponseWriter, r *http.Request) {
-	height, err := h.blockchainClient.GetBlockHeight()
+	height, err := h.transactionChainClient.GetBlockHeight()
 	if err != nil {
 		h.sendError(w, "Failed to get block height: "+err.Error(), http.StatusInternalServerError)
 		return

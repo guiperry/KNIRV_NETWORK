@@ -11,6 +11,7 @@ import (
 	"backend_server/internal/database"
 	"backend_server/internal/services/dvemanager"
 	"backend_server/internal/services/validation"
+	"backend_server/internal/services/validationchain"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"
@@ -58,10 +59,10 @@ type WorkflowExecution struct {
 }
 
 type DVETaskExecutor struct {
-	dveManager       *dvemanager.DVEManager
-	validationCore   *validation.ValidationCore
-	blockchainClient interface {
-		VerifyPaymentTransaction(txHash string, expectedAmount int64, expectedRecipient string) error
+	dveManager            *dvemanager.DVEManager
+	validationCore        *validation.ValidationCore
+	validationChainClient interface {
+		CommitValidationResult(req validationchain.CommitValidationResultRequest) (string, error)
 	}
 }
 
@@ -72,10 +73,16 @@ func NewDVETaskExecutor(dveManager *dvemanager.DVEManager, validationCore *valid
 	}
 }
 
-func (e *DVETaskExecutor) SetBlockchainClient(client interface {
-	VerifyPaymentTransaction(txHash string, expectedAmount int64, expectedRecipient string) error
+func (e *DVETaskExecutor) SetValidationChainClient(client interface {
+	CommitValidationResult(req validationchain.CommitValidationResultRequest) (string, error)
 }) {
-	e.blockchainClient = client
+	e.validationChainClient = client
+}
+
+func (e *DVETaskExecutor) SetBlockchainClient(client interface {
+	CommitValidationResult(req validationchain.CommitValidationResultRequest) (string, error)
+}) {
+	e.SetValidationChainClient(client)
 }
 
 func (e *DVETaskExecutor) ExecuteStep(ctx context.Context, step *WorkflowStep, nodeID string) (*StepResult, error) {
@@ -188,11 +195,29 @@ func (e *DVETaskExecutor) executeChainCommit(ctx context.Context, nodeID string,
 		evidenceID = uuid.New().String()[:12]
 	}
 
-	txHash := fmt.Sprintf("0x%x", []byte(fmt.Sprintf("commit_%s_%d", evidenceID, time.Now().UnixNano())))
+	if e.validationChainClient == nil {
+		return &StepResult{
+			Status: "failed",
+			Error:  "validation chain client not available",
+		}, nil
+	}
+
+	txHash, err := e.validationChainClient.CommitValidationResult(validationchain.CommitValidationResultRequest{
+		ValidationID: evidenceID,
+		NodeID:       nodeID,
+		ResultType:   "workflow_chain_commit",
+		Payload:      params,
+	})
+	if err != nil {
+		return &StepResult{
+			Status: "failed",
+			Error:  err.Error(),
+		}, err
+	}
 
 	return &StepResult{
 		Status: "completed",
-		Output: fmt.Sprintf("Evidence %s committed to KNIRVCHAIN (tx: %s)", evidenceID, txHash),
+		Output: fmt.Sprintf("Evidence %s committed to validation chain (tx: %s)", evidenceID, txHash),
 	}, nil
 }
 

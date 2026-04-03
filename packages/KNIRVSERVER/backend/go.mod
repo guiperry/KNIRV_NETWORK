@@ -6,9 +6,6 @@ toolchain go1.24.1
 
 require (
 	fyne.io/fyne/v2 v2.7.1
-	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvchain v0.0.0-00010101000000-000000000000
-	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway v0.0.0-00010101000000-000000000000
-	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgraph v0.0.0-00010101000000-000000000000
 	github.com/apache/arrow/go/v14 v14.0.2
 	github.com/cilium/ebpf v0.12.3
 	github.com/cloudflare/circl v1.6.3
@@ -46,13 +43,7 @@ replace github.com/knirvcorp/knirvbase/go => ../../KNIRVBASE/go
 
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY => ../../KNIRVGATEWAY
 
-replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway => ../pkg/knirvgateway
-
 replace KNIRVGRAPH => ../../KNIRVGRAPH
-
-replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgraph => ../pkg/knirvgraph
-
-replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvchain => ../pkg/knirvchain
 
 require (
 	fyne.io/systray v1.11.1-0.20250603113521-ca66a66d8b58 // indirect

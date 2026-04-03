@@ -98,6 +98,10 @@ func (drs *DVERentalService) SetBlockchainClient(client BlockchainClientInterfac
 	drs.blockchainClient = client
 }
 
+func (drs *DVERentalService) SetTransactionChainClient(client BlockchainClientInterface) {
+	drs.SetBlockchainClient(client)
+}
+
 // SetTestMode enables or disables test mode for mock fallbacks
 func (drs *DVERentalService) SetTestMode(enabled bool) {
 	drs.mu.Lock()

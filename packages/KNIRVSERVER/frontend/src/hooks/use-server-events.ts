@@ -15,7 +15,7 @@ export function useNexusEvents() {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch('http://localhost:8082/api/server/events');
+      const response = await fetch('/api/nexus/events');
       if (!response.ok) {
         throw new Error('Failed to fetch server events');
       }

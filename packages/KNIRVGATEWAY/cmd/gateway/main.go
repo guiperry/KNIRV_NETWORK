@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -16,6 +17,8 @@ import (
 )
 
 func main() {
+	socketPath := flag.String("socket", "", "Unix socket path for HTTP server (overrides PORT)")
+
 	// Initialize logger
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -30,8 +33,14 @@ func main() {
 		logger.Fatal("Failed to load configuration", zap.Error(err))
 	}
 
+	// Override socket path from CLI flag if provided
+	if *socketPath != "" {
+		cfg.SocketPath = *socketPath
+	}
+
 	logger.Info("KNIRVORACLE starting",
 		zap.String("mode", cfg.GatewayMode),
+		zap.String("socketPath", cfg.SocketPath),
 		zap.Int("port", cfg.Port),
 		zap.String("chainID", cfg.ChainID),
 	)
@@ -66,7 +75,11 @@ func main() {
 
 	// Start server in a goroutine
 	go func() {
-		logger.Info("Starting HTTP server", zap.Int("port", cfg.Port))
+		if cfg.SocketPath != "" {
+			logger.Info("Starting HTTP server", zap.String("socket", cfg.SocketPath))
+		} else {
+			logger.Info("Starting HTTP server", zap.Int("port", cfg.Port))
+		}
 		if err := srv.Start(); err != nil {
 			logger.Fatal("Server failed", zap.Error(err))
 		}
@@ -76,7 +89,12 @@ func main() {
 	if cfg.AutoOpenBrowser {
 		go func() {
 			time.Sleep(2 * time.Second) // Wait for server to be ready
-			url := fmt.Sprintf("http://localhost:%d", cfg.Port)
+			var url string
+			if cfg.SocketPath != "" {
+				url = "http://unix/" + cfg.SocketPath
+			} else {
+				url = fmt.Sprintf("http://localhost:%d", cfg.Port)
+			}
 			logger.Info("Opening browser to oracle", zap.String("url", url))
 			if err := config.OpenBrowser(url); err != nil {
 				logger.Warn("Failed to open browser", zap.Error(err))

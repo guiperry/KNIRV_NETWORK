@@ -21,6 +21,9 @@ require (
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/stun v0.6.1 // indirect
 	github.com/pion/transport/v2 v2.2.1 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
+	go.uber.org/goleak v1.3.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 )
 
 require (

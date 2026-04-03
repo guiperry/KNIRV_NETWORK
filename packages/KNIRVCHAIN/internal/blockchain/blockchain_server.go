@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,6 +32,7 @@ import (
 
 type BlockchainServer struct {
 	port               uint64
+	socketPath         string
 	BlockchainPtr      *BlockchainStruct
 	server             *http.Server
 	db                 *LevelDB
@@ -44,8 +46,8 @@ type BlockchainServer struct {
 }
 
 // NewBlockchainServerWithFailover creates a new BlockchainServer with failover integration
-func NewBlockchainServerWithFailover(port uint64, blockchain *BlockchainStruct, db *LevelDB, discoveryMgr DiscoveryService, p2pPort int, consensusMgr *P2PConsensusManager, failoverMgr *FailoverManager) *BlockchainServer {
-	bcs := NewBlockchainServer(port, blockchain, db, discoveryMgr, p2pPort)
+func NewBlockchainServerWithFailover(port uint64, socketPath string, blockchain *BlockchainStruct, db *LevelDB, discoveryMgr DiscoveryService, p2pPort int, consensusMgr *P2PConsensusManager, failoverMgr *FailoverManager) *BlockchainServer {
+	bcs := NewBlockchainServer(port, socketPath, blockchain, db, discoveryMgr, p2pPort)
 	bcs.consensusManager = consensusMgr
 	bcs.fm = failoverMgr
 	return bcs
@@ -276,8 +278,8 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// Modify NewBlockchainServer to accept DiscoveryService and p2pPort
-func NewBlockchainServer(port uint64, blockchain *BlockchainStruct, db *LevelDB, discoveryMgr DiscoveryService, p2pPort int) *BlockchainServer {
+// Modify NewBlockchainServer to accept socketPath and DiscoveryService and p2pPort
+func NewBlockchainServer(port uint64, socketPath string, blockchain *BlockchainStruct, db *LevelDB, discoveryMgr DiscoveryService, p2pPort int) *BlockchainServer {
 	// Set the server port globally so it can be accessed from other parts of the code
 	utils.SetServerPort(port) // Keep this if needed elsewhere
 
@@ -304,6 +306,7 @@ func NewBlockchainServer(port uint64, blockchain *BlockchainStruct, db *LevelDB,
 
 	return &BlockchainServer{
 		port:               port,
+		socketPath:         socketPath,
 		BlockchainPtr:      blockchain,
 		db:                 db,
 		discoveryManager:   discoveryMgr,   // Store the passed-in manager
@@ -638,17 +641,41 @@ func (bcs *BlockchainServer) StartListenAndServe() error {
 	if bcs.server == nil {
 		return fmt.Errorf("server not prepared, call Prepare() first for chain %s", bcs.BlockchainPtr.ChainID)
 	}
-	// If Addr wasn't set during Prepare (e.g. if we change logic), set it now.
-	if bcs.server.Addr == "" {
-		bcs.server.Addr = ":" + strconv.Itoa(int(bcs.port)) // Default if not overridden
-	}
 
 	// Set up server timeouts to ensure it can shut down gracefully
 	bcs.server.ReadTimeout = 10 * time.Second
 	bcs.server.WriteTimeout = 30 * time.Second
 	bcs.server.IdleTimeout = 120 * time.Second
 
-	log.Printf("Starting HTTP server listener for chain %s on port: %d", bcs.BlockchainPtr.ChainID, bcs.port)
+	var listener net.Listener
+	var err error
+
+	if bcs.socketPath != "" {
+		if err := os.RemoveAll(bcs.socketPath); err != nil {
+			return fmt.Errorf("failed to remove existing socket: %w", err)
+		}
+		if err := os.MkdirAll(filepath.Dir(bcs.socketPath), 0755); err != nil && !os.IsExist(err) {
+			return fmt.Errorf("failed to create socket directory: %w", err)
+		}
+		listener, err = net.Listen("unix", bcs.socketPath)
+		if err != nil {
+			return fmt.Errorf("failed to listen on socket: %w", err)
+		}
+		if err := os.Chmod(bcs.socketPath, 0666); err != nil {
+			return fmt.Errorf("failed to set socket permissions: %w", err)
+		}
+		log.Printf("Starting HTTP server listener for chain %s on socket: %s", bcs.BlockchainPtr.ChainID, bcs.socketPath)
+	} else {
+		// If Addr wasn't set during Prepare (e.g. if we change logic), set it now.
+		if bcs.server.Addr == "" {
+			bcs.server.Addr = ":" + strconv.Itoa(int(bcs.port)) // Default if not overridden
+		}
+		log.Printf("Starting HTTP server listener for chain %s on port: %d", bcs.BlockchainPtr.ChainID, bcs.port)
+		listener, err = net.Listen("tcp", bcs.server.Addr)
+		if err != nil {
+			return fmt.Errorf("failed to listen: %w", err)
+		}
+	}
 
 	// Start XION bridge service if available
 	if bcs.xionBridge != nil {
@@ -662,7 +689,7 @@ func (bcs *BlockchainServer) StartListenAndServe() error {
 	}
 
 	// Start the server
-	err := bcs.server.ListenAndServe()
+	err = bcs.server.Serve(listener)
 
 	// Check for errors other than server closed
 	if err != nil && err != http.ErrServerClosed {

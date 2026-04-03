@@ -85,12 +85,13 @@ var (
 
 // Config represents the application configuration
 type Config struct {
-	Host        string `mapstructure:"host"`
-	Port        int    `mapstructure:"port"`
-	BackendPort int    `mapstructure:"backend_port"`
-	LogLevel    string `mapstructure:"log_level"`
-	Testnet     bool   `mapstructure:"testnet"`
-	Desktop     bool   `mapstructure:"desktop"`
+	Host          string `mapstructure:"host"`
+	Port          int    `mapstructure:"port"`
+	BackendPort   int    `mapstructure:"backend_port"`
+	BackendSocket string `mapstructure:"backend_socket"`
+	LogLevel      string `mapstructure:"log_level"`
+	Testnet       bool   `mapstructure:"testnet"`
+	Desktop       bool   `mapstructure:"desktop"`
 }
 
 // EmbeddedFS wraps the embedded filesystem for serving static files
@@ -680,9 +681,23 @@ func (app *NexusApp) setupRoutes() error {
 	api := app.router.Group("/api")
 	{
 		api.Any("/*path", func(c *gin.Context) {
-			// Proxy to backend running on configured port
-			// Use the full original URL path and query string
-			backendURL := fmt.Sprintf("http://localhost:%d%s", app.config.BackendPort, c.Request.RequestURI)
+			// Construct backend URL
+			var backendURL string
+			var transport *http.Transport
+
+			if app.config.BackendSocket != "" {
+				// Use Unix socket
+				backendURL = "http://localhost" + c.Request.RequestURI
+				transport = &http.Transport{
+					DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+						return net.Dial("unix", app.config.BackendSocket)
+					},
+				}
+			} else {
+				// Use TCP port
+				backendURL = fmt.Sprintf("http://localhost:%d%s", app.config.BackendPort, c.Request.RequestURI)
+				transport = &http.Transport{}
+			}
 
 			// Create proxy request
 			req, err := http.NewRequest(c.Request.Method, backendURL, c.Request.Body)
@@ -700,7 +715,8 @@ func (app *NexusApp) setupRoutes() error {
 
 			// Make request to backend
 			client := &http.Client{
-				Timeout: 60 * time.Second,
+				Timeout:   60 * time.Second,
+				Transport: transport,
 				// Do not follow redirects automatically
 				CheckRedirect: func(req *http.Request, via []*http.Request) error {
 					return http.ErrUseLastResponse
@@ -731,8 +747,28 @@ func (app *NexusApp) setupRoutes() error {
 	// request reaches the backend instead of being served as a static file.
 	// httputil.ReverseProxy handles the 101 Switching Protocols upgrade by
 	// hijacking the underlying net.Conn, which works through Gin's wrapper.
-	backendWS, _ := url.Parse(fmt.Sprintf("http://localhost:%d", app.config.BackendPort))
-	wsProxy := httputil.NewSingleHostReverseProxy(backendWS)
+	var backendWS *url.URL
+	var wsTransport *http.Transport
+
+	if app.config.BackendSocket != "" {
+		backendWS, _ = url.Parse("http://localhost")
+		wsTransport = &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", app.config.BackendSocket)
+			},
+		}
+	} else {
+		backendWS, _ = url.Parse(fmt.Sprintf("http://localhost:%d", app.config.BackendPort))
+		wsTransport = &http.Transport{}
+	}
+
+	wsProxy := &httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			req.URL.Scheme = backendWS.Scheme
+			req.URL.Host = backendWS.Host
+		},
+		Transport: wsTransport,
+	}
 	wsProxy.FlushInterval = -1 // flush immediately; required for streaming / WebSocket
 	wsProxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		// The error handler is only invoked before the connection is hijacked,
@@ -808,6 +844,7 @@ func (app *NexusApp) startBackend() error {
 	// Set environment variables for backend
 	env := append(os.Environ(),
 		fmt.Sprintf("KNIRV_API_PORT=%d", app.config.BackendPort),
+		fmt.Sprintf("KNIRV_API_SOCKET_PATH=%s", app.config.BackendSocket),
 		"KNIRV_API_HOST=127.0.0.1",
 		"KNIRV_SECURITY_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
 		"KNIRV_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
@@ -853,15 +890,35 @@ func (app *NexusApp) startBackend() error {
 	log.Printf("Unified backend started (PID: %d)", app.backendCmd.Process.Pid)
 
 	// Wait for backend to accept connections on its health endpoint.
-	healthURL := fmt.Sprintf("http://localhost:%d/health", app.config.BackendPort)
-	client := &http.Client{Timeout: 2 * time.Second}
+	var healthURL string
+	var client *http.Client
+
+	if app.config.BackendSocket != "" {
+		healthURL = "http://localhost/health"
+		client = &http.Client{
+			Timeout: 2 * time.Second,
+			Transport: &http.Transport{
+				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+					return net.Dial("unix", app.config.BackendSocket)
+				},
+			},
+		}
+	} else {
+		healthURL = fmt.Sprintf("http://localhost:%d/health", app.config.BackendPort)
+		client = &http.Client{Timeout: 2 * time.Second}
+	}
+
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(healthURL)
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode < 500 {
-				log.Printf("Backend ready on port %d", app.config.BackendPort)
+				if app.config.BackendSocket != "" {
+					log.Printf("Backend ready on socket %s", app.config.BackendSocket)
+				} else {
+					log.Printf("Backend ready on port %d", app.config.BackendPort)
+				}
 				return nil
 			}
 		}
@@ -1022,6 +1079,13 @@ func loadConfig() (*Config, error) {
 	var config Config
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("error unmarshaling config: %w", err)
+	}
+
+	// Initialize BackendSocket if empty
+	if config.BackendSocket == "" {
+		if appDataDir, err := getAppDataDir(); err == nil {
+			config.BackendSocket = filepath.Join(appDataDir, "sockets", "backend.sock")
+		}
 	}
 
 	// Override with command line flags

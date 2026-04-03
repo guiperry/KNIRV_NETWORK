@@ -237,6 +237,9 @@ production:
   min_replicas: 1
   max_replicas: 10
 
+# Socket directory for submodule Unix sockets
+socket_dir: ~/.local/share/knirvserver/sockets
+
 # DVE (Deterministic Validation Environment) Configuration
 dve:
   discovery:

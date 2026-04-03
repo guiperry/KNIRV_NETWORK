@@ -15,6 +15,7 @@ type Config struct {
 	// Gateway configuration
 	GatewayMode string
 	Port        int
+	SocketPath  string
 	ChainID     string
 	PublicHost  string
 
@@ -57,10 +58,6 @@ type Config struct {
 	// KNIRV-ORACLE configuration
 	KnirvOracleURL string
 
-	// BackendAPIURL is the URL of the main KNIRV-SERVER backend API.
-	// All unhandled /api/* requests are proxied there.
-	BackendAPIURL string
-
 	// TURN Server configuration
 	TurnServerEnabled      bool
 	TurnServerUDPPort      int
@@ -80,6 +77,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		GatewayMode:               getEnv("GATEWAY_MODE", "persistent"),
 		Port:                      getEnvInt("PORT", 8080),
+		SocketPath:                getEnv("SOCKET_PATH", ""),
 		ChainID:                   getEnv("KNIRV_CHAIN_ID", "testnet"),
 		PublicHost:                getEnv("PUBLIC_HOST", "localhost"),
 		DisableDHT:                getEnvBool("DISABLE_DHT", false),
@@ -90,20 +88,19 @@ func Load() (*Config, error) {
 		NodeJSServicesEnabled:     getEnvBool("NODEJS_SERVICES_ENABLED", true),
 		NodeJSServicesAutoStart:   getEnvBool("NODEJS_SERVICES_AUTOSTART", true),
 		PaymentGatewayEnabled:     getEnvBool("PAYMENT_GATEWAY_ENABLED", true),
-		PaymentGatewayPort:        getEnvInt("PAYMENT_GATEWAY_PORT", 13001),
+		PaymentGatewayPort:        getEnvInt("PAYMENT_GATEWAY_PORT", 3001),
 		TunnelRegistryEnabled:     getEnvBool("TUNNEL_REGISTRY_ENABLED", true),
-		TunnelRegistryHTTPPort:    getEnvInt("TUNNEL_REGISTRY_HTTP_PORT", 13002),
-		TunnelRegistryControlPort: getEnvInt("TUNNEL_REGISTRY_CONTROL_PORT", 13003),
-		TunnelRegistryRelayPort:   getEnvInt("TUNNEL_REGISTRY_PUBLIC_RELAY_PORT", 13004),
-		TunnelRegistrySTUNPort:    getEnvInt("TUNNEL_REGISTRY_STUN_PORT", 13005),
+		TunnelRegistryHTTPPort:    getEnvInt("TUNNEL_REGISTRY_HTTP_PORT", 3002),
+		TunnelRegistryControlPort: getEnvInt("TUNNEL_REGISTRY_CONTROL_PORT", 3003),
+		TunnelRegistryRelayPort:   getEnvInt("TUNNEL_REGISTRY_PUBLIC_RELAY_PORT", 3004),
+		TunnelRegistrySTUNPort:    getEnvInt("TUNNEL_REGISTRY_STUN_PORT", 3005),
 		OperatorRegistryEnabled:   getEnvBool("OPERATOR_REGISTRY_ENABLED", false), // Disabled by default
-		OperatorRegistryPort:      getEnvInt("OPERATOR_REGISTRY_PORT", 13006),
+		OperatorRegistryPort:      getEnvInt("OPERATOR_REGISTRY_PORT", 3006),
 		WebGUIEnabled:             getEnvBool("WEBGUI_ENABLED", true),
-		WebGUIPort:                getEnvInt("WEBGUI_PORT", 13007),
+		WebGUIPort:                getEnvInt("WEBGUI_PORT", 3007),
 		SessionSecret:             getEnv("SESSION_SECRET", generateSessionSecret()),
 		AutoOpenBrowser:           getEnvBool("AUTO_OPEN_BROWSER", true),
 		KnirvOracleURL:            getEnv("KNIRV_ORACLE_URL", "http://localhost:1317"),
-		BackendAPIURL:             getEnv("KNIRV_BACKEND_API_URL", "http://localhost:8082"),
 		TurnServerEnabled:         getEnvBool("TURN_SERVER_ENABLED", true),
 		TurnServerUDPPort:         getEnvInt("TURN_SERVER_UDP_PORT", 3478),
 		TurnServerTCPPort:         getEnvInt("TURN_SERVER_TCP_PORT", 3479),

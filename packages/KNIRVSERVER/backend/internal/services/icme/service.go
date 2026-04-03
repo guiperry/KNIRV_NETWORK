@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"backend_server/internal/database"
+	"backend_server/internal/services/validationchain"
 )
 
 type Service struct {
@@ -23,8 +24,8 @@ type Service struct {
 	logger         *zap.Logger
 	db             *database.BuntDBManager
 
-	blockchainClient interface {
-		SubmitTransaction(tx interface{}) (string, error)
+	validationChainClient interface {
+		CommitPolicy(req validationchain.PolicyCommitRequest) (string, error)
 	}
 }
 
@@ -252,27 +253,20 @@ func (s *Service) handleCommitPolicy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if s.blockchainClient != nil {
-		policyData, err := json.Marshal(policy)
+	if s.validationChainClient != nil {
+		txHash, err := s.validationChainClient.CommitPolicy(validationchain.PolicyCommitRequest{
+			Name:      policy.Name,
+			Type:      policy.Type,
+			TargetDVE: policy.TargetDVE,
+			Rules:     policy.Rules,
+			Priority:  policy.Priority,
+			Enabled:   policy.Enabled,
+		})
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		tx := struct {
-			Type string `json:"type"`
-			Data string `json:"data"`
-		}{
-			Type: "policy_commit",
-			Data: string(policyData),
-		}
-
-		txHash, err := s.blockchainClient.SubmitTransaction(tx)
-		if err != nil {
-			s.logger.Error("failed to commit policy to blockchain",
+			s.logger.Error("failed to commit policy to validation chain",
 				zap.String("policy", policy.Name),
 				zap.Error(err))
-			http.Error(w, "failed to commit policy to blockchain: "+err.Error(), http.StatusInternalServerError)
+			http.Error(w, "failed to commit policy to validation chain: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -321,10 +315,16 @@ func (s *Service) handleListPolicies(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(policies)
 }
 
-func (s *Service) SetBlockchainClient(client interface {
-	SubmitTransaction(tx interface{}) (string, error)
+func (s *Service) SetValidationChainClient(client interface {
+	CommitPolicy(req validationchain.PolicyCommitRequest) (string, error)
 }) {
-	s.blockchainClient = client
+	s.validationChainClient = client
+}
+
+func (s *Service) SetBlockchainClient(client interface {
+	CommitPolicy(req validationchain.PolicyCommitRequest) (string, error)
+}) {
+	s.SetValidationChainClient(client)
 }
 
 func (s *Service) RegisterObjective(obj *IntentObjective) error {
@@ -427,26 +427,19 @@ func (s *Service) handleOnboardingComplete(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	// Commit policies to blockchain if requested
-	if req.CommitToChain && s.blockchainClient != nil && len(policies) > 0 {
+	// Commit policies to the validation chain if requested
+	if req.CommitToChain && s.validationChainClient != nil && len(policies) > 0 {
 		for i, policy := range policies {
-			policyData, err := json.Marshal(policy)
+			txHash, err := s.validationChainClient.CommitPolicy(validationchain.PolicyCommitRequest{
+				Name:      policy.Name,
+				Type:      policy.Type,
+				TargetDVE: policy.TargetDVE,
+				Rules:     policy.Rules,
+				Priority:  policy.Priority,
+				Enabled:   policy.Enabled,
+			})
 			if err != nil {
-				s.logger.Error("failed to marshal policy", zap.Error(err))
-				continue
-			}
-
-			tx := struct {
-				Type string `json:"type"`
-				Data string `json:"data"`
-			}{
-				Type: "policy_commit",
-				Data: string(policyData),
-			}
-
-			txHash, err := s.blockchainClient.SubmitTransaction(tx)
-			if err != nil {
-				s.logger.Error("failed to commit policy to blockchain",
+				s.logger.Error("failed to commit policy to validation chain",
 					zap.String("policy", policy.Name),
 					zap.Error(err))
 				continue

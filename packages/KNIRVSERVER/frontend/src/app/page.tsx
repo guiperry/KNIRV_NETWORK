@@ -344,7 +344,7 @@ export default function Dashboard() {
                         </div>
                         <div>
                           <span className="font-medium">Backend URL:</span>
-                          <span className="ml-2 text-muted-foreground">http://localhost:8082</span>
+                          <span className="ml-2 text-muted-foreground">http://localhost:8090</span>
                         </div>
                         <div>
                           <span className="font-medium">DVE Nodes:</span>

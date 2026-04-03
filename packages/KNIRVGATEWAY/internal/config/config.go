@@ -15,6 +15,7 @@ type Config struct {
 	// Gateway configuration
 	GatewayMode string
 	Port        int
+	SocketPath  string
 	ChainID     string
 	PublicHost  string
 
@@ -76,6 +77,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		GatewayMode:               getEnv("GATEWAY_MODE", "persistent"),
 		Port:                      getEnvInt("PORT", 8080),
+		SocketPath:                getEnv("SOCKET_PATH", ""),
 		ChainID:                   getEnv("KNIRV_CHAIN_ID", "testnet"),
 		PublicHost:                getEnv("PUBLIC_HOST", "localhost"),
 		DisableDHT:                getEnvBool("DISABLE_DHT", false),

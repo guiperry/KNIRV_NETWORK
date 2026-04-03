@@ -341,6 +341,7 @@ type Config struct {
 	NodeName                string                     `json:"node_name,omitempty" mapstructure:"node_name,nodeName"` // Node name for identification
 	ExperimentalFeatures    ExperimentalFeaturesConfig `json:"experimental_features" mapstructure:"experimentalFeatures"`
 	Port                    uint64                     `json:"port" mapstructure:"port,httpPort"`        // Accept both port and httpPort in config
+	SocketPath              string                     `json:"socket_path" mapstructure:"socketPath"`    // Unix socket path for HTTP server
 	P2PPort                 uint64                     `json:"p2p_port" mapstructure:"p2p_port,p2pPort"` // Accept both p2p_port and p2pPort in config
 	Relay                   RelayConfig                `json:"relay" mapstructure:"relay"`               // Circuit relay configuration
 	ConsensusPauseTime      int                        `json:"consensus_pause_time" mapstructure:"consensus_pause_time,consensusPauseTime"`

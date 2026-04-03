@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -26,6 +28,7 @@ type RPCServer struct {
 	logger          *zap.Logger
 	server          *http.Server
 	port            int
+	socketPath      string
 }
 
 type GraphChainInterface interface {
@@ -112,7 +115,7 @@ func NewRPCServerWithNRV(gc GraphChainInterface, nrvSys *nrv.NRVSystem, logger *
 }
 
 // NewRPCServerWithEconomics creates a new RPC server with economics integration
-func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nrnIntegration *economics.NRNIntegration, proofOfSolution *economics.ProofOfSolution, app AppInterface, logger *zap.Logger, port int) *RPCServer {
+func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nrnIntegration *economics.NRNIntegration, proofOfSolution *economics.ProofOfSolution, app AppInterface, logger *zap.Logger, port int, socketPath string) *RPCServer {
 	router := mux.NewRouter()
 
 	rpc := &RPCServer{
@@ -122,6 +125,8 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 		proofOfSolution: proofOfSolution,
 		app:             app,
 		logger:          logger,
+		port:            port,
+		socketPath:      socketPath,
 	}
 
 	// Enable CORS
@@ -178,17 +183,40 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 }
 
 func (rpc *RPCServer) Start(ctx context.Context) error {
-	// Find an open port if the configured port is in use
-	actualPort := findOpenPort(rpc.port, 100)
-	if actualPort != rpc.port {
-		rpc.port = actualPort
-		rpc.server.Addr = fmt.Sprintf(":%d", actualPort)
-		rpc.logger.Info("RPC port in use, using alternative port", zap.Int("port", actualPort))
+	var listener net.Listener
+	var err error
+
+	if rpc.socketPath != "" {
+		if err := os.RemoveAll(rpc.socketPath); err != nil {
+			return fmt.Errorf("failed to remove existing socket: %w", err)
+		}
+		if err := os.MkdirAll(filepath.Dir(rpc.socketPath), 0755); err != nil && !os.IsExist(err) {
+			return fmt.Errorf("failed to create socket directory: %w", err)
+		}
+		listener, err = net.Listen("unix", rpc.socketPath)
+		if err != nil {
+			return fmt.Errorf("failed to listen on socket: %w", err)
+		}
+		if err := os.Chmod(rpc.socketPath, 0666); err != nil {
+			return fmt.Errorf("failed to set socket permissions: %w", err)
+		}
+		rpc.logger.Info("Starting RPC server", zap.String("socket", rpc.socketPath))
+	} else {
+		actualPort := findOpenPort(rpc.port, 100)
+		if actualPort != rpc.port {
+			rpc.port = actualPort
+			rpc.server.Addr = fmt.Sprintf(":%d", actualPort)
+			rpc.logger.Info("RPC port in use, using alternative port", zap.Int("port", actualPort))
+		}
+		rpc.logger.Info("Starting RPC server", zap.String("addr", rpc.server.Addr))
+		listener, err = net.Listen("tcp", rpc.server.Addr)
+		if err != nil {
+			return fmt.Errorf("failed to listen: %w", err)
+		}
 	}
-	rpc.logger.Info("Starting RPC server", zap.String("addr", rpc.server.Addr))
 
 	go func() {
-		if err := rpc.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := rpc.server.Serve(listener); err != nil && err != http.ErrServerClosed {
 			rpc.logger.Error("RPC server error", zap.Error(err))
 		}
 	}()

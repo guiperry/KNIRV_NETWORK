@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pb "hasher/internal/proto/hasher/v1"
+	pb "knirvhasher/internal/proto/hasher/v1"
 )
 
 func main() {
