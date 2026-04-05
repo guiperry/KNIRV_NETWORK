@@ -14,6 +14,21 @@ pub trait Storage: Send + Sync {
     async fn delete(&self, collection: &str, id: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
     async fn find(&self, collection: &str, id: &str) -> Result<Option<HashMap<String, serde_json::Value>>, Box<dyn std::error::Error + Send + Sync>>;
     async fn find_all(&self, collection: &str) -> Result<Vec<HashMap<String, serde_json::Value>>, Box<dyn std::error::Error + Send + Sync>>;
+
+    // KV API
+    async fn put(&self, key: &str, value: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    async fn get(&self, key: &str) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>>;
+    async fn delete_key(&self, key: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+
+    // JSON API
+    async fn store_object(&self, key: &str, obj: &serde_json::Value) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    async fn get_object(&self, key: &str) -> Result<Option<serde_json::Value>, Box<dyn std::error::Error + Send + Sync>>;
+
+    // Index Management
+    async fn create_index(&self, index: &Index) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    async fn drop_index(&self, name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+    async fn get_index(&self, name: &str) -> Result<Option<Index>, Box<dyn std::error::Error + Send + Sync>>;
+    async fn query_index(&self, index_name: &str, query: &str) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>>;
 }
 
 /// IndexType represents the type of index
@@ -301,5 +316,89 @@ impl Storage for FileStorage {
         }
 
         Ok(docs)
+    }
+
+    async fn put(&self, key: &str, value: &[u8]) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let kv_dir = Path::new(&self.base_dir).join("_kv");
+        fs::create_dir_all(&kv_dir)?;
+        let path = kv_dir.join(format!("{}.bin", key));
+        fs::write(path, value)?;
+        Ok(())
+    }
+
+    async fn get(&self, key: &str) -> Result<Option<Vec<u8>>, Box<dyn std::error::Error + Send + Sync>> {
+        let kv_dir = Path::new(&self.base_dir).join("_kv");
+        let path = kv_dir.join(format!("{}.bin", key));
+        if !path.exists() {
+            return Ok(None);
+        }
+        Ok(Some(fs::read(path)?))
+    }
+
+    async fn delete_key(&self, key: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let kv_dir = Path::new(&self.base_dir).join("_kv");
+        let path = kv_dir.join(format!("{}.bin", key));
+        if path.exists() {
+            fs::remove_file(path)?;
+        }
+        Ok(())
+    }
+
+    async fn store_object(&self, key: &str, obj: &serde_json::Value) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let kv_dir = Path::new(&self.base_dir).join("_kv");
+        fs::create_dir_all(&kv_dir)?;
+        let path = kv_dir.join(format!("{}.json", key));
+        let data = serde_json::to_vec_pretty(obj)?;
+        fs::write(path, data)?;
+        Ok(())
+    }
+
+    async fn get_object(&self, key: &str) -> Result<Option<serde_json::Value>, Box<dyn std::error::Error + Send + Sync>> {
+        let kv_dir = Path::new(&self.base_dir).join("_kv");
+        let path = kv_dir.join(format!("{}.json", key));
+        if !path.exists() {
+            return Ok(None);
+        }
+        let data = fs::read(path)?;
+        Ok(Some(serde_json::from_slice(&data)?))
+    }
+
+    async fn create_index(&self, index: &Index) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let index_dir = Path::new(&self.base_dir).join("_indexes");
+        fs::create_dir_all(&index_dir)?;
+        let path = index_dir.join(format!("{}.json", index.name));
+        let data = serde_json::to_vec_pretty(index)?;
+        fs::write(path, data)?;
+        Ok(())
+    }
+
+    async fn drop_index(&self, name: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let index_dir = Path::new(&self.base_dir).join("_indexes");
+        let path = index_dir.join(format!("{}.json", name));
+        if path.exists() {
+            fs::remove_file(path)?;
+        }
+        Ok(())
+    }
+
+    async fn get_index(&self, name: &str) -> Result<Option<Index>, Box<dyn std::error::Error + Send + Sync>> {
+        let index_dir = Path::new(&self.base_dir).join("_indexes");
+        let path = index_dir.join(format!("{}.json", name));
+        if !path.exists() {
+            return Ok(None);
+        }
+        let data = fs::read(path)?;
+        Ok(Some(serde_json::from_slice(&data)?))
+    }
+
+    async fn query_index(&self, index_name: &str, query: &str) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+        let index = self.get_index(index_name).await?.ok_or("index not found")?;
+        match index.index_type {
+            IndexType::HNSW => {
+                // Placeholder - would integrate with HNSW implementation
+                Ok(vec![])
+            }
+            _ => Ok(vec![]),
+        }
     }
 }

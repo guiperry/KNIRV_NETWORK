@@ -1,7 +1,66 @@
+use crate::clock::VectorClock;
+use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use chrono::{DateTime, Utc, Duration};
-use crate::clock::VectorClock;
+
+/// MemoryCategory specifies the category of memory entries
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum MemoryCategory {
+    Error,
+    Context,
+    Idea,
+    Solution,
+    Skill,
+    Generic,
+    Event,
+    Preference,
+    Trait,
+}
+
+impl MemoryCategory {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MemoryCategory::Error => "ERROR",
+            MemoryCategory::Context => "CONTEXT",
+            MemoryCategory::Idea => "IDEA",
+            MemoryCategory::Solution => "SOLUTION",
+            MemoryCategory::Skill => "SKILL",
+            MemoryCategory::Generic => "GENERIC",
+            MemoryCategory::Event => "EVENT",
+            MemoryCategory::Preference => "PREFERENCE",
+            MemoryCategory::Trait => "TRAIT",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "ERROR" => Some(MemoryCategory::Error),
+            "CONTEXT" => Some(MemoryCategory::Context),
+            "IDEA" => Some(MemoryCategory::Idea),
+            "SOLUTION" => Some(MemoryCategory::Solution),
+            "SKILL" => Some(MemoryCategory::Skill),
+            "GENERIC" => Some(MemoryCategory::Generic),
+            "EVENT" => Some(MemoryCategory::Event),
+            "PREFERENCE" => Some(MemoryCategory::Preference),
+            "TRAIT" => Some(MemoryCategory::Trait),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for MemoryCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl std::str::FromStr for MemoryCategory {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_str(s).ok_or_else(|| format!("unknown memory category: {}", s))
+    }
+}
 
 /// EntryType specifies the kind of data stored.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -170,6 +229,8 @@ pub enum MessageType {
     Heartbeat,
     CollectionAnnounce,
     CollectionRequest,
+    DhtPut,
+    DhtGet,
 }
 
 impl std::fmt::Display for MessageType {
@@ -181,6 +242,8 @@ impl std::fmt::Display for MessageType {
             MessageType::Heartbeat => write!(f, "heartbeat"),
             MessageType::CollectionAnnounce => write!(f, "collection_announce"),
             MessageType::CollectionRequest => write!(f, "collection_request"),
+            MessageType::DhtPut => write!(f, "dht_put"),
+            MessageType::DhtGet => write!(f, "dht_get"),
         }
     }
 }
@@ -188,6 +251,7 @@ impl std::fmt::Display for MessageType {
 /// ProtocolMessage generic envelope
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ProtocolMessage {
+    #[serde(rename = "type")]
     pub msg_type: MessageType,
     pub network_id: String,
     pub sender_id: String,

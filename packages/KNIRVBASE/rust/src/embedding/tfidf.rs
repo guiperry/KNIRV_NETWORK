@@ -144,6 +144,31 @@ impl TfidfVectorizer {
     pub fn get_vocabulary(&self) -> HashMap<String, usize> {
         self.vocabulary.clone()
     }
+
+    pub fn get_idf(&self) -> HashMap<String, f64> {
+        self.idf.clone()
+    }
+
+    pub fn get_doc_count(&self) -> usize {
+        self.doc_count
+    }
+
+    pub fn get_word_doc_counts(&self) -> HashMap<String, usize> {
+        self.word_doc_counts.clone()
+    }
+
+    pub fn restore_vocabulary(
+        &mut self,
+        vocabulary: HashMap<String, usize>,
+        idf: HashMap<String, f64>,
+        doc_count: usize,
+        word_doc_counts: HashMap<String, usize>,
+    ) {
+        self.vocabulary = vocabulary;
+        self.idf = idf;
+        self.doc_count = doc_count;
+        self.word_doc_counts = word_doc_counts;
+    }
 }
 
 impl Default for TfidfVectorizer {

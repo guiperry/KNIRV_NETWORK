@@ -6,11 +6,24 @@ export enum EntryType {
   Auth = 'AUTH',
 }
 
+// MemoryCategory specifies the category of memory entries
+export enum MemoryCategory {
+  Error = 'ERROR',
+  Context = 'CONTEXT',
+  Idea = 'IDEA',
+  Solution = 'SOLUTION',
+  Skill = 'SKILL',
+  Generic = 'GENERIC',
+  Event = 'EVENT',
+  Preference = 'PREFERENCE',
+  Trait = 'TRAIT',
+}
+
 // DistributedDocument augments a document with CRDT metadata
 export interface DistributedDocument {
   id: string;
   entryType: EntryType;
-  payload?: Record<string, any>;
+  payload?: Record<string, unknown>;
   _vector: VectorClock;
   _timestamp: number;
   _peerId: string;
@@ -117,6 +130,8 @@ export enum MessageType {
   Heartbeat = 'heartbeat',
   CollectionAnnounce = 'collection_announce',
   CollectionRequest = 'collection_request',
+  DhtPut = 'dht_put',
+  DhtGet = 'dht_get',
 }
 
 // ProtocolMessage generic envelope
@@ -125,5 +140,5 @@ export interface ProtocolMessage {
   networkId: string;
   senderId: string;
   timestamp: number;
-  payload: any;
+  payload: unknown;
 }

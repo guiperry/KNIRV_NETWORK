@@ -191,7 +191,7 @@ impl KNIRVQLParser {
 
     fn parse_delete(&self, parts: &[&str]) -> Result<Query, String> {
         if parts.len() < 4 || parts[0].to_uppercase() != "WHERE" 
-            || parts[1].to_uppercase() != "ID" || parts[2] != "=" {
+            || parts[1].to_lowercase() != "id" || parts[2] != "=" {
             return Err("invalid DELETE query".to_string());
         }
 
@@ -401,7 +401,38 @@ impl Query {
                 }
                 Ok(serde_json::Value::Null)
             }
-            _ => Err("unsupported query type".to_string()),
+            QueryType::CreateIndex => {
+                let index = crate::storage::Index {
+                    name: self.index_name.clone().unwrap_or_default(),
+                    collection: self.collection.clone(),
+                    index_type: crate::storage::IndexType::BTree,
+                    fields: self.fields.clone(),
+                    unique: self.unique,
+                    partial_expr: None,
+                    options: None,
+                };
+                collection.get_storage().create_index(&index).await
+                    .map(|_| serde_json::Value::Null)
+                    .map_err(|e| e.to_string())
+            }
+            QueryType::DropIndex => {
+                if let Some(name) = &self.index_name {
+                    collection.get_storage().drop_index(name).await
+                        .map(|_| serde_json::Value::Null)
+                        .map_err(|e| e.to_string())
+                } else {
+                    Err("index name required".to_string())
+                }
+            }
+            QueryType::CreateCollection => {
+                Ok(serde_json::Value::Null)
+            }
+            QueryType::DropCollection => {
+                Ok(serde_json::Value::Null)
+            }
+            QueryType::GetModality => {
+                Ok(serde_json::Value::Null)
+            }
         }
     }
 

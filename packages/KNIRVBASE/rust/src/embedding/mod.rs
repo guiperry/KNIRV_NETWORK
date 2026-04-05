@@ -150,11 +150,17 @@ impl TfidfEmbedder {
 
         let vocab_json = serde_json::to_string(&vectorizer.get_vocabulary())
             .map_err(|e| format!("failed to marshal vocabulary: {}", e))?;
-        let idf_json = serde_json::to_string(&vectorizer.get_vocabulary())
+        let idf_json = serde_json::to_string(&vectorizer.get_idf())
             .map_err(|e| format!("failed to marshal IDF: {}", e))?;
+        let doc_count_json = serde_json::to_string(&vectorizer.get_doc_count())
+            .map_err(|e| format!("failed to marshal doc_count: {}", e))?;
+        let word_doc_counts_json = serde_json::to_string(&vectorizer.get_word_doc_counts())
+            .map_err(|e| format!("failed to marshal word_doc_counts: {}", e))?;
 
         storage.put("embedding:vocabulary", vocab_json.as_bytes())?;
         storage.put("embedding:idf", idf_json.as_bytes())?;
+        storage.put("embedding:doc_count", doc_count_json.as_bytes())?;
+        storage.put("embedding:word_doc_counts", word_doc_counts_json.as_bytes())?;
 
         Ok(())
     }
@@ -165,9 +171,27 @@ impl TfidfEmbedder {
         let vocab_data = storage
             .get("embedding:vocabulary")?
             .ok_or("vocabulary not found in storage")?;
+        let idf_data = storage
+            .get("embedding:idf")?
+            .ok_or("idf not found in storage")?;
+        let doc_count_data = storage
+            .get("embedding:doc_count")?
+            .ok_or("doc_count not found in storage")?;
+        let word_doc_counts_data = storage
+            .get("embedding:word_doc_counts")?
+            .ok_or("word_doc_counts not found in storage")?;
 
-        let _vocab: HashMap<String, usize> = serde_json::from_slice(&vocab_data)
+        let vocab: HashMap<String, usize> = serde_json::from_slice(&vocab_data)
             .map_err(|e| format!("failed to unmarshal vocabulary: {}", e))?;
+        let idf: HashMap<String, f64> = serde_json::from_slice(&idf_data)
+            .map_err(|e| format!("failed to unmarshal IDF: {}", e))?;
+        let doc_count: usize = serde_json::from_slice(&doc_count_data)
+            .map_err(|e| format!("failed to unmarshal doc_count: {}", e))?;
+        let word_doc_counts: HashMap<String, usize> = serde_json::from_slice(&word_doc_counts_data)
+            .map_err(|e| format!("failed to unmarshal word_doc_counts: {}", e))?;
+
+        let mut vectorizer = self.vectorizer.write().unwrap();
+        vectorizer.restore_vocabulary(vocab, idf, doc_count, word_doc_counts);
 
         Ok(())
     }

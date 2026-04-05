@@ -60,7 +60,7 @@ export class MemoryEncryption {
    * Encode a key to base64 for storage
    */
   encodeKey(key: Buffer): string {
-    return key.toString('base64');
+    return key.toString('base64url');
   }
 
   /**
@@ -68,12 +68,12 @@ export class MemoryEncryption {
    */
   decodeKey(encoded: string): Buffer {
     try {
-      // Validate base64 string by checking for invalid characters
-      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-      if (!base64Regex.test(encoded)) {
-        throw new Error('Invalid base64 characters');
+      // Validate base64url string
+      const base64urlRegex = /^[A-Za-z0-9_-]*$/;
+      if (!base64urlRegex.test(encoded)) {
+        throw new Error('Invalid base64url characters');
       }
-      return Buffer.from(encoded, 'base64');
+      return Buffer.from(encoded, 'base64url');
     } catch (error) {
       throw new Error(`Failed to decode key: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

@@ -144,4 +144,9 @@ impl DistributedCollection {
         sync_state.sync_in_progress = false;
         Ok(())
     }
+
+    /// GetStorage returns the storage backend
+    pub fn get_storage(&self) -> Arc<dyn Storage> {
+        self.storage.clone()
+    }
 }

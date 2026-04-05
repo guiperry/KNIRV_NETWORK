@@ -8,13 +8,22 @@ const (
 	HeaderSize             = 12
 )
 
-type ModalityType string
+type NRVModalityType string
 
 const (
-	ModalityVector ModalityType = "vector"
-	ModalitySeed   ModalityType = "seed"
-	ModalityThermo ModalityType = "thermo"
-	ModalityProof  ModalityType = "proof"
+	NRVModalityVector NRVModalityType = "vector"
+	NRVModalitySeed   NRVModalityType = "seed"
+	NRVModalityThermo NRVModalityType = "thermo"
+	NRVModalityProof  NRVModalityType = "proof"
+)
+
+type ModalityType = NRVModalityType
+
+var (
+	ModalityVector = NRVModalityVector
+	ModalitySeed   = NRVModalitySeed
+	ModalityThermo = NRVModalityThermo
+	ModalityProof  = NRVModalityProof
 )
 
 func Align8(n int) int {

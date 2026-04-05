@@ -2,7 +2,7 @@ use aes_gcm::{
     aead::{Aead, KeyInit, OsRng},
     Aes256Gcm, Nonce,
 };
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD as BASE64, Engine as _};
 use pbkdf2::pbkdf2_hmac_array;
 use rand::RngCore;
 use sha2::{Digest, Sha256};

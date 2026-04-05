@@ -16,6 +16,8 @@ pub mod hnsw;
 pub mod embedding;
 pub mod index_manager;
 pub mod query_parser;
+pub mod logging;
+pub mod monitoring;
 
 pub use clock::VectorClock;
 pub use types::*;
@@ -31,6 +33,8 @@ pub use hnsw::HNSWIndex;
 pub use embedding::{TfidfVectorizer, LsaReducer, TfidfEmbedder, Embedder, Storage as EmbeddingStorage};
 pub use index_manager::{IndexManager, Index, IndexType};
 pub use query_parser::{Query, QueryType, KNIRVQLParser};
+pub use logging::{Logger, Level, LogEntry};
+pub use monitoring::{Metrics, Counter, Gauge, Histogram};
 
 pub type Collection = crate::collection::DistributedCollection;
 
@@ -96,8 +100,9 @@ pub mod prelude {
     pub use super::embedding::{TfidfVectorizer, LsaReducer, TfidfEmbedder, Embedder, Storage as EmbeddingStorage};
     pub use super::index_manager::{IndexManager, Index, IndexType};
     pub use super::query_parser::{Query, QueryType, KNIRVQLParser};
+    pub use super::logging::{Logger, Level, LogEntry};
+    pub use super::monitoring::{Metrics, Counter, Gauge, Histogram};
     pub use super::{Collection, CollectionAdapter, Options};
-    pub use super::{MemoryCategory, ModalityType, Frame, ThermoData, FrameEntry, Registry, NRV_MAGIC, NRV_VERSION};
 }
 
 pub struct DB {
@@ -149,51 +154,10 @@ impl DB {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct MemoryCategory(pub String);
 
-impl MemoryCategory {
-    pub const ERROR: &'static str = "ERROR";
-    pub const CONTEXT: &'static str = "CONTEXT";
-    pub const IDEA: &'static str = "IDEA";
-    pub const SOLUTION: &'static str = "SOLUTION";
-    pub const SKILL: &'static str = "SKILL";
-    pub const GENERIC: &'static str = "GENERIC";
-    pub const EVENT: &'static str = "EVENT";
-    pub const PREFERENCE: &'static str = "PREFERENCE";
-    pub const TRAIT: &'static str = "TRAIT";
-
-    pub fn new(s: &str) -> Self {
-        MemoryCategory(s.to_string())
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Default for MemoryCategory {
-    fn default() -> Self {
-        MemoryCategory("GENERIC".to_string())
-    }
-}
-
-impl std::fmt::Display for MemoryCategory {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl std::str::FromStr for MemoryCategory {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(MemoryCategory(s.to_string()))
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ModalityType {
+pub enum MediaModalityType {
     Vector,
     Audio,
     Video,
@@ -201,14 +165,14 @@ pub enum ModalityType {
     Text,
 }
 
-impl std::fmt::Display for ModalityType {
+impl std::fmt::Display for MediaModalityType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ModalityType::Vector => write!(f, "vector"),
-            ModalityType::Audio => write!(f, "audio"),
-            ModalityType::Video => write!(f, "video"),
-            ModalityType::Image => write!(f, "image"),
-            ModalityType::Text => write!(f, "text"),
+            MediaModalityType::Vector => write!(f, "vector"),
+            MediaModalityType::Audio => write!(f, "audio"),
+            MediaModalityType::Video => write!(f, "video"),
+            MediaModalityType::Image => write!(f, "image"),
+            MediaModalityType::Text => write!(f, "text"),
         }
     }
 }
@@ -322,7 +286,7 @@ mod tests {
 
     #[test]
     fn test_memory_category_display() {
-        let cat = MemoryCategory::new("ERROR");
+        let cat = types::MemoryCategory::from_str("ERROR").unwrap();
         assert_eq!(format!("{}", cat), "ERROR");
     }
 
