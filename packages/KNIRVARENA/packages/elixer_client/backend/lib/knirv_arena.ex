@@ -1,6 +1,6 @@
-defmodule Knirvarena do
+defmodule KnirvArena do
   @moduledoc """
-  Documentation for `Knirvarena`.
+  Documentation for `KnirvArena`.
   
   The KNIRVARENA serves as the decentralized orchestrator for the "Error Node" transformation process.
   It is built using the Elixir/Phoenix framework to leverage the BEAM's native distributed capabilities.

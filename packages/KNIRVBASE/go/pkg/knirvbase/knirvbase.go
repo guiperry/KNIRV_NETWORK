@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	coll "github.com/knirvcorp/knirvbase/go/internal/collection"
+	"github.com/knirvcorp/knirvbase/go/internal/crypto/pqc"
 	db "github.com/knirvcorp/knirvbase/go/internal/database"
 	stor "github.com/knirvcorp/knirvbase/go/internal/storage"
 	typ "github.com/knirvcorp/knirvbase/go/internal/types"
+	"github.com/knirvcorp/knirvbase/go/pkg/nrv"
 )
 
 // Options contains configuration for the library
@@ -86,6 +88,72 @@ func (d *DB) RawCollection(name string) *coll.DistributedCollection {
 // Shutdown stops the underlying network manager
 func (d *DB) Shutdown() error {
 	return d.db.Shutdown()
+}
+
+// NRVDataset wraps a collection backed by NRVStorage, providing KNIRVHASHER-specific APIs
+type NRVDataset struct {
+	name    string
+	storage *stor.NRVStorage
+	inner   *coll.DistributedCollection
+}
+
+// Dataset returns an NRVDataset for KNIRVHASHER training data access.
+// Panics if the DB was not created with an NRVStorage backend.
+func (d *DB) Dataset(name string) *NRVDataset {
+	nrvStore, ok := d.store.(*stor.NRVStorage)
+	if !ok {
+		panic("DB was not created with NRVStorage — use NewNRV() constructor")
+	}
+	return &NRVDataset{
+		name:    name,
+		storage: nrvStore,
+		inner:   d.db.Collection(name, d.store),
+	}
+}
+
+// AppendFrame adds a KNIRVHASHER frame to the dataset
+func (ds *NRVDataset) AppendFrame(ctx context.Context, frame *nrv.Frame, verified bool, ergoRank float64) error {
+	doc := map[string]interface{}{
+		"id":        frame.ID,
+		"verified":  verified,
+		"ergo_rank": ergoRank,
+		"payload": map[string]interface{}{
+			"vector": frame.Vector[:],
+			"seed":   frame.Seed[:],
+			"thermo": map[string]float32{
+				"temp_celsius": frame.Thermo.TempCelsius,
+				"voltage_v":    frame.Thermo.VoltageV,
+				"freq_mhz":     frame.Thermo.FreqMHz,
+				"fan_rpm":      frame.Thermo.FanRPM,
+			},
+			"proof": string(frame.Proof),
+		},
+	}
+	return ds.storage.Insert(ctx, ds.name, doc)
+}
+
+// StreamFrames returns a channel of live frames for ML training consumption
+func (ds *NRVDataset) StreamFrames(ctx context.Context, modalityFilter nrv.ModalityType) (<-chan *nrv.Frame, error) {
+	return ds.storage.StreamFrames(ctx, ds.name, modalityFilter)
+}
+
+// GetModality returns raw bytes for one modality from one frame (zero-copy from mmap)
+func (ds *NRVDataset) GetModality(ctx context.Context, frameID string, mod nrv.ModalityType) ([]byte, error) {
+	return ds.storage.GetModality(ctx, ds.name, frameID, mod)
+}
+
+// NewNRV creates a DB backed by NRVStorage for dataset workloads
+func NewNRV(ctx context.Context, opts Options, keyPair *pqc.PQCKeyPair) (*DB, error) {
+	store := stor.NewNRVStorage(opts.DataDir, keyPair)
+	dopts := db.DistributedDbOptions{}
+	dopts.Distributed.Enabled = opts.DistributedEnabled
+	dopts.Distributed.NetworkID = opts.DistributedNetworkID
+	dopts.Distributed.BootstrapPeers = opts.DistributedBootstrapPeers
+	inner, err := db.NewDistributedDatabase(ctx, dopts, store)
+	if err != nil {
+		return nil, err
+	}
+	return &DB{db: inner, store: store}, nil
 }
 
 // Collection is a thin interface representing collection operations consumers need

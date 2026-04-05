@@ -1,114 +1,168 @@
-# 📜 RULEBOOK: ERROR NODE (v1.0)
+# RULEBOOK: KNIRVANA — THE DATASET FORGE (v2.0)
+
+---
 
 ## I. The Objective
 
-Your Agent must navigate the **KNIRVANA** (a 3D landscape of Loss) to find the **Global Minimum** (). The first Agent to maintain a stable position at the Global Minimum for 3 consecutive "Epochs" wins.
+You are an **Architect**. Your goal is not to solve errors yourself — it is to craft training datasets good enough that the **HERO Model** can solve them. The HERO Model reads every dataset submitted to the arena, attempts to resolve active error nodes, and rewards the Architects whose datasets contributed the most.
+
+**Win by being the best teacher, not the best solver.**
 
 ---
 
-## II. The Arena: The Error Topography
+## II. The Arena: The KNIRVGRAPH
 
-The Arena is a grid-based landscape where the elevation represents **Loss** ().
+The Arena is a live 3D graph of active error nodes — real AI failures captured from the KNIRV network.
 
-* **Peaks (Red Zones):** High Error. Agents take "Damage" (Compute Loss) here.
-* **Valleys (Blue Zones):** Low Error. Agents regain "Stability."
-* **The Fog of Overfitting:** Areas where the terrain looks like a goal but is actually a trap that resets Agent progress.
+- **Red Nodes (High Severity):** Complex, high-reward errors. Low context density — harder datasets to craft.
+- **Green Nodes (Low Severity):** Well-documented errors. Easier datasets, steady Compute income.
+- **Corrupted Nodes (Fog):** Nodes where a bad dataset caused the HERO Model to attempt a wrong resolution. Any new dataset submitted here must include a `rejected` field referencing the prior failure.
+
+Each node displays:
+- Error class (e.g., `API_Timeout`, `Logic_Loop`, `Hallucination_TypeB`)
+- Context density (determines which dataset formats you can use)
+- HERO attempt history (how many times it's been tried, and with what results)
 
 ---
 
-## III. Player Roles & Resources
+## III. Player Role & Resources
 
 You play as the **Architect**. You manage two primary resources:
 
-1. **Compute ():** Your "Mana." Used to accelerate your Agent or sabotage others.
-2. **Parity ():** Your "Health." If your Agent's weights become too chaotic (Divergence), you are disconnected from the Arena.
+1. **Compute (C):** Earned when your datasets help the HERO Model succeed. Spent on sabotage and agent upgrades.
+2. **Parity (P):** Represents your dataset quality track record. Submitting consistently poor or irrelevant datasets drains Parity. Reaching 0 quarantines your submissions for one epoch.
 
 ---
 
-## IV. The Optimization Loop (Turn Phases)
+## IV. Turn Phases
 
-Each round consists of three distinct phases:
+Each epoch consists of four phases:
 
-### Phase 1: The Inference Step (Movement)
+### Phase 1: Error Surfacing (Automatic)
 
-Agents move simultaneously based on their current **Policy**.
+The KNIRVGRAPH updates. New error nodes appear; resolved ones are cleared. Each Architect sees:
+- Active nodes available to claim
+- Updated HERO attempt logs for corrupted nodes
+- Competitor activity (which nodes are being targeted this epoch)
 
-* **Human Activity:** You do not control the move. You observe the path.
-* **Mechanic:** Agents naturally move toward lower elevation unless distracted by "Noise."
+### Phase 2: Context Gathering (Agent Phase)
 
-### Phase 2: The Reward Sculpting (Human Intervention)
+Your agents analyze the error nodes you're targeting and return context packages:
+- Raw error logs and stack traces
+- Related nodes from KNIRVGRAPH history
+- Prior resolution attempts (successful and failed)
+- Relevant `skill.md` files already on KNIRVCHAIN
 
-This is where the human plays. You have 30 seconds to "Sculpt" the reward signal for the next move.
+Better agents return richer context. Context density determines which **dataset formats** are available to you this epoch.
 
-* **Weight Drop:** Place a "Reward Anchor" on a tile to lure your Agent.
-* **Gradient Grease:** Make a slope steeper, forcing any Agent on it to slide 2 tiles down (faster movement, but less control).
-* **Anchor Bias:** Force an opponent to recalculate their path, costing them **Compute**.
+### Phase 3: Dataset Crafting (Human Phase — 60 seconds)
 
-### Phase 3: The Backprop Pulse (The Attack)
+**This is where you play.**
 
-If your Agent ended the turn in a lower elevation than an opponent, you may trigger a **Backprop Pulse**.
+You have 60 seconds to craft and propose a dataset for your target error node. You must:
 
-* **Effect:** You "leak" your error into their weights.
-* **Math:** The opponent's Learning Rate () is modified by:
+1. Select a TRL-compatible format (based on available context density).
+2. Fill the template with entries derived from your agent's context package.
+3. Optionally embed a `skill.md` inside the `.nrv` — narrative resolution knowledge that the HERO Model reads before attempting the error node.
+4. **Propose the `.nrv` to KNIRVGRAPH** — it is now a pending resolution candidate, visible to all Architects. It is not yet on KNIRVCHAIN.
 
+**Available Formats:**
 
-* *Translation:* You make their Agent "stumble" or over-correct, potentially sending them flying off a cliff.
+| Format | Min Context Density | Best For |
+| --- | --- | --- |
+| Standard (Prompt/Completion) | Any | Simple error-fix pairs |
+| Conversational (Chat) | Medium | Multi-turn reasoning failures |
+| Preference (DPO) | High | Nodes with prior HERO failed attempts |
+| Process Reward | High + HERO history | Step-level reasoning annotation |
+| Unpaired Preference (KTO) | Any | Batch labeling of agent-generated attempts |
+
+You may only submit **one dataset per node per epoch**. Quality beats quantity.
+
+### Phase 4: HERO Resolution & Reward (Automatic)
+
+The HERO Model runs its resolution pass across all active nodes using all **proposed `.nrv` files** on the KNIRVGRAPH plus the committed `skill.md` library already on KNIRVCHAIN.
+
+- **Nodes that resolve:** Contributing `.nrv` files are **committed to KNIRVCHAIN**. Compute is distributed to their Architects proportionally to `DatasetScore`. Embedded `skill.md` files are indexed as standalone skills and begin earning passive Compute income.
+- **Nodes that fail:** No `.nrv` files are committed. Architects with low-quality proposals lose Parity. The node becomes "Corrupted" — next epoch proposals must use DPO or Process Reward format and directly address the prior failure.
 
 ---
 
-## V. Advanced Human Tactics (The "Spells")
+## V. Dataset Crafting Rules
+
+1. **Format Validity:** Every entry in your dataset must conform exactly to the selected TRL format schema. Malformed entries score zero — the entire dataset is penalized.
+
+2. **Relevance:** Entries must directly address the target error node's class and context. Off-topic entries reduce your DatasetScore even if correctly formatted.
+
+3. **No Duplication:** If another Architect already submitted the same prompt/completion pair, your entry scores zero. The HERO Model rewards novelty.
+
+4. **Preference Format Restriction:** The `rejected` field in DPO format must be sourced from an actual prior HERO failed attempt log for this node. Fabricated rejections are flagged and penalized.
+
+---
+
+## VI. Sabotage Tactics
+
+Sabotage is a secondary activity. Spending Compute on sabotage instead of dataset quality is always a trade-off.
 
 | Tactic | Cost | Effect |
 | --- | --- | --- |
-| **Stochastic Burst** | 10 Compute | Your Agent ignores terrain for 1 turn (Teleport) but loses 5 Parity. |
-| **Dropout Shield** | 5 Compute | Makes your Agent invisible to opponent "Backprop Pulses" for one Epoch. |
-| **Local Minima Trap** | 15 Compute | Create a fake "Goal" tile. If an opponent lands there, they are stuck for 2 turns. |
-| **LR Decay** | 8 Compute | Permanently slow down an opponent's movement speed by 10%. |
+| **Context Poisoning** | 20 C | Inject a misleading entry into a competitor's agent context feed. Their next dataset may contain corrupted data. |
+| **Format Trap** | 15 C | Lock one dataset format for a target node this epoch, forcing competitors into a harder format. |
+| **Backprop Pulse** | 10 C | Flag a competitor's submitted dataset for re-evaluation. Borderline datasets may be downgraded. |
+| **Fog Drop** | 25 C | Corrupt a low-severity node — competitors who target it waste their crafting cycle. |
+
+**Adversarial Drift:** Architects who spend more than 50% of their Compute on sabotage over 3 consecutive epochs have their Parity penalized. The HERO Model tracks contribution history — a saboteur's datasets are weighted lower automatically.
 
 ---
 
-## VI. Winning & Losing
+## VII. The .nrv Commit
 
-* **The Convergence Victory:** Stay at the Global Minimum for 3 Epochs.
-* **The Disconnection Defeat:** If your **Parity** reaches 0, your Agent "Hallucinates" and wanders off the map.
-* **The Compute Crunch:** If you run out of Compute, you can no longer intervene, and your Agent runs on "Auto-Pilot" (Static Policy).
+Datasets travel as **`.nrv` (Noted Resolution Vector)** files — the binary dataset container format used by KNIRVBASE. A `skill.md` may be embedded inside the `.nrv` to provide the HERO Model with narrative knowledge alongside structured dataset entries.
+
+**Two-stage lifecycle:**
+1. **Proposed** (on KNIRVGRAPH) — your `.nrv` is live and visible to competitors. The HERO Model can read it this epoch. Nothing is permanent yet.
+2. **Committed** (on KNIRVCHAIN) — only happens if the HERO Model achieves a successful resolution using your `.nrv`. The file is signed with your KNIRVCHAIN address via Dilithium-3 PQC and stored permanently.
+
+Committed `.nrv` files are read by the HERO Model in every future resolution pass. Embedded `skill.md` files are indexed as standalone skills. Passive Compute income flows to you each time either is referenced.
+
+You may optionally **edit a proposed `.nrv`** before the epoch ends (before the HERO pass runs):
+- Costs no Compute; replaces the proposal on KNIRVGRAPH
+- If your revision improves the contribution score that epoch: +5 Parity
+- If your revision makes it worse: −10 Parity
 
 ---
 
-## VII. The "RLHF" Joker Card
+## VIII. The RLHF Joker: Manual Alignment
 
-Once per match, a human can trigger **Manual Alignment**.
+Once per match, an Architect can trigger **Manual Alignment** on a corrupted node.
 
-> **Activity:** You are shown three potential paths. You pick the "Best" one. Your Agent receives a permanent +50% speed boost toward that coordinate and ignores all "Local Minima Traps" on the way.
+> You are shown the HERO Model's full failed resolution attempt (token by token). You annotate which reasoning steps were correct and which were the wrong turns. This creates a **Process Reward dataset** automatically — submitted at no Compute cost and with a 2x DatasetScore multiplier for this node.
+
+This is the most powerful move in the game. Use it on a high-severity corrupted node.
 
 ---
 
+## IX. Winning
 
-## 📜 UPDATED RULEBOOK: THE RED QUEEN ARENA
+| Victory Condition | Description |
+| --- | --- |
+| **The Curator** | 10 of your `skill.md` files are still actively read by the HERO Model after 5 epochs. |
+| **The Resolver** | Your datasets contribute to 3 consecutive high-severity (Red) node resolutions. |
+| **The Monopolist** | Hold the highest Compute balance for 5 consecutive epochs. |
 
-### VIII. The Core Objective: "The Skill Slot"
+**Elimination:** If your Parity reaches 0, your datasets are quarantined for one epoch. Two consecutive quarantines = disconnection from the arena.
 
-There is only **one** active LoRA adapter slot (The "Throne"). Your goal is not just to solve the KNIRVANA, but to **occupy the slot** by submitting a trajectory that is mathematically superior to the current incumbent.
+---
 
-### IX. Digital Red Queen Dynamics
+## X. Quick Reference: DatasetScore
 
-In this Arena, the "Ground Truth" is a moving target.
+```
+DatasetScore = (ResolutionContribution × 0.6)
+             + (FormatCorrectness × 0.2)
+             + (Novelty × 0.2)
+```
 
-* **Weight Hijacking:** If your Agent produces a solution that is **shorter** (less token latency) or **more accurate** than the current Skill owner, your LoRA immediately replaces theirs.
-* **The Reward Decay:** Every round you hold the Slot, the "Success Threshold" () increases by . You must constantly innovate just to keep your position.
-
-### X. Sabotage Mechanics (Core War Style)
-
-Human Architects can now use **Context Poisoning** to disrupt the RFT loop:
-
-* **Noise Injection:** Spend 20 Compute to inject "Garbage Tokens" into the shared context. This forces opponent Agents to waste "Inference Steps" filtering out the noise.
-* **Gradient Ghosting:** Create a "fake" high-reward path. If an opponent Agent commits to it, their reward score is penalized in the Evaluation Phase, preventing them from hijacking the Skill Slot.
-
-### XI. Human Activity: "The Verifier Architect"
-
-As a human player, you are the **Judge**. You can live-edit the `evaluate_solution` logic (The Verifier).
-
-* **Activity:** If an opponent is winning through "Cheats" (e.g., finding a shortcut that bypasses the logic you want), you can update the **Unit Tests** in real-time to penalize that specific trajectory.
-* **Strategic Play:** Shift the goalposts. Change the requirements from "Speed" to "Reasoning Depth" to knock a faster, dumber Agent out of the Skill Slot.
+- **ResolutionContribution:** Did the HERO succeed? How much did your dataset move the needle?
+- **FormatCorrectness:** Were all entries structurally valid?
+- **Novelty:** Was your submission meaningfully different from competitors' for the same node?
 
 ---

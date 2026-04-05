@@ -50,6 +50,13 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 	var filters []Filter
 	var similarTo []float64
 	var limit int
+	var modalityType string
+
+	if strings.HasPrefix(entryType, "MEMORY.MODALITY(") && strings.HasSuffix(entryType, ")") {
+		modalityName := entryType[len("MEMORY.MODALITY(") : len(entryType)-1]
+		modalityType = modalityName
+		entryType = "MEMORY"
+	}
 
 	i := 1
 	if parts[i] == "WHERE" {
@@ -111,12 +118,13 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 	}
 
 	return &Query{
-		Type:       QueryGet,
-		EntryType:  typ.EntryType(entryType),
-		Collection: collection,
-		Filters:    filters,
-		SimilarTo:  similarTo,
-		Limit:      limit,
+		Type:         QueryGet,
+		EntryType:    typ.EntryType(entryType),
+		Collection:   collection,
+		Filters:      filters,
+		SimilarTo:    similarTo,
+		Limit:        limit,
+		ModalityType: modalityType,
 	}, nil
 }
 
@@ -298,6 +306,9 @@ type Query struct {
 	IndexName string
 	Fields    []string
 	Unique    bool
+
+	// Modality query
+	ModalityType string
 }
 
 // QueryType enum
@@ -311,6 +322,7 @@ const (
 	QueryCreateCollection
 	QueryDropIndex
 	QueryDropCollection
+	QueryGetModality
 )
 
 // Filter for WHERE clauses

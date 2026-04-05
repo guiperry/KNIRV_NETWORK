@@ -23,15 +23,14 @@ const TestComponent: React.FC = () => {
 };
 
 // Component to test context outside provider
-// eslint-disable-next-line react-hooks/rules-of-hooks
+// This component *will* throw if used outside provider
 const TestComponentWithoutProvider: React.FC = () => {
-  try {
-    const { isDemoMode } = useDemoMode();
-    return <div data-testid="context-value">{isDemoMode.toString()}</div>;
-  } catch (error) {
-    return <div data-testid="context-error">Context Error</div>;
-  }
+  // Call the hook directly. It will throw if no provider is found.
+  const { isDemoMode } = useDemoMode();
+  // If the hook did not throw, render something. This path should not be hit in the test.
+  return <div data-testid="context-value">{isDemoMode.toString()}</div>;
 };
+
 
 describe('DemoModeContext', () => {
   beforeEach(() => {
@@ -138,16 +137,22 @@ describe('DemoModeContext', () => {
   });
 
   it('should throw error when used outside provider', () => {
-    // Suppress console.error for this test
+    // Suppress console.error for this test, as the hook is expected to throw an error
+    // which React or the hook might log.
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    render(<TestComponentWithoutProvider />);
+    // We expect calling render with TestComponentWithoutProvider (which calls useDemoMode directly)
+    // to throw an error because it's not wrapped in DemoModeProvider.
+    expect(() => {
+      render(<TestComponentWithoutProvider />);
+    }).toThrow(); // Assert that the render call throws an error.
 
-    expect(screen.getByTestId('context-error')).toBeInTheDocument();
+    // Check if an error was logged to the console. This confirms the hook threw.
+    expect(consoleSpy).toHaveBeenCalled();
 
+    // Restore console.error
     consoleSpy.mockRestore();
   });
-
   it('should handle invalid localStorage data gracefully', () => {
     // Set invalid data in localStorage
     localStorage.setItem('knirv-demo-mode', 'invalid-json');

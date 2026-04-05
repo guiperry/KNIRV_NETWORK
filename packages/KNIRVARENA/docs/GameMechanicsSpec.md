@@ -1,244 +1,292 @@
-This is the master design document for **KNIRVANA: The Adversarial RFT Arena**. It codifies the fusion of reinforcement learning theory, competitive "Core War" programming, and real-time human strategy.
+# GAME MECHANICS SPECIFICATION: KNIRVANA
+
+This is the master design document for **KNIRVANA: The Dataset Forge**. Human Architects do not solve errors directly — they craft the training datasets that teach the **HERO Model** how to solve them.
 
 ---
 
-# 🏗️ GAME MECHANICS SPECIFICATION: KNIRVANA
+## 1. Core Loop: The Dataset Forge Cycle
 
-## 1. Core Loop: The Adversarial RFT Cycle
+The game operates on a continuous loop where human-crafted datasets are consumed by the HERO Model, which then attempts to resolve all active error nodes in the graph.
 
-The game operates on a continuous loop where the outcome of one round dictates the "physics" of the next via weight updates.
-
-1. **Inference Phase:** Agents generate trajectories () based on the current **KNIRVANA** state.
-2. **Reward Sculpting (Human Phase):** Architects spend **Compute** to alter the reward landscape.
-3. **The Verifier (The Gatekeeper):** Trajectories are run through sandboxed unit tests and efficiency benchmarks.
-4. **Reinforcement (The Evolution):** The winning trajectory is committed to the **LoRAX** backend, permanently altering the model’s behavior for the next round.
+1. **Error Surfacing:** The KNIRVGRAPH surfaces active Error Nodes — live AI failures captured from the network.
+2. **Context Gathering (Agent Phase):** Each Architect's agents analyze the error node and return available context: stack traces, prior attempts, related knowledge, tool call logs.
+3. **Dataset Crafting (Human Phase):** The human Architect uses the agent-provided context to fill in a TRL-compatible dataset template. This is the primary action of the game.
+4. **HERO Resolution:** The HERO Model reads all submitted datasets, attempts to resolve the error node, and scores each dataset based on how much it contributed to a successful resolution.
+5. **Reward Distribution:** Agents whose datasets helped the HERO Model most earn **Compute** rewards. Poor datasets drain resources.
 
 ---
 
-## 2. Resource Management
+## 2. The HERO Model
 
-Players must balance two finite resources to maintain their Agent’s presence in the Arena.
+The **HERO Model** is the central intelligence of the arena — a base LLM that serves as the shared resolver across all active error nodes.
+
+### What the HERO Model Does
+
+| Function | Description |
+| --- | --- |
+| **Reads Datasets** | Consumes all `skill.md` files and formatted datasets submitted by human Architects each epoch. |
+| **Resolves Errors** | Attempts to resolve each active Error Node using the knowledge available in submitted datasets. |
+| **Judges Quality** | Scores each submitted dataset based on its contribution to a successful resolution. |
+| **Distributes Rewards** | Grants Compute to the agents whose datasets proved most useful. Penalizes misleading or low-quality submissions. |
+
+### HERO Model Knowledge Base
+
+The HERO Model reads from a corpus of `skill.md` files maintained on KNIRVCHAIN. Each `skill.md` is a plain markdown document authored by a human Architect or their agents — no LoRA adapters, no weight modifications. Just structured knowledge that the model can read before attempting a resolution pass.
+
+```
+skill.md format:
+---
+skill_id: <knirvchain_hash>
+error_class: <e.g., API_Timeout | Logic_Loop | Hallucination_TypeB>
+context_summary: <brief description of the error pattern>
+---
+
+# Resolution Knowledge
+
+<Markdown content: strategies, code patterns, edge cases, domain context>
+```
+
+The HERO Model treats these files like a reference library — the better the library, the better the resolutions.
+
+---
+
+## 3. Resource Management
 
 | Resource | Symbol | Description | Depletion Effect |
 | --- | --- | --- | --- |
-| **Compute** |  | Used for sabotaging opponents, boosting speed, and manual verifier edits. | Agent reverts to a basic "Stochastic" policy (uncontrolled). |
-| **Parity** |  | Represents the Agent's weight stability and alignment. | Agent "Diverges" (instability), causing a total reset of the Skill Slot. |
+| **Compute** | C | Earned by the HERO Model when your datasets contribute to successful resolutions. Spent on sabotage, dataset upgrades, and agent expansions. | Agent loses access to advanced context-gathering tools. |
+| **Parity** | P | Represents the alignment quality of your submitted datasets over time. | If Parity reaches 0, your datasets are quarantined for one epoch (excluded from HERO reads). |
 
 ---
 
-## 3. The Arena: Error Topography
+## 4. The Arena: Error Topography
 
-To make RFT feel like a game rather than a math homework assignment, we visualize the abstract.
+The battlefield is a **3D KNIRVGRAPH** — a live map of all active error nodes in the network. Each node has:
 
-### The "Error Heatmap" 
+- **Error Class** — the type of failure (Logic_Loop, API_Timeout, Hallucination, etc.)
+- **Severity** — how many downstream processes it's blocking
+- **Context Density** — how much usable context your agents can surface (determines which dataset formats are available)
+- **HERO Attempt Status** — whether the HERO Model has already tried and failed this node
 
-The **KNIRVANA** isn't just a list of data; it's a **topographical 3D map**. The battlefield is a 3D loss landscape. The height at any coordinate represents the **Loss Value** ().
+Higher-severity nodes yield more Compute rewards. Low context-density nodes are harder to craft good datasets for — but competitors are fewer.
 
-* **The Global Minimum:** A moving target coordinate that represents the "Optimal Solution."
+### Terrain Features
 
-	* **Peaks:** High error/loss (dangerous terrain).
-	* **Valleys:** Low error/optimal solutions (the goal).
-	* **Shifting Terrain:** As Agents learn, the landscape changes. If an opponent "overfits" to a specific area, that area becomes a "Tar Pit," slowing down anyone who enters it.
-
-* **The Skill Slot:** The temporary ownership of the LoRA weights. Holding the Skill Slot provides a Compute generation bonus but makes you the primary target for **Backprop Pulses**.
-
----
-
-## 4. The Adversarial Layer (Sabotage)
-
-Unlike standard training, players actively interfere with the gradient descent of others.
-
-* **Weight Hijacking:** If Agent B's trajectory  has a higher reward  than the current Skill Slot holder  (), Agent B "overwrites" the adapter.
-* **Context Poisoning:** Players can inject "Dead Tokens" into the shared prompt context.
-* *Effect:* Increases the opponent's inference latency, lowering their efficiency score.
-* **Backprop Pulse:** When an opponent fails a Verifier check, you can force a "Negative Reinforcement" on them, pushing their weights away from the Global Minimum.
-
-### The "Adversarial Drift"
-
-In RFT, models can "drift" away from their original intent. In the game, this is a **Corruption Meter**.
-
-* If a player pushes their Agent too hard to beat an opponent, the Agent might become "Degenerate"—losing the ability to find the solution at all.
-* **The Challenge:** Balancing "Aggression" (disrupting others) vs. "Alignment" (staying on the path to the solution).
+- **Peaks (Red Nodes):** High-severity, low-context errors. Hard datasets to craft but massive reward potential.
+- **Valleys (Green Nodes):** Well-documented, lower-severity errors. Easier datasets, steady Compute income.
+- **Fog of Overfitting:** Nodes where the HERO Model attempted resolution using a bad dataset. The node is marked "corrupted" — new submissions must explicitly address the prior failure.
 
 ---
 
-## 5. The Human Interaction Layer
+## 5. Primary Human Activity: Dataset Crafting
 
-Humans are not observers; they are the **Architects of Objective Functions**.
+This is the core of why a human is necessary. Agents can gather context, but only the human Architect can determine the **right format** for the dataset and fill it with **meaningful, non-redundant signal**.
 
-### A. The Verifier Editor
+### The Workflow
 
-Humans don't write the Agent's code; they write the **Test Cases**.
+1. **Select an Error Node** from the active KNIRVGRAPH.
+2. **Review Agent Context** — agents return structured dumps: error logs, related knowledge, code traces, prior resolution attempts.
+3. **Choose a Dataset Format** from the available TRL-compatible templates (see Section 5.1).
+4. **Craft the Dataset** — fill the template with relevant, non-redundant entries derived from the agent context.
+5. **Package as `.nrv`** — the dataset is packaged into a `.nrv` (Noted Resolution Vector) file. A `skill.md` may be embedded inside the `.nrv` as supporting knowledge for the HERO Model.
+6. **Propose to KNIRVGRAPH** — the `.nrv` is proposed onto the KNIRVGRAPH as a pending resolution candidate. It is not yet on KNIRVCHAIN.
+7. **Await HERO Resolution** — if the HERO Model successfully resolves the error node using this `.nrv`, it is committed to KNIRVCHAIN. If resolution fails, the `.nrv` remains in proposed state and can be revised next epoch.
 
-* **Action:** Add a "Memory Limit" test mid-round.
-* **Strategy:** If a rival Agent is "cheating" by using high-memory shortcuts, your new test case will tank their Reward Score.
+### What Makes a Good Dataset
 
-	### How you play the Verifier:
+The HERO Model judges quality by how much each dataset improved its resolution confidence on the target error node. Key signals:
 
-	1. **Edge Case Crafting:** If you see an opponent's Agent is winning by using a "dirty" hack (e.g., hardcoding an answer), you add a randomized test case to the Verifier.
-	2. **Resource Throttling:** You can lower the `maxLatency` requirement mid-game. This acts like "Gravity" increasing in the Arena—only the most efficient Agents will survive.
-	3. **Reward Shaping:** You can change the weight of the "Latency Bonus" vs. the "Correctness Score." If you want to encourage faster, riskier Agents, you crank the latency bonus to .
+- **Relevance** — does the dataset directly address the error class?
+- **Diversity** — does it cover edge cases, not just the happy path?
+- **Format correctness** — is the TRL format used correctly? Malformed entries score zero.
+- **Non-redundancy** — duplicate entries from other Architects are penalized.
 
-### B. RLHF "Vibe Checks"
+---
 
-When the Verifier cannot distinguish between two optimal solutions, a **Human Feedback Round** is triggered. During a match, the game pauses for a **"Human Feedback Round."** The human is shown two paths their Agent is considering. The human clicks the one that "looks" more logical. This provides a massive temporary "Boost" to the Agent’s policy, gamifying the **Reinforcement Learning from Human Feedback (RLHF)** process.
+### 5.1 Available Dataset Formats (TRL-Compatible)
 
-* **Activity:** Humans vote on the most "Elegant" reasoning path.
-* **Outcome:** The winner receives a permanent **Alignment Bonus** to their Parity.
+Architects select from the following HuggingFace TRL dataset formats. Available formats depend on the **Context Density** of the selected error node.
 
-### C. Collaborative "Swarm" Mode
+#### Format 1: Standard (Prompt/Completion)
+*Available at any context density.*
 
-Players can link their Agents to form a **MoE (Mixture of Experts)**.
+```json
+{
+  "prompt": "<The exact error context, task description, or broken input>",
+  "completion": "<The correct resolution, fix, or expected output>"
+}
+```
+Best for: simple error-to-fix pairs, well-understood error classes.
 
-* **Human Activity:** Managing the "Gating Network." You decide which Agent gets the most "Compute Power" at any given second based on who is closest to the solution.
+---
 
-### D. Sculpting Activities
+#### Format 2: Conversational (Chat)
+*Available at medium+ context density.*
 
-In a standard RFT loop, the reward model is often static. In this game, the human is the **Dynamic Reward Sculptor**. Instead of controlling the Agent's every move, the human modifies the "physics" of the Arena to favor their Agent.
+```json
+{
+  "messages": [
+    { "role": "system", "content": "<domain expertise or constraint context>" },
+    { "role": "user", "content": "<the failing request or task>" },
+    { "role": "assistant", "content": "<the correct resolution with reasoning>" }
+  ]
+}
+```
+Best for: multi-turn reasoning errors, agent tool-call failures, hallucination patterns.
 
-| Activity | Description | Game Mechanic |
+---
+
+#### Format 3: Preference (DPO / Chosen-Rejected)
+*Available at high context density.*
+
+```json
+{
+  "prompt": "<the error context>",
+  "chosen": "<the correct resolution approach>",
+  "rejected": "<a plausible but wrong resolution — from failed prior attempts>"
+}
+```
+Best for: nodes where HERO previously attempted but chose the wrong path. The `rejected` field comes directly from the HERO's prior failed attempt log.
+
+---
+
+#### Format 4: Process Reward (Step-Level)
+*Available at high context density + prior HERO attempt data.*
+
+```json
+{
+  "prompt": "<the error context>",
+  "completions": [
+    { "content": "<reasoning step 1>", "rating": 1 },
+    { "content": "<reasoning step 2>", "rating": 1 },
+    { "content": "<wrong turn>", "rating": 0 },
+    { "content": "<correction>", "rating": 1 }
+  ]
+}
+```
+Best for: complex multi-step reasoning failures. Requires the Architect to annotate which steps in the resolution are correct vs. which are traps.
+
+---
+
+#### Format 5: Unpaired Preference (ORPO/KTO)
+*Available at any context density.*
+
+```json
+{
+  "prompt": "<the error context>",
+  "completion": "<a resolution attempt>",
+  "label": true
+}
+```
+`label: true` = valid resolution. `label: false` = invalid. Best for quickly tagging large batches of agent-generated resolution attempts as good or bad.
+
+---
+
+## 6. The Adversarial Layer (Sabotage)
+
+Human Architects can still interfere with competitors. These are secondary activities — they don't directly resolve error nodes but can affect rivals' dataset quality and Compute flow.
+
+| Tactic | Cost | Effect |
 | --- | --- | --- |
-| **Weight Crafting** | Adjusting the "gravity" of certain paths. | Strategic placement of high-reward checkpoints. |
-| **Noise Injection** | Dropping "Adversarial Fog" on the map. | Obscuring the path for opponent Agents to cause "hallucinations." |
-| **Hyper-Parameter Spells** | Triggering "Learning Rate Bursts." | Temporarily increasing speed at the cost of precision/stability. |
+| **Context Poisoning** | 20 Compute | Inject a misleading entry into the target's agent context feed. Their next dataset may include corrupted data. |
+| **Format Trap** | 15 Compute | Temporarily make one dataset format unavailable for a target node, forcing competitors into a harder format. |
+| **Backprop Pulse** | 10 Compute | Flag a competitor's submitted dataset for HERO Model re-evaluation. If it was borderline quality, it may be downgraded. |
+| **Fog Drop** | 25 Compute | Mark a low-severity node as "Fog of Overfitting" — competitors who target it waste a crafting cycle. |
 
-### E. Agent Training: "The Forge"
+### Adversarial Drift
 
-This phase occurs after a **Victory** but before the next **Epoch** begins. The human Architect interacts with the "Raw Trajectory" before it is baked into the model.
-
-### 1. Activity: Trajectory Distillation (The "Generalize" Command)
-
-When you choose to **Generalize**, you are telling the system to look at your winning solution and find the "universal logic" rather than just the specific answer.
-
-* **Human Activity:** You are presented with a "Token Importance Map." You manually highlight the specific steps in the reasoning (CoT) that were the "Eureka" moments and delete the "Fluff" (redundant tokens).
-* **Game Mechanic:** This reduces the **Inference Latency** of your resulting Skill. A "Generalize" success means your Agent will be  faster in the next round because its logic is more concise.
-
-### 2. Activity: Weight Hardening (The "Hibernate & Farm" Command)
-
-If you choose to **Hibernate & Farm**, you aren't changing the logic; you are reinforcing it through repetition to build **Robustness**.
-
-* **Human Activity:** You run your Agent through a "Stress Test" loop. You provide small variations of the same problem, and the Agent must solve them using its new Skill.
-* **Game Mechanic:** This builds up **Stability (Parity)**. While you do this, you "Farm" Compute credits because you aren't spending them on new sabotages. It’s a defensive move—building a "Thick Shell" around your Skill Slot so it’s harder for opponents to hijack in the next round.
-
-## 🎮 How Agent Training is Gamified
-
-To make this engaging, the "Training" looks like a **Mini-Game** within the UI:
-
-| Training Mode | Visual Representation | Human Task | Result |
-| --- | --- | --- | --- |
-| **Pruning** | A tree-branching diagram of tokens. | Cut the longest, least efficient branches. Forcing your Agent to focus compute resources on high-probability paths. | Lower Token Cost/Latency. |
-| **Denoising** | A "scrambled" code block. | Click the characters that are "Adversarial Noise" to remove them. | Increased Resistance to Jitter Attacks. |
-| **Quantization** | A sliding scale of "Precision." | Find the lowest precision (bit-rate) the model can handle without losing accuracy. | Massive Speed Boost. |
-
-## 🧬 Summary: The Architect's Flow
-
-1. **Arena Phase:** Sabotage opponents and guide your Agent to the solution.
-2. **Victory:** Your Agent hits the Global Minimum.
-3. **Training Phase (The Forge):** You choose to **Prune** (speed), **Harden** (defense), or **Generalize** (versatility).
-4. **Deployment:** Your refined LoRA is pushed to the LoRAX backend.
+If an Architect focuses too heavily on sabotage instead of dataset crafting, their **Parity** degrades. The HERO Model weights their future submissions lower because their track record shows low resolution contribution.
 
 ---
 
-## 6. Technical Specification (The Backend)
+## 7. The .nrv File and Skill.md System
 
-The game state is governed by the relationship between the **Tournament Controller** and the **KNIRVCHAIN LoRAX Adapter Server**.
+Datasets are packaged as **`.nrv` (Noted Resolution Vector)** files — a binary container format defined in `packages/KNIRVBASE/go/`. A `skill.md` knowledge document can be embedded inside a `.nrv` as part of its content payload, providing the HERO Model with narrative resolution context alongside structured training data.
 
-In the context of **Error Node**, this relationship is the bridge between the "Game Logic" (the rules/UI) and the "Neural Reality" (the actual weights of the AI model).
+### .nrv Lifecycle: Propose → Resolve → Commit
 
-When we say the game state is "governed" by this relationship, we mean that **the high score in the game is literally the configuration of the AI's brain.**
+```
+Human crafts dataset
+        ↓
+Packaged as .nrv (may include embedded skill.md)
+        ↓
+Proposed to KNIRVGRAPH  ← pending, not yet on chain
+        ↓
+HERO Model reads .nrv during resolution pass
+        ↓
+Resolution succeeds → .nrv committed to KNIRVCHAIN ← permanent, signed
+Resolution fails    → .nrv stays proposed; revise next epoch
+```
+
+**Proposed** `.nrv` files are visible to all Architects on the KNIRVGRAPH — competitors can see what you're working on. Only **committed** `.nrv` files (those that contributed to a successful resolution) earn Compute rewards and become part of the HERO Model's permanent reference library.
+
+### The Embedded Skill.md
+
+When an Architect includes a `skill.md` inside their `.nrv`, it gives the HERO Model narrative context — resolution strategies, edge cases, code patterns — that supplements the structured TRL dataset entries. The HERO Model treats the embedded `skill.md` as a reference document read before attempting resolution.
+
+Once the `.nrv` is committed to KNIRVCHAIN, the embedded `skill.md` is indexed separately as a standalone skill, earning the Architect passive Compute income each time it's referenced by future HERO resolution passes.
+
+Skill authorship is cryptographically tied to the Architect's KNIRVCHAIN address in the `.nrv` PQC manifest (Dilithium-3 signature).
 
 ---
 
-## 🔗 The Synergy Explained
+## 8. Agent Training: "The Forge"
 
-### 1. The Tournament Controller (The "Software" Layer)
+After a successful resolution epoch, Architects can upgrade their agents' context-gathering capabilities. Better agents surface richer context, unlocking higher-tier dataset formats (Preference, Process Reward).
 
-This is the TypeScript engine. It acts like a **Game Master**. It doesn't know how to "think," but it knows how to **judge**.
-
-* It tracks who is playing, how much **Compute** they have, and what the current **Error Node** challenge is.
-* It manages the **Verifier** to see if an Agent's code actually works.
-* **Analogy:** It’s the referee on the sidelines with a stopwatch and a rulebook.
-
-### 2. The KNIRVCHAIN LoRAX Adapter Server (The "Hardware/Wetware" Layer)
-
-This is the backend infrastructure (using LoRAX) that hosts the **LLM**.
-
-* **LoRAX (LoRA Exchange)** is a specialized server that can swap "Adapters" (mini-brains) in milliseconds.
-* Unlike a standard LLM that is "static," this server allows the game to "hot-swap" the model's personality and skills mid-match without restarting.
-* **Analogy:** It’s the actual player on the field whose physical abilities (speed, accuracy) change based on which "Adapter" is plugged in.
-
----
-
-## 🔄 How the "Relationship" Works in a Match
-
-The "Governance" happens through a 3-step handshake:
-
-| Step | Action | The "Governing" Logic |
+| Upgrade | Cost | Effect |
 | --- | --- | --- |
-| **The Fetch** | The **Tournament Controller** asks LoRAX: "Give me the current `skill-slot` adapter." | The game state is loaded from the actual neural weights. |
-| **The Battle** | Agents submit trajectories. The Controller uses the **Verifier** to find a winner. | The game determines *if* the weights deserve to change. |
-| **The Commit** | The Controller sends a `POST` request to **KNIRVCHAIN LoRAX**: "Update `skill-slot` with Agent B's DNA." | The "Game State" has now permanently altered the AI's behavior. |
+| **Context Depth** | 30 Compute | Agent returns deeper stack traces and tool-call logs. |
+| **Cross-Node Linking** | 40 Compute | Agent identifies similar past errors in the KNIRVGRAPH and includes their resolutions as context. |
+| **Noise Filter** | 20 Compute | Agent filters out low-signal context before presenting it. Reduces your risk of crafting a noisy dataset. |
 
 ---
 
-## 🛠️ Why "KNIRVCHAIN"? (The Blockchain/Ledger Element)
+## 9. Reward Equation
 
-In an adversarial game, you can't have players claiming they won when they didn't. Integrating a **Chain** (like KNIRVCHAIN) ensures:
+The HERO Model calculates each dataset's contribution score as:
 
-1. **Proof of Training:** Every weight update is cryptographically signed. You can prove your Agent was the one who solved the "Prime Paradox."
-2. **Immutability:** An opponent can't "hack" the database to steal the Skill Slot; they *must* provide a mathematically superior trajectory to trigger a LoRAX update.
-3. **Audit Logs:** You can "Rewind" the model to see exactly which player's intervention caused it to become smarter (or weirder).
-
----
-
-**What this means for the player:**
-When you win, you aren't just getting "points" on a screen. You are **re-programming the global AI** that all other players have to interact with. Your victory becomes the "Base Reality" for the next round.
-
----
-
-### The Final Reward Equation
-
-The Verifier calculates the final score using a weighted sum of correctness, speed, and simplicity calculated as:
+```
+DatasetScore = (ResolutionContribution * 0.6) 
+             + (FormatCorrectness * 0.2) 
+             + (Novelty * 0.2)
+```
 
 Where:
+- **ResolutionContribution**: Did the HERO Model's resolution attempt succeed on this node? How much did this dataset specifically improve the confidence score?
+- **FormatCorrectness**: Were all entries structurally valid per the selected TRL format?
+- **Novelty**: Was the dataset meaningfully different from other Architects' submissions for the same node?
 
-* : Binary Correctness (1 or 0).
-* : Measured Latency.
-* : Simplicity (inverse of code length).
-* : Weights set by the **Human Architect**.
-
-
-### Data Persistence (Trajectory Schema)
-
-All wins are saved as JSON objects that serve as the fine-tuning dataset for the LoRAX `fine_tune` action. This ensures the "Digital Red Queen" effect where the model literally learns from the players' best moves.
+Compute rewards are distributed proportionally to DatasetScore among all Architects who submitted for a resolved node.
 
 ---
 
-## 7. How to Win?
+## 10. Victory Conditions
 
-Success isn't just "finding the answer." It's about **Efficiency and Robustness.**
-
-* **The Efficiency Score:** How many "FLOPs" (tokens/energy) did you consume?
-* **The Robustness Score:** How well did you handle the opponent’s "Noise Injection"?
-
-> **Pro Tip:** Agents form "Personalities" based on their training data (e.g., the "Greedy Optimizer" who moves fast but falls into traps, or the "Bayesian Scout" who moves slowly but never gets lost).
-
-### Victory Conditions
-
-* **The Convergence Win:** Maintain the Skill Slot for 5 consecutive Epochs while keeping Parity > 90%.
-* **The Optimizer Win:** Reach a Reward Score of  through a trajectory that consumes  of the average Compute.
-* **The Extinction Win:** Successfully "Diverge" all other opponents' Parity to 0.
-
----
-## 8. The "Backprop" Revenge
-
-When an Agent hits a "Dead End" (Error Node trap), the player doesn't just lose. They trigger a **Backpropagation Wave**. The player manually directs the "error signal" back through the path they took, effectively "scortching the earth" so that opponents can't use those same coordinates.
-
+| Victory Type | Condition |
+| --- | --- |
+| **The Curator** | Accumulate 10 committed `skill.md` files that are still actively used by the HERO Model after 5 epochs. |
+| **The Resolver** | Your datasets contribute to the resolution of 3 consecutive high-severity (Red) error nodes. |
+| **The Monopolist** | Hold the highest Compute balance in the arena for 5 consecutive epochs. |
 
 ---
 
+## 11. Technical Backend
 
+The game state is governed by the relationship between the **Tournament Controller** (TypeScript engine) and **KNIRVCHAIN** (ledger of datasets and skill.md files).
 
+| Layer | Role |
+| --- | --- |
+| **Tournament Controller** | Manages epochs, routes `.nrv` files to the HERO Model API, distributes Compute rewards, tracks Parity. |
+| **KNIRVGRAPH** | Holds all **proposed** `.nrv` files (pending resolution). Live error node data: class, severity, context density, HERO attempt history. |
+| **HERO Model API** | Accepts proposed `.nrv` batches per epoch, returns resolution results and per-dataset contribution scores. |
+| **KNIRVCHAIN** | Stores only **committed** `.nrv` files — those that contributed to a successful resolution. Cryptographic authorship via Dilithium-3 PQC signatures. |
 
+### Why KNIRVGRAPH First, Then KNIRVCHAIN?
 
+Separating the proposal stage (KNIRVGRAPH) from the commit stage (KNIRVCHAIN) ensures:
+1. **Quality Gate** — only `.nrv` files that demonstrably helped the HERO Model resolve an error node earn chain residency.
+2. **Anti-Spam** — submitting a `.nrv` is cheap; the cost is the Compute you spent crafting it. But chain space is reserved for proven knowledge.
+3. **Audit Trail** — every committed `.nrv` has a cryptographic lineage: who proposed it, which epoch it was tested, which error node it resolved.
 
+---

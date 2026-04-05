@@ -32,7 +32,6 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html')
       },
-      external: ['@knirvcorp/knirvbase-ts'],
       output: {
         manualChunks: {
           // Vendor chunks for better caching
@@ -59,7 +58,7 @@ export default defineConfig({
     port: 3000,
     open: false,
     headers: {
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss: wasm: http://localhost:3001 https://wallet.knirv.com https://generativelanguage.googleapis.com; frame-src 'none';"
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ws: wss: wasm: blob: http://localhost:3001 https://wallet.knirv.com https://generativelanguage.googleapis.com; frame-src 'none';"
     },
     proxy: {
       '/api': {
@@ -102,7 +101,9 @@ export default defineConfig({
       '@sensory-shell': resolve(__dirname, 'src/sensory-shell'),
       '@wasm': resolve(__dirname, 'src/wasm-pkg'),
       '@game': resolve(__dirname, 'src/components/game'),
-      '@knirvcorp/knirvbase-ts': resolve(__dirname, '../../../../packages/KNIRVBASE/ts')
+      '@knirvcorp/knirvbase-ts': resolve(__dirname, '../../../../packages/KNIRVBASE/ts'),
+      'crypto': resolve(__dirname, 'src/shims/node-crypto.ts'),
+      'jsonwebtoken': resolve(__dirname, 'src/shims/jsonwebtoken.ts')
     }
   },
   
@@ -140,6 +141,9 @@ export default defineConfig({
   define: {
     __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
     __PROD__: JSON.stringify(process.env.NODE_ENV === 'production'),
-    global: 'globalThis'
+    global: 'globalThis',
+    // Provide a browser-safe process.env so Node-style packages don't crash.
+    // All knirvbase-ts references use || fallbacks, so an empty object is fine.
+    'process.env': JSON.stringify({ NODE_ENV: process.env.NODE_ENV || 'production' })
   }
 });

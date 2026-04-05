@@ -34,9 +34,11 @@ KNIRV Network — Decentralized Trusted Execution Network (D-TEN). Transforms AI
 **KNIRVGATEWAY internals:** `internal/server/` · `internal/config/` · `internal/turnserver/` · `internal/embedded/`
 
 **Node Transformation Flows (KNIRVCHAIN):**
-- `ErrorNode → SkillNode` mining → LoRA Adapter Pointer
+- `ErrorNode → SkillNode` mining → `skill.md` file (read by HERO Model)
 - `ContextNode → CapabilityNode` minting → MCP Server Pointer
 - `IdeaNode → PropertyNode` making → Inference NFT Pointer
+
+**KNIRVARENA (Dataset Forge):** Human Architects craft TRL-compatible datasets for active error nodes. The **HERO Model** reads all submitted datasets + `skill.md` files, attempts error resolution, and distributes Compute rewards based on dataset contribution scores. No LoRA adapters — knowledge is stored as `skill.md` markdown files on KNIRVCHAIN.
 
 **Oracle (KNIRVSERVER root nodes only):** Loads `packages/KNIRVSERVER/bin/root.key` (AES-encrypted). Password via `ORACLE_KEY_PASSWORD` env or stdin prompt. Routes mounted at `/oracle/` only when key present. Missing key = normal operation, no oracle.
 

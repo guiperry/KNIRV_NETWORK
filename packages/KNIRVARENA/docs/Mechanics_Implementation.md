@@ -1,603 +1,707 @@
-# 🚀 Mechanics Implementation
-
+# Mechanics Implementation
 
 ## 1. Project Overview & Architecture
 
-**Goal:** Transform the existing game pilot into a competitive multi-agent arena where agents compete to optimize a "Skill Slot" (LoRA adapter) via a human-in-the-loop adversarial process.
+**Goal:** Implement the KNIRVANA game engine where human Architects craft TRL-compatible training datasets for active error nodes. The **HERO Model** consumes all submitted datasets, attempts to resolve error nodes, and distributes Compute rewards based on each dataset's contribution score.
 
 **Core Stack:**
 
-* **Language:** TypeScript (Node.js)
-* **Sandboxing:** `vm2` (for Verifier safety)
-* **Backend Integration:** REST API (Fetch) to LoRAX/vLLM
+- **Language:** TypeScript (Node.js)
+- **Backend Integration:** REST API (Fetch) to HERO Model API + KNIRVCHAIN
+- **Real-time:** Phoenix Channels (WebSocket) for game state streaming
 
 ---
 
 ## 2. Directory Structure
 
-Refactor (add to current build, don't delete) the `src` folder to support the new modular mechanics:
-
 ```text
 src/
 ├── engine/
-│   ├── Tournament.ts       # Main game loop & controller
-│   ├── Verifier.ts         # Sandbox & scoring logic
-│   └── Sabotage.ts         # Adversarial effect logic
+│   ├── Tournament.ts         # Main game loop & epoch controller
+│   ├── DatasetValidator.ts   # TRL format validation logic
+│   ├── Sabotage.ts           # Adversarial effect logic
+│   └── RewardDistributor.ts  # Compute reward calculation
 ├── types/
-│   ├── Agent.ts            # Interfaces for Warriors
-│   ├── Trajectory.ts       # JSON Schema for winning data
-│   └── GameState.ts        # Resource tracking (Compute/Parity)
+│   ├── Agent.ts              # Agent interfaces and context packages
+│   ├── Dataset.ts            # TRL dataset format schemas
+│   ├── ErrorNode.ts          # Error node and FailureContext types
+│   └── GameState.ts          # Resource tracking (Compute/Parity)
 ├── networking/
-│   └── LoraxClient.ts      # API wrapper for fine-tuning backend
+│   ├── HeroClient.ts         # API wrapper for HERO Model
+│   └── KnirvChainClient.ts   # API wrapper for dataset/skill.md commits
 └── utils/
-    └── MathUtils.ts        # For scoring formulas
-
+    └── DatasetScorer.ts      # Scoring formula utilities
 ```
 
 ---
 
 ## 3. Core Data Structures (`src/types/`)
 
-### A. The Agent & Resources
+### A. Error Node & Failure Context
+
+**File:** `src/types/ErrorNode.ts`
+
+```typescript
+export type ErrorClass =
+  | 'API_Timeout'
+  | 'Logic_Loop'
+  | 'Hallucination_TypeB'
+  | 'Missing_Handler'
+  | 'Syntax_Error'
+  | string;
+
+export interface HeroAttempt {
+  epoch: number;
+  output: string;
+  chainOfThought: string[];
+  score: number; // 0.0–1.0 — how close HERO got before failing
+}
+
+export interface FailureContext {
+  errorId: string;           // SHA-256 hash from KNIRVCHAIN
+  errorClass: ErrorClass;
+  inputPrompt: string;       // Original task that failed
+  failedResponse: string;    // The bad output
+  trace: string[];           // Tool call logs, API responses
+  heroAttempts: HeroAttempt[]; // Prior HERO resolution attempts
+  contextDensity: number;    // 1–10, determines available dataset formats
+  severity: number;          // 1–10, determines Compute reward multiplier
+  status: 'PENDING_DATASET' | 'CORRUPTED' | 'RESOLVED';
+}
+```
+
+---
+
+### B. TRL Dataset Formats
+
+**File:** `src/types/Dataset.ts`
+
+```typescript
+// Format 1: Standard
+export interface StandardDataset {
+  format: 'standard';
+  entries: Array<{
+    prompt: string;
+    completion: string;
+  }>;
+}
+
+// Format 2: Conversational
+export interface ConversationalDataset {
+  format: 'conversational';
+  entries: Array<{
+    messages: Array<{
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+    }>;
+  }>;
+}
+
+// Format 3: Preference / DPO
+export interface PreferenceDataset {
+  format: 'preference';
+  entries: Array<{
+    prompt: string;
+    chosen: string;
+    rejected: string; // Must reference a real HeroAttempt output
+  }>;
+}
+
+// Format 4: Process Reward
+export interface ProcessRewardDataset {
+  format: 'process_reward';
+  entries: Array<{
+    prompt: string;
+    completions: Array<{
+      content: string;
+      rating: 0 | 1;
+    }>;
+  }>;
+}
+
+// Format 5: Unpaired Preference (KTO/ORPO)
+export interface UnpairedPreferenceDataset {
+  format: 'unpaired_preference';
+  entries: Array<{
+    prompt: string;
+    completion: string;
+    label: boolean;
+  }>;
+}
+
+export type DatasetSubmission =
+  | StandardDataset
+  | ConversationalDataset
+  | PreferenceDataset
+  | ProcessRewardDataset
+  | UnpairedPreferenceDataset;
+
+export interface SubmittedDataset {
+  datasetId: string;         // SHA-256 hash = .nrv file ID
+  architectId: string;       // KNIRVCHAIN address
+  targetNodeId: string;
+  epoch: number;
+  dataset: DatasetSubmission;
+  skillMd?: string;          // Optional embedded skill.md markdown content
+  submittedAt: string;
+  // Lifecycle: 'proposed' on KNIRVGRAPH until HERO resolves; then 'committed' to KNIRVCHAIN
+  status: 'proposed' | 'committed' | 'failed';
+}
+```
+
+---
+
+### C. Agent & Resources
 
 **File:** `src/types/Agent.ts`
 
 ```typescript
 export interface AgentResources {
-    compute: number;      // "Mana" for sabotage/human actions
-    parity: number;       // "Health" - reaching 0 causes divergence (elimination)
-    generation: number;   // Track evolutionary steps
+  compute: number;   // Earned via dataset quality; spent on sabotage/upgrades
+  parity: number;    // Quality track record; 0 = quarantined for one epoch
 }
 
-export interface RFTAgent {
-    id: string;
-    name: string;
-    policy: 'greedy' | 'bayesian' | 'stochastic'; // Determines behavior profile
-    resources: AgentResources;
-    
-    // The core function: given a state, produce a CoT and Code
-    proposeSolution(errorNodeContext: string): Promise<AgentResponse>;
+export interface ContextPackage {
+  rawTrace: string[];
+  relatedNodes: string[];        // Similar past error node IDs from KNIRVGRAPH
+  priorResolutions: string[];    // Successful resolution patterns for similar errors
+  heroAttempts: HeroAttempt[];   // Surfaced from FailureContext
+  availableFormats: DatasetSubmission['format'][];  // Based on contextDensity
 }
 
-export interface AgentResponse {
-    chainOfThought: string[];
-    code: string;
-    estimatedLatency?: number;
-}
+export interface KnirvAgent {
+  id: string;
+  architectId: string;
+  resources: AgentResources;
+  contextDepth: number;    // Upgrade level 1–3, affects context richness
+  crossNodeLinking: boolean; // Upgrade: surfaces related node history
+  noiseFilter: boolean;      // Upgrade: pre-filters low-signal context
 
+  gatherContext(node: FailureContext): Promise<ContextPackage>;
+}
 ```
 
-### B. The Trajectory Schema (The Winner's Payload)
+---
 
-**File:** `src/types/Trajectory.ts`
+### D. Game State
+
+**File:** `src/types/GameState.ts`
 
 ```typescript
-export interface TrajectoryStep {
-    step: number;
-    thought: string;
-    action: string; // The code snippet or token output
+export interface PlayerState {
+  playerId: string;
+  role: 'Architect';
+  resources: {
+    compute: number;
+    parity: number;
+  };
+  cooldowns: {
+    sabotage: number;
+    manualAlignment: number; // Once per match
+  };
+  committedSkills: string[]; // skill.md IDs on KNIRVCHAIN
 }
 
-export interface WinnerPayload {
-    agent_metadata: {
-        agent_id: string;
-        generation: number;
-        victory_type: 'convergence' | 'hijack' | 'defensive';
-    };
-    prompt_context: string;
-    trajectory: TrajectoryStep[];
-    reward_signal: {
-        score: number;       // 0.0 to 1.0
-        latency_ms: number;
-        verifier_feedback: string;
-    };
+export interface WorldState {
+  activeNodes: FailureContext[];
+  currentEpoch: number;
+  isPaused: boolean;
 }
-
 ```
 
-To turn a winning trajectory into a permanent "Skill," the data needs to be structured so the **LoRAX** backend can ingest it for a supervised fine-tuning (SFT) or reward-weighted fine-tuning (RWFT) pass.
+---
 
-## 🏗️ The Trajectory JSON Schema
+## 4. Dataset Validator (`src/engine/DatasetValidator.ts`)
 
-The "Trajectory" is the record of the Agent's "thought process" () and the final output that satisfied the Verifier. This schema ensures that every win is documented with enough context for the model to learn *why* the Agent won.
+Validates submitted datasets before they are sent to the HERO Model. A single malformed entry invalidates the entire submission.
 
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "RFTWinnerTrajectory",
-  "type": "object",
-  "properties": {
-    "agent_metadata": {
-      "type": "object",
-      "properties": {
-        "agent_id": { "type": "string", "format": "uuid" },
-        "generation": { "type": "integer" },
-        "base_adapter": { "type": "string" }
+```typescript
+import { DatasetSubmission, PreferenceDataset } from '../types/Dataset';
+import { FailureContext } from '../types/ErrorNode';
+
+export class DatasetValidator {
+  public validate(
+    submission: DatasetSubmission,
+    node: FailureContext
+  ): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // Format availability check
+    if (submission.format === 'preference' || submission.format === 'process_reward') {
+      if (node.contextDensity < 7) {
+        errors.push(`Format '${submission.format}' requires contextDensity >= 7. Node has ${node.contextDensity}.`);
       }
-    },
-    "prompt_context": {
-      "type": "string",
-      "description": "The state of the Error Node/Task given to the Agent."
-    },
-    "trajectory": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "step": { "type": "integer" },
-          "thought": { "type": "string", "description": "Internal reasoning (CoT)" },
-          "action": { "type": "string", "description": "The actual token output" }
+    }
+
+    if (submission.format === 'conversational' && node.contextDensity < 4) {
+      errors.push(`Format 'conversational' requires contextDensity >= 4.`);
+    }
+
+    // Preference format: rejected must come from a real HERO attempt
+    if (submission.format === 'preference') {
+      const pref = submission as PreferenceDataset;
+      const heroOutputs = node.heroAttempts.map(a => a.output);
+      for (const entry of pref.entries) {
+        if (!heroOutputs.includes(entry.rejected)) {
+          errors.push(`Preference entry 'rejected' field must match a real HERO attempt output for node ${node.errorId}.`);
         }
       }
-    },
-    "reward_signal": {
-      "type": "object",
-      "properties": {
-        "score": { "type": "number", "minimum": 0, "maximum": 1 },
-        "latency_ms": { "type": "integer" },
-        "verifier_feedback": { "type": "string" }
-      }
     }
-  },
-  "required": ["agent_metadata", "prompt_context", "trajectory", "reward_signal"]
-}
 
-```
-## Example: A "Winner's Payload"
-
-Imagine an Agent just solved a "Refactoring" node in the Arena. Here is what is sent to the `commit_to_lorax` function:
-
-```json
-{
-  "agent_metadata": {
-    "agent_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-    "generation": 42,
-    "base_adapter": "skill-v41-optimizer"
-  },
-  "prompt_context": "Optimize this nested loop for O(n) complexity: [Code Snippet]",
-  "trajectory": [
-    {
-      "step": 1,
-      "thought": "The current nested loop creates O(n^2). I will use a Hash Map to store seen values.",
-      "action": "const seen = new Map();"
-    },
-    {
-      "step": 2,
-      "thought": "Iterate once and check map for O(1) lookups.",
-      "action": "for (let x of data) { if (seen.has(target - x)) return [seen.get(target - x), x]; }"
+    // Non-empty entries
+    if (!('entries' in submission) || submission.entries.length === 0) {
+      errors.push('Dataset must contain at least one entry.');
     }
-  ],
-  "reward_signal": {
-    "score": 0.98,
-    "latency_ms": 140,
-    "verifier_feedback": "All unit tests passed. Time complexity verified as linear."
+
+    return { valid: errors.length === 0, errors };
   }
 }
-
 ```
 
-### C. The Data Flow: From Victory to Weights
-
-The following flow illustrates how the human's verifier and the agent's logic collide to update the LoRA adapter.
-
-### How the Human "Gamifies" this Step:
-
-* **Trajectory Pruning:** Before the data hits LoRAX, the human Architect can "edit" the trajectory. If the Agent found the right answer but its "thought process" was messy or redundant, the human can delete those steps to make the resulting Skill "Cleaner" and "Faster."
-* **Distillation:** Humans can choose to combine the top 3 winning trajectories into a single "Batch Update," creating a **Ensemble Skill** that is more robust than any single Agent's solution.
-
-
-## Agent Training
-
-Your AI coding agent needs to add a `TrainingManager` to handle these intermediate states.
-
-```typescript
-// src/engine/TrainingManager.ts
-
-export class TrainingManager {
-    /**
-     * The Generalize mechanic: Reduces latency by trimming the trajectory.
-     */
-    public distill(trajectory: TrajectoryStep[]): TrajectoryStep[] {
-        // Implementation: Logic to remove steps with low 'importance' scores
-        // Human Architects trigger this via the UI to 'clean' their DNA.
-        return trajectory.filter(step => step.thought.length > 10); 
-    }
-
-    /**
-     * The Hibernate mechanic: Trades speed for Parity.
-     */
-    public harden(agent: RFTAgent) {
-        agent.resources.parity += 20; // Build defense
-        agent.resources.compute += 50; // Generate passive income
-    }
-}
-
-```
 ---
 
-## 4. The Verifier Engine (`src/engine/Verifier.ts`)
+## 5. HERO Model Client (`src/networking/HeroClient.ts`)
 
-To make the game truly competitive, the Verifier can’t just be a "Pass/Fail" check. It needs to be a **Grader** that evaluates efficiency, elegance, and resilience against the "Noise" other players have injected.This is the "Physics Engine" of the game. It must support dynamic weight adjustment and sandboxed execution.
-
-**Requirements:**
-
-1. Use `vm2` to safely execute Agent code.
-2. Implement the weighted scoring formula.
-3. Allow "Hot Swapping" of test constraints (Human Interaction).
+Wraps the HERO Model API. The Tournament Controller sends batched datasets per epoch and receives resolution results with per-dataset contribution scores.
 
 ```typescript
-import { VM } from 'vm2';
+import { SubmittedDataset } from '../types/Dataset';
+import { FailureContext } from '../types/ErrorNode';
 
-export interface ScoreWeights {
-    correctness: number; // e.g., 0.6
-    latency: number;     // e.g., 0.3
-    simplicity: number;  // e.g., 0.1
+export interface HeroResolutionResult {
+  nodeId: string;
+  resolved: boolean;
+  resolution: string | null;
+  datasetContributions: Array<{
+    datasetId: string;
+    contributionScore: number; // 0.0–1.0
+  }>;
 }
 
-export class Verifier {
-    private weights: ScoreWeights = { correctness: 0.6, latency: 0.3, simplicity: 0.1 };
-    private constraints: Map<string, (res: any) => boolean> = new Map();
+export class HeroClient {
+  constructor(private baseUrl: string) {}
 
-    /**
-     * Updates the physics of the arena.
-     * Called by Human Player via UI.
-     */
-    public updateWeights(newWeights: ScoreWeights) {
-        this.weights = newWeights;
+  public async runResolutionPass(
+    nodes: FailureContext[],
+    datasets: SubmittedDataset[]
+  ): Promise<HeroResolutionResult[]> {
+    const response = await fetch(`${this.baseUrl}/hero/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodes, datasets }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HERO Model API error: ${response.status}`);
     }
 
-    /**
-     * Adds a "Trap" or specific test case.
-     */
-    public addConstraint(id: string, validator: (res: any) => boolean) {
-        this.constraints.set(id, validator);
-    }
+    return response.json();
+  }
 
-    public async evaluate(code: string, context: any): Promise<number> {
-        const vm = new VM({ timeout: 1000, sandbox: { context } });
-        const start = performance.now();
-        
-        try {
-            // 1. EXECUTION & LATENCY CHECK
-            const result = vm.run(code);
-            const duration = performance.now() - start;
-            
-            // Calculate Score based on this.weights
-            // 2. SCORING LOGIC
-            // Baseline: Did it even work?
-            if (this.deepCompare(result, this.requirements.expectedOutput)) {
-                score += 0.6; // 60% for correctness
-            }
+  public async generateSkillMd(
+    nodeId: string,
+    resolution: string
+  ): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/hero/skill`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nodeId, resolution }),
+    });
 
-            // Efficiency Bonus: The "Core War" speed factor
-            const latencyBonus = Math.max(0, (this.requirements.maxLatency - duration) / 200) * 0.2;
-            score += latencyBonus;
+    return response.text(); // Returns skill.md content
+  }
+}
+```
 
-            // Complexity/Length Penalty: Rewards "Clean" Trajectories
-            const lengthPenalty = Math.min(0.2, agentCode.length / 5000) * -1;
-            score += (0.2 + lengthPenalty);
-            
-            return finalScore;
-        } catch (e) {
-            console.error("Agent Crashed or Poisoned:", e);
-            return 0; // Total failure
+---
+
+## 6. KNIRVCHAIN Client (`src/networking/KnirvChainClient.ts`)
+
+Commits datasets and skill.md files to the chain. Every submission is signed with the Architect's address.
+
+```typescript
+export interface SkillMdCommit {
+  skillId: string;
+  architectAddress: string;
+  nodeId: string;
+  epoch: number;
+  content: string; // Full skill.md markdown
+}
+
+export class KnirvChainClient {
+  constructor(private baseUrl: string) {}
+
+  // Phase 3: propose a .nrv onto KNIRVGRAPH (pending — not yet committed to chain)
+  public async proposeNrv(dataset: SubmittedDataset): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/graph/propose`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...dataset, status: 'proposed' }),
+    });
+    const result = await response.json();
+    return result.nrvId;
+  }
+
+  // Phase 4: commit a .nrv to KNIRVCHAIN after successful HERO resolution
+  // Only called when HERO resolution succeeds and this .nrv contributed
+  public async commitNrv(nrvId: string, architectAddress: string): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/chain/commit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nrvId, architectAddress }),
+    });
+    const result = await response.json();
+    return result.txHash;
+  }
+
+  // Commit embedded skill.md (extracted from committed .nrv)
+  public async commitSkillMd(skill: SkillMdCommit): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/chain/skill`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(skill),
+    });
+    const result = await response.json();
+    return result.skillId;
+  }
+
+  // Fetch all committed skill.md files (HERO Model reference library)
+  public async getSkillLibrary(): Promise<SkillMdCommit[]> {
+    const response = await fetch(`${this.baseUrl}/chain/skills`);
+    return response.json();
+  }
+
+  // Fetch all proposed .nrv files for a given error node (KNIRVGRAPH)
+  public async getProposedNrvs(nodeId: string): Promise<SubmittedDataset[]> {
+    const response = await fetch(`${this.baseUrl}/graph/proposals/${nodeId}`);
+    return response.json();
+  }
+}
+```
+
+---
+
+## 7. Reward Distributor (`src/engine/RewardDistributor.ts`)
+
+Calculates final Compute rewards from HERO Model contribution scores.
+
+```typescript
+import { HeroResolutionResult } from '../networking/HeroClient';
+import { SubmittedDataset } from '../types/Dataset';
+
+export interface RewardAllocation {
+  architectId: string;
+  computeEarned: number;
+  parityDelta: number;
+}
+
+export class RewardDistributor {
+  public calculate(
+    results: HeroResolutionResult[],
+    submissions: SubmittedDataset[],
+    nodeSeverityMap: Map<string, number>
+  ): RewardAllocation[] {
+    const allocations = new Map<string, RewardAllocation>();
+
+    for (const result of results) {
+      const severity = nodeSeverityMap.get(result.nodeId) ?? 1;
+      const baseReward = severity * 10; // Higher severity = more Compute
+
+      for (const contrib of result.datasetContributions) {
+        const submission = submissions.find(s => s.datasetId === contrib.datasetId);
+        if (!submission) continue;
+
+        const current = allocations.get(submission.architectId) ?? {
+          architectId: submission.architectId,
+          computeEarned: 0,
+          parityDelta: 0,
+        };
+
+        if (result.resolved) {
+          current.computeEarned += Math.floor(baseReward * contrib.contributionScore);
+          current.parityDelta += contrib.contributionScore > 0.5 ? 2 : 0;
+        } else {
+          // Failed resolution — penalize low-scoring contributors
+          if (contrib.contributionScore < 0.2) {
+            current.parityDelta -= 5;
+          }
         }
 
-        return Math.min(1.0, Math.max(0, score));
+        allocations.set(submission.architectId, current);
+      }
     }
 
-    private deepCompare(a: any, b: any): boolean {
-        return JSON.stringify(a) === JSON.stringify(b);
-    }
+    return Array.from(allocations.values());
+  }
 }
-
 ```
 
 ---
 
-## 5. Adversarial Mechanics (`src/engine/Sabotage.ts`)
+## 8. Tournament Loop (`src/engine/Tournament.ts`)
 
-Implement the functions that allow players to spend **Compute** to disrupt others.
+The main epoch controller.
 
 ```typescript
-import { RFTAgent } from '../types/Agent';
+import { HeroClient } from '../networking/HeroClient';
+import { KnirvChainClient } from '../networking/KnirvChainClient';
+import { DatasetValidator } from './DatasetValidator';
+import { RewardDistributor } from './RewardDistributor';
+import { SubmittedDataset } from '../types/Dataset';
+import { FailureContext } from '../types/ErrorNode';
+import { WorldState, PlayerState } from '../types/GameState';
+
+export class Tournament {
+  public currentEpoch = 0;
+  public worldState: WorldState;
+  private pendingDatasets: SubmittedDataset[] = [];
+
+  constructor(
+    private hero: HeroClient,
+    private chain: KnirvChainClient,
+    private validator: DatasetValidator,
+    private rewardDistributor: RewardDistributor
+  ) {}
+
+  // Called when an Architect proposes a .nrv during Phase 3
+  // Proposes to KNIRVGRAPH — not committed to KNIRVCHAIN yet
+  public proposeDataset(
+    submission: SubmittedDataset,
+    node: FailureContext
+  ): { accepted: boolean; errors: string[] } {
+    const validation = this.validator.validate(submission.dataset, node);
+    if (!validation.valid) return { accepted: false, errors: validation.errors };
+
+    submission.status = 'proposed';
+    this.pendingDatasets.push(submission);
+    this.chain.proposeNrv(submission); // Async, non-blocking — lands on KNIRVGRAPH
+    return { accepted: true, errors: [] };
+  }
+
+  // Phase 4: HERO resolution pass (runs automatically at epoch end)
+  public async runResolutionPass(players: Map<string, PlayerState>) {
+    const activeNodes = this.worldState.activeNodes;
+
+    let results;
+    try {
+      results = await this.hero.runResolutionPass(activeNodes, this.pendingDatasets);
+    } catch {
+      this.worldState.isPaused = true;
+      return;
+    }
+
+    // Commit .nrv files and skill.md for resolved nodes
+    for (const result of results) {
+      if (result.resolved && result.resolution) {
+        // Commit contributing .nrv files to KNIRVCHAIN
+        for (const contrib of result.datasetContributions) {
+          if (contrib.contributionScore > 0) {
+            const submission = this.pendingDatasets.find(s => s.datasetId === contrib.datasetId);
+            if (submission) {
+              submission.status = 'committed';
+              await this.chain.commitNrv(submission.datasetId, submission.architectId);
+
+              // If .nrv contains an embedded skill.md, extract and commit it separately
+              if (submission.skillMd) {
+                await this.chain.commitSkillMd({
+                  skillId: `skill-${result.nodeId}-${submission.datasetId.slice(0, 8)}`,
+                  architectAddress: submission.architectId,
+                  nodeId: result.nodeId,
+                  epoch: this.currentEpoch,
+                  content: submission.skillMd,
+                });
+              }
+            }
+          }
+        }
+
+        // Remove resolved node from active set
+        this.worldState.activeNodes = this.worldState.activeNodes.filter(
+          n => n.errorId !== result.nodeId
+        );
+      } else {
+        // Resolution failed — mark node Corrupted; .nrv proposals remain on KNIRVGRAPH (not committed)
+        const node = this.worldState.activeNodes.find(n => n.errorId === result.nodeId);
+        if (node) node.status = 'CORRUPTED';
+        for (const contrib of result.datasetContributions) {
+          const submission = this.pendingDatasets.find(s => s.datasetId === contrib.datasetId);
+          if (submission) submission.status = 'failed';
+        }
+      }
+    }
+
+    // Distribute rewards
+    const severityMap = new Map(activeNodes.map(n => [n.errorId, n.severity]));
+    const allocations = this.rewardDistributor.calculate(results, this.pendingDatasets, severityMap);
+
+    for (const alloc of allocations) {
+      const player = players.get(alloc.architectId);
+      if (!player) continue;
+      player.resources.compute += alloc.computeEarned;
+      player.resources.parity = Math.max(0, Math.min(100, player.resources.parity + alloc.parityDelta));
+    }
+
+    // Reset for next epoch
+    this.pendingDatasets = [];
+    this.currentEpoch++;
+  }
+}
+```
+
+---
+
+## 9. Adversarial Mechanics (`src/engine/Sabotage.ts`)
+
+Secondary activity — Architects spend Compute to disrupt competitors.
+
+```typescript
+import { KnirvAgent } from '../types/Agent';
+import { FailureContext } from '../types/ErrorNode';
 
 export enum SabotageType {
-    NOISE_INJECTION = 'NOISE_INJECTION', // Adds random chars to context
-    BACKPROP_PULSE = 'BACKPROP_PULSE',   // Reduces target Parity
-    GRADIENT_GHOSTING = 'GRADIENT_GHOSTING' // Creates fake high-reward target
+  CONTEXT_POISONING = 'CONTEXT_POISONING',
+  FORMAT_TRAP = 'FORMAT_TRAP',
+  BACKPROP_PULSE = 'BACKPROP_PULSE',
+  FOG_DROP = 'FOG_DROP',
 }
 
 export class SabotageEngine {
-    
-    public static applyEffect(type: SabotageType, target: RFTAgent, magnitude: number) {
-        switch (type) {
-            case SabotageType.NOISE_INJECTION:
-                // Logic: Return a "Decorator" function that corrupts the input string
-                // for the target's next Inference Step.
-                break;
-                
-            case SabotageType.BACKPROP_PULSE:
-                // Logic: Directly reduce Parity
-                target.resources.parity -= (10 * magnitude);
-                break;
-        }
-    }
-}
+  public static applyEffect(
+    type: SabotageType,
+    target: KnirvAgent,
+    node: FailureContext,
+    magnitude: number
+  ) {
+    switch (type) {
+      case SabotageType.CONTEXT_POISONING:
+        // Inject a misleading entry into the target agent's next context gather
+        target['_poisonedContext'] = `[CORRUPTED]: ${magnitude} false entries injected`;
+        break;
 
-```
+      case SabotageType.FORMAT_TRAP:
+        // Lock one available format for this node for the target this epoch
+        // Implementation: add a per-agent format exclusion list checked by DatasetValidator
+        break;
 
----
+      case SabotageType.BACKPROP_PULSE:
+        // Flag target's submitted dataset for HERO re-evaluation
+        // Implementation: add dataset ID to a re-evaluation queue processed before reward calc
+        break;
 
-## 6. The Tournament Loop (`src/engine/Tournament.ts`)
-
-The main controller that ties it all together.
-
-**Logic Flow:**
-
-1. **Load Phase:** Fetch current Error Node state.
-2. **Sabotage Phase:** Check queue for active sabotage effects.
-3. **Inference:** Call `proposeSolution` on all active Agents.
-4. **Verification:** Pass results to `Verifier`.
-5. **Ranking:** Sort by Reward Score.
-6. **Red Queen Check:**
-* IF `Winner.score > Incumbent.score + Threshold` THEN `Hijack`.
-
-
-7. **Reinforcement:** Call `LoraxClient` to update weights.
-
-```typescript
-import { Verifier } from './Verifier';
-import { LoraxClient } from '../networking/LoraxClient';
-import { RFTAgent } from '../types/Agent';
-
-export class Tournament {
-    private verifier: Verifier;
-    private lorax: LoraxClient;
-    private skillSlotOwner: string | null = null; // Agent ID
-    private incumbentScore: number = 0.8; // Baseline to beat
-
-    public async runEpoch(agents: RFTAgent[], nodeContext: string) {
-        // 1. Inference
-        const proposals = await Promise.all(agents.map(a => a.proposeSolution(nodeContext)));
-
-        // 2. Verification
-        const results = await Promise.all(proposals.map(async (p, index) => {
-            const score = await this.verifier.evaluate(p.code, nodeContext);
-            return { agent: agents[index], proposal: p, score };
-        }));
-
-        // 3. Selection
-        results.sort((a, b) => b.score - a.score);
-        const winner = results[0];
-
-        // 4. Digital Red Queen Mechanic
-        if (winner.score > this.incumbentScore) {
-            console.log(`🚀 SKILL SLOT HIJACKED by ${winner.agent.id}`);
-            this.skillSlotOwner = winner.agent.id;
-            this.incumbentScore = winner.score; // The bar is raised
-
-            // 5. Reinforcement
-            await this.lorax.fineTune(winner.agent, winner.proposal, winner.score);
-        }
-    }
-}
-
-```
-
----
-
-## 7. LoRAX Integration (`src/networking/LoraxClient.ts`)
-
-Standardize the API calls to the inference/training backend.
-
-```typescript
-import { WinnerPayload } from '../types/Trajectory';
-
-export class LoraxClient {
-    private baseUrl: string;
-
-    constructor(url: string) {
-        this.baseUrl = url;
-    }
-
-    public async fineTune(agent: any, proposal: any, score: number) {
-        const payload: WinnerPayload = {
-            agent_metadata: {
-                 agent_id: agent.id, 
-                 generation: agent.resources.generation,
-                 victory_type: 'convergence' 
-            },
-            prompt_context: "...",
-            trajectory: [ 
-                { step: 1, thought: proposal.chainOfThought, action: proposal.code } 
-            ],
-            reward_signal: { score: score, latency_ms: 0, verifier_feedback: "Success" }
-        };
-
-        // POST to LoRAX backend
-        await fetch(`${this.baseUrl}/adapters`, {
-            method: 'POST',
-            body: JSON.stringify({
-                adapter_id: `skill-${agent.id}`,
-                action: 'fine_tune',
-                data: payload
-            })
+      case SabotageType.FOG_DROP:
+        // Corrupt a node — mark it as CORRUPTED preemptively
+        node.status = 'CORRUPTED';
+        node.heroAttempts.push({
+          epoch: -1,
+          output: '[FOG_DROP: artificially corrupted]',
+          chainOfThought: [],
+          score: 0,
         });
+        break;
     }
+  }
 }
-
 ```
 
-### The API Handshake (Simplified)
+---
 
-When the **Tournament Controller** decides a winner, it sends this command to the **LoRAX Server**:
+## 10. Game Server API (`src/api/GameServer.ts`)
 
-```bash
-# The Controller tells LoRAX to "Bake" the winning trajectory
-curl -X POST http://lorax-backend:8080/adapters \
-  -d '{
-    "adapter_id": "architect-v1-pollards-rho",
-    "parent_model": "base-llm-13b",
-    "action": "commit_to_main_slot"
-  }'
-
-```
-
-
-## 8. The Human Interface API (`src/api/GameServer.ts`)
-
-To make this playable, the game engine needs a REST/WebSocket layer so the Human UI (The Dashboard) can send commands to the Tournament Controller.
-
-**Responsibilities:**
-
-1. Handle "Reward Sculpting" (Weight updates).
-2. Handle "Sabotage" commands (spending Compute).
-3. Stream real-time game state to the frontend.
+REST/WebSocket layer for the human UI.
 
 ```typescript
 import express from 'express';
 import { Tournament } from '../engine/Tournament';
-import { Verifier } from '../engine/Verifier';
 import { SabotageEngine, SabotageType } from '../engine/Sabotage';
 
 export class GameServer {
-    private app = express();
-    private tournament: Tournament;
-    private verifier: Verifier;
+  private app = express();
 
-    constructor(tournament: Tournament, verifier: Verifier) {
-        this.tournament = tournament;
-        this.verifier = verifier;
-        this.setupRoutes();
-    }
+  constructor(private tournament: Tournament) {
+    this.app.use(express.json());
+    this.setupRoutes();
+  }
 
-    private setupRoutes() {
-        this.app.use(express.json());
+  private setupRoutes() {
+    // Human proposes a .nrv dataset for a node (lands on KNIRVGRAPH, pending resolution)
+    this.app.post('/architect/propose', (req, res) => {
+      const { submission, nodeId } = req.body;
+      const node = this.tournament.worldState.activeNodes.find(n => n.errorId === nodeId);
+      if (!node) return res.status(404).json({ error: 'Node not found' });
 
-        // 1. HUMAN ACTION: Update Reward Weights
-        this.app.post('/architect/weights', (req, res) => {
-            const { weights } = req.body;
-            // Validates that weights sum to roughly 1.0 or valid range
-            this.verifier.updateWeights(weights); 
-            console.log(`[UI] Architect updated weights: ${JSON.stringify(weights)}`);
-            res.sendStatus(200);
-        });
+      const result = this.tournament.proposeDataset(submission, node);
+      res.json(result);
+    });
 
-        // 2. HUMAN ACTION: Execute Sabotage
-        this.app.post('/architect/sabotage', (req, res) => {
-            const { targetAgentId, type, magnitude } = req.body;
-            const target = this.tournament.getAgent(targetAgentId);
-            
-            if (target) {
-                SabotageEngine.applyEffect(type as SabotageType, target, magnitude);
-                res.json({ success: true, message: `${type} deployed against ${targetAgentId}` });
-            } else {
-                res.status(404).json({ error: "Agent not found" });
-            }
-        });
+    // Human executes a sabotage action
+    this.app.post('/architect/sabotage', (req, res) => {
+      const { targetAgentId, type, nodeId, magnitude } = req.body;
+      // Validate Compute cost, apply effect
+      // ... 
+      res.json({ success: true });
+    });
 
-        // 3. UI POLLING: Get Dashboard State
-        this.app.get('/state', (req, res) => {
-            res.json({
-                epoch: this.tournament.currentEpoch,
-                incumbent: this.tournament.skillSlotOwner,
-                incumbentScore: this.tournament.incumbentScore,
-                agents: this.tournament.getAgentStatuses() // Returns IDs, Parity, Compute
-            });
-        });
-    }
+    // Get current game state
+    this.app.get('/state', (req, res) => {
+      res.json({
+        epoch: this.tournament.currentEpoch,
+        activeNodes: this.tournament.worldState.activeNodes.map(n => ({
+          errorId: n.errorId,
+          errorClass: n.errorClass,
+          severity: n.severity,
+          contextDensity: n.contextDensity,
+          status: n.status,
+          heroAttemptCount: n.heroAttempts.length,
+        })),
+        isPaused: this.tournament.worldState.isPaused,
+      });
+    });
+  }
 
-    public start(port: number) {
-        this.app.listen(port, () => console.log(`🎮 KNIRVANA Server running on port ${port}`));
-    }
+  public start(port: number) {
+    this.app.listen(port, () => console.log(`KNIRVANA server running on port ${port}`));
+  }
 }
-
 ```
 
 ---
 
-## 9. Global Game State (`src/types/GameState.ts`)
+## 11. Implementation Order
 
-We need a unified store for the "World Data" that persists between HTTP requests and game ticks.
+### Phase 1: Data Layer
+1. Create `src/types/ErrorNode.ts`, `src/types/Dataset.ts`, `src/types/GameState.ts`.
+2. Create `src/engine/DatasetValidator.ts`.
+3. Unit test: valid Preference format with real HERO attempt reference → passes. Fabricated `rejected` field → fails.
 
-```typescript
-export interface ErrorNode {
-    id: string;
-    description: string;   // The task prompt
-    baseContext: string;   // Shared context (can be poisoned)
-    difficulty: number;    // 1-10
-}
+### Phase 2: HERO Integration
+1. Create `src/networking/HeroClient.ts` with mocked resolution responses.
+2. Create `src/networking/KnirvChainClient.ts` with mocked commit responses.
+3. Unit test: submit a Standard dataset, mock HERO returns `resolved: true` with contribution score 0.8 → Compute reward calculated correctly.
 
-export interface PlayerState {
-    playerId: string;
-    role: 'Architect';
-    resources: {
-        compute: number;
-        parity: number;
-    };
-    // Cooldowns for special abilities
-    cooldowns: {
-        sabotage: number;
-        shield: number;
-    };
-}
+### Phase 3: Tournament Loop
+1. Create `src/engine/RewardDistributor.ts`.
+2. Create `src/engine/Tournament.ts`.
+3. Integration test: two Architects submit datasets for the same node. HERO resolves it. Architect with higher contribution score receives more Compute.
 
-export interface WorldState {
-    currentNode: ErrorNode;
-    activeEpoch: number;
-    isPaused: boolean;
-    weather: 'CLEAR' | 'FOG_OF_OVERFITTING'; // Environmental modifiers
-}
-
-```
+### Phase 4: Sabotage & API
+1. Create `src/engine/Sabotage.ts`.
+2. Create `src/api/GameServer.ts`.
+3. Test: `POST /architect/sabotage` with FORMAT_TRAP — confirm target's available formats are restricted for that node next epoch.
 
 ---
 
-## 10. Implementation Roadmap (Step-by-Step)
-
-For the AI Coding Agent, follow this strict implementation order to ensure dependencies are met.
-
-### Phase 1: The Physics Engine (The Verifier)
-
-1. **Task:** Create `src/engine/Verifier.ts`.
-2. **Validation:** Write a unit test that feeds it a correct JS function and asserts a score > 0.6.
-3. **Validation:** Write a unit test that feeds it an infinite loop and asserts it terminates via `vm2` timeout with score 0.
-
-### Phase 2: The Warriors (Agents)
-
-1. **Task:** Create `src/types/Agent.ts` and a mock `GreedyAgent` class.
-2. **Validation:** Ensure the agent can return a valid string response when `proposeSolution()` is called.
-
-### Phase 3: The Arena (Tournament Loop)
-
-1. **Task:** Create `src/engine/Tournament.ts`.
-2. **Logic:** Connect the Agent output to the Verifier input.
-3. **Validation:** Run a simulation where two dummy agents compete. Ensure the one with the higher mock score is stored as `skillSlotOwner`.
-
-### Phase 4: The Network (LoRAX & API)
-
-1. **Task:** Implement `src/networking/LoraxClient.ts` (Mock the actual fetch call for now).
-2. **Task:** Implement `src/api/GameServer.ts`.
-3. **Validation:** Use `curl` or Postman to hit `POST /architect/weights` and verify `Verifier.weights` changes in memory.
-
----
-
-## 11. Configuration & Dependencies
-
-Create a `package.json` with these core dependencies:
+## 12. Configuration
 
 ```json
 {
-  "name": "error-node-engine",
-  "version": "0.1.0",
+  "name": "knirvana-engine",
+  "version": "2.0.0",
   "scripts": {
     "start": "ts-node src/index.ts",
     "test": "jest"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "vm2": "^3.9.19",  // CRITICAL: For sandboxing
     "uuid": "^9.0.0",
     "node-fetch": "^3.3.1",
     "dotenv": "^16.0.3"
@@ -611,98 +715,6 @@ Create a `package.json` with these core dependencies:
     "ts-jest": "^29.1.0"
   }
 }
-
-```
-
-
-
-
----
-
-## 12. Persistence & History (`src/engine/HistoryManager.ts`)
-
-To make the RFT loop meaningful, we must track the evolution of the model. This allows players to see the "Lineage" of the current Skill Slot.
-
-```typescript
-import fs from 'fs/promises';
-import { WinnerPayload } from '../types/Trajectory';
-
-export class HistoryManager {
-    private historyPath = './data/epoch_history.json';
-
-    /**
-     * Records every successful Hijack for future training passes.
-     */
-    public async recordVictory(payload: WinnerPayload) {
-        const history = await this.loadHistory();
-        history.push({
-            timestamp: new Date().toISOString(),
-            ...payload
-        });
-        await fs.writeFile(this.historyPath, JSON.stringify(history, null, 2));
-    }
-
-    private async loadHistory(): Promise<any[]> {
-        try {
-            const data = await fs.readFile(this.historyPath, 'utf-8');
-            return JSON.parse(data);
-        } catch {
-            return [];
-        }
-    }
-}
-
 ```
 
 ---
-
-## 13. Adversarial Synchronization (The Middleware)
-
-The game must ensure that **Sabotage** effects (like Noise) are actually injected into the prompt before the Agent sees it.
-
-**Logic Flow in `Tournament.ts`:**
-
-```typescript
-// Inside the runEpoch method:
-const finalProposals = await Promise.all(agents.map(async (agent) => {
-    let context = worldState.currentNode.baseContext;
-
-    // Apply active Sabotage effects from the SabotageEngine
-    if (SabotageEngine.hasActiveEffect(agent.id, SabotageType.NOISE_INJECTION)) {
-        context = SabotageEngine.injectNoise(context); 
-    }
-
-    return agent.proposeSolution(context);
-}));
-
-```
-
----
-
-## 14. Final Integration Checklist for the Coding Agent
-
-Before concluding the build, the AI agent must verify the following "Adversarial Integrity" points:
-
-1. **Parity Decay:** Does an Agent's `parity` resource actually drop when they fail a verifier check?
-* *Implementation:* In `Tournament.ts`, add a decrement logic: `agent.resources.parity -= 5` on every failed epoch.
-
-
-2. **Compute Regeneration:** Does the `skillSlotOwner` receive a bonus?
-* *Implementation:* At the end of each `runEpoch`, loop through all agents and add `+10` compute, but `+20` for the current owner.
-
-
-3. **LoRAX Error Handling:** If the LoRAX backend is down, does the game pause gracefully?
-* *Implementation:* Wrap the `LoraxClient` call in a try/catch that sets `worldState.isPaused = true`.
-
-
-
----
-
-# 🏁 Final Agent Instructions (The Handover)
-
-> "You have the full specification. Your final objective is to implement the **HistoryManager** and integrate the **SabotageEngine** into the main **Tournament** loop.
-> **Final Task:** Ensure that the `src/index.ts` file correctly initializes the `Tournament`, `Verifier`, and `GameServer` in the correct order. The server should start, and the tournament loop should begin running on a `setInterval` or a recursive `async` loop.
-> Once implemented, provide a sample `curl` command that a human can use to sabotage an agent during a live epoch."
-
----
-

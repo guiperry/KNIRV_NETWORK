@@ -1,6 +1,8 @@
 # ADVERSARIAL TRAINING FRAMEWORK
 
-This document introduces an adversarial evolution framework that replaces a static training regime with continuous, dynamic gameplay within the KNIRVARENA gaming experience. This gameplay directly trains the underlying HASHER model, which uses a Bitcoin mining ASIC for inference processing.
+This document describes the adversarial infrastructure layer of KNIRVANA. Human Architects craft TRL-compatible datasets that train the **HERO Model** — the central base LLM that reads all submitted datasets, attempts to resolve active error nodes in the KNIRVGRAPH, and distributes Compute rewards based on dataset quality.
+
+The ASIC layer described here handles the computational substrate for HERO Model inference and agent policy execution. The HERO Model reads `skill.md` files and human-crafted datasets — no LoRA adapters are used. Knowledge is stored as structured markdown on KNIRVCHAIN, not as weight modifications.
 
 ## 14.1 KNIRVARENA Gameplay Environment
 

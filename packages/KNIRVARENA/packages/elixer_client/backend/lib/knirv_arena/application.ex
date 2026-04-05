@@ -1,4 +1,4 @@
-defmodule Knirvarena.Application do
+defmodule KnirvArena.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   @moduledoc false
@@ -27,7 +27,7 @@ defmodule Knirvarena.Application do
       KnirvArenaWeb.Endpoint
     ]
 
-    opts = [strategy: :one_for_one, name: Knirvarena.Supervisor]
+    opts = [strategy: :one_for_one, name: KnirvArena.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end
