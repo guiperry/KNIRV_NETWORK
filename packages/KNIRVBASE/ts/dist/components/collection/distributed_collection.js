@@ -8,11 +8,8 @@ export class LocalCollection {
         this.store = store;
     }
     async insert(doc) {
-        // Store a deep-cloned copy to avoid accidental shared references between
-        // callers and the underlying storage implementation.
         const cloned = this.cloneMap(doc);
         await this.store.insert(this.name, cloned);
-        // Return another clone so the caller cannot mutate the stored value
         return this.cloneMap(cloned);
     }
     async update(id, update) {
@@ -27,6 +24,9 @@ export class LocalCollection {
     async findAll() {
         return await this.store.findAll(this.name);
     }
+    getStore() {
+        return this.store;
+    }
     cloneMap(m) {
         const out = {};
         for (const k in m) {
@@ -38,7 +38,6 @@ export class LocalCollection {
                 out[k] = this.cloneSlice(v);
             }
             else {
-                // primitives and unknown types are copied by value/reference as-is
                 out[k] = v;
             }
         }
@@ -74,7 +73,6 @@ export class DistributedCollection {
     }
     setupMessageHandlers() {
         this.network.onMessage(MessageType.Operation, (msg) => {
-            // Basic payload validation
             const payload = msg.payload;
             if (!payload)
                 return;
@@ -82,8 +80,7 @@ export class DistributedCollection {
             if (coll !== this.name)
                 return;
             const opMap = payload.operation;
-            // We assume op was encoded in a friendly form; in a real implementation we'd use typed marshaling
-            const op = opMap; // Simplified
+            const op = opMap;
             this.handleRemoteOperation(op);
         });
         this.network.onMessage(MessageType.SyncRequest, (msg) => {
@@ -120,7 +117,6 @@ export class DistributedCollection {
             stagedEntries: [],
             syncInProgress: false
         });
-        // Request initial sync
         await this.requestSync();
     }
     async detachFromNetwork() {
@@ -135,20 +131,17 @@ export class DistributedCollection {
         if (!id) {
             throw new Error("document must contain 'id'");
         }
-        const entryType = doc.entryType; // Assuming validation already happened
-        // For MEMORY entries, blob is handled by storage
+        const entryType = doc.entryType;
         if (entryType === EntryType.Memory) {
             const payload = doc.payload;
             if (payload && 'blob' in payload) {
                 // Blob will be saved by storage.insert
             }
         }
-        // The local collection handles persistence. The underlying adapter is responsible
-        // for the actual file I/O for blobs.
         const inserted = await this.local.insert(doc);
         if (this.networkID !== '') {
             const opPayload = ToDistributed(inserted, this.network.getPeerID());
-            opPayload.entryType = entryType; // Ensure EntryType is set on the distributed doc
+            opPayload.entryType = entryType;
             const op = {
                 id: `${this.network.getPeerID()}-${Date.now()}-${Math.random()}`,
                 type: OperationType.Insert,
@@ -212,13 +205,26 @@ export class DistributedCollection {
     async forceSync() {
         await this.requestSync();
     }
-    // Private helpers
+    streamFrames(modality) {
+        const store = this.local.getStore();
+        if (store.streamFrames) {
+            return store.streamFrames(this.name, modality);
+        }
+        else {
+            throw new Error(`collection "${this.name}": storage backend does not support NRV streaming`);
+        }
+    }
+    getStore() {
+        return this.local.getStore();
+    }
+    getOperationLog() {
+        return [...this.operationLog];
+    }
     broadcastOperation(op) {
         if (this.networkID === '')
             return;
         this.operationLog.push(op);
         this.pruneOperationLog();
-        // increment local vector
         const syncState = this.syncStates.get(this.networkID);
         syncState.localVector = increment(syncState.localVector, this.network.getPeerID());
         this.network.broadcastMessage(this.networkID, {
@@ -230,7 +236,6 @@ export class DistributedCollection {
         });
     }
     async handleRemoteOperation(op) {
-        // Apply CRDT operation to local document
         const existing = await this.local.find(op.documentId);
         let existingDist = null;
         if (existing) {
@@ -238,20 +243,17 @@ export class DistributedCollection {
         }
         const result = ApplyOperation(existingDist, op);
         if (result === null) {
-            // delete
             await this.local.delete(op.documentId);
         }
         else if (result._deleted) {
             await this.local.delete(op.documentId);
         }
         else {
-            // upsert
             const regular = ToRegular(result);
             if (regular) {
                 await this.local.insert(regular);
             }
         }
-        // merge vector
         if (this.networkID !== '') {
             const syncState = this.syncStates.get(this.networkID);
             syncState.localVector = merge(syncState.localVector, op.vector);
@@ -272,7 +274,6 @@ export class DistributedCollection {
             timestamp: Date.now(),
             payload: { collection: this.name, vector: syncState.localVector }
         });
-        // Clear flag after timeout
         setTimeout(() => {
             syncState.syncInProgress = false;
         }, 10000);
@@ -280,7 +281,6 @@ export class DistributedCollection {
     handleSyncRequest(msg) {
         const payload = msg.payload;
         const remoteVector = payload.vector;
-        // find missing ops
         const missing = [];
         for (const op of this.operationLog) {
             const remoteClock = remoteVector[op.peerId] || 0;

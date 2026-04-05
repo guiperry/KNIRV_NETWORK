@@ -64,6 +64,12 @@ export class Counter extends Metric {
     return this.labeledValues.get(key) || 0;
   }
 
+  getTotal(): number {
+    let total = this.value;
+    this.labeledValues.forEach(v => total += v);
+    return total;
+  }
+
   reset(): void {
     this.value = 0;
     this.labeledValues.clear();
@@ -149,6 +155,11 @@ export class Gauge extends Metric {
   getWithLabels(labels: Record<string, string | number>): number {
     const key = this.getLabelsKey(labels);
     return this.labeledValues.get(key) || 0;
+  }
+
+  reset(): void {
+    this.value = 0;
+    this.labeledValues.clear();
   }
 
   private getLabelsKey(labels: Record<string, string | number>): string {

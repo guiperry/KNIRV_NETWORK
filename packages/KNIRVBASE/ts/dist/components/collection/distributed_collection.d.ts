@@ -1,6 +1,19 @@
 import { Network } from '../network/network_manager';
 import { Storage } from '../storage/storage';
-import { SyncState } from '../types/types';
+import { CRDTOperation, SyncState } from '../types/types';
+import { ModalityType } from '../storage/nrv/spec';
+export interface Frame {
+    id: string;
+    vector: Float32Array;
+    seed: Uint8Array;
+    thermo: {
+        tempCelsius: number;
+        voltageV: number;
+        freqMHz: number;
+        fanRPM: number;
+    };
+    proof: Uint8Array;
+}
 export declare class LocalCollection {
     private name;
     private store;
@@ -10,6 +23,7 @@ export declare class LocalCollection {
     delete(id: string): Promise<number>;
     find(id: string): Promise<Record<string, any> | null>;
     findAll(): Promise<Record<string, any>[]>;
+    getStore(): Storage;
     private cloneMap;
     private cloneSlice;
 }
@@ -32,6 +46,9 @@ export declare class DistributedCollection {
     findAll(): Promise<Record<string, any>[]>;
     getSyncState(): SyncState | null;
     forceSync(): Promise<void>;
+    streamFrames(modality?: ModalityType): AsyncGenerator<Frame, void, unknown>;
+    getStore(): Storage;
+    getOperationLog(): CRDTOperation[];
     private broadcastOperation;
     private handleRemoteOperation;
     private requestSync;

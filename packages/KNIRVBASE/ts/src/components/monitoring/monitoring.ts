@@ -1,6 +1,10 @@
 import { Counter, Gauge, Histogram } from './metrics';
 import { CounterOptions, GaugeOptions, HistogramOptions } from './types';
 
+export function createMetrics(): KNIRVBasemetrics {
+  return new KNIRVBasemetrics();
+}
+
 /**
  * Comprehensive metrics collection for KNIRVBASE
  */
@@ -119,13 +123,17 @@ export class KNIRVBasemetrics {
    * Reset all metrics (useful for testing)
    */
   resetAll(): void {
-    (this.blocksCommitted as any).reset();
-    (this.blockCommitDuration as any).reset();
-    (this.memoryStoreOps as any).reset();
-    (this.memoryRetrieveOps as any).reset();
-    (this.cacheHits as any).reset();
-    (this.cacheMisses as any).reset();
-    (this.indexSize as any).reset();
+    this.blocksCommitted.reset();
+    this.blockCommitDuration.reset();
+    this.memoryStoreOps.reset();
+    this.memoryRetrieveOps.reset();
+    this.cacheHits.reset();
+    this.cacheMisses.reset();
+    this.activeConnections.reset();
+    this.nrnBalance.reset();
+    this.queryLatency.reset();
+    this.errorCount.reset();
+    this.indexSize.reset();
   }
 
   /**

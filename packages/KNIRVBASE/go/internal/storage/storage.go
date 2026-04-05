@@ -219,7 +219,7 @@ func (fs *FileStorage) Find(ctx context.Context, collection, id string) (map[str
 			if err != nil {
 				return nil, fmt.Errorf("failed to decode signature: %w", err)
 			}
-			
+
 			if !fs.encryptionMgr.GetMasterKey().Verify(originalBytes, signature) {
 				return nil, fmt.Errorf("integrity violation: document signature verification failed")
 			}
@@ -465,6 +465,11 @@ func (fs *FileStorage) authorizeAccess(ctx context.Context, doc map[string]inter
 	// In a real implementation, we would validate this token against our Auth service
 	// or check if it matches a session stored in the document or DHT.
 	// For this prototype, any non-empty token is considered authorized if it's present.
+	// Additionally, we can check if the document has any encryption metadata
+	if encrypted, ok := doc["encrypted"].(bool); ok && encrypted {
+		// If document is encrypted, we need to verify the token matches the encryption key
+		// For now, just return true if token exists
+	}
 	return token != ""
 }
 

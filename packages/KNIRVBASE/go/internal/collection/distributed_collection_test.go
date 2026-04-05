@@ -2,11 +2,16 @@ package collection
 
 import (
 	"context"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/knirvcorp/knirvbase/go/internal/network"
 	stor "github.com/knirvcorp/knirvbase/go/internal/storage"
 	typ "github.com/knirvcorp/knirvbase/go/internal/types"
+
+	"github.com/knirvcorp/knirvbase/go/internal/crypto/pqc"
+	nrv "github.com/knirvcorp/knirvbase/go/pkg/nrv"
 )
 
 type mockStorage struct{}
@@ -159,5 +164,91 @@ func TestCloneSlice(t *testing.T) {
 	}
 	if len(cloned[2].([]interface{})) != 1 {
 		t.Errorf("Nested slice not cloned correctly")
+	}
+}
+
+func TestDistributedCollectionStreamFramesWithNRVStorage(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "streamframes_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create NRVStorage
+	keyPair, err := pqc.GeneratePQCKeyPair("test-key", "test")
+	if err != nil {
+		t.Fatalf("GeneratePQCKeyPair failed: %v", err)
+	}
+	nrvStorage := stor.NewNRVStorage(tmpDir, keyPair)
+
+	// Create network mock
+	net := &mockNetwork{}
+
+	// Create distributed collection with NRVStorage
+	coll := NewDistributedCollection("test", net, nrvStorage)
+
+	// Insert a test frame using the underlying storage directly
+	ctx := context.Background()
+	doc := map[string]interface{}{
+		"id": "stream-test-frame",
+		"payload": map[string]interface{}{
+			"vector": []float64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
+			"seed":   []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32},
+			"thermo": map[string]float64{
+				"temp_celsius": 50.5,
+				"voltage_v":    12.0,
+				"freq_mhz":     500,
+				"fan_rpm":      3000,
+			},
+			"proof": []byte("test proof"),
+		},
+		"verified":  true,
+		"ergo_rank": 0.85,
+	}
+
+	if err := nrvStorage.Insert(ctx, "test", doc); err != nil {
+		t.Fatalf("Insert failed: %v", err)
+	}
+
+	// Test StreamFrames method
+	frameChan, err := coll.StreamFrames(ctx, nrv.ModalityVector)
+	if err != nil {
+		t.Fatalf("StreamFrames failed: %v", err)
+	}
+
+	count := 0
+	for range frameChan {
+		count++
+	}
+
+	if count != 1 {
+		t.Errorf("expected 1 frame from stream, got %d", count)
+	}
+}
+
+func TestDistributedCollectionStreamFramesWithNonNRVStorage(t *testing.T) {
+	// Create regular file storage (not NRVStorage)
+	tmpDir, err := os.MkdirTemp("", "streamframes_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	fileStorage := stor.NewFileStorage(tmpDir)
+
+	// Create network mock
+	net := &mockNetwork{}
+
+	// Create distributed collection with regular file storage
+	coll := NewDistributedCollection("test", net, fileStorage)
+
+	// Test StreamFrames method - should return error
+	_, err = coll.StreamFrames(context.Background(), nrv.ModalityVector)
+	if err == nil {
+		t.Error("expected error when storage is not NRVStorage")
+	}
+
+	if err == nil || !strings.Contains(err.Error(), "storage backend does not support NRV streaming") {
+		t.Errorf("expected error about NRV streaming not supported, got: %v", err)
 	}
 }

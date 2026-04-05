@@ -47,18 +47,23 @@ export const defaultMetrics = createMetrics();
 export const metrics = {
   blocks: {
     committed: () => defaultMetrics.blocksCommitted.get(),
+    total: () => defaultMetrics.blocksCommitted.getTotal(),
     inc: (labels?: Record<string, string | number>) => defaultMetrics.blocksCommitted.inc(labels)
   },
   memory: {
     storeOps: () => defaultMetrics.memoryStoreOps.get(),
+    totalStoreOps: () => defaultMetrics.memoryStoreOps.getTotal(),
     incStoreOps: (labels?: Record<string, string | number>) => defaultMetrics.memoryStoreOps.inc(labels),
     retrieveOps: () => defaultMetrics.memoryRetrieveOps.get(),
+    totalRetrieveOps: () => defaultMetrics.memoryRetrieveOps.getTotal(),
     incRetrieveOps: (labels?: Record<string, string | number>) => defaultMetrics.memoryRetrieveOps.inc(labels)
   },
   cache: {
     hits: () => defaultMetrics.cacheHits.get(),
+    totalHits: () => defaultMetrics.cacheHits.getTotal(),
     incHits: (labels?: Record<string, string | number>) => defaultMetrics.cacheHits.inc(labels),
     misses: () => defaultMetrics.cacheMisses.get(),
+    totalMisses: () => defaultMetrics.cacheMisses.getTotal(),
     incMisses: (labels?: Record<string, string | number>) => defaultMetrics.cacheMisses.inc(labels),
     hitRatio: () => defaultMetrics.getCacheHitRatio()
   },
@@ -79,6 +84,7 @@ export const metrics = {
   },
   errors: {
     count: () => defaultMetrics.errorCount.get(),
+    totalCount: () => defaultMetrics.errorCount.getTotal(),
     inc: (labels?: Record<string, string | number>) => defaultMetrics.errorCount.inc(labels)
   },
   index: {

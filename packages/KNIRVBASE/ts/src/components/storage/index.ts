@@ -1,3 +1,5 @@
+export * from './nrv';
+
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -5,23 +7,97 @@ export enum IndexType {
   BTree = 'btree',
   GIN = 'gin',
   HNSW = 'hnsw',
+  Tag = 'tag',
 }
 
 export class BTreeIndex {
-  data: Map<string, string[]> = new Map(); // value -> []documentID
+  data: Map<string, string[]> = new Map();
 }
 
 export class GINIndex {
-  data: Map<string, string[]> = new Map(); // token -> []documentID
+  data: Map<string, string[]> = new Map();
 }
 
 export class HNSWIndex {
   dimensions: number;
-  vectors: Map<string, number[]> = new Map(); // documentID -> vector
-  neighbors: Map<string, string[]> = new Map(); // documentID -> []neighborIDs
+  vectors: Map<string, number[]> = new Map();
+  neighbors: Map<string, string[]> = new Map();
 
   constructor(dimensions: number) {
     this.dimensions = dimensions;
+  }
+}
+
+export interface Block {
+  id: string;
+  timestamp: number;
+  category: string;
+  vector?: number[];
+  tags: string[];
+}
+
+export class TagIndex {
+  private blocksByTag: Map<string, Set<string>> = new Map();
+  private blocksById: Map<string, Block> = new Map();
+
+  add(block: Block): void {
+    this.blocksById.set(block.id, block);
+    for (const tag of block.tags) {
+      if (!this.blocksByTag.has(tag)) {
+        this.blocksByTag.set(tag, new Set());
+      }
+      this.blocksByTag.get(tag)!.add(block.id);
+    }
+  }
+
+  remove(id: string): void {
+    const block = this.blocksById.get(id);
+    if (block) {
+      for (const tag of block.tags) {
+        const tagSet = this.blocksByTag.get(tag);
+        if (tagSet) {
+          tagSet.delete(id);
+          if (tagSet.size === 0) {
+            this.blocksByTag.delete(tag);
+          }
+        }
+      }
+      this.blocksById.delete(id);
+    }
+  }
+
+  search(tags: string[]): string[] {
+    if (tags.length === 0) {
+      return Array.from(this.blocksById.keys());
+    }
+
+    const resultSets: Set<string>[] = [];
+    for (const tag of tags) {
+      const tagSet = this.blocksByTag.get(tag);
+      if (tagSet) {
+        resultSets.push(new Set(tagSet));
+      }
+    }
+
+    if (resultSets.length === 0) {
+      return [];
+    }
+
+    let intersection = resultSets[0];
+    for (let i = 1; i < resultSets.length; i++) {
+      intersection = new Set([...intersection].filter(x => resultSets[i].has(x)));
+    }
+
+    return Array.from(intersection);
+  }
+
+  getBlock(id: string): Block | undefined {
+    return this.blocksById.get(id);
+  }
+
+  clear(): void {
+    this.blocksByTag.clear();
+    this.blocksById.clear();
   }
 }
 
@@ -37,6 +113,7 @@ export class Index {
   btreeIndex?: BTreeIndex;
   ginIndex?: GINIndex;
   hnswIndex?: HNSWIndex;
+  tagIndex?: TagIndex;
 
   constructor(
     name: string,
@@ -65,6 +142,9 @@ export class Index {
       case IndexType.HNSW:
         const dim = options.dimensions || 768;
         this.hnswIndex = new HNSWIndex(dim);
+        break;
+      case IndexType.Tag:
+        this.tagIndex = new TagIndex();
         break;
     }
   }
@@ -97,7 +177,6 @@ export class IndexManager {
 
     this.indexes.set(key, index);
 
-    // Save index metadata
     await this.saveIndexMetadata(index);
   }
 
@@ -110,7 +189,6 @@ export class IndexManager {
 
     this.indexes.delete(key);
 
-    // Remove index files
     const indexDir = path.join(this.baseDir, collection, 'indexes', name);
     fs.rmSync(indexDir, { recursive: true, force: true });
   }
@@ -150,6 +228,9 @@ export class IndexManager {
         case IndexType.HNSW:
           this.insertHNSW(idx, docID, doc);
           break;
+        case IndexType.Tag:
+          this.insertTag(idx, docID, doc);
+          break;
       }
     }
   }
@@ -168,6 +249,9 @@ export class IndexManager {
         case IndexType.HNSW:
           this.deleteHNSW(idx, docID);
           break;
+        case IndexType.Tag:
+          this.deleteTag(idx, docID);
+          break;
       }
     }
   }
@@ -185,6 +269,8 @@ export class IndexManager {
         return this.queryGIN(idx, query);
       case IndexType.HNSW:
         return this.queryHNSW(idx, query);
+      case IndexType.Tag:
+        return this.queryTag(idx, query);
       default:
         throw new Error(`unsupported index type: ${idx.type}`);
     }
@@ -237,7 +323,6 @@ export class IndexManager {
   private matchesPartial(idx: Index, doc: Record<string, any>): boolean {
     if (!idx.partialExpr) return true;
 
-    // Simple partial expression evaluation
     const parts = idx.partialExpr.split('=');
     if (parts.length !== 2) return true;
 
@@ -345,6 +430,36 @@ export class IndexManager {
       return results.slice(0, limit).map(r => r.id);
     }
     return [];
+  }
+
+  private insertTag(idx: Index, docID: string, doc: Record<string, any>): void {
+    const payload = doc.payload as Record<string, any>;
+    const tags = (payload?.tags as string[]) || [];
+    const block: Block = {
+      id: docID,
+      timestamp: (doc._timestamp as number) || Date.now(),
+      category: (doc.category as string) || '',
+      vector: payload?.vector as number[] | undefined,
+      tags,
+    };
+    idx.tagIndex!.add(block);
+  }
+
+  private deleteTag(idx: Index, docID: string): void {
+    idx.tagIndex!.remove(docID);
+  }
+
+  private queryTag(idx: Index, query: Record<string, any>): string[] {
+    let tags = query.tags as string[];
+    if (!tags) {
+      const tag = query.tag as string;
+      if (tag) {
+        tags = [tag];
+      } else {
+        return [];
+      }
+    }
+    return idx.tagIndex!.search(tags);
   }
 
   private buildCompositeKey(fields: string[], doc: Record<string, any>): string {

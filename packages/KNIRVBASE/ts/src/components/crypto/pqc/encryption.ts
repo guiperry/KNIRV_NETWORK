@@ -17,16 +17,8 @@ export class EncryptionManager {
 
   // EncryptData encrypts sensitive data using PQC encryption
   async encryptData(plaintext: Uint8Array, keyID: string): Promise<string> {
-    let keyPair = this.keyCache.get(keyID);
-
-    if (!keyPair) {
-      // If key not in cache, try to use master key
-      if (this.masterKey && this.masterKey.id === keyID) {
-        keyPair = this.masterKey;
-      } else {
-        throw new Error(`key ${keyID} not found in cache`);
-      }
-    }
+    const keyPair = this.resolveKeyPair(keyID);
+    if (!keyPair) throw new Error(`key ${keyID} not found`);
 
     if (!isActive(keyPair)) {
       throw new Error(`key ${keyID} is not active`);
@@ -76,16 +68,8 @@ export class EncryptionManager {
     const ciphertext = Buffer.from(ciphertextB64, 'base64');
 
     // Get the key pair
-    let keyPair = this.keyCache.get(keyID);
-
-    if (!keyPair) {
-      // If key not in cache, try to use master key
-      if (this.masterKey && this.masterKey.id === keyID) {
-        keyPair = this.masterKey;
-      } else {
-        throw new Error(`key ${keyID} not found in cache`);
-      }
-    }
+    const keyPair = this.resolveKeyPair(keyID);
+    if (!keyPair) throw new Error(`key ${keyID} not found in cache`);
 
     if (!isActive(keyPair)) {
       throw new Error(`key ${keyID} is not active`);
@@ -99,6 +83,32 @@ export class EncryptionManager {
 
     // Decrypt the data
     return decrypt(keyPair, ciphertext);
+  }
+
+  // Sign signs data using the master key's Dilithium private key
+  async sign(data: string): Promise<string | null> {
+    if (!this.masterKey || !this.masterKey.dilithiumPrivateKey) {
+      return null;
+    }
+
+    const dataBytes = new TextEncoder().encode(data);
+    const signature = await sign(this.masterKey, dataBytes);
+    return Buffer.from(signature).toString('base64');
+  }
+
+  // Verify verifies a signature using the master key's Dilithium public key
+  async verify(data: string, signatureB64: string): Promise<boolean> {
+    if (!this.masterKey || !this.masterKey.dilithiumPublicKey) {
+      return false;
+    }
+
+    try {
+      const dataBytes = new TextEncoder().encode(data);
+      const signature = Buffer.from(signatureB64, 'base64');
+      return verify(this.masterKey, dataBytes, signature);
+    } catch {
+      return false;
+    }
   }
 
   // CacheKey adds a key pair to the cache
@@ -115,6 +125,14 @@ export class EncryptionManager {
   generateDataEncryptionKey(name: string): PQCKeyPair {
     const keyPair = generatePQCKeyPair(name, 'encryption');
     this.cacheKey(keyPair.id, keyPair);
+    return keyPair;
+  }
+
+  private resolveKeyPair(keyID: string): PQCKeyPair | undefined {
+    let keyPair = this.keyCache.get(keyID);
+    if (!keyPair && this.masterKey && this.masterKey.id === keyID) {
+      keyPair = this.masterKey;
+    }
     return keyPair;
   }
 }

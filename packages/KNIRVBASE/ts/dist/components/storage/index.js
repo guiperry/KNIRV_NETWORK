@@ -1,3 +1,4 @@
+export * from './nrv';
 import * as fs from 'fs';
 import * as path from 'path';
 export var IndexType;
@@ -5,22 +6,80 @@ export var IndexType;
     IndexType["BTree"] = "btree";
     IndexType["GIN"] = "gin";
     IndexType["HNSW"] = "hnsw";
+    IndexType["Tag"] = "tag";
 })(IndexType || (IndexType = {}));
 export class BTreeIndex {
     constructor() {
-        this.data = new Map(); // value -> []documentID
+        this.data = new Map();
     }
 }
 export class GINIndex {
     constructor() {
-        this.data = new Map(); // token -> []documentID
+        this.data = new Map();
     }
 }
 export class HNSWIndex {
     constructor(dimensions) {
-        this.vectors = new Map(); // documentID -> vector
-        this.neighbors = new Map(); // documentID -> []neighborIDs
+        this.vectors = new Map();
+        this.neighbors = new Map();
         this.dimensions = dimensions;
+    }
+}
+export class TagIndex {
+    constructor() {
+        this.blocksByTag = new Map();
+        this.blocksById = new Map();
+    }
+    add(block) {
+        this.blocksById.set(block.id, block);
+        for (const tag of block.tags) {
+            if (!this.blocksByTag.has(tag)) {
+                this.blocksByTag.set(tag, new Set());
+            }
+            this.blocksByTag.get(tag).add(block.id);
+        }
+    }
+    remove(id) {
+        const block = this.blocksById.get(id);
+        if (block) {
+            for (const tag of block.tags) {
+                const tagSet = this.blocksByTag.get(tag);
+                if (tagSet) {
+                    tagSet.delete(id);
+                    if (tagSet.size === 0) {
+                        this.blocksByTag.delete(tag);
+                    }
+                }
+            }
+            this.blocksById.delete(id);
+        }
+    }
+    search(tags) {
+        if (tags.length === 0) {
+            return Array.from(this.blocksById.keys());
+        }
+        const resultSets = [];
+        for (const tag of tags) {
+            const tagSet = this.blocksByTag.get(tag);
+            if (tagSet) {
+                resultSets.push(new Set(tagSet));
+            }
+        }
+        if (resultSets.length === 0) {
+            return [];
+        }
+        let intersection = resultSets[0];
+        for (let i = 1; i < resultSets.length; i++) {
+            intersection = new Set([...intersection].filter(x => resultSets[i].has(x)));
+        }
+        return Array.from(intersection);
+    }
+    getBlock(id) {
+        return this.blocksById.get(id);
+    }
+    clear() {
+        this.blocksByTag.clear();
+        this.blocksById.clear();
     }
 }
 export class Index {
@@ -43,6 +102,9 @@ export class Index {
                 const dim = options.dimensions || 768;
                 this.hnswIndex = new HNSWIndex(dim);
                 break;
+            case IndexType.Tag:
+                this.tagIndex = new TagIndex();
+                break;
         }
     }
 }
@@ -58,7 +120,6 @@ export class IndexManager {
         }
         const index = new Index(name, collection, indexType, fields, unique, partialExpr, options);
         this.indexes.set(key, index);
-        // Save index metadata
         await this.saveIndexMetadata(index);
     }
     async dropIndex(collection, name) {
@@ -67,7 +128,6 @@ export class IndexManager {
             throw new Error(`index ${key} does not exist`);
         }
         this.indexes.delete(key);
-        // Remove index files
         const indexDir = path.join(this.baseDir, collection, 'indexes', name);
         fs.rmSync(indexDir, { recursive: true, force: true });
     }
@@ -101,6 +161,9 @@ export class IndexManager {
                 case IndexType.HNSW:
                     this.insertHNSW(idx, docID, doc);
                     break;
+                case IndexType.Tag:
+                    this.insertTag(idx, docID, doc);
+                    break;
             }
         }
     }
@@ -117,6 +180,9 @@ export class IndexManager {
                 case IndexType.HNSW:
                     this.deleteHNSW(idx, docID);
                     break;
+                case IndexType.Tag:
+                    this.deleteTag(idx, docID);
+                    break;
             }
         }
     }
@@ -132,6 +198,8 @@ export class IndexManager {
                 return this.queryGIN(idx, query);
             case IndexType.HNSW:
                 return this.queryHNSW(idx, query);
+            case IndexType.Tag:
+                return this.queryTag(idx, query);
             default:
                 throw new Error(`unsupported index type: ${idx.type}`);
         }
@@ -170,7 +238,6 @@ export class IndexManager {
     matchesPartial(idx, doc) {
         if (!idx.partialExpr)
             return true;
-        // Simple partial expression evaluation
         const parts = idx.partialExpr.split('=');
         if (parts.length !== 2)
             return true;
@@ -266,6 +333,34 @@ export class IndexManager {
             return results.slice(0, limit).map(r => r.id);
         }
         return [];
+    }
+    insertTag(idx, docID, doc) {
+        const payload = doc.payload;
+        const tags = payload?.tags || [];
+        const block = {
+            id: docID,
+            timestamp: doc._timestamp || Date.now(),
+            category: doc.category || '',
+            vector: payload?.vector,
+            tags,
+        };
+        idx.tagIndex.add(block);
+    }
+    deleteTag(idx, docID) {
+        idx.tagIndex.remove(docID);
+    }
+    queryTag(idx, query) {
+        let tags = query.tags;
+        if (!tags) {
+            const tag = query.tag;
+            if (tag) {
+                tags = [tag];
+            }
+            else {
+                return [];
+            }
+        }
+        return idx.tagIndex.search(tags);
     }
     buildCompositeKey(fields, doc) {
         const parts = [];

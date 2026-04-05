@@ -1,7 +1,9 @@
+export * from './nrv';
 export declare enum IndexType {
     BTree = "btree",
     GIN = "gin",
-    HNSW = "hnsw"
+    HNSW = "hnsw",
+    Tag = "tag"
 }
 export declare class BTreeIndex {
     data: Map<string, string[]>;
@@ -15,6 +17,22 @@ export declare class HNSWIndex {
     neighbors: Map<string, string[]>;
     constructor(dimensions: number);
 }
+export interface Block {
+    id: string;
+    timestamp: number;
+    category: string;
+    vector?: number[];
+    tags: string[];
+}
+export declare class TagIndex {
+    private blocksByTag;
+    private blocksById;
+    add(block: Block): void;
+    remove(id: string): void;
+    search(tags: string[]): string[];
+    getBlock(id: string): Block | undefined;
+    clear(): void;
+}
 export declare class Index {
     name: string;
     collection: string;
@@ -26,6 +44,7 @@ export declare class Index {
     btreeIndex?: BTreeIndex;
     ginIndex?: GINIndex;
     hnswIndex?: HNSWIndex;
+    tagIndex?: TagIndex;
     constructor(name: string, collection: string, type: IndexType, fields: string[], unique: boolean, partialExpr: string, options: Record<string, any>);
 }
 export declare class IndexManager {
@@ -50,6 +69,9 @@ export declare class IndexManager {
     private insertHNSW;
     private deleteHNSW;
     private queryHNSW;
+    private insertTag;
+    private deleteTag;
+    private queryTag;
     private buildCompositeKey;
     private tokenizeJSON;
     private tokenizeValue;

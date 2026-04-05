@@ -55,7 +55,7 @@ type GINIndex struct {
 
 // HNSWIndex for Hierarchical Navigable Small World (vectors)
 type HNSWIndex struct {
-	index *indexing.HNSWIndex // reference to the actual HNSW index implementation
+	index   *indexing.HNSWIndex  // reference to the actual HNSW index implementation
 	vectors map[string][]float32 // documentID -> vector for fast lookup
 }
 
@@ -121,7 +121,7 @@ func (im *IndexManager) CreateIndex(collection, name string, indexType IndexType
 			efConstruction = efOpt
 		}
 		index.hnswIndex = &HNSWIndex{
-			index: indexing.NewHNSWIndex(dim, m, efConstruction),
+			index:   indexing.NewHNSWIndex(dim, m, efConstruction),
 			vectors: make(map[string][]float32),
 		}
 	case IndexTypeTag:
@@ -276,6 +276,14 @@ func (im *IndexManager) insertTag(idx *Index, docID string, doc map[string]inter
 	idx.mu.Lock()
 	defer idx.mu.Unlock()
 
+	// Ensure the document has the correct ID field
+	if doc["id"] == nil {
+		doc = make(map[string]interface{}, len(doc)+1)
+		for k, v := range doc {
+			doc[k] = v
+		}
+		doc["id"] = docID
+	}
 	block := &blockWrapper{doc: doc}
 	idx.tagIndex.Add(context.TODO(), block)
 }
@@ -662,7 +670,7 @@ func (im *IndexManager) LoadIndexes() error {
 					efConstruction = int(efOpt)
 				}
 				idx.hnswIndex = &HNSWIndex{
-					index: indexing.NewHNSWIndex(dim, m, efConstruction),
+					index:   indexing.NewHNSWIndex(dim, m, efConstruction),
 					vectors: make(map[string][]float32),
 				}
 			}

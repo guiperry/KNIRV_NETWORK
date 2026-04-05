@@ -3,6 +3,7 @@ package storage
 import (
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"math"
 	"os"
@@ -165,5 +166,5 @@ func (r *NRVReader) decodeFrame(entry nrv.FrameEntry) (*nrv.Frame, error) {
 }
 
 func binaryDecodeRegistry(data []byte, registry *nrv.Registry) error {
-	return nil
+	return json.Unmarshal(data, registry)
 }

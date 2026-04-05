@@ -68,6 +68,11 @@ export class MemoryEncryption {
    */
   decodeKey(encoded: string): Buffer {
     try {
+      // Validate base64 string by checking for invalid characters
+      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+      if (!base64Regex.test(encoded)) {
+        throw new Error('Invalid base64 characters');
+      }
       return Buffer.from(encoded, 'base64');
     } catch (error) {
       throw new Error(`Failed to decode key: ${error instanceof Error ? error.message : 'Unknown error'}`);

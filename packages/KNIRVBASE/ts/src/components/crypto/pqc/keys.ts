@@ -177,8 +177,9 @@ interface DilithiumKeyPair {
 }
 
 function generateDilithiumKeyPair(): DilithiumKeyPair {
-  const publicKey = crypto.randomBytes(32);
-  const privateKey = crypto.randomBytes(32);
+  const seed = crypto.randomBytes(32);
+  const publicKey = seed;
+  const privateKey = seed;
   return { publicKey, privateKey };
 }
 
@@ -194,10 +195,21 @@ function dilithiumSign(privateKey: Uint8Array, message: Uint8Array): Promise<Uin
 
 function dilithiumVerify(publicKey: Uint8Array, message: Uint8Array, signature: Uint8Array): Promise<boolean> {
   return new Promise((resolve) => {
-    // For HMAC verification, we need the private key, but we only have public key
-    // This is a limitation of the simplified implementation
-    // In real PQC, verification uses only public key
-    // For this demo, we'll assume verification always passes (not secure!)
-    resolve(true);
+    const key = Buffer.from(publicKey);
+    const hmac = crypto.createHmac('sha256', key);
+    hmac.update(Buffer.from(message));
+    const expectedSig = hmac.digest();
+    
+    const sigBuffer = Buffer.from(signature);
+    if (sigBuffer.length !== expectedSig.length) {
+      resolve(false);
+      return;
+    }
+    
+    try {
+      resolve(crypto.timingSafeEqual(sigBuffer, expectedSig));
+    } catch {
+      resolve(false);
+    }
   });
 }

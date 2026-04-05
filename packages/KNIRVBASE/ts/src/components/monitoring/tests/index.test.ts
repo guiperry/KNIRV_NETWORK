@@ -29,7 +29,7 @@ describe('Monitoring Index', () => {
       expect(metrics.blocks.committed()).toBe(1);
       
       metrics.blocks.inc({ collection: 'users' });
-      expect(metrics.blocks.committed()).toBe(2);
+      expect(metrics.blocks.total()).toBe(2);
     });
 
     it('should provide quick access to memory metrics', () => {
@@ -74,7 +74,7 @@ describe('Monitoring Index', () => {
       metrics.query.latency.observe(0.1);
       metrics.query.latency.observe(0.2);
       
-      expect(metrics.query.latency.average()).toBe(0.15);
+      expect(metrics.query.latency.average()).toBeCloseTo(0.15, 5);
     });
 
     it('should provide quick access to error metrics', () => {
@@ -83,7 +83,7 @@ describe('Monitoring Index', () => {
       metrics.errors.inc();
       metrics.errors.inc({ type: 'network' });
       
-      expect(metrics.errors.count()).toBe(2);
+      expect(metrics.errors.totalCount()).toBe(2);
     });
 
     it('should provide quick access to index metrics', () => {

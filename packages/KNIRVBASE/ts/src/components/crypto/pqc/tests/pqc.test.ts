@@ -168,12 +168,15 @@ describe('EncryptionManager', () => {
 
     it('should fail decryption with wrong key', async () => {
       const plaintext = Buffer.from('secret');
-      const encrypted = await manager.encryptData(plaintext, keyPair.id);
+      
+      // Create a key that is only in cache, not as master key
+      const cacheOnlyKey = manager.generateDataEncryptionKey('cache-only-key');
+      const encrypted = await manager.encryptData(plaintext, cacheOnlyKey.id);
 
       // Remove the key from cache
-      manager.removeKey(keyPair.id);
+      manager.removeKey(cacheOnlyKey.id);
 
-      await expect(manager.decryptData(encrypted)).rejects.toThrow('key not found in cache');
+      await expect(manager.decryptData(encrypted)).rejects.toThrow(/not found in cache/);
     });
   });
 
@@ -219,7 +222,7 @@ describe('EncryptionManager', () => {
       manager.cacheKey(inactiveKey.id, inactiveKey);
       const data = Buffer.from('test');
 
-      await expect(manager.encryptData(data, inactiveKey.id)).rejects.toThrow('key is not active');
+      await expect(manager.encryptData(data, inactiveKey.id)).rejects.toThrow(/is not active/);
     });
   });
 });

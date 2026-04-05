@@ -17,8 +17,14 @@ export class FileStorage {
     getDocPath(collection, id) {
         return path.join(this.getCollectionDir(collection), `${id}.json`);
     }
+    getKVPath(key) {
+        return path.join(this.baseDir, 'kv', key);
+    }
     setMasterKey(keyPair) {
         this.encryptionMgr.setMasterKey(keyPair);
+    }
+    getMasterKey() {
+        return this.encryptionMgr.getMasterKey();
     }
     isEncryptedCollection(collection) {
         const sensitiveCollections = [
@@ -44,10 +50,23 @@ export class FileStorage {
                 delete payload.blob;
             }
         }
-        // Encrypt sensitive collections
-        if (this.isEncryptedCollection(collection) && this.encryptionMgr.getMasterKey()) {
+        // Encrypt all documents (mandatory PQC encryption at rest)
+        if (this.encryptionMgr.getMasterKey()) {
             const encryptedDoc = await this.encryptDocument(collection, docCopy);
             Object.assign(docCopy, encryptedDoc);
+            // Sign the write operation for integrity (Dilithium-3)
+            const data = JSON.stringify(docCopy);
+            const signature = await this.encryptionMgr.sign(data);
+            if (signature) {
+                const signedData = {
+                    data: docCopy,
+                    signature: signature,
+                };
+                const signedJson = JSON.stringify(signedData);
+                fs.writeFileSync(docPath, signedJson, 'utf8');
+                await this.indexManager.insert(collection, doc);
+                return;
+            }
         }
         const data = JSON.stringify(docCopy);
         fs.writeFileSync(docPath, data, 'utf8');
@@ -87,8 +106,22 @@ export class FileStorage {
         const docPath = this.getDocPath(collection, id);
         try {
             const data = fs.readFileSync(docPath, 'utf8');
-            const doc = JSON.parse(data);
-            // Decrypt if needed
+            const wrapper = JSON.parse(data);
+            let doc;
+            // Unwrap and verify signature if present
+            if (wrapper.data && wrapper.signature) {
+                doc = wrapper.data;
+                if (this.encryptionMgr.getMasterKey()) {
+                    const verified = await this.encryptionMgr.verify(JSON.stringify(doc), wrapper.signature);
+                    if (!verified) {
+                        throw new Error('integrity violation: document signature verification failed');
+                    }
+                }
+            }
+            else {
+                doc = wrapper;
+            }
+            // Decrypt if document is encrypted and we have a master key
             if (doc.encrypted && this.encryptionMgr.getMasterKey()) {
                 const decrypted = await this.decryptDocument(doc);
                 Object.assign(doc, decrypted);
@@ -133,6 +166,95 @@ export class FileStorage {
             throw err;
         }
     }
+    // Key-Value API
+    async put(key, value) {
+        const kvDir = path.join(this.baseDir, 'kv');
+        fs.mkdirSync(kvDir, { recursive: true });
+        const kvPath = this.getKVPath(key);
+        let dataToSave = value;
+        const masterKey = this.encryptionMgr.getMasterKey();
+        if (masterKey) {
+            const encrypted = await this.encryptionMgr.encryptData(value, masterKey.id);
+            if (encrypted) {
+                dataToSave = new TextEncoder().encode(encrypted);
+            }
+        }
+        fs.writeFileSync(kvPath, Buffer.from(dataToSave));
+    }
+    async get(key) {
+        const kvPath = this.getKVPath(key);
+        try {
+            const data = fs.readFileSync(kvPath);
+            if (this.encryptionMgr.getMasterKey()) {
+                const decrypted = await this.encryptionMgr.decryptData(data.toString('utf8'));
+                if (decrypted) {
+                    return new Uint8Array(decrypted);
+                }
+            }
+            return new Uint8Array(data);
+        }
+        catch (err) {
+            if (err.code === 'ENOENT')
+                return null;
+            throw err;
+        }
+    }
+    async deleteKey(key) {
+        const kvPath = this.getKVPath(key);
+        try {
+            fs.unlinkSync(kvPath);
+        }
+        catch (err) {
+            if (err.code !== 'ENOENT')
+                throw err;
+        }
+    }
+    async has(key) {
+        const kvPath = this.getKVPath(key);
+        try {
+            fs.statSync(kvPath);
+            return true;
+        }
+        catch {
+            return false;
+        }
+    }
+    // JSON Object API
+    async storeObject(key, obj) {
+        const data = new TextEncoder().encode(JSON.stringify(obj));
+        await this.put(key, data);
+    }
+    async getObject(key) {
+        const data = await this.get(key);
+        if (data === null)
+            return null;
+        const text = new TextDecoder().decode(data);
+        return JSON.parse(text);
+    }
+    // Markdown Projection
+    async projectToMarkdown(key, targetPath) {
+        const data = await this.get(key);
+        if (data === null) {
+            throw new Error(`key not found: ${key}`);
+        }
+        const text = new TextDecoder().decode(data);
+        try {
+            const obj = JSON.parse(text);
+            if (typeof obj === 'object' && obj !== null) {
+                let md = `# ${key}\n\n`;
+                for (const [k, v] of Object.entries(obj)) {
+                    md += `## ${k}\n${JSON.stringify(v, null, 2)}\n\n`;
+                }
+                fs.writeFileSync(targetPath, md, 'utf8');
+            }
+            else {
+                fs.writeFileSync(targetPath, `# Projected Data: ${key}\n\n${text}`, 'utf8');
+            }
+        }
+        catch {
+            fs.writeFileSync(targetPath, `# Projected Data: ${key}\n\n${text}`, 'utf8');
+        }
+    }
     saveBlob(collection, id, blob) {
         const blobDir = path.join(this.getCollectionDir(collection), 'blobs');
         fs.mkdirSync(blobDir, { recursive: true });
@@ -165,6 +287,9 @@ export class FileStorage {
     async queryIndex(collection, indexName, query) {
         return this.indexManager.queryIndex(collection, indexName, query);
     }
+    async close() {
+        // No resources to close for FileStorage
+    }
     deepCopyDoc(doc) {
         return JSON.parse(JSON.stringify(doc));
     }
@@ -186,8 +311,13 @@ export class FileStorage {
             if (this.isSensitiveField(collection, key)) {
                 const valueBytes = JSON.stringify(value);
                 const encryptedValue = await this.encryptionMgr.encryptData(Buffer.from(valueBytes), keyID);
-                encrypted[key] = encryptedValue;
-                encrypted[key + '_encrypted'] = true;
+                if (encryptedValue) {
+                    encrypted[key] = encryptedValue;
+                    encrypted[key + '_encrypted'] = true;
+                }
+                else {
+                    encrypted[key] = value;
+                }
             }
             else {
                 encrypted[key] = value;
@@ -226,7 +356,12 @@ export class FileStorage {
             if (payload[key + '_encrypted']) {
                 const encryptedValue = value;
                 const decryptedBytes = await this.encryptionMgr.decryptData(encryptedValue);
-                decrypted[key] = JSON.parse(decryptedBytes.toString());
+                if (decryptedBytes) {
+                    decrypted[key] = JSON.parse(new TextDecoder().decode(new Uint8Array(decryptedBytes)));
+                }
+                else {
+                    decrypted[key] = value;
+                }
             }
             else {
                 decrypted[key] = value;

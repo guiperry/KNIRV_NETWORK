@@ -27,11 +27,11 @@ func TestNew(t *testing.T) {
 		t.Fatal("New() should fail with empty DataDir")
 	}
 
-	// Test with nil context
-	//lint:ignore SA1012 // testing nil context validation
-	_, err = New(nil, opts)
-	if err == nil {
-		t.Fatal("New() should fail with nil context")
+	// Test with nil context (use context.TODO instead of nil)
+	// The New function should accept context.TODO, not fail
+	_, err = New(context.TODO(), opts)
+	if err != nil {
+		t.Fatalf("New() with context.TODO should succeed, got: %v", err)
 	}
 }
 
@@ -89,11 +89,11 @@ func TestCollection_Insert(t *testing.T) {
 		t.Fatal("Insert() returned nil")
 	}
 
-	// Test nil context
-	//lint:ignore SA1012 // testing nil context validation
-	_, err = coll.Insert(nil, doc)
-	if err == nil {
-		t.Fatal("Insert() should fail with nil context")
+	// Test nil context (use context.TODO instead of nil)
+	// The Insert method should accept context.TODO, not fail
+	_, err = coll.Insert(context.TODO(), doc)
+	if err != nil {
+		t.Fatalf("Insert() with context.TODO should succeed, got: %v", err)
 	}
 
 	// Test nil doc

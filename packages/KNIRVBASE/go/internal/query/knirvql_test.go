@@ -191,3 +191,114 @@ func TestQueryOptimizer(t *testing.T) {
 		t.Fatalf("Expected IndexOnlyScan, got %v", plan.ScanType)
 	}
 }
+
+func TestKNIRVQLModalityQuery(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "knirvql_modality_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create storage and database
+	store := stor.NewFileStorage(tmpDir)
+	database, err := dbpkg.NewDistributedDatabase(context.Background(), dbpkg.DistributedDbOptions{}, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.Shutdown()
+
+	// Parse modality query
+	parser := &KNIRVQLParser{}
+	query, err := parser.Parse("GET MEMORY.MODALITY(vector) WHERE dataset = \"test\" AND verified = true")
+	if err != nil {
+		t.Fatalf("Failed to parse modality query: %v", err)
+	}
+
+	// Check query type
+	if query.Type != QueryGetModality {
+		t.Fatalf("Expected QueryGetModality, got %d", query.Type)
+	}
+
+	// Check modality type
+	if query.ModalityType != "vector" {
+		t.Fatalf("Expected modality type 'vector', got '%s'", query.ModalityType)
+	}
+
+	// Check filters
+	if len(query.Filters) != 2 {
+		t.Fatalf("Expected 2 filters, got %d", len(query.Filters))
+	}
+
+	// Check dataset filter
+	foundDataset := false
+	for _, f := range query.Filters {
+		if f.Key == "dataset" && f.Value == "test" {
+			foundDataset = true
+			break
+		}
+	}
+	if !foundDataset {
+		t.Error("Expected dataset filter with value 'test'")
+	}
+
+	// Check verified filter
+	foundVerified := false
+	for _, f := range query.Filters {
+		if f.Key == "verified" && f.Value == true {
+			foundVerified = true
+			break
+		}
+	}
+	if !foundVerified {
+		t.Error("Expected verified filter with value true")
+	}
+}
+
+func TestKNIRVQLModalityQueryDifferentTypes(t *testing.T) {
+	parser := &KNIRVQLParser{}
+
+	testCases := []struct {
+		queryString      string
+		expectedModality string
+	}{
+		{"GET MEMORY.MODALITY(seed)", "seed"},
+		{"GET MEMORY.MODALITY(thermo)", "thermo"},
+		{"GET MEMORY.MODALITY(proof)", "proof"},
+	}
+
+	for _, tc := range testCases {
+		query, err := parser.Parse(tc.queryString)
+		if err != nil {
+			t.Fatalf("Failed to parse query '%s': %v", tc.queryString, err)
+		}
+
+		if query.Type != QueryGetModality {
+			t.Fatalf("Expected QueryGetModality for '%s', got %d", tc.queryString, query.Type)
+		}
+
+		if query.ModalityType != tc.expectedModality {
+			t.Fatalf("Expected modality '%s' for query '%s', got '%s'", tc.expectedModality, tc.queryString, query.ModalityType)
+		}
+	}
+}
+
+func TestKNIRVQLModalityQueryWithLimit(t *testing.T) {
+	parser := &KNIRVQLParser{}
+	query, err := parser.Parse("GET MEMORY.MODALITY(vector) WHERE verified = true LIMIT 100")
+	if err != nil {
+		t.Fatalf("Failed to parse modality query with limit: %v", err)
+	}
+
+	if query.Type != QueryGetModality {
+		t.Fatalf("Expected QueryGetModality, got %d", query.Type)
+	}
+
+	if query.ModalityType != "vector" {
+		t.Fatalf("Expected modality type 'vector', got '%s'", query.ModalityType)
+	}
+
+	if query.Limit != 100 {
+		t.Fatalf("Expected limit 100, got %d", query.Limit)
+	}
+}

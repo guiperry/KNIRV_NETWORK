@@ -124,6 +124,11 @@ func (c *Compactor) compact() error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	writer.registry.GlobalMetrics.CompactedAt = &now
 
+	if err := writer.saveRegistry(); err != nil {
+		os.Remove(tmpPath)
+		return fmt.Errorf("nrv: save registry after compaction: %w", err)
+	}
+
 	if err := writer.Close(); err != nil {
 		os.Remove(tmpPath)
 		return fmt.Errorf("nrv: close writer after compaction: %w", err)

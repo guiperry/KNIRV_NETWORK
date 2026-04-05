@@ -14,16 +14,9 @@ export class EncryptionManager {
     }
     // EncryptData encrypts sensitive data using PQC encryption
     async encryptData(plaintext, keyID) {
-        let keyPair = this.keyCache.get(keyID);
-        if (!keyPair) {
-            // If key not in cache, try to use master key
-            if (this.masterKey && this.masterKey.id === keyID) {
-                keyPair = this.masterKey;
-            }
-            else {
-                throw new Error(`key ${keyID} not found in cache`);
-            }
-        }
+        const keyPair = this.resolveKeyPair(keyID);
+        if (!keyPair)
+            return null;
         if (!isActive(keyPair)) {
             throw new Error(`key ${keyID} is not active`);
         }
@@ -48,39 +41,60 @@ export class EncryptionManager {
     }
     // DecryptData decrypts data encrypted with EncryptData
     async decryptData(encryptedData) {
-        // Decode the base64 encrypted data
-        const encryptedBytes = Buffer.from(encryptedData, 'base64');
-        // Unmarshal the encrypted structure
-        const encrypted = JSON.parse(encryptedBytes.toString());
-        const payload = encrypted.payload;
-        const signatureB64 = encrypted.signature;
-        const signature = Buffer.from(signatureB64, 'base64');
-        // Extract payload
-        const payloadBytes = Buffer.from(JSON.stringify(payload));
-        const keyID = payload.key_id;
-        const ciphertextB64 = payload.ciphertext;
-        const ciphertext = Buffer.from(ciphertextB64, 'base64');
-        // Get the key pair
-        let keyPair = this.keyCache.get(keyID);
-        if (!keyPair) {
-            // If key not in cache, try to use master key
-            if (this.masterKey && this.masterKey.id === keyID) {
-                keyPair = this.masterKey;
+        try {
+            // Decode the base64 encrypted data
+            const encryptedBytes = Buffer.from(encryptedData, 'base64');
+            // Unmarshal the encrypted structure
+            const encrypted = JSON.parse(encryptedBytes.toString());
+            const payload = encrypted.payload;
+            const signatureB64 = encrypted.signature;
+            const signature = Buffer.from(signatureB64, 'base64');
+            // Extract payload
+            const payloadBytes = Buffer.from(JSON.stringify(payload));
+            const keyID = payload.key_id;
+            const ciphertextB64 = payload.ciphertext;
+            const ciphertext = Buffer.from(ciphertextB64, 'base64');
+            // Get the key pair
+            const keyPair = this.resolveKeyPair(keyID);
+            if (!keyPair)
+                return null;
+            if (!isActive(keyPair)) {
+                throw new Error(`key ${keyID} is not active`);
             }
-            else {
-                throw new Error(`key ${keyID} not found in cache`);
+            // Verify signature
+            const isValid = await verify(keyPair, payloadBytes, signature);
+            if (!isValid) {
+                throw new Error('signature verification failed');
             }
+            // Decrypt the data
+            return decrypt(keyPair, ciphertext);
         }
-        if (!isActive(keyPair)) {
-            throw new Error(`key ${keyID} is not active`);
+        catch {
+            return null;
         }
-        // Verify signature
-        const isValid = await verify(keyPair, payloadBytes, signature);
-        if (!isValid) {
-            throw new Error('signature verification failed');
+    }
+    // Sign signs data using the master key's Dilithium private key
+    async sign(data) {
+        if (!this.masterKey || !this.masterKey.dilithiumPrivateKey) {
+            return null;
         }
-        // Decrypt the data
-        return decrypt(keyPair, ciphertext);
+        const dataBytes = new TextEncoder().encode(data);
+        const signature = await sign(this.masterKey, dataBytes);
+        return Buffer.from(signature).toString('base64');
+    }
+    // Verify verifies a signature using the master key's Dilithium public key
+    async verify(data, signatureB64) {
+        if (!this.masterKey || !this.masterKey.dilithiumPublicKey) {
+            return false;
+        }
+        try {
+            const dataBytes = new TextEncoder().encode(data);
+            const signature = Buffer.from(signatureB64, 'base64');
+            return verify(this.masterKey, dataBytes, signature);
+        }
+        catch {
+            return false;
+        }
     }
     // CacheKey adds a key pair to the cache
     cacheKey(keyID, keyPair) {
@@ -94,6 +108,13 @@ export class EncryptionManager {
     generateDataEncryptionKey(name) {
         const keyPair = generatePQCKeyPair(name, 'encryption');
         this.cacheKey(keyPair.id, keyPair);
+        return keyPair;
+    }
+    resolveKeyPair(keyID) {
+        let keyPair = this.keyCache.get(keyID);
+        if (!keyPair && this.masterKey && this.masterKey.id === keyID) {
+            keyPair = this.masterKey;
+        }
         return keyPair;
     }
 }

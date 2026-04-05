@@ -1,6 +1,21 @@
 import { LogLevel, LogFormat, LogEntry, LoggerOptions, LoggerContext } from './types';
 import { LogLevelUtils, LogFormatter } from './formatters';
 
+export { LogLevel, LogFormat };
+
+/**
+ * Create a logger with the specified level and format
+ */
+export function createLogger(level: LogLevel = LogLevel.INFO, format: LogFormat = LogFormat.CONSOLE): Logger {
+  return new Logger({
+    level,
+    format,
+    output: 'stdout',
+    errorOutput: 'stderr',
+    development: false
+  });
+}
+
 /**
  * Main Logger class providing structured logging capabilities
  */
@@ -90,8 +105,9 @@ export class Logger {
     }
 
     // Add error details if present
-    if (context?.error) {
-      entry.stacktrace = LogFormatter.createErrorStack(context.error);
+    const error = context?.error || this.context.error;
+    if (error) {
+      entry.stacktrace = LogFormatter.createErrorStack(error);
     }
 
     // Format and output the log entry

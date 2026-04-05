@@ -11,6 +11,20 @@ import {
   EntryType
 } from '../types/types';
 import { ToDistributed, ToRegular, ApplyOperation } from '../resolver/crdt_resolver';
+import { ModalityType } from '../storage/nrv/spec';
+
+export interface Frame {
+  id: string;
+  vector: Float32Array;
+  seed: Uint8Array;
+  thermo: {
+    tempCelsius: number;
+    voltageV: number;
+    freqMHz: number;
+    fanRPM: number;
+  };
+  proof: Uint8Array;
+}
 
 // A minimal in-memory local collection implementation to keep the example self-contained
 export class LocalCollection {
@@ -23,11 +37,8 @@ export class LocalCollection {
   }
 
   async insert(doc: Record<string, any>): Promise<Record<string, any>> {
-    // Store a deep-cloned copy to avoid accidental shared references between
-    // callers and the underlying storage implementation.
     const cloned = this.cloneMap(doc);
     await this.store.insert(this.name, cloned);
-    // Return another clone so the caller cannot mutate the stored value
     return this.cloneMap(cloned);
   }
 
@@ -47,6 +58,10 @@ export class LocalCollection {
     return await this.store.findAll(this.name);
   }
 
+  getStore(): Storage {
+    return this.store;
+  }
+
   private cloneMap(m: Record<string, any>): Record<string, any> {
     const out: Record<string, any> = {};
     for (const k in m) {
@@ -56,7 +71,6 @@ export class LocalCollection {
       } else if (Array.isArray(v)) {
         out[k] = this.cloneSlice(v);
       } else {
-        // primitives and unknown types are copied by value/reference as-is
         out[k] = v;
       }
     }
@@ -97,14 +111,12 @@ export class DistributedCollection {
 
   private setupMessageHandlers(): void {
     this.network.onMessage(MessageType.Operation, (msg: ProtocolMessage) => {
-      // Basic payload validation
       const payload = msg.payload as Record<string, any>;
       if (!payload) return;
       const coll = payload.collection as string;
       if (coll !== this.name) return;
       const opMap = payload.operation as Record<string, any>;
-      // We assume op was encoded in a friendly form; in a real implementation we'd use typed marshaling
-      const op: CRDTOperation = opMap as any; // Simplified
+      const op: CRDTOperation = opMap as any;
       this.handleRemoteOperation(op);
     });
 
@@ -143,7 +155,6 @@ export class DistributedCollection {
       syncInProgress: false
     });
 
-    // Request initial sync
     await this.requestSync();
   }
 
@@ -159,9 +170,8 @@ export class DistributedCollection {
     if (!id) {
       throw new Error("document must contain 'id'");
     }
-    const entryType = doc.entryType as EntryType; // Assuming validation already happened
+    const entryType = doc.entryType as EntryType;
 
-    // For MEMORY entries, blob is handled by storage
     if (entryType === EntryType.Memory) {
       const payload = doc.payload as Record<string, any>;
       if (payload && 'blob' in payload) {
@@ -169,13 +179,11 @@ export class DistributedCollection {
       }
     }
 
-    // The local collection handles persistence. The underlying adapter is responsible
-    // for the actual file I/O for blobs.
     const inserted = await this.local.insert(doc);
 
     if (this.networkID !== '') {
       const opPayload = ToDistributed(inserted, this.network.getPeerID());
-      opPayload.entryType = entryType; // Ensure EntryType is set on the distributed doc
+      opPayload.entryType = entryType;
 
       const op: CRDTOperation = {
         id: `${this.network.getPeerID()}-${Date.now()}-${Math.random()}`,
@@ -247,14 +255,28 @@ export class DistributedCollection {
     await this.requestSync();
   }
 
-  // Private helpers
+  streamFrames(modality?: ModalityType): AsyncGenerator<Frame, void, unknown> {
+    const store = this.local.getStore() as any;
+    if (store.streamFrames) {
+      return store.streamFrames(this.name, modality);
+    } else {
+      throw new Error(`collection "${this.name}": storage backend does not support NRV streaming`);
+    }
+  }
+
+  getStore(): Storage {
+    return this.local.getStore();
+  }
+
+  getOperationLog(): CRDTOperation[] {
+    return [...this.operationLog];
+  }
 
   private broadcastOperation(op: CRDTOperation): void {
     if (this.networkID === '') return;
 
     this.operationLog.push(op);
     this.pruneOperationLog();
-    // increment local vector
     const syncState = this.syncStates.get(this.networkID)!;
     syncState.localVector = increment(syncState.localVector, this.network.getPeerID());
 
@@ -268,7 +290,6 @@ export class DistributedCollection {
   }
 
   private async handleRemoteOperation(op: CRDTOperation): Promise<void> {
-    // Apply CRDT operation to local document
     const existing = await this.local.find(op.documentId);
     let existingDist: DistributedDocument | null = null;
     if (existing) {
@@ -278,19 +299,16 @@ export class DistributedCollection {
     const result = ApplyOperation(existingDist, op);
 
     if (result === null) {
-      // delete
       await this.local.delete(op.documentId);
     } else if (result._deleted) {
       await this.local.delete(op.documentId);
     } else {
-      // upsert
       const regular = ToRegular(result);
       if (regular) {
         await this.local.insert(regular);
       }
     }
 
-    // merge vector
     if (this.networkID !== '') {
       const syncState = this.syncStates.get(this.networkID)!;
       syncState.localVector = merge(syncState.localVector, op.vector);
@@ -313,7 +331,6 @@ export class DistributedCollection {
       payload: { collection: this.name, vector: syncState.localVector }
     });
 
-    // Clear flag after timeout
     setTimeout(() => {
       syncState.syncInProgress = false;
     }, 10000);
@@ -323,7 +340,6 @@ export class DistributedCollection {
     const payload = msg.payload as Record<string, any>;
     const remoteVector = payload.vector as VectorClock;
 
-    // find missing ops
     const missing: CRDTOperation[] = [];
     for (const op of this.operationLog) {
       const remoteClock = remoteVector[op.peerId] || 0;

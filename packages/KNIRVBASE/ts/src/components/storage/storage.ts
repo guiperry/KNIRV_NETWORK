@@ -11,12 +11,28 @@ export interface Storage {
   find(collection: string, id: string): Promise<Record<string, any> | null>;
   findAll(collection: string): Promise<Record<string, any>[]>;
 
+  // Key-Value API (Unified Storage)
+  put(key: string, value: Uint8Array): Promise<void>;
+  get(key: string): Promise<Uint8Array | null>;
+  deleteKey(key: string): Promise<void>;
+  has(key: string): Promise<boolean>;
+
+  // JSON Support
+  storeObject(key: string, obj: any): Promise<void>;
+  getObject<T = any>(key: string): Promise<T | null>;
+
+  // Markdown Projection
+  projectToMarkdown(key: string, targetPath: string): Promise<void>;
+
   // Index management
   createIndex(collection: string, name: string, indexType: IndexType, fields: string[], unique: boolean, partialExpr: string, options: Record<string, any>): Promise<void>;
   dropIndex(collection: string, name: string): Promise<void>;
   getIndex(collection: string, name: string): Index | null;
   getIndexesForCollection(collection: string): Index[];
   queryIndex(collection: string, indexName: string, query: Record<string, any>): Promise<string[]>;
+
+  // Close
+  close(): Promise<void>;
 }
 
 export class FileStorage implements Storage {
@@ -40,11 +56,19 @@ export class FileStorage implements Storage {
     return path.join(this.getCollectionDir(collection), `${id}.json`);
   }
 
-  setMasterKey(keyPair: any): void { // PQCKeyPair
+  private getKVPath(key: string): string {
+    return path.join(this.baseDir, 'kv', key);
+  }
+
+  setMasterKey(keyPair: any): void {
     this.encryptionMgr.setMasterKey(keyPair);
   }
 
-  private isEncryptedCollection(collection: string): boolean {
+  getMasterKey(): any {
+    return this.encryptionMgr.getMasterKey();
+  }
+
+  isEncryptedCollection(collection: string): boolean {
     const sensitiveCollections = [
       'credentials',
       'pqc_keys',
@@ -72,10 +96,24 @@ export class FileStorage implements Storage {
       }
     }
 
-    // Encrypt sensitive collections
-    if (this.isEncryptedCollection(collection) && this.encryptionMgr.getMasterKey()) {
+    // Encrypt all documents (mandatory PQC encryption at rest)
+    if (this.encryptionMgr.getMasterKey()) {
       const encryptedDoc = await this.encryptDocument(collection, docCopy);
       Object.assign(docCopy, encryptedDoc);
+
+      // Sign the write operation for integrity (Dilithium-3)
+      const data = JSON.stringify(docCopy);
+      const signature = await this.encryptionMgr.sign(data);
+      if (signature) {
+        const signedData = {
+          data: docCopy,
+          signature: signature,
+        };
+        const signedJson = JSON.stringify(signedData);
+        fs.writeFileSync(docPath, signedJson, 'utf8');
+        await this.indexManager.insert(collection, doc);
+        return;
+      }
     }
 
     const data = JSON.stringify(docCopy);
@@ -120,9 +158,23 @@ export class FileStorage implements Storage {
     const docPath = this.getDocPath(collection, id);
     try {
       const data = fs.readFileSync(docPath, 'utf8');
-      const doc: Record<string, any> = JSON.parse(data);
+      const wrapper: Record<string, any> = JSON.parse(data);
+      let doc: Record<string, any>;
 
-      // Decrypt if needed
+      // Unwrap and verify signature if present
+      if (wrapper.data && wrapper.signature) {
+        doc = wrapper.data;
+        if (this.encryptionMgr.getMasterKey()) {
+          const verified = await this.encryptionMgr.verify(JSON.stringify(doc), wrapper.signature);
+          if (!verified) {
+            throw new Error('integrity violation: document signature verification failed');
+          }
+        }
+      } else {
+        doc = wrapper;
+      }
+
+      // Decrypt if document is encrypted and we have a master key
       if (doc.encrypted && this.encryptionMgr.getMasterKey()) {
         const decrypted = await this.decryptDocument(doc);
         Object.assign(doc, decrypted);
@@ -166,6 +218,100 @@ export class FileStorage implements Storage {
     }
   }
 
+  // Key-Value API
+  async put(key: string, value: Uint8Array): Promise<void> {
+    const kvDir = path.join(this.baseDir, 'kv');
+    fs.mkdirSync(kvDir, { recursive: true });
+    const kvPath = this.getKVPath(key);
+
+    let dataToSave = value;
+    const masterKey = this.encryptionMgr.getMasterKey();
+    if (masterKey) {
+      const encrypted = await this.encryptionMgr.encryptData(value, masterKey.id);
+      if (encrypted) {
+        dataToSave = new TextEncoder().encode(encrypted);
+      }
+    }
+
+    fs.writeFileSync(kvPath, Buffer.from(dataToSave));
+  }
+
+  async get(key: string): Promise<Uint8Array | null> {
+    const kvPath = this.getKVPath(key);
+    try {
+      const data = fs.readFileSync(kvPath);
+      
+      if (this.encryptionMgr.getMasterKey()) {
+        const decrypted = await this.encryptionMgr.decryptData(data.toString('utf8'));
+        if (decrypted) {
+          return new Uint8Array(decrypted);
+        }
+      }
+      
+      return new Uint8Array(data);
+    } catch (err: any) {
+      if (err.code === 'ENOENT') return null;
+      throw err;
+    }
+  }
+
+  async deleteKey(key: string): Promise<void> {
+    const kvPath = this.getKVPath(key);
+    try {
+      fs.unlinkSync(kvPath);
+    } catch (err: any) {
+      if (err.code !== 'ENOENT') throw err;
+    }
+  }
+
+  async has(key: string): Promise<boolean> {
+    const kvPath = this.getKVPath(key);
+    try {
+      fs.statSync(kvPath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // JSON Object API
+  async storeObject(key: string, obj: any): Promise<void> {
+    const data = new TextEncoder().encode(JSON.stringify(obj));
+    await this.put(key, data);
+  }
+
+  async getObject<T = any>(key: string): Promise<T | null> {
+    const data = await this.get(key);
+    if (data === null) return null;
+    const text = new TextDecoder().decode(data);
+    return JSON.parse(text) as T;
+  }
+
+  // Markdown Projection
+  async projectToMarkdown(key: string, targetPath: string): Promise<void> {
+    const data = await this.get(key);
+    if (data === null) {
+      throw new Error(`key not found: ${key}`);
+    }
+
+    const text = new TextDecoder().decode(data);
+    
+    try {
+      const obj = JSON.parse(text);
+      if (typeof obj === 'object' && obj !== null) {
+        let md = `# ${key}\n\n`;
+        for (const [k, v] of Object.entries(obj)) {
+          md += `## ${k}\n${JSON.stringify(v, null, 2)}\n\n`;
+        }
+        fs.writeFileSync(targetPath, md, 'utf8');
+      } else {
+        fs.writeFileSync(targetPath, `# Projected Data: ${key}\n\n${text}`, 'utf8');
+      }
+    } catch {
+      fs.writeFileSync(targetPath, `# Projected Data: ${key}\n\n${text}`, 'utf8');
+    }
+  }
+
   private saveBlob(collection: string, id: string, blob: any): string {
     const blobDir = path.join(this.getCollectionDir(collection), 'blobs');
     fs.mkdirSync(blobDir, { recursive: true });
@@ -204,6 +350,10 @@ export class FileStorage implements Storage {
     return this.indexManager.queryIndex(collection, indexName, query);
   }
 
+  async close(): Promise<void> {
+    // No resources to close for FileStorage
+  }
+
   private deepCopyDoc(doc: Record<string, any>): Record<string, any> {
     return JSON.parse(JSON.stringify(doc));
   }
@@ -227,8 +377,12 @@ export class FileStorage implements Storage {
       if (this.isSensitiveField(collection, key)) {
         const valueBytes = JSON.stringify(value);
         const encryptedValue = await this.encryptionMgr.encryptData(Buffer.from(valueBytes), keyID);
-        encrypted[key] = encryptedValue;
-        encrypted[key + '_encrypted'] = true;
+        if (encryptedValue) {
+          encrypted[key] = encryptedValue;
+          encrypted[key + '_encrypted'] = true;
+        } else {
+          encrypted[key] = value;
+        }
       } else {
         encrypted[key] = value;
       }
@@ -268,7 +422,11 @@ export class FileStorage implements Storage {
       if (payload[key + '_encrypted']) {
         const encryptedValue = value as string;
         const decryptedBytes = await this.encryptionMgr.decryptData(encryptedValue);
-        decrypted[key] = JSON.parse(decryptedBytes.toString());
+        if (decryptedBytes) {
+          decrypted[key] = JSON.parse(new TextDecoder().decode(new Uint8Array(decryptedBytes)));
+        } else {
+          decrypted[key] = value;
+        }
       } else {
         decrypted[key] = value;
       }

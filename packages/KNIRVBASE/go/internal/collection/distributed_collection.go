@@ -13,6 +13,8 @@ import (
 	resolver "github.com/knirvcorp/knirvbase/go/internal/resolver"
 	stor "github.com/knirvcorp/knirvbase/go/internal/storage"
 	typ "github.com/knirvcorp/knirvbase/go/internal/types"
+
+	nrv "github.com/knirvcorp/knirvbase/go/pkg/nrv"
 )
 
 // A minimal in-memory local collection implementation to keep the example self-contained
@@ -395,6 +397,16 @@ func (dc *DistributedCollection) pruneOperationLog() {
 	if len(dc.operationLog) > dc.maxLogSize {
 		dc.operationLog = dc.operationLog[len(dc.operationLog)-dc.maxLogSize:]
 	}
+}
+
+// StreamFrames returns a channel of live frames from the underlying NRVStorage.
+// Returns an error if the storage backend does not implement NRV streaming.
+func (dc *DistributedCollection) StreamFrames(ctx context.Context, modalityFilter nrv.ModalityType) (<-chan *nrv.Frame, error) {
+	nrvStore, ok := dc.local.store.(*stor.NRVStorage) // type assertion
+	if !ok {
+		return nil, fmt.Errorf("collection %q: storage backend does not support NRV streaming", dc.Name)
+	}
+	return nrvStore.StreamFrames(ctx, dc.Name, modalityFilter)
 }
 
 // Helper JSON marshalling/unmarshalling helpers used by the example to avoid importing encoding/json repeatedly

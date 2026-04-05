@@ -42,7 +42,7 @@ describe('KNIRVBasemetrics', () => {
       metrics.blockCommitDuration.observe(0.05);
 
       expect(metrics.blockCommitDuration.getCount()).toBe(3);
-      expect(metrics.blockCommitDuration.getSum()).toBe(0.35);
+      expect(metrics.blockCommitDuration.getSum()).toBeCloseTo(0.35, 5);
       expect(metrics.getAverageBlockCommitDuration()).toBeCloseTo(0.1167, 3);
     });
   });
@@ -102,8 +102,8 @@ describe('KNIRVBasemetrics', () => {
       metrics.queryLatency.observe(0.15);
 
       expect(metrics.queryLatency.getCount()).toBe(3);
-      expect(metrics.queryLatency.getSum()).toBe(0.3);
-      expect(metrics.getAverageQueryLatency()).toBe(0.1);
+      expect(metrics.queryLatency.getSum()).toBeCloseTo(0.3, 5);
+      expect(metrics.getAverageQueryLatency()).toBeCloseTo(0.1, 5);
     });
   });
 
