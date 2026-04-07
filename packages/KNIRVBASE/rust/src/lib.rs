@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 pub mod clock;
+pub mod nrv;
 pub mod types;
 pub mod crypto;
 pub mod storage;
@@ -20,6 +21,7 @@ pub mod logging;
 pub mod monitoring;
 
 pub use clock::VectorClock;
+pub use nrv::{NRVWriter, NRVReader, encode_frame, decode_frame};
 pub use types::*;
 pub use crypto::pqc::*;
 pub use storage::{FileStorage, Storage};
@@ -228,7 +230,7 @@ pub struct FrameEntry {
     pub modalities: std::collections::HashMap<String, ModalityIndex>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ModalityIndex {
     pub offset: i64,
     pub length: i32,

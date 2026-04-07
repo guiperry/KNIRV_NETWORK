@@ -43,6 +43,11 @@ export class NRVWriter {
   }
 
   static async create(path: string, keyPair?: Signer): Promise<NRVWriter> {
+    // Create parent directories automatically — mirrors production behaviour where
+    // the app data directory may not exist yet (e.g. first run after install).
+    const parentDir = require('path').dirname(path);
+    await fs.promises.mkdir(parentDir, { recursive: true });
+
     const walPath = path + '.wal';
     const wal = new WAL(walPath);
 
@@ -190,6 +195,19 @@ export class NRVWriter {
     await this.file.write(Buffer.from(header), 0, header.length, 0);
     
     await this.file.sync();
+  }
+
+  /** Mark a frame as tombstoned in the registry (soft-delete). */
+  async setTombstone(id: string): Promise<void> {
+    const now = Date.now();
+    for (const entry of this.registry.frames) {
+      if (entry.id === id) {
+        (entry as any).tombstone = now;
+        this.registry.tombstoneCount++;
+        break;
+      }
+    }
+    await this.saveRegistry();
   }
 
   getRegistry(): Registry {

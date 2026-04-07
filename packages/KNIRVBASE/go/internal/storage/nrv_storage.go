@@ -90,11 +90,24 @@ func (s *NRVStorage) Insert(ctx context.Context, collection string, doc map[stri
 	}
 
 	if payload, ok := doc["payload"].(map[string]interface{}); ok {
-		if vec, ok := payload["vector"].([]interface{}); ok && len(vec) == 12 {
-			for i, v := range vec {
-				if f, ok := v.(float64); ok {
+		switch vec := payload["vector"].(type) {
+		case []interface{}:
+			if len(vec) == 12 {
+				for i, v := range vec {
+					if f, ok := v.(float64); ok {
+						frame.Vector[i] = float32(f)
+					}
+				}
+			}
+		case []float64:
+			if len(vec) == 12 {
+				for i, f := range vec {
 					frame.Vector[i] = float32(f)
 				}
+			}
+		case []float32:
+			if len(vec) == 12 {
+				copy(frame.Vector[:], vec)
 			}
 		}
 
@@ -102,19 +115,33 @@ func (s *NRVStorage) Insert(ctx context.Context, collection string, doc map[stri
 			copy(frame.Seed[:], seedBytes)
 		}
 
-		if thermoMap, ok := payload["thermo"].(map[string]interface{}); ok {
-			if v, ok := thermoMap["temp_celsius"].(float64); ok {
+		extractThermo := func(m map[string]float64) {
+			frame.Thermo.TempCelsius = float32(m["temp_celsius"])
+			frame.Thermo.VoltageV = float32(m["voltage_v"])
+			frame.Thermo.FreqMHz = float32(m["freq_mhz"])
+			frame.Thermo.FanRPM = float32(m["fan_rpm"])
+		}
+		switch thermo := payload["thermo"].(type) {
+		case map[string]interface{}:
+			if v, ok := thermo["temp_celsius"].(float64); ok {
 				frame.Thermo.TempCelsius = float32(v)
 			}
-			if v, ok := thermoMap["voltage_v"].(float64); ok {
+			if v, ok := thermo["voltage_v"].(float64); ok {
 				frame.Thermo.VoltageV = float32(v)
 			}
-			if v, ok := thermoMap["freq_mhz"].(float64); ok {
+			if v, ok := thermo["freq_mhz"].(float64); ok {
 				frame.Thermo.FreqMHz = float32(v)
 			}
-			if v, ok := thermoMap["fan_rpm"].(float64); ok {
+			if v, ok := thermo["fan_rpm"].(float64); ok {
 				frame.Thermo.FanRPM = float32(v)
 			}
+		case map[string]float64:
+			extractThermo(thermo)
+		case map[string]float32:
+			frame.Thermo.TempCelsius = thermo["temp_celsius"]
+			frame.Thermo.VoltageV = thermo["voltage_v"]
+			frame.Thermo.FreqMHz = thermo["freq_mhz"]
+			frame.Thermo.FanRPM = thermo["fan_rpm"]
 		}
 
 		if proofStr, ok := payload["proof"].(string); ok {

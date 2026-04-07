@@ -1,0 +1,25 @@
+testnet:
+  enabled: true
+  tee:
+    simulation_mode: true
+    mock_validation: true
+
+nexus:
+  gui_port: 8082
+  api_port: 8083
+  tee_port: 8182
+
+tee:
+  simulation_mode: true
+  mock_validation: true
+  simplified_validation: true
+
+validation:
+  mock_responses: true
+  simplified_proofs: true
+  timeout_ms: 5000
+
+database:
+  clean_on_start: true
+  in_memory: false
+  path: "./data/knirvserver/testnet.db"

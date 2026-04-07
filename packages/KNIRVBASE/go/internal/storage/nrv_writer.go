@@ -145,7 +145,10 @@ func (w *NRVWriter) AppendFrame(frame *nrv.Frame, verified bool, ergoRank float6
 func (w *NRVWriter) Close() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return w.file.Close()
+	err := w.file.Close()
+	// Best-effort WAL cleanup; prevents TempDir removal failures in tests.
+	_ = w.wal.Truncate()
+	return err
 }
 
 func flockAcquire(f *os.File) error {

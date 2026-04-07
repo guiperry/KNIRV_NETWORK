@@ -101,7 +101,6 @@ export default defineConfig({
       '@sensory-shell': resolve(__dirname, 'src/sensory-shell'),
       '@wasm': resolve(__dirname, 'src/wasm-pkg'),
       '@game': resolve(__dirname, 'src/components/game'),
-      '@knirvcorp/knirvbase-ts': resolve(__dirname, '../../../../packages/KNIRVBASE/ts'),
       'crypto': resolve(__dirname, 'src/shims/node-crypto.ts'),
       'jsonwebtoken': resolve(__dirname, 'src/shims/jsonwebtoken.ts')
     }

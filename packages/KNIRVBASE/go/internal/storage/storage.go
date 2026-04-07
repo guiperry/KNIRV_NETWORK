@@ -54,7 +54,7 @@ type FileStorage struct {
 }
 
 func NewFileStorage(baseDir string) *FileStorage {
-	os.MkdirAll(baseDir, 0755)
+	os.MkdirAll(baseDir, 0700)
 	indexManager := NewIndexManager(baseDir)
 	indexManager.LoadIndexes() // Load existing indexes
 	return &FileStorage{

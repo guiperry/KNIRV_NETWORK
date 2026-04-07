@@ -1,11 +1,11 @@
-# KNIRVANA — MVP Status Report
+# KNIRVARENA — MVP Status Report
 *Generated: 2026-03-31*
 
 ---
 
 ## Summary
 
-KNIRVANA is a Reinforcement Fine-Tuning (RFT) tournament game where LLM agents compete to fix real software bugs in a 3D arena. This report documents the full gap analysis, all work completed in the MVP sprint, and everything still outstanding for a production-ready release.
+KNIRVARENA is a Reinforcement Fine-Tuning (RFT) tournament game where LLM agents compete to fix real software bugs in a 3D arena. This report documents the full gap analysis, all work completed in the MVP sprint, and everything still outstanding for a production-ready release.
 
 ---
 
@@ -34,7 +34,7 @@ KNIRVANA is a Reinforcement Fine-Tuning (RFT) tournament game where LLM agents c
 - Heuristic fallback `heuristicScore()` — keyword-signal scoring by challenge type when LLM is unavailable
 - Legacy `evaluate(code, context)` preserved for backwards compatibility
 
-**`src/components/game/stores/useKnirvana.tsx` — Rewritten**
+**`src/components/game/stores/useKNIRVARENA.tsx` — Rewritten**
 - `Agent.proposeSolution` now calls `GameLLMService.propose()` with the agent's persona — no more hardcoded `return 42` stubs
 - Each initial agent is linked to one of three `AgentPersona` entries: Debug Specialist, Performance Optimizer, Security Analyst
 - `runEpoch()` runs the full LLM pipeline: parallel proposal generation → parallel LLM judge scoring → rank → update skill slot → persist
@@ -47,8 +47,8 @@ KNIRVANA is a Reinforcement Fine-Tuning (RFT) tournament game where LLM agents c
 
 ### P1 — Session Persistence
 
-**`src/components/game/stores/useKnirvana.tsx` — Persistence added**
-- `saveProgress()` action serializes to `localStorage` under key `knirvana_progress_v1`
+**`src/components/game/stores/useKNIRVARENA.tsx` — Persistence added**
+- `saveProgress()` action serializes to `localStorage` under key `KNIRVARENA_progress_v1`
 - Persists: NRN balance, errors resolved, skills learned, epoch number, persona win rates, last 20 epoch results, incumbent score, skill slot owner
 - `loadProgress()` action restores state from storage
 - Store initializes from `localStorage` on first load — state survives page refresh
@@ -62,7 +62,7 @@ KNIRVANA is a Reinforcement Fine-Tuning (RFT) tournament game where LLM agents c
 - New `AgentPersona` system: Skills are now LLM system prompts that define agent strategy
 - `PersonaCard` component: shows name, category badge, epoch count, win rate percentage bar
 - `PersonaEditor` modal: create or edit a persona with a name and free-form system prompt
-- Win rates and epoch history read from live game store (`useKnirvana`) — update in real time after each epoch
+- Win rates and epoch history read from live game store (`useKNIRVARENA`) — update in real time after each epoch
 - Mock mode warning banner shown when no API keys are set
 - Top Performer callout highlights the persona with the highest win rate
 - Delete guard: at least one persona must always remain
@@ -177,8 +177,8 @@ npm run dev
 
 For Docker:
 ```bash
-docker build -t knirvana .
-docker run -p 3000:3000 --env-file .env knirvana
+docker build -t KNIRVARENA .
+docker run -p 3000:3000 --env-file .env KNIRVARENA
 ```
 
 ---
@@ -189,7 +189,7 @@ docker run -p 3000:3000 --env-file .env knirvana
 Player clicks "Run Epoch"
         │
         ▼
-useKnirvana.runEpoch()
+useKNIRVARENA.runEpoch()
         │
         ├── Selects active ErrorNode → looks up Challenge from dataset
         │

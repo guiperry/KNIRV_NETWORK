@@ -1,0 +1,79 @@
+{
+  "pages": {
+    "/_not-found/page": [
+      "static/chunks/webpack-9cc4e8380882ec32.js",
+      "static/chunks/4bd1b696-4ad49f259c53d116.js",
+      "static/chunks/684-2dc6131032f69409.js",
+      "static/chunks/main-app-fc15703b3141510f.js",
+      "static/chunks/app/_not-found/page-7b137d85f9de4771.js"
+    ],
+    "/layout": [
+      "static/chunks/webpack-9cc4e8380882ec32.js",
+      "static/chunks/4bd1b696-4ad49f259c53d116.js",
+      "static/chunks/684-2dc6131032f69409.js",
+      "static/chunks/main-app-fc15703b3141510f.js",
+      "static/css/f30152c0704fba31.css",
+      "static/css/47fdba39170324e9.css",
+      "static/chunks/881-a6e0f1de294ae00a.js",
+      "static/chunks/app/layout-47bf17ec0f9809cf.js"
+    ],
+    "/api/cognitive-engine/route": [
+      "static/chunks/webpack-9cc4e8380882ec32.js",
+      "static/chunks/4bd1b696-4ad49f259c53d116.js",
+      "static/chunks/684-2dc6131032f69409.js",
+      "static/chunks/main-app-fc15703b3141510f.js",
+      "static/chunks/app/api/cognitive-engine/route-8fbddb9b5f8b7fe3.js"
+    ],
+    "/api/dve-nodes/route": [
+      "static/chunks/webpack-9cc4e8380882ec32.js",
+      "static/chunks/4bd1b696-4ad49f259c53d116.js",
+      "static/chunks/684-2dc6131032f69409.js",
+      "static/chunks/main-app-fc15703b3141510f.js",
+      "static/chunks/app/api/dve-nodes/route-3b7a87239309ad3c.js"
+    ],
+    "/api/health/route": [
+      "static/chunks/webpack-9cc4e8380882ec32.js",
+      "static/chunks/4bd1b696-4ad49f259c53d116.js",
+      "static/chunks/684-2dc6131032f69409.js",
+      "static/chunks/main-app-fc15703b3141510f.js",
+      "static/chunks/app/api/health/route-c2bccfb69d71d344.js"
+    ],
+    "/api/nrn-staking/route": [
+      "static/chunks/webpack-9cc4e8380882ec32.js",
+      "static/chunks/4bd1b696-4ad49f259c53d116.js",
+      "static/chunks/684-2dc6131032f69409.js",
+      "static/chunks/main-app-fc15703b3141510f.js",
+      "static/chunks/app/api/nrn-staking/route-cdc7b77340da17f5.js"
+    ],
+    "/api/system-health/route": [
+      "static/chunks/webpack-9cc4e8380882ec32.js",
+      "static/chunks/4bd1b696-4ad49f259c53d116.js",
+      "static/chunks/684-2dc6131032f69409.js",
+      "static/chunks/main-app-fc15703b3141510f.js",
+      "static/chunks/app/api/system-health/route-832b5835846c188f.js"
+    ],
+    "/api/tee-security/route": [
+      "static/chunks/webpack-9cc4e8380882ec32.js",
+      "static/chunks/4bd1b696-4ad49f259c53d116.js",
+      "static/chunks/684-2dc6131032f69409.js",
+      "static/chunks/main-app-fc15703b3141510f.js",
+      "static/chunks/app/api/tee-security/route-8e31c0e2c37ca4a7.js"
+    ],
+    "/api/validation-tasks/route": [
+      "static/chunks/webpack-9cc4e8380882ec32.js",
+      "static/chunks/4bd1b696-4ad49f259c53d116.js",
+      "static/chunks/684-2dc6131032f69409.js",
+      "static/chunks/main-app-fc15703b3141510f.js",
+      "static/chunks/app/api/validation-tasks/route-a8bcf7fbdf115e59.js"
+    ],
+    "/page": [
+      "static/chunks/webpack-9cc4e8380882ec32.js",
+      "static/chunks/4bd1b696-4ad49f259c53d116.js",
+      "static/chunks/684-2dc6131032f69409.js",
+      "static/chunks/main-app-fc15703b3141510f.js",
+      "static/chunks/881-a6e0f1de294ae00a.js",
+      "static/chunks/870-9229cc24ce272a46.js",
+      "static/chunks/app/page-02c7e9a4246269fe.js"
+    ]
+  }
+}
