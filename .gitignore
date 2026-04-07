@@ -135,3 +135,4 @@ packages/KNIRVSERVER/data/server.db
 packages/KNIRVGATEWAY/gateway
 packages/bin/backend_server
 packages/KNIRVSERVER/pkg/bin/knirvchain
+/packages/KNIRVBASE/rust/target

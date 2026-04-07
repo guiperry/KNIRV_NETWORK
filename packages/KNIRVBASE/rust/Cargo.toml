@@ -28,6 +28,11 @@ hmac = "0.12"
 pbkdf2 = { version = "0.12", features = ["simple"] }
 rand = "0.8"
 
+# Post-quantum cryptography (Kyber-768 KEM + Dilithium-3 signatures)
+pqcrypto-kyber = "0.8"
+pqcrypto-dilithium = "0.5"
+pqcrypto-traits = "0.3"
+
 tempfile = "3.0"
 getrandom = { version = "0.2", features = ["js"] }
 

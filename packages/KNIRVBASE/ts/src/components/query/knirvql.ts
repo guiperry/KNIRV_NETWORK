@@ -85,22 +85,6 @@ export class KNIRVQLParser {
             }
             i++;
             break; // SIMILAR TO is handled, exit WHERE parsing
-          } else if (i + 3 < parts.length && parts[i + 1].toUpperCase() === 'SIMILAR' && parts[i + 2].toUpperCase() === 'TO') {
-            // Handle SIMILAR TO: key SIMILAR TO vector
-            const key = parts[i];
-            i += 3; // Skip key SIMILAR TO
-            if (i < parts.length) {
-              const vecStr = parts[i].replace(/[\[\]]/g, '');
-              const vecParts = vecStr.split(',');
-              for (const vp of vecParts) {
-                const v = parseFloat(vp.trim());
-                if (!isNaN(v)) {
-                  similarTo.push(v);
-                }
-              }
-            }
-            i++;
-            break; // SIMILAR TO is handled, exit WHERE parsing
           } else if (i + 2 < parts.length) {
             // Parse regular filter: key operator value
             const key = parts[i];

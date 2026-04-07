@@ -220,42 +220,66 @@ impl Default for Frame {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FrameEntry {
     pub id: String,
-    pub offset: u64,
-    pub length: u32,
+    pub offset: i64,
+    pub length: i32,
     pub tombstone: Option<i64>,
     pub verified: bool,
     pub ergo_rank: f64,
+    pub modalities: std::collections::HashMap<String, ModalityIndex>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModalityIndex {
-    pub offset: u64,
-    pub length: u32,
+    pub offset: i64,
+    pub length: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GlobalMetrics {
-    pub total_frames: u64,
-    pub verified_frames: u64,
-    pub average_ergo_rank: f64,
+    pub feature_min: [f32; 12],
+    pub feature_max: [f32; 12],
+    pub feature_mean: [f32; 12],
+    pub feature_std: [f32; 12],
+    pub thermo_correlation_coefficient: f64,
+    pub ergo_rank_sum: f64,
+    pub verified_frame_count: i32,
+    pub compacted_at: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl Default for GlobalMetrics {
+    fn default() -> Self {
+        Self {
+            feature_min: [0.0; 12],
+            feature_max: [0.0; 12],
+            feature_mean: [0.0; 12],
+            feature_std: [0.0; 12],
+            thermo_correlation_coefficient: 0.0,
+            ergo_rank_sum: 0.0,
+            verified_frame_count: 0,
+            compacted_at: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PQCManifest {
-    pub public_key: Vec<u8>,
-    pub signature: Vec<u8>,
+    pub key_id: String,
+    pub algorithm: String,
+    pub file_signature: String,
+    pub frame_signatures: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Registry {
-    pub version: u32,
+    pub version: i32,
     pub dataset_id: String,
-    pub chunk0_length: u64,
-    pub frame_count: u64,
-    pub tombstone_count: u64,
+    pub dataset_version: crate::clock::VectorClock,
+    pub chunk0_length: i32,
+    pub frame_count: i32,
+    pub tombstone_count: i32,
     pub global_metrics: GlobalMetrics,
     pub frames: Vec<FrameEntry>,
-    pub pqc_manifest: Option<PQCManifest>,
+    pub pqc_manifest: PQCManifest,
 }
 
 impl Default for Registry {
@@ -263,16 +287,13 @@ impl Default for Registry {
         Self {
             version: 1,
             dataset_id: String::new(),
+            dataset_version: crate::clock::VectorClock::new(),
             chunk0_length: 4096,
             frame_count: 0,
             tombstone_count: 0,
-            global_metrics: GlobalMetrics {
-                total_frames: 0,
-                verified_frames: 0,
-                average_ergo_rank: 0.0,
-            },
+            global_metrics: GlobalMetrics::default(),
             frames: Vec::new(),
-            pqc_manifest: None,
+            pqc_manifest: PQCManifest::default(),
         }
     }
 }
@@ -286,7 +307,7 @@ mod tests {
 
     #[test]
     fn test_memory_category_display() {
-        let cat = types::MemoryCategory::from_str("ERROR").unwrap();
+        let cat = crate::types::MemoryCategory::from_str("ERROR").unwrap();
         assert_eq!(format!("{}", cat), "ERROR");
     }
 

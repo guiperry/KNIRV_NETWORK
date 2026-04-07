@@ -19,17 +19,17 @@ describe('PQC Key Management', () => {
       expect(keyPair.status).toBe('active');
       expect(keyPair.createdAt).toBeInstanceOf(Date);
 
-      // Check Kyber keys
-      expect(keyPair.kyberPublicKey).toBeDefined();
-      expect(keyPair.kyberPrivateKey).toBeDefined();
-      expect(keyPair.kyberPublicKey.length).toBeGreaterThan(0);
-      expect(keyPair.kyberPrivateKey!.length).toBeGreaterThan(0);
+      // Check Kyber-768 keys (public: 1184 bytes, secret: 2400 bytes)
+      expect(keyPair.kyberPublicKeyBytes).toBeDefined();
+      expect(keyPair.kyberPrivateKeyBytes).toBeDefined();
+      expect(keyPair.kyberPublicKeyBytes.length).toBe(1184);
+      expect(keyPair.kyberPrivateKeyBytes!.length).toBe(2400);
 
-      // Check Dilithium keys
-      expect(keyPair.dilithiumPublicKey).toBeDefined();
-      expect(keyPair.dilithiumPrivateKey).toBeDefined();
-      expect(keyPair.dilithiumPublicKey.length).toBeGreaterThan(0);
-      expect(keyPair.dilithiumPrivateKey!.length).toBeGreaterThan(0);
+      // Check Dilithium-3 keys (public: 1952 bytes, secret: 4032 bytes)
+      expect(keyPair.dilithiumPublicKeyBytes).toBeDefined();
+      expect(keyPair.dilithiumPrivateKeyBytes).toBeDefined();
+      expect(keyPair.dilithiumPublicKeyBytes.length).toBe(1952);
+      expect(keyPair.dilithiumPrivateKeyBytes!.length).toBeGreaterThan(0);
     });
 
     it('should generate unique IDs for different keys', () => {
@@ -46,10 +46,10 @@ describe('PQC Key Management', () => {
       expect(loaded.id).toBe(keyPair.id);
       expect(loaded.name).toBe(keyPair.name);
       expect(loaded.purpose).toBe(keyPair.purpose);
-      expect(loaded.kyberPublicKey).toEqual(keyPair.kyberPublicKey);
-      expect(loaded.kyberPrivateKey).toEqual(keyPair.kyberPrivateKey);
-      expect(loaded.dilithiumPublicKey).toEqual(keyPair.dilithiumPublicKey);
-      expect(loaded.dilithiumPrivateKey).toEqual(keyPair.dilithiumPrivateKey);
+      expect(loaded.kyberPublicKeyBytes).toEqual(keyPair.kyberPublicKeyBytes);
+      expect(loaded.kyberPrivateKeyBytes).toEqual(keyPair.kyberPrivateKeyBytes);
+      expect(loaded.dilithiumPublicKeyBytes).toEqual(keyPair.dilithiumPublicKeyBytes);
+      expect(loaded.dilithiumPrivateKeyBytes).toEqual(keyPair.dilithiumPrivateKeyBytes);
     });
   });
 
@@ -60,12 +60,12 @@ describe('PQC Key Management', () => {
 
       expect(parsed.id).toBe(keyPair.id);
       expect(parsed.name).toBe(keyPair.name);
-      expect(parsed.kyberPublicKey).toBeDefined();
-      expect(parsed.dilithiumPublicKey).toBeDefined();
+      expect(parsed.kyberPublicKeyBytes).toBeDefined();
+      expect(parsed.dilithiumPublicKeyBytes).toBeDefined();
 
       // Private keys should not be present
-      expect(parsed.kyberPrivateKey).toBeUndefined();
-      expect(parsed.dilithiumPrivateKey).toBeUndefined();
+      expect(parsed.kyberPrivateKeyBytes).toBeUndefined();
+      expect(parsed.dilithiumPrivateKeyBytes).toBeUndefined();
     });
   });
 
@@ -92,20 +92,21 @@ describe('PQC Encryption/Decryption', () => {
   });
 
   describe('encrypt/decrypt', () => {
-    it('should encrypt and decrypt data correctly', async () => {
-      const encrypted = await encrypt(keyPair, testData);
+    it('should encrypt and decrypt data correctly', () => {
+      const encrypted = encrypt(keyPair, testData);
       expect(encrypted).toBeDefined();
-      expect(encrypted.length).toBeGreaterThan(testData.length);
+      // Output is at least KEM ciphertext (1088) + nonce (12) + auth tag (16) + plaintext
+      expect(encrypted.length).toBeGreaterThan(1088 + 12 + 16);
 
-      const decrypted = await decrypt(keyPair, encrypted);
+      const decrypted = decrypt(keyPair, encrypted);
       expect(decrypted).toEqual(testData);
     });
 
-    it('should fail decryption with wrong private key', async () => {
+    it('should fail decryption with wrong private key', () => {
       const otherKeyPair = generatePQCKeyPair('other-key', 'encryption');
-      const encrypted = await encrypt(keyPair, testData);
+      const encrypted = encrypt(keyPair, testData);
 
-      await expect(decrypt(otherKeyPair, encrypted)).rejects.toThrow();
+      expect(() => decrypt(otherKeyPair, encrypted)).toThrow();
     });
   });
 });
@@ -119,26 +120,27 @@ describe('PQC Signatures', () => {
   });
 
   describe('sign/verify', () => {
-    it('should sign and verify messages correctly', async () => {
-      const signature = await sign(keyPair, testMessage);
+    it('should sign and verify messages correctly', () => {
+      const signature = sign(keyPair, testMessage);
       expect(signature).toBeDefined();
-      expect(signature.length).toBeGreaterThan(0);
+      // ML-DSA-65 signature is 3309 bytes
+      expect(signature.length).toBe(3309);
 
-      const isValid = await verify(keyPair, testMessage, signature);
+      const isValid = verify(keyPair, testMessage, signature);
       expect(isValid).toBe(true);
     });
 
-    it('should reject tampered messages', async () => {
-      const signature = await sign(keyPair, testMessage);
+    it('should reject tampered messages', () => {
+      const signature = sign(keyPair, testMessage);
       const tamperedMessage = new Uint8Array([72, 101, 108, 108, 111, 33]); // "Hello!"
 
-      const isValid = await verify(keyPair, tamperedMessage, signature);
+      const isValid = verify(keyPair, tamperedMessage, signature);
       expect(isValid).toBe(false);
     });
 
-    it('should reject invalid signatures', async () => {
+    it('should reject invalid signatures', () => {
       const fakeSignature = new Uint8Array([1, 2, 3, 4, 5]);
-      const isValid = await verify(keyPair, testMessage, fakeSignature);
+      const isValid = verify(keyPair, testMessage, fakeSignature);
       expect(isValid).toBe(false);
     });
   });
@@ -168,12 +170,10 @@ describe('EncryptionManager', () => {
 
     it('should fail decryption with wrong key', async () => {
       const plaintext = Buffer.from('secret');
-      
-      // Create a key that is only in cache, not as master key
+
       const cacheOnlyKey = manager.generateDataEncryptionKey('cache-only-key');
       const encrypted = await manager.encryptData(plaintext, cacheOnlyKey.id);
 
-      // Remove the key from cache
       manager.removeKey(cacheOnlyKey.id);
 
       await expect(manager.decryptData(encrypted)).rejects.toThrow(/not found in cache/);
@@ -184,8 +184,6 @@ describe('EncryptionManager', () => {
     it('should cache and retrieve keys', () => {
       const newKey = manager.generateDataEncryptionKey('cached-key');
       expect(newKey).toBeDefined();
-
-      // The key should be cached internally
       expect(manager.getMasterKey()).toBe(keyPair);
     });
 
@@ -230,35 +228,29 @@ describe('EncryptionManager', () => {
 describe('PQC Integration Tests', () => {
   it('should perform full encryption workflow', async () => {
     const manager = new EncryptionManager();
-    const keyPair = generatePQCKeyPair('integration-test', 'encryption');
-    manager.setMasterKey(keyPair);
+    const kp = generatePQCKeyPair('integration-test', 'encryption');
+    manager.setMasterKey(kp);
 
-    // Encrypt data
     const originalData = Buffer.from('This is confidential information');
-    const encrypted = await manager.encryptData(originalData, keyPair.id);
-
-    // Decrypt data
+    const encrypted = await manager.encryptData(originalData, kp.id);
     const decrypted = await manager.decryptData(encrypted);
-    const decryptedString = Buffer.from(decrypted).toString();
 
-    expect(decryptedString).toBe('This is confidential information');
+    expect(Buffer.from(decrypted).toString()).toBe('This is confidential information');
   });
 
   it('should perform full signature workflow', async () => {
-    const keyPair = generatePQCKeyPair('signature-integration', 'signature');
+    const kp = generatePQCKeyPair('signature-integration', 'signature');
 
     const message = Buffer.from('Important document content');
-    const signature = await sign(keyPair, message);
-
-    const isValid = await verify(keyPair, message, signature);
+    const signature = sign(kp, message);
+    const isValid = verify(kp, message, signature);
     expect(isValid).toBe(true);
 
-    // Test with encryption manager
     const manager = new EncryptionManager();
-    manager.setMasterKey(keyPair);
+    manager.setMasterKey(kp);
 
     const data = Buffer.from('signed and encrypted data');
-    const encrypted = await manager.encryptData(data, keyPair.id);
+    const encrypted = await manager.encryptData(data, kp.id);
     const decrypted = await manager.decryptData(encrypted);
 
     expect(Buffer.from(decrypted).toString()).toBe('signed and encrypted data');

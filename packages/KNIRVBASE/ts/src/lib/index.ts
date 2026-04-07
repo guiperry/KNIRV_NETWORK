@@ -41,6 +41,9 @@ export * from '../components/security/index';
 // Monitoring
 export * from '../components/monitoring/index';
 
+// Embedding (TF-IDF + LSA)
+export * from '../components/embedding/index';
+
 // Main Database class
 import { NetworkManager, Network } from '../components/network/network_manager';
 import { FileStorage, Storage } from '../components/storage/storage';

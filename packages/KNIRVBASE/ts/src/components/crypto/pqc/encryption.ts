@@ -87,18 +87,18 @@ export class EncryptionManager {
 
   // Sign signs data using the master key's Dilithium private key
   async sign(data: string): Promise<string | null> {
-    if (!this.masterKey || !this.masterKey.dilithiumPrivateKey) {
+    if (!this.masterKey || !this.masterKey.dilithiumPrivateKeyBytes) {
       return null;
     }
 
     const dataBytes = new TextEncoder().encode(data);
-    const signature = await sign(this.masterKey, dataBytes);
+    const signature = sign(this.masterKey, dataBytes);
     return Buffer.from(signature).toString('base64');
   }
 
   // Verify verifies a signature using the master key's Dilithium public key
   async verify(data: string, signatureB64: string): Promise<boolean> {
-    if (!this.masterKey || !this.masterKey.dilithiumPublicKey) {
+    if (!this.masterKey || !this.masterKey.dilithiumPublicKeyBytes) {
       return false;
     }
 
