@@ -30,18 +30,23 @@ export const defaultMetrics = createMetrics();
 export const metrics = {
     blocks: {
         committed: () => defaultMetrics.blocksCommitted.get(),
+        total: () => defaultMetrics.blocksCommitted.getTotal(),
         inc: (labels) => defaultMetrics.blocksCommitted.inc(labels)
     },
     memory: {
         storeOps: () => defaultMetrics.memoryStoreOps.get(),
+        totalStoreOps: () => defaultMetrics.memoryStoreOps.getTotal(),
         incStoreOps: (labels) => defaultMetrics.memoryStoreOps.inc(labels),
         retrieveOps: () => defaultMetrics.memoryRetrieveOps.get(),
+        totalRetrieveOps: () => defaultMetrics.memoryRetrieveOps.getTotal(),
         incRetrieveOps: (labels) => defaultMetrics.memoryRetrieveOps.inc(labels)
     },
     cache: {
         hits: () => defaultMetrics.cacheHits.get(),
+        totalHits: () => defaultMetrics.cacheHits.getTotal(),
         incHits: (labels) => defaultMetrics.cacheHits.inc(labels),
         misses: () => defaultMetrics.cacheMisses.get(),
+        totalMisses: () => defaultMetrics.cacheMisses.getTotal(),
         incMisses: (labels) => defaultMetrics.cacheMisses.inc(labels),
         hitRatio: () => defaultMetrics.getCacheHitRatio()
     },
@@ -59,6 +64,7 @@ export const metrics = {
     },
     errors: {
         count: () => defaultMetrics.errorCount.get(),
+        totalCount: () => defaultMetrics.errorCount.getTotal(),
         inc: (labels) => defaultMetrics.errorCount.inc(labels)
     },
     index: {

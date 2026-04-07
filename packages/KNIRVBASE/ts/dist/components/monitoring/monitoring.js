@@ -1,4 +1,7 @@
 import { Counter, Gauge, Histogram } from './metrics';
+export function createMetrics() {
+    return new KNIRVBasemetrics();
+}
 /**
  * Comprehensive metrics collection for KNIRVBASE
  */
@@ -86,6 +89,10 @@ export class KNIRVBasemetrics {
         this.memoryRetrieveOps.reset();
         this.cacheHits.reset();
         this.cacheMisses.reset();
+        this.activeConnections.reset();
+        this.nrnBalance.reset();
+        this.queryLatency.reset();
+        this.errorCount.reset();
         this.indexSize.reset();
     }
     /**

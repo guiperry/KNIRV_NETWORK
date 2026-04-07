@@ -4,8 +4,8 @@ export declare class EncryptionManager {
     private keyCache;
     setMasterKey(keyPair: PQCKeyPair): void;
     getMasterKey(): PQCKeyPair | undefined;
-    encryptData(plaintext: Uint8Array, keyID: string): Promise<string | null>;
-    decryptData(encryptedData: string): Promise<Uint8Array | null>;
+    encryptData(plaintext: Uint8Array, keyID: string): Promise<string>;
+    decryptData(encryptedData: string): Promise<Uint8Array>;
     sign(data: string): Promise<string | null>;
     verify(data: string, signatureB64: string): Promise<boolean>;
     cacheKey(keyID: string, keyPair: PQCKeyPair): void;

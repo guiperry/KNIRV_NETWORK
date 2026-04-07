@@ -13,6 +13,7 @@ export * from '../components/auth/index';
 export * from '../components/logging/index';
 export * from '../components/security/index';
 export * from '../components/monitoring/index';
+export * from '../components/embedding/index';
 import { Network } from '../components/network/network_manager';
 import { Storage } from '../components/storage/storage';
 import { DistributedCollection } from '../components/collection/distributed_collection';

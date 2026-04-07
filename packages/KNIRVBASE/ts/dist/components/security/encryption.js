@@ -11,14 +11,12 @@ export class AESEncryption {
             throw new Error(`Invalid key length. Expected ${AESEncryption.KEY_LENGTH} bytes, got ${key.length}`);
         }
         try {
-            const cipher = createCipheriv(AESEncryption.ALGORITHM, key, null);
             const nonce = randomBytes(AESEncryption.NONCE_LENGTH);
-            // Set the nonce for the cipher
-            cipher.setAAD(nonce);
+            const cipher = createCipheriv(AESEncryption.ALGORITHM, key, nonce);
             const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
             const authTag = cipher.getAuthTag();
-            // Combine nonce + authTag + encrypted data
-            const combined = Buffer.concat([nonce, authTag, encrypted]);
+            // Combine authTag + encrypted data
+            const combined = Buffer.concat([authTag, encrypted]);
             return {
                 data: combined.toString('base64'),
                 nonce: nonce.toString('base64')
@@ -37,14 +35,12 @@ export class AESEncryption {
         }
         try {
             const combined = Buffer.from(encryptedData.data, 'base64');
-            if (combined.length < AESEncryption.NONCE_LENGTH + 16) { // nonce + authTag minimum
+            if (combined.length < 16) { // authTag minimum
                 throw new Error('Invalid encrypted data: too short');
             }
-            const nonce = combined.slice(0, AESEncryption.NONCE_LENGTH);
-            const authTag = combined.slice(AESEncryption.NONCE_LENGTH, AESEncryption.NONCE_LENGTH + 16);
-            const ciphertext = combined.slice(AESEncryption.NONCE_LENGTH + 16);
-            const decipher = createDecipheriv(AESEncryption.ALGORITHM, key, nonce);
-            decipher.setAAD(nonce);
+            const authTag = combined.slice(0, 16);
+            const ciphertext = combined.slice(16);
+            const decipher = createDecipheriv(AESEncryption.ALGORITHM, key, Buffer.from(encryptedData.nonce, 'base64'));
             decipher.setAuthTag(authTag);
             const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
             return decrypted;

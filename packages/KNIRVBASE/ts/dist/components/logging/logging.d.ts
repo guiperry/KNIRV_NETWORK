@@ -1,4 +1,9 @@
-import { LoggerOptions, LoggerContext } from './types';
+import { LogLevel, LogFormat, LoggerOptions, LoggerContext } from './types';
+export { LogLevel, LogFormat };
+/**
+ * Create a logger with the specified level and format
+ */
+export declare function createLogger(level?: LogLevel, format?: LogFormat): Logger;
 /**
  * Main Logger class providing structured logging capabilities
  */

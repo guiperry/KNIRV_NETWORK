@@ -1,18 +1,17 @@
 import * as crypto from 'crypto';
-// GeneratePQCKeyPair generates a new PQC key pair with both Kyber and Dilithium keys
+import { ml_kem768 } from '@noble/post-quantum/ml-kem';
+import { ml_dsa65 } from '@noble/post-quantum/ml-dsa';
+// GeneratePQCKeyPair generates a new PQC key pair with real ML-KEM-768 and ML-DSA-65 keys.
+// Mirrors Go's GeneratePQCKeyPair.
 export function generatePQCKeyPair(name, purpose) {
-    // Generate Kyber key pair (simplified for TS, using random bytes)
-    const kyberPair = generateKyberKeyPair();
-    // Generate Dilithium key pair (simplified)
-    const dilithiumPair = generateDilithiumKeyPair();
-    // Generate unique ID
     const idBytes = crypto.randomBytes(16);
     const id = idBytes.toString('hex');
-    // Marshal keys to bytes
-    const kyberPubBytes = kyberPair.publicKey;
-    const kyberPrivBytes = kyberPair.privateKey;
-    const dilithiumPubBytes = dilithiumPair.publicKey;
-    const dilithiumPrivBytes = dilithiumPair.privateKey;
+    // ML-KEM-768 requires 64 bytes of entropy for key generation
+    const kemSeed = crypto.randomBytes(64);
+    const kemKeys = ml_kem768.keygen(kemSeed);
+    // ML-DSA-65 requires 32 bytes of entropy for key generation
+    const dsaSeed = crypto.randomBytes(32);
+    const dsaKeys = ml_dsa65.keygen(dsaSeed);
     return {
         id,
         name,
@@ -20,131 +19,118 @@ export function generatePQCKeyPair(name, purpose) {
         algorithm: 'Kyber-768+Dilithium-3',
         createdAt: new Date(),
         status: 'active',
-        kyberPublicKey: kyberPair.publicKey,
-        kyberPrivateKey: kyberPair.privateKey,
-        dilithiumPublicKey: dilithiumPair.publicKey,
-        dilithiumPrivateKey: dilithiumPair.privateKey,
-        kyberPublicKeyBytes: kyberPubBytes,
-        kyberPrivateKeyBytes: kyberPrivBytes,
-        dilithiumPublicKeyBytes: dilithiumPubBytes,
-        dilithiumPrivateKeyBytes: dilithiumPrivBytes,
+        kyberPublicKeyBytes: kemKeys.publicKey,
+        kyberPrivateKeyBytes: kemKeys.secretKey,
+        dilithiumPublicKeyBytes: dsaKeys.publicKey,
+        dilithiumPrivateKeyBytes: dsaKeys.secretKey,
     };
 }
-// LoadPQCKeyPair loads a PQC key pair from marshaled data
+// LoadPQCKeyPair deserializes a key pair from a JSON string.
 export function loadPQCKeyPair(data) {
     const parsed = JSON.parse(data);
-    // Unmarshal keys
-    const kp = {
+    return {
         ...parsed,
         createdAt: new Date(parsed.createdAt),
         expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : undefined,
-        kyberPublicKey: Buffer.from(parsed.kyberPublicKeyBytes),
-        kyberPrivateKey: parsed.kyberPrivateKeyBytes ? Buffer.from(parsed.kyberPrivateKeyBytes) : undefined,
-        dilithiumPublicKey: Buffer.from(parsed.dilithiumPublicKeyBytes),
-        dilithiumPrivateKey: parsed.dilithiumPrivateKeyBytes ? Buffer.from(parsed.dilithiumPrivateKeyBytes) : undefined,
-        kyberPublicKeyBytes: Buffer.from(parsed.kyberPublicKeyBytes),
-        kyberPrivateKeyBytes: parsed.kyberPrivateKeyBytes ? Buffer.from(parsed.kyberPrivateKeyBytes) : undefined,
-        dilithiumPublicKeyBytes: Buffer.from(parsed.dilithiumPublicKeyBytes),
-        dilithiumPrivateKeyBytes: parsed.dilithiumPrivateKeyBytes ? Buffer.from(parsed.dilithiumPrivateKeyBytes) : undefined,
+        kyberPublicKeyBytes: bufferFromField(parsed.kyberPublicKeyBytes),
+        kyberPrivateKeyBytes: parsed.kyberPrivateKeyBytes ? bufferFromField(parsed.kyberPrivateKeyBytes) : undefined,
+        dilithiumPublicKeyBytes: bufferFromField(parsed.dilithiumPublicKeyBytes),
+        dilithiumPrivateKeyBytes: parsed.dilithiumPrivateKeyBytes ? bufferFromField(parsed.dilithiumPrivateKeyBytes) : undefined,
     };
-    return kp;
 }
-// Marshal serializes the key pair to JSON (without private keys for public storage)
+// Marshal serializes the key pair to JSON without private keys (for public storage).
 export function marshalPublic(kp) {
-    const publicKp = { ...kp };
-    delete publicKp.kyberPrivateKey;
-    delete publicKp.dilithiumPrivateKey;
-    delete publicKp.kyberPrivateKeyBytes;
-    delete publicKp.dilithiumPrivateKeyBytes;
-    return JSON.stringify(publicKp);
+    const { kyberPrivateKeyBytes, dilithiumPrivateKeyBytes, ...pub } = kp;
+    return JSON.stringify({
+        ...pub,
+        kyberPublicKeyBytes: Array.from(kp.kyberPublicKeyBytes),
+        dilithiumPublicKeyBytes: Array.from(kp.dilithiumPublicKeyBytes),
+    });
 }
-// MarshalWithPrivateKeys serializes the key pair to JSON including private keys
+// MarshalWithPrivateKeys serializes the key pair to JSON including private keys.
+// WARNING: only use for encrypted storage.
 export function marshalWithPrivateKeys(kp) {
-    const serializable = {
+    return JSON.stringify({
         ...kp,
-        kyberPublicKey: Array.from(kp.kyberPublicKey),
-        kyberPrivateKey: kp.kyberPrivateKey ? Array.from(kp.kyberPrivateKey) : undefined,
-        dilithiumPublicKey: Array.from(kp.dilithiumPublicKey),
-        dilithiumPrivateKey: kp.dilithiumPrivateKey ? Array.from(kp.dilithiumPrivateKey) : undefined,
         kyberPublicKeyBytes: Array.from(kp.kyberPublicKeyBytes),
         kyberPrivateKeyBytes: kp.kyberPrivateKeyBytes ? Array.from(kp.kyberPrivateKeyBytes) : undefined,
         dilithiumPublicKeyBytes: Array.from(kp.dilithiumPublicKeyBytes),
         dilithiumPrivateKeyBytes: kp.dilithiumPrivateKeyBytes ? Array.from(kp.dilithiumPrivateKeyBytes) : undefined,
-    };
-    return JSON.stringify(serializable);
+    });
 }
-// Encrypt encrypts data using the Kyber public key
+// Encrypt encrypts plaintext using ML-KEM-768 + AES-256-GCM.
+// Output format: kem_ciphertext (1088 bytes) || nonce (12 bytes) || aes_ciphertext
+// Mirrors Go's KyberEncrypt.
 export function encrypt(kp, plaintext) {
-    return kyberEncrypt(kp.kyberPublicKey, plaintext);
+    // Encapsulate: generates a shared secret and a KEM ciphertext
+    const { cipherText: kemCt, sharedSecret } = ml_kem768.encapsulate(kp.kyberPublicKeyBytes);
+    // Derive AES-256 key from the 32-byte shared secret via SHA-256
+    const aesKey = crypto.createHash('sha256').update(sharedSecret).digest();
+    // AES-256-GCM encrypt
+    const nonce = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', aesKey, nonce);
+    const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+    const authTag = cipher.getAuthTag();
+    // Concatenate: kemCt || nonce || authTag || encrypted
+    const result = new Uint8Array(kemCt.length + 12 + 16 + encrypted.length);
+    result.set(kemCt, 0);
+    result.set(nonce, kemCt.length);
+    result.set(authTag, kemCt.length + 12);
+    result.set(encrypted, kemCt.length + 12 + 16);
+    return result;
 }
-// Decrypt decrypts data using the Kyber private key
+// Decrypt decrypts ciphertext using ML-KEM-768 + AES-256-GCM.
+// Mirrors Go's KyberDecrypt.
 export function decrypt(kp, ciphertext) {
-    if (!kp.kyberPrivateKey)
+    if (!kp.kyberPrivateKeyBytes) {
         throw new Error('no Kyber private key available');
-    return kyberDecrypt(kp.kyberPrivateKey, ciphertext);
+    }
+    const kemCtLen = 1088; // ML-KEM-768 ciphertext size
+    if (ciphertext.length < kemCtLen + 12 + 16) {
+        throw new Error('ciphertext too short');
+    }
+    const kemCt = ciphertext.slice(0, kemCtLen);
+    const nonce = ciphertext.slice(kemCtLen, kemCtLen + 12);
+    const authTag = ciphertext.slice(kemCtLen + 12, kemCtLen + 12 + 16);
+    const encryptedData = ciphertext.slice(kemCtLen + 12 + 16);
+    // Decapsulate: recover the shared secret
+    const sharedSecret = ml_kem768.decapsulate(kemCt, kp.kyberPrivateKeyBytes);
+    // Derive AES-256 key
+    const aesKey = crypto.createHash('sha256').update(sharedSecret).digest();
+    // AES-256-GCM decrypt
+    const decipher = crypto.createDecipheriv('aes-256-gcm', aesKey, nonce);
+    decipher.setAuthTag(authTag);
+    const decrypted = Buffer.concat([decipher.update(encryptedData), decipher.final()]);
+    return new Uint8Array(decrypted);
 }
-// Sign signs data using the Dilithium private key
+// Sign signs a message using ML-DSA-65 (Dilithium-3).
 export function sign(kp, message) {
-    if (!kp.dilithiumPrivateKey)
+    if (!kp.dilithiumPrivateKeyBytes) {
         throw new Error('no Dilithium private key available');
-    return dilithiumSign(kp.dilithiumPrivateKey, message);
+    }
+    return ml_dsa65.sign(kp.dilithiumPrivateKeyBytes, message);
 }
-// Verify verifies a signature using the Dilithium public key
+// Verify verifies a ML-DSA-65 signature.
 export function verify(kp, message, signature) {
-    return dilithiumVerify(kp.dilithiumPublicKey, message, signature);
+    return ml_dsa65.verify(kp.dilithiumPublicKeyBytes, message, signature);
 }
-// IsExpired checks if the key pair has expired
+// IsExpired checks if the key pair has expired.
 export function isExpired(kp) {
     if (!kp.expiresAt)
         return false;
     return new Date() > kp.expiresAt;
 }
-// IsActive checks if the key pair is active and not expired
+// IsActive checks if the key pair is active and not expired.
 export function isActive(kp) {
     return kp.status === 'active' && !isExpired(kp);
 }
-function generateKyberKeyPair() {
-    const key = crypto.randomBytes(32);
-    return { publicKey: key, privateKey: key };
-}
-async function kyberEncrypt(publicKey, plaintext) {
-    // Simplified: use publicKey as AES key
-    const key = await crypto.subtle.importKey('raw', publicKey, 'AES-GCM', false, ['encrypt']);
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
-    const result = new Uint8Array(iv.length + encrypted.byteLength);
-    result.set(iv);
-    result.set(new Uint8Array(encrypted), iv.length);
-    return result;
-}
-async function kyberDecrypt(privateKey, ciphertext) {
-    const key = await crypto.subtle.importKey('raw', privateKey, 'AES-GCM', false, ['decrypt']);
-    const iv = ciphertext.slice(0, 12);
-    const encrypted = ciphertext.slice(12);
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted);
-    return new Uint8Array(decrypted);
-}
-function generateDilithiumKeyPair() {
-    const publicKey = crypto.randomBytes(32);
-    const privateKey = crypto.randomBytes(32);
-    return { publicKey, privateKey };
-}
-function dilithiumSign(privateKey, message) {
-    return new Promise((resolve) => {
-        const key = Buffer.from(privateKey);
-        const hmac = crypto.createHmac('sha256', key);
-        hmac.update(Buffer.from(message));
-        const sig = hmac.digest();
-        resolve(new Uint8Array(sig));
-    });
-}
-function dilithiumVerify(publicKey, message, signature) {
-    return new Promise((resolve) => {
-        // For HMAC verification, we need the private key, but we only have public key
-        // This is a limitation of the simplified implementation
-        // In real PQC, verification uses only public key
-        // For this demo, we'll assume verification always passes (not secure!)
-        resolve(true);
-    });
+function bufferFromField(field) {
+    if (field instanceof Uint8Array)
+        return field;
+    if (Array.isArray(field))
+        return new Uint8Array(field);
+    if (typeof field === 'string')
+        return Buffer.from(field, 'base64');
+    return new Uint8Array();
 }
 //# sourceMappingURL=keys.js.map

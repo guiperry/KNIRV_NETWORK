@@ -28,6 +28,7 @@ export declare class Counter extends Metric {
     add(value: number, labels?: Record<string, string | number>): void;
     get(): number;
     getWithLabels(labels: Record<string, string | number>): number;
+    getTotal(): number;
     reset(): void;
     private getLabelsKey;
     getValues(): any;
@@ -47,6 +48,7 @@ export declare class Gauge extends Metric {
     sub(value: number, labels?: Record<string, string | number>): void;
     get(): number;
     getWithLabels(labels: Record<string, string | number>): number;
+    reset(): void;
     private getLabelsKey;
     getValues(): any;
 }

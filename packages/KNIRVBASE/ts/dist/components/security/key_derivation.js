@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
+import { pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
 /**
  * PBKDF2 key derivation implementation
  */
@@ -7,11 +7,8 @@ export class KeyDerivation {
      * Derive a key from user secret and salt using PBKDF2
      */
     static deriveKey(userSecret, salt, iterations = KeyDerivation.DEFAULT_ITERATIONS, keyLength = KeyDerivation.DEFAULT_KEY_LENGTH) {
-        // Since Node.js doesn't have built-in PBKDF2 with async/await support in older versions,
-        // we'll use scrypt as a secure alternative that's available in crypto module
-        // For production, you might want to use pbkdf2 from 'crypto' module properly
         try {
-            return scryptSync(userSecret, salt, keyLength);
+            return pbkdf2Sync(userSecret, salt, iterations, keyLength, KeyDerivation.DIGEST);
         }
         catch (error) {
             throw new Error(`Failed to derive key: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -53,4 +50,5 @@ export class KeyDerivation {
 KeyDerivation.DEFAULT_ITERATIONS = 100000;
 KeyDerivation.DEFAULT_KEY_LENGTH = 32;
 KeyDerivation.SALT_LENGTH = 16;
+KeyDerivation.DIGEST = 'sha512';
 //# sourceMappingURL=key_derivation.js.map

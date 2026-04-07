@@ -55,7 +55,7 @@ describe('AESEncryption', () => {
         it('should handle null values', () => {
             const obj = { value: null, other: 'test' };
             const encrypted = AESEncryption.encryptJSON(obj, testKey);
-            const decrypted = AESEncryption.decryptJSON(obj, testKey);
+            const decrypted = AESEncryption.decryptJSON(encrypted, testKey);
             expect(decrypted.value).toBeNull();
             expect(decrypted.other).toBe('test');
         });
@@ -68,7 +68,7 @@ describe('AESEncryption', () => {
                 }
             };
             const encrypted = AESEncryption.encryptJSON(obj, testKey);
-            const decrypted = AESEncryption.decryptJSON(obj, testKey);
+            const decrypted = AESEncryption.decryptJSON(encrypted, testKey);
             expect(decrypted.level1.level2.level3).toBe('deep value');
         });
     });

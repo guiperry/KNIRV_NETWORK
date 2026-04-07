@@ -1,4 +1,5 @@
 import { Counter, Gauge, Histogram } from './metrics';
+export declare function createMetrics(): KNIRVBasemetrics;
 /**
  * Comprehensive metrics collection for KNIRVBASE
  */

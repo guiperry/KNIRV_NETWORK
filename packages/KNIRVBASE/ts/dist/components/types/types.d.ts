@@ -3,10 +3,21 @@ export declare enum EntryType {
     Memory = "MEMORY",
     Auth = "AUTH"
 }
+export declare enum MemoryCategory {
+    Error = "ERROR",
+    Context = "CONTEXT",
+    Idea = "IDEA",
+    Solution = "SOLUTION",
+    Skill = "SKILL",
+    Generic = "GENERIC",
+    Event = "EVENT",
+    Preference = "PREFERENCE",
+    Trait = "TRAIT"
+}
 export interface DistributedDocument {
     id: string;
     entryType: EntryType;
-    payload?: Record<string, any>;
+    payload?: Record<string, unknown>;
     _vector: VectorClock;
     _timestamp: number;
     _peerId: string;
@@ -82,13 +93,15 @@ export declare enum MessageType {
     Operation = "operation",
     Heartbeat = "heartbeat",
     CollectionAnnounce = "collection_announce",
-    CollectionRequest = "collection_request"
+    CollectionRequest = "collection_request",
+    DhtPut = "dht_put",
+    DhtGet = "dht_get"
 }
 export interface ProtocolMessage {
     type: MessageType;
     networkId: string;
     senderId: string;
     timestamp: number;
-    payload: any;
+    payload: unknown;
 }
 //# sourceMappingURL=types.d.ts.map

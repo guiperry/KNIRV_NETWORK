@@ -6,6 +6,7 @@ export declare class KeyDerivation {
     private static readonly DEFAULT_ITERATIONS;
     private static readonly DEFAULT_KEY_LENGTH;
     private static readonly SALT_LENGTH;
+    private static readonly DIGEST;
     /**
      * Derive a key from user secret and salt using PBKDF2
      */

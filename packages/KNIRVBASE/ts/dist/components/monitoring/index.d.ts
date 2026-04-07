@@ -22,18 +22,23 @@ export declare const defaultMetrics: KNIRVBasemetrics;
 export declare const metrics: {
     blocks: {
         committed: () => number;
+        total: () => number;
         inc: (labels?: Record<string, string | number>) => void;
     };
     memory: {
         storeOps: () => number;
+        totalStoreOps: () => number;
         incStoreOps: (labels?: Record<string, string | number>) => void;
         retrieveOps: () => number;
+        totalRetrieveOps: () => number;
         incRetrieveOps: (labels?: Record<string, string | number>) => void;
     };
     cache: {
         hits: () => number;
+        totalHits: () => number;
         incHits: (labels?: Record<string, string | number>) => void;
         misses: () => number;
+        totalMisses: () => number;
         incMisses: (labels?: Record<string, string | number>) => void;
         hitRatio: () => number;
     };
@@ -51,6 +56,7 @@ export declare const metrics: {
     };
     errors: {
         count: () => number;
+        totalCount: () => number;
         inc: (labels?: Record<string, string | number>) => void;
     };
     index: {
