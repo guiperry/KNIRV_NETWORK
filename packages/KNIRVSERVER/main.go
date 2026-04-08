@@ -51,6 +51,11 @@ var knirvgraphBinary []byte
 //go:embed bin/knirvchain
 var knirvchainBinary []byte
 
+// Embed the KNIRVORACLE binary for oracle services (root node only)
+//
+//go:embed bin/knirvoracle
+var knirvoracleBinary []byte
+
 // Embed the root key (present only on root-node builds; absent on client builds).
 // The build tag "rootnode" is used to conditionally include this file via
 // the go:embed directive below.  If the file is absent the byte slice stays nil.
@@ -303,6 +308,7 @@ func extractBinaries() (string, error) {
 		{"knirvgateway", knirvgatewayBinary},
 		{"knirvgraph", knirvgraphBinary},
 		{"knirvchain", knirvchainBinary},
+		{"knirvoracle", knirvoracleBinary},
 	}
 
 	for _, b := range bins {

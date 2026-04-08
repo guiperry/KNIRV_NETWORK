@@ -41,10 +41,12 @@ func (p *KNIRVQLParser) Parse(query string) (*Query, error) {
 }
 
 func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
-	if len(parts) < 2 {
+	if len(parts) < 1 {
 		return nil, fmt.Errorf("invalid GET query")
 	}
 
+	// Use original case for extracting modality type, then uppercase for entry type
+	entryTypeOriginal := parts[0]
 	entryType := strings.ToUpper(parts[0])
 	var collection string
 	var filters []Filter
@@ -52,14 +54,22 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 	var limit int
 	var modalityType string
 
-	if strings.HasPrefix(entryType, "MEMORY.MODALITY(") && strings.HasSuffix(entryType, ")") {
-		modalityName := entryType[len("MEMORY.MODALITY(") : len(entryType)-1]
+	if strings.HasPrefix(entryTypeOriginal, "MEMORY.MODALITY(") && strings.HasSuffix(entryTypeOriginal, ")") {
+		modalityName := entryTypeOriginal[len("MEMORY.MODALITY(") : len(entryTypeOriginal)-1]
 		modalityType = modalityName
 		entryType = "MEMORY"
 	}
 
+	var queryType QueryType
+	if modalityType != "" {
+		queryType = QueryGetModality
+	} else {
+		queryType = QueryGet
+	}
+
 	i := 1
-	if parts[i] == "WHERE" {
+	// Handle case where there may be no WHERE clause (e.g., "GET MEMORY.MODALITY(seed)")
+	if i < len(parts) && parts[i] == "WHERE" {
 		i++
 		for i < len(parts) {
 			if parts[i] == "SIMILAR" && i+1 < len(parts) && parts[i+1] == "TO" {
@@ -93,6 +103,10 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 					}
 				}
 				break
+			} else if parts[i] == "AND" || parts[i] == "OR" {
+				// Skip logical operators
+				i++
+				continue
 			} else {
 				// Parse filter: key operator value
 				if i+2 < len(parts) {
@@ -101,7 +115,11 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 					valueStr := strings.Trim(parts[i+2], "\"")
 					// Parse value
 					var value interface{}
-					if f, err := strconv.ParseFloat(valueStr, 64); err == nil {
+					if valueStr == "true" {
+						value = true
+					} else if valueStr == "false" {
+						value = false
+					} else if f, err := strconv.ParseFloat(valueStr, 64); err == nil {
 						value = f
 					} else if i, err := strconv.ParseInt(valueStr, 10, 64); err == nil {
 						value = i
@@ -118,7 +136,7 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 	}
 
 	return &Query{
-		Type:         QueryGet,
+		Type:         queryType,
 		EntryType:    typ.EntryType(entryType),
 		Collection:   collection,
 		Filters:      filters,

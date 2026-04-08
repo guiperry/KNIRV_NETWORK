@@ -15,6 +15,7 @@ DESKTOP_DIR := $(ROOT_DIR)/desktop
 GATEWAY_DIR := $(ROOT_DIR)/pkg/knirvgateway
 GRAPH_DIR := $(ROOT_DIR)/pkg/knirvgraph
 CHAIN_DIR := $(ROOT_DIR)/pkg/knirvchain
+ORACLE_DIR := $(ROOT_DIR)/../KNIRVORACLE
 HASHER_DIR := $(ROOT_DIR)/pkg/knirvhasher
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
@@ -161,8 +162,8 @@ key-encryptor: deps-go ## Build key_encryptor binary
 # Unified Binary (Frontend + Desktop + Backend + KNIRVGATEWAY)
 # main.go embeds: bin/backend_server, bin/knirvgateway, config/*, desktop/dist/*, frontend/out/*
 # At runtime the launcher extracts backend_server and knirvgateway to ~/.local/share/knirvserver/bin/
-binary: proto ebpf-generate frontend desktop-build backend gateway-build graph-build chain-build hasher-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, and KNIRVHASHER
-	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, and KNIRVHASHER)...$(NC)"
+binary: proto ebpf-generate frontend desktop-build backend gateway-build graph-build chain-build oracle-build hasher-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, and KNIRVHASHER
+	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, and KNIRVHASHER)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
 	chmod 755 $(DIST_DIR)/knirv-server
@@ -440,6 +441,22 @@ chain-clean: ## Clean KNIRVCHAIN build artifacts
 	@echo "$(BLUE)Cleaning KNIRVCHAIN artifacts...$(NC)"
 	rm -f bin/knirvchain
 	cd $(CHAIN_DIR) && go clean
+
+# KNIRVORACLE (Embedded) targets
+oracle-deps: ## Install KNIRVORACLE dependencies
+	@echo "$(BLUE)Installing KNIRVORACLE dependencies...$(NC)"
+	cd $(ORACLE_DIR) && go mod download && go mod tidy
+
+oracle-build: oracle-deps ## Build KNIRVORACLE binary into bin/ (required before binary target)
+	@echo "$(BLUE)Building KNIRVORACLE binary...$(NC)"
+	@mkdir -p bin
+	cd $(ORACLE_DIR)/cmd/oracle && go build -ldflags "-s -w" -o $(ROOT_DIR)/bin/knirvoracle
+	@echo "$(GREEN)KNIRVORACLE binary built: bin/knirvoracle$(NC)"
+
+oracle-clean: ## Clean KNIRVORACLE build artifacts
+	@echo "$(BLUE)Cleaning KNIRVORACLE artifacts...$(NC)"
+	rm -f bin/knirvoracle
+	cd $(ORACLE_DIR) && go clean
 
 # Full build including embedded KNIRVGATEWAY (gateway-build is now a dep of binary)
 build-full: binary ## Build everything including KNIRVGATEWAY (alias for binary)

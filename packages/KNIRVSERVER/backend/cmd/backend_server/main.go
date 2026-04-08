@@ -22,7 +22,6 @@ import (
 	"backend_server/internal/ebpf"
 	"backend_server/internal/logging"
 	"backend_server/internal/oracle"
-	oracleroutes "backend_server/internal/oracle/routes"
 	oracletypes "backend_server/internal/oracle/types"
 	"backend_server/internal/password"
 	pb "backend_server/internal/proto"
@@ -46,6 +45,7 @@ import (
 	icme "backend_server/internal/services/icme"
 	inference "backend_server/internal/services/inferencer"
 	"backend_server/internal/services/knirvcli"
+	knirvoracle "backend_server/internal/services/knirvoracle"
 	"backend_server/internal/services/onboarding"
 	"backend_server/internal/services/p2p"
 	fabricmanagement "backend_server/internal/services/pluginmanagement"
@@ -163,8 +163,8 @@ type Server struct {
 	hasherGRPCServer  *dvemanager.HasherGRPCServer
 	hasherIntegration *dvemanager.HasherIntegration
 
-	// Oracle service (root-only — only present when root.key is loaded)
-	oracleService *oracle.Oracle
+	// Oracle service (root-only — managed via knirvoracle Manager)
+	oracleManager *knirvoracle.Manager
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -486,6 +486,35 @@ func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 	}
 
 	return oracleInstance, nil
+}
+
+func initOracleManager(logger *zap.Logger, cfg *config.Config) *knirvoracle.Manager {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
+	appDataDir, err := getOSAppDataDir()
+	if err != nil {
+		logger.Error("Failed to get app data dir for oracle", zap.Error(err))
+		return nil
+	}
+
+	rootKeyPath, err := config.GetRootKeyPath()
+	if err != nil {
+		logger.Info("Oracle disabled: could not resolve root key path", zap.Error(err))
+		return nil
+	}
+
+	oracleCfg := &knirvoracle.ManagerConfig{
+		BinaryPath:   "knirvoracle",
+		SocketPath:   "/var/run/knirv/oracle.sock",
+		DataPath:     filepath.Join(appDataDir, "oracle"),
+		RootKeyPath:  rootKeyPath,
+		StartTimeout: 30 * time.Second,
+		StopTimeout:  10 * time.Second,
+	}
+
+	return knirvoracle.NewManager(oracleCfg, logger)
 }
 
 func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (*Server, error) {
@@ -1273,19 +1302,14 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		running:                      false,
 	}
 
-	// Initialise oracle if root.key is present (root node only)
-	var oracleInstance *oracle.Oracle
-	if rootKeySecrets != nil {
-		oracleInstance, err = initOracleWithSecrets(rootKeySecrets, logger)
-	} else {
-		oracleInstance, err = initOracleFromKeyFile(logger)
+	// Initialise oracle manager if root.key is present (root node only)
+	oracleManager := initOracleManager(logger, cfg)
+	if err := oracleManager.Start(ctx); err != nil {
+		logger.Error("Failed to start oracle manager — continuing without oracle", zap.Error(err))
 	}
-	if err != nil {
-		logger.Error("Failed to initialise oracle — continuing without it", zap.Error(err))
-	}
-	server.oracleService = oracleInstance
-	if oracleInstance != nil {
-		balanceReader := &oracleBalanceAdapter{oracle: oracleInstance}
+	server.oracleManager = oracleManager
+	if oracleManager.IsRunning() {
+		balanceReader := &oracleBalanceAdapter{manager: oracleManager}
 		if transactionChainClient != nil {
 			transactionChainClient.SetBalanceReader(balanceReader)
 		}
@@ -1294,9 +1318,9 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		cfg.Rollup.PollInterval = 30 * time.Second
 	}
 
-	if cfg.Rollup.Enabled && transactionChainManager != nil && oracleInstance != nil {
+	if cfg.Rollup.Enabled && transactionChainManager != nil && oracleManager.IsRunning() {
 		reader := rollup.NewHTTPTransactionChainReader(transactionChainManager.GetBaseURL())
-		server.rollupService = rollup.NewService(reader, &oracleRollupAdapter{oracle: oracleInstance})
+		server.rollupService = rollup.NewService(reader, &oracleRollupAdapter{manager: oracleManager})
 		appDataDir, appDataErr := getOSAppDataDir()
 		if appDataErr != nil {
 			return nil, fmt.Errorf("failed to determine app data dir for rollup persistence: %w", appDataErr)
@@ -1315,29 +1339,30 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 }
 
 type oracleRollupAdapter struct {
-	oracle *oracle.Oracle
+	manager *knirvoracle.Manager
 }
 
 type oracleBalanceAdapter struct {
-	oracle *oracle.Oracle
+	manager *knirvoracle.Manager
 }
 
 func (a *oracleBalanceAdapter) GetAccountBalance(address string) (int64, error) {
-	if a == nil || a.oracle == nil {
-		return 0, fmt.Errorf("oracle balance adapter is not configured")
+	if a == nil || a.manager == nil || !a.manager.IsRunning() {
+		return 0, fmt.Errorf("oracle not available")
 	}
 
-	parsedAddress, err := oracletypes.AddressFromString(address)
+	client := a.manager.GetClient()
+	balanceStr, err := client.GetBalance(address)
 	if err != nil {
-		return 0, fmt.Errorf("invalid oracle address: %w", err)
+		return 0, fmt.Errorf("failed to get balance: %w", err)
 	}
 
-	balance := a.oracle.GetNRNToken().GetBalance(parsedAddress)
-	if !balance.IsInt64() {
-		return 0, fmt.Errorf("oracle balance exceeds int64 range for address %s", address)
+	var balance int64
+	if _, err := fmt.Sscanf(balanceStr, "%d", &balance); err != nil {
+		return 0, fmt.Errorf("invalid balance format: %w", err)
 	}
 
-	return balance.Int64(), nil
+	return balance, nil
 }
 
 func (a *oracleRollupAdapter) SubmitRollup(batch *rollup.RollupBatch) (string, error) {
@@ -1355,36 +1380,31 @@ func (a *oracleRollupAdapter) SubmitRollup(batch *rollup.RollupBatch) (string, e
 			"batch_root": batch.BatchRoot,
 		},
 	}
-	if err := a.oracle.SubmitRollup(record); err != nil {
+	if a.manager == nil || !a.manager.IsRunning() {
+		return "", fmt.Errorf("oracle not available")
+	}
+	client := a.manager.GetClient()
+	rollupID, err := client.SubmitRollup(record.ID, "")
+	if err != nil {
 		return "", err
 	}
-	return record.ID, nil
+	return rollupID, nil
 }
 
 func (a *oracleRollupAdapter) GetRollup(id string) (map[string]interface{}, error) {
-	record, ok := a.oracle.GetRollup(id)
-	if !ok {
-		return nil, fmt.Errorf("rollup not found: %s", id)
+	if a.manager == nil || !a.manager.IsRunning() {
+		return nil, fmt.Errorf("oracle not available")
 	}
-	payload, err := json.Marshal(record)
-	if err != nil {
-		return nil, err
-	}
-	var result map[string]interface{}
-	if err := json.Unmarshal(payload, &result); err != nil {
-		return nil, err
-	}
-	return result, nil
+	client := a.manager.GetClient()
+	return client.GetRollup(id)
 }
 
 func (a *oracleRollupAdapter) FinalizeRollup(id string) error {
-	_, err := a.oracle.FinalizeRollup(id, time.Now().UTC())
-	return err
+	return fmt.Errorf("finalize not implemented via client")
 }
 
 func (a *oracleRollupAdapter) DisputeRollup(id string, reason string) error {
-	_, err := a.oracle.DisputeRollup(id, reason, time.Now().UTC())
-	return err
+	return fmt.Errorf("dispute not implemented via client")
 }
 
 type icmePolicyAdapter struct {
@@ -1737,12 +1757,10 @@ func (s *Server) setupRoutes() {
 	log.Println("System settings routes configured")
 
 	// Register oracle routes (root node only — only wired when oracle is active)
-	if s.oracleService != nil {
-		oracleMux := http.NewServeMux()
-		oracleRoutes := oracleroutes.NewOracleRoutes(s.oracleService, s.logger)
-		oracleRoutes.RegisterRoutes(oracleMux)
-		s.router.PathPrefix("/oracle/").Handler(oracleMux)
-		log.Println("Oracle routes configured")
+	// NOTE: Oracle routes are now served via external knirvoracle binary
+	// Requests to /oracle/ are proxied to the Unix socket (handled separately)
+	if s.oracleManager != nil && s.oracleManager.IsRunning() {
+		log.Println("Oracle manager running (routes served via knirvoracle binary)")
 	}
 
 	if s.rollupService != nil {
@@ -2104,15 +2122,11 @@ func (s *Server) Start() error {
 		}
 	}
 
-	// Start oracle only after the dependent chain services and clients are available.
-	if s.oracleService != nil {
-		if err := s.oracleService.Start(); err != nil {
-			log.Printf("Warning: Failed to start oracle service: %v", err)
-			logging.EmitModuleLog("oracle", "error", fmt.Sprintf("Failed to start: %v", err))
-		} else {
-			log.Println("Oracle service started")
-			logging.EmitModuleLog("oracle", "info", "Oracle service started")
-		}
+	// Oracle is now started via Manager in NewServer
+	// The knirvoracle binary is spawned when root.key is present
+	if s.oracleManager != nil && s.oracleManager.IsRunning() {
+		log.Println("Oracle service started via knirvoracle binary")
+		logging.EmitModuleLog("oracle", "info", "Oracle service started via knirvoracle binary")
 	}
 
 	if s.rollupService != nil {
@@ -2231,12 +2245,12 @@ func (s *Server) Stop() error {
 		}
 	}
 
-	// Stop oracle service (root node only)
-	if s.oracleService != nil {
-		if err := s.oracleService.Stop(); err != nil {
-			log.Printf("Error stopping oracle service: %v", err)
+	// Stop oracle manager (root node only)
+	if s.oracleManager != nil {
+		if err := s.oracleManager.Stop(context.Background()); err != nil {
+			log.Printf("Error stopping oracle manager: %v", err)
 		} else {
-			log.Println("Oracle service stopped")
+			log.Println("Oracle manager stopped")
 		}
 	}
 

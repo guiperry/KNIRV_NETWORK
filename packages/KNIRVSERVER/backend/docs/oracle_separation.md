@@ -721,7 +721,7 @@ oracle-build: deps-go ## Build KNIRVORACLE binary
 	cd $(ORACLE_DIR) && CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o knirvoracle ./cmd/oracle
 	@echo "$(GREEN)KNIRVORACLE build completed$(NC)"
 
-oracle-embed: oracle-build ## Copy KNIRVORACLE to backend/bin
+oracle-embed: oracle-build ## Copy KNIRVORACLE to bin for embedding
 	@echo "$(BLUE)Embedding KNIRVORACLE...$(NC)"
 	mkdir -p $(BACKEND_DIR)/bin
 	cp $(ORACLE_DIR)/knirvoracle $(ORACLE_BINARY)
@@ -730,19 +730,27 @@ oracle-embed: oracle-build ## Copy KNIRVORACLE to backend/bin
 build-full: ... oracle-embed ...
 ```
 
-#### 3.2 Embed Directive
+#### 3.2 Embed Directive (TOP LEVEL)
+
+The embed directive must be at `packages/KNIRVSERVER/main.go` (the top-level application wrapper), not in `backend_server/main.go`. Only the top-level package can embed files from subdirectories.
 
 ```go
-// packages/KNIRVSERVER/backend/cmd/backend_server/main.go
+// packages/KNIRVSERVER/main.go
 
+// (existing embeds)
+var embeddedFiles embed.FS
+var backendBinary []byte
+var knirvgatewayBinary []byte
+var knirvgraphBinary []byte
+var knirvchainBinary []byte
+
+// ADD: Embed the KNIRVORACLE binary for Oracle services
+//
 //go:embed bin/knirvoracle
-var oracleBinary []byte
-
-func init() {
-    // Extract embedded binary at runtime if needed
-    // Or build-time embedding is sufficient
-}
+var knirvoracleBinary []byte
 ```
+
+**Note**: The Manager at `internal/services/knirvoracle/manager.go` resolves and spawns the embedded binary from `bin/knirvoracle` (relative to the embedded KNIRVSERVER binary location).
 
 ## Configuration
 
