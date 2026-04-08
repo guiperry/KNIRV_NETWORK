@@ -5,7 +5,10 @@ go 1.24.0
 toolchain go1.24.1
 
 require (
-	fyne.io/fyne/v2 v2.7.1
+	KNIRVCHAIN v0.0.0
+	KNIRVGRAPH v0.0.0
+	github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY v0.0.0
+	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvoracle v0.0.0
 	github.com/apache/arrow/go/v14 v14.0.2
 	github.com/cilium/ebpf v0.12.3
 	github.com/cloudflare/circl v1.6.3
@@ -41,35 +44,23 @@ require (
 
 replace github.com/knirvcorp/knirvbase/go => ../../KNIRVBASE/go
 
-replace github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY => ../../KNIRVGATEWAY
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY => ../pkg/knirvgateway
 
-replace KNIRVGRAPH => ../../KNIRVGRAPH
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvoracle => ../pkg/knirvoracle
+
+replace KNIRVGRAPH => ../pkg/knirvgraph
+
+replace KNIRVCHAIN => ../pkg/knirvchain
 
 require (
-	fyne.io/systray v1.11.1-0.20250603113521-ca66a66d8b58 // indirect
-	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20251001021608-1fe7b43fc4d6 // indirect
-	github.com/fredbi/uri v1.1.1 // indirect
-	github.com/fyne-io/gl-js v0.2.0 // indirect
-	github.com/fyne-io/glfw-js v0.3.0 // indirect
-	github.com/fyne-io/image v0.1.1 // indirect
-	github.com/fyne-io/oksvg v0.2.0 // indirect
-	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71 // indirect
-	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20240506104042-037f3cc74f2a // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
-	github.com/go-text/render v0.2.0 // indirect
-	github.com/go-text/typesetting v0.2.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
-	github.com/hack-pad/go-indexeddb v0.3.2 // indirect
-	github.com/hack-pad/safejs v0.1.0 // indirect
 	github.com/holiman/uint256 v1.3.2 // indirect
-	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade // indirect
-	github.com/jsummers/gobmp v0.0.0-20230614200233-a9de23ed2e25 // indirect
 	github.com/libp2p/go-libp2p-routing-helpers v0.7.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
-	github.com/nicksnyder/go-i18n/v2 v2.5.1 // indirect
 	github.com/opencontainers/runtime-spec v1.2.0 // indirect
 	github.com/pion/datachannel v1.5.10 // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
@@ -93,16 +84,11 @@ require (
 	github.com/pion/turn/v2 v2.1.6 // indirect
 	github.com/pion/turn/v4 v4.0.0 // indirect
 	github.com/pion/webrtc/v4 v4.0.8 // indirect
-	github.com/rymdport/portal v0.4.2 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
-	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
-	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
-	github.com/yuin/goldmark v1.7.8 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/telemetry v0.0.0-20251111182119-bc8e575c7b54 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260209200024-4cfbd4190f57 // indirect

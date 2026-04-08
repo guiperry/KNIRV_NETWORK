@@ -7,6 +7,7 @@ import (
 
 	"github.com/knirvcorp/knirvbase/go/internal/crypto/pqc"
 	"github.com/knirvcorp/knirvbase/go/pkg/nrv"
+	"github.com/stretchr/testify/require"
 )
 
 func setupTestWriter(t *testing.T) (*NRVWriter, string) {
@@ -27,70 +28,57 @@ func setupTestWriter(t *testing.T) (*NRVWriter, string) {
 	return writer, path
 }
 
-func createTestFrame(id string) *nrv.Frame {
-	return &nrv.Frame{
-		ID:     id,
-		Vector: [12]float32{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12},
-		Seed:   [32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32},
-		Thermo: nrv.ThermoData{TempCelsius: 50.5, VoltageV: 12.0, FreqMHz: 500, FanRPM: 3000},
-		Proof:  []byte("test proof data"),
-	}
-}
-
 func TestNewNRVWriterCreatesFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "test.nrv")
 
 	keyPair, err := pqc.GeneratePQCKeyPair("test-key", "test")
-	if err != nil {
-		t.Fatalf("GeneratePQCKeyPair failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	writer, err := NewNRVWriter(path, keyPair)
-	if err != nil {
-		t.Fatalf("NewNRVWriter failed: %v", err)
-	}
+	require.NoError(t, err)
 	defer writer.Close()
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		t.Error("expected .nrv file to be created")
 	}
 
-	if writer.registry == nil {
-		t.Error("expected registry to be initialized")
-	}
-
-	if writer.registry.Version != 1 {
-		t.Errorf("expected registry version 1, got %d", writer.registry.Version)
-	}
+	require.NotNil(t, writer.registry)
+	require.Equal(t, 1, writer.registry.Version)
 }
 
-func TestAppendFrame(t *testing.T) {
+func TestAppendFrame_NewSignature(t *testing.T) {
 	writer, _ := setupTestWriter(t)
 	defer writer.Close()
 
-	frame := createTestFrame("test-frame-1")
-
-	if err := writer.AppendFrame(frame, true, 0.85); err != nil {
-		t.Fatalf("AppendFrame failed: %v", err)
+	frameID := "test-frame-1"
+	brackets := make([]byte, 80*3)
+	for i := range brackets {
+		brackets[i] = byte(i)
 	}
 
-	if len(writer.registry.Frames) != 1 {
-		t.Errorf("expected 1 frame in registry, got %d", len(writer.registry.Frames))
+	metas := []nrv.BracketMeta{
+		{ID: "b1", Type: nrv.DeltaTypeI, Offset: 0, DriftScore: 0},
+		{ID: "b2", Type: nrv.DeltaTypeP, AnchorID: ptr("b1"), Offset: 80, DriftScore: 0.1},
+		{ID: "b3", Type: nrv.DeltaTypeI, Offset: 160, DriftScore: 0},
 	}
 
-	entry := writer.registry.Frames[0]
-	if entry.ID != "test-frame-1" {
-		t.Errorf("expected frame ID 'test-frame-1', got '%s'", entry.ID)
+	thermo := nrv.ThermoAtmosphere{AvgTempC: 71.5, PeakVoltV: 1.3, ClockMHz: 550}
+	ling := nrv.LinguisticMapping{Token: "test", Unit: "word"}
+
+	err := writer.AppendFrame(frameID, brackets, metas, thermo, ling)
+	require.NoError(t, err)
+
+	require.Len(t, writer.registry.Frames, 1)
+	require.Equal(t, frameID, writer.registry.Frames[0].ID)
+	require.Equal(t, "VALID", writer.registry.Frames[0].Z3.Status)
+
+	if len(writer.registry.PQCManifest.FrameSignatures) == 0 {
+		t.Error("expected signature in PQCManifest")
 	}
 
-	if !entry.Verified {
-		t.Error("expected frame to be verified")
-	}
-
-	if entry.ERGORank != 0.85 {
-		t.Errorf("expected ERGORank 0.85, got %f", entry.ERGORank)
-	}
+	require.Equal(t, 1, writer.registry.GlobalMetrics.ValidFrameCount)
+	require.Equal(t, 3, writer.registry.GlobalMetrics.TotalBracketCount)
 }
 
 func TestAppendMultipleFrames(t *testing.T) {
@@ -99,73 +87,55 @@ func TestAppendMultipleFrames(t *testing.T) {
 
 	frames := []string{"frame-1", "frame-2", "frame-3"}
 	for _, id := range frames {
-		frame := createTestFrame(id)
-		if err := writer.AppendFrame(frame, true, 0.9); err != nil {
-			t.Fatalf("AppendFrame failed for %s: %v", id, err)
-		}
+		buf := make([]byte, 80)
+		metas := []nrv.BracketMeta{{ID: "b1", Type: nrv.DeltaTypeI, Offset: 0}}
+		thermo := nrv.ThermoAtmosphere{AvgTempC: 70, PeakVoltV: 1.2, ClockMHz: 500}
+		err := writer.AppendFrame(id, buf, metas, thermo, nrv.LinguisticMapping{})
+		require.NoError(t, err, "AppendFrame failed for %s", id)
 	}
 
-	if len(writer.registry.Frames) != 3 {
-		t.Errorf("expected 3 frames in registry, got %d", len(writer.registry.Frames))
-	}
-
-	if writer.registry.FrameCount != 3 {
-		t.Errorf("expected FrameCount 3, got %d", writer.registry.FrameCount)
-	}
-
-	if writer.registry.GlobalMetrics.VerifiedFrameCount != 3 {
-		t.Errorf("expected VerifiedFrameCount 3, got %d", writer.registry.GlobalMetrics.VerifiedFrameCount)
-	}
+	require.Len(t, writer.registry.Frames, 3)
+	require.Equal(t, 3, writer.registry.FrameCount)
+	require.Equal(t, 3, writer.registry.GlobalMetrics.ValidFrameCount)
 }
 
 func TestAppendFrameUpdatesMetrics(t *testing.T) {
 	writer, _ := setupTestWriter(t)
 	defer writer.Close()
 
-	frame := createTestFrame("test-frame")
-	if err := writer.AppendFrame(frame, true, 0.75); err != nil {
-		t.Fatalf("AppendFrame failed: %v", err)
-	}
+	frameID := "test-frame"
+	buf := make([]byte, 80)
+	metas := []nrv.BracketMeta{{ID: "b1", Type: nrv.DeltaTypeI, Offset: 0}}
+	thermo := nrv.ThermoAtmosphere{AvgTempC: 75.0, PeakVoltV: 1.5, ClockMHz: 600}
 
-	if writer.registry.GlobalMetrics.ERGORankSum != 0.75 {
-		t.Errorf("expected ERGORankSum 0.75, got %f", writer.registry.GlobalMetrics.ERGORankSum)
-	}
+	err := writer.AppendFrame(frameID, buf, metas, thermo, nrv.LinguisticMapping{})
+	require.NoError(t, err)
+
+	require.Equal(t, 1, writer.registry.GlobalMetrics.ValidFrameCount)
+	require.Equal(t, 1, writer.registry.GlobalMetrics.TotalBracketCount)
 }
 
 func TestAppendFrameWithSignature(t *testing.T) {
 	writer, _ := setupTestWriter(t)
 	defer writer.Close()
 
-	frame := createTestFrame("signed-frame")
-	if err := writer.AppendFrame(frame, true, 0.9); err != nil {
-		t.Fatalf("AppendFrame failed: %v", err)
-	}
+	frameID := "signed-frame"
+	buf := make([]byte, 80)
+	metas := []nrv.BracketMeta{{ID: "b1", Type: nrv.DeltaTypeI, Offset: 0}}
+	thermo := nrv.ThermoAtmosphere{AvgTempC: 70, PeakVoltV: 1.2, ClockMHz: 500}
 
-	if _, ok := writer.registry.PQCManifest.FrameSignatures["signed-frame"]; !ok {
-		t.Error("expected frame signature to be stored")
-	}
-}
+	err := writer.AppendFrame(frameID, buf, metas, thermo, nrv.LinguisticMapping{})
+	require.NoError(t, err)
 
-func TestAppendFrameUnverified(t *testing.T) {
-	writer, _ := setupTestWriter(t)
-	defer writer.Close()
-
-	frame := createTestFrame("unverified-frame")
-	if err := writer.AppendFrame(frame, false, 0.5); err != nil {
-		t.Fatalf("AppendFrame failed: %v", err)
-	}
-
-	if writer.registry.GlobalMetrics.VerifiedFrameCount != 0 {
-		t.Errorf("expected VerifiedFrameCount 0 for unverified frame, got %d", writer.registry.GlobalMetrics.VerifiedFrameCount)
-	}
+	_, ok := writer.registry.PQCManifest.FrameSignatures["signed-frame"]
+	require.True(t, ok, "expected frame signature to be stored")
 }
 
 func TestNRVWriterClose(t *testing.T) {
 	writer, _ := setupTestWriter(t)
 
-	if err := writer.Close(); err != nil {
-		t.Errorf("Close failed: %v", err)
-	}
+	err := writer.Close()
+	require.NoError(t, err)
 }
 
 func TestNewNRVWriterReopensExisting(t *testing.T) {
@@ -173,28 +143,27 @@ func TestNewNRVWriterReopensExisting(t *testing.T) {
 	path := filepath.Join(tmpDir, "test.nrv")
 
 	keyPair, err := pqc.GeneratePQCKeyPair("test-key", "test")
-	if err != nil {
-		t.Fatalf("GeneratePQCKeyPair failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	writer1, err := NewNRVWriter(path, keyPair)
-	if err != nil {
-		t.Fatalf("NewNRVWriter failed: %v", err)
-	}
+	require.NoError(t, err)
 
-	frame := createTestFrame("persisted-frame")
-	if err := writer1.AppendFrame(frame, true, 0.9); err != nil {
-		t.Fatalf("AppendFrame failed: %v", err)
-	}
+	frameID := "persisted-frame"
+	buf := make([]byte, 80)
+	metas := []nrv.BracketMeta{{ID: "b1", Type: nrv.DeltaTypeI, Offset: 0}}
+	thermo := nrv.ThermoAtmosphere{AvgTempC: 70, PeakVoltV: 1.2, ClockMHz: 500}
+
+	err = writer1.AppendFrame(frameID, buf, metas, thermo, nrv.LinguisticMapping{})
+	require.NoError(t, err)
 	writer1.Close()
 
 	writer2, err := NewNRVWriter(path, keyPair)
-	if err != nil {
-		t.Fatalf("NewNRVWriter reopen failed: %v", err)
-	}
+	require.NoError(t, err)
 	defer writer2.Close()
 
-	if len(writer2.registry.Frames) != 1 {
-		t.Errorf("expected 1 frame after reopen, got %d", len(writer2.registry.Frames))
-	}
+	require.Len(t, writer2.registry.Frames, 1)
+}
+
+func ptr(s string) *string {
+	return &s
 }

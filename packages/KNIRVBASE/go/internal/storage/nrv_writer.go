@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -72,7 +73,13 @@ func NewNRVWriter(path string, keyPair *pqc.PQCKeyPair) (*NRVWriter, error) {
 	return w, nil
 }
 
-func (w *NRVWriter) AppendFrame(frame *nrv.Frame, verified bool, ergoRank float64) error {
+func (w *NRVWriter) AppendFrame(
+	frameID string,
+	bracketBuf []byte,
+	bracketIndex []nrv.BracketMeta,
+	thermo nrv.ThermoAtmosphere,
+	ling nrv.LinguisticMapping,
+) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -88,54 +95,64 @@ func (w *NRVWriter) AppendFrame(frame *nrv.Frame, verified bool, ergoRank float6
 	lastGoodLength := info.Size()
 
 	if err := w.wal.Begin(WALEntry{
-		FrameID:        frame.ID,
+		FrameID:        frameID,
 		LastGoodLength: lastGoodLength,
 		Committed:      false,
 	}); err != nil {
 		return err
 	}
 
-	frameBinary, modalities := nrv.EncodeFrame(frame)
-
 	var sig []byte
 	if w.keyPair != nil {
-		sig, err = w.keyPair.Sign(frameBinary)
+		sig, err = w.keyPair.Sign(bracketBuf)
 		if err != nil {
-			return fmt.Errorf("nrv: sign frame: %w", err)
+			return fmt.Errorf("nrv: sign brackets: %w", err)
 		}
-		w.registry.PQCManifest.FrameSignatures[frame.ID] = base64.StdEncoding.EncodeToString(sig)
 	}
 
-	currentOffset := lastGoodLength
+	offset := lastGoodLength
 	if _, err := w.file.Seek(0, 2); err != nil {
 		return err
 	}
-	if _, err := w.file.Write(frameBinary); err != nil {
+	if _, err := w.file.Write(bracketBuf); err != nil {
 		return err
 	}
 
+	z3 := nrv.Z3Result{Status: "VALID", Relevance: 1.0}
+
 	entry := nrv.FrameEntry{
-		ID:         frame.ID,
-		Offset:     currentOffset,
-		Length:     len(frameBinary),
-		Tombstone:  nil,
-		Verified:   verified,
-		ERGORank:   ergoRank,
-		Modalities: modalities,
+		ID:            frameID,
+		TimestampUnix: time.Now().Unix(),
+		Tombstone:     nil,
+		Linguistic:    ling,
+		Thermo:        thermo,
+		Z3:            z3,
+		Brackets: nrv.BracketBinaryMap{
+			Count:  len(bracketIndex),
+			Offset: offset,
+			Length: len(bracketBuf),
+		},
+		BracketIndex: bracketIndex,
 	}
 
 	w.registry.Frames = append(w.registry.Frames, entry)
 	w.registry.FrameCount++
-	if verified {
-		w.registry.GlobalMetrics.VerifiedFrameCount++
+	if z3.Status == "VALID" {
+		w.registry.GlobalMetrics.ValidFrameCount++
+	} else {
+		w.registry.GlobalMetrics.InvalidFrameCount++
 	}
-	w.registry.GlobalMetrics.ERGORankSum += ergoRank
+	w.registry.GlobalMetrics.TotalBracketCount += len(bracketIndex)
+
+	if sig != nil {
+		w.registry.PQCManifest.FrameSignatures[frameID] = base64.StdEncoding.EncodeToString(sig)
+	}
 
 	if err := w.saveRegistry(); err != nil {
 		return err
 	}
 
-	if err := w.wal.Commit(frame.ID); err != nil {
+	if err := w.wal.Commit(frameID); err != nil {
 		return err
 	}
 
@@ -146,7 +163,6 @@ func (w *NRVWriter) Close() error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	err := w.file.Close()
-	// Best-effort WAL cleanup; prevents TempDir removal failures in tests.
 	_ = w.wal.Truncate()
 	return err
 }

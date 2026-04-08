@@ -399,14 +399,14 @@ func (dc *DistributedCollection) pruneOperationLog() {
 	}
 }
 
-// StreamFrames returns a channel of live frames from the underlying NRVStorage.
+// StreamBrackets returns a channel of live brackets from the underlying NRVStorage.
 // Returns an error if the storage backend does not implement NRV streaming.
-func (dc *DistributedCollection) StreamFrames(ctx context.Context, modalityFilter nrv.ModalityType) (<-chan *nrv.Frame, error) {
-	nrvStore, ok := dc.local.store.(*stor.NRVStorage) // type assertion
+func (dc *DistributedCollection) StreamBrackets(ctx context.Context, goldOnly bool) (<-chan *nrv.Bracket, error) {
+	nrvStore, ok := dc.local.store.(*stor.NRVStorage)
 	if !ok {
 		return nil, fmt.Errorf("collection %q: storage backend does not support NRV streaming", dc.Name)
 	}
-	return nrvStore.StreamFrames(ctx, dc.Name, modalityFilter)
+	return nrvStore.StreamBrackets(ctx, dc.Name, goldOnly)
 }
 
 // Helper JSON marshalling/unmarshalling helpers used by the example to avoid importing encoding/json repeatedly

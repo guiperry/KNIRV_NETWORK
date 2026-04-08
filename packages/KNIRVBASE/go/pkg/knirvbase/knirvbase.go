@@ -12,7 +12,6 @@ import (
 	"github.com/knirvcorp/knirvbase/go/pkg/nrv"
 )
 
-// Options contains configuration for the library
 type Options struct {
 	DataDir                   string
 	DistributedEnabled        bool
@@ -20,13 +19,11 @@ type Options struct {
 	DistributedBootstrapPeers []string
 }
 
-// DB is the public wrapper around the internal DistributedDatabase
 type DB struct {
 	db    *db.DistributedDatabase
 	store stor.Storage
 }
 
-// New constructs a DB instance with the provided options and storage
 func New(ctx context.Context, opts Options) (*DB, error) {
 	if opts.DataDir == "" {
 		return nil, fmt.Errorf("DataDir cannot be empty")
@@ -47,7 +44,6 @@ func New(ctx context.Context, opts Options) (*DB, error) {
 	return &DB{db: inner, store: store}, nil
 }
 
-// CreateNetwork creates a network using the underlying manager
 func (d *DB) CreateNetwork(cfg typ.NetworkConfig) (string, error) {
 	if d.db == nil {
 		return "", fmt.Errorf("database not initialized")
@@ -55,17 +51,14 @@ func (d *DB) CreateNetwork(cfg typ.NetworkConfig) (string, error) {
 	return d.db.CreateNetwork(cfg)
 }
 
-// JoinNetwork joins an existing network
 func (d *DB) JoinNetwork(networkID string, bootstrapPeers []string) error {
 	return d.db.JoinNetwork(networkID, bootstrapPeers)
 }
 
-// LeaveNetwork leaves a network
 func (d *DB) LeaveNetwork(networkID string) error {
 	return d.db.LeaveNetwork(networkID)
 }
 
-// Collection returns a collection interface for use by callers
 func (d *DB) Collection(name string) Collection {
 	if d.db == nil {
 		panic("database not initialized")
@@ -77,28 +70,22 @@ func (d *DB) Collection(name string) Collection {
 	return &collectionAdapter{c: c}
 }
 
-// Raw returns the underlying internal DistributedDatabase for advanced usage
 func (d *DB) Raw() *db.DistributedDatabase { return d.db }
 
-// RawCollection returns the underlying internal DistributedCollection for advanced usage
 func (d *DB) RawCollection(name string) *coll.DistributedCollection {
 	return d.db.Collection(name, d.store)
 }
 
-// Shutdown stops the underlying network manager
 func (d *DB) Shutdown() error {
 	return d.db.Shutdown()
 }
 
-// NRVDataset wraps a collection backed by NRVStorage, providing KNIRVHASHER-specific APIs
 type NRVDataset struct {
 	name    string
 	storage *stor.NRVStorage
 	inner   *coll.DistributedCollection
 }
 
-// Dataset returns an NRVDataset for KNIRVHASHER training data access.
-// Panics if the DB was not created with an NRVStorage backend.
 func (d *DB) Dataset(name string) *NRVDataset {
 	nrvStore, ok := d.store.(*stor.NRVStorage)
 	if !ok {
@@ -111,38 +98,22 @@ func (d *DB) Dataset(name string) *NRVDataset {
 	}
 }
 
-// AppendFrame adds a KNIRVHASHER frame to the dataset
-func (ds *NRVDataset) AppendFrame(ctx context.Context, frame *nrv.Frame, verified bool, ergoRank float64) error {
-	doc := map[string]interface{}{
-		"id":        frame.ID,
-		"verified":  verified,
-		"ergo_rank": ergoRank,
-		"payload": map[string]interface{}{
-			"vector": frame.Vector[:],
-			"seed":   frame.Seed[:],
-			"thermo": map[string]float32{
-				"temp_celsius": frame.Thermo.TempCelsius,
-				"voltage_v":    frame.Thermo.VoltageV,
-				"freq_mhz":     frame.Thermo.FreqMHz,
-				"fan_rpm":      frame.Thermo.FanRPM,
-			},
-			"proof": string(frame.Proof),
-		},
-	}
-	return ds.storage.Insert(ctx, ds.name, doc)
+func (ds *NRVDataset) AppendBracket(ctx context.Context, b *nrv.Bracket, thermo nrv.ThermoAtmosphere) error {
+	return ds.storage.AppendBracketDirect(ds.name, b, thermo)
 }
 
-// StreamFrames returns a channel of live frames for ML training consumption
-func (ds *NRVDataset) StreamFrames(ctx context.Context, modalityFilter nrv.ModalityType) (<-chan *nrv.Frame, error) {
-	return ds.storage.StreamFrames(ctx, ds.name, modalityFilter)
+func (ds *NRVDataset) StreamBrackets(ctx context.Context, goldOnly bool) (<-chan *nrv.Bracket, error) {
+	return ds.storage.StreamBrackets(ctx, ds.name, goldOnly)
 }
 
-// GetModality returns raw bytes for one modality from one frame (zero-copy from mmap)
-func (ds *NRVDataset) GetModality(ctx context.Context, frameID string, mod nrv.ModalityType) ([]byte, error) {
-	return ds.storage.GetModality(ctx, ds.name, frameID, mod)
+func (ds *NRVDataset) GetFrame(ctx context.Context, frameID string) (*nrv.FrameEntry, []*nrv.Bracket, error) {
+	return ds.storage.GetFrame(ctx, ds.name, frameID)
 }
 
-// NewNRV creates a DB backed by NRVStorage for dataset workloads
+func (ds *NRVDataset) SetLinguistic(token, unit string) error {
+	return ds.storage.SetLinguistic(ds.name, token, unit)
+}
+
 func NewNRV(ctx context.Context, opts Options, keyPair *pqc.PQCKeyPair) (*DB, error) {
 	store := stor.NewNRVStorage(opts.DataDir, keyPair)
 	dopts := db.DistributedDbOptions{}
@@ -156,7 +127,6 @@ func NewNRV(ctx context.Context, opts Options, keyPair *pqc.PQCKeyPair) (*DB, er
 	return &DB{db: inner, store: store}, nil
 }
 
-// Collection is a thin interface representing collection operations consumers need
 type Collection interface {
 	Insert(ctx context.Context, doc map[string]interface{}) (map[string]interface{}, error)
 	Update(ctx context.Context, id string, update map[string]interface{}) (int, error)
@@ -168,7 +138,6 @@ type Collection interface {
 	ForceSync() error
 }
 
-// collectionAdapter adapts internal DistributedCollection to the Collection interface
 type collectionAdapter struct{ c *coll.DistributedCollection }
 
 func (a *collectionAdapter) Insert(ctx context.Context, doc map[string]interface{}) (map[string]interface{}, error) {

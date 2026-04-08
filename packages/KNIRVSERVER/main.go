@@ -36,26 +36,6 @@ var embeddedFiles embed.FS
 //go:embed bin/backend_server
 var backendBinary []byte
 
-// Embed the KNIRVGATEWAY binary for P2P TURN/Tunnel services
-//
-//go:embed bin/knirvgateway
-var knirvgatewayBinary []byte
-
-// Embed the KNIRVGRAPH binary for knowledge graph and graphchain
-//
-//go:embed bin/knirvgraph
-var knirvgraphBinary []byte
-
-// Embed the KNIRVCHAIN binary for blockchain and mining
-//
-//go:embed bin/knirvchain
-var knirvchainBinary []byte
-
-// Embed the KNIRVORACLE binary for oracle services (root node only)
-//
-//go:embed bin/knirvoracle
-var knirvoracleBinary []byte
-
 // Embed the root key (present only on root-node builds; absent on client builds).
 // The build tag "rootnode" is used to conditionally include this file via
 // the go:embed directive below.  If the file is absent the byte slice stays nil.
@@ -305,10 +285,6 @@ func extractBinaries() (string, error) {
 	}
 	bins := []entry{
 		{"backend_server", backendBinary},
-		{"knirvgateway", knirvgatewayBinary},
-		{"knirvgraph", knirvgraphBinary},
-		{"knirvchain", knirvchainBinary},
-		{"knirvoracle", knirvoracleBinary},
 	}
 
 	for _, b := range bins {

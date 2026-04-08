@@ -1,6 +1,6 @@
-# KNIRVBASE Upgrade: `.nrv` (Noted Resolution Vector) Format
+# KNIRVBASE Upgrade: `.nrv` Format — Phase 2 (ASIC-Native Spec)
 
-**Status:** Implemented — Phases 1-6 complete. Core storage engine, public API, KNIRVQL extensions, and tombstone system are functional.
+**Status:** Phase 2 — Building on fully implemented Phase 1 foundation.
 **Module:** `github.com/knirvcorp/knirvbase/go` (Go 1.24.6)
 **Root:** `packages/KNIRVBASE/go/` (all paths below are relative to this root)
 
@@ -8,76 +8,61 @@
 
 ## 1. Purpose & Scope
 
-This plan transitions KNIRVBASE's storage layer from per-document `.json` files to a unified binary dataset container called **`.nrv` (Noted Resolution Vector)**. The `.nrv` format is designed for:
+This document describes Phase 2 of the `.nrv` upgrade. **Phase 1 is fully implemented** and operational. Phase 2 restructures the data model around the ASIC validation pipeline, redefines the Frame/Bracket hierarchy, adds a 1-second Ticker-driven flush cycle, introduces Arrow Flight streaming, and extends KNIRVQL with hardware-aware filters.
 
-- **Zero-copy streaming** of KNIRVHASHER training frames via `mmap`
-- **Append-only integrity** with Dilithium-3 PQC signatures per frame
-- **CRDT-compatible versioning** via vector clock deltas for incremental P2P sync
-- **Hardware telemetry correlation**: pairing SHA-256 ASIC thermodynamics (from Antminer S3) with formal Z3-verified seeds
+### 1.1 Terminology Change (Critical)
 
-This upgrade does **not** remove existing KNIRVBASE infrastructure. It adds a parallel storage path (`NRVStorage`) alongside `FileStorage`. The existing `Storage` interface, `DistributedDatabase`, KNIRVQL parser, CRDT resolver, PQC crypto, and network layers are **reused, not replaced**.
+> **Phase 1 used the term "Frame" to mean a single data record.** That term has been reassigned. All Phase 1 "Frames" are now called **Brackets**.
+
+| Term | Phase 1 Meaning | Phase 2 Meaning |
+|---|---|---|
+| **Frame** | Single multimodal data record | **1-second temporal snapshot** — the linguistic container holding N brackets and environmental metadata |
+| **Bracket** | *(did not exist)* | **80-byte binary record** representing one completed ASIC task (LSH projections + Golden Seed) |
+
+Every Go type, method, and KNIRVQL keyword that previously used "Frame" in the single-record sense must be migrated to "Bracket". The word "Frame" is reserved exclusively for the 1-second temporal unit going forward.
 
 ---
 
-## 2. Current State Inventory
+## 2. Phase 1 Baseline (Already Implemented — Do Not Rewrite)
 
-### 2.1 What Exists (Do Not Rewrite)
+The following files are complete and form the foundation for Phase 2. Phase 2 extends them; it does not replace them.
 
-| File | Package | Role |
-|---|---|---|
-| `internal/storage/storage.go` | `storage` | `FileStorage` — per-doc `.json` + blob refs, Kyber/Dilithium signing |
-| `internal/storage/index.go` | `storage` | `IndexManager` — B-Tree, HNSW, Tag indexes |
-| `internal/types/types.go` | `types` | `DistributedDocument`, `CRDTOperation`, `MemoryCategory`, `NetworkConfig` |
-| `internal/crypto/pqc/keys.go` | `pqc` | `PQCKeyPair` wrapping Kyber-768 + Dilithium-3 |
-| `internal/crypto/pqc/dilithium.go` | `pqc` | `DilithiumSign`, `DilithiumVerify` via `circl/sign/dilithium/mode3` |
-| `internal/crypto/pqc/kyber.go` | `pqc` | `KyberEncrypt`, `KyberDecrypt` via `circl/kem/kyber/kyber768` |
-| `internal/crypto/pqc/encryption.go` | `pqc` | `EncryptionManager` with field-level Kyber encryption |
-| `internal/clock/vector_clock.go` | `clock` | `VectorClock`, `Compare`, `Merge`, `Increment` |
-| `internal/resolver/crdt_resolver.go` | `resolver` | LWW + vector-clock CRDT conflict resolution (`ResolveConflict`) |
-| `internal/collection/distributed_collection.go` | `collection` | `DistributedCollection`, `LocalCollection` |
-| `internal/database/distributed_database.go` | `distributed` | `DistributedDatabase`, `NewDistributedDatabase` |
-| `internal/query/knirvql.go` | `query` | KNIRVQL parser: GET/SET/DELETE/CREATE INDEX/DROP |
-| `internal/query/optimizer.go` | `query` | `QueryOptimizer`, `QueryPlan` |
-| `internal/embedding/` | `embedding` | TF-IDF, LSA, `Embedder` |
-| `internal/indexing/hnsw.go` | `indexing` | HNSW vector index |
-| `internal/network/network_manager.go` | `network` | P2P `NetworkManager` |
-| `internal/auth/auth.go` | `auth` | JWT-based auth |
-| `internal/monitoring/monitoring.go` | `monitoring` | Prometheus metrics |
-| `internal/tracing/tracing.go` | `tracing` | OpenTelemetry/Jaeger |
-| `pkg/knirvbase/knirvbase.go` | `knirvbase` | Public API: `DB`, `Collection`, `New` |
+| File | Package | Status | Role |
+|---|---|---|---|
+| `pkg/nrv/spec.go` | `nrv` | ✅ Done | Magic bytes, alignment constants, modality type enum |
+| `pkg/nrv/frame.go` | `nrv` | ✅ Done — **will be extended** | `FrameEntry`, `GlobalMetrics`, `Registry`, `Frame`, `ThermoData` |
+| `pkg/nrv/codec.go` | `nrv` | ✅ Done — **will be extended** | Header encode/decode, `EncodeFrame` → becomes `EncodeBracket` |
+| `internal/storage/nrv_writer.go` | `storage` | ✅ Done — **will be extended** | `NRVWriter`, `AppendFrame` → `AppendBracket`, flock, WAL |
+| `internal/storage/nrv_reader.go` | `storage` | ✅ Done — **will be extended** | `NRVReader`, mmap, `GetFrame`, `StreamFrames` → `StreamBrackets` |
+| `internal/storage/nrv_compactor.go` | `storage` | ✅ Done — **will be updated** | 20% tombstone threshold Rewrite-and-Swap |
+| `internal/storage/wal.go` | `storage` | ✅ Done | WAL for crash recovery |
+| `internal/storage/nrv_storage.go` | `storage` | ✅ Done — **will be updated** | `NRVStorage` implementing `Storage` interface |
+| `internal/query/knirvql.go` | `query` | ✅ Done — **will be extended** | `GET MEMORY.MODALITY(type)` syntax |
+| `pkg/knirvbase/knirvbase.go` | `knirvbase` | ✅ Done — **will be updated** | `NewNRV`, `NRVDataset`, `AppendFrame`, `StreamFrames`, `GetModality` |
+| `internal/storage/storage.go` | `storage` | ✅ Done — unchanged | `FileStorage`, `Storage` interface |
+| `internal/network/network_manager.go` | `network` | ✅ Done — **will be extended** | P2P `NetworkManager` |
 
-### 2.2 What Must Be Created (This Upgrade)
+### 2.1 New Files Required (Phase 2)
 
 | File | Package | Role |
 |---|---|---|
-| `pkg/nrv/spec.go` | `nrv` | Magic bytes, alignment constants, modality type enum |
-| `pkg/nrv/frame.go` | `nrv` | `FrameEntry`, `GlobalMetrics`, `Registry` structs (JSON-serializable) |
-| `pkg/nrv/codec.go` | `nrv` | `EncodeHeader`, `DecodeHeader` — binary header encode/decode |
-| `internal/storage/nrv_writer.go` | `storage` | `NRVWriter` — flock, atomic append, WAL |
-| `internal/storage/nrv_reader.go` | `storage` | `NRVReader` — `mmap` random access, modality filtering |
-| `internal/storage/nrv_compactor.go` | `storage` | `Compactor` — background rewrite-and-swap goroutine |
-| `internal/storage/wal.go` | `storage` | `WAL` — write-ahead log for crash recovery |
-| `internal/storage/nrv_storage.go` | `storage` | `NRVStorage` implementing the `Storage` interface |
-
-### 2.3 What Must Be Modified (This Upgrade)
-
-| File | Change |
-|---|---|
-| `internal/query/knirvql.go` | Add `GET MEMORY.MODALITY(type)` syntax, `QueryModality` type, `ModalityFilter` |
-| `internal/collection/distributed_collection.go` | Add `StreamFrames(ctx, modalityType) (<-chan nrv.FrameEntry, error)` method |
-| `pkg/knirvbase/knirvbase.go` | Add `Dataset(name string) *NRVDataset` public API |
+| `internal/storage/nrv_ticker.go` | `storage` | `FrameTicker` — 1-second buffer goroutine, flushes complete frames |
+| `internal/network/flight_server.go` | `network` | Apache Arrow Flight producer, Gold/Research dual-stream |
+| `pkg/nrv/bracket.go` | `nrv` | `Bracket`, `BracketMeta`, `DeltaType` — the 80-byte binary unit |
 
 ---
 
-## 3. `.nrv` Binary Format Specification
+## 3. Updated `.nrv` Binary Format Specification
+
+The file layout is unchanged at the structural level. What changes is the **semantic interpretation** of both chunks.
 
 ### 3.1 File Layout
 
 ```
-[Header 12B] [Registry Chunk — JSON + padding] [Binary Buffer — 8B-aligned frames]
+[Header 12B] [Chunk 0: Resolution Registry — JSON + 5MB padding] [Chunk 1: Multi-Modal Buffer — 80-byte Brackets, 8B-aligned]
 ```
 
-### 3.2 Header (12 bytes, fixed offset 0x00)
+### 3.2 Global Header (12 bytes — unchanged)
 
 | Offset | Size | Field | Value |
 |---|---|---|---|
@@ -85,13 +70,13 @@ This upgrade does **not** remove existing KNIRVBASE infrastructure. It adds a pa
 | `0x04` | 4 B | Version | `0x00000001` (little-endian uint32) |
 | `0x08` | 4 B | TotalLength | uint32, full file size in bytes (little-endian) |
 
-The header is **always the last field written** in any append or compaction. Readers validate the magic bytes before proceeding.
+Header is always written last. Readers validate magic before proceeding.
 
-### 3.3 Registry Chunk (Chunk 0 — JSON, variable length)
+### 3.3 Chunk 0: Resolution Registry (JSON)
 
-Immediately follows the header at offset `0x0C`. Pre-allocated with **5 MB of whitespace padding** on first write to support in-place registry updates without shifting binary data.
+The registry now indexes **Frames** (1-second windows), not individual records. Each frame entry maps to a contiguous slice of 80-byte brackets in Chunk 1.
 
-The registry is a JSON object serialized as UTF-8:
+**Registry JSON schema:**
 
 ```json
 {
@@ -99,848 +84,990 @@ The registry is a JSON object serialized as UTF-8:
   "dataset_id": "<uuid>",
   "dataset_version": "<vector-clock-json>",
   "chunk0_length": 5242880,
-  "frame_count": 1024,
-  "tombstone_count": 12,
+  "frame_count": 60,
+  "tombstone_count": 3,
   "global_metrics": { ... },
   "frames": [ ... ],
   "pqc_manifest": { ... }
 }
 ```
 
-**`global_metrics` object:**
+**Updated `global_metrics` object:**
 
 ```json
 {
-  "feature_min": [float32 × 12],
-  "feature_max": [float32 × 12],
-  "feature_mean": [float32 × 12],
-  "feature_std": [float32 × 12],
-  "thermo_correlation_coefficient": float64,
-  "ergo_rank_sum": float64,
-  "verified_frame_count": int,
-  "compacted_at": "RFC3339 timestamp or null"
+  "avg_temp_c_mean": 71.4,
+  "avg_temp_c_max": 89.2,
+  "peak_volt_v_mean": 1.35,
+  "clock_mhz_mean": 550.0,
+  "total_bracket_count": 18432,
+  "valid_frame_count": 57,
+  "invalid_frame_count": 3,
+  "compacted_at": "2026-04-08T14:22:00Z"
 }
 ```
 
-**Each entry in `frames` array:**
+**Each entry in `frames` array (one per 1-second window):**
 
 ```json
 {
   "id": "<uuid>",
-  "offset": 5242892,
-  "length": 256,
+  "timestamp_unix": 1712580120,
   "tombstone": null,
-  "verified": true,
-  "ergo_rank": 0.87,
-  "modalities": {
-    "vector": { "offset": 0, "length": 48 },
-    "seed":   { "offset": 48, "length": 32 },
-    "thermo": { "offset": 80, "length": 16 },
-    "proof":  { "offset": 96, "length": 160 }
-  }
+  "linguistic": {
+    "token": "resolution",
+    "unit": "word"
+  },
+  "thermo": {
+    "avg_temp_c": 71.4,
+    "peak_volt_v": 1.37,
+    "clock_mhz": 553.0
+  },
+  "z3": {
+    "status": "VALID",
+    "relevance": 0.92
+  },
+  "brackets": {
+    "count": 307,
+    "offset": 5242892,
+    "length": 24560
+  },
+  "bracket_index": [
+    { "id": "<uuid>", "type": "I", "anchor_id": null, "offset": 0,  "drift_score": 0.0 },
+    { "id": "<uuid>", "type": "P", "anchor_id": "<I-bracket-uuid>", "offset": 80, "drift_score": 0.014 }
+  ]
 }
 ```
 
-- `offset` is the **absolute byte offset** from the start of the file.
-- `tombstone` is `null` when the frame is live; set to a Unix nanosecond timestamp (int64) upon deletion.
-- `modalities` maps modality names to relative offsets within that frame's binary segment.
+Field notes:
+- `brackets.offset` — absolute byte offset in the file where this frame's bracket array starts.
+- `brackets.length` — `count × 80` (before delta compression) or actual compressed byte length.
+- `bracket_index` — per-bracket delta metadata: `type` is `I` (intra/anchor) or `P` (predicted/delta), `anchor_id` points to the I-bracket this P-bracket diffs against, `drift_score` is the Euclidean distance used to trigger new I-brackets.
+- `tombstone` — `null` when live; Unix nanosecond int64 when deleted.
+- `z3.status` — `VALID` or `INVALID`; controls Gold-stream eligibility.
 
-**`pqc_manifest` object:**
+**`pqc_manifest` — per-frame Dilithium-3 signatures (unchanged schema):**
 
 ```json
 {
   "key_id": "<PQCKeyPair.ID>",
   "algorithm": "Dilithium-3",
-  "file_signature": "<base64-encoded Dilithium-3 signature of entire file excluding this field>",
+  "file_signature": "<base64>",
   "frame_signatures": {
-    "<frame-id>": "<base64-encoded Dilithium-3 signature of that frame's binary segment>"
+    "<frame-id>": "<base64 Dilithium-3 signature of this frame's bracket binary>"
   }
 }
 ```
 
-### 3.4 Binary Buffer (Chunk 1 — 8-byte-aligned frames)
+### 3.4 Chunk 1: Multi-Modal Buffer (80-byte Brackets)
 
-Starts immediately after the 5 MB registry region. Each frame's binary data consists of its modalities laid out contiguously, each **8-byte aligned** (pad with zero bytes as needed).
+Each bracket is exactly **80 bytes**, aligned to 8-byte boundaries. All brackets for a given frame are stored contiguously.
 
-**Modality layouts:**
+**Bracket binary layout:**
 
-| Modality | Size | Contents |
-|---|---|---|
-| `vector` | 48 B | 12 × float32 (little-endian) = feature vector from KNIRVHASHER |
-| `seed` | 32 B | Raw 32-byte candidate SHA-256 seed from ASIC |
-| `thermo` | 16 B | 4 × float32: CPU temp (°C), voltage (V), frequency (MHz), fan RPM |
-| `proof` | variable (8B-aligned) | UTF-8 SMT-LIB2 trace from Z3; length stored in registry |
+| Section | Offset | Size | Description |
+|---|---|---|---|
+| LSH Salt | `0x00` | 4 B | Version field used as the LSH forest seed (uint32 LE) |
+| Projections A–D | `0x04` | 32 B | First half of 128-bit LSH projections (8 × float32 LE) |
+| Projections E–H | `0x24` | 32 B | Second half of 128-bit LSH projections (8 × float32 LE) |
+| Metadata | `0x44` | 8 B | Sub-second timestamp (uint32 LE, microseconds) + ASIC Loop Count (uint32 LE, range 1–21) |
+| Golden Seed | `0x4C` | 4 B | Solved nonce (uint32 LE) — the result of the ASIC pass |
 
-Total frame size = `align8(48 + 32 + 16 + len(proof))`. Minimum frame with empty proof = 96 bytes.
+Total: 4 + 32 + 32 + 8 + 4 = **80 bytes**.
+
+**Delta encoding (P-Brackets):** For P-brackets, bytes `0x04–0x43` (Projections A–H, 64 bytes) store the **XOR-diff** against the anchor I-bracket's projection bytes. LSH Salt, Metadata, and Golden Seed are always stored as absolute values regardless of bracket type.
 
 ---
 
-## 4. Implementation: Phase 1 — Public Spec (`pkg/nrv`)
+## 4. Phase 2 Implementation
 
-**Create directory:** `pkg/nrv/`
+### 4.1 New Public Types (`pkg/nrv/bracket.go`)
 
-### 4.1 `pkg/nrv/spec.go`
+Create `pkg/nrv/bracket.go`:
 
 ```go
 package nrv
 
-// Magic bytes and version
-const (
-    Magic   uint32 = 0x4E525621 // "NRV!"
-    Version uint32 = 1
-    Alignment       = 8                // all binary segments must be 8-byte aligned
-    RegistryPadding = 5 * 1024 * 1024 // 5 MB pre-allocated for JSON registry
-    HeaderSize      = 12
-)
-
-// ModalityType identifies a data modality within a frame
-type ModalityType string
+// DeltaType identifies whether a bracket is a full snapshot or a delta.
+type DeltaType string
 
 const (
-    ModalityVector ModalityType = "vector"
-    ModalitySeed   ModalityType = "seed"
-    ModalityThermo ModalityType = "thermo"
-    ModalityProof  ModalityType = "proof"
+    DeltaTypeI DeltaType = "I" // Intra — absolute values
+    DeltaTypeP DeltaType = "P" // Predicted — XOR-delta against anchor
 )
 
-// Align8 returns n rounded up to the nearest 8-byte boundary
-func Align8(n int) int {
-    return (n + 7) &^ 7
+// BracketSize is the fixed size of every bracket in the binary buffer.
+const BracketSize = 80
+
+// Bracket is the in-memory representation of a single 80-byte ASIC record.
+type Bracket struct {
+    ID          string    // registry-only; not stored in binary
+    LSHSalt     uint32    // bytes 0x00–0x03
+    Projections [64]byte  // bytes 0x04–0x43 (absolute or XOR-diff for P-brackets)
+    SubSecondUS uint32    // bytes 0x44–0x47: sub-second timestamp in microseconds
+    ASICLoops   uint32    // bytes 0x48–0x4B: loop count (1–21)
+    GoldenSeed  uint32    // bytes 0x4C–0x4F: solved nonce
+}
+
+// BracketMeta is the registry entry for one bracket within a frame.
+type BracketMeta struct {
+    ID         string    `json:"id"`
+    Type       DeltaType `json:"type"`
+    AnchorID   *string   `json:"anchor_id"` // nil for I-brackets
+    Offset     int       `json:"offset"`    // byte offset relative to frame start in Chunk 1
+    DriftScore float64   `json:"drift_score"`
+}
+
+// LinguisticMapping describes the linguistic unit this 1-second frame represents.
+type LinguisticMapping struct {
+    Token string `json:"token"`
+    Unit  string `json:"unit"` // "syllable" or "word"
+}
+
+// ThermoAtmosphere is the hardware state snapshot for a 1-second frame.
+type ThermoAtmosphere struct {
+    AvgTempC  float32 `json:"avg_temp_c"`
+    PeakVoltV float32 `json:"peak_volt_v"`
+    ClockMHz  float32 `json:"clock_mhz"`
+}
+
+// Z3Result holds the formal verification outcome for a frame.
+type Z3Result struct {
+    Status    string  `json:"status"`    // "VALID" or "INVALID"
+    Relevance float64 `json:"relevance"` // correlation score to adjacent frames
+}
+
+// BracketBinaryMap describes where this frame's bracket array lives in Chunk 1.
+type BracketBinaryMap struct {
+    Count  int   `json:"count"`
+    Offset int64 `json:"offset"` // absolute file offset
+    Length int   `json:"length"` // count × 80 (or actual compressed size)
 }
 ```
 
-### 4.2 `pkg/nrv/frame.go`
+### 4.2 Updates to `pkg/nrv/frame.go`
+
+The existing `FrameEntry` struct must be replaced with a schema that models the 1-second frame. The old `Frame` struct (single-record in-memory type) becomes `Bracket`.
+
+**Remove** the existing `Frame` struct (single-record type — now represented by `Bracket` in `bracket.go`).
+
+**Replace** `FrameEntry` with:
 
 ```go
-package nrv
-
-import "github.com/knirvcorp/knirvbase/go/internal/clock"
-
-// ModalityIndex maps a modality type to its relative offset and length within a frame's binary segment
-type ModalityIndex struct {
-    Offset int `json:"offset"`
-    Length int `json:"length"`
-}
-
-// FrameEntry is one entry in the Chunk 0 Registry
+// FrameEntry is one entry in the Chunk 0 Registry — represents a 1-second window.
 type FrameEntry struct {
-    ID         string                     `json:"id"`
-    Offset     int64                      `json:"offset"`  // absolute file offset
-    Length     int                        `json:"length"`  // total binary length of this frame
-    Tombstone  *int64                     `json:"tombstone"` // nil = live; Unix nanoseconds = deleted
-    Verified   bool                       `json:"verified"`
-    ERGORank   float64                    `json:"ergo_rank"`
-    Modalities map[ModalityType]ModalityIndex `json:"modalities"`
+    ID            string            `json:"id"`
+    TimestampUnix int64             `json:"timestamp_unix"`
+    Tombstone     *int64            `json:"tombstone"`
+    Linguistic    LinguisticMapping `json:"linguistic"`
+    Thermo        ThermoAtmosphere  `json:"thermo"`
+    Z3            Z3Result          `json:"z3"`
+    Brackets      BracketBinaryMap  `json:"brackets"`
+    BracketIndex  []BracketMeta     `json:"bracket_index"`
 }
+```
 
-// GlobalMetrics holds aggregate statistics for the entire dataset
+**Replace** `GlobalMetrics` with:
+
+```go
 type GlobalMetrics struct {
-    FeatureMin                   [12]float32 `json:"feature_min"`
-    FeatureMax                   [12]float32 `json:"feature_max"`
-    FeatureMean                  [12]float32 `json:"feature_mean"`
-    FeatureStd                   [12]float32 `json:"feature_std"`
-    ThermoCorrelationCoefficient float64     `json:"thermo_correlation_coefficient"`
-    ERGORankSum                  float64     `json:"ergo_rank_sum"`
-    VerifiedFrameCount           int         `json:"verified_frame_count"`
-    CompactedAt                  *string     `json:"compacted_at"` // RFC3339 or nil
-}
-
-// PQCManifest holds the dataset-level Dilithium-3 signature and per-frame signatures
-type PQCManifest struct {
-    KeyID           string            `json:"key_id"`
-    Algorithm       string            `json:"algorithm"`
-    FileSignature   string            `json:"file_signature"`   // base64
-    FrameSignatures map[string]string `json:"frame_signatures"` // frameID -> base64
-}
-
-// Registry is the full Chunk 0 JSON object
-type Registry struct {
-    Version        int                    `json:"version"`
-    DatasetID      string                 `json:"dataset_id"`
-    DatasetVersion clock.VectorClock      `json:"dataset_version"`
-    Chunk0Length   int                    `json:"chunk0_length"`
-    FrameCount     int                    `json:"frame_count"`
-    TombstoneCount int                    `json:"tombstone_count"`
-    GlobalMetrics  GlobalMetrics          `json:"global_metrics"`
-    Frames         []FrameEntry           `json:"frames"`
-    PQCManifest    PQCManifest            `json:"pqc_manifest"`
-}
-
-// Frame holds the decoded binary data for a single frame (in-memory representation)
-type Frame struct {
-    ID      string
-    Vector  [12]float32    // 48 bytes
-    Seed    [32]byte       // 32 bytes
-    Thermo  ThermoData     // 16 bytes
-    Proof   []byte         // variable length UTF-8 SMT-LIB2 trace
-}
-
-// ThermoData contains hardware telemetry captured during ASIC hashing
-type ThermoData struct {
-    TempCelsius float32 // CPU temperature
-    VoltageV    float32 // supply voltage
-    FreqMHz     float32 // clock frequency
-    FanRPM      float32 // fan speed
+    AvgTempCMean       float32  `json:"avg_temp_c_mean"`
+    AvgTempCMax        float32  `json:"avg_temp_c_max"`
+    PeakVoltVMean      float32  `json:"peak_volt_v_mean"`
+    ClockMHzMean       float32  `json:"clock_mhz_mean"`
+    TotalBracketCount  int      `json:"total_bracket_count"`
+    ValidFrameCount    int      `json:"valid_frame_count"`
+    InvalidFrameCount  int      `json:"invalid_frame_count"`
+    CompactedAt        *string  `json:"compacted_at"`
 }
 ```
 
-### 4.3 `pkg/nrv/codec.go`
+**Keep** `PQCManifest`, `Registry`, and `ThermoData` (used elsewhere) — `ThermoData` can remain for legacy compatibility but is superseded by `ThermoAtmosphere` in frame registry entries.
+
+### 4.3 Updates to `pkg/nrv/codec.go`
+
+**Add** `EncodeBracket` and `DecodeBracket` alongside the existing `EncodeFrame`/`DecodeHeader`:
 
 ```go
-package nrv
-
-import (
-    "encoding/binary"
-    "fmt"
-    "io"
-)
-
-// Header is the decoded 12-byte file header
-type Header struct {
-    Magic       uint32
-    Version     uint32
-    TotalLength uint32
+// EncodeBracket serializes a Bracket to its 80-byte wire format.
+func EncodeBracket(b *Bracket) [BracketSize]byte {
+    var buf [BracketSize]byte
+    binary.LittleEndian.PutUint32(buf[0:4], b.LSHSalt)
+    copy(buf[4:68], b.Projections[:])
+    binary.LittleEndian.PutUint32(buf[68:72], b.SubSecondUS)
+    binary.LittleEndian.PutUint32(buf[72:76], b.ASICLoops)
+    binary.LittleEndian.PutUint32(buf[76:80], b.GoldenSeed)
+    return buf
 }
 
-// EncodeHeader writes a 12-byte header to w (little-endian)
-func EncodeHeader(w io.Writer, h Header) error {
-    buf := make([]byte, HeaderSize)
-    binary.LittleEndian.PutUint32(buf[0:4], h.Magic)
-    binary.LittleEndian.PutUint32(buf[4:8], h.Version)
-    binary.LittleEndian.PutUint32(buf[8:12], h.TotalLength)
-    _, err := w.Write(buf)
-    return err
+// DecodeBracket parses an 80-byte buffer into a Bracket.
+func DecodeBracket(buf [BracketSize]byte) Bracket {
+    var b Bracket
+    b.LSHSalt = binary.LittleEndian.Uint32(buf[0:4])
+    copy(b.Projections[:], buf[4:68])
+    b.SubSecondUS = binary.LittleEndian.Uint32(buf[68:72])
+    b.ASICLoops = binary.LittleEndian.Uint32(buf[72:76])
+    b.GoldenSeed = binary.LittleEndian.Uint32(buf[76:80])
+    return b
 }
 
-// DecodeHeader reads a 12-byte header from r and validates the magic bytes
-func DecodeHeader(r io.Reader) (Header, error) {
-    buf := make([]byte, HeaderSize)
-    if _, err := io.ReadFull(r, buf); err != nil {
-        return Header{}, fmt.Errorf("nrv: read header: %w", err)
+// XORProjections returns the XOR-diff of `current` projections against `anchor` projections.
+// Used to produce P-bracket payloads.
+func XORProjections(current, anchor [64]byte) [64]byte {
+    var diff [64]byte
+    for i := range diff {
+        diff[i] = current[i] ^ anchor[i]
     }
-    h := Header{
-        Magic:       binary.LittleEndian.Uint32(buf[0:4]),
-        Version:     binary.LittleEndian.Uint32(buf[4:8]),
-        TotalLength: binary.LittleEndian.Uint32(buf[8:12]),
-    }
-    if h.Magic != Magic {
-        return Header{}, fmt.Errorf("nrv: invalid magic bytes: got 0x%X, want 0x%X", h.Magic, Magic)
-    }
-    return h, nil
+    return diff
 }
 
-// EncodeFrame serializes a Frame to a byte slice with 8-byte alignment enforced
-func EncodeFrame(f *Frame) ([]byte, ModalityMap) {
-    proofAligned := Align8(len(f.Proof))
-    total := 48 + 32 + 16 + proofAligned
-    buf := make([]byte, total)
-
-    // vector: 12 × float32 little-endian
-    for i, v := range f.Vector {
-        binary.LittleEndian.PutUint32(buf[i*4:], math.Float32bits(v))
-    }
-    // seed: 32 raw bytes
-    copy(buf[48:], f.Seed[:])
-    // thermo: 4 × float32 little-endian
-    binary.LittleEndian.PutUint32(buf[80:], math.Float32bits(f.Thermo.TempCelsius))
-    binary.LittleEndian.PutUint32(buf[84:], math.Float32bits(f.Thermo.VoltageV))
-    binary.LittleEndian.PutUint32(buf[88:], math.Float32bits(f.Thermo.FreqMHz))
-    binary.LittleEndian.PutUint32(buf[92:], math.Float32bits(f.Thermo.FanRPM))
-    // proof: variable UTF-8 (remaining bytes zero-padded by make)
-    copy(buf[96:], f.Proof)
-
-    modalities := ModalityMap{
-        ModalityVector: ModalityIndex{Offset: 0, Length: 48},
-        ModalitySeed:   ModalityIndex{Offset: 48, Length: 32},
-        ModalityThermo: ModalityIndex{Offset: 80, Length: 16},
-        ModalityProof:  ModalityIndex{Offset: 96, Length: len(f.Proof)},
-    }
-    return buf, modalities
-}
-
-// ModalityMap is a shorthand type used during encoding
-type ModalityMap = map[ModalityType]ModalityIndex
-```
-
-**Note:** `EncodeFrame` requires `"math"` import for `math.Float32bits`. Add this import.
-
----
-
-## 5. Implementation: Phase 2 — Storage Engine (`internal/storage`)
-
-### 5.1 `internal/storage/wal.go` — Write-Ahead Log
-
-The WAL is a sidecar file named `<dataset>.nrv.wal`. It records in-flight append operations so that crash recovery can truncate the `.nrv` file to the last signed length.
-
-```go
-package storage
-
-import (
-    "encoding/json"
-    "os"
-    "sync"
-)
-
-// WALEntry records a single in-flight append
-type WALEntry struct {
-    FrameID       string `json:"frame_id"`
-    LastGoodLength int64  `json:"last_good_length"` // file length before this append
-    Committed     bool   `json:"committed"`
-}
-
-// WAL manages the write-ahead log file
-type WAL struct {
-    path string
-    mu   sync.Mutex
-}
-
-func NewWAL(path string) *WAL { return &WAL{path: path} }
-
-// Begin writes a WALEntry for a frame about to be appended.
-// Call Commit after the append and registry update are complete.
-func (w *WAL) Begin(entry WALEntry) error { /* marshal + append to WAL file */ }
-
-// Commit marks the entry as committed
-func (w *WAL) Commit(frameID string) error { /* update committed=true */ }
-
-// Recover reads the WAL and returns the last known-good file length
-// (the minimum LastGoodLength among uncommitted entries). Returns -1 if WAL is clean.
-func (w *WAL) Recover() (int64, error) { /* scan entries, find min uncommitted */ }
-
-// Truncate deletes all committed entries from the WAL
-func (w *WAL) Truncate() error { os.Remove(w.path); return nil }
-```
-
-### 5.2 `internal/storage/nrv_writer.go` — Append Writer
-
-```go
-package storage
-
-import (
-    "encoding/json"
-    "os"
-    "sync"
-    "syscall"
-
-    "github.com/knirvcorp/knirvbase/go/internal/crypto/pqc"
-    "github.com/knirvcorp/knirvbase/go/pkg/nrv"
-)
-
-// NRVWriter handles atomic appends to a single .nrv dataset file
-type NRVWriter struct {
-    path     string
-    keyPair  *pqc.PQCKeyPair // for Dilithium-3 frame signing
-    wal      *WAL
-    mu       sync.Mutex
-    registry *nrv.Registry  // in-memory copy of Chunk 0
-    file     *os.File
-}
-
-// NewNRVWriter opens or creates an .nrv file at path, recovering from WAL if needed
-func NewNRVWriter(path string, keyPair *pqc.PQCKeyPair) (*NRVWriter, error)
-
-// AppendFrame adds a frame to the dataset:
-//  1. Acquire flock(LOCK_EX) on the file
-//  2. WAL.Begin(lastGoodLength)
-//  3. Encode frame binary via nrv.EncodeFrame
-//  4. Dilithium-3 sign the frame bytes
-//  5. Write binary to EOF
-//  6. Update in-memory registry: add FrameEntry, update GlobalMetrics
-//  7. Marshal registry JSON, write to Chunk 0 region (within 5MB padding)
-//  8. Update 12-byte header TotalLength (seek to 0x00, overwrite)
-//  9. WAL.Commit(frameID)
-// 10. Release flock
-func (w *NRVWriter) AppendFrame(frame *nrv.Frame, verified bool, ergoRank float64) error
-
-// flockAcquire wraps syscall.Flock for exclusive lock
-func flockAcquire(f *os.File) error {
-    return syscall.Flock(int(f.Fd()), syscall.LOCK_EX)
-}
-
-// flockRelease wraps syscall.Flock for unlock
-func flockRelease(f *os.File) error {
-    return syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
-}
-
-// initFile creates a new .nrv file with header and empty registry in padded Chunk 0
-func (w *NRVWriter) initFile() error
-
-// Close flushes and closes the underlying file
-func (w *NRVWriter) Close() error
-```
-
-**Crash recovery in `NewNRVWriter`:** After loading the file, call `wal.Recover()`. If it returns a length > -1, truncate the file to that length using `os.Truncate(path, length)`, then reload the registry.
-
-### 5.3 `internal/storage/nrv_reader.go` — mmap Reader
-
-```go
-package storage
-
-import (
-    "syscall"
-
-    "github.com/knirvcorp/knirvbase/go/pkg/nrv"
-)
-
-// NRVReader provides zero-copy mmap-based access to .nrv binary frames
-type NRVReader struct {
-    path     string
-    data     []byte         // mmap region
-    registry *nrv.Registry  // parsed from Chunk 0
-}
-
-// NewNRVReader maps the file into memory and parses the registry
-func NewNRVReader(path string) (*NRVReader, error)
-
-// GetFrame retrieves and decodes a single frame by ID.
-// Returns nil, nil if the frame is tombstoned.
-func (r *NRVReader) GetFrame(id string) (*nrv.Frame, error)
-
-// GetModality returns raw bytes for a single modality from a frame.
-// No allocation — returns a slice of the mmap region.
-func (r *NRVReader) GetModality(frameID string, modality nrv.ModalityType) ([]byte, error)
-
-// StreamFrames returns a channel that yields live (non-tombstoned) frames.
-// Filters to modalityFilter if non-empty.
-func (r *NRVReader) StreamFrames(modalityFilter nrv.ModalityType) <-chan *nrv.Frame
-
-// VerifyFrame verifies the Dilithium-3 signature for a frame's binary data.
-// Uses the public key from the PQCManifest's key_id (caller must supply key store).
-func (r *NRVReader) VerifyFrame(id string, keyPair *pqc.PQCKeyPair) (bool, error)
-
-// Close unmaps the memory region
-func (r *NRVReader) Close() error {
-    return syscall.Munmap(r.data)
+// ApplyProjectionDelta reconstructs absolute projections from a P-bracket XOR-diff and its anchor.
+func ApplyProjectionDelta(delta, anchor [64]byte) [64]byte {
+    return XORProjections(delta, anchor) // XOR is its own inverse
 }
 ```
 
-**mmap implementation:** Use `syscall.Mmap(int(f.Fd()), 0, fileLen, syscall.PROT_READ, syscall.MAP_SHARED)`. The returned slice is the entire file. Access frame binary data at `data[frame.Offset : frame.Offset+int64(frame.Length)]`.
+**Deprecate** `EncodeFrame` (the old multimodal frame codec). It can remain for backward compatibility with existing data but should not be used for new writes.
 
-### 5.4 `internal/storage/nrv_compactor.go` — Background Compaction
+### 4.4 New File: `internal/storage/nrv_ticker.go`
 
-```go
-package storage
-
-import (
-    "os"
-    "sync"
-    "time"
-
-    "github.com/knirvcorp/knirvbase/go/internal/crypto/pqc"
-    "github.com/knirvcorp/knirvbase/go/pkg/nrv"
-)
-
-const compactionThreshold = 0.20 // 20% tombstone ratio triggers compaction
-
-// Compactor monitors tombstone ratio and runs rewrite-and-swap as needed.
-// Only one compaction per dataset can be active at a time.
-type Compactor struct {
-    datasetPath string
-    keyPair     *pqc.PQCKeyPair
-    once        sync.Once
-    running     bool
-    mu          sync.Mutex
-    stopCh      chan struct{}
-}
-
-// NewCompactor creates a compactor for the given .nrv file
-func NewCompactor(path string, keyPair *pqc.PQCKeyPair) *Compactor
-
-// MaybeCompact checks the tombstone ratio and starts a background goroutine if the
-// threshold is exceeded. Safe to call after every Delete operation.
-func (c *Compactor) MaybeCompact(registry *nrv.Registry)
-
-// Start begins the compaction loop, polling every 30 seconds
-func (c *Compactor) Start()
-
-// Stop shuts down the compaction loop
-func (c *Compactor) Stop()
-
-// compact performs the rewrite-and-swap:
-//  1. Open original .nrv via NRVReader
-//  2. Create temp file at path + ".tmp"
-//  3. Initialize new NRVWriter on temp file
-//  4. For each live (non-tombstoned) FrameEntry in registry.Frames:
-//     a. Read binary via NRVReader.GetFrame
-//     b. Append to new NRVWriter (preserving ergo_rank, verified status)
-//  5. Rebuild GlobalMetrics from scratch on new registry
-//  6. Sign the new file with Dilithium-3 (update PQCManifest.FileSignature)
-//  7. Flush and close new NRVWriter
-//  8. os.Rename(tmpPath, originalPath) — atomic swap
-//  9. Delete WAL sidecar for original file
-func (c *Compactor) compact() error
-```
-
-**Concurrency guarantee:** Compaction uses `sync.Once` scoped to one cycle. Reads from the original file (via mmap) continue uninterrupted during compaction. Any writes arriving during compaction are serialized by the `NRVWriter`'s `flock`.
-
-### 5.5 `internal/storage/nrv_storage.go` — `NRVStorage` implementing `Storage`
-
-`NRVStorage` implements the existing `Storage` interface from `storage.go`. Collections map 1:1 to `.nrv` files on disk. The collection name becomes the file name: `<baseDir>/<collection>.nrv`.
+The `FrameTicker` is the central coordination component for Phase 2. It owns a 1-second window, buffers incoming brackets, and flushes a complete `FrameEntry` to the `NRVWriter` at each tick boundary.
 
 ```go
 package storage
 
 import (
     "context"
-    "encoding/json"
-    "fmt"
     "sync"
+    "time"
 
-    "github.com/knirvcorp/knirvbase/go/internal/crypto/pqc"
+    "github.com/google/uuid"
     "github.com/knirvcorp/knirvbase/go/pkg/nrv"
 )
 
-// NRVStorage implements Storage using .nrv dataset files
+const (
+    iFrameInterval = 50    // write an I-bracket every N brackets
+    driftThreshold = 0.25  // Euclidean drift that forces a new I-bracket
+)
+
+// PendingBracket holds a bracket and its computed delta metadata before flush.
+type PendingBracket struct {
+    Bracket    *nrv.Bracket
+    DeltaType  nrv.DeltaType
+    AnchorID   *string
+    DriftScore float64
+}
+
+// FrameTicker buffers incoming brackets and flushes 1-second frames to an NRVWriter.
+type FrameTicker struct {
+    writer    *NRVWriter
+    interval  time.Duration
+    mu        sync.Mutex
+    pending   []PendingBracket
+    lastIBkt  *nrv.Bracket // the most recent I-bracket, for XOR-delta calculation
+    lastIID   string
+    bktCount  int          // total brackets since last I-bracket
+
+    // Frame-level metadata accumulated during the window
+    thermoSamples []nrv.ThermoAtmosphere
+    linguistic    nrv.LinguisticMapping
+
+    ticker *time.Ticker
+    stopCh chan struct{}
+    wg     sync.WaitGroup
+}
+
+// NewFrameTicker constructs and starts a FrameTicker.
+func NewFrameTicker(w *NRVWriter, interval time.Duration) *FrameTicker {
+    ft := &FrameTicker{
+        writer:   w,
+        interval: interval,
+        stopCh:   make(chan struct{}),
+    }
+    ft.ticker = time.NewTicker(interval)
+    ft.wg.Add(1)
+    go ft.run()
+    return ft
+}
+
+// AppendBracket adds a bracket to the current 1-second window. Thread-safe.
+func (ft *FrameTicker) AppendBracket(b *nrv.Bracket, thermo nrv.ThermoAtmosphere) {
+    ft.mu.Lock()
+    defer ft.mu.Unlock()
+
+    var deltaType nrv.DeltaType
+    var anchorID *string
+    var driftScore float64
+
+    // Determine I vs P bracket
+    if ft.lastIBkt == nil || ft.bktCount%iFrameInterval == 0 {
+        deltaType = nrv.DeltaTypeI
+        ft.lastIBkt = b
+        ft.lastIID = b.ID
+    } else {
+        driftScore = euclideanDrift(b.Projections, ft.lastIBkt.Projections)
+        if driftScore > driftThreshold {
+            // Drift spike: force a new I-bracket
+            deltaType = nrv.DeltaTypeI
+            ft.lastIBkt = b
+            ft.lastIID = b.ID
+        } else {
+            deltaType = nrv.DeltaTypeP
+            id := ft.lastIID
+            anchorID = &id
+            // XOR the projections for storage
+            b.Projections = nrv.XORProjections(b.Projections, ft.lastIBkt.Projections)
+        }
+    }
+
+    ft.pending = append(ft.pending, PendingBracket{
+        Bracket:    b,
+        DeltaType:  deltaType,
+        AnchorID:   anchorID,
+        DriftScore: driftScore,
+    })
+    ft.thermoSamples = append(ft.thermoSamples, thermo)
+    ft.bktCount++
+}
+
+// SetLinguistic sets the linguistic context for the current frame window.
+func (ft *FrameTicker) SetLinguistic(token, unit string) {
+    ft.mu.Lock()
+    defer ft.mu.Unlock()
+    ft.linguistic = nrv.LinguisticMapping{Token: token, Unit: unit}
+}
+
+// Stop halts the ticker and flushes any remaining brackets as a final partial frame.
+func (ft *FrameTicker) Stop() {
+    close(ft.stopCh)
+    ft.wg.Wait()
+}
+
+func (ft *FrameTicker) run() {
+    defer ft.wg.Done()
+    for {
+        select {
+        case <-ft.ticker.C:
+            ft.flush()
+        case <-ft.stopCh:
+            ft.ticker.Stop()
+            ft.flush()
+            return
+        }
+    }
+}
+
+func (ft *FrameTicker) flush() {
+    ft.mu.Lock()
+    pending := ft.pending
+    thermo := ft.thermoSamples
+    ling := ft.linguistic
+    ft.pending = nil
+    ft.thermoSamples = nil
+    ft.mu.Unlock()
+
+    if len(pending) == 0 {
+        return
+    }
+
+    frameID := uuid.New().String()
+    atmosphere := aggregateThermo(thermo)
+    bracketMetas := make([]nrv.BracketMeta, len(pending))
+    for i, pb := range pending {
+        bracketMetas[i] = nrv.BracketMeta{
+            ID:         pb.Bracket.ID,
+            Type:       pb.DeltaType,
+            AnchorID:   pb.AnchorID,
+            Offset:     i * nrv.BracketSize,
+            DriftScore: pb.DriftScore,
+        }
+    }
+
+    // Serialize bracket array
+    buf := make([]byte, len(pending)*nrv.BracketSize)
+    for i, pb := range pending {
+        encoded := nrv.EncodeBracket(pb.Bracket)
+        copy(buf[i*nrv.BracketSize:], encoded[:])
+    }
+
+    _ = ft.writer.AppendFrame(frameID, buf, bracketMetas, atmosphere, ling)
+}
+
+// euclideanDrift computes the Euclidean distance between two 64-byte projection arrays
+// interpreted as 16 × float32 vectors.
+func euclideanDrift(a, b [64]byte) float64 { /* ... */ return 0 }
+
+// aggregateThermo reduces a slice of per-bracket samples to a per-frame summary.
+func aggregateThermo(samples []nrv.ThermoAtmosphere) nrv.ThermoAtmosphere { /* ... */ return nrv.ThermoAtmosphere{} }
+```
+
+### 4.5 Updates to `internal/storage/nrv_writer.go`
+
+**Rename `AppendFrame(frame *nrv.Frame, verified bool, ergoRank float64)`** → **`AppendFrame(frameID string, bracketBuf []byte, bracketIndex []nrv.BracketMeta, thermo nrv.ThermoAtmosphere, ling nrv.LinguisticMapping)`**.
+
+The new signature reflects that the writer now receives a pre-serialized bracket buffer (produced by `FrameTicker.flush()`) alongside the frame-level metadata. Z3 validation runs inside the writer after the data is committed:
+
+```go
+func (w *NRVWriter) AppendFrame(
+    frameID string,
+    bracketBuf []byte,
+    bracketIndex []nrv.BracketMeta,
+    thermo nrv.ThermoAtmosphere,
+    ling nrv.LinguisticMapping,
+) error {
+    w.mu.Lock()
+    defer w.mu.Unlock()
+
+    if err := flockAcquire(w.file); err != nil {
+        return err
+    }
+    defer flockRelease(w.file)
+
+    // WAL: record pre-write file length for crash recovery
+    info, err := w.file.Stat()
+    if err != nil {
+        return err
+    }
+    if err := w.wal.Begin(WALEntry{FrameID: frameID, LastGoodLength: info.Size()}); err != nil {
+        return err
+    }
+
+    // Sign the bracket buffer with Dilithium-3
+    var sig []byte
+    if w.keyPair != nil {
+        sig, err = w.keyPair.Sign(bracketBuf)
+        if err != nil {
+            return fmt.Errorf("nrv: sign brackets: %w", err)
+        }
+    }
+
+    // Append bracket buffer to EOF (Chunk 1)
+    offset := info.Size()
+    if _, err := w.file.Seek(0, 2); err != nil {
+        return err
+    }
+    if _, err := w.file.Write(bracketBuf); err != nil {
+        return err
+    }
+
+    // Run Z3 validation (placeholder — integrate actual Z3 gate here)
+    z3 := nrv.Z3Result{Status: "VALID", Relevance: 1.0}
+
+    // Build FrameEntry for the registry
+    entry := nrv.FrameEntry{
+        ID:            frameID,
+        TimestampUnix: time.Now().Unix(),
+        Tombstone:     nil,
+        Linguistic:    ling,
+        Thermo:        thermo,
+        Z3:            z3,
+        Brackets: nrv.BracketBinaryMap{
+            Count:  len(bracketIndex),
+            Offset: offset,
+            Length: len(bracketBuf),
+        },
+        BracketIndex: bracketIndex,
+    }
+
+    w.registry.Frames = append(w.registry.Frames, entry)
+    w.registry.FrameCount++
+    if z3.Status == "VALID" {
+        w.registry.GlobalMetrics.ValidFrameCount++
+    } else {
+        w.registry.GlobalMetrics.InvalidFrameCount++
+    }
+    w.registry.GlobalMetrics.TotalBracketCount += len(bracketIndex)
+
+    if sig != nil {
+        w.registry.PQCManifest.FrameSignatures[frameID] = base64.StdEncoding.EncodeToString(sig)
+    }
+
+    if err := w.saveRegistry(); err != nil {
+        return err
+    }
+
+    return w.wal.Commit(frameID)
+}
+```
+
+**Also add `AppendBracketDirect`** for the NRVStorage.Insert path used by legacy callers that submit one bracket at a time (routes through the ticker buffer instead of writing directly):
+
+```go
+// AppendBracketDirect enqueues a bracket to the FrameTicker for deferred flush.
+// This is the preferred path for ASIC pipeline integration.
+func (s *NRVStorage) AppendBracketDirect(collection string, b *nrv.Bracket, thermo nrv.ThermoAtmosphere) error {
+    ticker, err := s.getOrCreateTicker(collection)
+    if err != nil {
+        return err
+    }
+    ticker.AppendBracket(b, thermo)
+    return nil
+}
+```
+
+### 4.6 Updates to `internal/storage/nrv_reader.go`
+
+**Rename `StreamFrames` → `StreamBrackets`**. The new method decodes the bracket buffer for each live, valid frame and emits individual `*nrv.Bracket` values:
+
+```go
+// StreamBrackets emits decoded brackets from all live frames. Tombstoned and
+// INVALID frames are skipped unless goldOnly is false.
+func (r *NRVReader) StreamBrackets(goldOnly bool) <-chan *nrv.Bracket {
+    ch := make(chan *nrv.Bracket, 256)
+    go func() {
+        defer close(ch)
+        for _, entry := range r.registry.Frames {
+            if entry.Tombstone != nil {
+                continue
+            }
+            if goldOnly && entry.Z3.Status != "VALID" {
+                continue
+            }
+            brackets := r.decodeBrackets(entry)
+            for _, b := range brackets {
+                ch <- b
+            }
+        }
+    }()
+    return ch
+}
+
+// GetFrame returns the FrameEntry and its decoded brackets by frame ID.
+func (r *NRVReader) GetFrame(id string) (*nrv.FrameEntry, []*nrv.Bracket, error) {
+    for _, entry := range r.registry.Frames {
+        if entry.ID == id {
+            if entry.Tombstone != nil {
+                return nil, nil, nil
+            }
+            brackets := r.decodeBrackets(entry)
+            return &entry, brackets, nil
+        }
+    }
+    return nil, nil, fmt.Errorf("nrv: frame not found: %s", id)
+}
+
+// decodeBrackets reads the bracket buffer for a frame and reconstructs absolute values
+// for P-brackets using their anchor I-bracket.
+func (r *NRVReader) decodeBrackets(entry nrv.FrameEntry) []*nrv.Bracket {
+    buf := r.data[entry.Brackets.Offset : entry.Brackets.Offset+int64(entry.Brackets.Length)]
+    anchors := make(map[string]*nrv.Bracket)
+    brackets := make([]*nrv.Bracket, len(entry.BracketIndex))
+
+    for i, meta := range entry.BracketIndex {
+        var raw [nrv.BracketSize]byte
+        copy(raw[:], buf[meta.Offset:meta.Offset+nrv.BracketSize])
+        b := nrv.DecodeBracket(raw)
+        b.ID = meta.ID
+
+        if meta.Type == nrv.DeltaTypeP && meta.AnchorID != nil {
+            if anchor, ok := anchors[*meta.AnchorID]; ok {
+                b.Projections = nrv.ApplyProjectionDelta(b.Projections, anchor.Projections)
+            }
+        }
+
+        anchors[meta.ID] = &b
+        brackets[i] = &b
+    }
+    return brackets
+}
+```
+
+**Update `VerifyFrame`** to sign/verify the bracket buffer (not the old multimodal blob).
+
+### 4.7 Updates to `internal/storage/nrv_compactor.go`
+
+The compaction trigger must now include `INVALID` frames in the ratio, not just tombstoned entries:
+
+```go
+func (c *Compactor) MaybeCompact(registry *nrv.Registry) {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+
+    if c.running || registry.FrameCount == 0 {
+        return
+    }
+
+    deadFrames := registry.TombstoneCount + registry.GlobalMetrics.InvalidFrameCount
+    ratio := float64(deadFrames) / float64(registry.FrameCount)
+    if ratio >= compactionThreshold {
+        c.running = true
+        go func() {
+            defer func() { c.mu.Lock(); c.running = false; c.mu.Unlock() }()
+            _ = c.compact()
+        }()
+    }
+}
+```
+
+The `compact()` method must also skip `INVALID` frames (in addition to tombstoned ones) when building the output file.
+
+### 4.8 Updates to `internal/storage/nrv_storage.go`
+
+Add ticker management to `NRVStorage`:
+
+```go
 type NRVStorage struct {
-    baseDir  string
-    keyPair  *pqc.PQCKeyPair
-    writers  map[string]*NRVWriter      // collection -> writer
-    readers  map[string]*NRVReader      // collection -> reader
-    compact  map[string]*Compactor
-    mu       sync.RWMutex
+    baseDir   string
+    keyPair   *pqc.PQCKeyPair
+    writers   map[string]*NRVWriter
+    readers   map[string]*NRVReader
+    tickers   map[string]*FrameTicker   // NEW
+    compactor map[string]*Compactor
+    mu        sync.RWMutex
+    fileStore *FileStorage
 }
 
-func NewNRVStorage(baseDir string, keyPair *pqc.PQCKeyPair) *NRVStorage
+func (s *NRVStorage) getOrCreateTicker(collection string) (*FrameTicker, error) {
+    s.mu.Lock()
+    defer s.mu.Unlock()
 
-// Insert maps the document's "payload" fields to nrv.Frame modalities.
-// For KNIRVHASHER frames: payload must contain "vector" ([]float32 len 12),
-// "seed" ([]byte len 32), "thermo" (ThermoData), "proof" (string).
-// "verified" (bool) and "ergo_rank" (float64) are extracted from top-level doc fields.
-func (s *NRVStorage) Insert(ctx context.Context, collection string, doc map[string]interface{}) error
-
-// Find retrieves a frame by ID, returns it as map[string]interface{} with "payload" key
-func (s *NRVStorage) Find(ctx context.Context, collection, id string) (map[string]interface{}, error)
-
-// FindAll returns all live frames as documents (tombstoned frames are excluded)
-func (s *NRVStorage) FindAll(ctx context.Context, collection string) ([]map[string]interface{}, error)
-
-// Delete tombstones a frame by writing tombstone timestamp to registry (no binary removal)
-func (s *NRVStorage) Delete(ctx context.Context, collection, id string) error
-
-// Update tombstones the old frame and inserts a new one with the merged fields
-func (s *NRVStorage) Update(ctx context.Context, collection, id string, update map[string]interface{}) error
-
-// GetModality returns raw bytes for a specific modality from a specific frame.
-// This is the primary access method for the KNIRVHASHER training loader.
-func (s *NRVStorage) GetModality(ctx context.Context, collection, frameID string, mod nrv.ModalityType) ([]byte, error)
-
-// StreamFrames returns a channel of live frames for the named collection.
-// If modalityFilter is non-empty, only that modality's data is populated in the frame struct.
-func (s *NRVStorage) StreamFrames(ctx context.Context, collection string, modalityFilter nrv.ModalityType) (<-chan *nrv.Frame, error)
-
-// --- Storage interface passthrough (KV, index, markdown) ---
-// Put/Get/DeleteKey/StoreObject/GetObject/ProjectToMarkdown delegate to an embedded
-// FileStorage instance for KV operations (NRV format is collection-only).
-// CreateIndex/DropIndex/GetIndex/GetIndexesForCollection/QueryIndex also delegate to FileStorage.
-
-func (s *NRVStorage) Close() error // closes all writers, readers, stops compactors
-```
-
-**Document ↔ Frame mapping:** When `Insert` is called with a generic document (not a KNIRVHASHER frame), store the document JSON as the `proof` modality (UTF-8 bytes). Set `vector`, `seed`, and `thermo` to zero values. This maintains backward compatibility with non-ML collections using the `Storage` interface.
-
----
-
-## 6. Implementation: Phase 3 — Deletion (Tombstone System)
-
-Deletion is **logical only**. Physical removal happens only during compaction.
-
-### 6.1 Delete Operation in `NRVStorage.Delete`
-
-1. Acquire write lock on the collection's `NRVWriter`
-2. Find `FrameEntry` in `registry.Frames` by ID
-3. Set `entry.Tombstone = &nowNano` (Unix nanoseconds)
-4. Increment `registry.TombstoneCount`
-5. Marshal updated registry, write to Chunk 0 padding region
-6. Release lock
-7. Call `compactor.MaybeCompact(registry)` — triggers background compaction if ratio ≥ 20%
-
-### 6.2 Reader Filtering
-
-`NRVReader.StreamFrames` and `NRVStorage.FindAll` skip any `FrameEntry` where `Tombstone != nil`. This is enforced at the reader layer, not the caller.
-
-### 6.3 Compaction Trigger
-
-After any `Delete`, evaluate:
-
-```go
-ratio := float64(registry.TombstoneCount) / float64(registry.FrameCount)
-if ratio >= compactionThreshold {
-    go compactor.compact()
-}
-```
-
-Use `sync.Once` reset after each compaction cycle completes to prevent concurrent compactions.
-
----
-
-## 7. Implementation: Phase 4 — KNIRVQL Extensions
-
-### 7.1 Modify `internal/query/knirvql.go`
-
-Add a new query type and syntax:
-
-```
-GET MEMORY.MODALITY(vector) WHERE dataset = "KNIRVHASHER_alpha" AND verified = true
-GET MEMORY.MODALITY(seed) WHERE ergo_rank > 0.8 LIMIT 100
-```
-
-**New `QueryType` constant:**
-
-```go
-QueryGetModality QueryType = iota // add after QueryDropCollection
-```
-
-**New `ModalityFilter` on `Query` struct:**
-
-```go
-type Query struct {
-    // ... existing fields ...
-    ModalityType nrv.ModalityType // set when Type == QueryGetModality
-}
-```
-
-**Parser change in `parseGet`:** Detect `MEMORY.MODALITY(type)` pattern as the first token after `GET`. Extract the modality name from within parentheses. Set `q.Type = QueryGetModality` and `q.ModalityType = nrv.ModalityType(extractedName)`.
-
-**Execution in `Query.Execute`:** When `Type == QueryGetModality`, call `nrvStorage.StreamFrames(ctx, collectionName, q.ModalityType)` and return the channel. Callers are responsible for consuming it.
-
-### 7.2 Modify `internal/collection/distributed_collection.go`
-
-Add method to `DistributedCollection`:
-
-```go
-// StreamFrames returns a channel of live frames from the underlying NRVStorage.
-// Returns an error if the storage backend does not implement NRV streaming.
-func (c *DistributedCollection) StreamFrames(ctx context.Context, modalityFilter nrv.ModalityType) (<-chan *nrv.Frame, error) {
-    nrvStore, ok := c.store.(*NRVStorage) // type assertion
-    if !ok {
-        return nil, fmt.Errorf("collection %q: storage backend does not support NRV streaming", c.name)
+    if t, ok := s.tickers[collection]; ok {
+        return t, nil
     }
-    return nrvStore.StreamFrames(ctx, c.name, modalityFilter)
-}
-```
 
----
-
-## 8. Implementation: Phase 5 — Public API (`pkg/knirvbase`)
-
-### 8.1 Modify `pkg/knirvbase/knirvbase.go`
-
-Add `NRVDataset` type and `DB.Dataset` method:
-
-```go
-// NRVDataset wraps a collection backed by NRVStorage, providing KNIRVHASHER-specific APIs
-type NRVDataset struct {
-    name    string
-    storage *storage.NRVStorage
-    inner   *coll.DistributedCollection
-}
-
-// Dataset returns an NRVDataset for KNIRVHASHER training data access.
-// Panics if the DB was not created with an NRVStorage backend.
-func (d *DB) Dataset(name string) *NRVDataset {
-    nrvStore, ok := d.store.(*storage.NRVStorage)
-    if !ok {
-        panic("DB was not created with NRVStorage — use NewNRV() constructor")
-    }
-    return &NRVDataset{
-        name:    name,
-        storage: nrvStore,
-        inner:   d.db.Collection(name, d.store),
-    }
-}
-
-// AppendFrame adds a KNIRVHASHER frame to the dataset
-func (ds *NRVDataset) AppendFrame(ctx context.Context, frame *nrv.Frame, verified bool, ergoRank float64) error
-
-// StreamFrames returns a channel of live frames for ML training consumption
-func (ds *NRVDataset) StreamFrames(ctx context.Context, modalityFilter nrv.ModalityType) (<-chan *nrv.Frame, error)
-
-// GetModality returns raw bytes for one modality from one frame (zero-copy from mmap)
-func (ds *NRVDataset) GetModality(ctx context.Context, frameID string, mod nrv.ModalityType) ([]byte, error)
-```
-
-Add a `NewNRV` constructor:
-
-```go
-// NewNRV creates a DB backed by NRVStorage for dataset workloads
-func NewNRV(ctx context.Context, opts Options, keyPair *pqc.PQCKeyPair) (*DB, error) {
-    store := storage.NewNRVStorage(opts.DataDir, keyPair)
-    dopts := db.DistributedDbOptions{}
-    dopts.Distributed.Enabled = opts.DistributedEnabled
-    dopts.Distributed.NetworkID = opts.DistributedNetworkID
-    dopts.Distributed.BootstrapPeers = opts.DistributedBootstrapPeers
-    inner, err := db.NewDistributedDatabase(ctx, dopts, store)
+    w, err := s.getOrCreateWriterLocked(collection)
     if err != nil {
         return nil, err
     }
-    return &DB{db: inner, store: store}, nil
+
+    t := NewFrameTicker(w, time.Second)
+    s.tickers[collection] = t
+    return t, nil
 }
 ```
 
----
-
-## 9. Implementation: Phase 6 — Security & P2P Sync
-
-### 9.1 Per-Frame Dilithium-3 Signing
-
-In `NRVWriter.AppendFrame`, after encoding the frame binary:
+Update `Close()` to stop all tickers before closing writers:
 
 ```go
-sig, err := keyPair.Sign(frameBinary)
-if err != nil {
-    return fmt.Errorf("nrv: sign frame: %w", err)
-}
-registry.PQCManifest.FrameSignatures[frame.ID] = base64.StdEncoding.EncodeToString(sig)
-```
+func (s *NRVStorage) Close() error {
+    s.mu.Lock()
+    defer s.mu.Unlock()
 
-After each compaction, re-sign the entire file by hashing all binary bytes (excluding `PQCManifest.FileSignature`) and storing the result in `PQCManifest.FileSignature`.
-
-### 9.2 Kyber-768 Encrypted Modalities (Optional)
-
-For sensitive collections, the `proof` modality (which may contain raw Z3 traces or agent context) can be Kyber-encrypted before writing to binary:
-
-```go
-if collection in sensitiveCollections {
-    proofBytes, _ = keyPair.Encrypt(frame.Proof)
-    frame.Proof = proofBytes
+    for _, t := range s.tickers {
+        t.Stop() // flushes pending brackets
+    }
+    for _, w := range s.writers {
+        w.Close()
+    }
+    for _, r := range s.readers {
+        r.Close()
+    }
+    for _, c := range s.compactor {
+        c.Stop()
+    }
+    return nil
 }
 ```
 
-Mark encrypted proofs in the registry: add `"proof_encrypted": true` to the `FrameEntry.Modalities` map entry (extend `ModalityIndex` with an `Encrypted bool` field).
+### 4.9 New File: `internal/network/flight_server.go`
 
-### 9.3 Incremental P2P Sync via Vector Clock
+The Arrow Flight server maps the `.nrv` Chunk 1 buffer for zero-copy streaming. It implements the dual-stream policy:
 
-The existing `internal/resolver/crdt_resolver.go` and `internal/clock/vector_clock.go` are reused without modification.
-
-**Sync protocol for `.nrv` datasets:**
-
-1. Peer A sends `registry.DatasetVersion` (a `clock.VectorClock`) in the `MsgSyncRequest` message
-2. Peer B compares via `clock.Compare(local, remote)`
-3. If Peer B's version is `clock.After`, it sends only the **binary tail** starting from the offset of the first frame Peer A doesn't have
-4. Incremental transfer = binary bytes from `firstNewFrame.Offset` to `header.TotalLength`
-5. Peer A appends received bytes, then merges the received registry entries (no duplicates by frame ID)
-6. After merge, increment `registry.DatasetVersion` for Peer A's node ID via `clock.Increment`
-
-This allows P2P sync to transfer only new frames without retransmitting the full file.
-
----
-
-## 10. KNIRVHASHER Integration
-
-### 10.1 Data Source
-
-KNIRVHASHER (`packages/KNIRVHASHER/`) produces frames from Antminer S3 ASIC hashing operations:
-
-- **Feature vector** (`vector` modality): 12 float32 values derived from SHA-256 intermediate state
-- **Candidate seed** (`seed` modality): 32-byte raw seed submitted to ASIC
-- **Thermodynamic telemetry** (`thermo` modality): CPU temp, voltage, frequency, fan RPM from `/sys/` or ASIC firmware
-- **Z3 proof trace** (`proof` modality): SMT-LIB2 output from the formal verification gate
-
-### 10.2 Ingestion Pipeline
-
-KNIRVHASHER writes frames to KNIRVBASE via `NRVDataset.AppendFrame`. The pipeline for each frame is:
-
-1. **Capture:** ASIC returns hash result → extract 12-dim feature vector + 32-byte seed
-2. **Thermo-tag:** Read hardware telemetry from `/sys/class/hwmon/` or USB device stats
-3. **Z3 gate (CPU-bound):** Run Z3 SMT solver on seed to verify formal properties; capture SMT-LIB2 trace
-4. **Append:** Call `NRVDataset.AppendFrame(ctx, frame, verified=<z3result>, ergoRank=<score>)`
-
-The Z3 gate is synchronous and CPU-bound. Run it in a dedicated goroutine pool (e.g., `runtime.NumCPU()` workers) to avoid blocking the ASIC polling loop. The ASIC USB interface targets ~10 Hz throughput (USB latency limit).
-
-### 10.3 Training Loader
-
-The HERO Model reads `.nrv` files via `NRVDataset.StreamFrames`:
+- **Gold stream** (`ticket = "gold.<collection>"`) — emits only brackets from frames where `z3.status == "VALID"`.
+- **Research stream** (`ticket = "research.<collection>"`) — emits all brackets regardless of Z3 status.
 
 ```go
-ds := db.Dataset("KNIRVHASHER_alpha")
-frames, _ := ds.StreamFrames(ctx, nrv.ModalityVector)
-for frame := range frames {
-    if frame.Verified {
-        // feed frame.Vector to HERO Model training loop
+package network
+
+import (
+    "context"
+    "fmt"
+    "strings"
+
+    "github.com/apache/arrow/go/v15/arrow"
+    "github.com/apache/arrow-go/v15/arrow/flight"
+    "github.com/apache/arrow-go/v15/arrow/memory"
+    stor "github.com/knirvcorp/knirvbase/go/internal/storage"
+    "github.com/knirvcorp/knirvbase/go/pkg/nrv"
+)
+
+// FlightServer implements arrow/flight.FlightServer for `.nrv` bracket streaming.
+type FlightServer struct {
+    flight.BaseFlightServer
+    storage *stor.NRVStorage
+    alloc   memory.Allocator
+}
+
+func NewFlightServer(storage *stor.NRVStorage) *FlightServer {
+    return &FlightServer{
+        storage: storage,
+        alloc:   memory.NewGoAllocator(),
     }
 }
+
+// DoGet streams brackets for a collection. Ticket format: "<stream>.<collection>"
+// where stream is "gold" or "research".
+func (s *FlightServer) DoGet(ticket *flight.Ticket, stream flight.FlightService_DoGetServer) error {
+    parts := strings.SplitN(string(ticket.Ticket), ".", 2)
+    if len(parts) != 2 {
+        return fmt.Errorf("flight: invalid ticket format, expected <stream>.<collection>")
+    }
+    streamType, collection := parts[0], parts[1]
+    goldOnly := streamType == "gold"
+
+    reader, err := s.storage.GetReader(collection)
+    if err != nil {
+        return fmt.Errorf("flight: open reader: %w", err)
+    }
+
+    schema := bracketArrowSchema()
+    writer := flight.NewRecordWriter(stream, ipc.WithSchema(schema))
+    defer writer.Close()
+
+    bracketCh := reader.StreamBrackets(goldOnly)
+    batch := make([]*nrv.Bracket, 0, 1024)
+
+    for b := range bracketCh {
+        batch = append(batch, b)
+        if len(batch) >= 1024 {
+            if err := s.flushBatch(writer, batch, schema); err != nil {
+                return err
+            }
+            batch = batch[:0]
+        }
+    }
+    if len(batch) > 0 {
+        return s.flushBatch(writer, batch, schema)
+    }
+    return nil
+}
+
+// bracketArrowSchema returns the Arrow schema for an 80-byte bracket.
+func bracketArrowSchema() *arrow.Schema {
+    return arrow.NewSchema([]arrow.Field{
+        {Name: "id",           Type: arrow.BinaryTypes.String},
+        {Name: "lsh_salt",     Type: arrow.PrimitiveTypes.Uint32},
+        {Name: "projections",  Type: arrow.ListOf(arrow.PrimitiveTypes.Float32)},
+        {Name: "subsecond_us", Type: arrow.PrimitiveTypes.Uint32},
+        {Name: "asic_loops",   Type: arrow.PrimitiveTypes.Uint32},
+        {Name: "golden_seed",  Type: arrow.PrimitiveTypes.Uint32},
+    }, nil)
+}
+
+func (s *FlightServer) flushBatch(writer *ipc.Writer, batch []*nrv.Bracket, schema *arrow.Schema) error {
+    // Build Arrow RecordBatch from bracket slice and write to stream
+    // ... (standard Arrow builder pattern)
+    return nil
+}
 ```
 
-The `ERGO` ranking system filters frames by `ergoRank` before streaming. High-rank frames (human-validated or Z3-proven) are prioritized. KNIRVQL query:
+Add `GetReader` accessor to `NRVStorage` (package-internal method exposed for Flight):
 
-```knirvql
-GET MEMORY.MODALITY(vector) WHERE dataset = "KNIRVHASHER_alpha" AND verified = true AND ergo_rank > 0.8 LIMIT 1000
+```go
+func (s *NRVStorage) GetReader(collection string) (*NRVReader, error) {
+    return s.getOrCreateReader(collection)
+}
 ```
 
-### 10.4 Existing Training Data Migration
-
-Current untracked files in `packages/KNIRVHASHER/`:
-- `training_frames_with_seeds.arrow` — Apache Arrow format
-- `training_frames_with_seeds.json` — JSON dump of same data
-
-Write a one-time migration script at `packages/KNIRVHASHER/scripts/migrate_to_nrv.go` that:
-1. Reads the `.json` file
-2. Constructs `nrv.Frame` objects (set `Thermo` and `Proof` to zero/empty — telemetry was not captured)
-3. Appends each frame via `NRVDataset.AppendFrame` with `verified=false, ergoRank=0.0`
-4. Deletes the `.json` and `.arrow` files after successful migration
-
----
-
-## 11. Project File Map (Final State)
-
+**Arrow dependency:** Add to `go.mod`:
 ```
-pkg/nrv/
-├── spec.go          # Magic, Version, Alignment, ModalityType constants
-├── frame.go         # FrameEntry, Registry, GlobalMetrics, PQCManifest, Frame, ThermoData
-└── codec.go         # EncodeHeader, DecodeHeader, EncodeFrame
-
-internal/storage/
-├── storage.go       # FileStorage (unchanged)
-├── index.go         # IndexManager (unchanged)
-├── wal.go           # WAL — write-ahead log
-├── nrv_writer.go    # NRVWriter — flock + atomic append
-├── nrv_reader.go    # NRVReader — mmap access
-├── nrv_compactor.go # Compactor — background rewrite-and-swap
-└── nrv_storage.go   # NRVStorage implementing Storage interface
-
-internal/query/
-└── knirvql.go       # Add QueryGetModality, ModalityType field, parser update
-
-internal/collection/
-└── distributed_collection.go  # Add StreamFrames() method
-
-pkg/knirvbase/
-└── knirvbase.go     # Add NRVDataset, NewNRV constructor, DB.Dataset method
+require github.com/apache/arrow/go/v15 v15.x.x
 ```
 
----
+### 4.10 Updates to `internal/query/knirvql.go`
 
-## 12. Test Requirements
+**Add new filter keys** understood by `parseGet`:
 
-Each new file must have a corresponding `_test.go`. Critical test cases:
-
-| Test | File | Assertion |
+| Filter Key | Operator | Example |
 |---|---|---|
-| Header encode/decode round-trip | `pkg/nrv/codec_test.go` | `DecodeHeader(EncodeHeader(h)) == h`; invalid magic returns error |
-| Frame encode produces 8-byte-aligned output | `pkg/nrv/codec_test.go` | `len(EncodeFrame(f)) % 8 == 0` |
-| WAL recover truncates file on crash | `internal/storage/wal_test.go` | Write partial frame, simulate crash, WAL.Recover returns correct truncation point |
-| Append + read round-trip | `internal/storage/nrv_writer_test.go` | Append 3 frames, read each via NRVReader, values match |
-| Tombstone excludes from FindAll | `internal/storage/nrv_storage_test.go` | Insert 5, delete 2, FindAll returns 3 |
-| Compaction at 20% threshold | `internal/storage/nrv_compactor_test.go` | Insert 100, delete 25 → compaction triggered; file contains 75 live frames |
-| StreamFrames modality filter | `internal/storage/nrv_reader_test.go` | Filter by `nrv.ModalityVector` returns only vector bytes per frame |
-| Dilithium-3 frame signature verifies | `internal/storage/nrv_writer_test.go` | Signed frame verifies with same key; tampered bytes fail verification |
-| KNIRVQL modality query parses | `internal/query/knirvql_test.go` | `GET MEMORY.MODALITY(vector)` → `QueryGetModality`, `ModalityType = "vector"` |
-| P2P incremental sync | `internal/collection/distributed_collection_test.go` | Two peers, first appends 10 frames, second syncs and receives only frames it's missing |
+| `z3_status` | `=` | `WHERE z3_status = VALID` |
+| `avg_temp_c` | `<`, `>`, `<=`, `>=` | `WHERE avg_temp_c < 85` |
+| `drift_score` | `<`, `>` | `WHERE drift_score > 0.1` |
+| `bracket_type` | `=` | `WHERE bracket_type = I` |
 
-Run all tests:
+**Add new query syntax** to `parseGet`:
 
-```bash
-cd packages/KNIRVBASE/go && go test -v ./...
+```
+GET MEMORY.BRACKET(golden_seed) WHERE ...
+GET MEMORY WHERE z3_status = VALID
+GET MEMORY WHERE avg_temp_c < 85 AND z3_status = VALID
+```
+
+Add `QueryGetBracketField` to the `QueryType` enum:
+
+```go
+const (
+    QueryGet QueryType = iota
+    QuerySet
+    QueryDelete
+    QueryCreateIndex
+    QueryCreateCollection
+    QueryDropIndex
+    QueryDropCollection
+    QueryGetModality      // existing: GET MEMORY.MODALITY(type)
+    QueryGetBracketField  // new:      GET MEMORY.BRACKET(field)
+)
+```
+
+Update `parseGet` to detect `MEMORY.BRACKET(` prefix identically to how `MEMORY.MODALITY(` is handled, setting `q.Type = QueryGetBracketField` and storing the field name in `q.ModalityType` (reuse the field, rename it to `FieldName` in a follow-up cleanup).
+
+Update `matchesFilter` to resolve frame-level fields from the top-level document (not just `payload`):
+
+```go
+case "z3_status":
+    if z3, ok := doc["z3"].(map[string]interface{}); ok {
+        return fmt.Sprintf("%v", z3["status"]) == fmt.Sprintf("%v", filter.Value)
+    }
+    return false
+case "avg_temp_c":
+    if thermo, ok := doc["thermo"].(map[string]interface{}); ok {
+        return compareValues(thermo["avg_temp_c"], filter.Value) matches operator
+    }
+    return false
+```
+
+### 4.11 Updates to `pkg/knirvbase/knirvbase.go`
+
+**Rename `NRVDataset` methods** to use the new terminology:
+
+| Old Method | New Method | Notes |
+|---|---|---|
+| `AppendFrame(ctx, frame, verified, ergoRank)` | `AppendBracket(ctx, bracket, thermo)` | Routes to `FrameTicker.AppendBracket` |
+| `StreamFrames(ctx, modalityFilter)` | `StreamBrackets(ctx, goldOnly bool)` | Routes to `NRVReader.StreamBrackets` |
+| `GetModality(ctx, frameID, mod)` | `GetFrame(ctx, frameID)` | Returns `*nrv.FrameEntry` + brackets |
+
+Updated `NRVDataset`:
+
+```go
+// AppendBracket enqueues a bracket into the current 1-second frame window via the FrameTicker.
+func (ds *NRVDataset) AppendBracket(ctx context.Context, b *nrv.Bracket, thermo nrv.ThermoAtmosphere) error {
+    return ds.storage.AppendBracketDirect(ds.name, b, thermo)
+}
+
+// StreamBrackets returns a channel of decoded brackets. If goldOnly is true, only
+// brackets from Z3-VALID frames are emitted (Gold stream). Otherwise all live brackets
+// are emitted (Research stream).
+func (ds *NRVDataset) StreamBrackets(ctx context.Context, goldOnly bool) (<-chan *nrv.Bracket, error) {
+    return ds.storage.StreamBrackets(ctx, ds.name, goldOnly)
+}
+
+// GetFrame returns the FrameEntry registry metadata and decoded brackets for one 1-second frame.
+func (ds *NRVDataset) GetFrame(ctx context.Context, frameID string) (*nrv.FrameEntry, []*nrv.Bracket, error) {
+    return ds.storage.GetFrame(ctx, ds.name, frameID)
+}
+
+// SetLinguistic sets the current linguistic context on the FrameTicker for the named collection.
+func (ds *NRVDataset) SetLinguistic(token, unit string) error {
+    return ds.storage.SetLinguistic(ds.name, token, unit)
+}
+```
+
+**Remove `Raw()` and `RawCollection()`** from `DB`. These exposed internal types and are no longer needed now that the dataset API covers all access patterns.
+
+---
+
+## 5. Validation Flow Integration
+
+The full ASIC pipeline integration through KNIRVBASE:
+
+```
+ASIC (0x52 protocol)
+    ↓  80-byte task result
+NRVDataset.AppendBracket(ctx, bracket, thermo)
+    ↓
+NRVStorage.AppendBracketDirect(collection, bracket, thermo)
+    ↓
+FrameTicker.AppendBracket(bracket, thermo)   ← buffers, computes I/P type, XOR-diffs
+    │
+    │ every 1 second
+    ↓
+FrameTicker.flush()
+    ↓
+NRVWriter.AppendFrame(frameID, bracketBuf, bracketIndex, thermo, linguistic)
+    ↓  flock + WAL begin
+    ├─ Write bracketBuf → EOF (Chunk 1)
+    ├─ Sign bracketBuf → Dilithium-3 → PQCManifest
+    ├─ Run Z3 gate → FrameEntry.Z3.Status = "VALID" | "INVALID"
+    ├─ Update Registry.Frames → saveRegistry() → WriteAt(Chunk 0)
+    ├─ Update Header.TotalLength → EncodeHeader()
+    └─ WAL commit
+    ↓
+MaybeCompact() ← triggered if (tombstoned + invalid) / total ≥ 20%
 ```
 
 ---
 
-## 13. Deferred (V2 Backlog)
+## 6. Testing Requirements
 
-Do not implement in V1:
+### 6.1 Unit Tests
 
-- **Reasoning Ledger:** Immutable per-frame agent access log stored in a `ledger` modality
-- **Cross-dataset KNIRVQL joins:** Multi-file query execution (`JOIN MEMORY WHERE ...`)
-- **GPU-native loader:** Rust/Vulkan kernel for direct `.nrv`-to-VRAM DMA transfer
-- **Partial sync:** Selective frame sync based on modality type (currently syncs full frame binary tail)
-- **Compression:** LZ4/Zstd compression for `proof` modality before write
+| Test | File | Assertions |
+|---|---|---|
+| `TestEncodeBracket_RoundTrip` | `pkg/nrv/codec_test.go` | `EncodeBracket` → `DecodeBracket` round-trips all fields exactly |
+| `TestXORProjections_Inverse` | `pkg/nrv/codec_test.go` | `ApplyProjectionDelta(XORProjections(a,b), b) == a` for all inputs |
+| `TestFrameTicker_Flush` | `internal/storage/nrv_ticker_test.go` | After 1s tick, NRVWriter has 1 FrameEntry with correct bracket count |
+| `TestFrameTicker_IBracketFrequency` | `internal/storage/nrv_ticker_test.go` | Every 50th bracket is type `I`; P-brackets have non-nil `anchor_id` |
+| `TestFrameTicker_DriftSpike` | `internal/storage/nrv_ticker_test.go` | Drift > 0.25 forces an I-bracket outside of the fixed interval |
+| `TestNRVWriter_AppendFrame_NewSignature` | `internal/storage/nrv_writer_test.go` | Per-frame Dilithium-3 signature present in PQCManifest |
+| `TestNRVReader_StreamBrackets_GoldOnly` | `internal/storage/nrv_reader_test.go` | Gold stream skips INVALID frames; Research stream includes them |
+| `TestNRVReader_DecodePBracket` | `internal/storage/nrv_reader_test.go` | P-bracket projections reconstructed correctly from anchor |
+| `TestCompactor_InvalidFrameRatio` | `internal/storage/nrv_compactor_test.go` | Compaction fires when INVALID frames push ratio ≥ 20% |
+| `TestKNIRVQL_Z3StatusFilter` | `internal/query/knirvql_test.go` | `WHERE z3_status = VALID` returns only valid-frame brackets |
+| `TestKNIRVQL_ThermoFilter` | `internal/query/knirvql_test.go` | `WHERE avg_temp_c < 85` filters frames correctly |
+| `TestKNIRVQL_BracketFieldQuery` | `internal/query/knirvql_test.go` | `GET MEMORY.BRACKET(golden_seed)` parses to `QueryGetBracketField` |
+
+### 6.2 Integration Tests
+
+| Test | Scenario |
+|---|---|
+| `TestEndToEnd_ASICPipeline` | Append 1000 brackets over 3 seconds → verify 3 FrameEntries in registry with correct counts, Z3 status, and Dilithium-3 signatures |
+| `TestEndToEnd_FlightGoldStream` | Flight client with `gold.<collection>` ticket → only brackets from VALID frames received |
+| `TestEndToEnd_FlightResearchStream` | Flight client with `research.<collection>` ticket → all brackets including INVALID frames received |
+| `TestEndToEnd_CompactionPreservesGold` | Mark frames INVALID, trigger compaction → output file contains only VALID/live frames |
+| `TestEndToEnd_CrashRecovery` | Kill writer mid-flush → WAL recovery on re-open → no partial frames in registry |
+
+### 6.3 Benchmarks
+
+| Benchmark | Target |
+|---|---|
+| `BenchmarkAppendBracket` | Throughput of `FrameTicker.AppendBracket` under concurrent callers |
+| `BenchmarkFlush_1000Brackets` | Time for `FrameTicker.flush()` with 1000 pending brackets |
+| `BenchmarkStreamBrackets_Gold` | Flight Gold stream throughput in MB/s for a 10k-bracket file |
+| `BenchmarkDecodePBracket` | XOR reconstruction overhead vs direct I-bracket decode |
+
+---
+
+## 7. Migration Notes
+
+### 7.1 Existing `.nrv` Files
+
+Phase 1 files used the old per-record `FrameEntry` schema. They are not directly readable by the Phase 2 reader. A one-time migration tool should be provided:
+
+- Read each Phase 1 `FrameEntry` as a legacy record.
+- Treat each record as a single I-Bracket in a 1-second frame (one frame per record, `timestamp_unix = entry creation time`).
+- Map legacy fields: `Vector` → `Projections` (pack as float32 bytes), `Seed` → `GoldenSeed` (first 4 bytes), `Thermo` → `ThermoAtmosphere`.
+- Z3 status: `verified == true` → `VALID`, else → `INVALID`.
+- Write to a new Phase 2 `.nrv` file.
+
+### 7.2 Callers of `NRVDataset`
+
+| Old Call | New Call |
+|---|---|
+| `ds.AppendFrame(ctx, frame, true, 0.9)` | `ds.AppendBracket(ctx, bracket, thermo)` |
+| `ds.StreamFrames(ctx, nrv.ModalityVector)` | `ds.StreamBrackets(ctx, false)` for Research or `(ctx, true)` for Gold |
+| `ds.GetModality(ctx, id, nrv.ModalitySeed)` | `_, brackets, _ := ds.GetFrame(ctx, frameID)` then read `brackets[i].GoldenSeed` |
+
+### 7.3 KNIRVQL Callers
+
+Existing queries using `GET MEMORY.MODALITY(...)` remain valid. New queries:
+
+```
+# Gold-only fetch
+GET MEMORY WHERE z3_status = VALID
+
+# Hardware-filtered fetch
+GET MEMORY WHERE avg_temp_c < 85 AND z3_status = VALID
+
+# Bracket field projection
+GET MEMORY.BRACKET(golden_seed) WHERE z3_status = VALID
+```
+
+---
+
+## 8. Backlog (V3)
+
+- **Reasoning Ledger**: `agent_context` field on `FrameEntry` linking to immutable agent-access log.
+- **Cross-dataset joins**: multi-file KNIRVQL spanning multiple `.nrv` datasets.
+- **GPU-native loaders**: Rust Vulkan/CUDA kernel reading Chunk 1 directly to VRAM.
+- **Advanced compression**: Zstd for Golden Seed sequences and Z3 relevance score arrays within the registry.
+- **KNIRVQL analytics**: aggregate queries on thermodynamic metrics across frames (e.g., `AVG(avg_temp_c) GROUP BY z3_status`).

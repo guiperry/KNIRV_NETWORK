@@ -2,10 +2,8 @@ package storage
 
 import (
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 	"syscall"
 
@@ -61,49 +59,46 @@ func NewNRVReader(path string) (*NRVReader, error) {
 	}, nil
 }
 
-func (r *NRVReader) GetFrame(id string) (*nrv.Frame, error) {
+func (r *NRVReader) GetFrame(id string) (*nrv.FrameEntry, []*nrv.Bracket, error) {
+	for _, entry := range r.registry.Frames {
+		if entry.ID == id {
+			if entry.Tombstone != nil {
+				return nil, nil, nil
+			}
+			brackets := r.decodeBrackets(entry)
+			return &entry, brackets, nil
+		}
+	}
+	return nil, nil, fmt.Errorf("nrv: frame not found: %s", id)
+}
+
+func (r *NRVReader) GetFrameEntry(id string) (*nrv.FrameEntry, error) {
 	for _, entry := range r.registry.Frames {
 		if entry.ID == id {
 			if entry.Tombstone != nil {
 				return nil, nil
 			}
-			return r.decodeFrame(entry)
+			return &entry, nil
 		}
 	}
 	return nil, fmt.Errorf("nrv: frame not found: %s", id)
 }
 
-func (r *NRVReader) GetModality(frameID string, modality nrv.ModalityType) ([]byte, error) {
-	for _, entry := range r.registry.Frames {
-		if entry.ID == frameID {
-			if entry.Tombstone != nil {
-				return nil, fmt.Errorf("nrv: frame tombstoned: %s", frameID)
-			}
-			modIndex, ok := entry.Modalities[modality]
-			if !ok {
-				return nil, fmt.Errorf("nrv: modality not found: %s", modality)
-			}
-			start := entry.Offset + int64(modIndex.Offset)
-			end := start + int64(modIndex.Length)
-			return r.data[start:end], nil
-		}
-	}
-	return nil, fmt.Errorf("nrv: frame not found: %s", frameID)
-}
-
-func (r *NRVReader) StreamFrames(modalityFilter nrv.ModalityType) <-chan *nrv.Frame {
-	ch := make(chan *nrv.Frame)
+func (r *NRVReader) StreamBrackets(goldOnly bool) <-chan *nrv.Bracket {
+	ch := make(chan *nrv.Bracket, 256)
 	go func() {
 		defer close(ch)
 		for _, entry := range r.registry.Frames {
 			if entry.Tombstone != nil {
 				continue
 			}
-			frame, err := r.decodeFrame(entry)
-			if err != nil {
+			if goldOnly && entry.Z3.Status != "VALID" {
 				continue
 			}
-			ch <- frame
+			brackets := r.decodeBrackets(entry)
+			for _, b := range brackets {
+				ch <- b
+			}
 		}
 	}()
 	return ch
@@ -120,8 +115,8 @@ func (r *NRVReader) VerifyFrame(id string, keyPair *pqc.PQCKeyPair) (bool, error
 			if err != nil {
 				return false, err
 			}
-			frameData := r.data[entry.Offset : entry.Offset+int64(entry.Length)]
-			return keyPair.Verify(frameData, sig), nil
+			bracketData := r.data[entry.Brackets.Offset : entry.Brackets.Offset+int64(entry.Brackets.Length)]
+			return keyPair.Verify(bracketData, sig), nil
 		}
 	}
 	return false, fmt.Errorf("nrv: frame not found: %s", id)
@@ -131,40 +126,33 @@ func (r *NRVReader) Close() error {
 	return syscall.Munmap(r.data)
 }
 
-func (r *NRVReader) decodeFrame(entry nrv.FrameEntry) (*nrv.Frame, error) {
-	frameData := r.data[entry.Offset : entry.Offset+int64(entry.Length)]
+func (r *NRVReader) decodeBrackets(entry nrv.FrameEntry) []*nrv.Bracket {
+	buf := r.data[entry.Brackets.Offset : entry.Brackets.Offset+int64(entry.Brackets.Length)]
+	anchors := make(map[string]*nrv.Bracket)
+	brackets := make([]*nrv.Bracket, len(entry.BracketIndex))
 
-	frame := &nrv.Frame{
-		ID: entry.ID,
-	}
+	for i, meta := range entry.BracketIndex {
+		var raw [nrv.BracketSize]byte
+		copy(raw[:], buf[meta.Offset:meta.Offset+nrv.BracketSize])
+		b := nrv.DecodeBracket(raw)
+		b.ID = meta.ID
 
-	if len(frameData) < 96 {
-		return nil, fmt.Errorf("nrv: frame too small")
-	}
-
-	for i := 0; i < 12; i++ {
-		bits := binary.LittleEndian.Uint32(frameData[i*4:])
-		frame.Vector[i] = math.Float32frombits(bits)
-	}
-
-	copy(frame.Seed[:], frameData[48:80])
-
-	frame.Thermo.TempCelsius = math.Float32frombits(binary.LittleEndian.Uint32(frameData[80:84]))
-	frame.Thermo.VoltageV = math.Float32frombits(binary.LittleEndian.Uint32(frameData[84:88]))
-	frame.Thermo.FreqMHz = math.Float32frombits(binary.LittleEndian.Uint32(frameData[88:92]))
-	frame.Thermo.FanRPM = math.Float32frombits(binary.LittleEndian.Uint32(frameData[92:96]))
-
-	if modIndex, ok := entry.Modalities[nrv.ModalityProof]; ok {
-		start := modIndex.Offset
-		end := start + modIndex.Length
-		if end <= len(frameData) {
-			frame.Proof = frameData[start:end]
+		if meta.Type == nrv.DeltaTypeP && meta.AnchorID != nil {
+			if anchor, ok := anchors[*meta.AnchorID]; ok {
+				b.Projections = nrv.ApplyProjectionDelta(b.Projections, anchor.Projections)
+			}
 		}
-	}
 
-	return frame, nil
+		anchors[meta.ID] = &b
+		brackets[i] = &b
+	}
+	return brackets
 }
 
 func binaryDecodeRegistry(data []byte, registry *nrv.Registry) error {
 	return json.Unmarshal(data, registry)
+}
+
+func (r *NRVReader) GetRegistry() *nrv.Registry {
+	return r.registry
 }

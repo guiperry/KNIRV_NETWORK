@@ -42,7 +42,8 @@ func (c *Compactor) MaybeCompact(registry *nrv.Registry) {
 		return
 	}
 
-	ratio := float64(registry.TombstoneCount) / float64(registry.FrameCount)
+	deadFrames := registry.TombstoneCount + registry.GlobalMetrics.InvalidFrameCount
+	ratio := float64(deadFrames) / float64(registry.FrameCount)
 	if ratio >= compactionThreshold {
 		c.running = true
 		go func() {
@@ -74,7 +75,6 @@ func (c *Compactor) Start() {
 		for {
 			select {
 			case <-ticker.C:
-				// Check and compact
 			case <-c.stopCh:
 				return
 			}
@@ -108,13 +108,28 @@ func (c *Compactor) compact() error {
 		if entry.Tombstone != nil {
 			continue
 		}
-
-		frame, err := reader.decodeFrame(entry)
-		if err != nil {
+		if entry.Z3.Status == "INVALID" {
 			continue
 		}
 
-		if err := writer.AppendFrame(frame, entry.Verified, entry.ERGORank); err != nil {
+		brackets := reader.decodeBrackets(entry)
+		if len(brackets) == 0 {
+			continue
+		}
+
+		buf := make([]byte, len(brackets)*nrv.BracketSize)
+		for i, b := range brackets {
+			encoded := nrv.EncodeBracket(b)
+			copy(buf[i*nrv.BracketSize:], encoded[:])
+		}
+
+		if err := writer.AppendFrame(
+			entry.ID,
+			buf,
+			entry.BracketIndex,
+			entry.Thermo,
+			entry.Linguistic,
+		); err != nil {
 			writer.Close()
 			os.Remove(tmpPath)
 			return fmt.Errorf("nrv: append frame during compaction: %w", err)

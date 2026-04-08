@@ -21,8 +21,6 @@ import (
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
 	"backend_server/internal/logging"
-	"backend_server/internal/oracle"
-	oracletypes "backend_server/internal/oracle/types"
 	"backend_server/internal/password"
 	pb "backend_server/internal/proto"
 	"backend_server/internal/reasoning/graph"
@@ -45,7 +43,6 @@ import (
 	icme "backend_server/internal/services/icme"
 	inference "backend_server/internal/services/inferencer"
 	"backend_server/internal/services/knirvcli"
-	knirvoracle "backend_server/internal/services/knirvoracle"
 	"backend_server/internal/services/onboarding"
 	"backend_server/internal/services/p2p"
 	fabricmanagement "backend_server/internal/services/pluginmanagement"
@@ -57,9 +54,8 @@ import (
 	"backend_server/internal/services/teesecurity"
 	"backend_server/internal/services/validation"
 
-	knirvchain "backend_server/internal/services/knirvchain"
-	knirvgateway "backend_server/internal/services/knirvgateway"
-	knirvgraph "backend_server/internal/services/knirvgraph"
+	knirvchain "KNIRVCHAIN"
+	knirvgraph "KNIRVGRAPH"
 	"backend_server/internal/services/vault"
 	"backend_server/internal/services/websocket"
 	"backend_server/internal/services/workflow"
@@ -67,6 +63,8 @@ import (
 	"backend_server/internal/storage/pqc"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
+	knirvgateway "github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY"
+	knirvoracle "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvoracle"
 
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
@@ -404,88 +402,6 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 		cfg.Security.TLSKey = content.TlsKey
 		log.Printf("TLS certificates loaded from root.key")
 	}
-}
-
-func initOracleWithSecrets(content *pb.RootKeyFileContentProto, logger *zap.Logger) (*oracle.Oracle, error) {
-	if content == nil {
-		return nil, nil
-	}
-
-	rootPrivateKey := content.GetRootPrivateKeyHex()
-	if rootPrivateKey == "" {
-		logger.Warn("Oracle disabled: root.key decrypted but ROOT_PRIVATE_KEY is empty")
-		return nil, nil
-	}
-
-	oracleCfg, err := oracle.LoadConfigFromEnv()
-	if err != nil {
-		return nil, fmt.Errorf("oracle: failed to load config from env: %w", err)
-	}
-	if os.Getenv("ORACLE_DATA_DIR") == "" {
-		appDataDir, appDataErr := getOSAppDataDir()
-		if appDataErr != nil {
-			return nil, fmt.Errorf("oracle: failed to determine app data dir: %w", appDataErr)
-		}
-		oracleCfg.DataDir = filepath.Join(appDataDir, "oracle")
-	}
-	oracleCfg.OwnerPrivateKey = rootPrivateKey
-
-	if err := oracle.ValidateConfig(oracleCfg); err != nil {
-		return nil, fmt.Errorf("oracle: invalid config: %w", err)
-	}
-
-	oracleInstance, err := oracle.NewOracle(oracleCfg, logger)
-	if err != nil {
-		return nil, fmt.Errorf("oracle: failed to create instance: %w", err)
-	}
-
-	return oracleInstance, nil
-}
-
-func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
-	if logger == nil {
-		logger = zap.NewNop()
-	}
-	keyPath, err := config.GetRootKeyPath()
-	if err != nil {
-		return nil, fmt.Errorf("oracle: could not resolve root key path: %w", err)
-	}
-
-	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
-		logger.Info("Oracle disabled: no root.key found (not a root node)", zap.String("expected_path", keyPath))
-		return nil, nil
-	}
-
-	// Determine password source.
-	var keyPassword []byte
-	if envPwd := os.Getenv("ORACLE_KEY_PASSWORD"); envPwd != "" {
-		keyPassword = []byte(envPwd)
-	} else {
-		// Check if stdin is a terminal
-		if !term.IsTerminal(int(os.Stdin.Fd())) {
-			return nil, fmt.Errorf("oracle: password not provided via ORACLE_KEY_PASSWORD environment variable and stdin is not a terminal")
-		}
-		keyPassword, err = password.PromptForPassword("Enter root key password to start oracle: ")
-		if err != nil {
-			return nil, fmt.Errorf("oracle: failed to read password: %w", err)
-		}
-	}
-
-	content, err := password.LoadEncryptedKeyFile(keyPath, keyPassword)
-	if err != nil {
-		return nil, fmt.Errorf("oracle: failed to decrypt root.key: %w", err)
-	}
-
-	oracleInstance, err := initOracleWithSecrets(content, logger)
-	if err != nil {
-		return nil, err
-	}
-
-	if oracleInstance != nil {
-		logger.Info("Oracle initialised from root.key", zap.String("key_path", keyPath))
-	}
-
-	return oracleInstance, nil
 }
 
 func initOracleManager(logger *zap.Logger, cfg *config.Config) *knirvoracle.Manager {
@@ -1366,7 +1282,7 @@ func (a *oracleBalanceAdapter) GetAccountBalance(address string) (int64, error) 
 }
 
 func (a *oracleRollupAdapter) SubmitRollup(batch *rollup.RollupBatch) (string, error) {
-	record := &oracletypes.RollupRecord{
+	record := &knirvoracle.RollupRecord{
 		ID:          batch.ID,
 		BatchRoot:   batch.BatchRoot,
 		ChainID:     batch.ChainID,
@@ -1374,7 +1290,7 @@ func (a *oracleRollupAdapter) SubmitRollup(batch *rollup.RollupBatch) (string, e
 		EndHeight:   batch.EndHeight,
 		BlockCount:  len(batch.Blocks),
 		TxCount:     batch.Settlement.TxCount,
-		Status:      oracletypes.RollupStatusSubmitted,
+		Status:      knirvoracle.RollupStatusSubmitted,
 		SubmittedAt: time.Now().UTC(),
 		Metadata: map[string]interface{}{
 			"batch_root": batch.BatchRoot,
@@ -1384,7 +1300,7 @@ func (a *oracleRollupAdapter) SubmitRollup(batch *rollup.RollupBatch) (string, e
 		return "", fmt.Errorf("oracle not available")
 	}
 	client := a.manager.GetClient()
-	rollupID, err := client.SubmitRollup(record.ID, "")
+	rollupID, err := client.SubmitRollup(record)
 	if err != nil {
 		return "", err
 	}

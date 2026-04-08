@@ -13,10 +13,20 @@ BACKEND_DIR := $(ROOT_DIR)/backend
 FRONTEND_DIR := $(ROOT_DIR)/frontend
 DESKTOP_DIR := $(ROOT_DIR)/desktop
 GATEWAY_DIR := $(ROOT_DIR)/pkg/knirvgateway
+GATEWAY_SRC_DIR := $(ROOT_DIR)/../KNIRVGATEWAY
+GATEWAY_PKG_BIN := $(GATEWAY_DIR)/bin/knirvgateway
 GRAPH_DIR := $(ROOT_DIR)/pkg/knirvgraph
+GRAPH_SRC_DIR := $(ROOT_DIR)/../KNIRVGRAPH
+GRAPH_PKG_BIN := $(GRAPH_DIR)/bin/knirvgraph
 CHAIN_DIR := $(ROOT_DIR)/pkg/knirvchain
+CHAIN_SRC_DIR := $(ROOT_DIR)/../KNIRVCHAIN
+CHAIN_PKG_BIN := $(CHAIN_DIR)/bin/knirvchain
 ORACLE_DIR := $(ROOT_DIR)/../KNIRVORACLE
+ORACLE_PKG_DIR := $(ROOT_DIR)/pkg/knirvoracle
+ORACLE_PKG_BIN := $(ORACLE_PKG_DIR)/bin/knirvoracle
 HASHER_DIR := $(ROOT_DIR)/pkg/knirvhasher
+HASHER_SRC_DIR := $(ROOT_DIR)/../KNIRVHASHER
+HASHER_PKG_BIN := $(HASHER_DIR)/bin/knirvhasher
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -53,7 +63,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image desktop desktop-deps desktop-build dash gateway-sync gateway-build gateway-deps gateway-clean graph-sync graph-build graph-deps graph-clean hasher-sync hasher-deps hasher-build hasher-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image desktop desktop-deps desktop-build dash gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean build-full
 
 # Default target
 all: proto frontend desktop-build backend binary
@@ -100,18 +110,20 @@ proto: ## Generate protobuf Go code from .proto files
 # Dependency Management
 deps: deps-go deps-node deps-ansible ## Install all dependencies
 
-deps-go: ## Install Go dependencies (backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, and KNIRVHASHER)
+deps-go: ## Install Go dependencies (backend and standalone submodules)
 	@echo "$(BLUE)Installing Go dependencies...$(NC)"
 	cd $(BACKEND_DIR) && go mod download
 	cd $(BACKEND_DIR) && go mod tidy
-	cd $(GATEWAY_DIR) && go mod download
-	cd $(GATEWAY_DIR) && go mod tidy
-	cd $(GRAPH_DIR) && go mod download
-	cd $(GRAPH_DIR) && go mod tidy
-	cd $(CHAIN_DIR) && go mod download
-	cd $(CHAIN_DIR) && go mod tidy
-	cd $(HASHER_DIR) && go mod download
-	cd $(HASHER_DIR) && go mod tidy
+	cd $(GATEWAY_SRC_DIR) && go mod download
+	cd $(GATEWAY_SRC_DIR) && go mod tidy
+	cd $(GRAPH_SRC_DIR) && go mod download
+	cd $(GRAPH_SRC_DIR) && go mod tidy
+	cd $(CHAIN_SRC_DIR) && go mod download
+	cd $(CHAIN_SRC_DIR) && go mod tidy
+	cd $(ORACLE_DIR) && go mod download
+	cd $(ORACLE_DIR) && go mod tidy
+	cd $(HASHER_SRC_DIR) && go mod download
+	cd $(HASHER_SRC_DIR) && go mod tidy
 
 deps-node: ## Install Node.js dependencies
 	@echo "$(BLUE)Installing Node.js dependencies...$(NC)"
@@ -132,7 +144,7 @@ frontend-dev: deps-node ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Backend Build (cmd/backend_server only)
-backend: deps-go ## Build complete Go backend service package
+backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
 	@echo "$(BLUE)Copying backend binary to root...$(NC)"
@@ -159,10 +171,11 @@ key-encryptor: deps-go ## Build key_encryptor binary
 	rm $(BACKEND_DIR)/key_encryptor
 
 
-# Unified Binary (Frontend + Desktop + Backend + KNIRVGATEWAY)
-# main.go embeds: bin/backend_server, bin/knirvgateway, config/*, desktop/dist/*, frontend/out/*
-# At runtime the launcher extracts backend_server and knirvgateway to ~/.local/share/knirvserver/bin/
-binary: proto ebpf-generate frontend desktop-build backend gateway-build graph-build chain-build oracle-build hasher-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, and KNIRVHASHER
+# Unified Binary (Frontend + Desktop + Backend + embedded pkg modules)
+# main.go embeds: bin/backend_server, config/*, desktop/dist/*, frontend/out/*
+# Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, and KNIRVHASHER
+# are embedded and extracted by their pkg modules.
+binary: proto ebpf-generate frontend desktop-build gateway-build graph-build chain-build oracle-build hasher-build backend ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, and KNIRVHASHER
 	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, and KNIRVHASHER)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
@@ -306,7 +319,8 @@ clean: ## Clean build outputs (preserves node_modules and Go module cache)
 	@echo "$(BLUE)Cleaning build outputs...$(NC)"
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 	rm -rf $(BACKEND_DIR)/bin
-	rm -f bin/backend_server bin/knirvgateway bin/hasher-*
+	rm -f bin/backend_server
+	rm -f $(GATEWAY_PKG_BIN) $(GRAPH_PKG_BIN) $(CHAIN_PKG_BIN) $(ORACLE_PKG_BIN) $(HASHER_PKG_BIN)
 	rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/out
 	cd $(GATEWAY_DIR) && go clean
 	cd $(HASHER_DIR) && go clean
@@ -383,100 +397,85 @@ quick-test: test-go ## Quick test (Go only)
 quick-deploy: binary deploy-application ## Quick application deployment
 
 # KNIRVGATEWAY (Embedded) targets
-gateway-sync: ## Sync KNIRVGATEWAY source to embedded package
-	@echo "$(BLUE)Syncing KNIRVGATEWAY to embedded package...$(NC)"
-	@./scripts/sync-knirvgateway.sh
-
 gateway-deps: ## Install KNIRVGATEWAY dependencies
 	@echo "$(BLUE)Installing KNIRVGATEWAY dependencies...$(NC)"
-	cd $(GATEWAY_DIR) && go mod download && go mod tidy
+	cd $(GATEWAY_SRC_DIR) && go mod download && go mod tidy
 
-gateway-build: gateway-deps ## Build KNIRVGATEWAY binary into bin/ (required before binary target)
+gateway-build: gateway-deps ## Build KNIRVGATEWAY binary into pkg/knirvgateway/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVGATEWAY binary...$(NC)"
-	@mkdir -p bin
-	cd $(GATEWAY_DIR) && go build -ldflags "-s -w" -o $(ROOT_DIR)/bin/knirvgateway ./cmd/gateway
-	@echo "$(GREEN)KNIRVGATEWAY binary built: bin/knirvgateway$(NC)"
+	@mkdir -p $(GATEWAY_DIR)/bin
+	cd $(GATEWAY_SRC_DIR) && go build -ldflags "-s -w" -o $(GATEWAY_PKG_BIN) ./cmd/gateway
+	@echo "$(GREEN)KNIRVGATEWAY binary built: $(GATEWAY_PKG_BIN)$(NC)"
 
 gateway-clean: ## Clean KNIRVGATEWAY build artifacts
 	@echo "$(BLUE)Cleaning KNIRVGATEWAY artifacts...$(NC)"
-	rm -f bin/knirvgateway
-	cd $(GATEWAY_DIR) && go clean
+	rm -f $(GATEWAY_PKG_BIN)
+	cd $(GATEWAY_SRC_DIR) && go clean
 
 # KNIRVGRAPH (Embedded) targets
-graph-sync: ## Sync KNIRVGRAPH source to embedded package
-	@echo "$(BLUE)Syncing KNIRVGRAPH to embedded package...$(NC)"
-	@./scripts/sync-knirvgraph.sh
-
 graph-deps: ## Install KNIRVGRAPH dependencies
 	@echo "$(BLUE)Installing KNIRVGRAPH dependencies...$(NC)"
-	cd $(GRAPH_DIR) && go mod download && go mod tidy
+	cd $(GRAPH_SRC_DIR) && go mod download && go mod tidy
 
-graph-build: graph-deps ## Build KNIRVGRAPH binary into bin/ (required before binary target)
+graph-build: graph-deps ## Build KNIRVGRAPH binary into pkg/knirvgraph/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVGRAPH binary...$(NC)"
-	@mkdir -p bin
-	cd $(GRAPH_DIR)/cmd/node && go build -ldflags "-s -w" -o $(ROOT_DIR)/bin/knirvgraph
-	@echo "$(GREEN)KNIRVGRAPH binary built: bin/knirvgraph$(NC)"
+	@mkdir -p $(GRAPH_DIR)/bin
+	cd $(GRAPH_SRC_DIR)/cmd/node && go build -ldflags "-s -w" -o $(GRAPH_PKG_BIN)
+	@echo "$(GREEN)KNIRVGRAPH binary built: $(GRAPH_PKG_BIN)$(NC)"
 
 graph-clean: ## Clean KNIRVGRAPH build artifacts
 	@echo "$(BLUE)Cleaning KNIRVGRAPH artifacts...$(NC)"
-	rm -f bin/knirvgraph
-	cd $(GRAPH_DIR) && go clean
+	rm -f $(GRAPH_PKG_BIN)
+	cd $(GRAPH_SRC_DIR) && go clean
 
 # KNIRVCHAIN (Embedded) targets
-chain-sync: ## Sync KNIRVCHAIN source to embedded package
-	@echo "$(BLUE)Syncing KNIRVCHAIN to embedded package...$(NC)"
-	@./scripts/sync-knirvchain.sh
-
 chain-deps: ## Install KNIRVCHAIN dependencies
 	@echo "$(BLUE)Installing KNIRVCHAIN dependencies...$(NC)"
-	cd $(CHAIN_DIR) && go mod download && go mod tidy
+	cd $(CHAIN_SRC_DIR) && go mod download && go mod tidy
 
-chain-build: chain-deps ## Build KNIRVCHAIN binary into bin/ (required before binary target)
+chain-build: chain-deps ## Build KNIRVCHAIN binary into pkg/knirvchain/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVCHAIN binary...$(NC)"
-	@mkdir -p bin
-	cd $(CHAIN_DIR)/cmd/knirvchain && go build -ldflags "-s -w" -o $(ROOT_DIR)/bin/knirvchain
-	@echo "$(GREEN)KNIRVCHAIN binary built: bin/knirvchain$(NC)"
+	@mkdir -p $(CHAIN_DIR)/bin
+	cd $(CHAIN_SRC_DIR)/cmd/knirvchain && go build -ldflags "-s -w" -o $(CHAIN_PKG_BIN)
+	@echo "$(GREEN)KNIRVCHAIN binary built: $(CHAIN_PKG_BIN)$(NC)"
 
 chain-clean: ## Clean KNIRVCHAIN build artifacts
 	@echo "$(BLUE)Cleaning KNIRVCHAIN artifacts...$(NC)"
-	rm -f bin/knirvchain
-	cd $(CHAIN_DIR) && go clean
+	rm -f $(CHAIN_PKG_BIN)
+	cd $(CHAIN_SRC_DIR) && go clean
 
 # KNIRVORACLE (Embedded) targets
 oracle-deps: ## Install KNIRVORACLE dependencies
 	@echo "$(BLUE)Installing KNIRVORACLE dependencies...$(NC)"
 	cd $(ORACLE_DIR) && go mod download && go mod tidy
 
-oracle-build: oracle-deps ## Build KNIRVORACLE binary into bin/ (required before binary target)
+oracle-build: oracle-deps ## Build KNIRVORACLE binary into pkg/knirvoracle/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVORACLE binary...$(NC)"
-	@mkdir -p bin
-	cd $(ORACLE_DIR)/cmd/oracle && go build -ldflags "-s -w" -o $(ROOT_DIR)/bin/knirvoracle
-	@echo "$(GREEN)KNIRVORACLE binary built: bin/knirvoracle$(NC)"
+	@mkdir -p $(ORACLE_PKG_DIR)/bin
+	cd $(ORACLE_DIR)/cmd/oracle && go build -ldflags "-s -w" -o $(ORACLE_PKG_BIN)
+	@echo "$(GREEN)KNIRVORACLE binary built: $(ORACLE_PKG_BIN)$(NC)"
 
 oracle-clean: ## Clean KNIRVORACLE build artifacts
 	@echo "$(BLUE)Cleaning KNIRVORACLE artifacts...$(NC)"
-	rm -f bin/knirvoracle
+	rm -f $(ORACLE_PKG_BIN)
 	cd $(ORACLE_DIR) && go clean
 
 # Full build including embedded KNIRVGATEWAY (gateway-build is now a dep of binary)
 build-full: binary ## Build everything including KNIRVGATEWAY (alias for binary)
 
 # KNIRVHASHER (Embedded) targets
-hasher-sync: ## Sync KNIRVHASHER source to embedded package
-	@echo "$(BLUE)Syncing KNIRVHASHER to embedded package...$(NC)"
-	@./scripts/sync-knirvhasher.sh
-
 hasher-deps: ## Install KNIRVHASHER dependencies
 	@echo "$(BLUE)Installing KNIRVHASHER dependencies...$(NC)"
-	cd $(HASHER_DIR) && go mod download && go mod tidy
+	cd $(HASHER_SRC_DIR) && go mod download && go mod tidy
 
-hasher-build: hasher-deps ## Build KNIRVHASHER pipeline binaries into bin/ (required before binary target)
+hasher-build: hasher-deps ## Build KNIRVHASHER binaries into pkg/knirvhasher/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVHASHER pipeline binaries...$(NC)"
-	@mkdir -p bin
-	cd $(HASHER_DIR) && $(MAKE) build-pipeline-all
-	@echo "$(GREEN)KNIRVHASHER pipeline binaries built$(NC)"
+	@mkdir -p $(HASHER_DIR)/bin
+	cd $(HASHER_SRC_DIR) && go build -ldflags "-s -w" -o $(HASHER_PKG_BIN) ./cmd/cli
+	cd $(HASHER_SRC_DIR) && $(MAKE) build-pipeline-all
+	@echo "$(GREEN)KNIRVHASHER binaries built: $(HASHER_PKG_BIN) and pipeline artifacts$(NC)"
 
 hasher-clean: ## Clean KNIRVHASHER build artifacts
 	@echo "$(BLUE)Cleaning KNIRVHASHER artifacts...$(NC)"
-	rm -f bin/hasher-*
-	cd $(HASHER_DIR) && go clean
+	rm -f $(HASHER_PKG_BIN)
+	cd $(HASHER_SRC_DIR) && go clean

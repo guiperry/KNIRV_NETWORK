@@ -122,3 +122,85 @@ func TestEncodeFrameModalities(t *testing.T) {
 		t.Errorf("proof modality has wrong length: got %d, want %d", proofIdx.Length, len(frame.Proof))
 	}
 }
+
+func TestEncodeBracket_RoundTrip(t *testing.T) {
+	b := &Bracket{
+		ID:          "test-bracket-123",
+		LSHSalt:     0x12345678,
+		SubSecondUS: 123456,
+		ASICLoops:   5,
+		GoldenSeed:  0xDEADBEEF,
+	}
+	for i := range b.Projections {
+		b.Projections[i] = byte(i % 256)
+	}
+
+	encoded := EncodeBracket(b)
+	decoded := DecodeBracket(encoded)
+
+	if decoded.LSHSalt != b.LSHSalt {
+		t.Errorf("LSHSalt mismatch: got 0x%X, want 0x%X", decoded.LSHSalt, b.LSHSalt)
+	}
+	if decoded.SubSecondUS != b.SubSecondUS {
+		t.Errorf("SubSecondUS mismatch: got %d, want %d", decoded.SubSecondUS, b.SubSecondUS)
+	}
+	if decoded.ASICLoops != b.ASICLoops {
+		t.Errorf("ASICLoops mismatch: got %d, want %d", decoded.ASICLoops, b.ASICLoops)
+	}
+	if decoded.GoldenSeed != b.GoldenSeed {
+		t.Errorf("GoldenSeed mismatch: got 0x%X, want 0x%X", decoded.GoldenSeed, b.GoldenSeed)
+	}
+	if decoded.Projections != b.Projections {
+		t.Errorf("Projections mismatch")
+	}
+	if len(encoded) != BracketSize {
+		t.Errorf("encoded length: got %d, want %d", len(encoded), BracketSize)
+	}
+}
+
+func TestXORProjections_Inverse(t *testing.T) {
+	var a, b [64]byte
+	for i := range a {
+		a[i] = byte(i * 3)
+		b[i] = byte(i * 7)
+	}
+
+	diff := XORProjections(a, b)
+	recovered := ApplyProjectionDelta(diff, b)
+
+	for i := range a {
+		if recovered[i] != a[i] {
+			t.Errorf("XOR not invertible at index %d: got 0x%X, want 0x%X", i, recovered[i], a[i])
+		}
+	}
+}
+
+func TestXORProjections_SameInput(t *testing.T) {
+	var a [64]byte
+	for i := range a {
+		a[i] = byte(i)
+	}
+
+	diff := XORProjections(a, a)
+	var zero [64]byte
+	for i := range diff {
+		if diff[i] != zero[i] {
+			t.Errorf("XOR of same input should be zero at index %d", i)
+		}
+	}
+}
+
+func TestBracketSize_Constant(t *testing.T) {
+	if BracketSize != 80 {
+		t.Errorf("BracketSize = %d, want 80", BracketSize)
+	}
+}
+
+func TestDeltaType_Constants(t *testing.T) {
+	if DeltaTypeI != "I" {
+		t.Errorf("DeltaTypeI = %s, want I", DeltaTypeI)
+	}
+	if DeltaTypeP != "P" {
+		t.Errorf("DeltaTypeP = %s, want P", DeltaTypeP)
+	}
+}

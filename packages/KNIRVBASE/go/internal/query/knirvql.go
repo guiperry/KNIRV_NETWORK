@@ -12,10 +12,8 @@ import (
 	typ "github.com/knirvcorp/knirvbase/go/internal/types"
 )
 
-// KNIRVQLParser parses KNIRVQL queries
 type KNIRVQLParser struct{}
 
-// Parse parses a KNIRVQL query
 func (p *KNIRVQLParser) Parse(query string) (*Query, error) {
 	query = strings.TrimSpace(query)
 	parts := strings.Fields(query)
@@ -45,7 +43,6 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 		return nil, fmt.Errorf("invalid GET query")
 	}
 
-	// Use original case for extracting modality type, then uppercase for entry type
 	entryTypeOriginal := parts[0]
 	entryType := strings.ToUpper(parts[0])
 	var collection string
@@ -53,6 +50,7 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 	var similarTo []float64
 	var limit int
 	var modalityType string
+	var bracketField string
 
 	if strings.HasPrefix(entryTypeOriginal, "MEMORY.MODALITY(") && strings.HasSuffix(entryTypeOriginal, ")") {
 		modalityName := entryTypeOriginal[len("MEMORY.MODALITY(") : len(entryTypeOriginal)-1]
@@ -60,15 +58,21 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 		entryType = "MEMORY"
 	}
 
+	if strings.HasPrefix(entryTypeOriginal, "MEMORY.BRACKET(") && strings.HasSuffix(entryTypeOriginal, ")") {
+		bracketField = entryTypeOriginal[len("MEMORY.BRACKET(") : len(entryTypeOriginal)-1]
+		entryType = "MEMORY"
+	}
+
 	var queryType QueryType
-	if modalityType != "" {
+	if bracketField != "" {
+		queryType = QueryGetBracketField
+	} else if modalityType != "" {
 		queryType = QueryGetModality
 	} else {
 		queryType = QueryGet
 	}
 
 	i := 1
-	// Handle case where there may be no WHERE clause (e.g., "GET MEMORY.MODALITY(seed)")
 	if i < len(parts) && parts[i] == "WHERE" {
 		i++
 		for i < len(parts) {
@@ -104,16 +108,13 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 				}
 				break
 			} else if parts[i] == "AND" || parts[i] == "OR" {
-				// Skip logical operators
 				i++
 				continue
 			} else {
-				// Parse filter: key operator value
 				if i+2 < len(parts) {
 					key := parts[i]
 					operator := parts[i+1]
 					valueStr := strings.Trim(parts[i+2], "\"")
-					// Parse value
 					var value interface{}
 					if valueStr == "true" {
 						value = true
@@ -121,8 +122,8 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 						value = false
 					} else if f, err := strconv.ParseFloat(valueStr, 64); err == nil {
 						value = f
-					} else if i, err := strconv.ParseInt(valueStr, 10, 64); err == nil {
-						value = i
+					} else if val, err := strconv.ParseInt(valueStr, 10, 64); err == nil {
+						value = val
 					} else {
 						value = valueStr
 					}
@@ -143,6 +144,7 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 		SimilarTo:    similarTo,
 		Limit:        limit,
 		ModalityType: modalityType,
+		BracketField: bracketField,
 	}, nil
 }
 
@@ -197,7 +199,6 @@ func (p *KNIRVQLParser) parseCreateIndex(parts []string) (*Query, error) {
 		return nil, fmt.Errorf("invalid CREATE INDEX command")
 	}
 
-	// Parse collection:index format
 	indexRef := parts[0]
 	indexParts := strings.Split(indexRef, ":")
 	if len(indexParts) != 2 {
@@ -218,7 +219,6 @@ func (p *KNIRVQLParser) parseCreateIndex(parts []string) (*Query, error) {
 
 	i := 3
 	if i < len(parts) && strings.HasPrefix(parts[i], "(") {
-		// Handle (field1,field2) format
 		fieldStr := strings.Trim(parts[i], "()")
 		if fieldStr != "" {
 			fieldParts := strings.Split(fieldStr, ",")
@@ -281,7 +281,6 @@ func (p *KNIRVQLParser) parseDropIndex(parts []string) (*Query, error) {
 		return nil, fmt.Errorf("invalid DROP INDEX command")
 	}
 
-	// Parse collection:index format
 	indexRef := parts[0]
 	indexParts := strings.Split(indexRef, ":")
 	if len(indexParts) != 2 {
@@ -308,28 +307,23 @@ func (p *KNIRVQLParser) parseDropCollection(parts []string) (*Query, error) {
 	}, nil
 }
 
-// Query represents a parsed KNIRVQL query
 type Query struct {
-	Type       QueryType
-	EntryType  typ.EntryType
-	Collection string
-	ID         string
-	Key        string
-	Value      string
-	Filters    []Filter
-	SimilarTo  []float64
-	Limit      int
-
-	// Index management
-	IndexName string
-	Fields    []string
-	Unique    bool
-
-	// Modality query
+	Type         QueryType
+	EntryType    typ.EntryType
+	Collection   string
+	ID           string
+	Key          string
+	Value        string
+	Filters      []Filter
+	SimilarTo    []float64
+	Limit        int
+	IndexName    string
+	Fields       []string
+	Unique       bool
 	ModalityType string
+	BracketField string
 }
 
-// QueryType enum
 type QueryType int
 
 const (
@@ -341,20 +335,19 @@ const (
 	QueryDropIndex
 	QueryDropCollection
 	QueryGetModality
+	QueryGetBracketField
 )
 
-// Filter for WHERE clauses
 type Filter struct {
 	Key      string
 	Operator string
 	Value    interface{}
 }
 
-// Execute executes the query on the database
 func (q *Query) Execute(db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
 	ctx := context.TODO()
 	switch q.Type {
-	case QueryGet:
+	case QueryGet, QueryGetBracketField:
 		return q.executeGet(db, collection)
 	case QuerySet:
 		doc := map[string]interface{}{
@@ -371,7 +364,6 @@ func (q *Query) Execute(db *db.DistributedDatabase, collection *coll.Distributed
 		_, err := collection.Delete(ctx, q.ID)
 		return nil, err
 	case QueryCreateIndex:
-		// Default to B-Tree index
 		indexType := stor.IndexTypeBTree
 		if q.IndexName == "vector" {
 			indexType = stor.IndexTypeHNSW
@@ -380,21 +372,19 @@ func (q *Query) Execute(db *db.DistributedDatabase, collection *coll.Distributed
 		}
 		return nil, db.CreateIndex(ctx, q.Collection, q.IndexName, indexType, q.Fields, q.Unique, "", nil)
 	case QueryCreateCollection:
-		// Collections are created implicitly when accessed
 		return nil, nil
 	case QueryDropIndex:
 		return nil, db.DropIndex(ctx, q.Collection, q.IndexName)
 	case QueryDropCollection:
-		// For now, just return success - actual drop would need more implementation
 		return nil, nil
+	case QueryGetModality:
+		return q.executeGet(db, collection)
 	default:
 		return nil, fmt.Errorf("unsupported query type")
 	}
 }
 
-// executeGet executes a GET query using the query optimizer
 func (q *Query) executeGet(db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
-	// Get collection name from query or default
 	collectionName := q.Collection
 	if collectionName == "" {
 		if q.EntryType == typ.EntryTypeAuth {
@@ -404,23 +394,18 @@ func (q *Query) executeGet(db *db.DistributedDatabase, collection *coll.Distribu
 		}
 	}
 
-	// Get indexes for the collection
 	indexes := db.GetIndexesForCollection(context.TODO(), collectionName)
 
-	// Create optimizer
 	optimizer := NewQueryOptimizer(collectionName, indexes, nil)
 
-	// Generate execution plan
 	plan, err := optimizer.Optimize(q)
 	if err != nil {
 		return nil, fmt.Errorf("failed to optimize query: %w", err)
 	}
 
-	// Execute the plan
 	return q.executePlan(plan, db, collection)
 }
 
-// executePlan executes a query plan
 func (q *Query) executePlan(plan *QueryPlan, db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
 	switch plan.ScanType {
 	case FullScan:
@@ -434,7 +419,6 @@ func (q *Query) executePlan(plan *QueryPlan, db *db.DistributedDatabase, collect
 	}
 }
 
-// executeFullScan performs a full collection scan
 func (q *Query) executeFullScan(plan *QueryPlan, collection *coll.DistributedCollection) (interface{}, error) {
 	ctx := context.TODO()
 	docs, err := collection.FindAll(ctx)
@@ -456,12 +440,10 @@ func (q *Query) executeFullScan(plan *QueryPlan, collection *coll.DistributedCol
 	return results, nil
 }
 
-// executeIndexScan performs an index scan followed by post-filtering
 func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
 	ctx := context.TODO()
-	// Query the index to get candidate document IDs
 	docIDs, err := db.QueryIndex(ctx, plan.IndexName, plan.IndexName, map[string]interface{}{
-		"value": plan.IndexFilters[0].Value, // Simplified - assumes single filter
+		"value": plan.IndexFilters[0].Value,
 	})
 	if err != nil {
 		return nil, err
@@ -485,11 +467,9 @@ func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, co
 	return results, nil
 }
 
-// executeIndexOnlyScan performs an index-only scan (no document access needed)
 func (q *Query) executeIndexOnlyScan(plan *QueryPlan, db *db.DistributedDatabase) (interface{}, error) {
-	// For index-only scans, we can return document IDs directly
 	docIDs, err := db.QueryIndex(context.TODO(), plan.IndexName, plan.IndexName, map[string]interface{}{
-		"value": plan.IndexFilters[0].Value, // Simplified - assumes single filter
+		"value": plan.IndexFilters[0].Value,
 	})
 	if err != nil {
 		return nil, err
@@ -508,41 +488,83 @@ func (q *Query) matchesFiltersWithPlan(doc map[string]interface{}, filters []Fil
 		return false
 	}
 	for _, f := range filters {
-		if !q.matchesFilter(payload, f) {
+		if !q.matchesFilter(doc, payload, f) {
 			return false
 		}
 	}
 	return true
 }
 
-func (q *Query) matchesFilter(payload map[string]interface{}, filter Filter) bool {
-	val, ok := payload[filter.Key]
-	if !ok {
+func (q *Query) matchesFilter(doc map[string]interface{}, payload map[string]interface{}, filter Filter) bool {
+	switch filter.Key {
+	case "z3_status":
+		if z3, ok := payload["z3"].(map[string]interface{}); ok {
+			return fmt.Sprintf("%v", z3["status"]) == fmt.Sprintf("%v", filter.Value)
+		}
 		return false
-	}
-	switch filter.Operator {
-	case "=":
-		return fmt.Sprintf("%v", val) == fmt.Sprintf("%v", filter.Value)
-	case "!=":
-		return fmt.Sprintf("%v", val) != fmt.Sprintf("%v", filter.Value)
-	case ">":
-		return compareValues(val, filter.Value) > 0
-	case "<":
-		return compareValues(val, filter.Value) < 0
-	case ">=":
-		return compareValues(val, filter.Value) >= 0
-	case "<=":
-		return compareValues(val, filter.Value) <= 0
-	case "CONTAINS":
-		valStr := fmt.Sprintf("%v", val)
-		filterStr := fmt.Sprintf("%v", filter.Value)
-		return strings.Contains(valStr, filterStr)
-	case "STARTS_WITH":
-		valStr := fmt.Sprintf("%v", val)
-		filterStr := fmt.Sprintf("%v", filter.Value)
-		return strings.HasPrefix(valStr, filterStr)
+	case "avg_temp_c":
+		if thermo, ok := payload["thermo"].(map[string]interface{}); ok {
+			cmp := compareValues(thermo["temp_celsius"], filter.Value)
+			opFunc := compareOperator(filter.Operator)
+			return opFunc(cmp)
+		}
+		return false
+	case "drift_score":
+		if z3, ok := payload["z3"].(map[string]interface{}); ok {
+			cmp := compareValues(z3["relevance"], filter.Value)
+			opFunc := compareOperator(filter.Operator)
+			return opFunc(cmp)
+		}
+		return false
+	case "bracket_type":
+		if brackets, ok := payload["brackets"].(map[string]interface{}); ok {
+			return fmt.Sprintf("%v", brackets["type"]) == fmt.Sprintf("%v", filter.Value)
+		}
+		return false
 	default:
-		return false
+		val, ok := payload[filter.Key]
+		if !ok {
+			return false
+		}
+		switch filter.Operator {
+		case "=":
+			return fmt.Sprintf("%v", val) == fmt.Sprintf("%v", filter.Value)
+		case "!=":
+			return fmt.Sprintf("%v", val) != fmt.Sprintf("%v", filter.Value)
+		case ">":
+			return compareValues(val, filter.Value) > 0
+		case "<":
+			return compareValues(val, filter.Value) < 0
+		case ">=":
+			return compareValues(val, filter.Value) >= 0
+		case "<=":
+			return compareValues(val, filter.Value) <= 0
+		case "CONTAINS":
+			valStr := fmt.Sprintf("%v", val)
+			filterStr := fmt.Sprintf("%v", filter.Value)
+			return strings.Contains(valStr, filterStr)
+		case "STARTS_WITH":
+			valStr := fmt.Sprintf("%v", val)
+			filterStr := fmt.Sprintf("%v", filter.Value)
+			return strings.HasPrefix(valStr, filterStr)
+		default:
+			return false
+		}
+	}
+}
+
+func compareOperator(op string) func(int) bool {
+	switch op {
+	case ">":
+		return func(i int) bool { return i > 0 }
+	case "<":
+		return func(i int) bool { return i < 0 }
+	case ">=":
+		return func(i int) bool { return i >= 0 }
+	case "<=":
+		return func(i int) bool { return i <= 0 }
+	default:
+		return func(i int) bool { return i == 0 }
 	}
 }
 

@@ -40,6 +40,38 @@ func DecodeHeader(r io.Reader) (Header, error) {
 
 type ModalityMap = map[ModalityType]ModalityIndex
 
+func EncodeBracket(b *Bracket) [BracketSize]byte {
+	var buf [BracketSize]byte
+	binary.LittleEndian.PutUint32(buf[0:4], b.LSHSalt)
+	copy(buf[4:68], b.Projections[:])
+	binary.LittleEndian.PutUint32(buf[68:72], b.SubSecondUS)
+	binary.LittleEndian.PutUint32(buf[72:76], b.ASICLoops)
+	binary.LittleEndian.PutUint32(buf[76:80], b.GoldenSeed)
+	return buf
+}
+
+func DecodeBracket(buf [BracketSize]byte) Bracket {
+	var b Bracket
+	b.LSHSalt = binary.LittleEndian.Uint32(buf[0:4])
+	copy(b.Projections[:], buf[4:68])
+	b.SubSecondUS = binary.LittleEndian.Uint32(buf[68:72])
+	b.ASICLoops = binary.LittleEndian.Uint32(buf[72:76])
+	b.GoldenSeed = binary.LittleEndian.Uint32(buf[76:80])
+	return b
+}
+
+func XORProjections(current, anchor [64]byte) [64]byte {
+	var diff [64]byte
+	for i := range diff {
+		diff[i] = current[i] ^ anchor[i]
+	}
+	return diff
+}
+
+func ApplyProjectionDelta(delta, anchor [64]byte) [64]byte {
+	return XORProjections(delta, anchor)
+}
+
 func EncodeFrame(f *Frame) ([]byte, ModalityMap) {
 	proofAligned := Align8(len(f.Proof))
 	total := 48 + 32 + 16 + proofAligned
@@ -65,4 +97,12 @@ func EncodeFrame(f *Frame) ([]byte, ModalityMap) {
 		ModalityProof:  ModalityIndex{Offset: 96, Length: len(f.Proof)},
 	}
 	return buf, modalities
+}
+
+type Frame struct {
+	ID     string
+	Vector [12]float32
+	Seed   [32]byte
+	Thermo ThermoData
+	Proof  []byte
 }

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/knirvcorp/knirvbase/go/internal/crypto/pqc"
+	"github.com/knirvcorp/knirvbase/go/pkg/nrv"
+	"github.com/stretchr/testify/require"
 )
 
 func setupTestCompactor(t *testing.T) (*Compactor, *NRVWriter, string) {
@@ -14,14 +16,10 @@ func setupTestCompactor(t *testing.T) (*Compactor, *NRVWriter, string) {
 	path := filepath.Join(tmpDir, "test.nrv")
 
 	keyPair, err := pqc.GeneratePQCKeyPair("test-key", "test")
-	if err != nil {
-		t.Fatalf("GeneratePQCKeyPair failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	writer, err := NewNRVWriter(path, keyPair)
-	if err != nil {
-		t.Fatalf("NewNRVWriter failed: %v", err)
-	}
+	require.NoError(t, err)
 
 	compactor := NewCompactor(path, keyPair)
 
@@ -33,19 +31,18 @@ func TestCompactorMaybeCompactBelowThreshold(t *testing.T) {
 	defer writer.Close()
 
 	for i := 0; i < 10; i++ {
-		frame := createTestFrame("frame-below-threshold")
-		if err := writer.AppendFrame(frame, true, 0.9); err != nil {
-			t.Fatalf("AppendFrame failed: %v", err)
-		}
+		frameID := "frame-below-threshold"
+		buf := make([]byte, 80)
+		metas := []nrv.BracketMeta{{ID: "b1", Type: nrv.DeltaTypeI, Offset: 0}}
+		thermo := nrv.ThermoAtmosphere{AvgTempC: 70, PeakVoltV: 1.2, ClockMHz: 500}
+		_ = writer.AppendFrame(frameID, buf, metas, thermo, nrv.LinguisticMapping{})
 	}
 
 	compactor.MaybeCompact(writer.registry)
 
 	time.Sleep(100 * time.Millisecond)
 
-	if compactor.running {
-		t.Error("expected compaction not to start below threshold")
-	}
+	require.False(t, compactor.running, "expected compaction not to start below threshold")
 }
 
 func TestCompactorMaybeCompactAboveThreshold(t *testing.T) {
@@ -56,10 +53,11 @@ func TestCompactorMaybeCompactAboveThreshold(t *testing.T) {
 	deleteCount := 3
 
 	for i := 0; i < totalFrames; i++ {
-		frame := createTestFrame("frame-above-threshold")
-		if err := writer.AppendFrame(frame, true, 0.9); err != nil {
-			t.Fatalf("AppendFrame failed: %v", err)
-		}
+		frameID := "frame-above-threshold"
+		buf := make([]byte, 80)
+		metas := []nrv.BracketMeta{{ID: "b1", Type: nrv.DeltaTypeI, Offset: 0}}
+		thermo := nrv.ThermoAtmosphere{AvgTempC: 70, PeakVoltV: 1.2, ClockMHz: 500}
+		_ = writer.AppendFrame(frameID, buf, metas, thermo, nrv.LinguisticMapping{})
 	}
 
 	for i := 0; i < deleteCount; i++ {
@@ -68,23 +66,18 @@ func TestCompactorMaybeCompactAboveThreshold(t *testing.T) {
 		writer.registry.TombstoneCount++
 	}
 
-	if err := writer.saveRegistry(); err != nil {
-		t.Fatalf("saveRegistry failed: %v", err)
-	}
+	err := writer.saveRegistry()
+	require.NoError(t, err)
 
 	ratio := float64(writer.registry.TombstoneCount) / float64(writer.registry.FrameCount)
-	if ratio < compactionThreshold {
-		t.Fatalf("test setup error: ratio %f is below threshold %f", ratio, compactionThreshold)
-	}
+	require.GreaterOrEqual(t, ratio, compactionThreshold, "test setup error: ratio is below threshold")
 
 	compactor.MaybeCompact(writer.registry)
 
 	time.Sleep(500 * time.Millisecond)
 
 	reader, err := NewNRVReader(path)
-	if err != nil {
-		t.Fatalf("NewNRVReader after compaction failed: %v", err)
-	}
+	require.NoError(t, err)
 	defer reader.Close()
 
 	liveCount := 0
@@ -95,9 +88,7 @@ func TestCompactorMaybeCompactAboveThreshold(t *testing.T) {
 	}
 
 	expectedLive := totalFrames - deleteCount
-	if liveCount != expectedLive {
-		t.Errorf("expected %d live frames after compaction, got %d", expectedLive, liveCount)
-	}
+	require.Equal(t, expectedLive, liveCount)
 }
 
 func TestCompactorCompactPreservesData(t *testing.T) {
@@ -106,38 +97,30 @@ func TestCompactorCompactPreservesData(t *testing.T) {
 
 	frameIDs := []string{"compact-frame-1", "compact-frame-2", "compact-frame-3"}
 	for _, id := range frameIDs {
-		frame := createTestFrame(id)
-		if err := writer.AppendFrame(frame, true, 0.85); err != nil {
-			t.Fatalf("AppendFrame failed: %v", err)
-		}
+		buf := make([]byte, 80)
+		metas := []nrv.BracketMeta{{ID: "b1", Type: nrv.DeltaTypeI, Offset: 0}}
+		thermo := nrv.ThermoAtmosphere{AvgTempC: 70, PeakVoltV: 1.2, ClockMHz: 500}
+		_ = writer.AppendFrame(id, buf, metas, thermo, nrv.LinguisticMapping{})
 	}
 
 	nowNano := time.Now().UnixNano()
 	writer.registry.Frames[0].Tombstone = &nowNano
 	writer.registry.TombstoneCount++
 
-	if err := writer.saveRegistry(); err != nil {
-		t.Fatalf("saveRegistry failed: %v", err)
-	}
+	err := writer.saveRegistry()
+	require.NoError(t, err)
 
-	if err := compactor.compact(); err != nil {
-		t.Fatalf("compact failed: %v", err)
-	}
+	err = compactor.compact()
+	require.NoError(t, err)
 
 	reader, err := NewNRVReader(path)
-	if err != nil {
-		t.Fatalf("NewNRVReader after compaction failed: %v", err)
-	}
+	require.NoError(t, err)
 	defer reader.Close()
 
-	if len(reader.registry.Frames) != 2 {
-		t.Errorf("expected 2 frames after compaction, got %d", len(reader.registry.Frames))
-	}
+	require.Len(t, reader.registry.Frames, 2)
 
 	for _, entry := range reader.registry.Frames {
-		if entry.Tombstone != nil {
-			t.Error("expected no tombstoned frames after compaction")
-		}
+		require.Nil(t, entry.Tombstone, "expected no tombstoned frames after compaction")
 	}
 }
 
@@ -146,37 +129,29 @@ func TestCompactorCompactUpdatesMetrics(t *testing.T) {
 	defer writer.Close()
 
 	for i := 0; i < 5; i++ {
-		frame := createTestFrame("metrics-frame")
-		if err := writer.AppendFrame(frame, true, 0.8); err != nil {
-			t.Fatalf("AppendFrame failed: %v", err)
-		}
+		frameID := "metrics-frame"
+		buf := make([]byte, 80)
+		metas := []nrv.BracketMeta{{ID: "b1", Type: nrv.DeltaTypeI, Offset: 0}}
+		thermo := nrv.ThermoAtmosphere{AvgTempC: 70, PeakVoltV: 1.2, ClockMHz: 500}
+		_ = writer.AppendFrame(frameID, buf, metas, thermo, nrv.LinguisticMapping{})
 	}
 
 	nowNano := time.Now().UnixNano()
 	writer.registry.Frames[0].Tombstone = &nowNano
 	writer.registry.TombstoneCount++
 
-	if err := writer.saveRegistry(); err != nil {
-		t.Fatalf("saveRegistry failed: %v", err)
-	}
+	err := writer.saveRegistry()
+	require.NoError(t, err)
 
-	if err := compactor.compact(); err != nil {
-		t.Fatalf("compact failed: %v", err)
-	}
+	err = compactor.compact()
+	require.NoError(t, err)
 
 	reader, err := NewNRVReader(path)
-	if err != nil {
-		t.Fatalf("NewNRVReader after compaction failed: %v", err)
-	}
+	require.NoError(t, err)
 	defer reader.Close()
 
-	if reader.registry.TombstoneCount != 0 {
-		t.Errorf("expected TombstoneCount 0 after compaction, got %d", reader.registry.TombstoneCount)
-	}
-
-	if reader.registry.GlobalMetrics.CompactedAt == nil {
-		t.Error("expected CompactedAt to be set after compaction")
-	}
+	require.Equal(t, 0, reader.registry.TombstoneCount)
+	require.NotNil(t, reader.registry.GlobalMetrics.CompactedAt)
 }
 
 func TestCompactorStartStop(t *testing.T) {
@@ -188,7 +163,5 @@ func TestCompactorStartStop(t *testing.T) {
 
 	compactor.Stop()
 
-	if compactor.running {
-		t.Error("expected compactor to be stopped")
-	}
+	require.False(t, compactor.running)
 }

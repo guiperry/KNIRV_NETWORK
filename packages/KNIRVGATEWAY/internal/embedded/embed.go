@@ -19,7 +19,8 @@ import (
 //go:embed all:webgui
 var WebGUIFS embed.FS
 
-//go:embed all:network-website/*
+// The standalone gateway serves network-website from the source tree instead of embedding it.
+// KNIRVSERVER's packaged gateway keeps its own embedded copy in pkg/knirvgateway.
 var NetworkWebsiteFS embed.FS
 
 // GatewayConfig represents the configuration for the embedded gateway runner.
@@ -40,7 +41,6 @@ func DefaultConfig() *GatewayConfig {
 		AutoOpenBrowser: false,
 	}
 }
-
 
 type Gateway struct {
 	cfg     *GatewayConfig

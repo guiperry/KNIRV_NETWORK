@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -17,6 +16,7 @@ type NRVStorage struct {
 	keyPair   *pqc.PQCKeyPair
 	writers   map[string]*NRVWriter
 	readers   map[string]*NRVReader
+	tickers   map[string]*FrameTicker
 	compactor map[string]*Compactor
 	mu        sync.RWMutex
 	fileStore *FileStorage
@@ -28,6 +28,7 @@ func NewNRVStorage(baseDir string, keyPair *pqc.PQCKeyPair) *NRVStorage {
 		keyPair:   keyPair,
 		writers:   make(map[string]*NRVWriter),
 		readers:   make(map[string]*NRVReader),
+		tickers:   make(map[string]*FrameTicker),
 		compactor: make(map[string]*Compactor),
 		fileStore: NewFileStorage(baseDir),
 	}
@@ -37,10 +38,7 @@ func (s *NRVStorage) getNRVPath(collection string) string {
 	return s.baseDir + "/" + collection + ".nrv"
 }
 
-func (s *NRVStorage) getOrCreateWriter(collection string) (*NRVWriter, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
+func (s *NRVStorage) getOrCreateWriterLocked(collection string) (*NRVWriter, error) {
 	if w, ok := s.writers[collection]; ok {
 		return w, nil
 	}
@@ -84,133 +82,100 @@ func (s *NRVStorage) getOrCreateReader(collection string) (*NRVReader, error) {
 	return r, nil
 }
 
+func (s *NRVStorage) getOrCreateTicker(collection string) (*FrameTicker, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if t, ok := s.tickers[collection]; ok {
+		return t, nil
+	}
+
+	w, err := s.getOrCreateWriterLocked(collection)
+	if err != nil {
+		return nil, err
+	}
+
+	t := NewFrameTicker(w, time.Second)
+	s.tickers[collection] = t
+	return t, nil
+}
+
 func (s *NRVStorage) Insert(ctx context.Context, collection string, doc map[string]interface{}) error {
-	frame := &nrv.Frame{
-		ID: doc["id"].(string),
+	bracket := &nrv.Bracket{
+		ID:          doc["id"].(string),
+		LSHSalt:     1,
+		SubSecondUS: uint32(time.Now().UnixNano() / 1000),
+		ASICLoops:   1,
 	}
 
 	if payload, ok := doc["payload"].(map[string]interface{}); ok {
-		switch vec := payload["vector"].(type) {
-		case []interface{}:
-			if len(vec) == 12 {
-				for i, v := range vec {
-					if f, ok := v.(float64); ok {
-						frame.Vector[i] = float32(f)
-					}
-				}
-			}
-		case []float64:
-			if len(vec) == 12 {
-				for i, f := range vec {
-					frame.Vector[i] = float32(f)
-				}
-			}
-		case []float32:
-			if len(vec) == 12 {
-				copy(frame.Vector[:], vec)
-			}
+		if projBytes, ok := payload["projections"].([]byte); ok && len(projBytes) == 64 {
+			copy(bracket.Projections[:], projBytes)
 		}
-
-		if seedBytes, ok := payload["seed"].([]byte); ok && len(seedBytes) == 32 {
-			copy(frame.Seed[:], seedBytes)
-		}
-
-		extractThermo := func(m map[string]float64) {
-			frame.Thermo.TempCelsius = float32(m["temp_celsius"])
-			frame.Thermo.VoltageV = float32(m["voltage_v"])
-			frame.Thermo.FreqMHz = float32(m["freq_mhz"])
-			frame.Thermo.FanRPM = float32(m["fan_rpm"])
-		}
-		switch thermo := payload["thermo"].(type) {
-		case map[string]interface{}:
-			if v, ok := thermo["temp_celsius"].(float64); ok {
-				frame.Thermo.TempCelsius = float32(v)
-			}
-			if v, ok := thermo["voltage_v"].(float64); ok {
-				frame.Thermo.VoltageV = float32(v)
-			}
-			if v, ok := thermo["freq_mhz"].(float64); ok {
-				frame.Thermo.FreqMHz = float32(v)
-			}
-			if v, ok := thermo["fan_rpm"].(float64); ok {
-				frame.Thermo.FanRPM = float32(v)
-			}
-		case map[string]float64:
-			extractThermo(thermo)
-		case map[string]float32:
-			frame.Thermo.TempCelsius = thermo["temp_celsius"]
-			frame.Thermo.VoltageV = thermo["voltage_v"]
-			frame.Thermo.FreqMHz = thermo["freq_mhz"]
-			frame.Thermo.FanRPM = thermo["fan_rpm"]
-		}
-
-		if proofStr, ok := payload["proof"].(string); ok {
-			frame.Proof = []byte(proofStr)
-		} else if proofBytes, ok := payload["proof"].([]byte); ok {
-			frame.Proof = proofBytes
+		if seedBytes, ok := payload["seed"].([]byte); ok && len(seedBytes) >= 4 {
+			br := []byte(seedBytes)
+			bracket.GoldenSeed = uint32(br[0]) | uint32(br[1])<<8 | uint32(br[2])<<16 | uint32(br[3])<<24
 		}
 	}
 
-	if frame.Proof == nil {
-		proofJSON, _ := json.Marshal(doc)
-		frame.Proof = proofJSON
+	thermo := nrv.ThermoAtmosphere{}
+	if payload, ok := doc["payload"].(map[string]interface{}); ok {
+		if t, ok := payload["thermo"].(map[string]interface{}); ok {
+			if v, ok := t["temp_celsius"].(float64); ok {
+				thermo.AvgTempC = float32(v)
+			}
+			if v, ok := t["voltage_v"].(float64); ok {
+				thermo.PeakVoltV = float32(v)
+			}
+			if v, ok := t["freq_mhz"].(float64); ok {
+				thermo.ClockMHz = float32(v)
+			}
+		}
 	}
 
-	verified := false
-	if v, ok := doc["verified"].(bool); ok {
-		verified = v
-	}
+	return s.AppendBracketDirect(collection, bracket, thermo)
+}
 
-	ergoRank := 0.0
-	if er, ok := doc["ergo_rank"].(float64); ok {
-		ergoRank = er
-	}
-
-	writer, err := s.getOrCreateWriter(collection)
+func (s *NRVStorage) AppendBracketDirect(collection string, b *nrv.Bracket, thermo nrv.ThermoAtmosphere) error {
+	ticker, err := s.getOrCreateTicker(collection)
 	if err != nil {
 		return err
 	}
-
-	return writer.AppendFrame(frame, verified, ergoRank)
+	return ticker.AppendBracket(context.Background(), b, thermo)
 }
 
 func (s *NRVStorage) Find(ctx context.Context, collection, id string) (map[string]interface{}, error) {
-	reader, err := s.getOrCreateReader(collection)
+	entry, brackets, err := s.GetFrame(ctx, collection, id)
 	if err != nil {
 		return nil, err
 	}
-
-	frame, err := reader.GetFrame(id)
-	if err != nil {
-		return nil, err
-	}
-	if frame == nil {
+	if entry == nil {
 		return nil, nil
 	}
 
 	doc := map[string]interface{}{
-		"id":        frame.ID,
-		"entryType": string(types.EntryTypeMemory),
-		"verified":  false,
-		"ergo_rank": 0.0,
+		"id":         entry.ID,
+		"entryType":  string(types.EntryTypeMemory),
+		"verified":   entry.Z3.Status == "VALID",
+		"ergo_rank":  entry.Z3.Relevance,
+		"timestamp":  entry.TimestampUnix,
+		"linguistic": entry.Linguistic,
 		"payload": map[string]interface{}{
-			"vector": frame.Vector[:],
-			"seed":   frame.Seed[:],
 			"thermo": map[string]float32{
-				"temp_celsius": frame.Thermo.TempCelsius,
-				"voltage_v":    frame.Thermo.VoltageV,
-				"freq_mhz":     frame.Thermo.FreqMHz,
-				"fan_rpm":      frame.Thermo.FanRPM,
+				"temp_celsius": entry.Thermo.AvgTempC,
+				"voltage_v":    entry.Thermo.PeakVoltV,
+				"freq_mhz":     entry.Thermo.ClockMHz,
 			},
-			"proof": string(frame.Proof),
+			"z3": map[string]interface{}{
+				"status":    entry.Z3.Status,
+				"relevance": entry.Z3.Relevance,
+			},
 		},
 	}
 
-	for _, entry := range reader.registry.Frames {
-		if entry.ID == id {
-			doc["verified"] = entry.Verified
-			doc["ergo_rank"] = entry.ERGORank
-			break
+	if len(brackets) > 0 {
+		doc["brackets"] = map[string]interface{}{
+			"count": len(brackets),
 		}
 	}
 
@@ -229,26 +194,19 @@ func (s *NRVStorage) FindAll(ctx context.Context, collection string) ([]map[stri
 			continue
 		}
 
-		frame, err := reader.decodeFrame(entry)
-		if err != nil {
-			continue
-		}
-
 		doc := map[string]interface{}{
-			"id":        frame.ID,
-			"entryType": string(types.EntryTypeMemory),
-			"verified":  entry.Verified,
-			"ergo_rank": entry.ERGORank,
+			"id":         entry.ID,
+			"entryType":  string(types.EntryTypeMemory),
+			"verified":   entry.Z3.Status == "VALID",
+			"ergo_rank":  entry.Z3.Relevance,
+			"timestamp":  entry.TimestampUnix,
+			"linguistic": entry.Linguistic,
 			"payload": map[string]interface{}{
-				"vector": frame.Vector[:],
-				"seed":   frame.Seed[:],
 				"thermo": map[string]float32{
-					"temp_celsius": frame.Thermo.TempCelsius,
-					"voltage_v":    frame.Thermo.VoltageV,
-					"freq_mhz":     frame.Thermo.FreqMHz,
-					"fan_rpm":      frame.Thermo.FanRPM,
+					"temp_celsius": entry.Thermo.AvgTempC,
+					"voltage_v":    entry.Thermo.PeakVoltV,
+					"freq_mhz":     entry.Thermo.ClockMHz,
 				},
-				"proof": string(frame.Proof),
 			},
 		}
 		docs = append(docs, doc)
@@ -312,20 +270,33 @@ func (s *NRVStorage) Update(ctx context.Context, collection, id string, update m
 	return s.Insert(ctx, collection, doc)
 }
 
-func (s *NRVStorage) GetModality(ctx context.Context, collection, frameID string, mod nrv.ModalityType) ([]byte, error) {
+func (s *NRVStorage) GetFrame(ctx context.Context, collection, frameID string) (*nrv.FrameEntry, []*nrv.Bracket, error) {
 	reader, err := s.getOrCreateReader(collection)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return reader.GetModality(frameID, mod)
+	return reader.GetFrame(frameID)
 }
 
-func (s *NRVStorage) StreamFrames(ctx context.Context, collection string, modalityFilter nrv.ModalityType) (<-chan *nrv.Frame, error) {
+func (s *NRVStorage) StreamBrackets(ctx context.Context, collection string, goldOnly bool) (<-chan *nrv.Bracket, error) {
 	reader, err := s.getOrCreateReader(collection)
 	if err != nil {
 		return nil, err
 	}
-	return reader.StreamFrames(modalityFilter), nil
+	return reader.StreamBrackets(goldOnly), nil
+}
+
+func (s *NRVStorage) SetLinguistic(collection, token, unit string) error {
+	ticker, err := s.getOrCreateTicker(collection)
+	if err != nil {
+		return err
+	}
+	ticker.SetLinguistic(token, unit)
+	return nil
+}
+
+func (s *NRVStorage) GetReader(collection string) (*NRVReader, error) {
+	return s.getOrCreateReader(collection)
 }
 
 func (s *NRVStorage) Put(ctx context.Context, key string, value []byte) error {
@@ -376,6 +347,9 @@ func (s *NRVStorage) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	for _, t := range s.tickers {
+		t.Stop()
+	}
 	for _, w := range s.writers {
 		w.Close()
 	}

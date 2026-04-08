@@ -75,10 +75,15 @@ func (r *Runtime) Setup() error {
 		return fmt.Errorf("failed to extract webgui static files: %w", err)
 	}
 
-	// Extract network-website
-	r.logger.Info("Extracting embedded network-website...")
-	if err := r.extractNetworkWebsite(r.NetworkWebsiteDir); err != nil {
-		return fmt.Errorf("failed to extract network-website: %w", err)
+	// Use an on-disk network-website tree for the standalone gateway when available.
+	if sourceDir := r.resolveNetworkWebsiteSourceDir(); sourceDir != "" {
+		r.NetworkWebsiteDir = sourceDir
+		r.logger.Info("Using on-disk network-website directory", zap.String("networkWebsiteDir", r.NetworkWebsiteDir))
+	} else {
+		r.logger.Info("Extracting embedded network-website...")
+		if err := r.extractNetworkWebsite(r.NetworkWebsiteDir); err != nil {
+			return fmt.Errorf("failed to extract network-website: %w", err)
+		}
 	}
 
 	// Oracle binary extraction removed (oracle moved to KNIRVSERVER)
@@ -296,6 +301,10 @@ func (r *Runtime) extractWebGUI(targetDir string) error {
 func (r *Runtime) extractNetworkWebsite(targetDir string) error {
 	r.logger.Info("Extracting embedded network-website", zap.String("target", targetDir))
 
+	if _, err := fs.ReadDir(r.networkWebsiteFS, "network-website"); err != nil {
+		return fmt.Errorf("embedded network-website assets unavailable")
+	}
+
 	// Create target directory
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		return fmt.Errorf("failed to create target directory: %w", err)
@@ -356,7 +365,35 @@ func (r *Runtime) extractNetworkWebsite(targetDir string) error {
 	return nil
 }
 
+func (r *Runtime) resolveNetworkWebsiteSourceDir() string {
+	candidates := []string{}
 
+	if cwd, err := os.Getwd(); err == nil {
+		candidates = append(candidates,
+			filepath.Join(cwd, "internal", "embedded", "network-website"),
+			filepath.Join(cwd, "..", "internal", "embedded", "network-website"),
+			filepath.Join(cwd, "..", "..", "internal", "embedded", "network-website"),
+		)
+	}
+
+	if exePath, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exePath)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "internal", "embedded", "network-website"),
+			filepath.Join(exeDir, "..", "internal", "embedded", "network-website"),
+			filepath.Join(exeDir, "..", "..", "internal", "embedded", "network-website"),
+		)
+	}
+
+	for _, candidate := range candidates {
+		info, err := os.Stat(candidate)
+		if err == nil && info.IsDir() {
+			return candidate
+		}
+	}
+
+	return ""
+}
 
 // Cleanup removes the runtime directory
 func (r *Runtime) Cleanup() error {

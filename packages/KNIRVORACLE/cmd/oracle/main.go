@@ -36,15 +36,13 @@ func main() {
 
 	fmt.Printf("KNIRVORACLE v%s (built %s, commit %s)\n", Version, BuildTime, GitCommit)
 
-	cfg, err := oracle.LoadConfigFromEnv()
-	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
 	if *configFile != "" {
 		log.Printf("Config file specified: %s (loading from file not yet implemented)", *configFile)
 	}
 	if *dataDir != "" {
-		cfg.DataDir = *dataDir
+		if err := os.Setenv("ORACLE_DATA_DIR", *dataDir); err != nil {
+			log.Fatalf("Failed to set ORACLE_DATA_DIR: %v", err)
+		}
 	}
 
 	logger, err := zap.NewProduction()
@@ -52,15 +50,13 @@ func main() {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
 
-	if err := oracle.ValidateConfig(cfg); err != nil {
-		log.Fatalf("Invalid config: %v", err)
-	}
-
-	log.Printf("Oracle config: %s", oracle.ConfigSummary(cfg))
-
-	oracleInst, err := oracle.NewOracle(cfg, logger)
+	oracleInst, err := initOracleFromKeyFile(logger)
 	if err != nil {
-		log.Fatalf("Failed to create Oracle: %v", err)
+		log.Fatalf("Failed to initialize Oracle from root.key: %v", err)
+	}
+	if oracleInst == nil {
+		log.Println("Oracle not activated: no usable root.key found")
+		return
 	}
 
 	socketDir := filepath.Dir(*socketPath)

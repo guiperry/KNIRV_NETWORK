@@ -8,24 +8,25 @@ type ModalityIndex struct {
 }
 
 type FrameEntry struct {
-	ID         string                         `json:"id"`
-	Offset     int64                          `json:"offset"`
-	Length     int                            `json:"length"`
-	Tombstone  *int64                         `json:"tombstone"`
-	Verified   bool                           `json:"verified"`
-	ERGORank   float64                        `json:"ergo_rank"`
-	Modalities map[ModalityType]ModalityIndex `json:"modalities"`
+	ID            string            `json:"id"`
+	TimestampUnix int64             `json:"timestamp_unix"`
+	Tombstone     *int64            `json:"tombstone"`
+	Linguistic    LinguisticMapping `json:"linguistic"`
+	Thermo        ThermoAtmosphere  `json:"thermo"`
+	Z3            Z3Result          `json:"z3"`
+	Brackets      BracketBinaryMap  `json:"brackets"`
+	BracketIndex  []BracketMeta     `json:"bracket_index"`
 }
 
 type GlobalMetrics struct {
-	FeatureMin                   [12]float32 `json:"feature_min"`
-	FeatureMax                   [12]float32 `json:"feature_max"`
-	FeatureMean                  [12]float32 `json:"feature_mean"`
-	FeatureStd                   [12]float32 `json:"feature_std"`
-	ThermoCorrelationCoefficient float64     `json:"thermo_correlation_coefficient"`
-	ERGORankSum                  float64     `json:"ergo_rank_sum"`
-	VerifiedFrameCount           int         `json:"verified_frame_count"`
-	CompactedAt                  *string     `json:"compacted_at"`
+	AvgTempCMean      float32 `json:"avg_temp_c_mean"`
+	AvgTempCMax       float32 `json:"avg_temp_c_max"`
+	PeakVoltVMean     float32 `json:"peak_volt_v_mean"`
+	ClockMHzMean      float32 `json:"clock_mhz_mean"`
+	TotalBracketCount int     `json:"total_bracket_count"`
+	ValidFrameCount   int     `json:"valid_frame_count"`
+	InvalidFrameCount int     `json:"invalid_frame_count"`
+	CompactedAt       *string `json:"compacted_at"`
 }
 
 type PQCManifest struct {
@@ -45,14 +46,6 @@ type Registry struct {
 	GlobalMetrics  GlobalMetrics     `json:"global_metrics"`
 	Frames         []FrameEntry      `json:"frames"`
 	PQCManifest    PQCManifest       `json:"pqc_manifest"`
-}
-
-type Frame struct {
-	ID     string
-	Vector [12]float32
-	Seed   [32]byte
-	Thermo ThermoData
-	Proof  []byte
 }
 
 type ThermoData struct {
