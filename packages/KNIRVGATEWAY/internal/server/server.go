@@ -96,8 +96,8 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 	// Initialize URI handler
 	uriHdlr := uri.NewHandler(logger)
 
-	// Initialize webgui handler
-	webguiHdlr := webgui.NewHandler(cfg, logger)
+	// Initialize explorer handler.
+	explorerHandler := webgui.NewHandler(cfg, logger)
 
 	// Initialize TURN server with blockchain integration
 	var turnSvc *turnserver.Server
@@ -141,7 +141,7 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 		paymentService:    paymentSvc,
 		paymentHandler:    paymentHdlr,
 		uriHandler:        uriHdlr,
-		webguiHandler:     webguiHdlr,
+		webguiHandler:     explorerHandler,
 		turnServer:        turnSvc,
 		logger:            logger,
 		webguiStaticDir:   webguiStaticDir,
@@ -189,7 +189,7 @@ func (s *Server) setupRoutes() error {
 	// Register URI generation routes directly
 	s.uriHandler.RegisterRoutes(r)
 
-	// Register webgui API routes directly
+	// Register explorer API routes directly.
 	s.webguiHandler.RegisterRoutes(r)
 
 	// Register TURN server routes (blockchain-enabled)
@@ -211,50 +211,65 @@ func (s *Server) setupRoutes() error {
 	r.PathPrefix("/api").HandlerFunc(s.handleMockAPI)
 
 	// IMPORTANT: Next.js static export uses absolute paths like /_next/..., /favicon.ico, etc.
-	// We need to serve these at the root level so the webgui can load its assets
+	// These are served at the root level so the explorer can load its assets.
 
 	// Serve Next.js _next directory (contains JS, CSS, chunks, etc.)
 	r.PathPrefix("/_next/").Handler(http.StripPrefix("/", http.FileServer(http.Dir(s.webguiStaticDir))))
 
-	// Serve webgui static files at root level (favicon, svgs, etc.)
+	// Serve explorer static files at the root level (favicon, svgs, etc.).
 	webguiStaticFiles := []string{"/favicon.ico", "/next.svg", "/window.svg", "/globe.svg", "/vercel.svg", "/file.svg"}
 	for _, staticFile := range webguiStaticFiles {
 		filePath := staticFile
 		r.HandleFunc(filePath, func(w http.ResponseWriter, r *http.Request) {
 			fullPath := filepath.Join(s.webguiStaticDir, filePath)
-			s.logger.Debug("Serving webgui static file", zap.String("path", filePath), zap.String("fullPath", fullPath))
+			s.logger.Debug("Serving explorer static file", zap.String("path", filePath), zap.String("fullPath", fullPath))
 			http.ServeFile(w, r, fullPath)
 		})
 	}
 
-	// Serve webgui index.html at /oracle and /dashboard routes
+	// Serve the explorer index at /oracle and /explorer routes
 	r.HandleFunc("/oracle", func(w http.ResponseWriter, r *http.Request) {
 		indexPath := filepath.Join(s.webguiStaticDir, "index.html")
-		s.logger.Info("Serving webgui index at /oracle", zap.String("indexPath", indexPath))
+		s.logger.Info("Serving explorer index at /oracle", zap.String("indexPath", indexPath))
+		http.ServeFile(w, r, indexPath)
+	})
+	r.HandleFunc("/explorer", func(w http.ResponseWriter, r *http.Request) {
+		indexPath := filepath.Join(s.webguiStaticDir, "index.html")
+		s.logger.Info("Serving explorer index at /explorer", zap.String("indexPath", indexPath))
 		http.ServeFile(w, r, indexPath)
 	})
 	r.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
-		indexPath := filepath.Join(s.webguiStaticDir, "index.html")
-		s.logger.Info("Serving webgui index at /dashboard", zap.String("indexPath", indexPath))
-		http.ServeFile(w, r, indexPath)
+		http.Redirect(w, r, "/explorer", http.StatusPermanentRedirect)
 	})
 
-	// Serve other webgui HTML pages at /oracle/ prefix
+	// Serve other explorer HTML pages at /oracle/ prefix
 	r.PathPrefix("/oracle/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fileName := strings.TrimPrefix(r.URL.Path, "/oracle/")
 		filePath := filepath.Join(s.webguiStaticDir, fileName)
 		http.ServeFile(w, r, filePath)
 	})
 
-	// Serve other webgui HTML pages at /dashboard/ prefix
-	r.PathPrefix("/dashboard/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fileName := strings.TrimPrefix(r.URL.Path, "/dashboard/")
+	// Serve other explorer HTML pages at /explorer/ prefix
+	r.PathPrefix("/explorer/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fileName := strings.TrimPrefix(r.URL.Path, "/explorer/")
 		filePath := filepath.Join(s.webguiStaticDir, fileName)
 		http.ServeFile(w, r, filePath)
 	})
+	r.PathPrefix("/dashboard/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		target := strings.TrimPrefix(r.URL.Path, "/dashboard")
+		if target == "" {
+			target = "/explorer"
+		} else {
+			target = "/explorer" + target
+		}
+		if rawQuery := r.URL.RawQuery; rawQuery != "" {
+			target += "?" + rawQuery
+		}
+		http.Redirect(w, r, target, http.StatusPermanentRedirect)
+	})
 
-	// Also serve webgui HTML pages at root level for Next.js client-side routing
-	// This allows navigation within the SPA to work with paths like /payment-gateway
+	// Also serve explorer HTML pages at root level for Next.js client-side routing.
+	// This allows navigation within the SPA to work with paths like /payment-gateway.
 	webguiPages := []string{
 		"payment-gateway", "tunnel-registry", "operator-registry",
 		"marketplace", "models", "models-dex", "skills", "capabilities",

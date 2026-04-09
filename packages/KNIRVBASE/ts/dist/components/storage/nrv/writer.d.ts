@@ -15,6 +15,8 @@ export declare class NRVWriter {
     static create(path: string, keyPair?: Signer): Promise<NRVWriter>;
     appendFrame(frame: Frame, verified: boolean, ergoRank: number): Promise<void>;
     saveRegistry(): Promise<void>;
+    /** Mark a frame as tombstoned in the registry (soft-delete). */
+    setTombstone(id: string): Promise<void>;
     getRegistry(): Registry;
     close(): Promise<void>;
 }

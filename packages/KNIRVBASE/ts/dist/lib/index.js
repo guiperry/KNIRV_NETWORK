@@ -8,8 +8,8 @@ export * from '../components/collection/distributed_collection';
 // Network
 export * from '../components/network/network_manager';
 // Storage
-export * from '../components/storage/storage';
-export * from '../components/storage/index';
+export { FileStorage } from '../components/storage/storage';
+export { NRVStorage } from '../components/storage/nrv/nrv_storage';
 // Resolver
 export * from '../components/resolver/crdt_resolver';
 // Crypto
@@ -27,9 +27,15 @@ export * from '../components/security/index';
 export * from '../components/monitoring/index';
 // Embedding (TF-IDF + LSA)
 export * from '../components/embedding/index';
+// Indexing module
+export * from '../components/indexing';
+// Distributed tracing
+export * from '../components/tracing';
+import { FlightServer, FlightClient, bracketsToFlightData, flightDataToBrackets } from '../components/storage/nrv/flight';
 // Main Database class
 import { NetworkManager } from '../components/network/network_manager';
 import { FileStorage } from '../components/storage/storage';
+import { NRVStorage } from '../components/storage/nrv/nrv_storage';
 import { DistributedCollection } from '../components/collection/distributed_collection';
 export class DB {
     constructor(options) {
@@ -138,6 +144,14 @@ export class DB {
     // Get network manager
     getNetworkManager() {
         return this.network;
+    }
+    dataset(name) {
+        const nrvStore = this.store;
+        if (!(nrvStore instanceof NRVStorage)) {
+            throw new Error('DB was not created with NRVStorage — use NewNRV() constructor');
+        }
+        const coll = this.collection(name);
+        return new NRVDataset(name, nrvStore, coll.coll);
     }
     async shutdown() {
         await this.network.shutdown();
@@ -309,4 +323,64 @@ export async function New(ctx, opts) {
 export async function NewDistributedDatabase(ctx, opts, store, mockNet) {
     return new DistributedDatabase(ctx, opts, store, mockNet);
 }
+export class NRVDataset {
+    constructor(name, storage, collection) {
+        this.name = name;
+        this.storage = storage;
+        this.collection = collection;
+    }
+    async appendBracket(bracket, thermo) {
+        return this.storage.appendBracket(this.name, bracket, thermo);
+    }
+    async *streamBrackets(goldOnly) {
+        const reader = await this.storage.getReader(this.name);
+        if (!reader) {
+            return;
+        }
+        const registry = reader.getRegistry();
+        for (const entry of registry.frames) {
+            if (entry.tombstone !== undefined) {
+                continue;
+            }
+            const frame = reader.getFrame(entry.id);
+            if (frame && frame.brackets) {
+                for (const bracket of frame.brackets) {
+                    if (!goldOnly || (bracket.meta && bracket.meta.type === 'P')) {
+                        yield bracket;
+                    }
+                }
+            }
+        }
+    }
+    async getFrame(frameId) {
+        const reader = await this.storage.getReader(this.name);
+        if (!reader) {
+            return null;
+        }
+        const frame = reader.getFrame(frameId);
+        if (!frame) {
+            return null;
+        }
+        return { frame, brackets: frame.brackets || [] };
+    }
+    async setLinguistic(token, unit) {
+        const registry = await this.storage.getRegistry(this.name);
+        if (!registry) {
+            throw new Error('collection not found');
+        }
+        if (!registry.linguistic) {
+            registry.linguistic = {};
+        }
+        registry.linguistic[token] = unit;
+        await this.storage.saveRegistry(this.name);
+    }
+}
+export async function NewNRV(ctx, opts, keyPair) {
+    const store = new NRVStorage(opts.dataDir, keyPair);
+    const db = new DB(opts);
+    db.store = store;
+    await db.initialize();
+    return db;
+}
+export { FlightServer, FlightClient, bracketsToFlightData, flightDataToBrackets };
 //# sourceMappingURL=index.js.map

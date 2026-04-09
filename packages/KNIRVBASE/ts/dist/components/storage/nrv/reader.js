@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import { decodeHeader, decodeFrame, } from './codec';
 import { NRV_HEADER_SIZE, NRV_REGISTRY_PADDING } from './spec';
+import { createDefaultGlobalMetrics } from './bracket';
 export class NRVReader {
     constructor(path, data, registry) {
         this.path = path;
@@ -18,11 +19,14 @@ export class NRVReader {
         if (end > 0) {
             const registryJson = new TextDecoder().decode(registryBuf.slice(0, end));
             registry = JSON.parse(registryJson);
-            // Restore typed arrays from plain arrays
-            registry.globalMetrics.featureMin = new Float32Array(registry.globalMetrics.featureMin);
-            registry.globalMetrics.featureMax = new Float32Array(registry.globalMetrics.featureMax);
-            registry.globalMetrics.featureMean = new Float32Array(registry.globalMetrics.featureMean);
-            registry.globalMetrics.featureStd = new Float32Array(registry.globalMetrics.featureStd);
+            // Handle backwards compatibility: if old schema with featureMin, migrate to new
+            if (registry.globalMetrics.featureMin !== undefined) {
+                const old = registry.globalMetrics;
+                const newMetrics = createDefaultGlobalMetrics();
+                newMetrics.validFrameCount = old.verifiedFrameCount ?? 0;
+                newMetrics.ergoRankSum = old.ergoRankSum ?? 0;
+                registry.globalMetrics = newMetrics;
+            }
         }
         else {
             throw new Error('empty registry');

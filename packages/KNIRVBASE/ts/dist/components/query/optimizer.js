@@ -35,6 +35,7 @@ export class QueryOptimizer {
             scanType: ScanType.FullScan,
             filters: query.filters || [],
             limit: query.limit || 0,
+            sortOrder: query.sort,
             estimatedCost: 0,
             estimatedRows: this.stats.totalDocuments,
             indexFilters: [],

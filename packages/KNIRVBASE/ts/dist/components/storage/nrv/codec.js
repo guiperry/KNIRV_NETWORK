@@ -1,4 +1,5 @@
 import { NRV_MAGIC, NRV_VERSION, NRV_HEADER_SIZE, ModalityType, align8, } from './spec';
+import { createDefaultGlobalMetrics, } from './bracket';
 export function encodeHeader(totalLength) {
     const buf = new Uint8Array(NRV_HEADER_SIZE);
     const view = new DataView(buf.buffer);
@@ -90,15 +91,7 @@ export function createDefaultRegistry(datasetId, keyId) {
         chunk0Length: 5 * 1024 * 1024,
         frameCount: 0,
         tombstoneCount: 0,
-        globalMetrics: {
-            featureMin: new Float32Array(12),
-            featureMax: new Float32Array(12),
-            featureMean: new Float32Array(12),
-            featureStd: new Float32Array(12),
-            thermoCorrelationCoefficient: 0,
-            ergoRankSum: 0,
-            verifiedFrameCount: 0,
-        },
+        globalMetrics: createDefaultGlobalMetrics(),
         frames: [],
         pqcManifest: {
             keyId: keyId || '',

@@ -1,5 +1,9 @@
 import { Query, Filter } from './knirvql';
 import { Index, IndexType } from '../storage/index';
+export interface SortOrder {
+    field: string;
+    ascending: boolean;
+}
 export interface QueryPlan {
     useIndex: boolean;
     indexName: string;
@@ -7,6 +11,7 @@ export interface QueryPlan {
     scanType: ScanType;
     filters: Filter[];
     limit: number;
+    sortOrder?: SortOrder;
     estimatedCost: number;
     estimatedRows: number;
     indexFilters: Filter[];

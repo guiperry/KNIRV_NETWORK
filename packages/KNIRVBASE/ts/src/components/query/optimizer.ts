@@ -1,6 +1,12 @@
 import { Query, Filter } from './knirvql';
 import { Index, IndexType } from '../storage/index';
 
+// SortOrder defines the sorting for query results
+export interface SortOrder {
+  field: string;
+  ascending: boolean;
+}
+
 // QueryPlan represents an optimized execution plan for a query
 export interface QueryPlan {
   // Execution strategy
@@ -12,6 +18,7 @@ export interface QueryPlan {
   // Query parameters
   filters: Filter[];
   limit: number;
+  sortOrder?: SortOrder;
 
   // Cost estimation
   estimatedCost: number;
@@ -77,6 +84,7 @@ export class QueryOptimizer {
       scanType: ScanType.FullScan,
       filters: query.filters || [],
       limit: query.limit || 0,
+      sortOrder: query.sort,
       estimatedCost: 0,
       estimatedRows: this.stats.totalDocuments,
       indexFilters: [],

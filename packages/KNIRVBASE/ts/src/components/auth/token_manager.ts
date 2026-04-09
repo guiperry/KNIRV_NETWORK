@@ -58,4 +58,30 @@ export class TokenManager {
   hasPermission(claims: Claims, required: Permission): boolean {
     return claims.permissions.some(p => p === required || p === Permission.Admin);
   }
+
+  /**
+   * Generates a hybrid token that embeds a session token (from external auth provider)
+   * alongside JWT claims. Enables hybrid auth where blockchain wallet session is 
+   * validated alongside standard JWT.
+   */
+  generateHybridToken(
+    userId: string,
+    walletAddr: string,
+    sessionToken: string,
+    permissions: Permission[]
+  ): string {
+    const now = Math.floor(Date.now() / 1000);
+    
+    const claims: Claims = {
+      user_id: userId,
+      wallet_addr: walletAddr,
+      permissions: permissions,
+      session_token: sessionToken,
+      iat: now,
+      exp: now + this.tokenDuration,
+      nbf: now
+    };
+
+    return jwt.sign(claims, this.secretKey, { algorithm: 'HS256' });
+  }
 }

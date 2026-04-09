@@ -4,7 +4,7 @@ import * as crypto from 'crypto';
 import {
   Frame,
   Registry,
-  FrameEntry,
+  FrameIndexEntry,
   GlobalMetrics,
   PQCManifest,
   encodeHeader,
@@ -13,6 +13,7 @@ import {
 } from './codec';
 import { NRV_HEADER_SIZE, NRV_REGISTRY_PADDING } from './spec';
 import { WAL, WALEntry } from './wal';
+import { createDefaultGlobalMetrics } from './bracket';
 
 export interface Signer {
   sign(data: Uint8Array): Promise<string>;
@@ -105,11 +106,14 @@ export class NRVWriter {
         }
         const registryJson = registryBuf.slice(0, end).toString('utf8');
         registry = JSON.parse(registryJson);
-        // Restore typed arrays
-        registry.globalMetrics.featureMin = new Float32Array(registry.globalMetrics.featureMin as any);
-        registry.globalMetrics.featureMax = new Float32Array(registry.globalMetrics.featureMax as any);
-        registry.globalMetrics.featureMean = new Float32Array(registry.globalMetrics.featureMean as any);
-        registry.globalMetrics.featureStd = new Float32Array(registry.globalMetrics.featureStd as any);
+        // Handle backwards compatibility: if old schema with featureMin, migrate to new
+        if ((registry.globalMetrics as any).featureMin !== undefined) {
+          const old = registry.globalMetrics as any;
+          const newMetrics = createDefaultGlobalMetrics();
+          newMetrics.validFrameCount = old.verifiedFrameCount ?? 0;
+          newMetrics.ergoRankSum = old.ergoRankSum ?? 0;
+          registry.globalMetrics = newMetrics;
+        }
       }
     } catch (err: any) {
       if (err.code === 'ENOENT') {
@@ -160,7 +164,7 @@ export class NRVWriter {
     this.position += frameData.length;
 
     // Create frame entry
-    const entry: FrameEntry = {
+    const entry: FrameIndexEntry = {
       id: frame.id,
       offset: this.position - frameData.length,
       length: frameData.length,

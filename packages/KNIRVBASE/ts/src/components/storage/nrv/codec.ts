@@ -7,6 +7,16 @@ import {
   ModalityMap,
   align8,
 } from './spec';
+import {
+  FrameEntry as SemanticFrameEntry,
+  GlobalMetrics as NRVGlobalMetrics,
+  LinguisticMapping,
+  ThermoAtmosphere,
+  Z3Result,
+  BracketBinaryMap,
+  BracketMeta,
+  createDefaultGlobalMetrics,
+} from './bracket';
 
 export interface Header {
   magic: number;
@@ -29,7 +39,7 @@ export interface ThermoData {
   fanRPM: number;
 }
 
-export interface FrameEntry {
+export interface FrameIndexEntry {
   id: string;
   offset: number;
   length: number;
@@ -39,16 +49,7 @@ export interface FrameEntry {
   modalities: ModalityMap;
 }
 
-export interface GlobalMetrics {
-  featureMin: Float32Array;
-  featureMax: Float32Array;
-  featureMean: Float32Array;
-  featureStd: Float32Array;
-  thermoCorrelationCoefficient: number;
-  ergoRankSum: number;
-  verifiedFrameCount: number;
-  compactedAt?: string;
-}
+export type GlobalMetrics = NRVGlobalMetrics;
 
 export interface PQCManifest {
   keyId: string;
@@ -65,7 +66,7 @@ export interface Registry {
   frameCount: number;
   tombstoneCount: number;
   globalMetrics: GlobalMetrics;
-  frames: FrameEntry[];
+  frames: FrameIndexEntry[];
   pqcManifest: PQCManifest;
 }
 
@@ -125,7 +126,7 @@ export function encodeFrame(frame: Frame): { data: Uint8Array; modalities: Modal
   return { data: buf, modalities };
 }
 
-export function decodeFrame(data: Uint8Array, entry: FrameEntry): Frame {
+export function decodeFrame(data: Uint8Array, entry: FrameIndexEntry): Frame {
   if (data.length < 96) {
     throw new Error('frame too small');
   }
@@ -176,15 +177,7 @@ export function createDefaultRegistry(datasetId: string, keyId?: string): Regist
     chunk0Length: 5 * 1024 * 1024,
     frameCount: 0,
     tombstoneCount: 0,
-    globalMetrics: {
-      featureMin: new Float32Array(12),
-      featureMax: new Float32Array(12),
-      featureMean: new Float32Array(12),
-      featureStd: new Float32Array(12),
-      thermoCorrelationCoefficient: 0,
-      ergoRankSum: 0,
-      verifiedFrameCount: 0,
-    },
+    globalMetrics: createDefaultGlobalMetrics(),
     frames: [],
     pqcManifest: {
       keyId: keyId || '',

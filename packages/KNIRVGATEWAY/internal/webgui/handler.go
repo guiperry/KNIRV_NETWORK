@@ -11,14 +11,14 @@ import (
 	"go.uber.org/zap"
 )
 
-// Handler handles webgui API requests
+// Handler handles explorer API requests.
 type Handler struct {
 	config     *config.Config
 	logger     *zap.Logger
 	httpClient *http.Client
 }
 
-// NewHandler creates a new webgui handler
+// NewHandler creates a new explorer handler.
 func NewHandler(cfg *config.Config, logger *zap.Logger) *Handler {
 	return &Handler{
 		config:     cfg,
@@ -27,7 +27,7 @@ func NewHandler(cfg *config.Config, logger *zap.Logger) *Handler {
 	}
 }
 
-// RegisterRoutes registers the webgui API routes
+// RegisterRoutes registers the explorer API routes.
 func (h *Handler) RegisterRoutes(r *mux.Router) {
 	// API routes that proxy to backend
 	r.HandleFunc("/api/objects", h.handleObjects).Methods("GET")

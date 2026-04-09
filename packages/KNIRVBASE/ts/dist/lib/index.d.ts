@@ -2,8 +2,8 @@ export * from '../components/types/types';
 export * from '../components/clock/vector_clock';
 export * from '../components/collection/distributed_collection';
 export * from '../components/network/network_manager';
-export * from '../components/storage/storage';
-export * from '../components/storage/index';
+export { FileStorage, Storage } from '../components/storage/storage';
+export { NRVStorage } from '../components/storage/nrv/nrv_storage';
 export { Frame } from '../components/collection/distributed_collection';
 export * from '../components/resolver/crdt_resolver';
 export * from '../components/crypto/pqc/keys';
@@ -14,8 +14,13 @@ export * from '../components/logging/index';
 export * from '../components/security/index';
 export * from '../components/monitoring/index';
 export * from '../components/embedding/index';
+export * from '../components/indexing';
+export * from '../components/tracing';
+import { Bracket, ThermoAtmosphere } from '../components/storage/nrv/bracket';
+import { FlightServer, FlightClient, bracketsToFlightData, flightDataToBrackets } from '../components/storage/nrv/flight';
 import { Network } from '../components/network/network_manager';
 import { Storage } from '../components/storage/storage';
+import { NRVStorage } from '../components/storage/nrv/nrv_storage';
 import { DistributedCollection } from '../components/collection/distributed_collection';
 import { NetworkConfig } from '../components/types/types';
 import { PQCKeyPair } from '../components/crypto/pqc/keys';
@@ -59,6 +64,7 @@ export declare class DB {
     setMasterKey(keyPair: PQCKeyPair): void;
     projectToMarkdown(key: string, targetPath: string): Promise<void>;
     getNetworkManager(): Network;
+    dataset(name: string): NRVDataset;
     shutdown(): Promise<void>;
 }
 export declare class DistributedDatabase {
@@ -101,4 +107,23 @@ export interface Collection {
 }
 export declare function New(ctx: any, opts: Options): Promise<DB>;
 export declare function NewDistributedDatabase(ctx: any, opts: DistributedDbOptions, store: Storage, mockNet?: Network): Promise<DistributedDatabase>;
+export declare class NRVDataset {
+    readonly name: string;
+    private storage;
+    private collection;
+    constructor(name: string, storage: NRVStorage, collection: DistributedCollection);
+    appendBracket(bracket: Bracket, thermo: ThermoAtmosphere): Promise<void>;
+    streamBrackets(goldOnly: boolean): AsyncIterableIterator<Bracket>;
+    getFrame(frameId: string): Promise<{
+        frame: any;
+        brackets: Bracket[];
+    } | null>;
+    setLinguistic(token: string, unit: string): Promise<void>;
+}
+export declare function NewNRV(ctx: any, opts: Options, keyPair: PQCKeyPair): Promise<DB>;
+export interface DBWithDataset extends DB {
+    dataset(name: string): NRVDataset;
+}
+export { Bracket, ThermoAtmosphere };
+export { FlightServer, FlightClient, bracketsToFlightData, flightDataToBrackets };
 //# sourceMappingURL=index.d.ts.map

@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import { encodeHeader, encodeFrame, createDefaultRegistry, } from './codec';
 import { NRV_HEADER_SIZE, NRV_REGISTRY_PADDING } from './spec';
 import { WAL } from './wal';
+import { createDefaultGlobalMetrics } from './bracket';
 export class NRVWriter {
     constructor(path, file, registry, wal, position, keyPair) {
         this.path = path;
@@ -13,6 +14,10 @@ export class NRVWriter {
         this.keyPair = keyPair;
     }
     static async create(path, keyPair) {
+        // Create parent directories automatically — mirrors production behaviour where
+        // the app data directory may not exist yet (e.g. first run after install).
+        const parentDir = require('path').dirname(path);
+        await fs.promises.mkdir(parentDir, { recursive: true });
         const walPath = path + '.wal';
         const wal = new WAL(walPath);
         let file;
@@ -63,11 +68,14 @@ export class NRVWriter {
                 }
                 const registryJson = registryBuf.slice(0, end).toString('utf8');
                 registry = JSON.parse(registryJson);
-                // Restore typed arrays
-                registry.globalMetrics.featureMin = new Float32Array(registry.globalMetrics.featureMin);
-                registry.globalMetrics.featureMax = new Float32Array(registry.globalMetrics.featureMax);
-                registry.globalMetrics.featureMean = new Float32Array(registry.globalMetrics.featureMean);
-                registry.globalMetrics.featureStd = new Float32Array(registry.globalMetrics.featureStd);
+                // Handle backwards compatibility: if old schema with featureMin, migrate to new
+                if (registry.globalMetrics.featureMin !== undefined) {
+                    const old = registry.globalMetrics;
+                    const newMetrics = createDefaultGlobalMetrics();
+                    newMetrics.validFrameCount = old.verifiedFrameCount ?? 0;
+                    newMetrics.ergoRankSum = old.ergoRankSum ?? 0;
+                    registry.globalMetrics = newMetrics;
+                }
             }
         }
         catch (err) {
@@ -139,6 +147,18 @@ export class NRVWriter {
         const header = encodeHeader(this.position);
         await this.file.write(Buffer.from(header), 0, header.length, 0);
         await this.file.sync();
+    }
+    /** Mark a frame as tombstoned in the registry (soft-delete). */
+    async setTombstone(id) {
+        const now = Date.now();
+        for (const entry of this.registry.frames) {
+            if (entry.id === id) {
+                entry.tombstone = now;
+                this.registry.tombstoneCount++;
+                break;
+            }
+        }
+        await this.saveRegistry();
     }
     getRegistry() {
         return this.registry;

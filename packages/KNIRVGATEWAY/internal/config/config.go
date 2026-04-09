@@ -45,7 +45,7 @@ type Config struct {
 	OperatorRegistryEnabled bool
 	OperatorRegistryPort    int
 
-	// WebGUI
+	// Explorer UI
 	WebGUIEnabled bool
 	WebGUIPort    int
 

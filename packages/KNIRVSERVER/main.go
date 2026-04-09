@@ -74,6 +74,8 @@ type Config struct {
 	Port          int    `mapstructure:"port"`
 	BackendPort   int    `mapstructure:"backend_port"`
 	BackendSocket string `mapstructure:"backend_socket"`
+	GatewayPort   int    `mapstructure:"gateway_port"`
+	GatewaySocket string `mapstructure:"gateway_socket"`
 	LogLevel      string `mapstructure:"log_level"`
 	Testnet       bool   `mapstructure:"testnet"`
 	Desktop       bool   `mapstructure:"desktop"`
@@ -195,6 +197,80 @@ func backendBaseURL(cfg *Config) string {
 		return "http://localhost"
 	}
 	return fmt.Sprintf("http://localhost:%d", cfg.BackendPort)
+}
+
+func gatewayBaseURL(cfg *Config) string {
+	if cfg.GatewaySocket != "" {
+		return "http://localhost"
+	}
+	port := cfg.GatewayPort
+	if port == 0 {
+		port = 8080
+	}
+	return fmt.Sprintf("http://localhost:%d", port)
+}
+
+func socketProxyTransport(socketPath string) http.RoundTripper {
+	if socketPath == "" {
+		return http.DefaultTransport
+	}
+	return unixSocketTransport(socketPath)
+}
+
+func newPrefixProxy(baseURL string, transport http.RoundTripper, sourcePrefix, targetPrefix string) (*httputil.ReverseProxy, error) {
+	target, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	normalizePrefix := func(prefix string) string {
+		if prefix == "" || prefix == "/" {
+			return ""
+		}
+		return "/" + strings.Trim(strings.TrimSpace(prefix), "/")
+	}
+
+	sourcePrefix = normalizePrefix(sourcePrefix)
+	targetPrefix = normalizePrefix(targetPrefix)
+
+	proxy := &httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			req.URL.Scheme = target.Scheme
+			req.URL.Host = target.Host
+
+			incomingPath := req.URL.Path
+			if incomingPath == "" {
+				incomingPath = "/"
+			}
+
+			trimmed := incomingPath
+			if sourcePrefix != "" && strings.HasPrefix(trimmed, sourcePrefix) {
+				trimmed = strings.TrimPrefix(trimmed, sourcePrefix)
+			}
+			if trimmed == "" {
+				trimmed = "/"
+			}
+			if !strings.HasPrefix(trimmed, "/") {
+				trimmed = "/" + trimmed
+			}
+
+			if targetPrefix != "" {
+				if trimmed == "/" {
+					req.URL.Path = targetPrefix
+				} else {
+					req.URL.Path = targetPrefix + trimmed
+				}
+			} else {
+				req.URL.Path = trimmed
+			}
+
+			req.Host = target.Host
+		},
+		Transport: transport,
+	}
+	proxy.FlushInterval = -1
+
+	return proxy, nil
 }
 
 // NewNexusApp creates a new KNIRV-SERVER application
@@ -728,6 +804,35 @@ func (app *NexusApp) setupRoutes() error {
 		}
 	})
 
+	gatewayTransport := socketProxyTransport(app.config.GatewaySocket)
+	gatewayBase := gatewayBaseURL(app.config)
+
+	registerGatewayPrefix := func(prefix, upstreamPrefix string) error {
+		proxy, err := newPrefixProxy(gatewayBase, gatewayTransport, prefix, upstreamPrefix)
+		if err != nil {
+			return err
+		}
+		handler := func(c *gin.Context) {
+			proxy.ServeHTTP(c.Writer, c.Request)
+		}
+		app.router.Any(prefix, handler)
+		app.router.Any(prefix+"/*path", handler)
+		return nil
+	}
+
+	if err := registerGatewayPrefix("/network", "/"); err != nil {
+		return fmt.Errorf("failed to configure /network proxy: %w", err)
+	}
+	if err := registerGatewayPrefix("/explorer", "/explorer"); err != nil {
+		return fmt.Errorf("failed to configure /explorer proxy: %w", err)
+	}
+	if err := registerGatewayPrefix("/gateway", "/explorer"); err != nil {
+		return fmt.Errorf("failed to configure /gateway proxy: %w", err)
+	}
+	if err := registerGatewayPrefix("/turn", "/api/turn"); err != nil {
+		return fmt.Errorf("failed to configure /turn proxy: %w", err)
+	}
+
 	// API proxy to backend
 	api := app.router.Group("/api")
 	{
@@ -782,6 +887,33 @@ func (app *NexusApp) setupRoutes() error {
 			io.Copy(c.Writer, resp.Body)
 		})
 	}
+
+	app.router.Any("/tunnel", func(c *gin.Context) {
+		c.Request.URL.Path = "/status"
+		proxy, err := newPrefixProxy(gatewayBase, gatewayTransport, "/tunnel", "")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to configure tunnel proxy"})
+			return
+		}
+		proxy.ServeHTTP(c.Writer, c.Request)
+	})
+	app.router.Any("/tunnel/*path", func(c *gin.Context) {
+		trimmed := strings.TrimPrefix(c.Request.URL.Path, "/tunnel")
+		if trimmed == "" || trimmed == "/" {
+			c.Request.URL.Path = "/status"
+		} else if strings.HasPrefix(trimmed, "/status") {
+			c.Request.URL.Path = trimmed
+		} else {
+			c.Request.URL.Path = "/api" + trimmed
+		}
+
+		proxy, err := newPrefixProxy(gatewayBase, gatewayTransport, "", "")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to configure tunnel proxy"})
+			return
+		}
+		proxy.ServeHTTP(c.Writer, c.Request)
+	})
 
 	// WebSocket proxy — must be registered before NoRoute so the upgrade
 	// request reaches the backend instead of being served as a static file.
@@ -1100,7 +1232,9 @@ func loadConfig() (*Config, error) {
 	viper.SetDefault("backend_port", 8082)
 	if appDataDir, err := getAppDataDir(); err == nil {
 		viper.SetDefault("backend_socket", filepath.Join(appDataDir, "sockets", "backend.sock"))
+		viper.SetDefault("gateway_socket", filepath.Join(appDataDir, "sockets", "gateway.sock"))
 	}
+	viper.SetDefault("gateway_port", 8080)
 	viper.SetDefault("log_level", "info")
 	viper.SetDefault("testnet", false)
 	viper.SetDefault("desktop", false)
@@ -1126,6 +1260,20 @@ func loadConfig() (*Config, error) {
 	if config.BackendSocket == "" {
 		if appDataDir, err := getAppDataDir(); err == nil {
 			config.BackendSocket = filepath.Join(appDataDir, "sockets", "backend.sock")
+		}
+	}
+	if config.GatewaySocket == "" {
+		config.GatewaySocket = viper.GetString("gateway.socket_path")
+		if config.GatewaySocket == "" {
+			if appDataDir, err := getAppDataDir(); err == nil {
+				config.GatewaySocket = filepath.Join(appDataDir, "sockets", "gateway.sock")
+			}
+		}
+	}
+	if config.GatewayPort == 0 {
+		config.GatewayPort = viper.GetInt("gateway.port")
+		if config.GatewayPort == 0 {
+			config.GatewayPort = 8080
 		}
 	}
 

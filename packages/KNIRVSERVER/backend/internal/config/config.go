@@ -73,6 +73,9 @@ type GraphConfig struct {
 	BinaryPath    string `mapstructure:"binary_path"`
 	SocketPath    string `mapstructure:"socket_path"`
 	P2PSocketPath string `mapstructure:"p2p_socket_path"`
+	Port          int    `mapstructure:"port"`
+	P2PPort       int    `mapstructure:"p2p_port"`
+	APIPort       int    `mapstructure:"api_port"`
 	DataPath      string `mapstructure:"data_path"`
 	SyncInterval  string `mapstructure:"sync_interval"`
 	StartTimeout  int    `mapstructure:"start_timeout"`

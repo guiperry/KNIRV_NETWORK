@@ -78,6 +78,32 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 		cfg = DefaultConfig()
 	}
 
+	defaults := DefaultConfig()
+	if cfg.Port == 0 {
+		cfg.Port = defaults.Port
+	}
+	if cfg.P2PPort == 0 {
+		cfg.P2PPort = defaults.P2PPort
+	}
+	if cfg.APIPort == 0 {
+		cfg.APIPort = defaults.APIPort
+	}
+	if cfg.SocketPath == "" {
+		cfg.SocketPath = defaults.SocketPath
+	}
+	if cfg.P2PSocketPath == "" {
+		cfg.P2PSocketPath = defaults.P2PSocketPath
+	}
+	if cfg.DataPath == "" {
+		cfg.DataPath = defaults.DataPath
+	}
+	if cfg.StartTimeout == 0 {
+		cfg.StartTimeout = defaults.StartTimeout
+	}
+	if cfg.StopTimeout == 0 {
+		cfg.StopTimeout = defaults.StopTimeout
+	}
+
 	if logger == nil {
 		logger, _ = zap.NewProduction()
 	}
@@ -85,12 +111,12 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 	var baseURL string
 	var client *http.Client
 	if cfg.SocketPath != "" {
-		baseURL = "http://unix/" + cfg.SocketPath
+		baseURL = "http://localhost"
 		client = &http.Client{
 			Timeout: 5 * time.Second,
 			Transport: &http.Transport{
 				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-					return net.Dial("unix", cfg.SocketPath)
+					return (&net.Dialer{}).DialContext(ctx, "unix", cfg.SocketPath)
 				},
 			},
 		}
@@ -193,6 +219,7 @@ func (m *Manager) Start() error {
 		zap.Int("port", m.config.Port),
 		zap.Int("p2p_port", m.config.P2PPort),
 		zap.Int("api_port", m.config.APIPort),
+		zap.String("socket_path", m.config.SocketPath),
 		zap.String("data_path", m.config.DataPath),
 	)
 
@@ -208,19 +235,38 @@ func (m *Manager) Start() error {
 		return fmt.Errorf("failed to create data directory: %w", err)
 	}
 
+	preflightClient := &http.Client{Timeout: 3 * time.Second}
+	if m.config.SocketPath != "" {
+		preflightClient = m.client
+	}
+	if resp, err := preflightClient.Get(fmt.Sprintf("%s/health", m.baseURL)); err == nil {
+		resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			m.logger.Info("Adopting existing healthy KNIRVGRAPH process (skipping new spawn)")
+			m.running = true
+			return nil
+		}
+	}
+
 	killStaleGraph(m.binaryPath)
-	if !waitForPortFree(m.config.Port, 5*time.Second) {
+	if m.config.SocketPath == "" && !waitForPortFree(m.config.Port, 5*time.Second) {
 		m.logger.Warn("Port not free, proceeding anyway", zap.Int("port", m.config.Port))
 	}
 
-	m.cmd = exec.Command(m.binaryPath,
+	args := []string{
 		"--rpc-port", fmt.Sprintf("%d", m.config.Port),
 		"--port", fmt.Sprintf("%d", m.config.P2PPort),
 		"--home", m.config.DataPath,
 		"--headless",
-	)
+	}
+	if m.config.SocketPath != "" {
+		args = append(args, "--socket", m.config.SocketPath)
+	}
+
+	m.cmd = exec.Command(m.binaryPath, args...)
 
 	m.cmd.Env = append(os.Environ(),
+		fmt.Sprintf("KNIRVGRAPH_SOCKET_PATH=%s", m.config.SocketPath),
 		fmt.Sprintf("KNIRVGRAPH_PORT=%d", m.config.Port),
 		fmt.Sprintf("KNIRVGRAPH_P2P_PORT=%d", m.config.P2PPort),
 		fmt.Sprintf("KNIRVGRAPH_API_PORT=%d", m.config.APIPort),

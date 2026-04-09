@@ -69,10 +69,10 @@ func (r *Runtime) Setup() error {
 		return fmt.Errorf("failed to create runtime directory: %w", err)
 	}
 
-	// Extract webgui static files
-	r.logger.Info("Extracting embedded webgui static files...")
+	// Extract explorer static files.
+	r.logger.Info("Extracting embedded explorer static files...")
 	if err := r.extractWebGUI(r.WebGUIStaticDir); err != nil {
-		return fmt.Errorf("failed to extract webgui static files: %w", err)
+		return fmt.Errorf("failed to extract explorer static files: %w", err)
 	}
 
 	// Use an on-disk network-website tree for the standalone gateway when available.
@@ -91,23 +91,23 @@ func (r *Runtime) Setup() error {
 
 	r.extracted = true
 	r.logger.Info("Runtime setup complete",
-		zap.String("webguiStaticDir", r.WebGUIStaticDir),
+		zap.String("explorerStaticDir", r.WebGUIStaticDir),
 		zap.String("networkWebsiteDir", r.NetworkWebsiteDir),
 	)
 
 	return nil
 }
 
-// extractWebGUI extracts only the webgui static files to a target directory
+// extractWebGUI extracts only the explorer static files to a target directory.
 func (r *Runtime) extractWebGUI(targetDir string) error {
-	r.logger.Info("Extracting embedded webgui static files", zap.String("target", targetDir))
+	r.logger.Info("Extracting embedded explorer static files", zap.String("target", targetDir))
 
 	// Create target directory
 	if err := os.MkdirAll(targetDir, 0755); err != nil {
 		return fmt.Errorf("failed to create target directory: %w", err)
 	}
 
-	// Extract only webgui files
+	// Extract only explorer files from the embedded webgui bundle.
 	err := fs.WalkDir(r.webGUIFS, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -124,7 +124,7 @@ func (r *Runtime) extractWebGUI(targetDir string) error {
 			return nil
 		}
 
-		// Skip everything except webgui files
+		// Skip everything except explorer files.
 		if !strings.HasPrefix(relPath, "webgui") {
 			if d.IsDir() {
 				return fs.SkipDir
@@ -132,14 +132,14 @@ func (r *Runtime) extractWebGUI(targetDir string) error {
 			return nil
 		}
 
-		// For webgui, only extract the built static files from out/ directory
-		// Allow descending into "webgui" and "webgui/out" directories, skip everything else
+		// Only extract the built explorer files from out/.
+		// Allow descending into "webgui" and "webgui/out" directories, skip everything else.
 		if d.IsDir() {
-			// Allow webgui root directory
+			// Allow the embedded explorer root directory.
 			if relPath == "webgui" {
 				return nil
 			}
-			// Allow webgui/out directory and its subdirectories
+			// Allow webgui/out and its subdirectories.
 			if strings.HasPrefix(relPath, "webgui/out") {
 				// Create the directory in the target location
 				staticPath := strings.TrimPrefix(relPath, "webgui/out/")
@@ -151,11 +151,11 @@ func (r *Runtime) extractWebGUI(targetDir string) error {
 				}
 				return nil
 			}
-			// Skip all other webgui subdirectories (src, node_modules, etc.)
+			// Skip all other embedded source directories (src, node_modules, etc.).
 			return fs.SkipDir
 		}
 
-		// Skip files that are not in webgui/out
+		// Skip files that are not in the built explorer bundle.
 		if !strings.HasPrefix(relPath, "webgui/out/") {
 			return nil
 		}
@@ -189,20 +189,20 @@ func (r *Runtime) extractWebGUI(targetDir string) error {
 		return err
 	}
 
-	// Check if any files were extracted, if not create a basic dashboard
+	// If nothing was extracted, create a basic explorer landing page.
 	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
-		r.logger.Info("No webgui static files found, creating basic dashboard")
+		r.logger.Info("No explorer static files found, creating basic explorer page")
 		if err := os.MkdirAll(targetDir, 0755); err != nil {
-			return fmt.Errorf("failed to create webgui directory: %w", err)
+			return fmt.Errorf("failed to create explorer directory: %w", err)
 		}
 
-		// Create a basic dashboard HTML file
+		// Create a basic explorer HTML file.
 		dashboardHTML := `<!DOCTYPE html>
 <html lang="en">
 <head>
 	  <meta charset="UTF-8">
 	  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	  <title>KNIRV WebGUI Dashboard</title>
+	  <title>KNIRV Explorer</title>
 	  <style>
 	      body {
 	          font-family: Arial, sans-serif;
@@ -241,8 +241,8 @@ func (r *Runtime) extractWebGUI(targetDir string) error {
 </head>
 <body>
 	  <div class="header">
-	      <h1>KNIRV WebGUI Dashboard</h1>
-	      <p>Welcome to the KNIRV Network Dashboard</p>
+	      <h1>KNIRV Explorer</h1>
+	      <p>Welcome to the KNIRV Network Explorer</p>
 	      <button class="logout-btn" onclick="logout()">Logout</button>
 	  </div>
 
@@ -289,9 +289,9 @@ func (r *Runtime) extractWebGUI(targetDir string) error {
 </html>`
 		indexPath := filepath.Join(targetDir, "index.html")
 		if err := os.WriteFile(indexPath, []byte(dashboardHTML), 0644); err != nil {
-			return fmt.Errorf("failed to create dashboard HTML: %w", err)
+			return fmt.Errorf("failed to create explorer HTML: %w", err)
 		}
-		r.logger.Info("Created basic dashboard HTML", zap.String("path", indexPath))
+		r.logger.Info("Created basic explorer HTML", zap.String("path", indexPath))
 	}
 
 	return nil

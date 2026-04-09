@@ -327,6 +327,7 @@ export interface Query {
   filters?: Filter[];
   similarTo?: number[];
   limit?: number;
+  sort?: { field: string; ascending: boolean };
 
   // Index management
   indexName?: string;

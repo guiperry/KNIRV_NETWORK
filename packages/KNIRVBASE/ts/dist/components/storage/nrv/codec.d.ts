@@ -1,4 +1,5 @@
 import { ModalityMap } from './spec';
+import { GlobalMetrics as NRVGlobalMetrics } from './bracket';
 export interface Header {
     magic: number;
     version: number;
@@ -17,7 +18,7 @@ export interface ThermoData {
     freqMHz: number;
     fanRPM: number;
 }
-export interface FrameEntry {
+export interface FrameIndexEntry {
     id: string;
     offset: number;
     length: number;
@@ -26,16 +27,7 @@ export interface FrameEntry {
     ergoRank: number;
     modalities: ModalityMap;
 }
-export interface GlobalMetrics {
-    featureMin: Float32Array;
-    featureMax: Float32Array;
-    featureMean: Float32Array;
-    featureStd: Float32Array;
-    thermoCorrelationCoefficient: number;
-    ergoRankSum: number;
-    verifiedFrameCount: number;
-    compactedAt?: string;
-}
+export type GlobalMetrics = NRVGlobalMetrics;
 export interface PQCManifest {
     keyId: string;
     algorithm: string;
@@ -50,7 +42,7 @@ export interface Registry {
     frameCount: number;
     tombstoneCount: number;
     globalMetrics: GlobalMetrics;
-    frames: FrameEntry[];
+    frames: FrameIndexEntry[];
     pqcManifest: PQCManifest;
 }
 export declare function encodeHeader(totalLength: number): Uint8Array;
@@ -59,6 +51,6 @@ export declare function encodeFrame(frame: Frame): {
     data: Uint8Array;
     modalities: ModalityMap;
 };
-export declare function decodeFrame(data: Uint8Array, entry: FrameEntry): Frame;
+export declare function decodeFrame(data: Uint8Array, entry: FrameIndexEntry): Frame;
 export declare function createDefaultRegistry(datasetId: string, keyId?: string): Registry;
 //# sourceMappingURL=codec.d.ts.map

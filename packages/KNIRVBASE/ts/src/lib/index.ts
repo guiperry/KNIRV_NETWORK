@@ -13,8 +13,8 @@ export * from '../components/collection/distributed_collection';
 export * from '../components/network/network_manager';
 
 // Storage
-export * from '../components/storage/storage';
-export * from '../components/storage/index';
+export { FileStorage, Storage } from '../components/storage/storage';
+export { NRVStorage } from '../components/storage/nrv/nrv_storage';
 
 // NRV
 export { Frame } from '../components/collection/distributed_collection';
@@ -44,9 +44,20 @@ export * from '../components/monitoring/index';
 // Embedding (TF-IDF + LSA)
 export * from '../components/embedding/index';
 
+// Indexing module
+export * from '../components/indexing';
+
+// Distributed tracing
+export * from '../components/tracing';
+
+// NRV Storage imports
+import { Bracket, ThermoAtmosphere } from '../components/storage/nrv/bracket';
+import { FlightServer, FlightClient, bracketsToFlightData, flightDataToBrackets } from '../components/storage/nrv/flight';
+
 // Main Database class
 import { NetworkManager, Network } from '../components/network/network_manager';
 import { FileStorage, Storage } from '../components/storage/storage';
+import { NRVStorage } from '../components/storage/nrv/nrv_storage';
 import { DistributedCollection } from '../components/collection/distributed_collection';
 import { NetworkConfig } from '../components/types/types';
 import { PQCKeyPair } from '../components/crypto/pqc/keys';
@@ -199,6 +210,15 @@ export class DB {
   // Get network manager
   getNetworkManager(): Network {
     return this.network;
+  }
+
+  dataset(name: string): NRVDataset {
+    const nrvStore = this.store as NRVStorage;
+    if (!(nrvStore instanceof NRVStorage)) {
+      throw new Error('DB was not created with NRVStorage — use NewNRV() constructor');
+    }
+    const coll = this.collection(name);
+    return new NRVDataset(name, nrvStore, (coll as any).coll);
   }
 
   async shutdown(): Promise<void> {
@@ -419,3 +439,82 @@ export async function New(ctx: any, opts: Options): Promise<DB> {
 export async function NewDistributedDatabase(ctx: any, opts: DistributedDbOptions, store: Storage, mockNet?: Network): Promise<DistributedDatabase> {
   return new DistributedDatabase(ctx, opts, store, mockNet);
 }
+
+export class NRVDataset {
+  readonly name: string;
+  private storage: NRVStorage;
+  private collection: DistributedCollection;
+
+  constructor(name: string, storage: NRVStorage, collection: DistributedCollection) {
+    this.name = name;
+    this.storage = storage;
+    this.collection = collection;
+  }
+
+  async appendBracket(bracket: Bracket, thermo: ThermoAtmosphere): Promise<void> {
+    return this.storage.appendBracket(this.name, bracket, thermo);
+  }
+
+  async *streamBrackets(goldOnly: boolean): AsyncIterableIterator<Bracket> {
+    const reader = await (this.storage as any).getReader(this.name);
+    if (!reader) {
+      return;
+    }
+
+    const registry = reader.getRegistry();
+    for (const entry of registry.frames) {
+      if ((entry as any).tombstone !== undefined) {
+        continue;
+      }
+      const frame = reader.getFrame(entry.id);
+      if (frame && frame.brackets) {
+        for (const bracket of frame.brackets) {
+          if (!goldOnly || (bracket.meta && bracket.meta.type === 'P')) {
+            yield bracket;
+          }
+        }
+      }
+    }
+  }
+
+  async getFrame(frameId: string): Promise<{ frame: any; brackets: Bracket[] } | null> {
+    const reader = await (this.storage as any).getReader(this.name);
+    if (!reader) {
+      return null;
+    }
+
+    const frame = reader.getFrame(frameId);
+    if (!frame) {
+      return null;
+    }
+
+    return { frame, brackets: (frame as any).brackets || [] };
+  }
+
+  async setLinguistic(token: string, unit: string): Promise<void> {
+    const registry = await (this.storage as any).getRegistry(this.name);
+    if (!registry) {
+      throw new Error('collection not found');
+    }
+    if (!registry.linguistic) {
+      (registry as any).linguistic = {};
+    }
+    (registry as any).linguistic[token] = unit;
+    await (this.storage as any).saveRegistry(this.name);
+  }
+}
+
+export async function NewNRV(ctx: any, opts: Options, keyPair: PQCKeyPair): Promise<DB> {
+  const store = new NRVStorage(opts.dataDir, keyPair);
+  const db = new DB(opts);
+  (db as any).store = store;
+  await db.initialize();
+  return db;
+}
+
+export interface DBWithDataset extends DB {
+  dataset(name: string): NRVDataset;
+}
+
+export { Bracket, ThermoAtmosphere };
+export { FlightServer, FlightClient, bracketsToFlightData, flightDataToBrackets };

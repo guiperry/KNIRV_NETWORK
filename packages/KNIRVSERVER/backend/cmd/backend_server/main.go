@@ -354,7 +354,8 @@ func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, er
 	} else {
 		// Check if stdin is a terminal
 		if !term.IsTerminal(int(os.Stdin.Fd())) {
-			return nil, fmt.Errorf("secrets: password not provided via ORACLE_KEY_PASSWORD environment variable and stdin is not a terminal")
+			logger.Info("Secrets not loaded: ORACLE_KEY_PASSWORD is unset for non-interactive startup")
+			return nil, nil
 		}
 		keyPassword, err = password.PromptForPassword("Enter root key password to load secrets: ")
 		if err != nil {
@@ -779,6 +780,9 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			BinaryPath:    cfg.Graph.BinaryPath,
 			SocketPath:    cfg.Graph.SocketPath,
 			P2PSocketPath: cfg.Graph.P2PSocketPath,
+			Port:          cfg.Graph.Port,
+			P2PPort:       cfg.Graph.P2PPort,
+			APIPort:       cfg.Graph.APIPort,
 			DataPath:      cfg.Graph.DataPath,
 			StartTimeout:  time.Duration(cfg.Graph.StartTimeout) * time.Second,
 			StopTimeout:   time.Duration(cfg.Graph.StopTimeout) * time.Second,
@@ -1220,11 +1224,13 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 
 	// Initialise oracle manager if root.key is present (root node only)
 	oracleManager := initOracleManager(logger, cfg)
-	if err := oracleManager.Start(ctx); err != nil {
-		logger.Error("Failed to start oracle manager — continuing without oracle", zap.Error(err))
+	if oracleManager != nil {
+		if err := oracleManager.Start(ctx); err != nil {
+			logger.Error("Failed to start oracle manager — continuing without oracle", zap.Error(err))
+		}
 	}
 	server.oracleManager = oracleManager
-	if oracleManager.IsRunning() {
+	if oracleManager != nil && oracleManager.IsRunning() {
 		balanceReader := &oracleBalanceAdapter{manager: oracleManager}
 		if transactionChainClient != nil {
 			transactionChainClient.SetBalanceReader(balanceReader)
@@ -1838,8 +1844,13 @@ func (s *Server) Start() error {
 			log.Printf("Warning: Failed to start KNIRVGRAPH: %v", err)
 			logging.EmitModuleLog("knirvgraph", "error", fmt.Sprintf("Failed to start: %v", err))
 		} else {
-			log.Printf("KNIRVGRAPH started on port %d", s.graphManager.GetConfig().Port)
-			logging.EmitModuleLog("knirvgraph", "info", fmt.Sprintf("Started on port %d", s.graphManager.GetConfig().Port))
+			if socketPath := s.graphManager.GetConfig().SocketPath; socketPath != "" {
+				log.Printf("KNIRVGRAPH started on socket %s", socketPath)
+				logging.EmitModuleLog("knirvgraph", "info", fmt.Sprintf("Started on socket %s", socketPath))
+			} else {
+				log.Printf("KNIRVGRAPH started on port %d", s.graphManager.GetConfig().Port)
+				logging.EmitModuleLog("knirvgraph", "info", fmt.Sprintf("Started on port %d", s.graphManager.GetConfig().Port))
+			}
 		}
 	}
 
@@ -1849,8 +1860,13 @@ func (s *Server) Start() error {
 			log.Printf("Warning: Failed to start KNIRVCHAIN: %v", err)
 			logging.EmitModuleLog("knirvchain", "error", fmt.Sprintf("Failed to start: %v", err))
 		} else {
-			log.Printf("KNIRVCHAIN started on port %d", s.chainManager.GetConfig().APIPort)
-			logging.EmitModuleLog("knirvchain", "info", fmt.Sprintf("Started on port %d", s.chainManager.GetConfig().APIPort))
+			if socketPath := s.chainManager.GetConfig().SocketPath; socketPath != "" {
+				log.Printf("KNIRVCHAIN started on socket %s", socketPath)
+				logging.EmitModuleLog("knirvchain", "info", fmt.Sprintf("Started on socket %s", socketPath))
+			} else {
+				log.Printf("KNIRVCHAIN started on port %d", s.chainManager.GetConfig().APIPort)
+				logging.EmitModuleLog("knirvchain", "info", fmt.Sprintf("Started on port %d", s.chainManager.GetConfig().APIPort))
+			}
 		}
 	}
 	if s.transactionChainManager != nil && s.config.TransactionChain.Enabled {
@@ -1878,8 +1894,13 @@ func (s *Server) Start() error {
 			log.Printf("Warning: Failed to start KNIRVGATEWAY: %v", err)
 			logging.EmitModuleLog("knirvgateway", "error", fmt.Sprintf("Failed to start: %v", err))
 		} else {
-			log.Printf("KNIRVGATEWAY started on port %d", s.gatewayManager.GetConfig().Port)
-			logging.EmitModuleLog("knirvgateway", "info", fmt.Sprintf("Started on port %d", s.gatewayManager.GetConfig().Port))
+			if socketPath := s.gatewayManager.GetConfig().SocketPath; socketPath != "" {
+				log.Printf("KNIRVGATEWAY started on socket %s (public port identity %d)", socketPath, s.gatewayManager.GetConfig().Port)
+				logging.EmitModuleLog("knirvgateway", "info", fmt.Sprintf("Started on socket %s", socketPath))
+			} else {
+				log.Printf("KNIRVGATEWAY started on port %d", s.gatewayManager.GetConfig().Port)
+				logging.EmitModuleLog("knirvgateway", "info", fmt.Sprintf("Started on port %d", s.gatewayManager.GetConfig().Port))
+			}
 		}
 	}
 

@@ -9,6 +9,7 @@ import { NRVWriter } from './writer';
 import { Compactor } from './compactor';
 import { WAL } from './wal';
 import * as nrv from './spec';
+import { Bracket, ThermoAtmosphere, BracketMeta, encodeBracket } from './bracket';
 
 export class NRVStorage implements Storage {
   readonly baseDir: string;
@@ -340,5 +341,27 @@ export class NRVStorage implements Storage {
         compactor.maybeCompact(registry);
       }
     }
+  }
+
+  async appendBracket(collection: string, bracket: Bracket, thermo: ThermoAtmosphere): Promise<void> {
+    const writer = await this.getWriter(collection);
+    const registry = writer.getRegistry();
+    
+    const bracketData = encodeBracket(bracket);
+    const timestamp = Date.now();
+    
+    const meta = bracket.meta;
+    if (meta) {
+      registry.globalMetrics.totalBracketCount++;
+    }
+    
+    registry.globalMetrics.avgTempCMean = (registry.globalMetrics.avgTempCMean * (registry.globalMetrics.validFrameCount) + thermo.avgTempC) / (registry.globalMetrics.validFrameCount + 1);
+    if (thermo.avgTempC > registry.globalMetrics.avgTempCMax) {
+      registry.globalMetrics.avgTempCMax = thermo.avgTempC;
+    }
+    registry.globalMetrics.peakVoltVMean = (registry.globalMetrics.peakVoltVMean * (registry.globalMetrics.validFrameCount) + thermo.peakVoltV) / (registry.globalMetrics.validFrameCount + 1);
+    registry.globalMetrics.clockMHzMean = (registry.globalMetrics.clockMHzMean * (registry.globalMetrics.validFrameCount) + thermo.clockMHz) / (registry.globalMetrics.validFrameCount + 1);
+
+    await writer.saveRegistry();
   }
 }

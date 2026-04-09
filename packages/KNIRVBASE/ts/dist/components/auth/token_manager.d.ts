@@ -19,5 +19,11 @@ export declare class TokenManager {
      * Checks if claims contain required permission
      */
     hasPermission(claims: Claims, required: Permission): boolean;
+    /**
+     * Generates a hybrid token that embeds a session token (from external auth provider)
+     * alongside JWT claims. Enables hybrid auth where blockchain wallet session is
+     * validated alongside standard JWT.
+     */
+    generateHybridToken(userId: string, walletAddr: string, sessionToken: string, permissions: Permission[]): string;
 }
 //# sourceMappingURL=token_manager.d.ts.map

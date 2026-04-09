@@ -24,6 +24,10 @@ export interface Query {
     filters?: Filter[];
     similarTo?: number[];
     limit?: number;
+    sort?: {
+        field: string;
+        ascending: boolean;
+    };
     indexName?: string;
     fields?: string[];
     unique?: boolean;

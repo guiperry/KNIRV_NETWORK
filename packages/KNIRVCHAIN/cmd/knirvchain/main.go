@@ -22,6 +22,7 @@ import (
 	"KNIRVCHAIN/internal/dataengine"
 	"KNIRVCHAIN/internal/inference"
 	"KNIRVCHAIN/internal/inference/agentify"
+	"KNIRVCHAIN/internal/installation"
 	"KNIRVCHAIN/internal/network"
 	"KNIRVCHAIN/internal/p2p"
 
@@ -166,8 +167,10 @@ func fetchAndStorePublicIPInfo(cfg *config.Config, role config.Role) (errCatch e
 // More missing functions
 // Use wallet.NewWalletFromPrivateKeyHex from the internal/wallet package.
 
-func LoadPaymentProcessorConfig(config interface{}) {
-	// Placeholder
+func LoadPaymentProcessorConfig(cfgValue interface{}) {
+	if cfg, ok := cfgValue.(*config.PaymentProcessorConfig); ok && cfg != nil {
+		wallet.LoadPaymentProcessorConfig(cfg)
+	}
 }
 
 func applyEmbeddedRuntimeOverrides(cfg *config.Config) {
@@ -228,8 +231,33 @@ func guiBackendURL(cfg config.Config, role config.Role) string {
 	return fmt.Sprintf("http://%s:%d", publicIP, cfg.Port)
 }
 
+func syncGUIBackendURL(cfg config.Config, role config.Role) {
+	webguiEnvPath := filepath.Join("..", "..", "internal", "embedded", "nodejs", "webgui", "webGUI", "backend.config")
+	if _, err := os.Stat(webguiEnvPath); err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("[%s][%s] Skipping GUI backend URL sync because %s is not present", role.String(), cfg.ChainID, webguiEnvPath)
+			return
+		}
+		log.Printf("[%s][%s] WARNING: Failed to inspect GUI backend config %s: %v", role.String(), cfg.ChainID, webguiEnvPath, err)
+		return
+	}
+
+	backendURL := guiBackendURL(cfg, role)
+	log.Printf("[%s][%s] Syncing NEXT_PUBLIC_BACKEND_URL in %s to %s", role.String(), cfg.ChainID, webguiEnvPath, backendURL)
+	if updateErr := utils.UpdateEnvVariable(webguiEnvPath, "NEXT_PUBLIC_BACKEND_URL", backendURL); updateErr != nil {
+		log.Printf("[%s][%s] WARNING: Failed to update GUI backend URL for %s: %v", role.String(), cfg.ChainID, webguiEnvPath, updateErr)
+		return
+	}
+
+	log.Printf("[%s][%s] Successfully updated GUI backend URL for %s", role.String(), cfg.ChainID, webguiEnvPath)
+}
+
 func Install(configPath string, bootnode bool, role interface{}, nonInteractive bool, walletPath string) (*config.Config, error) {
-	return &config.Config{}, nil
+	roleValue, ok := role.(config.Role)
+	if !ok {
+		return nil, fmt.Errorf("invalid role type %T", role)
+	}
+	return installation.Install(configPath, bootnode, roleValue, nonInteractive, walletPath)
 }
 
 type FailoverManager struct {
@@ -257,34 +285,61 @@ func GetGlobalFailoverManager() *FailoverManager {
 }
 
 // Missing types and functions
-type GoReverseProxy struct {
-	// Placeholder
+type GoReverseProxy = network.GoReverseProxy
+
+func NewGoReverseProxy(proxyConfig interface{}, frontendURL, backendURL string, dataEngine interface{}) (*GoReverseProxy, error) {
+	cfg, ok := proxyConfig.(*config.ReverseProxyConfig)
+	if !ok || cfg == nil {
+		return nil, fmt.Errorf("invalid reverse proxy config type %T", proxyConfig)
+	}
+
+	var engine *dataengine.DataEngine
+	if dataEngine != nil {
+		var ok bool
+		engine, ok = dataEngine.(*dataengine.DataEngine)
+		if !ok {
+			return nil, fmt.Errorf("invalid data engine type %T", dataEngine)
+		}
+	}
+
+	return network.NewGoReverseProxy(cfg, frontendURL, backendURL, engine)
 }
 
-func (grp *GoReverseProxy) Start() error {
-	return nil
-}
-
-func NewGoReverseProxy(config interface{}, frontendURL, backendURL string, dataEngine interface{}) (*GoReverseProxy, error) {
-	return &GoReverseProxy{}, nil
-}
-
-type ChromemManager struct {
-	// Placeholder
-}
+type ChromemManager = blockchain.ChromemManager
 
 func NewLevelDB(path string) (*LevelDB, error) {
-	return &LevelDB{}, nil
+	return blockchain.NewLevelDB(path)
 }
 
 // NewDiscoveryManager is provided by the internal p2p package (p2p.NewDiscoveryManager)
 // Use discoveryMgr.Close() and discoveryMgr.Run(duration) on the returned manager (p2p.DiscoveryManager implements those methods)
 
 // Missing variables and functions
-var trueGenesisBlock interface{} = &struct{}{}
+var trueGenesisBlock interface{}
 
 func NewBlockchain(genesisBlock interface{}, chainID, minersAddress string, db *database.LevelDB, chromemMgr *ChromemManager, searchablePath string, cerebrasConfig interface{}) (*BlockchainStruct, error) {
-	return &BlockchainStruct{ChainID: chainID}, nil
+	var (
+		blockGenesis *blockchain.Block
+		cerebrasCfg  *config.CerebrasConfig
+	)
+
+	if genesisBlock != nil {
+		castedGenesis, ok := genesisBlock.(*blockchain.Block)
+		if !ok {
+			return nil, fmt.Errorf("invalid genesis block type %T", genesisBlock)
+		}
+		blockGenesis = castedGenesis
+	}
+
+	if cerebrasConfig != nil {
+		castedCfg, ok := cerebrasConfig.(*config.CerebrasConfig)
+		if !ok {
+			return nil, fmt.Errorf("invalid cerebras config type %T", cerebrasConfig)
+		}
+		cerebrasCfg = castedCfg
+	}
+
+	return blockchain.NewBlockchain(blockGenesis, chainID, minersAddress, db, chromemMgr, searchablePath, cerebrasCfg)
 }
 
 func initPaymentProcessor(_ interface{}, _ *LevelDB, _ interface{}) (*PaymentProcessor, error) {
@@ -653,6 +708,15 @@ func main() {
 	// Declare wallet variables
 	var mainWallet *wallet.WalletImpl
 	var masterWallet *wallet.WalletImpl
+	embeddedManagedLaunch := *skipInstall || cfg.SocketPath != "" || cfg.NoWalletServer
+	markInstallIncomplete := func(reason string) {
+		if embeddedManagedLaunch {
+			log.Printf("Embedded launch is bypassing installer reset: %s", reason)
+			return
+		}
+		log.Printf("%s", reason)
+		cfg.InstallComplete = false
+	}
 
 	// Implement consistency checks for non-Root roles
 	if nodeRole != config.Root {
@@ -670,8 +734,7 @@ func main() {
 						loadedWallet, loadErr := wm.LoadWallet("", nodeRole)
 						if loadErr != nil {
 							log.Printf("ERROR: Found wallet file but failed to load: %v", loadErr)
-							log.Println("This node requires reinstallation. Forcing installer.")
-							cfg.InstallComplete = false // Force installer
+							markInstallIncomplete("This node requires reinstallation. Forcing installer.")
 						} else {
 							// Update config with the loaded wallet address
 							cfg.MinersAddress = loadedWallet.GetAddress()
@@ -680,8 +743,7 @@ func main() {
 							config.SaveConfigToUserDir(cfg, nodeRole)
 						}
 					} else {
-						log.Println("This node requires reinstallation. Forcing installer.")
-						cfg.InstallComplete = false // Force installer
+						markInstallIncomplete("This node requires reinstallation. Forcing installer.")
 					}
 				} else {
 					log.Printf("ERROR: Failed to load wallet for address '%s': %v. This is a non-fatal error, attempting to continue.", cfg.MinersAddress, err)
@@ -698,8 +760,7 @@ func main() {
 				loadedWallet, loadErr := wm.LoadWallet("", nodeRole) // Use temp var
 				if loadErr != nil {
 					log.Printf("ERROR: Found wallet file but failed to load: %v", loadErr)
-					log.Println("This node requires reinstallation. Forcing installer.")
-					cfg.InstallComplete = false // Force installer
+					markInstallIncomplete("This node requires reinstallation. Forcing installer.")
 				} else {
 					// Update config with the loaded wallet address
 					cfg.MinersAddress = loadedWallet.GetAddress()
@@ -709,8 +770,7 @@ func main() {
 				}
 			} else {
 				log.Println("WARNING: No wallet file found and MinersAddress not configured.")
-				log.Println("This node requires reinstallation. Forcing installer.")
-				cfg.InstallComplete = false // Force installer
+				markInstallIncomplete("This node requires reinstallation. Forcing installer.")
 			}
 		}
 
@@ -721,16 +781,13 @@ func main() {
 				if _, err := wm.LoadMasterWallet(cfg.MasterAddress, nodeRole); err != nil {
 					if os.IsNotExist(err) {
 						log.Printf("WARNING: MasterAddress '%s' is configured but master wallet file not found.", cfg.MasterAddress)
-						log.Println("This node requires reinstallation. Forcing installer.")
-						cfg.InstallComplete = false // Force installer instead of exiting
+						markInstallIncomplete("This node requires reinstallation. Forcing installer.")
 					} else if strings.Contains(err.Error(), "master wallet address mismatch") {
 						log.Printf("WARNING: %v", err)
-						log.Println("This node requires reinstallation. Forcing installer.")
-						cfg.InstallComplete = false // Force installer instead of exiting
+						markInstallIncomplete("This node requires reinstallation. Forcing installer.")
 					} else {
 						log.Printf("WARNING: Failed to load master wallet for address '%s': %v", cfg.MasterAddress, err)
-						log.Println("This node requires reinstallation. Forcing installer.")
-						cfg.InstallComplete = false // Force installer instead of exiting
+						markInstallIncomplete("This node requires reinstallation. Forcing installer.")
 					}
 				} else {
 					log.Printf("Successfully validated master wallet for address '%s'", cfg.MasterAddress)
@@ -743,8 +800,7 @@ func main() {
 					masterWallet, err = wm.LoadMasterWallet("", nodeRole)
 					if err != nil {
 						log.Printf("WARNING: Found master wallet file but failed to load: %v", err)
-						log.Println("This node requires reinstallation. Forcing installer.")
-						cfg.InstallComplete = false // Force installer instead of exiting
+						markInstallIncomplete("This node requires reinstallation. Forcing installer.")
 					} else {
 						// Update config with the loaded master wallet address
 						cfg.MasterAddress = masterWallet.GetAddress()
@@ -753,8 +809,7 @@ func main() {
 					}
 				} else if os.IsNotExist(statErr) {
 					log.Println("WARNING: No master wallet file found and MasterAddress not configured for bootnode.")
-					log.Println("This node requires reinstallation. Forcing installer.")
-					cfg.InstallComplete = false // Force installer instead of exiting
+					markInstallIncomplete("This node requires reinstallation. Forcing installer.")
 				}
 			}
 		}
@@ -1660,6 +1715,8 @@ func startNodeWithComponents(
 			log.Printf("[%s] Blockchain Server initialized to listen on %s.", cfg.ChainID, blockchainSrv.ListenAddr())
 		}
 
+		syncGUIBackendURL(cfg, nodeRole)
+
 		// Save essential root node parameters to env.local if this is the root node
 		if nodeRole == config.Root {
 			rootDataDir, err := config.GetDataDir(config.Root)
@@ -1683,19 +1740,6 @@ func startNodeWithComponents(
 				log.Printf("[%s] ERROR: Blockchain HTTP Server failed: %v", cfg.ChainID, err)
 			}
 			log.Printf("[%s] Blockchain HTTP Server stopped.", cfg.ChainID)
-			// --- Update the webgui backend.config file with the actual HTTP port ---
-			webguiEnvPath := filepath.Join("..", "..", "internal", "embedded", "nodejs", "webgui", "webGUI", "backend.config") // Use filepath.Join for cross-platform compatibility
-
-			backendURL := guiBackendURL(cfg, nodeRole)
-
-			log.Printf("[%s][%s] Attempting to update NEXT_PUBLIC_BACKEND_URL in %s to %s", nodeRole.String(), cfg.ChainID, webguiEnvPath, backendURL)
-
-			if updateErr := utils.UpdateEnvVariable(webguiEnvPath, "NEXT_PUBLIC_BACKEND_URL", backendURL); updateErr != nil {
-				log.Printf("[%s][%s] WARNING: Failed to update GUI backend URL for %s: %v", nodeRole.String(), cfg.ChainID, webguiEnvPath, updateErr)
-				// This is a non-fatal error, node can continue
-			} else {
-				log.Printf("[%s][%s] Successfully updated GUI backend URL for %s", nodeRole.String(), cfg.ChainID, webguiEnvPath)
-			}
 			close(serverStopped)
 		}()
 
