@@ -2,7 +2,7 @@
 # mv -f Makefile{,.old} && sed -E 's/^ {3,}/\t/\' makefile.old >makefile
 
 # Application and Version Configuration
-APP_NAME := knirvcli
+APP_NAME := knirv
 # Determine version: Use git tag, or fallback to dev-commit_hash
 VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null || echo "dev-$(shell git rev-parse --short HEAD)")
 VERSION := $(shell echo $(VERSION) | xargs) # Trim whitespace

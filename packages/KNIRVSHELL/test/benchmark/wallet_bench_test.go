@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/core"
 )
 
 func BenchmarkWalletCreation(b *testing.B) {

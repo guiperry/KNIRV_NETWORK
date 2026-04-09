@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/core"
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/ui"
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/ui/screens"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/ui"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/ui/screens"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

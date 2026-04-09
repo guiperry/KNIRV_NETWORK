@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/core"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

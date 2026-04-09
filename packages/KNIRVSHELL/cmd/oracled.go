@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/core"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

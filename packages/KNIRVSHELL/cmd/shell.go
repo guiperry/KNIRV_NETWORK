@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/ui/screens"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/ui/screens"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 )

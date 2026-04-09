@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/core"
 	"github.com/stretchr/testify/require"
 )
 

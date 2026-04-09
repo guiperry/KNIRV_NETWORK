@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/config"
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/core"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/registry"
 	"github.com/spf13/cobra"
 )
@@ -63,7 +63,7 @@ func coreRegistrySnapshot(cfg *config.Config) map[string]string {
 	return map[string]string{
 		"knirvoracle":  cfg.KNIRV.Services.KNIRVRoot.URL,
 		"knirvgateway": cfg.KNIRV.Services.KNIRVGateway.URL,
-		"knirvserver":  cfg.KNIRV.Services.KNIRVNexus.URL,
+		"knirvserver":  cfg.KNIRV.Services.KNIRVServer.URL,
 		"knirvgraph":   cfg.KNIRV.Services.KNIRVGraph.URL,
 	}
 }

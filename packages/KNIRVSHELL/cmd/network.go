@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/config"
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/core"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -439,7 +439,7 @@ func runNetworkSwitch(cmd *cobra.Command, args []string) error {
 		case "knirvgateway":
 			cfg.KNIRV.Services.KNIRVGateway.URL = serviceURL
 		case "knirvserver":
-			cfg.KNIRV.Services.KNIRVNexus.URL = serviceURL
+			cfg.KNIRV.Services.KNIRVServer.URL = serviceURL
 		case "knirvgraph":
 			cfg.KNIRV.Services.KNIRVGraph.URL = serviceURL
 		}
@@ -597,7 +597,7 @@ func newClientManager(registry *core.ServiceRegistry) *core.KNIRVClientManager {
 		case "knirvgateway":
 			client = core.NewKNIRVGatewayClient(service.Config, log)
 		case "knirvserver":
-			client = core.NewKNIRVNexusClient(service.Config, log)
+			client = core.NewKNIRVServerClient(service.Config, log)
 		case "knirvgraph":
 			client = core.NewKNIRVGraphClient(service.Config, log)
 		default:

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/config"
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/core"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/incident"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/staging"
 	"github.com/spf13/cobra"

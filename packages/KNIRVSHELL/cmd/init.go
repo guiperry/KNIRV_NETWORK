@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/config"
 	"github.com/spf13/cobra"
 )
 

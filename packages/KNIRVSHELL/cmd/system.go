@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/config"
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/config"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/core"
 	"github.com/spf13/cobra"
 )
 
@@ -126,7 +126,7 @@ func runSystemInit(cmd *cobra.Command, args []string) error {
 			case "knirvgateway":
 				client = core.NewKNIRVGatewayClient(service.Config, log)
 			case "knirvserver":
-				client = core.NewKNIRVNexusClient(service.Config, log)
+				client = core.NewKNIRVServerClient(service.Config, log)
 			case "knirvgraph":
 				client = core.NewKNIRVGraphClient(service.Config, log)
 			default:
@@ -244,7 +244,7 @@ func runSystemStatus(cmd *cobra.Command, args []string) error {
 	}{
 		{"KNIRVORACLE", cfg.KNIRV.Services.KNIRVRoot},
 		{"KNIRVGATEWAY", cfg.KNIRV.Services.KNIRVGateway},
-		{"KNIRVSERVER", cfg.KNIRV.Services.KNIRVNexus},
+		{"KNIRVSERVER", cfg.KNIRV.Services.KNIRVServer},
 		{"KNIRVGRAPH", cfg.KNIRV.Services.KNIRVGraph},
 	}
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/core"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL/internal/core"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

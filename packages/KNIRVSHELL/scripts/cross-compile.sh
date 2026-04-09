@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Cross-compilation script for KNIRVCHAIN CLI
+# Cross-compilation script for KNIRVSHELL
 # This script builds the CLI for multiple platforms
 
 set -e
@@ -29,7 +29,7 @@ PLATFORMS=(
 
 # Print header
 echo -e "${YELLOW}=======================================${NC}"
-echo -e "${YELLOW}Cross-compiling KNIRVCHAIN CLI v${VERSION}${NC}"
+echo -e "${YELLOW}Cross-compiling KNIRVSHELL v${VERSION}${NC}"
 echo -e "${YELLOW}=======================================${NC}"
 echo -e "Build Time: ${BUILD_TIME}"
 echo -e "Git Commit: ${GIT_COMMIT}"
@@ -62,9 +62,9 @@ for PLATFORM in "${PLATFORMS[@]}"; do
     
     # Build the binary
     if [ "${OS}" = "darwin" ]; then
-        # Special build configuration for macOS
-        echo -e "  Using macOS-specific build configuration with CGO_ENABLED=1 and CC=x86_64-apple-darwin24.5-clang"
-        GOOS=${OS} GOARCH=${ARCH} CGO_ENABLED=1 CC=x86_64-apple-darwin24.5-clang go build -ldflags="${LDFLAGS}" -o "${PLATFORM_DIR}/${BINARY}" .
+        # macOS cross-compilation (disable CGO to avoid linking host libraries)
+        echo -e "  Building for darwin with CGO disabled (pure Go binary)"
+        GOOS=${OS} GOARCH=${ARCH} CGO_ENABLED=0 go build -ldflags="${LDFLAGS}" -o "${PLATFORM_DIR}/${BINARY}" .
     else
         # Default build configuration for other platforms
         GOOS=${OS} GOARCH=${ARCH} CGO_ENABLED=0 go build -ldflags="${LDFLAGS}" -o "${PLATFORM_DIR}/${BINARY}" .

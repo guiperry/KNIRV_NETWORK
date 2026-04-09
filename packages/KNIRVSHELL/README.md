@@ -1,4 +1,4 @@
-# KNIRV-CLI
+# KNIRVSHELL
 
 A comprehensive command-line interface that provides full integration with the entire KNIRV Network ecosystem. This sophisticated, fully-integrated interface manages and interacts with all KNIRV Network services.
 
@@ -141,7 +141,7 @@ tar -xzf knirv_VERSION_YOUR_OS_YOUR_ARCH.tar.gz
 
 ### Option 3: Package Managers
 
-For a smoother installation experience, KNIRV-CLI is also available through popular package managers:
+For a smoother installation experience, KNIRVSHELL is also available through popular package managers:
 
 **macOS (Homebrew)**:
 ```sh
@@ -187,7 +187,7 @@ If you prefer to build from source or are contributing to the project:
 ```sh
 # Clone the repository
 git clone https://github.com/guiperry/KNIRV_Network.git
-cd KNIRV-CLI
+cd KNIRVSHELL
 
 # Install dependencies
 go mod tidy
@@ -282,7 +282,7 @@ export KNIRV_GATEWAY_API_KEY="your-gateway-api-key"
 
 ## Usage
 
-KNIRV-CLI can be used in two modes:
+KNIRVSHELL can be used in two modes:
 
 ### Command Mode
 
@@ -293,7 +293,7 @@ knirv [command]
 
 Available Commands:
   help        Help about any command
-  init        Initialize KNIRV-CLI configuration
+  init        Initialize KNIRVSHELL configuration
   mcp         Manage MCP capabilities and servers
   version     Display version information
   wallet      Manage KNIRV wallets
@@ -332,7 +332,7 @@ This opens an interactive shell with command history, tab completion, and more:
 Example session:
 ```
 ╔════════════════════════════════════════════════════════════╗
-║                KNIRV-CLI Interactive Mode                  ║
+║                KNIRVSHELL Interactive Mode                  ║
 ╠════════════════════════════════════════════════════════════╣
 ║ • Type 'help' for a list of available commands             ║
 ║ • Use <tab> for command completion                         ║
@@ -347,7 +347,7 @@ knirv> mcp capability list
 [capability list output]
 
 knirv> exit
-Exiting KNIRV-CLI.
+Exiting KNIRVSHELL.
 ```
 
 ### Initialize Configuration
@@ -406,7 +406,7 @@ Available Commands:
 #### KNIRV Service Clients
 - **KNIRVRootClient** (`core/knirvoracle_client.go`): Blockchain and economics operations
 - **KNIRVGatewayClient** (`core/knirvgateway_client.go`): Gateway and proxy operations
-- **KNIRVNexusClient** (`core/knirvnexus_client.go`): DVE and inference operations
+- **KNIRVServerClient** (`core/knirvnexus_client.go`): DVE and inference operations
 - **KNIRVGraphClient** (`core/knirvgraph_client.go`): Graph and NRV operations
 
 #### Wallet Management
