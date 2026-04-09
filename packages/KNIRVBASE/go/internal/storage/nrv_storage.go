@@ -153,6 +153,10 @@ func (s *NRVStorage) Find(ctx context.Context, collection, id string) (map[strin
 		return nil, nil
 	}
 
+	return nrvFrameToDocument(entry, brackets), nil
+}
+
+func nrvFrameToDocument(entry *nrv.FrameEntry, brackets []*nrv.Bracket) map[string]interface{} {
 	doc := map[string]interface{}{
 		"id":         entry.ID,
 		"entryType":  string(types.EntryTypeMemory),
@@ -174,12 +178,31 @@ func (s *NRVStorage) Find(ctx context.Context, collection, id string) (map[strin
 	}
 
 	if len(brackets) > 0 {
+		bracketTypes := make([]string, len(brackets))
+		var totalDrift float64
+		var maxDrift float64
+		for i, b := range brackets {
+			if b.Meta != nil {
+				bracketTypes[i] = string(b.Meta.Type)
+				totalDrift += b.Meta.DriftScore
+				if b.Meta.DriftScore > maxDrift {
+					maxDrift = b.Meta.DriftScore
+				}
+			}
+		}
+		avgDrift := float64(0)
+		if len(brackets) > 0 {
+			avgDrift = totalDrift / float64(len(brackets))
+		}
 		doc["brackets"] = map[string]interface{}{
-			"count": len(brackets),
+			"count":     len(brackets),
+			"types":     bracketTypes,
+			"avg_drift": avgDrift,
+			"max_drift": maxDrift,
 		}
 	}
 
-	return doc, nil
+	return doc
 }
 
 func (s *NRVStorage) FindAll(ctx context.Context, collection string) ([]map[string]interface{}, error) {
@@ -193,23 +216,9 @@ func (s *NRVStorage) FindAll(ctx context.Context, collection string) ([]map[stri
 		if entry.Tombstone != nil {
 			continue
 		}
-
-		doc := map[string]interface{}{
-			"id":         entry.ID,
-			"entryType":  string(types.EntryTypeMemory),
-			"verified":   entry.Z3.Status == "VALID",
-			"ergo_rank":  entry.Z3.Relevance,
-			"timestamp":  entry.TimestampUnix,
-			"linguistic": entry.Linguistic,
-			"payload": map[string]interface{}{
-				"thermo": map[string]float32{
-					"temp_celsius": entry.Thermo.AvgTempC,
-					"voltage_v":    entry.Thermo.PeakVoltV,
-					"freq_mhz":     entry.Thermo.ClockMHz,
-				},
-			},
-		}
-		docs = append(docs, doc)
+		frame := entry
+		brackets := reader.decodeBrackets(frame)
+		docs = append(docs, nrvFrameToDocument(&frame, brackets))
 	}
 
 	return docs, nil

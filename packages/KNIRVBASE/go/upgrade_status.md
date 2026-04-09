@@ -1,242 +1,215 @@
-# KNIRVBASE Phase 2 Upgrade — Audit Report
+# KNIRVBASE Phase 2 Upgrade — Audit Report (Rev 2)
 
 **Auditor:** Claude Sonnet 4.6  
-**Date:** 2026-04-08  
+**Date:** 2026-04-08 (re-audit after worker agent pass)  
 **Spec:** `go/KNIRVBASE_Upgrade.md`  
-**Verdict:** ⚠️ **Partial — 8 of 15 spec items are complete; 7 gaps remain**
+**Verdict:** ⚠️ **Improved but incomplete — several gaps closed, new quality issues introduced**
 
 ---
 
-## Status Overview
+## Delta from Previous Audit
 
-| Section | Component | Status |
-|---------|-----------|--------|
-| §4.1 | `pkg/nrv/bracket.go` | ✅ Complete |
-| §4.2 | `pkg/nrv/frame.go` | ✅ Complete |
-| §4.3 | `pkg/nrv/codec.go` | ✅ Complete |
-| §4.4 | `internal/storage/nrv_ticker.go` | ✅ Complete |
-| §4.5 | `internal/storage/nrv_writer.go` | ✅ Complete |
-| §4.6 | `internal/storage/nrv_reader.go` | ✅ Complete |
-| §4.7 | `internal/storage/nrv_compactor.go` | ✅ Complete |
-| §4.8 | `internal/storage/nrv_storage.go` | ✅ Complete |
-| §4.9 | `internal/network/flight_server.go` | ❌ Stub only — Arrow Flight not implemented |
-| §4.10 | `internal/query/knirvql.go` — parsing | ✅ Complete |
-| §4.10 | `internal/query/knirvql.go` — filter logic | ❌ Two filter keys broken |
-| §4.11 | `pkg/knirvbase/knirvbase.go` | ⚠️ Mostly complete — `Raw()`/`RawCollection()` not removed |
-| §6.1 | Unit tests | ⚠️ 7 of 11 present; 4 missing; 1 skipped |
-| §6.2 | Integration tests | ❌ All 5 missing |
-| §6.3 | Benchmarks | ❌ All 4 missing |
+| Gap # | Previous Status | Current Status |
+|-------|----------------|----------------|
+| GAP 1 — Arrow Flight | ❌ Stub only | ✅ Arrow IPC implemented (with defects — see below) |
+| GAP 2 — `Raw()`/`RawCollection()` | ❌ On `DB` directly | ⚠️ Moved to `accessor` struct, not removed |
+| GAP 3 — `drift_score` filter | ❌ Wrong field (Z3 relevance) | ⚠️ Better (`avg_drift`), but semantically approximate |
+| GAP 4 — `bracket_type` filter | ❌ Always false | ✅ Fixed — `Find()` now populates `brackets.types` |
+| GAP 5 — Missing unit tests | ❌ 4 missing | ⚠️ 3 of 4 added; `DecodePBracket` added but weak |
+| GAP 6 — `DriftSpike` skipped | ❌ `t.Skip()` | ⚠️ Body written, but float encoding is wrong |
+| GAP 7 — Integration tests | ❌ All 5 missing | ⚠️ 5 added, but 3 are stubs or wrong assertions |
+| GAP 7 — Benchmarks | ❌ All 4 missing | ❌ Still missing |
 
 ---
 
-## Confirmed Complete
+## Confirmed Resolved
 
-### `pkg/nrv/bracket.go` (§4.1)
-All required types present and correctly defined: `DeltaType`, `DeltaTypeI`/`P`, `BracketSize = 80`, `Bracket`, `BracketMeta`, `LinguisticMapping`, `ThermoAtmosphere`, `Z3Result`, `BracketBinaryMap`. No deviations from spec.
+### GAP 4 — `bracket_type` Filter ✅
+`nrv_storage.go:Find()` now populates `brackets.types` as `[]string` of DeltaType values, and `brackets.avg_drift` as the mean drift across all brackets in the frame. The `matchesFilter` case for `bracket_type` correctly iterates the `types` slice.
 
-### `pkg/nrv/frame.go` (§4.2)
-`FrameEntry` correctly updated with `Linguistic`, `Thermo`, `Z3`, `Brackets`, `BracketIndex` fields. `GlobalMetrics` correctly updated with `TotalBracketCount`, `ValidFrameCount`, `InvalidFrameCount`, `CompactedAt`. `ThermoData` retained for legacy compatibility per spec instruction. `Registry` schema matches.
+### GAP 5 (partial) — Three KNIRVQL Tests ✅
+`TestKNIRVQL_Z3StatusFilter`, `TestKNIRVQL_ThermoFilter`, and `TestKNIRVQL_BracketFieldQuery` are now present and test the correct parse-level behavior.
 
-### `pkg/nrv/codec.go` (§4.3)
-`EncodeBracket`, `DecodeBracket`, `XORProjections`, `ApplyProjectionDelta` all correctly implemented with proper byte offsets (LSHSalt 0–3, Projections 4–67, SubSecondUS 68–71, ASICLoops 72–75, GoldenSeed 76–79). `EncodeFrame` retained for backward compatibility per spec §4.3 deprecation note.
-
-### `internal/storage/nrv_ticker.go` (§4.4)
-Fully implemented — not a stub. `euclideanDrift` interprets 64 bytes as 16 × float32 and computes real Euclidean distance. `aggregateThermo` correctly averages all three fields. I/P bracket logic, drift-spike detection, XOR application, and stop-with-flush are all present. The `AppendBracket` signature adds `context.Context` and returns `error` beyond the spec's minimum — this is an acceptable improvement.
-
-### `internal/storage/nrv_writer.go` (§4.5)
-New `AppendFrame(frameID, bracketBuf, bracketIndex, thermo, ling)` signature is implemented. WAL begin/commit, flock acquire/release, Dilithium-3 signing, Z3 placeholder, registry update, metric increment, and `saveRegistry` are all present and in the correct order.
-
-### `internal/storage/nrv_reader.go` (§4.6)
-`StreamBrackets(goldOnly bool)` correctly skips tombstoned and (when `goldOnly`) INVALID frames. `GetFrame` returns `*nrv.FrameEntry` and `[]*nrv.Bracket`. `decodeBrackets` correctly applies XOR reconstruction for P-brackets using the anchor map. `VerifyFrame` correctly verifies the bracket buffer (not the old multimodal blob).
-
-### `internal/storage/nrv_compactor.go` (§4.7)
-`MaybeCompact` correctly computes `deadFrames = TombstoneCount + GlobalMetrics.InvalidFrameCount`. `compact()` correctly skips both tombstoned and INVALID frames. `CompactedAt` is set on the output registry. Rename-and-swap pattern is implemented correctly.
-
-### `internal/storage/nrv_storage.go` (§4.8)
-`tickers map[string]*FrameTicker` added. `getOrCreateTicker` calls `getOrCreateWriterLocked` then `NewFrameTicker(w, time.Second)`. `Close()` stops all tickers before closing writers/readers. `GetReader`, `SetLinguistic`, `AppendBracketDirect`, `StreamBrackets`, and `GetFrame` are all implemented. `Insert` routes through `AppendBracketDirect`.
-
-### `internal/query/knirvql.go` — Parsing (§4.10)
-`QueryGetBracketField` added to the `QueryType` enum at the correct ordinal position. `MEMORY.BRACKET(` prefix detection is implemented in `parseGet` and correctly populates `BracketField`. `BracketField` is present on the `Query` struct. `QueryGetBracketField` is handled in `Execute` (routes to `executeGet`). Filter key parsing for `z3_status`, `avg_temp_c`, `drift_score`, and `bracket_type` is wired into `matchesFilter`.
+### `Bracket.Meta` field ✅
+`Bracket` struct now has `Meta *BracketMeta`. The reader's `decodeBrackets` correctly populates it from the frame's `BracketIndex`, including `DriftScore`. This is an additive improvement.
 
 ---
 
-## Gaps and Defects
+## Open Gaps and New Defects
 
-### GAP 1 — Arrow Flight Server is a Channel Wrapper, Not Arrow Flight (§4.9) — **HIGH**
+### GAP 1 — Arrow Flight: Implemented but with Correctness Defects — **MEDIUM**
 
 **File:** `internal/network/flight_server.go`
 
-The spec required a real Apache Arrow Flight gRPC server:
-- Embed `flight.BaseFlightServer`
-- Add `github.com/apache/arrow/go/v15` to `go.mod`
-- Implement `DoGet(ticket *flight.Ticket, stream flight.FlightService_DoGetServer) error`
-- Build Arrow `RecordBatch` objects from bracket data using Arrow builders
-- Define `bracketArrowSchema()` with proper Arrow field types
-- Stream batches of 1024 via `ipc.Writer`
+The worker added real Arrow IPC serialization (`apache/arrow/go/v15` in `go.mod`, `array.RecordBuilder`, `ipc.NewWriter`/`NewReader`). The dual-stream Gold/Research routing works. This is a meaningful improvement.
 
-**What exists:**
+However, five defects remain in the streaming implementation:
+
+**Defect 1.1 — Schema field name typo:**
 ```go
-type FlightServer struct {
-    storage *stor.NRVStorage
+{Name: "lsb_salt", Type: arrow.PrimitiveTypes.Uint32},
+```
+Should be `lsh_salt` (LSH = Locality-Sensitive Hashing). `lsb_salt` is a different term entirely.
+
+**Defect 1.2 — `drift_score` and `bracket_type` hardcoded in stream:**
+```go
+driftBuilder.Append(0.0)       // always 0 — real value is in bracket.Meta.DriftScore
+typeBuilder.Append("P")        // always "P" — should be bracket.Meta.Type (I or P)
+```
+Every bracket is emitted as type `"P"` with drift `0.0` regardless of its actual classification. Consumers of the Gold stream cannot distinguish I-brackets from P-brackets.
+
+**Defect 1.3 — `frame_timestamp` set to `SubSecondUS`:**
+```go
+frameTSBuilder.Append(int64(bracket.SubSecondUS))
+```
+`SubSecondUS` is a microsecond offset within the second, not a Unix timestamp. This field is misleading as emitted.
+
+**Defect 1.4 — `frame_id` is a counter, not the bracket/frame UUID:**
+```go
+frameIDBuilder.Append(frameCounter)
+```
+The spec schema uses `id` (string) for bracket identity. Using an `Int64` row counter loses bracket identity across stream calls.
+
+**Defect 1.5 — Schema inconsistency between `StreamBrackets` and `BracketsToFlightData`:**
+`StreamBrackets` uses a 9-field schema (includes `frame_id`, `drift_score`, `bracket_type`, `frame_timestamp`). `BracketsToFlightData` uses a 7-field schema (omits those four). A client that calls one cannot decode data from the other without knowing which schema was used.
+
+Note: The spec required `flight.BaseFlightServer` embedding and gRPC transport. The implementation uses a custom `BracketStreamServer` interface with Arrow IPC over bytes. This is a pragmatic deviation that avoids the full gRPC dependency; it is acceptable as a design choice if documented, but it means the server does not speak the Arrow Flight wire protocol.
+
+---
+
+### GAP 2 — `Raw()`/`RawCollection()` Moved, Not Removed — **LOW**
+
+**File:** `pkg/knirvbase/knirvbase.go:111–127`
+
+The spec says: *"Remove `Raw()` and `RawCollection()` from `DB`."*
+
+The worker moved them to an `accessor` struct behind `db.Access()`:
+```go
+func (d *DB) Access() *accessor { ... }
+type accessor struct { ... }
+func (a *accessor) Raw() *db.DistributedDatabase { ... }
+func (a *accessor) RawCollection(name string) *coll.DistributedCollection { ... }
+```
+
+These methods still exist and still expose internal types — they are just one level deeper. The spirit of the spec was to eliminate these escape hatches. This is not a full fix.
+
+---
+
+### GAP 3 — `drift_score` Filter: Semantically Approximate — **LOW**
+
+**File:** `internal/query/knirvql.go:514–522` and `internal/storage/nrv_storage.go`
+
+The filter now resolves to `payload["brackets"]["avg_drift"]`, which is populated as the mean of all bracket `DriftScore` values for the frame. This is a frame-level aggregate, not per-bracket filtering. The spec implies per-bracket filtering (`WHERE drift_score > 0.1` applied to individual bracket metadata). This is a reasonable approximation but may produce unintuitive results: a frame with one extreme-drift bracket and many zero-drift brackets could pass or fail the filter based on the average.
+
+This gap is lower priority since the spec's exact semantics here are ambiguous — the `matchesFilter` function operates on documents (frames), not individual brackets.
+
+---
+
+### GAP 5 (remaining) — `TestNRVReader_DecodePBracket` Does Not Test XOR Reconstruction — **MEDIUM**
+
+**File:** `internal/storage/nrv_reader_test.go:143–206`
+
+The test was added but does not verify the core requirement: *"P-bracket projections reconstructed correctly from anchor."*
+
+The test writes a P-bracket with the same raw projections as the anchor (no XOR applied before encoding), then reads it back and only checks `Meta.Type` and `Meta.DriftScore`. The actual projection bytes after delta decoding are never compared.
+
+The correct test would:
+1. Create an anchor bracket with projections `A`
+2. Create a P-bracket delta = `XORProjections(B, A)` for some target `B`
+3. Write both to the file
+4. Read back via `GetFrame`
+5. Assert `brackets[1].Projections == B` (i.e., reconstruction yielded the original absolute values)
+
+As written, the test would pass even if `decodeBrackets` completely skipped P-bracket reconstruction.
+
+---
+
+### GAP 6 — `TestFrameTicker_DriftSpike` Has Broken Float Encoding — **MEDIUM**
+
+**File:** `internal/storage/nrv_ticker_test.go:100–159`
+
+The test is no longer skipped, but the float32 encoding uses a custom bit-manipulation that is not IEEE 754:
+```go
+bits := int32(val * 256)
+bytes[0] = byte(bits & 0xFF)
+// ...
+```
+
+The correct approach is `math.Float32bits(val)`. Using `int32(val * 256)` writes a fixed-point representation; the resulting bytes will be interpreted by `euclideanDrift` as IEEE 754 floats, yielding completely wrong values.
+
+Additionally, the test only asserts `require.GreaterOrEqual(t, len(writer.registry.Frames), 1)`, which passes trivially even if the drift spike is never detected (frames are created by the ticker regardless of drift). The test should assert that `b2` was classified as `DeltaTypeI` in the BracketIndex, since it was the first bracket after a new tick — or alternatively set the drift spike in a single-tick scenario and verify the I-bracket count exceeds what the 50-bracket interval would produce alone.
+
+---
+
+### GAP 7 — Integration Tests: Three Are Stubs or Test Wrong Things — **HIGH**
+
+**File:** `internal/benchmarks/integration_test.go`
+
+**`TestEndToEnd_ASICPipeline` is a pure placeholder:**
+```go
+func TestEndToEnd_ASICPipeline(t *testing.T) {
+    require.True(t, true, "ASIC pipeline test placeholder - requires full system integration")
 }
-func (s *FlightServer) DoGet(ticket string) (<-chan *nrv.Bracket, error) {
-    return s.StreamBrackets(context.Background(), ticket)
-}
 ```
+This test asserts `true == true`. It validates nothing. The spec requires: *"Append 1000 brackets over 3 seconds → verify 3 FrameEntries in registry with correct counts, Z3 status, and Dilithium-3 signatures."*
 
-This is a plain Go channel wrapper. There is no Arrow dependency in `go.mod`, no gRPC transport, no Arrow record batches, and `DoGet` has the wrong signature entirely. The Gold/Research dual-stream ticket routing logic is correct, but nothing else from the spec is present. **This is an incomplete implementation, not a working Arrow Flight server.**
+**`TestEndToEnd_CompactionPreservesGold` never runs compaction:**
+The test writes 5 "valid" and 3 "invalid" frames, then asserts the initial frame count ≥ 8. It never marks frames INVALID, never calls `MaybeCompact`, never reads the post-compaction file to verify INVALID frames were removed. The test name is entirely misleading.
+
+**`TestEndToEnd_CrashRecovery` tests normal close, not a crash:**
+The test appends one frame, closes the writer normally, and verifies 1 frame is in the registry. No crash is simulated, no WAL recovery is exercised. The spec requires: *"Kill writer mid-flush → WAL recovery on re-open → no partial frames in registry."* This test would pass even if WAL recovery was completely deleted.
+
+**`TestEndToEnd_FlightGoldStream` and `TestEndToEnd_FlightResearchStream`** are genuine functional tests that exercise the Flight server correctly. These pass.
 
 ---
 
-### GAP 2 — `Raw()` and `RawCollection()` Not Removed (§4.11) — **LOW**
+### GAP 7 — Phase 2 Benchmarks Still Missing — **MEDIUM**
 
-**File:** `pkg/knirvbase/knirvbase.go:73–77`
-
-The spec states: *"Remove `Raw()` and `RawCollection()` from `DB`. These exposed internal types and are no longer needed."*
-
-Both methods are still present:
-```go
-func (d *DB) Raw() *db.DistributedDatabase { return d.db }
-func (d *DB) RawCollection(name string) *coll.DistributedCollection {
-    return d.db.Collection(name, d.store)
-}
-```
-
-This is a minor API hygiene gap; these methods expose internal types in violation of the spec's encapsulation intent.
-
----
-
-### GAP 3 — `drift_score` Filter Maps to Wrong Field (§4.10) — **MEDIUM**
-
-**File:** `internal/query/knirvql.go:513–519`
-
-The spec defines `drift_score` as a per-bracket concept stored in `BracketMeta.DriftScore`. The implementation maps it to the frame-level Z3 relevance score:
-
-```go
-case "drift_score":
-    if z3, ok := payload["z3"].(map[string]interface{}); ok {
-        cmp := compareValues(z3["relevance"], filter.Value)
-        // ...
-    }
-```
-
-`z3["relevance"]` is the frame-level Z3 relevance, not the bracket-level Euclidean drift. These are semantically distinct values. A query like `WHERE drift_score > 0.1` would silently filter by the wrong field. The correct implementation would need to inspect `BracketMeta.DriftScore` values within the frame's `bracket_index`.
-
----
-
-### GAP 4 — `bracket_type` Filter References Non-Existent Field Path (§4.10) — **MEDIUM**
-
-**File:** `internal/query/knirvql.go:519–523`
-
-```go
-case "bracket_type":
-    if brackets, ok := payload["brackets"].(map[string]interface{}); ok {
-        return fmt.Sprintf("%v", brackets["type"]) == fmt.Sprintf("%v", filter.Value)
-    }
-```
-
-`Find()` in `nrv_storage.go` returns the brackets field as:
-```go
-"brackets": map[string]interface{}{
-    "count": len(brackets),
-}
-```
-
-There is no `"type"` key in this map. This filter will **always return false** for any input. A `WHERE bracket_type = I` query silently returns no results.
-
----
-
-### GAP 5 — Three Required Unit Tests Missing (§6.1) — **HIGH**
-
-**File:** `internal/query/knirvql_test.go`
-
-The following tests named in §6.1 do not exist anywhere in the test suite:
-
-| Required Test | Assertion |
-|---|---|
-| `TestKNIRVQL_Z3StatusFilter` | `WHERE z3_status = VALID` returns only valid-frame brackets |
-| `TestKNIRVQL_ThermoFilter` | `WHERE avg_temp_c < 85` filters frames correctly |
-| `TestKNIRVQL_BracketFieldQuery` | `GET MEMORY.BRACKET(golden_seed)` parses to `QueryGetBracketField` |
-
-**File:** `internal/storage/nrv_reader_test.go`
-
-| Required Test | Assertion |
-|---|---|
-| `TestNRVReader_DecodePBracket` | P-bracket projections reconstructed correctly from anchor |
-
-Note: `TestKNIRVQL_BracketFieldQuery` is particularly easy to add and would immediately catch the parse path. `TestNRVReader_DecodePBracket` is important for verifying the XOR reconstruction chain end-to-end through the reader.
-
----
-
-### GAP 6 — `TestFrameTicker_DriftSpike` Skipped (§6.1) — **LOW**
-
-**File:** `internal/storage/nrv_ticker_test.go:101–103`
-
-```go
-func TestFrameTicker_DriftSpike(t *testing.T) {
-    t.Skip("Drift spike detection requires precise timing - covered by unit tests")
-}
-```
-
-The test body is empty and unconditionally skipped. The spec requires this test to verify that a drift > 0.25 forces an I-bracket outside of the fixed 50-bracket interval. The `euclideanDrift` function is fully implemented, so this test can be written by populating two `Bracket.Projections` arrays whose float32 distance exceeds `driftThreshold`.
-
----
-
-### GAP 7 — All Integration Tests and Benchmarks Missing (§6.2, §6.3) — **HIGH**
-
-Neither integration tests nor Phase 2 benchmarks exist anywhere in the repository:
-
-**Missing integration tests (§6.2):**
-- `TestEndToEnd_ASICPipeline` — 1000 brackets over 3 seconds → 3 FrameEntries
-- `TestEndToEnd_FlightGoldStream` — Flight gold ticket → VALID-only brackets
-- `TestEndToEnd_FlightResearchStream` — Flight research ticket → all brackets
-- `TestEndToEnd_CompactionPreservesGold` — INVALID frames purged by compaction
-- `TestEndToEnd_CrashRecovery` — WAL recovery after mid-flush kill
-
-**Missing benchmarks (§6.3):**
-- `BenchmarkAppendBracket` — concurrent callers throughput
+None of the four required benchmarks from §6.3 were added:
+- `BenchmarkAppendBracket` — concurrent caller throughput
 - `BenchmarkFlush_1000Brackets` — flush latency
 - `BenchmarkStreamBrackets_Gold` — Gold stream MB/s
 - `BenchmarkDecodePBracket` — XOR reconstruction overhead
 
-The existing `internal/benchmarks/benchmarks_test.go` covers Phase 1 SLA benchmarks (credential insert, PQC crypto, auth workflow) and is unrelated to Phase 2 bracket operations.
+---
+
+## Summary Table (Rev 2)
+
+| Category | Spec Items | Fully Correct | Partial/Defective | Missing |
+|---|---|---|---|---|
+| Core data types | 7 | 7 | 0 | 0 |
+| Storage components | 5 | 5 | 0 | 0 |
+| Arrow Flight server | 1 | 0 | 1 | 0 |
+| KNIRVQL parsing | 1 | 1 | 0 | 0 |
+| KNIRVQL filter logic | 4 filters | 3 | 1 (`drift_score` approx) | 0 |
+| Public API cleanup | 1 | 0 | 1 (moved, not removed) | 0 |
+| Unit tests | 11 | 9 | 2 (DriftSpike, DecodePBracket) | 0 |
+| Integration tests | 5 | 2 | 3 (placeholders/wrong assertions) | 0 |
+| Benchmarks | 4 | 0 | 0 | 4 |
+| **Total** | **~39** | **~27** | **~8** | **~4** |
 
 ---
 
-## Minor Observations (Non-Blocking)
+## Prioritized Remaining Work
 
-- **`TestCompactor_InvalidFrameRatio`** (§6.1): The spec requires this test to verify that INVALID frames alone push the compaction ratio ≥ 20%. The closest existing test (`TestCompactorMaybeCompactAboveThreshold`) uses only tombstoned frames to trigger compaction. The underlying code correctly adds `InvalidFrameCount` to `deadFrames`, but there is no test that marks frames INVALID and verifies the ratio triggers compaction via that path.
+### Must Fix Before Shipping
 
-- **`compareValues` is lexicographic, not numeric**: `compareValues` in `knirvql.go` does string comparison (`aStr < bStr`), meaning `WHERE avg_temp_c < 85` would compare `"80.5"` < `"85"` as strings. This works for simple integer-like values but will produce incorrect results for floats like `89.2` vs `85` (string `"89.2"` < `"85"` is false, correct) or `"9.5"` vs `"85"` (`"9.5"` > `"85"` string-wise, incorrect numerically). The spec does not prescribe the implementation, but a numeric comparison would be more correct for thermodynamic filters.
+1. **`TestEndToEnd_ASICPipeline`** — Replace placeholder with real test: use `NRVDataset.AppendBracket` in a loop over ~3 seconds, verify the resulting FrameEntries, bracket counts, and signatures.
 
-- **`nrv_storage.go` — `Update` has broken semantics**: `Update` calls `Delete` first, which tombstones the frame, then calls `Find`, which uses the reader cache and will return stale data because the reader is not refreshed after a write. This is pre-existing behavior, not introduced by Phase 2, but it affects the correctness of any write path through `Update`.
+2. **`TestEndToEnd_CompactionPreservesGold`** — Mark some frames INVALID, call `MaybeCompact`, wait for completion, open a new reader, assert only VALID/live frames remain.
 
----
+3. **`TestEndToEnd_CrashRecovery`** — Simulate crash: write partial data directly to the file after a WAL `Begin` but without `Commit`, then re-open via `NewNRVWriter` and verify the registry contains only the pre-crash frames.
 
-## Summary Table
+4. **`TestNRVReader_DecodePBracket`** — Rewrite to use `XORProjections` when preparing the P-bracket buffer, then assert the reconstructed projections match the original target values.
 
-| Category | Spec Items | Implemented | Gap |
-|---|---|---|---|
-| Core data types | 7 | 7 | 0 |
-| Storage components | 5 | 5 | 0 |
-| Arrow Flight server | 1 | 0 | 1 (stub only) |
-| KNIRVQL parsing | 1 | 1 | 0 |
-| KNIRVQL filter logic | 4 filters | 2 correct | 2 broken |
-| Public API cleanup | 1 | 0 | 1 (`Raw`/`RawCollection`) |
-| Unit tests | 11 | 7 | 4 missing, 1 skipped |
-| Integration tests | 5 | 0 | 5 |
-| Benchmarks | 4 | 0 | 4 |
-| **Total** | **~39** | **~22** | **~17** |
+5. **Arrow Flight schema defects** (1.1–1.5): Fix `lsb_salt` → `lsh_salt`, populate real `DriftScore` and `Type` per bracket, fix `frame_timestamp`, make schemas consistent between `StreamBrackets` and `BracketsToFlightData`.
 
----
+### Should Fix
 
-## Recommended Priority Order for Remaining Work
+6. **`TestFrameTicker_DriftSpike`** — Replace manual bit-manipulation with `math.Float32bits`. Add assertion that the second bracket resulted in a new I-bracket in the BracketIndex.
 
-1. **Arrow Flight server** (§4.9) — Add `apache/arrow/go/v15` dependency, replace `FlightServer` with real `flight.BaseFlightServer` embedding, implement Arrow schema and batch writing.
-2. **Integration tests** (§6.2) — `TestEndToEnd_ASICPipeline` and `TestEndToEnd_CrashRecovery` provide the most safety coverage for the core pipeline.
-3. **Fix `drift_score` filter** (§4.10) — Map to actual `BracketMeta.DriftScore` values, not Z3 relevance.
-4. **Fix `bracket_type` filter** (§4.10) — Either add `type` to the brackets map in `Find()` or remove the filter until bracket-level querying is wired end-to-end.
-5. **Missing unit tests** (§6.1) — `TestNRVReader_DecodePBracket`, `TestKNIRVQL_Z3StatusFilter`, `TestKNIRVQL_ThermoFilter`, `TestKNIRVQL_BracketFieldQuery`.
-6. **Unskip `TestFrameTicker_DriftSpike`** — Implement the test body using known projection arrays with drift > 0.25.
-7. **Phase 2 benchmarks** (§6.3) — Add to `internal/benchmarks/`.
-8. **Remove `Raw()`/`RawCollection()`** (§4.11) — Minor cleanup, low risk.
+7. **Phase 2 benchmarks** — Add `BenchmarkAppendBracket`, `BenchmarkFlush_1000Brackets`, `BenchmarkStreamBrackets_Gold`, `BenchmarkDecodePBracket`.
+
+### Low Priority
+
+8. **`Raw()`/`RawCollection()` on `accessor`** — Remove entirely if the spec intent is to eliminate these escape hatches; or document the `Access()` pattern as the intentional replacement.

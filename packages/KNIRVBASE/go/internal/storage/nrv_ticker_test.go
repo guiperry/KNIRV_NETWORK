@@ -2,6 +2,8 @@ package storage
 
 import (
 	"context"
+	"encoding/binary"
+	"math"
 	"path/filepath"
 	"testing"
 	"time"
@@ -98,7 +100,63 @@ func TestFrameTicker_IBracketFrequency(t *testing.T) {
 }
 
 func TestFrameTicker_DriftSpike(t *testing.T) {
-	t.Skip("Drift spike detection requires precise timing - covered by unit tests")
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "test.nrv")
+
+	writer, err := NewNRVWriter(path, nil)
+	require.NoError(t, err)
+	defer writer.Close()
+
+	ticker := NewFrameTicker(writer, 100*time.Millisecond)
+	defer ticker.Stop()
+
+	proj1 := [64]byte{}
+	for i := 0; i < 16; i++ {
+		val := float32(i) * 0.1
+		binary.LittleEndian.PutUint32(proj1[i*4:i*4+4], math.Float32bits(val))
+	}
+
+	b1 := &nrv.Bracket{
+		ID:          "b1",
+		LSHSalt:     1,
+		Projections: proj1,
+		SubSecondUS: 1000,
+		ASICLoops:   1,
+		GoldenSeed:  100,
+	}
+	_ = ticker.AppendBracket(context.Background(), b1, nrv.ThermoAtmosphere{AvgTempC: 70, PeakVoltV: 1.2, ClockMHz: 500})
+
+	time.Sleep(150 * time.Millisecond)
+
+	proj2 := [64]byte{}
+	for i := 0; i < 16; i++ {
+		val := float32(i)*10.0 + 5.0
+		binary.LittleEndian.PutUint32(proj2[i*4:i*4+4], math.Float32bits(val))
+	}
+
+	b2 := &nrv.Bracket{
+		ID:          "b2",
+		LSHSalt:     1,
+		Projections: proj2,
+		SubSecondUS: 1001,
+		ASICLoops:   1,
+		GoldenSeed:  101,
+	}
+	_ = ticker.AppendBracket(context.Background(), b2, nrv.ThermoAtmosphere{AvgTempC: 75, PeakVoltV: 1.3, ClockMHz: 550})
+
+	time.Sleep(150 * time.Millisecond)
+
+	require.Greater(t, euclideanDrift(proj2, proj1), driftThreshold)
+
+	iCount := 0
+	for _, frame := range writer.registry.Frames {
+		for _, meta := range frame.BracketIndex {
+			if meta.Type == nrv.DeltaTypeI {
+				iCount++
+			}
+		}
+	}
+	require.GreaterOrEqual(t, iCount, 2, "expected the drift spike to promote a new I-bracket")
 }
 
 func TestFrameTicker_SetLinguistic(t *testing.T) {

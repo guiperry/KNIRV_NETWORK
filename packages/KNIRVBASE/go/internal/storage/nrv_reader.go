@@ -136,6 +136,13 @@ func (r *NRVReader) decodeBrackets(entry nrv.FrameEntry) []*nrv.Bracket {
 		copy(raw[:], buf[meta.Offset:meta.Offset+nrv.BracketSize])
 		b := nrv.DecodeBracket(raw)
 		b.ID = meta.ID
+		b.Meta = &nrv.BracketMeta{
+			ID:         meta.ID,
+			Type:       meta.Type,
+			AnchorID:   meta.AnchorID,
+			Offset:     meta.Offset,
+			DriftScore: meta.DriftScore,
+		}
 
 		if meta.Type == nrv.DeltaTypeP && meta.AnchorID != nil {
 			if anchor, ok := anchors[*meta.AnchorID]; ok {

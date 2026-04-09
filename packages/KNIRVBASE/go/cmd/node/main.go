@@ -66,8 +66,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	authCollInternal := db.RawCollection("auth")
-	_, err = query.Execute(db.Raw(), authCollInternal)
+	if query.Type != qry.QuerySet {
+		log.Fatal("unexpected query type for auth seed")
+	}
+	_, err = authColl.Insert(ctx, map[string]interface{}{
+		"id":        query.Key,
+		"entryType": typ.EntryTypeAuth,
+		"payload": map[string]interface{}{
+			"key":   query.Key,
+			"value": query.Value,
+		},
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,11 +86,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	result, err := query.Execute(db.Raw(), authCollInternal)
+	authDocs, err := authColl.FindAll(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Auth key: %v\n", result)
+	fmt.Printf("Auth key query parsed as %v, auth docs: %v\n", query.Type, authDocs)
 
 	// Insert memory entry
 	doc := map[string]interface{}{
@@ -105,12 +114,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	memoryCollInternal := db.RawCollection("memory")
-	results, err := query.Execute(db.Raw(), memoryCollInternal)
+	results, err := memoryColl.FindAll(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Memory results: %v\n", results)
+	fmt.Printf("Memory query parsed as %v, memory docs: %v\n", query.Type, results)
 
 	fmt.Println("KNIRVBASE running. Press Ctrl+C to exit.")
 	select {}

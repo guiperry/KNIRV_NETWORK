@@ -167,6 +167,16 @@ func (w *NRVWriter) Close() error {
 	return err
 }
 
+func (w *NRVWriter) PersistRegistry() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.saveRegistry()
+}
+
+func (w *NRVWriter) GetRegistry() *nrv.Registry {
+	return w.registry
+}
+
 func flockAcquire(f *os.File) error {
 	return syscall.Flock(int(f.Fd()), syscall.LOCK_EX)
 }

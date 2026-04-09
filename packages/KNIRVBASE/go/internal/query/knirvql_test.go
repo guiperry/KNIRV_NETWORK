@@ -302,3 +302,67 @@ func TestKNIRVQLModalityQueryWithLimit(t *testing.T) {
 		t.Fatalf("Expected limit 100, got %d", query.Limit)
 	}
 }
+
+func TestKNIRVQL_Z3StatusFilter(t *testing.T) {
+	parser := &KNIRVQLParser{}
+	query, err := parser.Parse("GET MEMORY WHERE z3_status = VALID")
+	if err != nil {
+		t.Fatalf("Failed to parse query: %v", err)
+	}
+
+	if len(query.Filters) != 1 {
+		t.Fatalf("Expected 1 filter, got %d", len(query.Filters))
+	}
+
+	if query.Filters[0].Key != "z3_status" {
+		t.Fatalf("Expected filter key 'z3_status', got '%s'", query.Filters[0].Key)
+	}
+
+	if query.Filters[0].Operator != "=" {
+		t.Fatalf("Expected operator '=', got '%s'", query.Filters[0].Operator)
+	}
+
+	if query.Filters[0].Value != "VALID" {
+		t.Fatalf("Expected filter value 'VALID', got '%v'", query.Filters[0].Value)
+	}
+}
+
+func TestKNIRVQL_ThermoFilter(t *testing.T) {
+	parser := &KNIRVQLParser{}
+	query, err := parser.Parse("GET MEMORY WHERE avg_temp_c < 85")
+	if err != nil {
+		t.Fatalf("Failed to parse query: %v", err)
+	}
+
+	if len(query.Filters) != 1 {
+		t.Fatalf("Expected 1 filter, got %d", len(query.Filters))
+	}
+
+	if query.Filters[0].Key != "avg_temp_c" {
+		t.Fatalf("Expected filter key 'avg_temp_c', got '%s'", query.Filters[0].Key)
+	}
+
+	if query.Filters[0].Operator != "<" {
+		t.Fatalf("Expected operator '<', got '%s'", query.Filters[0].Operator)
+	}
+
+	if query.Filters[0].Value != 85.0 {
+		t.Fatalf("Expected filter value 85.0, got %v", query.Filters[0].Value)
+	}
+}
+
+func TestKNIRVQL_BracketFieldQuery(t *testing.T) {
+	parser := &KNIRVQLParser{}
+	query, err := parser.Parse("GET MEMORY.BRACKET(golden_seed)")
+	if err != nil {
+		t.Fatalf("Failed to parse query: %v", err)
+	}
+
+	if query.Type != QueryGetBracketField {
+		t.Fatalf("Expected QueryGetBracketField, got %d", query.Type)
+	}
+
+	if query.BracketField != "golden_seed" {
+		t.Fatalf("Expected bracket field 'golden_seed', got '%s'", query.BracketField)
+	}
+}

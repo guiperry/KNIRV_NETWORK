@@ -16,6 +16,7 @@ type Bracket struct {
 	SubSecondUS uint32
 	ASICLoops   uint32
 	GoldenSeed  uint32
+	Meta        *BracketMeta
 }
 
 type BracketMeta struct {

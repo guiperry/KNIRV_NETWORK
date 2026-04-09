@@ -70,12 +70,6 @@ func (d *DB) Collection(name string) Collection {
 	return &collectionAdapter{c: c}
 }
 
-func (d *DB) Raw() *db.DistributedDatabase { return d.db }
-
-func (d *DB) RawCollection(name string) *coll.DistributedCollection {
-	return d.db.Collection(name, d.store)
-}
-
 func (d *DB) Shutdown() error {
 	return d.db.Shutdown()
 }

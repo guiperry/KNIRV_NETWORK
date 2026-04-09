@@ -504,21 +504,31 @@ func (q *Query) matchesFilter(doc map[string]interface{}, payload map[string]int
 		return false
 	case "avg_temp_c":
 		if thermo, ok := payload["thermo"].(map[string]interface{}); ok {
-			cmp := compareValues(thermo["temp_celsius"], filter.Value)
-			opFunc := compareOperator(filter.Operator)
-			return opFunc(cmp)
+			if tempC, ok := thermo["temp_celsius"].(float32); ok {
+				cmp := compareNumericValues(float64(tempC), filter.Value)
+				opFunc := compareOperator(filter.Operator)
+				return opFunc(cmp)
+			}
 		}
 		return false
 	case "drift_score":
-		if z3, ok := payload["z3"].(map[string]interface{}); ok {
-			cmp := compareValues(z3["relevance"], filter.Value)
-			opFunc := compareOperator(filter.Operator)
-			return opFunc(cmp)
+		if brackets, ok := payload["brackets"].(map[string]interface{}); ok {
+			if maxDrift, ok := brackets["max_drift"].(float64); ok {
+				cmp := compareNumericValues(float64(maxDrift), filter.Value)
+				opFunc := compareOperator(filter.Operator)
+				return opFunc(cmp)
+			}
 		}
 		return false
 	case "bracket_type":
 		if brackets, ok := payload["brackets"].(map[string]interface{}); ok {
-			return fmt.Sprintf("%v", brackets["type"]) == fmt.Sprintf("%v", filter.Value)
+			if types, ok := brackets["types"].([]string); ok {
+				for _, t := range types {
+					if t == fmt.Sprintf("%v", filter.Value) {
+						return true
+					}
+				}
+			}
 		}
 		return false
 	default:
@@ -574,6 +584,31 @@ func compareValues(a, b interface{}) int {
 	if aStr < bStr {
 		return -1
 	} else if aStr > bStr {
+		return 1
+	}
+	return 0
+}
+
+func compareNumericValues(a float64, b interface{}) int {
+	var bVal float64
+	switch v := b.(type) {
+	case float64:
+		bVal = v
+	case float32:
+		bVal = float64(v)
+	case int:
+		bVal = float64(v)
+	case int64:
+		bVal = float64(v)
+	default:
+		bStr := fmt.Sprintf("%v", v)
+		if parsed, err := strconv.ParseFloat(bStr, 64); err == nil {
+			bVal = parsed
+		}
+	}
+	if a < bVal {
+		return -1
+	} else if a > bVal {
 		return 1
 	}
 	return 0

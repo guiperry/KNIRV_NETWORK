@@ -139,3 +139,73 @@ func TestNRVReaderClose(t *testing.T) {
 	err := reader.Close()
 	require.NoError(t, err)
 }
+
+func TestNRVReader_DecodePBracket(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "test.nrv")
+
+	writer, err := NewNRVWriter(path, nil)
+	require.NoError(t, err)
+
+	anchorID := "anchor-1"
+	proj1 := [64]byte{}
+	for i := 0; i < 64; i++ {
+		proj1[i] = byte(i)
+	}
+	anchorBracket := &nrv.Bracket{
+		ID:          anchorID,
+		LSHSalt:     1,
+		Projections: proj1,
+		SubSecondUS: 1000,
+		ASICLoops:   1,
+		GoldenSeed:  42,
+	}
+	encoded1 := nrv.EncodeBracket(anchorBracket)
+
+	targetProj := [64]byte{}
+	for i := 0; i < 64; i++ {
+		targetProj[i] = byte(255 - i)
+	}
+	pBracket := &nrv.Bracket{
+		ID:          "p-bracket",
+		LSHSalt:     1,
+		Projections: nrv.XORProjections(targetProj, proj1),
+		SubSecondUS: 1001,
+		ASICLoops:   1,
+		GoldenSeed:  43,
+	}
+	encodedP := nrv.EncodeBracket(pBracket)
+
+	frameID := "frame-p-bracket"
+	buf := make([]byte, 80*2)
+	copy(buf[0:80], encoded1[:])
+	copy(buf[80:160], encodedP[:])
+
+	anchorPtr := anchorID
+	driftScore := 0.15
+	metas := []nrv.BracketMeta{
+		{ID: anchorID, Type: nrv.DeltaTypeI, Offset: 0},
+		{ID: "p-bracket", Type: nrv.DeltaTypeP, AnchorID: &anchorPtr, Offset: 80, DriftScore: driftScore},
+	}
+	_ = writer.AppendFrame(frameID, buf, metas, nrv.ThermoAtmosphere{}, nrv.LinguisticMapping{})
+	writer.Close()
+
+	reader, err := NewNRVReader(path)
+	require.NoError(t, err)
+	defer reader.Close()
+
+	entry, brackets, err := reader.GetFrame(frameID)
+	require.NoError(t, err)
+	require.NotNil(t, entry)
+	require.Len(t, brackets, 2)
+
+	require.Equal(t, anchorID, brackets[0].ID)
+	require.NotNil(t, brackets[0].Meta)
+	require.Equal(t, nrv.DeltaTypeI, brackets[0].Meta.Type)
+
+	require.Equal(t, "p-bracket", brackets[1].ID)
+	require.NotNil(t, brackets[1].Meta)
+	require.Equal(t, nrv.DeltaTypeP, brackets[1].Meta.Type)
+	require.Equal(t, driftScore, brackets[1].Meta.DriftScore)
+	require.Equal(t, targetProj, brackets[1].Projections)
+}
