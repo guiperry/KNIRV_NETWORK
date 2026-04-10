@@ -126,32 +126,58 @@ func TestEncodeFrameModalities(t *testing.T) {
 func TestEncodeBracket_RoundTrip(t *testing.T) {
 	b := &Bracket{
 		ID:          "test-bracket-123",
-		LSHSalt:     0x12345678,
 		SubSecondUS: 123456,
-		ASICLoops:   5,
+		POSTag:      0x01,
+		Tense:       0x02,
+		Plurality:   0x01,
+		DepHead:     0x05,
+		IntentFlags: 0x03,
+		DomainSig:   0x1234,
 		GoldenSeed:  0xDEADBEEF,
+		LSHSalt:     0x12345678,
 	}
 	for i := range b.Projections {
 		b.Projections[i] = byte(i % 256)
+	}
+	for i := range b.Memory {
+		b.Memory[i] = byte((i * 7) % 256)
 	}
 
 	encoded := EncodeBracket(b)
 	decoded := DecodeBracket(encoded)
 
-	if decoded.LSHSalt != b.LSHSalt {
-		t.Errorf("LSHSalt mismatch: got 0x%X, want 0x%X", decoded.LSHSalt, b.LSHSalt)
-	}
 	if decoded.SubSecondUS != b.SubSecondUS {
 		t.Errorf("SubSecondUS mismatch: got %d, want %d", decoded.SubSecondUS, b.SubSecondUS)
 	}
-	if decoded.ASICLoops != b.ASICLoops {
-		t.Errorf("ASICLoops mismatch: got %d, want %d", decoded.ASICLoops, b.ASICLoops)
+	if decoded.POSTag != b.POSTag {
+		t.Errorf("POSTag mismatch: got 0x%X, want 0x%X", decoded.POSTag, b.POSTag)
+	}
+	if decoded.Tense != b.Tense {
+		t.Errorf("Tense mismatch: got 0x%X, want 0x%X", decoded.Tense, b.Tense)
+	}
+	if decoded.Plurality != b.Plurality {
+		t.Errorf("Plurality mismatch: got 0x%X, want 0x%X", decoded.Plurality, b.Plurality)
+	}
+	if decoded.DepHead != b.DepHead {
+		t.Errorf("DepHead mismatch: got 0x%X, want 0x%X", decoded.DepHead, b.DepHead)
+	}
+	if decoded.IntentFlags != b.IntentFlags {
+		t.Errorf("IntentFlags mismatch: got 0x%X, want 0x%X", decoded.IntentFlags, b.IntentFlags)
+	}
+	if decoded.DomainSig != b.DomainSig {
+		t.Errorf("DomainSig mismatch: got 0x%X, want 0x%X", decoded.DomainSig, b.DomainSig)
 	}
 	if decoded.GoldenSeed != b.GoldenSeed {
 		t.Errorf("GoldenSeed mismatch: got 0x%X, want 0x%X", decoded.GoldenSeed, b.GoldenSeed)
 	}
+	if decoded.LSHSalt != b.LSHSalt {
+		t.Errorf("LSHSalt mismatch: got 0x%X, want 0x%X", decoded.LSHSalt, b.LSHSalt)
+	}
 	if decoded.Projections != b.Projections {
 		t.Errorf("Projections mismatch")
+	}
+	if decoded.Memory != b.Memory {
+		t.Errorf("Memory mismatch")
 	}
 	if len(encoded) != BracketSize {
 		t.Errorf("encoded length: got %d, want %d", len(encoded), BracketSize)
@@ -159,7 +185,7 @@ func TestEncodeBracket_RoundTrip(t *testing.T) {
 }
 
 func TestXORProjections_Inverse(t *testing.T) {
-	var a, b [64]byte
+	var a, b [32]byte
 	for i := range a {
 		a[i] = byte(i * 3)
 		b[i] = byte(i * 7)
@@ -176,13 +202,13 @@ func TestXORProjections_Inverse(t *testing.T) {
 }
 
 func TestXORProjections_SameInput(t *testing.T) {
-	var a [64]byte
+	var a [32]byte
 	for i := range a {
 		a[i] = byte(i)
 	}
 
 	diff := XORProjections(a, a)
-	var zero [64]byte
+	var zero [32]byte
 	for i := range diff {
 		if diff[i] != zero[i] {
 			t.Errorf("XOR of same input should be zero at index %d", i)

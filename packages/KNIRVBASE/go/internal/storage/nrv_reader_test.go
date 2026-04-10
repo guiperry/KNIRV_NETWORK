@@ -148,30 +148,28 @@ func TestNRVReader_DecodePBracket(t *testing.T) {
 	require.NoError(t, err)
 
 	anchorID := "anchor-1"
-	proj1 := [64]byte{}
-	for i := 0; i < 64; i++ {
+	proj1 := [32]byte{}
+	for i := 0; i < 32; i++ {
 		proj1[i] = byte(i)
 	}
 	anchorBracket := &nrv.Bracket{
 		ID:          anchorID,
-		LSHSalt:     1,
 		Projections: proj1,
 		SubSecondUS: 1000,
-		ASICLoops:   1,
+		DepHead:     0x01,
 		GoldenSeed:  42,
 	}
 	encoded1 := nrv.EncodeBracket(anchorBracket)
 
-	targetProj := [64]byte{}
-	for i := 0; i < 64; i++ {
+	targetProj := [32]byte{}
+	for i := 0; i < 32; i++ {
 		targetProj[i] = byte(255 - i)
 	}
 	pBracket := &nrv.Bracket{
 		ID:          "p-bracket",
-		LSHSalt:     1,
 		Projections: nrv.XORProjections(targetProj, proj1),
 		SubSecondUS: 1001,
-		ASICLoops:   1,
+		DepHead:     0x02,
 		GoldenSeed:  43,
 	}
 	encodedP := nrv.EncodeBracket(pBracket)

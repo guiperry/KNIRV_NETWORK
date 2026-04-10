@@ -156,9 +156,9 @@ func (ft *FrameTicker) flush() {
 	_ = ft.writer.AppendFrame(frameID, buf, bracketMetas, atmosphere, ling)
 }
 
-func euclideanDrift(a, b [64]byte) float64 {
+func euclideanDrift(a, b [32]byte) float64 {
 	var sum float64
-	for i := 0; i < 16; i++ {
+	for i := 0; i < 8; i++ {
 		av := math.Float32frombits(uint32(a[i*4]) | uint32(a[i*4+1])<<8 | uint32(a[i*4+2])<<16 | uint32(a[i*4+3])<<24)
 		bv := math.Float32frombits(uint32(b[i*4]) | uint32(b[i*4+1])<<8 | uint32(b[i*4+2])<<16 | uint32(b[i*4+3])<<24)
 		diff := float64(av) - float64(bv)

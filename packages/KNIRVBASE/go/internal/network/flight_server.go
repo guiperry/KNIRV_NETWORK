@@ -123,17 +123,15 @@ func bracketType(bracket *nrv.Bracket) string {
 
 func appendBracketRecord(recordBuilder *array.RecordBuilder, bracket *nrv.Bracket) {
 	recordBuilder.Field(0).(*array.StringBuilder).Append(bracket.ID)
-	recordBuilder.Field(1).(*array.Uint32Builder).Append(bracket.LSHSalt)
-	recordBuilder.Field(2).(*array.Uint32Builder).Append(bracket.SubSecondUS)
-	recordBuilder.Field(3).(*array.Uint32Builder).Append(bracket.ASICLoops)
-	recordBuilder.Field(4).(*array.Uint32Builder).Append(bracket.GoldenSeed)
-	recordBuilder.Field(5).(*array.Float64Builder).Append(bracketDriftScore(bracket))
-	recordBuilder.Field(6).(*array.StringBuilder).Append(bracketType(bracket))
+	recordBuilder.Field(1).(*array.Uint32Builder).Append(bracket.SubSecondUS)
+	recordBuilder.Field(2).(*array.Uint32Builder).Append(bracket.GoldenSeed)
+	recordBuilder.Field(3).(*array.Float64Builder).Append(bracketDriftScore(bracket))
+	recordBuilder.Field(4).(*array.StringBuilder).Append(bracketType(bracket))
 
-	projBytes := make([]byte, 64)
+	projBytes := make([]byte, 32)
 	copy(projBytes, bracket.Projections[:])
-	recordBuilder.Field(7).(*array.FixedSizeBinaryBuilder).Append(projBytes)
-	recordBuilder.Field(8).(*array.Int64Builder).Append(bracketFrameTimestamp(bracket))
+	recordBuilder.Field(5).(*array.FixedSizeBinaryBuilder).Append(projBytes)
+	recordBuilder.Field(6).(*array.Int64Builder).Append(bracketFrameTimestamp(bracket))
 }
 
 func (s *FlightServer) streamBatches(server BracketStreamServer, bracketCh <-chan *nrv.Bracket, batchSize int) error {
@@ -241,20 +239,16 @@ func FlightDataToBrackets(data []byte) ([]*nrv.Bracket, error) {
 		count := int(record.NumRows())
 
 		frameIDCol := record.Column(0).(*array.String)
-		lsbSaltCol := record.Column(1).(*array.Uint32)
-		subsecCol := record.Column(2).(*array.Uint32)
-		asicCol := record.Column(3).(*array.Uint32)
-		goldenCol := record.Column(4).(*array.Uint32)
-		driftCol := record.Column(5).(*array.Float64)
-		typeCol := record.Column(6).(*array.String)
-		projCol := record.Column(7).(*array.FixedSizeBinary)
+		subsecCol := record.Column(1).(*array.Uint32)
+		goldenCol := record.Column(2).(*array.Uint32)
+		driftCol := record.Column(3).(*array.Float64)
+		typeCol := record.Column(4).(*array.String)
+		projCol := record.Column(5).(*array.FixedSizeBinary)
 
 		for i := 0; i < count; i++ {
 			b := &nrv.Bracket{
 				ID:          frameIDCol.Value(i),
-				LSHSalt:     lsbSaltCol.Value(i),
 				SubSecondUS: subsecCol.Value(i),
-				ASICLoops:   asicCol.Value(i),
 				GoldenSeed:  goldenCol.Value(i),
 				Meta: &nrv.BracketMeta{
 					ID:         frameIDCol.Value(i),
@@ -263,7 +257,7 @@ func FlightDataToBrackets(data []byte) ([]*nrv.Bracket, error) {
 				},
 			}
 
-			b.Projections = [64]byte{}
+			b.Projections = [32]byte{}
 			projBytes := projCol.Value(i)
 			copy(b.Projections[:], projBytes)
 
@@ -300,20 +294,16 @@ func (c *FlightClient) StreamBrackets(ctx context.Context, ticket string) ([]*nr
 		count := int(record.NumRows())
 
 		frameIDCol := record.Column(0).(*array.String)
-		lsbSaltCol := record.Column(1).(*array.Uint32)
-		subsecCol := record.Column(2).(*array.Uint32)
-		asicCol := record.Column(3).(*array.Uint32)
-		goldenCol := record.Column(4).(*array.Uint32)
-		driftCol := record.Column(5).(*array.Float64)
-		typeCol := record.Column(6).(*array.String)
-		projCol := record.Column(7).(*array.FixedSizeBinary)
+		subsecCol := record.Column(1).(*array.Uint32)
+		goldenCol := record.Column(2).(*array.Uint32)
+		driftCol := record.Column(3).(*array.Float64)
+		typeCol := record.Column(4).(*array.String)
+		projCol := record.Column(5).(*array.FixedSizeBinary)
 
 		for i := 0; i < count; i++ {
 			b := &nrv.Bracket{
 				ID:          frameIDCol.Value(i),
-				LSHSalt:     lsbSaltCol.Value(i),
 				SubSecondUS: subsecCol.Value(i),
-				ASICLoops:   asicCol.Value(i),
 				GoldenSeed:  goldenCol.Value(i),
 				Meta: &nrv.BracketMeta{
 					ID:         frameIDCol.Value(i),
@@ -322,7 +312,7 @@ func (c *FlightClient) StreamBrackets(ctx context.Context, ticket string) ([]*nr
 				},
 			}
 
-			b.Projections = [64]byte{}
+			b.Projections = [32]byte{}
 			projBytes := projCol.Value(i)
 			copy(b.Projections[:], projBytes)
 

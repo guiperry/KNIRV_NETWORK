@@ -103,13 +103,11 @@ func (s *NRVStorage) getOrCreateTicker(collection string) (*FrameTicker, error) 
 func (s *NRVStorage) Insert(ctx context.Context, collection string, doc map[string]interface{}) error {
 	bracket := &nrv.Bracket{
 		ID:          doc["id"].(string),
-		LSHSalt:     1,
 		SubSecondUS: uint32(time.Now().UnixNano() / 1000),
-		ASICLoops:   1,
 	}
 
 	if payload, ok := doc["payload"].(map[string]interface{}); ok {
-		if projBytes, ok := payload["projections"].([]byte); ok && len(projBytes) == 64 {
+		if projBytes, ok := payload["projections"].([]byte); ok && len(projBytes) == 32 {
 			copy(bracket.Projections[:], projBytes)
 		}
 		if seedBytes, ok := payload["seed"].([]byte); ok && len(seedBytes) >= 4 {

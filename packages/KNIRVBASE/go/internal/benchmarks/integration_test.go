@@ -261,16 +261,15 @@ func TestEndToEnd_CrashRecovery(t *testing.T) {
 }
 
 func integrationTestBracket(i int) *nrv.Bracket {
-	var projections [64]byte
+	var projections [32]byte
 	for j := range projections {
 		projections[j] = byte((i + j) % 251)
 	}
 	return &nrv.Bracket{
 		ID:          fmt.Sprintf("b-%d", i),
-		LSHSalt:     uint32(100 + i%17),
 		Projections: projections,
 		SubSecondUS: uint32(1000 + i),
-		ASICLoops:   uint32(1 + i%4),
+		DepHead:     uint8(i % 256),
 		GoldenSeed:  uint32(10000 + i),
 	}
 }

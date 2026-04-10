@@ -4,6 +4,16 @@
 **Module:** `github.com/knirvcorp/knirvbase/go` (Go 1.24.6)
 **Root:** `packages/KNIRVBASE/go/` (all paths below are relative to this root)
 
+> **🔗 CROSS-REFERENCE — 12-Slot Bitmask Specification**: Phase 2 implements the **12-slot Bitmask Specification** from `packages/KNIRVHASHER/docs/DATA-MAPPER.md`. This specification defines how the 80-byte Bracket encodes semantic information for the ASIC's 21-pass temporal loop:
+> - **Slots 0-3** (Identity Zone): LSH Projections (64 bytes) → Semantic Compass for Passes 1-7
+> - **Slots 4-5** (Syntactic Registers): POS, Tense, Dependency → **REQUIRED for Syntactic Steering (Passes 8-14)**
+> - **Slots 6-8** (Memory Zone): History XOR (maintained in FrameTicker memory) → Temporal loop recurrence
+> - **Slot 9** (Intent): Question/Command/Code flags
+> - **Slot 10** (Domain): Math/Code/Prose classification
+> - **Slot 11** (Temporal Lock): Position + Salt
+>
+> The 80-byte Bracket binary layout MUST preserve this specification. Without Syntactic Registers (Slots 4-5), the 21-pass loop collapses to random hashing.
+
 ---
 
 ## 1. Purpose & Scope
@@ -163,17 +173,36 @@ Field notes:
 
 Each bracket is exactly **80 bytes**, aligned to 8-byte boundaries. All brackets for a given frame are stored contiguously.
 
-**Bracket binary layout:**
+> **🔗 CROSS-REFERENCE**: The Bracket binary format encodes the **12-slot Bitmask Specification** from `packages/KNIRVHASHER/docs/DATA-MAPPER.md`. This preserves the Semantic Coherence required for the ASIC's 21-pass temporal loop with Syntactic Steering (Passes 8-14).
 
-| Section | Offset | Size | Description |
-|---|---|---|---|
-| LSH Salt | `0x00` | 4 B | Version field used as the LSH forest seed (uint32 LE) |
-| Projections A–D | `0x04` | 32 B | First half of 128-bit LSH projections (8 × float32 LE) |
-| Projections E–H | `0x24` | 32 B | Second half of 128-bit LSH projections (8 × float32 LE) |
-| Metadata | `0x44` | 8 B | Sub-second timestamp (uint32 LE, microseconds) + ASIC Loop Count (uint32 LE, range 1–21) |
-| Golden Seed | `0x4C` | 4 B | Solved nonce (uint32 LE) — the result of the ASIC pass |
+**Bracket binary layout (80 bytes):**
 
-Total: 4 + 32 + 32 + 8 + 4 = **80 bytes**.
+| Offset | Size | Field | Slot Mapping | Pass Utility |
+|---|---|---|---|---|
+| `0x00` | 32B | LSH Projections | Slots 0-3 (Compass) | Passes 1-7: Topic Anchoring |
+| `0x20` | 4B | SubSecondUS | (Temporal Ticker) | Frame synchronization |
+| `0x24` | 1B | POSTag | Slot 4 (Syntactic) | Passes 8-14: Syntactic Steering |
+| `0x25` | 1B | Tense | Slot 4 (Syntactic) | Passes 8-14: Syntactic Steering |
+| `0x26` | 1B | Plurality | Slot 4 (Syntactic) | Passes 8-14: Syntactic Steering |
+| `0x27` | 1B | DepHead | Slot 5 (Dependency) | Passes 8-14: Structural Logic |
+| `0x28` | 1B | IntentFlags | Slot 9 (Intent) | Identity Stabilization |
+| `0x29` | 2B | DomainSig | Slot 10 (Domain) | Mode Enforcement (e.g., Math) |
+| `0x2B` | 4B | GoldenSeed | (Nonce Target) | The solved "Weight" |
+| `0x2F` | 14B | Memory (XOR recursive) | Slots 6-8 (Temporal) | Recursive Context Bridge |
+| `0x3D` | 4B | LSH Salt | Slot 11 (Lock) | Prevents Collision loops |
+| `0x41` | 15B | Reserved | (Future Expansion) | Padding to 80 bytes |
+
+Total: 32 + 4 + 1 + 1 + 1 + 1 + 1 + 2 + 4 + 14 + 4 + 15 = **80 bytes**.
+
+> **⚠️ CRITICAL**: 
+> - **Slots 0-3** (Identity Zone): LSH Projections (32B) → Semantic Compass for Passes 1-7
+> - **Slots 4-5** (Syntactic Registers): POSTag, Tense, Plurality, DepHead → **REQUIRED for Syntactic Steering (Passes 8-14)**
+> - **Slots 6-8** (Memory Zone): 14B XOR recursive → Temporal loop recurrence
+> - **Slot 9** (Intent): IntentFlags → Question/Command/Code detection
+> - **Slot 10** (Domain): DomainSig → Math/Code/Prose classification
+> - **Slot 11** (Temporal Lock): LSH Salt → Position + Salt for uniqueness
+
+Without Syntactic Registers (Slots 4-5), the 21-pass loop collapses to random hashing.
 
 **Delta encoding (P-Brackets):** For P-brackets, bytes `0x04–0x43` (Projections A–H, 64 bytes) store the **XOR-diff** against the anchor I-bracket's projection bytes. LSH Salt, Metadata, and Golden Seed are always stored as absolute values regardless of bracket type.
 
@@ -200,13 +229,57 @@ const (
 const BracketSize = 80
 
 // Bracket is the in-memory representation of a single 80-byte ASIC record.
+// The 80-byte binary encodes the 12-slot Bitmask Specification from DATA-MAPPER.md
+// to preserve Semantic Coherence for the 21-pass temporal loop.
 type Bracket struct {
-    ID          string    // registry-only; not stored in binary
-    LSHSalt     uint32    // bytes 0x00–0x03
-    Projections [64]byte  // bytes 0x04–0x43 (absolute or XOR-diff for P-brackets)
-    SubSecondUS uint32    // bytes 0x44–0x47: sub-second timestamp in microseconds
-    ASICLoops   uint32    // bytes 0x48–0x4B: loop count (1–21)
-    GoldenSeed  uint32    // bytes 0x4C–0x4F: solved nonce
+	ID          string    // registry-only; not stored in binary
+	
+	// bytes 0x00–0x1F: Slots 0-3 (Identity Zone) - LSH Projections (32B)
+	Projections [32]byte  // 16-dim LSH → Semantic Compass for Passes 1-7
+	
+	// bytes 0x20–0x23: Temporal Ticker
+	SubSecondUS uint32    // sub-second timestamp in microseconds
+	
+	// bytes 0x24–0x27: Slots 4-5 (Syntactic Registers)
+	// CRITICAL: Required for Syntactic Steering in Passes 8-14
+	POSTag      uint8     // Slot 4, bits 0-7: POS Tag (0x01=Noun, 0x02=Verb, etc.)
+	Tense       uint8     // Slot 4, bits 8-11: Tense (0x1=Past, 0x2=Present, etc.)
+	Plurality   uint8     // Slot 4, bits 12-15: Plurality (0x1=Singular, 0x2=Plural)
+	DepHead     int8      // Slot 5: Dependency Head index (1 byte, -128 to 127)
+	
+	// bytes 0x28–0x29: Slot 9 (Intent)
+	IntentFlags uint8     // bits 0-3: IS_QUESTION(0x1), IS_COMMAND(0x2), IS_CODE(0x4)
+	
+	// bytes 0x29–0x2A: Slot 10 (Domain) - note: overlaps with DomainSig below
+	DomainSig   uint16    // bits 8-15: Domain Signature (0x1000=Prose, 0x2000=Math, 0x3000=Code)
+	
+	// bytes 0x2B–0x2E: GoldenSeed (Nonce Target)
+	GoldenSeed  uint32    // solved nonce — the result of the ASIC pass
+	
+	// bytes 0x2F–0x3C: Slots 6-8 (Memory Zone) - XOR recursive for temporal loop
+	Memory      [14]byte // Recursive Context Bridge - History XOR for 21-pass recurrence
+	
+	// bytes 0x3D–0x40: Slot 11 (Temporal Lock)
+	LSHSalt     uint32    // FNV-1a of {DatasetID}/{ChunkID} — prevents collision loops
+	
+	// bytes 0x41–0x4F: Reserved for future expansion
+	Reserved    [15]byte // padding to 80 bytes
+}
+
+// SyntacticProfile holds the linguistic metadata for Syntactic Steering
+// Corresponds to bytes 0x24-0x27 (4 bytes) in the 80-byte bracket
+type SyntacticProfile struct {
+    POSTag     uint8 // Slot 4, bits 0-7: POS Tag ID
+    Tense      uint8 // Slot 4, bits 8-11: Tense ID
+    Plurality  uint8 // Slot 4, bits 12-15: Plurality
+    DepHead    int8  // Slot 5: Dependency Head index (1 byte, -128 to 127)
+}
+
+// IntentDomain holds the intent and domain classification
+// Corresponds to bytes 0x28-0x2A (3 bytes) in the 80-byte bracket
+type IntentDomain struct {
+    IntentFlags uint8  // Slot 9 (byte 0x28): Question/Command/Code flags
+    DomainSig  uint16 // Slot 10 (bytes 0x29-0x2A): Domain Signature (Math/Code/Prose)
 }
 
 // BracketMeta is the registry entry for one bracket within a frame.
@@ -244,6 +317,14 @@ type BracketBinaryMap struct {
     Length int   `json:"length"` // count × 80 (or actual compressed size)
 }
 ```
+
+> **🔗 CROSS-REFERENCE**: The slot mapping follows `packages/KNIRVHASHER/docs/DATA-MAPPER.md`:
+> - **Slots 0-3** (Identity Zone): LSH Projections — the "Semantic Compass" for Passes 1-7
+> - **Slots 4-5** (Syntactic Registers): POS, Tense, Dependency — **REQUIRED for Passes 8-14** (Syntactic Steering)
+> - **Slots 6-8** (Memory Zone): History XOR — stored in memory by FrameTicker, not in bracket binary
+> - **Slot 9** (Intent): Question/Command/Code detection
+> - **Slot 10** (Domain): Math/Code/Prose classification
+> - **Slot 11** (Temporal Lock): Position + Salt
 
 ### 4.2 Updates to `pkg/nrv/frame.go`
 
@@ -290,31 +371,103 @@ type GlobalMetrics struct {
 
 ```go
 // EncodeBracket serializes a Bracket to its 80-byte wire format.
+// The encoding follows the 12-slot Bitmask Specification from DATA-MAPPER.md:
+//   - bytes 0x00-0x1F: Projections [32]byte (Slots 0-3: Identity Zone - LSH)
+//   - bytes 0x20-0x23: SubSecondUS (Temporal Ticker)
+//   - bytes 0x24-0x27: Syntactic Registers (Slots 4-5: POSTag, Tense, Plurality, DepHead)
+//   - bytes 0x28-0x2A: Intent + Domain (Slot 9: IntentFlags, Slot 10: DomainSig)
+//   - bytes 0x2B-0x2E: GoldenSeed (Nonce Target)
+//   - bytes 0x2F-0x3C: Memory [14]byte (Slots 6-8: XOR recursive for temporal loop)
+//   - bytes 0x3D-0x40: LSHSalt (Slot 11: Temporal Lock - prevents collision loops)
+//   - bytes 0x41-0x4F: Reserved [15]byte (padding to 80 bytes)
 func EncodeBracket(b *Bracket) [BracketSize]byte {
     var buf [BracketSize]byte
-    binary.LittleEndian.PutUint32(buf[0:4], b.LSHSalt)
-    copy(buf[4:68], b.Projections[:])
-    binary.LittleEndian.PutUint32(buf[68:72], b.SubSecondUS)
-    binary.LittleEndian.PutUint32(buf[72:76], b.ASICLoops)
-    binary.LittleEndian.PutUint32(buf[76:80], b.GoldenSeed)
+    // Projections (Slots 0-3: Identity Zone - 16-dim LSH)
+    copy(buf[0:32], b.Projections[:])
+    // SubSecondUS
+    binary.LittleEndian.PutUint32(buf[32:36], b.SubSecondUS)
+    // Syntactic Registers (Slots 4-5: POS, Tense, Plurality, DepHead)
+    buf[36] = b.POSTag
+    buf[37] = b.Tense
+    buf[38] = b.Plurality
+    buf[39] = byte(b.DepHead)
+    // Intent + Domain (Slot 9 + Slot 10)
+    buf[40] = b.IntentFlags
+    binary.LittleEndian.PutUint16(buf[41:43], b.DomainSig)
+    // GoldenSeed
+    binary.LittleEndian.PutUint32(buf[43:47], b.GoldenSeed)
+    // Memory (Slots 6-8: XOR recursive for temporal loop)
+    copy(buf[47:61], b.Memory[:])
+    // LSHSalt (Slot 11: Temporal Lock)
+    binary.LittleEndian.PutUint32(buf[61:65], b.LSHSalt)
+    // Reserved (padding)
     return buf
 }
 
 // DecodeBracket parses an 80-byte buffer into a Bracket.
 func DecodeBracket(buf [BracketSize]byte) Bracket {
     var b Bracket
-    b.LSHSalt = binary.LittleEndian.Uint32(buf[0:4])
-    copy(b.Projections[:], buf[4:68])
-    b.SubSecondUS = binary.LittleEndian.Uint32(buf[68:72])
-    b.ASICLoops = binary.LittleEndian.Uint32(buf[72:76])
-    b.GoldenSeed = binary.LittleEndian.Uint32(buf[76:80])
+    // Projections (Slots 0-3)
+    copy(b.Projections[:], buf[0:32])
+    // SubSecondUS
+    b.SubSecondUS = binary.LittleEndian.Uint32(buf[32:36])
+    // Syntactic Registers (Slots 4-5)
+    b.POSTag = buf[36]
+    b.Tense = buf[37]
+    b.Plurality = buf[38]
+    b.DepHead = int8(buf[39])
+    // Intent + Domain (Slot 9 + Slot 10)
+    b.IntentFlags = buf[40]
+    b.DomainSig = binary.LittleEndian.Uint16(buf[41:43])
+    // GoldenSeed
+    b.GoldenSeed = binary.LittleEndian.Uint32(buf[43:47])
+    // Memory (Slots 6-8)
+    copy(b.Memory[:], buf[47:61])
+    // LSHSalt (Slot 11)
+    b.LSHSalt = binary.LittleEndian.Uint32(buf[61:65])
     return b
 }
 
+// EncodeSyntactic encodes SyntacticProfile into a uint32 for slot packing
+func EncodeSyntactic(sp SyntacticProfile) uint32 {
+    var val uint32
+    val |= uint32(sp.POSTag) // bits 0-7
+    val |= uint32(sp.Tense) << 8 // bits 8-11
+    val |= uint32(sp.Plurality) << 12 // bits 12-15
+    val |= uint32(uint16(sp.DepHead)) << 16 // bits 16-31
+    return val
+}
+
+// DecodeSyntactic decodes a uint32 into SyntacticProfile
+func DecodeSyntactic(val uint32) SyntacticProfile {
+    return SyntacticProfile{
+        POSTag:    uint8(val & 0xFF),
+        Tense:     uint8((val >> 8) & 0xF),
+        Plurality: uint8((val >> 12) & 0xF),
+        DepHead:   int16(val >> 16),
+    }
+}
+
+// EncodeIntentDomain encodes IntentDomain into a uint32 for slot packing
+func EncodeIntentDomain(id IntentDomain) uint32 {
+    var val uint32
+    val |= uint32(id.IntentFlags) & 0xF // bits 0-3
+    val |= uint32(id.DomainSig) << 8 // bits 8-15
+    return val
+}
+
+// DecodeIntentDomain decodes a uint32 into IntentDomain
+func DecodeIntentDomain(val uint32) IntentDomain {
+    return IntentDomain{
+        IntentFlags: uint8(val & 0xF),
+        DomainSig:   uint16((val >> 8) & 0xFF),
+    }
+}
+
 // XORProjections returns the XOR-diff of `current` projections against `anchor` projections.
-// Used to produce P-bracket payloads.
-func XORProjections(current, anchor [64]byte) [64]byte {
-    var diff [64]byte
+// Used to produce P-bracket payloads (32 bytes instead of 64).
+func XORProjections(current, anchor [32]byte) [32]byte {
+    var diff [32]byte
     for i := range diff {
         diff[i] = current[i] ^ anchor[i]
     }
@@ -322,7 +475,7 @@ func XORProjections(current, anchor [64]byte) [64]byte {
 }
 
 // ApplyProjectionDelta reconstructs absolute projections from a P-bracket XOR-diff and its anchor.
-func ApplyProjectionDelta(delta, anchor [64]byte) [64]byte {
+func ApplyProjectionDelta(delta, anchor [32]byte) [32]byte {
     return XORProjections(delta, anchor) // XOR is its own inverse
 }
 ```
@@ -333,11 +486,20 @@ func ApplyProjectionDelta(delta, anchor [64]byte) [64]byte {
 
 The `FrameTicker` is the central coordination component for Phase 2. It owns a 1-second window, buffers incoming brackets, and flushes a complete `FrameEntry` to the `NRVWriter` at each tick boundary.
 
+> **🔗 CROSS-REFERENCE**: The FrameTicker preserves the **12-slot Bitmask Specification**:
+> - **Slots 0-3** (Identity Zone): Encoded in bracket.Projections
+> - **Slots 4-5** (Syntactic Registers): Encoded in bracket.POSTag, Tense, Plurality, DepHead
+> - **Slots 6-8** (Memory Zone): Maintained in `historyXOR` — the XOR of previous bracket hashes for the 21-pass temporal loop recurrence
+> - **Slot 9** (Intent): Encoded in bracket.IntentFlags
+> - **Slot 10** (Domain): Encoded in bracket.DomainSig
+> - **Slot 11** (Temporal Lock): Encoded in bracket.LSHSalt
+
 ```go
 package storage
 
 import (
     "context"
+    "math"
     "sync"
     "time"
 
@@ -350,12 +512,23 @@ const (
     driftThreshold = 0.25  // Euclidean drift that forces a new I-bracket
 )
 
+// MemoryZone holds the History XOR state for Slots 6-8 (Memory Zone)
+// This is maintained in memory by FrameTicker for the 21-pass temporal loop
+type MemoryZone struct {
+    HistoryXOR [3]uint32  // Slots 6, 7, 8: Rolling XOR of previous bracket hashes
+    SeedXOR    uint32     // Initial seed for recursive hashing
+}
+
 // PendingBracket holds a bracket and its computed delta metadata before flush.
 type PendingBracket struct {
     Bracket    *nrv.Bracket
     DeltaType  nrv.DeltaType
     AnchorID   *string
     DriftScore float64
+    
+    // Memory Zone (Slots 6-8): Stored per-bracket for temporal loop recurrence
+    // These are NOT in the 80-byte bracket binary - maintained in memory
+    HistoryXOR [3]uint32
 }
 
 // FrameTicker buffers incoming brackets and flushes 1-second frames to an NRVWriter.
@@ -367,6 +540,9 @@ type FrameTicker struct {
     lastIBkt  *nrv.Bracket // the most recent I-bracket, for XOR-delta calculation
     lastIID   string
     bktCount  int          // total brackets since last I-bracket
+    
+    // Memory Zone (Slots 6-8): Maintained in memory for 21-pass temporal loop
+    memoryZone MemoryZone
 
     // Frame-level metadata accumulated during the window
     thermoSamples []nrv.ThermoAtmosphere
@@ -391,6 +567,7 @@ func NewFrameTicker(w *NRVWriter, interval time.Duration) *FrameTicker {
 }
 
 // AppendBracket adds a bracket to the current 1-second window. Thread-safe.
+// Also updates the Memory Zone (Slots 6-8) for the 21-pass temporal loop recurrence.
 func (ft *FrameTicker) AppendBracket(b *nrv.Bracket, thermo nrv.ThermoAtmosphere) {
     ft.mu.Lock()
     defer ft.mu.Unlock()
@@ -398,6 +575,10 @@ func (ft *FrameTicker) AppendBracket(b *nrv.Bracket, thermo nrv.ThermoAtmosphere
     var deltaType nrv.DeltaType
     var anchorID *string
     var driftScore float64
+
+    // Compute Memory Zone (Slots 6-8): Rolling XOR for temporal loop recurrence
+    // This drives the 21-pass loop's history-aware hashing
+    historyXOR := ft.computeMemoryXOR(b)
 
     // Determine I vs P bracket
     if ft.lastIBkt == nil || ft.bktCount%iFrameInterval == 0 {
@@ -425,9 +606,40 @@ func (ft *FrameTicker) AppendBracket(b *nrv.Bracket, thermo nrv.ThermoAtmosphere
         DeltaType:  deltaType,
         AnchorID:   anchorID,
         DriftScore: driftScore,
+        HistoryXOR: historyXOR, // Slot 6-8 for temporal loop
     })
     ft.thermoSamples = append(ft.thermoSamples, thermo)
     ft.bktCount++
+}
+
+// computeMemoryXOR computes the rolling XOR for Slots 6-8 (Memory Zone)
+// This provides the "history" that drives the 21-pass temporal loop recurrence
+func (ft *FrameTicker) computeMemoryXOR(b *nrv.Bracket) [3]uint32 {
+    // Slot 6: XOR of current bracket hash with previous Slot 6
+    slot6 := ft.memoryZone.HistoryXOR[0] ^ hashBracket(b)
+    // Slot 7: XOR of Slot 6 with previous Slot 7 (deepening recurrence)
+    slot7 := ft.memoryZone.HistoryXOR[1] ^ slot6
+    // Slot 8: XOR of Slot 7 with previous Slot 8 (deepest recurrence)
+    slot8 := ft.memoryZone.HistoryXOR[2] ^ slot7
+    
+    // Update memory zone for next iteration
+    ft.memoryZone.HistoryXOR[0] = slot6
+    ft.memoryZone.HistoryXOR[1] = slot7
+    ft.memoryZone.HistoryXOR[2] = slot8
+    
+    return [3]uint32{slot6, slot7, slot8}
+}
+
+// hashBracket computes a simple hash of the bracket for memory zone XOR
+// Uses Projections (32B, Slots 0-3), GoldenSeed, and LSHSalt for hash
+func hashBracket(b *nrv.Bracket) uint32 {
+    h := uint32(b.LSHSalt)
+    for i := 0; i < 32; i += 4 {
+        h ^= binary.LittleEndian.Uint32(b.Projections[i:i+4])
+    }
+    h ^= b.SubSecondUS
+    h ^= b.GoldenSeed
+    return h
 }
 
 // SetLinguistic sets the linguistic context for the current frame window.
@@ -868,12 +1080,22 @@ require github.com/apache/arrow/go/v15 v15.x.x
 
 **Add new filter keys** understood by `parseGet`:
 
-| Filter Key | Operator | Example |
-|---|---|---|
-| `z3_status` | `=` | `WHERE z3_status = VALID` |
-| `avg_temp_c` | `<`, `>`, `<=`, `>=` | `WHERE avg_temp_c < 85` |
-| `drift_score` | `<`, `>` | `WHERE drift_score > 0.1` |
-| `bracket_type` | `=` | `WHERE bracket_type = I` |
+| Filter Key | Operator | Example | 12-Slot Mapping |
+|---|---|---|---|
+| `z3_status` | `=` | `WHERE z3_status = VALID` | Frame metadata |
+| `avg_temp_c` | `<`, `>`, `<=`, `>=` | `WHERE avg_temp_c < 85` | ThermoAtmosphere |
+| `drift_score` | `<`, `>` | `WHERE drift_score > 0.1` | BracketMeta.DriftScore |
+| `bracket_type` | `=` | `WHERE bracket_type = I` | BracketMeta.Type |
+| `pos_tag` | `=` | `WHERE pos_tag = NOUN` | **Slot 4 (bits 0-7)** — Syntactic Register |
+| `tense` | `=` | `WHERE tense = PAST` | **Slot 4 (bits 8-11)** — Syntactic Register |
+| `domain` | `=` | `WHERE domain = MATH` | **Slot 10** — Domain Signature |
+| `intent_flags` | `&` | `WHERE intent_flags & 0x1` | **Slot 9** — Intent Flags |
+| `lsh_salt` | `=` | `WHERE lsh_salt = 0x12345678` | **Slot 11** — Temporal Lock |
+
+> **⚠️ IMPORTANT**: The semantic filters (`pos_tag`, `tense`, `domain`, `intent_flags`) correspond to the **12-slot Bitmask Specification** from DATA-MAPPER.md. These enable ASIC-aware filtering where:
+> - `pos_tag` and `tense` enable filtering by grammatical constraints (Slot 4-5)
+> - `domain` enables filtering by Math/Code/Prose environment (Slot 10)
+> - `intent_flags` enables filtering by Question/Command/Code markers (Slot 9)
 
 **Add new query syntax** to `parseGet`:
 
@@ -881,6 +1103,7 @@ require github.com/apache/arrow/go/v15 v15.x.x
 GET MEMORY.BRACKET(golden_seed) WHERE ...
 GET MEMORY WHERE z3_status = VALID
 GET MEMORY WHERE avg_temp_c < 85 AND z3_status = VALID
+GET MEMORY WHERE domain = MATH AND pos_tag = VERB  # ASIC semantic filtering
 ```
 
 Add `QueryGetBracketField` to the `QueryType` enum:
@@ -912,6 +1135,32 @@ case "z3_status":
 case "avg_temp_c":
     if thermo, ok := doc["thermo"].(map[string]interface{}); ok {
         return compareValues(thermo["avg_temp_c"], filter.Value) matches operator
+    }
+    return false
+case "pos_tag":
+    // Slot 4, bits 0-7: POS Tag from Syntactic Register
+    if bracket, ok := doc["bracket"].(map[string]interface{}); ok {
+        if proj, ok := bracket["projections"].(map[string]interface{}); ok {
+            return fmt.Sprintf("%v", proj["pos_tag"]) == fmt.Sprintf("%v", filter.Value)
+        }
+    }
+    return false
+case "domain":
+    // Slot 10: Domain Signature (0x1000=Prose, 0x2000=Math, 0x3000=Code)
+    if bracket, ok := doc["bracket"].(map[string]interface{}); ok {
+        if meta, ok := bracket["meta"].(map[string]interface{}); ok {
+            return fmt.Sprintf("%v", meta["domain"]) == fmt.Sprintf("%v", filter.Value)
+        }
+    }
+    return false
+case "intent_flags":
+    // Slot 9: Intent Flags (IS_QUESTION=0x1, IS_COMMAND=0x2, IS_CODE=0x4)
+    if bracket, ok := doc["bracket"].(map[string]interface{}); ok {
+        if meta, ok := bracket["meta"].(map[string]interface{}); ok {
+            flags, _ := meta["intent_flags"].(uint8)
+            val, _ := filter.Value.(uint8)
+            return (flags & val) == val
+        }
     }
     return false
 ```
@@ -991,30 +1240,36 @@ MaybeCompact() ← triggered if (tombstoned + invalid) / total ≥ 20%
 
 ### 6.1 Unit Tests
 
-| Test | File | Assertions |
-|---|---|---|
-| `TestEncodeBracket_RoundTrip` | `pkg/nrv/codec_test.go` | `EncodeBracket` → `DecodeBracket` round-trips all fields exactly |
-| `TestXORProjections_Inverse` | `pkg/nrv/codec_test.go` | `ApplyProjectionDelta(XORProjections(a,b), b) == a` for all inputs |
-| `TestFrameTicker_Flush` | `internal/storage/nrv_ticker_test.go` | After 1s tick, NRVWriter has 1 FrameEntry with correct bracket count |
-| `TestFrameTicker_IBracketFrequency` | `internal/storage/nrv_ticker_test.go` | Every 50th bracket is type `I`; P-brackets have non-nil `anchor_id` |
-| `TestFrameTicker_DriftSpike` | `internal/storage/nrv_ticker_test.go` | Drift > 0.25 forces an I-bracket outside of the fixed interval |
-| `TestNRVWriter_AppendFrame_NewSignature` | `internal/storage/nrv_writer_test.go` | Per-frame Dilithium-3 signature present in PQCManifest |
-| `TestNRVReader_StreamBrackets_GoldOnly` | `internal/storage/nrv_reader_test.go` | Gold stream skips INVALID frames; Research stream includes them |
-| `TestNRVReader_DecodePBracket` | `internal/storage/nrv_reader_test.go` | P-bracket projections reconstructed correctly from anchor |
-| `TestCompactor_InvalidFrameRatio` | `internal/storage/nrv_compactor_test.go` | Compaction fires when INVALID frames push ratio ≥ 20% |
-| `TestKNIRVQL_Z3StatusFilter` | `internal/query/knirvql_test.go` | `WHERE z3_status = VALID` returns only valid-frame brackets |
-| `TestKNIRVQL_ThermoFilter` | `internal/query/knirvql_test.go` | `WHERE avg_temp_c < 85` filters frames correctly |
-| `TestKNIRVQL_BracketFieldQuery` | `internal/query/knirvql_test.go` | `GET MEMORY.BRACKET(golden_seed)` parses to `QueryGetBracketField` |
+| Test | File | Assertions | 12-Slot Coverage |
+|---|---|---|---|
+| `TestEncodeBracket_RoundTrip` | `pkg/nrv/codec_test.go` | `EncodeBracket` → `DecodeBracket` round-trips all fields exactly | All 12 slots |
+| `TestXORProjections_Inverse` | `pkg/nrv/codec_test.go` | `ApplyProjectionDelta(XORProjections(a,b), b) == a` for all inputs | Slots 0-3 |
+| `TestEncodeSyntactic_PackUnpack` | `pkg/nrv/codec_test.go` | `EncodeSyntactic` → `DecodeSyntactic` preserves all fields | Slots 4-5 |
+| `TestEncodeIntentDomain_PackUnpack` | `pkg/nrv/codec_test.go` | `EncodeIntentDomain` → `DecodeIntentDomain` preserves all fields | Slots 9-10 |
+| `TestFrameTicker_Flush` | `internal/storage/nrv_ticker_test.go` | After 1s tick, NRVWriter has 1 FrameEntry with correct bracket count | All 12 slots |
+| `TestFrameTicker_IBracketFrequency` | `internal/storage/nrv_ticker_test.go` | Every 50th bracket is type `I`; P-brackets have non-nil `anchor_id` | Slots 0-3 |
+| `TestFrameTicker_DriftSpike` | `internal/storage/nrv_ticker_test.go` | Drift > 0.25 forces an I-bracket outside of the fixed interval | Slots 0-3 |
+| `TestFrameTicker_MemoryZone` | `internal/storage/nrv_ticker_test.go` | HistoryXOR computed correctly for Slots 6-8 temporal recurrence | Slots 6-8 |
+| `TestNRVWriter_AppendFrame_NewSignature` | `internal/storage/nrv_writer_test.go` | Per-frame Dilithium-3 signature present in PQCManifest | All slots |
+| `TestNRVReader_StreamBrackets_GoldOnly` | `internal/storage/nrv_reader_test.go` | Gold stream skips INVALID frames; Research stream includes them | All slots |
+| `TestNRVReader_DecodePBracket` | `internal/storage/nrv_reader_test.go` | P-bracket projections reconstructed correctly from anchor | Slots 0-3 |
+| `TestCompactor_InvalidFrameRatio` | `internal/storage/nrv_compactor_test.go` | Compaction fires when INVALID frames push ratio ≥ 20% | All slots |
+| `TestKNIRVQL_Z3StatusFilter` | `internal/query/knirvql_test.go` | `WHERE z3_status = VALID` returns only valid-frame brackets | Frame metadata |
+| `TestKNIRVQL_ThermoFilter` | `internal/query/knirvql_test.go` | `WHERE avg_temp_c < 85` filters frames correctly | Frame metadata |
+| `TestKNIRVQL_BracketFieldQuery` | `internal/query/knirvql_test.go` | `GET MEMORY.BRACKET(golden_seed)` parses to `QueryGetBracketField` | All slots |
+| `TestKNIRVQL_SemanticFilters` | `internal/query/knirvql_test.go` | `WHERE pos_tag = VERB AND domain = MATH` filters correctly | Slots 4-5, 10 |
 
 ### 6.2 Integration Tests
 
-| Test | Scenario |
-|---|---|
-| `TestEndToEnd_ASICPipeline` | Append 1000 brackets over 3 seconds → verify 3 FrameEntries in registry with correct counts, Z3 status, and Dilithium-3 signatures |
-| `TestEndToEnd_FlightGoldStream` | Flight client with `gold.<collection>` ticket → only brackets from VALID frames received |
-| `TestEndToEnd_FlightResearchStream` | Flight client with `research.<collection>` ticket → all brackets including INVALID frames received |
-| `TestEndToEnd_CompactionPreservesGold` | Mark frames INVALID, trigger compaction → output file contains only VALID/live frames |
-| `TestEndToEnd_CrashRecovery` | Kill writer mid-flush → WAL recovery on re-open → no partial frames in registry |
+| Test | Scenario | 12-Slot Validation |
+|---|---|---|
+| `TestEndToEnd_ASICPipeline` | Append 1000 brackets over 3 seconds → verify 3 FrameEntries in registry with correct counts, Z3 status, and Dilithium-3 signatures | All 12 slots encoded and retrievable |
+| `TestEndToEnd_SemanticCoherence` | Append brackets with known POS/Tense/Domain → query via semantic filters → verify Syntactic Steering works | Slots 4-5, 9-10 |
+| `TestEndToEnd_21PassTemporalLoop` | Feed brackets through vHasher 21-pass loop → verify deterministic consensus with semantic coherence | All 12 slots |
+| `TestEndToEnd_FlightGoldStream` | Flight client with `gold.<collection>` ticket → only brackets from VALID frames received | All slots |
+| `TestEndToEnd_FlightResearchStream` | Flight client with `research.<collection>` ticket → all brackets including INVALID frames received | All slots |
+| `TestEndToEnd_CompactionPreservesGold` | Mark frames INVALID, trigger compaction → output file contains only VALID/live frames | All slots |
+| `TestEndToEnd_CrashRecovery` | Kill writer mid-flush → WAL recovery on re-open → no partial frames in registry | All slots |
 
 ### 6.3 Benchmarks
 
@@ -1060,11 +1315,57 @@ GET MEMORY WHERE avg_temp_c < 85 AND z3_status = VALID
 
 # Bracket field projection
 GET MEMORY.BRACKET(golden_seed) WHERE z3_status = VALID
+
+# ASIC semantic filtering (requires 12-slot spec)
+GET MEMORY WHERE pos_tag = VERB AND domain = MATH
+GET MEMORY WHERE intent_flags & 0x1 AND tense = PAST
 ```
+
+> **🔗 NOTE**: The semantic filters (`pos_tag`, `tense`, `domain`, `intent_flags`) only work on Phase 2 files with the 12-slot Bracket format. Phase 1 files will return empty results for these filters.
 
 ---
 
-## 8. Backlog (V3)
+## 8. 21-Pass Temporal Loop Integration
+
+The Phase 2 Bracket format is specifically designed to drive the **21-pass temporal loop** in the KNIRVHASHER ASIC pipeline. This section documents how the 12-slot specification maps to the loop passes.
+
+### 8.1 Pass Structure
+
+| Pass Range | Slot Zone | Purpose | Bracket Field |
+|---|---|---|---|
+| **Passes 1-7** | Identity Zone (Slots 0-3) | Semantic Compass | `Projections` (32B LSH) |
+| **Passes 8-14** | Syntactic Registers (Slots 4-5) | **Syntactic Steering** | `POSTag`, `Tense`, `Plurality`, `DepHead` |
+| **Passes 15-18** | Memory Zone (Slots 6-8) | Temporal Recurrence | `Memory` (14B XOR recursive) |
+| **Passes 19-20** | Intent + Domain (Slots 9-10) | Logical Filtering | `IntentFlags`, `DomainSig` |
+| **Pass 21** | Temporal Lock (Slot 11) | Final Validation | `LSHSalt` + `GoldenSeed` |
+
+### 8.2 Syntactic Steering (Passes 8-14)
+
+> **⚠️ CRITICAL**: Passes 8-14 perform Syntactic Steering using Slots 4-5 (POS, Tense, Dependency). If these fields are zero/empty, the loop cannot validate grammatical coherence and falls back to random hashing.
+
+The FrameTicker's `HistoryXOR` computation (Slots 6-8) drives the temporal recurrence:
+- Each bracket's hash is XORed with the previous bracket's hash
+- This creates a "rolling memory" that the ASIC uses to maintain context across passes
+- The XOR is deep: Slot 6 → Slot 7 → Slot 8 (each builds on the previous)
+
+### 8.3 FrameTicker Memory Zone
+
+The FrameTicker maintains `MemoryZone` in memory (NOT in the 80-byte bracket):
+```go
+type MemoryZone struct {
+    HistoryXOR [3]uint32  // Slots 6, 7, 8: Rolling XOR of previous bracket hashes
+    SeedXOR    uint32     // Initial seed for recursive hashing
+}
+```
+
+This enables:
+1. **Temporal Coherence**: Each pass builds on the previous pass's hash
+2. **Delta Encoding**: P-brackets store XOR-diffs, reducing storage while preserving temporal context
+3. **Syntactic Validation**: Passes 8-14 use Slot 4-5 to reject grammatically invalid token resolutions
+
+---
+
+## 9. Backlog (V3)
 
 - **Reasoning Ledger**: `agent_context` field on `FrameEntry` linking to immutable agent-access log.
 - **Cross-dataset joins**: multi-file KNIRVQL spanning multiple `.nrv` datasets.
