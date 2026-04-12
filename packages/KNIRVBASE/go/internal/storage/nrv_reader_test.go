@@ -156,7 +156,7 @@ func TestNRVReader_DecodePBracket(t *testing.T) {
 		ID:          anchorID,
 		Projections: proj1,
 		SubSecondUS: 1000,
-		DepHead:     0x01,
+		DepHead:     1,
 		GoldenSeed:  42,
 	}
 	encoded1 := nrv.EncodeBracket(anchorBracket)
@@ -169,7 +169,7 @@ func TestNRVReader_DecodePBracket(t *testing.T) {
 		ID:          "p-bracket",
 		Projections: nrv.XORProjections(targetProj, proj1),
 		SubSecondUS: 1001,
-		DepHead:     0x02,
+		DepHead:     2,
 		GoldenSeed:  43,
 	}
 	encodedP := nrv.EncodeBracket(pBracket)

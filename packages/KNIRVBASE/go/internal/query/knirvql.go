@@ -124,6 +124,12 @@ func (p *KNIRVQLParser) parseGet(parts []string) (*Query, error) {
 						value = f
 					} else if val, err := strconv.ParseInt(valueStr, 10, 64); err == nil {
 						value = val
+					} else if ls := strings.ToLower(valueStr); strings.HasPrefix(ls, "0x") {
+						if u, err := strconv.ParseUint(ls[2:], 16, 64); err == nil {
+							value = u
+						} else {
+							value = valueStr
+						}
 					} else {
 						value = valueStr
 					}
@@ -437,7 +443,7 @@ func (q *Query) executeFullScan(plan *QueryPlan, collection *coll.DistributedCol
 		results = results[:plan.Limit]
 	}
 
-	return results, nil
+	return q.shapeMemoryResults(results)
 }
 
 func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, collection *coll.DistributedCollection) (interface{}, error) {
@@ -464,7 +470,7 @@ func (q *Query) executeIndexScan(plan *QueryPlan, db *db.DistributedDatabase, co
 		results = results[:plan.Limit]
 	}
 
-	return results, nil
+	return q.shapeMemoryResults(results)
 }
 
 func (q *Query) executeIndexOnlyScan(plan *QueryPlan, db *db.DistributedDatabase) (interface{}, error) {
@@ -504,8 +510,8 @@ func (q *Query) matchesFilter(doc map[string]interface{}, payload map[string]int
 		return false
 	case "avg_temp_c":
 		if thermo, ok := payload["thermo"].(map[string]interface{}); ok {
-			if tempC, ok := thermo["temp_celsius"].(float32); ok {
-				cmp := compareNumericValues(float64(tempC), filter.Value)
+			if tempC, ok := floatFromInterface(thermo["temp_celsius"]); ok {
+				cmp := compareNumericValues(tempC, filter.Value)
 				opFunc := compareOperator(filter.Operator)
 				return opFunc(cmp)
 			}
@@ -513,20 +519,72 @@ func (q *Query) matchesFilter(doc map[string]interface{}, payload map[string]int
 		return false
 	case "drift_score":
 		if brackets, ok := payload["brackets"].(map[string]interface{}); ok {
-			if maxDrift, ok := brackets["max_drift"].(float64); ok {
-				cmp := compareNumericValues(float64(maxDrift), filter.Value)
+			if maxDrift, ok := floatFromInterface(brackets["max_drift"]); ok {
+				cmp := compareNumericValues(maxDrift, filter.Value)
 				opFunc := compareOperator(filter.Operator)
 				return opFunc(cmp)
 			}
 		}
 		return false
 	case "bracket_type":
+		want := strings.ToUpper(fmt.Sprintf("%v", filter.Value))
+		for _, br := range bracketsIndexFromPayload(payload) {
+			if strings.ToUpper(fmt.Sprintf("%v", br["type"])) == want {
+				return true
+			}
+		}
 		if brackets, ok := payload["brackets"].(map[string]interface{}); ok {
 			if types, ok := brackets["types"].([]string); ok {
 				for _, t := range types {
-					if t == fmt.Sprintf("%v", filter.Value) {
+					if strings.ToUpper(t) == want {
 						return true
 					}
+				}
+			}
+			if typesAny, ok := brackets["types"].([]interface{}); ok {
+				for _, t := range typesAny {
+					if strings.ToUpper(fmt.Sprintf("%v", t)) == want {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	case "pos_tag":
+		want := parsePOSToken(filter.Value)
+		for _, br := range bracketsIndexFromPayload(payload) {
+			if uint8FromInterface(br["pos_tag"]) == want {
+				return true
+			}
+		}
+		return false
+	case "tense":
+		want := parseTenseToken(filter.Value)
+		for _, br := range bracketsIndexFromPayload(payload) {
+			if uint8FromInterface(br["tense"]) == want {
+				return true
+			}
+		}
+		return false
+	case "domain":
+		want := parseDomainToken(filter.Value)
+		for _, br := range bracketsIndexFromPayload(payload) {
+			if uint16FromInterface(br["domain_sig"]) == want {
+				return true
+			}
+		}
+		return false
+	case "intent_flags":
+		mask := uint8(uintFromFilterValue(filter.Value))
+		for _, br := range bracketsIndexFromPayload(payload) {
+			flags := uint8FromInterface(br["intent_flags"])
+			if filter.Operator == "&" {
+				if (flags & mask) == mask {
+					return true
+				}
+			} else if filter.Operator == "=" {
+				if flags == mask {
+					return true
 				}
 			}
 		}
@@ -600,6 +658,10 @@ func compareNumericValues(a float64, b interface{}) int {
 		bVal = float64(v)
 	case int64:
 		bVal = float64(v)
+	case uint64:
+		bVal = float64(v)
+	case uint32:
+		bVal = float64(v)
 	default:
 		bStr := fmt.Sprintf("%v", v)
 		if parsed, err := strconv.ParseFloat(bStr, 64); err == nil {
@@ -612,4 +674,254 @@ func compareNumericValues(a float64, b interface{}) int {
 		return 1
 	}
 	return 0
+}
+
+func (q *Query) shapeMemoryResults(docs []map[string]interface{}) (interface{}, error) {
+	switch q.Type {
+	case QueryGetBracketField:
+		return q.projectBracketField(docs), nil
+	case QueryGetModality:
+		return q.projectModality(docs), nil
+	default:
+		return docs, nil
+	}
+}
+
+func (q *Query) projectBracketField(docs []map[string]interface{}) []map[string]interface{} {
+	out := make([]map[string]interface{}, 0)
+	field := strings.ToLower(strings.TrimSpace(q.BracketField))
+	for _, doc := range docs {
+		payload, _ := doc["payload"].(map[string]interface{})
+		for _, br := range bracketsIndexFromPayload(payload) {
+			v := extractBracketFieldValue(br, field)
+			if v == nil {
+				continue
+			}
+			row := map[string]interface{}{
+				"frame_id":   doc["id"],
+				"bracket_id": br["id"],
+				field:        v,
+			}
+			out = append(out, row)
+		}
+	}
+	return out
+}
+
+func (q *Query) projectModality(docs []map[string]interface{}) []map[string]interface{} {
+	out := make([]map[string]interface{}, 0)
+	mod := strings.ToLower(strings.TrimSpace(q.ModalityType))
+	for _, doc := range docs {
+		payload, _ := doc["payload"].(map[string]interface{})
+		idx := bracketsIndexFromPayload(payload)
+		if len(idx) == 0 {
+			continue
+		}
+		br := idx[0]
+		row := map[string]interface{}{
+			"frame_id": doc["id"],
+			"modality": q.ModalityType,
+		}
+		switch mod {
+		case "vector":
+			if vec, ok := br["lsh_vector"].([]float64); ok {
+				row["value"] = vec
+			} else if vec, ok := br["lsh_vector"].([]interface{}); ok {
+				row["value"] = vec
+			}
+		case "seed":
+			row["value"] = uint32FromInterface(br["golden_seed"])
+		case "thermo":
+			if th, ok := payload["thermo"].(map[string]interface{}); ok {
+				row["value"] = th
+			}
+		case "proof":
+			row["value"] = nil
+		default:
+			if vec, ok := br["lsh_vector"].([]float64); ok {
+				row["value"] = vec
+			}
+		}
+		out = append(out, row)
+	}
+	return out
+}
+
+func extractBracketFieldValue(br map[string]interface{}, field string) interface{} {
+	switch field {
+	case "golden_seed":
+		return uint32FromInterface(br["golden_seed"])
+	case "subsecond_us":
+		return uint32FromInterface(br["subsecond_us"])
+	case "pos_tag":
+		return uint8FromInterface(br["pos_tag"])
+	case "tense":
+		return uint8FromInterface(br["tense"])
+	case "domain_sig", "domain":
+		return uint16FromInterface(br["domain_sig"])
+	case "intent_flags":
+		return uint8FromInterface(br["intent_flags"])
+	case "drift_score":
+		if v, ok := floatFromInterface(br["drift_score"]); ok {
+			return v
+		}
+		return nil
+	case "projections", "lsh_vector":
+		return br["lsh_vector"]
+	default:
+		return br[field]
+	}
+}
+
+func bracketsIndexFromPayload(payload map[string]interface{}) []map[string]interface{} {
+	v, ok := payload["brackets_index"]
+	if !ok {
+		return nil
+	}
+	switch x := v.(type) {
+	case []map[string]interface{}:
+		return x
+	case []interface{}:
+		var out []map[string]interface{}
+		for _, e := range x {
+			if m, ok := e.(map[string]interface{}); ok {
+				out = append(out, m)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func floatFromInterface(v interface{}) (float64, bool) {
+	switch x := v.(type) {
+	case float64:
+		return x, true
+	case float32:
+		return float64(x), true
+	case int:
+		return float64(x), true
+	case int64:
+		return float64(x), true
+	case uint32:
+		return float64(x), true
+	default:
+		return 0, false
+	}
+}
+
+func uint8FromInterface(v interface{}) uint8 {
+	switch x := v.(type) {
+	case uint8:
+		return x
+	case int:
+		return uint8(x)
+	case int64:
+		return uint8(x)
+	case float64:
+		return uint8(x)
+	default:
+		return 0
+	}
+}
+
+func uint16FromInterface(v interface{}) uint16 {
+	switch x := v.(type) {
+	case uint16:
+		return x
+	case int:
+		return uint16(x)
+	case int64:
+		return uint16(x)
+	case float64:
+		return uint16(x)
+	default:
+		return 0
+	}
+}
+
+func uint32FromInterface(v interface{}) uint32 {
+	switch x := v.(type) {
+	case uint32:
+		return x
+	case int:
+		return uint32(x)
+	case int64:
+		return uint32(x)
+	case float64:
+		return uint32(x)
+	default:
+		return 0
+	}
+}
+
+func uintFromFilterValue(v interface{}) uint64 {
+	switch x := v.(type) {
+	case uint64:
+		return x
+	case uint32:
+		return uint64(x)
+	case int:
+		return uint64(x)
+	case int64:
+		return uint64(x)
+	case float64:
+		return uint64(x)
+	default:
+		s := strings.TrimSpace(fmt.Sprintf("%v", x))
+		if strings.HasPrefix(strings.ToLower(s), "0x") {
+			u, err := strconv.ParseUint(s[2:], 16, 64)
+			if err == nil {
+				return u
+			}
+		}
+		u, err := strconv.ParseUint(s, 10, 64)
+		if err == nil {
+			return u
+		}
+		return 0
+	}
+}
+
+func parsePOSToken(v interface{}) uint8 {
+	s := strings.ToUpper(strings.TrimSpace(fmt.Sprintf("%v", v)))
+	switch s {
+	case "NOUN":
+		return 0x01
+	case "VERB":
+		return 0x02
+	default:
+		return uint8(uintFromFilterValue(v))
+	}
+}
+
+func parseTenseToken(v interface{}) uint8 {
+	s := strings.ToUpper(strings.TrimSpace(fmt.Sprintf("%v", v)))
+	switch s {
+	case "N/A", "NA":
+		return 0
+	case "PAST":
+		return 1
+	case "PRESENT":
+		return 2
+	case "FUTURE":
+		return 3
+	default:
+		return uint8(uintFromFilterValue(v))
+	}
+}
+
+func parseDomainToken(v interface{}) uint16 {
+	s := strings.ToUpper(strings.TrimSpace(fmt.Sprintf("%v", v)))
+	switch s {
+	case "PROSE":
+		return 0x1000
+	case "MATH":
+		return 0x2000
+	case "CODE":
+		return 0x3000
+	default:
+		return uint16(uintFromFilterValue(v))
+	}
 }

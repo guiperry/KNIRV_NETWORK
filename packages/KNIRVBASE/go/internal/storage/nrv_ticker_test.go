@@ -68,7 +68,7 @@ func TestFrameTicker_IBracketFrequency(t *testing.T) {
 		b := &nrv.Bracket{
 			SubSecondUS: uint32(i * 1000),
 			GoldenSeed:  uint32(i * 100),
-			DepHead:     uint8(i % 256),
+			DepHead:     int8(i % 127),
 		}
 		for j := range b.Projections {
 			b.Projections[j] = byte(j)
@@ -117,7 +117,7 @@ func TestFrameTicker_DriftSpike(t *testing.T) {
 		ID:          "b1",
 		Projections: proj1,
 		SubSecondUS: 1000,
-		DepHead:     0x01,
+		DepHead:     1,
 		GoldenSeed:  100,
 	}
 	_ = ticker.AppendBracket(context.Background(), b1, nrv.ThermoAtmosphere{AvgTempC: 70, PeakVoltV: 1.2, ClockMHz: 500})
@@ -134,7 +134,7 @@ func TestFrameTicker_DriftSpike(t *testing.T) {
 		ID:          "b2",
 		Projections: proj2,
 		SubSecondUS: 1001,
-		DepHead:     0x02,
+		DepHead:     2,
 		GoldenSeed:  101,
 	}
 	_ = ticker.AppendBracket(context.Background(), b2, nrv.ThermoAtmosphere{AvgTempC: 75, PeakVoltV: 1.3, ClockMHz: 550})
@@ -216,7 +216,7 @@ func TestFrameTicker_StopFlushesPending(t *testing.T) {
 		b := &nrv.Bracket{
 			SubSecondUS: uint32(i * 1000),
 			GoldenSeed:  uint32(i * 100),
-			DepHead:     uint8(i % 256),
+			DepHead:     int8(i % 127),
 		}
 		for j := range b.Projections {
 			b.Projections[j] = byte(j)
@@ -234,4 +234,51 @@ func TestFrameTicker_StopFlushesPending(t *testing.T) {
 	if len(reader.registry.Frames) == 0 {
 		t.Error("expected at least one frame after ticker stop")
 	}
+}
+
+func TestFrameTicker_MemoryZone(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "test.nrv")
+
+	writer, err := NewNRVWriter(path, nil)
+	require.NoError(t, err)
+	defer writer.Close()
+
+	ticker := NewFrameTicker(writer, 80*time.Millisecond)
+	defer ticker.Stop()
+
+	for i := 0; i < 5; i++ {
+		b := &nrv.Bracket{
+			SubSecondUS: uint32(i),
+			GoldenSeed:  uint32(0xC0FFEE00 + i),
+		}
+		for j := range b.Projections {
+			b.Projections[j] = byte((i + j) % 200)
+		}
+		require.NoError(t, ticker.AppendBracket(context.Background(), b, nrv.ThermoAtmosphere{AvgTempC: 70, PeakVoltV: 1.2, ClockMHz: 500}))
+	}
+
+	time.Sleep(120 * time.Millisecond)
+	if err := ticker.LastFlushError(); err != nil {
+		t.Fatalf("flush: %v", err)
+	}
+
+	frame := writer.registry.Frames[0]
+	off := frame.Brackets.Offset
+
+	rdr, err := NewNRVReader(path)
+	require.NoError(t, err)
+	defer rdr.Close()
+
+	data := rdr.data[off : off+int64(nrv.BracketSize)]
+	var mem [18]byte
+	copy(mem[:], data[43:61])
+	nonZero := false
+	for _, b := range mem {
+		if b != 0 {
+			nonZero = true
+			break
+		}
+	}
+	require.True(t, nonZero, "memory zone (slots 6-8) should receive rolling XOR state")
 }

@@ -68,17 +68,17 @@ func TestEndToEnd_ASICPipeline(t *testing.T) {
 	require.Equal(t, 1000, totalBrackets)
 }
 
-type mockServer struct {
+type bracketStreamRecorder struct {
 	data [][]byte
 	ctx  context.Context
 }
 
-func (m *mockServer) Send(b *network.BracketBatch) error {
+func (m *bracketStreamRecorder) Send(b *network.BracketBatch) error {
 	m.data = append(m.data, b.Data)
 	return nil
 }
 
-func (m *mockServer) Context() context.Context {
+func (m *bracketStreamRecorder) Context() context.Context {
 	return m.ctx
 }
 
@@ -107,7 +107,7 @@ func TestEndToEnd_FlightGoldStream(t *testing.T) {
 
 	flightServer := network.NewFlightServer(store)
 
-	server := &mockServer{data: make([][]byte, 0), ctx: context.Background()}
+	server := &bracketStreamRecorder{data: make([][]byte, 0), ctx: context.Background()}
 
 	err = flightServer.StreamBrackets("gold."+collection, server)
 	require.NoError(t, err)
@@ -140,7 +140,7 @@ func TestEndToEnd_FlightResearchStream(t *testing.T) {
 
 	flightServer := network.NewFlightServer(store)
 
-	server := &mockServer{data: make([][]byte, 0), ctx: context.Background()}
+	server := &bracketStreamRecorder{data: make([][]byte, 0), ctx: context.Background()}
 
 	err = flightServer.StreamBrackets("research."+collection, server)
 	require.NoError(t, err)
@@ -269,7 +269,7 @@ func integrationTestBracket(i int) *nrv.Bracket {
 		ID:          fmt.Sprintf("b-%d", i),
 		Projections: projections,
 		SubSecondUS: uint32(1000 + i),
-		DepHead:     uint8(i % 256),
+		DepHead:     int8(i % 127),
 		GoldenSeed:  uint32(10000 + i),
 	}
 }

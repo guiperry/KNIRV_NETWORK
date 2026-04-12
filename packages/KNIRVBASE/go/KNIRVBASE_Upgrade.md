@@ -10,7 +10,7 @@
 > - **Slots 6-8** (Memory Zone): History XOR (maintained in FrameTicker memory) → Temporal loop recurrence
 > - **Slot 9** (Intent): Question/Command/Code flags
 > - **Slot 10** (Domain): Math/Code/Prose classification
-> - **Slot 11** (Temporal Lock): Position + Salt
+> - **Slot 11** (Temporal Salt): `(PosIndex << 16) | TemporalSalt` — Contextual Anchor for warm uniqueness
 >
 > The 80-byte Bracket binary layout MUST preserve this specification. Without Syntactic Registers (Slots 4-5), the 21-pass loop collapses to random hashing.
 
@@ -189,7 +189,7 @@ Each bracket is exactly **80 bytes**, aligned to 8-byte boundaries. All brackets
 | `0x29` | 2B | DomainSig | Slot 10 (Domain) | Mode Enforcement (e.g., Math) |
 | `0x2B` | 4B | GoldenSeed | (Nonce Target) | The solved "Weight" |
 | `0x2F` | 14B | Memory (XOR recursive) | Slots 6-8 (Temporal) | Recursive Context Bridge |
-| `0x3D` | 4B | LSH Salt | Slot 11 (Lock) | Prevents Collision loops |
+| `0x3D` | 4B | LSH Salt | Slot 11 (Salt) | `(PosIndex << 16) | TemporalSalt` — entropy anchor for warm uniqueness |
 | `0x41` | 15B | Reserved | (Future Expansion) | Padding to 80 bytes |
 
 Total: 32 + 4 + 1 + 1 + 1 + 1 + 1 + 2 + 4 + 14 + 4 + 15 = **80 bytes**.
@@ -200,11 +200,11 @@ Total: 32 + 4 + 1 + 1 + 1 + 1 + 1 + 2 + 4 + 14 + 4 + 15 = **80 bytes**.
 > - **Slots 6-8** (Memory Zone): 14B XOR recursive → Temporal loop recurrence
 > - **Slot 9** (Intent): IntentFlags → Question/Command/Code detection
 > - **Slot 10** (Domain): DomainSig → Math/Code/Prose classification
-> - **Slot 11** (Temporal Lock): LSH Salt → Position + Salt for uniqueness
+> - **Slot 11** (Temporal Salt): LSH Salt → `(PosIndex << 16) | TemporalSalt` — Contextual Anchor (warm uniqueness)
 
 Without Syntactic Registers (Slots 4-5), the 21-pass loop collapses to random hashing.
 
-**Delta encoding (P-Brackets):** For P-brackets, bytes `0x04–0x43` (Projections A–H, 64 bytes) store the **XOR-diff** against the anchor I-bracket's projection bytes. LSH Salt, Metadata, and Golden Seed are always stored as absolute values regardless of bracket type.
+**Delta encoding (P-Brackets):** For P-brackets, bytes `0x04–0x43` (Projections A–H, 32 bytes) store the **XOR-diff** against the anchor I-bracket's projection bytes. LSH Salt, Metadata, and Golden Seed are always stored as absolute values regardless of bracket type.
 
 ---
 
@@ -259,8 +259,8 @@ type Bracket struct {
 	// bytes 0x2F–0x3C: Slots 6-8 (Memory Zone) - XOR recursive for temporal loop
 	Memory      [14]byte // Recursive Context Bridge - History XOR for 21-pass recurrence
 	
-	// bytes 0x3D–0x40: Slot 11 (Temporal Lock)
-	LSHSalt     uint32    // FNV-1a of {DatasetID}/{ChunkID} — prevents collision loops
+	// bytes 0x3D–0x40: Slot 11 (Temporal Salt - Entropy Anchor)
+	LSHSalt     uint32    // Slot 11: (PosIndex << 16) | TemporalSalt — Contextual Anchor for warm uniqueness
 	
 	// bytes 0x41–0x4F: Reserved for future expansion
 	Reserved    [15]byte // padding to 80 bytes
@@ -324,7 +324,7 @@ type BracketBinaryMap struct {
 > - **Slots 6-8** (Memory Zone): History XOR — stored in memory by FrameTicker, not in bracket binary
 > - **Slot 9** (Intent): Question/Command/Code detection
 > - **Slot 10** (Domain): Math/Code/Prose classification
-> - **Slot 11** (Temporal Lock): Position + Salt
+> - **Slot 11** (Temporal Salt): `(PosIndex << 16) | TemporalSalt` — Contextual Anchor for warm uniqueness
 
 ### 4.2 Updates to `pkg/nrv/frame.go`
 
@@ -378,7 +378,7 @@ type GlobalMetrics struct {
 //   - bytes 0x28-0x2A: Intent + Domain (Slot 9: IntentFlags, Slot 10: DomainSig)
 //   - bytes 0x2B-0x2E: GoldenSeed (Nonce Target)
 //   - bytes 0x2F-0x3C: Memory [14]byte (Slots 6-8: XOR recursive for temporal loop)
-//   - bytes 0x3D-0x40: LSHSalt (Slot 11: Temporal Lock - prevents collision loops)
+//   - bytes 0x3D-0x40: LSHSalt (Slot 11: Temporal Salt - Contextual Anchor for warm uniqueness)
 //   - bytes 0x41-0x4F: Reserved [15]byte (padding to 80 bytes)
 func EncodeBracket(b *Bracket) [BracketSize]byte {
     var buf [BracketSize]byte
@@ -398,7 +398,7 @@ func EncodeBracket(b *Bracket) [BracketSize]byte {
     binary.LittleEndian.PutUint32(buf[43:47], b.GoldenSeed)
     // Memory (Slots 6-8: XOR recursive for temporal loop)
     copy(buf[47:61], b.Memory[:])
-    // LSHSalt (Slot 11: Temporal Lock)
+    // LSHSalt (Slot 11: Temporal Salt - Contextual Anchor)
     binary.LittleEndian.PutUint32(buf[61:65], b.LSHSalt)
     // Reserved (padding)
     return buf
@@ -492,7 +492,7 @@ The `FrameTicker` is the central coordination component for Phase 2. It owns a 1
 > - **Slots 6-8** (Memory Zone): Maintained in `historyXOR` — the XOR of previous bracket hashes for the 21-pass temporal loop recurrence
 > - **Slot 9** (Intent): Encoded in bracket.IntentFlags
 > - **Slot 10** (Domain): Encoded in bracket.DomainSig
-> - **Slot 11** (Temporal Lock): Encoded in bracket.LSHSalt
+> - **Slot 11** (Temporal Salt): `(PosIndex << 16) | TemporalSalt` — Contextual Anchor for warm uniqueness
 
 ```go
 package storage
@@ -1090,7 +1090,7 @@ require github.com/apache/arrow/go/v15 v15.x.x
 | `tense` | `=` | `WHERE tense = PAST` | **Slot 4 (bits 8-11)** — Syntactic Register |
 | `domain` | `=` | `WHERE domain = MATH` | **Slot 10** — Domain Signature |
 | `intent_flags` | `&` | `WHERE intent_flags & 0x1` | **Slot 9** — Intent Flags |
-| `lsh_salt` | `=` | `WHERE lsh_salt = 0x12345678` | **Slot 11** — Temporal Lock |
+| `lsh_salt` | `=` | `WHERE lsh_salt = 0x12345678` | **Slot 11** — Temporal Salt (Contextual Anchor) |
 
 > **⚠️ IMPORTANT**: The semantic filters (`pos_tag`, `tense`, `domain`, `intent_flags`) correspond to the **12-slot Bitmask Specification** from DATA-MAPPER.md. These enable ASIC-aware filtering where:
 > - `pos_tag` and `tense` enable filtering by grammatical constraints (Slot 4-5)
@@ -1337,7 +1337,7 @@ The Phase 2 Bracket format is specifically designed to drive the **21-pass tempo
 | **Passes 8-14** | Syntactic Registers (Slots 4-5) | **Syntactic Steering** | `POSTag`, `Tense`, `Plurality`, `DepHead` |
 | **Passes 15-18** | Memory Zone (Slots 6-8) | Temporal Recurrence | `Memory` (14B XOR recursive) |
 | **Passes 19-20** | Intent + Domain (Slots 9-10) | Logical Filtering | `IntentFlags`, `DomainSig` |
-| **Pass 21** | Temporal Lock (Slot 11) | Final Validation | `LSHSalt` + `GoldenSeed` |
+| **Pass 21** | Temporal Salt (Slot 11) | Entropy Anchor (warm uniqueness) | `(PosIndex << 16) | TemporalSalt` + `GoldenSeed` |
 
 ### 8.2 Syntactic Steering (Passes 8-14)
 

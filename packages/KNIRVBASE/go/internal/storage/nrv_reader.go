@@ -73,12 +73,13 @@ func (r *NRVReader) GetFrame(id string) (*nrv.FrameEntry, []*nrv.Bracket, error)
 }
 
 func (r *NRVReader) GetFrameEntry(id string) (*nrv.FrameEntry, error) {
-	for _, entry := range r.registry.Frames {
+	for i := range r.registry.Frames {
+		entry := &r.registry.Frames[i]
 		if entry.ID == id {
 			if entry.Tombstone != nil {
-				return nil, nil
+				return nil, fmt.Errorf("nrv: frame is tombstoned: %s", id)
 			}
-			return &entry, nil
+			return entry, nil
 		}
 	}
 	return nil, fmt.Errorf("nrv: frame not found: %s", id)
@@ -97,7 +98,9 @@ func (r *NRVReader) StreamBrackets(goldOnly bool) <-chan *nrv.Bracket {
 			}
 			brackets := r.decodeBrackets(entry)
 			for _, b := range brackets {
-				ch <- b
+				if b != nil {
+					ch <- b
+				}
 			}
 		}
 	}()
@@ -134,8 +137,12 @@ func (r *NRVReader) decodeBrackets(entry nrv.FrameEntry) []*nrv.Bracket {
 	for i, meta := range entry.BracketIndex {
 		var raw [nrv.BracketSize]byte
 		copy(raw[:], buf[meta.Offset:meta.Offset+nrv.BracketSize])
-		b := nrv.DecodeBracket(raw)
+		dec := nrv.DecodeBracket(raw)
+		b := new(nrv.Bracket)
+		*b = dec
 		b.ID = meta.ID
+		b.FrameID = entry.ID
+		b.FrameUnix = entry.TimestampUnix
 		b.Meta = &nrv.BracketMeta{
 			ID:         meta.ID,
 			Type:       meta.Type,
@@ -150,8 +157,8 @@ func (r *NRVReader) decodeBrackets(entry nrv.FrameEntry) []*nrv.Bracket {
 			}
 		}
 
-		anchors[meta.ID] = &b
-		brackets[i] = &b
+		anchors[meta.ID] = b
+		brackets[i] = b
 	}
 	return brackets
 }

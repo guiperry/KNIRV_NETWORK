@@ -31,17 +31,14 @@ func NewFlightServer(storage *stor.NRVStorage) *FlightServer {
 }
 
 func (s *FlightServer) bracketArrowSchema() *arrow.Schema {
-	projType := &arrow.FixedSizeBinaryType{ByteWidth: 64}
+	asicType := &arrow.FixedSizeBinaryType{ByteWidth: nrv.BracketSize}
 	return arrow.NewSchema([]arrow.Field{
+		{Name: "bracket_id", Type: arrow.BinaryTypes.String},
 		{Name: "frame_id", Type: arrow.BinaryTypes.String},
-		{Name: "lsh_salt", Type: arrow.PrimitiveTypes.Uint32},
-		{Name: "subsecond_us", Type: arrow.PrimitiveTypes.Uint32},
-		{Name: "asic_loops", Type: arrow.PrimitiveTypes.Uint32},
-		{Name: "golden_seed", Type: arrow.PrimitiveTypes.Uint32},
+		{Name: "frame_timestamp_unix", Type: arrow.PrimitiveTypes.Int64},
+		{Name: "payload_asic", Type: asicType},
 		{Name: "drift_score", Type: arrow.PrimitiveTypes.Float64},
 		{Name: "bracket_type", Type: arrow.BinaryTypes.String},
-		{Name: "projections", Type: projType},
-		{Name: "frame_timestamp", Type: arrow.PrimitiveTypes.Int64},
 	}, nil)
 }
 
@@ -100,38 +97,38 @@ func (s *FlightServer) StreamBrackets(ticket string, server BracketStreamServer)
 	return s.streamBatches(server, bracketCh, batchSize)
 }
 
-func bracketFrameTimestamp(bracket *nrv.Bracket) int64 {
-	if bracket == nil {
+func bracketFrameUnix(b *nrv.Bracket) int64 {
+	if b == nil {
 		return 0
 	}
-	return int64(bracket.SubSecondUS)
+	if b.FrameUnix != 0 {
+		return b.FrameUnix
+	}
+	return int64(b.SubSecondUS)
 }
 
-func bracketDriftScore(bracket *nrv.Bracket) float64 {
-	if bracket == nil || bracket.Meta == nil {
+func bracketDriftScore(b *nrv.Bracket) float64 {
+	if b == nil || b.Meta == nil {
 		return 0
 	}
-	return bracket.Meta.DriftScore
+	return b.Meta.DriftScore
 }
 
-func bracketType(bracket *nrv.Bracket) string {
-	if bracket == nil || bracket.Meta == nil || bracket.Meta.Type == "" {
+func bracketTypeStr(b *nrv.Bracket) string {
+	if b == nil || b.Meta == nil || b.Meta.Type == "" {
 		return string(nrv.DeltaTypeI)
 	}
-	return string(bracket.Meta.Type)
+	return string(b.Meta.Type)
 }
 
 func appendBracketRecord(recordBuilder *array.RecordBuilder, bracket *nrv.Bracket) {
+	wire := nrv.EncodeBracket(bracket)
 	recordBuilder.Field(0).(*array.StringBuilder).Append(bracket.ID)
-	recordBuilder.Field(1).(*array.Uint32Builder).Append(bracket.SubSecondUS)
-	recordBuilder.Field(2).(*array.Uint32Builder).Append(bracket.GoldenSeed)
-	recordBuilder.Field(3).(*array.Float64Builder).Append(bracketDriftScore(bracket))
-	recordBuilder.Field(4).(*array.StringBuilder).Append(bracketType(bracket))
-
-	projBytes := make([]byte, 32)
-	copy(projBytes, bracket.Projections[:])
-	recordBuilder.Field(5).(*array.FixedSizeBinaryBuilder).Append(projBytes)
-	recordBuilder.Field(6).(*array.Int64Builder).Append(bracketFrameTimestamp(bracket))
+	recordBuilder.Field(1).(*array.StringBuilder).Append(bracket.FrameID)
+	recordBuilder.Field(2).(*array.Int64Builder).Append(bracketFrameUnix(bracket))
+	recordBuilder.Field(3).(*array.FixedSizeBinaryBuilder).Append(wire[:])
+	recordBuilder.Field(4).(*array.Float64Builder).Append(bracketDriftScore(bracket))
+	recordBuilder.Field(5).(*array.StringBuilder).Append(bracketTypeStr(bracket))
 }
 
 func (s *FlightServer) streamBatches(server BracketStreamServer, bracketCh <-chan *nrv.Bracket, batchSize int) error {
@@ -238,30 +235,28 @@ func FlightDataToBrackets(data []byte) ([]*nrv.Bracket, error) {
 		record := reader.Record()
 		count := int(record.NumRows())
 
-		frameIDCol := record.Column(0).(*array.String)
-		subsecCol := record.Column(1).(*array.Uint32)
-		goldenCol := record.Column(2).(*array.Uint32)
-		driftCol := record.Column(3).(*array.Float64)
-		typeCol := record.Column(4).(*array.String)
-		projCol := record.Column(5).(*array.FixedSizeBinary)
+		idCol := record.Column(0).(*array.String)
+		frameIDCol := record.Column(1).(*array.String)
+		frameUnixCol := record.Column(2).(*array.Int64)
+		asicCol := record.Column(3).(*array.FixedSizeBinary)
+		driftCol := record.Column(4).(*array.Float64)
+		typeCol := record.Column(5).(*array.String)
 
 		for i := 0; i < count; i++ {
-			b := &nrv.Bracket{
-				ID:          frameIDCol.Value(i),
-				SubSecondUS: subsecCol.Value(i),
-				GoldenSeed:  goldenCol.Value(i),
-				Meta: &nrv.BracketMeta{
-					ID:         frameIDCol.Value(i),
-					Type:       nrv.DeltaType(typeCol.Value(i)),
-					DriftScore: driftCol.Value(i),
-				},
+			var raw [nrv.BracketSize]byte
+			copy(raw[:], asicCol.Value(i))
+			dec := nrv.DecodeBracket(raw)
+			bp := new(nrv.Bracket)
+			*bp = dec
+			bp.ID = idCol.Value(i)
+			bp.FrameID = frameIDCol.Value(i)
+			bp.FrameUnix = frameUnixCol.Value(i)
+			bp.Meta = &nrv.BracketMeta{
+				ID:         idCol.Value(i),
+				Type:       nrv.DeltaType(typeCol.Value(i)),
+				DriftScore: driftCol.Value(i),
 			}
-
-			b.Projections = [32]byte{}
-			projBytes := projCol.Value(i)
-			copy(b.Projections[:], projBytes)
-
-			brackets = append(brackets, b)
+			brackets = append(brackets, bp)
 		}
 		record.Release()
 	}
@@ -282,6 +277,7 @@ func NewFlightClient(conn io.Reader) *FlightClient {
 }
 
 func (c *FlightClient) StreamBrackets(ctx context.Context, ticket string) ([]*nrv.Bracket, error) {
+	_, _ = ctx, ticket
 	reader, err := ipc.NewReader(c.conn)
 	if err != nil {
 		return nil, err
@@ -293,42 +289,31 @@ func (c *FlightClient) StreamBrackets(ctx context.Context, ticket string) ([]*nr
 		record := reader.Record()
 		count := int(record.NumRows())
 
-		frameIDCol := record.Column(0).(*array.String)
-		subsecCol := record.Column(1).(*array.Uint32)
-		goldenCol := record.Column(2).(*array.Uint32)
-		driftCol := record.Column(3).(*array.Float64)
-		typeCol := record.Column(4).(*array.String)
-		projCol := record.Column(5).(*array.FixedSizeBinary)
+		idCol := record.Column(0).(*array.String)
+		frameIDCol := record.Column(1).(*array.String)
+		frameUnixCol := record.Column(2).(*array.Int64)
+		asicCol := record.Column(3).(*array.FixedSizeBinary)
+		driftCol := record.Column(4).(*array.Float64)
+		typeCol := record.Column(5).(*array.String)
 
 		for i := 0; i < count; i++ {
-			b := &nrv.Bracket{
-				ID:          frameIDCol.Value(i),
-				SubSecondUS: subsecCol.Value(i),
-				GoldenSeed:  goldenCol.Value(i),
-				Meta: &nrv.BracketMeta{
-					ID:         frameIDCol.Value(i),
-					Type:       nrv.DeltaType(typeCol.Value(i)),
-					DriftScore: driftCol.Value(i),
-				},
+			var raw [nrv.BracketSize]byte
+			copy(raw[:], asicCol.Value(i))
+			dec := nrv.DecodeBracket(raw)
+			bp := new(nrv.Bracket)
+			*bp = dec
+			bp.ID = idCol.Value(i)
+			bp.FrameID = frameIDCol.Value(i)
+			bp.FrameUnix = frameUnixCol.Value(i)
+			bp.Meta = &nrv.BracketMeta{
+				ID:         idCol.Value(i),
+				Type:       nrv.DeltaType(typeCol.Value(i)),
+				DriftScore: driftCol.Value(i),
 			}
-
-			b.Projections = [32]byte{}
-			projBytes := projCol.Value(i)
-			copy(b.Projections[:], projBytes)
-
-			brackets = append(brackets, b)
+			brackets = append(brackets, bp)
 		}
 		record.Release()
 	}
 
 	return brackets, nil
-}
-
-func euclideanDistanceFloat32(a, b [16]float32) float64 {
-	var sum float64
-	for i := 0; i < 16; i++ {
-		diff := float64(a[i] - b[i])
-		sum += diff * diff
-	}
-	return sum
 }

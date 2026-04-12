@@ -366,3 +366,53 @@ func TestKNIRVQL_BracketFieldQuery(t *testing.T) {
 		t.Fatalf("Expected bracket field 'golden_seed', got '%s'", query.BracketField)
 	}
 }
+
+func TestKNIRVQL_SemanticFiltersMatch(t *testing.T) {
+	parser := &KNIRVQLParser{}
+	query, err := parser.Parse("GET MEMORY WHERE pos_tag = VERB AND domain = MATH")
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+
+	doc := map[string]interface{}{
+		"payload": map[string]interface{}{
+			"thermo": map[string]interface{}{"temp_celsius": float64(72)},
+			"z3":     map[string]interface{}{"status": "VALID"},
+			"brackets_index": []map[string]interface{}{
+				{
+					"id":         "b1",
+					"type":       "I",
+					"pos_tag":    float64(0x02),
+					"domain_sig": float64(0x2000),
+					"tense":      float64(2),
+				},
+			},
+		},
+	}
+
+	if !query.matchesFiltersWithPlan(doc, query.Filters) {
+		t.Fatal("expected semantic filters to match VERB + MATH bracket")
+	}
+}
+
+func TestKNIRVQL_IntentFlagsBitFilter(t *testing.T) {
+	parser := &KNIRVQLParser{}
+	query, err := parser.Parse("GET MEMORY WHERE intent_flags & 0x1")
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if len(query.Filters) != 1 || query.Filters[0].Operator != "&" {
+		t.Fatalf("unexpected filters: %+v", query.Filters)
+	}
+
+	doc := map[string]interface{}{
+		"payload": map[string]interface{}{
+			"brackets_index": []map[string]interface{}{
+				{"intent_flags": float64(0x3)},
+			},
+		},
+	}
+	if !query.matchesFiltersWithPlan(doc, query.Filters) {
+		t.Fatal("expected intent_flags mask to match")
+	}
+}

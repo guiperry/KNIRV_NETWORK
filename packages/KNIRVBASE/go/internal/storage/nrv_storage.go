@@ -2,7 +2,9 @@ package storage
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -154,6 +156,13 @@ func (s *NRVStorage) Find(ctx context.Context, collection, id string) (map[strin
 	return nrvFrameToDocument(entry, brackets), nil
 }
 
+func driftForBracket(b *nrv.Bracket) float64 {
+	if b == nil || b.Meta == nil {
+		return 0
+	}
+	return b.Meta.DriftScore
+}
+
 func nrvFrameToDocument(entry *nrv.FrameEntry, brackets []*nrv.Bracket) map[string]interface{} {
 	doc := map[string]interface{}{
 		"id":         entry.ID,
@@ -177,6 +186,7 @@ func nrvFrameToDocument(entry *nrv.FrameEntry, brackets []*nrv.Bracket) map[stri
 
 	if len(brackets) > 0 {
 		bracketTypes := make([]string, len(brackets))
+		index := make([]map[string]interface{}, len(brackets))
 		var totalDrift float64
 		var maxDrift float64
 		for i, b := range brackets {
@@ -187,17 +197,33 @@ func nrvFrameToDocument(entry *nrv.FrameEntry, brackets []*nrv.Bracket) map[stri
 					maxDrift = b.Meta.DriftScore
 				}
 			}
+			vec := make([]float64, 8)
+			for j := 0; j < 8; j++ {
+				vec[j] = float64(math.Float32frombits(binary.LittleEndian.Uint32(b.Projections[j*4 : j*4+4])))
+			}
+			index[i] = map[string]interface{}{
+				"id":            b.ID,
+				"type":          bracketTypes[i],
+				"pos_tag":       b.POSTag,
+				"tense":         b.Tense,
+				"plurality":     b.Plurality,
+				"dep_head":      b.DepHead,
+				"intent_flags":  b.IntentFlags,
+				"domain_sig":    b.DomainSig,
+				"golden_seed":   b.GoldenSeed,
+				"subsecond_us":  b.SubSecondUS,
+				"drift_score":   driftForBracket(b),
+				"lsh_vector":    vec,
+			}
 		}
-		avgDrift := float64(0)
-		if len(brackets) > 0 {
-			avgDrift = totalDrift / float64(len(brackets))
-		}
+		avgDrift := totalDrift / float64(len(brackets))
 		doc["brackets"] = map[string]interface{}{
 			"count":     len(brackets),
 			"types":     bracketTypes,
 			"avg_drift": avgDrift,
 			"max_drift": maxDrift,
 		}
+		doc["payload"].(map[string]interface{})["brackets_index"] = index
 	}
 
 	return doc

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/binary"
 	"math"
 	"sync"
 	"time"
@@ -15,11 +16,16 @@ const (
 	driftThreshold = 0.25
 )
 
+type MemoryZone struct {
+	HistoryXOR [3]uint32
+}
+
 type PendingBracket struct {
 	Bracket    *nrv.Bracket
 	DeltaType  nrv.DeltaType
 	AnchorID   *string
 	DriftScore float64
+	HistoryXOR [3]uint32
 }
 
 type FrameTicker struct {
@@ -31,12 +37,26 @@ type FrameTicker struct {
 	lastIID  string
 	bktCount int
 
+	memoryZone MemoryZone
+
 	thermoSamples []nrv.ThermoAtmosphere
 	linguistic    nrv.LinguisticMapping
 
-	ticker *time.Ticker
-	stopCh chan struct{}
-	wg     sync.WaitGroup
+	flushMu  sync.Mutex
+	lastErr  error
+	ticker   *time.Ticker
+	stopCh   chan struct{}
+	stopOnce sync.Once
+	wg       sync.WaitGroup
+}
+
+func cloneBracketShallow(b *nrv.Bracket) *nrv.Bracket {
+	if b == nil {
+		return nil
+	}
+	c := *b
+	c.Meta = nil
+	return &c
 }
 
 func NewFrameTicker(w *NRVWriter, interval time.Duration) *FrameTicker {
@@ -51,25 +71,36 @@ func NewFrameTicker(w *NRVWriter, interval time.Duration) *FrameTicker {
 	return ft
 }
 
+// LastFlushError returns the most recent error from flushing to the writer, if any.
+func (ft *FrameTicker) LastFlushError() error {
+	ft.flushMu.Lock()
+	defer ft.flushMu.Unlock()
+	return ft.lastErr
+}
+
 func (ft *FrameTicker) AppendBracket(ctx context.Context, b *nrv.Bracket, thermo nrv.ThermoAtmosphere) error {
 	ft.mu.Lock()
 	defer ft.mu.Unlock()
 
-	b.ID = uuid.New().String()
+	if b.ID == "" {
+		b.ID = uuid.New().String()
+	}
 
 	var deltaType nrv.DeltaType
 	var anchorID *string
 	var driftScore float64
 
+	historyXOR := ft.computeMemoryXOR(b)
+
 	if ft.lastIBkt == nil || ft.bktCount%iFrameInterval == 0 {
 		deltaType = nrv.DeltaTypeI
-		ft.lastIBkt = b
+		ft.lastIBkt = cloneBracketShallow(b)
 		ft.lastIID = b.ID
 	} else {
 		driftScore = euclideanDrift(b.Projections, ft.lastIBkt.Projections)
 		if driftScore > driftThreshold {
 			deltaType = nrv.DeltaTypeI
-			ft.lastIBkt = b
+			ft.lastIBkt = cloneBracketShallow(b)
 			ft.lastIID = b.ID
 		} else {
 			deltaType = nrv.DeltaTypeP
@@ -84,11 +115,33 @@ func (ft *FrameTicker) AppendBracket(ctx context.Context, b *nrv.Bracket, thermo
 		DeltaType:  deltaType,
 		AnchorID:   anchorID,
 		DriftScore: driftScore,
+		HistoryXOR: historyXOR,
 	})
 	ft.thermoSamples = append(ft.thermoSamples, thermo)
 	ft.bktCount++
 
 	return nil
+}
+
+func (ft *FrameTicker) computeMemoryXOR(b *nrv.Bracket) [3]uint32 {
+	slot6 := ft.memoryZone.HistoryXOR[0] ^ hashBracket(b)
+	slot7 := ft.memoryZone.HistoryXOR[1] ^ slot6
+	slot8 := ft.memoryZone.HistoryXOR[2] ^ slot7
+
+	ft.memoryZone.HistoryXOR[0] = slot6
+	ft.memoryZone.HistoryXOR[1] = slot7
+	ft.memoryZone.HistoryXOR[2] = slot8
+
+	return [3]uint32{slot6, slot7, slot8}
+}
+
+func hashBracket(b *nrv.Bracket) uint32 {
+	h := b.GoldenSeed
+	for i := 0; i < 32; i += 4 {
+		h ^= binary.LittleEndian.Uint32(b.Projections[i : i+4])
+	}
+	h ^= b.SubSecondUS
+	return h
 }
 
 func (ft *FrameTicker) SetLinguistic(token, unit string) {
@@ -98,12 +151,7 @@ func (ft *FrameTicker) SetLinguistic(token, unit string) {
 }
 
 func (ft *FrameTicker) Stop() {
-	select {
-	case <-ft.stopCh:
-		return
-	default:
-		close(ft.stopCh)
-	}
+	ft.stopOnce.Do(func() { close(ft.stopCh) })
 	ft.wg.Wait()
 }
 
@@ -118,6 +166,15 @@ func (ft *FrameTicker) run() {
 			ft.flush()
 			return
 		}
+	}
+}
+
+func writeHistoryToMemory(dst *[14]byte, hx [3]uint32) {
+	binary.LittleEndian.PutUint32(dst[0:4], hx[0])
+	binary.LittleEndian.PutUint32(dst[4:8], hx[1])
+	binary.LittleEndian.PutUint32(dst[8:12], hx[2])
+	for i := 12; i < 14; i++ {
+		dst[i] = 0
 	}
 }
 
@@ -138,6 +195,7 @@ func (ft *FrameTicker) flush() {
 	atmosphere := aggregateThermo(thermo)
 	bracketMetas := make([]nrv.BracketMeta, len(pending))
 	for i, pb := range pending {
+		writeHistoryToMemory(&pb.Bracket.Memory, pb.HistoryXOR)
 		bracketMetas[i] = nrv.BracketMeta{
 			ID:         pb.Bracket.ID,
 			Type:       pb.DeltaType,
@@ -153,14 +211,17 @@ func (ft *FrameTicker) flush() {
 		copy(buf[i*nrv.BracketSize:], encoded[:])
 	}
 
-	_ = ft.writer.AppendFrame(frameID, buf, bracketMetas, atmosphere, ling)
+	err := ft.writer.AppendFrame(frameID, buf, bracketMetas, atmosphere, ling)
+	ft.flushMu.Lock()
+	ft.lastErr = err
+	ft.flushMu.Unlock()
 }
 
 func euclideanDrift(a, b [32]byte) float64 {
 	var sum float64
 	for i := 0; i < 8; i++ {
-		av := math.Float32frombits(uint32(a[i*4]) | uint32(a[i*4+1])<<8 | uint32(a[i*4+2])<<16 | uint32(a[i*4+3])<<24)
-		bv := math.Float32frombits(uint32(b[i*4]) | uint32(b[i*4+1])<<8 | uint32(b[i*4+2])<<16 | uint32(b[i*4+3])<<24)
+		av := math.Float32frombits(binary.LittleEndian.Uint32(a[i*4 : i*4+4]))
+		bv := math.Float32frombits(binary.LittleEndian.Uint32(b[i*4 : i*4+4]))
 		diff := float64(av) - float64(bv)
 		sum += diff * diff
 	}

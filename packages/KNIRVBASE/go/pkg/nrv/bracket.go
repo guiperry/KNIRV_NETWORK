@@ -11,18 +11,21 @@ const BracketSize = 80
 
 type Bracket struct {
 	ID          string
-	Projections [32]byte // LSH Projections (Slots 0-3: Semantic Compass)
-	SubSecondUS uint32   // Sub-second timestamp in microseconds
-	POSTag      uint8    // Slot 4: Part-of-Speech tag
-	Tense       uint8    // Slot 4: Tense
-	Plurality   uint8    // Slot 4: Plurality
-	DepHead     uint8    // Slot 5: Dependency Head
-	IntentFlags uint8    // Slot 9: Intent flags (Question/Command/Code)
-	DomainSig   uint16   // Slot 10: Domain signature (Math/Code/Prose)
-	GoldenSeed  uint32   // Solved nonce from ASIC pass
-	Memory      [14]byte // Slots 6-8: Recursive XOR summary of last 10 headers (temporal memory)
-	LSHSalt     uint32   // Slot 11: Temporal Lock (LSH forest seed)
+	Projections [32]byte // 0x00-0x1F: slots 0-3 — semantic compass / LSH projections
+	SubSecondUS uint32   // 0x20-0x23: metadata — SubSecondUS ticker
+	POSTag      uint8    // Slot 4 (unpacked); wire 0x24 bit-packs with Tense, Plurality (PackSyntacticByte)
+	Tense       uint8    // Slot 4
+	Plurality   uint8    // Slot 4
+	DepHead     int8     // Slot 5, 0x27 — structural logic: DepHead
+	IntentFlags uint8    // Slot 9, 0x28 — identity: IntentFlags
+	DomainSig   uint16   // Slot 10, 0x29-0x2A — mode: DomainSig (LE)
+	GoldenSeed  uint32   // 0x2B-0x2E: nonce target — the solved "Weight"
+	Memory      [14]byte // Slots 6-8, 0x2F-0x3C — recursive context: Memory
+	LSHSalt     uint32   // Slot 11, 0x3D-0x40 — `(PosIndex << 16) | TemporalSalt` — Contextual Anchor (warm uniqueness)
+	Reserved    [15]byte // 0x41-0x4F: metadata — Z3 validation trace / reserved
 	Meta        *BracketMeta
+	FrameID     string
+	FrameUnix   int64
 }
 
 type BracketMeta struct {
@@ -59,7 +62,7 @@ type SyntacticProfile struct {
 	POSTag    uint8
 	Tense     uint8
 	Plurality uint8
-	DepHead   int16
+	DepHead   int8
 }
 
 type IntentDomain struct {

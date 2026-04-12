@@ -1,13 +1,18 @@
 # Caliber Learnings
 
-Accumulated learnings from development sessions.
+Accumulated patterns and anti-patterns from development sessions.
 Auto-managed by [caliber](https://github.com/caliber-ai-org/ai-setup) — do not edit manually.
-
-<!-- LEARNING FOCUS: Record ONLY build, testing, and deployment context — e.g. module/dependency issues that break compilation, test commands and their quirks, deployment steps and environment requirements. Do NOT record code-level bugs, security findings, code patterns, or developer gotchas about API usage. Those belong in code_audit.md or the issue tracker. -->
 
 - **[context]** packages/KNIRVBASE/go/ is the source-of-truth implementation for KNIRVBASE; Rust and TS must conform to it. When discrepancies exist between language implementations, Go's behavior is authoritative
 - **[gotcha]** `packages/KNIRVSHELL/go.mod` declares module `github.com/KNIRV/KNIRV_NETWORK/KNIRVCLI`, but the spec and `internal/` imports reference `github.com/knirv/knirvshell`. The package is uncompilable until one name is chosen and applied consistently across all files.
 - **[gotcha]** `packages/KNIRVSHELL/go.mod` previously had duplicate `require` entries for OpenTelemetry packages and `golang.org/x/sys` with conflicting versions. Always run `go mod tidy` inside `packages/KNIRVSHELL/` after any dependency change — do not trust the lockfile as-is.
-**[pattern]** When auditing KNIRVBASE cross-language consistency: analyze source code directly (not docs), use Go as source of truth, produce a consistency_status.md with a module coverage matrix (Go/Rust/TS) and issues organized by severity (Critical/High/Medium/Low) with file:line references and a prioritized resolution order
-
-- **[context]** packages/KNIRVBASE/go/ is the source-of-truth implementation for KNIRVBASE; Rust and TS must conform to it. When discrepancies exist between language implementations, Go's behavior is authoritative
+- **[gotcha]** In `packages/KNIRVBASE/go/pkg/nrv/bracket.go`, `SyntacticProfile.DepHead` must be `int8` (not `int16`) to match the `Bracket.DepHead` field and the single-byte wire slot at offset 0x27. Using `int16` causes type mismatches in encode/decode paths.
+- **[gotcha]** `nrv.EncodeBracket` must encode the Reserved field (`copy(buf[65:80], b.Reserved[:])`), and `DecodeBracket` must decode it back (`copy(b.Reserved[:], buf[65:80])`). Omitting Reserved encoding causes silent data loss in round-trips — round-trip tests comparing `decoded.Reserved != b.Reserved` will catch this but the bug is non-obvious.
+- **[pattern]** The KNIRVBASE Go module path is `github.com/knirvcorp/knirvbase/go` — not `github.com/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/go`. Use this path when adding import aliases or cross-package references within `packages/KNIRVBASE/go/`.
+- **[gotcha]** When editing `packages/KNIRVBASE/go/internal/query/knirvql.go`, only import `encoding/binary` and `math` if functions that use them are actually present and called in the final file. Go rejects unused imports — missing this causes build failures that look unrelated to the query logic being added.
+- **[gotcha]** `go test` in `packages/KNIRVBASE/go/` must be run from within that directory with relative package paths (e.g. `./pkg/nrv/...`). Running from the repo root gives "cannot find main module" because each KNIRV package has its own `go.mod`.
+- **[correction]** `LSHSalt` does not exist as a separate field in the NRV wire spec — it IS the `GoldenSeed`. Never create or reference a separate `LSHSalt` field in `Bracket`; remove any test assertions on `decoded.LSHSalt` and rename any document index keys from `lsh_salt` to `golden_seed`.
+- **[correction]** `GoldenSeed` encodes to exactly ONE wire location: bytes 61–64 (slot 11, offset 0x3D–0x40). Previous code incorrectly wrote it to both 0x2B–0x2E and 0x3D–0x40. The correct 80-byte wire map is: projections (0–31), SubSecondUS (32–35), syntactic packed byte (36), CPU reserved (37–38), DepHead (39), IntentFlags (40), DomainSig (41–42), Memory/context bridge (43–60), GoldenSeed (61–64), Z3/reserved (65–79).
+- **[correction]** `Bracket.Memory` is 18 bytes (wire bytes 43–60, slots 6–8), not 14. Using `[14]byte` for Memory misaligns GoldenSeed out of its canonical slot at 61–64 and breaks the wire layout.
+- **[correction]** Wire byte 36 (slot 4) is a single packed byte encoding POS (low nibble), tense, and plurality via `PackSyntacticByte`. Earlier incorrect layouts split these across bytes 36/37/38 as three separate fields. Always encode slot 4 as one packed byte and decode with `UnpackSyntacticByte`.
+- **[fix]** In `FrameTicker.AppendBracket`, the anchor bracket (`lastIBkt`) must be stored via `cloneBracketShallow(b)`, not as a raw pointer. Storing the raw pointer means subsequent P-frame XOR mutations overwrite the anchor's `Projections` field, silently corrupting drift detection for all future brackets in the same frame.

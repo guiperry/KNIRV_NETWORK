@@ -81,7 +81,7 @@ func BenchmarkStreamBrackets_Gold(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		server := &mockServer{ctx: context.Background()}
+		server := &bracketStreamRecorder{ctx: context.Background()}
 		err := flightServer.StreamBrackets("gold."+collection, server)
 		if err != nil {
 			b.Fatal(err)

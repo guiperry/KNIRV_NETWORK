@@ -2,6 +2,7 @@ package nrv
 
 import (
 	"bytes"
+	"encoding/binary"
 	"testing"
 )
 
@@ -130,17 +131,20 @@ func TestEncodeBracket_RoundTrip(t *testing.T) {
 		POSTag:      0x01,
 		Tense:       0x02,
 		Plurality:   0x01,
-		DepHead:     0x05,
+		DepHead:     5,
 		IntentFlags: 0x03,
 		DomainSig:   0x1234,
 		GoldenSeed:  0xDEADBEEF,
-		LSHSalt:     0x12345678,
 	}
 	for i := range b.Projections {
 		b.Projections[i] = byte(i % 256)
 	}
 	for i := range b.Memory {
 		b.Memory[i] = byte((i * 7) % 256)
+	}
+	b.LSHSalt = 0x12345678
+	for i := range b.Reserved {
+		b.Reserved[i] = byte(200 + i)
 	}
 
 	encoded := EncodeBracket(b)
@@ -179,8 +183,20 @@ func TestEncodeBracket_RoundTrip(t *testing.T) {
 	if decoded.Memory != b.Memory {
 		t.Errorf("Memory mismatch")
 	}
+	if decoded.Reserved != b.Reserved {
+		t.Errorf("Reserved mismatch")
+	}
 	if len(encoded) != BracketSize {
 		t.Errorf("encoded length: got %d, want %d", len(encoded), BracketSize)
+	}
+	if encoded[36] != b.POSTag {
+		t.Errorf("wire POSTag at 36: got 0x%02x want 0x%02x", encoded[36], b.POSTag)
+	}
+	if got := binary.LittleEndian.Uint32(encoded[43:47]); got != b.GoldenSeed {
+		t.Errorf("GoldenSeed wire at 43–46: got 0x%X want 0x%X", got, b.GoldenSeed)
+	}
+	if got := binary.LittleEndian.Uint32(encoded[61:65]); got != b.LSHSalt {
+		t.Errorf("LSHSalt wire at 61–64: got 0x%X want 0x%X", got, b.LSHSalt)
 	}
 }
 
@@ -228,5 +244,31 @@ func TestDeltaType_Constants(t *testing.T) {
 	}
 	if DeltaTypeP != "P" {
 		t.Errorf("DeltaTypeP = %s, want P", DeltaTypeP)
+	}
+}
+
+func TestEncodeSyntactic_PackUnpack(t *testing.T) {
+	sp := SyntacticProfile{POSTag: 0x02, Tense: 2, Plurality: 1, DepHead: -17}
+	v := EncodeSyntactic(sp)
+	got := DecodeSyntactic(v)
+	if got != sp {
+		t.Fatalf("round-trip mismatch: got %+v want %+v", got, sp)
+	}
+}
+
+func TestEncodeIntentDomain_PackUnpack(t *testing.T) {
+	id := IntentDomain{IntentFlags: 0x7, DomainSig: 0x2000}
+	v := EncodeIntentDomain(id)
+	got := DecodeIntentDomain(v)
+	if got != id {
+		t.Fatalf("round-trip mismatch: got %+v want %+v", got, id)
+	}
+}
+
+func TestPackSyntacticByte_MasterSpec(t *testing.T) {
+	b := PackSyntacticByte(9, 2, 1)
+	p, te, pl := UnpackSyntacticByte(b)
+	if p != 9 || te != 2 || pl != 1 {
+		t.Fatalf("unpack mismatch p=%d te=%d pl=%d", p, te, pl)
 	}
 }
