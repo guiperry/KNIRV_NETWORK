@@ -264,6 +264,50 @@ func FlightDataToBrackets(data []byte) ([]*nrv.Bracket, error) {
 	return brackets, nil
 }
 
+// euclideanDistanceFloat32 calculates the squared Euclidean distance between two
+// 16-dimensional float32 vectors. Each Bracket's Projections [32]byte field
+// encodes a 16-dimensional LSH vector (2 bytes per dimension, uint16 normalized
+// to float32). This distance drives the I/P-bracket decision: a new I-bracket
+// is emitted whenever the drift score exceeds the configured threshold.
+//
+// Usage: convert a Bracket's Projections to [16]float32 via projectionsToFloat32,
+// then compare current vs. anchor bracket to produce the drift_score stored in
+// BracketMeta and the frame's bracket_index entry.
+func euclideanDistanceFloat32(a, b [16]float32) float64 {
+	var sum float64
+	for i := 0; i < 16; i++ {
+		diff := float64(a[i] - b[i])
+		sum += diff * diff
+	}
+	return sum
+}
+
+// projectionsToFloat32 interprets a Bracket's 32-byte Projections field as a
+// 16-dimensional LSH vector. Each pair of bytes encodes one uint16 dimension,
+// which is normalized to the float32 range [0.0, 1.0].
+func projectionsToFloat32(p [32]byte) [16]float32 {
+	var v [16]float32
+	for i := 0; i < 16; i++ {
+		val := uint16(p[i*2]) | uint16(p[i*2+1])<<8
+		v[i] = float32(val) / 65535.0
+	}
+	return v
+}
+
+// CalcBracketDriftScore returns the Euclidean drift between two brackets based
+// on their 16-dimensional LSH Projections. The result is stored as DriftScore
+// in BracketMeta and used by the FrameTicker to decide when to anchor a new
+// I-bracket vs. emitting a P-bracket (delta).
+func CalcBracketDriftScore(current, anchor *nrv.Bracket) float64 {
+	if current == nil || anchor == nil {
+		return 0
+	}
+	return euclideanDistanceFloat32(
+		projectionsToFloat32(current.Projections),
+		projectionsToFloat32(anchor.Projections),
+	)
+}
+
 type FlightClient struct {
 	conn    io.Reader
 	memPool memory.Allocator

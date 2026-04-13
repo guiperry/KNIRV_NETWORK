@@ -63,7 +63,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image desktop desktop-deps desktop-build dash gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image desktop desktop-deps desktop-build dash gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean build-full
 
 # Default target
 all: proto frontend desktop-build backend binary
@@ -190,6 +190,22 @@ binary: proto ebpf-generate frontend desktop-build gateway-build graph-build cha
 	chmod +x $(BACKEND_DIR)/cmd/container_deployer/golang-app-source/knirv-server
 	@echo "$(GREEN)Binary copied to container_deployer/golang-app-source in both embedded backend and app data directory$(NC)"
 	@echo "$(GREEN)Good Build!$(NC)"
+
+# Quick Binary Relink (fast path, assumes all components already built)
+# Use this after making changes to frontend, desktop, backend, or embedded binaries to quickly relink without rebuilding everything
+relink: ## Quickly relink the unified binary (assumes all components already built)
+	@echo "$(BLUE)Relinking unified binary (fast path)...$(NC)"
+	@mkdir -p $(DIST_DIR)
+	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
+	chmod 755 $(DIST_DIR)/knirv-server
+	@echo "$(BLUE)Copying binary to container_deployer golang-app-source in app data directory...$(NC)"
+	@mkdir -p $(APPDATA_DIR)/container_deployer/resources/golang-app-source
+	cp $(DIST_DIR)/knirv-server $(APPDATA_DIR)/container_deployer/resources/golang-app-source
+	chmod +x $(APPDATA_DIR)/container_deployer/resources/golang-app-source/knirv-server
+	@mkdir -p $(BACKEND_DIR)/cmd/container_deployer/golang-app-source
+	cp $(DIST_DIR)/knirv-server $(BACKEND_DIR)/cmd/container_deployer/golang-app-source
+	chmod +x $(BACKEND_DIR)/cmd/container_deployer/golang-app-source/knirv-server
+	@echo "$(GREEN)Done — binary relinked: $(DIST_DIR)/knirv-server$(NC)"
 
 # Testing
 test: test-go test-frontend ## Run standard tests (unit + frontend)

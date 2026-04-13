@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -76,14 +77,25 @@ type HealthStatus struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+func getChainAppDataDir() string {
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".local", "share", "knirvserver")
+	}
+	if usr, err := user.Current(); err == nil {
+		return filepath.Join(usr.HomeDir, ".local", "share", "knirvserver")
+	}
+	return "data"
+}
+
 func DefaultManagerConfig() *ManagerConfig {
+	appDataDir := getChainAppDataDir()
 	return &ManagerConfig{
 		SocketPath:    "chain.sock",
 		P2PSocketPath: "chain-p2p.sock",
 		Port:          8083,
 		P2PPort:       4001,
 		APIPort:       9090,
-		DataPath:      "~/.knirvchain",
+		DataPath:      filepath.Join(appDataDir, "knirvchain"),
 		Role:          "client",
 		ChainID:       "testnet",
 		StartTimeout:  30 * time.Second,

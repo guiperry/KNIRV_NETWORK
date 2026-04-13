@@ -258,7 +258,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-6 border-b">
             <div>
-              <h2 className="text-2xl font-bold">P2P Transport Access</h2>
+              <h2 className="text-2xl font-bold">KNIRVGATEWAY Access</h2>
               <p className="text-muted-foreground">
                 Secure NAT Traversal & Peer Connectivity
               </p>

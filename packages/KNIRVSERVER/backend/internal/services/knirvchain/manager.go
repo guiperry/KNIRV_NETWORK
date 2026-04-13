@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -76,14 +77,25 @@ type HealthStatus struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+func getChainAppDataDir() string {
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".local", "share", "knirvserver")
+	}
+	if usr, err := user.Current(); err == nil {
+		return filepath.Join(usr.HomeDir, ".local", "share", "knirvserver")
+	}
+	return "data"
+}
+
 func DefaultManagerConfig() *ManagerConfig {
+	appDataDir := getChainAppDataDir()
 	return &ManagerConfig{
 		SocketPath:    "chain.sock",
 		P2PSocketPath: "chain-p2p.sock",
 		Port:          8083,
 		P2PPort:       4001,
 		APIPort:       9090,
-		DataPath:      "~/.knirvchain",
+		DataPath:      filepath.Join(appDataDir, "knirvchain"),
 		Role:          "client",
 		ChainID:       "testnet",
 		StartTimeout:  30 * time.Second,
@@ -198,14 +210,29 @@ func (m *Manager) Start(ctx context.Context) error {
 		zap.Int("api_port", m.config.APIPort),
 		zap.Int("p2p_port", m.config.P2PPort),
 		zap.String("socket_path", m.config.SocketPath),
+		zap.String("data_path", m.config.DataPath),
 		zap.String("role", m.config.Role))
+
+	// Expand DataPath if it contains ~ or relative paths
+	expandedDataPath := m.config.DataPath
+	if strings.HasPrefix(expandedDataPath, "~") {
+		if home, err := os.UserHomeDir(); err == nil {
+			if len(expandedDataPath) > 1 && (expandedDataPath[1] == '/' || expandedDataPath[1] == '\\') {
+				expandedDataPath = filepath.Join(home, expandedDataPath[2:])
+			} else if len(expandedDataPath) > 1 {
+				expandedDataPath = filepath.Join(home, expandedDataPath[1:])
+			} else {
+				expandedDataPath = home
+			}
+		}
+	}
 
 	env := os.Environ()
 	env = append(env,
 		fmt.Sprintf("KNIRV_HTTP_PORT=%d", m.config.Port),
 		fmt.Sprintf("KNIRV_P2P_PORT=%d", m.config.P2PPort),
 		fmt.Sprintf("KNIRV_CHAIN_ID=%s", m.config.ChainID),
-		fmt.Sprintf("KNIRV_DATA_DIR=%s", m.config.DataPath),
+		fmt.Sprintf("KNIRV_DATA_DIR=%s", expandedDataPath),
 		fmt.Sprintf("KNIRV_SOCKET_PATH=%s", m.config.SocketPath),
 	)
 

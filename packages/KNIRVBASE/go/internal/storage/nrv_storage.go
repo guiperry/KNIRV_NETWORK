@@ -2,9 +2,7 @@ package storage
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -197,23 +195,25 @@ func nrvFrameToDocument(entry *nrv.FrameEntry, brackets []*nrv.Bracket) map[stri
 					maxDrift = b.Meta.DriftScore
 				}
 			}
-			vec := make([]float64, 8)
-			for j := 0; j < 8; j++ {
-				vec[j] = float64(math.Float32frombits(binary.LittleEndian.Uint32(b.Projections[j*4 : j*4+4])))
+			vec := make([]float64, 16)
+			for j := 0; j < 16; j++ {
+				val := uint16(b.Projections[j*2]) | uint16(b.Projections[j*2+1])<<8
+				vec[j] = float64(val) / 65535.0
 			}
 			index[i] = map[string]interface{}{
-				"id":            b.ID,
-				"type":          bracketTypes[i],
-				"pos_tag":       b.POSTag,
-				"tense":         b.Tense,
-				"plurality":     b.Plurality,
-				"dep_head":      b.DepHead,
-				"intent_flags":  b.IntentFlags,
-				"domain_sig":    b.DomainSig,
-				"golden_seed":   b.GoldenSeed,
-				"subsecond_us":  b.SubSecondUS,
-				"drift_score":   driftForBracket(b),
-				"lsh_vector":    vec,
+				"id":           b.ID,
+				"type":         bracketTypes[i],
+				"pos_tag":      b.GetPOSTag(),
+				"tense":        b.GetTense(),
+				"plurality":    b.GetPlurality(),
+				"dep_head":     b.DepHead,
+				"intent_flags": b.IntentFlags,
+				"domain_sig":   b.DomainSig,
+				"golden_seed":  b.GoldenSeed,
+				"subsecond_us": b.SubSecondUS,
+				"lsh_salt":     b.LSHSalt,
+				"drift_score":  driftForBracket(b),
+				"lsh_vector":   vec,
 			}
 		}
 		avgDrift := totalDrift / float64(len(brackets))

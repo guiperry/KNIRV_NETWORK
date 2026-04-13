@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dgraph-io/badger/v3"
@@ -15,12 +16,26 @@ type BluntDBStorage struct {
 }
 
 func NewBluntDBStorage(path string) (*BluntDBStorage, error) {
+	// Expand ~ to home directory if present
+	if strings.HasPrefix(path, "~") {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get home directory: %w", err)
+		}
+		path = filepath.Join(homeDir, path[1:])
+	}
+
+	// Ensure directory exists with proper permissions
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create storage directory %s: %w", path, err)
+	}
+
 	opts := badger.DefaultOptions(path)
 	opts.Logger = nil // Disable badger logging
 
 	db, err := badger.Open(opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open BluntDB: %w", err)
+		return nil, fmt.Errorf("failed to open BluntDB at %s: %w", path, err)
 	}
 
 	return &BluntDBStorage{db: db}, nil

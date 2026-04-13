@@ -13,16 +13,14 @@ func TestBracketWireLayoutMatchesSpecification(t *testing.T) {
 	b := Bracket{
 		Projections: [32]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32},
 		SubSecondUS: 0x12345678,
-		POSTag:      0x0A,
-		Tense:       0x02,
-		Plurality:   0x01,
+		Syntactic:   PackSyntacticByte(0x0A, 0x02, 0x01),
 		DepHead:     5,
 		IntentFlags: 0x03,
 		DomainSig:   0x1234,
 		GoldenSeed:  0xDEADBEEF,
 		Memory:      [14]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},
 		LSHSalt:     0xAABBCCDD,
-		Reserved:    [15]byte{0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55},
+		Reserved:    [17]byte{0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55},
 	}
 
 	encoded := EncodeBracket(&b)
@@ -35,16 +33,14 @@ func TestBracketWireLayoutMatchesSpecification(t *testing.T) {
 	}{
 		{"Projections (Slots 0-3)", 0, 32, b.Projections[:]},
 		{"SubSecondUS", 32, 4, []byte{0x78, 0x56, 0x34, 0x12}},
-		{"POSTag (Slot 4)", 36, 1, []byte{0x0A}},
-		{"Tense (Slot 4)", 37, 1, []byte{0x02}},
-		{"Plurality (Slot 4)", 38, 1, []byte{0x01}},
-		{"DepHead (Slot 5)", 39, 1, []byte{0x05}},
-		{"IntentFlags (Slot 9)", 40, 1, []byte{0x03}},
-		{"DomainSig (Slot 10)", 41, 2, []byte{0x34, 0x12}},
-		{"GoldenSeed (Nonce Target)", 43, 4, []byte{0xEF, 0xBE, 0xAD, 0xDE}},
-		{"Memory (Slots 6-8)", 47, 14, b.Memory[:]},
-		{"LSHSalt (Slot 11)", 61, 4, []byte{0xDD, 0xCC, 0xBB, 0xAA}},
-		{"Reserved", 65, 15, b.Reserved[:]},
+		{"Syntactic (Slot 4, bit-packed)", 36, 1, []byte{PackSyntacticByte(0x0A, 0x02, 0x01)}},
+		{"DepHead (Slot 5)", 37, 1, []byte{0x05}},
+		{"IntentFlags (Slot 9)", 38, 1, []byte{0x03}},
+		{"DomainSig (Slot 10)", 39, 2, []byte{0x34, 0x12}},
+		{"GoldenSeed (Nonce Target)", 41, 4, []byte{0xEF, 0xBE, 0xAD, 0xDE}},
+		{"Memory (Slots 6-8)", 45, 14, b.Memory[:]},
+		{"LSHSalt (Slot 11)", 59, 4, []byte{0xDD, 0xCC, 0xBB, 0xAA}},
+		{"Reserved", 63, 17, b.Reserved[:]},
 	}
 
 	for _, tt := range tests {
@@ -67,16 +63,14 @@ func TestBracketDecodeReversesEncode(t *testing.T) {
 		ID:          "test-bracket-id",
 		Projections: [32]byte{0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10},
 		SubSecondUS: 987654321,
-		POSTag:      5,
-		Tense:       2,
-		Plurality:   1,
+		Syntactic:   PackSyntacticByte(5, 2, 1),
 		DepHead:     -3,
 		IntentFlags: 0x07,
 		DomainSig:   0x5678,
 		GoldenSeed:  0x12345678,
 		Memory:      [14]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},
 		LSHSalt:     0xABCD1234,
-		Reserved:    [15]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		Reserved:    [17]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		FrameID:     "frame-123",
 		FrameUnix:   1700000000,
 	}
@@ -90,14 +84,14 @@ func TestBracketDecodeReversesEncode(t *testing.T) {
 	if decoded.SubSecondUS != b.SubSecondUS {
 		t.Errorf("SubSecondUS: got %d, want %d", decoded.SubSecondUS, b.SubSecondUS)
 	}
-	if decoded.POSTag != b.POSTag {
-		t.Errorf("POSTag: got %d, want %d", decoded.POSTag, b.POSTag)
+	if decoded.GetPOSTag() != b.GetPOSTag() {
+		t.Errorf("POSTag: got %d, want %d", decoded.GetPOSTag(), b.GetPOSTag())
 	}
-	if decoded.Tense != b.Tense {
-		t.Errorf("Tense: got %d, want %d", decoded.Tense, b.Tense)
+	if decoded.GetTense() != b.GetTense() {
+		t.Errorf("Tense: got %d, want %d", decoded.GetTense(), b.GetTense())
 	}
-	if decoded.Plurality != b.Plurality {
-		t.Errorf("Plurality: got %d, want %d", decoded.Plurality, b.Plurality)
+	if decoded.GetPlurality() != b.GetPlurality() {
+		t.Errorf("Plurality: got %d, want %d", decoded.GetPlurality(), b.GetPlurality())
 	}
 	if decoded.DepHead != b.DepHead {
 		t.Errorf("DepHead: got %d, want %d", decoded.DepHead, b.DepHead)
@@ -133,10 +127,10 @@ func TestLSHSaltFormat(t *testing.T) {
 	}
 
 	encoded := EncodeBracket(&b)
-	gotLSH := binary.LittleEndian.Uint32(encoded[61:65])
+	gotLSH := binary.LittleEndian.Uint32(encoded[59:63])
 
 	if gotLSH != expected {
-		t.Errorf("LSHSalt at offset 0x3D: got 0x%08X, want 0x%08X", gotLSH, expected)
+		t.Errorf("LSHSalt at offset 0x3B: got 0x%08X, want 0x%08X", gotLSH, expected)
 	}
 
 	decoded := DecodeBracket(encoded)
@@ -214,13 +208,13 @@ func TestZeroValueBracketEncodeDecode(t *testing.T) {
 	if decoded.SubSecondUS != 0 {
 		t.Error("SubSecondUS should be zero")
 	}
-	if decoded.POSTag != 0 {
+	if decoded.GetPOSTag() != 0 {
 		t.Error("POSTag should be zero")
 	}
-	if decoded.Tense != 0 {
+	if decoded.GetTense() != 0 {
 		t.Error("Tense should be zero")
 	}
-	if decoded.Plurality != 0 {
+	if decoded.GetPlurality() != 0 {
 		t.Error("Plurality should be zero")
 	}
 	if decoded.DepHead != 0 {

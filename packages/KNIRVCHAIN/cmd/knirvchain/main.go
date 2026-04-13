@@ -45,36 +45,6 @@ var mainChromemManager sync.Map
 var globalAgentInferencer *agentify.AgentInferencer
 var globalInferenceService *inference.InferenceService
 
-// Placeholder types for network components
-
-type WAN struct {
-	// Placeholder
-}
-
-func (w *WAN) PutValue(ctx context.Context, key string, value []byte) error {
-	return nil
-}
-
-type DHT struct {
-	WAN *WAN
-}
-
-type HostID struct {
-	// Placeholder
-}
-
-func (hid *HostID) String() string {
-	return "placeholder-id"
-}
-
-type Host struct {
-	// Placeholder
-}
-
-func (h *Host) ID() *HostID {
-	return &HostID{}
-}
-
 type DiscoveryManager = p2p.DiscoveryManager
 
 type BlockchainStruct = blockchain.BlockchainStruct
@@ -308,7 +278,7 @@ func NewGoReverseProxy(proxyConfig interface{}, frontendURL, backendURL string, 
 type ChromemManager = blockchain.ChromemManager
 
 func NewLevelDB(path string) (*LevelDB, error) {
-	return blockchain.NewLevelDB(path)
+	return database.NewLevelDB(path)
 }
 
 // NewDiscoveryManager is provided by the internal p2p package (p2p.NewDiscoveryManager)
@@ -346,74 +316,6 @@ func initPaymentProcessor(_ interface{}, _ *LevelDB, _ interface{}) (*PaymentPro
 	return &PaymentProcessor{}, nil
 }
 
-// NewP2PConsensusManager is provided by the internal p2p package (p2p.NewP2PConsensusManager)
-
-// Use network.EnableRelayOnHost when enabling relays on the discovery manager's libp2p Host and DHT.
-
-// Remove duplicate - use the one in internal/network package
-
-type ConsensusManager struct {
-	// Placeholder
-	miningLocked   bool
-	updateRequired bool
-}
-
-func (cm *ConsensusManager) Stop() {
-	// Placeholder
-}
-
-func (cm *ConsensusManager) StartConsensus(ctx context.Context) error {
-	return fmt.Errorf("start consensus not implemented")
-}
-
-func (cm *ConsensusManager) StopConsensus() error {
-	return fmt.Errorf("stop consensus not implemented")
-}
-
-func (cm *ConsensusManager) ProposeValue(value interface{}) error {
-	return fmt.Errorf("propose value not implemented")
-}
-
-func (cm *ConsensusManager) VoteOnProposal(proposalID string, vote bool) error {
-	return fmt.Errorf("vote on proposal not implemented")
-}
-
-func (cm *ConsensusManager) GetConsensusState() p2p.ConsensusState {
-	return p2p.ConsensusState{}
-}
-
-func (cm *ConsensusManager) AddParticipant(peerID string) error {
-	return fmt.Errorf("add participant not implemented")
-}
-
-func (cm *ConsensusManager) RemoveParticipant(peerID string) error {
-	return fmt.Errorf("remove participant not implemented")
-}
-
-func (cm *ConsensusManager) GetParticipants() []string {
-	return nil
-}
-
-func (cm *ConsensusManager) OnConsensusReached(handler p2p.ConsensusHandler) error {
-	return fmt.Errorf("on consensus reached not implemented")
-}
-
-func (cm *ConsensusManager) OnProposalReceived(handler p2p.ProposalHandler) error {
-	return fmt.Errorf("on proposal received not implemented")
-}
-
-func (cm *ConsensusManager) GetMiningLockState() bool {
-	return cm.miningLocked
-}
-
-func (cm *ConsensusManager) GetUpdateRequired() bool {
-	return cm.updateRequired
-}
-
-func NewConsensusManager(bc *BlockchainStruct, reflectURLs []string, selfURL string) *ConsensusManager {
-	return &ConsensusManager{}
-}
-
 // WalletServer is provided by internal/wallet package; no placeholder here.
 
 type BlockchainServer = blockchain.BlockchainServer
@@ -428,22 +330,6 @@ type PaymentProcessor struct {
 
 func (pp *PaymentProcessor) Stop() error {
 	return nil
-}
-
-type EconomicsIntegration struct {
-	// Placeholder
-}
-
-func (ei *EconomicsIntegration) IsLocalMode() bool {
-	return false
-}
-
-func (ei *EconomicsIntegration) StopLocalEconomicsService() {
-	// Placeholder
-}
-
-func initEconomicsIntegration(_ interface{}) (*EconomicsIntegration, error) {
-	return &EconomicsIntegration{}, nil
 }
 
 func HandleFailoverPromotion(configPath string, cfg interface{}, wm *wallet.WalletManagerImpl) error {
@@ -1620,24 +1506,6 @@ func startNodeWithComponents(
 			_ = relayConfig
 		}
 
-		// Legacy Consensus Manager (conditionally initialized)
-		var consensusMgr *ConsensusManager
-		if cfg.IsRoot && isNetworkMode { // isNetworkMode now passed as parameter
-			selfURL := localChainBaseURL(cfg)
-			reflectURLsArray := make([]string, len(cfg.ReflectionURLs))
-			copy(reflectURLsArray, cfg.ReflectionURLs)
-			consensusMgr = NewConsensusManager(bc, reflectURLsArray, selfURL)
-			bc.ConsensusManager = consensusMgr // Assign to blockchain struct
-		}
-		if consensusMgr != nil {
-			log.Printf("[%s] Legacy Consensus Manager initialized.", cfg.ChainID)
-			defer func() {
-				log.Printf("[%s] Stopping Legacy Consensus Manager...", cfg.ChainID)
-				consensusMgr.Stop()
-				log.Printf("[%s] Legacy Consensus Manager stopped.", cfg.ChainID)
-			}()
-		}
-
 		// Wallet Server (Optional) - Should be disabled for dev/reflection
 		var walletSrv *wallet.WalletServerImpl
 		var stopWallet func()
@@ -1893,25 +1761,6 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 			_ = relayConfig
 		}
 
-		// Legacy consensus manager
-		var consensusMgr *ConsensusManager
-		// Legacy Consensus Manager (only for Root node in Network mode)
-		if cfg.IsRoot && isNetworkMode {
-			selfURL := localChainBaseURL(cfg)
-			reflectURLsArray := make([]string, len(cfg.ReflectionURLs))
-			copy(reflectURLsArray, cfg.ReflectionURLs)
-			log.Printf("[%s][%s] Initializing legacy consensus manager with MinersAddress: %s", role.String(), cfg.ChainID, cfg.MinersAddress)
-			log.Printf("[%s][%s] ChromemDB path: %s", role.String(), cfg.ChainID, cfg.SearchableDatabasePath)
-			consensusMgr = NewConsensusManager(bc, reflectURLsArray, selfURL)
-			bc.ConsensusManager = consensusMgr
-		}
-		if consensusMgr != nil {
-			defer func() {
-				log.Printf("[%s][%s] Stopping legacy consensus manager...", role.String(), cfg.ChainID)
-				consensusMgr.Stop()
-			}()
-		}
-
 		// P2P consensus manager (skip if disabled)
 		if !disableP2P {
 			p2pConsensusMgr, err := p2p.NewP2PConsensusManager(bc, db, discoveryMgr, role)
@@ -1978,23 +1827,6 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 				if err := paymentProcessor.Stop(); err != nil {
 					log.Printf("[%s][%s] WARNING: Error stopping payment processor: %v", role.String(), cfg.ChainID, err)
 				}
-			}()
-		}
-
-		// 7.2. Economics integration service
-		var economicsIntegration *EconomicsIntegration
-		economicsIntegration, err = initEconomicsIntegration(&cfg)
-		if err != nil {
-			log.Printf("[%s][%s] ERROR: Failed to initialize economics integration: %v", role.String(), cfg.ChainID, err)
-			// Continue execution even if economics integration fails to start
-		}
-		if economicsIntegration != nil {
-			defer func() {
-				log.Printf("[%s][%s] Stopping economics integration...", role.String(), cfg.ChainID)
-				if economicsIntegration.IsLocalMode() {
-					economicsIntegration.StopLocalEconomicsService()
-				}
-				log.Printf("[%s][%s] Economics integration stopped", role.String(), cfg.ChainID)
 			}()
 		}
 

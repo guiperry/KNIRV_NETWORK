@@ -6,6 +6,40 @@ echo "Starting KNIRVGRAPH testnet node..."
 # Create necessary directories
 mkdir -p logs data
 
+# Ensure proper permissions on data directory (only create/fix if missing or wrong)
+if [ ! -d "data/knirvgraph" ]; then
+    mkdir -p data/knirvgraph
+    chmod 755 data/knirvgraph
+    echo "Created new data directory: data/knirvgraph"
+else
+    # Permissions check - only fix if needed
+    current_perms=$(stat -c %a data/knirvgraph 2>/dev/null || echo "unknown")
+    if [ "$current_perms" != "755" ]; then
+        chmod 755 data/knirvgraph
+        echo "Fixed permissions on data/knirvgraph"
+    fi
+    
+    # Check for corruption indicators (Badger/Ristretto leave these on unclean shutdown)
+    if [ -f "data/knirvgraph/LOCK" ]; then
+        # Check if the process holding the lock is actually running
+        if [ -f "data/knirvgraph/LOCK" ] && ! fuser data/knirvgraph/LOCK >/dev/null 2>&1; then
+            echo "Cleaning up stale LOCK file (process not running)"
+            rm -f data/knirvgraph/LOCK
+        fi
+    fi
+    
+    # Only clean corrupted files if manifest is missing (indicates incomplete shutdown)
+    if [ -d "data/knirvgraph" ] && [ ! -f "data/knirvgraph/MANIFEST" ]; then
+        if [ -f "data/knirvgraph/000001.vlog" ] || [ -f "data/knirvgraph/000002.vlog" ]; then
+            echo "Database appears corrupted (missing MANIFEST). Cleaning up corrupted files..."
+            rm -f data/knirvgraph/*.vlog data/knirvgraph/*.sst 2>/dev/null || true
+        fi
+    fi
+fi
+
+chmod 755 data
+echo "✅ Data directory ready"
+
 # Check if binary exists
 if [ ! -f "./bin/knirvgraph" ]; then
     echo "Error: KNIRVGRAPH binary not found. Please run build-knirvgraph.sh first."

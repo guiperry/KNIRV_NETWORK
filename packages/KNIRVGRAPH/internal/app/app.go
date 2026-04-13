@@ -300,6 +300,23 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 				Timeout:          "300s",
 			},
 		}
+	} else {
+		// Ensure critical fields are initialized even when config is provided
+		if config.Storage.Path == "" {
+			config.Storage.Path = fmt.Sprintf("%s/data", homeDir)
+		}
+		if config.Storage.DBType == "" {
+			config.Storage.DBType = "bluntdb"
+		}
+		if config.Storage.CacheSizeGB == 0 {
+			config.Storage.CacheSizeGB = 16
+		}
+		if config.Network.RPCPort == 0 {
+			config.Network.RPCPort = rpcPort
+		}
+		if config.Network.SocketPath == "" && socketPath != "" {
+			config.Network.SocketPath = socketPath
+		}
 	}
 
 	var storageInstance storage.GraphStorage

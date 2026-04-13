@@ -219,10 +219,10 @@ func (ft *FrameTicker) flush() {
 
 func euclideanDrift(a, b [32]byte) float64 {
 	var sum float64
-	for i := 0; i < 8; i++ {
-		av := math.Float32frombits(binary.LittleEndian.Uint32(a[i*4 : i*4+4]))
-		bv := math.Float32frombits(binary.LittleEndian.Uint32(b[i*4 : i*4+4]))
-		diff := float64(av) - float64(bv)
+	for i := 0; i < 16; i++ {
+		av := float64(uint16(a[i*2])|uint16(a[i*2+1])<<8) / 65535.0
+		bv := float64(uint16(b[i*2])|uint16(b[i*2+1])<<8) / 65535.0
+		diff := av - bv
 		sum += diff * diff
 	}
 	return math.Sqrt(sum)

@@ -234,6 +234,43 @@ Validation occurs in a multi-stage process before a Frame is committed to the Gl
 ### 6.2 PQC Frame-Signing
 Once all Brackets in a Tier 2 Frame return `z3_verified: true`, the CPU signs the entire Frame using **Dilithium-3**. This ensures that the training loader only consumes formally verified and cryptographically secure data.
 
+### 6.3 Difficulty-as-Deterrence Protocol (GoldenSeed Policy Bridge)
+
+The `GoldenSeed` field (Slot 11, bytes `0x29–0x2C`) carries a dual role: it is
+both the solved nonce from the ASIC hashing stave and a **hardware-validated policy
+signal**. The Evo-GRPO trainer in KNIRVHASHER modulates the SHA-256 target difficulty
+before hashing so that nonce magnitude encodes the policy classification of the bracket.
+
+| Policy Context | Target Difficulty | Resulting Nonce Range | Signal Name |
+|----------------|-------------------|-----------------------|-------------|
+| Approved action | 2^16 (65,536) | `0x00000000` – `0x0001FFFF` | Low nonce — fast resolution |
+| Flagged / audit | 2^24 (16,777,216) | `0x00200000` – `0x00EFFFFF` | Mid nonce — meaningful work |
+| Denied / sensitive | 2^32 (4,294,967,295) | `0xFF000000` – `0xFFFFFFFF` | High nonce — Hardware-Validated Proof of Denial (HVPD) |
+
+**Why this works:** The BM1382 ASIC cannot cheat the difficulty target. A low nonce
+is statistically impossible to produce when the target difficulty is 2^32, and vice
+versa. A `GoldenSeed` near zero is therefore an unforgeable proof that the bracket
+was trained under an approved-context difficulty budget. A `GoldenSeed` near
+`0xFFFFFFFF` is an unforgeable proof of a denied-context computation.
+
+**Reading the signal at enforcement time:** The `NRVEnforcer` in KNIRVSERVER reads
+the `GoldenSeed` bytes directly from the `.nrv` bracket without re-running the hash:
+
+```
+seed ≤ 0x0001FFFF  →  Approved  (low nonce, 2^16 work)
+seed ≥ 0xFF000000  →  Denied    (HVPD, 2^32 work)
+otherwise          →  Flagged   (route to human review)
+```
+
+**Z3 + Hamming divergence (Logic Trap):** If Z3 formal verification passes (structural
+form is valid) but the Arrow KB Hamming guard returns `LowCoherenceFault = 0xDEAD`
+(semantic context unresolvable), the enforcement layer issues `SIGKILL` to the
+offending process via the `uprobe/NRVEnforcer_stateTransition` eBPF hook. This
+divergence means the bracket's syntax passed formal constraints but its semantic
+projection has no KB nearest-neighbour within `HammingThreshold = 8 bits` — the
+bracket is formally coherent but semantically orphaned, which is the definition of
+a Logic Trap.
+
 ---
 
 We now transition from the static data structure to the **Active Operational Layer**: how the hardware actually "chews" the 80-byte header and how the software moves that data at scale.

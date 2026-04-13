@@ -30,8 +30,29 @@ type Runtime struct {
 
 // NewRuntime creates a new runtime manager with embedded assets
 func NewRuntime(logger *zap.Logger, webGUIFS embed.FS, networkWebsiteFS embed.FS, oracleBinary []byte) (*Runtime, error) {
-	// Create runtime directory in system temp
-	baseDir := filepath.Join(os.TempDir(), "knirvoracle-runtime")
+	// Use OS-specific application data directory instead of /tmp to avoid permission issues
+	var baseDir string
+	
+	// First try standard user config directory
+	userConfigDir, err := os.UserConfigDir()
+	if err == nil {
+		baseDir = filepath.Join(userConfigDir, "knirvgateway", "runtime")
+	} else {
+		// Fallback to home directory .local/share
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			baseDir = filepath.Join(homeDir, ".local", "share", "knirvgateway", "runtime")
+		} else {
+			// Last resort fallback to temp directory (only if user dirs unavailable)
+			logger.Warn("Could not determine user application data directory, falling back to system temp", zap.Error(err))
+			baseDir = filepath.Join(os.TempDir(), "knirvgateway-runtime")
+		}
+	}
+
+	// Ensure base directory exists with proper permissions
+	if err := os.MkdirAll(baseDir, 0750); err != nil {
+		return nil, fmt.Errorf("failed to create runtime base directory: %w", err)
+	}
 
 	r := &Runtime{
 		BaseDir:           baseDir,

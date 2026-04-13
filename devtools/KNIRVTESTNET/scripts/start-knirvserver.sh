@@ -74,9 +74,9 @@ echo $NEXUS_PID > data/knirvserver.pid
 
 echo "📋 Process started with PID: $NEXUS_PID"
 
-# Wait for initial startup
-echo "⏳ Waiting for KNIRV-SERVER to initialize..."
-sleep 8
+# Wait for initial startup - extended wait for full initialization
+echo "⏳ Waiting for KNIRV-SERVER to initialize (this may take 15-30 seconds)..."
+sleep 15
 
 # Check if the process is still running
 if ! kill -0 $(cat ./data/knirvserver.pid) 2>/dev/null; then

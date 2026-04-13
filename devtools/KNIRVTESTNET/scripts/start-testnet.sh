@@ -184,7 +184,7 @@ wait_for_service() {
     local default_port=$2
     local health_endpoint=$3
     local pid_file=$4
-    local max_attempts=30
+    local max_attempts=${5:-30}  # Allow override of max_attempts, default to 30
     local attempt=1
 
     print_status "Waiting for $name to be ready..."
@@ -471,13 +471,15 @@ else
     exit 1
 fi
 
-# 4. Start KNIRV-SERVER (optional - for private/corporate testing only)
+# 4. Start KNIRV-SERVER early (optional - for private/corporate testing only)
+# Started early to give it maximum initialization time before other services depend on it
 if [ -f "bin/knirvserver" ]; then
     print_status "Starting KNIRV-SERVER (optional - private testing mode)..."
     if ./scripts/start-knirvserver.sh; then
-        wait_for_service "KNIRV-SERVER" "8084" "/" "data/knirvserver.pid" || print_warning "KNIRV-SERVER health check failed, continuing..."
+        # Extended timeout for KNIRVSERVER: 60 attempts × 2s = 120 seconds total
+        wait_for_service "KNIRV-SERVER" "8084" "/" "data/knirvserver.pid" 60 || print_warning "KNIRV-SERVER health check failed, continuing..."
     else
-        print_warning "Failed to start KNIRV-SERVER, continuing without it..."
+        print_warning "Failed to start KNIRVSERVER, continuing without it..."
     fi
 else
     print_status "Skipping KNIRV-SERVER (not found - public testnet mode)"

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -69,10 +70,21 @@ type HealthStatus struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+func getOracleAppDataDir() string {
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".local", "share", "knirvserver")
+	}
+	if usr, err := user.Current(); err == nil {
+		return filepath.Join(usr.HomeDir, ".local", "share", "knirvserver")
+	}
+	return "data"
+}
+
 func DefaultManagerConfig() *ManagerConfig {
+	appDataDir := getOracleAppDataDir()
 	return &ManagerConfig{
 		SocketPath:   "/var/run/knirv/oracle.sock",
-		DataPath:     "~/.knirvserver/oracle",
+		DataPath:     filepath.Join(appDataDir, "oracle"),
 		StartTimeout: 30 * time.Second,
 		StopTimeout:  10 * time.Second,
 	}

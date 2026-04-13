@@ -170,8 +170,8 @@ func (efs *EmbeddedFS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file.(io.ReadSeeker))
 }
 
-// NexusApp represents the main application
-type NexusApp struct {
+// ServerApp represents the main application
+type ServerApp struct {
 	config        *Config
 	router        *gin.Engine
 	server        *http.Server
@@ -273,8 +273,8 @@ func newPrefixProxy(baseURL string, transport http.RoundTripper, sourcePrefix, t
 	return proxy, nil
 }
 
-// NewNexusApp creates a new KNIRV-SERVER application
-func NewNexusApp(config *Config) (*NexusApp, error) {
+// NewServerApp creates a new KNIRV-SERVER application
+func NewServerApp(config *Config) (*ServerApp, error) {
 	// Set Gin mode
 	if config.LogLevel == "debug" {
 		gin.SetMode(gin.DebugMode)
@@ -288,7 +288,7 @@ func NewNexusApp(config *Config) (*NexusApp, error) {
 		return nil, fmt.Errorf("failed to generate shutdown token: %w", err)
 	}
 
-	app := &NexusApp{
+	app := &ServerApp{
 		config:        config,
 		router:        gin.New(),
 		shutdownToken: hex.EncodeToString(tokenBytes),
@@ -377,7 +377,7 @@ func extractBinaries() (string, error) {
 // extractBackend extracts all embedded binaries to the app data directory and
 // sets app.backendPath. A small temp directory is still kept for ephemeral
 // artefacts (e.g. desktop files).
-func (app *NexusApp) extractBackend() error {
+func (app *ServerApp) extractBackend() error {
 	// Create temp directory for ephemeral artefacts (desktop assets, etc.)
 	tempDir, err := os.MkdirTemp("", "knirv-server-*")
 	if err != nil {
@@ -400,7 +400,7 @@ func (app *NexusApp) extractBackend() error {
 }
 
 // extractDesktop extracts the embedded desktop files
-func (app *NexusApp) extractDesktop() error {
+func (app *ServerApp) extractDesktop() error {
 	// Create desktop directory in temp directory
 	desktopDir := filepath.Join(app.tempDir, "desktop")
 	if err := os.MkdirAll(desktopDir, 0755); err != nil {
@@ -447,7 +447,7 @@ func (app *NexusApp) extractDesktop() error {
 }
 
 // startDesktop starts the Electron desktop application
-func (app *NexusApp) startDesktop() error {
+func (app *ServerApp) startDesktop() error {
 	log.Println("Starting KNIRV Desktop...")
 
 	// Resolve electron binary: ELECTRON_PATH env > node_modules relative to exe > node_modules relative to CWD > PATH
@@ -541,7 +541,7 @@ func (app *NexusApp) startDesktop() error {
 }
 
 // stopDesktop stops the Electron desktop application
-func (app *NexusApp) stopDesktop() {
+func (app *ServerApp) stopDesktop() {
 	if app.desktopCmd != nil && app.desktopCmd.Process != nil {
 		log.Printf("Stopping KNIRV Desktop (PID: %d)", app.desktopCmd.Process.Pid)
 		app.desktopCmd.Process.Signal(syscall.SIGTERM)
@@ -748,7 +748,7 @@ func writeFileAtomically(path string, data []byte, perm os.FileMode) error {
 }
 
 // setupRoutes configures the application routes
-func (app *NexusApp) setupRoutes() error {
+func (app *ServerApp) setupRoutes() error {
 	// Create embedded filesystem
 	embeddedFS, err := NewEmbeddedFS()
 	if err != nil {
@@ -987,7 +987,7 @@ func waitForPortFreeMain(port int, deadline time.Duration) bool {
 }
 
 // startBackend starts the embedded unified backend service
-func (app *NexusApp) startBackend() error {
+func (app *ServerApp) startBackend() error {
 	if app.config.BackendSocket != "" {
 		log.Printf("Starting unified backend service on socket %s...", app.config.BackendSocket)
 	} else {
@@ -1100,7 +1100,7 @@ func (app *NexusApp) startBackend() error {
 }
 
 // stopBackend stops the unified backend service
-func (app *NexusApp) stopBackend() {
+func (app *ServerApp) stopBackend() {
 	if app.backendCmd != nil && app.backendCmd.Process != nil {
 		log.Printf("Stopping unified backend (PID: %d)", app.backendCmd.Process.Pid)
 		app.backendCmd.Process.Signal(syscall.SIGTERM)
@@ -1109,7 +1109,7 @@ func (app *NexusApp) stopBackend() {
 }
 
 // Start starts the KNIRV-SERVER application
-func (app *NexusApp) Start() error {
+func (app *ServerApp) Start() error {
 	// Start backend first
 	if err := app.startBackend(); err != nil {
 		return err
@@ -1146,7 +1146,7 @@ func (app *NexusApp) Start() error {
 }
 
 // Stop stops the KNIRV-SERVER application
-func (app *NexusApp) Stop() error {
+func (app *ServerApp) Stop() error {
 	// Stop desktop first
 	app.stopDesktop()
 
@@ -1325,7 +1325,7 @@ func main() {
 	}
 
 	// Create application
-	app, err := NewNexusApp(config)
+	app, err := NewServerApp(config)
 	if err != nil {
 		log.Fatalf("Failed to create application: %v", err)
 	}

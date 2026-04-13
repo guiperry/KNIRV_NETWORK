@@ -63,12 +63,14 @@ import (
 	"backend_server/internal/storage/pqc"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
+
 	knirvgateway "github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY"
 	knirvoracle "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvoracle"
 
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
+	"github.com/subosito/gotenv"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/term"
@@ -338,6 +340,27 @@ func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, er
 	if logger == nil {
 		logger = zap.NewNop()
 	}
+
+	// Ensure .env files are loaded before checking environment variables.
+	// Try multiple search paths to find .env files with different environment names.
+	envSearchPaths := []string{
+		".env.development",
+		".env.testnet",
+		".env",
+		"../.env.development",
+		"../.env.testnet",
+		"../.env",
+		"../../.env.development",
+		"../../.env.testnet",
+		"../../.env",
+	}
+	for _, envPath := range envSearchPaths {
+		if err := gotenv.Load(envPath); err == nil {
+			logger.Debug("Loaded environment file", zap.String("path", envPath))
+			break
+		}
+	}
+
 	keyPath, err := config.GetRootKeyPath()
 	if err != nil {
 		return nil, fmt.Errorf("secrets: could not resolve root key path: %w", err)
@@ -351,6 +374,7 @@ func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, er
 	var keyPassword []byte
 	if envPwd := os.Getenv("ORACLE_KEY_PASSWORD"); envPwd != "" {
 		keyPassword = []byte(envPwd)
+		logger.Debug("Using ORACLE_KEY_PASSWORD from environment")
 	} else {
 		// Check if stdin is a terminal
 		if !term.IsTerminal(int(os.Stdin.Fd())) {
@@ -405,7 +429,7 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 	}
 }
 
-func initOracleManager(logger *zap.Logger, cfg *config.Config) *knirvoracle.Manager {
+func initOracleManager(logger *zap.Logger, _ *config.Config) *knirvoracle.Manager {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
@@ -2261,8 +2285,35 @@ func (s *Server) Stop() error {
 	if s.gatewayManager != nil {
 		if err := s.gatewayManager.Stop(s.ctx); err != nil {
 			log.Printf("Error stopping KNIRVGATEWAY: %v", err)
+		} else {
+			log.Println("KNIRVGATEWAY stopped")
 		}
 	}
+
+	// Stop embedded KNIRVGRAPH
+	if s.graphManager != nil {
+		if err := s.graphManager.Stop(); err != nil {
+			log.Printf("Error stopping KNIRVGRAPH: %v", err)
+		} else {
+			log.Println("KNIRVGRAPH stopped")
+		}
+	}
+
+	// Stop graph sync manager
+	if s.graphSyncManager != nil {
+		s.graphSyncManager.Stop()
+		log.Println("KNIRVGRAPH sync manager stopped")
+	}
+
+	// Stop embedded KNIRVCHAIN
+	if s.chainManager != nil {
+		if err := s.chainManager.Stop(s.ctx); err != nil {
+			log.Printf("Error stopping KNIRVCHAIN: %v", err)
+		} else {
+			log.Println("KNIRVCHAIN stopped")
+		}
+	}
+
 	if s.validationChainManager != nil {
 		if err := s.validationChainManager.Stop(s.ctx); err != nil {
 			log.Printf("Error stopping validation chain: %v", err)

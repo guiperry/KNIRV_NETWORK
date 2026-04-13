@@ -589,6 +589,38 @@ func (q *Query) matchesFilter(doc map[string]interface{}, payload map[string]int
 			}
 		}
 		return false
+	case "lsh_salt":
+		want := uint32FromInterface(filter.Value)
+		for _, br := range bracketsIndexFromPayload(payload) {
+			got := uint32FromInterface(br["lsh_salt"])
+			switch filter.Operator {
+			case "=":
+				if got == want {
+					return true
+				}
+			case "!=":
+				if got != want {
+					return true
+				}
+			case ">":
+				if compareNumericValues(float64(got), want) > 0 {
+					return true
+				}
+			case "<":
+				if compareNumericValues(float64(got), want) < 0 {
+					return true
+				}
+			case ">=":
+				if compareNumericValues(float64(got), want) >= 0 {
+					return true
+				}
+			case "<=":
+				if compareNumericValues(float64(got), want) <= 0 {
+					return true
+				}
+			}
+		}
+		return false
 	default:
 		val, ok := payload[filter.Key]
 		if !ok {
@@ -766,6 +798,8 @@ func extractBracketFieldValue(br map[string]interface{}, field string) interface
 			return v
 		}
 		return nil
+	case "lsh_salt":
+		return uint32FromInterface(br["lsh_salt"])
 	case "projections", "lsh_vector":
 		return br["lsh_vector"]
 	default:

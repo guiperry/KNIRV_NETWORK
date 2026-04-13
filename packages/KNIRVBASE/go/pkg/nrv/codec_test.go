@@ -128,9 +128,7 @@ func TestEncodeBracket_RoundTrip(t *testing.T) {
 	b := &Bracket{
 		ID:          "test-bracket-123",
 		SubSecondUS: 123456,
-		POSTag:      0x01,
-		Tense:       0x02,
-		Plurality:   0x01,
+		Syntactic:   PackSyntacticByte(0x01, 0x02, 0x01),
 		DepHead:     5,
 		IntentFlags: 0x03,
 		DomainSig:   0x1234,
@@ -153,14 +151,14 @@ func TestEncodeBracket_RoundTrip(t *testing.T) {
 	if decoded.SubSecondUS != b.SubSecondUS {
 		t.Errorf("SubSecondUS mismatch: got %d, want %d", decoded.SubSecondUS, b.SubSecondUS)
 	}
-	if decoded.POSTag != b.POSTag {
-		t.Errorf("POSTag mismatch: got 0x%X, want 0x%X", decoded.POSTag, b.POSTag)
+	if decoded.GetPOSTag() != b.GetPOSTag() {
+		t.Errorf("POSTag mismatch: got 0x%X, want 0x%X", decoded.GetPOSTag(), b.GetPOSTag())
 	}
-	if decoded.Tense != b.Tense {
-		t.Errorf("Tense mismatch: got 0x%X, want 0x%X", decoded.Tense, b.Tense)
+	if decoded.GetTense() != b.GetTense() {
+		t.Errorf("Tense mismatch: got 0x%X, want 0x%X", decoded.GetTense(), b.GetTense())
 	}
-	if decoded.Plurality != b.Plurality {
-		t.Errorf("Plurality mismatch: got 0x%X, want 0x%X", decoded.Plurality, b.Plurality)
+	if decoded.GetPlurality() != b.GetPlurality() {
+		t.Errorf("Plurality mismatch: got 0x%X, want 0x%X", decoded.GetPlurality(), b.GetPlurality())
 	}
 	if decoded.DepHead != b.DepHead {
 		t.Errorf("DepHead mismatch: got 0x%X, want 0x%X", decoded.DepHead, b.DepHead)
@@ -189,14 +187,14 @@ func TestEncodeBracket_RoundTrip(t *testing.T) {
 	if len(encoded) != BracketSize {
 		t.Errorf("encoded length: got %d, want %d", len(encoded), BracketSize)
 	}
-	if encoded[36] != b.POSTag {
-		t.Errorf("wire POSTag at 36: got 0x%02x want 0x%02x", encoded[36], b.POSTag)
+	if encoded[36] != b.Syntactic {
+		t.Errorf("wire Syntactic at 36: got 0x%02x want 0x%02x", encoded[36], b.Syntactic)
 	}
-	if got := binary.LittleEndian.Uint32(encoded[43:47]); got != b.GoldenSeed {
-		t.Errorf("GoldenSeed wire at 43–46: got 0x%X want 0x%X", got, b.GoldenSeed)
+	if got := binary.LittleEndian.Uint32(encoded[41:45]); got != b.GoldenSeed {
+		t.Errorf("GoldenSeed wire at 41–44: got 0x%X want 0x%X", got, b.GoldenSeed)
 	}
-	if got := binary.LittleEndian.Uint32(encoded[61:65]); got != b.LSHSalt {
-		t.Errorf("LSHSalt wire at 61–64: got 0x%X want 0x%X", got, b.LSHSalt)
+	if got := binary.LittleEndian.Uint32(encoded[59:63]); got != b.LSHSalt {
+		t.Errorf("LSHSalt wire at 59–62: got 0x%X want 0x%X", got, b.LSHSalt)
 	}
 }
 
@@ -248,10 +246,10 @@ func TestDeltaType_Constants(t *testing.T) {
 }
 
 func TestEncodeSyntactic_PackUnpack(t *testing.T) {
-	sp := SyntacticProfile{POSTag: 0x02, Tense: 2, Plurality: 1, DepHead: -17}
+	sp := SyntacticProfile{Syntactic: PackSyntacticByte(0x02, 2, 1), DepHead: -17}
 	v := EncodeSyntactic(sp)
 	got := DecodeSyntactic(v)
-	if got != sp {
+	if got.Syntactic != sp.Syntactic || got.DepHead != sp.DepHead {
 		t.Fatalf("round-trip mismatch: got %+v want %+v", got, sp)
 	}
 }
