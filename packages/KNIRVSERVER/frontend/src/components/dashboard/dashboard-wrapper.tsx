@@ -22,6 +22,10 @@ import DVEWorkspacePanel from './dve-workspace-panel'; // Modular DVE Workspace
 import DVECreationManagement from '@/components/dve-management/dve-creation-management';
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
+import { PredictiveAnalyticsPanel } from '@/components/dashboard/predictive-analytics-panel';
+import { GuardrailViolationsPanel, GuardrailStatisticsCard } from '@/components/dashboard/guardrail-violations-panel';
+import { SystemTelemetryCard } from '@/components/dashboard/system-telemetry-card';
+import { KnowledgeGraphOverview } from '@/components/dashboard/knowledge-graph-overview';
 import { BadgeLabPanel } from '@/components/dashboard/badge-lab-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
 import { DVECreationForm } from '@/components/dashboard/dve-creation-form';
@@ -821,6 +825,12 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                       </Card>
                     </div>
 
+                    {/* System Telemetry & Knowledge Graph */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <SystemTelemetryCard />
+                      <KnowledgeGraphOverview />
+                    </div>
+
                     {/* Resource Explorer Tabs */}
            <Tabs value={resourceTab} onValueChange={setResourceTab} className="space-y-4">
            <TabsList className="grid w-full grid-cols-3 bg-gray-900/50 border border-gray-800">
@@ -841,7 +851,16 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
                         </TabsContent>
 
                         <TabsContent value="cognitive" className="space-y-4">
-                          <CognitiveEnginePanel />
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div className="space-y-4">
+                              <CognitiveEnginePanel />
+                              <PredictiveAnalyticsPanel />
+                            </div>
+                            <div className="space-y-4">
+                              <GuardrailStatisticsCard />
+                              <GuardrailViolationsPanel />
+                            </div>
+                          </div>
                         </TabsContent>
 
                         <TabsContent value="badgelab" className="space-y-4">

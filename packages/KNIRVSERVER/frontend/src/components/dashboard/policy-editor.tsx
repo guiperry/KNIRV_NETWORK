@@ -63,7 +63,7 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
 
   const loadPolicies = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/guardrails/policies?node_id=${nodeId ?? ''}`, {
+      const response = await fetch(`${API_BASE_URL}/api/guardrail/policies?node_id=${nodeId ?? ''}`, {
         headers: getAuthHeaders(),
       });
       if (response.ok) {
@@ -104,7 +104,7 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
         createdAt: new Date().toISOString(),
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/guardrails/policies`, {
+      const response = await fetch(`${API_BASE_URL}/api/guardrail/policies`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(policy),
@@ -150,7 +150,7 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/guardrails/policies/${policyId}/commit`, {
+      const response = await fetch(`${API_BASE_URL}/api/guardrail/policies/${policyId}/commit`, {
         method: 'POST',
         headers: getAuthHeaders(),
       });

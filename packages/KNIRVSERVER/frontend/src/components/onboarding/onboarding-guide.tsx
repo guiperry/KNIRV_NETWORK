@@ -176,7 +176,7 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
         createdAt: new Date().toISOString(),
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/guardrails/policies`, {
+      const response = await fetch(`${API_BASE_URL}/api/guardrail/policies`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify(policy),
@@ -185,7 +185,7 @@ const OnboardingGuide = ({ onComplete, onReset }: OnboardingGuideProps) => {
       if (response.ok) {
         const data = await response.json();
         if (data.policy?.id) {
-          await fetch(`${API_BASE_URL}/api/guardrails/policies/${data.policy.id}/commit`, {
+          await fetch(`${API_BASE_URL}/api/guardrail/policies/${data.policy.id}/commit`, {
             method: 'POST',
             headers: getAuthHeaders(),
           });

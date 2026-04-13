@@ -35,7 +35,7 @@ func (h *GuardrailHandlers) SetEventBroadcaster(eb policyEventEmitter) {
 }
 
 func (h *GuardrailHandlers) RegisterRoutes(r *mux.Router) {
-	guardrailRouter := r.PathPrefix("/api/guardrails").Subrouter()
+	guardrailRouter := r.PathPrefix("/api/guardrail").Subrouter()
 
 	guardrailRouter.HandleFunc("/configure", h.ConfigureGuardrail).Methods("POST", "OPTIONS")
 	guardrailRouter.HandleFunc("/config/{nodeID}/{guardrailType}", h.GetGuardrailConfig).Methods("GET", "OPTIONS")
