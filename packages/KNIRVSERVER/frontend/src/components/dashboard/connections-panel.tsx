@@ -8,6 +8,7 @@ import { webSocketService, WS_EVENTS } from '@/lib/websocket-service';
 // oh-my-pi agent types supported by the DVE
 const AGENT_FRAMEWORKS = [
   { id: 'oh-my-pi', label: 'oh-my-pi Agent', description: 'Agentic framework with built-in DVE integration' },
+  { id: 'knirvagent', label: 'KNIRV Agent', description: 'KNIRV Agent with embedded AI capabilities' },
   { id: 'openai', label: 'OpenAI-compatible', description: 'Any OpenAI-compatible agent endpoint' },
   { id: 'custom', label: 'Custom Agent', description: 'Custom HTTP agent endpoint' },
 ] as const;
@@ -150,7 +151,11 @@ const AddAgentModal: React.FC<AddAgentModalProps> = ({ onClose, onAdd }) => {
             </label>
             <input
               type="text"
-              placeholder={form.framework === 'oh-my-pi' ? 'http://localhost:8888' : 'https://api.openai.com/v1'}
+              placeholder={
+                form.framework === 'oh-my-pi' ? 'http://localhost:8888' :
+                form.framework === 'knirvagent' ? 'http://localhost:8080' :
+                'https://api.openai.com/v1'
+              }
               value={form.endpoint}
               onChange={e => setForm(f => ({ ...f, endpoint: e.target.value }))}
               className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -172,7 +177,7 @@ const AddAgentModal: React.FC<AddAgentModalProps> = ({ onClose, onAdd }) => {
           </div>
 
           {/* Model (optional) */}
-          {form.framework !== 'oh-my-pi' && (
+          {form.framework !== 'oh-my-pi' && form.framework !== 'knirvagent' && (
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
                 <Cpu className="w-3 h-3" /> Model <span className="text-slate-600 normal-case font-normal">(optional)</span>
