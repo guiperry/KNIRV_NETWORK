@@ -116,16 +116,21 @@ func UnpackSyntacticByte(b uint8) (post, tense, plurality uint8) {
 	return post, tense, plurality
 }
 
-// EncodeSyntactic packs syntactic fields into a uint8 (wire-adjacent layout: POSTag, Tense, Plurality).
-func EncodeSyntactic(sp SyntacticProfile) uint8 {
-	return (sp.Syntactic & 0xFF)
+// EncodeSyntactic packs syntactic fields into a uint32 (wire-adjacent layout: Syntactic + DepHead).
+// Bits 0-7: Syntactic (packed POSTag+Tense+Plurality)
+// Bits 8-31: DepHead as int16 (sign-extended)
+func EncodeSyntactic(sp SyntacticProfile) uint32 {
+	var val uint32
+	val |= uint32(sp.Syntactic) & 0xFF
+	val |= uint32(int16(sp.DepHead)) << 16 // sign-extend to 16 bits
+	return val
 }
 
 // DecodeSyntactic unpacks EncodeSyntactic.
-func DecodeSyntactic(val uint8) SyntacticProfile {
+func DecodeSyntactic(val uint32) SyntacticProfile {
 	return SyntacticProfile{
-		Syntactic: val,
-		DepHead:   0,
+		Syntactic: uint8(val & 0xFF),
+		DepHead:   int8(val >> 16),
 	}
 }
 

@@ -111,7 +111,6 @@ export class NRVWriter {
           const old = registry.globalMetrics as any;
           const newMetrics = createDefaultGlobalMetrics();
           newMetrics.validFrameCount = old.verifiedFrameCount ?? 0;
-          newMetrics.ergoRankSum = old.ergoRankSum ?? 0;
           registry.globalMetrics = newMetrics;
         }
       }
@@ -176,9 +175,9 @@ export class NRVWriter {
     this.registry.frames.push(entry);
     this.registry.frameCount++;
     if (verified) {
-      this.registry.globalMetrics.verifiedFrameCount++;
+      this.registry.globalMetrics.validFrameCount++;
     }
-    this.registry.globalMetrics.ergoRankSum += ergoRank;
+    this.registry.globalMetrics.invalidFrameCount += verified ? 0 : 1;
 
     // Save registry
     await this.saveRegistry();

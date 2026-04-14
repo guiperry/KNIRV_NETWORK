@@ -1,4 +1,4 @@
-package knirvcli
+package knirvshell
 
 import (
 	"context"
@@ -87,15 +87,15 @@ type TokenTransaction struct {
 	Status string `json:"status"`
 }
 
-// resolveKNIRVCLIBinary returns the path to the knirvcli binary.
-// Priority: KNIRV_KNIRVCLI_PATH env var → "knirvcli" on PATH.
+// resolveKNIRVCLIBinary returns the path to the knirvshell binary.
+// Priority: KNIRV_KNIRVCLI_PATH env var → "knirvshell" on PATH.
 func resolveKNIRVCLIBinary() string {
 	if p := os.Getenv("KNIRV_KNIRVCLI_PATH"); p != "" {
 		if _, err := os.Stat(p); err == nil {
 			return p
 		}
 	}
-	return "knirvcli"
+	return "knirvshell"
 }
 
 // NewKNIRVCLIService creates a new KNIRVCLI service
@@ -352,10 +352,10 @@ func (s *KNIRVCLIService) ExecuteValidation(ctx context.Context, taskID string, 
 
 	// Create validation task
 	req := &validation.CreateTaskRequest{
-		Type:        "knirvcli-validation",
+		Type:        "knirvshell-validation",
 		Priority:    5,
 		Data:        map[string]interface{}{"task_id": taskID, "node_id": nodeID},
-		RequestedBy: "knirvcli-service",
+		RequestedBy: "knirvshell-service",
 	}
 
 	_, err := s.validationCore.CreateValidationTask(req)
@@ -373,7 +373,7 @@ func (s *KNIRVCLIService) ExecuteTEECommand(ctx context.Context, command string,
 		NodeID:   nodeID,
 		Args:     []string{"tee"},
 		UserID:   "system",
-		Username: "knirvcli",
+		Username: "knirvshell",
 	})
 }
 
@@ -384,7 +384,7 @@ func (s *KNIRVCLIService) ExecuteP2PCommand(ctx context.Context, command string,
 		NodeID:   nodeID,
 		Args:     []string{"p2p"},
 		UserID:   "system",
-		Username: "knirvcli",
+		Username: "knirvshell",
 	})
 }
 
@@ -394,7 +394,7 @@ func (s *KNIRVCLIService) ExecuteChainCommand(ctx context.Context, command strin
 		Command:  command,
 		Args:     []string{"chain"},
 		UserID:   "system",
-		Username: "knirvcli",
+		Username: "knirvshell",
 	})
 }
 

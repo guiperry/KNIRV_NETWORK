@@ -1025,7 +1025,7 @@ func (app *ServerApp) startBackend() error {
 	)
 
 	// Propagate paths to bundled binaries so the backend does not rely on CWD
-	// or system PATH to locate knirvgateway and knirvcli.  Also propagate the
+	// or system PATH to locate knirvgateway and knirvshell.  Also propagate the
 	// app data directory so the gateway runtime extracts files there instead of
 	// /tmp, and so the backend can locate config/log directories consistently.
 	if appDataDir, err := getAppDataDir(); err == nil {
@@ -1033,7 +1033,7 @@ func (app *ServerApp) startBackend() error {
 		env = append(env,
 			fmt.Sprintf("KNIRV_APP_DATA_DIR=%s", appDataDir),
 			fmt.Sprintf("KNIRV_GATEWAY_BINARY_PATH=%s", filepath.Join(binDir, "knirvgateway")),
-			fmt.Sprintf("KNIRV_KNIRVCLI_PATH=%s", filepath.Join(binDir, "knirvcli")),
+			fmt.Sprintf("KNIRV_KNIRVCLI_PATH=%s", filepath.Join(binDir, "knirvshell")),
 		)
 	}
 

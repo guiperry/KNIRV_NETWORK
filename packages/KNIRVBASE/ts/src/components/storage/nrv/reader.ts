@@ -39,7 +39,6 @@ export class NRVReader {
         const old = registry.globalMetrics as any;
         const newMetrics = createDefaultGlobalMetrics();
         newMetrics.validFrameCount = old.verifiedFrameCount ?? 0;
-        newMetrics.ergoRankSum = old.ergoRankSum ?? 0;
         registry.globalMetrics = newMetrics;
       }
     } else {
