@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNIRV NEXUS | The Sovereign Agent Guard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --knirv-dark: #0a0a0c;
+            --knirv-accent: #3b82f6; 
+            --knirv-text: #e2e8f0;
+        }
+        body {
+            background-color: var(--knirv-dark);
+            color: var(--knirv-text);
+            font-family: 'Inter', sans-serif;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .gradient-text {
+            background: linear-gradient(90deg, #60a5fa, #1e3a8a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+        }
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+        }
+        input::placeholder { color: #64748b; }
+        .glow-hover:hover {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+        canvas {
+            filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.4));
+        }
+        input, select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--knirv-accent);
+            background: rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden">
+
+    <!-- Header / Branding -->
+    <nav class="p-4 md:p-6 max-w-7xl mx-auto flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 bg-blue-600 rounded-sm transform rotate-45"></div>
+            <span class="text-2xl font-extrabold tracking-tighter uppercase">KNIRV <span class="text-blue-500 font-light">NEXUS</span></span>
+        </div>
+        <div class="hidden md:block text-xs uppercase tracking-widest text-slate-500 font-bold">
+            Project: Sovereignty-v2.026
+        </div>
+    </nav>
+
+    <!-- Main Section -->
+    <main class="max-w-5xl mx-auto px-6 pt-4 pb-16">
+        
+        <!-- The Hook -->
+        <section class="text-center space-y-4">
+            <h1 class="text-5xl md:text-7xl font-extrabold leading-tight tracking-tight">
+                Stop Pretending Your <br>
+                <span class="gradient-text italic">AI Works.</span>
+            </h1>
+            <p class="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+                Your enterprise AI is gambling with hallucinations. While competitors build Rube Goldberg machines that break every Tuesday, 
+                we provide the <strong>hardware-enforced validation layer</strong> that makes autonomous agents insurable.
+            </p>
+        </section>
+
+        <!-- Centered Animation Section -->
+        <section class="mt-4 flex justify-center items-center">
+            <div class="relative w-full max-w-md aspect-video flex items-center justify-center overflow-hidden">
+                <div class="absolute inset-0 bg-blue-600/5 rounded-full blur-3xl"></div>
+                <canvas id="sentinelCanvas" class="relative z-10 w-full h-full"></canvas>
+                <div class="absolute bottom-2 left-0 right-0 text-center">
+                    <span class="mono text-[9px] uppercase tracking-[0.4em] text-blue-500/40 font-bold">Guardian Protocol Active</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- The Scenario & Details -->
+        <section class="mt-4 grid md:grid-cols-2 gap-8 items-start">
+            <div class="space-y-6">
+                <div class="glass-panel p-6 space-y-3 glow-hover transition-all duration-300">
+                    <h3 class="mono text-blue-400 font-bold uppercase text-xs tracking-widest">The Risk Scenario</h3>
+                    <p class="text-lg font-semibold leading-snug">
+                        Imagine your agent moves past the "Chatbot" stage and begins executing internal API calls at machine speed.
+                    </p>
+                    <p class="text-sm text-slate-400">
+                        An agent is a privileged insider with a digital nervous system. If that agent is compromised, the fallout is measured in billions, not tokens.
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-3 border-l-2 border-red-500/50">
+                        <span class="block text-2xl font-bold">77%</span>
+                        <span class="text-[10px] uppercase text-slate-500 font-bold">Max Reliability</span>
+                    </div>
+                    <div class="p-3 border-l-2 border-red-500/50">
+                        <span class="block text-2xl font-bold">23%</span>
+                        <span class="text-[10px] uppercase text-slate-500 font-bold">Workflow Accuracy</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6 pt-2">
+                <h2 class="text-2xl font-bold leading-tight">We solve the "Semantic Gap."</h2>
+                <ul class="space-y-4 text-slate-300 text-sm">
+                    <li class="flex items-start">
+                        <span class="text-blue-500 mr-2 font-bold">/</span>
+                        <span><strong>Verifiable Memory Fabric:</strong> High-speed context injection that eliminates the "Token Tax" and reduces retrieval latency by 90%.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-blue-500 mr-2 font-bold">/</span>
+                        <span><strong>Kernel-Level Guardian:</strong> We monitor what agents *do* at the system level, not just what they say. If intent and action drift, the process is terminated instantly.</span>
+                    </li>
+                    <li class="flex items-start">
+                        <span class="text-blue-500 mr-2 font-bold">/</span>
+                        <span><strong>Forensic Audit Trace:</strong> Every state change is recorded into a permanent, verifiable "Black Box" for total enterprise accountability.</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="mt-12 text-center glass-panel p-8 border-blue-900/30">
+            <h2 class="text-xl md:text-2xl font-bold mb-6 max-w-2xl mx-auto">
+                How do you plan to audit the system-level actions of your autonomous agents once they move past the "Chatbot" stage? 
+            </h2>
+            <div class="max-w-xl mx-auto space-y-4">
+                <p class="text-slate-500 mono text-xs font-bold uppercase tracking-widest">
+                    If an agent exploits an internal API, do you have a kernel-level kill switch?
+                </p>
+                
+                <form id="lead-form" class="flex flex-col md:flex-row gap-2">
+                    <input type="email" id="primary-email" required placeholder="name@enterprise.com" 
+                           class="flex-grow rounded-lg px-4 py-3 text-sm transition-all">
+                    <button type="submit" 
+                            class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-3 rounded-lg text-sm transition-all transform active:scale-95">
+                        Secure the Future
+                    </button>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal for Extended Info -->
+    <div id="demo-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
+        <div class="glass-panel max-w-md w-full p-8 space-y-6 relative border-blue-500/30">
+            <div class="space-y-2">
+                <h3 class="text-2xl font-bold leading-tight">Tell us more and we'll customize a demo for you!</h3>
+                <p class="text-slate-400 text-sm italic">Identify the parameters for your Sovereign Agent validation.</p>
+            </div>
+
+            <form id="extended-form" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] uppercase font-bold text-slate-500">Name</label>
+                        <input type="text" id="full-name" required class="w-full rounded-md px-3 py-2 text-sm">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] uppercase font-bold text-slate-500">Company</label>
+                        <input type="text" id="company" required class="w-full rounded-md px-3 py-2 text-sm">
+                    </div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] uppercase font-bold text-slate-500">Professional Role</label>
+                    <input type="text" id="role" required class="w-full rounded-md px-3 py-2 text-sm" placeholder="e.g. AI Architect, CTO">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] uppercase font-bold text-slate-500">Phone Number</label>
+                    <input type="tel" id="phone" required class="w-full rounded-md px-3 py-2 text-sm">
+                </div>
+                
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg text-sm transition-all">
+                    Complete Validation
+                </button>
+            </form>
+
+            <div id="modal-success" class="hidden text-center space-y-4 py-8">
+                <div class="text-green-400 text-4xl">✓</div>
+                <p class="font-bold text-xl">Thank You.</p>
+                <p class="text-slate-400 text-sm">Lead context submitted. Redirecting to KNIRV command center...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 py-8 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-slate-500 text-xs">
+            <div>© 2026 KNIRV Corporation.</div>
+            <div class="flex space-x-6 mt-4 md:mt-0 uppercase font-bold tracking-tighter">
+                <span class="hover:text-blue-400 cursor-pointer">Sovereign SaaS</span>
+                <span class="hover:text-blue-400 cursor-pointer">TEE Security</span>
+                <span class="hover:text-blue-400 cursor-pointer">Verifiable Execution</span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const leadForm = document.getElementById('lead-form');
+        const modal = document.getElementById('demo-modal');
+        const extendedForm = document.getElementById('extended-form');
+        const modalSuccess = document.getElementById('modal-success');
+        
+        let leadData = {};
+
+        // Primary lead capture (triggers modal)
+        leadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            leadData.email = document.getElementById('primary-email').value;
+            modal.classList.remove('hidden');
+        });
+
+        // Extended info submission
+        extendedForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            leadData.name = document.getElementById('full-name').value;
+            leadData.company = document.getElementById('company').value;
+            leadData.role = document.getElementById('role').value;
+            leadData.phone = document.getElementById('phone').value;
+
+            try {
+                const response = await fetch('/submit-lead', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(leadData)
+                });
+                
+                if (!response.ok) throw new Error('Submission failed');
+            } catch (err) {
+                console.error('D1 Submission error:', err);
+            }
+
+            extendedForm.classList.add('hidden');
+            modalSuccess.classList.remove('hidden');
+
+            setTimeout(() => {
+                window.location.href = 'https://knirv.com';
+            }, 2500);
+        });
+
+        // Sentinel Animation Logic
+        window.onload = function() {
+            const canvas = document.getElementById('sentinelCanvas');
+            const ctx = canvas.getContext('2d');
+            let width, height, particles = [];
+            const particleCount = 80;
+            
+            function resize() {
+                const rect = canvas.parentNode.getBoundingClientRect();
+                width = canvas.width = rect.width;
+                height = canvas.height = rect.height;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            class Particle {
+                constructor() { this.init(); }
+                init() {
+                    this.x = width / 2; this.y = height / 2;
+                    this.angle = Math.random() * Math.PI * 2;
+                    this.velocity = 0.5 + Math.random() * 1.5;
+                    this.size = Math.random() * 1.5;
+                    this.alpha = Math.random();
+                    this.decay = 0.005 + Math.random() * 0.01;
+                    this.dist = 0;
+                }
+                update() {
+                    this.dist += this.velocity;
+                    this.x = width / 2 + Math.cos(this.angle) * this.dist;
+                    this.y = height / 2 + Math.sin(this.angle) * this.dist;
+                    this.alpha -= this.decay;
+                    if (this.alpha <= 0 || this.dist > width / 2) this.init();
+                }
+                draw() {
+                    ctx.fillStyle = `rgba(59, 130, 246, ${this.alpha})`;
+                    ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+
+            let rotation = 0;
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+                const gradient = ctx.createRadialGradient(width/2, height/2, 2, width/2, height/2, 60);
+                gradient.addColorStop(0, 'rgba(59, 130, 246, 0.6)');
+                gradient.addColorStop(1, 'rgba(10, 10, 12, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath(); ctx.arc(width/2, height/2, 60, 0, Math.PI * 2); ctx.fill();
+
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 3; i++) {
+                    const radius = 40 + (i * 25) + Math.sin(Date.now() * 0.001 + i) * 5;
+                    ctx.strokeStyle = `rgba(59, 130, 246, ${0.3 - i * 0.08})`;
+                    ctx.setLineDash([30, 100]);
+                    ctx.beginPath();
+                    ctx.arc(width/2, height/2, radius, rotation * (i + 1) * 0.5, rotation * (i + 1) * 0.5 + Math.PI * 1.5);
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]);
+                particles.forEach(p => { p.update(); p.draw(); });
+                rotation += 0.01;
+                requestAnimationFrame(animate);
+            }
+            animate();
+        };
+    </script>
+</body>
+</html>

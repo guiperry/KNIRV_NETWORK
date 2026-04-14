@@ -138,3 +138,6 @@ packages/KNIRVSERVER/pkg/bin/knirvchain
 /packages/KNIRVBASE/rust/target
 /packages/KNIRVBASE/ts/dist
 /packages/KNIRVBASE/ts/dist
+/websites/KNIRVEXPLORER/.next
+/websites/KNIRVEXPLORER/out
+/websites/KNIRVHUB/webgui/.next

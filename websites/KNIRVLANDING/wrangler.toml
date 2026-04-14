@@ -1,0 +1,12 @@
+name = "knirv-landing"
+compatibility_date = "2024-01-01"
+
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "knirv-leads"
+database_id = "bd2ec45e-72c8-4e16-80ed-45f4d09e85b8"
+
+[vars]
+ENVIRONMENT = "production"
