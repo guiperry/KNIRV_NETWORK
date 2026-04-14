@@ -3,83 +3,100 @@ package dve
 import (
 	"context"
 	"fmt"
-	"time"
+	"log"
 
-	hasherpb "github.com/knirvcorp/knirvserver/backend/internal/proto"
+	hasherpb "backend_server/internal/proto/hasher"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-// HasherExporter sends DVE snapshots to a running KNIRVHASHER instance for
-// dataset collection. Safe to disable; KNIRVSERVER operation is unaffected.
+// HasherExporter handles exporting security data to the KNIRVHASHER 0_DATA_CONNECTOR via gRPC
 type HasherExporter struct {
 	grpcClient hasherpb.HasherServiceClient
-	enabled    bool // false until KNIRVHASHER is out of stealth
+	conn       *grpc.ClientConn
 }
 
-// NewHasherExporter creates a new HasherExporter instance.
-func NewHasherExporter(client hasherpb.HasherServiceClient) *HasherExporter {
+// NewHasherExporter creates a new HasherExporter connected to the 0_DATA_CONNECTOR
+func NewHasherExporter(connectorAddr string) (*HasherExporter, error) {
+	if connectorAddr == "" {
+		connectorAddr = "localhost:50051" // Default connector address
+	}
+	conn, err := grpc.Dial(connectorAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("dial connector: %w", err)
+	}
+
+	client := hasherpb.NewHasherServiceClient(conn)
 	return &HasherExporter{
 		grpcClient: client,
-		enabled:    false, // Start disabled (stealth mode)
-	}
+		conn:       conn,
+	}, nil
 }
 
-// Enable activates the exporter when KNIRVHASHER is ready.
-func (he *HasherExporter) Enable() {
-	he.enabled = true
+// Close closes the gRPC connection
+func (he *HasherExporter) Close() error {
+	return he.conn.Close()
 }
 
-// Disable deactivates the exporter (stealth mode).
-func (he *HasherExporter) Disable() {
-	he.enabled = false
-}
-
-// ExportOnboardingData streams user onboarding data to KNIRVHASHER.
-// This is a fire-and-forget operation that doesn't block KNIRVSERVER.
-func (he *HasherExporter) ExportOnboardingData(orgID, userID string) {
-	if !he.enabled {
-		return // stealth mode — no-op
+// ExportSecurityData exports user security data to the hasher connector
+func (he *HasherExporter) ExportSecurityData(ctx context.Context, orgID, userID string, dataChunks <-chan []byte) error {
+	stream, err := he.grpcClient.ExportSecurityData(ctx)
+	if err != nil {
+		return fmt.Errorf("start export stream: %w", err)
 	}
 
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		_, err := he.grpcClient.ExportSecurityData(ctx, &hasherpb.ExportRequest{
-			OrgId:     orgID,
-			UserId:    userID,
-			DataType:  hasherpb.DataType_ALL,
-			Encrypted: true,
+	// Send data chunks
+	for chunk := range dataChunks {
+		err := stream.Send(&hasherpb.EncryptedChunk{
+			Data:    chunk,
+			ChunkId: fmt.Sprintf("%s-%s-%d", orgID, userID, len(chunk)),
+			IsLast:  false,
 		})
 		if err != nil {
-			// Log error but don't fail - this is advisory
-			fmt.Printf("HasherExporter: failed to export data for user %s: %v\n", userID, err)
+			return fmt.Errorf("send chunk: %w", err)
 		}
-	}()
-}
-
-// ExportGuardrailViolation exports guardrail violation data for training.
-func (he *HasherExporter) ExportGuardrailViolation(orgID, userID string) {
-	if !he.enabled {
-		return
 	}
 
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
+	// Close send and receive response
+	resp, err := stream.CloseAndRecv()
+	if err != nil {
+		return fmt.Errorf("close stream: %w", err)
+	}
 
-		_, err := he.grpcClient.ExportSecurityData(ctx, &hasherpb.ExportRequest{
-			OrgId:     orgID,
-			UserId:    userID,
-			DataType:  hasherpb.DataType_GUARDRAILS,
-			Encrypted: true,
-		})
-		if err != nil {
-			fmt.Printf("HasherExporter: failed to export violation data for user %s: %v\n", userID, err)
-		}
-	}()
+	if resp.Status != "success" {
+		return fmt.Errorf("export failed: %s", resp.Message)
+	}
+
+	log.Printf("Successfully exported security data for user %s in org %s", userID, orgID)
+	return nil
 }
 
-// IsEnabled returns whether the exporter is active.
-func (he *HasherExporter) IsEnabled() bool {
-	return he.enabled
+// TriggerTraining initiates training for a user
+func (he *HasherExporter) TriggerTraining(ctx context.Context, orgID, userID string, triggerType string) error {
+	resp, err := he.grpcClient.TriggerTraining(ctx, &hasherpb.TrainingRequest{
+		OrgId:   orgID,
+		UserId:  userID,
+		Trigger: hasherpb.TrainingTrigger_ON_DEMAND, // Map triggerType to enum
+		Options: map[string]string{"type": triggerType},
+	})
+	if err != nil {
+		return fmt.Errorf("trigger training: %w", err)
+	}
+
+	log.Printf("Training triggered: ID=%s, Status=%s", resp.TrainingId, resp.Status)
+	return nil
+}
+
+// ValidateAction checks if an action is allowed based on trained security rules
+func (he *HasherExporter) ValidateAction(ctx context.Context, orgID, userID, action string, context map[string]string) (*hasherpb.ActionResponse, error) {
+	resp, err := he.grpcClient.ValidateAction(ctx, &hasherpb.ActionRequest{
+		UserId:  userID,
+		Action:  action,
+		Context: context,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("validate action: %w", err)
+	}
+
+	return resp, nil
 }

@@ -2,8 +2,10 @@ syntax = "proto3";
 
 package hasher;
 
+option go_package = "backend_server/internal/proto/hasher";
+
 service HasherService {
-    rpc ExportSecurityData(ExportRequest) returns (stream EncryptedChunk);
+    rpc ExportSecurityData(stream EncryptedChunk) returns (ExportResponse);
     rpc TriggerTraining(TrainingRequest) returns (TrainingResponse);
     rpc GetTrainingStatus(TrainingStatusRequest) returns (TrainingStatusResponse);
     rpc GetUserRules(RulesRequest) returns (RulesResponse);
@@ -29,6 +31,28 @@ message EncryptedChunk {
     bytes data = 1;
     string chunk_id = 2;
     bool is_last = 3;
+}
+
+message ExportResponse {
+    string status = 1;
+    string message = 2;
+}
+
+message TrainingStatusRequest {
+    string training_id = 1;
+}
+
+message TrainingStatusResponse {
+    string status = 1;
+    float progress = 2;
+}
+
+message RulesRequest {
+    string user_id = 1;
+}
+
+message RulesResponse {
+    repeated string rules = 1;
 }
 
 message TrainingRequest {

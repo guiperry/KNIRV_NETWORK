@@ -1,14 +1,4 @@
-hasher:
-  addr: "/var/run/hasher.sock"  # Unix socket for container compatibility
-
-source:
-  org_id: "org_default"
-  user_id: "all"
+listen_addr: ":50051"  # gRPC listen address
 
 knirvbase:
-  data_dir: "/var/knirvbase/hasher"      # shared database for all pipeline stages
-
-processing:
-  max_concurrent: 4
-  pii_scrub: true
-  deduplicate: true
+  data_dir: "/var/knirvbase/connector_raw"  # collection for raw .md files

@@ -1,0 +1,40 @@
+services:
+  # ─────────────────────────────────────────────
+  # KnirvAgent Agent (one-shot query)
+  #   docker compose run --rm knirvagent-agent -m "Hello"
+  # ─────────────────────────────────────────────
+  knirvagent-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: knirvagent-agent
+    profiles:
+      - agent
+    volumes:
+      - ./config/config.json:/root/.knirvagent/config.json:ro
+      - knirvagent-workspace:/root/.knirvagent/workspace
+    entrypoint: ["knirvagent", "agent"]
+    stdin_open: true
+    tty: true
+
+  # ─────────────────────────────────────────────
+  # KnirvAgent Gateway (Long-running Bot)
+  #   docker compose up knirvagent-gateway
+  # ─────────────────────────────────────────────
+  knirvagent-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: knirvagent-gateway
+    restart: unless-stopped
+    profiles:
+      - gateway
+    volumes:
+      # Configuration file
+      - ./config/config.json:/root/.knirvagent/config.json:ro
+      # Persistent workspace (sessions, memory, logs)
+      - knirvagent-workspace:/root/.knirvagent/workspace
+    command: ["gateway"]
+
+volumes:
+  knirvagent-workspace:
