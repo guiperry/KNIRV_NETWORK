@@ -54,7 +54,7 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
     setIsMinting(true);
     setMintError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/knirvcli/chain/badge/create`, {
+      const response = await fetch(`${API_BASE_URL}/api/knirvshell/chain/badge/create`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({

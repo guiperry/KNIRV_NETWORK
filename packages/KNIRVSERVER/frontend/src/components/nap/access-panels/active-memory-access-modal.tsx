@@ -75,7 +75,7 @@ export function ActiveMemoryAccessModal({ isOpen, onClose }: ActiveMemoryAccessM
         '  status      - Show memory status',
         '  sync        - Synchronize memory',
         '  clear       - Clear terminal',
-        '  <command>   - Execute via knirvcli',
+        '  <command>   - Execute via knirvshell',
         '$ '
       ]);
       return;

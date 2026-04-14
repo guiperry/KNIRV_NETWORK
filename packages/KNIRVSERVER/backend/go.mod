@@ -9,6 +9,7 @@ require (
 	KNIRVGRAPH v0.0.0
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY v0.0.0
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvoracle v0.0.0
+	github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvshell v0.0.0-00010101000000-000000000000
 	github.com/apache/arrow/go/v14 v14.0.2
 	github.com/cilium/ebpf v0.12.3
 	github.com/cloudflare/circl v1.6.3
@@ -47,6 +48,8 @@ replace github.com/knirvcorp/knirvbase/go => ../../KNIRVBASE/go
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY => ../pkg/knirvgateway
 
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvoracle => ../pkg/knirvoracle
+
+replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvshell => ../pkg/knirvshell
 
 replace KNIRVGRAPH => ../pkg/knirvgraph
 

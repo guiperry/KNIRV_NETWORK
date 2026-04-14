@@ -46,7 +46,7 @@ export function useBadgeLab(): UseBadgeLabReturn {
     setError(null);
 
     try {
-      const response = await fetch('/api/knirvcli/chain/badge/create', {
+      const response = await fetch('/api/knirvshell/chain/badge/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req),
@@ -72,7 +72,7 @@ export function useBadgeLab(): UseBadgeLabReturn {
     setError(null);
 
     try {
-      const response = await fetch('/api/knirvcli/chain/badge/mint', {
+      const response = await fetch('/api/knirvshell/chain/badge/mint', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req),
@@ -98,7 +98,7 @@ export function useBadgeLab(): UseBadgeLabReturn {
     setError(null);
 
     try {
-      const response = await fetch(`/api/knirvcli/chain/badge/${id}`, {
+      const response = await fetch(`/api/knirvshell/chain/badge/${id}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });

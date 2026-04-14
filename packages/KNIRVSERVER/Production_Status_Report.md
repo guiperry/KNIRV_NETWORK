@@ -128,7 +128,7 @@
 | Badge System | ✅ Ready | Skills, capabilities, properties (NFT) |
 | Context Rooting | ✅ Ready | Link/context storage |
 
-**Status:** Badge Lab now integrates with KNIRVCHAIN. After SVG generation, a "Mint to Chain" button calls `POST /api/knirvcli/chain/badge/create` with the SVG as `image_data`, badge type `capability`, and the selected values/ontology elements as metadata. Badge ID is displayed on success.
+**Status:** Badge Lab now integrates with KNIRVCHAIN. After SVG generation, a "Mint to Chain" button calls `POST /api/knirvshell/chain/badge/create` with the SVG as `image_data`, badge type `capability`, and the selected values/ontology elements as metadata. Badge ID is displayed on success.
 
 ### 5. Agent System - Dual Architecture
 
@@ -252,11 +252,11 @@
 
 **Status: IMPLEMENTED (Badge creation)**
 
-- Badge Lab generates SVG locally, then a "Mint to Chain" button calls `POST /api/knirvcli/chain/badge/create` with `name`, `badge_type: "capability"`, `description`, `image_data` (SVG), and `metadata` (selected values + ontology)
+- Badge Lab generates SVG locally, then a "Mint to Chain" button calls `POST /api/knirvshell/chain/badge/create` with `name`, `badge_type: "capability"`, `description`, `image_data` (SVG), and `metadata` (selected values + ontology)
 - Badge ID is returned and displayed in the UI on success
-- Backend route: `backend/internal/web/knirvcli_handlers.go` → `backend/internal/services/knirvcli/knirvcli_service.go`
+- Backend route: `backend/internal/web/knirvshell_handlers.go` → `backend/internal/services/knirvshell/knirvshell_service.go`
 
-**Remaining:** Agent detail view showing attached badges from KNIRVCHAIN (`GET /api/knirvcli/chain/badge/{id}`); "Manage Badges" panel in the agent drawer.
+**Remaining:** Agent detail view showing attached badges from KNIRVCHAIN (`GET /api/knirvshell/chain/badge/{id}`); "Manage Badges" panel in the agent drawer.
 
 ### Gap 3: Secret Management via root.key
 
@@ -309,9 +309,9 @@ FinTech code lives at `backend/internal/services/plugins/fintech/` (not the path
 
 ### Phase 3: Badge → Agent Integration (Via Badge Lab & KNIRVCHAIN)
 
-- [x] **3.1** Integrate Badge Lab with KNIRVCHAIN — *"Mint to Chain" button calls `POST /api/knirvcli/chain/badge/create`*
-- [x] **3.2** Badge creation API — *`POST /api/knirvcli/chain/badge/create` exists and is called*
-- [x] **3.3** Badge minting API — *`POST /api/knirvcli/chain/badge/mint` exists (manual step after create)*
+- [x] **3.1** Integrate Badge Lab with KNIRVCHAIN — *"Mint to Chain" button calls `POST /api/knirvshell/chain/badge/create`*
+- [x] **3.2** Badge creation API — *`POST /api/knirvshell/chain/badge/create` exists and is called*
+- [x] **3.3** Badge minting API — *`POST /api/knirvshell/chain/badge/mint` exists (manual step after create)*
 - [ ] **3.4** Agent detail view showing attached badges from KNIRVCHAIN
 - [ ] **3.5** "Manage Badges" panel in agent drawer (human-only)
 

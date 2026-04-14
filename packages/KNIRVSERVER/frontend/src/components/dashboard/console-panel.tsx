@@ -27,7 +27,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
   const [sshConnected, setSshConnected] = useState(false);
-  const [connectionMode, setConnectionMode] = useState<'knirvcli' | 'ssh' | 'local'>('local');
+  const [connectionMode, setConnectionMode] = useState<'knirvshell' | 'ssh' | 'local'>('local');
 
   const { fetchFabricLogs } = useFabricManagement();
 
@@ -47,7 +47,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
       if (!resp.ok) return false;
       const data = await resp.json();
       sessionIdRef.current = data.session_id;
-      setConnectionMode('knirvcli');
+      setConnectionMode('knirvshell');
       
       term.writeln('\x1b[32m[CONNECTED] KNIRVCLI session established.\x1b[0m');
       term.write('\x1b[1;32m$ \x1b[0m');
@@ -210,7 +210,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
 
         term.onData((data) => {
           // Route input to appropriate backend based on connection mode
-          if (connectionMode === 'knirvcli' && sessionIdRef.current) {
+          if (connectionMode === 'knirvshell' && sessionIdRef.current) {
             sendToKNIRVCLI(data);
             if (data === '\r') {
               term.write('\r\n');

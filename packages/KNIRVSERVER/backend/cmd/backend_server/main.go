@@ -42,7 +42,6 @@ import (
 	"backend_server/internal/services/guardrails"
 	icme "backend_server/internal/services/icme"
 	inference "backend_server/internal/services/inferencer"
-	"backend_server/internal/services/knirvcli"
 	"backend_server/internal/services/onboarding"
 	"backend_server/internal/services/p2p"
 	fabricmanagement "backend_server/internal/services/pluginmanagement"
@@ -53,6 +52,7 @@ import (
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
 	"backend_server/internal/services/validation"
+	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvshell"
 
 	knirvchain "KNIRVCHAIN"
 	knirvgraph "KNIRVGRAPH"
@@ -143,8 +143,8 @@ type Server struct {
 	// ICME - Intentional Context Memory Engine
 	icmeService *icme.Service
 
-	// KNIRVCLI Backend Integration Service
-	knirvcliService *knirvcli.KNIRVCLIService
+	// KNIRVSHELL Backend Integration Service
+	knirvshellService *knirvshell.KNIRVSHELLService
 
 	// Onboarding Service - Value System and Ontology Ingestion
 	onboardingService *onboarding.OnboardingService
@@ -925,9 +925,14 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		log.Println("CognitiveEngine: eBPF manager wired for real resource telemetry")
 	}
 
-	// Initialize KNIRVCLI Backend Integration Service
-	knirvcliService := knirvcli.NewKNIRVCLIService(dbManager, dveManager, validationCore)
-	log.Println("KNIRVCLI service initialized")
+	// Initialize KNIRVSHELL Backend Integration Service
+	var knirvshellService *knirvshell.KNIRVSHELLService
+	knirvshellService, err = knirvshell.NewKNIRVSHELLService()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize KNIRVSHELL service: %v", err)
+	} else {
+		log.Println("KNIRVSHELL service initialized")
+	}
 
 	// Initialize Object Nest subsystem
 	unifiedContainerManager := runtime.NewUnifiedContainerManager(
@@ -1235,7 +1240,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		rollupService:                nil,
 		guardrailManager:             guardrailManager,
 		policyEngine:                 policyEngine,
-		knirvcliService:              knirvcliService,
+		knirvshellService:            knirvshellService,
 		onboardingService:            onboardingService,
 		hasherGRPCServer:             hasherGRPCServer,
 		hasherIntegration:            hasherIntegration,
@@ -1671,10 +1676,10 @@ func (s *Server) setupRoutes() {
 		log.Println("ICME routes configured")
 	}
 
-	// Register KNIRVCLI routes
-	if s.knirvcliService != nil {
-		web.NewKNIRVCLIHandlers(s.knirvcliService).RegisterRoutes(s.router, authMiddleware)
-		log.Println("KNIRVCLI routes configured")
+	// Register KNIRVSHELL routes
+	if s.knirvshellService != nil {
+		web.NewKNIRVSHELLHandlers(s.knirvshellService).RegisterRoutes(s.router, authMiddleware)
+		log.Println("KNIRVSHELL routes configured")
 	}
 
 	// Register Onboarding routes
@@ -1689,7 +1694,7 @@ func (s *Server) setupRoutes() {
 		web.NewPluginManagementHandlers(s.fabricManagementService),
 		web.NewAgentHandlers(s.agentService),
 		web.NewPaymentHandlers(nil, nil, s.eventBroadcaster),
-		web.NewKNIRVCLIHandlers(s.knirvcliService),
+		web.NewKNIRVSHELLHandlers(s.knirvshellService),
 		web.NewOnboardingHandlers(s.onboardingService),
 		web.NewCognitiveEngineHandlers(s.cognitiveEngine),
 		authMiddleware,

@@ -94,7 +94,7 @@ export function KNIRVChainAccessModal({ isOpen, onClose }: KNIRVChainAccessModal
         '  blocks      - View recent blocks',
         '  nodes       - List capability nodes',
         '  clear       - Clear terminal',
-        '  <command>   - Execute via knirvcli chain',
+        '  <command>   - Execute via knirvshell chain',
         '$ '
       ]);
       return;

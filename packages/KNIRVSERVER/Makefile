@@ -27,6 +27,9 @@ ORACLE_PKG_BIN := $(ORACLE_PKG_DIR)/bin/knirvoracle
 HASHER_DIR := $(ROOT_DIR)/pkg/knirvhasher
 HASHER_SRC_DIR := $(ROOT_DIR)/../KNIRVHASHER
 HASHER_PKG_BIN := $(HASHER_DIR)/bin/knirvhasher
+SHELL_DIR := $(ROOT_DIR)/pkg/knirvshell
+SHELL_SRC_DIR := $(ROOT_DIR)/../KNIRVSHELL
+SHELL_PKG_BIN := $(SHELL_DIR)/bin/knirvshell
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -63,7 +66,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image desktop desktop-deps desktop-build dash gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image desktop desktop-deps desktop-build dash gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean shell-build shell-deps shell-clean build-full
 
 # Default target
 all: proto frontend desktop-build backend binary
@@ -144,7 +147,7 @@ frontend-dev: deps-node ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Backend Build (cmd/backend_server only)
-backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build ## Build complete Go backend service package
+backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build shell-build ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
 	@echo "$(BLUE)Copying backend binary to root...$(NC)"
@@ -173,10 +176,10 @@ key-encryptor: deps-go ## Build key_encryptor binary
 
 # Unified Binary (Frontend + Desktop + Backend + embedded pkg modules)
 # main.go embeds: bin/backend_server, config/*, desktop/dist/*, frontend/out/*
-# Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, and KNIRVHASHER
+# Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVSHELL
 # are embedded and extracted by their pkg modules.
-binary: proto ebpf-generate frontend desktop-build gateway-build graph-build chain-build oracle-build hasher-build backend ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, and KNIRVHASHER
-	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, and KNIRVHASHER)...$(NC)"
+binary: proto ebpf-generate frontend desktop-build gateway-build graph-build chain-build oracle-build hasher-build shell-build backend ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVSHELL
+	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVSHELL)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
 	chmod 755 $(DIST_DIR)/knirv-server
@@ -336,10 +339,11 @@ clean: ## Clean build outputs (preserves node_modules and Go module cache)
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 	rm -rf $(BACKEND_DIR)/bin
 	rm -f bin/backend_server
-	rm -f $(GATEWAY_PKG_BIN) $(GRAPH_PKG_BIN) $(CHAIN_PKG_BIN) $(ORACLE_PKG_BIN) $(HASHER_PKG_BIN)
+	rm -f $(GATEWAY_PKG_BIN) $(GRAPH_PKG_BIN) $(CHAIN_PKG_BIN) $(ORACLE_PKG_BIN) $(HASHER_PKG_BIN) $(SHELL_PKG_BIN)
 	rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/out
 	cd $(GATEWAY_DIR) && go clean
 	cd $(HASHER_DIR) && go clean
+	cd $(SHELL_DIR) && go clean
 
 install: binary ## Install binary to system
 	@echo "$(BLUE)Installing binary...$(NC)"
@@ -495,3 +499,19 @@ hasher-clean: ## Clean KNIRVHASHER build artifacts
 	@echo "$(BLUE)Cleaning KNIRVHASHER artifacts...$(NC)"
 	rm -f $(HASHER_PKG_BIN)
 	cd $(HASHER_SRC_DIR) && go clean
+
+# KNIRVSHELL (Embedded) targets
+shell-deps: ## Install KNIRVSHELL dependencies
+	@echo "$(BLUE)Installing KNIRVSHELL dependencies...$(NC)"
+	cd $(SHELL_SRC_DIR) && go mod download && go mod tidy
+
+shell-build: shell-deps ## Build KNIRVSHELL binary into pkg/knirvshell/bin/ (required before binary target)
+	@echo "$(BLUE)Building KNIRVSHELL binary...$(NC)"
+	@mkdir -p $(SHELL_DIR)/bin
+	cd $(SHELL_SRC_DIR) && go build -ldflags "-s -w" -o $(SHELL_PKG_BIN) ./...
+	@echo "$(GREEN)KNIRVSHELL binary built: $(SHELL_PKG_BIN)$(NC)"
+
+shell-clean: ## Clean KNIRVSHELL build artifacts
+	@echo "$(BLUE)Cleaning KNIRVSHELL artifacts...$(NC)"
+	rm -f $(SHELL_PKG_BIN)
+	cd $(SHELL_SRC_DIR) && go clean

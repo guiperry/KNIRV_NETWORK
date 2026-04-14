@@ -14,7 +14,7 @@ type APIRouter struct {
 	pluginHandlers          *PluginManagementHandlers
 	agentHandlers           *AgentHandlers
 	paymentHandlers         *PaymentHandlers
-	knirvcliHandlers        *KNIRVCLIHandlers
+	knirvshellHandlers      *KNIRVSHELLHandlers
 	onboardingHandlers      *OnboardingHandlers
 	cognitiveEngineHandlers *CognitiveEngineHandlers
 	authMiddleware          *middleware.AuthMiddleware
@@ -26,7 +26,7 @@ func NewAPIRouter(
 	pluginHandlers *PluginManagementHandlers,
 	agentHandlers *AgentHandlers,
 	paymentHandlers *PaymentHandlers,
-	knirvcliHandlers *KNIRVCLIHandlers,
+	knirvshellHandlers *KNIRVSHELLHandlers,
 	onboardingHandlers *OnboardingHandlers,
 	cognitiveEngineHandlers *CognitiveEngineHandlers,
 	authMiddleware *middleware.AuthMiddleware,
@@ -36,7 +36,7 @@ func NewAPIRouter(
 		pluginHandlers:          pluginHandlers,
 		agentHandlers:           agentHandlers,
 		paymentHandlers:         paymentHandlers,
-		knirvcliHandlers:        knirvcliHandlers,
+		knirvshellHandlers:      knirvshellHandlers,
 		onboardingHandlers:      onboardingHandlers,
 		cognitiveEngineHandlers: cognitiveEngineHandlers,
 		authMiddleware:          authMiddleware,
@@ -60,8 +60,8 @@ func (ar *APIRouter) RegisterRoutes(r *mux.Router) {
 	// Register Payment routes under /api/v1/payments/
 	ar.registerPaymentRoutes(apiV1)
 
-	// Register KNIRVCLI routes under /api/v1/cli/
-	ar.registerKNIRVCLIRoutes(apiV1)
+	// Register KNIRVSHELL routes under /api/v1/shell/
+	ar.registerKNIRVSHELLRoutes(apiV1)
 
 	// Register Onboarding routes under /api/v1/onboarding/
 	ar.registerOnboardingRoutes(apiV1)
@@ -178,27 +178,27 @@ func (ar *APIRouter) registerPaymentRoutes(apiV1 *mux.Router) {
 	paymentRouter.HandleFunc("/paypal/refund", ar.paymentHandlers.RefundPayPalCapture).Methods("POST", "OPTIONS")
 }
 
-// registerKNIRVCLIRoutes registers KNIRVCLI-related routes
-func (ar *APIRouter) registerKNIRVCLIRoutes(apiV1 *mux.Router) {
-	cliRouter := apiV1.PathPrefix("/cli").Subrouter()
+// registerKNIRVSHELLRoutes registers KNIRVSHELL-related routes
+func (ar *APIRouter) registerKNIRVSHELLRoutes(apiV1 *mux.Router) {
+	cliRouter := apiV1.PathPrefix("/shell").Subrouter()
 
 	// Apply optional auth middleware
 	if ar.authMiddleware != nil {
 		cliRouter.Use(ar.authMiddleware.OptionalAuth)
 	}
 
-	// KNIRVCLI operations
-	cliRouter.HandleFunc("/execute", ar.knirvcliHandlers.ExecuteCommand).Methods("POST", "OPTIONS")
-	cliRouter.HandleFunc("/wallet/info", ar.knirvcliHandlers.GetWalletInfo).Methods("GET", "OPTIONS")
-	cliRouter.HandleFunc("/wallet/send", ar.knirvcliHandlers.SendToken).Methods("POST", "OPTIONS")
-	cliRouter.HandleFunc("/validation/execute", ar.knirvcliHandlers.ExecuteValidation).Methods("POST", "OPTIONS")
-	cliRouter.HandleFunc("/tee/execute", ar.knirvcliHandlers.ExecuteTEECommand).Methods("POST", "OPTIONS")
-	cliRouter.HandleFunc("/p2p/execute", ar.knirvcliHandlers.ExecuteP2PCommand).Methods("POST", "OPTIONS")
-	cliRouter.HandleFunc("/chain/execute", ar.knirvcliHandlers.ExecuteChainCommand).Methods("POST", "OPTIONS")
-	cliRouter.HandleFunc("/sessions", ar.knirvcliHandlers.ListSessions).Methods("GET", "OPTIONS")
-	cliRouter.HandleFunc("/sessions/{id}", ar.knirvcliHandlers.GetSession).Methods("GET", "OPTIONS")
-	cliRouter.HandleFunc("/sessions/{id}/stop", ar.knirvcliHandlers.StopSession).Methods("POST", "OPTIONS")
-	cliRouter.HandleFunc("/sessions/{id}/input", ar.knirvcliHandlers.SendInput).Methods("POST", "OPTIONS")
+	// KNIRVSHELL operations
+	cliRouter.HandleFunc("/execute", ar.knirvshellHandlers.ExecuteCommand).Methods("POST", "OPTIONS")
+	cliRouter.HandleFunc("/wallet/info", ar.knirvshellHandlers.GetWalletInfo).Methods("GET", "OPTIONS")
+	cliRouter.HandleFunc("/wallet/send", ar.knirvshellHandlers.SendToken).Methods("POST", "OPTIONS")
+	cliRouter.HandleFunc("/validation/execute", ar.knirvshellHandlers.ExecuteValidation).Methods("POST", "OPTIONS")
+	cliRouter.HandleFunc("/tee/execute", ar.knirvshellHandlers.ExecuteTEECommand).Methods("POST", "OPTIONS")
+	cliRouter.HandleFunc("/p2p/execute", ar.knirvshellHandlers.ExecuteP2PCommand).Methods("POST", "OPTIONS")
+	cliRouter.HandleFunc("/chain/execute", ar.knirvshellHandlers.ExecuteChainCommand).Methods("POST", "OPTIONS")
+	cliRouter.HandleFunc("/sessions", ar.knirvshellHandlers.ListSessions).Methods("GET", "OPTIONS")
+	cliRouter.HandleFunc("/sessions/{id}", ar.knirvshellHandlers.GetSession).Methods("GET", "OPTIONS")
+	cliRouter.HandleFunc("/sessions/{id}/stop", ar.knirvshellHandlers.StopSession).Methods("POST", "OPTIONS")
+	cliRouter.HandleFunc("/sessions/{id}/input", ar.knirvshellHandlers.SendInput).Methods("POST", "OPTIONS")
 }
 
 // registerOnboardingRoutes registers Onboarding-related routes
@@ -269,10 +269,10 @@ func (ar *APIRouter) registerBackwardCompatibilityRoutes(r *mux.Router) {
 		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
 	})
 
-	// Redirect old /api/knirvcli/ to /api/v1/cli/
-	r.PathPrefix("/api/knirvcli/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Redirect old /api/knirvshell/ to /api/v1/shell/
+	r.PathPrefix("/api/knirvshell/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		newPath := "/api/v1/cli/" + path[len("/api/knirvcli/"):]
+		newPath := "/api/v1/shell/" + path[len("/api/knirvshell/"):]
 		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
 	})
 

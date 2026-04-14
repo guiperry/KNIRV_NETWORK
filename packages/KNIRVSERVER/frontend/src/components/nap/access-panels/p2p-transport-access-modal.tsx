@@ -124,7 +124,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
         '  peers       - List connected peers',
         '  relay       - Show relay status',
         '  clear       - Clear terminal',
-        '  <command>   - Execute via knirvcli p2p',
+        '  <command>   - Execute via knirvshell p2p',
         '$ '
       ]);
       return;
@@ -142,7 +142,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
       return;
     }
 
-    // Execute via backend knirvcli p2p API
+    // Execute via backend knirvshell p2p API
     setIsExecuting(true);
     try {
       const resp = await fetch(`${API_BASE_URL}/api/v1/cli/p2p/execute`, {

@@ -231,7 +231,7 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
         '  query <id>  - Query trace by ID',
         '  edges       - List graph edges',
         '  clear       - Clear terminal',
-        '  <command>   - Execute via knirvcli',
+        '  <command>   - Execute via knirvshell',
         'Workflows:   - Use the Workflows tab to execute workflows',
         '$ '
       ]);
