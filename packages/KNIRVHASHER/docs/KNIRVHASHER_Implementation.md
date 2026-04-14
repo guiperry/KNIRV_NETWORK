@@ -21,14 +21,18 @@ network. Security rule enforcement is **not** a KNIRVHASHER responsibility.
 |----------|--------|-----------|
 | Deployment Model | **Standalone / Experimental** | Full feature in stealth mode; not a runtime dependency of any KNIRV service |
 | Data Transfer | **gRPC** (encrypted) | Direct to local hasher instance; PQC-encrypted payloads |
-| gRPC Transport | **Unix socket** (`/var/run/hasher.sock`) | Better for containerized environments |
+| gRPC Transport | **Unix socket assigned by KNIRVSERVER; dynamic port fallback** | Primary: socket path pushed by KNIRVSERVER. Fallback: dynamic allocation from configured range |
+| Pipeline Data Formats | **`.md` → `.arrow` → `.nrv`** | Raw ingest as Markdown; normalised records as Arrow IPC; encoded output as NRV brackets |
+| Pipeline Concurrency | **Sequential jobs; parallel phases within a job** | One training job at a time per node; phases may overlap via goroutines at KNIRVBASE collection boundaries |
 | Training Triggers | **On-demand + Scheduled + Event-driven** | Dataset collection across all operational scenarios |
-| Seed Storage | **KNIRVBASE (.nrv files, local instance)** | Each KNIRV component owns its own KNIRVBASE; hasher writes to its own |
-| Data Format | **.nrv** | Binary container with Arrow modalities; zero-copy streaming via Flight |
+| Seed Storage | **KNIRVBASE (.nrv files, embedded per node)** | Each node owns its own KNIRVBASE; sovereign architectural philosophy |
+| Seed Versioning | **Full historical retention per user** | Never overwrite; all datasets retained for rollback, drift analysis, and future global model aggregation |
+| KNIRVBASE Topology | **Embedded per hasher node** | Sovereign architecture — no shared cluster; data exchanged via network layer (Flight, IBC) |
 | Connector Language | **Go** | Native to hasher, no TS overhead |
-| Connector Location | **0_DATA_CONNECTOR** | Pre-pipeline data preparation |
+| Connector Location | **0_DATA_CONNECTOR** | Opens shared KNIRVBASE instance; all pipeline stages share the same db handle |
 | KNIRVSERVER Usage | **Pipeline phases 1–3 only** | Non-interactive background calls during onboarding; full hasher stays isolated |
 | Guardrail Enforcement | **Not KNIRVHASHER's concern** | Enforcement is a KNIRVSERVER responsibility using its own KNIRVBASE |
+| Enforcement Handoff | **KNIRVSERVER polls `hasher_seeds` (pull)** | Cognitive Engine polls on configurable interval; hasher never pushes — full decoupling |
 | Fallback | **Graceful degradation** | Pipeline is advisory; data collection continues independently |
 
 ---
@@ -49,10 +53,27 @@ There are two distinct contexts in which the pipeline runs:
 ║                                                                     ║
 ║  ┌──────────────┐  gRPC (Unix sock)  ┌──────────────────────────┐  ║
 ║  │ KNIRVSERVER  │ ─────────────────▶ │  0_DATA_CONNECTOR (Go)   │  ║
-║  │  DVE data    │                    │  normalizer / .nrv enc.  │  ║
-║  └──────────────┘                    └────────────┬─────────────┘  ║
-║                                                   │                ║
-║                                                   ▼                ║
+║  │  DVE data    │                    │  KNIRVBASE (imported)    │  ║
+║  └──────────────┘                    │  writes raw → .md files  │  ║
+║                                      └────────────┬─────────────┘  ║
+║                                                   │ KNIRVBASE       ║
+║                                                   │ Flight (.md)    ║
+║                                                   ▼                 ║
+║                                      ┌────────────────────────┐    ║
+║                                      │    1_DATA_MINER        │    ║
+║                                      │  reads .md → clean +   │    ║
+║                                      │  normalize → .arrow    │    ║
+║                                      └────────────┬───────────┘    ║
+║                                                   │ KNIRVBASE       ║
+║                                                   │ Flight (.arrow) ║
+║                                                   ▼                 ║
+║                                      ┌────────────────────────┐    ║
+║                                      │    2_DATA_ENCODER      │    ║
+║                                      │  reads .arrow → encode │    ║
+║                                      │  + pack → .nrv         │    ║
+║                                      └────────────┬───────────┘    ║
+║                  (all stages share the KNIRVBASE   │                ║
+║                   instance opened in connector)    ▼                ║
 ║  ┌────────────────────────────────────────────────────────────┐   ║
 ║  │                   HASHER PIPELINE                          │   ║
 ║  │                                                            │   ║
@@ -253,54 +274,94 @@ pipeline/0_DATA_CONNECTOR/
 ├── internal/
 │   ├── grpc/
 │   │   └── client.go
-│   ├── normalizer/
-│   │   ├── normalizer.go
-│   │   └── security_mapper.go
-│   ├── cleaner/
-│   │   └── cleaner.go
-│   ├── encoder/
-│   │   └── arrow_encoder.go
 │   └── writer/
-│       └── writer.go
+│       └── writer.go           # MDWriter — writes raw decrypted chunks as .md files
 ├── config/
 │   └── connector.yaml
-├── go.mod
+├── go.mod                      # imports github.com/knirvcorp/knirvbase
 └── Makefile
 ```
+
+`0_DATA_CONNECTOR` is responsible for receiving the gRPC stream, decrypting each chunk,
+and persisting it as a raw **`.md` file** in the `connector_raw` KNIRVBASE collection.
+No normalisation or encoding happens here. The single KNIRVBASE instance opened in this
+stage is passed by reference to `1_DATA_MINER` and `2_DATA_ENCODER` so all three stages
+read and write to the same database.
+
+The `normalizer` and `cleaner` packages live in `1_DATA_MINER`.
+The `nrv_encoder` lives in `2_DATA_ENCODER`.
 
 ### 2.2 Main Entry Point
 
 **File:** `cmd/connector/main.go`
 
+`0_DATA_CONNECTOR` imports KNIRVBASE from `github.com/knirvcorp/knirvbase` and opens the
+single shared database instance used by all pipeline stages. Its only job is to receive
+the gRPC stream, decrypt each chunk, and write the raw content as a **`.md` file** into
+the `connector_raw` KNIRVBASE collection. The `db` handle is then passed to the miner
+and encoder so they share the same database without re-opening it.
+
 ```go
+import (
+    "github.com/knirvcorp/knirvbase"
+)
+
 func main() {
     config := LoadConfig()
-    
+
+    // Open the single shared KNIRVBASE instance for the whole pipeline.
+    db, err := knirvbase.Open(config.KNIRVBASEDir)
+    if err != nil {
+        log.Fatalf("open knirvbase: %v", err)
+    }
+    defer db.Close()
+
     client := grpc.NewClient(config.HasherAddr)
     defer client.Close()
-    
+
     stream, err := client.ExportSecurityData(&ExportRequest{
-        OrgId: config.OrgID,
-        UserId: config.UserID,
-        DataType: DataType_ALL,
+        OrgId:     config.OrgID,
+        UserId:    config.UserID,
+        DataType:  DataType_ALL,
         Encrypted: true,
     })
-    
-    normalizer := normalizer.NewSecurityNormalizer()
-    encoder := encoder.NewArrowEncoder()
-    writer := writer.NewFileWriter(config.OutputDir)
-    
-    for chunk := range stream {
-        records := normalizer.Process(chunk.Data)
-        frames := encoder.Encode(records)
-        writer.Write(frames)
+    if err != nil {
+        log.Fatalf("export stream: %v", err)
     }
+
+    // MDWriter saves each decrypted chunk as a raw .md file in connector_raw.
+    // No normalisation or encoding happens here.
+    w := writer.NewMDWriter(db.Collection("connector_raw"))
+
+    for chunk := range stream {
+        if err := w.WriteChunk(chunk); err != nil {
+            log.Printf("write chunk %s: %v", chunk.ChunkId, err)
+        }
+    }
+
+    // Hand the open db to downstream stages (invoked sequentially or as
+    // goroutines sharing the same db handle).
+    miner.Run(ctx, db)
+    encoder.Run(ctx, db)
 }
+```
+
+**`go.mod` (excerpt)**
+
+```
+module github.com/knirvcorp/knirvhasher/pipeline/0_DATA_CONNECTOR
+
+require (
+    github.com/knirvcorp/knirvbase v0.1.0
+)
 ```
 
 ### 2.3 Security Normalizer
 
-**File:** `internal/normalizer/security_mapper.go`
+> **Location change:** This normalizer now lives in `1_DATA_MINER`. See §3.1 for the
+> updated placement. The schema definition below is retained here for reference.
+
+**File:** `pipeline/1_DATA_MINER/internal/normalizer/security_mapper.go`
 
 ```go
 type SecurityNormalizer struct {
@@ -342,51 +403,84 @@ var SECURITY_TAG_MAPPINGS = map[string]SecurityMapping{
 }
 ```
 
-### 2.4 Arrow Encoder
+### 2.4 NRV Encoder
 
-**File:** `internal/encoder/arrow_encoder.go`
+> **Location:** `2_DATA_ENCODER`. See §3.2 for the directory layout and the
+> `EncoderApp.Run` wiring that feeds this encoder from the KNIRVBASE Flight stream.
 
-The embedding field is **fixed-size 16-dimensional** (`FixedSizeList<Float32>(16)`), matching
-the 16 variance-selected BGE dimensions from `vector_mapper.go` and the 16-dim LSH
-projection space used by `projectionsToFloat32` in KNIRVBASE's `flight_server.go`. The
-Arrow Knowledge Base (the parquet vocabulary backing Flash Search) is re-indexed to this
-same 16-dim schema — do not use variable-length lists.
+**File:** `pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder.go`
+
+`NRVEncoder` reads **`.arrow` IPC batches** produced by `1_DATA_MINER` from the
+`miner_processed` KNIRVBASE collection, runs the BGE embedding through TensorPacker,
+and writes each packed record as an **80-byte `.nrv` Tier-3 Bracket** into the
+`encoder_output` KNIRVBASE collection via `NRVWriter`.
+
+The embedding field is **fixed-size 16-dimensional**, matching the 16 variance-selected
+BGE dimensions from `vector_mapper.go` and the 16-dim LSH projection space used by
+`projectionsToFloat32` in KNIRVBASE's `flight_server.go`. Variable-length embedding
+lists are not permitted; KNIRVBASE `CalcBracketDriftScore` assumes a fixed 16-dim stride.
 
 ```go
 // VectorDims is the fixed dimensionality of all BGE embedding vectors in the pipeline.
-// Must match vector_mapper.go variance selection, Arrow KB index, and KNIRVBASE
+// Must match vector_mapper.go variance selection, NRV KB index, and KNIRVBASE
 // Projections layout (32 bytes → 16 × uint16 dimensions).
 const VectorDims = 16
 
-type ArrowEncoder struct {
-    schema *arrow.Schema
-    pool   memory.Allocator
+// NRVEncoder reads .arrow IPC batches from the miner_processed KNIRVBASE collection
+// and encodes each SecurityRecord into an 80-byte .nrv Tier-3 Bracket.
+type NRVEncoder struct {
+    db     knirvbase.DB
+    writer *writer.NRVWriter
+    packer *TensorPacker
 }
 
-func NewArrowEncoder() *ArrowEncoder {
-    // embedding: FixedSizeList<Float32>(16) — locked to VectorDims.
-    // Variable-length lists are NOT permitted; the Flash Search helper and
-    // KNIRVBASE CalcBracketDriftScore both assume a fixed 16-dim stride.
-    embeddingType := arrow.FixedSizeListOf(VectorDims, arrow.PrimitiveTypes.Float32)
-    schema := arrow.NewSchema([]arrow.Field{
-        {Name: "file_name",     Type: arrow.BinaryTypes.String},
-        {Name: "chunk_id",      Type: arrow.PrimitiveTypes.Int32},
-        {Name: "content",       Type: arrow.BinaryTypes.String},
-        {Name: "embedding",     Type: embeddingType},              // 16-dim fixed
-        {Name: "tokens",        Type: arrow.ListOf(arrow.BinaryTypes.String)},
-        {Name: "pos_tags",      Type: arrow.ListOf(arrow.PrimitiveTypes.Int32)},
-        {Name: "dep_hashes",    Type: arrow.ListOf(arrow.PrimitiveTypes.Uint32)},
-        {Name: "security_tags", Type: arrow.ListOf(arrow.BinaryTypes.String)},
-        {Name: "domain_sig",    Type: arrow.PrimitiveTypes.Uint16}, // Slot 10 (0x2000=Math)
-        {Name: "slot4_raw",     Type: arrow.PrimitiveTypes.Uint32}, // packed slot4 register
-    }, nil)
-    return &ArrowEncoder{schema: schema, pool: memory.NewGoAllocator()}
+func NewNRVEncoder(db knirvbase.DB) *NRVEncoder {
+    return &NRVEncoder{
+        db:     db,
+        writer: writer.NewNRVWriter(db.Collection("encoder_output")),
+        packer: NewTensorPacker(),
+    }
 }
 
-func (e *ArrowEncoder) Encode(records []*SecurityRecord) (*arrow.Buffer, error) {
-    // Build Arrow record batch; each embedding row must have exactly VectorDims values.
-    // Return IPC-encoded buffer (IPC stream format for socket streaming,
-    // IPC file format for Arrow KB parquet re-index).
+// Run opens a Flight stream on the miner_processed collection, reads each
+// .arrow file path from the entry payload, memory-maps the IPC file, and
+// encodes every SecurityRecord row into a .nrv Bracket via NRVWriter.
+func (e *NRVEncoder) Run(ctx context.Context) error {
+    stream, err := e.db.Collection("miner_processed").FlightStream(ctx)
+    if err != nil {
+        return fmt.Errorf("open miner_processed flight stream: %w", err)
+    }
+
+    for entry := range stream {
+        arrowPath, _ := entry.Payload["arrow_path"].(string)
+        records, err := loadArrowBatch(arrowPath) // mmap + IPC decode
+        if err != nil {
+            log.Printf("nrv_encoder: load %s: %v", arrowPath, err)
+            continue
+        }
+
+        for i, rec := range records {
+            slots := e.packer.Orchestrate(rec.ToSlotVector(), uint16(i), rec.DomainSig)
+            bracket := &knirvbase.Bracket{
+                // Slots 0-3: 16-dim LSH projections packed as 16 × uint16 (32 bytes)
+                Projections: slotsToProjections(slots),
+                // Slot 4: packed syntax byte (POSTag | Tense | Plurality)
+                SyntacticByte: uint8(slots[4] & 0xFF),
+                // Slot 5: dependency head
+                DepHead: uint8(slots[5]),
+                // Slot 10: domain signature (e.g. 0x2400 = Security domain)
+                DomainSig: uint16(slots[10]),
+                // Slots 6-8: recursive context memory (18 bytes)
+                ContextMemory: slots6to8(slots[6:9]),
+                // Slot 11: GoldenSeed / LSH Salt
+                GoldenSeed: slots[11],
+            }
+            if err := e.writer.WriteBracket(bracket); err != nil {
+                log.Printf("nrv_encoder: write bracket %d: %v", i, err)
+            }
+        }
+    }
+    return nil
 }
 ```
 
@@ -403,9 +497,12 @@ source:
   org_id: "org_default"
   user_id: "all"
 
-output:
-  arrow_dir: "/tmp/hasher/frames/arrow"
-  json_dir: "/tmp/hasher/frames/json"
+knirvbase:
+  data_dir: "/var/knirvbase/hasher"      # shared database for all pipeline stages
+  collections:
+    connector_raw:   "connector_raw"     # .md files — raw decrypted gRPC chunks
+    miner_processed: "miner_processed"   # .arrow files — cleaned + normalised records
+    encoder_output:  "encoder_output"    # .nrv brackets — fully encoded output
   batch_size: 100
 
 processing:
@@ -420,30 +517,168 @@ processing:
 
 ### 3.1 Data Miner Updates
 
-**File:** `pipeline/1_DATA_MINER/internal/app/knirv.go` (new)
+`1_DATA_MINER` receives the shared KNIRVBASE handle opened by `0_DATA_CONNECTOR`. It
+reads raw **`.md` files** from the `connector_raw` collection via Apache Flight, runs
+each document through the SpaCy NLP pipeline (clean → normalize), and writes the output
+as **`.arrow` files** (Apache Arrow IPC) into the `miner_processed` KNIRVBASE collection
+for `2_DATA_ENCODER` to consume.
+
+#### Directory additions
+
+```
+pipeline/1_DATA_MINER/
+├── internal/
+│   ├── app/
+│   │   └── knirv.go             # KNIRVBASE Flight consumer; orchestrates stages
+│   ├── normalizer/
+│   │   ├── normalizer.go
+│   │   └── security_mapper.go   # SecurityRecord schema + tag mappings
+│   ├── cleaner/
+│   │   └── cleaner.go           # PII scrub, dedup, token sanitisation
+│   └── writer/
+│       └── writer.go            # ArrowWriter — writes .arrow IPC files to KNIRVBASE
+└── internal/nlp_bridge.go       # MathContextDetector (§3.4)
+```
+
+**File:** `pipeline/1_DATA_MINER/internal/app/knirv.go`
 
 ```go
-func (c *Config) LoadKnirvInput() ([]*app.DocumentRecord, error) {
-    arrowFiles, err := filepath.Glob(c.InputDir + "/*.arrow")
-    jsonFiles, err := filepath.Glob(c.InputDir + "/*.json")
-    
-    var records []*app.DocumentRecord
-    for _, f := range append(arrowFiles, jsonFiles...) {
-        recs, err := loadRecords(f)
-        records = append(records, recs...)
-    }
-    return records, nil
+import (
+    "github.com/apache/arrow/go/v14/arrow"
+    "github.com/apache/arrow/go/v14/arrow/ipc"
+    "github.com/apache/arrow/go/v14/arrow/memory"
+    "github.com/knirvcorp/knirvbase"
+    "github.com/knirvcorp/knirvhasher/pipeline/1_DATA_MINER/internal/cleaner"
+    "github.com/knirvcorp/knirvhasher/pipeline/1_DATA_MINER/internal/normalizer"
+    "github.com/knirvcorp/knirvhasher/pipeline/1_DATA_MINER/internal/writer"
+)
+
+// MinerApp reads raw .md files from the KNIRVBASE connector_raw collection,
+// cleans and normalises each document via SpaCy NLP, then writes the output
+// as .arrow IPC files into miner_processed for 2_DATA_ENCODER.
+type MinerApp struct {
+    db         knirvbase.DB
+    normalizer *normalizer.SecurityNormalizer
+    cleaner    *cleaner.Cleaner
+    writer     *writer.ArrowWriter
 }
 
-func loadRecords(path string) ([]*app.DocumentRecord, error) {
-    if strings.HasSuffix(path, ".arrow") {
-        return loadArrowRecords(path)
+func NewMinerApp(db knirvbase.DB) *MinerApp {
+    return &MinerApp{
+        db:         db,
+        normalizer: normalizer.NewSecurityNormalizer(),
+        cleaner:    cleaner.New(),
+        writer:     writer.NewArrowWriter(db.Collection("miner_processed")),
     }
-    return loadJSONRecords(path)
+}
+
+// Run opens a Flight stream on the connector_raw collection (raw .md files),
+// processes each document through the cleaner → normalizer chain, and writes
+// the resulting SecurityRecords as a .arrow IPC batch to miner_processed.
+func (m *MinerApp) Run(ctx context.Context) error {
+    stream, err := m.db.Collection("connector_raw").FlightStream(ctx)
+    if err != nil {
+        return fmt.Errorf("open connector_raw flight stream: %w", err)
+    }
+
+    for mdDoc := range stream {
+        // mdDoc.RawData is the decrypted Markdown text written by 0_DATA_CONNECTOR.
+        cleaned, err := m.cleaner.CleanMarkdown(mdDoc.RawData)
+        if err != nil {
+            log.Printf("cleaner: skip %s: %v", mdDoc.ID, err)
+            continue
+        }
+
+        records, err := m.normalizer.Process(cleaned)
+        if err != nil {
+            log.Printf("normalizer: skip %s: %v", mdDoc.ID, err)
+            continue
+        }
+
+        // Write the batch of SecurityRecords as a single .arrow IPC file.
+        if err := m.writer.WriteBatch(mdDoc.ID, records); err != nil {
+            log.Printf("arrow writer: %v", err)
+        }
+    }
+    return nil
 }
 ```
 
-### 3.2 Data Encoder: Tensor Packer (Re-tooled)
+**File:** `pipeline/1_DATA_MINER/internal/writer/writer.go`
+
+```go
+// ArrowWriter serialises batches of SecurityRecords into Apache Arrow IPC files
+// and registers each file in the miner_processed KNIRVBASE collection.
+// The .arrow file path is stored as the collection entry's payload so that
+// 2_DATA_ENCODER can locate and memory-map it via Apache Flight.
+type ArrowWriter struct {
+    collection knirvbase.Collection
+    pool       memory.Allocator
+    schema     *arrow.Schema
+}
+
+func NewArrowWriter(collection knirvbase.Collection) *ArrowWriter {
+    embeddingType := arrow.FixedSizeListOf(VectorDims, arrow.PrimitiveTypes.Float32)
+    schema := arrow.NewSchema([]arrow.Field{
+        {Name: "file_name",     Type: arrow.BinaryTypes.String},
+        {Name: "chunk_id",      Type: arrow.PrimitiveTypes.Int32},
+        {Name: "content",       Type: arrow.BinaryTypes.String},
+        {Name: "embedding",     Type: embeddingType},
+        {Name: "tokens",        Type: arrow.ListOf(arrow.BinaryTypes.String)},
+        {Name: "pos_tags",      Type: arrow.ListOf(arrow.PrimitiveTypes.Int32)},
+        {Name: "dep_hashes",    Type: arrow.ListOf(arrow.PrimitiveTypes.Uint32)},
+        {Name: "security_tags", Type: arrow.ListOf(arrow.BinaryTypes.String)},
+        {Name: "domain_sig",    Type: arrow.PrimitiveTypes.Uint16},
+        {Name: "slot4_raw",     Type: arrow.PrimitiveTypes.Uint32},
+    }, nil)
+    return &ArrowWriter{collection: collection, pool: memory.NewGoAllocator(), schema: schema}
+}
+
+// WriteBatch encodes records as an Arrow IPC stream file and registers the
+// resulting .arrow path in the miner_processed collection.
+func (w *ArrowWriter) WriteBatch(docID string, records []*SecurityRecord) error {
+    path := filepath.Join(w.collection.DataDir(), docID+".arrow")
+    f, err := os.Create(path)
+    if err != nil {
+        return fmt.Errorf("arrow writer: create %s: %w", path, err)
+    }
+    defer f.Close()
+
+    fw, err := ipc.NewFileWriter(f, ipc.WithSchema(w.schema), ipc.WithAllocator(w.pool))
+    if err != nil {
+        return err
+    }
+    if err := fw.Write(buildRecordBatch(w.schema, w.pool, records)); err != nil {
+        fw.Close()
+        return err
+    }
+    fw.Close()
+
+    // Register the .arrow path in miner_processed so 2_DATA_ENCODER can stream it.
+    return w.collection.Insert(map[string]interface{}{
+        "id":      docID,
+        "payload": map[string]interface{}{"arrow_path": path},
+    })
+}
+```
+
+### 3.2 Data Encoder: NRV Encoder + Tensor Packer (Re-tooled)
+
+`2_DATA_ENCODER` receives the shared KNIRVBASE handle. It reads the **`.arrow` IPC
+files** registered in the `miner_processed` collection by `1_DATA_MINER`, runs the
+BGE embedding + TensorPacker stages, and writes the result as **`.nrv` Tier-3
+Brackets** into the `encoder_output` KNIRVBASE collection for `3_DATA_TRAINER`.
+
+#### Directory additions
+
+```
+pipeline/2_DATA_ENCODER/
+├── internal/
+│   ├── encoder/
+│   │   └── nrv_encoder.go   # NRVEncoder — reads .arrow, writes .nrv brackets
+│   └── writer/
+│       └── writer.go        # NRVWriter — writes .nrv brackets to KNIRVBASE
+```
 
 **File:** `pipeline/2_DATA_ENCODER/internal/tensor_packer.go` (modify)
 
@@ -509,7 +744,7 @@ func UnpackSlot4(reg uint32) (operatorByte uint8, jitterPayload uint32) {
 // TensorPacker orchestrates all 12 slots into the NeuralFrame binary.
 type TensorPacker struct {
     flashSearch *FlashSearchHelper
-    arrowKB     *ArrowKnowledgeBase // 16-dim re-indexed KB
+    nrvKB       *NRVKnowledgeBase // 16-dim re-indexed NRV KB
 }
 
 // Orchestrate builds the full 12-slot uint32 array for one bracket.
@@ -522,7 +757,7 @@ func (tp *TensorPacker) Orchestrate(base *SlotVector, pos uint16, domainSig uint
     slots[11] = uint32(pos) | (uint32(salt) << 16)
 
     // Flash Search: use first 4 bytes of current hash state as lookup key.
-    jitter := tp.flashSearch.Lookup(slots[:4], tp.arrowKB)
+    jitter := tp.flashSearch.Lookup(slots[:4], tp.nrvKB)
 
     // Slot 4: pack operator (0xFF zone) + jitter payload (0xFFFFFF zone).
     var operatorByte uint8
@@ -536,26 +771,24 @@ func (tp *TensorPacker) Orchestrate(base *SlotVector, pos uint16, domainSig uint
     return slots
 }
 
-// SaveTrainingFrames writes frames in .nrv bracket format.
-func (tp *TensorPacker) SaveTrainingFrames(frames []*NeuralFrame, outputPath string) error {
-    return tp.saveNRV(frames, outputPath)
-}
-
-func (tp *TensorPacker) saveNRV(frames []*NeuralFrame, path string) error {
-    schema := arrow.NewSchema([]arrow.Field{
-        {Name: "frame_id",    Type: arrow.PrimitiveTypes.Int32},
-        {Name: "slots",       Type: arrow.FixedSizeListOf(12, arrow.PrimitiveTypes.Uint32)},
-        {Name: "embedding",   Type: arrow.FixedSizeListOf(VectorDims, arrow.PrimitiveTypes.Float32)},
-        {Name: "target_token",Type: arrow.PrimitiveTypes.Int32},
-        {Name: "domain_sig",  Type: arrow.PrimitiveTypes.Uint16},
-    }, nil)
-
-    writer, err := ipc.NewFileWriter(os.Create(path), ipc.WithSchema(schema))
-    if err != nil {
-        return err
+// SaveTrainingFrames writes frames as .nrv Tier-3 Brackets into the
+// encoder_output KNIRVBASE collection via the embedded NRVWriter.
+func (tp *TensorPacker) SaveTrainingFrames(frames []*NeuralFrame, w *writer.NRVWriter) error {
+    for _, frame := range frames {
+        bracket := &knirvbase.Bracket{
+            Projections:   slotsToProjections(frame.Slots),   // Slots 0-3 → 32 bytes
+            SyntacticByte: uint8(frame.Slots[4] & 0xFF),      // Slot 4 operator byte
+            DepHead:       uint8(frame.Slots[5]),              // Slot 5
+            IntentFlags:   uint8(frame.Slots[9]),              // Slot 9
+            DomainSig:     uint16(frame.Slots[10]),            // Slot 10
+            ContextMemory: slots6to8(frame.Slots[6:9]),        // Slots 6-8 → 18 bytes
+            GoldenSeed:    frame.Slots[11],                    // Slot 11 nonce
+            DomainSig16:   uint16(frame.DomainSig),
+        }
+        if err := w.WriteBracket(bracket); err != nil {
+            return fmt.Errorf("saveTrainingFrames: frame %d: %w", frame.FrameID, err)
+        }
     }
-    defer writer.Close()
-    // populate record builder from frames and write batches
     return nil
 }
 ```
@@ -567,13 +800,13 @@ func (tp *TensorPacker) saveNRV(frames []*NeuralFrame, path string) error {
 ```go
 // FlashSearchHelper performs the Lookup Key → Jitter Vector retrieval described
 // in LSH_Salt.md. The first 4 bytes of the current hash state are used as a key
-// into the 16-dim Arrow Knowledge Base. The returned 24-bit jitter value is
+// into the 16-dim NRV Knowledge Base. The returned 24-bit jitter value is
 // injected into Slot 4 bits 8–31 by TensorPacker.Orchestrate.
 type FlashSearchHelper struct{}
 
-// Lookup queries the Arrow KB for the nearest 16-dim entry matching hashPrefix
+// Lookup queries the NRV KB for the nearest 16-dim entry matching hashPrefix
 // (first 4 bytes of the ASIC hash state) and extracts a 24-bit jitter payload.
-func (f *FlashSearchHelper) Lookup(hashPrefix []uint32, kb *ArrowKnowledgeBase) uint32 {
+func (f *FlashSearchHelper) Lookup(hashPrefix []uint32, kb *NRVKnowledgeBase) uint32 {
     // 1. Derive lookup key from hash prefix
     key := hashPrefix[0] // 32-bit key from first hash word
 
@@ -604,7 +837,7 @@ highest statistical variance — the 16 dimensions that carry the most discrimin
 information for the current corpus.
 
 The selected 16 indices are persisted to `config/variance_indices.json` so the same
-dimensions are used consistently across training, inference, and Arrow KB indexing.
+dimensions are used consistently across training, inference, and NRV KB indexing.
 
 ```go
 // VectorMapper selects VectorDims (16) variance-maximising dimensions from a
@@ -746,17 +979,18 @@ the frame's `DomainSig` is `DomainMath`. The returned `MathSymbol` is passed as 
 `operatorByte` argument to `PackSlot4` in `TensorPacker.Orchestrate`, replacing the
 raw SpaCy POS tag value.
 
-### 3.5 Arrow Knowledge Base Re-Indexing
+### 3.5 NRV Knowledge Base Re-Indexing
 
-**File:** `pipeline/2_DATA_ENCODER/internal/arrow_kb.go` (new)
+**File:** `pipeline/2_DATA_ENCODER/internal/nrv_kb.go` (new)
 
-The Arrow Knowledge Base backing the Flash Search helper must be re-indexed from
-4-dim to **16-dim** vectors. Any existing parquet or Arrow IPC files built with the
+The NRV Knowledge Base backing the Flash Search helper must be re-indexed from
+4-dim to **16-dim** vectors and stored as `.nrv` brackets in KNIRVBASE rather than
+parquet or Arrow IPC files. Any existing `.parquet` or `.arrow` KB files built with the
 old 4-dim schema are incompatible and must be regenerated.
 
 ```go
-// ArrowKBEntry is one row in the 16-dim Arrow Knowledge Base.
-type ArrowKBEntry struct {
+// NRVKBEntry is one row in the 16-dim NRV Knowledge Base.
+type NRVKBEntry struct {
     TokenID   uint32              // vocabulary token identifier
     HashKey   uint32              // first 4 bytes of the associated ASIC hash (lookup key)
     Embedding [VectorDims]float32 // 16 variance-selected BGE dimensions
@@ -764,9 +998,10 @@ type ArrowKBEntry struct {
     Slot4Raw  uint32              // packed Slot 4 register at time of indexing
 }
 
-// ArrowKnowledgeBase provides nearest-neighbour lookup over the 16-dim index.
-type ArrowKnowledgeBase struct {
-    entries []ArrowKBEntry
+// NRVKnowledgeBase provides nearest-neighbour lookup over the 16-dim index.
+// Entries are loaded from the `kb_vocab` KNIRVBASE collection at startup.
+type NRVKnowledgeBase struct {
+    entries []NRVKBEntry
     // Future: replace linear scan with ANN index (e.g. HNSW) once KB > 1M entries
 }
 
@@ -789,7 +1024,7 @@ const LowCoherenceFault uint32 = 0xDEAD
 // method returns (nil, LowCoherenceFault). Callers must check the second
 // return value before using the entry — a LowCoherenceFault must never be
 // silently coerced into a token resolution.
-func (kb *ArrowKnowledgeBase) NearestByHashKey(key uint32) (*ArrowKBEntry, uint32) {
+func (kb *NRVKnowledgeBase) NearestByHashKey(key uint32) (*NRVKBEntry, uint32) {
     if len(kb.entries) == 0 {
         return nil, LowCoherenceFault
     }
@@ -808,19 +1043,30 @@ func (kb *ArrowKnowledgeBase) NearestByHashKey(key uint32) (*ArrowKBEntry, uint3
     return best, uint32(bestDist)
 }
 
-// ArrowKBSchema is the canonical Arrow schema for the 16-dim Knowledge Base.
-// All KB files (parquet re-index and IPC stream) must use this schema.
-var ArrowKBSchema = arrow.NewSchema([]arrow.Field{
-    {Name: "token_id",  Type: arrow.PrimitiveTypes.Uint32},
-    {Name: "hash_key",  Type: arrow.PrimitiveTypes.Uint32},
-    {Name: "embedding", Type: arrow.FixedSizeListOf(VectorDims, arrow.PrimitiveTypes.Float32)},
-    {Name: "domain_sig",Type: arrow.PrimitiveTypes.Uint16},
-    {Name: "slot4_raw", Type: arrow.PrimitiveTypes.Uint32},
-}, nil)
+// LoadFromKNIRVBASE populates the NRVKnowledgeBase from the `kb_vocab` collection
+// via Apache Flight. Call this once at startup before any Lookup calls.
+func (kb *NRVKnowledgeBase) LoadFromKNIRVBASE(ctx context.Context, db knirvbase.DB) error {
+    stream, err := db.Collection("kb_vocab").FlightStream(ctx)
+    if err != nil {
+        return fmt.Errorf("nrv_kb: open flight stream: %w", err)
+    }
+    for bracket := range stream {
+        entry := NRVKBEntry{
+            TokenID:   bracket.GoldenSeed,
+            HashKey:   binary.LittleEndian.Uint32(bracket.Projections[:4]),
+            DomainSig: bracket.DomainSig,
+            Slot4Raw:  uint32(bracket.SyntacticByte),
+        }
+        copy(entry.Embedding[:], bracket.EmbeddingFloat32())
+        kb.entries = append(kb.entries, entry)
+    }
+    return nil
+}
 ```
 
 > **Migration:** Run `pipeline/2_DATA_ENCODER/cmd/reindex/main.go` to rebuild the
-> Arrow KB from raw BGE embeddings using the new `variance_indices.json`. This is a
+> NRV KB from raw BGE embeddings using the new `variance_indices.json` and write the
+> output into the `kb_vocab` KNIRVBASE collection as `.nrv` brackets. This is a
 > one-time offline step. The output replaces `ai_knowledgebase.parquet`.
 
 ### 3.5 Math Mode Enforcement
@@ -1333,26 +1579,52 @@ func (h *HasherKNIRVBASE) StartTicker(ctx context.Context, client *KNIRVBASEClie
 ```
 KNIRVHASHER/
 ├── pipeline/
-│   ├── 0_DATA_CONNECTOR/          # NEW: Go connector
-│   │   ├── cmd/connector/main.go
+│   │
+│   │  ┌─ KNIRVBASE (shared, opened once in 0_DATA_CONNECTOR) ──────────────┐
+│   │  │  connector_raw     → .md files   (raw decrypted Markdown)          │
+│   │  │  miner_processed   → .arrow files (cleaned + normalised records)   │
+│   │  │  encoder_output    → .nrv brackets (fully encoded, 80-byte ASIC)   │
+│   │  └────────────────────────────────────────────────────────────────────┘
+│   │
+│   ├── 0_DATA_CONNECTOR/                    # gRPC ingest → .md → connector_raw
+│   │   ├── cmd/connector/main.go            # opens KNIRVBASE; hands db to miner+encoder
 │   │   ├── internal/
 │   │   │   ├── grpc/client.go
+│   │   │   └── writer/writer.go             # MDWriter → connector_raw (.md files)
+│   │   ├── config/connector.yaml            # knirvbase.data_dir + collection names
+│   │   └── go.mod                           # requires github.com/knirvcorp/knirvbase
+│   │
+│   ├── 1_DATA_MINER/                        # .md → SpaCy NLP → .arrow → miner_processed
+│   │   ├── internal/
+│   │   │   ├── app/knirv.go                 # Flight stream on connector_raw; ArrowWriter out
 │   │   │   ├── normalizer/
-│   │   │   ├── encoder/nrv_encoder.go  # writes .nrv brackets
-│   │   │   └── writer/
-│   │   ├── config/connector.yaml
-│   │   └── go.mod
-│   ├── 1_DATA_MINER/
-│   │   └── internal/app/knirv.go   # NEW: Load .nrv via Flight
-│   ├── 2_DATA_ENCODER/
-│   │   └── internal/tensor_packer.go   # MODIFY: .nrv bracket output
+│   │   │   │   ├── normalizer.go
+│   │   │   │   └── security_mapper.go       # SecurityRecord schema + tag mappings
+│   │   │   ├── cleaner/
+│   │   │   │   └── cleaner.go               # PII scrub, dedup, token sanitisation
+│   │   │   └── writer/writer.go             # ArrowWriter → miner_processed (.arrow files)
+│   │   └── internal/nlp_bridge.go           # MathContextDetector (§3.4)
+│   │
+│   ├── 2_DATA_ENCODER/                      # .arrow → BGE embed + TensorPack → .nrv
+│   │   ├── internal/
+│   │   │   ├── encoder/nrv_encoder.go       # reads .arrow; writes .nrv brackets (§2.4)
+│   │   │   ├── writer/writer.go             # NRVWriter → encoder_output (.nrv brackets)
+│   │   │   ├── tensor_packer.go             # 12-slot orchestration; NRVKnowledgeBase
+│   │   │   ├── nrv_kb.go                    # NRVKnowledgeBase (Flash Search)
+│   │   │   ├── flash_search.go
+│   │   │   ├── vector_mapper.go
+│   │   │   └── math_mode.go
+│   │   └── config/
+│   │       ├── security_schema.yaml
+│   │       └── variance_indices.json
+│   │
 │   └── 3_DATA_TRAINER/
-│       └── pkg/training/user_security_gates.go  # NEW
+│       └── pkg/training/user_security_gates.go
 ├── pkg/
 │   └── storage/
-│       ├── knirvbase_client.go          # NEW: .nrv path registry
-│       └── knirvbase_server.go          # NEW: embedded KNIRVBASE server
-└── internal/proto/hasher.proto          # NEW
+│       ├── knirvbase_client.go              # .nrv path registry (hasher_seeds)
+│       └── knirvbase_server.go              # embedded KNIRVBASE server + Flight
+└── internal/proto/hasher.proto
 
 KNIRVSERVER/
 ├── backend/
@@ -1375,8 +1647,9 @@ KNIRVSERVER/
 | 1 | Define `proto/hasher.proto` (KNIRVHASHER gRPC server) | Low | P0 |
 | 1 | Implement KNIRVHASHER gRPC server | Medium | P0 |
 | 1 | Create `hasher_export.go` in KNIRVSERVER DVE (fire-and-forget) | Low | P0 |
-| 2 | Build `0_DATA_CONNECTOR` in Go (writes .nrv brackets) | High | P0 |
-| 3 | Update pipeline for .nrv format (bracket output) | Medium | P1 |
+| 2 | Build `0_DATA_CONNECTOR` — import `github.com/knirvcorp/knirvbase`; open shared DB; `MDWriter` saves raw gRPC chunks as `.md` into `connector_raw` | High | P0 |
+| 3 | Build `1_DATA_MINER` — `ArrowWriter` reads `.md` from `connector_raw` via Flight; clean + normalise; write `.arrow` IPC to `miner_processed` | Medium | P1 |
+| 3 | Build `2_DATA_ENCODER` — `NRVEncoder` reads `.arrow` from `miner_processed` via Flight; TensorPacker → 80-byte `.nrv` brackets; `NRVWriter` to `encoder_output` | Medium | P1 |
 | 3 | Extract phases 1–3 for non-interactive use in KNIRVSERVER background | Medium | P1 |
 | 4 | Implement `user_security_gates.go` | High | P1 |
 | 5 | Create `knirvbase_client.go` + `knirvbase_server.go` (KNIRVHASHER local instance) | Medium | P1 |
@@ -1389,16 +1662,32 @@ KNIRVSERVER/
 ## Testing Strategy
 
 ### Unit Tests
-- `0_DATA_CONNECTOR`: Normalizer, .nrv bracket encoder
+- `0_DATA_CONNECTOR`: gRPC client decrypt, MDWriter → `connector_raw` (`.md` files stored correctly)
+- `1_DATA_MINER`: Cleaner (PII scrub, dedup), SecurityNormalizer, ArrowWriter — confirm `.arrow` IPC schema matches §3.1; Flight stream consumer reads `.md` entries
+- `2_DATA_ENCODER`: NRVEncoder reads `.arrow` batch → TensorPacker → NRVWriter; NRVKnowledgeBase Hamming lookup; NRVWriter produces valid 80-byte brackets in `encoder_output`
 - `user_security_gates.go`: Fitness calculation, seed extraction
 - `knirvbase_server.go`: AppendTrainingBracket, FlushFrame, PQC sign
 - `knirvbase_client.go`: SaveTrainedSeeds writes correct .nrv path entry
 
 ### Integration Tests
 ```
-KNIRVSERVER DVE → gRPC → 0_DATA_CONNECTOR → Pipeline → KNIRVBASE Server (.nrv)
+KNIRVSERVER DVE → gRPC → 0_DATA_CONNECTOR
+  → connector_raw (.md) via KNIRVBASE Flight
+  → 1_DATA_MINER (clean + normalise)
+  → miner_processed (.arrow) via KNIRVBASE Flight
+  → 2_DATA_ENCODER (BGE embed + TensorPack)
+  → encoder_output (.nrv brackets) via KNIRVBASE Flight
+  → 3_DATA_TRAINER (Evo-GRPO seeds)
+  → hasher_seeds collection (.nrv datasets)
 KNIRVSERVER Flight client → KNIRVBASE gold stream → seed brackets → enforcement
 ```
+
+### Format Validation
+| Stage | Input | Output | Validation |
+|-------|-------|--------|------------|
+| `0_DATA_CONNECTOR` | gRPC `EncryptedChunk` | `.md` in `connector_raw` | File is valid UTF-8 Markdown |
+| `1_DATA_MINER` | `.md` from `connector_raw` | `.arrow` in `miner_processed` | IPC schema matches §3.1 ArrowWriter schema; `embedding` is `FixedSizeList<Float32>(16)` |
+| `2_DATA_ENCODER` | `.arrow` from `miner_processed` | `.nrv` in `encoder_output` | Bracket is 80 bytes; Slot 4 passes `EnforceMathSlot4`; GoldenSeed in correct nonce tier |
 
 ### Validation Tests
 | Test | Expected |
@@ -1412,14 +1701,154 @@ KNIRVSERVER Flight client → KNIRVBASE gold stream → seed brackets → enforc
 
 ---
 
-## Open Questions
+## Architecture Decisions (Resolved)
 
-1. **gRPC Port**: Should the hasher gRPC service run on a fixed port (e.g., `:50051`) or dynamic?
+The following questions were resolved and are now canonical. Implementation sections
+have been updated accordingly.
 
-2. **Training Concurrency**: Should multiple training jobs run in parallel, or queue sequentially?
+---
 
-3. **Seed Versioning**: Keep all `.nrv` datasets per user (historical), or only the latest? The KNIRVBASE compactor handles tombstoning, so history is cheap to retain.
+### 1. gRPC Transport — Unix Socket + Dynamic Port Fallback
 
-4. **KNIRVBASE Topology**: Embedded KNIRVBASE server per hasher node vs. shared KNIRVBASE cluster? Shared enables Flight streaming to multiple KNIRVSERVER consumers.
+**Decision:** Primary transport is a Unix socket path **assigned by KNIRVSERVER** at
+startup. If no socket path is provided, the hasher falls back to dynamic port
+allocation from a configured range.
 
-5. **Guardrail Enforcement Handoff**: How does KNIRVSERVER know when new seed brackets are available? Push (hasher notifies via gRPC) vs. pull (KNIRVSERVER polls `hasher_seeds` collection).
+**`config/connector.yaml`:**
+
+```yaml
+hasher:
+  # KNIRVSERVER writes the assigned socket path here at startup.
+  # Leave empty to trigger dynamic port fallback.
+  socket: ""                         # e.g. "/var/run/knirvhasher_<nodeID>.sock"
+  dynamic_port_range: "50100-50199"  # fallback range
+  timeout: 300
+```
+
+**`internal/grpc/client.go`:**
+
+```go
+// DialHasher connects via the Unix socket assigned by KNIRVSERVER.
+// Falls back to a dynamically allocated port if no socket path is set.
+func DialHasher(cfg *Config) (*grpc.ClientConn, error) {
+    if cfg.Socket != "" {
+        return grpc.Dial("unix://"+cfg.Socket, grpc.WithTransportCredentials(tlsCreds))
+    }
+    port, err := allocateDynamicPort(cfg.DynamicPortRange)
+    if err != nil {
+        return nil, fmt.Errorf("grpc dial: dynamic port allocation failed: %w", err)
+    }
+    return grpc.Dial(fmt.Sprintf("localhost:%d", port), grpc.WithTransportCredentials(tlsCreds))
+}
+```
+
+---
+
+### 2. Training Concurrency — Sequential Jobs, Parallel Pipeline Phases
+
+**Decision:** Training jobs are queued and executed **sequentially** — one job at a
+time per hasher node. Within a single job the pipeline phases (`1_DATA_MINER`,
+`2_DATA_ENCODER`, `3_DATA_TRAINER`) may execute **in parallel** as goroutines where
+their KNIRVBASE collection boundaries allow it. The collections serve as the
+back-pressure boundary between phases.
+
+**`pipeline/3_DATA_TRAINER/pkg/training/scheduler.go`:**
+
+```go
+// TrainingQueue serialises training jobs. Phases within each job may overlap
+// via goroutines; the next job does not start until the current one finishes.
+type TrainingQueue struct {
+    jobs chan *TrainingJob
+}
+
+func (q *TrainingQueue) Start(ctx context.Context, db knirvbase.DB) {
+    for job := range q.jobs {
+        // Miner must complete before encoder has records to read.
+        if err := miner.Run(ctx, db); err != nil {
+            log.Printf("miner: %v", err)
+            continue
+        }
+        // Encoder and trainer can overlap once encoder has written its first batch.
+        var wg sync.WaitGroup
+        wg.Add(2)
+        go func() { defer wg.Done(); encoder.Run(ctx, db) }()
+        go func() { defer wg.Done(); RunTrainer(ctx, job, db) }()
+        wg.Wait()
+    }
+}
+```
+
+---
+
+### 3. Seed Versioning — Full Historical Retention Per User
+
+**Decision:** All `.nrv` datasets are retained for every user indefinitely. No dataset
+is overwritten or deleted. The KNIRVBASE compactor reclaims only tombstoned brackets
+within a file; it never removes dataset files. Full history enables rollback, semantic
+drift analysis over time, and future global model aggregation across nodes.
+
+**Impact on `knirvbase_client.go`:** `SaveTrainedSeeds` always inserts a **new** entry
+with a unique `training_id`. It never upserts. `GetUserSeedPaths` returns all paths
+newest-first so KNIRVSERVER reads the most recent dataset by default.
+
+---
+
+### 4. KNIRVBASE Topology — Embedded Per Node (Sovereign Architecture)
+
+**Decision:** Each hasher node runs its own **embedded KNIRVBASE instance**. There is
+no shared cluster. This is a direct expression of KNIRV's **sovereign architectural
+philosophy** — every node owns its data independently. Datasets are exchanged through
+the network layer (Apache Flight, IBC), never through a shared database backend.
+
+**Impact on `knirvbase_server.go`:** `HasherKNIRVBASE` is always constructed with a
+node-local `dataDir`. No cluster config, service discovery, or remote storage is
+required or supported at this layer.
+
+---
+
+### 5. Guardrail Enforcement Handoff — Periodic Pull by Cognitive Engine
+
+**Decision:** KNIRVSERVER's Cognitive Engine **polls** the `hasher_seeds` KNIRVBASE
+collection on a configurable interval. The hasher never pushes or notifies — it only
+writes. This preserves full decoupling: the hasher can be offline, slow, or in stealth
+mode without affecting KNIRVSERVER's availability.
+
+**KNIRVSERVER `backend/internal/services/cognitiveengine/cognitive_engine.go`:**
+
+```go
+// SeedPoller periodically checks the hasher_seeds KNIRVBASE collection for
+// new .nrv datasets and loads them into the active enforcement layer.
+type SeedPoller struct {
+    client   *KNIRVBASEClient
+    interval time.Duration        // configurable; default 5 minutes
+    lastSeen map[string]time.Time // userID → timestamp of last training_id loaded
+}
+
+func (p *SeedPoller) Start(ctx context.Context) {
+    ticker := time.NewTicker(p.interval)
+    defer ticker.Stop()
+    for {
+        select {
+        case <-ctx.Done():
+            return
+        case <-ticker.C:
+            p.poll(ctx)
+        }
+    }
+}
+
+func (p *SeedPoller) poll(ctx context.Context) {
+    entries, err := p.client.ListNewSeedEntries(p.lastSeen)
+    if err != nil {
+        log.Printf("seed poller: %v", err)
+        return
+    }
+    for _, entry := range entries {
+        if err := p.loadSeedDataset(ctx, entry.NRVPath); err != nil {
+            log.Printf("seed poller: load %s: %v", entry.NRVPath, err)
+            continue
+        }
+        p.lastSeen[entry.UserID] = entry.CreatedAt
+    }
+}
+```

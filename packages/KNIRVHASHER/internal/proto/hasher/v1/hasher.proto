@@ -28,6 +28,24 @@ service hasherService {
   rpc VerifyMath(VerifyMathRequest) returns (VerifyMathResponse);
 }
 
+// HasherService provides dataset collection and training pipeline services
+service HasherService {
+  // ExportSecurityData streams DVE data to the hasher for dataset collection
+  rpc ExportSecurityData(ExportRequest) returns (stream EncryptedChunk);
+  
+  // TriggerTraining triggers a training job on the hasher
+  rpc TriggerTraining(TrainingRequest) returns (TrainingResponse);
+  
+  // GetTrainingStatus retrieves the status of a training job
+  rpc GetTrainingStatus(TrainingStatusRequest) returns (TrainingStatusResponse);
+  
+  // GetUserRules retrieves trained security rules for a user
+  rpc GetUserRules(RulesRequest) returns (RulesResponse);
+  
+  // ValidateAction validates an action against trained user rules
+  rpc ValidateAction(ActionRequest) returns (ActionResponse);
+}
+
 // ComputeHashRequest contains data for single hash computation
 message ComputeHashRequest {
   // Data to hash (arbitrary bytes)
@@ -196,4 +214,137 @@ message VerifyMathResponse {
   
   // Latency in milliseconds
   float latency_ms = 6;
+}
+
+// ExportRequest requests DVE data export from KNIRVSERVER
+message ExportRequest {
+  // Organization ID
+  string org_id = 1;
+  
+  // User ID
+  string user_id = 2;
+  
+  // Type of data to export
+  DataType data_type = 3;
+  
+  // Whether to encrypt the exported data
+  bool encrypted = 4;
+}
+
+// DataType enumerates the types of data that can be exported
+enum DataType {
+  ALL = 0;
+  ONTOLOGY = 1;
+  GUARDRAILS = 2;
+  ACTIVITY = 3;
+  MARKDOWN = 4;
+}
+
+// EncryptedChunk is a chunk of encrypted data
+message EncryptedChunk {
+  // Encrypted data payload
+  bytes data = 1;
+  
+  // Unique chunk identifier
+  string chunk_id = 2;
+  
+  // Whether this is the last chunk
+  bool is_last = 3;
+}
+
+// TrainingRequest triggers a training job
+message TrainingRequest {
+  // Organization ID
+  string org_id = 1;
+  
+  // User ID
+  string user_id = 2;
+  
+  // Training trigger type
+  TrainingTrigger trigger = 3;
+  
+  // Additional options
+  map<string, string> options = 4;
+}
+
+// TrainingTrigger enumerates training job triggers
+enum TrainingTrigger {
+  ON_DEMAND = 0;
+  SCHEDULED = 1;
+  GUARDRAIL_VIOLATION = 2;
+}
+
+// TrainingResponse is the response to a training request
+message TrainingResponse {
+  // Unique training job identifier
+  string training_id = 1;
+  
+  // Current status of the training job
+  string status = 2;
+}
+
+// TrainingStatusRequest requests the status of a training job
+message TrainingStatusRequest {
+  // Training job identifier
+  string training_id = 1;
+}
+
+// TrainingStatusResponse contains training job status
+message TrainingStatusResponse {
+  // Training job identifier
+  string training_id = 1;
+  
+  // Current status
+  string status = 2;
+  
+  // Progress percentage (0-100)
+  uint32 progress = 3;
+  
+  // Error message if failed
+  string error = 4;
+}
+
+// RulesRequest requests trained security rules
+message RulesRequest {
+  // User ID
+  string user_id = 1;
+  
+  // Organization ID
+  string org_id = 2;
+}
+
+// RulesResponse contains trained security rules
+message RulesResponse {
+  // Array of trained rule identifiers
+  repeated string rule_ids = 1;
+  
+  // Rule data as JSON
+  string rules_json = 2;
+}
+
+// ActionRequest requests action validation
+message ActionRequest {
+  // User ID
+  string user_id = 1;
+  
+  // Action to validate
+  string action = 2;
+  
+  // Additional context
+  map<string, string> context = 3;
+}
+
+// ActionResponse is the response to an action validation request
+message ActionResponse {
+  // Whether the action is allowed
+  bool allowed = 1;
+  
+  // Confidence score (0.0-1.0)
+  float confidence = 2;
+  
+  // Rule violations detected
+  repeated string violations = 3;
+  
+  // Rules that were applied
+  repeated string applied_rules = 4;
 }

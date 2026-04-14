@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package hasher;
+
+service HasherService {
+    rpc ExportSecurityData(ExportRequest) returns (stream EncryptedChunk);
+    rpc TriggerTraining(TrainingRequest) returns (TrainingResponse);
+    rpc GetTrainingStatus(TrainingStatusRequest) returns (TrainingStatusResponse);
+    rpc GetUserRules(RulesRequest) returns (RulesResponse);
+    rpc ValidateAction(ActionRequest) returns (ActionResponse);
+}
+
+message ExportRequest {
+    string org_id = 1;
+    string user_id = 2;
+    DataType data_type = 3;
+    bool encrypted = 4;
+}
+
+enum DataType {
+    ALL = 0;
+    ONTOLOGY = 1;
+    GUARDRAILS = 2;
+    ACTIVITY = 3;
+    MARKDOWN = 4;
+}
+
+message EncryptedChunk {
+    bytes data = 1;
+    string chunk_id = 2;
+    bool is_last = 3;
+}
+
+message TrainingRequest {
+    string org_id = 1;
+    string user_id = 2;
+    TrainingTrigger trigger = 3;
+    map<string, string> options = 4;
+}
+
+enum TrainingTrigger {
+    ON_DEMAND = 0;
+    SCHEDULED = 1;
+    GUARDRAIL_VIOLATION = 2;
+}
+
+message TrainingResponse {
+    string training_id = 1;
+    string status = 2;
+}
+
+message ActionRequest {
+    string user_id = 1;
+    string action = 2;
+    map<string, string> context = 3;
+}
+
+message ActionResponse {
+    bool allowed = 1;
+    float confidence = 2;
+    repeated string violations = 3;
+    repeated string applied_rules = 4;
+}

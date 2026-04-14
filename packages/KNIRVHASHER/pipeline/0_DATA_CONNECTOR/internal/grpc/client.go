@@ -3,102 +3,62 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"net"
 	"time"
 
-	v1 "github.com/knirvhasher/pipeline/0_DATA_CONNECTOR/internal/proto/v1"
+	hasherpb "github.com/knirvcorp/knirvserver/backend/internal/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Client struct {
 	conn   *grpc.ClientConn
-	client v1.HasherServiceClient
+	client hasherpb.HasherServiceClient
 }
 
-type ExportStream struct {
-	stream v1.HasherService_ExportSecurityDataClient
-}
+func NewClient(addr string) *Client {
+	// For now, assume Unix socket if addr starts with '/', otherwise TCP
+	var dialAddr string
+	if addr[0] == '/' {
+		dialAddr = fmt.Sprintf("unix:%s", addr)
+	} else {
+		dialAddr = addr
+	}
 
-func NewClient(socketPath string) (*Client, error) {
 	conn, err := grpc.NewClient(
-		fmt.Sprintf("unix:%s", socketPath),
+		dialAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-		grpc.WithTimeout(5*time.Second),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("dial: %w", err)
+		panic(fmt.Sprintf("dial hasher: %v", err))
 	}
 
 	return &Client{
 		conn:   conn,
-		client: v1.NewHasherServiceClient(conn),
-	}, nil
+		client: hasherpb.NewHasherServiceClient(conn),
+	}
 }
 
 func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Client) ExportSecurityData(ctx context.Context, req *v1.ExportRequest) (*ExportStream, error) {
-	stream, err := c.client.ExportSecurityData(ctx, req)
+func (c *Client) ExportSecurityData(req *hasherpb.ExportRequest) <-chan *hasherpb.EncryptedChunk {
+	stream, err := c.client.ExportSecurityData(context.Background(), req)
 	if err != nil {
-		return nil, fmt.Errorf("export: %w", err)
-	}
-	return &ExportStream{stream: stream}, nil
-}
-
-func (s *ExportStream) Recv() (*v1.EncryptedChunk, error) {
-	return s.stream.Recv()
-}
-
-func (c *Client) TriggerTraining(ctx context.Context, req *v1.TrainingRequest) (*v1.TrainingResponse, error) {
-	return c.client.TriggerTraining(ctx, req)
-}
-
-func (c *Client) GetTrainingStatus(ctx context.Context, req *v1.TrainingStatusRequest) (*v1.TrainingStatusResponse, error) {
-	return c.client.GetTrainingStatus(ctx, req)
-}
-
-func (c *Client) GetUserRules(ctx context.Context, req *v1.RulesRequest) (*v1.RulesResponse, error) {
-	return c.client.GetUserRules(ctx, req)
-}
-
-func (c *Client) ValidateAction(ctx context.Context, req *v1.ActionRequest) (*v1.ActionResponse, error) {
-	return c.client.ValidateAction(ctx, req)
-}
-
-func (c *Client) StreamActivity(ctx context.Context, req *v1.StreamActivityRequest) (<-chan *v1.ActivityEvent, error) {
-	stream, err := c.client.StreamActivity(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("stream activity: %w", err)
+		panic(fmt.Sprintf("export stream: %v", err))
 	}
 
-	ch := make(chan *v1.ActivityEvent, 100)
+	ch := make(chan *hasherpb.EncryptedChunk)
 	go func() {
 		defer close(ch)
 		for {
-			event, err := stream.Recv()
+			chunk, err := stream.Recv()
 			if err != nil {
 				return
 			}
-			select {
-			case ch <- event:
-			case <-ctx.Done():
-				return
-			}
+			ch <- chunk
 		}
 	}()
 
-	return ch, nil
-}
-
-func (c *Client) IsAvailable() bool {
-	conn, err := net.DialTimeout("unix", c.conn.Target()[5:], 100*time.Millisecond)
-	if err != nil {
-		return false
-	}
-	conn.Close()
-	return true
+	return ch
 }

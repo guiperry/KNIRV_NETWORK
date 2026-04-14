@@ -7,6 +7,17 @@
 
 HASHER implements a recursive single-ASIC inference engine as specified in the **HASHER_SDD.md** document. This package transforms obsolete Bitcoin mining hardware (like Antminer S2/S3) into a novel machine learning inference system by using SHA-256 ASIC chips as computational primitives for neural network operations.
 
+### KNIRVHASHER Pipeline
+
+KNIRVHASHER extends HASHER with a complete data pipeline for training user-centric logic gate hash networks. The experimental stealth mode includes three pipeline stages that can be called non-interactively as background processes:
+
+1. **0_DATA_CONNECTOR**: Receives gRPC streams from KNIRVSERVER, decrypts chunks, and writes raw `.md` files to KNIRVBASE
+2. **1_DATA_MINER**: Processes `.md` files through SpaCy NLP, normalizes security data, and writes `.arrow` IPC files
+3. **2_DATA_ENCODER**: Encodes `.arrow` batches into 80-byte `.nrv` Tier-3 Brackets with BGE embeddings and NRV KB lookups
+4. **3_DATA_TRAINER**: Trains UserSecurityGates using Evo-GRPO with security constraints and behavior patterns
+
+The pipeline transforms user ontology data into `.nrv` datasets for future global model updates across the KNIRV network.
+
 **Updated Algorithm:** The system now uses the ASIC as a **deterministic bucket generator** rather than a generic hash function. By setting a "Difficulty 1" target, we use the first valid Nonce discovered as the LSH (Locality Sensitive Hashing) signature, maintaining the 500 GH/s speed advantage by repurposing the mining hardware's natural state.
 
 **Training Innovation:** Discovery of "Golden Seeds" is now optimized using a **Hamming Similarity Gradient** in the evolutionary process. Instead of binary prefix matching, the system rewards total matching bits across the 32-bit word, providing a continuous signal for convergence even at high difficulties.

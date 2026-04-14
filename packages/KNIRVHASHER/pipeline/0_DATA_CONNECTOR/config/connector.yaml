@@ -1,22 +1,14 @@
 hasher:
-  socket: "/var/run/hasher.sock"
-  timeout: 300
+  addr: "/var/run/hasher.sock"  # Unix socket for container compatibility
 
 source:
   org_id: "org_default"
   user_id: "all"
-  data_types:
-    - "ALL"
 
-output:
-  arrow_dir: "/tmp/hasher/frames/arrow"
-  json_dir: "/tmp/hasher/frames/json"
-  batch_size: 100
+knirvbase:
+  data_dir: "/var/knirvbase/hasher"      # shared database for all pipeline stages
 
 processing:
   max_concurrent: 4
   pii_scrub: true
   deduplicate: true
-
-security:
-  pqc_key_id: "default"
