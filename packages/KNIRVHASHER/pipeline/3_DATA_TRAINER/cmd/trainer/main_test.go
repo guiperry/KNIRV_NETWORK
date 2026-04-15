@@ -3,9 +3,9 @@ package main
 import (
 	"testing"
 
-	evo_grpo "knirvhasher/pipeline/3_DATA_TRAINER/internal/evo_grpo"
-	"knirvhasher/pipeline/3_DATA_TRAINER/internal/gates"
-	knowledge_base "knirvhasher/pipeline/3_DATA_TRAINER/internal/knowledge_base"
+	evo_grpo "github.com/lab/hasher/data-trainer/internal/evo_grpo"
+	"github.com/lab/hasher/data-trainer/internal/gates"
+	knowledge_base "github.com/lab/hasher/data-trainer/internal/knowledge_base"
 )
 
 func TestUserSecurityGates_Train(t *testing.T) {

@@ -78,9 +78,19 @@ func (nb *NLPBridge) ProcessText(text string) (words []string, offsets []int32, 
 	tenses = make([]int, len(tokens))
 	depHashes = make([]uint32, len(tokens))
 
+	// Compute character offsets by scanning forward through the text.
+	// go-spacy's Token does not expose a Start field via the Go binding,
+	// so we track the search position manually.
+	searchFrom := 0
 	for i, t := range tokens {
 		words[i] = t.Text
-		offsets[i] = int32(t.Start)
+		idx := strings.Index(text[searchFrom:], t.Text)
+		if idx >= 0 {
+			offsets[i] = int32(searchFrom + idx)
+			searchFrom += idx + len(t.Text)
+		} else {
+			offsets[i] = int32(searchFrom)
+		}
 		posTags[i] = int(MapPOSTag(t.POS))
 		depHashes[i] = HashDependency(t.Dep)
 		tenses[i] = int(DetectTense(t.Tag))

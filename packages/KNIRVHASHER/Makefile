@@ -325,25 +325,37 @@ PIPELINE_DIR := pipeline
 define build-pipeline-binary
 	@echo "🔨 Building $(1) from $(2)..."
 	@mkdir -p $(EMBED_DIR)
-	cd $(PIPELINE_DIR)/$(2) && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/$(1) $(3)
+	go build -ldflags "-s -w" -o $(EMBED_DIR)/$(1) $(PIPELINE_DIR)/$(2)/cmd/$(1)
 	@echo "✅ Built: $(EMBED_DIR)/$(1)"
 endef
 
 ## build-data-connector: Build data connector pipeline binary
 build-data-connector:
-	$(call build-pipeline-binary,data-connector,0_DATA_CONNECTOR,./cmd/connector)
+	@echo "🔨 Building data-connector from 0_DATA_CONNECTOR..."
+	@mkdir -p $(EMBED_DIR)
+	cd $(PIPELINE_DIR)/0_DATA_CONNECTOR && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/data-connector ./cmd/data-connector
+	@echo "✅ Built: $(EMBED_DIR)/data-connector"
 
 ## build-data-miner: Build data miner pipeline binary
 build-data-miner:
-	$(call build-pipeline-binary,data-miner,1_DATA_MINER,./cmd/data-miner)
+	@echo "🔨 Building data-miner from 1_DATA_MINER..."
+	@mkdir -p $(EMBED_DIR)
+	cd $(PIPELINE_DIR)/1_DATA_MINER && $(MAKE) build BIN_DIR=../../$(EMBED_DIR)
+	@echo "✅ Built: $(EMBED_DIR)/data-miner"
 
 ## build-data-encoder: Build data encoder pipeline binary
 build-data-encoder:
-	$(call build-pipeline-binary,data-encoder,2_DATA_ENCODER,./cmd/data-encoder)
+	@echo "🔨 Building data-encoder from 2_DATA_ENCODER..."
+	@mkdir -p $(EMBED_DIR)
+	cd $(PIPELINE_DIR)/2_DATA_ENCODER && $(MAKE) build BIN_DIR=../../$(EMBED_DIR)
+	@echo "✅ Built: $(EMBED_DIR)/data-encoder"
 
 ## build-data-trainer: Build data trainer pipeline binary
 build-data-trainer:
-	$(call build-pipeline-binary,data-trainer,3_DATA_TRAINER,./cmd/data-trainer)
+	@echo "🔨 Building data-trainer from 3_DATA_TRAINER..."
+	@mkdir -p $(EMBED_DIR)
+	cd $(PIPELINE_DIR)/3_DATA_TRAINER && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/data-trainer ./cmd/data-trainer
+	@echo "✅ Built: $(EMBED_DIR)/data-trainer"
 
 ## build-pipeline-all: Build all pipeline binaries
 build-pipeline-all: build-data-connector build-data-miner build-data-encoder build-data-trainer

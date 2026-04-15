@@ -140,6 +140,12 @@ function transitionToDesktop(url, sectionParam) {
     hudContainer.style.transition = 'opacity 0.8s ease';
     menuOverlay.style.transition  = 'opacity 0.8s ease';
 
+    // Show loading indicator
+    const loadingIndicator = document.getElementById('loading-indicator');
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'flex';
+    }
+
     requestAnimationFrame(() => {
         menuOverlay.style.opacity  = '0';
         hudContainer.style.opacity = '1';
@@ -155,9 +161,20 @@ function transitionToDesktop(url, sectionParam) {
                 : url;
             contentIframe.src = loadUrl;
             desktopLoaded = true;
+
+            // Hide loading indicator after iframe loads
+            contentIframe.onload = () => {
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
+            };
         } else if (sectionParam) {
             // Dashboard already loaded — postMessage to navigate in-place
             navigateInDashboard(sectionParam);
+            // Hide loading indicator immediately for in-place navigation
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
         }
     }, 900);
 }
@@ -543,26 +560,44 @@ function updateMetrics() {
 
     performanceData.shift();
     performanceData.push(cpu);
-    drawPerformanceChart();
 
-    const net  = Math.min(100, Math.max(0, 45 + Math.random() * 20 - 10));
-    const disk = Math.min(100, Math.max(0, 60 + Math.random() * 20 - 10));
+    // Batch canvas drawing with requestAnimationFrame to avoid layout thrashing
+    requestAnimationFrame(() => {
+        drawPerformanceChart();
+    });
+
+    // Simulate network and disk activity based on CPU usage for more realistic metrics
+    const baseActivity = cpu / 100;
+    const net  = Math.min(100, Math.max(0, 30 + baseActivity * 40 + Math.random() * 10 - 5));
+    const disk = Math.min(100, Math.max(0, 40 + baseActivity * 30 + Math.random() * 15 - 7.5));
     setStyle('network-bar', 'width', `${net}%`);
     setEl('network-value', `${Math.round(net)}%`);
     setStyle('disk-bar', 'width', `${disk}%`);
     setEl('disk-value', `${Math.round(disk)}%`);
 
-    setEl('net-rx',    `${(Math.random() * 1000).toFixed(0)} KB/s`);
-    setEl('net-tx',    `${(Math.random() * 500).toFixed(0)} KB/s`);
-    setEl('disk-read', `${(Math.random() * 50).toFixed(1)} MB/s`);
-    setEl('disk-write',`${(Math.random() * 30).toFixed(1)} MB/s`);
+    // Network throughput correlated with activity
+    const netRx = (baseActivity * 800 + Math.random() * 200).toFixed(0);
+    const netTx = (baseActivity * 400 + Math.random() * 100).toFixed(0);
+    setEl('net-rx', `${netRx} KB/s`);
+    setEl('net-tx', `${netTx} KB/s`);
 
-    const procs = 200 + Math.floor(Math.random() * 100);
+    // Disk I/O correlated with activity
+    const diskRead = (baseActivity * 40 + Math.random() * 10).toFixed(1);
+    const diskWrite = (baseActivity * 25 + Math.random() * 5).toFixed(1);
+    setEl('disk-read', `${diskRead} MB/s`);
+    setEl('disk-write', `${diskWrite} MB/s`);
+
+    // Process count with some correlation to system load
+    const procs = 180 + Math.floor(baseActivity * 50) + Math.floor(Math.random() * 40);
     setStyle('process-bar', 'width', `${(procs / 400) * 100}%`);
     setEl('process-value', `${procs}`);
-    setEl('threads', `${Math.floor(procs * 2.5)}`);
-    setEl('temp',    `${40 + Math.floor(Math.random() * 10)}°C`);
-    setEl('fan',     `${2000 + Math.floor(Math.random() * 1000)} RPM`);
+    setEl('threads', `${Math.floor(procs * 2.2 + Math.random() * 20)}`);
+
+    // Temperature and fan speed correlated with CPU usage
+    const temp = 35 + Math.floor(baseActivity * 25) + Math.floor(Math.random() * 5);
+    const fan = 1800 + Math.floor(baseActivity * 1500) + Math.floor(Math.random() * 200);
+    setEl('temp', `${temp}°C`);
+    setEl('fan', `${fan} RPM`);
 }
 
 function initSystemInfo() {
@@ -580,7 +615,7 @@ updateUptime();
 updateMetrics();
 setInterval(updateTime,    1000);
 setInterval(updateUptime, 60000);
-setInterval(updateMetrics, 2000);
+setInterval(updateMetrics, 3000); // Reduced frequency for less critical metrics
 drawPerformanceChart();
 
 console.log('KNIRV Desktop renderer initialised — waiting for login.');

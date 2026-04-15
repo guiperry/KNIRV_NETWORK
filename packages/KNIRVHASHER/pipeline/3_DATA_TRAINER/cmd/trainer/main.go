@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"knirvbase"
-	evo_grpo "knirvhasher/pipeline/3_DATA_TRAINER/internal/evo_grpo"
-	gates "knirvhasher/pipeline/3_DATA_TRAINER/internal/gates"
-	knowledge_base "knirvhasher/pipeline/3_DATA_TRAINER/internal/knowledge_base"
+	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
+	evo_grpo "github.com/lab/hasher/data-trainer/internal/evo_grpo"
+	gates "github.com/lab/hasher/data-trainer/internal/gates"
+	knowledge_base "github.com/lab/hasher/data-trainer/internal/knowledge_base"
 )
 
 func main() {
@@ -21,11 +21,12 @@ func main() {
 	flag.Parse()
 
 	// Initialize knirvbase connection
-	kvbase, err := knirvbase.NewCollection(context.Background(), "knirvhasher_trainer")
+	db, err := knirvbase.New(context.Background(), knirvbase.Options{DataDir: "./data/knirvbase"})
 	if err != nil {
 		log.Fatalf("Failed to connect to knirvbase: %v", err)
 	}
-	defer kvbase.Close()
+	defer db.Shutdown()
+	kvbase := db.Collection("knirvhasher_trainer")
 
 	// Initialize components
 	gateTrainer := gates.NewUserSecurityGates(kvbase)

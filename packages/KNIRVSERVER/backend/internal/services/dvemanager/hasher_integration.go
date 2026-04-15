@@ -222,7 +222,6 @@ func (hi *HasherIntegration) TriggerTraining(orgID, userID string, trigger hashe
 		return &hasher.TrainingResponse{
 			TrainingId: "",
 			Status:     "unavailable",
-			Message:    "Hasher service is not available",
 		}, nil
 	}
 
@@ -242,7 +241,6 @@ func (hi *HasherIntegration) TriggerTraining(orgID, userID string, trigger hashe
 		return &hasher.TrainingResponse{
 			TrainingId: "",
 			Status:     "error",
-			Message:    err.Error(),
 		}, err
 	}
 

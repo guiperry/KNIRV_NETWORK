@@ -3,8 +3,8 @@ package evo_grpo
 import (
 	"fmt"
 
-	"knirvbase"
-	gates "knirvhasher/pipeline/3_DATA_TRAINER/internal/gates"
+	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
+	gates "github.com/lab/hasher/data-trainer/internal/gates"
 )
 
 // EvoGRPO implements Evolutionary Group Relative Policy Optimization

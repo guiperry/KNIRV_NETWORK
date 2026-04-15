@@ -376,7 +376,6 @@ func (s *HasherGRPCServer) TriggerTraining(ctx context.Context, req *hasher.Trai
 	return &hasher.TrainingResponse{
 		TrainingId: trainingID,
 		Status:     "accepted",
-		Message:    "Training request accepted",
 	}, nil
 }
 

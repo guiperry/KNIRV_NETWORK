@@ -1,10 +1,10 @@
 package writer
 
 import (
+	"context"
 	"fmt"
-	"path/filepath"
 
-	"knirvbase"
+	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 	hasherpb "knirvhasher/proto"
 )
 
@@ -27,10 +27,9 @@ func (w *MDWriter) WriteChunk(chunk *hasherpb.EncryptedChunk) error {
 	decryptedData := chunk.Data
 
 	// Write as .md file in the collection
-	mdPath := filepath.Join(w.collection.DataDir(), fmt.Sprintf("%s.md", chunk.ChunkId))
-	if err := w.collection.Insert(map[string]interface{}{
+	if _, err := w.collection.Insert(context.Background(), map[string]interface{}{
 		"id":       chunk.ChunkId,
-		"payload":  map[string]interface{}{"md_path": mdPath},
+		"payload":  map[string]interface{}{"chunk_id": chunk.ChunkId},
 		"raw_data": string(decryptedData),
 	}); err != nil {
 		return fmt.Errorf("insert chunk %s: %w", chunk.ChunkId, err)

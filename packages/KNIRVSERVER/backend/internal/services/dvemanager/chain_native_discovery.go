@@ -249,13 +249,14 @@ func (c *ChainNativeNodeDiscovery) collectNodePerformance(nodeID string) (*NodeP
 			return true
 		}
 
-		if task.Status == "completed" {
+		switch task.Status {
+		case "completed":
 			tasksCompleted++
 			if task.CompletedAt != nil && task.StartedAt != nil && !task.StartedAt.IsZero() {
 				totalResponseTime += task.CompletedAt.Sub(*task.StartedAt).Seconds()
 				responseCount++
 			}
-		} else if task.Status == "failed" {
+		case "failed":
 			tasksFailed++
 		}
 

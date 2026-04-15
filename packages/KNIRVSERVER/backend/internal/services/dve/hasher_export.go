@@ -39,36 +39,33 @@ func (he *HasherExporter) Close() error {
 }
 
 // ExportSecurityData exports user security data to the hasher connector
-func (he *HasherExporter) ExportSecurityData(ctx context.Context, orgID, userID string, dataChunks <-chan []byte) error {
-	stream, err := he.grpcClient.ExportSecurityData(ctx)
+// Returns a channel that yields encrypted chunks from the server
+func (he *HasherExporter) ExportSecurityData(ctx context.Context, orgID, userID string, dataType hasherpb.DataType) (ch chan *hasherpb.EncryptedChunk, err error) {
+	ch = make(chan *hasherpb.EncryptedChunk, 10)
+
+	stream, err := he.grpcClient.ExportSecurityData(ctx, &hasherpb.ExportRequest{
+		OrgId:     orgID,
+		UserId:    userID,
+		DataType:  dataType,
+		Encrypted: true,
+	})
 	if err != nil {
-		return fmt.Errorf("start export stream: %w", err)
+		close(ch)
+		return nil, fmt.Errorf("start export stream: %w", err)
 	}
 
-	// Send data chunks
-	for chunk := range dataChunks {
-		err := stream.Send(&hasherpb.EncryptedChunk{
-			Data:    chunk,
-			ChunkId: fmt.Sprintf("%s-%s-%d", orgID, userID, len(chunk)),
-			IsLast:  false,
-		})
-		if err != nil {
-			return fmt.Errorf("send chunk: %w", err)
+	go func() {
+		defer close(ch)
+		for {
+			chunk, err := stream.Recv()
+			if err != nil {
+				break
+			}
+			ch <- chunk
 		}
-	}
+	}()
 
-	// Close send and receive response
-	resp, err := stream.CloseAndRecv()
-	if err != nil {
-		return fmt.Errorf("close stream: %w", err)
-	}
-
-	if resp.Status != "success" {
-		return fmt.Errorf("export failed: %s", resp.Message)
-	}
-
-	log.Printf("Successfully exported security data for user %s in org %s", userID, orgID)
-	return nil
+	return ch, nil
 }
 
 // TriggerTraining initiates training for a user

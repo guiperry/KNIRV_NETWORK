@@ -4,61 +4,73 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 
-	"github.com/apache/arrow/go/v14/arrow"
-	"github.com/apache/arrow/go/v14/arrow/ipc"
-	"github.com/apache/arrow/go/v14/arrow/memory"
-	"github.com/knirvcorp/knirvbase"
-	"github.com/knirvcorp/knirvhasher/pipeline/1_DATA_MINER/internal/cleaner"
-	"github.com/knirvcorp/knirvhasher/pipeline/1_DATA_MINER/internal/normalizer"
-	"github.com/knirvcorp/knirvhasher/pipeline/1_DATA_MINER/internal/writer"
+	"data-miner/internal/cleaner"
+	"data-miner/internal/normalizer"
+	"data-miner/internal/writer"
 )
 
-// MinerApp reads raw .md files from the KNIRVBASE connector_raw collection,
-// cleans and normalises each document via SpaCy NLP, then writes the output
-// as .arrow IPC files into miner_processed for 2_DATA_ENCODER.
+// MinerApp reads raw .md files written by 0_DATA_CONNECTOR, cleans and
+// normalises each document via the SpaCy NLP pipeline, then writes the output
+// as .arrow IPC files into processedDir for consumption by 2_DATA_ENCODER.
 type MinerApp struct {
-	db         knirvbase.DB
+	rawDir     string
 	normalizer *normalizer.SecurityNormalizer
 	cleaner    *cleaner.Cleaner
 	writer     *writer.ArrowWriter
 }
 
-func NewMinerApp(db knirvbase.DB) *MinerApp {
+// NewMinerApp constructs a MinerApp.
+//   - rawDir      – directory containing raw .md files from 0_DATA_CONNECTOR
+//   - processedDir – directory to write processed .arrow files
+func NewMinerApp(rawDir, processedDir string) *MinerApp {
 	return &MinerApp{
-		db:         db,
+		rawDir:     rawDir,
 		normalizer: normalizer.NewSecurityNormalizer(),
 		cleaner:    cleaner.New(),
-		writer:     writer.NewArrowWriter(db.Collection("miner_processed")),
+		writer:     writer.NewArrowWriter(processedDir),
 	}
 }
 
-// Run opens a Flight stream on the connector_raw collection (raw .md files),
-// processes each document through the cleaner → normalizer chain, and writes
-// the resulting SecurityRecords as a .arrow IPC batch to miner_processed.
+// Run iterates over all .md files in rawDir, runs each through the
+// cleaner → normaliser chain, and writes the resulting SecurityRecords as a
+// .arrow IPC file to processedDir.
 func (m *MinerApp) Run(ctx context.Context) error {
-	stream, err := m.db.Collection("connector_raw").FlightStream(ctx)
+	pattern := filepath.Join(m.rawDir, "*.md")
+	files, err := filepath.Glob(pattern)
 	if err != nil {
-		return fmt.Errorf("open connector_raw flight stream: %w", err)
+		return fmt.Errorf("glob %s: %w", pattern, err)
 	}
 
-	for mdDoc := range stream {
-		// mdDoc.RawData is the decrypted Markdown text written by 0_DATA_CONNECTOR.
-		cleaned, err := m.cleaner.CleanMarkdown(mdDoc.RawData)
+	for _, path := range files {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		docID := filepath.Base(path)
+
+		raw, err := os.ReadFile(path)
 		if err != nil {
-			log.Printf("cleaner: skip %s: %v", mdDoc.ID, err)
+			log.Printf("miner: read %s: %v", docID, err)
+			continue
+		}
+
+		cleaned, err := m.cleaner.CleanMarkdown(string(raw))
+		if err != nil {
+			log.Printf("miner: cleaner skip %s: %v", docID, err)
 			continue
 		}
 
 		records, err := m.normalizer.Process(cleaned)
 		if err != nil {
-			log.Printf("normalizer: skip %s: %v", mdDoc.ID, err)
+			log.Printf("miner: normalizer skip %s: %v", docID, err)
 			continue
 		}
 
-		// Write the batch of SecurityRecords as a single .arrow IPC file.
-		if err := m.writer.WriteBatch(mdDoc.ID, records); err != nil {
-			log.Printf("arrow writer: %v", err)
+		if err := m.writer.WriteBatch(docID, records); err != nil {
+			log.Printf("miner: arrow writer %s: %v", docID, err)
 		}
 	}
 	return nil

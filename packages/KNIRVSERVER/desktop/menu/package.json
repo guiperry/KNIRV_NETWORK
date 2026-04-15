@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start"
@@ -63,6 +64,7 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.0.0",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",

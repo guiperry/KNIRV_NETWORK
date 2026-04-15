@@ -80,13 +80,13 @@ func detectPlatform() (*BuildConfig, error) {
 	case "linux":
 		config.SharedExt = "so"
 		config.ObjectExt = "o"
-		                config.CC = detectCompiler([]string{"gcc", "clang", "cc"})
-		                config.CXX = detectCompiler([]string{"g++", "clang++", "c++"})
-		                config.InstallNameFlag = "" // Linux doesn't need install name
-		                config.PkgConfigCmd = []string{"pkg-config", "python3-embed"}
-		
-		        case "darwin":
-		
+		config.CC = detectCompiler([]string{"gcc", "clang", "cc"})
+		config.CXX = detectCompiler([]string{"g++", "clang++", "c++"})
+		config.InstallNameFlag = "" // Linux doesn't need install name
+		config.PkgConfigCmd = []string{"pkg-config", "python3-embed"}
+
+	case "darwin":
+
 		config.SharedExt = "dylib"
 		config.ObjectExt = "o"
 		config.CC = detectCompiler([]string{"clang", "gcc", "cc"})
@@ -357,32 +357,30 @@ func getPythonFlags(config *BuildConfig, flagType string) (string, error) {
 			}
 		} else {
 			// Fallback to pkg-config if python-config not available
-			if flagType == "--cflags" {
+			switch flagType {
+			case "--cflags":
 				cmd = exec.Command("pkg-config", "--cflags", "python3-embed")
-			} else if flagType == "--libs" {
+			case "--libs":
 				cmd = exec.Command("pkg-config", "--libs", "python3-embed")
-			} else {
+			default:
 				return "", fmt.Errorf("unsupported flag type for pkg-config: %s", flagType)
 			}
 		}
 	} else {
 		// On other platforms, use the configured method
 		if config.PythonConfig == "pkg-config" {
-			if flagType == "--cflags" {
+			switch flagType {
+			case "--cflags":
 				cmd = exec.Command("pkg-config", "--cflags", "python3-embed")
-			} else if flagType == "--libs" {
+			case "--libs":
 				// pkg-config often doesn't provide complete linking info, fallback to python-config
 				pythonConfigCmd := detectPythonConfig()
 				if pythonConfigCmd != "pkg-config" {
-					if flagType == "--libs" {
-						cmd = exec.Command(pythonConfigCmd, "--ldflags")
-					} else {
-						cmd = exec.Command(pythonConfigCmd, flagType)
-					}
+					cmd = exec.Command(pythonConfigCmd, "--ldflags")
 				} else {
 					cmd = exec.Command("pkg-config", "--libs", "python3-embed")
 				}
-			} else {
+			default:
 				return "", fmt.Errorf("unsupported flag type for pkg-config: %s", flagType)
 			}
 		} else {

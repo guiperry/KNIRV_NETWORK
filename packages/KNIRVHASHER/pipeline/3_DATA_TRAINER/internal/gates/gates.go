@@ -1,9 +1,10 @@
 package gates
 
 import (
+	"context"
 	"fmt"
 
-	"knirvbase"
+	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 )
 
 // UserSecurityGates implements training for user-centric logic gate hash networks
@@ -55,8 +56,13 @@ func (usg *UserSecurityGates) Train(userID string, brackets [][]byte) (*TrainedM
 
 // storeModel persists the trained model
 func (usg *UserSecurityGates) storeModel(userID string, model *TrainedModel) error {
-	key := fmt.Sprintf("gates:%s:model", userID)
-	return usg.kvbase.Put(key, model)
+	_, err := usg.kvbase.Insert(context.Background(), map[string]interface{}{
+		"id":      userID,
+		"user_id": model.UserID,
+		"network": model.Network,
+		"version": model.Version,
+	})
+	return err
 }
 
 // TrainedModel represents a trained security gate network

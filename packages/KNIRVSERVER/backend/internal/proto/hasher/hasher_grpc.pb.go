@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v4.25.7
-// source: hasher.proto
+// source: hasher/hasher.proto
 
 package hasher
 
@@ -22,11 +22,12 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HasherServiceClient interface {
-	ExportSecurityData(ctx context.Context, opts ...grpc.CallOption) (HasherService_ExportSecurityDataClient, error)
+	ExportSecurityData(ctx context.Context, in *ExportRequest, opts ...grpc.CallOption) (HasherService_ExportSecurityDataClient, error)
 	TriggerTraining(ctx context.Context, in *TrainingRequest, opts ...grpc.CallOption) (*TrainingResponse, error)
 	GetTrainingStatus(ctx context.Context, in *TrainingStatusRequest, opts ...grpc.CallOption) (*TrainingStatusResponse, error)
 	GetUserRules(ctx context.Context, in *RulesRequest, opts ...grpc.CallOption) (*RulesResponse, error)
 	ValidateAction(ctx context.Context, in *ActionRequest, opts ...grpc.CallOption) (*ActionResponse, error)
+	StreamActivity(ctx context.Context, in *StreamActivityRequest, opts ...grpc.CallOption) (HasherService_StreamActivityClient, error)
 }
 
 type hasherServiceClient struct {
@@ -37,18 +38,23 @@ func NewHasherServiceClient(cc grpc.ClientConnInterface) HasherServiceClient {
 	return &hasherServiceClient{cc}
 }
 
-func (c *hasherServiceClient) ExportSecurityData(ctx context.Context, opts ...grpc.CallOption) (HasherService_ExportSecurityDataClient, error) {
+func (c *hasherServiceClient) ExportSecurityData(ctx context.Context, in *ExportRequest, opts ...grpc.CallOption) (HasherService_ExportSecurityDataClient, error) {
 	stream, err := c.cc.NewStream(ctx, &HasherService_ServiceDesc.Streams[0], "/hasher.HasherService/ExportSecurityData", opts...)
 	if err != nil {
 		return nil, err
 	}
 	x := &hasherServiceExportSecurityDataClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
 	return x, nil
 }
 
 type HasherService_ExportSecurityDataClient interface {
-	Send(*EncryptedChunk) error
-	CloseAndRecv() (*ExportResponse, error)
+	Recv() (*EncryptedChunk, error)
 	grpc.ClientStream
 }
 
@@ -56,15 +62,8 @@ type hasherServiceExportSecurityDataClient struct {
 	grpc.ClientStream
 }
 
-func (x *hasherServiceExportSecurityDataClient) Send(m *EncryptedChunk) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *hasherServiceExportSecurityDataClient) CloseAndRecv() (*ExportResponse, error) {
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	m := new(ExportResponse)
+func (x *hasherServiceExportSecurityDataClient) Recv() (*EncryptedChunk, error) {
+	m := new(EncryptedChunk)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -107,15 +106,48 @@ func (c *hasherServiceClient) ValidateAction(ctx context.Context, in *ActionRequ
 	return out, nil
 }
 
+func (c *hasherServiceClient) StreamActivity(ctx context.Context, in *StreamActivityRequest, opts ...grpc.CallOption) (HasherService_StreamActivityClient, error) {
+	stream, err := c.cc.NewStream(ctx, &HasherService_ServiceDesc.Streams[1], "/hasher.HasherService/StreamActivity", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &hasherServiceStreamActivityClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type HasherService_StreamActivityClient interface {
+	Recv() (*ActivityEvent, error)
+	grpc.ClientStream
+}
+
+type hasherServiceStreamActivityClient struct {
+	grpc.ClientStream
+}
+
+func (x *hasherServiceStreamActivityClient) Recv() (*ActivityEvent, error) {
+	m := new(ActivityEvent)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // HasherServiceServer is the server API for HasherService service.
 // All implementations must embed UnimplementedHasherServiceServer
 // for forward compatibility
 type HasherServiceServer interface {
-	ExportSecurityData(HasherService_ExportSecurityDataServer) error
+	ExportSecurityData(*ExportRequest, HasherService_ExportSecurityDataServer) error
 	TriggerTraining(context.Context, *TrainingRequest) (*TrainingResponse, error)
 	GetTrainingStatus(context.Context, *TrainingStatusRequest) (*TrainingStatusResponse, error)
 	GetUserRules(context.Context, *RulesRequest) (*RulesResponse, error)
 	ValidateAction(context.Context, *ActionRequest) (*ActionResponse, error)
+	StreamActivity(*StreamActivityRequest, HasherService_StreamActivityServer) error
 	mustEmbedUnimplementedHasherServiceServer()
 }
 
@@ -123,7 +155,7 @@ type HasherServiceServer interface {
 type UnimplementedHasherServiceServer struct {
 }
 
-func (UnimplementedHasherServiceServer) ExportSecurityData(HasherService_ExportSecurityDataServer) error {
+func (UnimplementedHasherServiceServer) ExportSecurityData(*ExportRequest, HasherService_ExportSecurityDataServer) error {
 	return status.Errorf(codes.Unimplemented, "method ExportSecurityData not implemented")
 }
 func (UnimplementedHasherServiceServer) TriggerTraining(context.Context, *TrainingRequest) (*TrainingResponse, error) {
@@ -137,6 +169,9 @@ func (UnimplementedHasherServiceServer) GetUserRules(context.Context, *RulesRequ
 }
 func (UnimplementedHasherServiceServer) ValidateAction(context.Context, *ActionRequest) (*ActionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateAction not implemented")
+}
+func (UnimplementedHasherServiceServer) StreamActivity(*StreamActivityRequest, HasherService_StreamActivityServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamActivity not implemented")
 }
 func (UnimplementedHasherServiceServer) mustEmbedUnimplementedHasherServiceServer() {}
 
@@ -152,12 +187,15 @@ func RegisterHasherServiceServer(s grpc.ServiceRegistrar, srv HasherServiceServe
 }
 
 func _HasherService_ExportSecurityData_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(HasherServiceServer).ExportSecurityData(&hasherServiceExportSecurityDataServer{stream})
+	m := new(ExportRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(HasherServiceServer).ExportSecurityData(m, &hasherServiceExportSecurityDataServer{stream})
 }
 
 type HasherService_ExportSecurityDataServer interface {
-	SendAndClose(*ExportResponse) error
-	Recv() (*EncryptedChunk, error)
+	Send(*EncryptedChunk) error
 	grpc.ServerStream
 }
 
@@ -165,16 +203,8 @@ type hasherServiceExportSecurityDataServer struct {
 	grpc.ServerStream
 }
 
-func (x *hasherServiceExportSecurityDataServer) SendAndClose(m *ExportResponse) error {
+func (x *hasherServiceExportSecurityDataServer) Send(m *EncryptedChunk) error {
 	return x.ServerStream.SendMsg(m)
-}
-
-func (x *hasherServiceExportSecurityDataServer) Recv() (*EncryptedChunk, error) {
-	m := new(EncryptedChunk)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
 }
 
 func _HasherService_TriggerTraining_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -249,6 +279,27 @@ func _HasherService_ValidateAction_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HasherService_StreamActivity_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamActivityRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(HasherServiceServer).StreamActivity(m, &hasherServiceStreamActivityServer{stream})
+}
+
+type HasherService_StreamActivityServer interface {
+	Send(*ActivityEvent) error
+	grpc.ServerStream
+}
+
+type hasherServiceStreamActivityServer struct {
+	grpc.ServerStream
+}
+
+func (x *hasherServiceStreamActivityServer) Send(m *ActivityEvent) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // HasherService_ServiceDesc is the grpc.ServiceDesc for HasherService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -277,8 +328,13 @@ var HasherService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ExportSecurityData",
 			Handler:       _HasherService_ExportSecurityData_Handler,
-			ClientStreams: true,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamActivity",
+			Handler:       _HasherService_StreamActivity_Handler,
+			ServerStreams: true,
 		},
 	},
-	Metadata: "hasher.proto",
+	Metadata: "hasher/hasher.proto",
 }

@@ -3,8 +3,15 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Eye, Box, Wrench, Globe, Cpu, Layers, Settings, Triangle } from "lucide-react"
-import StarSupernova from "./star-supernova"
-import SettingsModal from "./settings-modal"
+import dynamic from "next/dynamic"
+
+// Dynamically import components that are not immediately needed
+const StarSupernova = dynamic(() => import("./star-supernova"), {
+  loading: () => <div className="fixed inset-0 bg-[#030a18] z-50" />,
+})
+const SettingsModal = dynamic(() => import("./settings-modal"), {
+  loading: () => null,
+})
 
 // Inner ring labels (closest to center)
 const innerLabels = [

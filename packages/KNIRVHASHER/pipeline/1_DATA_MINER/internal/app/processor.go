@@ -1269,6 +1269,11 @@ func runNeuralProcessingPhase(ctx context.Context, config *Config, provider *emb
 				// Sync quota to stats manager after each successful embedding
 				used, max, _ := provider.RequestTracker.GetStats()
 				statsManager.RecordCloudflareUsage(used, max)
+				// Update session stats
+				if sessionStats != nil {
+					sessionStats.CloudflareUsed = used
+					sessionStats.CloudflareRemaining = max - used
+				}
 			case err := <-errChan:
 				fmt.Printf("❌ Failed to generate embedding for chunk %d: %v\n", j+1, err)
 				continue // Skip chunks that fail

@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/knirvcorp/knirvbase"
-	"github.com/knirvcorp/knirvhasher/pipeline/2_DATA_ENCODER/internal/writer"
+	"data-encoder/internal/writer"
 )
 
 // DomainMath is the Slot 10 domain signature for Math Mode.
@@ -93,15 +92,15 @@ func (tp *TensorPacker) Orchestrate(base *SlotVector, pos uint16, domainSig uint
 // encoder_output KNIRVBASE collection via the embedded NRVWriter.
 func (tp *TensorPacker) SaveTrainingFrames(frames []*NeuralFrame, w *writer.NRVWriter) error {
 	for _, frame := range frames {
-		bracket := &knirvbase.Bracket{
-			Projections:   slotsToProjections(frame.Slots), // Slots 0-3 → 32 bytes
-			SyntacticByte: uint8(frame.Slots[4] & 0xFF),    // Slot 4 operator byte
-			DepHead:       uint8(frame.Slots[5]),           // Slot 5
-			IntentFlags:   uint8(frame.Slots[9]),           // Slot 9
-			DomainSig:     uint16(frame.Slots[10]),         // Slot 10
-			ContextMemory: slots6to8(frame.Slots[6:9]),     // Slots 6-8 → 18 bytes
-			GoldenSeed:    frame.Slots[11],                 // Slot 11 nonce
-			DomainSig16:   uint16(frame.DomainSig),
+		bracket := map[string]interface{}{
+			"Projections":   slotsToProjections(frame.Slots[:4]), // Slots 0-3 → 32 bytes
+			"SyntacticByte": uint8(frame.Slots[4] & 0xFF),        // Slot 4 operator byte
+			"DepHead":       uint8(frame.Slots[5]),               // Slot 5
+			"IntentFlags":   uint8(frame.Slots[9]),               // Slot 9
+			"DomainSig":     uint16(frame.Slots[10]),             // Slot 10
+			"ContextMemory": slots6to8(frame.Slots[6:9]),         // Slots 6-8 → 18 bytes
+			"GoldenSeed":    frame.Slots[11],                     // Slot 11 nonce
+			"DomainSig16":   uint16(frame.DomainSig),
 		}
 		if err := w.WriteBracket(bracket); err != nil {
 			return fmt.Errorf("saveTrainingFrames: frame %d: %w", frame.FrameID, err)

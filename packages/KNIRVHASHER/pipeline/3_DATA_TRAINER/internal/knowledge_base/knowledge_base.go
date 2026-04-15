@@ -1,10 +1,11 @@
 package knowledge_base
 
 import (
+	"context"
 	"fmt"
 
-	"knirvbase"
-	evo_grpo "knirvhasher/pipeline/3_DATA_TRAINER/internal/evo_grpo"
+	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
+	evo_grpo "github.com/lab/hasher/data-trainer/internal/evo_grpo"
 )
 
 // NRVKnowledgeBase manages the NRV knowledge base re-indexing
@@ -52,8 +53,13 @@ func (kb *NRVKnowledgeBase) extractKnowledge(model *evo_grpo.OptimizedModel) *Kn
 
 // updateIndex updates the knowledge base index
 func (kb *NRVKnowledgeBase) updateIndex(userID string, knowledge *Knowledge) error {
-	key := fmt.Sprintf("kb:%s:index", userID)
-	return kb.kvbase.Put(key, knowledge)
+	_, err := kb.kvbase.Insert(context.Background(), map[string]interface{}{
+		"id":         userID,
+		"concepts":   knowledge.Concepts,
+		"relations":  knowledge.Relations,
+		"confidence": knowledge.Confidence,
+	})
+	return err
 }
 
 // applyMathModeDriftMask applies drift correction for math mode consistency

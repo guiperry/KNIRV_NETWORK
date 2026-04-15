@@ -17,7 +17,7 @@ GOARCH := $(shell go env GOARCH)
 
 # Build flags
 SPACY_LIB_DIR := $(CURDIR)/spacy/lib
-LDFLAGS := -ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME) -X main.gitCommit=$(GIT_COMMIT) -extldflags '-Wl,-rpath,$(SPACY_LIB_DIR)'"
+LDFLAGS := -ldflags "-X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME) -X main.gitCommit=$(GIT_COMMIT) -extldflags '-Wl,-rpath,$(SPACY_LIB_DIR) -L$(SPACY_LIB_DIR)'"
 BUILD_FLAGS := -trimpath -buildmode=pie $(LDFLAGS)
 
 # Version information

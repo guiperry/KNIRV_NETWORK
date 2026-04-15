@@ -357,9 +357,10 @@ func GenerateAlpacaRecordSpaCy(text string, nlpBridge *NLPBridge) (*AlpacaRecord
 	// Count nouns and verbs
 	var nouns, verbs []string
 	for i, token := range tokens {
-		if posTags[i] == 0x01 { // NOUN
+		switch posTags[i] {
+		case 0x01: // NOUN
 			nouns = append(nouns, token)
-		} else if posTags[i] == 0x02 { // VERB
+		case 0x02: // VERB
 			verbs = append(verbs, token)
 		}
 	}

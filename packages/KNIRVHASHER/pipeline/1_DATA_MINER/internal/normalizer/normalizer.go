@@ -3,8 +3,6 @@ package normalizer
 import (
 	"fmt"
 	"strings"
-
-	"github.com/knirvcorp/knirvhasher/pipeline/1_DATA_MINER/internal/nlp_bridge"
 )
 
 type SecurityNormalizer struct {
@@ -90,7 +88,7 @@ func (sn *SecurityNormalizer) Process(input string) ([]*SecurityRecord, error) {
 
 func (sn *SecurityNormalizer) extractSecurityTags(content string) []string {
 	var tags []string
-	for tag, mapping := range SECURITY_TAG_MAPPINGS {
+	for tag := range SECURITY_TAG_MAPPINGS {
 		if strings.Contains(strings.ToLower(content), tag) {
 			tags = append(tags, tag)
 		}

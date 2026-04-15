@@ -47,12 +47,24 @@ You can customize:
 - Update intervals in `renderer.js`
 - Add more metrics or remove existing ones
 
+## Performance Optimizations
+
+Recent optimizations for improved load times and responsiveness:
+
+- **Code Splitting**: Dynamic imports for menu components reduce initial bundle size
+- **Bundling**: Esbuild minification for JavaScript and CSS reduces file sizes
+- **Lazy Loading**: Iframes load only when needed with `loading="lazy"` attribute
+- **Canvas Optimization**: Batched drawing with `requestAnimationFrame` prevents layout thrashing
+- **Resource Preloading**: Critical resources preloaded for faster initial render
+- **Efficient Metrics**: System monitoring optimized with reduced update frequency (3s intervals)
+
 ## Technical Details
 
 - **Electron**: For transparent window support
 - **TypeScript**: For type-safe code
 - **HTML5 Canvas**: For performance charts
 - **Node.js OS module**: For real system metrics
+- **Esbuild**: For fast bundling and minification
 
 ## Controls
 
