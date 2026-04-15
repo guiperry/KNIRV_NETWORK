@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,7 +22,8 @@ import (
 )
 
 const (
-	DefaultSocketPath = "/var/run/hasher.sock"
+	// Use user-writable directory instead of /var/run to avoid permission issues
+	DefaultSocketPath = "~/.local/share/knirvserver/sockets/hasher.sock"
 )
 
 type HasherGRPCServer struct {
@@ -49,18 +51,28 @@ func (s *HasherGRPCServer) Start() error {
 		return fmt.Errorf("server already running")
 	}
 
-	dir := filepath.Dir(s.socketPath)
+	// Expand ~ to home directory if present
+	socketPath := s.socketPath
+	if strings.HasPrefix(socketPath, "~") {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
+		socketPath = filepath.Join(homeDir, socketPath[1:])
+	}
+
+	dir := filepath.Dir(socketPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create socket directory: %w", err)
 	}
 
-	if err := os.RemoveAll(s.socketPath); err != nil {
+	if err := os.RemoveAll(socketPath); err != nil {
 		log.Printf("Warning: Failed to remove existing socket: %v", err)
 	}
 
-	ln, err := net.Listen("unix", s.socketPath)
+	ln, err := net.Listen("unix", socketPath)
 	if err != nil {
-		return fmt.Errorf("failed to listen on socket %s: %w", s.socketPath, err)
+		return fmt.Errorf("failed to listen on socket %s: %w", socketPath, err)
 	}
 	s.listener = ln
 
@@ -68,13 +80,13 @@ func (s *HasherGRPCServer) Start() error {
 	hasher.RegisterHasherServiceServer(s.server, s)
 
 	go func() {
-		log.Printf("HasherGRPCServer: Starting on %s", s.socketPath)
+		log.Printf("HasherGRPCServer: Starting on %s", socketPath)
 		if err := s.server.Serve(ln); err != nil {
 			log.Printf("HasherGRPCServer: Serve error: %v", err)
 		}
 	}()
 
-	if err := os.Chmod(s.socketPath, 0666); err != nil {
+	if err := os.Chmod(socketPath, 0666); err != nil {
 		log.Printf("Warning: Failed to set socket permissions: %v", err)
 	}
 

@@ -22,55 +22,85 @@ export function useLogStream(options: UseLogStreamOptions = {}) {
   const { module = '', autoConnect = true, onLog } = options;
   const [isConnected, setIsConnected] = useState(false);
   const [logs, setLogs] = useState<ModuleLog[]>([]);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const pollingRef = useRef<number | null>(null);
+  const latestSeenRef = useRef<string>('');
 
-  const connect = useCallback(() => {
-    if (eventSourceRef.current) {
+  const buildHistoryUrl = useCallback(() => {
+    const params = new URLSearchParams({ limit: '100' });
+    if (module) {
+      params.set('module', module);
+    }
+    return `/api/logs/history?${params.toString()}`;
+  }, [module]);
+
+  const mergeLogs = useCallback((incoming: ModuleLog[]) => {
+    if (incoming.length === 0) {
       return;
     }
 
-    const url = module 
-      ? `/api/logs/module/${module}`
-      : '/api/logs/stream';
-    
-    const es = new EventSource(url);
-    eventSourceRef.current = es;
+    setLogs(prev => {
+      const existing = new Set(
+        prev.map(log => `${log.timestamp}|${log.module}|${log.level}|${log.message}`)
+      );
+      const next = [...prev];
 
-    es.onopen = () => {
-      setIsConnected(true);
-      console.log(`[LogStream] Connected to ${module || 'all modules'}`);
-    };
-
-    es.onmessage = (event) => {
-      try {
-        const log: ModuleLog = JSON.parse(event.data);
-        setLogs(prev => {
-          const updated = [...prev, log];
-          if (updated.length > 500) {
-            return updated.slice(-500);
-          }
-          return updated;
-        });
+      for (const log of incoming) {
+        const key = `${log.timestamp}|${log.module}|${log.level}|${log.message}`;
+        if (existing.has(key)) {
+          continue;
+        }
+        existing.add(key);
+        next.push(log);
         onLog?.(log);
-      } catch (err) {
-        console.error('[LogStream] Failed to parse log:', err);
       }
-    };
 
-    es.onerror = () => {
+      if (next.length > 500) {
+        return next.slice(-500);
+      }
+      return next;
+    });
+  }, [onLog]);
+
+  const pollLogs = useCallback(async () => {
+    try {
+      const response = await fetch(buildHistoryUrl());
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const history = Array.isArray(payload.logs) ? payload.logs as ModuleLog[] : [];
+      const ordered = [...history].reverse();
+
+      if (ordered.length > 0) {
+        const latest = ordered[ordered.length - 1];
+        latestSeenRef.current = `${latest.timestamp}|${latest.module}|${latest.level}|${latest.message}`;
+      }
+
+      mergeLogs(ordered);
+      setIsConnected(true);
+    } catch (error) {
       setIsConnected(false);
-      console.warn('[LogStream] Connection error, reconnecting...');
-      eventSourceRef.current = null;
-      setTimeout(() => {
-        if (autoConnect) connect();
-      }, 3000);
-    };
-  }, [module, autoConnect, onLog]);
+      console.debug('[LogStream] History polling unavailable:', error);
+    }
+  }, [buildHistoryUrl, mergeLogs]);
+
+  const connect = useCallback(() => {
+    if (pollingRef.current !== null) {
+      return;
+    }
+
+    void pollLogs();
+    pollingRef.current = window.setInterval(() => {
+      void pollLogs();
+    }, 3000);
+    console.log(`[LogStream] Polling ${module || 'all modules'}`);
+  }, [module, pollLogs]);
 
   const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
+    if (pollingRef.current !== null) {
+      window.clearInterval(pollingRef.current);
+      pollingRef.current = null;
       setIsConnected(false);
       console.log('[LogStream] Disconnected');
     }
@@ -85,6 +115,7 @@ export function useLogStream(options: UseLogStreamOptions = {}) {
 
   const clearLogs = useCallback(() => {
     setLogs([]);
+    latestSeenRef.current = '';
   }, []);
 
   return {

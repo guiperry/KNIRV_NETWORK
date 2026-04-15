@@ -1,17 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Cpu, MemoryStick, Network, Activity, RefreshCw, Server, Clock } from 'lucide-react';
+import { MemoryStick, Network, Activity, RefreshCw, Server, Clock, Gauge } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useTelemetry, SystemTelemetry } from '@/hooks/use-telemetry';
+import { useTelemetry } from '@/hooks/use-telemetry';
 
 interface SystemTelemetryCardProps {
   className?: string;
 }
 
 export function SystemTelemetryCard({ className }: SystemTelemetryCardProps) {
-  const { telemetry, formatBytes, formatCPU, refetch } = useTelemetry();
+  const { telemetry, refetch } = useTelemetry();
 
   const formatPressure = (value: number): string => {
     if (value === 0) return 'Normal';
@@ -63,17 +63,17 @@ export function SystemTelemetryCard({ className }: SystemTelemetryCardProps) {
               Last updated: {new Date(telemetry.data.timestamp).toLocaleTimeString()}
             </div>
 
-            {/* CPU Time */}
+            {/* CPU Usage */}
             <div className="flex items-center justify-between p-3 rounded-lg bg-card/50 border border-border">
               <div className="flex items-center gap-3">
-                <Cpu className="w-5 h-5 text-blue-400" />
+                <Gauge className="w-5 h-5 text-blue-400" />
                 <div>
-                  <div className="text-sm font-medium">CPU Time</div>
-                  <div className="text-xs text-muted-foreground">Total CPU execution</div>
+                  <div className="text-sm font-medium">CPU Usage</div>
+                  <div className="text-xs text-muted-foreground">Current host utilization</div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold">{formatCPU(telemetry.data.cpu_time_ns)}</div>
+                <div className="text-lg font-bold">{telemetry.data.cpu_usage.toFixed(1)}%</div>
               </div>
             </div>
 
@@ -87,10 +87,8 @@ export function SystemTelemetryCard({ className }: SystemTelemetryCardProps) {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold">{formatBytes(telemetry.data.memory_bytes)}</div>
-                <div className="text-xs text-muted-foreground">
-                  Heap: {formatBytes(telemetry.data.heap_alloc_bytes)}
-                </div>
+                <div className="text-lg font-bold">{telemetry.data.memory_usage.toFixed(1)}%</div>
+                <div className="text-xs text-muted-foreground">System memory in use</div>
               </div>
             </div>
 
@@ -100,8 +98,8 @@ export function SystemTelemetryCard({ className }: SystemTelemetryCardProps) {
                 <div className="flex items-center gap-2">
                   <Network className="w-4 h-4 text-green-400" />
                   <div>
-                    <div className="text-xs text-muted-foreground">TX</div>
-                    <div className="text-sm font-medium">{formatBytes(telemetry.data.net_tx_bytes)}</div>
+                    <div className="text-xs text-muted-foreground">Throughput</div>
+                    <div className="text-sm font-medium">{telemetry.data.network_throughput.toFixed(1)}</div>
                   </div>
                 </div>
               </div>
@@ -109,8 +107,8 @@ export function SystemTelemetryCard({ className }: SystemTelemetryCardProps) {
                 <div className="flex items-center gap-2">
                   <Network className="w-4 h-4 text-yellow-400" />
                   <div>
-                    <div className="text-xs text-muted-foreground">RX</div>
-                    <div className="text-sm font-medium">{formatBytes(telemetry.data.net_rx_bytes)}</div>
+                    <div className="text-xs text-muted-foreground">Connections</div>
+                    <div className="text-sm font-medium">{telemetry.data.active_connections}</div>
                   </div>
                 </div>
               </div>
@@ -121,16 +119,16 @@ export function SystemTelemetryCard({ className }: SystemTelemetryCardProps) {
               <div className="p-3 rounded-lg bg-card/50 border border-border">
                 <div className="flex items-center gap-2 mb-1">
                   <Activity className="w-4 h-4 text-orange-400" />
-                  <span className="text-xs text-muted-foreground">Context Switches</span>
+                  <span className="text-xs text-muted-foreground">CPU Pressure</span>
                 </div>
-                <div className="text-lg font-bold">{telemetry.data.context_switches.toLocaleString()}</div>
+                <div className="text-lg font-bold">{telemetry.data.cpu_pressure.toFixed(1)}%</div>
               </div>
               <div className="p-3 rounded-lg bg-card/50 border border-border">
                 <div className="flex items-center gap-2 mb-1">
                   <Activity className="w-4 h-4 text-red-400" />
-                  <span className="text-xs text-muted-foreground">Page Faults</span>
+                  <span className="text-xs text-muted-foreground">Memory Pressure</span>
                 </div>
-                <div className="text-lg font-bold">{telemetry.data.page_faults.toLocaleString()}</div>
+                <div className="text-lg font-bold">{telemetry.data.memory_pressure.toFixed(1)}%</div>
               </div>
             </div>
 
@@ -169,7 +167,7 @@ export function SystemTelemetryCard({ className }: SystemTelemetryCardProps) {
             {/* Runtime */}
             <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
               <span>Goroutines: {telemetry.data.goroutines}</span>
-              <span>GC Count: {telemetry.data.gc_count}</span>
+              <span>Source: System Health</span>
             </div>
           </div>
         )}

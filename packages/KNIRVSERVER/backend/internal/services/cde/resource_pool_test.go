@@ -47,7 +47,7 @@ func TestCanAllocate(t *testing.T) {
 	// Test allocation within limits
 	request := &CDEResourceAllocation{
 		CPUCores:    1.0,
-		MemoryBytes: 1024 * 1024 * 1024, // 1GB
+		MemoryBytes: 1024 * 1024 * 1024,      // 1GB
 		DiskBytes:   10 * 1024 * 1024 * 1024, // 10GB
 	}
 
@@ -99,7 +99,7 @@ func TestAllocateResources(t *testing.T) {
 	// Allocate some resources
 	request := &CDEResourceAllocation{
 		CPUCores:    1.0,
-		MemoryBytes: 512 * 1024 * 1024, // 512MB
+		MemoryBytes: 512 * 1024 * 1024,      // 512MB
 		DiskBytes:   5 * 1024 * 1024 * 1024, // 5GB
 	}
 
@@ -272,14 +272,12 @@ func TestUpdateAvailableResources(t *testing.T) {
 	}
 
 	// The exact value depends on system state, so we just check it's reasonable
-	if pool.AvailableMemory < 0 {
-		t.Error("Available memory should not be negative")
-	}
+	// (AvailableMemory is uint64, so it can't be negative)
 
 	// Test that allocated resources are considered
 	request := &CDEResourceAllocation{
 		CPUCores:    0.5,
-		MemoryBytes: 100 * 1024 * 1024, // 100MB
+		MemoryBytes: 100 * 1024 * 1024,      // 100MB
 		DiskBytes:   1 * 1024 * 1024 * 1024, // 1GB
 	}
 

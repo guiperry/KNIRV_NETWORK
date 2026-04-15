@@ -12,14 +12,31 @@
 //   minimize-window  — user clicked minimize
 //   close-window     — user clicked close
 
-const os = require('os');
-const { ipcRenderer } = require('electron');
+const electronAPI = window.electronAPI || {
+    send: () => {},
+    onInitServerUrl: () => {},
+    onShowMenu: () => {},
+    onShowDesktop: () => {},
+    onFrontendStatus: () => {},
+    getSystemInfo: () => ({
+        type: navigator.platform || 'Unknown OS',
+        release: '',
+        arch: navigator.userAgent || '',
+    }),
+    getSystemMetrics: () => ({
+        uptime: 0,
+        totalMem: 0,
+        freeMem: 0,
+        cpus: [],
+    }),
+};
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let serverUrl     = 'http://localhost:8090';  // updated by init-server-url
 let frontendUrl   = '';                        // set by show-desktop
 let desktopLoaded = false;                     // true after first desktop transition
+let authSession   = { token: '', role: '' };   // forwarded into the embedded frontend
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 
@@ -162,8 +179,8 @@ function transitionToDesktop(url, sectionParam) {
             contentIframe.src = loadUrl;
             desktopLoaded = true;
 
-            // Hide loading indicator after iframe loads
             contentIframe.onload = () => {
+                syncFrontendAuth();
                 if (loadingIndicator) {
                     loadingIndicator.style.display = 'none';
                 }
@@ -177,6 +194,23 @@ function transitionToDesktop(url, sectionParam) {
             }
         }
     }, 900);
+}
+
+function syncFrontendAuth() {
+    if (!contentIframe.contentWindow || !authSession.token) return;
+
+    let targetOrigin = '*';
+    try {
+        targetOrigin = new URL(frontendUrl).origin;
+    } catch {
+        // Fall back to wildcard if the frontend URL is malformed.
+    }
+
+    contentIframe.contentWindow.postMessage({
+        type: 'desktop-auth',
+        token: authSession.token,
+        role: authSession.role,
+    }, targetOrigin);
 }
 
 // Send a navigation message to the already-loaded content iframe
@@ -217,22 +251,22 @@ function backToMenu() {
 // ─── IPC from main process ────────────────────────────────────────────────────
 
 // Called right after the window loads — gives us the backend URL for login
-ipcRenderer.on('init-server-url', (_event, url) => {
+electronAPI.onInitServerUrl((url) => {
     serverUrl = url;
 });
 
 // Main process confirmed login + menu server is ready
-ipcRenderer.on('show-menu', (_event, { menuUrl }) => {
+electronAPI.onShowMenu(({ menuUrl }) => {
     transitionToMenu(menuUrl);
 });
 
 // Menu animation done — reveal the HUD desktop frame
-ipcRenderer.on('show-desktop', (_event, { frontendUrl: url }) => {
+electronAPI.onShowDesktop(({ frontendUrl: url }) => {
     transitionToDesktop(url, null);
 });
 
 // Frontend connection status updates (used in desktop phase)
-ipcRenderer.on('frontend-status', (_event, status) => {
+electronAPI.onFrontendStatus((status) => {
     const el = document.getElementById('frontend-status');
     if (el) {
         el.textContent = status;
@@ -275,7 +309,7 @@ window.addEventListener('message', (event) => {
 
     } else if (type === 'menu-complete') {
         // Legacy: kept in case anything still sends this
-        ipcRenderer.send('menu-complete');
+        electronAPI.send('menu-complete');
     }
 });
 
@@ -363,12 +397,15 @@ loginForm.addEventListener('submit', async (e) => {
 
         // Persist so the frontend iframe can pick it up
         if (token) {
+            authSession = { token, role };
+            localStorage.setItem('knirv_nexus_token', token);
+            localStorage.setItem('knirv_nexus_role', role);
             localStorage.setItem('knirv_auth_token', token);
-            localStorage.setItem('knirv_auth_role',  role);
+            localStorage.setItem('knirv_auth_role', role);
         }
 
         // Tell main — it starts the menu server and replies with show-menu
-        ipcRenderer.send('login-success');
+        electronAPI.send('login-success');
 
     } catch {
         showLoginError('Cannot reach the KNIRV server. Ensure the server is running.');
@@ -477,11 +514,11 @@ document.getElementById('menu-back-btn').addEventListener('click', () => {
 });
 
 document.getElementById('minimize-btn').addEventListener('click', () => {
-    ipcRenderer.send('minimize-window');
+    electronAPI.send('minimize-window');
 });
 
 document.getElementById('close-btn').addEventListener('click', () => {
-    ipcRenderer.send('close-window');
+    electronAPI.send('close-window');
 });
 
 // ─── HUD — system monitoring ─────────────────────────────────────────────────
@@ -496,16 +533,17 @@ function updateTime() {
 }
 
 function updateUptime() {
-    const uptime  = os.uptime();
+    const uptime  = electronAPI.getSystemMetrics().uptime;
     const hours   = Math.floor(uptime / 3600);
     const minutes = Math.floor((uptime % 3600) / 60);
     const el      = document.getElementById('uptime');
     if (el) el.textContent = `${hours}h ${minutes}m`;
 }
 
-let previousCpuInfo = os.cpus();
+let previousCpuInfo = electronAPI.getSystemMetrics().cpus;
 function getCpuUsage() {
-    const cpus = os.cpus();
+    const cpus = electronAPI.getSystemMetrics().cpus;
+    if (!cpus.length) return 0;
     let totalIdle = 0, totalTick = 0;
     cpus.forEach((cpu, i) => {
         const prev = previousCpuInfo[i];
@@ -521,8 +559,9 @@ function getCpuUsage() {
 }
 
 function getMemoryUsage() {
-    const total = os.totalmem();
-    return Math.round(((total - os.freemem()) / total) * 100);
+    const { totalMem, freeMem } = electronAPI.getSystemMetrics();
+    if (!totalMem) return 0;
+    return Math.round(((totalMem - freeMem) / totalMem) * 100);
 }
 
 function drawPerformanceChart() {
@@ -603,8 +642,9 @@ function updateMetrics() {
 function initSystemInfo() {
     const osEl   = document.getElementById('os-info');
     const archEl = document.getElementById('arch-info');
-    if (osEl)   osEl.textContent   = `${os.type()} ${os.release()}`;
-    if (archEl) archEl.textContent = os.arch();
+    const info = electronAPI.getSystemInfo();
+    if (osEl)   osEl.textContent   = `${info.type} ${info.release}`.trim();
+    if (archEl) archEl.textContent = info.arch;
 }
 
 // Start HUD monitoring once (metrics only matter in the desktop phase,

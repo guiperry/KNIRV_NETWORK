@@ -52,6 +52,7 @@ import (
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
 	"backend_server/internal/services/validation"
+
 	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvshell"
 
 	knirvchain "KNIRVCHAIN"
@@ -172,6 +173,40 @@ type Server struct {
 
 	// State management
 	running bool
+}
+
+type telemetryServiceAdapter struct {
+	engine *cognitiveengine.CognitiveEngine
+}
+
+func (a *telemetryServiceAdapter) Latest() *cognitiveengine.SystemResourceSnapshot {
+	if a == nil || a.engine == nil {
+		return &cognitiveengine.SystemResourceSnapshot{Timestamp: time.Now()}
+	}
+	return a.engine.GetLatestTelemetry()
+}
+
+type ontologyServiceAdapter struct {
+	engine *cognitiveengine.CognitiveEngine
+}
+
+func (a *ontologyServiceAdapter) GetEntity(_ string) (*cognitiveengine.OntologyEntity, bool) {
+	return nil, false
+}
+
+func (a *ontologyServiceAdapter) QueryByType(_ cognitiveengine.OntologyEntityType) []*cognitiveengine.OntologyEntity {
+	return []*cognitiveengine.OntologyEntity{}
+}
+
+func (a *ontologyServiceAdapter) FindRelations(_ string) []cognitiveengine.OntologyRelation {
+	return []cognitiveengine.OntologyRelation{}
+}
+
+func (a *ontologyServiceAdapter) Stats() (entityCount int, relationCount int) {
+	if a == nil || a.engine == nil {
+		return 0, 0
+	}
+	return a.engine.GetOntologyStats()
 }
 
 // initLogging initializes the logging system based on configuration
@@ -448,7 +483,7 @@ func initOracleManager(logger *zap.Logger, _ *config.Config) *knirvoracle.Manage
 
 	oracleCfg := &knirvoracle.ManagerConfig{
 		BinaryPath:   "knirvoracle",
-		SocketPath:   "/var/run/knirv/oracle.sock",
+		SocketPath:   filepath.Join(appDataDir, "sockets", "oracle.sock"),
 		DataPath:     filepath.Join(appDataDir, "oracle"),
 		RootKeyPath:  rootKeyPath,
 		StartTimeout: 30 * time.Second,
@@ -1647,6 +1682,18 @@ func (s *Server) setupRoutes() {
 		cognitiveEngineHandlers := web.NewCognitiveEngineHandlers(s.cognitiveEngine)
 		cognitiveEngineHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("Cognitive engine routes configured")
+
+		telemetryHandlers := web.NewTelemetryHandlers(&telemetryServiceAdapter{engine: s.cognitiveEngine})
+		telemetryHandlers.RegisterRoutes(s.router)
+		log.Println("Cognitive telemetry routes configured")
+
+		ontologyHandlers := web.NewOntologyHandlers(&ontologyServiceAdapter{engine: s.cognitiveEngine})
+		ontologyHandlers.RegisterRoutes(s.router)
+		log.Println("Cognitive ontology routes configured")
+
+		analyticsHandlers := web.NewAnalyticsHandlers(cognitiveengine.NewPredictiveAnalytics(100))
+		analyticsHandlers.RegisterRoutes(s.router)
+		log.Println("Predictive analytics routes configured")
 	}
 
 	// Register Active Memory handlers

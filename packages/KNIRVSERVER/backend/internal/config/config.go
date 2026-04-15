@@ -681,8 +681,18 @@ func DetermineRoleFromConfig(cfg *Config) Role {
 func setDefaults() {
 	appDataDir, err := getAppDataDir()
 	if err != nil {
-		// Fallback to relative paths if we can't get app data directory
-		appDataDir = "."
+		// If we can't get app data directory, use a sensible absolute path
+		// Try to use $XDG_DATA_HOME or fallback to ~/.local/share/knirvserver/backend_server
+		usr, errUser := user.Current()
+		if errUser == nil {
+			appDataDir = filepath.Join(usr.HomeDir, ".local", "share", "knirvserver", "backend_server")
+			// Attempt to create it
+			_ = os.MkdirAll(appDataDir, 0755)
+		} else {
+			// Last resort: use /tmp with a user-specific subdirectory
+			appDataDir = filepath.Join("/tmp", "knirvserver-fallback")
+			_ = os.MkdirAll(appDataDir, 0755)
+		}
 	}
 	socketDir := filepath.Join(appDataDir, "sockets")
 

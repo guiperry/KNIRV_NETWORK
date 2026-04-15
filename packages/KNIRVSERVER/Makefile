@@ -514,7 +514,7 @@ shell-deps: ## Install KNIRVSHELL dependencies
 shell-build: shell-deps ## Build KNIRVSHELL binary into pkg/knirvshell/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVSHELL binary...$(NC)"
 	@mkdir -p $(SHELL_DIR)/bin
-	cd $(SHELL_SRC_DIR) && go build -ldflags "-s -w" -o $(SHELL_PKG_BIN) ./...
+	cd $(SHELL_SRC_DIR) && go build -ldflags "-s -w" -o $(SHELL_PKG_BIN) .
 	@echo "$(GREEN)KNIRVSHELL binary built: $(SHELL_PKG_BIN)$(NC)"
 
 shell-clean: ## Clean KNIRVSHELL build artifacts

@@ -147,7 +147,7 @@ func (h *LogStreamHandler) handleLogHistory(w http.ResponseWriter, r *http.Reque
 	}
 
 	h.mu.RLock()
-	defer h.mu.RLock()
+	defer h.mu.RUnlock()
 
 	var logs []LogEvent
 	for i := len(h.logBuffer) - 1; i >= 0 && len(logs) < limit; i-- {

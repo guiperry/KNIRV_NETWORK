@@ -352,6 +352,64 @@ config := &fintech_validator.Config{
 
 ---
 
+## 🌐 Progressive Web Application (PWA)
+
+KNIRVSERVER includes a Progressive Web Application (PWA) that provides a native-like desktop experience directly through the browser.
+
+### Features
+
+- **Installable Client**: Users can install the application to their desktop for offline access
+- **System Metrics HUD**: Real-time CPU, memory, and system information display
+- **Offline Support**: Service worker caching ensures functionality without network
+- **Cross-Platform**: Works on Windows, macOS, Linux, and mobile browsers
+
+### Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         Browser / PWA Client            │
+├─────────────────────────────────────────┤
+│ - React Frontend (Next.js static export) │
+│ - Service Worker (offline support)      │
+│ - HUD React Component                  │
+└──────────────────┬──────────────────────┘
+                   │ HTTP/HTTPS
+                   │ All requests use relative /api/* paths
+                   ▼
+┌─────────────────────────────────────────────┐
+│      KNIRVSERVER Wrapper (Port 8090)       │
+├─────────────────────────────────────────────┤
+│ - Static frontend server                  │
+│ - PWA manifest & service worker handler    │
+│ - Reverse proxy middleware              │
+└──────┬──────────────────────────┬───────────┘
+       │ /api/v1/* routes          │ Static files
+       │ (to Unix socket)          │
+       ▼                          ▼
+┌────────────────────────────────────────┐
+│ Backend Services (Unix Socket)         │
+│ /var/run/knirvserver-backend.sock      │
+├────────────────────────────────────────┤
+│ - GET /api/v1/system/info              │
+│ - WS /api/v1/system/metrics/stream     │
+└────────────────────────────────────────┘
+```
+
+### API Endpoints
+
+| Endpoint | Description |
+|----------|------------|
+| `GET /api/v1/system/info` | Get current system metrics (CPU, memory, uptime) |
+| `GET /api/v1/system/detail` | Get detailed system information |
+| `WS /api/v1/system/metrics/stream` | WebSocket stream for real-time metrics |
+
+### PWA Components
+
+- **HudOverlay**: React component displaying system metrics (`frontend/src/components/hud/`)
+- **usePWAInstall**: Hook for handling PWA installation prompts (`frontend/src/hooks/usePWAInstall.ts`)
+
+---
+
 ## 🔒 Security Constraints
 
 - **Hardware Enclaves**: TEE features (SGX/TDX) require specific hardware support and BIOS configuration.

@@ -3,8 +3,6 @@ module knirvhasher
 go 1.24.11
 
 require (
-	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
-	github.com/apache/arrow/go/v14 v14.0.2
 	github.com/atotto/clipboard v0.1.4
 	github.com/charmbracelet/bubbles v0.21.1
 	github.com/charmbracelet/bubbletea v1.3.10
@@ -13,8 +11,6 @@ require (
 	github.com/cilium/ebpf v0.20.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/google/gousb v1.1.3
-	github.com/joho/godotenv v1.5.1
-	github.com/knirvcorp/knirvbase v1.0.7
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.47.0
@@ -24,16 +20,9 @@ require (
 )
 
 require (
-	github.com/apache/arrow/go/v15 v15.0.2 // indirect
-	github.com/cloudflare/circl v1.6.2 // indirect
-	github.com/google/flatbuffers v24.3.25+incompatible // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.21 // indirect
-	github.com/zeebo/xxh3 v1.0.2 // indirect
+	go.opentelemetry.io/otel v1.39.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.39.0 // indirect
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
-	golang.org/x/telemetry v0.0.0-20260109210033-bd525da824e2 // indirect
-	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

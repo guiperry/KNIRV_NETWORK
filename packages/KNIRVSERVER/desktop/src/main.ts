@@ -34,6 +34,18 @@ function getMimeType(filePath: string): string {
   return types[ext] || 'application/octet-stream';
 }
 
+function shouldFallbackToIndex(pathname: string): boolean {
+  if (pathname === '/' || pathname.endsWith('/')) {
+    return true;
+  }
+
+  if (path.extname(pathname) !== '') {
+    return false;
+  }
+
+  return !pathname.startsWith('/_next/') && !pathname.startsWith('/_vercel/');
+}
+
 // ─── Local HTTP server for the built Next.js menu static files ────────────────
 
 function startMenuServer(): Promise<string> {
@@ -63,9 +75,13 @@ function startMenuServer(): Promise<string> {
         const withIndex = path.join(filePath, 'index.html');
         if (fs.existsSync(withIndex)) {
           filePath = withIndex;
-        } else {
+        } else if (shouldFallbackToIndex(pathname)) {
           // SPA fallback
           filePath = path.join(menuDir, 'index.html');
+        } else {
+          res.writeHead(404);
+          res.end('Not found');
+          return;
         }
       }
 
@@ -129,8 +145,9 @@ function createWindow() {
     skipTaskbar: false,
     resizable: true,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
     },
   });
 

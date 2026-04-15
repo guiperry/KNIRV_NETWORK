@@ -32,7 +32,7 @@ type Runtime struct {
 func NewRuntime(logger *zap.Logger, webGUIFS embed.FS, networkWebsiteFS embed.FS, oracleBinary []byte) (*Runtime, error) {
 	// Use OS-specific application data directory instead of /tmp to avoid permission issues
 	var baseDir string
-	
+
 	// First try standard user config directory
 	userConfigDir, err := os.UserConfigDir()
 	if err == nil {
@@ -96,15 +96,15 @@ func (r *Runtime) Setup() error {
 		return fmt.Errorf("failed to extract explorer static files: %w", err)
 	}
 
-	// Use an on-disk network-website tree for the standalone gateway when available.
+	// Network-website extraction has been disabled.
+	// The gateway now serves minimal routing; external websites are handled separately.
+	// If on-disk network-website directory exists, use it for backward compatibility.
 	if sourceDir := r.resolveNetworkWebsiteSourceDir(); sourceDir != "" {
 		r.NetworkWebsiteDir = sourceDir
 		r.logger.Info("Using on-disk network-website directory", zap.String("networkWebsiteDir", r.NetworkWebsiteDir))
 	} else {
-		r.logger.Info("Extracting embedded network-website...")
-		if err := r.extractNetworkWebsite(r.NetworkWebsiteDir); err != nil {
-			return fmt.Errorf("failed to extract network-website: %w", err)
-		}
+		// No extraction - use empty placeholder or default path
+		r.logger.Info("Network-website extraction disabled; no on-disk directory found", zap.String("networkWebsiteDir", r.NetworkWebsiteDir))
 	}
 
 	// Oracle binary extraction removed (oracle moved to KNIRVSERVER)

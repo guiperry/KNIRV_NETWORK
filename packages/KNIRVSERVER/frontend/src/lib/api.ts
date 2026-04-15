@@ -13,6 +13,10 @@ export const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
+const isAPIResponse = <T = unknown>(value: unknown): value is APIResponse<T> => {
+  return typeof value === 'object' && value !== null && 'success' in value;
+};
+
 // Helper function to get auth headers
 export const getAuthHeaders = (): HeadersInit => {
   if (typeof window === 'undefined') return {};
@@ -60,14 +64,17 @@ export const apiRequest = async <T = any>(
       );
     }
     
-    const data: APIResponse<T> = await response.json();
-    
-    // Validate response structure
-    if (typeof data !== 'object' || data === null) {
-      throw new APIRequestError('Invalid response format', 500);
+    const data = await response.json();
+
+    if (isAPIResponse<T>(data)) {
+      return data;
     }
-    
-    return data;
+
+    return {
+      success: true,
+      data: data as T,
+      timestamp: new Date().toISOString()
+    };
   } catch (error) {
     if (error instanceof APIRequestError) {
       throw error;
@@ -113,9 +120,16 @@ export class APIRequestError extends Error {
 
 // WebSocket utilities
 export const getWebSocketUrl = (): string => {
-  // Always use a relative URL to leverage the built-in proxy in the wrapper (port 8090).
-  // This ensures WebSockets work consistently across dev and prod.
-  return '/ws';
+  if (typeof window === 'undefined') {
+    return 'ws://localhost:8090/ws';
+  }
+
+  const base = API_BASE_URL
+    ? new URL(API_BASE_URL, window.location.origin)
+    : new URL(window.location.origin);
+  const protocol = base.protocol === 'https:' ? 'wss:' : 'ws:';
+
+  return `${protocol}//${base.host}/ws`;
 };
 
 export interface WebSocketMessage {

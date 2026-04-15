@@ -988,10 +988,7 @@ func (cde *CDEService) initializeWorkspaceDirectories() error {
 		cde.config.ProjectStoragePath,
 	}
 
-	// Add BaseImagePath only if it's not empty
-	if cde.config.BaseImagePath != "" {
-		dirs = append(dirs, filepath.Join(cde.config.BaseImagePath, "images"))
-	}
+	// BaseImagePath is already set to the images directory, no need to add subdirectory
 
 	for _, dir := range dirs {
 		// Skip empty directory paths

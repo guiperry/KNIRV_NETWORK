@@ -74,6 +74,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  useEffect(() => {
+    const handleDesktopAuth = (event: MessageEvent) => {
+      const data = event.data;
+      if (!data || data.type !== 'desktop-auth' || typeof data.token !== 'string' || !data.token) {
+        return;
+      }
+
+      localStorage.setItem('knirv_nexus_token', data.token);
+      if (typeof data.role === 'string' && data.role) {
+        localStorage.setItem('knirv_nexus_role', data.role);
+      }
+      validateToken(data.token);
+    };
+
+    window.addEventListener('message', handleDesktopAuth);
+    return () => window.removeEventListener('message', handleDesktopAuth);
+  }, []);
+
   const validateToken = async (token: string) => {
     // Handle testnet tokens without a backend round-trip
     const testnetTokens: Record<string, AuthUser> = {

@@ -5,10 +5,13 @@ import { apiRequest, API_BASE_URL } from '@/lib/api';
 
 export interface SystemTelemetry {
   timestamp: string;
+  source: 'system-health';
   cpu_time_ns: number;
   memory_bytes: number;
   net_tx_bytes: number;
   net_rx_bytes: number;
+  network_throughput: number;
+  active_connections: number;
   context_switches: number;
   page_faults: number;
   goroutines: number;
@@ -16,6 +19,8 @@ export interface SystemTelemetry {
   gc_count: number;
   cpu_pressure: number;
   memory_pressure: number;
+  cpu_usage: number;
+  memory_usage: number;
 }
 
 export interface TelemetryResponse {
@@ -32,9 +37,40 @@ export const useTelemetry = () => {
   const telemetry = useQuery<SystemTelemetry>({
     queryKey,
     queryFn: async () => {
-      const response = await apiRequest<SystemTelemetry>(`${API_BASE_URL}/api/cognitive/telemetry`);
-      if (response.success && response.data) return response.data;
-      throw new Error(response.error || 'Failed to fetch telemetry');
+      const response = await apiRequest<{
+        system_load?: number;
+        memory_usage?: number;
+        disk_usage?: number;
+        network_throughput?: number;
+        active_connections?: number;
+        goroutine_count?: number;
+        cpu_usage?: number;
+      }>(`${API_BASE_URL}/api/system-health/metrics`);
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Failed to fetch telemetry');
+      }
+
+      const metrics = response.data;
+      return {
+        timestamp: response.timestamp,
+        source: 'system-health',
+        cpu_time_ns: 0,
+        memory_bytes: 0,
+        net_tx_bytes: 0,
+        net_rx_bytes: 0,
+        network_throughput: metrics.network_throughput ?? 0,
+        active_connections: metrics.active_connections ?? 0,
+        context_switches: 0,
+        page_faults: 0,
+        goroutines: metrics.goroutine_count ?? 0,
+        heap_alloc_bytes: 0,
+        gc_count: 0,
+        cpu_pressure: metrics.cpu_usage ?? 0,
+        memory_pressure: metrics.memory_usage ?? 0,
+        cpu_usage: metrics.cpu_usage ?? 0,
+        memory_usage: metrics.memory_usage ?? 0,
+      };
     },
     staleTime: 10000,
   });
