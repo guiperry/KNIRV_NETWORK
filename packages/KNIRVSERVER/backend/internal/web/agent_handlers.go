@@ -106,6 +106,48 @@ func (h *AgentHandlers) SubmitAgentTask(w http.ResponseWriter, r *http.Request) 
 	writeAgentJSON(w, http.StatusCreated, agentResponse{Success: true, Data: task})
 }
 
+// ConnectAgent handles POST /api/v1/dve/agents/connect
+// Allows external agents to connect to a DVE and utilize its resources
+func (h *AgentHandlers) ConnectAgent(w http.ResponseWriter, r *http.Request) {
+	var connectReq struct {
+		AgentID      string                 `json:"agent_id"`
+		AgentName    string                 `json:"agent_name"`
+		Capabilities []string               `json:"capabilities"`
+		Endpoint     string                 `json:"endpoint"` // Agent's endpoint for communication
+		Metadata     map[string]interface{} `json:"metadata"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&connectReq); err != nil {
+		writeAgentJSON(w, http.StatusBadRequest, agentResponse{Error: "invalid request body: " + err.Error()})
+		return
+	}
+
+	if connectReq.AgentID == "" {
+		writeAgentJSON(w, http.StatusBadRequest, agentResponse{Error: "agent_id is required"})
+		return
+	}
+
+	// Register external agent connection
+	agentConn := &agent.AgentConnection{
+		AgentID:      connectReq.AgentID,
+		AgentName:    connectReq.AgentName,
+		Endpoint:     connectReq.Endpoint,
+		Capabilities: connectReq.Capabilities,
+		Metadata:     connectReq.Metadata,
+	}
+
+	status, err := h.agentService.ConnectAgent(r.Context(), agentConn)
+	if err != nil {
+		writeAgentJSON(w, http.StatusInternalServerError, agentResponse{Error: err.Error()})
+		return
+	}
+
+	writeAgentJSON(w, http.StatusOK, agentResponse{Success: true, Data: map[string]interface{}{
+		"message": "agent connected",
+		"status":  status,
+	}})
+}
+
 // RegisterRoutes registers all agent routes with the router
 func (h *AgentHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
 	apiRouter := r.PathPrefix("/api/dve/{id}/agent").Subrouter()
@@ -118,6 +160,13 @@ func (h *AgentHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware
 	apiRouter.HandleFunc("/tasks", h.GetAgentTasks).Methods("GET", "OPTIONS")
 	apiRouter.HandleFunc("/tasks", h.SubmitAgentTask).Methods("POST", "OPTIONS")
 	apiRouter.HandleFunc("/tasks/{taskID}", h.GetAgentTask).Methods("GET", "OPTIONS")
+
+	// External agent connection endpoint
+	agentsRouter := r.PathPrefix("/api/v1/dve/agents").Subrouter()
+	if authMiddleware != nil {
+		agentsRouter.Use(authMiddleware.OptionalAuth)
+	}
+	agentsRouter.HandleFunc("/connect", h.ConnectAgent).Methods("POST", "OPTIONS")
 }
 
 // GetAgentTask handles GET /api/dve/{id}/agent/tasks/{taskID}

@@ -6,14 +6,14 @@ const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icons/knirv-192x192.png',
-  '/icons/knirv-512x512.png',
+  '/favicon.ico',
 ];
 
 const API_CACHE_DURATION = 5 * 60 * 1000;
 const STATIC_CACHE_DURATION = 30 * 24 * 60 * 60 * 1000;
 
 self.addEventListener('install', (event) => {
+  console.log('Service worker installing');
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME).then((cache) => {
       return cache.addAll(urlsToCache);

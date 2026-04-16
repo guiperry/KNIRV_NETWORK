@@ -87,7 +87,7 @@ fi
 
 # Check 2: Required directories
 print_check "KNIRVTESTNET directory"
-if [ -d "$PROJECT_ROOT/packages/KNIRVTESTNET" ]; then
+if [ -d "$PROJECT_ROOT/devtools/KNIRVTESTNET" ]; then
     print_pass
 else
     print_fail "KNIRVTESTNET directory not found"
@@ -141,32 +141,32 @@ else
 fi
 
 # Check 4: KNIRVTESTNET setup
-if [ -d "$PROJECT_ROOT/packages/KNIRVTESTNET" ]; then
+if [ -d "$PROJECT_ROOT/devtools/KNIRVTESTNET" ]; then
     print_check "KNIRVTESTNET package.json"
-    if [ -f "$PROJECT_ROOT/packages/KNIRVTESTNET/package.json" ]; then
+    if [ -f "$PROJECT_ROOT/devtools/KNIRVTESTNET/package.json" ]; then
         print_pass
     else
         print_fail "KNIRVTESTNET/package.json not found"
     fi
     
     print_check "KNIRVTESTNET node_modules"
-    if [ -d "$PROJECT_ROOT/packages/KNIRVTESTNET/node_modules" ]; then
+    if [ -d "$PROJECT_ROOT/devtools/KNIRVTESTNET/node_modules" ]; then
         print_pass
     else
-        print_warning "KNIRVTESTNET dependencies not installed. Run: cd packages/KNIRVTESTNET && npm install"
+        print_warning "KNIRVTESTNET dependencies not installed. Run: cd devtools/KNIRVTESTNET && npm install"
     fi
     
     print_check "KNIRVTESTNET scripts directory"
-    if [ -d "$PROJECT_ROOT/packages/KNIRVTESTNET/scripts" ]; then
+    if [ -d "$PROJECT_ROOT/devtools/KNIRVTESTNET/scripts" ]; then
         print_pass
     else
         print_fail "KNIRVTESTNET/scripts directory not found"
     fi
     
     print_check "KNIRVTESTNET binaries"
-    if [ -d "$PROJECT_ROOT/packages/KNIRVTESTNET/bin" ] && [ "$(ls -A $PROJECT_ROOT/packages/KNIRVTESTNET/bin 2>/dev/null)" ]; then
+    if [ -d "$PROJECT_ROOT/devtools/KNIRVTESTNET/bin" ] && [ "$(ls -A $PROJECT_ROOT/devtools/KNIRVTESTNET/bin 2>/dev/null)" ]; then
         print_pass
-        print_info "Found $(ls $PROJECT_ROOT/packages/KNIRVTESTNET/bin | wc -l) binaries"
+        print_info "Found $(ls $PROJECT_ROOT/devtools/KNIRVTESTNET/bin | wc -l) binaries"
     else
         print_warning "KNIRVTESTNET binaries not found or empty. Some services may not start"
     fi
@@ -271,7 +271,7 @@ else
     echo ""
     echo "Common fixes:"
     echo "  chmod +x run-full-demo.sh"
-    echo "  cd packages/KNIRVTESTNET && npm install"
+    echo "  cd devtools/KNIRVTESTNET && npm install"
     echo "  cd packages/KNIRVWALLET && npm install"
     echo "  sudo apt-get install build-essential curl"
     echo ""

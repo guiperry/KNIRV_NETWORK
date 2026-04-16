@@ -17,6 +17,7 @@ type APIRouter struct {
 	knirvshellHandlers      *KNIRVSHELLHandlers
 	onboardingHandlers      *OnboardingHandlers
 	cognitiveEngineHandlers *CognitiveEngineHandlers
+	knowledgeBaseHandlers   *KnowledgeBaseHandlers
 	authMiddleware          *middleware.AuthMiddleware
 }
 
@@ -29,6 +30,7 @@ func NewAPIRouter(
 	knirvshellHandlers *KNIRVSHELLHandlers,
 	onboardingHandlers *OnboardingHandlers,
 	cognitiveEngineHandlers *CognitiveEngineHandlers,
+	knowledgeBaseHandlers *KnowledgeBaseHandlers,
 	authMiddleware *middleware.AuthMiddleware,
 ) *APIRouter {
 	return &APIRouter{
@@ -39,6 +41,7 @@ func NewAPIRouter(
 		knirvshellHandlers:      knirvshellHandlers,
 		onboardingHandlers:      onboardingHandlers,
 		cognitiveEngineHandlers: cognitiveEngineHandlers,
+		knowledgeBaseHandlers:   knowledgeBaseHandlers,
 		authMiddleware:          authMiddleware,
 	}
 }
@@ -68,6 +71,9 @@ func (ar *APIRouter) RegisterRoutes(r *mux.Router) {
 
 	// Register Cognitive Engine routes under /api/v1/cognitive/
 	ar.registerCognitiveRoutes(apiV1)
+
+	// Register Knowledge Base routes under /api/v1/knowledge-base/
+	ar.registerKnowledgeBaseRoutes(apiV1)
 
 	// Register backward compatibility redirects
 	ar.registerBackwardCompatibilityRoutes(r)
@@ -239,6 +245,36 @@ func (ar *APIRouter) registerCognitiveRoutes(apiV1 *mux.Router) {
 	cognitiveRouter.HandleFunc("/status", ar.cognitiveEngineHandlers.GetStatus).Methods("GET", "OPTIONS")
 }
 
+// registerKnowledgeBaseRoutes registers Knowledge Base routes (GraphRAG-RS integration)
+func (ar *APIRouter) registerKnowledgeBaseRoutes(apiV1 *mux.Router) {
+	if ar.knowledgeBaseHandlers == nil {
+		return
+	}
+
+	kbRouter := apiV1.PathPrefix("/knowledge-base").Subrouter()
+
+	// Apply optional auth middleware
+	if ar.authMiddleware != nil {
+		kbRouter.Use(ar.authMiddleware.OptionalAuth)
+	}
+
+	// CRUD operations
+	kbRouter.HandleFunc("/objects", ar.knowledgeBaseHandlers.GetKnowledgeBases).Methods("GET", "OPTIONS")
+	kbRouter.HandleFunc("/objects", ar.knowledgeBaseHandlers.PostKnowledgeBase).Methods("POST", "OPTIONS")
+	kbRouter.HandleFunc("/objects/{id}", ar.knowledgeBaseHandlers.GetKnowledgeBase).Methods("GET", "OPTIONS")
+	kbRouter.HandleFunc("/objects/{id}", ar.knowledgeBaseHandlers.PutKnowledgeBase).Methods("PUT", "OPTIONS")
+	kbRouter.HandleFunc("/objects/{id}", ar.knowledgeBaseHandlers.DeleteKnowledgeBase).Methods("DELETE", "OPTIONS")
+
+	// GraphRAG operations
+	kbRouter.HandleFunc("/objects/{id}/query", ar.knowledgeBaseHandlers.QueryKnowledgeBase).Methods("POST", "OPTIONS")
+	kbRouter.HandleFunc("/objects/{id}/index", ar.knowledgeBaseHandlers.IndexKnowledgeBase).Methods("POST", "OPTIONS")
+	kbRouter.HandleFunc("/objects/{id}/index-status", ar.knowledgeBaseHandlers.GetIndexStatus).Methods("GET", "OPTIONS")
+	kbRouter.HandleFunc("/objects/{id}/deploy", ar.knowledgeBaseHandlers.DeployKnowledgeBase).Methods("POST", "OPTIONS")
+
+	// Summary
+	kbRouter.HandleFunc("/summary", ar.knowledgeBaseHandlers.GetKnowledgeBaseSummary).Methods("GET", "OPTIONS")
+}
+
 // registerBackwardCompatibilityRoutes registers redirects for old API paths
 func (ar *APIRouter) registerBackwardCompatibilityRoutes(r *mux.Router) {
 	// Redirect old /api/dve-nodes/ to /api/v1/dve/nodes/
@@ -287,6 +323,13 @@ func (ar *APIRouter) registerBackwardCompatibilityRoutes(r *mux.Router) {
 	r.PathPrefix("/api/cognitive/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		newPath := "/api/v1/cognitive/" + path[len("/api/cognitive/"):]
+		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
+	})
+
+	// Redirect old /api/fabric-management/ to /api/v1/knowledge-base/
+	r.PathPrefix("/api/fabric-management/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		newPath := "/api/v1/knowledge-base/" + path[len("/api/fabric-management/"):]
 		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
 	})
 }

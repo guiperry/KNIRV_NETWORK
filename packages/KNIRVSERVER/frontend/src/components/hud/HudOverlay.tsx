@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState, useCallback } from 'react';
 import styles from './HudOverlay.module.css';
 
@@ -28,13 +30,17 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
 
   const fetchMetrics = useCallback(async () => {
     try {
+      console.log('Fetching metrics from /api/v1/system/info');
       const response = await fetch('/api/v1/system/info');
+      console.log('Response status:', response.status);
       if (!response.ok) {
         setConnectionStatus('error');
         setLastError(`HTTP ${response.status}`);
+        console.error('Response not ok:', response.status);
         return;
       }
       const data = await response.json();
+      console.log('Received data:', data);
       setMetrics(data);
       setConnectionStatus('connected');
       setLastError(null);
@@ -76,6 +82,7 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
     return (
       <div className={`${styles.minimized} ${className}`}>
         <button 
+          className={styles.minimizedButton}
           onClick={() => setIsMinimized(false)} 
           title="Restore HUD"
           aria-label="Restore system monitor"
@@ -99,6 +106,7 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
             {connectionStatus === 'error' && '○'}
           </span>
           <button 
+            className={styles.button}
             onClick={() => setIsMinimized(true)} 
             title="Minimize"
             aria-label="Minimize system monitor"

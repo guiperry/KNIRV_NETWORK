@@ -627,8 +627,8 @@ test-clean: ## Clean test reports and coverage data
 testnet-tests: ## Start KNIRVTESTNET and run comprehensive tests
 	@echo "$(BLUE)🧪 Starting KNIRVTESTNET and running comprehensive tests...$(NC)"
 	@echo "========================================================"
-	@if [ -f "packages/KNIRVTESTNET/Makefile" ]; then \
-		cd packages/KNIRVTESTNET && $(MAKE) testnet; \
+	@if [ -f "devtools/KNIRVTESTNET/Makefile" ]; then \
+		cd devtools/KNIRVTESTNET && $(MAKE) testnet; \
 		echo "$(GREEN)✓ KNIRVTESTNET tests completed$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠ KNIRVTESTNET Makefile not found$(NC)"; \
@@ -1753,8 +1753,8 @@ build-knirvheart: ## Build KNIRVHEART (Python/Go hybrid)
 .PHONY: build-knirvtestnet
 build-knirvtestnet: ## Build KNIRVTESTNET (Node.js testnet)
 	@echo "$(BLUE)Building KNIRVTESTNET...$(NC)"
-	@if [ -d "packages/KNIRVTESTNET" ]; then \
-		cd packages/KNIRVTESTNET && npm install && npm run build 2>/dev/null || echo "Build attempted"; \
+	@if [ -d "devtools/KNIRVTESTNET" ]; then \
+		cd devtools/KNIRVTESTNET && npm install && npm run build 2>/dev/null || echo "Build attempted"; \
 		echo "$(GREEN)✓ KNIRVTESTNET built$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠ KNIRVTESTNET directory not found$(NC)"; \

@@ -1,0 +1,29 @@
+# Rust formatting configuration for GraphRAG-RS
+
+# Basic formatting
+edition = "2021"
+hard_tabs = false
+tab_spaces = 4
+newline_style = "Unix"
+use_small_heuristics = "Default"
+
+# Line width settings
+max_width = 100
+
+# Imports and organization
+reorder_imports = true
+reorder_modules = true
+
+# Function and method formatting
+fn_params_layout = "Tall"
+force_explicit_abi = true
+
+# Structure and enum formatting
+use_field_init_shorthand = true
+
+# Pattern matching
+match_block_trailing_comma = true
+
+# Experimental features (stable)
+merge_derives = true
+use_try_shorthand = true

@@ -63,20 +63,20 @@ export interface ControllerStats {
 }
 
 // Fabric types - Aligned with backend models/fabric.go
-export interface Fabric {
+export interface KnowledgeBase {
   id: string;
   name: string;
   description: string;
   version: string;
   author: string;
-  type: "WASM" | "LoRA" | "CodeT5" | "SEAL" | "NRN";
+  type: "WASM" | "GraphRAG" | "Vector" | "Semantic" | "Hybrid";
   status: "uploaded" | "deployed" | "running" | "stopped" | "error" | "archived";
   file_path: string;
   file_size: number; // int64 from backend
   file_hash: string;
   capabilities: string[];
   dependencies: string[];
-  resource_limits?: FabricResourceLimits;
+  resource_limits?: KnowledgeBaseResourceLimits;
   configuration: Record<string, any>;
   metadata: Record<string, any>;
   tags: string[];
@@ -86,10 +86,15 @@ export interface Fabric {
   last_activity?: string; // ISO 8601 timestamp
   uploaded_by: string;
   deployed_by?: string;
-  runtime_instance?: FabricRuntimeInstance;
+  runtime_instance?: KnowledgeBaseRuntimeInstance;
+  graph_index?: string; // graphrag-rs index reference
+  embedding_model?: string; // embedding model identifier
 }
 
-export interface FabricResourceLimits {
+// Backward compatibility alias
+export type Fabric = KnowledgeBase;
+
+export interface KnowledgeBaseResourceLimits {
   max_memory_mb: number;
   max_cpu_percent: number;
   max_execution_time_seconds: number;
@@ -99,12 +104,12 @@ export interface FabricResourceLimits {
   file_system_access: boolean;
 }
 
-export interface FabricRuntimeInstance {
+export interface KnowledgeBaseRuntimeInstance {
   instance_id: string;
   process_id?: number;
   started_at: string; // ISO 8601 timestamp
   status: "starting" | "running" | "stopping" | "stopped" | "crashed";
-  resource_usage?: FabricResourceUsage;
+  resource_usage?: KnowledgeBaseResourceUsage;
   configuration: Record<string, any>;
   environment: Record<string, string>;
   health_check_url?: string;
@@ -115,7 +120,9 @@ export interface FabricRuntimeInstance {
   uptime_seconds: number;
 }
 
-export interface FabricResourceUsage {
+export type FabricRuntimeInstance = KnowledgeBaseRuntimeInstance;
+
+export interface KnowledgeBaseResourceUsage {
   cpu_percent: number;
   memory_mb: number;
   disk_read_mb: number;
@@ -127,14 +134,14 @@ export interface FabricResourceUsage {
   timestamp: string; // ISO 8601 timestamp
 }
 
-export interface FabricDeployment {
+export interface KnowledgeBaseDeployment {
   id: string;
   model_id: string;
   name: string;
   description: string;
   environment: string;
   replicas: number;
-  resource_limits: FabricResourceLimits;
+  resource_limits: KnowledgeBaseResourceLimits;
   environment_variables: Record<string, string>;
   auto_restart: boolean;
   restart_policy: "always" | "on-failure" | "never";
@@ -142,10 +149,12 @@ export interface FabricDeployment {
   updated_at: string; // ISO 8601 timestamp
   created_by: string;
   status: "pending" | "deploying" | "deployed" | "failed" | "stopped";
-  instances: FabricRuntimeInstance[];
+  instances: KnowledgeBaseRuntimeInstance[];
 }
 
-export interface FabricMetrics {
+export type FabricDeployment = KnowledgeBaseDeployment;
+
+export interface KnowledgeBaseMetrics {
   model_id: string;
   timestamp: string; // ISO 8601 timestamp
   cpu_usage_percent: number;
@@ -159,7 +168,9 @@ export interface FabricMetrics {
   response_time_ms: number;
 }
 
-export interface FabricLog {
+export type FabricMetrics = KnowledgeBaseMetrics;
+
+export interface KnowledgeBaseLog {
   id: string;
   model_id: string;
   level: "debug" | "info" | "warn" | "error" | "fatal";
@@ -169,7 +180,9 @@ export interface FabricLog {
   metadata: Record<string, any>;
 }
 
-export interface FabricEvent {
+export type FabricLog = KnowledgeBaseLog;
+
+export interface KnowledgeBaseEvent {
   id: string;
   model_id: string;
   type: string;
@@ -178,7 +191,9 @@ export interface FabricEvent {
   metadata: Record<string, any>;
 }
 
-export interface FabricSummary {
+export type KnowledgeBaseEvent = KnowledgeBaseEvent;
+
+export interface KnowledgeBaseSummary {
   total_models: number;
   running_models: number;
   stopped_models: number;
@@ -187,7 +202,9 @@ export interface FabricSummary {
   uploaded_models: number;
 }
 
-export interface FabricTemplate {
+export type FabricSummary = KnowledgeBaseSummary;
+
+export interface KnowledgeBaseTemplate {
   id: string;
   name: string;
   description: string;
@@ -198,10 +215,14 @@ export interface FabricTemplate {
   created_by: string;
 }
 
-export interface FabricAction {
+export type FabricTemplate = KnowledgeBaseTemplate;
+
+export interface KnowledgeBaseAction {
   action: "deploy" | "start" | "stop" | "restart" | "scale";
   parameters?: Record<string, any>;
 }
+
+export type FabricAction = KnowledgeBaseAction;
 
 // DNS types - Aligned with backend DNS service
 export interface DNSRecord {

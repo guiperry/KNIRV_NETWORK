@@ -54,13 +54,14 @@ type AgentStatus struct {
 
 // AgentService manages oh-my-pi agent containers within DVEs
 type AgentService struct {
-	db           *database.BuntDBManager
-	ucm          *runtime.UnifiedContainerManager
-	activeMemory *active_memory.ActiveMemoryService
-	agents       map[string]*AgentStatus // dveID -> AgentStatus
-	tasks        map[string]*AgentTask   // taskID -> AgentTask
-	mu           sync.RWMutex
-	running      bool
+	db              *database.BuntDBManager
+	ucm             *runtime.UnifiedContainerManager
+	activeMemory    *active_memory.ActiveMemoryService
+	agents          map[string]*AgentStatus     // dveID -> AgentStatus
+	tasks           map[string]*AgentTask       // taskID -> AgentTask
+	external_agents map[string]*AgentConnection // agentID -> AgentConnection
+	mu              sync.RWMutex
+	running         bool
 	// apiBaseURL overrides the fallback localhost:8080 base URL used when
 	// no container port mapping is available. Set in tests to reach a mock server.
 	apiBaseURL string
@@ -73,11 +74,12 @@ func NewAgentService(
 	activeMemory *active_memory.ActiveMemoryService,
 ) *AgentService {
 	return &AgentService{
-		db:           db,
-		ucm:          ucm,
-		activeMemory: activeMemory,
-		agents:       make(map[string]*AgentStatus),
-		tasks:        make(map[string]*AgentTask),
+		db:              db,
+		ucm:             ucm,
+		activeMemory:    activeMemory,
+		agents:          make(map[string]*AgentStatus),
+		tasks:           make(map[string]*AgentTask),
+		external_agents: make(map[string]*AgentConnection),
 	}
 }
 
@@ -204,6 +206,49 @@ func (s *AgentService) StopAgent(ctx context.Context, dveID string) error {
 
 	log.Printf("[AgentService] Stopped agent for DVE %s", dveID)
 	return nil
+}
+
+// ConnectAgent registers an external agent connection to the network
+func (s *AgentService) ConnectAgent(ctx context.Context, conn *AgentConnection) (*AgentConnection, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if conn.AgentID == "" {
+		return nil, fmt.Errorf("agent_id is required")
+	}
+
+	now := time.Now()
+	conn.ConnectedAt = now
+	conn.LastHeartbeat = &now
+
+	s.external_agents[conn.AgentID] = conn
+	log.Printf("[AgentService] External agent connected: %s (%s) with endpoint %s", conn.AgentID, conn.AgentName, conn.Endpoint)
+	return conn, nil
+}
+
+// GetConnectedAgent returns a connected external agent by ID
+func (s *AgentService) GetConnectedAgent(agentID string) (*AgentConnection, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	conn, ok := s.external_agents[agentID]
+	if !ok {
+		return nil, fmt.Errorf("agent not connected: %s", agentID)
+	}
+
+	return conn, nil
+}
+
+// ListConnectedAgents returns all connected external agents
+func (s *AgentService) ListConnectedAgents() []*AgentConnection {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var agents []*AgentConnection
+	for _, conn := range s.external_agents {
+		agents = append(agents, conn)
+	}
+	return agents
 }
 
 // SubmitTask submits a task to the agent for a given DVE
@@ -410,6 +455,17 @@ type AgentTaskRequest struct {
 	Type        string            `json:"type"`
 	Priority    int               `json:"priority"`
 	Input       map[string]string `json:"input"`
+}
+
+// AgentConnection represents an external agent connecting to a DVE
+type AgentConnection struct {
+	AgentID       string                 `json:"agent_id"`
+	AgentName     string                 `json:"agent_name"`
+	Endpoint      string                 `json:"endpoint"`     // Agent's callback endpoint
+	Capabilities  []string               `json:"capabilities"` // What resources/capabilities this agent declares
+	Metadata      map[string]interface{} `json:"metadata"`
+	ConnectedAt   time.Time              `json:"connected_at"`
+	LastHeartbeat *time.Time             `json:"last_heartbeat,omitempty"`
 }
 
 func (s *AgentService) saveTaskToDB(task *AgentTask) error {

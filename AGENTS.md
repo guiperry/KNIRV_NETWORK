@@ -14,7 +14,7 @@ KNIRV Network — Decentralized Trusted Execution Network (D-TEN). Transforms AI
 | `packages/KNIRVBASE/ts` | Node 18+ | `packages/KNIRVBASE/ts/package-lock.json` |
 | `packages/KNIRVARENA` | TS/React/Three.js | `packages/KNIRVARENA/packages/ts_client_2/` |
 | `packages/KNIRVHEART` | Python/Go | `packages/KNIRVHEART/HEART/` |
-| `packages/KNIRVTESTNET` | Node.js | `packages/KNIRVTESTNET/Makefile` |
+| `devtools/KNIRVTESTNET` | Node.js | `devtools/KNIRVTESTNET/Makefile` |
 | `devtools/KNIRVSYNC` | Go | `devtools/KNIRVSYNC/go.mod` |
 | `devtools/network-monitor` | Go | `devtools/network-monitor/go.mod` |
 | `integration-tests` | Go | `integration-tests/go.mod` |
@@ -60,7 +60,7 @@ cd integration-tests && go test -v -run "TestKNIRVNEXUS.*"
 cd devtools/KNIRVSYNC && go test -v ./...
 ```
 
-## Testnet Scripts (`packages/KNIRVTESTNET/scripts/`)
+## Testnet Scripts (`devtools/KNIRVTESTNET/scripts/`)
 
 ```bash
 ./scripts/start-testnet.sh
@@ -72,14 +72,14 @@ cd devtools/KNIRVSYNC && go test -v ./...
 node scripts/load-endpoints.js testnet
 ```
 
-**Configs:** `packages/KNIRVTESTNET/config/testnet-config.yaml` · `packages/KNIRVTESTNET/config/knirvserver-testnet-config.yaml` · `packages/KNIRVTESTNET/.env`
+**Configs:** `devtools/KNIRVTESTNET/config/testnet-config.yaml` · `devtools/KNIRVTESTNET/config/knirvserver-testnet-config.yaml` · `devtools/KNIRVTESTNET/.env`
 
 **Ports:** KNIRVORACLE `:1317` · KNIRVCHAIN `:8090` · KNIRVGRAPH `:8082` · KNIRVSERVER `:8084` · KNIRVROUTER `:8086` · KNIRVGATEWAY `:8888`
 
 ## Formal Verification (ModP / P Language)
 
 ```bash
-cd packages/KNIRVTESTNET && make test-modp
+cd devtools/KNIRVTESTNET && make test-modp
 bash modp/scripts/run-tests.sh
 ```
 

@@ -7,6 +7,9 @@ import { DemoModeProvider } from "@/contexts/demo-mode-context";
 import { DHTProvider } from "@/contexts/dht-context";
 import { OnboardingProvider } from "@/contexts/onboarding-context";
 import QueryProvider from "@/components/providers/query-provider";
+import { PWAProvider } from "@/components/pwa-provider";
+import { HudOverlay } from "@/components/hud";
+import { PWAInstallButton } from "@/components/ui/pwa-install-button";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,6 +26,7 @@ export const metadata: Metadata = {
   description: "The Crucible of Verifiable AI Intelligence - Powering Trustless Validation, Secure Execution, and Collective Learning in the KNIRV D-TEN",
   keywords: ["KNIRV-SERVER", "DVE", "Decentralized Validation", "AI Intelligence", "Trusted Execution", "CLEAN", "KNIRV D-TEN", "Blockchain", "TEE"],
   authors: [{ name: "KNIRV Network Team" }],
+  manifest: "/manifest.json",
   openGraph: {
     title: "KNIRV-SERVER DVE",
     description: "The Crucible of Verifiable AI Intelligence - Powering Trustless Validation and Secure Execution",
@@ -48,16 +52,20 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <QueryProvider>
-          <AuthProvider>
-            <DemoModeProvider>
-              <DHTProvider>
-                <OnboardingProvider>
-                  {children}
-                  <Toaster />
-                </OnboardingProvider>
-              </DHTProvider>
-            </DemoModeProvider>
-          </AuthProvider>
+          <PWAProvider>
+            <AuthProvider>
+              <DemoModeProvider>
+                <DHTProvider>
+                  <OnboardingProvider>
+                    <PWAInstallButton />
+                    <HudOverlay />
+                    {children}
+                    <Toaster />
+                  </OnboardingProvider>
+                </DHTProvider>
+              </DemoModeProvider>
+            </AuthProvider>
+          </PWAProvider>
         </QueryProvider>
       </body>
     </html>

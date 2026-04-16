@@ -3,6 +3,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import type {
   APIResponse,
+  KnowledgeBase,
+  KnowledgeBaseResourceLimits,
+  KnowledgeBaseRuntimeInstance,
+  KnowledgeBaseResourceUsage,
+  KnowledgeBaseDeployment,
+  KnowledgeBaseMetrics,
+  KnowledgeBaseLog,
+  KnowledgeBaseEvent,
+  KnowledgeBaseSummary,
+  KnowledgeBaseTemplate,
+  KnowledgeBaseAction,
+  // Also import aliases for backward compatibility
   Fabric,
   FabricResourceLimits,
   FabricRuntimeInstance,
@@ -44,14 +56,14 @@ export const useFabricManagement = () => {
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Fetch all fabrics with optional filtering
-  // Note: Backend API path remains /api/fabric-management for now
+  // Fetch all knowledge bases with optional filtering
+  // Backend API uses /api/v1/knowledge-base/ as source of truth
   const fetchFabrics = useCallback(async (filter?: FabricFilter) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      let url = `${API_BASE_URL}/api/fabric-management/objects`;
+      let url = `${API_BASE_URL}/api/v1/knowledge-base/objects`;
       
       if (filter) {
         const params = new URLSearchParams();
@@ -83,13 +95,13 @@ export const useFabricManagement = () => {
     }
   }, []);
 
-  // Fetch a specific fabric item
+  // Fetch a specific knowledge base item
   const fetchFabric = useCallback(async (fabricId: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/fabric-management/objects/${fabricId}`;
+      const url = `${API_BASE_URL}/api/v1/knowledge-base/objects/${fabricId}`;
       const response: APIResponse<Fabric> = await apiRequest(url, { method: 'GET' });
       
       if (response.success && response.data) {
@@ -114,8 +126,8 @@ export const useFabricManagement = () => {
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/fabric-management/objects`;
-      const response: APIResponse<Fabric> = await apiRequest(url, {
+      const url = `${API_BASE_URL}/api/v1/knowledge-base/objects`;
+      const response: APIResponse<KnowledgeBase> = await apiRequest(url, {
         method: 'POST',
         body: JSON.stringify(fabric),
       });
@@ -136,13 +148,13 @@ export const useFabricManagement = () => {
     }
   }, []);
 
-  // Update an existing fabric item
+  // Update an existing knowledge base item
   const updateFabric = useCallback(async (fabricId: string, updates: Partial<Fabric>): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/fabric-management/objects/${fabricId}`;
+      const url = `${API_BASE_URL}/api/v1/knowledge-base/objects/${fabricId}`;
       const response: APIResponse = await apiRequest(url, {
         method: 'PUT',
         body: JSON.stringify(updates),
@@ -174,13 +186,13 @@ export const useFabricManagement = () => {
     }
   }, [selectedFabric]);
 
-  // Delete a fabric item
+  // Delete a knowledge base item
   const deleteFabric = useCallback(async (fabricId: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/fabric-management/objects/${fabricId}`;
+      const url = `${API_BASE_URL}/api/v1/knowledge-base/objects/${fabricId}`;
       const response: APIResponse = await apiRequest(url, { method: 'DELETE' });
       
       if (response.success) {
@@ -204,13 +216,13 @@ export const useFabricManagement = () => {
     }
   }, [selectedFabric]);
 
-  // Execute an action on a fabric item
+  // Execute an action on a knowledge base item
   const executeFabricAction = useCallback(async (fabricId: string, action: FabricAction): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/fabric-management/objects/${fabricId}/actions`;
+      const url = `${API_BASE_URL}/api/v1/knowledge-base/objects/${fabricId}/actions`;
       const response: APIResponse = await apiRequest(url, {
         method: 'POST',
         body: JSON.stringify(action),
@@ -247,10 +259,10 @@ export const useFabricManagement = () => {
   const restartFabric = useCallback((fabricId: string, parameters?: Record<string, any>) => 
     executeFabricAction(fabricId, { action: 'restart', parameters }), [executeFabricAction]);
 
-  // Fetch fabric metrics
+  // Fetch knowledge base metrics
   const fetchFabricMetrics = useCallback(async (fabricId: string, limit: number = 100) => {
     try {
-      const url = `${API_BASE_URL}/api/fabric-management/objects/${fabricId}/metrics?limit=${limit}`;
+      const url = `${API_BASE_URL}/api/v1/knowledge-base/objects/${fabricId}/metrics?limit=${limit}`;
       const response: APIResponse<FabricMetrics[]> = await apiRequest(url, { method: 'GET' });
 
       if (response.success) {
@@ -264,10 +276,10 @@ export const useFabricManagement = () => {
     return [];
   }, []);
 
-  // Fetch fabric logs
+  // Fetch knowledge base logs
   const fetchFabricLogs = useCallback(async (fabricId: string, limit: number = 100) => {
     try {
-      const url = `${API_BASE_URL}/api/fabric-management/objects/${fabricId}/logs?limit=${limit}`;
+      const url = `${API_BASE_URL}/api/v1/knowledge-base/objects/${fabricId}/logs?limit=${limit}`;
       const response: APIResponse<FabricLog[]> = await apiRequest(url, { method: 'GET' });
 
       if (response.success) {
@@ -281,12 +293,12 @@ export const useFabricManagement = () => {
     return [];
   }, []);
 
-  // Fetch fabric events
+  // Fetch knowledge base events
   const fetchFabricEvents = useCallback(async (fabricId?: string, limit: number = 100) => {
     try {
       const url = fabricId 
-        ? `${API_BASE_URL}/api/fabric-management/objects/${fabricId}/events?limit=${limit}`
-        : `${API_BASE_URL}/api/fabric-management/events?limit=${limit}`;
+        ? `${API_BASE_URL}/api/v1/knowledge-base/objects/${fabricId}/events?limit=${limit}`
+        : `${API_BASE_URL}/api/v1/knowledge-base/events?limit=${limit}`;
       const response: APIResponse<FabricEvent[]> = await apiRequest(url, { method: 'GET' });
 
       if (response.success) {
@@ -300,10 +312,10 @@ export const useFabricManagement = () => {
     return [];
   }, []);
 
-  // Fetch fabric templates
+  // Fetch knowledge base templates
   const fetchTemplates = useCallback(async () => {
     try {
-      const url = `${API_BASE_URL}/api/fabric-management/templates`;
+      const url = `${API_BASE_URL}/api/v1/knowledge-base/templates`;
       const response: APIResponse<FabricTemplate[]> = await apiRequest(url, { method: 'GET' });
 
       if (response.success) {
@@ -317,13 +329,13 @@ export const useFabricManagement = () => {
     return [];
   }, []);
 
-  // Create fabric template
+  // Create knowledge base template
   const createTemplate = useCallback(async (template: Partial<FabricTemplate>): Promise<FabricTemplate | null> => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const url = `${API_BASE_URL}/api/fabric-management/templates`;
+      const url = `${API_BASE_URL}/api/v1/knowledge-base/templates`;
       const response: APIResponse<FabricTemplate> = await apiRequest(url, {
         method: 'POST',
         body: JSON.stringify(template),
@@ -345,10 +357,10 @@ export const useFabricManagement = () => {
     }
   }, []);
 
-  // Fetch fabric summary
+  // Fetch knowledge base summary
   const fetchSummary = useCallback(async () => {
     try {
-      const url = `${API_BASE_URL}/api/fabric-management/summary`;
+      const url = `${API_BASE_URL}/api/v1/knowledge-base/summary`;
       const response: APIResponse<FabricSummary> = await apiRequest(url, { method: 'GET' });
       
       if (response.success && response.data) {

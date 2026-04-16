@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"backend_server/internal/api"
 	"backend_server/internal/config"
 	data_engine "backend_server/internal/data_engine"
 	"backend_server/internal/database"
@@ -52,6 +53,7 @@ import (
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
 	"backend_server/internal/services/validation"
+	"backend_server/internal/utils/host"
 
 	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvshell"
 
@@ -1663,6 +1665,16 @@ func (s *Server) setupRoutes() {
 		log.Println("System health service routes configured")
 	}
 
+	// Register system info API routes (for HUD/PWA)
+	systemInfoCollector, err := host.NewSystemInfoCollector(context.Background(), 2*time.Second)
+	if err != nil {
+		log.Printf("Warning: failed to create system info collector: %v", err)
+	} else {
+		systemHandler := api.NewSystemHandler(systemInfoCollector)
+		systemHandler.RegisterRoutes(s.router)
+		log.Println("System info API routes configured")
+	}
+
 	// Register fabric management service routes
 	if s.fabricManagementService != nil {
 		fabricManagementHandlers := web.NewPluginManagementHandlers(s.fabricManagementService)
@@ -1744,6 +1756,7 @@ func (s *Server) setupRoutes() {
 		web.NewKNIRVSHELLHandlers(s.knirvshellService),
 		web.NewOnboardingHandlers(s.onboardingService),
 		web.NewCognitiveEngineHandlers(s.cognitiveEngine),
+		nil, // knowledgeBaseHandlers (to be implemented)
 		authMiddleware,
 	)
 	apiRouter.RegisterRoutes(s.router)

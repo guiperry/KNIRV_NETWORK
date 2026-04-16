@@ -35,7 +35,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Configuration
-TESTNET_DIR="$PROJECT_ROOT/packages/KNIRVTESTNET"
+TESTNET_DIR="$PROJECT_ROOT/devtools/KNIRVTESTNET"
 ANSIBLE_DIR="$PROJECT_ROOT/deployment/ansible"
 TESTNET_IP_FILE="$ANSIBLE_DIR/testnet_ip.txt"
 TESTNET_INSTANCE_ID_FILE="$ANSIBLE_DIR/testnet_instance_id.txt"

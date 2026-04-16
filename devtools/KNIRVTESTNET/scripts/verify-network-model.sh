@@ -8,7 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TESTNET_ROOT="$(dirname "$SCRIPT_DIR")"
 # MODP_DIR: honour env var, else resolve to KNIRV_NETWORK/modp
-# TESTNET_ROOT = .../packages/KNIRVTESTNET → two dirname calls reach repo root
+# TESTNET_ROOT = .../devtools/KNIRVTESTNET → two dirname calls reach repo root
 REPO_ROOT="$(dirname "$(dirname "$TESTNET_ROOT")")"
 MODP_DIR="${MODP_DIR:-$REPO_ROOT/modp}"
 

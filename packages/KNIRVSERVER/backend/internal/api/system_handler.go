@@ -1,17 +1,16 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"backend_server/internal/utils/host"
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
+	"github.com/gorilla/mux"
 )
 
 var (
@@ -41,26 +40,17 @@ type MemoryInfoResp struct {
 	Percentage float64 `json:"percentage"`
 }
 
-type StreamMetricsMessage struct {
-	Type      string         `json:"type"`
-	Timestamp time.Time      `json:"timestamp"`
-	CPU       float64        `json:"cpu"`
-	Memory    MemoryInfoResp `json:"memory"`
-	Uptime    int64          `json:"uptime_seconds"`
-	OS        string         `json:"os"`
-	Arch      string         `json:"arch"`
-}
-
 func NewSystemHandler(collector *host.SystemInfoCollector) *SystemHandler {
 	return &SystemHandler{
 		collector: collector,
 	}
 }
 
-func (h *SystemHandler) GetSystemInfo(c *gin.Context) {
+func (h *SystemHandler) GetSystemInfo(w http.ResponseWriter, r *http.Request) {
 	info, err := h.collector.GetCurrentInfo()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -80,7 +70,8 @@ func (h *SystemHandler) GetSystemInfo(c *gin.Context) {
 
 	uptimeSeconds := parseUptimeToSeconds(info.Uptime)
 
-	c.JSON(http.StatusOK, SystemMetricsResponse{
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(SystemMetricsResponse{
 		CPU: cpuPercent,
 		Memory: MemoryInfoResp{
 			Total:      info.MemoryInfo.Total / (1024 * 1024),
@@ -95,76 +86,16 @@ func (h *SystemHandler) GetSystemInfo(c *gin.Context) {
 	})
 }
 
-func (h *SystemHandler) StreamSystemMetrics(c *gin.Context) {
-	upgrader := websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-
-	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to upgrade connection"})
-		return
-	}
-	defer ws.Close()
-
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			info, err := h.collector.GetCurrentInfo()
-			if err != nil {
-				continue
-			}
-
-			var memPercent, cpuPercent float64
-			if info.MemoryInfo != nil {
-				h.metricsMu.Lock()
-				h.lastMem = info.MemoryInfo.Usage
-				memPercent = info.MemoryInfo.Usage
-				h.metricsMu.Unlock()
-			}
-			if info.CPUInfo != nil {
-				h.metricsMu.Lock()
-				h.lastCPU = info.CPUInfo.Usage
-				cpuPercent = info.CPUInfo.Usage
-				h.metricsMu.Unlock()
-			}
-
-			uptimeSeconds := parseUptimeToSeconds(info.Uptime)
-
-			msg := StreamMetricsMessage{
-				Type:      "metrics",
-				Timestamp: time.Now(),
-				CPU:       cpuPercent,
-				Memory: MemoryInfoResp{
-					Total:      info.MemoryInfo.Total / (1024 * 1024),
-					Used:       info.MemoryInfo.Used / (1024 * 1024),
-					Available:  info.MemoryInfo.Available / (1024 * 1024),
-					Percentage: memPercent,
-				},
-				Uptime: uptimeSeconds,
-				OS:     runtime.GOOS,
-				Arch:   runtime.GOARCH,
-			}
-
-			if err := ws.WriteJSON(msg); err != nil {
-				return
-			}
-		}
-	}
-}
-
-func (h *SystemHandler) GetDetailedSystemInfo(c *gin.Context) {
+func (h *SystemHandler) GetDetailedSystemInfo(w http.ResponseWriter, r *http.Request) {
 	info, err := h.collector.GetCurrentInfo()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, info)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(info)
 }
 
 func parseUptimeToSeconds(uptime string) int64 {
@@ -204,4 +135,10 @@ func parseUptimeToSeconds(uptime string) int64 {
 	}
 
 	return totalSeconds
+}
+
+func (h *SystemHandler) RegisterRoutes(r *mux.Router) {
+	systemRouter := r.PathPrefix("/api/v1/system").Subrouter()
+	systemRouter.HandleFunc("/info", h.GetSystemInfo).Methods("GET")
+	systemRouter.HandleFunc("/detail", h.GetDetailedSystemInfo).Methods("GET")
 }
