@@ -42,7 +42,7 @@ APPDATA_DIR := $(HOME)/.local/share/knirvserver
 GO_VERSION := 1.21
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
-CGO_ENABLED := 0
+CGO_ENABLED := 1
 
 # Build flags
 LDFLAGS := -X main.Version=$(VERSION) \
@@ -152,7 +152,7 @@ frontend-dev: deps-node ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Backend Build (cmd/backend_server only)
-backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build shell-build agent-build ## Build complete Go backend service package
+backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build shell-build agent-build embedded-build ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
 	@echo "$(BLUE)Copying backend binary to root...$(NC)"
@@ -183,7 +183,7 @@ key-encryptor: deps-go ## Build key_encryptor binary
 # main.go embeds: bin/backend_server, config/*, desktop/dist/*, frontend/out/*
 # Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVSHELL, and KNIRVAGENT
 # are embedded and extracted by their pkg modules.
-binary: proto ebpf-generate frontend desktop-build gateway-build graph-build chain-build oracle-build hasher-build shell-build agent-build backend ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVSHELL, and KNIRVAGENT
+binary: proto ebpf-generate frontend desktop-build gateway-build graph-build chain-build oracle-build hasher-build shell-build agent-build embedded-build backend ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVSHELL, and KNIRVAGENT
 	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVSHELL)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
@@ -521,6 +521,53 @@ shell-clean: ## Clean KNIRVSHELL build artifacts
 	@echo "$(BLUE)Cleaning KNIRVSHELL artifacts...$(NC)"
 	rm -f $(SHELL_PKG_BIN)
 	cd $(SHELL_SRC_DIR) && go clean
+
+# Embedded Programs Configuration
+EMBEDDED_DIR := $(BACKEND_DIR)/internal/embedded
+GRAPHRAG_DIR := $(EMBEDDED_DIR)/graphrag-rs
+VALIDATION_CHAIN_DIR := $(EMBEDDED_DIR)/validation_chain
+TRANSACTION_CHAIN_DIR := $(EMBEDDED_DIR)/transaction_chain
+EMBEDDED_BUILD_DIR := $(ROOT_DIR)/build/embedded
+
+# Embedded Programs - Transaction Chain (Node.js)
+transaction-chain-deps: ## Install transaction_chain dependencies
+	@echo "$(BLUE)Installing transaction_chain dependencies...$(NC)"
+	cd $(TRANSACTION_CHAIN_DIR) && $(NPM_CMD) ci --production
+
+transaction-chain-build: transaction-chain-deps ## Bundle transaction_chain for Go embedding
+	@echo "$(BLUE)Building transaction_chain bundle...$(NC)"
+	@mkdir -p $(ROOT_DIR)/pkg/embedded/transactionchain/bundle
+	cp $(TRANSACTION_CHAIN_DIR)/main.js $(ROOT_DIR)/pkg/embedded/transactionchain/bundle/
+	cp $(TRANSACTION_CHAIN_DIR)/package.json $(ROOT_DIR)/pkg/embedded/transactionchain/bundle/
+	@echo "$(GREEN)transaction_chain bundled at $(ROOT_DIR)/pkg/embedded/transactionchain/bundle/$(NC)"
+
+# Embedded Programs - Validation Chain (Rust)
+validation-chain-deps: ## Install validation_chain dependencies
+	@echo "$(BLUE)Installing validation_chain dependencies...$(NC)"
+	cd $(VALIDATION_CHAIN_DIR) && cargo fetch
+
+validation-chain-build: validation-chain-deps ## Build validation_chain static library for CGo FFI
+	@echo "$(BLUE)Building validation_chain static library...$(NC)"
+	@mkdir -p $(EMBEDDED_BUILD_DIR)/validation_chain
+	cd $(VALIDATION_CHAIN_DIR) && cargo build --release --lib
+	cp $(VALIDATION_CHAIN_DIR)/target/release/libvalidationchain.a $(EMBEDDED_BUILD_DIR)/validation_chain/
+	@echo "$(GREEN)validation_chain built: $(EMBEDDED_BUILD_DIR)/validation_chain/libvalidationchain.a$(NC)"
+
+# Embedded Programs - GraphRAG (Rust)
+graphrag-deps: ## Install graphrag-rs dependencies
+	@echo "$(BLUE)Installing graphrag-rs dependencies...$(NC)"
+	cd $(GRAPHRAG_DIR) && cargo fetch
+
+graphrag-build: graphrag-deps ## Build graphrag-rs static library for CGo FFI
+	@echo "$(BLUE)Building graphrag-rs static library...$(NC)"
+	@mkdir -p $(EMBEDDED_BUILD_DIR)/graphrag
+	cd $(GRAPHRAG_DIR) && cargo build --release --lib --package graphrag-core
+	cp $(GRAPHRAG_DIR)/target/release/libgraphrag_core.a $(EMBEDDED_BUILD_DIR)/graphrag/
+	@echo "$(GREEN)graphrag-rs built: $(EMBEDDED_BUILD_DIR)/graphrag/libgraphrag_core.a$(NC)"
+
+# Unified Embedded Build
+embedded-build: graphrag-build validation-chain-build transaction-chain-build ## Build all embedded programs
+	@echo "$(GREEN)All embedded programs built successfully$(NC)"
 
 # KNIRVAGENT (Embedded) targets
 agent-deps: ## Install KNIRVAGENT dependencies

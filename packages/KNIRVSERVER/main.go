@@ -107,44 +107,66 @@ func NewDesktopFS() (*DesktopFS, error) {
 
 // ServeHTTP implements http.Handler for serving embedded files
 func (efs *EmbeddedFS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Clean the path
 	path := strings.TrimPrefix(r.URL.Path, "/")
-	if path == "" {
-		path = "index.html"
+
+	// Build candidate paths to try in priority order.
+	// Next.js static export with trailingSlash:true produces directory/index.html files,
+	// so directory-style paths (ending in / or lacking an extension) must check index.html first.
+	var candidates []string
+	base := filepath.Base(path)
+	hasExt := strings.Contains(base, ".") && !strings.HasSuffix(path, "/")
+
+	if path == "" || strings.HasSuffix(path, "/") {
+		// Root or explicit directory request
+		candidates = append(candidates,
+			"frontend/out/"+path+"index.html",
+		)
+	} else if hasExt {
+		// Direct file with extension
+		candidates = append(candidates,
+			"frontend/out/"+path,
+		)
+	} else {
+		// No extension — could be a Next.js route (e.g. "login", "menu")
+		candidates = append(candidates,
+			"frontend/out/"+path+"/index.html",
+			"frontend/out/"+path+".html",
+		)
+	}
+	// Always fall back to SPA root for client-side routing
+	candidates = append(candidates, "frontend/out/index.html")
+
+	var file fs.File
+	var resolvedPath string
+	for _, candidate := range candidates {
+		f, err := efs.files.Open(candidate)
+		if err != nil {
+			continue
+		}
+		stat, err := f.Stat()
+		if err != nil || stat.IsDir() {
+			f.Close()
+			continue
+		}
+		file = f
+		resolvedPath = candidate
+		break
 	}
 
-	// Prepend the embedded path prefix
-	fullPath := "frontend/out/" + path
-
-	// Try to open the file
-	file, err := efs.files.Open(fullPath)
-	if err != nil {
-		// If file not found, try with .html extension
-		if !strings.Contains(path, ".") {
-			htmlPath := "frontend/out/" + path + ".html"
-			if file, err = efs.files.Open(htmlPath); err != nil {
-				// If still not found, serve index.html for SPA routing
-				if file, err = efs.files.Open("frontend/out/index.html"); err != nil {
-					http.NotFound(w, r)
-					return
-				}
-			}
-		} else {
-			http.NotFound(w, r)
-			return
-		}
+	if file == nil {
+		http.NotFound(w, r)
+		return
 	}
 	defer file.Close()
 
-	// Get file info for content type
 	stat, err := file.Stat()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Set content type based on file extension
-	ext := filepath.Ext(path)
+	// Set content type based on resolved file extension
+	ext := filepath.Ext(resolvedPath)
 	switch ext {
 	case ".html":
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -153,7 +175,11 @@ func (efs *EmbeddedFS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case ".js":
 		w.Header().Set("Content-Type", "application/javascript")
 	case ".json":
-		w.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(resolvedPath, "manifest.json") {
+			w.Header().Set("Content-Type", "application/manifest+json; charset=utf-8")
+		} else {
+			w.Header().Set("Content-Type", "application/json")
+		}
 	case ".png":
 		w.Header().Set("Content-Type", "image/png")
 	case ".jpg", ".jpeg":
@@ -164,9 +190,12 @@ func (efs *EmbeddedFS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/svg+xml")
 	case ".ico":
 		w.Header().Set("Content-Type", "image/x-icon")
+	case ".woff2":
+		w.Header().Set("Content-Type", "font/woff2")
+	case ".woff":
+		w.Header().Set("Content-Type", "font/woff")
 	}
 
-	// Serve the file
 	http.ServeContent(w, r, stat.Name(), stat.ModTime(), file.(io.ReadSeeker))
 }
 

@@ -43,6 +43,7 @@ import (
 	"backend_server/internal/services/guardrails"
 	icme "backend_server/internal/services/icme"
 	inference "backend_server/internal/services/inferencer"
+	"backend_server/internal/services/knowledge_base"
 	"backend_server/internal/services/onboarding"
 	"backend_server/internal/services/p2p"
 	fabricmanagement "backend_server/internal/services/pluginmanagement"
@@ -168,6 +169,9 @@ type Server struct {
 
 	// Oracle service (root-only — managed via knirvoracle Manager)
 	oracleManager *knirvoracle.Manager
+
+	// GraphRAG Knowledge Base Engine
+	graphRAGClient *knowledge_base.GraphRAGClient
 
 	// Context for managing service lifecycle
 	ctx    context.Context
@@ -955,6 +959,8 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 
 	// Initialize Cognitive Engine with configurable parameters
 	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager, validationCore, inferenceService, fabricManagementService)
+	cognitiveEngine.SetGraphRAGClient(graphRAGClient)
+	log.Println("CognitiveEngine: GraphRAG FFI engine wired for knowledge graph retrieval")
 
 	// Wire eBPF manager for real resource telemetry and kernel-level guardrails
 	if ebpfManager != nil {
@@ -1001,6 +1007,10 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	if err := agentService.Start(); err != nil {
 		log.Printf("Warning: Failed to start agent service: %v", err)
 	}
+
+	// Initialize GraphRAG Knowledge Base Engine
+	graphRAGClient := knowledge_base.NewGraphRAGClient()
+	log.Println("GraphRAG engine initialized with CGO FFI bridge")
 
 	// Initialize AnchoringService for PQC-signed evidence pack anchoring
 	anchoringService := evidence.NewAnchoringService(dbManager, pqcManager, "server-master")
@@ -1283,6 +1293,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		hasherIntegration:            hasherIntegration,
 		transactionChainClient:       transactionChainClient,
 		validationChainClient:        validationChainClient,
+		graphRAGClient:               graphRAGClient,
 		ctx:                          ctx,
 		cancel:                       cancel,
 		running:                      false,

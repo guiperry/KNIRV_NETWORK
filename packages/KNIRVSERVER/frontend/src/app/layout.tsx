@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/lib/auth-context";
 import { DemoModeProvider } from "@/contexts/demo-mode-context";
 import { DHTProvider } from "@/contexts/dht-context";
 import { OnboardingProvider } from "@/contexts/onboarding-context";
 import QueryProvider from "@/components/providers/query-provider";
 import { PWAProvider } from "@/components/pwa-provider";
-import { HudOverlay } from "@/components/hud";
-import { PWAInstallButton } from "@/components/ui/pwa-install-button";
+import { ConditionalHudLayout } from "@/components/conditional-hud-layout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -70,25 +68,9 @@ export default function RootLayout({
               <DemoModeProvider>
                 <DHTProvider>
                   <OnboardingProvider>
-                    <HudOverlay />
-                    {/* Center content area — sits between the four HUD panels */}
-                    <div
-                      id="hud-content-area"
-                      style={{
-                        position: 'fixed',
-                        top: '60px',
-                        left: '250px',
-                        right: '250px',
-                        bottom: '60px',
-                        overflow: 'auto',
-                        background: '#0a0a14',
-                        zIndex: 1,
-                      }}
-                    >
+                    <ConditionalHudLayout>
                       {children}
-                    </div>
-                    <PWAInstallButton />
-                    <Toaster />
+                    </ConditionalHudLayout>
                   </OnboardingProvider>
                 </DHTProvider>
               </DemoModeProvider>

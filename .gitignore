@@ -141,3 +141,10 @@ packages/KNIRVSERVER/pkg/bin/knirvchain
 /websites/KNIRVEXPLORER/.next
 /websites/KNIRVEXPLORER/out
 /websites/KNIRVHUB/webgui/.next
+/packages/KNIRVSERVER/pkg/knirvchain/bin
+/packages/KNIRVSERVER/pkg/knirvgateway/bin
+/packages/KNIRVSERVER/pkg/knirvchain/bin
+/packages/KNIRVSERVER/pkg/knirvgateway/bin
+/packages/KNIRVSERVER/pkg/knirvgraph/bin
+/packages/KNIRVSERVER/pkg/knirvhasher/bin
+/packages/KNIRVSERVER/pkg/knirvoracle/bin

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import { CognitiveEnginePanel } from "@/components/dashboard/cognitive-engine-pa
 import { ActiveMemoryPanel } from "@/components/dashboard/active-memory/active-memory-panel";
 import { PluginVaultPanel } from "@/components/dashboard/active-memory/plugin-vault-panel";
 import DVEWorkspacePanel from "@/components/dashboard/dve-workspace-panel";
-import { useAuth } from "@/lib/auth-context";
+
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
 import { DemoModeToggle } from "@/components/admin/demo-mode-toggle";
 import { DHTToggle } from "@/components/admin/dht-toggle";
@@ -95,8 +96,16 @@ interface NRNStaking {
 
 export default function Dashboard() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const router = useRouter();
   const [useModularCDE, setUseModularCDE] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem('knirv_auth_token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+  }, [router]);
 
   const displayModular = useModularCDE;
 

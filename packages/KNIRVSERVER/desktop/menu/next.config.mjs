@@ -7,6 +7,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+  distDir: 'out',
   trailingSlash: true,
   typescript: {
     ignoreBuildErrors: true,
@@ -14,6 +15,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  basePath: '/menu',
+  assetPrefix: '/menu/',
 }
 
 export default withBundleAnalyzer(nextConfig)
