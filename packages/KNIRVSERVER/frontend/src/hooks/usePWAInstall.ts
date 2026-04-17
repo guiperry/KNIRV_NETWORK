@@ -67,7 +67,7 @@ export function usePWAInstall(): UsePWAInstallReturn {
   return {
     installPrompt,
     isInstalled,
-    isInstallable: !isInstalled && !installPrompt && !isDismissed,
+    isInstallable: !isInstalled && !!installPrompt && !isDismissed,
     install,
     dismiss,
   };

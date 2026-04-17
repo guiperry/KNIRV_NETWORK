@@ -41,6 +41,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Cache API only supports GET — skip all other methods entirely
+  if (request.method !== 'GET') {
+    return;
+  }
+
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirst(request));
     return;
@@ -66,8 +71,8 @@ self.addEventListener('fetch', (event) => {
 async function networkFirst(request) {
   try {
     const networkResponse = await fetch(request);
-    
-    if (networkResponse.ok) {
+
+    if (networkResponse.ok && request.method === 'GET') {
       const responseClone = networkResponse.clone();
       const cache = await caches.open(API_CACHE_NAME);
       cache.put(request, responseClone);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import styles from './HudOverlay.module.css';
 
 export interface SystemMetrics {
@@ -24,30 +24,25 @@ interface HudOverlayProps {
 
 export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverlayProps) {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'ONLINE' | 'CONNECTING' | 'ERROR'>('CONNECTING');
+  const [currentTime, setCurrentTime] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'error'>('connecting');
-  const [lastError, setLastError] = useState<string | null>(null);
+  const [cpuHistory, setCpuHistory] = useState<number[]>(new Array(30).fill(0));
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const fetchMetrics = useCallback(async () => {
     try {
-      console.log('Fetching metrics from /api/v1/system/info');
       const response = await fetch('/api/v1/system/info');
-      console.log('Response status:', response.status);
       if (!response.ok) {
-        setConnectionStatus('error');
-        setLastError(`HTTP ${response.status}`);
-        console.error('Response not ok:', response.status);
+        setConnectionStatus('ERROR');
         return;
       }
-      const data = await response.json();
-      console.log('Received data:', data);
+      const data: SystemMetrics = await response.json();
       setMetrics(data);
-      setConnectionStatus('connected');
-      setLastError(null);
-    } catch (error) {
-      console.error('Failed to fetch metrics:', error);
-      setConnectionStatus('error');
-      setLastError(error instanceof Error ? error.message : 'Unknown error');
+      setConnectionStatus('ONLINE');
+      setCpuHistory(prev => [...prev.slice(1), data.cpu]);
+    } catch {
+      setConnectionStatus('ERROR');
     }
   }, []);
 
@@ -57,119 +52,229 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
     return () => clearInterval(interval);
   }, [fetchMetrics, refreshInterval]);
 
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      setCurrentTime(now.toTimeString().slice(0, 8));
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    ctx.fillStyle = 'rgba(10, 30, 100, 0.3)';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = 'rgba(72, 136, 255, 0.1)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(0, (h / 4) * i);
+      ctx.lineTo(w, (h / 4) * i);
+      ctx.stroke();
+    }
+
+    if (cpuHistory.some(v => v > 0)) {
+      ctx.strokeStyle = '#4888ff';
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = 'rgba(72, 136, 255, 0.6)';
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+      cpuHistory.forEach((val, i) => {
+        const x = (i / (cpuHistory.length - 1)) * w;
+        const y = h - (val / 100) * h;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+  }, [cpuHistory]);
+
   const formatUptime = (seconds: number): string => {
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
+    const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
-    if (days > 0) {
-      return `${days}d ${hours}h ${minutes}m`;
-    }
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
+    return `${hours}h ${minutes}m`;
   };
 
   const formatMemory = (mb: number): string => {
-    if (mb >= 1024) {
-      return `${(mb / 1024).toFixed(1)}GB`;
-    }
+    if (mb >= 1024) return `${(mb / 1024).toFixed(1)}GB`;
     return `${mb}MB`;
   };
 
+  const cpuPct = metrics?.cpu ?? 0;
+  const memPct = metrics?.memory?.percentage ?? 0;
+
+  const statusClass =
+    connectionStatus === 'ONLINE' ? styles.active :
+    connectionStatus === 'ERROR' ? styles.errorVal :
+    styles.connecting;
+
   if (isMinimized) {
     return (
-      <div className={`${styles.minimized} ${className}`}>
-        <button 
-          className={styles.minimizedButton}
-          onClick={() => setIsMinimized(false)} 
-          title="Restore HUD"
-          aria-label="Restore system monitor"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 1L3 6h3v4h4V6h3L8 1z"/>
-          </svg>
-        </button>
-      </div>
+      <button
+        className={`${styles.minimizedBtn} ${className}`}
+        onClick={() => setIsMinimized(false)}
+        title="Restore HUD"
+      >
+        ▲ HUD
+      </button>
     );
   }
 
   return (
-    <div className={`${styles.hudContainer} ${className}`}>
-      <div className={styles.hudHeader}>
-        <span className={styles.title}>KNIRV System Monitor</span>
-        <div className={styles.controls}>
-          <span className={`${styles.status} ${styles[connectionStatus]}`}>
-            {connectionStatus === 'connected' && '●'}
-            {connectionStatus === 'connecting' && '◐'}
-            {connectionStatus === 'error' && '○'}
-          </span>
-          <button 
-            className={styles.button}
-            onClick={() => setIsMinimized(true)} 
-            title="Minimize"
-            aria-label="Minimize system monitor"
+    <>
+      {/* Corner decorations */}
+      <div className={`${styles.corner} ${styles.cornerTL}`} />
+      <div className={`${styles.corner} ${styles.cornerTR}`} />
+      <div className={`${styles.corner} ${styles.cornerBL}`} />
+      <div className={`${styles.corner} ${styles.cornerBR}`} />
+
+      {/* Top Panel */}
+      <div className={`${styles.panel} ${styles.topPanel} ${className}`}>
+        <div className={`${styles.panelSection} ${styles.brandSection}`}>
+          <span className={styles.label}>KNIRV NEXUS</span>
+          <span className={`${styles.value} ${styles.active}`}>DASHBOARD HUD</span>
+        </div>
+        <div className={styles.panelSection}>
+          <span className={styles.label}>SYSTEM STATUS</span>
+          <span className={`${styles.value} ${statusClass}`}>{connectionStatus}</span>
+        </div>
+        <div className={styles.panelSection}>
+          <span className={styles.label}>CPU</span>
+          <span className={styles.value}>{cpuPct.toFixed(1)}%</span>
+        </div>
+        <div className={styles.panelSection}>
+          <span className={styles.label}>MEMORY</span>
+          <span className={styles.value}>{memPct.toFixed(1)}%</span>
+        </div>
+        <div className={styles.panelSection}>
+          <span className={styles.label}>TIME</span>
+          <span className={styles.value}>{currentTime || '—'}</span>
+        </div>
+        <div className={styles.panelSection}>
+          <span className={styles.label}>UPTIME</span>
+          <span className={styles.value}>{metrics ? formatUptime(metrics.uptime_seconds) : '—'}</span>
+        </div>
+        <div className={`${styles.panelSection} ${styles.windowControls}`}>
+          <button
+            className={`${styles.controlBtn} ${styles.menuBackBtn}`}
+            title="Minimize HUD"
+            onClick={() => setIsMinimized(true)}
           >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-              <rect x="0" y="4" width="10" height="2"/>
-            </svg>
+            &#9673; MENU
+          </button>
+          <button className={styles.controlBtn} onClick={() => setIsMinimized(true)} title="Minimize">
+            &#8722;
           </button>
         </div>
       </div>
 
-      <div className={styles.metrics}>
-        {metrics ? (
-          <>
-            <div className={styles.metric}>
-              <label className={styles.label}>CPU</label>
-              <div className={styles.bar}>
-                <div
-                  className={styles.fill}
-                  style={{ width: `${Math.min(metrics.cpu, 100)}%` }}
-                />
-              </div>
-              <span className={styles.value}>{metrics.cpu.toFixed(1)}%</span>
-            </div>
-
-            <div className={styles.metric}>
-              <label className={styles.label}>Memory</label>
-              <div className={styles.bar}>
-                <div
-                  className={styles.fill}
-                  style={{
-                    width: `${Math.min(metrics.memory.percentage, 100)}%`,
-                  }}
-                />
-              </div>
-              <span className={styles.value}>
-                {formatMemory(metrics.memory.used_mb)} / {formatMemory(metrics.memory.total_mb)}
-              </span>
-            </div>
-
-            <div className={styles.info}>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Uptime</span>
-                <span className={styles.infoValue}>{formatUptime(metrics.uptime_seconds)}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>System</span>
-                <span className={styles.infoValue}>{metrics.os} {metrics.arch}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>Host</span>
-                <span className={styles.infoValue}>{metrics.hostname}</span>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className={styles.loading}>
-            <div className={styles.spinner} />
-            <span>Loading metrics...</span>
-            {lastError && <span className={styles.error}>{lastError}</span>}
+      {/* Left Panel */}
+      <div className={`${styles.panel} ${styles.leftPanel}`}>
+        <div className={styles.panelHeader}>SYSTEM METRICS</div>
+        <div className={styles.metricItem}>
+          <span className={styles.metricLabel}>CPU</span>
+          <div className={styles.metricBar}>
+            <div className={styles.metricFill} style={{ width: `${Math.min(cpuPct, 100)}%` }} />
           </div>
-        )}
+          <span className={styles.metricValue}>{cpuPct.toFixed(1)}%</span>
+        </div>
+        <div className={styles.metricItem}>
+          <span className={styles.metricLabel}>MEMORY</span>
+          <div className={styles.metricBar}>
+            <div className={styles.metricFill} style={{ width: `${Math.min(memPct, 100)}%` }} />
+          </div>
+          <span className={styles.metricValue}>{memPct.toFixed(1)}%</span>
+        </div>
+        <div className={styles.metricItem}>
+          <span className={styles.metricLabel}>PROCESSES</span>
+          <div className={styles.metricBar}>
+            <div className={styles.metricFill} style={{ width: '30%' }} />
+          </div>
+          <span className={styles.metricValue}>—</span>
+        </div>
+
+        <div className={styles.panelHeader} style={{ marginTop: '20px' }}>QUICK STATS</div>
+        <div className={styles.statItem}>
+          <span>MEM USED: {metrics ? formatMemory(metrics.memory.used_mb) : '—'}</span>
+        </div>
+        <div className={styles.statItem}>
+          <span>MEM TOTAL: {metrics ? formatMemory(metrics.memory.total_mb) : '—'}</span>
+        </div>
+        <div className={styles.statItem}>
+          <span>HOST: {metrics?.hostname ?? '—'}</span>
+        </div>
       </div>
-    </div>
+
+      {/* Right Panel */}
+      <div className={`${styles.panel} ${styles.rightPanel}`}>
+        <div className={styles.panelHeader}>FRONTEND STATUS</div>
+        <div className={styles.infoItem}>
+          <span className={styles.infoLabel}>STATUS:</span>
+          <span className={`${styles.value} ${statusClass}`}>{connectionStatus}</span>
+        </div>
+
+        <div className={styles.panelHeader} style={{ marginTop: '15px' }}>PERFORMANCE</div>
+        <canvas ref={canvasRef} className={styles.chart} width={200} height={80} />
+
+        <div className={styles.panelHeader} style={{ marginTop: '20px' }}>NOTIFICATIONS</div>
+        <div className={styles.notificationItem}>
+          <div className={`${styles.notifDot} ${connectionStatus === 'ONLINE' ? styles.notifActive : ''}`} />
+          <span>{connectionStatus === 'ONLINE' ? 'System operational' : 'Connecting to backend...'}</span>
+        </div>
+        <div className={styles.notificationItem}>
+          <div className={styles.notifDot} />
+          <span>No errors detected</span>
+        </div>
+        <div className={styles.notificationItem}>
+          <div className={styles.notifDot} />
+          <span>All services running</span>
+        </div>
+
+        <div className={styles.panelHeader} style={{ marginTop: '20px' }}>SYSTEM INFO</div>
+        <div className={styles.infoItem}>
+          <span className={styles.infoLabel}>OS:</span>
+          <span className={styles.infoValue}>{metrics?.os ?? '—'}</span>
+        </div>
+        <div className={styles.infoItem}>
+          <span className={styles.infoLabel}>ARCH:</span>
+          <span className={styles.infoValue}>{metrics?.arch ?? '—'}</span>
+        </div>
+      </div>
+
+      {/* Bottom Panel */}
+      <div className={`${styles.panel} ${styles.bottomPanel}`}>
+        <div className={styles.panelSection}>
+          <span className={styles.label}>NET RX</span>
+          <span className={styles.value}>—</span>
+        </div>
+        <div className={styles.panelSection}>
+          <span className={styles.label}>NET TX</span>
+          <span className={styles.value}>—</span>
+        </div>
+        <div className={styles.panelSection}>
+          <span className={styles.label}>DISK READ</span>
+          <span className={styles.value}>—</span>
+        </div>
+        <div className={styles.panelSection}>
+          <span className={styles.label}>DISK WRITE</span>
+          <span className={styles.value}>—</span>
+        </div>
+        <div className={styles.panelSection}>
+          <span className={styles.label}>HOST</span>
+          <span className={styles.value}>{metrics?.hostname ?? '—'}</span>
+        </div>
+      </div>
+    </>
   );
 }

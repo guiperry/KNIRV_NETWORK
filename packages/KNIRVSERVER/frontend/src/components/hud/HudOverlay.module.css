@@ -1,217 +1,357 @@
-.hudContainer {
+/* Blue #4888ff HUD frame — matches desktop/styles.css exactly */
+
+.panel {
+  background: rgba(0, 8, 24, 0.88);
+  border: 1px solid rgba(72, 136, 255, 0.3);
+  box-shadow:
+    0 0 20px rgba(72, 136, 255, 0.2),
+    inset 0 0 20px rgba(20, 60, 150, 0.1);
+  padding: 15px;
+  backdrop-filter: blur(10px);
   position: fixed;
-  top: 12px;
-  right: 12px;
-  width: 320px;
-  background: rgba(0, 0, 0, 0.85);
-  border: 1px solid #00ff00;
-  border-radius: 4px;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
-  color: #00ff00;
-  font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 12px;
-  z-index: 9999;
-  user-select: none;
-  backdrop-filter: blur(8px);
+  z-index: 1000;
+  font-family: 'Courier New', monospace;
+  color: #4888ff;
+  overflow: hidden;
 }
 
-.hudHeader {
+/* Animated scan line across the top edge of each panel */
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(72, 136, 255, 0.5), transparent);
+  animation: scan 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scan {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ── Panel positions ────────────────────────────────────────────────── */
+
+.topPanel {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   align-items: center;
-  padding: 8px;
-  border-bottom: 1px solid #00ff00;
-  background: rgba(0, 20, 0, 0.5);
-  border-radius: 3px 3px 0 0;
+  border-bottom: 2px solid rgba(72, 136, 255, 0.5);
+  padding: 0 15px;
+  gap: 0;
 }
 
-.title {
-  font-weight: bold;
-  font-size: 11px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+.leftPanel {
+  left: 0;
+  top: 60px;
+  bottom: 60px;
+  width: 250px;
+  border-right: 2px solid rgba(72, 136, 255, 0.5);
+  overflow-y: auto;
 }
 
-.controls {
+.rightPanel {
+  right: 0;
+  top: 60px;
+  bottom: 60px;
+  width: 250px;
+  border-left: 2px solid rgba(72, 136, 255, 0.5);
+  overflow-y: auto;
+}
+
+.bottomPanel {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
   display: flex;
-  gap: 12px;
+  justify-content: space-around;
   align-items: center;
+  border-top: 2px solid rgba(72, 136, 255, 0.5);
+  padding: 0 15px;
 }
 
-.status {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 2px;
-  background: rgba(0, 255, 0, 0.1);
-  border: 1px solid #00ff00;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-}
+/* ── Panel sections ─────────────────────────────────────────────────── */
 
-.status.connected {
-  color: #00ff00;
-}
-
-.status.connecting {
-  color: #ffff00;
-  animation: pulse 1s infinite;
-}
-
-.status.error {
-  color: #ff0000;
-  border-color: #ff0000;
-  background: rgba(255, 0, 0, 0.1);
-}
-
-.button {
-  background: none;
-  border: none;
-  color: #00ff00;
-  cursor: pointer;
-  font-size: 10px;
-  padding: 2px 6px;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 2px;
-}
-
-.button:hover {
-  background: rgba(0, 255, 0, 0.2);
-}
-
-.metrics {
-  padding: 12px;
+.panelSection {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 5px;
 }
 
-.metric {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.brandSection {
+  border-right: 1px solid rgba(72, 136, 255, 0.3);
+  padding-right: 20px;
 }
+
+.windowControls {
+  flex-direction: row !important;
+  gap: 6px;
+  margin-left: auto;
+  padding-left: 20px;
+  border-left: 1px solid rgba(72, 136, 255, 0.3);
+}
+
+/* ── Typography ─────────────────────────────────────────────────────── */
 
 .label {
-  font-size: 11px;
-  font-weight: bold;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #00aa00;
-}
-
-.bar {
-  height: 12px;
-  background: rgba(0, 255, 0, 0.1);
-  border: 1px solid #00ff00;
-  border-radius: 2px;
-  overflow: hidden;
-  position: relative;
-}
-
-.fill {
-  height: 100%;
-  background: linear-gradient(90deg, #00ff00, #00aa00);
-  transition: width 0.3s ease;
-  box-shadow: 0 0 8px rgba(0, 255, 0, 0.8);
+  font-size: 10px;
+  color: rgba(72, 136, 255, 0.6);
+  letter-spacing: 2px;
 }
 
 .value {
-  font-size: 11px;
-  color: #00ff00;
+  font-size: 14px;
   font-weight: bold;
+  color: #4888ff;
+  text-shadow: 0 0 10px rgba(72, 136, 255, 0.8);
 }
 
-.info {
+.active {
+  color: #00ff00 !important;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.8) !important;
+}
+
+.errorVal {
+  color: #ff4444 !important;
+  text-shadow: 0 0 10px rgba(255, 68, 68, 0.8) !important;
+}
+
+.connecting {
+  color: #ffaa00 !important;
+  text-shadow: 0 0 10px rgba(255, 170, 0, 0.8) !important;
+  animation: pulse 1s infinite;
+}
+
+.panelHeader {
+  font-size: 12px;
+  color: #4888ff;
+  border-bottom: 1px solid rgba(72, 136, 255, 0.3);
+  padding-bottom: 5px;
+  margin-bottom: 15px;
+  letter-spacing: 3px;
+}
+
+/* ── Left panel metrics ─────────────────────────────────────────────── */
+
+.metricItem {
+  margin-bottom: 20px;
+}
+
+.metricLabel {
+  display: block;
+  font-size: 10px;
+  color: rgba(72, 136, 255, 0.7);
+  margin-bottom: 5px;
+}
+
+.metricBar {
+  width: 100%;
+  height: 8px;
+  background: rgba(10, 30, 100, 0.5);
+  border: 1px solid rgba(72, 136, 255, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.metricFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4888ff, #1a5cf0);
+  box-shadow: 0 0 10px rgba(72, 136, 255, 0.6);
+  transition: width 0.5s ease;
+}
+
+.metricValue {
+  font-size: 11px;
+  color: #4888ff;
+}
+
+.statItem {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(72, 136, 255, 0.1);
+  font-size: 11px;
+  color: rgba(72, 136, 255, 0.8);
+}
+
+/* ── Right panel ────────────────────────────────────────────────────── */
+
+.chart {
+  width: 100%;
+  height: 80px;
+  margin: 10px 0;
+  border: 1px solid rgba(72, 136, 255, 0.2);
+  display: block;
+}
+
+.notificationItem {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(0, 255, 0, 0.3);
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 11px;
+  color: rgba(72, 136, 255, 0.7);
+  border-bottom: 1px solid rgba(72, 136, 255, 0.1);
 }
 
-.infoRow {
+.notifDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(72, 136, 255, 0.3);
+  border: 1px solid rgba(72, 136, 255, 0.5);
+  flex-shrink: 0;
+}
+
+.notifActive {
+  background: #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+  animation: pulse 2s infinite;
+}
+
+.infoItem {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  padding: 8px 0;
+  font-size: 11px;
+  border-bottom: 1px solid rgba(72, 136, 255, 0.1);
 }
 
 .infoLabel {
-  color: #00aa00;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: rgba(72, 136, 255, 0.6);
 }
 
 .infoValue {
-  color: #00ff00;
+  color: #4888ff;
 }
 
-.minimized {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  width: 32px;
-  height: 32px;
-  background: rgba(0, 0, 0, 0.85);
-  border: 1px solid #00ff00;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
-}
+/* ── Window controls ────────────────────────────────────────────────── */
 
-.minimizedButton {
-  width: 100%;
-  height: 100%;
-  font-size: 16px;
+.controlBtn {
+  background: rgba(20, 60, 180, 0.5);
+  border: 1px solid rgba(72, 136, 255, 0.5);
+  color: #4888ff;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  transition: all 0.3s ease;
 }
 
-.loading {
-  padding: 12px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
+.controlBtn:hover {
+  background: rgba(40, 100, 220, 0.7);
+  box-shadow: 0 0 15px rgba(72, 136, 255, 0.6);
 }
 
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(0, 255, 0, 0.2);
-  border-top-color: #00ff00;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.menuBackBtn {
+  font-size: 9px !important;
+  letter-spacing: 2px !important;
+  width: auto !important;
+  padding: 2px 10px !important;
 }
 
-.error {
-  color: #ff0000;
+/* ── Corner decorations ─────────────────────────────────────────────── */
+
+.corner {
+  position: fixed;
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(72, 136, 255, 0.5);
+  z-index: 1001;
+  pointer-events: none;
+}
+
+.cornerTL {
+  top: 10px;
+  left: 10px;
+  border-right: none;
+  border-bottom: none;
+  box-shadow: -5px -5px 15px rgba(72, 136, 255, 0.3);
+}
+
+.cornerTR {
+  top: 10px;
+  right: 10px;
+  border-left: none;
+  border-bottom: none;
+  box-shadow: 5px -5px 15px rgba(72, 136, 255, 0.3);
+}
+
+.cornerBL {
+  bottom: 10px;
+  left: 10px;
+  border-right: none;
+  border-top: none;
+  box-shadow: -5px 5px 15px rgba(72, 136, 255, 0.3);
+}
+
+.cornerBR {
+  bottom: 10px;
+  right: 10px;
+  border-left: none;
+  border-top: none;
+  box-shadow: 5px 5px 15px rgba(72, 136, 255, 0.3);
+}
+
+/* ── Minimized restore button ───────────────────────────────────────── */
+
+.minimizedBtn {
+  position: fixed;
+  bottom: 70px;
+  right: 16px;
+  z-index: 1002;
+  background: rgba(20, 60, 180, 0.5);
+  border: 1px solid rgba(72, 136, 255, 0.5);
+  color: #4888ff;
+  font-family: 'Courier New', monospace;
   font-size: 10px;
+  letter-spacing: 2px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.minimizedBtn:hover {
+  background: rgba(40, 100, 220, 0.7);
+  box-shadow: 0 0 15px rgba(72, 136, 255, 0.6);
 }
+
+/* ── Scrollbar ──────────────────────────────────────────────────────── */
+
+.leftPanel::-webkit-scrollbar,
+.rightPanel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.leftPanel::-webkit-scrollbar-track,
+.rightPanel::-webkit-scrollbar-track {
+  background: rgba(0, 20, 40, 0.5);
+}
+
+.leftPanel::-webkit-scrollbar-thumb,
+.rightPanel::-webkit-scrollbar-thumb {
+  background: rgba(72, 136, 255, 0.3);
+  border-radius: 2px;
+}
+
+/* ── Animations ─────────────────────────────────────────────────────── */
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
 }

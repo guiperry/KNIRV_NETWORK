@@ -49,7 +49,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={{ overflow: 'hidden', background: '#000818', height: '100vh' }}
       >
         <QueryProvider>
           <PWAProvider>
@@ -57,9 +58,24 @@ export default function RootLayout({
               <DemoModeProvider>
                 <DHTProvider>
                   <OnboardingProvider>
-                    <PWAInstallButton />
                     <HudOverlay />
-                    {children}
+                    {/* Center content area — sits between the four HUD panels */}
+                    <div
+                      id="hud-content-area"
+                      style={{
+                        position: 'fixed',
+                        top: '60px',
+                        left: '250px',
+                        right: '250px',
+                        bottom: '60px',
+                        overflow: 'auto',
+                        background: '#0a0a14',
+                        zIndex: 1,
+                      }}
+                    >
+                      {children}
+                    </div>
+                    <PWAInstallButton />
                     <Toaster />
                   </OnboardingProvider>
                 </DHTProvider>

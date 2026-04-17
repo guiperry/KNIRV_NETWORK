@@ -12,11 +12,14 @@ import (
 )
 
 type Session struct {
-	Key      string              `json:"key"`
-	Messages []providers.Message `json:"messages"`
-	Summary  string              `json:"summary,omitempty"`
-	Created  time.Time           `json:"created"`
-	Updated  time.Time           `json:"updated"`
+	Key                string              `json:"key"`
+	Messages           []providers.Message `json:"messages"`
+	Summary            string              `json:"summary,omitempty"`
+	Created            time.Time           `json:"created"`
+	Updated            time.Time           `json:"updated"`
+	TotalTokensUsed    int                 `json:"total_tokens_used"`
+	TurnTokensUsed     int                 `json:"turn_tokens_used"`
+	BudgetWarningSent  bool                `json:"budget_warning_sent"`
 }
 
 type SessionManager struct {
@@ -143,6 +146,73 @@ func (sm *SessionManager) TruncateHistory(key string, keepLast int) {
 
 	session.Messages = session.Messages[len(session.Messages)-keepLast:]
 	session.Updated = time.Now()
+}
+
+func (sm *SessionManager) AddTokensUsed(key string, tokens int) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	session, ok := sm.sessions[key]
+	if ok {
+		session.TotalTokensUsed += tokens
+		session.TurnTokensUsed += tokens
+		session.Updated = time.Now()
+	}
+}
+
+func (sm *SessionManager) ResetTurnTokens(key string) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	session, ok := sm.sessions[key]
+	if ok {
+		session.TurnTokensUsed = 0
+		session.Updated = time.Now()
+	}
+}
+
+func (sm *SessionManager) GetTotalTokensUsed(key string) int {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	session, ok := sm.sessions[key]
+	if !ok {
+		return 0
+	}
+	return session.TotalTokensUsed
+}
+
+func (sm *SessionManager) GetTurnTokensUsed(key string) int {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	session, ok := sm.sessions[key]
+	if !ok {
+		return 0
+	}
+	return session.TurnTokensUsed
+}
+
+func (sm *SessionManager) MarkBudgetWarningSent(key string) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+
+	session, ok := sm.sessions[key]
+	if ok {
+		session.BudgetWarningSent = true
+		session.Updated = time.Now()
+	}
+}
+
+func (sm *SessionManager) HasBudgetWarningBeenSent(key string) bool {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+
+	session, ok := sm.sessions[key]
+	if !ok {
+		return false
+	}
+	return session.BudgetWarningSent
 }
 
 // sanitizeFilename converts a session key into a cross-platform safe filename.
