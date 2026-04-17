@@ -25,7 +25,7 @@ interface P2PTransportAccessModalProps {
 // Use an explicit localhost URL — never derive from window.location because
 // the React app is loaded inside an Electron iframe whose window.location
 // reflects the Next.js dev server (port 8090), not the gateway.
-const WEBGUI_PORT = process.env.NEXT_PUBLIC_GATEWAY_PORT || '8081';
+const WEBGUI_PORT = process.env.NEXT_PUBLIC_GATEWAY_PORT || '8080';
 const WEBGUI_BASE = `http://localhost:${WEBGUI_PORT}`;
 const WEBGUI_URL = `${WEBGUI_BASE}/dashboard`;
 

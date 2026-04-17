@@ -959,8 +959,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 
 	// Initialize Cognitive Engine with configurable parameters
 	cognitiveEngine := cognitiveengine.NewCognitiveEngine(dbManager, validationCore, inferenceService, fabricManagementService)
-	cognitiveEngine.SetGraphRAGClient(graphRAGClient)
-	log.Println("CognitiveEngine: GraphRAG FFI engine wired for knowledge graph retrieval")
 
 	// Wire eBPF manager for real resource telemetry and kernel-level guardrails
 	if ebpfManager != nil {
@@ -1011,6 +1009,8 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	// Initialize GraphRAG Knowledge Base Engine
 	graphRAGClient := knowledge_base.NewGraphRAGClient()
 	log.Println("GraphRAG engine initialized with CGO FFI bridge")
+	cognitiveEngine.SetGraphRAGClient(graphRAGClient)
+	log.Println("CognitiveEngine: GraphRAG FFI engine wired for knowledge graph retrieval")
 
 	// Initialize AnchoringService for PQC-signed evidence pack anchoring
 	anchoringService := evidence.NewAnchoringService(dbManager, pqcManager, "server-master")

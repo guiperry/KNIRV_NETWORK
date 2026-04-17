@@ -159,6 +159,10 @@ pub mod rograg;
 // pub mod automatic_entity_linking;  // Advanced entity linking
 // pub mod phase_saver;               // Phase state persistence
 
+/// C FFI exports for CGo integration (native targets only)
+#[cfg(not(target_arch = "wasm32"))]
+pub mod ffi;
+
 // ================================
 // PUBLIC API EXPORTS
 // ================================

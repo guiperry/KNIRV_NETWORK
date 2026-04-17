@@ -379,6 +379,11 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
   };
 
   const handleNodeAccess = (node: DVENode) => {
+    // If user is already authenticated, navigate directly to the node dashboard
+    if (user?.authenticated) {
+      router.push(`/dve/${node.id}`);
+      return;
+    }
     setSelectedNode(node);
     setUseModularCDE(true);
     setCdeModalOpen(true);

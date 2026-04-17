@@ -117,17 +117,17 @@ func (prl *PolicyRefinementLoop) refineBasedOnPattern(dveID, ruleID string, valu
 	case "warning":
 		if triggerRate > 0.3 {
 			prl.adjustThreshold(policy, mean, stdDev, 0.15)
-			prl.recordRefinement(ruleID, oldThreshold, policy.Threshold, "high_trigger_rate")
+			prl.recordRefinement(dveID, ruleID, oldThreshold, policy.Threshold, "high_trigger_rate")
 		}
 	case "critical":
 		if triggerRate > 0.2 {
 			prl.adjustThreshold(policy, mean, stdDev, 0.1)
-			prl.recordRefinement(ruleID, oldThreshold, policy.Threshold, "critical_high_trigger")
+			prl.recordRefinement(dveID, ruleID, oldThreshold, policy.Threshold, "critical_high_trigger")
 		}
 	case "panic":
 		if triggerRate > 0.1 {
 			prl.adjustThreshold(policy, mean, stdDev, 0.05)
-			prl.recordRefinement(ruleID, oldThreshold, policy.Threshold, "panic_safe_guard")
+			prl.recordRefinement(dveID, ruleID, oldThreshold, policy.Threshold, "panic_safe_guard")
 		}
 	}
 }
@@ -187,7 +187,7 @@ func (prl *PolicyRefinementLoop) refineForStableMetric(dveID, metric string, dat
 			oldThreshold := policy.Threshold
 			prl.tightenThreshold(policy, data)
 			if oldThreshold != policy.Threshold {
-				prl.recordRefinement(policy.ID, oldThreshold, policy.Threshold, "stable_pattern")
+				prl.recordRefinement(dveID, policy.ID, oldThreshold, policy.Threshold, "stable_pattern")
 			}
 		}
 	}
@@ -212,17 +212,18 @@ func (prl *PolicyRefinementLoop) tightenThreshold(policy *PolicyRule, data map[s
 	}
 }
 
-func (prl *PolicyRefinementLoop) recordRefinement(ruleID string, oldThreshold, newThreshold float64, reason string) {
+func (prl *PolicyRefinementLoop) recordRefinement(dveID, ruleID string, oldThreshold, newThreshold float64, reason string) {
 	prl.lastRefinement[ruleID] = time.Now()
 
-	log.Printf("[REFINEMENT] Policy %s refined: %.4f -> %.4f (reason: %s)",
-		ruleID, oldThreshold, newThreshold, reason)
+	log.Printf("[REFINEMENT] DVE %s - Policy %s refined: %.4f -> %.4f (reason: %s)",
+		dveID, ruleID, oldThreshold, newThreshold, reason)
 
 	if prl.eventBus != nil {
 		prl.eventBus.Publish(EngineEvent{
 			Type:   EventPatternDetected,
 			Source: "policy_refinement",
 			Payload: map[string]interface{}{
+				"dve_id":        dveID,
 				"rule_id":       ruleID,
 				"old_threshold": oldThreshold,
 				"new_threshold": newThreshold,

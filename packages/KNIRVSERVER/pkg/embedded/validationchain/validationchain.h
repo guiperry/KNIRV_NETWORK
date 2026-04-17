@@ -12,6 +12,7 @@ int validation_chain_init(const char* config, size_t config_len);
 int validation_chain_shutdown(void);
 int validation_chain_health_check(void);
 char* validation_chain_validate(const char* tx_data, size_t tx_len, int* result_code, size_t* result_len);
+void validation_chain_free_string(char* ptr);
 
 #ifdef __cplusplus
 }

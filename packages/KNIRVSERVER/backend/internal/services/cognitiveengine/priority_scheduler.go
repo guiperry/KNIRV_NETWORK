@@ -1,6 +1,7 @@
 package cognitiveengine
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -81,16 +82,21 @@ func (ps *PriorityScheduler) Start() {
 func (ps *PriorityScheduler) worker(id int) {
 	defer ps.wg.Done()
 
+	log.Printf("[PriorityScheduler] worker %d started", id)
+
 	for {
 		item, ok := ps.selectNextItem()
 		if !ok {
+			log.Printf("[PriorityScheduler] worker %d shutting down", id)
 			return
 		}
 
 		select {
 		case <-ps.ctx.Done():
+			log.Printf("[PriorityScheduler] worker %d context cancelled", id)
 			return
 		default:
+			log.Printf("[PriorityScheduler] worker %d processing %s priority item", id, item.Priority.String())
 			ps.processItem(item)
 		}
 	}

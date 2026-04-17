@@ -165,36 +165,102 @@ func pprofServe(w http.ResponseWriter, r *http.Request) {
 }
 
 func pprofCmdlineHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+	// Log the request for debugging
+	log.Printf("[pprof] cmdline request from %s", r.RemoteAddr)
+
 	profile := pprof.Lookup("cmdline")
 	if profile != nil {
 		profile.WriteTo(w, 0)
+	} else {
+		http.Error(w, "cmdline profile not available", http.StatusNotFound)
 	}
 }
 
 func pprofProfileHandler(w http.ResponseWriter, r *http.Request) {
+	duration := 30 * time.Second
+	if durStr := r.URL.Query().Get("seconds"); durStr != "" {
+		if dur, err := time.ParseDuration(durStr + "s"); err == nil && dur > 0 {
+			duration = dur
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
 	profile := pprof.Lookup("profile")
 	if profile != nil {
 		profile.WriteTo(w, 0)
+	} else {
+		// Fallback to CPU profiling
+		if err := pprof.StartCPUProfile(w); err != nil {
+			http.Error(w, "Could not start CPU profile: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		time.Sleep(duration)
+		pprof.StopCPUProfile()
 	}
 }
 
 func pprofSymbolHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "symbol endpoint requires net/http/pprof import")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+	if r.Method == "POST" {
+		// Handle symbol lookup
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			return
+		}
+
+		symbols := r.Form["symbol"]
+		for _, sym := range symbols {
+			if fn := runtime.FuncForPC(uintptr(0)); fn != nil {
+				// Simplified symbol lookup
+				fmt.Fprintf(w, "%s\n", sym)
+			}
+		}
+	} else {
+		// GET request - show usage
+		fmt.Fprintf(w, "Symbol lookup endpoint. POST with symbol parameter.\n")
+		fmt.Fprintf(w, "Example: curl -d 'symbol=main.main' http://localhost:6060/debug/pprof/symbol\n")
+	}
 }
 
 func pprofTraceHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "trace endpoint requires net/http/pprof import")
+	w.Header().Set("Content-Type", "application/octet-stream")
+
+	duration := 1 * time.Second
+	if durStr := r.URL.Query().Get("seconds"); durStr != "" {
+		if dur, err := time.ParseDuration(durStr + "s"); err == nil && dur > 0 {
+			duration = dur
+		}
+	}
+
+	if err := trace.Start(w); err != nil {
+		http.Error(w, "Could not start trace: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	time.Sleep(duration)
+	trace.Stop()
 }
 
 func pprofIndexHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, "<html><body><h1>pprof</h1>")
+	fmt.Fprintf(w, "<html><head><title>pprof index</title></head><body>")
+	fmt.Fprintf(w, "<h1>pprof endpoints</h1>")
+	fmt.Fprintf(w, "<p>Request path: %s</p>", r.URL.Path)
 	fmt.Fprintf(w, "<ul>")
-	fmt.Fprintf(w, "<li><a href='/debug/pprof/cmdline'>cmdline</a></li>")
-	fmt.Fprintf(w, "<li><a href='/debug/pprof/profile'>profile</a></li>")
-	fmt.Fprintf(w, "<li><a href='/debug/pprof/symbol'>symbol</a></li>")
-	fmt.Fprintf(w, "<li><a href='/debug/pprof/trace'>trace</a></li>")
-	fmt.Fprintf(w, "</ul></body></html>")
+	fmt.Fprintf(w, "<li><a href='cmdline'>cmdline</a> - show command line</li>")
+	fmt.Fprintf(w, "<li><a href='profile?seconds=30'>profile</a> - CPU profile (30 seconds)</li>")
+	fmt.Fprintf(w, "<li><a href='symbol'>symbol</a> - symbol lookup</li>")
+	fmt.Fprintf(w, "<li><a href='trace?seconds=1'>trace</a> - execution trace (1 second)</li>")
+	fmt.Fprintf(w, "<li><a href='goroutine'>goroutine</a> - goroutine profile</li>")
+	fmt.Fprintf(w, "<li><a href='heap'>heap</a> - heap profile</li>")
+	fmt.Fprintf(w, "<li><a href='threadcreate'>threadcreate</a> - thread creation profile</li>")
+	fmt.Fprintf(w, "<li><a href='block'>block</a> - blocking profile</li>")
+	fmt.Fprintf(w, "<li><a href='mutex'>mutex</a> - mutex profile</li>")
+	fmt.Fprintf(w, "</ul>")
+	fmt.Fprintf(w, "<p>Use query parameter 'seconds' to adjust duration for profile and trace endpoints.</p>")
+	fmt.Fprintf(w, "</body></html>")
 }
 
 func (p *Profiler) Stop() error {

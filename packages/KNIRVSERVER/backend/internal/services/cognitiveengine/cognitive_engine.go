@@ -56,6 +56,9 @@ type CognitiveEngine struct {
 	// ── Per-DVE agent runtime telemetry (implements runtime.CognitiveEngineInterface) ─
 	agentMetrics   map[string]*AgentDVEMetrics
 	agentMetricsMu sync.RWMutex
+
+	// ── GraphRAG knowledge retrieval client (wired after construction) ─────────
+	graphRAGClient any
 }
 
 // AgentDVEMetrics holds the most recent resource and complexity snapshot for a
@@ -259,6 +262,14 @@ func (ce *CognitiveEngine) SetEBPFManager(mgr ebpf.ManagerInterface) {
 	ce.mu.Lock()
 	defer ce.mu.Unlock()
 	ce.ebpfBridge = NewEBPFBridge(mgr, ce.eventBus)
+}
+
+// SetGraphRAGClient wires the GraphRAG knowledge retrieval client.
+// Must be called before Start().
+func (ce *CognitiveEngine) SetGraphRAGClient(client any) {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	ce.graphRAGClient = client
 }
 
 // SetKNIRVGRAPHEngine wires the KNIRVGRAPH temporal hypergraph and zap logger

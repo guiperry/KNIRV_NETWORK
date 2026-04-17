@@ -293,10 +293,11 @@ func TestPredictiveAnalyticsExportMetrics(t *testing.T) {
 }
 
 func TestLoadPredictionStruct(t *testing.T) {
+	now := time.Now()
 	pred := LoadPrediction{
 		PredictedLoad:    0.75,
 		Confidence:       0.85,
-		PredictedAt:      time.Now(),
+		PredictedAt:      now,
 		PredictionWindow: 5 * time.Minute,
 		LinearRegression: LinearRegression{
 			Slope:     0.1,
@@ -313,20 +314,45 @@ func TestLoadPredictionStruct(t *testing.T) {
 	if pred.Confidence != 0.85 {
 		t.Errorf("expected 0.85, got %f", pred.Confidence)
 	}
+	if !pred.PredictedAt.Equal(now) {
+		t.Errorf("expected PredictedAt to be %v, got %v", now, pred.PredictedAt)
+	}
+	if pred.PredictionWindow != 5*time.Minute {
+		t.Errorf("expected PredictionWindow to be 5m, got %v", pred.PredictionWindow)
+	}
 	if pred.LinearRegression.Slope != 0.1 {
 		t.Errorf("expected slope 0.1, got %f", pred.LinearRegression.Slope)
+	}
+	if pred.LinearRegression.Intercept != 0.5 {
+		t.Errorf("expected intercept 0.5, got %f", pred.LinearRegression.Intercept)
+	}
+	if pred.LinearRegression.R2 != 0.92 {
+		t.Errorf("expected R2 0.92, got %f", pred.LinearRegression.R2)
+	}
+	if pred.IsAnomalous != false {
+		t.Errorf("expected IsAnomalous false, got %v", pred.IsAnomalous)
+	}
+	if pred.AnomalyScore != 1.2 {
+		t.Errorf("expected AnomalyScore 1.2, got %f", pred.AnomalyScore)
 	}
 }
 
 func TestMetricSeriesStruct(t *testing.T) {
+	now := time.Now()
 	series := &MetricSeries{
 		Values:     []float64{0.1, 0.2, 0.3},
-		Timestamps: []time.Time{time.Now()},
+		Timestamps: []time.Time{now},
 		WindowSize: 100,
 	}
 
 	if len(series.Values) != 3 {
 		t.Errorf("expected 3 values, got %d", len(series.Values))
+	}
+	if len(series.Timestamps) != 1 {
+		t.Errorf("expected 1 timestamp, got %d", len(series.Timestamps))
+	}
+	if !series.Timestamps[0].Equal(now) {
+		t.Errorf("expected timestamp to be %v, got %v", now, series.Timestamps[0])
 	}
 	if series.WindowSize != 100 {
 		t.Errorf("expected window size 100, got %d", series.WindowSize)

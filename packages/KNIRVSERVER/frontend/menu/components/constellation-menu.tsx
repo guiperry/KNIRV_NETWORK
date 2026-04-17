@@ -97,55 +97,51 @@ export default function ConstellationMenu() {
     <>
       {/* Star Supernova Loading Animation */}
       {!loadingComplete && <StarSupernova onComplete={handleLoadingComplete} />}
-      
+
       {/* Main Constellation Menu */}
-      <div 
+      <div
         className="relative flex min-h-screen w-full items-center justify-center overflow-hidden"
         style={{ backgroundColor: "#030a18" }}
       >
-        <div className="relative">
-      {/* Starfield Background */}
-      <div className="absolute inset-0">
-        {[...Array(200)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-white"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: Math.random() > 0.9 ? 2 : 1,
-              height: Math.random() > 0.9 ? 2 : 1,
-              opacity: Math.random() * 0.6 + 0.2,
-            }}
-            animate={{
-              opacity: [0.2, 0.6, 0.2],
-            }}
-            transition={{
-              duration: Math.random() * 4 + 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
-      </div>
+        {/* Starfield — absolute on the outer viewport container so stars fill the screen */}
+        <div className="pointer-events-none absolute inset-0">
+          {[...Array(200)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute rounded-full bg-white"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                width: Math.random() > 0.9 ? 2 : 1,
+                height: Math.random() > 0.9 ? 2 : 1,
+                opacity: Math.random() * 0.6 + 0.2,
+              }}
+              animate={{ opacity: [0.2, 0.6, 0.2] }}
+              transition={{
+                duration: Math.random() * 4 + 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
+        </div>
 
-      {/* Bottom Horizon Glow */}
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-48">
-        <div className="absolute inset-0 bg-gradient-to-t from-blue-500/10 via-blue-500/5 to-transparent" />
-        <div className="absolute bottom-12 left-1/2 h-px w-[80%] -translate-x-1/2 bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
-        {/* Crystal/City Silhouettes */}
-        <div className="absolute bottom-0 left-[10%] h-16 w-4 bg-gradient-to-t from-blue-900/30 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
-        <div className="absolute bottom-0 left-[15%] h-24 w-6 bg-gradient-to-t from-blue-900/20 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
-        <div className="absolute bottom-0 right-[10%] h-20 w-5 bg-gradient-to-t from-blue-900/30 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
-        <div className="absolute bottom-0 right-[15%] h-28 w-7 bg-gradient-to-t from-blue-900/20 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
-      </div>
+        {/* Bottom Horizon Glow — absolute on the outer container so it spans full width */}
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-48">
+          <div className="absolute inset-0 bg-gradient-to-t from-blue-500/10 via-blue-500/5 to-transparent" />
+          <div className="absolute bottom-12 left-1/2 h-px w-[80%] -translate-x-1/2 bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+          <div className="absolute bottom-0 left-[10%] h-16 w-4 bg-gradient-to-t from-blue-900/30 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
+          <div className="absolute bottom-0 left-[15%] h-24 w-6 bg-gradient-to-t from-blue-900/20 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
+          <div className="absolute bottom-0 right-[10%] h-20 w-5 bg-gradient-to-t from-blue-900/30 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
+          <div className="absolute bottom-0 right-[15%] h-28 w-7 bg-gradient-to-t from-blue-900/20 to-transparent" style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }} />
+        </div>
 
-       {/* Main Container */}
-      <div
-        className="relative"
-        style={{ width: 900, height: 900 }}
-      >
+        {/* Main Container — centered by the outer flexbox */}
+        <div
+          className="relative flex-shrink-0"
+          style={{ width: 900, height: 900 }}
+        >
         {/* SVG for Rings and Connection Lines */}
         <svg
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
@@ -739,15 +735,14 @@ export default function ConstellationMenu() {
         >
           KNIRV.COM
         </motion.div>
-        </div>
-        </div>
+        </div>{/* end 900×900 main container */}
 
-      {/* Settings Modal */}
-      <SettingsModal 
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-      />
-      </div>
+        {/* Settings Modal */}
+        <SettingsModal
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+        />
+      </div>{/* end outer viewport container */}
     </>
   )
 }
