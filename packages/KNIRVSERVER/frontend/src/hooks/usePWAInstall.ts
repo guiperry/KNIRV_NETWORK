@@ -5,6 +5,12 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+declare global {
+  interface Window {
+    __pwaPrompt: BeforeInstallPromptEvent | null;
+  }
+}
+
 interface UsePWAInstallReturn {
   installPrompt: BeforeInstallPromptEvent | null;
   isInstalled: boolean;
@@ -19,43 +25,49 @@ export function usePWAInstall(): UsePWAInstallReturn {
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event): void => {
+    // Pick up the event captured in the inline <head> script before React mounted
+    if (window.__pwaPrompt && !isDismissed) {
+      setInstallPrompt(window.__pwaPrompt);
+    }
+
+    const handlePrompt = (e: Event): void => {
       e.preventDefault();
-      if (!isDismissed) {
-        setInstallPrompt(e as BeforeInstallPromptEvent);
-      }
+      window.__pwaPrompt = e as BeforeInstallPromptEvent;
+      if (!isDismissed) setInstallPrompt(e as BeforeInstallPromptEvent);
     };
 
-    const handleAppInstalled = (): void => {
+    // Also fired by the early-capture script via custom event
+    const handleReady = (): void => {
+      if (window.__pwaPrompt && !isDismissed) setInstallPrompt(window.__pwaPrompt);
+    };
+
+    const handleInstalled = (): void => {
       setIsInstalled(true);
       setInstallPrompt(null);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener('beforeinstallprompt', handlePrompt);
+    document.addEventListener('pwa-installable', handleReady);
+    window.addEventListener('appinstalled', handleInstalled);
 
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
     }
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('beforeinstallprompt', handlePrompt);
+      document.removeEventListener('pwa-installable', handleReady);
+      window.removeEventListener('appinstalled', handleInstalled);
     };
   }, [isDismissed]);
 
   const install = useCallback(async (): Promise<void> => {
-    if (!installPrompt) {
-      return;
-    }
-
+    if (!installPrompt) return;
     installPrompt.prompt();
     const choice = await installPrompt.userChoice;
-
     if (choice.outcome === 'accepted') {
       console.log('PWA installation accepted');
     }
-
     setInstallPrompt(null);
   }, [installPrompt]);
 

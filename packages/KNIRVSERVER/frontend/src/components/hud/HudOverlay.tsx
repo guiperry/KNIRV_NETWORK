@@ -33,10 +33,7 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
   const fetchMetrics = useCallback(async () => {
     try {
       const response = await fetch('/api/v1/system/info');
-      if (!response.ok) {
-        setConnectionStatus('ERROR');
-        return;
-      }
+      if (!response.ok) { setConnectionStatus('ERROR'); return; }
       const data: SystemMetrics = await response.json();
       setMetrics(data);
       setConnectionStatus('ONLINE');
@@ -53,10 +50,7 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
   }, [fetchMetrics, refreshInterval]);
 
   useEffect(() => {
-    const tick = () => {
-      const now = new Date();
-      setCurrentTime(now.toTimeString().slice(0, 8));
-    };
+    const tick = () => setCurrentTime(new Date().toTimeString().slice(0, 8));
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
@@ -67,65 +61,44 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
-    const w = canvas.width;
-    const h = canvas.height;
+    const w = canvas.width, h = canvas.height;
     ctx.clearRect(0, 0, w, h);
-
     ctx.fillStyle = 'rgba(10, 30, 100, 0.3)';
     ctx.fillRect(0, 0, w, h);
-
     ctx.strokeStyle = 'rgba(72, 136, 255, 0.1)';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
-      ctx.beginPath();
-      ctx.moveTo(0, (h / 4) * i);
-      ctx.lineTo(w, (h / 4) * i);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, (h / 4) * i); ctx.lineTo(w, (h / 4) * i); ctx.stroke();
     }
-
     if (cpuHistory.some(v => v > 0)) {
-      ctx.strokeStyle = '#4888ff';
-      ctx.lineWidth = 1.5;
-      ctx.shadowColor = 'rgba(72, 136, 255, 0.6)';
-      ctx.shadowBlur = 4;
+      ctx.strokeStyle = '#4888ff'; ctx.lineWidth = 1.5;
+      ctx.shadowColor = 'rgba(72, 136, 255, 0.6)'; ctx.shadowBlur = 4;
       ctx.beginPath();
       cpuHistory.forEach((val, i) => {
         const x = (i / (cpuHistory.length - 1)) * w;
         const y = h - (val / 100) * h;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       });
       ctx.stroke();
     }
   }, [cpuHistory]);
 
-  const formatUptime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours}h ${minutes}m`;
+  const formatUptime = (s: number) => {
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+    return `${h}h ${m}m`;
   };
-
-  const formatMemory = (mb: number): string => {
-    if (mb >= 1024) return `${(mb / 1024).toFixed(1)}GB`;
-    return `${mb}MB`;
-  };
+  const formatMemory = (mb: number) =>
+    mb >= 1024 ? `${(mb / 1024).toFixed(1)}GB` : `${mb}MB`;
 
   const cpuPct = metrics?.cpu ?? 0;
   const memPct = metrics?.memory?.percentage ?? 0;
-
   const statusClass =
     connectionStatus === 'ONLINE' ? styles.active :
-    connectionStatus === 'ERROR' ? styles.errorVal :
-    styles.connecting;
+    connectionStatus === 'ERROR'  ? styles.errorVal : styles.connecting;
 
   if (isMinimized) {
     return (
-      <button
-        className={`${styles.minimizedBtn} ${className}`}
-        onClick={() => setIsMinimized(false)}
-        title="Restore HUD"
-      >
+      <button className={`${styles.minimizedBtn} ${className}`} onClick={() => setIsMinimized(false)} title="Restore HUD">
         ▲ HUD
       </button>
     );
@@ -139,21 +112,27 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
       <div className={`${styles.corner} ${styles.cornerBL}`} />
       <div className={`${styles.corner} ${styles.cornerBR}`} />
 
-      {/* Top Panel */}
+      {/* ── Top Panel ─────────────────────────────────────────────────── */}
       <div className={`${styles.panel} ${styles.topPanel} ${className}`}>
-        <div className={`${styles.panelSection} ${styles.brandSection}`}>
+        {/* brand — hidden on very small screens */}
+        <div className={`${styles.panelSection} ${styles.brandSection} ${styles.desktopOnly}`}>
           <span className={styles.label}>KNIRV NEXUS</span>
           <span className={`${styles.value} ${styles.active}`}>DASHBOARD HUD</span>
         </div>
+        {/* mobile brand — always visible */}
+        <div className={`${styles.panelSection} ${styles.mobileBrand}`}>
+          <span className={`${styles.value} ${styles.active}`}>KNIRV</span>
+        </div>
+
         <div className={styles.panelSection}>
-          <span className={styles.label}>SYSTEM STATUS</span>
+          <span className={styles.label}>STATUS</span>
           <span className={`${styles.value} ${statusClass}`}>{connectionStatus}</span>
         </div>
-        <div className={styles.panelSection}>
+        <div className={`${styles.panelSection} ${styles.desktopOnly}`}>
           <span className={styles.label}>CPU</span>
           <span className={styles.value}>{cpuPct.toFixed(1)}%</span>
         </div>
-        <div className={styles.panelSection}>
+        <div className={`${styles.panelSection} ${styles.desktopOnly}`}>
           <span className={styles.label}>MEMORY</span>
           <span className={styles.value}>{memPct.toFixed(1)}%</span>
         </div>
@@ -161,16 +140,12 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
           <span className={styles.label}>TIME</span>
           <span className={styles.value}>{currentTime || '—'}</span>
         </div>
-        <div className={styles.panelSection}>
+        <div className={`${styles.panelSection} ${styles.desktopOnly}`}>
           <span className={styles.label}>UPTIME</span>
           <span className={styles.value}>{metrics ? formatUptime(metrics.uptime_seconds) : '—'}</span>
         </div>
         <div className={`${styles.panelSection} ${styles.windowControls}`}>
-          <button
-            className={`${styles.controlBtn} ${styles.menuBackBtn}`}
-            title="Minimize HUD"
-            onClick={() => setIsMinimized(true)}
-          >
+          <button className={`${styles.controlBtn} ${styles.menuBackBtn} ${styles.desktopOnly}`} onClick={() => setIsMinimized(true)}>
             &#9673; MENU
           </button>
           <button className={styles.controlBtn} onClick={() => setIsMinimized(true)} title="Minimize">
@@ -179,68 +154,50 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
         </div>
       </div>
 
-      {/* Left Panel */}
+      {/* ── Left Panel (desktop only) ──────────────────────────────────── */}
       <div className={`${styles.panel} ${styles.leftPanel}`}>
         <div className={styles.panelHeader}>SYSTEM METRICS</div>
         <div className={styles.metricItem}>
           <span className={styles.metricLabel}>CPU</span>
-          <div className={styles.metricBar}>
-            <div className={styles.metricFill} style={{ width: `${Math.min(cpuPct, 100)}%` }} />
-          </div>
+          <div className={styles.metricBar}><div className={styles.metricFill} style={{ width: `${Math.min(cpuPct, 100)}%` }} /></div>
           <span className={styles.metricValue}>{cpuPct.toFixed(1)}%</span>
         </div>
         <div className={styles.metricItem}>
           <span className={styles.metricLabel}>MEMORY</span>
-          <div className={styles.metricBar}>
-            <div className={styles.metricFill} style={{ width: `${Math.min(memPct, 100)}%` }} />
-          </div>
+          <div className={styles.metricBar}><div className={styles.metricFill} style={{ width: `${Math.min(memPct, 100)}%` }} /></div>
           <span className={styles.metricValue}>{memPct.toFixed(1)}%</span>
         </div>
         <div className={styles.metricItem}>
           <span className={styles.metricLabel}>PROCESSES</span>
-          <div className={styles.metricBar}>
-            <div className={styles.metricFill} style={{ width: '30%' }} />
-          </div>
+          <div className={styles.metricBar}><div className={styles.metricFill} style={{ width: '30%' }} /></div>
           <span className={styles.metricValue}>—</span>
         </div>
-
         <div className={styles.panelHeader} style={{ marginTop: '20px' }}>QUICK STATS</div>
-        <div className={styles.statItem}>
-          <span>MEM USED: {metrics ? formatMemory(metrics.memory.used_mb) : '—'}</span>
-        </div>
-        <div className={styles.statItem}>
-          <span>MEM TOTAL: {metrics ? formatMemory(metrics.memory.total_mb) : '—'}</span>
-        </div>
-        <div className={styles.statItem}>
-          <span>HOST: {metrics?.hostname ?? '—'}</span>
-        </div>
+        <div className={styles.statItem}><span>MEM USED: {metrics ? formatMemory(metrics.memory.used_mb) : '—'}</span></div>
+        <div className={styles.statItem}><span>MEM TOTAL: {metrics ? formatMemory(metrics.memory.total_mb) : '—'}</span></div>
+        <div className={styles.statItem}><span>HOST: {metrics?.hostname ?? '—'}</span></div>
       </div>
 
-      {/* Right Panel */}
+      {/* ── Right Panel (desktop only) ─────────────────────────────────── */}
       <div className={`${styles.panel} ${styles.rightPanel}`}>
         <div className={styles.panelHeader}>FRONTEND STATUS</div>
         <div className={styles.infoItem}>
           <span className={styles.infoLabel}>STATUS:</span>
           <span className={`${styles.value} ${statusClass}`}>{connectionStatus}</span>
         </div>
-
         <div className={styles.panelHeader} style={{ marginTop: '15px' }}>PERFORMANCE</div>
         <canvas ref={canvasRef} className={styles.chart} width={200} height={80} />
-
         <div className={styles.panelHeader} style={{ marginTop: '20px' }}>NOTIFICATIONS</div>
         <div className={styles.notificationItem}>
           <div className={`${styles.notifDot} ${connectionStatus === 'ONLINE' ? styles.notifActive : ''}`} />
-          <span>{connectionStatus === 'ONLINE' ? 'System operational' : 'Connecting to backend...'}</span>
+          <span>{connectionStatus === 'ONLINE' ? 'System operational' : 'Connecting...'}</span>
         </div>
         <div className={styles.notificationItem}>
-          <div className={styles.notifDot} />
-          <span>No errors detected</span>
+          <div className={styles.notifDot} /><span>No errors detected</span>
         </div>
         <div className={styles.notificationItem}>
-          <div className={styles.notifDot} />
-          <span>All services running</span>
+          <div className={styles.notifDot} /><span>All services running</span>
         </div>
-
         <div className={styles.panelHeader} style={{ marginTop: '20px' }}>SYSTEM INFO</div>
         <div className={styles.infoItem}>
           <span className={styles.infoLabel}>OS:</span>
@@ -252,7 +209,33 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
         </div>
       </div>
 
-      {/* Bottom Panel */}
+      {/* ── Mobile collapsed metrics strip (hidden on desktop) ────────── */}
+      <div className={`${styles.panel} ${styles.mobileMetrics}`}>
+        <div className={styles.mobileMetricItem}>
+          <span className={styles.label}>CPU</span>
+          <div className={styles.metricBar}><div className={styles.metricFill} style={{ width: `${Math.min(cpuPct, 100)}%` }} /></div>
+          <span className={styles.mobileMetricVal}>{cpuPct.toFixed(0)}%</span>
+        </div>
+        <div className={styles.mobileMetricItem}>
+          <span className={styles.label}>MEM</span>
+          <div className={styles.metricBar}><div className={styles.metricFill} style={{ width: `${Math.min(memPct, 100)}%` }} /></div>
+          <span className={styles.mobileMetricVal}>{memPct.toFixed(0)}%</span>
+        </div>
+        <div className={styles.mobileStat}>
+          <span className={styles.label}>UPTIME</span>
+          <span className={styles.mobileMetricVal}>{metrics ? formatUptime(metrics.uptime_seconds) : '—'}</span>
+        </div>
+        <div className={styles.mobileStat}>
+          <span className={styles.label}>OS</span>
+          <span className={styles.mobileMetricVal}>{metrics?.os ?? '—'} {metrics?.arch ?? ''}</span>
+        </div>
+        <div className={styles.mobileStat}>
+          <span className={styles.label}>HOST</span>
+          <span className={styles.mobileMetricVal}>{metrics?.hostname ?? '—'}</span>
+        </div>
+      </div>
+
+      {/* ── Bottom Panel ──────────────────────────────────────────────── */}
       <div className={`${styles.panel} ${styles.bottomPanel}`}>
         <div className={styles.panelSection}>
           <span className={styles.label}>NET RX</span>
@@ -262,11 +245,11 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
           <span className={styles.label}>NET TX</span>
           <span className={styles.value}>—</span>
         </div>
-        <div className={styles.panelSection}>
+        <div className={`${styles.panelSection} ${styles.desktopOnly}`}>
           <span className={styles.label}>DISK READ</span>
           <span className={styles.value}>—</span>
         </div>
-        <div className={styles.panelSection}>
+        <div className={`${styles.panelSection} ${styles.desktopOnly}`}>
           <span className={styles.label}>DISK WRITE</span>
           <span className={styles.value}>—</span>
         </div>

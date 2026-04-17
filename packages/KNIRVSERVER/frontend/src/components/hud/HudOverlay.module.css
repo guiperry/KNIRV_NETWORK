@@ -349,6 +349,96 @@
   border-radius: 2px;
 }
 
+/* ── Mobile collapsed metrics strip (hidden on desktop) ─────────────── */
+
+.mobileMetrics {
+  display: none; /* hidden by default; shown via media query below */
+  position: fixed;
+  bottom: 60px; /* sits directly above the bottom panel */
+  left: 0;
+  right: 0;
+  height: 40px;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
+  padding: 0 12px;
+  border-top: 1px solid rgba(72, 136, 255, 0.4);
+  border-bottom: 1px solid rgba(72, 136, 255, 0.2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  z-index: 1000;
+}
+
+.mobileMetrics::-webkit-scrollbar { display: none; }
+
+.mobileMetricItem {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0 12px;
+  border-right: 1px solid rgba(72, 136, 255, 0.2);
+  min-width: 100px;
+}
+
+.mobileMetricVal {
+  font-size: 11px;
+  font-weight: bold;
+  color: #4888ff;
+  text-shadow: 0 0 6px rgba(72, 136, 255, 0.6);
+}
+
+.mobileStat {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0 12px;
+  border-right: 1px solid rgba(72, 136, 255, 0.2);
+  min-width: 90px;
+}
+
+/* desktop-only helper — hides elements from top panel on mobile */
+.desktopOnly {
+  display: flex;
+}
+
+/* mobile-only brand in top panel */
+.mobileBrand {
+  display: none;
+}
+
+/* ── Responsive breakpoint ──────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* Hide side panels */
+  .leftPanel,
+  .rightPanel {
+    display: none !important;
+  }
+
+  /* Show the collapsed metrics strip */
+  .mobileMetrics {
+    display: flex;
+  }
+
+  /* Hide desktop-only top-panel sections */
+  .desktopOnly {
+    display: none !important;
+  }
+
+  /* Show mobile brand */
+  .mobileBrand {
+    display: flex;
+  }
+
+  /* Hide corner decorations on mobile — they overlap content */
+  .corner {
+    display: none;
+  }
+}
+
 /* ── Animations ─────────────────────────────────────────────────────── */
 
 @keyframes pulse {

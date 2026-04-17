@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node server.cjs",
     "dev:watch": "nodemon server.cjs",
-    "build": "npm run build:log:start && next build && npm run build:log:success",
+    "build": "npm run build:log:start && node scripts/generate-icons.mjs && next build && npm run build:log:success",
     "start": "NODE_ENV=production node server.cjs 2>&1 | tee server.log",
     "build:log:start": "node scripts/build-log-start.mjs",
     "build:log:success": "node scripts/build-log-success.mjs",

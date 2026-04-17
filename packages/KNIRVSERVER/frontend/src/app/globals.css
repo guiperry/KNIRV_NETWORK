@@ -257,20 +257,34 @@
 }
 
 /* ── HUD content frame ──────────────────────────────────────────────────────
-   The #hud-content-area div is the scroll root (fixed, inset by panel sizes).
-   Inner pages use min-h-screen / 100vh which must map to 100% of this
-   container, not the full viewport.  Override here so pages fill the frame.
+   Inline styles in layout.tsx are overridden here so media queries work.
+   transform: translateZ(0) makes this element the containing block for ALL
+   position:fixed descendants — "fixed inset-0" modals fill the frame, not
+   the viewport.
 ─────────────────────────────────────────────────────────────────────────── */
 #hud-content-area {
+  position: fixed !important;
+  top: 60px !important;
+  left: 250px !important;
+  right: 250px !important;
+  bottom: 60px !important;
+  overflow: auto !important;
+  background: #0a0a14 !important;
+  z-index: 1 !important;
   color-scheme: dark;
-  /*
-   * Creating a new containing block for all position:fixed descendants.
-   * Per CSS spec, any non-none transform makes the element the containing
-   * block for fixed children — so every "fixed inset-0" modal/panel inside
-   * the content area fills the frame rather than the full viewport.
-   */
   transform: translateZ(0);
   will-change: transform;
+}
+
+/* Mobile: side panels are hidden; content stretches edge-to-edge.
+   Bottom is reserved for the collapsed metrics strip (40px) + bottom
+   panel (60px) = 100px total. */
+@media (max-width: 768px) {
+  #hud-content-area {
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 100px !important;
+  }
 }
 
 #hud-content-area > * {

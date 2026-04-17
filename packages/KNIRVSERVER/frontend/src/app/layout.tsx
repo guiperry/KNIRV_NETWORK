@@ -48,6 +48,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      {/* Capture beforeinstallprompt before React hydrates — the event fires
+          very early and would otherwise be missed by the useEffect listener */}
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          window.__pwaPrompt = null;
+          window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.__pwaPrompt = e;
+            document.dispatchEvent(new Event('pwa-installable'));
+          });
+        `}} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         style={{ overflow: 'hidden', background: '#000818', height: '100vh' }}
