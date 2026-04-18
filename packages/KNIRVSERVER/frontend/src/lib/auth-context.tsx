@@ -162,7 +162,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (error) {
       console.error('Token validation failed:', error);
-      localStorage.removeItem('knirv_nexus_token');
+      // Backend unreachable — try to restore session from cached role.
+      const cachedRole = localStorage.getItem('knirv_nexus_role') as Role | null;
+      const cachedUser = localStorage.getItem('knirv_nexus_user');
+      if (cachedRole && ROLES[cachedRole]) {
+        setUser({
+          user: cachedUser || 'user',
+          role: cachedRole,
+          permissions: ROLES[cachedRole].permissions,
+          nexus_access: ROLES[cachedRole].nexus_access,
+          authenticated: true,
+        });
+      } else {
+        localStorage.removeItem('knirv_nexus_token');
+      }
     } finally {
       setIsLoading(false);
     }

@@ -101,6 +101,7 @@ export default function LoginPage() {
       if (authToken) {
         localStorage.setItem('knirv_nexus_token', authToken);
         localStorage.setItem('knirv_nexus_role', role);
+        localStorage.setItem('knirv_nexus_user', username || 'user');
         localStorage.setItem('knirv_auth_token', authToken);
         localStorage.setItem('knirv_auth_role', role);
         

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
+import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -97,6 +98,7 @@ interface NRNStaking {
 export default function Dashboard() {
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useAuth();
   const [useModularCDE, setUseModularCDE] = useState(false);
 
   useEffect(() => {
