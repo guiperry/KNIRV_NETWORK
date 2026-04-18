@@ -33,20 +33,14 @@ func NewRuntime(logger *zap.Logger, webGUIFS embed.FS, networkWebsiteFS embed.FS
 	// Use OS-specific application data directory instead of /tmp to avoid permission issues
 	var baseDir string
 
-	// First try standard user config directory
-	userConfigDir, err := os.UserConfigDir()
+	// Use .local/share/knirvserver/knirvgateway/runtime as the primary directory
+	homeDir, err := os.UserHomeDir()
 	if err == nil {
-		baseDir = filepath.Join(userConfigDir, "knirvgateway", "runtime")
+		baseDir = filepath.Join(homeDir, ".local", "share", "knirvserver", "knirvgateway", "runtime")
 	} else {
-		// Fallback to home directory .local/share
-		homeDir, err := os.UserHomeDir()
-		if err == nil {
-			baseDir = filepath.Join(homeDir, ".local", "share", "knirvgateway", "runtime")
-		} else {
-			// Last resort fallback to temp directory (only if user dirs unavailable)
-			logger.Warn("Could not determine user application data directory, falling back to system temp", zap.Error(err))
-			baseDir = filepath.Join(os.TempDir(), "knirvgateway-runtime")
-		}
+		// Last resort fallback to temp directory (only if user dirs unavailable)
+		logger.Warn("Could not determine user home directory, falling back to system temp", zap.Error(err))
+		baseDir = filepath.Join(os.TempDir(), "knirvgateway-runtime")
 	}
 
 	// Ensure base directory exists with proper permissions

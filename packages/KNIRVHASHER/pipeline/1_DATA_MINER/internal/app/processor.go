@@ -166,9 +166,9 @@ func ProcessDocuments(config *Config, checkpointer *checkpoint.Checkpointer) err
 func embeddingWorker(id int, jobs <-chan string, results chan<- DocumentRecord, wg *sync.WaitGroup, config *Config, bar *mpb.Bar, checkpointer *checkpoint.Checkpointer, paperManager *PaperManager) {
 	defer wg.Done()
 
-	// Create hybrid provider
+	// Create embedding provider based on backend config
 	ollamaURL := strings.TrimSuffix(config.OllamaHost, "/") + "/api/embeddings"
-	provider := embedder.NewHybridEmbeddingProvider(config.CloudflareEndpoint, ollamaURL, config.OllamaModel, config.CloudflareLimit)
+	var provider embedder.EmbeddingProvider = embedder.NewEmbeddingProvider(config.EmbeddingBackend, config.CloudflareEndpoint, ollamaURL, config.OllamaModel, config.CloudflareLimit)
 
 	// Initialize NLP Bridge
 	nlpBridge, err := NewNLPBridge()
@@ -383,12 +383,12 @@ func ChunkTextByParagraph(text string) []string {
 }
 
 // getBatchEmbeddings generates embeddings for a batch of text chunks
-func getBatchEmbeddings(provider *embedder.HybridEmbeddingProvider, texts []string) ([][]float32, error) {
+func getBatchEmbeddings(provider embedder.EmbeddingProvider, texts []string) ([][]float32, error) {
 	// Get provider stats
 	stats := provider.GetProviderStats()
 	log.Printf("Embedding provider stats: %+v", stats)
 
-	// Process batch using hybrid provider
+	// Process batch using the provider
 	return provider.GetBatchEmbeddings(texts)
 }
 
@@ -651,20 +651,23 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 	persistentStats := statsManager.GetCurrentStats()
 	previousQuotaUsed := persistentStats["cloudflare_quota_used"].(int)
 
-	// Create hybrid provider to track quota, initializing with previous usage
+	// Create embedding provider based on backend config
 	ollamaFullURL := strings.TrimSuffix(config.OllamaHost, "/") + "/api/embeddings"
 
-	provider := embedder.NewHybridEmbeddingProvider(
+	var provider embedder.EmbeddingProvider = embedder.NewEmbeddingProvider(
+		config.EmbeddingBackend,
 		config.CloudflareEndpoint,
 		ollamaFullURL,
 		config.OllamaModel,
 		maxDaily,
 	)
 
-	// Initialize provider with previous quota usage
-	if previousQuotaUsed > 0 {
-		provider.RequestTracker.SetRequests(previousQuotaUsed)
+	// Initialize provider with previous quota usage (only for hybrid/cloudflare backends)
+	if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok && previousQuotaUsed > 0 {
+		hp.RequestTracker.SetRequests(previousQuotaUsed)
 		fmt.Printf("🌐 Restored previous Cloudflare quota usage: %d/%d\n", previousQuotaUsed, maxDaily)
+	} else if config.EmbeddingBackend == "deterministic" {
+		fmt.Printf("🔒 Using deterministic embeddings (no quota tracking needed)\n")
 	}
 
 	// Main workflow loop
@@ -687,39 +690,21 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 		fmt.Printf("============================\n")
 
 		// Get current quota status
-		providerStats := provider.GetProviderStats()
-
-		// Handle both int and float64 types for quota values
-		if usedFloat, ok := providerStats["cloudflare_quota_used"].(float64); ok {
-			sessionStats.CloudflareUsed = int(usedFloat)
-		} else if usedInt, ok := providerStats["cloudflare_quota_used"].(int); ok {
-			sessionStats.CloudflareUsed = usedInt
+		var remaining int
+		if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok {
+			_ = hp.GetProviderStats()
+			// Update stats manager with current cloudflare usage from provider
+			used, max, _ := hp.RequestTracker.GetStats()
+			statsManager.RecordCloudflareUsage(used, max)
+			sessionStats.CloudflareUsed = used
+			remaining = max - used
+			sessionStats.CloudflareRemaining = remaining
+		} else if dp, ok := provider.(*embedder.DeterministicProvider); ok {
+			_ = dp.GetProviderStats()
+			// Deterministic has no quota limit
+			remaining = 999999999
+			sessionStats.CloudflareRemaining = remaining
 		}
-
-		if remainingFloat, ok := providerStats["remaining_quota"].(float64); ok {
-			sessionStats.CloudflareRemaining = int(remainingFloat)
-		} else if remainingInt, ok := providerStats["remaining_quota"].(int); ok {
-			sessionStats.CloudflareRemaining = remainingInt
-		}
-
-		// Get persistent stats for display
-		persistentStats := statsManager.GetCurrentStats()
-
-		fmt.Printf("📊 Current Status:\n")
-		fmt.Printf("  🌐 Cloudflare Quota: %d/%d used (%d remaining)\n",
-			sessionStats.CloudflareUsed, maxDaily, sessionStats.CloudflareRemaining)
-		fmt.Printf("  📄 Papers Downloaded: %d (session: %d)\n",
-			persistentStats["daily_papers_downloaded"], persistentStats["daily_papers_downloaded"])
-		fmt.Printf("  🧠 Papers Processed: %d (session: %d)\n",
-			persistentStats["daily_papers_processed"], persistentStats["daily_papers_processed"])
-		fmt.Printf("  📈 Embeddings Generated: %d (session: %d)\n",
-			persistentStats["daily_embeddings_generated"], persistentStats["daily_embeddings_generated"])
-
-		// Update stats manager with current cloudflare usage from provider
-		used, max, _ := provider.RequestTracker.GetStats()
-		statsManager.RecordCloudflareUsage(used, max)
-		sessionStats.CloudflareUsed = used
-		sessionStats.CloudflareRemaining = max - used
 
 		// Check if quota is exhausted or nearly exhausted
 		if sessionStats.CloudflareRemaining <= 10 {
@@ -740,7 +725,7 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 		if config.GoatMode {
 			fmt.Printf("\n🐐 PHASE 0: GOAT Mining (Hugging Face)\n")
 			fmt.Printf("========================================\n")
-			
+
 			papersProcessed, embeddingsGenerated, err = RunGoatMiningPhase(ctx, config, provider, statsManager)
 			if err != nil {
 				return fmt.Errorf("GOAT mining phase failed: %w", err)
@@ -754,7 +739,7 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 			fmt.Printf("======================\n")
 			fmt.Printf("🐐 Records processed: %d\n", papersProcessed)
 			fmt.Printf("📈 Embeddings generated: %d\n", embeddingsGenerated)
-			
+
 			// In GOAT mode, we might want to exit after one successful run if not continuous
 			if !config.EnableArxivMining {
 				fmt.Println("🏁 GOAT mode completed. Exiting workflow.")
@@ -786,9 +771,11 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 
 			// Record in stats manager
 			statsManager.RecordWorkflowLoop(0, papersProcessed, embeddingsGenerated)
-			// Sync quota from provider and save
-			used, max, _ := provider.RequestTracker.GetStats()
-			statsManager.RecordCloudflareUsage(used, max)
+			// Sync quota from provider and save (only for hybrid provider)
+			if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok {
+				used, max, _ := hp.RequestTracker.GetStats()
+				statsManager.RecordCloudflareUsage(used, max)
+			}
 			statsManager.Save()
 
 			fmt.Printf("\n🎉 PHASE 1 COMPLETED\n")
@@ -875,7 +862,7 @@ func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *St
 }
 
 // handleQuotaExhausted handles the quota exceeded scenario with interactive prompts
-func handleQuotaExhausted(config *Config, statsManager *StatsManager, provider *embedder.HybridEmbeddingProvider, maxDaily int) error {
+func handleQuotaExhausted(config *Config, statsManager *StatsManager, provider embedder.EmbeddingProvider, maxDaily int) error {
 	// Get current persistent stats
 	persistentStats := statsManager.GetCurrentStats()
 
@@ -976,9 +963,15 @@ func continueWithOllamaOnly(config *Config, statsManager *StatsManager) error {
 }
 
 // continueWithMixedEmbeddings continues with both providers (using remaining quota)
-func continueWithMixedEmbeddings(config *Config, statsManager *StatsManager, provider *embedder.HybridEmbeddingProvider) error {
+func continueWithMixedEmbeddings(config *Config, statsManager *StatsManager, provider interface{}) error {
+	// Only works with hybrid provider
+	hp, ok := provider.(*embedder.HybridEmbeddingProvider)
+	if !ok {
+		return fmt.Errorf("mixed embeddings not supported with deterministic provider")
+	}
+
 	// Get current quota info
-	providerStats := provider.GetProviderStats()
+	providerStats := hp.GetProviderStats()
 	remainingQuota := 0
 	if remainingFloat, ok := providerStats["remaining_quota"].(float64); ok {
 		remainingQuota = int(remainingFloat)
@@ -998,7 +991,7 @@ func continueWithMixedEmbeddings(config *Config, statsManager *StatsManager, pro
 	// Continue processing with mixed mode
 	fmt.Printf("🧠 Processing remaining papers with mixed embeddings...\n")
 
-	papersProcessed, embeddingsGenerated, err := ProcessDocumentsWithMixedOnly(config, checkpointer, provider)
+	papersProcessed, embeddingsGenerated, err := ProcessDocumentsWithMixedOnly(config, checkpointer, hp)
 	if err != nil {
 		return fmt.Errorf("mixed processing failed: %w", err)
 	}
@@ -1103,7 +1096,7 @@ func runArxivMiningPhase(config *Config, _ *SessionStats, maxPapers int) (int, e
 	return papersDownloaded, nil
 }
 
-func runNeuralProcessingPhase(ctx context.Context, config *Config, provider *embedder.HybridEmbeddingProvider, sessionStats *SessionStats, statsManager *StatsManager) (int, int, error) {
+func runNeuralProcessingPhase(ctx context.Context, config *Config, provider embedder.EmbeddingProvider, sessionStats *SessionStats, statsManager *StatsManager) (int, int, error) {
 	fmt.Printf("🔄 Starting neural processing phase with Alpaca transformation...\n")
 
 	// Initialize NLP Bridge
@@ -1229,18 +1222,19 @@ func runNeuralProcessingPhase(ctx context.Context, config *Config, provider *emb
 			// 3. Get embedding for the Alpaca record
 			// We embed Instruction + Input + Output to capture the full semantic meaning
 			embedText := content
-			
-			// Check if we have quota left
-			providerStats := provider.GetProviderStats()
-			var remaining int
-			if remainingFloat, ok := providerStats["remaining_quota"].(float64); ok {
-				remaining = int(remainingFloat)
-			} else if remainingInt, ok := providerStats["remaining_quota"].(int); ok {
-				remaining = remainingInt
-			}
 
-			if remaining <= 0 && config.CloudflareEndpoint != "" {
-				fmt.Printf("⚠️  Cloudflare quota exhausted, falling back to Ollama or stopping\n")
+			// Check if we have quota left (only for hybrid provider)
+			var remaining int
+			if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok {
+				providerStats := hp.GetProviderStats()
+				if remainingFloat, ok := providerStats["remaining_quota"].(float64); ok {
+					remaining = int(remainingFloat)
+				} else if remainingInt, ok := providerStats["remaining_quota"].(int); ok {
+					remaining = remainingInt
+				}
+				if remaining <= 0 && config.CloudflareEndpoint != "" {
+					fmt.Printf("⚠️  Cloudflare quota exhausted, falling back to Ollama or stopping\n")
+				}
 			}
 
 			fmt.Printf("🌐 Getting embedding for Alpaca record %d...\n", j+1)
@@ -1250,11 +1244,11 @@ func runNeuralProcessingPhase(ctx context.Context, config *Config, provider *emb
 			errChan := make(chan error, 1)
 
 			go func() {
-				embedding, err := provider.GetEmbedding(embedText)
+				emb, err := provider.GetEmbedding(embedText)
 				if err != nil {
 					errChan <- err
 				} else {
-					embeddingChan <- embedding
+					embeddingChan <- emb
 				}
 			}()
 
@@ -1266,13 +1260,15 @@ func runNeuralProcessingPhase(ctx context.Context, config *Config, provider *emb
 				fmt.Printf("✅ Generated embedding for chunk %d\n", j+1)
 				fileEmbeddings++
 
-				// Sync quota to stats manager after each successful embedding
-				used, max, _ := provider.RequestTracker.GetStats()
-				statsManager.RecordCloudflareUsage(used, max)
-				// Update session stats
-				if sessionStats != nil {
-					sessionStats.CloudflareUsed = used
-					sessionStats.CloudflareRemaining = max - used
+				// Sync quota to stats manager after each successful embedding (only for hybrid)
+				if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok {
+					used, max, _ := hp.RequestTracker.GetStats()
+					statsManager.RecordCloudflareUsage(used, max)
+					// Update session stats
+					if sessionStats != nil {
+						sessionStats.CloudflareUsed = used
+						sessionStats.CloudflareRemaining = max - used
+					}
 				}
 			case err := <-errChan:
 				fmt.Printf("❌ Failed to generate embedding for chunk %d: %v\n", j+1, err)
@@ -1304,7 +1300,7 @@ func runNeuralProcessingPhase(ctx context.Context, config *Config, provider *emb
 				Tenses:       tenses,
 				DepHashes:    depHashes,
 			}
-			
+
 			allAlpacaRecords = append(allAlpacaRecords, alpacaRecord)
 
 			recordBytes, err := formatAlpacaRecord(alpacaRecord)
@@ -1331,17 +1327,19 @@ func runNeuralProcessingPhase(ctx context.Context, config *Config, provider *emb
 			fmt.Printf("⚠️  Failed to mark %s as processed: %v\n", filepath.Base(file), err)
 		}
 
-		// Check if we're out of quota
-		currentProviderStats := provider.GetProviderStats()
+		// Check if we're out of quota (only for hybrid provider)
 		var remaining int
-		if remainingFloat, ok := currentProviderStats["remaining_quota"].(float64); ok {
-			remaining = int(remainingFloat)
-		} else if remainingInt, ok := currentProviderStats["remaining_quota"].(int); ok {
-			remaining = remainingInt
-		}
-		if remaining <= 0 && config.CloudflareEndpoint != "" {
-			fmt.Printf("⚠️  Quota exhausted after processing %d papers\n", papersProcessed)
-			break
+		if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok {
+			stats := hp.GetProviderStats()
+			if remainingFloat, ok := stats["remaining_quota"].(float64); ok {
+				remaining = int(remainingFloat)
+			} else if remainingInt, ok := stats["remaining_quota"].(int); ok {
+				remaining = remainingInt
+			}
+			if remaining <= 0 && config.CloudflareEndpoint != "" {
+				fmt.Printf("⚠️  Quota exhausted after processing %d papers\n", papersProcessed)
+				break
+			}
 		}
 
 		// Brief pause between files
@@ -1431,7 +1429,7 @@ func ProcessDocumentsWithOllamaOnly(config *Config, checkpointer *checkpoint.Che
 	return len(files), nil
 }
 
-func ProcessDocumentsWithMixedOnly(config *Config, checkpointer *checkpoint.Checkpointer, provider *embedder.HybridEmbeddingProvider) (int, int, error) {
+func ProcessDocumentsWithMixedOnly(config *Config, checkpointer *checkpoint.Checkpointer, provider embedder.EmbeddingProvider) (int, int, error) {
 	// Scan for PDF files
 	files, err := ScanForPDFs(config.InputDir, checkpointer)
 	if err != nil {
@@ -1457,10 +1455,7 @@ func ProcessDocumentsWithMixedOnly(config *Config, checkpointer *checkpoint.Chec
 
 		// Process all chunks (provider will handle quota)
 		for _, chunk := range chunks {
-			_, err := provider.GetEmbedding(chunk)
-			if err != nil {
-				continue
-			}
+			_, _ = provider.GetEmbedding(chunk)
 			totalEmbeddings++
 		}
 
@@ -1492,7 +1487,7 @@ func printDetailedStats(statsManager *StatsManager, maxDaily int) {
 }
 
 // RunGoatMiningPhase fetches the GOAT dataset from Hugging Face and processes it
-func RunGoatMiningPhase(ctx context.Context, config *Config, provider *embedder.HybridEmbeddingProvider, statsManager *StatsManager) (int, int, error) {
+func RunGoatMiningPhase(ctx context.Context, config *Config, provider embedder.EmbeddingProvider, statsManager *StatsManager) (int, int, error) {
 	fmt.Printf("🐐 Starting GOAT Mining Phase (Hugging Face)\n")
 	fmt.Printf("===========================================\n")
 
@@ -1507,11 +1502,11 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider *embedder.
 	// Hugging Face Datasets Server API URL
 	offset := 0
 	length := 100
-	
+
 	hfURL := fmt.Sprintf("https://datasets-server.huggingface.co/rows?dataset=stallone%%2Fgoat&config=completion&split=train&offset=%d&length=%d", offset, length)
-	
+
 	fmt.Printf("🌐 Fetching GOAT dataset from: %s\n", hfURL)
-	
+
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(hfURL)
 	if err != nil {
@@ -1545,7 +1540,7 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider *embedder.
 	if err := os.MkdirAll(filepath.Dir(alpacaJsonPath), 0755); err != nil {
 		return 0, 0, fmt.Errorf("failed to create json directory: %w", err)
 	}
-	
+
 	jsonFile, err := os.Create(alpacaJsonPath)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to create json file: %w", err)
@@ -1592,7 +1587,7 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider *embedder.
 
 		// Get embedding
 		embedText := content
-		
+
 		fmt.Printf("🌐 Getting embedding for record %d...\n", i+1)
 		embedding, err := provider.GetEmbedding(embedText)
 		if err != nil {
@@ -1627,13 +1622,15 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider *embedder.
 		totalEmbeddingsGenerated++
 		recordsProcessed++
 
-		// Sync quota
-		used, max, _ := provider.RequestTracker.GetStats()
-		statsManager.RecordCloudflareUsage(used, max)
+		// Sync quota (only for hybrid provider)
+		if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok {
+			used, max, _ := hp.RequestTracker.GetStats()
+			statsManager.RecordCloudflareUsage(used, max)
+		}
 	}
 
 	jsonFile.WriteString("\n]")
-	
+
 	// Write to Arrow
 	arrowPath := strings.TrimSuffix(config.OutputFile, ".json") + "_goat_alpaca.arrow"
 	fmt.Printf("📝 Writing GOAT Alpaca Arrow IPC output: %s\n", arrowPath)

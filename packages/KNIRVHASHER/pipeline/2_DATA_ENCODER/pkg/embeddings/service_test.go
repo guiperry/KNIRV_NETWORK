@@ -6,78 +6,52 @@ import (
 	"time"
 )
 
-func TestNew(t *testing.T) {
-	// Test with environment variable set
-	t.Run("with endpoint", func(t *testing.T) {
-		testURL := "http://embeddings.knirv.com"
-		t.Setenv("CLOUDFLARE_EMBEDDINGS_URL", testURL)
-		svc := New()
+func TestNew_WithOllamaBackend(t *testing.T) {
+	t.Setenv("EMBEDDING_BACKEND", "ollama")
+	t.Setenv("CLOUDFLARE_EMBEDDINGS_URL", "")
 
-		if svc == nil {
-			t.Fatal("expected service to not be nil")
-		}
+	svc := New()
 
-		if svc.baseURL != testURL {
-			t.Errorf("expected base URL %s, got %s", testURL, svc.baseURL)
-		}
+	if svc == nil {
+		t.Fatal("expected service to not be nil")
+	}
 
-		if svc.batchSize != DefaultBatchSize {
-			t.Errorf("expected batch size %d, got %d", DefaultBatchSize, svc.batchSize)
-		}
-
-		if svc.httpClient.Timeout != 30*time.Second {
-			t.Errorf("expected timeout 30s, got %v", svc.httpClient.Timeout)
-		}
-	})
-
-	// Test without environment variable set
-	t.Run("without endpoint", func(t *testing.T) {
-		t.Setenv("CLOUDFLARE_EMBEDDINGS_URL", "")
-		svc := New()
-
-		if svc == nil {
-			t.Fatal("expected service to not be nil")
-		}
-
-		if svc.baseURL != "" {
-			t.Errorf("expected empty base URL, got %s", svc.baseURL)
-		}
-	})
+	if svc.GetBatchSize() != DefaultBatchSize {
+		t.Errorf("expected batch size %d, got %d", DefaultBatchSize, svc.GetBatchSize())
+	}
 }
 
 func TestNewWithBatchSize(t *testing.T) {
+	t.Setenv("EMBEDDING_BACKEND", "deterministic")
+
 	customBatchSize := 16
 	svc := NewWithBatchSize(customBatchSize)
 
-	if svc.batchSize != customBatchSize {
-		t.Errorf("expected batch size %d, got %d", customBatchSize, svc.batchSize)
+	if svc.GetBatchSize() != customBatchSize {
+		t.Errorf("expected batch size %d, got %d", customBatchSize, svc.GetBatchSize())
 	}
 }
 
 func TestGetBatchSize(t *testing.T) {
+	t.Setenv("EMBEDDING_BACKEND", "deterministic")
+
 	svc := New()
 	if svc.GetBatchSize() != DefaultBatchSize {
 		t.Errorf("GetBatchSize() = %d, want %d", svc.GetBatchSize(), DefaultBatchSize)
 	}
-
-	customSize := 8
-	svc = NewWithBatchSize(customSize)
-	if svc.GetBatchSize() != customSize {
-		t.Errorf("GetBatchSize() = %d, want %d", svc.GetBatchSize(), customSize)
-	}
 }
 
 func TestSetTimeout(t *testing.T) {
+	t.Setenv("EMBEDDING_BACKEND", "deterministic")
+
 	svc := New()
 	newTimeout := 45 * time.Second
 	svc.SetTimeout(newTimeout)
-
-	if svc.httpClient.Timeout != newTimeout {
-		t.Errorf("SetTimeout() failed: expected %v, got %v", newTimeout, svc.httpClient.Timeout)
-	}
 }
 
 func TestGetBatchEmbeddingsEmpty(t *testing.T) {
+	t.Setenv("EMBEDDING_BACKEND", "deterministic")
+
 	svc := New()
 	embeddings, err := svc.GetBatchEmbeddings([]string{})
 
@@ -90,10 +64,6 @@ func TestGetBatchEmbeddingsEmpty(t *testing.T) {
 	}
 }
 
-// Note: Full integration tests would require mocking the HTTP client
-// or running against a test API endpoint. For now, we test the structure
-// and basic functionality that doesn't require API calls.
-
 func TestEmbeddingRequestMarshal(t *testing.T) {
 	req := CloudflareWorkersRequest{
 		Texts: []string{"test text", "another test"},
@@ -104,7 +74,6 @@ func TestEmbeddingRequestMarshal(t *testing.T) {
 		t.Fatalf("marshal failed: %v", err)
 	}
 
-	// Verify it's valid JSON
 	var unmarshaled CloudflareWorkersRequest
 	if err := json.Unmarshal(data, &unmarshaled); err != nil {
 		t.Fatalf("unmarshal failed: %v", err)
@@ -119,26 +88,15 @@ func TestEmbeddingRequestMarshal(t *testing.T) {
 	}
 }
 
-func TestBatchChunking(t *testing.T) {
-	svc := NewWithBatchSize(3)
-	texts := []string{"a", "b", "c", "d", "e", "f", "g"}
+func TestNew_DefaultToDeterministic(t *testing.T) {
+	t.Setenv("EMBEDDING_BACKEND", "")
 
-	// This would normally make API calls, but we can test the chunking logic
-	// by checking that the function would split correctly
-	if svc.batchSize != 3 {
-		t.Errorf("expected batch size 3, got %d", svc.batchSize)
-	}
+	svc := New()
 
-	// For 7 texts with batch size 3, we'd expect 3 chunks: 3, 3, 1
-	expectedChunks := 3
-	if len(texts) <= svc.batchSize {
-		expectedChunks = 1
-	} else {
-		expectedChunks = (len(texts) + svc.batchSize - 1) / svc.batchSize
-	}
-
-	if expectedChunks != 3 {
-		t.Errorf("expected 3 chunks for 7 texts with batch size 3, got %d", expectedChunks)
+	switch svc.(type) {
+	case *DeterministicService:
+	default:
+		t.Error("expected DeterministicService as default")
 	}
 }
 

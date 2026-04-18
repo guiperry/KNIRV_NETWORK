@@ -104,8 +104,7 @@ export default function LoginPage() {
         localStorage.setItem('knirv_nexus_user', username || 'user');
         localStorage.setItem('knirv_auth_token', authToken);
         localStorage.setItem('knirv_auth_role', role);
-        
-        // Transition to menu
+
         router.push('/menu');
       }
     } catch {
@@ -174,8 +173,7 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
-    // Auto redirect if already authenticated
-    const existingToken = localStorage.getItem('knirv_auth_token');
+    const existingToken = localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token');
     if (existingToken) {
       router.push('/menu');
     }

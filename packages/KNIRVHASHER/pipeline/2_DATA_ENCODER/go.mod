@@ -5,6 +5,7 @@ go 1.24.11
 require (
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40
 	github.com/apache/arrow/go/v14 v14.0.2
+	github.com/guiperry/text-embedder v0.1.0
 	github.com/joho/godotenv v1.5.1
 	github.com/knirvcorp/knirvbase v1.0.7
 	github.com/pkoukk/tiktoken-go v0.1.8
@@ -34,3 +35,5 @@ require (
 )
 
 replace knirvhasher => ../../
+
+replace github.com/guiperry/text-embedder => /home/gperry/Documents/GitHub/text-embedder

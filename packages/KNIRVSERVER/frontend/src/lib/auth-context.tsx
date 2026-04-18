@@ -82,8 +82,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       localStorage.setItem('knirv_nexus_token', data.token);
+      localStorage.setItem('knirv_auth_token', data.token);
       if (typeof data.role === 'string' && data.role) {
         localStorage.setItem('knirv_nexus_role', data.role);
+        localStorage.setItem('knirv_auth_role', data.role);
       }
       validateToken(data.token);
     };

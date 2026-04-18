@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './HudOverlay.module.css';
 
 export interface SystemMetrics {
@@ -23,6 +24,7 @@ interface HudOverlayProps {
 }
 
 export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverlayProps) {
+  const router = useRouter();
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'ONLINE' | 'CONNECTING' | 'ERROR'>('CONNECTING');
   const [currentTime, setCurrentTime] = useState('');
@@ -145,7 +147,7 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
           <span className={styles.value}>{metrics ? formatUptime(metrics.uptime_seconds) : '—'}</span>
         </div>
         <div className={`${styles.panelSection} ${styles.windowControls}`}>
-          <button className={`${styles.controlBtn} ${styles.menuBackBtn} ${styles.desktopOnly}`} onClick={() => setIsMinimized(true)}>
+          <button className={`${styles.controlBtn} ${styles.menuBackBtn} ${styles.desktopOnly}`} onClick={() => router.push('/menu')}>
             &#9673; MENU
           </button>
           <button className={styles.controlBtn} onClick={() => setIsMinimized(true)} title="Minimize">

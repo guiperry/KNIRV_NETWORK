@@ -167,6 +167,13 @@ func (efs *EmbeddedFS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Set content type based on resolved file extension
 	ext := filepath.Ext(resolvedPath)
+
+	// Service worker must always be revalidated so Chrome picks up updates
+	if strings.HasSuffix(resolvedPath, "service-worker.js") {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Service-Worker-Allowed", "/")
+	}
+
 	switch ext {
 	case ".html":
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")

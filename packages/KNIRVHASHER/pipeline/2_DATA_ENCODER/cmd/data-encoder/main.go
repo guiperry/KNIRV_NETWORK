@@ -347,7 +347,7 @@ func runEncoder(config *Config) error {
 		return fmt.Errorf("failed to initialize tokenizer: %w", err)
 	}
 
-	ew := embeddings.NewWithBatchSize(config.BatchSize)
+	var ew embeddings.EmbeddingService = embeddings.NewWithBatchSize(config.BatchSize)
 
 	log.Printf("✓ Embeddings service initialized with batch size %d", config.BatchSize)
 	log.Printf("✓ Sliding window: size=%d, stride=%d", config.WindowSize, config.WindowStride)
@@ -514,7 +514,7 @@ func processJSONFallback(filePath string, tp *mapper.TensorPacker, tk *tokenizer
 }
 
 // processJSONFile processes JSON files with proper error handling
-func processJSONFile(filePath string, tp *mapper.TensorPacker, tk *tokenizer.Service, ew *embeddings.Service, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) (int64, error) {
+func processJSONFile(filePath string, tp *mapper.TensorPacker, tk *tokenizer.Service, ew embeddings.EmbeddingService, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) (int64, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return 0, fmt.Errorf("failed to read input file: %w", err)
@@ -548,7 +548,7 @@ func processJSONFile(filePath string, tp *mapper.TensorPacker, tk *tokenizer.Ser
 }
 
 // processDocumentRecords processes DocumentRecord chunks
-func processDocumentRecords(records []schema.DocumentRecord, tp *mapper.TensorPacker, tk *tokenizer.Service, ew *embeddings.Service, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) (int64, error) {
+func processDocumentRecords(records []schema.DocumentRecord, tp *mapper.TensorPacker, tk *tokenizer.Service, ew embeddings.EmbeddingService, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) (int64, error) {
 	var frameCount int64
 	var recordCount int64
 	log.Printf("[BATCH] Starting to process %d DocumentRecords...", len(records))
@@ -609,7 +609,7 @@ func processDocumentRecords(records []schema.DocumentRecord, tp *mapper.TensorPa
 }
 
 // processMinedRecords processes MinedRecord chunks from JSON array
-func processMinedRecords(records *[]schema.MinedRecord, tp *mapper.TensorPacker, tk *tokenizer.Service, ew *embeddings.Service, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) (int64, error) {
+func processMinedRecords(records *[]schema.MinedRecord, tp *mapper.TensorPacker, tk *tokenizer.Service, ew embeddings.EmbeddingService, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) (int64, error) {
 	var frameCount int64
 	var processedCount int64
 
@@ -649,7 +649,7 @@ func processMinedRecords(records *[]schema.MinedRecord, tp *mapper.TensorPacker,
 }
 
 // processJSONLRecords processes JSONL format records
-func processJSONLRecords(content string, tp *mapper.TensorPacker, tk *tokenizer.Service, ew *embeddings.Service, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) (int64, error) {
+func processJSONLRecords(content string, tp *mapper.TensorPacker, tk *tokenizer.Service, ew embeddings.EmbeddingService, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) (int64, error) {
 	var recordCount, frameCount, fixedCount int64
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	var updatedLines []string
@@ -744,7 +744,7 @@ func fixJSONContent(content string) (string, bool) {
 	return fixed, original != fixed
 }
 
-func processSingleRecordWithSlidingWindow(record *schema.MinedRecord, frameCount *int64, tp *mapper.TensorPacker, tk *tokenizer.Service, ew *embeddings.Service, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) error {
+func processSingleRecordWithSlidingWindow(record *schema.MinedRecord, frameCount *int64, tp *mapper.TensorPacker, tk *tokenizer.Service, ew embeddings.EmbeddingService, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) error {
 	log.Printf("[PROCESS] Starting record %d from %s (content length: %d chars)", record.ChunkID, record.FileName, len(record.Content))
 
 	// Check quota availability before processing
@@ -973,7 +973,7 @@ func fixAndRetryRecord(decoder *json.Decoder, record *schema.MinedRecord, config
 }
 
 // processArrowFile processes Arrow IPC stream files
-func processArrowFile(filePath string, tp *mapper.TensorPacker, tk *tokenizer.Service, ew *embeddings.Service, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) (int64, error) {
+func processArrowFile(filePath string, tp *mapper.TensorPacker, tk *tokenizer.Service, ew embeddings.EmbeddingService, frames *[]schema.TrainingFrame, config *Config, cpManager *checkpoint.Manager) (int64, error) {
 	log.Printf("🔄 Attempting Arrow IPC stream processing from: %s", filePath)
 
 	// Read records from Arrow IPC stream

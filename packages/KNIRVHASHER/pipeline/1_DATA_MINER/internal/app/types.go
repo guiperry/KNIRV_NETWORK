@@ -82,4 +82,5 @@ type Config struct {
 	GPUOverride        bool
 	GPUOptimizations   bool
 	CloudflareEndpoint string
+	EmbeddingBackend   string
 }

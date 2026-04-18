@@ -188,10 +188,17 @@ function transitionToDesktop(url, sectionParam) {
         menuOverlay.style.display = 'none';
 
         if (!desktopLoaded) {
-            // First load — encode the section in the URL so the app reads it on mount
-            const loadUrl = sectionParam
+            // First load — embed auth token so Next.js can pre-populate localStorage
+            // before its own auth check runs (different origins can't share localStorage).
+            const authPart = authSession.token
+                ? `__t=${encodeURIComponent(authSession.token)}&__r=${encodeURIComponent(authSession.role)}`
+                : '';
+            let loadUrl = sectionParam
                 ? `${url}?nav=${encodeURIComponent(sectionParam)}`
                 : url;
+            if (authPart) {
+                loadUrl += (loadUrl.includes('?') ? '&' : '?') + authPart;
+            }
             contentIframe.src = loadUrl;
             desktopLoaded = true;
 

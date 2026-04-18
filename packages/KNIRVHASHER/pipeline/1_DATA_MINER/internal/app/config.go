@@ -101,6 +101,7 @@ func ParseFlags() *Config {
 	}
 
 	config.CloudflareEndpoint = os.Getenv("CLOUDFLARE_EMBEDDINGS_URL")
+	config.EmbeddingBackend = getEmbeddingBackend()
 
 	// Define flags
 	flag.StringVar(&config.InputDir, "input", config.InputDir, "Directory containing PDF files")
@@ -390,4 +391,13 @@ func isCommandOrMode(arg string) bool {
 	}
 
 	return false
+}
+
+// getEmbeddingBackend returns the embedding backend to use
+func getEmbeddingBackend() string {
+	backend := os.Getenv("EMBEDDING_BACKEND")
+	if backend == "" {
+		return "deterministic" // default to deterministic
+	}
+	return backend
 }

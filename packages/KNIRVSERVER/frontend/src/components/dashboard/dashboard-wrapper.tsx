@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTEESecurity } from "@/hooks/use-tee-security";
 import { useAuth, ROLES } from '@/lib/auth-context';
-import { LoginForm } from '@/components/auth/login-form';
 import { UserProfile } from '@/components/auth/user-profile';
 import { RoleGuard, DVEAccess, ValidationAccess, SystemAccess } from '@/components/auth/role-guard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,6 +74,7 @@ interface DashboardWrapperProps {
 }
 
 export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseModularCDE }: DashboardWrapperProps) {
+  const router = useRouter();
   const { user, isLoading } = useAuth();
   const { state: onboardingState, updateState: updateOnboardingState, completeOnboarding, resetOnboarding } = useOnboarding();
   const { securityStatus: teeSecurityStatus, isLoading: teeLoading } = useTEESecurity();
@@ -467,16 +468,18 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
     }
   };
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading && !user?.authenticated) {
+      router.push('/login');
+    }
+  }, [isLoading, user, router]);
+
+  if (isLoading || !user?.authenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div data-testid="loading-spinner" className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
-  }
-
-  if (!user?.authenticated) {
-    return <LoginForm />;
   }
 
   return (
@@ -505,7 +508,7 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
             </Badge>
           </div>
           <button
-            onClick={() => window.parent.postMessage({ type: 'back-to-menu' }, '*')}
+            onClick={() => router.push('/menu')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold tracking-widest border border-indigo-500/40 text-indigo-400/70 bg-indigo-500/5 hover:bg-indigo-500/15 hover:text-indigo-400 hover:border-indigo-400/60 transition-all duration-200 rounded-sm"
             title="Return to Constellation Menu"
           >

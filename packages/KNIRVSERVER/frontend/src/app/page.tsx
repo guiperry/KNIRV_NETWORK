@@ -102,7 +102,7 @@ export default function Dashboard() {
   const [useModularCDE, setUseModularCDE] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('knirv_auth_token');
+    const token = localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token');
     if (!token) {
       router.push('/login');
       return;

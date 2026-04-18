@@ -18,3 +18,12 @@ func LoadEnv() {
 func GetCloudflareEndpoint() string {
 	return os.Getenv("CLOUDFLARE_EMBEDDINGS_URL")
 }
+
+// GetEmbeddingBackend returns the embedding backend to use
+func GetEmbeddingBackend() string {
+	backend := os.Getenv("EMBEDDING_BACKEND")
+	if backend == "" {
+		return "deterministic" // default to deterministic
+	}
+	return backend
+}

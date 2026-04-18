@@ -21,6 +21,15 @@ const (
 	CloudflareWorkersBGE = "@cf/baai/bge-base-en-v1.5"
 )
 
+// EmbeddingService is the interface that all embedding services must implement
+type EmbeddingService interface {
+	GetEmbedding(text string) ([]float32, error)
+	GetBatchEmbeddings(texts []string) ([][]float32, error)
+	GetBatchSize() int
+	ValidateEndpoint() error
+	SetTimeout(timeout interface{})
+}
+
 // Service handles embedding generation via Cloudflare Workers AI API or Ollama
 type Service struct {
 	baseURL     string
@@ -45,9 +54,49 @@ type CloudflareWorkersResponse struct {
 	Count      int         `json:"count"`
 }
 
-// New creates a new embeddings service
-func New() *Service {
+// New creates a new embeddings service based on EMBEDDING_BACKEND config
+func New() EmbeddingService {
 	config.LoadEnv()
+	backend := config.GetEmbeddingBackend()
+
+	switch backend {
+	case "deterministic":
+		log.Println("Using deterministic (local) embeddings")
+		return NewDeterministicService()
+	case "cloudflare":
+		log.Println("Using Cloudflare Workers AI embeddings")
+		return newCloudflareService()
+	case "ollama":
+		log.Println("Using Ollama embeddings")
+		return newOllamaService()
+	default:
+		log.Printf("Unknown EMBEDDING_BACKEND: %s, defaulting to deterministic", backend)
+		return NewDeterministicService()
+	}
+}
+
+// NewWithBatchSize creates a new embeddings service with custom batch size
+func NewWithBatchSize(batchSize int) EmbeddingService {
+	config.LoadEnv()
+	backend := config.GetEmbeddingBackend()
+
+	switch backend {
+	case "deterministic":
+		svc := NewDeterministicService()
+		svc.batchSize = batchSize
+		return svc
+	case "cloudflare":
+		return newCloudflareServiceWithBatchSize(batchSize)
+	case "ollama":
+		return newOllamaServiceWithBatchSize(batchSize)
+	default:
+		svc := NewDeterministicService()
+		svc.batchSize = batchSize
+		return svc
+	}
+}
+
+func newCloudflareService() *Service {
 	endpoint := config.GetCloudflareEndpoint()
 	svc := &Service{
 		baseURL:     endpoint,
@@ -58,7 +107,6 @@ func New() *Service {
 		ollamaModel: "nomic-embed-text",
 	}
 
-	// Validate endpoint at initialization
 	if endpoint != "" {
 		if err := svc.ValidateEndpoint(); err != nil {
 			log.Fatalf("❌ Embeddings endpoint validation failed: %v", err)
@@ -69,9 +117,18 @@ func New() *Service {
 	return svc
 }
 
-// NewWithBatchSize creates a new embeddings service with custom batch size
-func NewWithBatchSize(batchSize int) *Service {
-	config.LoadEnv()
+func newOllamaService() *Service {
+	return &Service{
+		baseURL:     "",
+		httpClient:  &http.Client{Timeout: 120 * time.Second},
+		batchSize:   DefaultBatchSize,
+		model:       CloudflareWorkersBGE,
+		ollamaHost:  "http://localhost:11434/api/embeddings",
+		ollamaModel: "nomic-embed-text",
+	}
+}
+
+func newCloudflareServiceWithBatchSize(batchSize int) *Service {
 	endpoint := config.GetCloudflareEndpoint()
 	svc := &Service{
 		baseURL:     endpoint,
@@ -82,7 +139,6 @@ func NewWithBatchSize(batchSize int) *Service {
 		ollamaModel: "nomic-embed-text",
 	}
 
-	// Validate endpoint at initialization
 	if endpoint != "" {
 		if err := svc.ValidateEndpoint(); err != nil {
 			log.Fatalf("❌ Embeddings endpoint validation failed: %v", err)
@@ -91,6 +147,17 @@ func NewWithBatchSize(batchSize int) *Service {
 	}
 
 	return svc
+}
+
+func newOllamaServiceWithBatchSize(batchSize int) *Service {
+	return &Service{
+		baseURL:     "",
+		httpClient:  &http.Client{Timeout: 120 * time.Second},
+		batchSize:   batchSize,
+		model:       CloudflareWorkersBGE,
+		ollamaHost:  "http://localhost:11434/api/embeddings",
+		ollamaModel: "nomic-embed-text",
+	}
 }
 
 // GetEmbedding returns embedding for a single text
@@ -246,6 +313,11 @@ func (s *Service) ValidateEndpoint() error {
 }
 
 // SetTimeout sets the HTTP client timeout
-func (s *Service) SetTimeout(timeout time.Duration) {
-	s.httpClient.Timeout = timeout
+func (s *Service) SetTimeout(timeout interface{}) {
+	switch t := timeout.(type) {
+	case time.Duration:
+		s.httpClient.Timeout = t
+	case int:
+		s.httpClient.Timeout = time.Duration(t) * time.Second
+	}
 }

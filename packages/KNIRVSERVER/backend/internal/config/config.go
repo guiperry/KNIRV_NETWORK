@@ -519,6 +519,7 @@ func getAppDataDir() (string, error) {
 }
 
 // expandPath expands paths with ~ to the user's home directory and creates them if needed
+// Relative paths are resolved relative to the application data directory, NOT the current working directory
 func expandPath(path string) (string, error) {
 	if strings.HasPrefix(path, "~") {
 		usr, err := user.Current()
@@ -534,13 +535,18 @@ func expandPath(path string) (string, error) {
 		return expanded, nil
 	}
 
-	// Resolve relative paths to absolute paths
+	// Resolve relative paths relative to the application data directory (XDG Base)
 	if !filepath.IsAbs(path) {
-		absPath, err := filepath.Abs(path)
+		appDataDir, err := getAppDataDir()
 		if err != nil {
-			return path, nil // Fallback to original path if absolute resolution fails
+			// Fallback to CWD absolute path only if we can't get app data directory
+			absPath, errAbs := filepath.Abs(path)
+			if errAbs != nil {
+				return path, nil
+			}
+			return absPath, nil
 		}
-		return absPath, nil
+		return filepath.Join(appDataDir, path), nil
 	}
 
 	return path, nil
