@@ -17,9 +17,10 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	go.uber.org/zap v1.27.0
+	github.com/knirvcorp/knirvbase v1.0.7
 )
 
-replace github.com/knirvcorp/knirvbase/go => ./KNIRVBASE/go
+
 
 require (
 	github.com/benbjohnson/clock v1.3.5 // indirect

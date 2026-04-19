@@ -39,12 +39,12 @@ func (l *AlignmentLoop) Start(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			l.runEvaluation(ctx)
+			l.runEvaluation()
 		}
 	}
 }
 
-func (l *AlignmentLoop) runEvaluation(ctx context.Context) {
+func (l *AlignmentLoop) runEvaluation() {
 	objectives := l.registry.ListObjectives("")
 	for _, obj := range objectives {
 		records := l.registry.GetRecentAlignmentRecords(obj.Name, 10)

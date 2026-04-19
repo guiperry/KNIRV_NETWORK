@@ -56,10 +56,8 @@ import (
 	"backend_server/internal/services/validation"
 	"backend_server/internal/utils/host"
 
-	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvshell"
+	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL"
 
-	knirvchain "KNIRVCHAIN"
-	knirvgraph "KNIRVGRAPH"
 	"backend_server/internal/services/vault"
 	"backend_server/internal/services/websocket"
 	"backend_server/internal/services/workflow"
@@ -68,8 +66,11 @@ import (
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
 
+	knirvchain "github.com/KNIRV/KNIRV_NETWORK/KNIRVCHAIN"
+	knirvgraph "github.com/KNIRV/KNIRV_NETWORK/KNIRVGRAPH"
+
 	knirvgateway "github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY"
-	knirvoracle "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvoracle"
+	knirvoracle "github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE"
 
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"

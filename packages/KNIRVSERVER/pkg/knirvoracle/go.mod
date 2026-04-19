@@ -1,4 +1,4 @@
-module github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvoracle
+module github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE
 
 go 1.24.0
 

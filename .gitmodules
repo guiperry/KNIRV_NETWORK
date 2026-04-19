@@ -1,6 +1,0 @@
-[submodule "packages/knirvbase"]
-	path = packages/knirvbase
-	url = https://github.com/knirvcorp/knirvbase
-[submodule "packages/KNIRVBASE"]
-	path = packages/KNIRVBASE
-	url = https://github.com/knirvcorp/knirvbase

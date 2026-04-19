@@ -1,4 +1,4 @@
-module github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvshell
+module github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL
 
 go 1.24.0
 

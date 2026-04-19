@@ -6,7 +6,7 @@ import (
 
 	"backend_server/internal/web/middleware"
 
-	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvshell"
+	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL"
 
 	"github.com/gorilla/mux"
 )
