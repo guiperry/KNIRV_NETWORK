@@ -4,9 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/guiperry/text-embedder/pkg/embed"
 )
 
 // ============================================================================
@@ -448,4 +452,60 @@ func getKeys(m map[string]interface{}) []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// 7. SEMANTIC KEYWORD VALIDATOR
+// Uses embedder-based similarity to detect concepts rather than exact keyword matching.
+type SemanticKeywordValidator struct {
+	RequiredConcepts []string
+	Threshold       float64
+}
+
+var semanticKeywordThreshold = func() float64 {
+	if v := os.Getenv("KNIRV_SEMANTIC_KEYWORD_THRESHOLD"); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
+	}
+	return 0.65
+}()
+
+func (sv *SemanticKeywordValidator) Name() string {
+	return "SemanticKeywordValidator"
+}
+
+func (sv *SemanticKeywordValidator) Priority() int {
+	return 90
+}
+
+func (sv *SemanticKeywordValidator) Validate(ctx context.Context, response LLMResponse) ValidationResult {
+	start := time.Now()
+	outputVec := embed.Embed(response.Output)
+	missing := []string{}
+
+	threshold := sv.Threshold
+	if threshold == 0 {
+		threshold = semanticKeywordThreshold
+	}
+
+	for _, concept := range sv.RequiredConcepts {
+		conceptVec := embed.Embed(concept)
+		if embed.CosineSimilarity(outputVec, conceptVec) < threshold {
+			missing = append(missing, concept)
+		}
+	}
+
+	isValid := len(missing) == 0
+	confidence := 1.0 - float64(len(missing))/float64(len(sv.RequiredConcepts))
+
+	return ValidationResult{
+		ValidatorName: sv.Name(),
+		IsValid:       isValid,
+		Confidence:  confidence,
+		Message:    fmt.Sprintf("Semantic concept check: %d missing", len(missing)),
+		Details: map[string]interface{}{
+			"missing_concepts": missing,
+		},
+		Duration: time.Since(start),
+	}
 }

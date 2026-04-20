@@ -3,6 +3,8 @@ package icme
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/guiperry/text-embedder/pkg/embed"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +26,7 @@ type EmbeddingProvider struct {
 	UseCloudflare bool
 	mu            sync.RWMutex
 	logger        *zap.Logger
+	cache         sync.Map // key: sha256(text) -> []float32
 }
 
 type CloudflareRequest struct {
@@ -71,25 +75,64 @@ func NewEmbeddingProvider(logger *zap.Logger) (*EmbeddingProvider, error) {
 	return provider, nil
 }
 
+// GetEmbedding returns an embedding vector for text.
+// Primary: local deterministic hash-ngram embedder (github.com/guiperry/text-embedder).
+// Fallback 1: Cloudflare embeddings endpoint.
+// Fallback 2: Ollama local model.
+// Uses sync.Map cache for repeated texts.
 func (p *EmbeddingProvider) GetEmbedding(text string) ([]float32, error) {
 	cleanText := strings.TrimSpace(text)
 	if len(cleanText) == 0 {
 		return nil, fmt.Errorf("empty text provided")
 	}
 
+	key := cacheKey(cleanText)
+	if cached, ok := p.cache.Load(key); ok {
+		return cached.([]float32), nil
+	}
+
+	// Primary: local text-embedder (deterministic, no network, always available)
+	if vec := embed.Embed(cleanText); isNonZero(vec) {
+		p.cache.Store(key, vec)
+		return vec, nil
+	}
+	p.logger.Warn("text-embedder returned zero vector, falling back to cloudflare")
+
 	p.mu.RLock()
 	useCF := p.UseCloudflare
 	p.mu.RUnlock()
 
+	// Fallback 1: Cloudflare
 	if useCF {
 		embedding, err := p.getCloudflareEmbedding(cleanText)
 		if err == nil {
+			p.cache.Store(key, embedding)
 			return embedding, nil
 		}
 		p.logger.Warn("cloudflare failed, falling back to ollama", zap.Error(err))
 	}
 
-	return p.getOllamaEmbedding(cleanText)
+	// Fallback 2: Ollama
+	embedding, err := p.getOllamaEmbedding(cleanText)
+	if err == nil {
+		p.cache.Store(key, embedding)
+	}
+	return embedding, err
+}
+
+func cacheKey(text string) string {
+	h := sha256.Sum256([]byte(text))
+	return hex.EncodeToString(h[:])
+}
+
+// isNonZero reports whether the vector contains at least one non-zero element.
+func isNonZero(v []float32) bool {
+	for _, x := range v {
+		if x != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *EmbeddingProvider) getCloudflareEmbedding(text string) ([]float32, error) {

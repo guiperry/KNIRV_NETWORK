@@ -8,7 +8,7 @@ import (
 	"github.com/apache/arrow/go/v18/arrow/array"
 	"github.com/apache/arrow/go/v18/arrow/ipc"
 	"github.com/apache/arrow/go/v18/arrow/memory"
-	"knirvhasher/pipeline/0_DATA_CONNECTOR/internal/normalizer"
+	"data-connector/internal/normalizer"
 )
 
 type ArrowEncoder struct {

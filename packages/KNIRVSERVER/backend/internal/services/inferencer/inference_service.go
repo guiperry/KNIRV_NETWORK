@@ -7,13 +7,29 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/guiperry/text-embedder/pkg/embed"
 	gollm "github.com/guiperry/gollm_cerebras"
 	"github.com/guiperry/gollm_cerebras/config"
 	"github.com/guiperry/gollm_cerebras/llm"
 )
+
+var promptSimilarityThreshold = func() float32 {
+	if v := os.Getenv("KNIRV_PROMPT_CACHE_THRESHOLD"); v != "" {
+		if f, err := strconv.ParseFloat(v, 32); err == nil {
+			return float32(f)
+		}
+	}
+	return 0.97
+}()
+
+type cachedResponse struct {
+	vec      []float32
+	response string
+}
 
 // LLMAttemptConfig defines the configuration for a single LLM attempt.
 type LLMAttemptConfig struct {
@@ -49,6 +65,9 @@ type InferenceService struct {
 	moaFallbackModelName string
 	moaPrimaryOpts       []config.ConfigOption
 	moaFallbackOpts      []config.ConfigOption
+	// Semantic prompt response cache
+	responseCacheMu sync.Mutex
+	responseCache   []cachedResponse
 }
 
 // NewInferenceService creates a new instance of InferenceService.
@@ -306,6 +325,12 @@ func (s *InferenceService) GenerateTextWithContext(ctx context.Context, modelNam
 	delegatorInstance := s.delegator // Capture instance under lock
 	s.mutex.Unlock()
 
+	// Check prompt cache first
+	if cachedResponse, found := s.lookupCache(promptText); found {
+		log.Println("InferenceService: cache hit, returning cached response")
+		return cachedResponse, nil
+	}
+
 	log.Printf("InferenceService: Delegating generation request to DelegatorService. Model: '%s', Instruction: '%s'", modelName, instructionText)
 	// --- Adapt GenerateText to potentially use ContextStrategist ---
 	// The delegator will now handle the potential call to ContextManager internally
@@ -315,6 +340,10 @@ func (s *InferenceService) GenerateTextWithContext(ctx context.Context, modelNam
 	if err != nil {
 		return "", err
 	}
+
+	// Store in response cache
+	s.storeCache(promptText, response)
+
 	log.Println("InferenceService: Generation successful via DelegatorService.")
 	return response, nil
 }
@@ -674,4 +703,23 @@ func (s *InferenceService) findLLMInstance(providerName string) llm.LLM {
 		}
 	}
 	return nil
+}
+
+func (s *InferenceService) lookupCache(prompt string) (string, bool) {
+	queryVec := embed.Embed(prompt)
+	s.responseCacheMu.Lock()
+	defer s.responseCacheMu.Unlock()
+	for _, entry := range s.responseCache {
+		if float32(embed.CosineSimilarity(queryVec, entry.vec)) >= promptSimilarityThreshold {
+			return entry.response, true
+		}
+	}
+	return "", false
+}
+
+func (s *InferenceService) storeCache(prompt, response string) {
+	vec := embed.Embed(prompt)
+	s.responseCacheMu.Lock()
+	defer s.responseCacheMu.Unlock()
+	s.responseCache = append(s.responseCache, cachedResponse{vec: vec, response: response})
 }

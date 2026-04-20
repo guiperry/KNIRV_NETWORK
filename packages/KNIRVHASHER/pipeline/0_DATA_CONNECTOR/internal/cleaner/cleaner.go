@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	"knirvhasher/pipeline/0_DATA_CONNECTOR/internal/normalizer"
+	"data-connector/internal/normalizer"
 )
 
 type DataCleaner struct {

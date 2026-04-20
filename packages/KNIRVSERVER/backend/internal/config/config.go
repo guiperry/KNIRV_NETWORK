@@ -45,7 +45,8 @@ type ReverseProxyConfig struct {
 
 // FintechConfig defines FinTech validator configuration
 type FintechConfig struct {
-	Enabled bool `mapstructure:"enabled"`
+	Enabled               bool    `mapstructure:"enabled"`
+	IntentThreshold      float64 `mapstructure:"intent_threshold"`
 }
 
 // GatewayConfig defines embedded KNIRVGATEWAY configuration
@@ -304,9 +305,10 @@ type AuthConfig struct {
 
 // ValidationConfig represents validation engine configuration
 type ValidationConfig struct {
-	Timeout       time.Duration `mapstructure:"timeout"`
-	MaxConcurrent int           `mapstructure:"max_concurrent"`
-	EnableTEE     bool          `mapstructure:"enable_tee"`
+	Timeout               time.Duration `mapstructure:"timeout"`
+	MaxConcurrent        int           `mapstructure:"max_concurrent"`
+	EnableTEE             bool          `mapstructure:"enable_tee"`
+	SemanticKeywordThreshold float64     `mapstructure:"semantic_keyword_threshold"`
 }
 
 // TEEConfig represents TEE (Trusted Execution Environment) configuration
@@ -429,6 +431,12 @@ type ICMEConfig struct {
 	DriftThreshold          float64       `mapstructure:"drift_threshold"`
 	SignalQueueSize         int           `mapstructure:"signal_queue_size"`
 	SignalWorkers           int           `mapstructure:"signal_workers"`
+	// Embedding thresholds
+	DuplicateThreshold       float64 `mapstructure:"duplicate_threshold"`
+	NodeSimilarityThreshold float64 `mapstructure:"node_similarity_threshold"`
+	SearchCacheThreshold     float64 `mapstructure:"search_cache_threshold"`
+	SearchCacheTTLSeconds  int      `mapstructure:"search_cache_ttl_seconds"`
+	PromptCacheThreshold    float64 `mapstructure:"prompt_cache_threshold"`
 }
 
 // Load loads configuration from environment variables and config files
@@ -833,6 +841,13 @@ func setDefaults() {
 	viper.SetDefault("icme.drift_threshold", 0.20)
 	viper.SetDefault("icme.signal_queue_size", 512)
 	viper.SetDefault("icme.signal_workers", 4)
+	viper.SetDefault("icme.duplicate_threshold", 0.97)
+	viper.SetDefault("icme.node_similarity_threshold", 0.90)
+	viper.SetDefault("icme.search_cache_threshold", 0.97)
+	viper.SetDefault("icme.search_cache_ttl_seconds", 30)
+	viper.SetDefault("icme.prompt_cache_threshold", 0.97)
+	viper.SetDefault("validation.semantic_keyword_threshold", 0.65)
+	viper.SetDefault("fintech.intent_threshold", 0.65)
 
 	// Legacy defaults for backward compatibility
 	viper.SetDefault("chain_id", "knirv-server-mainnet")

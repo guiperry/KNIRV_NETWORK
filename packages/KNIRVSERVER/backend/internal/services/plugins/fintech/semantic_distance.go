@@ -6,9 +6,25 @@ package fintech
 import (
 	"fmt"
 	"math"
+	"os"
+	"strconv"
 	"strings"
 
+	"github.com/guiperry/text-embedder/pkg/embed"
 	"backend_server/internal/services/plugins/fintech/ontology"
+)
+
+var (
+	suspiciousAnchor = embed.Embed("bypass circumvent conceal unauthorized override")
+	compliantAnchor  = embed.Embed("verify validate comply enforce audit review")
+	intentThreshold  = func() float64 {
+		if v := os.Getenv("KNIRV_INTENT_SIMILARITY_THRESHOLD"); v != "" {
+			if f, err := strconv.ParseFloat(v, 64); err == nil {
+				return f
+			}
+		}
+		return 0.65
+	}()
 )
 
 // SemanticDistanceCalculator calculates semantic distance between reasoning and regulatory requirements
@@ -114,62 +130,25 @@ func (c *SemanticDistanceCalculator) CalculateDistance(trace *NRVTrace, expected
 // calculateIntentDistance measures how well agent intent aligns with financial goals
 func (c *SemanticDistanceCalculator) calculateIntentDistance(trace *NRVTrace) float64 {
 	if len(trace.Steps) == 0 {
-		return 1.0 // Maximum distance if no steps
-	}
-
-	// Keywords that indicate suspicious or non-compliant intent
-	suspiciousIntentPatterns := []string{
-		"bypass", "circumvent", "avoid", "hide", "conceal",
-		"override", "ignore", "skip", "fast track", "expedite",
-		"unverified", "unauthorized", "unapproved",
-	}
-
-	compliantIntentPatterns := []string{
-		"verify", "validate", "check", "confirm", "ensure",
-		"comply", "adhere", "follow", "implement", "enforce",
-		"screen", "audit", "review", "assess",
-	}
-
-	suspiciousCount := 0
-	compliantCount := 0
-
-	for _, step := range trace.Steps {
-		intentLower := strings.ToLower(step.Intent)
-
-		for _, pattern := range suspiciousIntentPatterns {
-			if strings.Contains(intentLower, pattern) {
-				suspiciousCount++
-				break
-			}
-		}
-
-		for _, pattern := range compliantIntentPatterns {
-			if strings.Contains(intentLower, pattern) {
-				compliantCount++
-				break
-			}
-		}
-	}
-
-	// Calculate distance based on ratio
-	totalSteps := len(trace.Steps)
-	if totalSteps == 0 {
 		return 1.0
 	}
 
-	// Distance increases with suspicious patterns, decreases with compliant patterns
-	suspiciousRatio := float64(suspiciousCount) / float64(totalSteps)
-	compliantRatio := float64(compliantCount) / float64(totalSteps)
+	var totalDistance float64
+	for _, step := range trace.Steps {
+		stepVec := embed.Embed(step.Intent)
+		suspiciousSim := embed.CosineSimilarity(stepVec, suspiciousAnchor)
+		compliantSim := embed.CosineSimilarity(stepVec, compliantAnchor)
 
-	distance := suspiciousRatio - (compliantRatio * 0.5)
-	if distance < 0 {
-		distance = 0
+		d := suspiciousSim - compliantSim*0.5
+		if d < 0 {
+			d = 0
+		}
+		if d > 1 {
+			d = 1
+		}
+		totalDistance += d
 	}
-	if distance > 1 {
-		distance = 1
-	}
-
-	return distance
+	return totalDistance / float64(len(trace.Steps))
 }
 
 // calculateActionDistance measures alignment between actions and regulatory requirements
@@ -415,36 +394,18 @@ func (c *SemanticDistanceCalculator) calculateOntologyDistance(trace *NRVTrace, 
 }
 
 // calculateSemanticSimilarity calculates similarity between two strings (0.0 - 1.0)
+// Uses embedder-based cosine similarity instead of Jaccard word overlap.
 func (c *SemanticDistanceCalculator) calculateSemanticSimilarity(str1, str2 string) float64 {
-	// Simple implementation using word overlap
-	words1 := strings.Fields(str1)
-	words2 := strings.Fields(str2)
-
-	if len(words1) == 0 || len(words2) == 0 {
+	if str1 == "" || str2 == "" {
 		return 0.0
 	}
-
-	// Create word sets
-	set1 := make(map[string]bool)
-	for _, w := range words1 {
-		set1[strings.ToLower(w)] = true
-	}
-
-	// Count matches
-	matches := 0
-	for _, w := range words2 {
-		if set1[strings.ToLower(w)] {
-			matches++
-		}
-	}
-
-	// Jaccard similarity
-	union := len(words1) + len(words2) - matches
-	if union == 0 {
+	v1 := embed.Embed(str1)
+	v2 := embed.Embed(str2)
+	sim := embed.CosineSimilarity(v1, v2)
+	if sim < 0 {
 		return 0.0
 	}
-
-	return float64(matches) / float64(union)
+	return sim
 }
 
 // weightedAverage calculates weighted average of distances

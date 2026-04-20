@@ -1,6 +1,10 @@
 {
-  "version": 1,
   "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": "entire hooks cursor before-submit-prompt"
+      }
+    ],
     "postToolUse": [
       {
         "command": "caliber learn observe"
@@ -11,15 +15,44 @@
         "command": "caliber learn observe --failure"
       }
     ],
-    "userPromptSubmit": [
+    "preCompact": [
       {
-        "command": "caliber learn observe --prompt"
+        "command": "entire hooks cursor pre-compact"
       }
     ],
     "sessionEnd": [
       {
         "command": "caliber learn finalize --auto"
+      },
+      {
+        "command": "entire hooks cursor session-end"
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": "entire hooks cursor session-start"
+      }
+    ],
+    "stop": [
+      {
+        "command": "entire hooks cursor stop"
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": "entire hooks cursor subagent-start"
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": "entire hooks cursor subagent-stop"
+      }
+    ],
+    "userPromptSubmit": [
+      {
+        "command": "caliber learn observe --prompt"
       }
     ]
-  }
+  },
+  "version": 1
 }

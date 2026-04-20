@@ -1,11 +1,24 @@
 package icme
 
 import (
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/guiperry/text-embedder/pkg/embed"
 	"go.uber.org/zap"
 )
+
+var nodeSimilarityThreshold = func() float64 {
+	if v := os.Getenv("KNIRV_HYPERGRAPH_NODE_THRESHOLD"); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
+	}
+	return 0.90
+}()
 
 type TemporalHypergraph struct {
 	mu         sync.RWMutex
@@ -67,15 +80,33 @@ func (hg *TemporalHypergraph) InsertSignal(sig *IntentionalSignal) {
 }
 
 func (hg *TemporalHypergraph) upsertNode(ent ExtractedEntity, sig *IntentionalSignal) string {
-	nodeID := ent.Text + ":" + ent.Label
-	if existing, ok := hg.nodes[nodeID]; ok {
+	exactID := ent.Text + ":" + ent.Label
+
+	if existing, ok := hg.nodes[exactID]; ok {
 		existing.LastSeen = sig.Timestamp
 		existing.SignalIDs = append(existing.SignalIDs, sig.ID)
-		return nodeID
+		return exactID
 	}
 
-	hg.nodes[nodeID] = &HyperNode{
-		ID:         nodeID,
+	incomingVec := embed.Embed(strings.ToLower(ent.Text))
+	for id, node := range hg.nodes {
+		if node.Type != ent.Label {
+			continue
+		}
+		existingVec := embed.Embed(strings.ToLower(node.Text))
+		if embed.CosineSimilarity(incomingVec, existingVec) >= nodeSimilarityThreshold {
+			node.LastSeen = sig.Timestamp
+			node.SignalIDs = append(node.SignalIDs, sig.ID)
+			hg.logger.Debug("merged semantically equivalent node",
+				zap.String("incoming", ent.Text),
+				zap.String("existing", node.Text),
+			)
+			return id
+		}
+	}
+
+	hg.nodes[exactID] = &HyperNode{
+		ID:         exactID,
 		Type:       ent.Label,
 		Text:       ent.Text,
 		Attributes: map[string]interface{}{},
@@ -83,8 +114,8 @@ func (hg *TemporalHypergraph) upsertNode(ent ExtractedEntity, sig *IntentionalSi
 		LastSeen:   sig.Timestamp,
 		SignalIDs:  []string{sig.ID},
 	}
-	hg.textIndex[nodeID] = ent.Text
-	return nodeID
+	hg.textIndex[exactID] = ent.Text
+	return exactID
 }
 
 func (hg *TemporalHypergraph) pruneOldEdges() {

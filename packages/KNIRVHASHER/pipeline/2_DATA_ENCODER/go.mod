@@ -16,8 +16,8 @@ require (
 require (
 	github.com/apache/arrow/go/v15 v15.0.2 // indirect
 	github.com/cloudflare/circl v1.6.2 // indirect
-	github.com/dlclark/regexp2 v1.10.0 // indirect
-	github.com/goccy/go-json v0.10.3 // indirect
+	github.com/dlclark/regexp2 v1.11.5 // indirect
+	github.com/goccy/go-json v0.10.4 // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
@@ -25,7 +25,7 @@ require (
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
-	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
+	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c // indirect
 	golang.org/x/mod v0.32.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
@@ -35,5 +35,3 @@ require (
 )
 
 replace knirvhasher => ../../
-
-replace github.com/guiperry/text-embedder => /home/gperry/Documents/GitHub/text-embedder

@@ -3,14 +3,27 @@ package icme
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"sort"
+	"strconv"
 	"sync"
 
+	"github.com/guiperry/text-embedder/pkg/embed"
 	"go.uber.org/zap"
 
 	"backend_server/internal/database"
 )
 
 const EmbedDim = 768
+
+var duplicateThreshold = func() float32 {
+	if v := os.Getenv("KNIRV_FAISS_DUPLICATE_THRESHOLD"); v != "" {
+		if f, err := strconv.ParseFloat(v, 32); err == nil {
+			return float32(f)
+		}
+	}
+	return 0.97
+}()
 
 type FAISSIndexManager struct {
 	mu       sync.Mutex
@@ -37,6 +50,18 @@ func (m *FAISSIndexManager) Add(signalID string, vector []float32, meta VectorMe
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	for i, existing := range m.vectors {
+		sim := float32(embed.CosineSimilarity(vector, existing))
+		if sim >= duplicateThreshold {
+			m.logger.Debug("duplicate vector rejected",
+				zap.String("signalID", signalID),
+				zap.Int("matchedIndex", i),
+				zap.Float32("similarity", sim),
+			)
+			return int64(i), nil
+		}
+	}
 
 	id := m.nextID
 	m.nextID++
@@ -73,13 +98,9 @@ func (m *FAISSIndexManager) Search(query []float32, k int) ([]VectorMeta, []floa
 		results = append(results, scoredResult{index: i, score: score})
 	}
 
-	for i := 0; i < len(results)-1; i++ {
-		for j := i + 1; j < len(results); j++ {
-			if results[j].score < results[i].score {
-				results[i], results[j] = results[j], results[i]
-			}
-		}
-	}
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].score < results[j].score
+	})
 
 	if k > len(results) {
 		k = len(results)

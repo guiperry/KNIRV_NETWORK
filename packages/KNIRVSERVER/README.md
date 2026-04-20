@@ -210,6 +210,49 @@ The hypergraph is wired automatically when ICME is enabled:
 cognitiveEngine.SetKNIRVGRAPHEngine(graphEngine, logger)
 ```
 
+### ICME Embedder Configuration (Text Embedder Thresholds)
+
+The ICME (Intentional Context Memory Engine) uses `github.com/guiperry/text-embedder` for deterministic, local embedding generation. All similarity thresholds are configurable via config file or environment variables.
+
+#### Config File (`config.yaml`)
+
+```yaml
+icme:
+  enabled: true
+  duplicate_threshold: 0.97           # FAISS - reject vectors above this similarity
+  node_similarity_threshold: 0.90       # Hypergraph - merge nodes above this
+  search_cache_threshold: 0.97           # Hybrid search cache hit threshold
+  search_cache_ttl_seconds: 30           # Hybrid search cache TTL
+  prompt_cache_threshold: 0.97             # Inference prompt cache threshold
+
+validation:
+  semantic_keyword_threshold: 0.65       # SemanticKeywordValidator threshold
+
+fintech:
+  intent_threshold: 0.65                 # Intent distance similarity threshold
+```
+
+#### Environment Variables (Precedence Over Config File)
+
+| Parameter | Env Variable | Default |
+|-----------|------------|---------|
+| FAISS duplicate threshold | `KNIRV_FAISS_DUPLICATE_THRESHOLD` | 0.97 |
+| Node similarity threshold | `KNIRV_HYPERGRAPH_NODE_THRESHOLD` | 0.90 |
+| Search cache threshold | `KNIRV_SEARCH_CACHE_THRESHOLD` | 0.97 |
+| Search cache TTL | `KNIRV_SEARCH_CACHE_TTL_SECONDS` | 30 |
+| Prompt cache threshold | `KNIRV_PROMPT_CACHE_THRESHOLD` | 0.97 |
+| Semantic keyword | `KNIRV_SEMANTIC_KEYWORD_THRESHOLD` | 0.65 |
+| Intent similarity | `KNIRV_INTENT_SIMILARITY_THRESHOLD` | 0.65 |
+
+#### Threshold Guidelines
+
+| Use Case | Recommended | Rationale |
+|---------|------------|---------|
+| Duplicate vector rejection | 0.97 | Only reject near-identical content |
+| Semantic node merge | 0.90 | Allow surface variation, catch true duplicates |
+| Prompt/search cache | 0.97 | Must not conflate distinct queries |
+| Semantic keyword validation | 0.65 | Concept presence, not exact identity |
+
 ### Cognitive Engine API additions
 
 | Method | Description |

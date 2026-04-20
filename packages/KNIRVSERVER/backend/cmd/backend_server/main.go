@@ -1087,7 +1087,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 						searchEngine := icme.NewHybridSearchEngine(
 							faissManager,
 							graphEngine,
-							embeddingProvider,
 							intentRegistry,
 							logger,
 						)

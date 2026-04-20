@@ -258,20 +258,29 @@ func (s *Service) getBatchChunk(texts []string) ([][]float32, error) {
 	}
 
 	embeddings := make([][]float32, len(cfResp.Embeddings))
-	for i, embedding := range cfResp.Embeddings {
-		embeddings[i] = embedding
-	}
+	copy(embeddings, cfResp.Embeddings)
 
 	return embeddings, nil
 }
 
-// getBatchChunkWithRetry processes a batch without retries - fails immediately on error
+// getBatchChunkWithRetry processes a batch with retries on failure
 func (s *Service) getBatchChunkWithRetry(texts []string, maxRetries int) ([][]float32, error) {
-	embeddings, err := s.getBatchChunk(texts)
-	if err != nil {
-		return nil, fmt.Errorf("embedding request failed: %w", err)
+	var lastErr error
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		embeddings, err := s.getBatchChunk(texts)
+		if err == nil {
+			return embeddings, nil
+		}
+		lastErr = err
+
+		// Don't sleep on the last attempt
+		if attempt < maxRetries {
+			// Exponential backoff: 100ms * 2^attempt
+			backoff := time.Duration(100*(1<<attempt)) * time.Millisecond
+			time.Sleep(backoff)
+		}
 	}
-	return embeddings, nil
+	return nil, fmt.Errorf("embedding request failed after %d retries: %w", maxRetries, lastErr)
 }
 
 // GetBatchSize returns the configured batch size

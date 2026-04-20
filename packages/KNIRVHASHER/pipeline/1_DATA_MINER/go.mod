@@ -40,5 +40,3 @@ require (
 )
 
 replace knirvhasher => ../..
-
-replace github.com/guiperry/text-embedder => /home/gperry/Documents/GitHub/text-embedder

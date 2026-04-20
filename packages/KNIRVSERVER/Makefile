@@ -27,6 +27,14 @@ ORACLE_PKG_BIN := $(ORACLE_PKG_DIR)/bin/knirvoracle
 HASHER_DIR := $(ROOT_DIR)/pkg/knirvhasher
 HASHER_SRC_DIR := $(ROOT_DIR)/../KNIRVHASHER
 HASHER_PKG_BIN := $(HASHER_DIR)/bin/knirvhasher
+CONNECTOR_SRC_DIR := $(ROOT_DIR)/../KNIRVHASHER/pipeline/0_DATA_CONNECTOR
+CONNECTOR_PKG_BIN := $(HASHER_DIR)/internal/cli/embedded/bin/data-connector
+MINER_SRC_DIR := $(ROOT_DIR)/../KNIRVHASHER/pipeline/1_DATA_MINER
+MINER_PKG_BIN := $(HASHER_DIR)/internal/cli/embedded/bin/data-miner
+ENCODER_SRC_DIR := $(ROOT_DIR)/../KNIRVHASHER/pipeline/2_DATA_ENCODER
+ENCODER_PKG_BIN := $(HASHER_DIR)/internal/cli/embedded/bin/data-encoder
+TRAINER_SRC_DIR := $(ROOT_DIR)/../KNIRVHASHER/pipeline/3_DATA_TRAINER
+TRAINER_PKG_BIN := $(HASHER_DIR)/internal/cli/embedded/bin/data-trainer
 SHELL_DIR := $(ROOT_DIR)/pkg/knirvshell
 SHELL_SRC_DIR := $(ROOT_DIR)/../KNIRVSHELL
 SHELL_PKG_BIN := $(SHELL_DIR)/bin/knirvshell
@@ -135,6 +143,14 @@ deps-go: ## Install Go dependencies (backend and standalone submodules)
 	cd $(CHAIN_SRC_DIR) && go mod tidy
 	cd $(ORACLE_DIR) && go mod download
 	cd $(ORACLE_DIR) && go mod tidy
+	cd $(CONNECTOR_SRC_DIR) && go mod download
+	cd $(CONNECTOR_SRC_DIR) && go mod tidy
+	cd $(MINER_SRC_DIR) && go mod download
+	cd $(MINER_SRC_DIR) && go mod tidy
+	cd $(ENCODER_SRC_DIR) && go mod download
+	cd $(ENCODER_SRC_DIR) && go mod tidy
+	cd $(TRAINER_SRC_DIR) && go mod download
+	cd $(TRAINER_SRC_DIR) && go mod tidy
 	cd $(HASHER_SRC_DIR) && go mod download
 	cd $(HASHER_SRC_DIR) && go mod tidy
 	cd $(AGENT_SRC_DIR) && go mod download
@@ -503,9 +519,10 @@ hasher-deps: ## Install KNIRVHASHER dependencies
 
 hasher-build: hasher-deps ## Build KNIRVHASHER binaries into pkg/knirvhasher/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVHASHER pipeline binaries...$(NC)"
+	cd $(HASHER_SRC_DIR) && $(MAKE) build-pipeline-all
 	@mkdir -p $(HASHER_DIR)/bin
 	cd $(HASHER_SRC_DIR) && go build -ldflags "-s -w" -o $(HASHER_PKG_BIN) ./cmd/cli
-	cd $(HASHER_SRC_DIR) && $(MAKE) build-pipeline-all
+	
 	@echo "$(GREEN)KNIRVHASHER binaries built: $(HASHER_PKG_BIN) and pipeline artifacts$(NC)"
 
 hasher-clean: ## Clean KNIRVHASHER build artifacts

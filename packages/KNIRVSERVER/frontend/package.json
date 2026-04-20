@@ -1,5 +1,5 @@
 {
-  "name": "nexus_portal",
+  "name": "knirvserver_frontend",
   "version": "1.1.0",
   "private": true,
   "type": "module",

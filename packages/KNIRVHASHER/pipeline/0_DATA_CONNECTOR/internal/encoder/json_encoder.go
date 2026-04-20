@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"knirvhasher/pipeline/0_DATA_CONNECTOR/internal/normalizer"
+	"data-connector/internal/normalizer"
 )
 
 type JSONEncoder struct{}

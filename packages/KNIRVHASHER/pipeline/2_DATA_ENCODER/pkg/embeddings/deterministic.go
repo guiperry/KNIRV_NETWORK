@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/guiperry/text-embedder/embed"
+	"github.com/guiperry/text-embedder/pkg/embed"
 )
 
 type DeterministicService struct {

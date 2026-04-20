@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	textembed "github.com/guiperry/text-embedder/embed"
+	textembed "github.com/guiperry/text-embedder/pkg/embed"
 )
 
 // EmbeddingProvider is the interface that all embedding providers must implement
