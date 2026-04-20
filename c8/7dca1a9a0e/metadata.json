@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "c87dca1a9a0e",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/KNIRVSERVER/backend/internal/ebpf/.gitignore"
+  ],
+  "sessions": [
+    {
+      "metadata": "/c8/7dca1a9a0e/0/metadata.json",
+      "transcript": "/c8/7dca1a9a0e/0/full.jsonl",
+      "content_hash": "/c8/7dca1a9a0e/0/content_hash.txt",
+      "prompt": "/c8/7dca1a9a0e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 19,
+    "cache_creation_tokens": 57100,
+    "cache_read_tokens": 765885,
+    "output_tokens": 16761,
+    "api_call_count": 18
+  }
+}

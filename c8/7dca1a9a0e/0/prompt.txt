@@ -1,0 +1,10 @@
+For some reason, when I run make binary in KNIRVSERVER something deletes my bpf files. See the log and check the git status:
+
+gperry@cloud-eq:~/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER$ make binary
+Generating protobuf files...
+cd backend/internal/proto && go generate
+Protobuf generation completed
+Generating eBPF programs...
+cd backend/internal/ebpf && go generate
+generate: open /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/ebpf/nexusguardian_bpfel_x86.go: no such file or directory
+make: *** [Makefile:114: ebpf-generate] Error 1
