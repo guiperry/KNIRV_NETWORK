@@ -1,0 +1,5 @@
+In KNIRVSERVER, ensure everytime the KNIRVSERVER/main.go wrapper binary exports all other embedded binries that they ALWAYS overwrite any existing instances of those binaries!
+
+---
+
+No, please ensure this pattern is followed by every submodule in the pkg directory. Each module in the pkg directory has its own embed/export protocols.
