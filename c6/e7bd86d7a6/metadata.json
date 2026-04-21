@@ -3,7 +3,7 @@
   "checkpoint_id": "c6e7bd86d7a6",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 6,
   "files_touched": [
     "devtools/KNIRVKEY/root_key_encryptor/cmd/main.go",
     "devtools/KNIRVKEY/root_key_encryptor/go.mod",
@@ -61,13 +61,19 @@
       "transcript": "/c6/e7bd86d7a6/1/full.jsonl",
       "content_hash": "/c6/e7bd86d7a6/1/content_hash.txt",
       "prompt": "/c6/e7bd86d7a6/1/prompt.txt"
+    },
+    {
+      "metadata": "/c6/e7bd86d7a6/2/metadata.json",
+      "transcript": "/c6/e7bd86d7a6/2/full.jsonl",
+      "content_hash": "/c6/e7bd86d7a6/2/content_hash.txt",
+      "prompt": "/c6/e7bd86d7a6/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 156938,
-    "cache_creation_tokens": 240912,
-    "cache_read_tokens": 676784,
-    "output_tokens": 25554,
-    "api_call_count": 18
+    "input_tokens": 322880,
+    "cache_creation_tokens": 352195,
+    "cache_read_tokens": 3324620,
+    "output_tokens": 37872,
+    "api_call_count": 74
   }
 }

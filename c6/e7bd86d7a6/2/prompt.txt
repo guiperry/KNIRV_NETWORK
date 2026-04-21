@@ -1,0 +1,9 @@
+Add to root.key (encrypted):
+   - cloudflare_api_token: Your Cloudflare API token
+   - cloudflare_zone_id: (optional) Zone ID
+
+---
+
+I need to import the following from the KNIRVSERVER: "backend_server/internal/config"
+	pb "backend_server/internal/proto"
+	"backend_server/internal/utils" but I moved the root_key_encryptor from KNIRVSERVER into devtools/KNIRVKEY/root_key_encryptor/cmd/main.go. Please advise on the best way to import the packages from KNIRVSERVER into the new directory.
