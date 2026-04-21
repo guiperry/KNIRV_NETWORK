@@ -1,0 +1,5 @@
+I want you to analyze the packages/KNIRVHEART/HEART/go_transformer (non-cerebras implementation) and the packages/KNIRVHASHER implementation (particularly the data pipeline in the KNIRVHASHER/pipeline directory) and then draft a file named "transformer_opportunities.md" file that details all of the ways we could improve the overall system by merging these two builds somehow. Think outside of the box for novel solution Include value added benefits for each proposed architectural option.
+
+---
+
+I like all of your proposals. I'm interested in the wholistic strategy that includes all of them. Update the @transformer_opportunities.md file considering the pending updates from @packages/KNIRVHASHER/ES_Relativity_Report.md
