@@ -19,6 +19,10 @@ message RootKeyFileContentProto {
   string cerebras_api_key = 14;
   string tls_cert = 16;
   string tls_key = 17;
+
+  // Cloudflare credentials for DNS updates
+  string cloudflare_api_token = 18;
+  string cloudflare_zone_id = 19;
 }
 
 message EncryptedRootKeyFile {

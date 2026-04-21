@@ -1,13 +1,11 @@
 use anyhow::{anyhow, Result};
 //use generic_array::GenericArray;
 use hex;
-use k256::ecdsa::{signature::Signer, SigningKey, VerifyingKey};
+use k256::ecdsa::{signature::Signer, SigningKey};
 use k256::elliptic_curve::sec1::EncodedPoint; // Import remains the same
-use k256::FieldBytes;
 use num_bigint::BigInt;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
 use sha3::{Digest, Keccak256};
 use std::collections::HashMap;
 //use typenum::U32;
@@ -23,10 +21,10 @@ impl std::fmt::Display for Address {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub(crate) struct Transaction {
-    pub(crate) data: String,
-    pub(crate) signature: String,
-    pub(crate) transaction_hash: Option<String>,
+pub struct Transaction {
+    pub data: String,
+    pub signature: String,
+    pub transaction_hash: Option<String>,
 }
 
 // Helper function to convert hex string to Address
@@ -53,7 +51,9 @@ fn get_address_from_public_key(public_key_bytes: &EncodedPoint<k256::Secp256k1>)
 
 #[derive(Debug)]
 pub struct NRN {
+    #[allow(dead_code)]
     name: String,
+    #[allow(dead_code)]
     symbol: String,
     total_supply: BigInt,
     max_supply: BigInt,
@@ -167,7 +167,7 @@ impl NRN {
         let transaction_data = format!("Transfer {} from {} to {}", amount, from_address, to);
 
         let private_key_bytes = hex::decode(from_private_key)?;
-        let signing_key = SigningKey::from_bytes(FieldBytes::from_slice(&private_key_bytes))
+        let signing_key = SigningKey::from_bytes(private_key_bytes.as_slice().into())
             .map_err(|e| anyhow!("Failed to parse private key: {}", e))?;
         let signature: k256::ecdsa::Signature = signing_key.sign(transaction_data.as_bytes());
         let signature_hex = hex::encode(signature.to_der());
@@ -205,6 +205,7 @@ pub fn get_address_from_private_key(private_key: &str) -> Result<Address> {
     Ok(get_address_from_public_key(&public_key_bytes)) // Pass the EncodedPoint
 }
 
+#[allow(dead_code)]
 fn main() -> Result<()> {
     let owner_private_key = generate_private_key();
     println!("Owner Private Key: {}", owner_private_key);

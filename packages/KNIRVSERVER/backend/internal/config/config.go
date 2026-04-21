@@ -130,6 +130,18 @@ type RollupConfig struct {
 	PollInterval time.Duration `mapstructure:"poll_interval"`
 }
 
+// CloudflareConfig defines Cloudflare DNS configuration for oracle endpoint
+type CloudflareConfig struct {
+	Enabled      bool   `mapstructure:"enabled"`
+	APIToken     string `mapstructure:"api_token"`
+	ZoneID       string `mapstructure:"zone_id"`
+	ZoneName     string `mapstructure:"zone_name"`
+	RecordName   string `mapstructure:"record_name"`
+	RecordType   string `mapstructure:"record_type"`
+	TTL          int    `mapstructure:"ttl"`
+	Proxied      bool   `mapstructure:"proxied"`
+}
+
 // StripeConfig defines Stripe payment processor configuration
 type StripeConfig struct {
 	Enabled  bool   `mapstructure:"enabled"`
@@ -218,6 +230,9 @@ type Config struct {
 
 	// Rollup - Transaction-chain rollup submission loop
 	Rollup RollupConfig `mapstructure:"rollup"`
+
+	// Cloudflare - DNS configuration for oracle.knirv.network
+	Cloudflare CloudflareConfig `mapstructure:"cloudflare"`
 
 	// SocketDir - Directory for Unix sockets for submodule communication
 	SocketDir string `mapstructure:"socket_dir"`
@@ -846,6 +861,15 @@ func setDefaults() {
 	viper.SetDefault("icme.search_cache_threshold", 0.97)
 	viper.SetDefault("icme.search_cache_ttl_seconds", 30)
 	viper.SetDefault("icme.prompt_cache_threshold", 0.97)
+
+	// Cloudflare DNS defaults for oracle.knirv.network
+	viper.SetDefault("cloudflare.enabled", false)
+	viper.SetDefault("cloudflare.zone_name", "knirv.com")
+	viper.SetDefault("cloudflare.record_name", "oracle")
+	viper.SetDefault("cloudflare.record_type", "A")
+	viper.SetDefault("cloudflare.ttl", 300)
+	viper.SetDefault("cloudflare.proxied", true)
+
 	viper.SetDefault("validation.semantic_keyword_threshold", 0.65)
 	viper.SetDefault("fintech.intent_threshold", 0.65)
 

@@ -22,12 +22,26 @@ interface P2PTransportAccessModalProps {
 }
 
 // The gateway ALWAYS runs co-located with the backend server.
-// Use an explicit localhost URL — never derive from window.location because
-// the React app is loaded inside an Electron iframe whose window.location
-// reflects the Next.js dev server (port 8090), not the gateway.
-const WEBGUI_PORT = process.env.NEXT_PUBLIC_GATEWAY_PORT || '8080';
-const WEBGUI_BASE = `http://localhost:${WEBGUI_PORT}`;
-const WEBGUI_URL = `${WEBGUI_BASE}/dashboard`;
+// Port is fetched dynamically from the gateway's /health endpoint.
+let cachedGatewayPort: string | null = null;
+
+async function getGatewayPort(): Promise<string> {
+  if (cachedGatewayPort) return cachedGatewayPort;
+  try {
+    const resp = await fetch(`${API_BASE_URL}/health`, {
+      headers: getAuthHeaders(),
+    });
+    const data = await resp.json();
+    cachedGatewayPort = String(data.port || 8080);
+    return cachedGatewayPort;
+  } catch {
+    return '8080';
+  }
+}
+
+function buildWebGuiUrl(port: string): string {
+  return `http://localhost:${port}/dashboard`;
+}
 
 export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessModalProps) {
   const [terminalOutput, setTerminalOutput] = useState([
@@ -46,7 +60,17 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
   const [showWebGui, setShowWebGui] = useState(false);
   const [webGuiLoading, setWebGuiLoading] = useState(false);
   const [webGuiError, setWebGuiError] = useState(false);
+  const [webGuiUrl, setWebGuiUrl] = useState<string>('');
   const terminalEndRef = useRef<HTMLDivElement>(null);
+
+  // Initialize WebGUI URL when modal opens
+  useEffect(() => {
+    if (isOpen && !webGuiUrl) {
+      getGatewayPort().then(port => {
+        setWebGuiUrl(buildWebGuiUrl(port));
+      });
+    }
+  }, [isOpen]);
 
   // Pre-flight check: ping the gateway before opening the iframe so the user
   // sees an actionable error message instead of a blank black screen.
@@ -55,7 +79,9 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
     setWebGuiLoading(true);
     setShowWebGui(true);
     try {
-      const resp = await fetch(`${WEBGUI_BASE}/health`, { method: 'HEAD', mode: 'no-cors', signal: AbortSignal.timeout(4000) });
+      const port = await getGatewayPort();
+      const baseUrl = `http://localhost:${port}`;
+      const resp = await fetch(`${baseUrl}/health`, { method: 'HEAD', mode: 'no-cors', signal: AbortSignal.timeout(4000) });
       // no-cors fetch succeeds even for opaque responses — means server is reachable
       void resp;
       setWebGuiLoading(false);
@@ -185,11 +211,11 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
             </Button>
             <span className="text-sm font-medium text-indigo-300">KNIRV Network WebGUI</span>
             <Badge variant="outline" className="text-xs text-indigo-400 border-indigo-700">
-              {WEBGUI_URL}
+              {webGuiUrl}
             </Badge>
           </div>
           <div className="flex items-center space-x-1">
-            <a href={WEBGUI_URL} target="_blank" rel="noopener noreferrer">
+            <a href={webGuiUrl} target="_blank" rel="noopener noreferrer">
               <Button variant="ghost" size="sm" title="Open in browser">
                 <ExternalLink className="w-4 h-4" />
               </Button>
@@ -206,7 +232,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0a0f1e] z-10">
               <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
               <span className="text-sm text-indigo-300">Connecting to gateway...</span>
-              <span className="text-xs text-muted-foreground">{WEBGUI_URL}</span>
+              <span className="text-xs text-muted-foreground">{webGuiUrl}</span>
             </div>
           )}
 
@@ -216,7 +242,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
               <div className="text-center space-y-1">
                 <p className="text-sm font-medium text-amber-300">Gateway not reachable</p>
                 <p className="text-xs text-muted-foreground">
-                  No response at <span className="font-mono text-indigo-400">{WEBGUI_URL}</span>
+                  No response at <span className="font-mono text-indigo-400">{webGuiUrl}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Ensure the KNIRVGATEWAY service is running and <code className="text-indigo-400">gateway.enabled = true</code> in config.
@@ -226,7 +252,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
                 <Button size="sm" variant="outline" onClick={openWebGui}>
                   Retry
                 </Button>
-                <a href={WEBGUI_URL} target="_blank" rel="noopener noreferrer">
+                <a href={webGuiUrl} target="_blank" rel="noopener noreferrer">
                   <Button size="sm" variant="ghost">
                     <ExternalLink className="w-3 h-3 mr-1" />
                     Open in browser
@@ -238,7 +264,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
 
           {!webGuiError && (
             <iframe
-              src={webGuiLoading ? undefined : WEBGUI_URL}
+              src={webGuiLoading ? undefined : webGuiUrl}
               className="w-full h-full border-0"
               title="KNIRV Network WebGUI"
               onLoad={() => setWebGuiLoading(false)}

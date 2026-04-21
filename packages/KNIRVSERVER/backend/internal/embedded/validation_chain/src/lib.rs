@@ -14,6 +14,7 @@ use nrn_token::Transaction;
 
 // Opaque engine state — holds the sled DB handle and any runtime config.
 struct ValidationEngine {
+    #[allow(dead_code)]
     config: serde_json::Value,
 }
 

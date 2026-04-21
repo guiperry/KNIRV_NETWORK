@@ -90,6 +90,9 @@ func ExtractEmbeddedBinary(destDir string) (string, error) {
 	}
 
 	destPath := filepath.Join(destDir, "knirvoracle")
+	if err := os.RemoveAll(destPath); err != nil {
+		return "", err
+	}
 	if err := writeFileAtomically(destPath, embeddedBinary, 0755); err != nil {
 		return "", err
 	}

@@ -47,6 +47,7 @@ type Server struct {
 	router            *mux.Router
 	webguiStaticDir   string
 	networkWebsiteDir string
+	actualPort        int
 }
 
 // New creates a new HTTP server
@@ -297,6 +298,28 @@ func (s *Server) setupRoutes() error {
 	return nil
 }
 
+// findAvailablePort tries to listen on the given port, and if it's in use,
+// tries subsequent ports until it finds one available.
+func (s *Server) findAvailablePort(startPort int) (net.Listener, error) {
+	const maxAttempts = 100
+	for port := startPort; port < startPort+maxAttempts; port++ {
+		addr := fmt.Sprintf(":%d", port)
+		listener, err := net.Listen("tcp", addr)
+		if err != nil {
+			s.logger.Debug("Port in use, trying next",
+				zap.Int("port", port),
+				zap.Error(err),
+			)
+			continue
+		}
+		s.logger.Info("Found available port",
+			zap.Int("port", port),
+		)
+		return listener, nil
+	}
+	return nil, fmt.Errorf("no available port found after %d attempts", maxAttempts)
+}
+
 // Start starts the HTTP server
 func (s *Server) Start() error {
 	ctx := context.Background()
@@ -355,10 +378,17 @@ func (s *Server) Start() error {
 	if s.config.SocketPath != "" {
 		listener, err = net.Listen("unix", s.config.SocketPath)
 	} else {
-		listener, err = net.Listen("tcp", listenAddr)
-	}
-	if err != nil {
-		return fmt.Errorf("failed to listen: %w", err)
+		// Try to find an available port if the default is in use
+		listener, err = s.findAvailablePort(s.config.Port)
+		if err != nil {
+			return fmt.Errorf("failed to find available port: %w", err)
+		}
+		// Extract the actual port from the listener
+		s.actualPort = listener.Addr().(*net.TCPAddr).Port
+		s.logger.Info("Using dynamic port",
+			zap.Int("port", s.actualPort),
+			zap.Int("requested", s.config.Port),
+		)
 	}
 
 	if s.config.SocketPath != "" {
@@ -462,6 +492,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"mode":      s.config.GatewayMode,
 		"timestamp": time.Now().UnixMilli(),
 		"chainId":   s.config.ChainID,
+		"port":      s.actualPort,
 		"dht": map[string]interface{}{
 			"status": "not_implemented",
 		},

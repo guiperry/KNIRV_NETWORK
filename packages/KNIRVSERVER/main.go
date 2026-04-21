@@ -401,6 +401,9 @@ func extractBinaries() (string, error) {
 
 	for _, b := range bins {
 		dest := filepath.Join(binDir, b.name)
+		if err := os.RemoveAll(dest); err != nil {
+			return "", fmt.Errorf("failed to remove existing %s: %w", b.name, err)
+		}
 		if err := writeFileAtomically(dest, b.data, 0755); err != nil {
 			return "", fmt.Errorf("failed to extract %s: %w", b.name, err)
 		}

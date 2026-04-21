@@ -177,7 +177,7 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
 	// Get KNIRV_ORACLED RPC URL from environment or use default
-	// Priority: env var > local KNIRVSERVER oracle (localhost:1317) > container DNS
+	// Priority: env var > local KNIRVSERVER oracle (localhost:1317) > public DNS > legacy container DNS
 	knirvOracledRPCURL := os.Getenv("KNIRV_ORACLED_RPC_URL")
 	if knirvOracledRPCURL == "" {
 		// Try local KNIRVSERVER oracle first
@@ -187,7 +187,16 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 				knirvOracledRPCURL = "http://localhost:1317"
 			}
 		}
-		// Fallback to container DNS name
+		// Try public DNS (oracle.knirv.network)
+		if knirvOracledRPCURL == "" {
+			if resp, err := http.Get("https://oracle.knirv.network/ping"); err == nil {
+				resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					knirvOracledRPCURL = "https://oracle.knirv.network"
+				}
+			}
+		}
+		// Legacy fallback to container DNS name
 		if knirvOracledRPCURL == "" {
 			knirvOracledRPCURL = "http://knirv-oracled:26657"
 		}
@@ -344,7 +353,7 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
 	// Get KNIRV_ORACLED RPC URL from environment or use default
-	// Priority: env var > local KNIRVSERVER oracle (localhost:1317) > container DNS
+	// Priority: env var > local KNIRVSERVER oracle (localhost:1317) > public DNS > legacy container DNS
 	knirvOracledRPCURL := os.Getenv("KNIRV_ORACLED_RPC_URL")
 	if knirvOracledRPCURL == "" {
 		// Try local KNIRVSERVER oracle first
@@ -354,7 +363,16 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 				knirvOracledRPCURL = "http://localhost:1317"
 			}
 		}
-		// Fallback to container DNS name
+		// Try public DNS (oracle.knirv.network)
+		if knirvOracledRPCURL == "" {
+			if resp, err := http.Get("https://oracle.knirv.network/ping"); err == nil {
+				resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					knirvOracledRPCURL = "https://oracle.knirv.network"
+				}
+			}
+		}
+		// Legacy fallback to container DNS name
 		if knirvOracledRPCURL == "" {
 			knirvOracledRPCURL = "http://knirv-oracled:26657"
 		}

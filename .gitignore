@@ -148,3 +148,5 @@ packages/KNIRVSERVER/pkg/bin/knirvchain
 /packages/KNIRVSERVER/pkg/knirvgraph/bin
 /packages/KNIRVSERVER/pkg/knirvhasher/bin
 /packages/KNIRVSERVER/pkg/knirvoracle/bin
+/packages/KNIRVSERVER/frontend/menu/.next
+/packages/KNIRVSERVER/frontend/menu/out

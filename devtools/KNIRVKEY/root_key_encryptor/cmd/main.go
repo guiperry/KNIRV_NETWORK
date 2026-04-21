@@ -2,13 +2,9 @@
 package main
 
 import (
-	"backend_server/internal/config"
-	pb "backend_server/internal/proto"
-	"backend_server/internal/utils"
 	"bufio"
 	"flag"
 	"fmt"
-
 	"log"
 	"os"
 	"path/filepath"
@@ -20,6 +16,8 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"google.golang.org/protobuf/proto"
+
+	"backend_server/keyfile"
 )
 
 // loadEnvFile loads values from the .env file in the project root
@@ -119,6 +117,15 @@ func main() {
 	githubPublicKeyEntry.SetPlaceHolder("GitHub Public Key")
 	githubPublicKeyEntry.SetText(envValues["DEFAULT_GITHUB_PUBLIC_KEY_FOR_UPDATES"])
 
+	// Cloudflare credentials
+	cloudflareAPITokenEntry := widget.NewEntry()
+	cloudflareAPITokenEntry.SetPlaceHolder("Cloudflare API Token")
+	cloudflareAPITokenEntry.SetText(envValues["CLOUDFLARE_API_TOKEN"])
+
+	cloudflareZoneIDEntry := widget.NewEntry()
+	cloudflareZoneIDEntry.SetPlaceHolder("Cloudflare Zone ID (optional)")
+	cloudflareZoneIDEntry.SetText(envValues["CLOUDFLARE_ZONE_ID"])
+
 	// Production secrets
 	jwtSecretEntry := widget.NewEntry()
 	jwtSecretEntry.SetPlaceHolder("JWT Secret")
@@ -156,7 +163,7 @@ func main() {
 	outputFileEntry.SetPlaceHolder("Output .key file path (e.g., root.key)")
 
 	// Suggest a default path
-	defaultKeyPath, err := config.GetRootKeyPath()
+	defaultKeyPath, err := keyfile.GetRootKeyPath()
 	if err == nil {
 		outputFileEntry.SetText(defaultKeyPath)
 	} else {
@@ -184,7 +191,7 @@ func main() {
 		}
 
 		// Gather Sensitive Data
-		content := &pb.RootKeyFileContentProto{
+		content := &keyfile.RootKeyFileContentProto{
 			StripeSecretKey:       stripeSecretEntry.Text,
 			StripeWebhookSecret:   stripeWebhookSecretEntry.Text,
 			CoinbaseApiKey:        coinbaseAPIKeyEntry.Text,
@@ -196,6 +203,9 @@ func main() {
 			DeepseekApiKey:        deepseekApiKeyEntry.Text,
 			TlsCert:               tlsCertEntry.Text,
 			TlsKey:                tlsKeyEntry.Text,
+			CerebrasApiKey:       cerebrasAPIKeyEntry.Text,
+			CloudflareApiToken:   cloudflareAPITokenEntry.Text,
+			CloudflareZoneId:     cloudflareZoneIDEntry.Text,
 		}
 
 		// Marshal to protobuf
@@ -206,27 +216,27 @@ func main() {
 		}
 
 		// Generate Salt and Derive Key
-		salt, err := utils.GenerateSalt(utils.SaltLen)
+		salt, err := keyfile.GenerateSalt(16)
 		if err != nil {
 			dialog.ShowError(fmt.Errorf("failed to generate salt: %v", err), w)
 			return
 		}
 
-		encryptionKey, err := utils.DeriveKeyFromPassword(password, salt, utils.ScryptN, utils.ScryptR, utils.ScryptP, utils.KeyLen)
+		encryptionKey, err := keyfile.DeriveKeyFromPassword(password, salt, 32768, 8, 1, 32)
 		if err != nil {
 			dialog.ShowError(fmt.Errorf("failed to derive encryption key: %v", err), w)
 			return
 		}
 
 		// Encrypt Data
-		encryptedData, err := utils.Encrypt(contentBytes, encryptionKey)
+		encryptedData, err := keyfile.Encrypt(contentBytes, encryptionKey)
 		if err != nil {
 			dialog.ShowError(fmt.Errorf("failed to encrypt data: %v", err), w)
 			return
 		}
 
 		// Prepare File Content
-		encryptedFileContent := &pb.EncryptedRootKeyFile{
+		encryptedFileContent := &keyfile.EncryptedRootKeyFile{
 			EncryptedContent: encryptedData,
 			Salt:             salt,
 		}
@@ -278,6 +288,12 @@ func main() {
 		container.NewGridWithColumns(2,
 			container.NewVBox(widget.NewLabel("GitHub Token:"), githubTokenEntry),
 			container.NewVBox(widget.NewLabel("GitHub Public Key:"), githubPublicKeyEntry),
+		),
+		widget.NewSeparator(),
+		widget.NewLabel("Cloudflare Configuration:"),
+		container.NewGridWithColumns(2,
+			container.NewVBox(widget.NewLabel("Cloudflare API Token:"), cloudflareAPITokenEntry),
+			container.NewVBox(widget.NewLabel("Cloudflare Zone ID:"), cloudflareZoneIDEntry),
 		),
 		widget.NewSeparator(),
 		widget.NewLabel("Production Secrets:"),
