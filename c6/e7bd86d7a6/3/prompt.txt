@@ -1,0 +1,10 @@
+The application needs to use the cloudflare cli with credentials from the root key to update the cloudflare knirvoracle endpoint upon root nodelaunch:
+
+2026/04/17 06:41:25 Warning: Could not connect to KNIRVORACLE at http://knirv-oracled:26657: Get "http://knirv-oracled:26657/ping": dial tcp: lookup knirv-oracled: no such host
+
+https://oracle.knirv.network
+
+---
+
+Still seeing this log message from KNIRVORACLE i think: 
+Warning: Could not connect to KNIRVORACLE at http://knirv-oracled:26657: Get "http://knirv-oracled:26657/ping": dial tcp: lookup knirv-oracled: no such host
