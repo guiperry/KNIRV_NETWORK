@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Eye, Box, Wrench, Globe, Cpu, Layers, Settings, Triangle } from "lucide-react"
 import dynamic from "next/dynamic"
@@ -57,6 +58,7 @@ function polarToCartesian(angle: number, radius: number) {
 }
 
 export default function ConstellationMenu() {
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [hoveredIcon, setHoveredIcon] = useState<number | null>(null)
   const [loadingComplete, setLoadingComplete] = useState(false)
@@ -77,6 +79,8 @@ export default function ConstellationMenu() {
     }
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'navigate', section }, '*')
+    } else {
+      router.push(`/?nav=${section}`)
     }
   }
 

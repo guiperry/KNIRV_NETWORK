@@ -24,7 +24,9 @@ const (
 )
 
 type rootKeyContent struct {
-	RootPrivateKeyHex string
+	RootPrivateKeyHex   string
+	CloudflareAPIToken string
+	CloudflareZoneID   string
 }
 
 func initOracleWithSecrets(content *rootKeyContent, logger *zap.Logger) (*oracle.Oracle, error) {
@@ -226,12 +228,24 @@ func loadEncryptedKeyFile(keyFilePath string, password []byte) (*rootKeyContent,
 		return nil, fmt.Errorf("failed to decrypt key file (incorrect password?): %w", err)
 	}
 
-	rootPrivateKeyHex, err := parseRootPrivateKeyHex(decryptedData)
+	fields, err := parseProtoFields(decryptedData)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse root key content: %w", err)
 	}
 
-	return &rootKeyContent{RootPrivateKeyHex: rootPrivateKeyHex}, nil
+	rootPrivateKey := string(firstFieldValue(fields[5]))
+	if rootPrivateKey == "" {
+		return nil, fmt.Errorf("root key content missing root_private_key_hex")
+	}
+
+	cloudflareAPIToken := string(firstFieldValue(fields[18]))
+	cloudflareZoneID := string(firstFieldValue(fields[19]))
+
+	return &rootKeyContent{
+		RootPrivateKeyHex: rootPrivateKey,
+		CloudflareAPIToken: cloudflareAPIToken,
+		CloudflareZoneID:   cloudflareZoneID,
+	}, nil
 }
 
 func decrypt(data, key []byte) ([]byte, error) {

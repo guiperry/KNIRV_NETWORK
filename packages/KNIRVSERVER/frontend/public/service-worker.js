@@ -55,6 +55,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Do NOT cache protected routes - let them go to network
+  if (url.pathname === '/login' || url.pathname === '/menu' || url.pathname.startsWith('/menu') || url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   if (url.pathname.startsWith('/icons/') || 
       url.pathname.startsWith('/screenshots/') ||
       url.pathname.endsWith('.png') ||

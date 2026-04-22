@@ -128,7 +128,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     // For JWTs, check expiry client-side before hitting the backend
-    if (token.startsWith('ey')) {
+    if (typeof token === 'string' && token.startsWith('ey')) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp && payload.exp * 1000 < Date.now()) {

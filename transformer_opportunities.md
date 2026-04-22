@@ -40,7 +40,7 @@
 |-------|------|-------------|
 | 0 | `DATA_CONNECTOR` | USB→MIPS device driver for Antminer S3, cross-compiled `GOOS=linux GOARCH=mips GOMIPS=softfloat` |
 | 1 | `DATA_MINER` | ArXiv API client (XML/Atom), orchestrator with graceful shutdown, checkpoint persistence, configurable GPU/CPU worker pool |
-| 2 | `DATA_ENCODER` | tiktoken cl100k_base; Ollama BGE-768 embedding client; `VarianceAnalyzer` (top-24 high-variance dims from 768-dim space); `Mapper` (768→24 float32 random projection, sigmoid→int16, bit-packed 2×int16→uint32 → 12 hardware slots); `SlidingWindowGenerator` |
+| 2 | `DATA_ENCODER` | tiktoken cl100k_base; deterministic text embedding client (primary); Ollama BGE-768 embedding client (fallback); `VarianceAnalyzer` (top-24 high-variance dims from 768-dim space); `Mapper` (768→24 float32 random projection, sigmoid→int16, bit-packed 2×int16→uint32 → 12 hardware slots); `SlidingWindowGenerator` |
 | 3 | `DATA_TRAINER` | Docker/OpenWRT packaged Go trainer; ships to `/dev/bitmain-asic` |
 
 **HashNetwork inference engine (`pkg/hashing/neural/`):**
@@ -79,6 +79,7 @@
 
 **Hardware:**
 - Bitmain Antminer S3 — MIPS AR9330 CPU @ 400 MHz, 61 MB RAM, 32× BM1382 ASIC chips (~500 GH/s SHA-256)
+- **BM1382 constraint:** chips are hard-wired for the Bitcoin mining loop (`SHA256(SHA256(header + nonce)) < target`); they do not support arbitrary deterministic hashing. All uses of the ASIC must pack inputs into the 80-byte block header format via the `0x52 (TXTASK)` protocol and interpret returned nonces, not hash digests.
 - CUDA path: `pkg/hashing/methods/cuda/`
 
 **Training data:**
@@ -141,23 +142,24 @@ propagating those improvements back into the merged architecture.
 
 ---
 
-### Option 3 — SHA-256 ASIC as Locality-Sensitive Hash Engine for Attention
+### Option 3 — BM1382 ASIC as Deterministic Bucket Generator for Attention LSH
 
-**What**: Replace the learned Q·Kᵀ attention scoring with a hardware LSH step executed on the BM1382 chips. The 32 SHA-256 ASIC cores become a parallel bucket-assignment engine: each query vector is hashed into one of 2^N buckets, and only keys in the same bucket receive attention — O(n) instead of O(n²).
+**What**: Replace the learned Q·Kᵀ attention scoring with a hardware LSH step executed on the BM1382 chips. Testing has confirmed the ASIC is **hard-wired for the Bitcoin mining loop** — it finds nonces where `SHA256(SHA256(header + nonce)) < target`; it does not provide arbitrary deterministic hashing (`SHA256(input ∥ seed) → fixed output`). The revised design repurposes the mining hardware's natural operation: by setting a **Difficulty-1 target**, the first valid **nonce** discovered becomes the LSH bucket signature. This preserves the 500 GH/s throughput advantage while working within the ASIC's actual capabilities.
 
 **How**:
-1. At inference time, bit-pack each Q and K vector using the existing `mapper.MapToSlots()` (768→12 uint32).
-2. Ship the packed vectors to the Antminer via the Stage 0 connector: each of the 12 slots becomes a SHA-256 input block.
-3. The ASIC returns 12 hash digests. Truncate to the top-N bits to derive a bucket ID.
-4. Queries and keys with matching bucket IDs form the sparse attention mask.
-5. Pass this hardware-generated mask into `SelfAttention.Forward(x, mask, training)` — the mask parameter is wired, currently unused because softmax is commented out; implementing this option is the natural motivation to re-enable softmax.
+1. At inference time, bit-pack each Q and K vector using the existing `mapper.MapToSlots()` (768→12 uint32), then map the resulting 128-bit LSH projection into the 80-byte Bitcoin block header structure required by the `0x52 (TXTASK)` protocol. The dispatcher constructs binary headers that look like valid mining work.
+2. Specify a **Nonce Range** (e.g., 0–1,000,000). Within that range the ASIC is deterministic: the same projection data always produces the same **Golden Nonce**, making bucket assignment reproducible across nodes.
+3. The discovered nonce (32 bits) is the bucket ID. Queries and keys whose mining tasks yield the same nonce fall in the same attention bucket.
+4. **RAM constraint (61 MB):** implement a **Temporal Recursive Algorithm** to handle bucket collisions. When a collision is detected, "mine deeper" by using the previously found nonce as a seed for the next mining task, collecting a sequence of nonces rather than one 128-bit signature. The `LSHIndex` stores 32-bit nonces as keys in a memory-mapped B-tree, keeping the index footprint within the 61 MB limit.
+5. Pass the hardware-generated sparse mask into `SelfAttention.Forward(x, mask, training)` — the mask parameter is wired but currently unused because softmax is commented out; this option is the natural motivation to re-enable softmax.
 
-**ES connection**: The BM1382 chips are already the compute substrate for `EvolutionaryHarness.EvaluatePopulationBatch`. The same physical cores serve two roles in a merged system: training seeds during batch evaluation and generating LSH attention masks during HEART inference. Because both workloads are SHA-256, a scheduler can time-share them with no hardware changes.
+**ES connection**: The BM1382 chips are already the compute substrate for `EvolutionaryHarness.EvaluatePopulationBatch` (which similarly exploits the mining loop to find golden nonces against a difficulty target). The same physical cores serve two roles in a merged system: seed evaluation during training and bucket-ID generation during HEART inference. Both workloads use the mining loop natively; a scheduler can time-share them with no hardware changes.
 
 **Value Added**:
-- ~500 GH/s SHA-256 throughput enables millions of vector hash assignments per second — far beyond MIPS CPU capability.
-- Converts sunk hardware cost into a genuine inference accelerator within the KNIRV stack.
-- Attention is now deterministically auditable for any given input — value for KNIRVCHAIN verification.
+- ~500 GH/s nonce-search throughput enables millions of LSH bucket assignments per second — far beyond MIPS CPU capability.
+- Converts sunk hardware cost into a genuine inference accelerator by repurposing the mining hardware's natural state rather than fighting its architecture.
+- Attention is deterministically auditable for any given input and nonce range — value for KNIRVCHAIN verification.
+- Golden-nonce determinism within a fixed nonce range means bucket assignments are reproducible across all KNIRV nodes running the same projection data.
 - Hardware-native sparse attention aligns with Longformer/BigBird/Flash Attention research direction.
 
 ---
@@ -465,13 +467,13 @@ architecture. They are listed in recommended implementation order.*
 The complete merged system — all 17 options in production — produces the following data flow:
 
 ```
-ArXiv API ─────────────────────────────────────────────────────────────────────────┐
+ArXiv API ──────────────────────────────────────────────────────────────────────────┐
     │                                                                               │
     ▼ (Opt 1)                                                                       │
 1_DATA_MINER ──── PaperRecord chan ────────────────────────────────────────────────►│
     │                                                                               │
-    ▼ (Opt 5) cl100k tokens shared by both model types                             │
-2_DATA_ENCODER (tiktoken cl100k + Ollama BGE-768)                                  │
+    ▼ (Opt 5) cl100k tokens shared by both model types                              │
+2_DATA_ENCODER (tiktoken cl100k + Ollama BGE-768)                                   │
     │                                                                               │
     ├──── SlidingWindow + embeddings ──────────────────────────────────────────────►│
     │                                                                               │
@@ -479,22 +481,22 @@ ArXiv API ───────────────────────�
 VarianceAnalyzer ──── Jaccard drift ──► HEARTErrorInquiry[DistributionShift] ──────►│
     │                                         │                                     │
     │ top-24 signal indices                   │                                     │
-    ├────────────────────────────► (Opt 2) Attention Head Pruning                  │
+    ├────────────────────────────► (Opt 2) Attention Head Pruning                   │
     │                                         │                                     │
     ▼ (Opt 11)                                │                                     │
 Mapper (768→12 uint32)                        │          AlpacaDataCleaned ────────►│
     │ bit-packed slots                        │                                     │
     ├──────────────────────────────────────────────────────────────────────────────►│
     │                                                                               │
-    ├──► BM1382 ASIC (Opt 3) ──────────────── LSH attention mask                   │
-    │       │                                      │                               │
-    │       │ SHA-256 (Opt 6) ────────────────► KNIRVCHAIN SkillNode               │
+    ├──► BM1382 ASIC (Opt 3) ──────────────── LSH attention mask                    │
+    │       │                                      │                                │
+    │       │ SHA-256 (Opt 6) ────────────────► KNIRVCHAIN SkillNode                │
     │       │                                                                       │
-    │       │    EvolutionaryHarness (Opt 13 ES update, 14 mirrored, 15 σ anneal)  │
-    │       └──► SeedPopulation ──────────────────────────────────────────────────►│
+    │       │    EvolutionaryHarness (Opt 13 ES update, 14 mirrored, 15 σ anneal)   │
+    │       └──► SeedPopulation ──────────────────────────────────────────────────► │
     │                   │                                                           │
     │                   ▼ (Opt 16)                                                  │
-    │              EvoGRPO (ES weighted update + GRPO advantage)                   │
+    │              EvoGRPO (ES weighted update + GRPO advantage)                    │
     │                   │                                                           ▼
     │                   ▼ (Opt 17)              ┌──────────────────────────────────┐
     │              HashNetwork ─── fast path ──►│  HEART Inference Router          │
@@ -505,8 +507,8 @@ SlidingWindowGenerator                          │                             
     ▼ (Opt 8) DynamicGraph NAS                  │                                  │
 Gorgonite GPT (go_transformer)                  │                                  │
     │ float32 weights (Opt 2 pruned)            │                                  │
-    ├──► INT16 quantise (Opt 7) ──► MIPS binary ──► Antminer CPU ─── slow path ──►│
-    ├──► NPZ export ──────────────► CerebrasBridge ──► Cerebras WSE2 ─── bulk ───►│
+    ├──► INT16 quantise (Opt 7) ──► MIPS binary ──► Antminer CPU ─── slow path ──► │
+    ├──► NPZ export ──────────────► CerebrasBridge ──► Cerebras WSE2 ─── bulk ───► │
     └──► UnifiedCheckpoint (Opt 10, ASIC-signed, seeds + weights + miner state)    │
               │                                 └──────────────────────────────────┘
               ▼ content-addressed store                         │
@@ -539,10 +541,10 @@ Gorgonite GPT (go_transformer)                  │                             
 | HashNetwork | 32-byte seed arrays | `seed_t ← seed_{t-1} + α·Σ Rₙεₙ` | Hamming bit-match alignment |
 | Gorgonite | float32 weight tensors | `θ_t ← θ_{t-1} + α·Σ Rₙεₙ` | Cross-entropy on cl100k tokens |
 
-The Antminer S3's 32 BM1382 chips serve four distinct roles in this architecture:
-1. **Training** — SHA-256 hash evaluation for `EvolutionaryHarness.EvaluatePopulationBatch`
-2. **Attention routing** — LSH bucket assignment for sparse transformer attention (Option 3)
-3. **Attestation** — Merkle root over model states for KNIRVCHAIN proof-of-training (Option 6)
-4. **Verification** — real-time checkpoint signature validation on unified checkpoint load (Option 10)
+The Antminer S3's 32 BM1382 chips serve four distinct roles in this architecture, all implemented via the Bitcoin mining loop (`SHA256(SHA256(header + nonce)) < target`) with inputs packed into the 80-byte `0x52 (TXTASK)` header format:
+1. **Training** — nonce-search evaluation for `EvolutionaryHarness.EvaluatePopulationBatch`; golden nonces are the reward signal
+2. **Attention routing** — deterministic bucket-ID generation for sparse transformer attention (Option 3); Difficulty-1 target, fixed nonce range, golden nonce = bucket key in memory-mapped B-tree; Temporal Recursive Algorithm handles collisions within the 61 MB RAM limit
+3. **Attestation** — Merkle root over model states for KNIRVCHAIN proof-of-training (Option 6); state blobs streamed as mining headers, per-block nonces accumulate into the Merkle structure
+4. **Verification** — real-time checkpoint signature validation on unified checkpoint load (Option 10); same header packing, deterministic nonce check
 
-None of these roles require hardware modification. All four run on SHA-256 — the only operation the BM1382 natively executes.
+None of these roles require hardware modification. All four exploit the single operation the BM1382 natively executes — finding nonces in the Bitcoin mining loop.

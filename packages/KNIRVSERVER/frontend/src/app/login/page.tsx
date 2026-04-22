@@ -71,7 +71,7 @@ export default function LoginPage() {
           authToken = rawToken;
           role = testnetTokens[rawToken as keyof typeof testnetTokens].role;
         } else {
-          if (rawToken.startsWith('ey')) {
+          if (typeof rawToken === 'string' && rawToken.startsWith('ey')) {
             try {
               const payload = JSON.parse(atob(rawToken.split('.')[1]));
               if (payload.exp && payload.exp * 1000 < Date.now()) {

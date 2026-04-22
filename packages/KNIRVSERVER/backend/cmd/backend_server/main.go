@@ -54,7 +54,6 @@ import (
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
 	"backend_server/internal/services/validation"
-	"backend_server/internal/utils/cloudflare"
 	"backend_server/internal/utils/host"
 
 	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL"
@@ -470,16 +469,6 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 		cfg.Security.TLSKey = content.TlsKey
 		log.Printf("TLS certificates loaded from root.key")
 	}
-
-	if content.CloudflareApiToken != "" {
-		cfg.Cloudflare.APIToken = content.CloudflareApiToken
-		log.Printf("Cloudflare API Token loaded from root.key")
-	}
-
-	if content.CloudflareZoneId != "" {
-		cfg.Cloudflare.ZoneID = content.CloudflareZoneId
-		log.Printf("Cloudflare Zone ID loaded from root.key")
-	}
 }
 
 func initOracleManager(logger *zap.Logger, _ *config.Config) *knirvoracle.Manager {
@@ -509,82 +498,6 @@ func initOracleManager(logger *zap.Logger, _ *config.Config) *knirvoracle.Manage
 	}
 
 	return knirvoracle.NewManager(oracleCfg, logger)
-}
-
-func updateOracleDNS(logger *zap.Logger, cloudCfg *config.CloudflareConfig) {
-	if cloudCfg == nil || !cloudCfg.Enabled || cloudCfg.APIToken == "" {
-		return
-	}
-
-	dnsManager := cloudflare.NewDNSManager(cloudCfg.APIToken)
-
-	recordName := cloudCfg.RecordName
-	if recordName == "" {
-		recordName = "oracle"
-	}
-	recordType := cloudCfg.RecordType
-	if recordType == "" {
-		recordType = "A"
-	}
-	ttl := cloudCfg.TTL
-	if ttl == 0 {
-		ttl = 300
-	}
-
-	if cloudCfg.ZoneID == "" && cloudCfg.ZoneName != "" {
-		zone, err := dnsManager.GetZoneByName(cloudCfg.ZoneName)
-		if err != nil {
-			logger.Error("Failed to get Cloudflare zone", zap.Error(err))
-			return
-		}
-		cloudCfg.ZoneID = zone.ID
-	}
-
-	ip, err := getOutboundIP()
-	if err != nil {
-		logger.Error("Failed to get outbound IP for oracle DNS update", zap.Error(err))
-		return
-	}
-
-	record := cloudflare.DNSRecord{
-		Type:    recordType,
-		Name:    recordName,
-		Content: ip.String(),
-		TTL:     ttl,
-		Proxied: cloudCfg.Proxied,
-	}
-
-	existing, err := dnsManager.GetDNSRecord(cloudCfg.ZoneID, recordName, recordType)
-	if err == nil && existing != nil {
-		if existing.Content == ip.String() {
-			logger.Info("Oracle DNS record already up to date", zap.String("ip", ip.String()))
-			return
-		}
-		_, err = dnsManager.UpdateDNSRecord(cloudCfg.ZoneID, existing.ID, record)
-		if err != nil {
-			logger.Error("Failed to update Cloudflare DNS record", zap.Error(err))
-			return
-		}
-		logger.Info("Updated Cloudflare DNS record for oracle", zap.String("ip", ip.String()))
-	} else {
-		_, err = dnsManager.CreateDNSRecord(cloudCfg.ZoneID, record)
-		if err != nil {
-			logger.Error("Failed to create Cloudflare DNS record", zap.Error(err))
-			return
-		}
-		logger.Info("Created Cloudflare DNS record for oracle", zap.String("ip", ip.String()))
-	}
-}
-
-func getOutboundIP() (net.IP, error) {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP, nil
 }
 
 func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (*Server, error) {
@@ -1398,9 +1311,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		balanceReader := &oracleBalanceAdapter{manager: oracleManager}
 		if transactionChainClient != nil {
 			transactionChainClient.SetBalanceReader(balanceReader)
-		}
-		if cfg.Cloudflare.Enabled && cfg.Cloudflare.APIToken != "" {
-			go updateOracleDNS(logger, &cfg.Cloudflare)
 		}
 	}
 	if cfg.Rollup.PollInterval <= 0 {

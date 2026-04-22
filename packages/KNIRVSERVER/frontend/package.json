@@ -7,7 +7,7 @@
     "dev": "node server.cjs",
     "dev:watch": "nodemon server.cjs",
     "dev:menu": "npm --prefix ./menu run dev",
-    "build": "npm run build:log:start && node scripts/generate-icons.mjs && next build && npm run build:menu && npm run build:log:success",
+    "build": "npm run build:log:start && node scripts/generate-icons.mjs && next build && npm run build:log:success",
     "build:menu": "npm --prefix ./menu install && npm --prefix ./menu run build && mkdir -p out/menu && cp -r ./menu/out/. out/menu/",
     "start": "NODE_ENV=production node server.cjs 2>&1 | tee server.log",
     "build:log:start": "node scripts/build-log-start.mjs",
