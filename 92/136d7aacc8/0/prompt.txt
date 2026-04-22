@@ -1,0 +1,5 @@
+In packages/KNIRVSERVER there is a rogue folder being created named "~" with the path down to the knirvgraph. Can you trace this folder's creation source and correct it so that this folder is created in the application data directry correctly?
+
+---
+
+TRy again in the project folder...
