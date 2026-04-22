@@ -3,7 +3,7 @@
   "checkpoint_id": "92136d7aacc8",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 4,
   "files_touched": [
     "packages/KNIRVORACLE/cmd/oracle/main.go",
     "packages/KNIRVORACLE/cmd/oracle/rootkey.go",
@@ -215,13 +215,19 @@
       "transcript": "/92/136d7aacc8/0/full.jsonl",
       "content_hash": "/92/136d7aacc8/0/content_hash.txt",
       "prompt": "/92/136d7aacc8/0/prompt.txt"
+    },
+    {
+      "metadata": "/92/136d7aacc8/1/metadata.json",
+      "transcript": "/92/136d7aacc8/1/full.jsonl",
+      "content_hash": "/92/136d7aacc8/1/content_hash.txt",
+      "prompt": "/92/136d7aacc8/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 177349,
-    "cache_creation_tokens": 118755,
-    "cache_read_tokens": 1350589,
-    "output_tokens": 9913,
-    "api_call_count": 33
+    "input_tokens": 279941,
+    "cache_creation_tokens": 157737,
+    "cache_read_tokens": 2325297,
+    "output_tokens": 15548,
+    "api_call_count": 56
   }
 }
