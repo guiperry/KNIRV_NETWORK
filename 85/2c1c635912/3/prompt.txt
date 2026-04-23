@@ -1,0 +1,8 @@
+In the KNIRVSERVER, getting this error during initialization: 
+Warning: cgroup manager start failed: failed to create base cgroup directory: mkdir /sys/fs/cgroup/knirv-objects: permission denied
+
+This is necessary since we need the app to create containers.
+
+---
+
+Add a way to chmod the program, or add it to an admin or sudo group so that it has admin rights to create cgroups. The containerization feature is a main feature of this application, there is no case where it should not be available. We need to know when it fails to initialize and implement more ways to gain access to it!
