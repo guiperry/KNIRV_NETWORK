@@ -3,7 +3,7 @@
   "checkpoint_id": "852c1c635912",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 4,
   "files_touched": [
     "packages/KNIRVGRAPH/internal/app/app.go",
     "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
@@ -34,13 +34,19 @@
       "transcript": "/85/2c1c635912/1/full.jsonl",
       "content_hash": "/85/2c1c635912/1/content_hash.txt",
       "prompt": "/85/2c1c635912/1/prompt.txt"
+    },
+    {
+      "metadata": "/85/2c1c635912/2/metadata.json",
+      "transcript": "/85/2c1c635912/2/full.jsonl",
+      "content_hash": "/85/2c1c635912/2/content_hash.txt",
+      "prompt": "/85/2c1c635912/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 454106,
+    "input_tokens": 570359,
     "cache_creation_tokens": 200760,
-    "cache_read_tokens": 4130002,
-    "output_tokens": 25078,
-    "api_call_count": 96
+    "cache_read_tokens": 7593602,
+    "output_tokens": 37775,
+    "api_call_count": 166
   }
 }

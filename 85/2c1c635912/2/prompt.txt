@@ -1,0 +1,9 @@
+In KNIRVSERVER, getting the following error: 
+Failed to create socket directory: mkdir /var/run/knirv: permission denied
+
+The socket diretory is already being created in the application data directory. We need to unify this to that same location...
+
+---
+
+I'm still seeing Failed to create socket directory: mkdir /var/run/knirv: permission denied
+ in the KNIRVSERVER appliction initialization logs... Please fix this.
