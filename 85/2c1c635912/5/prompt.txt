@@ -1,0 +1,9 @@
+In the packages/KNIRVSERVER/frontend/src/components/menu each icon is supposed to direct the viewport to a specific location in the applicaion as listed in the icon, currently nothing happens when I click on an icon in the constellation menu.
+
+---
+
+These are all on the dashboard-wrapper page!
+
+---
+
+Getting the following error in the frontend console:
