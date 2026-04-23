@@ -3,10 +3,45 @@ package teesecurity
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 )
+
+type CgroupAccessMethod int
+
+const (
+	CgroupAccessUnknown CgroupAccessMethod = iota
+	CgroupAccessRoot
+	CgroupAccessSudoGroup
+	CgroupAccessDelegated
+	CgroupAccessCapSysAdmin
+	CgroupAccessWritableCgroupParent
+	CgroupAccessNoAccess
+)
+
+type CgroupDiagnostics struct {
+	AccessMethod     CgroupAccessMethod
+	CanCreateCgroups bool
+	UID              int
+	GID              int
+	EUID             int
+	EGID             int
+	Groups           []string
+	HasCapSysAdmin   bool
+	IsRoot           bool
+	IsInSudoGroup    bool
+	IsInAdminGroup   bool
+	IsInCgroupGroup  bool
+	CgroupVersion    int
+	CgroupPath       string
+	MountInfo        string
+	SysCgroupOptions string
+	CgroupControllers string
+	Errors           []string
+}
 
 // CgroupDelegationStatus holds information about cgroup delegation status
 type CgroupDelegationStatus struct {
@@ -24,13 +59,37 @@ type CgroupManager struct {
 	delegation *CgroupDelegationStatus
 }
 
+func init() {
+	d := DiagnoseCgroupAccess()
+	fmt.Printf("=== KNIRV Cgroup Initialization Diagnostics ===\n")
+	fmt.Printf("Is Root: %v, EUID: %d, Has CAP_SYS_ADMIN: %v\n", d.IsRoot, d.EUID, d.HasCapSysAdmin)
+	fmt.Printf("Groups: %v\n", d.Groups)
+	fmt.Printf("Cgroup Path: %s, Can Create: %v\n", d.CgroupPath, d.CanCreateCgroups)
+	if !d.CanCreateCgroups {
+		fmt.Printf("WARNING: Cgroups not accessible - containerization features will be disabled!\n")
+		fmt.Printf("Run with --cgroup-diagnostics for help.\n")
+	}
+	fmt.Printf("=================================================\n")
+}
+
 // NewCgroupManager creates a new CgroupManager instance
 func NewCgroupManager(containerID string, config CgroupConfig) (*CgroupManager, error) {
-	return NewCgroupManagerWithDelegation(containerID, config, nil)
+	diagnostics := DiagnoseCgroupAccess()
+	return NewCgroupManagerWithDelegation(containerID, config, nil, diagnostics)
+}
+
+// GetCgroupDiagnostics returns current cgroup access diagnostics
+func GetCgroupDiagnostics() *CgroupDiagnostics {
+	return DiagnoseCgroupAccess()
 }
 
 // NewCgroupManagerWithDelegation creates a new CgroupManager with explicit delegation settings
-func NewCgroupManagerWithDelegation(containerID string, config CgroupConfig, delegation *CgroupDelegationStatus) (*CgroupManager, error) {
+func NewCgroupManagerWithDelegation(containerID string, config CgroupConfig, delegation *CgroupDelegationStatus, diagnostics *CgroupDiagnostics) (*CgroupManager, error) {
+	// Use provided diagnostics or create new ones
+	if diagnostics == nil {
+		diagnostics = DiagnoseCgroupAccess()
+	}
+
 	// Use cgroups v2 unified hierarchy
 	basePath := "/sys/fs/cgroup/knirv-server"
 
@@ -50,15 +109,12 @@ func NewCgroupManagerWithDelegation(containerID string, config CgroupConfig, del
 
 	// Check if cgroup filesystem is mounted and writable
 	if err := verifyCgroupWritable(basePath); err != nil {
-		return nil, fmt.Errorf("cgroup filesystem not writable: %w\n"+
-			"Ensure container is running with:\n"+
-			"  - Docker: --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --cgroup-parent=docker\n"+
-			"  - Kata: privileged_without_host_devices=true with cgroup delegation", err)
+		return nil, newCgroupAccessError(diagnostics, err)
 	}
 
 	// Create parent cgroup if it doesn't exist
 	if err := os.MkdirAll(basePath, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create base cgroup directory: %w", err)
+		return nil, newCgroupAccessError(diagnostics, err)
 	}
 
 	// Enable controllers in the parent cgroup (required for cgroup v2)
@@ -77,6 +133,180 @@ func NewCgroupManagerWithDelegation(containerID string, config CgroupConfig, del
 		config:     config,
 		delegation: delegation,
 	}, nil
+}
+
+func DiagnoseCgroupAccess() *CgroupDiagnostics {
+	d := &CgroupDiagnostics{
+		AccessMethod:   CgroupAccessUnknown,
+		CgroupVersion: 2,
+	}
+
+	d.UID = syscall.Getuid()
+	d.GID = syscall.Getgid()
+	d.EUID = syscall.Geteuid()
+	d.EGID = syscall.Getegid()
+
+	d.IsRoot = d.EUID == 0
+	if d.IsRoot {
+		d.CanCreateCgroups = true
+		d.AccessMethod = CgroupAccessRoot
+	} else {
+		d.CanCreateCgroups = canCreateSubcgroups()
+	}
+
+	if d.CanCreateCgroups {
+		if d.IsRoot {
+			d.AccessMethod = CgroupAccessRoot
+		} else {
+			d.AccessMethod = CgroupAccessCapSysAdmin
+		}
+	}
+
+	d.Groups = getProcessGroups()
+
+	for _, g := range d.Groups {
+		low := strings.ToLower(g)
+		if low == "sudo" || low == "admin" {
+			d.IsInSudoGroup = true
+		}
+		if low == "admin" || low == "wheel" {
+			d.IsInAdminGroup = true
+		}
+		if strings.Contains(low, "cgroup") {
+			d.IsInCgroupGroup = true
+		}
+	}
+
+	if !d.IsRoot && d.CanCreateCgroups && (d.IsInSudoGroup || d.IsInAdminGroup) {
+		d.AccessMethod = CgroupAccessSudoGroup
+	}
+
+	d.HasCapSysAdmin = checkCapability()
+
+	if !d.CanCreateCgroups && d.HasCapSysAdmin {
+		d.AccessMethod = CgroupAccessCapSysAdmin
+	}
+
+	if !d.CanCreateCgroups && !d.IsRoot && !d.HasCapSysAdmin {
+		d.AccessMethod = CgroupAccessNoAccess
+	}
+
+	d.CgroupPath = getCurrentCgroupPath()
+
+	if data, err := os.ReadFile("/proc/self/mountinfo"); err == nil {
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "cgroup") {
+				d.MountInfo = line
+				break
+			}
+		}
+	}
+
+	if data, err := os.ReadFile("/sys/fs/cgroup/cgroup.controllers"); err == nil {
+		d.CgroupControllers = strings.TrimSpace(string(data))
+	}
+
+	if data, err := os.ReadFile("/proc/cmdline"); err == nil {
+		d.SysCgroupOptions = strings.TrimSpace(string(data))
+	}
+
+	return d
+}
+
+func getProcessGroups() []string {
+	var groups []string
+
+	if data, err := os.ReadFile("/proc/self/status"); err == nil {
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "Groups:") {
+				parts := strings.Fields(strings.TrimPrefix(line, "Groups:"))
+				for _, p := range parts {
+					if gid, err := strconv.Atoi(p); err == nil {
+						if name := getGroupName(gid); name != "" {
+							groups = append(groups, name)
+						} else {
+							groups = append(groups, p)
+						}
+					}
+				}
+				break
+			}
+		}
+	}
+
+	return groups
+}
+
+func getGroupName(gid int) string {
+	cmd := exec.Command("getent", "group", strconv.Itoa(gid))
+	output, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	parts := strings.Split(strings.TrimSpace(string(output)), ":")
+	if len(parts) >= 3 {
+		return parts[0]
+	}
+	return ""
+}
+
+func checkCapability() bool {
+	if data, err := os.ReadFile("/proc/self/status"); err == nil {
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "CapB") {
+				parts := strings.Fields(line)
+				if len(parts) >= 3 {
+					var caps uint64
+					if _, err := fmt.Sscanf(parts[2], "%x", &caps); err == nil {
+						return (caps & 0x200000) != 0
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func newCgroupAccessError(d *CgroupDiagnostics, innerErr error) error {
+	msg := fmt.Sprintf("cgroup access failed: %v\n", innerErr)
+
+	msg += fmt.Sprintf("\n=== CGROUP ACCESS DIAGNOSTICS ===\n")
+	msg += fmt.Sprintf("UID: %d, GID: %d, EUID: %d, EGID: %d\n", d.UID, d.GID, d.EUID, d.EGID)
+	msg += fmt.Sprintf("Is Root: %v, Has CapSysAdmin: %v\n", d.IsRoot, d.HasCapSysAdmin)
+	msg += fmt.Sprintf("In Sudo Group: %v, In Admin Group: %v\n", d.IsInSudoGroup, d.IsInAdminGroup)
+	msg += fmt.Sprintf("Cgroup Path: %s\n", d.CgroupPath)
+	msg += fmt.Sprintf("Groups: %v\n", d.Groups)
+
+	if !d.CanCreateCgroups {
+		msg += fmt.Sprintf("\n=== SOLUTIONS ===\n")
+		if !d.IsRoot && !d.HasCapSysAdmin {
+			msg += "OPTION 1 - Run as root:\n"
+			msg += "  sudo chown root:<group> $EXEC_PATH && chmod 4750 $EXEC_PATH\n"
+			msg += "  OR run: sudo KNIRVSERVER\n\n"
+			msg += "OPTION 2 - Add user to sudo/admin group:\n"
+			msg += "  sudo usermod -aG sudo $USER\n"
+			msg += "  sudo usermod -aG admin $USER\n"
+			msg += "  newgrp sudo (or logout/login)\n\n"
+			msg += "OPTION 3 - Grant CAP_SYS_ADMIN:\n"
+			msg += "  sudo setcap cap_sys_admin+ep $EXEC_PATH\n\n"
+		}
+		msg += "OPTION 4 - Docker container config:\n"
+		msg += "  docker run --privileged ...\n"
+		msg += "  OR docker run --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw ...\n\n"
+		msg += "OPTION 5 - Container with cgroup delegation:\n"
+		msg += "  docker run --cgroup-parent=<delegate> ...\n"
+		msg += "  OR kubectl spec.securityContext.sysctls: sys/fs/cgroup\n\n"
+		msg += "OPTION 6 - Use Podman with proper config:\n"
+		msg += "  podman run --cgroup-manager=cgroupfs (or systemd)\n\n"
+		msg += "OPTION 7 - systemd unit with proper permissions:\n"
+		msg += "  [Service] Group=admin\n"
+		msg += "  AmbientCapabilities=CAP_SYS_ADMIN\n\n"
+	}
+
+	return fmt.Errorf(msg)
 }
 
 // DetectCgroupDelegation checks if cgroups are properly delegated in the current environment

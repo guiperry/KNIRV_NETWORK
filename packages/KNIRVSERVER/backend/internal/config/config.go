@@ -564,6 +564,25 @@ func expandPath(path string) (string, error) {
 func (c *Config) ExpandPaths() error {
 	var err error
 
+	// Expand SocketDir (directory for Unix sockets)
+	if c.SocketDir != "" {
+		c.SocketDir, err = expandPath(c.SocketDir)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(c.SocketDir, 0755); err != nil {
+			return fmt.Errorf("failed to create socket directory: %v", err)
+		}
+	}
+
+	// Expand API paths
+	if c.API.SocketPath != "" {
+		c.API.SocketPath, err = expandPath(c.API.SocketPath)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Expand database path
 	if c.Database.Path != "" {
 		c.Database.Path, err = expandPath(c.Database.Path)
@@ -712,6 +731,75 @@ func (c *Config) ExpandPaths() error {
 		c.Chain.BinaryPath, err = expandPath(c.Chain.BinaryPath)
 		if err != nil {
 			return err
+		}
+	}
+
+	// Expand Gateway paths
+	if c.Gateway.BinaryPath != "" {
+		c.Gateway.BinaryPath, err = expandPath(c.Gateway.BinaryPath)
+		if err != nil {
+			return err
+		}
+	}
+	if c.Gateway.SocketPath != "" {
+		c.Gateway.SocketPath, err = expandPath(c.Gateway.SocketPath)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Dir(c.Gateway.SocketPath), 0755); err != nil {
+			return fmt.Errorf("failed to create gateway socket directory: %v", err)
+		}
+	}
+
+	// Expand TransactionChain paths
+	if c.TransactionChain.BinaryPath != "" {
+		c.TransactionChain.BinaryPath, err = expandPath(c.TransactionChain.BinaryPath)
+		if err != nil {
+			return err
+		}
+	}
+	if c.TransactionChain.ScriptPath != "" {
+		c.TransactionChain.ScriptPath, err = expandPath(c.TransactionChain.ScriptPath)
+		if err != nil {
+			return err
+		}
+	}
+	if c.TransactionChain.WorkDir != "" {
+		c.TransactionChain.WorkDir, err = expandPath(c.TransactionChain.WorkDir)
+		if err != nil {
+			return err
+		}
+	}
+	if c.TransactionChain.DataPath != "" {
+		c.TransactionChain.DataPath, err = expandPath(c.TransactionChain.DataPath)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(c.TransactionChain.DataPath, 0755); err != nil {
+			return fmt.Errorf("failed to create transaction chain data directory: %v", err)
+		}
+	}
+
+	// Expand ValidationChain paths
+	if c.ValidationChain.BinaryPath != "" {
+		c.ValidationChain.BinaryPath, err = expandPath(c.ValidationChain.BinaryPath)
+		if err != nil {
+			return err
+		}
+	}
+	if c.ValidationChain.WorkDir != "" {
+		c.ValidationChain.WorkDir, err = expandPath(c.ValidationChain.WorkDir)
+		if err != nil {
+			return err
+		}
+	}
+	if c.ValidationChain.DataPath != "" {
+		c.ValidationChain.DataPath, err = expandPath(c.ValidationChain.DataPath)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(c.ValidationChain.DataPath, 0755); err != nil {
+			return fmt.Errorf("failed to create validation chain data directory: %v", err)
 		}
 	}
 

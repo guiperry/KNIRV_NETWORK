@@ -3,6 +3,7 @@ package keyfile
 import (
 	"backend_server/internal/proto"
 	"backend_server/internal/utils"
+	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -11,11 +12,11 @@ type RootKeyFileContentProto = proto.RootKeyFileContentProto
 type EncryptedRootKeyFile = proto.EncryptedRootKeyFile
 
 func GetRootKeyPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
+	configDir, err := os.UserConfigDir()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get user config directory: %w", err)
 	}
-	return filepath.Join(homeDir, ".knirv", "root.key"), nil
+	return filepath.Join(configDir, "knirv-server", "root.key"), nil
 }
 
 func DeriveKeyFromPassword(password, salt []byte, n, r, p, keyLen int) ([]byte, error) {

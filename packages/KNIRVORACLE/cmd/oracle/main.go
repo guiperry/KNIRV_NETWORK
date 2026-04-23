@@ -47,6 +47,12 @@ func main() {
 		}
 	}
 
+	resolvedSocketPath, err := resolveSocketPath(*socketPath)
+	if err != nil {
+		log.Fatalf("Failed to resolve oracle socket path: %v", err)
+	}
+	*socketPath = resolvedSocketPath
+
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatalf("Failed to create logger: %v", err)
@@ -119,6 +125,23 @@ func main() {
 	defer cancel()
 	server.Shutdown(ctx)
 	listener.Close()
+}
+
+func resolveSocketPath(currentFlag string) (string, error) {
+	if currentFlag != "" && currentFlag != "/var/run/knirv/oracle.sock" {
+		return currentFlag, nil
+	}
+
+	if envPath := os.Getenv("ORACLE_SOCKET_PATH"); envPath != "" {
+		return envPath, nil
+	}
+
+	appDataDir, err := getOSAppDataDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(appDataDir, "sockets", "oracle.sock"), nil
 }
 
 func handleHealth(o *oracle.Oracle) http.HandlerFunc {

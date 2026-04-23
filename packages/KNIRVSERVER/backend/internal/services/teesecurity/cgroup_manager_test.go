@@ -422,7 +422,7 @@ func TestNewCgroupManagerWithDelegation(t *testing.T) {
 	// Use the detected delegation status (uses actual writable cgroup parent)
 	delegation := actualDelegation
 
-	mgr, err := NewCgroupManagerWithDelegation("test-delegation", config, delegation)
+	mgr, err := NewCgroupManagerWithDelegation("test-delegation", config, delegation, nil)
 	if err != nil {
 		t.Fatalf("NewCgroupManagerWithDelegation failed: %v", err)
 	}
@@ -500,7 +500,7 @@ func TestNewCgroupManagerWithDelegation_CustomParent(t *testing.T) {
 		ControllerPath: actualDelegation.ControllerPath,
 	}
 
-	mgr, err := NewCgroupManagerWithDelegation("custom-parent-test", config, delegation)
+	mgr, err := NewCgroupManagerWithDelegation("custom-parent-test", config, delegation, nil)
 	if err != nil {
 		t.Fatalf("NewCgroupManagerWithDelegation with custom parent failed: %v", err)
 	}

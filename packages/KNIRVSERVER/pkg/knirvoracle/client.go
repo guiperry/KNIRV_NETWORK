@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -18,7 +19,11 @@ type Client struct {
 
 func NewClient(socketPath string) *Client {
 	if socketPath == "" {
-		socketPath = "/var/run/knirv/oracle.sock"
+		if envPath := os.Getenv("ORACLE_SOCKET_PATH"); envPath != "" {
+			socketPath = envPath
+		} else {
+			socketPath = "~/.local/share/knirvserver/sockets/oracle.sock"
+		}
 	}
 
 	return &Client{

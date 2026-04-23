@@ -32,6 +32,7 @@ func rootKeyCandidates(configuredPath string) []string {
 	}
 
 	if dataDir, err := os.UserHomeDir(); err == nil {
+		add(filepath.Join(dataDir, ".knirv", "root.key"))
 		add(filepath.Join(dataDir, ".local", "share", "knirv-server", "root.key"))
 	}
 
@@ -89,14 +90,27 @@ func ValidateRootKeyFile(path string) error {
 }
 
 func ResolveAndValidateRootKey(configuredPath string) (string, error) {
-	rootKeyPath, err := ResolveRootKeyPath(configuredPath)
-	if err != nil {
-		return "", err
+	var firstInvalidErr error
+
+	for _, candidate := range rootKeyCandidates(configuredPath) {
+		info, err := os.Stat(candidate)
+		if err != nil || info.IsDir() {
+			continue
+		}
+		if err := ValidateRootKeyFile(candidate); err != nil {
+			if firstInvalidErr == nil {
+				firstInvalidErr = err
+			}
+			continue
+		}
+		return candidate, nil
 	}
-	if err := ValidateRootKeyFile(rootKeyPath); err != nil {
-		return "", err
+
+	if firstInvalidErr != nil {
+		return "", firstInvalidErr
 	}
-	return rootKeyPath, nil
+
+	return "", fmt.Errorf("root.key not found in any expected location")
 }
 
 func validateEncryptedRootKeyEnvelope(data []byte) (bool, bool, error) {

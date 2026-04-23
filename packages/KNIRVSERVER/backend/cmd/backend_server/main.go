@@ -403,13 +403,14 @@ func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, er
 		}
 	}
 
-	keyPath, err := config.GetRootKeyPath()
+	configuredKeyPath, err := config.GetRootKeyPath()
 	if err != nil {
 		return nil, fmt.Errorf("secrets: could not resolve root key path: %w", err)
 	}
 
-	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
-		logger.Info("Secrets not loaded: no root.key found", zap.String("expected_path", keyPath))
+	keyPath, err := knirvoracle.ResolveAndValidateRootKey(configuredKeyPath)
+	if err != nil {
+		logger.Info("Secrets not loaded: no valid root.key found", zap.String("configured_path", configuredKeyPath), zap.Error(err))
 		return nil, nil
 	}
 
@@ -471,7 +472,7 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 	}
 }
 
-func initOracleManager(logger *zap.Logger, _ *config.Config) *knirvoracle.Manager {
+func initOracleManager(logger *zap.Logger, rootKeySecrets *pb.RootKeyFileContentProto) *knirvoracle.Manager {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
@@ -488,13 +489,26 @@ func initOracleManager(logger *zap.Logger, _ *config.Config) *knirvoracle.Manage
 		return nil
 	}
 
+	socketPath := filepath.Join(appDataDir, "sockets", "oracle.sock")
+
+	envOverrides := map[string]string{}
+	if rootKeySecrets != nil {
+		if rootKeySecrets.CloudflareApiToken != "" {
+			envOverrides["CLOUDFLARE_API_TOKEN"] = rootKeySecrets.CloudflareApiToken
+		}
+		if rootKeySecrets.CloudflareZoneId != "" {
+			envOverrides["CLOUDFLARE_ZONE_ID"] = rootKeySecrets.CloudflareZoneId
+		}
+	}
+
 	oracleCfg := &knirvoracle.ManagerConfig{
 		BinaryPath:   "knirvoracle",
-		SocketPath:   filepath.Join(appDataDir, "sockets", "oracle.sock"),
+		SocketPath:   socketPath,
 		DataPath:     filepath.Join(appDataDir, "oracle"),
 		RootKeyPath:  rootKeyPath,
 		StartTimeout: 30 * time.Second,
 		StopTimeout:  10 * time.Second,
+		EnvOverrides: envOverrides,
 	}
 
 	return knirvoracle.NewManager(oracleCfg, logger)
@@ -842,6 +856,9 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	var graphManager *knirvgraph.Manager
 	var graphSyncManager *knirvgraph.SyncManager
 	if cfg.Graph.Enabled {
+		graphEnvOverrides := map[string]string{
+			"KNIRV_ORACLED_RPC_URL": fmt.Sprintf("http://127.0.0.1:%d", cfg.API.Port),
+		}
 		graphConfig := &knirvgraph.ManagerConfig{
 			BinaryPath:    cfg.Graph.BinaryPath,
 			SocketPath:    cfg.Graph.SocketPath,
@@ -854,6 +871,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			StopTimeout:   time.Duration(cfg.Graph.StopTimeout) * time.Second,
 			Stdout:        logging.NewSubprocessWriter("knirvgraph", os.Stdout),
 			Stderr:        logging.NewSubprocessWriter("knirvgraph", os.Stderr),
+			EnvOverrides:  graphEnvOverrides,
 		}
 		graphManager = knirvgraph.NewManager(graphConfig, logger)
 		log.Println("KNIRVGRAPH manager initialized")
@@ -1300,7 +1318,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	}
 
 	// Initialise oracle manager if root.key is present (root node only)
-	oracleManager := initOracleManager(logger, cfg)
+	oracleManager := initOracleManager(logger, rootKeySecrets)
 	if oracleManager != nil {
 		if err := oracleManager.Start(ctx); err != nil {
 			logger.Error("Failed to start oracle manager — continuing without oracle", zap.Error(err))

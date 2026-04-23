@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 func TestNewServer(t *testing.T) {
@@ -249,6 +251,32 @@ func TestServerHandleHealth(t *testing.T) {
 	for _, service := range expectedServices {
 		assert.Contains(t, services, service)
 	}
+}
+
+func TestInitOracleManagerUsesAppDataSocketAndCloudflareEnv(t *testing.T) {
+	t.Setenv("KNIRV_APP_DATA_DIR", t.TempDir())
+
+	logger := zap.NewNop()
+	secrets := &pb.RootKeyFileContentProto{
+		CloudflareApiToken: "cf-token",
+		CloudflareZoneId:   "zone-id",
+	}
+
+	manager := initOracleManager(logger, secrets)
+	require.NotNil(t, manager)
+
+	cfgValue := reflect.ValueOf(manager).Elem().FieldByName("config")
+	require.True(t, cfgValue.IsValid())
+
+	expectedSocket := filepath.Join(os.Getenv("KNIRV_APP_DATA_DIR"), "sockets", "oracle.sock")
+	expectedDataDir := filepath.Join(os.Getenv("KNIRV_APP_DATA_DIR"), "oracle")
+
+	assert.Equal(t, expectedSocket, cfgValue.Elem().FieldByName("SocketPath").String())
+	assert.Equal(t, expectedDataDir, cfgValue.Elem().FieldByName("DataPath").String())
+
+	envOverrides := cfgValue.Elem().FieldByName("EnvOverrides")
+	assert.Equal(t, "cf-token", envOverrides.MapIndex(reflect.ValueOf("CLOUDFLARE_API_TOKEN")).String())
+	assert.Equal(t, "zone-id", envOverrides.MapIndex(reflect.ValueOf("CLOUDFLARE_ZONE_ID")).String())
 }
 
 func TestApplyRootKeySecretsToConfigDoesNotOverrideDatabasePath(t *testing.T) {

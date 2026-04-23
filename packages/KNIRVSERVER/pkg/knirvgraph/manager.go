@@ -64,6 +64,7 @@ type ManagerConfig struct {
 	StopTimeout   time.Duration
 	Stdout        io.Writer
 	Stderr        io.Writer
+	EnvOverrides  map[string]string
 }
 
 type HealthStatus struct {
@@ -230,6 +231,9 @@ func (m *Manager) Start() error {
 		fmt.Sprintf("KNIRVGRAPH_API_PORT=%d", m.config.APIPort),
 		fmt.Sprintf("KNIRVGRAPH_DATA_PATH=%s", m.config.DataPath),
 	)
+	for k, v := range m.config.EnvOverrides {
+		m.cmd.Env = append(m.cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
 
 	if m.config.Stdout != nil {
 		m.cmd.Stdout = m.config.Stdout

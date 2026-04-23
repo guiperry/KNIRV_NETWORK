@@ -89,6 +89,12 @@ func NewNRNIntegration(knirvRootURL string, nrvSystem *nrv.NRVSystem) *NRNIntegr
 func (ni *NRNIntegration) Start(ctx context.Context) error {
 	log.Println("Starting NRN Integration for KNIRVGRAPH...")
 
+	if ni.knirvRootURL == "" {
+		log.Println("NRN integration disabled: no compatible KNIRVORACLE endpoint configured")
+		ni.enabled = false
+		return nil
+	}
+
 	// Test connection to KNIRVORACLE
 	if err := ni.testConnection(); err != nil {
 		log.Printf("Warning: Could not connect to KNIRVORACLE at %s: %v", ni.knirvRootURL, err)
@@ -106,18 +112,30 @@ func (ni *NRNIntegration) Start(ctx context.Context) error {
 
 // testConnection tests the connection to KNIRVORACLE
 func (ni *NRNIntegration) testConnection() error {
-	url := fmt.Sprintf("%s/ping", ni.knirvRootURL)
-	resp, err := ni.httpClient.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+	healthPaths := []string{"/oracle/v3/health", "/health", "/ping"}
+	var lastErr error
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("KNIRVORACLE returned status %d", resp.StatusCode)
+	for _, healthPath := range healthPaths {
+		url := fmt.Sprintf("%s%s", ni.knirvRootURL, healthPath)
+		resp, err := ni.httpClient.Get(url)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		resp.Body.Close()
+
+		if resp.StatusCode == http.StatusOK {
+			return nil
+		}
+
+		lastErr = fmt.Errorf("KNIRVORACLE returned status %d for %s", resp.StatusCode, healthPath)
 	}
 
-	return nil
+	if lastErr == nil {
+		lastErr = fmt.Errorf("no health endpoints responded")
+	}
+
+	return lastErr
 }
 
 // ProcessSkillConfirmation handles skill confirmation for KNIRVCHAIN commitment

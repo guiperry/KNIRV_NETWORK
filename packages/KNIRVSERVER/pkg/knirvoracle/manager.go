@@ -83,10 +83,10 @@ func getOracleAppDataDir() string {
 func DefaultManagerConfig() *ManagerConfig {
 	appDataDir := getOracleAppDataDir()
 	return &ManagerConfig{
-		SocketPath:   "/var/run/knirv/oracle.sock",
+		SocketPath:   filepath.Join(appDataDir, "sockets", "oracle.sock"),
 		DataPath:     filepath.Join(appDataDir, "oracle"),
 		StartTimeout: 30 * time.Second,
-		StopTimeout:  10 * time.Second,
+		StopTimeout: 10 * time.Second,
 	}
 }
 

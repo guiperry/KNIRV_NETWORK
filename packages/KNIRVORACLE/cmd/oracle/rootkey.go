@@ -114,17 +114,55 @@ func initOracleFromKeyFile(logger *zap.Logger) (*oracle.Oracle, error) {
 }
 
 func getRootKeyPath() (string, error) {
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to get user config directory: %w", err)
+	candidates := make([]string, 0, 6)
+	seen := make(map[string]struct{})
+
+	add := func(path string) {
+		path = strings.TrimSpace(path)
+		if path == "" {
+			return
+		}
+		if _, ok := seen[path]; ok {
+			return
+		}
+		seen[path] = struct{}{}
+		candidates = append(candidates, path)
 	}
 
-	appConfigDir := filepath.Join(configDir, "knirv-server")
-	if err := os.MkdirAll(appConfigDir, 0755); err != nil {
-		return "", fmt.Errorf("failed to create app config directory %s: %w", appConfigDir, err)
+	add(os.Getenv("ORACLE_ROOT_KEY_PATH"))
+	add(os.Getenv("KNIRV_ROOT_KEY_PATH"))
+
+	if configDir, err := os.UserConfigDir(); err == nil {
+		add(filepath.Join(configDir, "knirv-server", "root.key"))
 	}
 
-	return filepath.Join(appConfigDir, "root.key"), nil
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		add(filepath.Join(homeDir, ".knirv", "root.key"))
+	}
+
+	if exePath, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exePath)
+		add(filepath.Join(exeDir, "root.key"))
+		add(filepath.Join(exeDir, "bin", "root.key"))
+	}
+
+	var firstCandidate string
+	for i, candidate := range candidates {
+		if i == 0 {
+			firstCandidate = candidate
+		}
+		info, err := os.Stat(candidate)
+		if err != nil || info.IsDir() {
+			continue
+		}
+		return candidate, nil
+	}
+
+	if firstCandidate != "" {
+		return firstCandidate, nil
+	}
+
+	return "", fmt.Errorf("failed to resolve root.key path")
 }
 
 func getOSAppDataDir() (string, error) {

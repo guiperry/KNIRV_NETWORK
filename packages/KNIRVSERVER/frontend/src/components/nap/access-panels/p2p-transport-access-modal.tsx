@@ -21,22 +21,46 @@ interface P2PTransportAccessModalProps {
   onClose: () => void;
 }
 
-// The gateway ALWAYS runs co-located with the backend server.
-// Port is fetched dynamically from the gateway's /health endpoint.
+// The gateway runs on localhost with dynamic port selection.
+// Port scanning: try ports 8080-8100 until we find the gateway.
 let cachedGatewayPort: string | null = null;
 
-async function getGatewayPort(): Promise<string> {
+async function scanForGateway(): Promise<string> {
   if (cachedGatewayPort) return cachedGatewayPort;
-  try {
-    const resp = await fetch(`${API_BASE_URL}/health`, {
-      headers: getAuthHeaders(),
-    });
-    const data = await resp.json();
-    cachedGatewayPort = String(data.port || 8080);
-    return cachedGatewayPort;
-  } catch {
-    return '8080';
+  
+  // Try NEXT_PUBLIC_GATEWAY_PORT first if set
+  const envPort = process.env.NEXT_PUBLIC_GATEWAY_PORT;
+  if (envPort) {
+    try {
+      const resp = await fetch(`http://localhost:${envPort}/health`, { 
+        method: 'HEAD', 
+        signal: AbortSignal.timeout(2000) 
+      });
+      if (resp.ok || resp.type === 'opaque') {
+        cachedGatewayPort = envPort;
+        return cachedGatewayPort;
+      }
+    } catch { /* continue scanning */ }
   }
+  
+  // Scan ports 8080-8100 for gateway
+  for (let port = 8080; port <= 8100; port++) {
+    try {
+      const resp = await fetch(`http://localhost:${port}/health`, {
+        method: 'HEAD',
+        signal: AbortSignal.timeout(500),
+      });
+      if (resp.ok || resp.type === 'opaque') {
+        cachedGatewayPort = String(port);
+        return cachedGatewayPort;
+      }
+    } catch {
+      // Port not available, continue
+    }
+  }
+  
+  // Fallback to default
+  return '8080';
 }
 
 function buildWebGuiUrl(port: string): string {
@@ -66,7 +90,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
   // Initialize WebGUI URL when modal opens
   useEffect(() => {
     if (isOpen && !webGuiUrl) {
-      getGatewayPort().then(port => {
+      scanForGateway().then(port => {
         setWebGuiUrl(buildWebGuiUrl(port));
       });
     }
@@ -79,7 +103,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
     setWebGuiLoading(true);
     setShowWebGui(true);
     try {
-      const port = await getGatewayPort();
+      const port = await scanForGateway();
       const baseUrl = `http://localhost:${port}`;
       const resp = await fetch(`${baseUrl}/health`, { method: 'HEAD', mode: 'no-cors', signal: AbortSignal.timeout(4000) });
       // no-cors fetch succeeds even for opaque responses — means server is reachable

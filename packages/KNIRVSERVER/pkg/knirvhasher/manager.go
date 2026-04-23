@@ -54,11 +54,26 @@ type HasherStatus struct {
 }
 
 func DefaultManagerConfig() *ManagerConfig {
+	appDataDir := getHasherAppDataDir()
 	return &ManagerConfig{
-		SocketPath:   "/var/run/hasher.sock",
+		SocketPath:   filepath.Join(appDataDir, "sockets", "hasher.sock"),
+		DataPath:     filepath.Join(appDataDir, "hasher"),
 		StartTimeout: 30 * time.Second,
 		StopTimeout:  10 * time.Second,
 	}
+}
+
+func getHasherAppDataDir() string {
+	if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
+		return filepath.Join(explicit, "knirvserver")
+	}
+	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
+		return filepath.Join(xdgDataHome, "knirvserver")
+	}
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(homeDir, ".local", "share", "knirvserver")
+	}
+	return "data"
 }
 
 func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
@@ -69,7 +84,12 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 		cfg.StopTimeout = 10 * time.Second
 	}
 	if cfg.SocketPath == "" {
-		cfg.SocketPath = "/var/run/hasher.sock"
+		defaults := DefaultManagerConfig()
+		cfg.SocketPath = defaults.SocketPath
+	}
+	if cfg.DataPath == "" {
+		defaults := DefaultManagerConfig()
+		cfg.DataPath = defaults.DataPath
 	}
 
 	return &Manager{

@@ -10,15 +10,40 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func legacyRootKeyPath() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	return filepath.Join(homeDir, ".knirv", "root.key"), nil
+}
+
 // GetRootKeyPath returns the default path for the Root key file.
-// For Root role, it returns "root.key" in the config directory.
+// It prefers the canonical config directory, but falls back to the
+// legacy ~/.knirv/root.key location for compatibility with older tools.
 func GetRootKeyPath() (string, error) {
 	configDir, err := GetConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get config directory: %w", err)
 	}
 
-	return filepath.Join(configDir, "root.key"), nil
+	canonicalPath := filepath.Join(configDir, "root.key")
+	if _, err := os.Stat(canonicalPath); err == nil {
+		if _, loadErr := LoadEncryptedRootKeyFile(canonicalPath); loadErr == nil {
+			return canonicalPath, nil
+		}
+	}
+
+	legacyPath, err := legacyRootKeyPath()
+	if err == nil {
+		if _, statErr := os.Stat(legacyPath); statErr == nil {
+			if _, loadErr := LoadEncryptedRootKeyFile(legacyPath); loadErr == nil {
+				return legacyPath, nil
+			}
+		}
+	}
+
+	return canonicalPath, nil
 }
 
 // LoadEncryptedRootKeyFile loads the encrypted Root key file from the specified path.

@@ -18,6 +18,68 @@ import (
 	"go.uber.org/zap"
 )
 
+func resolveKNIRVOracleURL(logger *zap.Logger) string {
+	candidates := []struct {
+		baseURL     string
+		healthPaths []string
+		label       string
+	}{}
+
+	if envURL := os.Getenv("KNIRV_ORACLED_RPC_URL"); envURL != "" {
+		candidates = append(candidates, struct {
+			baseURL     string
+			healthPaths []string
+			label       string
+		}{baseURL: envURL, healthPaths: []string{"/oracle/v3/health", "/health"}, label: "env var KNIRV_ORACLED_RPC_URL"})
+	}
+	if envURL := os.Getenv("KNIRVORACLE_URL"); envURL != "" {
+		candidates = append(candidates, struct {
+			baseURL     string
+			healthPaths []string
+			label       string
+		}{baseURL: envURL, healthPaths: []string{"/oracle/v3/health", "/health"}, label: "env var KNIRVORACLE_URL"})
+	}
+
+	candidates = append(candidates,
+		struct {
+			baseURL     string
+			healthPaths []string
+			label       string
+		}{baseURL: "http://127.0.0.1:8084", healthPaths: []string{"/oracle/v3/health", "/health"}, label: "local KNIRVSERVER oracle proxy"},
+		struct {
+			baseURL     string
+			healthPaths []string
+			label       string
+		}{baseURL: "http://127.0.0.1:1317", healthPaths: []string{"/health"}, label: "local legacy KNIRVSERVER oracle"},
+		struct {
+			baseURL     string
+			healthPaths []string
+			label       string
+		}{baseURL: "https://oracle.knirv.network", healthPaths: []string{"/oracle/v3/health", "/health"}, label: "cloudflare public DNS"},
+	)
+
+	client := &http.Client{}
+	for _, candidate := range candidates {
+		if candidate.baseURL == "" {
+			continue
+		}
+		for _, healthPath := range candidate.healthPaths {
+			resp, err := client.Get(candidate.baseURL + healthPath)
+			if err != nil {
+				continue
+			}
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				logger.Info("KNIRVORACLE: using discovered endpoint", zap.String("url", candidate.baseURL), zap.String("source", candidate.label))
+				return candidate.baseURL
+			}
+		}
+	}
+
+	logger.Info("KNIRVORACLE: no compatible endpoint discovered, economics integration disabled")
+	return ""
+}
+
 // TestnetConfig holds testnet-specific configuration
 type TestnetConfig struct {
 	Enabled     bool   `json:"enabled"`
@@ -176,31 +238,7 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	// Initialize NRV system
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
-	// Get KNIRV_ORACLED RPC URL from environment or use default
-	// Priority: env var > local KNIRVSERVER oracle (localhost:1317) > public DNS > legacy container DNS
-	knirvOracledRPCURL := os.Getenv("KNIRV_ORACLED_RPC_URL")
-	if knirvOracledRPCURL == "" {
-		// Try local KNIRVSERVER oracle first
-		if resp, err := http.Get("http://localhost:1317/ping"); err == nil {
-			resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				knirvOracledRPCURL = "http://localhost:1317"
-			}
-		}
-		// Try public DNS (oracle.knirv.network)
-		if knirvOracledRPCURL == "" {
-			if resp, err := http.Get("https://oracle.knirv.network/ping"); err == nil {
-				resp.Body.Close()
-				if resp.StatusCode == http.StatusOK {
-					knirvOracledRPCURL = "https://oracle.knirv.network"
-				}
-			}
-		}
-		// Legacy fallback to container DNS name
-		if knirvOracledRPCURL == "" {
-			knirvOracledRPCURL = "http://knirv-oracled:26657"
-		}
-	}
+	knirvOracledRPCURL := resolveKNIRVOracleURL(logger)
 
 	// Initialize NRN integration
 	nrnIntegration := economics.NewNRNIntegration(knirvOracledRPCURL, nrvSystem)
@@ -352,31 +390,7 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 	// Initialize NRV system
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
-	// Get KNIRV_ORACLED RPC URL from environment or use default
-	// Priority: env var > local KNIRVSERVER oracle (localhost:1317) > public DNS > legacy container DNS
-	knirvOracledRPCURL := os.Getenv("KNIRV_ORACLED_RPC_URL")
-	if knirvOracledRPCURL == "" {
-		// Try local KNIRVSERVER oracle first
-		if resp, err := http.Get("http://localhost:1317/ping"); err == nil {
-			resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				knirvOracledRPCURL = "http://localhost:1317"
-			}
-		}
-		// Try public DNS (oracle.knirv.network)
-		if knirvOracledRPCURL == "" {
-			if resp, err := http.Get("https://oracle.knirv.network/ping"); err == nil {
-				resp.Body.Close()
-				if resp.StatusCode == http.StatusOK {
-					knirvOracledRPCURL = "https://oracle.knirv.network"
-				}
-			}
-		}
-		// Legacy fallback to container DNS name
-		if knirvOracledRPCURL == "" {
-			knirvOracledRPCURL = "http://knirv-oracled:26657"
-		}
-	}
+	knirvOracledRPCURL := resolveKNIRVOracleURL(logger)
 
 	// Initialize NRN integration
 	nrnIntegration := economics.NewNRNIntegration(knirvOracledRPCURL, nrvSystem)
