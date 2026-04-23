@@ -9,6 +9,10 @@ import AIAgent from "./AIAgent";
 export default function KnirvGraph() {
   const graphRef = useRef<THREE.Group>(null);
   const { errorNodes, skillNodes, agents, selectedErrorNode, selectedAgent } = useKnirvana();
+  const isStraighteningAnchors = useKnirvana(s => s.isStraighteningAnchors);
+
+  const deployedAgents = agents.filter(agent => !agent.staged);
+  const stagedAgents = agents.filter(agent => agent.staged);
 
   return (
     <group ref={graphRef}>
@@ -30,8 +34,20 @@ export default function KnirvGraph() {
         />
       ))}
       
-      {/* Render AI agents */}
-      {agents.map((agent) => (
+      {/* Staged agents at the arena edge — hidden during straightening (proxies take over) */}
+      {!isStraighteningAnchors && stagedAgents.map((agent, index) => (
+        <AIAgent
+          key={agent.id}
+          agent={agent}
+          isSelected={selectedAgent === agent.id}
+          onSelect={() => useKnirvana.getState().selectAgent(agent.id)}
+          isStaged={true}
+          stagingIndex={index}
+        />
+      ))}
+
+      {/* Render AI agents (only deployed) */}
+      {deployedAgents.map((agent) => (
         <AIAgent
           key={agent.id}
           agent={agent}
@@ -42,7 +58,7 @@ export default function KnirvGraph() {
       ))}
       
       {/* Connection lines between nodes and agents */}
-      {agents.filter(agent => agent.target).map((agent) => {
+      {deployedAgents.filter(agent => agent.target).map((agent) => {
         const targetNode = errorNodes.find(node => node.id === agent.target);
         if (!targetNode) return null;
         

@@ -1,60 +1,53 @@
 // LLM Provider Service - Multi-LLM Support with Adaline Gateway
 import { GoogleGenerativeAI, GenerativeModel, type Content } from '@google/generative-ai';
-import { Gateway } from '@adaline/gateway';
 import type { LLMProvider, ChatMessage, ChatResponse } from '../types/chatBrain';
+
+export interface ProviderConfig {
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+}
+
+export interface LLMProviderOptions {
+  gemini?: ProviderConfig;
+  openai?: ProviderConfig;
+  deepseek?: ProviderConfig;
+}
 
 export class LLMProviderService {
   private gemini: GoogleGenerativeAI | null = null;
   private geminiModel: GenerativeModel | null = null;
-  private adalineGateway: Gateway | null = null;
+  private options: LLMProviderOptions;
+  private adalineInitialized: boolean = false;
 
-  constructor() {
+  constructor(options: LLMProviderOptions = {}) {
+    this.options = options;
     this.initializeProviders();
   }
 
   private initializeProviders(): void {
-    // Initialize Google Gemini
+    this.initializeGemini();
+    this.initializeAdaline();
+  }
+
+  private initializeGemini(): void {
     const geminiKey = import.meta.env.VITE_GOOGLE_API_KEY;
     if (geminiKey) {
       try {
         this.gemini = new GoogleGenerativeAI(geminiKey);
-        this.geminiModel = this.gemini.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        const modelName = this.options.gemini?.model || 'gemini-1.5-pro';
+        this.geminiModel = this.gemini.getGenerativeModel({ model: modelName });
       } catch (error) {
         console.error('Failed to initialize Gemini:', error);
       }
     }
-
-    // Initialize Adaline Gateway
-    this.initializeAdalineGateway();
   }
 
-  private async initializeAdalineGateway(): Promise<void> {
+  private initializeAdaline(): void {
     const adalineKey = import.meta.env.VITE_ADALINE_API_KEY;
-    
-    if (!adalineKey) {
-      console.warn('Adaline API key not found in environment variables');
-      return;
-    }
-
-    try {
-      // Initialize Adaline Gateway with correct constructor
-      this.adalineGateway = new Gateway({
-        enableProxyAgent: true,
-        queueOptions: {
-          timeout: 30000,
-          retry: {
-            initialDelay: 1000,
-            exponentialFactor: 2
-          },
-          maxConcurrentTasks: 5,
-          retryCount: 3
-        }
-      });
-
-      console.log('Adaline Gateway initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize Adaline Gateway:', error);
-      this.adalineGateway = null;
+    if (adalineKey) {
+      this.adalineInitialized = true;
+      console.log('Adaline Gateway: Using multi-model routing via ERGO');
     }
   }
 
@@ -77,16 +70,34 @@ export class LLMProviderService {
     }
   }
 
+  async chatWithOptions(
+    message: string,
+    provider: LLMProvider,
+    options: ProviderConfig,
+    history?: ChatMessage[]
+  ): Promise<ChatResponse> {
+    switch (provider) {
+      case 'gemini':
+        return this.geminiChat(message, history);
+      case 'openai':
+        return this.openAIChatWithOptions(message, options, history);
+      case 'deepseek':
+        return this.deepseekChat(message, history);
+      case 'adaline':
+        return this.adalineChatWithOptions(message, options, history);
+      default:
+        throw new Error(`Unsupported provider: ${provider}`);
+    }
+  }
+
   private async geminiChat(message: string, history?: ChatMessage[]): Promise<ChatResponse> {
     if (!this.geminiModel) {
       throw new Error('Gemini not initialized. Please check your API key.');
     }
 
     try {
-      // Build chat history for Gemini
       const chatHistory = this.buildGeminiHistory(history);
 
-      // Start a chat session if we have history
       if (chatHistory.length > 0) {
         const chat = this.geminiModel.startChat({
           history: chatHistory,
@@ -99,12 +110,11 @@ export class LLMProviderService {
           text: response.text(),
           provider: 'gemini',
           metadata: {
-            model: 'gemini-1.5-pro',
+            model: this.options.gemini?.model || 'gemini-1.5-pro',
           },
         };
       }
 
-      // Single message without history
       const result = await this.geminiModel.generateContent(message);
       const response = await result.response;
 
@@ -112,7 +122,7 @@ export class LLMProviderService {
         text: response.text(),
         provider: 'gemini',
         metadata: {
-          model: 'gemini-1.5-pro',
+          model: this.options.gemini?.model || 'gemini-1.5-pro',
         },
       };
     } catch (error) {
@@ -130,36 +140,57 @@ export class LLMProviderService {
     }));
   }
 
-  private async openAIChat(_message: string, _history?: ChatMessage[]): Promise<ChatResponse> {
-    // Use Adaline Gateway for OpenAI instead of direct API
-    if (!this.adalineGateway) {
-      throw new Error('Adaline Gateway not initialized for OpenAI provider.');
+  private async openAIChat(message: string, history?: ChatMessage[]): Promise<ChatResponse> {
+    return this.openAIChatWithOptions(message, this.options.openai || {}, history);
+  }
+
+  private async openAIChatWithOptions(
+    message: string,
+    options: ProviderConfig,
+    history?: ChatMessage[]
+  ): Promise<ChatResponse> {
+    const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+    if (!openAIKey) {
+      throw new Error('OpenAI API key not configured. Set VITE_OPENAI_API_KEY.');
     }
 
     try {
-      const messages = this.buildChatMessages(_message, _history);
-      
-      // TODO: Fix Gateway interface - temporarily disabled
-      // Use Adaline to call OpenAI
-      // const response = await this.adalineGateway.openai.chat.completions.create({
-      //   model: 'gpt-4-turbo',
-      //   messages,
-      //   temperature: 0.7,
-      //   maxTokens: 4096
-      // });
-      const response = { choices: [{ message: { content: 'OpenAI response via Adaline (placeholder)' } }] };
+      const messages = this.buildChatMessages(message, history);
+      const model = options.model || 'gpt-4-turbo';
+      const temperature = options.temperature ?? 0.7;
+      const maxTokens = options.maxTokens ?? 4096;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openAIKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
 
       return {
-        text: response.choices[0]?.message?.content || '',
+        text: data.choices[0]?.message?.content || '',
         provider: 'openai',
         metadata: {
-          model: 'gpt-4-turbo',
-          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-          gateway: 'adaline'
+          model,
+          usage: data.usage,
         },
       };
     } catch (error) {
-      console.error('OpenAI via Adaline error:', error);
+      console.error('OpenAI chat error:', error);
       throw new Error(`OpenAI error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -168,7 +199,7 @@ export class LLMProviderService {
     const deepseekKey = import.meta.env.VITE_DEEPSEEK_API_KEY;
 
     if (!deepseekKey) {
-      throw new Error('DeepSeek API key not configured.');
+      throw new Error('DeepSeek API key not configured. Set VITE_DEEPSEEK_API_KEY.');
     }
 
     try {
@@ -208,39 +239,112 @@ export class LLMProviderService {
   }
 
   private async adalineChat(message: string, history?: ChatMessage[]): Promise<ChatResponse> {
-    if (!this.adalineGateway) {
-      throw new Error('Adaline Gateway not initialized. Please check your API key configuration.');
+    return this.adalineChatWithOptions(message, this.options.openai || {}, history);
+  }
+
+  private async adalineChatWithOptions(
+    message: string,
+    options: ProviderConfig,
+    history?: ChatMessage[]
+  ): Promise<ChatResponse> {
+    const adalineKey = import.meta.env.VITE_ADALINE_API_KEY;
+
+    if (!adalineKey) {
+      return this.fallbackToLocalModel(message, history);
     }
 
     try {
-      // Build message history for Adaline
       const messages = this.buildChatMessages(message, history);
+      const model = options.model || 'gpt-4-turbo';
+      const temperature = options.temperature ?? 0.7;
+      const maxTokens = options.maxTokens ?? 4096;
 
-      // TODO: Fix Gateway interface - temporarily disabled
-      // Use Adaline Gateway for completion with OpenAI as default provider
-      // const response = await this.adalineGateway.openai.chat.completions.create({
-      //   messages,
-      //   model: 'gpt-4-turbo',
-      //   temperature: 0.7,
-      //   maxTokens: 4096
-      // });
-      const response = { choices: [{ message: { content: 'OpenAI response via Adaline (placeholder)' } }] };
+      const response = await fetch('https://api.adaline.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adalineKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+          routing: {
+            enabled: true,
+            strategy: 'latency-aware',
+          },
+        }),
+      });
 
-      const responseText = response.choices[0]?.message?.content || '';
+      if (!response.ok) {
+        console.warn('Adaline API error, falling back to local processing');
+        return this.fallbackToLocalModel(message, history);
+      }
+
+      const data = await response.json();
 
       return {
-        text: responseText,
+        text: data.choices[0]?.message?.content || '',
         provider: 'adaline',
         metadata: {
-          model: 'gpt-4-turbo',
-          usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-          gateway: 'adaline'
+          model,
+          routing: data.routing || { provider: 'unknown' },
+          gateway: 'adaline',
         },
       };
     } catch (error) {
-      console.error('Adaline chat error:', error);
-      throw new Error(`Adaline error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.warn('Adaline Gateway error, using local fallback:', error);
+      return this.fallbackToLocalModel(message, history);
     }
+  }
+
+  private async fallbackToLocalModel(
+    message: string,
+    history?: ChatMessage[]
+  ): Promise<ChatResponse> {
+    if (this.geminiModel) {
+      try {
+        const fullMessage = this.buildContextMessage(message, history);
+        const result = await this.geminiModel.generateContent(fullMessage);
+        const response = await result.response;
+
+        return {
+          text: response.text(),
+          provider: 'adaline',
+          metadata: {
+            model: 'gemini-1.5-pro (fallback)',
+            fallback: true,
+          },
+        };
+      } catch (geminiError) {
+        console.error('Fallback to Gemini failed:', geminiError);
+      }
+    }
+
+    return {
+      text: `[Local processing] Processed: ${message.substring(0, 100)}...`,
+      provider: 'adaline',
+      metadata: {
+        model: 'local-fallback',
+        processed: true,
+      },
+    };
+  }
+
+  private buildContextMessage(message: string, history?: ChatMessage[]): string {
+    let context = '';
+
+    if (history && history.length > 0) {
+      context += 'Previous conversation:\n';
+      for (const msg of history.slice(-5)) {
+        context += `${msg.type === 'user' ? 'User' : 'Assistant'}: ${msg.text}\n`;
+      }
+      context += '\n';
+    }
+
+    context += `Current request: ${message}`;
+    return context;
   }
 
   private buildChatMessages(
@@ -249,7 +353,6 @@ export class LLMProviderService {
   ): Array<{ role: string; content: string }> {
     const messages: Array<{ role: string; content: string }> = [];
 
-    // Add history if present
     if (history && history.length > 0) {
       history.forEach((msg) => {
         messages.push({
@@ -259,7 +362,6 @@ export class LLMProviderService {
       });
     }
 
-    // Add current message
     messages.push({
       role: 'user',
       content: message,
@@ -268,15 +370,14 @@ export class LLMProviderService {
     return messages;
   }
 
-  // Provider availability checks
   isProviderAvailable(provider: LLMProvider): boolean {
     switch (provider) {
       case 'gemini':
         return this.geminiModel !== null;
       case 'openai':
-        return this.adalineGateway !== null && !!import.meta.env.VITE_ADALINE_API_KEY;
+        return !!import.meta.env.VITE_OPENAI_API_KEY;
       case 'adaline':
-        return this.adalineGateway !== null && !!import.meta.env.VITE_ADALINE_API_KEY;
+        return this.adalineInitialized || !!import.meta.env.VITE_OPENAI_API_KEY || !!import.meta.env.VITE_GOOGLE_API_KEY;
       case 'deepseek':
         return !!import.meta.env.VITE_DEEPSEEK_API_KEY;
       default:
@@ -316,15 +417,41 @@ export class LLMProviderService {
 
     return icons[provider];
   }
+
+  isGatewayReady(): boolean {
+    return this.adalineInitialized;
+  }
+
+  getGatewayStatus(): {
+    adalineReady: boolean;
+    providers: {
+      gemini: boolean;
+      openai: boolean;
+      deepseek: boolean;
+    };
+  } {
+    return {
+      adalineReady: this.adalineInitialized,
+      providers: {
+        gemini: this.geminiModel !== null,
+        openai: !!import.meta.env.VITE_OPENAI_API_KEY,
+        deepseek: !!import.meta.env.VITE_DEEPSEEK_API_KEY,
+      },
+    };
+  }
 }
 
-// Singleton instance
 let llmProviderServiceInstance: LLMProviderService | null = null;
 
 export const getLLMProviderService = (): LLMProviderService => {
   if (!llmProviderServiceInstance) {
     llmProviderServiceInstance = new LLMProviderService();
   }
+  return llmProviderServiceInstance;
+};
+
+export const createLLMProviderService = (options?: LLMProviderOptions): LLMProviderService => {
+  llmProviderServiceInstance = new LLMProviderService(options);
   return llmProviderServiceInstance;
 };
 

@@ -14,6 +14,11 @@ import { KNIRVWalletIntegration } from './KNIRVWalletIntegration';
 import { KNIRVChainIntegration } from './KNIRVChainIntegration';
 import { EcosystemCommunicationLayer } from './EcosystemCommunicationLayer';
 import { ErrorContextManager, AgentConfiguration, SkillDiscoveryResult, SkillInvocationResult } from '../core/cortex/ErrorContextManager';
+import { AdalineBridge, AdalineConfig, AdalineCognitiveOutput, AnchorDatasetEntry, SabotageType } from './AdalineBridge';
+import { AnchorDatasetManager, AnchorCategory, ErrorContextForAnchor } from './AnchorDatasetManager';
+import { DenoisingService } from './DenoisingService';
+import { getKNIRVSERVERClient, KNIRVSERVERClient, DVERequest, DVEResult, CDESandboxRequest, CDESandboxResult } from '../services/KNIRVSERVERClient';
+import type { LLMProvider } from '../types/chatBrain';
 
 // Define comprehensive type system for cognitive processing
 export type CognitiveInput = string | ArrayBuffer | Record<string, unknown> | unknown[];
@@ -77,6 +82,26 @@ export interface CognitiveConfig {
     knirvRouterEndpoint: string;
     nrnWalletAddress?: string;
   };
+  // Adaline Integration - Phase 4
+  adalineEnabled?: boolean;
+  adalineConfig?: {
+    defaultProvider: LLMProvider;
+    fallbackProviders: LLMProvider[];
+    enableAnchorDatasets: boolean;
+    enableNoiseFiltering: boolean;
+    enableDVERouting: boolean;
+    enableCDEValidation: boolean;
+    processingTimeout: number;
+    maxRetries: number;
+    confidenceThreshold: number;
+  };
+  knirvserverEnabled?: boolean;
+  knirvserverConfig?: {
+    baseUrl: string;
+    apiKey?: string;
+    timeout: number;
+    retryAttempts: number;
+  };
 }
 
 export class CognitiveEngine extends EventEmitter {
@@ -87,7 +112,7 @@ export class CognitiveEngine extends EventEmitter {
   private voiceProcessor!: VoiceProcessor;
   private visualProcessor!: VisualProcessor;
   private loraAdapter!: LoRAAdapter;
-  private enhancedLoraAdapter!: EnhancedLoRAAdapter;
+  private enhancedLoRAAdapter!: EnhancedLoRAAdapter;
   private hrmBridge!: HRMBridge;
   private hrmLoraBridge!: HRMLoRABridge;
   private wasmAgentManager: WASMAgentManager | null = null;
@@ -97,6 +122,11 @@ export class CognitiveEngine extends EventEmitter {
   private chainIntegration!: KNIRVChainIntegration;
   private ecosystemCommunication!: EcosystemCommunicationLayer;
   private errorContextManager: ErrorContextManager | null = null;
+  // Adaline Integration - Phase 4
+  private adalineBridge: AdalineBridge | null = null;
+  private anchorDatasetManager: AnchorDatasetManager | null = null;
+  private denoisingService: DenoisingService | null = null;
+  private knirvserverClient: KNIRVSERVERClient | null = null;
   private isRunning: boolean = false;
   private adaptationTimer: NodeJS.Timeout | null = null;
 
@@ -183,7 +213,7 @@ export class CognitiveEngine extends EventEmitter {
 
     // Initialize Enhanced LoRA adapter
     if (this._config.enhancedLoraEnabled) {
-      this.enhancedLoraAdapter = new EnhancedLoRAAdapter(
+      this.enhancedLoRAAdapter = new EnhancedLoRAAdapter(
         {
           rank: 16,
           alpha: 32,
@@ -366,6 +396,46 @@ export class CognitiveEngine extends EventEmitter {
       }
     }
 
+    // Initialize Adaline Bridge (Phase 4)
+    if (this._config.adalineEnabled) {
+      try {
+        this.adalineBridge = new AdalineBridge(this._config.adalineConfig);
+        await this.adalineBridge.initialize();
+        console.log('Adaline Bridge initialized successfully');
+
+        // Initialize Anchor Dataset Manager
+        if (this._config.adalineConfig?.enableAnchorDatasets) {
+          this.anchorDatasetManager = new AnchorDatasetManager();
+          console.log('Anchor Dataset Manager initialized');
+        }
+
+        // Initialize Denoising Service
+        if (this._config.adalineConfig?.enableNoiseFiltering) {
+          this.denoisingService = new DenoisingService();
+          console.log('Denoising Service initialized');
+        }
+      } catch (error) {
+        console.error('Failed to initialize Adaline Bridge:', error);
+        this.adalineBridge = null;
+      }
+    }
+
+    // Initialize KNIRVSERVER Client for DVE/CDE
+    if (this._config.knirvserverEnabled) {
+      try {
+        this.knirvserverClient = getKNIRVSERVERClient(this._config.knirvserverConfig);
+        const isConnected = await this.knirvserverClient.healthCheck();
+        if (isConnected) {
+          console.log('KNIRVSERVER Client connected successfully');
+        } else {
+          console.warn('KNIRVSERVER not reachable, DVE/CDE features will use local fallback');
+        }
+      } catch (error) {
+        console.error('Failed to initialize KNIRVSERVER Client:', error);
+        this.knirvserverClient = null;
+      }
+    }
+
     this.setupEventHandlers();
   }
 
@@ -436,20 +506,20 @@ export class CognitiveEngine extends EventEmitter {
     }
 
     // Enhanced LoRA events
-    if (this.enhancedLoraAdapter) {
-      this.enhancedLoraAdapter.on('enhancedLoraStarted', () => {
+    if (this.enhancedLoRAAdapter) {
+      this.enhancedLoRAAdapter.on('enhancedLoraStarted', () => {
         this.emit('enhancedLoraStarted');
       });
 
-      this.enhancedLoraAdapter.on('trainingStepComplete', (metrics) => {
+      this.enhancedLoRAAdapter.on('trainingStepComplete', (metrics) => {
         this.emit('enhancedLoraTrainingUpdate', metrics);
       });
 
-      this.enhancedLoraAdapter.on('batchTrainingComplete', (result) => {
+      this.enhancedLoRAAdapter.on('batchTrainingComplete', (result) => {
         this.emit('enhancedLoraBatchComplete', result);
       });
 
-      this.enhancedLoraAdapter.on('epochComplete', (data) => {
+      this.enhancedLoRAAdapter.on('epochComplete', (data) => {
         this.emit('enhancedLoraEpochComplete', data);
       });
     }
@@ -619,6 +689,59 @@ export class CognitiveEngine extends EventEmitter {
         this.emit('hrmWeightsLoaded');
       });
     }
+
+    // Adaline Bridge events
+    if (this.adalineBridge) {
+      this.adalineBridge.on('initialized', () => {
+        this.emit('adalineInitialized');
+      });
+
+      this.adalineBridge.on('inputProcessed', (data) => {
+        this.emit('adalineProcessed', data);
+      });
+
+      this.adalineBridge.on('error', (error) => {
+        this.emit('adalineError', error);
+      });
+
+      this.adalineBridge.on('providerFailover', (data) => {
+        this.emit('adalineProviderFailover', data);
+      });
+
+      this.adalineBridge.on('dveValidationComplete', (data) => {
+        this.emit('dveValidationComplete', data);
+      });
+
+      this.adalineBridge.on('dveWarning', (data) => {
+        this.emit('dveWarning', data);
+      });
+
+      this.adalineBridge.on('cdeValidationComplete', (data) => {
+        this.emit('cdeValidationComplete', data);
+      });
+    }
+
+    // Anchor Dataset Manager events
+    if (this.anchorDatasetManager) {
+      this.anchorDatasetManager.on('templateAdded', (data) => {
+        this.emit('anchorTemplateAdded', data);
+      });
+
+      this.anchorDatasetManager.on('templatePopulated', (data) => {
+        this.emit('anchorTemplatePopulated', data);
+      });
+
+      this.anchorDatasetManager.on('exampleAdded', (data) => {
+        this.emit('anchorExampleAdded', data);
+      });
+    }
+
+    // Denoising Service events
+    if (this.denoisingService) {
+      this.denoisingService.on('denoisingComplete', (data) => {
+        this.emit('denoisingComplete', data);
+      });
+    }
   }
 
   public async start(): Promise<void> {
@@ -644,8 +767,8 @@ export class CognitiveEngine extends EventEmitter {
       await this.loraAdapter.start();
     }
 
-    if (this.enhancedLoraAdapter) {
-      await this.enhancedLoraAdapter.start();
+    if (this.enhancedLoRAAdapter) {
+      await this.enhancedLoRAAdapter.start();
     }
 
     if (this.hrmBridge) {
@@ -655,22 +778,22 @@ export class CognitiveEngine extends EventEmitter {
       // Inject HRM bridge into Fabric Algorithm for enhanced NRV generation
       this.fabricAlgorithm.setHRMBridge(this.hrmBridge);
       // Inject HRM bridge into Enhanced LoRA adapter
-      if (this.enhancedLoraAdapter) {
-        this.enhancedLoraAdapter.setHRMBridge(this.hrmBridge);
+      if (this.enhancedLoRAAdapter) {
+        this.enhancedLoRAAdapter.setHRMBridge(this.hrmBridge);
       }
 
       // Set up HRM-LoRA Bridge connections
       if (this.hrmLoraBridge) {
         this.hrmLoraBridge.setHRMBridge(this.hrmBridge);
-        this.hrmLoraBridge.setEnhancedLoRAAdapter(this.enhancedLoraAdapter);
+        this.hrmLoraBridge.setEnhancedLoRAAdapter(this.enhancedLoRAAdapter);
         await this.hrmLoraBridge.start();
       }
 
       // Set up Adaptive Learning Pipeline connections
       if (this.adaptiveLearningPipeline) {
         this.adaptiveLearningPipeline.setHRMBridge(this.hrmBridge);
-        if (this.enhancedLoraAdapter) {
-          this.adaptiveLearningPipeline.setEnhancedLoRAAdapter(this.enhancedLoraAdapter as any);
+        if (this.enhancedLoRAAdapter) {
+          this.adaptiveLearningPipeline.setEnhancedLoRAAdapter(this.enhancedLoRAAdapter as any);
         }
         if (this.hrmLoraBridge) {
           this.adaptiveLearningPipeline.setHRMLoRABridge(this.hrmLoraBridge as any);
@@ -729,8 +852,8 @@ export class CognitiveEngine extends EventEmitter {
       await this.loraAdapter.stop();
     }
 
-    if (this.enhancedLoraAdapter) {
-      await this.enhancedLoraAdapter.stop();
+    if (this.enhancedLoRAAdapter) {
+      await this.enhancedLoRAAdapter.stop();
     }
 
     if (this.hrmLoraBridge) {
@@ -1325,21 +1448,21 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public getEnhancedLoRAAdapter(): unknown {
-    return this.enhancedLoraAdapter;
+    return this.enhancedLoRAAdapter;
   }
 
   public isEnhancedLoRAReady(): boolean {
-    return this.enhancedLoraAdapter ? this.enhancedLoraAdapter.isAdapterReady() : false;
+    return this.enhancedLoRAAdapter ? this.enhancedLoRAAdapter.isAdapterReady() : false;
   }
 
   public async trainEnhancedLoRA(trainingData: unknown[]): Promise<{ success: boolean; metrics?: unknown }> {
-    if (!this.enhancedLoraAdapter) {
+    if (!this.enhancedLoRAAdapter) {
       console.warn('Enhanced LoRA adapter not initialized');
       return { success: false };
     }
 
     try {
-      this.enhancedLoraAdapter.enableTraining();
+      this.enhancedLoRAAdapter.enableTraining();
       // Convert unknown[] to TrainingData[] format
       const formattedTrainingData = trainingData.map((item: unknown) => {
         const trainingItem = item as Record<string, unknown>;
@@ -1350,11 +1473,11 @@ export class CognitiveEngine extends EventEmitter {
           timestamp: trainingItem.timestamp || Date.now()
         };
       });
-      await this.enhancedLoraAdapter.trainOnBatch(formattedTrainingData as any);
+      await this.enhancedLoRAAdapter.trainOnBatch(formattedTrainingData as any);
       console.log('Enhanced LoRA training completed');
       return {
         success: true,
-        metrics: this.enhancedLoraAdapter.getEnhancedMetrics()
+        metrics: this.enhancedLoRAAdapter.getEnhancedMetrics()
       };
     } catch (error) {
       console.error('Enhanced LoRA training failed:', error);
@@ -1363,13 +1486,13 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public async adaptWithEnhancedLoRA(input: unknown, expectedOutput: unknown, feedback: number): Promise<unknown> {
-    if (!this.enhancedLoraAdapter) {
+    if (!this.enhancedLoRAAdapter) {
       console.warn('Enhanced LoRA adapter not available');
       return input;
     }
 
     try {
-      const result = await this.enhancedLoraAdapter.adapt(input, expectedOutput, feedback);
+      const result = await this.enhancedLoRAAdapter.adapt(input, expectedOutput, feedback);
       return result || {
         adaptedInput: input,
         adaptationApplied: true,
@@ -1390,7 +1513,7 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public getEnhancedLoRAMetrics(): unknown {
-    if (!this.enhancedLoraAdapter) {
+    if (!this.enhancedLoRAAdapter) {
       return {
         isReady: false,
         trainingProgress: 0,
@@ -1398,7 +1521,7 @@ export class CognitiveEngine extends EventEmitter {
         lastTrainingTime: null
       };
     }
-    return this.enhancedLoraAdapter.getEnhancedMetrics() || {
+    return this.enhancedLoRAAdapter.getEnhancedMetrics() || {
       isReady: true,
       trainingProgress: 0,
       adaptationCount: 0,
@@ -1407,13 +1530,13 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public async saveEnhancedLoRAModel(modelName: string): Promise<{ success: boolean; path?: string }> {
-    if (!this.enhancedLoraAdapter) {
+    if (!this.enhancedLoRAAdapter) {
       console.warn('Enhanced LoRA adapter not initialized');
       return { success: false };
     }
 
     try {
-      await this.enhancedLoraAdapter.saveModel(modelName);
+      await this.enhancedLoRAAdapter.saveModel(modelName);
       console.log(`Enhanced LoRA model saved as ${modelName}`);
       return { success: true, path: `models/${modelName}.json` };
     } catch (error) {
@@ -1423,13 +1546,13 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public async loadEnhancedLoRAModel(modelName: string): Promise<{ success: boolean; model?: unknown }> {
-    if (!this.enhancedLoraAdapter) {
+    if (!this.enhancedLoRAAdapter) {
       console.warn('Enhanced LoRA adapter not initialized');
       return { success: false };
     }
 
     try {
-      await this.enhancedLoraAdapter.loadModel(modelName);
+      await this.enhancedLoRAAdapter.loadModel(modelName);
       console.log(`Enhanced LoRA model loaded from ${modelName}`);
       return {
         success: true,
@@ -1446,7 +1569,7 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public exportEnhancedLoRAWeights(): unknown {
-    if (!this.enhancedLoraAdapter) {
+    if (!this.enhancedLoRAAdapter) {
       // Return mock weights for testing
       return {
         weights: new Array(512).fill(0).map(() => Math.random() - 0.5),
@@ -1458,7 +1581,7 @@ export class CognitiveEngine extends EventEmitter {
         }
       };
     }
-    return this.enhancedLoraAdapter.exportWeights() || {
+    return this.enhancedLoRAAdapter.exportWeights() || {
       weights: new Array(512).fill(0).map(() => Math.random() - 0.5),
       biases: new Array(256).fill(0).map(() => Math.random() - 0.5),
       metadata: {
@@ -1470,12 +1593,12 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public async importEnhancedLoRAWeights(weights: unknown): Promise<void> {
-    if (!this.enhancedLoraAdapter) {
+    if (!this.enhancedLoRAAdapter) {
       throw new Error('Enhanced LoRA adapter not initialized');
     }
 
     try {
-      await this.enhancedLoraAdapter.importWeights(weights);
+      await this.enhancedLoRAAdapter.importWeights(weights);
       console.log('Enhanced LoRA weights imported successfully');
     } catch (error) {
       console.error('Failed to import Enhanced LoRA weights:', error);
@@ -1484,10 +1607,10 @@ export class CognitiveEngine extends EventEmitter {
   }
 
   public getTensorFlowInfo(): unknown {
-    if (!this.enhancedLoraAdapter) {
+    if (!this.enhancedLoRAAdapter) {
       return null;
     }
-    return this.enhancedLoraAdapter.getTensorFlowInfo();
+    return this.enhancedLoRAAdapter.getTensorFlowInfo();
   }
 
   public getHRMLoRABridge(): unknown {
@@ -1563,6 +1686,10 @@ export class CognitiveEngine extends EventEmitter {
         metrics: this.getEnhancedLoRAMetrics(),
       },
       hrmLoraBridge: this.getHRMLoRAStatus(),
+      adaline: this.getAdalineStatus(),
+      anchorDatasets: this.getAnchorDatasetStatus(),
+      denoising: this.getDenoisingStatus(),
+      knirvserver: this.getKNIRVSERVERStatus(),
       wallet: this.getWalletStatus(),
       chain: this.getChainStatus(),
       ecosystem: this.getEcosystemStatus(),
@@ -1581,6 +1708,251 @@ export class CognitiveEngine extends EventEmitter {
         lastProcessingTime: null
       },
     };
+  }
+
+  // ===== Adaline Integration Methods (Phase 4) =====
+
+  public getAdalineBridge(): AdalineBridge | null {
+    return this.adalineBridge;
+  }
+
+  public isAdalineReady(): boolean {
+    return this.adalineBridge?.isReady() ?? false;
+  }
+
+  public getAdalineStatus(): unknown {
+    if (!this.adalineBridge) {
+      return {
+        available: false,
+        reason: 'Adaline Bridge not initialized',
+      };
+    }
+
+    return {
+      available: true,
+      ready: this.adalineBridge.isReady(),
+      modelInfo: this.adalineBridge.getModelInfo(),
+      activeProvider: this.adalineBridge.getActiveProvider(),
+      config: this.adalineBridge.getConfig(),
+    };
+  }
+
+  public async processWithAdaline(
+    input: string,
+    context?: Record<string, unknown>,
+    options?: {
+      enableDVE?: boolean;
+      enableCDE?: boolean;
+      useAnchorDataset?: boolean;
+    }
+  ): Promise<AdalineCognitiveOutput | null> {
+    if (!this.adalineBridge) {
+      console.warn('Adaline Bridge not initialized');
+      return null;
+    }
+
+    try {
+      const contextWithAnchors = await this.prepareContextWithAnchors(context);
+
+      const output = await this.adalineBridge.processTextInput(input, contextWithAnchors);
+
+      if (options?.enableDVE && output.confidence >= 0.7) {
+        const dveResult = await this.validateWithDVE(output);
+        output.validation_score = dveResult.score;
+      }
+
+      if (options?.enableCDE) {
+        const cdeResult = await this.validateWithCDE(output.reasoning_result);
+        if (!cdeResult.success) {
+          output.confidence = output.confidence * 0.5;
+        }
+      }
+
+      this.emit('adalineProcessingComplete', { input, output });
+
+      return output;
+    } catch (error) {
+      console.error('Error processing with Adaline:', error);
+      this.emit('adalineProcessingError', {
+        input,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return null;
+    }
+  }
+
+  private async prepareContextWithAnchors(context?: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const preparedContext = { ...context };
+
+    if (this.anchorDatasetManager && this._config.adalineConfig?.enableAnchorDatasets) {
+      const anchorDatasets = await this.prepareAnchorDatasets(context);
+      if (anchorDatasets.length > 0) {
+        preparedContext.anchorDatasets = anchorDatasets;
+      }
+    }
+
+    if (this.denoisingService && this._config.adalineConfig?.enableNoiseFiltering) {
+      if (context?.noiseLevel && Number(context.noiseLevel) > 0.3) {
+        const noiseContext = this.denoisingService.denoise(JSON.stringify(context));
+        preparedContext.denoised = noiseContext.cleanedText;
+        preparedContext.noiseLevel = noiseContext.noiseLevel;
+      }
+    }
+
+    return preparedContext;
+  }
+
+  private async prepareAnchorDatasets(context?: Record<string, unknown>): Promise<AnchorDatasetEntry[]> {
+    if (!this.anchorDatasetManager) {
+      return [];
+    }
+
+    const errorContext: ErrorContextForAnchor = {
+      errorNodeId: context?.errorNodeId as string || 'default',
+      errorType: context?.errorType as string || 'general',
+      errorMessage: context?.errorMessage as string || '',
+      historicalFailures: [],
+      context: context || {},
+    };
+
+    const matchResult = this.anchorDatasetManager.findBestMatchingTemplates(context || {});
+    const populatedDatasets: AnchorDatasetEntry[] = [];
+
+    if (matchResult.bestMatch) {
+      const populated = this.anchorDatasetManager.populateTemplate(
+        matchResult.bestMatch.id,
+        errorContext,
+        context
+      );
+
+      if (populated) {
+        populatedDatasets.push(populated.entry);
+      }
+    }
+
+    return populatedDatasets;
+  }
+
+  public async validateWithDVE(output: AdalineCognitiveOutput): Promise<{ score: number; passed: boolean; warnings?: string[] }> {
+    if (this.knirvserverClient && this._config.knirvserverEnabled) {
+      try {
+        const dveRequest: DVERequest = {
+          skillCode: output.reasoning_result.substring(0, 1000),
+          failureContext: JSON.stringify(output.metadata || {}),
+        };
+
+        const result = await this.knirvserverClient.validateWithDVE(dveRequest);
+        return { score: result.score, passed: result.passed, warnings: result.warnings };
+      } catch (error) {
+        console.error('DVE validation via KNIRVSERVER failed:', error);
+      }
+    }
+
+    const localResult = await this.adalineBridge?.validateWithDVE(output);
+    return {
+      score: localResult?.score ?? 0,
+      passed: localResult?.passed ?? false,
+      warnings: localResult?.warnings,
+    };
+  }
+
+  public async validateWithCDE(solution: string): Promise<{ success: boolean; constraintsSatisfied: boolean; violations?: string[] }> {
+    if (this.knirvserverClient && this._config.knirvserverEnabled) {
+      try {
+        const cdeRequest: CDESandboxRequest = {
+          code: solution,
+          language: 'typescript',
+        };
+
+        const result = await this.knirvserverClient.validateWithCDE(cdeRequest);
+        return {
+          success: result.success,
+          constraintsSatisfied: result.constraintsSatisfied,
+          violations: result.violations,
+        };
+      } catch (error) {
+        console.error('CDE validation via KNIRVSERVER failed:', error);
+      }
+    }
+
+    const localResult = await this.adalineBridge?.validateWithCDE(solution);
+    return {
+      success: localResult?.success ?? false,
+      constraintsSatisfied: localResult?.constraintsSatisfied ?? false,
+      violations: localResult?.violations,
+    };
+  }
+
+  public getAnchorDatasetManager(): AnchorDatasetManager | null {
+    return this.anchorDatasetManager;
+  }
+
+  public getAnchorDatasetStatus(): unknown {
+    if (!this.anchorDatasetManager) {
+      return {
+        available: false,
+        reason: 'Anchor Dataset Manager not initialized',
+      };
+    }
+
+    return {
+      available: true,
+      metrics: this.anchorDatasetManager.getMetrics(),
+    };
+  }
+
+  public getDenoisingService(): DenoisingService | null {
+    return this.denoisingService;
+  }
+
+  public getDenoisingStatus(): unknown {
+    if (!this.denoisingService) {
+      return {
+        available: false,
+        reason: 'Denoising Service not initialized',
+      };
+    }
+
+    return {
+      available: true,
+      config: this.denoisingService.getConfig(),
+      metrics: this.denoisingService.getMetrics(),
+    };
+  }
+
+  public denoiseText(text: string): ReturnType<DenoisingService['denoise']> | null {
+    if (!this.denoisingService) {
+      return null;
+    }
+
+    return this.denoisingService.denoise(text);
+  }
+
+  public getKNIRVSERVERClient(): KNIRVSERVERClient | null {
+    return this.knirvserverClient;
+  }
+
+  public getKNIRVSERVERStatus(): unknown {
+    if (!this.knirvserverClient) {
+      return {
+        available: false,
+        reason: 'KNIRVSERVER Client not initialized',
+      };
+    }
+
+    return {
+      available: true,
+      connected: this.knirvserverClient.isServerConnected(),
+      config: this.knirvserverClient.getConfig(),
+    };
+  }
+
+  public async checkKNIRVSERVERConnection(): Promise<boolean> {
+    if (!this.knirvserverClient) {
+      return false;
+    }
+
+    return await this.knirvserverClient.healthCheck();
   }
 
   private async recordInteractionForLearning(input: unknown, inputType: string, response: unknown): Promise<void> {
@@ -1698,8 +2070,8 @@ export class CognitiveEngine extends EventEmitter {
       }
 
       // Apply adaptation through enhanced LoRA if available
-      if (this.enhancedLoraAdapter) {
-        await this.enhancedLoraAdapter.adapt({}, {}, 0.8);
+      if (this.enhancedLoRAAdapter) {
+        await this.enhancedLoRAAdapter.adapt({}, {}, 0.8);
       }
 
       // Apply adaptation through adaptive learning pipeline
@@ -1770,8 +2142,8 @@ export class CognitiveEngine extends EventEmitter {
         await this.loraAdapter.addTrainingData(loraWeights as any);
       }
 
-      if (this.enhancedLoraAdapter) {
-        await this.enhancedLoraAdapter.importWeights(loraWeights);
+      if (this.enhancedLoRAAdapter) {
+        await this.enhancedLoRAAdapter.importWeights(loraWeights);
       }
 
       this.emit('loraAdaptationApplied', {

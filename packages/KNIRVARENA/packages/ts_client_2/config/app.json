@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "KNIRV Controller",
-    "slug": "knirv-controller",
+    "name": "ERGO",
+    "slug": "ergo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,14 +13,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.knirv.controller"
+      "bundleIdentifier": "com.ergo"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#111827"
       },
-      "package": "com.knirv.controller"
+      "package": "com.ergo"
     },
     "web": {
       "favicon": "./assets/favicon.png"

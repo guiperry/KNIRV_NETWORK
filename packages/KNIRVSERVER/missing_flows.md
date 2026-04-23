@@ -417,6 +417,67 @@ This document identifies all UI components and backend wiring that are specified
 
 ---
 
+## 11. DVE Installation & Browser Routing
+
+This section documents the distributed DVE Installation workflow that distributes installer functions across KNIRVGATEWAY, KNIRVORACLE, and KNIRVSERVER.
+
+### Workflow: DVE Installation
+
+| Feature | Phase | Status | Missing |
+|---------|-------|--------|---------|
+| Registry + STUN Discovery | KNIRVGATEWAY | ⚠️ Partial | New installer methods in registry.go |
+| Port Discovery | KNIRVGATEWAY | ⚠️ Partial | New STUN client |
+| Wallet Generation | KNIRVORACLE | ⚠️ Check | New wallet route using existing crypto |
+| DVE URI Generation | KNIRVORACLE | ⚠️ Check | New DVE URI route |
+| Service Setup | KNIRVSERVER | ⚠️ Check | New InstallerService |
+| InstallComplete Tracking | KNIRVSERVER | ❌ Missing | New fields in objects/dve.go |
+| Validation Chain DVE URI | KNIRVSERVER | ❌ Missing | New methods in validationchain/client.go |
+| DVE URI Registry | KNIRVSERVER | ❌ Missing | New dve_uri_registry.go |
+| DVE Proxy Handlers | KNIRVSERVER | ❌ Missing | New dve_proxy_handlers.go |
+| Public DVE HTML Templates | KNIRVSERVER | ❌ Missing | New templates/dve/ directory |
+| DVE WebSocket Client | KNIRVARENA | ❌ Missing | New networking/DVEClient.ts |
+
+### Files to Modify
+
+| Phase | File | Change |
+|-------|------|--------|
+| 1 | `packages/KNIRVGATEWAY/internal/tunnel/registry.go` | Add RegisterBootnode, GetBootnodes |
+| 1 | `packages/KNIRVGATEWAY/internal/server/server.go` | Register routes |
+| 3 | `packages/KNIRVSERVER/backend/internal/objects/dve.go` | Add InstallComplete fields |
+| 3 | `packages/KNIRVSERVER/backend/internal/services/blockchain/validationchain/client.go` | Add DVE URI methods |
+| 4 | `packages/KNIRVSERVER/backend/internal/web/api_router.go` | Register DVE proxy routes |
+| 4 | `packages/KNIRVARENA/packages/ts_client_2/src/App.tsx` | Add DVE route |
+
+### New Files to Create
+
+| Phase | File |
+|-------|------|
+| 1 | `packages/KNIRVGATEWAY/internal/installer/stun_client.go` |
+| 1 | `packages/KNIRVGATEWAY/internal/installer/dve_uri.go` |
+| 2 | `packages/KNIRVORACLE/internal/oracle/routes/wallet.go` |
+| 2 | `packages/KNIRVORACLE/internal/oracle/routes/dve_uri.go` |
+| 3 | `packages/KNIRVSERVER/backend/internal/services/installer/installer.go` |
+| 4 | `packages/KNIRVSERVER/backend/internal/services/dve_uri_registry.go` |
+| 4 | `packages/KNIRVSERVER/backend/internal/web/dve_proxy_handlers.go` |
+| 4 | `packages/KNIRVSERVER/backend/templates/dve/public_page.gohtml` |
+| 4 | `packages/KNIRVSERVER/backend/templates/dve/validation_records.gohtml` |
+| 4 | `packages/KNIRVSERVER/backend/templates/dve/metrics_panel.gohtml` |
+| 4 | `packages/KNIRVSERVER/backend/templates/dve/search_form.gohtml` |
+| 4 | `packages/KNIRVARENA/packages/ts_client_2/src/networking/DVEClient.ts` |
+
+### Integration Points (Reuse Existing Code)
+
+| New Component | Reuse From |
+|--------------|-----------|
+| STUN Client | `tunnel/stun.go` STUNServer pattern |
+| Wallet Generation | `crypto/ecdsa.go` GenerateKeyPair() |
+| DVE URI Generation | `crosschain/router.go` generateTransferID pattern |
+| InstallerService | `pkg/knirvchain/manager.go` Manager pattern |
+| DVE Proxy | `runtime/viewport_proxy.go` ViewportProxyImpl |
+| DVEClient.ts | Networking ArenaClient.ts pattern |
+
+---
+
 ## Summary Checklist
 
 ### Critical (Must Fix)
@@ -448,6 +509,22 @@ This document identifies all UI components and backend wiring that are specified
 - [ ] Display attached badges and enforcement status on DVE node card
 - [ ] Replace client-side SVG stub with real badge generation (AI or server-side SVG templating)
 - [ ] Store badge-to-DVE bindings in `DVEManager` with status endpoint
+
+### DVE Installation & Browser Routing
+- [ ] Extend KNIRVGATEWAY registry.go with RegisterBootnode, GetBootnodes
+- [ ] Create KNIRVGATEWAY installer/stun_client.go
+- [ ] Create KNIRVGATEWAY installer/dve_uri.go (proxy to ORACLE)
+- [ ] Create KNIRVORACLE routes/wallet.go (reuse crypto)
+- [ ] Create KNIRVORACLE routes/dve_uri.go
+- [ ] Add InstallComplete fields to KNIRVSERVER objects/dve.go
+- [ ] Create KNIRVSERVER services/installer/installer.go
+- [ ] Add DVE URI methods to KNIRVSERVER validationchain/client.go
+- [ ] Create KNIRVSERVER services/dve_uri_registry.go
+- [ ] Create KNIRVSERVER web/dve_proxy_handlers.go
+- [ ] Create KNIRVSERVER templates/dve/ Go HTML templates
+- [ ] Create KNIRVARENA networking/DVEClient.ts (WebSocket)
+- [ ] Register /dve/{dve_id}/ routes in api_router.go
+- [ ] Add DVE route in KNIRVARENA App.tsx
 
 ### Workflow Wiring
 - [ ] Wire ValueSystem + Ontology to backend persistence

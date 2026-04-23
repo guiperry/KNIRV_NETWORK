@@ -1,5 +1,5 @@
 import React from "react";
-import { useFrame, useThree, ThreeEvent } from "@react-three/fiber";
+import { useFrame, ThreeEvent } from "@react-three/fiber";
 import { useRef, useMemo } from "react";
 import * as THREE from "three";
 import GameLights from "./GameLights";
@@ -10,40 +10,16 @@ import { useKnirvana } from "./stores/useKnirvana";
 import { useThemeStore } from "../../stores/useThemeStore";
 import DeployAnimation from "./DeployAnimation";
 import GridParticleSystem from "./GridParticleSystem";
+import AnchorStraighteningSequence from "./AnchorStraighteningSequence";
 
 export default function GameScene() {
   const sceneRef = useRef<THREE.Group>(null);
-  const { selectedAgent, rewardAnchors, isSculpting, selectedErrorNode, errorNodes, addRewardAnchor, setSculpting } = useKnirvana();
+
+  const { selectedAgent, rewardAnchors, isSculpting, errorNodes } = useKnirvana();
   const { themeMode } = useThemeStore();
 
-  // Handle floor click for placing reward anchors in sculpt mode
-  const handleFloorClick = (event: ThreeEvent<MouseEvent>) => {
-    if (!isSculpting) return;
-
-    event.stopPropagation();
-    const point = event.point;
-
-    // Get linked error node data if one is selected
-    const errorNodeData = selectedErrorNode ? errorNodes.find(n => n.id === selectedErrorNode) : null;
-    const metadata = errorNodeData ? {
-      logs: ['Error: Memory allocation failed', 'Stack trace at line 42'],
-      traces: ['Component: DataProcessor', 'Method: processBatch'],
-      severity: 'high',
-      description: 'Memory leak detected in processing pipeline'
-    } : undefined;
-
-    const newAnchor = {
-      id: `anchor-${Date.now()}`,
-      position: { x: point.x, y: 0.5, z: point.z },
-      weights: { w_c: 0.6, w_l: 0.3, w_s: 0.1 },
-      constraints: '// Define constraints here',
-      linkedErrorNode: selectedErrorNode || undefined,
-      metadata
-    };
-
-    addRewardAnchor(newAnchor);
-    setSculpting(false);
-  };
+  // Floor clicks do nothing — anchors are placed only via spike clicks on ErrorNode
+  const handleFloorClick = (_event: ThreeEvent<MouseEvent>) => {};
 
   // Theme-aware colors
   const themeColors = useMemo(() => {
@@ -82,8 +58,8 @@ export default function GameScene() {
     // Update game time
     useKnirvana.getState().updateGameTime(delta);
 
-    // Subtle scene rotation for dynamic feel (slower when agent is selected)
-    if (sceneRef.current) {
+    // Pause rotation while placing anchors so the spike positions stay stable
+    if (sceneRef.current && !isSculpting) {
       const rotationSpeed = selectedAgent ? 0.01 : 0.02;
       sceneRef.current.rotation.y += delta * rotationSpeed;
     }
@@ -150,6 +126,9 @@ export default function GameScene() {
 
       {/* Deploy animations */}
       <DeployAnimation />
+
+      {/* Anchor straightening sequence — agents run from staging edge to horizontal anchors */}
+      <AnchorStraighteningSequence />
     </group>
   );
 }

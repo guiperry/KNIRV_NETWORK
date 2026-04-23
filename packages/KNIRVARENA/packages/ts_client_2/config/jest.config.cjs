@@ -1,11 +1,12 @@
 module.exports = {
+  rootDir: '../',
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   testEnvironmentOptions: {
     html: '<html><body><div id="root"></div></body></html>',
     url: 'http://localhost:3000'
   },
-  setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/jest.setup.js'],
+  setupFiles: ['<rootDir>/tests/polyfills.ts', '<rootDir>/config/jest.setup.js'],
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts', '<rootDir>/tests/test-setup.ts', '<rootDir>/tests/setup-safety-checks.ts'],
   clearMocks: true,
   moduleNameMapper: {

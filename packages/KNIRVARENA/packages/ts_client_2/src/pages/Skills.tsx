@@ -187,6 +187,7 @@ export default function Skills() {
   const addPersona = useKnirvana(s => s.addPersona);
   const removePersona = useKnirvana(s => s.removePersona);
   const usingMockLLM = useKnirvana(s => s.usingMockLLM);
+  const nrnBalance = useKnirvana(s => s.nrnBalance);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [activePanels, setActivePanels] = useState<string[]>([]);
@@ -224,8 +225,6 @@ export default function Skills() {
       createdAt: new Date().toISOString(),
     },
   ]);
-
-  const [nrnBalance] = useState(1250);
 
   const filteredPersonas = personas.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -315,7 +314,6 @@ export default function Skills() {
           <MenuItem onClick={() => { navigate('/manager/udc'); setMenuOpen(false); }} icon="🔐">UDC</MenuItem>
           <MenuItem onClick={() => { navigate('/'); setMenuOpen(false); }} icon="🎮">Arena</MenuItem>
           <MenuItem onClick={() => { togglePanel('qr-scanner'); setMenuOpen(false); }} icon="📱">QR Scanner</MenuItem>
-          <MenuItem onClick={() => { togglePanel('cognitive-shell'); setMenuOpen(false); }} icon="🧠">Cognitive Shell</MenuItem>
           <MenuItem onClick={() => { togglePanel('network-status'); setMenuOpen(false); }} icon="🌐">Network Status</MenuItem>
           <MenuItem onClick={() => { togglePanel('agent-management'); setMenuOpen(false); }} icon="🤖">Agent Management</MenuItem>
         </BurgerMenu>

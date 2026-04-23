@@ -50,3 +50,14 @@ export function createDecipheriv(..._args: unknown[]): never {
 export function createHmac(..._args: unknown[]): never {
   return notAvailable('createHmac');
 }
+
+// ── PBKDF2 (async only in Web Crypto, provide stub that throws) ─────────────────────────────────
+export function pbkdf2Sync(
+  _password: string | Buffer,
+  _salt: Buffer | Uint8Array,
+  _iterations: number,
+  _keyLength: number,
+  _digest: string
+): Buffer {
+  return notAvailable('pbkdf2Sync');
+}

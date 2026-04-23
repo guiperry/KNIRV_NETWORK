@@ -3,9 +3,13 @@
  * Provides browser APIs that are missing in Node.js test environment
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { TextEncoder, TextDecoder } from 'node:util';
+import { webcrypto } from 'node:crypto';
+import { URL, URLSearchParams } from 'node:url';
+
 // Simple mock fetch API for Jest environment
-// @ts-expect-error - Global polyfill
-global.fetch = jest.fn(() =>
+(global as any).fetch = jest.fn(() =>
   Promise.resolve({
     ok: true,
     status: 200,
@@ -16,10 +20,10 @@ global.fetch = jest.fn(() =>
   })
 );
 
-global.Headers = jest.fn().mockImplementation((init) => {
+(global as any).Headers = jest.fn().mockImplementation((init: any) => {
   const headers = new Map();
   if (init) {
-    Object.entries(init).forEach(([key, value]) => headers.set(key, value));
+    Object.entries(init).forEach(([key, value]: [string, unknown]) => headers.set(key, value));
   }
   return {
     get: (name: string) => headers.get(name),
@@ -32,62 +36,50 @@ global.Headers = jest.fn().mockImplementation((init) => {
   };
 });
 
-global.Request = jest.fn().mockImplementation((url, options = {}) => ({
+(global as any).Request = jest.fn().mockImplementation((url: string, options: any = {}) => ({
   url,
   method: options.method || 'GET',
-  headers: new global.Headers(options.headers),
+  headers: new (global as any).Headers(options.headers),
   body: options.body
 }));
 
-// @ts-expect-error - Global polyfill
-global.Response = jest.fn().mockImplementation((body, options = {}) => ({
+(global as any).Response = jest.fn().mockImplementation((body: any, options: any = {}) => ({
   ok: options.status ? options.status >= 200 && options.status < 300 : true,
   status: options.status || 200,
   statusText: options.statusText || 'OK',
-  headers: new global.Headers(options.headers),
+  headers: new (global as any).Headers(options.headers),
   json: () => Promise.resolve(typeof body === 'string' ? JSON.parse(body) : body),
   text: () => Promise.resolve(typeof body === 'string' ? body : JSON.stringify(body)),
   blob: () => Promise.resolve(new Blob([body])),
   arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
 }));
 
-// Polyfill for TextEncoder/TextDecoder using Node.js built-in APIs
-import { TextEncoder, TextDecoder } from 'node:util';
-
-// Global polyfill - ensure they're available globally
+// Global polyfill - ensure TextEncoder/TextDecoder are available globally
 if (!global.TextEncoder) {
-  global.TextEncoder = TextEncoder;
+  (global as any).TextEncoder = TextEncoder;
 }
 if (!global.TextDecoder) {
-  // @ts-expect-error - Global polyfill
-  global.TextDecoder = TextDecoder;
+  (global as any).TextDecoder = TextDecoder;
 }
 
 // Also ensure they're available on globalThis
 if (typeof globalThis !== 'undefined') {
-  if (!globalThis.TextEncoder) {
-    globalThis.TextEncoder = TextEncoder;
+  if (!(globalThis as any).TextEncoder) {
+    (globalThis as any).TextEncoder = TextEncoder;
   }
-  if (!globalThis.TextDecoder) {
-    // @ts-expect-error - Global polyfill
-    globalThis.TextDecoder = TextDecoder;
+  if (!(globalThis as any).TextDecoder) {
+    (globalThis as any).TextDecoder = TextDecoder;
   }
 }
 
 // Polyfill for crypto.subtle and crypto.getRandomValues
-import { webcrypto } from 'node:crypto';
 if (!global.crypto) {
-  // @ts-expect-error - Global polyfill
-  global.crypto = webcrypto;
+  (global as any).crypto = webcrypto;
 }
 
 // Polyfill for URL constructor
-import { URL, URLSearchParams } from 'node:url';
-
-// @ts-expect-error - Global polyfill
-global.URL = URL;
-// @ts-expect-error - Global polyfill
-global.URLSearchParams = URLSearchParams;
+(global as any).URL = URL;
+(global as any).URLSearchParams = URLSearchParams;
 
 Object.defineProperty(global, 'crypto', {
   value: {
@@ -120,7 +112,6 @@ Object.defineProperty(global, 'performance', {
 // Polyfill for gc function
 Object.defineProperty(global, 'gc', {
   value: jest.fn(() => {
-    // Mock garbage collection
     console.log('Mock garbage collection triggered');
   }),
   writable: true,
@@ -133,8 +124,12 @@ const timers = {
   clearTimeout: global.clearTimeout.bind(global),
   setInterval: global.setInterval.bind(global),
   clearInterval: global.clearInterval.bind(global),
-  setImmediate: global.setImmediate?.bind(global) || ((fn: () => void) => setTimeout(fn, 0)),
-  clearImmediate: global.clearImmediate?.bind(global) || clearTimeout
+  setImmediate: (typeof global.setImmediate !== 'undefined') 
+    ? global.setImmediate.bind(global) 
+    : ((fn: () => void) => setTimeout(fn, 0)),
+  clearImmediate: (typeof global.clearImmediate !== 'undefined') 
+    ? global.clearImmediate.bind(global) 
+    : clearTimeout
 };
 
 // Ensure timer functions are available on globalThis for @testing-library/react-native
@@ -145,8 +140,8 @@ const eventListeners = new Map<string, EventListener[]>();
 
 Object.defineProperty(global, 'window', {
   value: {
-    performance: global.performance,
-    gc: global.gc,
+    performance: (global as any).performance,
+    gc: (global as any).gc,
     location: {
       href: 'http://localhost',
       origin: 'http://localhost',
@@ -161,7 +156,6 @@ Object.defineProperty(global, 'window', {
     navigator: {
       userAgent: 'Node.js Test Environment'
     },
-    // Add event listener support for ErrorHandler and other services
     addEventListener: jest.fn((event: string, listener: EventListener) => {
       if (!eventListeners.has(event)) {
         eventListeners.set(event, []);
@@ -182,7 +176,6 @@ Object.defineProperty(global, 'window', {
       listeners.forEach(listener => listener(event));
       return true;
     }),
-    // Add timer functions to window object
     ...timers
   },
   writable: true,
@@ -223,7 +216,6 @@ Object.defineProperty(global, 'WebAssembly', {
     compile: jest.fn(() => Promise.resolve({})),
     validate: jest.fn(() => true),
     Module: jest.fn().mockImplementation((bytes: BufferSource) => {
-      // Mock WebAssembly.Module constructor
       if (!bytes || (bytes as any).byteLength < 8) {
         throw new Error('WebAssembly.Module(): expected 4 bytes, fell off end @+4');
       }
@@ -345,19 +337,17 @@ Object.defineProperty(global, 'speechSynthesis', {
 });
 
 // Add Speech APIs to window object as well
-if (global.window) {
-  (global.window as any).SpeechSynthesisUtterance = global.SpeechSynthesisUtterance;
-  (global.window as any).speechSynthesis = global.speechSynthesis;
+if ((global as any).window) {
+  (global as any).window.SpeechSynthesisUtterance = (global as any).SpeechSynthesisUtterance;
+  (global as any).window.speechSynthesis = (global as any).speechSynthesis;
 }
 
 // Polyfill for IE-specific event methods that React DOM might try to use
-// This fixes the "activeElement.attachEvent is not a function" error in JSDOM
 if (typeof document !== 'undefined') {
   const originalCreateElement = document.createElement;
   document.createElement = function(tagName: string, options?: ElementCreationOptions) {
     const element = originalCreateElement.call(this, tagName, options);
 
-    // Add IE-specific event methods to all elements
     if (!(element as any).attachEvent) {
       (element as any).attachEvent = function(event: string, handler: EventListener) {
         return element.addEventListener(event.replace('on', ''), handler);
@@ -373,11 +363,9 @@ if (typeof document !== 'undefined') {
     return element;
   };
 
-  // Store the original activeElement getter to avoid recursion
   const originalActiveElementDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'activeElement') ||
     Object.getOwnPropertyDescriptor(document, 'activeElement');
 
-  // Add these methods to document.body and other common elements
   const addEventMethodsToElement = (element: Element) => {
     if (element && !(element as any).attachEvent) {
       (element as any).attachEvent = function(event: string, handler: EventListener) {
@@ -389,18 +377,16 @@ if (typeof document !== 'undefined') {
     }
   };
 
-  // Add methods to body and html elements
   if (document.body) addEventMethodsToElement(document.body);
   if (document.documentElement) addEventMethodsToElement(document.documentElement);
 
-  // Override activeElement getter to add methods when accessed
   Object.defineProperty(document, 'activeElement', {
     get() {
       let activeEl;
       if (originalActiveElementDescriptor && originalActiveElementDescriptor.get) {
         activeEl = originalActiveElementDescriptor.get.call(this);
       } else {
-        activeEl = document.body; // Fallback
+        activeEl = document.body;
       }
 
       if (activeEl) {
@@ -413,4 +399,4 @@ if (typeof document !== 'undefined') {
   });
 }
 
-console.log('✅ Jest polyfills loaded successfully');
+console.log('Jest polyfills loaded successfully');

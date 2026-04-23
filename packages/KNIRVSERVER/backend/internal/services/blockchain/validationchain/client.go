@@ -214,3 +214,64 @@ func (c *Client) Health() error {
 	}
 	return nil
 }
+
+type DVEURIRecord struct {
+	DVEID      string `json:"dve_id"`
+	FullURI    string `json:"full_uri"`
+	WalletAddr string `json:"wallet_address"`
+	CreatedAt  int64  `json:"created_at"`
+	TxHash     string `json:"tx_hash"`
+}
+
+func (c *Client) SubmitDVEURI(req DVEURIRecord) (string, error) {
+	var result struct {
+		TransactionHash string `json:"transaction_hash"`
+	}
+
+	if err := c.postJSON("/dve_uri/submit", req, &result); err == nil && result.TransactionHash != "" {
+		return result.TransactionHash, nil
+	}
+
+	return c.SubmitTransaction(map[string]interface{}{
+		"type": "dve_uri_submit",
+		"data": req,
+	})
+}
+
+func (c *Client) GetDVEURI(dveID string) (*DVEURIRecord, error) {
+	resp, err := c.client.Get(c.baseURL + "/dve_uri/" + dveID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query DVE URI: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("DVE URI lookup failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var record DVEURIRecord
+	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
+		return nil, fmt.Errorf("failed to decode DVE URI record: %w", err)
+	}
+	return &record, nil
+}
+
+func (c *Client) GetDVEURIByWallet(walletAddr string) ([]*DVEURIRecord, error) {
+	resp, err := c.client.Get(c.baseURL + "/dve_uri/by_wallet/" + walletAddr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query DVE URIs by wallet: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("DVE URI by wallet lookup failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var records []*DVEURIRecord
+	if err := json.NewDecoder(resp.Body).Decode(&records); err != nil {
+		return nil, fmt.Errorf("failed to decode DVE URI records: %w", err)
+	}
+	return records, nil
+}

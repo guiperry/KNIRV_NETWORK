@@ -82,6 +82,11 @@ export interface RewardAnchor {
   weights: { w_c: number; w_l: number; w_s: number };
   constraints: string;
   linkedErrorNode?: string;
+  isSet?: boolean;        // true once the user has filled in data and clicked "Set Anchor"
+  isCommitted?: boolean;  // true once Sculpt commits the ring to the arena
+  isCommitting?: boolean; // true while the sink+rotate animation is in progress
+  isHorizontal?: boolean; // true when placed (horizontal), false after agents straighten it vertical
+  anchorType?: 'standard' | 'noise'; // noise anchors are purple, placed via Noise Injection mode
   metadata?: {
     logs: string[];
     traces: string[];
@@ -97,6 +102,7 @@ export interface Agent {
   target: string | null;
   status: 'idle' | 'moving' | 'working' | 'upgrading';
   type: string;
+  staged: boolean;
   efficiency: number;
   accuracy?: number;
   experience: number;
@@ -168,10 +174,15 @@ export interface KnirvanaState {
   selectedPropertyNode: string | null;
   selectedAgent: string | null;
   selectedRewardAnchor: string | null;
+  showAnchorConfigModal: boolean;
 
   // Analyze / sculpt modes
   isAnalyzing: boolean;
   isSculpting: boolean;
+  isNoiseInjecting: boolean;
+
+  // Anchor straightening sequence
+  isStraighteningAnchors: boolean;
 
   // Tournament specific
   skillSlotOwner: string | null;
@@ -188,19 +199,28 @@ export interface KnirvanaState {
   pauseGame: () => void;
   updateGameTime: (delta: number) => void;
 
-  selectErrorNode: (id: string) => void;
-  selectAgent: (id: string) => void;
+  selectErrorNode: (id: string | null) => void;
+  selectAgent: (id: string | null) => void;
 
   setAnalyzing: (analyzing: boolean) => void;
   setSculpting: (sculpting: boolean) => void;
+  setNoiseInjecting: (v: boolean) => void;
 
   addRewardAnchor: (anchor: RewardAnchor) => void;
   selectRewardAnchor: (id: string | null) => void;
+  setShowAnchorConfigModal: (show: boolean) => void;
   updateRewardAnchor: (id: string, updates: Partial<RewardAnchor>) => void;
   removeRewardAnchor: (id: string) => void;
+  commitSetAnchors: () => void;
+  setAllStraightenedAnchors: () => void;
+  completeStraightening: () => void;
+  startStraighteningSequence: () => void;
 
   createAgent: (type: string) => void;
   deployAgent: (agentId: string, nodeId: string) => void;
+  deployAllStaged: () => void;
+  deployOne: (agentId: string) => void;
+  stageAgent: (agentId: string) => void;
   moveAgent: (agentId: string, position: { x: number; y: number; z: number }) => void;
 
   addNRN: (amount: number) => void;
@@ -228,6 +248,12 @@ export interface KnirvanaState {
   // Persistence
   saveProgress: () => void;
   loadProgress: () => void;
+
+  // UI State
+  showAgentManagementModal: boolean;
+  setShowAgentManagementModal: (show: boolean) => void;
+  requestAgentManagementOpen: boolean;
+  clearRequestAgentManagementOpen: () => void;
 }
 
 // ── Persistence helpers ───────────────────────────────────────────────────
@@ -312,6 +338,15 @@ const generateSkillNodes = (): SkillNode[] => {
   return nodes;
 };
 
+// ── Staging positions ─────────────────────────────────────────────────────
+
+const STAGING_Z = -22;
+const STAGING_SPACING = 5;
+
+export function getStagingPosition(index: number): { x: number; y: number; z: number } {
+  return { x: (index - 1) * STAGING_SPACING, y: -2, z: STAGING_Z };
+}
+
 /** Build a proposeSolution function that uses the GameLLMService */
 function makeLLMProposer(): Agent['proposeSolution'] {
   return async (challenge: Challenge, persona: AgentPersona): Promise<SolutionProposal> => {
@@ -327,14 +362,11 @@ const generateInitialAgents = (personas: AgentPersona[]): Agent[] => {
   return personas.slice(0, 3).map((persona, i) => ({
     id: `agent-${i}`,
     name: `${types[i]} (${persona.name})`,
-    position: {
-      x: (Math.random() - 0.5) * 10,
-      y: 1,
-      z: (Math.random() - 0.5) * 10,
-    },
+    position: getStagingPosition(i),
     target: null,
     status: 'idle' as const,
     type: types[i],
+    staged: true,
     efficiency: 0.6 + Math.random() * 0.4,
     experience: Math.floor(Math.random() * 100),
     resources: { compute: 100, parity: 100, generation: 1 },
@@ -395,9 +427,12 @@ export const useKnirvana = create<KnirvanaState>()(
     selectedPropertyNode: null,
     selectedAgent: null,
     selectedRewardAnchor: null,
+    showAnchorConfigModal: false,
 
     isAnalyzing: false,
     isSculpting: false,
+    isNoiseInjecting: false,
+    isStraighteningAnchors: false,
 
     skillSlotOwner: persisted.skillSlotOwner ?? null,
     incumbentScore: persisted.incumbentScore ?? 0.8,
@@ -451,21 +486,27 @@ export const useKnirvana = create<KnirvanaState>()(
 
     setAnalyzing: (analyzing) => {
       set({ isAnalyzing: analyzing });
-      if (!analyzing) set({ isSculpting: false });
+      if (analyzing) {
+        set({ isSculpting: true });
+      } else {
+        set({ isSculpting: false });
+      }
     },
 
     setSculpting: (sculpting) => set({ isSculpting: sculpting }),
+
+    setNoiseInjecting: (v) => set({ isNoiseInjecting: v }),
 
     // ── Reward anchors ────────────────────────────────────────────────────
 
     addRewardAnchor: (anchor) => {
       set(state => ({
-        rewardAnchors: [...state.rewardAnchors, anchor],
-        selectedRewardAnchor: anchor.id,
+        rewardAnchors: [...state.rewardAnchors, { ...anchor, isHorizontal: true }],
       }));
     },
 
-    selectRewardAnchor: (id) => set({ selectedRewardAnchor: id }),
+    selectRewardAnchor: (id) => set({ selectedRewardAnchor: id, showAnchorConfigModal: false }),
+    setShowAnchorConfigModal: (show) => set({ showAnchorConfigModal: show }),
 
     updateRewardAnchor: (id, updates) => {
       set(state => ({
@@ -479,6 +520,39 @@ export const useKnirvana = create<KnirvanaState>()(
       set(state => ({
         rewardAnchors: state.rewardAnchors.filter(anchor => anchor.id !== id),
         selectedRewardAnchor: state.selectedRewardAnchor === id ? null : state.selectedRewardAnchor,
+      }));
+    },
+
+    setAllStraightenedAnchors: () => {
+      set(state => ({
+        rewardAnchors: state.rewardAnchors.map(anchor =>
+          !anchor.isHorizontal && !anchor.isSet ? { ...anchor, isSet: true } : anchor
+        ),
+      }));
+    },
+
+    commitSetAnchors: () => {
+      set(state => ({
+        rewardAnchors: state.rewardAnchors.map(anchor =>
+          anchor.isSet && !anchor.isCommitted
+            ? { ...anchor, isCommitted: true, isCommitting: true }
+            : anchor
+        ),
+        // Straightening is triggered by Deploy, not here
+      }));
+    },
+
+    startStraighteningSequence: () => {
+      console.log('Starting straightening sequence');
+      set({ isStraighteningAnchors: true });
+    },
+
+    completeStraightening: () => {
+      set(state => ({
+        isStraighteningAnchors: false,
+        rewardAnchors: state.rewardAnchors.map(anchor =>
+          anchor.isHorizontal ? { ...anchor, isHorizontal: false } : anchor
+        ),
       }));
     },
 
@@ -517,6 +591,7 @@ export const useKnirvana = create<KnirvanaState>()(
             target: null,
             status: 'idle',
             type: 'deployed',
+            staged: false,
             policy: 'greedy',
             efficiency: Math.random() * 0.5 + 0.5,
             accuracy: Math.random() * 0.3 + 0.7,
@@ -550,17 +625,15 @@ export const useKnirvana = create<KnirvanaState>()(
         const persona = personas[state.agents.length % personas.length] ?? DEFAULT_PERSONAS[0];
         const policies: Array<'greedy' | 'bayesian' | 'stochastic'> = ['greedy', 'bayesian', 'stochastic'];
 
+        const stagedCount = state.agents.filter(a => a.staged).length;
         const newAgent: Agent = {
           id: `agent-${Date.now()}`,
           name: `${type} (${persona.name})`,
-          position: {
-            x: (Math.random() - 0.5) * 5,
-            y: 1,
-            z: (Math.random() - 0.5) * 5,
-          },
+          position: getStagingPosition(stagedCount),
           target: null,
           status: 'idle',
           type,
+          staged: true,
           efficiency: 0.5 + Math.random() * 0.3,
           experience: 0,
           resources: { compute: 100, parity: 100, generation: 1 },
@@ -599,6 +672,93 @@ export const useKnirvana = create<KnirvanaState>()(
             : agent
         ),
       }));
+    },
+
+    deployAllStaged: () => {
+      set((state) => ({
+        agents: state.agents.map(agent =>
+          agent.staged
+            ? {
+                ...agent,
+                staged: false,
+                position: {
+                  x: (Math.random() - 0.5) * 10,
+                  y: 1,
+                  z: (Math.random() - 0.5) * 10,
+                },
+              }
+            : agent
+        ),
+      }));
+    },
+
+    deployOne: (agentId) => {
+      set((state) => ({
+        agents: state.agents.map(agent =>
+          agent.id === agentId && agent.staged
+            ? {
+                ...agent,
+                staged: false,
+                position: {
+                  x: (Math.random() - 0.5) * 10,
+                  y: 1,
+                  z: (Math.random() - 0.5) * 10,
+                },
+              }
+            : agent
+        ),
+      }));
+    },
+
+    stageAgent: (agentId) => {
+      const state = get();
+      const agent = state.agents.find(a => a.id === agentId);
+      if (!agent || agent.staged) return;
+
+      const stagedCount = state.agents.filter(a => a.staged).length;
+      const stagingPos = getStagingPosition(stagedCount);
+      const startPos = { ...agent.position };
+      const startTime = Date.now();
+      const duration = 1800;
+
+      // Mark as moving immediately
+      set(s => ({
+        agents: s.agents.map(a =>
+          a.id === agentId ? { ...a, status: 'moving' as const } : a
+        ),
+      }));
+
+      const interval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 2);
+
+        if (t >= 1) {
+          clearInterval(interval);
+          set(s => ({
+            agents: s.agents.map(a =>
+              a.id === agentId
+                ? { ...a, staged: true, status: 'idle' as const, target: null, position: stagingPos }
+                : a
+            ),
+          }));
+        } else {
+          set(s => ({
+            agents: s.agents.map(a =>
+              a.id === agentId
+                ? {
+                    ...a,
+                    position: {
+                      x: startPos.x + (stagingPos.x - startPos.x) * eased,
+                      y: 1,
+                      z: startPos.z + (stagingPos.z - startPos.z) * eased,
+                    },
+                  }
+                : a
+            ),
+          }));
+        }
+      }, 50);
     },
 
     // ── NRN economy ───────────────────────────────────────────────────────
@@ -719,9 +879,8 @@ export const useKnirvana = create<KnirvanaState>()(
 
       if (targetAgent) {
         const cost = magnitude * 10;
-        if (targetAgent.resources.compute >= cost) {
+        if (state.spendNRN(cost)) {
           SabotageEngine.applyEffect(type, targetAgent, magnitude);
-          targetAgent.resources.compute -= cost;
           set((s) => ({
             agents: s.agents.map(a =>
               a.id === targetAgentId ? { ...targetAgent } : a
@@ -817,5 +976,12 @@ export const useKnirvana = create<KnirvanaState>()(
         });
       }
     },
+
+    // ── UI State ────────────────────────────────────────────────────────────
+
+    showAgentManagementModal: false,
+    setShowAgentManagementModal: (show) => set({ showAgentManagementModal: show }),
+    requestAgentManagementOpen: false,
+    clearRequestAgentManagementOpen: () => set({ requestAgentManagementOpen: false }),
   }))
 );

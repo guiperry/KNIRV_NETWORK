@@ -6,6 +6,7 @@ import { initSentry } from './utils/sentry';
 
 // Receiver components
 import { KnirvShell } from './components/KnirvShell';
+import { GameMenu } from './components/game/GameMenu';
 
 import { NetworkStatus } from './components/NetworkStatus';
 import { NRVVisualization } from './components/NRVVisualization';
@@ -23,6 +24,7 @@ import { UDCModalContent } from './components/modals/UDCModalContent';
 import { WalletModalContent } from './components/modals/WalletModalContent';
 import { AgentManagementModal } from './components/modals/AgentManagementModal';
 import { ErrorNodeModal } from './components/modals/ErrorNodeModal';
+import { TraverseClustersModal } from './components/modals/TraverseClustersModal';
 interface CognitiveState {
   activeSkills: string[];
   confidenceLevel: number;
@@ -179,13 +181,15 @@ const MenuItem: React.FC<MenuItemProps> = ({ onClick, children, icon, className 
 // Receiver Interface Component
 const ReceiverInterface = () => {
   const gameStore = useKnirvana();
+  const nrnBalance = gameStore.nrnBalance;
+  const gamePhase = gameStore.gamePhase;
   const [shellStatus, setShellStatus] = useState<'idle' | 'processing' | 'listening' | 'error'>('idle');
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [hasSeenIntro, setHasSeenIntro] = useState(false);
   const [currentNRVs, setCurrentNRVs] = useState<NRV[]>([]);
   const [selectedNRV, setSelectedNRV] = useState<NRV | null>(null);
   const [availableAgents, setAvailableAgents] = useState<Agent[]>([]);
   const [activePanels, setActivePanels] = useState<string[]>([]);
-  const [nrnBalance, setNrnBalance] = useState(1250);
   const [cognitiveMode, setCognitiveMode] = useState(false);
   const [isCortexBuilderOpen, setIsCortexBuilderOpen] = useState(false);
   const [isApiKeyManagerOpen, setIsApiKeyManagerOpen] = useState(false);
@@ -193,6 +197,7 @@ const ReceiverInterface = () => {
   const [activeModal, setActiveModal] = useState<'skills' | 'udc' | 'wallet' | null>(null);
   const [isAgentManagementOpen, setIsAgentManagementOpen] = useState(false);
   const [isErrorNodeOpen, setIsErrorNodeOpen] = useState(false);
+  const [isTraverseClustersOpen, setIsTraverseClustersOpen] = useState(false);
   const [networkConnections] = useState<{
     [key: string]: 'connected' | 'disconnected' | 'connecting';
   }>({
@@ -250,19 +255,20 @@ const ReceiverInterface = () => {
     }
   ]);
 
-  // Sync NRN balance between game and controller
-  useEffect(() => {
-    if (gameStore.nrnBalance !== nrnBalance) {
-      setNrnBalance(gameStore.nrnBalance);
-    }
-  }, [gameStore.nrnBalance, nrnBalance, setNrnBalance]);
-
   // Sync shell status based on game phase
   useEffect(() => {
     if (gameStore.gamePhase === 'playing') {
       setShellStatus('idle');
     }
   }, [gameStore.gamePhase, setShellStatus]);
+
+  // Sync agent management modal state with store
+  useEffect(() => {
+    if (gameStore.showAgentManagementModal && !isAgentManagementOpen) {
+      setIsAgentManagementOpen(true);
+      gameStore.setShowAgentManagementModal(false);
+    }
+  }, [gameStore.showAgentManagementModal, isAgentManagementOpen]);
 
   useEffect(() => {
     // Initialize mock agents using the new Agent interface
@@ -573,8 +579,7 @@ const ReceiverInterface = () => {
   };
 
   const handleAgentAssignment = (nrv: NRV, agent: Agent) => {
-    if (nrnBalance >= agent.nrnCost) {
-      setNrnBalance(prev => prev - agent.nrnCost);
+    if (gameStore.spendNRN(agent.nrnCost)) {
       setCurrentNRVs(prev => prev.map(n =>
         n.id === nrv.id ? { ...n, status: 'Assigned' } : n
       ));
@@ -599,13 +604,6 @@ const ReceiverInterface = () => {
       setSelectedNRV(null);
     }
   };
-
-  // Sync NRN balance changes from controller to game
-  useEffect(() => {
-    if (gameStore.nrnBalance !== nrnBalance) {
-      gameStore.addNRN(nrnBalance - gameStore.nrnBalance);
-    }
-  }, [nrnBalance, gameStore]);
 
   const closePanel = (panelId: string) => {
     setActivePanels(prev => prev.filter(id => id !== panelId));
@@ -762,13 +760,6 @@ const ReceiverInterface = () => {
           <MenuItem onClick={handleQRScan} icon="📱">
             QR Scanner
           </MenuItem>
-          <MenuItem onClick={openCognitiveShell} icon="🧠">
-            Cognitive Shell
-          </MenuItem>
-
-          <MenuItem onClick={openCortexBuilder} icon="🎯">
-            CORTEX Builder
-          </MenuItem>
           <MenuItem onClick={openApiKeyManager} icon="🔑">
             API Keys
           </MenuItem>
@@ -781,8 +772,8 @@ const ReceiverInterface = () => {
           <MenuItem onClick={() => setIsAgentManagementOpen(true)} icon="🤖">
             Agent Management
           </MenuItem>
-          <MenuItem onClick={() => setIsErrorNodeOpen(true)} icon="⚠️">
-            Error Nodes
+          <MenuItem onClick={() => setIsTraverseClustersOpen(true)} icon="🔀">
+            Traverse Clusters
           </MenuItem>
           <MenuItem onClick={() => toggleKeyAgentPanel()} icon="🤖">
             Key Agent Status
@@ -806,7 +797,17 @@ const ReceiverInterface = () => {
           onWalletOpen={handleWalletOpen}
         />
 
-
+        {gamePhase === 'menu' && !hasSeenIntro && (
+          <div className="absolute inset-0 z-[999999] pointer-events-auto">
+            <GameMenu 
+              onStart={() => {
+                gameStore.startGame();
+                setHasSeenIntro(true);
+              }} 
+              usingMockLLM={gameStore.usingMockLLM}
+            />
+          </div>
+        )}
 
         <NRVVisualization
           nrvs={currentNRVs}
@@ -962,7 +963,7 @@ const ReceiverInterface = () => {
                 onPurchaseComplete={(result) => {
                   console.log('Purchase completed:', result);
                   // Update NRN balance if needed
-                  setNrnBalance(prev => prev + parseFloat(result.nrnAmount));
+                  gameStore.addNRN(parseFloat(result.nrnAmount));
                 }}
                 onError={(error) => {
                   console.error('Purchase error:', error);
@@ -1004,7 +1005,7 @@ const ReceiverInterface = () => {
             }`}>
               {shellStatus.charAt(0).toUpperCase() + shellStatus.slice(1)}
             </div>
-          )}
+            )}
         </div>
         </main>
 
@@ -1066,6 +1067,12 @@ const ReceiverInterface = () => {
             console.warn('No available agent found for deployment');
           }
         }}
+      />
+
+      {/* Traverse Clusters Modal - Flythrough Animation */}
+      <TraverseClustersModal
+        isOpen={isTraverseClustersOpen}
+        onClose={() => setIsTraverseClustersOpen(false)}
       />
 
       {/* QR Scanner Modal */}

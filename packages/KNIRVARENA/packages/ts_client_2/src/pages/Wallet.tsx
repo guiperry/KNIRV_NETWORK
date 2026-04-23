@@ -2,6 +2,7 @@ import React from 'react';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, Shield, QrCode, X, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useKnirvana } from '../components/game/stores/useKnirvana';
 import { SlidingPanel } from '@components/SlidingPanel';
 import { NetworkStatus } from '@components/NetworkStatus';
 import { AgentManager } from '@components/AgentManager';
@@ -89,10 +90,9 @@ export default function WalletPage() {
 
   const [currentNRVs] = useState([]);
   const [selectedNRV] = useState(null);
-  const [nrnBalance] = useState(1250);
+  const nrnBalance = useKnirvana(s => s.nrnBalance);
 
   const walletData = {
-    nrnBalance: 1247,
     usdValue: 312.75,
     change24h: 5.2,
     walletAddress: '0x742d35Cc6aa34567...8B9fA2e1C4D'
@@ -257,7 +257,7 @@ export default function WalletPage() {
       return;
     }
 
-    if (parseFloat(sendNRNAmount) > walletData.nrnBalance) {
+    if (parseFloat(sendNRNAmount) > nrnBalance) {
       setSendNRNError('Insufficient balance');
       return;
     }
@@ -376,9 +376,6 @@ export default function WalletPage() {
           <MenuItem onClick={handleQRScan} icon="📱">
             QR Scanner
           </MenuItem>
-          <MenuItem onClick={openCognitiveShell} icon="🧠">
-            Cognitive Shell
-          </MenuItem>
           <MenuItem onClick={toggleNetworkPanel} icon="🌐">
             Network Status
           </MenuItem>
@@ -428,7 +425,7 @@ export default function WalletPage() {
 
             <div className="space-y-2">
               <div className="text-3xl font-bold text-white">
-                {walletData.nrnBalance.toLocaleString()} NRN
+                {nrnBalance.toLocaleString()} NRN
               </div>
               <div className="text-lg text-gray-300">
                 ≈ ${walletData.usdValue.toFixed(2)} USD
@@ -728,7 +725,7 @@ export default function WalletPage() {
                   disabled={sendNRNLoading}
                   step="0.01"
                   min="0"
-                  max={walletData.nrnBalance}
+                  max={nrnBalance}
                 />
               </div>
               <div>
@@ -749,7 +746,7 @@ export default function WalletPage() {
                 </div>
                 <div className="flex justify-between text-sm mt-1">
                   <span className="text-gray-400">Available Balance:</span>
-                  <span className="text-white">{walletData.nrnBalance.toLocaleString()} NRN</span>
+                  <span className="text-white">{nrnBalance.toLocaleString()} NRN</span>
                 </div>
               </div>
               <button

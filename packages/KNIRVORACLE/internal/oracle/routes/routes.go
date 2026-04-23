@@ -79,6 +79,10 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/oracle/v3/rollups/submit", r.handleSubmitRollup)
 	mux.HandleFunc("/oracle/v3/rollups/", r.handleRollup)
 
+	// Installation endpoints
+	mux.HandleFunc("/oracle/v3/install/wallet", r.handleInstallWallet)
+	mux.HandleFunc("/oracle/v3/install/dve_uri", r.handleInstallDVEURI)
+
 	// Health and status
 	mux.HandleFunc("/oracle/v3/health", r.handleHealth)
 	mux.HandleFunc("/oracle/v3/status", r.handleStatus)

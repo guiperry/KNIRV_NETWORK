@@ -2,6 +2,7 @@ import React from 'react';
 import { Shield, Key, CheckCircle, AlertTriangle, RefreshCw, Wallet, Clock, Zap} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useKnirvana } from '../components/game/stores/useKnirvana';
 import { SlidingPanel } from '../components/SlidingPanel';
 import { NetworkStatus } from '../components/NetworkStatus';
 import { AgentManager } from '../components/AgentManager';
@@ -74,7 +75,7 @@ export default function UDC() {
 
   const [currentNRVs] = useState([]);
   const [selectedNRV] = useState(null);
-  const [nrnBalance] = useState(1250);
+  const nrnBalance = useKnirvana(s => s.nrnBalance);
 
   const udc = {
     id: 'UDC-7A8B9C2D',
@@ -226,9 +227,6 @@ export default function UDC() {
           </MenuItem>
           <MenuItem onClick={handleQRScan} icon="📱">
             QR Scanner
-          </MenuItem>
-          <MenuItem onClick={openCognitiveShell} icon="🧠">
-            Cognitive Shell
           </MenuItem>
           <MenuItem onClick={toggleNetworkPanel} icon="🌐">
             Network Status

@@ -11,12 +11,14 @@ interface AIAgentProps {
   isSelected: boolean;
   onSelect: () => void;
   onStage?: () => void;
+  isStaged?: boolean;
+  stagingIndex?: number;
 }
 
 // Pre-load the model to avoid loading it multiple times
 useGLTF.preload('/assets/avatar/Green_Bot_Explorer.glb');
 
-export default function AIAgent({ agent, isSelected, onSelect, onStage }: AIAgentProps) {
+export default function AIAgent({ agent, isSelected, onSelect, onStage, isStaged = false }: AIAgentProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF('/assets/avatar/Green_Bot_Explorer.glb');
   const { actions, names } = useAnimations(animations, groupRef);
@@ -62,14 +64,16 @@ export default function AIAgent({ agent, isSelected, onSelect, onStage }: AIAgen
 
   useFrame((state) => {
     if (groupRef.current) {
-      // Idle floating animation (complement to model animation)
       const time = state.clock.elapsedTime;
-      const bounceHeight = agent.status === 'idle' ? Math.sin(time * 3) * 0.05 : 0;
-      groupRef.current.position.y = agent.position.y + bounceHeight;
-      
-      // Rotation for working agents
-      if (agent.status === 'working') {
-        groupRef.current.rotation.y += 0.02;
+      if (isStaged) {
+        // Staged agents bob slowly at the arena edge
+        groupRef.current.position.y = agent.position.y + Math.sin(time * 1.5) * 0.1;
+      } else {
+        const bounceHeight = agent.status === 'idle' ? Math.sin(time * 3) * 0.05 : 0;
+        groupRef.current.position.y = agent.position.y + bounceHeight;
+        if (agent.status === 'working') {
+          groupRef.current.rotation.y += 0.02;
+        }
       }
     }
   });
@@ -87,6 +91,15 @@ export default function AIAgent({ agent, isSelected, onSelect, onStage }: AIAgen
   // Clone the scene to allow individual instances
   const clonedScene = React.useMemo(() => scene.clone(), [scene]);
 
+  // Staged agents are displayed much larger at the arena edge
+  const modelScale = isStaged ? 3.0 : 0.5;
+
+  // At scale 3.0 the model center (waist) sits at the group origin.
+  // Deployed agents work at group.y=1 with scale 0.5 — feet ~y=0.
+  // Scale factor 6× means feet would sink 5 units underground when staged.
+  // Offset the primitive upward by 5 units so feet stay on the grid.
+  const primitiveYOffset = isStaged ? 5.0 : 0;
+
   return (
     <group
       ref={groupRef}
@@ -94,11 +107,12 @@ export default function AIAgent({ agent, isSelected, onSelect, onStage }: AIAgen
       onClick={onSelect}
     >
       {/* 3D Model Avatar */}
-      <primitive 
-        object={clonedScene} 
-        scale={0.5} 
-        castShadow 
-        receiveShadow 
+      <primitive
+        object={clonedScene}
+        scale={modelScale}
+        position={[0, primitiveYOffset, 0]}
+        castShadow
+        receiveShadow
       />
       
       {/* Status glow effect */}

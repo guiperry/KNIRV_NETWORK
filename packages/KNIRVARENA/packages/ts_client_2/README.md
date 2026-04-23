@@ -1,4 +1,4 @@
-# KNIRV-CONTROLLER: The Unified Neural Intelligence Model Management Platform
+# ERGO: Error Resolution Gamming Operation
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
 [![Rust Version](https://img.shields.io/badge/rust-%3E%3D1.70.0-orange)](https://www.rust-lang.org/)
@@ -7,11 +7,56 @@
 
 ## Overview
 
-The **KNIRV-CONTROLLER** serves as the comprehensive Neural Intelligence Model (NIM) management platform within the KNIRV D-TEN ecosystem. It unifies separate tools into a cohesive application that provides seamless NIM management, skill development, wallet functionality, and network interaction capabilities.
+The **ERGO** serves as a comprehensive error resolution management platform. It unifies separate tools into a cohesive application that provides seamless error management, skill development, wallet functionality, and network interaction capabilities.
 
 ## 🆕 Recent Updates
 
-### 🧠 Chat-Brain: Personal Memory AI (Latest)
+### 🔮 Adaline Cognitive Engine Integration (Latest)
+
+The ERGO now features advanced cognitive processing through the Adaline Gateway architecture:
+
+#### **Multi-Model LLM Gateway**
+- **Provider Agnostic**: Unified interface for Gemini, OpenAI, DeepSeek, and other LLM providers
+- **Fallback Routing**: Automatic failover between providers for reliability
+- **Confidence-Based Routing**: Intelligent routing based on model confidence scores
+
+#### **Advanced Agent Behaviors**
+- **Anchor Datasets**: Behavioral consistency through few-shot context injection
+  - Pre-defined templates for error resolution, combat, exploration, dialogue, crafting, and NPC interactions
+  - Automatic context population with historical data derivation
+  - Template matching and scoring for optimal behavior selection
+- **Field Noise Remediation**: Sabotage detection and cleanup
+  - Noise injection detection via entropy analysis
+  - Prompt injection pattern matching
+  - Context poisoning detection
+  - Adversarial drift identification
+  - Language model-based filtering
+
+#### **DVE/CDE Validation Pipeline**
+- **DVE (Decision Validation Engine)**: Output validation through simulation
+  - Skill code execution with failure context
+  - Validation score calculation
+  - Configurable thresholds via environment variables
+- **CDE (Code/Document Execution)**: Sandboxed solution validation
+  - Multi-language code validation (JavaScript, Python, Go, Rust, C++)
+  - Constraint satisfaction checking
+  - Severity-based violation handling
+  - Safe sandboxed execution
+
+#### **KNIRVSERVER Integration**
+- HTTP client for partner KNIRVSERVER backend services
+- DVE task management and node querying
+- CDE environment lifecycle management
+- Cognitive metrics reporting
+- Guardrail violation tracking
+
+#### **Key Files**
+- `src/sensory-shell/AdalineBridge.ts` - Multi-model LLM gateway bridge
+- `src/sensory-shell/AnchorDatasetManager.ts` - Behavioral template management
+- `src/sensory-shell/DenoisingService.ts` - Field noise remediation
+- `src/services/KNIRVSERVERClient.ts` - Backend service client
+
+### 🧠 Chat-Brain: Personal Memory AI
 - **Universal LLM Chat Interface**: Unified chat interface for all major LLMs (Gemini, OpenAI, DeepSeek, Adaline)
 - **Persistent Memory Layer**: KNIRVGRAPH-powered knowledge graph that captures and synthesizes every conversation
 - **Multi-LLM Support**: Seamlessly switch between different AI providers while maintaining conversation context
@@ -37,7 +82,7 @@ The **KNIRV-CONTROLLER** serves as the comprehensive Neural Intelligence Model (
 
 ### Unified Component Structure
 
-The CONTROLLER integrates four core components into a unified platform:
+The inferface integrates four core components into a unified platform:
 
 #### 1. **Receiver** (Primary Interface)
 - **Location**: `src/components/KnirvShell.tsx`
@@ -177,8 +222,8 @@ npm or yarn package manager
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/guiperry/KNIRVARENA.git
-cd KNIRVARENA
+git clone https://github.com/guiperry/ERGO.git
+cd ERGO
 
 # Install dependencies
 npm install
@@ -223,7 +268,7 @@ npm run dev:full
 ## Project Structure
 
 ```
-KNIRVARENA/
+ERGO/
 ├── src/
 │   ├── components/          # React components
 │   │   ├── KnirvShell.tsx   # Main interface component
@@ -245,6 +290,7 @@ KNIRVARENA/
 │   │   ├── knirvGraphService.ts    # KNIRVGRAPH integration
 │   │   ├── llmProviderService.ts   # Multi-LLM support
 │   │   ├── chatBrainService.ts     # Chat-Brain logic
+│   │   ├── KNIRVSERVERClient.ts    # DVE/CDE backend client
 │   │   └── ...
 │   ├── contexts/            # React Context providers
 │   │   ├── ChatBrainContext.tsx    # Chat-Brain state
@@ -252,6 +298,9 @@ KNIRVARENA/
 │   ├── sensory-shell/       # WASM and cognitive processing
 │   │   ├── CognitiveEngine.ts
 │   │   ├── WASMOrchestrator.ts
+│   │   ├── AdalineBridge.ts         # Multi-model LLM gateway
+│   │   ├── AnchorDatasetManager.ts   # Behavioral templates
+│   │   ├── DenoisingService.ts      # Field noise remediation
 │   │   └── ...
 │   ├── core/                # Core system components
 │   │   ├── wasm/           # WASM compilation system
@@ -312,6 +361,11 @@ VITE_ADALINE_KEY=your-adaline-api-key
 VITE_KNIRVGRAPH_ENDPOINT=http://localhost:26657
 VITE_KNIRVGRAPH_CHAIN_ID=knirvgraph-1
 VITE_KNIRVGRAPH_API_KEY=your-api-key
+
+# Adaline Cognitive Engine Configuration
+VITE_KNIRVSERVER_URL=http://localhost:8082
+VITE_DVE_VALIDATION_THRESHOLD=0.7
+VITE_CDE_VALIDATION_ENABLED=true
 ```
 
 ### Network Configuration
@@ -324,7 +378,7 @@ The app supports multiple network environments:
 
 ### Database Setup & Seeding
 
-The KNIRVARENA includes a comprehensive authentication system with pre-configured user accounts for testing and development.
+The ERGO includes a comprehensive authentication system with pre-configured user accounts for testing and development.
 
 #### Initial Database Setup
 ```bash
@@ -407,7 +461,7 @@ For Progressive Web App deployments, authentication includes:
 ### Docker Deployment
 ```bash
 # Build Docker image
-docker build -t knirv-controller .
+docker build -t ERGO .
 
 # Run with docker-compose
 docker-compose up -d
@@ -556,8 +610,8 @@ MIT License - see [LICENSE](https://knirv.network/documentation/static/legal/TER
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/guiperry/KNIRVARENA/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/guiperry/KNIRVARENA/discussions)
+- **Issues**: [GitHub Issues](https://github.com/guiperry/ERGO/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/guiperry/ERGO/discussions)
 - **Documentation**: [KNIRV Network Docs](https://docs.knirv.network)
 
 ---

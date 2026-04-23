@@ -10,7 +10,7 @@ export default function CameraController() {
   const cameraPositionRef = useRef(new THREE.Vector3(15, 20, 15));
 
   const [, get] = useKeyboardControls();
-  const { selectedAgent, agents, selectedErrorNode, errorNodes } = useKnirvana();
+  const { selectedAgent, agents, selectedErrorNode, errorNodes, isAnalyzing } = useKnirvana();
 
   // Mouse/pointer control state
   const [isPointerDown, setIsPointerDown] = useState(false);
@@ -20,8 +20,6 @@ export default function CameraController() {
   const [lastClickTime, setLastClickTime] = useState(0);
 
   useEffect(() => {
-    console.log("Camera controller initialized");
-
     const canvas = gl.domElement;
 
     const handlePointerDown = (event: PointerEvent) => {
@@ -87,12 +85,17 @@ export default function CameraController() {
 
         // Check for double-click (within 300ms and not dragging)
         if (!isDragging && currentTime - lastClickTime < 300) {
-          // Double-click detected - reset camera
-          setUserControlled(false);
-          const defaultTarget = new THREE.Vector3(0, 0, 0);
-          const defaultPosition = new THREE.Vector3(15, 20, 15);
-          cameraTargetRef.current.copy(defaultTarget);
-          cameraPositionRef.current.copy(defaultPosition);
+          // Double-click detected - reset camera only if not in analyze mode
+          if (!isAnalyzing) {
+            setUserControlled(false);
+            const defaultTarget = new THREE.Vector3(0, 0, 0);
+            const defaultPosition = new THREE.Vector3(15, 20, 15);
+            cameraTargetRef.current.copy(defaultTarget);
+            cameraPositionRef.current.copy(defaultPosition);
+          }
+        } else if (!isDragging && isAnalyzing) {
+          // Single click on canvas background while analyzing - deselect anchor
+          useKnirvana.getState().selectRewardAnchor(null);
         }
 
         setLastClickTime(currentTime);
@@ -134,12 +137,10 @@ export default function CameraController() {
     const rotateSpeed = 1;
     const zoomSpeed = 5;
 
-    // Handle agent selection - only if user hasn't manually controlled camera
-    if (selectedAgent && !userControlled) {
+    // Handle agent selection - only if user hasn't manually controlled camera and not analyzing
+    if (selectedAgent && !userControlled && !isAnalyzing) {
       const agent = agents.find(a => a.id === selectedAgent);
       if (agent && agent.position) {
-        console.log("Focusing on agent:", selectedAgent, "at position:", agent.position);
-
         // Ensure agent position is valid
         const agentX = isFinite(agent.position.x) ? agent.position.x : 0;
         const agentY = isFinite(agent.position.y) ? agent.position.y : 0;
@@ -156,16 +157,12 @@ export default function CameraController() {
           agentZ + 8
         );
         cameraPositionRef.current.lerp(idealCameraPos, delta * 0.8);
-      } else {
-        console.warn("Agent not found or invalid position:", selectedAgent, agent);
       }
     }
-    // Handle error node selection - only if user hasn't manually controlled camera and no agent is selected
-    else if (selectedErrorNode && !userControlled && !selectedAgent) {
+    // Handle error node selection - only if user hasn't manually controlled camera, no agent selected, and not analyzing
+    else if (selectedErrorNode && !userControlled && !selectedAgent && !isAnalyzing) {
       const errorNode = errorNodes.find(n => n.id === selectedErrorNode);
       if (errorNode && errorNode.position) {
-        console.log("Focusing on error node:", selectedErrorNode, "at position:", errorNode.position);
-
         // Ensure error node position is valid
         const nodeX = isFinite(errorNode.position.x) ? errorNode.position.x : 0;
         const nodeY = isFinite(errorNode.position.y) ? errorNode.position.y : 0;
@@ -182,44 +179,45 @@ export default function CameraController() {
           nodeZ + 6
         );
         cameraPositionRef.current.lerp(idealCameraPos, delta * 1);
-      } else {
-        console.warn("Error node not found or invalid position:", selectedErrorNode, errorNode);
       }
-    } else if (!selectedAgent && !selectedErrorNode && !userControlled) {
-      // Only return to default view if user hasn't manually controlled camera
+    } else if (!selectedAgent && !selectedErrorNode && !userControlled && !isAnalyzing) {
+      // Only return to default view if user hasn't manually controlled camera AND not analyzing
       const defaultTarget = new THREE.Vector3(0, 0, 0);
       const defaultPosition = new THREE.Vector3(15, 20, 15);
       cameraTargetRef.current.lerp(defaultTarget, delta * 0.5);
       cameraPositionRef.current.lerp(defaultPosition, delta * 0.5);
     }
 
-    // Simple logging for debugging
-    if (selectedAgent) {
-      console.log("Agent selected:", selectedAgent, "- Camera auto-focus enabled");
-    } else if (selectedErrorNode) {
-      console.log("Error node selected:", selectedErrorNode, "- Camera auto-focus enabled");
+    // Prevent auto rotation entirely while in analyze mode
+    if (isAnalyzing) {
+      setUserControlled(true);
     }
 
-    // Keyboard movement (also sets user controlled flag)
-    if (controls.forward) {
+    // Keyboard movement — camera-relative so forward/back/left/right are
+    // always consistent regardless of how the camera has been rotated.
+    const anyMove = controls.forward || controls.backward || controls.leftward || controls.rightward;
+    if (anyMove) {
       setUserControlled(true);
-      cameraPositionRef.current.z -= moveSpeed * delta;
-      cameraTargetRef.current.z -= moveSpeed * delta;
-    }
-    if (controls.backward) {
-      setUserControlled(true);
-      cameraPositionRef.current.z += moveSpeed * delta;
-      cameraTargetRef.current.z += moveSpeed * delta;
-    }
-    if (controls.leftward) {
-      setUserControlled(true);
-      cameraPositionRef.current.x -= moveSpeed * delta;
-      cameraTargetRef.current.x -= moveSpeed * delta;
-    }
-    if (controls.rightward) {
-      setUserControlled(true);
-      cameraPositionRef.current.x += moveSpeed * delta;
-      cameraTargetRef.current.x += moveSpeed * delta;
+
+      // Project the camera look direction onto the horizontal plane
+      const forward = new THREE.Vector3()
+        .subVectors(cameraTargetRef.current, cameraPositionRef.current)
+        .setY(0)
+        .normalize();
+
+      // Right vector = forward × world-up
+      const right = new THREE.Vector3()
+        .crossVectors(forward, new THREE.Vector3(0, 1, 0))
+        .normalize();
+
+      const move = new THREE.Vector3();
+      if (controls.forward)   move.addScaledVector(forward,  moveSpeed * delta);
+      if (controls.backward)  move.addScaledVector(forward, -moveSpeed * delta);
+      if (controls.rightward) move.addScaledVector(right,    moveSpeed * delta);
+      if (controls.leftward)  move.addScaledVector(right,   -moveSpeed * delta);
+
+      cameraPositionRef.current.add(move);
+      cameraTargetRef.current.add(move);
     }
 
     // Rotation around target
@@ -271,7 +269,7 @@ export default function CameraController() {
       if (errorNodes.length > 0) {
         const nextNode = errorNodes[nextIndex];
         useKnirvana.getState().selectErrorNode(nextNode.id);
-        setUserControlled(false); // Allow auto-focus to work
+        if (!isAnalyzing) setUserControlled(false); // Allow auto-focus to work only when not analyzing
       }
     }
     if (controls.prevError) {
@@ -280,18 +278,20 @@ export default function CameraController() {
       if (errorNodes.length > 0) {
         const prevNode = errorNodes[prevIndex];
         useKnirvana.getState().selectErrorNode(prevNode.id);
-        setUserControlled(false); // Allow auto-focus to work
+        if (!isAnalyzing) setUserControlled(false); // Allow auto-focus to work only when not analyzing
       }
     }
 
     // Reset camera view (R key twice or double-click)
     if (controls.deploy) { // R key - reuse the deploy key for reset
-      setUserControlled(false);
-      // Reset to default view
-      const defaultTarget = new THREE.Vector3(0, 0, 0);
-      const defaultPosition = new THREE.Vector3(15, 20, 15);
-      cameraTargetRef.current.copy(defaultTarget);
-      cameraPositionRef.current.copy(defaultPosition);
+      if (!isAnalyzing) {
+        setUserControlled(false);
+        // Reset to default view
+        const defaultTarget = new THREE.Vector3(0, 0, 0);
+        const defaultPosition = new THREE.Vector3(15, 20, 15);
+        cameraTargetRef.current.copy(defaultTarget);
+        cameraPositionRef.current.copy(defaultPosition);
+      }
     }
 
     // Ensure camera position stays within reasonable bounds and is valid

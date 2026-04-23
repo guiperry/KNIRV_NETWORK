@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Cpu, Zap, AlertTriangle, FileText, Lightbulb, Plus, Camera, Mic, Shield, Wallet, Eye, Lock, ShieldAlert, Brain } from 'lucide-react';
 import GameArena from './GameArena';
 import { useThemeStore } from '../stores/useThemeStore';
+import { useKnirvana } from './game/stores/useKnirvana';
 
 interface KnirvShellProps {
   status: 'idle' | 'processing' | 'listening' | 'error';
@@ -38,6 +39,8 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAdversarySolving, setIsAdversarySolving] = useState(false);
   const { themeMode, toggleTheme } = useThemeStore();
+  const isNoiseInjecting = useKnirvana(s => s.isNoiseInjecting);
+  const setNoiseInjecting = useKnirvana(s => s.setNoiseInjecting);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -56,7 +59,7 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
   }, []);
 
   const handleNoiseInjection = () => {
-    console.log('Noise Injection activated');
+    setNoiseInjecting(!isNoiseInjecting);
     setIsExpanded(false);
   };
 
@@ -179,14 +182,11 @@ export const KnirvShell: React.FC<KnirvShellProps> = ({
               <button
                 onClick={handleNoiseInjection}
                 className="absolute w-12 h-12 cursor-pointer transition-all duration-300 hover:scale-110 group/radial"
-                style={{
-                  top: '-66px',
-                  left: '4px',
-                }}
-                title="Noise Injection"
+                style={{ top: '-66px', left: '4px' }}
+                title={isNoiseInjecting ? "Noise Injection (Active — click to deactivate)" : "Noise Injection"}
               >
-                <div className="absolute inset-0 rounded-full bg-yellow-500/90 border-2 border-yellow-400/50 group-hover/radial:bg-yellow-500 shadow-lg">
-                  <div className="absolute inset-1.5 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 flex items-center justify-center group-hover/radial:from-yellow-400 group-hover/radial:to-yellow-500 transition-all">
+                <div className={`absolute inset-0 rounded-full border-2 shadow-lg ${isNoiseInjecting ? 'bg-purple-500 border-purple-300 ring-2 ring-purple-400' : 'bg-yellow-500/90 border-yellow-400/50 group-hover/radial:bg-yellow-500'}`}>
+                  <div className={`absolute inset-1.5 rounded-full flex items-center justify-center transition-all ${isNoiseInjecting ? 'bg-gradient-to-r from-purple-400 to-purple-600' : 'bg-gradient-to-r from-yellow-500 to-yellow-600 group-hover/radial:from-yellow-400 group-hover/radial:to-yellow-500'}`}>
                     <Eye className="w-5 h-5 text-white" />
                   </div>
                 </div>

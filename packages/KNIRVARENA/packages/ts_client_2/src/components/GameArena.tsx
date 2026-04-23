@@ -36,12 +36,7 @@ export default function GameArena() {
 
     const successSound = new Audio('/sounds/success.mp3');
     setSuccessSound(successSound);
-
-    // Auto-start game when component mounts
-    if (gamePhase === "menu") {
-      startGame();
-    }
-  }, [gamePhase, startGame, setBackgroundMusic, setHitSound, setSuccessSound]);
+  }, [setBackgroundMusic, setHitSound, setSuccessSound]);
 
   return (
     <div className="w-full h-full rounded-2xl overflow-hidden relative">

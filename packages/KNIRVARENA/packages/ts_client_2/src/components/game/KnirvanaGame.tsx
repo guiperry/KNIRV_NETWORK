@@ -24,7 +24,7 @@ export default function KnirvanaGame() {
   const backgrounds = getBackgroundColors();
 
   return (
-    <>
+    <div className="w-full h-full relative overflow-hidden">
       <Canvas
         shadows
         camera={{
@@ -41,12 +41,8 @@ export default function KnirvanaGame() {
         }}
         style={{
           background: backgrounds.style,
-          width: '100vw',
-          height: '100vh',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          zIndex: 1
+          width: '100%',
+          height: '100%',
         }}
       >
         <color attach="background" args={[backgrounds.color]} />
@@ -55,8 +51,7 @@ export default function KnirvanaGame() {
           <GameScene />
         </Suspense>
       </Canvas>
-      
       <GameUI />
-    </>
+    </div>
   );
 }

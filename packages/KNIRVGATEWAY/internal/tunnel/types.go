@@ -8,16 +8,17 @@ import (
 
 // NodeInfo represents information about a registered node
 type NodeInfo struct {
-	DevID           string    `json:"devId"`
-	ChainID         string    `json:"chainId,omitempty"`
-	InternalIP      string    `json:"internalIp,omitempty"`
-	InternalP2PPort int       `json:"internalP2pPort,omitempty"`
-	PublicIP        string    `json:"publicIp,omitempty"`
-	PublicP2PPort   int       `json:"publicP2pPort,omitempty"`
-	Type            string    `json:"type"`
-	LastSeen        time.Time `json:"lastSeen"`
-	ControlSocketID string    `json:"controlSocketId,omitempty"`
-	IsTunneled      bool      `json:"isTunneled"`
+	DevID            string    `json:"devId"`
+	ChainID          string    `json:"chainId,omitempty"`
+	InternalIP       string    `json:"internalIp,omitempty"`
+	InternalP2PPort  int       `json:"internalP2pPort,omitempty"`
+	PublicIP         string    `json:"publicIp,omitempty"`
+	PublicP2PPort    int       `json:"publicP2pPort,omitempty"`
+	Type             string    `json:"type"`
+	LastSeen         time.Time `json:"lastSeen"`
+	ControlSocketID  string    `json:"controlSocketId,omitempty"`
+	IsTunneled       bool      `json:"isTunneled"`
+	IsBootnode       bool      `json:"isBootnode,omitempty"`
 	PublicRelayURL  string    `json:"publicRelayUrl,omitempty"`
 }
 

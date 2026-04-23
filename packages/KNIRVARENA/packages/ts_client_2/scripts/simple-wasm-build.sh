@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Change directory to the project root
+cd "$(dirname "$0")/.."
+
 echo "🚀 Building KNIRV Controller WASM modules with AssemblyScript..."
 
 # Create build directories

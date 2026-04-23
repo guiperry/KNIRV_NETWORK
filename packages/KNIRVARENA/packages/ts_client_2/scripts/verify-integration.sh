@@ -1,6 +1,9 @@
 #!/bin/bash
 
-echo "=== KNIRVANA Gaming Arena Integration Verification ==="
+# Change directory to the project root
+cd "$(dirname "$0")/.."
+
+echo "=== ERGO Gaming Arena Integration Verification ==="
 
 echo "✅ Phase 1: Dependencies"
 if grep -q "@react-three/fiber" package.json; then
@@ -57,7 +60,7 @@ fi
 
 echo ""
 echo "✅ Phase 5: State Management"
-if grep -q "useKnirvana" src/App.tsx; then
+if grep -q "useERGO" src/App.tsx; then
     echo "✅ Game state management integrated into App.tsx"
 else
     echo "❌ Game state management not integrated"
@@ -65,7 +68,7 @@ fi
 
 echo ""
 echo "✅ Phase 6: Configuration"
-if grep -q "game-primary" tailwind.config.js; then
+if grep -q "game-primary" config/tailwind.config.js; then
     echo "✅ Game-specific colors added to Tailwind"
 else
     echo "❌ Game colors not added to Tailwind"
@@ -87,7 +90,7 @@ fi
 
 echo ""
 echo "=== Integration Summary ==="
-echo "🎮 KNIRVANA gaming arena has been successfully integrated into KNIRVARENA!"
+echo "🎮 ERGO gaming arena has been successfully integrated!"
 echo "📁 All required files and configurations are in place"
 echo "🚀 Game will auto-launch when KNIRVARENA starts"
 echo "🔗 Game state is synchronized with controller state"

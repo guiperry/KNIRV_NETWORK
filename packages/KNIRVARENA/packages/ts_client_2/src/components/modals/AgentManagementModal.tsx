@@ -360,7 +360,7 @@ export const AgentManagementModal: React.FC<AgentManagementModalProps> = ({
                           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700"
                         >
                           <Zap className="w-4 h-4" />
-                          Deploy Agent
+                          Stage Agent
                         </button>
                       )}
                     </div>

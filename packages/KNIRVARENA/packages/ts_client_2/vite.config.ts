@@ -17,9 +17,11 @@ export default defineConfig({
     }),
     ...(process.env.ANALYZE === 'true' ? [visualizer()] : [])
   ],
+
+  esbuild: {},
   
-  // Use relative base so builds work from file:// and subpaths
-  base: './',
+  // Use absolute base for development stability
+  base: '/',
   
   // Root source directory
   root: '.',
@@ -51,14 +53,14 @@ export default defineConfig({
     // Chunk size warning limit
     chunkSizeWarningLimit: 1000
   },
-  
+
   // Development server
   server: {
     host: '0.0.0.0',
     port: 3000,
     open: false,
     headers: {
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ws: wss: wasm: blob: http://localhost:3001 https://wallet.knirv.com https://generativelanguage.googleapis.com; frame-src 'none';"
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' ws: wss: wasm: blob: http://localhost:3001 https://wallet.knirv.com https://generativelanguage.googleapis.com https://unpkg.com https://cdn.jsdelivr.net; frame-src 'self' https://unpkg.com https://cdn.jsdelivr.net;"
     },
     proxy: {
       '/api': {

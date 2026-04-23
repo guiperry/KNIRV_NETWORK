@@ -1,18 +1,19 @@
 .cyber-modal {
   position: fixed;
-  top: 10%;
+  top: 2%;
   left: 10%;
   width: 80%;
-  height: 70%;
-  background: rgba(4, 12, 24, 0.95);
+  height: 90%;
+  background: rgb(4, 12, 24);
   border: 1px solid #00f2ff;
-  box-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.3), inset 0 0 0 1px rgba(0, 242, 255, 0.05);
   color: #e0e0e0;
   font-family: 'Courier New', monospace;
   display: flex;
   flex-direction: column;
   z-index: 1000;
   pointer-events: auto;
+  overflow: hidden;
 }
 
 .header {
@@ -54,6 +55,8 @@
   gap: 20px;
   padding: 20px;
   flex-grow: 1;
+  overflow-y: auto;
+  background: rgb(4, 12, 24);
 }
 
 .weight-shaping, .constraint-editor {
@@ -174,13 +177,39 @@ h3 {
   transform: translateY(0);
 }
 
+.remove-anchor-btn {
+  background: transparent;
+  color: #ff4444;
+  border: 1px solid #ff4444;
+  padding: 8px 15px;
+  width: 100%;
+  cursor: pointer;
+  margin-top: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Courier New', monospace;
+  transition: all 0.3s ease;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.remove-anchor-btn:hover {
+  background: rgba(255, 68, 68, 0.15);
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.4);
+}
+
+.remove-anchor-btn:active {
+  background: rgba(255, 68, 68, 0.3);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .cyber-modal {
-    top: 5%;
+    top: 2%;
     left: 5%;
     width: 90%;
-    height: 80%;
+    height: 95%;
   }
   
   .content-grid {

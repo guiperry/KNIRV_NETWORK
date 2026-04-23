@@ -7,6 +7,7 @@ const baseConfig = require('./jest.config.cjs');
 
 module.exports = {
   ...baseConfig,
+  rootDir: '../',
   
   // Test environment
   testEnvironment: 'jsdom',

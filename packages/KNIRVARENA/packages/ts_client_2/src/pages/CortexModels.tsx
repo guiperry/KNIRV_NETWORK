@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { useState, useEffect } from 'react';
+import { useKnirvana } from '../components/game/stores/useKnirvana';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bot, Upload, Coins } from 'lucide-react';
 import { agentManagementService, AgentUploadRequest } from '../services/AgentManagementService';
@@ -36,7 +37,7 @@ export default function CortexModels() {
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingModel, setUploadingModel] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [nrnBalance, setNrnBalance] = useState(1250);
+  const nrnBalance = useKnirvana(s => s.nrnBalance);
   const [, setSelectedFile] = useState<File | null>(null);
 
   // Load cortex models
@@ -51,8 +52,7 @@ export default function CortexModels() {
         // Get wallet balance
         const currentAccount = walletIntegrationService.getCurrentAccount();
         if (currentAccount) {
-          // In a real implementation, you'd get the balance from the wallet
-          setNrnBalance(1250); // Mock balance
+          // Balance is now managed centrally in useKnirvana store
         }
 
         console.log('Cortex models loaded:', cortexModelsOnly.length);

@@ -45,6 +45,13 @@ type DVENode struct {
 	// Policy attachment
 	AttachedPolicies []string `json:"attached_policies"` // Policy IDs attached to this DVE
 	PolicyVersion    string   `json:"policy_version"`    // Hash of active policy set
+
+	// ⭐ NEW INSTALLER FIELDS
+	InstallComplete   bool      `json:"install_complete"`
+	InstallCompleteAt time.Time `json:"install_complete_at"`
+	InstallPhase    string    `json:"install_phase"` // "registry", "stun", "wallet", "dve_uri", "service", "complete"
+	DVEURI         string    `json:"dve_uri"`
+	WalletAddress  string    `json:"wallet_address"`
 }
 
 // ValidationTask represents a validation task in the DVE network

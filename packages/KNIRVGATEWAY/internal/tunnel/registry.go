@@ -164,3 +164,66 @@ func (rm *RegistryManager) UpdateNodeLastSeen(devId string) {
 		node.LastSeen = time.Now()
 	}
 }
+
+// RegisterBootnode registers a bootnode for DVE installation
+func (rm *RegistryManager) RegisterBootnode(nodeID, chainID, ip string, port int) error {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+
+	nodeInfo := &NodeInfo{
+		DevID:          nodeID,
+		ChainID:        chainID,
+		PublicIP:       ip,
+		PublicP2PPort:  port,
+		Type:           "bootnode",
+		LastSeen:       time.Now(),
+		IsTunneled:     false,
+		IsBootnode:     true,
+	}
+
+	rm.nodes[nodeID] = nodeInfo
+	if chainID != "" {
+		rm.chainIdToPeerId[chainID] = nodeID
+	}
+
+	rm.logger.Info("Bootnode registered",
+		zap.String("nodeId", nodeID),
+		zap.String("chainId", chainID),
+		zap.String("ip", ip),
+		zap.Int("port", port))
+
+	return nil
+}
+
+// GetBootnodes returns all registered bootnodes
+func (rm *RegistryManager) GetBootnodes() ([]*NodeInfo, error) {
+	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+
+	bootnodes := make([]*NodeInfo, 0)
+	for _, node := range rm.nodes {
+		if node.IsBootnode {
+			bootnodes = append(bootnodes, node)
+		}
+	}
+
+	return bootnodes, nil
+}
+
+// GetBootnodeByChainID returns a bootnode by chain ID
+func (rm *RegistryManager) GetBootnodeByChainID(chainID string) (*NodeInfo, error) {
+	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+
+	devID := rm.chainIdToPeerId[chainID]
+	if devID == "" {
+		return nil, fmt.Errorf("bootnode not found for chain ID: %s", chainID)
+	}
+
+	node, ok := rm.nodes[devID]
+	if !ok || !node.IsBootnode {
+		return nil, fmt.Errorf("bootnode not found for chain ID: %s", chainID)
+	}
+
+	return node, nil
+}
