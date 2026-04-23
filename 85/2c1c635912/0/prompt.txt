@@ -1,0 +1,20 @@
+I had to add a CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID fields to the root.key file and now my protobufs are broken getting the following error in KNIRVSERVER initialization logs: 
+Failed to load secrets from root.key: secrets: failed to decrypt root.key: failed to load key file: failed to unmarshal encrypted key file: proto: cannot parse invalid wire-format data
+
+---
+
+No, the keyfile is created with devtools/KNIRVKEY/root_key_encryptor/cmd/main.go
+
+---
+
+I've already edited the root.key file with the new parameters, I need you to add them to the packages/KNIRVSERVER/backend/internal/proto/root_key.pb.go file and generate proto to update the schema the application expects from the new root.key I just made with the new CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID fields.
+
+---
+
+"knirvoracle/manager.go:142","message":"No valid root.key found — Oracle will not activate","error":"root.key is not a valid encrypted protobuf envelope: unsupported wire type 3"}
+
+---
+
+I've already done that! Still getting error:
+"knirvoracle/manager.go:142","message":"No valid root.key found — Oracle will not activate","error":"root.key is not a valid encrypted protobuf envelope: unsupported wire type 3"} 
+Warning: Failed to load secrets from root.key: secrets: failed to decrypt root.key: failed to load key file: failed to unmarshal encrypted key file: proto: cannot parse invalid wire-format data
