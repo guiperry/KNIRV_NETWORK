@@ -3,9 +3,11 @@
   "checkpoint_id": "852c1c635912",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 6,
+  "checkpoints_count": 9,
   "files_touched": [
     "packages/KNIRVGRAPH/internal/app/app.go",
+    "packages/KNIRVORACLE/cmd/oracle/main.go",
+    "packages/KNIRVORACLE/cmd/oracle/rootkey.go",
     "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
     "packages/KNIRVSERVER/backend/internal/config/config.go",
     "packages/KNIRVSERVER/backend/internal/services/teesecurity/cgroup_manager.go",
@@ -46,13 +48,19 @@
       "transcript": "/85/2c1c635912/3/full.jsonl",
       "content_hash": "/85/2c1c635912/3/content_hash.txt",
       "prompt": "/85/2c1c635912/3/prompt.txt"
+    },
+    {
+      "metadata": "/85/2c1c635912/4/metadata.json",
+      "transcript": "/85/2c1c635912/4/full.jsonl",
+      "content_hash": "/85/2c1c635912/4/content_hash.txt",
+      "prompt": "/85/2c1c635912/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 821644,
-    "cache_creation_tokens": 305476,
-    "cache_read_tokens": 8661893,
-    "output_tokens": 46435,
-    "api_call_count": 195
+    "input_tokens": 1205296,
+    "cache_creation_tokens": 517246,
+    "cache_read_tokens": 13571633,
+    "output_tokens": 65584,
+    "api_call_count": 280
   }
 }
