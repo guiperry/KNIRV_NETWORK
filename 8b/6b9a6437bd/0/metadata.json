@@ -1,0 +1,137 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "8b6b9a6437bd",
+  "session_id": "dbbb3144-2705-47bb-afd2-610cb09613bf",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-25T13:07:08.721253573Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "packages/KNIRVHASHER/docs/DATA-MAPPER.md",
+    "packages/KNIRVSERVER/README.md",
+    "packages/KNIRVSERVER/config/development.yaml",
+    "packages/KNIRVSERVER/config/production.yaml",
+    "packages/KNIRVSERVER/go.mod",
+    "packages/KNIRVSERVER/main.go",
+    "transformer_opportunities.md"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "86530b9b41d3",
+  "checkpoint_transcript_start": 137,
+  "transcript_lines_at_start": 137,
+  "token_usage": {
+    "input_tokens": 37,
+    "cache_creation_tokens": 426215,
+    "cache_read_tokens": 2578486,
+    "output_tokens": 62473,
+    "api_call_count": 28
+  },
+  "session_metrics": {
+    "turn_count": 5
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-25T13:07:08.418569533Z",
+    "agent_lines": 0,
+    "agent_removed": 62,
+    "human_added": 815,
+    "human_modified": 519,
+    "human_removed": 0,
+    "total_committed": 1151,
+    "total_lines_changed": 1396,
+    "agent_percentage": 4.441260744985674,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1354,
+      "user_lines_removed": 3,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        ".github/workflows/auto-release.yml": 48,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHASHER/Cognition_Implementation.md": 483,
+        "packages/KNIRVHASHER/docs/DATA-MAPPER.md": 26,
+        "packages/KNIRVHEART/HEART/.claude/settings.local.json": 12,
+        "packages/KNIRVHEART/VLM/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/README.md": 35,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/config/development.yaml": 6,
+        "packages/KNIRVSERVER/config/production.yaml": 7,
+        "packages/KNIRVSERVER/go.mod": 2,
+        "packages/KNIRVSERVER/main.go": 18,
+        "packages/KNIRVSERVER/updater/updater.go": 244,
+        "packages/KNIRVSERVER/updater/updater_test.go": 165
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVHASHER/docs/DATA-MAPPER.md": 3
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 320,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1034,
+      "agent_lines_removed": 3,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHEART/HEART/.claude/settings.local.json": 12,
+        "packages/KNIRVHEART/VLM/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 325,
+      "user_lines_removed": 5,
+      "agent_lines_added": 1327,
+      "agent_lines_removed": 34,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHEART/HEART/.claude/settings.local.json": 12,
+        "packages/KNIRVHEART/VLM/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "transformer_opportunities.md": 5
+      },
+      "user_removed_per_file": {
+        "transformer_opportunities.md": 5
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 1142,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1347,
+      "agent_lines_removed": 44,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHEART/HEART/.claude/settings.local.json": 12,
+        "packages/KNIRVHEART/VLM/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "transformer_opportunities_KNIRV.md": 822
+      }
+    }
+  ]
+}

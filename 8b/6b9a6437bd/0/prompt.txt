@@ -1,0 +1,9 @@
+Show me all of the ways we can integrate the techniques from the @packages/KNIRVHASHER/Cognition_Implementation.md paper into this @transformer_opportunities.md document. Do not input the changes now, just show me in the chat so that I can decide if I want you to add it to the document or not.
+
+---
+
+Yes, add all to the transformer_opportunities.md file accordingly.
+
+---
+
+We need to alter the transformer_opportunities.md file so that minted skills are no longer simple skills.md file but now a fully compiled skill.wasm file to be executed by the HERO for deterministic execution of a verified capability.
