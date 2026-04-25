@@ -1,0 +1,6 @@
+Ensure the default repo is: github.com/knirvcorp/KNIRV_NETWORK/
+Also, ensure the updater can take the Github token from the root.key secret file only, for security reasons.
+
+---
+
+Why are you retrieving "ORACLE_KEY_PATH" ? It needs to be DEFAULT_GITHUB_TOKEN.
