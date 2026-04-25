@@ -217,3 +217,9 @@ chain:
   chain_id: "testnet"
   start_timeout: 30
   stop_timeout: 10
+
+# Updater Configuration (disabled for development)
+updater:
+  enabled: false
+  poll_interval: 10m
+  github_repo: "knirvcorp/KNIRV_NETWORK"

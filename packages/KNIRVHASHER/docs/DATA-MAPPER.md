@@ -672,11 +672,11 @@ func main() {
 
 ---
 
-### Final Mapping Summary for the Agent
+### Final Mapping Summary
 
 | Component | Logic Source | Storage Format | Role in 21-Pass Loop |
 | --- | --- | --- | --- |
-| **BGE Slots (0-3)** | Cloudflare Worker | `uint32` | The "Anchor" for the search. |
+| **BGE Slots (0-3)** | Semantic embeddings | `uint32` | The "Anchor" for the search. |
 | **Grammar (4-5)** | POS ID Table | Bitfield | Filters for grammatical validity. |
 | **Memory (6-8)** | Rolling XOR | Recursive Hash | Provides context across tokens. |
 | **Intent (9)** | Keyword Match | Bit-Flag | Adjusts the "Tone" of the jitter. |
@@ -787,5 +787,28 @@ In the old "Naive Variance" model, the ASIC was guessing which dimensions matter
 * **The Knowledge Base** is structurally consistent.
 * **The Golden Nonce** search is now a "Guided Missile" rather than a random walk.
 
-**Next Step**: Should I provide the **Analysis Script** in full so you can run it against your first 1,000 Cloudflare BGE vectors and get your **FixedIndices**? This will be the moment your model gets its "Internal Compass."
 
+
+From codec.go comments (lines 43-55):
+   0x00-0x1F: [32 Bytes] -----> Slots 0-3 (Projections)
+   0x20-0x23: [04 Bytes] -----> SubSecondUS Ticker
+   0x24-0x24: [01 Byte  ] -----> Slot 4 (Syntactic: POSTag, Tense, Plurality)
+   0x25-0x25: [01 Byte  ] -----> Slot 5 (DepHead)
+   0x26-0x26: [01 Byte  ] -----> Slot 9 (IntentFlags)
+   0x27-0x28: [02 Bytes ] -----> Slot 10 (DomainSig)
+   0x29-0x2C: [04 Bytes ] -----> GoldenSeed
+   0x2D-0x3A: [14 Bytes ] -----> Slots 6-8 (Memory)
+   0x3B-0x3E: [04 Bytes ] -----> Slot 11 (LSHSalt)
+   0x3F-0x4F: [17 Bytes ] -----> Reserved
+
+   EXPECTED OFFSETS:
+   buf[0:32]    = Projections (0x00-0x1F) ✓
+   buf[32:36]   = SubSecondUS (0x20-0x23) ✓
+   buf[36:37]   = Syntactic (0x24) ✓
+   buf[37:38]   = DepHead (0x25) ✓
+   buf[38:39]   = IntentFlags (0x26) ✓
+   buf[39:41]   = DomainSig (0x27-0x28) ✓
+   buf[41:45]   = GoldenSeed (0x29-0x2C) ✓
+   buf[45:59]   = Memory (0x2D-0x3A) ✓
+   buf[59:63]   = LSHSalt (0x3B-0x3E) ✓
+   buf[63:80]   = Reserved (0x3F-0x4F) ✓

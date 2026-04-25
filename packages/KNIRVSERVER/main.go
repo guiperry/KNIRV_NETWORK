@@ -24,6 +24,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"knirv-server/updater"
 )
 
 // Embed the Next.js build output
@@ -1368,6 +1369,23 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create application: %v", err)
 	}
+
+	// Initialize and start the updater (if enabled)
+	selfPath, _ := os.Executable()
+	
+	// Load GitHub token from environment for security
+	githubToken := os.Getenv("DEFAULT_GITHUB_TOKEN")
+	
+	upd := updater.New(updater.Config{
+		Enabled:        viper.GetBool("updater.enabled"),
+		PollInterval:   viper.GetDuration("updater.poll_interval"),
+		GitHubRepo:     viper.GetString("updater.github_repo"),
+		GitHubToken:    githubToken,
+		AssetName:      "knirv-server",
+		CurrentCommit: GitCommit,
+		BinaryPath:    selfPath,
+	})
+	go upd.Start()
 
 	// Setup signal handling
 	sigChan := make(chan os.Signal, 1)

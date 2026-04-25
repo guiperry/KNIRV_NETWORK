@@ -246,6 +246,13 @@ production:
 # Socket directory for submodule Unix sockets
 socket_dir: ~/.local/share/knirvserver/sockets
 
+# Updater Configuration
+updater:
+  enabled: true
+  poll_interval: 10m
+  github_repo: "knirvcorp/KNIRV_NETWORK"
+  # github token read from root.key file (ORACLE_KEY_PATH env) for security
+
 # KNIRVCHAIN Configuration
 chain:
   enabled: true

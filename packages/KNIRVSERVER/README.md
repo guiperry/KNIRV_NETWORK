@@ -451,6 +451,41 @@ KNIRVSERVER includes a Progressive Web Application (PWA) that provides a native-
 - **HudOverlay**: React component displaying system metrics (`frontend/src/components/hud/`)
 - **usePWAInstall**: Hook for handling PWA installation prompts (`frontend/src/hooks/usePWAInstall.ts`)
 
+## 🔄 Self-Updater (Production)
+
+KNIRV-SERVER includes an auto-updater that polls GitHub Releases for new versions and performs atomic binary updates.
+
+### Configuration
+
+Add to `config/production.yaml`:
+
+```yaml
+updater:
+  enabled: true
+  poll_interval: 10m
+  github_repo: "knirvcorp/KNIRV_NETWORK"
+```
+
+Set `DEFAULT_GITHUB_TOKEN` environment variable containing the GitHub token for private repository access.
+
+### How It Works
+
+1. Server polls GitHub Releases API every 10 minutes (configurable)
+2. Compares release `tag_name` (commit SHA) to current `GitCommit`
+3. Downloads new binary and SHA256 checksum
+4. Verifies checksum before execution
+5. Atomically swaps binary: current → `.prev`, new → current
+6. Calls `syscall.Exec` to restart with new binary
+
+### Rollback
+
+```bash
+# Manual rollback
+mv /usr/local/bin/knirv-server /usr/local/bin/knirv-server.bad
+mv /usr/local/bin/knirv-server.prev /usr/local/bin/knirv-server
+systemctl restart knirv-server
+```
+
 ---
 
 ## 🔒 Security Constraints

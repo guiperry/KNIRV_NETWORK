@@ -1,0 +1,48 @@
+name: Auto Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Build unified binary
+        working-directory: packages/KNIRVSERVER
+        env:
+          SKIP_ROOT_KEY: "1"
+        run: make binary
+
+      - name: Checksum
+        working-directory: packages/KNIRVSERVER/dist
+        run: sha256sum knirv-server > knirv-server.sha256
+
+      - name: Create / update release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG=$(git rev-parse --short HEAD)
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          gh release create "$TAG" \
+            --title "auto-release $TAG" \
+            --notes "Automated build from commit ${{ github.sha }}" \
+            --prerelease \
+            packages/KNIRVSERVER/dist/knirv-server \
+            packages/KNIRVSERVER/dist/knirv-server.sha256

@@ -2,6 +2,8 @@ module knirv-server
 
 go 1.25.0
 
+replace knirv-server/updater => ./updater
+
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSERVER/pkg/knirvgateway => ./pkg/knirvgateway
 
 replace hasher => ./pkg/knirvhasher
