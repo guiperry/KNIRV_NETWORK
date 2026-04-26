@@ -732,7 +732,7 @@ Gorgonite GPT                                   │                             
     │  │  Stage 1: Error Inquiry                │                                  │
     │  │  Stage 2: Core Techniques (Opt 22)     │                                  │
     │  │  Stage 3: Resolution Sketch            │                                  │
-    │  │  Stage 4: Full skill.wasm                │                                  │
+    │  │  Stage 4: Full skill.wasm              │                                  │
     │  └────────────────────────────────────────┤                                  │
     │                                           │                                  │
     │  ┌── Opt 24: Multi-Turn Cognitive Loop    │                                  │
@@ -771,7 +771,7 @@ Gorgonite GPT                                   │                             
                                                       BidirectionalVerified, Tier)
                                                                 │
                                                                 ▼
-                                                        HERO Model reads skill.wasm
+                                                        HERO Model executes skill.wasm
 ```
 
 **Three inference tiers on one piece of hardware:**

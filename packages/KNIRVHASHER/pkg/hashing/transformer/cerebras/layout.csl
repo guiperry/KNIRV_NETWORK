@@ -1,0 +1,128 @@
+// HEART Transformer Layout for Cerebras WSE
+// Implements the spatial distribution of transformer computation across PEs
+//
+// Architecture:
+// - Grid of PEs processing sequence positions and attention heads in parallel
+// - Each PE handles a subset of the sequence and embedding dimensions
+// - Communication via colors for attention score aggregation
+
+// Color/Task ID Map
+//  ID var              ID var                ID var                ID var
+//   0 attn_color_0     9  ffn_entrypt       18                    27 reserved (memcpy)
+//   1 attn_color_1    10  norm_entrypt      19                    28 reserved (memcpy)
+//   2 embed_color     11  output_entrypt    20                    29 reserved
+//   3 seq_color       12  EXIT              21 reserved (memcpy)  30 reserved (memcpy)
+//   4 data_in_color   13  compute_task_id   22 reserved (memcpy)  31 reserved
+//   5 data_out_color  14  attn_task_id      23 reserved (memcpy)  32
+//   6                 15  ffn_task_id       24                    33
+//   7                 16  norm_task_id      25                    34
+//   8 main_entrypt    17  output_task_id    26                    35
+
+// Grid dimensions based on HEART specification
+// SEQUENCE_LENGTH = 64, NUM_NODES = 256, EMBEDDING_DIM = 256, NUM_HEADS = 8
+param GRID_WIDTH: u16;   // Number of PEs in width (sequence dimension)
+param GRID_HEIGHT: u16;  // Number of PEs in height (embedding dimension)
+
+// HEART model parameters
+param SEQUENCE_LENGTH: u16;    // T = 64 (time slices)
+param NUM_NODES: u16;          // N = 256 (network nodes)
+param EMBEDDING_DIM: u16;      // D_model = 256
+param NUM_HEADS: u16;          // H = 8
+param NUM_LAYERS: u16;         // L = 3
+param MEASURE_VEC_SIZE: u16;   // 16 (input metrics)
+param CONTROL_VEC_SIZE: u16;   // 8 (output commands)
+
+// Compute per-PE dimensions
+param SEQ_PER_PE: u16;         // Sequence length per PE
+param EMBED_PER_PE: u16;       // Embedding dimension per PE
+
+// Import memcpy module for host communication
+const memcpy = @import_module("&lt;memcpy/get_params&gt;", .{
+  .width = GRID_WIDTH,
+  .height = GRID_HEIGHT
+});
+
+layout {
+  @set_rectangle(GRID_WIDTH, GRID_HEIGHT);
+
+  // Allocate colors for data routing
+  const attn_color_0    = @get_color(0);
+  const attn_color_1    = @get_color(1);
+  const embed_color     = @get_color(2);
+  const seq_color       = @get_color(3);
+  const data_in_color   = @get_color(4);
+  const data_out_color  = @get_color(5);
+
+  // Allocate task IDs
+  const main_entrypt      = @get_local_task_id(8);
+  const ffn_entrypt       = @get_local_task_id(9);
+  const norm_entrypt      = @get_local_task_id(10);
+  const output_entrypt    = @get_local_task_id(11);
+  const EXIT              = @get_local_task_id(12);
+  const compute_task_id   = @get_local_task_id(13);
+  const attn_task_id      = @get_local_task_id(14);
+  const ffn_task_id       = @get_local_task_id(15);
+  const norm_task_id      = @get_local_task_id(16);
+  const output_task_id    = @get_local_task_id(17);
+
+  // Set up PE grid
+  var px: u16 = 0;
+  while (px < GRID_WIDTH) : (px += 1) {
+    var py: u16 = 0;
+    const memcpy_params = memcpy.get_params(px);
+
+    while (py < GRID_HEIGHT) : (py += 1) {
+      @set_tile_code(px, py, "heart_pe.csl", .{
+        .memcpy_params = memcpy_params,
+        .px = px,
+        .py = py,
+        .GRID_WIDTH = GRID_WIDTH,
+        .GRID_HEIGHT = GRID_HEIGHT,
+        .SEQ_PER_PE = SEQ_PER_PE,
+        .EMBED_PER_PE = EMBED_PER_PE,
+        .SEQUENCE_LENGTH = SEQUENCE_LENGTH,
+        .NUM_NODES = NUM_NODES,
+        .EMBEDDING_DIM = EMBEDDING_DIM,
+        .NUM_HEADS = NUM_HEADS,
+        .NUM_LAYERS = NUM_LAYERS,
+        .MEASURE_VEC_SIZE = MEASURE_VEC_SIZE,
+        .CONTROL_VEC_SIZE = CONTROL_VEC_SIZE,
+        // Colors
+        .attn_color_0 = attn_color_0,
+        .attn_color_1 = attn_color_1,
+        .embed_color = embed_color,
+        .seq_color = seq_color,
+        .data_in_color = data_in_color,
+        .data_out_color = data_out_color,
+        // Task IDs
+        .main_entrypt = main_entrypt,
+        .ffn_entrypt = ffn_entrypt,
+        .norm_entrypt = norm_entrypt,
+        .output_entrypt = output_entrypt,
+        .EXIT = EXIT,
+        .compute_task_id = compute_task_id,
+        .attn_task_id = attn_task_id,
+        .ffn_task_id = ffn_task_id,
+        .norm_task_id = norm_task_id,
+        .output_task_id = output_task_id,
+      });
+    }
+  }
+
+  // Export symbols for host access
+  @export_name("measurement_vec_in", [*]f32, true);
+  @export_name("node_id_in", [*]u32, true);
+  @export_name("t_slice_in", [*]u32, true);
+  @export_name("heuristic_commands_out", [*]f32, true);
+  @export_name("node_id_out", [*]u32, true);
+  @export_name("t_slice_out", [*]u32, true);
+
+  // Export weight tensors
+  @export_name("embedding_weights", [*]f32, true);
+  @export_name("positional_encoding", [*]f32, true);
+  @export_name("layer_weights", [*]f32, true);
+  @export_name("output_weights", [*]f32, true);
+
+  // Export entry point
+  @export_name("main", fn()void);
+}
