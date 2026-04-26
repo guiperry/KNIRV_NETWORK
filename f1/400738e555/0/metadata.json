@@ -1,0 +1,108 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "f1400738e555",
+  "session_id": "dbbb3144-2705-47bb-afd2-610cb09613bf",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-26T19:11:29.610613385Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "packages/KNIRVHASHER/go.mod",
+    "packages/KNIRVHEART/HEART/go_transformer/gorgonite",
+    "transformer_implementation.md",
+    "transformer_opportunities.md",
+    "transformer_opportunities_KNIRV.md"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "ac81555298e9",
+  "checkpoint_transcript_start": 322,
+  "transcript_lines_at_start": 322,
+  "token_usage": {
+    "input_tokens": 1768,
+    "cache_creation_tokens": 320064,
+    "cache_read_tokens": 1327852,
+    "output_tokens": 40417,
+    "api_call_count": 13
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-26T19:11:28.98188178Z",
+    "agent_lines": 2008,
+    "agent_removed": 450,
+    "human_added": 7450,
+    "human_modified": 20,
+    "human_removed": 0,
+    "total_committed": 9478,
+    "total_lines_changed": 9928,
+    "agent_percentage": 24.758259468170827,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 476,
+      "user_lines_removed": 2,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHEART/HEART/.claude/settings.local.json": 12,
+        "packages/KNIRVHEART/VLM/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "transformer_opportunities.md": 8,
+        "transformer_opportunities_KNIRV.md": 2,
+        "websites/KNIRV.COM/src/app/blog/posts/the-ethics-of-ai-building-responsible-agents.md": 146
+      },
+      "user_removed_per_file": {
+        "transformer_opportunities_KNIRV.md": 2
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 7790,
+      "user_lines_removed": 18,
+      "agent_lines_added": 700,
+      "agent_lines_removed": 470,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHASHER/go.mod": 22,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/README.md": 419,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras/Makefile": 150,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras/README.md": 640,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras/compile_and_run.sh": 181,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras/heart_pe.csl": 432,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras/layout.csl": 128,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras/params.json": 13,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras/run_heart.py": 378,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras_bridge.go": 377,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/docs/CEREBRAS_INTEGRATION.md": 421,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/docs/Gorgonia_updates.md": 257,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/docs/gorgonia_transformer_training_guide.md": 2019,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/dynamic_graph.go": 338,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go": 488,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/main.go": 1163,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/scripts/kill_gorgonite.sh": 26,
+        "packages/KNIRVHEART/HEART/.claude/settings.local.json": 12,
+        "packages/KNIRVHEART/VLM/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "transformer_opportunities.md": 18
+      },
+      "user_removed_per_file": {
+        "transformer_opportunities.md": 18
+      }
+    }
+  ]
+}

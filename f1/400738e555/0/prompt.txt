@@ -1,0 +1,15 @@
+I want the best of both worlds in a single version. We need to merge the "4-Stage Hierarchical Resolution" as the error resolution execution path and keep the guardrail rules generation as the primary option. The model must decide whether to create a rule.wasm, resolution.wasm, or patch.wasm (for internal system errors).
+
+The KNIRVHASHER pipeline should be able to handle multiple data ingestion sources, client data, Arxiv.org, 
+
+Error resolution can only apply to errors discovered from an active DVE. Same thing with the generated rules.wasm, they are applied to the I/O interface of the DVE that inspired it. 
+
+Also, we need to acknowledge the implementation of our custom fully deterministic text embeddings generator for all embeddings requirements throughout the application.
+
+The guardrails rules generation path should stay as a primary focus, but the "Action Inquiry" that initializes the 4-Stage Hierarchical Decision process in the Heart service must refer to the user creation of "Policy Badges" from within the "Badge Lab" tagged with specified ontology signals.
+
+Update the transformer_opportunities.md file with the above.
+
+---
+
+Please generate a full transformer_implementation.md plan file based on the @transformer_opportunities.md file. Note the gorgonite transformer code has been manually migrated into the KNIRVHASHER/pkg/hashing/transformer directory but is not wired into or integrated with the overall hasher application. Ensure this integration is included in the new implementation plan for a seamless integration.
