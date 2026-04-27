@@ -1,0 +1,21 @@
+Re-audit the packages/KNIRVHASHER codebase against the transformer_implementation.md plan. The user says they've implemented all fixes from the previous audit. Verify EACH of the following items carefully:
+
+1. **Phase 0.3 — TransformerConfig rename**: Check if `transformer.go` still has `type TransformerConfig struct` or if it was renamed to `HasherTransformerConfig`. Search for both names.
+
+2. **Phase 7.2 — Multi-turn cognitive loop**: Look for a `process()` function (not `processInquiry` or `buildDecision`) that has a for loop with `MaxTurns` and `priorFailures`. Check `heart_service.go` and `pipeline.go` thoroughly.
+
+3. **Phase 8.2 — HashNetwork fast-path**: Check if `HEARTService` struct in `heart_service.go` has a `hashNet` field. Look for `HashNetworkConfidenceThreshold` usage and short-circuit logic in any process function.
+
+4. **Phase 13 — Entropy-spike**: Search for `handleEntropySpike`, `EntropySpike`, `entropy >` in gpt.go or heart_service.go. Check if entropy calculation exists in the generation loop.
+
+5. **Phase 3.3 — DVE validation**: Check `handleResolve()` in heart_service.go - does it validate `DVESessionID != ""` or `DVESessionID == ""` before processing?
+
+6. **Phase 4 — SourceRecord types**: Check `source_record.go` - does it use `SourceClientData|SourceArxiv|SourceDVETelemetry` (plan) or `SourceTypeArxiv|SourceTypeKNIRV|SourceTypeWeb|SourceTypeLocal` (old)?
+
+7. **Phase 1 — Tokenizer**: Check what tokenizer is used in gpt.go - is it `tiktoken-go` or the pipeline tokenizer?
+
+8. **Duplicate issue**: Check if `HEARTErrorInquiry` (heart_service.go) and `DVEErrorInquiry` (types.go) are separate or unified.
+
+9. **Phase 2.4**: Does `processInquiry()` still use hardcoded `generateRecommendedActions()` or does it call `runGorgoniteInference()`?
+
+For each item, report: ✅ FIXED, ❌ STILL MISSING, or ⚠️ PARTIAL. Be specific about what you find.
