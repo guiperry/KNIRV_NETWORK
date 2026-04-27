@@ -3,8 +3,9 @@
   "checkpoint_id": "2a9ba65494e6",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 7,
   "files_touched": [
+    "packages/KNIRVHASHER/cmd/heart/main.go",
     "packages/KNIRVHASHER/go.mod",
     "packages/KNIRVHASHER/go.sum",
     "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/source_manager.go",
@@ -15,10 +16,18 @@
     "packages/KNIRVHASHER/pipeline/3_DATA_TRAINER/pkg/training/evolutionary.go",
     "packages/KNIRVHASHER/pkg/hashing/transformer/audit.go",
     "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras_bridge.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/compiler.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/config.go",
     "packages/KNIRVHASHER/pkg/hashing/transformer/dynamic_graph.go",
     "packages/KNIRVHASHER/pkg/hashing/transformer/gpt.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/hashnet_wrapper.go",
     "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go",
     "packages/KNIRVHASHER/pkg/hashing/transformer/main.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/pipeline.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/pruner.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/templates.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/types.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/verifier.go",
     "packages/KNIRVHASHER/pkg/hashing/transformer/verifier.py",
     "packages/KNIRVHASHER/pkg/hashing/transformer/wazero_gate.go",
     "packages/KNIRVHASHER/transformer_audit.md"
@@ -35,13 +44,19 @@
       "transcript": "/2a/9ba65494e6/1/full.jsonl",
       "content_hash": "/2a/9ba65494e6/1/content_hash.txt",
       "prompt": "/2a/9ba65494e6/1/prompt.txt"
+    },
+    {
+      "metadata": "/2a/9ba65494e6/2/metadata.json",
+      "transcript": "/2a/9ba65494e6/2/full.jsonl",
+      "content_hash": "/2a/9ba65494e6/2/content_hash.txt",
+      "prompt": "/2a/9ba65494e6/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 127757,
+    "input_tokens": 414185,
     "cache_creation_tokens": 145471,
-    "cache_read_tokens": 8351317,
-    "output_tokens": 51178,
-    "api_call_count": 77
+    "cache_read_tokens": 19603701,
+    "output_tokens": 97354,
+    "api_call_count": 215
   }
 }
