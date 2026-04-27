@@ -74,3 +74,21 @@ type LoggingConfig struct {
 	MaxBackups int    `json:"max_backups"`
 	MaxAge     int    `json:"max_age"`
 }
+
+// CurriculumStage represents a named phase in multi-stage curriculum training.
+type CurriculumStage string
+
+const (
+	CurriculumApprentice CurriculumStage = "apprentice"
+	CurriculumJourneyman CurriculumStage = "journeyman"
+	CurriculumExpert     CurriculumStage = "expert"
+)
+
+// CurriculumConfig gates training data and learning-rate based on the current stage.
+type CurriculumConfig struct {
+	Stage          CurriculumStage `json:"stage"`
+	LearningRate   float64         `json:"learning_rate"`
+	// AdvanceTrigger is the metric condition (e.g. "loss<0.5") that promotes to next stage.
+	AdvanceTrigger string          `json:"advance_trigger"`
+	MaxEpochs      int             `json:"max_epochs"`
+}

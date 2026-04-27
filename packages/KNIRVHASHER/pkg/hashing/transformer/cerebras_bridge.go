@@ -1,4 +1,4 @@
-package main
+package transformer
 
 import (
 	"encoding/binary"
@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
@@ -85,13 +86,13 @@ func (cb *CerebrasBridge) ExportWeightsFromGorgonia(model *GPT, outputPath strin
 	weights := make(map[string]*tensor.Dense)
 
 	// Embedding weights
-	if model.embedding.embeddings.Value() != nil {
-		weights["embedding_weights"] = model.embedding.embeddings.Value().(*tensor.Dense)
+	if model.embedding.embeddings != nil {
+		weights["embedding_weights"] = extractTensorFromNode(model.embedding.embeddings)
 	}
 
 	// Positional encoding
-	if model.posEncoding.encoding.Value() != nil {
-		weights["positional_encoding"] = model.posEncoding.encoding.Value().(*tensor.Dense)
+	if model.posEncoding.encoding != nil {
+		weights["positional_encoding"] = extractTensorFromNode(model.posEncoding.encoding)
 	}
 
 	// Layer weights (attention and FFN)
@@ -100,32 +101,32 @@ func (cb *CerebrasBridge) ExportWeightsFromGorgonia(model *GPT, outputPath strin
 	for _, block := range model.blocks {
 		// Attention weights
 		for _, head := range block.attention.heads {
-			if head.wQuery.Value() != nil {
-				layerWeights = append(layerWeights, extractFloat32s(head.wQuery.Value())...)
+			if head.wQuery != nil {
+				layerWeights = append(layerWeights, extractFloat32sFromNode(head.wQuery)...)
 			}
-			if head.wKey.Value() != nil {
-				layerWeights = append(layerWeights, extractFloat32s(head.wKey.Value())...)
+			if head.wKey != nil {
+				layerWeights = append(layerWeights, extractFloat32sFromNode(head.wKey)...)
 			}
-			if head.wValue.Value() != nil {
-				layerWeights = append(layerWeights, extractFloat32s(head.wValue.Value())...)
+			if head.wValue != nil {
+				layerWeights = append(layerWeights, extractFloat32sFromNode(head.wValue)...)
 			}
 		}
-		if block.attention.wOutput.Value() != nil {
-			layerWeights = append(layerWeights, extractFloat32s(block.attention.wOutput.Value())...)
+		if block.attention.wOutput != nil {
+			layerWeights = append(layerWeights, extractFloat32sFromNode(block.attention.wOutput)...)
 		}
 
 		// FFN weights
-		if block.feedForward.w1.Value() != nil {
-			layerWeights = append(layerWeights, extractFloat32s(block.feedForward.w1.Value())...)
+		if block.feedForward.w1 != nil {
+			layerWeights = append(layerWeights, extractFloat32sFromNode(block.feedForward.w1)...)
 		}
-		if block.feedForward.w2.Value() != nil {
-			layerWeights = append(layerWeights, extractFloat32s(block.feedForward.w2.Value())...)
+		if block.feedForward.w2 != nil {
+			layerWeights = append(layerWeights, extractFloat32sFromNode(block.feedForward.w2)...)
 		}
 	}
 
 	// Output layer weights
-	if model.outputLayer.Value() != nil {
-		weights["output_weights"] = model.outputLayer.Value().(*tensor.Dense)
+	if model.outputLayer != nil {
+		weights["output_weights"] = extractTensorFromNode(model.outputLayer)
 	}
 
 	// Write to NPZ file
@@ -230,6 +231,48 @@ func extractFloat32s(val tensor.Tensor) []float32 {
 	default:
 		return nil
 	}
+}
+
+func extractFloat32sFromNode(node *gorgonia.Node) []float32 {
+	if node == nil || node.Value() == nil {
+		return nil
+	}
+	val := node.Value()
+	data := val.Data()
+	switch d := data.(type) {
+	case []float32:
+		return d
+	case []float64:
+		result := make([]float32, len(d))
+		for i, v := range d {
+			result[i] = float32(v)
+		}
+		return result
+	default:
+		return nil
+	}
+}
+
+func extractTensorFromNode(node *gorgonia.Node) *tensor.Dense {
+	if node == nil || node.Value() == nil {
+		return nil
+	}
+	val := node.Value()
+	data := val.Data()
+	var f32s []float32
+	switch d := data.(type) {
+	case []float32:
+		f32s = d
+	case []float64:
+		f32s = make([]float32, len(d))
+		for i, v := range d {
+			f32s[i] = float32(v)
+		}
+	}
+	if f32s == nil {
+		return nil
+	}
+	return tensor.New(tensor.WithBacking(f32s), tensor.WithShape(node.Shape()...))
 }
 
 // NetworkMetricsProcessor processes KNIRV network metrics for HEART

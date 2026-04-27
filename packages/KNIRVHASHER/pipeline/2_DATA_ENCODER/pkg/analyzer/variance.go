@@ -213,6 +213,34 @@ type VarianceStats struct {
 	SignalIndices  []int   `json:"signal_indices"`
 }
 
+// DeltaSignalIndices returns the indices where the per-dimension variance changed
+// by more than threshold between two analyses.  Used by entropy-spike detection to
+// route tokens that activate high-delta dimensions to targeted gap queues.
+func DeltaSignalIndices(before, after *VarianceAnalyzer, threshold float32) ([]int, error) {
+	if !before.isAnalyzed || !after.isAnalyzed {
+		return nil, fmt.Errorf("both analyzers must be analyzed before calling DeltaSignalIndices")
+	}
+	if before.sampleCount == 0 || after.sampleCount == 0 {
+		return nil, fmt.Errorf("empty analyzer")
+	}
+
+	var deltas []int
+	for i := 0; i < 768; i++ {
+		bMean := before.dimensionSum[i] / float64(before.sampleCount)
+		bVar := float32((before.dimensionSumSq[i] / float64(before.sampleCount)) - bMean*bMean)
+		aMean := after.dimensionSum[i] / float64(after.sampleCount)
+		aVar := float32((after.dimensionSumSq[i] / float64(after.sampleCount)) - aMean*aMean)
+		delta := aVar - bVar
+		if delta < 0 {
+			delta = -delta
+		}
+		if delta > threshold {
+			deltas = append(deltas, i)
+		}
+	}
+	return deltas, nil
+}
+
 // GetStats returns statistics about the variance analysis
 func (v *VarianceAnalyzer) GetStats() (*VarianceStats, error) {
 	if !v.isAnalyzed {

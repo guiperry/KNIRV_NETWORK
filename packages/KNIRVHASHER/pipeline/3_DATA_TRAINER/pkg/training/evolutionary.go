@@ -950,3 +950,133 @@ func ComputeContextHash(tokenSequence []int32, windowSize int) uint32 {
 
 	return uint32(hash[0]) | uint32(hash[1])<<8 | uint32(hash[2])<<16 | uint32(hash[3])<<24
 }
+
+// ---- Phase 11: ES Weighted Update ----
+
+// sigma returns the annealed perturbation magnitude for the given step.
+// Decays from initialSigma towards minSigma over totalSteps using cosine annealing.
+func sigma(step, totalSteps int, initialSigma, minSigma float64) float64 {
+	if totalSteps <= 0 {
+		return minSigma
+	}
+	progress := float64(step) / float64(totalSteps)
+	if progress > 1.0 {
+		progress = 1.0
+	}
+	return minSigma + 0.5*(initialSigma-minSigma)*(1+math.Cos(math.Pi*progress))
+}
+
+// mirroredSample generates N/2 pairs of mirrored Gaussian noise vectors of length dim.
+// Returns N vectors (positive + negative).
+func mirroredSample(n, dim int, sig float64, rng *mathrand.Rand) [][]float64 {
+	half := n / 2
+	out := make([][]float64, half*2)
+	for i := 0; i < half; i++ {
+		pos := make([]float64, dim)
+		neg := make([]float64, dim)
+		for j := 0; j < dim; j++ {
+			v := rng.NormFloat64() * sig
+			pos[j] = v
+			neg[j] = -v
+		}
+		out[i] = pos
+		out[half+i] = neg
+	}
+	return out
+}
+
+// ESWeightedUpdate replaces the GA elitism pass with an ES weighted perturbation sum.
+// results must be standardised (zero mean, unit variance) before calling.
+// Returns a new seed map where each seed is the weighted sum of mirrored perturbations
+// applied to the best-performing parent seed.
+func (eh *EvolutionaryHarness) ESWeightedUpdate(
+	results []SeedResult,
+	currentSeeds map[uint32][]byte,
+	step, totalSteps int,
+	initialSigma, minSigma float64,
+	trustRegionDelta float64,
+) map[uint32][]byte {
+	if len(results) == 0 {
+		return currentSeeds
+	}
+
+	// Sort by advantage descending to pick elite parent.
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Advantage > results[j].Advantage
+	})
+	parentID := results[0].SeedID
+	parent, ok := currentSeeds[parentID]
+	if !ok || len(parent) == 0 {
+		return currentSeeds
+	}
+
+	dim := len(parent)
+	sig := sigma(step, totalSteps, initialSigma, minSigma)
+
+	// Mirrored sampling: N/2 + N/2 mirrors.
+	n := len(results)
+	if n%2 != 0 {
+		n--
+	}
+	perturbations := mirroredSample(n, dim, sig, eh.rand)
+
+	// Compute advantages for positive half only (mirrors cancel in expectation).
+	half := n / 2
+	advSum := 0.0
+	for i := 0; i < half; i++ {
+		advSum += math.Abs(results[i].Advantage)
+	}
+	if advSum == 0 {
+		advSum = 1
+	}
+
+	// Weighted sum of positive perturbations.
+	delta := make([]float64, dim)
+	for i := 0; i < half; i++ {
+		w := results[i].Advantage / advSum
+		for j := 0; j < dim; j++ {
+			delta[j] += w * perturbations[i][j]
+		}
+	}
+
+	// TRPO trust-region clamp: scale delta if its L2 norm exceeds trustRegionDelta.
+	norm := 0.0
+	for _, v := range delta {
+		norm += v * v
+	}
+	norm = math.Sqrt(norm)
+	if norm > trustRegionDelta && norm > 0 {
+		scale := trustRegionDelta / norm
+		for j := range delta {
+			delta[j] *= scale
+		}
+	}
+
+	// Apply delta to parent seed (byte-level, wrapping).
+	newSeed := make([]byte, dim)
+	for j := 0; j < dim; j++ {
+		updated := float64(parent[j]) + delta[j]*(1.0/sig)
+		// clamp to [0, 255]
+		if updated < 0 {
+			updated = 0
+		} else if updated > 255 {
+			updated = 255
+		}
+		newSeed[j] = byte(updated)
+	}
+
+	newGeneration := make(map[uint32][]byte, eh.PopulationSize)
+	newID := uint32(eh.rand.Intn(1000000))
+	newGeneration[newID] = newSeed
+
+	// Preserve elite parent.
+	newGeneration[parentID] = parent
+
+	// Fill remainder with mutations of the updated seed.
+	for len(newGeneration) < eh.PopulationSize {
+		mutID := uint32(eh.rand.Intn(1000000))
+		newGeneration[mutID] = eh.BitcoinAwareMutate(newSeed, results[0].Advantage)
+	}
+
+	return newGeneration
+}

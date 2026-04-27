@@ -1,8 +1,8 @@
-package main
+package transformer
 
 import (
 	"encoding/gob"
-	"flag"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -10,13 +10,13 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"time"
 
+	tiktoken "github.com/pkoukk/tiktoken-go"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
 )
 
-type TransformerConfig struct {
+type GorgoniteConfig struct {
 	VocabSize    int
 	EmbedDim     int
 	NumHeads     int
@@ -24,6 +24,18 @@ type TransformerConfig struct {
 	ContextLen   int
 	DropoutRate  float64
 	FFNHiddenDim int
+}
+
+func DefaultGorgoniteConfig() *GorgoniteConfig {
+	return &GorgoniteConfig{
+		VocabSize:    100277,
+		EmbedDim:     768,
+		NumHeads:     12,
+		NumLayers:    12,
+		ContextLen:  2048,
+		DropoutRate: 0.1,
+		FFNHiddenDim: 3072,
+	}
 }
 
 type EmbeddingLayer struct {
@@ -161,9 +173,6 @@ func (sa *SelfAttention) Forward(x *gorgonia.Node, mask *gorgonia.Node, training
 		return nil, err
 	}
 
-	// Debug logging for node IDs
-	fmt.Printf("Debug: q ID: %d, k ID: %d, kT ID: %d, scores ID: %d\n", q.ID(), k.ID(), kT.ID(), scores.ID())
-
 	scale := float32(1.0 / math.Sqrt(float64(sa.headDim)))
 	scaleNode := gorgonia.NewScalar(sa.graph, tensor.Float32, gorgonia.WithValue(scale))
 	scores, err = gorgonia.HadamardProd(scores, scaleNode)
@@ -178,11 +187,10 @@ func (sa *SelfAttention) Forward(x *gorgonia.Node, mask *gorgonia.Node, training
 	// 	}
 	// }
 
-	// attnWeights, err := gorgonia.SoftMax(scores)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	attnWeights := scores
+	attnWeights, err := gorgonia.SoftMax(scores)
+	if err != nil {
+		return nil, err
+	}
 
 	// if training && sa.dropout > 0 {
 	// 	attnWeights, err = gorgonia.Dropout(attnWeights, sa.dropout)
@@ -217,7 +225,7 @@ func NewMultiHeadAttention(g *gorgonia.ExprGraph, embedDim, numHeads int, dropou
 	}
 
 	wOut := gorgonia.NewMatrix(g, tensor.Float32,
-		gorgonia.WithShape(headDim, embedDim),
+		gorgonia.WithShape(embedDim, embedDim),
 		gorgonia.WithName("w_output"),
 		gorgonia.WithInit(gorgonia.GlorotN(1.0)),
 	)
@@ -242,14 +250,9 @@ func (mha *MultiHeadAttention) Forward(x *gorgonia.Node, mask *gorgonia.Node, tr
 		headOutputs[i] = out
 	}
 
-	// Sum the head outputs instead of concatenating
-	result := headOutputs[0]
-	for i := 1; i < len(headOutputs); i++ {
-		var err error
-		result, err = gorgonia.Add(result, headOutputs[i])
-		if err != nil {
-			return nil, err
-		}
+	result, err := gorgonia.Concat(1, headOutputs...)
+	if err != nil {
+		return nil, err
 	}
 
 	output, err := gorgonia.Mul(result, mha.wOutput)
@@ -357,19 +360,17 @@ func (tb *TransformerBlock) Forward(x *gorgonia.Node, mask *gorgonia.Node, train
 
 type GPT struct {
 	graph          *gorgonia.ExprGraph
-	config         TransformerConfig
+	config         *GorgoniteConfig
 	embedding      *EmbeddingLayer
 	posEncoding    *PositionalEncoding
 	blocks         []*TransformerBlock
 	outputLayer    *gorgonia.Node
 	logits         *gorgonia.Node
 	loss           *gorgonia.Node
-	learnables     []*gorgonia.Node
+learnables     []*gorgonia.Node
 }
 
-func NewGPT(config TransformerConfig) *GPT {
-	g := gorgonia.NewGraph()
-
+func NewGPT(g *gorgonia.ExprGraph, config *GorgoniteConfig) *GPT {
 	embedding := NewEmbeddingLayer(g, config.VocabSize, config.EmbedDim, config.ContextLen)
 	posEncoding := NewPositionalEncoding(g, config.ContextLen, config.EmbedDim)
 
@@ -412,15 +413,15 @@ func NewGPT(config TransformerConfig) *GPT {
 		panic(err)
 	}
 
-	// posEnc, err := posEncoding.Forward(seqLen)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	posEnc, err := posEncoding.Forward(seqLen)
+	if err != nil {
+		panic(err)
+	}
 
-	// x, err = gorgonia.Add(x, posEnc)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	x, err = gorgonia.Add(x, posEnc)
+	if err != nil {
+		panic(err)
+	}
 
 	mask := createCausalMask(g, seqLen)
 
@@ -819,94 +820,67 @@ func (t *BPETokenizer) Decode(tokens []int) string {
 	return strings.Join(words, " ")
 }
 
-func loadVocab(_ string) map[string]int {
+func loadVocab(path string) map[string]int {
 	vocab := make(map[string]int)
-	// Implementation here...
+	if path == "" {
+		return vocab
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return vocab
+	}
+	_ = json.Unmarshal(data, &vocab)
 	return vocab
 }
 
-
-func main() {
-	// Parse command-line flags
-	protocol := flag.String("protocol", "test", "Training protocol: test, pretraining, mixed_precision, grad_accum, cosine_lr, one_cycle_lr, small_model, medium_model, large_model, benchmark")
-	flag.Parse()
-
-	fmt.Printf("🚀 Starting Gorgonite Training with protocol: %s\n", *protocol)
-
-	switch *protocol {
-	case "test":
-		runTest()
-	case "pretraining":
-		runPretraining()
-	case "mixed_precision":
-		runMixedPrecision()
-	case "grad_accum":
-		runGradientAccumulation()
-	case "cosine_lr":
-		runCosineLR()
-	case "one_cycle_lr":
-		runOneCycleLR()
-	case "small_model":
-		runSmallModel()
-	case "medium_model":
-		runMediumModel()
-	case "large_model":
-		runLargeModel()
-	case "benchmark":
-		runBenchmark()
-	case "dynamic_demo":
-		runDynamicGraphDemo()
-	default:
-		log.Fatalf("Unknown protocol: %s", *protocol)
-	}
+// TiktokenTokenizer wraps tiktoken for use as a Tokenizer.
+type TiktokenTokenizer struct {
+	enc *tiktoken.Tiktoken
 }
 
-func runTest() {
-	fmt.Println("Initializing Transformer with Gorgonia...")
-
-	// Define model configuration
-	config := TransformerConfig{
-		VocabSize:    50257,
-		EmbedDim:     512,
-		NumHeads:     8,
-		NumLayers:    6,
-		ContextLen:   512,
-		DropoutRate:  0.1,
-		FFNHiddenDim: 2048,
+// NewTiktokenTokenizer creates a tokenizer using the given tiktoken encoding (default: cl100k_base).
+func NewTiktokenTokenizer(encoding string) (*TiktokenTokenizer, error) {
+	if encoding == "" {
+		encoding = "cl100k_base"
 	}
+	enc, err := tiktoken.GetEncoding(encoding)
+	if err != nil {
+		return nil, err
+	}
+	return &TiktokenTokenizer{enc: enc}, nil
+}
 
-	// Create model
-	model := NewGPT(config)
+func (t *TiktokenTokenizer) Encode(text string) []int {
+	return t.enc.Encode(text, nil, nil)
+}
 
-	// Example usage (simplified)
-	fmt.Println("Transformer model created successfully!")
-	fmt.Printf("Model has %d layers, %d attention heads\n", config.NumLayers, config.NumHeads)
+func (t *TiktokenTokenizer) Decode(tokens []int) string {
+	return t.enc.Decode(tokens)
+}
+// RunGorgoniteProtocol builds and runs a quick validation of the Gorgonite graph.
+func RunGorgoniteProtocol(cfg *GorgoniteConfig) error {
+	if cfg == nil {
+		cfg = DefaultGorgoniteConfig()
+	}
+	g := gorgonia.NewGraph()
+	model := NewGPT(g, cfg)
 
-	// Test forward pass with simplified implementation
-	fmt.Println("Testing forward pass...")
-
-	// Test forward pass
 	logits, err := model.Forward(false)
 	if err != nil {
-		fmt.Printf("⚠️  Forward pass failed (expected in simplified implementation): %v\n", err)
-		fmt.Println("✅ Model structure validation completed!")
-	} else {
-		fmt.Printf("✅ Forward pass successful! Output shape: %v\n", logits.Shape())
+		return fmt.Errorf("forward pass failed: %w", err)
 	}
 
-	// Test VM execution
 	vm := gorgonia.NewTapeMachine(model.graph, gorgonia.BindDualValues())
 	defer vm.Close()
 	if err := vm.RunAll(); err != nil {
-		fmt.Printf("⚠️  VM execution failed: %v\n", err)
-	} else {
-		fmt.Printf("✅ VM execution successful!\n")
+		return fmt.Errorf("VM execution failed: %w", err)
 	}
 
-	fmt.Println("✅ Gorgonia-based Transformer model created and tested!")
-	fmt.Println("✅ Test protocol completed!")
+	log.Printf("RunGorgoniteProtocol OK — logits shape: %v", logits.Shape())
+	return nil
 }
 
+// CreateDummyDataset generates a random dataset for testing.
 func CreateDummyDataset(numSamples, vocabSize, contextLen int) *Dataset {
 	dataset := &Dataset{
 		inputs:  make([][]int, numSamples),
@@ -931,233 +905,27 @@ func CreateDummyDataset(numSamples, vocabSize, contextLen int) *Dataset {
 	return dataset
 }
 
-func runPretraining() {
-	fmt.Println("🎯 Running Standard Pretraining Protocol")
-
-	// Model configuration
-	config := TransformerConfig{
-		VocabSize:    100,
-		EmbedDim:     64,
-		NumHeads:     4,
-		NumLayers:    2,
-		ContextLen:   32,
-		DropoutRate:  0.1,
-		FFNHiddenDim: 256,
+// RunPretraining runs one epoch of pretraining on a dummy dataset for smoke-testing.
+func RunPretraining(cfg *GorgoniteConfig) error {
+	if cfg == nil {
+		cfg = DefaultGorgoniteConfig()
+		cfg.VocabSize = 50257
+		cfg.EmbedDim = 256
+		cfg.NumHeads = 8
+		cfg.NumLayers = 4
+		cfg.ContextLen = 32
+		cfg.FFNHiddenDim = 256
 	}
-
-	// Create model
-	model := NewGPT(config)
-
-	// Create dataset
-	dataset := CreateDummyDataset(10, config.VocabSize, config.ContextLen)
-
-	// Training configuration
-	trainConfig := TrainConfig{
+	g := gorgonia.NewGraph()
+	model := NewGPT(g, cfg)
+	dataset := CreateDummyDataset(10, cfg.VocabSize, cfg.ContextLen)
+	trainCfg := TrainConfig{
 		LearningRate: 3e-4,
-		WeightDecay:  0.1,
 		NumEpochs:    1,
-		BatchSize:    1, // Use batch size 1 for simplicity
+		BatchSize:    1,
 		GradientClip: 1.0,
 		SaveFreq:     5,
 	}
-
-	// Train the model
-	err := TrainModel(model, dataset, trainConfig)
-	if err != nil {
-		fmt.Printf("❌ Training failed: %v\n", err)
-		return
-	}
-
-	fmt.Println("✅ Pretraining protocol completed successfully!")
-}
-
-func runMixedPrecision() {
-	fmt.Println("⚡ Running Mixed Precision Training")
-
-	fmt.Println("Model Config: Standard GPT (6L, 512D)")
-	fmt.Println("Training Config: FP16 mixed precision, 10 epochs")
-	fmt.Println("Memory optimization: 50% reduction expected")
-	fmt.Println("Starting FP16 training simulation...")
-
-	for epoch := 0; epoch < 3; epoch++ {
-		fmt.Printf("Epoch %d: Loss = %.4f (FP16)\n", epoch, 4.5-float64(epoch)*0.3)
-		time.Sleep(150 * time.Millisecond)
-	}
-
-	fmt.Println("✅ Mixed precision training completed!")
-	fmt.Println("📊 Final Metrics: Loss=3.9, Memory=2.1GB, Speed=1.8x faster")
-}
-
-func runGradientAccumulation() {
-	fmt.Println("📈 Running Gradient Accumulation Training")
-
-	fmt.Println("Model Config: Small GPT (4L, 256D)")
-	fmt.Println("Training Config: Effective batch size 32, LR 1e-3")
-	fmt.Println("Gradient accumulation steps: 8")
-	fmt.Println("Starting gradient accumulation training...")
-
-	for step := 0; step < 10; step++ {
-		fmt.Printf("Step %d: Loss = %.4f (accumulated)\n", step, 6.0-float64(step)*0.2)
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	fmt.Println("✅ Gradient accumulation training completed!")
-	fmt.Println("📊 Final Metrics: Loss=4.2, Effective batch=32, Memory=1.2GB")
-}
-
-func runCosineLR() {
-	fmt.Println("🌊 Running Cosine Learning Rate Schedule")
-
-	fmt.Println("Model Config: Medium GPT (6L, 384D)")
-	fmt.Println("Training Config: Cosine annealing, 20 epochs")
-	fmt.Println("LR schedule: 5e-4 -> 5e-5")
-	fmt.Println("Starting cosine LR training...")
-
-	for epoch := 0; epoch < 5; epoch++ {
-		lr := 0.0005 * (1 + math.Cos(math.Pi*float64(epoch)/4)) / 2
-		fmt.Printf("Epoch %d: Loss = %.4f, LR = %.6f\n", epoch, 4.8-float64(epoch)*0.3, lr)
-		time.Sleep(120 * time.Millisecond)
-	}
-
-	fmt.Println("✅ Cosine LR training completed!")
-	fmt.Println("📊 Final Metrics: Loss=3.3, LR converged smoothly")
-}
-
-func runOneCycleLR() {
-	fmt.Println("🔄 Running One-Cycle Learning Rate Policy")
-
-	fmt.Println("Model Config: Medium GPT (5L, 320D)")
-	fmt.Println("Training Config: One-cycle policy, 15 epochs")
-	fmt.Println("LR schedule: 1e-3 peak, then decay")
-	fmt.Println("Starting one-cycle training...")
-
-	for epoch := 0; epoch < 4; epoch++ {
-		var lr float64
-		if epoch < 2 {
-			lr = 0.001 * float64(epoch+1) / 2
-		} else {
-			lr = 0.001 * (1 - float64(epoch-1)/3)
-		}
-		fmt.Printf("Epoch %d: Loss = %.4f, LR = %.6f\n", epoch, 5.2-float64(epoch)*0.4, lr)
-		time.Sleep(130 * time.Millisecond)
-	}
-
-	fmt.Println("✅ One-cycle LR training completed!")
-	fmt.Println("📊 Final Metrics: Loss=3.6, Optimal convergence achieved")
-}
-
-func runSmallModel() {
-	fmt.Println("🐣 Running Small Model Training (2L, 128D)")
-
-	fmt.Println("Model Config: Tiny GPT (2L, 128D, 4H)")
-	fmt.Println("Training Config: 50 epochs, LR 1e-3")
-	fmt.Println("Purpose: Quick experimentation and testing")
-	fmt.Println("Starting small model training...")
-
-	for epoch := 0; epoch < 10; epoch++ {
-		fmt.Printf("Epoch %d: Loss = %.4f\n", epoch, 7.0-float64(epoch)*0.25)
-		time.Sleep(80 * time.Millisecond)
-	}
-
-	fmt.Println("✅ Small model training completed!")
-	fmt.Println("📊 Final Metrics: Loss=4.75, Fast iteration time")
-}
-
-func runMediumModel() {
-	fmt.Println("🦁 Running Medium Model Training (6L, 512D)")
-
-	fmt.Println("Model Config: Standard GPT (6L, 512D, 8H)")
-	fmt.Println("Training Config: 30 epochs, LR 3e-4")
-	fmt.Println("Purpose: Balanced performance and resources")
-	fmt.Println("Starting medium model training...")
-
-	for epoch := 0; epoch < 6; epoch++ {
-		fmt.Printf("Epoch %d: Loss = %.4f\n", epoch, 5.5-float64(epoch)*0.3)
-		time.Sleep(150 * time.Millisecond)
-	}
-
-	fmt.Println("✅ Medium model training completed!")
-	fmt.Println("📊 Final Metrics: Loss=3.7, Good balance of speed/quality")
-}
-
-func runLargeModel() {
-	fmt.Println("🦕 Running Large Model Training (12L, 768D)")
-
-	fmt.Println("Model Config: Large GPT (12L, 768D, 12H)")
-	fmt.Println("Training Config: 20 epochs, LR 1e-4")
-	fmt.Println("Purpose: Production-quality model")
-	fmt.Println("Starting large model training...")
-
-	for epoch := 0; epoch < 4; epoch++ {
-		fmt.Printf("Epoch %d: Loss = %.4f\n", epoch, 4.2-float64(epoch)*0.25)
-		time.Sleep(200 * time.Millisecond)
-	}
-
-	fmt.Println("✅ Large model training completed!")
-	fmt.Println("📊 Final Metrics: Loss=3.2, High-quality results")
-}
-
-func runBenchmark() {
-	fmt.Println("⚡ Running Performance Benchmark")
-
-	fmt.Println("Model Config: Benchmark GPT (4L, 256D)")
-	fmt.Println("Testing: Forward/backward pass performance")
-	fmt.Println("Metrics: Tokens/sec, Memory usage, GPU utilization")
-	fmt.Println("Starting benchmark...")
-
-	start := time.Now()
-	time.Sleep(500 * time.Millisecond) // Simulate benchmark time
-	elapsed := time.Since(start)
-
-	fmt.Printf("Benchmark completed in %.2f seconds\n", elapsed.Seconds())
-	fmt.Println("📊 Results:")
-	fmt.Println("  - Forward pass: 2500 tokens/sec")
-	fmt.Println("  - Training step: 1800 tokens/sec")
-	fmt.Println("  - Memory usage: 1.8 GB")
-	fmt.Println("  - GPU utilization: 85%")
-	fmt.Println("✅ Benchmark completed!")
-}
-
-func runDynamicGraphDemo() {
-	fmt.Println("🔄 Running Dynamic Graph Demo")
-
-	// Create a dynamic graph
-	dg := NewDynamicGraph()
-
-	// Create parameters
-	w := dg.Parameter("weight", []int{3, 3}, gorgonia.GlorotN(1.0))
-	b := dg.Parameter("bias", []int{3}, gorgonia.Zeroes())
-
-	// Create input
-	x := dg.Constant([]float32{1.0, 2.0, 3.0}, "input")
-
-	// Dynamic forward pass - create nodes on the fly
-	h1 := dg.Mul(x, w, "hidden1")
-	h2 := dg.Add(h1, b, "hidden2")
-	output := dg.Tanh(h2, "output")
-
-	// Create a scalar loss (sum of output for demo)
-	loss := dg.Sum(output, "loss")
-
-	fmt.Println("Dynamic operations recorded:")
-	dg.PrintGraph()
-
-	// Forward pass - builds the static graph
-	dg.Forward()
-
-	// Backward pass
-	grads := dg.Backward(loss)
-
-	fmt.Printf("Computed %d gradients\n", len(grads))
-
-	// Note: Optimizer step would work with proper graph management
-	// For demo purposes, we've successfully demonstrated:
-	// 1. Dynamic operation recording
-	// 2. Static graph reconstruction
-	// 3. Gradient computation
-
-	fmt.Println("✅ Dynamic graph demo completed!")
-	fmt.Println("✅ Dynamic graph wrapper successfully enables dynamic graph usage!")
-	fmt.Println("✅ Gradients computed for all parameters!")
+	return TrainModel(model, dataset, trainCfg)
 }
 

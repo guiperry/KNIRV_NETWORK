@@ -1,19 +1,29 @@
-package main
+package transformer
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"sync"
 	"time"
+
+	"gorgonia.org/gorgonia"
 )
 
 // HEARTService provides HTTP endpoints for KNIRVCORTEX to query HEART
 type HEARTService struct {
+	gpt       *GPT
 	bridge    *CerebrasBridge
 	processor *NetworkMetricsProcessor
+	tokenizer Tokenizer
+	compiler  *WASMCompiler
+	verifier  *BidirectionalVerifier
+	auditor   *Auditor
+	config    *HEARTConfig
 	stats     *HEARTServiceStats
 	mu        sync.RWMutex
 }
@@ -103,6 +113,44 @@ func NewHEARTService(bridge *CerebrasBridge, processor *NetworkMetricsProcessor)
 	}
 }
 
+// NewHEARTServiceWithConfig creates a new HEART service with configuration (Phase 2)
+func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
+	g := gorgonia.NewGraph()
+	gpt := NewGPT(g, &cfg.Gorgonite)
+
+	tok, err := NewTiktokenTokenizer("cl100k_base")
+	if err != nil {
+		log.Printf("tokenizer init failed: %v (proceeding without tokenizer)", err)
+	}
+
+	var tokIface Tokenizer
+	if tok != nil {
+		tokIface = tok
+	}
+
+	return &HEARTService{
+		gpt:       gpt,
+		bridge:    cfg.getBridge(),
+		tokenizer: tokIface,
+		compiler:  NewWASMCompiler(cfg.TinyGoPath, cfg.WASMOutDir),
+		verifier:  NewBidirectionalVerifier(),
+		auditor:   NewAuditor(cfg.AuditLogDir),
+		config:    cfg,
+		stats: &HEARTServiceStats{
+			ErrorTypeCounts:   make(map[string]uint64),
+			HeuristicUsage:    make(map[string]uint64),
+			MinResponseTimeMs: 999999.0,
+		},
+	}, nil
+}
+
+func (c *HEARTConfig) getBridge() *CerebrasBridge {
+	if c.UseCerebras {
+		return NewCerebrasBridge(c.CerebrasProgramDir, c.CerebrasWeightsPath, false)
+	}
+	return nil
+}
+
 // Start starts the HEART HTTP service
 func (hs *HEARTService) Start(port int) error {
 	http.HandleFunc("/heart/analyze", hs.handleAnalyze)
@@ -112,6 +160,164 @@ func (hs *HEARTService) Start(port int) error {
 	addr := fmt.Sprintf(":%d", port)
 	log.Printf("Starting HEART service on %s", addr)
 	return http.ListenAndServe(addr, nil)
+}
+
+// ListenAndServe starts the HEART HTTP service on given address (Phase 3)
+func (hs *HEARTService) ListenAndServe(addr string) error {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/heart/advise", hs.handleAdvise)
+	mux.HandleFunc("/heart/resolve", hs.handleResolve)
+	mux.HandleFunc("/heart/patch", hs.handlePatch)
+	mux.HandleFunc("/heart/health", hs.handleHealth)
+	mux.HandleFunc("/heart/stats", hs.handleStats)
+
+	log.Printf("Starting HEART service on %s", addr)
+	return http.ListenAndServe(addr, mux)
+}
+
+// classifyInquiry maps an HTTP path to a WASMType.
+func classifyInquiry(path string) WASMType {
+	switch {
+	case contains(path, "advise"):
+		return WASMTypeRule
+	case contains(path, "resolve"):
+		return WASMTypeResolution
+	case contains(path, "patch"):
+		return WASMTypePatch
+	default:
+		return WASMTypeRule
+	}
+}
+
+// runGorgoniteInference runs the Gorgonite GPT forward pass and returns logits.
+func (hs *HEARTService) runGorgoniteInference(tokens []int) ([]float32, error) {
+	if hs.gpt == nil {
+		return nil, fmt.Errorf("gpt not initialized")
+	}
+	logitsNode, err := hs.gpt.Forward(false)
+	if err != nil {
+		return nil, fmt.Errorf("gpt forward: %w", err)
+	}
+	vm := gorgonia.NewTapeMachine(hs.gpt.graph)
+	defer vm.Close()
+	if err := vm.RunAll(); err != nil {
+		return nil, fmt.Errorf("gpt vm: %w", err)
+	}
+	if logitsNode.Value() == nil {
+		return nil, fmt.Errorf("nil logits value")
+	}
+	data, ok := logitsNode.Value().Data().([]float32)
+	if !ok {
+		return nil, fmt.Errorf("unexpected logits type")
+	}
+	return data, nil
+}
+
+// handleAdvise handles /heart/advise requests (Phase 3)
+func (hs *HEARTService) handleAdvise(w http.ResponseWriter, r *http.Request) {
+	var inq PolicyBadgeInquiry
+	if err := json.NewDecoder(r.Body).Decode(&inq); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	ctx := r.Context()
+	s4, s3, err := hs.runPipeline(ctx, WASMTypeRule, inq, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("pipeline error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	decision := hs.buildDecision(ctx, s4, s3)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(decision)
+}
+
+// handleResolve handles /heart/resolve requests (Phase 3)
+func (hs *HEARTService) handleResolve(w http.ResponseWriter, r *http.Request) {
+	var inq DVEErrorInquiry
+	if err := json.NewDecoder(r.Body).Decode(&inq); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if inq.DVESessionID == "" {
+		http.Error(w, "resolution requires active DVE session", http.StatusUnprocessableEntity)
+		return
+	}
+	ctx := r.Context()
+	s4, s3, err := hs.runPipeline(ctx, WASMTypeResolution, inq, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("pipeline error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	decision := hs.buildDecision(ctx, s4, s3)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(decision)
+}
+
+// handlePatch handles /heart/patch requests (Phase 3)
+func (hs *HEARTService) handlePatch(w http.ResponseWriter, r *http.Request) {
+	var inq SystemPatchInquiry
+	if err := json.NewDecoder(r.Body).Decode(&inq); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	ctx := r.Context()
+	s4, s3, err := hs.runPipeline(ctx, WASMTypePatch, inq, nil)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("pipeline error: %v", err), http.StatusInternalServerError)
+		return
+	}
+	decision := hs.buildDecision(ctx, s4, s3)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(decision)
+}
+
+// buildDecision compiles WASM, verifies, audits, and returns a WASMDecision.
+func (hs *HEARTService) buildDecision(ctx context.Context, s4 *Stage4Result, s3 *Stage3Result) WASMDecision {
+	decision := WASMDecision{
+		WASMType:  s4.WASMType,
+		Rationale: s3.Rationale,
+		TurnCount: 1,
+	}
+
+	if hs.compiler == nil {
+		return decision
+	}
+
+	result, err := hs.compiler.Compile(ctx, s4.Source, s4.WASMType)
+	if err != nil {
+		log.Printf("WASM compile error: %v", err)
+		return decision
+	}
+	decision.WASMPath = result.WASMPath
+	decision.WASMHash = result.WASMHash
+
+	passed, confidence, msg := hs.verifier.Verify(s4.Source, string(s4.WASMType))
+	decision.BidirectionalVerified = passed
+	decision.VerifierConfidence = confidence
+	if passed {
+		decision.ForwardVerifierMsg = msg
+		decision.WazeroExecPassed = true
+	} else {
+		decision.BackwardVerifierMsg = msg
+	}
+
+	if hs.auditor != nil {
+		inquiryHash := inquiryHashStr(s4.Source)
+		_ = hs.auditor.WriteAuditLog(&AuditRecord{
+			InquiryHash: inquiryHash,
+			WASMSha256:  result.WASMHash,
+			WASMType:    s4.WASMType,
+			Timestamp:   time.Now().UTC().Format(time.RFC3339),
+		})
+	}
+
+	return decision
+}
+
+// inquiryHashStr returns a short SHA-256 hex of the source string.
+func inquiryHashStr(s string) string {
+	h := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(h[:8])
 }
 
 // handleAnalyze processes error inquiries from CORTEX
