@@ -1,0 +1,1 @@
+Fully implement the fixes listed in @packages/KNIRVHASHER/transformer_audit.md

@@ -1,0 +1,97 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "2a9ba65494e6",
+  "session_id": "032198a7-54a1-4c24-b534-9eff993727f4",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-27T00:30:03.080742875Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVHASHER/go.mod",
+    "packages/KNIRVHASHER/go.sum",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/source_manager.go",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/source_record.go",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/training_adapter.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/pkg/analyzer/variance.go",
+    "packages/KNIRVHASHER/pipeline/3_DATA_TRAINER/internal/config/types.go",
+    "packages/KNIRVHASHER/pipeline/3_DATA_TRAINER/pkg/training/evolutionary.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/audit.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras_bridge.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/dynamic_graph.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/gpt.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/main.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/verifier.py",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/wazero_gate.go"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "8bf8c5ac53be",
+  "token_usage": {
+    "input_tokens": 439,
+    "cache_creation_tokens": 145471,
+    "cache_read_tokens": 7265813,
+    "output_tokens": 40985,
+    "api_call_count": 64
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-27T00:30:02.967216731Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 1197,
+    "total_committed": 362,
+    "total_lines_changed": 1197,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 4421,
+      "user_lines_removed": 1197,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHASHER/cmd/heart/main.go": 23,
+        "packages/KNIRVHASHER/go.mod": 9,
+        "packages/KNIRVHASHER/go.sum": 365,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/audit.go": 10,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras_bridge.go": 62,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/compiler.go": 57,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/config.go": 32,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/dynamic_graph.go": 1,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/gpt.go": 1171,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/hashnet_wrapper.go": 297,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go": 79,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/pipeline.go": 125,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/pruner.go": 381,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/templates.go": 386,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/types.go": 46,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/verifier.go": 238,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/wazero_gate.go": 152,
+        "packages/KNIRVHASHER/transformer_audit.md": 667,
+        "packages/KNIRVHEART/HEART/.claude/settings.local.json": 12,
+        "packages/KNIRVHEART/VLM/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVHASHER/go.mod": 12,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/cerebras_bridge.go": 19,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/dynamic_graph.go": 1,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go": 2,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/main.go": 1163
+      }
+    }
+  ]
+}
