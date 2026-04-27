@@ -1,0 +1,1 @@
+ANalyze all API endpoints exposed by the packages/KNIRVSERVER and its submodules. Report back with a comprehensive list of all public endpoints needed to be accessed by the CLI tool.
