@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 const (
@@ -213,31 +214,55 @@ type VarianceStats struct {
 	SignalIndices  []int   `json:"signal_indices"`
 }
 
-// DeltaSignalIndices returns the indices where the per-dimension variance changed
-// by more than threshold between two analyses.  Used by entropy-spike detection to
-// route tokens that activate high-delta dimensions to targeted gap queues.
+// DeltaSignalIndices returns the symmetric difference of the two signal-index sets when
+// their Jaccard distance exceeds threshold.  Jaccard distance = 1 - |A∩B| / |A∪B|.
+// Used by entropy-spike detection to route tokens that activate divergent dimensions
+// to targeted gap queues.
 func DeltaSignalIndices(before, after *VarianceAnalyzer, threshold float32) ([]int, error) {
 	if !before.isAnalyzed || !after.isAnalyzed {
 		return nil, fmt.Errorf("both analyzers must be analyzed before calling DeltaSignalIndices")
 	}
-	if before.sampleCount == 0 || after.sampleCount == 0 {
-		return nil, fmt.Errorf("empty analyzer")
+
+	bSet := make(map[int]bool, len(before.signalIndices))
+	for _, idx := range before.signalIndices {
+		bSet[idx] = true
+	}
+	aSet := make(map[int]bool, len(after.signalIndices))
+	for _, idx := range after.signalIndices {
+		aSet[idx] = true
 	}
 
-	var deltas []int
-	for i := 0; i < 768; i++ {
-		bMean := before.dimensionSum[i] / float64(before.sampleCount)
-		bVar := float32((before.dimensionSumSq[i] / float64(before.sampleCount)) - bMean*bMean)
-		aMean := after.dimensionSum[i] / float64(after.sampleCount)
-		aVar := float32((after.dimensionSumSq[i] / float64(after.sampleCount)) - aMean*aMean)
-		delta := aVar - bVar
-		if delta < 0 {
-			delta = -delta
-		}
-		if delta > threshold {
-			deltas = append(deltas, i)
+	intersection := 0
+	union := len(bSet)
+	for idx := range aSet {
+		if bSet[idx] {
+			intersection++
+		} else {
+			union++
 		}
 	}
+
+	if union == 0 {
+		return nil, nil
+	}
+	jaccardDist := float32(1) - float32(intersection)/float32(union)
+	if jaccardDist <= threshold {
+		return nil, nil
+	}
+
+	// Return symmetric difference.
+	var deltas []int
+	for idx := range bSet {
+		if !aSet[idx] {
+			deltas = append(deltas, idx)
+		}
+	}
+	for idx := range aSet {
+		if !bSet[idx] {
+			deltas = append(deltas, idx)
+		}
+	}
+	sort.Ints(deltas)
 	return deltas, nil
 }
 

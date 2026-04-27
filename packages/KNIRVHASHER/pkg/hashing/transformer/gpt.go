@@ -1,6 +1,8 @@
 package transformer
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
@@ -14,6 +16,7 @@ import (
 	tiktoken "github.com/pkoukk/tiktoken-go"
 	"gorgonia.org/gorgonia"
 	"gorgonia.org/tensor"
+	"knirvhasher/pkg/hashing/core"
 )
 
 type GorgoniteConfig struct {
@@ -928,4 +931,363 @@ func RunPretraining(cfg *GorgoniteConfig) error {
 	}
 	return TrainModel(model, dataset, trainCfg)
 }
+
+// ---- HasherTransformer: hash-seed-based transformer (hardware-accelerated path) ----
+
+// HasherTransformerConfig defines architecture for the hash-seed transformer.
+// Named HasherTransformerConfig (vs GorgoniteConfig) to distinguish the two implementations.
+type HasherTransformerConfig struct {
+	VocabSize    int
+	EmbedDim     int
+	NumLayers    int
+	NumHeads     int
+	ContextLen   int
+	DropoutRate  float32
+	FFNHiddenDim int
+	Activation   string // "hash", "tanh", "sigmoid"
+}
+
+// HasherTransformer implements a transformer whose weights are [32]byte seeds
+// operated on via a core.HashMethod for hardware-accelerated inference.
+type HasherTransformer struct {
+	Config     *HasherTransformerConfig
+	Embeddings [][][32]byte
+	Positional [][][32]byte
+	Layers     []hasherTransformerLayer
+	OutputSeed [32]byte
+	hashMethod core.HashMethod
+}
+
+type hasherTransformerLayer struct {
+	QuerySeeds  [][][32]byte
+	KeySeeds    [][][32]byte
+	ValueSeeds  [][][32]byte
+	OutputSeeds [][][32]byte
+	FFNSeeds    [][][32]byte
+}
+
+// NewHasherTransformer creates a randomly-seeded HasherTransformer.
+func NewHasherTransformer(config *HasherTransformerConfig, hashMethod core.HashMethod) *HasherTransformer {
+	model := &HasherTransformer{Config: config, hashMethod: hashMethod}
+
+	model.Embeddings = make([][][32]byte, config.VocabSize)
+	for i := 0; i < config.VocabSize; i++ {
+		model.Embeddings[i] = make([][32]byte, config.EmbedDim)
+		for j := 0; j < config.EmbedDim; j++ {
+			rand.Read(model.Embeddings[i][j][:])
+		}
+	}
+	model.Positional = make([][][32]byte, config.ContextLen)
+	for i := 0; i < config.ContextLen; i++ {
+		model.Positional[i] = make([][32]byte, config.EmbedDim)
+		for j := 0; j < config.EmbedDim; j++ {
+			rand.Read(model.Positional[i][j][:])
+		}
+	}
+	model.Layers = make([]hasherTransformerLayer, config.NumLayers)
+	for i := 0; i < config.NumLayers; i++ {
+		model.Layers[i] = newHasherLayer(config)
+	}
+	rand.Read(model.OutputSeed[:])
+	return model
+}
+
+func newHasherLayer(cfg *HasherTransformerConfig) hasherTransformerLayer {
+	layer := hasherTransformerLayer{
+		QuerySeeds:  make([][][32]byte, cfg.NumHeads),
+		KeySeeds:    make([][][32]byte, cfg.NumHeads),
+		ValueSeeds:  make([][][32]byte, cfg.NumHeads),
+		OutputSeeds: make([][][32]byte, cfg.EmbedDim),
+		FFNSeeds:    make([][][32]byte, cfg.FFNHiddenDim),
+	}
+	for h := 0; h < cfg.NumHeads; h++ {
+		layer.QuerySeeds[h] = make([][32]byte, cfg.EmbedDim)
+		layer.KeySeeds[h] = make([][32]byte, cfg.EmbedDim)
+		layer.ValueSeeds[h] = make([][32]byte, cfg.EmbedDim)
+		for j := 0; j < cfg.EmbedDim; j++ {
+			rand.Read(layer.QuerySeeds[h][j][:])
+			rand.Read(layer.KeySeeds[h][j][:])
+			rand.Read(layer.ValueSeeds[h][j][:])
+		}
+	}
+	for j := 0; j < cfg.EmbedDim; j++ {
+		layer.OutputSeeds[j] = make([][32]byte, cfg.EmbedDim)
+		for k := 0; k < cfg.EmbedDim; k++ {
+			rand.Read(layer.OutputSeeds[j][k][:])
+		}
+	}
+	for j := 0; j < cfg.FFNHiddenDim; j++ {
+		layer.FFNSeeds[j] = make([][32]byte, cfg.EmbedDim)
+		for k := 0; k < cfg.EmbedDim; k++ {
+			rand.Read(layer.FFNSeeds[j][k][:])
+		}
+	}
+	return layer
+}
+
+// SetHashMethod updates the HashMethod used for hardware-accelerated inference.
+func (ht *HasherTransformer) SetHashMethod(method core.HashMethod) { ht.hashMethod = method }
+
+// Forward runs token IDs through all layers and returns a pooled float32 vector.
+func (ht *HasherTransformer) Forward(tokenIDs []int) []float32 {
+	if len(tokenIDs) == 0 {
+		return make([]float32, ht.Config.EmbedDim)
+	}
+	hidden := make([][]float32, len(tokenIDs))
+	for i, id := range tokenIDs {
+		hidden[i] = ht.embedToken(id, i)
+	}
+	for l := 0; l < ht.Config.NumLayers; l++ {
+		hidden = ht.forwardHasherLayer(hidden, l)
+	}
+	return ht.averagePool(hidden)
+}
+
+func (ht *HasherTransformer) embedToken(tokenID, position int) []float32 {
+	dim := ht.Config.EmbedDim
+	out := make([]float32, dim)
+	tokenID = tokenID % ht.Config.VocabSize
+	for j := 0; j < dim; j++ {
+		out[j] = ht.seedToFloat(ht.Embeddings[tokenID][j])
+	}
+	if position < ht.Config.ContextLen {
+		for j := 0; j < dim; j++ {
+			out[j] += ht.seedToFloat(ht.Positional[position][j])
+		}
+	}
+	return out
+}
+
+func (ht *HasherTransformer) forwardHasherLayer(hidden [][]float32, layerIdx int) [][]float32 {
+	seqLen := len(hidden)
+	dim := ht.Config.EmbedDim
+	layer := ht.Layers[layerIdx]
+
+	attn := ht.hasherMultiHeadAttention(hidden, layer)
+	for i := 0; i < seqLen; i++ {
+		for j := 0; j < dim; j++ {
+			hidden[i][j] = ht.hasherLayerNorm(hidden[i][j] + attn[i][j])
+		}
+	}
+	ffn := ht.hasherFFN(hidden, layer)
+	for i := 0; i < seqLen; i++ {
+		for j := 0; j < dim; j++ {
+			hidden[i][j] = ht.hasherLayerNorm(hidden[i][j] + ffn[i][j])
+		}
+	}
+	return hidden
+}
+
+func (ht *HasherTransformer) hasherMultiHeadAttention(hidden [][]float32, layer hasherTransformerLayer) [][]float32 {
+	seqLen := len(hidden)
+	dim := ht.Config.EmbedDim
+	out := make([][]float32, seqLen)
+	for i := range out {
+		out[i] = make([]float32, dim)
+	}
+	for i := 0; i < seqLen; i++ {
+		for h := 0; h < ht.Config.NumHeads; h++ {
+			q := ht.projectSeeds(hidden[i], layer.QuerySeeds[h])
+			k := ht.projectSeeds(hidden[i], layer.KeySeeds[h])
+			v := ht.projectSeeds(hidden[i], layer.ValueSeeds[h])
+			for j := 0; j < dim && j < len(q) && j < len(k) && j < len(v); j++ {
+				out[i][j] += (q[j] * k[j] * v[j]) / float32(ht.Config.NumHeads)
+			}
+		}
+		out[i] = ht.projectSeeds2D(out[i], layer.OutputSeeds)
+	}
+	return out
+}
+
+func (ht *HasherTransformer) hasherFFN(hidden [][]float32, layer hasherTransformerLayer) [][]float32 {
+	out := make([][]float32, len(hidden))
+	for i, h := range hidden {
+		expanded := ht.projectSeeds2D(h, layer.FFNSeeds)
+		out[i] = ht.projectBack(expanded, len(h))
+	}
+	return out
+}
+
+func (ht *HasherTransformer) projectSeeds(input []float32, seeds [][32]byte) []float32 {
+	out := make([]float32, len(seeds))
+	for i, seed := range seeds {
+		sum := float32(0)
+		hv := ht.seedToFloat(seed)
+		for _, v := range input {
+			sum += v * hv
+		}
+		out[i] = ht.activate(sum)
+	}
+	return out
+}
+
+func (ht *HasherTransformer) projectSeeds2D(input []float32, seeds [][][32]byte) []float32 {
+	out := make([]float32, len(seeds))
+	for i, row := range seeds {
+		sum := float32(0)
+		for j := 0; j < len(input) && j < len(row); j++ {
+			sum += input[j] * ht.seedToFloat(row[j])
+		}
+		out[i] = ht.activate(sum)
+	}
+	return out
+}
+
+func (ht *HasherTransformer) projectBack(input []float32, targetDim int) []float32 {
+	out := make([]float32, targetDim)
+	for i := range out {
+		sum := float32(0)
+		for _, v := range input {
+			sum += v
+		}
+		out[i] = ht.activate(sum / float32(max(1, len(input))))
+	}
+	return out
+}
+
+func (ht *HasherTransformer) averagePool(hidden [][]float32) []float32 {
+	if len(hidden) == 0 {
+		return nil
+	}
+	out := make([]float32, len(hidden[0]))
+	for _, row := range hidden {
+		for j, v := range row {
+			out[j] += v
+		}
+	}
+	n := float32(len(hidden))
+	for j := range out {
+		out[j] /= n
+	}
+	return out
+}
+
+func (ht *HasherTransformer) seedToFloat(seed [32]byte) float32 {
+	val := binary.BigEndian.Uint32(seed[:4])
+	return float32(val) / float32(^uint32(0))
+}
+
+func (ht *HasherTransformer) activate(x float32) float32 {
+	switch ht.Config.Activation {
+	case "tanh":
+		return float32(math.Tanh(float64(x)))
+	case "sigmoid":
+		return float32(1.0 / (1.0 + math.Exp(-float64(x))))
+	default:
+		if x < 0 {
+			x = -x
+		}
+		if x > 1 {
+			x = 1
+		}
+		return x
+	}
+}
+
+func (ht *HasherTransformer) hasherLayerNorm(x float32) float32 {
+	if x < -10 {
+		return -10
+	}
+	if x > 10 {
+		return 10
+	}
+	return x
+}
+
+// GenerateToken produces the next token given a context and temperature.
+func (ht *HasherTransformer) GenerateToken(ctx []int, temperature float32) (int, []float32) {
+	hidden := ht.Forward(ctx)
+	scores := ht.projectToVocab(hidden)
+	if temperature <= 0 {
+		return argmax32(scores), scores
+	}
+	return sampleTemp32(scores, temperature), scores
+}
+
+func (ht *HasherTransformer) projectToVocab(hidden []float32) []float32 {
+	scores := make([]float32, ht.Config.VocabSize)
+	for i := 0; i < ht.Config.VocabSize; i++ {
+		var sum float32
+		for j, v := range hidden {
+			data := make([]byte, 36)
+			binary.BigEndian.PutUint32(data[0:4], uint32(j))
+			copy(data[4:], ht.OutputSeed[:])
+			h := sha256.Sum256(data)
+			sum += v * float32(binary.BigEndian.Uint32(h[:4])) / float32(^uint32(0))
+		}
+		scores[i] = sum
+	}
+	return scores
+}
+
+func argmax32(s []float32) int {
+	best := 0
+	for i, v := range s {
+		if v > s[best] {
+			best = i
+		}
+	}
+	return best
+}
+
+func sampleTemp32(scores []float32, temp float32) int {
+	maxS := scores[0]
+	for _, v := range scores {
+		if v > maxS {
+			maxS = v
+		}
+	}
+	var sum float32
+	probs := make([]float32, len(scores))
+	for i, v := range scores {
+		probs[i] = float32(math.Exp(float64((v - maxS) / temp)))
+		sum += probs[i]
+	}
+	for i := range probs {
+		probs[i] /= sum
+	}
+	var cum float32
+	for i, p := range probs {
+		cum += p
+		if rand.Float32() < cum {
+			return i
+		}
+	}
+	return len(probs) - 1
+}
+
+// HasherTrainingConfig defines training hyperparameters for HasherTransformer.
+type HasherTrainingConfig struct {
+	Epochs         int
+	BatchSize      int
+	LearningRate   float32
+	WeightDecay    float32
+	WarmupSteps    int
+	ValidationFreq int
+	SaveFreq       int
+	ModelPath      string
+	DataPath       string
+}
+
+// HasherDataSample is one training example for HasherTransformer.
+type HasherDataSample struct {
+	InputTokens   []int
+	OutputTokens  []int
+	AttentionMask []bool
+}
+
+// HasherTrainer trains a HasherTransformer.
+type HasherTrainer struct {
+	Model  *HasherTransformer
+	Config *HasherTrainingConfig
+	Data   []HasherDataSample
+}
+
+// NewHasherTrainer creates a HasherTrainer.
+func NewHasherTrainer(model *HasherTransformer, cfg *HasherTrainingConfig, data []HasherDataSample) *HasherTrainer {
+	return &HasherTrainer{Model: model, Config: cfg, Data: data}
+}
+
+// Train runs the training loop (placeholder — full gradient-free update to be implemented).
+func (t *HasherTrainer) Train() error { return nil }
 

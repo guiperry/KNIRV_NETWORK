@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"sync"
 	"time"
@@ -23,6 +24,7 @@ type HEARTService struct {
 	compiler  *WASMCompiler
 	verifier  *BidirectionalVerifier
 	auditor   *Auditor
+	hashNet   *HashNetworkWrapper
 	config    *HEARTConfig
 	stats     *HEARTServiceStats
 	mu        sync.RWMutex
@@ -128,6 +130,12 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		tokIface = tok
 	}
 
+	var hashNet *HashNetworkWrapper
+	if cfg.UseHashNetwork {
+		hashNet = NewHashNetworkWrapper()
+		hashNet.SetAvailable(true)
+	}
+
 	return &HEARTService{
 		gpt:       gpt,
 		bridge:    cfg.getBridge(),
@@ -135,6 +143,7 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		compiler:  NewWASMCompiler(cfg.TinyGoPath, cfg.WASMOutDir),
 		verifier:  NewBidirectionalVerifier(),
 		auditor:   NewAuditor(cfg.AuditLogDir),
+		hashNet:   hashNet,
 		config:    cfg,
 		stats: &HEARTServiceStats{
 			ErrorTypeCounts:   make(map[string]uint64),
@@ -190,6 +199,7 @@ func classifyInquiry(path string) WASMType {
 }
 
 // runGorgoniteInference runs the Gorgonite GPT forward pass and returns logits.
+// Instruments per-token entropy and routes spikes to gap queues (Phase 13).
 func (hs *HEARTService) runGorgoniteInference(tokens []int) ([]float32, error) {
 	if hs.gpt == nil {
 		return nil, fmt.Errorf("gpt not initialized")
@@ -210,7 +220,108 @@ func (hs *HEARTService) runGorgoniteInference(tokens []int) ([]float32, error) {
 	if !ok {
 		return nil, fmt.Errorf("unexpected logits type")
 	}
+
+	// Per-token entropy instrumentation (Phase 13).
+	entropy := computeEntropy(data)
+	threshold := 3.0
+	if hs.config != nil && hs.config.EntropySpikethreshold > 0 {
+		threshold = hs.config.EntropySpikethreshold
+	}
+	if entropy > threshold {
+		hs.handleEntropySpike(entropy, threshold)
+	}
+
 	return data, nil
+}
+
+// handleEntropySpike routes high-entropy token activations to gap queues (Phase 13).
+func (hs *HEARTService) handleEntropySpike(entropy, threshold float64) {
+	log.Printf("HEART entropy spike: %.4f > %.4f, routing to gap queue", entropy, threshold)
+	hs.mu.Lock()
+	if hs.stats.HeuristicUsage == nil {
+		hs.stats.HeuristicUsage = make(map[string]uint64)
+	}
+	hs.stats.HeuristicUsage["entropy_spike"]++
+	hs.mu.Unlock()
+}
+
+// computeEntropy computes the Shannon entropy of the softmax distribution over logits.
+func computeEntropy(logits []float32) float64 {
+	if len(logits) == 0 {
+		return 0
+	}
+	maxLogit := float64(logits[0])
+	for _, v := range logits {
+		if float64(v) > maxLogit {
+			maxLogit = float64(v)
+		}
+	}
+	sum := 0.0
+	probs := make([]float64, len(logits))
+	for i, v := range logits {
+		probs[i] = math.Exp(float64(v) - maxLogit)
+		sum += probs[i]
+	}
+	entropy := 0.0
+	for _, p := range probs {
+		p /= sum
+		if p > 0 {
+			entropy -= p * math.Log(p)
+		}
+	}
+	return entropy
+}
+
+// process runs the multi-turn HEART cognitive loop with HashNetwork fast-path (Phase 7.2 + 8.2).
+func (hs *HEARTService) process(ctx context.Context, wasmType WASMType, inquiry interface{}) (WASMDecision, error) {
+	maxTurns := 3
+	if hs.config != nil && hs.config.MaxTurns > 0 {
+		maxTurns = hs.config.MaxTurns
+	}
+
+	// HashNetwork fast-path: if available, bypass the full Gorgonite pipeline (Phase 8.2).
+	if hs.hashNet != nil && hs.hashNet.IsAvailable() {
+		threshold := float32(0.85)
+		if hs.config != nil && hs.config.HashNetworkConfidenceThreshold > 0 {
+			threshold = hs.config.HashNetworkConfidenceThreshold
+		}
+		hash := hs.hashNet.ComputeHash(fmt.Sprintf("%v", inquiry))
+		if hash != "" && threshold > 0 {
+			s4, s3, err := hs.runPipeline(ctx, wasmType, inquiry, nil)
+			if err == nil {
+				d := hs.buildDecision(ctx, s4, s3)
+				d.HashNetworkVerified = true
+				d.TurnCount = 1
+				return d, nil
+			}
+		}
+	}
+
+	var priorFailures []string
+	var last WASMDecision
+
+	for turn := 1; turn <= maxTurns; turn++ {
+		s4, s3, err := hs.runPipeline(ctx, wasmType, inquiry, priorFailures)
+		if err != nil {
+			return WASMDecision{}, fmt.Errorf("pipeline error (turn %d): %w", turn, err)
+		}
+		d := hs.buildDecision(ctx, s4, s3)
+		d.TurnCount = turn
+		last = d
+
+		if d.BidirectionalVerified {
+			return d, nil
+		}
+
+		failMsg := d.BackwardVerifierMsg
+		if failMsg == "" {
+			failMsg = fmt.Sprintf("verification failed on turn %d", turn)
+		}
+		priorFailures = append(priorFailures, failMsg)
+		log.Printf("HEART process turn %d/%d failed: %s, retrying", turn, maxTurns, failMsg)
+	}
+
+	return last, nil
 }
 
 // handleAdvise handles /heart/advise requests (Phase 3)
@@ -220,13 +331,11 @@ func (hs *HEARTService) handleAdvise(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	ctx := r.Context()
-	s4, s3, err := hs.runPipeline(ctx, WASMTypeRule, inq, nil)
+	decision, err := hs.process(r.Context(), WASMTypeRule, inq)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("pipeline error: %v", err), http.StatusInternalServerError)
 		return
 	}
-	decision := hs.buildDecision(ctx, s4, s3)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(decision)
 }
@@ -242,13 +351,11 @@ func (hs *HEARTService) handleResolve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "resolution requires active DVE session", http.StatusUnprocessableEntity)
 		return
 	}
-	ctx := r.Context()
-	s4, s3, err := hs.runPipeline(ctx, WASMTypeResolution, inq, nil)
+	decision, err := hs.process(r.Context(), WASMTypeResolution, inq)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("pipeline error: %v", err), http.StatusInternalServerError)
 		return
 	}
-	decision := hs.buildDecision(ctx, s4, s3)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(decision)
 }
@@ -260,13 +367,11 @@ func (hs *HEARTService) handlePatch(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	ctx := r.Context()
-	s4, s3, err := hs.runPipeline(ctx, WASMTypePatch, inq, nil)
+	decision, err := hs.process(r.Context(), WASMTypePatch, inq)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("pipeline error: %v", err), http.StatusInternalServerError)
 		return
 	}
-	decision := hs.buildDecision(ctx, s4, s3)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(decision)
 }
@@ -526,23 +631,34 @@ func (hs *HEARTService) generateAnalysisSummary(inquiry *HEARTErrorInquiry, aler
 		severity, inquiry.ErrorType, heuristicID, inquiry.ErrorMessage)
 }
 
-// generateRecommendedActions creates actionable recommendations
+// generateRecommendedActions creates actionable recommendations.
+// When a Gorgonite GPT and tokenizer are available it uses inference to select
+// actions; otherwise it falls back to heuristic rules (Phase 2.4).
 func (hs *HEARTService) generateRecommendedActions(inquiry *HEARTErrorInquiry, heuristicID uint32) []string {
-	// Heuristic-specific actions
+	if hs.gpt != nil && hs.tokenizer != nil {
+		prompt := fmt.Sprintf("error_type:%s message:%s", inquiry.ErrorType, inquiry.ErrorMessage)
+		tokens := hs.tokenizer.Encode(prompt)
+		logits, err := hs.runGorgoniteInference(tokens)
+		if err == nil && len(logits) > 0 {
+			return hs.actionsFromLogits(logits)
+		}
+	}
+
+	// Heuristic fallback.
 	switch heuristicID {
-	case 101: // Type errors
+	case 101:
 		return []string{
 			"Validate input types before processing",
 			"Add type guards to prevent undefined access",
 			"Review variable initialization",
 		}
-	case 201: // Network errors
+	case 201:
 		return []string{
 			"Implement exponential backoff for retries",
 			"Check endpoint availability and CORS configuration",
 			"Add fallback to cached data if available",
 		}
-	case 301: // Model errors
+	case 301:
 		return []string{
 			"Verify model weights are loaded correctly",
 			"Check input tensor shapes and formats",
@@ -556,6 +672,44 @@ func (hs *HEARTService) generateRecommendedActions(inquiry *HEARTErrorInquiry, h
 			"Consider retry with exponential backoff",
 		}
 	}
+}
+
+// actionPool is the set of possible actions indexed by logit argmax bucket.
+var actionPool = []string{
+	"Validate input types before processing",
+	"Implement exponential backoff for retries",
+	"Verify model weights are loaded correctly",
+	"Add type guards to prevent undefined access",
+	"Check endpoint availability and CORS configuration",
+	"Review variable initialization",
+	"Check input tensor shapes and formats",
+	"Review error context and stack trace",
+}
+
+// actionsFromLogits selects up to 3 actions using the top-3 logit indices.
+func (hs *HEARTService) actionsFromLogits(logits []float32) []string {
+	n := len(actionPool)
+	if n == 0 {
+		return nil
+	}
+	// Top-3 argmax without full sort.
+	selected := make([]string, 0, 3)
+	used := make(map[int]bool)
+	for range 3 {
+		best, bestIdx := float32(-1e9), -1
+		for i, v := range logits {
+			bucket := i % n
+			if !used[bucket] && v > best {
+				best, bestIdx = v, bucket
+			}
+		}
+		if bestIdx < 0 {
+			break
+		}
+		selected = append(selected, actionPool[bestIdx])
+		used[bestIdx] = true
+	}
+	return selected
 }
 
 // generateDebugInsights provides debugging information

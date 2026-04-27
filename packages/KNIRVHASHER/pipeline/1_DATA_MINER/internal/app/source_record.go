@@ -6,11 +6,10 @@ import "time"
 type SourceType string
 
 const (
-	SourceTypeArxiv   SourceType = "arxiv"
-	SourceTypeKNIRV   SourceType = "knirv"
-	SourceTypeWeb     SourceType = "web"
-	SourceTypeLocal   SourceType = "local"
-	SourceTypeUnknown SourceType = "unknown"
+	SourceTypeClientData   SourceType = "client_data"
+	SourceTypeArxiv        SourceType = "arxiv"
+	SourceTypeDVETelemetry SourceType = "dve_telemetry"
+	SourceTypeUnknown      SourceType = "unknown"
 )
 
 // SourceRecord wraps a DocumentRecord with provenance metadata.
