@@ -1,0 +1,5 @@
+Audit the packages/KNIRVHASHER application per the @transformer_implementation.md file and draft a detailed report of all missing parts, duplicate code, and inconsistencies in the current codebase.
+
+---
+
+Draft this report into a new transformer_audit.md file.
