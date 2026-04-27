@@ -1,0 +1,13 @@
+Make a skill prompt that instructs an agent to initiate training of the KNIRVHASHER by initializing the pipeline at KNIRVHASHER/pipeline
+
+---
+
+I've changed the file name and location of the skill to .agents/skills/train/skill.md Please update the file so that the primary embeddings method utilized is our custom deterministic embeddings module imported from github.com/guiperry/text-embedder v0.1.0 in 1_DATA_MINER. Cloudflare and Ollama embedding generators are fallbacks and should not be initialized by this skill. Also, there is no bootstrap_alpaca.sh script, please generate one and place it in a new KNIRVHASHER/pipeline/scripts folder.
+
+---
+
+...
+
+---
+
+YOu done?
