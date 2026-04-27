@@ -1,0 +1,31 @@
+Fully implement the fixes listed in @packages/KNIRVHASHER/transformer_audit.md
+
+---
+
+### ❌ Missing Implementations
+1. **Phase 0.3 — `TransformerConfig` not renamed**: `transformer.go:13` still declares `TransformerConfig`; plan specifies rename to `HasherTransformerConfig` for clarity (two `TransformerConfig` types co-exist — `GorgoniteConfig` in `gpt.go` and `TransformerConfig` in `transformer.go`)
+2. **Phase 7.2 — Multi-turn cognitive loop**: `process()` with `MaxTurns` retry loop **does not exist**. Current `buildDecision()` (heart_service.go:274) calls `runPipeline()` once with no retry on wazero/verify failure
+3. **Phase 8.2 — HashNetwork fast-path**: `HEARTService` has no `hashNet` field; no short-circuit logic in `buildDecision()` or any `process()` function
+4. **Phase 13 — Entropy-spike + OntologyDrift**: No `handleEntropySpike()` in `gpt.go` generation loop; `DeltaSignalIndices()` in `variance.go` uses variance comparison (not Jaccard distance per plan Step 13.3)
+5. **Phase 3.3 — DVE session validation**: `handleResolve()` (heart_service.go:235) does **not** validate `DVESessionID != ""` before processing
+---
+⚠️ Partial / Divergent Implementations
+1. Phase 4 — DATA_MINER files exist but differ from plan:
+   - source_record.go: Uses SourceTypeArxiv|KNIRV|Web|Local — plan specifies SourceClientData|Arxiv|DVETelemetry
+   - source_manager.go: Generic FetchFunc pattern — plan specifies runClientDataWorker/runArXivWorker/runDVETelemetryWorker
+   - training_adapter.go: Route() returns error — plan specifies returns TrainingPair
+2. Phase 1 — Tokenizer: gpt.go imports tiktoken-go (cl100k-compatible) rather than the pipeline tokenizer specified in plan Step 1.1
+3. Phase 2.4 — Gorgonite inference: runGorgoniteInference() exists (heart_service.go:193) but processInquiry() (heart_service.go:391) still uses hardcoded generateRecommendedActions() heuristics
+---
+📋 Duplicate / Dead Code
+1. transformer.go:13 — TransformerConfig: Should be HasherTransformerConfig per plan Step 0.3 to distinguish from GorgoniteConfig in gpt.go:19. Currently two types with same name in same package (transformer) — works but confusing.
+2. docs/gorgonia_transformer_training_guide.md (53KB): Contains a complete duplicate GPT/transformer implementation (types + functions). This is documentation, not code, but creates confusion with gpt.go.
+3. HEARTErrorInquiry (heart_service.go:43): Plan specifies DVEErrorInquiry (types.go:19) for /heart/resolve. The service uses its own HEARTErrorInquiry struct — the two inquiry types are not unified.
+---
+Summary
+- 13/13 phases have files present (scaffolding complete)
+- Key gaps: Phase 7 multi-turn loop, Phase 8 fast-path wiring, Phase 13 entropy-spike, Phase 3 DVE validation
+- 1 duplicate naming issue: TransformerConfig vs HasherTransformerConfig
+- 1 structural divergence: Phase 4 SourceRecord types don't match plan
+
+Clarity: merge the best functionality from transformer.go into gpt.go and delete the redundant transformer.go file.

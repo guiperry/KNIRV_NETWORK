@@ -1,0 +1,63 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "d2474f1c37c1",
+  "session_id": "032198a7-54a1-4c24-b534-9eff993727f4",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-27T21:45:48.898592267Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/source_manager.go",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/source_record.go",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/training_adapter.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/pkg/analyzer/variance.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/gpt.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/transformer.go"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "bdab49876cfe",
+  "token_usage": {
+    "input_tokens": 1149,
+    "cache_creation_tokens": 375722,
+    "cache_read_tokens": 11235000,
+    "output_tokens": 71168,
+    "api_call_count": 115
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-27T21:45:48.662287107Z",
+    "agent_lines": 655,
+    "agent_removed": 539,
+    "human_added": 64896,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 65551,
+    "total_lines_changed": 192102,
+    "agent_percentage": 0.6215448043227035,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 320,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHEART/HEART/.claude/settings.local.json": 12,
+        "packages/KNIRVHEART/VLM/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      }
+    }
+  ]
+}

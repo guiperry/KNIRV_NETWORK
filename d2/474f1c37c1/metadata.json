@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "d2474f1c37c1",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/source_manager.go",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/source_record.go",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/training_adapter.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/pkg/analyzer/variance.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/gpt.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/transformer.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/d2/474f1c37c1/0/metadata.json",
+      "transcript": "/d2/474f1c37c1/0/full.jsonl",
+      "content_hash": "/d2/474f1c37c1/0/content_hash.txt",
+      "prompt": "/d2/474f1c37c1/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1149,
+    "cache_creation_tokens": 375722,
+    "cache_read_tokens": 11235000,
+    "output_tokens": 71168,
+    "api_call_count": 115
+  }
+}
