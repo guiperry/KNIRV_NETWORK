@@ -3,7 +3,7 @@
   "checkpoint_id": "e66a074c49bc",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": [
     "AGENTS.md",
     "packages/KNIRVHASHER/hasher.proto",
@@ -16,6 +16,7 @@
     "packages/KNIRVHASHER/pkg/hashing/transformer/pipeline.go",
     "packages/KNIRVHASHER/pkg/hashing/transformer/types.go",
     "packages/KNIRVHASHER/pkg/hashing/transformer/verifier.go",
+    "packages/KNIRVHASHER/proto/hasher/training/v1/training.proto",
     "packages/KNIRVHASHER/transformer_audit.md",
     "packages/KNIRVSERVER/README.md",
     "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
@@ -48,13 +49,19 @@
       "transcript": "/e6/6a074c49bc/0/full.jsonl",
       "content_hash": "/e6/6a074c49bc/0/content_hash.txt",
       "prompt": "/e6/6a074c49bc/0/prompt.txt"
+    },
+    {
+      "metadata": "/e6/6a074c49bc/1/metadata.json",
+      "transcript": "/e6/6a074c49bc/1/full.jsonl",
+      "content_hash": "/e6/6a074c49bc/1/content_hash.txt",
+      "prompt": "/e6/6a074c49bc/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 524,
+    "input_tokens": 1784114,
     "cache_creation_tokens": 72029,
-    "cache_read_tokens": 1411101,
-    "output_tokens": 9724,
-    "api_call_count": 24
+    "cache_read_tokens": 1911325,
+    "output_tokens": 35523,
+    "api_call_count": 62
   }
 }

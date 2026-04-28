@@ -1,0 +1,9 @@
+The errors in KNIRVHASHER/internal/proto/hasher/v1 Please fix the proto errors.
+
+---
+
+Search through the project for all references to HasherService and list them for me here.
+
+---
+
+I've removed packages/KNIRVHASHER/hasher.proto and packages/KNIRVHASHER/internal/proto/v1/hasher.proto... PLease update all of packages/KNIRVSERVER/backend/internal/proto/hasher/hasher.proto HasherService to HasherTrainingService as needed.
