@@ -1,0 +1,11 @@
+Can you find the different implementation points of the following: Active Memory (Markdown Fabric)
+- Knowledge base (GraphRAG)
+- KNIRVGRAPH
+- Nexus Memory Fabric
+- Ontology 
+
+These technically should all be the same thing. Draft a functionality consolidation plan. Include all dependencies and sources.
+
+---
+
+Draft this report into a memory_consolidation_plan.md file. Please remove all references to "nexus" and "fabric"...
