@@ -1,0 +1,20 @@
+Audit the packages/KNIRVHASHER codebase as it relates to the @transformer_implementation.md documentation. Report on any missing or duplicate implementation found in the codebase.
+
+---
+
+The hashnetwork is the default hash path for this application and can be accessed via KNIRVHASHER/cmd/driver/hasher-host/main.go... Maybe you can trace the methods the hasher-host imports from the transformer package and find it there.
+
+---
+
+Please update the @transformer_audit.md file with this entire report.
+
+---
+
+1. The deterministic embedder should be imported from https://github.com/guiperry/text-embedder.
+2. Can we use the go version of the verifyer instead of the Pythoin version?
+
+UPdate the audit file with the above.
+
+---
+
+...
