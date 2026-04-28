@@ -3,7 +3,7 @@
   "checkpoint_id": "e66a074c49bc",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 4,
   "files_touched": [
     "AGENTS.md",
     "packages/KNIRVHASHER/hasher.proto",
@@ -55,13 +55,19 @@
       "transcript": "/e6/6a074c49bc/1/full.jsonl",
       "content_hash": "/e6/6a074c49bc/1/content_hash.txt",
       "prompt": "/e6/6a074c49bc/1/prompt.txt"
+    },
+    {
+      "metadata": "/e6/6a074c49bc/2/metadata.json",
+      "transcript": "/e6/6a074c49bc/2/full.jsonl",
+      "content_hash": "/e6/6a074c49bc/2/content_hash.txt",
+      "prompt": "/e6/6a074c49bc/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 1784114,
+    "input_tokens": 1865142,
     "cache_creation_tokens": 72029,
-    "cache_read_tokens": 1911325,
-    "output_tokens": 35523,
-    "api_call_count": 62
+    "cache_read_tokens": 1914909,
+    "output_tokens": 36807,
+    "api_call_count": 64
   }
 }
