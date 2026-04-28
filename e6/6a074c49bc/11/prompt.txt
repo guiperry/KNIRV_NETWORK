@@ -1,0 +1,9 @@
+Audit the packages/KNIRVHASHER codebase as it relates to the @transformer_implementation.md documentation. Report on any missing or duplicate implementation found in the codebase.
+
+---
+
+I've implemented all the changes suggested. Please perform another audit of the codebase per the specification.
+
+---
+
+Please go ahead and fully implement the GPT/embedding integration with the pipeline stages. Include the the legacy /heart/analyze endpoint so that it doesn't bypass the new architecture.
