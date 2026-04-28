@@ -3,19 +3,21 @@ package main
 import (
 	"context"
 	"log"
-	"net"
 	"os"
+	"time"
 
 	writer "data-connector/internal/writer"
 	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"gopkg.in/yaml.v3"
-	hasherpb "knirvhasher/proto"
+	hasherpb "knirvhasher/proto/hasher/training/v1"
 )
 
 type Config struct {
-	ListenAddr string      `yaml:"listen_addr"`
-	KNIRVBASE  KNIRVConfig `yaml:"knirvbase"`
+	KNIRVSERVERAddr string      `yaml:"knirvserver_addr"`
+	KNIRVBASE       KNIRVConfig `yaml:"knirvbase"`
+	PollInterval    string      `yaml:"poll_interval"`
 }
 
 type KNIRVConfig struct {
@@ -31,61 +33,76 @@ func main() {
 		log.Fatalf("open knirvbase: %v", err)
 	}
 	defer db.Shutdown()
+
 	collection := db.Collection("connector_raw")
+	w := writer.NewMDWriter(collection)
 
-	// Create gRPC server
-	server := grpc.NewServer()
-	hasherService := &ConnectorService{
-		writer: writer.NewMDWriter(collection),
-	}
-
-	hasherpb.RegisterHasherServiceServer(server, hasherService)
-
-	// Listen on the configured address
-	lis, err := net.Listen("tcp", config.ListenAddr)
+	// Connect to KNIRVSERVER gRPC server
+	conn, err := grpc.NewClient(config.KNIRVSERVERAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("listen: %v", err)
+		log.Fatalf("connect to knirvserver: %v", err)
+	}
+	defer conn.Close()
+
+	client := hasherpb.NewHasherTrainingServiceClient(conn)
+
+	pollInterval, _ := time.ParseDuration(config.PollInterval)
+	if pollInterval == 0 {
+		pollInterval = 1 * time.Hour
 	}
 
-	log.Printf("0_DATA_CONNECTOR listening on %s", config.ListenAddr)
-	if err := server.Serve(lis); err != nil {
-		log.Fatalf("serve: %v", err)
+	log.Printf("0_DATA_CONNECTOR: Connected to KNIRVSERVER at %s, polling every %s", config.KNIRVSERVERAddr, pollInterval)
+
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		exportData(client, w)
+		<-ticker.C
 	}
 }
 
-// ConnectorService implements the HasherService server
-type ConnectorService struct {
-	hasherpb.UnimplementedHasherServiceServer
-	writer *writer.MDWriter
-}
+func exportData(client hasherpb.HasherTrainingServiceClient, w *writer.MDWriter) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
 
-// ExportSecurityData receives encrypted data chunks and writes them to knirvbase
-func (cs *ConnectorService) ExportSecurityData(stream hasherpb.HasherService_ExportSecurityDataServer) error {
+	stream, err := client.ExportSecurityData(ctx, &hasherpb.ExportRequest{
+		OrgId:    "default",
+		UserId:    "",
+		DataType: hasherpb.DataType_ALL,
+		Encrypted: true,
+	})
+	if err != nil {
+		log.Printf("start export: %v", err)
+		return
+	}
+
 	for {
 		chunk, err := stream.Recv()
 		if err != nil {
-			if err.Error() == "EOF" {
-				break
+			if err.Error() != "EOF" {
+				log.Printf("receive chunk: %v", err)
 			}
-			return err
+			break
 		}
 
-		if err := cs.writer.WriteChunk(chunk); err != nil {
+		if err := w.WriteChunk(chunk); err != nil {
 			log.Printf("write chunk %s: %v", chunk.ChunkId, err)
-			continue
 		}
 	}
 
-	return stream.SendAndClose(&hasherpb.ExportResponse{
-		Status:  "success",
-		Message: "Data exported successfully",
-	})
+	log.Printf("export completed")
 }
 
 func LoadConfig() *Config {
 	data, err := os.ReadFile("config/connector.yaml")
 	if err != nil {
-		log.Fatalf("read config: %v", err)
+		// Return default config
+		return &Config{
+			KNIRVSERVERAddr: "localhost:50051",
+			KNIRVBASE:       KNIRVConfig{DataDir: "./data"},
+			PollInterval:    "1h",
+		}
 	}
 
 	var cfg Config

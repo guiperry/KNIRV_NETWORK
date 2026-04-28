@@ -27,6 +27,40 @@ SERVER implements a hardware-assisted security model to perform **Key Neural Int
 ### 4. Secure Transport (KNIRVROUTER)
 Integrated **TURN Server** logic facilitates reliable P2P synchronization of the Markdown Fabric across restrictive NAT environments.
 
+### 5. Unified Memory System (Consolidated Architecture)
+The memory system has been consolidated from 5 separate implementations into a single `UnifiedMemorySystem`:
+
+| Component | Description |
+|-----------|-------------|
+| `services/memory/service.go` | Main orchestrator merging ActiveMemory, KnowledgeBase, and Arrow Flight |
+| `services/memory/ontology.go` | In-memory knowledge graph with entity/relation tracking |
+| `services/memory/reasoning.go` | Reasoning trace generation and NRV processing |
+| `services/memory/vault.go` | ErrorNode/SolutionNode management with PQC encryption |
+| `services/memory/graphrag.go` | GraphRAG client with FFI bridge to Rust graphrag-rs |
+| `services/memory/flight.go` | Arrow Flight server for real-time memory streaming |
+| `services/memory/handlers.go` | HTTP handlers for unified `/api/v1/memory/` endpoints |
+| `storage/memory_store.go` | Unified storage interface across Markdown, GraphRAG, and Ontology |
+
+**Key Features:**
+- **Single API prefix**: All memory operations now use `/api/v1/memory/` (legacy endpoints preserved with redirects)
+- **Cross-backend queries**: Query GraphRAG, Ontology, or both simultaneously
+- **Auto-sync**: Markdown saves automatically trigger GraphRAG reindexing
+- **PQC encryption**: Consistent post-quantum encryption across all persistent storage
+- **Feature flags**: Enable/disable backends (markdown, graphrag, ontology) via `MemoryConfig`
+
+**Usage Example:**
+```go
+cfg := &memory.MemoryConfig{
+    EnabledBackends: []string{"markdown", "graphrag", "ontology"},
+    PQCEncryption:    true,
+    ArrowStreaming:   true,
+    SyncInterval:     5 * time.Minute,
+    EnableAutoSync:   true,
+}
+system, _ := memory.NewUnifiedMemorySystem(cfg, logger)
+system.StoreInteraction(ctx, "agent-1", "error desc", "solution code")
+```
+
 ---
 
 ## 🚀 FinTech Validator: Financial AI Agent Validation

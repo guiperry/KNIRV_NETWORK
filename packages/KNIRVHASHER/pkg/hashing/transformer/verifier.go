@@ -21,8 +21,8 @@ func NewBidirectionalVerifier() *BidirectionalVerifier {
 }
 
 func (bv *BidirectionalVerifier) Verify(source, wasmType string) (bool, float32, string) {
-	forwardPassed, forwardMsg := bv.verifyForward(source, wasmType)
-	backwardPassed, backwardMsg := bv.verifyBackward(source, wasmType)
+	forwardPassed, forwardMsg := bv.ForwardVerify(source, wasmType)
+	backwardPassed, backwardMsg := bv.BackwardVerify(source, wasmType)
 
 	bv.confidence = calculateConfidence(forwardPassed, backwardPassed, forwardMsg, backwardMsg)
 
@@ -31,6 +31,16 @@ func (bv *BidirectionalVerifier) Verify(source, wasmType string) (bool, float32,
 	}
 
 	return false, bv.confidence, fmt.Sprintf("Forward: %s | Backward: %s", forwardMsg, backwardMsg)
+}
+
+// ForwardVerify runs the forward pass verification (Phase 7).
+func (bv *BidirectionalVerifier) ForwardVerify(source, wasmType string) (bool, string) {
+	return bv.verifyForward(source, wasmType)
+}
+
+// BackwardVerify runs the backward pass verification (Phase 7).
+func (bv *BidirectionalVerifier) BackwardVerify(source, wasmType string) (bool, string) {
+	return bv.verifyBackward(source, wasmType)
 }
 
 func (bv *BidirectionalVerifier) verifyForward(source, wasmType string) (bool, string) {

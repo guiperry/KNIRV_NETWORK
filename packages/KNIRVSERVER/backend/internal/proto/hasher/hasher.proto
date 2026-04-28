@@ -4,7 +4,7 @@ package hasher;
 
 option go_package = "backend_server/internal/proto/hasher";
 
-service HasherService {
+service HasherTrainingService {
     rpc ExportSecurityData(ExportRequest) returns (stream EncryptedChunk);
     rpc TriggerTraining(TrainingRequest) returns (TrainingResponse);
     rpc GetTrainingStatus(TrainingStatusRequest) returns (TrainingStatusResponse);

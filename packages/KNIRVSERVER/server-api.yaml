@@ -2210,14 +2210,6 @@ paths:
         '200':
           description: Event stream
 
-  /api/nexus/events:
-    get:
-      tags: [websocket]
-      summary: Nexus event stream
-      responses:
-        '200':
-          description: Event stream
-
   # ============================================================================
   # Data Engine REST API (port 7080)
   # ============================================================================

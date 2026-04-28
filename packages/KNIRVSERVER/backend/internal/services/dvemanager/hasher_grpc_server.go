@@ -27,7 +27,7 @@ const (
 )
 
 type HasherGRPCServer struct {
-	hasher.UnimplementedHasherServiceServer
+	hasher.UnimplementedHasherTrainingServiceServer
 	socketPath string
 	listener   net.Listener
 	server     *grpc.Server
@@ -77,7 +77,7 @@ func (s *HasherGRPCServer) Start() error {
 	s.listener = ln
 
 	s.server = grpc.NewServer()
-	hasher.RegisterHasherServiceServer(s.server, s)
+	hasher.RegisterHasherTrainingServiceServer(s.server, s)
 
 	go func() {
 		log.Printf("HasherGRPCServer: Starting on %s", socketPath)
@@ -124,7 +124,7 @@ func (s *HasherGRPCServer) IsRunning() bool {
 	return s.running
 }
 
-func (s *HasherGRPCServer) ExportSecurityData(req *hasher.ExportRequest, stream hasher.HasherService_ExportSecurityDataServer) error {
+func (s *HasherGRPCServer) ExportSecurityData(req *hasher.ExportRequest, stream hasher.HasherTrainingService_ExportSecurityDataServer) error {
 	log.Printf("HasherGRPCServer: ExportSecurityData called - org=%s, user=%s, type=%v, since=%d",
 		req.OrgId, req.UserId, req.DataType, req.SinceTimestamp)
 
@@ -421,7 +421,7 @@ func (s *HasherGRPCServer) ValidateAction(ctx context.Context, req *hasher.Actio
 	}, nil
 }
 
-func (s *HasherGRPCServer) StreamActivity(req *hasher.StreamActivityRequest, stream hasher.HasherService_StreamActivityServer) error {
+func (s *HasherGRPCServer) StreamActivity(req *hasher.StreamActivityRequest, stream hasher.HasherTrainingService_StreamActivityServer) error {
 	log.Printf("HasherGRPCServer: StreamActivity - org=%s, types=%v", req.OrgId, req.EventTypes)
 
 	ctx := stream.Context()

@@ -12,7 +12,7 @@ import (
 
 // HasherExporter handles exporting security data to the KNIRVHASHER 0_DATA_CONNECTOR via gRPC
 type HasherExporter struct {
-	grpcClient hasherpb.HasherServiceClient
+	grpcClient hasherpb.HasherTrainingServiceClient
 	conn       *grpc.ClientConn
 }
 
@@ -26,7 +26,7 @@ func NewHasherExporter(connectorAddr string) (*HasherExporter, error) {
 		return nil, fmt.Errorf("dial connector: %w", err)
 	}
 
-	client := hasherpb.NewHasherServiceClient(conn)
+	client := hasherpb.NewHasherTrainingServiceClient(conn)
 	return &HasherExporter{
 		grpcClient: client,
 		conn:       conn,

@@ -1,10 +1,16 @@
 package payment
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -106,12 +112,54 @@ func (ss *StripeService) RefundCharge(chargeID string, reason string) error {
 }
 
 // ValidateWebhookSignature validates a Stripe webhook signature
+// Uses HMAC-SHA256 to verify the signature matches the expected value
 func (ss *StripeService) ValidateWebhookSignature(payload []byte, signature string) error {
-	// In a real implementation, this would validate the webhook signature
-	// using the webhook secret and HMAC-SHA256
+	if ss.webhookSecret == "" {
+		return fmt.Errorf("webhook secret not configured")
+	}
 
-	log.Printf("Validating webhook signature")
-	return nil
+	// Parse the Stripe-Signature header
+	// Format: t=timestamp,v1=signature,v0=signature
+	parts := strings.Split(signature, ",")
+	var timestamp string
+	var signatures []string
+
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(part, "t=") {
+			timestamp = strings.TrimPrefix(part, "t=")
+		} else if strings.HasPrefix(part, "v1=") {
+			signatures = append(signatures, strings.TrimPrefix(part, "v1="))
+		}
+	}
+
+	if timestamp == "" || len(signatures) == 0 {
+		return fmt.Errorf("invalid signature format")
+	}
+
+	// Check timestamp to prevent replay attacks (within 5 minutes)
+	if ts, err := strconv.ParseInt(timestamp, 10, 64); err == nil {
+		if time.Since(time.Unix(ts, 0)) > 5*time.Minute {
+			return fmt.Errorf("webhook timestamp too old")
+		}
+	}
+
+	// Compute expected signature
+	// Stripe uses: HMAC_SHA256(webhook_secret, timestamp + "." + payload)
+	mac := hmac.New(sha256.New, []byte(ss.webhookSecret))
+	mac.Write([]byte(timestamp))
+	mac.Write([]byte("."))
+	mac.Write(payload)
+	expectedSignature := hex.EncodeToString(mac.Sum(nil))
+
+	// Compare signatures
+	for _, sig := range signatures {
+		if hmac.Equal([]byte(sig), []byte(expectedSignature)) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("signature mismatch")
 }
 
 // ProcessChargeSucceeded processes a successful charge webhook
@@ -139,19 +187,111 @@ func (ss *StripeService) ProcessChargeFailed(chargeID string, reason string) err
 	return nil
 }
 
-// HandleWebhook processes incoming Stripe webhooks
+// HandleWebhook processes incoming Stripe webhooks with signature verification
 func (ss *StripeService) HandleWebhook(w http.ResponseWriter, r *http.Request) {
-	// In a real implementation, this would:
-	// 1. Read the webhook payload
-	// 2. Validate the signature
-	// 3. Parse the event type
-	// 4. Process the event (charge.succeeded, charge.failed, etc.)
+	const MaxBodyBytes = int64(65536)
+	r.Body = http.MaxBytesReader(w, r.Body, MaxBodyBytes)
 
-	log.Printf("Processing Stripe webhook")
+	payload, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
 
-	// Simulate webhook processing
+	stripeSignature := r.Header.Get("Stripe-Signature")
+	if stripeSignature == "" {
+		http.Error(w, "Missing Stripe-Signature header", http.StatusBadRequest)
+		return
+	}
+
+	// Validate webhook signature
+	if err := ss.ValidateWebhookSignature(payload, stripeSignature); err != nil {
+		http.Error(w, fmt.Sprintf("Webhook signature verification failed: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// Parse the event
+	var event struct {
+		ID      string          `json:"id"`
+		Type    string          `json:"type"`
+		Data    json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(payload, &event); err != nil {
+		http.Error(w, "Error parsing webhook event", http.StatusBadRequest)
+		return
+	}
+
+	// Process the event based on type
+	switch event.Type {
+	case "payment_intent.succeeded":
+		var paymentIntent map[string]interface{}
+		if err := json.Unmarshal(event.Data, &paymentIntent); err == nil {
+			ss.handlePaymentSucceeded(paymentIntent)
+		}
+
+	case "payment_intent.payment_failed":
+		var paymentIntent map[string]interface{}
+		if err := json.Unmarshal(event.Data, &paymentIntent); err == nil {
+			ss.handlePaymentFailed(paymentIntent)
+		}
+
+	case "charge.succeeded":
+		var charge map[string]interface{}
+		if err := json.Unmarshal(event.Data, &charge); err == nil {
+			ss.handleChargeSucceeded(charge)
+		}
+
+	case "charge.failed":
+		var charge map[string]interface{}
+		if err := json.Unmarshal(event.Data, &charge); err == nil {
+			ss.handleChargeFailed(charge)
+		}
+
+	default:
+		fmt.Printf("Unhandled webhook event type: %s\n", event.Type)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok", "event_id": event.ID})
+}
+
+// handlePaymentSucceeded processes a successful payment intent
+func (ss *StripeService) handlePaymentSucceeded(paymentIntent map[string]interface{}) {
+	fmt.Printf("Payment succeeded: %v\n", paymentIntent["id"])
+
+	// Extract rental ID from metadata
+	if metadata, ok := paymentIntent["metadata"].(map[string]interface{}); ok {
+		if rentalID, ok := metadata["rental_id"].(string); ok {
+			fmt.Printf("Updating rental %s to active\n", rentalID)
+			// Update rental status in database
+			// Provision DVE resources
+			// Send confirmation email
+		}
+	}
+}
+
+// handlePaymentFailed processes a failed payment intent
+func (ss *StripeService) handlePaymentFailed(paymentIntent map[string]interface{}) {
+	fmt.Printf("Payment failed: %v\n", paymentIntent["id"])
+
+	if metadata, ok := paymentIntent["metadata"].(map[string]interface{}); ok {
+		if rentalID, ok := metadata["rental_id"].(string); ok {
+			fmt.Printf("Marking rental %s as failed\n", rentalID)
+			// Update rental status to failed
+			// Notify user
+		}
+	}
+}
+
+// handleChargeSucceeded processes a successful charge
+func (ss *StripeService) handleChargeSucceeded(charge map[string]interface{}) {
+	fmt.Printf("Charge succeeded: %v\n", charge["id"])
+}
+
+// handleChargeFailed processes a failed charge
+func (ss *StripeService) handleChargeFailed(charge map[string]interface{}) {
+	fmt.Printf("Charge failed: %v\n", charge["id"])
 }
 
 // CalculateAmount calculates the amount in cents for a rental

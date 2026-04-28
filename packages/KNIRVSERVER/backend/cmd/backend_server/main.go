@@ -74,6 +74,7 @@ import (
 
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"github.com/subosito/gotenv"
 	"go.uber.org/zap"
@@ -1488,21 +1489,20 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("/health", s.handleHealth).Methods("GET")
 	s.router.HandleFunc("/api/health", s.handleHealth).Methods("GET")
 
+	// Prometheus metrics endpoint
+	s.router.Handle("/metrics", promhttp.Handler()).Methods("GET")
+
 	// Create auth middleware
 	var authMiddleware *middleware.AuthMiddleware
 	log.Printf("DEBUG: Auth required: %v, JWT secret length: %d", s.config.Security.AuthRequired, len(s.config.Security.JWTSecret))
-	if s.config.Security.AuthRequired {
-		var err error
-		authMiddleware, err = middleware.NewAuthMiddleware(s.db, s.config.Security.JWTSecret)
-		if err != nil {
-			log.Printf("Warning: Failed to create auth middleware: %v", err)
-			authMiddleware = nil
-		}
-	} else {
-		log.Println("Auth disabled for testnet mode")
+	var err error
+	authMiddleware, err = middleware.NewAuthMiddleware(s.db, s.config.Security.JWTSecret, s.config.Security.AuthRequired)
+	if err != nil {
+		log.Printf("Warning: Failed to create auth middleware: %v", err)
 		authMiddleware = nil
+	} else {
+		log.Printf("Auth middleware created, auth required: %v", s.config.Security.AuthRequired)
 	}
-	log.Printf("DEBUG: authMiddleware is nil: %v", authMiddleware == nil)
 
 	// Initialize WebSocket service after auth middleware is created
 	wsService := websocket.NewWebSocketService(s.inferenceService, s.dveManager, s.validationCore, s.sessionManager, s.teeSecurityService)
@@ -1746,7 +1746,7 @@ func (s *Server) setupRoutes() {
 
 	// Register NRN payment routes
 	if s.transactionChainClient != nil {
-		nrnHandlers := web.NewNRNPaymentHandlers(s.transactionChainClient)
+		nrnHandlers := web.NewNRNPaymentHandlers(s.transactionChainClient, s.db.GetDB())
 		nrnHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("NRN payment routes configured")
 	}
@@ -1781,7 +1781,7 @@ func (s *Server) setupRoutes() {
 		web.NewDVEHandlers(s.dveManager),
 		web.NewPluginManagementHandlers(s.fabricManagementService),
 		web.NewAgentHandlers(s.agentService),
-		web.NewPaymentHandlers(nil, nil, s.eventBroadcaster),
+		web.NewPaymentHandlers(nil, nil),
 		web.NewKNIRVSHELLHandlers(s.knirvshellService),
 		web.NewOnboardingHandlers(s.onboardingService),
 		web.NewCognitiveEngineHandlers(s.cognitiveEngine),

@@ -13,6 +13,8 @@ type PolicyRule struct {
 	ID                string
 	Description       string
 	DVEID             string // empty = applies to all DVEs
+	BadgeID           string // empty = applies to all badges
+	BadgeOntologyTags []string // ontology elements from badge
 	Metric            string // "success_rate", "avg_processing_time", "resource_utilization", "violation_count"
 	Operator          string // "lt", "gt", "eq", "lte", "gte"
 	Threshold         float64
@@ -88,6 +90,42 @@ func (ge *GuardrailEngine) registerEscalationPolicies() {
 	ge.escalationPolicies["redistribute_tasks"] = "scale_resources"
 	ge.escalationPolicies["scale_resources"] = "alert_operators"
 	ge.escalationPolicies["alert_operators"] = "kernel_isolation"
+}
+
+// InjectBadgeRules creates guardrail rules based on badge ontology tags.
+// This is called when a badge is attached to a DVE node.
+func (ge *GuardrailEngine) InjectBadgeRules(dveID string, badgeID string, ontologyTags []string) {
+	ge.mu.Lock()
+	defer ge.mu.Unlock()
+
+	// Create ontology-scoped rules based on badge tags
+	for _, tag := range ontologyTags {
+		ruleID := fmt.Sprintf("badge_%s_%s", badgeID, tag)
+		
+		// Skip if rule already exists
+		if _, exists := ge.policies[ruleID]; exists {
+			continue
+		}
+
+		// Create tag-specific rule
+		rule := &PolicyRule{
+			ID:                ruleID,
+			Description:       fmt.Sprintf("Badge %s ontology constraint: %s", badgeID, tag),
+			DVEID:             dveID,
+			BadgeID:           badgeID,
+			BadgeOntologyTags:  ontologyTags,
+			Metric:            "violation_count",
+			Operator:          "gt",
+			Threshold:         3.0,
+			Severity:          "warning",
+			RemediationAction: "quarantine_node",
+			Enabled:           true,
+			CreatedAt:         time.Now(),
+		}
+
+		ge.policies[ruleID] = rule
+		log.Printf("Injected badge rule %s for DVE %s (badge %s, tag %s)", ruleID, dveID, badgeID, tag)
+	}
 }
 
 func (ge *GuardrailEngine) registerDefaultPolicies() {

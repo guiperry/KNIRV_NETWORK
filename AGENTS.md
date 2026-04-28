@@ -20,6 +20,16 @@ KNIRV Network — Decentralized Trusted Execution Network (D-TEN). Transforms AI
 | `integration-tests` | Go | `integration-tests/go.mod` |
 | `modp` | P language | `modp/KnirvNetwork.pproj` |
 
+## Memory System
+
+UnifiedMemorySystem — All knowledge representation in one module.
+
+| Package | Tech | Module file |
+|---------|------|-------------|
+| `backend/internal/services/memory/` | PQC + GraphRAG + Ontology | `services/memory/service.go` |
+| `backend/internal/storage/memory_store.go` | Markdown + Arrow | `storage/memory_store.go` |
+| `pkg/knirvgraph/` | External graph binary | `pkg/knirvgraph/manager.go` |
+
 ## Architecture
 
 **Entry points:**

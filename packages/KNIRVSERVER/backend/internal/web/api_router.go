@@ -176,12 +176,14 @@ func (ar *APIRouter) registerPaymentRoutes(apiV1 *mux.Router) {
 	paymentRouter.HandleFunc("/stripe/create-session", ar.paymentHandlers.CreateStripeCheckoutSession).Methods("POST", "OPTIONS")
 	paymentRouter.HandleFunc("/stripe/charge-status", ar.paymentHandlers.GetStripeChargeStatus).Methods("GET", "OPTIONS")
 	paymentRouter.HandleFunc("/stripe/refund", ar.paymentHandlers.RefundStripeCharge).Methods("POST", "OPTIONS")
+	paymentRouter.HandleFunc("/stripe/webhook", ar.paymentHandlers.StripeWebhook).Methods("POST", "OPTIONS")
 
 	// PayPal payment operations
 	paymentRouter.HandleFunc("/paypal/create-order", ar.paymentHandlers.CreatePayPalOrder).Methods("POST", "OPTIONS")
 	paymentRouter.HandleFunc("/paypal/order-status", ar.paymentHandlers.GetPayPalOrderStatus).Methods("GET", "OPTIONS")
 	paymentRouter.HandleFunc("/paypal/capture", ar.paymentHandlers.CapturePayPalOrder).Methods("POST", "OPTIONS")
 	paymentRouter.HandleFunc("/paypal/refund", ar.paymentHandlers.RefundPayPalCapture).Methods("POST", "OPTIONS")
+	paymentRouter.HandleFunc("/paypal/webhook", ar.paymentHandlers.PayPalWebhook).Methods("POST", "OPTIONS")
 }
 
 // registerKNIRVSHELLRoutes registers KNIRVSHELL-related routes

@@ -3,17 +3,19 @@ package web
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/auth"
+	"backend_server/internal/services/logging"
 	"backend_server/internal/web/middleware"
 
 	"github.com/gorilla/mux"
 )
+
+var authLogger = logging.NewJSONLogger("auth_handlers", nil)
 
 type AuthHandlers struct {
 	db   *database.BuntDBManager
@@ -191,11 +193,19 @@ func (h *AuthHandlers) RegisterRoutes(r *mux.Router) {
 	// Protected routes (require authentication)
 	protectedRouter := authRouter.PathPrefix("").Subrouter()
 	protectedRouter.Use(h.auth.RequireAuth)
-	protectedRouter.HandleFunc("/me", h.Me).Methods("GET")
-	protectedRouter.HandleFunc("/change-password", h.ChangePassword).Methods("POST")
-	protectedRouter.HandleFunc("/update-profile", h.UpdateProfile).Methods("PUT")
-	protectedRouter.HandleFunc("/preferences", h.GetPreferences).Methods("GET")
-	protectedRouter.HandleFunc("/preferences", h.UpdatePreferences).Methods("PUT")
+	protectedRouter.HandleFunc("/me", h.Me).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/change-password", h.ChangePassword).Methods("POST", "OPTIONS")
+	protectedRouter.HandleFunc("/update-profile", h.UpdateProfile).Methods("PUT", "OPTIONS")
+	protectedRouter.HandleFunc("/preferences", h.GetPreferences).Methods("GET", "OPTIONS")
+	protectedRouter.HandleFunc("/preferences", h.UpdatePreferences).Methods("PUT", "OPTIONS")
+
+	// Token revocation (protected)
+	protectedRouter.HandleFunc("/revoke", h.Revoke).Methods("POST", "OPTIONS")
+
+	// Handle OPTIONS requests for CORS
+	authRouter.Methods("OPTIONS").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 }
 
 func (h *AuthHandlers) Revoke(w http.ResponseWriter, r *http.Request) {
@@ -392,7 +402,7 @@ func (h *AuthHandlers) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	if req.OnboardingData != nil {
 		preferencesKey := fmt.Sprintf("users:preferences:%s", authCtx.UserID)
 		if err := h.db.StoreJSON(preferencesKey, req.OnboardingData); err != nil {
-			log.Printf("Failed to save onboarding data: %v", err)
+			authLogger.Error("Failed to save onboarding data", logging.ErrorField(err), logging.String("user_id", authCtx.UserID))
 			// Don't fail the request, just log the error
 		}
 	}
@@ -449,7 +459,7 @@ func (h *AuthHandlers) UpdatePreferences(w http.ResponseWriter, r *http.Request)
 	if req.OnboardingData != nil {
 		err := h.db.SetJSON(preferencesKey, req.OnboardingData)
 		if err != nil {
-			log.Printf("Error saving preferences: %v", err)
+			authLogger.Error("Error saving preferences", logging.ErrorField(err), logging.String("user_id", authCtx.UserID))
 			http.Error(w, "failed to save preferences", http.StatusInternalServerError)
 			return
 		}

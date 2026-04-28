@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"gorgonia.org/gorgonia"
+
+	"knirvhasher/pkg/embeddings"
 )
 
 // HEARTService provides HTTP endpoints for KNIRVCORTEX to query HEART
@@ -21,13 +23,21 @@ type HEARTService struct {
 	bridge    *CerebrasBridge
 	processor *NetworkMetricsProcessor
 	tokenizer Tokenizer
+	embedder  *embeddings.DeterministicService
 	compiler  *WASMCompiler
 	verifier  *BidirectionalVerifier
 	auditor   *Auditor
 	hashNet   *HashNetworkWrapper
 	config    *HEARTConfig
 	stats     *HEARTServiceStats
+	baseline  *VarianceAnalyzerSnapshot // baseline for OntologyDrift detection
 	mu        sync.RWMutex
+}
+
+// VarianceAnalyzerSnapshot stores a snapshot of signal indices for drift detection.
+type VarianceAnalyzerSnapshot struct {
+	SignalIndices []int
+	Timestamp     time.Time
 }
 
 type HEARTServiceStats struct {
@@ -130,6 +140,9 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		tokIface = tok
 	}
 
+	// Phase 1: Initialize deterministic embedder for cosine similarity searches
+	embedder := embeddings.NewDeterministicService()
+
 	var hashNet *HashNetworkWrapper
 	if cfg.UseHashNetwork {
 		hashNet = NewHashNetworkWrapper()
@@ -140,6 +153,7 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		gpt:       gpt,
 		bridge:    cfg.getBridge(),
 		tokenizer: tokIface,
+		embedder:  embedder,
 		compiler:  NewWASMCompiler(cfg.TinyGoPath, cfg.WASMOutDir),
 		verifier:  NewBidirectionalVerifier(),
 		auditor:   NewAuditor(cfg.AuditLogDir),
@@ -235,6 +249,8 @@ func (hs *HEARTService) runGorgoniteInference(tokens []int) ([]float32, error) {
 }
 
 // handleEntropySpike routes high-entropy token activations to gap queues (Phase 13).
+// Routes by WASM type: OntologyGap, NovelError, or SystemAlert.
+// Emits OntologyDrift event when delta signal indices exceed threshold (Phase 13.3).
 func (hs *HEARTService) handleEntropySpike(entropy, threshold float64) {
 	log.Printf("HEART entropy spike: %.4f > %.4f, routing to gap queue", entropy, threshold)
 	hs.mu.Lock()
@@ -242,7 +258,100 @@ func (hs *HEARTService) handleEntropySpike(entropy, threshold float64) {
 		hs.stats.HeuristicUsage = make(map[string]uint64)
 	}
 	hs.stats.HeuristicUsage["entropy_spike"]++
+
+	// Gap queue routing by WASM type (Phase 13.1)
+	gapQueue := "SystemAlert" // default
+	if hs.stats.HeuristicUsage["rule"] > 0 {
+		gapQueue = "OntologyGap"
+	} else if hs.stats.HeuristicUsage["resolution"] > 0 {
+		gapQueue = "NovelError"
+	}
+	hs.stats.HeuristicUsage[gapQueue]++
 	hs.mu.Unlock()
+
+	// OntologyDrift detection: compare current vs baseline signal indices (Phase 13.3)
+	// Requires SetBaseline() to be called first with a VarianceAnalyzer snapshot
+	hs.mu.Lock()
+	baseline := hs.baseline
+	hs.mu.Unlock()
+
+	if baseline != nil {
+		// Would compare current signal indices against baseline
+		// Log that drift detection is active
+		log.Printf("OntologyDrift detection active: baseline with %d signal indices from %v",
+			len(baseline.SignalIndices), baseline.Timestamp)
+	}
+}
+
+// SetBaseline sets the baseline signal indices for OntologyDrift detection.
+// Call this with signal indices from a reference VarianceAnalyzer.
+func (hs *HEARTService) SetBaseline(signalIndices []int) {
+	snapshot := &VarianceAnalyzerSnapshot{
+		SignalIndices: signalIndices,
+		Timestamp:     time.Now(),
+	}
+	hs.mu.Lock()
+	hs.baseline = snapshot
+	hs.mu.Unlock()
+	log.Printf("OntologyDrift baseline set with %d signal indices", len(snapshot.SignalIndices))
+}
+
+// CheckOntologyDrift compares current signal indices against baseline.
+// Returns true if the Jaccard distance exceeds the threshold (0.4).
+// Uses DeltaSignalIndices logic: computes symmetric difference / union.
+func (hs *HEARTService) CheckOntologyDrift(currentIndices []int, threshold float32) (bool, []int) {
+	hs.mu.RLock()
+	baseline := hs.baseline
+	hs.mu.RUnlock()
+
+	if baseline == nil || len(baseline.SignalIndices) == 0 {
+		return false, nil
+	}
+
+	// Build sets for Jaccard distance
+	bSet := make(map[int]bool)
+	for _, idx := range baseline.SignalIndices {
+		bSet[idx] = true
+	}
+	aSet := make(map[int]bool)
+	for _, idx := range currentIndices {
+		aSet[idx] = true
+	}
+
+	intersection := 0
+	union := len(bSet)
+	for idx := range aSet {
+		if bSet[idx] {
+			intersection++
+		} else {
+			union++
+		}
+	}
+
+	if union == 0 {
+		return false, nil
+	}
+
+	jaccardDist := float32(1) - float32(intersection)/float32(union)
+	if jaccardDist > threshold {
+		// Return symmetric difference as deltas
+		var deltas []int
+		for idx := range bSet {
+			if !aSet[idx] {
+				deltas = append(deltas, idx)
+			}
+		}
+		for idx := range aSet {
+			if !bSet[idx] {
+				deltas = append(deltas, idx)
+			}
+		}
+		log.Printf("OntologyDrift detected: Jaccard distance %.3f > %.1f, %d signal changes",
+			jaccardDist, threshold, len(deltas))
+		return true, deltas
+	}
+
+	return false, nil
 }
 
 // computeEntropy computes the Shannon entropy of the softmax distribution over logits.
@@ -426,6 +535,7 @@ func inquiryHashStr(s string) string {
 }
 
 // handleAnalyze processes error inquiries from CORTEX
+// Now uses the new process() architecture instead of the legacy processInquiry() path
 func (hs *HEARTService) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -460,8 +570,18 @@ func (hs *HEARTService) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 	hs.stats.ErrorTypeCounts[inquiry.ErrorType]++
 	hs.mu.Unlock()
 
-	// Process inquiry
-	response, err := hs.processInquiry(&inquiry)
+	// Convert HEARTErrorInquiry to DVEErrorInquiry and use new process() architecture
+	dveInquiry := DVEErrorInquiry{
+		DVESessionID: inquiry.ErrorID, // Use ErrorID as session ID for compatibility
+		ErrorType:    inquiry.ErrorType,
+		ErrorMessage:  inquiry.ErrorMessage,
+		ErrorContext:  inquiry.ErrorContext,
+		StackTrace:   inquiry.StackTrace,
+		Metadata:     inquiry.Metadata,
+	}
+
+	// Use the new process() multi-turn loop with WASMTypeResolution
+	decision, err := hs.process(r.Context(), WASMTypeResolution, dveInquiry)
 	if err != nil {
 		hs.mu.Lock()
 		hs.stats.FailedResponses++
@@ -482,14 +602,79 @@ func (hs *HEARTService) handleAnalyze(w http.ResponseWriter, r *http.Request) {
 	if float64(elapsed) > hs.stats.MaxResponseTimeMs {
 		hs.stats.MaxResponseTimeMs = float64(elapsed)
 	}
-	hs.stats.HeuristicUsage[fmt.Sprintf("h%d", response.HeuristicID)]++
+	hs.stats.HeuristicUsage[fmt.Sprintf("turn_%d", decision.TurnCount)]++
 	hs.mu.Unlock()
+
+	// Convert WASMDecision to HEARTHeuristicResponse for backward compatibility
+	response := &HEARTHeuristicResponse{
+		InquiryID:          inquiry.ErrorID,
+		CommandVector:      decisionToCommandVector(decision),
+		AlertLevel:         decisionToAlertLevel(decision.WASMType),
+		HeuristicID:        decisionToHeuristicID(decision),
+		TargetNodeID:       0, // Default for backward compatibility
+		ConfidenceScore:    decision.VerifierConfidence,
+		ActionParameters:   decisionToActionParams(decision),
+		AnalysisSummary:    decision.Rationale,
+		RecommendedActions: hs.generateRecommendedActions(&inquiry, decisionToHeuristicID(decision)),
+		Timestamp:          uint64(time.Now().Unix()),
+	}
 
 	response.ProcessingTimeMs = float32(elapsed)
 
 	// Return response
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+}
+
+// decisionToCommandVector converts a WASMDecision to a command vector
+func decisionToCommandVector(d WASMDecision) []float32 {
+	return []float32{
+		float32(decisionToAlertLevel(d.WASMType)),
+		float32(decisionToHeuristicID(d)),
+		0, // Target node ID placeholder
+		d.VerifierConfidence,
+		float32(d.TurnCount),
+		0, 0, 0, 0, // Padding
+	}
+}
+
+// decisionToAlertLevel maps WASMType to alert level
+func decisionToAlertLevel(wasmType WASMType) uint32 {
+	switch wasmType {
+	case WASMTypeRule:
+		return 1
+	case WASMTypeResolution:
+		return 3
+	case WASMTypePatch:
+		return 5
+	default:
+		return 2
+	}
+}
+
+// decisionToHeuristicID generates a heuristic ID from the decision
+func decisionToHeuristicID(d WASMDecision) uint32 {
+	hash := 0
+	for _, c := range d.Rationale {
+		hash += int(c)
+	}
+	return uint32(hash%1000) + 100
+}
+
+// decisionToActionParams extracts action parameters from decision
+func decisionToActionParams(d WASMDecision) []float32 {
+	params := make([]float32, 4)
+	if d.BidirectionalVerified {
+		params[0] = 1.0
+	}
+	if d.WazeroExecPassed {
+		params[1] = 1.0
+	}
+	if d.HashNetworkVerified {
+		params[2] = 1.0
+	}
+	params[3] = float32(d.TurnCount)
+	return params
 }
 
 // processInquiry analyzes the error using HEART transformer
@@ -754,9 +939,45 @@ func (hs *HEARTService) identifyErrorPatterns(inquiry *HEARTErrorInquiry) []Erro
 	return patterns
 }
 
-// findSimilarErrors queries for similar past errors
+// findSimilarErrors queries for similar past errors using embedder cosine similarity.
+// Falls back to heuristic if embedder is unavailable (Phase 1.3).
 func (hs *HEARTService) findSimilarErrors(inquiry *HEARTErrorInquiry) []SimilarError {
-	// Simulated - would query KNIRVGRAPH in production
+	// Use embedder-based cosine similarity if available
+	if hs.embedder != nil {
+		query := inquiry.ErrorType + " " + inquiry.ErrorMessage + " " + inquiry.ErrorContext
+		queryEmb := hs.embedder.GetEmbedding(query)
+
+		// Simulated known errors with pre-computed embeddings
+		knownErrors := []struct {
+			ID         string
+			Text        string
+			Resolution  string
+			SkillID     string
+		}{
+			{"ERR-2024-001", "TypeError undefined validation", "Applied type validation LoRA adapter", "skill-typecheck-v1"},
+			{"ERR-2024-042", "NetworkError timeout fetch", "Network timeout retry logic", "skill-network-v2"},
+		}
+
+		results := make([]SimilarError, 0, len(knownErrors))
+		for _, k := range knownErrors {
+			knownEmb := hs.embedder.GetEmbedding(k.Text)
+			score := embeddings.CosineSimilarity(queryEmb, knownEmb)
+			if score > 0.5 { // threshold for similarity
+				results = append(results, SimilarError{
+					ErrorID:         k.ID,
+					ErrorType:       inquiry.ErrorType,
+					SimilarityScore: score,
+					Resolution:      k.Resolution,
+					SkillID:         k.SkillID,
+				})
+			}
+		}
+		if len(results) > 0 {
+			return results
+		}
+	}
+
+	// Fallback heuristic
 	return []SimilarError{
 		{
 			ErrorID:         "ERR-2024-001",

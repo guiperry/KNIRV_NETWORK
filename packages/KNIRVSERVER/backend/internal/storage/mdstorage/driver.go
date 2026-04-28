@@ -43,10 +43,16 @@ func NewMarkdownStorageDriver(baseDir string, em *pqc.EncryptionManager, keyID s
 
 // SaveDocument encrypts and saves a MarkdownDocument to disk
 func (d *MarkdownStorageDriver) SaveDocument(doc *MarkdownDocument) error {
-	// 1. Encrypt the content
-	encryptedContent, err := d.encManager.EncryptData(doc.Content, d.keyID)
-	if err != nil {
-		return fmt.Errorf("encryption failed: %w", err)
+	// 1. Encrypt the content (if encryption manager is available)
+	var encryptedContent string
+	if d.encManager != nil {
+		var err error
+		encryptedContent, err = d.encManager.EncryptData(doc.Content, d.keyID)
+		if err != nil {
+			return fmt.Errorf("encryption failed: %w", err)
+		}
+	} else {
+		encryptedContent = string(doc.Content)
 	}
 
 	// 2. Prepare the .md file content

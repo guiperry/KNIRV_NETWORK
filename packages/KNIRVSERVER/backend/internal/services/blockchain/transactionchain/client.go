@@ -283,21 +283,21 @@ func (c *Client) GetBlockHeight() (uint64, error) {
 		return c.httpGetBlockHeight()
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	resp, err := c.client.GetBlockHeight(ctx, &pb.GetBlockHeightRequest{})
 	if err != nil {
-		return 0, fmt.Errorf("failed to get block height: %w", err)
+		return 0, fmt.Errorf("failed to get block height via gRPC: %w", err)
 	}
 
 	return resp.Height, nil
 }
 
 func (c *Client) httpGetBlockHeight() (uint64, error) {
-	resp, err := c.httpClient.Get(c.httpBaseURL + "/chain/height")
+	resp, err := c.httpClient.Get(c.httpBaseURL + "/block_height")
 	if err != nil {
-		return 0, fmt.Errorf("failed to query block height: %w", err)
+		return 0, fmt.Errorf("failed to query blockchain: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -305,14 +305,87 @@ func (c *Client) httpGetBlockHeight() (uint64, error) {
 		return 0, fmt.Errorf("block height query failed with status: %d", resp.StatusCode)
 	}
 
-	var heightResp struct {
+	var result struct {
 		Height uint64 `json:"height"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&heightResp); err != nil {
-		return 0, fmt.Errorf("failed to decode height response: %w", err)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return 0, fmt.Errorf("failed to decode block height response: %w", err)
 	}
 
-	return heightResp.Height, nil
+	return result.Height, nil
+}
+
+// TransferNRN submits an NRN token transfer transaction
+func (c *Client) TransferNRN(senderID, recipientID string, amount int64) (*objects.NRNPayment, error) {
+	if senderID == "" || recipientID == "" {
+		return nil, fmt.Errorf("sender and recipient IDs are required")
+	}
+	if amount <= 0 {
+		return nil, fmt.Errorf("amount must be positive")
+	}
+
+	if c.httpBaseURL != "" {
+		return c.httpTransferNRN(senderID, recipientID, amount)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	resp, err := c.client.SubmitTransaction(ctx, &pb.SubmitTransactionRequest{
+		From:  senderID,
+		To:    recipientID,
+		Value: amount,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to submit NRN transfer via gRPC: %w", err)
+	}
+
+	return &objects.NRNPayment{
+		ID:        fmt.Sprintf("nrm_%s_%d", senderID, time.Now().Unix()),
+		TxHash:    resp.TxHash,
+		Amount:    amount,
+		Status:    resp.Status,
+		CreatedAt: time.Now(),
+	}, nil
+}
+
+func (c *Client) httpTransferNRN(senderID, recipientID string, amount int64) (*objects.NRNPayment, error) {
+	tx := &Transaction{
+		From:  senderID,
+		To:    recipientID,
+		Value: amount,
+	}
+
+	txJSON, err := json.Marshal(tx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal transaction: %w", err)
+	}
+
+	resp, err := c.httpClient.Post(c.httpBaseURL+"/transfer", "application/json", bytes.NewBuffer(txJSON))
+	if err != nil {
+		return nil, fmt.Errorf("failed to submit NRN transfer: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("NRN transfer failed with status: %d", resp.StatusCode)
+	}
+
+	var result struct {
+		TxHash string `json:"tx_hash"`
+		Status  string `json:"status"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode transfer response: %w", err)
+	}
+
+	return &objects.NRNPayment{
+		ID:        fmt.Sprintf("nrm_%s_%d", senderID, time.Now().Unix()),
+		TxHash:    result.TxHash,
+		Amount:    amount,
+		Status:    result.Status,
+		CreatedAt: time.Now(),
+	}, nil
 }
 
 func (c *Client) RegisterDVENode(nodeID, ownerAddress string, stakeAmount int64) (string, error) {

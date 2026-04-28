@@ -17,7 +17,7 @@ import (
 )
 
 type HasherIntegration struct {
-	hasherClient hasher.HasherServiceClient
+	hasherClient hasher.HasherTrainingServiceClient
 	conn         *grpc.ClientConn
 	guardrailMgr *guardrails.DynamicGuardrailManager
 	db           interface {
@@ -66,7 +66,7 @@ func (hi *HasherIntegration) Connect(ctx context.Context) error {
 		return err
 	}
 
-	hi.hasherClient = hasher.NewHasherServiceClient(hi.conn)
+	hi.hasherClient = hasher.NewHasherTrainingServiceClient(hi.conn)
 	hi.available = true
 	log.Printf("HasherIntegration: Connected to hasher gRPC at %s", hi.socketPath)
 	return nil
@@ -440,13 +440,13 @@ func (hi *HasherIntegration) RegisterWithDVEManager(dm *DVEManager) {
 	log.Printf("HasherIntegration: Registered with DVE Manager")
 }
 
-type HasherServiceServer struct {
-	hasher.UnimplementedHasherServiceServer
+type HasherTrainingServiceServer struct {
+	hasher.UnimplementedHasherTrainingServiceServer
 	integration *HasherIntegration
 }
 
-func NewHasherServiceServer(integration *HasherIntegration) *HasherServiceServer {
-	return &HasherServiceServer{
+func NewHasherTrainingServiceServer(integration *HasherIntegration) *HasherTrainingServiceServer {
+	return &HasherTrainingServiceServer{
 		integration: integration,
 	}
 }

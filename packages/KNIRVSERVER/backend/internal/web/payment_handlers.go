@@ -5,24 +5,20 @@ import (
 	"net/http"
 
 	"backend_server/internal/services/payment"
-	"backend_server/internal/services/websocket"
 )
 
 type PaymentHandlers struct {
-	stripeService    *payment.StripeService
-	paypalService    *payment.PayPalService
-	eventBroadcaster *websocket.EventBroadcaster
+	stripeService *payment.StripeService
+	paypalService *payment.PayPalService
 }
 
 func NewPaymentHandlers(
 	stripeService *payment.StripeService,
 	paypalService *payment.PayPalService,
-	eventBroadcaster *websocket.EventBroadcaster,
 ) *PaymentHandlers {
 	return &PaymentHandlers{
-		stripeService:    stripeService,
-		paypalService:    paypalService,
-		eventBroadcaster: eventBroadcaster,
+		stripeService: stripeService,
+		paypalService: paypalService,
 	}
 }
 
@@ -203,4 +199,29 @@ func (h *PaymentHandlers) RefundPayPalCapture(w http.ResponseWriter, r *http.Req
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "refunded"})
+}
+
+// StripeWebhook handles Stripe webhook callbacks with signature verification
+func (h *PaymentHandlers) StripeWebhook(w http.ResponseWriter, r *http.Request) {
+	if h.stripeService == nil {
+		http.Error(w, "Stripe service not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Delegate to Stripe service which handles signature verification and event processing
+	h.stripeService.HandleWebhook(w, r)
+}
+
+// PayPalWebhook handles PayPal webhook callbacks with signature verification
+func (h *PaymentHandlers) PayPalWebhook(w http.ResponseWriter, r *http.Request) {
+	if h.paypalService == nil {
+		http.Error(w, "PayPal service not configured", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Read and verify PayPal webhook
+	// The service's HandleWebhook method handles verification and processing
+	h.paypalService.HandleWebhook(w, r)
+
+	w.WriteHeader(http.StatusOK)
 }

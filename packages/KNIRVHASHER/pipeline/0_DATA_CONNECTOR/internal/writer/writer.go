@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
-	hasherpb "knirvhasher/proto"
+	hasherpb "knirvhasher/proto/hasher/training/v1"
 )
 
 // MDWriter saves each decrypted chunk as a raw .md file in the connector_raw

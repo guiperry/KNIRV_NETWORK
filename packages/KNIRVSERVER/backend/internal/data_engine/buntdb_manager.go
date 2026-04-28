@@ -230,6 +230,11 @@ func (m *BuntDBManager) Close() error {
 	return m.db.Close()
 }
 
+// GetDB returns the underlying *buntdb.DB instance for direct access
+func (m *BuntDBManager) GetDB() *buntdb.DB {
+	return m.db
+}
+
 // createIndexes creates indexes for efficient querying
 func (m *BuntDBManager) createIndexes() error {
 	return m.db.Update(func(tx *buntdb.Tx) error {

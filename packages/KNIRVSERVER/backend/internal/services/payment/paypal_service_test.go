@@ -9,8 +9,9 @@ func TestNewPayPalService(t *testing.T) {
 	secret := "test_secret"
 	environment := "sandbox"
 	currency := "USD"
+	webhookID := "test_webhook_id"
 
-	service := NewPayPalService(clientID, secret, environment, currency)
+	service := NewPayPalService(clientID, secret, environment, currency, webhookID)
 
 	if service.clientID != clientID {
 		t.Errorf("Expected clientID %s, got %s", clientID, service.clientID)
@@ -34,7 +35,7 @@ func TestNewPayPalService(t *testing.T) {
 }
 
 func TestPayPalService_CreateOrder(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	rentalID := "rental_123"
 	amount := 29.99
@@ -77,7 +78,7 @@ func TestPayPalService_CreateOrder(t *testing.T) {
 }
 
 func TestPayPalService_CaptureOrder(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	orderID := "PAY-rental_123-1234567890"
 
@@ -108,7 +109,7 @@ func TestPayPalService_CaptureOrder(t *testing.T) {
 }
 
 func TestPayPalService_GetOrderStatus(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	orderID := "PAY-rental_123-1234567890"
 
@@ -139,7 +140,7 @@ func TestPayPalService_GetOrderStatus(t *testing.T) {
 }
 
 func TestPayPalService_RefundCapture(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	captureID := "CAP-PAY-rental_123-1234567890"
 	reason := "Customer request"
@@ -151,16 +152,17 @@ func TestPayPalService_RefundCapture(t *testing.T) {
 }
 
 func TestPayPalService_ValidateWebhookSignature(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	headers := map[string]string{
-		"paypal-auth-algo":         "SHA256withRSA",
-		"paypal-cert-url":          "https://api.paypal.com/v1/notifications/certs/CERT-360caa42-fca2a594-2c01f983",
-		"paypal-transmission-id":   "69cd13f0-d67e-11e5-baa3-778b3bb2aa58",
-		"paypal-transmission-sig":  "lm2RZ...==",
-		"paypal-transmission-time": "2016-02-18T20:01:35Z",
+		"Paypal-Auth-Algo":         "SHA256withRSA",
+		"Paypal-Cert-Url":          "https://api.paypal.com/v1/notifications/certs/CERT-360caa42-fca2a594-2c01f983",
+		"Paypal-Transmission-Id":   "69cd13f0-d67e-11e5-baa3-778b3bb2aa58",
+		"Paypal-Transmission-Sig":  "lm2RZ...==",
+		"Paypal-Transmission-Time": "2016-02-18T20:01:35Z",
+		"Paypal-Webhook-Id":        "test_webhook_id",
 	}
-	body := []byte(`{"id":"WH-0HV1234567890ABCDE","event_version":"1.0","create_time":"2016-02-18T20:01:35Z","resource_type":"sale","event_type":"PAYMENT.SALE.COMPLETED","summary":"A successful sale payment was made","resource":{"id":"1VY989838W5252913","state":"completed","amount":{"total":"10.00","currency":"USD"},"payment_mode":"INSTANT_TRANSFER"}}`)
+	body := []byte(`{"id":"WH-0HV1234567890ABCDE","webhook_id":"test_webhook_id","event_version":"1.0","create_time":"2016-02-18T20:01:35Z","resource_type":"sale","event_type":"PAYMENT.SALE.COMPLETED","summary":"A successful sale payment was made","resource":{"id":"1VY989838W5252913","state":"completed","amount":{"total":"10.00","currency":"USD"},"payment_mode":"INSTANT_TRANSFER"}}`)
 
 	err := service.ValidateWebhookSignature(headers, body)
 	if err != nil {
@@ -169,7 +171,7 @@ func TestPayPalService_ValidateWebhookSignature(t *testing.T) {
 }
 
 func TestPayPalService_ProcessOrderCompleted(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	orderID := "PAY-rental_123-1234567890"
 
@@ -180,7 +182,7 @@ func TestPayPalService_ProcessOrderCompleted(t *testing.T) {
 }
 
 func TestPayPalService_ProcessCaptureFailed(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	orderID := "PAY-rental_123-1234567890"
 	reason := "Insufficient funds"
@@ -192,7 +194,7 @@ func TestPayPalService_ProcessCaptureFailed(t *testing.T) {
 }
 
 func TestPayPalService_CalculateAmount(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	durationHours := int64(24)
 	hourlyRate := 1.25
@@ -205,7 +207,7 @@ func TestPayPalService_CalculateAmount(t *testing.T) {
 }
 
 func TestPayPalService_FormatAmount(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	amount := 29.99
 	expected := "$29.99"
@@ -217,7 +219,7 @@ func TestPayPalService_FormatAmount(t *testing.T) {
 }
 
 func TestPayPalService_ValidateAmount(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	// Test valid amount
 	err := service.ValidateAmount(29.99)
@@ -245,7 +247,7 @@ func TestPayPalService_ValidateAmount(t *testing.T) {
 }
 
 func TestPayPalService_GetSupportedCurrencies(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	currencies := service.GetSupportedCurrencies()
 	if len(currencies) == 0 {
@@ -268,7 +270,7 @@ func TestPayPalService_GetSupportedCurrencies(t *testing.T) {
 }
 
 func TestPayPalService_IsCurrencySupported(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	// Test supported currencies
 	supportedCurrencies := []string{"USD", "EUR", "GBP", "CAD", "AUD", "JPY"}
@@ -285,7 +287,7 @@ func TestPayPalService_IsCurrencySupported(t *testing.T) {
 }
 
 func TestPayPalService_GetPaymentMethods(t *testing.T) {
-	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	service := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	methods := service.GetPaymentMethods()
 	if len(methods) == 0 {
@@ -309,7 +311,7 @@ func TestPayPalService_GetPaymentMethods(t *testing.T) {
 
 func TestPayPalService_GetBaseURL(t *testing.T) {
 	// Test sandbox environment
-	sandboxService := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	sandboxService := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 	sandboxURL := sandboxService.GetBaseURL()
 	expectedSandboxURL := "https://api.sandbox.paypal.com"
 	if sandboxURL != expectedSandboxURL {
@@ -317,7 +319,7 @@ func TestPayPalService_GetBaseURL(t *testing.T) {
 	}
 
 	// Test production environment
-	prodService := NewPayPalService("test_client", "test_secret", "production", "USD")
+	prodService := NewPayPalService("test_client", "test_secret", "production", "USD", "test_webhook_id")
 	prodURL := prodService.GetBaseURL()
 	expectedProdURL := "https://api.paypal.com"
 	if prodURL != expectedProdURL {
@@ -329,7 +331,7 @@ func TestPayPalService_GetCheckoutURL(t *testing.T) {
 	orderID := "PAY-rental_123-1234567890"
 
 	// Test sandbox environment
-	sandboxService := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	sandboxService := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 	sandboxURL := sandboxService.GetCheckoutURL(orderID)
 	expectedSandboxURL := "https://www.sandbox.paypal.com/checkoutnow?token=" + orderID
 	if sandboxURL != expectedSandboxURL {
@@ -337,7 +339,7 @@ func TestPayPalService_GetCheckoutURL(t *testing.T) {
 	}
 
 	// Test production environment
-	prodService := NewPayPalService("test_client", "test_secret", "production", "USD")
+	prodService := NewPayPalService("test_client", "test_secret", "production", "USD", "test_webhook_id")
 	prodURL := prodService.GetCheckoutURL(orderID)
 	expectedProdURL := "https://www.paypal.com/checkoutnow?token=" + orderID
 	if prodURL != expectedProdURL {
@@ -347,13 +349,13 @@ func TestPayPalService_GetCheckoutURL(t *testing.T) {
 
 func TestPayPalService_IsSandbox(t *testing.T) {
 	// Test sandbox environment
-	sandboxService := NewPayPalService("test_client", "test_secret", "sandbox", "USD")
+	sandboxService := NewPayPalService("test_client", "test_secret", "sandbox", "USD", "test_webhook_id")
 	if !sandboxService.IsSandbox() {
 		t.Error("Sandbox service should return true for IsSandbox()")
 	}
 
 	// Test production environment
-	prodService := NewPayPalService("test_client", "test_secret", "production", "USD")
+	prodService := NewPayPalService("test_client", "test_secret", "production", "USD", "test_webhook_id")
 	if prodService.IsSandbox() {
 		t.Error("Production service should return false for IsSandbox()")
 	}
@@ -361,7 +363,7 @@ func TestPayPalService_IsSandbox(t *testing.T) {
 
 func TestPayPalService_GetClientID(t *testing.T) {
 	clientID := "test_client_id"
-	service := NewPayPalService(clientID, "test_secret", "sandbox", "USD")
+	service := NewPayPalService(clientID, "test_secret", "sandbox", "USD", "test_webhook_id")
 
 	result := service.GetClientID()
 	if result != clientID {

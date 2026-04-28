@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -18,8 +19,14 @@ import (
 
 // AuthMiddleware handles authentication and authorization
 type AuthMiddleware struct {
-	db        *database.BuntDBManager
-	jwtSecret []byte
+	db           *database.BuntDBManager
+	jwtSecret    []byte
+	authRequired bool
+}
+
+// SetAuthRequired enables or disables authentication requirement
+func (am *AuthMiddleware) SetAuthRequired(required bool) {
+	am.authRequired = required
 }
 
 // UserClaims represents JWT claims for a user
@@ -46,14 +53,15 @@ const (
 )
 
 // NewAuthMiddleware creates a new authentication middleware
-func NewAuthMiddleware(db *database.BuntDBManager, jwtSecret string) (*AuthMiddleware, error) {
+func NewAuthMiddleware(db *database.BuntDBManager, jwtSecret string, authRequired bool) (*AuthMiddleware, error) {
 	if jwtSecret == "" {
 		return nil, fmt.Errorf("JWT secret cannot be empty")
 	}
 
 	return &AuthMiddleware{
-		db:        db,
-		jwtSecret: []byte(jwtSecret),
+		db:           db,
+		jwtSecret:    []byte(jwtSecret),
+		authRequired: authRequired,
 	}, nil
 }
 
@@ -141,6 +149,12 @@ func (am *AuthMiddleware) isTokenRevoked(tokenString string) bool {
 // RequireAuth middleware that requires authentication
 func (am *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If auth is not required, skip authentication
+		if !am.authRequired {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// Allow OPTIONS requests for CORS preflight
 		if r.Method == "OPTIONS" {
 			next.ServeHTTP(w, r)
@@ -157,16 +171,14 @@ func (am *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 		// Check for Bearer token
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			writeError(w, http.StatusUnauthorized, "Invalid authorization header format")
+			writeError(w, http.StatusUnauthorized, "Invalid authorization format")
 			return
 		}
 
 		tokenString := parts[1]
 
-		// 1. Try validating as JWT
-		claims, err := am.ValidateToken(tokenString)
-		if err == nil {
-			// Valid JWT
+		// Try validating as JWT
+		if claims, err := am.ValidateToken(tokenString); err == nil {
 			authCtx := &AuthContext{
 				UserID:   claims.UserID,
 				Username: claims.Username,
@@ -174,28 +186,17 @@ func (am *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 				Token:    tokenString,
 			}
 			ctx := context.WithValue(r.Context(), AuthContextKey, authCtx)
-			next.ServeHTTP(w, r.WithContext(ctx))
-			return
-		}
-
-		// 2. Try validating as Session Token (User session or DVE Access Token)
-		authCtx, err := am.validateSessionToken(tokenString)
-		if err == nil {
-			// Valid session token
+			r = r.WithContext(ctx)
+		} else if authCtx, err := am.validateSessionToken(tokenString); err == nil {
+			// Try validating as Session Token
 			ctx := context.WithValue(r.Context(), AuthContextKey, authCtx)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			r = r.WithContext(ctx)
+		} else {
+			writeError(w, http.StatusUnauthorized, "Invalid or expired token")
 			return
 		}
 
-		// 3. Check for development testnet tokens
-		if testnetCtx := getTestnetAuthContext(tokenString); testnetCtx != nil {
-			testnetCtx.Token = tokenString
-			ctx := context.WithValue(r.Context(), AuthContextKey, testnetCtx)
-			next.ServeHTTP(w, r.WithContext(ctx))
-			return
-		}
-
-		writeError(w, http.StatusUnauthorized, "Invalid token")
+	next.ServeHTTP(w, r)
 	})
 }
 
@@ -351,26 +352,46 @@ func writeError(w http.ResponseWriter, statusCode int, message string) {
 
 // testnetTokens maps development testnet tokens to their auth contexts.
 // These tokens are only for local development and match the frontend's hardcoded testnet tokens.
-var testnetTokens = map[string]*AuthContext{
-	"testnet-admin-123": {
-		UserID:   "testnet-admin",
-		Username: "testnet-admin",
-		Role:     "admin",
-	},
-	"testnet-validator-456": {
-		UserID:   "testnet-validator",
-		Username: "testnet-validator",
-		Role:     "validator",
-	},
-	"testnet-observer-789": {
-		UserID:   "testnet-observer",
-		Username: "testnet-observer",
-		Role:     "observer",
-	},
+// In production, this map remains nil and getTestnetAuthContext always returns nil.
+var testnetTokens map[string]*AuthContext
+
+func init() {
+	// Only load testnet tokens in development/test environments
+	env := os.Getenv("ENVIRONMENT")
+	if env == "development" || env == "testnet" || env == "test" {
+		testnetTokens = map[string]*AuthContext{
+			"testnet-admin-123": {
+				UserID:   "testnet-admin",
+				Username: "testnet-admin",
+				Role:     "admin",
+			},
+			"testnet-validator-456": {
+				UserID:   "testnet-validator",
+				Username: "testnet-validator",
+				Role:     "validator",
+			},
+			"testnet-observer-789": {
+				UserID:   "testnet-observer",
+				Username: "testnet-observer",
+				Role:     "observer",
+			},
+		}
+	}
 }
 
 // getTestnetAuthContext returns an AuthContext for known development testnet tokens, or nil.
+// In production (ENVIRONMENT=production), this always returns nil.
 func getTestnetAuthContext(token string) *AuthContext {
+	// Return nil in production to disable testnet tokens
+	if os.Getenv("ENVIRONMENT") == "production" {
+		return nil
+	}
+
+	// If testnet tokens aren't loaded (e.g., wrong environment), return nil
+	if testnetTokens == nil {
+		return nil
+	}
+
 	if ctx, ok := testnetTokens[token]; ok {
 		return &AuthContext{
 			UserID:   ctx.UserID,

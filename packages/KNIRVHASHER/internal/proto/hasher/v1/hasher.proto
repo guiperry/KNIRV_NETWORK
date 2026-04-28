@@ -4,8 +4,8 @@ package hasher.v1;
 
 option go_package = "knirvhasher/proto/hasher/v1;hasherv1";
 
-// hasherService provides ASIC computation services
-service hasherService {
+// HasherService provides ASIC computation services
+service HasherService {
   // ComputeHash computes a single SHA-256 hash
   rpc ComputeHash(ComputeHashRequest) returns (ComputeHashResponse);
   
@@ -28,8 +28,8 @@ service hasherService {
   rpc VerifyMath(VerifyMathRequest) returns (VerifyMathResponse);
 }
 
-// HasherService provides dataset collection and training pipeline services
-service HasherService {
+// HasherTrainingService provides dataset collection and training pipeline services
+service HasherTrainingService {
   // ExportSecurityData streams DVE data to the hasher for dataset collection
   rpc ExportSecurityData(ExportRequest) returns (stream EncryptedChunk);
   
