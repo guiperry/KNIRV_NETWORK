@@ -1,0 +1,1 @@
+Audit the KNIRVHASHER code against the @packages/KNIRVHASHER/transformer_audit.md file. Ensure there is a correct distinction between HasherService and HasherTrainingService.

@@ -1,0 +1,60 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "e66a074c49bc",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "AGENTS.md",
+    "packages/KNIRVHASHER/hasher.proto",
+    "packages/KNIRVHASHER/internal/proto/hasher/v1/hasher.proto",
+    "packages/KNIRVHASHER/internal/proto/v1/hasher.proto",
+    "packages/KNIRVHASHER/pipeline/0_DATA_CONNECTOR/cmd/data-connector/main.go",
+    "packages/KNIRVHASHER/pipeline/0_DATA_CONNECTOR/internal/writer/writer.go",
+    "packages/KNIRVHASHER/pipeline/3_DATA_TRAINER/pkg/trainer/trainer.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/pipeline.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/types.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/verifier.go",
+    "packages/KNIRVHASHER/transformer_audit.md",
+    "packages/KNIRVSERVER/README.md",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/go.mod",
+    "packages/KNIRVSERVER/backend/go.sum",
+    "packages/KNIRVSERVER/backend/internal/data_engine/buntdb_manager.go",
+    "packages/KNIRVSERVER/backend/internal/proto/hasher/hasher.pb.go",
+    "packages/KNIRVSERVER/backend/internal/proto/hasher/hasher.proto",
+    "packages/KNIRVSERVER/backend/internal/proto/hasher/hasher_grpc.pb.go",
+    "packages/KNIRVSERVER/backend/internal/services/blockchain/transactionchain/client.go",
+    "packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go",
+    "packages/KNIRVSERVER/backend/internal/services/dve/hasher_export.go",
+    "packages/KNIRVSERVER/backend/internal/services/dvemanager/hasher_grpc_server.go",
+    "packages/KNIRVSERVER/backend/internal/services/dvemanager/hasher_integration.go",
+    "packages/KNIRVSERVER/backend/internal/services/payment/paypal_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/payment/paypal_service_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/payment/stripe_service.go",
+    "packages/KNIRVSERVER/backend/internal/storage/mdstorage/driver.go",
+    "packages/KNIRVSERVER/backend/internal/web/api_router.go",
+    "packages/KNIRVSERVER/backend/internal/web/auth_handlers.go",
+    "packages/KNIRVSERVER/backend/internal/web/middleware/auth.go",
+    "packages/KNIRVSERVER/backend/internal/web/nrn_payment_handlers.go",
+    "packages/KNIRVSERVER/backend/internal/web/payment_handlers.go",
+    "packages/KNIRVSERVER/missing_flows.md",
+    "packages/KNIRVSERVER/server-api.yaml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e6/6a074c49bc/0/metadata.json",
+      "transcript": "/e6/6a074c49bc/0/full.jsonl",
+      "content_hash": "/e6/6a074c49bc/0/content_hash.txt",
+      "prompt": "/e6/6a074c49bc/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 524,
+    "cache_creation_tokens": 72029,
+    "cache_read_tokens": 1411101,
+    "output_tokens": 9724,
+    "api_call_count": 24
+  }
+}
