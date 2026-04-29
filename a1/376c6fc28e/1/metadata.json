@@ -1,0 +1,154 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "a1376c6fc28e",
+  "session_id": "ses_22bdac8adffePolC3ynx7cHYYv",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-29T11:28:17.52097291Z",
+  "branch": "main",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "DHT_Migration.md",
+    "packages/KNIRVCHAIN/cmd/knirvchain/main.go",
+    "packages/KNIRVCHAIN/internal/dht/client.go",
+    "packages/KNIRVGATEWAY/go.mod",
+    "packages/KNIRVGATEWAY/go.sum",
+    "packages/KNIRVGATEWAY/internal/dht/cache.go",
+    "packages/KNIRVGATEWAY/internal/dht/cache_test.go",
+    "packages/KNIRVGATEWAY/internal/dht/manager.go",
+    "packages/KNIRVGATEWAY/internal/dht/options_prod.go",
+    "packages/KNIRVGATEWAY/internal/dht/options_test.go",
+    "packages/KNIRVGATEWAY/internal/dht/types.go",
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVGRAPH/internal/app/app.go",
+    "packages/KNIRVGRAPH/internal/dht/adapter.go",
+    "packages/KNIRVGRAPH/internal/dht/client.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_manager.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_manager_mock.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_manager_test.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_options_prod.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_options_test.go",
+    "packages/KNIRVSERVER/NRN_Consumption_Report.md",
+    "packages/KNIRVSERVER/WASM_Integration_Investigation.md"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "7b1d3ca6ec0b",
+  "token_usage": {
+    "input_tokens": 5411629,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 7099008,
+    "output_tokens": 106970,
+    "api_call_count": 127
+  },
+  "session_metrics": {
+    "turn_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-29T11:28:17.038054108Z",
+    "agent_lines": 2199,
+    "agent_removed": 898,
+    "human_added": 0,
+    "human_modified": 39,
+    "human_removed": 48,
+    "total_committed": 2238,
+    "total_lines_changed": 3184,
+    "agent_percentage": 97.2675879396985,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1306,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "DHT_Migration.md": 867,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/NRN_Consumption_Report.md": 68,
+        "packages/KNIRVSERVER/WASM_Integration_Investigation.md": 72,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 299,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2888,
+      "agent_lines_removed": 27,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 301,
+      "user_lines_removed": 2,
+      "agent_lines_added": 3130,
+      "agent_lines_removed": 29,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVGRAPH/internal/app/app.go": 1,
+        "packages/KNIRVGRAPH/internal/dht/adapter.go": 1,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVGRAPH/internal/app/app.go": 1,
+        "packages/KNIRVGRAPH/internal/dht/adapter.go": 1
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 336,
+      "user_lines_removed": 85,
+      "agent_lines_added": 3249,
+      "agent_lines_removed": 982,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVCHAIN/cmd/knirvchain/main.go": 4,
+        "packages/KNIRVCHAIN/internal/dht/client.go": 33,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVCHAIN/cmd/knirvchain/main.go": 4,
+        "packages/KNIRVCHAIN/internal/dht/client.go": 81
+      }
+    }
+  ]
+}
