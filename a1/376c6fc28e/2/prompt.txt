@@ -1,0 +1,21 @@
+Draft a plan that will migrate all direct DHT functionality out of the KNIRVGRAPH and KNIRVCHAIN and into the KNIRVGATEWAY when operated via the KNIRVSERVER.
+
+---
+
+Please update the plan so that the KNIRVGATEWAY pipes all p2p communication with KNIRVCHAIN and KNIRVGATEWAY via Unix Websockets exclusively. Draft the updated plan into a DHT_Migration.md file.
+
+---
+
+...
+
+---
+
+I've switched you to build mode. Draft the file now.
+
+---
+
+PLease investigate the current unix socket implementation and ensure we are integrating with the existing system. We will also need to create a "resource broadcast" system for both the KNIRVCHAIN and KNIRVGRAPH that communicates newly added resources to a list cache in the KNIRVGATEWAY that will then announce all listed events/resources on the list to the DHT.
+
+---
+
+I don't want you to make the code changes. PLease just update the DHT_Migration.md file with the above clarifications.

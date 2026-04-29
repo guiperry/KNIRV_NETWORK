@@ -3,7 +3,7 @@
   "checkpoint_id": "a1376c6fc28e",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 7,
+  "checkpoints_count": 11,
   "files_touched": [
     "DHT_Migration.md",
     "packages/KNIRVCHAIN/cmd/knirvchain/main.go",
@@ -41,13 +41,19 @@
       "transcript": "/a1/376c6fc28e/1/full.jsonl",
       "content_hash": "/a1/376c6fc28e/1/content_hash.txt",
       "prompt": "/a1/376c6fc28e/1/prompt.txt"
+    },
+    {
+      "metadata": "/a1/376c6fc28e/2/metadata.json",
+      "transcript": "/a1/376c6fc28e/2/full.jsonl",
+      "content_hash": "/a1/376c6fc28e/2/content_hash.txt",
+      "prompt": "/a1/376c6fc28e/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 5607190,
+    "input_tokens": 6600772,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 10824448,
-    "output_tokens": 163882,
-    "api_call_count": 171
+    "cache_read_tokens": 12299200,
+    "output_tokens": 211458,
+    "api_call_count": 204
   }
 }
