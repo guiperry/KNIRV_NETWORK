@@ -1,0 +1,100 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "a1376c6fc28e",
+  "session_id": "ses_228aac1f3ffe4Od7te6JZvJV10",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-29T11:28:10.656010429Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVCHAIN/cmd/knirvchain/main.go",
+    "packages/KNIRVCHAIN/internal/dht/client.go",
+    "packages/KNIRVGATEWAY/go.mod",
+    "packages/KNIRVGATEWAY/go.sum",
+    "packages/KNIRVGATEWAY/internal/dht/cache.go",
+    "packages/KNIRVGATEWAY/internal/dht/manager.go",
+    "packages/KNIRVGATEWAY/internal/dht/types.go",
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVGRAPH/internal/app/app.go",
+    "packages/KNIRVGRAPH/internal/dht/client.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_manager.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_manager_mock.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_manager_test.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_options_prod.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_options_test.go"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "816295fdf597",
+  "token_usage": {
+    "input_tokens": 195561,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3725440,
+    "output_tokens": 56912,
+    "api_call_count": 44
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-29T11:28:10.538585247Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 985,
+    "total_committed": 128,
+    "total_lines_changed": 985,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 3503,
+      "user_lines_removed": 985,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "DHT_Migration.md": 867,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVCHAIN/cmd/knirvchain/main.go": 7,
+        "packages/KNIRVCHAIN/internal/dht/client.go": 57,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGATEWAY/go.mod": 110,
+        "packages/KNIRVGATEWAY/go.sum": 826,
+        "packages/KNIRVGATEWAY/internal/dht/cache.go": 54,
+        "packages/KNIRVGATEWAY/internal/dht/cache_test.go": 147,
+        "packages/KNIRVGATEWAY/internal/dht/manager.go": 511,
+        "packages/KNIRVGATEWAY/internal/dht/options_prod.go": 29,
+        "packages/KNIRVGATEWAY/internal/dht/options_test.go": 21,
+        "packages/KNIRVGATEWAY/internal/dht/types.go": 38,
+        "packages/KNIRVGATEWAY/internal/server/server.go": 197,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVGRAPH/internal/app/app.go": 12,
+        "packages/KNIRVGRAPH/internal/dht/adapter.go": 88,
+        "packages/KNIRVGRAPH/internal/dht/client.go": 100,
+        "packages/KNIRVSERVER/NRN_Consumption_Report.md": 68,
+        "packages/KNIRVSERVER/WASM_Integration_Investigation.md": 72,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVCHAIN/cmd/knirvchain/main.go": 7,
+        "packages/KNIRVGATEWAY/go.mod": 10,
+        "packages/KNIRVGATEWAY/go.sum": 12,
+        "packages/KNIRVGATEWAY/internal/server/server.go": 5,
+        "packages/KNIRVGRAPH/internal/app/app.go": 22,
+        "packages/KNIRVGRAPH/internal/p2p/dht.go": 19,
+        "packages/KNIRVGRAPH/internal/p2p/dht_manager.go": 645,
+        "packages/KNIRVGRAPH/internal/p2p/dht_manager_mock.go": 113,
+        "packages/KNIRVGRAPH/internal/p2p/dht_manager_test.go": 101,
+        "packages/KNIRVGRAPH/internal/p2p/dht_options_prod.go": 27,
+        "packages/KNIRVGRAPH/internal/p2p/dht_options_test.go": 24
+      }
+    }
+  ]
+}

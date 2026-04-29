@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "a1376c6fc28e",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVCHAIN/cmd/knirvchain/main.go",
+    "packages/KNIRVCHAIN/internal/dht/client.go",
+    "packages/KNIRVGATEWAY/go.mod",
+    "packages/KNIRVGATEWAY/go.sum",
+    "packages/KNIRVGATEWAY/internal/dht/cache.go",
+    "packages/KNIRVGATEWAY/internal/dht/manager.go",
+    "packages/KNIRVGATEWAY/internal/dht/types.go",
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVGRAPH/internal/app/app.go",
+    "packages/KNIRVGRAPH/internal/dht/client.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_manager.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_manager_mock.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_manager_test.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_options_prod.go",
+    "packages/KNIRVGRAPH/internal/p2p/dht_options_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a1/376c6fc28e/0/metadata.json",
+      "transcript": "/a1/376c6fc28e/0/full.jsonl",
+      "content_hash": "/a1/376c6fc28e/0/content_hash.txt",
+      "prompt": "/a1/376c6fc28e/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 195561,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3725440,
+    "output_tokens": 56912,
+    "api_call_count": 44
+  }
+}
