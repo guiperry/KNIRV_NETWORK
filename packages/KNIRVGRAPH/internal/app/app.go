@@ -5,7 +5,7 @@ import (
 	"KNIRVGRAPH/internal/graphchain"
 	"KNIRVGRAPH/internal/network"
 	"KNIRVGRAPH/internal/nrv"
-	"KNIRVGRAPH/internal/p2p"
+	"KNIRVGRAPH/internal/dht"
 	"KNIRVGRAPH/internal/storage"
 	"context"
 	"encoding/json"
@@ -165,7 +165,7 @@ type App struct {
 	proofOfSolution *economics.ProofOfSolution
 	rpc             *network.RPCServer
 	storage         storage.GraphStorage
-	dhtManager      p2p.DHTManagerInterface
+	dhtManager      *dht.DHTClientAdapter
 	logger          *zap.Logger
 	config          *Config
 }
@@ -249,22 +249,17 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	// Initialize RPC server with NRV system and economics (will set app reference later)
 	var rpc *network.RPCServer
 
-	// Initialize DHT manager
-	// Use config.DHT settings
-	dhtManager, err := p2p.NewDHTManager(
+	// Initialize DHT client adapter (connects to KNIRVGATEWAY)
+	dhtAdapter, err := dht.NewDHTClientAdapter(
 		fmt.Sprintf("knirvgraph-%s", config.Testnet.ChainID),
 		config.Testnet.ChainID,
 		config.DHT.BootstrapPeers,
 		enableAutoRelay,
 	)
 	if err != nil {
-		logger.Warn("Failed to initialize DHT manager", zap.Error(err))
-		// Continue without DHT for now
-		dhtManager = nil
+		logger.Warn("Failed to initialize DHT client", zap.Error(err))
+		dhtAdapter = nil
 	}
-
-	// Explicitly assign to interface variable to help compiler
-	var dhtManagerInterface p2p.DHTManagerInterface = dhtManager
 
 	app := &App{
 		graphchain:      gc,
@@ -272,7 +267,7 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 		nrnIntegration:  nrnIntegration,
 		proofOfSolution: proofOfSolution,
 		storage:         storageInstance,
-		dhtManager:      dhtManagerInterface,
+		dhtManager:      dhtAdapter,
 		logger:          logger,
 		config:          config,
 	}
@@ -401,22 +396,17 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 	// Initialize RPC server with NRV system and economics (will set app reference later)
 	var rpc *network.RPCServer
 
-	// Initialize DHT manager
-	// Use config.DHT settings
-	dhtManager, err := p2p.NewDHTManager(
+	// Initialize DHT client adapter (connects to KNIRVGATEWAY)
+	dhtAdapter, err := dht.NewDHTClientAdapter(
 		fmt.Sprintf("knirvgraph-%s", config.Testnet.ChainID),
 		config.Testnet.ChainID,
 		config.DHT.BootstrapPeers,
 		enableAutoRelay,
 	)
 	if err != nil {
-		logger.Warn("Failed to initialize DHT manager", zap.Error(err))
-		// Continue without DHT for now
-		dhtManager = nil
+		logger.Warn("Failed to initialize DHT client", zap.Error(err))
+		dhtAdapter = nil
 	}
-
-	// Explicitly assign to interface variable to help compiler
-	var dhtManagerInterface p2p.DHTManagerInterface = dhtManager
 
 	app := &App{
 		graphchain:      gc,
@@ -424,7 +414,7 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 		nrnIntegration:  nrnIntegration,
 		proofOfSolution: proofOfSolution,
 		storage:         storageInstance,
-		dhtManager:      dhtManagerInterface,
+		dhtManager:      dhtAdapter,
 		logger:          logger,
 		config:          config,
 	}

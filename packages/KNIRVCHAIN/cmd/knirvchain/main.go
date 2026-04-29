@@ -24,7 +24,7 @@ import (
 	"KNIRVCHAIN/internal/inference/agentify"
 	"KNIRVCHAIN/internal/installation"
 	"KNIRVCHAIN/internal/network"
-	"KNIRVCHAIN/internal/p2p"
+	"KNIRVCHAIN/internal/dht"
 
 	"github.com/joho/godotenv"
 
@@ -45,13 +45,13 @@ var mainChromemManager sync.Map
 var globalAgentInferencer *agentify.AgentInferencer
 var globalInferenceService *inference.InferenceService
 
-type DiscoveryManager = p2p.DiscoveryManager
+type DiscoveryManager = dht.DiscoveryClient
 
 type BlockchainStruct = blockchain.BlockchainStruct
 
 type LevelDB = database.LevelDB
 
-type P2PConsensusManager = p2p.P2PConsensusManager
+type P2PConsensusManager = dht.P2PConsensusManager
 
 // NewBlockchain provides a proper implementation from internal/blockchain; do not redefine Shutdown here.
 
@@ -320,7 +320,7 @@ func initPaymentProcessor(_ interface{}, _ *LevelDB, _ interface{}) (*PaymentPro
 
 type BlockchainServer = blockchain.BlockchainServer
 
-func NewBlockchainServer(port uint64, socketPath string, bc *BlockchainStruct, db *LevelDB, discoveryMgr p2p.DiscoveryService, p2pPort int) *BlockchainServer {
+func NewBlockchainServer(port uint64, socketPath string, bc *BlockchainStruct, db *LevelDB, discoveryMgr dht.DiscoveryService, p2pPort int) *BlockchainServer {
 	return blockchain.NewBlockchainServer(port, socketPath, bc, db, discoveryMgr, p2pPort)
 }
 
@@ -1730,8 +1730,8 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 			cfg.Port = actualHTTPPort
 		}
 
-		// 4. Discovery Manager
-		discoveryMgr, err := p2p.NewDiscoveryManager(cfg.ChainID, int(cfg.P2PPort), cfg.ClientOnly, cfg.IsBootnode, role, &cfg) // Pass &cfg
+	// 4. Discovery Manager
+	discoveryMgr, err := dht.NewDiscoveryClient(cfg.ChainID, int(cfg.P2PPort), cfg.ClientOnly, cfg.IsBootnode, role, &cfg) // Pass &cfg
 
 		if err != nil {
 			log.Printf("[%s][%s] ERROR: Failed to initialize discovery manager: %v", role.String(), cfg.ChainID, err)
@@ -1763,7 +1763,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 
 		// P2P consensus manager (skip if disabled)
 		if !disableP2P {
-			p2pConsensusMgr, err := p2p.NewP2PConsensusManager(bc, db, discoveryMgr, role)
+			p2pConsensusMgr, err := dht.NewP2PConsensusManager(bc, db, discoveryMgr, role)
 			if err != nil {
 				log.Printf("[%s][%s] WARNING: Failed to initialize P2P consensus manager: %v", role.String(), cfg.ChainID, err)
 			} else {

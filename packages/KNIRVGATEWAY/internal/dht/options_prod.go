@@ -1,18 +1,20 @@
 //go:build !test_dht
 
-package p2p
+package dht
 
 import (
+	"fmt"
+
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/crypto"
 )
 
-func getLibp2pOptions(priv crypto.PrivKey, enableAutoRelay bool) []libp2p.Option {
+func getLibp2pOptions(priv crypto.PrivKey, enableAutoRelay bool, port int) []libp2p.Option {
 	opts := []libp2p.Option{
 		libp2p.Identity(priv),
 		libp2p.ListenAddrStrings(
-			"/ip4/0.0.0.0/tcp/9001",
-			"/ip6/::/tcp/9001",
+			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
+			fmt.Sprintf("/ip6/::/tcp/%d", port),
 		),
 		libp2p.EnableNATService(),
 		libp2p.EnableHolePunching(),
