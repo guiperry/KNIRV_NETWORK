@@ -1,0 +1,4 @@
+In packages/KNIRVSERVER, when I click on the WebGUI link from the P2P Transport access panel, the webgui(aka explorer) is not showing in the iFrame. The KNIRVSERVER initialization logs say its extracting the website but its not being served or navigated to appropriately. See the logs:
+
+{"level":"info","ts":1777541886.0148327,"caller":"runtime/runtime.go:88","msg":"Extracting embedded explorer static files..."}
+{"level":"info","ts":1777541886.014852,"caller":"runtime/runtime.go:118","msg":"Extracting embedded explorer static files","target":"/var/lib/knirvserver/knirvgateway/runtime/webgui-static"}

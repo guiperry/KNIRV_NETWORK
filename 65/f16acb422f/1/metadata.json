@@ -1,0 +1,80 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "65f16acb422f",
+  "session_id": "6f654823-9dfe-4251-a7c1-2965a8151432",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-30T14:07:38.165452874Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVSERVER/pkg/knirvagent/bin/knirvagent",
+    "packages/KNIRVSERVER/pkg/knirvchain/bin/knirvchain",
+    "packages/KNIRVSERVER/pkg/knirvgraph/bin/knirvgraph",
+    "packages/KNIRVSERVER/pkg/knirvhasher/bin/knirvhasher",
+    "packages/KNIRVSERVER/pkg/knirvoracle/bin/knirvoracle",
+    "packages/KNIRVSERVER/pkg/knirvshell/bin/knirvshell"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "dbc54f40083e",
+  "token_usage": {
+    "input_tokens": 290,
+    "cache_creation_tokens": 100703,
+    "cache_read_tokens": 1915860,
+    "output_tokens": 21542,
+    "api_call_count": 29
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-30T14:07:38.115499213Z",
+    "agent_lines": 3,
+    "agent_removed": 9,
+    "human_added": 525,
+    "human_modified": 3,
+    "human_removed": 0,
+    "total_committed": 531,
+    "total_lines_changed": 626,
+    "agent_percentage": 1.9169329073482428,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 299,
+      "user_lines_removed": 3,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVSERVER/pkg/knirvhasher/bin/knirvhasher": 3
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 299,
+      "user_lines_removed": 0,
+      "agent_lines_added": 6,
+      "agent_lines_removed": 14,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/packages/ts-client_1/.claude/settings.local.json": 7,
+        "packages/KNIRVARENA/packages/ts_client_2/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      }
+    }
+  ]
+}
