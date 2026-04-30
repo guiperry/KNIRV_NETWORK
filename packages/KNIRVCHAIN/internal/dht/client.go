@@ -35,14 +35,14 @@ const (
 
 // DiscoveryClient handles DHT operations via KNIRVGATEWAY Unix socket.
 type DiscoveryClient struct {
-	socketPath  string
-	httpClient  *http.Client
-	source      string
-	chainID     string
-	nodeRole    string
-	mu          sync.RWMutex
-	stopChan    chan struct{}
-	closeOnce   sync.Once
+	socketPath string
+	httpClient *http.Client
+	source     string
+	chainID    string
+	nodeRole   string
+	mu         sync.RWMutex
+	stopChan   chan struct{}
+	closeOnce  sync.Once
 }
 
 // NewDiscoveryClient creates a new DHT client and registers with KNIRVGATEWAY.
@@ -81,7 +81,12 @@ func resolveGatewaySocket(cfg *config.Config) string {
 	if s := os.Getenv("GATEWAY_SOCKET_PATH"); s != "" {
 		return s
 	}
-	// Default XDG path used by KNIRVSERVER
+	if dataDir := os.Getenv("KNIRV_APP_DATA_DIR"); dataDir != "" {
+		return filepath.Join(dataDir, "sockets", "gateway.sock")
+	}
+	if _, err := os.Stat("/var/lib/knirvserver"); err == nil {
+		return filepath.Join("/var/lib/knirvserver", "sockets", "gateway.sock")
+	}
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".local", "share", "knirvserver", "sockets", "gateway.sock")
 }

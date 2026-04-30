@@ -69,6 +69,11 @@ var (
 	GitCommit = "unknown"
 )
 
+const (
+	defaultSystemAppDataDir = "/var/lib/knirvserver"
+	defaultSystemConfigDir  = "/etc/knirv-server"
+)
+
 // Config represents the application configuration
 type Config struct {
 	Host          string `mapstructure:"host"`
@@ -589,28 +594,55 @@ func (app *ServerApp) stopDesktop() {
 	}
 }
 
-// getAppDataDir returns the application data directory path
+func mkdirIfUsable(path string) bool {
+	return os.MkdirAll(path, 0755) == nil
+}
+
+// getAppDataDir returns the application data directory path. Privileged
+// launches use a system location so sudo does not split sockets/data between
+// /root and the invoking user's home directory.
 func getAppDataDir() (string, error) {
-	// Try XDG_DATA_HOME first
-	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
-		return filepath.Join(xdgDataHome, "knirvserver"), nil
+	if explicit := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); explicit != "" {
+		if err := os.MkdirAll(explicit, 0755); err != nil {
+			return "", fmt.Errorf("failed to create app data directory %s: %w", explicit, err)
+		}
+		return explicit, nil
 	}
 
-	// Fallback to ~/.local/share/knirvserver
+	if mkdirIfUsable(defaultSystemAppDataDir) {
+		return defaultSystemAppDataDir, nil
+	}
+
+	if xdgDataHome := strings.TrimSpace(os.Getenv("XDG_DATA_HOME")); xdgDataHome != "" {
+		appDataDir := filepath.Join(xdgDataHome, "knirvserver")
+		if err := os.MkdirAll(appDataDir, 0755); err != nil {
+			return "", fmt.Errorf("failed to create app data directory %s: %w", appDataDir, err)
+		}
+		return appDataDir, nil
+	}
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
-	return filepath.Join(homeDir, ".local", "share", "knirvserver"), nil
+	appDataDir := filepath.Join(homeDir, ".local", "share", "knirvserver")
+	if err := os.MkdirAll(appDataDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create app data directory %s: %w", appDataDir, err)
+	}
+	return appDataDir, nil
 }
 
 func getConfigDir() (string, error) {
-	if configDir := os.Getenv("KNIRV_CONFIG_DIR"); configDir != "" {
+	if configDir := strings.TrimSpace(os.Getenv("KNIRV_CONFIG_DIR")); configDir != "" {
 		if err := os.MkdirAll(configDir, 0755); err != nil {
 			return "", fmt.Errorf("failed to create config directory %s: %w", configDir, err)
 		}
 		return configDir, nil
+	}
+
+	if mkdirIfUsable(defaultSystemConfigDir) {
+		return defaultSystemConfigDir, nil
 	}
 
 	userConfigDir, err := os.UserConfigDir()
@@ -1073,8 +1105,16 @@ func (app *ServerApp) startBackend() error {
 		env = append(env,
 			fmt.Sprintf("KNIRV_APP_DATA_DIR=%s", appDataDir),
 			fmt.Sprintf("KNIRV_GATEWAY_BINARY_PATH=%s", filepath.Join(binDir, "knirvgateway")),
+			fmt.Sprintf("KNIRV_GATEWAY_BINARY_DIR=%s", binDir),
+			fmt.Sprintf("KNIRV_CHAIN_BINARY_DIR=%s", binDir),
+			fmt.Sprintf("KNIRV_GRAPH_BINARY_DIR=%s", binDir),
+			fmt.Sprintf("KNIRV_ORACLE_BINARY_DIR=%s", binDir),
+			fmt.Sprintf("GATEWAY_SOCKET_PATH=%s", filepath.Join(appDataDir, "sockets", "gateway.sock")),
 			fmt.Sprintf("KNIRV_KNIRVCLI_PATH=%s", filepath.Join(binDir, "knirvshell")),
 		)
+	}
+	if configDir, err := getConfigDir(); err == nil {
+		env = append(env, fmt.Sprintf("KNIRV_CONFIG_DIR=%s", configDir))
 	}
 
 	// Pass the project log directory as an absolute path so the backend writes
@@ -1372,16 +1412,16 @@ func main() {
 
 	// Initialize and start the updater (if enabled)
 	selfPath, _ := os.Executable()
-	
+
 	// Load GitHub token from environment for security
 	githubToken := os.Getenv("DEFAULT_GITHUB_TOKEN")
-	
+
 	upd := updater.New(updater.Config{
-		Enabled:        viper.GetBool("updater.enabled"),
-		PollInterval:   viper.GetDuration("updater.poll_interval"),
-		GitHubRepo:     viper.GetString("updater.github_repo"),
-		GitHubToken:    githubToken,
-		AssetName:      "knirv-server",
+		Enabled:       viper.GetBool("updater.enabled"),
+		PollInterval:  viper.GetDuration("updater.poll_interval"),
+		GitHubRepo:    viper.GetString("updater.github_repo"),
+		GitHubToken:   githubToken,
+		AssetName:     "knirv-server",
 		CurrentCommit: GitCommit,
 		BinaryPath:    selfPath,
 	})

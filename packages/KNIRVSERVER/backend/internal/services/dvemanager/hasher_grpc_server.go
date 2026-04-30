@@ -22,8 +22,7 @@ import (
 )
 
 const (
-	// Use user-writable directory instead of /var/run to avoid permission issues
-	DefaultSocketPath = "~/.local/share/knirvserver/sockets/hasher.sock"
+	DefaultSocketPath = "/var/lib/knirvserver/sockets/hasher.sock"
 )
 
 type HasherGRPCServer struct {

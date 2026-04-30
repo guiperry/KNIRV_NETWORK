@@ -30,16 +30,16 @@ type Runtime struct {
 
 // NewRuntime creates a new runtime manager with embedded assets
 func NewRuntime(logger *zap.Logger, webGUIFS embed.FS, networkWebsiteFS embed.FS, oracleBinary []byte) (*Runtime, error) {
-	// Use OS-specific application data directory instead of /tmp to avoid permission issues
 	var baseDir string
 
-	// Use .local/share/knirvserver/knirvgateway/runtime as the primary directory
-	homeDir, err := os.UserHomeDir()
-	if err == nil {
+	if appDataDir := os.Getenv("KNIRV_APP_DATA_DIR"); appDataDir != "" {
+		baseDir = filepath.Join(appDataDir, "knirvgateway", "runtime")
+	} else if err := os.MkdirAll("/var/lib/knirvserver/knirvgateway/runtime", 0750); err == nil {
+		baseDir = "/var/lib/knirvserver/knirvgateway/runtime"
+	} else if homeDir, homeErr := os.UserHomeDir(); homeErr == nil {
 		baseDir = filepath.Join(homeDir, ".local", "share", "knirvserver", "knirvgateway", "runtime")
 	} else {
-		// Last resort fallback to temp directory (only if user dirs unavailable)
-		logger.Warn("Could not determine user home directory, falling back to system temp", zap.Error(err))
+		logger.Warn("Could not determine runtime data directory, falling back to system temp", zap.Error(err))
 		baseDir = filepath.Join(os.TempDir(), "knirvgateway-runtime")
 	}
 

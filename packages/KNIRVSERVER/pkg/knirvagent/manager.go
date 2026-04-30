@@ -78,6 +78,19 @@ type HealthStatus struct {
 	Timestamp time.Time              `json:"timestamp"`
 }
 
+func getAgentAppDataDir() string {
+	if explicit := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); explicit != "" {
+		return explicit
+	}
+	if err := os.MkdirAll("/var/lib/knirvserver", 0755); err == nil {
+		return "/var/lib/knirvserver"
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".local", "share", "knirvserver")
+	}
+	return "data"
+}
+
 func DefaultManagerConfig() *ManagerConfig {
 	return &ManagerConfig{
 		SocketPath:   "",
@@ -258,7 +271,7 @@ func resolveBinaryPath(configured string) (string, error) {
 	}
 
 	// Embedded directory (extracted binaries)
-	embeddedDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "knirvserver", "bin")
+	embeddedDir := filepath.Join(getAgentAppDataDir(), "bin")
 	candidates = append(candidates,
 		filepath.Join(embeddedDir, "knirvagent"),
 		filepath.Join(embeddedDir, "..", "bin", "knirvagent"),

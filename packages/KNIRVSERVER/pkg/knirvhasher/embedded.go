@@ -15,8 +15,11 @@ func defaultBinaryDir() (string, error) {
 	if override := strings.TrimSpace(os.Getenv("KNIRV_HASHER_BINARY_DIR")); override != "" {
 		return override, nil
 	}
-	if xdgDataHome := strings.TrimSpace(os.Getenv("XDG_DATA_HOME")); xdgDataHome != "" {
-		return filepath.Join(xdgDataHome, "knirvserver", "bin"), nil
+	if appDataDir := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); appDataDir != "" {
+		return filepath.Join(appDataDir, "bin"), nil
+	}
+	if err := os.MkdirAll("/var/lib/knirvserver/bin", 0755); err == nil {
+		return "/var/lib/knirvserver/bin", nil
 	}
 	homeDir, err := os.UserHomeDir()
 	if err != nil {

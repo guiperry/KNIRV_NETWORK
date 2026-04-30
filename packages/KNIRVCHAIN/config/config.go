@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,6 +21,8 @@ import (
 // - embedded_key_production.go (for production builds without tags)
 
 const AppName = "KNIRVCHAIN"
+
+const defaultEmbeddedDataDir = "/var/lib/knirvserver/knirvchain"
 
 // Role type (if not already defined elsewhere, or import if it is)
 type Role string
@@ -657,6 +660,17 @@ func CreateRootConfigFromConstants(v *viper.Viper) *Config {
 
 // GetConfigDir returns the base configuration directory (e.g., ~/.config/KNIRVCHAIN)
 func GetConfigDir() (string, error) {
+	if dataDir := strings.TrimSpace(os.Getenv("KNIRV_DATA_DIR")); dataDir != "" {
+		appConfigDir := filepath.Join(dataDir, "config")
+		if err := os.MkdirAll(appConfigDir, 0755); err != nil {
+			return "", fmt.Errorf("failed to create app config directory %s: %w", appConfigDir, err)
+		}
+		return appConfigDir, nil
+	}
+	if err := os.MkdirAll(filepath.Join(defaultEmbeddedDataDir, "config"), 0755); err == nil {
+		return filepath.Join(defaultEmbeddedDataDir, "config"), nil
+	}
+
 	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user config directory: %w", err)
@@ -705,9 +719,17 @@ func GetDataDir(role ...Role) (string, error) {
 		currentRole = role[0]
 	}
 
-	baseDir, err := GetConfigDir()
-	if err != nil {
-		return "", err
+	baseDir := ""
+	if dataDir := strings.TrimSpace(os.Getenv("KNIRV_DATA_DIR")); dataDir != "" {
+		baseDir = dataDir
+	} else if err := os.MkdirAll(defaultEmbeddedDataDir, 0755); err == nil {
+		baseDir = defaultEmbeddedDataDir
+	} else {
+		configDir, err := GetConfigDir()
+		if err != nil {
+			return "", err
+		}
+		baseDir = configDir
 	}
 
 	// Determine role-specific data directory name

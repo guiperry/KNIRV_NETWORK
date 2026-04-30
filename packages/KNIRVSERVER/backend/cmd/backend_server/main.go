@@ -355,9 +355,12 @@ func getProjectLogDir() string {
 func getOSAppDataDir() (string, error) {
 	var appDataDir string
 	var err error
+	explicit := os.Getenv("KNIRV_APP_DATA_DIR")
 
-	if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
+	if explicit != "" {
 		appDataDir = explicit
+	} else if err = os.MkdirAll("/var/lib/knirvserver", 0755); err == nil {
+		appDataDir = "/var/lib/knirvserver"
 	} else if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
 		appDataDir = filepath.Join(xdgDataHome, "knirvserver")
 	} else if homeDir, homeErr := os.UserHomeDir(); homeErr == nil {
@@ -368,9 +371,28 @@ func getOSAppDataDir() (string, error) {
 
 	// Ensure directory exists
 	if err = os.MkdirAll(appDataDir, 0755); err != nil {
+		if explicit == "" {
+			return fallbackOSAppDataDir()
+		}
 		return "", fmt.Errorf("failed to create application data directory: %w", err)
 	}
+	if testFile, testErr := os.CreateTemp(appDataDir, ".write-test-*"); testErr == nil {
+		_ = testFile.Close()
+		_ = os.Remove(testFile.Name())
+	} else if explicit == "" {
+		return fallbackOSAppDataDir()
+	} else {
+		return "", fmt.Errorf("application data directory is not writable: %w", testErr)
+	}
 
+	return appDataDir, nil
+}
+
+func fallbackOSAppDataDir() (string, error) {
+	appDataDir := filepath.Join(os.TempDir(), "knirvserver-fallback")
+	if err := os.MkdirAll(appDataDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create fallback application data directory: %w", err)
+	}
 	return appDataDir, nil
 }
 

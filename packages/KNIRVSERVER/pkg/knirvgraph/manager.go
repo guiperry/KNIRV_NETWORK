@@ -114,8 +114,11 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 }
 
 func getAppDataDir() string {
-	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
-		return filepath.Join(xdg, "knirvserver")
+	if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
+		return explicit
+	}
+	if err := os.MkdirAll("/var/lib/knirvserver", 0755); err == nil {
+		return "/var/lib/knirvserver"
 	}
 	if home, err := os.UserHomeDir(); err == nil {
 		return filepath.Join(home, ".local", "share", "knirvserver")

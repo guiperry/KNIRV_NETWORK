@@ -11,16 +11,16 @@ serve_frontend: true
 log_level: "debug"
 
 # Socket paths for submodules (Unix sockets for internal communication)
-socket_dir: /home/gperry/.local/share/knirvserver/sockets
+socket_dir: /var/lib/knirvserver/sockets
 
 # Database configuration
 database:
-  path: ~/.local/share/knirvserver/backend_server/data/server.db
+  path: /var/lib/knirvserver/backend_server/data/server.db
 
 # API Configuration
 api:
   port: 8082
-  socket_path: /home/gperry/.local/share/knirvserver/sockets/backend.sock
+  socket_path: /var/lib/knirvserver/sockets/backend.sock
   host: "0.0.0.0"
   enable_cors: true
   cors_origins:
@@ -177,9 +177,9 @@ icme:
 # KNIRVGATEWAY Configuration
 gateway:
   enabled: true
-  binary_path: /home/gperry/.local/share/knirvserver/bin/knirvgateway
+  binary_path: /var/lib/knirvserver/bin/knirvgateway
   port: 8081
-  socket_path: /home/gperry/.local/share/knirvserver/sockets/gateway.sock
+  socket_path: /var/lib/knirvserver/sockets/gateway.sock
   turn_udp_port: 3478
   turn_tcp_port: 3479
   turn_api_port: 3476
@@ -195,10 +195,10 @@ gateway:
 # KNIRVGRAPH Configuration
 graph:
   enabled: true
-  binary_path: /home/gperry/.local/share/knirvserver/bin/knirvgraph
-  socket_path: /home/gperry/.local/share/knirvserver/sockets/graph.sock
-  p2p_socket_path: /home/gperry/.local/share/knirvserver/sockets/graph-p2p.sock
-  data_path: ~/.local/share/knirvserver/knirvgraph
+  binary_path: /var/lib/knirvserver/bin/knirvgraph
+  socket_path: /var/lib/knirvserver/sockets/graph.sock
+  p2p_socket_path: /var/lib/knirvserver/sockets/graph-p2p.sock
+  data_path: /var/lib/knirvserver/knirvgraph
   sync_interval: "30s"
   start_timeout: 30
   stop_timeout: 10
@@ -206,13 +206,13 @@ graph:
 # KNIRVCHAIN Configuration
 chain:
   enabled: true
-  binary_path: /home/gperry/.local/share/knirvserver/bin/knirvchain
-  socket_path: /home/gperry/.local/share/knirvserver/sockets/chain.sock
-  p2p_socket_path: /home/gperry/.local/share/knirvserver/sockets/chain-p2p.sock
+  binary_path: /var/lib/knirvserver/bin/knirvchain
+  socket_path: /var/lib/knirvserver/sockets/chain.sock
+  p2p_socket_path: /var/lib/knirvserver/sockets/chain-p2p.sock
   port: 8083
   p2p_port: 4001
   api_port: 8083
-  data_path: ~/.local/share/knirvserver/knirvchain
+  data_path: /var/lib/knirvserver/knirvchain
   role: "client"
   chain_id: "testnet"
   start_timeout: 30

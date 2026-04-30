@@ -1,6 +1,6 @@
 # KNIRV-SERVER Production Configuration
 # This is the consolidated production configuration file for KNIRV-SERVER
-# All data directories default to ~/.local/share/knirvserver/backend_server (XDG Base Directory)
+# All data directories default to /var/lib/knirvserver/backend_server
 
 # Operational Mode
 mode: headless  # headless | gui
@@ -50,7 +50,7 @@ gui:
 
 # Database Configuration
 database:
-  path: ~/.local/share/knirvserver/backend_server/data/server.db
+  path: /var/lib/knirvserver/backend_server/data/server.db
 
 # Security Configuration
 security:
@@ -178,8 +178,8 @@ inference:
 
 # Cloud Development Environment (CDE) Configuration
 cde:
-  base_image_path: "~/.local/share/knirvserver/backend_server/images"
-  workspace_root: "~/.local/share/knirvserver/backend_server/workspaces"
+  base_image_path: "/var/lib/knirvserver/backend_server/images"
+  workspace_root: "/var/lib/knirvserver/backend_server/workspaces"
   max_environments: 50
   default_timeout: "1h"
   max_cpu_per_env: 2.0
@@ -194,11 +194,11 @@ cde:
   session_timeout: "2h"
   max_sessions_per_user: 5
   max_projects_per_user: 20
-  project_storage_path: "~/.local/share/knirvserver/backend_server/projects"
+  project_storage_path: "/var/lib/knirvserver/backend_server/projects"
 
 # Reports Configuration
 reports:
-  storage_path: "~/.local/share/knirvserver/backend_server/reports"
+  storage_path: "/var/lib/knirvserver/backend_server/reports"
   max_file_size: 104857600  # 100MB
   retention_days: 30
   enable_sharing: true
@@ -254,7 +254,7 @@ production:
   max_replicas: 10
 
 # Socket directory for submodule Unix sockets
-socket_dir: ~/.local/share/knirvserver/sockets
+socket_dir: /var/lib/knirvserver/sockets
 
 # Updater Configuration
 updater:
@@ -267,9 +267,9 @@ updater:
 chain:
   enabled: true
   binary_path: ""
-  socket_path: ~/.local/share/knirvserver/sockets/chain.sock
-  p2p_socket_path: ~/.local/share/knirvserver/sockets/chain-p2p.sock
-  data_path: ~/.local/share/knirvserver/knirvchain
+  socket_path: /var/lib/knirvserver/sockets/chain.sock
+  p2p_socket_path: /var/lib/knirvserver/sockets/chain-p2p.sock
+  data_path: /var/lib/knirvserver/knirvchain
   role: "client"
   chain_id: "knirv-server-mainnet"
   start_timeout: 30
@@ -279,9 +279,9 @@ chain:
 graph:
   enabled: true
   binary_path: ""
-  socket_path: ~/.local/share/knirvserver/sockets/graph.sock
-  p2p_socket_path: ~/.local/share/knirvserver/sockets/graph-p2p.sock
-  data_path: ~/.local/share/knirvserver/knirvgraph
+  socket_path: /var/lib/knirvserver/sockets/graph.sock
+  p2p_socket_path: /var/lib/knirvserver/sockets/graph-p2p.sock
+  data_path: /var/lib/knirvserver/knirvgraph
   sync_interval: "30s"
   start_timeout: 30
   stop_timeout: 10

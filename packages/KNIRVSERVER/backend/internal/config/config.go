@@ -12,6 +12,11 @@ import (
 	"github.com/subosito/gotenv"
 )
 
+const (
+	defaultSystemAppDataDir = "/var/lib/knirvserver"
+	defaultSystemConfigDir  = "/etc/knirv-server"
+)
+
 // PaymentProcessorConfig defines payment processor configuration
 type PaymentProcessorConfig struct {
 	Enabled       bool    `mapstructure:"enabled"`
@@ -45,8 +50,8 @@ type ReverseProxyConfig struct {
 
 // FintechConfig defines FinTech validator configuration
 type FintechConfig struct {
-	Enabled               bool    `mapstructure:"enabled"`
-	IntentThreshold      float64 `mapstructure:"intent_threshold"`
+	Enabled         bool    `mapstructure:"enabled"`
+	IntentThreshold float64 `mapstructure:"intent_threshold"`
 }
 
 // GatewayConfig defines embedded KNIRVGATEWAY configuration
@@ -323,10 +328,10 @@ type AuthConfig struct {
 
 // ValidationConfig represents validation engine configuration
 type ValidationConfig struct {
-	Timeout               time.Duration `mapstructure:"timeout"`
-	MaxConcurrent        int           `mapstructure:"max_concurrent"`
-	EnableTEE             bool          `mapstructure:"enable_tee"`
-	SemanticKeywordThreshold float64     `mapstructure:"semantic_keyword_threshold"`
+	Timeout                  time.Duration `mapstructure:"timeout"`
+	MaxConcurrent            int           `mapstructure:"max_concurrent"`
+	EnableTEE                bool          `mapstructure:"enable_tee"`
+	SemanticKeywordThreshold float64       `mapstructure:"semantic_keyword_threshold"`
 }
 
 // TEEConfig represents TEE (Trusted Execution Environment) configuration
@@ -450,10 +455,10 @@ type ICMEConfig struct {
 	SignalQueueSize         int           `mapstructure:"signal_queue_size"`
 	SignalWorkers           int           `mapstructure:"signal_workers"`
 	// Embedding thresholds
-	DuplicateThreshold       float64 `mapstructure:"duplicate_threshold"`
+	DuplicateThreshold      float64 `mapstructure:"duplicate_threshold"`
 	NodeSimilarityThreshold float64 `mapstructure:"node_similarity_threshold"`
-	SearchCacheThreshold     float64 `mapstructure:"search_cache_threshold"`
-	SearchCacheTTLSeconds  int      `mapstructure:"search_cache_ttl_seconds"`
+	SearchCacheThreshold    float64 `mapstructure:"search_cache_threshold"`
+	SearchCacheTTLSeconds   int     `mapstructure:"search_cache_ttl_seconds"`
 	PromptCacheThreshold    float64 `mapstructure:"prompt_cache_threshold"`
 }
 
@@ -528,15 +533,25 @@ func LoadWithDefaults() (*Config, error) {
 	return &config, nil
 }
 
-// getAppDataDir returns the XDG Base Directory for app data
-// Following XDG Base Directory Specification: ~/.local/share/knirvserver/backend_server
+// getAppDataDir returns the shared KNIRVSERVER runtime data directory.
 func getAppDataDir() (string, error) {
+	if explicit := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); explicit != "" {
+		if err := os.MkdirAll(explicit, 0755); err != nil {
+			return "", fmt.Errorf("failed to create app data directory %s: %v", explicit, err)
+		}
+		return explicit, nil
+	}
+
+	if err := os.MkdirAll(defaultSystemAppDataDir, 0755); err == nil {
+		return defaultSystemAppDataDir, nil
+	}
+
 	usr, err := user.Current()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current user: %v", err)
 	}
 
-	appDataDir := filepath.Join(usr.HomeDir, ".local", "share", "knirvserver", "backend_server")
+	appDataDir := filepath.Join(usr.HomeDir, ".local", "share", "knirvserver")
 	if err := os.MkdirAll(appDataDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create app data directory %s: %v", appDataDir, err)
 	}
@@ -548,17 +563,23 @@ func getAppDataDir() (string, error) {
 // Relative paths are resolved relative to the application data directory, NOT the current working directory
 func expandPath(path string) (string, error) {
 	if strings.HasPrefix(path, "~") {
-		usr, err := user.Current()
+		appDataDir, err := getAppDataDir()
 		if err != nil {
 			return "", err
 		}
-		var expanded string
-		if len(path) > 1 && (path[1] == '/' || path[1] == '\\') {
-			expanded = filepath.Join(usr.HomeDir, path[2:])
-		} else {
-			expanded = filepath.Join(usr.HomeDir, path[1:])
+		trimmed := strings.TrimPrefix(path, "~")
+		trimmed = strings.TrimLeft(trimmed, `/\`)
+		if strings.HasPrefix(trimmed, ".local/share/knirvserver/") {
+			return filepath.Join(appDataDir, strings.TrimPrefix(trimmed, ".local/share/knirvserver/")), nil
 		}
-		return expanded, nil
+		if strings.HasPrefix(trimmed, ".config/knirv-server/") {
+			configDir, err := GetConfigDir()
+			if err != nil {
+				return "", err
+			}
+			return filepath.Join(configDir, strings.TrimPrefix(trimmed, ".config/knirv-server/")), nil
+		}
+		return filepath.Join(appDataDir, trimmed), nil
 	}
 
 	// Resolve relative paths relative to the application data directory (XDG Base)
@@ -872,10 +893,10 @@ func setDefaults() {
 	appDataDir, err := getAppDataDir()
 	if err != nil {
 		// If we can't get app data directory, use a sensible absolute path
-		// Try to use $XDG_DATA_HOME or fallback to ~/.local/share/knirvserver/backend_server
+		// Try the shared system runtime directory before falling back to user data.
 		usr, errUser := user.Current()
 		if errUser == nil {
-			appDataDir = filepath.Join(usr.HomeDir, ".local", "share", "knirvserver", "backend_server")
+			appDataDir = filepath.Join(usr.HomeDir, ".local", "share", "knirvserver")
 			// Attempt to create it
 			_ = os.MkdirAll(appDataDir, 0755)
 		} else {
@@ -1103,8 +1124,18 @@ func setDefaults() {
 	viper.SetDefault("rollup.poll_interval", "30s")
 }
 
-// GetConfigDir returns the base configuration directory (e.g., ~/.config/knirv-server)
+// GetConfigDir returns the base configuration directory.
 func GetConfigDir() (string, error) {
+	if explicit := strings.TrimSpace(os.Getenv("KNIRV_CONFIG_DIR")); explicit != "" {
+		if err := os.MkdirAll(explicit, 0755); err != nil {
+			return "", fmt.Errorf("failed to create app config directory %s: %w", explicit, err)
+		}
+		return explicit, nil
+	}
+	if err := os.MkdirAll(defaultSystemConfigDir, 0755); err == nil {
+		return defaultSystemConfigDir, nil
+	}
+
 	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user config directory: %w", err)
@@ -1138,9 +1169,9 @@ func GetDataDir(role ...Role) (string, error) {
 		currentRole = role[0]
 	}
 
-	baseDir, err := GetConfigDir()
-	if err != nil {
-		return "", err
+	baseDir := filepath.Join(defaultSystemAppDataDir, "backend_server")
+	if appDataDir, err := getAppDataDir(); err == nil {
+		baseDir = filepath.Join(appDataDir, "backend_server")
 	}
 
 	// Determine role-specific data directory name
@@ -1160,6 +1191,12 @@ func GetDataDir(role ...Role) (string, error) {
 
 	dataDirPath := filepath.Join(baseDir, dataDirName)
 	if err := os.MkdirAll(dataDirPath, 0755); err != nil {
+		if strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")) == "" {
+			fallbackPath := filepath.Join(os.TempDir(), "knirvserver-fallback", "backend_server", dataDirName)
+			if fallbackErr := os.MkdirAll(fallbackPath, 0755); fallbackErr == nil {
+				return fallbackPath, nil
+			}
+		}
 		return "", fmt.Errorf("failed to create %s directory %s: %w", currentRole, dataDirPath, err)
 	}
 

@@ -27,6 +27,11 @@ func rootKeyCandidates(configuredPath string) []string {
 	add(os.Getenv("KNIRV_ROOT_KEY_PATH"))
 	add(os.Getenv("ORACLE_ROOT_KEY_PATH"))
 
+	if configDir := strings.TrimSpace(os.Getenv("KNIRV_CONFIG_DIR")); configDir != "" {
+		add(filepath.Join(configDir, "root.key"))
+	}
+	add(filepath.Join("/etc", "knirv-server", "root.key"))
+
 	if configDir, err := os.UserConfigDir(); err == nil {
 		add(filepath.Join(configDir, "knirv-server", "root.key"))
 	}

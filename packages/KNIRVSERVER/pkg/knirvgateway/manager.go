@@ -17,6 +17,19 @@ import (
 	"go.uber.org/zap"
 )
 
+func getGatewayAppDataDir() string {
+	if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
+		return explicit
+	}
+	if err := os.MkdirAll("/var/lib/knirvserver", 0755); err == nil {
+		return "/var/lib/knirvserver"
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".local", "share", "knirvserver")
+	}
+	return "data"
+}
+
 // killStaleGateway sends SIGTERM (then SIGKILL after 2 s) to any running
 // processes whose executable matches the given binary name. This prevents
 // port-conflict crashes when the parent process was previously killed
@@ -317,7 +330,7 @@ func resolveBinaryPath(configured string) (string, error) {
 	}
 
 	// Embedded directory (extracted binaries)
-	embeddedDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "knirvserver", "bin")
+	embeddedDir := filepath.Join(getGatewayAppDataDir(), "bin")
 	candidates = append(candidates,
 		filepath.Join(embeddedDir, "knirvgateway"),
 		filepath.Join(embeddedDir, "..", "bin", "knirvgateway"),

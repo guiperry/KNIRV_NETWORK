@@ -65,10 +65,10 @@ func DefaultManagerConfig() *ManagerConfig {
 
 func getHasherAppDataDir() string {
 	if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
-		return filepath.Join(explicit, "knirvserver")
+		return explicit
 	}
-	if xdgDataHome := os.Getenv("XDG_DATA_HOME"); xdgDataHome != "" {
-		return filepath.Join(xdgDataHome, "knirvserver")
+	if err := os.MkdirAll("/var/lib/knirvserver", 0755); err == nil {
+		return "/var/lib/knirvserver"
 	}
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		return filepath.Join(homeDir, ".local", "share", "knirvserver")
@@ -183,7 +183,7 @@ func resolveBinaryPath(configured string) (string, error) {
 		)
 	}
 
-	embeddedDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "knirvserver", "bin")
+	embeddedDir := filepath.Join(getHasherAppDataDir(), "bin")
 	candidates = append(candidates,
 		filepath.Join(embeddedDir, "knirvhasher"),
 		filepath.Join(embeddedDir, "..", "bin", "knirvhasher"),

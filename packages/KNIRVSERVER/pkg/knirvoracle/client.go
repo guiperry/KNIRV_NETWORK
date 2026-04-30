@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -21,8 +22,10 @@ func NewClient(socketPath string) *Client {
 	if socketPath == "" {
 		if envPath := os.Getenv("ORACLE_SOCKET_PATH"); envPath != "" {
 			socketPath = envPath
+		} else if appDataDir := os.Getenv("KNIRV_APP_DATA_DIR"); appDataDir != "" {
+			socketPath = filepath.Join(appDataDir, "sockets", "oracle.sock")
 		} else {
-			socketPath = "~/.local/share/knirvserver/sockets/oracle.sock"
+			socketPath = filepath.Join("/var/lib/knirvserver", "sockets", "oracle.sock")
 		}
 	}
 

@@ -79,7 +79,7 @@ kill_by_pattern() {
     fi
 }
 
-# Kill processes by binary path (handles ~/.local/share/knirvserver/bin/*)
+# Kill processes by binary path (handles /var/lib/knirvserver/bin/*)
 kill_by_binary_path() {
     local bin_dir="$1"
     
@@ -108,11 +108,11 @@ echo "1. Killing KNIRV-SERVER unified binary..."
 kill_by_pattern "./dist/knirv-server" "SIGTERM" "true"
 kill_by_pattern "knirv-server" "SIGTERM" "true"
 
-# Kill binaries in ~/.local/share/knirvserver/bin/
+# Kill binaries in KNIRVSERVER runtime bin directories
 echo ""
-echo "1.5. Killing binaries in ~/.local/share/knirvserver/bin/..."
+echo "1.5. Killing binaries in KNIRVSERVER runtime bin directories..."
+kill_by_binary_path "/var/lib/knirvserver/bin"
 kill_by_binary_path "$HOME/.local/share/knirvserver/bin"
-kill_by_binary_path "/home/gperry/.local/share/knirvserver/bin"
 
 # Kill backend server
 echo ""

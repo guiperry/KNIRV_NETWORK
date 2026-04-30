@@ -78,6 +78,12 @@ type HealthStatus struct {
 }
 
 func getChainAppDataDir() string {
+	if explicit := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); explicit != "" {
+		return explicit
+	}
+	if err := os.MkdirAll("/var/lib/knirvserver", 0755); err == nil {
+		return "/var/lib/knirvserver"
+	}
 	if home, err := os.UserHomeDir(); err == nil {
 		return filepath.Join(home, ".local", "share", "knirvserver")
 	}
@@ -219,6 +225,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		fmt.Sprintf("KNIRV_CHAIN_ID=%s", m.config.ChainID),
 		fmt.Sprintf("KNIRV_DATA_DIR=%s", m.config.DataPath),
 		fmt.Sprintf("KNIRV_SOCKET_PATH=%s", m.config.SocketPath),
+		fmt.Sprintf("GATEWAY_SOCKET_PATH=%s", filepath.Join(getChainAppDataDir(), "sockets", "gateway.sock")),
 	)
 
 	args := []string{
@@ -308,7 +315,7 @@ func resolveBinaryPath(configured string) (string, error) {
 		)
 	}
 
-	embeddedDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "knirvserver", "bin")
+	embeddedDir := filepath.Join(getChainAppDataDir(), "bin")
 	candidates = append(candidates,
 		filepath.Join(embeddedDir, "knirvchain"),
 		filepath.Join(embeddedDir, "..", "bin", "knirvchain"),

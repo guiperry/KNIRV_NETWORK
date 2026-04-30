@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -71,6 +72,12 @@ type HealthStatus struct {
 }
 
 func getOracleAppDataDir() string {
+	if explicit := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); explicit != "" {
+		return explicit
+	}
+	if err := os.MkdirAll("/var/lib/knirvserver", 0755); err == nil {
+		return "/var/lib/knirvserver"
+	}
 	if home, err := os.UserHomeDir(); err == nil {
 		return filepath.Join(home, ".local", "share", "knirvserver")
 	}
@@ -86,7 +93,7 @@ func DefaultManagerConfig() *ManagerConfig {
 		SocketPath:   filepath.Join(appDataDir, "sockets", "oracle.sock"),
 		DataPath:     filepath.Join(appDataDir, "oracle"),
 		StartTimeout: 30 * time.Second,
-		StopTimeout: 10 * time.Second,
+		StopTimeout:  10 * time.Second,
 	}
 }
 
@@ -255,7 +262,7 @@ func (m *Manager) resolveBinaryPath() (string, error) {
 		)
 	}
 
-	embeddedDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "knirvserver", "bin")
+	embeddedDir := filepath.Join(getOracleAppDataDir(), "bin")
 	candidates = append(candidates,
 		filepath.Join(embeddedDir, "knirvoracle"),
 		filepath.Join(embeddedDir, "..", "bin", "knirvoracle"),
