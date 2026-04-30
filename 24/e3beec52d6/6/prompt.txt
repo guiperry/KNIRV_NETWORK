@@ -1,0 +1,5 @@
+Draft a plan that details how we can update the packages/KNIRVHASHER/cmd/cli/main.go so that it can start in headless mode via flag, allowing the options to be initiated by a server endpoint.
+
+---
+
+Draft all of this into a new file named knirvhasher_cli_refactor.md file with all details.
