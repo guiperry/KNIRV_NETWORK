@@ -3,7 +3,7 @@
   "checkpoint_id": "f194aeff4fb9",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 22,
+  "checkpoints_count": 23,
   "files_touched": [
     "knirvhasher_cli_refactor.md",
     "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs",
@@ -100,13 +100,19 @@
       "transcript": "/f1/94aeff4fb9/6/full.jsonl",
       "content_hash": "/f1/94aeff4fb9/6/content_hash.txt",
       "prompt": "/f1/94aeff4fb9/6/prompt.txt"
+    },
+    {
+      "metadata": "/f1/94aeff4fb9/7/metadata.json",
+      "transcript": "/f1/94aeff4fb9/7/full.jsonl",
+      "content_hash": "/f1/94aeff4fb9/7/content_hash.txt",
+      "prompt": "/f1/94aeff4fb9/7/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 11848500,
-    "cache_creation_tokens": 518234,
-    "cache_read_tokens": 38667864,
-    "output_tokens": 359465,
-    "api_call_count": 545
+    "input_tokens": 12232152,
+    "cache_creation_tokens": 730004,
+    "cache_read_tokens": 43577604,
+    "output_tokens": 378614,
+    "api_call_count": 630
   }
 }
