@@ -588,9 +588,35 @@ func (app *ServerApp) startDesktop() error {
 // stopDesktop stops the Electron desktop application
 func (app *ServerApp) stopDesktop() {
 	if app.desktopCmd != nil && app.desktopCmd.Process != nil {
-		log.Printf("Stopping KNIRV Desktop (PID: %d)", app.desktopCmd.Process.Pid)
-		app.desktopCmd.Process.Signal(syscall.SIGTERM)
-		app.desktopCmd.Wait()
+		pid := app.desktopCmd.Process.Pid
+		log.Printf("Stopping KNIRV Desktop (PID: %d)", pid)
+
+		if err := app.desktopCmd.Process.Signal(syscall.SIGTERM); err != nil {
+			log.Printf("Failed to signal desktop PID %d: %v — force killing", pid, err)
+			app.desktopCmd.Process.Kill()
+			app.desktopCmd.Wait()
+			return
+		}
+
+		done := make(chan error, 1)
+		go func() { done <- app.desktopCmd.Wait() }()
+		select {
+		case err := <-done:
+			if err != nil {
+				log.Printf("Desktop PID %d stopped: %v", pid, err)
+			} else {
+				log.Printf("Desktop PID %d stopped gracefully", pid)
+			}
+		case <-time.After(5 * time.Second):
+			log.Printf("Desktop PID %d did not stop within 5s — sending SIGKILL", pid)
+			app.desktopCmd.Process.Kill()
+			select {
+			case <-done:
+			case <-time.After(2 * time.Second):
+				log.Printf("Warning: desktop PID %d Wait() did not complete after Kill() — zombie possible", pid)
+			}
+			log.Printf("Desktop PID %d force killed", pid)
+		}
 	}
 }
 
@@ -1182,9 +1208,39 @@ func (app *ServerApp) startBackend() error {
 // stopBackend stops the unified backend service
 func (app *ServerApp) stopBackend() {
 	if app.backendCmd != nil && app.backendCmd.Process != nil {
-		log.Printf("Stopping unified backend (PID: %d)", app.backendCmd.Process.Pid)
-		app.backendCmd.Process.Signal(syscall.SIGTERM)
-		app.backendCmd.Wait()
+		pid := app.backendCmd.Process.Pid
+		log.Printf("Stopping unified backend (PID: %d)", pid)
+
+		// Send SIGTERM for graceful shutdown
+		if err := app.backendCmd.Process.Signal(syscall.SIGTERM); err != nil {
+			log.Printf("Failed to signal backend PID %d: %v — force killing", pid, err)
+			app.backendCmd.Process.Kill()
+			app.backendCmd.Wait() // reap the zombie
+			return
+		}
+
+		// Wait with a timeout, then escalate to SIGKILL.
+		// Without this timeout a stuck backend would block shutdown forever.
+		done := make(chan error, 1)
+		go func() { done <- app.backendCmd.Wait() }()
+		select {
+		case err := <-done:
+			if err != nil {
+				log.Printf("Backend PID %d stopped: %v", pid, err)
+			} else {
+				log.Printf("Backend PID %d stopped gracefully", pid)
+			}
+		case <-time.After(10 * time.Second):
+			log.Printf("Backend PID %d did not stop within 10s — sending SIGKILL", pid)
+			app.backendCmd.Process.Kill()
+			// Wait briefly for the goroutine to reap the zombie.
+			select {
+			case <-done:
+			case <-time.After(2 * time.Second):
+				log.Printf("Warning: backend PID %d Wait() did not complete after Kill() — zombie possible", pid)
+			}
+			log.Printf("Backend PID %d force killed", pid)
+		}
 	}
 }
 

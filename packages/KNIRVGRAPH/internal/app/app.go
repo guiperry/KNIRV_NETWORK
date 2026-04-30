@@ -10,68 +10,97 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
+	"time"
 
 	"go.uber.org/zap"
 )
 
+func getOracleSocketPath() string {
+	if envPath := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); envPath != "" {
+		return filepath.Join(envPath, "sockets", "oracle.sock")
+	}
+	return "/var/lib/knirvserver/sockets/oracle.sock"
+}
+
 func resolveKNIRVOracleURL(logger *zap.Logger) string {
-	candidates := []struct {
+	type candidate struct {
 		baseURL     string
 		healthPaths []string
 		label       string
-	}{}
+	}
 
+	// ── priority 1: explicit env vars ──────────────────────────────────────
+	var candidates []candidate
 	if envURL := os.Getenv("KNIRV_ORACLED_RPC_URL"); envURL != "" {
-		candidates = append(candidates, struct {
-			baseURL     string
-			healthPaths []string
-			label       string
-		}{baseURL: envURL, healthPaths: []string{"/oracle/v3/health", "/health"}, label: "env var KNIRV_ORACLED_RPC_URL"})
+		candidates = append(candidates, candidate{baseURL: envURL, healthPaths: []string{"/oracle/v3/health", "/health"}, label: "env var KNIRV_ORACLED_RPC_URL"})
 	}
 	if envURL := os.Getenv("KNIRVORACLE_URL"); envURL != "" {
-		candidates = append(candidates, struct {
-			baseURL     string
-			healthPaths []string
-			label       string
-		}{baseURL: envURL, healthPaths: []string{"/oracle/v3/health", "/health"}, label: "env var KNIRVORACLE_URL"})
+		candidates = append(candidates, candidate{baseURL: envURL, healthPaths: []string{"/oracle/v3/health", "/health"}, label: "env var KNIRVORACLE_URL"})
 	}
 
+	// ── priority 2: public DNS (oracle.knirv.network) ─────────────────────
+	// Tried before local-only fallbacks so the DNS record created by the
+	// KNIRVSERVER DNS service is selected first when reachable.
+	candidates = append(candidates, candidate{
+		baseURL: "https://oracle.knirv.network", healthPaths: []string{"/oracle/v3/health", "/health"}, label: "cloudflare public DNS",
+	})
+
+	// ── priority 3: internal Unix socket ──────────────────────────────────
+	// When the KNIRVORACLE subprocess runs on the same host, it binds a Unix
+	// socket that is faster and more secure than TCP loopback.
+	socketPath := getOracleSocketPath()
+	if _, err := os.Stat(socketPath); err == nil {
+		candidates = append(candidates, candidate{
+			baseURL: "http://localhost", healthPaths: []string{"/oracle/v3/health", "/health"}, label: "unix socket: " + socketPath,
+		})
+	}
+
+	// ── priority 4: local TCP fallbacks ───────────────────────────────────
+	// Fall back to loopback ports for legacy/sidecar configurations.
 	candidates = append(candidates,
-		struct {
-			baseURL     string
-			healthPaths []string
-			label       string
-		}{baseURL: "http://127.0.0.1:8084", healthPaths: []string{"/oracle/v3/health", "/health"}, label: "local KNIRVSERVER oracle proxy"},
-		struct {
-			baseURL     string
-			healthPaths []string
-			label       string
-		}{baseURL: "http://127.0.0.1:1317", healthPaths: []string{"/health"}, label: "local legacy KNIRVSERVER oracle"},
-		struct {
-			baseURL     string
-			healthPaths []string
-			label       string
-		}{baseURL: "https://oracle.knirv.network", healthPaths: []string{"/oracle/v3/health", "/health"}, label: "cloudflare public DNS"},
+		candidate{baseURL: "http://127.0.0.1:8084", healthPaths: []string{"/oracle/v3/health", "/health"}, label: "local KNIRVSERVER oracle proxy"},
+		candidate{baseURL: "http://127.0.0.1:1317", healthPaths: []string{"/health"}, label: "local legacy KNIRVSERVER oracle"},
 	)
 
-	client := &http.Client{}
-	for _, candidate := range candidates {
-		if candidate.baseURL == "" {
+	// ── probe each candidate ──────────────────────────────────────────────
+	client := &http.Client{Timeout: 5 * time.Second}
+	for _, c := range candidates {
+		if c.baseURL == "" {
 			continue
 		}
-		for _, healthPath := range candidate.healthPaths {
-			resp, err := client.Get(candidate.baseURL + healthPath)
+		for _, healthPath := range c.healthPaths {
+			var resp *http.Response
+			var err error
+
+			if strings.HasPrefix(c.label, "unix socket:") {
+				// Unix socket requires a custom transport — the default
+				// http.Client cannot dial unix:// URIs.
+				socketClient := &http.Client{
+					Timeout: 5 * time.Second,
+					Transport: &http.Transport{
+						DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+							return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+						},
+					},
+				}
+				resp, err = socketClient.Get(c.baseURL + healthPath)
+			} else {
+				resp, err = client.Get(c.baseURL + healthPath)
+			}
 			if err != nil {
 				continue
 			}
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
-				logger.Info("KNIRVORACLE: using discovered endpoint", zap.String("url", candidate.baseURL), zap.String("source", candidate.label))
-				return candidate.baseURL
+				logger.Info("KNIRVORACLE: using discovered endpoint", zap.String("url", c.baseURL), zap.String("source", c.label))
+				return c.baseURL
 			}
 		}
 	}

@@ -345,6 +345,13 @@ func (m *Manager) Stop(ctx context.Context) error {
 	case <-time.After(m.config.StopTimeout):
 		m.logger.Warn("Timeout waiting for graceful shutdown, forcing kill")
 		m.cmd.Process.Kill()
+		// Wait for the reap goroutine to finish so the zombie does not
+		// linger.  After SIGKILL the child should die nearly instantly.
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			m.logger.Warn("Wait() did not complete after Kill() — zombie possible")
+		}
 		m.running = false
 		return fmt.Errorf("forced shutdown after timeout")
 	}

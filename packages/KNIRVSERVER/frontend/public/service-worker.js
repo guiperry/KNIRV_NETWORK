@@ -55,9 +55,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Do NOT cache protected routes - let them go to network
-  if (url.pathname === '/login' || url.pathname === '/menu' || url.pathname.startsWith('/menu') || url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(request));
+  // Let the browser handle these routes directly — do NOT call
+  // event.respondWith().  This avoids:
+  //   1. "promise was rejected" when an iframe navigation aborts the fetch
+  //   2. 503 fallback from networkFirst() returning JSON for an HTML page
+  if (url.pathname === '/login' || url.pathname === '/menu' || url.pathname.startsWith('/menu')) {
     return;
   }
 

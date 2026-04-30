@@ -3,6 +3,8 @@ package knirvhasher
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,13 +38,16 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	BinaryPath   string
-	SocketPath   string
-	DataPath     string
-	StartTimeout time.Duration
-	StopTimeout  time.Duration
-	Stdout       interface{}
-	Stderr       interface{}
+	BinaryPath    string
+	SocketPath    string
+	DataPath      string
+	HeadlessPort  int
+	HeadlessMode  bool
+	ArxivEnabled  bool
+	StartTimeout  time.Duration
+	StopTimeout   time.Duration
+	Stdout        interface{}
+	Stderr        interface{}
 }
 
 type HasherStatus struct {
@@ -137,10 +142,31 @@ func (m *Manager) Start(ctx context.Context) error {
 		fmt.Sprintf("HASHER_DATA_PATH=%s", m.config.DataPath),
 	)
 
-	m.cmd = exec.Command(m.config.BinaryPath)
+	if m.config.ArxivEnabled {
+		env = append(env, "DATAMINER_MODE=production", "ARXIV_ENABLED=true")
+	}
+
+	args := []string{}
+	if m.config.HeadlessMode {
+		port := m.config.HeadlessPort
+		if port == 0 {
+			port = 8088
+		}
+		args = append(args, "-headless", fmt.Sprintf("-headless-port=%d", port))
+	}
+
+	m.cmd = exec.Command(m.config.BinaryPath, args...)
 	m.cmd.Env = env
-	m.cmd.Stdout = os.Stdout
-	m.cmd.Stderr = os.Stderr
+	if w, ok := m.config.Stdout.(io.Writer); ok {
+		m.cmd.Stdout = w
+	} else {
+		m.cmd.Stdout = os.Stdout
+	}
+	if w, ok := m.config.Stderr.(io.Writer); ok {
+		m.cmd.Stderr = w
+	} else {
+		m.cmd.Stderr = os.Stderr
+	}
 	m.cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
@@ -155,6 +181,21 @@ func (m *Manager) Start(ctx context.Context) error {
 	if err := m.waitForSocket(ctx); err != nil {
 		m.cmd.Process.Kill()
 		return fmt.Errorf("socket creation failed: %w", err)
+	}
+
+	// In headless mode, also wait for the HTTP API then trigger the data pipeline
+	if m.config.HeadlessMode {
+		httpPort := m.config.HeadlessPort
+		if httpPort == 0 {
+			httpPort = 8088
+		}
+		if err := m.waitForHTTPServer(ctx, httpPort); err != nil {
+			m.logger.Warn("KNIRVHASHER HTTP API not ready, pipeline will not auto-start",
+				zap.Error(err))
+		} else {
+			m.logger.Info("KNIRVHASHER HTTP API ready, triggering data pipeline")
+			m.triggerPipeline(httpPort)
+		}
 	}
 
 	m.running = true
@@ -260,6 +301,11 @@ func (m *Manager) Stop(ctx context.Context) error {
 	case <-time.After(m.config.StopTimeout):
 		m.logger.Warn("Timeout waiting for graceful shutdown, forcing kill")
 		m.cmd.Process.Kill()
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			m.logger.Warn("Wait() did not complete after Kill() — zombie possible")
+		}
 		m.running = false
 		m.startTime = time.Time{}
 		return fmt.Errorf("forced shutdown after timeout")
@@ -306,4 +352,56 @@ func (m *Manager) GetStatus() *HasherStatus {
 	}
 
 	return status
+}
+
+// waitForHTTPServer polls the headless HTTP API health endpoint until it responds.
+func (m *Manager) waitForHTTPServer(ctx context.Context, port int) error {
+	deadline, cancel := context.WithTimeout(ctx, m.config.StartTimeout)
+	defer cancel()
+
+	client := &http.Client{Timeout: 2 * time.Second}
+	healthURL := fmt.Sprintf("http://localhost:%d/api/v1/health", port)
+
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-deadline.Done():
+			return fmt.Errorf("timeout waiting for KNIRVHASHER HTTP API on port %d", port)
+		case <-ticker.C:
+			resp, err := client.Get(healthURL)
+			if err != nil {
+				continue
+			}
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				m.logger.Info("KNIRVHASHER HTTP API health check passed",
+					zap.Int("port", port))
+				return nil
+			}
+		}
+	}
+}
+
+// triggerPipeline sends a POST request to the headless API to start the data pipeline.
+func (m *Manager) triggerPipeline(port int) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	pipelineURL := fmt.Sprintf("http://localhost:%d/api/v1/pipeline/run", port)
+
+	resp, err := client.Post(pipelineURL, "application/json", nil)
+	if err != nil {
+		m.logger.Warn("Failed to trigger KNIRVHASHER data pipeline",
+			zap.Int("port", port), zap.Error(err))
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusAccepted {
+		m.logger.Info("KNIRVHASHER data pipeline triggered successfully",
+			zap.Int("port", port), zap.Int("status", resp.StatusCode))
+	} else {
+		m.logger.Warn("KNIRVHASHER data pipeline trigger returned unexpected status",
+			zap.Int("port", port), zap.Int("status", resp.StatusCode))
+	}
 }

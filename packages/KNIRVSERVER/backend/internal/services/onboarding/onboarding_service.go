@@ -16,6 +16,9 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
+// PipelineTriggerFunc is called after successful onboarding to trigger data pipeline processing
+type PipelineTriggerFunc func(ctx context.Context, orgID string, config *OrganizationConfig) error
+
 // OnboardingService handles intelligent onboarding and validation guardrails
 type OnboardingService struct {
 	db               *database.BuntDBManager
@@ -23,6 +26,7 @@ type OnboardingService struct {
 	guardrailManager *guardrails.DynamicGuardrailManager
 	configurations   map[string]*OrganizationConfig
 	configMu         sync.RWMutex
+	pipelineTrigger  PipelineTriggerFunc
 }
 
 // OrganizationConfig represents an organization's value system and ontology
@@ -119,6 +123,11 @@ func NewOnboardingService(db *database.BuntDBManager, cognitiveEngine *cognitive
 	}
 }
 
+// SetPipelineTrigger registers a callback to invoke after successful onboarding data ingestion
+func (s *OnboardingService) SetPipelineTrigger(fn PipelineTriggerFunc) {
+	s.pipelineTrigger = fn
+}
+
 // OnboardOrganization processes an organization's value system and ontology
 func (s *OnboardingService) OnboardOrganization(ctx context.Context, req *OnboardingRequest) (*OnboardingResult, error) {
 	startTime := time.Now()
@@ -172,6 +181,19 @@ func (s *OnboardingService) OnboardOrganization(ctx context.Context, req *Onboar
 	// Persist to database
 	if err := s.saveConfiguration(config); err != nil {
 		return nil, fmt.Errorf("failed to save configuration: %w", err)
+	}
+
+	// Trigger data pipeline after successful ingestion
+	if s.pipelineTrigger != nil {
+		go func() {
+			triggerCtx, triggerCancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer triggerCancel()
+			if err := s.pipelineTrigger(triggerCtx, req.OrganizationID, config); err != nil {
+				log.Printf("Warning: Pipeline trigger failed after onboarding %s: %v", configID, err)
+			} else {
+				log.Printf("Pipeline trigger succeeded for onboarding %s (org=%s)", configID, req.OrganizationID)
+			}
+		}()
 	}
 
 	processingTime := time.Since(startTime)

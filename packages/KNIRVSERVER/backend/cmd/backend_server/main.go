@@ -24,6 +24,7 @@ import (
 	"backend_server/internal/logging"
 	"backend_server/internal/password"
 	pb "backend_server/internal/proto"
+	hasherpb "backend_server/internal/proto/hasher"
 	"backend_server/internal/reasoning/graph"
 	"backend_server/internal/runtime"
 	nexus "backend_server/internal/server"
@@ -71,6 +72,8 @@ import (
 
 	knirvgateway "github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY"
 	knirvoracle "github.com/KNIRV/KNIRV_NETWORK/KNIRVORACLE"
+
+	knirvhasher "knirvhasher"
 
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
@@ -168,6 +171,9 @@ type Server struct {
 	// KNIRVHASHER integration
 	hasherGRPCServer  *dvemanager.HasherGRPCServer
 	hasherIntegration *dvemanager.HasherIntegration
+
+	// KNIRVHASHER Manager (headless binary subprocess)
+	hasherManager *knirvhasher.Manager
 
 	// Oracle service (root-only — managed via knirvoracle Manager)
 	oracleManager *knirvoracle.Manager
@@ -1266,6 +1272,79 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	guardrailManager.SetHasherValidator(hasherIntegration)
 	log.Println("Hasher integration wired into GuardrailManager")
 
+	// Initialize KNIRVHASHER Manager for headless pipeline subprocess
+	var hasherManager *knirvhasher.Manager
+	if cfg.Hasher.Enabled {
+		// Extract the embedded knirvhasher binary
+		hasherBinaryPath, extractErr := knirvhasher.ExtractEmbeddedBinary("")
+		if extractErr != nil {
+			log.Printf("Warning: Failed to extract embedded knirvhasher binary: %v", extractErr)
+		} else {
+			appDataDir, appDataErr := getOSAppDataDir()
+			if appDataErr != nil {
+				log.Printf("Warning: Failed to get app data dir for hasher: %v", appDataErr)
+			} else {
+				hasherConfig := cfg.Hasher
+				hasherSocketPath := hasherConfig.SocketPath
+				if hasherSocketPath == "" {
+					hasherSocketPath = filepath.Join(appDataDir, "sockets", "hasher.sock")
+				}
+				hasherDataPath := hasherConfig.DataPath
+				if hasherDataPath == "" {
+					hasherDataPath = filepath.Join(appDataDir, "hasher")
+				}
+				startTimeout := time.Duration(hasherConfig.StartTimeout) * time.Second
+				if startTimeout <= 0 {
+					startTimeout = 30 * time.Second
+				}
+				stopTimeout := time.Duration(hasherConfig.StopTimeout) * time.Second
+				if stopTimeout <= 0 {
+					stopTimeout = 10 * time.Second
+				}
+				hasherMgrCfg := &knirvhasher.ManagerConfig{
+					BinaryPath:    hasherBinaryPath,
+					SocketPath:    hasherSocketPath,
+					DataPath:      hasherDataPath,
+					HeadlessPort:  hasherConfig.HeadlessPort,
+					HeadlessMode:  true,
+					ArxivEnabled:  hasherConfig.ArxivEnabled,
+					StartTimeout:  startTimeout,
+					StopTimeout:   stopTimeout,
+					Stdout:        logging.NewSubprocessWriter("knirvhasher", os.Stdout),
+					Stderr:        logging.NewSubprocessWriter("knirvhasher", os.Stderr),
+				}
+				hasherManager = knirvhasher.NewManager(hasherMgrCfg, logger)
+				log.Printf("KNIRVHASHER manager initialized: binary=%s socket=%s data=%s headless_port=%d arxiv=%v",
+					hasherBinaryPath, hasherSocketPath, hasherDataPath, hasherConfig.HeadlessPort, hasherConfig.ArxivEnabled)
+			}
+		}
+	} else {
+		log.Println("KNIRVHASHER manager disabled via configuration")
+	}
+
+	// Wire onboarding pipeline trigger to hasher data connector
+	// After a successful onboarding with data ingestion, export the org data
+	// and trigger the hasher pipeline for arxiv deep learning.
+	onboardingService.SetPipelineTrigger(func(ctx context.Context, orgID string, config *onboarding.OrganizationConfig) error {
+		if hasherIntegration == nil || !hasherIntegration.IsAvailable() {
+			log.Printf("Onboarding pipeline: hasher not available, skipping pipeline trigger for org %s", orgID)
+			return nil
+		}
+		// Trigger the data-connector pipeline path via gRPC training trigger
+		resp, err := hasherIntegration.TriggerTraining(orgID, "system", hasherpb.TrainingTrigger_ON_DEMAND, map[string]string{
+			"pipeline":  "data-connector",
+			"mode":      "arxiv-deep-learning",
+			"org_id":    orgID,
+			"config_id": config.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("onboarding pipeline: failed to trigger hasher training: %w", err)
+		}
+		log.Printf("Onboarding pipeline triggered for org %s: training_id=%s status=%s", orgID, resp.TrainingId, resp.Status)
+		return nil
+	})
+	log.Println("Onboarding pipeline trigger wired to hasher integration")
+
 	// Wire EventBroadcaster to WebSocket service (will be set in setupRoutes)
 	_ = eventBroadcaster
 
@@ -1330,6 +1409,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		onboardingService:            onboardingService,
 		hasherGRPCServer:             hasherGRPCServer,
 		hasherIntegration:            hasherIntegration,
+		hasherManager:                hasherManager,
 		transactionChainClient:       transactionChainClient,
 		validationChainClient:        validationChainClient,
 		graphRAGClient:               graphRAGClient,
@@ -2053,6 +2133,17 @@ func (s *Server) Start() error {
 		}
 	}
 
+	// Start KNIRVHASHER headless pipeline subprocess
+	if s.hasherManager != nil {
+		if err := s.hasherManager.Start(s.ctx); err != nil {
+			log.Printf("Warning: Failed to start KNIRVHASHER: %v (hasher pipeline disabled)", err)
+			logging.EmitModuleLog("knirvhasher", "error", fmt.Sprintf("Failed to start: %v", err))
+		} else {
+			log.Printf("KNIRVHASHER started on port %d", s.config.Hasher.HeadlessPort)
+			logging.EmitModuleLog("knirvhasher", "info", fmt.Sprintf("Started on port %d", s.config.Hasher.HeadlessPort))
+		}
+	}
+
 	if s.validationCore != nil {
 		if err := s.validationCore.Start(s.ctx); err != nil {
 			log.Printf("Warning: Failed to start validation core: %v", err)
@@ -2355,6 +2446,15 @@ func (s *Server) Stop() error {
 			log.Printf("Error closing Hasher integration: %v", err)
 		} else {
 			log.Println("Hasher integration closed")
+		}
+	}
+
+	// Stop KNIRVHASHER manager (headless pipeline subprocess)
+	if s.hasherManager != nil {
+		if err := s.hasherManager.Stop(context.Background()); err != nil {
+			log.Printf("Error stopping KNIRVHASHER manager: %v", err)
+		} else {
+			log.Println("KNIRVHASHER manager stopped")
 		}
 	}
 

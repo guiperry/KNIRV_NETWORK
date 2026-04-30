@@ -286,7 +286,9 @@ func (s *Server) setupRoutes() error {
 		http.ServeFile(w, r, indexPath)
 	})
 	r.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/explorer", http.StatusPermanentRedirect)
+		filePath := filepath.Join(s.webguiStaticDir, "dashboard.html")
+		s.logger.Info("Serving webgui dashboard", zap.String("filePath", filePath))
+		http.ServeFile(w, r, filePath)
 	})
 
 	// Serve other explorer HTML pages at /oracle/ prefix
@@ -303,16 +305,9 @@ func (s *Server) setupRoutes() error {
 		http.ServeFile(w, r, filePath)
 	})
 	r.PathPrefix("/dashboard/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		target := strings.TrimPrefix(r.URL.Path, "/dashboard")
-		if target == "" {
-			target = "/explorer"
-		} else {
-			target = "/explorer" + target
-		}
-		if rawQuery := r.URL.RawQuery; rawQuery != "" {
-			target += "?" + rawQuery
-		}
-		http.Redirect(w, r, target, http.StatusPermanentRedirect)
+		// Serve dashboard.html as SPA fallback for all /dashboard/ sub-paths
+		filePath := filepath.Join(s.webguiStaticDir, "dashboard.html")
+		http.ServeFile(w, r, filePath)
 	})
 
 	// Also serve explorer HTML pages at root level for Next.js client-side routing.

@@ -38,6 +38,7 @@ require (
 	golang.org/x/sys v0.41.0
 	golang.org/x/term v0.40.0
 	google.golang.org/grpc v1.79.1
+	knirvhasher v0.0.0-00010101000000-000000000000
 	lukechampine.com/blake3 v1.4.1
 )
 
@@ -50,6 +51,8 @@ replace github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL => ../pkg/knirvshell
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVCHAIN v0.0.0 => ../pkg/knirvchain
 
 replace github.com/KNIRV/KNIRV_NETWORK/KNIRVGRAPH v0.0.0 => ../pkg/knirvgraph
+
+replace knirvhasher => ../pkg/knirvhasher
 
 replace github.com/quic-go/quic-go v0.54.0 => github.com/quic-go/quic-go v0.49.0
 

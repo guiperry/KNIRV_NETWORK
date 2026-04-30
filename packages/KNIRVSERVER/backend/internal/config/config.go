@@ -135,6 +135,18 @@ type RollupConfig struct {
 	PollInterval time.Duration `mapstructure:"poll_interval"`
 }
 
+// HasherConfig defines embedded KNIRVHASHER configuration
+type HasherConfig struct {
+	Enabled       bool   `mapstructure:"enabled"`
+	BinaryPath    string `mapstructure:"binary_path"`
+	SocketPath    string `mapstructure:"socket_path"`
+	DataPath      string `mapstructure:"data_path"`
+	HeadlessPort  int    `mapstructure:"headless_port"`
+	ArxivEnabled  bool   `mapstructure:"arxiv_enabled"`
+	StartTimeout  int    `mapstructure:"start_timeout"`
+	StopTimeout   int    `mapstructure:"stop_timeout"`
+}
+
 // StripeConfig defines Stripe payment processor configuration
 type StripeConfig struct {
 	Enabled  bool   `mapstructure:"enabled"`
@@ -241,6 +253,9 @@ type Config struct {
 
 	// Rollup - Transaction-chain rollup submission loop
 	Rollup RollupConfig `mapstructure:"rollup"`
+
+	// Hasher - Embedded KNIRVHASHER for headless data pipeline and arxiv deep learning
+	Hasher HasherConfig `mapstructure:"hasher"`
 
 	// SocketDir - Directory for Unix sockets for submodule communication
 	SocketDir string `mapstructure:"socket_dir"`
@@ -1122,6 +1137,16 @@ func setDefaults() {
 
 	viper.SetDefault("rollup.enabled", true)
 	viper.SetDefault("rollup.poll_interval", "30s")
+
+	hasherDataDir := filepath.Join(appDataDir, "hasher")
+	viper.SetDefault("hasher.enabled", true)
+	viper.SetDefault("hasher.binary_path", "./knirvhasher")
+	viper.SetDefault("hasher.socket_path", filepath.Join(appDataDir, "sockets", "hasher.sock"))
+	viper.SetDefault("hasher.data_path", hasherDataDir)
+	viper.SetDefault("hasher.headless_port", 8088)
+	viper.SetDefault("hasher.arxiv_enabled", true)
+	viper.SetDefault("hasher.start_timeout", 30)
+	viper.SetDefault("hasher.stop_timeout", 10)
 }
 
 // GetConfigDir returns the base configuration directory.

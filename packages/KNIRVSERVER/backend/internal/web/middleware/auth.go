@@ -149,9 +149,32 @@ func (am *AuthMiddleware) isTokenRevoked(tokenString string) bool {
 // RequireAuth middleware that requires authentication
 func (am *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// If auth is not required, skip authentication
+		// If auth is not required, set a default auth context so downstream
+		// handlers do not fail their own GetAuthContext checks.
 		if !am.authRequired {
-			next.ServeHTTP(w, r)
+			authCtx := &AuthContext{
+				UserID:   "anonymous",
+				Username: "anonymous",
+				Role:     "admin",
+			}
+			if authHeader := r.Header.Get("Authorization"); authHeader != "" {
+				parts := strings.SplitN(authHeader, " ", 2)
+				if len(parts) == 2 && parts[0] == "Bearer" {
+					tokenString := parts[1]
+					if claims, err := am.ValidateToken(tokenString); err == nil {
+						authCtx = &AuthContext{
+							UserID:   claims.UserID,
+							Username: claims.Username,
+							Role:     claims.Role,
+							Token:    tokenString,
+						}
+					} else if ctx, err := am.validateSessionToken(tokenString); err == nil {
+						authCtx = ctx
+					}
+				}
+			}
+			ctx := context.WithValue(r.Context(), AuthContextKey, authCtx)
+			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 
