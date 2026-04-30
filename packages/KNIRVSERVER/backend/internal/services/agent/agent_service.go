@@ -52,7 +52,7 @@ type AgentStatus struct {
 	LastActivity   *time.Time `json:"last_activity,omitempty"`
 }
 
-// AgentService manages oh-my-pi agent containers within DVEs
+// AgentService manages knirvagent assistant containers within DVEs
 type AgentService struct {
 	db              *database.BuntDBManager
 	ucm             *runtime.UnifiedContainerManager
@@ -65,6 +65,10 @@ type AgentService struct {
 	// apiBaseURL overrides the fallback localhost:8080 base URL used when
 	// no container port mapping is available. Set in tests to reach a mock server.
 	apiBaseURL string
+
+	// Broadcast channels for agent responses (dveID -> list of channels)
+	subscribers map[string][]chan string
+	subsMu      sync.RWMutex
 }
 
 // NewAgentService creates a new agent service
@@ -80,6 +84,46 @@ func NewAgentService(
 		agents:          make(map[string]*AgentStatus),
 		tasks:           make(map[string]*AgentTask),
 		external_agents: make(map[string]*AgentConnection),
+		subscribers:     make(map[string][]chan string),
+	}
+}
+
+// SubscribeToResponses subscribes to real-time agent responses for a DVE
+func (s *AgentService) SubscribeToResponses(dveID string) chan string {
+	s.subsMu.Lock()
+	defer s.subsMu.Unlock()
+
+	ch := make(chan string, 100)
+	s.subscribers[dveID] = append(s.subscribers[dveID], ch)
+	return ch
+}
+
+// UnsubscribeFromResponses removes a subscription
+func (s *AgentService) UnsubscribeFromResponses(dveID string, ch chan string) {
+	s.subsMu.Lock()
+	defer s.subsMu.Unlock()
+
+	subs := s.subscribers[dveID]
+	for i, sub := range subs {
+		if sub == ch {
+			s.subscribers[dveID] = append(subs[:i], subs[i+1:]...)
+			close(ch)
+			break
+		}
+	}
+}
+
+// BroadcastAgentMessage sends a message to all subscribers for a DVE
+func (s *AgentService) BroadcastAgentMessage(dveID string, message string) {
+	s.subsMu.RLock()
+	defer s.subsMu.RUnlock()
+
+	for _, ch := range s.subscribers[dveID] {
+		select {
+		case ch <- message:
+		default:
+			// Buffer full, skip
+		}
 	}
 }
 
@@ -130,7 +174,7 @@ func (s *AgentService) LaunchAgent(ctx context.Context, dveID string) (*AgentSta
 		ServicePorts:      map[string]int{"viewport": 8080, "jupyter": 8888, "lsp": 9090},
 		Metadata: map[string]interface{}{
 			"dve_id": dveID,
-			"engine": "oh-my-pi",
+			"engine": "knirvagent",
 		},
 	}
 
@@ -152,7 +196,7 @@ func (s *AgentService) LaunchAgent(ctx context.Context, dveID string) (*AgentSta
 	}
 
 	s.agents[dveID] = status
-	log.Printf("[AgentService] Launched agent for DVE %s (container: %s)", dveID, container.ID)
+	log.Printf("[AgentService] Launched knirvagent for DVE %s (container: %s)", dveID, container.ID)
 	return status, nil
 }
 

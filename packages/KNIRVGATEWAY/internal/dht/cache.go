@@ -70,10 +70,6 @@ func (rc *ResourceCache) ClearCache() {
 
 // GetResourceCount returns the number of cached resources (excluding expired).
 func (rc *ResourceCache) GetResourceCount() int {
-	rc.mu.RLock()
-	defer rc.mu.RUnlock()
-	// Trigger cleanup on count as well
-	rc.mu.RUnlock()
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 

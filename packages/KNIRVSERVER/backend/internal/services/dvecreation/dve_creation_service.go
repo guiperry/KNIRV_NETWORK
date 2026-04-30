@@ -13,6 +13,7 @@ import (
 	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/blockchain/transactionchain"
+	"backend_server/internal/services/container"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"
@@ -32,13 +33,23 @@ type ChainClientInterface interface {
 	Close() error
 }
 
+type ContainerOrchestratorInterface interface {
+	ProvisionContainer(rentalID string) (*container.Container, error)
+	GetSSHPrivateKey(containerID string) (string, error)
+	TerminateContainer(containerID string) error
+}
+
+type DVEManagerInterface interface {
+	RegisterNode(req *objects.RegisterNodeRequest) (*objects.DVENode, error)
+}
+
 type DVECreationService struct {
 	db                    *database.BuntDBManager
 	mu                    sync.RWMutex
 	running               bool
 	chainClient           ChainClientInterface
-	dveManager            interface{}
-	containerOrchestrator interface{}
+	dveManager            DVEManagerInterface
+	containerOrchestrator ContainerOrchestratorInterface
 	activeCreations       map[string]*objects.DVECreation
 	activeSessions        map[string]*objects.DVESession
 	cleanupInterval       time.Duration
@@ -75,13 +86,13 @@ func (dcs *DVECreationService) SetTransactionChainClient(client ChainClientInter
 	dcs.SetChainClient(client)
 }
 
-func (dcs *DVECreationService) SetDveManager(manager interface{}) {
+func (dcs *DVECreationService) SetDveManager(manager DVEManagerInterface) {
 	dcs.mu.Lock()
 	defer dcs.mu.Unlock()
 	dcs.dveManager = manager
 }
 
-func (dcs *DVECreationService) SetContainerOrchestrator(orchestrator interface{}) {
+func (dcs *DVECreationService) SetContainerOrchestrator(orchestrator ContainerOrchestratorInterface) {
 	dcs.mu.Lock()
 	defer dcs.mu.Unlock()
 	dcs.containerOrchestrator = orchestrator
@@ -179,6 +190,47 @@ func (dcs *DVECreationService) CreateDVENode(req *objects.DVECreationRequest) (*
 		UpdatedAt:          time.Now(),
 		Persistent:         req.Persistent,
 		GracePeriod:        dcs.gracePeriod,
+	}
+
+	// Provision actual container if orchestrator is available
+	if dcs.containerOrchestrator != nil {
+		log.Printf("[DVE Creation] Provisioning container for creation %s", creation.ID)
+		container, err := dcs.containerOrchestrator.ProvisionContainer(creation.ID)
+		if err != nil {
+			log.Printf("Error provisioning container: %v", err)
+			return &objects.DVECreationResponse{
+				Success: false,
+				Error:   "failed to provision DVE container: " + err.Error(),
+			}, nil
+		}
+
+		creation.DVENodeID = container.ID
+		creation.SSHPublicKey = container.Spec.SSHPublicKey
+		creation.SSHPrivateKey = container.SSHKeys.PrivateKey
+		creation.SSHPort = container.Endpoints.SSHPort
+		creation.IPAddress = "localhost" // Assuming local for now, can be updated from container info
+
+		// Register the new container as a local DVE node so it shows up in workers
+		if dcs.dveManager != nil {
+			nodeReq := &objects.RegisterNodeRequest{
+				Name:         creation.Name,
+				TEEType:      creation.TEEType,
+				StakeAmount:  creation.StakeAmount,
+				Location:     "local-dve",
+				IPAddress:    creation.IPAddress,
+				SSHPort:      creation.SSHPort,
+				PublicKey:    creation.SSHPublicKey,
+				Capabilities: creation.Capabilities,
+			}
+			node, err := dcs.dveManager.RegisterNode(nodeReq)
+			if err != nil {
+				log.Printf("Warning: Failed to register DVE node in tracker: %v", err)
+			} else {
+				// Override DVENodeID with the one from the registered node
+				creation.DVENodeID = node.ID
+				log.Printf("[DVE Creation] Registered DVE node %s", node.ID)
+			}
+		}
 	}
 
 	dcs.activeCreations[creation.ID] = creation

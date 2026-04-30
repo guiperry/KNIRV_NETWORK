@@ -19,6 +19,9 @@ import (
 type DVEHandlers struct {
 	dveManager     *dvemanager.DVEManager
 	sessionManager *session.SessionManager
+	agentService   interface {
+		BroadcastAgentMessage(dveID string, message string)
+	}
 }
 
 // NewDVEHandlers creates the DVE HTTP handler set.  DVE creation operations are
@@ -32,6 +35,13 @@ func NewDVEHandlers(dveManager *dvemanager.DVEManager) *DVEHandlers {
 // SetSessionManager wires in the session manager for SSH session creation.
 func (h *DVEHandlers) SetSessionManager(sm *session.SessionManager) {
 	h.sessionManager = sm
+}
+
+// SetAgentService wires in the agent service for broadcasting responses.
+func (h *DVEHandlers) SetAgentService(as interface {
+	BroadcastAgentMessage(dveID string, message string)
+}) {
+	h.agentService = as
 }
 
 // GetDVEWorkers handles GET /api/dve/workers — aggregates DVE nodes + tasks as active workers
@@ -207,6 +217,32 @@ func (h *DVEHandlers) GetP2PPeers(w http.ResponseWriter, r *http.Request) {
 		"total":     len(peers),
 		"timestamp": getCurrentTimestamp(),
 	})
+}
+
+// PostAgentResponse handles POST /api/v1/dve/{nodeId}/agent/response
+func (h *DVEHandlers) PostAgentResponse(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	nodeID := vars["nodeId"]
+
+	var req struct {
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if h.agentService != nil {
+		// Use an interface assertion or just call it if we know the type
+		type broadcaster interface {
+			BroadcastAgentMessage(dveID string, message string)
+		}
+		if b, ok := h.agentService.(broadcaster); ok {
+			b.BroadcastAgentMessage(nodeID, req.Message)
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // CreateNodeSSHSession handles POST /api/dve/{nodeId}/ssh-session (Gap 1)

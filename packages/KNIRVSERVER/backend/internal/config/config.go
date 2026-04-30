@@ -152,6 +152,22 @@ type BlockchainConfig struct {
 	CertFile string `mapstructure:"cert_file"`
 }
 
+// ServerConfig defines server configuration
+type ServerConfig struct {
+	BaseURL string `mapstructure:"base_url"`
+}
+
+// EmailConfig defines email service configuration
+type EmailConfig struct {
+	Enabled      bool   `mapstructure:"enabled"`
+	SMTPHost     string `mapstructure:"smtp_host"`
+	SMTPPort     int    `mapstructure:"smtp_port"`
+	SMTPUser     string `mapstructure:"smtp_user"`
+	SMTPPassword string `mapstructure:"smtp_password"`
+	FromEmail    string `mapstructure:"from_email"`
+	FromName     string `mapstructure:"from_name"`
+}
+
 // Config represents the application configuration
 type Config struct {
 	Environment string            `mapstructure:"environment"`
@@ -172,6 +188,8 @@ type Config struct {
 	Fintech     FintechConfig     `mapstructure:"fintech"`
 	Stripe      StripeConfig      `mapstructure:"stripe"`
 	PayPal      PayPalConfig      `mapstructure:"paypal"`
+	Email       EmailConfig       `mapstructure:"email"`
+	Server      ServerConfig      `mapstructure:"server"`
 	Blockchain  BlockchainConfig  `mapstructure:"blockchain"`
 	TEE         TEEConfig         `mapstructure:"tee"`
 	CDE         CDEConfig         `mapstructure:"cde"`
@@ -984,6 +1002,9 @@ func setDefaults() {
 	// Blockchain configuration defaults
 	viper.SetDefault("blockchain.url", "localhost:50051")
 	viper.SetDefault("blockchain.use_tls", false)
+
+	// Server configuration defaults
+	viper.SetDefault("server.base_url", "http://localhost:8082")
 
 	// ICME (Intentional Context Memory Engine) defaults
 	viper.SetDefault("icme.enabled", false)

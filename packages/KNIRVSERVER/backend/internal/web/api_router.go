@@ -108,6 +108,7 @@ func (ar *APIRouter) registerDVERoutes(apiV1 *mux.Router) {
 
 	// SSH session management
 	dveRouter.HandleFunc("/{nodeId}/ssh-session", ar.dveHandlers.CreateNodeSSHSession).Methods("POST", "OPTIONS")
+	dveRouter.HandleFunc("/{nodeId}/agent/response", ar.dveHandlers.PostAgentResponse).Methods("POST", "OPTIONS")
 
 	// P2P network
 	dveRouter.HandleFunc("/peers", ar.dveHandlers.GetP2PPeers).Methods("GET", "OPTIONS")

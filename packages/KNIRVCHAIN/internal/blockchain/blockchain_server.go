@@ -415,6 +415,11 @@ func (bcs *BlockchainServer) Prepare() (uint64, error) {
 	mux.HandleFunc("/internal/db/getCapability", bcs.handleInternalDBGetCapability)
 	mux.HandleFunc("/internal/db/idExists", bcs.handleInternalDBIDExists)
 
+	// P2P callback endpoints — called by KNIRVGATEWAY to forward gossiped blocks/txs and sync requests
+	mux.HandleFunc("/internal/p2p/received-block", bcs.handleP2PReceivedBlock)
+	mux.HandleFunc("/internal/p2p/received-tx", bcs.handleP2PReceivedTx)
+	mux.HandleFunc("/internal/chain/sync", bcs.handleChainSync)
+
 	// Add PoAu-D consensus API endpoints
 	mux.HandleFunc("/poaud/enable", bcs.EnablePoAuD)
 	mux.HandleFunc("/poaud/disable", bcs.DisablePoAuD)
@@ -3624,4 +3629,62 @@ func (bcs *BlockchainServer) GetNetworkAuthors(w http.ResponseWriter, req *http.
 		"network_authors": authorsList,
 		"count":           len(authorsList),
 	})
+}
+
+// handleP2PReceivedBlock processes a gossiped block forwarded by KNIRVGATEWAY.
+func (bcs *BlockchainServer) handleP2PReceivedBlock(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "read body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if bcs.consensusManager != nil {
+		bcs.consensusManager.HandleReceivedBlockData(data)
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleP2PReceivedTx processes a gossiped transaction forwarded by KNIRVGATEWAY.
+func (bcs *BlockchainServer) handleP2PReceivedTx(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "read body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if bcs.consensusManager != nil {
+		bcs.consensusManager.HandleReceivedTransactionData(data)
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleChainSync responds to chain sync requests proxied by KNIRVGATEWAY.
+func (bcs *BlockchainServer) handleChainSync(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "read body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if bcs.consensusManager == nil {
+		http.Error(w, "consensus manager not available", http.StatusServiceUnavailable)
+		return
+	}
+	resp, err := bcs.consensusManager.HandleSyncRequest(data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(resp)
 }

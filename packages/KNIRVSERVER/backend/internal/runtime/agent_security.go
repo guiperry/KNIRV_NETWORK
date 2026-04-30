@@ -7,9 +7,9 @@ import (
 	"backend_server/internal/ebpf"
 )
 
-// OhMyPiAgentSyscalls defines the syscalls required by the oh-my-pi agent runtime.
+// KnirvAgentSyscalls defines the syscalls required by the knirvagent assistant runtime.
 // These include: python execution, git operations, curl/HTTP, LSP servers, browser.
-var OhMyPiAgentSyscalls = []uint32{
+var KnirvAgentSyscalls = []uint32{
 	0,   // read
 	1,   // write
 	2,   // open
@@ -86,8 +86,8 @@ var OhMyPiAgentSyscalls = []uint32{
 	332, // statx
 }
 
-// OhMyPiAgentPaths defines the filesystem paths the agent is permitted to access
-var OhMyPiAgentPaths = []string{
+// KnirvAgentPaths defines the filesystem paths the agent is permitted to access
+var KnirvAgentPaths = []string{
 	"/tmp",
 	"/proc/self",
 	"/workspace",
@@ -104,24 +104,24 @@ var OhMyPiAgentPaths = []string{
 	"/dev/random",
 }
 
-// OhMyPiAgentNetworks defines allowed network CIDRs for the agent
-var OhMyPiAgentNetworks = []string{
+// KnirvAgentNetworks defines allowed network CIDRs for the agent
+var KnirvAgentNetworks = []string{
 	"127.0.0.0/8",   // loopback
 	"10.0.0.0/8",    // DVE internal network
 	"172.16.0.0/12", // Docker bridge networks
 }
 
-// NewOhMyPiAgentPolicyConfig creates a security policy config for the oh-my-pi agent.
+// NewKnirvAgentPolicyConfig creates a security policy config for the knirvagent assistant.
 // This allows the agent its necessary tool access while enforcing DVE isolation.
-func NewOhMyPiAgentPolicyConfig() *ebpf.AgentPolicyConfig {
+func NewKnirvAgentPolicyConfig() *ebpf.AgentPolicyConfig {
 	return &ebpf.AgentPolicyConfig{
 		AllowNetwork:    true,
 		AllowFilesystem: true,
 		RequireTEE:      false, // TEE optional for agents
 		MaxMemoryMB:     8192,
 		MaxCPUPercent:   80,
-		AllowedSyscalls: OhMyPiAgentSyscalls,
-		AllowedPaths:    OhMyPiAgentPaths,
-		AllowedNetworks: OhMyPiAgentNetworks,
+		AllowedSyscalls: KnirvAgentSyscalls,
+		AllowedPaths:    KnirvAgentPaths,
+		AllowedNetworks: KnirvAgentNetworks,
 	}
 }

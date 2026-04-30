@@ -31,7 +31,6 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.11.1
-	github.com/stripe/stripe-go/v82 v82.5.1
 	github.com/subosito/gotenv v1.6.0
 	github.com/tidwall/buntdb v1.3.0
 	github.com/wk8/go-ordered-map/v2 v2.1.8

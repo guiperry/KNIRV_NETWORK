@@ -154,9 +154,9 @@ func (ucm *UnifiedContainerManager) CreateContainer(
 			container.ViewportProxy = viewportProxy
 		}
 
-		// Initialize agent security policy for oh-my-pi
-		if err := ucm.initializeOhMyPiAgentPolicy(container); err != nil {
-			log.Printf("Warning: oh-my-pi agent policy initialization failed: %v", err)
+		// Initialize agent security policy for knirvagent
+		if err := ucm.initializeKnirvAgentPolicy(container); err != nil {
+			log.Printf("Warning: knirvagent agent policy initialization failed: %v", err)
 		}
 	}
 
@@ -364,21 +364,30 @@ func (ucm *UnifiedContainerManager) buildSpecForObjectType(config *NestedObjectC
 		}
 
 	case ObjectTypeAgent:
-		// oh-my-pi agentic runtime container
-		spec.Image = "knirv-agent-oh-my-pi:latest"
-		spec.Command = []string{"/usr/local/bin/oh-my-pi", "--serve", "--port", "8080"}
+		// knirvagent personal AI assistant container
+		spec.Image = "knirvagent:latest"
+		spec.Command = []string{"/usr/local/bin/knirvagent", "gateway"}
+		
+		dveID := ""
+		if config.Metadata != nil {
+			if id, ok := config.Metadata["dve_id"].(string); ok {
+				dveID = id
+			}
+		}
+
 		spec.Environment = map[string]string{
-			"OH_MY_PI_MODE":       "server",
-			"OH_MY_PI_WORKSPACE":  "/workspace/active-memory",
-			"OH_MY_PI_TOOLS":      "git,python,curl,browser,lsp",
-			"MARKDOWN_OUTPUT_DIR": "/workspace/active-memory/agent-output",
+			"KNIRV_AGENT_MODE":    "gateway",
+			"KNIRV_AGENT_HOME":    "/workspace/knirvagent",
+			"KNIRV_AGENT_PORT":    "8080",
 			"VIEWPORT_PORT":       "8080",
 			"JUPYTER_PORT":        "8888",
 			"LSP_ENABLED":         "true",
 			"HEADLESS_BROWSER":    "true",
+			"DVE_ID":              dveID,
+			"KNIRV_SERVER_URL":    "http://host.docker.internal:8080", // Adjust if needed for different runtimes
 		}
 		spec.Ports = []PortMapping{
-			{ContainerPort: 8080, HostPort: 0, Protocol: "tcp"}, // Agent viewport
+			{ContainerPort: 8080, HostPort: 0, Protocol: "tcp"}, // Agent gateway/viewport
 			{ContainerPort: 8888, HostPort: 0, Protocol: "tcp"}, // Jupyter kernel
 			{ContainerPort: 9090, HostPort: 0, Protocol: "tcp"}, // LSP server
 		}
@@ -527,7 +536,7 @@ func (ucm *UnifiedContainerManager) initializeEBPFSecurity(container *UnifiedCon
 	var policy *ebpf.AgentPolicyConfig
 	switch objectType {
 	case ObjectTypeAgent:
-		policy = NewOhMyPiAgentPolicyConfig()
+		policy = NewKnirvAgentPolicyConfig()
 	default:
 		// Default minimal policy for other object types
 		policy = &ebpf.AgentPolicyConfig{
@@ -558,8 +567,8 @@ func (ucm *UnifiedContainerManager) initializeEBPFSecurity(container *UnifiedCon
 	return nil
 }
 
-// initializeOhMyPiAgentPolicy initializes the specific security policy for oh-my-pi agents
-func (ucm *UnifiedContainerManager) initializeOhMyPiAgentPolicy(container *UnifiedContainer) error {
+// initializeKnirvAgentPolicy initializes the specific security policy for knirvagent agents
+func (ucm *UnifiedContainerManager) initializeKnirvAgentPolicy(container *UnifiedContainer) error {
 	if container.Spec == nil {
 		return fmt.Errorf("container spec is required")
 	}
@@ -571,12 +580,12 @@ func (ucm *UnifiedContainerManager) initializeOhMyPiAgentPolicy(container *Unifi
 
 	if !exists {
 		// Create policy if not already created
-		agentPolicy := NewOhMyPiAgentPolicyConfig()
+		agentPolicy := NewKnirvAgentPolicyConfig()
 		securityPolicyManager := ebpf.NewSecurityProfileManager()
 		var err error
 		policy, err = securityPolicyManager.CreateAgentPolicy(0, agentPolicy)
 		if err != nil {
-			return fmt.Errorf("failed to create oh-my-pi agent policy: %w", err)
+			return fmt.Errorf("failed to create knirvagent agent policy: %w", err)
 		}
 
 		ucm.mu.Lock()
@@ -597,7 +606,7 @@ func (ucm *UnifiedContainerManager) initializeOhMyPiAgentPolicy(container *Unifi
 		}
 	}
 
-	log.Printf("oh-my-pi agent policy initialized for container %s", container.ID)
+	log.Printf("knirvagent agent policy initialized for container %s", container.ID)
 	return nil
 }
 
@@ -675,7 +684,7 @@ func (ucm *UnifiedContainerManager) UpdateAgentResourceUsage(dveID string, cpuPe
 func (ucm *UnifiedContainerManager) CreateAgentRuntimeCapability(nodeID string) *AgentRuntimeCapability {
 	return &AgentRuntimeCapability{
 		NodeID:            nodeID,
-		AgentEngineVer:    "oh-my-pi-1.0",
+		AgentEngineVer:    "knirvagent-1.0",
 		SupportedTools:    []string{"git", "python", "curl", "browser", "lsp", "shell", "docker"},
 		ActiveMemoryMount: "/workspace/active-memory",
 		MaxConcurrent:     4,

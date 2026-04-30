@@ -75,6 +75,10 @@ type WebSocketService struct {
 	dveManager         *dvemanager.DVEManager
 	validationCore     *validation.ValidationCore
 	sessionManager     *session.SessionManager
+	agentService       interface {
+		SubscribeToResponses(dveID string) chan string
+		UnsubscribeFromResponses(dveID string, ch chan string)
+	}
 	teeSecurityService interface {
 		IsRunning() bool
 		GetSecurityStatus() *objects.TEESecurityStatus
@@ -212,7 +216,10 @@ type RoomMessage struct {
 }
 
 // NewWebSocketService creates a new WebSocket service
-func NewWebSocketService(inferenceService *inference.InferenceService, dveManager *dvemanager.DVEManager, validationCore *validation.ValidationCore, sessionManager *session.SessionManager, teeSecurityService interface {
+func NewWebSocketService(inferenceService *inference.InferenceService, dveManager *dvemanager.DVEManager, validationCore *validation.ValidationCore, sessionManager *session.SessionManager, agentService interface {
+	SubscribeToResponses(dveID string) chan string
+	UnsubscribeFromResponses(dveID string, ch chan string)
+}, teeSecurityService interface {
 	IsRunning() bool
 	GetSecurityStatus() *objects.TEESecurityStatus
 }) *WebSocketService {
@@ -252,6 +259,7 @@ func NewWebSocketService(inferenceService *inference.InferenceService, dveManage
 		dveManager:         dveManager,
 		validationCore:     validationCore,
 		sessionManager:     sessionManager,
+		agentService:       agentService,
 		teeSecurityService: teeSecurityService,
 	}
 }
@@ -1290,6 +1298,19 @@ func (ws *WebSocketService) handleSSHWebSocket(w http.ResponseWriter, r *http.Re
 
 	log.Printf("SSH WebSocket client connected for session: %s", sessionID)
 
+	// Subscribe to real-time agent responses for this DVE
+	var agentChan chan string
+	if ws.agentService != nil {
+		dveID := sshSession.CreationID
+		if dveID == "" {
+			dveID = sshSession.RentalID
+		}
+		if dveID != "" {
+			agentChan = ws.agentService.SubscribeToResponses(dveID)
+			defer ws.agentService.UnsubscribeFromResponses(dveID, agentChan)
+		}
+	}
+
 	// Set up connection parameters
 	conn.SetReadLimit(1024)
 	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
@@ -1329,6 +1350,28 @@ func (ws *WebSocketService) handleSSHWebSocket(w http.ResponseWriter, r *http.Re
 			}
 		}
 	}()
+
+	// Forward agent responses to terminal
+	if agentChan != nil {
+		go func() {
+			for {
+				select {
+				case msg, ok := <-agentChan:
+					if !ok {
+						return
+					}
+					// Inject agent message into terminal stream
+					// Use green color and clear lines to make it stand out
+					conn.WriteJSON(map[string]interface{}{
+						"type": "output",
+						"data": fmt.Sprintf("\r\n\x1b[32m[KNIRVAGENT] %s\x1b[0m\r\n", msg),
+					})
+				case <-ws.ctx.Done():
+					return
+				}
+			}
+		}()
+	}
 
 	// Real SSH connection implementation
 	go func() {

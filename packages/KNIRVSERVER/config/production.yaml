@@ -204,6 +204,16 @@ reports:
   enable_sharing: true
   enable_scheduling: true
 
+# Email Configuration
+email:
+  enabled: true
+  smtp_host: "${KNIRV_SMTP_HOST:localhost}"
+  smtp_port: ${KNIRV_SMTP_PORT:587}
+  smtp_user: "${KNIRV_SMTP_USER:}"
+  smtp_password: "${KNIRV_SMTP_PASSWORD:}"
+  from_email: "${KNIRV_EMAIL_FROM:noreply@knirv.com}"
+  from_name: "${KNIRV_EMAIL_FROM_NAME:KNIRV Network}"
+
 # Logging Configuration
 logging:
   level: "info"  # debug | info | warn | error

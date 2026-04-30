@@ -599,14 +599,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		dveCreationService = nil
 	}
 
-	// Merge dvecreation into dvemanager: wire creation service into the manager
-	// so all DVE lifecycle operations are accessible through a single boundary.
-	if dveCreationService != nil {
-		dveManager.SetCreationService(dveCreationService)
-		dveCreationService.SetDveManager(dveManager)
-		log.Println("DVE creation service merged into DVE manager")
-	}
-
 	// Register the capability query stream handler so peers can interrogate
 	// this node's capabilities via the /knirv/dve/capabilities/1.0.0 protocol.
 	p2pManager.SetupCapabilityStreamHandler()
@@ -733,6 +725,14 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	containerOrchestrator, err := container.NewContainerOrchestrator(containerConfig, teeSecurityService)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize container orchestrator: %w", err)
+	}
+
+	// Wire DVE Creation Service with manager and orchestrator
+	if dveCreationService != nil {
+		dveManager.SetCreationService(dveCreationService)
+		dveCreationService.SetDveManager(dveManager)
+		dveCreationService.SetContainerOrchestrator(containerOrchestrator)
+		log.Println("DVE creation service fully wired with manager and container orchestrator")
 	}
 
 	// Initialize Session Manager
@@ -1505,7 +1505,7 @@ func (s *Server) setupRoutes() {
 	}
 
 	// Initialize WebSocket service after auth middleware is created
-	wsService := websocket.NewWebSocketService(s.inferenceService, s.dveManager, s.validationCore, s.sessionManager, s.teeSecurityService)
+	wsService := websocket.NewWebSocketService(s.inferenceService, s.dveManager, s.validationCore, s.sessionManager, s.agentService, s.teeSecurityService)
 	if authMiddleware != nil {
 		wsService.SetAuthMiddleware(authMiddleware)
 	}
@@ -1628,6 +1628,9 @@ func (s *Server) setupRoutes() {
 		dveHandlers := web.NewDVEHandlers(s.dveManager)
 		if s.sessionManager != nil {
 			dveHandlers.SetSessionManager(s.sessionManager)
+		}
+		if s.agentService != nil {
+			dveHandlers.SetAgentService(s.agentService)
 		}
 		dveHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE manager routes configured")
@@ -1777,8 +1780,16 @@ func (s *Server) setupRoutes() {
 	}
 
 	// Register unified API router for path unification (Gap 6)
+	dveHandlers := web.NewDVEHandlers(s.dveManager)
+	if s.agentService != nil {
+		dveHandlers.SetAgentService(s.agentService)
+	}
+	if s.sessionManager != nil {
+		dveHandlers.SetSessionManager(s.sessionManager)
+	}
+
 	apiRouter := web.NewAPIRouter(
-		web.NewDVEHandlers(s.dveManager),
+		dveHandlers,
 		web.NewPluginManagementHandlers(s.fabricManagementService),
 		web.NewAgentHandlers(s.agentService),
 		web.NewPaymentHandlers(nil, nil),

@@ -8,8 +8,6 @@ import (
 	"time" // New import for stress test
 
 	"github.com/stretchr/testify/assert"
-	pubsub "github.com/libp2p/go-libp2p-pubsub" // Added import
-	"github.com/libp2p/go-libp2p/core/peer" // Added import
 )
 
 // NewDRQClusterManager is a stub for creating a new DRQClusterManager
@@ -116,76 +114,20 @@ func TestDRQConvergence(t *testing.T) {
 	assert.Less(t, variance, 0.01, "Q-values did not converge")
 }
 
-// MockDHTManager is a mock implementation of p2p.DHTManagerInterface for testing purposes.
+// MockDHTManager is a mock implementation of dht.DHTManagerInterface for testing purposes.
 type MockDHTManager struct{}
-
-func (m *MockDHTManager) Advertise(topic string, data []byte) error {
-	fmt.Printf("MockDHTManager: Advertising %s\n", topic)
-	return nil
-}
-
-func (m *MockDHTManager) Discover(topic string) ([]string, error) {
-	fmt.Printf("MockDHTManager: Discovering %s\n", topic)
-	return []string{"peer1", "peer2"}, nil
-}
 
 func (m *MockDHTManager) Publish(topic string, data []byte) error {
 	fmt.Printf("MockDHTManager: Publishing to %s\n", topic)
 	return nil
 }
 
-func (m *MockDHTManager) Subscribe(topic string) (*pubsub.Subscription, error) {
+func (m *MockDHTManager) Subscribe(topic string) (<-chan []byte, error) {
 	fmt.Printf("MockDHTManager: Subscribing to %s\n", topic)
-	// Return a dummy subscription
-	return &pubsub.Subscription{}, nil
-}
-
-func (m *MockDHTManager) ConnectToPeer(peerID string) error {
-	fmt.Printf("MockDHTManager: Connecting to %s\n", peerID)
-	return nil
-}
-
-func (m *MockDHTManager) GetPeerInfo(peerID string) (interface{}, error) {
-	fmt.Printf("MockDHTManager: Getting peer info for %s\n", peerID)
-	return nil, nil
-}
-
-func (m *MockDHTManager) GetSelfNodeID() string {
-	return "test_node"
-}
-
-func (m *MockDHTManager) Start() error {
-	fmt.Println("MockDHTManager: Start")
-	return nil
-}
-
-func (m *MockDHTManager) Stop() {
-	fmt.Println("MockDHTManager: Stop")
-}
-
-func (m *MockDHTManager) IsNetworkPaused() bool {
-	return false
-}
-
-func (m *MockDHTManager) AnnounceSkill(skillID, name, description, category string, metadata map[string]string) error {
-	fmt.Printf("MockDHTManager: Announcing skill %s\n", skillID)
-	return nil
-}
-
-func (m *MockDHTManager) AnnounceCapability(capabilityID, name, description string, schema interface{}, metadata map[string]string) error {
-	fmt.Printf("MockDHTManager: Announcing capability %s\n", capabilityID)
-	return nil
-}
-
-func (m *MockDHTManager) AnnounceProperty(propertyID, name, propertyType string, value interface{}, metadata map[string]string) error {
-	fmt.Printf("MockDHTManager: Announcing property %s\n", propertyID)
-	return nil
-}
-
-func (m *MockDHTManager) FindGraphServices() ([]peer.AddrInfo, error) {
-	fmt.Println("MockDHTManager: Finding graph services")
-	// Return a dummy slice of peer.AddrInfo
-	return []peer.AddrInfo{}, nil
+	// Return a dummy channel
+	ch := make(chan []byte, 1)
+	close(ch)
+	return ch, nil
 }
 
 // NewDRQRoundProtocol is a stub for creating a new DRQRoundProtocol

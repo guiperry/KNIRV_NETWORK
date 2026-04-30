@@ -19,6 +19,12 @@ type Client struct {
 	source      string // "knirvgraph"
 }
 
+// DHTManagerInterface matches the interface needed by drq.SyncProtocol.
+type DHTManagerInterface interface {
+	Publish(topic string, data []byte) error
+	Subscribe(topic string) (<-chan []byte, error)
+}
+
 // NewClient creates a new DHT client for KNIRVGRAPH.
 func NewClient(socketPath string) *Client {
 	return &Client{
@@ -100,4 +106,51 @@ func (c *Client) FindResource(ctx context.Context, id string, resourceType strin
 	}
 
 	return peers, nil
+}
+
+// Publish publishes data to a topic via KNIRVGATEWAY.
+func (c *Client) Publish(topic string, data []byte) error {
+	url := fmt.Sprintf("http://localhost/dht/publish?topic=%s", topic)
+
+	resp, err := c.httpClient.Post(url, "application/octet-stream", bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("failed to publish to topic %s: %w", topic, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("publish to topic %s returned status %d", topic, resp.StatusCode)
+	}
+
+	return nil
+}
+
+// Subscribe subscribes to a topic via KNIRVGATEWAY and returns a channel of messages.
+func (c *Client) Subscribe(topic string) (<-chan []byte, error) {
+	url := fmt.Sprintf("http://localhost/dht/subscribe?topic=%s", topic)
+
+	resp, err := c.httpClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to subscribe to topic %s: %w", topic, err)
+	}
+
+	// For simplicity, return a channel that reads the response body
+	// In production, this would use Server-Sent Events or WebSocket
+	ch := make(chan []byte, 10)
+
+	go func() {
+		defer resp.Body.Close()
+		defer close(ch)
+
+		decoder := json.NewDecoder(resp.Body)
+		for {
+			var msg []byte
+			if err := decoder.Decode(&msg); err != nil {
+				return
+			}
+			ch <- msg
+		}
+	}()
+
+	return ch, nil
 }

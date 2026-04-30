@@ -183,6 +183,18 @@ func (al *AgentLoop) Run(ctx context.Context) error {
 						ChatID:  msg.ChatID,
 						Content: response,
 					})
+
+					// Broadcast to DVE and Terminal channels for real-time piping
+					if os.Getenv("DVE_ID") != "" {
+						al.bus.PublishOutbound(bus.OutboundMessage{
+							Channel: "dve",
+							Content: response,
+						})
+						al.bus.PublishOutbound(bus.OutboundMessage{
+							Channel: "terminal",
+							Content: response,
+						})
+					}
 				}
 			}
 		}
@@ -543,6 +555,18 @@ func (al *AgentLoop) runLLMIteration(ctx context.Context, messages []providers.M
 					ChatID:  opts.ChatID,
 					Content: toolResult.ForUser,
 				})
+
+				// Broadcast to DVE and Terminal channels for real-time piping
+				if os.Getenv("DVE_ID") != "" {
+					al.bus.PublishOutbound(bus.OutboundMessage{
+						Channel: "dve",
+						Content: toolResult.ForUser,
+					})
+					al.bus.PublishOutbound(bus.OutboundMessage{
+						Channel: "terminal",
+						Content: toolResult.ForUser,
+					})
+				}
 				logger.DebugCF("agent", "Sent tool result to user",
 					map[string]interface{}{
 						"tool":        tc.Name,

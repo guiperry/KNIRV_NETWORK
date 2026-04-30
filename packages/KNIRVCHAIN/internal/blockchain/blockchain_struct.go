@@ -2389,6 +2389,86 @@ func (bc *BlockchainStruct) GetLatestBlockHash() string {
 	return hex.EncodeToString(lastBlock.BlockHash)
 }
 
+// GetChainLength returns number of blocks — satisfies p2p.Blockchain interface.
+func (bc *BlockchainStruct) GetChainLength() int {
+	bc.Lock()
+	defer bc.Unlock()
+	return len(bc.Blocks)
+}
+
+// GetLatestBlockNumber returns the block number of the last block.
+func (bc *BlockchainStruct) GetLatestBlockNumber() uint64 {
+	bc.Lock()
+	defer bc.Unlock()
+	if len(bc.Blocks) == 0 {
+		return 0
+	}
+	return bc.Blocks[len(bc.Blocks)-1].BlockNumber
+}
+
+// AddBlockFromJSON converts a p2p.Block JSON (string hashes) into a blockchain.Block and adds it.
+// Used by the P2P layer when receiving gossiped blocks from the network.
+func (bc *BlockchainStruct) AddBlockFromJSON(data []byte) error {
+	var pb p2p.Block
+	if err := json.Unmarshal(data, &pb); err != nil {
+		return fmt.Errorf("unmarshal p2p block: %w", err)
+	}
+	prevHash, err := hex.DecodeString(pb.PrevHash)
+	if err != nil {
+		prevHash = []byte(pb.PrevHash)
+	}
+	blockHash, err2 := hex.DecodeString(pb.Hash)
+	if err2 != nil {
+		blockHash = []byte(pb.Hash)
+	}
+	txs := make([]*Transaction, len(pb.Transactions))
+	for i, t := range pb.Transactions {
+		txs[i] = &Transaction{
+			TransactionHash: t.TransactionHash,
+			Type:            t.Type,
+			From:            t.From,
+			Data:            t.Data,
+		}
+	}
+	block := &Block{
+		BlockNumber:  pb.BlockNumber,
+		Timestamp:    pb.Timestamp,
+		PrevHash:     prevHash,
+		BlockHash:    blockHash,
+		Transactions: txs,
+	}
+	return bc.addBlockInternal(block)
+}
+
+// AddTransactionFromJSON converts a p2p.Transaction JSON into a blockchain.Transaction and adds it to the pool.
+// Used by the P2P layer when receiving gossiped transactions from the network.
+func (bc *BlockchainStruct) AddTransactionFromJSON(data []byte) error {
+	var pt p2p.Transaction
+	if err := json.Unmarshal(data, &pt); err != nil {
+		return fmt.Errorf("unmarshal p2p transaction: %w", err)
+	}
+	tx := &Transaction{
+		TransactionHash: pt.TransactionHash,
+		Type:            pt.Type,
+		From:            pt.From,
+		Data:            pt.Data,
+	}
+	return bc.AddTransactionToTransactionPool(tx)
+}
+
+// GetBlocksJSONAfter returns JSON-encoded blocks with block_number > startAfter — used for chain sync.
+func (bc *BlockchainStruct) GetBlocksJSONAfter(startAfter uint64) ([]byte, error) {
+	bc.Lock()
+	defer bc.Unlock()
+	var result []*Block
+	for _, b := range bc.Blocks {
+		if b.BlockNumber > startAfter {
+			result = append(result, b)
+		}
+	}
+	return json.Marshal(result)
+}
+
 // GetTotalTransactions returns the total number of transactions in the blockchain
 func (bc *BlockchainStruct) GetTotalTransactions() int {
 	bc.Lock()

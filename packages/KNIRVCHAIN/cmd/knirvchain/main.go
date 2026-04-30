@@ -902,7 +902,7 @@ func main() {
 	// --- Declare variables needed for GUI pre-initialization ---
 	var guiNodeConfig *config.Config = nil // Which config is for the GUI node
 	var guiDB *LevelDB
-	var guiDiscoveryMgr p2p.DiscoveryService
+	var guiDiscoveryMgr dht.DiscoveryService
 	var guiBC *BlockchainStruct
 	// p2pConsensusMgr is now handled locally where needed
 	var guiInitErr error
@@ -1200,7 +1200,7 @@ func main() {
 			}
 		}
 		if guiInitErr == nil { // Pass guiNodeConfig to NewDiscoveryManager
-			guiDiscoveryMgr, guiInitErr = p2p.NewDiscoveryManager(guiNodeConfig.ChainID, int(guiNodeConfig.P2PPort), guiNodeConfig.ClientOnly, guiNodeConfig.IsBootnode, nodeRole, guiNodeConfig)
+			guiDiscoveryMgr, guiInitErr = dht.NewDiscoveryClient(guiNodeConfig.ChainID, int(guiNodeConfig.P2PPort), guiNodeConfig.ClientOnly, guiNodeConfig.IsBootnode, nodeRole, guiNodeConfig)
 		}
 		if guiInitErr == nil {
 			// Get the global ChromemManager from the sync.Map
@@ -1422,7 +1422,7 @@ func startNodeWithComponents(
 	disableP2P bool,
 	isNetworkMode bool,
 	db *LevelDB, // Pre-initialized
-	discoveryMgr p2p.DiscoveryService, // Pre-initialized
+	discoveryMgr dht.DiscoveryService, // Pre-initialized
 	bc *BlockchainStruct, // Pre-initialized
 ) (*P2PConsensusManager, error) { // Return the manager
 	applyEmbeddedRuntimeOverrides(&cfg)
@@ -1431,13 +1431,7 @@ func startNodeWithComponents(
 	// Create P2P Consensus Manager first (skip if disabled)
 	if !disableP2P {
 		var err error
-		// Ensure discoveryMgr is a concrete *p2p.DiscoveryManager before calling NewP2PConsensusManager
-		// Create P2P consensus manager using interfaces - pass actual blockchain and db implementations
-		if dm, ok := discoveryMgr.(*p2p.DiscoveryManager); ok {
-			p2pConsensusMgr, err = p2p.NewP2PConsensusManager(bc, db, dm, nodeRole)
-		} else {
-			return nil, fmt.Errorf("[%s] failed to create P2P consensus manager: discovery manager is not a *p2p.DiscoveryManager", cfg.ChainID)
-		}
+		p2pConsensusMgr, err = dht.NewP2PConsensusManager(bc, discoveryMgr, nodeRole)
 		if err != nil {
 			// Clean up already initialized components if manager fails
 			// Note: Closing shared components here might be problematic if they are used elsewhere.
@@ -1763,7 +1757,7 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 
 		// P2P consensus manager (skip if disabled)
 		if !disableP2P {
-			p2pConsensusMgr, err := dht.NewP2PConsensusManager(bc, db, discoveryMgr, role)
+			p2pConsensusMgr, err := dht.NewP2PConsensusManager(bc, discoveryMgr, role)
 			if err != nil {
 				log.Printf("[%s][%s] WARNING: Failed to initialize P2P consensus manager: %v", role.String(), cfg.ChainID, err)
 			} else {
@@ -2051,7 +2045,7 @@ func waitForShutdownSignal(cancel context.CancelFunc, wg *sync.WaitGroup, config
 }
 
 // integrateInferenceEngineWithDHT integrates the inference engine with the DHT for sharing metrics
-func integrateInferenceEngineWithDHT(discoveryMgr p2p.DiscoveryService) error {
+func integrateInferenceEngineWithDHT(discoveryMgr dht.DiscoveryService) error {
 	if discoveryMgr == nil {
 		return fmt.Errorf("discovery manager is not available")
 	}

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -139,12 +140,18 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 	var dhtMgr *dht.DHTManager
 	if !cfg.DisableDHT {
 		dhtConfig := &dht.Config{
-			ServiceID:        "knirvgateway",
-			ChainID:          cfg.ChainID,
-			BootstrapPeers:   cfg.BootstrapPeers,
-			EnableAutoRelay:   false,
-			Port:             cfg.DHTPort,
-			AnnounceInterval: 5 * time.Minute,
+			ServiceID:             "knirvgateway",
+			ChainID:               cfg.ChainID,
+			BootstrapPeers:        cfg.BootstrapPeers,
+			EnableAutoRelay:       false,
+			Port:                  cfg.DHTPort,
+			AnnounceInterval:      5 * time.Minute,
+			NodeRole:              cfg.ChainNodeRole,
+			ChainP2PPort:          cfg.ChainP2PPort,
+			ChainClientOnly:       cfg.ChainClientOnly,
+			ChainIsBootnode:       cfg.ChainIsBootnode,
+			ChainBootnodeRegistry: cfg.ChainBootnodeRegistry,
+			ChainCallbackSocket:   cfg.ChainCallbackSocket,
 		}
 		var err error
 		dhtMgr, err = dht.NewDHTManager(dhtConfig)
@@ -203,6 +210,14 @@ func (s *Server) setupRoutes() error {
 	r.HandleFunc("/dht/cache-resource", s.handleCacheResource).Methods("POST")
 	r.HandleFunc("/dht/announce-all-cached", s.handleAnnounceAllCached).Methods("POST")
 	r.HandleFunc("/dht/cache-status", s.handleCacheStatus).Methods("GET")
+
+	// Chain P2P proxy endpoints (used by KNIRVCHAIN via unix socket)
+	r.HandleFunc("/p2p/publish-block", s.handleP2PPublishBlock).Methods("POST")
+	r.HandleFunc("/p2p/publish-tx", s.handleP2PPublishTx).Methods("POST")
+	r.HandleFunc("/p2p/register-callback", s.handleP2PRegisterCallback).Methods("POST")
+	r.HandleFunc("/p2p/peers", s.handleP2PPeers).Methods("GET")
+	r.HandleFunc("/p2p/self-addrs", s.handleP2PSelfAddrs).Methods("GET")
+	r.HandleFunc("/p2p/peer-id", s.handleP2PPeerID).Methods("GET")
 
 	// Register auth routes directly
 	s.authHandler.RegisterRoutes(r)
@@ -947,6 +962,90 @@ func (s *Server) handleCacheStatus(w http.ResponseWriter, r *http.Request) {
 		"count":     count,
 		"resources": resources,
 	})
+}
+
+// Chain P2P proxy handlers
+
+func (s *Server) handleP2PPublishBlock(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not enabled", http.StatusServiceUnavailable)
+		return
+	}
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read body", http.StatusBadRequest)
+		return
+	}
+	if err := s.dhtManager.PublishBlock(r.Context(), data); err != nil {
+		http.Error(w, fmt.Sprintf("Publish failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+}
+
+func (s *Server) handleP2PPublishTx(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not enabled", http.StatusServiceUnavailable)
+		return
+	}
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read body", http.StatusBadRequest)
+		return
+	}
+	if err := s.dhtManager.PublishTransaction(r.Context(), data); err != nil {
+		http.Error(w, fmt.Sprintf("Publish failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+}
+
+func (s *Server) handleP2PRegisterCallback(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not enabled", http.StatusServiceUnavailable)
+		return
+	}
+	var req struct {
+		SocketPath string `json:"socket_path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.SocketPath == "" {
+		http.Error(w, "socket_path required", http.StatusBadRequest)
+		return
+	}
+	s.dhtManager.SetChainCallbackSocket(req.SocketPath)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"ok": true})
+}
+
+func (s *Server) handleP2PPeers(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not enabled", http.StatusServiceUnavailable)
+		return
+	}
+	peers := s.dhtManager.GetConnectedPeers()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"peers": peers})
+}
+
+func (s *Server) handleP2PSelfAddrs(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not enabled", http.StatusServiceUnavailable)
+		return
+	}
+	addrs := s.dhtManager.GetSelfMultiaddrs()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"addrs": addrs})
+}
+
+func (s *Server) handleP2PPeerID(w http.ResponseWriter, r *http.Request) {
+	if s.dhtManager == nil {
+		http.Error(w, "DHT not enabled", http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{"peer_id": s.dhtManager.GetPeerID()})
 }
 
 // createCID creates a CID from a resource ID and type.

@@ -14,6 +14,7 @@ type DVENode struct {
 	ReputationScore int       `json:"reputation_score"`
 	Location        string    `json:"location"`
 	IPAddress       string    `json:"ip_address"`
+	SSHPort         int       `json:"ssh_port"`
 	PublicKey       string    `json:"public_key"`
 	Capabilities    []string  `json:"capabilities"`
 	LastHeartbeat   time.Time `json:"last_heartbeat"`
@@ -408,6 +409,12 @@ type DVECreation struct {
 	ActivatedAt        *time.Time     `json:"activated_at,omitempty"`
 	LastHeartbeat      time.Time      `json:"last_heartbeat"`
 	UpdatedAt          time.Time      `json:"updated_at"`
+
+	// SSH Access info
+	SSHPublicKey  string `json:"ssh_public_key,omitempty"`
+	SSHPrivateKey string `json:"ssh_private_key,omitempty"`
+	SSHPort       int    `json:"ssh_port,omitempty"`
+	IPAddress     string `json:"ip_address,omitempty"`
 
 	Persistent  bool  `json:"persistent"`   // True = permanent ownership, False = rental-based
 	GracePeriod int64 `json:"grace_period"` // Seconds after stake drops before decommissioning

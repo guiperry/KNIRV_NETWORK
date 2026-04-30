@@ -133,19 +133,39 @@ func (h *DVECreationHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// In a real implementation, we would use actual container info
-	// For now, we'll use mock values or info from the creation object
+	// Use actual SSH info from the creation object
+	username := "dve-admin"
+	if creation.SSHPrivateKey == "" && h.containerOrchestrator != nil {
+		// Try to recover private key from orchestrator if not in creation object
+		key, err := h.containerOrchestrator.GetSSHPrivateKey(creation.DVENodeID)
+		if err == nil {
+			creation.SSHPrivateKey = key
+		}
+	}
+
+	if creation.SSHPrivateKey == "" {
+		h.sendError(w, "SSH private key not available for this DVE", http.StatusInternalServerError)
+		return
+	}
+
 	session, err := h.sessionManager.CreateSSHSession(
 		creation.ID,
 		creation.DVENodeID,
-		"dve-admin",
-		"-----BEGIN OPENSSH PRIVATE KEY-----\n...", // Mock key
+		username,
+		creation.SSHPrivateKey,
 	)
 
 	if err != nil {
 		h.sendError(w, "Failed to create SSH session: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Populate endpoint details from creation object
+	session.Endpoint = creation.IPAddress
+	if session.Endpoint == "" {
+		session.Endpoint = "localhost"
+	}
+	session.Port = creation.SSHPort
 
 	h.sendJSON(w, session, "SSH session created successfully", http.StatusCreated)
 }

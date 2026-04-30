@@ -1,14 +1,13 @@
 package drq
 
 import (
-	"KNIRVGRAPH/internal/p2p"
+	"KNIRVGRAPH/internal/dht"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 const (
 	QValueTopic = "q-value-updates"
@@ -23,7 +22,7 @@ type QValueUpdate struct {
 // DRQSyncProtocol handles distributed Q-value propagation
 type DRQSyncProtocol struct {
 	nodeID          string
-	dhtManager      p2p.DHTManagerInterface
+	dhtManager      dht.DHTManagerInterface
 	localQTable     map[string]map[string]float64              // state → action → Q-value
 	neighborQTables map[string]map[string]map[string]float64 // neighborID → state → action → Q-value
 	neighborWeights map[string]float64                         // nodeID → weight
@@ -33,7 +32,7 @@ type DRQSyncProtocol struct {
 	mutex           sync.RWMutex
 }
 // NewDRQSyncProtocol creates a new DRQSyncProtocol.
-func NewDRQSyncProtocol(nodeID string, dhtManager p2p.DHTManagerInterface, learningRate, discountFactor float64, syncInterval time.Duration) *DRQSyncProtocol {
+func NewDRQSyncProtocol(nodeID string, dhtManager dht.DHTManagerInterface, learningRate, discountFactor float64, syncInterval time.Duration) *DRQSyncProtocol {
 	return &DRQSyncProtocol{
 		nodeID:          nodeID,
 		dhtManager:      dhtManager,
@@ -47,34 +46,32 @@ func NewDRQSyncProtocol(nodeID string, dhtManager p2p.DHTManagerInterface, learn
 }
 // Start subscribes to the Q-value topic and starts the gossip handler.
 func (d *DRQSyncProtocol) Start(ctx context.Context) error {
-	sub, err := d.dhtManager.Subscribe(QValueTopic)
+	ch, err := d.dhtManager.Subscribe(QValueTopic)
 	if err != nil {
 		return fmt.Errorf("failed to subscribe to Q-value topic: %w", err)
 	}
-	go d.handleGossip(ctx, sub)
+	go d.handleGossip(ctx, ch)
 	return nil
 }
 // handleGossip processes incoming Q-value updates from the network.
-func (d *DRQSyncProtocol) handleGossip(ctx context.Context, sub *pubsub.Subscription) {
+func (d *DRQSyncProtocol) handleGossip(ctx context.Context, ch <-chan []byte) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		default:
-			msg, err := sub.Next(ctx)
-			if err != nil {
-				log.Printf("Error receiving gossip message: %v", err)
-				continue
-			}
-
-			if msg.ReceivedFrom.String() == d.nodeID {
-				continue // Ignore messages from self
+		case data, ok := <-ch:
+			if !ok {
+				return
 			}
 
 			var update QValueUpdate
-			if err := json.Unmarshal(msg.Data, &update); err != nil {
+			if err := json.Unmarshal(data, &update); err != nil {
 				log.Printf("Error unmarshaling Q-value update: %v", err)
 				continue
+			}
+
+			if update.NodeID == d.nodeID {
+				continue // Ignore messages from self
 			}
 
 			d.mutex.Lock()

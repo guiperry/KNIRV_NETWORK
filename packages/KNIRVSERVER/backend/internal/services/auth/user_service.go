@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"backend_server/internal/database"
+	"backend_server/internal/email"
 	"backend_server/internal/objects"
 
 	"github.com/tidwall/buntdb"
@@ -143,6 +144,14 @@ func (us *UserService) CreateUser(registration *objects.UserRegistration) (*obje
 		return nil, fmt.Errorf("user storage failed: %w", err)
 	}
 	log.Printf("DEBUG: User stored successfully")
+
+	// Send email verification
+	emailService := email.NewEmailService()
+	if err := emailService.SendVerificationEmail(user.Email, user.EmailVerificationToken); err != nil {
+		// Log the error but don't fail the registration
+		log.Printf("Failed to send verification email to %s: %v", user.Email, err)
+		// Continue with registration - user can request a new verification email later
+	}
 
 	// Log audit event
 	us.logAuditEvent("", "user_registration", "user", "", "", "", "User registration initiated", true)
@@ -351,7 +360,14 @@ func (us *UserService) InitiatePasswordReset(email string) error {
 		return fmt.Errorf("password reset initiation failed: %w", err)
 	}
 
-	// TODO: Send email with reset token
+	// Send email with reset token
+	emailService := email.NewEmailService()
+	if err := emailService.SendPasswordResetEmail(user.Email, resetToken); err != nil {
+		// Log the error but don't fail the request for security reasons
+		log.Printf("Failed to send password reset email to %s: %v", user.Email, err)
+		// Don't return the error to avoid revealing whether the email exists
+	}
+
 	log.Printf("Password reset initiated for user: %s", user.Email)
 
 	return nil

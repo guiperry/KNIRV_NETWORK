@@ -124,6 +124,24 @@ func (m *Manager) initChannels() error {
 		}
 	}
 
+	// Always try to initialize DVE channel if running in a DVE
+	if os.Getenv("DVE_ID") != "" {
+		logger.DebugC("channels", "Attempting to initialize DVE channel")
+		dve, err := NewDVEChannel(m.bus)
+		if err != nil {
+			logger.ErrorCF("channels", "Failed to initialize DVE channel", map[string]interface{}{
+				"error": err.Error(),
+			})
+		} else {
+			m.channels["dve"] = dve
+			logger.InfoC("channels", "DVE channel enabled successfully")
+		}
+
+		// Also register terminal channel for local piping
+		m.channels["terminal"] = NewTerminalChannel(m.bus)
+		logger.InfoC("channels", "Terminal channel enabled for local piping")
+	}
+
 	logger.InfoCF("channels", "Channel initialization completed", map[string]interface{}{
 		"enabled_channels": len(m.channels),
 	})

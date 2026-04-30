@@ -248,16 +248,16 @@ func (dm *DVEManager) HandleMessage(ctx context.Context, msg *objects.P2PMessage
 func (dm *DVEManager) RegisterNode(req *RegisterNodeRequest) (*objects.DVENode, error) {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
-
 	node := &objects.DVENode{
 		ID:              uuid.New().String(),
 		Name:            req.Name,
 		Status:          "online",
 		TEEType:         req.TEEType,
 		StakeAmount:     req.StakeAmount,
-		ReputationScore: 100, // Default starting reputation
+		ReputationScore: 100, // Initial reputation
 		Location:        req.Location,
 		IPAddress:       req.IPAddress,
+		SSHPort:         req.SSHPort,
 		PublicKey:       req.PublicKey,
 		Capabilities:    req.Capabilities,
 		LastHeartbeat:   time.Now(),
@@ -404,6 +404,7 @@ type RegisterNodeRequest struct {
 	StakeAmount  int64    `json:"stake_amount"`
 	Location     string   `json:"location"`
 	IPAddress    string   `json:"ip_address"`
+	SSHPort      int      `json:"ssh_port"`
 	PublicKey    string   `json:"public_key"`
 	Capabilities []string `json:"capabilities"`
 	Latitude     float64  `json:"latitude,omitempty"`

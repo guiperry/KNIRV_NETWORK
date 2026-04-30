@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,6 +27,15 @@ func NewAPIClient(port int) *APIClient {
 			Timeout: 30 * time.Second,
 		},
 	}
+}
+
+// GetPort extracts the port from BaseURL
+func (c *APIClient) GetPort() int {
+	// BaseURL format: "http://localhost:PORT"
+	_, after, _ := strings.Cut(c.BaseURL, ":")
+	portStr, _, _ := strings.Cut(after, ":")
+	portInt, _ := strconv.Atoi(portStr)
+	return portInt
 }
 
 // CallInference calls the inference endpoint

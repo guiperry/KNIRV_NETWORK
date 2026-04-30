@@ -66,6 +66,14 @@ type Config struct {
 	TurnServerAuthSecret   string
 	TurnServerRealm        string
 	TurnServerMinerAddress string
+
+	// Chain P2P proxy configuration (KNIRVGATEWAY manages P2P on behalf of KNIRVCHAIN)
+	ChainNodeRole         string // e.g. "Client", "Root", "Bootnode"
+	ChainP2PPort          int    // libp2p listening port
+	ChainClientOnly       bool   // skip self-announce / mDNS
+	ChainIsBootnode       bool
+	ChainBootnodeRegistry string // e.g. "https://registry.knirv.com"
+	ChainCallbackSocket   string // unix socket path for KNIRVCHAIN P2P callbacks
 }
 
 func Load() (*Config, error) {
@@ -108,6 +116,12 @@ func Load() (*Config, error) {
 		TurnServerAuthSecret:      getEnv("TURN_SERVER_AUTH_SECRET", "knirvchain-turn-secret"),
 		TurnServerRealm:           getEnv("TURN_SERVER_REALM", "knirvgateway.local"),
 		TurnServerMinerAddress:    getEnv("TURN_SERVER_MINER_ADDRESS", "GATEWAY_MINER"),
+		ChainNodeRole:             getEnv("CHAIN_NODE_ROLE", "Client"),
+		ChainP2PPort:              getEnvInt("CHAIN_P2P_PORT", 4001),
+		ChainClientOnly:           getEnvBool("CHAIN_CLIENT_ONLY", true),
+		ChainIsBootnode:           getEnvBool("CHAIN_IS_BOOTNODE", false),
+		ChainBootnodeRegistry:     getEnv("CHAIN_BOOTNODE_REGISTRY", "https://registry.knirv.com"),
+		ChainCallbackSocket:       getEnv("CHAIN_CALLBACK_SOCKET", ""),
 	}
 
 	return cfg, nil

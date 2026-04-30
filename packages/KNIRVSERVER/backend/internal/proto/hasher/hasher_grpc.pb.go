@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v4.25.7
-// source: internal/proto/hasher/hasher.proto
+// source: hasher/hasher.proto
 
 package hasher
 
@@ -336,5 +336,5 @@ var HasherTrainingService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "internal/proto/hasher/hasher.proto",
+	Metadata: "hasher/hasher.proto",
 }
