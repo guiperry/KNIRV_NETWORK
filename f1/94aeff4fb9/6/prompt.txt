@@ -1,0 +1,46 @@
+Building KNIRVGRAPH binary... 
+cd /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/../KNIRVGRAPH/cmd/node && go build -ldflags "-s -w" -o /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/pkg/knirvgraph/bin/knirvgraph
+../../internal/drq/drq_sync.go:4:2: package KNIRVGRAPH/internal/p2p is not in std (/home/gperry/.gvm/pkgsets/go1.24.1/global/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.6.linux-amd64/src/KNIRVGRAPH/internal/p2p)
+make: *** [Makefile:472: graph-build] Error 1
+
+---
+
+Installing KNIRVCHAIN dependencies... 
+cd /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/../KNIRVCHAIN && go mod download && go mod tidy
+Building KNIRVCHAIN binary... 
+cd /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/../KNIRVCHAIN/cmd/knirvchain && go build -ldflags "-s -w" -o /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/pkg/knirvchain/bin/knirvchain
+# KNIRVCHAIN/cmd/knirvchain
+./main.go:54:32: undefined: dht.P2PConsensusManager
+./main.go:323:110: undefined: dht.DiscoveryService
+./main.go:905:22: undefined: p2p
+./main.go:1203:34: undefined: p2p
+./main.go:1425:15: undefined: p2p
+./main.go:1437:27: undefined: p2p
+./main.go:1734:23: assignment mismatch: 2 variables but dht.NewDiscoveryClient returns 1 value
+./main.go:1734:59: too many arguments in call to dht.NewDiscoveryClient
+	have (string, int, bool, bool, "KNIRVCHAIN/config".Role, *"KNIRVCHAIN/config".Config)
+	want (string)
+./main.go:1766:32: undefined: dht.NewP2PConsensusManager
+./main.go:2054:51: undefined: p2p
+./main.go:1766:32: too many errors
+make: *** [Makefile:488: chain-build] Error 1
+
+---
+
+Per @DHT_Migration.md All direct p2p connections should be done through the KNIRVGATEWAY and not from KNIRVCHAIN and KNIRVGRAPH. We need to move all functionality that produces the following logs from the KNIRVCHAIN into the KNIRVGATEWAY:
+
+DHT initialized with protocol prefix: /KNIRVCHAIN-dht/testnet/12D3KooW
+2026/04/29 08:26:12 [Client][testnet] Discovery Manager initialized. PeerID: REDACTED (ClientOnly: true)
+2026/04/29 08:26:12 [Client][testnet] Listening on: /ip4/127.0.0.1/tcp/4001/p2p/REDACTED
+2026/04/29 08:26:12 [Client][testnet] Listening on: /ip4/192.168.12.121/tcp/4001/p2p/REDACTED
+2026/04/29 08:26:12 [Client][testnet] Listening on: /ip6/::1/tcp/4001/p2p/REDACTED
+2026/04/29 08:26:12 [Client][testnet] Listening on: /ip6/fdfe:5e6c:2e69:98de:e2cd:3611:847e:7c14/tcp/4001/p2p/REDACTED
+2026/04/29 08:26:12 [Client][testnet] Connecting to bootstrap nodes...
+2026/04/29 08:26:12 [Client][testnet] Fetching bootnodes from registry: https://registry.knirv.com/nodes
+2026/04/29 08:26:12 [Client][testnet] Using default topic validation settings
+2026/04/29 08:26:12 [Client][testnet] P2P consensus manager subscribed to topics: testnet.blocks, testnet.transactions, network_control
+2026/04/29 08:26:12 [Client][testnet] Registered chain sync handler for protocol /knirv/chain-sync/1.0.0
+2026/04/29 08:26:12 [Client][testnet] Starting P2P consensus manager with MinersAddress: 
+2026/04/29 08:26:12 [Client][testnet] ChromemDB path: /root/.config/KNIRVCHAIN/client_data/chromem_data_store
+2026/04/29 08:26:12 [Client][testnet] Starting P2P consensus manager...
+2026/04/29 08:26:12 [Client][testnet] P2P consensus manager started successfully.
