@@ -1057,9 +1057,9 @@ func CreateNewBlockchain(genesisBlock *Block, dbKeyForChain string, nodeMinersAd
 			return nil, fmt.Errorf("failed to load existing blockchain data for key '%s': %w. Consider deleting the DB if corruption is suspected", dbKeyForChain, err)
 		}
 
-		blockchain, ok := blockchainData.(*BlockchainStruct)
-		if !ok || blockchain == nil {
-			return nil, fmt.Errorf("invalid blockchain data in database for key '%s'. Loaded data: %T", dbKeyForChain, blockchainData)
+		var blockchain BlockchainStruct
+		if err := json.Unmarshal(blockchainData, &blockchain); err != nil {
+			return nil, fmt.Errorf("invalid blockchain data in database for key '%s': failed to unmarshal: %w", dbKeyForChain, err)
 		}
 
 		// Validate the loaded genesis block
@@ -1094,7 +1094,7 @@ func CreateNewBlockchain(genesisBlock *Block, dbKeyForChain string, nodeMinersAd
 		// Initialize mining context (will be set when mining starts)
 		blockchain.miningCtx = nil
 		blockchain.miningCancel = nil
-		return blockchain, nil
+		return &blockchain, nil
 	} else {
 		// Create NEW blockchain
 		agentlog.LogInfo(fmt.Sprintf("No existing blockchain data found for key '%s'. Creating new blockchain.", dbKeyForChain))

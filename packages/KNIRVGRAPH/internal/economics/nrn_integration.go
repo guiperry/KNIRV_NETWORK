@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -69,11 +71,30 @@ type RewardDistributionRequest struct {
 
 // NewNRNIntegration creates a new NRN integration instance
 func NewNRNIntegration(knirvRootURL string, nrvSystem *nrv.NRVSystem) *NRNIntegration {
-	return &NRNIntegration{
-		knirvRootURL: knirvRootURL,
-		httpClient: &http.Client{
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	url := knirvRootURL
+
+	// Handle Unix socket URLs — the URL comes in as "unix://<socket_path>"
+	// from resolveKNIRVOracleURL. We need a custom transport to dial the
+	// socket, and a dummy base hostname for the HTTP request.
+	if strings.HasPrefix(knirvRootURL, "unix://") {
+		socketPath := strings.TrimPrefix(knirvRootURL, "unix://")
+		url = "http://unix"
+		client = &http.Client{
 			Timeout: 30 * time.Second,
-		},
+			Transport: &http.Transport{
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
+				},
+			},
+		}
+	}
+
+	return &NRNIntegration{
+		knirvRootURL: url,
+		httpClient:   client,
 		enabled:    true,
 		nrvSystem:  nrvSystem,
 		rewardPool: big.NewInt(0),

@@ -99,6 +99,10 @@ func resolveKNIRVOracleURL(logger *zap.Logger) string {
 			}
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
+				if strings.HasPrefix(c.label, "unix socket:") {
+					logger.Info("KNIRVORACLE: using discovered endpoint", zap.String("url", "unix://"+socketPath), zap.String("source", c.label))
+					return "unix://" + socketPath
+				}
 				logger.Info("KNIRVORACLE: using discovered endpoint", zap.String("url", c.baseURL), zap.String("source", c.label))
 				return c.baseURL
 			}
