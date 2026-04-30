@@ -12,7 +12,6 @@ import (
 	"backend_server/internal/database"
 	"backend_server/internal/ebpf"
 	"backend_server/internal/objects"
-	"backend_server/internal/services/dvecreation"
 	"backend_server/internal/services/p2p"
 
 	"github.com/google/uuid"
@@ -37,10 +36,6 @@ type DVEManager struct {
 	cancel               context.CancelFunc
 	mu                   sync.RWMutex
 	enableChainDiscovery bool
-
-	// creationService is the embedded DVE creation and session management service.
-	// Access it via SetCreationService / GetCreationService or the delegation methods below.
-	creationService *dvecreation.DVECreationService
 }
 
 // NodeTracker tracks the status and health of DVE nodes
@@ -172,66 +167,6 @@ func (dm *DVEManager) Stop(ctx context.Context) error {
 	return nil
 }
 
-// ── DVE Creation delegation ───────────────────────────────────────────────────
-// SetCreationService wires the DVECreationService into the manager so that all
-// creation and session operations are accessible through a single service boundary.
-func (dm *DVEManager) SetCreationService(svc *dvecreation.DVECreationService) {
-	dm.mu.Lock()
-	defer dm.mu.Unlock()
-	dm.creationService = svc
-}
-
-// GetCreationService returns the embedded DVECreationService.
-func (dm *DVEManager) GetCreationService() *dvecreation.DVECreationService {
-	dm.mu.RLock()
-	defer dm.mu.RUnlock()
-	return dm.creationService
-}
-
-// CreateDVENode delegates to DVECreationService.CreateDVENode.
-func (dm *DVEManager) CreateDVENode(req *objects.DVECreationRequest) (*objects.DVECreationResponse, error) {
-	dm.mu.RLock()
-	svc := dm.creationService
-	dm.mu.RUnlock()
-	if svc == nil {
-		return nil, fmt.Errorf("DVE creation service not available")
-	}
-	return svc.CreateDVENode(req)
-}
-
-// GetDVECreation delegates to DVECreationService.GetDVECreation.
-func (dm *DVEManager) GetDVECreation(creationID string) (*objects.DVECreation, error) {
-	dm.mu.RLock()
-	svc := dm.creationService
-	dm.mu.RUnlock()
-	if svc == nil {
-		return nil, fmt.Errorf("DVE creation service not available")
-	}
-	return svc.GetDVECreation(creationID)
-}
-
-// GetUserDVECreations delegates to DVECreationService.GetUserDVECreations.
-func (dm *DVEManager) GetUserDVECreations(userID string) ([]*objects.DVECreation, error) {
-	dm.mu.RLock()
-	svc := dm.creationService
-	dm.mu.RUnlock()
-	if svc == nil {
-		return nil, fmt.Errorf("DVE creation service not available")
-	}
-	return svc.GetUserDVECreations(userID)
-}
-
-// GetCreationStats delegates to DVECreationService.GetStats.
-func (dm *DVEManager) GetCreationStats() (*dvecreation.DVECreationStats, error) {
-	dm.mu.RLock()
-	svc := dm.creationService
-	dm.mu.RUnlock()
-	if svc == nil {
-		return nil, fmt.Errorf("DVE creation service not available")
-	}
-	return svc.GetStats()
-}
-
 // HandleMessage implements the P2P MessageHandler interface
 func (dm *DVEManager) HandleMessage(ctx context.Context, msg *objects.P2PMessage) error {
 	switch msg.Type {
@@ -245,7 +180,7 @@ func (dm *DVEManager) HandleMessage(ctx context.Context, msg *objects.P2PMessage
 }
 
 // RegisterNode registers a new DVE node
-func (dm *DVEManager) RegisterNode(req *RegisterNodeRequest) (*objects.DVENode, error) {
+func (dm *DVEManager) RegisterNode(req *objects.RegisterNodeRequest) (*objects.DVENode, error) {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 	node := &objects.DVENode{
@@ -397,19 +332,7 @@ func (dm *DVEManager) GetSystemHealth() (*objects.SystemHealth, error) {
 	return health, nil
 }
 
-// RegisterNodeRequest represents a node registration request
-type RegisterNodeRequest struct {
-	Name         string   `json:"name"`
-	TEEType      string   `json:"tee_type"`
-	StakeAmount  int64    `json:"stake_amount"`
-	Location     string   `json:"location"`
-	IPAddress    string   `json:"ip_address"`
-	SSHPort      int      `json:"ssh_port"`
-	PublicKey    string   `json:"public_key"`
-	Capabilities []string `json:"capabilities"`
-	Latitude     float64  `json:"latitude,omitempty"`
-	Longitude    float64  `json:"longitude,omitempty"`
-}
+// RegisterNodeRequest is defined in backend_server/internal/objects
 
 // NodeFilter represents filters for node queries
 type NodeFilter struct {
@@ -555,7 +478,7 @@ func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
 		log.Println("Chain registry connected but no nodes discovered yet - seeding demo nodes")
 	}
 
-	demoDVENodes := []*RegisterNodeRequest{
+	demoDVENodes := []*objects.RegisterNodeRequest{
 		{
 			Name:         "Demo DVE Node 1 (SGX - US-East)",
 			TEEType:      "sgx",

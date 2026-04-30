@@ -8,7 +8,7 @@ import (
 	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/container"
-	"backend_server/internal/services/dvemanager"
+	"backend_server/internal/services/dvecreation"
 	"backend_server/internal/services/endpoints"
 	"backend_server/internal/services/session"
 	"backend_server/internal/web/middleware"
@@ -17,10 +17,9 @@ import (
 )
 
 // DVECreationHandlers exposes the DVE lifecycle (create, session, SSH) endpoints.
-// All DVE creation operations are delegated to dveManager which owns the merged
-// DVECreationService.
+// All DVE creation operations are delegated to dveCreationService.
 type DVECreationHandlers struct {
-	dveManager            *dvemanager.DVEManager
+	dveCreationService   *dvecreation.DVECreationService
 	containerOrchestrator *container.ContainerOrchestrator
 	sessionManager        *session.SessionManager
 	endpointRegistry      *endpoints.EndpointRegistry
@@ -28,14 +27,14 @@ type DVECreationHandlers struct {
 }
 
 func NewDVECreationHandlers(
-	dveManager *dvemanager.DVEManager,
+	dveCreationService *dvecreation.DVECreationService,
 	containerOrchestrator *container.ContainerOrchestrator,
 	sessionManager *session.SessionManager,
 	endpointRegistry *endpoints.EndpointRegistry,
 	db *database.BuntDBManager,
 ) *DVECreationHandlers {
 	return &DVECreationHandlers{
-		dveManager:            dveManager,
+		dveCreationService:   dveCreationService,
 		containerOrchestrator: containerOrchestrator,
 		sessionManager:        sessionManager,
 		endpointRegistry:      endpointRegistry,
@@ -64,7 +63,7 @@ func (h *DVECreationHandlers) CreateDVE(w http.ResponseWriter, r *http.Request) 
 		req.OwnerID = userID
 	}
 
-	resp, err := h.dveManager.CreateDVENode(&req)
+	resp, err := h.dveCreationService.CreateDVENode(&req)
 	if err != nil {
 		h.sendError(w, "Failed to create DVE: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -85,7 +84,7 @@ func (h *DVECreationHandlers) GetUserCreations(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	creations, err := h.dveManager.GetUserDVECreations(userID)
+	creations, err := h.dveCreationService.GetUserDVECreations(userID)
 	if err != nil {
 		h.sendError(w, "Failed to fetch creations: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -104,7 +103,7 @@ func (h *DVECreationHandlers) GetCreation(w http.ResponseWriter, r *http.Request
 	vars := mux.Vars(r)
 	creationID := vars["id"]
 
-	creation, err := h.dveManager.GetDVECreation(creationID)
+	creation, err := h.dveCreationService.GetDVECreation(creationID)
 	if err != nil {
 		h.sendError(w, "Creation not found", http.StatusNotFound)
 		return
@@ -114,7 +113,7 @@ func (h *DVECreationHandlers) GetCreation(w http.ResponseWriter, r *http.Request
 }
 
 func (h *DVECreationHandlers) GetStats(w http.ResponseWriter, r *http.Request) {
-	stats, err := h.dveManager.GetCreationStats()
+	stats, err := h.dveCreationService.GetStats()
 	if err != nil {
 		h.sendError(w, "Failed to fetch stats: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -127,7 +126,7 @@ func (h *DVECreationHandlers) CreateSSHSession(w http.ResponseWriter, r *http.Re
 	vars := mux.Vars(r)
 	creationID := vars["id"]
 
-	creation, err := h.dveManager.GetDVECreation(creationID)
+	creation, err := h.dveCreationService.GetDVECreation(creationID)
 	if err != nil {
 		h.sendError(w, "Creation not found", http.StatusNotFound)
 		return
@@ -174,7 +173,7 @@ func (h *DVECreationHandlers) CreateValidationSession(w http.ResponseWriter, r *
 	vars := mux.Vars(r)
 	creationID := vars["id"]
 
-	creation, err := h.dveManager.GetDVECreation(creationID)
+	creation, err := h.dveCreationService.GetDVECreation(creationID)
 	if err != nil {
 		h.sendError(w, "Creation not found", http.StatusNotFound)
 		return
@@ -193,7 +192,7 @@ func (h *DVECreationHandlers) CreateErrorResolutionSession(w http.ResponseWriter
 	vars := mux.Vars(r)
 	creationID := vars["id"]
 
-	creation, err := h.dveManager.GetDVECreation(creationID)
+	creation, err := h.dveCreationService.GetDVECreation(creationID)
 	if err != nil {
 		h.sendError(w, "Creation not found", http.StatusNotFound)
 		return
@@ -212,7 +211,7 @@ func (h *DVECreationHandlers) GetFullAccessInfo(w http.ResponseWriter, r *http.R
 	vars := mux.Vars(r)
 	creationID := vars["id"]
 
-	creation, err := h.dveManager.GetDVECreation(creationID)
+	creation, err := h.dveCreationService.GetDVECreation(creationID)
 	if err != nil {
 		h.sendError(w, "Creation not found", http.StatusNotFound)
 		return

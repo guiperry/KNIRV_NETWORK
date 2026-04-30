@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"backend_server/internal/database"
-	"backend_server/internal/email"
+	"backend_server/internal/services/email"
 	"backend_server/internal/objects"
 
 	"github.com/tidwall/buntdb"
@@ -199,10 +199,10 @@ func (us *UserService) GetUserByUsername(username string) (*objects.User, error)
 }
 
 // GetUserByEmail retrieves a user by email
-func (us *UserService) GetUserByEmail(email string) (*objects.User, error) {
+func (us *UserService) GetUserByEmail(emailAddr string) (*objects.User, error) {
 	var user objects.User
 	found := false
-	emailLower := strings.ToLower(email)
+	emailLower := strings.ToLower(emailAddr)
 
 	err := us.db.ViewTransaction(func(tx *buntdb.Tx) error {
 		return tx.Ascend("users_by_email", func(key, value string) bool {
@@ -337,8 +337,8 @@ func (us *UserService) VerifyEmail(token string) error {
 }
 
 // InitiatePasswordReset initiates a password reset for a user
-func (us *UserService) InitiatePasswordReset(email string) error {
-	user, err := us.GetUserByEmail(email)
+func (us *UserService) InitiatePasswordReset(emailAddr string) error {
+	user, err := us.GetUserByEmail(emailAddr)
 	if err != nil {
 		// Don't reveal if email exists or not for security
 		return nil

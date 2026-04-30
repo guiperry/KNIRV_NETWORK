@@ -13,7 +13,7 @@ import (
 
 // HandleRegisterNode handles node registration requests
 func (dm *DVEManager) HandleRegisterNode(w http.ResponseWriter, r *http.Request) {
-	var req RegisterNodeRequest
+	var req objects.RegisterNodeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid request body")
 		return

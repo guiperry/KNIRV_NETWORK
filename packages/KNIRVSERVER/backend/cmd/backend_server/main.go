@@ -727,12 +727,10 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		return nil, fmt.Errorf("failed to initialize container orchestrator: %w", err)
 	}
 
-	// Wire DVE Creation Service with manager and orchestrator
+	// Wire DVE Creation Service with orchestrator
 	if dveCreationService != nil {
-		dveManager.SetCreationService(dveCreationService)
-		dveCreationService.SetDveManager(dveManager)
 		dveCreationService.SetContainerOrchestrator(containerOrchestrator)
-		log.Println("DVE creation service fully wired with manager and container orchestrator")
+		log.Println("DVE creation service wired with container orchestrator")
 	}
 
 	// Initialize Session Manager
@@ -1625,7 +1623,7 @@ func (s *Server) setupRoutes() {
 
 	// Register DVE manager routes
 	if s.dveManager != nil {
-		dveHandlers := web.NewDVEHandlers(s.dveManager)
+		dveHandlers := web.NewDVEHandlers(s.dveManager, s.dveCreationService)
 		if s.sessionManager != nil {
 			dveHandlers.SetSessionManager(s.sessionManager)
 		}
@@ -1638,7 +1636,7 @@ func (s *Server) setupRoutes() {
 
 	// Register DVE creation routes
 	if s.dveCreationService != nil {
-		dveCreationHandlers := web.NewDVECreationHandlers(s.dveManager, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db)
+		dveCreationHandlers := web.NewDVECreationHandlers(s.dveCreationService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db)
 		dveCreationHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE creation routes configured")
 	}
@@ -1780,7 +1778,7 @@ func (s *Server) setupRoutes() {
 	}
 
 	// Register unified API router for path unification (Gap 6)
-	dveHandlers := web.NewDVEHandlers(s.dveManager)
+	dveHandlers := web.NewDVEHandlers(s.dveManager, s.dveCreationService)
 	if s.agentService != nil {
 		dveHandlers.SetAgentService(s.agentService)
 	}

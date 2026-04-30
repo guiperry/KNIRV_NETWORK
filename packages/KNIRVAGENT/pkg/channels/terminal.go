@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/knirvcorp/knirvagent/pkg/bus"
 	"github.com/knirvcorp/knirvagent/pkg/logger"

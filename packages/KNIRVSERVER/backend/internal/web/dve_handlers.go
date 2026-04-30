@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"backend_server/internal/objects"
+	"backend_server/internal/services/dvecreation"
 	"backend_server/internal/services/dvemanager"
 	"backend_server/internal/services/session"
 	"backend_server/internal/web/middleware"
@@ -17,7 +18,8 @@ import (
 )
 
 type DVEHandlers struct {
-	dveManager     *dvemanager.DVEManager
+	dveManager          *dvemanager.DVEManager
+	dveCreationService  *dvecreation.DVECreationService
 	sessionManager *session.SessionManager
 	agentService   interface {
 		BroadcastAgentMessage(dveID string, message string)
@@ -26,9 +28,10 @@ type DVEHandlers struct {
 
 // NewDVEHandlers creates the DVE HTTP handler set.  DVE creation operations are
 // accessed through dveManager's delegation methods (merged from dvecreation).
-func NewDVEHandlers(dveManager *dvemanager.DVEManager) *DVEHandlers {
+func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveCreationService *dvecreation.DVECreationService) *DVEHandlers {
 	return &DVEHandlers{
 		dveManager: dveManager,
+		dveCreationService: dveCreationService,
 	}
 }
 
@@ -381,7 +384,7 @@ func (h *DVEHandlers) GetDVENodes(w http.ResponseWriter, r *http.Request) {
 	// so that demo DVE nodes are visible and the dashboard is not empty.
 	authCtx := middleware.GetAuthContext(r)
 	if authCtx != nil && authCtx.Role == "observer" && h.dveManager != nil {
-		creations, err := h.dveManager.GetUserDVECreations(authCtx.UserID)
+		creations, err := h.dveCreationService.GetUserDVECreations(authCtx.UserID)
 		if err != nil || len(creations) == 0 {
 			// No creations yet — fall through to return all nodes (including demo nodes).
 		} else {
@@ -424,7 +427,7 @@ func (h *DVEHandlers) GetDVENodes(w http.ResponseWriter, r *http.Request) {
 
 // PostDVENodes handles POST /api/dve-nodes (node registration)
 func (h *DVEHandlers) PostDVENodes(w http.ResponseWriter, r *http.Request) {
-	var req dvemanager.RegisterNodeRequest
+	var req objects.RegisterNodeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response := DVENodeResponse{
 			Success:   false,

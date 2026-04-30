@@ -9,6 +9,7 @@ package channels
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/knirvcorp/knirvagent/pkg/bus"

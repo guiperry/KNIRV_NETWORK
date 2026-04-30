@@ -4,6 +4,20 @@ import (
 	"time"
 )
 
+// RegisterNodeRequest represents a node registration request
+type RegisterNodeRequest struct {
+	Name         string   `json:"name"`
+	TEEType      string   `json:"tee_type"`
+	StakeAmount  int64    `json:"stake_amount"`
+	Location     string   `json:"location"`
+	IPAddress    string   `json:"ip_address"`
+	SSHPort      int      `json:"ssh_port"`
+	PublicKey    string   `json:"public_key"`
+	Capabilities []string `json:"capabilities"`
+	Latitude     float64  `json:"latitude,omitempty"`
+	Longitude    float64  `json:"longitude,omitempty"`
+}
+
 // DVENode represents a DVE (Deterministic Validation Environment) node
 type DVENode struct {
 	ID              string    `json:"id"`
@@ -38,7 +52,6 @@ type DVENode struct {
 	IsRemote          bool      `json:"is_remote"`
 
 	// ⭐ NEW ENDPOINT FIELDS
-	SSHPort        int      `json:"ssh_port"`              // SSH port (default 22)
 	ValidationPort int      `json:"validation_port"`       // Reasoning validation port
 	ErrorResPort   int      `json:"error_resolution_port"` // Error resolution port
 	SupportedTags  []string `json:"supported_tags"`        // e.g., ["reasoning", "error-resolution"]
