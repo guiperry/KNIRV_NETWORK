@@ -48,6 +48,82 @@ func TestDVENode_StructFields(t *testing.T) {
 	}
 }
 
+func TestBrowserDVENode_StructFields(t *testing.T) {
+	node := DVENode{
+		ID:              "browser-node-001",
+		Name:            "Browser DVE Node",
+		Status:          "online",
+		TEEType:         "browser-extension",
+		ExtensionID:     "chrome-extension-abc123",
+		BrowserVersion:  "1.0.0",
+		WSConnectionID:  "ws-conn-001",
+		BadgeNFTIDs:     []string{"badge-nft-1", "badge-nft-2"},
+		IsRemote:        true,
+		Connected:       true,
+		Capabilities:    []string{"validation", "light-attestation", "dve-identity"},
+		StakeAmount:     10000,
+		Location:        "global",
+	}
+
+	if node.TEEType != "browser-extension" {
+		t.Errorf("Expected TEEType 'browser-extension', got '%s'", node.TEEType)
+	}
+	if node.ExtensionID != "chrome-extension-abc123" {
+		t.Errorf("Expected ExtensionID 'chrome-extension-abc123', got '%s'", node.ExtensionID)
+	}
+	if node.BrowserVersion != "1.0.0" {
+		t.Errorf("Expected BrowserVersion '1.0.0', got '%s'", node.BrowserVersion)
+	}
+	if node.WSConnectionID != "ws-conn-001" {
+		t.Errorf("Expected WSConnectionID 'ws-conn-001', got '%s'", node.WSConnectionID)
+	}
+	if len(node.BadgeNFTIDs) != 2 {
+		t.Errorf("Expected 2 badge NFT IDs, got %d", len(node.BadgeNFTIDs))
+	}
+	if node.BadgeNFTIDs[0] != "badge-nft-1" {
+		t.Errorf("Expected first badge NFT ID 'badge-nft-1', got '%s'", node.BadgeNFTIDs[0])
+	}
+	if !node.IsRemote {
+		t.Error("Expected IsRemote to be true for browser-extension nodes")
+	}
+	if !node.Connected {
+		t.Error("Expected Connected to be true for browser-extension nodes")
+	}
+}
+
+func TestRegisterNodeRequest_BrowserDVEFields(t *testing.T) {
+	req := RegisterNodeRequest{
+		Name:           "Test Browser DVE",
+		TEEType:        "browser-extension",
+		StakeAmount:    5000,
+		Location:       "browser",
+		Capabilities:   []string{"policy-check", "signature-verify"},
+		ExtensionID:    "ext-abc-123",
+		BrowserVersion: "2.1.0",
+		WalletAddress:  "0x1234567890abcdef",
+		BadgeNFTIDs:    []string{"badge-nft-001", "badge-nft-002"},
+	}
+
+	if req.TEEType != "browser-extension" {
+		t.Errorf("Expected TEEType 'browser-extension', got '%s'", req.TEEType)
+	}
+	if req.ExtensionID != "ext-abc-123" {
+		t.Errorf("Expected ExtensionID 'ext-abc-123', got '%s'", req.ExtensionID)
+	}
+	if req.BrowserVersion != "2.1.0" {
+		t.Errorf("Expected BrowserVersion '2.1.0', got '%s'", req.BrowserVersion)
+	}
+	if req.WalletAddress != "0x1234567890abcdef" {
+		t.Errorf("Expected WalletAddress '0x1234567890abcdef', got '%s'", req.WalletAddress)
+	}
+	if len(req.BadgeNFTIDs) != 2 {
+		t.Errorf("Expected 2 badge NFT IDs, got %d", len(req.BadgeNFTIDs))
+	}
+	if req.BadgeNFTIDs[0] != "badge-nft-001" {
+		t.Errorf("Expected first badge NFT ID 'badge-nft-001', got '%s'", req.BadgeNFTIDs[0])
+	}
+}
+
 func TestValidationTask_StructFields(t *testing.T) {
 	startedAt := time.Now().Add(time.Minute)
 	completedAt := time.Now().Add(time.Hour)

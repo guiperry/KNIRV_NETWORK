@@ -26,6 +26,7 @@ type ChainNodeInfo struct {
 	OwnerAddress    string    `json:"owner_address"`
 	StakeAmount     int64     `json:"stake_amount"`
 	TEEType         string    `json:"tee_type"`
+	DVEType         string    `json:"dve_type,omitempty"` // "standard", "dve_identity" (for browser DVE)
 	ReputationScore int       `json:"reputation_score"`
 	Status          string    `json:"status"`
 	RegisteredAt    time.Time `json:"registered_at"`
@@ -130,6 +131,10 @@ func (c *ChainNativeNodeDiscovery) performInitialSync() error {
 
 	c.cacheMu.Lock()
 	for _, node := range nodes {
+		// Detect DVE Identity NFTs - nodes with type "dve_identity" are recognized as browser-extension
+		if node.DVEType == "dve_identity" || node.TEEType == "dve_identity" {
+			node.TEEType = "browser-extension"
+		}
 		c.cache[node.NodeID] = node
 	}
 	c.cacheMu.Unlock()
@@ -168,6 +173,10 @@ func (c *ChainNativeNodeDiscovery) syncFromChain() {
 	addedCount := 0
 
 	for _, node := range nodes {
+		// Detect DVE Identity NFTs - nodes with type "dve_identity" are recognized as browser-extension
+		if node.DVEType == "dve_identity" || node.TEEType == "dve_identity" {
+			node.TEEType = "browser-extension"
+		}
 		if _, exists := c.cache[node.NodeID]; exists {
 			updatedCount++
 		} else {
@@ -440,6 +449,44 @@ func (c *ChainNativeNodeDiscovery) UpdateNodeHeartbeat(nodeID string) error {
 		return nil
 	}
 	return fmt.Errorf("node not found: %s", nodeID)
+}
+
+// GetDiscoveredBrowserDVEs returns all chain nodes with TEEType == "browser-extension"
+func (c *ChainNativeNodeDiscovery) GetDiscoveredBrowserDVEs() []*ChainNodeInfo {
+	c.cacheMu.RLock()
+	defer c.cacheMu.RUnlock()
+
+	nodes := make([]*ChainNodeInfo, 0)
+	for _, node := range c.cache {
+		if node.TEEType == "browser-extension" {
+			nodes = append(nodes, node)
+		}
+	}
+	return nodes
+}
+
+// RegisterBrowserDVEIdentity creates a chain node entry for a browser DVE identity
+func (c *ChainNativeNodeDiscovery) RegisterBrowserDVEIdentity(nodeID, walletAddress string, capabilities []string) error {
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+
+	chainNode := &ChainNodeInfo{
+		NodeID:          nodeID,
+		OwnerAddress:    walletAddress,
+		StakeAmount:     10000, // Minimum stake for browser DVE
+		TEEType:         "browser-extension",
+		DVEType:         "dve_identity",
+		ReputationScore: 100,
+		Status:          "active",
+		RegisteredAt:    time.Now(),
+		LastHeartbeat:   time.Now(),
+		Capabilities:    capabilities,
+		Location:        "global",
+	}
+	c.cache[nodeID] = chainNode
+
+	log.Printf("Browser DVE identity registered from chain: %s (wallet: %s)", nodeID[:12], walletAddress[:12])
+	return nil
 }
 
 type DVEDefaultReputationEngine struct {

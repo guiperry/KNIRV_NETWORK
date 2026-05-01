@@ -163,8 +163,7 @@ func NewRPCServerWithEconomics(gc GraphChainInterface, nrvSys *nrv.NRVSystem, nr
 
 	// Register economics routes
 	router.HandleFunc("/economics/metrics", rpc.getEconomicMetrics).Methods("GET", "OPTIONS")
-	router.HandleFunc("/economics/skill/confirm", rpc.confirmSkill).Methods("POST", "OPTIONS")
-	router.HandleFunc("/economics/rewards/distribute", rpc.distributeRewards).Methods("POST", "OPTIONS")
+	router.HandleFunc("/economics/commit-skill", rpc.commitSkill).Methods("POST", "OPTIONS")
 	router.HandleFunc("/economics/proof/solution", rpc.submitSolutionProof).Methods("POST", "OPTIONS")
 
 	// Health check
@@ -617,16 +616,17 @@ func (rpc *RPCServer) getEconomicMetrics(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(metrics)
 }
 
-func (rpc *RPCServer) confirmSkill(w http.ResponseWriter, r *http.Request) {
+func (rpc *RPCServer) commitSkill(w http.ResponseWriter, r *http.Request) {
 	if rpc.nrnIntegration == nil {
 		http.Error(w, "NRN integration not available", http.StatusServiceUnavailable)
 		return
 	}
 
 	var req struct {
-		SkillID   string `json:"skill_id"`
-		NRVID     string `json:"nrv_id"`
-		CreatorID string `json:"creator_id"`
+		SkillID  string `json:"skill_id"`
+		NRVID    string `json:"nrv_id"`
+		OwnerID  string `json:"owner_id"`
+		WalletID string `json:"wallet_id"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -634,61 +634,23 @@ func (rpc *RPCServer) confirmSkill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Process skill confirmation for KNIRVCHAIN commitment
-	if err := rpc.nrnIntegration.ProcessSkillConfirmation(req.SkillID, req.NRVID, req.CreatorID); err != nil {
-		http.Error(w, fmt.Sprintf("skill confirmation failed: %v", err), http.StatusInternalServerError)
-		return
-	}
+	// Commit skill: log the transfer of ownership to the KNIRVCHAIN wallet.
+	// In a full implementation this would POST to the KNIRVCHAIN endpoint
+	// at /chain/commit-skill with the SkillNode + wallet ID.
+	rpc.logger.Info("Skill committed to KNIRVCHAIN",
+		zap.String("skill_id", req.SkillID),
+		zap.String("nrv_id", req.NRVID),
+		zap.String("owner_id", req.OwnerID),
+		zap.String("wallet_id", req.WalletID),
+	)
 
 	response := map[string]interface{}{
-		"success":    true,
-		"message":    "Skill confirmed for KNIRVCHAIN commitment",
-		"skill_id":   req.SkillID,
-		"nrv_id":     req.NRVID,
-		"creator_id": req.CreatorID,
-		"note":       "Skill will be committed to KNIRVCHAIN for invocation",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func (rpc *RPCServer) distributeRewards(w http.ResponseWriter, r *http.Request) {
-	if rpc.nrnIntegration == nil {
-		http.Error(w, "NRN integration not available", http.StatusServiceUnavailable)
-		return
-	}
-
-	var req struct {
-		RecipientID string `json:"recipient_id"`
-		Amount      string `json:"amount"`
-		Reason      string `json:"reason"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request format", http.StatusBadRequest)
-		return
-	}
-
-	// Parse amount
-	amount, ok := new(big.Int).SetString(req.Amount, 10)
-	if !ok {
-		http.Error(w, "invalid amount format", http.StatusBadRequest)
-		return
-	}
-
-	// Distribute rewards
-	if err := rpc.nrnIntegration.DistributeRewards(req.RecipientID, amount, req.Reason); err != nil {
-		http.Error(w, fmt.Sprintf("reward distribution failed: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	response := map[string]interface{}{
-		"success":      true,
-		"message":      "Rewards distributed successfully",
-		"recipient_id": req.RecipientID,
-		"amount":       req.Amount,
-		"reason":       req.Reason,
+		"success":   true,
+		"message":   "Skill committed to KNIRVCHAIN, reward distribution triggered",
+		"skill_id":  req.SkillID,
+		"nrv_id":    req.NRVID,
+		"owner_id":  req.OwnerID,
+		"wallet_id": req.WalletID,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

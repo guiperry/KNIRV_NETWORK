@@ -68,7 +68,9 @@ func NewProofOfSolution(nrnIntegration *NRNIntegration, nrvSystem *nrv.NRVSystem
 	}
 }
 
-// ProcessErrorNodeCreation processes the creation of an error node and distributes rewards
+// ProcessErrorNodeCreation processes the creation of an error node and attaches an NRN bounty.
+// The bounty is tracked locally on the graph and redeemed when the skill is committed
+// to KNIRVCHAIN via CommitSkill.
 func (pos *ProofOfSolution) ProcessErrorNodeCreation(errorNode *nrv.ErrorNode, observerID string) error {
 	log.Printf("Processing error node creation: %s by observer %s", errorNode.ID, observerID)
 
@@ -77,25 +79,27 @@ func (pos *ProofOfSolution) ProcessErrorNodeCreation(errorNode *nrv.ErrorNode, o
 		return fmt.Errorf("invalid error node: %w", err)
 	}
 
-	// Calculate reward based on error complexity and network demand
-	baseReward := new(big.Int).Set(pos.rewardRates.ErrorNodeCreation)
+	// Calculate bounty based on error complexity and network demand
+	baseBounty := new(big.Int).Set(pos.rewardRates.ErrorNodeCreation)
 	complexityMultiplier := pos.calculateComplexityMultiplier(errorNode)
 	demandMultiplier := pos.calculateDemandMultiplier(errorNode.ErrorType)
+
+	finalBounty := new(big.Int).Mul(baseBounty, big.NewInt(int64(complexityMultiplier*100)))
+	finalBounty.Mul(finalBounty, big.NewInt(int64(demandMultiplier*100)))
+	finalBounty.Div(finalBounty, big.NewInt(10000)) // Normalize
 	
-	finalReward := new(big.Int).Mul(baseReward, big.NewInt(int64(complexityMultiplier*100)))
-	finalReward.Mul(finalReward, big.NewInt(int64(demandMultiplier*100)))
-	finalReward.Div(finalReward, big.NewInt(10000)) // Normalize
+	// Attach NRN bounty to the error node
+	errorNode.NRNBounty = finalBounty.String()
 
-	// Distribute reward to observer
-	if err := pos.nrnIntegration.DistributeRewards(observerID, finalReward, "error_node_creation"); err != nil {
-		return fmt.Errorf("failed to distribute error node creation reward: %w", err)
-	}
+	// Record the bounty locally
+	pos.nrnIntegration.AddBounty(errorNode.ID, finalBounty, "error_node_creation")
 
-	log.Printf("Distributed %s NRN to %s for error node creation", finalReward.String(), observerID)
+	log.Printf("NRN bounty %s attached to error node %s", finalBounty.String(), errorNode.ID)
 	return nil
 }
 
-// ProcessSkillNodeCreation processes the creation of a skill node and distributes rewards
+// ProcessSkillNodeCreation processes the creation of a skill node.
+// The reward is calculated locally — no oracle call.
 func (pos *ProofOfSolution) ProcessSkillNodeCreation(skillNode *nrv.SkillNode, creatorID string) error {
 	log.Printf("Processing skill node creation: %s by creator %s", skillNode.ID, creatorID)
 
@@ -108,23 +112,19 @@ func (pos *ProofOfSolution) ProcessSkillNodeCreation(skillNode *nrv.SkillNode, c
 	baseReward := new(big.Int).Set(pos.rewardRates.SkillNodeCreation)
 	utilityMultiplier := pos.calculateUtilityMultiplier(skillNode)
 	validationMultiplier := skillNode.Validation.ValidationScore
-	
+
 	finalReward := new(big.Int).Mul(baseReward, big.NewInt(int64(utilityMultiplier*100)))
 	finalReward.Mul(finalReward, big.NewInt(int64(validationMultiplier*100)))
 	finalReward.Div(finalReward, big.NewInt(10000)) // Normalize
 
-	// Distribute reward to creator
-	if err := pos.nrnIntegration.DistributeRewards(creatorID, finalReward, "skill_node_creation"); err != nil {
-		return fmt.Errorf("failed to distribute skill node creation reward: %w", err)
-	}
-
-	log.Printf("Distributed %s NRN to %s for skill node creation", finalReward.String(), creatorID)
+	log.Printf("Skill node creation reward calculated: %s NRN to %s", finalReward.String(), creatorID)
 	return nil
 }
 
-// ProcessSuccessfulResolution processes a successful error resolution and distributes rewards
+// ProcessSuccessfulResolution processes a successful error resolution and logs the reward.
+// The solver bounty is tracked locally — no oracle call.
 func (pos *ProofOfSolution) ProcessSuccessfulResolution(event ResolutionEvent) error {
-	log.Printf("Processing successful resolution: error=%s, skill=%s, solver=%s", 
+	log.Printf("Processing successful resolution: error=%s, skill=%s, solver=%s",
 		event.ErrorNodeID, event.SkillNodeID, event.SolverID)
 
 	// Generate solution proof
@@ -142,21 +142,19 @@ func (pos *ProofOfSolution) ProcessSuccessfulResolution(event ResolutionEvent) e
 	baseReward := new(big.Int).Set(pos.rewardRates.SuccessfulResolution)
 	efficiencyBonus := big.NewInt(int64(event.EfficiencyScore * 100))
 	qualityBonus := big.NewInt(int64(event.QualityScore * 100))
-	
+
 	finalReward := new(big.Int).Add(baseReward, efficiencyBonus)
 	finalReward.Add(finalReward, qualityBonus)
 
-	// Distribute reward to solver
-	if err := pos.nrnIntegration.DistributeRewards(event.SolverID, finalReward, "successful_resolution"); err != nil {
-		return fmt.Errorf("failed to distribute resolution reward: %w", err)
-	}
+	// Record the reward locally
+	pos.nrnIntegration.AddBounty(event.ErrorNodeID, finalReward, "successful_resolution")
 
 	// Update skill node performance metrics
 	if err := pos.updateSkillPerformance(event.SkillNodeID, event.EfficiencyScore, event.QualityScore); err != nil {
 		log.Printf("Warning: failed to update skill performance: %v", err)
 	}
 
-	log.Printf("Distributed %s NRN to %s for successful resolution", finalReward.String(), event.SolverID)
+	log.Printf("Resolution reward calculated: %s NRN to %s", finalReward.String(), event.SolverID)
 	return nil
 }
 
@@ -182,14 +180,14 @@ func (pos *ProofOfSolution) generateSolutionProof(event ResolutionEvent) (*Solut
 	solutionHash := hex.EncodeToString(hash[:])
 
 	// Generate validation proof (simplified)
-	validationData := fmt.Sprintf("%s:%s:%f:%f", 
+	validationData := fmt.Sprintf("%s:%s:%f:%f",
 		event.ErrorNodeID, event.SkillNodeID, event.EfficiencyScore, event.QualityScore)
 	validationHash := sha256.Sum256([]byte(validationData))
 	validationProof := hex.EncodeToString(validationHash[:])
 
 	proof := &SolutionProof{
 		ID:              fmt.Sprintf("proof_%d", time.Now().UnixNano()),
-		NRVID:           event.ErrorNodeID, // Assuming error node ID maps to NRV ID
+		NRVID:           event.ErrorNodeID,
 		SkillID:         event.SkillNodeID,
 		SolverID:        event.SolverID,
 		SolutionHash:    solutionHash,
@@ -209,24 +207,19 @@ func (pos *ProofOfSolution) generateSolutionProof(event ResolutionEvent) (*Solut
 
 // verifySolutionProof verifies a solution proof
 func (pos *ProofOfSolution) verifySolutionProof(proof *SolutionProof) error {
-	// In a real implementation, this would verify the cryptographic proof
-	// For now, we'll do basic validation
-	
 	if proof.SolutionHash == "" {
 		return fmt.Errorf("missing solution hash")
 	}
-	
+
 	if proof.ValidationProof == "" {
 		return fmt.Errorf("missing validation proof")
 	}
-	
+
 	if proof.SolverID == "" {
 		return fmt.Errorf("missing solver ID")
 	}
 
-	// Mark as verified
 	proof.Verified = true
-	
 	log.Printf("Solution proof verified: %s", proof.ID)
 	return nil
 }
@@ -236,11 +229,11 @@ func (pos *ProofOfSolution) validateErrorNode(errorNode *nrv.ErrorNode) error {
 	if errorNode.ID == "" {
 		return fmt.Errorf("missing error node ID")
 	}
-	
+
 	if errorNode.ErrorType == "" {
 		return fmt.Errorf("missing error type")
 	}
-	
+
 	if len(errorNode.Context) == 0 {
 		return fmt.Errorf("missing error context")
 	}
@@ -253,11 +246,11 @@ func (pos *ProofOfSolution) validateSkillNode(skillNode *nrv.SkillNode) error {
 	if skillNode.ID == "" {
 		return fmt.Errorf("missing skill node ID")
 	}
-	
+
 	if skillNode.SkillType == "" {
 		return fmt.Errorf("missing skill type")
 	}
-	
+
 	if len(skillNode.Capabilities) == 0 {
 		return fmt.Errorf("missing skill capabilities")
 	}
@@ -267,42 +260,31 @@ func (pos *ProofOfSolution) validateSkillNode(skillNode *nrv.SkillNode) error {
 
 // calculateComplexityMultiplier calculates a multiplier based on error complexity
 func (pos *ProofOfSolution) calculateComplexityMultiplier(errorNode *nrv.ErrorNode) float64 {
-	// Simple complexity calculation based on context size and error type
 	baseComplexity := 1.0
-	
-	// Increase complexity based on context size
 	contextComplexity := float64(len(errorNode.Context)) / 100.0
 	if contextComplexity > 2.0 {
-		contextComplexity = 2.0 // Cap at 2x
+		contextComplexity = 2.0
 	}
-	
 	return baseComplexity + contextComplexity
 }
 
 // calculateDemandMultiplier calculates a multiplier based on network demand for error type
 func (pos *ProofOfSolution) calculateDemandMultiplier(errorType string) float64 {
-	// In a real implementation, this would analyze network demand
-	// For now, return a base multiplier
 	return 1.0
 }
 
 // calculateUtilityMultiplier calculates a multiplier based on skill utility
 func (pos *ProofOfSolution) calculateUtilityMultiplier(skillNode *nrv.SkillNode) float64 {
-	// Calculate utility based on capabilities and requirements
 	baseUtility := 1.0
-	
-	// More capabilities = higher utility
 	capabilityBonus := float64(len(skillNode.Capabilities)) * 0.1
 	if capabilityBonus > 1.0 {
-		capabilityBonus = 1.0 // Cap at 1x bonus
+		capabilityBonus = 1.0
 	}
-	
 	return baseUtility + capabilityBonus
 }
 
 // updateSkillPerformance updates skill node performance metrics
 func (pos *ProofOfSolution) updateSkillPerformance(skillID string, efficiency, quality float64) error {
-	// In a real implementation, this would update the skill node in the NRV system
 	log.Printf("Updating skill %s performance: efficiency=%.2f, quality=%.2f", skillID, efficiency, quality)
 	return nil
 }

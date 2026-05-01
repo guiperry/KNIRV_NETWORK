@@ -37,6 +37,7 @@ type ErrorNode struct {
 	Context     map[string]interface{} `json:"context"`
 	Resolution  *ResolutionPath        `json:"resolution,omitempty"`
 	Severity    int                    `json:"severity"`
+	NRNBounty   string                 `json:"nrn_bounty,omitempty"`
 	Timestamp   time.Time              `json:"timestamp"`
 }
 

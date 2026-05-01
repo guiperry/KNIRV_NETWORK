@@ -1888,6 +1888,8 @@ func (s *Server) setupRoutes() {
 		dveHandlers.SetSessionManager(s.sessionManager)
 	}
 
+	browserDVEHub := web.NewBrowserDVEHub(s.dveManager)
+
 	apiRouter := web.NewAPIRouter(
 		dveHandlers,
 		web.NewPluginManagementHandlers(s.fabricManagementService),
@@ -1898,6 +1900,7 @@ func (s *Server) setupRoutes() {
 		web.NewCognitiveEngineHandlers(s.cognitiveEngine),
 		nil, // knowledgeBaseHandlers (to be implemented)
 		authMiddleware,
+		browserDVEHub,
 	)
 	apiRouter.RegisterRoutes(s.router)
 	log.Println("Unified API router configured")

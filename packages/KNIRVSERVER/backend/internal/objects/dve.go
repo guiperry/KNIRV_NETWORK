@@ -16,6 +16,12 @@ type RegisterNodeRequest struct {
 	Capabilities []string `json:"capabilities"`
 	Latitude     float64  `json:"latitude,omitempty"`
 	Longitude    float64  `json:"longitude,omitempty"`
+
+	// Browser DVE fields
+	ExtensionID    string   `json:"extension_id,omitempty"`
+	BrowserVersion string   `json:"browser_version,omitempty"`
+	WalletAddress  string   `json:"wallet_address,omitempty"`
+	BadgeNFTIDs    []string `json:"badge_nft_ids,omitempty"`
 }
 
 // DVENode represents a DVE (Deterministic Validation Environment) node
@@ -66,6 +72,12 @@ type DVENode struct {
 	InstallPhase    string    `json:"install_phase"` // "registry", "stun", "wallet", "dve_uri", "service", "complete"
 	DVEURI         string    `json:"dve_uri"`
 	WalletAddress  string    `json:"wallet_address"`
+
+	// Browser DVE fields (for browser-extension TEE type)
+	ExtensionID    string   `json:"extension_id,omitempty"`    // Chrome extension fingerprint
+	BrowserVersion string   `json:"browser_version,omitempty"` // Browser/extension version
+	WSConnectionID string   `json:"ws_connection_id,omitempty"` // Active WebSocket session ID
+	BadgeNFTIDs    []string `json:"badge_nft_ids,omitempty"`   // Held badge NFT token IDs
 }
 
 // ValidationTask represents a validation task in the DVE network

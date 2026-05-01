@@ -33,7 +33,7 @@ func TestUpdateNodeStatus(t *testing.T) {
 	manager, _ := NewDVEManager(db, nil, nil, cfg)
 
 	// Register a node first
-	req := &RegisterNodeRequest{
+	req := &objects.RegisterNodeRequest{
 		Name:         "test-node",
 		TEEType:      "sgx",
 		StakeAmount:  100000,
@@ -75,7 +75,7 @@ func TestGetSystemHealth(t *testing.T) {
 
 	// Register some test nodes
 	for i := 0; i < 3; i++ {
-		req := &RegisterNodeRequest{
+		req := &objects.RegisterNodeRequest{
 			Name:         "test-node-" + string(rune(i+'1')),
 			TEEType:      "sgx",
 			StakeAmount:  100000,
@@ -145,7 +145,7 @@ func TestGetAllNodes(t *testing.T) {
 
 	// Register test nodes
 	for i := 0; i < 2; i++ {
-		req := &RegisterNodeRequest{
+		req := &objects.RegisterNodeRequest{
 			Name:         "test-node-" + string(rune(i+'1')),
 			TEEType:      "sgx",
 			StakeAmount:  100000,
@@ -175,7 +175,7 @@ func TestUpdateNode(t *testing.T) {
 	manager, _ := NewDVEManager(db, nil, nil, cfg)
 
 	// Register a node first
-	req := &RegisterNodeRequest{
+	req := &objects.RegisterNodeRequest{
 		Name:         "original-name",
 		TEEType:      "sgx",
 		StakeAmount:  100000,
@@ -230,7 +230,7 @@ func TestRemoveNode(t *testing.T) {
 	manager, _ := NewDVEManager(db, nil, nil, cfg)
 
 	// Register a node first
-	req := &RegisterNodeRequest{
+	req := &objects.RegisterNodeRequest{
 		Name:         "test-node",
 		TEEType:      "sgx",
 		StakeAmount:  100000,
@@ -271,7 +271,7 @@ func TestCreateAndGetTask(t *testing.T) {
 		t.Fatalf("Failed to create DVE manager: %v", err)
 	}
 
-	nodeReq := &RegisterNodeRequest{
+	nodeReq := &objects.RegisterNodeRequest{
 		Name:         "test-node",
 		TEEType:      "sgx",
 		StakeAmount:  100000,
@@ -331,7 +331,7 @@ func TestGetNodeTasks(t *testing.T) {
 		t.Fatalf("Failed to create DVE manager: %v", err)
 	}
 
-	nodeReq := &RegisterNodeRequest{
+	nodeReq := &objects.RegisterNodeRequest{
 		Name:         "test-node",
 		TEEType:      "sgx",
 		StakeAmount:  100000,
@@ -388,7 +388,7 @@ func TestUpdateTask(t *testing.T) {
 		t.Fatalf("Failed to create DVE manager: %v", err)
 	}
 
-	nodeReq := &RegisterNodeRequest{
+	nodeReq := &objects.RegisterNodeRequest{
 		Name:         "test-node",
 		TEEType:      "sgx",
 		StakeAmount:  100000,
@@ -447,7 +447,7 @@ func TestListTasks(t *testing.T) {
 		t.Fatalf("Failed to create DVE manager: %v", err)
 	}
 
-	nodeReq := &RegisterNodeRequest{
+	nodeReq := &objects.RegisterNodeRequest{
 		Name:         "test-node",
 		TEEType:      "sgx",
 		StakeAmount:  100000,
@@ -515,7 +515,7 @@ func TestGetNodeMetrics(t *testing.T) {
 		t.Fatalf("Failed to create DVE manager: %v", err)
 	}
 
-	nodeReq := &RegisterNodeRequest{
+	nodeReq := &objects.RegisterNodeRequest{
 		Name:         "test-node",
 		TEEType:      "sgx",
 		StakeAmount:  100000,
@@ -601,5 +601,225 @@ func TestCalculateTEEHealthScore(t *testing.T) {
 
 	if healthScore < 0 || healthScore > 1 {
 		t.Errorf("Expected health score between 0 and 1, got %f", healthScore)
+	}
+}
+
+func TestBrowserNodeRegistration(t *testing.T) {
+	// Setup
+	db, _ := database.NewBuntDB(":memory:")
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, _ := NewDVEManager(db, nil, nil, cfg)
+
+	// Register a browser-extension node
+	req := &objects.RegisterNodeRequest{
+		Name:         "browser-test-node",
+		TEEType:      "browser-extension",
+		StakeAmount:  10000,
+		Location:     "global",
+		IPAddress:    "ws://test-browser-dve/ws",
+		PublicKey:    "browser-pub-key",
+		Capabilities: []string{"validation", "light-attestation", "dve-identity"},
+	}
+
+	node, err := manager.RegisterNode(req)
+	if err != nil {
+		t.Fatalf("Failed to register browser-extension node: %v", err)
+	}
+
+	// Verify browser-extension specific fields
+	if node.TEEType != "browser-extension" {
+		t.Errorf("Expected TEEType 'browser-extension', got '%s'", node.TEEType)
+	}
+	if !node.IsRemote {
+		t.Error("Expected IsRemote to be true for browser-extension nodes")
+	}
+	if !node.Connected {
+		t.Error("Expected Connected to be true for browser-extension nodes")
+	}
+	if node.SSHPort != 0 {
+		t.Errorf("Expected SSHPort 0 for browser-extension nodes, got %d", node.SSHPort)
+	}
+	if node.Status != "online" {
+		t.Errorf("Expected Status 'online', got '%s'", node.Status)
+	}
+	if node.ReputationScore != 100 {
+		t.Errorf("Expected initial ReputationScore 100, got %d", node.ReputationScore)
+	}
+
+	// Verify it can be retrieved
+	retrievedNode, err := manager.GetNode(node.ID)
+	if err != nil {
+		t.Fatalf("Failed to retrieve browser-extension node: %v", err)
+	}
+	if retrievedNode.TEEType != "browser-extension" {
+		t.Errorf("Retrieved node TEEType mismatch: expected 'browser-extension', got '%s'", retrievedNode.TEEType)
+	}
+}
+
+func TestInvalidTEETypeRejected(t *testing.T) {
+	db, _ := database.NewBuntDB(":memory:")
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, _ := NewDVEManager(db, nil, nil, cfg)
+
+	req := &objects.RegisterNodeRequest{
+		Name:     "invalid-tee-node",
+		TEEType:  "invalid-tee-type",
+		PublicKey: "test-key",
+	}
+
+	_, err := manager.RegisterNode(req)
+	if err == nil {
+		t.Error("Expected error when registering node with invalid TEE type")
+	}
+}
+
+func TestRegisterBrowserDVE(t *testing.T) {
+	db, _ := database.NewBuntDB(":memory:")
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, _ := NewDVEManager(db, nil, nil, cfg)
+
+	walletAddress := "0xabcdef1234567890"
+	capabilities := []string{"policy-check", "signature-verify", "reasoning-simple"}
+	badgeNFTIDs := []string{"badge-nft-001", "badge-nft-002"}
+	extensionID := "chrome-extension-abc123"
+	browserVersion := "2.0.1"
+
+	node, err := manager.RegisterBrowserDVE(walletAddress, capabilities, badgeNFTIDs, extensionID, browserVersion)
+	if err != nil {
+		t.Fatalf("Failed to register browser DVE: %v", err)
+	}
+
+	if node.TEEType != "browser-extension" {
+		t.Errorf("Expected TEEType 'browser-extension', got '%s'", node.TEEType)
+	}
+	if node.WalletAddress != walletAddress {
+		t.Errorf("Expected WalletAddress '%s', got '%s'", walletAddress, node.WalletAddress)
+	}
+	if node.ExtensionID != extensionID {
+		t.Errorf("Expected ExtensionID '%s', got '%s'", extensionID, node.ExtensionID)
+	}
+	if node.BrowserVersion != browserVersion {
+		t.Errorf("Expected BrowserVersion '%s', got '%s'", browserVersion, node.BrowserVersion)
+	}
+	if len(node.BadgeNFTIDs) != 2 {
+		t.Errorf("Expected 2 badge NFT IDs, got %d", len(node.BadgeNFTIDs))
+	}
+	if node.BadgeNFTIDs[0] != "badge-nft-001" {
+		t.Errorf("Expected first badge NFT ID 'badge-nft-001', got '%s'", node.BadgeNFTIDs[0])
+	}
+	if !node.IsRemote {
+		t.Error("Expected IsRemote to be true for browser-extension nodes")
+	}
+	if !node.Connected {
+		t.Error("Expected Connected to be true for browser-extension nodes")
+	}
+	if node.SSHPort != 0 {
+		t.Errorf("Expected SSHPort 0 for browser-extension nodes, got %d", node.SSHPort)
+	}
+	if node.Status != "online" {
+		t.Errorf("Expected Status 'online', got '%s'", node.Status)
+	}
+}
+
+func TestRegisterBrowserDVE_WithNoBadgeNFTs(t *testing.T) {
+	db, _ := database.NewBuntDB(":memory:")
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, _ := NewDVEManager(db, nil, nil, cfg)
+
+	node, err := manager.RegisterBrowserDVE("0xwallet", []string{"validation"}, nil, "ext-id", "1.0.0")
+	if err != nil {
+		t.Fatalf("Failed to register browser DVE without badges: %v", err)
+	}
+
+	if len(node.BadgeNFTIDs) != 0 {
+		t.Errorf("Expected 0 badge NFT IDs, got %d", len(node.BadgeNFTIDs))
+	}
+	if node.WalletAddress != "0xwallet" {
+		t.Errorf("Expected WalletAddress '0xwallet', got '%s'", node.WalletAddress)
+	}
+}
+
+func TestUpdateBrowserDVEHeartbeat(t *testing.T) {
+	db, _ := database.NewBuntDB(":memory:")
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, _ := NewDVEManager(db, nil, nil, cfg)
+
+	// Register a browser DVE first
+	node, err := manager.RegisterBrowserDVE("0xheartbeat-test", []string{"validation"}, nil, "ext-hb", "1.0.0")
+	if err != nil {
+		t.Fatalf("Failed to register browser DVE: %v", err)
+	}
+
+	wsConnectionID := "ws-conn-999"
+
+	// Update heartbeat
+	err = manager.UpdateBrowserDVEHeartbeat(node.ID, wsConnectionID)
+	if err != nil {
+		t.Fatalf("Failed to update browser DVE heartbeat: %v", err)
+	}
+
+	// Verify the update
+	updatedNode, err := manager.GetNode(node.ID)
+	if err != nil {
+		t.Fatalf("Failed to get updated node: %v", err)
+	}
+
+	if updatedNode.WSConnectionID != wsConnectionID {
+		t.Errorf("Expected WSConnectionID '%s', got '%s'", wsConnectionID, updatedNode.WSConnectionID)
+	}
+	if updatedNode.Status != "online" {
+		t.Errorf("Expected Status 'online', got '%s'", updatedNode.Status)
+	}
+	if !updatedNode.Connected {
+		t.Error("Expected Connected to be true after heartbeat")
+	}
+}
+
+func TestUpdateBrowserDVEHeartbeat_NonBrowserNode(t *testing.T) {
+	db, _ := database.NewBuntDB(":memory:")
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, _ := NewDVEManager(db, nil, nil, cfg)
+
+	// Register a regular node
+	req := &objects.RegisterNodeRequest{
+		Name:       "sgx-node",
+		TEEType:    "sgx",
+		PublicKey:  "test-key",
+		StakeAmount: 100000,
+	}
+	sgxNode, err := manager.RegisterNode(req)
+	if err != nil {
+		t.Fatalf("Failed to register SGX node: %v", err)
+	}
+
+	// Try to update heartbeat on non-browser node - should fail
+	err = manager.UpdateBrowserDVEHeartbeat(sgxNode.ID, "ws-conn-xxx")
+	if err == nil {
+		t.Error("Expected error when updating heartbeat on non-browser-extension node")
+	}
+}
+
+func TestUpdateBrowserDVEHeartbeat_NotFound(t *testing.T) {
+	db, _ := database.NewBuntDB(":memory:")
+	defer db.Close()
+
+	cfg := &config.Config{ChainID: "test-chain"}
+	manager, _ := NewDVEManager(db, nil, nil, cfg)
+
+	err := manager.UpdateBrowserDVEHeartbeat("nonexistent-node-id", "ws-conn-xxx")
+	if err == nil {
+		t.Error("Expected error when updating heartbeat on nonexistent node")
 	}
 }

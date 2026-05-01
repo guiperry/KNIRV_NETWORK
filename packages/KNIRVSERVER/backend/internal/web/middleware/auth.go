@@ -214,6 +214,10 @@ func (am *AuthMiddleware) RequireAuth(next http.Handler) http.Handler {
 			// Try validating as Session Token
 			ctx := context.WithValue(r.Context(), AuthContextKey, authCtx)
 			r = r.WithContext(ctx)
+		} else if authCtx := getTestnetAuthContext(tokenString); authCtx != nil {
+			// Try validating as a development/testnet token (local dev only)
+			ctx := context.WithValue(r.Context(), AuthContextKey, authCtx)
+			r = r.WithContext(ctx)
 		} else {
 			writeError(w, http.StatusUnauthorized, "Invalid or expired token")
 			return

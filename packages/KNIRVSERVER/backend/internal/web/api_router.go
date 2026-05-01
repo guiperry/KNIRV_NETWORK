@@ -19,6 +19,7 @@ type APIRouter struct {
 	cognitiveEngineHandlers *CognitiveEngineHandlers
 	knowledgeBaseHandlers   *KnowledgeBaseHandlers
 	authMiddleware          *middleware.AuthMiddleware
+	browserDVEHub           *BrowserDVEHub
 }
 
 // NewAPIRouter creates a new unified API router
@@ -32,6 +33,7 @@ func NewAPIRouter(
 	cognitiveEngineHandlers *CognitiveEngineHandlers,
 	knowledgeBaseHandlers *KnowledgeBaseHandlers,
 	authMiddleware *middleware.AuthMiddleware,
+	browserDVEHub *BrowserDVEHub,
 ) *APIRouter {
 	return &APIRouter{
 		dveHandlers:             dveHandlers,
@@ -43,6 +45,7 @@ func NewAPIRouter(
 		cognitiveEngineHandlers: cognitiveEngineHandlers,
 		knowledgeBaseHandlers:   knowledgeBaseHandlers,
 		authMiddleware:          authMiddleware,
+		browserDVEHub:           browserDVEHub,
 	}
 }
 
@@ -77,6 +80,11 @@ func (ar *APIRouter) RegisterRoutes(r *mux.Router) {
 
 	// Register backward compatibility redirects
 	ar.registerBackwardCompatibilityRoutes(r)
+
+	// Browser DVE WebSocket endpoint (no version prefix for WS upgrade compatibility)
+	if ar.browserDVEHub != nil {
+		r.HandleFunc("/api/dve/browser/ws", ar.browserDVEHub.HandleWebSocket)
+	}
 }
 
 // registerDVERoutes registers DVE-related routes

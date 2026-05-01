@@ -271,10 +271,8 @@ func NewApp(homeDir string, rpcPort int, enableAutoRelay bool) (*App, error) {
 	// Initialize NRV system
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
-	knirvOracledRPCURL := resolveKNIRVOracleURL(logger)
-
-	// Initialize NRN integration
-	nrnIntegration := economics.NewNRNIntegration(knirvOracledRPCURL, nrvSystem)
+	// Initialize NRN integration (local-only — no oracle dependency)
+	nrnIntegration := economics.NewNRNIntegration()
 
 	// Initialize Proof-of-Solution
 	proofOfSolution := economics.NewProofOfSolution(nrnIntegration, nrvSystem)
@@ -418,10 +416,8 @@ func NewAppWithConfig(homeDir string, rpcPort int, appConfig *Config, enableAuto
 	// Initialize NRV system
 	nrvSystem := nrv.NewNRVSystem("local-peer", nil)
 
-	knirvOracledRPCURL := resolveKNIRVOracleURL(logger)
-
-	// Initialize NRN integration
-	nrnIntegration := economics.NewNRNIntegration(knirvOracledRPCURL, nrvSystem)
+	// Initialize NRN integration (local-only — no oracle dependency)
+	nrnIntegration := economics.NewNRNIntegration()
 
 	// Initialize Proof-of-Solution
 	proofOfSolution := economics.NewProofOfSolution(nrnIntegration, nrvSystem)
@@ -594,9 +590,7 @@ func (app *App) Start(ctx context.Context) error {
 
 	// Start NRN integration
 	if app.nrnIntegration != nil {
-		if err := app.nrnIntegration.Start(ctx); err != nil {
-			app.logger.Warn("Failed to start NRN integration", zap.Error(err))
-		}
+		app.nrnIntegration.Start()
 	}
 
 	// Start DHT manager

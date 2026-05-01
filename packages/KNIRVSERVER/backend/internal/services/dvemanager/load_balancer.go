@@ -86,6 +86,15 @@ func (lb *LoadBalancer) isNodeEligible(task *objects.ValidationTask, node *objec
 		}
 	}
 
+	// Check trust tier: browser-extension nodes can only handle "standard" or empty trust tier
+	if node.TEEType == "browser-extension" {
+		if trustTier, ok := task.Parameters["trust_tier"].(string); ok {
+			if trustTier != "" && trustTier != "standard" {
+				return false
+			}
+		}
+	}
+
 	// Check resource availability (simplified)
 	if node.CPUUsage > 90 || node.MemoryUsage > 90 {
 		return false
@@ -268,6 +277,9 @@ func (lb *LoadBalancer) calculateHybridScore(task *objects.ValidationTask, node 
 	// Task priority weight
 	priorityWeight := float64(task.Priority) / 10.0
 
+	// Trust tier weight multiplier based on TEE type
+	trustTierWeight := getTrustTierMultiplier(node.TEEType)
+
 	// Combine scores with weights
 	weights := map[string]float64{
 		"reputation": 0.3,
@@ -277,13 +289,27 @@ func (lb *LoadBalancer) calculateHybridScore(task *objects.ValidationTask, node 
 		"priority":   0.1,
 	}
 
-	hybridScore := (reputationScore * weights["reputation"]) +
+	hybridScore := ((reputationScore * weights["reputation"]) +
 		(resourceScore * weights["resources"]) +
 		(stakeScore * weights["stake"]) +
 		(latencyScore * weights["latency"]) +
-		(priorityWeight * weights["priority"])
+		(priorityWeight * weights["priority"])) * trustTierWeight
 
 	return hybridScore
+}
+
+// getTrustTierMultiplier returns a trust tier multiplier based on TEE type
+func getTrustTierMultiplier(teeType string) float64 {
+	switch teeType {
+	case "sgx", "sev-snp", "tdx":
+		return 1.0
+	case "software":
+		return 0.7
+	case "browser-extension":
+		return 0.4
+	default:
+		return 0.5
+	}
 }
 
 // SetAlgorithm sets the load balancing algorithm

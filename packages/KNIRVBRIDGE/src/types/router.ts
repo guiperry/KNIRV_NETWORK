@@ -59,6 +59,10 @@ export enum RoutePath {
   TransferLedgerReject = '/wallet/transfer-ledger/reject',
   BroadcastTransaction = '/wallet/broadcast-transaction',
 
+  // dve
+  DVEStatus = '/dve',
+  DVEBadgeInventory = '/dve/badge-inventory',
+
   // settings
   Setting = '/settings',
   SettingChangePassword = '/settings/change-password',
@@ -187,6 +191,9 @@ export type RouteParams = {
   };
   [RoutePath.TransferLedgerReject]: null;
   [RoutePath.BroadcastTransaction]: null;
+
+  [RoutePath.DVEStatus]: null;
+  [RoutePath.DVEBadgeInventory]: null;
 
   [RoutePath.Setting]: null;
   [RoutePath.SettingChangePassword]: null;

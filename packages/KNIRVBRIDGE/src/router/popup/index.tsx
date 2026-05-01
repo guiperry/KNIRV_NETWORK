@@ -58,6 +58,8 @@ import NFTTransferInput from '@pages/popup/wallet/nft-transfer-input';
 import NFTTransferSummary from '@pages/popup/wallet/nft-transfer-summary';
 import { NftCollection } from '@pages/popup/wallet/nft/collection';
 import { NftCollectionAsset } from '@pages/popup/wallet/nft/collection-asset';
+import { DVEStatusPage } from '@pages/popup/dve';
+import { BadgeInventoryPage } from '@pages/popup/dve';
 import { Header } from './header';
 import LoadingMain from './loading-main';
 import { Navigation } from './navigation';
@@ -135,6 +137,8 @@ export const PopupRouter = (): JSX.Element => {
         <Route path={RoutePath.AboutAdena} element={<AboutAdena />} />
         <Route path={RoutePath.RemoveAccount} element={<RemoveAccount />} />
         <Route path={RoutePath.ResetWallet} element={<ResetWallet />} />
+        <Route path={RoutePath.DVEStatus} element={<DVEStatusPage />} />
+        <Route path={RoutePath.DVEBadgeInventory} element={<BadgeInventoryPage />} />
       </Routes>
       <Navigation />
       <LoadingMain />

@@ -39,6 +39,84 @@ The KNIRV Wallet Extension is a browser-based wallet that enables users to:
 - **Real-time Synchronization**: Live sync of wallet data and transactions
 - **Multi-Device Support**: Access your wallets across multiple devices
 
+## 🧠 DVE (Decentralized Verification Environment)
+
+The KNIRVBRIDGE extension now includes **Browser DVE** support, transforming each wallet into a self-sovereign, agentic node in the KNIRV Network DVE fleet.
+
+### How It Works
+
+Browser DVE nodes run in the extension's background service worker and communicate with KNIRVSERVER via WebSocket:
+
+```
+Wallet Address → sha256(walletAddress + extensionID) → DVE Node ID
+```
+
+- **Identity**: Node ID is deterministically derived from SHA-256 of wallet address + extension ID. The DVEURI follows the pattern `knirv://dve/{walletAddress}/browser`.
+- **Registration**: On wallet unlock, the extension automatically registers as a `browser-extension` TEE node with KNIRVSERVER.
+- **Heartbeat**: A periodic heartbeat (every 45 seconds) keeps the node active and prevents the service worker from being terminated by Chrome.
+- **Task Execution**: Lightweight validation tasks (policy-check, signature-verify, reasoning-simple, skill-lint) are executed in the sandboxed validation runtime.
+- **WebSocket Channel**: The extension maintains a persistent WebSocket connection for real-time task assignment and status updates.
+
+### 🏅 NFT Badge Capabilities
+
+DVE capabilities are determined by NFT badges held in the wallet:
+
+| Badge Metadata Field | Description |
+|---------------------|-------------|
+| `dve_badge` | Flag identifying the NFT as a DVE badge |
+| `dve_capabilities` | List of DVE capabilities granted (e.g., validation, reasoning) |
+| `supported_tags` | Task types the badge enables |
+| `attached_policies` | Policy rules attached to the badge |
+| `stake_requirement` | Minimum NRN stake required |
+| `trust_tier` | Trust level: `standard`, `verified`, or `root` |
+
+### 🔒 Trust Tier System
+
+Browser DVEs are assigned a trust weight of **0.4** compared to hardware TEE nodes (1.0). This means:
+- Browser DVEs receive only **lightweight, policy-verifiable tasks**
+- Tasks requiring hardware attestation are never dispatched to browser nodes
+- The stake-gating mechanism prevents sybil abuse
+
+### ⚡ Task Types
+
+| Task Type | Description | Max Payload |
+|-----------|-------------|-------------|
+| `policy-check` | Evaluate input against badge policy rules | 100 KB |
+| `signature-verify` | Verify transaction/message signatures | 100 KB |
+| `reasoning-simple` | Text-based reasoning using heuristics | 100 KB |
+| `skill-lint` | Lint skill.md files against schema | 100 KB |
+
+### 🔄 Integration Flow
+
+1. Wallet unlock triggers DVE registration + WebSocket connection
+2. Badge Manager reads NFT badges → computes aggregate capabilities
+3. Capabilities are synced to KNIRVSERVER
+4. KNIRVSERVER dispatches matching tasks via WebSocket
+5. Validation Runtime executes tasks in a sandboxed worker
+6. Results are signed with the wallet key and returned
+
+### 💻 CLI Management
+
+Browser DVEs can also be managed from the terminal using KNIRVSHELL:
+
+```bash
+# Register a browser DVE
+knirv dve browser register --wallet g1abc... --server https://server:8084
+
+# List all browser DVEs
+knirv dve browser list --server https://server:8084
+
+# Check DVE status
+knirv dve browser status --dve-id {id} --server https://server:8084
+```
+
+### ⚙️ Configuration
+
+DVE settings are available in the extension popup settings page:
+- **DVE Mode Toggle**: Enable/disable the extension acting as a DVE node
+- **Auto-Accept Tasks**: Automatically accept tasks below NRN threshold
+- **Min Stake Warning**: Warning if wallet NRN balance is below badge stake requirements
+
 ## Installation
 
 ### From Chrome Web Store

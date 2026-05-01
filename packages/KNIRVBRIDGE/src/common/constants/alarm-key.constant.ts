@@ -4,6 +4,7 @@ export enum AlarmKey {
   WAKE_ALARM_DELAY_15S = 'WAKE_ALARM_DELAY_15S',
   WAKE_ALARM_DELAY_30S = 'WAKE_ALARM_DELAY_30S',
   WAKE_ALARM_DELAY_45S = 'WAKE_ALARM_DELAY_45S',
+  DVE_HEARTBEAT = 'DVE_HEARTBEAT',
 }
 
 export const SCHEDULE_ALARMS: { key: string; periodInMinutes: number; delay: number }[] = [
@@ -12,4 +13,5 @@ export const SCHEDULE_ALARMS: { key: string; periodInMinutes: number; delay: num
   { key: AlarmKey.WAKE_ALARM_DELAY_15S, periodInMinutes: 1, delay: 15_000 },
   { key: AlarmKey.WAKE_ALARM_DELAY_30S, periodInMinutes: 1, delay: 30_000 },
   { key: AlarmKey.WAKE_ALARM_DELAY_45S, periodInMinutes: 1, delay: 45_000 },
+  { key: AlarmKey.DVE_HEARTBEAT, periodInMinutes: 0.75, delay: 0 },
 ];

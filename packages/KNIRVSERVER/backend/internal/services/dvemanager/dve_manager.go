@@ -183,6 +183,23 @@ func (dm *DVEManager) HandleMessage(ctx context.Context, msg *objects.P2PMessage
 func (dm *DVEManager) RegisterNode(req *objects.RegisterNodeRequest) (*objects.DVENode, error) {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
+	return dm.registerNodeInternal(req)
+}
+
+// registerNodeInternal registers a new DVE node without locking (caller must hold dm.mu)
+func (dm *DVEManager) registerNodeInternal(req *objects.RegisterNodeRequest) (*objects.DVENode, error) {
+	// Validate TEE type
+	validTEETypes := map[string]bool{
+		"sgx":              true,
+		"sev-snp":          true,
+		"tdx":              true,
+		"software":         true,
+		"browser-extension": true,
+	}
+	if !validTEETypes[req.TEEType] {
+		return nil, fmt.Errorf("invalid TEE type: %s. Valid types: sgx, sev-snp, tdx, software, browser-extension", req.TEEType)
+	}
+
 	node := &objects.DVENode{
 		ID:              uuid.New().String(),
 		Name:            req.Name,
@@ -200,6 +217,13 @@ func (dm *DVEManager) RegisterNode(req *objects.RegisterNodeRequest) (*objects.D
 		UpdatedAt:       time.Now(),
 		Latitude:        req.Latitude,
 		Longitude:       req.Longitude,
+	}
+
+	// Set browser-extension specific defaults
+	if req.TEEType == "browser-extension" {
+		node.IsRemote = true
+		node.Connected = true
+		node.SSHPort = 0 // No SSH for browser extensions
 	}
 
 	// Store in database
@@ -533,6 +557,13 @@ func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {
 			Capabilities: []string{"validation", "attestation", "sgx-compute", "ml-inference"},
 			Latitude:     53.3498,
 			Longitude:    -6.2603,
+		},
+		{
+			Name:         "Demo Browser DVE Node",
+			TEEType:      "browser-extension",
+			StakeAmount:  5000,
+			Location:     "browser",
+			Capabilities: []string{"policy-check", "signature-verify", "reasoning-simple", "skill-lint"},
 		},
 	}
 
@@ -962,6 +993,91 @@ func (dm *DVEManager) RemoveNode(nodeID string) error {
 	dm.nodeTracker.RemoveNode(nodeID)
 
 	log.Printf("DVE node %s removed successfully", nodeID)
+	return nil
+}
+
+// RegisterBrowserDVE registers a new browser-extension DVE node with wallet-based identity
+func (dm *DVEManager) RegisterBrowserDVE(walletAddress string, capabilities []string, badgeNFTIDs []string, extensionID string, browserVersion string) (*objects.DVENode, error) {
+	dm.mu.Lock()
+	defer dm.mu.Unlock()
+
+	walletLabel := walletAddress
+	if len(walletLabel) > 8 {
+		walletLabel = walletLabel[:8]
+	}
+
+	req := &objects.RegisterNodeRequest{
+		Name:           "Browser DVE - " + walletLabel,
+		TEEType:        "browser-extension",
+		StakeAmount:    10000,
+		Location:       "browser",
+		Capabilities:   capabilities,
+		WalletAddress:  walletAddress,
+		ExtensionID:    extensionID,
+		BrowserVersion: browserVersion,
+		BadgeNFTIDs:    badgeNFTIDs,
+	}
+
+	node, err := dm.registerNodeInternal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to register browser DVE: %w", err)
+	}
+
+	// Set browser-specific fields
+	node.WalletAddress = walletAddress
+	node.ExtensionID = extensionID
+	node.BrowserVersion = browserVersion
+	node.BadgeNFTIDs = badgeNFTIDs
+	node.IsRemote = true
+	node.Connected = true
+	node.SSHPort = 0
+
+	// Update in database
+	if err := dm.storeNode(node); err != nil {
+		return nil, fmt.Errorf("failed to store browser DVE node: %w", err)
+	}
+	dm.nodeTracker.UpdateNode(node)
+
+	// Register with chain-native discovery if available
+	if dm.chainDiscovery != nil {
+		if err := dm.chainDiscovery.RegisterBrowserDVEIdentity(node.ID, walletAddress, capabilities); err != nil {
+			log.Printf("Warning: Failed to register browser DVE with chain discovery: %v", err)
+		}
+	}
+
+	walletShort := walletAddress
+	if len(walletShort) > 12 {
+		walletShort = walletShort[:12]
+	}
+	log.Printf("Browser DVE node %s registered (wallet: %s, extension: %s)", node.ID, walletShort, extensionID)
+	return node, nil
+}
+
+// UpdateBrowserDVEHeartbeat updates the heartbeat for a browser-extension node with its WS connection ID
+func (dm *DVEManager) UpdateBrowserDVEHeartbeat(nodeID string, wsConnectionID string) error {
+	dm.mu.Lock()
+	defer dm.mu.Unlock()
+
+	node, err := dm.getNodeFromDB(nodeID)
+	if err != nil {
+		return fmt.Errorf("browser DVE node not found: %w", err)
+	}
+
+	if node.TEEType != "browser-extension" {
+		return fmt.Errorf("node %s is not a browser-extension DVE", nodeID)
+	}
+
+	node.WSConnectionID = wsConnectionID
+	node.LastHeartbeat = time.Now()
+	node.UpdatedAt = time.Now()
+	node.Status = "online"
+	node.Connected = true
+
+	if err := dm.storeNode(node); err != nil {
+		return fmt.Errorf("failed to update browser DVE heartbeat: %w", err)
+	}
+	dm.nodeTracker.UpdateNode(node)
+
 	return nil
 }
 
