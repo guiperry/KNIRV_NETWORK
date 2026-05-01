@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Wallet, ArrowUpRight, ArrowDownLeft, Zap, TrendingUp, Copy, ExternalLink, Lock, Loader, RefreshCw } from 'lucide-react';
 import Layout from '@/react-app/components/Layout';
-import { useWallet } from '@/react-app/hooks/useWallet';
+import { useVault } from '@/react-app/hooks/useVault';
 import { useBackend } from '@/react-app/hooks/useBackend';
 
 export default function WalletPage() {
   const navigate = useNavigate();
-  const { status, currentAccount, unlockWallet, lockWallet } = useWallet();
+  const { status, currentAccount, unlockVault, lockVault } = useVault();
   const { walletData, transactions, isLoading, refresh, sendNRN } = useBackend(currentAccount ? currentAccount.getAddress('knirv') : null);
   
   const [password, setPassword] = useState('');
@@ -30,7 +30,7 @@ export default function WalletPage() {
 
   const handleUnlock = async () => {
     try {
-      await unlockWallet(password);
+      await unlockVault(password);
       setPassword('');
     } catch (err) {
       // Error handled in hook
@@ -75,13 +75,13 @@ export default function WalletPage() {
         {/* Header - Gradient Text */}
         <div className="text-center py-4 relative">
           <h2 className="text-2xl font-bold gradient-text mb-2">
-            KNIRV Wallet
+            Vault
           </h2>
           <p className="text-slate-400 text-sm font-mono uppercase tracking-wider">
-            Manage your NRN tokens and transaction history
+            Manage your Vault and DVE wallet assets
           </p>
           <button 
-            onClick={lockWallet}
+            onClick={lockVault}
             className="absolute right-0 top-4 p-2 text-slate-500 hover:text-white transition-colors"
           >
             <Lock className="w-5 h-5" />
@@ -207,8 +207,8 @@ export default function WalletPage() {
                 <div className="w-12 h-12 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Lock className="w-6 h-6 text-blue-400" />
                 </div>
-                <h3 className="text-xl font-bold text-white">Unlock Wallet</h3>
-                <p className="text-sm text-slate-400">Enter your password to access your funds</p>
+                <h3 className="text-xl font-bold text-white">Unlock Vault</h3>
+                <p className="text-sm text-slate-400">Enter your password to access your vault</p>
               </div>
               
               <input

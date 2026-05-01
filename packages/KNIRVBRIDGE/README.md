@@ -127,8 +127,8 @@ DVE settings are available in the extension popup settings page:
 ### Development Installation
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/KNIRV_NETWORK.git
-cd KNIRV_NETWORK/KNIRVWALLET/packages/knirvwallet-extension
+git clone https://github.com/knirvcorp/KNIRVBRIDGE.git
+cd KNIRVBRIDGE
 
 # Install dependencies
 npm install
@@ -334,7 +334,7 @@ src/
 ### Support
 - **Documentation**: [docs.knirv.network](https://docs.knirv.network)
 - **Community**: [Discord](https://discord.gg/knirv)
-- **Issues**: [GitHub Issues](https://github.com/your-org/KNIRV_NETWORK/issues)
+- **Issues**: [GitHub Issues](https://github.com/knirvcorp/KNIRVBRIDGE/issues)
 
 ## License
 
@@ -346,4 +346,4 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ---
 
-**Note**: This extension is part of the KNIRV Network ecosystem. For the complete wallet experience, also check out the [KNIRV Wallet mobile app](../agentic-wallet/README.md).
+**Note**: This extension is part of the KNIRV Network ecosystem. For the complete wallet experience, also check out the [KNIRV Controller mobile app](../KNIRVBRIDGE/README.md).

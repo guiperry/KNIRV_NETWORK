@@ -428,6 +428,8 @@ type DVECreation struct {
 	TEEAttestation     string         `json:"tee_attestation"`
 	SessionKeyID       string         `json:"session_key_id"`
 	Capabilities       []string       `json:"capabilities"`
+	// Supervisor KNIRVAGENT provisioned for this DVE
+	SupervisorAgentID  string         `json:"supervisor_agent_id,omitempty"`
 	ResourceLimits     ResourceLimits `json:"resource_limits"`
 	ChainSessionID     string         `json:"chain_session_id"`
 	RegisteredAt       time.Time      `json:"registered_at"`

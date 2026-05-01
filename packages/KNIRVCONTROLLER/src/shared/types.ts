@@ -64,3 +64,68 @@ export const SEALLoopStatusSchema = z.object({
   solutionsProposed: z.number(),
 });
 export type SEALLoopStatus = z.infer<typeof SEALLoopStatusSchema>;
+
+// === Wallet Alignment Types ===
+
+export interface DVEWallet {
+  dveID: string;
+  dveName: string;
+  walletAddress: string;
+  derivationIndex: number;
+  teeType: "sgx" | "sev-snp" | "tdx" | "software" | "browser-extension";
+  status: "online" | "offline" | "maintenance" | "error";
+  stakeAmount: number;
+  reputationScore: number;
+  capabilities: string[];
+  attachedPolicies: string[];
+  badgeNFTIDs: string[];
+  supervisorAgentID: string;
+  dveURI: string;
+}
+
+export interface VaultAccount {
+  address: string;
+  nrnBalance: number;
+  usdValue: number;
+  dveWallets: DVEWallet[];
+  isRootNode: boolean;
+}
+
+export interface AgentMessage {
+  id: string;
+  role: "user" | "agent" | "system" | "cognitive";
+  content: string;
+  timestamp: string;
+  dveID?: string;
+  taskID?: string;
+  streaming?: boolean;
+}
+
+export type DVEStatus = "online" | "offline" | "maintenance" | "error";
+export type TEEType = "sgx" | "sev-snp" | "tdx" | "software" | "browser-extension";
+
+export interface DVECreation {
+  id: string;
+  name: string;
+  ownerAddress: string;
+  walletAddress: string;
+  teeType: TEEType;
+  status: DVEStatus;
+  stakeAmount: number;
+  reputationScore: number;
+  capabilities: string[];
+  attachedPolicyIDs: string[];
+  badgeNFTIDs: string[];
+  supervisorAgentID: string;
+  createdAt: string;
+  updatedAt: string;
+  dveURI: string;
+}
+
+export interface CognitiveEngineStatus {
+  active: boolean;
+  rootNodeID: string;
+  dveFleetSize: number;
+  dveOnline: number;
+  oracleLoaded: boolean;
+}
