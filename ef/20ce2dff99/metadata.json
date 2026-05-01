@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "ef20ce2dff99",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "Wallet_Alignment.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ef/20ce2dff99/0/metadata.json",
+      "transcript": "/ef/20ce2dff99/0/full.jsonl",
+      "content_hash": "/ef/20ce2dff99/0/content_hash.txt",
+      "prompt": "/ef/20ce2dff99/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 951,
+    "cache_creation_tokens": 112164,
+    "cache_read_tokens": 653269,
+    "output_tokens": 10288,
+    "api_call_count": 8
+  }
+}
