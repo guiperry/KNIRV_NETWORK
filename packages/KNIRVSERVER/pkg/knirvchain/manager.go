@@ -225,7 +225,8 @@ func (m *Manager) Start(ctx context.Context) error {
 		fmt.Sprintf("KNIRV_CHAIN_ID=%s", m.config.ChainID),
 		fmt.Sprintf("KNIRV_DATA_DIR=%s", m.config.DataPath),
 		fmt.Sprintf("KNIRV_SOCKET_PATH=%s", m.config.SocketPath),
-		fmt.Sprintf("GATEWAY_SOCKET_PATH=%s", filepath.Join(getChainAppDataDir(), "sockets", "gateway.sock")),
+		// GATEWAY_SOCKET_PATH is no longer needed — KNIRVCHAIN now calls the
+		// gateway directly via http://localhost:8080.
 	)
 
 	args := []string{

@@ -243,9 +243,6 @@ func backendBaseURL(cfg *Config) string {
 }
 
 func gatewayBaseURL(cfg *Config) string {
-	if cfg.GatewaySocket != "" {
-		return "http://localhost"
-	}
 	port := cfg.GatewayPort
 	if port == 0 {
 		port = 8080
@@ -254,10 +251,7 @@ func gatewayBaseURL(cfg *Config) string {
 }
 
 func socketProxyTransport(socketPath string) http.RoundTripper {
-	if socketPath == "" {
-		return http.DefaultTransport
-	}
-	return unixSocketTransport(socketPath)
+	return http.DefaultTransport
 }
 
 func newPrefixProxy(baseURL string, transport http.RoundTripper, sourcePrefix, targetPrefix string) (*httputil.ReverseProxy, error) {
@@ -1184,7 +1178,6 @@ func (app *ServerApp) startBackend() error {
 			fmt.Sprintf("KNIRV_CHAIN_BINARY_DIR=%s", binDir),
 			fmt.Sprintf("KNIRV_GRAPH_BINARY_DIR=%s", binDir),
 			fmt.Sprintf("KNIRV_ORACLE_BINARY_DIR=%s", binDir),
-			fmt.Sprintf("GATEWAY_SOCKET_PATH=%s", filepath.Join(appDataDir, "sockets", "gateway.sock")),
 			fmt.Sprintf("KNIRV_KNIRVCLI_PATH=%s", filepath.Join(binDir, "knirvshell")),
 		)
 	}
