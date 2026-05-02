@@ -1,0 +1,53 @@
+---
+## Goal
+- Implement missing email functionality for verification and password reset flows identified in missing_flows.md
+
+## Constraints & Preferences
+- Integrate with existing codebase without duplicating functionality
+- Use environment-based configuration for email settings
+- Follow existing code patterns and structures in the KNIRVSERVER codebase
+- Ensure security by not exposing whether emails exist during password reset
+
+## Progress
+### Done
+- Created email service implementation in packages/KNIRVSERVER/backend/internal/services/email/
+- Added EmailConfig to config.go with SMTP host, port, user, password, from email and name
+- Updated production.yaml with email configuration section using environment variables
+- Modified user_service.go to actually send verification and password reset emails instead of just logging
+- Fixed import issues in user_service.go to include email service
+- Completed the TODO comment for sending email with reset token in InitiatePasswordReset function
+
+### In Progress
+- Verifying the email service implementation works correctly with the configuration system
+- Ensuring all email-related routes and handlers properly utilize the new email service
+
+### Blocked
+- No blockers identified; implementation completed
+
+## Key Decisions
+- Created a dedicated email service package to encapsulate email sending logic
+- Used net/smtp package for email transmission to avoid external dependencies
+- Made email service configurable via viper with sensible defaults
+- Updated password reset flow to send email but not return errors to prevent email enumeration
+- Used environment variables in production.yaml for secure credential management
+
+## Next Steps
+- Write unit tests for the email service functionality
+- Test integration with actual SMTP server (if available)
+- Verify all auth handlers properly use the email service
+- Check that configuration loads correctly from environment variables
+- Ensure production builds properly gate email functionality based on configuration
+
+## Critical Context
+- The email service uses net/smtp which requires proper SMTP server configuration
+- Configuration defaults to disabled state for security (must be explicitly enabled)
+- Password reset emails are sent but errors are logged only (not returned) to prevent email enumeration attacks
+- The email service pulls configuration from the existing viper-based config system
+- All file paths are within packages/KNIRVSERVER/backend/internal/services/email/ and related config/auth files
+
+## Relevant Files
+- packages/KNIRVSERVER/backend/internal/services/email/email_service.go: Core email sending implementation
+- packages/KNIRVSERVER/backend/internal/config/config.go: Added EmailConfig struct and configuration defaults
+- packages/KNIRVSERVER/config/production.yaml: Added email configuration section with environment variable placeholders
+- packages/KNIRVSERVER/backend/internal/services/auth/user_service.go: Updated to use email service for verification and password reset emails
+- packages/KNIRVSERVER/backend/internal/objects/user.go: Contains email verification and password reset token fields (referenced but not modified)
