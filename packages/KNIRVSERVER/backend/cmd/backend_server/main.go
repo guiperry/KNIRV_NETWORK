@@ -1890,6 +1890,14 @@ func (s *Server) setupRoutes() {
 
 	browserDVEHub := web.NewBrowserDVEHub(s.dveManager)
 
+	// Wire up Knowledge Base handlers with GraphRAG FFI engine
+	var kbHandlers *web.KnowledgeBaseHandlers
+	if s.graphRAGClient != nil {
+		kbs := knowledge_base.NewKnowledgeBaseService(s.graphRAGClient)
+		kbHandlers = web.NewKnowledgeBaseHandlers(kbs)
+		log.Println("Knowledge Base handlers wired with GraphRAG FFI engine")
+	}
+
 	apiRouter := web.NewAPIRouter(
 		dveHandlers,
 		web.NewPluginManagementHandlers(s.fabricManagementService),
@@ -1898,7 +1906,7 @@ func (s *Server) setupRoutes() {
 		web.NewKNIRVSHELLHandlers(s.knirvshellService),
 		web.NewOnboardingHandlers(s.onboardingService),
 		web.NewCognitiveEngineHandlers(s.cognitiveEngine),
-		nil, // knowledgeBaseHandlers (to be implemented)
+		kbHandlers,
 		authMiddleware,
 		browserDVEHub,
 	)

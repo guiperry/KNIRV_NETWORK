@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -309,6 +310,23 @@ func newPrefixProxy(baseURL string, transport http.RoundTripper, sourcePrefix, t
 			req.Host = target.Host
 		},
 		Transport: transport,
+		ModifyResponse: func(resp *http.Response) error {
+			ct := resp.Header.Get("Content-Type")
+			if sourcePrefix != "" && strings.Contains(ct, "text/html") {
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					return err
+				}
+				resp.Body.Close()
+				rewritten := strings.ReplaceAll(string(body), "/_next/static/", sourcePrefix+"/_next/static/")
+				rewritten = strings.ReplaceAll(rewritten, `"/_next/`, `"`+sourcePrefix+`/_next/`)
+				rewritten = strings.ReplaceAll(rewritten, "'/_next/", "'"+sourcePrefix+"/_next/")
+				resp.Body = io.NopCloser(strings.NewReader(rewritten))
+				resp.ContentLength = int64(len(rewritten))
+				resp.Header.Set("Content-Length", strconv.Itoa(len(rewritten)))
+			}
+			return nil
+		},
 	}
 	proxy.FlushInterval = -1
 
@@ -1049,8 +1067,38 @@ func (app *ServerApp) setupRoutes() error {
 	app.router.GET("/ws", wsHandler)
 	app.router.GET("/ws/*path", wsHandler)
 
-	// Serve embedded frontend files
+	// Serve embedded frontend files.
+	// Before falling through to the main frontend static files, check if
+	// the request is a dynamic asset load from the gateway SPA (identified
+	// by a Referer header pointing to a gateway route).  The gateway's
+	// Next.js app lazy-loads route chunks with hardcoded /_next/ paths
+	// that our HTML rewrite cannot intercept — these arrive here via NoRoute.
 	app.router.NoRoute(func(c *gin.Context) {
+		// If the Referer indicates this is a sub-request from the gateway
+		// SPA (e.g. a dynamically-imported page chunk), proxy it through
+		// the gateway's Unix socket so it gets the correct asset.
+		if referer := c.GetHeader("Referer"); referer != "" {
+			refURL, err := url.Parse(referer)
+			if err == nil && (strings.HasPrefix(refURL.Path, "/gateway") ||
+				refURL.Path == "/dashboard" ||
+				refURL.Path == "/chain-explorer" ||
+				refURL.Path == "/graph-explorer" ||
+				refURL.Path == "/error-explorer") {
+				gwProxy, gwErr := newPrefixProxy(gatewayBase, gatewayTransport, "", "")
+				if gwErr == nil {
+					gwProxy.ServeHTTP(c.Writer, c.Request)
+					return
+				}
+			}
+		}
+		// Redirect known gateway SPA routes to /gateway so the
+		// asset-rewriting proxy (registerGatewayPrefix("/gateway", "/explorer"))
+		// serves the page with correctly-prefixed asset paths.
+		path := c.Request.URL.Path
+		if path == "/dashboard" || path == "/chain-explorer" || path == "/graph-explorer" || path == "/error-explorer" {
+			c.Redirect(http.StatusFound, "/gateway")
+			return
+		}
 		embeddedFS.ServeHTTP(c.Writer, c.Request)
 	})
 
@@ -1120,6 +1168,7 @@ func (app *ServerApp) startBackend() error {
 		"KNIRV_API_HOST=127.0.0.1",
 		"KNIRV_SECURITY_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
 		"KNIRV_JWT_SECRET=testnet-jwt-secret-change-this-in-production",
+		"KNIRV_SECURITY_AUTH_REQUIRED=false",
 	)
 
 	// Propagate paths to bundled binaries so the backend does not rely on CWD

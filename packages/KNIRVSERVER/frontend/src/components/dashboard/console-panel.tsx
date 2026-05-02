@@ -25,6 +25,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const wsRef = useRef<WebSocket | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const inputBufferRef = useRef<string>('');
   const [isInitializing, setIsInitializing] = useState(false);
   const [sshConnected, setSshConnected] = useState(false);
   const [connectionMode, setConnectionMode] = useState<'knirvshell' | 'ssh' | 'local'>('local');
@@ -76,7 +77,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
         } catch { /* ignore polling errors */ }
       };
 
-      pollIntervalRef.current = setInterval(pollOutput, 500);
+      pollIntervalRef.current = setInterval(pollOutput, 100);
       setSshConnected(true);
       return true;
     } catch {
@@ -211,9 +212,24 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
         term.onData((data) => {
           // Route input to appropriate backend based on connection mode
           if (connectionMode === 'knirvshell' && sessionIdRef.current) {
-            sendToKNIRVCLI(data);
+            // Buffer input and send complete lines on Enter
+            inputBufferRef.current += data;
             if (data === '\r') {
+              const line = inputBufferRef.current.replace(/\r/g, '').trim();
+              inputBufferRef.current = '';
+              if (line) {
+                sendToKNIRVCLI(line + '\n');
+              }
               term.write('\r\n');
+            } else if (data === '\u007f') { // Backspace
+              if (inputBufferRef.current.length > 1) {
+                inputBufferRef.current = inputBufferRef.current.slice(0, -2); // remove both the backspace char and the preceding char
+                term.write('\b \b');
+              } else {
+                inputBufferRef.current = '';
+              }
+            } else {
+              term.write(data);
             }
           } else if (connectionMode === 'ssh' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({ type: 'input', data }));

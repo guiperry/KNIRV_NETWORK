@@ -139,7 +139,22 @@ async function staleWhileRevalidate(request, cacheName) {
     })
     .catch(() => cachedResponse);
 
-  return cachedResponse || fetchPromise;
+  // Return cached response immediately, or wait for network.
+  // If both are unavailable, serve a minimal HTML fallback so
+  // event.respondWith() never receives undefined.
+  const response = cachedResponse || await fetchPromise;
+  if (response) {
+    return response;
+  }
+
+  return new Response(
+    '<!DOCTYPE html><title>KNIRV Network</title><p>Offline — please check your connection.</p>',
+    {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    }
+  );
 }
 
 self.addEventListener('message', (event) => {

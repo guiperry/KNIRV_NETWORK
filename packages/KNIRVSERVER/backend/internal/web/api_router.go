@@ -343,4 +343,11 @@ func (ar *APIRouter) registerBackwardCompatibilityRoutes(r *mux.Router) {
 		newPath := "/api/v1/knowledge-base/" + path[len("/api/fabric-management/"):]
 		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
 	})
+
+	// Redirect old /api/v1/cli/ to /api/v1/shell/ (the frontend console-panel uses this path)
+	r.PathPrefix("/api/v1/cli/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		newPath := "/api/v1/shell/" + path[len("/api/v1/cli/"):]
+		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
+	})
 }

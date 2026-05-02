@@ -21,50 +21,69 @@ interface P2PTransportAccessModalProps {
   onClose: () => void;
 }
 
-// The gateway runs on localhost with dynamic port selection.
-// Port scanning: try ports 8080-8100 until we find the gateway.
+// The gateway WebGUI is served via the wrapper's /gateway proxy route
+// (registered in main.go as registerGatewayPrefix("/gateway", "/explorer")).
+// This avoids scanning a range of TCP ports for the gateway binary.
+const GATEWAY_PROXY_PATH = '/gateway';
 let cachedGatewayPort: string | null = null;
+
+async function checkHealth(port: string): Promise<boolean> {
+  try {
+    const resp = await fetch(`http://localhost:${port}/health`, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(2000),
+    });
+    return resp.ok || resp.type === 'opaque';
+  } catch {
+    return false;
+  }
+}
 
 async function scanForGateway(): Promise<string> {
   if (cachedGatewayPort) return cachedGatewayPort;
-  
+
   // Try NEXT_PUBLIC_GATEWAY_PORT first if set
   const envPort = process.env.NEXT_PUBLIC_GATEWAY_PORT;
   if (envPort) {
-    try {
-      const resp = await fetch(`http://localhost:${envPort}/health`, { 
-        method: 'HEAD', 
-        signal: AbortSignal.timeout(2000) 
-      });
-      if (resp.ok || resp.type === 'opaque') {
-        cachedGatewayPort = envPort;
-        return cachedGatewayPort;
-      }
-    } catch { /* continue scanning */ }
-  }
-  
-  // Scan ports 8080-8100 for gateway
-  for (let port = 8080; port <= 8100; port++) {
-    try {
-      const resp = await fetch(`http://localhost:${port}/health`, {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(500),
-      });
-      if (resp.ok || resp.type === 'opaque') {
-        cachedGatewayPort = String(port);
-        return cachedGatewayPort;
-      }
-    } catch {
-      // Port not available, continue
+    const ok = await checkHealth(envPort);
+    if (ok) {
+      cachedGatewayPort = envPort;
+      return cachedGatewayPort;
     }
   }
-  
+
+  // Check the current page's origin (port 8090 — the wrapper) first.
+  // The wrapper always serves a /health endpoint.
+  const currentPort = String(window.location.port || (window.location.protocol === 'https:' ? '443' : '80'));
+  if (await checkHealth(currentPort)) {
+    cachedGatewayPort = currentPort;
+    return cachedGatewayPort;
+  }
+
+  // Fallback: known gateway config ports
+  const knownPorts = ['8081', '8080', '8090'];
+  for (const port of knownPorts) {
+    if (await checkHealth(port)) {
+      cachedGatewayPort = port;
+      return cachedGatewayPort;
+    }
+  }
+
   // Fallback to default
-  return '8080';
+  return '8090';
 }
 
-function buildWebGuiUrl(port: string): string {
-  return `http://localhost:${port}/dashboard`;
+function buildWebGuiUrl(port: string, path?: string): string {
+  // Use the wrapper's /gateway proxy route which forwards to the gateway's
+  // explorer interface (registered in main.go line 927).
+  if (port === String(window.location.port || '80') || port === '8090') {
+    return path
+      ? `http://localhost:${port}/gateway/${path.replace(/^\//, '')}`
+      : `http://localhost:${port}/gateway`;
+  }
+  return path
+    ? `http://localhost:${port}${path}`
+    : `http://localhost:${port}/dashboard`;
 }
 
 export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessModalProps) {
