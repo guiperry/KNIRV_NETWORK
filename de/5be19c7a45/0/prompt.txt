@@ -1,0 +1,1 @@
+Use the @packages/KNIRVSERVER/USER_WORKFLOWS_AND_PRODUCTION_PLAN.md to redesign the index page and onboarding sequnce of the websites/KNIRV.COM site. We want to completely remove the onboarding sequence and change it to an animated service offering for KNIRVSERVER that is modern, relevant, and pursuasuve.
