@@ -1,0 +1,20 @@
+The WebGUI is partially working - the initial page loads and the SPA navigates, but there are fundamental integration issues that can't be solved purely through proxying. Here's what's happening:
+    
+    What's working:
+    - /dashboard redirects correctly to /gateway (302)
+    - The gateway's initial HTML and CSS load via the proxy
+    - Gateway chunks served via /gateway/_next/static/... return 200
+    
+    What's broken:
+    - The gateway's SPA navigates to dozens of client-side routes (/bootnode-dao, /network-inference-dao, /chain-explorer, etc.) and the referer-based proxy can't catch all possible paths
+    - The gateway's embedded JS has hardcoded API endpoints pointing to http://localhost:3001 (Payment Gateway) and http://localhost:8080 — these services aren't running
+    - The gateway expects to be served on its own TCP port with direct access to its API backends
+    
+    The WebGUI is designed to run as a standalone app served by the knirvgateway binary on its own port, not proxied through another server. The proxy handles the initial load but fails on SPA navigation and hardcoded API calls.
+
+Okay, I want it in the iFRame, so we need to find a way to make it work.                                                                                               
+Lets make the gateway listen on port 8080 as it is the forward facing portal. We can deprecate the gateway.sock, ensuring KNIRVCHAIN and KNIRVGRAPH communications with t
+he gateway happen through the newly assigned port.                                                                                                                       
+We need to ensure the gateway backend port is dynamic and uses the KNIRVSERVER backend, mapping all of its calls to available endpoints in the server as needed.         
+The gateway is the place where the proxy should be operating anyway, not the KNIRVSERVER. All API endpoints should have a proxy public facing endpoint in the gateway tha
+t proxys to the internal service via the unix sockets. Draft a plan for this part of the implementation first.
