@@ -1,0 +1,4 @@
+Building complete backend package binary... 
+cd /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend && go build -ldflags "-X main.Version=9dc270a7-dirty -X main.BuildTime=2026-04-30T03:17:50Z -X main.GitCommit=9dc270a7 -w -s" -o backend_server ./cmd/backend_server
+internal/services/auth/user_service.go:13:2: package backend_server/internal/email is not in std (/home/gperry/.gvm/pkgsets/go1.24.1/global/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.7.linux-amd64/src/backend_server/internal/email)
+make: *** [Makefile:180: backend] Error 1
