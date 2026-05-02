@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login: authLogin } = useAuth();
   const [loginMode, setLoginMode] = useState<'credentials' | 'token'>('credentials');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -104,6 +106,12 @@ export default function LoginPage() {
         localStorage.setItem('knirv_nexus_user', username || 'user');
         localStorage.setItem('knirv_auth_token', authToken);
         localStorage.setItem('knirv_auth_role', role);
+
+        // Sync the AuthProvider so DashboardWrapper doesn't redirect to /login
+        // on the first navigation from the menu. Without this, the layout-level
+        // AuthProvider has user=null (it only checks localStorage once on mount),
+        // causing DashboardWrapper's auth guard to fire prematurely.
+        await authLogin(authToken);
 
         router.push('/menu');
       }

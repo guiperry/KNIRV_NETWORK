@@ -16,7 +16,7 @@ vi.mock('@/react-app/hooks/useVault', () => ({
   useVault: () => ({
     status: 'unlocked',
     currentAccount: {
-      getAddress: (prefix: string) => 'knirv1abc123def456',
+      getAddress: (_prefix: string) => 'knirv1abc123def456',
     },
     unlockVault: mockUnlockVault,
     lockVault: mockLockVault,

@@ -19,7 +19,7 @@ export default function WalletPage() {
   const [txError, setTxError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === 'no_wallet') {
+    if (status === 'no_vault') {
       navigate('/onboarding');
     } else if (status === 'locked') {
       setShowUnlockModal(true);

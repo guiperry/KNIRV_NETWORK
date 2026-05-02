@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { useLocation, Link } from 'react-router';
-import { Cpu, Zap, BookOpen, MessageSquare, Settings, Mic, Brain } from 'lucide-react';
+import { Cpu, Zap, BookOpen, MessageSquare, Settings, Mic } from 'lucide-react';
 import { EdgeColoring } from './EdgeColoring';
 import { VoiceControl } from './VoiceControl';
 import { useVoiceIntegration } from '../hooks/useVoiceIntegration';
@@ -13,7 +13,6 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const {
     isVoiceActive,
-    voiceStatus,
     cognitiveMode,
     edgeColor,
     edgeIntensity,
@@ -72,7 +71,7 @@ export default function Layout({ children }: LayoutProps) {
 
               {/* Voice Toggle Button */}
               <button
-                onClick={toggleVoice}
+                onClick={() => toggleVoice(isVoiceActive)}
                 className={`p-2 rounded-full transition-all ${
                   isVoiceActive
                     ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400'

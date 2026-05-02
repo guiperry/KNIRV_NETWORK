@@ -10,7 +10,7 @@ vi.mock('@/react-app/components/Layout', () => ({
 
 // Mock ChatThread
 vi.mock('@/react-app/components/ChatThread', () => ({
-  default: ({ messages, isStreaming, onCopyMessage }: { messages: any[]; isStreaming: boolean; onCopyMessage: (id: string, content: string) => void }) => (
+  default: ({ messages, isStreaming }: { messages: any[]; isStreaming: boolean; onCopyMessage?: (id: string, content: string) => void }) => (
     <div data-testid="chat-thread">
       <span data-testid="message-count">{messages.length}</span>
       <span data-testid="streaming-status">{isStreaming ? 'streaming' : 'idle'}</span>

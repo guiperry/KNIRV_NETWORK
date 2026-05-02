@@ -190,14 +190,6 @@ const ActionButton: React.FC<{ children: React.ReactNode; onClick?: () => void; 
 const DVECard: React.FC<{ dve: DVEData }> = ({ dve }) => {
   const [expanded, setExpanded] = useState(false);
 
-  const getTEEIcon = (type: TEEType) => {
-    switch (type) {
-      case 'sgx': return <Shield className="w-4 h-4 text-blue-500" />;
-      case 'browser-ext': return <Cpu className="w-4 h-4 text-purple-500" />;
-      case 'tdx': return <Shield className="w-4 h-4 text-cyan-500" />;
-    }
-  };
-
   return (
     <div className="relative group">
       <div className={`absolute -inset-0.5 bg-gradient-to-r from-blue-600/30 to-blue-800/30 rounded-2xl blur opacity-20 group-hover:opacity-50 transition duration-300`} />

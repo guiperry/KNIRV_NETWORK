@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Brain, Activity, AlertTriangle, Wifi, WifiOff, Server } from 'lucide-react';
+import { Brain, Activity, Wifi, WifiOff, Server } from 'lucide-react';
 import Layout from '@/react-app/components/Layout';
 import ChatThread from '@/react-app/components/ChatThread';
 import VoiceChatBar from '@/react-app/components/VoiceChatBar';
@@ -114,7 +114,7 @@ export default function CognitiveEngineChat() {
   const [ceActive, setCeActive] = useState<boolean | null>(null); // null = loading
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [voiceStatus, setVoiceStatus] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'error'>('idle');
+  const [voiceStatus, _setVoiceStatus] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'error'>('idle');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* ─── Health check on mount ─── */
@@ -180,55 +180,6 @@ export default function CognitiveEngineChat() {
       simulateAgentResponse(text.trim());
     },
     [isStreaming, simulateAgentResponse],
-  );
-
-  /* ─── Voice command handler ─── */
-  const handleVoiceCommand = useCallback(
-    (command: string) => {
-      setVoiceStatus('listening');
-
-      // Simulate voice processing
-      setTimeout(() => {
-        setVoiceStatus('processing');
-
-        const lower = command.toLowerCase();
-
-        // Known voice commands
-        if (
-          lower.includes('show') &&
-          (lower.includes('fleet') || lower.includes('dve fleet status'))
-        ) {
-          handleSendMessage('Show DVE fleet status');
-        } else if (
-          lower.includes('run validation') ||
-          (lower.includes('validation') && lower.includes('skill'))
-        ) {
-          const match = lower.match(/skill\s+["']?([a-zA-Z0-9_-]+)["']?/);
-          const name = match ? match[1] : 'Code Analysis';
-          handleSendMessage(`Run validation on skill ${name}`);
-        } else if (
-          lower.includes('network health') ||
-          (lower.includes('what') && lower.includes('health'))
-        ) {
-          handleSendMessage('What is the current network health?');
-        } else if (
-          lower.includes('attach policy') ||
-          (lower.includes('policy') && lower.includes('dve'))
-        ) {
-          const policyMatch = lower.match(/policy\s+["']?([a-zA-Z0-9_-]+)["']?/);
-          const dveMatch = lower.match(/dve\s+["']?([a-zA-Z0-9_-]+)["']?/);
-          const pid = policyMatch ? policyMatch[1] : 'POL-001';
-          const dve = dveMatch ? dveMatch[1] : 'Hermes-Alpha';
-          handleSendMessage(`Attach policy ${pid} to DVE ${dve}`);
-        } else {
-          // Fallback: treat as regular message
-          handleSendMessage(command);
-        }
-
-        setTimeout(() => setVoiceStatus('idle'), 500);
-      }, 600);
-    },
-    [handleSendMessage],
   );
 
   /* ─── Copy handler ─── */

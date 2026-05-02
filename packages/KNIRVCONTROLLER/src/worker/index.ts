@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, Context } from "hono";
 
 interface Env {
   KNIRVSERVER_URL?: string;
@@ -8,7 +8,7 @@ const app = new Hono<{ Bindings: Env }>();
 
 // Helper: proxy a request to the KNIRVSERVER backend
 async function proxyRequest(
-  c: { env: Env; req: Request },
+  c: Context<{ Bindings: Env }>,
   backendPath: string
 ): Promise<Response> {
   const baseUrl = c.env.KNIRVSERVER_URL;
@@ -20,7 +20,7 @@ async function proxyRequest(
   }
 
   const url = new URL(backendPath, baseUrl);
-  const headers = new Headers(c.req.headers);
+  const headers = new Headers(c.req.raw.headers);
   // Remove hop-by-hop headers that shouldn't be forwarded
   headers.delete("host");
 
@@ -28,7 +28,7 @@ async function proxyRequest(
     const response = await fetch(url.toString(), {
       method: c.req.method,
       headers,
-      body: c.req.method === "GET" || c.req.method === "HEAD" ? undefined : c.req.body,
+      body: c.req.method === "GET" || c.req.method === "HEAD" ? undefined : c.req.raw.body,
     });
 
     // Build response with CORS headers
@@ -59,7 +59,7 @@ app.get("/worker/cognitive/status", (c) => proxyRequest(c, "/api/health"));
 app.post("/worker/cognitive/chat", (c) => proxyRequest(c, "/api/knirvshell/execute"));
 
 // CORS preflight handler for all /worker/* routes
-app.options("/worker/:path*", (c) => {
+app.options("/worker/:path*", (_c) => {
   return new Response(null, {
     status: 204,
     headers: {

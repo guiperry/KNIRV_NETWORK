@@ -119,7 +119,6 @@ describe('ChatThread', () => {
     render(<ChatThread messages={messages as any} isStreaming={false} onCopyMessage={mockOnCopy} />);
 
     // The streaming indicator only shows when streaming
-    const thread = document.querySelector('[data-testid="chat-thread"]');
     // Using the component directly so dots are inside the component
     const dots = document.querySelectorAll('[style*="animation-delay"]');
     expect(dots.length).toBe(0);
@@ -168,7 +167,7 @@ describe('ChatThread', () => {
       makeMessage('user', 'Third', '3'),
     ];
 
-    const { container } = render(
+    render(
       <ChatThread messages={messages as any} isStreaming={false} onCopyMessage={mockOnCopy} />
     );
 

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Shield, Cpu, Zap, Activity, Wifi, WifiOff, BadgeCheck, Loader2, MapPin, Clock } from 'lucide-react';
+import { ArrowLeft, Shield, Wifi, WifiOff, BadgeCheck } from 'lucide-react';
 import Layout from '@/react-app/components/Layout';
 import ChatThread from '@/react-app/components/ChatThread';
 import VoiceChatBar from '@/react-app/components/VoiceChatBar';
@@ -117,11 +117,7 @@ const statusBadgeClass: Record<DVEStatus, string> = {
   offline: 'bg-red-500/20 text-red-400 border-red-500/30',
 };
 
-const teeIconMap: Record<TEEType, string> = {
-  sgx: 'SGX',
-  'browser-ext': 'BROWSER',
-  tdx: 'TDX',
-};
+
 
 const badgeColorMap: Record<string, string> = {
   blue: 'bg-blue-500/15 text-blue-400 border-blue-500/25',

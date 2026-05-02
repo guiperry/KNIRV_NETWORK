@@ -208,7 +208,7 @@ describe('useVault', () => {
       result.current.updateDVEWalletStatus('DVE-001', { status: 'online', stakeAmount: 5000 });
     });
 
-    const updatedWallet = result.current.dveWallets.find(w => w.dveID === 'DVE-001');
+    const updatedWallet = result.current.dveWallets.find((w: any) => w.dveID === 'DVE-001');
     expect(updatedWallet?.status).toBe('online');
     expect(updatedWallet?.stakeAmount).toBe(5000);
   });

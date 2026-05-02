@@ -1085,13 +1085,19 @@ func (app *ServerApp) setupRoutes() error {
 				}
 			}
 		}
-		// Redirect known gateway SPA routes to /gateway so the
-		// asset-rewriting proxy (registerGatewayPrefix("/gateway", "/explorer"))
-		// serves the page with correctly-prefixed asset paths.
+		// Proxy known gateway SPA routes through the gateway at the same path,
+		// preserving the route so the WebGUI loads the correct page.  The
+		// gateway serves individual HTML pages (dashboard.html, etc.) with
+		// injected __GATEWAY_BASE__ config.  Using the same path avoids the
+		// "always shows /explorer" problem that a blanket redirect to /gateway
+		// would cause.
 		path := c.Request.URL.Path
 		if path == "/dashboard" || path == "/chain-explorer" || path == "/graph-explorer" || path == "/error-explorer" {
-			c.Redirect(http.StatusFound, "/gateway")
-			return
+			gwProxy, gwErr := newPrefixProxy(gatewayBase, gatewayTransport, "", "")
+			if gwErr == nil {
+				gwProxy.ServeHTTP(c.Writer, c.Request)
+				return
+			}
 		}
 		embeddedFS.ServeHTTP(c.Writer, c.Request)
 	})
