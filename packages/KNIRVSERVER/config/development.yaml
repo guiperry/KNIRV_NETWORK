@@ -178,8 +178,11 @@ icme:
 gateway:
   enabled: true
   binary_path: /var/lib/knirvserver/bin/knirvgateway
-  port: 8081
-  socket_path: /var/lib/knirvserver/sockets/gateway.sock
+  port: 8080
+  socket_path: ""                    # deprecated -- leave blank
+  backend_socket: /var/lib/knirvserver/sockets/backend.sock
+  chain_socket:   /var/lib/knirvserver/sockets/chain.sock
+  graph_socket:   /var/lib/knirvserver/sockets/graph.sock
   turn_udp_port: 3478
   turn_tcp_port: 3479
   turn_api_port: 3476

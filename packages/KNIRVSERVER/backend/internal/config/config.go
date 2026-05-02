@@ -71,6 +71,9 @@ type GatewayConfig struct {
 	MinerAddress    string `mapstructure:"miner_address"`
 	StartTimeout    int    `mapstructure:"start_timeout"`
 	StopTimeout     int    `mapstructure:"stop_timeout"`
+	BackendSocketPath string `mapstructure:"backend_socket"`
+	ChainSocketPath   string `mapstructure:"chain_socket"`
+	GraphSocketPath   string `mapstructure:"graph_socket"`
 }
 
 // GraphConfig defines embedded KNIRVGRAPH configuration

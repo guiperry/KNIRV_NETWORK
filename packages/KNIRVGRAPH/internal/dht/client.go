@@ -5,18 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// Client handles DHT operations via KNIRVGATEWAY Unix socket.
+const gatewayBaseURL = "http://localhost:8080"
+
+// Client handles DHT operations via KNIRVGATEWAY HTTP API.
 type Client struct {
-	socketPath string
-	httpClient  *http.Client
-	source      string // "knirvgraph"
+	httpClient *http.Client
+	source     string // "knirvgraph"
 }
 
 // DHTManagerInterface matches the interface needed by drq.SyncProtocol.
@@ -26,16 +26,10 @@ type DHTManagerInterface interface {
 }
 
 // NewClient creates a new DHT client for KNIRVGRAPH.
-func NewClient(socketPath string) *Client {
+func NewClient() *Client {
 	return &Client{
-		socketPath: socketPath,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
-			Transport: &http.Transport{
-				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-					return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
-				},
-			},
 		},
 		source: "knirvgraph",
 	}
@@ -43,7 +37,7 @@ func NewClient(socketPath string) *Client {
 
 // CacheResource sends a resource to KNIRVGATEWAY for DHT announcement.
 func (c *Client) CacheResource(ctx context.Context, id string, resourceType string, multiaddr string) error {
-	url := "http://localhost/dht/cache-resource"
+	url := gatewayBaseURL + "/dht/cache-resource"
 
 	payload := map[string]interface{}{
 		"id":           id,
@@ -87,7 +81,7 @@ func (c *Client) AnnounceProperty(ctx context.Context, propID string, multiaddr 
 
 // FindResource finds resource providers via KNIRVGATEWAY DHT query.
 func (c *Client) FindResource(ctx context.Context, id string, resourceType string) ([]peer.AddrInfo, error) {
-	url := fmt.Sprintf("http://localhost/dht/find?id=%s&type=%s", id, resourceType)
+	url := fmt.Sprintf(gatewayBaseURL+"/dht/find?id=%s&type=%s", id, resourceType)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -110,7 +104,7 @@ func (c *Client) FindResource(ctx context.Context, id string, resourceType strin
 
 // Publish publishes data to a topic via KNIRVGATEWAY.
 func (c *Client) Publish(topic string, data []byte) error {
-	url := fmt.Sprintf("http://localhost/dht/publish?topic=%s", topic)
+	url := fmt.Sprintf(gatewayBaseURL+"/dht/publish?topic=%s", topic)
 
 	resp, err := c.httpClient.Post(url, "application/octet-stream", bytes.NewReader(data))
 	if err != nil {
@@ -127,7 +121,7 @@ func (c *Client) Publish(topic string, data []byte) error {
 
 // Subscribe subscribes to a topic via KNIRVGATEWAY and returns a channel of messages.
 func (c *Client) Subscribe(topic string) (<-chan []byte, error) {
-	url := fmt.Sprintf("http://localhost/dht/subscribe?topic=%s", topic)
+	url := fmt.Sprintf(gatewayBaseURL+"/dht/subscribe?topic=%s", topic)
 
 	resp, err := c.httpClient.Get(url)
 	if err != nil {

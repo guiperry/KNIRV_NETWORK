@@ -74,6 +74,11 @@ type Config struct {
 	ChainIsBootnode       bool
 	ChainBootnodeRegistry string // e.g. "https://registry.knirv.com"
 	ChainCallbackSocket   string // unix socket path for KNIRVCHAIN P2P callbacks
+
+	// Socket paths for internal service reverse proxies
+	BackendSocketPath string // /var/lib/knirvserver/sockets/backend.sock
+	ChainSocketPath   string // /var/lib/knirvserver/sockets/chain.sock
+	GraphSocketPath   string // /var/lib/knirvserver/sockets/graph.sock
 }
 
 func Load() (*Config, error) {
@@ -122,6 +127,9 @@ func Load() (*Config, error) {
 		ChainIsBootnode:           getEnvBool("CHAIN_IS_BOOTNODE", false),
 		ChainBootnodeRegistry:     getEnv("CHAIN_BOOTNODE_REGISTRY", "https://registry.knirv.com"),
 		ChainCallbackSocket:       getEnv("CHAIN_CALLBACK_SOCKET", ""),
+		BackendSocketPath:       getEnv("BACKEND_SOCKET_PATH", ""),
+		ChainSocketPath:         getEnv("CHAIN_SOCKET_PATH", ""),
+		GraphSocketPath:         getEnv("GRAPH_SOCKET_PATH", ""),
 	}
 
 	return cfg, nil

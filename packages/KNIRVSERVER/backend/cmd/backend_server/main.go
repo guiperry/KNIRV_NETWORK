@@ -826,9 +826,9 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		}
 
 		// Initialize Gateway socket path if not specified
-		if cfg.Gateway.SocketPath == "" && cfg.SocketDir != "" {
-			cfg.Gateway.SocketPath = filepath.Join(cfg.SocketDir, "gateway.sock")
-		}
+		// if cfg.Gateway.SocketPath == "" && cfg.SocketDir != "" {
+		// 	cfg.Gateway.SocketPath = filepath.Join(cfg.SocketDir, "gateway.sock")
+		// }
 
 		gatewayConfig := &knirvgateway.ManagerConfig{
 			BinaryPath:     cfg.Gateway.BinaryPath,
@@ -846,7 +846,10 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			},
 			DBPath:       cfg.Database.Path,
 			AuthSecret:   cfg.Gateway.AuthSecret,
-			MinerAddress: cfg.Gateway.MinerAddress,
+			MinerAddress:        cfg.Gateway.MinerAddress,
+			BackendSocketPath:   cfg.Gateway.BackendSocketPath,
+			ChainSocketPath:     cfg.Gateway.ChainSocketPath,
+			GraphSocketPath:     cfg.Gateway.GraphSocketPath,
 			StartTimeout: time.Duration(cfg.Gateway.StartTimeout) * time.Second,
 			StopTimeout:  time.Duration(cfg.Gateway.StopTimeout) * time.Second,
 			ChainID:      cfg.ChainID,

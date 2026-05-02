@@ -13,17 +13,25 @@ import (
 
 // Handler handles explorer API requests.
 type Handler struct {
-	config     *config.Config
-	logger     *zap.Logger
-	httpClient *http.Client
+	config      *config.Config
+	logger      *zap.Logger
+	httpClient  *http.Client
+	gatewayPort int
 }
 
 // NewHandler creates a new explorer handler.
-func NewHandler(cfg *config.Config, logger *zap.Logger) *Handler {
+func NewHandler(cfg *config.Config, logger *zap.Logger, gatewayPort ...int) *Handler {
+	port := 8080
+	if len(gatewayPort) > 0 && gatewayPort[0] > 0 {
+		port = gatewayPort[0]
+	} else if cfg.Port > 0 {
+		port = cfg.Port
+	}
 	return &Handler{
-		config:     cfg,
-		logger:     logger,
-		httpClient: &http.Client{},
+		config:      cfg,
+		logger:      logger,
+		httpClient:  &http.Client{},
+		gatewayPort: port,
 	}
 }
 
@@ -37,10 +45,10 @@ func (h *Handler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/api/view/{id}", h.handleView).Methods("GET")
 }
 
-// getBackendURL returns the backend URL for proxying requests
+// getBackendURL returns the gateway's own /api/v1 base URL for proxying requests
+// through the socket proxy to the real backend.
 func (h *Handler) getBackendURL() string {
-	// Use payment oracle as backend (default port 3001)
-	return fmt.Sprintf("http://localhost:%d", h.config.PaymentGatewayPort)
+	return fmt.Sprintf("http://localhost:%d/api/v1", h.gatewayPort)
 }
 
 // proxyRequest proxies a request to the backend

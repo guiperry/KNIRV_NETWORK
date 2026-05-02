@@ -5,10 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -33,9 +30,10 @@ const (
 	DiscoveryResourceTypeService       DiscoveryResourceType = "service"
 )
 
-// DiscoveryClient handles DHT operations via KNIRVGATEWAY Unix socket.
+const gatewayBaseURL = "http://localhost:8080"
+
+// DiscoveryClient handles DHT operations via KNIRVGATEWAY HTTP.
 type DiscoveryClient struct {
-	socketPath string
 	httpClient *http.Client
 	source     string
 	chainID    string
@@ -47,17 +45,9 @@ type DiscoveryClient struct {
 
 // NewDiscoveryClient creates a new DHT client and registers with KNIRVGATEWAY.
 func NewDiscoveryClient(chainID string, p2pPort int, clientOnly bool, isBootnode bool, role config.Role, cfg *config.Config) (*DiscoveryClient, error) {
-	socketPath := resolveGatewaySocket(cfg)
-
 	c := &DiscoveryClient{
-		socketPath: socketPath,
 		httpClient: &http.Client{
 			Timeout: 10 * time.Second,
-			Transport: &http.Transport{
-				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-					return (&net.Dialer{}).DialContext(ctx, "unix", socketPath)
-				},
-			},
 		},
 		source:   "knirvchain",
 		chainID:  chainID,
@@ -76,27 +66,12 @@ func NewDiscoveryClient(chainID string, p2pPort int, clientOnly bool, isBootnode
 	return c, nil
 }
 
-// resolveGatewaySocket returns the KNIRVGATEWAY unix socket path.
-func resolveGatewaySocket(cfg *config.Config) string {
-	if s := os.Getenv("GATEWAY_SOCKET_PATH"); s != "" {
-		return s
-	}
-	if dataDir := os.Getenv("KNIRV_APP_DATA_DIR"); dataDir != "" {
-		return filepath.Join(dataDir, "sockets", "gateway.sock")
-	}
-	if _, err := os.Stat("/var/lib/knirvserver"); err == nil {
-		return filepath.Join("/var/lib/knirvserver", "sockets", "gateway.sock")
-	}
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".local", "share", "knirvserver", "sockets", "gateway.sock")
-}
-
 // registerCallback tells KNIRVGATEWAY where to send received blocks/txs.
 func (c *DiscoveryClient) registerCallback(chainSocketPath string) error {
 	payload := map[string]string{"socket_path": chainSocketPath}
 	data, _ := json.Marshal(payload)
 	resp, err := c.httpClient.Post(
-		"http://localhost/p2p/register-callback",
+		gatewayBaseURL+"/p2p/register-callback",
 		"application/json",
 		bytes.NewReader(data),
 	)
@@ -123,7 +98,7 @@ func (c *DiscoveryClient) CacheResource(ctx context.Context, id, resourceType st
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	resp, err := c.httpClient.Post("http://localhost/dht/cache-resource", "application/json", bytes.NewBuffer(data))
+	resp, err := c.httpClient.Post(gatewayBaseURL+"/dht/cache-resource", "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to cache resource: %w", err)
 	}
@@ -167,7 +142,7 @@ func (c *DiscoveryClient) FindResource(ctx context.Context, id string, resourceT
 }
 
 func (c *DiscoveryClient) findResource(ctx context.Context, id string, resourceType string) ([]peer.AddrInfo, error) {
-	url := fmt.Sprintf("http://localhost/dht/find?id=%s&type=%s", id, resourceType)
+	url := fmt.Sprintf(gatewayBaseURL+"/dht/find?id=%s&type=%s", id, resourceType)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -195,7 +170,7 @@ func (c *DiscoveryClient) FindMCPCapabilityProviders(ctx context.Context, id str
 
 // GetPeerID returns KNIRVGATEWAY's peer ID (which acts as our P2P identity).
 func (c *DiscoveryClient) GetPeerID() string {
-	resp, err := c.httpClient.Get("http://localhost/p2p/peer-id")
+	resp, err := c.httpClient.Get(gatewayBaseURL + "/p2p/peer-id")
 	if err != nil {
 		return ""
 	}
@@ -212,7 +187,7 @@ func (c *DiscoveryClient) GetPeerID() string {
 
 // GetSelfMultiaddrs returns KNIRVGATEWAY's multiaddresses.
 func (c *DiscoveryClient) GetSelfMultiaddrs() []string {
-	resp, err := c.httpClient.Get("http://localhost/p2p/self-addrs")
+	resp, err := c.httpClient.Get(gatewayBaseURL + "/p2p/self-addrs")
 	if err != nil {
 		return nil
 	}

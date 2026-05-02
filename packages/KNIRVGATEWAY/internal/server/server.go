@@ -8,6 +8,8 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -104,7 +106,7 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 	uriHdlr := uri.NewHandler(logger)
 
 	// Initialize explorer handler.
-	explorerHandler := webgui.NewHandler(cfg, logger)
+	explorerHandler := webgui.NewHandler(cfg, logger, cfg.Port)
 
 	// Initialize TURN server with blockchain integration
 	var turnSvc *turnserver.Server
@@ -254,6 +256,29 @@ func (s *Server) setupRoutes() error {
 	// Dynamic controller proxy
 	r.PathPrefix("/controller").Handler(s.handleControllerProxy())
 
+	// Backend reverse proxy routes — proxy to internal Unix sockets
+	if s.config.BackendSocketPath != "" {
+		backendProxy := newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
+		r.PathPrefix("/api/v1/").Handler(backendProxy)
+		s.logger.Info("Backend proxy registered", zap.String("socket", s.config.BackendSocketPath))
+	} else {
+		s.logger.Warn("Backend proxy not configured — /api/v1/* will not be proxied")
+	}
+	if s.config.ChainSocketPath != "" {
+		chainProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")
+		r.PathPrefix("/chain/").Handler(chainProxy)
+		s.logger.Info("Chain proxy registered", zap.String("socket", s.config.ChainSocketPath))
+	} else {
+		s.logger.Warn("Chain proxy not configured — /chain/* will not be proxied")
+	}
+	if s.config.GraphSocketPath != "" {
+		graphProxy := newSocketProxy(s.config.GraphSocketPath, "http://knirvgraph")
+		r.PathPrefix("/graph/").Handler(graphProxy)
+		s.logger.Info("Graph proxy registered", zap.String("socket", s.config.GraphSocketPath))
+	} else {
+		s.logger.Warn("Graph proxy not configured — /graph/* will not be proxied")
+	}
+
 	// Mock API endpoint (fallback for any unmatched /api routes)
 	r.PathPrefix("/api").HandlerFunc(s.handleMockAPI)
 
@@ -274,21 +299,39 @@ func (s *Server) setupRoutes() error {
 		})
 	}
 
-	// Serve the explorer index at /oracle and /explorer routes
+	// Serve the explorer index at /oracle and /explorer routes with injected config
 	r.HandleFunc("/oracle", func(w http.ResponseWriter, r *http.Request) {
 		indexPath := filepath.Join(s.webguiStaticDir, "index.html")
-		s.logger.Info("Serving explorer index at /oracle", zap.String("indexPath", indexPath))
-		http.ServeFile(w, r, indexPath)
+		data, err := s.injectGatewayBase(indexPath)
+		if err != nil {
+			s.logger.Error("Failed to inject gateway base into index", zap.Error(err))
+			http.ServeFile(w, r, indexPath)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(data)
 	})
 	r.HandleFunc("/explorer", func(w http.ResponseWriter, r *http.Request) {
 		indexPath := filepath.Join(s.webguiStaticDir, "index.html")
-		s.logger.Info("Serving explorer index at /explorer", zap.String("indexPath", indexPath))
-		http.ServeFile(w, r, indexPath)
+		data, err := s.injectGatewayBase(indexPath)
+		if err != nil {
+			s.logger.Error("Failed to inject gateway base into index", zap.Error(err))
+			http.ServeFile(w, r, indexPath)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(data)
 	})
 	r.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
 		filePath := filepath.Join(s.webguiStaticDir, "dashboard.html")
-		s.logger.Info("Serving webgui dashboard", zap.String("filePath", filePath))
-		http.ServeFile(w, r, filePath)
+		data, err := s.injectGatewayBase(filePath)
+		if err != nil {
+			s.logger.Error("Failed to inject gateway base into dashboard", zap.Error(err))
+			http.ServeFile(w, r, filePath)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(data)
 	})
 
 	// Serve other explorer HTML pages at /oracle/ prefix
@@ -328,7 +371,14 @@ func (s *Server) setupRoutes() error {
 		pageName := page
 		r.HandleFunc("/"+pageName, func(w http.ResponseWriter, r *http.Request) {
 			filePath := filepath.Join(s.webguiStaticDir, pageName+".html")
-			http.ServeFile(w, r, filePath)
+			data, err := s.injectGatewayBase(filePath)
+			if err != nil {
+				s.logger.Error("Failed to inject gateway base into page", zap.String("page", pageName), zap.Error(err))
+				http.ServeFile(w, r, filePath)
+				return
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Write(data)
 		})
 	}
 
@@ -391,23 +441,10 @@ func (s *Server) Start() error {
 		AllowCredentials: true,
 	})
 
-	handler := c.Handler(s.router)
-
-	var listenAddr string
-	if s.config.SocketPath != "" {
-		if err := os.RemoveAll(s.config.SocketPath); err != nil {
-			return fmt.Errorf("failed to remove existing socket: %w", err)
-		}
-		if err := os.MkdirAll(filepath.Dir(s.config.SocketPath), 0755); err != nil && !os.IsExist(err) {
-			return fmt.Errorf("failed to create socket directory: %w", err)
-		}
-		listenAddr = "unix:" + s.config.SocketPath
-	} else {
-		listenAddr = fmt.Sprintf(":%d", s.config.Port)
-	}
+	handler := c.Handler(wrapWithSecurityHeaders(s.router))
 
 	s.httpServer = &http.Server{
-		Addr:         listenAddr,
+		Addr:         fmt.Sprintf(":%d", s.config.Port),
 		Handler:      handler,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -416,26 +453,21 @@ func (s *Server) Start() error {
 
 	var listener net.Listener
 	var err error
-	if s.config.SocketPath != "" {
-		listener, err = net.Listen("unix", s.config.SocketPath)
-	} else {
-		// Try to find an available port if the default is in use
-		listener, err = s.findAvailablePort(s.config.Port)
-		if err != nil {
-			return fmt.Errorf("failed to find available port: %w", err)
-		}
-		// Extract the actual port from the listener
-		s.actualPort = listener.Addr().(*net.TCPAddr).Port
+
+	// Listen on TCP port
+	listener, err = s.findAvailablePort(s.config.Port)
+	if err != nil {
+		return fmt.Errorf("failed to find available port: %w", err)
+	}
+	// Extract the actual port from the listener
+	s.actualPort = listener.Addr().(*net.TCPAddr).Port
+	if s.actualPort != s.config.Port {
 		s.logger.Info("Using dynamic port",
 			zap.Int("port", s.actualPort),
 			zap.Int("requested", s.config.Port),
 		)
-	}
-
-	if s.config.SocketPath != "" {
-		if err := os.Chmod(s.config.SocketPath, 0666); err != nil {
-			s.logger.Warn("Failed to set socket permissions", zap.Error(err))
-		}
+	} else {
+		s.actualPort = s.config.Port
 	}
 
 	s.logger.Info("HTTP server listening",
@@ -475,6 +507,45 @@ func (s *Server) Stop(ctx context.Context) error {
 	}
 
 	return s.httpServer.Shutdown(ctx)
+}
+
+// injectGatewayBase reads an HTML file and injects a <script> tag with
+// __GATEWAY_BASE__ and __PAYMENT_API__ configuration before </head>.
+func (s *Server) injectGatewayBase(filePath string) ([]byte, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	script := fmt.Sprintf(
+		`<script>window.__GATEWAY_BASE__="http://localhost:%d";window.__PAYMENT_API__="/api/v1/payments";</script>`,
+		s.config.Port,
+	)
+	injected := strings.Replace(string(data), "</head>", script+"</head>", 1)
+	return []byte(injected), nil
+}
+
+// wrapWithSecurityHeaders adds security-related HTTP headers to all responses.
+func wrapWithSecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+		w.Header().Set("Content-Security-Policy", "frame-ancestors 'self' http://localhost:8090")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// newSocketProxy creates a reverse proxy that dials a Unix socket and forwards
+// requests to the given target base URL.
+func newSocketProxy(socketPath, targetBase string) *httputil.ReverseProxy {
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", socketPath)
+		},
+	}
+	target, _ := url.Parse(targetBase)
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.Transport = transport
+	return proxy
 }
 
 // Handler implementations

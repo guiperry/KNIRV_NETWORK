@@ -17,9 +17,8 @@ type DHTClientAdapter struct {
 // NewDHTClientAdapter creates a new adapter wrapping the DHT client.
 // This replaces p2p.NewDHTManager in app.go.
 func NewDHTClientAdapter(serviceID, chainID string, bootstrapPeers []string, enableAutoRelay bool) (*DHTClientAdapter, error) {
-	// Socket path should be configurable; default to KNIRVGATEWAY socket
-	socketPath := "/tmp/knirvgateway.sock"
-	client := NewClient(socketPath)
+	// Use gateway at localhost:8080
+	client := NewClient()
 
 	log.Printf("DHTClientAdapter: created for service=%s, chain=%s", serviceID, chainID)
 

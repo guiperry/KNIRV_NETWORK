@@ -81,8 +81,11 @@ type ManagerConfig struct {
 	Ports          *PortConfig
 	DBPath         string
 	AuthSecret     string
-	MinerAddress   string
-	StartTimeout   time.Duration
+	MinerAddress        string
+	BackendSocketPath   string
+	ChainSocketPath     string
+	GraphSocketPath     string
+	StartTimeout        time.Duration
 	StopTimeout    time.Duration
 	ChainID        string
 	Stdout         io.Writer
@@ -256,6 +259,16 @@ func (m *Manager) Start(ctx context.Context) error {
 		fmt.Sprintf("DATABASE_PATH=%s", m.config.DBPath),
 	)
 
+	if m.config.BackendSocketPath != "" {
+		env = append(env, fmt.Sprintf("BACKEND_SOCKET_PATH=%s", m.config.BackendSocketPath))
+	}
+	if m.config.ChainSocketPath != "" {
+		env = append(env, fmt.Sprintf("CHAIN_SOCKET_PATH=%s", m.config.ChainSocketPath))
+	}
+	if m.config.GraphSocketPath != "" {
+		env = append(env, fmt.Sprintf("GRAPH_SOCKET_PATH=%s", m.config.GraphSocketPath))
+	}
+
 	if m.config.SocketPath != "" {
 		env = append(env, fmt.Sprintf("SOCKET_PATH=%s", m.config.SocketPath))
 	} else {
@@ -267,9 +280,6 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 
 	args := []string{}
-	if m.config.SocketPath != "" {
-		args = append(args, "-socket", m.config.SocketPath)
-	}
 
 	m.cmd = exec.Command(m.config.BinaryPath, args...)
 	m.cmd.Env = env
