@@ -3,7 +3,7 @@
   "checkpoint_id": "d84d25d2efae",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
     "packages/KNIRVSERVER/backend/internal/web/api_router.go",
@@ -31,13 +31,19 @@
       "transcript": "/d8/4d25d2efae/1/full.jsonl",
       "content_hash": "/d8/4d25d2efae/1/content_hash.txt",
       "prompt": "/d8/4d25d2efae/1/prompt.txt"
+    },
+    {
+      "metadata": "/d8/4d25d2efae/2/metadata.json",
+      "transcript": "/d8/4d25d2efae/2/full.jsonl",
+      "content_hash": "/d8/4d25d2efae/2/content_hash.txt",
+      "prompt": "/d8/4d25d2efae/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 6062,
-    "cache_creation_tokens": 549711,
-    "cache_read_tokens": 13181072,
-    "output_tokens": 111989,
-    "api_call_count": 147
+    "input_tokens": 6352,
+    "cache_creation_tokens": 650414,
+    "cache_read_tokens": 15096932,
+    "output_tokens": 133531,
+    "api_call_count": 176
   }
 }
