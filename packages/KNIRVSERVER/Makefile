@@ -446,11 +446,22 @@ quick-test: test-go ## Quick test (Go only)
 quick-deploy: binary deploy-application ## Quick application deployment
 
 # KNIRVGATEWAY (Embedded) targets
-gateway-deps: ## Install KNIRVGATEWAY dependencies
-	@echo "$(BLUE)Installing KNIRVGATEWAY dependencies...$(NC)"
+WEBGUI_SRC_DIR := $(GATEWAY_SRC_DIR)/internal/embedded/webgui
+
+webgui-deps: ## Install KNIRVGATEWAY WebGUI Node.js dependencies
+	@echo "$(BLUE)Installing KNIRVGATEWAY WebGUI dependencies...$(NC)"
+	cd $(WEBGUI_SRC_DIR) && $(NPM_CMD) install --legacy-peer-deps
+
+webgui-build: webgui-deps ## Build KNIRVGATEWAY WebGUI static export
+	@echo "$(BLUE)Building KNIRVGATEWAY WebGUI static export...$(NC)"
+	cd $(WEBGUI_SRC_DIR) && $(NPM_CMD) run build
+	@echo "$(GREEN)KNIRVGATEWAY WebGUI build completed$(NC)"
+
+gateway-deps: ## Install KNIRVGATEWAY dependencies (Go only)
+	@echo "$(BLUE)Installing KNIRVGATEWAY Go dependencies...$(NC)"
 	cd $(GATEWAY_SRC_DIR) && go mod download && go mod tidy
 
-gateway-build: gateway-deps ## Build KNIRVGATEWAY binary into pkg/knirvgateway/bin/ (required before binary target)
+gateway-build: webgui-build gateway-deps ## Build KNIRVGATEWAY binary into pkg/knirvgateway/bin/ (builds WebGUI first)
 	@echo "$(BLUE)Building KNIRVGATEWAY binary...$(NC)"
 	@mkdir -p $(GATEWAY_DIR)/bin
 	cd $(GATEWAY_SRC_DIR) && go build -ldflags "-s -w" -o $(GATEWAY_PKG_BIN) ./cmd/gateway
@@ -459,6 +470,7 @@ gateway-build: gateway-deps ## Build KNIRVGATEWAY binary into pkg/knirvgateway/b
 gateway-clean: ## Clean KNIRVGATEWAY build artifacts
 	@echo "$(BLUE)Cleaning KNIRVGATEWAY artifacts...$(NC)"
 	rm -f $(GATEWAY_PKG_BIN)
+	rm -rf $(WEBGUI_SRC_DIR)/out $(WEBGUI_SRC_DIR)/.next
 	cd $(GATEWAY_SRC_DIR) && go clean
 
 # KNIRVGRAPH (Embedded) targets

@@ -3,7 +3,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
 // Use the environment variable for the backend URL
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'; // Default fallback
+// Use gateway-proxied backend URL — the gateway serves these pages and
+// proxies /api/v1/* to the real backend via backend.sock.
+const BACKEND_URL = '/api/v1';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

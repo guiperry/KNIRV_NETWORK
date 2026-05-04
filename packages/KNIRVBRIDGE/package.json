@@ -1,8 +1,8 @@
 {
-  "name": "knirvwallet-extension",
+  "name": "knirvbridge-extension",
   "version": "1.16.5",
   "private": true,
-  "description": "KNIRVWALLET is a powerful browser extension wallet for the KNIRV ecosystem.",
+  "description": "KNIRVBRIDGE is a powerful browser extension wallet for the KNIRV ecosystem.",
   "scripts": {
     "storybook": "storybook dev -p 6006",
     "lint": "eslint src/**/*.{js,jsx,ts,tsx,json}",

@@ -2,7 +2,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
 // Use the environment variable for the backend URL
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'; // Default fallback
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '/api/v1';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {

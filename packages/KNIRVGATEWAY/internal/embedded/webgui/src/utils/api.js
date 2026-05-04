@@ -1,8 +1,14 @@
 import axios from 'axios';
 
-// Use env var when set; otherwise use a relative URL so requests go to
-// whichever host is serving the WebGUI (works both embedded and standalone).
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+// Use the gateway's base URL at runtime when served through the wrapper proxy.
+// window.__GATEWAY_BASE__ is injected by the gateway server (injectGatewayBase)
+// and points to http://localhost:8080 — all /api/v1/* calls go through the
+// gateway's Unix socket proxy to the real backend.
+const GATEWAY_BASE = typeof window !== 'undefined' && window.__GATEWAY_BASE__
+  ? window.__GATEWAY_BASE__
+  : '';
+
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || GATEWAY_BASE || '';
 
 const api = axios.create({
   baseURL: API_URL,

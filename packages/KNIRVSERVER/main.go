@@ -943,10 +943,25 @@ func (app *ServerApp) setupRoutes() error {
 		return fmt.Errorf("failed to configure /turn proxy: %w", err)
 	}
 
+	// Network-monitor API routes — proxy to the gateway which has Go handler
+	// equivalents for the Next.js API routes excluded from the static export.
+	// These are handled inside the /api/*path catch-all below rather than as
+	// explicit Gin routes, because Gin rejects a catch-all + explicit routes
+	// on the same prefix.
+
 	// API proxy to backend
 	api := app.router.Group("/api")
 	{
 		api.Any("/*path", func(c *gin.Context) {
+			// Detect network-monitor paths and proxy to the gateway instead
+			// of the backend, since the gateway has Go handler equivalents.
+			if strings.HasPrefix(c.Request.URL.Path, "/api/network-monitor/") {
+				nmProxy, nmErr := newPrefixProxy(gatewayBase, gatewayTransport, "", "")
+				if nmErr == nil {
+					nmProxy.ServeHTTP(c.Writer, c.Request)
+					return
+				}
+			}
 			// Construct backend URL
 			backendURL := backendBaseURL(app.config) + c.Request.RequestURI
 			transport := &http.Transport{}

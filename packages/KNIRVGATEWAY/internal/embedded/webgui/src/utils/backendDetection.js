@@ -2,13 +2,9 @@ import api from './api';
 
    export const checkBackendConnection = async () => {
      try {
-       // Check if backend URL is configured
-       if (!process.env.NEXT_PUBLIC_BACKEND_URL) {
-         console.warn('Backend URL not configured, running in standalone mode');
-         return false;
-       }
-
-       const response = await api.get('/health');
+       // Use the gateway's own API — this runs in the browser so relative
+       // URLs resolve to the gateway's host where /api/v1/* is proxied.
+       const response = await api.get('/api/v1/health');
        return response.data.status === 'ok' || response.data.status === 'healthy';
      } catch (error) {
        console.warn('Backend connection error:', error.message);
@@ -18,17 +14,8 @@ import api from './api';
 
    export const getServerInfo = async () => {
      try {
-       // Check if backend URL is configured
-       if (!process.env.NEXT_PUBLIC_BACKEND_URL) {
-         console.warn('Backend URL not configured, returning mock server info');
-         return {
-           role: 'General',
-           network: 'demo',
-           mode: 'standalone'
-         };
-       }
-
-       const response = await api.get('/info');
+       // Use relative URL — resolves to the gateway's own /api/v1/ path
+       const response = await api.get('/api/v1/info');
        return response.data;
      } catch (error) {
        console.warn('Failed to get server info:', error.message);

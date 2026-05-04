@@ -256,10 +256,39 @@ func (s *Server) setupRoutes() error {
 	// Dynamic controller proxy
 	r.PathPrefix("/controller").Handler(s.handleControllerProxy())
 
+	// Network monitor API routes — these replace Next.js API routes that are
+	// excluded from the static export.  They return static/mock status data
+	// for the network-monitor UI page.
+	r.HandleFunc("/api/network-monitor/status", s.handleNetworkMonitorStatus).Methods("GET")
+	r.HandleFunc("/api/network-monitor/services", s.handleNetworkMonitorServices).Methods("GET")
+	r.HandleFunc("/api/network-monitor/metrics", s.handleNetworkMonitorMetrics).Methods("GET")
+	r.HandleFunc("/api/network-monitor/logs", s.handleNetworkMonitorLogs).Methods("GET")
+	r.HandleFunc("/api/network-monitor/config", s.handleNetworkMonitorConfig).Methods("GET")
+
 	// Backend reverse proxy routes — proxy to internal Unix sockets
 	if s.config.BackendSocketPath != "" {
 		backendProxy := newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
+
+		// WebGUI API route mappings — the compiled frontend JS calls these
+		// paths via axios with the gateway base URL.  Map each to the real
+		// backend or chain endpoint.
+		r.HandleFunc("/api/v1/info", s.handleAPIInfo).Methods("GET", "OPTIONS")
 		r.PathPrefix("/api/v1/").Handler(backendProxy)
+
+		// Chain API — the WebGUI calls /chain, /txn_pool, /wallet/info, /devs directly.
+		// /chain and /wallet/info proxy to chain.sock; /txn_pool and /devs have no
+		// backend equivalents so return mock data.
+		chainRootProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")
+		// GET /chain → chain.sock /api/v1/chain/latest
+		r.HandleFunc("/chain", s.handleChainProxy(chainRootProxy)).Methods("GET", "OPTIONS")
+		// GET /txn_pool → mock (no matching chain endpoint)
+		r.HandleFunc("/txn_pool", s.handleTxnPool).Methods("GET", "OPTIONS")
+		// GET /wallet/info → chain.sock /api/wallet/status
+		r.HandleFunc("/wallet/info", s.handleWalletInfoProxy(chainRootProxy)).Methods("GET", "OPTIONS")
+		// GET /devs → mock (no matching endpoint)
+		r.HandleFunc("/devs", s.handleDevs).Methods("GET", "OPTIONS")
+		// POST /transaction → chain.sock
+		r.HandleFunc("/transaction", s.handleTransaction(chainRootProxy)).Methods("POST", "OPTIONS")
 		s.logger.Info("Backend proxy registered", zap.String("socket", s.config.BackendSocketPath))
 	} else {
 		s.logger.Warn("Backend proxy not configured — /api/v1/* will not be proxied")
@@ -510,18 +539,37 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 // injectGatewayBase reads an HTML file and injects a <script> tag with
-// __GATEWAY_BASE__ and __PAYMENT_API__ configuration before </head>.
+// __GATEWAY_BASE__, __PAYMENT_API__, and KNIRV_GATEWAY_CONFIG configuration
+// before </head>.  KNIRV_GATEWAY_CONFIG is read by gateway-links.js as its
+// primary config source — without it the JS falls back to hardcoded
+// localhost:3001 for the payment oracle health check and other endpoints.
 func (s *Server) injectGatewayBase(filePath string) ([]byte, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
+	gatewayBase := fmt.Sprintf("http://localhost:%d", s.config.Port)
 	script := fmt.Sprintf(
-		`<script>window.__GATEWAY_BASE__="http://localhost:%d";window.__PAYMENT_API__="/api/v1/payments";</script>`,
-		s.config.Port,
+		`<script>window.__GATEWAY_BASE__=%q;window.__PAYMENT_API__="/api/v1/payments";window.KNIRV_GATEWAY_CONFIG=%s;</script>`,
+		gatewayBase,
+		knirvGatewayConfigJSON(s.config),
 	)
 	injected := strings.Replace(string(data), "</head>", script+"</head>", 1)
 	return []byte(injected), nil
+}
+
+// knirvGatewayConfigJSON returns the JSON payload that gateway-links.js reads
+// as window.KNIRV_GATEWAY_CONFIG.  This replaces the hardcoded fallback
+// (localhost:3001) with actual gateway-proxied URLs so health checks work.
+func knirvGatewayConfigJSON(cfg *config.Config) string {
+	gatewayPort := cfg.Port
+	if gatewayPort == 0 {
+		gatewayPort = 8080
+	}
+	base := fmt.Sprintf("http://localhost:%d", gatewayPort)
+	// Use the same format gateway-links.js expects in its getFallbackConfiguration()
+	return fmt.Sprintf(`{"deployment_mode":"private_testnet","oracle_services":{"payment_oracle":{"base_url":"%[1]s/api/v1/payments/","health_url":"%[1]s/api/v1/payments/health","domain":"localhost","port":%[2]d,"path":"/api/v1/payments/"},"tunnel_registry":{"base_url":"%[1]s/api/v1/tunnels/","health_url":"%[1]s/api/v1/tunnels/status","domain":"localhost","port":%[2]d,"path":"/api/v1/tunnels/"},"operator_registry":{"base_url":"%[1]s/api/v1/operators/","health_url":"%[1]s/api/v1/operators/health","domain":"localhost","port":%[2]d,"path":"/api/v1/operators/"},"webgui":{"base_url":"%[1]s/","health_url":"%[1]s/health","domain":"localhost","port":%[2]d,"path":"/"}},"external_services":{"knirv_website":"https://knirv.com","testnet_access":"https://testnet.knirv.network"},"navigation":{},"timestamp":"%[3]s"}`,
+		base, gatewayPort, time.Now().UTC().Format(time.RFC3339))
 }
 
 // wrapWithSecurityHeaders adds security-related HTTP headers to all responses.
@@ -545,6 +593,17 @@ func newSocketProxy(socketPath, targetBase string) *httputil.ReverseProxy {
 	target, _ := url.Parse(targetBase)
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.Transport = transport
+	// Strip CORS headers from the upstream response so the gateway's own CORS
+	// middleware is the single authority.  Without this the backend can inject
+	// Access-Control-Allow-Origin alongside the gateway's wildcard, producing
+	// the "multiple values" error browsers reject.
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		resp.Header.Del("Access-Control-Allow-Origin")
+		resp.Header.Del("Access-Control-Allow-Headers")
+		resp.Header.Del("Access-Control-Allow-Methods")
+		resp.Header.Del("Access-Control-Allow-Credentials")
+		return nil
+	}
 	return proxy
 }
 
@@ -658,6 +717,154 @@ func (s *Server) handleControllerProxy() http.Handler {
 
 		return controllerURL, nil
 	})
+}
+
+// handleNetworkMonitorStatus returns the network monitor overall status.
+// Replaces the Next.js API route /api/network-monitor/status which is
+// excluded from the static export.
+func (s *Server) handleNetworkMonitorStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"data": map[string]interface{}{
+			"name":           "KNIRV Local Network",
+			"overall_status": "healthy",
+			"services_up":    3,
+			"services_down":  0,
+			"services_total": 6,
+			"last_update":    time.Now().UTC().Format(time.RFC3339),
+		},
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// handleNetworkMonitorServices returns per-service health status.
+func (s *Server) handleNetworkMonitorServices(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	services := map[string]interface{}{
+		"knirvchain": map[string]interface{}{
+			"name": "knirvchain", "url": "http://localhost:8080", "status": "up",
+			"lastCheck": time.Now().UTC().Format(time.RFC3339), "responseTime": 5, "uptime": 99.5,
+		},
+		"knirvserver": map[string]interface{}{
+			"name": "knirvserver", "url": "http://localhost:8082", "status": "up",
+			"lastCheck": time.Now().UTC().Format(time.RFC3339), "responseTime": 3, "uptime": 99.8,
+		},
+		"knirvgraph": map[string]interface{}{
+			"name": "knirvgraph", "url": "http://localhost:8081", "status": "up",
+			"lastCheck": time.Now().UTC().Format(time.RFC3339), "responseTime": 8, "uptime": 98.2,
+		},
+	}
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"data":      services,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// handleNetworkMonitorMetrics returns system metrics (simplified).
+func (s *Server) handleNetworkMonitorMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"data": map[string]interface{}{
+			"cpu": map[string]interface{}{
+				"usage_percent": 12.5, "load_average": []float64{0.8, 0.6, 0.4},
+			},
+			"memory": map[string]interface{}{
+				"total_bytes": 16e9, "used_bytes": 8e9, "available_bytes": 8e9, "usage_percent": 50.0,
+			},
+			"disk": map[string]interface{}{
+				"total_bytes": 500e9, "used_bytes": 200e9, "available_bytes": 300e9, "usage_percent": 40.0,
+			},
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		},
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// handleNetworkMonitorLogs returns recent monitor log entries.
+func (s *Server) handleNetworkMonitorLogs(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"data": []map[string]interface{}{
+			{"level": "info", "message": "Network monitor initialized", "service": "network-monitor", "timestamp": time.Now().UTC().Format(time.RFC3339)},
+		},
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// handleNetworkMonitorConfig returns the monitor configuration.
+func (s *Server) handleNetworkMonitorConfig(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"data": map[string]interface{}{
+			"active_network": "local",
+			"networks": map[string]interface{}{
+				"local": map[string]interface{}{
+					"name": "KNIRV Local", "description": "Local development network",
+				},
+			},
+		},
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// handleAPIInfo returns server info — used by the WebGUI's backend detection.
+func (s *Server) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"role":    "General",
+		"network": "local",
+		"mode":    "gateway",
+	})
+}
+
+// handleChainProxy returns a handler that proxies GET /chain to the chain
+// socket at /api/v1/chain/latest (the chain's latest-block endpoint).
+func (s *Server) handleChainProxy(chainProxy *httputil.ReverseProxy) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Rewrite the request path to the chain's actual endpoint.
+		r.URL.Path = "/api/v1/chain/latest"
+		r.URL.RawPath = ""
+		chainProxy.ServeHTTP(w, r)
+	}
+}
+
+// handleTxnPool returns mock transaction pool data (no matching chain endpoint).
+func (s *Server) handleTxnPool(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode([]interface{}{})
+}
+
+// handleWalletInfoProxy returns a handler that proxies GET /wallet/info to the
+// chain socket at /api/wallet/status.
+func (s *Server) handleWalletInfoProxy(chainProxy *httputil.ReverseProxy) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = "/api/wallet/status"
+		r.URL.RawPath = ""
+		chainProxy.ServeHTTP(w, r)
+	}
+}
+
+// handleDevs returns mock developer/peer data (no matching backend endpoint).
+func (s *Server) handleDevs(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode([]map[string]interface{}{
+		{"id": "local", "name": "Local Node", "status": "online"},
+	})
+}
+
+// handleTransaction proxies POST /transaction to the chain socket at the
+// chain's transaction endpoint.
+func (s *Server) handleTransaction(chainProxy *httputil.ReverseProxy) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = "/api/v1/transaction"
+		r.URL.RawPath = ""
+		chainProxy.ServeHTTP(w, r)
+	}
 }
 
 func (s *Server) handleMockAPI(w http.ResponseWriter, r *http.Request) {

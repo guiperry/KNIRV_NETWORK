@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"backend_server/internal/web/middleware"
@@ -53,6 +54,16 @@ func NewAPIRouter(
 func (ar *APIRouter) RegisterRoutes(r *mux.Router) {
 	// Create versioned API subrouter
 	apiV1 := r.PathPrefix("/api/v1").Subrouter()
+
+	// Health endpoint — returns backend status.  Proxied from the gateway
+	// as /api/v1/health.
+	apiV1.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"status": "ok",
+		})
+	}).Methods("GET")
 
 	// Register DVE routes under /api/v1/dve/
 	ar.registerDVERoutes(apiV1)
