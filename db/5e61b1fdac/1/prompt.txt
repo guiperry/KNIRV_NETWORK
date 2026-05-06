@@ -1,0 +1,508 @@
+The WebGUI is partially working - the initial page loads and the SPA navigates, but there are fundamental integration issues that can't be solved purely through proxying. Here's what's happening:
+    
+    What's working:
+    - /dashboard redirects correctly to /gateway (302)
+    - The gateway's initial HTML and CSS load via the proxy
+    - Gateway chunks served via /gateway/_next/static/... return 200
+    
+    What's broken:
+    - The gateway's SPA navigates to dozens of client-side routes (/bootnode-dao, /network-inference-dao, /chain-explorer, etc.) and the referer-based proxy can't catch all possible paths
+    - The gateway's embedded JS has hardcoded API endpoints pointing to http://localhost:3001 (Payment Gateway) and http://localhost:8080 — these services aren't running
+    - The gateway expects to be served on its own TCP port with direct access to its API backends
+    
+    The WebGUI is designed to run as a standalone app served by the knirvgateway binary on its own port, not proxied through another server. The proxy handles the initial load but fails on SPA navigation and hardcoded API calls.
+
+Okay, I want it in the iFRame, so we need to find a way to make it work.                                                                                               
+Lets make the gateway listen on port 8080 as it is the forward facing portal. We can deprecate the gateway.sock, ensuring KNIRVCHAIN and KNIRVGRAPH communications with t
+he gateway happen through the newly assigned port.                                                                                                                       
+We need to ensure the gateway backend port is dynamic and uses the KNIRVSERVER backend, mapping all of its calls to available endpoints in the server as needed.         
+The gateway is the place where the proxy should be operating anyway, not the KNIRVSERVER. All API endpoints should have a proxy public facing endpoint in the gateway tha
+t proxys to the internal service via the unix sockets. Draft a plan for this part of the implementation first.
+
+---
+
+<task-notification>
+<task-id>a9962bfab83c9eb7c</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/tmp/claude-1000/REDACTED/9de06917-4efe-4056-9087-70b05f31312b/tasks/a9962bfab83c9eb7c.output</output-file>
+<status>completed</status>
+<summary>Agent "Explore gateway and server architecture" completed</summary>
+<result>Perfect! Now I have comprehensive information. Let me compile the detailed architectural survey:
+
+## KNIRV NETWORK - DETAILED ARCHITECTURAL SURVEY
+
+### **PACKAGE 1: KNIRVGATEWAY**
+
+#### 1. Main Entry Point (`packages/KNIRVGATEWAY/cmd/gateway/main.go`)
+
+**Binding Configuration:**
+- **Port**: Configurable via environment variable `PORT` (defaults to 8080)
+- **Unix Socket**: Configurable via CLI flag `-socket` or environment variable `SOCKET_PATH`
+- **Port Precedence**: Socket path takes priority if set; otherwise binds to port
+- **Browser Auto-Open**: Enabled by default (configurable via `AUTO_OPEN_BROWSER`)
+
+**Services Started:**
+1. **HTTP Server** - Goroutine-based async startup
+2. **Tunnel Service** - For registry and relay
+3. **Payment Service** - Payment processing
+4. **TURN Server** - With blockchain integration (optional, controlled by `TURN_SERVER_ENABLED`)
+5. **DHT Manager** - Peer-to-peer discovery (optional, controlled by `DISABLE_DHT`)
+6. **Operator Service** - For oracle operations
+7. **WebGUI Handler** - Explorer UI serving
+8. **Auth Handler** - Session and authentication management
+9. **URI Handler** - URI generation for resources
+10. **Runtime Setup** - Extracts embedded WebGUI and website assets
+
+#### 2. Server Setup (`packages/KNIRVGATEWAY/internal/server/server.go`)
+
+**Routing Architecture:**
+- **HTTP Framework**: Gorilla Mux (router with middleware support)
+- **CORS**: Enabled with `*` origin (all hosts allowed)
+- **Port Detection**: Dynamic port selection if configured port in use (tries up to 100 sequential ports)
+
+**Route Categories:**
+
+1. **Session Management** (`/session/controller`)
+   - GET: Retrieve session
+   - POST: Set controller URL in session
+
+2. **Health &amp; Status** (`/health`)
+   - Returns server status, mode, chainID, port, DHT status
+
+3. **DHT/P2P Endpoints**
+   - `/dht/announce` - Announce resource via DHT
+   - `/dht/find` - Find providers via DHT
+   - `/dht/peers` - Get connected peers
+   - `/dht/bootstrap` - Bootstrap DHT node
+   - `/dht/cache-resource` - Cache resource broadcast
+   - `/dht/announce-all-cached` - Announce all cached resources
+   - `/dht/cache-status` - Check cache status
+
+4. **Chain P2P Proxy** (Unix socket from KNIRVCHAIN)
+   - `/p2p/publish-block` - Broadcast block
+   - `/p2p/publish-tx` - Broadcast transaction
+   - `/p2p/register-callback` - Register KNIRVCHAIN callback socket
+   - `/p2p/peers` - Get peer list
+   - `/p2p/self-addrs` - Get multiaddrs
+   - `/p2p/peer-id` - Get peer ID
+
+5. **Auth Routes** (via handler)
+   - Session-based authentication
+
+6. **Operator Registry** (via handler)
+   - Oracle registry operations
+
+7. **Tunnel Registry** (via handler)
+   - HTTP API, Control, Relay, STUN ports management
+
+8. **Payment Oracle** (via handler)
+   - Stripe/Coinbase integration
+
+9. **URI Generation** (via handler)
+   - Resource URI creation
+
+10. **WebGUI/Explorer** (via handler)
+    - `/oracle` - Explorer entry point
+    - `/explorer` - Explorer entry point
+    - `/dashboard` - Dashboard HTML
+    - `/api/v1/*` - API versioning
+
+11. **TURN Server Endpoints** (blockchain-enabled)
+    - `/api/turn/status`, `/api/turn/stats`, `/api/turn/health`
+    - `/api/proof/submit`, `/api/proof/status`
+    - `/api/mint/nrn`, `/api/mint/reward`
+    - `/api/stats/minting`
+
+12. **Dynamic Controller Proxy**
+    - `/controller/*` - Proxies to session-based controller URL
+
+13. **Mock API**
+    - `/api` - Mock oracle responses
+
+14. **Static File Serving**
+    - `/_next/*` - Next.js assets
+    - `/favicon.ico`, `/next.svg`, etc. - Static files
+    - `/oracle/`, `/explorer/`, `/dashboard/` - HTML pages at prefixes
+
+**Listener Setup:**
+- **TCP Binding** (port): `net.Listen("tcp", ":&lt;port&gt;")`
+- **Unix Socket Binding**: `net.Listen("unix", "&lt;socket_path&gt;")`
+- **Socket Permissions**: Sets to 0666 after creation
+
+**Middleware:**
+- CORS middleware (all origins)
+- Auth middleware (validates Bearer tokens with `keyID.secret` format)
+
+#### 3. Configuration (`packages/KNIRVGATEWAY/internal/config/config.go`)
+
+**Key Settings (loaded via environment variables):**
+- `GATEWAY_MODE` - "persistent" (default)
+- `PORT` - Default 8080
+- `SOCKET_PATH` - Unix socket path (overrides PORT)
+- `KNIRV_CHAIN_ID` - "testnet" (default)
+- `PUBLIC_HOST` - "localhost" (default)
+- `DISABLE_DHT` - false (DHT enabled by default)
+- `DHT_PORT` - 0 (auto-select, default)
+- `NODEJS_SERVICES_ENABLED` - true
+- `NODEJS_SERVICES_AUTOSTART` - true
+- `PAYMENT_GATEWAY_ENABLED` - true
+- `TUNNEL_REGISTRY_ENABLED` - true
+- `TURN_SERVER_ENABLED` - true
+- `TURN_SERVER_UDP_PORT` - 3478
+- `TURN_SERVER_TCP_PORT` - 3479
+- `TURN_SERVER_API_PORT` - 3476
+- `CHAIN_NODE_ROLE` - "Client"
+- `CHAIN_P2P_PORT` - 4001
+- `CHAIN_CLIENT_ONLY` - true
+
+**Special Config Fields:**
+- `KnirvOracleURL` - Points to KNIRV-ORACLE (default: `http://localhost:1317`)
+- `InternalAPIKey` - Used as relay peer ID
+- `SessionSecret` - Session management
+- `ChainCallbackSocket` - KNIRVCHAIN P2P callback path
+
+#### 4. Middleware (`packages/KNIRVGATEWAY/internal/server/middleware.go`)
+
+- **AuthMiddleware**: Validates Bearer tokens in format `keyID.secret`
+- Extracts credentials to request context
+- Returns 401 Unauthorized if missing or invalid
+
+#### 5. Dependencies (`packages/KNIRVGATEWAY/go.mod`)
+
+**Direct Dependencies:**
+- `github.com/gorilla/mux` - HTTP routing
+- `github.com/gorilla/sessions` - Session management
+- `github.com/rs/cors` - CORS middleware
+- `github.com/joho/godotenv` - Environment variable loading
+- `github.com/pion/turn/v2` - TURN server protocol
+- `go.uber.org/zap` - Structured logging
+- `golang.org/x/crypto` - Cryptography
+
+**Indirect P2P/Network Dependencies:**
+- `github.com/libp2p/go-libp2p` - Peer-to-peer networking
+- `github.com/libp2p/go-libp2p-kad-dht` - DHT implementation
+- `github.com/libp2p/go-libp2p-pubsub` - Pub/Sub messaging
+- `github.com/ipfs/go-cid` - Content identifiers
+- `github.com/multiformats/go-multiaddr` - Multiaddresses
+- `github.com/stripe/stripe-go/v79` - Stripe payment processing
+
+---
+
+### **PACKAGE 2: KNIRVSERVER**
+
+#### 1. Backend Server Entry Point (`packages/KNIRVSERVER/backend/cmd/backend_server/main.go`)
+
+**Binding Configuration (from config and main.go):**
+- **Main API Port**: `8082` (configured in code, default)
+- **WebSocket Port**: `8082` (same as API)
+- **GUI Port**: `8090` (frontend wrapper)
+- **REST API Port**: `7080` (alternative)
+- **API Socket Path**: `/var/lib/knirvserver/sockets/backend.sock`
+
+**Services Started:**
+1. **Backend API Server** - REST/WebSocket on port 8082 and socket
+2. **Frontend GUI Server** - Wrapper on port 8090
+3. **Database Manager** - BuntDB with KNIRVBASE persistence
+4. **Embedded KNIRVGATEWAY** - P2P/TURN relay
+5. **Embedded KNIRVGRAPH** - Knowledge graph and graphchain
+6. **Embedded KNIRVCHAIN** - Blockchain and mining
+7. **Transaction Chain** - Transaction execution
+8. **Validation Chain** - Validation signoff chain
+9. **Rollup System** - Transaction rollup submission
+10. **Hasher Service** - KNIRVHASHER for ML pipeline
+11. **Data Engine** - Event collection and compression
+12. **Model Server** - Model management and isolation
+13. **Inference Service** - Model inference execution
+14. **CDE (Cloud Development Environment)** - Workspace management
+15. **Authentication Service** - JWT/session-based auth
+16. **P2P Service** - Network communication
+17. **WebSocket Service** - Real-time client communication
+18. **Vault Service** - Secret management
+19. **Workflow Service** - Task orchestration
+20. **Cognitive Engine** - AI reasoning (ICME integration)
+21. **Knowledge Base** - Information storage
+22. **Evidence System** - Proof tracking
+23. **eBPF Monitoring** - System instrumentation
+
+**SSH/Port Ranges:**
+- **SSH Port Range**: 22000-22999 (1000 ports)
+- **Validation Port Range**: 23000-23999 (1000 ports)
+- **Error Resolution Port Range**: 24000-24999 (1000 ports)
+
+#### 2. API Router (`packages/KNIRVSERVER/backend/internal/web/api_router.go`)
+
+**API Versioning:**
+- Base prefix: `/api/v1`
+
+**Route Groups:**
+
+1. **DVE (Distributed Virtual Environment)** - `/api/v1/dve/`
+   - `GET/POST /nodes` - List/create DVE nodes
+   - `GET/PUT/DELETE /nodes/{id}` - Node CRUD
+   - `GET /nodes/{id}/endpoints` - Node endpoints
+   - `GET /nodes/{id}/ssh-endpoint` - SSH access
+   - `GET /nodes/{id}/validation-endpoint` - Validation
+   - `GET /nodes/{id}/error-resolution-endpoint` - Error resolution
+   - `GET /workers` - List DVE workers
+   - `GET /{nodeId}/tasks` - Node tasks
+   - `GET /{nodeId}/metrics` - Node metrics
+   - `POST /{nodeId}/ssh-session` - Create SSH session
+   - `POST /{nodeId}/agent/response` - Agent responses
+   - `GET /peers` - P2P peers
+
+2. **Plugin Management** - `/api/v1/plugin/`
+   - `GET/POST /objects` - List/create plugins
+   - `GET/PUT/DELETE /objects/{id}` - Plugin CRUD
+   - `POST /objects/{id}/actions` - Execute actions
+   - `GET /objects/{id}/metrics` - Metrics
+   - `GET /objects/{id}/logs` - Logs
+   - `GET /objects/{id}/events` - Events
+   - `GET/POST /templates` - Plugin templates
+
+3. **Agent Management** - `/api/v1/dve/{id}/agent/`
+   - `GET /status` - Agent status
+   - `POST /launch` - Launch agent
+   - `DELETE /` - Stop agent
+   - `GET/POST /tasks` - Task management
+   - `GET /tasks/{taskID}` - Task details
+
+4. **Payments** - `/api/v1/payments/`
+   - Stripe endpoints: `/stripe/create-session`, `/stripe/charge-status`, `/stripe/refund`, `/stripe/webhook`
+   - PayPal endpoints: `/paypal/create-order`, `/paypal/order-status`, `/paypal/capture`, `/paypal/refund`, `/paypal/webhook`
+
+5. **KNIRVSHELL** - `/api/v1/shell/`
+   - CLI-over-HTTP shell commands
+
+6. **Onboarding** - `/api/v1/onboarding/`
+   - User setup and initialization
+
+7. **Cognitive Engine** - `/api/v1/cognitive/`
+   - ICME-based AI reasoning
+
+8. **Knowledge Base** - `/api/v1/knowledge-base/`
+   - Information retrieval and storage
+
+9. **WebSocket** - `/api/dve/browser/ws`
+   - Real-time browser-based DVE communication
+
+**Authentication:**
+- Optional Auth middleware on most routes
+- JWT-based token validation
+- CORS enabled for listed origins
+
+#### 3. Development Configuration (`packages/KNIRVSERVER/config/development.yaml`)
+
+**Core Server Settings:**
+```yaml
+host: "0.0.0.0"
+port: 8090              # Frontend GUI wrapper
+chain_id: knirv-server-devnet
+node_role: dve-manager
+serve_frontend: true
+log_level: "debug"
+```
+
+**Socket Directory:**
+```yaml
+socket_dir: /var/lib/knirvserver/sockets
+```
+
+**API Configuration:**
+```yaml
+api:
+  port: 8082                                    # Backend API
+  socket_path: /var/lib/knirvserver/sockets/backend.sock
+  host: "0.0.0.0"
+  enable_cors: true
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8082"
+    - "http://localhost:8090"
+    - "https://server.knirv.com"
+  jwt_secret: "dev-jwt-secret-key-for-development-only"
+  rate_limit_rps: 1000
+  request_timeout: "30s"
+```
+
+**KNIRVGATEWAY Configuration (Embedded):**
+```yaml
+gateway:
+  enabled: true
+  binary_path: /var/lib/knirvserver/bin/knirvgateway
+  port: 8081                                    # HTTP port
+  socket_path: /var/lib/knirvserver/sockets/gateway.sock  # Unix socket
+  turn_udp_port: 3478
+  turn_tcp_port: 3479
+  turn_api_port: 3476
+  tunnel_http_port: 3002
+  tunnel_ctrl_port: 3003
+  tunnel_relay_port: 3004
+  tunnel_stun_port: 3005
+  auth_secret: "knirvchain-turn-secret"
+  miner_address: "GATEWAY_MINER"
+  start_timeout: 30
+  stop_timeout: 10
+```
+
+**KNIRVGRAPH Configuration (Embedded):**
+```yaml
+graph:
+  enabled: true
+  binary_path: /var/lib/knirvserver/bin/knirvgraph
+  socket_path: /var/lib/knirvserver/sockets/graph.sock      # REST API socket
+  p2p_socket_path: /var/lib/knirvserver/sockets/graph-p2p.sock  # P2P socket
+  data_path: /var/lib/knirvserver/knirvgraph
+  sync_interval: "30s"
+  start_timeout: 30
+  stop_timeout: 10
+```
+
+**KNIRVCHAIN Configuration (Embedded):**
+```yaml
+chain:
+  enabled: true
+  binary_path: /var/lib/knirvserver/bin/knirvchain
+  socket_path: /var/lib/knirvserver/sockets/chain.sock      # REST API socket
+  p2p_socket_path: /var/lib/knirvserver/sockets/chain-p2p.sock  # P2P socket
+  port: 8083                                    # HTTP port
+  p2p_port: 4001
+  api_port: 8083
+  data_path: /var/lib/knirvserver/knirvchain
+  role: "client"
+  chain_id: "testnet"
+  start_timeout: 30
+  stop_timeout: 10
+```
+
+**Additional Services:**
+```yaml
+host_controller:
+  enable_monitoring: true
+  monitoring_interval: "30s"
+  enable_p2p: true
+  p2p_port: 4001
+
+data_engine:
+  retention_days: 30
+  max_events_per_collection: 10000
+
+model_server:
+  max_models: 100
+  resource_limits:
+    max_cpu_per_model: 1.0
+    max_memory_per_model: 512000000  # 512MB
+
+cde:
+  max_environments: 50
+  allowed_ports:
+    - 8082
+    - 3000
+    - 5000
+
+icme:
+  enabled: true
+  ollama_base_url: "http://localhost:11434"
+  graph_window_size: "10m"
+```
+
+#### 4. Configuration Structure (`packages/KNIRVSERVER/backend/internal/config/config.go`)
+
+**Key Structures:**
+- `APIConfig`: Address, Port (8082), SocketPath, BindAddress
+- `GUIConfig`: Enabled, Port (8090), FrontendPath
+- `GatewayConfig`: Port (8081), SocketPath, TURN ports, Tunnel ports
+- `GraphConfig`: SocketPath, P2PSocketPath, Port, P2PPort, APIPort
+- `ChainConfig`: SocketPath, P2PSocketPath, Port (8083), P2PPort (4001), APIPort (8083)
+
+---
+
+## **CURRENT ARCHITECTURE SUMMARY**
+
+### **Port/Socket Mapping**
+
+| Component | Type | Address | Purpose |
+|-----------|------|---------|---------|
+| **KNIRVGATEWAY** | Port | 8080 (default) or 8081 (dev) | HTTP Server / Explorer UI |
+| **KNIRVGATEWAY** | Socket | `/var/lib/knirvserver/sockets/gateway.sock` | REST API access from KNIRVSERVER |
+| **KNIRVGATEWAY** | Port | 3478 (UDP), 3479 (TCP), 3476 (API) | TURN server (connectivity) |
+| **KNIRVGATEWAY** | Port | 3002, 3003, 3004, 3005 | Tunnel Registry (HTTP, Control, Relay, STUN) |
+| **KNIRVGATEWAY** | Port | 4001 | libp2p P2P listening |
+| **KNIRVGATEWAY** | Port | 0 (auto) | DHT Port (if enabled) |
+| **KNIRVSERVER** | Port | 8090 | Frontend GUI wrapper |
+| **KNIRVSERVER** | Port | 8082 | Backend API / WebSocket |
+| **KNIRVSERVER** | Socket | `/var/lib/knirvserver/sockets/backend.sock` | Unix socket API |
+| **KNIRVSERVER** | Port | 7080 | Alternative REST API |
+| **KNIRVCHAIN** | Port | 8083 | HTTP API (blockchain) |
+| **KNIRVCHAIN** | Port | 4001 | P2P networking |
+| **KNIRVCHAIN** | Socket | `/var/lib/knirvserver/sockets/chain.sock` | Unix socket API |
+| **KNIRVCHAIN** | Socket | `/var/lib/knirvserver/sockets/chain-p2p.sock` | P2P callback socket |
+| **KNIRVGRAPH** | Socket | `/var/lib/knirvserver/sockets/graph.sock` | REST API socket |
+| **KNIRVGRAPH** | Socket | `/var/lib/knirvserver/sockets/graph-p2p.sock` | P2P socket |
+| **Metrics** | Port | 9090 | Prometheus metrics (KNIRVSERVER) |
+
+### **How Components Connect**
+
+1. **KNIRVGATEWAY ↔ KNIRVSERVER**
+   - KNIRVSERVER invokes KNIRVGATEWAY binary at startup
+   - Communication via Unix socket: `gateway.sock`
+   - Gateway provides P2P, TURN, Tunnel services for entire system
+
+2. **KNIRVCHAIN ↔ KNIRVGATEWAY**
+   - KNIRVCHAIN uses KNIRVGATEWAY for P2P networking
+   - Chain publishes blocks/transactions via `/p2p/publish-block`, `/p2p/publish-tx` endpoints
+   - Chain registers callback socket via `/p2p/register-callback`
+   - Chain receives P2P callbacks at registered socket path
+
+3. **KNIRVGRAPH ↔ KNIRVGATEWAY**
+   - Similar P2P proxy pattern
+   - Communicates via socket path: `graph.sock` and `graph-p2p.sock`
+   - KNIRVGRAPH manages knowledge graph with KNIRVGATEWAY providing transport
+
+4. **KNIRVSERVER ↔ KNIRVCHAIN/KNIRVGRAPH**
+   - Manages lifecycle (start/stop) of both services
+   - Configuration passed via YAML
+   - Services communicate back via registered callback sockets
+
+### **Proxy/Relay Logic**
+
+**KNIRVGATEWAY Proxy Features:**
+1. **Chain P2P Proxy** (`/p2p/*` endpoints)
+   - Bridges KNIRVCHAIN to libp2p network via DHT
+   - Publishes blocks and transactions on behalf of chain
+   - Manages callback registration for peer events
+
+2. **Dynamic Controller Proxy** (`/controller/*` path)
+   - Session-based routing to configured controller URL
+   - Stores controller URL per session
+   - Allows flexible controller backend switching
+
+3. **Mock API Fallback** (`/api/*`)
+   - Provides mock oracle responses
+   - Routes unmatched `/api/*` paths
+
+4. **Static File Serving**
+   - WebGUI (explorer) at `/oracle`, `/explorer`
+   - Next.js assets at `/_next/*`
+   - Network website fallback
+
+### **Authentication &amp; Security**
+
+- **KNIRVGATEWAY**: Bearer token validation (format: `keyID.secret`)
+- **KNIRVSERVER**: JWT-based optional auth on API routes
+- **Session Management**: Gorilla sessions with configurable secrets
+- **CORS**: Enabled globally with specified origins
+- **Rate Limiting**: 1000 RPS on KNIRVSERVER API
+
+### **Key Files Reviewed**
+
+1. `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVGATEWAY/cmd/gateway/main.go` - Entry point
+2. `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVGATEWAY/internal/server/server.go` - Route setup (1055 lines)
+3. `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVGATEWAY/internal/config/config.go` - Config loading
+4. `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVGATEWAY/internal/server/middleware.go` - Auth middleware
+5. `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVGATEWAY/go.mod` - Dependencies
+6. `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go` - Entry point (100 lines examined)
+7. `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/api_router.go` - API routing (200 lines examined)
+8. `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/config/development.yaml` - Dev config
+9. `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/config/config.go` - Config structures</result>
+<usage><total_tokens>51915</total_tokens><tool_uses>20</tool_uses><duration_ms>135181</duration_ms></usage>
+</task-notification>
