@@ -25,6 +25,12 @@
       "transcript": "/db/5e61b1fdac/2/full.jsonl",
       "content_hash": "/db/5e61b1fdac/2/content_hash.txt",
       "prompt": "/db/5e61b1fdac/2/prompt.txt"
+    },
+    {
+      "metadata": "/db/5e61b1fdac/3/metadata.json",
+      "transcript": "/db/5e61b1fdac/3/full.jsonl",
+      "content_hash": "/db/5e61b1fdac/3/content_hash.txt",
+      "prompt": "/db/5e61b1fdac/3/prompt.txt"
     }
   ],
   "token_usage": {
