@@ -332,7 +332,7 @@ describe('DashboardWrapper', () => {
 
     render(
       <OnboardingProvider>
-        <DashboardWrapper useModularCDE={false} setUseModularCDE={jest.fn()}><div>Test Content</div></DashboardWrapper>
+        <DashboardWrapper><div>Test Content</div></DashboardWrapper>
       </OnboardingProvider>
     );
 
@@ -353,7 +353,7 @@ describe('DashboardWrapper', () => {
 
     render(
       <OnboardingProvider>
-        <DashboardWrapper useModularCDE={false} setUseModularCDE={jest.fn()}><div>Test Content</div></DashboardWrapper>
+        <DashboardWrapper><div>Test Content</div></DashboardWrapper>
       </OnboardingProvider>
     );
 
@@ -373,7 +373,7 @@ describe('DashboardWrapper', () => {
 
     render(
       <OnboardingProvider>
-        <DashboardWrapper useModularCDE={false} setUseModularCDE={jest.fn()}><div>Test Content</div></DashboardWrapper>
+        <DashboardWrapper><div>Test Content</div></DashboardWrapper>
       </OnboardingProvider>
     );
 
@@ -393,7 +393,7 @@ describe('DashboardWrapper', () => {
 
     render(
       <OnboardingProvider>
-        <DashboardWrapper useModularCDE={false} setUseModularCDE={jest.fn()}><div>Test Content</div></DashboardWrapper>
+        <DashboardWrapper><div>Test Content</div></DashboardWrapper>
       </OnboardingProvider>
     );
 

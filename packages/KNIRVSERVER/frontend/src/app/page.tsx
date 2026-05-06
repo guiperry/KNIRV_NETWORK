@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,6 @@ import { DVENodesPanel } from "@/components/dashboard/dve-nodes-panel";
 import { CognitiveEnginePanel } from "@/components/dashboard/cognitive-engine-panel";
 import { ActiveMemoryPanel } from "@/components/dashboard/active-memory/active-memory-panel";
 import { PluginVaultPanel } from "@/components/dashboard/active-memory/plugin-vault-panel";
-import DVEWorkspacePanel from "@/components/dashboard/dve-workspace-panel";
 
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
 import { DemoModeToggle } from "@/components/admin/demo-mode-toggle";
@@ -99,7 +98,6 @@ export default function Dashboard() {
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
-  const [useModularCDE, setUseModularCDE] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('knirv_nexus_token') || localStorage.getItem('knirv_auth_token');
@@ -108,8 +106,6 @@ export default function Dashboard() {
       return;
     }
   }, [router]);
-
-  const displayModular = useModularCDE;
 
   // Use real backend hooks instead of mock data
   const { nodes: dveNodes, isLoading: dveLoading, error: dveError } = useDVENodes();
@@ -205,25 +201,9 @@ export default function Dashboard() {
   return (
     <DashboardWrapper 
       onRentDVE={() => {}}
-      useModularCDE={useModularCDE}
-      setUseModularCDE={setUseModularCDE}
     >
       <div className="space-y-6">
-        {displayModular ? (
-          <div className="relative h-[calc(100vh-200px)] min-h-[600px]">
-            <DVEWorkspacePanel
-              isOpen={true}
-              onClose={() => {
-                if (user?.role === 'admin') setUseModularCDE(false);
-              }}
-              nodeId={user?.node_id || 'LOCAL-DVE-01'}
-              nodeName={user?.node_id ? `Assigned Node (${user.node_id})` : 'Integrated DVE Context'}
-              isModular={true}
-              onToggleMode={() => setUseModularCDE(false)}
-            />
-          </div>
-        ) : (
-          <>
+        <>
             <div className="text-center space-y-2">
               <div className="flex items-center justify-center gap-2">
                 <h1 className="text-4xl font-bold knirv-gradient-text">KNIRV-SERVER DVE</h1>
@@ -372,8 +352,7 @@ export default function Dashboard() {
               </TabsContent>
             </Tabs>
           </>
-        )}
-      </div>
+        </div>
     </DashboardWrapper>
   );
 }

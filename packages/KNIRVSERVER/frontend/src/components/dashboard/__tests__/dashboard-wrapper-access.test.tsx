@@ -7,7 +7,7 @@ describe('DashboardWrapper DVE access flow', () => {
     const source = fs.readFileSync(filePath, 'utf8');
 
     expect(source).toMatch(
-      /const handleNodeAccess = \(node: DVENode\) => \{[\s\S]*setSelectedNode\(node\);[\s\S]*setUseModularCDE\(true\);[\s\S]*setCdeModalOpen\(true\);[\s\S]*\};/
+      /const handleNodeAccess = \(node: DVENode\) => \{[^}]*setSelectedNode\(node\);[^}]*setCdeModalOpen\(true\);[^}]*};/
     );
   });
 });

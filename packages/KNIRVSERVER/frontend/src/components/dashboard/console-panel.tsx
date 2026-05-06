@@ -28,7 +28,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const inputBufferRef = useRef<string>('');
   const [isInitializing, setIsInitializing] = useState(false);
   const [sshConnected, setSshConnected] = useState(false);
-  const [connectionMode, setConnectionMode] = useState<'knirvshell' | 'ssh' | 'local'>('local');
+  const [connectionMode, setConnectionMode] = useState<'knirvshell' | 'knirvagent' | 'ssh' | 'local'>('local');
 
   const { fetchFabricLogs } = useFabricManagement();
 
@@ -136,6 +136,48 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
     }
   }, [nodeId]);
 
+  // Attempt to connect the terminal to the DVE Supervisor Agent (KNIRVAGENT).
+  const connectKNIRVAGENT = useCallback(async (term: XTermTerminal) => {
+    if (!nodeId) return false;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/dve/${nodeId}/supervisor-agent/session`, {
+        headers: getAuthHeaders(),
+      });
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = window.location.host;
+      const ws = new WebSocket(`${wsProto}//${wsHost}${data.ws_url}`);
+      wsRef.current = ws;
+      setConnectionMode('knirvagent');
+
+      ws.onopen = () => {
+        setSshConnected(true);
+        term.writeln('\x1b[35m[CONNECTED] DVE Supervisor Agent (KNIRVAGENT) link established.\x1b[0m');
+        term.writeln('\x1b[35m[INFO] Your terminal input will be relayed to the KNIRVAGENT supervisor.\x1b[0m');
+        term.write('\x1b[1;35magent> \x1b[0m');
+      };
+      ws.onmessage = (ev) => {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === 'data') {
+          term.write(msg.data);
+        } else if (msg.type === 'prompt') {
+          term.write('\x1b[1;35magent> \x1b[0m');
+        }
+      };
+      ws.onerror = () => {
+        setSshConnected(false);
+        term.writeln('\x1b[33m[KNIRVAGENT] Connection unavailable — trying SSH fallback.\x1b[0m');
+      };
+      ws.onclose = () => {
+        setSshConnected(false);
+      };
+      return true;
+    } catch {
+      return false;
+    }
+  }, [nodeId]);
+
   const loadRealLogs = useCallback(async () => {
     if (!fabricId || !xtermRef.current) return;
     
@@ -199,8 +241,11 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
 
         setIsInitializing(false);
 
-        // Try KNIRVCLI first, then SSH, then fall back to local simulation
+        // Try KNIRVCLI first, then KNIRVAGENT supervisor, then SSH, then fall back to local simulation
         let didConnect = await connectKNIRVCLI(term);
+        if (!didConnect) {
+          didConnect = await connectKNIRVAGENT(term);
+        }
         if (!didConnect) {
           didConnect = await connectSSH(term);
         }
@@ -231,6 +276,8 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
             } else {
               term.write(data);
             }
+          } else if (connectionMode === 'knirvagent' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ type: 'input', data }));
           } else if (connectionMode === 'ssh' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({ type: 'input', data }));
           } else {

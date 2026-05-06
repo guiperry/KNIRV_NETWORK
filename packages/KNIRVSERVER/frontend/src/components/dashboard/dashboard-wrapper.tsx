@@ -69,11 +69,9 @@ import {
 interface DashboardWrapperProps {
   children: React.ReactNode;
   onRentDVE?: () => void;
-  useModularCDE: boolean;
-  setUseModularCDE: (value: boolean) => void;
 }
 
-export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseModularCDE }: DashboardWrapperProps) {
+export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps) {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { state: onboardingState, updateState: updateOnboardingState, completeOnboarding, resetOnboarding } = useOnboarding();
@@ -381,7 +379,6 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
 
   const handleNodeAccess = (node: DVENode) => {
     setSelectedNode(node);
-    setUseModularCDE(true);
     setCdeModalOpen(true);
   };
 
@@ -1251,31 +1248,11 @@ export function DashboardWrapper({ children, onRentDVE, useModularCDE, setUseMod
 
       {/* DVE Workspace Access Modal / Panel */}
       {selectedNode && (
-        useModularCDE ? (
-          <DVEWorkspacePanel
-            isOpen={cdeModalOpen}
-            onClose={() => setCdeModalOpen(false)}
-            node={selectedNode}
-            isModular={true}
-            onToggleMode={() => {
-              setUseModularCDE(false);
-              setCdeModalOpen(true);
-            }}
-          />
-        ) : (
-          <NetworkAccessModal
-            isOpen={cdeModalOpen}
-            onClose={() => setCdeModalOpen(false)}
-            nodeId={selectedNode.id}
-            nodeName={selectedNode.name}
-            onOpenKNIRVEngine={handleOpenKNIRVEngine}
-            isModular={false}
-            onToggleMode={() => {
-              setUseModularCDE(true);
-              setCdeModalOpen(true);
-            }}
-          />
-        )
+        <DVEWorkspacePanel
+          isOpen={cdeModalOpen}
+          onClose={() => setCdeModalOpen(false)}
+          node={selectedNode}
+        />
       )}
 
       {/* KNIRVENGINE Modal */}

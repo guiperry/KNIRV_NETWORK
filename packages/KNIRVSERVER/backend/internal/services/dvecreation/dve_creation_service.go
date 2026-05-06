@@ -1,6 +1,7 @@
 package dvecreation
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -39,6 +40,15 @@ type ContainerOrchestratorInterface interface {
 	TerminateContainer(containerID string) error
 }
 
+// KnirvagentManagerInterface defines the subset of knirvagent.Manager methods
+// needed by DVECreationService to auto-provision the DVE Supervisor Agent.
+type KnirvagentManagerInterface interface {
+	Start(ctx context.Context) error
+	Stop(ctx context.Context) error
+	IsRunning() bool
+	HealthCheck(ctx context.Context) error
+}
+
 type DVEManagerInterface interface {
 	RegisterNode(req *objects.RegisterNodeRequest) (*objects.DVENode, error)
 }
@@ -50,6 +60,7 @@ type DVECreationService struct {
 	chainClient           ChainClientInterface
 	dveManager            DVEManagerInterface
 	containerOrchestrator ContainerOrchestratorInterface
+	knirvagentManager     KnirvagentManagerInterface
 	activeCreations       map[string]*objects.DVECreation
 	activeSessions        map[string]*objects.DVESession
 	cleanupInterval       time.Duration
@@ -96,6 +107,12 @@ func (dcs *DVECreationService) SetContainerOrchestrator(orchestrator ContainerOr
 	dcs.mu.Lock()
 	defer dcs.mu.Unlock()
 	dcs.containerOrchestrator = orchestrator
+}
+
+func (dcs *DVECreationService) SetKnirvagentManager(mgr KnirvagentManagerInterface) {
+	dcs.mu.Lock()
+	defer dcs.mu.Unlock()
+	dcs.knirvagentManager = mgr
 }
 
 func (dcs *DVECreationService) Start() error {
@@ -229,6 +246,17 @@ func (dcs *DVECreationService) CreateDVENode(req *objects.DVECreationRequest) (*
 				// Override DVENodeID with the one from the registered node
 				creation.DVENodeID = node.ID
 				log.Printf("[DVE Creation] Registered DVE node %s", node.ID)
+			}
+		}
+
+		// Auto-start DVE Supervisor Agent (KNIRVAGENT) for this DVE
+		if dcs.knirvagentManager != nil {
+			ctx := context.Background()
+			if err := dcs.knirvagentManager.Start(ctx); err != nil {
+				log.Printf("[DVE Creation] Warning: Failed to start KNIRVAGENT supervisor: %v", err)
+			} else {
+				creation.SupervisorAgentID = creation.DVENodeID
+				log.Printf("[DVE Creation] KNIRVAGENT supervisor started for DVE %s", creation.Name)
 			}
 		}
 	}

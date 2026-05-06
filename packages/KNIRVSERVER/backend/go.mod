@@ -3,6 +3,7 @@ module backend_server
 go 1.25.7
 
 require (
+	backend_server/pkg/knirvagent v0.0.0-00010101000000-000000000000
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVCHAIN v0.0.0
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY v0.0.0
 	github.com/KNIRV/KNIRV_NETWORK/KNIRVGRAPH v0.0.0
@@ -219,3 +220,5 @@ require (
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1 // indirect.v3 v3.0.1 // indirect
 )
+
+replace backend_server/pkg/knirvagent => ../pkg/knirvagent

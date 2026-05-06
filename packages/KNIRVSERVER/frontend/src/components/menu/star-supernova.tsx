@@ -106,7 +106,7 @@ export default function StarSupernova({ onComplete }: { onComplete: () => void }
       </div>
 
       <motion.div
-        className="relative"
+        className="relative flex items-center justify-center"
         style={{ width: 100, height: 100 }}
         animate={
           phase === 'pulsing'
@@ -121,53 +121,49 @@ export default function StarSupernova({ onComplete }: { onComplete: () => void }
             : { duration: 1, ease: "easeOut" }
         }
       >
+        {/* Glow behind brain */}
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            background: `radial-gradient(circle at 30% 30%,
-              rgba(72, 136, 255, 0.9) 0%,
-              rgba(72, 136, 255, 0.8) 10%,
-              rgba(0, 180, 255, 0.7) 25%,
-              rgba(72, 136, 255, 0.6) 50%,
-              rgba(0, 100, 200, 0.4) 75%,
-              transparent 100%
+            background: `radial-gradient(circle at 50% 50%,
+              rgba(72, 136, 255, 0.3) 0%,
+              rgba(0, 180, 255, 0.15) 40%,
+              transparent 70%
             )`,
             boxShadow: `
-              0 0 60px rgba(72, 136, 255, 0.8),
-              0 0 100px rgba(72, 136, 255, 0.6),
-              0 0 150px rgba(0, 100, 200, 0.4),
-              inset -10px -10px 20px rgba(0, 50, 150, 0.3)
+              0 0 60px rgba(72, 136, 255, 0.6),
+              0 0 100px rgba(72, 136, 255, 0.4),
+              0 0 150px rgba(0, 100, 200, 0.2)
             `,
           }}
         />
-        <motion.div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        {/* Brain image */}
+        <motion.img
+          src="/icons/brain.png"
+          alt="KNIRV Brain"
+          className="relative"
           style={{
-            width: 40,
-            height: 40,
-            background: `radial-gradient(circle,
-              rgba(72, 136, 255, 1) 0%,
-              rgba(72, 136, 255, 0.9) 30%,
-              rgba(72, 136, 255, 0.6) 60%,
-              transparent 100%
-            )`,
-            filter: 'blur(2px)',
+            width: 60,
+            height: 60,
+            objectFit: "contain",
+            filter: "drop-shadow(0 0 12px rgba(72, 136, 255, 0.8)) drop-shadow(0 0 30px rgba(0, 100, 200, 0.4))",
           }}
-          animate={phase === 'pulsing' ? { scale: [1, 1.3, 1], opacity: [0.9, 1, 0.9] } : {}}
+          animate={phase === 'pulsing' ? { scale: [1, 1.15, 1], opacity: [0.85, 1, 0.85] } : {}}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         />
+        {/* Outer glow ring */}
         <motion.div
           className="absolute inset-0 rounded-full"
           style={{
             background: `radial-gradient(circle,
               transparent 40%,
-              rgba(72, 136, 255, 0.1) 60%,
-              rgba(72, 136, 255, 0.05) 80%,
+              rgba(72, 136, 255, 0.06) 55%,
+              rgba(72, 136, 255, 0.03) 75%,
               transparent 100%
             )`,
             filter: 'blur(8px)',
           }}
-          animate={phase === 'pulsing' ? { scale: [1, 1.4, 1], opacity: [0.5, 0.8, 0.5] } : {}}
+          animate={phase === 'pulsing' ? { scale: [1, 1.4, 1], opacity: [0.4, 0.6, 0.4] } : {}}
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         />
       </motion.div>

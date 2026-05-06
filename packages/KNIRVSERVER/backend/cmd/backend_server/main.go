@@ -75,6 +75,8 @@ import (
 
 	knirvhasher "knirvhasher"
 
+	knirvagent "backend_server/pkg/knirvagent"
+
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -146,8 +148,11 @@ type Server struct {
 	// Object Nest subsystem
 	unifiedContainerManager *runtime.UnifiedContainerManager
 
-	// Agent runtime (oh-my-pi)
+	// Agent runtime (oh-my-pi) — being replaced by KNIRVAGENT
 	agentService *agentsvc.AgentService
+
+	// DVE Supervisor Agent (KNIRVAGENT embedded subprocess)
+	knirvagentManager *knirvagent.Manager
 
 	// ICME - Intentional Context Memory Engine
 	icmeService *icme.Service
@@ -1049,10 +1054,25 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	)
 	log.Println("UCM: P2P router registration callbacks wired")
 
-	// Initialize Agent Service (oh-my-pi agentic runtime)
-	agentService := agentsvc.NewAgentService(dbManager, unifiedContainerManager, activeMemoryService)
+	// Initialize Agent Service (oh-my-pi agentic runtime — DEPRECATED)
+	agentService := agentsvc.NewAgentService(dbManager)
 	if err := agentService.Start(); err != nil {
 		log.Printf("Warning: Failed to start agent service: %v", err)
+	}
+
+	// Initialize DVE Supervisor Agent (KNIRVAGENT embedded subprocess)
+	knirvagentCfg := knirvagent.DefaultManagerConfig()
+	knirvagentCfg.BackendAPIPort = int(cfg.Port)
+	if cfg.API.SocketPath != "" {
+		knirvagentCfg.SocketPath = filepath.Join(filepath.Dir(cfg.API.SocketPath), "knirvagent.sock")
+	} else {
+		knirvagentCfg.Port = 8081
+	}
+	knirvagentMgr := knirvagent.NewManager(knirvagentCfg, logger)
+	if err := knirvagentMgr.Start(context.Background()); err != nil {
+		logger.Warn("Failed to start KNIRVAGENT — will start on demand", zap.Error(err))
+	} else {
+		logger.Info("KNIRVAGENT DVE Supervisor started")
 	}
 
 	// Initialize GraphRAG Knowledge Base Engine
@@ -1178,6 +1198,12 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			dveRentalService.SetTransactionChainClient(transactionChainClient)
 			log.Println("Transaction chain client integrated with DVE rental service")
 		}
+	}
+
+	// Wire KNIRVAGENT DVE Supervisor into DVE creation service
+	if dveCreationService != nil && knirvagentMgr != nil {
+		dveCreationService.SetKnirvagentManager(knirvagentMgr)
+		log.Println("KNIRVAGENT supervisor wired into DVE creation service")
 	}
 
 	// Initialize Nexus Memory Fabric
@@ -1400,6 +1426,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		activeMemoryService:          activeMemoryService,
 		unifiedContainerManager:      unifiedContainerManager,
 		agentService:                 agentService,
+		knirvagentManager:            knirvagentMgr,
 		icmeService:                  icmeService,
 		eventBroadcaster:             eventBroadcaster,
 		anchoringService:             anchoringService,
@@ -1735,8 +1762,11 @@ func (s *Server) setupRoutes() {
 		if s.agentService != nil {
 			dveHandlers.SetAgentService(s.agentService)
 		}
+		if s.knirvagentManager != nil {
+			dveHandlers.SetKnirvagentManager(s.knirvagentManager)
+		}
 		dveHandlers.RegisterRoutes(s.router, authMiddleware)
-		log.Println("DVE manager routes configured")
+		log.Println("DVE manager routes configured")		
 	}
 
 	// Register DVE creation routes
@@ -1887,11 +1917,21 @@ func (s *Server) setupRoutes() {
 	if s.agentService != nil {
 		dveHandlers.SetAgentService(s.agentService)
 	}
+	if s.knirvagentManager != nil {
+		dveHandlers.SetKnirvagentManager(s.knirvagentManager)
+	}
 	if s.sessionManager != nil {
 		dveHandlers.SetSessionManager(s.sessionManager)
 	}
 
 	browserDVEHub := web.NewBrowserDVEHub(s.dveManager)
+
+	// Register DVE Agent WebSocket handler (KNIRVAGENT terminal proxy)
+	if s.knirvagentManager != nil {
+		dveAgentWSHandler := web.NewDVEAgentWSHandler(s.knirvagentManager)
+		dveAgentWSHandler.RegisterRoutes(s.router)
+		log.Println("DVE Agent WebSocket handler registered (KNIRVAGENT terminal proxy)")
+	}
 
 	// Wire up Knowledge Base handlers with GraphRAG FFI engine
 	var kbHandlers *web.KnowledgeBaseHandlers
@@ -2585,6 +2625,13 @@ func (s *Server) Stop() error {
 	// Create context for stopping services
 	stopCtx, stopCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer stopCancel()
+
+	// Stop DVE Supervisor Agent (KNIRVAGENT)
+	if s.knirvagentManager != nil {
+		if err := s.knirvagentManager.Stop(stopCtx); err != nil {
+			log.Printf("Error stopping KNIRVAGENT supervisor: %v", err)
+		}
+	}
 
 	if s.dveCreationService != nil {
 		if err := s.dveCreationService.Stop(); err != nil {

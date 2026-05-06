@@ -275,20 +275,30 @@ func (s *Server) setupRoutes() error {
 		r.HandleFunc("/api/v1/info", s.handleAPIInfo).Methods("GET", "OPTIONS")
 		r.PathPrefix("/api/v1/").Handler(backendProxy)
 
+		// Oracle proxy — KNIRVORACLE communicates via Unix socket when
+		// OracleSocketPath is configured, falling back to TCP (port 1317).
+		// Wallet and transaction endpoints are proxied through the gateway.
+		var oracleProxy *httputil.ReverseProxy
+		if s.config.OracleSocketPath != "" {
+			oracleProxy = newSocketProxy(s.config.OracleSocketPath, "http://knirvoracle")
+			s.logger.Info("Oracle proxy registered (socket)", zap.String("socket", s.config.OracleSocketPath))
+		} else {
+			oracleProxy = newHTTPProxy(s.config.KnirvOracleURL)
+			s.logger.Info("Oracle proxy registered (TCP)", zap.String("url", s.config.KnirvOracleURL))
+		}
+
 		// Chain API — the WebGUI calls /chain, /txn_pool, /wallet/info, /devs directly.
-		// /chain and /wallet/info proxy to chain.sock; /txn_pool and /devs have no
-		// backend equivalents so return mock data.
 		chainRootProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")
 		// GET /chain → chain.sock /api/v1/chain/latest
 		r.HandleFunc("/chain", s.handleChainProxy(chainRootProxy)).Methods("GET", "OPTIONS")
 		// GET /txn_pool → mock (no matching chain endpoint)
 		r.HandleFunc("/txn_pool", s.handleTxnPool).Methods("GET", "OPTIONS")
-		// GET /wallet/info → chain.sock /api/wallet/status
-		r.HandleFunc("/wallet/info", s.handleWalletInfoProxy(chainRootProxy)).Methods("GET", "OPTIONS")
+		// GET /wallet/info → oracle's wallet endpoint (user-scoped)
+		r.HandleFunc("/wallet/info", s.handleOracleGet(oracleProxy, "/cosmos/auth/v1beta1/accounts/")).Methods("GET", "OPTIONS")
 		// GET /devs → mock (no matching endpoint)
 		r.HandleFunc("/devs", s.handleDevs).Methods("GET", "OPTIONS")
-		// POST /transaction → chain.sock
-		r.HandleFunc("/transaction", s.handleTransaction(chainRootProxy)).Methods("POST", "OPTIONS")
+		// POST /transaction → oracle's transaction endpoint
+		r.HandleFunc("/transaction", s.handleOraclePost(oracleProxy, "/cosmos/tx/v1beta1/txs")).Methods("POST", "OPTIONS")
 		s.logger.Info("Backend proxy registered", zap.String("socket", s.config.BackendSocketPath))
 	} else {
 		s.logger.Warn("Backend proxy not configured — /api/v1/* will not be proxied")
@@ -582,6 +592,21 @@ func wrapWithSecurityHeaders(next http.Handler) http.Handler {
 	})
 }
 
+// newHTTPProxy creates a reverse proxy that forwards to a TCP HTTP target.
+// Used for services that listen on TCP (like KNIRVORACLE on port 1317).
+func newHTTPProxy(targetBase string) *httputil.ReverseProxy {
+	target, _ := url.Parse(targetBase)
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		resp.Header.Del("Access-Control-Allow-Origin")
+		resp.Header.Del("Access-Control-Allow-Headers")
+		resp.Header.Del("Access-Control-Allow-Methods")
+		resp.Header.Del("Access-Control-Allow-Credentials")
+		return nil
+	}
+	return proxy
+}
+
 // newSocketProxy creates a reverse proxy that dials a Unix socket and forwards
 // requests to the given target base URL.
 func newSocketProxy(socketPath, targetBase string) *httputil.ReverseProxy {
@@ -822,6 +847,28 @@ func (s *Server) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// handleOracleGet returns a handler that proxies GET requests to the oracle
+// at the given upstream path prefix.  The WebGUI calls /wallet/info which maps
+// to the oracle's accounts endpoint.
+func (s *Server) handleOracleGet(oracleProxy *httputil.ReverseProxy, upstreamPath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = upstreamPath
+		r.URL.RawPath = ""
+		oracleProxy.ServeHTTP(w, r)
+	}
+}
+
+// handleOraclePost returns a handler that proxies POST requests to the oracle
+// at the given upstream path.  The WebGUI calls /transaction which maps to the
+// oracle's tx broadcast endpoint.
+func (s *Server) handleOraclePost(oracleProxy *httputil.ReverseProxy, upstreamPath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = upstreamPath
+		r.URL.RawPath = ""
+		oracleProxy.ServeHTTP(w, r)
+	}
+}
+
 // handleChainProxy returns a handler that proxies GET /chain to the chain
 // socket at /api/v1/chain/latest (the chain's latest-block endpoint).
 func (s *Server) handleChainProxy(chainProxy *httputil.ReverseProxy) http.HandlerFunc {
@@ -839,32 +886,12 @@ func (s *Server) handleTxnPool(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode([]interface{}{})
 }
 
-// handleWalletInfoProxy returns a handler that proxies GET /wallet/info to the
-// chain socket at /api/wallet/status.
-func (s *Server) handleWalletInfoProxy(chainProxy *httputil.ReverseProxy) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Path = "/api/wallet/status"
-		r.URL.RawPath = ""
-		chainProxy.ServeHTTP(w, r)
-	}
-}
-
 // handleDevs returns mock developer/peer data (no matching backend endpoint).
 func (s *Server) handleDevs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode([]map[string]interface{}{
 		{"id": "local", "name": "Local Node", "status": "online"},
 	})
-}
-
-// handleTransaction proxies POST /transaction to the chain socket at the
-// chain's transaction endpoint.
-func (s *Server) handleTransaction(chainProxy *httputil.ReverseProxy) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Path = "/api/v1/transaction"
-		r.URL.RawPath = ""
-		chainProxy.ServeHTTP(w, r)
-	}
 }
 
 func (s *Server) handleMockAPI(w http.ResponseWriter, r *http.Request) {

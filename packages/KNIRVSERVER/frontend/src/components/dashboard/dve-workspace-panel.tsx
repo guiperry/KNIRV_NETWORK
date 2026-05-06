@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Terminal, Shield, Monitor, Network, Settings, Info, Box, Activity, Zap, Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Terminal, Shield, Monitor, Network, Settings, Info, Box, Activity, Zap, Globe, Brain } from 'lucide-react';
 import ConsolePanel from './console-panel';
 import PolicyEditor from './policy-editor';
 import MonitorPanel, { type DVETask } from './monitor-panel';
@@ -12,6 +12,7 @@ import ViewportPanel from './viewport-panel';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { DVENode } from '@/types/api';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface DVEWorkspacePanelProps {
   isOpen: boolean;
@@ -41,11 +42,39 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
   const [showViewport, setShowViewport] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<ActiveWorker | null>(null);
   const [selectedTask, setSelectedTask] = useState<DVETask | null>(null);
-
-  if (!isOpen) return null;
+  const [supervisorStatus, setSupervisorStatus] = useState<'online' | 'offline' | 'unavailable' | 'loading'>('loading');
 
   const actualNodeId = node?.id || nodeId;
   const actualNodeName = node?.name || nodeName;
+
+  // Poll supervisor agent status
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchStatus = async () => {
+      if (!actualNodeId) {
+        setSupervisorStatus('unavailable');
+        return;
+      }
+      try {
+        const resp = await fetch(`${API_BASE_URL}/api/dve/${actualNodeId}/supervisor-agent/status`, {
+          headers: getAuthHeaders(),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          setSupervisorStatus(data.status === 'online' ? 'online' : 'offline');
+        } else {
+          setSupervisorStatus('unavailable');
+        }
+      } catch {
+        setSupervisorStatus('unavailable');
+      }
+    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 15000); // poll every 15s
+    return () => clearInterval(interval);
+  }, [isOpen, actualNodeId]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 transition-opacity duration-200">
@@ -74,6 +103,24 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
               <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[9px]">
                 FABRIC: SYNCED
               </Badge>
+              {supervisorStatus === 'online' && (
+                <Badge variant="outline" className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[9px] flex items-center gap-1">
+                  <Brain className="w-2.5 h-2.5" />
+                  DVE SUPERVISOR: ACTIVE
+                </Badge>
+              )}
+              {supervisorStatus === 'offline' && (
+                <Badge variant="outline" className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20 text-[9px] flex items-center gap-1">
+                  <Brain className="w-2.5 h-2.5" />
+                  DVE SUPERVISOR: OFFLINE
+                </Badge>
+              )}
+              {supervisorStatus === 'unavailable' && (
+                <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px] flex items-center gap-1">
+                  <Brain className="w-2.5 h-2.5" />
+                  DVE SUPERVISOR: UNAVAILABLE
+                </Badge>
+              )}
             </div>
           </div>
 

@@ -234,14 +234,8 @@ func (m *Manager) Start(ctx context.Context) error {
 		"-p2p.port", fmt.Sprintf("%d", m.config.P2PPort),
 		"-skip-install",
 		"-non-interactive",
-	}
-	// Start the wallet server only in root mode — client mode doesn't need it
-	// and the WebGUI's /wallet/info endpoint depends on it being available.
-	if normalizeRole(m.config.Role) != "root" {
-		args = append(args, "-no-wallet-server")
-	}
-	if !m.config.NoUI {
-		args = append(args, "-gui=false")
+		"-no-wallet-server",
+		"-gui=false",
 	}
 	if m.config.SocketPath != "" {
 		args = append(args, "-socket", m.config.SocketPath)

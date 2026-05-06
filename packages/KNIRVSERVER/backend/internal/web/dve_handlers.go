@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -24,6 +25,11 @@ type DVEHandlers struct {
 	agentService   interface {
 		BroadcastAgentMessage(dveID string, message string)
 	}
+	knirvagentManager interface {
+		IsRunning() bool
+		HealthCheck(ctx context.Context) error
+		GetBaseURL() string
+	}
 }
 
 // NewDVEHandlers creates the DVE HTTP handler set.  DVE creation operations are
@@ -45,6 +51,15 @@ func (h *DVEHandlers) SetAgentService(as interface {
 	BroadcastAgentMessage(dveID string, message string)
 }) {
 	h.agentService = as
+}
+
+// SetKnirvagentManager wires in the KNIRVAGENT supervisor manager for status endpoints.
+func (h *DVEHandlers) SetKnirvagentManager(mgr interface {
+	IsRunning() bool
+	HealthCheck(ctx context.Context) error
+	GetBaseURL() string
+}) {
+	h.knirvagentManager = mgr
 }
 
 // GetDVEWorkers handles GET /api/dve/workers — aggregates DVE nodes + tasks as active workers
@@ -886,6 +901,68 @@ func (h *DVEHandlers) GetDVENodeErrorResolutionEndpoint(w http.ResponseWriter, r
 	json.NewEncoder(w).Encode(response)
 }
 
+// GetSupervisorAgentStatus handles GET /api/dve/{nodeId}/supervisor-agent/status
+// Returns the current health status of the KNIRVAGENT supervisor for this DVE.
+func (h *DVEHandlers) GetSupervisorAgentStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if h.knirvagentManager == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status": "unavailable",
+			"error":  "KNIRVAGENT supervisor not configured",
+		})
+		return
+	}
+
+	running := h.knirvagentManager.IsRunning()
+	status := "offline"
+	if running {
+		status = "online"
+	}
+
+	healthErr := h.knirvagentManager.HealthCheck(context.Background())
+	healthStatus := "healthy"
+	if healthErr != nil {
+		healthStatus = "unhealthy"
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":        status,
+		"health":        healthStatus,
+		"running":       running,
+		"base_url":      h.knirvagentManager.GetBaseURL(),
+		"agent_type":    "knirvagent",
+		"role":          "supervisor",
+		"timestamp":     getCurrentTimestamp(),
+	})
+}
+
+// GetSupervisorAgentSession handles GET /api/dve/{nodeId}/supervisor-agent/session
+// Returns a WebSocket URL for real-time communication with the KNIRVAGENT supervisor.
+func (h *DVEHandlers) GetSupervisorAgentSession(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if h.knirvagentManager == nil || !h.knirvagentManager.IsRunning() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "KNIRVAGENT supervisor not running",
+		})
+		return
+	}
+
+	// The session URL points to the backend WebSocket proxy which relays
+	// I/O between the frontend terminal and the KNIRVAGENT subprocess.
+	wsURL := fmt.Sprintf("/ws/dve/%s/agent", mux.Vars(r)["nodeId"])
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ws_url":    wsURL,
+		"base_url":  h.knirvagentManager.GetBaseURL(),
+		"running":   true,
+		"timestamp": getCurrentTimestamp(),
+	})
+}
+
 // RegisterRoutes registers the DVE routes with the router
 func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
 	// Create a subrouter for DVE endpoints
@@ -937,4 +1014,10 @@ func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.A
 
 	// SSH session creation for DVE nodes — used by ConsolePanel (Gap 1)
 	dveAliasRouter.HandleFunc("/{nodeId}/ssh-session", h.CreateNodeSSHSession).Methods("POST", "OPTIONS")
+
+	// DVE Supervisor Agent (KNIRVAGENT) status and session endpoints
+	if h.knirvagentManager != nil {
+		dveAliasRouter.HandleFunc("/{nodeId}/supervisor-agent/status", h.GetSupervisorAgentStatus).Methods("GET", "OPTIONS")
+		dveAliasRouter.HandleFunc("/{nodeId}/supervisor-agent/session", h.GetSupervisorAgentSession).Methods("GET", "OPTIONS")
+	}
 }
