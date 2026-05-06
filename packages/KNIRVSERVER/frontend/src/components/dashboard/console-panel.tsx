@@ -29,6 +29,12 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const [isInitializing, setIsInitializing] = useState(false);
   const [sshConnected, setSshConnected] = useState(false);
   const [connectionMode, setConnectionMode] = useState<'knirvshell' | 'knirvagent' | 'ssh' | 'local'>('local');
+  const connectionModeRef = useRef<'knirvshell' | 'knirvagent' | 'ssh' | 'local'>('local');
+
+  const updateConnectionModeRef = (mode: 'knirvshell' | 'knirvagent' | 'ssh' | 'local') => {
+    connectionModeRef.current = mode;
+    setConnectionMode(mode);
+  };
 
   const { fetchFabricLogs } = useFabricManagement();
 
@@ -48,7 +54,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
       if (!resp.ok) return false;
       const data = await resp.json();
       sessionIdRef.current = data.session_id;
-      setConnectionMode('knirvshell');
+      updateConnectionModeRef('knirvshell');
       
       term.writeln('\x1b[32m[CONNECTED] KNIRVCLI session established.\x1b[0m');
       term.write('\x1b[1;32m$ \x1b[0m');
@@ -112,7 +118,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
       const wsHost = window.location.host;
       const ws = new WebSocket(`${wsProto}//${wsHost}${data.ws_url}`);
       wsRef.current = ws;
-      setConnectionMode('ssh');
+      updateConnectionModeRef('ssh');
 
       ws.onopen = () => {
         setSshConnected(true);
@@ -149,7 +155,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
       const wsHost = window.location.host;
       const ws = new WebSocket(`${wsProto}//${wsHost}${data.ws_url}`);
       wsRef.current = ws;
-      setConnectionMode('knirvagent');
+      updateConnectionModeRef('knirvagent');
 
       ws.onopen = () => {
         setSshConnected(true);
@@ -255,8 +261,9 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
         }
 
         term.onData((data) => {
-          // Route input to appropriate backend based on connection mode
-          if (connectionMode === 'knirvshell' && sessionIdRef.current) {
+          // Route input to appropriate backend based on connection mode (via ref to avoid stale closure)
+          const mode = connectionModeRef.current;
+          if (mode === 'knirvshell' && sessionIdRef.current) {
             // Buffer input and send complete lines on Enter
             inputBufferRef.current += data;
             if (data === '\r') {
@@ -276,9 +283,9 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
             } else {
               term.write(data);
             }
-          } else if (connectionMode === 'knirvagent' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          } else if (mode === 'knirvagent' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({ type: 'input', data }));
-          } else if (connectionMode === 'ssh' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          } else if (mode === 'ssh' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({ type: 'input', data }));
           } else {
             // Local simulation fallback

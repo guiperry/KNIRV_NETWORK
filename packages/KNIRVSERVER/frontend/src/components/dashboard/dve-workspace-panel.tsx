@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Terminal, Shield, Monitor, Network, Settings, Info, Box, Activity, Zap, Globe, Brain } from 'lucide-react';
 import ConsolePanel from './console-panel';
 import PolicyEditor from './policy-editor';
@@ -43,6 +44,11 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
   const [selectedWorker, setSelectedWorker] = useState<ActiveWorker | null>(null);
   const [selectedTask, setSelectedTask] = useState<DVETask | null>(null);
   const [supervisorStatus, setSupervisorStatus] = useState<'online' | 'offline' | 'unavailable' | 'loading'>('loading');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const actualNodeId = node?.id || nodeId;
   const actualNodeName = node?.name || nodeName;
@@ -75,11 +81,14 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
   }, [isOpen, actualNodeId]);
 
   if (!isOpen) return null;
+  if (!mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/70 transition-opacity duration-200">
+  return createPortal(
+    <div className="fixed top-[60px] left-[250px] right-[250px] bottom-[60px] z-50 flex flex-col max-md:left-0 max-md:right-0 max-md:bottom-[100px]">
+      {/* Invisible backdrop covering the HUD frame area */}
+      <div className="absolute inset-0 bg-black/70 transition-opacity duration-200 pointer-events-auto" onClick={onClose} />
       {/* Main DVE Workspace Container */}
-      <div className="absolute inset-0 flex flex-col bg-[#03050a] border-l border-blue-600/50">
+      <div className="absolute inset-0 flex flex-col bg-[#03050a] border-l border-blue-600/50 pointer-events-auto">
         
         {/* Unified Header */}
         <div className="h-16 border-b border-blue-600/30 bg-slate-900/80 backdrop-blur-sm p-4 flex items-center justify-between z-50">
@@ -349,7 +358,8 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

@@ -24,8 +24,6 @@ import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
 import { PredictiveAnalyticsPanel } from '@/components/dashboard/predictive-analytics-panel';
 import { GuardrailViolationsPanel, GuardrailStatisticsCard } from '@/components/dashboard/guardrail-violations-panel';
-import { SystemTelemetryCard } from '@/components/dashboard/system-telemetry-card';
-import { KnowledgeGraphOverview } from '@/components/dashboard/knowledge-graph-overview';
 import { BadgeLabPanel } from '@/components/dashboard/badge-lab-panel';
 import { DVENodesPanel } from '@/components/dashboard/dve-nodes-panel';
 import { DVECreationForm } from '@/components/dashboard/dve-creation-form';
@@ -823,12 +821,6 @@ export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps)
                           </div>
                         </CardContent>
                       </Card>
-                    </div>
-
-                    {/* System Telemetry & Knowledge Graph */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <SystemTelemetryCard />
-                      <KnowledgeGraphOverview />
                     </div>
 
                     {/* Resource Explorer Tabs */}

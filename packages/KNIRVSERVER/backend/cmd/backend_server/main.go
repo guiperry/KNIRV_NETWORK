@@ -1061,6 +1061,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	}
 
 	// Initialize DVE Supervisor Agent (KNIRVAGENT embedded subprocess)
+	// Created here but NOT started — started on-demand when a DVE is initialized.
 	knirvagentCfg := knirvagent.DefaultManagerConfig()
 	knirvagentCfg.BackendAPIPort = int(cfg.Port)
 	if cfg.API.SocketPath != "" {
@@ -1068,12 +1069,20 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	} else {
 		knirvagentCfg.Port = 8081
 	}
-	knirvagentMgr := knirvagent.NewManager(knirvagentCfg, logger)
-	if err := knirvagentMgr.Start(context.Background()); err != nil {
-		logger.Warn("Failed to start KNIRVAGENT — will start on demand", zap.Error(err))
-	} else {
-		logger.Info("KNIRVAGENT DVE Supervisor started")
+	// Propagate LLM provider API keys from root.key to the KNIRVAGENT subprocess.
+	if rootKeySecrets != nil {
+		if rootKeySecrets.GeminiApiKey != "" {
+			knirvagentCfg.ExtraEnv = append(knirvagentCfg.ExtraEnv, fmt.Sprintf("GEMINI_API_KEY=%s", rootKeySecrets.GeminiApiKey))
+		}
+		if rootKeySecrets.DeepseekApiKey != "" {
+			knirvagentCfg.ExtraEnv = append(knirvagentCfg.ExtraEnv, fmt.Sprintf("DEEPSEEK_API_KEY=%s", rootKeySecrets.DeepseekApiKey))
+		}
+		if rootKeySecrets.CerebrasApiKey != "" {
+			knirvagentCfg.ExtraEnv = append(knirvagentCfg.ExtraEnv, fmt.Sprintf("CEREBRAS_API_KEY=%s", rootKeySecrets.CerebrasApiKey))
+		}
 	}
+	knirvagentMgr := knirvagent.NewManager(knirvagentCfg, logger)
+	logger.Info("KNIRVAGENT manager created (will start on DVE initialization)")
 
 	// Initialize GraphRAG Knowledge Base Engine
 	graphRAGClient := knowledge_base.NewGraphRAGClient()

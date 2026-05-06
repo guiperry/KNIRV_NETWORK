@@ -34,6 +34,33 @@ import (
 	"go.uber.org/zap"
 )
 
+// socketProxyClient creates an http.Client that dials a Unix socket path.
+// Used by handleChainProxy and handleOracleGet to make graceful fallback
+// requests instead of using a raw ReverseProxy (which returns 502 on error).
+func socketProxyClient(socketPath string) *http.Client {
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("unix", socketPath)
+		},
+	}
+	return &http.Client{
+		Transport: transport,
+		Timeout:   5 * time.Second,
+	}
+}
+
+// loggingResponseWriter wraps http.ResponseWriter to capture the status code
+// so upstream callers can detect proxy errors without losing the response.
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (w *loggingResponseWriter) WriteHeader(statusCode int) {
+	w.statusCode = statusCode
+	w.ResponseWriter.WriteHeader(statusCode)
+}
+
 // Server represents the HTTP server
 type Server struct {
 	config            *config.Config
@@ -275,34 +302,37 @@ func (s *Server) setupRoutes() error {
 		r.HandleFunc("/api/v1/info", s.handleAPIInfo).Methods("GET", "OPTIONS")
 		r.PathPrefix("/api/v1/").Handler(backendProxy)
 
-		// Oracle proxy — KNIRVORACLE communicates via Unix socket when
-		// OracleSocketPath is configured, falling back to TCP (port 1317).
-		// Wallet and transaction endpoints are proxied through the gateway.
-		var oracleProxy *httputil.ReverseProxy
-		if s.config.OracleSocketPath != "" {
-			oracleProxy = newSocketProxy(s.config.OracleSocketPath, "http://knirvoracle")
-			s.logger.Info("Oracle proxy registered (socket)", zap.String("socket", s.config.OracleSocketPath))
-		} else {
-			oracleProxy = newHTTPProxy(s.config.KnirvOracleURL)
-			s.logger.Info("Oracle proxy registered (TCP)", zap.String("url", s.config.KnirvOracleURL))
-		}
-
-		// Chain API — the WebGUI calls /chain, /txn_pool, /wallet/info, /devs directly.
-		chainRootProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")
-		// GET /chain → chain.sock /api/v1/chain/latest
-		r.HandleFunc("/chain", s.handleChainProxy(chainRootProxy)).Methods("GET", "OPTIONS")
-		// GET /txn_pool → mock (no matching chain endpoint)
-		r.HandleFunc("/txn_pool", s.handleTxnPool).Methods("GET", "OPTIONS")
-		// GET /wallet/info → oracle's wallet endpoint (user-scoped)
-		r.HandleFunc("/wallet/info", s.handleOracleGet(oracleProxy, "/cosmos/auth/v1beta1/accounts/")).Methods("GET", "OPTIONS")
-		// GET /devs → mock (no matching endpoint)
-		r.HandleFunc("/devs", s.handleDevs).Methods("GET", "OPTIONS")
-		// POST /transaction → oracle's transaction endpoint
-		r.HandleFunc("/transaction", s.handleOraclePost(oracleProxy, "/cosmos/tx/v1beta1/txs")).Methods("POST", "OPTIONS")
 		s.logger.Info("Backend proxy registered", zap.String("socket", s.config.BackendSocketPath))
 	} else {
 		s.logger.Warn("Backend proxy not configured — /api/v1/* will not be proxied")
 	}
+
+	// Oracle proxy — KNIRVORACLE communicates via Unix socket when
+	// OracleSocketPath is configured, falling back to TCP (port 1317).
+	// Wallet and transaction endpoints are proxied through the gateway.
+	var oracleProxy *httputil.ReverseProxy
+	if s.config.OracleSocketPath != "" {
+		oracleProxy = newSocketProxy(s.config.OracleSocketPath, "http://knirvoracle")
+		s.logger.Info("Oracle proxy registered (socket)", zap.String("socket", s.config.OracleSocketPath))
+	} else {
+		oracleProxy = newHTTPProxy(s.config.KnirvOracleURL)
+		s.logger.Info("Oracle proxy registered (TCP)", zap.String("url", s.config.KnirvOracleURL))
+	}
+
+	// Chain API — the WebGUI calls /chain, /txn_pool, /wallet/info, /devs directly.
+	// These are registered unconditionally so the frontend never gets 404/502.
+	// When the backend/oracle/chain is unavailable, they return empty/fallback data.
+	chainRootProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")
+	// GET /chain → chain.sock /api/v1/chain/latest (or empty blocks)
+	r.HandleFunc("/chain", s.handleChainProxy(chainRootProxy)).Methods("GET", "OPTIONS")
+	// GET /txn_pool → mock (no matching chain endpoint)
+	r.HandleFunc("/txn_pool", s.handleTxnPool).Methods("GET", "OPTIONS")
+	// GET /wallet/info → oracle's wallet endpoint (user-scoped) (or empty wallet)
+	r.HandleFunc("/wallet/info", s.handleOracleGet(oracleProxy, "/cosmos/auth/v1beta1/accounts/")).Methods("GET", "OPTIONS")
+	// GET /devs → mock (no matching endpoint)
+	r.HandleFunc("/devs", s.handleDevs).Methods("GET", "OPTIONS")
+	// POST /transaction → oracle's transaction endpoint
+	r.HandleFunc("/transaction", s.handleOraclePost(oracleProxy, "/cosmos/tx/v1beta1/txs")).Methods("POST", "OPTIONS")
 	if s.config.ChainSocketPath != "" {
 		chainProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")
 		r.PathPrefix("/chain/").Handler(chainProxy)
@@ -850,11 +880,53 @@ func (s *Server) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 // handleOracleGet returns a handler that proxies GET requests to the oracle
 // at the given upstream path prefix.  The WebGUI calls /wallet/info which maps
 // to the oracle's accounts endpoint.
+// If the oracle is unavailable, returns empty wallet info (no 502).
 func (s *Server) handleOracleGet(oracleProxy *httputil.ReverseProxy, upstreamPath string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Path = upstreamPath
-		r.URL.RawPath = ""
-		oracleProxy.ServeHTTP(w, r)
+		// Clone the request so we can safely modify the path.
+		proxyReq := r.Clone(r.Context())
+		proxyReq.URL.Path = upstreamPath
+		proxyReq.URL.RawPath = ""
+
+		// If the oracle proxy is backed by a socket, try a direct client
+		// with a short timeout so we can return empty data on failure instead
+		// of a 502 Bad Gateway.
+		if s.config.OracleSocketPath != "" {
+			client := socketProxyClient(s.config.OracleSocketPath)
+			targetURL := fmt.Sprintf("http://knirvoracle%s", upstreamPath)
+			resp, err := client.Get(targetURL)
+			if err != nil {
+				s.logger.Debug("Oracle unavailable for /wallet/info, returning empty", zap.Error(err))
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"address": "",
+					"balance": 0,
+					"connected": false,
+				})
+				return
+			}
+			defer resp.Body.Close()
+			for k, v := range resp.Header {
+				w.Header()[k] = v
+			}
+			w.WriteHeader(resp.StatusCode)
+			io.Copy(w, resp.Body)
+			return
+		}
+
+		// Fallback to the original proxy (TCP-based oracle).
+		// Capture the proxy's response writer so we can detect errors.
+		lw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		oracleProxy.ServeHTTP(lw, proxyReq)
+		if lw.statusCode >= 500 {
+			s.logger.Debug("Oracle returned error for /wallet/info, returning empty", zap.Int("status", lw.statusCode))
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"address": "",
+				"balance": 0,
+				"connected": false,
+			})
+		}
 	}
 }
 
@@ -871,12 +943,49 @@ func (s *Server) handleOraclePost(oracleProxy *httputil.ReverseProxy, upstreamPa
 
 // handleChainProxy returns a handler that proxies GET /chain to the chain
 // socket at /api/v1/chain/latest (the chain's latest-block endpoint).
+// If the chain socket is unavailable, returns empty blocks (no 404/502).
 func (s *Server) handleChainProxy(chainProxy *httputil.ReverseProxy) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Rewrite the request path to the chain's actual endpoint.
-		r.URL.Path = "/api/v1/chain/latest"
-		r.URL.RawPath = ""
-		chainProxy.ServeHTTP(w, r)
+		// Clone the request so we can safely modify the path.
+		proxyReq := r.Clone(r.Context())
+		proxyReq.URL.Path = "/api/v1/chain/latest"
+		proxyReq.URL.RawPath = ""
+
+		// If the chain proxy is backed by a socket, try a direct client
+		// with a short timeout so we can return empty data on failure instead
+		// of a 404/502.
+		if s.config.ChainSocketPath != "" {
+			client := socketProxyClient(s.config.ChainSocketPath)
+			targetURL := fmt.Sprintf("http://knirvchain/api/v1/chain/latest")
+			resp, err := client.Get(targetURL)
+			if err != nil {
+				s.logger.Debug("Chain socket unavailable for /chain, returning empty", zap.Error(err))
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]interface{}{
+					"blocks": []interface{}{},
+				})
+				return
+			}
+			defer resp.Body.Close()
+			for k, v := range resp.Header {
+				w.Header()[k] = v
+			}
+			w.WriteHeader(resp.StatusCode)
+			io.Copy(w, resp.Body)
+			return
+		}
+
+		// Fallback to the original proxy (TCP-based chain).
+		// Capture the proxy's response writer so we can detect errors.
+		lw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		chainProxy.ServeHTTP(lw, proxyReq)
+		if lw.statusCode >= 500 {
+			s.logger.Debug("Chain returned error for /chain, returning empty", zap.Int("status", lw.statusCode))
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"blocks": []interface{}{},
+			})
+		}
 	}
 }
 

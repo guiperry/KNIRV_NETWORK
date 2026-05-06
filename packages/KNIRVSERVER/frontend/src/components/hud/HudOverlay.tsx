@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './HudOverlay.module.css';
+import { useTelemetry } from '@/hooks/use-telemetry';
+import { useOntology } from '@/hooks/use-ontology';
 
 export interface SystemMetrics {
   cpu: number;
@@ -31,6 +33,8 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
   const [isMinimized, setIsMinimized] = useState(false);
   const [cpuHistory, setCpuHistory] = useState<number[]>(new Array(30).fill(0));
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { telemetry } = useTelemetry();
+  const { stats: ontologyStats } = useOntology();
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -178,6 +182,15 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
         <div className={styles.statItem}><span>MEM USED: {metrics ? formatMemory(metrics.memory.used_mb) : '—'}</span></div>
         <div className={styles.statItem}><span>MEM TOTAL: {metrics ? formatMemory(metrics.memory.total_mb) : '—'}</span></div>
         <div className={styles.statItem}><span>HOST: {metrics?.hostname ?? '—'}</span></div>
+        {telemetry.data && (
+          <>
+            <div className={styles.panelHeader} style={{ marginTop: '16px' }}>TELEMETRY</div>
+            <div className={styles.statItem}><span>CPU PRESSURE: {telemetry.data.cpu_pressure.toFixed(1)}%</span></div>
+            <div className={styles.statItem}><span>MEM PRESSURE: {telemetry.data.memory_pressure.toFixed(1)}%</span></div>
+            <div className={styles.statItem}><span>CONNECTIONS: {telemetry.data.active_connections}</span></div>
+            <div className={styles.statItem}><span>GOROUTINES: {telemetry.data.goroutines}</span></div>
+          </>
+        )}
       </div>
 
       {/* ── Right Panel (desktop only) ─────────────────────────────────── */}
@@ -209,6 +222,13 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
           <span className={styles.infoLabel}>ARCH:</span>
           <span className={styles.infoValue}>{metrics?.arch ?? '—'}</span>
         </div>
+        {ontologyStats.data && (
+          <>
+            <div className={styles.panelHeader} style={{ marginTop: '16px' }}>KNOWLEDGE GRAPH</div>
+            <div className={styles.statItem}><span>ENTITIES: {ontologyStats.data.entity_count}</span></div>
+            <div className={styles.statItem}><span>RELATIONS: {ontologyStats.data.relation_count}</span></div>
+          </>
+        )}
       </div>
 
       {/* ── Mobile collapsed metrics strip (hidden on desktop) ────────── */}

@@ -268,7 +268,11 @@ const SideNavigation = ({ activePage }) => {
         const r = await fetch('/session/controller', { credentials: 'include' });
         const j = await r.json();
         if (j && j.controllerUrl) {
-          window.open('/controller', '_blank', 'noopener');
+          // Use gateway base URL for the controller link so it resolves
+          // correctly even when the WebGUI is embedded in another context.
+          const base = (typeof window !== 'undefined' && window.__GATEWAY_BASE__) || '';
+          const url = base ? `${base.replace(/\/+$/, '')}/controller` : '/controller';
+          window.open(url, '_blank', 'noopener');
           return;
         }
         alert('No controller connected. Use QR Connect to link your controller.');

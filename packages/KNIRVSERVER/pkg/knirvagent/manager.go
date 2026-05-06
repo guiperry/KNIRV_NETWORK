@@ -70,6 +70,9 @@ type ManagerConfig struct {
 	StopTimeout    time.Duration
 	Stdout         io.Writer
 	Stderr         io.Writer
+	// ExtraEnv are additional environment variables propagated to the
+	// KNIRVAGENT subprocess, e.g. "GEMINI_API_KEY=..." or "OPENAI_API_KEY=...".
+	ExtraEnv []string
 }
 
 type HealthStatus struct {
@@ -206,6 +209,9 @@ func (m *Manager) Start(ctx context.Context) error {
 	} else {
 		env = append(env, fmt.Sprintf("PORT=%d", gatewayPort))
 	}
+
+	// Propagate any extra environment variables (e.g. API keys from root.key).
+	env = append(env, m.config.ExtraEnv...)
 
 	args := []string{"gateway"}
 	if m.config.SocketPath != "" {
