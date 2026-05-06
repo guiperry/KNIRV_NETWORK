@@ -1,0 +1,56 @@
+## Goal
+- Implement headless mode for KNIRVHASHER CLI with HTTP API server, extracting UI logic into shared controller
+
+## Constraints & Preferences
+- No mocks, TODOs, placeholders, or simulations
+- Production-ready code with proper error handling
+- Follow existing project code style and conventions
+- Must maintain backward compatibility with Bubble Tea UI
+
+## Progress
+### Done
+- Read existing codebase: `main.go`, `ui.go`, `api.go`, `deployer.go`
+- Created `packages/KNIRVHASHER/internal/cli/headless/types.go` with request/response types
+- Started `packages/KNIRVHASHER/internal/cli/controller/controller.go` (has syntax errors)
+
+### In Progress
+- Fixing syntax errors in `controller.go` - missing closing brace in `buildPipelineStages` switch statement
+- Still need to create `headless/server.go` with HTTP server implementation
+- Need to modify `main.go` to add `--headless` and `--headless-port` flags
+- Need to modify `ui.go` to use controller
+
+### Blocked
+- Controller.go has compile error: "expected '(', found findRunningHasherHost" at line 766
+
+## Key Decisions
+- Using `http.NewServeMux()` for headless server (not gin as originally in plan examples)
+- Controller maintains compatibility with both UI and headless modes
+- Pipeline operations run synchronously but can be wrapped in goroutines by caller
+
+## Next Steps
+1. Fix syntax error in `controller.go` (add missing closing brace for switch, then closing brace for function)
+2. Create `headless/server.go` with all endpoint handlers
+3. Modify `main.go` to add headless flags and `runHeadlessMode()` function
+4. Modify `ui.go` to integrate controller
+5. Write tests for headless API
+6. Update README if needed
+
+## Critical Context
+- LSP error: "expected '(', found findRunningHasherHost" - `buildPipelineStages` function missing closing brace before `findRunningHasherHost` function
+- The `switch` statement in `buildPipelineStages` needs a `}` and then the function needs a `}`
+- Functions `findRunningHasherHost` and `isHasherHostRunning` are at package level but switch isn't closed
+
+## Relevant Files
+- `packages/KNIRVHASHER/cmd/cli/main.go`: Needs headless flags and mode branching
+- `packages/KNIRVHASHER/internal/cli/ui/ui.go`: Needs to use controller
+- `packages/KNIRVHASHER/internal/cli/controller/controller.go`: Created but has syntax errors
+- `packages/KNIRVHASHER/internal/cli/headless/types.go`: Created with API types
+- `packages/KNIRVHASHER/internal/cli/headless/server.go`: Still needs to be created
+
+---
+
+continue integrating controller into UI and proceed with all next steps mentioned.
+
+---
+
+Ensure the 0_DATA_CONNECTOR pipeline step is included in the pipeline initialization steps. Proceed with next steps mentioned.
