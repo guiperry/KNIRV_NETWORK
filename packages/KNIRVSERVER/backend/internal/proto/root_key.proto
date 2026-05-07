@@ -23,6 +23,12 @@ message RootKeyFileContentProto {
   // Cloudflare credentials for DNS updates
   string cloudflare_api_token = 18;
   string cloudflare_zone_id = 19;
+
+  // SMTP credentials for email service
+  string smtp_password = 20;
+
+  // GitHub credentials for updater / private repo access
+  string default_github_token = 21;
 }
 
 message EncryptedRootKeyFile {

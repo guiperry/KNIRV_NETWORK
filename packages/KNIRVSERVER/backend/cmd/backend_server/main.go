@@ -504,6 +504,19 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 		cfg.Security.TLSKey = content.TlsKey
 		log.Printf("TLS certificates loaded from root.key")
 	}
+
+	if content.SmtpPassword != "" {
+		cfg.Email.SMTPPassword = content.SmtpPassword
+		log.Printf("SMTP password loaded from root.key")
+	}
+
+	if content.DefaultGithubToken != "" {
+		// Set as env var so the updater and other GitHub-dependent components can find it
+		if err := os.Setenv("DEFAULT_GITHUB_TOKEN", content.DefaultGithubToken); err != nil {
+			log.Printf("Warning: failed to set DEFAULT_GITHUB_TOKEN env var: %v", err)
+		}
+		log.Printf("GitHub token loaded from root.key")
+	}
 }
 
 func initOracleManager(logger *zap.Logger, rootKeySecrets *pb.RootKeyFileContentProto) *knirvoracle.Manager {

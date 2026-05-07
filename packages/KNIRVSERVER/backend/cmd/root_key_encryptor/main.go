@@ -111,6 +111,7 @@ func main() {
 
 	githubTokenEntry := widget.NewEntry()
 	githubTokenEntry.SetPlaceHolder("GitHub Token")
+	githubTokenEntry.Password = true
 	githubTokenEntry.SetText(envValues["DEFAULT_GITHUB_TOKEN"])
 
 	githubPublicKeyEntry := widget.NewEntry()
@@ -142,6 +143,12 @@ func main() {
 	deepseekApiKeyEntry := widget.NewEntry()
 	deepseekApiKeyEntry.SetPlaceHolder("DeepSeek API Key")
 	deepseekApiKeyEntry.SetText(envValues["DEEPSEEK_API_KEY"])
+
+	// SMTP Password for email service
+	smtpPasswordEntry := widget.NewEntry()
+	smtpPasswordEntry.SetPlaceHolder("SMTP Password")
+	smtpPasswordEntry.Password = true
+	smtpPasswordEntry.SetText(envValues["KNIRV_SMTP_PASSWORD"])
 
 	tlsCertEntry := widget.NewEntry()
 	tlsCertEntry.SetPlaceHolder("TLS Certificate (PEM)")
@@ -206,6 +213,8 @@ func main() {
 			CerebrasApiKey:       cerebrasAPIKeyEntry.Text,
 			CloudflareApiToken:   cloudflareAPITokenEntry.Text,
 			CloudflareZoneId:     cloudflareZoneIDEntry.Text,
+			SmtpPassword:         smtpPasswordEntry.Text,
+			DefaultGithubToken:   githubTokenEntry.Text,
 		}
 
 		// Marshal to protobuf
@@ -304,6 +313,9 @@ func main() {
 		container.NewGridWithColumns(2,
 			container.NewVBox(widget.NewLabel("Gemini API Key:"), geminiApiKeyEntry),
 			container.NewVBox(widget.NewLabel("DeepSeek API Key:"), deepseekApiKeyEntry),
+		),
+		container.NewGridWithColumns(2,
+			container.NewVBox(widget.NewLabel("SMTP Password:"), smtpPasswordEntry),
 		),
 		widget.NewLabel("TLS Certificates (PEM format):"),
 		container.NewVBox(widget.NewLabel("Certificate:"), tlsCertEntry),

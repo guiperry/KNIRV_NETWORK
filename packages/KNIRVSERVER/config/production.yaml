@@ -207,12 +207,12 @@ reports:
 # Email Configuration
 email:
   enabled: true
-  smtp_host: "${KNIRV_SMTP_HOST:localhost}"
-  smtp_port: ${KNIRV_SMTP_PORT:587}
-  smtp_user: "${KNIRV_SMTP_USER:}"
-  smtp_password: "${KNIRV_SMTP_PASSWORD:}"
-  from_email: "${KNIRV_EMAIL_FROM:noreply@knirv.com}"
-  from_name: "${KNIRV_EMAIL_FROM_NAME:KNIRV Network}"
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  smtp_user: "knirv.corporate@gmail.com"
+  smtp_password: "${KNIRV_SMTP_PASSWORD:kvndakogpmkhcvfa}"
+  from_email: "knirv.corporate@gmail.com"
+  from_name: "KNIRV Network"
 
 # Logging Configuration
 logging:

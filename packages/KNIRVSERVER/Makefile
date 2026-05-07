@@ -193,13 +193,13 @@ deployer: deps-go ## Build container_deployer binary
 	cd $(BACKEND_DIR)/cmd/container_deployer && go build -ldflags "$(LDFLAGS)" -o container_deployer main.go
 	@echo "$(GREEN)container_deployer build completed: backend/cmd/container_deployer/container_deployer$(NC)"
 
-key-encryptor: deps-go ## Build key_encryptor binary
-	@echo "$(BLUE)Building key_encryptor binary...$(NC)"
-	cd $(BACKEND_DIR) && CGO_ENABLED=1 go build -ldflags "$(LDFLAGS)" -o key_encryptor ./cmd/key_encryptor
-	@echo "$(BLUE)Copying key_encryptor binary to root...$(NC)"
-	cp $(BACKEND_DIR)/key_encryptor bin/
-	@echo "$(GREEN)key_encryptor build completed$(NC)"
-	rm $(BACKEND_DIR)/key_encryptor
+key-encryptor: ## Build root_key_encryptor binary
+	@echo "$(BLUE)Building root_key_encryptor binary...$(NC)"
+	cd $(BACKEND_DIR) && CGO_ENABLED=1 go build -ldflags "$(LDFLAGS)" -o root_key_encryptor ./cmd/root_key_encryptor
+	@echo "$(BLUE)Copying root_key_encryptor binary to root...$(NC)"
+	cp $(BACKEND_DIR)/root_key_encryptor bin/
+	@echo "$(GREEN)root_key_encryptor build completed$(NC)"
+	rm $(BACKEND_DIR)/root_key_encryptor
 
 
 # Unified Binary (Frontend + Desktop + Backend + embedded pkg modules)

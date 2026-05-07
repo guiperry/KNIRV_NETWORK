@@ -224,6 +224,7 @@ func (ar *APIRouter) registerKNIRVSHELLRoutes(apiV1 *mux.Router) {
 	cliRouter.HandleFunc("/p2p/execute", ar.knirvshellHandlers.ExecuteP2PCommand).Methods("POST", "OPTIONS")
 	cliRouter.HandleFunc("/chain/execute", ar.knirvshellHandlers.ExecuteChainCommand).Methods("POST", "OPTIONS")
 	cliRouter.HandleFunc("/sessions", ar.knirvshellHandlers.ListSessions).Methods("GET", "OPTIONS")
+	cliRouter.HandleFunc("/sessions", ar.knirvshellHandlers.CreateSession).Methods("POST", "OPTIONS")
 	cliRouter.HandleFunc("/sessions/{id}", ar.knirvshellHandlers.GetSession).Methods("GET", "OPTIONS")
 	cliRouter.HandleFunc("/sessions/{id}/stop", ar.knirvshellHandlers.StopSession).Methods("POST", "OPTIONS")
 	cliRouter.HandleFunc("/sessions/{id}/input", ar.knirvshellHandlers.SendInput).Methods("POST", "OPTIONS")
@@ -331,14 +332,14 @@ func (ar *APIRouter) registerBackwardCompatibilityRoutes(r *mux.Router) {
 	r.PathPrefix("/api/knirvshell/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		newPath := "/api/v1/shell/" + path[len("/api/knirvshell/"):]
-		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
+		http.Redirect(w, r, newPath, http.StatusTemporaryRedirect)
 	})
 
-	// Redirect old /api/onboarding/ to /api/v1/onboarding/
-	r.PathPrefix("/api/onboarding/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Redirect old /api/v1/cli/ to /api/v1/shell/ (the frontend console-panel uses this path)
+	r.PathPrefix("/api/v1/cli/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
-		newPath := "/api/v1/onboarding/" + path[len("/api/onboarding/"):]
-		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
+		newPath := "/api/v1/shell/" + path[len("/api/v1/cli/"):]
+		http.Redirect(w, r, newPath, http.StatusTemporaryRedirect)
 	})
 
 	// Redirect old /api/cognitive/ to /api/v1/cognitive/
@@ -352,13 +353,6 @@ func (ar *APIRouter) registerBackwardCompatibilityRoutes(r *mux.Router) {
 	r.PathPrefix("/api/fabric-management/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		newPath := "/api/v1/knowledge-base/" + path[len("/api/fabric-management/"):]
-		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
-	})
-
-	// Redirect old /api/v1/cli/ to /api/v1/shell/ (the frontend console-panel uses this path)
-	r.PathPrefix("/api/v1/cli/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		newPath := "/api/v1/shell/" + path[len("/api/v1/cli/"):]
 		http.Redirect(w, r, newPath, http.StatusMovedPermanently)
 	})
 }

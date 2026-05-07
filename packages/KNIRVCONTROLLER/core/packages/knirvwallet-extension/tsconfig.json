@@ -5,10 +5,10 @@
     "types": [
       "node",
       "jest",
-      "@types/react",
-      "@types/react-dom",
-      "@types/styled-components",
-      "@types/chrome"
+      "react",
+      "react-dom",
+      "styled-components",
+      "chrome"
     ],
     "noImplicitAny": true,
     "module": "esnext",
@@ -24,6 +24,7 @@
     "downlevelIteration": true,
     "lib": ["dom", "es5", "es6"],
     "baseUrl": "./",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@types": ["src/types"],
       "@states": ["src/states"],

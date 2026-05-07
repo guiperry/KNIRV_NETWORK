@@ -87,6 +87,40 @@ func (h *KNIRVSHELLHandlers) ListSessions(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(sessions)
 }
 
+func (h *KNIRVSHELLHandlers) CreateSession(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Command  string `json:"command"`
+		NodeID   string `json:"node_id"`
+		Streaming bool  `json:"streaming"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Default to "terminal:start" if no command specified
+	command := req.Command
+	if command == "" {
+		command = "terminal:start"
+	}
+
+	// ExecuteCommand creates a session and returns a CommandResult with session_id
+	result, err := h.knirvshellService.ExecuteCommand(r.Context(), &knirvshell.CommandRequest{
+		Command: command,
+		NodeID:  req.NodeID,
+	})
+	if err != nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"session_id": result.SessionID,
+	})
+}
+
 func (h *KNIRVSHELLHandlers) GetSession(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	sessionID := vars["id"]
