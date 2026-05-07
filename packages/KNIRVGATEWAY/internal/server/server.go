@@ -34,33 +34,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// socketProxyClient creates an http.Client that dials a Unix socket path.
-// Used by handleChainProxy and handleOracleGet to make graceful fallback
-// requests instead of using a raw ReverseProxy (which returns 502 on error).
-func socketProxyClient(socketPath string) *http.Client {
-	transport := &http.Transport{
-		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-			return net.Dial("unix", socketPath)
-		},
-	}
-	return &http.Client{
-		Transport: transport,
-		Timeout:   5 * time.Second,
-	}
-}
-
-// loggingResponseWriter wraps http.ResponseWriter to capture the status code
-// so upstream callers can detect proxy errors without losing the response.
-type loggingResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (w *loggingResponseWriter) WriteHeader(statusCode int) {
-	w.statusCode = statusCode
-	w.ResponseWriter.WriteHeader(statusCode)
-}
-
 // Server represents the HTTP server
 type Server struct {
 	config            *config.Config
@@ -292,24 +265,20 @@ func (s *Server) setupRoutes() error {
 	r.HandleFunc("/api/network-monitor/logs", s.handleNetworkMonitorLogs).Methods("GET")
 	r.HandleFunc("/api/network-monitor/config", s.handleNetworkMonitorConfig).Methods("GET")
 
-	// Backend reverse proxy routes — proxy to internal Unix sockets
+	// Backend reverse proxy — proxy all /api/v1/* to the backend Unix socket
+	// (including /api/v1/info, which was previously handled locally by the gateway).
 	if s.config.BackendSocketPath != "" {
 		backendProxy := newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
-
-		// WebGUI API route mappings — the compiled frontend JS calls these
-		// paths via axios with the gateway base URL.  Map each to the real
-		// backend or chain endpoint.
-		r.HandleFunc("/api/v1/info", s.handleAPIInfo).Methods("GET", "OPTIONS")
 		r.PathPrefix("/api/v1/").Handler(backendProxy)
-
 		s.logger.Info("Backend proxy registered", zap.String("socket", s.config.BackendSocketPath))
 	} else {
 		s.logger.Warn("Backend proxy not configured — /api/v1/* will not be proxied")
 	}
 
+	// === PHASES 1-4: Unified Proxy Architecture ===
+	//
 	// Oracle proxy — KNIRVORACLE communicates via Unix socket when
 	// OracleSocketPath is configured, falling back to TCP (port 1317).
-	// Wallet and transaction endpoints are proxied through the gateway.
 	var oracleProxy *httputil.ReverseProxy
 	if s.config.OracleSocketPath != "" {
 		oracleProxy = newSocketProxy(s.config.OracleSocketPath, "http://knirvoracle")
@@ -319,37 +288,120 @@ func (s *Server) setupRoutes() error {
 		s.logger.Info("Oracle proxy registered (TCP)", zap.String("url", s.config.KnirvOracleURL))
 	}
 
-	// Chain API — the WebGUI calls /chain, /txn_pool, /wallet/info, /devs directly.
-	// These are registered unconditionally so the frontend never gets 404/502.
-	// When the backend/oracle/chain is unavailable, they return empty/fallback data.
-	chainRootProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")
-	// GET /chain → chain.sock /api/v1/chain/latest (or empty blocks)
-	r.HandleFunc("/chain", s.handleChainProxy(chainRootProxy)).Methods("GET", "OPTIONS")
-	// GET /txn_pool → mock (no matching chain endpoint)
-	r.HandleFunc("/txn_pool", s.handleTxnPool).Methods("GET", "OPTIONS")
-	// GET /wallet/info → oracle's wallet endpoint (user-scoped) (or empty wallet)
-	r.HandleFunc("/wallet/info", s.handleOracleGet(oracleProxy, "/cosmos/auth/v1beta1/accounts/")).Methods("GET", "OPTIONS")
-	// GET /devs → mock (no matching endpoint)
-	r.HandleFunc("/devs", s.handleDevs).Methods("GET", "OPTIONS")
-	// POST /transaction → oracle's transaction endpoint
-	r.HandleFunc("/transaction", s.handleOraclePost(oracleProxy, "/cosmos/tx/v1beta1/txs")).Methods("POST", "OPTIONS")
-	if s.config.ChainSocketPath != "" {
-		chainProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")
-		r.PathPrefix("/chain/").Handler(chainProxy)
-		s.logger.Info("Chain proxy registered", zap.String("socket", s.config.ChainSocketPath))
-	} else {
-		s.logger.Warn("Chain proxy not configured — /chain/* will not be proxied")
-	}
-	if s.config.GraphSocketPath != "" {
-		graphProxy := newSocketProxy(s.config.GraphSocketPath, "http://knirvgraph")
-		r.PathPrefix("/graph/").Handler(graphProxy)
-		s.logger.Info("Graph proxy registered", zap.String("socket", s.config.GraphSocketPath))
-	} else {
-		s.logger.Warn("Graph proxy not configured — /graph/* will not be proxied")
+	// /api/oracle/* — Standardized oracle prefix for all Cosmos blockchain queries
+	// Wallet/balance, transaction submission, blocks, staking, governance, IBC.
+	if s.config.OracleSocketPath != "" || s.config.KnirvOracleURL != "" {
+		r.PathPrefix("/api/oracle/").Handler(oracleProxy)
 	}
 
-	// Mock API endpoint (fallback for any unmatched /api routes)
-	r.PathPrefix("/api").HandlerFunc(s.handleMockAPI)
+	// 301 redirects from old flat paths to /api/oracle/* (Phase 1)
+	r.HandleFunc("/wallet/info", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/oracle/wallet/info", http.StatusMovedPermanently)
+	}).Methods("GET", "OPTIONS")
+	r.HandleFunc("/transaction", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/api/oracle/transaction", http.StatusMovedPermanently)
+	}).Methods("POST", "OPTIONS")
+
+	// Chain proxy — KNIRVCHAIN via chain.sock
+	if s.config.ChainSocketPath != "" {
+		chainProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")
+
+		// /api/chain/* — Standardized chain prefix (Phase 2)
+		r.PathPrefix("/api/chain/").Handler(chainProxy)
+
+		// Flat /chain/* redirect → /api/chain/* (Phase 2)
+		r.PathPrefix("/chain/").Handler(http.StripPrefix("/chain",
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/api/chain"+r.URL.Path, http.StatusMovedPermanently)
+			})))
+
+		// /chain (GET) redirect → /api/chain/ (Phase 2)
+		r.HandleFunc("/chain", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/api/chain/", http.StatusMovedPermanently)
+		}).Methods("GET", "OPTIONS")
+
+		// /bootnodes redirect → /api/chain/bootnodes (Phase 2, replaces /devs)
+		r.HandleFunc("/bootnodes", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/api/chain/bootnodes", http.StatusMovedPermanently)
+		}).Methods("GET", "OPTIONS")
+
+		// /api/objects → chain proxy (Phase 4 — replaces mock handler)
+		r.HandleFunc("/api/objects", chainProxy.ServeHTTP).Methods("GET", "OPTIONS")
+
+		// /api/assets → chain proxy (Phase 4 — replaces mock handler)
+		r.HandleFunc("/api/assets", chainProxy.ServeHTTP).Methods("GET", "OPTIONS")
+
+		s.logger.Info("Chain proxy registered", zap.String("socket", s.config.ChainSocketPath))
+	} else {
+		s.logger.Warn("Chain proxy not configured — /api/chain/* will not be proxied")
+
+		// Fallback: return empty data for chain endpoints when chain is not available
+		r.HandleFunc("/api/objects", s.handleEmptyArray).Methods("GET", "OPTIONS")
+		r.HandleFunc("/api/assets", s.handleEmptyArray).Methods("GET", "OPTIONS")
+	}
+
+	// Graph proxy — KNIRVGRAPH via graph.sock (Phase 3)
+	if s.config.GraphSocketPath != "" {
+		graphProxy := newSocketProxy(s.config.GraphSocketPath, "http://knirvgraph")
+
+		// /api/graph/* — Standardized graph prefix
+		r.PathPrefix("/api/graph/").Handler(graphProxy)
+
+		// Flat /graph/* redirect → /api/graph/*
+		r.PathPrefix("/graph/").Handler(http.StripPrefix("/graph",
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/api/graph"+r.URL.Path, http.StatusMovedPermanently)
+			})))
+
+		s.logger.Info("Graph proxy registered", zap.String("socket", s.config.GraphSocketPath))
+	} else {
+		s.logger.Warn("Graph proxy not configured — /api/graph/* will not be proxied")
+	}
+
+	// Shell proxy — KNIRVSHELL via shell.sock (Phase 5)
+	if s.config.ShellSocketPath != "" {
+		shellProxy := newSocketProxy(s.config.ShellSocketPath, "http://knirvshell")
+		r.PathPrefix("/api/shell/").Handler(shellProxy)
+		// 307 (method-preserving) redirects from old shell paths
+		r.PathPrefix("/api/v1/shell/").Handler(http.StripPrefix("/api/v1/shell",
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/api/shell"+r.URL.Path, http.StatusTemporaryRedirect)
+			})))
+		r.PathPrefix("/api/knirvshell/").Handler(http.StripPrefix("/api/knirvshell",
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/api/shell"+r.URL.Path, http.StatusTemporaryRedirect)
+			})))
+		s.logger.Info("Shell proxy registered", zap.String("socket", s.config.ShellSocketPath))
+	} else {
+		s.logger.Warn("Shell proxy not configured — /api/shell/* will not be proxied")
+	}
+
+	// Agent proxy — KNIRVAGENT per-DVE dynamic socket proxy (Phase 6)
+	if s.config.AgentSocketDir != "" {
+		r.PathPrefix("/api/agent/").Handler(s.dynamicAgentProxy())
+		s.logger.Info("Agent proxy registered", zap.String("socketDir", s.config.AgentSocketDir))
+	} else {
+		s.logger.Warn("Agent proxy not configured — /api/agent/* will not be proxied")
+	}
+
+	// Hasher proxy — bridged through backend.sock (Phase 7)
+	if s.config.BackendSocketPath != "" {
+		backendProxy := r.PathPrefix("/api/hasher/")
+		_ = backendProxy // hasher routes are handled by the backend's /api/v1/hasher/* endpoints
+	}
+
+	// Phase 4: Replace WebGUI mock endpoints with real proxy destinations.
+	// /api/transactions → oracle proxy (Cosmos tx history)
+	if s.config.OracleSocketPath != "" || s.config.KnirvOracleURL != "" {
+		r.HandleFunc("/api/transactions", oracleProxy.ServeHTTP).Methods("GET", "OPTIONS")
+		r.HandleFunc("/api/blocks", oracleProxy.ServeHTTP).Methods("GET", "OPTIONS")
+	} else {
+		r.HandleFunc("/api/transactions", s.handleEmptyArray).Methods("GET", "OPTIONS")
+		r.HandleFunc("/api/blocks", s.handleEmptyArray).Methods("GET", "OPTIONS")
+	}
+
+	// NOTE: No catch-all mock handler. Unmatched /api/* routes will 404
+	// instead of returning fake data, forcing real endpoint implementation.
 
 	// IMPORTANT: Next.js static export uses absolute paths like /_next/..., /favicon.ico, etc.
 	// These are served at the root level so the explorer can load its assets.
@@ -868,160 +920,59 @@ func (s *Server) handleNetworkMonitorConfig(w http.ResponseWriter, r *http.Reque
 }
 
 // handleAPIInfo returns server info — used by the WebGUI's backend detection.
-func (s *Server) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleEmptyArray(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"role":    "General",
-		"network": "local",
-		"mode":    "gateway",
-	})
+	w.Write([]byte("[]\n"))
 }
 
-// handleOracleGet returns a handler that proxies GET requests to the oracle
-// at the given upstream path prefix.  The WebGUI calls /wallet/info which maps
-// to the oracle's accounts endpoint.
-// If the oracle is unavailable, returns empty wallet info (no 502).
-func (s *Server) handleOracleGet(oracleProxy *httputil.ReverseProxy, upstreamPath string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Clone the request so we can safely modify the path.
-		proxyReq := r.Clone(r.Context())
-		proxyReq.URL.Path = upstreamPath
-		proxyReq.URL.RawPath = ""
+// dynamicAgentProxy creates an httputil.ReverseProxy that
+// extracts {dveId} from /api/agent/{dveId}/... and proxies
+// to agent-{dveId}.sock, stripping the /api/agent/{dveId} prefix.
+func (s *Server) dynamicAgentProxy() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extract /api/agent/{dveId}/... — e.g. /api/agent/dve-a/session
+		trimmed := strings.TrimPrefix(r.URL.Path, "/api/agent/")
+		parts := strings.SplitN(trimmed, "/", 2)
+		if len(parts) < 1 || parts[0] == "" {
+			http.Error(w, `{"error":"missing dveId"}`, http.StatusBadRequest)
+			return
+		}
+		dveID := parts[0]
 
-		// If the oracle proxy is backed by a socket, try a direct client
-		// with a short timeout so we can return empty data on failure instead
-		// of a 502 Bad Gateway.
-		if s.config.OracleSocketPath != "" {
-			client := socketProxyClient(s.config.OracleSocketPath)
-			targetURL := fmt.Sprintf("http://knirvoracle%s", upstreamPath)
-			resp, err := client.Get(targetURL)
-			if err != nil {
-				s.logger.Debug("Oracle unavailable for /wallet/info, returning empty", zap.Error(err))
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"address": "",
-					"balance": 0,
-					"connected": false,
-				})
-				return
-			}
-			defer resp.Body.Close()
-			for k, v := range resp.Header {
-				w.Header()[k] = v
-			}
-			w.WriteHeader(resp.StatusCode)
-			io.Copy(w, resp.Body)
+		socketPath := filepath.Join(s.config.AgentSocketDir, fmt.Sprintf("agent-%s.sock", dveID))
+
+		// Check if socket exists
+		if _, err := os.Stat(socketPath); os.IsNotExist(err) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": fmt.Sprintf("no agent running for DVE %s", dveID),
+			})
 			return
 		}
 
-		// Fallback to the original proxy (TCP-based oracle).
-		// Capture the proxy's response writer so we can detect errors.
-		lw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		oracleProxy.ServeHTTP(lw, proxyReq)
-		if lw.statusCode >= 500 {
-			s.logger.Debug("Oracle returned error for /wallet/info, returning empty", zap.Int("status", lw.statusCode))
+		// Rewrite path: strip /api/agent/{dveId} prefix
+		r.URL.Path = "/"
+		if len(parts) == 2 {
+			r.URL.Path = "/" + parts[1]
+		}
+
+		proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: "http", Host: "unix"})
+		proxy.Transport = &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return net.DialTimeout("unix", socketPath, 2*time.Second)
+			},
+		}
+
+		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadGateway)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"address": "",
-				"balance": 0,
-				"connected": false,
+				"error": fmt.Sprintf("agent %s unavailable: %s", dveID, err),
 			})
 		}
-	}
-}
 
-// handleOraclePost returns a handler that proxies POST requests to the oracle
-// at the given upstream path.  The WebGUI calls /transaction which maps to the
-// oracle's tx broadcast endpoint.
-func (s *Server) handleOraclePost(oracleProxy *httputil.ReverseProxy, upstreamPath string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		r.URL.Path = upstreamPath
-		r.URL.RawPath = ""
-		oracleProxy.ServeHTTP(w, r)
-	}
-}
-
-// handleChainProxy returns a handler that proxies GET /chain to the chain
-// socket at /api/v1/chain/latest (the chain's latest-block endpoint).
-// If the chain socket is unavailable, returns empty blocks (no 404/502).
-func (s *Server) handleChainProxy(chainProxy *httputil.ReverseProxy) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Clone the request so we can safely modify the path.
-		proxyReq := r.Clone(r.Context())
-		proxyReq.URL.Path = "/api/v1/chain/latest"
-		proxyReq.URL.RawPath = ""
-
-		// If the chain proxy is backed by a socket, try a direct client
-		// with a short timeout so we can return empty data on failure instead
-		// of a 404/502.
-		if s.config.ChainSocketPath != "" {
-			client := socketProxyClient(s.config.ChainSocketPath)
-			targetURL := fmt.Sprintf("http://knirvchain/api/v1/chain/latest")
-			resp, err := client.Get(targetURL)
-			if err != nil {
-				s.logger.Debug("Chain socket unavailable for /chain, returning empty", zap.Error(err))
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]interface{}{
-					"blocks": []interface{}{},
-				})
-				return
-			}
-			defer resp.Body.Close()
-			for k, v := range resp.Header {
-				w.Header()[k] = v
-			}
-			w.WriteHeader(resp.StatusCode)
-			io.Copy(w, resp.Body)
-			return
-		}
-
-		// Fallback to the original proxy (TCP-based chain).
-		// Capture the proxy's response writer so we can detect errors.
-		lw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		chainProxy.ServeHTTP(lw, proxyReq)
-		if lw.statusCode >= 500 {
-			s.logger.Debug("Chain returned error for /chain, returning empty", zap.Int("status", lw.statusCode))
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"blocks": []interface{}{},
-			})
-		}
-	}
-}
-
-// handleTxnPool returns mock transaction pool data (no matching chain endpoint).
-func (s *Server) handleTxnPool(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode([]interface{}{})
-}
-
-// handleDevs returns mock developer/peer data (no matching backend endpoint).
-func (s *Server) handleDevs(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode([]map[string]interface{}{
-		{"id": "local", "name": "Local Node", "status": "online"},
-	})
-}
-
-func (s *Server) handleMockAPI(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" && (r.URL.Path == "/api" || r.URL.Path == "/api/" || strings.HasSuffix(r.URL.Path, "/health")) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status":    "ok",
-			"message":   "Mock KNIRV central API oracle",
-			"chainId":   s.config.ChainID,
-			"timestamp": time.Now().UnixMilli(),
-		})
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusNotImplemented)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error":   "Not Implemented",
-		"message": "Central API routing is not yet implemented. This is a mock endpoint.",
-		"method":  r.Method,
-		"route":   r.URL.Path,
+		proxy.ServeHTTP(w, r)
 	})
 }
 

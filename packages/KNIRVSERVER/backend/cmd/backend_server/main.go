@@ -1928,6 +1928,24 @@ func (s *Server) setupRoutes() {
 		log.Println("KNIRVSHELL routes configured")
 	}
 
+	// Register Hasher HTTP bridge routes (Phase 7)
+	if s.hasherIntegration != nil {
+		hasherHandlers := web.NewHasherHandlers(
+			s.logger,
+			s.hasherIntegration.IsAvailable,
+			func() error {
+				if s.hasherIntegration.IsAvailable() {
+					return nil
+				}
+				return fmt.Errorf("hasher not available")
+			},
+		)
+		// Register on the mux router at /api/v1/hasher/
+		s.router.HandleFunc("/api/v1/hasher/status", hasherHandlers.HandleStatus).Methods("GET", "OPTIONS")
+		s.router.HandleFunc("/api/v1/hasher/ping", hasherHandlers.HandlePing).Methods("GET", "OPTIONS")
+		log.Println("Hasher HTTP bridge routes configured")
+	}
+
 	// Register Onboarding routes
 	if s.onboardingService != nil {
 		web.NewOnboardingHandlers(s.onboardingService).RegisterRoutes(s.router, authMiddleware)

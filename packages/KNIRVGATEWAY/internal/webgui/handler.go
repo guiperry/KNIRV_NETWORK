@@ -37,11 +37,9 @@ func NewHandler(cfg *config.Config, logger *zap.Logger, gatewayPort ...int) *Han
 
 // RegisterRoutes registers the explorer API routes.
 func (h *Handler) RegisterRoutes(r *mux.Router) {
-	// API routes that proxy to backend
-	r.HandleFunc("/api/objects", h.handleObjects).Methods("GET")
-	r.HandleFunc("/api/transactions", h.handleTransactions).Methods("GET")
-	r.HandleFunc("/api/blocks", h.handleBlocks).Methods("GET")
-	r.HandleFunc("/api/assets", h.handleAssets).Methods("GET")
+	// These routes are now handled directly by the gateway's setupRoutes()
+	// with proper proxy destinations (chain.sock or oracle). We keep only
+	// /api/view/{id} which is deferred to Phase 8.
 	r.HandleFunc("/api/view/{id}", h.handleView).Methods("GET")
 }
 

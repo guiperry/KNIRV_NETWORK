@@ -286,6 +286,20 @@ graph:
   start_timeout: 30
   stop_timeout: 10
 
+# Gateway (embedded KNIRVGATEWAY) Configuration
+gateway:
+  enabled: true
+  binary_path: ""
+  port: 8080
+  backend_socket: /var/lib/knirvserver/sockets/backend.sock
+  chain_socket: /var/lib/knirvserver/sockets/chain.sock
+  graph_socket: /var/lib/knirvserver/sockets/graph.sock
+  shell_socket: /var/lib/knirvserver/sockets/shell.sock
+  agent_socket_dir: /var/lib/knirvserver/sockets/
+  agent_max_concurrent: 32
+  start_timeout: 30
+  stop_timeout: 10
+
 # DVE (Deterministic Validation Environment) Configuration
 dve:
   discovery:

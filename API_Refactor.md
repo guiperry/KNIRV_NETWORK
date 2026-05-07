@@ -54,7 +54,7 @@ This is the core architectural decision governing all routing:
 | Submodule | Owns | Examples |
 |-----------|------|----------|
 | **KNIRVORACLE** | Cosmos blockchain queries — transactions, blocks, wallet balances, token info, governance, staking, IBC, cross-chain | `GET /api/oracle/v3/token/balance/{address}`, `POST /api/oracle/v3/token/transfer`, `GET /api/oracle/v3/economics/metrics`, `POST /api/oracle/v3/crosschain/transfer` |
-| **KNIRVCHAIN** | Agent ecosystem — credentials, task context, capabilities/skills, MCP contexts, badge/NFT minting, agent facts, resource capabilities, PoAu-D | `GET /api/chain/mcp/capability/list`, `POST /api/chain/agent/capability/invoke`, `POST /api/chain/nft/upload`, `GET /api/chain/agent/agent-facts/{id}`, `POST /api/chain/poaud/enable` |
+| **KNIRVCHAIN** | Agent ecosystem — credentials, task context, capabilities/skills, MCP contexts, badge/NFT minting, agent facts, resource capabilities, PoAu-D, bootstrap peer registry | `GET /api/chain/mcp/capability/list`, `POST /api/chain/agent/capability/invoke`, `POST /api/chain/nft/upload`, `GET /api/chain/agent/agent-facts/{id}`, `POST /api/chain/poaud/enable`, `GET /api/chain/bootnodes` |
 | **KNIRVGRAPH** | Knowledge graph — NRV vectors, errors, skills, graph traversal, economics metrics | `GET /api/graph/node/{nodeID}`, `POST /api/graph/graph/traverse`, `POST /api/graph/nrv/errors` |
 | **KNIRVSERVER backend** | Application logic — DVE management, plugins, auth, payments, shell, onboarding, cognitive engine, knowledge base, health | `GET /api/v1/dve/nodes`, `POST /api/v1/auth/login`, `GET /api/v1/shell/sessions` |
 | **KNIRVAGENT** | DVE supervisor agent — per-DVE subprocess for agent interaction | `POST /api/agent/{dveId}/session`, `POST /api/agent/{dveId}/input` |
@@ -93,7 +93,7 @@ KNIRVGATEWAY (port 8080 / 8888)
   │   (Cosmos txns, blocks, balances, staking, governance)
   │
   ├─ /api/shell/*                   ──► shell.sock ──► KNIRVSHELL daemon
-  ├─ /api/agent/*                   ──► agent.sock ──► KNIRVAGENT (on-demand)
+  ├─ /api/agent/{dveId}/*          ──► agent-{dveId}.sock ──► KNIRVAGENT (per-DVE, on-demand)
   ├─ /api/hasher/*                  ──► backend.sock (bridged from backend's hasher handlers)
   │
   ├─ /api/objects                  ──► chain.sock ──► KNIRVCHAIN agent objects
@@ -105,7 +105,7 @@ KNIRVGATEWAY (port 8080 / 8888)
   ├─ /chain/*                      ──► 301 redirect ──► /api/chain/*
   ├─ /wallet/info                  ──► 301 redirect ──► /api/oracle/wallet/info
   ├─ /transaction                  ──► 301 redirect ──► /api/oracle/transaction
-  └─ /devs                         ──► 301 redirect ──► /api/chain/devs
+  └─ /bootnodes                    ──► 301 redirect ──► /api/chain/bootnodes
 ```
 
 ### 2.3 Socket Layout
@@ -117,8 +117,8 @@ KNIRVGATEWAY (port 8080 / 8888)
   ├── graph.sock         (KNIRVGRAPH — already exists)
   ├── shell.sock         (KNIRVSHELL — NEW, extract KNIRVSHELL into a socket daemon)
   ├── hasher.sock        (KNIRVHASHER — already exists, gRPC only)
-  ├── agent.sock         (KNIRVAGENT — NEW, change from TCP to socket)
-  └── oracle TCP         (localhost:1317 — unchanged, explicitly TCP)
+  ├── agent-{dveId}.sock  (KNIRVAGENT — NEW, per-DVE sockets, one per active DVE)
+  └── oracle TCP          (localhost:1317 — runtime-discovered port via port file or env var)
 ```
 
 ---
@@ -138,13 +138,13 @@ KNIRVGATEWAY (port 8080 / 8888)
 **Steps:**
 
 1. **In `packages/KNIRVGATEWAY/internal/server/server.go`:**
-   - Register `r.PathPrefix("/api/oracle/")` → oracle TCP proxy (to `localhost:1317` or configured `OracleSocketPath`)
+   - Register `r.PathPrefix("/api/oracle/")` → oracle TCP proxy. The oracle TCP address is resolved at runtime (not a static config field) — the oracle binary binds to an arbitrary available port and advertises it via a well-known discovery mechanism (e.g., a port file in the socket directory, or an environment variable propagated from oracle startup). The gateway reads the live port per-request. Default fallback: `localhost:1317`.
    - Add redirects:
      - `/wallet/info` → 301 → `/api/oracle/wallet/info`
      - `/transaction` → 301 → `/api/oracle/transaction`
    - Remove the old `handleOracleGet` and `handleOraclePost` handlers
    - Remove the old `/wallet/info` and `/transaction` special-cased route registrations
-   - Keep `OracleSocketPath` logic but under the new `/api/oracle/` prefix
+   - Keep the runtime port discovery logic but under the new `/api/oracle/` prefix
 
 **Files changed:**
 - `packages/KNIRVGATEWAY/internal/server/server.go`
@@ -153,7 +153,7 @@ KNIRVGATEWAY (port 8080 / 8888)
 
 ### Phase 2: KNIRVCHAIN → Standardized `/api/chain/*` Proxy
 
-**Problem:** `/chain/*` is already proxied to `chain.sock` (good), but should be under `/api/chain/*` for consistency. Some routes like `/devs` and `/txn_pool` have special-cased mock handlers instead of going to chain.
+**Problem:** `/chain/*` is already proxied to `chain.sock` (good), but should be under `/api/chain/*` for consistency. Some routes like `/bootnodes` and `/txn_pool` have special-cased mock handlers instead of going to chain.
 
 **Solution:** Create `/api/chain/*` prefix that proxies to `chain.sock`. KNIRVCHAIN owns:
 - Agent credentials and identity
@@ -170,7 +170,7 @@ KNIRVGATEWAY (port 8080 / 8888)
    - Keep existing `/chain/*` routes as redirect to `/api/chain/*`
    - Remove the special-cased `/chain` (GET) handler — let it fall through to the chain proxy
    - Remove the `/txn_pool` mock handler — proxy to `/api/chain/txn_pool` instead
-   - Remove the `/devs` mock handler — proxy to `/api/chain/devs` instead
+   - Remove the `/bootnodes` mock handler — proxy to `/api/chain/bootnodes` instead
    - Update the existing `/chain/*` passthrough to use the same proxy
 
 **Files changed:**
@@ -203,13 +203,13 @@ KNIRVGATEWAY (port 8080 / 8888)
 
 | Gateway Route | Data Type | Target Submodule | Target Path |
 |---------------|-----------|-----------------|-------------|
-| `GET /api/transactions` | Cosmos tx history | **KNIRVORACLE** | `/api/oracle/v3/economics/metrics` (nearest endpoint) |
-| `GET /api/blocks` | Cosmos block headers | **KNIRVORACLE** | `/api/oracle/v3/consensus/status` (nearest endpoint) |
-| `GET /api/objects` | Agent objects/capabilities | **KNIRVCHAIN** | `/api/chain/mcp/capability/list` |
+| `GET /api/objects` | Agent objects/capabilities | **KNIRVCHAIN** | `/api/chain/mcp/capability/list` — edit WebGUI to consume chain-native shape |
+| `GET /api/transactions` | Cosmos tx history | **KNIRVORACLE** | `/api/oracle/v3/economics/metrics` — edit WebGUI or add backend wrapper |
+| `GET /api/blocks` | Cosmos block headers | **KNIRVORACLE** | `/api/oracle/v3/consensus/status` — edit WebGUI or add backend wrapper |
 | `GET /api/assets` | Badges/NFTs | **KNIRVCHAIN** | `/api/chain/nft/list` |
-| `GET /api/view/{id}` | Unknown — TBD | **TBD after WebGUI audit** | — |
+| `GET /api/view/{id}` | 3D model viewer HTML | **KNIRVCHAIN** | `/api/chain/nft/{id}` — if shape doesn't match, prefer editing the WebGUI component that renders the viewer
 
-**Note:** Some WebGUI frontend routes may expect data shapes that don't exactly match the submodule's existing endpoints. In those cases, add a thin handler on the KNIRVSERVER backend (accessible via `backend.sock`) that transforms the data. For example, the backend can query both the oracle (for balances) and the chain (for badges) and merge results.
+**Note:** Most mock endpoints return data in shapes the frontend already expects. For endpoints where the submodule data shape doesn't match, prefer editing the WebGUI frontend (or the backend response) to align shapes — there is no need for a separate transform layer. See Q3 in §9 for exact expected shapes.
 
 **Steps:**
 
@@ -222,6 +222,7 @@ KNIRVGATEWAY (port 8080 / 8888)
      - `GET /api/assets` → `chainProxy` (chain.sock)
      - `GET /api/view/{id}` → TBD (deferred to Phase 8)
    - Remove the catch-all mock handler at `r.PathPrefix("/api").HandlerFunc(s.handleMockAPI)` — this currently catches unmatched `/api/*` requests and returns mock data, which masks missing routes
+   - Remove the `/devs` mock handler (replaced by `/bootnodes` — see Phase 2)
 
 **Files changed:**
 - `packages/KNIRVGATEWAY/internal/server/server.go`
@@ -268,31 +269,194 @@ KNIRVGATEWAY (port 8080 / 8888)
 
 ---
 
-### Phase 6: KNIRVAGENT → Unix Socket
+### Phase 6: KNIRVAGENT → Multi-DVE Concurrent Socket Sessions
 
-**Problem:** KNIRVAGENT listens on TCP port 8081 by default. It needs to switch to a Unix socket so the gateway can proxy to it.
+**Problem:** KNIRVAGENT listens on TCP port 8081 — one port, one process, one agent. A KNIRV Network deployment may have multiple DVE containers running concurrently, and each DVE needs its own KNIRVAGENT supervisor subprocess. With the current single-agent model, agents block on each other, sessions collide, and a DVE cannot be managed independently.
 
-**Solution:** Change the KNIRVAGENT manager to listen on `agent.sock` instead of TCP port 8081. Add gateway proxy routes.
+**Solution:** Adopt a **per-DVE agent subprocess** model. Each DVE gets its own KNIRVAGENT binary instance, listening on a dedicated Unix socket named `agent-{dveId}.sock`. The manager orchestrates N concurrent agent processes, and the gateway routes `/api/agent/{dveId}/*` to the correct socket.
+
+#### Design
+
+```
+DVE Container A  ──►  knirvagent (pid 1001)  ──►  agent-dve-a.sock
+DVE Container B  ──►  knirvagent (pid 1002)  ──►  agent-dve-b.sock
+DVE Container C  ──►  knirvagent (pid 1003)  ──►  agent-dve-c.sock
+                              │
+                              ▼
+                    AgentManager (thread-safe map[DVEID]*AgentProcess)
+                              │
+                              ▼
+                    Gateway: /api/agent/{dveId}/session
+                             /api/agent/{dveId}/input
+```
+
+#### Socket Layout
+
+```
+/var/lib/knirvserver/sockets/
+  ├── agent-dve-a.sock    (KNIRVAGENT for DVE "a")
+  ├── agent-dve-b.sock    (KNIRVAGENT for DVE "b")
+  ├── agent-dve-c.sock    (KNIRVAGENT for DVE "c")
+  └── ...                 (one per active DVE)
+```
+
+#### Gateway Route Pattern
+
+```
+/api/agent/{dveId}/session  ──► agent-{dveId}.sock  ──► POST /session
+/api/agent/{dveId}/input    ──► agent-{dveId}.sock  ──► POST /input
+/api/agent/{dveId}/output   ──► agent-{dveId}.sock  ──► GET  /output
+/api/agent/{dveId}/health   ──► agent-{dveId}.sock  ──► GET  /health
+/api/agent/{dveId}/events   ──► agent-{dveId}.sock  ──► WS   /events
+/api/agent/{dveId}/*        ──► agent-{dveId}.sock  ──► passthrough
+```
 
 **Steps:**
 
-1. **In `packages/KNIRVSERVER/pkg/knirvagent/manager.go`:**
-   - Change the default listener from `:8081` to `{socketDir}/agent.sock`
-   - Update the `startProcess()` method to pass `--socket-path` flag to `bin/knirvagent`
-   - Keep the health check working over the socket
+1. **Refactor `packages/KNIRVSERVER/pkg/knirvagent/manager.go` — multi-process orchestration:**
 
-2. **In `packages/KNIRVGATEWAY/internal/server/server.go`:**
-   - Add a new proxy `agentProxy` pointing to `agent.sock`
-   - Register `r.PathPrefix("/api/agent/").Handler(agentProxy)`
-   - Note: KNIRVAGENT starts on-demand per DVE — the proxy should return 503 when the agent process is not running
+   ```go
+   type AgentProcess struct {
+       DVEID      string
+       Cmd        *exec.Cmd
+       SocketPath string
+       PID        int
+       StartedAt  time.Time
+       Healthy    bool
+       mu         sync.RWMutex
+   }
 
-3. **In `packages/KNIRVSERVER/backend/internal/config/config.go`:**
-   - Add `AgentSocketPath string \`mapstructure:"agent_socket"\`` to `GatewayConfig`
+   type AgentManager struct {
+       mu         sync.RWMutex
+       agents     map[string]*AgentProcess  // keyed by DVEID
+       socketDir  string
+       binaryPath string
+   }
+   ```
+
+   - `StartAgent(dveID string) (*AgentProcess, error)` — spawns a new `bin/knirvagent` subprocess listening on `{socketDir}/agent-{dveID}.sock`. Passes `--dve-id` and `--socket-path` flags to the binary. Blocks until the socket file appears (poll with 100ms interval, 5s timeout) or returns error.
+   - `StopAgent(dveID string) error` — signals SIGTERM to the subprocess, waits up to 10s, then SIGKILL. Removes the socket file on cleanup.
+   - `GetAgent(dveID string) (*AgentProcess, error)` — returns the agent for a DVE, or an error if not running.
+   - `ListAgents() []*AgentProcess` — returns all running agents.
+   - `StopAll() error` — stops every agent process in parallel with a 15s global timeout (used during server shutdown).
+   - `HealthCheck(dveID string) bool` — pings the agent's socket. Updates `AgentProcess.Healthy`.
+   - Add a periodic health-check goroutine (30s interval, configurable) that reaps agents whose socket is gone or process has exited.
+   - Maintain a **max concurrent agents** limit (default 32, configurable via `AgentMaxConcurrent`). `StartAgent` returns an error when the limit is reached.
+
+2. **Update `packages/KNIRVSERVER/backend/cmd/backend_server/main.go`:**
+   - Initialize `knirvagent.AgentManager` in `NewServer()` with `socketDir` and `binaryPath` from config
+   - Wire the agent lifecycle into the DVE management flow:
+     - On DVE creation/init → call `agentManager.StartAgent(dveID)`
+     - On DVE teardown/stop → call `agentManager.StopAgent(dveID)`
+     - Pass the agent manager reference to the API router for health/status endpoints
+   - Register `POST /api/v1/admin/dve/{dveId}/agent/start` and `POST /api/v1/admin/dve/{dveId}/agent/stop` as admin-only lifecycle hooks (so administrators can restart a misbehaving agent without restarting the DVE)
+
+3. **Update `packages/KNIRVGATEWAY/internal/server/server.go` — dynamic per-DVE proxying:**
+
+   The single static `agentProxy` won't work because the socket path is dynamic (`agent-{dveId}.sock`). Use a **dynamic reverse proxy** that extracts `{dveId}` from the URL and creates/strips the socket path at runtime:
+
+   ```go
+   // DynamicAgentProxy creates an httputil.ReverseProxy that
+   // extracts {dveId} from /api/agent/{dveId}/... and proxies
+   // to agent-{dveId}.sock, stripping the /api/agent/{dveId} prefix.
+   func (s *Server) dynamicAgentProxy() http.Handler {
+       return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+           // Extract /api/agent/{dveId}/... — e.g. /api/agent/dve-a/session
+           parts := strings.SplitN(strings.TrimPrefix(r.URL.Path, "/api/agent/"), "/", 2)
+           if len(parts) < 1 || parts[0] == "" {
+               http.Error(w, `{"error":"missing dveId"}`, http.StatusBadRequest)
+               return
+           }
+           dveID := parts[0]
+
+           socketPath := filepath.Join(s.config.SocketDir, fmt.Sprintf("agent-%s.sock", dveID))
+
+           // Check if socket exists
+           if _, err := os.Stat(socketPath); os.IsNotExist(err) {
+               http.Error(w, fmt.Sprintf(`{"error":"no agent running for DVE %s"}`, dveID),
+                   http.StatusServiceUnavailable)
+               return
+           }
+
+           // Rewrite path: strip /api/agent/{dveId} prefix
+           r.URL.Path = "/"
+           if len(parts) == 2 {
+               r.URL.Path = "/" + parts[1]
+           }
+
+           proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: "http", Host: "unix"})
+           proxy.Transport = &http.Transport{
+               DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+                   return net.DialTimeout("unix", socketPath, 2*time.Second)
+               },
+           }
+
+           proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+               http.Error(w, fmt.Sprintf(`{"error":"agent %s unavailable: %s"}`, dveID, err),
+                   http.StatusBadGateway)
+           }
+
+           proxy.ServeHTTP(w, r)
+       })
+   }
+   ```
+
+   Route registrations:
+
+   ```go
+   // In setupRoutes():
+   r.PathPrefix("/api/agent/").Handler(s.dynamicAgentProxy())
+   ```
+
+   The proxy:
+   - Returns **503** when the socket doesn't exist (agent not started for that DVE)
+   - Returns **502** when the socket exists but the agent doesn't respond (process crashed, socket stale)
+   - Returns **400** when `dveId` is missing from the path
+
+4. **In `packages/KNIRVSERVER/backend/internal/config/config.go`:**
+   - Add to `GatewayConfig`:
+     ```go
+     AgentSocketDir     string `mapstructure:"agent_socket_dir"`      // e.g., /var/lib/knirvserver/sockets/
+     AgentMaxConcurrent int    `mapstructure:"agent_max_concurrent"`  // default 32
+     ```
+
+5. **In the KNIRVAGENT binary (`bin/knirvagent`):**
+   - Add `--dve-id` flag (string, e.g. "dve-a") for self-identification
+   - Add `--socket-path` flag (string, e.g. "/var/lib/knirvserver/sockets/agent-dve-a.sock") replacing the old `:8081` default
+   - Remove the TCP listener default — the binary must listen on the Unix socket exclusively
+   - The binary's HTTP handler already supports `/session`, `/input`, `/output` — no handler changes needed, just listener type
+
+6. **Concurrency and lifecycle considerations:**
+   - **Thread safety:** All `AgentManager` methods use `sync.RWMutex`. The `agents` map is protected at all times. `GetAgent`/`StopAgent` use `RLock` for reads, `Lock` for mutations.
+   - **Startup race:** `StartAgent` must block until the socket is actually listening (poll with 100ms interval, 5s timeout). Without this, the gateway might proxy a request before the agent is ready.
+   - **Cleanup on DVE destroy:** `StopAgent` must be idempotent — if the process already exited, just clean up the socket file and remove the map entry.
+   - **Socket file leak guard:** Register a deferred cleanup via `process.Process.Kill` + `os.Remove(socketPath)` for edge cases where the process exits unexpectedly. The periodic health-check goroutine also collects orphaned socket files.
+   - **Graceful shutdown:** `StopAll()` iterates the agents map, sends SIGTERM to each, waits 10s, then SIGKILL remaining. If `StopAll` takes more than 15s, it returns an error listing the PIDs that didn't respond. The server shutdown sequence calls `StopAll` before closing the main listener.
+   - **Resource limits:** If `AgentMaxConcurrent` is reached, `StartAgent` returns a clear error message. Expose current count via `POST /api/v1/admin/agent/stats`.
+   - **Logging:** Every agent lifecycle event (start, stop, health failure, reap) emits a structured log line with `dveID`, `pid`, `socketPath`, and duration.
+
+**API Contract (per-agent Unix socket):**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/session` | Create or resume an agent session |
+| POST | `/input` | Send user input to the agent |
+| GET | `/output` | Get the latest agent output/response |
+| GET | `/health` | Agent health check (always responds 200 when running) |
+| WS | `/events` | WebSocket stream of agent events (thinking, output, errors) |
+
+The gateway strips the `/api/agent/{dveId}` prefix so the agent binary sees clean paths. For example:
+- `POST /api/agent/dve-a/session` → `socket:agent-dve-a.sock` → `POST /session`
+- `GET /api/agent/dve-b/health` → `socket:agent-dve-b.sock` → `GET /health`
+- `WS /api/agent/dve-c/events` → `socket:agent-dve-c.sock` → `WS /events`
 
 **Files changed:**
-- `packages/KNIRVSERVER/pkg/knirvagent/manager.go`
-- `packages/KNIRVGATEWAY/internal/server/server.go`
-- `packages/KNIRVSERVER/backend/internal/config/config.go`
+- `packages/KNIRVSERVER/pkg/knirvagent/manager.go` (rewrite for multi-process)
+- `packages/KNIRVGATEWAY/internal/server/server.go` (dynamic per-DVE proxy)
+- `packages/KNIRVSERVER/backend/internal/config/config.go` (new config fields)
+- `packages/KNIRVSERVER/backend/cmd/backend_server/main.go` (wire lifecycle into DVE flow)
+- `bin/knirvagent` (add `--dve-id` and `--socket-path` flags, remove TCP default)
+- `packages/KNIRVSERVER/config/production.yaml` (add agent config section)
 
 ---
 
@@ -360,11 +524,10 @@ KNIRVGATEWAY (port 8080 / 8888)
 
 4. **Verify each endpoint** returns real data (not mock) after phases 1-8
 
-5. **Add any missing transform handlers** on the backend where the WebGUI expects a different data shape than what the submodule provides
+5. **Fix any data shape mismatches** by editing the WebGUI components to consume the submodule's native format, or adding a thin backend wrapper where the mismatch is large
 
 **Files changed:**
 - Multiple WebGUI frontend files
-- Potentially new backend handler files for data transformation
 
 ---
 
@@ -409,9 +572,15 @@ Phases 1, 2, 3, and 8 can be done in parallel. Phase 4 depends on 1-2. Phases 5,
 ```go
 type GatewayConfig struct {
     // ... existing fields ...
-    ShellSocketPath string `mapstructure:"shell_socket"`  // NEW
-    AgentSocketPath string `mapstructure:"agent_socket"`  // NEW
-    OracleSocketPath string `mapstructure:"oracle_socket"` // EXISTING but standardized
+    ShellSocketPath string `mapstructure:"shell_socket"`               // NEW
+    AgentSocketDir  string `mapstructure:"agent_socket_dir"`              // NEW — directory for per-DVE agent sockets
+    AgentMaxConcurrent int `mapstructure:"agent_max_concurrent"`          // NEW — max concurrent agent processes (default 32)
+    // Oracle TCP address — NOT a static config field; resolved at runtime.
+    // The oracle binary binds to an arbitrary available port and advertises it
+    // via a well-known discovery mechanism (e.g., socket file with the port
+    // number, a port file in the socket directory, or a caddy-style
+    // environment variable propagated from the oracle's startup). The gateway
+    // reads the live port at request time. Default fallback: localhost:1317.
 }
 ```
 
@@ -421,7 +590,8 @@ type GatewayConfig struct {
 type Config struct {
     // ... existing fields ...
     ShellSocketPath string  // NEW
-    AgentSocketPath string  // NEW
+    AgentSocketDir  string  // NEW — directory for per-DVE agent sockets
+    AgentMaxConcurrent int  // NEW — max concurrent agent processes (default 32)
 }
 ```
 
@@ -433,8 +603,11 @@ gateway:
   chain_socket: /var/lib/knirvserver/sockets/chain.sock
   graph_socket: /var/lib/knirvserver/sockets/graph.sock
   shell_socket: /var/lib/knirvserver/sockets/shell.sock       # NEW
-  agent_socket: /var/lib/knirvserver/sockets/agent.sock        # NEW
-  oracle_socket: ""                                              # stays TCP
+  agent_socket_dir: /var/lib/knirvserver/sockets/             # NEW — directory for per-DVE agent sockets
+  agent_max_concurrent: 32                                     # NEW — max concurrent agent processes
+  # oracle_tcp_address — resolved at runtime, not a static config field.
+  # The oracle port is discovered dynamically (see GatewayConfig comment above).
+  # Hardcoded fallback: localhost:1317
 ```
 
 ---
@@ -458,7 +631,12 @@ gateway:
 | 4 | `curl http://localhost:8888/api/assets` returns chain badge/NFT data (not mock) |
 | 5 | `curl --unix-socket /var/.../shell.sock http://localhost/sessions` returns shell sessions |
 | 5 | `curl http://localhost:8888/api/shell/sessions` returns same data through gateway |
-| 6 | `curl http://localhost:8888/api/agent/health` returns 503 when no DVE running |
+| 6 | `curl http://localhost:8888/api/agent/missing-dve/session` returns 503 (no agent for this DVE) |
+| 6 | `curl http://localhost:8888/api/agent/dve-a/health` returns 200 (DVE "dve-a" agent running) |
+| 6 | `curl http://localhost:8888/api/agent/dve-b/health` returns 200 (DVE "dve-b" agent running, different socket) |
+| 6 | `curl --unix-socket /var/.../agent-dve-a.sock http://localhost/session` returns session OK directly |
+| 6 | `curl --unix-socket /var/.../agent-dve-b.sock http://localhost/session` returns session OK (independent session) |
+| 6 | Start 33 agents → `POST /api/v1/admin/agent/stats` returns `{"running":32,"max":32}` with error on 33rd |
 | 7 | `curl http://localhost:8888/api/hasher/status` returns hasher status |
 | 8 | `curl http://localhost:8888/api/v1/info` returns backend info (not gateway info) |
 | 9 | WebGUI loads without any 404 or mock data in browser console |
@@ -493,10 +671,10 @@ done
 | Risk | Mitigation |
 |------|-----------|
 | **KNIRVSHELL binary doesn't support socket mode** | May require upstream changes to the KNIRVSHELL repo; fall back to keeping it in-process if changes are too invasive |
-| **KNIRVAGENT on-demand lifecycle** | Socket doesn't exist when no DVE is active; proxy must return 503 gracefully. Add a health-check that skips missing sockets |
+| **KNIRVAGENT on-demand lifecycle** | Per-DVE sockets mean dynamic socket paths — the gateway must resolve `agent-{dveId}.sock` at request time. Returns 503 when no agent running for that DVE. Periodic health-check goroutine reaps orphaned sockets. Max concurrent agents limit prevents resource exhaustion |
 | **gRPC→HTTP bridge complexity** | Keep KNIRVHASHER gRPC-only; expose HTTP endpoints in the backend server that internally call gRPC (simpler than adding an HTTP server to KNIRVHASHER) |
-| **WebGUI hardcoded URL paths** | Some frontend paths may be baked into the SPA bundle; may need a build step or runtime config override |
-| **Backward compatibility** | Old flat paths (`/chain`, `/wallet/info`, `/transaction`) need permanent 301 redirects for any external consumers |
+| **WebGUI hardcoded URL paths** | Some frontend paths may be baked into the SPA bundle; may need a build step or runtime config override via `NEXT_PUBLIC_BACKEND_URL` — or just edit the WebGUI to call the correct paths |
+| **Backward compatibility** | Old flat paths (`/chain`, `/wallet/info`, `/transaction`) need permanent 301 redirects for any external consumers — `/devs` is removed entirely, no redirect needed |
 | **Gateway startup ordering** | Gateway must handle missing sockets gracefully (proxy returns 502/503) — sockets may appear after gateway starts |
 
 ---
@@ -1019,17 +1197,170 @@ packages/KNIRVGATEWAY/
 6. **Phase F** — Implement P2/P3 patterns as needed
 
 ---
+## 9. Answered Questions
 
-## 9. Open Questions
+### Q1. KNIRVSHELL `--socket-path` flag support?
 
-1. Does the KNIRVSHELL binary at `github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL` support a `--socket-path` flag? If not, how invasive is adding it?
+**Answer:** Not invasive — the `--socket-path` flag can be added to the KNIRVSHELL binary as needed. The existing binary already parses command-line arguments; adding a `--socket-path` flag to switch its listener from TCP to Unix socket requires minimal changes.
 
-2. Does the WebGUI frontend bundle get rebuilt with path changes, or are paths runtime-configurable (e.g., via API_BASE_URL)?
+### Q2. WebGUI frontend path configuration — build-time vs runtime?
 
-3. What exact data shape does the WebGUI expect from `/api/objects`, `/api/transactions`, `/api/blocks`, `/api/assets`, `/api/view/{id}`? The answer determines whether a simple proxy to chain/oracle suffices or a backend transform handler is needed.
+**Answer:** The WebGUI is rebuilt via `npm run build` during the full project rebuild, producing a Next.js static export. In addition, paths are runtime-configurable via the `NEXT_PUBLIC_BACKEND_URL` environment variable, which is used by all Next.js API route files (`pages/api/objects.ts`, `pages/api/blocks.ts`, `pages/api/assets.ts`, `pages/api/view/[id].ts`). The current default is `'/api/v1'` — pointing to the gateway's own proxy.
 
-4. Should the oracle's TCP address be configurable via gateway config (currently hardcoded `localhost:1317`)?
+**Implication for Phase 9:** Paths can be changed at build time (static export) or at runtime (if the Next.js API routes are served from a Node server). The static export via `next export` does NOT serve the API routes — those only work in a Node runtime. In static mode (current setup), the Go gateway's `handler.go` routes handle the API calls instead, proving the value of the Go handlers.
 
-5. Are there any external consumers that depend on the mock data currently served at `/api/objects`, `/api/transactions`, etc.?
+### Q3. WebGUI data shapes for mock endpoints
 
-6. For the `/devs` endpoint — is this Cosmos validator data (oracle) or KNIRVCHAIN peer data (chain)? The current redirect in the diagram sends it to chain — confirm during implementation.
+**Answer:** Analysis of the WebGUI frontend (in `packages/KNIRVGATEWAY/internal/embedded/webgui/src/`) reveals the following expected data shapes. For endpoints where the submodule data shape doesn't match, prefer editing the WebGUI frontend (or the backend response) to align shapes — no separate transform layer is needed.
+
+#### `/api/objects` (frontend: `nft-property-explorer.js` + `pages/api/objects.ts`)
+
+Used by the NFT Property Explorer page. Expected shape:
+
+```json
+[
+  {
+    "id": "mock-1",
+    "name": "Mock Cube",
+    "src": "",
+    "object_type": "glb"
+  },
+  {
+    "id": "mock-2",
+    "name": "Mock Sphere",
+    "object_type": "glb"
+  }
+]
+```
+
+- Frontend accesses `objectsData.length` (must be an array)
+- Displaying `obj.id`, `obj.name`, `obj.object_type` in the object list
+- Selecting an object sets `selectedObject` and calls `Viewport` with `modelId={selectedObject.id}`
+- **Target submodule:** KNIRVCHAIN (`/api/chain/mcp/capability/list`)
+- **Shape alignment:** Edit `nft-property-explorer.js` to consume chain-native capability shape (map chain fields to expected display fields)
+
+#### `/api/transactions` (frontend: `nft-property-explorer.js`)
+
+Expected shape:
+
+```json
+[
+  {
+    "id": "tx-1",
+    "operation": "upload",
+    "asset": "0x1234567890abcdef...",
+    "metadata": "",
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+]
+```
+
+- Frontend accesses `tx.id.substring(0, 8)`, `tx.operation`, `tx.asset.substring(0, 6)`, `new Date(tx.timestamp)`
+- **Target submodule:** KNIRVORACLE (`/api/oracle/v3/economics/metrics`)
+- **Shape alignment:** Edit `nft-property-explorer.js` to consume Cosmos SDK tx format, or add a thin backend endpoint at `/api/v1/transactions` that maps Cosmos fields
+
+#### `/api/blocks` (frontend: `nft-property-explorer.js`)
+
+Expected shape:
+
+```json
+[
+  {
+    "index": 0,
+    "id": "block-1234",
+    "data": "Transaction data",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "prev_hash": "0xabcd...",
+    "hash": "0x1234..."
+  }
+]
+```
+
+- Frontend accesses `block.index`, `block.id.substring(0, 8)`, `block.hash.substring(0, 6)`, `new Date(block.timestamp)`
+- **Target submodule:** KNIRVORACLE (`/api/oracle/v3/consensus/status`)
+- **Shape alignment:** Edit `nft-property-explorer.js` to consume Cosmos block format directly, or add thin backend endpoint
+
+#### `/api/assets` (frontend: `pages/api/assets.ts` + Go `handler.go`)
+
+The Next.js API route at `pages/api/assets.ts` proxies to `BACKEND_URL + /api/assets`. The Go handler in `handler.go` also proxies to the backend. However, no frontend component directly renders assets data — the route exists as a passthrough. The data shape is unconstrained (whatever the backend returns). For the gateway proxy, route to KNIRVCHAIN badge/NFT data.
+
+- **Target submodule:** KNIRVCHAIN (`/api/chain/nft/list`)
+- **Shape alignment:** Minimal — no frontend UI directly consumes the shape, mainly needed for API consistency
+
+#### `/api/view/{id}` (frontend: `Viewport.tsx` + `pages/api/view/[id].ts`)
+
+Returns a complete HTML page with Three.js 3D viewer embedded in an iframe. The backend is queried for object details:
+
+```json
+{
+  "id": "mock-1",
+  "name": "Mock Cube",
+  "file_path": "/assets/models/cube.gltf",
+  "object_type": "glb",
+  "asset_type": "glb",
+  "data": {
+    "author": "Unknown",
+    "license": "Unknown"
+  },
+  "created_at": "2024-01-15T10:30:00Z",
+  "transaction": "0x1234..."
+}
+```
+
+- Frontend uses: `objectData.name`, `objectData.file_path` (model URL), `objectData.object_type || objectData.asset_type`, `objectData.data?.author`, `objectData.data?.license`, `objectData.created_at`, `objectData.transaction`
+- Falls back to `/assets/models/cube.gltf` for the model if `file_path` is empty
+- **Target submodule:** KNIRVCHAIN (single NFT object detail at `/api/chain/nft/{id}`)
+- **Shape alignment:** Edit `Viewport.tsx` and the viewer HTML template in `handler.go` to consume chain-native NFT shape. Falls back to `/assets/models/cube.gltf` if no model URL
+
+#### Summary of Shape Alignment
+
+| Gateway Route | Submodule Source | Alignment Effort | Notes |
+|---------------|----------------|-----------------|-------|
+| `/api/objects` | KNIRVCHAIN `/api/chain/mcp/capability/list` | Medium | Edit WebGUI to consume chain-native capability shape |
+| `/api/transactions` | KNIRVORACLE Cosmos SDK | High | Edit WebGUI or add thin backend wrapper |
+| `/api/blocks` | KNIRVORACLE `/api/oracle/v3/consensus/status` | Medium | Edit WebGUI or add thin backend wrapper |
+| `/api/assets` | KNIRVCHAIN `/api/chain/nft/list` | Low | Passthrough — no frontend UI directly consumes shape |
+| `/api/view/{id}` | KNIRVCHAIN `/api/chain/nft/{id}` | Medium | Edit WebGUI viewer component to use chain-native NFT shape |
+
+**Recommendation:** For each endpoint where the submodule data shape doesn't match what the WebGUI expects, prefer editing the WebGUI frontend to consume the submodule's native shape. If the mismatch is too large, edit the backend to return a friendlier shape. Avoid a separate transform layer — keep shape alignment in the component or handler that owns the data.
+
+### Q4. Oracle TCP address configurable?
+
+**Answer:** Yes, but not as a static config field. The oracle TCP address is resolved at runtime — the oracle binary binds to an arbitrary available port and advertises it via a well-known discovery mechanism. Two approaches:
+
+1. **Port file:** The oracle writes its active port to a well-known file on startup (e.g., `/var/lib/knirvserver/sockets/oracle.port`). The gateway reads this file at request time (with in-memory caching + TTL).
+2. **Environment variable:** The oracle process propagates its port via `ORACLE_PORT` (set at startup) and the gateway reads it from the environment.
+
+The gateway falls back to `localhost:1317` when no port file or env var is present. The default value `localhost:1317` remains unchanged.
+
+### Q5. External consumers depending on mock data?
+
+**Answer:** No. There are no external consumers depending on the mock data served at `/api/objects`, `/api/transactions`, etc. These endpoints are consumed only by the WebGUI frontend, which will be updated to consume real data through gateway proxies.
+
+### Q6. `/devs` endpoint — removed, replaced with `/bootnodes`
+
+**Answer:** The `/devs` endpoint is no longer needed and there is no backward-compatibility requirement. Remove it entirely. Replace it with a `/bootnodes` endpoint that returns active bootstrap peers on the KNIRV Network.
+
+The WebGUI Peers page (`peers.js`) already fetches `/mcp/dev/list` and expects:
+
+```json
+{
+  "devs": [
+    {
+      "id": "peer-1",
+      "name": "Bootstrap Node 1",
+      "is_bootnode": true,
+      "connected": true,
+      "address": "/ip4/10.0.0.1/tcp/26656",
+      "last_seen": "2024-01-15T10:30:00Z",
+      "capabilities": ["mining", "validation"]
+    }
+  ]
+}
+```
+
+**Action:**
+- **Gateway:** Remove the `/devs` mock handler and route. Add `/bootnodes` → 301 → `/api/chain/bootnodes` (KNIRVCHAIN peer info).
+- **KNIRVCHAIN:** Implement `/bootnodes` as a new endpoint returning the active bootstrap peer list in the shape above.
+- **Frontend (`BlockchainContext.js`):** Change the old `api.get('/devs')` call (line 73) to `api.get('/bootnodes')` — or simply remove it since the Peers page (`peers.js`) already fetches from `/mcp/dev/list` directly.
+- **No redirect needed:** `/devs` can safely 404 — no backward compatibility required.

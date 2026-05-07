@@ -74,6 +74,9 @@ type GatewayConfig struct {
 	BackendSocketPath string `mapstructure:"backend_socket"`
 	ChainSocketPath   string `mapstructure:"chain_socket"`
 	GraphSocketPath   string `mapstructure:"graph_socket"`
+	ShellSocketPath   string `mapstructure:"shell_socket"`
+	AgentSocketDir    string `mapstructure:"agent_socket_dir"`
+	AgentMaxConcurrent int  `mapstructure:"agent_max_concurrent"`
 }
 
 // GraphConfig defines embedded KNIRVGRAPH configuration

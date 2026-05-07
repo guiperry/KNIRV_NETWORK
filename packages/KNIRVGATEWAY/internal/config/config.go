@@ -80,6 +80,13 @@ type Config struct {
 	BackendSocketPath string // /var/lib/knirvserver/sockets/backend.sock
 	ChainSocketPath   string // /var/lib/knirvserver/sockets/chain.sock
 	GraphSocketPath   string // /var/lib/knirvserver/sockets/graph.sock
+
+	// Shell daemon socket path
+	ShellSocketPath string // /var/lib/knirvserver/sockets/shell.sock
+
+	// Agent per-DVE socket directory and concurrency limit
+	AgentSocketDir      string // /var/lib/knirvserver/sockets/ (agent-{dveId}.sock lives here)
+	AgentMaxConcurrent  int    // max concurrent agent processes (default 32)
 }
 
 func Load() (*Config, error) {
@@ -132,6 +139,9 @@ func Load() (*Config, error) {
 		BackendSocketPath:       getEnv("BACKEND_SOCKET_PATH", ""),
 		ChainSocketPath:         getEnv("CHAIN_SOCKET_PATH", ""),
 		GraphSocketPath:         getEnv("GRAPH_SOCKET_PATH", ""),
+		ShellSocketPath:         getEnv("SHELL_SOCKET_PATH", ""),
+		AgentSocketDir:          getEnv("AGENT_SOCKET_DIR", ""),
+		AgentMaxConcurrent:      getEnvInt("AGENT_MAX_CONCURRENT", 32),
 	}
 
 	return cfg, nil

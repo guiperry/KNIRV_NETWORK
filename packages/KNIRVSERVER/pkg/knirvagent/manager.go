@@ -18,20 +18,20 @@ import (
 	"go.uber.org/zap"
 )
 
+// ──────────────────────────────────────────────
+// Utility helpers (preserved from original)
+// ──────────────────────────────────────────────
+
 // killStaleAgent sends SIGTERM (then SIGKILL after 2 s) to any running
-// processes whose executable matches the given binary name. This prevents
-// port-conflict crashes when the parent process was previously killed
-// without triggering the normal Stop() path.
+// processes whose executable matches the given binary name.
 func killStaleAgent(binaryPath string) {
 	if binaryPath == "" {
 		return
 	}
 	binaryName := filepath.Base(binaryPath)
-	// SIGTERM first
 	if cmd := exec.Command("pkill", "-TERM", "-x", binaryName); cmd.Run() == nil {
 		time.Sleep(1 * time.Second)
 	}
-	// SIGKILL any survivors
 	exec.Command("pkill", "-KILL", "-x", binaryName).Run() //nolint:errcheck
 }
 
@@ -50,37 +50,6 @@ func waitForPortFree(port int, deadline time.Duration) bool {
 	return false
 }
 
-type Manager struct {
-	binaryPath string
-	config     *ManagerConfig
-	cmd        *exec.Cmd
-	logger     *zap.Logger
-	client     *http.Client
-	mu         sync.RWMutex
-	running    bool
-	baseURL    string
-}
-
-type ManagerConfig struct {
-	BinaryPath     string
-	SocketPath     string
-	Port           int
-	BackendAPIPort int
-	StartTimeout   time.Duration
-	StopTimeout    time.Duration
-	Stdout         io.Writer
-	Stderr         io.Writer
-	// ExtraEnv are additional environment variables propagated to the
-	// KNIRVAGENT subprocess, e.g. "GEMINI_API_KEY=..." or "OPENAI_API_KEY=...".
-	ExtraEnv []string
-}
-
-type HealthStatus struct {
-	Status    string                 `json:"status"`
-	Services  map[string]interface{} `json:"services"`
-	Timestamp time.Time              `json:"timestamp"`
-}
-
 func getAgentAppDataDir() string {
 	if explicit := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); explicit != "" {
 		return explicit
@@ -94,171 +63,10 @@ func getAgentAppDataDir() string {
 	return "data"
 }
 
-func DefaultManagerConfig() *ManagerConfig {
-	return &ManagerConfig{
-		SocketPath:   "",
-		Port:         8080,
-		StartTimeout: 30 * time.Second,
-		StopTimeout:  10 * time.Second,
-	}
-}
-
-func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
-	if cfg.StartTimeout == 0 {
-		cfg.StartTimeout = 30 * time.Second
-	}
-	if cfg.StopTimeout == 0 {
-		cfg.StopTimeout = 10 * time.Second
-	}
-
-	var baseURL string
-	if cfg.SocketPath != "" {
-		baseURL = "http://localhost"
-	} else {
-		baseURL = fmt.Sprintf("http://localhost:%d", cfg.Port)
-		if cfg.Port == 0 {
-			baseURL = "http://localhost:8080"
-		}
-	}
-
-	m := &Manager{
-		config:  cfg,
-		logger:  logger,
-		baseURL: baseURL,
-		client: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-	}
-
-	if cfg.SocketPath != "" {
-		m.client.Transport = &http.Transport{
-			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				return net.Dial("unix", cfg.SocketPath)
-			},
-		}
-	}
-
-	return m
-}
-
-func (m *Manager) Start(ctx context.Context) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if m.running {
-		m.logger.Info("KNIRVAGENT already running")
-		return nil
-	}
-
-	if m.config.BinaryPath == "" {
-		m.config.BinaryPath = "./knirvagent"
-	}
-
-	// Resolve the binary path, trying several candidate locations.
-	resolved, err := resolveBinaryPath(m.config.BinaryPath)
-	if err != nil {
-		return fmt.Errorf("KNIRVAGENT binary not found (tried %s and fallbacks): %w", m.config.BinaryPath, err)
-	}
-	m.config.BinaryPath = resolved
-
-	// Pre-flight: if a healthy agent is already listening, adopt it rather than
-	// starting a duplicate and hitting a port conflict.
-	preflightClient := &http.Client{
-		Timeout:   3 * time.Second,
-		Transport: m.client.Transport,
-	}
-	if resp, err := preflightClient.Get(fmt.Sprintf("%s/health", m.baseURL)); err == nil {
-		resp.Body.Close()
-		if resp.StatusCode == http.StatusOK {
-			m.logger.Info("Adopting existing healthy KNIRVAGENT process (skipping new spawn)")
-			m.running = true
-			return nil
-		}
-	}
-
-	// Existing process is unhealthy or absent — kill any stale instance so the
-	// ports are free before we start.
-	m.logger.Info("Killing any stale KNIRVAGENT processes", zap.String("binary", m.config.BinaryPath))
-	killStaleAgent(m.config.BinaryPath)
-
-	// Wait for the port to be released before spawning the new binary.
-	gatewayPort := m.config.Port
-	if gatewayPort <= 0 {
-		gatewayPort = 8080
-	}
-	if !waitForPortFree(gatewayPort, 5*time.Second) {
-		m.logger.Warn("Gateway port still occupied after kill — proceeding anyway",
-			zap.Int("port", gatewayPort))
-	}
-
-	m.logger.Info("Starting KNIRVAGENT",
-		zap.String("binary", m.config.BinaryPath),
-		zap.String("socketPath", m.config.SocketPath))
-
-	env := os.Environ()
-	backendPort := m.config.BackendAPIPort
-	if backendPort <= 0 {
-		backendPort = 9081
-	}
-	env = append(env,
-		fmt.Sprintf("KNIRV_BACKEND_API_URL=http://127.0.0.1:%d", backendPort),
-	)
-
-	if m.config.SocketPath != "" {
-		env = append(env, fmt.Sprintf("SOCKET_PATH=%s", m.config.SocketPath))
-	} else {
-		env = append(env, fmt.Sprintf("PORT=%d", gatewayPort))
-	}
-
-	// Propagate any extra environment variables (e.g. API keys from root.key).
-	env = append(env, m.config.ExtraEnv...)
-
-	args := []string{"gateway"}
-	if m.config.SocketPath != "" {
-		args = append(args, "-socket", m.config.SocketPath)
-	}
-
-	m.cmd = exec.Command(m.config.BinaryPath, args...)
-	m.cmd.Env = env
-	if m.config.Stdout != nil {
-		m.cmd.Stdout = m.config.Stdout
-	} else {
-		m.cmd.Stdout = os.Stdout
-	}
-	if m.config.Stderr != nil {
-		m.cmd.Stderr = m.config.Stderr
-	} else {
-		m.cmd.Stderr = os.Stderr
-	}
-	m.cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
-
-	if err := m.cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start KNIRVAGENT: %w", err)
-	}
-
-	m.logger.Info("KNIRVAGENT subprocess started",
-		zap.Int("pid", m.cmd.Process.Pid))
-
-	if err := m.waitForHealth(ctx); err != nil {
-		m.cmd.Process.Kill()
-		return fmt.Errorf("health check failed: %w", err)
-	}
-
-	m.running = true
-	m.logger.Info("KNIRVAGENT started successfully",
-		zap.String("url", m.baseURL))
-
-	return nil
-}
-
 // resolveBinaryPath returns the first path where the knirvagent binary exists.
-// Priority: KNIRV_AGENT_BINARY_PATH env var → configured path → standard fallbacks.
 func resolveBinaryPath(configured string) (string, error) {
 	var candidates []string
 
-	// Highest priority: explicit env var set by the launcher (main.go).
 	if envPath := os.Getenv("KNIRV_AGENT_BINARY_PATH"); envPath != "" {
 		candidates = append(candidates, envPath)
 	}
@@ -267,7 +75,6 @@ func resolveBinaryPath(configured string) (string, error) {
 		candidates = append(candidates, extractedPath)
 	}
 
-	// Try executable directory first for embedded binaries
 	if exe, err := os.Executable(); err == nil {
 		exeDir := filepath.Dir(exe)
 		candidates = append(candidates,
@@ -276,7 +83,6 @@ func resolveBinaryPath(configured string) (string, error) {
 		)
 	}
 
-	// Embedded directory (extracted binaries)
 	embeddedDir := filepath.Join(getAgentAppDataDir(), "bin")
 	candidates = append(candidates,
 		filepath.Join(embeddedDir, "knirvagent"),
@@ -285,7 +91,6 @@ func resolveBinaryPath(configured string) (string, error) {
 
 	candidates = append(candidates, configured)
 
-	// Common fallback locations relative to the working directory.
 	dir, _ := os.Getwd()
 	candidates = append(candidates,
 		filepath.Join(dir, "bin", "knirvagent"),
@@ -302,108 +107,390 @@ func resolveBinaryPath(configured string) (string, error) {
 	return "", fmt.Errorf("binary not found in any candidate location")
 }
 
-func (m *Manager) waitForHealth(ctx context.Context) error {
-	deadline, cancel := context.WithTimeout(ctx, m.config.StartTimeout)
-	defer cancel()
-
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
-
-	healthURL := fmt.Sprintf("%s/health", m.baseURL)
-
-	for {
-		select {
-		case <-deadline.Done():
-			return fmt.Errorf("timeout waiting for KNIRVAGENT health check")
-		case <-ticker.C:
-			resp, err := m.client.Get(healthURL)
+// waitForSocket blocks until the given Unix socket file exists or the
+// deadline is reached. Returns true when the socket is ready.
+func waitForSocket(socketPath string, deadline time.Duration) bool {
+	end := time.Now().Add(deadline)
+	for time.Now().Before(end) {
+		if _, err := os.Stat(socketPath); err == nil {
+			// Socket file exists — verify it's actually listening
+			conn, err := net.DialTimeout("unix", socketPath, 100*time.Millisecond)
 			if err == nil {
-				resp.Body.Close()
-				if resp.StatusCode == http.StatusOK {
-					m.logger.Debug("KNIRVAGENT health check passed")
-					return nil
-				}
+				conn.Close()
+				return true
 			}
 		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return false
+}
+
+// ──────────────────────────────────────────────
+// AgentProcess — a single agent subprocess
+// ──────────────────────────────────────────────
+
+// AgentProcess represents a single KNIRVAGENT subprocess for one DVE.
+type AgentProcess struct {
+	DVEID      string
+	Cmd        *exec.Cmd
+	SocketPath string
+	PID        int
+	StartedAt  time.Time
+	Healthy    bool
+	mu         sync.RWMutex
+}
+
+func (ap *AgentProcess) setHealthy(h bool) {
+	ap.mu.Lock()
+	defer ap.mu.Unlock()
+	ap.Healthy = h
+}
+
+func (ap *AgentProcess) isHealthy() bool {
+	ap.mu.RLock()
+	defer ap.mu.RUnlock()
+	return ap.Healthy
+}
+
+// ──────────────────────────────────────────────
+// AgentManager — orchestrates N concurrent agents
+// ──────────────────────────────────────────────
+
+// AgentManager manages multiple KNIRVAGENT subprocesses, one per DVE.
+type AgentManager struct {
+	mu              sync.RWMutex
+	agents          map[string]*AgentProcess // keyed by DVEID
+	socketDir       string
+	binaryPath      string
+	maxConcurrent   int
+	logger          *zap.Logger
+	stopHealthCheck context.CancelFunc
+	healthInterval  time.Duration
+	wg              sync.WaitGroup
+}
+
+// AgentManagerConfig configures the AgentManager.
+type AgentManagerConfig struct {
+	BinaryPath      string
+	SocketDir       string
+	MaxConcurrent   int
+	StartTimeout    time.Duration
+	StopTimeout     time.Duration
+	HealthInterval  time.Duration
+	ExtraEnv        []string
+}
+
+// HealthStatus represents the health status of an agent.
+type HealthStatus struct {
+	Status    string                 `json:"status"`
+	Services  map[string]interface{} `json:"services"`
+	Timestamp time.Time              `json:"timestamp"`
+}
+
+// NewAgentManager creates a new AgentManager.
+func NewAgentManager(cfg *AgentManagerConfig, logger *zap.Logger) *AgentManager {
+	if cfg.MaxConcurrent <= 0 {
+		cfg.MaxConcurrent = 32
+	}
+	if cfg.HealthInterval <= 0 {
+		cfg.HealthInterval = 30 * time.Second
+	}
+
+	return &AgentManager{
+		agents:         make(map[string]*AgentProcess),
+		socketDir:      cfg.SocketDir,
+		binaryPath:     cfg.BinaryPath,
+		maxConcurrent:  cfg.MaxConcurrent,
+		logger:         logger,
+		healthInterval: cfg.HealthInterval,
 	}
 }
 
-func (m *Manager) Stop(ctx context.Context) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+// StartAgent spawns a new KNIRVAGENT subprocess for the given DVE ID.
+// It blocks until the agent's socket is ready (up to StartTimeout).
+func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeout time.Duration) (*AgentProcess, error) {
+	am.mu.Lock()
 
-	if !m.running || m.cmd == nil || m.cmd.Process == nil {
+	// Check if already running
+	if existing, ok := am.agents[dveID]; ok && existing.isHealthy() {
+		am.mu.Unlock()
+		am.logger.Info("Agent already running for DVE", zap.String("dveID", dveID))
+		return existing, nil
+	}
+
+	// Check max concurrent limit
+	if len(am.agents) >= am.maxConcurrent {
+		am.mu.Unlock()
+		return nil, fmt.Errorf("max concurrent agents reached (%d/%d)",
+			len(am.agents), am.maxConcurrent)
+	}
+
+	resolvedPath := am.binaryPath
+	if resolvedPath == "" {
+		var err error
+		resolvedPath, err = resolveBinaryPath("./knirvagent")
+		if err != nil {
+			am.mu.Unlock()
+			return nil, fmt.Errorf("KNIRVAGENT binary not found: %w", err)
+		}
+	}
+
+	socketPath := filepath.Join(am.socketDir, fmt.Sprintf("agent-%s.sock", dveID))
+
+	// Kill any stale instance for this DVE
+	killStaleAgent(resolvedPath)
+	os.Remove(socketPath)
+
+	am.logger.Info("Starting KNIRVAGENT for DVE",
+		zap.String("dveID", dveID),
+		zap.String("socket", socketPath),
+		zap.String("binary", resolvedPath))
+
+	// Build command — the agent binary listens on a Unix socket exclusively
+	args := []string{
+		"--dve-id", dveID,
+		"--socket-path", socketPath,
+	}
+
+	cmd := exec.Command(resolvedPath, args...)
+	cmd.Env = os.Environ()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+
+	if err := cmd.Start(); err != nil {
+		am.mu.Unlock()
+		return nil, fmt.Errorf("failed to start KNIRVAGENT for DVE %s: %w", dveID, err)
+	}
+
+	pid := cmd.Process.Pid
+
+	ap := &AgentProcess{
+		DVEID:      dveID,
+		Cmd:        cmd,
+		SocketPath: socketPath,
+		PID:        pid,
+		StartedAt:  time.Now(),
+		Healthy:    false,
+	}
+
+	am.agents[dveID] = ap
+	am.mu.Unlock()
+
+	// Wait for the socket to appear (outside the lock)
+	if startTimeout <= 0 {
+		startTimeout = 30 * time.Second
+	}
+	if !waitForSocket(socketPath, startTimeout) {
+		// Socket didn't appear — kill the process
+		cmd.Process.Kill()
+		am.mu.Lock()
+		delete(am.agents, dveID)
+		am.mu.Unlock()
+		return nil, fmt.Errorf("timeout waiting for agent socket %s for DVE %s", socketPath, dveID)
+	}
+
+	ap.setHealthy(true)
+
+	am.logger.Info("KNIRVAGENT started for DVE",
+		zap.String("dveID", dveID),
+		zap.Int("pid", pid),
+		zap.String("socket", socketPath))
+
+	return ap, nil
+}
+
+// StopAgent stops the agent subprocess for the given DVE ID.
+func (am *AgentManager) StopAgent(dveID string, stopTimeout time.Duration) error {
+	am.mu.Lock()
+	ap, ok := am.agents[dveID]
+	if !ok {
+		am.mu.Unlock()
+		return nil // idempotent — already stopped
+	}
+	delete(am.agents, dveID)
+	am.mu.Unlock()
+
+	if ap.Cmd == nil || ap.Cmd.Process == nil {
+		os.Remove(ap.SocketPath)
 		return nil
 	}
 
-	m.logger.Info("Stopping KNIRVAGENT")
+	am.logger.Info("Stopping KNIRVAGENT for DVE",
+		zap.String("dveID", dveID),
+		zap.Int("pid", ap.PID))
 
-	if err := m.cmd.Process.Signal(syscall.SIGTERM); err != nil {
-		m.logger.Warn("Failed to send SIGTERM, forcing kill",
+	// Send SIGTERM
+	if err := ap.Cmd.Process.Signal(syscall.SIGTERM); err != nil {
+		am.logger.Warn("Failed to send SIGTERM to agent, forcing kill",
+			zap.String("dveID", dveID),
 			zap.Error(err))
-		m.cmd.Process.Kill()
+		ap.Cmd.Process.Kill()
 	}
 
 	done := make(chan error, 1)
 	go func() {
-		done <- m.cmd.Wait()
+		done <- ap.Cmd.Wait()
+	}()
+
+	if stopTimeout <= 0 {
+		stopTimeout = 10 * time.Second
+	}
+
+	select {
+	case <-done:
+		ap.setHealthy(false)
+		os.Remove(ap.SocketPath)
+		am.logger.Info("KNIRVAGENT stopped for DVE", zap.String("dveID", dveID))
+		return nil
+	case <-time.After(stopTimeout):
+		am.logger.Warn("Timeout waiting for agent shutdown, forcing kill",
+			zap.String("dveID", dveID))
+		ap.Cmd.Process.Kill()
+		ap.setHealthy(false)
+		os.Remove(ap.SocketPath)
+		return fmt.Errorf("forced shutdown of agent for DVE %s after timeout", dveID)
+	}
+}
+
+// GetAgent returns the agent process for a DVE, or an error if not running.
+func (am *AgentManager) GetAgent(dveID string) (*AgentProcess, error) {
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+
+	ap, ok := am.agents[dveID]
+	if !ok {
+		return nil, fmt.Errorf("no agent running for DVE %s", dveID)
+	}
+	return ap, nil
+}
+
+// ListAgents returns all running agent processes.
+func (am *AgentManager) ListAgents() []*AgentProcess {
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+
+	result := make([]*AgentProcess, 0, len(am.agents))
+	for _, ap := range am.agents {
+		result = append(result, ap)
+	}
+	return result
+}
+
+// RunningCount returns the number of running agents.
+func (am *AgentManager) RunningCount() int {
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+	return len(am.agents)
+}
+
+// MaxConcurrent returns the max concurrent agents limit.
+func (am *AgentManager) MaxConcurrent() int {
+	return am.maxConcurrent
+}
+
+// StopAll stops every agent process in parallel with a global timeout.
+func (am *AgentManager) StopAll(ctx context.Context) error {
+	am.mu.RLock()
+	dveIDs := make([]string, 0, len(am.agents))
+	for dveID := range am.agents {
+		dveIDs = append(dveIDs, dveID)
+	}
+	am.mu.RUnlock()
+
+	if len(dveIDs) == 0 {
+		return nil
+	}
+
+	am.logger.Info("Stopping all KNIRVAGENT processes", zap.Int("count", len(dveIDs)))
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(dveIDs))
+
+	for _, dveID := range dveIDs {
+		wg.Add(1)
+		go func(id string) {
+			defer wg.Done()
+			if err := am.StopAgent(id, 10*time.Second); err != nil {
+				errCh <- err
+			}
+		}(dveID)
+	}
+
+	doneCh := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(doneCh)
 	}()
 
 	select {
-	case err := <-done:
-		m.running = false
-		if err != nil {
-			m.logger.Info("KNIRVAGENT stopped", zap.Error(err))
-		} else {
-			m.logger.Info("KNIRVAGENT stopped gracefully")
+	case <-doneCh:
+		close(errCh)
+		// Collect any errors
+		var errs []error
+		for err := range errCh {
+			errs = append(errs, err)
+		}
+		if len(errs) > 0 {
+			return fmt.Errorf("errors stopping agents: %v", errs)
 		}
 		return nil
-	case <-time.After(m.config.StopTimeout):
-		m.logger.Warn("Timeout waiting for graceful shutdown, forcing kill")
-		m.cmd.Process.Kill()
-		select {
-		case <-done:
-		case <-time.After(2 * time.Second):
-			m.logger.Warn("Wait() did not complete after Kill() — zombie possible")
-		}
-		m.running = false
-		return fmt.Errorf("forced shutdown after timeout")
+	case <-ctx.Done():
+		return fmt.Errorf("timeout stopping all agents: %w", ctx.Err())
+	case <-time.After(15 * time.Second):
+		return fmt.Errorf("timeout stopping all agents after 15s")
 	}
 }
 
-func (m *Manager) IsRunning() bool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.running
-}
-
-func (m *Manager) GetBaseURL() string {
-	return m.baseURL
-}
-
-func (m *Manager) GetConfig() *ManagerConfig {
-	return m.config
-}
-
-func (m *Manager) HealthCheck(ctx context.Context) error {
-	resp, err := m.client.Get(fmt.Sprintf("%s/health", m.baseURL))
+// HealthCheck pings the agent's socket for the given DVE.
+func (am *AgentManager) HealthCheck(dveID string) bool {
+	ap, err := am.GetAgent(dveID)
 	if err != nil {
-		return fmt.Errorf("health check failed: %w", err)
+		return false
+	}
+
+	client := &http.Client{
+		Timeout: 3 * time.Second,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return net.DialTimeout("unix", ap.SocketPath, 2*time.Second)
+			},
+		},
+	}
+
+	resp, err := client.Get("http://localhost/health")
+	if err != nil {
+		ap.setHealthy(false)
+		return false
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("health check returned status %d", resp.StatusCode)
-	}
-
-	return nil
+	healthy := resp.StatusCode == http.StatusOK
+	ap.setHealthy(healthy)
+	return healthy
 }
 
-func (m *Manager) GetHealthStatus(ctx context.Context) (*HealthStatus, error) {
-	url := fmt.Sprintf("%s/health", m.baseURL)
-	resp, err := m.client.Get(url)
+// GetHealthStatus returns the full health status payload from an agent.
+func (am *AgentManager) GetHealthStatus(ctx context.Context, dveID string) (*HealthStatus, error) {
+	ap, err := am.GetAgent(dveID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get health status: %w", err)
+		return nil, err
+	}
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return net.DialTimeout("unix", ap.SocketPath, 2*time.Second)
+			},
+		},
+	}
+
+	resp, err := client.Get("http://localhost/health")
+	if err != nil {
+		return nil, fmt.Errorf("agent %s health check failed: %w", dveID, err)
 	}
 	defer resp.Body.Close()
 
@@ -412,12 +499,198 @@ func (m *Manager) GetHealthStatus(ctx context.Context) (*HealthStatus, error) {
 		return nil, fmt.Errorf("failed to decode health status: %w", err)
 	}
 
+	ap.setHealthy(resp.StatusCode == http.StatusOK)
 	return &status, nil
 }
 
-func (m *Manager) GetPID() int {
-	if m.cmd != nil && m.cmd.Process != nil {
-		return m.cmd.Process.Pid
+// StartPeriodicHealthCheck starts a goroutine that periodically checks
+// all agents and reaps any that are unhealthy.
+func (am *AgentManager) StartPeriodicHealthCheck(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	am.stopHealthCheck = cancel
+
+	am.wg.Add(1)
+	go func() {
+		defer am.wg.Done()
+		ticker := time.NewTicker(am.healthInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				am.reapUnhealthy()
+			}
+		}
+	}()
+
+	am.logger.Info("Periodic agent health check started",
+		zap.Duration("interval", am.healthInterval))
+}
+
+// StopPeriodicHealthCheck stops the periodic health check goroutine.
+func (am *AgentManager) StopPeriodicHealthCheck() {
+	if am.stopHealthCheck != nil {
+		am.stopHealthCheck()
 	}
-	return 0
+	am.wg.Wait()
+}
+
+// reapUnhealthy checks all agents and removes any whose process has exited
+// or whose socket is gone.
+func (am *AgentManager) reapUnhealthy() {
+	am.mu.RLock()
+	snapshot := make([]*AgentProcess, 0, len(am.agents))
+	for _, ap := range am.agents {
+		snapshot = append(snapshot, ap)
+	}
+	am.mu.RUnlock()
+
+	for _, ap := range snapshot {
+		// Check if socket still exists
+		if _, err := os.Stat(ap.SocketPath); os.IsNotExist(err) {
+			am.logger.Warn("Agent socket missing, reaping",
+				zap.String("dveID", ap.DVEID),
+				zap.String("socket", ap.SocketPath))
+			am.mu.Lock()
+			// Re-check inside lock to avoid race
+			if existing, ok := am.agents[ap.DVEID]; ok && existing.SocketPath == ap.SocketPath {
+				delete(am.agents, ap.DVEID)
+			}
+			am.mu.Unlock()
+			continue
+		}
+
+		// Check if process is still alive
+		if ap.Cmd != nil && ap.Cmd.Process != nil {
+			if err := ap.Cmd.Process.Signal(syscall.Signal(0)); err != nil {
+				// Process is gone
+				am.logger.Warn("Agent process exited, reaping",
+					zap.String("dveID", ap.DVEID),
+					zap.Int("pid", ap.PID))
+				ap.setHealthy(false)
+				os.Remove(ap.SocketPath)
+				am.mu.Lock()
+				if existing, ok := am.agents[ap.DVEID]; ok && existing.PID == ap.PID {
+					delete(am.agents, ap.DVEID)
+				}
+				am.mu.Unlock()
+			}
+		}
+	}
+}
+
+// ──────────────────────────────────────────────
+// Legacy backward-compatible types (for main.go)
+// ──────────────────────────────────────────────
+
+// ManagerConfig is the legacy config type. New code should use AgentManagerConfig.
+type ManagerConfig struct {
+	BinaryPath     string
+	SocketPath     string
+	Port           int
+	BackendAPIPort int
+	StartTimeout   time.Duration
+	StopTimeout    time.Duration
+	Stdout         io.Writer
+	Stderr         io.Writer
+	ExtraEnv       []string
+}
+
+// Manager is the legacy manager type. New code should use AgentManager.
+type Manager struct {
+	inner *AgentManager
+	logger *zap.Logger
+	cfg    *ManagerConfig
+}
+
+// DefaultManagerConfig returns a legacy ManagerConfig with sensible defaults.
+func DefaultManagerConfig() *ManagerConfig {
+	return &ManagerConfig{
+		SocketPath:   "",
+		Port:         8080,
+		StartTimeout: 30 * time.Second,
+		StopTimeout:  10 * time.Second,
+	}
+}
+
+// NewManager creates a legacy Manager wrapping the new AgentManager.
+func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
+	socketDir := ""
+	if cfg.SocketPath != "" {
+		socketDir = filepath.Dir(cfg.SocketPath)
+	}
+
+	innerCfg := &AgentManagerConfig{
+		BinaryPath:     cfg.BinaryPath,
+		SocketDir:      socketDir,
+		MaxConcurrent:  32,
+		StartTimeout:   cfg.StartTimeout,
+		StopTimeout:    cfg.StopTimeout,
+		HealthInterval: 30 * time.Second,
+		ExtraEnv:       cfg.ExtraEnv,
+	}
+
+	inner := NewAgentManager(innerCfg, logger)
+	return &Manager{inner: inner, logger: logger, cfg: cfg}
+}
+
+// Start starts the agent manager. In the new multi-DVE model, this is a no-op
+// that just logs — agents are started per-DVE via StartAgent.
+func (m *Manager) Start(ctx context.Context) error {
+	m.logger.Info("KNIRVAGENT legacy Start called (delegating to per-DVE StartAgent)")
+	return nil
+}
+
+// Stop stops all running agents.
+func (m *Manager) Stop(ctx context.Context) error {
+	return m.inner.StopAll(ctx)
+}
+
+// IsRunning returns true if any agents are running.
+func (m *Manager) IsRunning() bool {
+	return m.inner.RunningCount() > 0
+}
+
+// GetBaseURL returns a legacy base URL stub.
+func (m *Manager) GetBaseURL() string {
+	return "http://localhost"
+}
+
+// GetConfig returns the legacy config.
+func (m *Manager) GetConfig() *ManagerConfig {
+	return m.cfg
+}
+
+// HealthCheck checks if any agent is healthy.
+func (m *Manager) HealthCheck(ctx context.Context) error {
+	agents := m.inner.ListAgents()
+	if len(agents) == 0 {
+		return fmt.Errorf("no agents running")
+	}
+	for _, ap := range agents {
+		if m.inner.HealthCheck(ap.DVEID) {
+			return nil
+		}
+	}
+	return fmt.Errorf("no healthy agents")
+}
+
+// GetHealthStatus returns health status of a specific agent.
+func (m *Manager) GetHealthStatus(ctx context.Context) (*HealthStatus, error) {
+	agents := m.inner.ListAgents()
+	if len(agents) == 0 {
+		return nil, fmt.Errorf("no agents running")
+	}
+	return m.inner.GetHealthStatus(ctx, agents[0].DVEID)
+}
+
+// GetPID returns the PID of the first running agent.
+func (m *Manager) GetPID() int {
+	agents := m.inner.ListAgents()
+	if len(agents) == 0 {
+		return 0
+	}
+	return agents[0].PID
 }

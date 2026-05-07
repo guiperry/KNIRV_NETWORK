@@ -207,39 +207,120 @@ The Network Resolution Notice (NRN) token powers a self-sustaining economic loop
 4. **Incentivization**: Rewards distributed for problem-solving contributions
 5. **Validation**: DVE operators earn NRN for honest validation services
 
-## 🔌 Unified API Gateway
+## 🔌 Unified API Gateway (KNIRVGATEWAY)
 
-The KNIRV Network provides a single entry point for all interactions through the Unified API Gateway:
+The KNIRV Network provides a single entry point for all interactions through the KNIRVGATEWAY. All submodule API endpoints are routed through the gateway via Unix sockets, providing a unified namespace:
 
-### Core Endpoints
+```
+Public Internet
+      |
+      v
+KNIRVGATEWAY (port 8080 / 8888)
+  |
+  |-- /api/v1/*              ---> backend.sock ---> KNIRVSERVER backend
+  |     (DVE management, auth, payments, shell, onboarding, cognitive engine)
+  |
+  |-- /api/chain/*           ---> chain.sock ---> KNIRVCHAIN
+  |     (agent credentials, capabilities, badges, MCP tasks, bootnodes)
+  |
+  |-- /api/graph/*           ---> graph.sock ---> KNIRVGRAPH
+  |     (knowledge graph, NRV vectors, graph traversal)
+  |
+  |-- /api/oracle/*          ---> TCP:1317 ---> KNIRVORACLE
+  |     (Cosmos txns, blocks, balances, staking, governance, IBC)
+  |
+  |-- /api/shell/*           ---> shell.sock ---> KNIRVSHELL
+  |     (command execution, wallet operations)
+  |
+  |-- /api/agent/{dveId}/*   ---> agent-{dveId}.sock ---> KNIRVAGENT
+  |     (per-DVE supervisor agent sessions)
+  |
+  |-- /api/hasher/*          ---> backend.sock (bridged) ---> KNIRVHASHER
+  |     (data hashing pipeline status)
+
+301 Redirects (backward compatibility):
+  /wallet/info   ---> /api/oracle/wallet/info
+  /transaction   ---> /api/oracle/transaction
+  /chain         ---> /api/chain/
+  /chain/*       ---> /api/chain/*
+  /graph/*       ---> /api/graph/*
+  /bootnodes     ---> /api/chain/bootnodes
+  /api/v1/shell/* ---> /api/shell/*
+  /api/knirvshell/* --> /api/shell/*
+```
+
+### Core Gateway Endpoints
 ```bash
-# Gateway Management
-GET  /gateway/health          # System health status
-GET  /gateway/metrics         # Performance metrics
-GET  /gateway/services        # Available services
+# Gateway Health
+GET /health                            # System health status
+GET /session/controller                # Get controller URL
+POST /session/controller               # Set controller URL
 
 # Authentication
-POST /auth/login              # User authentication
-POST /auth/logout             # Session termination
-GET  /auth/validate           # Token validation
+POST /auth/login                       # User authentication
+POST /auth/logout                      # Session termination
+GET  /auth/validate                    # Token validation
 
-# Component Proxying
-GET  /knirvchain/*           # KNIRVCHAIN operations
-GET  /knirvgraph/*           # KNIRVGRAPH queries
-GET  /knirvserver/*           # KNIRV-SERVER validation
-GET  /knirvoracle/*            # KNIRV-ORACLE transactions
-GET  /knirvrouter/*          # KNIRV-ROUTER connectivity
+# Submodule Proxying
+GET /api/v1/health                     # KNIRVSERVER backend health
+GET /api/chain/health                  # KNIRVCHAIN health
+GET /api/graph/health                  # KNIRVGRAPH health
+GET /api/oracle/v3/health              # KNIRVORACLE health
+GET /api/shell/sessions                # KNIRVSHELL sessions
+GET /api/agent/{dveId}/health          # KNIRVAGENT health (per-DVE)
+
+# WebGUI API
+GET /api/objects                       # KNIRVCHAIN agent objects/capabilities
+GET /api/transactions                  # KNIRVORACLE Cosmos tx history
+GET /api/blocks                        # KNIRVORACLE Cosmos block headers
+GET /api/assets                        # KNIRVCHAIN badges/NFTs
+GET /api/view/{id}                     # 3D model viewer (from KNIRVCHAIN)
+```
+
+### Submodule API Responsibility Boundary
+
+| Submodule | Owns | Examples |
+|-----------|------|----------|
+| **KNIRVORACLE** | Cosmos blockchain queries | `GET /api/oracle/v3/token/balance/{address}`, `POST /api/oracle/v3/token/transfer` |
+| **KNIRVCHAIN** | Agent ecosystem | `GET /api/chain/mcp/capability/list`, `POST /api/chain/agent/capability/invoke` |
+| **KNIRVGRAPH** | Knowledge graph | `GET /api/graph/node/{nodeID}`, `POST /api/graph/graph/traverse` |
+| **KNIRVSERVER backend** | Application logic | `GET /api/v1/dve/nodes`, `POST /api/v1/auth/login` |
+| **KNIRVAGENT** | DVE supervisor agent | `POST /api/agent/{dveId}/session`, `POST /api/agent/{dveId}/input` |
+| **KNIRVSHELL** | Standalone shell | `POST /api/shell/execute`, `GET /api/shell/sessions` |
+| **KNIRVHASHER** | Data hashing pipeline | `GET /api/hasher/status`, `GET /api/hasher/ping` (bridged through backend) |
+
+### Socket Layout
+```
+/var/lib/knirvserver/sockets/
+  |-- backend.sock        (KNIRVSERVER backend)
+  |-- chain.sock          (KNIRVCHAIN)
+  |-- graph.sock          (KNIRVGRAPH)
+  |-- shell.sock          (KNIRVSHELL)
+  |-- hasher.sock         (KNIRVHASHER — gRPC only)
+  |-- agent-{dveId}.sock  (KNIRVAGENT — one per active DVE)
+  |-- oracle.port         (KNIRVORACLE — TCP port file, runtime-discovered)
+```
+
+### Gateway Configuration
+```yaml
+gateway:
+  backend_socket: /var/lib/knirvserver/sockets/backend.sock
+  chain_socket: /var/lib/knirvserver/sockets/chain.sock
+  graph_socket: /var/lib/knirvserver/sockets/graph.sock
+  shell_socket: /var/lib/knirvserver/sockets/shell.sock
+  agent_socket_dir: /var/lib/knirvserver/sockets/
+  agent_max_concurrent: 32
+  # oracle_tcp_address — resolved at runtime (fallback: localhost:1317)
 ```
 
 ### Integration Patterns
-- **Service Discovery**: Automatic registration and health monitoring
-- **Load Balancing**: Intelligent request routing across instances
-- **Rate Limiting**: Configurable limits per service and user (1000 req/s default)
+- **Service Discovery**: Automatic registration and health monitoring via Unix sockets
+- **Circuit Breaking**: Automatic failure detection with 502/503 fallback responses
+- **Dynamic Routing**: Per-DVE agent sockets resolved at request time
 - **Authentication**: Unified JWT-based security across all components
-- **WebSocket Support**: Real-time communication for terminal sessions
+- **WebSocket Support**: Real-time communication for terminal and agent sessions
 - **Monitoring Integration**: Prometheus metrics and Grafana dashboards
-- **Production Deployment**: Kubernetes, Docker Compose, and local deployment modes
-- **Real Network Testing**: Safe testing against XION and Ethereum networks
+- **Backward Compatibility**: 301 redirects from old flat paths to standardized prefixes
 
 ## 🚀 Getting Started
 
