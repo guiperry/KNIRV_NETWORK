@@ -279,7 +279,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
         });
         setStatus(AgentStatus.EXECUTING);
 
-        const response = await fetch(`${API_BASE_URL}/api/v1/cli/execute`, {
+        const response = await fetch(`${API_BASE_URL}/api/v1/shell/execute`, {
           method: 'POST',
           headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({

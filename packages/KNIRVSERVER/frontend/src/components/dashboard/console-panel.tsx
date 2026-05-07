@@ -42,7 +42,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const connectKNIRVCLI = useCallback(async (term: XTermTerminal) => {
     if (!nodeId) return false;
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/v1/cli/sessions`, {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/shell/sessions`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ 
@@ -64,7 +64,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
         if (!sessionIdRef.current) return;
         try {
           const outputResp = await fetch(
-            `${API_BASE_URL}/api/v1/cli/sessions/${sessionIdRef.current}`,
+            `${API_BASE_URL}/api/v1/shell/sessions/${sessionIdRef.current}`,
             { headers: getAuthHeaders() }
           );
           if (outputResp.ok) {
@@ -95,7 +95,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const sendToKNIRVCLI = useCallback(async (input: string) => {
     if (!sessionIdRef.current) return;
     try {
-      await fetch(`${API_BASE_URL}/api/v1/cli/sessions/${sessionIdRef.current}/input`, {
+      await fetch(`${API_BASE_URL}/api/v1/shell/sessions/${sessionIdRef.current}/input`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ input }),
@@ -308,7 +308,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
             clearInterval(pollIntervalRef.current);
           }
           if (sessionIdRef.current) {
-            fetch(`${API_BASE_URL}/api/v1/cli/sessions/${sessionIdRef.current}/stop`, {
+            fetch(`${API_BASE_URL}/api/v1/shell/sessions/${sessionIdRef.current}/stop`, {
               method: 'POST',
               headers: getAuthHeaders(),
             }).catch(() => {});

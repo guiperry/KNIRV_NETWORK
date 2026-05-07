@@ -240,7 +240,7 @@ export function KNIRVGraphAccessModal({ isOpen, onClose }: KNIRVGraphAccessModal
 
     setIsExecuting(true);
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/v1/cli/execute`, {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/shell/execute`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: trimmed }),

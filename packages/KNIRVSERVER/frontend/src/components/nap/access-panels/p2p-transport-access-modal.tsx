@@ -214,7 +214,7 @@ export function P2PTransportAccessModal({ isOpen, onClose }: P2PTransportAccessM
     // Execute via backend knirvshell p2p API
     setIsExecuting(true);
     try {
-      const resp = await fetch(`${API_BASE_URL}/api/v1/cli/p2p/execute`, {
+      const resp = await fetch(`${API_BASE_URL}/api/v1/shell/p2p/execute`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: trimmed }),

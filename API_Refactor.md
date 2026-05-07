@@ -498,12 +498,529 @@ done
 | **WebGUI hardcoded URL paths** | Some frontend paths may be baked into the SPA bundle; may need a build step or runtime config override |
 | **Backward compatibility** | Old flat paths (`/chain`, `/wallet/info`, `/transaction`) need permanent 301 redirects for any external consumers |
 | **Gateway startup ordering** | Gateway must handle missing sockets gracefully (proxy returns 502/503) — sockets may appear after gateway starts |
-| **WebGUI expects merged data** | If a WebGUI page needs data from both oracle (balance) and chain (badges), a backend aggregation handler may be needed rather than a simple proxy |
-| **Oracle vs Chain endpoint naming** | WebGUI calls `/api/objects`, `/api/transactions` — these are frontend-specific shorthands. After audit in Phase 9, they may need backend transform handlers that reshape submodule response data into what the WebGUI expects |
 
 ---
 
-## 8. Open Questions
+## 8. Apache Camel Integration Patterns
+
+Apache Camel provides a set of enterprise integration patterns (EIPs) for routing, transforming, and mediating messages between endpoints. Below is a plan to implement the most impactful Camel patterns as a lightweight Go library (`pkg/camel`) within the KNIRVGATEWAY, then wire them into the gateway's route definitions.
+
+### 8.1 Overall Approach
+
+The Camel integration lives in a new package `pkg/camel/` inside the KNIRVGATEWAY module. Each pattern is a standalone Go type that implements a common `Processor` interface:
+
+```go
+// Processor is the core Camel abstraction — something that processes a message.
+type Processor interface {
+    Process(ctx context.Context, msg *Message) error
+}
+
+// Message wraps the HTTP request/response for routing through the pipeline.
+type Message struct {
+    Request  *http.Request
+    Response http.ResponseWriter
+    Headers  http.Header
+    Body     []byte
+    // Route-scoped exchange properties (not sent to endpoints)
+    Properties map[string]interface{}
+}
+
+// Endpoint represents a destination the router can send to.
+type Endpoint interface {
+    URI() string
+    CreateProducer() (Producer, error)
+}
+
+// Producer sends a message to an endpoint.
+type Producer interface {
+    Process(ctx context.Context, msg *Message) error
+}
+```
+
+Routes are built by chaining processors in a pipeline:
+
+```go
+route := camel.NewRoute("wallet-info")
+    .From("/wallet/info")
+    .Filter(header("Authorization", isNotEmpty))
+    .Throttle(100)
+    .Transform(jsonPath("$.address"))
+    .To("socket:///var/lib/knirvserver/sockets/oracle.sock?path=/cosmos/auth/v1beta1/accounts/")
+    .CircuitBreaker(5, 30*time.Second)
+    .WireTap("/api/v1/audit-log")
+```
+
+### 8.2 Pattern Implementations
+
+#### 8.2.1 Content-Based Router
+
+Routes messages to different endpoints based on message content (headers, body, query params).
+
+```go
+// ContentBasedRouter evaluates predicates against the message and routes
+// to the first matching endpoint.
+type ContentBasedRouter struct {
+    choices []Choice
+    otherwise Endpoint
+}
+
+type Choice struct {
+    Predicate func(*Message) bool
+    Endpoint  Endpoint
+}
+
+// DSL usage:
+router := camel.NewContentBasedRouter().
+    When(hasHeader("X-Role", "Root"), chainEndpoint).
+    When(bodyContains("type\":\"nft"), oracleEndpoint).
+    Otherwise(backendEndpoint)
+```
+
+**Integration into gateway routes:**
+
+```go
+r.Handle("/api/proxy", router.Build())
+```
+
+#### 8.2.2 Message Transformer
+
+Transforms request/response payloads between formats.
+
+```go
+type Transformer func(*Message) error
+
+var camelToSnake Transformer = func(msg *Message) error {
+    // Convert JSON camelCase keys to snake_case
+    return transformJSON(msg, camelToSnakeCase)
+}
+
+// DSL usage:
+route := camel.NewRoute("transform-test").
+    Transform(camelToSnake).
+    To(backendEndpoint)
+```
+
+**Built-in transformers to implement:**
+
+| Transformer | Description |
+|---|---|
+| `jsonPath(path)` | Extract/replace JSON fields using JSONPath expressions |
+| `xmlToJson` | Convert XML body to JSON |
+| `jsonToXml` | Convert JSON body to XML |
+| `setHeader(name, value)` | Add or overwrite an HTTP header |
+| `removeHeader(name)` | Strip an HTTP header |
+| `bodyTransform(fn)` | Arbitrary body transformation via callback |
+| `marshal(toFormat)` | Marshal body to JSON, XML, YAML, or Protobuf |
+| `unmarshal(fromFormat)` | Unmarshal body from a format |
+
+**Config file approach (YAML):**
+
+```yaml
+transforms:
+  - type: jsonPath
+    expression: "$.data.balances[0].amount"
+    target: "$.balance"
+  - type: setHeader
+    name: X-Submodule
+    value: oracle
+  - type: removeHeader
+    name: X-Internal-Token
+```
+
+#### 8.2.3 Protocol Bridge
+
+Already partially implemented via `newSocketProxy` and `newHTTPProxy`. Generalize into a Camel endpoint:
+
+```go
+// Endpoint URI schemes:
+//   socket:///path/to/sock?path=/api/endpoint
+//   http://host:port/path
+//   https://host:port/path
+//   direct://route-name  (in-process — call another route synchronously)
+//   seda://route-name    (in-process — call another route asynchronously via channel)
+//   log://category       (log message and continue)
+
+socketEP, _ := camel.ParseEndpoint("socket:///var/lib/knirvserver/sockets/chain.sock?path=/api/v1/chain/latest")
+httpEP, _ := camel.ParseEndpoint("http://localhost:1317/cosmos/auth/v1beta1/accounts/")
+```
+
+The `direct` and `seda` endpoints enable route composition — one route can call another route internally:
+
+```go
+// Route A: receives WebGUI requests and delegates
+camel.NewRoute("webgui-chain").
+    From("/chain").
+    To("direct://chain-latest")
+
+// Route B: the actual chain call (reusable, called by other routes too)
+camel.NewRoute("chain-latest").
+    From("direct://chain-latest").
+    Transform(addCacheHeaders).
+    To("socket:///var/.../chain.sock?path=/api/v1/chain/latest")
+```
+
+#### 8.2.4 Circuit Breaker
+
+Prevents cascading failures by stopping traffic to a failing backend after N consecutive failures.
+
+```go
+// CircuitBreaker wraps an endpoint. After `threshold` consecutive failures
+// within `window`, it opens the circuit and returns a cached error response
+// for `cooldown` duration before trying again (half-open).
+type CircuitBreaker struct {
+    threshold int           // failures before opening (default 5)
+    window    time.Duration // sliding window (default 30s)
+    cooldown  time.Duration // time before half-open retry (default 10s)
+}
+
+// State machine: CLOSED → OPEN → HALF-OPEN → CLOSED
+```
+
+**Config:**
+
+```yaml
+circuitBreaker:
+  threshold: 5
+  window: 30s
+  cooldown: 10s
+  fallbackResponse:
+    statusCode: 503
+    body: '{"error":"service temporarily unavailable"}'
+```
+
+**Integration into gateway:**
+
+```go
+socketEP := camel.NewSocketEndpoint(socketPath, upstreamPath)
+cb := camel.NewCircuitBreaker(socketEP, camel.CircuitBreakerConfig{
+    Threshold: 5,
+    Window:    30 * time.Second,
+    Cooldown:  10 * time.Second,
+})
+
+r.Handle("/api/oracle/wallet/info", cb.Build())
+```
+
+#### 8.2.5 Throttler
+
+Rate-limits requests to a backend endpoint.
+
+```go
+type Throttler struct {
+    maxRequests int           // max requests per time window
+    window      time.Duration // time window (default 1s)
+    burst       int           // burst size (default = maxRequests)
+}
+```
+
+**Config:**
+
+```yaml
+throttler:
+  maxRequests: 100
+  window: 1s
+  burst: 20
+  response:
+    statusCode: 429
+    body: '{"error":"rate limit exceeded","retryAfter":1}'
+```
+
+**Implementation detail:** Use a token bucket algorithm (`golang.org/x/time/rate.Limiter`) per route, keyed by client IP or `X-API-Key` header.
+
+```go
+throttler := camel.NewThrottler(100, time.Second)
+r.Handle("/api/v1/dve/nodes", throttler.Wrap(backendHandler))
+```
+
+#### 8.2.6 Wire Tap
+
+Mirrors a copy of every message to a secondary endpoint (for logging, auditing, metrics).
+
+```go
+type WireTap struct {
+    target    Endpoint  // where to send the copy
+    predicate func(*Message) bool // optional — only tap matching messages
+}
+
+// DSL usage:
+route := camel.NewRoute("wallet-info").
+    WireTap("log://audit.wallet").
+    WireTap("seda://metrics-collector").
+    To(oracleEndpoint)
+```
+
+**Implementation:** The wire tap sends an asynchronous copy to the target. It does NOT block the main flow — the tap runs in a goroutine with a buffered channel (buffer = 1000). If the channel is full, the tap is skipped (non-blocking).
+
+**Default tap targets:**
+
+| URI | Purpose |
+|---|---|
+| `log://audit.{route}` | Log request/response metadata to the structured logger |
+| `seda://metrics` | Route to the metrics collector (request count, latency histogram) |
+| `http://localhost:9090/api/v1/audit-log` | Forward to external audit service (when configured) |
+
+#### 8.2.7 Recipient List
+
+Fan-out a single request to multiple backends and optionally aggregate the responses.
+
+```go
+type RecipientList struct {
+    endpoints  []Endpoint
+    strategy   AggregationStrategy // how to combine responses
+    parallel   bool                // fan-out in parallel (default: sequential)
+}
+
+type AggregationStrategy interface {
+    // Aggregate combines multiple responses into one.
+    // Called once per recipient, receives accumulated result and new response.
+    Aggregate(accumulated *Message, next *Message) (*Message, error)
+}
+```
+
+**Built-in aggregation strategies:**
+
+| Strategy | Behavior |
+|---|---|
+| `FirstElement` | Return only the first successful response |
+| `LastElement` | Return only the last successful response |
+| `CombineJSON` | Merge all JSON responses into a single JSON object |
+| `CombineJSONArray` | Concatenate all JSON array responses |
+| `Custom(fn)` | User-provided aggregation function |
+
+**Use case — health dashboard:**
+
+```go
+route := camel.NewRoute("health-all").
+    RecipientList([]Endpoint{
+        socketEP("backend.sock", "/health"),
+        socketEP("chain.sock", "/health"),
+        socketEP("graph.sock", "/health"),
+    }, camel.CombineJSON{}).
+    To("direct://response")
+```
+
+#### 8.2.8 Splitter
+
+Splits a single message into multiple sub-messages, processing each independently.
+
+```go
+type Splitter struct {
+    expression Expression // how to split (JSONPath, regex, etc.)
+}
+
+// Example: Split a JSON array of transaction IDs and process each one
+route := camel.NewRoute("batch-tx").
+    Split(jsonPath("$.transactions[*]")).
+    To(oracleEndpoint)
+```
+
+**Implementation:** The splitter iterates over the extracted elements, creates a new `Message` per element, and passes each through the remaining pipeline. Results are collected and combined (or discarded if the caller only needs side effects).
+
+#### 8.2.9 Aggregator
+
+Collects related messages and emits a combined result once a completion condition is met.
+
+```go
+type Aggregator struct {
+    correlationExpr Expression   // how to group messages (e.g., jsonPath("$.orderId"))
+    completionSize  int           // emit after N messages collected
+    completionTimeout time.Duration // emit after timeout even if size not reached
+    strategy        AggregationStrategy
+}
+```
+
+**Use case — batch oracle queries:**
+
+```go
+// Collect up to 10 wallet balance requests within 5s, then batch-query the oracle
+route := camel.NewRoute("batch-balance").
+    Aggregator(jsonPath("$.address"), 10, 5*time.Second, combineJSON).
+    To(oracleEndpoint)
+```
+
+#### 8.2.10 Dead Letter Channel
+
+Captures messages that failed processing and routes them to a dead letter endpoint for later analysis.
+
+```go
+type DeadLetterChannel struct {
+    deadLetterEndpoint Endpoint
+    maxRedeliveries    int
+    redeliveryDelay    time.Duration
+}
+```
+
+**Config:**
+
+```yaml
+deadLetterChannel:
+  enabled: true
+  maxRedeliveries: 3
+  redeliveryDelay: 1s
+  endpoint: "seda://dead-letter-queue"
+```
+
+**Integration:** The dead letter channel wraps an endpoint with retry logic. After `maxRedeliveries` failures, the message is sent to `deadLetterEndpoint` instead of returning an error to the client.
+
+#### 8.2.11 Idempotent Consumer
+
+Deduplicates messages to ensure exactly-once processing.
+
+```go
+type IdempotentConsumer struct {
+    idExpression Expression   // how to extract the unique message ID
+    repository   IdRepository // where to store seen IDs (memory, Redis, etc.)
+}
+
+type IdRepository interface {
+    Contains(key string) (bool, error)
+    Add(key string) error
+    Remove(key string) error
+}
+```
+
+**Use case — transaction submission:**
+
+```go
+route := camel.NewRoute("submit-tx").
+    IdempotentConsumer(jsonPath("$.tx_hash"), redisRepo).
+    To(oracleEndpoint)
+```
+
+If the same transaction hash arrives twice, the second request is silently dropped (returns the cached response from the first invocation).
+
+### 8.3 Integration into Gateway Route Setup
+
+The `setupRoutes()` function in `server.go` will wire Camel routes alongside existing gorilla/mux routes. Camel routes are compiled into `http.Handler` adapters:
+
+```go
+func (s *Server) setupRoutes() error {
+    r := mux.NewRouter()
+
+    // === Camel-managed routes ===
+
+    // Wallet info: throttled, circuit-brokered oracle proxy
+    walletRoute := camel.NewRoute("wallet-info").
+        Throttle(100, time.Second).
+        CircuitBreaker(5, 10*time.Second, 30*time.Second).
+        To(socketEndpoint(s.config.OracleSocketPath, "/cosmos/auth/v1beta1/accounts/"))
+    r.Handle("/wallet/info", camel.ToHTTPHandler(walletRoute))
+
+    // Chain: content-based routing to different chain endpoints
+    chainRouter := camel.NewContentBasedRouter().
+        When(hasQueryParam("type", "capability"), socketEndpoint(s.config.ChainSocketPath, "/api/v1/chain/mcp/capability/list")).
+        When(hasQueryParam("type", "nft"), socketEndpoint(s.config.ChainSocketPath, "/api/v1/chain/nft/list")).
+        Otherwise(socketEndpoint(s.config.ChainSocketPath, "/api/v1/chain/latest"))
+    r.Handle("/api/chain", camel.ToHTTPHandler(chainRouter))
+
+    // === Existing gorilla/mux routes remain untouched ===
+    r.HandleFunc("/health", s.handleHealth).Methods("GET")
+    // ... all existing routes ...
+}
+```
+
+### 8.4 Configuration File (YAML)
+
+Camel routes can be defined externally in a YAML config file, loaded at gateway startup:
+
+```yaml
+# routes.yaml
+routes:
+  - id: wallet-info
+    from: /wallet/info
+    steps:
+      - throttle:
+          maxRequests: 100
+          window: 1s
+      - transform:
+          type: setHeader
+          name: X-Target
+          value: oracle
+      - circuitBreaker:
+          threshold: 5
+          window: 30s
+          cooldown: 10s
+      - to:
+          uri: socket:///var/lib/knirvserver/sockets/oracle.sock
+          path: /cosmos/auth/v1beta1/accounts/
+
+  - id: chain-latest
+    from: /api/chain
+    steps:
+      - to:
+          uri: socket:///var/lib/knirvserver/sockets/chain.sock
+          path: /api/v1/chain/latest
+
+  - id: health-dashboard
+    from: /api/health/all
+    steps:
+      - recipientList:
+          parallel: true
+          endpoints:
+            - socket:///var/lib/knirvserver/sockets/backend.sock?path=/health
+            - socket:///var/lib/knirvserver/sockets/chain.sock?path=/health
+            - socket:///var/lib/knirvserver/sockets/graph.sock?path=/health
+      - transform:
+          type: jsonPath
+          expression: "$"
+          target: "$.services"
+      - to:
+          uri: direct://response
+```
+
+### 8.5 Package Structure
+
+```
+packages/KNIRVGATEWAY/
+  pkg/camel/
+    route.go              — Route definition, builder DSL
+    message.go            — Message type
+    processor.go          — Processor interface
+    endpoint.go           — Endpoint, Producer interfaces
+    content_router.go     — ContentBasedRouter
+    transformer.go        — MessageTransformer
+    circuit_breaker.go    — CircuitBreaker
+    throttler.go          — Throttler
+    wire_tap.go           — WireTap
+    recipient_list.go     — RecipientList
+    splitter.go           — Splitter
+    aggregator.go         — Aggregator
+    dead_letter.go        — DeadLetterChannel
+    idempotent.go         — IdempotentConsumer
+    expression.go         — JSONPath, header, body expression evaluators
+    http_adapter.go       — ToHTTPHandler adapter (Camel → net/http)
+    yaml_loader.go        — Load route definitions from YAML
+```
+
+### 8.6 Implementation Priority
+
+| Pattern | Priority | Effort | Reason |
+|---------|----------|--------|--------|
+| Content-Based Router | P0 | 1 day | Enables intelligent routing based on headers/body — most impactful for the gateway |
+| Protocol Bridge (unify socket + HTTP) | P0 | 1 day | Generalize existing `newSocketProxy`/`newHTTPProxy` into URI-based endpoints |
+| Circuit Breaker | P0 | 1 day | Prevents cascading failures when a backend goes down |
+| Throttler | P1 | 0.5 day | Rate limiting — needed for production deployment |
+| Wire Tap | P1 | 0.5 day | Audit logging and metrics collection |
+| Message Transformer | P1 | 1 day | JSONPath extraction, header manipulation — needed for WebGUI data shape mismatch |
+| Dead Letter Channel | P2 | 0.5 day | Failed message handling for production reliability |
+| Recipient List | P2 | 1 day | Fan-out queries — useful for health dashboards |
+| Splitter | P3 | 0.5 day | Batch processing — lower immediate need |
+| Aggregator | P3 | 1 day | Batch processing — useful for bulk oracle queries |
+| Idempotent Consumer | P3 | 0.5 day | Exactly-once semantics — important for transaction submission |
+| YAML config loader | P3 | 1 day | Externalized route config — nice-to-have for operations |
+
+### 8.7 Migration Path
+
+1. **Phase A** — Create `pkg/camel/` with core types (Processor, Message, Endpoint, Route)
+2. **Phase B** — Implement P0 patterns (content router, protocol bridge, circuit breaker)
+3. **Phase C** — Refactor existing `server.go` route setup to use Camel routes for chain/oracle/backend endpoints
+4. **Phase D** — Implement P1 patterns (throttler, wire tap, transformer)
+5. **Phase E** — Add YAML config loader for externalized route definitions
+6. **Phase F** — Implement P2/P3 patterns as needed
+
+---
+
+## 9. Open Questions
 
 1. Does the KNIRVSHELL binary at `github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL` support a `--socket-path` flag? If not, how invasive is adding it?
 

@@ -149,8 +149,12 @@ func (h *DVEHandlers) GetDVENodeTasksAlias(w http.ResponseWriter, r *http.Reques
 
 	if h.dveManager == nil {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]string{"error": "DVE manager not available"})
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"node_id":   nodeID,
+			"tasks":     []interface{}{},
+			"total":     0,
+			"timestamp": getCurrentTimestamp(),
+		})
 		return
 	}
 
@@ -181,8 +185,11 @@ func (h *DVEHandlers) GetDVENodeMetricsAlias(w http.ResponseWriter, r *http.Requ
 
 	if h.dveManager == nil {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]string{"error": "DVE manager not available"})
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"node_id":   nodeID,
+			"metrics":   map[string]interface{}{},
+			"timestamp": getCurrentTimestamp(),
+		})
 		return
 	}
 
@@ -340,14 +347,13 @@ type DVENodeResponse struct {
 // GetDVENodes handles GET /api/dve-nodes
 func (h *DVEHandlers) GetDVENodes(w http.ResponseWriter, r *http.Request) {
 	if h.dveManager == nil {
-		response := DVENodeResponse{
-			Success:   false,
-			Error:     "DVE manager not available",
-			Timestamp: getCurrentTimestamp(),
-		}
+		// Return empty nodes list instead of error when DVE manager is not initialized
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"nodes":     []interface{}{},
+			"total":     0,
+			"timestamp": getCurrentTimestamp(),
+		})
 		return
 	}
 
@@ -518,6 +524,18 @@ func (h *DVEHandlers) GetDVENode(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if h.dveManager == nil {
+		response := DVENodeResponse{
+			Success:   false,
+			Error:     "Node not found",
+			Timestamp: getCurrentTimestamp(),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(response)
 		return
 	}
@@ -907,7 +925,6 @@ func (h *DVEHandlers) GetSupervisorAgentStatus(w http.ResponseWriter, r *http.Re
 	w.Header().Set("Content-Type", "application/json")
 
 	if h.knirvagentManager == nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "unavailable",
 			"error":  "KNIRVAGENT supervisor not configured",
@@ -944,7 +961,6 @@ func (h *DVEHandlers) GetSupervisorAgentSession(w http.ResponseWriter, r *http.R
 	w.Header().Set("Content-Type", "application/json")
 
 	if h.knirvagentManager == nil || !h.knirvagentManager.IsRunning() {
-		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"error": "KNIRVAGENT supervisor not running",
 		})

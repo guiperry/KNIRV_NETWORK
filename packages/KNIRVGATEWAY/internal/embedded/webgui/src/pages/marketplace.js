@@ -3,6 +3,7 @@ import { useNavigation } from '../hooks/useNavigation';
 import PageLayout from '../components/PageLayout';
 import PageHeader from '../components/PageHeader';
 import GlassyCard from '../components/GlassyCard';
+import OnboardingFlow from '../components/OnboardingFlowUpdated';
 import styles from './marketplace.module.css';
 
 export default function Marketplace() {
@@ -10,6 +11,7 @@ export default function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -125,6 +127,13 @@ export default function Marketplace() {
             <i className="fas fa-filter" style={{ marginRight: '10px', color: '#007bff' }}></i>
             Filters
           </h3>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className={styles.addButton}
+          >
+            <i className="fas fa-plus" style={{ marginRight: '6px' }}></i>
+            Add
+          </button>
         </div>
         
         <div className={styles.filtersGrid}>
@@ -255,6 +264,14 @@ export default function Marketplace() {
           </div>
         </div>
       </GlassyCard>
+
+      {showAddModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowAddModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <OnboardingFlow onComplete={() => setShowAddModal(false)} />
+          </div>
+        </div>
+      )}
     </PageLayout>
   );
 }
