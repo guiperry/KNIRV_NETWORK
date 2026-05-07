@@ -1,8 +1,8 @@
 {
   "httpPort": 5000,
   "p2pPort": 5050,
-  "walletPort": 6050,
-  "noWalletServer": false,
+  "walletPort": 0,
+  "noWalletServer": true,
   "clientOnly": false,
   "useGUI": false,
   "reflectionURLs": [],

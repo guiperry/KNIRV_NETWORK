@@ -82,6 +82,14 @@ func (r *OracleRoutes) RegisterRoutes(mux *http.ServeMux) {
 	// Installation endpoints
 	mux.HandleFunc("/oracle/v3/install/wallet", r.handleInstallWallet)
 	mux.HandleFunc("/oracle/v3/install/dve_uri", r.handleInstallDVEURI)
+	mux.HandleFunc("/oracle/v3/wallet/status", r.handleWalletStatus)
+
+	// Legacy wallet server compatibility endpoints now hosted by KNIRVORACLE.
+	mux.HandleFunc("/generate_wallet", r.handleGenerateWallet)
+	mux.HandleFunc("/balance/", r.handleLegacyWalletBalance)
+	mux.HandleFunc("/transactions", r.handleCreateTransaction)
+	mux.HandleFunc("/send_signed_txn", r.handleSendSignedTransaction)
+	mux.HandleFunc("/test/faucet", r.handleTestFaucet)
 
 	// Health and status
 	mux.HandleFunc("/oracle/v3/health", r.handleHealth)

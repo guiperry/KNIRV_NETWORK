@@ -461,14 +461,14 @@ func DefaultConfig() *Config {
 			AdvertiseInterval:  time.Minute * 10,
 			DiscoveryNamespace: "KNIRVCHAIN-relay",
 		},
-		WalletPort:             3001, // Will be set based on role
+		WalletPort:             0,    // KNIRVCHAIN no longer hosts the wallet server
 		AltGUIPort:             3000, // Default Next.js port
 		BlockchainDatabasePath: "",   // Will be set based on role
 		ReflectionDatabasePath: "",
 		SearchableDatabasePath: "",
 		MinersAddress:          "",
 		MasterAddress:          "",
-		NoWalletServer:         false, // Will be set based on role
+		NoWalletServer:         true,  // KNIRVORACLE owns wallet operations
 		ClientOnly:             false, // Will be set based on role
 		UseGUI:                 false, // Will be set based on role
 		ReflectionURLs:         []string{},
@@ -544,12 +544,12 @@ func CreateRootConfigFromMatrixAndConstants() *Config {
 	cfg.InstallComplete = true // Root doesn't need typical installation steps
 	cfg.UseGUI = true
 	cfg.ClientOnly = false
-	cfg.NoWalletServer = false
+	cfg.NoWalletServer = true
 
 	// Set default ports (from older version)
 	cfg.Port = 8080
 	cfg.P2PPort = 3030
-	cfg.WalletPort = 8081
+	cfg.WalletPort = 0
 	cfg.AltGUIPort = 3000
 
 	// Use constants from main package for critical values

@@ -49,10 +49,11 @@ func (api *UnifiedAPI) handleTunnelConnections(w http.ResponseWriter, r *http.Re
 func (api *UnifiedAPI) handleWalletStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":    "inactive",
+		"status":    "oracle-managed",
 		"connected": false,
 		"network":   api.config.ChainID,
-		"message":   "Wallet services moved to separate components",
+		"owner":     "KNIRVORACLE",
+		"message":   "KNIRVCHAIN no longer runs a wallet server; KNIRVORACLE owns wallet operations",
 		"last_sync": time.Now(),
 	})
 }
@@ -62,7 +63,8 @@ func (api *UnifiedAPI) handleWalletBalance(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"balance": map[string]interface{}{
-			"message": "Wallet services moved to separate components",
+			"owner":   "KNIRVORACLE",
+			"message": "Query wallet balances from KNIRVORACLE",
 		},
 		"last_updated": time.Now(),
 	})

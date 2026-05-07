@@ -20,11 +20,11 @@ import (
 
 	"KNIRVCHAIN/internal/blockchain"
 	"KNIRVCHAIN/internal/dataengine"
+	"KNIRVCHAIN/internal/dht"
 	"KNIRVCHAIN/internal/inference"
 	"KNIRVCHAIN/internal/inference/agentify"
 	"KNIRVCHAIN/internal/installation"
 	"KNIRVCHAIN/internal/network"
-	"KNIRVCHAIN/internal/dht"
 
 	"github.com/joho/godotenv"
 
@@ -56,6 +56,17 @@ type P2PConsensusManager = dht.P2PConsensusManager
 // NewBlockchain provides a proper implementation from internal/blockchain; do not redefine Shutdown here.
 
 // WalletManager is provided by internal/wallet; use wallet.NewWalletManager
+
+func enforceOracleWalletOwnership(cfg *config.Config) {
+	if cfg == nil {
+		return
+	}
+	if !cfg.NoWalletServer || cfg.WalletPort != 0 {
+		log.Printf("KNIRVCHAIN wallet server is disabled; KNIRVORACLE now owns network wallet operations (requested wallet_port=%d)", cfg.WalletPort)
+	}
+	cfg.NoWalletServer = true
+	cfg.WalletPort = 0
+}
 
 // Missing function definitions
 func fetchAndStorePublicIPInfo(cfg *config.Config, role config.Role) (errCatch error) {
@@ -446,10 +457,10 @@ func main() {
 	httpPortFlag := flag.Uint("port", 0, "HTTP port (overrides config if set, 0 means use config)")
 	socketPathFlag := flag.String("socket", "", "Unix socket path for HTTP server (overrides port)")
 	p2pPortFlag := flag.Uint("p2p.port", 0, "Libp2p host port (overrides config if set, 0 means use config)")
-	walletPortFlag := flag.Uint("wallet_port", 0, "HTTP port for the wallet server (overrides config if set, 0 means use config)")
+	walletPortFlag := flag.Uint("wallet_port", 0, "DEPRECATED: KNIRVCHAIN no longer hosts a wallet server; KNIRVORACLE owns wallet operations")
 	dbPathFlag := flag.String("shared_database_path", "", "Filepath for the chain's database (overrides config if set)")
 	minerAddressFlag := flag.String("miners_address", "", "Miner's address for rewards (overrides config if set)")
-	noWalletServer := flag.Bool("no-wallet-server", false, "Disable wallet server startup")
+	noWalletServer := flag.Bool("no-wallet-server", false, "DEPRECATED: KNIRVCHAIN always disables wallet server startup; KNIRVORACLE owns wallet operations")
 	clientOnly := flag.Bool("client-only", false, "Run as a client-only node (reduced resource usage)")
 	useGUI := flag.Bool("gui", false, "DEPRECATED: GUI functionality has been removed")
 	runNetworkMode := flag.Bool("network", false, "Run in multi-node network mode (main + reflection)")
@@ -547,6 +558,7 @@ func main() {
 		cfg.WalletPort = uint64(*walletPortFlag)
 	}
 	applyEmbeddedRuntimeOverrides(cfg)
+	enforceOracleWalletOwnership(cfg)
 	if cfg.SocketPath != "" {
 		log.Printf("Socket mode requested at startup: %s", cfg.SocketPath)
 	}
@@ -750,14 +762,14 @@ func main() {
 		if flagsSet["dev"] {
 			cfg.IsPeer = *runPeerMode
 		}
-		// No Wallet Server is always applied if present
 		if flagsSet["no-wallet-server"] {
-			cfg.NoWalletServer = *noWalletServer
+			log.Printf("Ignoring -no-wallet-server=%t because KNIRVCHAIN no longer starts a wallet server; KNIRVORACLE owns wallet operations", *noWalletServer)
 		}
 		// Always apply GUI flag override, regardless of mode, if it was set
 		if flagsSet["gui"] {
 			cfg.UseGUI = *useGUI
 		}
+		enforceOracleWalletOwnership(cfg)
 		// cfg.ClientOnly and cfg.IsRoot are now primarily set by viper_loader based on nodeRole.
 		// Flags -client-only and -root are used to determine nodeRole initially.
 
@@ -1500,33 +1512,8 @@ func startNodeWithComponents(
 			_ = relayConfig
 		}
 
-		// Wallet Server (Optional) - Should be disabled for dev/reflection
-		var walletSrv *wallet.WalletServerImpl
-		var stopWallet func()
 		if !disableWallet {
-			walletSrv = wallet.NewWalletServer(uint64(cfg.WalletPort), localChainBaseURL(cfg))
-			go func() {
-				log.Printf("[%s] Starting Wallet Server on port %d...", cfg.ChainID, cfg.WalletPort)
-				stopWallet = walletSrv.Start()
-			}()
-			// Wait for the actual port to be determined
-			select {
-			case actualPort := <-walletSrv.GetPortChan():
-				if actualPort != uint64(cfg.WalletPort) {
-					log.Printf("[%s] Wallet Server is using port %d instead of configured port %d", cfg.ChainID, actualPort, cfg.WalletPort)
-					// Update the config with the actual port used
-					cfg.WalletPort = actualPort
-				}
-			case <-time.After(5 * time.Second):
-				log.Printf("[%s] Warning: Timeout waiting for wallet server port signal", cfg.ChainID)
-			}
-			defer func() {
-				if stopWallet != nil {
-					log.Printf("[%s] Stopping Wallet Server...", cfg.ChainID)
-					stopWallet()
-					log.Printf("[%s] Wallet Server stopped.", cfg.ChainID)
-				}
-			}()
+			log.Printf("[%s] Wallet server launch requested but ignored; KNIRVORACLE owns network wallet operations", cfg.ChainID)
 		}
 
 		// Node.js legacy code removed; services are now separate Go components.
@@ -1724,8 +1711,8 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 			cfg.Port = actualHTTPPort
 		}
 
-	// 4. Discovery Manager
-	discoveryMgr, err := dht.NewDiscoveryClient(cfg.ChainID, int(cfg.P2PPort), cfg.ClientOnly, cfg.IsBootnode, role, &cfg) // Pass &cfg
+		// 4. Discovery Manager
+		discoveryMgr, err := dht.NewDiscoveryClient(cfg.ChainID, int(cfg.P2PPort), cfg.ClientOnly, cfg.IsBootnode, role, &cfg) // Pass &cfg
 
 		if err != nil {
 			log.Printf("[%s][%s] ERROR: Failed to initialize discovery manager: %v", role.String(), cfg.ChainID, err)
@@ -1777,35 +1764,8 @@ func startNode(ctx context.Context, wg *sync.WaitGroup, cfg config.Config, role 
 			log.Printf("[%s][%s] P2P messaging disabled - skipping P2P consensus manager initialization", role.String(), cfg.ChainID)
 		}
 
-		// 6. Wallet server (optional)
-		var walletSrv *wallet.WalletServerImpl
-		var stopWallet func()
 		if !disableWallet {
-			walletSrv = wallet.NewWalletServer(uint64(cfg.WalletPort), localChainBaseURL(cfg))
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				log.Printf("[%s][%s] Starting wallet server on port %d...", role.String(), cfg.ChainID, cfg.WalletPort)
-				stopWallet = walletSrv.Start()
-				log.Printf("[%s][%s] Wallet server stopped", role.String(), cfg.ChainID)
-			}()
-			// Wait for the actual port to be determined
-			select {
-			case actualPort := <-walletSrv.GetPortChan():
-				if actualPort != uint64(cfg.WalletPort) {
-					log.Printf("[%s][%s] Wallet Server is using port %d instead of configured port %d", role.String(), cfg.ChainID, actualPort, cfg.WalletPort)
-					// Update the config with the actual port used
-					cfg.WalletPort = actualPort
-				}
-			case <-time.After(5 * time.Second):
-				log.Printf("[%s][%s] Warning: Timeout waiting for wallet server port signal", role.String(), cfg.ChainID)
-			}
-			defer func() {
-				if stopWallet != nil {
-					log.Printf("[%s][%s] Stopping wallet server...", role.String(), cfg.ChainID)
-					stopWallet()
-				}
-			}()
+			log.Printf("[%s][%s] Wallet server launch requested but ignored; KNIRVORACLE owns network wallet operations", role.String(), cfg.ChainID)
 		}
 
 		// 7. Payment processor (root mode only)

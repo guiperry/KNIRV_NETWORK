@@ -290,24 +290,38 @@ func (s *Server) setupRoutes() error {
 
 	// /api/oracle/* — Standardized oracle prefix for all Cosmos blockchain queries
 	// Wallet/balance, transaction submission, blocks, staking, governance, IBC.
+	// Strip /api prefix so /api/oracle/v3/... becomes /oracle/v3/..., matching the
+	// oracle's native route format (oracle serves under /oracle/v3/*).
 	if s.config.OracleSocketPath != "" || s.config.KnirvOracleURL != "" {
-		r.PathPrefix("/api/oracle/").Handler(oracleProxy)
+		r.PathPrefix("/api/oracle/").Handler(http.StripPrefix("/api", oracleProxy))
+
+		// Root-level wallet-server compatible routes — proxied directly to the oracle
+		// without path stripping, matching the oracle's root-level route registrations
+		// (/generate_wallet, /balance/{addr}, /send_signed_txn, etc.).
+		r.HandleFunc("/generate_wallet", oracleProxy.ServeHTTP).Methods("GET", "POST", "OPTIONS")
+		r.HandleFunc("/balance/", oracleProxy.ServeHTTP).Methods("GET", "OPTIONS")
+		r.HandleFunc("/send_signed_txn", oracleProxy.ServeHTTP).Methods("POST", "OPTIONS")
+		r.HandleFunc("/transactions", oracleProxy.ServeHTTP).Methods("POST", "OPTIONS")
+		r.HandleFunc("/test/faucet", oracleProxy.ServeHTTP).Methods("POST", "OPTIONS")
 	}
 
-	// 301 redirects from old flat paths to /api/oracle/* (Phase 1)
+	// 301 redirects from old flat paths — wallet info and transaction submission
+	// routes to the oracle's wallet status and transaction endpoints.
 	r.HandleFunc("/wallet/info", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/api/oracle/wallet/info", http.StatusMovedPermanently)
+		http.Redirect(w, r, "/api/oracle/v3/wallet/status", http.StatusMovedPermanently)
 	}).Methods("GET", "OPTIONS")
 	r.HandleFunc("/transaction", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/api/oracle/transaction", http.StatusMovedPermanently)
+		http.Redirect(w, r, "/transactions", http.StatusMovedPermanently)
 	}).Methods("POST", "OPTIONS")
 
 	// Chain proxy — KNIRVCHAIN via chain.sock
 	if s.config.ChainSocketPath != "" {
 		chainProxy := newSocketProxy(s.config.ChainSocketPath, "http://knirvchain")
 
-		// /api/chain/* — Standardized chain prefix (Phase 2)
-		r.PathPrefix("/api/chain/").Handler(chainProxy)
+		// /api/chain/* — Standardized chain prefix (Phase 2).
+		// Strip /api/chain prefix so /api/chain/chain becomes /chain,
+		// matching KNIRVCHAIN's native route format.
+		r.PathPrefix("/api/chain/").Handler(http.StripPrefix("/api/chain", chainProxy))
 
 		// Flat /chain/* redirect → /api/chain/* (Phase 2)
 		r.PathPrefix("/chain/").Handler(http.StripPrefix("/chain",
@@ -315,9 +329,9 @@ func (s *Server) setupRoutes() error {
 				http.Redirect(w, r, "/api/chain"+r.URL.Path, http.StatusMovedPermanently)
 			})))
 
-		// /chain (GET) redirect → /api/chain/ (Phase 2)
+		// /chain (GET) redirect → /api/chain/chain (the actual chain endpoint)
 		r.HandleFunc("/chain", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/api/chain/", http.StatusMovedPermanently)
+			http.Redirect(w, r, "/api/chain/chain", http.StatusMovedPermanently)
 		}).Methods("GET", "OPTIONS")
 
 		// /bootnodes redirect → /api/chain/bootnodes (Phase 2, replaces /devs)
@@ -331,6 +345,11 @@ func (s *Server) setupRoutes() error {
 		// /api/assets → chain proxy (Phase 4 — replaces mock handler)
 		r.HandleFunc("/api/assets", chainProxy.ServeHTTP).Methods("GET", "OPTIONS")
 
+		// WebGUI flat paths — proxy directly to chain.sock (these are the
+		// actual endpoints KNIRVCHAIN serves at root level).
+		r.HandleFunc("/txn_pool", chainProxy.ServeHTTP).Methods("GET", "OPTIONS")
+		r.HandleFunc("/devs", chainProxy.ServeHTTP).Methods("GET", "OPTIONS")
+
 		s.logger.Info("Chain proxy registered", zap.String("socket", s.config.ChainSocketPath))
 	} else {
 		s.logger.Warn("Chain proxy not configured — /api/chain/* will not be proxied")
@@ -338,6 +357,23 @@ func (s *Server) setupRoutes() error {
 		// Fallback: return empty data for chain endpoints when chain is not available
 		r.HandleFunc("/api/objects", s.handleEmptyArray).Methods("GET", "OPTIONS")
 		r.HandleFunc("/api/assets", s.handleEmptyArray).Methods("GET", "OPTIONS")
+
+		// /chain fallback — WebGUI still calls this endpoint directly.
+		// Return empty data instead of 404 so the dashboard doesn't break.
+		r.HandleFunc("/chain", s.handleEmptyArray).Methods("GET", "OPTIONS")
+
+		// WebGUI flat path fallbacks when chain socket isn't available.
+		r.HandleFunc("/txn_pool", s.handleEmptyArray).Methods("GET", "OPTIONS")
+		r.HandleFunc("/devs", s.handleEmptyArray).Methods("GET", "OPTIONS")
+		r.HandleFunc("/wallet/info", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte("{}\n"))
+		}).Methods("GET", "OPTIONS")
+		r.HandleFunc("/transaction", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte(`{"error":"chain not available"}` + "\n"))
+		}).Methods("POST", "OPTIONS")
 	}
 
 	// Graph proxy — KNIRVGRAPH via graph.sock (Phase 3)
@@ -402,6 +438,14 @@ func (s *Server) setupRoutes() error {
 
 	// NOTE: No catch-all mock handler. Unmatched /api/* routes will 404
 	// instead of returning fake data, forcing real endpoint implementation.
+
+	// /api/v1/info fallback when backend proxy isn't configured
+	if s.config.BackendSocketPath == "" {
+		r.HandleFunc("/api/v1/info", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"status":"ok","mode":"gateway","role":"General","network":"local"}` + "\n"))
+		}).Methods("GET", "OPTIONS")
+	}
 
 	// IMPORTANT: Next.js static export uses absolute paths like /_next/..., /favicon.ico, etc.
 	// These are served at the root level so the explorer can load its assets.

@@ -65,6 +65,19 @@ func (ar *APIRouter) RegisterRoutes(r *mux.Router) {
 		})
 	}).Methods("GET")
 
+	// Info endpoint — returns server role/mode info for the WebGUI.
+	// Proxied from the gateway as /api/v1/info.
+	apiV1.HandleFunc("/info", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "ok",
+			"role":    "General",
+			"network": "local",
+			"mode":    "standalone",
+		})
+	}).Methods("GET")
+
 	// Register DVE routes under /api/v1/dve/
 	ar.registerDVERoutes(apiV1)
 

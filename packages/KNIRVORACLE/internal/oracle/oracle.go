@@ -82,6 +82,10 @@ type OracleConfig struct {
 	RPCAddr string `json:"rpc_addr"`
 	APIAddr string `json:"api_addr"`
 
+	// Wallet server configuration
+	WalletServerEnabled bool     `json:"wallet_server_enabled"`
+	WalletInitialFund   *big.Int `json:"wallet_initial_fund"`
+
 	// Storage configuration
 	DataDir   string `json:"data_dir"`
 	DBBackend string `json:"db_backend"`
@@ -93,26 +97,28 @@ func DefaultOracleConfig() *OracleConfig {
 	maxSupply, _ := new(big.Int).SetString("10000000000", 10)
 
 	return &OracleConfig{
-		ChainID:          "knirvoracle-1",
-		NetworkID:        "knirv-testnet",
-		BlockTime:        5 * time.Second,
-		TokenName:        "KNIRV Network Token",
-		TokenSymbol:      "NRN",
-		InitialSupply:    initialSupply,
-		MaxSupply:        maxSupply,
-		OwnerPrivateKey:  "",
-		ContractAddress:  "",
-		XionRPC:          "https://rpc.xion.testnet",
-		P2PListenAddr:    "/ip4/0.0.0.0/tcp/26656",
-		BootstrapPeers:   []string{},
-		DHTEnabled:       true,
-		GossipSubEnabled: true,
-		ValidatorMode:    false,
-		IBCEnabled:       true,
-		RPCAddr:          "127.0.0.1:26657",
-		APIAddr:          "0.0.0.0:8080",
-		DataDir:          "./data/oracle",
-		DBBackend:        "badger",
+		ChainID:             "knirvoracle-1",
+		NetworkID:           "knirv-testnet",
+		BlockTime:           5 * time.Second,
+		TokenName:           "KNIRV Network Token",
+		TokenSymbol:         "NRN",
+		InitialSupply:       initialSupply,
+		MaxSupply:           maxSupply,
+		OwnerPrivateKey:     "",
+		ContractAddress:     "",
+		XionRPC:             "https://rpc.xion.testnet",
+		P2PListenAddr:       "/ip4/0.0.0.0/tcp/26656",
+		BootstrapPeers:      []string{},
+		DHTEnabled:          true,
+		GossipSubEnabled:    true,
+		ValidatorMode:       false,
+		IBCEnabled:          true,
+		RPCAddr:             "127.0.0.1:26657",
+		APIAddr:             "0.0.0.0:8080",
+		WalletServerEnabled: true,
+		WalletInitialFund:   big.NewInt(1000),
+		DataDir:             "./data/oracle",
+		DBBackend:           "badger",
 	}
 }
 
@@ -433,6 +439,11 @@ func (o *Oracle) GetStatus() map[string]interface{} {
 		"chain_id":   o.config.ChainID,
 		"network_id": o.config.NetworkID,
 		"token":      o.nrnToken.Info(),
+		"wallet_server": map[string]interface{}{
+			"enabled":          o.config.WalletServerEnabled,
+			"initial_funding":  o.GetWalletInitialFunding().String(),
+			"treasury_address": o.nrnToken.Owner().String(),
+		},
 		"consensus":  o.consensusEngine.GetInfo(),
 		"governance": o.governanceSystem.GetValidatorStats(),
 		"economics":  o.economicsEngine.GetEconomicSnapshot(),
@@ -441,6 +452,47 @@ func (o *Oracle) GetStatus() map[string]interface{} {
 			"enabled": o.config.IBCEnabled,
 		},
 	}
+}
+
+func (o *Oracle) WalletServerEnabled() bool {
+	return o.config.WalletServerEnabled
+}
+
+func (o *Oracle) GetWalletInitialFunding() *big.Int {
+	if o == nil || o.config == nil || o.config.WalletInitialFund == nil {
+		return big.NewInt(0)
+	}
+	return new(big.Int).Set(o.config.WalletInitialFund)
+}
+
+func (o *Oracle) FundAddress(addr types.Address, amount *big.Int, reason string) (*token.MintReceipt, error) {
+	if err := validateWalletFundingAmount(amount); err != nil {
+		return nil, err
+	}
+
+	receipt, err := o.nrnToken.Mint(addr, amount)
+	if err != nil {
+		return nil, err
+	}
+
+	o.logger.Info("Funded wallet from oracle treasury",
+		zap.String("address", addr.String()),
+		zap.String("amount", amount.String()),
+		zap.String("reason", reason),
+		zap.String("transaction_hash", receipt.TransactionHash),
+	)
+
+	return receipt, nil
+}
+
+func validateWalletFundingAmount(amount *big.Int) error {
+	if amount == nil {
+		return fmt.Errorf("funding amount is required")
+	}
+	if amount.Sign() <= 0 {
+		return fmt.Errorf("funding amount must be positive")
+	}
+	return nil
 }
 
 // Helper: initialize NRN token

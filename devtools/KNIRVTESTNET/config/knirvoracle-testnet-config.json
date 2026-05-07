@@ -7,7 +7,7 @@
   "shared_database_path": "./data/testnet/blockchain.db",
   "searchable_database_path": "./data/testnet/searchable.db",
   "miners_address": "KNIRVORACLE_Faucet",
-  "no_wallet_server": false,
+  "no_wallet_server": true,
   "client_only": false,
   "use_gui": false,
   "install_complete": true,

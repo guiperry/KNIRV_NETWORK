@@ -25,7 +25,6 @@ type RoleSettings struct {
 	// Bootnode settings
 	BootnodeSettings BootnodeSettings
 
-
 	// Tunnel client settings
 	TunnelClient TunnelClientSettings
 
@@ -48,7 +47,6 @@ type PaymentProcessorSettings struct {
 type BootnodeSettings struct {
 	Enabled bool
 }
-
 
 // TunnelRegistrySettings defines tunnel registry configuration
 type TunnelRegistrySettings struct {
@@ -115,7 +113,6 @@ var RoleSettingsMatrix = map[Role]RoleSettings{
 			Enabled: false,
 		},
 
-
 		// Tunnel client settings
 		TunnelClient: TunnelClientSettings{
 			Enabled:        false,
@@ -143,8 +140,8 @@ var RoleSettingsMatrix = map[Role]RoleSettings{
 		// Network settings
 		DefaultPort:       5000,
 		DefaultP2PPort:    6000,
-		DefaultWalletPort: 7000,
-		NoWalletServer:    false,
+		DefaultWalletPort: 0,
+		NoWalletServer:    true,
 
 		// Payment processor settings
 		PaymentProcessor: PaymentProcessorSettings{
@@ -192,8 +189,8 @@ var RoleSettingsMatrix = map[Role]RoleSettings{
 		// Network settings
 		DefaultPort:       5001,
 		DefaultP2PPort:    6001,
-		DefaultWalletPort: 7001,
-		NoWalletServer:    false,
+		DefaultWalletPort: 0,
+		NoWalletServer:    true,
 
 		// Payment processor settings
 		PaymentProcessor: PaymentProcessorSettings{
@@ -241,8 +238,8 @@ var RoleSettingsMatrix = map[Role]RoleSettings{
 		// Network settings
 		DefaultPort:       5002,
 		DefaultP2PPort:    6002,
-		DefaultWalletPort: 7002,
-		NoWalletServer:    false,
+		DefaultWalletPort: 0,
+		NoWalletServer:    true,
 
 		// Payment processor settings
 		PaymentProcessor: PaymentProcessorSettings{
@@ -342,7 +339,6 @@ func ApplyRoleDefaults(cfg *Config, role Role) {
 
 	// Apply bootnode settings
 	cfg.Bootnode.Enabled = settings.BootnodeSettings.Enabled
-
 
 	// Apply tunnel client settings
 	cfg.TunnelClient.Enabled = settings.TunnelClient.Enabled

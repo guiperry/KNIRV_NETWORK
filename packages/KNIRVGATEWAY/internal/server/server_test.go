@@ -93,7 +93,7 @@ func TestOracleProxyRoutes(t *testing.T) {
 // TestChainProxyRoutes verifies /api/chain/* proxy and redirects
 func TestChainProxyRoutes(t *testing.T) {
 	cfg := &config.Config{
-		ChainSocketPath: "/var/lib/knirvserver/sockets/chain.sock",
+		ChainSocketPath: "/tmp/nonexistent-chain-test-xxxxxxxx.sock",
 		Port:            8888,
 	}
 	s := testServer(cfg)
@@ -101,12 +101,14 @@ func TestChainProxyRoutes(t *testing.T) {
 	ts := httptest.NewServer(s.router)
 	defer ts.Close()
 
-	// /api/chain/ routes are registered
+	// /api/chain/ routes are registered (should not 404 when chain socket is configured)
 	resp, err := http.Get(ts.URL + "/api/chain/health")
 	if err != nil {
 		t.Fatalf("GET /api/chain/health: %v", err)
 	}
 	resp.Body.Close()
+	// The proxy will try to connect to the socket which doesn't exist
+	// Should return either 502 (proxy error) or 502 (no socket) — not 404
 	if resp.StatusCode == http.StatusNotFound {
 		t.Error("/api/chain/health returned 404 — route not registered")
 	}
@@ -159,7 +161,7 @@ func TestChainProxyRoutes(t *testing.T) {
 // TestGraphProxyRoutes verifies /api/graph/* proxy and redirects
 func TestGraphProxyRoutes(t *testing.T) {
 	cfg := &config.Config{
-		GraphSocketPath: "/var/lib/knirvserver/sockets/graph.sock",
+		GraphSocketPath: "/tmp/nonexistent-graph-test-xxxxxxxx.sock",
 		Port:            8888,
 	}
 	s := testServer(cfg)
@@ -214,7 +216,7 @@ func TestShellProxyRoutes(t *testing.T) {
 	}
 }
 
-// TestMockEndpointsReplaced verifies old mock endpoints are gone
+// TestMockEndpointsReplaced verifies old mock endpoints have fallback responses
 func TestMockEndpointsReplaced(t *testing.T) {
 	// Test with minimal config — no sockets configured
 	cfg := &config.Config{Port: 8888}
@@ -223,27 +225,27 @@ func TestMockEndpointsReplaced(t *testing.T) {
 	ts := httptest.NewServer(s.router)
 	defer ts.Close()
 
-	// /devs should 404 (removed, no redirect needed per spec)
-	t.Run("/devs returns 404", func(t *testing.T) {
+	// /devs should return empty array (fallback, not 404)
+	t.Run("/devs returns empty array fallback", func(t *testing.T) {
 		resp, err := http.Get(ts.URL + "/devs")
 		if err != nil {
 			t.Fatalf("GET /devs: %v", err)
 		}
 		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusNotFound {
-			t.Errorf("expected 404 for removed /devs, got %d", resp.StatusCode)
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("expected 200 for /devs fallback, got %d", resp.StatusCode)
 		}
 	})
 
-	// /txn_pool should 404 (removed)
-	t.Run("/txn_pool returns 404", func(t *testing.T) {
+	// /txn_pool should return empty array (fallback, not 404)
+	t.Run("/txn_pool returns empty array fallback", func(t *testing.T) {
 		resp, err := http.Get(ts.URL + "/txn_pool")
 		if err != nil {
 			t.Fatalf("GET /txn_pool: %v", err)
 		}
 		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusNotFound {
-			t.Errorf("expected 404 for removed /txn_pool, got %d", resp.StatusCode)
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("expected 200 for /txn_pool fallback, got %d", resp.StatusCode)
 		}
 	})
 
@@ -335,9 +337,9 @@ func TestUnmatchedAPIRoutes_404(t *testing.T) {
 	})
 }
 
-// TestAPIInfoNotLocal verifies /api/v1/info is NOT handled locally
-// (handled by backend proxy instead)
-func TestAPIInfoNotLocal(t *testing.T) {
+// TestAPIInfoFallback verifies /api/v1/info returns fallback data
+// when the backend proxy is not configured.
+func TestAPIInfoFallback(t *testing.T) {
 	cfg := &config.Config{
 		Port: 8888,
 	}
@@ -346,18 +348,15 @@ func TestAPIInfoNotLocal(t *testing.T) {
 	ts := httptest.NewServer(s.router)
 	defer ts.Close()
 
-	// With no BackendSocketPath, /api/v1/* won't have a backend proxy,
-	// but /api/v1/info should NOT have a local handler — this route
-	// now falls through to the backend proxy.
+	// With no BackendSocketPath, /api/v1/info has a local fallback handler
+	// that returns basic info data so the WebGUI doesn't show console errors.
 	resp, err := http.Get(ts.URL + "/api/v1/info")
 	if err != nil {
 		t.Fatalf("GET /api/v1/info: %v", err)
 	}
 	defer resp.Body.Close()
-	// When no backend is configured, /api/v1/* routes have no handler
-	// (they're only registered inside the BackendSocketPath conditional)
-	if resp.StatusCode != http.StatusNotFound {
-		t.Errorf("expected 404 (no local /api/v1/info handler), got %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 (fallback local handler), got %d", resp.StatusCode)
 	}
 }
 

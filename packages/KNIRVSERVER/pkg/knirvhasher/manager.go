@@ -142,6 +142,15 @@ func (m *Manager) Start(ctx context.Context) error {
 		fmt.Sprintf("HASHER_DATA_PATH=%s", m.config.DataPath),
 	)
 
+	// Propagate the app data directory so the hasher binary doesn't
+	// fall back to ~/.local/share/hasher/ (which becomes /root/... when
+	// running as root).  The canonical path is /var/lib/knirvserver.
+	if appDataDir := os.Getenv("KNIRV_APP_DATA_DIR"); appDataDir != "" {
+		env = append(env, fmt.Sprintf("KNIRV_APP_DATA_DIR=%s", appDataDir))
+	} else if _, err := os.Stat("/var/lib/knirvserver"); err == nil {
+		env = append(env, "KNIRV_APP_DATA_DIR=/var/lib/knirvserver")
+	}
+
 	if m.config.ArxivEnabled {
 		env = append(env, "DATAMINER_MODE=production", "ARXIV_ENABLED=true")
 	}

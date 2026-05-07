@@ -94,6 +94,22 @@ func LoadConfigFromEnv() (*OracleConfig, error) {
 		config.APIAddr = apiAddr
 	}
 
+	if walletServerEnabledStr := os.Getenv("ORACLE_WALLET_SERVER_ENABLED"); walletServerEnabledStr != "" {
+		walletServerEnabled, err := strconv.ParseBool(walletServerEnabledStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid ORACLE_WALLET_SERVER_ENABLED: %w", err)
+		}
+		config.WalletServerEnabled = walletServerEnabled
+	}
+
+	if walletInitialFundStr := os.Getenv("ORACLE_WALLET_INITIAL_FUNDING"); walletInitialFundStr != "" {
+		walletInitialFund, ok := new(big.Int).SetString(walletInitialFundStr, 10)
+		if !ok {
+			return nil, fmt.Errorf("invalid ORACLE_WALLET_INITIAL_FUNDING: %s", walletInitialFundStr)
+		}
+		config.WalletInitialFund = walletInitialFund
+	}
+
 	// IBC Configuration
 	if ibcEnabledStr := os.Getenv("ORACLE_IBC_ENABLED"); ibcEnabledStr != "" {
 		ibcEnabled, err := strconv.ParseBool(ibcEnabledStr)
@@ -168,6 +184,11 @@ func ValidateConfig(config *OracleConfig) error {
 // ConfigSummary returns a human-readable summary of the configuration
 // (without sensitive data like private keys)
 func ConfigSummary(config *OracleConfig) string {
+	walletInitialFund := "0"
+	if config.WalletInitialFund != nil {
+		walletInitialFund = config.WalletInitialFund.String()
+	}
+
 	return fmt.Sprintf(`Oracle Configuration:
   Chain ID: %s
   Network ID: %s
@@ -183,7 +204,9 @@ func ConfigSummary(config *OracleConfig) string {
   DB Backend: %s
   Validator Mode: %t
   RPC Address: %s
-  API Address: %s`,
+  API Address: %s
+  Wallet Server Enabled: %t
+  Wallet Initial Funding: %s`,
 		config.ChainID,
 		config.NetworkID,
 		config.BlockTime,
@@ -199,6 +222,8 @@ func ConfigSummary(config *OracleConfig) string {
 		config.ValidatorMode,
 		config.RPCAddr,
 		config.APIAddr,
+		config.WalletServerEnabled,
+		walletInitialFund,
 	)
 }
 
