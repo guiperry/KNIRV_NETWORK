@@ -1,0 +1,8 @@
+Building knirvagent for linux/amd64...
+github.com/knirvcorp/knirvagent/pkg/channels
+# github.com/knirvcorp/knirvagent/pkg/channels
+pkg/channels/manager.go:128:5: undefined: os
+pkg/channels/terminal.go:8:2: "strings" imported and not used
+make[1]: *** [Makefile:77: build] Error 1
+make[1]: Leaving directory '/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVAGENT'
+make: *** [Makefile:598: agent-build] Error 2
