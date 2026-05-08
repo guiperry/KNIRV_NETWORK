@@ -11,6 +11,8 @@ import '@xterm/xterm/css/xterm.css';
 interface WebTerminalProps {
   sessionId: string;
   endpoint: string;
+  wsPath?: string;
+  connectedMessage?: string;
   onClose?: () => void;
   className?: string;
 }
@@ -18,6 +20,8 @@ interface WebTerminalProps {
 export const WebTerminal: React.FC<WebTerminalProps> = ({
   sessionId,
   endpoint,
+  wsPath,
+  connectedMessage = 'Connected to DVE container',
   onClose,
   className = '',
 }) => {
@@ -121,14 +125,15 @@ export const WebTerminal: React.FC<WebTerminalProps> = ({
 
   const connectWebSocket = (term: XTermTerminal) => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/ssh/${sessionId}`;
+    const resolvedPath = wsPath ?? `/ws/ssh/${sessionId}`;
+    const wsUrl = `${protocol}//${window.location.host}${resolvedPath}`;
 
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       setIsConnected(true);
       setIsConnecting(false);
-      term.writeln('\r\n\x1b[32mConnected to DVE container\x1b[0m\r\n');
+      term.writeln(`\r\n\x1b[32m${connectedMessage}\x1b[0m\r\n`);
       term.writeln('Type your commands below:\r\n');
     };
 

@@ -12,6 +12,7 @@ type ErrorNode struct {
 	Description string                 `json:"description"`
 	Context     map[string]interface{} `json:"context"`
 	Timestamp   time.Time              `json:"timestamp"`
+	BadgeID     string                 `json:"badge_id,omitempty"` // active badge at failure time (Gap 4)
 }
 
 // SolutionNode represents executable logic to resolve an ErrorNode

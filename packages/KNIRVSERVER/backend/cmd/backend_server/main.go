@@ -862,17 +862,17 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 				TunnelRelay: cfg.Gateway.TunnelRelayPort,
 				TunnelSTUN:  cfg.Gateway.TunnelSTUNPort,
 			},
-			DBPath:       cfg.Database.Path,
-			AuthSecret:   cfg.Gateway.AuthSecret,
-			MinerAddress:        cfg.Gateway.MinerAddress,
-			BackendSocketPath:   cfg.Gateway.BackendSocketPath,
-			ChainSocketPath:     cfg.Gateway.ChainSocketPath,
-			GraphSocketPath:     cfg.Gateway.GraphSocketPath,
-			StartTimeout: time.Duration(cfg.Gateway.StartTimeout) * time.Second,
-			StopTimeout:  time.Duration(cfg.Gateway.StopTimeout) * time.Second,
-			ChainID:      cfg.ChainID,
-			Stdout:       logging.NewSubprocessWriter("knirvgateway", os.Stdout),
-			Stderr:       logging.NewSubprocessWriter("knirvgateway", os.Stderr),
+			DBPath:            cfg.Database.Path,
+			AuthSecret:        cfg.Gateway.AuthSecret,
+			MinerAddress:      cfg.Gateway.MinerAddress,
+			BackendSocketPath: cfg.Gateway.BackendSocketPath,
+			ChainSocketPath:   cfg.Gateway.ChainSocketPath,
+			GraphSocketPath:   cfg.Gateway.GraphSocketPath,
+			StartTimeout:      time.Duration(cfg.Gateway.StartTimeout) * time.Second,
+			StopTimeout:       time.Duration(cfg.Gateway.StopTimeout) * time.Second,
+			ChainID:           cfg.ChainID,
+			Stdout:            logging.NewSubprocessWriter("knirvgateway", os.Stdout),
+			Stderr:            logging.NewSubprocessWriter("knirvgateway", os.Stderr),
 		}
 		gatewayManager = knirvgateway.NewManager(gatewayConfig, logger)
 		log.Println("KNIRVGATEWAY manager initialized")
@@ -1289,6 +1289,10 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 
 	// Initialize PolicyEngine for ICME policy integration
 	policyEngine := guardrails.NewPolicyEngine(dbManager, guardrailManager)
+	if validationChainClient != nil {
+		policyEngine.SetValidationChainClient(validationChainClient)
+		log.Println("PolicyEngine: validation chain client wired for policy anchoring")
+	}
 	if icmeService != nil {
 		icmeAdapter := &icmePolicyAdapter{icme: icmeService}
 		policyEngine.SetICMEService(icmeAdapter)
@@ -1353,16 +1357,16 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 					stopTimeout = 10 * time.Second
 				}
 				hasherMgrCfg := &knirvhasher.ManagerConfig{
-					BinaryPath:    hasherBinaryPath,
-					SocketPath:    hasherSocketPath,
-					DataPath:      hasherDataPath,
-					HeadlessPort:  hasherConfig.HeadlessPort,
-					HeadlessMode:  true,
-					ArxivEnabled:  hasherConfig.ArxivEnabled,
-					StartTimeout:  startTimeout,
-					StopTimeout:   stopTimeout,
-					Stdout:        logging.NewSubprocessWriter("knirvhasher", os.Stdout),
-					Stderr:        logging.NewSubprocessWriter("knirvhasher", os.Stderr),
+					BinaryPath:   hasherBinaryPath,
+					SocketPath:   hasherSocketPath,
+					DataPath:     hasherDataPath,
+					HeadlessPort: hasherConfig.HeadlessPort,
+					HeadlessMode: true,
+					ArxivEnabled: hasherConfig.ArxivEnabled,
+					StartTimeout: startTimeout,
+					StopTimeout:  stopTimeout,
+					Stdout:       logging.NewSubprocessWriter("knirvhasher", os.Stdout),
+					Stderr:       logging.NewSubprocessWriter("knirvhasher", os.Stderr),
 				}
 				hasherManager = knirvhasher.NewManager(hasherMgrCfg, logger)
 				log.Printf("KNIRVHASHER manager initialized: binary=%s socket=%s data=%s headless_port=%d arxiv=%v",
@@ -1661,6 +1665,7 @@ func (s *Server) setupRoutes() {
 	if authMiddleware != nil {
 		wsService.SetAuthMiddleware(authMiddleware)
 	}
+	wsService.SetSocketDir(s.config.SocketDir)
 	wsService.SetDatabase(s.db)
 	// Wire real Cognitive Engine into WebSocket for live metric broadcasts (Gap 8 + 12)
 	if s.cognitiveEngine != nil {
@@ -1788,7 +1793,7 @@ func (s *Server) setupRoutes() {
 			dveHandlers.SetKnirvagentManager(s.knirvagentManager)
 		}
 		dveHandlers.RegisterRoutes(s.router, authMiddleware)
-		log.Println("DVE manager routes configured")		
+		log.Println("DVE manager routes configured")
 	}
 
 	// Register DVE creation routes

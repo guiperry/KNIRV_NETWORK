@@ -86,13 +86,13 @@ export const useErrorResolutionSession = () => {
 
   // Open error resolution interface in new tab
   const openErrorResolutionInterface = useCallback((session: ErrorResolutionSession) => {
-    if (!session.endpoint_url || !session.session_token) {
+    if (!session.id) {
       setError('Invalid session data');
       return false;
     }
 
     try {
-      const url = `${session.endpoint_url}?token=${encodeURIComponent(session.session_token)}&session_id=${encodeURIComponent(session.id)}`;
+      const url = `${API_BASE_URL}/error-resolution?session_id=${encodeURIComponent(session.id)}`;
       window.open(url, '_blank', 'noopener,noreferrer');
       return true;
     } catch (err) {

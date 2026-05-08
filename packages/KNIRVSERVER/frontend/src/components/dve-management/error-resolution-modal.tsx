@@ -179,6 +179,7 @@ export const ErrorResolutionModal: React.FC<ErrorResolutionModalProps> = ({
                   <ErrorResolutionDashboard
                     sessionId={session.id}
                     supportedTypes={session.supported_error_types}
+                    port={session.port}
                   />
                 </TabsContent>
 

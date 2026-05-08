@@ -1,11 +1,11 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { apiRequest, API_BASE_URL } from '@/lib/api';
+import { useCallback, useEffect, useState } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 export interface SystemTelemetry {
   timestamp: string;
-  source: 'system-health';
+  source: 'cognitive-telemetry';
   cpu_time_ns: number;
   memory_bytes: number;
   net_tx_bytes: number;
@@ -23,57 +23,89 @@ export interface SystemTelemetry {
   memory_usage: number;
 }
 
-export interface TelemetryResponse {
-  success: boolean;
-  data?: unknown;
-  message?: string;
-  error?: string;
-  timestamp: string;
+interface TelemetryState {
+  data: SystemTelemetry | null;
+  isLoading: boolean;
+  error: string | null;
 }
 
+const EMPTY_STATE: TelemetryState = {
+  data: null,
+  isLoading: true,
+  error: null,
+};
+
+const toTelemetry = (snapshot: Record<string, number | string>): SystemTelemetry => {
+  const netTx = Number(snapshot.net_tx_bytes ?? 0);
+  const netRx = Number(snapshot.net_rx_bytes ?? 0);
+  const memoryBytes = Number(snapshot.memory_bytes ?? 0);
+  const heapAlloc = Number(snapshot.heap_alloc_bytes ?? 0);
+
+  return {
+    timestamp: String(snapshot.timestamp ?? new Date().toISOString()),
+    source: 'cognitive-telemetry',
+    cpu_time_ns: Number(snapshot.cpu_time_ns ?? 0),
+    memory_bytes: memoryBytes,
+    net_tx_bytes: netTx,
+    net_rx_bytes: netRx,
+    network_throughput: (netTx + netRx) / 1024,
+    active_connections: 0,
+    context_switches: Number(snapshot.context_switches ?? 0),
+    page_faults: Number(snapshot.page_faults ?? 0),
+    goroutines: Number(snapshot.goroutines ?? 0),
+    heap_alloc_bytes: heapAlloc,
+    gc_count: Number(snapshot.gc_count ?? 0),
+    cpu_pressure: Number(snapshot.cpu_pressure ?? 0),
+    memory_pressure: Number(snapshot.memory_pressure ?? 0),
+    cpu_usage: Number(snapshot.cpu_pressure ?? 0),
+    memory_usage: memoryBytes > 0 ? (heapAlloc / memoryBytes) * 100 : Number(snapshot.memory_pressure ?? 0),
+  };
+};
+
 export const useTelemetry = () => {
-  const queryKey = ['telemetry'];
+  const [telemetry, setTelemetry] = useState<TelemetryState>(EMPTY_STATE);
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
-  const telemetry = useQuery<SystemTelemetry>({
-    queryKey,
-    queryFn: async () => {
-      const response = await apiRequest<{
-        system_load?: number;
-        memory_usage?: number;
-        disk_usage?: number;
-        network_throughput?: number;
-        active_connections?: number;
-        goroutine_count?: number;
-        cpu_usage?: number;
-      }>(`${API_BASE_URL}/api/system-health/metrics`);
+  const refetch = useCallback(() => {
+    setRefreshNonce((value) => value + 1);
+  }, []);
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Failed to fetch telemetry');
-      }
+  useEffect(() => {
+    let eventSource: EventSource | null = null;
 
-      const metrics = response.data;
-      return {
-        timestamp: response.timestamp,
-        source: 'system-health',
-        cpu_time_ns: 0,
-        memory_bytes: 0,
-        net_tx_bytes: 0,
-        net_rx_bytes: 0,
-        network_throughput: metrics.network_throughput ?? 0,
-        active_connections: metrics.active_connections ?? 0,
-        context_switches: 0,
-        page_faults: 0,
-        goroutines: metrics.goroutine_count ?? 0,
-        heap_alloc_bytes: 0,
-        gc_count: 0,
-        cpu_pressure: metrics.cpu_usage ?? 0,
-        memory_pressure: metrics.memory_usage ?? 0,
-        cpu_usage: metrics.cpu_usage ?? 0,
-        memory_usage: metrics.memory_usage ?? 0,
+    setTelemetry((prev) => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      eventSource = new EventSource(`${API_BASE_URL}/api/cognitive/telemetry?stream=1`);
+
+      eventSource.addEventListener('telemetry', (event) => {
+        const payload = JSON.parse((event as MessageEvent).data) as Record<string, number | string>;
+        setTelemetry({
+          data: toTelemetry(payload),
+          isLoading: false,
+          error: null,
+        });
+      });
+
+      eventSource.onerror = () => {
+        setTelemetry((prev) => ({
+          data: prev.data,
+          isLoading: false,
+          error: prev.data ? null : 'Failed to connect to telemetry stream',
+        }));
       };
-    },
-    staleTime: 10000,
-  });
+    } catch (error) {
+      setTelemetry({
+        data: null,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to initialize telemetry stream',
+      });
+    }
+
+    return () => {
+      eventSource?.close();
+    };
+  }, [refreshNonce]);
 
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B';
@@ -96,7 +128,7 @@ export const useTelemetry = () => {
     telemetry,
     formatBytes,
     formatCPU,
-    refetch: () => telemetry.refetch(),
+    refetch,
   };
 };
 

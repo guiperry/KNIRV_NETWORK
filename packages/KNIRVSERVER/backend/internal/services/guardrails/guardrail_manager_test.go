@@ -3,7 +3,21 @@ package guardrails
 import (
 	"testing"
 	"time"
+
+	"backend_server/internal/database"
+	"backend_server/internal/services/blockchain/validationchain"
 )
+
+type mockValidationChainClient struct {
+	lastCommit validationchain.PolicyCommitRequest
+	txHash     string
+	err        error
+}
+
+func (m *mockValidationChainClient) CommitPolicy(req validationchain.PolicyCommitRequest) (string, error) {
+	m.lastCommit = req
+	return m.txHash, m.err
+}
 
 func TestNewDynamicGuardrailManager(t *testing.T) {
 	gm := NewDynamicGuardrailManager(nil)
@@ -330,6 +344,59 @@ func TestDetermineSeverity(t *testing.T) {
 		if severity != tc.expected {
 			t.Errorf("Expected severity %s for value %.2f/%.2f, got %s", tc.expected, tc.value, tc.max, severity)
 		}
+	}
+}
+
+func TestPolicyEngineCommitPolicyToBlockchain(t *testing.T) {
+	db, err := database.NewBuntDB(":memory:")
+	if err != nil {
+		t.Fatalf("failed to create test db: %v", err)
+	}
+
+	engine := NewPolicyEngine(db, NewDynamicGuardrailManager(db))
+	mockChain := &mockValidationChainClient{txHash: "tx-123"}
+	engine.SetValidationChainClient(mockChain)
+
+	policy := &Policy{
+		Name:     "memory guardrail",
+		Enabled:  true,
+		Priority: 5,
+		Rules: []*PolicyRule{
+			{
+				ID:        "rule-1",
+				Type:      "guardrail",
+				Condition: map[string]interface{}{"max_value": 42.0},
+				Action:    "warn",
+				Parameters: map[string]interface{}{
+					"guardrail_type": "memory",
+				},
+			},
+		},
+	}
+
+	if err := engine.CreatePolicy(policy); err != nil {
+		t.Fatalf("failed to create policy: %v", err)
+	}
+
+	txHash, err := engine.CommitPolicyToBlockchain(policy.ID)
+	if err != nil {
+		t.Fatalf("commit failed: %v", err)
+	}
+
+	if txHash != "tx-123" {
+		t.Fatalf("expected tx hash tx-123, got %s", txHash)
+	}
+
+	if mockChain.lastCommit.Name != policy.Name {
+		t.Fatalf("expected committed policy name %s, got %s", policy.Name, mockChain.lastCommit.Name)
+	}
+
+	var record map[string]interface{}
+	if err := db.GetJSON("policy:committed:"+policy.ID, &record); err != nil {
+		t.Fatalf("expected committed policy record, got error: %v", err)
+	}
+	if record["validation_hash"] != "tx-123" {
+		t.Fatalf("expected stored validation hash tx-123, got %v", record["validation_hash"])
 	}
 }
 

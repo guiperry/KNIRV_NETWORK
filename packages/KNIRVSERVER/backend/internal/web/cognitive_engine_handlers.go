@@ -2,8 +2,13 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
+	"strings"
 
 	"backend_server/internal/services/cognitiveengine"
 	"backend_server/internal/web/middleware"
@@ -61,6 +66,10 @@ func (ceh *CognitiveEngineHandlers) RegisterRoutes(router *mux.Router, authMiddl
 
 	// Get cognitive engine status
 	protected.HandleFunc("/status", ceh.GetStatus).Methods("GET")
+
+	// Active memory reasoning traces
+	protected.HandleFunc("/active-memory/traces", ceh.ListReasoningTraces).Methods("GET")
+	protected.HandleFunc("/active-memory/traces/{traceId}", ceh.GetReasoningTrace).Methods("GET")
 }
 
 // GetCognitiveMetrics returns cognitive metrics for a specific node
@@ -171,8 +180,8 @@ func (ceh *CognitiveEngineHandlers) TriggerLearningCycle(w http.ResponseWriter, 
 	// In a real implementation, this would trigger the learning cycle
 	// For now, just return success
 	response := map[string]interface{}{
-		"status":  "learning_cycle_triggered",
-		"message": "Learning cycle has been triggered manually",
+		"status":    "learning_cycle_triggered",
+		"message":   "Learning cycle has been triggered manually",
 		"timestamp": r.Context().Value("timestamp"), // Would be set by middleware
 	}
 
@@ -187,18 +196,173 @@ func (ceh *CognitiveEngineHandlers) GetStatus(w http.ResponseWriter, r *http.Req
 	learningState := ceh.cognitiveEngine.GetLearningState()
 
 	status := map[string]interface{}{
-		"status":              "active",
-		"learning_progress":   learningState.LearningProgress,
-		"confidence_level":    learningState.ConfidenceLevel,
-		"total_tasks_processed": learningState.TotalTasksProcessed,
-		"success_rate":        learningState.SuccessRate,
+		"status":                  "active",
+		"learning_progress":       learningState.LearningProgress,
+		"confidence_level":        learningState.ConfidenceLevel,
+		"total_tasks_processed":   learningState.TotalTasksProcessed,
+		"success_rate":            learningState.SuccessRate,
 		"average_processing_time": learningState.AverageProcessingTime,
-		"task_types_tracked":  len(learningState.TaskTypePerformance),
-		"nodes_tracked":       len(learningState.NodePerformance),
-		"adaptations_applied": len(learningState.AdaptationHistory),
-		"last_updated":        learningState.LastUpdated,
+		"task_types_tracked":      len(learningState.TaskTypePerformance),
+		"nodes_tracked":           len(learningState.NodePerformance),
+		"adaptations_applied":     len(learningState.AdaptationHistory),
+		"last_updated":            learningState.LastUpdated,
 	}
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(status)
+}
+
+type reasoningTraceMetadata struct {
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	Timestamp string `json:"timestamp"`
+	Metadata  struct {
+		AgentID string `json:"agent_id"`
+		ErrorID string `json:"error_id"`
+	} `json:"metadata"`
+}
+
+func (ceh *CognitiveEngineHandlers) ListReasoningTraces(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	traceDir, err := resolveTraceDirectory()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	entries, err := os.ReadDir(traceDir)
+	if err != nil {
+		http.Error(w, "failed to read trace directory", http.StatusInternalServerError)
+		return
+	}
+
+	traces := make([]map[string]interface{}, 0)
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasPrefix(entry.Name(), "trace_") || !strings.HasSuffix(entry.Name(), ".md") {
+			continue
+		}
+
+		meta, _, err := loadTraceFromFile(filepath.Join(traceDir, entry.Name()))
+		if err != nil {
+			continue
+		}
+
+		traces = append(traces, map[string]interface{}{
+			"id":        meta.ID,
+			"agent_id":  meta.Metadata.AgentID,
+			"error_id":  meta.Metadata.ErrorID,
+			"timestamp": meta.Timestamp,
+			"type":      meta.Type,
+		})
+	}
+
+	sort.Slice(traces, func(i, j int) bool {
+		return fmt.Sprint(traces[i]["timestamp"]) > fmt.Sprint(traces[j]["timestamp"])
+	})
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"traces": traces,
+		"count":  len(traces),
+	})
+}
+
+func (ceh *CognitiveEngineHandlers) GetReasoningTrace(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	traceID := mux.Vars(r)["traceId"]
+	if traceID == "" {
+		http.Error(w, "trace ID is required", http.StatusBadRequest)
+		return
+	}
+
+	traceDir, err := resolveTraceDirectory()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	meta, markdown, err := loadTraceFromFile(filepath.Join(traceDir, fmt.Sprintf("trace_%s.md", traceID)))
+	if err != nil {
+		http.Error(w, "trace not found", http.StatusNotFound)
+		return
+	}
+
+	steps := extractTraceSteps(markdown)
+	result := extractTraceResult(markdown)
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"id":        meta.ID,
+		"agent_id":  meta.Metadata.AgentID,
+		"error_id":  meta.Metadata.ErrorID,
+		"timestamp": meta.Timestamp,
+		"type":      meta.Type,
+		"steps":     steps,
+		"result":    result,
+		"content":   markdown,
+	})
+}
+
+func resolveTraceDirectory() (string, error) {
+	candidates := []string{
+		filepath.Join("storage", "memory_vault"),
+		filepath.Join("backend", "internal", "services", "memory", "storage", "memory_vault"),
+		filepath.Join("internal", "services", "memory", "storage", "memory_vault"),
+	}
+
+	for _, candidate := range candidates {
+		if info, err := os.Stat(candidate); err == nil && info.IsDir() {
+			return candidate, nil
+		}
+	}
+
+	return "", fmt.Errorf("reasoning trace storage not found")
+}
+
+func loadTraceFromFile(path string) (*reasoningTraceMetadata, string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, "", err
+	}
+
+	content := string(raw)
+	parts := strings.SplitN(content, "---", 3)
+	if len(parts) < 3 {
+		return nil, "", fmt.Errorf("invalid trace file format")
+	}
+
+	meta := &reasoningTraceMetadata{}
+	if err := json.Unmarshal([]byte(strings.TrimSpace(parts[1])), meta); err != nil {
+		return nil, "", err
+	}
+
+	body := strings.TrimSpace(parts[2])
+	body = strings.Replace(body, "# PQC Encrypted Payload\n\n```pqc", "", 1)
+	body = strings.TrimSpace(strings.TrimSuffix(body, "```"))
+
+	return meta, strings.TrimSpace(body), nil
+}
+
+func extractTraceSteps(markdown string) []string {
+	lines := strings.Split(markdown, "\n")
+	steps := make([]string, 0)
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if len(trimmed) > 2 && trimmed[0] >= '0' && trimmed[0] <= '9' {
+			if idx := strings.Index(trimmed, ". "); idx > 0 {
+				steps = append(steps, trimmed[idx+2:])
+			}
+		}
+	}
+	return steps
+}
+
+func extractTraceResult(markdown string) string {
+	lines := strings.Split(markdown, "\n")
+	for idx, line := range lines {
+		if strings.TrimSpace(line) == "## Result" && idx+1 < len(lines) {
+			return strings.TrimSpace(lines[idx+1])
+		}
+	}
+	return ""
 }

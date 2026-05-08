@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"backend_server/internal/database"
+	"backend_server/internal/services/blockchain/validationchain"
 
 	"github.com/google/uuid"
 	"github.com/tidwall/buntdb"
@@ -528,9 +529,12 @@ func (gm *DynamicGuardrailManager) GetStatistics() map[string]interface{} {
 }
 
 type PolicyEngine struct {
-	db               *database.BuntDBManager
-	guardrailManager *DynamicGuardrailManager
-	icmeService      interface {
+	db                    *database.BuntDBManager
+	guardrailManager      *DynamicGuardrailManager
+	validationChainClient interface {
+		CommitPolicy(req validationchain.PolicyCommitRequest) (string, error)
+	}
+	icmeService interface {
 		RegisterObjective(obj *IntentObjective) error
 		GetObjectiveForAgent(agentID, dveID string) *IntentObjective
 	}
@@ -581,6 +585,12 @@ func (pe *PolicyEngine) SetICMEService(icme interface {
 	GetObjectiveForAgent(agentID, dveID string) *IntentObjective
 }) {
 	pe.icmeService = icme
+}
+
+func (pe *PolicyEngine) SetValidationChainClient(client interface {
+	CommitPolicy(req validationchain.PolicyCommitRequest) (string, error)
+}) {
+	pe.validationChainClient = client
 }
 
 func (pe *PolicyEngine) CreatePolicy(policy *Policy) error {
@@ -720,21 +730,51 @@ func (pe *PolicyEngine) CommitPolicyToBlockchain(policyID string) (string, error
 		return "", fmt.Errorf("policy not found: %s", policyID)
 	}
 
-	policyData, err := json.Marshal(policy)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal policy: %w", err)
+	if pe.validationChainClient == nil {
+		return "", fmt.Errorf("validation chain client not configured")
 	}
 
-	txHash := fmt.Sprintf("pol_%s_%d", policyID, time.Now().UnixNano())
+	rules := make(map[string]interface{}, len(policy.Rules))
+	for _, rule := range policy.Rules {
+		if rule == nil {
+			continue
+		}
+		rules[rule.ID] = map[string]interface{}{
+			"type":       rule.Type,
+			"condition":  rule.Condition,
+			"action":     rule.Action,
+			"parameters": rule.Parameters,
+		}
+	}
+
+	txHash, err := pe.validationChainClient.CommitPolicy(validationchain.PolicyCommitRequest{
+		Name:     policy.Name,
+		Type:     "guardrail_policy",
+		Priority: policy.Priority,
+		Enabled:  policy.Enabled,
+		Rules:    rules,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to commit policy to validation chain: %w", err)
+	}
+
+	policyData, err := json.Marshal(map[string]interface{}{
+		"policy":          policy,
+		"validation_hash": txHash,
+		"committed_at":    time.Now().UTC(),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal committed policy record: %w", err)
+	}
 
 	if err := pe.db.Transaction(func(tx *buntdb.Tx) error {
 		_, _, err = tx.Set(fmt.Sprintf("policy:committed:%s", policyID), string(policyData), nil)
 		return err
 	}); err != nil {
-		return "", fmt.Errorf("failed to commit policy: %w", err)
+		return "", fmt.Errorf("failed to persist committed policy: %w", err)
 	}
 
-	log.Printf("Policy %s committed to KNIRVCHAIN with tx hash: %s", policyID, txHash)
+	log.Printf("Policy %s committed to validation chain with tx hash: %s", policyID, txHash)
 	return txHash, nil
 }
 

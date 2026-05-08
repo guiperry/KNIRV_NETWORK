@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -19,7 +20,7 @@ import (
 // DVECreationHandlers exposes the DVE lifecycle (create, session, SSH) endpoints.
 // All DVE creation operations are delegated to dveCreationService.
 type DVECreationHandlers struct {
-	dveCreationService   *dvecreation.DVECreationService
+	dveCreationService    *dvecreation.DVECreationService
 	containerOrchestrator *container.ContainerOrchestrator
 	sessionManager        *session.SessionManager
 	endpointRegistry      *endpoints.EndpointRegistry
@@ -34,7 +35,7 @@ func NewDVECreationHandlers(
 	db *database.BuntDBManager,
 ) *DVECreationHandlers {
 	return &DVECreationHandlers{
-		dveCreationService:   dveCreationService,
+		dveCreationService:    dveCreationService,
 		containerOrchestrator: containerOrchestrator,
 		sessionManager:        sessionManager,
 		endpointRegistry:      endpointRegistry,
@@ -185,6 +186,13 @@ func (h *DVECreationHandlers) CreateValidationSession(w http.ResponseWriter, r *
 		return
 	}
 
+	session.EndpointURL = fmt.Sprintf("/validation/%s", session.ID)
+	session.Port = creation.ValidationPort
+	if err := h.sessionManager.UpdateValidationEndpoint(session.ID, session.EndpointURL, session.Port); err != nil {
+		h.sendError(w, "Failed to update validation session endpoint: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	h.sendJSON(w, session, "Validation session created successfully", http.StatusCreated)
 }
 
@@ -201,6 +209,13 @@ func (h *DVECreationHandlers) CreateErrorResolutionSession(w http.ResponseWriter
 	session, err := h.sessionManager.CreateErrorResolutionSession(creation.ID, []string{"logic", "fact-check", "resource"})
 	if err != nil {
 		h.sendError(w, "Failed to create error resolution session: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	session.EndpointURL = fmt.Sprintf("/error-resolution?session_id=%s", session.ID)
+	session.Port = creation.ErrorResPort
+	if err := h.sessionManager.UpdateErrorResolutionEndpoint(session.ID, session.EndpointURL, session.Port); err != nil {
+		h.sendError(w, "Failed to update error resolution session endpoint: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -283,6 +298,18 @@ func (h *DVECreationHandlers) GetErrorResolutionSession(w http.ResponseWriter, r
 	h.sendError(w, "Error resolution session not found", http.StatusNotFound)
 }
 
+func (h *DVECreationHandlers) GetErrorResolutionSessionByID(w http.ResponseWriter, r *http.Request) {
+	sessionID := mux.Vars(r)["sessionId"]
+
+	session, err := h.sessionManager.GetErrorResolutionSession(sessionID)
+	if err != nil {
+		h.sendError(w, "Error resolution session not found", http.StatusNotFound)
+		return
+	}
+
+	h.sendJSON(w, session, "Error resolution session retrieved successfully", http.StatusOK)
+}
+
 func (h *DVECreationHandlers) TerminateSSHSession(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	creationID := vars["id"]
@@ -299,6 +326,23 @@ func (h *DVECreationHandlers) TerminateSSHSession(w http.ResponseWriter, r *http
 	}
 
 	h.sendJSON(w, nil, "SSH session terminated", http.StatusOK)
+}
+
+func (h *DVECreationHandlers) TerminateErrorResolutionSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	creationID := vars["id"]
+
+	sessions, err := h.sessionManager.GetSessionsByCreationID(creationID)
+	if err == nil {
+		for _, s := range sessions {
+			if errSess, ok := s.(*objects.ErrorResolutionSession); ok {
+				h.sessionManager.TerminateErrorResolutionSession(errSess.ID)
+				break
+			}
+		}
+	}
+
+	h.sendJSON(w, nil, "Error resolution session terminated", http.StatusOK)
 }
 
 func (h *DVECreationHandlers) DownloadSSHPrivateKey(w http.ResponseWriter, r *http.Request) {
@@ -356,6 +400,8 @@ func (h *DVECreationHandlers) RegisterRoutes(r *mux.Router, authMiddleware *midd
 		protectedRouter.HandleFunc("/nodes/{id}/validation-session", h.GetValidationSession).Methods("GET", "OPTIONS")
 		protectedRouter.HandleFunc("/nodes/{id}/error-resolution-session", h.CreateErrorResolutionSession).Methods("POST", "OPTIONS")
 		protectedRouter.HandleFunc("/nodes/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET", "OPTIONS")
+		protectedRouter.HandleFunc("/nodes/{id}/error-resolution-session", h.TerminateErrorResolutionSession).Methods("DELETE", "OPTIONS")
+		protectedRouter.HandleFunc("/error-resolution-sessions/{sessionId}", h.GetErrorResolutionSessionByID).Methods("GET", "OPTIONS")
 		protectedRouter.HandleFunc("/sessions/ssh/{sessionId}/private-key", h.DownloadSSHPrivateKey).Methods("GET", "OPTIONS")
 		protectedRouter.HandleFunc("/stats", h.GetStats).Methods("GET", "OPTIONS")
 	} else {
@@ -370,6 +416,8 @@ func (h *DVECreationHandlers) RegisterRoutes(r *mux.Router, authMiddleware *midd
 		apiRouter.HandleFunc("/nodes/{id}/validation-session", h.GetValidationSession).Methods("GET", "OPTIONS")
 		apiRouter.HandleFunc("/nodes/{id}/error-resolution-session", h.CreateErrorResolutionSession).Methods("POST", "OPTIONS")
 		apiRouter.HandleFunc("/nodes/{id}/error-resolution-session", h.GetErrorResolutionSession).Methods("GET", "OPTIONS")
+		apiRouter.HandleFunc("/nodes/{id}/error-resolution-session", h.TerminateErrorResolutionSession).Methods("DELETE", "OPTIONS")
+		apiRouter.HandleFunc("/error-resolution-sessions/{sessionId}", h.GetErrorResolutionSessionByID).Methods("GET", "OPTIONS")
 		apiRouter.HandleFunc("/sessions/ssh/{sessionId}/private-key", h.DownloadSSHPrivateKey).Methods("GET", "OPTIONS")
 		apiRouter.HandleFunc("/stats", h.GetStats).Methods("GET", "OPTIONS")
 	}

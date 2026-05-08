@@ -47,6 +47,15 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
   const [mintError, setMintError] = useState<string | null>(null);
   const [svgContent, setSvgContent] = useState<string | null>(null);
 
+  // Gap 1c: Auth credential fields
+  const [aiTextTag, setAiTextTag] = useState('');
+  const [apiKeyProvider, setApiKeyProvider] = useState('');
+  const [apiKeyScope, setApiKeyScope] = useState('inference');
+  const [jwtClaim, setJwtClaim] = useState('');
+  const [jwtValue, setJwtValue] = useState('');
+  const [selectedRole, setSelectedRole] = useState('');
+  const [alignmentThreshold, setAlignmentThreshold] = useState(0.75);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleMintToChain = async () => {
@@ -66,6 +75,25 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
             values: selectedValues,
             ontology: selectedOntology,
           },
+          // Gap 1c: Auth credential fields added to badge creation
+          value_signals: selectedValues,
+          ontology_signals: selectedOntology,
+          api_keys: apiKeyProvider ? [{
+            provider: apiKeyProvider,
+            key_id: `badge-key-${Date.now()}`,
+            scope: apiKeyScope,
+          }] : [],
+          jwt_claims: jwtClaim ? [{
+            claim: jwtClaim,
+            value: jwtValue || '*',
+            action: 'enforce',
+          }] : [],
+          role_bindings: selectedRole ? [{
+            role: selectedRole,
+            permissions: ['read:ontology', 'execute:validation'],
+          }] : [],
+          alignment_threshold: alignmentThreshold,
+          ai_text_tag: aiTextTag,
         }),
       });
       if (response.ok) {
@@ -205,6 +233,99 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
                         {item}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Gap 1c: AI Text Tag */}
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-3">
+                    AI Text Tag <span className="text-blue-400">(Embedded in design)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={aiTextTag}
+                    onChange={(e) => setAiTextTag(e.target.value)}
+                    placeholder="e.g. 'Confidential • SOC2 Compliant • v2.1'"
+                    className="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-xs focus:outline-none focus:border-blue-500/50 text-gray-200"
+                  />
+                </div>
+
+                {/* Gap 1c: Auth Credential Scoping */}
+                <div className="space-y-3 pt-2 border-t border-gray-800/50">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">
+                    Auth Credential Scoping <span className="text-emerald-400">(Optional)</span>
+                  </label>
+
+                  {/* API Key Provider */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={apiKeyProvider}
+                      onChange={(e) => setApiKeyProvider(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-[10px] font-bold focus:outline-none focus:border-emerald-500/50 text-gray-300"
+                    >
+                      <option value="">No API Key</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="anthropic">Anthropic</option>
+                      <option value="cerebras">Cerebras</option>
+                      <option value="gemini">Gemini</option>
+                      <option value="deepseek">DeepSeek</option>
+                    </select>
+                    <select
+                      value={apiKeyScope}
+                      onChange={(e) => setApiKeyScope(e.target.value)}
+                      className="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-[10px] font-bold focus:outline-none focus:border-emerald-500/50 text-gray-300"
+                    >
+                      <option value="inference">Inference</option>
+                      <option value="embedding">Embedding</option>
+                      <option value="read_only">Read Only</option>
+                    </select>
+                  </div>
+
+                  {/* JWT Claim */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={jwtClaim}
+                      onChange={(e) => setJwtClaim(e.target.value)}
+                      placeholder="e.g. role, department"
+                      className="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-[10px] font-bold focus:outline-none focus:border-emerald-500/50 text-gray-300"
+                    />
+                    <input
+                      type="text"
+                      value={jwtValue}
+                      onChange={(e) => setJwtValue(e.target.value)}
+                      placeholder="Claim value"
+                      className="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-[10px] font-bold focus:outline-none focus:border-emerald-500/50 text-gray-300"
+                    />
+                  </div>
+
+                  {/* Role Binding */}
+                  <select
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-[10px] font-bold focus:outline-none focus:border-emerald-500/50 text-gray-300"
+                  >
+                    <option value="">No Role Binding</option>
+                    <option value="admin">Admin</option>
+                    <option value="validator">Validator</option>
+                    <option value="observer">Observer</option>
+                    <option value="client">Client</option>
+                  </select>
+
+                  {/* Alignment Threshold */}
+                  <div>
+                    <label className="text-[8px] font-bold text-gray-600 uppercase block mb-1">
+                      Alignment Threshold: {alignmentThreshold.toFixed(2)}
+                    </label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="1.0"
+                      step="0.01"
+                      value={alignmentThreshold}
+                      onChange={(e) => setAlignmentThreshold(parseFloat(e.target.value))}
+                      className="w-full accent-emerald-500"
+                    />
                   </div>
                 </div>
 

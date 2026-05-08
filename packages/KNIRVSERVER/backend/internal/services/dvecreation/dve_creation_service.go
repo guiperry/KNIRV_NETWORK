@@ -226,6 +226,8 @@ func (dcs *DVECreationService) CreateDVENode(req *objects.DVECreationRequest) (*
 		creation.SSHPrivateKey = container.SSHKeys.PrivateKey
 		creation.SSHPort = container.Endpoints.SSHPort
 		creation.IPAddress = "localhost" // Assuming local for now, can be updated from container info
+		creation.ValidationPort = container.Endpoints.ValidationPort
+		creation.ErrorResPort = container.Endpoints.ErrorResPort
 
 		// Register the new container as a local DVE node so it shows up in workers
 		if dcs.dveManager != nil {

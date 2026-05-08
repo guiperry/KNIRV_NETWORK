@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -71,11 +74,11 @@ type WebSocketService struct {
 	messageRateLimit int // messages per second per client
 
 	// Service references for real-time updates
-	inferenceService   *inference.InferenceService
-	dveManager         *dvemanager.DVEManager
-	validationCore     *validation.ValidationCore
-	sessionManager     *session.SessionManager
-	agentService       interface {
+	inferenceService *inference.InferenceService
+	dveManager       *dvemanager.DVEManager
+	validationCore   *validation.ValidationCore
+	sessionManager   *session.SessionManager
+	agentService     interface {
 		SubscribeToResponses(dveID string) chan string
 		UnsubscribeFromResponses(dveID string, ch chan string)
 	}
@@ -92,6 +95,7 @@ type WebSocketService struct {
 	inferenceHistory    []InferenceCompletion
 	inferenceHistoryMu  sync.RWMutex
 	inferenceHistoryMax int
+	socketDir           string
 }
 
 // InferenceCompletion represents a completed inference task for the Neural Stream
@@ -277,6 +281,10 @@ func (ws *WebSocketService) SetAuthMiddleware(authMiddleware *middleware.AuthMid
 	ws.authMiddleware = authMiddleware
 }
 
+func (ws *WebSocketService) SetSocketDir(socketDir string) {
+	ws.socketDir = socketDir
+}
+
 // SetDatabase sets the database manager for message persistence
 func (ws *WebSocketService) SetDatabase(db *database.BuntDBManager) {
 	ws.db = db
@@ -362,6 +370,7 @@ func (ws *WebSocketService) Stop() error {
 func (ws *WebSocketService) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/ws", ws.handleWebSocket)
 	router.HandleFunc("/ws/ssh/{sessionId}", ws.handleSSHWebSocket)
+	router.HandleFunc("/ws/error-resolution/{sessionId}", ws.handleErrorResolutionWebSocket)
 	log.Println("WebSocket routes registered")
 }
 
@@ -1513,4 +1522,107 @@ func (ws *WebSocketService) handleSSHWebSocket(w http.ResponseWriter, r *http.Re
 			return
 		}
 	}
+}
+
+func (ws *WebSocketService) handleErrorResolutionWebSocket(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sessionID := vars["sessionId"]
+
+	if sessionID == "" {
+		http.Error(w, "Session ID is required", http.StatusBadRequest)
+		return
+	}
+	if ws.sessionManager == nil {
+		http.Error(w, "Session manager unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	errSession, err := ws.sessionManager.GetErrorResolutionSession(sessionID)
+	if err != nil || errSession == nil {
+		http.Error(w, "Invalid error resolution session", http.StatusUnauthorized)
+		return
+	}
+	if errSession.Port < 24000 || errSession.Port > 24999 {
+		http.Error(w, "Error resolution port out of allowed range", http.StatusBadRequest)
+		return
+	}
+
+	conn, err := ws.upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("Error resolution WebSocket upgrade failed: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	proxyConn, err := ws.openErrorResolutionProxy(errSession)
+	if err != nil {
+		_ = conn.WriteJSON(map[string]interface{}{
+			"type": "error",
+			"data": fmt.Sprintf("Failed to connect to error resolution service: %v", err),
+		})
+		return
+	}
+	defer proxyConn.Close()
+
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, readErr := proxyConn.Read(buf)
+			if n > 0 {
+				if writeErr := conn.WriteJSON(map[string]interface{}{
+					"type": "output",
+					"data": string(buf[:n]),
+				}); writeErr != nil {
+					return
+				}
+			}
+			if readErr != nil {
+				return
+			}
+		}
+	}()
+
+	for {
+		var msg map[string]interface{}
+		if err := conn.ReadJSON(&msg); err != nil {
+			return
+		}
+
+		if msgType, ok := msg["type"].(string); ok && msgType == "input" {
+			if data, ok := msg["data"].(string); ok {
+				if _, err := proxyConn.Write([]byte(data)); err != nil {
+					return
+				}
+			}
+		}
+	}
+}
+
+func (ws *WebSocketService) openErrorResolutionProxy(session *objects.ErrorResolutionSession) (net.Conn, error) {
+	for _, candidate := range ws.errorResolutionSocketCandidates(session) {
+		if _, err := os.Stat(candidate); err == nil {
+			return net.DialTimeout("unix", candidate, 5*time.Second)
+		}
+	}
+
+	return net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", session.Port), 5*time.Second)
+}
+
+func (ws *WebSocketService) errorResolutionSocketCandidates(session *objects.ErrorResolutionSession) []string {
+	if ws.socketDir == "" {
+		return nil
+	}
+
+	names := []string{
+		fmt.Sprintf("error-resolution-%d.sock", session.Port),
+		fmt.Sprintf("error_resolution_%d.sock", session.Port),
+		fmt.Sprintf("terminal-%d.sock", session.Port),
+		fmt.Sprintf("error-resolution-%s.sock", session.CreationID),
+	}
+
+	candidates := make([]string, 0, len(names))
+	for _, name := range names {
+		candidates = append(candidates, filepath.Join(ws.socketDir, name))
+	}
+	return candidates
 }

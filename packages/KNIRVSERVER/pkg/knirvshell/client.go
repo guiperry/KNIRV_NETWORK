@@ -73,6 +73,26 @@ type TokenTransaction struct {
 	Status string `json:"status"`
 }
 
+// APIKeyBinding scopes a single provider API key inside a badge.
+type APIKeyBinding struct {
+	Provider string `json:"provider"` // "openai", "anthropic", "cerebras", "gemini", "deepseek"
+	KeyID    string `json:"key_id"`   // opaque reference stored server-side; never serialized as plaintext
+	Scope    string `json:"scope"`    // "inference", "embedding", "read_only"
+}
+
+// JWTClaimBinding binds a JWT claim pattern to a badge for role enforcement.
+type JWTClaimBinding struct {
+	Claim  string `json:"claim"`  // e.g. "role", "department", "subscription_tier"
+	Value  string `json:"value"`  // required claim value
+	Action string `json:"action"` // "enforce" | "audit"
+}
+
+// RoleBinding maps a badge to an RBAC role within the DVE's execution context.
+type RoleBinding struct {
+	Role       string   `json:"role"`        // "admin", "validator", "observer", "client"
+	Permissions []string `json:"permissions"` // e.g. ["read:ontology", "execute:validation"]
+}
+
 type BadgeInfo struct {
 	ID          string                 `json:"id"`
 	Name        string                 `json:"name"`
@@ -83,6 +103,18 @@ type BadgeInfo struct {
 	Minted      bool                   `json:"minted"`
 	MintedAt    *time.Time             `json:"minted_at,omitempty"`
 	AgentID     string                 `json:"agent_id,omitempty"`
+
+	// Auth credential scoping (Gap 1)
+	APIKeys      []APIKeyBinding   `json:"api_keys,omitempty"`
+	JWTClaims    []JWTClaimBinding `json:"jwt_claims,omitempty"`
+	RoleBindings []RoleBinding     `json:"role_bindings,omitempty"`
+
+	// Governance tags carried by this badge
+	ValueSignals   []string `json:"value_signals,omitempty"`
+	OntologySignals []string `json:"ontology_signals,omitempty"`
+
+	// ICME alignment configuration carried by this badge
+	AlignmentThreshold float64 `json:"alignment_threshold,omitempty"`
 }
 
 type BadgeCreateRequest struct {
@@ -91,6 +123,21 @@ type BadgeCreateRequest struct {
 	Description string                 `json:"description"`
 	ImageData   string                 `json:"image_data"`
 	Metadata    map[string]interface{} `json:"metadata"`
+
+	// Auth credential scoping (Gap 1)
+	APIKeys      []APIKeyBinding   `json:"api_keys,omitempty"`
+	JWTClaims    []JWTClaimBinding `json:"jwt_claims,omitempty"`
+	RoleBindings []RoleBinding     `json:"role_bindings,omitempty"`
+
+	// Governance tags
+	ValueSignals    []string `json:"value_signals,omitempty"`
+	OntologySignals []string `json:"ontology_signals,omitempty"`
+
+	// ICME alignment configuration
+	AlignmentThreshold float64 `json:"alignment_threshold,omitempty"`
+
+	// AI text tag for visual generation (Gap 5)
+	AITextTag string `json:"ai_text_tag,omitempty"`
 }
 
 func NewKNIRVSHELLService() (*KNIRVSHELLService, error) {

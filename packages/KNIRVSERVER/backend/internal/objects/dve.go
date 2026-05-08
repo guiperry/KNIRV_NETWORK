@@ -69,15 +69,15 @@ type DVENode struct {
 	// ⭐ NEW INSTALLER FIELDS
 	InstallComplete   bool      `json:"install_complete"`
 	InstallCompleteAt time.Time `json:"install_complete_at"`
-	InstallPhase    string    `json:"install_phase"` // "registry", "stun", "wallet", "dve_uri", "service", "complete"
-	DVEURI         string    `json:"dve_uri"`
-	WalletAddress  string    `json:"wallet_address"`
+	InstallPhase      string    `json:"install_phase"` // "registry", "stun", "wallet", "dve_uri", "service", "complete"
+	DVEURI            string    `json:"dve_uri"`
+	WalletAddress     string    `json:"wallet_address"`
 
 	// Browser DVE fields (for browser-extension TEE type)
-	ExtensionID    string   `json:"extension_id,omitempty"`    // Chrome extension fingerprint
-	BrowserVersion string   `json:"browser_version,omitempty"` // Browser/extension version
+	ExtensionID    string   `json:"extension_id,omitempty"`     // Chrome extension fingerprint
+	BrowserVersion string   `json:"browser_version,omitempty"`  // Browser/extension version
 	WSConnectionID string   `json:"ws_connection_id,omitempty"` // Active WebSocket session ID
-	BadgeNFTIDs    []string `json:"badge_nft_ids,omitempty"`   // Held badge NFT token IDs
+	BadgeNFTIDs    []string `json:"badge_nft_ids,omitempty"`    // Held badge NFT token IDs
 }
 
 // ValidationTask represents a validation task in the DVE network
@@ -98,6 +98,9 @@ type ValidationTask struct {
 	StartedAt       *time.Time             `json:"started_at,omitempty"`
 	CompletedAt     *time.Time             `json:"completed_at,omitempty"`
 	TimeoutAt       time.Time              `json:"timeout_at"`
+
+	// Audit trail: badge active at execution time (Gap 4)
+	BadgeID string `json:"badge_id,omitempty"`
 }
 
 // TestCase represents a test case for validation
@@ -126,6 +129,9 @@ type ValidationResult struct {
 	CreatedAt       time.Time              `json:"created_at"`
 	Signature       string                 `json:"signature"`
 	Metrics         *ValidationMetrics     `json:"metrics,omitempty"`
+
+	// Audit trail: badge active at execution time (Gap 4)
+	BadgeID string `json:"badge_id,omitempty"`
 }
 
 // TestResult represents the result of a single test case
@@ -416,32 +422,34 @@ type P2PConnectionInfo struct {
 }
 
 type DVECreation struct {
-	ID                 string         `json:"id"`
-	Name               string         `json:"name"`
-	OwnerID            string         `json:"owner_id"`
-	OwnerAddress       string         `json:"owner_address"`
-	DVENodeID          string         `json:"dve_node_id"`
-	StakeAmount        int64          `json:"stake_amount"`
-	RegistrationTxHash string         `json:"registration_tx_hash"`
-	Status             string         `json:"status"` // "pending", "active", "suspended", "decommissioned"
-	TEEType            string         `json:"tee_type"`
-	TEEAttestation     string         `json:"tee_attestation"`
-	SessionKeyID       string         `json:"session_key_id"`
-	Capabilities       []string       `json:"capabilities"`
+	ID                 string   `json:"id"`
+	Name               string   `json:"name"`
+	OwnerID            string   `json:"owner_id"`
+	OwnerAddress       string   `json:"owner_address"`
+	DVENodeID          string   `json:"dve_node_id"`
+	StakeAmount        int64    `json:"stake_amount"`
+	RegistrationTxHash string   `json:"registration_tx_hash"`
+	Status             string   `json:"status"` // "pending", "active", "suspended", "decommissioned"
+	TEEType            string   `json:"tee_type"`
+	TEEAttestation     string   `json:"tee_attestation"`
+	SessionKeyID       string   `json:"session_key_id"`
+	Capabilities       []string `json:"capabilities"`
 	// Supervisor KNIRVAGENT provisioned for this DVE
-	SupervisorAgentID  string         `json:"supervisor_agent_id,omitempty"`
-	ResourceLimits     ResourceLimits `json:"resource_limits"`
-	ChainSessionID     string         `json:"chain_session_id"`
-	RegisteredAt       time.Time      `json:"registered_at"`
-	ActivatedAt        *time.Time     `json:"activated_at,omitempty"`
-	LastHeartbeat      time.Time      `json:"last_heartbeat"`
-	UpdatedAt          time.Time      `json:"updated_at"`
+	SupervisorAgentID string         `json:"supervisor_agent_id,omitempty"`
+	ResourceLimits    ResourceLimits `json:"resource_limits"`
+	ChainSessionID    string         `json:"chain_session_id"`
+	RegisteredAt      time.Time      `json:"registered_at"`
+	ActivatedAt       *time.Time     `json:"activated_at,omitempty"`
+	LastHeartbeat     time.Time      `json:"last_heartbeat"`
+	UpdatedAt         time.Time      `json:"updated_at"`
 
 	// SSH Access info
-	SSHPublicKey  string `json:"ssh_public_key,omitempty"`
-	SSHPrivateKey string `json:"ssh_private_key,omitempty"`
-	SSHPort       int    `json:"ssh_port,omitempty"`
-	IPAddress     string `json:"ip_address,omitempty"`
+	SSHPublicKey   string `json:"ssh_public_key,omitempty"`
+	SSHPrivateKey  string `json:"ssh_private_key,omitempty"`
+	SSHPort        int    `json:"ssh_port,omitempty"`
+	IPAddress      string `json:"ip_address,omitempty"`
+	ValidationPort int    `json:"validation_port,omitempty"`
+	ErrorResPort   int    `json:"error_resolution_port,omitempty"`
 
 	Persistent  bool  `json:"persistent"`   // True = permanent ownership, False = rental-based
 	GracePeriod int64 `json:"grace_period"` // Seconds after stake drops before decommissioning

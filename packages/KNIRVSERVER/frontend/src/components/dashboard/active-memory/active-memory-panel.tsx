@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, Search, Clock, ShieldCheck, Activity } from 'lucide-react';
+import { AlertCircle, Clock, ShieldCheck } from 'lucide-react';
+import { apiRequest, API_BASE_URL } from '@/lib/api';
 
-interface Trace {
+interface TraceSummary {
   id: string;
   agent_id: string;
   error_id: string;
@@ -15,27 +15,92 @@ interface Trace {
   type: string;
 }
 
-export function ActiveMemoryPanel() {
-  const [traces, setTraces] = useState<Trace[]>([]);
-  const [selectedTrace, setSelectedTrace] = useState<string | null>(null);
+interface TraceDetail extends TraceSummary {
+  steps: string[];
+  result: string;
+  content: string;
+}
 
-  // Mock data for prototype
+export function ActiveMemoryPanel() {
+  const [traces, setTraces] = useState<TraceSummary[]>([]);
+  const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
+  const [selectedTrace, setSelectedTrace] = useState<TraceDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    setTraces([
-      { id: 'trace_1740000000', agent_id: 'agent-alpha', error_id: 'err_992', timestamp: '2026-02-16T14:30:00Z', type: 'TRACE' },
-      { id: 'trace_1740000001', agent_id: 'agent-beta', error_id: 'err_995', timestamp: '2026-02-16T14:35:00Z', type: 'TRACE' },
-    ]);
+    let cancelled = false;
+
+    const loadTraces = async () => {
+      try {
+        const response = await apiRequest<{ traces: TraceSummary[] }>(`${API_BASE_URL}/api/cognitive/active-memory/traces`);
+        if (!response.success || !response.data) {
+          throw new Error(response.error || 'Failed to load reasoning traces');
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        const nextTraces = response.data.traces ?? [];
+        setTraces(nextTraces);
+
+        if (nextTraces.length > 0) {
+          setSelectedTraceId((current) => current ?? nextTraces[0].id);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load reasoning traces');
+        }
+      }
+    };
+
+    loadTraces();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!selectedTraceId) {
+      setSelectedTrace(null);
+      return;
+    }
+
+    const loadTrace = async () => {
+      try {
+        const response = await apiRequest<TraceDetail>(`${API_BASE_URL}/api/cognitive/active-memory/traces/${selectedTraceId}`);
+        if (!response.success || !response.data) {
+          throw new Error(response.error || 'Failed to load trace details');
+        }
+
+        if (!cancelled) {
+          setSelectedTrace(response.data);
+          setError(null);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load trace details');
+        }
+      }
+    };
+
+    loadTrace();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTraceId]);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-3 h-[600px]">
       <Card className="md:col-span-1 flex flex-col">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Clock className="w-5 h-5 text-primary" />
             <span>Reasoning Traces</span>
           </CardTitle>
-          <CardDescription>Encrypted Markdown Fabric</CardDescription>
+          <CardDescription>Hypergraph-backed memory vault</CardDescription>
         </CardHeader>
         <CardContent className="flex-1 overflow-hidden">
           <ScrollArea className="h-full pr-4">
@@ -44,9 +109,9 @@ export function ActiveMemoryPanel() {
                 <div
                   key={trace.id}
                   className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                    selectedTrace === trace.id ? 'bg-primary/10 border-primary' : 'hover:bg-muted'
+                    selectedTraceId === trace.id ? 'bg-primary/10 border-primary' : 'hover:bg-muted'
                   }`}
-                  onClick={() => setSelectedTrace(trace.id)}
+                  onClick={() => setSelectedTraceId(trace.id)}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono text-xs truncate">{trace.id}</span>
@@ -56,6 +121,11 @@ export function ActiveMemoryPanel() {
                   <div className="text-[10px] text-muted-foreground">{new Date(trace.timestamp).toLocaleString()}</div>
                 </div>
               ))}
+              {!error && traces.length === 0 && (
+                <div className="text-sm text-muted-foreground py-6 text-center">
+                  No reasoning traces available yet
+                </div>
+              )}
             </div>
           </ScrollArea>
         </CardContent>
@@ -69,18 +139,24 @@ export function ActiveMemoryPanel() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 bg-black/5 rounded-lg m-4 mt-0 p-6 font-mono text-sm overflow-auto">
-          {selectedTrace ? (
+          {error ? (
+            <div className="h-full flex items-center justify-center text-destructive gap-2">
+              <AlertCircle className="w-4 h-4" />
+              <span>{error}</span>
+            </div>
+          ) : selectedTrace ? (
             <div className="space-y-4">
-              <div className="text-primary"># Reasoning Trace: {selectedTrace}</div>
-              <div>**Agent:** agent-alpha</div>
-              <div>**Error ID:** err_992</div>
+              <div className="text-primary"># Reasoning Trace: {selectedTrace.id}</div>
+              <div>**Agent:** {selectedTrace.agent_id}</div>
+              <div>**Error ID:** {selectedTrace.error_id}</div>
               <div className="border-l-2 border-primary/30 pl-4 space-y-2">
-                <div className="text-muted-foreground">1. Detected: API Connection Timeout</div>
-                <div className="text-muted-foreground">2. Searching Vault for compatible solutions...</div>
-                <div className="text-muted-foreground">3. Found SolutionNode: sol_network_v1</div>
-                <div className="text-muted-foreground">4. Verifying solution integrity via PQC signature...</div>
-                <div className="text-green-500">5. Result: Success</div>
+                {selectedTrace.steps.map((step, index) => (
+                  <div key={`${selectedTrace.id}-${index}`} className={index === selectedTrace.steps.length - 1 && selectedTrace.result === 'Success' ? 'text-green-500' : 'text-muted-foreground'}>
+                    {index + 1}. {step}
+                  </div>
+                ))}
               </div>
+              {selectedTrace.result && <div className="text-green-500">Result: {selectedTrace.result}</div>}
             </div>
           ) : (
             <div className="h-full flex items-center justify-center text-muted-foreground">
