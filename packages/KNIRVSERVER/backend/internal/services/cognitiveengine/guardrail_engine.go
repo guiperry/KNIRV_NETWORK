@@ -54,6 +54,14 @@ type RemediationStatus struct {
 	LastError   string
 }
 
+// BadgeWASMMapperInterface defines the minimal interface the GuardrailEngine
+// requires from the BadgeWASMMapper.  This avoids a direct import cycle
+// between the cognitiveengine and wasm packages.
+type BadgeWASMMapperInterface interface {
+	RegisterBadge(badgeID string, ontologyTags []string) error
+	RemoveBadge(badgeID string)
+}
+
 // GuardrailEngine enforces per-DVE policies, records violations, triggers
 // automated remediation, and feeds learning data back to refine thresholds.
 type GuardrailEngine struct {
@@ -65,6 +73,7 @@ type GuardrailEngine struct {
 	remediationStatus  map[string]*RemediationStatus
 	escalationPolicies map[string]string
 	cooldownDuration   time.Duration
+	wasmMapper         BadgeWASMMapperInterface // optional Badge-to-WASM integration
 }
 
 // NewGuardrailEngine creates a GuardrailEngine with the built-in default policies
@@ -92,11 +101,48 @@ func (ge *GuardrailEngine) registerEscalationPolicies() {
 	ge.escalationPolicies["alert_operators"] = "kernel_isolation"
 }
 
-// InjectBadgeRules creates guardrail rules based on badge ontology tags.
+// SetWASMMapper wires the Badge-to-WASM mapper into the guardrail engine.
+// When set, InjectBadgeRules also registers badges with the WASM mapper so
+// that rules.wasm and resolution.wasm can be located for guardrail checks
+// and eBPF-triggered resolution.
+func (ge *GuardrailEngine) SetWASMMapper(mapper BadgeWASMMapperInterface) {
+	ge.mu.Lock()
+	defer ge.mu.Unlock()
+	ge.wasmMapper = mapper
+}
+
+// RemoveBadgeRules removes all policies and WASM mappings for a badge.
+func (ge *GuardrailEngine) RemoveBadgeRules(badgeID string) {
+	ge.mu.Lock()
+	defer ge.mu.Unlock()
+
+	// Remove guardrail policies
+	for id, policy := range ge.policies {
+		if policy.BadgeID == badgeID {
+			delete(ge.policies, id)
+		}
+	}
+
+	// Remove WASM mappings
+	if ge.wasmMapper != nil {
+		ge.wasmMapper.RemoveBadge(badgeID)
+	}
+	log.Printf("Removed badge rules and WASM mappings for badge %s", badgeID)
+}
+
+// InjectBadgeRules creates guardrail rules based on badge ontology tags
+// and registers the badge with the WASM mapper if one is configured.
 // This is called when a badge is attached to a DVE node.
 func (ge *GuardrailEngine) InjectBadgeRules(dveID string, badgeID string, ontologyTags []string) {
 	ge.mu.Lock()
 	defer ge.mu.Unlock()
+
+	// Register with the WASM mapper for rules.wasm / resolution.wasm lookups.
+	if ge.wasmMapper != nil {
+		if err := ge.wasmMapper.RegisterBadge(badgeID, ontologyTags); err != nil {
+			log.Printf("[GUARDRAIL] WASM mapper registration for badge %s: %v", badgeID, err)
+		}
+	}
 
 	// Create ontology-scoped rules based on badge tags
 	for _, tag := range ontologyTags {

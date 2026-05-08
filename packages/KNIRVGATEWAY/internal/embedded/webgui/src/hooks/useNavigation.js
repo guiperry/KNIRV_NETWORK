@@ -20,13 +20,26 @@ function getGatewayBase() {
 /**
  * Builds a full URL for a page, using the gateway base when available so
  * navigation escapes to the gateway server instead of the current host.
+ * Uses relative paths when same-origin to preserve SPA client-side routing
+ * (avoids full page reloads on every navigation).
  * Example: getPageUrl('network-monitor') → 'http://localhost:8080/network-monitor'
- * or just '/network-monitor' when no gateway base is configured.
+ * or just '/network-monitor' when no gateway base is configured or
+ * the base matches the current origin.
  */
 function getPageUrl(page) {
   const base = getGatewayBase();
   if (base) {
-    // Strip trailing slash and append the page path
+    // Only use absolute URL when SPA is embedded in a different origin
+    // (e.g., inside the KNIRVSERVER dashboard iframe at port 8090).
+    // Same-origin navigation must use relative paths for client-side routing.
+    try {
+      const baseUrl = new URL(base);
+      if (baseUrl.origin === window.location.origin) {
+        return `/${page}`;
+      }
+    } catch {
+      // Malformed base URL — fall through to absolute
+    }
     const normalized = base.replace(/\/+$/, '');
     return `${normalized}/${page}`;
   }

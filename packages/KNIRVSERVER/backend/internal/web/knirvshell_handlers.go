@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"backend_server/internal/web/middleware"
 
@@ -131,7 +132,20 @@ func (h *KNIRVSHELLHandlers) GetSession(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	json.NewEncoder(w).Encode(session)
+	// Build response with computed closed field for frontend compatibility
+	isClosed := session.Status == "completed" || session.Status == "failed" || session.Status == "stopped"
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"id":        session.ID,
+		"node_id":   session.NodeID,
+		"user_id":   session.UserID,
+		"username":  session.Username,
+		"command":   session.Command,
+		"status":    session.Status,
+		"output":    session.Output,
+		"exit_code": session.ExitCode,
+		"start_time": session.StartTime.Format(time.RFC3339),
+		"closed":    isClosed,
+	})
 }
 
 func (h *KNIRVSHELLHandlers) StopSession(w http.ResponseWriter, r *http.Request) {

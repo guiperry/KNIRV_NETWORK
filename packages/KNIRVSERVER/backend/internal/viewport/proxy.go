@@ -27,18 +27,27 @@ const (
 	ObjectTypeCustom     ObjectType = "custom"
 )
 
+// GuardrailValidator is an interface satisfied by the wasm.GuardrailMiddleware.
+// It avoids a direct import of the wasm package into the viewport package.
+type GuardrailValidator interface {
+	ValidateSession(ctx context.Context, dveID, badgeID, tag string) (bool, uint32, error)
+}
+
 // ViewportProxy manages browser access to a container with content-aware rendering
 type ViewportProxy struct {
-	containerID    string
-	objectType     ObjectType
-	containerPorts map[string]int
-	httpProxy      *httputil.ReverseProxy
-	webrtcPeer     *WebRTCPeer
-	vncSession     *VNCSession
-	glbRenderer    *GLBRenderer
-	renderers      []string // Enabled renderers: http, webrtc, webgl, vnc
-	running        bool
-	mu             sync.RWMutex
+	containerID        string
+	objectType         ObjectType
+	containerPorts     map[string]int
+	httpProxy          *httputil.ReverseProxy
+	webrtcPeer         *WebRTCPeer
+	vncSession         *VNCSession
+	glbRenderer        *GLBRenderer
+	renderers          []string // Enabled renderers: http, webrtc, webgl, vnc
+	running            bool
+	mu                 sync.RWMutex
+	guardrailValidator GuardrailValidator // optional WASM guardrail middleware
+	dveID              string             // DVE node ID for guardrail context
+	badgeID            string             // Badge NFT ID for guardrail lookups
 }
 
 // NewViewportProxy creates a new viewport proxy for a container
@@ -141,6 +150,23 @@ func (vp *ViewportProxy) Stop() error {
 	return nil
 }
 
+// SetGuardrailContext sets the DVE and Badge identifiers for guardrail enforcement.
+// The viewport will pass these to the GuardrailValidator on every request.
+func (vp *ViewportProxy) SetGuardrailContext(dveID, badgeID string) {
+	vp.mu.Lock()
+	defer vp.mu.Unlock()
+	vp.dveID = dveID
+	vp.badgeID = badgeID
+}
+
+// SetGuardrailValidator attaches a WASM-based guardrail validator to the proxy.
+// When set, every HTTP request is checked via ValidateSession before serving.
+func (vp *ViewportProxy) SetGuardrailValidator(v GuardrailValidator) {
+	vp.mu.Lock()
+	defer vp.mu.Unlock()
+	vp.guardrailValidator = v
+}
+
 // HandleHTTP handles HTTP requests to the container
 func (vp *ViewportProxy) HandleHTTP(w http.ResponseWriter, r *http.Request) {
 	vp.mu.RLock()
@@ -149,6 +175,26 @@ func (vp *ViewportProxy) HandleHTTP(w http.ResponseWriter, r *http.Request) {
 	if !vp.running {
 		http.Error(w, "viewport proxy not running", http.StatusServiceUnavailable)
 		return
+	}
+
+	// WASM guardrail enforcement (Option A from WASM Integration Investigation).
+	// When a guardrail validator is configured and a badge is set, validate the
+	// session before proxying.  The guardrail class ID is attached to the
+	// response headers for observability.
+	if vp.guardrailValidator != nil && vp.badgeID != "" {
+		allowed, class, err := vp.guardrailValidator.ValidateSession(
+			r.Context(), vp.dveID, vp.badgeID, "",
+		)
+		w.Header().Set("X-Guardrail-Allowed", fmt.Sprintf("%v", allowed))
+		w.Header().Set("X-Guardrail-Class", fmt.Sprintf("%d", class))
+		if err != nil {
+			log.Printf("[viewport] guardrail check error for DVE %s: %v", vp.dveID, err)
+		}
+		if !allowed {
+			http.Error(w, fmt.Sprintf("viewport guardrail blocked: class=%d", class),
+				http.StatusForbidden)
+			return
+		}
 	}
 
 	// Add CORS headers

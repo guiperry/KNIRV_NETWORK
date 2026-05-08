@@ -88,9 +88,9 @@ export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps)
   const [resourceTab, setResourceTab] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const nav = new URLSearchParams(window.location.search).get('nav');
-      if (nav === 'cognitive' || nav === 'nodes' || nav === 'badgelab') return nav;
+      if (nav === 'cognitive' || nav === 'nodes' || nav === 'badgelab' || nav === 'overview') return nav;
     }
-    return 'nodes';
+    return 'overview';
   });
 
   // ── Listen for navigate / open-modal messages from the Electron desktop renderer ──
@@ -98,7 +98,7 @@ export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps)
     const handleMessage = (event: MessageEvent) => {
       const { type, section, modal } = event.data || {};
       if (type === 'navigate' && section) {
-        if (section === 'cognitive' || section === 'nodes' || section === 'badgelab') {
+        if (section === 'cognitive' || section === 'nodes' || section === 'badgelab' || section === 'overview') {
           setMainTab('system');
           setResourceTab(section);
         } else {
@@ -717,147 +717,241 @@ export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps)
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-200">Network & Resource Explorer</h2>
-                        <p className="text-gray-500">
-                          Monitor network topology, resource allocation, and system performance across the KNIRV ecosystem.
-                        </p>
-                      </div>
-                      <Button variant="outline" className="flex items-center space-x-2 border-green-700/50 text-green-400 hover:bg-green-600/20 hover:text-green-300 hover:border-green-500/50" onClick={() => setPaymentGatewayOpen(true)}>
-                        <Coins className="w-4 h-4" />
-                        <span>Buy NRN</span>
-                      </Button>
-                    </div>
+                    {/* NEW: Top Navigation Bar — moved up below the main title */}
+                    <Tabs value={resourceTab} onValueChange={setResourceTab} className="space-y-6">
+                      <TabsList className="grid w-full grid-cols-4 bg-gray-900/50 border border-gray-800">
+                        <TabsTrigger value="overview" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Overview</TabsTrigger>
+                        <TabsTrigger value="nodes" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">DVE Nodes</TabsTrigger>
+                        <TabsTrigger value="cognitive" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Cognitive Engine</TabsTrigger>
+                        <TabsTrigger value="badgelab" className="text-gray-400 data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10">Badge Lab</TabsTrigger>
+                      </TabsList>
 
-                    {/* Network Overview Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <Card 
-                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                        onClick={() => setActiveMemoryOpen(true)}
-                      >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <div className="flex items-center space-x-2">
-                            <CardTitle className="text-sm font-medium text-gray-300">Active Memory (KNIRVBASE)</CardTitle>
-                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Online" />
+                      {/* ── Overview Tab: All 8 Card Tiles ── */}
+                      <TabsContent value="overview" className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h2 className="text-2xl font-bold text-gray-200">Network & Resource Explorer</h2>
+                            <p className="text-gray-500">
+                              Monitor network topology, resource allocation, and system performance across the KNIRV ecosystem.
+                            </p>
                           </div>
-                          <Database className="h-4 w-4 text-gray-500 group-hover:text-indigo-400 transition-colors" />
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold text-gray-200">Encrypted</div>
-                          <p className="text-xs text-gray-500 mb-3">
-                            PQC Markdown persistence active
-                          </p>
-                          <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
-                            <div className="line-clamp-1">[10:45:21] Kyber-768 Handshake OK</div>
-                            <div className="line-clamp-1">[10:45:22] Committing .md fabric slice...</div>
-                            <div className="line-clamp-1">[10:45:23] Dilithium-3 Signature Valid</div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                          <Button variant="outline" className="flex items-center space-x-2 border-green-700/50 text-green-400 hover:bg-green-600/20 hover:text-green-300 hover:border-green-500/50" onClick={() => setPaymentGatewayOpen(true)}>
+                            <Coins className="w-4 h-4" />
+                            <span>Buy NRN</span>
+                          </Button>
+                        </div>
 
-                      <Card 
-                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                        onClick={() => setKnirvGraphOpen(true)}
-                      >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <div className="flex items-center space-x-2">
-                            <CardTitle className="text-sm font-medium text-gray-300">Reasoning Graph (KNIRVGRAPH)</CardTitle>
-                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Synced" />
-                          </div>
-                          <Network className="h-4 w-4 text-gray-500 group-hover:text-indigo-400 transition-colors" />
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold text-gray-200">142 Traces</div>
-                          <p className="text-xs text-gray-500 mb-3">
-                            Context records in .md fabric
-                          </p>
-                          <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
-                            <ModuleLogViewer module="knirvgraph" maxLines={3} maxHeight="h-14" />
-                          </div>
-                        </CardContent>
-                      </Card>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {/* 1. Active Memory (KNIRVBASE) */}
+                          <Card 
+                            className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
+                            onClick={() => setActiveMemoryOpen(true)}
+                          >
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <div className="flex items-center space-x-2">
+                                <CardTitle className="text-sm font-medium text-gray-300">Active Memory (KNIRVBASE)</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Online" />
+                              </div>
+                              <Database className="h-4 w-4 text-gray-500" />
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">Encrypted</div>
+                              <p className="text-xs text-gray-500 mb-3">PQC Markdown persistence active</p>
+                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
+                                <div className="line-clamp-1">[10:45:21] Kyber-768 Handshake OK</div>
+                                <div className="line-clamp-1">[10:45:22] Committing .md fabric slice...</div>
+                                <div className="line-clamp-1">[10:45:23] Dilithium-3 Signature Valid</div>
+                              </div>
+                            </CardContent>
+                          </Card>
 
-                      <Card 
-                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                        onClick={() => setKnirvChainOpen(true)}
-                      >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <div className="flex items-center space-x-2">
-                            <CardTitle className="text-sm font-medium text-gray-300">Solution Vault (KNIRVCHAIN)</CardTitle>
-                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Minting" />
-                          </div>
-                          <Lock className="h-4 w-4 text-gray-500 group-hover:text-amber-400 transition-colors" />
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold text-gray-200">28 Nodes</div>
-                          <p className="text-xs text-gray-500 mb-3">
-                            Verifiable executable logic
-                          </p>
-                          <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-amber-400/80 h-16 overflow-hidden">
-                            <ModuleLogViewer module="knirvchain" maxLines={3} maxHeight="h-14" />
-                          </div>
-                        </CardContent>
-                      </Card>
+                          {/* 2. Reasoning Graph (KNIRVGRAPH) */}
+                          <Card 
+                            className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
+                            onClick={() => setKnirvGraphOpen(true)}
+                          >
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <div className="flex items-center space-x-2">
+                                <CardTitle className="text-sm font-medium text-gray-300">Reasoning Graph (KNIRVGRAPH)</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Synced" />
+                              </div>
+                              <Network className="h-4 w-4 text-gray-500" />
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">142 Traces</div>
+                              <p className="text-xs text-gray-500 mb-3">Context records in .md fabric</p>
+                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
+                                <ModuleLogViewer module="knirvgraph" maxLines={3} maxHeight="h-14" />
+                              </div>
+                            </CardContent>
+                          </Card>
 
-                      <Card 
-                        className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                        onClick={() => setP2pTransportOpen(true)}
-                      >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <div className="flex items-center space-x-2">
-                            <CardTitle className="text-sm font-medium text-gray-300">P2P Transport</CardTitle>
-                            <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Active" />
+                          {/* 3. Solution Vault (KNIRVCHAIN) */}
+                          <Card 
+                            className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
+                            onClick={() => setKnirvChainOpen(true)}
+                          >
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <div className="flex items-center space-x-2">
+                                <CardTitle className="text-sm font-medium text-gray-300">Solution Vault (KNIRVCHAIN)</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Minting" />
+                              </div>
+                              <Lock className="h-4 w-4 text-gray-500" />
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">28 Nodes</div>
+                              <p className="text-xs text-gray-500 mb-3">Verifiable executable logic</p>
+                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-amber-400/80 h-16 overflow-hidden">
+                                <ModuleLogViewer module="knirvchain" maxLines={3} maxHeight="h-14" />
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          {/* 4. P2P Transport */}
+                          <Card 
+                            className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
+                            onClick={() => setP2pTransportOpen(true)}
+                          >
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <div className="flex items-center space-x-2">
+                                <CardTitle className="text-sm font-medium text-gray-300">P2P Transport</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Active" />
+                              </div>
+                              <Globe className="h-4 w-4 text-gray-500" />
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">TURN Active</div>
+                              <p className="text-xs text-gray-500 mb-3">Secure NAT traversal established</p>
+                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
+                                <ModuleLogViewer module="knirvgateway" maxLines={3} maxHeight="h-14" />
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          {/* 5. KNIRVORACLE */}
+                          <Card 
+                            className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
+                            onClick={() => setShowAdminAccess(true)}
+                          >
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <div className="flex items-center space-x-2">
+                                <CardTitle className="text-sm font-medium text-gray-300">KNIRVORACLE</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Status: Active" />
+                              </div>
+                              <Eye className="h-4 w-4 text-gray-500" />
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">Root Node</div>
+                              <p className="text-xs text-gray-500 mb-3">Verifiable data feeds & attestation</p>
+                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-green-400/80 h-16 overflow-hidden">
+                                <div className="line-clamp-1">[10:45:21] Oracle heartbeat OK</div>
+                                <div className="line-clamp-1">[10:45:22] Attestation round #882</div>
+                                <div className="line-clamp-1">[10:45:23] Price feed updated</div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          {/* 6. KNIRVHASHER */}
+                          <Card 
+                            className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
+                            onClick={() => setShowAdminAccess(true)}
+                          >
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <div className="flex items-center space-x-2">
+                                <CardTitle className="text-sm font-medium text-gray-300">KNIRVHASHER</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Active" />
+                              </div>
+                              <Cpu className="h-4 w-4 text-gray-500" />
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">Hashing</div>
+                              <p className="text-xs text-gray-500 mb-3">PQC-accelerated hash operations</p>
+                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-cyan-400/80 h-16 overflow-hidden">
+                                <div className="line-clamp-1">[10:45:21] Dilithium hash chain</div>
+                                <div className="line-clamp-1">[10:45:22] Merkle root computed</div>
+                                <div className="line-clamp-1">[10:45:23] Batch verified</div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          {/* 7. KNIRVARENA */}
+                          <Card 
+                            className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
+                            onClick={() => setShowAdminAccess(true)}
+                          >
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <div className="flex items-center space-x-2">
+                                <CardTitle className="text-sm font-medium text-gray-300">KNIRVARENA</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.6)]" title="Status: Active" />
+                              </div>
+                              <Monitor className="h-4 w-4 text-gray-500" />
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">3D RTS</div>
+                              <p className="text-xs text-gray-500 mb-3">Real-time strategy simulation</p>
+                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-purple-400/80 h-16 overflow-hidden">
+                                <div className="line-clamp-1">[10:45:21] Arena session active</div>
+                                <div className="line-clamp-1">[10:45:22] Agent vs agent match</div>
+                                <div className="line-clamp-1">[10:45:23] Telemetry stream OK</div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          {/* 8. KNIRVBRIDGE */}
+                          <Card 
+                            className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
+                            onClick={() => setShowAdminAccess(true)}
+                          >
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <div className="flex items-center space-x-2">
+                                <CardTitle className="text-sm font-medium text-gray-300">KNIRVBRIDGE</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]" title="Status: Active" />
+                              </div>
+                              <Share2 className="h-4 w-4 text-gray-500" />
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold text-gray-200">IBC Bridge</div>
+                              <p className="text-xs text-gray-500 mb-3">Cross-chain asset and data relay</p>
+                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-amber-400/80 h-16 overflow-hidden">
+                                <div className="line-clamp-1">[10:45:21] IBC packet received</div>
+                                <div className="line-clamp-1">[10:45:22] Validating light client</div>
+                                <div className="line-clamp-1">[10:45:23] Acknowledgement sent</div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </TabsContent>
+
+                      {/* ── DVE Nodes Tab ── */}
+                      <TabsContent value="nodes" className="space-y-4">
+                        <DVENodesPanel
+                          onRentClick={handleDVEManagement}
+                          onNodeConnect={handleNodeAccess}
+                          effectiveActiveNodeIdss={activeNodeIds}
+                          onActiveNodeChange={(nodeId, isActive) => {
+                            setActiveNodeId(nodeId, isActive);
+                          }}
+                        />
+                      </TabsContent>
+
+                      {/* ── Cognitive Engine Tab ── */}
+                      <TabsContent value="cognitive" className="space-y-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          <div className="space-y-4">
+                            <CognitiveEnginePanel />
+                            <PredictiveAnalyticsPanel />
                           </div>
-                          <Globe className="h-4 w-4 text-gray-500 group-hover:text-indigo-400 transition-colors" />
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold text-gray-200">TURN Active</div>
-                          <p className="text-xs text-gray-500 mb-3">
-                            Secure NAT traversal established
-                          </p>
-                          <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
-                            <ModuleLogViewer module="knirvgateway" maxLines={3} maxHeight="h-14" />
+                          <div className="space-y-4">
+                            <GuardrailStatisticsCard />
+                            <GuardrailViolationsPanel />
                           </div>
-                        </CardContent>
-                      </Card>
-                    </div>
+                        </div>
+                      </TabsContent>
 
-                    {/* Resource Explorer Tabs */}
-           <Tabs value={resourceTab} onValueChange={setResourceTab} className="space-y-4">
-           <TabsList className="grid w-full grid-cols-3 bg-gray-900/50 border border-gray-800">
-             <TabsTrigger value="nodes" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">DVE Nodes</TabsTrigger>
-             <TabsTrigger value="cognitive" className="text-gray-400 data-[state=active]:text-indigo-400 data-[state=active]:bg-indigo-500/10">Cognitive Engine</TabsTrigger>
-             <TabsTrigger value="badgelab" className="text-gray-400 data-[state=active]:text-amber-400 data-[state=active]:bg-amber-500/10">Badge Lab</TabsTrigger>
-           </TabsList>
-
-                        <TabsContent value="nodes" className="space-y-4">
-                          <DVENodesPanel
-                            onRentClick={handleDVEManagement}
-                            onNodeConnect={handleNodeAccess}
-                            effectiveActiveNodeIdss={activeNodeIds}
-                            onActiveNodeChange={(nodeId, isActive) => {
-                              setActiveNodeId(nodeId, isActive);
-                            }}
-                          />
-                        </TabsContent>
-
-                        <TabsContent value="cognitive" className="space-y-4">
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            <div className="space-y-4">
-                              <CognitiveEnginePanel />
-                              <PredictiveAnalyticsPanel />
-                            </div>
-                            <div className="space-y-4">
-                              <GuardrailStatisticsCard />
-                              <GuardrailViolationsPanel />
-                            </div>
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="badgelab" className="space-y-4">
-                          <BadgeLabPanel />
-                        </TabsContent>
+                      {/* ── Badge Lab Tab ── */}
+                      <TabsContent value="badgelab" className="space-y-4">
+                        <BadgeLabPanel />
+                      </TabsContent>
                     </Tabs>
                   </div>
                 </SystemAccess>

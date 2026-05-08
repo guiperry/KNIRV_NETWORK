@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Terminal, Play, Code, Database, Settings, Cpu, Zap, FileText, Download, Share2, Radio, Shield, BarChart3, Upload, AlertTriangle, TestTube, Network, WifiOff, Loader2, Server, User } from 'lucide-react';
+import { X, Terminal, Play, Code, Database, Settings, Cpu, Zap, FileText, Download, Share2, Radio, Shield, BarChart3, Upload, AlertTriangle, TestTube, Network, WifiOff, Loader2, Server, User, HardDrive, RefreshCw, Search, GitBranch, Layers, Coins, GitCommit, Package, Bug, Globe, Wifi, Users, Key, BookOpen, Lock as LockIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -65,12 +65,15 @@ export function NetworkAccessModal({
   const [dveNodeCount] = useState(8); // Simulated node count
   const [activeTasks] = useState(24); // Simulated active tasks
 
+  // ── Consolidated Workflows from all Subsystems ──
   const workflowTemplates = [
+    // ── Admin ──
     {
       id: 'validation-setup',
       name: 'Validation Setup',
       description: 'Initialize validation environment with TEE configuration',
       icon: <Settings className="w-4 h-4" />,
+      system: 'Admin',
       commands: ['tee-init', 'validation-config', 'security-check']
     },
     {
@@ -78,6 +81,7 @@ export function NetworkAccessModal({
       name: 'Fabric Deployment',
       description: 'Deploy Agentic Memory Fabric to the cognitive engine',
       icon: <Cpu className="w-4 h-4" />,
+      system: 'Admin',
       commands: ['fabric-load', 'inference-setup', 'performance-test']
     },
     {
@@ -85,6 +89,7 @@ export function NetworkAccessModal({
       name: 'Data Processing',
       description: 'Set up data pipelines and processing workflows',
       icon: <Database className="w-4 h-4" />,
+      system: 'Admin',
       commands: ['pipeline-init', 'data-validate', 'process-start']
     },
     {
@@ -92,6 +97,7 @@ export function NetworkAccessModal({
       name: 'Performance Monitoring',
       description: 'Monitor node performance and resource utilization',
       icon: <Zap className="w-4 h-4" />,
+      system: 'Admin',
       commands: ['monitor-start', 'metrics-collect', 'alert-setup']
     },
     {
@@ -99,8 +105,109 @@ export function NetworkAccessModal({
       name: 'Security Audit',
       description: 'Run comprehensive security checks and audits',
       icon: <FileText className="w-4 h-4" />,
+      system: 'Admin',
       commands: ['security-scan', 'audit-log', 'compliance-check']
-    }
+    },
+    // ── KNIRVBASE ──
+    {
+      id: 'init-fabric',
+      name: 'Initialize Fabric Slice',
+      description: 'Create new encrypted .md fabric slice for persistence',
+      icon: <HardDrive className="w-4 h-4" />,
+      system: 'KNIRVBASE',
+      commands: ['fabric-create', 'kyber-init', 'persistence-enable']
+    },
+    {
+      id: 'sync-memory',
+      name: 'Memory Sync',
+      description: 'Synchronize encrypted memory across nodes',
+      icon: <RefreshCw className="w-4 h-4" />,
+      system: 'KNIRVBASE',
+      commands: ['sync-start', 'verify-encryption', 'commit-changes']
+    },
+    {
+      id: 'backup-restore',
+      name: 'Backup & Restore',
+      description: 'Create encrypted backups or restore from backup',
+      icon: <Database className="w-4 h-4" />,
+      system: 'KNIRVBASE',
+      commands: ['backup-create', 'verify-integrity', 'restore-point']
+    },
+    // ── KNIRVGRAPH ──
+    {
+      id: 'graph-query',
+      name: 'Query Reasoning Graph',
+      description: 'Search and retrieve context traces from the graph',
+      icon: <Search className="w-4 h-4" />,
+      system: 'KNIRVGRAPH',
+      commands: ['graph-query', 'trace-retrieve', 'context-build']
+    },
+    {
+      id: 'verify-edge',
+      name: 'Verify Edge',
+      description: 'Verify graph edge through consensus mechanism',
+      icon: <Shield className="w-4 h-4" />,
+      system: 'KNIRVGRAPH',
+      commands: ['edge-select', 'consensus-request', 'verify-signature']
+    },
+    {
+      id: 'reindex-graph',
+      name: 'Re-index Graph',
+      description: 'Rebuild graph index for optimal query performance',
+      icon: <GitBranch className="w-4 h-4" />,
+      system: 'KNIRVGRAPH',
+      commands: ['index-start', 'rebuild-edges', 'optimize-paths']
+    },
+    // ── KNIRVCHAIN ──
+    {
+      id: 'mint-node',
+      name: 'Mint New Node',
+      description: 'Create and mint new capability node to blockchain',
+      icon: <Coins className="w-4 h-4" />,
+      system: 'KNIRVCHAIN',
+      commands: ['node-create', 'sign-proof', 'submit-transaction']
+    },
+    {
+      id: 'validate-skill',
+      name: 'Validate Skill',
+      description: 'Run proof-of-skill validation for node',
+      icon: <Shield className="w-4 h-4" />,
+      system: 'KNIRVCHAIN',
+      commands: ['skill-verify', 'attestation-check', 'consensus-vote']
+    },
+    {
+      id: 'view-blocks',
+      name: 'View Blocks',
+      description: 'Browse recent blocks and transactions',
+      icon: <GitCommit className="w-4 h-4" />,
+      system: 'KNIRVCHAIN',
+      commands: ['blocks-recent', 'tx-list', 'verify-chain']
+    },
+    // ── P2P Transport (KNIRVGATEWAY) ──
+    {
+      id: 'connect-peer',
+      name: 'Connect Peer',
+      description: 'Establish secure P2P connection with new peer',
+      icon: <Users className="w-4 h-4" />,
+      system: 'P2P Transport',
+      commands: ['peer-discover', 'hole-punch', 'secure-channel']
+    },
+    {
+      id: 'relay-config',
+      name: 'Configure Relay',
+      description: 'Configure TURN/STUN relay settings',
+      icon: <Radio className="w-4 h-4" />,
+      system: 'P2P Transport',
+      commands: ['relay-select', 'nat-detect', 'allocate-port']
+    },
+    {
+      id: 'diagnose',
+      name: 'Network Diagnosis',
+      description: 'Run network diagnostics and connectivity tests',
+      icon: <Wifi className="w-4 h-4" />,
+      system: 'P2P Transport',
+      commands: ['nat-type', 'connectivity-test', 'bandwidth-check']
+    },
   ];
 
   const executeCommand = (command: string) => {
@@ -317,7 +424,7 @@ export function NetworkAccessModal({
       />
       
       {/* Modal Panel - FOUNDATION FOR NESTING */}
-      <div className="relative w-full max-w-4xl bg-background border-l shadow-2xl transform transition-slide duration-300 ease-in-out">
+      <div className="relative w-full max-w-2xl bg-background border-l shadow-2xl transform transition-slide duration-300 ease-in-out">
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
@@ -398,8 +505,9 @@ export function NetworkAccessModal({
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-2">
-                        <div className="text-xs text-muted-foreground">
-                          Commands: {template.commands.join(', ')}
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="text-[10px] font-mono">{template.system}</Badge>
+                          <span className="text-xs text-muted-foreground">{template.commands.length} steps</span>
                         </div>
                         <Button 
                           variant="outline" 
@@ -415,98 +523,280 @@ export function NetworkAccessModal({
                 </div>
               </TabsContent>
 
-              <TabsContent value="tools" className="px-6 pb-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Console Tool */}
-                  <Card className="knirv-card-gradient">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center space-x-2 text-sm">
-                        <Terminal className="w-4 h-4" />
-                        <span>Console</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Real-time failure feed & logs
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button 
-                        variant={showConsole ? "default" : "outline"}
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => setShowConsole(!showConsole)}>
-                        {showConsole ? 'Hide' : 'Show'}
-                      </Button>
-                    </CardContent>
-                  </Card>
+              <TabsContent value="tools" className="px-6 pb-6 space-y-6">
+                {/* ── Admin Tools ── */}
+                <div>
+                  <h4 className="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2">
+                    <Server className="w-4 h-4" />
+                    Admin
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Terminal className="w-4 h-4" /><span>Console</span></CardTitle>
+                        <CardDescription className="text-xs">Real-time failure feed & logs</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant={showConsole ? "default" : "outline"} size="sm" className="w-full" onClick={() => setShowConsole(!showConsole)}>
+                          {showConsole ? 'Hide' : 'Show'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Shield className="w-4 h-4" /><span>Policy</span></CardTitle>
+                        <CardDescription className="text-xs">Security configuration editor</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant={showPolicy ? "default" : "outline"} size="sm" className="w-full" onClick={() => setShowPolicy(!showPolicy)}>
+                          {showPolicy ? 'Hide' : 'Show'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Radio className="w-4 h-4" /><span>Connections</span></CardTitle>
+                        <CardDescription className="text-xs">Global active connections list</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant={showConnections ? "default" : "outline"} size="sm" className="w-full" onClick={() => setShowConnections(!showConnections)}>
+                          {showConnections ? 'Hide' : 'Show'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><BarChart3 className="w-4 h-4" /><span>Monitor</span></CardTitle>
+                        <CardDescription className="text-xs">Resolution tracking dashboard</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant={showMonitor ? "default" : "outline"} size="sm" className="w-full" onClick={() => setShowMonitor(!showMonitor)}>
+                          {showMonitor ? 'Hide' : 'Show'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
 
-                  {/* Policy Tool */}
-                  <Card className="knirv-card-gradient">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center space-x-2 text-sm">
-                        <Shield className="w-4 h-4" />
-                        <span>Policy</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Security configuration editor
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button 
-                        variant={showPolicy ? "default" : "outline"}
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => setShowPolicy(!showPolicy)}
-                      >
-                        {showPolicy ? 'Hide' : 'Show'}
-                      </Button>
-                    </CardContent>
-                  </Card>
+                {/* ── KNIRVBASE Tools ── */}
+                <div>
+                  <h4 className="text-sm font-semibold text-indigo-400 mb-3 flex items-center gap-2">
+                    <Database className="w-4 h-4" />
+                    Active Memory (KNIRVBASE)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Key className="w-4 h-4" /><span>Encryption</span></CardTitle>
+                        <CardDescription className="text-xs">PQC key management</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Configure</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Database className="w-4 h-4" /><span>Fabric</span></CardTitle>
+                        <CardDescription className="text-xs">.md fabric slices</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Manage</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Terminal className="w-4 h-4" /><span>Console</span></CardTitle>
+                        <CardDescription className="text-xs">Real-time logs</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">View</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><BarChart3 className="w-4 h-4" /><span>Monitor</span></CardTitle>
+                        <CardDescription className="text-xs">Memory metrics</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Open</Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
 
-                  {/* Connections Tool - Opens Global Connections Panel */}
-                  <Card className="knirv-card-gradient">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center space-x-2 text-sm">
-                        <Radio className="w-4 h-4" />
-                        <span>Connections</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Global active connections list
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button 
-                        variant={showConnections ? "default" : "outline"}
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => setShowConnections(!showConnections)}
-                      >
-                        {showConnections ? 'Hide' : 'Show'}
-                      </Button>
-                    </CardContent>
-                  </Card>
+                {/* ── KNIRVGRAPH Tools ── */}
+                <div>
+                  <h4 className="text-sm font-semibold text-blue-400 mb-3 flex items-center gap-2">
+                    <Network className="w-4 h-4" />
+                    Reasoning Graph (KNIRVGRAPH)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Search className="w-4 h-4" /><span>Query</span></CardTitle>
+                        <CardDescription className="text-xs">Graph query engine</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Open</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><GitBranch className="w-4 h-4" /><span>Reasoning Explorer</span></CardTitle>
+                        <CardDescription className="text-xs">Encrypted trace viewer</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full"><Zap className="w-3 h-3 mr-1" />Open</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Shield className="w-4 h-4" /><span>Consensus</span></CardTitle>
+                        <CardDescription className="text-xs">Verify edges via consensus</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Run</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><BarChart3 className="w-4 h-4" /><span>Analytics</span></CardTitle>
+                        <CardDescription className="text-xs">Graph statistics</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Open</Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
 
-                  {/* Monitor Tool */}
-                  <Card className="knirv-card-gradient">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center space-x-2 text-sm">
-                        <BarChart3 className="w-4 h-4" />
-                        <span>Monitor</span>
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Resolution tracking dashboard
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button 
-                        variant={showMonitor ? "default" : "outline"}
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => setShowMonitor(!showMonitor)}
-                      >
-                        {showMonitor ? 'Hide' : 'Show'}
-                      </Button>
-                    </CardContent>
-                  </Card>
+                {/* ── KNIRVCHAIN Tools ── */}
+                <div>
+                  <h4 className="text-sm font-semibold text-amber-400 mb-3 flex items-center gap-2">
+                    <LockIcon className="w-4 h-4" />
+                    Solution Vault (KNIRVCHAIN)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Package className="w-4 h-4" /><span>Solution Vault</span></CardTitle>
+                        <CardDescription className="text-xs">PQC vault .md logic</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full"><Zap className="w-3 h-3 mr-1" />Open</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Coins className="w-4 h-4" /><span>Mint</span></CardTitle>
+                        <CardDescription className="text-xs">Mint new nodes</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Open</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><LockIcon className="w-4 h-4" /><span>Nodes</span></CardTitle>
+                        <CardDescription className="text-xs">View capability nodes</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">View</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Zap className="w-4 h-4" /><span>Rewards</span></CardTitle>
+                        <CardDescription className="text-xs">Staking & rewards</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">View</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><BarChart3 className="w-4 h-4" /><span>Analytics</span></CardTitle>
+                        <CardDescription className="text-xs">Chain statistics</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Open</Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* ── P2P Transport Tools ── */}
+                <div>
+                  <h4 className="text-sm font-semibold text-green-400 mb-3 flex items-center gap-2">
+                    <Globe className="w-4 h-4" />
+                    P2P Transport (KNIRVGATEWAY)
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Users className="w-4 h-4" /><span>Peers</span></CardTitle>
+                        <CardDescription className="text-xs">Connected peer list</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">View</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Radio className="w-4 h-4" /><span>Relay</span></CardTitle>
+                        <CardDescription className="text-xs">TURN relay status</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">View</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Globe className="w-4 h-4" /><span>NAT</span></CardTitle>
+                        <CardDescription className="text-xs">NAT traversal config</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Configure</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><BarChart3 className="w-4 h-4" /><span>Monitor</span></CardTitle>
+                        <CardDescription className="text-xs">Transport metrics</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Open</Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* ── Knowledge Graph Tools ── */}
+                <div>
+                  <h4 className="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2">
+                    <Layers className="w-4 h-4" />
+                    Knowledge Graph
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><Code className="w-4 h-4" /><span>GitNexus</span></CardTitle>
+                        <CardDescription className="text-xs">Codebase ingestion</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Open UI</Button>
+                      </CardContent>
+                    </Card>
+                    <Card className="knirv-card-gradient">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center space-x-2 text-sm"><BookOpen className="w-4 h-4" /><span>graphrag-rs</span></CardTitle>
+                        <CardDescription className="text-xs">Document retrieval</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button variant="outline" size="sm" className="w-full">Query</Button>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -731,9 +1021,9 @@ export function NetworkAccessModal({
             {/* NESTED PANELS - Slide out from NAP modal */}
             
 
-            {/* Console Panel - Slides out from left edge of NAP modal */}
+            {/* Console Panel - Floating overlay above the modal */}
             {showConsole && (
-              <div className="absolute z-50 pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 gpu-accelerated" style={{top: '100px', right: '896px'}}>
+              <div className="fixed z-[60] pointer-events-auto right-4" style={{top: '80px'}}>
                 <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-80">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
@@ -761,9 +1051,9 @@ export function NetworkAccessModal({
               </div>
             )}
 
-            {/* Policy Panel - Slides out from left edge of NAP modal, below Console */}
+            {/* Policy Panel - Floating overlay above the modal */}
             {showPolicy && (
-              <div className="absolute z-50 pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 gpu-accelerated" style={{top: '420px', right: '896px'}}>
+              <div className="fixed z-[60] pointer-events-auto right-4" style={{top: '340px'}}>
                 <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-80">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
@@ -871,9 +1161,9 @@ export function NetworkAccessModal({
               </div>
             )}
 
-            {/* Global Connections Panel - Slides out from left side when clicking Connections */}
+            {/* Global Connections Panel - Slides out to the left of the NAP modal panel */}
             {showConnections && (
-              <div className="fixed left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 w-96 gpu-accelerated">
+              <div className="fixed right-[672px] top-0 bottom-0 z-[60] pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 w-96 gpu-accelerated">
                 <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">

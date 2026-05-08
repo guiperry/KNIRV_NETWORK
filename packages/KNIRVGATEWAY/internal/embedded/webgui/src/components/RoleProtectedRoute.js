@@ -72,7 +72,7 @@ export default function RoleProtectedRoute({ children }) {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #0a0a23 0%, #1a1a3e 100%)',
         color: 'white',
         fontFamily: 'Arial, sans-serif'
       }}>
@@ -109,7 +109,7 @@ export default function RoleProtectedRoute({ children }) {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #0a0a23 0%, #1a1a3e 100%)',
         color: 'white',
         fontFamily: 'Arial, sans-serif'
       }}>

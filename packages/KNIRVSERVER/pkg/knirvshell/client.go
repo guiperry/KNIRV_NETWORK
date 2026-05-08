@@ -22,20 +22,20 @@ type KNIRVSHELLService struct {
 }
 
 type TerminalSession struct {
-	ID        string
-	NodeID    string
-	UserID    string
-	Username  string
-	Command   string
-	Status    string
-	StartTime time.Time
-	EndTime   *time.Time
-	Output    []string
-	ExitCode  int
-	Process   *exec.Cmd
-	stdin     io.WriteCloser
-	stdout    io.ReadCloser
-	stderr    io.ReadCloser
+	ID        string       `json:"id"`
+	NodeID    string       `json:"node_id,omitempty"`
+	UserID    string       `json:"user_id,omitempty"`
+	Username  string       `json:"username,omitempty"`
+	Command   string       `json:"command,omitempty"`
+	Status    string       `json:"status"`
+	StartTime time.Time    `json:"start_time"`
+	EndTime   *time.Time   `json:"end_time,omitempty"`
+	Output    []string     `json:"output,omitempty"`
+	ExitCode  int          `json:"exit_code"`
+	Process   *exec.Cmd    `json:"-"`
+	stdin     io.WriteCloser `json:"-"`
+	stdout    io.ReadCloser  `json:"-"`
+	stderr    io.ReadCloser  `json:"-"`
 }
 
 type CommandRequest struct {

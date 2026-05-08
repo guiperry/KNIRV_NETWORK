@@ -62,8 +62,8 @@ Use eBPF to detect deep-level system anomalies and trigger automated resolution 
     *   Map "Resolution/Recovery" tags in Badges to `resolution.wasm`.
 2.  **Viewport Guardrail Hook (Option A):** Implement a `GuardrailMiddleware` in `ViewportProxy` that executes `rules.wasm` for every session initialization.
 3.  **eBPF Resolution Trigger (Option B):** 
-    *   Update `ebpf.EventCollector` to recognize "Resolution Signals."
-    *   Create a `ResolutionService` that maintains a pool of `WazeroGate` instances specifically for `resolution.wasm`.
+    *   Update `ebpf.EventCollector` to recognize "Resolution Signals" to be forwarded to each DVEs supervisor agent.
+    *   Create a `ResolutionService` that maintains a pool of `WazeroGate` instances specifically for `resolution.wasm`. The DVE supervisor agent queries WASM programs via function call from this pool.
 4.  **Remediation Link:** Ensure `resolution.wasm` results are piped directly into the `GuardrailEngine`'s remediation pipeline for automated recovery.
 
 ---

@@ -491,8 +491,16 @@ func (s *Server) setupRoutes() error {
 		filePath := filepath.Join(s.webguiStaticDir, "dashboard.html")
 		data, err := s.injectGatewayBase(filePath)
 		if err != nil {
-			s.logger.Error("Failed to inject gateway base into dashboard", zap.Error(err))
-			http.ServeFile(w, r, filePath)
+			// dashboard.html doesn't exist — serve the SPA shell so
+			// Next.js client-side routing renders the dashboard page.
+			indexPath := filepath.Join(s.webguiStaticDir, "index.html")
+			indexData, indexErr := s.injectGatewayBase(indexPath)
+			if indexErr != nil {
+				http.ServeFile(w, r, indexPath)
+				return
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Write(indexData)
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -520,16 +528,32 @@ func (s *Server) setupRoutes() error {
 
 	// Also serve explorer HTML pages at root level for Next.js client-side routing.
 	// This allows navigation within the SPA to work with paths like /payment-gateway.
+	// When the specific {page}.html doesn't exist in the static export, fall back to
+	// index.html (the SPA shell) so client-side routing can render the page.
 	webguiPages := []string{
-		"payment-gateway", "tunnel-registry", "operator-registry",
-		"marketplace", "models", "models-dex", "skills", "capabilities",
-		"my-models", "my-skills", "my-capabilities", "my-properties", "my-wallets",
-		"settings", "vault", "peers", "settlement", "auth-test",
-		"controller-status", "network-admin", "network-monitor", "network-inference-dao",
-		"chain-explorer", "chain-explorer-new", "graph-explorer", "error-explorer",
-		"oracle-explorer", "graphchain-dashboard", "graphchain-errors", "graphchain-skills",
-		"codex-builder", "nft-property-explorer", "bootnode-dao", "qr-connect",
-		"basic", "advanced",
+		// Quick Access
+		"controller-status", "qr-connect", "payment-gateway",
+		// Monitor
+		"network-monitor", "local-analytics", "graph-explorer",
+		"chain-explorer", "chain-explorer-new", "oracle-explorer",
+		"peers", "operator-registry", "tunnel-registry", "error-explorer",
+		// Models
+		"models", "codex-builder", "models-dex",
+		// Governance
+		"bootnode-dao", "network-inference-dao",
+		// GraphChain
+		"graphchain-dashboard", "graphchain-errors", "graphchain-skills",
+		// Marketplace
+		"marketplace", "skills", "capabilities", "properties", "settlement",
+		// Vault
+		"my-models", "my-wallets", "my-skills", "my-capabilities", "my-properties",
+		"nft-property-explorer", "vault",
+		// Other
+		"settings", "network-admin", "auth-test",
+		// Role-based pages from pageAccess lists
+		"basic", "advanced", "inventory", "blockchain", "dex", "daos",
+		"nft-vault", "nft-capability-manager", "add-capability",
+		"tools", "explorer", "capabilities",
 	}
 
 	for _, page := range webguiPages {
@@ -538,8 +562,16 @@ func (s *Server) setupRoutes() error {
 			filePath := filepath.Join(s.webguiStaticDir, pageName+".html")
 			data, err := s.injectGatewayBase(filePath)
 			if err != nil {
-				s.logger.Error("Failed to inject gateway base into page", zap.String("page", pageName), zap.Error(err))
-				http.ServeFile(w, r, filePath)
+				// Page HTML doesn't exist — serve the SPA shell (index.html) so
+				// Next.js client-side routing takes over.
+				indexPath := filepath.Join(s.webguiStaticDir, "index.html")
+				indexData, indexErr := s.injectGatewayBase(indexPath)
+				if indexErr != nil {
+					http.ServeFile(w, r, indexPath)
+					return
+				}
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.Write(indexData)
 				return
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -547,8 +579,34 @@ func (s *Server) setupRoutes() error {
 		})
 	}
 
-	// Serve network-website at root (this should be last to catch all remaining routes)
-	r.PathPrefix("/").Handler(http.FileServer(http.Dir(s.networkWebsiteDir)))
+	// Serve network-website at root (this should be last to catch all remaining routes).
+	// For paths not found in the network website, fall back to the WebGUI SPA shell
+	// (index.html with gateway config injected) so Next.js client-side routing works for
+	// any unmatched SPA route without returning 404/503.
+	r.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Try network website file first
+		filePath := filepath.Join(s.networkWebsiteDir, r.URL.Path)
+		if fi, err := os.Stat(filePath); err == nil && !fi.IsDir() {
+			http.ServeFile(w, r, filePath)
+			return
+		}
+
+		// If path has a file extension and wasn't found in network website, return 404
+		if strings.Contains(filepath.Base(r.URL.Path), ".") {
+			http.NotFound(w, r)
+			return
+		}
+
+		// SPA client-side route — serve index.html with gateway config injected
+		indexPath := filepath.Join(s.webguiStaticDir, "index.html")
+		data, err := s.injectGatewayBase(indexPath)
+		if err != nil {
+			http.ServeFile(w, r, indexPath)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(data)
+	}))
 
 	s.router = r
 	return nil

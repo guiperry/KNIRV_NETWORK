@@ -55,11 +55,27 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
       const data = await resp.json();
       sessionIdRef.current = data.session_id;
       updateConnectionModeRef('knirvshell');
+
+      // Quick initial poll — if the session already closed (command failed
+      // immediately), don't claim the connection; let the fallback chain
+      // (KNIRVAGENT → SSH → local shell) try instead.
+      const initResp = await fetch(
+        `${API_BASE_URL}/api/v1/shell/sessions/${sessionIdRef.current}`,
+        { headers: getAuthHeaders() }
+      );
+      if (initResp.ok) {
+        const initSess = await initResp.json();
+        if (initSess.closed) {
+          sessionIdRef.current = null;
+          return false;
+        }
+      }
       
       term.writeln('\x1b[32m[CONNECTED] KNIRVCLI session established.\x1b[0m');
       term.write('\x1b[1;32m$ \x1b[0m');
 
       // Poll for session output
+      let lastOutputLen = 0;
       const pollOutput = async () => {
         if (!sessionIdRef.current) return;
         try {
@@ -69,8 +85,13 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
           );
           if (outputResp.ok) {
             const session = await outputResp.json();
-            if (session.output) {
-              term.write(session.output);
+            if (session.output && Array.isArray(session.output)) {
+              // Only write new chunks since last poll
+              const newChunks = session.output.slice(lastOutputLen);
+              if (newChunks.length > 0) {
+                term.write(newChunks.join(''));
+                lastOutputLen = session.output.length;
+              }
             }
             if (session.closed) {
               term.writeln('\x1b[33m[DISCONNECTED] Session closed.\x1b[0m');
