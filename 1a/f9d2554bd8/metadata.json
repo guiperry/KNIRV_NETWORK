@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "1af9d2554bd8",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVSERVER/pkg/knirvhasher/bin/knirvhasher"
+  ],
+  "sessions": [
+    {
+      "metadata": "/1a/f9d2554bd8/0/metadata.json",
+      "transcript": "/1a/f9d2554bd8/0/full.jsonl",
+      "content_hash": "/1a/f9d2554bd8/0/content_hash.txt",
+      "prompt": "/1a/f9d2554bd8/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 7,
+    "cache_creation_tokens": 31477,
+    "cache_read_tokens": 49464,
+    "output_tokens": 4889,
+    "api_call_count": 3
+  }
+}
