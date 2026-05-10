@@ -1,18 +1,102 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import styles from './SideNavigation.module.css';
 import { useNavigation } from '../hooks/useNavigation';
 import { useRole } from '../contexts/RoleContext';
 import IframeModal from './IframeModal';
 
+// Navigation structure — a module-level constant so it can be referenced
+// by the auto-expand useMemo hook above any component-local variables.
+const NAV_ITEMS = [
+  // Dashboard
+  { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
+  // Quick Access
+  { id: 'controller-status', label: 'KNIRVCONTROLLER Status', icon: '🔌' },
+  { id: 'qr-connect', label: 'QR Connect', icon: '📱' },
+  { id: 'my-endpoints', label: 'My API Endpoints', icon: '🔗' },
+  { id: 'payment-gateway', label: 'Payment Gateway', icon: '💳' },
+  // Monitor section
+  { id: 'monitor', label: 'Monitor', icon: '📊', children: [
+    { id: 'network-monitor', label: 'Network Monitor', icon: '🌐' },
+    { id: 'local-analytics', label: 'Local Analytics', icon: '📈' },
+    { id: 'graph-explorer', label: 'Graph Explorer', icon: '🔗' },
+    { id: 'chain-explorer', label: 'Chain Explorer', icon: '⛓️' },
+    { id: 'oracle-explorer', label: 'Oracle Explorer', icon: '🔮' },
+    { id: 'peers', label: 'Peers', icon: '👥' },
+    { id: 'operator-registry', label: 'Operator Registry', icon: '🧾' },
+    { id: 'tunnel-registry', label: 'Tunnel Registry', icon: '🛰️' },
+    { id: 'error-explorer', label: 'Error Explorer', icon: '🚨' },
+  ]},
+  // Models section
+  { id: 'models', label: 'Models', icon: '🤖', children: [
+    { id: 'models', label: 'Models Overview', icon: '🤖' },
+    { id: 'codex-builder', label: 'Codex Builder', icon: '🛠️' },
+    { id: 'models-dex', label: 'Models DEX', icon: '💱' },
+  ]},
+  // Governance section
+  { id: 'governance', label: 'Governance', icon: '🏛️', children: [
+    { id: 'bootnode-dao', label: 'Bootnode DAO', icon: '🗳️' },
+    { id: 'network-inference-dao', label: 'Network Inference DAO', icon: '📜' },
+  ]},
+  // GraphChain section
+  { id: 'graphchain', label: 'GraphChain', icon: '🔗', children: [
+    { id: 'graphchain-dashboard', label: 'GraphChain Dashboard', icon: '📊' },
+    { id: 'graphchain-errors', label: 'GraphChain Errors', icon: '🚨' },
+    { id: 'graphchain-skills', label: 'GraphChain Skills', icon: '⚡' },
+  ]},
+  // Marketplace section
+  { id: 'marketplace', label: 'Marketplace', icon: '🛒', children: [
+    { id: 'skills', label: 'Skills', icon: '⚡' },
+    { id: 'capabilities', label: 'Capabilities', icon: '🔌' },
+    { id: 'properties', label: 'Properties', icon: '🏷️' },
+    { id: 'settlement', label: 'Settlement', icon: '📝' },
+  ]},
+  // Vault section
+  { id: 'vault', label: 'Vault', icon: '🔒', children: [
+    { id: 'my-models', label: 'My Models', icon: '🤖' },
+    { id: 'my-wallets', label: 'My Wallets', icon: '💰' },
+    { id: 'my-skills', label: 'My Skills', icon: '⚡' },
+    { id: 'my-capabilities', label: 'My Capabilities', icon: '🔌' },
+    { id: 'my-properties', label: 'My Properties', icon: '🏷️' },
+    { id: 'nft-property-explorer', label: 'NFT Property Explorer', icon: '🎨' },
+  ]},
+  // Settings
+  { id: 'settings', label: 'Settings', icon: '⚙️' },
+  // Network Admin (Root role only)
+  { id: 'network-admin', label: 'Network Admin', icon: '👑' },
+  // Auth Testing (Root role only)
+  { id: 'auth-test', label: 'Auth Testing', icon: '🔐' },
+];
+
 const SideNavigation = ({ activePage }) => {
   const { handleNavigation } = useNavigation(activePage);
   const { canAccess, role } = useRole();
-  const [expandedSections, setExpandedSections] = useState({});
+
+  // Track manually toggled sections so the user can still override the
+  // auto-expanded state (e.g. collapse a section they want hidden).
+  const [manualSections, setManualSections] = useState({});
+
+  // Auto-expand the parent section that contains the currently active page.
+  // Manual toggles take precedence — if the user explicitly collapses a
+  // section, we respect that until the next page change resets it.
+  const expandedSections = useMemo(() => {
+    const expanded = { ...manualSections };
+    for (const item of NAV_ITEMS) {
+      if (item.children) {
+        for (const child of item.children) {
+          if (child.id === activePage) {
+            expanded[item.id] = true;
+            break;
+          }
+        }
+      }
+    }
+    return expanded;
+  }, [activePage, manualSections]);
 
   const toggleSection = (sectionId) => {
-    setExpandedSections(prev => ({
+    setManualSections(prev => ({
       ...prev,
-      [sectionId]: !prev[sectionId]
+      [sectionId]: !expandedSections[sectionId]
     }));
   };
 
@@ -20,239 +104,6 @@ const SideNavigation = ({ activePage }) => {
   const [modal, setModal] = useState({ open: false, title: '', src: '' });
   const openModal = (title, src) => setModal({ open: true, title, src });
   const closeModal = () => setModal({ open: false, title: '', src: '' });
-  
-  // New navigation structure
-  const navItems = [
-    // Dashboard
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: '🏠',
-    },
-    // Quick Access
-    {
-      id: 'controller-status',
-      label: 'KNIRVCONTROLLER Status',
-      icon: '🔌',
-    },
-    {
-      id: 'qr-connect',
-      label: 'QR Connect',
-      icon: '📱',
-    },
-    {
-      id: 'my-endpoints',
-      label: 'My API Endpoints',
-      icon: '🔗',
-    },
-    {
-      id: 'payment-gateway',
-      label: 'Payment Gateway',
-      icon: '💳',
-    },
-
-    // Monitor section
-    {
-      id: 'monitor',
-      label: 'Monitor',
-      icon: '📊',
-      children: [
-        {
-          id: 'network-monitor',
-          label: 'Network Monitor',
-          icon: '🌐',
-        },
-        {
-          id: 'local-analytics',
-          label: 'Local Analytics',
-          icon: '📈',
-        },
-        {
-          id: 'graph-explorer',
-          label: 'Graph Explorer',
-          icon: '🔗',
-        },
-        {
-          id: 'chain-explorer',
-          label: 'Chain Explorer',
-          icon: '⛓️',
-        },
-        {
-          id: 'oracle-explorer',
-          label: 'Oracle Explorer',
-          icon: '🔮',
-        },
-        {
-          id: 'peers',
-          label: 'Peers',
-          icon: '👥',
-        },
-        {
-          id: 'operator-registry',
-          label: 'Operator Registry',
-          icon: '🧾',
-        },
-        {
-          id: 'tunnel-registry',
-          label: 'Tunnel Registry',
-          icon: '🛰️',
-        },
-        {
-          id: 'error-explorer',
-          label: 'Error Explorer',
-          icon: '🚨',
-        }
-      ]
-    },
-    // Models section
-    {
-      id: 'models',
-      label: 'Models',
-      icon: '🤖',
-      children: [
-        {
-          id: 'models',
-          label: 'Models Overview',
-          icon: '🤖',
-        },
-        {
-          id: 'codex-builder',
-          label: 'Codex Builder',
-          icon: '🛠️',
-        },
-        {
-          id: 'models-dex',
-          label: 'Models DEX',
-          icon: '💱',
-        }
-      ]
-    },
-    // Governance section
-    {
-      id: 'governance',
-      label: 'Governance',
-      icon: '🏛️',
-      children: [
-        {
-          id: 'bootnode-dao',
-          label: 'Bootnode DAO',
-          icon: '🗳️',
-        },
-        {
-          id: 'network-inference-dao',
-          label: 'Network Inference DAO',
-          icon: '📜',
-        }
-      ]
-    },
-    // GraphChain section
-    {
-      id: 'graphchain',
-      label: 'GraphChain',
-      icon: '🔗',
-      children: [
-        {
-          id: 'graphchain-dashboard',
-          label: 'GraphChain Dashboard',
-          icon: '📊',
-        },
-        {
-          id: 'graphchain-errors',
-          label: 'GraphChain Errors',
-          icon: '🚨',
-        },
-        {
-          id: 'graphchain-skills',
-          label: 'GraphChain Skills',
-          icon: '⚡',
-        }
-      ]
-    },
-    // Marketplace section
-    {
-      id: 'marketplace',
-      label: 'Marketplace',
-      icon: '🛒',
-      children: [
-        {
-          id: 'skills',
-          label: 'Skills',
-          icon: '⚡',
-        },
-        {
-          id: 'capabilities',
-          label: 'Capabilities',
-          icon: '🔌',
-        },
-        {
-          id: 'properties',
-          label: 'Properties',
-          icon: '🏷️',
-        },
-        {
-          id: 'settlement',
-          label: 'Settlement',
-          icon: '📝',
-        }
-      ]
-    },
-    // Vault section
-    {
-      id: 'vault',
-      label: 'Vault',
-      icon: '🔒',
-      children: [
-        {
-          id: 'my-models',
-          label: 'My Models',
-          icon: '🤖',
-        },
-        {
-          id: 'my-wallets',
-          label: 'My Wallets',
-          icon: '💰',
-        },
-        {
-          id: 'my-skills',
-          label: 'My Skills',
-          icon: '⚡',
-        },
-        {
-          id: 'my-capabilities',
-          label: 'My Capabilities',
-          icon: '🔌',
-        },
-        {
-          id: 'my-properties',
-          label: 'My Properties',
-          icon: '🏷️',
-        },
-        {
-          id: 'nft-property-explorer',
-          label: 'NFT Property Explorer',
-          icon: '🎨',
-        }
-      ]
-    },
-    // Settings
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: '⚙️',
-    },
-    // Network Admin (Root role only)
-    {
-      id: 'network-admin',
-      label: 'Network Admin',
-      icon: '👑',
-    },
-    // Auth Testing (Root role only)
-    {
-      id: 'auth-test',
-      label: 'Auth Testing',
-      icon: '🔐',
-    }
-  ];
 
   const handleItemClick = async (id, hasChildren) => {
     if (hasChildren) return toggleSection(id);
@@ -268,8 +119,6 @@ const SideNavigation = ({ activePage }) => {
         const r = await fetch('/session/controller', { credentials: 'include' });
         const j = await r.json();
         if (j && j.controllerUrl) {
-          // Use gateway base URL for the controller link so it resolves
-          // correctly even when the WebGUI is embedded in another context.
           const base = (typeof window !== 'undefined' && window.__GATEWAY_BASE__) || '';
           const url = base ? `${base.replace(/\/+$/, '')}/controller` : '/controller';
           window.open(url, '_blank', 'noopener');
@@ -345,7 +194,7 @@ const SideNavigation = ({ activePage }) => {
         Role: <span className={styles.roleBadge}>{role}</span>
       </div>
 
-      {navItems.map(item => renderNavItem(item))}
+      {NAV_ITEMS.map(item => renderNavItem(item))}
 
       {modal.open && (
         <IframeModal title={modal.title} src={modal.src} onClose={closeModal} />
