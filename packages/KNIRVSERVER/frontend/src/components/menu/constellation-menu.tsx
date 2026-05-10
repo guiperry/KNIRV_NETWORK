@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Eye, Box, Wrench, Globe, Cpu, Layers, Settings, Triangle } from "lucide-react"
+import { Eye, Box, Globe, Cpu, Layers, Settings, Triangle, User } from "lucide-react"
 import dynamic from "next/dynamic"
 
 const StarSupernova = dynamic(() => import("./star-supernova"), {
@@ -41,7 +41,7 @@ const middleLabels = [
 const outerIcons = [
   { icon: Triangle, angle: 0,   section: "setup",      label: "Setup" },
   { icon: Globe,    angle: 45,  section: "p2p-webgui", label: "WebGUI" },
-  { icon: Wrench,   angle: 90,  section: "system",     label: "Resources" },
+  { icon: User,     angle: 90,  section: "admin",      label: "Admin" },
   { icon: Cpu,      angle: 135, section: "cognitive",  label: "Cognitive" },
   { icon: Layers,   angle: 180, section: "nodes",      label: "DVE Nodes" },
   { icon: Settings, angle: 225, section: null,         label: "Settings" },

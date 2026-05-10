@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTEESecurity } from "@/hooks/use-tee-security";
 import { useAuth, ROLES } from '@/lib/auth-context';
 import { UserProfile } from '@/components/auth/user-profile';
@@ -69,50 +69,51 @@ interface DashboardWrapperProps {
   onRentDVE?: () => void;
 }
 
-export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps) {
+function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
   const router = useRouter();
   const { user, isLoading } = useAuth();
   const { state: onboardingState, updateState: updateOnboardingState, completeOnboarding, resetOnboarding } = useOnboarding();
   const { securityStatus: teeSecurityStatus, isLoading: teeLoading } = useTEESecurity();
 
   // ── Controlled tab state (allows postMessage navigation from Electron menu) ──
-  const [mainTab, setMainTab] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const nav = new URLSearchParams(window.location.search).get('nav');
-      // Map inner-tab sections to the 'system' parent tab
-      if (nav === 'cognitive' || nav === 'nodes' || nav === 'badgelab') return 'system';
-      if (nav) return nav;
-    }
-    return 'system';
-  });
-  const [resourceTab, setResourceTab] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const nav = new URLSearchParams(window.location.search).get('nav');
-      if (nav === 'cognitive' || nav === 'nodes' || nav === 'badgelab' || nav === 'overview') return nav;
-    }
-    return 'overview';
-  });
+  const searchParams = useSearchParams();
+  const [mainTab, setMainTab] = useState<string>('system');
+  const [resourceTab, setResourceTab] = useState<string>('overview');
 
-  // ── Listen for navigate / open-modal messages from the Electron desktop renderer ──
+  // ── Shared navigation dispatch (used by both URL & postMessage paths) ──
+  const applyNavSection = (section: string) => {
+    if (section === 'admin') {
+      setShowAdminAccess(true);
+      return;
+    }
+    if (section === 'p2p-webgui') {
+      setP2pTransportOpen(true);
+      return;
+    }
+    if (section === 'cognitive' || section === 'nodes' || section === 'badgelab' || section === 'overview') {
+      setMainTab('system');
+      setResourceTab(section);
+    } else {
+      setMainTab(section);
+    }
+  };
+
+  // ── 1) Listen for postMessage (Electron desktop renderer) ──
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const { type, section, modal } = event.data || {};
-      if (type === 'navigate' && section) {
-        if (section === 'cognitive' || section === 'nodes' || section === 'badgelab' || section === 'overview') {
-          setMainTab('system');
-          setResourceTab(section);
-        } else {
-          setMainTab(section);
-        }
-      } else if (type === 'open-modal') {
-        if (modal === 'p2p-webgui') {
-          setP2pTransportOpen(true);
-        }
-      }
+      if (type === 'navigate' && section) applyNavSection(section);
+      else if (type === 'open-modal' && modal === 'p2p-webgui') setP2pTransportOpen(true);
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
+
+  // ── 2) Sync from URL ?nav= param on every navigation (web PWA / browser) ──
+  useEffect(() => {
+    const nav = searchParams.get('nav');
+    if (nav) applyNavSection(nav);
+  }, [searchParams]);
 
   const [cdeModalOpen, setCdeModalOpen] = useState(false);
   const [dveCreationModalOpen, setDveCreationModalOpen] = useState(false);
@@ -1396,5 +1397,17 @@ export function DashboardWrapper({ children, onRentDVE }: DashboardWrapperProps)
         currentBalance={1847}
       />
     </div>
+  );
+}
+
+export function DashboardWrapper(props: DashboardWrapperProps) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    }>
+      <DashboardWrapperInner {...props} />
+    </Suspense>
   );
 }

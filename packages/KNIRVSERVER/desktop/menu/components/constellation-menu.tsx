@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Eye, Box, Wrench, Globe, Cpu, Layers, Settings, Triangle } from "lucide-react"
+import { Eye, Box, Globe, Cpu, Layers, Settings, Triangle, User } from "lucide-react"
 import dynamic from "next/dynamic"
 
 // Dynamically import components that are not immediately needed
@@ -42,14 +43,14 @@ const middleLabels = [
 // Outer icons — each maps to a dashboard section via postMessage navigate
 // section: null means open the local settings modal instead of navigating
 const outerIcons = [
-  { icon: Triangle, angle: 0,   section: "setup",     label: "Setup" },
+  { icon: Triangle, angle: 0,   section: "setup",      label: "Setup" },
   { icon: Globe,    angle: 45,  section: "p2p-webgui", label: "WebGUI" },
-  { icon: Wrench,   angle: 90,  section: "system",    label: "Resources" },
-  { icon: Cpu,      angle: 135, section: "cognitive", label: "Cognitive" },
-  { icon: Layers,   angle: 180, section: "nodes",     label: "DVE Nodes" },
-  { icon: Settings, angle: 225, section: null,        label: "Settings" },
-  { icon: Eye,      angle: 270, section: "profile",   label: "Reports" },
-  { icon: Box,      angle: 315, section: "badgelab",  label: "Badge Lab" },
+  { icon: User,     angle: 90,  section: "admin",      label: "Admin" },
+  { icon: Cpu,      angle: 135, section: "cognitive",  label: "Cognitive" },
+  { icon: Layers,   angle: 180, section: "nodes",      label: "DVE Nodes" },
+  { icon: Settings, angle: 225, section: null,         label: "Settings" },
+  { icon: Eye,      angle: 270, section: "profile",    label: "Reports" },
+  { icon: Box,      angle: 315, section: "badgelab",   label: "Badge Lab" },
 ]
 
 function polarToCartesian(angle: number, radius: number) {
@@ -61,6 +62,7 @@ function polarToCartesian(angle: number, radius: number) {
 }
 
 export default function ConstellationMenu() {
+  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [hoveredIcon, setHoveredIcon] = useState<number | null>(null)
   const [loadingComplete, setLoadingComplete] = useState(false)
@@ -83,6 +85,8 @@ export default function ConstellationMenu() {
     }
     if (window.parent && window.parent !== (window as Window)) {
       window.parent.postMessage({ type: 'navigate', section }, '*')
+    } else {
+      router.push(`/?nav=${section}`)
     }
   }
 

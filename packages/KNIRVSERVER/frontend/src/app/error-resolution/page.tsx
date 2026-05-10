@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import { apiRequest, API_BASE_URL } from '@/lib/api';
 import type { ErrorResolutionSession } from '@/types/api';
 import ErrorResolutionDashboard from '@/components/dve-management/error-resolution-dashboard';
 
-export default function ErrorResolutionPage() {
+function ErrorResolutionInner() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [session, setSession] = useState<ErrorResolutionSession | null>(null);
@@ -68,5 +68,13 @@ export default function ErrorResolutionPage() {
         />
       </div>
     </main>
+  );
+}
+
+export default function ErrorResolutionPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">Loading...</div>}>
+      <ErrorResolutionInner />
+    </Suspense>
   );
 }
