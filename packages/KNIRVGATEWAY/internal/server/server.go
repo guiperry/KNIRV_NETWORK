@@ -64,14 +64,14 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 	if len(db) > 0 {
 		dbInstance = db[0]
 	}
-	// Initialize operator service
-
-	knirvOracleURL := "http://localhost:1317" // Default KNIRV-ORACLE URL
-	if cfg.KnirvOracleURL != "" {
-		knirvOracleURL = cfg.KnirvOracleURL
+	// Initialize operator service.
+	// Oracle is only accessible through the gateway's Unix socket reverse proxy;
+	// the independent TCP port (1317) has been removed.
+	oracleBaseURL := "http://localhost:1317"
+	if cfg.OracleSocketPath != "" {
+		oracleBaseURL = "http://knirvoracle" // proxied via socket
 	}
-
-	operatorSvc := operator.NewService(logger, knirvOracleURL)
+	operatorSvc := operator.NewService(logger, oracleBaseURL)
 	operatorSvc.Initialize() // Load mock data
 
 	operatorHdlr := operator.NewHandler(operatorSvc, logger)
@@ -277,22 +277,22 @@ func (s *Server) setupRoutes() error {
 
 	// === PHASES 1-4: Unified Proxy Architecture ===
 	//
-	// Oracle proxy — KNIRVORACLE communicates via Unix socket when
-	// OracleSocketPath is configured, falling back to TCP (port 1317).
+	// Oracle proxy — KNIRVORACLE communicates exclusively via Unix socket
+	// through the gateway.  The independent TCP port (historically 1317) is
+	// removed; all oracle traffic flows through the gateway's reverse-proxy layer.
 	var oracleProxy *httputil.ReverseProxy
 	if s.config.OracleSocketPath != "" {
 		oracleProxy = newSocketProxy(s.config.OracleSocketPath, "http://knirvoracle")
 		s.logger.Info("Oracle proxy registered (socket)", zap.String("socket", s.config.OracleSocketPath))
 	} else {
-		oracleProxy = newHTTPProxy(s.config.KnirvOracleURL)
-		s.logger.Info("Oracle proxy registered (TCP)", zap.String("url", s.config.KnirvOracleURL))
+		s.logger.Warn("Oracle socket path not configured — oracle endpoints will not be proxied")
 	}
 
 	// /api/oracle/* — Standardized oracle prefix for all Cosmos blockchain queries
 	// Wallet/balance, transaction submission, blocks, staking, governance, IBC.
 	// Strip /api prefix so /api/oracle/v3/... becomes /oracle/v3/..., matching the
 	// oracle's native route format (oracle serves under /oracle/v3/*).
-	if s.config.OracleSocketPath != "" || s.config.KnirvOracleURL != "" {
+	if oracleProxy != nil {
 		r.PathPrefix("/api/oracle/").Handler(http.StripPrefix("/api", oracleProxy))
 
 		// Root-level wallet-server compatible routes — proxied directly to the oracle
@@ -428,7 +428,7 @@ func (s *Server) setupRoutes() error {
 
 	// Phase 4: Replace WebGUI mock endpoints with real proxy destinations.
 	// /api/transactions → oracle proxy (Cosmos tx history)
-	if s.config.OracleSocketPath != "" || s.config.KnirvOracleURL != "" {
+	if oracleProxy != nil {
 		r.HandleFunc("/api/transactions", oracleProxy.ServeHTTP).Methods("GET", "OPTIONS")
 		r.HandleFunc("/api/blocks", oracleProxy.ServeHTTP).Methods("GET", "OPTIONS")
 	} else {
@@ -774,21 +774,6 @@ func wrapWithSecurityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		next.ServeHTTP(w, r)
 	})
-}
-
-// newHTTPProxy creates a reverse proxy that forwards to a TCP HTTP target.
-// Used for services that listen on TCP (like KNIRVORACLE on port 1317).
-func newHTTPProxy(targetBase string) *httputil.ReverseProxy {
-	target, _ := url.Parse(targetBase)
-	proxy := httputil.NewSingleHostReverseProxy(target)
-	proxy.ModifyResponse = func(resp *http.Response) error {
-		resp.Header.Del("Access-Control-Allow-Origin")
-		resp.Header.Del("Access-Control-Allow-Headers")
-		resp.Header.Del("Access-Control-Allow-Methods")
-		resp.Header.Del("Access-Control-Allow-Credentials")
-		return nil
-	}
-	return proxy
 }
 
 // newSocketProxy creates a reverse proxy that dials a Unix socket and forwards

@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/cloudflare"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/config"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/embedded"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/runtime"
@@ -72,12 +73,69 @@ func main() {
 		}
 	}()
 
+	// ---- Cloudflare Tunnel (cloudflared) ----
+	//
+	// When CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID are set (propagated
+	// from root.key by KNIRVSERVER), provision a Cloudflare Tunnel for
+	// gateway.knirv.network and run cloudflared to connect from behind NAT.
+	// This follows the same conventions as proxy-penguin.
+
+	var tunnelRunner *cloudflare.TunnelRunner
+	tunnelCtx, tunnelCancel := context.WithCancel(context.Background())
+
+	if cfToken := os.Getenv("CLOUDFLARE_API_TOKEN"); cfToken != "" {
+		cfZone := os.Getenv("CLOUDFLARE_ZONE_ID")
+		if cfZone == "" {
+			logger.Warn("CLOUDFLARE_API_TOKEN set but CLOUDFLARE_ZONE_ID missing — skipping Cloudflare Tunnel")
+		} else {
+			servicePort := cfg.Port
+			if servicePort == 0 {
+				servicePort = 8081
+			}
+
+			tunnelRunner = cloudflare.NewTunnelRunner(cloudflare.TunnelRunnerConfig{
+				APIToken:    cfToken,
+				ZoneID:      cfZone,
+				TunnelName:  "knirv-gateway",
+				Hostname:    "gateway.knirv.network",
+				ServicePort: servicePort,
+			})
+
+			go func() {
+				logger.Info("Initialising Cloudflare Tunnel for gateway.knirv.network",
+					zap.Int("service_port", servicePort))
+				if err := tunnelRunner.Run(tunnelCtx); err != nil {
+					logger.Warn("Cloudflare Tunnel failed to start — gateway will operate without tunnel",
+						zap.Error(err))
+				}
+			}()
+
+			// Log the tunnel ID after a brief provisioning window.
+			go func() {
+				time.Sleep(5 * time.Second)
+				if tid := tunnelRunner.TunnelID(); tid != "" {
+					logger.Info("Cloudflare Tunnel active",
+						zap.String("tunnel_id", tid),
+						zap.String("hostname", "gateway.knirv.network"))
+				}
+			}()
+		}
+	}
+
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	logger.Info("Shutting down KNIRVGATEWAY")
+
+	// Stop Cloudflare Tunnel if running.
+	if tunnelRunner != nil {
+		logger.Info("Stopping Cloudflare Tunnel")
+		tunnelCancel()
+		tunnelRunner.Stop()
+		tunnelRunner.Wait()
+	}
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

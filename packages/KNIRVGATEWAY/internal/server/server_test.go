@@ -37,8 +37,8 @@ func testServer(cfg *config.Config) *Server {
 // TestOracleProxyRoutes verifies /api/oracle/* proxy and redirects
 func TestOracleProxyRoutes(t *testing.T) {
 	cfg := &config.Config{
-		KnirvOracleURL: "http://localhost:1317",
-		Port:           8888,
+		OracleSocketPath: "/tmp/test-oracle.sock",
+		Port:             8888,
 	}
 	s := testServer(cfg)
 

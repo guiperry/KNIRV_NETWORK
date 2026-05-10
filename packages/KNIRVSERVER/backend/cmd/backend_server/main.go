@@ -848,7 +848,19 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		// 	cfg.Gateway.SocketPath = filepath.Join(cfg.SocketDir, "gateway.sock")
 		// }
 
-		gatewayConfig := &knirvgateway.ManagerConfig{
+		// Propagate Cloudflare credentials from root.key to the gateway
+		// so it can establish a Cloudflare Tunnel (cloudflared) on startup.
+		gatewayEnvOverrides := map[string]string{}
+	if rootKeySecrets != nil {
+		if rootKeySecrets.CloudflareApiToken != "" {
+			gatewayEnvOverrides["CLOUDFLARE_API_TOKEN"] = rootKeySecrets.CloudflareApiToken
+		}
+		if rootKeySecrets.CloudflareZoneId != "" {
+			gatewayEnvOverrides["CLOUDFLARE_ZONE_ID"] = rootKeySecrets.CloudflareZoneId
+		}
+	}
+
+	gatewayConfig := &knirvgateway.ManagerConfig{
 			BinaryPath:     cfg.Gateway.BinaryPath,
 			SocketPath:     cfg.Gateway.SocketPath,
 			Port:           cfg.Gateway.Port,
@@ -868,11 +880,13 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			BackendSocketPath: cfg.Gateway.BackendSocketPath,
 			ChainSocketPath:   cfg.Gateway.ChainSocketPath,
 			GraphSocketPath:   cfg.Gateway.GraphSocketPath,
+			OracleSocketPath:  cfg.Gateway.OracleSocketPath,
 			StartTimeout:      time.Duration(cfg.Gateway.StartTimeout) * time.Second,
 			StopTimeout:       time.Duration(cfg.Gateway.StopTimeout) * time.Second,
 			ChainID:           cfg.ChainID,
 			Stdout:            logging.NewSubprocessWriter("knirvgateway", os.Stdout),
 			Stderr:            logging.NewSubprocessWriter("knirvgateway", os.Stderr),
+			EnvOverrides:      gatewayEnvOverrides,
 		}
 		gatewayManager = knirvgateway.NewManager(gatewayConfig, logger)
 		log.Println("KNIRVGATEWAY manager initialized")

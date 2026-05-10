@@ -56,24 +56,25 @@ type FintechConfig struct {
 
 // GatewayConfig defines embedded KNIRVGATEWAY configuration
 type GatewayConfig struct {
-	Enabled         bool   `mapstructure:"enabled"`
-	BinaryPath      string `mapstructure:"binary_path"`
-	SocketPath      string `mapstructure:"socket_path"`
-	Port            int    `mapstructure:"port"`
-	TurnUDPPort     int    `mapstructure:"turn_udp_port"`
-	TurnTCPPort     int    `mapstructure:"turn_tcp_port"`
-	TurnAPIPort     int    `mapstructure:"turn_api_port"`
-	TunnelHTTPPort  int    `mapstructure:"tunnel_http_port"`
-	TunnelCtrlPort  int    `mapstructure:"tunnel_ctrl_port"`
-	TunnelRelayPort int    `mapstructure:"tunnel_relay_port"`
-	TunnelSTUNPort  int    `mapstructure:"tunnel_stun_port"`
-	AuthSecret      string `mapstructure:"auth_secret"`
-	MinerAddress    string `mapstructure:"miner_address"`
-	StartTimeout    int    `mapstructure:"start_timeout"`
-	StopTimeout     int    `mapstructure:"stop_timeout"`
+	Enabled          bool   `mapstructure:"enabled"`
+	BinaryPath       string `mapstructure:"binary_path"`
+	SocketPath       string `mapstructure:"socket_path"`
+	Port             int    `mapstructure:"port"`
+	TurnUDPPort      int    `mapstructure:"turn_udp_port"`
+	TurnTCPPort      int    `mapstructure:"turn_tcp_port"`
+	TurnAPIPort      int    `mapstructure:"turn_api_port"`
+	TunnelHTTPPort   int    `mapstructure:"tunnel_http_port"`
+	TunnelCtrlPort   int    `mapstructure:"tunnel_ctrl_port"`
+	TunnelRelayPort  int    `mapstructure:"tunnel_relay_port"`
+	TunnelSTUNPort   int    `mapstructure:"tunnel_stun_port"`
+	AuthSecret       string `mapstructure:"auth_secret"`
+	MinerAddress     string `mapstructure:"miner_address"`
+	StartTimeout     int    `mapstructure:"start_timeout"`
+	StopTimeout      int    `mapstructure:"stop_timeout"`
 	BackendSocketPath string `mapstructure:"backend_socket"`
 	ChainSocketPath   string `mapstructure:"chain_socket"`
 	GraphSocketPath   string `mapstructure:"graph_socket"`
+	OracleSocketPath  string `mapstructure:"oracle_socket"`
 	ShellSocketPath   string `mapstructure:"shell_socket"`
 	AgentSocketDir    string `mapstructure:"agent_socket_dir"`
 	AgentMaxConcurrent int  `mapstructure:"agent_max_concurrent"`
@@ -1094,6 +1095,7 @@ func setDefaults() {
 	viper.SetDefault("gateway.miner_address", "GATEWAY_MINER")
 	viper.SetDefault("gateway.start_timeout", 30)
 	viper.SetDefault("gateway.stop_timeout", 10)
+	viper.SetDefault("gateway.oracle_socket", filepath.Join(socketDir, "oracle.sock"))
 
 	graphDataDir := filepath.Join(appDataDir, "knirvgraph")
 	viper.SetDefault("graph.enabled", true)

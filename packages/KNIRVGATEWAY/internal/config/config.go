@@ -55,9 +55,10 @@ type Config struct {
 	// Browser auto-open configuration
 	AutoOpenBrowser bool
 
-	// KNIRV-ORACLE configuration
-	KnirvOracleURL  string
-	OracleSocketPath string // Unix socket path for KNIRVORACLE (when set, takes priority over KnirvOracleURL)
+	// KNIRV-ORACLE configuration — all oracle traffic flows through the gateway
+	// via a Unix socket.  The independent TCP port (historically 1317) is removed;
+	// the oracle is only reachable through the gateway's reverse-proxy layer.
+	OracleSocketPath string // Unix socket path for KNIRVORACLE (required)
 
 	// TURN Server configuration
 	TurnServerEnabled      bool
@@ -121,7 +122,6 @@ func Load() (*Config, error) {
 		WebGUIPort:                getEnvInt("WEBGUI_PORT", 3007),
 		SessionSecret:             getEnv("SESSION_SECRET", generateSessionSecret()),
 		AutoOpenBrowser:           getEnvBool("AUTO_OPEN_BROWSER", true),
-		KnirvOracleURL:            getEnv("KNIRV_ORACLE_URL", "http://localhost:1317"),
 		OracleSocketPath:          getEnv("ORACLE_SOCKET_PATH", ""),
 		TurnServerEnabled:         getEnvBool("TURN_SERVER_ENABLED", true),
 		TurnServerUDPPort:         getEnvInt("TURN_SERVER_UDP_PORT", 3478),

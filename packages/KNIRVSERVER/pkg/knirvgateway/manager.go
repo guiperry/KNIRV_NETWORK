@@ -74,22 +74,24 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	BinaryPath     string
-	SocketPath     string
-	Port           int
-	BackendAPIPort int
-	Ports          *PortConfig
-	DBPath         string
-	AuthSecret     string
-	MinerAddress        string
-	BackendSocketPath   string
-	ChainSocketPath     string
-	GraphSocketPath     string
-	StartTimeout        time.Duration
-	StopTimeout    time.Duration
-	ChainID        string
-	Stdout         io.Writer
-	Stderr         io.Writer
+	BinaryPath        string
+	SocketPath        string
+	Port              int
+	BackendAPIPort    int
+	Ports             *PortConfig
+	DBPath            string
+	AuthSecret        string
+	MinerAddress      string
+	BackendSocketPath string
+	ChainSocketPath   string
+	GraphSocketPath   string
+	OracleSocketPath  string
+	StartTimeout      time.Duration
+	StopTimeout       time.Duration
+	ChainID           string
+	Stdout            io.Writer
+	Stderr            io.Writer
+	EnvOverrides      map[string]string // extra env vars (e.g. Cloudflare creds from root.key)
 }
 
 type PortConfig struct {
@@ -267,6 +269,14 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 	if m.config.GraphSocketPath != "" {
 		env = append(env, fmt.Sprintf("GRAPH_SOCKET_PATH=%s", m.config.GraphSocketPath))
+	}
+	if m.config.OracleSocketPath != "" {
+		env = append(env, fmt.Sprintf("ORACLE_SOCKET_PATH=%s", m.config.OracleSocketPath))
+	}
+
+	// Apply env overrides (e.g. Cloudflare credentials from root.key).
+	for k, v := range m.config.EnvOverrides {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
 	if m.config.SocketPath != "" {
