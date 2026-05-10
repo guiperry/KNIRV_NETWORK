@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import OnboardingFlow from '../components/OnboardingFlowUpdated';
 import { useNavigation } from '../hooks/useNavigation';
 import PageLayout from '../components/PageLayout';
 import PageHeader from '../components/PageHeader';
 import GlassyCard from '../components/GlassyCard';
 import styles from './oracle-explorer.module.css';
 
-export default function OracleExplorer({ onboardingCompleted }) {
+export default function OracleExplorer() {
   const { activePage } = useNavigation('oracle-explorer');
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isBlockchainEnabled, setIsBlockchainEnabled] = useState(false);
+  const [isBlockchainEnabled, setIsBlockchainEnabled] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeNetwork, setActiveNetwork] = useState('Bitcoin');
   const [isRunning, setIsRunning] = useState(false);
@@ -64,45 +62,14 @@ export default function OracleExplorer({ onboardingCompleted }) {
     }
   }, [isBlockchainEnabled, refreshData]);
 
-  useEffect(() => {
-    const hasCompletedOnboarding = localStorage.getItem('onboardingCompleted');
-    if (hasCompletedOnboarding === 'true' || onboardingCompleted) {
-      setIsBlockchainEnabled(true);
-    } else {
-      setShowOnboarding(true);
-    }
-  }, [onboardingCompleted]);
-  
-  const handleOnboardingComplete = () => {
-    setShowOnboarding(false);
-    setIsBlockchainEnabled(true);
-    localStorage.setItem('onboardingCompleted', 'true');
-  };
-
   const handleSearch = (query) => {
     setSearchQuery(query);
   };
 
   return (
     <PageLayout activePage={activePage} pageTitle="Oracle Explorer" onSearch={handleSearch}>
-      {showOnboarding && <OnboardingFlow onComplete={handleOnboardingComplete} />}
 
       {/* Status Overlays */}
-      {!isBlockchainEnabled && !showOnboarding && (
-        <GlassyCard darker className={styles.disabledOverlay}>
-          <h2>Blockchain Features Locked</h2>
-          <p>
-            You need to complete the onboarding process to access blockchain explorer features.
-          </p>
-          <button
-            onClick={() => setShowOnboarding(true)}
-            className={`${styles.button} ${styles.primary}`}
-          >
-            Start Onboarding
-          </button>
-        </GlassyCard>
-      )}
-
       {!isRunning && isBlockchainEnabled && (
         <GlassyCard darker className={styles.errorCard}>
           Backend is not running. Please start the KNIRVORACLE node.

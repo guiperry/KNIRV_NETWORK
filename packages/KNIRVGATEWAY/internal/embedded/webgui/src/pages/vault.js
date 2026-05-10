@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigation } from '../hooks/useNavigation';
+import OnboardingFlow from '../components/OnboardingFlowUpdated';
 import PageLayout from '../components/PageLayout';
 import PageHeader from '../components/PageHeader';
 import GlassyCard from '../components/GlassyCard';
@@ -10,6 +11,20 @@ export default function Vault() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('models');
   const [knirvControllerConnected, setKnirvControllerConnected] = useState(false);
+  const [showPropertiesOnboarding, setShowPropertiesOnboarding] = useState(false);
+
+  // Show onboarding on first visit to Properties tab
+  useEffect(() => {
+    const hasCompleted = localStorage.getItem('onboardingCompleted');
+    if (selectedTab === 'properties' && hasCompleted !== 'true') {
+      setShowPropertiesOnboarding(true);
+    }
+  }, [selectedTab]);
+
+  const handlePropertiesOnboardingComplete = () => {
+    setShowPropertiesOnboarding(false);
+    localStorage.setItem('onboardingCompleted', 'true');
+  };
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -207,6 +222,9 @@ export default function Vault() {
 
   return (
     <PageLayout activePage={activePage} pageTitle="Vault" onSearch={handleSearch}>
+      {showPropertiesOnboarding && (
+        <OnboardingFlow onComplete={handlePropertiesOnboardingComplete} />
+      )}
       <PageHeader
         title="Personal Vault"
         subtitle="Manage your models, wallets, skills, capabilities, and properties"

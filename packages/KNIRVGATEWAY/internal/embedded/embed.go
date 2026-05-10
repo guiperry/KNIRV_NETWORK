@@ -19,9 +19,11 @@ import (
 //go:embed all:webgui
 var WebGUIFS embed.FS
 
-// The standalone gateway serves network-website from the source tree instead of embedding it.
-// KNIRVSERVER's packaged gateway keeps its own embedded copy in pkg/knirvgateway.
-var NetworkWebsiteFS embed.FS
+//go:embed all:graphchain-explorer
+var GraphChainExplorerFS embed.FS
+
+//go:embed all:knirvchain-portal/dist
+var KnirvChainPortalFS embed.FS
 
 // GatewayConfig represents the configuration for the embedded gateway runner.
 // The oracle itself has moved to KNIRVSERVER and is no longer managed here.
@@ -64,7 +66,7 @@ func NewGateway(cfg *GatewayConfig, logger *zap.Logger) (*Gateway, error) {
 		}
 	}
 
-	rt, err := runtime.NewRuntime(logger, WebGUIFS, NetworkWebsiteFS, nil)
+	rt, err := runtime.NewRuntime(logger, WebGUIFS, GraphChainExplorerFS, KnirvChainPortalFS, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +99,7 @@ func (g *Gateway) Start() error {
 		return err
 	}
 
-	g.server, err = server.New(coreCfg, g.runtime.GetWebGUIStaticPath(), g.runtime.GetNetworkWebsitePath(), g.logger)
+	g.server, err = server.New(coreCfg, g.runtime.GetWebGUIStaticPath(), g.runtime.GetGraphChainExplorerPath(), g.runtime.GetKnirvChainPortalPath(), g.logger)
 	if err != nil {
 		return err
 	}

@@ -38,7 +38,7 @@ func main() {
 	)
 
 	// Initialize runtime and extract embedded files (oracle binary removed)
-	rt, err := runtime.NewRuntime(logger, embedded.WebGUIFS, embedded.NetworkWebsiteFS, nil)
+	rt, err := runtime.NewRuntime(logger, embedded.WebGUIFS, embedded.GraphChainExplorerFS, embedded.KnirvChainPortalFS, nil)
 	if err != nil {
 		logger.Fatal("Failed to initialize runtime", zap.Error(err))
 	}
@@ -59,8 +59,8 @@ func main() {
 	// Oracle has moved to KNIRVSERVER — no oracle initialisation in the gateway.
 	logger.Info("Oracle is managed by KNIRVSERVER (root node only)")
 
-	// Initialize HTTP server with webgui static and network website directories
-	srv, err := server.New(cfg, rt.GetWebGUIStaticPath(), rt.GetNetworkWebsitePath(), logger)
+	// Initialize HTTP server with webgui static and explorer directories
+	srv, err := server.New(cfg, rt.GetWebGUIStaticPath(), rt.GetGraphChainExplorerPath(), rt.GetKnirvChainPortalPath(), logger)
 	if err != nil {
 		logger.Fatal("Failed to initialize server", zap.Error(err))
 	}

@@ -10,23 +10,17 @@ export default function GraphExplorer() {
   const iframeRef = useRef(null);
 
   const handleSearch = (query) => {
-    // Pass search to the embedded graphchain explorer
     if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({
-        type: 'search',
-        query: query
-      }, '*');
+      iframeRef.current.contentWindow.postMessage({ type: 'search', query }, '*');
     }
   };
 
   useEffect(() => {
-    // Listen for messages from the embedded graphchain explorer
     const handleMessage = (event) => {
       if (event.data && event.data.type === 'graphchain-ready') {
         console.log('GraphChain Explorer loaded successfully');
       }
     };
-
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
@@ -39,7 +33,6 @@ export default function GraphExplorer() {
         titleColor="#007bff"
       />
 
-      {/* Embedded GraphChain Explorer */}
       <GlassyCard className={styles.explorerCard}>
         <div className={styles.explorerHeader}>
           <h3 className={styles.explorerTitle}>

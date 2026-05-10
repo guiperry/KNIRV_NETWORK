@@ -45,7 +45,6 @@ The target architecture is:
   - Capabilities
   - Skills
   - Errors and solutions
-  - Agent-only wallet implementation
   - Embedded subprocess managed by `KNIRVSERVER`
 - `Transaction Chain`
   - Fast transaction execution

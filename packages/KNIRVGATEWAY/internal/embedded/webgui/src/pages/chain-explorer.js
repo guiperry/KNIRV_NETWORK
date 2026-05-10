@@ -10,23 +10,17 @@ export default function ChainExplorer() {
   const iframeRef = useRef(null);
 
   const handleSearch = (query) => {
-    // Pass search to the embedded knirvchain portal
     if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage({
-        type: 'search',
-        query: query
-      }, '*');
+      iframeRef.current.contentWindow.postMessage({ type: 'search', query }, '*');
     }
   };
 
   useEffect(() => {
-    // Listen for messages from the embedded knirvchain portal
     const handleMessage = (event) => {
       if (event.data && event.data.type === 'knirvchain-ready') {
         console.log('KNIRVChain Portal loaded successfully');
       }
     };
-
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
@@ -39,7 +33,6 @@ export default function ChainExplorer() {
         titleColor="#007bff"
       />
 
-      {/* Embedded KNIRVChain Portal */}
       <GlassyCard className={styles.explorerCard}>
         <div className={styles.explorerHeader}>
           <h3 className={styles.explorerTitle}>

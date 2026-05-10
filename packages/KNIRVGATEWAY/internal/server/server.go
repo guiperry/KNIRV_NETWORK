@@ -47,19 +47,20 @@ type Server struct {
 	paymentService    *payment.Service
 	paymentHandler    *payment.Handler
 	uriHandler        *uri.Handler
-	webguiHandler     *webgui.Handler
-	turnServer        *turnserver.Server
-	dhtManager       *dht.DHTManager
-	logger            *zap.Logger
-	httpServer        *http.Server
-	router            *mux.Router
-	webguiStaticDir   string
-	networkWebsiteDir string
-	actualPort        int
+	webguiHandler        *webgui.Handler
+	turnServer           *turnserver.Server
+	dhtManager          *dht.DHTManager
+	logger               *zap.Logger
+	httpServer           *http.Server
+	router               *mux.Router
+	webguiStaticDir      string
+	graphChainExplorerDir string
+	knirvChainPortalDir  string
+	actualPort           int
 }
 
 // New creates a new HTTP server
-func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *zap.Logger, db ...*sql.DB) (*Server, error) {
+func New(cfg *config.Config, webguiStaticDir, graphChainExplorerDir, knirvChainPortalDir string, logger *zap.Logger, db ...*sql.DB) (*Server, error) {
 	var dbInstance *sql.DB
 	if len(db) > 0 {
 		dbInstance = db[0]
@@ -165,23 +166,24 @@ func New(cfg *config.Config, webguiStaticDir, networkWebsiteDir string, logger *
 	}
 
 	s := &Server{
-		config:            cfg,
-		sessionManager:    session.NewManager(cfg.SessionSecret),
-		proxyHandler:      proxy.NewHandler(logger),
-		authHandler:       authHdlr,
-		operatorService:   operatorSvc,
-		operatorHandler:   operatorHdlr,
-		tunnelService:     tunnelSvc,
-		tunnelHandler:     tunnelHdlr,
-		paymentService:    paymentSvc,
-		paymentHandler:    paymentHdlr,
-		uriHandler:        uriHdlr,
-		webguiHandler:     explorerHandler,
-		turnServer:        turnSvc,
-		dhtManager:       dhtMgr,
-		logger:            logger,
-		webguiStaticDir:   webguiStaticDir,
-		networkWebsiteDir: networkWebsiteDir,
+		config:               cfg,
+		sessionManager:       session.NewManager(cfg.SessionSecret),
+		proxyHandler:         proxy.NewHandler(logger),
+		authHandler:          authHdlr,
+		operatorService:      operatorSvc,
+		operatorHandler:      operatorHdlr,
+		tunnelService:        tunnelSvc,
+		tunnelHandler:        tunnelHdlr,
+		paymentService:       paymentSvc,
+		paymentHandler:       paymentHdlr,
+		uriHandler:           uriHdlr,
+		webguiHandler:        explorerHandler,
+		turnServer:           turnSvc,
+		dhtManager:          dhtMgr,
+		logger:               logger,
+		webguiStaticDir:      webguiStaticDir,
+		graphChainExplorerDir: graphChainExplorerDir,
+		knirvChainPortalDir:  knirvChainPortalDir,
 	}
 
 	if err := s.setupRoutes(); err != nil {
@@ -380,8 +382,9 @@ func (s *Server) setupRoutes() error {
 	if s.config.GraphSocketPath != "" {
 		graphProxy := newSocketProxy(s.config.GraphSocketPath, "http://knirvgraph")
 
-		// /api/graph/* — Standardized graph prefix
-		r.PathPrefix("/api/graph/").Handler(graphProxy)
+		// /api/graph/* — Standardized graph prefix.
+		// Strip /api/graph so /api/graph/density becomes /density on KNIRVGRAPH.
+		r.PathPrefix("/api/graph/").Handler(http.StripPrefix("/api/graph", graphProxy))
 
 		// Flat /graph/* redirect → /api/graph/*
 		r.PathPrefix("/graph/").Handler(http.StripPrefix("/graph",
@@ -397,7 +400,7 @@ func (s *Server) setupRoutes() error {
 	// Shell proxy — KNIRVSHELL via shell.sock (Phase 5)
 	if s.config.ShellSocketPath != "" {
 		shellProxy := newSocketProxy(s.config.ShellSocketPath, "http://knirvshell")
-		r.PathPrefix("/api/shell/").Handler(shellProxy)
+		r.PathPrefix("/api/shell/").Handler(http.StripPrefix("/api/shell", shellProxy))
 		// 307 (method-preserving) redirects from old shell paths
 		r.PathPrefix("/api/v1/shell/").Handler(http.StripPrefix("/api/v1/shell",
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -579,19 +582,22 @@ func (s *Server) setupRoutes() error {
 		})
 	}
 
-	// Serve network-website at root (this should be last to catch all remaining routes).
-	// For paths not found in the network website, fall back to the WebGUI SPA shell
-	// (index.html with gateway config injected) so Next.js client-side routing works for
-	// any unmatched SPA route without returning 404/503.
-	r.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Try network website file first
-		filePath := filepath.Join(s.networkWebsiteDir, r.URL.Path)
-		if fi, err := os.Stat(filePath); err == nil && !fi.IsDir() {
-			http.ServeFile(w, r, filePath)
-			return
-		}
+	// Serve GraphChain Explorer static files at /graphchain-explorer/
+	r.HandleFunc("/graphchain-explorer", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/graphchain-explorer/", http.StatusMovedPermanently)
+	})
+	r.PathPrefix("/graphchain-explorer/").Handler(http.StripPrefix("/graphchain-explorer", http.FileServer(http.Dir(s.graphChainExplorerDir))))
 
-		// If path has a file extension and wasn't found in network website, return 404
+	// Serve KNIRVChain Portal static files at /knirvchain-portal/
+	r.HandleFunc("/knirvchain-portal", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/knirvchain-portal/", http.StatusMovedPermanently)
+	})
+	r.PathPrefix("/knirvchain-portal/").Handler(http.StripPrefix("/knirvchain-portal", http.FileServer(http.Dir(s.knirvChainPortalDir))))
+
+	// Root-level catch-all: serve WebGUI SPA shell for client-side routing.
+	// All unmatched paths get the WebGUI index.html with gateway config injected.
+	r.PathPrefix("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If path has a file extension and doesn't match a known static route, return 404
 		if strings.Contains(filepath.Base(r.URL.Path), ".") {
 			http.NotFound(w, r)
 			return
