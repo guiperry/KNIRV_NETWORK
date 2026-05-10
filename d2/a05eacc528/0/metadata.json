@@ -1,0 +1,37 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "d2a05eacc528",
+  "session_id": "ses_2251ebac8ffeDrMzp2y6fkWvt0",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-10T23:01:45.39987384Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVSERVER/pkg/knirvhasher/bin/knirvhasher"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "02b0707d70f8",
+  "token_usage": {
+    "input_tokens": 172549,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1415232,
+    "output_tokens": 19375,
+    "api_call_count": 22
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-10T23:01:45.122516842Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 11700,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 11700,
+    "total_lines_changed": 12487,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
