@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -196,6 +197,14 @@ func New(cfg *config.Config, webguiStaticDir, graphChainExplorerDir, knirvChainP
 // setupRoutes configures all HTTP routes
 func (s *Server) setupRoutes() error {
 	r := mux.NewRouter()
+
+	// Register MIME types explicitly (important on systems missing /etc/mime.types)
+	mime.AddExtensionType(".js", "application/javascript")
+	mime.AddExtensionType(".css", "text/css")
+	mime.AddExtensionType(".mjs", "application/javascript")
+	mime.AddExtensionType(".json", "application/json")
+	mime.AddExtensionType(".svg", "image/svg+xml")
+	mime.AddExtensionType(".wasm", "application/wasm")
 
 	// Session endpoints
 	r.HandleFunc("/session/controller", s.handleGetSession).Methods("GET")
@@ -586,13 +595,16 @@ func (s *Server) setupRoutes() error {
 
 	// Serve GraphChain Explorer static files at /graphchain-explorer/
 	r.HandleFunc("/graphchain-explorer", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/graphchain-explorer/", http.StatusMovedPermanently)
+		// Use a relative redirect (./) so the proxy prefix (/gateway/) is preserved
+		// when this endpoint is accessed through the KNIRVSERVER's gateway proxy.
+		// An absolute redirect (/graphchain-explorer/) would bypass the proxy.
+		http.Redirect(w, r, "./", http.StatusMovedPermanently)
 	})
 	r.PathPrefix("/graphchain-explorer/").Handler(http.StripPrefix("/graphchain-explorer", http.FileServer(http.Dir(s.graphChainExplorerDir))))
 
 	// Serve KNIRVChain Portal static files at /knirvchain-portal/
 	r.HandleFunc("/knirvchain-portal", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/knirvchain-portal/", http.StatusMovedPermanently)
+		http.Redirect(w, r, "./", http.StatusMovedPermanently)
 	})
 	r.PathPrefix("/knirvchain-portal/").Handler(http.StripPrefix("/knirvchain-portal", http.FileServer(http.Dir(s.knirvChainPortalDir))))
 

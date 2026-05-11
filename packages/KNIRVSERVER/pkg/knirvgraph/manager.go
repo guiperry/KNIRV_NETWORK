@@ -228,6 +228,11 @@ func (m *Manager) Start() error {
 		"--headless",
 	)
 
+	// Pass --socket if a socket path is configured (creates a Unix socket for the gateway to proxy to)
+	if m.config.SocketPath != "" {
+		m.cmd.Args = append(m.cmd.Args, "--socket", m.config.SocketPath)
+	}
+
 	m.cmd.Env = append(os.Environ(),
 		fmt.Sprintf("KNIRVGRAPH_PORT=%d", m.config.Port),
 		fmt.Sprintf("KNIRVGRAPH_P2P_PORT=%d", m.config.P2PPort),

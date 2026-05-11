@@ -150,3 +150,9 @@ packages/KNIRVSERVER/pkg/bin/knirvchain
 /packages/KNIRVSERVER/pkg/knirvoracle/bin
 /packages/KNIRVSERVER/frontend/menu/.next
 /packages/KNIRVSERVER/frontend/menu/out
+packages/KNIRVSERVER/pkg/knirvshell/bin/knirvshell
+packages/KNIRVSERVER/pkg/knirvoracle/bin/knirvoracle
+packages/KNIRVSERVER/pkg/knirvhasher/bin/knirvhasher
+packages/KNIRVSERVER/pkg/knirvgraph/bin/knirvgraph
+packages/KNIRVSERVER/pkg/knirvchain/bin/knirvchain
+packages/KNIRVSERVER/pkg/knirvagent/bin/knirvagent
