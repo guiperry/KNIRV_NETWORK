@@ -537,9 +537,11 @@ func (s *Server) setupRoutes() error {
 		// Quick Access
 		"controller-status", "qr-connect", "payment-gateway",
 		// Monitor
-		"network-monitor", "local-analytics", "graph-explorer",
+		"network-monitor", "graph-explorer",
 		"chain-explorer", "chain-explorer-new", "oracle-explorer",
 		"peers", "operator-registry", "tunnel-registry", "error-explorer",
+		// Chain Explorers
+		"transaction-explorer", "validation-explorer",
 		// Models
 		"models", "codex-builder", "models-dex",
 		// Governance

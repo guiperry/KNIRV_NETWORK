@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Network, Brain, AlertTriangle, Home } from 'lucide-react';
+import { Search, Menu, X, Network, Brain, Box, Zap } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -21,10 +21,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'SkillNodes', href: '/skills', icon: Brain },
-    { name: 'ErrorNodes', href: '/errors', icon: AlertTriangle },
-    { name: 'Graph View', href: '/graph', icon: Network },
+    { name: 'Decisions', href: '/graph', icon: Network },
+    { name: 'Capabilities', href: '/capabilities', icon: Brain },
+    { name: 'Properties', href: '/properties', icon: Box },
+    { name: 'Skills', href: '/skills', icon: Zap },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -37,12 +37,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center space-x-4">
-              <Link to="/" className="flex items-center space-x-2">
+              <Link to="/graph" className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                   <Network className="w-5 h-5 text-white" />
                 </div>
                 <span className="text-xl font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  KNIRV Chain Portal
+                  KNIRVCHAIN
                 </span>
               </Link>
             </div>

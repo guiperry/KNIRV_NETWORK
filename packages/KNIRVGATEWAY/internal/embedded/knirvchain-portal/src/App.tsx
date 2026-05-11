@@ -8,6 +8,8 @@ import ErrorNodes from './pages/ErrorNodes';
 import ErrorNodeDetails from './pages/ErrorNodeDetails';
 import VectorDetails from './pages/VectorDetails';
 import GraphVisualization from './pages/GraphVisualization';
+import Capabilities from './pages/Capabilities';
+import Properties from './pages/Properties';
 import Search from './pages/Search';
 import { GraphChainProvider } from './context/GraphChainContext';
 
@@ -19,12 +21,14 @@ function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/graph" element={<GraphVisualization />} />
+              <Route path="/capabilities" element={<Capabilities />} />
+              <Route path="/properties" element={<Properties />} />
               <Route path="/skills" element={<SkillNodes />} />
               <Route path="/skill/:id" element={<SkillNodeDetails />} />
               <Route path="/errors" element={<ErrorNodes />} />
               <Route path="/error/:id" element={<ErrorNodeDetails />} />
               <Route path="/vector/:id" element={<VectorDetails />} />
-              <Route path="/graph" element={<GraphVisualization />} />
               <Route path="/search/:query" element={<Search />} />
             </Routes>
           </Layout>
