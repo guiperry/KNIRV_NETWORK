@@ -10,18 +10,18 @@ const Footer = () => {
     const mockConfig = {
       navigation: {
         main_site: 'https://knirv.com',
-        products: '/products',
-        documentation: '/docs',
-        graphchain_explorer: '/graphchain-explorer',
-        nanda_ans: '/nanda-ans',
-        developer_portal: '/developer-portal',
-        agentify: '/agentify'
+        products: 'https://knirv.network/products',
+        documentation: 'https://knirv.network/docs',
+        graphchain_explorer: 'https://knirv.network/graphchain-explorer',
+        nanda_ans: 'https://knirv.network/nanda-ans',
+        developer_portal: 'https://knirv.network/developer-portal',
+        agentify: 'https://knirv.network/agentify'
       },
       footer: {
         resources: {
-          support: '/support',
+          support: 'https://knirv.network/support',
           blog: 'https://blog.knirv.com',
-          forum: '/forum'
+          forum: 'https://knirv.network/forum'
         },
         social: {
           discord: 'https://discord.gg/knirv',
@@ -30,9 +30,9 @@ const Footer = () => {
           github: 'https://github.com/knirv-network'
         },
         legal: {
-          terms: '/terms',
-          privacy: '/privacy',
-          contribution: '/contributing'
+          terms: 'https://knirv.network/terms',
+          privacy: 'https://knirv.network/privacy',
+          contribution: 'https://knirv.network/contributing'
         }
       }
     };
@@ -82,8 +82,6 @@ const Footer = () => {
           <div className={styles.footerSection}>
             <h4>Developer Tools</h4>
             <ul>
-              <li><a href={getLink('navigation.graphchain_explorer')}>Graphchain Explorer</a></li>
-              <li><a href={getLink('navigation.nanda_ans')}>NANDA+ANS</a></li>
               <li><a href={getLink('navigation.developer_portal')}>Developer Portal</a></li>
               <li><a href={getLink('navigation.agentify')}>Agentify</a></li>
             </ul>

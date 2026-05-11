@@ -1023,8 +1023,8 @@ export function NetworkAccessModal({
 
             {/* Console Panel - Floating overlay above the modal */}
             {showConsole && (
-              <div className="fixed z-[60] pointer-events-auto right-4" style={{top: '80px'}}>
-                <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-80">
+              <div className="fixed right-[672px] top-0 bottom-0 z-[60] pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 w-96 gpu-accelerated">
+                <div className="h-full bg-slate-900 rounded-l-lg border-l border-blue-600/30 shadow-2xl">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
                       <Terminal className="w-4 h-4 text-cyan-400" />
@@ -1036,7 +1036,7 @@ export function NetworkAccessModal({
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="p-4 bg-black rounded-b-lg max-h-80 overflow-y-auto font-mono text-xs text-blue-400">
+                  <div className="p-4 bg-black max-h-[calc(100%-60px)] overflow-y-auto font-mono text-xs text-blue-400">
                     <div className="space-y-1">
                       <div>[10:30:15] Validation task completed successfully</div>
                       <div>[10:29:42] TEE enclave initialized</div>
@@ -1051,10 +1051,10 @@ export function NetworkAccessModal({
               </div>
             )}
 
-            {/* Policy Panel - Floating overlay above the modal */}
+            {/* Policy Panel */}
             {showPolicy && (
-              <div className="fixed z-[60] pointer-events-auto right-4" style={{top: '340px'}}>
-                <div className="bg-slate-900 rounded-lg border border-blue-600/30 shadow-2xl w-80">
+              <div className="fixed right-[672px] top-0 bottom-0 z-[60] pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 w-96 gpu-accelerated">
+                <div className="h-full bg-slate-900 rounded-l-lg border-l border-blue-600/30 shadow-2xl">
                   <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
                     <div className="flex items-center space-x-2">
                       <Shield className="w-4 h-4 text-cyan-400" />
@@ -1066,7 +1066,7 @@ export function NetworkAccessModal({
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
+                  <div className="p-4 space-y-3 max-h-[calc(100%-60px)] overflow-y-auto">
                     <div>
                       <label className="text-xs text-slate-400 block mb-1">TEE Mode</label>
                       <select
@@ -1160,67 +1160,66 @@ export function NetworkAccessModal({
                 </div>
               </div>
             )}
-
-            {/* Global Connections Panel - Slides out to the left of the NAP modal panel */}
-            {showConnections && (
-              <div className="fixed right-[672px] top-0 bottom-0 z-[60] pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 w-96 gpu-accelerated">
-                <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
-                  <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
-                    <div className="flex items-center space-x-2">
-                      <Radio className="w-4 h-4 text-cyan-400" />
-                      <h3 className="font-semibold text-sm">Global Active Connections</h3>
-                    </div>
-                    <button
-                      onClick={() => setShowConnections(false)}
-                      className="p-1 hover:bg-slate-800 rounded transition-colors">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="p-4 space-y-4 overflow-y-auto" style={{maxHeight: 'calc(100% - 60px)'}}>
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <span>Total: {globalConnections.length} connections</span>
-                      <Badge variant="secondary" className="bg-green-500/20 text-green-400">All Active</Badge>
-                    </div>
-                    <div className="space-y-2">
-                      {globalConnections.map((conn) => (
-                        <div
-                          key={conn.id}
-                          className="w-full text-left p-3 border rounded bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50 transition-interactive cursor-pointer"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="text-xs font-medium text-slate-200">{conn.nodeName}</div>
-                              <div className="text-xs text-slate-400 mt-0.5">{conn.nodeId}</div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge variant="outline" className="text-[10px] h-4">
-                                  {conn.type}
-                                </Badge>
-                                <span className="text-[10px] text-slate-500">{conn.location}</span>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="flex items-center gap-1">
-                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                <span className="text-xs text-green-400">Active</span>
-                              </div>
-                              <div className="text-[10px] text-slate-400 mt-1">{conn.latency}ms</div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="pt-2 border-t border-blue-600/20">
-                      <div className="text-xs text-slate-500 text-center">
-                        Last updated: {new Date().toLocaleTimeString()}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
+      {/* Global Connections Panel - Left side */}
+      {showConnections && (
+        <div className="absolute left-0 top-0 bottom-0 z-[60] pointer-events-auto transform transition-slide duration-300 ease-out translate-x-0 w-96 gpu-accelerated">
+          <div className="h-full bg-slate-900 rounded-r-lg border-r border-blue-600/30 shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-blue-600/30">
+              <div className="flex items-center space-x-2">
+                <Radio className="w-4 h-4 text-cyan-400" />
+                <h3 className="font-semibold text-sm">Global Active Connections</h3>
+              </div>
+              <button
+                onClick={() => setShowConnections(false)}
+                className="p-1 hover:bg-slate-800 rounded transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4 overflow-y-auto" style={{maxHeight: 'calc(100% - 60px)'}}>
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Total: {globalConnections.length} connections</span>
+                <Badge variant="secondary" className="bg-green-500/20 text-green-400">All Active</Badge>
+              </div>
+              <div className="space-y-2">
+                {globalConnections.map((conn) => (
+                  <div
+                    key={conn.id}
+                    className="w-full text-left p-3 border rounded bg-slate-800/50 border-blue-600/20 hover:border-blue-600/50 transition-interactive cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="text-xs font-medium text-slate-200">{conn.nodeName}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">{conn.nodeId}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-[10px] h-4">
+                            {conn.type}
+                          </Badge>
+                          <span className="text-[10px] text-slate-500">{conn.location}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                          <span className="text-xs text-green-400">Active</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 mt-1">{conn.latency}ms</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2 border-t border-blue-600/20">
+                <div className="text-xs text-slate-500 text-center">
+                  Last updated: {new Date().toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

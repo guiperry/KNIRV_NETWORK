@@ -78,7 +78,7 @@ export function WebguiIframeModal({ isOpen, onClose, page }: WebguiIframeModalPr
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0f1e]">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0f1e] overflow-hidden">
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-indigo-900/40 bg-[#0a0f1e]/95 backdrop-blur-sm shrink-0">
         <div className="flex items-center space-x-3">
