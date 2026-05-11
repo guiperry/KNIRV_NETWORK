@@ -22,6 +22,8 @@ import DVEWorkspacePanel from './dve-workspace-panel'; // Modular DVE Workspace
 import DVECreationManagement from '@/components/dve-management/dve-creation-management';
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
 import { CognitiveEnginePanel } from '@/components/dashboard/cognitive-engine-panel';
+import { CognitiveEngineStatusCard } from '@/components/dashboard/cognitive-engine-panel';
+import NeuralDesktopPanel from '@/components/dashboard/neural-desktop-panel';
 import { PredictiveAnalyticsPanel } from '@/components/dashboard/predictive-analytics-panel';
 import { GuardrailViolationsPanel, GuardrailStatisticsCard } from '@/components/dashboard/guardrail-violations-panel';
 import { BadgeLabPanel } from '@/components/dashboard/badge-lab-panel';
@@ -941,9 +943,22 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
 
                       {/* ── Cognitive Engine Tab ── */}
                       <TabsContent value="cognitive" className="space-y-4">
+                        {/* Engine Controls - Full Width */}
+                        <CognitiveEnginePanel />
+
+                        {/* Neural Desktop + Cognitive Engine Status - same row */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           <div className="space-y-4">
-                            <CognitiveEnginePanel />
+                            <NeuralDesktopPanel />
+                          </div>
+                          <div className="space-y-4">
+                            <CognitiveEngineStatusCard />
+                          </div>
+                        </div>
+
+                        {/* Predictive Analytics + Guardrails - bottom row */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          <div className="space-y-4">
                             <PredictiveAnalyticsPanel />
                           </div>
                           <div className="space-y-4">
