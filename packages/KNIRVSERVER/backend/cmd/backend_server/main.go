@@ -2913,7 +2913,7 @@ func run() error {
 	log.Println("Shutting down server...")
 
 	// Create a context with timeout for graceful shutdown
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
 
 	// Channel to signal when shutdown is complete

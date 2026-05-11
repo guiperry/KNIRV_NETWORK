@@ -54,10 +54,7 @@
                 <i class="fas fa-exchange-alt"></i>
                 <span>Model/Skill Exchange</span>
             </a>
-            <a href="#" class="nav-item" onclick="openGraphchainExplorer()">
-                <i class="fas fa-project-diagram"></i>
-                <span>Graphchain Explorer</span>
-            </a>
+            <!-- Graphchain Explorer removed -- migrated to KNIRVGATEWAY WebGUI -->
             <a href="#" class="nav-item" onclick="openDocumentation()">
                 <i class="fas fa-book"></i>
                 <span>Documentation</span>
@@ -205,10 +202,6 @@
     <script src="js/auth.js"></script>
     <script src="../js/universal-footer.js"></script>
     <script>
-        function openGraphchainExplorer() {
-            openInIframe('Graphchain Explorer', '/graphchain-explorer/');
-        }
-
         function openDocumentation() {
             openInIframe('KNIRV Documentation', '/documentation/static/');
         }

@@ -13,11 +13,6 @@
   status = 200
 
 [[redirects]]
-  from = "/graphchain-explorer/*"
-  to = "../graphchain-explorer/:splat"
-  status = 200
-
-[[redirects]]
   from = "/documentation/*"
   to = "../documentation/:splat"
   status = 200

@@ -20,7 +20,7 @@ webgui-deps: ## Install WebGUI Node.js dependencies
 	@echo "Installing WebGUI dependencies..."
 	cd $(WEBGUI_DIR) && npm install --legacy-peer-deps
 
-webgui-build: webgui-deps ## Build WebGUI Next.js static export into webgui/out/
+webgui-build: webgui-deps portal-build ## Build WebGUI Next.js static export into webgui/out/ (also builds KNIRVChain Portal)
 	@echo "Building WebGUI static export..."
 	cd $(WEBGUI_DIR) && npm run build
 	@echo "WebGUI build complete: $(WEBGUI_DIR)/out/"

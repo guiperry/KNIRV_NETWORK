@@ -54,8 +54,12 @@ func LoadDeviceConfig() (*DeviceConfig, error) {
 
 	// Set default FramesDir if still empty
 	if cfg.FramesDir == "" {
-		if home, err := os.UserHomeDir(); err == nil {
-			cfg.FramesDir = filepath.Join(home, ".local", "share", "hasher", "data", "frames")
+		if appData := os.Getenv("KNIRV_APP_DATA_DIR"); appData != "" {
+			cfg.FramesDir = filepath.Join(appData, "hasher", "data", "frames")
+		} else if err := os.MkdirAll("/var/lib/knirvserver/hasher/data/frames", 0755); err == nil {
+			cfg.FramesDir = "/var/lib/knirvserver/hasher/data/frames"
+		} else if home, err := os.UserHomeDir(); err == nil {
+			cfg.FramesDir = filepath.Join(home, ".local", "share", "knirvserver", "hasher", "data", "frames")
 		}
 	}
 

@@ -379,7 +379,7 @@ func (m *Manager) Stop(ctx context.Context) error {
 	if err := m.cmd.Process.Signal(syscall.SIGTERM); err != nil {
 		m.logger.Warn("Failed to send SIGTERM, forcing kill",
 			zap.Error(err))
-		m.cmd.Process.Kill()
+		syscall.Kill(-m.cmd.Process.Pid, syscall.SIGKILL)
 	}
 
 	done := make(chan error, 1)
@@ -398,7 +398,7 @@ func (m *Manager) Stop(ctx context.Context) error {
 		return nil
 	case <-time.After(m.config.StopTimeout):
 		m.logger.Warn("Timeout waiting for graceful shutdown, forcing kill")
-		m.cmd.Process.Kill()
+		syscall.Kill(-m.cmd.Process.Pid, syscall.SIGKILL)
 		select {
 		case <-done:
 		case <-time.After(2 * time.Second):

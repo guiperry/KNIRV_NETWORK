@@ -80,7 +80,9 @@ func (il *ingestionLogger) Error(format string, args ...interface{}) {
 	il.logger.Error(format, args...)
 }
 
-// getAppDataDir returns the OS-specific application data directory
+// getAppDataDir returns the OS-specific application data directory.
+// Privileged launches use a system location so sudo does not split data
+// between /root and the invoking user's home directory.
 func getAppDataDir() (string, error) {
 	var basePath string
 
@@ -102,8 +104,19 @@ func getAppDataDir() (string, error) {
 			}
 			basePath = filepath.Join(userProfile, "AppData", "Local")
 		}
-		basePath = filepath.Join(basePath, "hasher", "data")
+		basePath = filepath.Join(basePath, "knirvserver", "hasher", "data")
 	} else {
+		// KNIRV_APP_DATA_DIR takes highest precedence
+		if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
+			p := filepath.Join(explicit, "hasher", "data")
+			if err := os.MkdirAll(p, 0755); err == nil {
+				return p, nil
+			}
+		}
+		// System location
+		if err := os.MkdirAll("/var/lib/knirvserver/hasher/data", 0755); err == nil {
+			return "/var/lib/knirvserver/hasher/data", nil
+		}
 		// Unix-like systems: ~/.local/share
 		home := os.Getenv("HOME")
 		if home == "" {
@@ -118,7 +131,7 @@ func getAppDataDir() (string, error) {
 		if dataHome == "" {
 			dataHome = filepath.Join(home, ".local", "share")
 		}
-		basePath = filepath.Join(dataHome, "hasher", "data")
+		basePath = filepath.Join(dataHome, "knirvserver", "hasher", "data")
 	}
 
 	// Create the directory if it doesn't exist

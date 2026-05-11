@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { NetworkAccessModal } from '@/components/nap/nap-access-modal';
-import { ActiveMemoryAccessModal, KNIRVGraphAccessModal, KNIRVChainAccessModal, P2PTransportAccessModal } from '@/components/nap/access-panels';
+
 import DVEWorkspacePanel from './dve-workspace-panel'; // Modular DVE Workspace
 import DVECreationManagement from '@/components/dve-management/dve-creation-management';
 import { KNIRVEngineModal } from '@/components/knirvengine/knirvengine-modal';
@@ -31,6 +31,7 @@ import { ModuleLogViewer } from '@/components/dashboard/module-log-viewer';
 import { useOnboarding } from "@/contexts/onboarding-context";
 import OnboardingGuide from "@/components/onboarding/onboarding-guide";
 import PaymentGatewayModal from './payment-gateway-modal';
+import { WebguiIframeModal } from './webgui-iframe-modal';
 import type { DVENode } from '@/types/api';
 import { useDashboardStore } from '@/lib/store';
 import {
@@ -87,7 +88,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
       return;
     }
     if (section === 'p2p-webgui') {
-      setP2pTransportOpen(true);
+      goToWebgui('dashboard');
       return;
     }
     if (section === 'cognitive' || section === 'nodes' || section === 'badgelab' || section === 'overview') {
@@ -103,7 +104,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
     const handleMessage = (event: MessageEvent) => {
       const { type, section, modal } = event.data || {};
       if (type === 'navigate' && section) applyNavSection(section);
-      else if (type === 'open-modal' && modal === 'p2p-webgui') setP2pTransportOpen(true);
+      else if (type === 'open-modal' && modal === 'p2p-webgui') goToWebgui('dashboard');
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
@@ -117,14 +118,17 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
 
   const [cdeModalOpen, setCdeModalOpen] = useState(false);
   const [dveCreationModalOpen, setDveCreationModalOpen] = useState(false);
-  const [activeMemoryOpen, setActiveMemoryOpen] = useState(false);
-  const [knirvGraphOpen, setKnirvGraphOpen] = useState(false);
-  const [knirvChainOpen, setKnirvChainOpen] = useState(false);
-  const [p2pTransportOpen, setP2pTransportOpen] = useState(false);
   const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
   const [paymentGatewayOpen, setPaymentGatewayOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
   const [showAdminAccess, setShowAdminAccess] = useState(false);
+  const [webguiIframeOpen, setWebguiIframeOpen] = useState(false);
+  const [webguiIframePage, setWebguiIframePage] = useState<string>('');
+
+  const goToWebgui = (pageId: string) => {
+    setWebguiIframePage(pageId);
+    setWebguiIframeOpen(true);
+  };
 
   // Persist active DVE nodes across navigation using Zustand store (survives tab switches)
   const { activeNodeIds, setActiveNodeId } = useDashboardStore();
@@ -743,25 +747,25 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          {/* 1. Active Memory (KNIRVBASE) */}
+                          {/* 1. KNIRVORACLE → WebGUI Network Inference DAO */}
                           <Card 
                             className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                            onClick={() => setActiveMemoryOpen(true)}
+                            onClick={() => goToWebgui('network-inference-dao')}
                           >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <div className="flex items-center space-x-2">
-                                <CardTitle className="text-sm font-medium text-gray-300">Active Memory (KNIRVBASE)</CardTitle>
-                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Online" />
+                                <CardTitle className="text-sm font-medium text-gray-300">KNIRVORACLE</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Status: Active" />
                               </div>
-                              <Database className="h-4 w-4 text-gray-500" />
+                              <Eye className="h-4 w-4 text-gray-500" />
                             </CardHeader>
                             <CardContent>
-                              <div className="text-2xl font-bold text-gray-200">Encrypted</div>
-                              <p className="text-xs text-gray-500 mb-3">PQC Markdown persistence active</p>
-                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
-                                <div className="line-clamp-1">[10:45:21] Kyber-768 Handshake OK</div>
-                                <div className="line-clamp-1">[10:45:22] Committing .md fabric slice...</div>
-                                <div className="line-clamp-1">[10:45:23] Dilithium-3 Signature Valid</div>
+                              <div className="text-2xl font-bold text-gray-200">Root Node</div>
+                              <p className="text-xs text-gray-500 mb-3">Verifiable data feeds & attestation</p>
+                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-green-400/80 h-16 overflow-hidden">
+                                <div className="line-clamp-1">[10:45:21] Oracle heartbeat OK</div>
+                                <div className="line-clamp-1">[10:45:22] Attestation round #882</div>
+                                <div className="line-clamp-1">[10:45:23] Price feed updated</div>
                               </div>
                             </CardContent>
                           </Card>
@@ -769,7 +773,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                           {/* 2. Reasoning Graph (KNIRVGRAPH) */}
                           <Card 
                             className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                            onClick={() => setKnirvGraphOpen(true)}
+                            onClick={() => goToWebgui('graph-explorer')}
                           >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <div className="flex items-center space-x-2">
@@ -790,7 +794,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                           {/* 3. Solution Vault (KNIRVCHAIN) */}
                           <Card 
                             className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                            onClick={() => setKnirvChainOpen(true)}
+                            onClick={() => goToWebgui('chain-explorer')}
                           >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <div className="flex items-center space-x-2">
@@ -811,7 +815,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                           {/* 4. P2P Transport */}
                           <Card 
                             className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                            onClick={() => setP2pTransportOpen(true)}
+                            onClick={() => goToWebgui('dashboard')}
                           >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <div className="flex items-center space-x-2">
@@ -829,25 +833,25 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                             </CardContent>
                           </Card>
 
-                          {/* 5. KNIRVORACLE */}
+                          {/* 5. Active Memory (KNIRVBASE) */}
                           <Card 
                             className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                            onClick={() => setShowAdminAccess(true)}
+                            onClick={() => goToWebgui('dashboard')}
                           >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <div className="flex items-center space-x-2">
-                                <CardTitle className="text-sm font-medium text-gray-300">KNIRVORACLE</CardTitle>
-                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Status: Active" />
+                                <CardTitle className="text-sm font-medium text-gray-300">Active Memory (KNIRVBASE)</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]" title="Status: Online" />
                               </div>
-                              <Eye className="h-4 w-4 text-gray-500" />
+                              <Database className="h-4 w-4 text-gray-500" />
                             </CardHeader>
                             <CardContent>
-                              <div className="text-2xl font-bold text-gray-200">Root Node</div>
-                              <p className="text-xs text-gray-500 mb-3">Verifiable data feeds & attestation</p>
-                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-green-400/80 h-16 overflow-hidden">
-                                <div className="line-clamp-1">[10:45:21] Oracle heartbeat OK</div>
-                                <div className="line-clamp-1">[10:45:22] Attestation round #882</div>
-                                <div className="line-clamp-1">[10:45:23] Price feed updated</div>
+                              <div className="text-2xl font-bold text-gray-200">Encrypted</div>
+                              <p className="text-xs text-gray-500 mb-3">PQC Markdown persistence active</p>
+                              <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-indigo-400/80 h-16 overflow-hidden">
+                                <div className="line-clamp-1">[10:45:21] Kyber-768 Handshake OK</div>
+                                <div className="line-clamp-1">[10:45:22] Committing .md fabric slice...</div>
+                                <div className="line-clamp-1">[10:45:23] Dilithium-3 Signature Valid</div>
                               </div>
                             </CardContent>
                           </Card>
@@ -1362,32 +1366,18 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
         }}
       />
 
-      {/* Network Resource Access Modals */}
-      <ActiveMemoryAccessModal
-        isOpen={activeMemoryOpen}
-        onClose={() => setActiveMemoryOpen(false)}
-      />
-
-      <KNIRVGraphAccessModal
-        isOpen={knirvGraphOpen}
-        onClose={() => setKnirvGraphOpen(false)}
-      />
-
-      <KNIRVChainAccessModal
-        isOpen={knirvChainOpen}
-        onClose={() => setKnirvChainOpen(false)}
-      />
-
-      <P2PTransportAccessModal
-        isOpen={p2pTransportOpen}
-        onClose={() => setP2pTransportOpen(false)}
-      />
-
       {/* DVE Sovereign Creation & Management Modal */}
       <DVECreationManagement
         isOpen={dveCreationModalOpen}
         onClose={() => setDveCreationModalOpen(false)}
         defaultTab="create"
+      />
+
+      {/* WebGUI Iframe Modal */}
+      <WebguiIframeModal
+        isOpen={webguiIframeOpen}
+        onClose={() => setWebguiIframeOpen(false)}
+        page={webguiIframePage}
       />
 
       {/* Payment Gateway Modal */}

@@ -91,7 +91,7 @@ func (m *Manager) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start validation chain: %w", err)
 	}
 	if err := m.waitForHealth(ctx); err != nil {
-		_ = m.cmd.Process.Kill()
+		_ = syscall.Kill(-m.cmd.Process.Pid, syscall.SIGKILL)
 		return err
 	}
 
@@ -130,7 +130,7 @@ func (m *Manager) Stop(ctx context.Context) error {
 		return nil
 	}
 	if err := m.cmd.Process.Signal(syscall.SIGTERM); err != nil {
-		_ = m.cmd.Process.Kill()
+		_ = syscall.Kill(-m.cmd.Process.Pid, syscall.SIGKILL)
 	}
 
 	done := make(chan error, 1)
@@ -138,9 +138,9 @@ func (m *Manager) Stop(ctx context.Context) error {
 
 	select {
 	case <-ctx.Done():
-		_ = m.cmd.Process.Kill()
+		_ = syscall.Kill(-m.cmd.Process.Pid, syscall.SIGKILL)
 	case <-time.After(m.config.StopTimeout):
-		_ = m.cmd.Process.Kill()
+		_ = syscall.Kill(-m.cmd.Process.Pid, syscall.SIGKILL)
 	case <-done:
 	}
 

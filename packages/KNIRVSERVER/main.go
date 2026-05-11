@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
 	"embed"
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"io"
@@ -58,11 +56,6 @@ var envDevelopment []byte
 //go:embed .env.testnet
 var envTestnet []byte
 
-// Embed the desktop dist files
-//
-//go:embed all:desktop/dist/*
-var desktopFiles embed.FS
-
 // Version information (set by build flags)
 var (
 	Version   = "dev"
@@ -84,8 +77,7 @@ type Config struct {
 	GatewayPort   int    `mapstructure:"gateway_port"`
 	GatewaySocket string `mapstructure:"gateway_socket"`
 	LogLevel      string `mapstructure:"log_level"`
-	Testnet       bool   `mapstructure:"testnet"`
-	Desktop       bool   `mapstructure:"desktop"`
+	Testnet bool `mapstructure:"testnet"`
 }
 
 // EmbeddedFS wraps the embedded filesystem for serving static files
@@ -97,18 +89,6 @@ type EmbeddedFS struct {
 func NewEmbeddedFS() (*EmbeddedFS, error) {
 	return &EmbeddedFS{
 		files: embeddedFiles,
-	}, nil
-}
-
-// DesktopFS wraps the embedded desktop filesystem
-type DesktopFS struct {
-	files fs.FS
-}
-
-// NewDesktopFS creates a new desktop filesystem
-func NewDesktopFS() (*DesktopFS, error) {
-	return &DesktopFS{
-		files: desktopFiles,
 	}, nil
 }
 
@@ -220,10 +200,7 @@ type ServerApp struct {
 	server        *http.Server
 	backendCmd    *exec.Cmd
 	backendPath   string
-	desktopCmd    *exec.Cmd
 	tempDir       string
-	shutdownToken string
-	shutdownChan  chan struct{}
 }
 
 func unixSocketTransport(socketPath string) *http.Transport {
@@ -336,17 +313,9 @@ func NewServerApp(config *Config) (*ServerApp, error) {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// Generate a random single-use shutdown token so only the desktop can trigger shutdown
-	tokenBytes := make([]byte, 16)
-	if _, err := rand.Read(tokenBytes); err != nil {
-		return nil, fmt.Errorf("failed to generate shutdown token: %w", err)
-	}
-
 	app := &ServerApp{
-		config:        config,
-		router:        gin.New(),
-		shutdownToken: hex.EncodeToString(tokenBytes),
-		shutdownChan:  make(chan struct{}, 1),
+		config: config,
+		router: gin.New(),
 	}
 
 	// Extract backend binary
@@ -432,15 +401,13 @@ func extractBinaries() (string, error) {
 }
 
 // extractBackend extracts all embedded binaries to the app data directory and
-// sets app.backendPath. A small temp directory is still kept for ephemeral
-// artefacts (e.g. desktop files).
+// sets app.backendPath.
 func (app *ServerApp) extractBackend() error {
-	// Create temp directory for ephemeral artefacts (desktop assets, etc.)
+	// Create temp directory for ephemeral artefacts.
 	tempDir, err := os.MkdirTemp("", "knirv-server-*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
-	// Make temp dir traversable by non-root users (e.g. Electron running as SUDO_USER).
 	if err := os.Chmod(tempDir, 0755); err != nil {
 		return fmt.Errorf("failed to chmod temp directory: %w", err)
 	}
@@ -454,182 +421,6 @@ func (app *ServerApp) extractBackend() error {
 
 	app.backendPath = filepath.Join(binDir, "backend_server")
 	return nil
-}
-
-// extractDesktop extracts the embedded desktop files
-func (app *ServerApp) extractDesktop() error {
-	// Create desktop directory in temp directory
-	desktopDir := filepath.Join(app.tempDir, "desktop")
-	if err := os.MkdirAll(desktopDir, 0755); err != nil {
-		return fmt.Errorf("failed to create desktop directory: %w", err)
-	}
-
-	// Walk through embedded desktop files
-	err := fs.WalkDir(desktopFiles, "desktop/dist", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// Create subdirectories
-		if d.IsDir() {
-			relPath := strings.TrimPrefix(path, "desktop/dist/")
-			if relPath != "" {
-				fullPath := filepath.Join(desktopDir, relPath)
-				if err := os.MkdirAll(fullPath, 0755); err != nil {
-					return fmt.Errorf("failed to create desktop subdirectory: %w", err)
-				}
-			}
-			return nil
-		}
-
-		// Read embedded file
-		data, err := desktopFiles.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("failed to read desktop file %s: %w", path, err)
-		}
-
-		// Extract just the filename (remove "desktop/dist/" prefix)
-		filename := strings.TrimPrefix(path, "desktop/dist/")
-		destPath := filepath.Join(desktopDir, filename)
-
-		// Write to local filesystem
-		if err := os.WriteFile(destPath, data, 0644); err != nil {
-			return fmt.Errorf("failed to write desktop file %s: %w", destPath, err)
-		}
-
-		return nil
-	})
-
-	return err
-}
-
-// startDesktop starts the Electron desktop application
-func (app *ServerApp) startDesktop() error {
-	log.Println("Starting KNIRV Desktop...")
-
-	// Resolve electron binary: ELECTRON_PATH env > node_modules relative to exe > node_modules relative to CWD > PATH
-	electronPath := os.Getenv("ELECTRON_PATH")
-	if electronPath == "" {
-		// Build candidate paths to search
-		candidates := []string{filepath.Join("desktop", "node_modules", ".bin", "electron")}
-		if exePath, err := os.Executable(); err == nil {
-			exeDir := filepath.Dir(exePath)
-			// Binary may live at dist/knirv-server; desktop is at ../desktop relative to dist/
-			candidates = append(candidates,
-				filepath.Join(exeDir, "desktop", "node_modules", ".bin", "electron"),
-				filepath.Join(exeDir, "..", "desktop", "node_modules", ".bin", "electron"),
-			)
-		}
-		for _, c := range candidates {
-			if abs, err := filepath.Abs(c); err == nil {
-				if _, statErr := os.Stat(abs); statErr == nil {
-					electronPath = abs
-					break
-				}
-			}
-		}
-	}
-	if electronPath == "" {
-		if p, err := exec.LookPath("electron"); err == nil {
-			electronPath = p
-		}
-	}
-	if electronPath == "" {
-		log.Printf("Warning: Electron not found. Desktop will not be started.")
-		log.Printf("Run 'make desktop-build' or set ELECTRON_PATH to the electron binary.")
-		return nil
-	}
-
-	// Extract desktop files
-	if err := app.extractDesktop(); err != nil {
-		return fmt.Errorf("failed to extract desktop: %w", err)
-	}
-
-	desktopDir := filepath.Join(app.tempDir, "desktop")
-
-	// Set the KNIRV server URL for the desktop
-	serverUrl := fmt.Sprintf("http://localhost:%d", app.config.Port)
-
-	// Launch Electron with the desktop.
-	// Run electron with the explicit entry point so no package.json is needed.
-	// If running under sudo, launch as the original user so Electron has access
-	// to the user's display server. We use a login shell to load the user's
-	// profile (nvm, etc.) so that node is on PATH.
-	mainJsPath := filepath.Join(desktopDir, "main.js")
-
-	sudoUser := os.Getenv("SUDO_USER")
-	if sudoUser != "" {
-		// Run as the original user with --set-home so $HOME is correct.
-		// Explicitly source ~/.nvm/nvm.sh so node is on PATH regardless of
-		// whether nvm is in .bashrc (interactive) or .bash_profile (login).
-		// Disable Vulkan/GPU via env vars to suppress driver warnings on headless systems.
-		shellCmd := fmt.Sprintf(
-			`. "$HOME/.nvm/nvm.sh" 2>/dev/null; `+
-				`export XDG_RUNTIME_DIR="/run/user/$(id -u)"; `+
-				`export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"; `+
-				`export VK_ICD_FILENAMES=""; `+
-				`export ELECTRON_OZONE_PLATFORM_HINT=auto; `+
-				`KNIRV_SERVER_URL=%s KNIRV_SHUTDOWN_TOKEN=%s KNIRV_SERVER_PORT=%s exec %s --disable-gpu --disable-software-rasterizer %s`,
-			shellEscape(serverUrl), shellEscape(app.shutdownToken),
-			shellEscape(fmt.Sprintf("%d", app.config.Port)),
-			shellEscape(electronPath), shellEscape(mainJsPath),
-		)
-		app.desktopCmd = exec.Command("sudo", "-u", sudoUser, "--set-home", "--", "bash", "-c", shellCmd)
-	} else {
-		app.desktopCmd = exec.Command(electronPath, "--disable-gpu", "--disable-software-rasterizer", mainJsPath)
-		app.desktopCmd.Env = append(os.Environ(),
-			fmt.Sprintf("KNIRV_SERVER_URL=%s", serverUrl),
-			fmt.Sprintf("KNIRV_SHUTDOWN_TOKEN=%s", app.shutdownToken),
-			fmt.Sprintf("KNIRV_SERVER_PORT=%d", app.config.Port),
-			"VK_ICD_FILENAMES=",
-			"ELECTRON_OZONE_PLATFORM_HINT=auto",
-		)
-	}
-	app.desktopCmd.Dir = desktopDir
-	app.desktopCmd.Stdout = os.Stdout
-	app.desktopCmd.Stderr = os.Stderr
-
-	if err := app.desktopCmd.Start(); err != nil {
-		return fmt.Errorf("failed to start desktop: %w", err)
-	}
-
-	log.Printf("KNIRV Desktop started (PID: %d)", app.desktopCmd.Process.Pid)
-	return nil
-}
-
-// stopDesktop stops the Electron desktop application
-func (app *ServerApp) stopDesktop() {
-	if app.desktopCmd != nil && app.desktopCmd.Process != nil {
-		pid := app.desktopCmd.Process.Pid
-		log.Printf("Stopping KNIRV Desktop (PID: %d)", pid)
-
-		if err := app.desktopCmd.Process.Signal(syscall.SIGTERM); err != nil {
-			log.Printf("Failed to signal desktop PID %d: %v — force killing", pid, err)
-			app.desktopCmd.Process.Kill()
-			app.desktopCmd.Wait()
-			return
-		}
-
-		done := make(chan error, 1)
-		go func() { done <- app.desktopCmd.Wait() }()
-		select {
-		case err := <-done:
-			if err != nil {
-				log.Printf("Desktop PID %d stopped: %v", pid, err)
-			} else {
-				log.Printf("Desktop PID %d stopped gracefully", pid)
-			}
-		case <-time.After(5 * time.Second):
-			log.Printf("Desktop PID %d did not stop within 5s — sending SIGKILL", pid)
-			app.desktopCmd.Process.Kill()
-			select {
-			case <-done:
-			case <-time.After(2 * time.Second):
-				log.Printf("Warning: desktop PID %d Wait() did not complete after Kill() — zombie possible", pid)
-			}
-			log.Printf("Desktop PID %d force killed", pid)
-		}
-	}
 }
 
 func mkdirIfUsable(path string) bool {
@@ -710,11 +501,6 @@ func getExtractedConfigDir() (string, error) {
 }
 
 // extractEnvFile extracts the embedded environment file based on the specified environment
-// shellEscape wraps a string in single quotes for safe use in a shell command.
-func shellEscape(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
-}
-
 func extractEnvFile(environment string) error {
 	var envData []byte
 	var envName string
@@ -901,18 +687,7 @@ func (app *ServerApp) setupRoutes() error {
 		})
 	})
 
-	// Shutdown endpoint — only accepts requests bearing the per-run token
-	app.router.POST("/shutdown", func(c *gin.Context) {
-		if c.GetHeader("X-Shutdown-Token") != app.shutdownToken {
-			c.JSON(http.StatusForbidden, gin.H{"error": "invalid token"})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"status": "shutting down"})
-		select {
-		case app.shutdownChan <- struct{}{}:
-		default:
-		}
-	})
+
 
 	gatewayTransport := socketProxyTransport(app.config.GatewaySocket)
 	gatewayBase := gatewayBaseURL(app.config)
@@ -936,7 +711,7 @@ func (app *ServerApp) setupRoutes() error {
 	if err := registerGatewayPrefix("/explorer", "/explorer"); err != nil {
 		return fmt.Errorf("failed to configure /explorer proxy: %w", err)
 	}
-	if err := registerGatewayPrefix("/gateway", "/explorer"); err != nil {
+	if err := registerGatewayPrefix("/gateway", "/"); err != nil {
 		return fmt.Errorf("failed to configure /gateway proxy: %w", err)
 	}
 	if err := registerGatewayPrefix("/turn", "/api/turn"); err != nil {
@@ -1293,8 +1068,8 @@ func (app *ServerApp) stopBackend() {
 			} else {
 				log.Printf("Backend PID %d stopped gracefully", pid)
 			}
-		case <-time.After(10 * time.Second):
-			log.Printf("Backend PID %d did not stop within 10s — sending SIGKILL", pid)
+		case <-time.After(30 * time.Second):
+			log.Printf("Backend PID %d did not stop within 30s — sending SIGKILL", pid)
 			app.backendCmd.Process.Kill()
 			// Wait briefly for the goroutine to reap the zombie.
 			select {
@@ -1334,21 +1109,11 @@ func (app *ServerApp) Start() error {
 	// Wait for server to be ready
 	time.Sleep(2 * time.Second)
 
-	// Start desktop if enabled
-	if app.config.Desktop {
-		if err := app.startDesktop(); err != nil {
-			log.Printf("Warning: Failed to start desktop: %v", err)
-		}
-	}
-
 	return nil
 }
 
 // Stop stops the KNIRV-SERVER application
 func (app *ServerApp) Stop() error {
-	// Stop desktop first
-	app.stopDesktop()
-
 	// Stop HTTP server
 	if app.server != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -1387,7 +1152,6 @@ func loadConfig() (*Config, error) {
 	var (
 		configFile  = flag.String("config", "", "Path to configuration file")
 		testnet     = flag.Bool("testnet", false, "Enable testnet mode")
-		desktop     = flag.Bool("desktop", false, "Enable the KNIRV Desktop GUI")
 		environment = flag.String("env", "development", "Environment: development, testnet, or production")
 		port        = flag.Int("port", 0, "Server port (overrides config)")
 		host        = flag.String("host", "", "Server host (overrides config)")
@@ -1436,7 +1200,6 @@ func loadConfig() (*Config, error) {
 	viper.SetDefault("gateway_port", 8080)
 	viper.SetDefault("log_level", "info")
 	viper.SetDefault("testnet", false)
-	viper.SetDefault("desktop", false)
 
 	// Enable environment variable support
 	viper.AutomaticEnv()
@@ -1480,9 +1243,6 @@ func loadConfig() (*Config, error) {
 	if *testnet {
 		config.Testnet = true
 	}
-	if *desktop {
-		config.Desktop = true
-	}
 	if *port != 0 {
 		config.Port = *port
 	}
@@ -1518,11 +1278,6 @@ func main() {
 		log.Println("🧪 Starting KNIRV-SERVER in testnet mode")
 	}
 
-	// Log desktop mode if enabled
-	if config.Desktop {
-		log.Println("🖥️  Starting KNIRV-SERVER with Desktop GUI")
-	}
-
 	// Create application
 	app, err := NewServerApp(config)
 	if err != nil {
@@ -1555,11 +1310,9 @@ func main() {
 		log.Fatalf("Failed to start application: %v", err)
 	}
 
-	// Wait for shutdown signal (OS signal or desktop /shutdown request)
+	// Wait for shutdown signal
 	select {
 	case <-sigChan:
-	case <-app.shutdownChan:
-		log.Println("Shutdown requested by desktop")
 	}
 	log.Println("Shutting down...")
 

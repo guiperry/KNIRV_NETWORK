@@ -41,7 +41,6 @@ class KNIRVConfigLoader {
             navigation: {
                 main_site: "https://knirv.com",
                 documentation: "/documentation/docsify/",
-                graphchain_explorer: "/graphchain-explorer/",
                 nexus_portal: "/nexus-portal/",
                 support_desk: "/support-desk/",
                 nanda_ans: "/nanda_ans/"
@@ -84,16 +83,10 @@ class KNIRVConfigLoader {
                 authentication_enabled: true,
                 payment_oracle_enabled: true,
                 nexus_integration_enabled: true,
-                graphchain_explorer_enabled: true,
                 nanda_ans_enabled: true,
                 support_desk_enabled: true
             },
             iframes: {
-                graphchain_explorer: {
-                    url: "/graphchain-explorer/",
-                    title: "KNIRV Graphchain Explorer",
-                    height: "800px"
-                },
                 documentation: {
                     url: "/documentation/docsify/",
                     title: "KNIRV Documentation",

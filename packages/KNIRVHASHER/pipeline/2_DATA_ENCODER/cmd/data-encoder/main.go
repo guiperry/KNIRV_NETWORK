@@ -72,11 +72,19 @@ func main() {
 
 // getAppDataDir returns the application data directory
 func getAppDataDir() string {
+	if appData := os.Getenv("KNIRV_APP_DATA_DIR"); appData != "" {
+		if err := os.MkdirAll(filepath.Join(appData, "hasher", "data"), 0755); err == nil {
+			return filepath.Join(appData, "hasher", "data")
+		}
+	}
+	if err := os.MkdirAll("/var/lib/knirvserver/hasher/data", 0755); err == nil {
+		return "/var/lib/knirvserver/hasher/data"
+	}
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "."
 	}
-	return filepath.Join(homeDir, ".local", "share", "hasher", "data")
+	return filepath.Join(homeDir, ".local", "share", "knirvserver", "hasher", "data")
 }
 
 func parseFlags() *Config {
@@ -87,8 +95,8 @@ func parseFlags() *Config {
 	if err != nil {
 		log.Fatalf("Failed to get home directory: %v", err)
 	}
-	defaultJSONInput := filepath.Join(homeDir, ".local", "share", "hasher", "data", "json", "ai_knowledge_base.json")
-	defaultOutput := filepath.Join(homeDir, ".local", "share", "hasher", "data", "frames", "training_frames.json")
+	defaultJSONInput := filepath.Join(homeDir, ".local", "share", "knirvserver", "hasher", "data", "json", "ai_knowledge_base.json")
+	defaultOutput := filepath.Join(homeDir, ".local", "share", "knirvserver", "hasher", "data", "frames", "training_frames.json")
 
 	flag.StringVar(&config.InputFile, "input", defaultJSONInput, "Input JSON file path")
 	flag.StringVar(&config.OutputFile, "output", defaultOutput, "Output JSON file path")

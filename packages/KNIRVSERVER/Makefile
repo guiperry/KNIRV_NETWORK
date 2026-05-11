@@ -44,7 +44,7 @@ AGENT_PKG_BIN := $(AGENT_DIR)/bin/knirvagent
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
-APPDATA_DIR := $(HOME)/.local/share/knirvserver
+APPDATA_DIR := $(HOME)/var/lib/knirvserver
 
 # Embedded Programs Configuration
 EMBEDDED_DIR := $(BACKEND_DIR)/internal/embedded
@@ -84,31 +84,11 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image desktop desktop-deps desktop-build dash gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean shell-build shell-deps shell-clean agent-build agent-deps agent-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean portal-deps portal-build graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean shell-build shell-deps shell-clean agent-build agent-deps agent-clean build-full
 
 # Default target
-all: proto frontend desktop-build backend binary
+all: proto frontend backend binary
 
-# Desktop (Electron)
-desktop-deps: ## Install desktop dependencies
-	@echo "$(BLUE)Installing desktop dependencies...$(NC)"
-	cd $(DESKTOP_DIR) && $(NPM_CMD) install
-
-desktop-build: desktop-deps ## Build desktop TypeScript and copy assets to dist/
-	@echo "$(BLUE)Building desktop...$(NC)"
-	cd $(DESKTOP_DIR) && $(NPM_CMD) run build
-	@echo "$(GREEN)Desktop build completed$(NC)"
-
-desktop: desktop-build ## Build desktop and launch standalone (for development)
-	@echo "$(BLUE)Starting desktop...$(NC)"
-	cd $(DESKTOP_DIR) && $(NPM_CMD) run start
-
-dash: desktop-build ## Rebuild desktop and relink into binary (fast path, skips frontend/backend/eBPF)
-	@echo "$(BLUE)Rebuilding binary with updated desktop...$(NC)"
-	@mkdir -p $(DIST_DIR)
-	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
-	chmod 755 $(DIST_DIR)/knirv-server
-	@echo "$(GREEN)Done — run: ./dist/knirv-server --env development --desktop$(NC)"
 
 help: ## Show this help message
 	@echo "$(BLUE)KNIRV-SERVER Build System$(NC)"
@@ -447,12 +427,22 @@ quick-deploy: binary deploy-application ## Quick application deployment
 
 # KNIRVGATEWAY (Embedded) targets
 WEBGUI_SRC_DIR := $(GATEWAY_SRC_DIR)/internal/embedded/webgui
+PORTAL_SRC_DIR := $(GATEWAY_SRC_DIR)/internal/embedded/knirvchain-portal
 
 webgui-deps: ## Install KNIRVGATEWAY WebGUI Node.js dependencies
 	@echo "$(BLUE)Installing KNIRVGATEWAY WebGUI dependencies...$(NC)"
 	cd $(WEBGUI_SRC_DIR) && $(NPM_CMD) install --legacy-peer-deps
 
-webgui-build: webgui-deps ## Build KNIRVGATEWAY WebGUI static export
+portal-deps: ## Install KNIRVChain Portal Node.js dependencies
+	@echo "$(BLUE)Installing KNIRVChain Portal dependencies...$(NC)"
+	cd $(PORTAL_SRC_DIR) && $(NPM_CMD) install
+
+portal-build: portal-deps ## Build KNIRVChain Portal Vite static export
+	@echo "$(BLUE)Building KNIRVChain Portal static export...$(NC)"
+	cd $(PORTAL_SRC_DIR) && $(NPM_CMD) run build
+	@echo "$(GREEN)KNIRVChain Portal build completed$(NC)"
+
+webgui-build: webgui-deps portal-build ## Build KNIRVGATEWAY WebGUI static export (builds Portal first)
 	@echo "$(BLUE)Building KNIRVGATEWAY WebGUI static export...$(NC)"
 	cd $(WEBGUI_SRC_DIR) && $(NPM_CMD) run build
 	@echo "$(GREEN)KNIRVGATEWAY WebGUI build completed$(NC)"
@@ -471,6 +461,7 @@ gateway-clean: ## Clean KNIRVGATEWAY build artifacts
 	@echo "$(BLUE)Cleaning KNIRVGATEWAY artifacts...$(NC)"
 	rm -f $(GATEWAY_PKG_BIN)
 	rm -rf $(WEBGUI_SRC_DIR)/out $(WEBGUI_SRC_DIR)/.next
+	rm -rf $(PORTAL_SRC_DIR)/dist $(PORTAL_SRC_DIR)/node_modules
 	cd $(GATEWAY_SRC_DIR) && go clean
 
 # KNIRVGRAPH (Embedded) targets

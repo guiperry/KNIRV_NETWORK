@@ -150,7 +150,7 @@ The portal uses a custom CSS framework built on Tailwind CSS with KNIRV branding
 - **🎨 KNIRV Styling**: Matches the overall portal design system
 
 ### Enhanced Navigation
-- **🖼️ iFrame Integration**: Seamless access to Graphchain Explorer, Documentation, and KNIRV-NEXUS
+- **🖼️ iFrame Integration**: Seamless access to Documentation and KNIRV-NEXUS
 - **🏠 Main Site Links**: Easy navigation back to KNIRV.com
 - **💳 Payment Integration**: Direct links to KNIRV payment oracle
 - **📚 Support Integration**: Direct access to support desk and documentation

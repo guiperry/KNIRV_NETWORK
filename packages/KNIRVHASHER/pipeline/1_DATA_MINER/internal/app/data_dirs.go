@@ -6,7 +6,9 @@ import (
 	"runtime"
 )
 
-// GetAppDataDir returns the OS-specific application data directory
+// GetAppDataDir returns the OS-specific application data directory.
+// Privileged launches use a system location so sudo does not split data
+// between /root and the invoking user's home directory.
 func GetAppDataDir() (string, error) {
 	var basePath string
 
@@ -21,7 +23,7 @@ func GetAppDataDir() (string, error) {
 				basePath = filepath.Join(userProfile, "AppData", "Roaming")
 			} else {
 				// Ultimate fallback
-				basePath = filepath.Join(os.TempDir(), "hasher", "data")
+				basePath = filepath.Join(os.TempDir(), "knirvserver", "data")
 			}
 		}
 	case "darwin":
@@ -32,6 +34,16 @@ func GetAppDataDir() (string, error) {
 			basePath = os.TempDir()
 		}
 	default: // linux, unix, etc.
+		// KNIRV_APP_DATA_DIR takes highest precedence
+		if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
+			if err := os.MkdirAll(explicit, 0755); err == nil {
+				return filepath.Join(explicit, "hasher", "data"), nil
+			}
+		}
+		// System location
+		if err := os.MkdirAll("/var/lib/knirvserver/hasher/data", 0755); err == nil {
+			return "/var/lib/knirvserver/hasher/data", nil
+		}
 		// ~/.local/share on XDG Base Directory Specification
 		if home := os.Getenv("HOME"); home != "" {
 			if xdgData := os.Getenv("XDG_DATA_HOME"); xdgData != "" {
@@ -44,7 +56,7 @@ func GetAppDataDir() (string, error) {
 		}
 	}
 
-	appDir := filepath.Join(basePath, "hasher", "data")
+	appDir := filepath.Join(basePath, "knirvserver", "hasher", "data")
 
 	// Ensure the directory exists
 	if err := os.MkdirAll(appDir, 0755); err != nil {

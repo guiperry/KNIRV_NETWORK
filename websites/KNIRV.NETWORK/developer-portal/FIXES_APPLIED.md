@@ -66,7 +66,7 @@
 
 **Fix Applied**:
 - Created comprehensive `netlify.toml` with:
-  - Proper redirects for forum, support-desk, graphchain-explorer
+  - Proper redirects for forum and support-desk
   - SPA fallback routing
   - Security headers (CSP, X-Frame-Options, etc.)
   - Cache control for static assets

@@ -284,8 +284,8 @@ func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeo
 		startTimeout = 30 * time.Second
 	}
 	if !waitForSocket(socketPath, startTimeout) {
-		// Socket didn't appear — kill the process
-		cmd.Process.Kill()
+		// Socket didn't appear — kill the process group
+		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 		am.mu.Lock()
 		delete(am.agents, dveID)
 		am.mu.Unlock()
@@ -327,7 +327,7 @@ func (am *AgentManager) StopAgent(dveID string, stopTimeout time.Duration) error
 		am.logger.Warn("Failed to send SIGTERM to agent, forcing kill",
 			zap.String("dveID", dveID),
 			zap.Error(err))
-		ap.Cmd.Process.Kill()
+		syscall.Kill(-ap.Cmd.Process.Pid, syscall.SIGKILL)
 	}
 
 	done := make(chan error, 1)
@@ -348,7 +348,7 @@ func (am *AgentManager) StopAgent(dveID string, stopTimeout time.Duration) error
 	case <-time.After(stopTimeout):
 		am.logger.Warn("Timeout waiting for agent shutdown, forcing kill",
 			zap.String("dveID", dveID))
-		ap.Cmd.Process.Kill()
+		syscall.Kill(-ap.Cmd.Process.Pid, syscall.SIGKILL)
 		ap.setHealthy(false)
 		os.Remove(ap.SocketPath)
 		return fmt.Errorf("forced shutdown of agent for DVE %s after timeout", dveID)
