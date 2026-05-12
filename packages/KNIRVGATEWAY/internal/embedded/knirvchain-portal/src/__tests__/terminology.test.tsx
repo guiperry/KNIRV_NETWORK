@@ -8,7 +8,7 @@ import { GraphChainProvider } from '../context/GraphChainContext';
 // Mock the GraphChain API
 jest.mock('../services/api', () => ({
   graphChainApi: {
-    getCurrentDensity: jest.fn().mockResolvedValue(12345),
+    getChainHeight: jest.fn().mockResolvedValue(12345),
     getGraphChainStats: jest.fn().mockResolvedValue({
       density: 12345,
       totalNodes: 1000,
@@ -147,8 +147,8 @@ describe('Terminology Updates', () => {
       const { graphChainApi } = require('../services/api');
       
       // Verify that the API has the correct method names
-      expect(graphChainApi.getCurrentDensity).toBeDefined();
-      expect(typeof graphChainApi.getCurrentDensity).toBe('function');
+      expect(graphChainApi.getChainHeight).toBeDefined();
+      expect(typeof graphChainApi.getChainHeight).toBe('function');
     });
 
     it('should return GraphChainStats with density field', async () => {

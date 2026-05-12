@@ -6,7 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import SkillNodeCard from '../components/SkillNodeCard';
 
 const SkillNodes: React.FC = () => {
-  const { currentDensity, isLoading } = useGraphChain();
+  const { chainHeight, isLoading } = useGraphChain();
   const [skills, setSkills] = useState<SkillNode[]>([]);
   const [filteredSkills, setFilteredSkills] = useState<SkillNode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +33,7 @@ const SkillNodes: React.FC = () => {
     };
 
     fetchSkills();
-  }, [currentDensity]);
+  }, [chainHeight]);
 
   // Filter and search skills
   useEffect(() => {

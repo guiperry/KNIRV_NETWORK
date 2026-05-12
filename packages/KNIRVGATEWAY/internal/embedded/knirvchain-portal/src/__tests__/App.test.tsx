@@ -25,7 +25,7 @@ jest.mock('../context/GraphChainContext', () => ({
     <div data-testid="graphchain-provider">{children}</div>
   ),
   useGraphChain: () => ({
-    currentDensity: 12345,
+    chainHeight: 12345,
     isLoading: false,
     error: null,
     refreshData: jest.fn(),

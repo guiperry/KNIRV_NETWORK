@@ -43,10 +43,12 @@ type ContainerOrchestratorInterface interface {
 // KnirvagentManagerInterface defines the subset of knirvagent.Manager methods
 // needed by DVECreationService to auto-provision the DVE Supervisor Agent.
 type KnirvagentManagerInterface interface {
+	StartAgent(ctx context.Context, dveID string, startTimeout time.Duration) error
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
 	IsRunning() bool
 	HealthCheck(ctx context.Context) error
+	RunningCount() int
 }
 
 type DVEManagerInterface interface {
@@ -254,11 +256,13 @@ func (dcs *DVECreationService) CreateDVENode(req *objects.DVECreationRequest) (*
 		// Auto-start DVE Supervisor Agent (KNIRVAGENT) for this DVE
 		if dcs.knirvagentManager != nil {
 			ctx := context.Background()
-			if err := dcs.knirvagentManager.Start(ctx); err != nil {
-				log.Printf("[DVE Creation] Warning: Failed to start KNIRVAGENT supervisor: %v", err)
+			startCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			defer cancel()
+			if err := dcs.knirvagentManager.StartAgent(startCtx, creation.DVENodeID, 30*time.Second); err != nil {
+				log.Printf("[DVE Creation] Warning: Failed to start KNIRVAGENT supervisor for DVE %s: %v", creation.DVENodeID, err)
 			} else {
 				creation.SupervisorAgentID = creation.DVENodeID
-				log.Printf("[DVE Creation] KNIRVAGENT supervisor started for DVE %s", creation.Name)
+				log.Printf("[DVE Creation] KNIRVAGENT supervisor started for DVE %s (node %s)", creation.Name, creation.DVENodeID)
 			}
 		}
 	}

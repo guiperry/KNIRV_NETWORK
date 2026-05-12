@@ -5,7 +5,7 @@ import { AlertTriangle, Clock, Hash, ArrowRight, Brain, CheckCircle, XCircle } f
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const ErrorNodes: React.FC = () => {
-  const { currentDensity, isLoading } = useGraphChain();
+  const { chainHeight, isLoading } = useGraphChain();
   const [errors, setErrors] = useState<ErrorNode[]>([]);
   const [skills, setSkills] = useState<SkillNode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,7 @@ const ErrorNodes: React.FC = () => {
     };
 
     fetchErrorNodes();
-  }, [currentDensity]);
+  }, [chainHeight]);
 
   // Fetch related skills when an error is selected
   useEffect(() => {

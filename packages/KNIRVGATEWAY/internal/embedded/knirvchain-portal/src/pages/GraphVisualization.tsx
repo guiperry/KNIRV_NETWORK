@@ -5,7 +5,7 @@ import { Network, Brain, AlertTriangle, Zap } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const GraphVisualization: React.FC = () => {
-  const { currentDensity, isLoading } = useGraphChain();
+  const { chainHeight, isLoading } = useGraphChain();
   const [skills, setSkills] = useState<SkillNode[]>([]);
   const [errors, setErrors] = useState<ErrorNode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +34,7 @@ const GraphVisualization: React.FC = () => {
     };
 
     fetchGraphData();
-  }, [currentDensity]);
+  }, [chainHeight]);
 
   const getNodeConnections = (nodeId: string, nodeType: 'skill' | 'error') => {
     if (nodeType === 'skill') {

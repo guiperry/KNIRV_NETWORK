@@ -23,14 +23,14 @@ describe('Simple Test Suite', () => {
 
   it('should verify API endpoint structure', () => {
     const apiEndpoints = {
-      getCurrentDensity: '/density',
+      getChainHeight: '/chain',
       getGraphChainStats: '/stats',
       getAllSkills: '/nrv/skills',
       getAllErrors: '/nrv/errors',
       getAllVectors: '/nrv/vectors'
     };
 
-    expect(apiEndpoints.getCurrentDensity).toContain('density');
+    expect(apiEndpoints.getChainHeight).toContain('density');
     expect(apiEndpoints.getAllVectors).toContain('vectors');
     expect(Object.keys(apiEndpoints)).toHaveLength(5);
   });

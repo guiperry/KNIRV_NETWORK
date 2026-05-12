@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { graphChainApi, GraphNode, SkillNode, ErrorNode } from '../services/api';
 
 interface GraphChainContextType {
-  currentDensity: number;
+  chainHeight: number;
   isLoading: boolean;
   error: string | null;
   refreshData: () => void;
@@ -29,17 +29,17 @@ interface GraphChainProviderProps {
 }
 
 export const GraphChainProvider: React.FC<GraphChainProviderProps> = ({ children }) => {
-  const [currentDensity, setCurrentDensity] = useState(0);
+  const [chainHeight, setChainHeight] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCurrentDensity = async () => {
+  const fetchChainHeight = async () => {
     try {
       setError(null);
-      const density = await graphChainApi.getCurrentDensity();
-      setCurrentDensity(density);
+      const height = await graphChainApi.getChainHeight();
+      setChainHeight(height);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch GraphChain density');
+      setError(err instanceof Error ? err.message : 'Failed to fetch chain height');
     } finally {
       setIsLoading(false);
     }
@@ -94,19 +94,19 @@ export const GraphChainProvider: React.FC<GraphChainProviderProps> = ({ children
 
   const refreshData = () => {
     setIsLoading(true);
-    fetchCurrentDensity();
+    fetchChainHeight();
   };
 
   useEffect(() => {
-    fetchCurrentDensity();
+    fetchChainHeight();
 
-    // Auto-refresh every 10 seconds (less frequent than blockchain)
-    const interval = setInterval(fetchCurrentDensity, 10000);
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(fetchChainHeight, 10000);
     return () => clearInterval(interval);
   }, []);
 
   const value: GraphChainContextType = {
-    currentDensity,
+    chainHeight,
     isLoading,
     error,
     refreshData,

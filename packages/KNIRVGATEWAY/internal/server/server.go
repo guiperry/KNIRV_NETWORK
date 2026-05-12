@@ -392,7 +392,7 @@ func (s *Server) setupRoutes() error {
 		graphProxy := newSocketProxy(s.config.GraphSocketPath, "http://knirvgraph")
 
 		// /api/graph/* — Standardized graph prefix.
-		// Strip /api/graph so /api/graph/density becomes /density on KNIRVGRAPH.
+		// Strip /api/graph so /api/graph/* becomes /* on KNIRVGRAPH.
 		r.PathPrefix("/api/graph/").Handler(http.StripPrefix("/api/graph", graphProxy))
 
 		// Flat /graph/* redirect → /api/graph/*

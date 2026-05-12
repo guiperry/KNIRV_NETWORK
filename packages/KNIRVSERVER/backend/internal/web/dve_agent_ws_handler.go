@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -15,16 +16,21 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// AgentManagerInterface defines what the DVEAgentWSHandler needs from the
+// KNIRVAGENT manager for per-DVE socket routing.
+type AgentManagerInterface interface {
+	IsRunning() bool
+	GetBaseURL() string
+	HealthCheck(ctx context.Context) error
+	GetSocketPathForDVE(dveID string) (string, error)
+}
+
 // DVEAgentWSHandler proxies WebSocket I/O between the frontend terminal
 // and the KNIRVAGENT DVE Supervisor subprocess.
 type DVEAgentWSHandler struct {
-	knirvagentManager interface {
-		IsRunning() bool
-		GetBaseURL() string
-		HealthCheck(ctx context.Context) error
-	}
-	mu     sync.RWMutex
-	active map[string]*agentWSConn // nodeId -> connection
+	agentManager AgentManagerInterface
+	mu           sync.RWMutex
+	active       map[string]*agentWSConn // nodeId -> connection
 }
 
 // agentWSConn represents a single WebSocket connection for a DVE agent terminal.
@@ -32,7 +38,7 @@ type agentWSConn struct {
 	nodeID    string
 	conn      *websocket.Conn
 	send      chan []byte
-	agentURL  string
+	socketPath string
 	lastSeen  time.Time
 	mu        sync.Mutex
 	agentHTTP *http.Client
@@ -51,18 +57,14 @@ type agentWSResponse struct {
 }
 
 // NewDVEAgentWSHandler creates a new WebSocket handler for DVE agent terminal sessions.
-func NewDVEAgentWSHandler(mgr interface {
-	IsRunning() bool
-	GetBaseURL() string
-	HealthCheck(ctx context.Context) error
-}) *DVEAgentWSHandler {
+func NewDVEAgentWSHandler(mgr AgentManagerInterface) *DVEAgentWSHandler {
 	return &DVEAgentWSHandler{
-		knirvagentManager: mgr,
-		active:            make(map[string]*agentWSConn),
+		agentManager: mgr,
+		active:       make(map[string]*agentWSConn),
 	}
 }
 
-// HandleWebSocket handles the HTTP→WebSocket upgrade for agent terminal connections.
+// HandleWebSocket handles the HTTP->WebSocket upgrade for agent terminal connections.
 func (h *DVEAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	nodeID := mux.Vars(r)["nodeId"]
 	if nodeID == "" {
@@ -70,14 +72,27 @@ func (h *DVEAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if h.knirvagentManager == nil || !h.knirvagentManager.IsRunning() {
+	if h.agentManager == nil || !h.agentManager.IsRunning() {
 		http.Error(w, "KNIRVAGENT supervisor not running", http.StatusServiceUnavailable)
 		return
 	}
 
-	baseURL := h.knirvagentManager.GetBaseURL()
-	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+	// Look up the per-DVE agent socket path
+	socketPath, err := h.agentManager.GetSocketPathForDVE(nodeID)
+	if err != nil {
+		log.Printf("[DVE Agent WS] No agent socket for node %s: %v", nodeID, err)
+		http.Error(w, "No KNIRVAGENT running for this DVE: "+err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// Create an HTTP client that dials the agent's Unix socket
+	unixClient := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return net.DialTimeout("unix", socketPath, 5*time.Second)
+			},
+		},
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -87,14 +102,12 @@ func (h *DVEAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.Reque
 	}
 
 	wsConn := &agentWSConn{
-		nodeID:   nodeID,
-		conn:     conn,
-		send:     make(chan []byte, 256),
-		agentURL: baseURL,
-		lastSeen: time.Now(),
-		agentHTTP: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		nodeID:     nodeID,
+		conn:       conn,
+		send:       make(chan []byte, 256),
+		socketPath: socketPath,
+		lastSeen:   time.Now(),
+		agentHTTP:  unixClient,
 	}
 
 	h.mu.Lock()
@@ -105,7 +118,19 @@ func (h *DVEAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.Reque
 	h.active[nodeID] = wsConn
 	h.mu.Unlock()
 
-	log.Printf("[DVE Agent WS] Connected: node=%s agent=%s", nodeID, baseURL)
+	log.Printf("[DVE Agent WS] Connected: node=%s socket=%s", nodeID, socketPath)
+
+	// Send hello message and prompt to the frontend terminal
+	wsConn.send <- mustMarshal(agentWSResponse{
+		Type: "data",
+		Data: "\x1b[1;35m╔═══════════════════════════════════════════════════════════╗\x1b[0m\r\n" +
+			"\x1b[1;35m║  KNIRVAGENT DVE Supervisor v1.1.0                        ║\x1b[0m\r\n" +
+			"\x1b[1;35m║  Status: ACTIVE                                           ║\x1b[0m\r\n" +
+			"\x1b[1;35m║  DVE: " + nodeID + "\x1b[0m\r\n" +
+			"\x1b[1;35m╚═══════════════════════════════════════════════════════════╝\x1b[0m\r\n" +
+			"\x1b[35mType 'help' for available commands or 'exit' to disconnect.\x1b[0m\r\n",
+	})
+	wsConn.send <- mustMarshal(agentWSResponse{Type: "prompt", Data: ""})
 
 	go h.writePump(wsConn)
 	go h.readPump(wsConn)
@@ -186,8 +211,8 @@ func (h *DVEAgentWSHandler) writePump(conn *agentWSConn) {
 	}
 }
 
-// forwardInput sends a command to the KNIRVAGENT's execute endpoint and
-// writes the response back to the WebSocket send channel.
+// forwardInput sends a command to the KNIRVAGENT's execute endpoint via Unix socket
+// and writes the response back to the WebSocket send channel.
 func (h *DVEAgentWSHandler) forwardInput(conn *agentWSConn, input string) {
 	if input == "" {
 		return
@@ -203,16 +228,16 @@ func (h *DVEAgentWSHandler) forwardInput(conn *agentWSConn, input string) {
 		return
 	}
 
-	// POST command to KNIRVAGENT's execute endpoint
+	// POST command to KNIRVAGENT's execute endpoint via Unix socket
 	resp, err := conn.agentHTTP.Post(
-		conn.agentURL+"/api/execute",
+		"http://localhost/api/execute",
 		"application/json",
 		bytes.NewReader(body),
 	)
 	if err != nil {
 		conn.send <- mustMarshal(agentWSResponse{
 			Type: "data",
-			Data: fmt.Sprintf("\x1b[31m[ERROR] KNIRVAGENT unreachable: %v\x1b[0m\r\n", err),
+			Data: fmt.Sprintf("\x1b[31m[ERROR] KNIRVAGENT unreachable (socket: %s): %v\x1b[0m\r\n", conn.socketPath, err),
 		})
 		return
 	}
@@ -234,7 +259,7 @@ func (h *DVEAgentWSHandler) forwardInput(conn *agentWSConn, input string) {
 		Error   string `json:"error,omitempty"`
 	}
 	if err := json.Unmarshal(respBody, &agentResp); err != nil {
-		// Raw text response — send it directly
+		// Raw text response -- send it directly
 		conn.send <- mustMarshal(agentWSResponse{
 			Type: "data",
 			Data: string(respBody) + "\r\n",

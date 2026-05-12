@@ -7,7 +7,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 const Search: React.FC = () => {
   const { query } = useParams<{ query: string }>();
-  const { currentDensity } = useGraphChain();
+  const { chainHeight } = useGraphChain();
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<{
     skills: SkillNode[];
@@ -70,7 +70,7 @@ const Search: React.FC = () => {
     };
 
     performSearch();
-  }, [query, currentDensity]);
+  }, [query, chainHeight]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const formatTime = (timestamp: string) => {

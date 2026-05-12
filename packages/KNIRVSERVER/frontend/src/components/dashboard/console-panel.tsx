@@ -268,15 +268,17 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
 
         setIsInitializing(false);
 
-        // Try KNIRVCLI first, then KNIRVAGENT supervisor, then SSH, then fall back to local simulation
-        let didConnect = await connectKNIRVCLI(term);
-        if (!didConnect) {
-          didConnect = await connectKNIRVAGENT(term);
-        }
+        // Connection priority: KNIRVAGENT supervisor -> SSH -> KNIRVCLI -> local
+        // KNIRVAGENT is the primary DVE supervisor terminal — try it first.
+        let didConnect = await connectKNIRVAGENT(term);
         if (!didConnect) {
           didConnect = await connectSSH(term);
         }
         if (!didConnect) {
+          didConnect = await connectKNIRVCLI(term);
+        }
+        if (!didConnect) {
+          term.writeln('\x1b[33m[FALLBACK] No remote connection available — using local simulation.\x1b[0m');
           term.write('\x1b[1;32mroot@fabric-server:~# \x1b[0m');
           loadRealLogs();
         }

@@ -8,7 +8,7 @@ import StatsCard from '../components/StatsCard';
 import SkillNodeCard from '../components/SkillNodeCard';
 
 const Dashboard: React.FC = () => {
-  const { currentDensity, isLoading, error, refreshData } = useGraphChain();
+  const { chainHeight, isLoading, error, refreshData } = useGraphChain();
   const [stats, setStats] = useState<GraphChainStats | null>(null);
   const [recentSkills, setRecentSkills] = useState<SkillNode[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -36,14 +36,14 @@ const Dashboard: React.FC = () => {
       }
     };
 
-    console.log('Dashboard useEffect triggered:', { isLoading, currentDensity });
-    if (!isLoading && currentDensity >= 0) {
+    console.log('Dashboard useEffect triggered:', { isLoading, chainHeight });
+    if (!isLoading && chainHeight >= 0) {
       fetchDashboardData();
     } else if (!isLoading) {
-      // If not loading but currentDensity is still negative, stop loading anyway
+      // If not loading but chainHeight is still negative, stop loading anyway
       setStatsLoading(false);
     }
-  }, [currentDensity, isLoading]);
+  }, [chainHeight, isLoading]);
 
   if (isLoading || statsLoading) {
     return (
@@ -92,8 +92,8 @@ const Dashboard: React.FC = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Network Density"
-          value={currentDensity.toLocaleString()}
+          title="Chain Height"
+          value={chainHeight.toLocaleString()}
           icon={Network}
           trend={+2.3}
           color="blue"

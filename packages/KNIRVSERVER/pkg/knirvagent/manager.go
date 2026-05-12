@@ -636,6 +636,26 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 	return &Manager{inner: inner, logger: logger, cfg: cfg}
 }
 
+// StartAgent delegates per-DVE agent start to the inner AgentManager.
+func (m *Manager) StartAgent(ctx context.Context, dveID string, startTimeout time.Duration) error {
+	_, err := m.inner.StartAgent(ctx, dveID, startTimeout)
+	return err
+}
+
+// RunningCount returns the number of running agents.
+func (m *Manager) RunningCount() int {
+	return m.inner.RunningCount()
+}
+
+// GetSocketPathForDVE returns the Unix socket path for the agent of a specific DVE.
+func (m *Manager) GetSocketPathForDVE(dveID string) (string, error) {
+	ap, err := m.inner.GetAgent(dveID)
+	if err != nil {
+		return "", err
+	}
+	return ap.SocketPath, nil
+}
+
 // Start starts the agent manager. In the new multi-DVE model, this is a no-op
 // that just logs — agents are started per-DVE via StartAgent.
 func (m *Manager) Start(ctx context.Context) error {

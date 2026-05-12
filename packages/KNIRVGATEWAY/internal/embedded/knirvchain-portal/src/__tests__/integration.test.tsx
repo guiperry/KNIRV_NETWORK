@@ -7,7 +7,7 @@ import { graphChainApi } from '../services/api';
 // Mock the API
 jest.mock('../services/api', () => ({
   graphChainApi: {
-    getCurrentDensity: jest.fn(),
+    getChainHeight: jest.fn(),
     getGraphChainStats: jest.fn(),
     getRecentSkills: jest.fn(),
     getRecentErrors: jest.fn(),
@@ -24,7 +24,7 @@ describe('Phase 4 Integration Tests', () => {
     jest.clearAllMocks();
     
     // Setup default mock responses
-    mockApi.getCurrentDensity.mockResolvedValue(12345);
+    mockApi.getChainHeight.mockResolvedValue(12345);
     mockApi.getGraphChainStats.mockResolvedValue({
       density: 12345,
       totalNodes: 1000,
@@ -123,7 +123,7 @@ describe('Phase 4 Integration Tests', () => {
       });
 
       // Check that API calls were made
-      expect(mockApi.getCurrentDensity).toHaveBeenCalled();
+      expect(mockApi.getChainHeight).toHaveBeenCalled();
       expect(mockApi.getGraphChainStats).toHaveBeenCalled();
       expect(mockApi.getRecentSkills).toHaveBeenCalled();
 
@@ -134,7 +134,7 @@ describe('Phase 4 Integration Tests', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      mockApi.getCurrentDensity.mockRejectedValue(new Error('Network error'));
+      mockApi.getChainHeight.mockRejectedValue(new Error('Network error'));
 
       render(
         <BrowserRouter>
@@ -231,7 +231,7 @@ describe('Phase 4 Integration Tests', () => {
   describe('Error Handling', () => {
     it('should display loading state initially', () => {
       // Mock a slow API response
-      mockApi.getCurrentDensity.mockImplementation(() => 
+      mockApi.getChainHeight.mockImplementation(() => 
         new Promise(resolve => setTimeout(() => resolve(12345), 1000))
       );
 
@@ -277,7 +277,7 @@ describe('Phase 4 Integration Tests', () => {
       });
 
       // API should be called only once initially
-      expect(mockApi.getCurrentDensity).toHaveBeenCalledTimes(1);
+      expect(mockApi.getChainHeight).toHaveBeenCalledTimes(1);
       expect(mockApi.getGraphChainStats).toHaveBeenCalledTimes(1);
     });
 

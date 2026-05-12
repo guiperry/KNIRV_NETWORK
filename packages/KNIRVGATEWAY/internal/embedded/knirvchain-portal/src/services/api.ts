@@ -61,7 +61,7 @@ export interface NRVVector {
 }
 
 export interface GraphChainStats {
-  density: number;
+  chainHeight: number;
   totalNodes: number;
   totalEdges: number;
   totalSkillNodes: number;
@@ -76,6 +76,15 @@ export interface GraphChainStats {
 
 const GRAPH_PROXY = '/api/graph';
 const CHAIN_PROXY = '/api/chain';
+
+// Chain response from KNIRVCHAIN /chain endpoint
+export interface ChainResponse {
+  blocks: unknown[];
+  transaction_pool?: unknown[];
+  chain_address?: string;
+  reflections?: Record<string, boolean>;
+  chain_id?: string;
+}
 
 class GraphChainAPI {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -101,11 +110,11 @@ class GraphChainAPI {
     }
   }
 
-  // ── Graph operations (KNIRVGRAPH) ──────────────────────────────────────
+  // ── Chain operations (KNIRVCHAIN) ──────────────────────────────────────
 
-  async getCurrentDensity(): Promise<number> {
-    const response = await this.request<{ density: number }>(`${GRAPH_PROXY}/density`);
-    return response.density;
+  async getChainHeight(): Promise<number> {
+    const chain = await this.request<ChainResponse>(`${CHAIN_PROXY}/chain`);
+    return chain.blocks.length;
   }
 
   async getNode(nodeId: string): Promise<GraphNode> {
@@ -166,8 +175,8 @@ class GraphChainAPI {
 
   async getGraphChainStats(): Promise<GraphChainStats> {
     try {
-      const [density, skills, errors, vectors] = await Promise.all([
-        this.getCurrentDensity(),
+      const [chainHeight, skills, errors, vectors] = await Promise.all([
+        this.getChainHeight(),
         this.getAllSkills(),
         this.getAllErrors(),
         this.getAllVectors(),
@@ -179,7 +188,7 @@ class GraphChainAPI {
         : 0;
 
       return {
-        density,
+        chainHeight,
         totalNodes: 0,
         totalEdges: 0,
         totalSkillNodes: skills.length,
