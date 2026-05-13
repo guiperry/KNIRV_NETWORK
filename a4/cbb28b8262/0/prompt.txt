@@ -1,0 +1,52 @@
+In the KNIRVSERVER package, when I click on Create DVE and initialize the DVE nothing happens. We should be forwarded back to the DVE list view in the Dashboard wrapper to see the new DVE we just created, from there we can initialize/access its dashboard modal. PLease see the notes on the previous work attempted on this issue to no avail: 
+
+ Root Cause: The CreateDVENode handler held dcs.mu.Lock() for 30-40+ seconds while synchronously performing container provisioning, KNIRVAGENT startup (30s timeout), and chain gRPC calls (10s timeout). This blocked ALL other DVE creation endpoints during that window. The handler eventually panicked when one of these long-running operations failed, producing the ERR_EMPTY_RESPONSE.
+    
+    Fix: Asynchronous DVE Provisioning
+    
+    I split DVE creation into two phases:
+    
+    Phase 1 — Synchronous (fast, <100ms):
+    - Validates the request
+    - Creates the DVE record with status "pending"
+    - Saves to database
+    - Returns 201 Created immediately to the frontend
+    
+    Phase 2 — Asynchronous (background goroutine):
+    - Chain registration (best-effort)
+    - Container provisioning
+    - DVE Manager registration
+    - KNIRVAGENT supervisor startup
+    - Chain session establishment
+    - Creates DVE session
+    - Updates status to "active"
+    - Saves updated record + session to database
+    
+    The mutex is only held briefly — during initial record creation (~5μs) and during final status update (~5μs) — instead of for the entire 30-40 second provisioning process.
+    
+    Files changed:
+    1. backend/internal/services/dvecreation/dve_creation_service.go — Refactored CreateDVENode to be async, added provisionDVEInBackground and updateCreationStatus methods
+    2. backend/internal/services/dvecreation/dve_creation_service_test.go — Added mutex to MockChainClient for thread safety, updated test expectations for async behavior
+
+---
+
+The Create DVE modal closed after creation click but I do not see my newly created DVE in the DVE listing of the Dashboard-wrapper...
+
+---
+
+I'm still not seeing the DVE show up in the list of DVEs on the dashboard-wrapper once its created! I see the following error in the console logs that show something is trying to start the DVE's Agent but I can't see it in the list to access it:
+{"level":"info","timestamp":"2026-05-13T05:40:20.245-0400","caller":"knirvagent/manager.go:262","message":"Starting KNIRVAGENT for DVE","dveID":"dve-35323f65-74c6-4fd5-a4f0-029fb60a2f16-1778665218","socket":"/var/lib/knirvserver/sockets/agent-dve-35323f65-74c6-4fd5-a4f0-029fb60a2f16-1778665218.sock","binary":"/var/lib/knirvserver/bin/knirvagent"}
+[KNIRVAGENT] DEBUG: cfg.Providers.Gemini.APIKey="" (len=0)
+[KNIRVAGENT] DEBUG: cfg.Providers.DeepSeek.APIKey="" (len=0)
+[KNIRVAGENT] DEBUG: cfg.Providers.ShengSuanYun.APIKey="" (len=0)
+[KNIRVAGENT] DEBUG: cfg.Providers.OpenRouter.APIKey="" (len=0)
+[KNIRVAGENT] DEBUG: cfg.Agents.Defaults.Provider="gemini"
+[KNIRVAGENT] DEBUG: cfg.Agents.Defaults.Model="gemini-2.0-flash"
+[KNIRVAGENT] DEBUG: GEMINI_API_KEY is set (len=39)
+[KNIRVAGENT] DEBUG: DEEPSEEK_API_KEY is set (len=35)
+[KNIRVAGENT] DEBUG: CEREBRAS_API_KEY is set (len=52)
+[KNIRVAGENT] DEBUG: ANTHROPIC_API_KEY is NOT SET
+[KNIRVAGENT] DEBUG: OPENAI_API_KEY is NOT SET
+Error creating provider: no API keys configured for any provider. Ensure root.key contains at least one API key (Gemini, DeepSeek, etc.)
+
+Shouldn't a new DVE card be created for the newly created DVE and it gets added to the database of available DVEs? Please fix this!
