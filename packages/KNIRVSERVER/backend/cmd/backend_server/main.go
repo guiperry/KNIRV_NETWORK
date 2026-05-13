@@ -414,7 +414,10 @@ func fallbackOSAppDataDir() (string, error) {
 // from stdin when running interactively.
 func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, error) {
 	if logger == nil {
-		logger = zap.NewNop()
+		// Use a logger that writes to stderr so critical startup messages are
+		// always visible, even when the caller didn't provide a logger.
+		consoleLogger, _ := zap.NewProduction()
+		logger = consoleLogger
 	}
 
 	// Ensure .env files are loaded before checking environment variables.
@@ -432,7 +435,7 @@ func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, er
 	}
 	for _, envPath := range envSearchPaths {
 		if err := gotenv.Load(envPath); err == nil {
-			logger.Debug("Loaded environment file", zap.String("path", envPath))
+			logger.Info("Secrets: loaded environment file", zap.String("path", envPath))
 			break
 		}
 	}
@@ -444,18 +447,22 @@ func loadSecretsFromKeyFile(logger *zap.Logger) (*pb.RootKeyFileContentProto, er
 
 	keyPath, err := knirvoracle.ResolveAndValidateRootKey(configuredKeyPath)
 	if err != nil {
-		logger.Info("Secrets not loaded: no valid root.key found", zap.String("configured_path", configuredKeyPath), zap.Error(err))
+		logger.Info("Secrets not loaded", zap.String("configured_path", configuredKeyPath), zap.Error(err))
 		return nil, nil
 	}
 
 	var keyPassword []byte
 	if envPwd := os.Getenv("ORACLE_KEY_PASSWORD"); envPwd != "" {
 		keyPassword = []byte(envPwd)
-		logger.Debug("Using ORACLE_KEY_PASSWORD from environment")
+		logger.Info("Secrets: using ORACLE_KEY_PASSWORD from environment")
 	} else {
 		// Check if stdin is a terminal
 		if !term.IsTerminal(int(os.Stdin.Fd())) {
-			logger.Info("Secrets not loaded: ORACLE_KEY_PASSWORD is unset for non-interactive startup")
+			logger.Warn("Secrets not loaded: ORACLE_KEY_PASSWORD is unset and stdin is not a terminal",
+				zap.String("key_path", keyPath))
+			log.Printf("WARNING: root.key found at %s but ORACLE_KEY_PASSWORD is not set. "+
+				"API keys inside root.key (Gemini, DeepSeek, etc.) will NOT be propagated to KNIRVAGENT. "+
+				"Set ORACLE_KEY_PASSWORD or export GEMINI_API_KEY/DEEPSEEK_API_KEY directly.", keyPath)
 			return nil, nil
 		}
 		keyPassword, err = password.PromptForPassword("Enter root key password to load secrets: ")
@@ -516,6 +523,19 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 			log.Printf("Warning: failed to set DEFAULT_GITHUB_TOKEN env var: %v", err)
 		}
 		log.Printf("GitHub token loaded from root.key")
+	}
+
+	if content.DeviceIp != "" {
+		log.Printf("Device IP loaded from root.key")
+	}
+	if content.DevicePassword != "" {
+		log.Printf("Device password loaded from root.key")
+	}
+	if content.DeviceUsername != "" {
+		log.Printf("Device username loaded from root.key")
+	}
+	if content.CloudflareEmbeddingsUrl != "" {
+		log.Printf("Cloudflare Embeddings URL loaded from root.key")
 	}
 }
 
@@ -1100,12 +1120,37 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	if rootKeySecrets != nil {
 		if rootKeySecrets.GeminiApiKey != "" {
 			knirvagentCfg.ExtraEnv = append(knirvagentCfg.ExtraEnv, fmt.Sprintf("GEMINI_API_KEY=%s", rootKeySecrets.GeminiApiKey))
+			logger.Info("KNIRVAGENT ExtraEnv: added GEMINI_API_KEY")
 		}
 		if rootKeySecrets.DeepseekApiKey != "" {
 			knirvagentCfg.ExtraEnv = append(knirvagentCfg.ExtraEnv, fmt.Sprintf("DEEPSEEK_API_KEY=%s", rootKeySecrets.DeepseekApiKey))
+			logger.Info("KNIRVAGENT ExtraEnv: added DEEPSEEK_API_KEY")
 		}
 		if rootKeySecrets.CerebrasApiKey != "" {
 			knirvagentCfg.ExtraEnv = append(knirvagentCfg.ExtraEnv, fmt.Sprintf("CEREBRAS_API_KEY=%s", rootKeySecrets.CerebrasApiKey))
+			logger.Info("KNIRVAGENT ExtraEnv: added CEREBRAS_API_KEY")
+		}
+	}
+
+	// Fallback: if root.key couldn't be decrypted (no ORACLE_KEY_PASSWORD in
+	// non-interactive mode), check direct env vars set by the parent process
+	// or operator.  This allows the user to export API keys in their shell
+	// before starting the service without needing to provide the root.key password.
+	apiKeyEnvFallbacks := []string{"GEMINI_API_KEY", "DEEPSEEK_API_KEY", "CEREBRAS_API_KEY"}
+	for _, envName := range apiKeyEnvFallbacks {
+		if val := os.Getenv(envName); val != "" {
+			// Skip if root.key already provided this key
+			alreadySet := false
+			for _, existing := range knirvagentCfg.ExtraEnv {
+				if strings.HasPrefix(existing, envName+"=") {
+					alreadySet = true
+					break
+				}
+			}
+			if !alreadySet {
+				knirvagentCfg.ExtraEnv = append(knirvagentCfg.ExtraEnv, fmt.Sprintf("%s=%s", envName, val))
+				logger.Info("API key loaded from environment fallback", zap.String("key", envName))
+			}
 		}
 	}
 	knirvagentMgr := knirvagent.NewManager(knirvagentCfg, logger)
@@ -1240,6 +1285,13 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	if dveCreationService != nil && knirvagentMgr != nil {
 		dveCreationService.SetKnirvagentManager(knirvagentMgr)
 		log.Println("KNIRVAGENT supervisor wired into DVE creation service")
+	}
+
+	// Wire DVE Manager into DVE creation service so new DVEs are registered
+	// in the nodes list immediately when created.
+	if dveCreationService != nil && dveManager != nil {
+		dveCreationService.SetDveManager(dveManager)
+		log.Println("DVE manager wired into DVE creation service")
 	}
 
 	// Initialize Nexus Memory Fabric
@@ -1382,6 +1434,27 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 					Stdout:       logging.NewSubprocessWriter("knirvhasher", os.Stdout),
 					Stderr:       logging.NewSubprocessWriter("knirvhasher", os.Stderr),
 				}
+				// Propagate hasher env overrides from root.key
+				hasherEnvOverrides := map[string]string{}
+				if rootKeySecrets != nil {
+					if rootKeySecrets.DeviceIp != "" {
+						hasherEnvOverrides["DEVICE_IP"] = rootKeySecrets.DeviceIp
+					}
+					if rootKeySecrets.DevicePassword != "" {
+						hasherEnvOverrides["DEVICE_PASSWORD"] = rootKeySecrets.DevicePassword
+					}
+					if rootKeySecrets.DeviceUsername != "" {
+						hasherEnvOverrides["DEVICE_USERNAME"] = rootKeySecrets.DeviceUsername
+					}
+					if rootKeySecrets.CloudflareEmbeddingsUrl != "" {
+						hasherEnvOverrides["CLOUDFLARE_EMBEDDINGS_URL"] = rootKeySecrets.CloudflareEmbeddingsUrl
+					}
+				}
+				// Propagate frames_dir from the server config YAML (not root.key)
+				if hasherConfig.FramesDir != "" {
+					hasherEnvOverrides["FRAMES_DIR"] = hasherConfig.FramesDir
+				}
+				hasherMgrCfg.EnvOverrides = hasherEnvOverrides
 				hasherManager = knirvhasher.NewManager(hasherMgrCfg, logger)
 				log.Printf("KNIRVHASHER manager initialized: binary=%s socket=%s data=%s headless_port=%d arxiv=%v",
 					hasherBinaryPath, hasherSocketPath, hasherDataPath, hasherConfig.HeadlessPort, hasherConfig.ArxivEnabled)

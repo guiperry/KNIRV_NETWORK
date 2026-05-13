@@ -14,9 +14,12 @@ import (
 	"go.uber.org/zap"
 )
 
-// Embed all service directories (excluding node_modules, build artifacts)
+// Embed only build artifacts — not entire source directories.
+// webgui: Next.js static export (out/)
+// graphchain-explorer: static HTML site (no build step)
+// knirvchain-portal: Vite build output (dist/)
 //
-//go:embed all:webgui
+//go:embed all:webgui/out
 var WebGUIFS embed.FS
 
 //go:embed all:graphchain-explorer

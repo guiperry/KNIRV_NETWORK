@@ -125,6 +125,22 @@ func waitForSocket(socketPath string, deadline time.Duration) bool {
 	return false
 }
 
+// waitForTCPPort blocks until the given TCP port is accepting connections or
+// the deadline is reached. Returns true when the port is ready.
+func waitForTCPPort(port int, deadline time.Duration) bool {
+	end := time.Now().Add(deadline)
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	for time.Now().Before(end) {
+		conn, err := net.DialTimeout("tcp", addr, 100*time.Millisecond)
+		if err == nil {
+			conn.Close()
+			return true
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return false
+}
+
 // ──────────────────────────────────────────────
 // AgentProcess — a single agent subprocess
 // ──────────────────────────────────────────────
@@ -167,6 +183,7 @@ type AgentManager struct {
 	stopHealthCheck context.CancelFunc
 	healthInterval  time.Duration
 	wg              sync.WaitGroup
+	extraEnv        []string // extra environment variables for subprocesses
 }
 
 // AgentManagerConfig configures the AgentManager.
@@ -203,6 +220,7 @@ func NewAgentManager(cfg *AgentManagerConfig, logger *zap.Logger) *AgentManager 
 		maxConcurrent:  cfg.MaxConcurrent,
 		logger:         logger,
 		healthInterval: cfg.HealthInterval,
+		extraEnv:       cfg.ExtraEnv,
 	}
 }
 
@@ -246,14 +264,17 @@ func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeo
 		zap.String("socket", socketPath),
 		zap.String("binary", resolvedPath))
 
-	// Build command — the agent binary listens on a Unix socket exclusively
+	// Build command — the agent runs the `server` subcommand which listens
+	// on a Unix socket (agent-{dveID}.sock) and exposes POST /api/execute.
 	args := []string{
+		"server",
 		"--dve-id", dveID,
 		"--socket-path", socketPath,
 	}
 
 	cmd := exec.Command(resolvedPath, args...)
 	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, am.extraEnv...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{

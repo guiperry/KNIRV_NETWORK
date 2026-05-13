@@ -307,7 +307,25 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
               term.write(data);
             }
           } else if (mode === 'knirvagent' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({ type: 'input', data }));
+            // Buffer input for KNIRVAGENT and send complete lines on Enter
+            inputBufferRef.current += data;
+            if (data === '\r') {
+              const line = inputBufferRef.current.replace(/\r/g, '').trim();
+              inputBufferRef.current = '';
+              if (line) {
+                wsRef.current.send(JSON.stringify({ type: 'input', data: line }));
+              }
+              term.write('\r\n');
+            } else if (data === '\u007f') { // Backspace
+              if (inputBufferRef.current.length > 1) {
+                inputBufferRef.current = inputBufferRef.current.slice(0, -2);
+                term.write('\b \b');
+              } else {
+                inputBufferRef.current = '';
+              }
+            } else {
+              term.write(data);
+            }
           } else if (mode === 'ssh' && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({ type: 'input', data }));
           } else {

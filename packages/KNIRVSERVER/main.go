@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"embed"
 	"flag"
@@ -365,6 +367,25 @@ func NewServerApp(config *Config) (*ServerApp, error) {
 	return app, nil
 }
 
+// decompressBinary decompresses a gzip-compressed embedded binary.
+// Returns the raw bytes unchanged if the data is not gzip-compressed (e.g.
+// plain binaries from development builds without Makefile compression).
+func decompressBinary(data []byte) ([]byte, error) {
+	if len(data) < 2 || data[0] != 0x1f || data[1] != 0x8b {
+		return data, nil
+	}
+	r, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer r.Close()
+	decompressed, err := io.ReadAll(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress embedded binary: %w", err)
+	}
+	return decompressed, nil
+}
+
 // extractBinaries extracts all embedded binaries to the app data bin directory.
 // Returns the bin directory path.
 func extractBinaries() (string, error) {
@@ -378,12 +399,17 @@ func extractBinaries() (string, error) {
 		return "", fmt.Errorf("failed to create bin directory: %w", err)
 	}
 
+	decompressed, err := decompressBinary(backendBinary)
+	if err != nil {
+		return "", fmt.Errorf("failed to decompress backend binary: %w", err)
+	}
+
 	type entry struct {
 		name string
 		data []byte
 	}
 	bins := []entry{
-		{"backend_server", backendBinary},
+		{"backend_server", decompressed},
 	}
 
 	for _, b := range bins {
@@ -552,12 +578,7 @@ func extractRootKey() error {
 
 	destPath := filepath.Join(destDir, "root.key")
 
-	// Never overwrite an existing key — the operator owns it once deployed.
-	if _, err := os.Stat(destPath); err == nil {
-		log.Printf("root.key already present at %s — skipping extraction", destPath)
-		return nil
-	}
-
+	// Always overwrite so that redeploys with an updated root.key take effect.
 	if err := os.WriteFile(destPath, rootKeyBytes, 0600); err != nil {
 		return fmt.Errorf("failed to write root.key to %s: %w", destPath, err)
 	}
@@ -995,6 +1016,14 @@ func (app *ServerApp) startBackend() error {
 			"KNIRV_MODE=headless",
 		)
 		log.Println("Starting backend in testnet mode with simplified security")
+	}
+
+	// Propagate ORACLE_KEY_PASSWORD from the parent environment so the
+	// backend_server subprocess can decrypt root.key without needing an
+	// interactive terminal.  Without this the backend silently skips all
+	// root.key secrets (API keys for Gemini, DeepSeek, Cerebras, etc.).
+	if pwd := os.Getenv("ORACLE_KEY_PASSWORD"); pwd != "" {
+		env = append(env, fmt.Sprintf("ORACLE_KEY_PASSWORD=%s", pwd))
 	}
 
 	app.backendCmd.Env = env

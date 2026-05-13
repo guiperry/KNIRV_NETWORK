@@ -160,6 +160,8 @@ backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
 	@echo "$(BLUE)Copying backend binary to root...$(NC)"
 	cp $(BACKEND_DIR)/backend_server bin/
+	@echo "$(BLUE)Compressing backend binary with gzip...$(NC)"
+	@gzip -cf bin/backend_server > bin/backend_server.tmp && mv bin/backend_server.tmp bin/backend_server
 	@echo "$(GREEN)Backend build completed$(NC)"
 	rm $(BACKEND_DIR)/backend_server
 
@@ -455,6 +457,8 @@ gateway-build: webgui-build gateway-deps ## Build KNIRVGATEWAY binary into pkg/k
 	@echo "$(BLUE)Building KNIRVGATEWAY binary...$(NC)"
 	@mkdir -p $(GATEWAY_DIR)/bin
 	cd $(GATEWAY_SRC_DIR) && go build -ldflags "-s -w" -o $(GATEWAY_PKG_BIN) ./cmd/gateway
+	@echo "$(BLUE)Compressing KNIRVGATEWAY binary with gzip...$(NC)"
+	@gzip -cf $(GATEWAY_PKG_BIN) > $(GATEWAY_PKG_BIN).tmp && mv $(GATEWAY_PKG_BIN).tmp $(GATEWAY_PKG_BIN)
 	@echo "$(GREEN)KNIRVGATEWAY binary built: $(GATEWAY_PKG_BIN)$(NC)"
 
 gateway-clean: ## Clean KNIRVGATEWAY build artifacts
@@ -473,6 +477,8 @@ graph-build: graph-deps ## Build KNIRVGRAPH binary into pkg/knirvgraph/bin/ (req
 	@echo "$(BLUE)Building KNIRVGRAPH binary...$(NC)"
 	@mkdir -p $(GRAPH_DIR)/bin
 	cd $(GRAPH_SRC_DIR)/cmd/node && go build -ldflags "-s -w" -o $(GRAPH_PKG_BIN)
+	@echo "$(BLUE)Compressing KNIRVGRAPH binary with gzip...$(NC)"
+	@gzip -cf $(GRAPH_PKG_BIN) > $(GRAPH_PKG_BIN).tmp && mv $(GRAPH_PKG_BIN).tmp $(GRAPH_PKG_BIN)
 	@echo "$(GREEN)KNIRVGRAPH binary built: $(GRAPH_PKG_BIN)$(NC)"
 
 graph-clean: ## Clean KNIRVGRAPH build artifacts
@@ -489,6 +495,8 @@ chain-build: chain-deps ## Build KNIRVCHAIN binary into pkg/knirvchain/bin/ (req
 	@echo "$(BLUE)Building KNIRVCHAIN binary...$(NC)"
 	@mkdir -p $(CHAIN_DIR)/bin
 	cd $(CHAIN_SRC_DIR)/cmd/knirvchain && go build -ldflags "-s -w" -o $(CHAIN_PKG_BIN)
+	@echo "$(BLUE)Compressing KNIRVCHAIN binary with gzip...$(NC)"
+	@gzip -cf $(CHAIN_PKG_BIN) > $(CHAIN_PKG_BIN).tmp && mv $(CHAIN_PKG_BIN).tmp $(CHAIN_PKG_BIN)
 	@echo "$(GREEN)KNIRVCHAIN binary built: $(CHAIN_PKG_BIN)$(NC)"
 
 chain-clean: ## Clean KNIRVCHAIN build artifacts
@@ -505,6 +513,8 @@ oracle-build: oracle-deps ## Build KNIRVORACLE binary into pkg/knirvoracle/bin/ 
 	@echo "$(BLUE)Building KNIRVORACLE binary...$(NC)"
 	@mkdir -p $(ORACLE_PKG_DIR)/bin
 	cd $(ORACLE_DIR)/cmd/oracle && go build -ldflags "-s -w" -o $(ORACLE_PKG_BIN)
+	@echo "$(BLUE)Compressing KNIRVORACLE binary with gzip...$(NC)"
+	@gzip -cf $(ORACLE_PKG_BIN) > $(ORACLE_PKG_BIN).tmp && mv $(ORACLE_PKG_BIN).tmp $(ORACLE_PKG_BIN)
 	@echo "$(GREEN)KNIRVORACLE binary built: $(ORACLE_PKG_BIN)$(NC)"
 
 oracle-clean: ## Clean KNIRVORACLE build artifacts
@@ -525,7 +535,8 @@ hasher-build: hasher-deps ## Build KNIRVHASHER binaries into pkg/knirvhasher/bin
 	cd $(HASHER_SRC_DIR) && $(MAKE) build-pipeline-all
 	@mkdir -p $(HASHER_DIR)/bin
 	cd $(HASHER_SRC_DIR) && go build -ldflags "-s -w" -o $(HASHER_PKG_BIN) ./cmd/cli
-	
+	@echo "$(BLUE)Compressing KNIRVHASHER binary with gzip...$(NC)"
+	@gzip -cf $(HASHER_PKG_BIN) > $(HASHER_PKG_BIN).tmp && mv $(HASHER_PKG_BIN).tmp $(HASHER_PKG_BIN)
 	@echo "$(GREEN)KNIRVHASHER binaries built: $(HASHER_PKG_BIN) and pipeline artifacts$(NC)"
 
 hasher-clean: ## Clean KNIRVHASHER build artifacts
@@ -542,6 +553,8 @@ shell-build: shell-deps ## Build KNIRVSHELL binary into pkg/knirvshell/bin/ (req
 	@echo "$(BLUE)Building KNIRVSHELL binary...$(NC)"
 	@mkdir -p $(SHELL_DIR)/bin
 	cd $(SHELL_SRC_DIR) && go build -ldflags "-s -w" -o $(SHELL_PKG_BIN) .
+	@echo "$(BLUE)Compressing KNIRVSHELL binary with gzip...$(NC)"
+	@gzip -cf $(SHELL_PKG_BIN) > $(SHELL_PKG_BIN).tmp && mv $(SHELL_PKG_BIN).tmp $(SHELL_PKG_BIN)
 	@echo "$(GREEN)KNIRVSHELL binary built: $(SHELL_PKG_BIN)$(NC)"
 
 shell-clean: ## Clean KNIRVSHELL build artifacts
@@ -600,6 +613,8 @@ agent-build: agent-deps ## Build KNIRVAGENT binary into pkg/knirvagent/bin/ (req
 	@mkdir -p $(AGENT_DIR)/bin
 	cd $(AGENT_SRC_DIR) && make build
 	cp $(AGENT_SRC_DIR)/build/knirvagent $(AGENT_PKG_BIN)
+	@echo "$(BLUE)Compressing KNIRVAGENT binary with gzip...$(NC)"
+	@gzip -cf $(AGENT_PKG_BIN) > $(AGENT_PKG_BIN).tmp && mv $(AGENT_PKG_BIN).tmp $(AGENT_PKG_BIN)
 	@echo "$(GREEN)KNIRVAGENT binary built: $(AGENT_PKG_BIN)$(NC)"
 
 agent-clean: ## Clean KNIRVAGENT build artifacts

@@ -328,6 +328,25 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 
+	// Fallback: accept simple env var names (e.g. GEMINI_API_KEY instead of
+	// KNIRV_PROVIDERS_GEMINI_API_KEY) for backward compatibility with
+	// the KNIRVSERVER root.key injection system.
+	simpleKeyFallbacks := map[string]func(*Config) *string{
+		"ANTHROPIC_API_KEY": func(c *Config) *string { return &c.Providers.Anthropic.APIKey },
+		"DEEPSEEK_API_KEY":  func(c *Config) *string { return &c.Providers.DeepSeek.APIKey },
+		"GEMINI_API_KEY":    func(c *Config) *string { return &c.Providers.Gemini.APIKey },
+		"OPENAI_API_KEY":    func(c *Config) *string { return &c.Providers.OpenAI.APIKey },
+		"CEREBRAS_API_KEY":  func(c *Config) *string { return &c.Providers.ShengSuanYun.APIKey },
+	}
+	for envName, setter := range simpleKeyFallbacks {
+		if val, ok := os.LookupEnv(envName); ok && val != "" {
+			ptr := setter(cfg)
+			if *ptr == "" {
+				*ptr = val
+			}
+		}
+	}
+
 	return cfg, nil
 }
 

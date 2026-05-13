@@ -150,6 +150,25 @@ func main() {
 	smtpPasswordEntry.Password = true
 	smtpPasswordEntry.SetText(envValues["KNIRV_SMTP_PASSWORD"])
 
+	// Device credentials for hasher
+	deviceIPEntry := widget.NewEntry()
+	deviceIPEntry.SetPlaceHolder("Device IP (e.g., 192.168.12.151)")
+	deviceIPEntry.SetText(envValues["DEVICE_IP"])
+
+	devicePasswordEntry := widget.NewEntry()
+	devicePasswordEntry.SetPlaceHolder("Device Password")
+	devicePasswordEntry.Password = true
+	devicePasswordEntry.SetText(envValues["DEVICE_PASSWORD"])
+
+	deviceUsernameEntry := widget.NewEntry()
+	deviceUsernameEntry.SetPlaceHolder("Device Username (e.g., root)")
+	deviceUsernameEntry.SetText(envValues["DEVICE_USERNAME"])
+
+	// Cloudflare embeddings URL
+	cloudflareEmbeddingsURLEntry := widget.NewEntry()
+	cloudflareEmbeddingsURLEntry.SetPlaceHolder("Cloudflare Embeddings URL")
+	cloudflareEmbeddingsURLEntry.SetText(envValues["CLOUDFLARE_EMBEDDINGS_URL"])
+
 	tlsCertEntry := widget.NewEntry()
 	tlsCertEntry.SetPlaceHolder("TLS Certificate (PEM)")
 	tlsCertEntry.SetText(envValues["TLS_CERT"])
@@ -215,6 +234,10 @@ func main() {
 			CloudflareZoneId:     cloudflareZoneIDEntry.Text,
 			SmtpPassword:         smtpPasswordEntry.Text,
 			DefaultGithubToken:   githubTokenEntry.Text,
+			DeviceIp:             deviceIPEntry.Text,
+			DevicePassword:       devicePasswordEntry.Text,
+			DeviceUsername:       deviceUsernameEntry.Text,
+			CloudflareEmbeddingsUrl: cloudflareEmbeddingsURLEntry.Text,
 		}
 
 		// Marshal to protobuf
@@ -316,6 +339,16 @@ func main() {
 		),
 		container.NewGridWithColumns(2,
 			container.NewVBox(widget.NewLabel("SMTP Password:"), smtpPasswordEntry),
+		),
+		widget.NewSeparator(),
+		widget.NewLabel("Device Credentials (Hasher):"),
+		container.NewGridWithColumns(2,
+			container.NewVBox(widget.NewLabel("Device IP:"), deviceIPEntry),
+			container.NewVBox(widget.NewLabel("Device Password:"), devicePasswordEntry),
+		),
+		container.NewGridWithColumns(2,
+			container.NewVBox(widget.NewLabel("Device Username:"), deviceUsernameEntry),
+			container.NewVBox(widget.NewLabel("Cloudflare Embeddings URL:"), cloudflareEmbeddingsURLEntry),
 		),
 		widget.NewLabel("TLS Certificates (PEM format):"),
 		container.NewVBox(widget.NewLabel("Certificate:"), tlsCertEntry),

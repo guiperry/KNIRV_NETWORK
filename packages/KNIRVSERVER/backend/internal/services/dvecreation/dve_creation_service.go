@@ -53,6 +53,7 @@ type KnirvagentManagerInterface interface {
 
 type DVEManagerInterface interface {
 	RegisterNode(req *objects.RegisterNodeRequest) (*objects.DVENode, error)
+	UpdateNode(nodeID string, updates map[string]interface{}) (*objects.DVENode, error)
 }
 
 type DVECreationService struct {
@@ -161,9 +162,6 @@ func (dcs *DVECreationService) IsRunning() bool {
 }
 
 func (dcs *DVECreationService) CreateDVENode(req *objects.DVECreationRequest) (*objects.DVECreationResponse, error) {
-	dcs.mu.Lock()
-	defer dcs.mu.Unlock()
-
 	if req.StakeAmount < dcs.minStakeAmount {
 		return &objects.DVECreationResponse{
 			Success: false,
@@ -178,106 +176,163 @@ func (dcs *DVECreationService) CreateDVENode(req *objects.DVECreationRequest) (*
 		}, nil
 	}
 
+	dcs.mu.Lock()
 	dveNodeID := fmt.Sprintf("dve-%s", uuid.New().String()[:12])
 
-	var registrationTxHash string
-	if dcs.chainClient != nil {
-		txHash, err := dcs.chainClient.RegisterDVENode(dveNodeID, req.OwnerAddress, req.StakeAmount)
-		if err != nil {
-			log.Printf("Chain registration failed: %v, proceeding with local registration", err)
-		} else {
-			registrationTxHash = txHash
-		}
-	}
-
 	creation := &objects.DVECreation{
-		ID:                 uuid.New().String(),
-		Name:               req.Name,
-		OwnerID:            req.OwnerID,
-		OwnerAddress:       req.OwnerAddress,
-		DVENodeID:          dveNodeID,
-		StakeAmount:        req.StakeAmount,
-		RegistrationTxHash: registrationTxHash,
-		Status:             "pending",
-		TEEType:            req.TEEType,
-		TEEAttestation:     req.TEEAttestation,
-		SessionKeyID:       generateSessionKeyID(),
-		Capabilities:       req.Capabilities,
-		ResourceLimits:     req.ResourceLimits,
-		RegisteredAt:       time.Now(),
-		LastHeartbeat:      time.Now(),
-		UpdatedAt:          time.Now(),
-		Persistent:         req.Persistent,
-		GracePeriod:        dcs.gracePeriod,
-	}
-
-	// Provision actual container if orchestrator is available
-	if dcs.containerOrchestrator != nil {
-		log.Printf("[DVE Creation] Provisioning container for creation %s", creation.ID)
-		container, err := dcs.containerOrchestrator.ProvisionContainer(creation.ID)
-		if err != nil {
-			log.Printf("Error provisioning container: %v", err)
-			return &objects.DVECreationResponse{
-				Success: false,
-				Error:   "failed to provision DVE container: " + err.Error(),
-			}, nil
-		}
-
-		creation.DVENodeID = container.ID
-		creation.SSHPublicKey = container.Spec.SSHPublicKey
-		creation.SSHPrivateKey = container.SSHKeys.PrivateKey
-		creation.SSHPort = container.Endpoints.SSHPort
-		creation.IPAddress = "localhost" // Assuming local for now, can be updated from container info
-		creation.ValidationPort = container.Endpoints.ValidationPort
-		creation.ErrorResPort = container.Endpoints.ErrorResPort
-
-		// Register the new container as a local DVE node so it shows up in workers
-		if dcs.dveManager != nil {
-			nodeReq := &objects.RegisterNodeRequest{
-				Name:         creation.Name,
-				TEEType:      creation.TEEType,
-				StakeAmount:  creation.StakeAmount,
-				Location:     "local-dve",
-				IPAddress:    creation.IPAddress,
-				SSHPort:      creation.SSHPort,
-				PublicKey:    creation.SSHPublicKey,
-				Capabilities: creation.Capabilities,
-			}
-			node, err := dcs.dveManager.RegisterNode(nodeReq)
-			if err != nil {
-				log.Printf("Warning: Failed to register DVE node in tracker: %v", err)
-			} else {
-				// Override DVENodeID with the one from the registered node
-				creation.DVENodeID = node.ID
-				log.Printf("[DVE Creation] Registered DVE node %s", node.ID)
-			}
-		}
-
-		// Auto-start DVE Supervisor Agent (KNIRVAGENT) for this DVE
-		if dcs.knirvagentManager != nil {
-			ctx := context.Background()
-			startCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-			defer cancel()
-			if err := dcs.knirvagentManager.StartAgent(startCtx, creation.DVENodeID, 30*time.Second); err != nil {
-				log.Printf("[DVE Creation] Warning: Failed to start KNIRVAGENT supervisor for DVE %s: %v", creation.DVENodeID, err)
-			} else {
-				creation.SupervisorAgentID = creation.DVENodeID
-				log.Printf("[DVE Creation] KNIRVAGENT supervisor started for DVE %s (node %s)", creation.Name, creation.DVENodeID)
-			}
-		}
+		ID:             uuid.New().String(),
+		Name:           req.Name,
+		OwnerID:        req.OwnerID,
+		OwnerAddress:   req.OwnerAddress,
+		DVENodeID:      dveNodeID,
+		StakeAmount:    req.StakeAmount,
+		Status:         "pending",
+		TEEType:        req.TEEType,
+		TEEAttestation: req.TEEAttestation,
+		SessionKeyID:   generateSessionKeyID(),
+		Capabilities:   req.Capabilities,
+		ResourceLimits: req.ResourceLimits,
+		RegisteredAt:   time.Now(),
+		LastHeartbeat:  time.Now(),
+		UpdatedAt:      time.Now(),
+		Persistent:     req.Persistent,
+		GracePeriod:    dcs.gracePeriod,
 	}
 
 	dcs.activeCreations[creation.ID] = creation
+	dcs.mu.Unlock()
 
+	// Synchronously register the node in the DVE manager so it appears in the
+	// nodes list immediately — this is fast (in-memory + DB write, no I/O).
+	if dcs.dveManager != nil {
+		nodeReq := &objects.RegisterNodeRequest{
+			Name:         creation.Name,
+			TEEType:      creation.TEEType,
+			StakeAmount:  creation.StakeAmount,
+			Location:     "local-dve",
+			Capabilities: creation.Capabilities,
+		}
+		if node, err := dcs.dveManager.RegisterNode(nodeReq); err != nil {
+			log.Printf("[DVE Creation] Warning: Failed to register node in manager: %v", err)
+		} else {
+			dcs.mu.Lock()
+			creation.DVENodeID = node.ID
+			dcs.mu.Unlock()
+			log.Printf("[DVE Creation] Registered DVE node %s immediately for creation %s", node.ID, creation.ID)
+		}
+	}
+
+	// Save initial pending record to database (no lock needed — buntdb is thread-safe)
 	if err := dcs.saveCreationToDatabase(creation); err != nil {
 		log.Printf("Warning: Failed to save DVE creation to database: %v", err)
 	}
 
-	chainSession, err := dcs.establishChainSession(creation)
-	if err != nil {
-		log.Printf("Warning: Failed to establish chain session: %v", err)
+	// Provision DVE asynchronously — container, agent, chain session
+	go dcs.provisionDVEInBackground(creation, req)
+
+	return &objects.DVECreationResponse{
+		Success:     true,
+		DVECreation: creation,
+		Message:     "DVE node creation initiated — provisioning in background",
+	}, nil
+}
+
+// provisionDVEInBackground runs in a goroutine. It does the slow work of
+// container provisioning, DVE manager registration, KNIRVAGENT startup,
+// and chain session establishment. Updates creation status to "active"
+// on success or logs errors on failure.
+func (dcs *DVECreationService) provisionDVEInBackground(creation *objects.DVECreation, req *objects.DVECreationRequest) {
+	// 1. Attempt on-chain registration (best-effort)
+	var registrationTxHash string
+	if dcs.chainClient != nil {
+		txHash, err := dcs.chainClient.RegisterDVENode(creation.DVENodeID, req.OwnerAddress, req.StakeAmount)
+		if err != nil {
+			log.Printf("[DVE Creation] Chain registration failed for %s: %v, proceeding with local provisioning", creation.ID, err)
+		} else {
+			registrationTxHash = txHash
+		}
+	}
+	creation.RegistrationTxHash = registrationTxHash
+
+	// 2. Provision container if orchestrator is available
+	if dcs.containerOrchestrator != nil {
+		log.Printf("[DVE Creation] Provisioning container for creation %s", creation.ID)
+		container, err := dcs.containerOrchestrator.ProvisionContainer(creation.ID)
+		if err != nil {
+			log.Printf("[DVE Creation] Error provisioning container for %s: %v", creation.ID, err)
+			dcs.updateCreationStatus(creation.ID, "failed")
+			return
+		}
+
+		// Preserve the manager node ID that was registered synchronously in
+		// CreateDVENode — container.ID is only used internally by the orchestrator
+		// and must not overwrite the stable DVENodeID that the nodes list uses.
+		managerNodeID := creation.DVENodeID
+		creation.SSHPublicKey = container.Spec.SSHPublicKey
+		creation.SSHPrivateKey = container.SSHKeys.PrivateKey
+		creation.SSHPort = container.Endpoints.SSHPort
+		creation.IPAddress = "localhost"
+		creation.ValidationPort = container.Endpoints.ValidationPort
+		creation.ErrorResPort = container.Endpoints.ErrorResPort
+
+		// 3. Update the DVE node in the manager with container details so
+		// SSH/IP info is available for Access.  If no manager node was registered
+		// yet (no dveManager at creation time) fall back to registering now.
+		if dcs.dveManager != nil {
+			if managerNodeID != "" {
+				updates := map[string]interface{}{
+					"ip_address": creation.IPAddress,
+					"ssh_port":   creation.SSHPort,
+					"public_key": creation.SSHPublicKey,
+					"status":     "online",
+				}
+				if _, err := dcs.dveManager.UpdateNode(managerNodeID, updates); err != nil {
+					log.Printf("[DVE Creation] Warning: Failed to update DVE node details: %v", err)
+				} else {
+					log.Printf("[DVE Creation] Updated DVE node %s with container details", managerNodeID)
+				}
+			} else {
+				// Fallback: manager not wired at creation time — register now with full details
+				nodeReq := &objects.RegisterNodeRequest{
+					Name:         creation.Name,
+					TEEType:      creation.TEEType,
+					StakeAmount:  creation.StakeAmount,
+					Location:     "local-dve",
+					IPAddress:    creation.IPAddress,
+					SSHPort:      creation.SSHPort,
+					PublicKey:    creation.SSHPublicKey,
+					Capabilities: creation.Capabilities,
+				}
+				if node, err := dcs.dveManager.RegisterNode(nodeReq); err != nil {
+					log.Printf("[DVE Creation] Warning: Failed to register DVE node in tracker: %v", err)
+				} else {
+					creation.DVENodeID = node.ID
+					log.Printf("[DVE Creation] Registered DVE node %s (fallback)", node.ID)
+				}
+			}
+		}
+
+		// 4. Auto-start KNIRVAGENT supervisor
+		if dcs.knirvagentManager != nil {
+			agentDVEID := creation.DVENodeID
+			startCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := dcs.knirvagentManager.StartAgent(startCtx, agentDVEID, 30*time.Second); err != nil {
+				log.Printf("[DVE Creation] Warning: Failed to start KNIRVAGENT supervisor for DVE %s: %v", agentDVEID, err)
+			} else {
+				creation.SupervisorAgentID = agentDVEID
+				log.Printf("[DVE Creation] KNIRVAGENT supervisor started for DVE %s (node %s)", creation.Name, agentDVEID)
+			}
+		}
 	}
 
+	// 5. Establish chain session (best-effort)
+	chainSession, err := dcs.establishChainSession(creation)
+	if err != nil {
+		log.Printf("[DVE Creation] Warning: Failed to establish chain session: %v", err)
+	}
+
+	// 6. Create DVE session
 	session := &objects.DVESession{
 		ID:             uuid.New().String(),
 		DVECreationID:  creation.ID,
@@ -299,31 +354,44 @@ func (dcs *DVECreationService) CreateDVENode(req *objects.DVECreationRequest) (*
 		session.PQCSignature = chainSession.PQCSignature
 	}
 
-	dcs.activeSessions[session.ID] = session
-
+	now := time.Now()
 	creation.Status = "active"
 	creation.ChainSessionID = session.ChainSessionID
-
-	now := time.Now()
 	creation.ActivatedAt = &now
-	creation.UpdatedAt = time.Now()
+	creation.UpdatedAt = now
+
+	// 7. Update in-memory maps and persist
+	dcs.mu.Lock()
+	dcs.activeCreations[creation.ID] = creation
+	dcs.activeSessions[session.ID] = session
+	dcs.mu.Unlock()
 
 	if err := dcs.saveCreationToDatabase(creation); err != nil {
-		log.Printf("Warning: Failed to save updated DVE creation: %v", err)
+		log.Printf("[DVE Creation] Warning: Failed to save updated DVE creation: %v", err)
 	}
-
 	if err := dcs.saveSessionToDatabase(session); err != nil {
-		log.Printf("Warning: Failed to save DVE session: %v", err)
+		log.Printf("[DVE Creation] Warning: Failed to save DVE session: %v", err)
 	}
 
-	return &objects.DVECreationResponse{
-		Success:            true,
-		DVECreation:        creation,
-		Session:            session,
-		RegistrationTxHash: registrationTxHash,
-		ChainSession:       chainSession,
-		Message:            "DVE node created successfully",
-	}, nil
+	log.Printf("[DVE Creation] DVE %s (%s) fully provisioned and active", creation.Name, creation.ID)
+}
+
+// updateCreationStatus sets the status of an in-memory creation and persists it.
+// Must be called from the background goroutine (not while holding the mutex).
+func (dcs *DVECreationService) updateCreationStatus(id, status string) {
+	dcs.mu.Lock()
+	creation, exists := dcs.activeCreations[id]
+	if exists {
+		creation.Status = status
+		creation.UpdatedAt = time.Now()
+	}
+	dcs.mu.Unlock()
+
+	if exists {
+		if err := dcs.saveCreationToDatabase(creation); err != nil {
+			log.Printf("Warning: Failed to save status update for creation %s: %v", id, err)
+		}
+	}
 }
 
 func (dcs *DVECreationService) GetDVECreation(creationID string) (*objects.DVECreation, error) {

@@ -3,6 +3,7 @@ package dvecreation
 import (
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 )
 
 type MockChainClient struct {
+	mu              sync.Mutex
 	registeredNodes map[string]string
 	sessions        map[string]*objects.ChainSession
 	currentHeight   uint64
@@ -56,20 +58,28 @@ func (m *MockChainClient) GetAccountBalance(address string) (int64, error) {
 }
 
 func (m *MockChainClient) GetBlockHeight() (uint64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.currentHeight, nil
 }
 
 func (m *MockChainClient) GetChainID() (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.chainID, nil
 }
 
 func (m *MockChainClient) RegisterDVENode(nodeID, ownerAddress string, stakeAmount int64) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	txHash := "reg-" + nodeID
 	m.registeredNodes[nodeID] = txHash
 	return txHash, nil
 }
 
 func (m *MockChainClient) CreateChainSession(dveNodeID, ownerAddress string) (*objects.ChainSession, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	session := &objects.ChainSession{
 		SessionID:     "session-" + dveNodeID,
 		DVENodeID:     dveNodeID,
@@ -89,6 +99,8 @@ func (m *MockChainClient) CreateChainSession(dveNodeID, ownerAddress string) (*o
 }
 
 func (m *MockChainClient) ValidateSession(sessionID string) (*objects.ChainSession, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	session, exists := m.sessions[sessionID]
 	if !exists {
 		return nil, nil
@@ -97,7 +109,6 @@ func (m *MockChainClient) ValidateSession(sessionID string) (*objects.ChainSessi
 }
 
 func (m *MockChainClient) GetSecret(sessionID, secretKey string) (string, error) {
-	// Return a mock secret
 	return "mock-secret-value", nil
 }
 
@@ -178,10 +189,16 @@ func TestDVECreationService_CreateDVENode(t *testing.T) {
 	require.NotNil(t, resp)
 	assert.True(t, resp.Success)
 	assert.NotNil(t, resp.DVECreation)
-	assert.NotNil(t, resp.Session)
+	assert.Nil(t, resp.Session) // Session is now created asynchronously
 	assert.NotEmpty(t, resp.DVECreation.DVENodeID)
 	assert.Equal(t, "user-123", resp.DVECreation.OwnerID)
-	assert.Equal(t, "active", resp.DVECreation.Status)
+	assert.Equal(t, "pending", resp.DVECreation.Status) // Initially pending; becomes active after background provisioning
+
+	// Wait for background provisioning goroutine to complete
+	assert.Eventually(t, func() bool {
+		creation, err := service.GetDVECreation(resp.DVECreation.ID)
+		return err == nil && creation != nil && creation.Status == "active"
+	}, 3*time.Second, 100*time.Millisecond, "DVE should become active after background provisioning")
 }
 
 func TestDVECreationService_CreateDVENode_InsufficientStake(t *testing.T) {
@@ -322,9 +339,18 @@ func TestDVECreationService_GetDVESession(t *testing.T) {
 	resp, err := service.CreateDVENode(req)
 	require.NoError(t, err)
 
-	session, err := service.GetDVESession(resp.Session.ID)
-	require.NoError(t, err)
-	assert.Equal(t, resp.Session.ID, session.ID)
+	// Session is created asynchronously; wait for provisioning to complete
+	assert.Eventually(t, func() bool {
+		creation, err := service.GetDVECreation(resp.DVECreation.ID)
+		if err != nil || creation == nil || creation.Status != "active" {
+			return false
+		}
+		// Find the session via GetDVESession — we need the session ID stored in the creation
+		// We know the session is linked via creation.ChainSessionID, but we don't store
+		// the DVESession.ID on the creation. Try active sessions enumeration instead.
+		session, err := service.GetActiveSessionByCreationID(resp.DVECreation.ID)
+		return err == nil && session != nil && session.Status == "active"
+	}, 3*time.Second, 100*time.Millisecond, "DVE session should become active after background provisioning")
 }
 
 func TestDVECreationService_RefreshSession(t *testing.T) {
@@ -348,7 +374,21 @@ func TestDVECreationService_RefreshSession(t *testing.T) {
 	resp, err := service.CreateDVENode(req)
 	require.NoError(t, err)
 
-	oldSessionID := resp.Session.ID
+	// Wait for background provisioning to create the session
+	var oldSessionID string
+	assert.Eventually(t, func() bool {
+		creation, err := service.GetDVECreation(resp.DVECreation.ID)
+		if err != nil || creation == nil || creation.Status != "active" {
+			return false
+		}
+		session, err := service.GetActiveSessionByCreationID(resp.DVECreation.ID)
+		if err == nil && session != nil {
+			oldSessionID = session.ID
+			return true
+		}
+		return false
+	}, 3*time.Second, 100*time.Millisecond, "DVE should become active with a session")
+	require.NotEmpty(t, oldSessionID)
 
 	newSession, err := service.RefreshSession(resp.DVECreation.ID)
 	require.NoError(t, err)
@@ -377,10 +417,26 @@ func TestDVECreationService_RevokeSession(t *testing.T) {
 	resp, err := service.CreateDVENode(req)
 	require.NoError(t, err)
 
-	err = service.RevokeSession(resp.Session.ID)
+	// Wait for background provisioning to create the session
+	var sessionID string
+	assert.Eventually(t, func() bool {
+		creation, err := service.GetDVECreation(resp.DVECreation.ID)
+		if err != nil || creation == nil || creation.Status != "active" {
+			return false
+		}
+		session, err := service.GetActiveSessionByCreationID(resp.DVECreation.ID)
+		if err == nil && session != nil {
+			sessionID = session.ID
+			return true
+		}
+		return false
+	}, 3*time.Second, 100*time.Millisecond, "DVE should become active with a session")
+	require.NotEmpty(t, sessionID)
+
+	err = service.RevokeSession(sessionID)
 	require.NoError(t, err)
 
-	session, err := service.GetDVESession(resp.Session.ID)
+	session, err := service.GetDVESession(sessionID)
 	require.NoError(t, err)
 	assert.Equal(t, "revoked", session.Status)
 }
@@ -587,8 +643,17 @@ func TestDVECreationService_GetActiveSessionByCreationID(t *testing.T) {
 	resp, err := service.CreateDVENode(req)
 	require.NoError(t, err)
 
-	session, err := service.GetActiveSessionByCreationID(resp.DVECreation.ID)
+	var sessionID string
+	assert.Eventually(t, func() bool {
+		session, err := service.GetActiveSessionByCreationID(resp.DVECreation.ID)
+		if err == nil && session != nil {
+			sessionID = session.ID
+			return session.Status == "active"
+		}
+		return false
+	}, 3*time.Second, 100*time.Millisecond, "DVE session should become active after background provisioning")
+	require.NotEmpty(t, sessionID)
+	session, err := service.GetDVESession(sessionID)
 	require.NoError(t, err)
-	assert.Equal(t, resp.Session.ID, session.ID)
 	assert.Equal(t, "active", session.Status)
 }

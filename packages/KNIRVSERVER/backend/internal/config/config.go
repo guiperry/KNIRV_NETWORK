@@ -148,6 +148,7 @@ type HasherConfig struct {
 	BinaryPath    string `mapstructure:"binary_path"`
 	SocketPath    string `mapstructure:"socket_path"`
 	DataPath      string `mapstructure:"data_path"`
+	FramesDir     string `mapstructure:"frames_dir"`
 	HeadlessPort  int    `mapstructure:"headless_port"`
 	ArxivEnabled  bool   `mapstructure:"arxiv_enabled"`
 	StartTimeout  int    `mapstructure:"start_timeout"`
@@ -861,6 +862,17 @@ func (c *Config) ExpandPaths() error {
 		}
 		if err := os.MkdirAll(c.ValidationChain.DataPath, 0755); err != nil {
 			return fmt.Errorf("failed to create validation chain data directory: %v", err)
+		}
+	}
+
+	// Expand hasher frames directory
+	if c.Hasher.FramesDir != "" {
+		c.Hasher.FramesDir, err = expandPath(c.Hasher.FramesDir)
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(c.Hasher.FramesDir, 0755); err != nil {
+			return fmt.Errorf("failed to create hasher frames directory: %v", err)
 		}
 	}
 

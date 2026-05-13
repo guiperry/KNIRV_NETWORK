@@ -120,6 +120,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
 
   const [cdeModalOpen, setCdeModalOpen] = useState(false);
   const [dveCreationModalOpen, setDveCreationModalOpen] = useState(false);
+  const [dveRefreshKey, setDveRefreshKey] = useState(0);
   const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
   const [paymentGatewayOpen, setPaymentGatewayOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
@@ -394,6 +395,13 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
 
   const handleDVEManagement = () => {
     setDveCreationModalOpen(true);
+  };
+
+  const handleDVECreated = () => {
+    setDveCreationModalOpen(false);
+    setMainTab('system');
+    setResourceTab('nodes');
+    setDveRefreshKey(prev => prev + 1);
   };
 
   const handleOnboardingComplete = async (config: any) => {
@@ -938,6 +946,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                           onActiveNodeChange={(nodeId, isActive) => {
                             setActiveNodeId(nodeId, isActive);
                           }}
+                          refreshKey={dveRefreshKey}
                         />
                       </TabsContent>
 
@@ -1385,6 +1394,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
       <DVECreationManagement
         isOpen={dveCreationModalOpen}
         onClose={() => setDveCreationModalOpen(false)}
+        onCreated={handleDVECreated}
         defaultTab="create"
       />
 

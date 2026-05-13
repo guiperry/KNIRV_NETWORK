@@ -315,3 +315,8 @@ dve:
     max_retries: 3
     retry_backoff_duration: "2s"
     connection_pool_size: 10
+
+
+# KNIRVHASHER Configuration
+hasher:
+  frames_dir: /var/lib/knirvserver/knirvhasher/data/frames

@@ -40,10 +40,11 @@ import DVEAccessFlow from './dve-access-flow';
 interface DVECreationManagementProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreated?: () => void;
   defaultTab?: 'creations' | 'create' | 'stats';
 }
 
-export default function DVECreationManagement({ isOpen, onClose, defaultTab = 'creations' }: DVECreationManagementProps) {
+export default function DVECreationManagement({ isOpen, onClose, onCreated, defaultTab = 'creations' }: DVECreationManagementProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
@@ -105,9 +106,9 @@ export default function DVECreationManagement({ isOpen, onClose, defaultTab = 'c
         title: "Sovereign DVE Created",
         description: `Successfully created ${name} with ${stakeAmount} NRN stake`,
       });
-      setShowCreateForm(false);
       setName('');
       setStakeAmount(10000);
+      onCreated?.();
     }
   };
 

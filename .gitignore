@@ -156,3 +156,5 @@ packages/KNIRVSERVER/pkg/knirvhasher/bin/knirvhasher
 packages/KNIRVSERVER/pkg/knirvgraph/bin/knirvgraph
 packages/KNIRVSERVER/pkg/knirvchain/bin/knirvchain
 packages/KNIRVSERVER/pkg/knirvagent/bin/knirvagent
+packages/KNIRVAGENT/knirvagent
+packages/KNIRVSERVER/backend/cmd/root_key_encryptor/root_key_encryptor

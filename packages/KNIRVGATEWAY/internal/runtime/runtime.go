@@ -119,6 +119,9 @@ func (r *Runtime) Setup() error {
 }
 
 // extractWebGUI extracts only the built WebGUI static files (webgui/out/).
+// The embed directive now targets all:webgui/out exclusively, so only the
+// Next.js static export is available — no source files, node_modules, or
+// intermediate build artifacts are embedded.
 func (r *Runtime) extractWebGUI(targetDir string) error {
 	r.logger.Info("Extracting embedded WebGUI static files", zap.String("target", targetDir))
 
@@ -130,36 +133,27 @@ func (r *Runtime) extractWebGUI(targetDir string) error {
 		if err != nil {
 			return err
 		}
-		relPath, _ := filepath.Rel(".", path)
-		if relPath == "." {
+		// Skip root and container directories (webgui, webgui/out).
+		if path == "." || path == "webgui" || path == "webgui/out" {
 			return nil
 		}
-		if !strings.HasPrefix(relPath, "webgui") {
+		// Everything under webgui/out/ is a build artifact.
+		if !strings.HasPrefix(path, "webgui/out/") {
 			if d.IsDir() {
 				return fs.SkipDir
 			}
 			return nil
 		}
+		// Strip webgui/out/ prefix to get the clean path.
+		staticPath := strings.TrimPrefix(path, "webgui/out/")
 		if d.IsDir() {
-			if relPath == "webgui" || strings.HasPrefix(relPath, "webgui/out") {
-				staticPath := strings.TrimPrefix(relPath, "webgui/out/")
-				staticPath = strings.TrimPrefix(staticPath, "/")
-				targetPath := filepath.Join(targetDir, staticPath)
-				return os.MkdirAll(targetPath, 0755)
-			}
-			return fs.SkipDir
+			return os.MkdirAll(filepath.Join(targetDir, staticPath), 0755)
 		}
-		if !strings.HasPrefix(relPath, "webgui/out/") {
-			return nil
-		}
-		staticPath := strings.TrimPrefix(relPath, "webgui/out/")
-		staticPath = strings.TrimPrefix(staticPath, "/")
-		targetPath := filepath.Join(targetDir, staticPath)
 		data, err := fs.ReadFile(r.webGUIFS, path)
 		if err != nil {
 			return fmt.Errorf("failed to read embedded file %s: %w", path, err)
 		}
-		return os.WriteFile(targetPath, data, 0644)
+		return os.WriteFile(filepath.Join(targetDir, staticPath), data, 0644)
 	})
 	if err != nil {
 		return err

@@ -48,6 +48,7 @@ type ManagerConfig struct {
 	StopTimeout   time.Duration
 	Stdout        interface{}
 	Stderr        interface{}
+	EnvOverrides  map[string]string
 }
 
 type HasherStatus struct {
@@ -153,6 +154,12 @@ func (m *Manager) Start(ctx context.Context) error {
 
 	if m.config.ArxivEnabled {
 		env = append(env, "DATAMINER_MODE=production", "ARXIV_ENABLED=true")
+	}
+
+	// Propagate env overrides (device credentials, cloudflare URLs, etc.)
+	// passed from the parent process (e.g. from root.key decryption).
+	for k, v := range m.config.EnvOverrides {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
 	args := []string{}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Server, Cpu, HardDrive, Shield, MapPin, Clock, AlertCircle, CheckCircle, Activity, CreditCard, Play, Square, Zap, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,9 +20,10 @@ interface DVENodesPanelProps {
   onNodeConnect?: (node: DVENode) => void;
   effectiveActiveNodeIdss?: { [key: string]: boolean };
   onActiveNodeChange?: (nodeId: string, isActive: boolean) => void;
+  refreshKey?: number;
 }
 
-export const DVENodesPanel = React.memo<DVENodesPanelProps>(({ className, onRentClick, onNodeConnect, effectiveActiveNodeIdss = {}, onActiveNodeChange }) => {
+export const DVENodesPanel = React.memo<DVENodesPanelProps>(({ className, onRentClick, onNodeConnect, effectiveActiveNodeIdss = {}, onActiveNodeChange, refreshKey }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const {
@@ -43,6 +44,12 @@ export const DVENodesPanel = React.memo<DVENodesPanelProps>(({ className, onRent
   const [selectedNode, setSelectedNode] = useState<DVENode | null>(null);
 
   const [provisioningNodes, setProvisioningNodes] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (refreshKey && refreshKey > 0) {
+      refreshNodes();
+    }
+  }, [refreshKey, refreshNodes]);
 
   // Use external effectiveActiveNodeIdss if provided, otherwise fallback to local state for backwards compatibility
   const [localActiveNodeId, setLocalActiveNodeId] = useState<{ [key: string]: boolean }>({});

@@ -10,14 +10,18 @@ import (
 	"bufio"
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/chzyer/readline"
@@ -132,6 +136,8 @@ func main() {
 		agentCmd()
 	case "gateway":
 		gatewayCmd()
+	case "server":
+		serverCmd()
 	case "status":
 		statusCmd()
 	case "migrate":
@@ -207,6 +213,7 @@ func printHelp() {
 	fmt.Println("  agent       Interact with the agent directly")
 	fmt.Println("  auth        Manage authentication (login, logout, status)")
 	fmt.Println("  gateway     Start knirvagent gateway")
+	fmt.Println("  server      Start knirvagent as HTTP server on Unix socket")
 	fmt.Println("  status      Show knirvagent status")
 	fmt.Println("  cron        Manage scheduled tasks")
 	fmt.Println("  migrate     Migrate from OpenClaw to KnirvAgent")
@@ -672,6 +679,307 @@ func gatewayCmd() {
 	agentLoop.Stop()
 	channelManager.StopAll(ctx)
 	fmt.Println("✓ Gateway stopped")
+}
+
+// serverCmd starts an HTTP server on a Unix socket that accepts command
+// execution requests. Designed for use as a managed subprocess by KNIRVSERVER's
+// AgentManager — each DVE gets its own agent process with its own socket.
+//
+// Usage: knirvagent server --dve-id <id> --socket-path <path>
+func serverCmd() {
+	dveID := ""
+	socketPath := ""
+
+	args := os.Args[2:]
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--dve-id":
+			if i+1 < len(args) {
+				dveID = args[i+1]
+				i++
+			}
+		case "--socket-path":
+			if i+1 < len(args) {
+				socketPath = args[i+1]
+				i++
+			}
+		case "--debug", "-d":
+			logger.SetLevel(logger.DEBUG)
+		case "--help", "-h":
+			fmt.Println("Usage: knirvagent server --dve-id <id> --socket-path <path>")
+			fmt.Println()
+			fmt.Println("Starts the agent as an HTTP server on a Unix socket.")
+			fmt.Println("Accepts POST /api/execute for command execution,")
+			fmt.Println("GET /health for health checks.")
+			return
+		}
+	}
+
+	if socketPath == "" {
+		fmt.Fprintf(os.Stderr, "Error: --socket-path is required\n")
+		os.Exit(1)
+	}
+
+	// Remove any existing socket file
+	os.Remove(socketPath)
+
+	cfg, err := loadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Debug: log what the config actually has after loading
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Providers.Gemini.APIKey=%q (len=%d)\n",
+		cfg.Providers.Gemini.APIKey, len(cfg.Providers.Gemini.APIKey))
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Providers.DeepSeek.APIKey=%q (len=%d)\n",
+		cfg.Providers.DeepSeek.APIKey, len(cfg.Providers.DeepSeek.APIKey))
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Providers.ShengSuanYun.APIKey=%q (len=%d)\n",
+		cfg.Providers.ShengSuanYun.APIKey, len(cfg.Providers.ShengSuanYun.APIKey))
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Providers.OpenRouter.APIKey=%q (len=%d)\n",
+		cfg.Providers.OpenRouter.APIKey, len(cfg.Providers.OpenRouter.APIKey))
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Agents.Defaults.Provider=%q\n",
+		cfg.Agents.Defaults.Provider)
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: cfg.Agents.Defaults.Model=%q\n",
+		cfg.Agents.Defaults.Model)
+
+	// Debug: log whether API keys are available as env vars
+	for _, key := range []string{"GEMINI_API_KEY", "DEEPSEEK_API_KEY", "CEREBRAS_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"} {
+		if val, ok := os.LookupEnv(key); ok && val != "" {
+			fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: %s is set (len=%d)\n", key, len(val))
+		} else if ok {
+			fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: %s is set but EMPTY\n", key)
+		} else {
+			fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DEBUG: %s is NOT SET\n", key)
+		}
+	}
+
+	provider, err := createProviderWithFallback(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating provider: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create the Unix socket FIRST, before any potentially-blocking agent
+	// initialization.  This ensures the parent (AgentManager.StartAgent)
+	// sees the socket immediately via waitForSocket, avoiding the 30-second
+	// timeout that would otherwise kill the agent process.
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error listening on socket %s: %v\n", socketPath, err)
+		os.Exit(1)
+	}
+	defer listener.Close()
+	defer os.Remove(socketPath)
+
+	// Set permissions so the backend_server can connect
+	os.Chmod(socketPath, 0666)
+
+	msgBus := bus.NewMessageBus()
+	agentLoop := agent.NewAgentLoop(cfg, msgBus, provider)
+
+	// Start the agent loop in the background
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go agentLoop.Run(ctx)
+
+	// Print startup info
+	startupInfo := agentLoop.GetStartupInfo()
+	toolsInfo := startupInfo["tools"].(map[string]interface{})
+	skillsInfo := startupInfo["skills"].(map[string]interface{})
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] DVE=%s socket=%s tools=%d skills=%d/%d\n",
+		dveID, socketPath, toolsInfo["count"], skillsInfo["available"], skillsInfo["total"])
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "ok",
+			"dve_id":   dveID,
+			"provider": cfg.Agents.Defaults.Provider,
+			"model":    cfg.Agents.Defaults.Model,
+		})
+	})
+	mux.HandleFunc("/api/execute", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Command string `json:"command"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "invalid request: " + err.Error(),
+			})
+			return
+		}
+
+		if req.Command == "" {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   "command is required",
+			})
+			return
+		}
+
+		response, err := agentLoop.ProcessDirect(ctx, req.Command, dveID+":terminal")
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success": false,
+				"error":   err.Error(),
+			})
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"output":  response,
+		})
+	})
+
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Listening on %s\n", socketPath)
+
+	// Serve until shutdown signal
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Shutting down...\n")
+		cancel()
+		listener.Close()
+	}()
+
+	if err := http.Serve(listener, mux); err != nil {
+		if !strings.Contains(err.Error(), "use of closed network connection") {
+			fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Server error: %v\n", err)
+		}
+	}
+
+	agentLoop.Stop()
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Stopped\n")
+}
+
+// ──────────────────────────────────────────────
+// Provider fallback — try configured provider first, then fall back through
+// alternative providers that have API keys configured.  This lets the agent
+// start even when the default model (gemini-2.0-flash / Gemini) has no key
+// but other providers (DeepSeek, ShengSuanYun, OpenAI, etc.) do.
+// ──────────────────────────────────────────────
+
+// providerFallback defines one candidate in the fallback chain.
+type providerFallback struct {
+	Provider string
+	Model    string // empty means leave the model at whatever CreateProvider picks
+}
+
+// defaultFallbackChain is the order of providers to try, from most preferred
+// to least.  The first entry is always the user-configured provider/model.
+var defaultFallbackChain = []providerFallback{
+	// Entry 0 is a sentinel — filled in at runtime with the configured provider/model.
+	{Provider: "", Model: ""},
+	{Provider: "deepseek", Model: "deepseek-chat"},
+	{Provider: "shengsuanyun", Model: ""},
+	{Provider: "openai", Model: "gpt-4o-mini"},
+	{Provider: "anthropic", Model: "claude-sonnet-4-20250514"},
+	{Provider: "groq", Model: "llama-3.3-70b-versatile"},
+	// Last resort — use OpenRouter if any key is set.  It proxies many models.
+	{Provider: "openrouter", Model: "google/gemini-2.0-flash"},
+}
+
+// hasAPIKeyFor returns true when the given provider has a non-empty API key
+// in the config.  This avoids attempting provider creation only to fail again.
+func hasAPIKeyFor(cfg *config.Config, providerName string) bool {
+	switch strings.ToLower(providerName) {
+	case "gemini", "google":
+		return cfg.Providers.Gemini.APIKey != ""
+	case "deepseek":
+		return cfg.Providers.DeepSeek.APIKey != ""
+	case "shengsuanyun", "cerebras":
+		return cfg.Providers.ShengSuanYun.APIKey != ""
+	case "openai", "gpt":
+		return cfg.Providers.OpenAI.APIKey != "" || cfg.Providers.OpenAI.AuthMethod != ""
+	case "anthropic", "claude":
+		return cfg.Providers.Anthropic.APIKey != "" || cfg.Providers.Anthropic.AuthMethod != ""
+	case "openrouter":
+		return cfg.Providers.OpenRouter.APIKey != ""
+	case "groq":
+		return cfg.Providers.Groq.APIKey != ""
+	case "vllm":
+		return cfg.Providers.VLLM.APIBase != ""
+	default:
+		return false
+	}
+}
+
+// createProviderWithFallback tries the configured provider first.  If it
+// fails (e.g. no API key for the default model), it walks the fallback chain
+// looking for a provider with an available API key.  When a fallback succeeds,
+// it updates cfg.Agents.Defaults so the rest of the agent (subagent manager,
+// context builder, etc.) uses the correct provider and model.
+func createProviderWithFallback(cfg *config.Config) (providers.LLMProvider, error) {
+	// Build the chain starting with the user-configured provider/model.
+	chain := make([]providerFallback, len(defaultFallbackChain))
+	copy(chain, defaultFallbackChain)
+	chain[0] = providerFallback{
+		Provider: cfg.Agents.Defaults.Provider,
+		Model:    cfg.Agents.Defaults.Model,
+	}
+
+	origProvider := cfg.Agents.Defaults.Provider
+	origModel := cfg.Agents.Defaults.Model
+
+	for i, fb := range chain {
+		if fb.Provider == "" {
+			continue
+		}
+		if !hasAPIKeyFor(cfg, fb.Provider) {
+			continue
+		}
+
+		cfg.Agents.Defaults.Provider = fb.Provider
+		if fb.Model != "" {
+			cfg.Agents.Defaults.Model = fb.Model
+		}
+
+		provider, err := providers.CreateProvider(cfg)
+		if err == nil {
+			if i > 0 {
+				fmt.Fprintf(os.Stderr,
+					"[KNIRVAGENT] Provider %q (model: %q) unavailable, "+
+						"falling back to %q (model: %q)\n",
+					chain[0].Provider, chain[0].Model,
+					fb.Provider, cfg.Agents.Defaults.Model)
+			}
+			return provider, nil
+		}
+
+		// Restore before trying the next fallback
+		cfg.Agents.Defaults.Provider = origProvider
+		cfg.Agents.Defaults.Model = origModel
+	}
+
+	// Every provider failed — build a helpful error message
+	var available []string
+	for _, fb := range chain {
+		if fb.Provider != "" && hasAPIKeyFor(cfg, fb.Provider) {
+			available = append(available, fb.Provider)
+		}
+	}
+	if len(available) > 0 {
+		return nil, fmt.Errorf(
+			"no usable provider: %q has no valid API key (models %q), "+
+				"and fallback providers failed. "+
+				"Available providers with keys: %v",
+			chain[0].Provider, chain[0].Model, available)
+	}
+	return nil, fmt.Errorf(
+		"no API keys configured for any provider. "+
+			"Ensure root.key contains at least one API key "+
+			"(Gemini, DeepSeek, etc.)")
 }
 
 func statusCmd() {

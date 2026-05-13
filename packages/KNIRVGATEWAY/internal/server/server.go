@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ipfs/go-cid"
@@ -821,6 +822,62 @@ func newSocketProxy(socketPath, targetBase string) *httputil.ReverseProxy {
 	return proxy
 }
 
+// dynamicAgentProxy returns an http.Handler that routes /api/agent/{dveId}/*
+// to the per-DVE KNIRVAGENT's Unix socket (agent-{dveId}.sock).
+// The proxy is created on first use and cached per DVE ID.
+func (s *Server) dynamicAgentProxy() http.Handler {
+	var (
+		mu     sync.RWMutex
+		cache  = make(map[string]*httputil.ReverseProxy)
+	)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extract DVE ID from path: /api/agent/{dveId}/rest/of/path
+		path := strings.TrimPrefix(r.URL.Path, "/api/agent/")
+		parts := strings.SplitN(path, "/", 2)
+		if len(parts) == 0 || parts[0] == "" {
+			http.Error(w, `{"error":"missing dve id"}`, http.StatusBadRequest)
+			return
+		}
+		dveID := parts[0]
+
+		socketPath := filepath.Join(s.config.AgentSocketDir, fmt.Sprintf("agent-%s.sock", dveID))
+
+		// Check if socket exists before proxying
+		if _, err := os.Stat(socketPath); os.IsNotExist(err) {
+			s.logger.Warn("Agent socket not found for DVE",
+				zap.String("dveID", dveID),
+				zap.String("socket", socketPath))
+			http.Error(w, fmt.Sprintf(`{"error":"agent not running for dve %s"}`, dveID),
+				http.StatusServiceUnavailable)
+			return
+		}
+
+		// Get or create a cached proxy for this DVE
+		mu.RLock()
+		proxy, ok := cache[dveID]
+		mu.RUnlock()
+		if !ok {
+			mu.Lock()
+			// Double-check inside write lock
+			if proxy, ok = cache[dveID]; !ok {
+				targetBase := fmt.Sprintf("http://knirvagent-%s", dveID)
+				proxy = newSocketProxy(socketPath, targetBase)
+				cache[dveID] = proxy
+				s.logger.Info("Created agent proxy",
+					zap.String("dveID", dveID),
+					zap.String("socket", socketPath))
+			}
+			mu.Unlock()
+		}
+
+		// Rewrite the URL path: strip /api/agent/{dveId}
+		r.URL.Path = "/" + strings.Join(parts[1:], "/")
+		r.URL.RawPath = ""
+
+		proxy.ServeHTTP(w, r)
+	})
+}
+
 // Handler implementations
 
 func (s *Server) handleGetSession(w http.ResponseWriter, r *http.Request) {
@@ -1032,58 +1089,7 @@ func (s *Server) handleEmptyArray(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("[]\n"))
 }
 
-// dynamicAgentProxy creates an httputil.ReverseProxy that
-// extracts {dveId} from /api/agent/{dveId}/... and proxies
-// to agent-{dveId}.sock, stripping the /api/agent/{dveId} prefix.
-func (s *Server) dynamicAgentProxy() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Extract /api/agent/{dveId}/... — e.g. /api/agent/dve-a/session
-		trimmed := strings.TrimPrefix(r.URL.Path, "/api/agent/")
-		parts := strings.SplitN(trimmed, "/", 2)
-		if len(parts) < 1 || parts[0] == "" {
-			http.Error(w, `{"error":"missing dveId"}`, http.StatusBadRequest)
-			return
-		}
-		dveID := parts[0]
-
-		socketPath := filepath.Join(s.config.AgentSocketDir, fmt.Sprintf("agent-%s.sock", dveID))
-
-		// Check if socket exists
-		if _, err := os.Stat(socketPath); os.IsNotExist(err) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusServiceUnavailable)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"error": fmt.Sprintf("no agent running for DVE %s", dveID),
-			})
-			return
-		}
-
-		// Rewrite path: strip /api/agent/{dveId} prefix
-		r.URL.Path = "/"
-		if len(parts) == 2 {
-			r.URL.Path = "/" + parts[1]
-		}
-
-		proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: "http", Host: "unix"})
-		proxy.Transport = &http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return net.DialTimeout("unix", socketPath, 2*time.Second)
-			},
-		}
-
-		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadGateway)
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"error": fmt.Sprintf("agent %s unavailable: %s", dveID, err),
-			})
-		}
-
-		proxy.ServeHTTP(w, r)
-	})
-}
-
-// TURN server handlers (blockchain-enabled)
+// Handler implementations
 func (s *Server) handleTurnStatus(w http.ResponseWriter, r *http.Request) {
 	if s.turnServer == nil {
 		http.Error(w, "TURN server not enabled", http.StatusServiceUnavailable)

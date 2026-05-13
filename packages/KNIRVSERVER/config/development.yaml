@@ -226,3 +226,8 @@ updater:
   enabled: false
   poll_interval: 10m
   github_repo: "knirvcorp/KNIRV_NETWORK"
+
+
+# KNIRVHASHER Configuration
+hasher:
+  frames_dir: /var/lib/knirvserver/knirvhasher/data/frames

@@ -1,8 +1,11 @@
 package knirvoracle
 
 import (
+	"bytes"
+	"compress/gzip"
 	_ "embed"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,6 +75,24 @@ func writeFileAtomically(path string, data []byte, perm os.FileMode) error {
 	return nil
 }
 
+// decompressEmbedded decompresses a gzip-compressed embedded binary.
+// Returns the raw bytes unchanged if the data is not gzip-compressed.
+func decompressEmbedded(data []byte) ([]byte, error) {
+	if len(data) < 2 || data[0] != 0x1f || data[1] != 0x8b {
+		return data, nil
+	}
+	r, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer r.Close()
+	decompressed, err := io.ReadAll(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress embedded binary: %w", err)
+	}
+	return decompressed, nil
+}
+
 func ExtractEmbeddedBinary(destDir string) (string, error) {
 	if len(embeddedBinary) == 0 {
 		return "", fmt.Errorf("embedded knirvoracle binary is empty")
@@ -79,6 +100,11 @@ func ExtractEmbeddedBinary(destDir string) (string, error) {
 
 	if _, err := ResolveAndValidateRootKey(""); err != nil {
 		return "", fmt.Errorf("refusing to export knirvoracle without a valid root.key: %w", err)
+	}
+
+	decompressed, err := decompressEmbedded(embeddedBinary)
+	if err != nil {
+		return "", err
 	}
 
 	if strings.TrimSpace(destDir) == "" {
@@ -97,7 +123,7 @@ func ExtractEmbeddedBinary(destDir string) (string, error) {
 	if err := os.RemoveAll(destPath); err != nil {
 		return "", err
 	}
-	if err := writeFileAtomically(destPath, embeddedBinary, 0755); err != nil {
+	if err := writeFileAtomically(destPath, decompressed, 0755); err != nil {
 		return "", err
 	}
 

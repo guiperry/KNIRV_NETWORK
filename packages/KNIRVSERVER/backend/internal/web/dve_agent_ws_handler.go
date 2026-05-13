@@ -26,7 +26,7 @@ type AgentManagerInterface interface {
 }
 
 // DVEAgentWSHandler proxies WebSocket I/O between the frontend terminal
-// and the KNIRVAGENT DVE Supervisor subprocess.
+// and the KNIRVAGENT DVE Supervisor subprocess (via Unix socket).
 type DVEAgentWSHandler struct {
 	agentManager AgentManagerInterface
 	mu           sync.RWMutex
@@ -35,13 +35,13 @@ type DVEAgentWSHandler struct {
 
 // agentWSConn represents a single WebSocket connection for a DVE agent terminal.
 type agentWSConn struct {
-	nodeID    string
-	conn      *websocket.Conn
-	send      chan []byte
+	nodeID     string
+	conn       *websocket.Conn
+	send       chan []byte
 	socketPath string
-	lastSeen  time.Time
-	mu        sync.Mutex
-	agentHTTP *http.Client
+	lastSeen   time.Time
+	mu         sync.Mutex
+	agentHTTP  *http.Client
 }
 
 // agentWSMessage is the JSON frame exchanged over the WebSocket.
@@ -77,7 +77,7 @@ func (h *DVEAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Look up the per-DVE agent socket path
+	// Look up the per-DVE agent socket path from the AgentManager
 	socketPath, err := h.agentManager.GetSocketPathForDVE(nodeID)
 	if err != nil {
 		log.Printf("[DVE Agent WS] No agent socket for node %s: %v", nodeID, err)
@@ -111,7 +111,6 @@ func (h *DVEAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.Reque
 	}
 
 	h.mu.Lock()
-	// Close any existing connection for this node
 	if existing, ok := h.active[nodeID]; ok {
 		existing.conn.Close()
 	}
@@ -172,7 +171,6 @@ func (h *DVEAgentWSHandler) readPump(conn *agentWSConn) {
 
 		switch msg.Type {
 		case "input":
-			// Forward terminal input to the KNIRVAGENT command execution endpoint
 			go h.forwardInput(conn, string(msg.Data))
 		case "ping":
 			conn.send <- mustMarshal(agentWSResponse{Type: "pong", Data: ""})
@@ -211,8 +209,8 @@ func (h *DVEAgentWSHandler) writePump(conn *agentWSConn) {
 	}
 }
 
-// forwardInput sends a command to the KNIRVAGENT's execute endpoint via Unix socket
-// and writes the response back to the WebSocket send channel.
+// forwardInput sends a command to the KNIRVAGENT's /api/execute endpoint via
+// Unix socket and writes the response back to the WebSocket send channel.
 func (h *DVEAgentWSHandler) forwardInput(conn *agentWSConn, input string) {
 	if input == "" {
 		return
@@ -228,7 +226,6 @@ func (h *DVEAgentWSHandler) forwardInput(conn *agentWSConn, input string) {
 		return
 	}
 
-	// POST command to KNIRVAGENT's execute endpoint via Unix socket
 	resp, err := conn.agentHTTP.Post(
 		"http://localhost/api/execute",
 		"application/json",
@@ -252,14 +249,12 @@ func (h *DVEAgentWSHandler) forwardInput(conn *agentWSConn, input string) {
 		return
 	}
 
-	// Parse KNIRVAGENT response for output
 	var agentResp struct {
 		Output  string `json:"output"`
 		Success bool   `json:"success"`
 		Error   string `json:"error,omitempty"`
 	}
 	if err := json.Unmarshal(respBody, &agentResp); err != nil {
-		// Raw text response -- send it directly
 		conn.send <- mustMarshal(agentWSResponse{
 			Type: "data",
 			Data: string(respBody) + "\r\n",
@@ -278,7 +273,6 @@ func (h *DVEAgentWSHandler) forwardInput(conn *agentWSConn, input string) {
 		}
 	}
 
-	// Send prompt
 	conn.send <- mustMarshal(agentWSResponse{Type: "prompt", Data: ""})
 }
 
