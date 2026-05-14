@@ -136,7 +136,7 @@ deps:
 	@$(GO) get -u ./...
 	@$(GO) mod tidy
 
-## run: Build and run picoclaw
+## run: Build and run knirvagent
 run: build
 	@$(BUILD_DIR)/$(BINARY_NAME) $(ARGS)
 
