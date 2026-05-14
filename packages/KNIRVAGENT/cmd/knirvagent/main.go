@@ -760,6 +760,17 @@ func serverCmd() {
 		os.Exit(1)
 	}
 
+	// Build runtime fallback providers so the agent can switch on auth errors.
+	// We pre-create each provider here (at startup) so there's no overhead at
+	// the time of the actual fallback.
+	runtimeFallbacks := buildRuntimeFallbacks(cfg)
+
+	// Validate the primary provider with a quick test call and promote the
+	// first working fallback when the primary key is invalid.  This runs before
+	// the socket is created so the parent (AgentManager) always sees the
+	// correct provider name in the health endpoint.
+	provider, runtimeFallbacks = validateAndPromoteProvider(provider, cfg, runtimeFallbacks)
+
 	// Create the Unix socket FIRST, before any potentially-blocking agent
 	// initialization.  This ensures the parent (AgentManager.StartAgent)
 	// sees the socket immediately via waitForSocket, avoiding the 30-second
@@ -777,6 +788,7 @@ func serverCmd() {
 
 	msgBus := bus.NewMessageBus()
 	agentLoop := agent.NewAgentLoop(cfg, msgBus, provider)
+	agentLoop.SetFallbackProviders(runtimeFallbacks)
 
 	// Start the agent loop in the background
 	ctx, cancel := context.WithCancel(context.Background())
@@ -825,7 +837,10 @@ func serverCmd() {
 			return
 		}
 
-		response, err := agentLoop.ProcessDirect(ctx, req.Command, dveID+":terminal")
+		// Use the HTTP request's context so that if the caller (KNIRVSERVER
+		// WebSocket proxy) disconnects or times out, the LLM call is cancelled
+		// rather than continuing to consume the server-wide context.
+		response, err := agentLoop.ProcessDirect(r.Context(), req.Command, dveID+":terminal")
 		if err != nil {
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"success": false,
@@ -980,6 +995,127 @@ func createProviderWithFallback(cfg *config.Config) (providers.LLMProvider, erro
 		"no API keys configured for any provider. "+
 			"Ensure root.key contains at least one API key "+
 			"(Gemini, DeepSeek, etc.)")
+}
+
+// isStartupAuthError returns true when an API call error indicates an
+// invalid or missing key (HTTP 400/401/403) rather than a transient failure.
+func isStartupAuthError(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "400") ||
+		strings.Contains(msg, "401") ||
+		strings.Contains(msg, "403") ||
+		strings.Contains(msg, "invalid api key") ||
+		strings.Contains(msg, "api key not found") ||
+		strings.Contains(msg, "api_key_invalid") ||
+		strings.Contains(msg, "unauthorized") ||
+		strings.Contains(msg, "permission denied")
+}
+
+// validateAndPromoteProvider makes a minimal test call to the primary provider.
+// If it fails with an auth error, each fallback is tried in order and the first
+// working one is promoted to primary — its entry is removed from the returned
+// fallback slice and cfg.Agents.Defaults is updated accordingly.
+// Non-auth failures (rate limits, network issues) are logged but do not trigger
+// promotion, so the agent still starts and may recover at runtime.
+func validateAndPromoteProvider(
+	primary providers.LLMProvider,
+	cfg *config.Config,
+	fallbacks []agent.FallbackEntry,
+) (providers.LLMProvider, []agent.FallbackEntry) {
+	testMsg := []providers.Message{{Role: "user", Content: "reply with: ok"}}
+	testOpts := map[string]interface{}{"max_tokens": 5}
+
+	valCtx, valCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	_, primaryErr := primary.Chat(valCtx, testMsg, nil, cfg.Agents.Defaults.Model, testOpts)
+	valCancel()
+
+	if primaryErr == nil {
+		fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Provider %q passed auth validation\n", cfg.Agents.Defaults.Provider)
+		return primary, fallbacks
+	}
+
+	if !isStartupAuthError(primaryErr) {
+		fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Warning: primary provider %q test failed (non-auth, may recover): %v\n",
+			cfg.Agents.Defaults.Provider, primaryErr)
+		return primary, fallbacks
+	}
+
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Primary provider %q auth error at startup: %v — testing fallbacks\n",
+		cfg.Agents.Defaults.Provider, primaryErr)
+
+	for i, fb := range fallbacks {
+		fbCtx, fbCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		_, err := fb.Provider.Chat(fbCtx, testMsg, nil, fb.Model, testOpts)
+		fbCancel()
+
+		if err == nil {
+			cfg.Agents.Defaults.Provider = fb.Name
+			cfg.Agents.Defaults.Model = fb.Model
+			fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Promoted %q (model: %q) as primary provider\n", fb.Name, fb.Model)
+			// Remove the promoted entry from fallbacks
+			remaining := make([]agent.FallbackEntry, 0, len(fallbacks)-1)
+			remaining = append(remaining, fallbacks[:i]...)
+			remaining = append(remaining, fallbacks[i+1:]...)
+			return fb.Provider, remaining
+		}
+		if isStartupAuthError(err) {
+			fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Fallback %q auth error, skipping\n", fb.Name)
+		} else {
+			fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Fallback %q test failed (non-auth): %v, skipping\n", fb.Name, err)
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] No fallback passed auth validation — continuing with %q (may fail at runtime)\n",
+		cfg.Agents.Defaults.Provider)
+	return primary, fallbacks
+}
+
+// buildRuntimeFallbacks pre-creates all fallback providers (excluding the
+// one already chosen as primary) so the AgentLoop can switch at runtime when
+// an auth error occurs.  Providers with no API key are silently skipped.
+func buildRuntimeFallbacks(cfg *config.Config) []agent.FallbackEntry {
+	primaryProvider := strings.ToLower(cfg.Agents.Defaults.Provider)
+	origProvider := cfg.Agents.Defaults.Provider
+	origModel := cfg.Agents.Defaults.Model
+
+	var entries []agent.FallbackEntry
+	for _, fb := range defaultFallbackChain[1:] {
+		if fb.Provider == "" {
+			continue
+		}
+		if strings.EqualFold(fb.Provider, primaryProvider) {
+			continue // already the primary
+		}
+		if !hasAPIKeyFor(cfg, fb.Provider) {
+			continue
+		}
+
+		cfg.Agents.Defaults.Provider = fb.Provider
+		if fb.Model != "" {
+			cfg.Agents.Defaults.Model = fb.Model
+		} else {
+			cfg.Agents.Defaults.Model = origModel
+		}
+
+		p, err := providers.CreateProvider(cfg)
+		if err != nil {
+			cfg.Agents.Defaults.Provider = origProvider
+			cfg.Agents.Defaults.Model = origModel
+			continue
+		}
+
+		model := cfg.Agents.Defaults.Model
+		entries = append(entries, agent.FallbackEntry{
+			Provider: p,
+			Model:    model,
+			Name:     fb.Provider,
+		})
+
+		cfg.Agents.Defaults.Provider = origProvider
+		cfg.Agents.Defaults.Model = origModel
+	}
+
+	return entries
 }
 
 func statusCmd() {

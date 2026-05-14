@@ -942,8 +942,10 @@ func (h *DVEHandlers) GetSupervisorAgentStatus(w http.ResponseWriter, r *http.Re
 
 	nodeID := mux.Vars(r)["nodeId"]
 
-	// Lazy-provision: if the DVE node exists but no agent is running, start one
-	if !h.knirvagentManager.IsRunning() && h.dveManager != nil && nodeID != "" {
+	// Lazy-provision: if no agent is running for THIS specific DVE, start one.
+	// Check per-DVE socket — not just "any agent running" — so that accessing a
+	// second DVE while a first DVE's agent is active still triggers provisioning.
+	if _, sockErr := h.knirvagentManager.GetSocketPathForDVE(nodeID); sockErr != nil && h.dveManager != nil && nodeID != "" {
 		if node, err := h.dveManager.GetNode(nodeID); err == nil && node != nil {
 			log.Printf("[DVE] Lazy-provisioning KNIRVAGENT for node %s (%s)", nodeID, node.Name)
 			startCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -954,17 +956,14 @@ func (h *DVEHandlers) GetSupervisorAgentStatus(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	// Check if agent is now running (either was running or just provisioned)
-	running := h.knirvagentManager.IsRunning()
+	// Check per-DVE status
 	status := "offline"
-	if running {
-		// Check per-DVE by seeing if the agent socket exists for this node
-		if _, err := h.knirvagentManager.GetSocketPathForDVE(nodeID); err == nil {
-			status = "online"
-		} else {
-			status = "initializing"
-		}
+	if _, err := h.knirvagentManager.GetSocketPathForDVE(nodeID); err == nil {
+		status = "online"
+	} else if h.knirvagentManager.IsRunning() {
+		status = "initializing"
 	}
+	running := status != "offline"
 
 	healthErr := h.knirvagentManager.HealthCheck(context.Background())
 	healthStatus := "healthy"
@@ -1004,8 +1003,9 @@ func (h *DVEHandlers) GetSupervisorAgentSession(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Lazy-provision if no agent is running but the node exists
-	if !h.knirvagentManager.IsRunning() && h.dveManager != nil && nodeID != "" {
+	// Lazy-provision if no agent is running for THIS specific DVE (regardless of
+	// whether agents for other DVEs are already running).
+	if _, sockErr := h.knirvagentManager.GetSocketPathForDVE(nodeID); sockErr != nil && h.dveManager != nil && nodeID != "" {
 		if node, err := h.dveManager.GetNode(nodeID); err == nil && node != nil {
 			log.Printf("[DVE] Lazy-provisioning KNIRVAGENT for session on node %s (%s)", nodeID, node.Name)
 			startCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -1016,15 +1016,8 @@ func (h *DVEHandlers) GetSupervisorAgentSession(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	if !h.knirvagentManager.IsRunning() {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": "KNIRVAGENT supervisor not running and could not be provisioned",
-		})
-		return
-	}
-
-	// Verify the agent socket exists for this specific DVE
+	// Verify the agent socket exists for this specific DVE (covers both
+	// "never started" and "failed to provision" cases).
 	if _, err := h.knirvagentManager.GetSocketPathForDVE(nodeID); err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		json.NewEncoder(w).Encode(map[string]interface{}{

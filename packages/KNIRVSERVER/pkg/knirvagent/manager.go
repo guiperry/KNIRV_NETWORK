@@ -253,6 +253,13 @@ func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeo
 		}
 	}
 
+	if am.socketDir != "" {
+		if err := os.MkdirAll(am.socketDir, 0755); err != nil {
+			am.mu.Unlock()
+			return nil, fmt.Errorf("failed to create socket dir %s: %w", am.socketDir, err)
+		}
+	}
+
 	socketPath := filepath.Join(am.socketDir, fmt.Sprintf("agent-%s.sock", dveID))
 
 	// Kill any stale instance for this DVE
@@ -641,6 +648,11 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 	socketDir := ""
 	if cfg.SocketPath != "" {
 		socketDir = filepath.Dir(cfg.SocketPath)
+	}
+	if socketDir == "" {
+		// Fall back to a stable app-data directory so that socket files are
+		// never created in the process CWD, which may not be writable.
+		socketDir = filepath.Join(getAgentAppDataDir(), "sockets")
 	}
 
 	innerCfg := &AgentManagerConfig{

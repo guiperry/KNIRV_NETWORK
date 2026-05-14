@@ -29,19 +29,28 @@ import (
 	"github.com/knirvcorp/knirvagent/pkg/utils"
 )
 
+// FallbackEntry holds a pre-created provider and the model to use when the
+// primary provider fails with an auth or availability error.
+type FallbackEntry struct {
+	Provider providers.LLMProvider
+	Model    string
+	Name     string // human-readable label for logging
+}
+
 type AgentLoop struct {
-	bus            *bus.MessageBus
-	provider       providers.LLMProvider
-	workspace      string
-	model          string
-	contextWindow  int // Maximum context window size in tokens
-	maxIterations  int
-	sessions       *session.SessionManager
-	state          *state.Manager
-	contextBuilder *ContextBuilder
-	tools          *tools.ToolRegistry
-	running        atomic.Bool
-	summarizing    sync.Map // Tracks which sessions are currently being summarized
+	bus              *bus.MessageBus
+	provider         providers.LLMProvider
+	workspace        string
+	model            string
+	contextWindow    int // Maximum context window size in tokens
+	maxIterations    int
+	sessions         *session.SessionManager
+	state            *state.Manager
+	contextBuilder   *ContextBuilder
+	tools            *tools.ToolRegistry
+	running          atomic.Bool
+	summarizing      sync.Map // Tracks which sessions are currently being summarized
+	fallbackEntries  []FallbackEntry
 }
 
 // processOptions configures how a message is processed
@@ -209,6 +218,28 @@ func (al *AgentLoop) Stop() {
 
 func (al *AgentLoop) RegisterTool(tool tools.Tool) {
 	al.tools.Register(tool)
+}
+
+// SetFallbackProviders wires in ordered fallback providers that are tried when
+// the primary provider returns an auth or availability error.
+func (al *AgentLoop) SetFallbackProviders(entries []FallbackEntry) {
+	al.fallbackEntries = entries
+}
+
+// isProviderAuthError returns true for errors that indicate the current
+// provider/key is broken and a different provider should be tried.
+func isProviderAuthError(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "400") ||
+		strings.Contains(msg, "401") ||
+		strings.Contains(msg, "403") ||
+		strings.Contains(msg, "invalid api key") ||
+		strings.Contains(msg, "api key not found") ||
+		strings.Contains(msg, "api_key_invalid") ||
+		strings.Contains(msg, "invalid_api_key") ||
+		strings.Contains(msg, "authentication") ||
+		strings.Contains(msg, "unauthorized") ||
+		strings.Contains(msg, "permission denied")
 }
 
 // RecordLastChannel records the last active channel for this workspace.
@@ -461,10 +492,11 @@ func (al *AgentLoop) runLLMIteration(ctx context.Context, messages []providers.M
 			})
 
 		// Call LLM
-		response, err := al.provider.Chat(ctx, messages, providerToolDefs, al.model, map[string]interface{}{
+		callOpts := map[string]interface{}{
 			"max_tokens":  8192,
 			"temperature": 0.7,
-		})
+		}
+		response, err := al.provider.Chat(ctx, messages, providerToolDefs, al.model, callOpts)
 
 		if err != nil {
 			logger.ErrorCF("agent", "LLM call failed",
@@ -472,7 +504,35 @@ func (al *AgentLoop) runLLMIteration(ctx context.Context, messages []providers.M
 					"iteration": iteration,
 					"error":     err.Error(),
 				})
-			return "", iteration, fmt.Errorf("LLM call failed: %w", err)
+
+			// On auth/availability errors, try each pre-built fallback provider.
+			// Once a fallback succeeds, permanently switch al.provider and al.model
+			// for the remainder of this session.
+			if isProviderAuthError(err) {
+				for _, fb := range al.fallbackEntries {
+					logger.InfoCF("agent", "Trying fallback provider",
+						map[string]interface{}{
+							"fallback": fb.Name,
+							"model":    fb.Model,
+						})
+					resp2, err2 := fb.Provider.Chat(ctx, messages, providerToolDefs, fb.Model, callOpts)
+					if err2 == nil {
+						logger.InfoCF("agent", "Switched to fallback provider",
+							map[string]interface{}{"fallback": fb.Name, "model": fb.Model})
+						al.provider = fb.Provider
+						al.model = fb.Model
+						response = resp2
+						err = nil
+						break
+					}
+					logger.WarnCF("agent", "Fallback provider also failed",
+						map[string]interface{}{"fallback": fb.Name, "error": err2.Error()})
+				}
+			}
+
+			if err != nil {
+				return "", iteration, fmt.Errorf("LLM call failed: %w", err)
+			}
 		}
 
 		// Check if no tool calls - we're done

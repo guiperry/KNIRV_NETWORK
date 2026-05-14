@@ -313,17 +313,20 @@ func LoadConfig(path string) (*Config, error) {
 	cfg := DefaultConfig()
 
 	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return cfg, nil
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+
+	// Only unmarshal if the file actually existed.
+	if err == nil {
+		if err := json.Unmarshal(data, cfg); err != nil {
+			return nil, err
 		}
-		return nil, err
 	}
 
-	if err := json.Unmarshal(data, cfg); err != nil {
-		return nil, err
-	}
-
+	// Always apply env overrides — both KNIRV_PROVIDERS_* struct tags and the
+	// simple fallback names injected by KNIRVSERVER.  This must run even when
+	// no config file exists so that the subprocess receives its API keys.
 	if err := env.Parse(cfg); err != nil {
 		return nil, err
 	}

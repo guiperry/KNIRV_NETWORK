@@ -30,6 +30,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const [sshConnected, setSshConnected] = useState(false);
   const [connectionMode, setConnectionMode] = useState<'knirvshell' | 'knirvagent' | 'ssh' | 'local'>('local');
   const connectionModeRef = useRef<'knirvshell' | 'knirvagent' | 'ssh' | 'local'>('local');
+  const agentProcessingRef = useRef(false);
 
   const updateConnectionModeRef = (mode: 'knirvshell' | 'knirvagent' | 'ssh' | 'local') => {
     connectionModeRef.current = mode;
@@ -187,8 +188,16 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
       ws.onmessage = (ev) => {
         const msg = JSON.parse(ev.data);
         if (msg.type === 'data') {
+          if (agentProcessingRef.current) {
+            term.write('\r\x1b[2K');
+            agentProcessingRef.current = false;
+          }
           term.write(msg.data);
         } else if (msg.type === 'prompt') {
+          if (agentProcessingRef.current) {
+            term.write('\r\x1b[2K');
+            agentProcessingRef.current = false;
+          }
           term.write('\x1b[1;35magent> \x1b[0m');
         }
       };
@@ -314,8 +323,11 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
               inputBufferRef.current = '';
               if (line) {
                 wsRef.current.send(JSON.stringify({ type: 'input', data: line }));
+                term.write('\r\n\x1b[33m⟳ Processing...\x1b[0m');
+                agentProcessingRef.current = true;
+              } else {
+                term.write('\r\n');
               }
-              term.write('\r\n');
             } else if (data === '\u007f') { // Backspace
               if (inputBufferRef.current.length > 1) {
                 inputBufferRef.current = inputBufferRef.current.slice(0, -2);

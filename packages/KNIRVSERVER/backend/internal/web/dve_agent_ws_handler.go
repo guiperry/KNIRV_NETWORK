@@ -85,9 +85,11 @@ func (h *DVEAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Create an HTTP client that dials the agent's Unix socket
+	// Create an HTTP client that dials the agent's Unix socket.
+	// No client-level Timeout: LLM calls via the fallback chain can easily take
+	// more than 30 seconds.  Each forwardInput call uses its own per-request
+	// context with a 5-minute deadline instead.
 	unixClient := &http.Client{
-		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				return net.DialTimeout("unix", socketPath, 5*time.Second)
@@ -171,7 +173,12 @@ func (h *DVEAgentWSHandler) readPump(conn *agentWSConn) {
 
 		switch msg.Type {
 		case "input":
-			go h.forwardInput(conn, string(msg.Data))
+			var inputStr string
+			if err := json.Unmarshal(msg.Data, &inputStr); err != nil {
+				log.Printf("[DVE Agent WS] Invalid input data from node=%s: %v", conn.nodeID, err)
+				continue
+			}
+			go h.forwardInput(conn, inputStr)
 		case "ping":
 			conn.send <- mustMarshal(agentWSResponse{Type: "pong", Data: ""})
 		default:
@@ -226,11 +233,24 @@ func (h *DVEAgentWSHandler) forwardInput(conn *agentWSConn, input string) {
 		return
 	}
 
-	resp, err := conn.agentHTTP.Post(
-		"http://localhost/api/execute",
-		"application/json",
-		bytes.NewReader(body),
-	)
+	// Give each LLM call up to 5 minutes — enough for a fallback chain and a
+	// slow provider response.  The KNIRVAGENT honours request cancellation, so
+	// this deadline propagates through to the underlying LLM call.
+	reqCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost,
+		"http://localhost/api/execute", bytes.NewReader(body))
+	if err != nil {
+		conn.send <- mustMarshal(agentWSResponse{
+			Type: "data",
+			Data: fmt.Sprintf("\x1b[31m[ERROR] Failed to build request: %v\x1b[0m\r\n", err),
+		})
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := conn.agentHTTP.Do(req)
 	if err != nil {
 		conn.send <- mustMarshal(agentWSResponse{
 			Type: "data",
