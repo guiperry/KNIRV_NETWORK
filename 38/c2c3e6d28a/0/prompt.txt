@@ -1,0 +1,87 @@
+In the KNIRVSERVER, when we initialize and access a DVE, the KNIRVAGENT doesn't fully connect through the required socket connection. I see there is a log message saying the inference provider API keys are available but then they don't get picked up by the agent. Please troubleshoot and fix this issue in the DVE so tht we can see the KNIRVAGENT responses and chat with the agent through the SSH Terminal console in the DVE dashboard modal frontend.
+
+---
+
+I'm still seeing the following in console logs:
+
+{"level":"info","timestamp":"2026-05-13T17:44:38.426-0400","caller":"knirvagent/manager.go:269","message":"Starting KNIRVAGENT for DVE","dveID":"5c71bb48-a071-4854-b1e2-6f3041f8e14e","socket":"/var/lib/knirvserver/sockets/agent-5c71bb48-a071-4854-b1e2-6f3041f8e14e.sock","binary":"/var/lib/knirvserver/bin/knirvagent"}
+[KNIRVAGENT] DEBUG: cfg.Providers.Gemini.APIKey="" (len=0)
+[KNIRVAGENT] DEBUG: cfg.Providers.DeepSeek.APIKey="" (len=0)
+[KNIRVAGENT] DEBUG: cfg.Providers.ShengSuanYun.APIKey="" (len=0)
+[KNIRVAGENT] DEBUG: cfg.Providers.OpenRouter.APIKey="" (len=0)
+[KNIRVAGENT] DEBUG: cfg.Agents.Defaults.Provider="gemini"
+[KNIRVAGENT] DEBUG: cfg.Agents.Defaults.Model="gemini-2.0-flash"
+[KNIRVAGENT] DEBUG: GEMINI_API_KEY is set (len=39)
+[KNIRVAGENT] DEBUG: DEEPSEEK_API_KEY is set (len=35)
+[KNIRVAGENT] DEBUG: CEREBRAS_API_KEY is set (len=52)
+[KNIRVAGENT] DEBUG: ANTHROPIC_API_KEY is NOT SET
+[KNIRVAGENT] DEBUG: OPENAI_API_KEY is NOT SET
+Error creating provider: no API keys configured for any provider. Ensure root.key contains at least one API key (Gemini, DeepSeek, etc.)
+
+
+And the following in the SSH Terminal on the frontend:
+
+KNIRV-SERVER Secure Terminal v1.1.0
+Connecting to context: 5c71bb48-a071-4854-b1e2-6f3041f8e14e...
+Authenticated via Hardware TEE Enclave.
+
+[CONNECTED] DVE Supervisor Agent (KNIRVAGENT) link established.
+[INFO] Your terminal input will be relayed to the KNIRVAGENT supervisor.
+agent> ╔═══════════════════════════════════════════════════════════╗
+║  KNIRVAGENT DVE Supervisor v1.1.0                        ║
+║  Status: ACTIVE                                           ║
+║  DVE: 5c71bb48-a071-4854-b1e2-6f3041f8e14e
+╚═══════════════════════════════════════════════════════════╝
+Type 'help' for available commands or 'exit' to disconnect.
+agent> Testing
+[ERROR] KNIRVAGENT unreachable (socket: /var/lib/knirvserver/sockets/agent-5c71bb48-a071-4854-b1e2-6f3041f8e14e.sock): Post "http://localhost/api/execute": dial unix /var/lib/knirvserver/sockets/agent-5c71bb48-a071-4854-b1e2-6f3041f8e14e.sock: connect: no such file or directory
+
+---
+
+That workded! But now it looks like the google API key is invalid. I'll update that API key later, until then, can you program the KNIRVAGENT to fallback to using the Deepseek and then Cerebras API keys when the first one is not working?
+
+See the log confirms its connecting:
+{"level":"info","timestamp":"2026-05-13T18:26:01.319-0400","caller":"knirvagent/manager.go:269","message":"Starting KNIRVAGENT for DVE","dveID":"5c71bb48-a071-4854-b1e2-6f3041f8e14e","socket":"/var/lib/knirvserver/sockets/agent-5c71bb48-a071-4854-b1e2-6f3041f8e14e.sock","binary":"/var/lib/knirvserver/bin/knirvagent"}
+[KNIRVAGENT] DEBUG: cfg.Providers.Gemini.APIKey="REDACTED" (len=39)
+[KNIRVAGENT] DEBUG: cfg.Providers.DeepSeek.APIKey="REDACTED" (len=35)
+[KNIRVAGENT] DEBUG: cfg.Providers.ShengSuanYun.APIKey="REDACTED" (len=52)
+[KNIRVAGENT] DEBUG: cfg.Providers.OpenRouter.APIKey="" (len=0)
+[KNIRVAGENT] DEBUG: cfg.Agents.Defaults.Provider="gemini"
+[KNIRVAGENT] DEBUG: cfg.Agents.Defaults.Model="gemini-2.0-flash"
+[KNIRVAGENT] DEBUG: GEMINI_API_KEY is set (len=39)
+[KNIRVAGENT] DEBUG: DEEPSEEK_API_KEY is set (len=35)
+[KNIRVAGENT] DEBUG: CEREBRAS_API_KEY is set (len=52)
+[KNIRVAGENT] DEBUG: ANTHROPIC_API_KEY is NOT SET
+[KNIRVAGENT] DEBUG: OPENAI_API_KEY is NOT SET
+{"level":"info","timestamp":"2026-05-13T18:26:01.420-0400","caller":"knirvagent/manager.go:325","message":"KNIRVAGENT started for DVE","dveID":"5c71bb48-a071-4854-b1e2-6f3041f8e14e","pid":506888,"socket":"/var/lib/knirvserver/sockets/agent-5c71bb48-a071-4854-b1e2-6f3041f8e14e.sock"}
+[KNIRVAGENT] DVE=5c71bb48-a071-4854-b1e2-6f3041f8e14e socket=/var/lib/knirvserver/sockets/agent-5c71bb48-a071-4854-b1e2-6f3041f8e14e.sock tools=13 skills=0/0
+[KNIRVAGENT] Listening on /var/lib/knirvserver/sockets/agent-5c71bb48-a071-4854-b1e2-6f3041f8e14e.sock
+
+
+See the log message when I try to send a test message to the agent:
+2026/05/13 18:26:47 [2026-05-13T22:26:47Z] [INFO] agent: Processing message from cli:cron: test {sender_id=cron, session_key=5c71bb48-a071-4854-b1e2-6f3041f8e14e:terminal, channel=cli, chat_id=direct}
+2026/05/13 18:26:47 [2026-05-13T22:26:47Z] [ERROR] agent: LLM call failed {iteration=1, error=API request failed:
+  Status: 400
+  Body:   [{
+  "error": {
+    "code": 400,
+    "message": "API Key not found. Please pass a valid API key.",
+    "status": "INVALID_ARGUMENT",
+    "details": [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        "reason": "API_KEY_INVALID",
+        "domain": "googleapis.com",
+        "metadata": {
+          "service": "generativelanguage.googleapis.com"
+        }
+      },
+      {
+        "@type": "type.googleapis.com/google.rpc.LocalizedMessage",
+        "locale": "en-US",
+        "message": "API Key not found. Please pass a valid API key."
+      }
+    ]
+  }
+}
+]}
