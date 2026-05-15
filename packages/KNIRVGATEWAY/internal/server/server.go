@@ -425,18 +425,22 @@ func (s *Server) setupRoutes() error {
 		s.logger.Warn("Shell proxy not configured — /api/shell/* will not be proxied")
 	}
 
+	// Hasher proxy — KNIRVHASHER via Unix socket (Phase 8)
+	if s.config.HasherSocketPath != "" {
+		hasherProxy := newSocketProxy(s.config.HasherSocketPath, "http://knirvhasher")
+		r.PathPrefix("/api/knirvhasher/").Handler(http.StripPrefix("/api/knirvhasher", hasherProxy))
+
+		s.logger.Info("Hasher proxy registered", zap.String("socket", s.config.HasherSocketPath))
+	} else {
+		s.logger.Warn("Hasher socket path not configured — /api/knirvhasher/* will not be proxied")
+	}
+
 	// Agent proxy — KNIRVAGENT per-DVE dynamic socket proxy (Phase 6)
 	if s.config.AgentSocketDir != "" {
 		r.PathPrefix("/api/agent/").Handler(s.dynamicAgentProxy())
 		s.logger.Info("Agent proxy registered", zap.String("socketDir", s.config.AgentSocketDir))
 	} else {
 		s.logger.Warn("Agent proxy not configured — /api/agent/* will not be proxied")
-	}
-
-	// Hasher proxy — bridged through backend.sock (Phase 7)
-	if s.config.BackendSocketPath != "" {
-		backendProxy := r.PathPrefix("/api/hasher/")
-		_ = backendProxy // hasher routes are handled by the backend's /api/v1/hasher/* endpoints
 	}
 
 	// Phase 4: Replace WebGUI mock endpoints with real proxy destinations.

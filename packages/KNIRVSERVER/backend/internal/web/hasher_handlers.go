@@ -14,17 +14,25 @@ type HasherHandlers struct {
 	logger          *zap.Logger
 	hasherAvailable func() bool
 	hasherPing      func() error
+	hasherStart     func() error
+	hasherStop      func() error
+	hasherStatus    func() (string, error)
 }
 
 // NewHasherHandlers creates a new HasherHandlers.
-// hasherAvailable is a callback that returns whether the hasher gRPC connection
-// is active. hasherPing is a callback that performs a quick health check against
-// the hasher gRPC service.
-func NewHasherHandlers(logger *zap.Logger, hasherAvailable func() bool, hasherPing func() error) *HasherHandlers {
+// hasherAvailable returns whether the hasher gRPC connection is active.
+// hasherPing performs a quick health check against the hasher gRPC service.
+// hasherStart starts the KNIRVHASHER subprocess via Unix socket.
+// hasherStop stops the KNIRVHASHER subprocess.
+// hasherStatus returns the current hasher status string.
+func NewHasherHandlers(logger *zap.Logger, hasherAvailable func() bool, hasherPing func() error, hasherStart, hasherStop func() error, hasherStatus func() (string, error)) *HasherHandlers {
 	return &HasherHandlers{
 		logger:          logger,
 		hasherAvailable: hasherAvailable,
 		hasherPing:      hasherPing,
+		hasherStart:     hasherStart,
+		hasherStop:      hasherStop,
+		hasherStatus:    hasherStatus,
 	}
 }
 
@@ -35,6 +43,8 @@ func (h *HasherHandlers) RegisterRoutes(r *http.ServeMux, prefix string) {
 	}
 	http.HandleFunc(prefix+"/status", h.HandleStatus)
 	http.HandleFunc(prefix+"/ping", h.HandlePing)
+	http.HandleFunc(prefix+"/training/start", h.HandleTrainingStart)
+	http.HandleFunc(prefix+"/training/stop", h.HandleTrainingStop)
 }
 
 // HandleStatus returns the hasher service status.
@@ -83,5 +93,65 @@ func (h *HasherHandlers) HandlePing(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":  "ok",
 		"message": "hasher reachable",
+	})
+}
+
+// HandleTrainingStart starts the KNIRVHASHER training pipeline.
+func (h *HasherHandlers) HandleTrainingStart(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if h.hasherStart == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "error",
+			"message": "hasher start not configured",
+		})
+		return
+	}
+
+	if err := h.hasherStart(); err != nil {
+		h.logger.Warn("Hasher training start failed", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	h.logger.Info("KNIRVHASHER training started via HTTP")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "ok",
+		"message": "training started",
+	})
+}
+
+// HandleTrainingStop stops the KNIRVHASHER training pipeline.
+func (h *HasherHandlers) HandleTrainingStop(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if h.hasherStop == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "error",
+			"message": "hasher stop not configured",
+		})
+		return
+	}
+
+	if err := h.hasherStop(); err != nil {
+		h.logger.Warn("Hasher training stop failed", zap.Error(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	h.logger.Info("KNIRVHASHER training stopped via HTTP")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "ok",
+		"message": "training stopped",
 	})
 }

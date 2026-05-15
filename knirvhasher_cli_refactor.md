@@ -2,13 +2,30 @@
 
 ## Overview
 
-Add a `--headless` flag to `packages/KNIRVHASHER/cmd/cli/main.go` that starts the CLI without the Bubble Tea UI, instead launching an HTTP server that exposes endpoints to control all UI-menu options programmatically.
+Add a `--headless` flag to `packages/KNIRVHASHER/cmd/cli/main.go` that starts the CLI without the Bubble Tea UI, instead launching an HTTP server over a Unix socket that exposes endpoints to control all UI-menu options programmatically.
 
 This refactor will:
-1. Add headless mode flag and HTTP server
+1. Add headless mode flag and HTTP server over Unix socket
 2. Extract UI action logic into a shared controller
 3. Enable programmatic control of all CLI features via REST API
 4. Maintain backward compatibility with existing Bubble Tea UI
+5. Allow KNIRVGATEWAY to proxy endpoints publicly as needed
+
+---
+
+## Architecture
+
+```
+┌─────────────────┐      Unix Socket       ┌──────────────────┐      HTTP Proxy      ┌─────────────────┐
+│  KNIRVHASHER    │◄───────────────────────►│   KNIRVGATEWAY   │◄────────────────────►│    Public       │
+│  (Headless CLI) │   /var/run/knirvhasher  │   (proxy_pass)   │                      │    Clients      │
+│                 │                         │                  │                      │                 │
+│  --headless     │                         │  Location /api/  │                      │                 │
+│  --socket-path  │                         │  knirvhasher/    │                      │                 │
+└─────────────────┘                         └──────────────────┘                      └─────────────────┘
+```
+
+**Socket Path**: `/var/run/knirvhasher.sock` (configurable via `--socket-path`)
 
 ---
 
@@ -16,671 +33,396 @@ This refactor will:
 
 **File:** `packages/KNIRVHASHER/cmd/cli/main.go`
 
-Add new flag at the existing flag section (around line 37-39):
+### Implementation (Complete)
 
 ```go
-// CLI configuration flags
 var (
 	monitorLogs  = flag.Bool("monitor-logs", true, "enable server log monitoring")
-	headlessMode = flag.Bool("headless", false, "run without UI; expose HTTP API for headless control")
-	headlessPort = flag.Int("headless-port", 9090, "HTTP port for headless API server")
+	headlessMode = flag.Bool("headless", false, "run in headless mode with HTTP API server over Unix socket")
+	socketPath   = flag.String("socket-path", "/var/run/knirvhasher.sock", "Unix socket path for headless API server")
+	socketPerm   = flag.String("socket-perm", "0660", "Unix socket permissions (octal)")
 )
 ```
 
 ---
 
-## 2. Create Headless Server Package
+## 2. Headless Server Package
 
-**New file:** `packages/KNIRVHASHER/internal/cli/headless/server.go`
+**File:** `packages/KNIRVHASHER/internal/cli/headless/server.go`
 
-Create an HTTP server that wraps the same functionality currently triggered by the Bubble Tea UI. The server will expose endpoints corresponding to each UI menu option.
+### Implementation (Complete)
 
-### Endpoints to implement:
+Unix socket-based server with all endpoints implemented.
 
-| Endpoint | Method | Description | UI Equivalent |
-|----------|--------|-------------|----------------|
-| `/api/v1/start-driver` | POST | Start hasher-host subprocess | Menu: "4. Start Driver" |
-| `/api/v1/stop-driver` | POST | Stop hasher-host subprocess | Signal handler |
-| `/api/v1/driver/status` | GET | Get hasher-host status | Header status display |
-| `/api/v1/pipeline` | POST | Run data pipeline (accepts `type`: goat, arxiv, demo) | Menu: "1. Data Pipeline" |
-| `/api/v1/verify` | POST | Run data verification (accepts `mode`: semantic, mathematical) | Menu: "2. Data Verification Mode" |
-| `/api/v1/asic/discover` | POST | Run ASIC discovery | ASIC Menu: "1. Discovery" |
-| `/api/v1/asic/probe` | POST | Probe ASIC device | ASIC Menu: "2. Probe" |
-| `/api/v1/asic/protocol` | POST | Detect ASIC protocol | ASIC Menu: "3. Protocol" |
-| `/api/v1/asic/provision` | POST | Provision ASIC device | ASIC Menu: "4. Provision" |
-| `/api/v1/asic/troubleshoot` | POST | Run ASIC troubleshooting | ASIC Menu: "5. Troubleshoot" |
-| `/api/v1/asic/configure` | POST | Configure ASIC | ASIC Menu: "6. Configure" |
-| `/api/v1/asic/rules` | GET/POST/DELETE | Manage rules (GET list, POST add, DELETE by ID) | ASIC Menu: "7. Rules" |
-| `/api/v1/asic/test` | POST | Test ASIC communication | ASIC Menu: "8. Test" |
-| `/api/v1/chat` | POST | Send chat message to hasher-host | Chat View |
-| `/api/v1/status` | GET | Get overall CLI status | Header info |
-| `/api/v1/shutdown` | POST | Shutdown headless server | Menu: "0. Quit" |
-
----
-
-## 3. Refactor UI Actions into Shared Controller
-
-**Files to modify:**
-- `packages/KNIRVHASHER/internal/cli/ui/ui.go`
-
-Extract the action logic from the Bubble Tea `Update()` method into a shared controller/service that can be called from both:
-- The Bubble Tea UI (existing behavior)
-- The headless HTTP server (new behavior)
-
-**New file:** `packages/KNIRVHASHER/internal/cli/controller/controller.go`
-
-### Controller Interface
+### Updated Server Structure
 
 ```go
-package controller
-
-import (
-	"context"
-	"sync"
-	
-	"knirvhasher/internal/analyzer"
-	"knirvhasher/internal/client"
-)
-
-type Controller struct {
-	// State
-	model          *ui.Model // Reuse existing model or simplified state
-	deployer       *analyzer.Deployer
-	apiClient      *client.APIClient
-	
-	// Operation tracking
-	activeOps      map[string]OperationStatus
-	opsMu          sync.RWMutex
-	
-	// Channels for async operations
-	pipelineLogChan chan PipelineLogMsg
-	logChan        chan string
-}
-
-type OperationStatus struct {
-	ID        string
-	Type      string
-	Status    string // "running", "complete", "error"
-	Progress  float64
-	Message   string
-	StartTime time.Time
-}
-
-func NewController() *Controller {
-	config := analyzer.DefaultDeployerConfig()
-	deployer, _ := analyzer.NewDeployer(config)
-	
-	return &Controller{
-		deployer:       deployer,
-		activeOps:      make(map[string]OperationStatus),
-		pipelineLogChan: make(chan PipelineLogMsg, 100),
-		logChan:        make(chan string, 100),
-	}
-}
-```
-
-### Methods to Extract from UI
-
-| UI Action | Controller Method | Description |
-|-----------|-------------------|-------------|
-| `startHasherHost()` | `StartDriver(ctx) error` | Start hasher-host subprocess |
-| `runDiscovery()` | `DiscoverASIC(ctx) (*DiscoveryResult, error)` | Run ASIC discovery |
-| `runProbe()` | `ProbeASIC(ctx) error` | Probe ASIC device |
-| `runProtocol()` | `DetectProtocol(ctx) error` | Detect ASIC protocol |
-| `runProvision()` | `ProvisionASIC(ctx, deviceIP) error` | Provision ASIC device |
-| `runTroubleshoot()` | `TroubleshootASIC(ctx) error` | Run ASIC troubleshooting |
-| `runConfigure()` | `ConfigureASIC(ctx) error` | Configure ASIC settings |
-| `runRulesManager()` | `ManageRules(ctx, action string) error` | Manage logical rules |
-| `runTest()` | `TestASIC(ctx) error` | Test ASIC communication |
-| `runDataPipeline()` | `RunPipeline(ctx, pipelineType string) error` | Run data pipeline |
-| `runMathVerifier()` | `RunMathVerifier(ctx) error` | Run mathematical verification |
-| `handleInput()` | `SendChat(ctx, message string) (string, error)` | Send chat message |
-
-### Progress Tracking
-
-For long-running operations (pipelines, verification), the controller should provide progress updates:
-
-```go
-type PipelineLogMsg struct {
-	StageIndex int
-	Log        string
-	Complete   bool
-	Error      bool
-}
-
-// GetProgress returns channel for streaming operation progress
-func (c *Controller) GetProgressChan() <-chan PipelineLogMsg {
-	return c.pipelineLogChan
-}
-```
-
----
-
-## 4. Modify `main.go` for Headless Mode
-
-**File:** `packages/KNIRVHASHER/cmd/cli/main.go`
-
-Update `main()` to branch based on the `--headless` flag:
-
-```go
-func main() {
-	// Recover from any panics
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Fprintf(os.Stderr, "PANIC: %v\n", r)
-		}
-	}()
-
-	flag.Parse()
-
-	// Branch for headless mode
-	if *headlessMode {
-		runHeadlessMode()
-		return
-	}
-
-	// Existing Bubble Tea UI code...
-	initEmbeddedBinaries()
-	
-	// Set up signal handler for clean shutdown
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	
-	// Create UI model
-	model := ui.NewModel()
-	
-	// Check if hasher-host is already running and update model state
-	model.CheckExistingHasherHost()
-	
-	// Start the Bubble Tea UI with alternate screen and mouse support
-	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseAllMotion(), tea.WithInputTTY())
-	
-	// Handle server shutdown with ASIC cleanup
-	go func() {
-		<-sigChan
-		fmt.Println("\nReceived shutdown signal.")
-		cleanupASICDevice(model.Deployer)
-		if model.ServerCmd != nil && model.ServerCmd.Process != nil {
-			shutdownHasherHost(model.ServerCmd, true, 8080)
-		}
-		pipelineState.Mu.Lock()
-		shutdownPipelineProcess(pipelineState.Cmd)
-		pipelineState.Running = false
-		pipelineState.Mu.Unlock()
-		os.Exit(0)
-	}()
-
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error: %v\n", err)
-		cleanupASICDevice(model.Deployer)
-		pipelineState.Mu.Lock()
-		shutdownPipelineProcess(pipelineState.Cmd)
-		pipelineState.Running = false
-		pipelineState.Mu.Unlock()
-		os.Exit(1)
-	}
-
-	// Ensure cleanup when exiting normally
-	cleanupASICDevice(model.Deployer)
-	pipelineState.Mu.Lock()
-	shutdownPipelineProcess(pipelineState.Cmd)
-	pipelineState.Running = false
-	pipelineState.Mu.Unlock()
-}
-
-func runHeadlessMode() {
-	// Initialize embedded binaries
-	initEmbeddedBinaries()
-
-	// Create controller
-	ctrl := controller.NewController()
-
-	// Start HTTP server
-	srv := headless.NewServer(ctrl, *headlessPort)
-	
-	log.Printf("KNIRVHASHER CLI running in headless mode on :%d", *headlessPort)
-	
-	// Handle shutdown signals
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	
-	go func() {
-		<-sigChan
-		log.Println("Shutting down headless server...")
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Printf("Server shutdown error: %v", err)
-		}
-		ctrl.Cleanup()
-		log.Println("Cleanup complete")
-		os.Exit(0)
-	}()
-
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Headless server error: %v", err)
-	}
-}
-```
-
----
-
-## 5. Implement Headless Server
-
-**New file:** `packages/KNIRVHASHER/internal/cli/headless/server.go`
-
-```go
-package headless
-
-import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
-	"time"
-	
-	"knirvhasher/internal/cli/controller"
-)
-
 type Server struct {
-	ctrl   *controller.Controller
-	port   int
-	server *http.Server
+	controller  *controller.Controller
+	mux         *http.ServeMux
+	socketPath  string
+	socketPerm  os.FileMode
+	ln          net.Listener
+	shutdownCh  chan struct{}
+	mu          sync.RWMutex
 }
+```
 
-func NewServer(ctrl *controller.Controller, port int) *Server {
-	return &Server{ctrl: ctrl, port: port}
-}
+### Unix Socket Server Implementation
 
-func (s *Server) ListenAndServe() error {
-	mux := http.NewServeMux()
-	
-	// Driver endpoints
-	mux.HandleFunc("/api/v1/start-driver", s.handleStartDriver)
-	mux.HandleFunc("/api/v1/stop-driver", s.handleStopDriver)
-	mux.HandleFunc("/api/v1/driver/status", s.handleDriverStatus)
-	
-	// Pipeline endpoints
-	mux.HandleFunc("/api/v1/pipeline", s.handlePipeline)
-	mux.HandleFunc("/api/v1/verify", s.handleVerify)
-	
-	// ASIC endpoints
-	mux.HandleFunc("/api/v1/asic/discover", s.handleDiscover)
-	mux.HandleFunc("/api/v1/asic/probe", s.handleProbe)
-	mux.HandleFunc("/api/v1/asic/protocol", s.handleProtocol)
-	mux.HandleFunc("/api/v1/asic/provision", s.handleProvision)
-	mux.HandleFunc("/api/v1/asic/troubleshoot", s.handleTroubleshoot)
-	mux.HandleFunc("/api/v1/asic/configure", s.handleConfigure)
-	mux.HandleFunc("/api/v1/asic/rules", s.handleRules)
-	mux.HandleFunc("/api/v1/asic/test", s.handleTest)
-	
-	// Chat endpoint
-	mux.HandleFunc("/api/v1/chat", s.handleChat)
-	
-	// Status and shutdown
-	mux.HandleFunc("/api/v1/status", s.handleStatus)
-	mux.HandleFunc("/api/v1/shutdown", s.handleShutdown)
-	
-	s.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.port),
-		Handler: mux,
+```go
+func (s *Server) Start() error {
+	// Remove existing socket file
+	if err := os.RemoveAll(s.socketPath); err != nil {
+		return fmt.Errorf("failed to remove existing socket: %w", err)
 	}
-	
-	log.Printf("Headless API server listening on :%d", s.port)
-	return s.server.ListenAndServe()
-}
 
-func (s *Server) Shutdown(ctx context.Context) error {
-	return s.server.Shutdown(ctx)
-}
-
-// Handler implementations
-
-func (s *Server) handleStartDriver(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	
-	err := s.ctrl.StartDriver(r.Context())
+	// Set socket permissions
+	perm, err := strconv.ParseUint(*socketPerm, 8, 32)
 	if err != nil {
-		jsonResponse(w, http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		perm = 0660
 	}
-	
-	jsonResponse(w, http.StatusOK, gin.H{"message": "Driver started successfully"})
-}
 
-func (s *Server) handlePipeline(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
+	// Create Unix socket listener
+	ln, err := net.Listen("unix", s.socketPath)
+	if err != nil {
+		return fmt.Errorf("failed to create socket at %s: %w", s.socketPath, err)
 	}
-	
-	var req struct {
-		Type string `json:"type"` // goat, arxiv, demo
+
+	// Set socket permissions
+	if err := os.Chmod(s.socketPath, os.FileMode(perm)); err != nil {
+		return fmt.Errorf("failed to set socket permissions: %w", err)
 	}
-	
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	
-	// Start pipeline asynchronously
+
+	s.ln = ln
+	s.server = &http.Server{Handler: s.mux}
+
+	log.Printf("Headless server listening on unix://%s", s.socketPath)
+
 	go func() {
-		if err := s.ctrl.RunPipeline(r.Context(), req.Type); err != nil {
-			log.Printf("Pipeline error: %v", err)
+		if err := s.server.Serve(s.ln); err != nil && err != http.ErrServerClosed {
+			log.Printf("Server error: %v", err)
 		}
 	}()
-	
-	jsonResponse(w, http.StatusAccepted, gin.H{"message": "Pipeline started", "type": req.Type})
-}
 
-// ... implement other handlers similarly
-
-func jsonResponse(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
-}
-```
-
-**New file:** `packages/KNIRVHASHER/internal/cli/headless/types.go`
-
-```go
-package headless
-
-// Request/response types for headless API
-
-type ErrorResponse struct {
-	Error   string `json:"error"`
-	Code    int    `json:"code"`
-	Message string `json:"message,omitempty"`
-}
-
-type StatusResponse struct {
-	DriverRunning bool    `json:"driver_running"`
-	ServerReady   bool    `json:"server_ready"`
-	DeviceIP      string  `json:"device_ip,omitempty"`
-	DeviceType    string  `json:"device_type,omitempty"`
-	Uptime        string  `json:"uptime"`
-}
-
-type PipelineRequest struct {
-	Type string `json:"type"` // goat, arxiv, demo
-}
-
-type VerifyRequest struct {
-	Mode string `json:"mode"` // semantic, mathematical
-}
-
-type ChatRequest struct {
-	Message string `json:"message"`
-}
-
-type ChatResponse struct {
-	Response  string  `json:"response"`
-	Timestamp string  `json:"timestamp"`
+	return nil
 }
 ```
 
 ---
 
-## 6. Update Controller to Support Both Modes
+## 3. API Endpoints
 
-**File:** `packages/KNIRVHASHER/internal/cli/ui/ui.go`
+### Endpoint Implementation Status
 
-### Key Changes:
+| Endpoint | Method | Status | Notes |
+|----------|--------|--------|-------|
+| `/api/v1/health` | GET | ✅ Implemented | Health check |
+| `/api/v1/status` | GET | ✅ Implemented | Overall status |
+| `/api/v1/driver/start` | POST | ✅ Implemented | Start hasher-host |
+| `/api/v1/driver/stop` | POST | ✅ Implemented | Stop hasher-host |
+| `/api/v1/driver/status` | GET | ✅ Implemented | Driver status |
+| `/api/v1/pipeline/run` | POST | ✅ Implemented | Run pipeline |
+| `/api/v1/pipeline/status` | GET | ✅ Implemented | Pipeline status |
+| `/api/v1/pipeline/logs` | GET | ✅ Implemented | SSE stream |
+| `/api/v1/verify` | POST/GET | ✅ Implemented | Semantic/mathematical verification |
+| `/api/v1/asic/discover` | POST | ✅ Implemented | ASIC discovery |
+| `/api/v1/asic/probe` | POST | ✅ Implemented | Probe device |
+| `/api/v1/asic/protocol` | POST | ✅ Implemented | Detect protocol |
+| `/api/v1/asic/provision` | POST | ✅ Implemented | Provision device |
+| `/api/v1/asic/troubleshoot` | POST | ✅ Implemented | Troubleshooting |
+| `/api/v1/asic/configure` | GET/POST | ✅ Implemented | Get configuration |
+| `/api/v1/asic/test` | POST | ✅ Implemented | Test ASIC |
+| `/api/v1/rules` | GET/POST | ✅ Implemented | Rules management |
+| `/api/v1/chat` | POST | ✅ Implemented | Chat with hasher-host |
+| `/api/v1/shutdown` | POST | ✅ Implemented | Shutdown server |
 
-1. **Import the controller:**
+**All endpoints implemented**
+
+### Discrepancies from Original Spec
+
+| Original Spec | Current Implementation | Action |
+|---------------|----------------------|--------|
+| `--headless-port 9090` | `--headless-port 8088` | Update docs or change default |
+| `/api/v1/start-driver` | `/api/v1/driver/start` | Rename endpoint |
+| `/api/v1/pipeline` | `/api/v1/pipeline/run` | Rename endpoint |
+| `/api/v1/asic/rules` | `/api/v1/rules` | Flatten path |
+| TCP listener | Unix Socket | **Update required** |
+
+---
+
+## 4. KNIRVGATEWAY Proxy Configuration
+
+**File:** `packages/KNIRVGATEWAY/internal/server/server.go`
+
+### Implementation (Complete)
+
+Unix socket proxy registered at `/api/knirvhasher/` prefix.
+
 ```go
-import (
-	"knirvhasher/internal/cli/controller"
-)
-```
+// Hasher proxy — KNIRVHASHER via Unix socket (Phase 8)
+if s.config.HasherSocketPath != "" {
+	hasherProxy := newSocketProxy(s.config.HasherSocketPath, "http://knirvhasher")
+	r.PathPrefix("/api/knirvhasher/").Handler(http.StripPrefix("/api/knirvhasher", hasherProxy))
 
-2. **Add controller to Model:**
-```go
-type Model struct {
-	// ... existing fields ...
-	Controller *controller.Controller
+	s.logger.Info("Hasher proxy registered", zap.String("socket", s.config.HasherSocketPath))
+} else {
+	s.logger.Warn("Hasher socket path not configured — /api/knirvhasher/* will not be proxied")
 }
 ```
 
-3. **Update `NewModel()` to initialize controller:**
-```go
-func NewModel() Model {
-	// ... existing initialization ...
-	
-	model := Model{
-		// ... existing fields ...
-		Controller: controller.NewController(),
-	}
-	
-	return model
-}
-```
+### Configuration (config.go)
 
-4. **Refactor `Update()` to use controller methods:**
-
-Instead of inline logic like:
 ```go
-case "4. Start Driver":
-    m.ServerStarting = true
-    m.ShowingInitLogs = true
-    cmds = append(cmds, m.startHasherHost())
-```
-
-Use controller:
-```go
-case "4. Start Driver":
-    m.ServerStarting = true
-    m.ShowingInitLogs = true
-    cmds = append(cmds, func() tea.Msg {
-        err := m.Controller.StartDriver(context.Background())
-        return DriverStartMsg{Err: err}
-    })
+HasherSocketPath string // /var/run/knirvhasher.sock
+// Environment variable: HASHER_SOCKET_PATH
 ```
 
 ---
 
-## 7. Signal Handling & Cleanup
-
-Both headless and UI modes need proper cleanup. Centralize this in the controller:
+## 5. Controller Extraction
 
 **File:** `packages/KNIRVHASHER/internal/cli/controller/controller.go`
 
-```go
-func (c *Controller) Cleanup() {
-	// Stop hasher-host if running
-	if c.model != nil && c.model.ServerCmd != nil {
-		shutdownHasherHost(c.model.ServerCmd, true, 8080)
-	}
-	
-	// Cleanup ASIC device
-	if c.deployer != nil {
-		c.deployer.Cleanup()
-	}
-	
-	// Stop pipeline if running
-	// ... shutdown pipeline process ...
-	
-	log.Println("Controller cleanup complete")
-}
-```
+### Current Status: ✅ Complete
+
+All UI action logic extracted to controller:
+
+| UI Action | Controller Method | Status |
+|-----------|-------------------|--------|
+| `startHasherHost()` | `StartDriver(ctx)` | ✅ |
+| `runDiscovery()` | `DiscoverASIC(ctx)` | ✅ |
+| `runProbe()` | `ProbeASIC(ctx)` | ✅ |
+| `runProtocol()` | `DetectProtocol(ctx)` | ✅ |
+| `runProvision()` | `ProvisionASIC(ctx, deviceIP)` | ✅ |
+| `runTroubleshoot()` | `TroubleshootASIC(ctx)` | ✅ |
+| `runConfigure()` | `ConfigureASIC(ctx)` | ✅ |
+| `ManageRules()` | `ManageRules(ctx, action, args...)` | ✅ |
+| `runTest()` | `TestASIC(ctx)` | ✅ |
+| `runDataPipeline()` | `RunPipeline(ctx, pipelineType)` | ✅ |
+| `runMathVerifier()` | `RunMathVerifier(ctx)` | ✅ |
+| `handleInput()` | `SendChat(ctx, message)` | ✅ |
 
 ---
 
-## Files to Create/Modify Summary
+## 6. Files Summary
 
-| File | Action | Description |
-|------|--------|-------------|
-| `packages/KNIRVHASHER/cmd/cli/main.go` | Modify | Add `--headless` and `--headless-port` flags; branch to `runHeadlessMode()` |
-| `packages/KNIRVHASHER/internal/cli/controller/controller.go` | Create | Shared controller wrapping all UI actions |
-| `packages/KNIRVHASHER/internal/cli/controller/types.go` | Create | Types for controller requests/responses |
-| `packages/KNIRVHASHER/internal/cli/headless/server.go` | Create | HTTP server for headless mode |
-| `packages/KNIRVHASHER/internal/cli/headless/types.go` | Create | Request/response types for headless API |
-| `packages/KNIRVHASHER/internal/cli/ui/ui.go` | Modify | Refactor action logic to use controller |
+| File | Action | Status | Notes |
+|------|--------|--------|-------|
+| `cmd/cli/main.go` | Modify | ✅ Complete | Unix socket-based flags |
+| `internal/cli/controller/controller.go` | Create | ✅ Complete | All logic extracted |
+| `internal/cli/controller/types.go` | Create | ✅ Inline | Types in controller file |
+| `internal/cli/headless/server.go` | Create | ✅ Complete | Unix socket server |
+| `internal/cli/headless/types.go` | Create | ✅ Complete | Request/response types |
+| `internal/cli/headless/server_test.go` | Create | ✅ Complete | Comprehensive tests |
+| `internal/cli/ui/ui.go` | Modify | ✅ Complete | Uses controller |
 
 ---
 
-## Example Usage After Implementation
+## 7. Implementation Complete
 
-### Current UI Mode (Unchanged)
+All items from the specification have been implemented:
+
+### High Priority (Complete)
+- [x] **Unix Socket Server**: TCP converted to Unix socket listener
+- [x] **Socket Permissions**: Configurable via `--socket-perm` flag
+- [x] **Verify Endpoint**: `/api/v1/verify` supports semantic and mathematical modes
+
+### Medium Priority (Complete)
+- [x] **KNIRVGATEWAY Integration**: Socket proxy at `/api/knirvhasher/` with `HASHER_SOCKET_PATH` env
+- [x] **Documentation Alignment**: Updated endpoint names and usage examples
+
+### Low Priority (Future Work)
+- [ ] **Authentication middleware**: Add `--headless-token` flag for API authentication
+- [ ] **WebSocket support**: For real-time streaming in addition to SSE
+
+---
+
+## 8. Usage After Implementation
+
+### Start Headless Mode
+
 ```bash
-./hasher-cli
+# With Unix socket (default)
+./hasher-cli --headless
+
+# With custom socket path
+./hasher-cli --headless --socket-path /tmp/knirvhasher.sock
+
+# With custom permissions
+./hasher-cli --headless --socket-perm 0777
 ```
 
-### New Headless Mode
+### Direct Socket Access
+
 ```bash
-# Start in headless mode
-./hasher-cli --headless --headless-port 9090
+# Using curl with Unix socket
+curl --unix-socket /var/run/knirvhasher.sock http://localhost/api/v1/health
 
 # Check status
-curl http://localhost:9090/api/v1/status
+curl --unix-socket /var/run/knirvhasher.sock http://localhost/api/v1/status
 
-# Start hasher-host driver
-curl -X POST http://localhost:9090/api/v1/start-driver
+# Start driver
+curl --unix-socket /var/run/knirvhasher.sock -X POST http://localhost/api/v1/driver/start
 
-# Run data pipeline (GOAT dataset)
-curl -X POST http://localhost:9090/api/v1/pipeline -H "Content-Type: application/json" -d '{"type":"goat"}'
+# Run pipeline
+curl --unix-socket /var/run/knirvhasher.sock -X POST http://localhost/api/v1/pipeline/run \
+  -H "Content-Type: application/json" \
+  -d '{"type":"goat"}'
 
-# Run data verification (semantic mode)
-curl -X POST http://localhost:9090/api/v1/verify -H "Content-Type: application/json" -d '{"mode":"semantic"}'
+# Verify (semantic mode)
+curl --unix-socket /var/run/knirvhasher.sock -X POST http://localhost/api/v1/verify \
+  -H "Content-Type: application/json" \
+  -d '{"mode":"semantic"}'
+
+# Verify (mathematical mode)
+curl --unix-socket /var/run/knirvhasher.sock -X POST http://localhost/api/v1/verify \
+  -H "Content-Type: application/json" \
+  -d '{"mode":"mathematical"}'
 
 # Chat with hasher-host
-curl -X POST http://localhost:9090/api/v1/chat -H "Content-Type: application/json" -d '{"message":"Hello"}'
+curl --unix-socket /var/run/knirvhasher.sock -X POST http://localhost/api/v1/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Hello"}'
 
 # ASIC discovery
-curl -X POST http://localhost:9090/api/v1/asic/discover
-
-# Check driver status
-curl http://localhost:9090/api/v1/driver/status
+curl --unix-socket /var/run/knirvhasher.sock -X POST http://localhost/api/v1/asic/discover
 
 # Shutdown
-curl -X POST http://localhost:9090/api/v1/shutdown
+curl --unix-socket /var/run/knirvhasher.sock -X POST http://localhost/api/v1/shutdown
 ```
+
+### Via KNIRVGATEWAY
+
+```bash
+# When KNIRVGATEWAY proxies /api/knirvhasher/*
+curl http://localhost:8080/api/knirvhasher/health
+curl -X POST http://localhost:8080/api/knirvhasher/driver/start
+curl -X POST http://localhost:8080/api/knirvhasher/pipeline/run -d '{"type":"goat"}'
+```
+
+**Environment variable for KNIRVGATEWAY**: `HASHER_SOCKET_PATH=/var/run/knirvhasher.sock`
 
 ---
 
-## Considerations
+## 9. Implementation Order
 
-### 1. Authentication
-The headless API has no auth by default. Consider adding:
-```go
-headlessToken = flag.String("headless-token", "", "Bearer token for headless API authentication")
-```
+### Phase 1: Controller Extraction
+- [x] Create `controller.go` with extracted logic
+- [x] Modify `ui.go` to use controller
+- [x] Verify Bubble Tea UI still works
 
-Then wrap handlers with auth middleware:
+### Phase 2: Headless Server (TCP)
+- [x] Create `headless/server.go` and `headless/types.go`
+- [x] Implement core endpoints
+- [x] Test with curl/httpie
+
+### Phase 3: Main Integration
+- [x] Add flags to `main.go`
+- [x] Implement `runHeadlessMode()`
+- [x] Test headless mode
+
+### Phase 4: Unix Socket Migration
+- [x] Convert headless server from TCP to Unix socket
+- [x] Update flag handling in main.go
+- [x] Test socket-based connections
+- [x] Document socket permissions
+
+### Phase 5: KNIRVGATEWAY Integration
+- [x] Create Unix socket transport (using existing newSocketProxy)
+- [x] Add proxy routes
+- [x] Configure public/internal endpoint splits
+- [x] Test end-to-end proxying
+
+### Phase 6: Verify Endpoint
+- [x] Add `/api/v1/verify` endpoint
+- [x] Support semantic and mathematical modes
+
+### Phase 7: Polish
+- [x] Comprehensive tests for headless server
+- [x] Update documentation
+
+---
+
+## 10. Socket Lifecycle Management
+
 ```go
-func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if *headlessToken != "" {
-			token := r.Header.Get("Authorization")
-			if token != "Bearer "+*headlessToken {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-		}
-		next(w, r)
+// On startup
+func setupSocket(path string, perm os.FileMode) error {
+	if err := os.RemoveAll(path); err != nil {
+		return fmt.Errorf("remove existing socket: %w", err)
 	}
-}
-```
-
-### 2. Logging
-Headless mode should log to a file (same as UI mode's `GetLogger()`):
-```go
-// In runHeadlessMode()
-logger := ui.GetLogger()
-logger.Write("Headless mode started\n")
-```
-
-### 3. Streaming Output
-For long-running operations (pipelines), consider implementing:
-
-**Option A: Polling Endpoint**
-```go
-// GET /api/v1/operations/{id}
-func (s *Server) handleGetOperation(w http.ResponseWriter, r *http.Request) {
-	opID := chi.URLParam(r, "id")
-	status := s.ctrl.GetOperationStatus(opID)
-	jsonResponse(w, http.StatusOK, status)
-}
-```
-
-**Option B: Server-Sent Events (SSE)**
-```go
-// GET /api/v1/stream/pipeline
-func (s *Server) handleStreamPipeline(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	
-	ch := s.ctrl.GetProgressChan()
-	for msg := range ch {
-		data, _ := json.Marshal(msg)
-		fmt.Fprintf(w, "data: %s\n\n", data)
-		flusher.Flush()
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return fmt.Errorf("create socket dir: %w", err)
 	}
+	return nil
 }
-```
 
-### 4. Port Conflicts
-The headless server (`:9090`) and hasher-host (`:8080`) use different ports. Document this clearly in the help text.
-
-### 5. Graceful Shutdown
-Ensure the headless server properly propagates shutdown to hasher-host and cleans up ASIC devices:
-
-```go
-func (s *Server) handleShutdown(w http.ResponseWriter, r *http.Request) {
-	jsonResponse(w, http.StatusOK, gin.H{"message": "Shutdown initiated"})
-	
-	go func() {
-		time.Sleep(100 * time.Millisecond)
-		p, _ := os.FindProcess(os.Getpid())
-		p.Signal(syscall.SIGTERM)
-	}()
+// On shutdown
+func cleanupSocket(path string) {
+	os.RemoveAll(path)
 }
-```
 
-### 6. Testing
-Add tests for the headless API:
-
-**New file:** `packages/KNIRVHASHER/internal/cli/headless/server_test.go`
-
-```go
-func TestHeadlessServer(t *testing.T) {
-	ctrl := controller.NewController()
-	srv := headless.NewServer(ctrl, 0) // random port
-	
-	// Test status endpoint
-	resp, err := http.Get("http://localhost:0/api/v1/status")
-	// ... assertions ...
+// Register with systemd (optional)
+func registerSocket() {
+	// For socket activation
+	os.Setenv("LISTEN_FDS", "1")
+	os.Setenv("LISTEN_PID", strconv.Itoa(os.Getpid()))
 }
 ```
 
 ---
 
-## Implementation Order
+## 11. Error Handling
 
-1. **Phase 1: Controller Extraction**
-   - Create `controller.go` with extracted logic
-   - Modify `ui.go` to use controller
-   - Verify Bubble Tea UI still works
+### Socket Errors
 
-2. **Phase 2: Headless Server**
-   - Create `headless/server.go` and `headless/types.go`
-   - Implement core endpoints
-   - Test with curl/httpie
+```go
+// Common socket errors and handling
+switch {
+case os.IsNotExist(err):
+	// Socket dir doesn't exist - create it
+case strings.Contains(err.Error(), "address already in use"):
+	// Clean up stale socket and retry
+case os.IsPermission(err):
+	// Check socket permissions or run with elevated privileges
+}
+```
 
-3. **Phase 3: Main Integration**
-   - Add flags to `main.go`
-   - Implement `runHeadlessMode()`
-   - Test headless mode
+### Health Checks for Socket Availability
 
-4. **Phase 4: Polish**
-   - Add authentication (optional)
-   - Implement streaming output (SSE)
-   - Add comprehensive tests
-   - Update documentation/README
+```go
+func IsSocketReady(path string) bool {
+	conn, err := net.Dial("unix", path)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
+}
+```
+
+---
+
+## Appendix: Original Spec Endpoints
+
+For reference, the original specification defined:
+
+| Original Endpoint | Current Endpoint | Notes |
+|-------------------|------------------|-------|
+| `/api/v1/start-driver` | `/api/v1/driver/start` | Prefixed with driver/ |
+| `/api/v1/stop-driver` | `/api/v1/driver/stop` | Prefixed with driver/ |
+| `/api/v1/driver/status` | `/api/v1/driver/status` | Unchanged |
+| `/api/v1/pipeline` | `/api/v1/pipeline/run` | Added /run suffix |
+| `/api/v1/verify` | ❌ | **Missing - needs implementation** |
+| `/api/v1/asic/discover` | `/api/v1/asic/discover` | Unchanged |
+| `/api/v1/asic/probe` | `/api/v1/asic/probe` | Unchanged |
+| `/api/v1/asic/protocol` | `/api/v1/asic/protocol` | Unchanged |
+| `/api/v1/asic/provision` | `/api/v1/asic/provision` | Unchanged |
+| `/api/v1/asic/troubleshoot` | `/api/v1/asic/troubleshoot` | Unchanged |
+| `/api/v1/asic/configure` | `/api/v1/asic/configure` | Unchanged |
+| `/api/v1/asic/rules` | `/api/v1/rules` | Flattened path |
+| `/api/v1/asic/test` | `/api/v1/asic/test` | Unchanged |
+| `/api/v1/chat` | `/api/v1/chat` | Unchanged |
+| `/api/v1/status` | `/api/v1/status` | Unchanged |
+| `/api/v1/shutdown` | `/api/v1/shutdown` | Unchanged |

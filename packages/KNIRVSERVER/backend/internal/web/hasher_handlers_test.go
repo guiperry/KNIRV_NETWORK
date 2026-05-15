@@ -12,7 +12,7 @@ import (
 
 func TestHandleStatus_Available(t *testing.T) {
 	logger := zap.NewNop()
-	h := NewHasherHandlers(logger, func() bool { return true }, nil)
+	h := NewHasherHandlers(logger, func() bool { return true }, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/hasher/status", nil)
 	rec := httptest.NewRecorder()
@@ -39,7 +39,7 @@ func TestHandleStatus_Available(t *testing.T) {
 
 func TestHandleStatus_Unavailable(t *testing.T) {
 	logger := zap.NewNop()
-	h := NewHasherHandlers(logger, func() bool { return false }, nil)
+	h := NewHasherHandlers(logger, func() bool { return false }, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/hasher/status", nil)
 	rec := httptest.NewRecorder()
@@ -66,7 +66,7 @@ func TestHandleStatus_Unavailable(t *testing.T) {
 
 func TestHandleStatus_NilCallback_DefaultsToUnavailable(t *testing.T) {
 	logger := zap.NewNop()
-	h := NewHasherHandlers(logger, nil, nil)
+	h := NewHasherHandlers(logger, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/hasher/status", nil)
 	rec := httptest.NewRecorder()
@@ -93,7 +93,7 @@ func TestHandleStatus_NilCallback_DefaultsToUnavailable(t *testing.T) {
 
 func TestHandlePing_Success(t *testing.T) {
 	logger := zap.NewNop()
-	h := NewHasherHandlers(logger, nil, func() error { return nil })
+	h := NewHasherHandlers(logger, nil, func() error { return nil }, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/hasher/ping", nil)
 	rec := httptest.NewRecorder()
@@ -120,7 +120,7 @@ func TestHandlePing_Success(t *testing.T) {
 
 func TestHandlePing_Failure(t *testing.T) {
 	logger := zap.NewNop()
-	h := NewHasherHandlers(logger, nil, func() error { return errors.New("connection refused") })
+	h := NewHasherHandlers(logger, nil, func() error { return errors.New("connection refused") }, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/hasher/ping", nil)
 	rec := httptest.NewRecorder()
@@ -147,7 +147,7 @@ func TestHandlePing_Failure(t *testing.T) {
 
 func TestHandlePing_NilCallback_Returns503(t *testing.T) {
 	logger := zap.NewNop()
-	h := NewHasherHandlers(logger, nil, nil)
+	h := NewHasherHandlers(logger, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/hasher/ping", nil)
 	rec := httptest.NewRecorder()

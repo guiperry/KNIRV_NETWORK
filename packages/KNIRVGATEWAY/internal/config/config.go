@@ -88,6 +88,9 @@ type Config struct {
 	// Agent per-DVE socket directory and concurrency limit
 	AgentSocketDir      string // /var/lib/knirvserver/sockets/ (agent-{dveId}.sock lives here)
 	AgentMaxConcurrent  int    // max concurrent agent processes (default 32)
+
+	// KNIRVHASHER socket path (headless CLI mode)
+	HasherSocketPath string // /var/run/knirvhasher.sock
 }
 
 func Load() (*Config, error) {
@@ -142,6 +145,7 @@ func Load() (*Config, error) {
 		ShellSocketPath:         getEnv("SHELL_SOCKET_PATH", ""),
 		AgentSocketDir:          getEnv("AGENT_SOCKET_DIR", ""),
 		AgentMaxConcurrent:      getEnvInt("AGENT_MAX_CONCURRENT", 32),
+		HasherSocketPath:        getEnv("HASHER_SOCKET_PATH", "/var/run/knirvhasher.sock"),
 	}
 
 	return cfg, nil

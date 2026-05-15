@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -38,17 +40,18 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	BinaryPath    string
-	SocketPath    string
-	DataPath      string
-	HeadlessPort  int
-	HeadlessMode  bool
-	ArxivEnabled  bool
-	StartTimeout  time.Duration
-	StopTimeout   time.Duration
-	Stdout        interface{}
-	Stderr        interface{}
-	EnvOverrides  map[string]string
+	BinaryPath   string
+	SocketPath   string
+	DataPath     string
+	SocketPerm   uint32
+	HeadlessMode bool
+	ArxivEnabled bool
+	PipelineType string
+	StartTimeout time.Duration
+	StopTimeout  time.Duration
+	Stdout       interface{}
+	Stderr       interface{}
+	EnvOverrides map[string]string
 }
 
 type HasherStatus struct {
@@ -59,11 +62,17 @@ type HasherStatus struct {
 	Timestamp  time.Time `json:"timestamp"`
 }
 
+const (
+	DefaultSocketPath = "/var/run/knirvhasher.sock"
+	DefaultSocketPerm = 0660
+)
+
 func DefaultManagerConfig() *ManagerConfig {
 	appDataDir := getHasherAppDataDir()
 	return &ManagerConfig{
 		SocketPath:   filepath.Join(appDataDir, "sockets", "hasher.sock"),
 		DataPath:     filepath.Join(appDataDir, "hasher"),
+		SocketPerm:   DefaultSocketPerm,
 		StartTimeout: 30 * time.Second,
 		StopTimeout:  10 * time.Second,
 	}
@@ -93,9 +102,11 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 		defaults := DefaultManagerConfig()
 		cfg.SocketPath = defaults.SocketPath
 	}
-	if cfg.DataPath == "" {
-		defaults := DefaultManagerConfig()
-		cfg.DataPath = defaults.DataPath
+	if cfg.SocketPerm == 0 {
+		cfg.SocketPerm = DefaultSocketPerm
+	}
+	if cfg.PipelineType == "" {
+		cfg.PipelineType = "goat"
 	}
 
 	return &Manager{
@@ -125,8 +136,10 @@ func (m *Manager) Start(ctx context.Context) error {
 	m.config.BinaryPath = resolved
 
 	hasherDir := filepath.Dir(m.socketPath)
-	if err := os.MkdirAll(hasherDir, 0755); err != nil {
-		return fmt.Errorf("failed to create socket directory: %w", err)
+	if hasherDir != "." && hasherDir != "/" {
+		if err := os.MkdirAll(hasherDir, 0755); err != nil {
+			return fmt.Errorf("failed to create socket directory: %w", err)
+		}
 	}
 
 	if _, err := os.Stat(m.socketPath); err == nil {
@@ -143,9 +156,6 @@ func (m *Manager) Start(ctx context.Context) error {
 		fmt.Sprintf("HASHER_DATA_PATH=%s", m.config.DataPath),
 	)
 
-	// Propagate the app data directory so the hasher binary doesn't
-	// fall back to ~/.local/share/hasher/ (which becomes /root/... when
-	// running as root).  The canonical path is /var/lib/knirvserver.
 	if appDataDir := os.Getenv("KNIRV_APP_DATA_DIR"); appDataDir != "" {
 		env = append(env, fmt.Sprintf("KNIRV_APP_DATA_DIR=%s", appDataDir))
 	} else if _, err := os.Stat("/var/lib/knirvserver"); err == nil {
@@ -156,19 +166,18 @@ func (m *Manager) Start(ctx context.Context) error {
 		env = append(env, "DATAMINER_MODE=production", "ARXIV_ENABLED=true")
 	}
 
-	// Propagate env overrides (device credentials, cloudflare URLs, etc.)
-	// passed from the parent process (e.g. from root.key decryption).
 	for k, v := range m.config.EnvOverrides {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
 
 	args := []string{}
 	if m.config.HeadlessMode {
-		port := m.config.HeadlessPort
-		if port == 0 {
-			port = 8088
-		}
-		args = append(args, "-headless", fmt.Sprintf("-headless-port=%d", port))
+		socketPerm := fmt.Sprintf("%04o", m.config.SocketPerm)
+		args = append(args,
+			"--headless",
+			fmt.Sprintf("--socket-path=%s", m.socketPath),
+			fmt.Sprintf("--socket-perm=%s", socketPerm),
+		)
 	}
 
 	m.cmd = exec.Command(m.config.BinaryPath, args...)
@@ -199,19 +208,9 @@ func (m *Manager) Start(ctx context.Context) error {
 		return fmt.Errorf("socket creation failed: %w", err)
 	}
 
-	// In headless mode, also wait for the HTTP API then trigger the data pipeline
 	if m.config.HeadlessMode {
-		httpPort := m.config.HeadlessPort
-		if httpPort == 0 {
-			httpPort = 8088
-		}
-		if err := m.waitForHTTPServer(ctx, httpPort); err != nil {
-			m.logger.Warn("KNIRVHASHER HTTP API not ready, pipeline will not auto-start",
-				zap.Error(err))
-		} else {
-			m.logger.Info("KNIRVHASHER HTTP API ready, triggering data pipeline")
-			m.triggerPipeline(httpPort)
-		}
+		m.logger.Info("KNIRVHASHER Unix socket ready, triggering data pipeline")
+		m.triggerPipeline()
 	}
 
 	m.running = true
@@ -273,10 +272,10 @@ func (m *Manager) waitForSocket(ctx context.Context) error {
 	for {
 		select {
 		case <-deadline.Done():
-			return fmt.Errorf("timeout waiting for KNIRVHASHER socket")
+			return fmt.Errorf("timeout waiting for KNIRVHASHER socket at %s", m.socketPath)
 		case <-ticker.C:
 			if _, err := os.Stat(m.socketPath); err == nil {
-				m.logger.Debug("KNIRVHASHER socket created")
+				m.logger.Debug("KNIRVHASHER socket created at", zap.String("socket", m.socketPath))
 				return nil
 			}
 		}
@@ -370,54 +369,135 @@ func (m *Manager) GetStatus() *HasherStatus {
 	return status
 }
 
-// waitForHTTPServer polls the headless HTTP API health endpoint until it responds.
-func (m *Manager) waitForHTTPServer(ctx context.Context, port int) error {
-	deadline, cancel := context.WithTimeout(ctx, m.config.StartTimeout)
-	defer cancel()
-
-	client := &http.Client{Timeout: 2 * time.Second}
-	healthURL := fmt.Sprintf("http://localhost:%d/api/v1/health", port)
-
-	ticker := time.NewTicker(500 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-deadline.Done():
-			return fmt.Errorf("timeout waiting for KNIRVHASHER HTTP API on port %d", port)
-		case <-ticker.C:
-			resp, err := client.Get(healthURL)
-			if err != nil {
-				continue
-			}
-			resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				m.logger.Info("KNIRVHASHER HTTP API health check passed",
-					zap.Int("port", port))
-				return nil
-			}
-		}
+func (m *Manager) triggerPipeline() {
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				var dialer net.Dialer
+				return dialer.DialContext(ctx, "unix", m.socketPath)
+			},
+		},
 	}
-}
 
-// triggerPipeline sends a POST request to the headless API to start the data pipeline.
-func (m *Manager) triggerPipeline(port int) {
-	client := &http.Client{Timeout: 10 * time.Second}
-	pipelineURL := fmt.Sprintf("http://localhost:%d/api/v1/pipeline/run", port)
+	pipelineURL := "http://localhost/api/v1/pipeline/run"
+	body := fmt.Sprintf(`{"type":"%s"}`, m.config.PipelineType)
+	req, err := http.NewRequest("POST", pipelineURL, strings.NewReader(body))
+	if err != nil {
+		m.logger.Warn("Failed to create pipeline request", zap.Error(err))
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Post(pipelineURL, "application/json", nil)
+	resp, err := client.Do(req)
 	if err != nil {
 		m.logger.Warn("Failed to trigger KNIRVHASHER data pipeline",
-			zap.Int("port", port), zap.Error(err))
+			zap.String("socket", m.socketPath), zap.Error(err))
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusAccepted {
 		m.logger.Info("KNIRVHASHER data pipeline triggered successfully",
-			zap.Int("port", port), zap.Int("status", resp.StatusCode))
+			zap.String("socket", m.socketPath),
+			zap.String("pipeline", m.config.PipelineType),
+			zap.Int("status", resp.StatusCode))
 	} else {
 		m.logger.Warn("KNIRVHASHER data pipeline trigger returned unexpected status",
-			zap.Int("port", port), zap.Int("status", resp.StatusCode))
+			zap.String("socket", m.socketPath),
+			zap.Int("status", resp.StatusCode))
 	}
+}
+
+func (m *Manager) RunPipeline(pipelineType string) error {
+	if !m.running {
+		return fmt.Errorf("KNIRVHASHER not running")
+	}
+
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				var dialer net.Dialer{}
+				return dialer.DialContext(ctx, "unix", m.socketPath)
+			},
+		},
+	}
+
+	pipelineURL := "http://localhost/api/v1/pipeline/run"
+	body := fmt.Sprintf(`{"type":"%s"}`, pipelineType)
+	req, err := http.NewRequest("POST", pipelineURL, strings.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to trigger pipeline: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
+		return fmt.Errorf("pipeline request failed with status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (m *Manager) GetHealth() (bool, error) {
+	if !m.running {
+		return false, fmt.Errorf("KNIRVHASHER not running")
+	}
+
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				var dialer net.Dialer{}
+				return dialer.DialContext(ctx, "unix", m.socketPath)
+			},
+		},
+	}
+
+	resp, err := client.Get("http://localhost/api/v1/health")
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode == http.StatusOK, nil
+}
+
+func (m *Manager) StopPipeline() error {
+	if !m.running {
+		return fmt.Errorf("KNIRVHASHER not running")
+	}
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				var dialer net.Dialer{}
+				return dialer.DialContext(ctx, "unix", m.socketPath)
+			},
+		},
+	}
+
+	resp, err := client.Post("http://localhost/api/v1/pipeline/stop", "application/json", nil)
+	if err != nil {
+		return fmt.Errorf("failed to stop pipeline: %w", err)
+	}
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func isSocketReady(socketPath string) bool {
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
 }

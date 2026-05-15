@@ -84,14 +84,26 @@ function HasherTrainingControls() {
 
   const handleStartTraining = async () => {
     setTrainingActive(true);
-    // Training start would trigger via cognitive engine training endpoint
     try {
-      await fetch(`${API_BASE_URL}/api/v1/hasher/ping`);
-    } catch { /* ignore */ }
-    // Simulate training running — in production this would check real status
+      const resp = await fetch(`${API_BASE_URL}/api/v1/hasher/training/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!resp.ok) {
+        setTrainingActive(false);
+      }
+    } catch {
+      setTrainingActive(false);
+    }
   };
 
-  const handleStopTraining = () => {
+  const handleStopTraining = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/api/v1/hasher/training/stop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch { /* ignore */ }
     setTrainingActive(false);
   };
 

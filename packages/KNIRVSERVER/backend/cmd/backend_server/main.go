@@ -1426,7 +1426,6 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 					BinaryPath:   hasherBinaryPath,
 					SocketPath:   hasherSocketPath,
 					DataPath:     hasherDataPath,
-					HeadlessPort: hasherConfig.HeadlessPort,
 					HeadlessMode: true,
 					ArxivEnabled: hasherConfig.ArxivEnabled,
 					StartTimeout: startTimeout,
@@ -2021,7 +2020,16 @@ func (s *Server) setupRoutes() {
 	}
 
 	// Register Hasher HTTP bridge routes (Phase 7)
-	if s.hasherIntegration != nil {
+	if s.hasherIntegration != nil || s.hasherManager != nil {
+		var hasherStart, hasherStop func() error
+		if s.hasherManager != nil {
+			hasherStart = func() error {
+				return s.hasherManager.Start(context.Background())
+			}
+			hasherStop = func() error {
+				return s.hasherManager.Stop(context.Background())
+			}
+		}
 		hasherHandlers := web.NewHasherHandlers(
 			s.logger,
 			s.hasherIntegration.IsAvailable,
@@ -2031,10 +2039,14 @@ func (s *Server) setupRoutes() {
 				}
 				return fmt.Errorf("hasher not available")
 			},
+			hasherStart,
+			hasherStop,
+			nil,
 		)
-		// Register on the mux router at /api/v1/hasher/
 		s.router.HandleFunc("/api/v1/hasher/status", hasherHandlers.HandleStatus).Methods("GET", "OPTIONS")
 		s.router.HandleFunc("/api/v1/hasher/ping", hasherHandlers.HandlePing).Methods("GET", "OPTIONS")
+		s.router.HandleFunc("/api/v1/hasher/training/start", hasherHandlers.HandleTrainingStart).Methods("POST", "OPTIONS")
+		s.router.HandleFunc("/api/v1/hasher/training/stop", hasherHandlers.HandleTrainingStop).Methods("POST", "OPTIONS")
 		log.Println("Hasher HTTP bridge routes configured")
 	}
 
