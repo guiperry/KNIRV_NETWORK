@@ -1,0 +1,64 @@
+I want you to analyze the @knirvhasher_cli_refactor.md file and then audit the packages/KNIRVHASHER application against the documentation. Report back here on the current status of the knirvhasher cli refactor implementation.
+
+---
+
+This implementation file needs to be updated to show the complete sttus and pending work. The endpoints should be served via Unix Socket and the KNIRVGATEWAY should proxy those endpoints to the public as needed. Please update the implementation file to reflect all of this.
+
+---
+
+# Implement
+
+Fully implement the code details from an attached file reference.
+
+## Instructions
+
+1. **Identify the target file**: Parse the attached `@` file reference (e.g., `@packages/knirvserver/main.go`)
+2. **Read the file**: Load the full contents to understand what needs to be implemented
+3. **Full Implementation**: Write complete, production-ready code with:
+   - No mocks
+   - No TODOs
+   - No placeholders
+   - No simulations
+   - All functionality fully implemented
+4. **Write Tests**: Create meaningful tests that verify the implementation:
+   - Unit tests for core logic
+   - Integration tests if applicable
+   - Tests must pass (no skipped tests)
+5. **Run Tests**: Execute the test suite and fix any failures
+6. **Update README**: If the implementation adds new features or changes API:
+
+- Update the project's README.md with relevant changes
+- Document new endpoints, parameters, or functionality
+- Include usage examples if appropriate
+
+## Implementation Standards
+
+- Follow the project's existing code style and conventions
+- Use proper error handling
+- Add logging where appropriate
+- Ensure type safety (TypeScript: use `unknown` instead of `any`)
+- Write idiomatic code for the language
+
+## When NOT to trigger
+
+- File is a configuration or data file (not .md file)
+- User is asking for a conceptual explanation only
+- Implementation requires external dependencies not available in the project
+
+## Verification
+
+After implementation, verify:
+- [ ] All tests pass (`go test ./...` or appropriate test command)
+- [ ] Code compiles without errors
+- [ ] No lint warnings (run `go vet` or `golangci-lint`)
+- [ ] README.md updated if needed
+
+knirvhasher_cli_refactor.md
+
+---
+
+Ensure the KNIRVSERVER starts the knirvhasher using this method (./hasher-cli --headless --socket-path /var/run/knirvhasher.sock) when a user clicks on the "train" button in the dashboard-wrapper. Include all pipeline necessary flags as implemented for non-interactive initialization.
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
