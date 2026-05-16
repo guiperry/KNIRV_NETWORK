@@ -1,0 +1,53 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "569c8890ce44",
+  "session_id": "0380d4fc-bed6-4184-a495-f17517734f07",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-16T22:04:53.664767261Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVSERVER/frontend/src/components/hud/HudOverlay.module.css",
+    "packages/KNIRVSERVER/frontend/src/components/hud/HudOverlay.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/hud/hud.test.tsx",
+    "packages/KNIRVSERVER/frontend/src/hooks/__tests__/use-update-check.test.ts",
+    "packages/KNIRVSERVER/frontend/src/hooks/use-update-check.ts",
+    "packages/KNIRVSERVER/main.go",
+    "packages/KNIRVSERVER/updater/updater.go",
+    "packages/KNIRVSERVER/updater/updater_test.go"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "ea8af4a63db6",
+  "token_usage": {
+    "input_tokens": 997,
+    "cache_creation_tokens": 106387,
+    "cache_read_tokens": 2911503,
+    "output_tokens": 27625,
+    "api_call_count": 40
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-16T22:04:53.593207858Z",
+    "agent_lines": 624,
+    "agent_removed": 75,
+    "human_added": 29,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 653,
+    "total_lines_changed": 729,
+    "agent_percentage": 95.88477366255144,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
