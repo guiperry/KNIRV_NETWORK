@@ -1,0 +1,69 @@
+In the KNIRVSERVER, each DVE instance should have it's own verification UI served by the KNIRVGATEWAY, but currently, when I click on the web icon inside of the DVE modal workspace, it takes me to the KNIRVGATEWAY Explorer (aka WebGUI)... I want the DVE to show their individual verification pages (should be already existing in the codebase) that show validation metrics and allows public users to initiate a validation record with that DVE's signature and timestamp. Report back here on the status of this implementation along with strategies on full implementation execution planning.
+
+---
+
+1. I want all public traffic to be proxied via the KNIRVGATEWAY. The KNIRVSREVER can serve the files via the internal sockets, (this can be used for the iFrame if its more effective)... But I also want the DVE pages to be served by the KNIRVGATEWAY, complexity is not a detrator from implementation.
+2. CLicking the glob icon currently opens an iFrame, lets keep it that way.
+3. Yes, lets migrate the validation report minting work to the client side browser if possible. Also, yes, lets say it costs 1 NRN to produce a DVE's Validation Report from the frontend.
+4. Unify through the gateway by letting the pages live on the KNIRVSERVER and proxy iFraming back into the socket served page to expose it to the public.
+
+Draft your entire report above along with the above clarifications into a new html file called "DVE_PAGES_FIX.html" for human as well as agentic consumption.
+
+---
+
+Proceed...
+
+---
+
+# Implement
+
+Fully implement the code details from an attached file reference.
+
+## Instructions
+
+1. **Identify the target file**: Parse the attached `@` file reference (e.g., `@packages/knirvserver/main.go`)
+2. **Read the file**: Load the full contents to understand what needs to be implemented
+3. **Full Implementation**: Write complete, production-ready code with:
+   - No mocks
+   - No TODOs
+   - No placeholders
+   - No simulations
+   - All functionality fully implemented
+4. **Write Tests**: Create meaningful tests that verify the implementation:
+   - Unit tests for core logic
+   - Integration tests if applicable
+   - Tests must pass (no skipped tests)
+5. **Run Tests**: Execute the test suite and fix any failures
+6. **Update README**: If the implementation adds new features or changes API:
+
+- Update the project's README.md with relevant changes
+- Document new endpoints, parameters, or functionality
+- Include usage examples if appropriate
+
+## Implementation Standards
+
+- Follow the project's existing code style and conventions
+- Use proper error handling
+- Add logging where appropriate
+- Ensure type safety (TypeScript: use `unknown` instead of `any`)
+- Write idiomatic code for the language
+
+## When NOT to trigger
+
+- File is a configuration or data file (not .md file)
+- User is asking for a conceptual explanation only
+- Implementation requires external dependencies not available in the project
+
+## Verification
+
+After implementation, verify:
+- [ ] All tests pass (`go test ./...` or appropriate test command)
+- [ ] Code compiles without errors
+- [ ] No lint warnings (run `go vet` or `golangci-lint`)
+- [ ] README.md updated if needed
+
+@DVE_PAGES_FIX.html as detailed in the html file.
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
