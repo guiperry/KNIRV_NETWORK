@@ -54,6 +54,7 @@ import (
 	"backend_server/internal/services/session"
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
+	"backend_server/internal/services"
 	"backend_server/internal/services/validation"
 	"backend_server/internal/utils/host"
 
@@ -1929,6 +1930,26 @@ func (s *Server) setupRoutes() {
 		log.Println("Validation service routes configured")
 	}
 
+	// Register DVE public proxy pages (Phase 1)
+	dveRegistry, dveRegistryErr := services.NewDVEURIRegistry(s.config.SocketDir, s.transactionChainClient, s.logger)
+	if dveRegistryErr != nil {
+		log.Printf("WARN: failed to init DVE URI registry: %v", dveRegistryErr)
+	} else {
+		dveProxyHandler, dveProxyErr := web.NewDVEProxyHandler(
+			dveRegistry,
+			"backend/templates/dve",
+			s.logger,
+			web.WithDVEManager(s.dveManager),
+			web.WithValidationCore(s.validationCore),
+		)
+		if dveProxyErr != nil {
+			log.Printf("WARN: failed to init DVE proxy handler: %v", dveProxyErr)
+		} else {
+			dveProxyHandler.RegisterRoutes(s.router)
+			log.Println("DVE public proxy routes configured")
+		}
+	}
+
 	// Register TEE security service routes
 	if s.teeSecurityService != nil {
 		teeSecurityHandlers := web.NewTEESecurityHandlers(s.teeSecurityService)
@@ -2075,6 +2096,20 @@ func (s *Server) setupRoutes() {
 		dveAgentWSHandler := web.NewDVEAgentWSHandler(s.knirvagentManager)
 		dveAgentWSHandler.RegisterRoutes(s.router)
 		log.Println("DVE Agent WebSocket handler registered (KNIRVAGENT terminal proxy)")
+	}
+
+	// Register DVE Inner Agent WebSocket handler (inner agent streaming)
+	if s.knirvagentManager != nil {
+		dveInnerAgentWSHandler := web.NewDVEInnerAgentWSHandler(s.knirvagentManager)
+		dveInnerAgentWSHandler.RegisterRoutes(s.router)
+		log.Println("DVE Inner Agent WebSocket handler registered")
+	}
+
+	// Register Inner Agent REST proxy handlers (spawn/install/sessions/tools)
+	if s.knirvagentManager != nil {
+		innerAgentHandlers := web.NewInnerAgentHandlers(s.knirvagentManager)
+		innerAgentHandlers.RegisterRoutes(s.router)
+		log.Println("Inner Agent REST proxy handlers registered")
 	}
 
 	// Wire up Knowledge Base handlers with GraphRAG FFI engine

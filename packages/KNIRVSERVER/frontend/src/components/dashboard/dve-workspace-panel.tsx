@@ -10,6 +10,7 @@ import ConnectionsPanel, { type ActiveWorker } from './connections-panel';
 import MetadataPanel from './metadata-panel';
 import DVESolverPanel from './dve-solver-panel';
 import ViewportPanel from './viewport-panel';
+import { DVEVerificationIframe } from './dve-verification-iframe';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { DVENode } from '@/types/api';
@@ -41,6 +42,7 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
   const [showMetadata, setShowMetadata] = useState(false);
   const [showSolver, setShowSolver] = useState(false);
   const [showViewport, setShowViewport] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<ActiveWorker | null>(null);
   const [selectedTask, setSelectedTask] = useState<DVETask | null>(null);
   const [supervisorStatus, setSupervisorStatus] = useState<'online' | 'offline' | 'unavailable' | 'loading'>('loading');
@@ -164,9 +166,9 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
                 <Monitor className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setShowViewport(!showViewport)}
-                className={`p-2 rounded-md transition-colors duration-150 ${showViewport ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-300'}`}
-                title="Toggle Container Viewport"
+                onClick={() => setShowVerification(true)}
+                className={`p-2 rounded-md transition-colors duration-150 ${showVerification ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-300'}`}
+                title="DVE Public Verification"
               >
                 <Globe className="w-4 h-4" />
               </button>
@@ -355,6 +357,14 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
             nodeName={actualNodeName}
             isSidebarOpen={showConnections}
             isMonitorOpen={showMonitor}
+          />
+
+          {/* DVE Verification Iframe - public DVE page via gateway */}
+          <DVEVerificationIframe
+            isOpen={showVerification}
+            onClose={() => setShowVerification(false)}
+            dveId={actualNodeId}
+            dveName={actualNodeName}
           />
         </div>
       </div>

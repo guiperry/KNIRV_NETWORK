@@ -33,9 +33,11 @@ import (
 	"github.com/knirvcorp/knirvagent/pkg/cron"
 	"github.com/knirvcorp/knirvagent/pkg/devices"
 	"github.com/knirvcorp/knirvagent/pkg/heartbeat"
+	"github.com/knirvcorp/knirvagent/pkg/inner"
 	"github.com/knirvcorp/knirvagent/pkg/logger"
 	"github.com/knirvcorp/knirvagent/pkg/migrate"
 	"github.com/knirvcorp/knirvagent/pkg/providers"
+	"github.com/knirvcorp/knirvagent/pkg/server"
 	"github.com/knirvcorp/knirvagent/pkg/skills"
 	"github.com/knirvcorp/knirvagent/pkg/state"
 	"github.com/knirvcorp/knirvagent/pkg/tools"
@@ -854,6 +856,11 @@ func serverCmd() {
 			"output":  response,
 		})
 	})
+
+	// Register inner agent hierarchy routes (spawn/install/sessions/tools/
+	// input/stream/log for child AI agents such as Claude Code, Aider, Codex).
+	innerMgr := inner.NewInnerAgentManager(dveID, filepath.Dir(socketPath))
+	server.RegisterInnerRoutes(mux, innerMgr)
 
 	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Listening on %s\n", socketPath)
 

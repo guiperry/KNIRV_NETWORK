@@ -418,8 +418,8 @@ func (m *Manager) RunPipeline(pipelineType string) error {
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				var dialer net.Dialer{}
-				return dialer.DialContext(ctx, "unix", m.socketPath)
+			dialer := net.Dialer{}
+			return dialer.DialContext(ctx, "unix", m.socketPath)
 			},
 		},
 	}
@@ -454,8 +454,8 @@ func (m *Manager) GetHealth() (bool, error) {
 		Timeout: 5 * time.Second,
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				var dialer net.Dialer{}
-				return dialer.DialContext(ctx, "unix", m.socketPath)
+			dialer := net.Dialer{}
+			return dialer.DialContext(ctx, "unix", m.socketPath)
 			},
 		},
 	}
@@ -478,8 +478,8 @@ func (m *Manager) StopPipeline() error {
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-				var dialer net.Dialer{}
-				return dialer.DialContext(ctx, "unix", m.socketPath)
+			dialer := net.Dialer{}
+			return dialer.DialContext(ctx, "unix", m.socketPath)
 			},
 		},
 	}

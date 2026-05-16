@@ -40,6 +40,7 @@ func (h *Handler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/api/economics/skill/invoke", h.handleSkillInvocation).Methods("POST")
 	router.HandleFunc("/api/economics/llm/register", h.handleLLMRegistration).Methods("POST")
 	router.HandleFunc("/api/economics/validation/reward", h.handleValidationReward).Methods("POST")
+	router.HandleFunc("/api/economics/validation/request", h.handleValidationReportRequest).Methods("POST")
 	router.HandleFunc("/api/economics/fees/calculate", h.handleCalculateFees).Methods("POST")
 
 	// Economics data endpoints
@@ -191,6 +192,33 @@ func (h *Handler) handleValidationReward(w http.ResponseWriter, r *http.Request)
 		"transactionId": tx.ID,
 		"status":        tx.Status,
 		"reward":        tx.AmountStr,
+		"timestamp":     tx.Timestamp,
+	})
+}
+
+// handleValidationReportRequest handles public validation report payment
+func (h *Handler) handleValidationReportRequest(w http.ResponseWriter, r *http.Request) {
+	var req ValidationReportRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if req.WalletAddress == "" || req.DVEID == "" || req.SignedTx == "" {
+		h.sendError(w, http.StatusBadRequest, "wallet_address, dve_id, and signed_tx are required")
+		return
+	}
+
+	tx, err := h.service.ProcessValidationReport(&req)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	h.sendSuccess(w, map[string]interface{}{
+		"transactionId": tx.ID,
+		"status":        tx.Status,
+		"amount":        tx.AmountStr,
 		"timestamp":     tx.Timestamp,
 	})
 }

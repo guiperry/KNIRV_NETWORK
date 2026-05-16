@@ -72,7 +72,8 @@ export interface GraphChainStats {
 
 // Proxy through the KNIRVGATEWAY — all endpoints use relative paths
 // Graph operations → /api/graph/*  (KNIRVGRAPH via graph.sock)
-// Chain/NRV operations → /api/chain/*  (KNIRVCHAIN via chain.sock)
+// Chain operations → /api/chain/*  (KNIRVCHAIN via chain.sock)
+// NRV operations → /api/graph/*  (KNIRVGRAPH via graph.sock)
 
 const GRAPH_PROXY = '/api/graph';
 const CHAIN_PROXY = '/api/chain';
@@ -139,33 +140,33 @@ class GraphChainAPI {
     return response.path;
   }
 
-  // ── NRV / Chain operations (KNIRVCHAIN) ────────────────────────────────
+	// ── NRV operations (KNIRVGRAPH) ────────────────────────────────────────
 
-  async getAllSkills(): Promise<SkillNode[]> {
-    return await this.request<SkillNode[]>(`${CHAIN_PROXY}/nrv/skills`);
+	async getAllSkills(): Promise<SkillNode[]> {
+    return await this.request<SkillNode[]>(`${GRAPH_PROXY}/nrv/skills`);
   }
 
   async getAllErrors(): Promise<ErrorNode[]> {
-    return await this.request<ErrorNode[]>(`${CHAIN_PROXY}/nrv/errors`);
+    return await this.request<ErrorNode[]>(`${GRAPH_PROXY}/nrv/errors`);
   }
 
   async getAllVectors(): Promise<NRVVector[]> {
-    return await this.request<NRVVector[]>(`${CHAIN_PROXY}/nrv/vectors`);
+    return await this.request<NRVVector[]>(`${GRAPH_PROXY}/nrv/vectors`);
   }
 
   async getSkillsForError(errorType: string): Promise<SkillNode[]> {
-    return await this.request<SkillNode[]>(`${CHAIN_PROXY}/nrv/skills/for-error/${errorType}`);
+    return await this.request<SkillNode[]>(`${GRAPH_PROXY}/nrv/skills/for-error/${errorType}`);
   }
 
   async createSkill(skill: Partial<SkillNode>): Promise<{ status: string; skill_id: string }> {
-    return await this.request<{ status: string; skill_id: string }>(`${CHAIN_PROXY}/nrv/skills`, {
+    return await this.request<{ status: string; skill_id: string }>(`${GRAPH_PROXY}/nrv/skills`, {
       method: 'POST',
       body: JSON.stringify(skill),
     });
   }
 
   async createError(error: Partial<ErrorNode>): Promise<{ status: string; error_id: string }> {
-    return await this.request<{ status: string; error_id: string }>(`${CHAIN_PROXY}/nrv/errors`, {
+    return await this.request<{ status: string; error_id: string }>(`${GRAPH_PROXY}/nrv/errors`, {
       method: 'POST',
       body: JSON.stringify(error),
     });

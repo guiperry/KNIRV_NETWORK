@@ -270,6 +270,15 @@ func (s *Service) ProcessValidationReward(req *ValidationRewardRequest) (*Econom
 	return s.economics.ProcessValidationReward(req)
 }
 
+// ProcessValidationReport processes a public validation report payment
+func (s *Service) ProcessValidationReport(req *ValidationReportRequest) (*EconomicTransaction, error) {
+	if s.economics == nil {
+		return nil, fmt.Errorf("economics engine not enabled")
+	}
+
+	return s.economics.ProcessValidationReport(req)
+}
+
 // CalculateNetworkFees calculates network fees
 func (s *Service) CalculateNetworkFees(req *FeeCalculationRequest) *FeeCalculationResponse {
 	if s.economics == nil {

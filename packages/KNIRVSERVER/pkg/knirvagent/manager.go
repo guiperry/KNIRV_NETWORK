@@ -531,6 +531,54 @@ func (am *AgentManager) GetHealthStatus(ctx context.Context, dveID string) (*Hea
 	return &status, nil
 }
 
+// GetSocketPath returns the Unix socket path for a given DVE's agent.
+func (am *AgentManager) GetSocketPath(dveID string) (string, error) {
+	ap, err := am.GetAgent(dveID)
+	if err != nil {
+		return "", err
+	}
+	return ap.SocketPath, nil
+}
+
+// InnerAgentClient creates an HTTP client that dials the given DVE's agent
+// Unix socket, suitable for forwarding requests to the inner agent API.
+func (am *AgentManager) InnerAgentClient(dveID string) (*http.Client, string, error) {
+	socketPath, err := am.GetSocketPath(dveID)
+	if err != nil {
+		return nil, "", err
+	}
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return net.DialTimeout("unix", socketPath, 5*time.Second)
+			},
+		},
+	}
+	return client, socketPath, nil
+}
+
+// ForwardToInnerAgent forwards an HTTP request to the inner agent API on the
+// given DVE's agent Unix socket and returns the response.
+func (am *AgentManager) ForwardToInnerAgent(dveID, method, path string, body io.Reader) (*http.Response, error) {
+	client, socketPath, err := am.InnerAgentClient(dveID)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(method, "http://unix"+path, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build inner request for DVE %s (socket %s): %w", dveID, socketPath, err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("inner agent request failed for DVE %s (socket %s): %w", dveID, socketPath, err)
+	}
+
+	return resp, nil
+}
+
 // StartPeriodicHealthCheck starts a goroutine that periodically checks
 // all agents and reaps any that are unhealthy.
 func (am *AgentManager) StartPeriodicHealthCheck(ctx context.Context) {
@@ -746,4 +794,19 @@ func (m *Manager) GetPID() int {
 		return 0
 	}
 	return agents[0].PID
+}
+
+// GetSocketPath returns the Unix socket path for a specific DVE's agent.
+func (m *Manager) GetSocketPath(dveID string) (string, error) {
+	return m.inner.GetSocketPath(dveID)
+}
+
+// InnerAgentClient creates an HTTP client dialing a specific DVE's agent socket.
+func (m *Manager) InnerAgentClient(dveID string) (*http.Client, string, error) {
+	return m.inner.InnerAgentClient(dveID)
+}
+
+// ForwardToInnerAgent forwards an HTTP request to a specific DVE's inner agent API.
+func (m *Manager) ForwardToInnerAgent(dveID, method, path string, body io.Reader) (*http.Response, error) {
+	return m.inner.ForwardToInnerAgent(dveID, method, path, body)
 }

@@ -66,6 +66,14 @@ type ValidationRewardRequest struct {
 	ValidationResult bool   `json:"validationResult"`
 }
 
+// ValidationReportRequest represents a public validation report payment request
+type ValidationReportRequest struct {
+	WalletAddress string `json:"wallet_address"`
+	DVEID         string `json:"dve_id"`
+	SignedTx      string `json:"signed_tx"`
+	Amount        string `json:"amount"`
+}
+
 // FeeCalculationRequest represents a fee calculation request
 type FeeCalculationRequest struct {
 	GasUsed  int64  `json:"gasUsed"`
@@ -136,14 +144,16 @@ type ServiceMetrics struct {
 
 // EconomicRules represents the economic rules configuration
 type EconomicRules struct {
-	SkillInvocationCost    *big.Int `json:"-"`
-	SkillInvocationCostStr string   `json:"skillInvocationCost"`
-	LLMRegistrationFee     *big.Int `json:"-"`
-	LLMRegistrationFeeStr  string   `json:"llmRegistrationFee"`
-	ValidationReward       *big.Int `json:"-"`
-	ValidationRewardStr    string   `json:"validationReward"`
-	BaseGasPrice           *big.Int `json:"-"`
-	BaseGasPriceStr        string   `json:"baseGasPrice"`
+	SkillInvocationCost     *big.Int `json:"-"`
+	SkillInvocationCostStr  string   `json:"skillInvocationCost"`
+	LLMRegistrationFee      *big.Int `json:"-"`
+	LLMRegistrationFeeStr   string   `json:"llmRegistrationFee"`
+	ValidationReward        *big.Int `json:"-"`
+	ValidationRewardStr     string   `json:"validationReward"`
+	ValidationReportCost    *big.Int `json:"-"`
+	ValidationReportCostStr string   `json:"validationReportCost"`
+	BaseGasPrice            *big.Int `json:"-"`
+	BaseGasPriceStr         string   `json:"baseGasPrice"`
 }
 
 // APIResponse represents a standard API response

@@ -99,35 +99,35 @@ class GraphChainAPI {
   // ── Chain operations (KNIRVCHAIN) ──────────────────────────────────────
 
   async getHeight() {
-    const response = await this.request('/api/chain/height', { cache: true });
+    const response = await this.request('/api/graph/height', { cache: true });
     return typeof response === 'object' ? response.height : response;
   }
 
   async getSkills() {
-    return await this.request('/api/chain/nrv/skills', { cache: true });
+    return await this.request('/api/graph/nrv/skills', { cache: true });
   }
 
   async getErrors() {
-    return await this.request('/api/chain/nrv/errors', { cache: true });
+    return await this.request('/api/graph/nrv/errors', { cache: true });
   }
 
   async getVectors() {
-    return await this.request('/api/chain/nrv/vectors', { cache: true });
+    return await this.request('/api/graph/nrv/vectors', { cache: true });
   }
 
   async getSkillsForError(errorType) {
-    return await this.request(`/api/chain/nrv/skills/for-error/${encodeURIComponent(errorType)}`);
+    return await this.request(`/api/graph/nrv/skills/for-error/${encodeURIComponent(errorType)}`);
   }
 
   async createSkill(skill) {
-    return await this.request('/api/chain/nrv/skills', {
+    return await this.request('/api/graph/nrv/skills', {
       method: 'POST',
       body: JSON.stringify(skill)
     });
   }
 
   async createError(error) {
-    return await this.request('/api/chain/nrv/errors', {
+    return await this.request('/api/graph/nrv/errors', {
       method: 'POST',
       body: JSON.stringify(error)
     });

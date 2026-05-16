@@ -28,6 +28,7 @@ func NewEconomicsEngine(logger *zap.Logger) *EconomicsEngine {
 		SkillInvocationCost: big.NewInt(1000000000000000000), // 1 NRN in wei
 		LLMRegistrationFee:  big.NewInt(500000000000000000),  // 0.5 NRN in wei
 		ValidationReward:    big.NewInt(200000000000000000),  // 0.2 NRN in wei
+		ValidationReportCost: big.NewInt(1000000000000000000), // 1 NRN in wei
 		BaseGasPrice:        big.NewInt(1000),
 	}
 
@@ -35,6 +36,7 @@ func NewEconomicsEngine(logger *zap.Logger) *EconomicsEngine {
 	rules.SkillInvocationCostStr = rules.SkillInvocationCost.String()
 	rules.LLMRegistrationFeeStr = rules.LLMRegistrationFee.String()
 	rules.ValidationRewardStr = rules.ValidationReward.String()
+	rules.ValidationReportCostStr = rules.ValidationReportCost.String()
 	rules.BaseGasPriceStr = rules.BaseGasPrice.String()
 
 	totalSupply := new(big.Int)
@@ -212,6 +214,60 @@ func (ee *EconomicsEngine) ProcessValidationReward(req *ValidationRewardRequest)
 	ee.updateServiceMetrics("knirvserver", reward, "earned")
 	ee.metrics.TotalSupply.Add(ee.metrics.TotalSupply, reward)
 	ee.metrics.TransactionVolume.Add(ee.metrics.TransactionVolume, reward)
+
+	return tx, nil
+}
+
+// ProcessValidationReport processes a validation report payment (1 NRN)
+func (ee *EconomicsEngine) ProcessValidationReport(req *ValidationReportRequest) (*EconomicTransaction, error) {
+	ee.mu.Lock()
+	defer ee.mu.Unlock()
+
+	amount, ok := new(big.Int).SetString(req.Amount, 10)
+	if !ok {
+		return nil, fmt.Errorf("invalid amount: %s", req.Amount)
+	}
+
+	if amount.Cmp(ee.rules.ValidationReportCost) < 0 {
+		return nil, fmt.Errorf("insufficient payment: required %s, provided %s",
+			ee.rules.ValidationReportCost.String(), amount.String())
+	}
+
+	tx := &EconomicTransaction{
+		ID:        ee.generateTransactionID("valreport", req.DVEID),
+		Type:      "validation_report",
+		From:      req.WalletAddress,
+		To:        "reward_pool",
+		Amount:    amount,
+		AmountStr: amount.String(),
+		Purpose:   "validation_report",
+		Metadata: map[string]interface{}{
+			"dveId":  req.DVEID,
+			"signedTx": req.SignedTx,
+		},
+		Status:    "confirmed",
+		Timestamp: time.Now(),
+	}
+
+	ee.transactions = append(ee.transactions, tx)
+
+	// Record burn event
+	burnEvent := &BurnEvent{
+		TxID:      tx.ID,
+		User:      req.WalletAddress,
+		Amount:    amount,
+		AmountStr: amount.String(),
+		Purpose:   "validation_report",
+		SkillID:   req.DVEID,
+		Timestamp: time.Now(),
+		Validated: false,
+	}
+
+	ee.burnEvents = append(ee.burnEvents, burnEvent)
+
+	// Update metrics
+	ee.updateServiceMetrics("knirvserver", amount, "earned")
+	ee.metrics.TransactionVolume.Add(ee.metrics.TransactionVolume, amount)
 
 	return tx, nil
 }

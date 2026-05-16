@@ -32,6 +32,7 @@ import (
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/uri"
 	"github.com/KNIRV/KNIRV_NETWORK/KNIRVGATEWAY/internal/webgui"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
 	"go.uber.org/zap"
 )
@@ -443,6 +444,16 @@ func (s *Server) setupRoutes() error {
 		s.logger.Warn("Agent proxy not configured — /api/agent/* will not be proxied")
 	}
 
+	// Inner Agent WebSocket tunnel — connects WebSocket clients directly to the
+	// KNIRVAGENT's inner agent API via Unix socket for real-time streaming.
+	if s.config.AgentSocketDir != "" {
+		r.HandleFunc("/ws/{dveId}/inner/stream/{sessionId}", s.handleInnerAgentWS).Methods("GET")
+		r.HandleFunc("/ws/{dveId}/inner", s.handleInnerAgentWS).Methods("GET")
+		s.logger.Info("Inner Agent WS tunnel registered", zap.String("socketDir", s.config.AgentSocketDir))
+	} else {
+		s.logger.Warn("Inner Agent WS tunnel not configured — /ws/* will not be available")
+	}
+
 	// Phase 4: Replace WebGUI mock endpoints with real proxy destinations.
 	// /api/transactions → oracle proxy (Cosmos tx history)
 	if oracleProxy != nil {
@@ -612,6 +623,17 @@ func (s *Server) setupRoutes() error {
 		http.Redirect(w, r, "./", http.StatusMovedPermanently)
 	})
 	r.PathPrefix("/knirvchain-portal/").Handler(http.StripPrefix("/knirvchain-portal", http.FileServer(http.Dir(s.knirvChainPortalDir))))
+
+	// DVE public verification pages — proxy /dve/{dveId}* to the backend Unix socket
+	// so DVE pages are served server-side (Go templates) but exposed to the public via
+	// the gateway.  The frontend iframes these pages back into the workspace UI.
+	if s.config.BackendSocketPath != "" {
+		dvePageProxy := newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
+		r.PathPrefix("/dve/").Handler(dvePageProxy)
+		s.logger.Info("DVE page proxy registered", zap.String("socket", s.config.BackendSocketPath))
+	} else {
+		s.logger.Warn("DVE page proxy not configured — /dve/* will not be available")
+	}
 
 	// Root-level catch-all: serve WebGUI SPA shell for client-side routing.
 	// All unmatched paths get the WebGUI index.html with gateway config injected.
@@ -795,7 +817,7 @@ func knirvGatewayConfigJSON(cfg *config.Config) string {
 func wrapWithSecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-		w.Header().Set("Content-Security-Policy", "frame-ancestors 'self' http://localhost:8090")
+		w.Header().Set("Content-Security-Policy", "frame-ancestors 'self' http://localhost:8080 http://localhost:8090")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		next.ServeHTTP(w, r)
 	})
@@ -880,6 +902,117 @@ func (s *Server) dynamicAgentProxy() http.Handler {
 
 		proxy.ServeHTTP(w, r)
 	})
+}
+
+// innerAgentUpgrader is the WebSocket upgrader for inner agent tunnels.
+var innerAgentUpgrader = websocket.Upgrader{
+	ReadBufferSize:  4096,
+	WriteBufferSize: 4096,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+// handleInnerAgentWS upgrades the HTTP connection to a WebSocket and
+// pipes data to/from the KNIRVAGENT's Unix socket for inner agent
+// streaming and input forwarding.
+func (s *Server) handleInnerAgentWS(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	dveID := vars["dveId"]
+	sessionID := vars["sessionId"]
+
+	if dveID == "" {
+		http.Error(w, `{"error":"dveId required"}`, http.StatusBadRequest)
+		return
+	}
+
+	socketPath := filepath.Join(s.config.AgentSocketDir, fmt.Sprintf("agent-%s.sock", dveID))
+	if _, err := os.Stat(socketPath); os.IsNotExist(err) {
+		s.logger.Warn("Inner agent WS: socket not found", zap.String("dveID", dveID), zap.String("socket", socketPath))
+		http.Error(w, fmt.Sprintf(`{"error":"agent not running for dve %s"}`, dveID), http.StatusServiceUnavailable)
+		return
+	}
+
+	conn, err := innerAgentUpgrader.Upgrade(w, r, nil)
+	if err != nil {
+		s.logger.Error("Inner agent WS upgrade failed", zap.String("dveID", dveID), zap.Error(err))
+		return
+	}
+	defer conn.Close()
+
+	unixConn, err := net.DialTimeout("unix", socketPath, 5*time.Second)
+	if err != nil {
+		s.logger.Error("Inner agent WS: Unix dial failed", zap.String("dveID", dveID), zap.String("socket", socketPath), zap.Error(err))
+		conn.WriteMessage(websocket.TextMessage, []byte(`{"type":"error","data":"cannot connect to agent"}`))
+		return
+	}
+	defer unixConn.Close()
+
+	if sessionID != "" {
+		httpReq := "GET /api/inner/" + sessionID + "/stream HTTP/1.1\r\nHost: unix\r\n\r\n"
+		if _, err := unixConn.Write([]byte(httpReq)); err != nil {
+			s.logger.Error("Inner agent WS: stream request failed", zap.String("dveID", dveID), zap.Error(err))
+			return
+		}
+	}
+
+	errCh := make(chan error, 2)
+
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := unixConn.Read(buf)
+			if n > 0 {
+				msg, _ := json.Marshal(map[string]string{"type": "data", "data": string(buf[:n])})
+				if writeErr := conn.WriteMessage(websocket.TextMessage, msg); writeErr != nil {
+					errCh <- writeErr
+					return
+				}
+			}
+			if err != nil {
+				endMsg, _ := json.Marshal(map[string]string{"type": "stream_end"})
+				conn.WriteMessage(websocket.TextMessage, endMsg)
+				errCh <- err
+				return
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				errCh <- err
+				return
+			}
+			var msg struct {
+				Type    string `json:"type"`
+				Data    string `json:"data,omitempty"`
+				Session string `json:"session,omitempty"`
+			}
+			if err := json.Unmarshal(message, &msg); err != nil {
+				continue
+			}
+			switch msg.Type {
+			case "input":
+				targetSession := msg.Session
+				if targetSession == "" {
+					targetSession = sessionID
+				}
+				if targetSession == "" {
+					continue
+				}
+				body := fmt.Sprintf("data=%s", msg.Data)
+				inputReq := fmt.Sprintf("POST /api/inner/%s/input HTTP/1.1\r\nHost: unix\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\n%s",
+					targetSession, len(body), body)
+				unixConn.Write([]byte(inputReq))
+			case "ping":
+				conn.WriteMessage(websocket.TextMessage, []byte(`{"type":"pong"}`))
+			}
+		}
+	}()
+
+	<-errCh
 }
 
 // Handler implementations

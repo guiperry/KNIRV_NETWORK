@@ -15,6 +15,8 @@ require (
 	github.com/slack-go/slack v0.17.3
 )
 
+require github.com/creack/pty v1.1.24
+
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
