@@ -1,0 +1,85 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "f03383d2bc4d",
+  "session_id": "ses_1cfd2a1a2ffedD2Kzzq6iHTAGP",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-16T17:47:23.882437758Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "agentic_hierarchy_implementation.html",
+    "packages/KNIRVAGENT/cmd/knirvagent/main.go",
+    "packages/KNIRVAGENT/go.mod",
+    "packages/KNIRVAGENT/go.sum",
+    "packages/KNIRVAGENT/pkg/inner/catalog.go",
+    "packages/KNIRVAGENT/pkg/inner/hooks.go",
+    "packages/KNIRVAGENT/pkg/inner/manager.go",
+    "packages/KNIRVAGENT/pkg/inner/session.go",
+    "packages/KNIRVAGENT/pkg/server/inner_routes.go",
+    "packages/KNIRVGATEWAY/internal/embedded/graphchain-explorer/js/graphchain-api.js",
+    "packages/KNIRVGATEWAY/internal/embedded/knirvchain-portal/src/services/api.ts",
+    "packages/KNIRVGRAPH/internal/network/rpc.go",
+    "packages/KNIRVHASHER/ES_Relativity_Report.md",
+    "packages/KNIRVHASHER/docs/ES_Relativity_Report.md"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "d6f192752e25",
+  "token_usage": {
+    "input_tokens": 104251,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 455040,
+    "output_tokens": 2863,
+    "api_call_count": 9
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-16T17:47:23.842164217Z",
+    "agent_lines": 62,
+    "agent_removed": 0,
+    "human_added": 3064,
+    "human_modified": 435,
+    "human_removed": 0,
+    "total_committed": 3561,
+    "total_lines_changed": 3748,
+    "agent_percentage": 1.6542155816435433,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 2044,
+      "user_lines_removed": 434,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "agentic_hierarchy_implementation.html": 1176,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGATEWAY/internal/embedded/graphchain-explorer/js/graphchain-api.js": 7,
+        "packages/KNIRVGATEWAY/internal/embedded/knirvchain-portal/src/services/api.ts": 10,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVGRAPH/internal/network/rpc.go": 194,
+        "packages/KNIRVHASHER/docs/ES_Relativity_Report.md": 365,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVGATEWAY/internal/embedded/graphchain-explorer/js/graphchain-api.js": 7,
+        "packages/KNIRVGATEWAY/internal/embedded/knirvchain-portal/src/services/api.ts": 9,
+        "packages/KNIRVGRAPH/internal/network/rpc.go": 53,
+        "packages/KNIRVHASHER/ES_Relativity_Report.md": 365
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+I need to understand the KNIRVGATEWAY's proxy/socket architecture and the NRN payment system for the DVE verification UI plan. Please investigate thoroughly:
+
+1. How does the KNIRVGATEWAY proxy traffic to backend services? Look at:
+   - packages/KNIRVGATEWAY/internal/server/server.go - especially around lines 285-470 where proxy routes are registered (to oracle, chain, graph, shell, hasher, agent sockets)
+   - How does it proxy via socket? What's the proxy implementation?
+   - Is there a generic HTTP reverse proxy pattern already used?
+
+2. How does the KNIRVGATEWAY's server.go handle routing between WebGUI pages and proxy forwarding? Specifically look at how `/gateway` prefix works.
+
+3. NRN Payment / Economics infrastructure:
+   - packages/KNIRVGATEWAY/internal/payment/handlers.go - the `/api/economics/validation/reward` route
+   - Search for "NRN" token references, payment flows, wallet connection for payment
+   - Look for any "1 NRN" or fee constants
+   - Look at how validation rewards work end to end
+
+4. KNIRVSERVER socket/internal API server:
+   - How does the KNIRVSERVER listen (ports, unix sockets, etc.) in main.go?
+   - Search for "unix" or "socket" in main.go context
+   - Is there a socket-based internal API that the gateway could proxy to?
+   - What port does the KNIRVSERVER serve on?
+
+5. Look at frontend wallet connection code:
+   - Search for wallet connection, NRN payment, transaction signing in the frontend
+   - packages/KNIRVSERVER/frontend/src/ 
+
+Return all file paths, line numbers, and relevant code snippets for each finding. Be extremely thorough.
