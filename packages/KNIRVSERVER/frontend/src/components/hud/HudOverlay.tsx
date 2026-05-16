@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from './HudOverlay.module.css';
 import { useTelemetry } from '@/hooks/use-telemetry';
 import { useOntology } from '@/hooks/use-ontology';
+import { useUpdateCheck } from '@/hooks/use-update-check';
 
 export interface SystemMetrics {
   cpu: number;
@@ -35,6 +36,7 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { telemetry } = useTelemetry();
   const { stats: ontologyStats } = useOntology();
+  const { status: updateStatus, applying: updateApplying, applyUpdate } = useUpdateCheck();
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -151,6 +153,17 @@ export function HudOverlay({ className = '', refreshInterval = 2000 }: HudOverla
           <span className={styles.value}>{metrics ? formatUptime(metrics.uptime_seconds) : '—'}</span>
         </div>
         <div className={`${styles.panelSection} ${styles.windowControls}`}>
+          {updateStatus?.available && (
+            <button
+              className={`${styles.controlBtn} ${styles.updateBtn}`}
+              onClick={applyUpdate}
+              disabled={updateApplying}
+              title={`Update available: ${updateStatus.latest_tag} — click to apply`}
+              aria-label="Update available"
+            >
+              {updateApplying ? 'RESTARTING' : 'UPDATE'}
+            </button>
+          )}
           <button className={`${styles.controlBtn} ${styles.menuBackBtn} ${styles.desktopOnly}`} onClick={() => router.push('/menu')}>
             &#9673; MENU
           </button>

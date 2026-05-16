@@ -203,6 +203,7 @@ type ServerApp struct {
 	backendCmd    *exec.Cmd
 	backendPath   string
 	tempDir       string
+	upd           *updater.Updater
 }
 
 func unixSocketTransport(socketPath string) *http.Transport {
@@ -749,6 +750,60 @@ func (app *ServerApp) setupRoutes() error {
 	api := app.router.Group("/api")
 	{
 		api.Any("/*path", func(c *gin.Context) {
+			// Update-status endpoint — handled locally; avoids proxying GitHub
+			// calls through the backend subprocess.
+			if c.Request.URL.Path == "/api/v1/system/update" {
+				if c.Request.Method == http.MethodOptions {
+					c.Status(http.StatusOK)
+					return
+				}
+				if c.Request.Method != http.MethodGet {
+					c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "method not allowed"})
+					return
+				}
+				if app.upd == nil {
+					c.JSON(http.StatusOK, gin.H{
+						"available":       false,
+						"current_version": GitCommit,
+						"latest_tag":      "",
+						"checked_at":      time.Now().UTC().Format(time.RFC3339),
+					})
+					return
+				}
+				status, err := app.upd.CheckUpdateAvailable()
+				if err != nil {
+					c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
+					return
+				}
+				c.JSON(http.StatusOK, status)
+				return
+			}
+
+			// Update-apply endpoint — triggers self-update and restart.
+			if c.Request.URL.Path == "/api/v1/system/update/apply" {
+				if c.Request.Method == http.MethodOptions {
+					c.Status(http.StatusOK)
+					return
+				}
+				if c.Request.Method != http.MethodPost {
+					c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "method not allowed"})
+					return
+				}
+				if app.upd == nil {
+					c.JSON(http.StatusServiceUnavailable, gin.H{"error": "updater not configured"})
+					return
+				}
+				c.JSON(http.StatusAccepted, gin.H{"message": "applying update, server will restart"})
+				// Flush the response before exec replaces the process.
+				c.Writer.(http.Flusher).Flush()
+				go func() {
+					if err := app.upd.TriggerUpdate(); err != nil {
+						log.Printf("[updater] apply error: %v", err)
+					}
+				}()
+				return
+			}
+
 			// Detect network-monitor paths and proxy to the gateway instead
 			// of the backend, since the gateway has Go handler equivalents.
 			if strings.HasPrefix(c.Request.URL.Path, "/api/network-monitor/") {
@@ -1328,6 +1383,7 @@ func main() {
 		CurrentCommit: GitCommit,
 		BinaryPath:    selfPath,
 	})
+	app.upd = upd
 	go upd.Start()
 
 	// Setup signal handling

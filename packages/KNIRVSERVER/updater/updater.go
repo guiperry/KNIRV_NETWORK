@@ -9,9 +9,19 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"syscall"
 	"time"
 )
+
+// UpdateStatus is the cached result of a GitHub release check.
+type UpdateStatus struct {
+	Available      bool   `json:"available"`
+	LatestTag      string `json:"latest_tag"`
+	CurrentVersion string `json:"current_version"`
+	Notes          string `json:"notes,omitempty"`
+	CheckedAt      string `json:"checked_at"`
+}
 
 type Config struct {
 	Enabled        bool
@@ -24,8 +34,11 @@ type Config struct {
 }
 
 type Updater struct {
-	cfg    Config
-	client *http.Client
+	cfg          Config
+	client       *http.Client
+	mu           sync.RWMutex
+	cachedStatus *UpdateStatus
+	cacheExpiry  time.Time
 }
 
 func New(cfg Config) *Updater {
@@ -236,6 +249,44 @@ func verifyChecksum(path, expected string) error {
 		return fmt.Errorf("want %s, got %s", expected, got)
 	}
 	return nil
+}
+
+// CheckUpdateAvailable returns whether a newer release exists on GitHub without
+// downloading or applying it. Results are cached for one poll interval (minimum
+// 10 minutes) to avoid hammering the GitHub API.
+func (u *Updater) CheckUpdateAvailable() (*UpdateStatus, error) {
+	u.mu.RLock()
+	if u.cachedStatus != nil && time.Now().Before(u.cacheExpiry) {
+		s := *u.cachedStatus
+		u.mu.RUnlock()
+		return &s, nil
+	}
+	u.mu.RUnlock()
+
+	rel, err := u.fetchLatestRelease()
+	if err != nil {
+		return nil, fmt.Errorf("fetch release: %w", err)
+	}
+
+	cacheTTL := u.cfg.PollInterval
+	if cacheTTL < 10*time.Minute {
+		cacheTTL = 10 * time.Minute
+	}
+
+	status := &UpdateStatus{
+		Available:      rel.TagName != "" && rel.TagName != u.cfg.CurrentCommit,
+		LatestTag:      rel.TagName,
+		CurrentVersion: u.cfg.CurrentCommit,
+		Notes:          rel.Body,
+		CheckedAt:      time.Now().UTC().Format(time.RFC3339),
+	}
+
+	u.mu.Lock()
+	u.cachedStatus = status
+	u.cacheExpiry = time.Now().Add(cacheTTL)
+	u.mu.Unlock()
+
+	return status, nil
 }
 
 func (u *Updater) TriggerUpdate() error {

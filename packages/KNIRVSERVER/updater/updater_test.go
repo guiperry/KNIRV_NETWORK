@@ -1,6 +1,9 @@
 package updater
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -161,5 +164,163 @@ func TestDisabledUpdater(t *testing.T) {
 
 	if status["enabled"] != false {
 		t.Error("expected enabled=false in status for disabled updater")
+	}
+}
+
+// newTestUpdater wires an Updater against a fake GitHub API server.
+func newTestUpdater(serverURL, currentCommit string) *Updater {
+	cfg := Config{
+		Enabled:       true,
+		PollInterval:  10 * time.Minute,
+		GitHubRepo:    "owner/repo",
+		CurrentCommit: currentCommit,
+		BinaryPath:    "/path/to/bin",
+	}
+	u := New(cfg)
+	// Override the HTTP client to talk to the test server.
+	u.client = &http.Client{
+		Timeout: 5 * time.Second,
+		Transport: &hostRewriteTransport{
+			base:       http.DefaultTransport,
+			targetHost: serverURL,
+		},
+	}
+	return u
+}
+
+// hostRewriteTransport rewrites the Host of every request to targetHost so
+// the updater's hardcoded api.github.com URL hits the test server instead.
+type hostRewriteTransport struct {
+	base       http.RoundTripper
+	targetHost string // e.g. "http://127.0.0.1:PORT"
+}
+
+func (t *hostRewriteTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	cloned := req.Clone(req.Context())
+	cloned.URL.Host = req.URL.Host
+	// Replace scheme+host with the test server.
+	cloned.URL.Scheme = "http"
+	cloned.URL.Host = t.targetHost[len("http://"):]
+	cloned.Host = cloned.URL.Host
+	return t.base.RoundTrip(cloned)
+}
+
+func TestCheckUpdateAvailable_NewVersion(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(githubRelease{TagName: "v2.0.0", Body: "New features"})
+	}))
+	defer srv.Close()
+
+	u := newTestUpdater(srv.URL, "v1.0.0")
+	status, err := u.CheckUpdateAvailable()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !status.Available {
+		t.Error("expected Available=true when tags differ")
+	}
+	if status.LatestTag != "v2.0.0" {
+		t.Errorf("expected LatestTag v2.0.0, got %s", status.LatestTag)
+	}
+	if status.CurrentVersion != "v1.0.0" {
+		t.Errorf("expected CurrentVersion v1.0.0, got %s", status.CurrentVersion)
+	}
+	if status.Notes != "New features" {
+		t.Errorf("expected Notes 'New features', got %s", status.Notes)
+	}
+	if status.CheckedAt == "" {
+		t.Error("expected CheckedAt to be set")
+	}
+}
+
+func TestCheckUpdateAvailable_UpToDate(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(githubRelease{TagName: "v1.0.0"})
+	}))
+	defer srv.Close()
+
+	u := newTestUpdater(srv.URL, "v1.0.0")
+	status, err := u.CheckUpdateAvailable()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if status.Available {
+		t.Error("expected Available=false when tags match")
+	}
+}
+
+func TestCheckUpdateAvailable_Caching(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		json.NewEncoder(w).Encode(githubRelease{TagName: "v2.0.0"})
+	}))
+	defer srv.Close()
+
+	u := newTestUpdater(srv.URL, "v1.0.0")
+
+	if _, err := u.CheckUpdateAvailable(); err != nil {
+		t.Fatalf("first call error: %v", err)
+	}
+	if _, err := u.CheckUpdateAvailable(); err != nil {
+		t.Fatalf("second call error: %v", err)
+	}
+
+	if calls != 1 {
+		t.Errorf("expected exactly 1 HTTP call (cache hit on second), got %d", calls)
+	}
+}
+
+func TestCheckUpdateAvailable_CacheExpiry(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		json.NewEncoder(w).Encode(githubRelease{TagName: "v2.0.0"})
+	}))
+	defer srv.Close()
+
+	u := newTestUpdater(srv.URL, "v1.0.0")
+	// Force cache to be already expired.
+	u.cacheExpiry = time.Now().Add(-1 * time.Second)
+	u.cachedStatus = &UpdateStatus{Available: false, LatestTag: "v1.0.0"}
+
+	status, err := u.CheckUpdateAvailable()
+	if err != nil {
+		t.Fatalf("error after forced expiry: %v", err)
+	}
+	if !status.Available {
+		t.Error("expected fresh fetch to detect update after cache expiry")
+	}
+	if calls != 1 {
+		t.Errorf("expected 1 HTTP call after cache expiry, got %d", calls)
+	}
+}
+
+func TestCheckUpdateAvailable_GitHubError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	u := newTestUpdater(srv.URL, "v1.0.0")
+	_, err := u.CheckUpdateAvailable()
+	if err == nil {
+		t.Error("expected error when GitHub API returns 500")
+	}
+}
+
+func TestCheckUpdateAvailable_EmptyTagNotAvailable(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(githubRelease{TagName: ""})
+	}))
+	defer srv.Close()
+
+	u := newTestUpdater(srv.URL, "v1.0.0")
+	status, err := u.CheckUpdateAvailable()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if status.Available {
+		t.Error("expected Available=false when latest tag is empty")
 	}
 }
