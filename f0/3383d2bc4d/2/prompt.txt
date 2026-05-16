@@ -1,0 +1,29 @@
+I need to understand the KNIRVGATEWAY's proxy/socket architecture and the NRN payment system for the DVE verification UI plan. Please investigate thoroughly and return ALL file paths, line numbers, and key code snippets:
+
+1. How does the KNIRVGATEWAY proxy traffic to backend services? Look at:
+   - packages/KNIRVGATEWAY/internal/server/server.go - especially lines 285-470 where proxy routes are registered
+   - How does it create reverse proxies? What pattern/struct does it use?
+   - Is there a generic HTTP reverse proxy pattern already used (httputil.ReverseProxy, custom proxy, etc.)?
+   - How does the `/gateway` prefix work for proxying to the WebGUI?
+
+2. NRN Payment / Economics infrastructure:
+   - packages/KNIRVGATEWAY/internal/payment/ - full directory listing and contents
+   - Search for "NRN" token references, payment flows, wallet connection for payment
+   - Look for any fee constants, "1 NRN", validation reward amounts
+   - How do validation rewards work end to end? Is there already a concept of "cost to validate"?
+   - packages/KNIRVGATEWAY/internal/config/config.go - look for payment/economics config
+
+3. KNIRVSERVER network configuration:
+   - In packages/KNIRVSERVER/backend/cmd/backend_server/main.go, search for the HTTP listen address/port, any unix socket listeners, the API server configuration
+   - What port does the KNIRVSERVER's HTTP API serve on?
+   - Is there any socket-based (unix domain socket) internal communication?
+
+4. Frontend wallet/NRN payment code:
+   - Search packages/KNIRVSERVER/frontend/src/ for wallet connection, NRN payment, transaction signing
+   - Any existing "pay" or "payment" or "wallet" components
+   - Search for any token/coin/cost/fee references in the frontend
+   - Any existing validation request forms/modals
+
+5. KNIRVGATEWAY's route registration for '/gateway' prefix - how does the frontend's webgui-iframe-modal.tsx use /gateway to talk to the gateway?
+
+Return all findings with file paths and line numbers.
