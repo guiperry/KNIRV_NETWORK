@@ -3,9 +3,10 @@
   "checkpoint_id": "f03383d2bc4d",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 6,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
+    "DVE_PAGES_FIX.html",
     "agentic_hierarchy_implementation.html",
     "packages/KNIRVAGENT/cmd/knirvagent/main.go",
     "packages/KNIRVAGENT/go.mod",
@@ -22,6 +23,8 @@
     "packages/KNIRVHASHER/ES_Relativity_Report.md",
     "packages/KNIRVHASHER/docs/ES_Relativity_Report.md",
     "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/internal/web/dve_inner_agent_ws_handler.go",
+    "packages/KNIRVSERVER/backend/internal/web/inner_agent_handlers.go",
     "packages/KNIRVSERVER/pkg/knirvagent/manager.go"
   ],
   "sessions": [
@@ -42,13 +45,19 @@
       "transcript": "/f0/3383d2bc4d/2/full.jsonl",
       "content_hash": "/f0/3383d2bc4d/2/content_hash.txt",
       "prompt": "/f0/3383d2bc4d/2/prompt.txt"
+    },
+    {
+      "metadata": "/f0/3383d2bc4d/3/metadata.json",
+      "transcript": "/f0/3383d2bc4d/3/full.jsonl",
+      "content_hash": "/f0/3383d2bc4d/3/content_hash.txt",
+      "prompt": "/f0/3383d2bc4d/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 133074,
+    "input_tokens": 462079,
     "cache_creation_tokens": 373585,
-    "cache_read_tokens": 3266675,
-    "output_tokens": 134394,
-    "api_call_count": 42
+    "cache_read_tokens": 11790067,
+    "output_tokens": 161489,
+    "api_call_count": 111
   }
 }
