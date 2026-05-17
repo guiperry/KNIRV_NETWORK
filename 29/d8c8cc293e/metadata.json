@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "29d8c8cc293e",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVSERVER/main.go",
+    "packages/KNIRVSERVER/updater/updater.go",
+    "packages/KNIRVSERVER/updater/updater_test.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/29/d8c8cc293e/0/metadata.json",
+      "transcript": "/29/d8c8cc293e/0/full.jsonl",
+      "content_hash": "/29/d8c8cc293e/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 11,
+    "cache_creation_tokens": 113025,
+    "cache_read_tokens": 989626,
+    "output_tokens": 3633,
+    "api_call_count": 10
+  }
+}
