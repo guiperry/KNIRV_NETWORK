@@ -1,9 +1,11 @@
 {
   "cli_version": "0.5.5",
   "checkpoint_id": "29d8c8cc293e",
+  "session_id": "8d1ddb1b-c5b0-4d6f-88d2-01dcc7e35540",
   "strategy": "manual-commit",
+  "created_at": "2026-05-17T15:05:31.30320518Z",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 1,
   "files_touched": [
     ".gitignore",
     ".hermes/config.yaml",
@@ -119,37 +121,38 @@
     "packages/KNIRVSERVER/updater/updater.go",
     "packages/KNIRVSERVER/updater/updater_test.go"
   ],
-  "sessions": [
-    {
-      "metadata": "/29/d8c8cc293e/0/metadata.json",
-      "transcript": "/29/d8c8cc293e/0/full.jsonl",
-      "content_hash": "/29/d8c8cc293e/0/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/29/d8c8cc293e/1/metadata.json",
-      "transcript": "/29/d8c8cc293e/1/full.jsonl",
-      "content_hash": "/29/d8c8cc293e/1/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/29/d8c8cc293e/2/metadata.json",
-      "transcript": "/29/d8c8cc293e/2/full.jsonl",
-      "content_hash": "/29/d8c8cc293e/2/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/29/d8c8cc293e/3/metadata.json",
-      "transcript": "/29/d8c8cc293e/3/full.jsonl",
-      "content_hash": "/29/d8c8cc293e/3/content_hash.txt",
-      "prompt": ""
-    }
-  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "dcf175c5b87a",
   "token_usage": {
-    "input_tokens": 832,
-    "cache_creation_tokens": 529180,
-    "cache_read_tokens": 8341082,
-    "output_tokens": 48527,
-    "api_call_count": 90
-  }
+    "input_tokens": 813,
+    "cache_creation_tokens": 329279,
+    "cache_read_tokens": 7156161,
+    "output_tokens": 39652,
+    "api_call_count": 76
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-17T15:05:31.209377985Z",
+    "agent_lines": 8627,
+    "agent_removed": 12835,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 8627,
+    "total_lines_changed": 21462,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
 }
