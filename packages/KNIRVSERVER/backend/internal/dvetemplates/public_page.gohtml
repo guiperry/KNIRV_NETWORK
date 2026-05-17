@@ -1,0 +1,136 @@
+{{ define "header" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVE {{ .DVEID }} - Public Validation Page</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { background: #fff; padding: 20px; border-bottom: 1px solid #e0e0e0; margin-bottom: 20px; }
+        h1 { font-size: 24px; color: #333; }
+        .badge { display: inline-block; background: #4CAF50; color: #fff; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-left: 10px; }
+        .content { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+        .main-panel { background: #fff; padding: 20px; border-radius: 8px; }
+        .sidebar { background: #fff; padding: 20px; border-radius: 8px; }
+        @media (max-width: 768px) { .content { grid-template-columns: 1fr; } }
+        .validation-prompt { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
+        .validation-prompt h2 { font-size: 18px; margin-bottom: 8px; color: #333; }
+        .validation-prompt p { font-size: 14px; color: #666; margin-bottom: 16px; }
+        .wallet-section { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+        .wallet-section button { background: #2196F3; color: #fff; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
+        .wallet-section button:hover { background: #1976D2; }
+        .wallet-section span { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: #4CAF50; }
+        .validation-input-section { margin: 12px 0; }
+        .validation-input-section textarea { width: 100%; min-height: 80px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; margin: 8px 0; resize: vertical; }
+        .validation-input-section textarea:focus { outline: none; border-color: #2196F3; }
+        .validation-input-section button { background: #4CAF50; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; }
+        .validation-input-section button:hover { background: #388E3C; }
+        .validation-input-section button:disabled { background: #ccc; cursor: not-allowed; }
+        .validation-input-section button:disabled:hover { background: #ccc; }
+        .receipt { background: #e3f2fd; border: 1px solid #2196F3; border-radius: 8px; padding: 16px; margin-top: 12px; }
+        .receipt h3 { color: #1565c0; margin-bottom: 8px; font-size: 15px; }
+        .receipt p { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; margin: 4px 0; color: #333; word-break: break-all; }
+    </style>
+</head>
+<body>
+{{ end }}
+
+{{ define "content" }}
+<div class="container">
+    <header>
+        <h1>DVE: {{ .DVEID }} <span class="badge">{{ .Status }}</span></h1>
+    </header>
+
+    <!-- Public Validation Prompt -->
+    <div class="validation-prompt">
+        <h2>Public Validation</h2>
+        <p>Verify this DVE's integrity. Generate a signed, timestamped validation report for <strong>1 NRN</strong>.</p>
+
+        <div class="wallet-section">
+            <button id="connect-btn" onclick="connectWallet()">Connect Wallet</button>
+            <span id="wallet-address"></span>
+        </div>
+
+        <div class="validation-input-section">
+            <textarea id="validation-input" placeholder="Optional: provide context or input for the validation..."></textarea>
+            <button id="validate-btn" onclick="initiateValidation()" disabled>
+                Initiate Validation &mdash; 1 NRN
+            </button>
+        </div>
+
+        <div id="proof-result"></div>
+    </div>
+
+    <div class="content">
+        <div class="main-panel">
+            {{ template "validation_records" . }}
+        </div>
+        <div class="sidebar">
+            {{ template "metrics_panel" . }}
+        </div>
+    </div>
+</div>
+
+<script>
+// Wallet connection and validation initiation for public DVE verification
+let connectedWallet = '';
+function truncateWallet(a) { if (!a||a.length<10) return a; return a.substring(0,6)+'...'+a.substring(a.length-4); }
+async function connectWallet() {
+    if (!window.ethereum) { alert('Please install MetaMask to verify this DVE.'); return; }
+    try {
+        const acc = await window.ethereum.request({method:'eth_requestAccounts'});
+        connectedWallet = acc[0];
+        document.getElementById('wallet-address').textContent = truncateWallet(connectedWallet);
+        document.getElementById('connect-btn').textContent = 'Connected';
+        document.getElementById('validate-btn').disabled = false;
+    } catch(e) { alert('Failed to connect wallet: '+e.message); }
+}
+async function initiateValidation() {
+    if (!connectedWallet||!window.ethereum) { alert('Connect wallet first.'); return; }
+    const btn=document.getElementById('validate-btn'), pr=document.getElementById('proof-result'),
+          input=document.getElementById('validation-input').value;
+    btn.disabled=true; btn.textContent='Processing...'; pr.innerHTML='<p style="color:#666;">Sending transaction...</p>';
+    try {
+        const txHash = await window.ethereum.request({
+            method:'eth_sendTransaction',
+            params:[{to:'{{ .RewardPoolAddress }}',value:'0x'+(1n*10n**18n).toString(16),gas:'0x5208'}]
+        });
+        pr.innerHTML='<p style="color:#666;">Tx sent. Waiting for backend...</p>';
+        const resp=await fetch('/dve/{{ .DVEID }}/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({signed_tx:txHash,wallet_address:connectedWallet,payload:input})});
+        if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error||'HTTP '+resp.status);}
+        const r=await resp.json();
+        pr.innerHTML='<div class="receipt"><h3>Validation Initiated</h3><p><strong>Session:</strong> '+(r.session_id||'')+'</p><p><strong>Proof:</strong> '+(r.proof||'generating...')+'</p><p><strong>Timestamp:</strong> '+(r.timestamp||new Date().toISOString())+'</p></div>';
+        window.parent.postMessage({type:'dve:validation:complete',dveId:'{{ .DVEID }}',sessionId:r.session_id,proof:r.proof,timestamp:r.timestamp},'*');
+    } catch(e) { pr.innerHTML='<p style="color:#f44336;font-size:13px;">Error: '+e.message+'</p>'; }
+    finally { btn.disabled=false; btn.textContent='Initiate Validation \u2014 1 NRN'; }
+}
+if(window.ethereum){window.ethereum.request({method:'eth_accounts'}).then(function(a){if(a.length>0){connectedWallet=a[0];document.getElementById('wallet-address').textContent=truncateWallet(connectedWallet);document.getElementById('connect-btn').textContent='Connected';document.getElementById('validate-btn').disabled=false;}}).catch(function(){});}
+</script>
+{{ end }}
+
+{{ define "validation_records" }}
+<h2>Validation Records</h2>
+{{ template "search_form" . }}
+<div id="validation-records">
+    <p>No validation records found.</p>
+</div>
+{{ end }}
+
+{{ define "search_form" }}
+<form method="get" action="/dve/{{ .DVEID }}/search" style="margin: 20px 0;">
+    <input type="text" name="q" placeholder="Search validations..." style="padding: 8px; width: 300px;">
+    <button type="submit" style="padding: 8px 16px;">Search</button>
+</form>
+{{ end }}
+
+{{ define "metrics_panel" }}
+<h3>Metrics</h3>
+<ul>
+    <li>Total Validations: {{ .Metrics.TotalValidations }}</li>
+    <li>Success Rate: {{ .Metrics.SuccessRate }}%</li>
+    <li>Average Score: {{ .Metrics.AverageScore }}</li>
+</ul>
+{{ end }}

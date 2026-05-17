@@ -221,6 +221,17 @@ chain:
   start_timeout: 30
   stop_timeout: 10
 
+# Validation Chain Configuration
+validation_chain:
+  enabled: true
+  binary_path: /var/lib/knirvserver/bin/validationchain
+  work_dir: /var/lib/knirvserver/validationchain
+  port: 9290
+  data_path: /var/lib/knirvserver/validationchain/data
+  chain_id: "validation-devnet"
+  start_timeout: 30
+  stop_timeout: 10
+
 # Updater Configuration (disabled for development)
 updater:
   enabled: false

@@ -309,6 +309,52 @@ func TestCheckUpdateAvailable_GitHubError(t *testing.T) {
 	}
 }
 
+func TestCheckUpdateAvailable_DisabledReturnsNotAvailable(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		json.NewEncoder(w).Encode(githubRelease{TagName: "v2.0.0"})
+	}))
+	defer srv.Close()
+
+	u := newTestUpdater(srv.URL, "v1.0.0")
+	u.cfg.Enabled = false
+
+	status, err := u.CheckUpdateAvailable()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if status.Available {
+		t.Error("expected Available=false when updater is disabled")
+	}
+	if calls != 0 {
+		t.Errorf("expected no HTTP calls when disabled, got %d", calls)
+	}
+}
+
+func TestCheckUpdateAvailable_NoRepoReturnsNotAvailable(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		json.NewEncoder(w).Encode(githubRelease{TagName: "v2.0.0"})
+	}))
+	defer srv.Close()
+
+	u := newTestUpdater(srv.URL, "v1.0.0")
+	u.cfg.GitHubRepo = ""
+
+	status, err := u.CheckUpdateAvailable()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if status.Available {
+		t.Error("expected Available=false when github_repo is empty")
+	}
+	if calls != 0 {
+		t.Errorf("expected no HTTP calls when repo is unconfigured, got %d", calls)
+	}
+}
+
 func TestCheckUpdateAvailable_EmptyTagNotAvailable(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(githubRelease{TagName: ""})

@@ -1,5 +1,10 @@
 // GraphChain API Service
 // Provides access to GraphChain data including SkillNodes, ErrorNodes, and GraphNodes
+//
+// Proxied through KNIRVGATEWAY:
+//   Graph ops   → /api/graph/*  (KNIRVGRAPH via graph.sock)
+//   Chain ops   → /api/chain/*  (KNIRVCHAIN via chain.sock)
+//   NRV ops     → /api/graph/*  (KNIRVGRAPH via graph.sock)
 
 // ===== TYPE DEFINITIONS (JSDoc) =====
 
@@ -81,7 +86,7 @@
 
 /**
  * @typedef {Object} GraphChainStats
- * @property {number} density
+ * @property {number} height
  * @property {number} totalNodes
  * @property {number} totalEdges
  * @property {number} totalSkillNodes
@@ -91,156 +96,283 @@
  */
 
 // ===== API CONFIGURATION =====
+// All endpoints use relative paths proxied through the KNIRVGATEWAY
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_KNIRVCHAIN_API_URL || 'http://localhost:8080';
+const GRAPH_PROXY = '/api/graph';
+const API_TIMEOUT = 3000; // ms
+const CACHE_TTL = 30000;  // ms (30s)
 
 // ===== GraphChain API CLASS =====
 
 class GraphChainAPI {
+  constructor() {
+    /** @type {Map<string, {data: any, timestamp: number}>} */
+    this.cache = new Map();
+    this.cacheTimeout = CACHE_TTL;
+    /** @type {Map<string, Promise<any>>} */
+    this.requestQueue = new Map();
+    this.retryAttempts = 1;
+    this.retryDelay = 500;
+  }
+
   /**
-   * Make an API request
+   * Make HTTP request with caching, dedup, retry logic, and error handling.
    * @private
    * @template T
-   * @param {string} endpoint
-   * @param {RequestInit} [options]
+   * @param {string} endpoint - Full gateway-proxy path (e.g. /api/graph/node/abc)
+   * @param {RequestInit & {cache?: boolean}} [options]
    * @returns {Promise<T>}
    */
   async request(endpoint, options = {}) {
+    const cacheKey = `${options.method || 'GET'}:${endpoint}`;
+
+    // Return cached result if still valid
+    if ((!options.method || options.method === 'GET') && options.cache && this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey);
+      if (Date.now() - cached.timestamp < this.cacheTimeout) {
+        return cached.data;
+      }
+    }
+
+    // Dedup in-flight requests
+    if (this.requestQueue.has(cacheKey)) {
+      return await this.requestQueue.get(cacheKey);
+    }
+
+    const requestPromise = this._makeRequest(endpoint, options);
+    this.requestQueue.set(cacheKey, requestPromise);
+
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const data = await requestPromise;
+      // Cache successful GET responses
+      if ((!options.method || options.method === 'GET') && options.cache) {
+        this.cache.set(cacheKey, { data, timestamp: Date.now() });
+      }
+      return data;
+    } finally {
+      this.requestQueue.delete(cacheKey);
+    }
+  }
+
+  /**
+   * Perform the actual fetch with timeout and retry logic.
+   * @private
+   * @param {string} url
+   * @param {RequestInit & {cache?: boolean}} options
+   * @param {number} [attempt=1]
+   * @returns {Promise<any>}
+   */
+  async _makeRequest(url, options, attempt = 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+    try {
+      const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
           ...options.headers,
         },
+        signal: controller.signal,
         ...options,
       });
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await response.json();
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
       }
-      throw new Error('Network error');
+      return await response.text();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timed out after ${API_TIMEOUT}ms: ${url}`);
+      }
+      if (attempt < this.retryAttempts && this._shouldRetry(error)) {
+        await this._delay(this.retryDelay * attempt);
+        return this._makeRequest(url, options, attempt + 1);
+      }
+      throw new Error(`API Error after ${attempt} attempt(s): ${error.message}`);
+    }
+  }
+
+  /**
+   * Determine if a request should be retried.
+   * @private
+   * @param {Error} error
+   * @returns {boolean}
+   */
+  _shouldRetry(error) {
+    return error.message.includes('fetch') ||
+           error.message.includes('500') ||
+           error.message.includes('502') ||
+           error.message.includes('503') ||
+           error.message.includes('504');
+  }
+
+  /**
+   * Promise-based delay.
+   * @private
+   * @param {number} ms
+   * @returns {Promise<void>}
+   */
+  _delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /** Clear the entire cache. */
+  clearCache() {
+    this.cache.clear();
+  }
+
+  /** Remove expired entries from the cache. */
+  clearExpiredCache() {
+    const now = Date.now();
+    for (const [key, value] of this.cache.entries()) {
+      if (now - value.timestamp > this.cacheTimeout) {
+        this.cache.delete(key);
+      }
     }
   }
 
   // ===== BASIC GRAPH OPERATIONS =====
 
   /**
-   * Get current GraphChain density
+   * Get current GraphChain density (alias for getHeight for backward compat)
    * @returns {Promise<number>}
    */
   async getCurrentDensity() {
-    const response = await this.request('/density');
-    return response.density;
+    const height = await this.getHeight();
+    return height;
   }
 
   /**
-   * Get a specific node by ID
+   * Get current GraphChain block height
+   * @returns {Promise<number>}
+   */
+  async getHeight() {
+    const response = await this.request('/api/graph/height', { cache: true });
+    return typeof response === 'object' ? (response.height || 0) : response;
+  }
+
+  /**
+   * Get a specific node by ID.
    * @param {string} nodeId
    * @returns {Promise<GraphNode>}
    */
   async getNode(nodeId) {
-    return await this.request(`/node/${nodeId}`);
+    return await this.request(`${GRAPH_PROXY}/node/${encodeURIComponent(nodeId)}`, { cache: true });
   }
 
   /**
-   * Get a specific edge by ID
+   * Get a specific edge by ID.
    * @param {string} edgeId
    * @returns {Promise<GraphEdge>}
    */
   async getEdge(edgeId) {
-    return await this.request(`/edge/${edgeId}`);
+    return await this.request(`${GRAPH_PROXY}/edge/${encodeURIComponent(edgeId)}`, { cache: true });
   }
 
   /**
-   * Get graph heads (nodes with no parents)
+   * Get graph heads (nodes with no parents).
    * @returns {Promise<string[]>}
    */
   async getGraphHeads() {
-    const response = await this.request('/graph/heads');
-    return response.heads;
+    const response = await this.request(`${GRAPH_PROXY}/graph/heads`, { cache: true });
+    return response.heads || response;
   }
 
   /**
-   * Get neighbors of a node
+   * Get neighbors of a node.
    * @param {string} nodeId
    * @returns {Promise<string[]>}
    */
   async getNodeNeighbors(nodeId) {
-    return await this.request(`/graph/neighbors/${nodeId}`);
+    return await this.request(`${GRAPH_PROXY}/graph/neighbors/${encodeURIComponent(nodeId)}`, { cache: true });
   }
 
   /**
-   * Find path between two nodes
+   * Find path between two nodes.
    * @param {string} fromId
    * @param {string} toId
    * @param {number} [maxDepth=50]
    * @returns {Promise<string[]>}
    */
   async findPath(fromId, toId, maxDepth = 50) {
-    const response = await this.request(`/graph/path/${fromId}/${toId}?max_depth=${maxDepth}`);
-    return response.path;
+    const response = await this.request(
+      `${GRAPH_PROXY}/graph/path/${encodeURIComponent(fromId)}/${encodeURIComponent(toId)}?max_depth=${maxDepth}`,
+      { cache: true }
+    );
+    return response.path || response;
+  }
+
+  /**
+   * Search nodes by query string.
+   * @param {string} query
+   * @returns {Promise<Array>}
+   */
+  async searchNodes(query) {
+    return await this.request(`${GRAPH_PROXY}/search?q=${encodeURIComponent(query)}`);
   }
 
   // ===== NRV SYSTEM OPERATIONS =====
 
   /**
-   * Get all SkillNodes
+   * Get all SkillNodes.
    * @returns {Promise<SkillNode[]>}
    */
   async getAllSkills() {
-    return await this.request('/nrv/skills');
+    return await this.request(`${GRAPH_PROXY}/nrv/skills`, { cache: true });
   }
 
   /**
-   * Get all ErrorNodes
+   * Get all ErrorNodes.
    * @returns {Promise<ErrorNode[]>}
    */
   async getAllErrors() {
-    return await this.request('/nrv/errors');
+    return await this.request(`${GRAPH_PROXY}/nrv/errors`, { cache: true });
   }
 
   /**
-   * Get all NRV Vectors
+   * Get all NRV Vectors.
    * @returns {Promise<NRVVector[]>}
    */
   async getAllVectors() {
-    return await this.request('/nrv/vectors');
+    return await this.request(`${GRAPH_PROXY}/nrv/vectors`, { cache: true });
   }
 
   /**
-   * Get skills for a specific error type
+   * Get skills for a specific error type.
    * @param {string} errorType
    * @returns {Promise<SkillNode[]>}
    */
   async getSkillsForError(errorType) {
-    return await this.request(`/nrv/skills/for-error/${errorType}`);
+    return await this.request(`${GRAPH_PROXY}/nrv/skills/for-error/${encodeURIComponent(errorType)}`);
   }
 
   /**
-   * Create a new SkillNode
+   * Create a new SkillNode.
    * @param {Partial<SkillNode>} skill
    * @returns {Promise<{status: string, skill_id: string}>}
    */
   async createSkill(skill) {
-    return await this.request('/nrv/skills', {
+    return await this.request(`${GRAPH_PROXY}/nrv/skills`, {
       method: 'POST',
       body: JSON.stringify(skill),
     });
   }
 
   /**
-   * Create a new ErrorNode
+   * Create a new ErrorNode.
    * @param {Partial<ErrorNode>} error
    * @returns {Promise<{status: string, error_id: string}>}
    */
   async createError(error) {
-    return await this.request('/nrv/errors', {
+    return await this.request(`${GRAPH_PROXY}/nrv/errors`, {
       method: 'POST',
       body: JSON.stringify(error),
     });
@@ -249,16 +381,16 @@ class GraphChainAPI {
   // ===== STATISTICS & AGGREGATIONS =====
 
   /**
-   * Get comprehensive GraphChain statistics
+   * Get comprehensive GraphChain statistics.
    * @returns {Promise<GraphChainStats>}
    */
   async getGraphChainStats() {
     try {
-      const [density, skills, errors, vectors] = await Promise.all([
-        this.getCurrentDensity(),
-        this.getAllSkills(),
-        this.getAllErrors(),
-        this.getAllVectors(),
+      const [height, skills, errors, vectors] = await Promise.all([
+        this.getHeight().catch(() => 0),
+        this.getAllSkills().catch(() => []),
+        this.getAllErrors().catch(() => []),
+        this.getAllVectors().catch(() => []),
       ]);
 
       // Calculate average resolution time from skill performance data
@@ -268,7 +400,7 @@ class GraphChainAPI {
         : 0;
 
       return {
-        density,
+        height: typeof height === 'number' ? height : (height?.height || 0),
         totalNodes: 0, // Would need additional endpoint to get total graph nodes
         totalEdges: 0, // Would need additional endpoint to get total graph edges
         totalSkillNodes: skills.length,
@@ -282,7 +414,7 @@ class GraphChainAPI {
   }
 
   /**
-   * Get recent SkillNodes (most recently created)
+   * Get recent SkillNodes (most recently created).
    * @param {number} [count=10]
    * @returns {Promise<SkillNode[]>}
    */
@@ -294,7 +426,7 @@ class GraphChainAPI {
   }
 
   /**
-   * Get recent ErrorNodes (most recently created)
+   * Get recent ErrorNodes (most recently created).
    * @param {number} [count=10]
    * @returns {Promise<ErrorNode[]>}
    */
@@ -308,12 +440,12 @@ class GraphChainAPI {
   // ===== UTILITY METHODS =====
 
   /**
-   * Check if the GraphChain API is reachable
+   * Check if the GraphChain API is reachable.
    * @returns {Promise<boolean>}
    */
   async healthCheck() {
     try {
-      await this.getCurrentDensity();
+      await this.getHeight();
       return true;
     } catch (error) {
       return false;

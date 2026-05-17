@@ -16,17 +16,9 @@ import (
 
 // Embed only build artifacts — not entire source directories.
 // webgui: Next.js static export (out/)
-// graphchain-explorer: static HTML site (no build step)
-// knirvchain-portal: Vite build output (dist/)
 //
 //go:embed all:webgui/out
 var WebGUIFS embed.FS
-
-//go:embed all:graphchain-explorer
-var GraphChainExplorerFS embed.FS
-
-//go:embed all:knirvchain-portal/dist
-var KnirvChainPortalFS embed.FS
 
 // GatewayConfig represents the configuration for the embedded gateway runner.
 // The oracle itself has moved to KNIRVSERVER and is no longer managed here.
@@ -69,7 +61,7 @@ func NewGateway(cfg *GatewayConfig, logger *zap.Logger) (*Gateway, error) {
 		}
 	}
 
-	rt, err := runtime.NewRuntime(logger, WebGUIFS, GraphChainExplorerFS, KnirvChainPortalFS, nil)
+	rt, err := runtime.NewRuntime(logger, WebGUIFS, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +94,7 @@ func (g *Gateway) Start() error {
 		return err
 	}
 
-	g.server, err = server.New(coreCfg, g.runtime.GetWebGUIStaticPath(), g.runtime.GetGraphChainExplorerPath(), g.runtime.GetKnirvChainPortalPath(), g.logger)
+	g.server, err = server.New(coreCfg, g.runtime.GetWebGUIStaticPath(), g.logger)
 	if err != nil {
 		return err
 	}

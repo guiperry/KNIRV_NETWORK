@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"net/http"
 	"strings"
 	"time"
@@ -81,16 +82,15 @@ type DVEProxyHandler struct {
 	tmpl           *template.Template
 }
 
-func NewDVEProxyHandler(registry *services.DVEURIRegistry, tmplDir string, logger *zap.Logger, opts ...DVEProxyHandlerOption) (*DVEProxyHandler, error) {
+func NewDVEProxyHandler(registry *services.DVEURIRegistry, tmplFS fs.FS, logger *zap.Logger, opts ...DVEProxyHandlerOption) (*DVEProxyHandler, error) {
 	funcMap := template.FuncMap{
 		"truncateWallet": truncateWallet,
 		"formatTime":     formatTime,
 		"safeHTML":       func(s string) template.HTML { return template.HTML(s) },
 	}
-	pattern := fmt.Sprintf("%s/*.gohtml", tmplDir)
-	tmpl, err := template.New("public_page.gohtml").Funcs(funcMap).ParseGlob(pattern)
+	tmpl, err := template.New("public_page.gohtml").Funcs(funcMap).ParseFS(tmplFS, "*.gohtml")
 	if err != nil {
-		return nil, fmt.Errorf("failed to load DVE templates from %s: %w", tmplDir, err)
+		return nil, fmt.Errorf("failed to load DVE templates: %w", err)
 	}
 	h := &DVEProxyHandler{uriRegistry: registry, logger: logger, tmpl: tmpl}
 	for _, opt := range opts {

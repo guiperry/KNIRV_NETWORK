@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Shield, X, Lock, Zap, Eye, Terminal, AlertCircle, RefreshCw, Save, Loader2 } from 'lucide-react';
+import { Shield, X, Lock, Zap, Eye, Terminal, AlertCircle, RefreshCw, Save, Loader2, Award } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
+import { useBadgeTemplates, type BadgeTemplate } from '@/hooks/use-badge-templates';
 
 interface PolicyRule {
   id: string;
@@ -55,11 +56,33 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
   const [selectedPolicy, setSelectedPolicy] = useState<Policy | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
+  // Badge template integration
+  const { templates, listTemplates, mintFromTemplate, isLoading: templatesLoading } = useBadgeTemplates();
+  const [attachedBadgeIds, setAttachedBadgeIds] = useState<string[]>([]);
+  const [attachingId, setAttachingId] = useState<string | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       loadPolicies();
+      listTemplates(true);
+      loadAttachedBadges();
     }
   }, [isOpen, nodeId]);
+
+  const loadAttachedBadges = async () => {
+    if (!nodeId) return;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/badge/templates/dve/${nodeId}/badges`, {
+        headers: getAuthHeaders(),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        setAttachedBadgeIds(data.badge_ids || data.attached_badges || []);
+      }
+    } catch {
+      // Best-effort
+    }
+  };
 
   const loadPolicies = async () => {
     try {
@@ -171,6 +194,34 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
     }
   };
 
+  const handleAttachBadge = async (templateId: string) => {
+    if (!nodeId) return;
+    setAttachingId(templateId);
+    try {
+      const result = await mintFromTemplate(templateId, nodeId);
+      if (result) {
+        await loadAttachedBadges();
+      }
+    } finally {
+      setAttachingId(null);
+    }
+  };
+
+  const handleDetachBadge = async (badgeId: string) => {
+    if (!nodeId) return;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/badge/templates/dve/${nodeId}/badges/${badgeId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      if (resp.ok) {
+        await loadAttachedBadges();
+      }
+    } catch {
+      // Best-effort
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -274,6 +325,63 @@ const PolicyEditor: React.FC<PolicyEditorProps> = ({ isOpen, onClose, nodeId, is
                 <span className="text-[9px] text-amber-200">Policy changes require sandbox restart</span>
               </div>
             </div>
+          </div>
+
+          {/* Badge Template Attachments Section */}
+          <div className="border-t border-blue-600/20 pt-4 mt-2">
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-[11px] font-bold uppercase text-amber-400 flex items-center">
+                <Award className="w-3.5 h-3.5 mr-1.5" />
+                Attached Badge Templates
+              </Label>
+              {templatesLoading && <Loader2 className="w-3 h-3 animate-spin text-amber-400" />}
+            </div>
+
+            {/* Currently attached badges */}
+            {attachedBadgeIds.length > 0 && (
+              <div className="mb-3 space-y-1.5">
+                <p className="text-[9px] text-slate-500 font-mono mb-1">Attached to this DVE:</p>
+                {attachedBadgeIds.map((bid) => (
+                  <div key={bid} className="flex items-center justify-between bg-green-900/10 border border-green-500/20 rounded-md px-3 py-1.5">
+                    <span className="text-[10px] font-mono text-green-400 truncate">{bid}</span>
+                    <button
+                      onClick={() => handleDetachBadge(bid)}
+                      className="text-[9px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider ml-2 shrink-0"
+                    >
+                      Detach
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Available templates to attach */}
+            {nodeId && templates.length > 0 && (
+              <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                <p className="text-[9px] text-slate-500 font-mono mb-1">Available templates:</p>
+                {templates.map((tmpl) => (
+                  <div key={tmpl.id} className="flex items-center justify-between bg-slate-950/40 border border-slate-800 rounded-md px-3 py-1.5 hover:border-amber-500/30 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] font-bold text-slate-200 truncate">{tmpl.name}</span>
+                      <Badge variant="outline" className="text-[7px] text-amber-400 border-amber-400/20 px-1 py-0">
+                        {tmpl.value_signals?.length || 0}v
+                      </Badge>
+                    </div>
+                    <button
+                      onClick={() => handleAttachBadge(tmpl.id)}
+                      disabled={attachingId === tmpl.id}
+                      className="text-[9px] px-2 py-1 rounded bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 font-bold uppercase tracking-wider transition-colors shrink-0 ml-2"
+                    >
+                      {attachingId === tmpl.id ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : 'Attach'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!nodeId && (
+              <p className="text-[9px] text-slate-600 italic">Select a DVE node to attach badge templates</p>
+            )}
           </div>
         </div>
 

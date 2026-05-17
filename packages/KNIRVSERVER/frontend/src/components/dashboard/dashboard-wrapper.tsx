@@ -912,25 +912,25 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                             </CardContent>
                           </Card>
 
-                          {/* 8. KNIRVBRIDGE */}
+                          {/* 8. Badge Templates */}
                           <Card 
                             className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                            onClick={() => setShowAdminAccess(true)}
+                            onClick={() => goToWebgui('my-badges')}
                           >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <div className="flex items-center space-x-2">
-                                <CardTitle className="text-sm font-medium text-gray-300">KNIRVBRIDGE</CardTitle>
-                                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]" title="Status: Active" />
+                                <CardTitle className="text-sm font-medium text-gray-300">Badge Templates</CardTitle>
+                                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(251,191,36,0.6)]" title="Status: Active" />
                               </div>
-                              <Share2 className="h-4 w-4 text-gray-500" />
+                              <Award className="h-4 w-4 text-gray-500" />
                             </CardHeader>
                             <CardContent>
-                              <div className="text-2xl font-bold text-gray-200">IBC Bridge</div>
-                              <p className="text-xs text-gray-500 mb-3">Cross-chain asset and data relay</p>
+                              <div className="text-2xl font-bold text-gray-200">Badge Lab</div>
+                              <p className="text-xs text-gray-500 mb-3">Browse and mint badge templates</p>
                               <div className="bg-black/40 rounded-lg p-2 font-mono text-[9px] text-amber-400/80 h-16 overflow-hidden">
-                                <div className="line-clamp-1">[10:45:21] IBC packet received</div>
-                                <div className="line-clamp-1">[10:45:22] Validating light client</div>
-                                <div className="line-clamp-1">[10:45:23] Acknowledgement sent</div>
+                                <div className="line-clamp-1">Badge template registry active</div>
+                                <div className="line-clamp-1">Save badges as reusable templates</div>
+                                <div className="line-clamp-1">Attach to DVE via Policy Editor</div>
                               </div>
                             </CardContent>
                           </Card>

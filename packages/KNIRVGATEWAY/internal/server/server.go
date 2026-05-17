@@ -57,13 +57,11 @@ type Server struct {
 	httpServer           *http.Server
 	router               *mux.Router
 	webguiStaticDir      string
-	graphChainExplorerDir string
-	knirvChainPortalDir  string
 	actualPort           int
 }
 
 // New creates a new HTTP server
-func New(cfg *config.Config, webguiStaticDir, graphChainExplorerDir, knirvChainPortalDir string, logger *zap.Logger, db ...*sql.DB) (*Server, error) {
+func New(cfg *config.Config, webguiStaticDir string, logger *zap.Logger, db ...*sql.DB) (*Server, error) {
 	var dbInstance *sql.DB
 	if len(db) > 0 {
 		dbInstance = db[0]
@@ -185,8 +183,6 @@ func New(cfg *config.Config, webguiStaticDir, graphChainExplorerDir, knirvChainP
 		dhtManager:          dhtMgr,
 		logger:               logger,
 		webguiStaticDir:      webguiStaticDir,
-		graphChainExplorerDir: graphChainExplorerDir,
-		knirvChainPortalDir:  knirvChainPortalDir,
 	}
 
 	if err := s.setupRoutes(); err != nil {
@@ -283,6 +279,8 @@ func (s *Server) setupRoutes() error {
 	if s.config.BackendSocketPath != "" {
 		backendProxy := newSocketProxy(s.config.BackendSocketPath, "http://knirvserver")
 		r.PathPrefix("/api/v1/").Handler(backendProxy)
+		// Also proxy /api/badge/* to the backend socket (badge templates, guardrail injectors)
+		r.PathPrefix("/api/badge/").Handler(backendProxy)
 		s.logger.Info("Backend proxy registered", zap.String("socket", s.config.BackendSocketPath))
 	} else {
 		s.logger.Warn("Backend proxy not configured — /api/v1/* will not be proxied")
@@ -608,21 +606,6 @@ func (s *Server) setupRoutes() error {
 			w.Write(data)
 		})
 	}
-
-	// Serve GraphChain Explorer static files at /graphchain-explorer/
-	r.HandleFunc("/graphchain-explorer", func(w http.ResponseWriter, r *http.Request) {
-		// Use a relative redirect (./) so the proxy prefix (/gateway/) is preserved
-		// when this endpoint is accessed through the KNIRVSERVER's gateway proxy.
-		// An absolute redirect (/graphchain-explorer/) would bypass the proxy.
-		http.Redirect(w, r, "./", http.StatusMovedPermanently)
-	})
-	r.PathPrefix("/graphchain-explorer/").Handler(http.StripPrefix("/graphchain-explorer", http.FileServer(http.Dir(s.graphChainExplorerDir))))
-
-	// Serve KNIRVChain Portal static files at /knirvchain-portal/
-	r.HandleFunc("/knirvchain-portal", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "./", http.StatusMovedPermanently)
-	})
-	r.PathPrefix("/knirvchain-portal/").Handler(http.StripPrefix("/knirvchain-portal", http.FileServer(http.Dir(s.knirvChainPortalDir))))
 
 	// DVE public verification pages — proxy /dve/{dveId}* to the backend Unix socket
 	// so DVE pages are served server-side (Go templates) but exposed to the public via

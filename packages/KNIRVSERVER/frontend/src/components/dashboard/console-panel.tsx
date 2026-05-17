@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Terminal as LucideTerminal, X, Play, RefreshCw, AlertCircle } from 'lucide-react';
+import { Terminal as LucideTerminal, X, Play, RefreshCw, AlertCircle, Plus } from 'lucide-react';
 import type { Terminal as XTermTerminal } from '@xterm/xterm';
 import type { FitAddon as XTermFitAddon } from '@xterm/addon-fit';
 import type { WebLinksAddon as XTermWebLinksAddon } from '@xterm/addon-web-links';
@@ -9,6 +9,13 @@ import '@xterm/xterm/css/xterm.css';
 import { useFabricManagement } from '@/hooks/use-fabric-management';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
+import { InnerAgentTerminal } from './inner-agent-terminal';
+import { ToolPickerModal } from './tool-picker-modal';
+
+interface InnerSession {
+  sessionId: string;
+  toolName: string;
+}
 
 interface ConsolePanelProps {
   isOpen: boolean;
@@ -31,6 +38,9 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const [connectionMode, setConnectionMode] = useState<'knirvshell' | 'knirvagent' | 'ssh' | 'local'>('local');
   const connectionModeRef = useRef<'knirvshell' | 'knirvagent' | 'ssh' | 'local'>('local');
   const agentProcessingRef = useRef(false);
+  const [activeTab, setActiveTab] = useState<'supervisor' | string>('supervisor');
+  const [innerSessions, setInnerSessions] = useState<InnerSession[]>([]);
+  const [showToolPicker, setShowToolPicker] = useState(false);
 
   const updateConnectionModeRef = (mode: 'knirvshell' | 'knirvagent' | 'ssh' | 'local') => {
     connectionModeRef.current = mode;
@@ -397,22 +407,20 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
       }}
     >
       <div className="h-full flex flex-col">
-        <div className="flex items-center justify-between p-3 border-b border-blue-600/30 bg-slate-900/80 backdrop-blur-md">
-          <div className="flex items-center space-x-3">
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-blue-600/30 bg-slate-900/80 backdrop-blur-md shrink-0">
+          <div className="flex items-center space-x-2">
             <div className="relative">
               <LucideTerminal className="w-4 h-4 text-blue-400" />
               <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             </div>
-            <div>
-              <h2 className="text-[11px] font-black uppercase tracking-tighter text-blue-100">
-                Secure Shell Session
-              </h2>
-              <p className="text-[9px] font-mono text-slate-500">Node: {nodeId || 'Distributed'}</p>
-            </div>
+            <h2 className="text-[11px] font-black uppercase tracking-tighter text-blue-100">
+              Terminal
+            </h2>
+            <p className="text-[9px] font-mono text-slate-500 hidden sm:block">Node: {nodeId || 'Distributed'}</p>
           </div>
-          
           <div className="flex items-center space-x-2">
-            <button 
+            <button
               onClick={loadRealLogs}
               className="text-slate-500 hover:text-blue-400 p-1 transition-colors"
               title="Sync Logs"
@@ -428,27 +436,104 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
             </button>
           </div>
         </div>
-        
-        <div className="flex-1 p-3 bg-[#03050a] overflow-hidden relative group">
-          <div ref={terminalRef} className="h-full w-full custom-scrollbar" />
-          
-          {isInitializing && (
-            <div className="absolute inset-0 bg-black/80 flex items-center justify-center backdrop-blur-sm">
-              <div className="text-center space-y-3">
-                <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto" />
-                <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 animate-pulse">
-                  Establishing TEE Tunnel...
-                </p>
-              </div>
-            </div>
-          )}
+
+        {/* Tab bar */}
+        <div className="flex items-center border-b border-slate-800 bg-slate-950/80 overflow-x-auto shrink-0">
+          {/* Supervisor tab */}
+          <button
+            onClick={() => setActiveTab('supervisor')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium whitespace-nowrap border-r border-slate-800 transition-colors ${
+              activeTab === 'supervisor'
+                ? 'bg-[#03050a] text-blue-300 border-b-2 border-b-blue-500 -mb-px'
+                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900/50'
+            }`}
+          >
+            <LucideTerminal className="w-3 h-3" />
+            Supervisor
+          </button>
+
+          {/* Inner agent session tabs */}
+          {innerSessions.map(sess => (
+            <button
+              key={sess.sessionId}
+              onClick={() => setActiveTab(sess.sessionId)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium whitespace-nowrap border-r border-slate-800 group transition-colors ${
+                activeTab === sess.sessionId
+                  ? 'bg-[#03050a] text-purple-300 border-b-2 border-b-purple-500 -mb-px'
+                  : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900/50'
+              }`}
+            >
+              <Play className="w-2.5 h-2.5" />
+              {sess.toolName}
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={e => {
+                  e.stopPropagation();
+                  setInnerSessions(prev => prev.filter(s => s.sessionId !== sess.sessionId));
+                  if (activeTab === sess.sessionId) setActiveTab('supervisor');
+                }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setInnerSessions(prev => prev.filter(s => s.sessionId !== sess.sessionId)); if (activeTab === sess.sessionId) setActiveTab('supervisor'); } }}
+                className="opacity-0 group-hover:opacity-100 ml-0.5 hover:text-red-400 transition-opacity"
+                title="Close tab"
+              >
+                <X className="w-2.5 h-2.5" />
+              </span>
+            </button>
+          ))}
+
+          {/* Spawn new session */}
+          <button
+            onClick={() => setShowToolPicker(true)}
+            className="flex items-center gap-1 px-3 py-1.5 text-[11px] text-slate-500 hover:text-purple-300 hover:bg-slate-900/50 transition-colors whitespace-nowrap"
+            title="Spawn inner agent"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
         </div>
-        
-        <div className="p-2 border-t border-blue-600/20 bg-slate-900/50 flex justify-between items-center px-4">
+
+        {/* Terminal content */}
+        <div className="flex-1 bg-[#03050a] overflow-hidden relative">
+          {/* Supervisor xterm — always mounted, hidden when not active */}
+          <div
+            className="absolute inset-0 p-3"
+            style={{ display: activeTab === 'supervisor' ? 'block' : 'none' }}
+          >
+            <div ref={terminalRef} className="h-full w-full custom-scrollbar" />
+            {isInitializing && (
+              <div className="absolute inset-0 bg-black/80 flex items-center justify-center backdrop-blur-sm">
+                <div className="text-center space-y-3">
+                  <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-400 animate-pulse">
+                    Establishing TEE Tunnel...
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Inner agent terminals — one per session, always mounted once created */}
+          {innerSessions.map(sess => (
+            <div
+              key={sess.sessionId}
+              className="absolute inset-0"
+              style={{ display: activeTab === sess.sessionId ? 'block' : 'none' }}
+            >
+              <InnerAgentTerminal
+                dveId={nodeId ?? ''}
+                sessionId={sess.sessionId}
+                toolName={sess.toolName}
+                isVisible={activeTab === sess.sessionId}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="p-2 border-t border-blue-600/20 bg-slate-900/50 flex justify-between items-center px-4 shrink-0">
           <div className="flex items-center space-x-4">
             <div className="flex items-center text-[9px] text-slate-500 font-bold uppercase">
               <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${sshConnected ? 'bg-green-500' : 'bg-yellow-500'}`} />
-              {connectionMode.toUpperCase()}: {sshConnected ? 'ACTIVE' : 'LOCAL'}
+              {activeTab === 'supervisor' ? `${connectionMode.toUpperCase()}: ${sshConnected ? 'ACTIVE' : 'LOCAL'}` : 'INNER AGENT: ACTIVE'}
             </div>
             <div className="flex items-center text-[9px] text-slate-500 font-bold uppercase">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-1.5" />
@@ -457,6 +542,17 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
           </div>
           <span className="text-[9px] font-mono text-slate-600">AES-256-GCM</span>
         </div>
+
+        {/* Tool picker modal */}
+        <ToolPickerModal
+          isOpen={showToolPicker}
+          onClose={() => setShowToolPicker(false)}
+          dveId={nodeId}
+          onSpawned={(sessionId, toolName) => {
+            setInnerSessions(prev => [...prev, { sessionId, toolName }]);
+            setActiveTab(sessionId);
+          }}
+        />
       </div>
     </div>
   );

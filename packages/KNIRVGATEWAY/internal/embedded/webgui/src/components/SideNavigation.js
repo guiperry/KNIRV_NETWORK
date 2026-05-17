@@ -37,12 +37,6 @@ const NAV_ITEMS = [
     { id: 'bootnode-dao', label: 'Bootnode DAO', icon: '🗳️' },
     { id: 'network-inference-dao', label: 'Network Inference DAO', icon: '📜' },
   ]},
-  // GraphChain section
-  { id: 'graphchain', label: 'GraphChain', icon: '🔗', children: [
-    { id: 'graphchain-dashboard', label: 'GraphChain Dashboard', icon: '📊' },
-    { id: 'graphchain-errors', label: 'GraphChain Errors', icon: '🚨' },
-    { id: 'graphchain-skills', label: 'GraphChain Skills', icon: '⚡' },
-  ]},
   // Marketplace section
   { id: 'marketplace', label: 'Marketplace', icon: '🛒', children: [
     { id: 'skills', label: 'Skills', icon: '⚡' },
@@ -57,6 +51,7 @@ const NAV_ITEMS = [
     { id: 'my-skills', label: 'My Skills', icon: '⚡' },
     { id: 'my-capabilities', label: 'My Capabilities', icon: '🔌' },
     { id: 'my-properties', label: 'My Properties', icon: '🏷️' },
+    { id: 'my-badges', label: 'Badges', icon: '🏅' },
     { id: 'nft-property-explorer', label: 'NFT Property Explorer', icon: '🎨' },
   ]},
   // Settings
@@ -124,7 +119,7 @@ const SideNavigation = ({ activePage }) => {
       }
     }
 
-    if (['my-models','my-wallets','my-skills','my-capabilities','my-properties','nft-property-explorer'].includes(id)) {
+    if (['my-models','my-wallets','my-skills','my-capabilities','my-properties','my-badges','nft-property-explorer'].includes(id)) {
       return handleNavigation(id);
     }
 

@@ -1,0 +1,66 @@
+{{/* metrics_panel.gohtml — standalone template for public DVE metrics sidebar. */}}
+{{ define "metrics_panel" }}
+<div class="metrics-panel">
+    <h3>DVE Metrics</h3>
+    <div class="metric-card">
+        <div class="metric-value">{{ .Metrics.TotalValidations }}</div>
+        <div class="metric-label">Total Validations</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ printf "%.1f" .Metrics.SuccessRate }}%</div>
+        <div class="metric-label">Success Rate</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{{ printf "%.2f" .Metrics.AverageScore }}</div>
+        <div class="metric-label">Average Score</div>
+    </div>
+
+    <div class="metric-separator"></div>
+
+    <h4>DVE Status</h4>
+    <div class="status-row">
+        <span class="status-indicator {{ .Status }}"></span>
+        <span class="status-text">{{ .Status }}</span>
+    </div>
+    <div class="metric-row">
+        <span class="label">URI</span>
+        <span class="value mono">{{ .FullURI }}</span>
+    </div>
+    <div class="metric-row">
+        <span class="label">Wallet</span>
+        <span class="value mono small">{{ truncateWallet .WalletAddr }}</span>
+    </div>
+    <div class="metric-row">
+        <span class="label">Registered</span>
+        <span class="value">{{ formatTime .CreatedAt }}</span>
+    </div>
+</div>
+
+<style>
+    .metrics-panel { background: #fff; border-radius: 8px; padding: 20px; }
+    .metrics-panel h3 { font-size: 16px; color: #333; margin-bottom: 20px; }
+    .metrics-panel h4 { font-size: 14px; color: #666; margin: 20px 0 12px; }
+    .metric-card { 
+        background: #f8f9fa; 
+        border-radius: 8px; 
+        padding: 16px; 
+        margin-bottom: 12px; 
+        text-align: center;
+    }
+    .metric-value { font-size: 28px; font-weight: 700; color: #333; }
+    .metric-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+    .metric-separator { border-top: 1px solid #e0e0e0; margin: 16px 0; }
+    .status-row { display: flex; align-items: center; margin-bottom: 12px; }
+    .status-indicator {
+        width: 10px; height: 10px; border-radius: 50%; margin-right: 8px;
+    }
+    .status-indicator.active { background: #4CAF50; }
+    .status-indicator.inactive { background: #9E9E9E; }
+    .status-indicator.error { background: #f44336; }
+    .status-text { font-size: 14px; font-weight: 600; color: #333; text-transform: capitalize; }
+    .metric-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .metric-row .label { font-size: 13px; color: #888; }
+    .metric-row .value { font-size: 13px; color: #333; }
+    .small { font-size: 11px; }
+</style>
+{{ end }}

@@ -50,3 +50,9 @@ test_mode: true
 skip_service_initialization:
   - cde
   - dns
+
+# Validation Chain Configuration (disabled by default in tests)
+validation_chain:
+  enabled: false
+  binary_path: ""
+  port: 9290

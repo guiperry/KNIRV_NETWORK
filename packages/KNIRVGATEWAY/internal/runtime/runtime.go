@@ -14,24 +14,20 @@ import (
 
 // Runtime manages the runtime directory for extracted files
 type Runtime struct {
-	BaseDir                string
-	WebGUIStaticDir        string
-	GraphChainExplorerDir  string
-	KnirvChainPortalDir    string
-	OracleBinaryPath       string
-	logger                 *zap.Logger
-	mu                     sync.Mutex
-	extracted              bool
+	BaseDir             string
+	WebGUIStaticDir     string
+	OracleBinaryPath    string
+	logger              *zap.Logger
+	mu                  sync.Mutex
+	extracted           bool
 
 	// Embedded assets
-	webGUIFS              embed.FS
-	graphChainExplorerFS  embed.FS
-	knirvChainPortalFS    embed.FS
-	oracleBinary          []byte
+	webGUIFS     embed.FS
+	oracleBinary []byte
 }
 
 // NewRuntime creates a new runtime manager with embedded assets
-func NewRuntime(logger *zap.Logger, webGUIFS embed.FS, graphChainExplorerFS embed.FS, knirvChainPortalFS embed.FS, oracleBinary []byte) (*Runtime, error) {
+func NewRuntime(logger *zap.Logger, webGUIFS embed.FS, oracleBinary []byte) (*Runtime, error) {
 	var baseDir string
 
 	if appDataDir := os.Getenv("KNIRV_APP_DATA_DIR"); appDataDir != "" {
@@ -51,16 +47,12 @@ func NewRuntime(logger *zap.Logger, webGUIFS embed.FS, graphChainExplorerFS embe
 	}
 
 	r := &Runtime{
-		BaseDir:               baseDir,
-		WebGUIStaticDir:       filepath.Join(baseDir, "webgui-static"),
-		GraphChainExplorerDir: filepath.Join(baseDir, "graphchain-explorer"),
-		KnirvChainPortalDir:   filepath.Join(baseDir, "knirvchain-portal"),
-		OracleBinaryPath:      filepath.Join(baseDir, "knirv-oracle"),
-		logger:                logger,
-		webGUIFS:              webGUIFS,
-		graphChainExplorerFS:  graphChainExplorerFS,
-		knirvChainPortalFS:    knirvChainPortalFS,
-		oracleBinary:          oracleBinary,
+		BaseDir:          baseDir,
+		WebGUIStaticDir:  filepath.Join(baseDir, "webgui-static"),
+		OracleBinaryPath: filepath.Join(baseDir, "knirv-oracle"),
+		logger:           logger,
+		webGUIFS:         webGUIFS,
+		oracleBinary:     oracleBinary,
 	}
 
 	return r, nil
@@ -94,25 +86,11 @@ func (r *Runtime) Setup() error {
 		return fmt.Errorf("failed to extract WebGUI static files: %w", err)
 	}
 
-	// Extract GraphChain Explorer static files (static HTML site).
-	r.logger.Info("Extracting embedded GraphChain Explorer...")
-	if err := r.extractGraphChainExplorer(r.GraphChainExplorerDir); err != nil {
-		return fmt.Errorf("failed to extract GraphChain Explorer: %w", err)
-	}
-
-	// Extract KNIRVChain Portal (Vite React site — looks for dist/ first).
-	r.logger.Info("Extracting embedded KNIRVChain Portal...")
-	if err := r.extractKnirvChainPortal(r.KnirvChainPortalDir); err != nil {
-		return fmt.Errorf("failed to extract KNIRVChain Portal: %w", err)
-	}
-
 	// Oracle binary extraction removed (oracle moved to KNIRVSERVER).
 
 	r.extracted = true
 	r.logger.Info("Runtime setup complete",
 		zap.String("webguiStaticDir", r.WebGUIStaticDir),
-		zap.String("graphChainExplorerDir", r.GraphChainExplorerDir),
-		zap.String("knirvChainPortalDir", r.KnirvChainPortalDir),
 	)
 
 	return nil
@@ -167,100 +145,6 @@ func (r *Runtime) extractWebGUI(targetDir string) error {
 	return nil
 }
 
-// extractGraphChainExplorer extracts the static graphchain-explorer site.
-func (r *Runtime) extractGraphChainExplorer(targetDir string) error {
-	r.logger.Info("Extracting GraphChain Explorer", zap.String("target", targetDir))
-
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
-		return fmt.Errorf("failed to create target directory: %w", err)
-	}
-
-	err := fs.WalkDir(r.graphChainExplorerFS, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		relPath, _ := filepath.Rel(".", path)
-		if relPath == "." {
-			return nil
-		}
-		if !strings.HasPrefix(relPath, "graphchain-explorer") {
-			if d.IsDir() {
-				return fs.SkipDir
-			}
-			return nil
-		}
-		staticPath := strings.TrimPrefix(relPath, "graphchain-explorer/")
-		if d.IsDir() {
-			return os.MkdirAll(filepath.Join(targetDir, staticPath), 0755)
-		}
-		data, err := fs.ReadFile(r.graphChainExplorerFS, path)
-		if err != nil {
-			return fmt.Errorf("failed to read %s: %w", path, err)
-		}
-		return os.WriteFile(filepath.Join(targetDir, staticPath), data, 0644)
-	})
-	if err != nil {
-		return err
-	}
-
-	if isEmpty, _ := isDirEmpty(targetDir); isEmpty {
-		r.logger.Info("No GraphChain Explorer files found, creating basic page")
-		return r.createFallbackHTML(targetDir, "KNIRV GraphChain Explorer", "GraphChain Explorer — static HTML site")
-	}
-	return nil
-}
-
-// extractKnirvChainPortal extracts the built Vite React output (dist/ only).
-// The embed directive now targets knirvchain-portal/dist exclusively.
-func (r *Runtime) extractKnirvChainPortal(targetDir string) error {
-	r.logger.Info("Extracting KNIRVChain Portal (dist)", zap.String("target", targetDir))
-
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
-		return fmt.Errorf("failed to create target directory: %w", err)
-	}
-
-	err := fs.WalkDir(r.knirvChainPortalFS, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		relPath, _ := filepath.Rel(".", path)
-		if relPath == "." {
-			return nil
-		}
-		if !strings.HasPrefix(relPath, "knirvchain-portal") {
-			if d.IsDir() {
-				return fs.SkipDir
-			}
-			return nil
-		}
-		// Strip "knirvchain-portal/dist/" prefix to get the clean file path.
-		base := strings.TrimPrefix(relPath, "knirvchain-portal/dist/")
-		if base == "" || base == relPath {
-			if d.IsDir() {
-				return nil // descend into knirvchain-portal/dist/
-			}
-			return nil
-		}
-		if d.IsDir() {
-			return os.MkdirAll(filepath.Join(targetDir, base), 0755)
-		}
-		data, err := fs.ReadFile(r.knirvChainPortalFS, path)
-		if err != nil {
-			return fmt.Errorf("failed to read %s: %w", path, err)
-		}
-		return os.WriteFile(filepath.Join(targetDir, base), data, 0644)
-	})
-	if err != nil {
-		return err
-	}
-
-	if isEmpty, _ := isDirEmpty(targetDir); isEmpty {
-		r.logger.Info("No KNIRVChain Portal dist files found — run 'npm run build' in knirvchain-portal/ first")
-		return r.createFallbackHTML(targetDir, "KNIRVChain Portal", "KNIRVChain Portal — build with: cd knirvchain-portal && npm install && npm run build")
-	}
-	return nil
-}
-
 // createFallbackHTML writes a minimal index.html when no built files are available.
 func (r *Runtime) createFallbackHTML(dir, title, subtitle string) error {
 	html := fmt.Sprintf(`<!DOCTYPE html>
@@ -301,16 +185,6 @@ func (r *Runtime) Cleanup() error {
 // GetWebGUIStaticPath returns the path to the webgui static files
 func (r *Runtime) GetWebGUIStaticPath() string {
 	return r.WebGUIStaticDir
-}
-
-// GetGraphChainExplorerPath returns the path to the graphchain-explorer static files
-func (r *Runtime) GetGraphChainExplorerPath() string {
-	return r.GraphChainExplorerDir
-}
-
-// GetKnirvChainPortalPath returns the path to the knirvchain-portal static files
-func (r *Runtime) GetKnirvChainPortalPath() string {
-	return r.KnirvChainPortalDir
 }
 
 // GetOracleBinaryPath returns the path to the extracted knirv-oracle binary

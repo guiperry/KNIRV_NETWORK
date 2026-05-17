@@ -739,6 +739,10 @@ func (app *ServerApp) setupRoutes() error {
 	if err := registerGatewayPrefix("/turn", "/api/turn"); err != nil {
 		return fmt.Errorf("failed to configure /turn proxy: %w", err)
 	}
+	// DVE public verification pages — proxied through the gateway to the backend socket
+	if err := registerGatewayPrefix("/dve", "/dve"); err != nil {
+		return fmt.Errorf("failed to configure /dve proxy: %w", err)
+	}
 
 	// Network-monitor API routes — proxy to the gateway which has Go handler
 	// equivalents for the Next.js API routes excluded from the static export.
@@ -772,7 +776,13 @@ func (app *ServerApp) setupRoutes() error {
 				}
 				status, err := app.upd.CheckUpdateAvailable()
 				if err != nil {
-					c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
+					log.Printf("[updater] check failed: %v", err)
+					c.JSON(http.StatusOK, gin.H{
+						"available":       false,
+						"current_version": GitCommit,
+						"latest_tag":      "",
+						"checked_at":      time.Now().UTC().Format(time.RFC3339),
+					})
 					return
 				}
 				c.JSON(http.StatusOK, status)

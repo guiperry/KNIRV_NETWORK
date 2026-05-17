@@ -12,7 +12,6 @@ const Footer = () => {
         main_site: 'https://knirv.com',
         products: 'https://knirv.network/products',
         documentation: 'https://knirv.network/docs',
-        graphchain_explorer: 'https://knirv.network/graphchain-explorer',
         nanda_ans: 'https://knirv.network/nanda-ans',
         developer_portal: 'https://knirv.network/developer-portal',
         agentify: 'https://knirv.network/agentify'

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -63,7 +64,13 @@ func (m *Manager) Start(ctx context.Context) error {
 		return nil
 	}
 	if m.config.BinaryPath == "" {
-		return fmt.Errorf("validation chain binary path not configured")
+		// Try common binary locations
+		if path, err := m.resolveBinary(); err == nil {
+			m.config.BinaryPath = path
+			m.logger.Info("Validation chain binary resolved", zap.String("path", path))
+		} else {
+			return fmt.Errorf("validation chain binary path not configured and auto-resolution failed: %w", err)
+		}
 	}
 
 	m.cmd = exec.Command(m.config.BinaryPath)
@@ -97,6 +104,27 @@ func (m *Manager) Start(ctx context.Context) error {
 
 	m.running = true
 	return nil
+}
+
+// resolveBinary checks standard paths for the validation chain binary.
+// Used as a fallback when config.BinaryPath is empty.
+func (m *Manager) resolveBinary() (string, error) {
+	candidates := []string{
+		"/var/lib/knirvserver/bin/validationchain",
+		"/usr/local/bin/validationchain",
+		"/usr/bin/validationchain",
+	}
+	// Check if there's a locally-built binary relative to the process
+	if exe, err := os.Executable(); err == nil {
+		localPath := filepath.Join(filepath.Dir(exe), "validationchain")
+		candidates = append([]string{localPath}, candidates...)
+	}
+	for _, path := range candidates {
+		if info, err := os.Stat(path); err == nil && !info.IsDir() {
+			return path, nil
+		}
+	}
+	return "", fmt.Errorf("validation chain binary not found at any standard location")
 }
 
 func (m *Manager) waitForHealth(ctx context.Context) error {

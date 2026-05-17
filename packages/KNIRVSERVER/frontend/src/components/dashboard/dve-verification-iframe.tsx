@@ -5,43 +5,11 @@ import { X, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-// Port scanning — same logic as webgui-iframe-modal
-let cachedGatewayPort: string | null = null;
-
-async function checkHealth(port: string): Promise<boolean> {
-  try {
-    const resp = await fetch(`http://localhost:${port}/health`, {
-      method: 'HEAD',
-      signal: AbortSignal.timeout(2000),
-    });
-    return resp.ok || resp.type === 'opaque';
-  } catch {
-    return false;
-  }
-}
-
-async function scanForGateway(): Promise<string> {
-  if (cachedGatewayPort) return cachedGatewayPort;
-  const envPort = process.env.NEXT_PUBLIC_GATEWAY_PORT;
-  if (envPort) {
-    if (await checkHealth(envPort)) { cachedGatewayPort = envPort; return cachedGatewayPort; }
-  }
-  const currentPort = String(window.location.port || '80');
-  if (await checkHealth(currentPort)) { cachedGatewayPort = currentPort; return cachedGatewayPort; }
-  for (const port of ['8081', '8080', '8090']) {
-    if (await checkHealth(port)) { cachedGatewayPort = port; return cachedGatewayPort; }
-  }
-  return '8090';
-}
-
-function buildDvePageUrl(port: string, dveId: string): string {
-  // When frontend dev server is on a different port, go through the gateway
-  // which proxies /dve/{dveId}* to the backend Unix socket.
-  const currentPort = String(window.location.port || '80');
-  if (port === currentPort || port === '8090') {
-    return `http://localhost:${port}/dve/${encodeURIComponent(dveId)}`;
-  }
-  return `http://localhost:${port}/dve/${encodeURIComponent(dveId)}`;
+// Build the DVE page URL using the current origin so the request routes
+// through KNIRVSERVER's /dve/* proxy → gateway → backend socket.
+// No port scanning needed — the frontend and the /dve/ proxy share the same origin.
+function buildDvePageUrl(dveId: string): string {
+  return `/dve/${encodeURIComponent(dveId)}`;
 }
 
 interface DVEVerificationIframeProps {
@@ -52,31 +20,21 @@ interface DVEVerificationIframeProps {
 }
 
 export function DVEVerificationIframe({ isOpen, onClose, dveId, dveName }: DVEVerificationIframeProps) {
-  const [dvePageUrl, setDvePageUrl] = useState<string>('');
+  const dvePageUrl = dveId ? buildDvePageUrl(dveId) : '';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (isOpen && !dvePageUrl) {
-      scanForGateway().then(port => {
-        setDvePageUrl(buildDvePageUrl(port, dveId));
-        setLoading(false);
-      });
+    if (isOpen) {
+      setLoading(true);
+      setError(false);
     }
   }, [isOpen, dveId]);
 
-  const retryConnection = useCallback(async () => {
+  const retryConnection = useCallback(() => {
     setError(false);
     setLoading(true);
-    try {
-      const port = await scanForGateway();
-      setDvePageUrl(buildDvePageUrl(port, dveId));
-      setLoading(false);
-    } catch {
-      setLoading(false);
-      setError(true);
-    }
-  }, [dveId]);
+  }, []);
 
   const handleIframeMessage = useCallback((event: MessageEvent) => {
     // Listen for validation result messages from the DVE verification page

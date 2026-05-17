@@ -84,7 +84,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean portal-deps portal-build graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean shell-build shell-deps shell-clean agent-build agent-deps agent-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean shell-build shell-deps shell-clean agent-build agent-deps agent-clean build-full
 
 # Default target
 all: proto frontend backend binary
@@ -429,22 +429,12 @@ quick-deploy: binary deploy-application ## Quick application deployment
 
 # KNIRVGATEWAY (Embedded) targets
 WEBGUI_SRC_DIR := $(GATEWAY_SRC_DIR)/internal/embedded/webgui
-PORTAL_SRC_DIR := $(GATEWAY_SRC_DIR)/internal/embedded/knirvchain-portal
 
 webgui-deps: ## Install KNIRVGATEWAY WebGUI Node.js dependencies
 	@echo "$(BLUE)Installing KNIRVGATEWAY WebGUI dependencies...$(NC)"
 	cd $(WEBGUI_SRC_DIR) && $(NPM_CMD) install --legacy-peer-deps
 
-portal-deps: ## Install KNIRVChain Portal Node.js dependencies
-	@echo "$(BLUE)Installing KNIRVChain Portal dependencies...$(NC)"
-	cd $(PORTAL_SRC_DIR) && $(NPM_CMD) install
-
-portal-build: portal-deps ## Build KNIRVChain Portal Vite static export
-	@echo "$(BLUE)Building KNIRVChain Portal static export...$(NC)"
-	cd $(PORTAL_SRC_DIR) && $(NPM_CMD) run build
-	@echo "$(GREEN)KNIRVChain Portal build completed$(NC)"
-
-webgui-build: webgui-deps portal-build ## Build KNIRVGATEWAY WebGUI static export (builds Portal first)
+webgui-build: webgui-deps ## Build KNIRVGATEWAY WebGUI static export
 	@echo "$(BLUE)Building KNIRVGATEWAY WebGUI static export...$(NC)"
 	cd $(WEBGUI_SRC_DIR) && $(NPM_CMD) run build
 	@echo "$(GREEN)KNIRVGATEWAY WebGUI build completed$(NC)"
@@ -465,7 +455,6 @@ gateway-clean: ## Clean KNIRVGATEWAY build artifacts
 	@echo "$(BLUE)Cleaning KNIRVGATEWAY artifacts...$(NC)"
 	rm -f $(GATEWAY_PKG_BIN)
 	rm -rf $(WEBGUI_SRC_DIR)/out $(WEBGUI_SRC_DIR)/.next
-	rm -rf $(PORTAL_SRC_DIR)/dist $(PORTAL_SRC_DIR)/node_modules
 	cd $(GATEWAY_SRC_DIR) && go clean
 
 # KNIRVGRAPH (Embedded) targets
@@ -580,12 +569,17 @@ validation-chain-deps: ## Install validation_chain dependencies
 	@echo "$(BLUE)Installing validation_chain dependencies...$(NC)"
 	cd $(VALIDATION_CHAIN_DIR) && cargo fetch
 
-validation-chain-build: validation-chain-deps ## Build validation_chain static library for CGo FFI
-	@echo "$(BLUE)Building validation_chain static library...$(NC)"
+validation-chain-build: validation-chain-deps ## Build validation_chain static library for CGo FFI and standalone HTTP binary
+	@echo "$(BLUE)Building validation_chain static library and standalone binary...$(NC)"
 	@mkdir -p $(EMBEDDED_BUILD_DIR)/validation_chain
-	cd $(VALIDATION_CHAIN_DIR) && cargo build --release --lib
+	cd $(VALIDATION_CHAIN_DIR) && cargo build --release
 	cp $(VALIDATION_CHAIN_DIR)/target/release/libvalidationchain.a $(EMBEDDED_BUILD_DIR)/validation_chain/
-	@echo "$(GREEN)validation_chain built: $(EMBEDDED_BUILD_DIR)/validation_chain/libvalidationchain.a$(NC)"
+	cp $(VALIDATION_CHAIN_DIR)/target/release/validationchain $(EMBEDDED_BUILD_DIR)/validation_chain/validationchain
+	@echo "$(GREEN)validation_chain library built: $(EMBEDDED_BUILD_DIR)/validation_chain/libvalidationchain.a$(NC)"
+	@echo "$(GREEN)validation_chain binary built: $(EMBEDDED_BUILD_DIR)/validation_chain/validationchain$(NC)"
+	@mkdir -p $(ROOT_DIR)/pkg/embedded/validationchain/bin
+	@gzip -cf $(VALIDATION_CHAIN_DIR)/target/release/validationchain > $(ROOT_DIR)/pkg/embedded/validationchain/bin/validationchain
+	@echo "$(GREEN)validation_chain binary embedded: $(ROOT_DIR)/pkg/embedded/validationchain/bin/validationchain$(NC)"
 
 # Internal Embedded Programs - GraphRAG (Rust)
 graphrag-deps: ## Install graphrag-rs dependencies

@@ -2,6 +2,9 @@
 
 pub mod nrn_token; //If you want to make the token library accessible outside.
 
+#[cfg(test)]
+mod tests;
+
 // ---------------------------------------------------------------------------
 // C FFI exports for CGo integration
 // ---------------------------------------------------------------------------

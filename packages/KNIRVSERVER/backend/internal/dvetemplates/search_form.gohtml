@@ -1,0 +1,81 @@
+{{/* search_form.gohtml — standalone template for DVE validation search form. */}}
+{{ define "search_form" }}
+<div class="search-bar">
+    <form method="get" action="/dve/{{ .DVEID }}/search" class="search-form">
+        <div class="search-input-group">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M7.333 12.667A5.333 5.333 0 107.333 2a5.333 5.333 0 000 10.667zM14 14l-2.9-2.9" 
+                    stroke="#999" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <input 
+                type="text" 
+                name="q" 
+                placeholder="Search validations by ID, type, or tag..." 
+                value="{{ .Query }}"
+                class="search-input"
+            >
+            <button type="submit" class="search-button">Search</button>
+        </div>
+    </form>
+    <div class="search-filters">
+        <label class="filter-label">Quick filters:</label>
+        <a href="/dve/{{ .DVEID }}/validation?status=success" class="filter-chip success">Success</a>
+        <a href="/dve/{{ .DVEID }}/validation?status=failure" class="filter-chip failure">Failure</a>
+        <a href="/dve/{{ .DVEID }}/validation?status=pending" class="filter-chip pending">Pending</a>
+    </div>
+</div>
+
+<style>
+    .search-bar { margin: 20px 0; }
+    .search-input-group {
+        display: flex;
+        align-items: center;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        transition: border-color 0.2s;
+    }
+    .search-input-group:focus-within {
+        border-color: #2196F3;
+        box-shadow: 0 0 0 2px rgba(33,150,243,0.1);
+    }
+    .search-icon { margin-left: 12px; flex-shrink: 0; }
+    .search-input {
+        flex: 1;
+        padding: 10px 12px;
+        border: none;
+        font-size: 14px;
+        outline: none;
+        background: transparent;
+    }
+    .search-button {
+        padding: 10px 20px;
+        background: #2196F3;
+        color: #fff;
+        border: none;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .search-button:hover { background: #1976D2; }
+    .search-filters { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
+    .filter-label { font-size: 12px; color: #888; }
+    .filter-chip {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid;
+        transition: all 0.2s;
+    }
+    .filter-chip.success { color: #1e7e34; border-color: #1e7e34; }
+    .filter-chip.success:hover { background: #e6f4ea; }
+    .filter-chip.failure { color: #c62828; border-color: #c62828; }
+    .filter-chip.failure:hover { background: #fce8e6; }
+    .filter-chip.pending { color: #1565c0; border-color: #1565c0; }
+    .filter-chip.pending:hover { background: #e3f2fd; }
+</style>
+{{ end }}

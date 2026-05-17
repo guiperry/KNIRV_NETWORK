@@ -63,8 +63,10 @@ import (
 	"backend_server/internal/services/vault"
 	"backend_server/internal/services/websocket"
 	"backend_server/internal/services/workflow"
+	badgeSvc "backend_server/internal/services/badge"
 	"backend_server/internal/storage/mdstorage"
 	"backend_server/internal/storage/pqc"
+	"backend_server/internal/dvetemplates"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
 
@@ -1937,7 +1939,7 @@ func (s *Server) setupRoutes() {
 	} else {
 		dveProxyHandler, dveProxyErr := web.NewDVEProxyHandler(
 			dveRegistry,
-			"backend/templates/dve",
+			dvetemplates.FS,
 			s.logger,
 			web.WithDVEManager(s.dveManager),
 			web.WithValidationCore(s.validationCore),
@@ -2038,6 +2040,16 @@ func (s *Server) setupRoutes() {
 	if s.knirvshellService != nil {
 		web.NewKNIRVSHELLHandlers(s.knirvshellService).RegisterRoutes(s.router, authMiddleware)
 		log.Println("KNIRVSHELL routes configured")
+	}
+
+	// Register Badge Template routes
+	badgeTemplateRegistry, err := badgeSvc.NewBadgeTemplateRegistry(badgeSvc.DefaultTemplatePath())
+	if err != nil {
+		log.Printf("[badge-templates] warning: could not initialize registry: %v", err)
+	} else {
+		badgeTemplateHandlers := web.NewBadgeTemplateHandlers(badgeTemplateRegistry)
+		badgeTemplateHandlers.RegisterRoutes(s.router)
+		log.Println("[badge-templates] registry + routes configured")
 	}
 
 	// Register Hasher HTTP bridge routes (Phase 7)

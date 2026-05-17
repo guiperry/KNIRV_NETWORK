@@ -254,7 +254,17 @@ func verifyChecksum(path, expected string) error {
 // CheckUpdateAvailable returns whether a newer release exists on GitHub without
 // downloading or applying it. Results are cached for one poll interval (minimum
 // 10 minutes) to avoid hammering the GitHub API.
+// Returns a not-available status (no error) when the updater is disabled or
+// no GitHub repo is configured.
 func (u *Updater) CheckUpdateAvailable() (*UpdateStatus, error) {
+	if !u.cfg.Enabled || u.cfg.GitHubRepo == "" {
+		return &UpdateStatus{
+			Available:      false,
+			CurrentVersion: u.cfg.CurrentCommit,
+			CheckedAt:      time.Now().UTC().Format(time.RFC3339),
+		}, nil
+	}
+
 	u.mu.RLock()
 	if u.cachedStatus != nil && time.Now().Before(u.cacheExpiry) {
 		s := *u.cachedStatus

@@ -184,6 +184,14 @@ fn record_key(id: &str) -> String {
     format!("record:{}", id)
 }
 
+fn dve_uri_key(dve_id: &str) -> String {
+    format!("dve_uri:{}", dve_id)
+}
+
+fn dve_wallet_key(wallet: &str) -> String {
+    format!("dve_wallet:{}", wallet)
+}
+
 async fn save_record(db: &Mutex<Db>, record: &ValidationRecord) -> Result<(), String> {
     let database = db.lock().await;
     let key = record_key(&record.id);
@@ -544,6 +552,110 @@ async fn get_records(
     Ok(HttpResponse::Ok().json(records))
 }
 
+// --- DVE URI handlers ---
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct DVEURIRecord {
+    dve_id: String,
+    full_uri: String,
+    wallet_address: String,
+    created_at: i64,
+    tx_hash: String,
+}
+
+#[post("/dve_uri/submit")]
+async fn dve_uri_submit(
+    state: web::Data<Arc<SharedState>>,
+    request: web::Json<DVEURIRecord>,
+) -> Result<impl Responder, Error> {
+    let req = request.into_inner();
+    let tx_hash = bytes_to_hex(&Sha256::digest(
+        format!("{}:{}:{}:{}", req.dve_id, req.full_uri, req.wallet_address, req.created_at).as_bytes(),
+    ));
+
+    let record = DVEURIRecord {
+        tx_hash: tx_hash.clone(),
+        ..req
+    };
+
+    let value = serde_json::to_vec(&record).map_err(|_| {
+        actix_web::error::ErrorInternalServerError("Failed to serialize DVE URI record")
+    })?;
+
+    {
+        let db = state.sled_db.lock().await;
+        db.insert(dve_uri_key(&record.dve_id), value.as_slice())
+            .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB insert error: {}", e)))?;
+        // Also index by wallet
+        let wallet_key = dve_wallet_key(&record.wallet_address);
+        let mut wallet_ids: Vec<String> = db
+            .get(&wallet_key)
+            .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB read error: {}", e)))?
+            .map(|v| serde_json::from_slice::<Vec<String>>(&v).unwrap_or_default())
+            .unwrap_or_default();
+        wallet_ids.push(record.dve_id.clone());
+        let wallet_value = serde_json::to_vec(&wallet_ids)
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to serialize wallet index"))?;
+        db.insert(wallet_key, wallet_value.as_slice())
+            .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB wallet index error: {}", e)))?;
+    }
+
+    Ok(HttpResponse::Created().json(serde_json::json!({
+        "record": record,
+        "transaction_hash": tx_hash,
+    })))
+}
+
+#[get("/dve_uri/{dve_id}")]
+async fn dve_uri_get(
+    state: web::Data<Arc<SharedState>>,
+    path: web::Path<String>,
+) -> Result<impl Responder, Error> {
+    let dve_id = path.into_inner();
+    let db = state.sled_db.lock().await;
+    match db
+        .get(dve_uri_key(&dve_id))
+        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {}", e)))?
+    {
+        Some(bytes) => {
+            let record: DVEURIRecord = serde_json::from_slice(&bytes)
+                .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to deserialize DVE URI record"))?;
+            Ok(HttpResponse::Ok().json(record))
+        }
+        None => Ok(HttpResponse::NotFound().json(serde_json::json!({
+            "message": "DVE URI not found"
+        }))),
+    }
+}
+
+#[get("/dve_uri/by_wallet/{wallet}")]
+async fn dve_uri_by_wallet(
+    state: web::Data<Arc<SharedState>>,
+    path: web::Path<String>,
+) -> Result<impl Responder, Error> {
+    let wallet = path.into_inner();
+    let db = state.sled_db.lock().await;
+    let dve_ids: Vec<String> = db
+        .get(dve_wallet_key(&wallet))
+        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {}", e)))?
+        .map(|v| serde_json::from_slice::<Vec<String>>(&v).unwrap_or_default())
+        .unwrap_or_default();
+
+    let mut records = Vec::new();
+    for id in &dve_ids {
+        if let Some(bytes) = db
+            .get(dve_uri_key(id))
+            .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {}", e)))?
+        {
+            if let Ok(record) = serde_json::from_slice::<DVEURIRecord>(&bytes) {
+                records.push(record);
+            }
+        }
+    }
+
+    Ok(HttpResponse::Ok().json(records))
+}
+
 // Handler to create a new wallet (private key + address)
 #[get("/wallets/new")]
 async fn new_wallet() -> Result<impl Responder, Error> {
@@ -864,6 +976,9 @@ async fn main() -> std::io::Result<()> {
             .service(nrn_transfer)
             .service(nrn_balance)
             .service(nrn_info)
+            .service(dve_uri_submit)
+            .service(dve_uri_get)
+            .service(dve_uri_by_wallet)
     })
     .bind(rpc_endpoint)?
     .run()

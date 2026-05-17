@@ -88,6 +88,9 @@ func TestNewServer(t *testing.T) {
 	assert.NotNil(t, server.containerOrchestrator)
 	assert.NotNil(t, server.sessionManager)
 	assert.NotNil(t, server.endpointRegistry)
+	// Validation chain should be nil when not enabled in config
+	assert.Nil(t, server.validationChainManager)
+	assert.Nil(t, server.validationChainClient)
 	assert.NotNil(t, server.ctx)
 	assert.NotNil(t, server.cancel)
 	assert.False(t, server.running)
