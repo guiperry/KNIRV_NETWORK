@@ -1,9 +1,11 @@
 {
   "cli_version": "0.5.5",
   "checkpoint_id": "29d8c8cc293e",
+  "session_id": "3aad58ed-b5f2-404f-a40c-ec038177a946",
   "strategy": "manual-commit",
+  "created_at": "2026-05-17T15:05:28.321297528Z",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 1,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
     "packages/KNIRVGATEWAY/internal/embedded/graphchain-explorer/css/graphchain.css",
@@ -21,25 +23,38 @@
     "packages/KNIRVSERVER/updater/updater.go",
     "packages/KNIRVSERVER/updater/updater_test.go"
   ],
-  "sessions": [
-    {
-      "metadata": "/29/d8c8cc293e/0/metadata.json",
-      "transcript": "/29/d8c8cc293e/0/full.jsonl",
-      "content_hash": "/29/d8c8cc293e/0/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/29/d8c8cc293e/1/metadata.json",
-      "transcript": "/29/d8c8cc293e/1/full.jsonl",
-      "content_hash": "/29/d8c8cc293e/1/content_hash.txt",
-      "prompt": ""
-    }
-  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "ccfc9b8f7b95",
   "token_usage": {
-    "input_tokens": 14,
-    "cache_creation_tokens": 127546,
-    "cache_read_tokens": 1003250,
-    "output_tokens": 3645,
-    "api_call_count": 11
-  }
+    "input_tokens": 3,
+    "cache_creation_tokens": 14521,
+    "cache_read_tokens": 13624,
+    "output_tokens": 12,
+    "api_call_count": 1
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-17T15:05:28.309684644Z",
+    "agent_lines": 2067,
+    "agent_removed": 2298,
+    "human_added": 6559,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 8626,
+    "total_lines_changed": 21461,
+    "agent_percentage": 20.339219980429615,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
 }
