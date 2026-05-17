@@ -1,11 +1,12 @@
 {
   "cli_version": "0.5.5",
   "checkpoint_id": "29d8c8cc293e",
+  "session_id": "4e065d96-4983-446f-8a54-21ab85b78407",
   "strategy": "manual-commit",
+  "created_at": "2026-05-17T15:05:29.741453196Z",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 1,
   "files_touched": [
-    "CALIBER_LEARNINGS.md",
     "packages/KNIRVGATEWAY/internal/embedded/graphchain-explorer/css/graphchain.css",
     "packages/KNIRVGATEWAY/internal/embedded/graphchain-explorer/index.html",
     "packages/KNIRVGATEWAY/internal/embedded/graphchain-explorer/js/graphchain-api.js",
@@ -14,38 +15,44 @@
     "packages/KNIRVGATEWAY/internal/embedded/knirvchain-portal/src/context/GraphChainContext.tsx",
     "packages/KNIRVGATEWAY/internal/embedded/knirvchain-portal/src/pages/Dashboard.tsx",
     "packages/KNIRVGATEWAY/internal/embedded/knirvchain-portal/src/services/api.ts",
-    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/graph-explorer.js",
     "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/graph-explorer.module.css",
     "packages/KNIRVGATEWAY/internal/embedded/webgui/src/services/graphchain-api.js",
     "packages/KNIRVSERVER/main.go",
     "packages/KNIRVSERVER/updater/updater.go",
     "packages/KNIRVSERVER/updater/updater_test.go"
   ],
-  "sessions": [
-    {
-      "metadata": "/29/d8c8cc293e/0/metadata.json",
-      "transcript": "/29/d8c8cc293e/0/full.jsonl",
-      "content_hash": "/29/d8c8cc293e/0/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/29/d8c8cc293e/1/metadata.json",
-      "transcript": "/29/d8c8cc293e/1/full.jsonl",
-      "content_hash": "/29/d8c8cc293e/1/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/29/d8c8cc293e/2/metadata.json",
-      "transcript": "/29/d8c8cc293e/2/full.jsonl",
-      "content_hash": "/29/d8c8cc293e/2/content_hash.txt",
-      "prompt": ""
-    }
-  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "5d2a41ad73b5",
   "token_usage": {
-    "input_tokens": 19,
-    "cache_creation_tokens": 199901,
-    "cache_read_tokens": 1184921,
-    "output_tokens": 8875,
-    "api_call_count": 14
-  }
+    "input_tokens": 5,
+    "cache_creation_tokens": 72355,
+    "cache_read_tokens": 181671,
+    "output_tokens": 5230,
+    "api_call_count": 3
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-17T15:05:29.713485134Z",
+    "agent_lines": 1181,
+    "agent_removed": 2159,
+    "human_added": 7442,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 8623,
+    "total_lines_changed": 21458,
+    "agent_percentage": 15.565290334607141,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
 }
