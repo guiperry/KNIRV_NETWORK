@@ -10,7 +10,7 @@ import { useFabricManagement } from '@/hooks/use-fabric-management';
 import { Button } from '@/components/ui/button';
 import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 import { InnerAgentTerminal } from './inner-agent-terminal';
-import { ToolPickerModal } from './tool-picker-modal';
+import { useInnerAgent } from '@/hooks/use-inner-agent';
 
 interface InnerSession {
   sessionId: string;
@@ -40,7 +40,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const agentProcessingRef = useRef(false);
   const [activeTab, setActiveTab] = useState<'supervisor' | string>('supervisor');
   const [innerSessions, setInnerSessions] = useState<InnerSession[]>([]);
-  const [showToolPicker, setShowToolPicker] = useState(false);
+  const { spawnSession } = useInnerAgent(nodeId);
 
   const updateConnectionModeRef = (mode: 'knirvshell' | 'knirvagent' | 'ssh' | 'local') => {
     connectionModeRef.current = mode;
@@ -482,11 +482,18 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
             </button>
           ))}
 
-          {/* Spawn new session */}
+          {/* Spawn new terminal session */}
           <button
-            onClick={() => setShowToolPicker(true)}
+            onClick={async () => {
+              const sessionId = await spawnSession('shell');
+              if (sessionId) {
+                const label = `Terminal ${innerSessions.length + 1}`;
+                setInnerSessions(prev => [...prev, { sessionId, toolName: label }]);
+                setActiveTab(sessionId);
+              }
+            }}
             className="flex items-center gap-1 px-3 py-1.5 text-[11px] text-slate-500 hover:text-purple-300 hover:bg-slate-900/50 transition-colors whitespace-nowrap"
-            title="Spawn inner agent"
+            title="New terminal"
           >
             <Plus className="w-3 h-3" />
           </button>
@@ -543,16 +550,6 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
           <span className="text-[9px] font-mono text-slate-600">AES-256-GCM</span>
         </div>
 
-        {/* Tool picker modal */}
-        <ToolPickerModal
-          isOpen={showToolPicker}
-          onClose={() => setShowToolPicker(false)}
-          dveId={nodeId}
-          onSpawned={(sessionId, toolName) => {
-            setInnerSessions(prev => [...prev, { sessionId, toolName }]);
-            setActiveTab(sessionId);
-          }}
-        />
       </div>
     </div>
   );

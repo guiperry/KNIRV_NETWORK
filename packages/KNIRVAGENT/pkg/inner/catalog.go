@@ -18,6 +18,9 @@ func (t *Tool) IsInstalled() bool {
 }
 
 func (t *Tool) Install(workdir string) error {
+	if len(t.InstallCmd) == 0 {
+		return nil
+	}
 	cmd := exec.Command(t.InstallCmd[0], t.InstallCmd[1:]...)
 	cmd.Dir = workdir
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
@@ -50,6 +53,7 @@ func (c *ToolCatalog) All() []Tool {
 
 func DefaultCatalog() *ToolCatalog {
 	return &ToolCatalog{tools: map[string]*Tool{
+		"shell":      {Name: "shell", Binary: "bash", DefaultArgs: []string{"-i"}, InstallCmd: []string{}},
 		"claude":     {Name: "claude", Binary: "claude", DefaultArgs: []string{"--no-auto-update"}, InstallCmd: []string{"npm", "install", "-g", "@anthropic-ai/claude-code"}},
 		"aider":      {Name: "aider", Binary: "aider", InstallCmd: []string{"pip", "install", "aider-chat"}},
 		"codex":      {Name: "codex", Binary: "codex", InstallCmd: []string{"npm", "install", "-g", "@openai/codex"}},
