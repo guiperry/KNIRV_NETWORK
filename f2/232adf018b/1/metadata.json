@@ -1,0 +1,53 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "f2232adf018b",
+  "session_id": "3a3ce718-0cb3-4a6b-bca1-c9a4b4d7e118",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-18T17:39:04.545633785Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/SideNavigation.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/contexts/RoleContext.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/dve-list.js",
+    "packages/KNIRVSERVER/backend/internal/services/dvemanager/hasher_grpc_server.go",
+    "packages/KNIRVSERVER/frontend/src/components/conditional-hud-layout.tsx"
+  ],
+  "agent": "Gemini CLI",
+  "model": "gemini-3-flash-preview",
+  "turn_id": "fe0b18654085",
+  "initial_attribution": {
+    "calculated_at": "2026-05-18T17:39:04.506739712Z",
+    "agent_lines": 14,
+    "agent_removed": 21,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 1,
+    "total_committed": 14,
+    "total_lines_changed": 36,
+    "agent_percentage": 97.22222222222221,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 400,
+      "user_lines_removed": 1,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/backend/internal/services/dvemanager/hasher_grpc_server.go": 107,
+        "packages/KNIRVSERVER/frontend/src/components/conditional-hud-layout.tsx": 1
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVSERVER/frontend/src/components/conditional-hud-layout.tsx": 1
+      }
+    }
+  ]
+}

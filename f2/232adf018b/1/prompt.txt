@@ -1,0 +1,16 @@
+Can you investigate why we are getting the following error when trying to start the training pipeline in the KNIRVSERVER: 
+
+6 PM
+info
+Starting headless mode with socket: /var/lib/knirvserver/sockets/hasher.sock (perm: 0660)
+12:46:36 PM
+info
+2026/05/18 12:46:36 Headless server listening on unix:///var/lib/knirvserver/sockets/hasher.sock
+12:46:36 PM
+info
+Started on port 8088
+12:46:37 PM
+error
+2026/05/18 12:46:37 Pipeline error: data-connector failed: signal: broken pipe
+
+Propose a fix
