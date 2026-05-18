@@ -25,6 +25,10 @@ import (
 
 var timeNow = time.Now
 
+func getTimestamp() string {
+	return timeNow().UTC().Format("15:04:05")
+}
+
 type DVEPageData struct {
 	DVEID      string
 	FullURI    string
@@ -87,6 +91,8 @@ func NewDVEProxyHandler(registry *services.DVEURIRegistry, tmplFS fs.FS, logger 
 		"truncateWallet": truncateWallet,
 		"formatTime":     formatTime,
 		"safeHTML":       func(s string) template.HTML { return template.HTML(s) },
+		"slicestr":       func(s string, start, end int) string { if start > len(s) { return "" }; if end > len(s) { end = len(s) }; return s[start:end] },
+		"GetTimestamp":   getTimestamp,
 	}
 	tmpl, err := template.New("public_page.gohtml").Funcs(funcMap).ParseFS(tmplFS, "*.gohtml")
 	if err != nil {
@@ -113,13 +119,35 @@ func (h *DVEProxyHandler) RegisterRoutes(router interface {
 	router.HandleFunc("/api/dve/{dveId}", h.handleGetDVE)
 }
 
+// resolveDVE looks up a DVE first in the URI registry (fast path), then falls
+// back to dveManager.GetNode so the page works even when the registry is empty.
+func (h *DVEProxyHandler) resolveDVE(dveID string) (*services.DVEURI, error) {
+	if dve, err := h.uriRegistry.GetByDVEID(dveID); err == nil {
+		return dve, nil
+	}
+	if h.dveManager == nil {
+		return nil, fmt.Errorf("DVE not found: %s", dveID)
+	}
+	node, err := h.dveManager.GetNode(dveID)
+	if err != nil {
+		return nil, fmt.Errorf("DVE not found: %s", dveID)
+	}
+	return &services.DVEURI{
+		ID:        node.ID,
+		DVEID:     node.ID,
+		FullURI:   fmt.Sprintf("knirv://%s", node.ID),
+		Status:    node.Status,
+		CreatedAt: node.CreatedAt.Unix(),
+	}, nil
+}
+
 func (h *DVEProxyHandler) handleDVEPublicPage(w http.ResponseWriter, r *http.Request) {
 	dveID := extractURLParam(r, "dveId")
 	if dveID == "" {
 		http.Error(w, "DVE ID required", http.StatusBadRequest)
 		return
 	}
-	dve, err := h.uriRegistry.GetByDVEID(dveID)
+	dve, err := h.resolveDVE(dveID)
 	if err != nil {
 		h.logger.Warn("DVE not found", zap.String("dve_id", dveID), zap.Error(err))
 		http.Error(w, "DVE not found", http.StatusNotFound)
@@ -134,7 +162,7 @@ func (h *DVEProxyHandler) handleValidationRecords(w http.ResponseWriter, r *http
 		http.Error(w, "DVE ID required", http.StatusBadRequest)
 		return
 	}
-	dve, err := h.uriRegistry.GetByDVEID(dveID)
+	dve, err := h.resolveDVE(dveID)
 	if err != nil {
 		http.Error(w, "DVE not found", http.StatusNotFound)
 		return
@@ -163,7 +191,7 @@ func (h *DVEProxyHandler) handleDVEMetrics(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "DVE ID required", http.StatusBadRequest)
 		return
 	}
-	dve, err := h.uriRegistry.GetByDVEID(dveID)
+	dve, err := h.resolveDVE(dveID)
 	if err != nil {
 		http.Error(w, "DVE not found", http.StatusNotFound)
 		return
@@ -174,7 +202,7 @@ func (h *DVEProxyHandler) handleDVEMetrics(w http.ResponseWriter, r *http.Reques
 func (h *DVEProxyHandler) handleSearch(w http.ResponseWriter, r *http.Request) {
 	dveID := extractURLParam(r, "dveId")
 	query := r.URL.Query().Get("q")
-	dve, err := h.uriRegistry.GetByDVEID(dveID)
+	dve, err := h.resolveDVE(dveID)
 	if err != nil {
 		http.Error(w, "DVE not found", http.StatusNotFound)
 		return

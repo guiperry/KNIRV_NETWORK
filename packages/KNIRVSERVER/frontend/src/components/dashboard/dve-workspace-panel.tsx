@@ -358,15 +358,17 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
             isSidebarOpen={showConnections}
             isMonitorOpen={showMonitor}
           />
-
-          {/* DVE Verification Iframe - public DVE page via gateway */}
-          <DVEVerificationIframe
-            isOpen={showVerification}
-            onClose={() => setShowVerification(false)}
-            dveId={actualNodeId}
-            dveName={actualNodeName}
-          />
         </div>
+
+        {/* DVE Verification Iframe - public DVE page via gateway */}
+        {/* Rendered here, OUTSIDE overflow-hidden, so its fixed inset-0
+            header bar (Back / X buttons) is not clipped by the content area. */}
+        <DVEVerificationIframe
+          isOpen={showVerification}
+          onClose={() => setShowVerification(false)}
+          dveId={actualNodeId}
+          dveName={actualNodeName}
+        />
       </div>
     </div>,
     document.body

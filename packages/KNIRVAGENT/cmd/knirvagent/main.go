@@ -859,7 +859,13 @@ func serverCmd() {
 
 	// Register inner agent hierarchy routes (spawn/install/sessions/tools/
 	// input/stream/log for child AI agents such as Claude Code, Aider, Codex).
-	innerMgr := inner.NewInnerAgentManager(dveID, filepath.Dir(socketPath))
+	// Workspace lives at <data_root>/workspaces/<dveID>/, NOT inside the sockets dir.
+	// filepath.Dir(socketPath) is the sockets dir; go one level up to get the data root.
+	innerWorkspace := filepath.Join(filepath.Dir(filepath.Dir(socketPath)), "workspaces", dveID)
+	if err := os.MkdirAll(innerWorkspace, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Warning: could not create workspace %s: %v\n", innerWorkspace, err)
+	}
+	innerMgr := inner.NewInnerAgentManager(dveID, innerWorkspace)
 	server.RegisterInnerRoutes(mux, innerMgr)
 
 	fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Listening on %s\n", socketPath)

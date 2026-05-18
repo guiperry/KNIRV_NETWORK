@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Brain, Cpu, Zap, Activity, TrendingUp, Clock, AlertCircle, CheckCircle, Heart, Eye, EyeOff, Play, Square, Loader2, GitBranch, BookOpen, Bug, Server, Bot, Shield, Database, BarChart3, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Brain, Cpu, Zap, Activity, TrendingUp, Clock, AlertCircle, CheckCircle, Heart, Eye, EyeOff, Play, Square, Loader2, GitBranch, BookOpen, Bug, Server, Bot, Shield, Database, BarChart3, RefreshCw, Terminal } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,9 +58,20 @@ function generateTask(forceCategory?: BackgroundTask['category']): BackgroundTas
 
 // ── Sub-component: KNIRVHASHER training controls ──────────────────────
 
+interface TrainingLog {
+  id: string;
+  timestamp: string;
+  level: string;
+  message: string;
+}
+
 function HasherTrainingControls() {
   const [hasherStatus, setHasherStatus] = useState<'loading' | 'available' | 'unavailable'>('loading');
   const [trainingActive, setTrainingActive] = useState(false);
+  const [trainingLogs, setTrainingLogs] = useState<TrainingLog[]>([]);
+  const sseRef = useRef<EventSource | null>(null);
+  const consoleRef = useRef<HTMLDivElement>(null);
+  const logIdRef = useRef(0);
 
   const fetchHasherStatus = async () => {
     try {
@@ -81,6 +92,65 @@ function HasherTrainingControls() {
     const interval = setInterval(fetchHasherStatus, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // Connect to KNIRVHASHER SSE log stream when training starts
+  useEffect(() => {
+    if (!trainingActive) {
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+      }
+      return;
+    }
+
+    // Close any previous connection
+    if (sseRef.current) {
+      sseRef.current.close();
+    }
+
+    const es = new EventSource(`${API_BASE_URL}/api/logs/module/knirvhasher`);
+    sseRef.current = es;
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const ts = data.timestamp
+          ? new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+          : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setTrainingLogs(prev => {
+          const next = [...prev, {
+            id: `log-${logIdRef.current++}`,
+            timestamp: ts,
+            level: data.level || 'info',
+            message: data.message || '',
+          }];
+          return next.slice(-200); // keep last 200 lines
+        });
+      } catch {
+        // ignore malformed events
+      }
+    };
+
+    es.onerror = () => {
+      // SSE will auto-reconnect; just track we're connected
+    };
+
+    return () => {
+      es.close();
+      sseRef.current = null;
+    };
+  }, [trainingActive]);
+
+  // Auto-scroll console to bottom when new logs arrive
+  useEffect(() => {
+    if (consoleRef.current && trainingLogs.length > 0) {
+      consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+    }
+  }, [trainingLogs]);
+
+  const clearTrainingLogs = () => {
+    setTrainingLogs([]);
+  };
 
   const handleStartTraining = async () => {
     setTrainingActive(true);
@@ -110,6 +180,24 @@ function HasherTrainingControls() {
   const statusColor = hasherStatus === 'available' ? 'bg-green-500' : 'bg-red-500';
   const statusLabel = hasherStatus === 'available' ? 'Available' : 'Unavailable';
 
+  const levelColor = (level: string) => {
+    switch (level) {
+      case 'error': return 'text-red-400';
+      case 'warn': return 'text-yellow-400';
+      case 'debug': return 'text-slate-500';
+      default: return 'text-cyan-300';
+    }
+  };
+
+  const levelBadgeColor = (level: string) => {
+    switch (level) {
+      case 'error': return 'bg-red-900/50 text-red-300';
+      case 'warn': return 'bg-yellow-900/50 text-yellow-300';
+      case 'debug': return 'bg-slate-800 text-slate-400';
+      default: return 'bg-cyan-900/50 text-cyan-300';
+    }
+  };
+
   return (
     <div className="border-t border-indigo-900/30 pt-3 mt-3">
       <div className="flex items-center gap-2 mb-2">
@@ -120,30 +208,80 @@ function HasherTrainingControls() {
           <span className="text-xs text-slate-400">{hasherStatus === 'loading' ? 'Checking...' : statusLabel}</span>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={trainingActive ? 'secondary' : 'default'}
-          size="sm"
-          onClick={handleStartTraining}
-          disabled={hasherStatus !== 'available' || trainingActive}
-        >
-          <Play className="w-4 h-4 mr-2" />
-          Start Training
-        </Button>
-        <Button
-          variant={trainingActive ? 'destructive' : 'secondary'}
-          size="sm"
-          onClick={handleStopTraining}
-          disabled={!trainingActive}
-        >
-          <Square className="w-4 h-4 mr-2" />
-          Stop Training
-        </Button>
-        <Button variant="outline" size="sm" onClick={fetchHasherStatus}>
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh Status
-        </Button>
+
+      {/* Console + Controls in flex row */}
+      <div className="flex gap-3">
+        {/* Left: Training Log Console */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1.5">
+              <Terminal className="w-3 h-3 text-slate-500" />
+              <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                {trainingActive ? 'Training Logs (knirvhasher)' : 'Training Console'}
+              </span>
+            </div>
+            {trainingLogs.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-600">{trainingLogs.length} lines</span>
+                <button
+                  onClick={clearTrainingLogs}
+                  className="text-[10px] text-slate-600 hover:text-slate-300 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+          <div
+            ref={consoleRef}
+            className="h-36 overflow-y-auto rounded-md border border-border/20 bg-black/50 p-2 font-mono text-[11px] leading-relaxed"
+          >
+            {trainingLogs.length === 0 && (
+              <div className="text-slate-600 text-center py-8">
+                {trainingActive
+                  ? 'Waiting for training logs...'
+                  : 'Start training to view pipeline logs'}
+              </div>
+            )}
+            {trainingLogs.map((log) => (
+              <div key={log.id} className="flex items-start gap-1.5 py-px hover:bg-white/[0.02]">
+                <span className="text-slate-600 shrink-0 w-16 text-right">{log.timestamp}</span>
+                <span className={`shrink-0 px-1 rounded text-[9px] font-semibold uppercase ${levelBadgeColor(log.level)}`}>
+                  {log.level}
+                </span>
+                <span className={`${levelColor(log.level)} break-all`}>{log.message}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Training Controls */}
+        <div className="shrink-0 flex flex-col gap-2 justify-start pt-6">
+          <Button
+            variant={trainingActive ? 'secondary' : 'default'}
+            size="sm"
+            onClick={handleStartTraining}
+            disabled={hasherStatus !== 'available' || trainingActive}
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Start Training
+          </Button>
+          <Button
+            variant={trainingActive ? 'destructive' : 'secondary'}
+            size="sm"
+            onClick={handleStopTraining}
+            disabled={!trainingActive}
+          >
+            <Square className="w-4 h-4 mr-2" />
+            Stop Training
+          </Button>
+          <Button variant="outline" size="sm" onClick={fetchHasherStatus}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh Status
+          </Button>
+        </div>
       </div>
+
       {trainingActive && (
         <div className="flex items-center gap-2 mt-2 text-xs text-cyan-400">
           <Loader2 className="w-3 h-3 animate-spin" />

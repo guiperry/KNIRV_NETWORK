@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -25,18 +24,21 @@ type DVEInnerAgentWSHandler struct {
 }
 
 type innerWSConn struct {
-	dveID      string
-	conn       *websocket.Conn
-	send       chan []byte
-	socketPath string
-	lastSeen   time.Time
-	mu         sync.Mutex
+	dveID     string
+	sessionID string // from URL — default session for input/resize when msg.Session is empty
+	conn      *websocket.Conn
+	send      chan []byte
+	lastSeen  time.Time
+	mu        sync.Mutex
 }
 
+// innerWSMessage is sent from the browser to the backend.
 type innerWSMessage struct {
 	Type    string `json:"type"`
-	Session string `json:"session,omitempty"`
+	Session string `json:"session,omitempty"` // optional; URL sessionId is used when absent
 	Data    string `json:"data,omitempty"`
+	Cols    int    `json:"cols,omitempty"`
+	Rows    int    `json:"rows,omitempty"`
 }
 
 type innerWSResponse struct {
@@ -58,7 +60,6 @@ func (h *DVEInnerAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.
 		http.Error(w, "dveId required", http.StatusBadRequest)
 		return
 	}
-
 	sessionID := vars["sessionId"]
 
 	if h.agentManager == nil {
@@ -66,7 +67,7 @@ func (h *DVEInnerAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.
 		return
 	}
 
-	_, socketPath, err := h.agentManager.InnerAgentClient(dveID)
+	_, _, err := h.agentManager.InnerAgentClient(dveID)
 	if err != nil {
 		log.Printf("[DVE Inner Agent WS] No agent for DVE %s: %v", dveID, err)
 		http.Error(w, "no agent for DVE: "+err.Error(), http.StatusNotFound)
@@ -80,21 +81,21 @@ func (h *DVEInnerAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.
 	}
 
 	wsConn := &innerWSConn{
-		dveID:      dveID,
-		conn:       conn,
-		send:       make(chan []byte, 256),
-		socketPath: socketPath,
-		lastSeen:   time.Now(),
+		dveID:     dveID,
+		sessionID: sessionID,
+		conn:      conn,
+		send:      make(chan []byte, 256),
+		lastSeen:  time.Now(),
 	}
 
 	h.mu.Lock()
-	if existing, ok := h.active[dveID]; ok {
+	if existing, ok := h.active[dveID+"/"+sessionID]; ok {
 		existing.conn.Close()
 	}
-	h.active[dveID] = wsConn
+	h.active[dveID+"/"+sessionID] = wsConn
 	h.mu.Unlock()
 
-	log.Printf("[DVE Inner Agent WS] Connected: DVE=%s socket=%s session=%s", dveID, socketPath, sessionID)
+	log.Printf("[DVE Inner Agent WS] Connected: DVE=%s session=%s", dveID, sessionID)
 
 	if sessionID != "" {
 		go h.streamSession(wsConn, sessionID)
@@ -103,36 +104,34 @@ func (h *DVEInnerAgentWSHandler) HandleWebSocket(w http.ResponseWriter, r *http.
 	go h.readPump(wsConn)
 }
 
+// streamSession streams PTY output from the KNIRVAGENT to the WebSocket client.
+// Uses http.Client so Go's HTTP stack strips the response headers and handles
+// chunked transfer encoding — only the raw PTY bytes reach the browser.
 func (h *DVEInnerAgentWSHandler) streamSession(conn *innerWSConn, sessionID string) {
-	unixDialer := net.Dialer{Timeout: 5 * time.Second}
-	unixConn, err := unixDialer.Dial("unix", conn.socketPath)
+	client, _, err := h.agentManager.InnerAgentClient(conn.dveID)
 	if err != nil {
 		conn.send <- mustMarshal(innerWSResponse{Type: "error", Data: "cannot connect to agent: " + err.Error()})
 		return
 	}
-	defer unixConn.Close()
 
-	httpReq := "GET /api/inner/" + sessionID + "/stream HTTP/1.1\r\nHost: unix\r\n\r\n"
-	if _, err := unixConn.Write([]byte(httpReq)); err != nil {
+	resp, err := client.Get("http://unix/api/inner/" + sessionID + "/stream")
+	if err != nil {
 		conn.send <- mustMarshal(innerWSResponse{Type: "error", Data: "stream request failed: " + err.Error()})
 		return
 	}
+	defer resp.Body.Close()
 
 	buf := make([]byte, 4096)
 	for {
-		n, err := unixConn.Read(buf)
+		n, err := resp.Body.Read(buf)
 		if n > 0 {
-			// Skip HTTP headers on first read
-			data := buf[:n]
-			if len(data) > 0 {
-				conn.send <- mustMarshal(innerWSResponse{Type: "data", Data: string(data)})
-			}
+			conn.send <- mustMarshal(innerWSResponse{Type: "data", Data: string(buf[:n])})
 		}
 		if err != nil {
 			if err != io.EOF {
-				log.Printf("[DVE Inner Agent WS] Stream read error DVE=%s: %v", conn.dveID, err)
+				log.Printf("[DVE Inner Agent WS] Stream read error DVE=%s session=%s: %v", conn.dveID, sessionID, err)
 			}
-			conn.send <- mustMarshal(innerWSResponse{Type: "stream_end", Data: ""})
+			conn.send <- mustMarshal(innerWSResponse{Type: "stream_end"})
 			return
 		}
 	}
@@ -141,7 +140,7 @@ func (h *DVEInnerAgentWSHandler) streamSession(conn *innerWSConn, sessionID stri
 func (h *DVEInnerAgentWSHandler) readPump(conn *innerWSConn) {
 	defer func() {
 		h.mu.Lock()
-		delete(h.active, conn.dveID)
+		delete(h.active, conn.dveID+"/"+conn.sessionID)
 		h.mu.Unlock()
 		conn.conn.Close()
 	}()
@@ -171,17 +170,27 @@ func (h *DVEInnerAgentWSHandler) readPump(conn *innerWSConn) {
 			continue
 		}
 
+		// Use the URL session ID as default when the message doesn't include one.
+		targetSession := msg.Session
+		if targetSession == "" {
+			targetSession = conn.sessionID
+		}
+
 		switch msg.Type {
 		case "input":
-			if msg.Session == "" {
+			if targetSession == "" {
 				conn.send <- mustMarshal(innerWSResponse{Type: "error", Data: "session required"})
 				continue
 			}
-			go h.forwardInput(conn, msg.Session, msg.Data)
+			go h.forwardInput(conn, targetSession, msg.Data)
+		case "resize":
+			if targetSession != "" && (msg.Cols > 0 || msg.Rows > 0) {
+				go h.forwardResize(conn, targetSession, msg.Cols, msg.Rows)
+			}
 		case "ping":
 			conn.send <- mustMarshal(innerWSResponse{Type: "pong"})
 		default:
-			conn.send <- mustMarshal(innerWSResponse{Type: "error", Data: "unknown type: " + msg.Type})
+			log.Printf("[DVE Inner Agent WS] Ignoring unknown message type %q from DVE=%s", msg.Type, conn.dveID)
 		}
 	}
 }
@@ -197,6 +206,19 @@ func (h *DVEInnerAgentWSHandler) forwardInput(conn *innerWSConn, sessionID, inpu
 	resp, err := client.Post("http://unix/api/inner/"+sessionID+"/input", "application/json", bytes.NewReader(body))
 	if err != nil {
 		conn.send <- mustMarshal(innerWSResponse{Type: "error", Data: "input failed: " + err.Error()})
+		return
+	}
+	resp.Body.Close()
+}
+
+func (h *DVEInnerAgentWSHandler) forwardResize(conn *innerWSConn, sessionID string, cols, rows int) {
+	client, _, err := h.agentManager.InnerAgentClient(conn.dveID)
+	if err != nil {
+		return
+	}
+	body, _ := json.Marshal(map[string]int{"cols": cols, "rows": rows})
+	resp, err := client.Post("http://unix/api/inner/"+sessionID+"/resize", "application/json", bytes.NewReader(body))
+	if err != nil {
 		return
 	}
 	resp.Body.Close()
@@ -233,3 +255,4 @@ func (h *DVEInnerAgentWSHandler) RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/ws/dve/{dveId}/inner/stream/{sessionId}", h.HandleWebSocket)
 	r.HandleFunc("/ws/dve/{dveId}/inner", h.HandleWebSocket)
 }
+

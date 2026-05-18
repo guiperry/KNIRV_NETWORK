@@ -1,136 +1,899 @@
+{{ define "public_page.gohtml" }}{{ template "header" . }}{{ template "content" . }}{{ end }}
+
 {{ define "header" }}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DVE {{ .DVEID }} - Public Validation Page</title>
+    <title>DVE File Manager — {{ .DVEID }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        header { background: #fff; padding: 20px; border-bottom: 1px solid #e0e0e0; margin-bottom: 20px; }
-        h1 { font-size: 24px; color: #333; }
-        .badge { display: inline-block; background: #4CAF50; color: #fff; padding: 4px 12px; border-radius: 12px; font-size: 12px; margin-left: 10px; }
-        .content { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
-        .main-panel { background: #fff; padding: 20px; border-radius: 8px; }
-        .sidebar { background: #fff; padding: 20px; border-radius: 8px; }
-        @media (max-width: 768px) { .content { grid-template-columns: 1fr; } }
-        .validation-prompt { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
-        .validation-prompt h2 { font-size: 18px; margin-bottom: 8px; color: #333; }
-        .validation-prompt p { font-size: 14px; color: #666; margin-bottom: 16px; }
-        .wallet-section { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
-        .wallet-section button { background: #2196F3; color: #fff; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
-        .wallet-section button:hover { background: #1976D2; }
-        .wallet-section span { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; color: #4CAF50; }
-        .validation-input-section { margin: 12px 0; }
-        .validation-input-section textarea { width: 100%; min-height: 80px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 13px; margin: 8px 0; resize: vertical; }
-        .validation-input-section textarea:focus { outline: none; border-color: #2196F3; }
-        .validation-input-section button { background: #4CAF50; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; }
-        .validation-input-section button:hover { background: #388E3C; }
-        .validation-input-section button:disabled { background: #ccc; cursor: not-allowed; }
-        .validation-input-section button:disabled:hover { background: #ccc; }
-        .receipt { background: #e3f2fd; border: 1px solid #2196F3; border-radius: 8px; padding: 16px; margin-top: 12px; }
-        .receipt h3 { color: #1565c0; margin-bottom: 8px; font-size: 15px; }
-        .receipt p { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; margin: 4px 0; color: #333; word-break: break-all; }
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e17;
+            color: #e0e0ff;
+        }
+        .dve-file-manager {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background-color: #0a0e17;
+            color: #e0e0ff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        /* Header */
+        .header {
+            background: rgba(16, 24, 48, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(100, 130, 255, 0.2);
+            padding: 12px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .logo { display: flex; flex-direction: column; }
+        .logo h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #64b5f6, #9575cd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+        .subtitle {
+            font-size: 12px;
+            color: #a0a0d0;
+            margin-top: 2px;
+        }
+        .badge-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .badge-online { background: rgba(76,175,80,0.15); color: #81c784; border: 1px solid rgba(76,175,80,0.3); }
+        .badge-offline { background: rgba(244,67,54,0.15); color: #e57373; border: 1px solid rgba(244,67,54,0.3); }
+        .badge-active { background: rgba(100,130,255,0.15); color: #90caf9; border: 1px solid rgba(100,130,255,0.3); }
+        .badge-tee { background: rgba(156,39,176,0.15); color: #ce93d8; border: 1px solid rgba(156,39,176,0.3); }
+        .nav-links { display: flex; gap: 6px; }
+        .nav-links button {
+            background: rgba(30, 40, 70, 0.5);
+            border: 1px solid rgba(100, 130, 255, 0.3);
+            color: #b0b0ff;
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+        .nav-links button:hover {
+            background: rgba(40, 60, 100, 0.7);
+            border-color: rgba(120, 150, 255, 0.5);
+        }
+        .nav-links button.active {
+            background: rgba(60, 80, 170, 0.7);
+            border-color: rgba(140, 170, 255, 0.7);
+            color: white;
+        }
+        /* HUD buttons for iframe navigation */
+        .hud-buttons { display: flex; gap: 4px; }
+        .hud-btn {
+            background: rgba(60, 80, 170, 0.25);
+            border: 1px solid rgba(100, 130, 255, 0.25);
+            color: #b0b0ff;
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .hud-btn:hover {
+            background: rgba(80, 110, 220, 0.4);
+            border-color: rgba(140, 170, 255, 0.5);
+            color: white;
+        }
+        .hud-close:hover {
+            background: rgba(220, 60, 60, 0.3);
+            border-color: rgba(255, 100, 100, 0.4);
+            color: #ff6b6b;
+        }
+        .header-divider {
+            width: 1px;
+            height: 28px;
+            background: rgba(100, 130, 255, 0.2);
+            margin: 0 8px;
+        }
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            background: rgba(20, 30, 60, 0.7);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(100, 130, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .sidebar-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(100, 130, 255, 0.2);
+        }
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #d0d0ff;
+        }
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 15px;
+            border-bottom: 1px solid rgba(100, 130, 255, 0.1);
+        }
+        .list-header h4 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .count {
+            background: rgba(60, 80, 170, 0.3);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: #b0b0ff;
+        }
+        .object-list, .transaction-list {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+        .objects-container, .transactions-container, .records-container {
+            overflow-y: auto;
+            padding: 10px;
+            flex: 1;
+        }
+        .object-item {
+            background: rgba(30, 40, 80, 0.5);
+            border: 1px solid rgba(100, 130, 255, 0.2);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .object-item:hover {
+            background: rgba(40, 60, 120, 0.6);
+            border-color: rgba(120, 150, 255, 0.4);
+            transform: translateY(-1px);
+        }
+        .object-item.active {
+            background: rgba(60, 90, 200, 0.4);
+            border-color: rgba(140, 170, 255, 0.6);
+            box-shadow: 0 0 15px rgba(100, 130, 255, 0.3);
+        }
+        .object-name { font-weight: 500; display: block; margin-bottom: 3px; font-size: 13px; }
+        .object-type {
+            font-size: 11px;
+            color: #8080c0;
+            background: rgba(60, 80, 170, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .object-meta { font-size: 11px; color: #7070a0; margin-top: 3px; display: block; }
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 80px;
+            color: #6060a0;
+            font-style: italic;
+            font-size: 13px;
+        }
+        /* Upload / Validation Section */
+        .section {
+            padding: 12px 15px;
+            border-top: 1px solid rgba(100, 130, 255, 0.2);
+            background: rgba(25, 35, 70, 0.5);
+        }
+        .section h4 { margin: 0 0 8px 0; font-size: 14px; font-weight: 500; }
+        .section-form { display: flex; flex-direction: column; gap: 8px; }
+        .section-input {
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(100, 130, 255, 0.3);
+            background: rgba(20, 30, 60, 0.5);
+            color: #d0d0ff;
+            font-size: 13px;
+        }
+        .section-input::placeholder { color: #6060a0; }
+        .section-textarea {
+            padding: 7px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(100, 130, 255, 0.3);
+            background: rgba(20, 30, 60, 0.5);
+            color: #d0d0ff;
+            font-size: 13px;
+            resize: vertical;
+            min-height: 60px;
+        }
+        .section-textarea::placeholder { color: #6060a0; }
+        .section-btn {
+            padding: 8px;
+            border-radius: 6px;
+            border: none;
+            background: linear-gradient(135deg, #4a6bff, #2845e0);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+        .section-btn:hover {
+            background: linear-gradient(135deg, #5a7bff, #3855f0);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(40, 69, 224, 0.4);
+        }
+        .section-btn:disabled {
+            background: linear-gradient(135deg, #3a4a80, #2a3560);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.7;
+        }
+        .section-btn-success { background: linear-gradient(135deg, #4caf50, #388e3c); }
+        .section-btn-success:hover { background: linear-gradient(135deg, #66bb6a, #43a047); }
+        .wallet-addr {
+            font-family: monospace;
+            font-size: 11px;
+            color: #81c784;
+        }
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 12px;
+        }
+        .viewport-container {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            background: rgba(25, 35, 70, 0.5);
+            border: 1px solid rgba(100, 130, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .viewport-header {
+            padding: 10px 15px;
+            border-bottom: 1px solid rgba(100, 130, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .viewport-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+        .object-info { display: flex; gap: 8px; align-items: center; }
+        .selected-name { font-weight: 500; color: #b0b0ff; font-size: 13px; }
+        .selected-id { font-size: 11px; color: #8080c0; font-family: monospace; }
+        .viewport {
+            flex: 1;
+            background: #0c1020;
+            position: relative;
+            overflow: hidden;
+        }
+        .viewport canvas { display: block; width: 100%; height: 100%; }
+        .placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6060a0;
+            font-size: 14px;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .placeholder-icon { font-size: 40px; opacity: 0.3; }
+        /* Bottom Section */
+        .bottom-section {
+            flex: 1;
+            display: flex;
+            gap: 12px;
+            min-height: 160px;
+        }
+        .info-panel, .console-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(25, 35, 70, 0.5);
+            border: 1px solid rgba(100, 130, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .info-panel-header, .console-header {
+            padding: 8px 15px;
+            border-bottom: 1px solid rgba(100, 130, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .info-panel-header h3, .console-header h3 { margin: 0; font-size: 14px; font-weight: 600; }
+        .info-content {
+            flex: 1;
+            padding: 10px 15px;
+            overflow-y: auto;
+            font-size: 13px;
+        }
+        .info-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid rgba(100,130,255,0.05); }
+        .info-label { color: #8080c0; }
+        .info-value { color: #d0d0ff; font-family: monospace; font-size: 12px; }
+        .console {
+            flex: 1;
+            padding: 8px 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            background: rgba(10, 15, 30, 0.7);
+        }
+        .log-line {
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(100, 130, 255, 0.05);
+            color: #a0a0d0;
+        }
+        .log-line.log-info { color: #90caf9; }
+        .log-line.log-success { color: #81c784; }
+        .log-line.log-warn { color: #ffb74d; }
+        .log-line.log-error { color: #e57373; }
+        .clear-btn {
+            background: rgba(60, 80, 170, 0.3);
+            border: 1px solid rgba(100, 130, 255, 0.3);
+            color: #b0b0ff;
+            padding: 3px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .clear-btn:hover { background: rgba(70, 90, 180, 0.4); }
+        /* Validation Results */
+        .proof-receipt {
+            background: rgba(30, 60, 120, 0.4);
+            border: 1px solid rgba(100, 150, 255, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 8px;
+        }
+        .proof-receipt h4 { color: #90caf9; margin-bottom: 6px; font-size: 13px; }
+        .proof-receipt p { font-family: monospace; font-size: 11px; margin: 3px 0; color: #b0b0ff; word-break: break-all; }
+        /* Validation tab in sidebar */
+        .tab-content { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+        .tab-content.active { display: flex; }
+        /* Loading spinner */
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(100,130,255,0.3); border-top-color: #90caf9; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        /* DVE Metrics inline */
+        .metric-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 8px; }
+        .metric-mini { background: rgba(30,40,80,0.5); border: 1px solid rgba(100,130,255,0.15); border-radius: 6px; padding: 8px; text-align: center; }
+        .metric-mini-value { font-size: 18px; font-weight: 700; color: #d0d0ff; }
+        .metric-mini-label { font-size: 9px; color: #8080c0; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+        /* Records table in validation */
+        .records-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .records-table th { text-align: left; padding: 6px 8px; border-bottom: 1px solid rgba(100,130,255,0.15); font-size: 10px; text-transform: uppercase; color: #8080c0; letter-spacing: 0.5px; }
+        .records-table td { padding: 6px 8px; border-bottom: 1px solid rgba(100,130,255,0.05); }
+        .status-badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+        .status-badge.success { background: rgba(76,175,80,0.15); color: #81c784; }
+        .status-badge.failure { background: rgba(244,67,54,0.15); color: #e57373; }
+        .status-badge.pending { background: rgba(33,150,243,0.15); color: #90caf9; }
+        .status-badge.error { background: rgba(255,152,0,0.15); color: #ffb74d; }
+        .record-row:hover { background: rgba(40,60,120,0.3); }
+        .mono { font-family: monospace; font-size: 11px; color: #8080c0; }
+        .rec-title { font-weight: 500; }
+        /* Wallet section */
+        .connect-btn { background: rgba(76,175,80,0.2); border: 1px solid rgba(76,175,80,0.3); color: #81c784; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .connect-btn:hover { background: rgba(76,175,80,0.3); }
+        .connect-btn.connected { background: rgba(33,150,243,0.2); border-color: rgba(33,150,243,0.3); color: #90caf9; }
     </style>
 </head>
 <body>
 {{ end }}
 
 {{ define "content" }}
-<div class="container">
-    <header>
-        <h1>DVE: {{ .DVEID }} <span class="badge">{{ .Status }}</span></h1>
-    </header>
-
-    <!-- Public Validation Prompt -->
-    <div class="validation-prompt">
-        <h2>Public Validation</h2>
-        <p>Verify this DVE's integrity. Generate a signed, timestamped validation report for <strong>1 NRN</strong>.</p>
-
-        <div class="wallet-section">
-            <button id="connect-btn" onclick="connectWallet()">Connect Wallet</button>
-            <span id="wallet-address"></span>
+<div class="dve-file-manager" id="app">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="hud-buttons">
+                <button class="hud-btn" onclick="goBack()" title="Back to Workspace">&#8592;</button>
+                <button class="hud-btn hud-close" onclick="closeView()" title="Close">&#10005;</button>
+            </div>
+            <div class="header-divider"></div>
+            <div class="logo">
+                <h1>DVE File Manager</h1>
+                <span class="subtitle">Secure Enclave: {{ .DVEID }}</span>
+            </div>
+            <div class="badge-row">
+                <span class="badge badge-{{ if eq .Status "online" }}online{{ else }}offline{{ end }}">{{ .Status }}</span>
+                {{ if .TEEType }}<span class="badge badge-tee">{{ .TEEType }}</span>{{ end }}
+                <span class="badge badge-active">{{ .Metrics.TotalValidations }} validations</span>
+            </div>
         </div>
-
-        <div class="validation-input-section">
-            <textarea id="validation-input" placeholder="Optional: provide context or input for the validation..."></textarea>
-            <button id="validate-btn" onclick="initiateValidation()" disabled>
-                Initiate Validation &mdash; 1 NRN
-            </button>
+        <div class="nav-links">
+            <button class="active" data-tab="files" onclick="switchTab('files')">Files</button>
+            <button data-tab="validation" onclick="switchTab('validation')">Validation</button>
+            <button data-tab="console" onclick="switchTab('console')">Console</button>
         </div>
-
-        <div id="proof-result"></div>
     </div>
 
-    <div class="content">
-        <div class="main-panel">
-            {{ template "validation_records" . }}
-        </div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Sidebar -->
         <div class="sidebar">
-            {{ template "metrics_panel" . }}
+            <!-- Tab: Files -->
+            <div class="tab-content active" id="tab-files">
+                <div class="sidebar-header"><h3>DVE Objects / Files</h3></div>
+                <div class="object-list">
+                    <div class="list-header"><h4>Available Records</h4><span class="count" id="records-count">{{ len .Records }}</span></div>
+                    <div class="objects-container" id="records-list">
+                        {{ if .Records }}
+                            {{ range .Records }}
+                            <div class="object-item" onclick="selectRecord('{{ .ID }}', '{{ .Type }}', '{{ .Status }}', '{{ .Score }}', '{{ .ValidatorNodeID }}')">
+                                <span class="object-name">{{ .Type }}</span>
+                                <span class="object-type">{{ .Status }}</span>
+                                <span class="object-meta">{{ .CreatedAt }}</span>
+                            </div>
+                            {{ end }}
+                        {{ else }}
+                            <div class="empty-state">No record files available</div>
+                        {{ end }}
+                    </div>
+                </div>
+                <div class="section">
+                    <h4>DVE Details</h4>
+                    <div class="metric-grid">
+                        <div class="metric-mini"><div class="metric-mini-value">{{ .ReputationScore }}</div><div class="metric-mini-label">Score</div></div>
+                        <div class="metric-mini"><div class="metric-mini-value">{{ .Metrics.TotalValidations }}</div><div class="metric-mini-label">Validations</div></div>
+                        <div class="metric-mini"><div class="metric-mini-value">{{ printf "%.1f" .Metrics.SuccessRate }}%</div><div class="metric-mini-label">Success</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Validation -->
+            <div class="tab-content" id="tab-validation">
+                <div class="sidebar-header"><h3>Public Validation</h3></div>
+                <div class="objects-container" style="overflow-y:auto;">
+                    <div class="section" style="border:none;padding:10px;">
+                        <h4>Connect Wallet</h4>
+                        <p style="font-size:12px;color:#8080c0;margin-bottom:10px;">Verify DVE integrity &mdash; generate a signed validation report for <strong>1 NRN</strong></p>
+                        <div style="display:flex;align-items:center;gap:8px;margin:8px 0;">
+                            <button id="connect-btn" class="connect-btn" onclick="connectWallet()">Connect Wallet</button>
+                            <span id="wallet-address" class="wallet-addr"></span>
+                        </div>
+                        <div style="margin:12px 0;">
+                            <textarea id="validation-input" class="section-textarea" placeholder="Optional: context for validation..."></textarea>
+                        </div>
+                        <button id="validate-btn" class="section-btn" onclick="initiateValidation()" disabled>
+                            Initiate Validation &mdash; 1 NRN
+                        </button>
+                        <div id="proof-result" style="margin-top:8px;"></div>
+                    </div>
+                    <div class="section" style="border-top:1px solid rgba(100,130,255,0.2);padding:10px;">
+                        <h4>Validation Records</h4>
+                        <div style="overflow-y:auto;max-height:200px;">
+                            <table class="records-table">
+                                <thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Time</th></tr></thead>
+                                <tbody>
+                                {{ if .Records }}
+                                    {{ range .Records }}
+                                    <tr class="record-row"><td class="mono">{{ slicestr .ID 0 8 }}...</td><td class="rec-title">{{ .Type }}</td><td><span class="status-badge {{ .Status }}">{{ .Status }}</span></td><td class="mono">{{ slicestr .CreatedAt 0 10 }}</td></tr>
+                                    {{ end }}
+                                {{ else }}
+                                    <tr><td colspan="4" style="text-align:center;color:#6060a0;padding:20px;font-size:12px;">No validation records yet</td></tr>
+                                {{ end }}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Console -->
+            <div class="tab-content" id="tab-console">
+                <div class="sidebar-header">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <h3>Activity Log</h3>
+                        <button class="clear-btn" onclick="clearConsole()">Clear</button>
+                    </div>
+                </div>
+                <div class="console" id="console-sidebar" style="flex:1;">
+                    <div class="log-line" id="log-init">[{{ GetTimestamp }}] DVE File Manager initialized for {{ .DVEID }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Tab Content: Files -->
+            <div id="content-files" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+                <div class="viewport-container" style="flex:1;">
+                    <div class="viewport-header">
+                        <h3>3D Object Viewport</h3>
+                        <div class="object-info">
+                            <span class="selected-name" id="selected-name">No file selected</span>
+                            <span class="selected-id" id="selected-id"></span>
+                        </div>
+                    </div>
+                    <div class="viewport" id="viewport-container">
+                        <div class="placeholder" id="viewer-placeholder">
+                            <div class="placeholder-icon">📦</div>
+                            <span>Select a record or object to view in 3D</span>
+                        </div>
+                        <div id="three-container" style="width:100%;height:100%;display:none;"></div>
+                    </div>
+                </div>
+                <div class="bottom-section" style="min-height:120px;">
+                    <div class="info-panel">
+                        <div class="info-panel-header"><h3>Record Details</h3></div>
+                        <div class="info-content" id="record-details">
+                            <div style="text-align:center;color:#6060a0;font-size:12px;padding:20px;">
+                                Select a record from the sidebar to view details
+                            </div>
+                        </div>
+                    </div>
+                    <div class="console-container">
+                        <div class="console-header"><h3>Console</h3></div>
+                        <div class="console" id="console-main">
+                            <div class="log-line">[{{ GetTimestamp }}] DVE session ready</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Validation -->
+            <div id="content-validation" style="display:none;flex-direction:column;flex:1;overflow:hidden;padding:20px;">
+                <div style="background:rgba(25,35,70,0.5);border:1px solid rgba(100,130,255,0.2);border-radius:10px;padding:20px;flex:1;overflow-y:auto;">
+                    <h2 style="font-size:20px;margin-bottom:15px;background:linear-gradient(90deg,#64b5f6,#9575cd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Validation Report</h2>
+                    <p style="color:#a0a0d0;font-size:14px;margin-bottom:20px;">Generate a signed, timestamped integrity report for DVE <strong>{{ .DVEID }}</strong>.</p>
+                    <div id="validation-report-area">
+                        <div style="text-align:center;color:#6060a0;padding:40px;">
+                            <p>Connect your wallet and initiate validation from the sidebar to generate a report.</p>
+                            <p style="font-size:12px;margin-top:10px;">The report will include proof, session ID, and timestamp.</p>
+                        </div>
+                    </div>
+                    <div id="report-output" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Console (full) -->
+            <div id="content-console" style="display:none;flex-direction:column;flex:1;overflow:hidden;padding:12px;">
+                <div class="console-container" style="flex:1;">
+                    <div class="console-header">
+                        <h3>Full Console Log</h3>
+                        <button class="clear-btn" onclick="clearMainConsole()">Clear</button>
+                    </div>
+                    <div class="console" id="console-full" style="flex:1;"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-// Wallet connection and validation initiation for public DVE verification
+// ── HUD Navigation (iframe parent communication) ──
+function isInIframe() { try { return window.self !== window.top; } catch(e) { return true; } }
+function goBack() {
+    if (isInIframe()) {
+        window.parent.postMessage({ type: 'dve:navigate:back', dveId: '{{ .DVEID }}' }, '*');
+    } else {
+        window.history.back();
+    }
+}
+function closeView() {
+    if (isInIframe()) {
+        window.parent.postMessage({ type: 'dve:navigate:close', dveId: '{{ .DVEID }}' }, '*');
+    } else {
+        window.close();
+    }
+}
+
+// ── Tab Switching ──
+function switchTab(name) {
+    document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.nav-links button[data-tab="${name}"]`).classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById(`tab-${name}`).classList.add('active');
+    ['content-files','content-validation','content-console'].forEach(id => {
+        document.getElementById(id).style.display = id === `content-${name}` ? 'flex' : 'none';
+    });
+}
+
+// ── Console ──
+function log(containerId, msg, level = 'info') {
+    const ts = new Date().toLocaleTimeString();
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const line = document.createElement('div');
+    line.className = `log-line log-${level}`;
+    line.textContent = `[${ts}] ${msg}`;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+}
+function logBoth(msg, level = 'info') {
+    log('console-main', msg, level);
+    log('console-sidebar', msg, level);
+    const full = document.getElementById('console-full');
+    if (full) { const line = document.createElement('div'); line.className = `log-line log-${level}`; line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`; full.appendChild(line); full.scrollTop = full.scrollHeight; }
+}
+function clearConsole() { document.getElementById('console-sidebar').innerHTML = ''; log('console-sidebar', 'Console cleared', 'info'); }
+function clearMainConsole() { document.getElementById('console-full').innerHTML = ''; }
+
+// ── Three.js 3D Viewport ──
+let scene, camera, renderer, currentModel;
+let isViewerReady = false;
+
+function initViewer() {
+    const container = document.getElementById('three-container');
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const width = rect.width || container.clientWidth || 600;
+    const height = rect.height || container.clientHeight || 400;
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0c1020);
+
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(5, 5, 5);
+    camera.lookAt(0, 0, 0);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(5, 10, 7);
+    dirLight.castShadow = true;
+    scene.add(dirLight);
+
+    const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
+    fillLight.position.set(-5, 0, 5);
+    scene.add(fillLight);
+
+    // Grid helper
+    const gridHelper = new THREE.GridHelper(10, 20, 0x444488, 0x333366);
+    scene.add(gridHelper);
+
+    // Orbit controls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.autoRotate = false;
+    controls.target.set(0, 0, 0);
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+        const r = container.getBoundingClientRect();
+        const w = r.width || container.clientWidth;
+        const h = r.height || container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+    });
+
+    isViewerReady = true;
+    container.style.display = 'block';
+    document.getElementById('viewer-placeholder').style.display = 'none';
+    logBoth('3D viewport initialized', 'success');
+}
+
+// Load a sample 3D object (geometric shapes as placeholder)
+function loadSampleModel(type) {
+    if (!isViewerReady) initViewer();
+    const container = document.getElementById('three-container');
+    container.style.display = 'block';
+    document.getElementById('viewer-placeholder').style.display = 'none';
+
+    // Remove previous model
+    if (currentModel) { scene.remove(currentModel); currentModel = null; }
+
+    let geometry, material;
+    const group = new THREE.Group();
+
+    switch(type) {
+        case 'validation':
+            // Shield-like object
+            geometry = new THREE.CylinderGeometry(1.5, 1.8, 0.3, 32);
+            material = new THREE.MeshPhongMaterial({ color: 0x4caf50, emissive: 0x1b5e20, emissiveIntensity: 0.2, metalness: 0.3, roughness: 0.4 });
+            const shield = new THREE.Mesh(geometry, material);
+            shield.rotation.x = Math.PI / 2;
+            group.add(shield);
+            // Ring
+            const ringGeo = new THREE.TorusGeometry(1.8, 0.05, 16, 32);
+            const ringMat = new THREE.MeshPhongMaterial({ color: 0x64b5f6, emissive: 0x1a237e, emissiveIntensity: 0.3 });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = Math.PI / 2;
+            group.add(ring);
+            break;
+        case 'success':
+            // Star/diamond
+            geometry = new THREE.OctahedronGeometry(1.5, 0);
+            material = new THREE.MeshPhongMaterial({ color: 0x64b5f6, emissive: 0x1565c0, emissiveIntensity: 0.3, metalness: 0.5, roughness: 0.3 });
+            const star = new THREE.Mesh(geometry, material);
+            group.add(star);
+            // Glow ring
+            const glowGeo = new THREE.TorusGeometry(1.8, 0.03, 16, 32);
+            const glowMat = new THREE.MeshPhongMaterial({ color: 0x90caf9, transparent: true, opacity: 0.5 });
+            const glow = new THREE.Mesh(glowGeo, glowMat);
+            glow.rotation.x = Math.PI / 2;
+            group.add(glow);
+            break;
+        case 'error':
+            // Dodecahedron
+            geometry = new THREE.DodecahedronGeometry(1.3, 0);
+            material = new THREE.MeshPhongMaterial({ color: 0xe57373, emissive: 0xb71c1c, emissiveIntensity: 0.2, wireframe: false });
+            const dode = new THREE.Mesh(geometry, material);
+            group.add(dode);
+            break;
+        default:
+            // Default cube
+            geometry = new THREE.IcosahedronGeometry(1.2, 1);
+            material = new THREE.MeshPhongMaterial({ color: 0x90caf9, emissive: 0x1a237e, emissiveIntensity: 0.15, metalness: 0.4, roughness: 0.3 });
+            const ico = new THREE.Mesh(geometry, material);
+            group.add(ico);
+    }
+
+    scene.add(group);
+    currentModel = group;
+
+    // Auto-rotate
+    if (window.orbitControls) {
+        window.orbitControls.autoRotate = true;
+    }
+}
+
+// ── Record Selection ──
+function selectRecord(id, type, status, score, validator) {
+    document.querySelectorAll('.object-item').forEach(i => i.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+
+    document.getElementById('selected-name').textContent = type;
+    document.getElementById('selected-id').textContent = 'ID: ' + id.substring(0, 12) + '...';
+
+    const details = document.getElementById('record-details');
+    details.innerHTML = `
+        <div class="info-row"><span class="info-label">Record ID</span><span class="info-value">${id}</span></div>
+        <div class="info-row"><span class="info-label">Type</span><span class="info-value">${type}</span></div>
+        <div class="info-row"><span class="info-label">Status</span><span class="info-value" style="color:${status === 'success' ? '#81c784' : status === 'error' ? '#e57373' : '#ffb74d'}">${status}</span></div>
+        <div class="info-row"><span class="info-label">Score</span><span class="info-value">${score || '—'}</span></div>
+        <div class="info-row"><span class="info-label">Validator</span><span class="info-value">${validator || '—'}</span></div>
+    `;
+
+    loadSampleModel(status);
+    logBoth(`Selected: ${type} (${status})`, status === 'success' ? 'success' : status === 'error' ? 'error' : 'info');
+}
+
+// ── Wallet + Validation ──
 let connectedWallet = '';
-function truncateWallet(a) { if (!a||a.length<10) return a; return a.substring(0,6)+'...'+a.substring(a.length-4); }
+function truncateWallet(a) { if (!a || a.length < 10) return a; return a.substring(0,6) + '...' + a.substring(a.length-4); }
 async function connectWallet() {
-    if (!window.ethereum) { alert('Please install MetaMask to verify this DVE.'); return; }
+    if (!window.ethereum) { logBoth('MetaMask not detected — install MetaMask to validate', 'error'); alert('Please install MetaMask.'); return; }
     try {
-        const acc = await window.ethereum.request({method:'eth_requestAccounts'});
+        const acc = await window.ethereum.request({ method: 'eth_requestAccounts' });
         connectedWallet = acc[0];
         document.getElementById('wallet-address').textContent = truncateWallet(connectedWallet);
-        document.getElementById('connect-btn').textContent = 'Connected';
+        const btn = document.getElementById('connect-btn');
+        btn.textContent = 'Connected';
+        btn.classList.add('connected');
         document.getElementById('validate-btn').disabled = false;
-    } catch(e) { alert('Failed to connect wallet: '+e.message); }
+        logBoth(`Wallet connected: ${truncateWallet(connectedWallet)}`, 'success');
+    } catch(e) { logBoth('Wallet connection failed: ' + e.message, 'error'); }
 }
 async function initiateValidation() {
-    if (!connectedWallet||!window.ethereum) { alert('Connect wallet first.'); return; }
-    const btn=document.getElementById('validate-btn'), pr=document.getElementById('proof-result'),
-          input=document.getElementById('validation-input').value;
-    btn.disabled=true; btn.textContent='Processing...'; pr.innerHTML='<p style="color:#666;">Sending transaction...</p>';
+    if (!connectedWallet || !window.ethereum) { logBoth('Connect wallet first', 'warn'); return; }
+    const btn = document.getElementById('validate-btn');
+    const pr = document.getElementById('proof-result');
+    const input = document.getElementById('validation-input').value;
+    btn.disabled = true; btn.textContent = 'Processing...';
+    pr.innerHTML = '<p style="color:#8080c0;font-size:12px;"><span class="spinner"></span> Sending transaction...</p>';
+    logBoth('Initiating validation transaction...', 'info');
     try {
         const txHash = await window.ethereum.request({
-            method:'eth_sendTransaction',
-            params:[{to:'{{ .RewardPoolAddress }}',value:'0x'+(1n*10n**18n).toString(16),gas:'0x5208'}]
+            method: 'eth_sendTransaction',
+            params: [{ to: '{{ .RewardPoolAddress }}', value: '0x' + (1n * 10n**18n).toString(16), gas: '0x5208' }]
         });
-        pr.innerHTML='<p style="color:#666;">Tx sent. Waiting for backend...</p>';
-        const resp=await fetch('/dve/{{ .DVEID }}/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({signed_tx:txHash,wallet_address:connectedWallet,payload:input})});
-        if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error||'HTTP '+resp.status);}
-        const r=await resp.json();
-        pr.innerHTML='<div class="receipt"><h3>Validation Initiated</h3><p><strong>Session:</strong> '+(r.session_id||'')+'</p><p><strong>Proof:</strong> '+(r.proof||'generating...')+'</p><p><strong>Timestamp:</strong> '+(r.timestamp||new Date().toISOString())+'</p></div>';
-        window.parent.postMessage({type:'dve:validation:complete',dveId:'{{ .DVEID }}',sessionId:r.session_id,proof:r.proof,timestamp:r.timestamp},'*');
-    } catch(e) { pr.innerHTML='<p style="color:#f44336;font-size:13px;">Error: '+e.message+'</p>'; }
-    finally { btn.disabled=false; btn.textContent='Initiate Validation \u2014 1 NRN'; }
+        logBoth(`Transaction sent: ${txHash.substring(0,10)}...`, 'success');
+        pr.innerHTML = '<p style="color:#8080c0;font-size:12px;"><span class="spinner"></span> Backend processing...</p>';
+        const resp = await fetch('/dve/{{ .DVEID }}/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ signed_tx: txHash, wallet_address: connectedWallet, payload: input })
+        });
+        if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error || 'HTTP ' + resp.status); }
+        const r = await resp.json();
+        pr.innerHTML = `<div class="proof-receipt"><h4>✓ Validation Initiated</h4><p><strong>Session:</strong> ${r.session_id || ''}</p><p><strong>Proof:</strong> ${r.proof || 'generating...'}</p><p><strong>Timestamp:</strong> ${r.timestamp || new Date().toISOString()}</p></div>`;
+        // Show report in content area too
+        const reportArea = document.getElementById('validation-report-area');
+        if (reportArea) {
+            reportArea.style.display = 'none';
+            document.getElementById('report-output').style.display = 'block';
+            document.getElementById('report-output').innerHTML = `<div class="proof-receipt" style="margin-top:10px;"><h4>Validation Report</h4><p><strong>DVE ID:</strong> {{ .DVEID }}</p><p><strong>Session:</strong> ${r.session_id || ''}</p><p><strong>Proof:</strong> ${r.proof || ''}</p><p><strong>Timestamp:</strong> ${r.timestamp || ''}</p><p><strong>Status:</strong> ${r.status || 'pending'}</p></div>`;
+        }
+        logBoth('Validation initiated successfully', 'success');
+        window.parent.postMessage({ type: 'dve:validation:complete', dveId: '{{ .DVEID }}', sessionId: r.session_id, proof: r.proof, timestamp: r.timestamp }, '*');
+    } catch(e) {
+        pr.innerHTML = `<p style="color:#e57373;font-size:12px;">Error: ${e.message}</p>`;
+        logBoth('Validation failed: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false; btn.textContent = 'Initiate Validation — 1 NRN';
+    }
 }
-if(window.ethereum){window.ethereum.request({method:'eth_accounts'}).then(function(a){if(a.length>0){connectedWallet=a[0];document.getElementById('wallet-address').textContent=truncateWallet(connectedWallet);document.getElementById('connect-btn').textContent='Connected';document.getElementById('validate-btn').disabled=false;}}).catch(function(){});}
+// Auto-connect if wallet already authorized
+if (window.ethereum) {
+    window.ethereum.request({ method: 'eth_accounts' }).then(function(a) {
+        if (a.length > 0) {
+            connectedWallet = a[0];
+            document.getElementById('wallet-address').textContent = truncateWallet(connectedWallet);
+            document.getElementById('connect-btn').textContent = 'Connected';
+            document.getElementById('connect-btn').classList.add('connected');
+            document.getElementById('validate-btn').disabled = false;
+        }
+    }).catch(function(){});
+}
+
+// ── Load Three.js from CDN ──
+function loadThreeJS() {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+    script.onload = function() {
+        const orbitScript = document.createElement('script');
+        orbitScript.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
+        orbitScript.onload = function() {
+            logBoth('Three.js viewer loaded', 'success');
+        };
+        document.head.appendChild(orbitScript);
+    };
+    document.head.appendChild(script);
+}
+loadThreeJS();
+
+// ── Init ──
+logBoth('DVE File Manager ready for {{ .DVEID }}', 'success');
 </script>
-{{ end }}
-
-{{ define "validation_records" }}
-<h2>Validation Records</h2>
-{{ template "search_form" . }}
-<div id="validation-records">
-    <p>No validation records found.</p>
-</div>
-{{ end }}
-
-{{ define "search_form" }}
-<form method="get" action="/dve/{{ .DVEID }}/search" style="margin: 20px 0;">
-    <input type="text" name="q" placeholder="Search validations..." style="padding: 8px; width: 300px;">
-    <button type="submit" style="padding: 8px 16px;">Search</button>
-</form>
-{{ end }}
-
-{{ define "metrics_panel" }}
-<h3>Metrics</h3>
-<ul>
-    <li>Total Validations: {{ .Metrics.TotalValidations }}</li>
-    <li>Success Rate: {{ .Metrics.SuccessRate }}%</li>
-    <li>Average Score: {{ .Metrics.AverageScore }}</li>
-</ul>
+</body>
+</html>
 {{ end }}

@@ -121,12 +121,28 @@ func handleSessionRouter(mgr *inner.InnerAgentManager) http.HandlerFunc {
 			mgr.Terminate(sessionID)
 			w.WriteHeader(http.StatusNoContent)
 		case action == "input" && r.Method == "POST":
-			data, err := io.ReadAll(io.LimitReader(r.Body, 4096))
-			if err != nil {
-				http.Error(w, "failed to read input: "+err.Error(), http.StatusBadRequest)
+			var req struct {
+				Data string `json:"data"`
+			}
+			if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&req); err != nil {
+				http.Error(w, "invalid input: "+err.Error(), http.StatusBadRequest)
 				return
 			}
-			mgr.SendInput(sessionID, data)
+			mgr.SendInput(sessionID, []byte(req.Data))
+			w.WriteHeader(http.StatusNoContent)
+		case action == "resize" && r.Method == "POST":
+			var req struct {
+				Cols uint16 `json:"cols"`
+				Rows uint16 `json:"rows"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				http.Error(w, "invalid resize: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+			if err := mgr.Resize(sessionID, req.Cols, req.Rows); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			w.WriteHeader(http.StatusNoContent)
 		case action == "stream" && r.Method == "GET":
 			handleStream(mgr, sessionID, w, r)

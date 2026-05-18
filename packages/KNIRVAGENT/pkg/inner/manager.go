@@ -11,6 +11,14 @@ import (
 	"github.com/google/uuid"
 )
 
+func (m *InnerAgentManager) Resize(sessionID string, cols, rows uint16) error {
+	sess := m.get(sessionID)
+	if sess == nil {
+		return fmt.Errorf("session %s not found", sessionID)
+	}
+	return pty.Setsize(sess.PTY, &pty.Winsize{Cols: cols, Rows: rows})
+}
+
 type InnerAgentManager struct {
 	mu           sync.RWMutex
 	sessions     map[string]*InnerAgentSession
@@ -50,11 +58,9 @@ func (m *InnerAgentManager) Spawn(toolName string, extraEnv []string) (*InnerAge
 	cmd := tool.BuildCmd(m.workspaceDir, extraEnv)
 	DefaultSpawnHooks(cmd, m.dveID, sessionID)
 
-	if cmd.SysProcAttr == nil {
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	} else {
-		cmd.SysProcAttr.Setpgid = true
-	}
+	// Do NOT set Setpgid here. pty.Start internally sets Setsid=true, which
+	// makes the child a session leader. A session leader cannot call setpgid,
+	// so combining Setpgid+Setsid causes EPERM propagated as a fork/exec error.
 
 	ptmx, err := pty.Start(cmd)
 	if err != nil {

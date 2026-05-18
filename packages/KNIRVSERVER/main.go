@@ -743,7 +743,6 @@ func (app *ServerApp) setupRoutes() error {
 	if err := registerGatewayPrefix("/dve", "/dve"); err != nil {
 		return fmt.Errorf("failed to configure /dve proxy: %w", err)
 	}
-
 	// Network-monitor API routes — proxy to the gateway which has Go handler
 	// equivalents for the Next.js API routes excluded from the static export.
 	// These are handled inside the /api/*path catch-all below rather than as
@@ -820,6 +819,15 @@ func (app *ServerApp) setupRoutes() error {
 				nmProxy, nmErr := newPrefixProxy(gatewayBase, gatewayTransport, "", "")
 				if nmErr == nil {
 					nmProxy.ServeHTTP(c.Writer, c.Request)
+					return
+				}
+			}
+			// Per-DVE agent API: /api/agent/{dveId}/... → KNIRVGATEWAY dynamicAgentProxy
+			// (cannot register as a named Gin route; /api/*path catch-all owns the prefix)
+			if strings.HasPrefix(c.Request.URL.Path, "/api/agent/") {
+				agentProxy, agentErr := newPrefixProxy(gatewayBase, gatewayTransport, "", "")
+				if agentErr == nil {
+					agentProxy.ServeHTTP(c.Writer, c.Request)
 					return
 				}
 			}
@@ -932,6 +940,9 @@ func (app *ServerApp) setupRoutes() error {
 	}
 
 	wsHandler := func(c *gin.Context) {
+		// All WebSocket paths — including /ws/dve/{dveId}/inner/* for inner agent PTY
+		// streams — are handled by the backend subprocess (gorilla/mux), which has the
+		// DVEInnerAgentWSHandler registered and connects directly to per-DVE sockets.
 		wsProxy.ServeHTTP(c.Writer, c.Request)
 	}
 	app.router.GET("/ws", wsHandler)

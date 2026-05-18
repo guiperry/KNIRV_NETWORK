@@ -157,10 +157,12 @@ frontend-dev: deps-node ## Start frontend development server
 # Backend Build (cmd/backend_server only)
 backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build shell-build agent-build embedded-build ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
+	@rm -f $(BACKEND_DIR)/backend_server bin/backend_server
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
 	@echo "$(BLUE)Copying backend binary to root...$(NC)"
 	cp $(BACKEND_DIR)/backend_server bin/
 	@echo "$(BLUE)Compressing backend binary with gzip...$(NC)"
+	@rm -f bin/backend_server.tmp
 	@gzip -cf bin/backend_server > bin/backend_server.tmp && mv bin/backend_server.tmp bin/backend_server
 	@echo "$(GREEN)Backend build completed$(NC)"
 	rm $(BACKEND_DIR)/backend_server
@@ -168,17 +170,21 @@ backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build
 # Specialized Build Tools
 os: deps-go ## Build os_builder binary
 	@echo "$(BLUE)Building os_builder binary...$(NC)"
+	@rm -f $(BACKEND_DIR)/cmd/os_builder/os_builder
 	cd $(BACKEND_DIR)/cmd/os_builder && go build -ldflags "$(LDFLAGS)" -o os_builder main.go
 	@echo "$(GREEN)os_builder build completed: backend/cmd/os_builder/os_builder$(NC)"
 deployer: deps-go ## Build container_deployer binary
 	@echo "$(BLUE)Building container_deployer binary...$(NC)"
+	@rm -f $(BACKEND_DIR)/cmd/container_deployer/container_deployer
 	cd $(BACKEND_DIR)/cmd/container_deployer && go build -ldflags "$(LDFLAGS)" -o container_deployer main.go
 	@echo "$(GREEN)container_deployer build completed: backend/cmd/container_deployer/container_deployer$(NC)"
 
 key-encryptor: ## Build root_key_encryptor binary
 	@echo "$(BLUE)Building root_key_encryptor binary...$(NC)"
+	@rm -f $(BACKEND_DIR)/root_key_encryptor bin/root_key_encryptor
 	cd $(BACKEND_DIR) && CGO_ENABLED=1 go build -ldflags "$(LDFLAGS)" -o root_key_encryptor ./cmd/root_key_encryptor
 	@echo "$(BLUE)Copying root_key_encryptor binary to root...$(NC)"
+	@rm -f bin/root_key_encryptor
 	cp $(BACKEND_DIR)/root_key_encryptor bin/
 	@echo "$(GREEN)root_key_encryptor build completed$(NC)"
 	rm $(BACKEND_DIR)/root_key_encryptor
@@ -191,14 +197,17 @@ key-encryptor: ## Build root_key_encryptor binary
 binary: proto ebpf-generate frontend backend ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVSHELL, and KNIRVAGENT
 	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVSHELL)...$(NC)"
 	@mkdir -p $(DIST_DIR)
+	@rm -f $(DIST_DIR)/knirv-server
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
 	chmod 755 $(DIST_DIR)/knirv-server
 	@echo "$(GREEN)Unified binary created: $(DIST_DIR)/knirv-server$(NC)"
 	@echo "$(BLUE)Copying binary to container_deployer golang-app-source in app data directory...$(NC)"
 	@mkdir -p $(APPDATA_DIR)/container_deployer/resources/golang-app-source
+	@rm -f $(APPDATA_DIR)/container_deployer/resources/golang-app-source/knirv-server
 	cp $(DIST_DIR)/knirv-server $(APPDATA_DIR)/container_deployer/resources/golang-app-source
 	chmod +x $(APPDATA_DIR)/container_deployer/resources/golang-app-source/knirv-server
 	@mkdir -p $(BACKEND_DIR)/cmd/container_deployer/golang-app-source
+	@rm -f $(BACKEND_DIR)/cmd/container_deployer/golang-app-source/knirv-server
 	cp $(DIST_DIR)/knirv-server $(BACKEND_DIR)/cmd/container_deployer/golang-app-source
 	chmod +x $(BACKEND_DIR)/cmd/container_deployer/golang-app-source/knirv-server
 	@echo "$(GREEN)Binary copied to container_deployer/golang-app-source in both embedded backend and app data directory$(NC)"
@@ -209,13 +218,16 @@ binary: proto ebpf-generate frontend backend ## Build unified binary embedding f
 relink: ## Quickly relink the unified binary (assumes all components already built)
 	@echo "$(BLUE)Relinking unified binary (fast path)...$(NC)"
 	@mkdir -p $(DIST_DIR)
+	@rm -f $(DIST_DIR)/knirv-server
 	go build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/knirv-server .
 	chmod 755 $(DIST_DIR)/knirv-server
 	@echo "$(BLUE)Copying binary to container_deployer golang-app-source in app data directory...$(NC)"
 	@mkdir -p $(APPDATA_DIR)/container_deployer/resources/golang-app-source
+	@rm -f $(APPDATA_DIR)/container_deployer/resources/golang-app-source/knirv-server
 	cp $(DIST_DIR)/knirv-server $(APPDATA_DIR)/container_deployer/resources/golang-app-source
 	chmod +x $(APPDATA_DIR)/container_deployer/resources/golang-app-source/knirv-server
 	@mkdir -p $(BACKEND_DIR)/cmd/container_deployer/golang-app-source
+	@rm -f $(BACKEND_DIR)/cmd/container_deployer/golang-app-source/knirv-server
 	cp $(DIST_DIR)/knirv-server $(BACKEND_DIR)/cmd/container_deployer/golang-app-source
 	chmod +x $(BACKEND_DIR)/cmd/container_deployer/golang-app-source/knirv-server
 	@echo "$(GREEN)Done — binary relinked: $(DIST_DIR)/knirv-server$(NC)"
@@ -446,8 +458,10 @@ gateway-deps: ## Install KNIRVGATEWAY dependencies (Go only)
 gateway-build: webgui-build gateway-deps ## Build KNIRVGATEWAY binary into pkg/knirvgateway/bin/ (builds WebGUI first)
 	@echo "$(BLUE)Building KNIRVGATEWAY binary...$(NC)"
 	@mkdir -p $(GATEWAY_DIR)/bin
+	@rm -f $(GATEWAY_PKG_BIN)
 	cd $(GATEWAY_SRC_DIR) && go build -ldflags "-s -w" -o $(GATEWAY_PKG_BIN) ./cmd/gateway
 	@echo "$(BLUE)Compressing KNIRVGATEWAY binary with gzip...$(NC)"
+	@rm -f $(GATEWAY_PKG_BIN).tmp
 	@gzip -cf $(GATEWAY_PKG_BIN) > $(GATEWAY_PKG_BIN).tmp && mv $(GATEWAY_PKG_BIN).tmp $(GATEWAY_PKG_BIN)
 	@echo "$(GREEN)KNIRVGATEWAY binary built: $(GATEWAY_PKG_BIN)$(NC)"
 
@@ -465,8 +479,10 @@ graph-deps: ## Install KNIRVGRAPH dependencies
 graph-build: graph-deps ## Build KNIRVGRAPH binary into pkg/knirvgraph/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVGRAPH binary...$(NC)"
 	@mkdir -p $(GRAPH_DIR)/bin
+	@rm -f $(GRAPH_PKG_BIN)
 	cd $(GRAPH_SRC_DIR)/cmd/node && go build -ldflags "-s -w" -o $(GRAPH_PKG_BIN)
 	@echo "$(BLUE)Compressing KNIRVGRAPH binary with gzip...$(NC)"
+	@rm -f $(GRAPH_PKG_BIN).tmp
 	@gzip -cf $(GRAPH_PKG_BIN) > $(GRAPH_PKG_BIN).tmp && mv $(GRAPH_PKG_BIN).tmp $(GRAPH_PKG_BIN)
 	@echo "$(GREEN)KNIRVGRAPH binary built: $(GRAPH_PKG_BIN)$(NC)"
 
@@ -483,8 +499,10 @@ chain-deps: ## Install KNIRVCHAIN dependencies
 chain-build: chain-deps ## Build KNIRVCHAIN binary into pkg/knirvchain/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVCHAIN binary...$(NC)"
 	@mkdir -p $(CHAIN_DIR)/bin
+	@rm -f $(CHAIN_PKG_BIN)
 	cd $(CHAIN_SRC_DIR)/cmd/knirvchain && go build -ldflags "-s -w" -o $(CHAIN_PKG_BIN)
 	@echo "$(BLUE)Compressing KNIRVCHAIN binary with gzip...$(NC)"
+	@rm -f $(CHAIN_PKG_BIN).tmp
 	@gzip -cf $(CHAIN_PKG_BIN) > $(CHAIN_PKG_BIN).tmp && mv $(CHAIN_PKG_BIN).tmp $(CHAIN_PKG_BIN)
 	@echo "$(GREEN)KNIRVCHAIN binary built: $(CHAIN_PKG_BIN)$(NC)"
 
@@ -501,8 +519,10 @@ oracle-deps: ## Install KNIRVORACLE dependencies
 oracle-build: oracle-deps ## Build KNIRVORACLE binary into pkg/knirvoracle/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVORACLE binary...$(NC)"
 	@mkdir -p $(ORACLE_PKG_DIR)/bin
+	@rm -f $(ORACLE_PKG_BIN)
 	cd $(ORACLE_DIR)/cmd/oracle && go build -ldflags "-s -w" -o $(ORACLE_PKG_BIN)
 	@echo "$(BLUE)Compressing KNIRVORACLE binary with gzip...$(NC)"
+	@rm -f $(ORACLE_PKG_BIN).tmp
 	@gzip -cf $(ORACLE_PKG_BIN) > $(ORACLE_PKG_BIN).tmp && mv $(ORACLE_PKG_BIN).tmp $(ORACLE_PKG_BIN)
 	@echo "$(GREEN)KNIRVORACLE binary built: $(ORACLE_PKG_BIN)$(NC)"
 
@@ -523,8 +543,10 @@ hasher-build: hasher-deps ## Build KNIRVHASHER binaries into pkg/knirvhasher/bin
 	@echo "$(BLUE)Building KNIRVHASHER pipeline binaries...$(NC)"
 	cd $(HASHER_SRC_DIR) && $(MAKE) build-pipeline-all
 	@mkdir -p $(HASHER_DIR)/bin
+	@rm -f $(HASHER_PKG_BIN)
 	cd $(HASHER_SRC_DIR) && go build -ldflags "-s -w" -o $(HASHER_PKG_BIN) ./cmd/cli
 	@echo "$(BLUE)Compressing KNIRVHASHER binary with gzip...$(NC)"
+	@rm -f $(HASHER_PKG_BIN).tmp
 	@gzip -cf $(HASHER_PKG_BIN) > $(HASHER_PKG_BIN).tmp && mv $(HASHER_PKG_BIN).tmp $(HASHER_PKG_BIN)
 	@echo "$(GREEN)KNIRVHASHER binaries built: $(HASHER_PKG_BIN) and pipeline artifacts$(NC)"
 
@@ -541,8 +563,10 @@ shell-deps: ## Install KNIRVSHELL dependencies
 shell-build: shell-deps ## Build KNIRVSHELL binary into pkg/knirvshell/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVSHELL binary...$(NC)"
 	@mkdir -p $(SHELL_DIR)/bin
+	@rm -f $(SHELL_PKG_BIN)
 	cd $(SHELL_SRC_DIR) && go build -ldflags "-s -w" -o $(SHELL_PKG_BIN) .
 	@echo "$(BLUE)Compressing KNIRVSHELL binary with gzip...$(NC)"
+	@rm -f $(SHELL_PKG_BIN).tmp
 	@gzip -cf $(SHELL_PKG_BIN) > $(SHELL_PKG_BIN).tmp && mv $(SHELL_PKG_BIN).tmp $(SHELL_PKG_BIN)
 	@echo "$(GREEN)KNIRVSHELL binary built: $(SHELL_PKG_BIN)$(NC)"
 
@@ -605,9 +629,11 @@ agent-deps: ## Install KNIRVAGENT dependencies
 agent-build: agent-deps ## Build KNIRVAGENT binary into pkg/knirvagent/bin/ (required before binary target)
 	@echo "$(BLUE)Building KNIRVAGENT binary...$(NC)"
 	@mkdir -p $(AGENT_DIR)/bin
+	@rm -f $(AGENT_SRC_DIR)/build/knirvagent $(AGENT_PKG_BIN)
 	cd $(AGENT_SRC_DIR) && make build
 	cp $(AGENT_SRC_DIR)/build/knirvagent $(AGENT_PKG_BIN)
 	@echo "$(BLUE)Compressing KNIRVAGENT binary with gzip...$(NC)"
+	@rm -f $(AGENT_PKG_BIN).tmp
 	@gzip -cf $(AGENT_PKG_BIN) > $(AGENT_PKG_BIN).tmp && mv $(AGENT_PKG_BIN).tmp $(AGENT_PKG_BIN)
 	@echo "$(GREEN)KNIRVAGENT binary built: $(AGENT_PKG_BIN)$(NC)"
 

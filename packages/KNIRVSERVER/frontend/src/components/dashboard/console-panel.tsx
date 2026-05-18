@@ -40,7 +40,8 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const agentProcessingRef = useRef(false);
   const [activeTab, setActiveTab] = useState<'supervisor' | string>('supervisor');
   const [innerSessions, setInnerSessions] = useState<InnerSession[]>([]);
-  const { spawnSession } = useInnerAgent(nodeId);
+  const { spawnSession, error: spawnError } = useInnerAgent(nodeId);
+  const [spawnErrMsg, setSpawnErrMsg] = useState<string | null>(null);
 
   const updateConnectionModeRef = (mode: 'knirvshell' | 'knirvagent' | 'ssh' | 'local') => {
     connectionModeRef.current = mode;
@@ -485,11 +486,14 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
           {/* Spawn new terminal session */}
           <button
             onClick={async () => {
+              setSpawnErrMsg(null);
               const sessionId = await spawnSession('shell');
               if (sessionId) {
                 const label = `Terminal ${innerSessions.length + 1}`;
                 setInnerSessions(prev => [...prev, { sessionId, toolName: label }]);
                 setActiveTab(sessionId);
+              } else {
+                setSpawnErrMsg(spawnError ?? 'Failed to spawn terminal');
               }
             }}
             className="flex items-center gap-1 px-3 py-1.5 text-[11px] text-slate-500 hover:text-purple-300 hover:bg-slate-900/50 transition-colors whitespace-nowrap"
@@ -497,6 +501,11 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
           >
             <Plus className="w-3 h-3" />
           </button>
+          {spawnErrMsg && (
+            <span className="px-2 text-[10px] text-red-400 truncate max-w-[200px]" title={spawnErrMsg}>
+              {spawnErrMsg}
+            </span>
+          )}
         </div>
 
         {/* Terminal content */}

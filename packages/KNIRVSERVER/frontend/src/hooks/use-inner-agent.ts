@@ -87,22 +87,30 @@ export function useInnerAgent(dveId: string | undefined) {
         headers: getAuthHeaders(),
         body: JSON.stringify({ tool: toolName }),
       });
+      const text = await resp.text();
       if (!resp.ok) {
-        const body = await resp.text();
-        setError(`Spawn failed: ${body}`);
+        setError(`Spawn failed (${resp.status}): ${text}`);
         return null;
       }
-      const data = await resp.json();
-      const sessionId: string = data.id ?? data.session_id;
-      if (sessionId) {
-        setSessions(prev => [...prev, {
-          id: sessionId,
-          tool_name: toolName,
-          status: 'running',
-          started_at: new Date().toISOString(),
-        }]);
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setError(`Invalid spawn response: ${text.slice(0, 160)}`);
+        return null;
       }
-      return sessionId ?? null;
+      const sessionId = (data.id ?? data.session_id) as string | undefined;
+      if (!sessionId) {
+        setError('Spawn returned no session ID');
+        return null;
+      }
+      setSessions(prev => [...prev, {
+        id: sessionId,
+        tool_name: toolName,
+        status: 'running',
+        started_at: new Date().toISOString(),
+      }]);
+      return sessionId;
     } catch (err) {
       setError(String(err));
       return null;

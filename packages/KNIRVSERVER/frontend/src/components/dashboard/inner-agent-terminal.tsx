@@ -80,8 +80,8 @@ export function InnerAgentTerminal({ dveId, sessionId, toolName, isVisible }: In
 
       term.writeln(`\x1b[35m[KNIRV]\x1b[0m Connecting to ${toolName} session ${sessionId.slice(0, 8)}…`);
 
-      // Open WebSocket to /ws/{dveId}/inner/stream/{sessionId}
-      const ws = new WebSocket(`${wsBaseUrl()}/ws/${dveId}/inner/stream/${sessionId}`);
+      // Open WebSocket to /ws/dve/{dveId}/inner/stream/{sessionId}
+      const ws = new WebSocket(`${wsBaseUrl()}/ws/dve/${dveId}/inner/stream/${sessionId}`);
       wsRef.current = ws;
 
       ws.onopen = () => {

@@ -826,6 +826,14 @@ func newSocketProxy(socketPath, targetBase string) *httputil.ReverseProxy {
 		resp.Header.Del("Access-Control-Allow-Headers")
 		resp.Header.Del("Access-Control-Allow-Methods")
 		resp.Header.Del("Access-Control-Allow-Credentials")
+		// Strip frame/CSP headers from the upstream response so the gateway's own
+		// wrapWithSecurityHeaders (SAMEORIGIN, proper frame-ancestors CSP) is
+		// authoritative.  Without this the backend's SecurityHeadersMiddleware
+		// (X-Frame-Options: DENY, default-src 'self') overrides the gateway's
+		// permissive settings and blocks iframing in components like the DVE
+		// verification panel.
+		resp.Header.Del("X-Frame-Options")
+		resp.Header.Del("Content-Security-Policy")
 		return nil
 	}
 	return proxy

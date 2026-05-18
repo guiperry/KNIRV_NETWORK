@@ -532,12 +532,34 @@ func (am *AgentManager) GetHealthStatus(ctx context.Context, dveID string) (*Hea
 }
 
 // GetSocketPath returns the Unix socket path for a given DVE's agent.
+// If the agent was not started by this process (e.g. after a server restart),
+// it falls back to checking whether the expected socket file exists on disk.
 func (am *AgentManager) GetSocketPath(dveID string) (string, error) {
-	ap, err := am.GetAgent(dveID)
-	if err != nil {
-		return "", err
+	if ap, err := am.GetAgent(dveID); err == nil {
+		return ap.SocketPath, nil
 	}
-	return ap.SocketPath, nil
+
+	// Fallback: the socket might belong to an agent started before this server
+	// session (e.g. KNIRVSERVER was restarted while the DVE kept running).
+	if am.socketDir == "" {
+		return "", fmt.Errorf("no agent running for DVE %s and socketDir is not configured", dveID)
+	}
+	socketPath := filepath.Join(am.socketDir, fmt.Sprintf("agent-%s.sock", dveID))
+	if _, err := os.Stat(socketPath); err != nil {
+		return "", fmt.Errorf("no agent running for DVE %s (socket %s not found)", dveID, socketPath)
+	}
+	// Re-register as an AgentProcess so future lookups use the fast path.
+	// Mark it healthy since the socket file is present and connectable.
+	ap := &AgentProcess{
+		DVEID:      dveID,
+		SocketPath: socketPath,
+		StartedAt:  time.Now(),
+	}
+	ap.setHealthy(true)
+	am.mu.Lock()
+	am.agents[dveID] = ap
+	am.mu.Unlock()
+	return socketPath, nil
 }
 
 // InnerAgentClient creates an HTTP client that dials the given DVE's agent
