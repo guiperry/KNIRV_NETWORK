@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Terminal as LucideTerminal, X, Play, RefreshCw, AlertCircle, Plus } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { Terminal as LucideTerminal, X, Play, RefreshCw, AlertCircle, Plus, ExternalLink, GripHorizontal } from 'lucide-react';
+import { motion, useDragControls } from 'framer-motion';
 import type { Terminal as XTermTerminal } from '@xterm/xterm';
 import type { FitAddon as XTermFitAddon } from '@xterm/addon-fit';
 import type { WebLinksAddon as XTermWebLinksAddon } from '@xterm/addon-web-links';
@@ -23,9 +24,17 @@ interface ConsolePanelProps {
   nodeId?: string;
   fabricId?: string;
   isMonitorOpen?: boolean;
+  isStandalone?: boolean;
 }
 
-const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fabricId, isMonitorOpen }) => {
+const ConsolePanel: React.FC<ConsolePanelProps> = ({ 
+  isOpen, 
+  onClose, 
+  nodeId, 
+  fabricId, 
+  isMonitorOpen,
+  isStandalone = false
+}) => {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTermTerminal | null>(null);
   const fitAddonRef = useRef<XTermFitAddon | null>(null);
@@ -42,6 +51,8 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   const [innerSessions, setInnerSessions] = useState<InnerSession[]>([]);
   const { spawnSession, error: spawnError } = useInnerAgent(nodeId);
   const [spawnErrMsg, setSpawnErrMsg] = useState<string | null>(null);
+  
+  const dragControls = useDragControls();
 
   const updateConnectionModeRef = (mode: 'knirvshell' | 'knirvagent' | 'ssh' | 'local') => {
     connectionModeRef.current = mode;
@@ -243,6 +254,12 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
     }
   }, [fabricId, fetchFabricLogs]);
 
+  const handlePopOut = useCallback(() => {
+    const url = `/terminal?nodeId=${nodeId || ''}`;
+    window.open(url, `Terminal-${nodeId || 'global'}`, 'width=1000,height=700,menubar=no,toolbar=no,location=no');
+    onClose();
+  }, [nodeId, onClose]);
+
   useEffect(() => {
     if (isOpen && terminalRef.current && !xtermRef.current) {
       setIsInitializing(true);
@@ -398,18 +415,28 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
   if (!isOpen) return null;
 
   return (
-    <div
-      className="absolute z-[100] transition-slide duration-500 ease-in-out bg-slate-950 border border-blue-600/50 shadow-[0_0_40px_rgba(0,0,0,0.7)] overflow-hidden rounded-xl animate-in fade-in zoom-in-95 gpu-accelerated"
-      style={{
+    <motion.div
+      drag={!isStandalone}
+      dragControls={dragControls}
+      dragMomentum={false}
+      dragListener={false}
+      className={`${isStandalone ? 'w-full h-full' : 'absolute z-[100] bg-slate-950 border border-blue-600/50 shadow-[0_0_40px_rgba(0,0,0,0.7)] rounded-xl'} overflow-hidden gpu-accelerated`}
+      initial={isStandalone ? undefined : { opacity: 0, scale: 0.95 }}
+      animate={isStandalone ? undefined : { opacity: 1, scale: 1 }}
+      exit={isStandalone ? undefined : { opacity: 0, scale: 0.95 }}
+      style={isStandalone ? {} : {
         right: isMonitorOpen ? '40px' : '20px',
         top: isMonitorOpen ? '20px' : '80px',
         width: isMonitorOpen ? '500px' : '600px',
         height: isMonitorOpen ? '300px' : '400px',
       }}
     >
-      <div className="h-full flex flex-col">
+      <div className={`h-full flex flex-col ${isStandalone ? '' : 'bg-slate-950'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 border-b border-blue-600/30 bg-slate-900/80 backdrop-blur-md shrink-0">
+        <div 
+          onPointerDown={(e) => !isStandalone && dragControls.start(e)}
+          className={`flex items-center justify-between px-3 py-2 border-b border-blue-600/30 bg-slate-900/80 backdrop-blur-md shrink-0 ${isStandalone ? '' : 'cursor-grab active:cursor-grabbing hover:bg-slate-800/80'} transition-colors group`}
+        >
           <div className="flex items-center space-x-2">
             <div className="relative">
               <LucideTerminal className="w-4 h-4 text-blue-400" />
@@ -419,6 +446,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
               Terminal
             </h2>
             <p className="text-[9px] font-mono text-slate-500 hidden sm:block">Node: {nodeId || 'Distributed'}</p>
+            <GripHorizontal className="w-3 h-3 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity ml-1" />
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -427,6 +455,13 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
               title="Sync Logs"
             >
               <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={handlePopOut}
+              className="text-slate-500 hover:text-purple-400 p-1 transition-colors"
+              title="Pop out terminal"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
             </button>
             <div className="h-4 w-px bg-slate-800 mx-1" />
             <button
@@ -560,7 +595,7 @@ const ConsolePanel: React.FC<ConsolePanelProps> = ({ isOpen, onClose, nodeId, fa
         </div>
 
       </div>
-    </div>
+    </motion.div>
   );
 };
 
