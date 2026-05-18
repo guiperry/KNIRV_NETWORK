@@ -5,7 +5,7 @@ import { HudOverlay } from '@/components/hud';
 import { PWAInstallButton } from '@/components/ui/pwa-install-button';
 import { Toaster } from '@/components/ui/toaster';
 
-const NO_HUD_ROUTES = ['/login', '/menu'];
+const NO_HUD_ROUTES = ['/login', '/menu', '/terminal'];
 
 export function ConditionalHudLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

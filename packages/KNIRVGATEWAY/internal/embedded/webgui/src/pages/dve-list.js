@@ -36,9 +36,11 @@ export default function DVEList() {
     setIsLoading(true);
     setError('');
     try {
-      const res = await api.get('/api/dve-nodes');
+      // Only fetch DVEs that are online (activated programatically or via admin dashboard)
+      const res = await api.get('/api/dve-nodes?status=online');
       const data = res.data?.data || res.data?.nodes || [];
-      setNodes(Array.isArray(data) ? data : []);
+      // Double-check: only include nodes that are genuinely online/activated
+      setNodes(Array.isArray(data) ? data.filter(n => n.status === 'online') : []);
     } catch (e) {
       console.error('Failed to fetch DVE nodes:', e);
       setError('Could not load DVE nodes. Ensure KNIRVSERVER backend is running.');
@@ -72,13 +74,11 @@ export default function DVEList() {
       .includes(searchQuery.toLowerCase())
   );
 
-  const onlineCount = nodes.filter((n) => n.status === 'online').length;
-
   return (
     <PageLayout activePage={activePage} pageTitle="My DVEs" onSearch={handleSearch}>
       <PageHeader
         title="My DVEs"
-        subtitle={`Browse and manage your Decentralized Verifiable Execution environments — ${nodes.length} total, ${onlineCount} online`}
+        subtitle={`Your actively accessible Decentralized Verifiable Execution environments — ${nodes.length} available`}
         titleColor="#7c4dff"
       />
 
@@ -86,11 +86,7 @@ export default function DVEList() {
       <div className={styles.statsBar}>
         <div className={styles.statCard}>
           <span className={styles.statValue}>{nodes.length}</span>
-          <span className={styles.statLabel}>Total DVEs</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue} style={{ color: '#4caf50' }}>{onlineCount}</span>
-          <span className={styles.statLabel}>Online</span>
+          <span className={styles.statLabel}>Active DVEs</span>
         </div>
         <div className={styles.statCard}>
           <button className={styles.refreshBtn} onClick={fetchNodes} title="Refresh">

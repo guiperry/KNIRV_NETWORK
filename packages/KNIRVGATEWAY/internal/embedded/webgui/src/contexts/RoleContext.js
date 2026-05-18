@@ -87,8 +87,8 @@ export const RoleProvider = ({ children }) => {
       'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
       'dve-list',
       'tools', 'basic', 'advanced',
-      'settings', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
-      'nft-vault', 'nft-capability-manager', 'add-capability',
+      'settings', 'inventory', 'blockchain', 'dex', 'daos',
+      'nft-capability-manager', 'add-capability',
       'network-admin', 'auth-test'
     ],
     Bootnode: [
@@ -102,8 +102,8 @@ export const RoleProvider = ({ children }) => {
       'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
       'dve-list',
       'tools', 'basic', 'advanced',
-      'settings', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
-      'nft-vault', 'nft-capability-manager', 'add-capability',
+      'settings', 'inventory', 'blockchain', 'dex', 'daos',
+      'nft-capability-manager', 'add-capability',
       'auth-test'
     ],
     Dev: [
@@ -117,8 +117,8 @@ export const RoleProvider = ({ children }) => {
       'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
       'dve-list',
       'tools', 'basic', 'advanced',
-      'settings', 'inventory', 'vault', 'blockchain', 'dex',
-      'nft-vault', 'nft-capability-manager', 'add-capability',
+      'settings', 'inventory', 'blockchain', 'dex',
+      'nft-capability-manager', 'add-capability',
       'explorer', 'capabilities', 'auth-test'
     ],
     General: [

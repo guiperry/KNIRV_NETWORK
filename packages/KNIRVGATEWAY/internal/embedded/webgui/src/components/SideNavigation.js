@@ -44,10 +44,8 @@ const NAV_ITEMS = [
     { id: 'properties', label: 'Properties', icon: '🏷️' },
     { id: 'settlement', label: 'Settlement', icon: '📝' },
   ]},
-  // Vault section
-  { id: 'vault', label: 'Vault', icon: '🔒', children: [
-    { id: 'dve-list', label: 'My DVEs', icon: '🖥️' },
-  ]},
+  // My DVEs
+  { id: 'dve-list', label: 'My DVEs', icon: '🖥️' },
   // Settings
   { id: 'settings', label: 'Settings', icon: '⚙️' },
   // Network Admin (Root role only)
@@ -91,7 +89,7 @@ const SideNavigation = ({ activePage }) => {
   const handleItemClick = async (id, hasChildren) => {
     if (hasChildren) return toggleSection(id);
 
-    if (id === 'payment-gateway' || id === 'operator-registry' || id === 'tunnel-registry' || id === 'dve-list') {
+    if (id === 'payment-gateway' || id === 'operator-registry' || id === 'tunnel-registry') {
       return handleNavigation(id);
     }
 

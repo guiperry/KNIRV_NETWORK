@@ -76,7 +76,92 @@ func (s *HasherGRPCServer) Start() error {
 	s.listener = ln
 
 	s.server = grpc.NewServer()
+
+	// Register the primary hasher service (backend_server's proto)
 	hasher.RegisterHasherTrainingServiceServer(s.server, s)
+
+	// Register the compatibility service name that the KNIRVHASHER
+	// data-connector binary expects.  The connector's proto defines
+	// "hasher.v1.HasherService" (package hasher.v1) whereas the backend
+	// registers "hasher.HasherTrainingService".  Both define identical
+	// RPC methods with the same wire-format messages, so we register
+	// the same handlers under the connector's service name.
+	s.server.RegisterService(&grpc.ServiceDesc{
+		ServiceName: "hasher.v1.HasherService",
+		HandlerType: (*hasher.HasherTrainingServiceServer)(nil),
+		Methods: []grpc.MethodDesc{
+			{
+				MethodName: "TriggerTraining",
+				Handler: func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+					in := new(hasher.TrainingRequest)
+					if err := dec(in); err != nil {
+						return nil, err
+					}
+					return srv.(*HasherGRPCServer).TriggerTraining(ctx, in)
+				},
+			},
+			{
+				MethodName: "GetTrainingStatus",
+				Handler: func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+					in := new(hasher.TrainingStatusRequest)
+					if err := dec(in); err != nil {
+						return nil, err
+					}
+					return srv.(*HasherGRPCServer).GetTrainingStatus(ctx, in)
+				},
+			},
+			{
+				MethodName: "GetUserRules",
+				Handler: func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+					in := new(hasher.RulesRequest)
+					if err := dec(in); err != nil {
+						return nil, err
+					}
+					return srv.(*HasherGRPCServer).GetUserRules(ctx, in)
+				},
+			},
+			{
+				MethodName: "ValidateAction",
+				Handler: func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+					in := new(hasher.ActionRequest)
+					if err := dec(in); err != nil {
+						return nil, err
+					}
+					return srv.(*HasherGRPCServer).ValidateAction(ctx, in)
+				},
+			},
+		},
+		Streams: []grpc.StreamDesc{
+			{
+				StreamName:    "ExportSecurityData",
+				Handler: func(srv interface{}, stream grpc.ServerStream) error {
+					m := new(hasher.ExportRequest)
+					if err := stream.RecvMsg(m); err != nil {
+						return err
+					}
+					return srv.(*HasherGRPCServer).ExportSecurityData(
+						m,
+						&hasherTrainingServiceExportSecurityDataStream{stream},
+					)
+				},
+				ServerStreams: true,
+			},
+			{
+				StreamName:    "StreamActivity",
+				Handler: func(srv interface{}, stream grpc.ServerStream) error {
+					m := new(hasher.StreamActivityRequest)
+					if err := stream.RecvMsg(m); err != nil {
+						return err
+					}
+					return srv.(*HasherGRPCServer).StreamActivity(
+						m,
+						&hasherTrainingServiceStreamActivityStream{stream},
+					)
+				},
+				ServerStreams: true,
+			},
+		},
+	}, s)
 
 	go func() {
 		log.Printf("HasherGRPCServer: Starting on %s", socketPath)
@@ -121,6 +206,28 @@ func (s *HasherGRPCServer) IsRunning() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.running
+}
+
+// ── Stream type wrappers for the compatibility gRPC service ──────────────
+// These wrap a raw grpc.ServerStream into the typed stream interfaces
+// expected by the backend's hasher.HasherTrainingServiceServer methods,
+// so the same implementation serves both the primary and compatibility
+// service registrations.
+
+type hasherTrainingServiceExportSecurityDataStream struct {
+	grpc.ServerStream
+}
+
+func (w *hasherTrainingServiceExportSecurityDataStream) Send(m *hasher.EncryptedChunk) error {
+	return w.ServerStream.SendMsg(m)
+}
+
+type hasherTrainingServiceStreamActivityStream struct {
+	grpc.ServerStream
+}
+
+func (w *hasherTrainingServiceStreamActivityStream) Send(m *hasher.ActivityEvent) error {
+	return w.ServerStream.SendMsg(m)
 }
 
 func (s *HasherGRPCServer) ExportSecurityData(req *hasher.ExportRequest, stream hasher.HasherTrainingService_ExportSecurityDataServer) error {
