@@ -1,0 +1,65 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "2a440f546ef5",
+  "session_id": "1cb23cc9-f888-42cc-9a62-48f8a9cbecc5",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-18T13:47:23.323974615Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/SideNavigation.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/contexts/RoleContext.js",
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVSERVER/backend/internal/dvetemplates/public_page.gohtml",
+    "packages/KNIRVSERVER/backend/internal/web/dve_inner_agent_ws_handler.go",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/cognitive-engine-panel.tsx"
+  ],
+  "agent": "Gemini CLI",
+  "model": "gemini-3-flash-preview",
+  "turn_id": "4e5b721da7c4",
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-18T13:47:23.185155352Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 15,
+    "total_committed": 0,
+    "total_lines_changed": 15,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 937,
+      "user_lines_removed": 15,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/SideNavigation.js": 3,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/contexts/RoleContext.js": 4,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/dve-list.js": 194,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/dve-list.module.css": 237,
+        "packages/KNIRVGATEWAY/internal/server/server.go": 2,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/dvetemplates/public_page.gohtml": 180,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/backend/internal/web/dve_inner_agent_ws_handler.go": 5,
+        "packages/KNIRVSERVER/frontend/src/components/dashboard/cognitive-engine-panel.tsx": 20
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/SideNavigation.js": 13,
+        "packages/KNIRVSERVER/backend/internal/web/dve_inner_agent_ws_handler.go": 1,
+        "packages/KNIRVSERVER/frontend/src/components/dashboard/cognitive-engine-panel.tsx": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+In the KNIRVSERVER, in the DVE Workspace modal, when we click on the terminal icon it opens the in-browser terminal for that particular DVE. I want to know if it is possible to enable the user to move this panel around in the browser or better yet off and out of the browser? Please investigate how we can do this and propose a strategy and options.
