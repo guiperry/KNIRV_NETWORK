@@ -1,0 +1,1 @@
+Currently, the popout terminal works but it includes the HUD frame around the new terminal window. Can you allow the popout terminal without the HUD frame?

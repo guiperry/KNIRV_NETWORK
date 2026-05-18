@@ -1,0 +1,22 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "f2232adf018b",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/SideNavigation.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/contexts/RoleContext.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/dve-list.js",
+    "packages/KNIRVSERVER/backend/internal/services/dvemanager/hasher_grpc_server.go",
+    "packages/KNIRVSERVER/frontend/src/components/conditional-hud-layout.tsx"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f2/232adf018b/0/metadata.json",
+      "transcript": "/f2/232adf018b/0/full.jsonl",
+      "content_hash": "/f2/232adf018b/0/content_hash.txt",
+      "prompt": "/f2/232adf018b/0/prompt.txt"
+    }
+  ]
+}
