@@ -46,13 +46,7 @@ const NAV_ITEMS = [
   ]},
   // Vault section
   { id: 'vault', label: 'Vault', icon: '🔒', children: [
-    { id: 'my-models', label: 'My Models', icon: '🤖' },
-    { id: 'my-wallets', label: 'My Wallets', icon: '💰' },
-    { id: 'my-skills', label: 'My Skills', icon: '⚡' },
-    { id: 'my-capabilities', label: 'My Capabilities', icon: '🔌' },
-    { id: 'my-properties', label: 'My Properties', icon: '🏷️' },
-    { id: 'my-badges', label: 'Badges', icon: '🏅' },
-    { id: 'nft-property-explorer', label: 'NFT Property Explorer', icon: '🎨' },
+    { id: 'dve-list', label: 'My DVEs', icon: '🖥️' },
   ]},
   // Settings
   { id: 'settings', label: 'Settings', icon: '⚙️' },
@@ -97,11 +91,11 @@ const SideNavigation = ({ activePage }) => {
   const handleItemClick = async (id, hasChildren) => {
     if (hasChildren) return toggleSection(id);
 
-    if (id === 'payment-gateway' || id === 'operator-registry' || id === 'tunnel-registry') {
+    if (id === 'payment-gateway' || id === 'operator-registry' || id === 'tunnel-registry' || id === 'dve-list') {
       return handleNavigation(id);
     }
 
-    if (id === 'my-endpoints') {
+    if (['my-endpoints'].includes(id)) {
       try {
         const r = await fetch('/session/controller', { credentials: 'include' });
         const j = await r.json();
@@ -117,10 +111,6 @@ const SideNavigation = ({ activePage }) => {
         alert('Unable to check controller session.');
         return;
       }
-    }
-
-    if (['my-models','my-wallets','my-skills','my-capabilities','my-properties','my-badges','nft-property-explorer'].includes(id)) {
-      return handleNavigation(id);
     }
 
     return handleNavigation(id);

@@ -114,7 +114,11 @@ func (h *DVEInnerAgentWSHandler) streamSession(conn *innerWSConn, sessionID stri
 		return
 	}
 
-	resp, err := client.Get("http://unix/api/inner/" + sessionID + "/stream")
+	// The default InnerAgentClient has a 30 s overall timeout which would kill the
+	// streaming body as soon as the terminal goes idle. Use a no-timeout clone that
+	// shares the same Unix-socket transport.
+	streamClient := &http.Client{Transport: client.Transport}
+	resp, err := streamClient.Get("http://unix/api/inner/" + sessionID + "/stream")
 	if err != nil {
 		conn.send <- mustMarshal(innerWSResponse{Type: "error", Data: "stream request failed: " + err.Error()})
 		return

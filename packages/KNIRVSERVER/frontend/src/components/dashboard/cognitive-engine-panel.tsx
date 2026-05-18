@@ -108,6 +108,25 @@ function HasherTrainingControls() {
       sseRef.current.close();
     }
 
+    // 1. Pre-fill from history to get recent knirvhasher logs
+    fetch(`${API_BASE_URL}/api/logs/history?module=knirvhasher&limit=100`)
+      .then(r => r.json())
+      .then(data => {
+        const logs: { timestamp: string; level: string; message: string }[] = (data.logs || []).slice().reverse();
+        setTrainingLogs(
+          logs.map((l: any) => ({
+            id: `log-${logIdRef.current++}`,
+            timestamp: l.timestamp
+              ? new Date(l.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+              : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            level: l.level || 'info',
+            message: l.message || '',
+          }))
+        );
+      })
+      .catch(() => { /* history pre-fill is best-effort */ });
+
+    // 2. Open SSE stream for live updates
     const es = new EventSource(`${API_BASE_URL}/api/logs/module/knirvhasher`);
     sseRef.current = es;
 
@@ -132,7 +151,7 @@ function HasherTrainingControls() {
     };
 
     es.onerror = () => {
-      // SSE will auto-reconnect; just track we're connected
+      // SSE will auto-reconnect
     };
 
     return () => {

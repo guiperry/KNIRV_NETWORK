@@ -415,6 +415,22 @@
         .connect-btn { background: rgba(76,175,80,0.2); border: 1px solid rgba(76,175,80,0.3); color: #81c784; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
         .connect-btn:hover { background: rgba(76,175,80,0.3); }
         .connect-btn.connected { background: rgba(33,150,243,0.2); border-color: rgba(33,150,243,0.3); color: #90caf9; }
+        /* Badges tab styles */
+        .badge-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(140px,1fr)); gap: 8px; }
+        .badge-card { background: rgba(30,40,80,0.5); border: 1px solid rgba(100,130,255,0.2); border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; transition: all 0.2s ease; position: relative; }
+        .badge-card:hover { background: rgba(40,60,120,0.6); border-color: rgba(120,150,255,0.4); transform: translateY(-2px); }
+        .badge-card.attached { border-color: rgba(76,175,80,0.4); box-shadow: 0 0 10px rgba(76,175,80,0.15); }
+        .badge-card svg { width: 100%; max-width: 100px; height: auto; display: block; margin: 0 auto 6px; }
+        .badge-name { font-size: 11px; font-weight: 600; color: #d0d0ff; margin-bottom: 2px; }
+        .badge-type { font-size: 9px; color: #8080c0; text-transform: uppercase; letter-spacing: 0.3px; }
+        .badge-attached-tag { position: absolute; top: 4px; right: 4px; font-size: 14px; }
+        .badge-section-title { font-size: 13px; font-weight: 600; color: #b0b0ff; margin: 12px 0 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(100,130,255,0.1); }
+        .badge-section-title:first-of-type { margin-top: 0; }
+        .badge-action-btn { font-size: 10px; background: rgba(76,175,80,0.2); border: 1px solid rgba(76,175,80,0.3); color: #81c784; padding: 3px 8px; border-radius: 4px; cursor: pointer; margin-top: 6px; transition: all 0.2s; }
+        .badge-action-btn:hover { background: rgba(76,175,80,0.3); }
+        .badge-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .badge-toast { position: fixed; bottom: 20px; right: 20px; background: rgba(25,35,70,0.95); border: 1px solid rgba(100,130,255,0.3); border-radius: 8px; padding: 10px 16px; font-size: 12px; color: #d0d0ff; z-index: 100; animation: fadeInUp 0.3s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -444,6 +460,7 @@
             <button class="active" data-tab="files" onclick="switchTab('files')">Files</button>
             <button data-tab="validation" onclick="switchTab('validation')">Validation</button>
             <button data-tab="console" onclick="switchTab('console')">Console</button>
+            <button data-tab="badges" onclick="switchTab('badges'); loadBadges()">Badges</button>
         </div>
     </div>
 
@@ -531,6 +548,21 @@
                     <div class="log-line" id="log-init">[{{ GetTimestamp }}] DVE File Manager initialized for {{ .DVEID }}</div>
                 </div>
             </div>
+
+            <!-- Tab: Badges -->
+            <div class="tab-content" id="tab-badges">
+                <div class="sidebar-header"><h3>Badges</h3></div>
+                <div class="objects-container" id="badges-container" style="overflow-y:auto;padding:10px;">
+                    <div class="badge-section-title">Attached to DVE</div>
+                    <div id="attached-badges">
+                        <div class="empty-state" style="height:60px;">No badges attached yet</div>
+                    </div>
+                    <div class="badge-section-title">Available Templates</div>
+                    <div id="available-badges">
+                        <div class="empty-state" style="height:60px;">No badge templates available</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Content Area -->
@@ -596,12 +628,30 @@
                     <div class="console" id="console-full" style="flex:1;"></div>
                 </div>
             </div>
+
+            <!-- Tab Content: Badges -->
+            <div id="content-badges" style="display:none;flex-direction:column;flex:1;overflow:hidden;padding:20px;">
+                <div style="background:rgba(25,35,70,0.5);border:1px solid rgba(100,130,255,0.2);border-radius:10px;padding:20px;flex:1;overflow-y:auto;">
+                    <h2 style="font-size:20px;margin-bottom:15px;background:linear-gradient(90deg,#64b5f6,#9575cd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">DVE Badges</h2>
+                    <p style="color:#a0a0d0;font-size:14px;margin-bottom:20px;">
+                        Badges are attestation credentials that certify specific capabilities, skills, or properties of this DVE.
+                        <strong style="color:#b0b0ff;">Attached badges</strong> are actively enforced by the guardrail system.
+                    </p>
+                    <div id="badge-detail-area">
+                        <div style="text-align:center;color:#6060a0;padding:40px;">
+                            <p>Select a badge from the sidebar to view its full details.</p>
+                        </div>
+                    </div>
+                    <div id="badge-detail-output" style="display:none;"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
 // ── HUD Navigation (iframe parent communication) ──
+function escapeHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 function isInIframe() { try { return window.self !== window.top; } catch(e) { return true; } }
 function goBack() {
     if (isInIframe()) {
@@ -893,6 +943,136 @@ loadThreeJS();
 
 // ── Init ──
 logBoth('DVE File Manager ready for {{ .DVEID }}', 'success');
+
+// ── Badge Functions ──
+let allBadgeTemplates = [];
+let attachedBadgeIds = [];
+
+function showBadgeToast(msg) {
+    const existing = document.querySelector('.badge-toast');
+    if (existing) existing.remove();
+    const el = document.createElement('div');
+    el.className = 'badge-toast';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => { if (el.parentNode) el.remove(); }, 4000);
+}
+
+async function loadBadges() {
+    const attachedEl = document.getElementById('attached-badges');
+    const availableEl = document.getElementById('available-badges');
+    if (!attachedEl || !availableEl) return;
+    attachedEl.innerHTML = '<div class="spinner" style="margin:12px auto;"></div>';
+    availableEl.innerHTML = '<div class="spinner" style="margin:12px auto;"></div>';
+    try {
+        // Fetch all active templates
+        const tmplResp = await fetch('/api/badge/templates?active=true');
+        const tmplData = await tmplResp.json();
+        allBadgeTemplates = (tmplData.templates || tmplData || []);
+        if (!Array.isArray(allBadgeTemplates)) allBadgeTemplates = [];
+
+        // Fetch attached badges for this DVE
+        const attachResp = await fetch('/api/badge/templates/dve/{{ .DVEID }}/badges');
+        const attachData = await attachResp.json();
+        attachedBadgeIds = (attachData.badge_ids || attachData.attached_badges || []);
+        if (!Array.isArray(attachedBadgeIds)) attachedBadgeIds = [];
+
+        renderBadges();
+    } catch (e) {
+        attachedEl.innerHTML = '<div class="empty-state" style="height:60px;">Error loading badges</div>';
+        availableEl.innerHTML = '<div class="empty-state" style="height:60px;">Error loading templates</div>';
+        logBoth('Failed to load badges: ' + e.message, 'error');
+    }
+}
+
+function renderBadges() {
+    const attachedEl = document.getElementById('attached-badges');
+    const availableEl = document.getElementById('available-badges');
+
+    // Separate attached vs available
+    const attached = allBadgeTemplates.filter(t => attachedBadgeIds.includes(t.id));
+    const available = allBadgeTemplates.filter(t => !attachedBadgeIds.includes(t.id));
+
+    // Render attached
+    if (attached.length === 0) {
+        attachedEl.innerHTML = '<div class="empty-state" style="height:60px;">No badges attached yet</div>';
+    } else {
+        attachedEl.innerHTML = '<div class="badge-grid">' + attached.map(b => renderBadgeCard(b, true)).join('') + '</div>';
+    }
+
+    // Render available
+    if (available.length === 0) {
+        availableEl.innerHTML = '<div class="empty-state" style="height:60px;">' +
+            (allBadgeTemplates.length > 0 ? 'All templates are already attached' : 'No badge templates available') +
+            '</div>';
+    } else {
+        availableEl.innerHTML = '<div class="badge-grid">' + available.map(b => renderBadgeCard(b, false)).join('') + '</div>';
+    }
+
+    logBoth('Loaded ' + attached.length + ' attached badges, ' + available.length + ' available templates', 'info');
+}
+
+function renderBadgeCard(badge, isAttached) {
+    const svg = badge.svg_design || '';
+    const name = escapeHtml(badge.name || badge.id);
+    const btype = escapeHtml(badge.badge_type || '');
+    const primColor = badge.primary_color || '#64b5f6';
+    return '<div class="badge-card' + (isAttached ? ' attached' : '') + '" onclick="showBadgeDetail(\'' + escapeHtml(badge.id) + '\')">' +
+        (isAttached ? '<span class="badge-attached-tag">✅</span>' : '') +
+        (svg ? svg : '<div style="width:60px;height:60px;margin:0 auto 6px;border-radius:8px;background:' + primColor + '20;border:1px solid ' + primColor + '40;display:flex;align-items:center;justify-content:center;font-size:24px;">🏅</div>') +
+        '<div class="badge-name">' + name + '</div>' +
+        '<div class="badge-type">' + btype + '</div>' +
+        (isAttached ? '' : '<button class="badge-action-btn" onclick="event.stopPropagation();mintBadge(\'' + escapeHtml(badge.id) + '\')">Mint to DVE</button>') +
+        '</div>';
+}
+
+function showBadgeDetail(id) {
+    const badge = allBadgeTemplates.find(t => t.id === id);
+    if (!badge) return;
+    const isAttached = attachedBadgeIds.includes(id);
+    const area = document.getElementById('badge-detail-area');
+    const output = document.getElementById('badge-detail-output');
+    if (area) area.style.display = 'none';
+    if (output) {
+        output.style.display = 'block';
+        const svg = badge.svg_design || '';
+        output.innerHTML = '<div class="proof-receipt" style="margin-top:0;">' +
+            (svg ? '<div style="text-align:center;margin-bottom:12px;max-width:120px;margin-left:auto;margin-right:auto;">' + svg + '</div>' : '') +
+            '<h4>' + escapeHtml(badge.name) + (isAttached ? ' <span style="font-size:11px;color:#81c784;">✅ Attached</span>' : '') + '</h4>' +
+            '<p><strong>Type:</strong> ' + escapeHtml(badge.badge_type || '—') + '</p>' +
+            '<p><strong>Description:</strong> ' + escapeHtml(badge.description || '—') + '</p>' +
+            (badge.value_signals && badge.value_signals.length ? '<p><strong>Value Signals:</strong> ' + badge.value_signals.join(', ') + '</p>' : '') +
+            (badge.ontology_signals && badge.ontology_signals.length ? '<p><strong>Ontology:</strong> ' + badge.ontology_signals.join(', ') + '</p>' : '') +
+            (badge.ai_text_tag ? '<p><strong>AI Tag:</strong> ' + escapeHtml(badge.ai_text_tag) + '</p>' : '') +
+            '<p><strong>Threshold:</strong> ' + (badge.alignment_threshold || '0.75') + '</p>' +
+            '<p><strong>Created:</strong> ' + (badge.created_at ? new Date(badge.created_at).toLocaleDateString() : '—') + '</p>' +
+            (!isAttached ? '<button class="badge-action-btn" onclick="mintBadge(\'' + escapeHtml(badge.id) + '\')" style="margin-top:10px;">Mint to DVE</button>' : '') +
+            '</div>';
+    }
+}
+
+async function mintBadge(templateId) {
+    const btn = event && event.target ? event.target : null;
+    if (btn) { btn.disabled = true; btn.textContent = 'Minting...'; }
+    try {
+        const resp = await fetch('/api/badge/templates/' + encodeURIComponent(templateId) + '/mint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dve_id: '{{ .DVEID }}' })
+        });
+        if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error || 'HTTP ' + resp.status); }
+        const r = await resp.json();
+        showBadgeToast('✓ Badge "' + (r.template_name || '') + '" minted to DVE');
+        logBoth('Badge minted: ' + (r.template_name || templateId), 'success');
+        // Reload badges
+        await loadBadges();
+    } catch (e) {
+        showBadgeToast('✗ Mint failed: ' + e.message);
+        logBoth('Badge mint failed: ' + e.message, 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Mint to DVE'; }
+    }
+}
 </script>
 </body>
 </html>

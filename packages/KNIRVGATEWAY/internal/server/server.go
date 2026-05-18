@@ -281,6 +281,8 @@ func (s *Server) setupRoutes() error {
 		r.PathPrefix("/api/v1/").Handler(backendProxy)
 		// Also proxy /api/badge/* to the backend socket (badge templates, guardrail injectors)
 		r.PathPrefix("/api/badge/").Handler(backendProxy)
+		// Also proxy /api/dve-nodes* to the backend socket (DVE node listing)
+		r.PathPrefix("/api/dve-nodes").Handler(backendProxy)
 		s.logger.Info("Backend proxy registered", zap.String("socket", s.config.BackendSocketPath))
 	} else {
 		s.logger.Warn("Backend proxy not configured — /api/v1/* will not be proxied")

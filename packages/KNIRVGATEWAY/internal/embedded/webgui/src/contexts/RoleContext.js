@@ -85,6 +85,7 @@ export const RoleProvider = ({ children }) => {
       'graphchain', 'graphchain-dashboard', 'graphchain-errors', 'graphchain-skills',
       'marketplace', 'skills', 'capabilities', 'properties', 'settlement',
       'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
+      'dve-list',
       'tools', 'basic', 'advanced',
       'settings', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
       'nft-vault', 'nft-capability-manager', 'add-capability',
@@ -99,6 +100,7 @@ export const RoleProvider = ({ children }) => {
       'graphchain', 'graphchain-dashboard', 'graphchain-errors', 'graphchain-skills',
       'marketplace', 'skills', 'capabilities', 'properties', 'settlement',
       'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
+      'dve-list',
       'tools', 'basic', 'advanced',
       'settings', 'inventory', 'vault', 'blockchain', 'dex', 'daos',
       'nft-vault', 'nft-capability-manager', 'add-capability',
@@ -113,6 +115,7 @@ export const RoleProvider = ({ children }) => {
       'graphchain', 'graphchain-dashboard', 'graphchain-errors', 'graphchain-skills',
       'marketplace', 'skills', 'capabilities', 'properties', 'settlement',
       'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
+      'dve-list',
       'tools', 'basic', 'advanced',
       'settings', 'inventory', 'vault', 'blockchain', 'dex',
       'nft-vault', 'nft-capability-manager', 'add-capability',
@@ -127,6 +130,7 @@ export const RoleProvider = ({ children }) => {
       'graphchain', 'graphchain-dashboard', 'graphchain-errors', 'graphchain-skills',
       'marketplace', 'skills', 'capabilities', 'properties', 'settlement',
       'my-models', 'my-wallets', 'my-skills', 'my-capabilities', 'my-properties', 'nft-property-explorer',
+      'dve-list',
       'tools', 'basic', 'advanced',
       'settings', 'inventory', 'dex', 'nft-capability-manager', 'capabilities', 'auth-test'
     ]
