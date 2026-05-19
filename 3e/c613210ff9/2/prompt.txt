@@ -1,0 +1,15 @@
+I need to understand the embedding/runtime exporting convention used in packages/KNIRVSERVER/pkg/. 
+
+Please do the following research and return ALL relevant findings:
+
+1. List all files in packages/KNIRVSERVER/pkg/ recursively
+2. Read the full contents of packages/KNIRVSERVER/pkg/knirvgraph/manager.go
+3. Read the full contents of packages/KNIRVSERVER/pkg/knirvagent/ (list files and read the main manager.go or similar)
+4. Read the full contents of packages/KNIRVSERVER/pkg/knirvchain/ (list files and read the main manager.go or similar)
+5. If there's a pkg/embed.go or similar shared embedding utility, read it
+6. Read KNIRVSERVER/Makefile (the full file)
+7. Read packages/KNIRVARENA/package.json to understand build scripts
+8. Check if KNIRVARENA has a Makefile or build configuration
+9. List what's typically in packages/KNIRVARENA/dist/ (or check .gitignore for dist)
+
+Return the complete contents of each file, don't summarize. I need the exact code to understand the pattern.

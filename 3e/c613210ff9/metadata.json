@@ -3,7 +3,7 @@
   "checkpoint_id": "3ec613210ff9",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "packages/KNIRVARENA/PI_INTEGRATION_REPORT.md",
     "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/SideNavigation.js",
@@ -22,6 +22,19 @@
       "transcript": "/3e/c613210ff9/1/full.jsonl",
       "content_hash": "/3e/c613210ff9/1/content_hash.txt",
       "prompt": "/3e/c613210ff9/1/prompt.txt"
+    },
+    {
+      "metadata": "/3e/c613210ff9/2/metadata.json",
+      "transcript": "/3e/c613210ff9/2/full.jsonl",
+      "content_hash": "/3e/c613210ff9/2/content_hash.txt",
+      "prompt": "/3e/c613210ff9/2/prompt.txt"
     }
-  ]
+  ],
+  "token_usage": {
+    "input_tokens": 104382,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 288000,
+    "output_tokens": 6306,
+    "api_call_count": 7
+  }
 }
