@@ -86,10 +86,11 @@ type apiResponse struct {
 
 // NewAPI creates a Cloudflare API client. accountID may be empty, in
 // which case it will be fetched from the API on first use.
-func NewAPI(token, zoneID string) *API {
+func NewAPI(token, zoneID, accountID string) *API {
 	return &API{
-		token:   strings.TrimSpace(token),
-		zoneID:  zoneID,
+		token:     strings.TrimSpace(token),
+		zoneID:    zoneID,
+		accountID: strings.TrimSpace(accountID),
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -103,7 +104,9 @@ func (a *API) ValidateToken() error {
 	return err
 }
 
-// AccountID returns the cached account ID or fetches it from the API.
+// AccountID returns the account ID. If it was provided explicitly via
+// NewAPI, that value is used. Otherwise it falls back to fetching the
+// first account from the API (requires Account:Read permission).
 func (a *API) AccountID() (string, error) {
 	if a.accountID != "" {
 		return a.accountID, nil
@@ -113,7 +116,7 @@ func (a *API) AccountID() (string, error) {
 		return "", err
 	}
 	if len(accts) == 0 {
-		return "", fmt.Errorf("no accounts associated with this token")
+		return "", fmt.Errorf("no accounts associated with this token -- provide account ID explicitly")
 	}
 	a.accountID = accts[0].ID
 	return a.accountID, nil

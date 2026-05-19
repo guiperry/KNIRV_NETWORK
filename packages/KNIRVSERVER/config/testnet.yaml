@@ -259,6 +259,7 @@ dve:
 
 # KNIRVHASHER Configuration
 hasher:
+  enabled: true
   frames_dir: /var/lib/knirvserver/knirvhasher/data/frames
 
 # Validation Chain Configuration

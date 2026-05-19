@@ -261,8 +261,9 @@ func TestInitOracleManagerUsesAppDataSocketAndCloudflareEnv(t *testing.T) {
 
 	logger := zap.NewNop()
 	secrets := &pb.RootKeyFileContentProto{
-		CloudflareApiToken: "cf-token",
-		CloudflareZoneId:   "zone-id",
+		CloudflareApiToken:   "cf-token",
+		CloudflareZoneId:     "zone-id",
+		CloudflareAccountId:  "cf-account",
 	}
 
 	manager := initOracleManager(logger, secrets)
@@ -280,6 +281,7 @@ func TestInitOracleManagerUsesAppDataSocketAndCloudflareEnv(t *testing.T) {
 	envOverrides := cfgValue.Elem().FieldByName("EnvOverrides")
 	assert.Equal(t, "cf-token", envOverrides.MapIndex(reflect.ValueOf("CLOUDFLARE_API_TOKEN")).String())
 	assert.Equal(t, "zone-id", envOverrides.MapIndex(reflect.ValueOf("CLOUDFLARE_ZONE_ID")).String())
+	assert.Equal(t, "cf-account", envOverrides.MapIndex(reflect.ValueOf("CLOUDFLARE_ACCOUNT_ID")).String())
 }
 
 func TestApplyRootKeySecretsToConfigDoesNotOverrideDatabasePath(t *testing.T) {

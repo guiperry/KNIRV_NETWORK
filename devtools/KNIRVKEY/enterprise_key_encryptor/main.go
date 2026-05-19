@@ -126,6 +126,10 @@ func main() {
 	cloudflareZoneIDEntry.SetPlaceHolder("Cloudflare Zone ID (optional)")
 	cloudflareZoneIDEntry.SetText(envValues["CLOUDFLARE_ZONE_ID"])
 
+	cloudflareAccountIDEntry := widget.NewEntry()
+	cloudflareAccountIDEntry.SetPlaceHolder("Cloudflare Account ID (optional, for tunnel)")
+	cloudflareAccountIDEntry.SetText(envValues["CLOUDFLARE_ACCOUNT_ID"])
+
 	// Production secrets
 	jwtSecretEntry := widget.NewEntry()
 	jwtSecretEntry.SetPlaceHolder("JWT Secret")
@@ -204,8 +208,9 @@ func main() {
 			TlsCert:               tlsCertEntry.Text,
 			TlsKey:                tlsKeyEntry.Text,
 			CerebrasApiKey:       cerebrasAPIKeyEntry.Text,
-			CloudflareApiToken:   cloudflareAPITokenEntry.Text,
-			CloudflareZoneId:     cloudflareZoneIDEntry.Text,
+			CloudflareApiToken:    cloudflareAPITokenEntry.Text,
+			CloudflareZoneId:      cloudflareZoneIDEntry.Text,
+			CloudflareAccountId:   cloudflareAccountIDEntry.Text,
 		}
 
 		// Marshal to protobuf
@@ -294,6 +299,9 @@ func main() {
 		container.NewGridWithColumns(2,
 			container.NewVBox(widget.NewLabel("Cloudflare API Token:"), cloudflareAPITokenEntry),
 			container.NewVBox(widget.NewLabel("Cloudflare Zone ID:"), cloudflareZoneIDEntry),
+		),
+		container.NewGridWithColumns(2,
+			container.NewVBox(widget.NewLabel("Cloudflare Account ID:"), cloudflareAccountIDEntry),
 		),
 		widget.NewSeparator(),
 		widget.NewLabel("Production Secrets:"),

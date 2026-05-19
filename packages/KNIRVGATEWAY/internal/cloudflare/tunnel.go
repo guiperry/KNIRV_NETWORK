@@ -14,12 +14,15 @@ import (
 // Cloudflare Tunnel to a local upstream service.  It follows the same
 // lifecycle conventions demonstrated in proxy-penguin: provision the tunnel
 // via the Cloudflare API, then spawn cloudflared to maintain the connection.
+// If a TunnelToken is provided, the API-based provisioning steps are skipped
+// and cloudflared is spawned directly with the given token.
 type TunnelRunner struct {
 	api          *API
 	tunnelName   string
 	tunnelID     string
 	hostname     string
 	servicePort  int
+	tunnelToken  string
 
 	cmd    *exec.Cmd
 	cancel context.CancelFunc
@@ -31,68 +34,87 @@ type TunnelRunner struct {
 type TunnelRunnerConfig struct {
 	APIToken    string // Cloudflare API token
 	ZoneID      string // Cloudflare zone ID for DNS
+	AccountID   string // Cloudflare account ID (empty = auto-discover from token)
 	TunnelName  string // tunnel name (e.g. "knirv-gateway")
 	Hostname    string // public subdomain (e.g. "gateway.knirv.network")
 	ServicePort int    // local port the gateway listens on
+	TunnelToken string // pre-provisioned tunnel token (skips API provisioning)
 }
 
 // NewTunnelRunner creates a TunnelRunner.  Call Run() to provision
-// and start the tunnel.
+// and start the tunnel. If cfg.TunnelToken is set, API-based provisioning
+// is skipped and cloudflared is spawned directly with the given token.
 func NewTunnelRunner(cfg TunnelRunnerConfig) *TunnelRunner {
 	return &TunnelRunner{
-		api:         NewAPI(cfg.APIToken, cfg.ZoneID),
+		api:         NewAPI(cfg.APIToken, cfg.ZoneID, cfg.AccountID),
 		tunnelName:  cfg.TunnelName,
 		tunnelID:    "", // populated by provision()
 		hostname:    cfg.Hostname,
 		servicePort: cfg.ServicePort,
+		tunnelToken: cfg.TunnelToken,
 		done:        make(chan struct{}),
 	}
 }
 
-// Run provisions the tunnel via the Cloudflare API (creating it and its
-// DNS record if they don't exist), then spawns cloudflared.  It blocks
-// until the context is cancelled, at which point cloudflared is stopped.
-// Returns nil if the tunnel was started successfully; non-nil if
-// provisioning or cloudflared startup fails.
+// Run starts the connection to the Cloudflare Tunnel.  When a tunnel token
+// was provided via TunnelRunnerConfig, it spawns cloudflared directly
+// (skipping API-based provisioning).  Otherwise it provisions the tunnel
+// via the Cloudflare API, then spawns cloudflared.  Blocks until the
+// context is cancelled.
 func (tr *TunnelRunner) Run(ctx context.Context) error {
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
 
-	// Step 1: validate token
+	if tr.tunnelToken != "" {
+		return tr.runWithToken(ctx)
+	}
+
+	// Full provisioning path: validate → provision → spawn
 	if err := tr.api.ValidateToken(); err != nil {
 		return fmt.Errorf("cloudflare token validation failed: %w", err)
 	}
 	log.Println("[cloudflare] API token validated")
 
-	// Step 2: provision tunnel
 	if err := tr.provision(); err != nil {
 		return fmt.Errorf("tunnel provisioning failed: %w", err)
 	}
 
-	// Step 3: locate cloudflared binary
-	cfPath, err := findCloudflared()
-	if err != nil {
-		return fmt.Errorf("cloudflared not found: %w", err)
-	}
-
-	// Step 4: get tunnel token
 	token, err := tr.api.GetTunnelToken(tr.tunnelID)
 	if err != nil {
 		return fmt.Errorf("failed to get tunnel token: %w", err)
 	}
 
-	// Step 5: spawn cloudflared
+	return tr.spawnCloudflared(ctx, token, tr.tunnelID)
+}
+
+// runWithToken spawns cloudflared with a pre-provisioned tunnel token,
+// bypassing all API calls. Used for development or when the tunnel was
+// created manually through the Cloudflare dashboard.
+func (tr *TunnelRunner) runWithToken(ctx context.Context) error {
+	return tr.spawnCloudflared(ctx, tr.tunnelToken, "")
+}
+
+// spawnCloudflared starts the cloudflared subprocess with the given token.
+// tunnelID is optional (not needed when using --token).
+func (tr *TunnelRunner) spawnCloudflared(ctx context.Context, token, tunnelID string) error {
+	cfPath, err := findCloudflared()
+	if err != nil {
+		return fmt.Errorf("cloudflared not found: %w", err)
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	tr.cancel = cancel
 
-	// cloudflared tunnel run --token <token> <tunnelID>
-	cmd := exec.CommandContext(ctx, cfPath, "tunnel", "run",
-		"--token", token, tr.tunnelID)
+	args := []string{"tunnel", "run", "--token", token}
+	if tunnelID != "" {
+		args = append(args, tunnelID)
+	}
+
+	cmd := exec.CommandContext(ctx, cfPath, args...)
 	cmd.Stdout = &logWriter{prefix: "cloudflared"}
 	cmd.Stderr = &logWriter{prefix: "cloudflared-err"}
 
-	log.Printf("[cloudflare] starting cloudflared for tunnel %s (%s)",
-		tr.tunnelName, tr.tunnelID)
+	log.Printf("[cloudflare] starting cloudflared (token-based)")
 	if err := cmd.Start(); err != nil {
 		cancel()
 		return fmt.Errorf("failed to start cloudflared: %w", err)
@@ -100,7 +122,6 @@ func (tr *TunnelRunner) Run(ctx context.Context) error {
 	tr.cmd = cmd
 	log.Printf("[cloudflare] cloudflared running (pid %d)", cmd.Process.Pid)
 
-	// Step 6: wait in background and signal when process exits
 	go func() {
 		defer close(tr.done)
 		if err := cmd.Wait(); err != nil {

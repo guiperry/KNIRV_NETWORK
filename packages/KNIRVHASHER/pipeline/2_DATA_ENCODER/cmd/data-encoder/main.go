@@ -90,13 +90,10 @@ func getAppDataDir() string {
 func parseFlags() *Config {
 	config := &Config{}
 
-	// Default paths - JSON only
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalf("Failed to get home directory: %v", err)
-	}
-	defaultJSONInput := filepath.Join(homeDir, ".local", "share", "knirvserver", "hasher", "data", "json", "ai_knowledge_base.json")
-	defaultOutput := filepath.Join(homeDir, ".local", "share", "knirvserver", "hasher", "data", "frames", "training_frames.json")
+	// Use the same app data dir as data-miner so paths are consistent
+	appDataDir := getAppDataDir()
+	defaultJSONInput := filepath.Join(appDataDir, "json", "ai_knowledge_base.json")
+	defaultOutput := filepath.Join(appDataDir, "frames", "training_frames.json")
 
 	flag.StringVar(&config.InputFile, "input", defaultJSONInput, "Input JSON file path")
 	flag.StringVar(&config.OutputFile, "output", defaultOutput, "Output JSON file path")
@@ -178,15 +175,14 @@ func isDefaultInput(path string) bool {
 	base := filepath.Base(path)
 	return base == "ai_knowledge_base.json"
 }
-
 // AutoDetectInputFile searches for available knowledge base files in priority order:
 // 1. Goat Alpaca (from GOAT dataset)
 // 2. Standard Alpaca (from PDF neural processing)
 // 3. Generic Knowledge Base
+//
+// It checks both the app data directory (from getAppDataDir) and ~/.local/share/hasher
+// to handle the case where the data-miner writes to the server's data dir.
 func AutoDetectInputFile() string {
-	homeDir, _ := os.UserHomeDir()
-	jsonDir := filepath.Join(homeDir, ".local", "share", "hasher", "data", "json")
-
 	priorityFiles := []string{
 		"ai_knowledge_base_goat_alpaca.json",
 		"ai_knowledge_base_alpaca.json",
@@ -196,10 +192,23 @@ func AutoDetectInputFile() string {
 		"ai_knowledge_base.arrow",
 	}
 
-	for _, fileName := range priorityFiles {
-		fullPath := filepath.Join(jsonDir, fileName)
-		if _, err := os.Stat(fullPath); err == nil {
-			return fullPath
+	// Search paths: app data directory first (where data-miner writes), then home dir
+	searchDirs := []string{
+		filepath.Join(getAppDataDir(), "json"),
+		filepath.Join(getAppDataDir(), "..", "data", "json"),
+	}
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		searchDirs = append(searchDirs,
+			filepath.Join(homeDir, ".local", "share", "hasher", "data", "json"),
+		)
+	}
+
+	for _, dir := range searchDirs {
+		for _, fileName := range priorityFiles {
+			fullPath := filepath.Join(dir, fileName)
+			if _, err := os.Stat(fullPath); err == nil {
+				return fullPath
+			}
 		}
 	}
 

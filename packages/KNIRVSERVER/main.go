@@ -852,15 +852,28 @@ func (app *ServerApp) setupRoutes() error {
 				}
 			}
 
-			// Make request to backend
-			client := &http.Client{
-				Timeout:   60 * time.Second,
-				Transport: transport,
-				// Do not follow redirects automatically
-				CheckRedirect: func(req *http.Request, via []*http.Request) error {
-					return http.ErrUseLastResponse
-				},
+			// Detect SSE requests: no Timeout so streaming connections are never killed.
+			isSSE := strings.Contains(c.GetHeader("Accept"), "text/event-stream") ||
+				c.Request.URL.Query().Get("stream") == "1"
+
+			var client *http.Client
+			if isSSE {
+				client = &http.Client{
+					Transport: transport,
+					CheckRedirect: func(req *http.Request, via []*http.Request) error {
+						return http.ErrUseLastResponse
+					},
+				}
+			} else {
+				client = &http.Client{
+					Timeout:   60 * time.Second,
+					Transport: transport,
+					CheckRedirect: func(req *http.Request, via []*http.Request) error {
+						return http.ErrUseLastResponse
+					},
+				}
 			}
+
 			resp, err := client.Do(req)
 			if err != nil {
 				log.Printf("Proxy error: %v", err)
@@ -876,9 +889,26 @@ func (app *ServerApp) setupRoutes() error {
 				}
 			}
 
-			// Copy response status and body
+			// For SSE responses flush each chunk immediately; otherwise buffer normally.
 			c.Status(resp.StatusCode)
-			io.Copy(c.Writer, resp.Body)
+			if strings.Contains(resp.Header.Get("Content-Type"), "text/event-stream") {
+				flusher, canFlush := c.Writer.(http.Flusher)
+				buf := make([]byte, 4096)
+				for {
+					n, readErr := resp.Body.Read(buf)
+					if n > 0 {
+						c.Writer.Write(buf[:n]) //nolint:errcheck
+						if canFlush {
+							flusher.Flush()
+						}
+					}
+					if readErr != nil {
+						break
+					}
+				}
+			} else {
+				io.Copy(c.Writer, resp.Body) //nolint:errcheck
+			}
 		})
 	}
 
@@ -1196,12 +1226,13 @@ func (app *ServerApp) Start() error {
 	}
 
 	// Create HTTP server
+	// WriteTimeout is 0 (disabled) so SSE and long-lived streaming responses are
+	// not killed by the server. ReadTimeout still guards against slow-loris attacks.
 	app.server = &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", app.config.Host, app.config.Port),
-		Handler:      app.router,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:        fmt.Sprintf("%s:%d", app.config.Host, app.config.Port),
+		Handler:     app.router,
+		ReadTimeout: 15 * time.Second,
+		IdleTimeout: 120 * time.Second,
 	}
 
 	// Start server in goroutine

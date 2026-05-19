@@ -35,6 +35,9 @@ message RootKeyFileContentProto {
   string device_password = 23;
   string device_username = 24;
 
+  // Cloudflare account ID for tunnel provisioning (when token can't list accounts)
+  string cloudflare_account_id = 26;
+
   // Cloudflare embeddings endpoint
   string cloudflare_embeddings_url = 25;
 }

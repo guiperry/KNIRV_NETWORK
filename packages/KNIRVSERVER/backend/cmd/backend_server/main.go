@@ -502,14 +502,23 @@ func applyRootKeySecretsToConfig(cfg *config.Config, content *pb.RootKeyFileCont
 	}
 
 	if content.GeminiApiKey != "" {
+		if err := os.Setenv("GEMINI_API_KEY", content.GeminiApiKey); err != nil {
+			log.Printf("Warning: failed to set GEMINI_API_KEY env var: %v", err)
+		}
 		log.Printf("Gemini API Key loaded from root.key")
 	}
 
 	if content.DeepseekApiKey != "" {
+		if err := os.Setenv("DEEPSEEK_API_KEY", content.DeepseekApiKey); err != nil {
+			log.Printf("Warning: failed to set DEEPSEEK_API_KEY env var: %v", err)
+		}
 		log.Printf("DeepSeek API Key loaded from root.key")
 	}
 
 	if content.CerebrasApiKey != "" {
+		if err := os.Setenv("CEREBRAS_API_KEY", content.CerebrasApiKey); err != nil {
+			log.Printf("Warning: failed to set CEREBRAS_API_KEY env var: %v", err)
+		}
 		log.Printf("Cerebras API Key loaded from root.key")
 	}
 
@@ -572,6 +581,9 @@ func initOracleManager(logger *zap.Logger, rootKeySecrets *pb.RootKeyFileContent
 		}
 		if rootKeySecrets.CloudflareZoneId != "" {
 			envOverrides["CLOUDFLARE_ZONE_ID"] = rootKeySecrets.CloudflareZoneId
+		}
+		if rootKeySecrets.CloudflareAccountId != "" {
+			envOverrides["CLOUDFLARE_ACCOUNT_ID"] = rootKeySecrets.CloudflareAccountId
 		}
 	}
 
@@ -889,9 +901,16 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			if rootKeySecrets.CloudflareZoneId != "" {
 				gatewayEnvOverrides["CLOUDFLARE_ZONE_ID"] = rootKeySecrets.CloudflareZoneId
 			}
+			if rootKeySecrets.CloudflareAccountId != "" {
+				gatewayEnvOverrides["CLOUDFLARE_ACCOUNT_ID"] = rootKeySecrets.CloudflareAccountId
+			}
 		}
 		// Propagate arena socket path to the gateway subprocess for /arena proxy
 		gatewayEnvOverrides["ARENA_SOCKET_PATH"] = arenaSocketPath
+		// Development override: pre-provisioned tunnel token (skips API provisioning)
+		if tok := os.Getenv("CLOUDFLARE_TUNNEL_TOKEN"); tok != "" {
+			gatewayEnvOverrides["CLOUDFLARE_TUNNEL_TOKEN"] = tok
+		}
 
 		gatewayConfig := &knirvgateway.ManagerConfig{
 			BinaryPath:     cfg.Gateway.BinaryPath,

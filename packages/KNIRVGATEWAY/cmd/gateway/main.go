@@ -96,6 +96,8 @@ func main() {
 			tunnelRunner = cloudflare.NewTunnelRunner(cloudflare.TunnelRunnerConfig{
 				APIToken:    cfToken,
 				ZoneID:      cfZone,
+				AccountID:   os.Getenv("CLOUDFLARE_ACCOUNT_ID"),
+				TunnelToken: os.Getenv("CLOUDFLARE_TUNNEL_TOKEN"),
 				TunnelName:  "knirv-gateway",
 				Hostname:    "gateway.knirv.network",
 				ServicePort: servicePort,
