@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "3ec613210ff9",
+  "session_id": "3a3ce718-0cb3-4a6b-bca1-c9a4b4d7e118",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-19T04:32:18.759250126Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVHASHER/pipeline/0_DATA_CONNECTOR/cmd/data-connector/main.go"
+  ],
+  "agent": "Gemini CLI",
+  "model": "gemini-3-flash-preview",
+  "turn_id": "fe0b18654085",
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-19T04:32:18.582290715Z",
+    "agent_lines": 25,
+    "agent_removed": 10,
+    "human_added": 24,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 49,
+    "total_lines_changed": 82,
+    "agent_percentage": 42.68292682926829,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
