@@ -1,0 +1,64 @@
+# Implement
+
+Fully implement the code details from an attached file reference.
+
+## Instructions
+
+1. **Identify the target file**: Parse the attached `@` file reference (e.g., `@packages/knirvserver/main.go`)
+2. **Read the file**: Load the full contents to understand what needs to be implemented
+3. **Full Implementation**: Write complete, production-ready code with:
+   - No mocks
+   - No TODOs
+   - No placeholders
+   - No simulations
+   - All functionality fully implemented
+4. **Write Tests**: Create meaningful tests that verify the implementation:
+   - Unit tests for core logic
+   - Integration tests if applicable
+   - Tests must pass (no skipped tests)
+5. **Run Tests**: Execute the test suite and fix any failures
+6. **Update README**: If the implementation adds new features or changes API:
+
+- Update the project's README.md with relevant changes
+- Document new endpoints, parameters, or functionality
+- Include usage examples if appropriate
+
+## Implementation Standards
+
+- Follow the project's existing code style and conventions
+- Use proper error handling
+- Add logging where appropriate
+- Ensure type safety (TypeScript: use `unknown` instead of `any`)
+- Write idiomatic code for the language
+
+## When NOT to trigger
+
+- File is a configuration or data file (not .md file)
+- User is asking for a conceptual explanation only
+- Implementation requires external dependencies not available in the project
+
+## Verification
+
+After implementation, verify:
+- [ ] All tests pass (`go test ./...` or appropriate test command)
+- [ ] Code compiles without errors
+- [ ] No lint warnings (run `go vet` or `golangci-lint`)
+- [ ] README.md updated if needed
+
+ @arena_implementation.html
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
+
+---
+
+UPdate the contellation menu in KNIRVSERVER so that when we click on the center of the ring where it says "KNIRVANA" the image zooms into that center and then fades into the KNIRVARENA menu.
+
+---
+
+WHen we click on the Central orb in the constellation menu it should open the KNIRVARENA being served, currently the link takes us to the dashboard-wrapper when clicked in the center. Can you ensure the KNIRVARENA is being served correctly and the endpoint is available through the gateway proxy and/or accessable through the sockets for internal access.

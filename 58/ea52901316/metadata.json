@@ -3,7 +3,7 @@
   "checkpoint_id": "58ea52901316",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 9,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
     "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs",
@@ -51,13 +51,19 @@
       "transcript": "/58/ea52901316/2/full.jsonl",
       "content_hash": "/58/ea52901316/2/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/58/ea52901316/3/metadata.json",
+      "transcript": "/58/ea52901316/3/full.jsonl",
+      "content_hash": "/58/ea52901316/3/content_hash.txt",
+      "prompt": "/58/ea52901316/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 244,
+    "input_tokens": 584587,
     "cache_creation_tokens": 175839,
-    "cache_read_tokens": 2307244,
-    "output_tokens": 31191,
-    "api_call_count": 38
+    "cache_read_tokens": 11731500,
+    "output_tokens": 68837,
+    "api_call_count": 141
   }
 }
