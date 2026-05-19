@@ -1,0 +1,5 @@
+I want you to integrate the packages/KNIRVARENA/dist into the packages/KNIRVSERVER following the same embedding/runtime exporting convention as displayed in the KNIRVSERVER/pkg/knirvagent, ...pkg/knirvgraph, ..pkg/knirvchain, etc. Edit the KNIRVSERVER makefile so that when we run make binary it also runs the build process for the KNIRVARENA and copies (also compress with gzip) the dist folder into KNIRVSERVER/pkg/knirvarena where a new manager.go file will handle the enmbedding, runtime export, decompression, initialization and lifecycle management.
+
+---
+
+Draft this plan into a full arena_implementation.html file to be implemented by the next agent fully.
