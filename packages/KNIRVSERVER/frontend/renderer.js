@@ -297,7 +297,10 @@ window.addEventListener('message', (event) => {
 
     if (type === 'navigate') {
         // Icon clicked in the constellation menu — go to that dashboard section
-        if (section === 'p2p-webgui') {
+        if (section === 'arena') {
+            // Navigate the whole window to the KNIRVARENA app
+            window.location.href = '/arena';
+        } else if (section === 'p2p-webgui') {
             // Special action: open the P2P Transport WebGUI modal in the dashboard
             if (!desktopLoaded) {
                 // Load desktop first (no specific tab), then open modal once loaded

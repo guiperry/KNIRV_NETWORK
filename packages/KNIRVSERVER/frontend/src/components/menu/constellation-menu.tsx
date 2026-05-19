@@ -63,6 +63,25 @@ export default function ConstellationMenu() {
   const [hoveredIcon, setHoveredIcon] = useState<number | null>(null)
   const [loadingComplete, setLoadingComplete] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [zoomingToArena, setZoomingToArena] = useState(false)
+
+  useEffect(() => {
+    if (!zoomingToArena) return
+    const timer = setTimeout(() => {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'navigate', section: 'arena' }, '*')
+      } else {
+        // Use Next.js router for smooth navigation without full page reload
+        router.push('/arena')
+      }
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [zoomingToArena, router])
+
+  const handleCenterClick = () => {
+    if (zoomingToArena || !loadingComplete) return
+    setZoomingToArena(true)
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -99,7 +118,11 @@ export default function ConstellationMenu() {
         className="relative flex min-h-screen w-full items-center justify-center overflow-hidden"
         style={{ backgroundColor: "#030a18" }}
       >
-        <div className="relative">
+        <motion.div
+          className="relative"
+          animate={zoomingToArena ? { opacity: 0, scale: 1.3 } : { opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+        >
           {/* Starfield */}
           <div className="absolute inset-0">
             {[...Array(200)].map((_, i) => (
@@ -254,8 +277,9 @@ export default function ConstellationMenu() {
 
             {/* Central Orb */}
             <div
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer"
               style={{ opacity: loadingComplete ? 1 : 0, transition: 'opacity 1.5s ease-in-out' }}
+              onClick={handleCenterClick}
             >
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
                 style={{
@@ -394,7 +418,38 @@ export default function ConstellationMenu() {
               KNIRV.COM
             </motion.div>
           </div>
-        </div>
+        </motion.div>
+
+        {/* Zoom to Arena overlay */}
+        {zoomingToArena && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{ backgroundColor: "#030a18" }}
+          >
+            <motion.div
+              className="flex flex-col items-center justify-center rounded-full"
+              initial={{ scale: 0.2, opacity: 0 }}
+              animate={{
+                scale: [0.2, 1.5, 3, 6],
+                opacity: [0, 1, 1, 0],
+              }}
+              transition={{ duration: 1.5, ease: "easeInOut", times: [0, 0.3, 0.6, 1] }}
+              style={{
+                width: centerSize,
+                height: centerSize,
+                background: "radial-gradient(circle, rgba(72,136,255,0.9) 0%, rgba(72,136,255,0.3) 50%, transparent 70%)",
+                border: "2px solid rgba(72, 136, 255, 0.8)",
+                boxShadow: "0 0 60px rgba(72, 136, 255, 0.8), 0 0 120px rgba(72, 136, 255, 0.4)",
+              }}
+            >
+              <span className="text-xl font-bold tracking-[0.15em] text-white" style={{ textShadow: "0 0 20px rgba(255,255,255,0.9)" }}>
+                KNIRVANA
+              </span>
+            </motion.div>
+          </motion.div>
+        )}
       </div>
 
       <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />

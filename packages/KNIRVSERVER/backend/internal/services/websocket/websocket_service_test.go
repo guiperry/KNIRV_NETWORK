@@ -40,7 +40,7 @@ func (m *mockTEESecurityService) GetSecurityStatus() *objects.TEESecurityStatus 
 func TestNewWebSocketService(t *testing.T) {
 	mockTEE := &mockTEESecurityService{running: true}
 
-	service := NewWebSocketService(nil, nil, nil, nil, mockTEE)
+	service := NewWebSocketService(nil, nil, nil, nil, nil, mockTEE)
 
 	if service == nil {
 		t.Fatal("Expected service to be created, got nil")
@@ -66,7 +66,7 @@ func TestNewWebSocketService(t *testing.T) {
 func TestWebSocketService_Start(t *testing.T) {
 	mockTEE := &mockTEESecurityService{running: true}
 
-	service := NewWebSocketService(nil, nil, nil, nil, mockTEE)
+	service := NewWebSocketService(nil, nil, nil, nil, nil, mockTEE)
 
 	// Test starting the service
 	err := service.Start()
@@ -91,7 +91,7 @@ func TestWebSocketService_Start(t *testing.T) {
 func TestWebSocketService_Stop(t *testing.T) {
 	mockTEE := &mockTEESecurityService{running: true}
 
-	service := NewWebSocketService(nil, nil, nil, nil, mockTEE)
+	service := NewWebSocketService(nil, nil, nil, nil, nil, mockTEE)
 
 	// Test stopping non-running service (should not error)
 	err := service.Stop()
@@ -114,7 +114,7 @@ func TestWebSocketService_Stop(t *testing.T) {
 func TestWebSocketService_RegisterRoutes(t *testing.T) {
 	mockTEE := &mockTEESecurityService{running: true}
 
-	service := NewWebSocketService(nil, nil, nil, nil, mockTEE)
+	service := NewWebSocketService(nil, nil, nil, nil, nil, mockTEE)
 	router := mux.NewRouter()
 
 	// Register routes
@@ -139,7 +139,7 @@ func TestWebSocketService_RegisterRoutes(t *testing.T) {
 func TestWebSocketService_Broadcast(t *testing.T) {
 	mockTEE := &mockTEESecurityService{running: true}
 
-	service := NewWebSocketService(nil, nil, nil, nil, mockTEE)
+	service := NewWebSocketService(nil, nil, nil, nil, nil, mockTEE)
 
 	// Test broadcasting when service is not running (should not panic)
 	service.Broadcast("test_event", map[string]interface{}{"data": "test"})
@@ -160,7 +160,7 @@ func TestWebSocketService_Broadcast(t *testing.T) {
 func TestWebSocketService_HandleWebSocket(t *testing.T) {
 	mockTEE := &mockTEESecurityService{running: true}
 
-	service := NewWebSocketService(nil, nil, nil, nil, mockTEE)
+	service := NewWebSocketService(nil, nil, nil, nil, nil, mockTEE)
 	service.Start()
 	defer service.Stop()
 

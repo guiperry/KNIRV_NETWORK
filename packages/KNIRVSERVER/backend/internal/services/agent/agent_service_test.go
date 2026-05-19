@@ -4,10 +4,7 @@
 package agent
 
 import (
-	"context"
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"path/filepath"
 	"testing"
 	"time"
@@ -34,7 +31,7 @@ func newTestDB(t *testing.T) *database.BuntDBManager {
 
 func TestNewAgentService(t *testing.T) {
 	db := newTestDB(t)
-	svc := NewAgentService(db, nil, nil)
+	svc := NewAgentService(db)
 
 	require.NotNil(t, svc)
 	assert.NotNil(t, svc.agents)
@@ -44,7 +41,7 @@ func TestNewAgentService(t *testing.T) {
 
 func TestNewAgentService_NilDB(t *testing.T) {
 	// Should construct without panicking even when all deps are nil.
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 	require.NotNil(t, svc)
 	assert.False(t, svc.running)
 }
@@ -55,7 +52,7 @@ func TestNewAgentService_NilDB(t *testing.T) {
 
 func TestAgentService_Start(t *testing.T) {
 	db := newTestDB(t)
-	svc := NewAgentService(db, nil, nil)
+	svc := NewAgentService(db)
 
 	err := svc.Start()
 	require.NoError(t, err)
@@ -64,7 +61,7 @@ func TestAgentService_Start(t *testing.T) {
 
 func TestAgentService_StartTwice(t *testing.T) {
 	db := newTestDB(t)
-	svc := NewAgentService(db, nil, nil)
+	svc := NewAgentService(db)
 
 	require.NoError(t, svc.Start())
 
@@ -76,7 +73,7 @@ func TestAgentService_StartTwice(t *testing.T) {
 
 func TestAgentService_Stop(t *testing.T) {
 	db := newTestDB(t)
-	svc := NewAgentService(db, nil, nil)
+	svc := NewAgentService(db)
 
 	require.NoError(t, svc.Start())
 	require.NoError(t, svc.Stop())
@@ -85,7 +82,7 @@ func TestAgentService_Stop(t *testing.T) {
 
 func TestAgentService_StopWithoutStart(t *testing.T) {
 	// Stop before Start must not panic and must succeed.
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 	err := svc.Stop()
 	assert.NoError(t, err)
 	assert.False(t, svc.running)
@@ -93,7 +90,7 @@ func TestAgentService_StopWithoutStart(t *testing.T) {
 
 func TestAgentService_StartStopCycle(t *testing.T) {
 	db := newTestDB(t)
-	svc := NewAgentService(db, nil, nil)
+	svc := NewAgentService(db)
 
 	require.NoError(t, svc.Start())
 	require.NoError(t, svc.Stop())
@@ -109,7 +106,7 @@ func TestAgentService_StartStopCycle(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAgentService_GetAgentStatus_NoAgent(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 
 	status, err := svc.GetAgentStatus("dve-unknown")
 	require.NoError(t, err)
@@ -122,7 +119,7 @@ func TestAgentService_GetAgentStatus_NoAgent(t *testing.T) {
 }
 
 func TestAgentService_GetAgentStatus_CountsTasks(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 
 	dveID := "dve-counts"
 
@@ -152,68 +149,41 @@ func TestAgentService_GetAgentStatus_CountsTasks(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// LaunchAgent (nil UCM path)
-// ---------------------------------------------------------------------------
-
-func TestAgentService_LaunchAgent_NilUCM(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
-	// ucm is nil -> should return an error, not panic.
-	status, err := svc.LaunchAgent(context.Background(), "dve-test")
-	require.Error(t, err)
-	assert.Nil(t, status)
-	assert.Contains(t, err.Error(), "container manager not available")
-}
-
-func TestAgentService_LaunchAgent_ReturnsExistingRunning(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
-	dveID := "dve-existing"
-
-	existing := &AgentStatus{
-		DVEID:       dveID,
-		ContainerID: "ctr-existing",
-		Running:     true,
-	}
-	svc.agents[dveID] = existing
-
-	// Even though ucm is nil, the service should return the already-running agent.
-	got, err := svc.LaunchAgent(context.Background(), dveID)
-	require.NoError(t, err)
-	require.NotNil(t, got)
-	assert.Equal(t, existing.ContainerID, got.ContainerID)
-	assert.True(t, got.Running)
-}
-
-// ---------------------------------------------------------------------------
 // SubmitTask
 // ---------------------------------------------------------------------------
 
 func TestAgentService_SubmitTask_NoAgent(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 	req := &AgentTaskRequest{
 		Title:       "test task",
 		Description: "desc",
 		Type:        "research",
 	}
 
+	// SubmitTask no longer checks for a running agent — it records the task
+	// for the KNIRVAGENT supervisor.
 	task, err := svc.SubmitTask("dve-missing", req)
-	require.Error(t, err)
-	assert.Nil(t, task)
-	assert.Contains(t, err.Error(), "no running agent")
+	require.NoError(t, err)
+	require.NotNil(t, task)
+	assert.Equal(t, "pending", task.Status)
 }
 
 func TestAgentService_SubmitTask_AgentNotRunning(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 	dveID := "dve-stopped"
 	svc.agents[dveID] = &AgentStatus{DVEID: dveID, Running: false}
 
-	_, err := svc.SubmitTask(dveID, &AgentTaskRequest{Title: "t"})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "no running agent")
+	// SubmitTask no longer checks agent running state — it records the task
+	// for the KNIRVAGENT supervisor.
+	task, err := svc.SubmitTask(dveID, &AgentTaskRequest{Title: "t"})
+	require.NoError(t, err)
+	require.NotNil(t, task)
+	assert.Equal(t, "pending", task.Status)
 }
 
 func TestAgentService_SubmitTask_DefaultsApplied(t *testing.T) {
 	db := newTestDB(t)
-	svc := NewAgentService(db, nil, nil)
+	svc := NewAgentService(db)
 	dveID := "dve-defaults"
 
 	svc.agents[dveID] = &AgentStatus{
@@ -235,10 +205,8 @@ func TestAgentService_SubmitTask_DefaultsApplied(t *testing.T) {
 	assert.Equal(t, "research", task.Type)
 	// Default priority must be 1.
 	assert.Equal(t, 1, task.Priority)
-	// Status starts as "pending" but the async executeTask goroutine may have
-	// already transitioned it to "running" or "completed" by the time we check,
-	// so we only assert it is a valid non-empty status.
-	assert.NotEmpty(t, task.Status)
+	// Status starts as "pending".
+	assert.Equal(t, "pending", task.Status)
 	assert.Equal(t, dveID, task.DVEID)
 	assert.NotEmpty(t, task.ID)
 }
@@ -248,7 +216,7 @@ func TestAgentService_SubmitTask_DefaultsApplied(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAgentService_GetTasks_EmptyForUnknownDVE(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 
 	tasks, err := svc.GetTasks("dve-none")
 	require.NoError(t, err)
@@ -257,7 +225,7 @@ func TestAgentService_GetTasks_EmptyForUnknownDVE(t *testing.T) {
 }
 
 func TestAgentService_GetTasks_FiltersByDVE(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 
 	svc.tasks["ta"] = &AgentTask{ID: "ta", DVEID: "dve-a", Status: "pending"}
 	svc.tasks["tb"] = &AgentTask{ID: "tb", DVEID: "dve-a", Status: "completed"}
@@ -277,7 +245,7 @@ func TestAgentService_GetTasks_FiltersByDVE(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAgentService_GetTask_NotFound(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 
 	task, err := svc.GetTask("non-existent-id")
 	require.Error(t, err)
@@ -286,7 +254,7 @@ func TestAgentService_GetTask_NotFound(t *testing.T) {
 }
 
 func TestAgentService_GetTask_Found(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 
 	expected := &AgentTask{
 		ID:    "task-42",
@@ -308,7 +276,7 @@ func TestAgentService_GetTask_Found(t *testing.T) {
 
 func TestAgentService_TaskPersistence_SaveAndLoad(t *testing.T) {
 	db := newTestDB(t)
-	svc := NewAgentService(db, nil, nil)
+	svc := NewAgentService(db)
 	dveID := "dve-persist"
 
 	svc.agents[dveID] = &AgentStatus{
@@ -331,7 +299,7 @@ func TestAgentService_TaskPersistence_SaveAndLoad(t *testing.T) {
 
 	// Read directly from DB to verify the record was written.
 	var stored AgentTask
-	err = db.GetJSON("agent_task:"+taskID, &stored)
+	err = db.GetJSON("agent:task:"+taskID, &stored)
 	require.NoError(t, err, "task should be persisted to DB immediately after SubmitTask")
 
 	assert.Equal(t, taskID, stored.ID)
@@ -358,12 +326,12 @@ func TestAgentService_TaskPersistence_LoadOnStart(t *testing.T) {
 	data, err := json.Marshal(preExisting)
 	require.NoError(t, err)
 
-	// Write the JSON string directly under the agent_task: prefix.
-	err = db.SetValue("agent_task:"+taskID, string(data))
+	// Write the JSON string directly under the agent:task: prefix.
+	err = db.SetValue("agent:task:"+taskID, string(data))
 	require.NoError(t, err)
 
 	// A fresh service loading from this DB should restore the task.
-	svc2 := NewAgentService(db, nil, nil)
+	svc2 := NewAgentService(db)
 	require.NoError(t, svc2.Start())
 	defer svc2.Stop()
 
@@ -376,7 +344,7 @@ func TestAgentService_TaskPersistence_LoadOnStart(t *testing.T) {
 
 func TestAgentService_saveTaskToDB_NilDB(t *testing.T) {
 	// saveTaskToDB must be a no-op (not panic) when db is nil.
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 	task := &AgentTask{ID: "t1", DVEID: "dve-1", Title: "x"}
 	err := svc.saveTaskToDB(task)
 	assert.NoError(t, err)
@@ -384,28 +352,8 @@ func TestAgentService_saveTaskToDB_NilDB(t *testing.T) {
 
 func TestAgentService_loadTasksFromDB_NilDB(t *testing.T) {
 	// loadTasksFromDB must be a no-op (not panic) when db is nil.
-	svc := NewAgentService(nil, nil, nil)
+	svc := NewAgentService(nil)
 	err := svc.loadTasksFromDB()
-	assert.NoError(t, err)
-}
-
-// ---------------------------------------------------------------------------
-// StopAgent
-// ---------------------------------------------------------------------------
-
-func TestAgentService_StopAgent_NoAgent(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
-	// Stopping a non-existent agent should be a no-op.
-	err := svc.StopAgent(context.Background(), "dve-ghost")
-	assert.NoError(t, err)
-}
-
-func TestAgentService_StopAgent_AlreadyStopped(t *testing.T) {
-	svc := NewAgentService(nil, nil, nil)
-	dveID := "dve-already-stopped"
-	svc.agents[dveID] = &AgentStatus{DVEID: dveID, Running: false}
-
-	err := svc.StopAgent(context.Background(), dveID)
 	assert.NoError(t, err)
 }
 
@@ -493,63 +441,4 @@ func TestAgentTaskRequest_JSONRoundtrip(t *testing.T) {
 	assert.Equal(t, req.Type, decoded.Type)
 	assert.Equal(t, req.Priority, decoded.Priority)
 	assert.Equal(t, req.Input, decoded.Input)
-}
-
-func TestAgentTaskExecuteTask(t *testing.T) {
-	// Spin up a mock oh-my-pi server that returns a successful task response.
-	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/task" && r.Method == http.MethodPost {
-			resp := ohMyPiTaskResponse{
-				Success:     true,
-				TaskID:      "mock-task-id",
-				Output:      "mock output",
-				MarkdownLog: "# Agent Task: Execute Task\n\nTask completed successfully.",
-			}
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
-			return
-		}
-		http.NotFound(w, r)
-	}))
-	defer mockServer.Close()
-
-	db := newTestDB(t)
-	svc := NewAgentService(db, nil, nil)
-	// Override the fallback URL so executeTask reaches our mock server.
-	svc.apiBaseURL = mockServer.URL
-
-	dveID := "dve-execute"
-	svc.agents[dveID] = &AgentStatus{
-		DVEID:       dveID,
-		ContainerID: "ctr-execute",
-		Running:     true,
-	}
-
-	req := &AgentTaskRequest{
-		Title:       "Execute Task",
-		Description: "Task description",
-		Type:        "validation",
-		Priority:    3,
-	}
-
-	task, err := svc.SubmitTask(dveID, req)
-	require.NoError(t, err)
-	require.NotNil(t, task)
-
-	// Give the goroutine time to complete (mock server responds instantly).
-	time.Sleep(200 * time.Millisecond)
-
-	// Verify task has been updated.
-	updatedTask, err := svc.GetTask(task.ID)
-	require.NoError(t, err)
-	require.NotNil(t, updatedTask)
-
-	// Task should have moved to running or completed.
-	assert.Contains(t, []string{"running", "completed"}, updatedTask.Status)
-
-	// Markdown log should be populated when completed.
-	if updatedTask.Status == "completed" {
-		assert.NotEmpty(t, updatedTask.MarkdownLog)
-		assert.Contains(t, updatedTask.MarkdownLog, "Agent Task: Execute Task")
-	}
 }

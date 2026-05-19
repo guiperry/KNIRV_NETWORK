@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { webSocketService, WS_EVENTS } from '@/lib/websocket-service';
+import { webSocketService } from '@/lib/websocket-service';
 import { API_BASE_URL, getAuthHeaders } from '@/lib/api';
 
 interface Thought {
@@ -64,6 +64,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
   const [isKeyActive, setIsKeyActive] = useState(true);
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -217,132 +218,60 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
     addThought({
       id: generateId(`SYNAPSE_INIT: ${goal}`),
       timestamp: Date.now(),
-      content: `SYNAPSE_INIT: Orchestrating autonomous workflow for goal: "${goal}"`,
+      content: `SYNAPSE_INIT: Dispatching to Neural Engine: "${goal}"`,
       type: 'plan',
     });
 
-    const executeViaCognitiveEngine = async () => {
-      try {
-        addThought({
-          id: generateId(`ROUTING: ${goal}`),
-          timestamp: Date.now(),
-          content: `Dispatching to Cognitive Engine API: "${goal}"`,
-          type: 'observation',
-        });
-        setStatus(AgentStatus.EXECUTING);
-
-        const response = await fetch(`${API_BASE_URL}/api/cognitive-engine`, {
-          method: 'POST',
-          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'make_request',
-            parameters: { message: goal },
-          }),
-        });
-
-        const data = await response.json();
-        
-        if (response.ok && data.message) {
-          addThought({
-            id: generateId(`RESULT: ${data.message}`),
-            timestamp: Date.now(),
-            content: `INFERENCE RESULT: ${data.message}`,
-            type: 'conclusion',
-          });
-        } else {
-          addThought({
-            id: generateId(`ERROR: ${data.error || 'Unknown error'}`),
-            timestamp: Date.now(),
-            content: `ERROR: Cognitive Engine returned - ${data.error || 'Unknown error'}`,
-            type: 'error',
-          });
-        }
-        setStatus(AgentStatus.IDLE);
-      } catch (error) {
-        addThought({
-          id: generateId(`ERROR: ${error}`),
-          timestamp: Date.now(),
-          content: `ERROR: Failed to execute inference - ${error}`,
-          type: 'error',
-        });
-        setStatus(AgentStatus.IDLE);
-      }
-    };
-
-    const executeViaCLI = async () => {
-      try {
-        addThought({
-          id: generateId(`ROUTING: ${goal}`),
-          timestamp: Date.now(),
-          content: `Dispatching to KNIRV CLI Execute: "${goal}"`,
-          type: 'observation',
-        });
-        setStatus(AgentStatus.EXECUTING);
-
-        const response = await fetch(`${API_BASE_URL}/api/v1/shell/execute`, {
-          method: 'POST',
-          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            command: 'inference:execute',
-            goal,
-            context: {},
-          }),
-        });
-
-        const data = await response.json();
-        
-        if (response.ok && data.output) {
-          addThought({
-            id: generateId(`RESULT: ${data.output}`),
-            timestamp: Date.now(),
-            content: `INFERENCE RESULT: ${data.output}`,
-            type: 'conclusion',
-          });
-        } else {
-          addThought({
-            id: generateId(`ERROR: ${data.error || 'Unknown error'}`),
-            timestamp: Date.now(),
-            content: `ERROR: Inference returned - ${data.error || 'Unknown error'}`,
-            type: 'error',
-          });
-        }
-        setStatus(AgentStatus.IDLE);
-      } catch (error) {
-        addThought({
-          id: generateId(`ERROR: ${error}`),
-          timestamp: Date.now(),
-          content: `ERROR: Failed to execute inference - ${error}`,
-          type: 'error',
-        });
-        setStatus(AgentStatus.IDLE);
-      }
-    };
-
-    if (webSocketService.getConnectionStatus()) {
+    try {
       addThought({
         id: generateId(`ROUTING: ${goal}`),
         timestamp: Date.now(),
-        content: `Dispatching to KNIRV Inference Engine: "${goal}"`,
+        content: `Contacting KNIRV Cognitive Engine Chat API...`,
         type: 'observation',
       });
       setStatus(AgentStatus.EXECUTING);
-      webSocketService.send({ type: 'neural_task', payload: { goal } });
-      
-      setTimeout(() => {
-        if (statusRef.current === AgentStatus.EXECUTING) {
-          executeViaCognitiveEngine();
-        }
-      }, 5000);
-    } else {
-      addThought({
-        id: generateId(`OFFLINE: ${goal}`),
-        timestamp: Date.now(),
-        content: `WebSocket not connected — attempting Cognitive Engine fallback...`,
-        type: 'observation',
+
+      const response = await fetch(`${API_BASE_URL}/api/cognitive-engine/chat`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: goal,
+          session_id: sessionId,
+        }),
       });
-      await executeViaCognitiveEngine();
+
+      const data = await response.json();
+
+      if (response.ok && data.response) {
+        // Persist session ID for conversational continuity
+        if (data.session_id) {
+          setSessionId(data.session_id);
+        }
+        addThought({
+          id: generateId(`RESULT: ${goal}`),
+          timestamp: Date.now(),
+          content: data.response,
+          type: 'conclusion',
+        });
+      } else {
+        addThought({
+          id: generateId(`ERROR: ${goal}`),
+          timestamp: Date.now(),
+          content: `ERROR: Cognitive Engine returned - ${data.error || 'Unknown error'}`,
+          type: 'error',
+        });
+      }
+      setStatus(AgentStatus.IDLE);
+    } catch (error) {
+      addThought({
+        id: generateId(`ERROR: ${error}`),
+        timestamp: Date.now(),
+        content: `ERROR: Failed to execute inference - ${error}`,
+        type: 'error',
+      });
+      setStatus(AgentStatus.IDLE);
     }
-  }, [status, addThought]);
+  }, [status, addThought, sessionId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -415,7 +344,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
                         <Loader2 className="animate-spin text-indigo-500 relative" size={28} />
                       </div>
                       <div className="text-center">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-40">Aether Standby</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] opacity-40">Ana Standby</p>
                         <p className="text-[9px] opacity-30 mt-1">Awaiting Heuristic Trigger</p>
                       </div>
                     </div>

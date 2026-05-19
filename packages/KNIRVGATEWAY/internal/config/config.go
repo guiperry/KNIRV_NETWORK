@@ -91,6 +91,9 @@ type Config struct {
 
 	// KNIRVHASHER socket path (headless CLI mode)
 	HasherSocketPath string // /var/run/knirvhasher.sock
+
+	// KNIRVARENA socket path (in-process static bundle server)
+	ArenaSocketPath string // /var/lib/knirvserver/sockets/arena.sock
 }
 
 func Load() (*Config, error) {
@@ -146,6 +149,7 @@ func Load() (*Config, error) {
 		AgentSocketDir:          getEnv("AGENT_SOCKET_DIR", ""),
 		AgentMaxConcurrent:      getEnvInt("AGENT_MAX_CONCURRENT", 32),
 		HasherSocketPath:        getEnv("HASHER_SOCKET_PATH", "/var/run/knirvhasher.sock"),
+		ArenaSocketPath:          getEnv("ARENA_SOCKET_PATH", ""),
 	}
 
 	return cfg, nil

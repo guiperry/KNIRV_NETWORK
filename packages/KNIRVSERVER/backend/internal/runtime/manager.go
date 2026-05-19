@@ -43,9 +43,9 @@ type UnifiedContainerManager struct {
 	assetRegistry   *AssetRegistry
 	cognitiveEngine CognitiveEngineInterface
 	// router callbacks wired by SetRouterFuncs from main.go
-	registerFn   ContainerRegisterFunc
-	unregisterFn ContainerUnregisterFunc
-	containers   map[string]*UnifiedContainer
+	registerFn    ContainerRegisterFunc
+	unregisterFn  ContainerUnregisterFunc
+	containers    map[string]*UnifiedContainer
 	agentPolicies map[string]*ebpf.SecurityPolicy
 	mu            sync.RWMutex
 }
@@ -146,7 +146,7 @@ func (ucm *UnifiedContainerManager) CreateContainer(
 	}
 
 	// Initialize viewport proxy for agent type (provides terminal interface)
-	if objectType == ObjectTypeAgent && spec != nil {
+	if objectType == ObjectTypeAgent {
 		viewportProxy := NewViewportProxyImpl(container, []string{"http", "websocket"})
 		if err := viewportProxy.Start(); err != nil {
 			log.Printf("Warning: Agent viewport proxy failed: %v", err)
@@ -367,7 +367,7 @@ func (ucm *UnifiedContainerManager) buildSpecForObjectType(config *NestedObjectC
 		// knirvagent personal AI assistant container
 		spec.Image = "knirvagent:latest"
 		spec.Command = []string{"/usr/local/bin/knirvagent", "gateway"}
-		
+
 		dveID := ""
 		if config.Metadata != nil {
 			if id, ok := config.Metadata["dve_id"].(string); ok {
@@ -376,15 +376,15 @@ func (ucm *UnifiedContainerManager) buildSpecForObjectType(config *NestedObjectC
 		}
 
 		spec.Environment = map[string]string{
-			"KNIRV_AGENT_MODE":    "gateway",
-			"KNIRV_AGENT_HOME":    "/workspace/knirvagent",
-			"KNIRV_AGENT_PORT":    "8080",
-			"VIEWPORT_PORT":       "8080",
-			"JUPYTER_PORT":        "8888",
-			"LSP_ENABLED":         "true",
-			"HEADLESS_BROWSER":    "true",
-			"DVE_ID":              dveID,
-			"KNIRV_SERVER_URL":    "http://host.docker.internal:8080", // Adjust if needed for different runtimes
+			"KNIRV_AGENT_MODE": "gateway",
+			"KNIRV_AGENT_HOME": "/workspace/knirvagent",
+			"KNIRV_AGENT_PORT": "8080",
+			"VIEWPORT_PORT":    "8080",
+			"JUPYTER_PORT":     "8888",
+			"LSP_ENABLED":      "true",
+			"HEADLESS_BROWSER": "true",
+			"DVE_ID":           dveID,
+			"KNIRV_SERVER_URL": "http://host.docker.internal:8080", // Adjust if needed for different runtimes
 		}
 		spec.Ports = []PortMapping{
 			{ContainerPort: 8080, HostPort: 0, Protocol: "tcp"}, // Agent gateway/viewport

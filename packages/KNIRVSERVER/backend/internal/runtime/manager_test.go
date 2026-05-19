@@ -497,8 +497,8 @@ func TestAgentPoliciesMapInitialized(t *testing.T) {
 	assert.Empty(t, manager.agentPolicies)
 }
 
-func TestOhMyPiAgentPolicyConfig(t *testing.T) {
-	policy := NewOhMyPiAgentPolicyConfig()
+func TestKnirvAgentPolicyConfig(t *testing.T) {
+	policy := NewKnirvAgentPolicyConfig()
 
 	assert.NotNil(t, policy)
 	assert.True(t, policy.AllowNetwork)

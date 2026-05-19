@@ -40,6 +40,7 @@ require (
 	golang.org/x/sys v0.41.0
 	golang.org/x/term v0.40.0
 	google.golang.org/grpc v1.79.1
+	knirvarena v0.0.0-00010101000000-000000000000
 	knirvhasher v0.0.0-00010101000000-000000000000
 	lukechampine.com/blake3 v1.4.1
 )
@@ -221,5 +222,7 @@ require (
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1 // indirect.v3 v3.0.1 // indirect
 )
+
+replace knirvarena => ../pkg/knirvarena
 
 replace backend_server/pkg/knirvagent => ../pkg/knirvagent

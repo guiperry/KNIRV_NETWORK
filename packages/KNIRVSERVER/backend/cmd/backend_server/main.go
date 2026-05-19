@@ -28,6 +28,7 @@ import (
 	"backend_server/internal/reasoning/graph"
 	"backend_server/internal/runtime"
 	nexus "backend_server/internal/server"
+	"backend_server/internal/services"
 	"backend_server/internal/services/active_memory"
 	agentsvc "backend_server/internal/services/agent"
 	transactionchain "backend_server/internal/services/blockchain/transactionchain"
@@ -54,19 +55,18 @@ import (
 	"backend_server/internal/services/session"
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
-	"backend_server/internal/services"
 	"backend_server/internal/services/validation"
 	"backend_server/internal/utils/host"
 
 	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL"
 
+	"backend_server/internal/dvetemplates"
+	badgeSvc "backend_server/internal/services/badge"
 	"backend_server/internal/services/vault"
 	"backend_server/internal/services/websocket"
 	"backend_server/internal/services/workflow"
-	badgeSvc "backend_server/internal/services/badge"
 	"backend_server/internal/storage/mdstorage"
 	"backend_server/internal/storage/pqc"
-	"backend_server/internal/dvetemplates"
 	"backend_server/internal/web"
 	"backend_server/internal/web/middleware"
 
@@ -79,6 +79,7 @@ import (
 	knirvhasher "knirvhasher"
 
 	knirvagent "backend_server/pkg/knirvagent"
+	knirvarena "knirvarena"
 
 	"github.com/apache/arrow/go/v14/arrow/memory"
 	"github.com/gorilla/mux"
@@ -182,6 +183,9 @@ type Server struct {
 
 	// KNIRVHASHER Manager (headless binary subprocess)
 	hasherManager *knirvhasher.Manager
+
+	// KNIRVARENA Manager (in-process static bundle server)
+	arenaManager *knirvarena.Manager
 
 	// Oracle service (root-only — managed via knirvoracle Manager)
 	oracleManager *knirvoracle.Manager
@@ -830,6 +834,10 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 
 	// Markdown Storage Driver
 	appDataDir, _ := getOSAppDataDir()
+	arenaSocketPath := os.Getenv("KNIRV_ARENA_SOCKET_PATH")
+	if arenaSocketPath == "" {
+		arenaSocketPath = filepath.Join(appDataDir, "sockets", "arena.sock")
+	}
 	memoryDir := filepath.Join(appDataDir, "active_memory")
 	if err := os.MkdirAll(memoryDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create active memory directory: %w", err)
@@ -874,16 +882,18 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		// Propagate Cloudflare credentials from root.key to the gateway
 		// so it can establish a Cloudflare Tunnel (cloudflared) on startup.
 		gatewayEnvOverrides := map[string]string{}
-	if rootKeySecrets != nil {
-		if rootKeySecrets.CloudflareApiToken != "" {
-			gatewayEnvOverrides["CLOUDFLARE_API_TOKEN"] = rootKeySecrets.CloudflareApiToken
+		if rootKeySecrets != nil {
+			if rootKeySecrets.CloudflareApiToken != "" {
+				gatewayEnvOverrides["CLOUDFLARE_API_TOKEN"] = rootKeySecrets.CloudflareApiToken
+			}
+			if rootKeySecrets.CloudflareZoneId != "" {
+				gatewayEnvOverrides["CLOUDFLARE_ZONE_ID"] = rootKeySecrets.CloudflareZoneId
+			}
 		}
-		if rootKeySecrets.CloudflareZoneId != "" {
-			gatewayEnvOverrides["CLOUDFLARE_ZONE_ID"] = rootKeySecrets.CloudflareZoneId
-		}
-	}
+		// Propagate arena socket path to the gateway subprocess for /arena proxy
+		gatewayEnvOverrides["ARENA_SOCKET_PATH"] = arenaSocketPath
 
-	gatewayConfig := &knirvgateway.ManagerConfig{
+		gatewayConfig := &knirvgateway.ManagerConfig{
 			BinaryPath:     cfg.Gateway.BinaryPath,
 			SocketPath:     cfg.Gateway.SocketPath,
 			Port:           cfg.Gateway.Port,
@@ -1373,23 +1383,32 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	log.Println("GuardrailManager and PolicyEngine initialized")
 
 	// Initialize Hasher gRPC Server for KNIRVHASHER integration
+	//
+	// IMPORTANT: The gRPC server uses a different socket path than the
+	// headless HTTP server.  The gRPC socket is the one the data-connector
+	// pipeline binary connects to via gRPC; the headless HTTP socket serves
+	// the pipeline run/stop/status API.  They must not overlap.
 	hasherSocketPath := os.Getenv("HASHER_SOCKET_PATH")
 	if hasherSocketPath == "" {
 		hasherSocketPath = dvemanager.DefaultSocketPath
 	}
-	hasherGRPCServer := dvemanager.NewHasherGRPCServer(hasherSocketPath, dbManager)
+	hasherGRPCSocketPath := os.Getenv("HASHER_GRPC_SOCKET_PATH")
+	if hasherGRPCSocketPath == "" {
+		hasherGRPCSocketPath = hasherSocketPath[:len(hasherSocketPath)-len(".sock")] + "-grpc.sock"
+	}
+	hasherGRPCServer := dvemanager.NewHasherGRPCServer(hasherGRPCSocketPath, dbManager)
 	if err := hasherGRPCServer.Start(); err != nil {
 		log.Printf("Warning: Failed to start Hasher gRPC server: %v (hasher integration disabled)", err)
 	} else {
-		log.Printf("Hasher gRPC server started on %s", hasherSocketPath)
+		log.Printf("Hasher gRPC server started on %s (headless HTTP uses %s)", hasherGRPCSocketPath, hasherSocketPath)
 	}
 
 	// Initialize Hasher Client for connecting to external hasher service
-	hasherIntegration := dvemanager.NewHasherIntegration(hasherSocketPath, dbManager, guardrailManager)
+	hasherIntegration := dvemanager.NewHasherIntegration(hasherGRPCSocketPath, dbManager, guardrailManager)
 	if err := hasherIntegration.Connect(context.Background()); err != nil {
-		log.Printf("Warning: Failed to connect to hasher service: %v (hasher validation disabled)", err)
+		log.Printf("Warning: Failed to connect to hasher gRPC service: %v (hasher validation disabled)", err)
 	} else {
-		log.Printf("Hasher client connected to %s", hasherSocketPath)
+		log.Printf("Hasher client connected to gRPC at %s", hasherGRPCSocketPath)
 	}
 
 	// Wire hasher validator into guardrail manager for security validation
@@ -1426,15 +1445,16 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 					stopTimeout = 10 * time.Second
 				}
 				hasherMgrCfg := &knirvhasher.ManagerConfig{
-					BinaryPath:   hasherBinaryPath,
-					SocketPath:   hasherSocketPath,
-					DataPath:     hasherDataPath,
-					HeadlessMode: true,
-					ArxivEnabled: hasherConfig.ArxivEnabled,
-					StartTimeout: startTimeout,
-					StopTimeout:  stopTimeout,
-					Stdout:       logging.NewSubprocessWriter("knirvhasher", os.Stdout),
-					Stderr:       logging.NewSubprocessWriter("knirvhasher", os.Stderr),
+					BinaryPath:     hasherBinaryPath,
+					SocketPath:     hasherSocketPath,
+					GRPCSocketPath: hasherGRPCSocketPath,
+					DataPath:       hasherDataPath,
+					HeadlessMode:   true,
+					ArxivEnabled:   hasherConfig.ArxivEnabled,
+					StartTimeout:   startTimeout,
+					StopTimeout:    stopTimeout,
+					Stdout:         logging.NewSubprocessWriter("knirvhasher", os.Stdout),
+					Stderr:         logging.NewSubprocessWriter("knirvhasher", os.Stderr),
 				}
 				// Propagate hasher env overrides from root.key
 				hasherEnvOverrides := map[string]string{}
@@ -1465,6 +1485,13 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	} else {
 		log.Println("KNIRVHASHER manager disabled via configuration")
 	}
+
+	// Initialize KNIRVARENA in-process static bundle server
+	var arenaManager *knirvarena.Manager
+	arenaMgrConfig := knirvarena.DefaultConfig()
+	arenaMgrConfig.SocketPath = arenaSocketPath
+	arenaManager = knirvarena.NewManager(arenaMgrConfig, logger)
+	logger.Info("KNIRVARENA manager initialized", zap.String("socket", arenaSocketPath))
 
 	// Wire onboarding pipeline trigger to hasher data connector
 	// After a successful onboarding with data ingestion, export the org data
@@ -1555,6 +1582,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		hasherGRPCServer:             hasherGRPCServer,
 		hasherIntegration:            hasherIntegration,
 		hasherManager:                hasherManager,
+		arenaManager:                 arenaManager,
 		transactionChainClient:       transactionChainClient,
 		validationChainClient:        validationChainClient,
 		graphRAGClient:               graphRAGClient,
@@ -2057,7 +2085,16 @@ func (s *Server) setupRoutes() {
 		var hasherStart, hasherStop func() error
 		if s.hasherManager != nil {
 			hasherStart = func() error {
-				return s.hasherManager.Start(context.Background())
+				if s.hasherManager.IsRunning() {
+					// Pipeline is already running — don't restart
+					log.Println("KNIRVHASHER already running, triggering pipeline again")
+					return s.hasherManager.RunPipeline(s.hasherManager.GetConfig().PipelineType)
+				}
+				if err := s.hasherManager.Start(context.Background()); err != nil {
+					return fmt.Errorf("KNIRVHASHER start failed: %w", err)
+				}
+				log.Println("KNIRVHASHER started, triggering data pipeline")
+				return s.hasherManager.RunPipeline(s.hasherManager.GetConfig().PipelineType)
 			}
 			hasherStop = func() error {
 				return s.hasherManager.Stop(context.Background())
@@ -2151,6 +2188,13 @@ func (s *Server) setupRoutes() {
 	systemSettingsHandlers := web.NewSystemSettingsHandlers(s.config)
 	systemSettingsHandlers.RegisterRoutes(s.router, authMiddleware)
 	log.Println("System settings routes configured")
+
+	// Register KNIRVARENA proxy routes (3D game/arena application)
+	if s.arenaManager != nil {
+		arenaProxyHandler := web.NewArenaProxyHandler(s.arenaManager.GetSocketPath(), s.logger)
+		arenaProxyHandler.RegisterRoutes(s.router)
+		log.Println("KNIRVARENA proxy routes configured")
+	}
 
 	// Register oracle routes (root node only — only wired when oracle is active)
 	// NOTE: Oracle routes are now served via external knirvoracle binary
@@ -2389,6 +2433,22 @@ func (s *Server) Start() error {
 		}
 	}
 
+	// Start KNIRVARENA in-process server
+	if s.arenaManager != nil {
+		if err := s.arenaManager.Start(); err != nil {
+			log.Printf("Warning: Failed to start KNIRVARENA: %v", err)
+			logging.EmitModuleLog("knirvarena", "error", fmt.Sprintf("Failed to start: %v", err))
+		} else {
+			if socketPath := s.arenaManager.GetSocketPath(); socketPath != "" {
+				log.Printf("KNIRVARENA started on socket %s", socketPath)
+				logging.EmitModuleLog("knirvarena", "info", fmt.Sprintf("Started on socket %s", socketPath))
+			} else {
+				log.Println("KNIRVARENA started")
+				logging.EmitModuleLog("knirvarena", "info", "Started")
+			}
+		}
+	}
+
 	if s.validationCore != nil {
 		if err := s.validationCore.Start(s.ctx); err != nil {
 			log.Printf("Warning: Failed to start validation core: %v", err)
@@ -2449,6 +2509,8 @@ func (s *Server) Start() error {
 			// Continue - inference service failure shouldn't stop basic server operation
 		} else {
 			log.Println("Inference Service started")
+			s.inferenceService.InitializeChatSessions()
+			log.Println("Chat sessions initialized on inference service")
 		}
 	}
 
@@ -2700,6 +2762,15 @@ func (s *Server) Stop() error {
 			log.Printf("Error stopping KNIRVHASHER manager: %v", err)
 		} else {
 			log.Println("KNIRVHASHER manager stopped")
+		}
+	}
+
+	// Stop KNIRVARENA in-process server
+	if s.arenaManager != nil {
+		if err := s.arenaManager.Stop(); err != nil {
+			log.Printf("Error stopping KNIRVARENA: %v", err)
+		} else {
+			log.Println("KNIRVARENA stopped")
 		}
 	}
 

@@ -1184,7 +1184,7 @@ func (ws *WebSocketService) handleClientMessage(client *Client, msg map[string]i
 		}
 		if goal != "" && ws.inferenceService != nil && ws.inferenceService.IsRunning() {
 			go func() {
-				systemPrompt := "You are Aether, an autonomous reasoning agent operating within the KNIRV distributed network. Analyze the following objective and provide structured reasoning steps."
+				systemPrompt := "You are Ana, the default cognitive engine identity for the KNIRV distributed network. Analyze the following objective and provide structured reasoning steps."
 				result, err := ws.inferenceService.GenerateTextWithContext(
 					ws.ctx, "", goal, systemPrompt,
 				)

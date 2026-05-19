@@ -40,18 +40,19 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	BinaryPath   string
-	SocketPath   string
-	DataPath     string
-	SocketPerm   uint32
-	HeadlessMode bool
-	ArxivEnabled bool
-	PipelineType string
-	StartTimeout time.Duration
-	StopTimeout  time.Duration
-	Stdout       interface{}
-	Stderr       interface{}
-	EnvOverrides map[string]string
+	BinaryPath     string
+	SocketPath     string
+	GRPCSocketPath string // backend gRPC socket the data-connector dials into
+	DataPath       string
+	SocketPerm     uint32
+	HeadlessMode   bool
+	ArxivEnabled   bool
+	PipelineType   string
+	StartTimeout   time.Duration
+	StopTimeout    time.Duration
+	Stdout         interface{}
+	Stderr         interface{}
+	EnvOverrides   map[string]string
 }
 
 type HasherStatus struct {
@@ -155,6 +156,9 @@ func (m *Manager) Start(ctx context.Context) error {
 		fmt.Sprintf("HASHER_SOCKET_PATH=%s", m.socketPath),
 		fmt.Sprintf("HASHER_DATA_PATH=%s", m.config.DataPath),
 	)
+	if m.config.GRPCSocketPath != "" {
+		env = append(env, fmt.Sprintf("HASHER_GRPC_SOCKET_PATH=%s", m.config.GRPCSocketPath))
+	}
 
 	if appDataDir := os.Getenv("KNIRV_APP_DATA_DIR"); appDataDir != "" {
 		env = append(env, fmt.Sprintf("KNIRV_APP_DATA_DIR=%s", appDataDir))
@@ -178,6 +182,11 @@ func (m *Manager) Start(ctx context.Context) error {
 			fmt.Sprintf("--socket-path=%s", m.socketPath),
 			fmt.Sprintf("--socket-perm=%s", socketPerm),
 		)
+	}
+	// Default pipeline: MAPPER mode via Hugging Face API.
+	// Data-connector (CONNECTION source) only runs after full user onboarding.
+	if m.config.PipelineType == "goat" {
+		args = append(args, "-goat")
 	}
 
 	m.cmd = exec.Command(m.config.BinaryPath, args...)
@@ -209,8 +218,11 @@ func (m *Manager) Start(ctx context.Context) error {
 	}
 
 	if m.config.HeadlessMode {
-		m.logger.Info("KNIRVHASHER Unix socket ready, triggering data pipeline")
-		m.triggerPipeline()
+		m.logger.Info("KNIRVHASHER Unix socket ready")
+		// Pipeline is NOT auto-started here.  The user triggers it via the
+		// frontend "Start Training" button, which calls hasherStart → Start()
+		// followed by RunPipeline() on the Manager, which POSTs to the
+		// headless server's /api/v1/pipeline/run endpoint.
 	}
 
 	m.running = true

@@ -41,6 +41,9 @@ SHELL_PKG_BIN := $(SHELL_DIR)/bin/knirvshell
 AGENT_DIR := $(ROOT_DIR)/pkg/knirvagent
 AGENT_SRC_DIR := $(ROOT_DIR)/../KNIRVAGENT
 AGENT_PKG_BIN := $(AGENT_DIR)/bin/knirvagent
+ARENA_DIR := $(ROOT_DIR)/pkg/knirvarena
+ARENA_SRC_DIR := $(ROOT_DIR)/../KNIRVARENA
+ARENA_PKG_BUNDLE := $(ARENA_DIR)/bin/knirvarena.tar.gz
 BUILD_DIR := $(ROOT_DIR)/build
 DIST_DIR := $(ROOT_DIR)/dist
 DEPLOYMENT_DIR := $(ROOT_DIR)/deployment
@@ -84,7 +87,7 @@ YELLOW := \033[1;33m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
-.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean shell-build shell-deps shell-clean agent-build agent-deps agent-clean build-full
+.PHONY: help all clean build test deploy install deps frontend backend binary relink docker os deployer key-encryptor deploy-dev-local ebpf-generate proto kali-docker-image gateway-build gateway-deps gateway-clean graph-build graph-deps graph-clean chain-build chain-deps chain-clean oracle-build oracle-deps oracle-clean hasher-build hasher-deps hasher-clean shell-build shell-deps shell-clean agent-build agent-deps agent-clean arena-build arena-deps arena-clean build-full
 
 # Default target
 all: proto frontend backend binary
@@ -111,7 +114,7 @@ proto: ## Generate protobuf Go code from .proto files
 # Dependency Management
 deps: deps-go deps-node deps-ansible ## Install all dependencies
 
-deps-go: ## Install Go dependencies (backend and standalone submodules)
+deps-go: arena-deps ## Install Go dependencies (backend and standalone submodules)
 	@echo "$(BLUE)Installing Go dependencies...$(NC)"
 	cd $(BACKEND_DIR) && go mod download
 	cd $(BACKEND_DIR) && go mod tidy
@@ -155,7 +158,7 @@ frontend-dev: deps-node ## Start frontend development server
 	cd $(FRONTEND_DIR) && $(NPM_CMD) run dev
 
 # Backend Build (cmd/backend_server only)
-backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build shell-build agent-build embedded-build ## Build complete Go backend service package
+backend: deps-go gateway-build graph-build chain-build oracle-build hasher-build shell-build agent-build arena-build embedded-build ## Build complete Go backend service package
 	@echo "$(BLUE)Building complete backend package binary...$(NC)"
 	@rm -f $(BACKEND_DIR)/backend_server bin/backend_server
 	cd $(BACKEND_DIR) && go build -ldflags "$(LDFLAGS)" -o backend_server ./cmd/backend_server
@@ -194,7 +197,7 @@ key-encryptor: ## Build root_key_encryptor binary
 # main.go embeds: bin/backend_server, config/*, desktop/dist/*, frontend/out/*
 # Module-owned binaries like KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVSHELL, and KNIRVAGENT
 # are embedded and extracted by their pkg modules.
-binary: proto ebpf-generate frontend backend ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVSHELL, and KNIRVAGENT
+binary: proto ebpf-generate frontend backend arena-build ## Build unified binary embedding frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, KNIRVSHELL, KNIRVAGENT, and KNIRVARENA
 	@echo "$(BLUE)Creating unified binary (embeds frontend, desktop, backend, KNIRVGATEWAY, KNIRVGRAPH, KNIRVCHAIN, KNIRVORACLE, KNIRVHASHER, and KNIRVSHELL)...$(NC)"
 	@mkdir -p $(DIST_DIR)
 	@rm -f $(DIST_DIR)/knirv-server
@@ -361,12 +364,13 @@ clean: ## Clean build outputs (preserves node_modules and Go module cache)
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 	rm -rf $(BACKEND_DIR)/bin
 	rm -f bin/backend_server
-	rm -f $(GATEWAY_PKG_BIN) $(GRAPH_PKG_BIN) $(CHAIN_PKG_BIN) $(ORACLE_PKG_BIN) $(HASHER_PKG_BIN) $(SHELL_PKG_BIN) $(AGENT_PKG_BIN)
+	rm -f $(GATEWAY_PKG_BIN) $(GRAPH_PKG_BIN) $(CHAIN_PKG_BIN) $(ORACLE_PKG_BIN) $(HASHER_PKG_BIN) $(SHELL_PKG_BIN) $(AGENT_PKG_BIN) $(ARENA_PKG_BUNDLE)
 	rm -rf $(FRONTEND_DIR)/.next $(FRONTEND_DIR)/out
 	cd $(GATEWAY_DIR) && go clean
 	cd $(HASHER_DIR) && go clean
 	cd $(SHELL_DIR) && go clean
 	cd $(AGENT_DIR) && go clean
+	rm -rf $(ARENA_DIR)/bin
 
 install: binary ## Install binary to system
 	@echo "$(BLUE)Installing binary...$(NC)"
@@ -641,3 +645,21 @@ agent-clean: ## Clean KNIRVAGENT build artifacts
 	@echo "$(BLUE)Cleaning KNIRVAGENT artifacts...$(NC)"
 	rm -f $(AGENT_PKG_BIN)
 	cd $(AGENT_SRC_DIR) && make clean
+
+# KNIRVARENA (Embedded static bundle) targets
+arena-deps: ## Install KNIRVARENA dependencies
+	@echo "$(BLUE)Installing KNIRVARENA dependencies...$(NC)"
+	cd $(ARENA_SRC_DIR) && $(NPM_CMD) install
+
+arena-build: arena-deps ## Build KNIRVARENA dist and bundle into pkg/knirvarena/bin/ (required before binary target)
+	@echo "$(BLUE)Building KNIRVARENA static bundle...$(NC)"
+	cd $(ARENA_SRC_DIR) && $(NPM_CMD) run build
+	@mkdir -p $(ARENA_DIR)/bin
+	@rm -f $(ARENA_PKG_BUNDLE)
+	cd $(ARENA_SRC_DIR)/dist && tar -czf $(ARENA_PKG_BUNDLE) .
+	@echo "$(GREEN)KNIRVARENA bundle built: $(ARENA_PKG_BUNDLE)$(NC)"
+
+arena-clean: ## Clean KNIRVARENA build artifacts
+	@echo "$(BLUE)Cleaning KNIRVARENA artifacts...$(NC)"
+	rm -f $(ARENA_PKG_BUNDLE)
+	cd $(ARENA_SRC_DIR) && rm -rf dist

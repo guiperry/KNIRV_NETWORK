@@ -1072,6 +1072,7 @@ func (app *ServerApp) startBackend() error {
 			fmt.Sprintf("KNIRV_GRAPH_BINARY_DIR=%s", binDir),
 			fmt.Sprintf("KNIRV_ORACLE_BINARY_DIR=%s", binDir),
 			fmt.Sprintf("KNIRV_KNIRVCLI_PATH=%s", filepath.Join(binDir, "knirvshell")),
+			fmt.Sprintf("KNIRV_ARENA_SOCKET_PATH=%s", filepath.Join(appDataDir, "sockets", "arena.sock")),
 		)
 	}
 	if configDir, err := getConfigDir(); err == nil {

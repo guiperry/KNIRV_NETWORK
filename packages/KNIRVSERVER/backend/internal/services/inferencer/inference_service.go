@@ -68,6 +68,8 @@ type InferenceService struct {
 	// Semantic prompt response cache
 	responseCacheMu sync.Mutex
 	responseCache   []cachedResponse
+	// Chat session management
+	chatSessions *ChatSessions
 }
 
 // NewInferenceService creates a new instance of InferenceService.

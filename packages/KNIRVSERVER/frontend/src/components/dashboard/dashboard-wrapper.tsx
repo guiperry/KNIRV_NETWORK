@@ -85,6 +85,11 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
 
   // ── Shared navigation dispatch (used by both URL & postMessage paths) ──
   const applyNavSection = (section: string) => {
+    if (section === 'arena') {
+      // Navigate to the dedicated arena page
+      router.push('/arena');
+      return;
+    }
     if (section === 'admin') {
       setShowAdminAccess(true);
       return;

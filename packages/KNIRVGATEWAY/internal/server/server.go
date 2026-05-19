@@ -436,6 +436,16 @@ func (s *Server) setupRoutes() error {
 		s.logger.Warn("Hasher socket path not configured — /api/knirvhasher/* will not be proxied")
 	}
 
+	// Arena proxy — KNIRVARENA static bundle server via Unix socket
+	if s.config.ArenaSocketPath != "" {
+		arenaProxy := newSocketProxy(s.config.ArenaSocketPath, "http://knirvarena")
+		r.Handle("/arena", arenaProxy)
+		r.PathPrefix("/arena/").Handler(http.StripPrefix("/arena", arenaProxy))
+		s.logger.Info("Arena proxy registered", zap.String("socket", s.config.ArenaSocketPath))
+	} else {
+		s.logger.Warn("Arena socket path not configured — /arena/* will not be proxied")
+	}
+
 	// Agent proxy — KNIRVAGENT per-DVE dynamic socket proxy (Phase 6)
 	if s.config.AgentSocketDir != "" {
 		r.PathPrefix("/api/agent/").Handler(s.dynamicAgentProxy())

@@ -561,81 +561,89 @@ type SessionStats struct {
 func RunContinuousWorkflow(ctx context.Context, config *Config, statsManager *StatsManager) error {
 	fmt.Printf("🔄 Starting Continuous Workflow\n")
 	fmt.Printf("================================\n")
+	var err error
 
-	// 1. Ensure Ollama is running — always required as the fallback for embeddings
-	if err := CheckOrStartOllama(config.OllamaHost, config.OllamaModel); err != nil {
-		fmt.Printf("⚠️  Warning: Failed to ensure Ollama is running: %v\n", err)
-		fmt.Printf("    Cloudflare will be used for embeddings; Ollama fallback unavailable\n")
-	}
-
-	// 2. Try to start OpenCode server as a secondary provider (skip in Goat+Cloudflare mode)
-	if !config.GoatMode || config.CloudflareEndpoint == "" {
-		fmt.Println("🚀 Ensuring OpenCode server is running on port 5500...")
-		if !IsOpenCodeRunning() {
-			go func() {
-				exec.Command("opencode", "serve", "--port", "5500").Start()
-			}()
-			// Give it a moment to start
-			time.Sleep(2 * time.Second)
-		} else {
-			fmt.Println("✅ OpenCode server is already running")
-		}
-	}
-
-	// 3. Smart model selection for Ollama (Embedding)
-	hasEmbedModel, _ := GetOllamaModel(config.OllamaHost, config.OllamaModel)
-	if !hasEmbedModel {
-		fmt.Printf("📥 Embedding model %s not found. Pulling...\n", config.OllamaModel)
-		if err := PullOllamaModel(config.OllamaHost, config.OllamaModel); err != nil {
-			fmt.Printf("⚠️  Warning: Failed to pull embedding model %s: %v\n", config.OllamaModel, err)
-		}
+	// Determine embedding mode
+	useDeterministic := config.EmbeddingBackend == "deterministic"
+	if useDeterministic {
+		fmt.Printf("🧠 Using deterministic local text embedder (Ollama skipped)\n")
+		fmt.Printf("   Ollama and Cloudflare embeddings will be skipped.\n")
 	} else {
-		fmt.Printf("✅ Embedding model %s is ready\n", config.OllamaModel)
-	}
+		// 1. Ensure Ollama is running — always required as the fallback for embeddings
+		if err := CheckOrStartOllama(config.OllamaHost, config.OllamaModel); err != nil {
+			fmt.Printf("⚠️  Warning: Failed to ensure Ollama is running: %v\n", err)
+			fmt.Printf("    Cloudflare will be used for embeddings; Ollama fallback unavailable\n")
+		}
 
-	// 4. Smart model selection for Ollama (Generation)
-	fmt.Printf("🤖 Checking Ollama generation model: %s...\n", config.OllamaGenModel)
-	hasGenModel, err := GetOllamaModel(config.OllamaHost, config.OllamaGenModel)
-	if err != nil {
-		fmt.Printf("⚠️  Warning: Failed to check Ollama models: %v\n", err)
-	}
-
-	if !hasGenModel {
-		fmt.Printf("ℹ️  Model %s not found. Checking for ANY available model...\n", config.OllamaGenModel)
-		availableModels, _ := GetOllamaModels(config.OllamaHost)
-		if len(availableModels) > 0 {
-			// Find a good fallback
-			foundFallback := false
-			for _, m := range availableModels {
-				// Prioritize llama, mistral, or any non-embedding model
-				if !strings.Contains(strings.ToLower(m), "embed") {
-					fmt.Printf("✅ Found fallback model: %s. Using it for generation.\n", m)
-					config.OllamaGenModel = m
-					foundFallback = true
-					break
-				}
+		// 2. Try to start OpenCode server as a secondary provider (skip in Goat+Cloudflare mode)
+		if !config.GoatMode || config.CloudflareEndpoint == "" {
+			fmt.Println("🚀 Ensuring OpenCode server is running on port 5500...")
+			if !IsOpenCodeRunning() {
+				go func() {
+					exec.Command("opencode", "serve", "--port", "5500").Start()
+				}()
+				// Give it a moment to start
+				time.Sleep(2 * time.Second)
+			} else {
+				fmt.Println("✅ OpenCode server is already running")
 			}
-			if !foundFallback {
-				config.OllamaGenModel = availableModels[0]
-				fmt.Printf("✅ Using first available model: %s\n", config.OllamaGenModel)
+		}
+
+		// 3. Smart model selection for Ollama (Embedding)
+		hasEmbedModel, _ := GetOllamaModel(config.OllamaHost, config.OllamaModel)
+		if !hasEmbedModel {
+			fmt.Printf("📥 Embedding model %s not found. Pulling...\n", config.OllamaModel)
+			if err := PullOllamaModel(config.OllamaHost, config.OllamaModel); err != nil {
+				fmt.Printf("⚠️  Warning: Failed to pull embedding model %s: %v\n", config.OllamaModel, err)
 			}
 		} else {
-			// No models at all, must pull if opencode isn't running
-			if !IsOpenCodeRunning() {
-				fmt.Printf("📥 No models found in Ollama and OpenCode not running. Pulling %s...\n", config.OllamaGenModel)
-				if err := PullOllamaModel(config.OllamaHost, config.OllamaGenModel); err != nil {
-					fmt.Printf("❌ Failed to pull model %s: %v\n", config.OllamaGenModel, err)
+			fmt.Printf("✅ Embedding model %s is ready\n", config.OllamaModel)
+		}
+
+		// 4. Smart model selection for Ollama (Generation)
+		fmt.Printf("🤖 Checking Ollama generation model: %s...\n", config.OllamaGenModel)
+		hasGenModel, err := GetOllamaModel(config.OllamaHost, config.OllamaGenModel)
+		if err != nil {
+			fmt.Printf("⚠️  Warning: Failed to check Ollama models: %v\n", err)
+		}
+
+		if !hasGenModel {
+			fmt.Printf("ℹ️  Model %s not found. Checking for ANY available model...\n", config.OllamaGenModel)
+			availableModels, _ := GetOllamaModels(config.OllamaHost)
+			if len(availableModels) > 0 {
+				// Find a good fallback
+				foundFallback := false
+				for _, m := range availableModels {
+					// Prioritize llama, mistral, or any non-embedding model
+					if !strings.Contains(strings.ToLower(m), "embed") {
+						fmt.Printf("✅ Found fallback model: %s. Using it for generation.\n", m)
+						config.OllamaGenModel = m
+						foundFallback = true
+						break
+					}
+				}
+				if !foundFallback {
+					config.OllamaGenModel = availableModels[0]
+					fmt.Printf("✅ Using first available model: %s\n", config.OllamaGenModel)
 				}
 			} else {
-				fmt.Printf("ℹ️  No models in Ollama, but OpenCode is running. Will use OpenCode for generation.\n")
+				// No models at all, must pull if opencode isn't running
+				if !IsOpenCodeRunning() {
+					fmt.Printf("📥 No models found in Ollama and OpenCode not running. Pulling %s...\n", config.OllamaGenModel)
+					if err := PullOllamaModel(config.OllamaHost, config.OllamaGenModel); err != nil {
+						fmt.Printf("❌ Failed to pull model %s: %v\n", config.OllamaGenModel, err)
+					}
+				} else {
+					fmt.Printf("ℹ️  No models in Ollama, but OpenCode is running. Will use OpenCode for generation.\n")
+				}
 			}
+		} else {
+			fmt.Printf("✅ Ollama generation model %s is ready\n", config.OllamaGenModel)
 		}
-	} else {
-		fmt.Printf("✅ Ollama generation model %s is ready\n", config.OllamaGenModel)
-	}
 
-	if config.CloudflareEndpoint != "" {
-		fmt.Printf("☁️  Using Cloudflare embeddings: %s\n", config.CloudflareEndpoint)
+		if config.CloudflareEndpoint != "" {
+			fmt.Printf("☁️  Using Cloudflare embeddings: %s\n", config.CloudflareEndpoint)
+		}
 	}
 
 	// Initialize session stats (cloudflare tracking only)

@@ -33,7 +33,7 @@ func NewNRNPaymentHandlers(client interface {
 }, db *buntdb.DB) *NRNPaymentHandlers {
 	return &NRNPaymentHandlers{
 		transactionChainClient: client,
-		db:                        db,
+		db:                     db,
 	}
 }
 
@@ -46,16 +46,16 @@ type NRNResponse struct {
 }
 
 type TransferNRNRequest struct {
-	SenderID     string  `json:"sender_id"`
-	RecipientID  string  `json:"recipient_id"`
-	Amount       int64   `json:"amount"`
-	IdempotencyKey string  `json:"idempotency_key,omitempty"`
+	SenderID       string `json:"sender_id"`
+	RecipientID    string `json:"recipient_id"`
+	Amount         int64  `json:"amount"`
+	IdempotencyKey string `json:"idempotency_key,omitempty"`
 }
 
 type TransferNRNResponse struct {
-	TxHash   string  `json:"tx_hash"`
-	Status   string  `json:"status"`
-	Amount   int64   `json:"amount"`
+	TxHash    string    `json:"tx_hash"`
+	Status    string    `json:"status"`
+	Amount    int64     `json:"amount"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -142,9 +142,9 @@ func (h *NRNPaymentHandlers) TransferNRN(w http.ResponseWriter, r *http.Request)
 	if existingTx != nil {
 		// Return existing transaction instead of creating a duplicate
 		response := TransferNRNResponse{
-			TxHash:   existingTx.TxHash,
-			Status:   existingTx.Status,
-			Amount:   existingTx.Amount,
+			TxHash:    existingTx.TxHash,
+			Status:    existingTx.Status,
+			Amount:    existingTx.Amount,
 			CreatedAt: existingTx.CreatedAt,
 		}
 		h.sendJSON(w, response, "Transaction already processed (idempotent)", http.StatusOK)
@@ -165,9 +165,9 @@ func (h *NRNPaymentHandlers) TransferNRN(w http.ResponseWriter, r *http.Request)
 	}
 
 	response := TransferNRNResponse{
-		TxHash:   tx.TxHash,
-		Status:   tx.Status,
-		Amount:   tx.Amount,
+		TxHash:    tx.TxHash,
+		Status:    tx.Status,
+		Amount:    tx.Amount,
 		CreatedAt: tx.CreatedAt,
 	}
 	h.sendJSON(w, response, "Transfer completed successfully", http.StatusOK)
@@ -208,7 +208,7 @@ func (h *NRNPaymentHandlers) saveTransactionWithIdempotencyKey(tx *objects.NRNPa
 		_, _, err = btx.Set(
 			"idempotency_key:"+key,
 			string(txData),
-			&buntdb.SetOptions{Expires: true, TTL: expiration.Sub(time.Now())},
+			&buntdb.SetOptions{Expires: true, TTL: time.Until(expiration)},
 		)
 		return err
 	})

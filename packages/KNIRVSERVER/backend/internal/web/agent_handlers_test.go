@@ -40,7 +40,7 @@ func newAgentTestDB(t *testing.T) *database.BuntDBManager {
 func newStartedAgentService(t *testing.T) *agent.AgentService {
 	t.Helper()
 	db := newAgentTestDB(t)
-	svc := agent.NewAgentService(db, nil, nil)
+	svc := agent.NewAgentService(db)
 	require.NoError(t, svc.Start())
 	t.Cleanup(func() { svc.Stop() })
 	return svc

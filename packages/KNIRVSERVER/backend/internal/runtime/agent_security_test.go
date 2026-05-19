@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOhMyPiAgentSyscalls_ContainsEssentialSyscalls(t *testing.T) {
+func TestKnirvAgentSyscalls_ContainsEssentialSyscalls(t *testing.T) {
 	// Verify essential syscalls for agent execution are included
 	essentialSyscalls := map[uint32]string{
 		56:  "clone",
@@ -26,17 +26,17 @@ func TestOhMyPiAgentSyscalls_ContainsEssentialSyscalls(t *testing.T) {
 
 	for syscallID, name := range essentialSyscalls {
 		found := false
-		for _, s := range OhMyPiAgentSyscalls {
+		for _, s := range KnirvAgentSyscalls {
 			if s == syscallID {
 				found = true
 				break
 			}
 		}
-		assert.True(t, found, "Essential syscall %s (%d) should be in OhMyPiAgentSyscalls", name, syscallID)
+		assert.True(t, found, "Essential syscall %s (%d) should be in KnirvAgentSyscalls", name, syscallID)
 	}
 }
 
-func TestOhMyPiAgentPaths_ContainsWorkspacePaths(t *testing.T) {
+func TestKnirvAgentPaths_ContainsWorkspacePaths(t *testing.T) {
 	requiredPaths := []string{
 		"/workspace",
 		"/tmp",
@@ -47,17 +47,17 @@ func TestOhMyPiAgentPaths_ContainsWorkspacePaths(t *testing.T) {
 
 	for _, path := range requiredPaths {
 		found := false
-		for _, p := range OhMyPiAgentPaths {
+		for _, p := range KnirvAgentPaths {
 			if p == path {
 				found = true
 				break
 			}
 		}
-		assert.True(t, found, "Required path %s should be in OhMyPiAgentPaths", path)
+		assert.True(t, found, "Required path %s should be in KnirvAgentPaths", path)
 	}
 }
 
-func TestOhMyPiAgentNetworks_ContainsInternalNetworks(t *testing.T) {
+func TestKnirvAgentNetworks_ContainsInternalNetworks(t *testing.T) {
 	requiredNetworks := []string{
 		"127.0.0.0/8",
 		"10.0.0.0/8",
@@ -66,18 +66,18 @@ func TestOhMyPiAgentNetworks_ContainsInternalNetworks(t *testing.T) {
 
 	for _, network := range requiredNetworks {
 		found := false
-		for _, n := range OhMyPiAgentNetworks {
+		for _, n := range KnirvAgentNetworks {
 			if n == network {
 				found = true
 				break
 			}
 		}
-		assert.True(t, found, "Required network %s should be in OhMyPiAgentNetworks", network)
+		assert.True(t, found, "Required network %s should be in KnirvAgentNetworks", network)
 	}
 }
 
-func TestNewOhMyPiAgentPolicyConfig(t *testing.T) {
-	policy := NewOhMyPiAgentPolicyConfig()
+func TestNewKnirvAgentPolicyConfig(t *testing.T) {
+	policy := NewKnirvAgentPolicyConfig()
 
 	assert.NotNil(t, policy)
 	assert.True(t, policy.AllowNetwork, "Agent should have network access")
@@ -90,21 +90,21 @@ func TestNewOhMyPiAgentPolicyConfig(t *testing.T) {
 	assert.NotEmpty(t, policy.AllowedNetworks, "Agent should have allowed networks")
 }
 
-func TestOhMyPiAgentSyscalls_Length(t *testing.T) {
+func TestKnirvAgentSyscalls_Length(t *testing.T) {
 	// Verify we have a reasonable number of syscalls for agent tools
 	// We need git, python, curl, browser, and LSP server support
-	assert.GreaterOrEqual(t, len(OhMyPiAgentSyscalls), 50,
+	assert.GreaterOrEqual(t, len(KnirvAgentSyscalls), 50,
 		"Should have at least 50 syscalls for comprehensive tool support")
 }
 
-func TestOhMyPiAgentPaths_Length(t *testing.T) {
+func TestKnirvAgentPaths_Length(t *testing.T) {
 	// Verify we have necessary paths for agent operation
-	assert.GreaterOrEqual(t, len(OhMyPiAgentPaths), 10,
+	assert.GreaterOrEqual(t, len(KnirvAgentPaths), 10,
 		"Should have at least 10 allowed paths")
 }
 
-func TestOhMyPiAgentNetworks_Length(t *testing.T) {
+func TestKnirvAgentNetworks_Length(t *testing.T) {
 	// Verify we have internal and loopback networks
-	assert.GreaterOrEqual(t, len(OhMyPiAgentNetworks), 3,
+	assert.GreaterOrEqual(t, len(KnirvAgentNetworks), 3,
 		"Should have at least 3 allowed networks")
 }

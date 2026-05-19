@@ -221,8 +221,15 @@ func (h *InferenceHandlers) PostCognitiveEngine(w http.ResponseWriter, r *http.R
 	case "make_request":
 		if h.inferenceService != nil {
 			if msg, ok := action.Parameters["message"].(string); ok && msg != "" {
-				responseMessage = "Request dispatched to inference engine"
-				_ = msg // actual dispatch handled via WebSocket / inference service
+				// Actually dispatch to the real inference engine
+				systemPrompt := "You are Ana, the default cognitive engine identity for the KNIRV distributed network. Analyze the following objective and provide structured reasoning steps."
+				result, err := h.inferenceService.GenerateTextWithContext(r.Context(), "", msg, systemPrompt)
+				if err != nil {
+					responseMessage = "Inference request failed: " + err.Error()
+					actionErr = err
+				} else {
+					responseMessage = result
+				}
 			} else {
 				responseMessage = "No message parameter provided"
 			}
@@ -293,6 +300,88 @@ func (h *InferenceHandlers) writeErrorResponse(w http.ResponseWriter, message st
 	json.NewEncoder(w).Encode(response)
 }
 
+// HandleChat handles POST /api/cognitive-engine/chat
+// Accepts {message, session_id?} and returns {response, session_id}
+func (h *InferenceHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var req struct {
+		Message   string `json:"message"`
+		SessionID string `json:"session_id,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Invalid request body: " + err.Error(),
+		})
+		return
+	}
+
+	if req.Message == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "message is required",
+		})
+		return
+	}
+
+	if h.inferenceService == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Inference service not available",
+		})
+		return
+	}
+
+	resp, err := h.inferenceService.Chat(r.Context(), inference.ChatRequest{
+		Message:   req.Message,
+		SessionID: req.SessionID,
+	})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":   err.Error(),
+			"message": req.Message,
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(resp)
+}
+
+// HandleClearChatSession handles POST /api/cognitive-engine/chat/clear
+// Accepts {session_id} and clears that session's history
+func (h *InferenceHandlers) HandleClearChatSession(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var req struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	if req.SessionID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "session_id is required",
+		})
+		return
+	}
+
+	h.inferenceService.ClearChatSession(req.SessionID)
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":    true,
+		"message":    "Chat session cleared",
+		"session_id": req.SessionID,
+	})
+}
+
 // RegisterRoutes registers the inference routes with the router
 func (h *InferenceHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.AuthMiddleware) {
 	// Create a subrouter for inference endpoints
@@ -303,6 +392,10 @@ func (h *InferenceHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middle
 
 	// Public routes for monitoring
 	cognitiveRouter.HandleFunc("", h.GetCognitiveEngine).Methods("GET")
+
+	// Chat routes — public so the Neural Desktop can chat without auth in testnet mode
+	cognitiveRouter.HandleFunc("/chat", h.HandleChat).Methods("POST", "OPTIONS")
+	cognitiveRouter.HandleFunc("/chat/clear", h.HandleClearChatSession).Methods("POST", "OPTIONS")
 
 	// Protected routes for actions
 	if authMiddleware != nil {
