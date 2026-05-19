@@ -1,0 +1,58 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "3ec613210ff9",
+  "session_id": "d74021a6-a7bf-4f3d-9cc3-9882341235ef",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-19T04:32:19.486619396Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVARENA/PI_INTEGRATION_REPORT.md",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/SideNavigation.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/dve-list.js",
+    "packages/KNIRVHASHER/pipeline/0_DATA_CONNECTOR/cmd/data-connector/main.go"
+  ],
+  "agent": "Gemini CLI",
+  "model": "gemini-3-flash-preview",
+  "turn_id": "f4e54ec38d1b",
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-19T04:32:19.446882675Z",
+    "agent_lines": 827,
+    "agent_removed": 64,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 33,
+    "total_committed": 827,
+    "total_lines_changed": 924,
+    "agent_percentage": 96.42857142857143,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 341,
+      "user_lines_removed": 33,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/SideNavigation.js": 1,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/dve-list.js": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHASHER/pipeline/0_DATA_CONNECTOR/cmd/data-connector/main.go": 25,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/SideNavigation.js": 1,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/dve-list.js": 22,
+        "packages/KNIRVHASHER/pipeline/0_DATA_CONNECTOR/cmd/data-connector/main.go": 10
+      }
+    }
+  ]
+}
