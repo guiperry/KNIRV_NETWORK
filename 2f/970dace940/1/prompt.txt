@@ -1,0 +1,41 @@
+In the KNIRVSERVER, the initialization sequence does not activate the tunnel because I may be missing a Cloudflare Account credential. Please see the logs: 
+2026/05/19 06:46:10 Created DNS record oracle
+2026/05/19 06:46:10 Cloudflare DNS updated for oracle.knirv.network
+{"level":"info","timestamp":"2026-05-19T06:46:10.998-0400","caller":"knirvoracle/manager.go:227","message":"KNIRVORACLE health check passed","url":"http://unix"}
+2026/05/19 06:46:12 cloudflare GET /user/tokens/verify → 200: {"result":{"id":"b4c9a0ca7258b3705120a2f04146cdb4","status":"active"},"success":true,"errors":[],"messages":[{"code":10000,"message":"This API Token is valid and active","type":null}]}
+2026/05/19 06:46:12 [cloudflare] API token validated
+2026/05/19 06:46:13 cloudflare GET /accounts → 200: {"result":[],"result_info":{"page":1,"per_page":20,"total_pages":0,"count":0,"total_count":0},"success":true,"errors":[],"messages":[]}
+{"level":"warn","ts":1779187573.201763,"caller":"gateway/main.go:108","msg":"Cloudflare Tunnel failed to start — gateway will operate without tunnel","error":"tunnel provisioning failed: list tunnels: no accounts associated with this token"} 
+
+Please confirm the correct way to instantiate these kinds of tunnels using Cloudflare official documentation as needed.
+
+Context: In order to change the env variables in the root.key file, you'll need to add the CLOUFLARE_ACCOUNT parameter to the KNIRVSERVER/backend/cmd/root_key_encryptor/main.go as well as update the KNIRVSERVER/backend/internal/proto/root_key.proto file with the schema update as needed.
+
+Once you make the fix, I'll retrieve the account ID parameter from my Cloudflare account (per your guidance) and produce a new root.key file.
+
+---
+
+Route added successfully
+Type
+
+Published application
+
+Hostname
+
+gateway.knirv.network
+DNS record created
+
+Type:
+
+CNAME
+Name:
+
+gateway.knirv.network
+Points to:
+
+1f7a1f77-a4d4-4426-a52d-55a9c85e9b41.cfargotunnel.com 
+
+Per cloudflare instructions, it says we should use the following to start the tunnel: 
+cloudflared tunnel run --token REDACTED 
+
+Can you add this to the code so that it can make the tunnel connect directly with the tunnel I made (as a fallback during development)...
