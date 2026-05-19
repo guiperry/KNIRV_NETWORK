@@ -1,0 +1,11 @@
+Search the entire codebase at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK for all files related to Cloudflare tunnel provisioning. I need to understand:
+
+1. Where the tunnel is started (the code that produces "Cloudflare Tunnel failed to start" and "tunnel provisioning failed")
+2. Where `cloudflare.New` or `cloudflare.API` is called with the API token
+3. Where `ListTunnels` or similar tunnel listing functions are called
+4. Where the Cloudflare account ID is (or should be) used
+5. How the root key is decrypted and its fields are read (specifically how `CloudflareApiToken` and `CloudflareZoneId` are extracted)
+
+Search broadly - look for "cloudflare", "tunnel", "cf tunnel", "ListTunnels", "account" in Go files.
+
+Return the full file paths, relevant line numbers, and key code snippets for each finding. Be thorough - I need to see every place that touches Cloudflare API/tunnel code.
