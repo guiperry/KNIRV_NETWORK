@@ -1,0 +1,71 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "58ea52901316",
+  "session_id": "353d0b23-cb8a-47df-9aac-23057e83a0c8",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-19T09:34:54.05386756Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs",
+    "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfoInputs.cache",
+    "packages/KNIRVARENA/package-lock.json",
+    "packages/KNIRVGATEWAY/internal/config/config.go",
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVSERVER/Makefile",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/go.mod",
+    "packages/KNIRVSERVER/backend/internal/runtime/agent_security_test.go",
+    "packages/KNIRVSERVER/backend/internal/runtime/manager.go",
+    "packages/KNIRVSERVER/backend/internal/runtime/manager_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/agent/agent_service_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/websocket/websocket_service_test.go",
+    "packages/KNIRVSERVER/backend/internal/web/agent_handlers_test.go",
+    "packages/KNIRVSERVER/backend/internal/web/nrn_payment_handlers.go",
+    "packages/KNIRVSERVER/frontend/renderer.js",
+    "packages/KNIRVSERVER/frontend/src/components/menu/constellation-menu.tsx",
+    "packages/KNIRVSERVER/main.go",
+    "packages/KNIRVSERVER/pkg/knirvarena/client.go",
+    "packages/KNIRVSERVER/pkg/knirvarena/embedded.go",
+    "packages/KNIRVSERVER/pkg/knirvarena/embedded_test.go",
+    "packages/KNIRVSERVER/pkg/knirvarena/go.mod",
+    "packages/KNIRVSERVER/pkg/knirvarena/go.sum",
+    "packages/KNIRVSERVER/pkg/knirvarena/manager.go",
+    "packages/KNIRVSERVER/pkg/knirvarena/manager_test.go",
+    "packages/KNIRVSERVER/pkg/knirvhasher/manager.go"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "11493d1baebe",
+  "token_usage": {
+    "input_tokens": 4,
+    "cache_creation_tokens": 62359,
+    "cache_read_tokens": 58998,
+    "output_tokens": 3981,
+    "api_call_count": 2
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-19T09:34:53.918076952Z",
+    "agent_lines": 1110,
+    "agent_removed": 267,
+    "human_added": 773,
+    "human_modified": 9,
+    "human_removed": 0,
+    "total_committed": 1892,
+    "total_lines_changed": 2334,
+    "agent_percentage": 58.9974293059126,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
