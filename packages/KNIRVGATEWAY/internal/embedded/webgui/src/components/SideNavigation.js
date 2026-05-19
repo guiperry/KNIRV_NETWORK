@@ -89,7 +89,7 @@ const SideNavigation = ({ activePage }) => {
   const handleItemClick = async (id, hasChildren) => {
     if (hasChildren) return toggleSection(id);
 
-    if (id === 'payment-gateway' || id === 'operator-registry' || id === 'tunnel-registry') {
+    if (id === 'payment-gateway' || id === 'operator-registry' || id === 'tunnel-registry' || id === 'dve-list') {
       return handleNavigation(id);
     }
 

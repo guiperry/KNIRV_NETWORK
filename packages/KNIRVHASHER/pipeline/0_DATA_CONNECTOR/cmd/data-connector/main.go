@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	writer "data-connector/internal/writer"
@@ -95,20 +96,34 @@ func exportData(client hasherpb.HasherTrainingServiceClient, w *writer.MDWriter)
 }
 
 func LoadConfig() *Config {
+	cfg := &Config{
+		KNIRVSERVERAddr: "localhost:50051",
+		KNIRVBASE:       KNIRVConfig{DataDir: "./data"},
+		PollInterval:    "1h",
+	}
+
 	data, err := os.ReadFile("config/connector.yaml")
-	if err != nil {
-		// Return default config
-		return &Config{
-			KNIRVSERVERAddr: "localhost:50051",
-			KNIRVBASE:       KNIRVConfig{DataDir: "./data"},
-			PollInterval:    "1h",
+	if err == nil {
+		if err := yaml.Unmarshal(data, cfg); err != nil {
+			log.Printf("Warning: failed to parse config: %v", err)
 		}
 	}
 
-	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		log.Fatalf("parse config: %v", err)
+	// Environment variable overrides
+	if addr := os.Getenv("HASHER_SOCKET_PATH"); addr != "" {
+		// If provided as a raw path, prefix with unix:// for gRPC
+		if !strings.HasPrefix(addr, "unix://") && !strings.HasPrefix(addr, "passthrough://") {
+			cfg.KNIRVSERVERAddr = "unix://" + addr
+		} else {
+			cfg.KNIRVSERVERAddr = addr
+		}
+	} else if addr := os.Getenv("KNIRVSERVER_ADDR"); addr != "" {
+		cfg.KNIRVSERVERAddr = addr
 	}
 
-	return &cfg
+	if dataDir := os.Getenv("KNIRVBASE_DATA_DIR"); dataDir != "" {
+		cfg.KNIRVBASE.DataDir = dataDir
+	}
+
+	return cfg
 }

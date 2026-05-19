@@ -9,9 +9,6 @@ import styles from './dve-list.module.css';
 
 const STATUS_COLORS = {
   online: '#4caf50',
-  offline: '#f44336',
-  maintenance: '#ff9800',
-  error: '#e91e63',
 };
 
 const TEE_ICONS = {
@@ -25,7 +22,7 @@ const TEE_ICONS = {
 export default function DVEList() {
   const { activePage } = useNavigation('dve-list');
   const [searchQuery, setSearchQuery] = useState('');
-  const [nodes, setNodes] = useState([]);
+  const [activeNodes, setActiveNodes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [modal, setModal] = useState({ open: false, title: '', src: '' });
@@ -36,15 +33,15 @@ export default function DVEList() {
     setIsLoading(true);
     setError('');
     try {
-      // Only fetch DVEs that are online (activated programatically or via admin dashboard)
-      const res = await api.get('/api/dve-nodes?status=online');
-      const data = res.data?.data || res.data?.nodes || [];
-      // Double-check: only include nodes that are genuinely online/activated
-      setNodes(Array.isArray(data) ? data.filter(n => n.status === 'online') : []);
+      const res = await api.get('/api/dve-nodes');
+      const raw = res.data;
+      const allNodes = Array.isArray(raw?.data || raw?.nodes || raw) ? (raw?.data || raw?.nodes || raw) : [];
+      // Strict filter: only nodes with status === 'online' are shown
+      setActiveNodes(allNodes.filter(n => n && n.status === 'online'));
     } catch (e) {
       console.error('Failed to fetch DVE nodes:', e);
       setError('Could not load DVE nodes. Ensure KNIRVSERVER backend is running.');
-      setNodes([]);
+      setActiveNodes([]);
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +63,7 @@ export default function DVEList() {
     setModal({ open: false, title: '', src: '' });
   };
 
-  const filtered = nodes.filter((n) =>
+  const filtered = activeNodes.filter((n) =>
     [n.name, n.id, n.status, n.tee_type, n.location]
       .filter(Boolean)
       .join(' ')
@@ -78,14 +75,14 @@ export default function DVEList() {
     <PageLayout activePage={activePage} pageTitle="My DVEs" onSearch={handleSearch}>
       <PageHeader
         title="My DVEs"
-        subtitle={`Your actively accessible Decentralized Verifiable Execution environments — ${nodes.length} available`}
+        subtitle={`${activeNodes.length} actively accessible DVE${activeNodes.length !== 1 ? 's' : ''} — activated by admin`}
         titleColor="#7c4dff"
       />
 
       {/* Stats bar */}
       <div className={styles.statsBar}>
         <div className={styles.statCard}>
-          <span className={styles.statValue}>{nodes.length}</span>
+          <span className={styles.statValue} style={{ color: '#4caf50' }}>{activeNodes.length}</span>
           <span className={styles.statLabel}>Active DVEs</span>
         </div>
         <div className={styles.statCard}>
@@ -99,7 +96,7 @@ export default function DVEList() {
       {isLoading && (
         <div className={styles.centerState}>
           <div className={styles.spinner}></div>
-          <p>Loading DVE nodes...</p>
+          <p>Loading active DVE nodes...</p>
         </div>
       )}
 
@@ -112,16 +109,20 @@ export default function DVEList() {
         </GlassyCard>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — no active DVEs */}
       {!isLoading && !error && filtered.length === 0 && (
         <GlassyCard className={styles.centerState}>
           <div className={styles.emptyIcon}>🖥️</div>
-          <h3>No DVEs found</h3>
-          <p>{searchQuery ? 'No DVEs match your search.' : 'No DVE nodes available. They will appear here once registered.'}</p>
+          <h3>No active DVEs</h3>
+          <p>
+            {searchQuery
+              ? 'No active DVEs match your search.'
+              : 'No DVEs are currently active. An admin needs to activate a DVE from the backend or admin dashboard before it appears here.'}
+          </p>
         </GlassyCard>
       )}
 
-      {/* DVE Grid */}
+      {/* DVE Grid — only active/online nodes */}
       {!isLoading && !error && filtered.length > 0 && (
         <div className={styles.grid}>
           {filtered.map((node) => (
@@ -139,12 +140,12 @@ export default function DVEList() {
                 <span
                   className={styles.statusBadge}
                   style={{
-                    background: `${STATUS_COLORS[node.status] || '#888'}20`,
-                    color: STATUS_COLORS[node.status] || '#888',
-                    borderColor: `${STATUS_COLORS[node.status] || '#888'}40`,
+                    background: '#4caf5020',
+                    color: '#4caf50',
+                    borderColor: '#4caf5040',
                   }}
                 >
-                  {node.status || 'unknown'}
+                  active
                 </span>
               </div>
 
