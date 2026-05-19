@@ -1,0 +1,6 @@
+> I want you to analyze the packages/KNIRVARENA application and then analyze   
+   this documentation on Prime Intellect:                                       
+   https://docs.primeintellect.ai/verifiers/byo-harness                         
+                                                                                
+   Based on this cross reference analysis, I want you to expand upon and add    
+   more detail to the @packages/KNIRVARENA/PI_INTEGRATION_REPORT.md file.
