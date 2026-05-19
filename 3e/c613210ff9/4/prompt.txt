@@ -1,0 +1,18 @@
+I need a comprehensive exploration of the KNIRVARENA packages codebase at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVARENA. 
+
+Please explore thoroughly and return the following information:
+
+1. List all directories and key files under `packages/` (the monorepo packages within KNIRVARENA)
+2. List all directories and key files under `src/`
+3. Read and return the full contents of these specific files that are referenced in the PI integration report:
+   - Any file related to ErrorContextManager (search for it)
+   - Any file related to TournamentController
+   - Any file related to CognitiveEngine
+   - Any file related to LoRAAdapterEngine
+   - Any file related to Verifier or RewardWeights
+   - The package.json at the root
+4. Search for "ErrorContext", "RewardAnchor", "TrainingData", "RewardWeights", "KNIRVGRAPH" across the entire codebase to understand how they connect
+5. Look at the `src/core/` directory structure
+6. Check what's in `inference_integration.md`
+
+Return ALL file contents you find, as I need them for a detailed cross-reference analysis. Be very thorough - read every relevant file completely.
