@@ -170,6 +170,12 @@ func (m *Manager) Start(ctx context.Context) error {
 		env = append(env, "DATAMINER_MODE=production", "ARXIV_ENABLED=true")
 	}
 
+	// When running as root (e.g. via sudo), propagate the original user's Python
+	// site-packages so the data-miner's embedded Python can find en_core_web_sm.
+	if pyPath := sudoUserPythonPath(); pyPath != "" {
+		env = append(env, "PYTHONPATH="+pyPath)
+	}
+
 	for k, v := range m.config.EnvOverrides {
 		env = append(env, fmt.Sprintf("%s=%s", k, v))
 	}
@@ -512,4 +518,29 @@ func isSocketReady(socketPath string) bool {
 	}
 	conn.Close()
 	return true
+}
+
+// sudoUserPythonPath returns the Python user site-packages directory for the
+// original non-root user when knirvserver is launched via sudo. The data-miner
+// binary runs as root but needs to reach user-installed spaCy models (e.g.
+// en_core_web_sm) that live under the invoking user's ~/.local, not /root/.local.
+func sudoUserPythonPath() string {
+	sudoUser := os.Getenv("SUDO_USER")
+	if sudoUser == "" {
+		return ""
+	}
+	out, err := exec.Command("python3", "-c",
+		"import sys; print(f'python{sys.version_info.major}.{sys.version_info.minor}', end='')").Output()
+	if err != nil {
+		return ""
+	}
+	pyVer := strings.TrimSpace(string(out))
+	if pyVer == "" {
+		return ""
+	}
+	userSite := filepath.Join("/home", sudoUser, ".local", "lib", pyVer, "site-packages")
+	if _, err := os.Stat(userSite); err != nil {
+		return ""
+	}
+	return userSite
 }
