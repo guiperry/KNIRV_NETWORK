@@ -3,8 +3,17 @@
   "checkpoint_id": "a17f7f99bb35",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": [
+    "CALIBER_LEARNINGS.md",
+    "arena_investigation.html",
+    "devtools/KNIRVTESTNET/scripts/test-encoder-flight.sh",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/writer/arrow_writer.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/tensor_packer.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/types.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/writer/writer.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/tests/encoder_integration_test.go",
     "packages/KNIRVSERVER/CALIBER_LEARNINGS.md",
     "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts"
   ],
@@ -20,6 +29,12 @@
       "transcript": "/a1/7f7f99bb35/1/full.jsonl",
       "content_hash": "/a1/7f7f99bb35/1/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/a1/7f7f99bb35/2/metadata.json",
+      "transcript": "/a1/7f7f99bb35/2/full.jsonl",
+      "content_hash": "/a1/7f7f99bb35/2/content_hash.txt",
+      "prompt": "/a1/7f7f99bb35/2/prompt.txt"
     }
   ],
   "token_usage": {

@@ -1,0 +1,5 @@
+Analyze the KNIRVSERVER and tell me why the knirvarena is not being started with the server when it starts? or why can I not navigate to localhost:8080/arena to see the knirvarena. The center  orb link of the constellation menu should open the knirvarena, it just opens a smaller version of the HUD inside the main hud in error. Please investigate a fix and propose here. Do not implement any fixes yourself!
+
+---
+
+I need further clarification and confirmation on whether or not the knirvarena is actually being extracted, unzipped, abd initialized correctly at runtime. Add this to you report and draft a new file named arena_investigation.html with the agregation of your discoveries.
