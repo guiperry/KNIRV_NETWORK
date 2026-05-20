@@ -1,0 +1,14 @@
+Explore the KNIRVHASHER directory structure under /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVHASHER/. I need to understand:
+1. The full directory tree (especially pipeline/2_DATA_ENCODER/ and pipeline/1_DATA_MINER/)
+2. Read the full contents of these files:
+   - pipeline/2_DATA_ENCODER/internal/types.go
+   - pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder.go
+   - pipeline/2_DATA_ENCODER/internal/writer/writer.go
+   - pipeline/2_DATA_ENCODER/internal/tensor_packer.go
+   - pipeline/2_DATA_ENCODER/go.mod
+   - pipeline/1_DATA_MINER/internal/writer/arrow_writer.go
+   - pipeline/1_DATA_MINER/internal/app/miner_app.go
+   - pipeline/1_DATA_MINER/go.mod
+   - Any existing test files in pipeline/2_DATA_ENCODER/tests/
+
+Return the FULL contents of each file. Do not summarize or truncate anything.
