@@ -1,0 +1,94 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "a17f7f99bb35",
+  "session_id": "ses_1bde822a2ffeIBui7sH4wslc6c",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-20T01:46:14.054974011Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CALIBER_LEARNINGS.md",
+    "packages/KNIRVARENA/package-lock.json",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/writer/arrow_writer.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/tensor_packer.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/types.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/writer/writer.go",
+    "packages/KNIRVSERVER/CALIBER_LEARNINGS.md",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/__tests__/dashboard-wrapper-access.test.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dashboard-wrapper.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/menu/constellation-menu.tsx",
+    "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "bce45d0298ea",
+  "token_usage": {
+    "input_tokens": 87652,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1402368,
+    "output_tokens": 9208,
+    "api_call_count": 22
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-20T01:46:14.016689625Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 192,
+    "human_removed": 1536,
+    "total_committed": 0,
+    "total_lines_changed": 1779,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 4816,
+      "user_lines_removed": 1728,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "CALIBER_LEARNINGS.md": 5,
+        "arena_investigation.html": 45,
+        "devtools/KNIRVTESTNET/scripts/test-encoder-flight.sh": 40,
+        "knirvhasher_fix.html": 1139,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVARENA/package-lock.json": 2089,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/writer/arrow_writer.go": 30,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder.go": 187,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder_test.go": 419,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/retry.go": 40,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/tensor_packer.go": 18,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/types.go": 6,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/writer/writer.go": 32,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/writer/writer_test.go": 77,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/tests/encoder_integration_test.go": 319,
+        "packages/KNIRVSERVER/CALIBER_LEARNINGS.md": 5,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/frontend/src/components/dashboard/__tests__/dashboard-wrapper-access.test.tsx": 12,
+        "packages/KNIRVSERVER/frontend/src/components/dashboard/dashboard-wrapper.tsx": 1,
+        "packages/KNIRVSERVER/frontend/src/components/menu/__tests__/constellation-menu.test.tsx": 26,
+        "packages/KNIRVSERVER/frontend/src/components/menu/constellation-menu.tsx": 4,
+        "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts": 30
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVARENA/package-lock.json": 1671,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder.go": 17,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/tensor_packer.go": 9,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/types.go": 6,
+        "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/writer/writer.go": 8,
+        "packages/KNIRVSERVER/frontend/src/components/dashboard/dashboard-wrapper.tsx": 1,
+        "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts": 16
+      }
+    }
+  ]
+}

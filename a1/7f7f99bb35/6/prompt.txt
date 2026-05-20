@@ -1,0 +1,8 @@
+Search the KNIRVSERVER codebase (and KNIRVHASHER) to find:
+
+1. How the "train button" triggers the data pipeline - search for "train", "Train", "data-miner", "dataminer", "GOAT", "goat", "knirvhasher" in Go files, HTML files, JS/TS files
+2. Any HTTP handlers or API endpoints that trigger the data pipeline when you click "train"
+3. Any code that spawns or executes the data-miner binary
+4. Any reference to how the data-miner process is launched from KNIRVSERVER
+
+Report back the exact files, line numbers, and code snippets for each finding.

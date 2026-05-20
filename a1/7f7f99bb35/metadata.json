@@ -3,7 +3,7 @@
   "checkpoint_id": "a17f7f99bb35",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 6,
+  "checkpoints_count": 7,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
     "arena_investigation.html",
@@ -63,13 +63,19 @@
       "transcript": "/a1/7f7f99bb35/5/full.jsonl",
       "content_hash": "/a1/7f7f99bb35/5/content_hash.txt",
       "prompt": "/a1/7f7f99bb35/5/prompt.txt"
+    },
+    {
+      "metadata": "/a1/7f7f99bb35/6/metadata.json",
+      "transcript": "/a1/7f7f99bb35/6/full.jsonl",
+      "content_hash": "/a1/7f7f99bb35/6/content_hash.txt",
+      "prompt": "/a1/7f7f99bb35/6/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 60549,
+    "input_tokens": 148201,
     "cache_creation_tokens": 234495,
-    "cache_read_tokens": 821740,
-    "output_tokens": 20543,
-    "api_call_count": 20
+    "cache_read_tokens": 2224108,
+    "output_tokens": 29751,
+    "api_call_count": 42
   }
 }
