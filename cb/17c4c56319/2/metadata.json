@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "cb17c4c56319",
+  "session_id": "9b866df0-6b98-47e2-8ae3-18e4bcf7f3a8",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-20T04:14:07.660222587Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CALIBER_LEARNINGS.md",
+    "packages/KNIRVSERVER/pkg/knirvhasher/manager.go"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "d3854f59328d",
+  "token_usage": {
+    "input_tokens": 5,
+    "cache_creation_tokens": 80115,
+    "cache_read_tokens": 142546,
+    "output_tokens": 9563,
+    "api_call_count": 3
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-20T04:14:07.617460661Z",
+    "agent_lines": 36,
+    "agent_removed": 1,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 36,
+    "total_lines_changed": 38,
+    "agent_percentage": 97.36842105263158,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
