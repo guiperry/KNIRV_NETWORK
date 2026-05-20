@@ -1,6 +1,7 @@
 package writer
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"github.com/apache/arrow/go/v14/arrow/array"
 	"github.com/apache/arrow/go/v14/arrow/ipc"
 	"github.com/apache/arrow/go/v14/arrow/memory"
+	"github.com/knirvcorp/knirvbase/pkg/knirvbase"
 
 	"data-miner/internal/normalizer"
 )
@@ -30,12 +32,18 @@ var securitySchema = arrow.NewSchema([]arrow.Field{
 // ArrowWriter serialises batches of SecurityRecords as Arrow IPC files on disk.
 type ArrowWriter struct {
 	outputDir string
+	knirvColl knirvbase.Collection
 }
 
 // NewArrowWriter returns an ArrowWriter that writes <docID>.arrow files into
 // outputDir, creating the directory if it does not exist.
 func NewArrowWriter(outputDir string) *ArrowWriter {
 	return &ArrowWriter{outputDir: outputDir}
+}
+
+// SetKnirvBaseCollection attaches a KNIRVBASE collection for registration.
+func (w *ArrowWriter) SetKnirvBaseCollection(coll knirvbase.Collection) {
+	w.knirvColl = coll
 }
 
 // WriteBatch encodes records as a single Arrow IPC file named <docID>.arrow.
@@ -64,7 +72,29 @@ func (w *ArrowWriter) WriteBatch(docID string, records []*normalizer.SecurityRec
 	if err := wr.Write(rec); err != nil {
 		return fmt.Errorf("write arrow record: %w", err)
 	}
+
+	if w.knirvColl != nil {
+		_, err := w.knirvColl.Insert(context.Background(), map[string]interface{}{
+			"id":    docID,
+			"ready": true,
+			"payload": map[string]interface{}{
+				"arrow_path":  outPath,
+				"num_records": len(records),
+				"domain_sig":  extractDomainSig(records),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("register in miner_processed: %w", err)
+		}
+	}
 	return nil
+}
+
+func extractDomainSig(records []*normalizer.SecurityRecord) uint32 {
+	if len(records) == 0 {
+		return 0
+	}
+	return uint32(records[0].DomainSig)
 }
 
 func buildSecurityRecord(records []*normalizer.SecurityRecord, mem memory.Allocator) (arrow.Record, error) {

@@ -70,21 +70,35 @@ func main() {
 	log.Println("✅ Encoding Complete. Ready for Evo-GRPO.")
 }
 
-// getAppDataDir returns the application data directory
+// getAppDataDir returns the application data directory.
+// Checks writability by creating the frames subdirectory so downstream
+// code doesn't fail with permission denied on root-owned directories.
 func getAppDataDir() string {
+	candidates := []string{}
 	if appData := os.Getenv("KNIRV_APP_DATA_DIR"); appData != "" {
-		if err := os.MkdirAll(filepath.Join(appData, "hasher", "data"), 0755); err == nil {
-			return filepath.Join(appData, "hasher", "data")
-		}
+		candidates = append(candidates, filepath.Join(appData, "hasher", "data"))
 	}
-	if err := os.MkdirAll("/var/lib/knirvserver/hasher/data", 0755); err == nil {
-		return "/var/lib/knirvserver/hasher/data"
-	}
+	candidates = append(candidates, "/var/lib/knirvserver/hasher/data")
 	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "."
+	if err == nil {
+		candidates = append(candidates,
+			filepath.Join(homeDir, ".local", "share", "knirvserver", "hasher", "data"),
+			filepath.Join(homeDir, ".local", "share", "hasher", "data"),
+		)
 	}
-	return filepath.Join(homeDir, ".local", "share", "knirvserver", "hasher", "data")
+
+	for _, dir := range candidates {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			continue
+		}
+		// Verify writability by creating the frames subdirectory that
+		// will be needed later for output.
+		if err := os.MkdirAll(filepath.Join(dir, "frames"), 0755); err != nil {
+			continue
+		}
+		return dir
+	}
+	return "."
 }
 
 func parseFlags() *Config {

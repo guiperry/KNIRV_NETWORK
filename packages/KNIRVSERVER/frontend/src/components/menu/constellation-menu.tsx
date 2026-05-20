@@ -96,6 +96,10 @@ export default function ConstellationMenu() {
       setSettingsOpen(true)
       return
     }
+    if (section === 'arena') {
+      router.push('/arena')
+      return
+    }
     if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: 'navigate', section }, '*')
     } else {

@@ -100,33 +100,54 @@ export const useDVEManagement = () => {
     }
   }, []);
 
-  // WebSocket connection management
+  // WebSocket connection management — subscribe to real backend events
   const connectWebSocket = useCallback(() => {
     const handleConnection = (data: { connected: boolean }) => {
       setIsConnected(data.connected);
     };
 
-    const handleDVEUpdate = (payload: any) => {
-      setCreations(prev =>
-        prev.map(c => (c.id === payload.id ? { ...c, ...payload } : c))
-      );
+    // The backend broadcasts 'dve-node-updated' and 'dve-node-discovered'
+    // from its periodic health/status sweep. When these arrive it means
+    // something DVE-related changed, so re-fetch our creation list.
+    const handleNodeEvent = () => {
+      fetchCreations();
     };
 
     webSocketService.on('connection', handleConnection);
-    webSocketService.on('dve-updated', handleDVEUpdate);
-    webSocketService.subscribe(['dve-updated']);
+    webSocketService.on('dve-node-updated', handleNodeEvent);
+    webSocketService.on('dve-node-discovered', handleNodeEvent);
+    webSocketService.subscribe(['dve-node-updated', 'dve-node-discovered']);
 
     setIsConnected(webSocketService.getConnectionStatus());
 
     return () => {
       webSocketService.off('connection', handleConnection);
-      webSocketService.off('dve-updated', handleDVEUpdate);
+      webSocketService.off('dve-node-updated', handleNodeEvent);
+      webSocketService.off('dve-node-discovered', handleNodeEvent);
     };
-  }, []);
+  }, [fetchCreations]);
 
   const disconnectWebSocket = useCallback(() => {
     setIsConnected(false);
   }, []);
+
+  // Periodic polling as a fallback — re-fetches every 15 seconds so
+  // background provisioning (pending → active) shows up without
+  // manual "Sync" clicks.  Cancelled on unmount.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchCreations();
+      fetchStats();
+    }, 15_000);
+    return () => clearInterval(interval);
+  }, [fetchCreations, fetchStats]);
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchCreations();
+    fetchStats();
+    return connectWebSocket();
+  }, [fetchCreations, fetchStats, connectWebSocket]);
 
   // Get full access information for a creation
   const getFullAccessInfo = useCallback(async (creationId: string): Promise<DVEAccessInfo | null> => {
@@ -150,13 +171,6 @@ export const useDVEManagement = () => {
       setIsLoading(false);
     }
   }, []);
-
-  // Initial fetch on mount
-  useEffect(() => {
-    fetchCreations();
-    fetchStats();
-    return connectWebSocket();
-  }, [fetchCreations, fetchStats, connectWebSocket]);
 
   return {
     creations,

@@ -87,22 +87,27 @@ func (l *Logger) Info(format string, args ...interface{}) {
 	if l.level <= INFO {
 		l.logger.Printf("[INFO] "+format, args...)
 	}
+	os.Stderr.WriteString(fmt.Sprintf("[INFO] "+format+"\n", args...))
 }
 
 func (l *Logger) Warn(format string, args ...interface{}) {
 	if l.level <= WARN {
 		l.logger.Printf("[WARN] "+format, args...)
 	}
+	os.Stderr.WriteString(fmt.Sprintf("[WARN] "+format+"\n", args...))
 }
 
 func (l *Logger) Error(format string, args ...interface{}) {
 	if l.level <= ERROR {
 		l.logger.Printf("[ERROR] "+format, args...)
 	}
+	os.Stderr.WriteString(fmt.Sprintf("[ERROR] "+format+"\n", args...))
 }
 
 func (l *Logger) Fatal(format string, args ...interface{}) {
-	l.logger.Printf("[FATAL] "+format, args...)
+	msg := fmt.Sprintf("[FATAL] "+format, args...)
+	l.logger.Printf(msg)
+	os.Stderr.WriteString(msg + "\n")
 	os.Exit(1)
 }
 
@@ -110,6 +115,7 @@ func (l *Logger) ProgressBar(current, total int, label string, stats string) {
 	if l.level > INFO {
 		return
 	}
+	os.Stderr.WriteString(fmt.Sprintf("[PROGRESS] %s: %d/%d %s\n", label, current, total, stats))
 
 	percent := float64(current) * 100 / float64(total)
 	filled := int(float64(current) * 20 / float64(total))

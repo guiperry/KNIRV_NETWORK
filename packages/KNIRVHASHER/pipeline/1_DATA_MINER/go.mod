@@ -40,3 +40,5 @@ require (
 )
 
 replace knirvhasher => ../..
+
+replace github.com/am-sokolov/go-spacy => ./spacy

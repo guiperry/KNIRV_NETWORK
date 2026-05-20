@@ -936,6 +936,12 @@ func (dm *DVEManager) UpdateNode(nodeID string, updates map[string]interface{}) 
 	}
 	if status, ok := updates["status"].(string); ok && status != "" {
 		node.Status = status
+		// When bringing a node back online, refresh its heartbeat so the
+		// health-check goroutine (checkNodeHealth, 2-min stale threshold)
+		// doesn't immediately revert it back to "offline".
+		if status == "online" {
+			node.LastHeartbeat = time.Now()
+		}
 	}
 	if location, ok := updates["location"].(string); ok {
 		node.Location = location

@@ -897,7 +897,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
                           {/* 7. KNIRVARENA */}
                           <Card 
                             className="aether-bevel-dark rounded-2xl cursor-pointer aether-bevel-dark-hover transition-interactive"
-                            onClick={() => setShowAdminAccess(true)}
+                            onClick={() => router.push('/arena')}
                           >
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <div className="flex items-center space-x-2">

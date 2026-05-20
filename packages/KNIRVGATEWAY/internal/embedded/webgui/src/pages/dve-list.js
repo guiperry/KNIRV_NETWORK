@@ -23,6 +23,7 @@ export default function DVEList() {
   const { activePage } = useNavigation('dve-list');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeNodes, setActiveNodes] = useState([]);
+  const [allNodes, setAllNodes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [modal, setModal] = useState({ open: false, title: '', src: '' });
@@ -35,20 +36,26 @@ export default function DVEList() {
     try {
       const res = await api.get('/api/dve-nodes');
       const raw = res.data;
-      const allNodes = Array.isArray(raw?.data || raw?.nodes || raw) ? (raw?.data || raw?.nodes || raw) : [];
-      // Strict filter: only nodes with status === 'online' are shown
-      setActiveNodes(allNodes.filter(n => n && n.status === 'online'));
+      const nodes = Array.isArray(raw?.data || raw?.nodes || raw) ? (raw?.data || raw?.nodes || raw) : [];
+      setAllNodes(nodes);
+      // Only show nodes with status === 'online' (active DVEs)
+      setActiveNodes(nodes.filter(n => n && n.status === 'online'));
     } catch (e) {
       console.error('Failed to fetch DVE nodes:', e);
       setError('Could not load DVE nodes. Ensure KNIRVSERVER backend is running.');
       setActiveNodes([]);
+      setAllNodes([]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Fetch on mount and auto-refresh every 10 seconds so newly activated
+  // DVEs appear without a manual page reload.
   useEffect(() => {
     fetchNodes();
+    const interval = setInterval(fetchNodes, 10_000);
+    return () => clearInterval(interval);
   }, []);
 
   const openDVEExplorer = (node) => {
@@ -75,7 +82,7 @@ export default function DVEList() {
     <PageLayout activePage={activePage} pageTitle="My DVEs" onSearch={handleSearch}>
       <PageHeader
         title="My DVEs"
-        subtitle={`${activeNodes.length} actively accessible DVE${activeNodes.length !== 1 ? 's' : ''} — activated by admin`}
+        subtitle={`${activeNodes.length} active DVE${activeNodes.length !== 1 ? 's' : ''} — ${allNodes.length} total registered`}
         titleColor="#7c4dff"
       />
 
@@ -84,6 +91,10 @@ export default function DVEList() {
         <div className={styles.statCard}>
           <span className={styles.statValue} style={{ color: '#4caf50' }}>{activeNodes.length}</span>
           <span className={styles.statLabel}>Active DVEs</span>
+        </div>
+        <div className={styles.statCard}>
+          <span className={styles.statValue} style={{ color: '#7c4dff' }}>{allNodes.length}</span>
+          <span className={styles.statLabel}>Total Registered</span>
         </div>
         <div className={styles.statCard}>
           <button className={styles.refreshBtn} onClick={fetchNodes} title="Refresh">
@@ -109,7 +120,7 @@ export default function DVEList() {
         </GlassyCard>
       )}
 
-      {/* Empty state — no active DVEs */}
+      {/* Empty state — no online DVEs */}
       {!isLoading && !error && filtered.length === 0 && (
         <GlassyCard className={styles.centerState}>
           <div className={styles.emptyIcon}>🖥️</div>
@@ -117,7 +128,9 @@ export default function DVEList() {
           <p>
             {searchQuery
               ? 'No active DVEs match your search.'
-              : 'No DVEs are currently active. An admin needs to activate a DVE from the backend or admin dashboard before it appears here.'}
+              : allNodes.length > 0
+                ? `${allNodes.length} DVE node${allNodes.length !== 1 ? 's' : ''} registered but none are online. Activate a DVE from the KNIRVSERVER backend dashboard to see it here.`
+                : 'No DVEs are registered. Use the KNIRVSERVER dashboard to create a new sovereign DVE.'}
           </p>
         </GlassyCard>
       )}

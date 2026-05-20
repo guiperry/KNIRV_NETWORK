@@ -1,9 +1,13 @@
 package app
 
 import (
+	"fmt"
+	"log"
+	"os/exec"
+	"strings"
+
 	"github.com/am-sokolov/go-spacy"
 	"hash/fnv"
-	"strings"
 )
 
 // NLPBridge handles linguistic metadata extraction
@@ -11,32 +15,57 @@ type NLPBridge struct {
 	nlp *spacy.NLP
 }
 
-// NewNLPBridge initializes the NLP Bridge with a SpaCy model
+// ensureSpacyInstalled attempts to install spacy via pip if not present.
+func ensureSpacyInstalled() {
+	// Quick check — if spacy is already importable, nothing to do.
+	if err := exec.Command("python3", "-c", "import spacy").Run(); err == nil {
+		return
+	}
+	log.Println("📦 spaCy not found — attempting automatic installation...")
+	if err := exec.Command("python3", "-m", "pip", "install", "--quiet", "spacy").Run(); err != nil {
+		log.Printf("⚠️  pip install spacy failed: %v", err)
+		return
+	}
+	log.Println("✅ spaCy installed via pip")
+	if err := exec.Command("python3", "-m", "spacy", "download", "--quiet", "en_core_web_sm").Run(); err != nil {
+		log.Printf("⚠️  spacy model download failed: %v", err)
+		return
+	}
+	log.Println("✅ en_core_web_sm model downloaded")
+}
+
+// NewNLPBridge initializes the NLP Bridge with a SpaCy model.
+// If SpaCy is not installed it will attempt to install it automatically.
 func NewNLPBridge() (bridge *NLPBridge, err error) {
-	// Using the small model as it's fastest and sufficient for POS/Dep
-	nlp, nlpErr := spacy.NewNLP("en_core_web_sm")
-	if nlpErr != nil {
-		return nil, nlpErr
-	}
-
-	// Test the NLP bridge with a simple text to ensure it works
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				// If the test crashes, close the nlp and set error
-				nlp.Close()
-				err = nlpErr
+	// If the first attempt fails, try to auto-install and retry once.
+	for attempt := 0; attempt < 2; attempt++ {
+		nlp, nlpErr := spacy.NewNLP("en_core_web_sm")
+		if nlpErr == nil {
+			// Quick health check
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						nlp.Close()
+						err = fmt.Errorf("spacy health check panicked: %v", r)
+					}
+				}()
+				_ = nlp.Tokenize("test")
+			}()
+			if err == nil {
+				return &NLPBridge{nlp: nlp}, nil
 			}
-		}()
-		// Quick health check
-		_ = nlp.Tokenize("test")
-	}()
+			nlp.Close()
+			return nil, err
+		}
 
-	if err != nil {
-		return nil, err
+		// First attempt failed — auto-install and retry
+		if attempt == 0 {
+			ensureSpacyInstalled()
+		} else {
+			return nil, nlpErr
+		}
 	}
-
-	return &NLPBridge{nlp: nlp}, nil
+	return nil, fmt.Errorf("failed to initialize spacy after auto-install attempt")
 }
 
 // Close releases SpaCy resources

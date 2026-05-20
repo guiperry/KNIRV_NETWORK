@@ -37,20 +37,20 @@ type NeuralFrame struct {
 
 // SecurityRecord represents a security domain record from the arrow batch.
 type SecurityRecord struct {
+	FileName  string
+	ChunkID   int32
 	DomainSig uint32
 }
 
 // ToSlotVector converts a SecurityRecord to a SlotVector.
 func (sr *SecurityRecord) ToSlotVector() *SlotVector {
-	// Create a SlotVector with the DomainSig in slot 10 (security domain slot)
 	sv := &SlotVector{}
 	sv.slots[10] = sr.DomainSig
-	// Set other slots to zero or default values
 	return sv
 }
 
-// slotsToProjections converts Slots 0-3 to a 32-byte projection array.
-func slotsToProjections(slots []uint32) []byte {
+// SlotsToProjections converts Slots 0-3 to a 32-byte projection array.
+func SlotsToProjections(slots []uint32) []byte {
 	if len(slots) < 4 {
 		// Pad with zeros if insufficient slots
 		padded := make([]uint32, 4)
@@ -74,8 +74,8 @@ func slotsToProjections(slots []uint32) []byte {
 	return result
 }
 
-// slots6to8 extracts Slots 6-8 and converts them to an 18-byte context memory.
-func slots6to8(slots []uint32) []byte {
+// Slots6to8 extracts Slots 6-8 and converts them to an 18-byte context memory.
+func Slots6to8(slots []uint32) []byte {
 	if len(slots) < 3 {
 		// Pad with zeros if insufficient slots
 		padded := make([]uint32, 3)

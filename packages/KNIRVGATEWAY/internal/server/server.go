@@ -570,7 +570,7 @@ func (s *Server) setupRoutes() error {
 	// index.html (the SPA shell) so client-side routing can render the page.
 	webguiPages := []string{
 		// Quick Access
-		"controller-status", "qr-connect", "payment-gateway",
+		"controller-status", "qr-connect", "payment-gateway", "dve-list",
 		// Monitor
 		"network-monitor", "graph-explorer",
 		"chain-explorer", "chain-explorer-new", "oracle-explorer",

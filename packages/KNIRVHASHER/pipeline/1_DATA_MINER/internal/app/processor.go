@@ -1507,8 +1507,27 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider embedder.E
 		defer nlpBridge.Close()
 	}
 
-	// Hugging Face Datasets Server API URL
-	offset := 0
+	// ── Checkpoint system ──────────────────────────────────────────────
+	// Tracks which records have been processed so each pipeline run
+	// advances to new data instead of re-processing the same 100 rows.
+	type GoatCheckpoint struct {
+		LastOffset    int               `json:"last_offset"`
+		ProcessedIDs  map[string]bool   `json:"processed_ids"`
+		TotalProcessed int              `json:"total_processed"`
+	}
+	checkpointPath := strings.TrimSuffix(config.OutputFile, ".json") + "_goat_checkpoint.json"
+	cp := &GoatCheckpoint{
+		LastOffset:   0,
+		ProcessedIDs: make(map[string]bool),
+	}
+	if data, err := os.ReadFile(checkpointPath); err == nil {
+		json.Unmarshal(data, cp)
+		fmt.Printf("📋 Resumed from checkpoint: last_offset=%d, %d records already processed\n",
+			cp.LastOffset, len(cp.ProcessedIDs))
+	}
+
+	// Determine the fetch range — advance past what we already processed
+	offset := cp.LastOffset
 	length := 100
 
 	hfURL := fmt.Sprintf("https://datasets-server.huggingface.co/rows?dataset=stallone%%2Fgoat&config=completion&split=train&offset=%d&length=%d", offset, length)
@@ -1542,6 +1561,37 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider embedder.E
 
 	fmt.Printf("📊 Received %d rows from GOAT dataset\n", len(hfResponse.Rows))
 
+	// Filter out already-processed records
+	type pendingRow struct {
+		row struct {
+			Input  string `json:"input"`
+			Output string `json:"output"`
+			DocID  string `json:"doc_id"`
+		}
+		index int
+	}
+	var pending []pendingRow
+	skipped := 0
+	for i, hfRow := range hfResponse.Rows {
+		if cp.ProcessedIDs[hfRow.Row.DocID] {
+			skipped++
+			continue
+		}
+		pending = append(pending, pendingRow{row: hfRow.Row, index: i})
+	}
+	if skipped > 0 {
+		fmt.Printf("⏭️  Skipped %d already-processed records, %d new records to process\n", skipped, len(pending))
+	}
+	if len(pending) == 0 {
+		fmt.Printf("✅ All %d records in this batch already processed. Advancing offset to %d.\n",
+			len(hfResponse.Rows), offset+length)
+		cp.LastOffset = offset + length
+		if data, err := json.Marshal(cp); err == nil {
+			os.WriteFile(checkpointPath, data, 0644)
+		}
+		return 0, 0, nil
+	}
+
 	// Create JSON output file
 	alpacaJsonPath := strings.TrimSuffix(config.OutputFile, ".json") + "_goat_alpaca.json"
 	fmt.Printf("📝 Creating GOAT Alpaca JSON output: %s\n", alpacaJsonPath)
@@ -1562,15 +1612,15 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider embedder.E
 	recordsProcessed := 0
 	firstRecord := true
 
-	for i, hfRow := range hfResponse.Rows {
+	for i, p := range pending {
 		select {
 		case <-ctx.Done():
 			return recordsProcessed, totalEmbeddingsGenerated, ctx.Err()
 		default:
 		}
 
-		row := hfRow.Row
-		fmt.Printf("🔢 Processing record %d/%d (ID: %s)\n", i+1, len(hfResponse.Rows), row.DocID)
+		row := p.row
+		fmt.Printf("🔢 Processing record %d/%d (ID: %s)\n", i+1, len(pending), row.DocID)
 
 		// Map to Alpaca structure
 		alpaca := &AlpacaRecord{
@@ -1629,6 +1679,13 @@ func RunGoatMiningPhase(ctx context.Context, config *Config, provider embedder.E
 
 		totalEmbeddingsGenerated++
 		recordsProcessed++
+
+		// Mark as processed in checkpoint and save
+		cp.ProcessedIDs[row.DocID] = true
+		cp.LastOffset = offset + p.index + 1
+		if data, err := json.Marshal(cp); err == nil {
+			os.WriteFile(checkpointPath, data, 0644)
+		}
 
 		// Sync quota (only for hybrid provider)
 		if hp, ok := provider.(*embedder.HybridEmbeddingProvider); ok {

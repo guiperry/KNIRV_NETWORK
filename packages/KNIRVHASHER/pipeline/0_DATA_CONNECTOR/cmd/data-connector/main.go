@@ -110,7 +110,7 @@ func LoadConfig() *Config {
 	}
 
 	// Environment variable overrides
-	if addr := os.Getenv("HASHER_SOCKET_PATH"); addr != "" {
+	if addr := os.Getenv("HASHER_GRPC_SOCKET_PATH"); addr != "" {
 		// If provided as a raw path, prefix with unix:// for gRPC
 		if !strings.HasPrefix(addr, "unix://") && !strings.HasPrefix(addr, "passthrough://") {
 			cfg.KNIRVSERVERAddr = "unix://" + addr
@@ -123,6 +123,8 @@ func LoadConfig() *Config {
 
 	if dataDir := os.Getenv("KNIRVBASE_DATA_DIR"); dataDir != "" {
 		cfg.KNIRVBASE.DataDir = dataDir
+	} else if appDataDir := os.Getenv("KNIRV_APP_DATA_DIR"); appDataDir != "" {
+		cfg.KNIRVBASE.DataDir = appDataDir + "/knirvbase"
 	}
 
 	return cfg

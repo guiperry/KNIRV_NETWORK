@@ -555,7 +555,19 @@ int spacy_init(const char* model_name) {
                 PyObject* path = PyObject_GetAttrString(sys, "path");
                 if (path) {
                     PyList_Append(path, PyUnicode_FromString("."));
-                    PyList_Append(path, PyUnicode_FromString("./.venv/lib/python3.12/site-packages"));
+                    // Add user site-packages so user-installed spacy is found
+                    PyObject* site = PyImport_ImportModule("site");
+                    if (site) {
+                        PyObject* userSite = PyObject_CallMethod(site, "getusersitepackages", NULL);
+                        if (userSite) {
+                            PyList_Append(path, userSite);
+                            // Also use addsitedir to process .pth files (handles deps)
+                            PyObject* result = PyObject_CallMethod(site, "addsitedir", "O", userSite);
+                            Py_XDECREF(result);
+                            Py_DECREF(userSite);
+                        }
+                        Py_DECREF(site);
+                    }
                     Py_DECREF(path);
                 }
                 Py_DECREF(sys);

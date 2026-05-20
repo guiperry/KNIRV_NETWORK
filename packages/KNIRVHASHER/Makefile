@@ -347,7 +347,8 @@ build-data-miner:
 build-data-encoder:
 	@echo "🔨 Building data-encoder from 2_DATA_ENCODER..."
 	@mkdir -p $(EMBED_DIR)
-	cd $(PIPELINE_DIR)/2_DATA_ENCODER && $(MAKE) build BIN_DIR=../../$(EMBED_DIR)
+	cd $(PIPELINE_DIR)/2_DATA_ENCODER && $(MAKE) build
+	@cp $(PIPELINE_DIR)/2_DATA_ENCODER/bin/data-encoder $(EMBED_DIR)/data-encoder
 	@echo "✅ Built: $(EMBED_DIR)/data-encoder"
 
 ## build-data-trainer: Build data trainer pipeline binary
@@ -355,7 +356,8 @@ build-data-trainer:
 	@echo "🔨 Building data-trainer from 3_DATA_TRAINER..."
 	@mkdir -p $(EMBED_DIR)
 	cd $(PIPELINE_DIR)/3_DATA_TRAINER && go build -ldflags "-s -w" -o ../../$(EMBED_DIR)/data-trainer ./cmd/data-trainer
-	@echo "✅ Built: $(EMBED_DIR)/data-trainer"
+	@cp pkg/hashing/methods/cuda/libcuda_hash.so $(EMBED_DIR)/libcuda_hash.so
+	@echo "✅ Built: $(EMBED_DIR)/data-trainer (+ libcuda_hash.so)"
 
 ## build-pipeline-all: Build all pipeline binaries
 build-pipeline-all: build-data-connector build-data-miner build-data-encoder build-data-trainer
