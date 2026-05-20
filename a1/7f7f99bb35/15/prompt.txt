@@ -1,0 +1,9 @@
+Explore the KNIRVHASHER pipeline structure thoroughly. I need to understand:
+
+1. The directory structure of `packages/KNIRVHASHER/` recursively (all files)
+2. The contents of all Go files in `packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/` recursively
+3. The contents of `packages/KNIRVHASHER/pipeline/1_DATA_MINER/` to understand the predecessor stage
+4. Any shared components or base types used across pipeline stages
+5. The TensorPacker and NRVKnowledgeBase implementations
+
+Return all file contents and directory listings so I can build a comprehensive implementation plan.
