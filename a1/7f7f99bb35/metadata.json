@@ -3,7 +3,7 @@
   "checkpoint_id": "a17f7f99bb35",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 15,
+  "checkpoints_count": 16,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
     "arena_investigation.html",
@@ -18,9 +18,12 @@
     "packages/KNIRVHASHER/pipeline/1_DATA_MINER/spacy/cpp/spacy_wrapper.cpp",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/cmd/data-encoder/main.go",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder_test.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/retry.go",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/tensor_packer.go",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/types.go",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/writer/writer.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/writer/writer_test.go",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/tests/encoder_integration_test.go",
     "packages/KNIRVSERVER/CALIBER_LEARNINGS.md",
     "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go",
@@ -102,13 +105,19 @@
       "transcript": "/a1/7f7f99bb35/11/full.jsonl",
       "content_hash": "/a1/7f7f99bb35/11/content_hash.txt",
       "prompt": "/a1/7f7f99bb35/11/prompt.txt"
+    },
+    {
+      "metadata": "/a1/7f7f99bb35/12/metadata.json",
+      "transcript": "/a1/7f7f99bb35/12/full.jsonl",
+      "content_hash": "/a1/7f7f99bb35/12/content_hash.txt",
+      "prompt": "/a1/7f7f99bb35/12/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 687609,
+    "input_tokens": 810798,
     "cache_creation_tokens": 234495,
-    "cache_read_tokens": 19095020,
-    "output_tokens": 88549,
-    "api_call_count": 223
+    "cache_read_tokens": 24121964,
+    "output_tokens": 107766,
+    "api_call_count": 268
   }
 }

@@ -1,0 +1,71 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "a17f7f99bb35",
+  "session_id": "ses_1be43626fffen0q9wUmIcF7w6r",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-20T01:46:25.942548936Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CALIBER_LEARNINGS.md",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/writer/arrow_writer.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder_test.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/retry.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/tensor_packer.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/types.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/writer/writer.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/writer/writer_test.go",
+    "packages/KNIRVSERVER/CALIBER_LEARNINGS.md",
+    "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "e4097fc7ca6a",
+  "token_usage": {
+    "input_tokens": 123189,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 5026944,
+    "output_tokens": 19217,
+    "api_call_count": 45
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-20T01:46:25.504303867Z",
+    "agent_lines": 793,
+    "agent_removed": 40,
+    "human_added": 2711,
+    "human_modified": 16,
+    "human_removed": 0,
+    "total_committed": 3520,
+    "total_lines_changed": 5282,
+    "agent_percentage": 15.77054146156759,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1471,
+      "user_lines_removed": 16,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "CALIBER_LEARNINGS.md": 5,
+        "knirvhasher_fix.html": 1139,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/CALIBER_LEARNINGS.md": 5,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts": 30
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts": 16
+      }
+    }
+  ]
+}
