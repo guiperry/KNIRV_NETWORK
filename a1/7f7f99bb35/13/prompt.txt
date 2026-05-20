@@ -1,0 +1,10 @@
+Search the KNIRV codebase for any existing patterns related to:
+1. Readiness probes, health checks, or wait mechanisms for database/collection readiness
+2. Exponential backoff or retry patterns (look for "backoff", "retry", "Retry", "Backoff")
+3. Pipeline synchronization or handshake mechanisms between stages
+4. Collection metadata or atomic signals ("ready" flags, metadata, signals)
+5. Any Apache Flight or gRPC streaming client code
+
+Search in packages/KNIRVCHAIN, packages/KNIRVSERVER, packages/KNIRVGATEWAY, devtools/KNIRVSYNC, and integration-tests.
+
+Return any relevant code snippets, patterns, or examples found.
