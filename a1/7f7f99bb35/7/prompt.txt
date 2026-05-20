@@ -1,0 +1,7 @@
+Search the KNIRVSERVER codebase for:
+1. Any references to "NLP Bridge" or "nlp_bridge" or "spacy" or "en_core_web_sm"
+2. Any Python files that import spacy
+3. Any Go files that reference spacy or NLP Bridge
+4. Any requirements.txt or setup files that list spacy as a dependency
+
+Report back: the exact file paths, line numbers, and relevant code snippets for each finding. Also look for any Dockerfile or Docker-related files that might need to install spacy.
