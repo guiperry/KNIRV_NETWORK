@@ -1,0 +1,45 @@
+DRaft all of the following into a comprehensive implementation plan file named knirvhasher_fix.html:
+
+Based on the analysis of
+  packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder.go and its
+  associated components, the knirvhasher pipeline is likely stalling during the encoder phase
+  due to the incomplete implementation of the data ingestion mechanism.
+
+  Root Cause Analysis
+
+   1. Unimplemented Data Ingestion: The NRVEncoder.Run() method in nrv_encoder.go contains a
+      prominent TODO comment indicating that the Apache Flight stream reading from the
+      KNIRVBASE miner_processed collection has not been implemented. Attempting to call
+      e.db.Collection("miner_processed").FlightStream(ctx) likely triggers an unhandled state,
+      timeout, or a blocking synchronization primitive waiting for a stream that never
+      initializes.
+   2. Potential Dependency Issues: The TensorPacker and NRVKnowledgeBase (initialized within
+      NewTensorPacker) might be awaiting external data or index synchronization that is not
+      ready because the preceding pipeline stages (1_DATA_MINER) haven't successfully signaled
+      the availability of the .arrow files to the miner_processed collection.
+   3. Resource Contention: Given that all pipeline stages share a single KNIRVBASE database
+      instance, a deadlock or contention issue may arise if the encoder attempts to lock the
+      miner_processed collection while the miner is still writing to it, especially if the
+      locking mechanism is not robust or if the flight stream initialization holds a
+      persistent lock.
+
+  Proposed Fixes
+
+
+⚠  Hook(s) [entire-after-agent] failed for event AfterAgent. Press F12 to see the debug drawer
+   for more details.
+   1. Implement Apache Flight Stream Handling: Complete the NRVEncoder.Run() method by
+      implementing the Flight stream client-side logic. Ensure it utilizes proper error
+      handling, context cancellation, and streaming record batch reading to avoid blocking or
+      stalling on an empty/uninitialized stream.
+   2. Add Readiness Probes/Checks: Introduce a health check or wait mechanism for the
+      miner_processed collection before the encoder attempts to open the stream. The encoder
+      should verify the presence and readiness of data before initiating the resource-heavy
+      MMap and encoding processes.
+   3. Implement Exponential Backoff/Retry: If the miner_processed collection is not ready,
+      implement an exponential backoff retry mechanism for the stream connection to prevent
+      the encoder from aggressively blocking or crashing the pipeline.
+   4. Refactor Pipeline Synchronization: Enhance the handshake between 1_DATA_MINER and
+      2_DATA_ENCODER. Ensure that the KNIRVBASE collection provides an atomic signal (e.g., a
+      "ready" flag in the collection metadata) only once the .arrow files are successfully
+      written and available for memory-mapping by the encoder.

@@ -1,0 +1,63 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "a17f7f99bb35",
+  "session_id": "ses_1be60201effeHKz44Fxztz8iEE",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-20T01:46:29.346243973Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CALIBER_LEARNINGS.md",
+    "knirvhasher_fix.html",
+    "packages/KNIRVSERVER/CALIBER_LEARNINGS.md",
+    "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "aef5835405b9",
+  "token_usage": {
+    "input_tokens": 109403,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 514944,
+    "output_tokens": 14849,
+    "api_call_count": 8
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-20T01:46:29.295411348Z",
+    "agent_lines": 1123,
+    "agent_removed": 0,
+    "human_added": 3520,
+    "human_modified": 16,
+    "human_removed": 0,
+    "total_committed": 4659,
+    "total_lines_changed": 6421,
+    "agent_percentage": 17.489487618750974,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 332,
+      "user_lines_removed": 16,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "CALIBER_LEARNINGS.md": 5,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/CALIBER_LEARNINGS.md": 5,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts": 30
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts": 16
+      }
+    }
+  ]
+}
