@@ -3,18 +3,28 @@
   "checkpoint_id": "a17f7f99bb35",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 5,
+  "checkpoints_count": 6,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
     "arena_investigation.html",
     "devtools/KNIRVTESTNET/scripts/test-encoder-flight.sh",
+    "packages/KNIRVARENA/package-lock.json",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/dve-list.js",
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/go.mod",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/go.sum",
     "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/writer/arrow_writer.go",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/spacy/cpp/spacy_wrapper.cpp",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/encoder/nrv_encoder.go",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/tensor_packer.go",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/types.go",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/internal/writer/writer.go",
     "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/tests/encoder_integration_test.go",
     "packages/KNIRVSERVER/CALIBER_LEARNINGS.md",
+    "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/__tests__/dashboard-wrapper-access.test.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dashboard-wrapper.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/menu/constellation-menu.tsx",
     "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts"
   ],
   "sessions": [
@@ -47,13 +57,19 @@
       "transcript": "/a1/7f7f99bb35/4/full.jsonl",
       "content_hash": "/a1/7f7f99bb35/4/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/a1/7f7f99bb35/5/metadata.json",
+      "transcript": "/a1/7f7f99bb35/5/full.jsonl",
+      "content_hash": "/a1/7f7f99bb35/5/content_hash.txt",
+      "prompt": "/a1/7f7f99bb35/5/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 15,
+    "input_tokens": 60549,
     "cache_creation_tokens": 234495,
-    "cache_read_tokens": 325484,
-    "output_tokens": 14625,
-    "api_call_count": 7
+    "cache_read_tokens": 821740,
+    "output_tokens": 20543,
+    "api_call_count": 20
   }
 }

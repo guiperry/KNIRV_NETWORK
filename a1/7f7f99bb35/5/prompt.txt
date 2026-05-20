@@ -1,0 +1,13 @@
+The data-encoder pipeline stage is failing with exit status 1. The log shows "[data-encoder] [stderr] 2026/05/19 17:51:53 📁 Input file type: ai_knowledge_base.json (json)" then "Pipeline error: data-encoder failed: exit status 1". 
+
+I need to find the data-encoder source code and understand what could cause it to fail. Specifically:
+
+1. Find the data-encoder's main entry point (likely in packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/)
+2. Read the full main.go and any relevant source files that handle JSON input files
+3. Look for how it reads ai_knowledge_base.json - what format does it expect?
+4. Check if the error could be related to the file format, missing data, or an unhandled error
+5. Look at the Makefile to see how data-encoder is built and what flags it uses
+
+Also check if there's additional error output that might be hidden. The exit status 1 error message is generic - there might be more specific errors that came before it but weren't captured. Look at the full log output pattern and error handling.
+
+Report back the full source code of the data-encoder entry point and any error handling paths.
