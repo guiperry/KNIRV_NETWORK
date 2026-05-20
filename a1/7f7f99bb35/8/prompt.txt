@@ -1,0 +1,24 @@
+In the KNIRVSERVER, getting the following error in the knirvhasher data pipeline when I click on the train button: 
+05:08:36 PM
+error
+[17:08:36] [data-miner] ⚠️ Failed to initialize NLP Bridge: failed to initialize Spacy with model: en_core_web_sm [17:08:36] [data-miner] 🌐 Fetching GOAT dataset from: https://datasets-server.huggingface.co/rows?dataset=stallone%2Fgoat&config=completion&split=train&offset=0&length=100
+05:08:36 PM
+error
+[17:08:36] [data-miner] [stderr] ModuleNotFoundError: No module named 'spacy'
+05:08:36 PM
+info
+[17:08:36] [data-miner] 🐐 Starting GOAT Mining Phase (Hugging Face) [17:08:36] [data-miner]
+
+---
+
+[17:51:53] [data-encoder] [stderr] 2026/05/19 17:51:53 📁 Input file type: ai_knowledge_base.json (json)
+2026/05/19 17:51:53 Pipeline error: data-encoder failed: exit status 1
+[GIN] 2026/05/19 - 17:51:55 | 200 |     506.425µs |             ::1 | G
+
+---
+
+Can't you set the knirvhasher-cli so that it passes the sudo when it calls the data_encoder binary at runtime?
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
