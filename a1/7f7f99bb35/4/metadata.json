@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "a17f7f99bb35",
+  "session_id": "fc3ea79f-6cbe-4457-a0ec-8d49118a801a",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-20T01:46:11.840374707Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVSERVER/CALIBER_LEARNINGS.md",
+    "packages/KNIRVSERVER/frontend/src/hooks/use-dve-management.ts"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "826a37d61ebd",
+  "token_usage": {
+    "input_tokens": 5,
+    "cache_creation_tokens": 67139,
+    "cache_read_tokens": 162886,
+    "output_tokens": 5948,
+    "api_call_count": 3
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-20T01:46:11.792294452Z",
+    "agent_lines": 35,
+    "agent_removed": 16,
+    "human_added": 4675,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 4710,
+    "total_lines_changed": 6488,
+    "agent_percentage": 0.7860665844636251,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
