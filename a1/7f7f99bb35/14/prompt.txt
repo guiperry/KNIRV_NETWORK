@@ -1,0 +1,10 @@
+Search the codebase for the knirvbase package API definitions. Specifically:
+
+1. Find the `knirvbase.DB` interface definition - search for `type DB interface` or `type DB struct` in any file that has `package knirvbase`
+2. Find the `knirvbase.Collection` interface definition - search for `type Collection interface` or `type Collection struct` in knirvbase
+3. Find any Flight stream related code - `FlightStream`, `Flight`, `Stream` in knirvbase
+4. Find how collections are created/accessed - methods like `Collection(name string)` or `NewCollection`
+
+The knirvbase package is at `github.com/knirvcorp/knirvbase/pkg/knirvbase` - check the go module cache at `~/go/pkg/mod/github.com/knirvcorp/knirvbase*` or in the vendor directory if there is one.
+
+Return all relevant interface definitions and method signatures.

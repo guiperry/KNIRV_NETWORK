@@ -1,0 +1,1162 @@
+{
+  "info": {
+    "id": "ses_1be5c398affeoTez9YK3d8Qy4q",
+    "slug": "quick-otter",
+    "projectID": "04b7e1a8120cdaa36434d2d66f64522e4313fe2b",
+    "directory": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+    "path": "",
+    "parentID": "ses_1be60201effeHKz44Fxztz8iEE",
+    "title": "Find KNIRVBASE API interfaces (@explore subagent)",
+    "agent": "explore",
+    "model": {
+      "id": "big-pickle",
+      "providerID": "opencode",
+      "variant": "default"
+    },
+    "version": "1.15.5",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "cost": 0,
+    "tokens": {
+      "input": 34922,
+      "output": 4606,
+      "reasoning": 291,
+      "cache": {
+        "read": 113152,
+        "write": 0
+      }
+    },
+    "permission": [
+      {
+        "permission": "todowrite",
+        "action": "deny",
+        "pattern": "*"
+      },
+      {
+        "permission": "task",
+        "action": "deny",
+        "pattern": "*"
+      }
+    ],
+    "time": {
+      "created": 1779217712757,
+      "updated": 1779217785659
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1779217712783
+        },
+        "tools": {
+          "todowrite": false,
+          "task": false
+        },
+        "agent": "explore",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "big-pickle"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_e41a3c68a0016847W1ke5OKv7D",
+        "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Search the codebase for the knirvbase package API definitions. Specifically:\n\n1. Find the `knirvbase.DB` interface definition - search for `type DB interface` or `type DB struct` in any file that has `package knirvbase`\n2. Find the `knirvbase.Collection` interface definition - search for `type Collection interface` or `type Collection struct` in knirvbase\n3. Find any Flight stream related code - `FlightStream`, `Flight`, `Stream` in knirvbase\n4. Find how collections are created/accessed - methods like `Collection(name string)` or `NewCollection`\n\nThe knirvbase package is at `github.com/knirvcorp/knirvbase/pkg/knirvbase` - check the go module cache at `~/go/pkg/mod/github.com/knirvcorp/knirvbase*` or in the vendor directory if there is one.\n\nReturn all relevant interface definitions and method signatures.",
+          "id": "prt_e41a3c69b001nrEVwwkGabvavh",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a3c68a0016847W1ke5OKv7D"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e41a3c68a0016847W1ke5OKv7D",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 7996,
+          "input": 7576,
+          "output": 365,
+          "reasoning": 55,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779217712860,
+          "completed": 1779217751850
+        },
+        "finish": "tool-calls",
+        "id": "msg_e41a3c6dc001c7xGcrCwW2idm4",
+        "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q"
+      },
+      "parts": [
+        {
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-start",
+          "id": "prt_e41a3cf31001Z3Xu83xypPRW5H",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a3c6dc001c7xGcrCwW2idm4"
+        },
+        {
+          "type": "reasoning",
+          "text": "The user wants me to find the `knirvbase` package API definitions. Let me start by exploring where this package might be - either in the go module cache, vendor directory, or potentially as a local package within this project.\n\nLet me search multiple places simultaneously.",
+          "time": {
+            "start": 1779217715041,
+            "end": 1779217715574
+          },
+          "id": "prt_e41a3cf610013od0tYpq5eKdEY",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a3c6dc001c7xGcrCwW2idm4"
+        },
+        {
+          "type": "text",
+          "text": "I'll start by searching for the knirvbase package in multiple locations simultaneously.",
+          "time": {
+            "start": 1779217715578,
+            "end": 1779217717932
+          },
+          "id": "prt_e41a3d17a001TlvaDFFk3ZgQN7",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a3c6dc001c7xGcrCwW2idm4"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_00_nEensEawWbcvAGFjwT722082",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/knirvbase/**/*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase_test.go",
+            "metadata": {
+              "count": 2,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1779217716096,
+              "end": 1779217716312
+            }
+          },
+          "id": "prt_e41a3d20a001BVLn6eGLCShi2Z",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a3c6dc001c7xGcrCwW2idm4"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_01_MU1BNXcubK0AEHOdxvJH3999",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/vendor/**/knirvbase/**/*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+            },
+            "output": "No files found",
+            "metadata": {
+              "count": 0,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1779217716481,
+              "end": 1779217716676
+            }
+          },
+          "id": "prt_e41a3d389001Dt2bDH84yvdmLF",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a3c6dc001c7xGcrCwW2idm4"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_02_IdNBKlaSv7NTML4Ku2RW9636",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "ls ~/go/pkg/mod/github.com/knirvcorp/ 2>/dev/null || echo \"no knirvcorp in go mod cache\"",
+              "description": "Check go module cache for knirvcorp"
+            },
+            "output": "no knirvcorp in go mod cache\n",
+            "metadata": {
+              "output": "no knirvcorp in go mod cache\n",
+              "exit": 0,
+              "description": "Check go module cache for knirvcorp",
+              "truncated": false
+            },
+            "title": "Check go module cache for knirvcorp",
+            "time": {
+              "start": 1779217717321,
+              "end": 1779217717343
+            }
+          },
+          "id": "prt_e41a3d5170019TOpuz0lQSYyzn",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a3c6dc001c7xGcrCwW2idm4"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_03_Uy7fxsdZ4OPFvFUzEyJB8146",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "find /home/gperry/Documents/GitHub/KNIRV -maxdepth 5 -name \"go.mod\" -exec grep -l \"knirvbase\" {} \\; 2>/dev/null",
+              "description": "Find go.mod files referencing knirvbase"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/go.mod\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_PUBLIC/KNIRVBASE/knirvbase-go/go.mod\n/home/gperry/Documents/GitHub/KNIRV/LAB/KNIRVROUTER/go.mod\n/home/gperry/Documents/GitHub/KNIRV/LAB/KNIRVNEXUS_base/backend/go.mod\n/home/gperry/Documents/GitHub/KNIRV/LAB/KNIRVCORE/go.mod\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/packages/KNIRVBASE/go.mod\n",
+            "metadata": {
+              "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/go.mod\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_PUBLIC/KNIRVBASE/knirvbase-go/go.mod\n/home/gperry/Documents/GitHub/KNIRV/LAB/KNIRVROUTER/go.mod\n/home/gperry/Documents/GitHub/KNIRV/LAB/KNIRVNEXUS_base/backend/go.mod\n/home/gperry/Documents/GitHub/KNIRV/LAB/KNIRVCORE/go.mod\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_CORP/packages/KNIRVBASE/go.mod\n",
+              "exit": 0,
+              "description": "Find go.mod files referencing knirvbase",
+              "truncated": false
+            },
+            "title": "Find go.mod files referencing knirvbase",
+            "time": {
+              "start": 1779217748439,
+              "end": 1779217750931
+            }
+          },
+          "id": "prt_e41a3d704001D89eO5rnhactRq",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a3c6dc001c7xGcrCwW2idm4"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-finish",
+          "tokens": {
+            "total": 7996,
+            "input": 7576,
+            "output": 365,
+            "reasoning": 55,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0,
+          "id": "prt_e41a45d11001morNvRz2Xl85vo",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a3c6dc001c7xGcrCwW2idm4"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e41a3c68a0016847W1ke5OKv7D",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 8613,
+          "input": 359,
+          "output": 252,
+          "reasoning": 66,
+          "cache": {
+            "write": 0,
+            "read": 7936
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779217751866,
+          "completed": 1779217757968
+        },
+        "finish": "tool-calls",
+        "id": "msg_e41a45f3a001fXfBOUhXTt6jcz",
+        "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q"
+      },
+      "parts": [
+        {
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-start",
+          "id": "prt_e41a467e8001gV75re8lAbaV8A",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a45f3a001fXfBOUhXTt6jcz"
+        },
+        {
+          "type": "reasoning",
+          "text": "Found it! The knirvbase package is at `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/`. Let me read the files there, and also look at the go.mod for module path info.",
+          "time": {
+            "start": 1779217754399,
+            "end": 1779217754890
+          },
+          "id": "prt_e41a4691f001o4KiwyTleejQPK",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a45f3a001fXfBOUhXTt6jcz"
+        },
+        {
+          "type": "text",
+          "text": "Found the knirvbase package locally at `packages/KNIRVBASE/pkg/knirvbase/`. Let me read the source files and the go.mod to understand the module structure.",
+          "time": {
+            "start": 1779217754894,
+            "end": 1779217757349
+          },
+          "id": "prt_e41a46b0e001YOlA8ifmvwl1HN",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a45f3a001fXfBOUhXTt6jcz"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_MXSfDLb73AzxHyZEw2mz9168",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase.go</path>\n<type>file</type>\n<content>\n1: package knirvbase\n2: \n3: import (\n4: \t\"context\"\n5: \t\"fmt\"\n6: \n7: \tcoll \"github.com/knirvcorp/knirvbase/internal/collection\"\n8: \t\"github.com/knirvcorp/knirvbase/internal/crypto/pqc\"\n9: \tdb \"github.com/knirvcorp/knirvbase/internal/database\"\n10: \tstor \"github.com/knirvcorp/knirvbase/internal/storage\"\n11: \ttyp \"github.com/knirvcorp/knirvbase/internal/types\"\n12: \t\"github.com/knirvcorp/knirvbase/pkg/nrv\"\n13: )\n14: \n15: type Options struct {\n16: \tDataDir                   string\n17: \tDistributedEnabled        bool\n18: \tDistributedNetworkID      string\n19: \tDistributedBootstrapPeers []string\n20: }\n21: \n22: type DB struct {\n23: \tdb    *db.DistributedDatabase\n24: \tstore stor.Storage\n25: }\n26: \n27: func New(ctx context.Context, opts Options) (*DB, error) {\n28: \tif opts.DataDir == \"\" {\n29: \t\treturn nil, fmt.Errorf(\"DataDir cannot be empty\")\n30: \t}\n31: \tif ctx == nil {\n32: \t\treturn nil, fmt.Errorf(\"context cannot be nil\")\n33: \t}\n34: \tstore := stor.NewFileStorage(opts.DataDir)\n35: \tdopts := db.DistributedDbOptions{}\n36: \tdopts.Distributed.Enabled = opts.DistributedEnabled\n37: \tdopts.Distributed.NetworkID = opts.DistributedNetworkID\n38: \tdopts.Distributed.BootstrapPeers = opts.DistributedBootstrapPeers\n39: \n40: \tinner, err := db.NewDistributedDatabase(ctx, dopts, store)\n41: \tif err != nil {\n42: \t\treturn nil, fmt.Errorf(\"failed to create distributed database: %w\", err)\n43: \t}\n44: \treturn &DB{db: inner, store: store}, nil\n45: }\n46: \n47: func (d *DB) CreateNetwork(cfg typ.NetworkConfig) (string, error) {\n48: \tif d.db == nil {\n49: \t\treturn \"\", fmt.Errorf(\"database not initialized\")\n50: \t}\n51: \treturn d.db.CreateNetwork(cfg)\n52: }\n53: \n54: func (d *DB) JoinNetwork(networkID string, bootstrapPeers []string) error {\n55: \treturn d.db.JoinNetwork(networkID, bootstrapPeers)\n56: }\n57: \n58: func (d *DB) LeaveNetwork(networkID string) error {\n59: \treturn d.db.LeaveNetwork(networkID)\n60: }\n61: \n62: func (d *DB) Collection(name string) Collection {\n63: \tif d.db == nil {\n64: \t\tpanic(\"database not initialized\")\n65: \t}\n66: \tif name == \"\" {\n67: \t\tpanic(\"collection name cannot be empty\")\n68: \t}\n69: \tc := d.db.Collection(name, d.store)\n70: \treturn &collectionAdapter{c: c}\n71: }\n72: \n73: func (d *DB) Shutdown() error {\n74: \treturn d.db.Shutdown()\n75: }\n76: \n77: type NRVDataset struct {\n78: \tname    string\n79: \tstorage *stor.NRVStorage\n80: \tinner   *coll.DistributedCollection\n81: }\n82: \n83: func (d *DB) Dataset(name string) *NRVDataset {\n84: \tnrvStore, ok := d.store.(*stor.NRVStorage)\n85: \tif !ok {\n86: \t\tpanic(\"DB was not created with NRVStorage — use NewNRV() constructor\")\n87: \t}\n88: \treturn &NRVDataset{\n89: \t\tname:    name,\n90: \t\tstorage: nrvStore,\n91: \t\tinner:   d.db.Collection(name, d.store),\n92: \t}\n93: }\n94: \n95: func (ds *NRVDataset) AppendBracket(ctx context.Context, b *nrv.Bracket, thermo nrv.ThermoAtmosphere) error {\n96: \treturn ds.storage.AppendBracketDirect(ds.name, b, thermo)\n97: }\n98: \n99: func (ds *NRVDataset) StreamBrackets(ctx context.Context, goldOnly bool) (<-chan *nrv.Bracket, error) {\n100: \treturn ds.storage.StreamBrackets(ctx, ds.name, goldOnly)\n101: }\n102: \n103: func (ds *NRVDataset) GetFrame(ctx context.Context, frameID string) (*nrv.FrameEntry, []*nrv.Bracket, error) {\n104: \treturn ds.storage.GetFrame(ctx, ds.name, frameID)\n105: }\n106: \n107: func (ds *NRVDataset) SetLinguistic(token, unit string) error {\n108: \treturn ds.storage.SetLinguistic(ds.name, token, unit)\n109: }\n110: \n111: func NewNRV(ctx context.Context, opts Options, keyPair *pqc.PQCKeyPair) (*DB, error) {\n112: \tstore := stor.NewNRVStorage(opts.DataDir, keyPair)\n113: \tdopts := db.DistributedDbOptions{}\n114: \tdopts.Distributed.Enabled = opts.DistributedEnabled\n115: \tdopts.Distributed.NetworkID = opts.DistributedNetworkID\n116: \tdopts.Distributed.BootstrapPeers = opts.DistributedBootstrapPeers\n117: \tinner, err := db.NewDistributedDatabase(ctx, dopts, store)\n118: \tif err != nil {\n119: \t\treturn nil, err\n120: \t}\n121: \treturn &DB{db: inner, store: store}, nil\n122: }\n123: \n124: type Collection interface {\n125: \tInsert(ctx context.Context, doc map[string]interface{}) (map[string]interface{}, error)\n126: \tUpdate(ctx context.Context, id string, update map[string]interface{}) (int, error)\n127: \tDelete(ctx context.Context, id string) (int, error)\n128: \tFind(ctx context.Context, id string) (map[string]interface{}, error)\n129: \tFindAll(ctx context.Context) ([]map[string]interface{}, error)\n130: \tAttachToNetwork(networkID string) error\n131: \tDetachFromNetwork() error\n132: \tForceSync() error\n133: }\n134: \n135: type collectionAdapter struct{ c *coll.DistributedCollection }\n136: \n137: func (a *collectionAdapter) Insert(ctx context.Context, doc map[string]interface{}) (map[string]interface{}, error) {\n138: \tif ctx == nil {\n139: \t\treturn nil, fmt.Errorf(\"context cannot be nil\")\n140: \t}\n141: \tif doc == nil {\n142: \t\treturn nil, fmt.Errorf(\"document cannot be nil\")\n143: \t}\n144: \tif id, ok := doc[\"id\"].(string); !ok || id == \"\" {\n145: \t\treturn nil, fmt.Errorf(\"document must contain a non-empty 'id' field\")\n146: \t}\n147: \treturn a.c.Insert(ctx, doc)\n148: }\n149: func (a *collectionAdapter) Update(ctx context.Context, id string, update map[string]interface{}) (int, error) {\n150: \treturn a.c.Update(ctx, id, update)\n151: }\n152: func (a *collectionAdapter) Delete(ctx context.Context, id string) (int, error) {\n153: \treturn a.c.Delete(ctx, id)\n154: }\n155: func (a *collectionAdapter) Find(ctx context.Context, id string) (map[string]interface{}, error) {\n156: \treturn a.c.Find(ctx, id)\n157: }\n158: func (a *collectionAdapter) FindAll(ctx context.Context) ([]map[string]interface{}, error) {\n159: \treturn a.c.FindAll(ctx)\n160: }\n161: func (a *collectionAdapter) AttachToNetwork(networkID string) error {\n162: \treturn a.c.AttachToNetwork(networkID)\n163: }\n164: func (a *collectionAdapter) DetachFromNetwork() error { return a.c.DetachFromNetwork() }\n165: func (a *collectionAdapter) ForceSync() error         { return a.c.ForceSync() }\n\n(End of file - total 165 lines)\n</content>",
+            "metadata": {
+              "preview": "package knirvbase\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\n\tcoll \"github.com/knirvcorp/knirvbase/internal/collection\"\n\t\"github.com/knirvcorp/knirvbase/internal/crypto/pqc\"\n\tdb \"github.com/knirvcorp/knirvbase/internal/database\"\n\tstor \"github.com/knirvcorp/knirvbase/internal/storage\"\n\ttyp \"github.com/knirvcorp/knirvbase/internal/types\"\n\t\"github.com/knirvcorp/knirvbase/pkg/nrv\"\n)\n\ntype Options struct {\n\tDataDir                   string\n\tDistributedEnabled        bool\n\tDistributedNetworkID      string\n\tDistributedBootstrapPeers []string\n}",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVBASE/pkg/knirvbase/knirvbase.go",
+            "time": {
+              "start": 1779217755528,
+              "end": 1779217755569
+            }
+          },
+          "id": "prt_e41a46c79001g6qXzrFbmh00nu",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a45f3a001fXfBOUhXTt6jcz"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_c2dFZmbmadeLRbqgloXL5160",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase_test.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase_test.go</path>\n<type>file</type>\n<content>\n1: package knirvbase\n2: \n3: import (\n4: \t\"context\"\n5: \t\"testing\"\n6: )\n7: \n8: func TestNew(t *testing.T) {\n9: \t// Test with valid options\n10: \ttmpDir := t.TempDir()\n11: \topts := Options{\n12: \t\tDataDir: tmpDir,\n13: \t}\n14: \tctx := context.Background()\n15: \tdb, err := New(ctx, opts)\n16: \tif err != nil {\n17: \t\tt.Fatalf(\"New() failed: %v\", err)\n18: \t}\n19: \tif db == nil {\n20: \t\tt.Fatal(\"New() returned nil DB\")\n21: \t}\n22: \tdefer db.Shutdown()\n23: \n24: \t// Test with empty DataDir\n25: \t_, err = New(ctx, Options{DataDir: \"\"})\n26: \tif err == nil {\n27: \t\tt.Fatal(\"New() should fail with empty DataDir\")\n28: \t}\n29: \n30: \t// Test with nil context (use context.TODO instead of nil)\n31: \t// The New function should accept context.TODO, not fail\n32: \t_, err = New(context.TODO(), opts)\n33: \tif err != nil {\n34: \t\tt.Fatalf(\"New() with context.TODO should succeed, got: %v\", err)\n35: \t}\n36: }\n37: \n38: func TestDB_Collection(t *testing.T) {\n39: \ttmpDir := t.TempDir()\n40: \topts := Options{\n41: \t\tDataDir: tmpDir,\n42: \t}\n43: \tctx := context.Background()\n44: \tdb, err := New(ctx, opts)\n45: \tif err != nil {\n46: \t\tt.Fatalf(\"New() failed: %v\", err)\n47: \t}\n48: \tdefer db.Shutdown()\n49: \n50: \t// Test valid collection\n51: \tcoll := db.Collection(\"test\")\n52: \tif coll == nil {\n53: \t\tt.Fatal(\"Collection() returned nil\")\n54: \t}\n55: \n56: \t// Test empty name (should panic, but we'll catch it)\n57: \tdefer func() {\n58: \t\tif r := recover(); r == nil {\n59: \t\t\tt.Fatal(\"Collection() should panic with empty name\")\n60: \t\t}\n61: \t}()\n62: \tdb.Collection(\"\")\n63: }\n64: \n65: func TestCollection_Insert(t *testing.T) {\n66: \ttmpDir := t.TempDir()\n67: \topts := Options{\n68: \t\tDataDir: tmpDir,\n69: \t}\n70: \tctx := context.Background()\n71: \tdb, err := New(ctx, opts)\n72: \tif err != nil {\n73: \t\tt.Fatalf(\"New() failed: %v\", err)\n74: \t}\n75: \tdefer db.Shutdown()\n76: \n77: \tcoll := db.Collection(\"test\")\n78: \n79: \t// Test valid insert\n80: \tdoc := map[string]interface{}{\n81: \t\t\"id\":   \"test1\",\n82: \t\t\"data\": \"value\",\n83: \t}\n84: \tresult, err := coll.Insert(ctx, doc)\n85: \tif err != nil {\n86: \t\tt.Fatalf(\"Insert() failed: %v\", err)\n87: \t}\n88: \tif result == nil {\n89: \t\tt.Fatal(\"Insert() returned nil\")\n90: \t}\n91: \n92: \t// Test nil context (use context.TODO instead of nil)\n93: \t// The Insert method should accept context.TODO, not fail\n94: \t_, err = coll.Insert(context.TODO(), doc)\n95: \tif err != nil {\n96: \t\tt.Fatalf(\"Insert() with context.TODO should succeed, got: %v\", err)\n97: \t}\n98: \n99: \t// Test nil doc\n100: \t_, err = coll.Insert(ctx, nil)\n101: \tif err == nil {\n102: \t\tt.Fatal(\"Insert() should fail with nil doc\")\n103: \t}\n104: \n105: \t// Test doc without id\n106: \t_, err = coll.Insert(ctx, map[string]interface{}{\"data\": \"value\"})\n107: \tif err == nil {\n108: \t\tt.Fatal(\"Insert() should fail with doc without id\")\n109: \t}\n110: \n111: \t// Test doc with empty id\n112: \t_, err = coll.Insert(ctx, map[string]interface{}{\"id\": \"\"})\n113: \tif err == nil {\n114: \t\tt.Fatal(\"Insert() should fail with empty id\")\n115: \t}\n116: }\n117: \n118: func TestCollection_Find(t *testing.T) {\n119: \ttmpDir := t.TempDir()\n120: \topts := Options{\n121: \t\tDataDir: tmpDir,\n122: \t}\n123: \tctx := context.Background()\n124: \tdb, err := New(ctx, opts)\n125: \tif err != nil {\n126: \t\tt.Fatalf(\"New() failed: %v\", err)\n127: \t}\n128: \tdefer db.Shutdown()\n129: \n130: \tcoll := db.Collection(\"test\")\n131: \n132: \t// Insert a doc\n133: \tdoc := map[string]interface{}{\n134: \t\t\"id\":   \"test1\",\n135: \t\t\"data\": \"value\",\n136: \t}\n137: \t_, err = coll.Insert(ctx, doc)\n138: \tif err != nil {\n139: \t\tt.Fatalf(\"Insert() failed: %v\", err)\n140: \t}\n141: \n142: \t// Find it\n143: \tresult, err := coll.Find(ctx, \"test1\")\n144: \tif err != nil {\n145: \t\tt.Fatalf(\"Find() failed: %v\", err)\n146: \t}\n147: \tif result == nil {\n148: \t\tt.Fatal(\"Find() returned nil\")\n149: \t}\n150: \tif result[\"id\"] != \"test1\" {\n151: \t\tt.Errorf(\"Find() returned wrong id: %v\", result[\"id\"])\n152: \t}\n153: }\n\n(End of file - total 153 lines)\n</content>",
+            "metadata": {
+              "preview": "package knirvbase\n\nimport (\n\t\"context\"\n\t\"testing\"\n)\n\nfunc TestNew(t *testing.T) {\n\t// Test with valid options\n\ttmpDir := t.TempDir()\n\topts := Options{\n\t\tDataDir: tmpDir,\n\t}\n\tctx := context.Background()\n\tdb, err := New(ctx, opts)\n\tif err != nil {\n\t\tt.Fatalf(\"New() failed: %v\", err)\n\t}\n\tif db == nil {\n\t\tt.Fatal(\"New() returned nil DB\")",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVBASE/pkg/knirvbase/knirvbase_test.go",
+            "time": {
+              "start": 1779217755851,
+              "end": 1779217755896
+            }
+          },
+          "id": "prt_e41a46da1001fg4yYV1XIHmQ8E",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a45f3a001fXfBOUhXTt6jcz"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_02_rLrNMhmoDbUA9uQhDSzu3111",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/go.mod"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/go.mod</path>\n<type>file</type>\n<content>\n1: module github.com/knirvcorp/knirvbase\n2: \n3: go 1.24.6\n4: \n5: toolchain go1.24.11\n6: \n7: require (\n8: \tgithub.com/apache/arrow/go/v15 v15.0.2\n9: \tgithub.com/cloudflare/circl v1.6.2\n10: \tgithub.com/golang-jwt/jwt/v5 v5.3.1\n11: \tgithub.com/google/uuid v1.6.0\n12: \tgithub.com/prometheus/client_golang v1.23.2\n13: \tgithub.com/stretchr/testify v1.11.1\n14: \tgo.opentelemetry.io/otel v1.39.0\n15: \tgo.opentelemetry.io/otel/exporters/jaeger v1.17.0\n16: \tgo.opentelemetry.io/otel/sdk v1.39.0\n17: \tgo.opentelemetry.io/otel/trace v1.39.0\n18: \tgo.uber.org/zap v1.27.1\n19: \tgolang.org/x/crypto v0.47.0\n20: )\n21: \n22: require (\n23: \tgithub.com/beorn7/perks v1.0.1 // indirect\n24: \tgithub.com/cespare/xxhash/v2 v2.3.0 // indirect\n25: \tgithub.com/davecgh/go-spew v1.1.1 // indirect\n26: \tgithub.com/go-logr/logr v1.4.3 // indirect\n27: \tgithub.com/go-logr/stdr v1.2.2 // indirect\n28: \tgithub.com/goccy/go-json v0.10.2 // indirect\n29: \tgithub.com/google/flatbuffers v23.5.26+incompatible // indirect\n30: \tgithub.com/klauspost/compress v1.18.0 // indirect\n31: \tgithub.com/klauspost/cpuid/v2 v2.2.5 // indirect\n32: \tgithub.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect\n33: \tgithub.com/pierrec/lz4/v4 v4.1.18 // indirect\n34: \tgithub.com/pmezard/go-difflib v1.0.0 // indirect\n35: \tgithub.com/prometheus/client_model v0.6.2 // indirect\n36: \tgithub.com/prometheus/common v0.66.1 // indirect\n37: \tgithub.com/prometheus/procfs v0.16.1 // indirect\n38: \tgithub.com/zeebo/xxh3 v1.0.2 // indirect\n39: \tgo.opentelemetry.io/auto/sdk v1.2.1 // indirect\n40: \tgo.opentelemetry.io/otel/metric v1.39.0 // indirect\n41: \tgo.uber.org/multierr v1.10.0 // indirect\n42: \tgo.yaml.in/yaml/v2 v2.4.2 // indirect\n43: \tgolang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect\n44: \tgolang.org/x/mod v0.32.0 // indirect\n45: \tgolang.org/x/sync v0.19.0 // indirect\n46: \tgolang.org/x/sys v0.40.0 // indirect\n47: \tgolang.org/x/telemetry v0.0.0-20260109210033-bd525da824e2 // indirect\n48: \tgolang.org/x/tools v0.41.0 // indirect\n49: \tgolang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect\n50: \tgoogle.golang.org/protobuf v1.36.11 // indirect\n51: \tgopkg.in/yaml.v3 v3.0.1 // indirect\n52: )\n\n(End of file - total 52 lines)\n</content>",
+            "metadata": {
+              "preview": "module github.com/knirvcorp/knirvbase\n\ngo 1.24.6\n\ntoolchain go1.24.11\n\nrequire (\n\tgithub.com/apache/arrow/go/v15 v15.0.2\n\tgithub.com/cloudflare/circl v1.6.2\n\tgithub.com/golang-jwt/jwt/v5 v5.3.1\n\tgithub.com/google/uuid v1.6.0\n\tgithub.com/prometheus/client_golang v1.23.2\n\tgithub.com/stretchr/testify v1.11.1\n\tgo.opentelemetry.io/otel v1.39.0\n\tgo.opentelemetry.io/otel/exporters/jaeger v1.17.0\n\tgo.opentelemetry.io/otel/sdk v1.39.0\n\tgo.opentelemetry.io/otel/trace v1.39.0\n\tgo.uber.org/zap v1.27.1\n\tgolang.org/x/crypto v0.47.0\n)",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVBASE/go.mod",
+            "time": {
+              "start": 1779217756289,
+              "end": 1779217756351
+            }
+          },
+          "id": "prt_e41a46f01001QeqNCzTPe1k3jN",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a45f3a001fXfBOUhXTt6jcz"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-finish",
+          "tokens": {
+            "total": 8613,
+            "input": 359,
+            "output": 252,
+            "reasoning": 66,
+            "cache": {
+              "write": 0,
+              "read": 7936
+            }
+          },
+          "cost": 0,
+          "id": "prt_e41a475c4001E2fSTi9HEk2VUm",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a45f3a001fXfBOUhXTt6jcz"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e41a3c68a0016847W1ke5OKv7D",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 13688,
+          "input": 4542,
+          "output": 529,
+          "reasoning": 41,
+          "cache": {
+            "write": 0,
+            "read": 8576
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779217757980,
+          "completed": 1779217764764
+        },
+        "finish": "tool-calls",
+        "id": "msg_e41a4771c001YHXBqpVatnSv7U",
+        "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q"
+      },
+      "parts": [
+        {
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-start",
+          "id": "prt_e41a48525001ZTVCsqLzrqKgpI",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4771c001YHXBqpVatnSv7U"
+        },
+        {
+          "type": "reasoning",
+          "text": "Great, I found the main files. Now let me look at the internal packages to understand the full picture — specifically the collection and database internals. Let me also search for any Flight stream related code.",
+          "time": {
+            "start": 1779217761627,
+            "end": 1779217761654
+          },
+          "id": "prt_e41a4855b001Hcsq7AR8RQF0Mf",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4771c001YHXBqpVatnSv7U"
+        },
+        {
+          "type": "text",
+          "text": "Now let me explore the internal packages for the collection, database, and storage implementations, plus search for any Flight stream related code.",
+          "time": {
+            "start": 1779217761658,
+            "end": 1779217764170
+          },
+          "id": "prt_e41a4857a001VYJcpKQQwfg13F",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4771c001YHXBqpVatnSv7U"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_00_IAlBn9FYwxaSRw3O32Vf1950",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/internal/collection/*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/collection/distributed_collection_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/collection/distributed_collection.go",
+            "metadata": {
+              "count": 2,
+              "truncated": false
+            },
+            "title": "packages/KNIRVBASE",
+            "time": {
+              "start": 1779217761713,
+              "end": 1779217761930
+            }
+          },
+          "id": "prt_e41a4858c0012Zx7BLtsAWEjsz",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4771c001YHXBqpVatnSv7U"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_01_U8c0THihWy1s71FHw9qR9716",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/internal/database/*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/database/distributed_database_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/database/distributed_database.go",
+            "metadata": {
+              "count": 2,
+              "truncated": false
+            },
+            "title": "packages/KNIRVBASE",
+            "time": {
+              "start": 1779217761761,
+              "end": 1779217761958
+            }
+          },
+          "id": "prt_e41a485b9001RyPXJgBmMNPs3p",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4771c001YHXBqpVatnSv7U"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_02_vMCQZjbxc60YYk2EUDx84702",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/internal/storage/*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_compactor.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_ticker.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_reader_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/index_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/wal_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_compactor_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/storage_pqc_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_storage.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_writer.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_ticker_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_reader.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_writer_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/wal.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/storage.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/index.go",
+            "metadata": {
+              "count": 15,
+              "truncated": false
+            },
+            "title": "packages/KNIRVBASE",
+            "time": {
+              "start": 1779217762229,
+              "end": 1779217762353
+            }
+          },
+          "id": "prt_e41a48606001No22fckq3MI2uc",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4771c001YHXBqpVatnSv7U"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_03_mppTFGGwClDBoll3IynT0620",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/internal/types/*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/types/types.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/types/memory_categories_test.go",
+            "metadata": {
+              "count": 2,
+              "truncated": false
+            },
+            "title": "packages/KNIRVBASE",
+            "time": {
+              "start": 1779217762548,
+              "end": 1779217762679
+            }
+          },
+          "id": "prt_e41a487bd0019xdWyvLV59FRzp",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4771c001YHXBqpVatnSv7U"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_04_3yR0ZsLaEMg9k7Wg7TiQ4827",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/pkg/nrv/*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/nrv/spec.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/nrv/frame.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/nrv/codec.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/nrv/codec_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/nrv/bracket.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/nrv/bracket_layout_test.go",
+            "metadata": {
+              "count": 6,
+              "truncated": false
+            },
+            "title": "packages/KNIRVBASE",
+            "time": {
+              "start": 1779217762902,
+              "end": 1779217763045
+            }
+          },
+          "id": "prt_e41a48907001TX32UMcRoO2yC7",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4771c001YHXBqpVatnSv7U"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_05_ilQyzzafpeLS6d0L64lF3879",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "FlightStream|Flight|Stream",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE",
+              "include": "*.go"
+            },
+            "output": "Found 48 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_reader.go:\n  Line 88: func (r *NRVReader) StreamBrackets(goldOnly bool) <-chan *nrv.Bracket {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_reader_test.go:\n  Line 65: func TestNRVReaderStreamBrackets_GoldOnly(t *testing.T) {\n\n  Line 95: \tgoldCh := reader.StreamBrackets(true)\n\n  Line 102: \tresearchCh := reader.StreamBrackets(false)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/nrv_storage.go:\n  Line 314: func (s *NRVStorage) StreamBrackets(ctx context.Context, collection string, goldOnly bool) (<-chan *nrv.Bracket, error) {\n\n  Line 319: \treturn reader.StreamBrackets(goldOnly), nil\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase.go:\n  Line 99: func (ds *NRVDataset) StreamBrackets(ctx context.Context, goldOnly bool) (<-chan *nrv.Bracket, error) {\n\n  Line 100: \treturn ds.storage.StreamBrackets(ctx, ds.name, goldOnly)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/network/flight_server.go:\n  Line 18: type FlightServer struct {\n\n  Line 24: func NewFlightServer(storage *stor.NRVStorage) *FlightServer {\n\n  Line 25: \tfs := &FlightServer{\n\n  Line 33: func (s *FlightServer) bracketArrowSchema() *arrow.Schema {\n\n  Line 45: func (s *FlightServer) Schema() *arrow.Schema {\n\n  Line 49: func (s *FlightServer) parseTicket(ticket string) (collection string, goldOnly bool, err error) {\n\n  Line 76: type BracketStreamServer interface {\n\n  Line 85: func (s *FlightServer) StreamBrackets(ticket string, server BracketStreamServer) error {\n\n  Line 91: \tbracketCh, err := s.storage.StreamBrackets(server.Context(), collection, goldOnly)\n\n  Line 134: func (s *FlightServer) streamBatches(server BracketStreamServer, bracketCh <-chan *nrv.Bracket, batchSize int) error {\n\n  Line 189: func BracketsToFlightData(brackets []*nrv.Bracket) ([]byte, error) {\n\n  Line 195: \tserver := &FlightServer{memPool: memPool}\n\n  Line 222: func FlightDataToBrackets(data []byte) ([]*nrv.Bracket, error) {\n\n  Line 311: type FlightClient struct {\n\n  Line 316: func NewFlightClient(conn io.Reader) *FlightClient {\n\n  Line 317: \treturn &FlightClient{\n\n  Line 323: func (c *FlightClient) StreamBrackets(ctx context.Context, ticket string) ([]*nrv.Bracket, error) {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/collection/distributed_collection_test.go:\n  Line 167: func TestDistributedCollectionStreamBracketsWithNRVStorage(t *testing.T) {\n\n  Line 168: \tt.Skip(\"StreamBrackets requires ticker flush - tested in nrv_reader_test.go\")\n\n  Line 171: func TestDistributedCollectionStreamBracketsWithNonNRVStorage(t *testing.T) {\n\n  Line 187: \t// Test StreamBrackets method - should return error\n\n  Line 188: \t_, err = coll.StreamBrackets(context.Background(), false)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/collection/distributed_collection.go:\n  Line 402: // StreamBrackets returns a channel of live brackets from the underlying NRVStorage.\n\n  Line 404: func (dc *DistributedCollection) StreamBrackets(ctx context.Context, goldOnly bool) (<-chan *nrv.Bracket, error) {\n\n  Line 409: \treturn nrvStore.StreamBrackets(ctx, dc.Name, goldOnly)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/benchmarks/integration_test.go:\n  Line 71: type bracketStreamRecorder struct {\n\n  Line 76: func (m *bracketStreamRecorder) Send(b *network.BracketBatch) error {\n\n  Line 81: func (m *bracketStreamRecorder) Context() context.Context {\n\n  Line 85: func TestEndToEnd_FlightGoldStream(t *testing.T) {\n\n  Line 108: \tflightServer := network.NewFlightServer(store)\n\n  Line 110: \tserver := &bracketStreamRecorder{data: make([][]byte, 0), ctx: context.Background()}\n\n  Line 112: \terr = flightServer.StreamBrackets(\"gold.\"+collection, server)\n\n  Line 118: func TestEndToEnd_FlightResearchStream(t *testing.T) {\n\n  Line 141: \tflightServer := network.NewFlightServer(store)\n\n  Line 143: \tserver := &bracketStreamRecorder{data: make([][]byte, 0), ctx: context.Background()}\n\n  Line 145: \terr = flightServer.StreamBrackets(\"research.\"+collection, server)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/benchmarks/nrv_benchmarks_test.go:\n  Line 57: func BenchmarkStreamBrackets_Gold(b *testing.B) {\n\n  Line 80: \tflightServer := network.NewFlightServer(store)\n\n  Line 84: \t\tserver := &bracketStreamRecorder{ctx: context.Background()}\n\n  Line 85: \t\terr := flightServer.StreamBrackets(\"gold.\"+collection, server)\n",
+            "metadata": {
+              "matches": 48,
+              "truncated": false
+            },
+            "title": "FlightStream|Flight|Stream",
+            "time": {
+              "start": 1779217763396,
+              "end": 1779217763601
+            }
+          },
+          "id": "prt_e41a48b05001fTLf9JX3yuyHz5",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4771c001YHXBqpVatnSv7U"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-finish",
+          "tokens": {
+            "total": 13688,
+            "input": 4542,
+            "output": 529,
+            "reasoning": 41,
+            "cache": {
+              "write": 0,
+              "read": 8576
+            }
+          },
+          "cost": 0,
+          "id": "prt_e41a49089001gkqx10y3yVzbQx",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4771c001YHXBqpVatnSv7U"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e41a3c68a0016847W1ke5OKv7D",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 16410,
+          "input": 2566,
+          "output": 233,
+          "reasoning": 43,
+          "cache": {
+            "write": 0,
+            "read": 13568
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779217764777,
+          "completed": 1779217770472
+        },
+        "finish": "tool-calls",
+        "id": "msg_e41a491a9001s6oC21zVhDUwOj",
+        "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q"
+      },
+      "parts": [
+        {
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-start",
+          "id": "prt_e41a49aaf001rOXIvHrRZZ7glr",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a491a9001s6oC21zVhDUwOj"
+        },
+        {
+          "type": "reasoning",
+          "text": "I found a Flight server! It's at `packages/KNIRVBASE/internal/network/flight_server.go`. Let me read that file along with the other key internal files to get the full picture.",
+          "time": {
+            "start": 1779217767350,
+            "end": 1779217767724
+          },
+          "id": "prt_e41a49bb6001V9fPbyyWUBa2yw",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a491a9001s6oC21zVhDUwOj"
+        },
+        {
+          "type": "text",
+          "text": "Excellent -- found a Flight server in the network layer. Let me read the key internal files to get the full interface and implementation details.",
+          "time": {
+            "start": 1779217767729,
+            "end": 1779217769749
+          },
+          "id": "prt_e41a49d31001OLempBXYdtk0aE",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a491a9001s6oC21zVhDUwOj"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_swWWchDrBQ2TMRLcBxh62897",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/collection/distributed_collection.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/collection/distributed_collection.go</path>\n<type>file</type>\n<content>\n1: package collection\n2: \n3: import (\n4: \t\"context\"\n5: \t\"encoding/json\"\n6: \t\"errors\"\n7: \t\"fmt\"\n8: \t\"sync\"\n9: \t\"time\"\n10: \n11: \t\"github.com/knirvcorp/knirvbase/internal/clock\"\n12: \tnetpkg \"github.com/knirvcorp/knirvbase/internal/network\"\n13: \tresolver \"github.com/knirvcorp/knirvbase/internal/resolver\"\n14: \tstor \"github.com/knirvcorp/knirvbase/internal/storage\"\n15: \ttyp \"github.com/knirvcorp/knirvbase/internal/types\"\n16: \n17: \tnrv \"github.com/knirvcorp/knirvbase/pkg/nrv\"\n18: )\n19: \n20: // A minimal in-memory local collection implementation to keep the example self-contained\n21: type LocalCollection struct {\n22: \tmu    sync.RWMutex\n23: \tname  string\n24: \tstore stor.Storage\n25: }\n26: \n27: func NewLocalCollection(name string, store stor.Storage) *LocalCollection {\n28: \treturn &LocalCollection{name: name, store: store}\n29: }\n30: \n31: func (c *LocalCollection) Insert(ctx context.Context, doc map[string]interface{}) (map[string]interface{}, error) {\n32: \t// Store a deep-cloned copy to avoid accidental shared references between\n33: \t// callers and the underlying storage implementation.\n34: \tcloned := cloneMap(doc)\n35: \tif err := c.store.Insert(ctx, c.name, cloned); err != nil {\n36: \t\treturn nil, err\n37: \t}\n38: \t// Return another clone so the caller cannot mutate the stored value\n39: \treturn cloneMap(cloned), nil\n40: }\n41: \n42: func (c *LocalCollection) Update(ctx context.Context, id string, update map[string]interface{}) (int, error) {\n43: \treturn 1, c.store.Update(ctx, c.name, id, update)\n44: }\n45: \n46: func (c *LocalCollection) Delete(ctx context.Context, id string) (int, error) {\n47: \treturn 1, c.store.Delete(ctx, c.name, id)\n48: }\n49: \n50: func (c *LocalCollection) Find(ctx context.Context, id string) (map[string]interface{}, error) {\n51: \treturn c.store.Find(ctx, c.name, id)\n52: }\n53: \n54: func cloneMap(m map[string]interface{}) map[string]interface{} {\n55: \tif m == nil {\n56: \t\treturn nil\n57: \t}\n58: \tout := make(map[string]interface{}, len(m))\n59: \tfor k, v := range m {\n60: \t\tswitch val := v.(type) {\n61: \t\tcase map[string]interface{}:\n62: \t\t\tout[k] = cloneMap(val)\n63: \t\tcase []interface{}:\n64: \t\t\tout[k] = cloneSlice(val)\n65: \t\tdefault:\n66: \t\t\t// primitives and unknown types are copied by value/reference as-is\n67: \t\t\tout[k] = val\n68: \t\t}\n69: \t}\n70: \treturn out\n71: }\n72: \n73: func cloneSlice(s []interface{}) []interface{} {\n74: \tif s == nil {\n75: \t\treturn nil\n76: \t}\n77: \tout := make([]interface{}, len(s))\n78: \tfor i, e := range s {\n79: \t\tswitch v := e.(type) {\n80: \t\tcase map[string]interface{}:\n81: \t\t\tout[i] = cloneMap(v)\n82: \t\tcase []interface{}:\n83: \t\t\tout[i] = cloneSlice(v)\n84: \t\tdefault:\n85: \t\t\tout[i] = v\n86: \t\t}\n87: \t}\n88: \treturn out\n89: }\n90: \n91: // DistributedCollection manages local storage plus network synchronization\n92: type DistributedCollection struct {\n93: \tName         string\n94: \tnetwork      netpkg.Network\n95: \tnetworkID    string\n96: \tsyncStates   map[string]*typ.SyncState\n97: \toperationLog []typ.CRDTOperation\n98: \tmaxLogSize   int\n99: \n100: \tlocal *LocalCollection\n101: \tmu    sync.Mutex\n102: }\n103: \n104: func NewDistributedCollection(name string, net netpkg.Network, store stor.Storage) *DistributedCollection {\n105: \tdc := &DistributedCollection{\n106: \t\tName:         name,\n107: \t\tnetwork:      net,\n108: \t\tsyncStates:   make(map[string]*typ.SyncState),\n109: \t\toperationLog: make([]typ.CRDTOperation, 0, 1024),\n110: \t\tmaxLogSize:   10000,\n111: \t\tlocal:        NewLocalCollection(name, store),\n112: \t}\n113: \n114: \tdc.setupMessageHandlers()\n115: \treturn dc\n116: }\n117: \n118: func (dc *DistributedCollection) setupMessageHandlers() {\n119: \tdc.network.OnMessage(typ.MsgOperation, func(msg typ.ProtocolMessage) {\n120: \t\t// Basic payload validation\n121: \t\tpayload, ok := msg.Payload.(map[string]interface{})\n122: \t\tif !ok {\n123: \t\t\treturn\n124: \t\t}\n125: \t\tcoll, _ := payload[\"collection\"].(string)\n126: \t\tif coll != dc.Name {\n127: \t\t\treturn\n128: \t\t}\n129: \t\topMap, _ := payload[\"operation\"].(map[string]interface{})\n130: \t\t// We assume op was encoded in a friendly form; in a real implementation we'd use typed marshaling\n131: \t\tvar op typ.CRDTOperation\n132: \t\t// re-marshal map into op\n133: \t\tb, _ := jsonMarshal(opMap)\n134: \t\t_ = jsonUnmarshal(b, &op)\n135: \t\tgo dc.handleRemoteOperation(op)\n136: \t})\n137: \n138: \tdc.network.OnMessage(typ.MsgSyncRequest, func(msg typ.ProtocolMessage) {\n139: \t\tpayload, _ := msg.Payload.(map[string]interface{})\n140: \t\tcoll, _ := payload[\"collection\"].(string)\n141: \t\tif coll != dc.Name {\n142: \t\t\treturn\n143: \t\t}\n144: \t\tgo dc.handleSyncRequest(msg)\n145: \t})\n146: \n147: \tdc.network.OnMessage(typ.MsgSyncResponse, func(msg typ.ProtocolMessage) {\n148: \t\tpayload, _ := msg.Payload.(map[string]interface{})\n149: \t\tcoll, _ := payload[\"collection\"].(string)\n150: \t\tif coll != dc.Name {\n151: \t\t\treturn\n152: \t\t}\n153: \t\tgo dc.handleSyncResponse(msg)\n154: \t})\n155: }\n156: \n157: func (dc *DistributedCollection) AttachToNetwork(networkID string) error {\n158: \tif dc.networkID != \"\" {\n159: \t\treturn fmt.Errorf(\"collection %s already attached to %s\", dc.Name, dc.networkID)\n160: \t}\n161: \n162: \tif err := dc.network.AddCollectionToNetwork(networkID, dc.Name); err != nil {\n163: \t\treturn err\n164: \t}\n165: \n166: \tdc.networkID = networkID\n167: \tdc.syncStates[networkID] = &typ.SyncState{Collection: dc.Name, NetworkID: networkID, LocalVector: clock.NewVectorClock(), LastSync: time.Now(), PendingOperations: nil, SyncInProgress: false}\n168: \n169: \t// Request initial sync\n170: \treturn dc.requestSync()\n171: }\n172: \n173: func (dc *DistributedCollection) DetachFromNetwork() error {\n174: \tif dc.networkID == \"\" {\n175: \t\treturn nil\n176: \t}\n177: \t_ = dc.network.RemoveCollectionFromNetwork(dc.networkID, dc.Name)\n178: \tdelete(dc.syncStates, dc.networkID)\n179: \tdc.networkID = \"\"\n180: \treturn nil\n181: }\n182: \n183: func (dc *DistributedCollection) Insert(ctx context.Context, doc map[string]interface{}) (map[string]interface{}, error) {\n184: \tid, ok := doc[\"id\"].(string)\n185: \tif !ok {\n186: \t\treturn nil, errors.New(\"document must contain 'id'\")\n187: \t}\n188: \tentryType, _ := doc[\"entryType\"].(typ.EntryType) // Assuming validation already happened\n189: \n190: \t// For MEMORY entries, blob is handled by storage\n191: \tif entryType == typ.EntryTypeMemory {\n192: \t\tif payload, ok := doc[\"payload\"].(map[string]interface{}); ok {\n193: \t\t\tif _, hasBlob := payload[\"blob\"]; hasBlob {\n194: \t\t\t\t// Blob will be saved by storage.Insert\n195: \t\t\t}\n196: \t\t}\n197: \t}\n198: \n199: \t// The local collection handles persistence. The underlying adapter is responsible\n200: \t// for the actual file I/O for blobs.\n201: \tinserted, err := dc.local.Insert(ctx, doc)\n202: \tif err != nil {\n203: \t\treturn nil, err\n204: \t}\n205: \n206: \tif dc.networkID != \"\" {\n207: \t\topPayload := resolver.ToDistributed(inserted, dc.network.GetPeerID())\n208: \t\topPayload.EntryType = entryType // Ensure EntryType is set on the distributed doc\n209: \n210: \t\top := typ.CRDTOperation{\n211: \t\t\tID:         fmt.Sprintf(\"%s-%d-%d\", dc.network.GetPeerID(), time.Now().UnixMilli(), time.Now().UnixNano()%1000),\n212: \t\t\tType:       typ.OpInsert,\n213: \t\t\tCollection: dc.Name,\n214: \t\t\tDocumentID: id,\n215: \t\t\tData:       opPayload,\n216: \t\t\tVector:     dc.getCurrentVector(),\n217: \t\t\tTimestamp:  time.Now().UnixMilli(),\n218: \t\t\tPeerID:     dc.network.GetPeerID(),\n219: \t\t}\n220: \t\tdc.broadcastOperation(op)\n221: \t}\n222: \n223: \treturn inserted, nil\n224: }\n225: \n226: func (dc *DistributedCollection) Update(ctx context.Context, id string, update map[string]interface{}) (int, error) {\n227: \taffected, err := dc.local.Update(ctx, id, update)\n228: \tif err != nil {\n229: \t\treturn 0, err\n230: \t}\n231: \tif dc.networkID != \"\" && affected > 0 {\n232: \t\tdoc, _ := dc.local.Find(ctx, id)\n233: \t\top := typ.CRDTOperation{ID: fmt.Sprintf(\"%s-%d\", dc.network.GetPeerID(), time.Now().UnixMilli()), Type: typ.OpUpdate, Collection: dc.Name, DocumentID: id, Data: resolver.ToDistributed(doc, dc.network.GetPeerID()), Vector: dc.getCurrentVector(), Timestamp: time.Now().UnixMilli(), PeerID: dc.network.GetPeerID()}\n234: \t\tdc.broadcastOperation(op)\n235: \t}\n236: \treturn affected, nil\n237: }\n238: \n239: func (dc *DistributedCollection) Delete(ctx context.Context, id string) (int, error) {\n240: \taffected, err := dc.local.Delete(ctx, id)\n241: \tif err != nil {\n242: \t\treturn 0, err\n243: \t}\n244: \tif dc.networkID != \"\" && affected > 0 {\n245: \t\top := typ.CRDTOperation{ID: fmt.Sprintf(\"%s-%d\", dc.network.GetPeerID(), time.Now().UnixMilli()), Type: typ.OpDelete, Collection: dc.Name, DocumentID: id, Data: &typ.DistributedDocument{ID: id, Deleted: true}, Vector: dc.getCurrentVector(), Timestamp: time.Now().UnixMilli(), PeerID: dc.network.GetPeerID()}\n246: \t\tdc.broadcastOperation(op)\n247: \t}\n248: \treturn affected, nil\n249: }\n250: \n251: func (dc *DistributedCollection) Find(ctx context.Context, id string) (map[string]interface{}, error) {\n252: \treturn dc.local.Find(ctx, id)\n253: }\n254: func (dc *DistributedCollection) FindAll(ctx context.Context) ([]map[string]interface{}, error) {\n255: \treturn dc.local.store.FindAll(ctx, dc.Name)\n256: }\n257: \n258: func (dc *DistributedCollection) GetSyncState() *typ.SyncState {\n259: \tif dc.networkID == \"\" {\n260: \t\treturn nil\n261: \t}\n262: \treturn dc.syncStates[dc.networkID]\n263: }\n264: \n265: func (dc *DistributedCollection) ForceSync() error { return dc.requestSync() }\n266: \n267: // Private helpers\n268: \n269: func (dc *DistributedCollection) broadcastOperation(op typ.CRDTOperation) {\n270: \tif dc.networkID == \"\" {\n271: \t\treturn\n272: \t}\n273: \n274: \tdc.mu.Lock()\n275: \tdc.operationLog = append(dc.operationLog, op)\n276: \tdc.pruneOperationLog()\n277: \t// increment local vector\n278: \tsyncState := dc.syncStates[dc.networkID]\n279: \tsyncState.LocalVector = clock.Increment(syncState.LocalVector, dc.network.GetPeerID())\n280: \tdc.mu.Unlock()\n281: \n282: \t_ = dc.network.BroadcastMessage(dc.networkID, typ.ProtocolMessage{Type: typ.MsgOperation, NetworkID: dc.networkID, SenderID: dc.network.GetPeerID(), Timestamp: time.Now().UnixMilli(), Payload: map[string]interface{}{\"collection\": dc.Name, \"operation\": op}})\n283: }\n284: \n285: func (dc *DistributedCollection) handleRemoteOperation(op typ.CRDTOperation) {\n286: \tctx := context.Background()\n287: \t// Apply CRDT operation to local document\n288: \texisting, _ := dc.local.Find(ctx, op.DocumentID)\n289: \tvar existingDist *typ.DistributedDocument\n290: \tif existing != nil {\n291: \t\texistingDist = resolver.ToDistributed(existing, op.PeerID)\n292: \t}\n293: \n294: \tresult := resolver.ApplyOperation(existingDist, op)\n295: \n296: \tif result == nil {\n297: \t\t// delete\n298: \t\t_, _ = dc.local.Delete(ctx, op.DocumentID)\n299: \t} else if result.Deleted {\n300: \t\t_, _ = dc.local.Delete(ctx, op.DocumentID)\n301: \t} else {\n302: \t\t// upsert\n303: \t\t_, _ = dc.local.Insert(ctx, resolver.ToRegular(result))\n304: \t}\n305: \n306: \t// merge vector\n307: \tif dc.networkID != \"\" {\n308: \t\tsyncState := dc.syncStates[dc.networkID]\n309: \t\tsyncState.LocalVector = clock.Merge(syncState.LocalVector, op.Vector)\n310: \t}\n311: }\n312: \n313: func (dc *DistributedCollection) requestSync() error {\n314: \tif dc.networkID == \"\" {\n315: \t\treturn errors.New(\"not attached to network\")\n316: \t}\n317: \tsyncState := dc.syncStates[dc.networkID]\n318: \tif syncState.SyncInProgress {\n319: \t\treturn nil\n320: \t}\n321: \tsyncState.SyncInProgress = true\n322: \n323: \t_ = dc.network.BroadcastMessage(dc.networkID, typ.ProtocolMessage{Type: typ.MsgSyncRequest, NetworkID: dc.networkID, SenderID: dc.network.GetPeerID(), Timestamp: time.Now().UnixMilli(), Payload: map[string]interface{}{\"collection\": dc.Name, \"vector\": syncState.LocalVector}})\n324: \n325: \t// Clear flag after timeout\n326: \tgo func() {\n327: \t\ttime.Sleep(10 * time.Second)\n328: \t\tsyncState.SyncInProgress = false\n329: \t}()\n330: \n331: \treturn nil\n332: }\n333: \n334: func (dc *DistributedCollection) handleSyncRequest(msg typ.ProtocolMessage) {\n335: \tpayload, _ := msg.Payload.(map[string]interface{})\n336: \tremoteVector, _ := payload[\"vector\"].(map[string]interface{})\n337: \n338: \t// convert remoteVector into VectorClock\n339: \trv := make(clock.VectorClock)\n340: \tfor k, v := range remoteVector {\n341: \t\tswitch val := v.(type) {\n342: \t\tcase float64:\n343: \t\t\trv[k] = int64(val)\n344: \t\tcase int64:\n345: \t\t\trv[k] = val\n346: \t\t}\n347: \t}\n348: \n349: \t// find missing ops\n350: \tmissing := make([]typ.CRDTOperation, 0)\n351: \tfor _, op := range dc.operationLog {\n352: \t\tremoteClock := int64(0)\n353: \t\tif vv, ok := rv[op.PeerID]; ok {\n354: \t\t\tremoteClock = vv\n355: \t\t}\n356: \t\topClock := int64(0)\n357: \t\tif vv, ok := op.Vector[op.PeerID]; ok {\n358: \t\t\topClock = vv\n359: \t\t}\n360: \t\tif opClock > remoteClock {\n361: \t\t\tmissing = append(missing, op)\n362: \t\t}\n363: \t}\n364: \n365: \t_ = dc.network.SendToPeer(msg.SenderID, dc.networkID, typ.ProtocolMessage{Type: typ.MsgSyncResponse, NetworkID: dc.networkID, SenderID: dc.network.GetPeerID(), Timestamp: time.Now().UnixMilli(), Payload: map[string]interface{}{\"collection\": dc.Name, \"operations\": missing, \"vector\": dc.syncStates[dc.networkID].LocalVector}})\n366: }\n367: \n368: func (dc *DistributedCollection) handleSyncResponse(msg typ.ProtocolMessage) {\n369: \tpayload, _ := msg.Payload.(map[string]interface{})\n370: \topsIface, _ := payload[\"operations\"].([]interface{})\n371: \n372: \tfor _, oi := range opsIface {\n373: \t\tb, _ := jsonMarshal(oi)\n374: \t\tvar op typ.CRDTOperation\n375: \t\t_ = jsonUnmarshal(b, &op)\n376: \t\tdc.handleRemoteOperation(op)\n377: \t}\n378: \n379: \tif dc.networkID != \"\" {\n380: \t\tsyncState := dc.syncStates[dc.networkID]\n381: \t\tsyncState.SyncInProgress = false\n382: \t\tsyncState.LastSync = time.Now()\n383: \t}\n384: }\n385: \n386: func (dc *DistributedCollection) getCurrentVector() clock.VectorClock {\n387: \tif dc.networkID == \"\" {\n388: \t\treturn clock.NewVectorClock()\n389: \t}\n390: \tif s, ok := dc.syncStates[dc.networkID]; ok {\n391: \t\treturn clock.Clone(s.LocalVector)\n392: \t}\n393: \treturn clock.NewVectorClock()\n394: }\n395: \n396: func (dc *DistributedCollection) pruneOperationLog() {\n397: \tif len(dc.operationLog) > dc.maxLogSize {\n398: \t\tdc.operationLog = dc.operationLog[len(dc.operationLog)-dc.maxLogSize:]\n399: \t}\n400: }\n401: \n402: // StreamBrackets returns a channel of live brackets from the underlying NRVStorage.\n403: // Returns an error if the storage backend does not implement NRV streaming.\n404: func (dc *DistributedCollection) StreamBrackets(ctx context.Context, goldOnly bool) (<-chan *nrv.Bracket, error) {\n405: \tnrvStore, ok := dc.local.store.(*stor.NRVStorage)\n406: \tif !ok {\n407: \t\treturn nil, fmt.Errorf(\"collection %q: storage backend does not support NRV streaming\", dc.Name)\n408: \t}\n409: \treturn nrvStore.StreamBrackets(ctx, dc.Name, goldOnly)\n410: }\n411: \n412: // Helper JSON marshalling/unmarshalling helpers used by the example to avoid importing encoding/json repeatedly\n413: func jsonMarshal(v interface{}) ([]byte, error)   { return json.Marshal(v) }\n414: func jsonUnmarshal(b []byte, v interface{}) error { return json.Unmarshal(b, &v) }\n\n(End of file - total 414 lines)\n</content>",
+            "metadata": {
+              "preview": "package collection\n\nimport (\n\t\"context\"\n\t\"encoding/json\"\n\t\"errors\"\n\t\"fmt\"\n\t\"sync\"\n\t\"time\"\n\n\t\"github.com/knirvcorp/knirvbase/internal/clock\"\n\tnetpkg \"github.com/knirvcorp/knirvbase/internal/network\"\n\tresolver \"github.com/knirvcorp/knirvbase/internal/resolver\"\n\tstor \"github.com/knirvcorp/knirvbase/internal/storage\"\n\ttyp \"github.com/knirvcorp/knirvbase/internal/types\"\n\n\tnrv \"github.com/knirvcorp/knirvbase/pkg/nrv\"\n)\n\n// A minimal in-memory local collection implementation to keep the example self-contained",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVBASE/internal/collection/distributed_collection.go",
+            "time": {
+              "start": 1779217768327,
+              "end": 1779217768392
+            }
+          },
+          "id": "prt_e41a49e21001L4WJOF56qub2pA",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a491a9001s6oC21zVhDUwOj"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_iRqzNM3jV3oldlRvKi5f0977",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/database/distributed_database.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/database/distributed_database.go</path>\n<type>file</type>\n<content>\n1: package distributed\n2: \n3: import (\n4: \t\"context\"\n5: \t\"errors\"\n6: \t\"sync\"\n7: \t\"time\"\n8: \n9: \tcoll \"github.com/knirvcorp/knirvbase/internal/collection\"\n10: \t\"github.com/knirvcorp/knirvbase/internal/crypto/pqc\"\n11: \tnetpkg \"github.com/knirvcorp/knirvbase/internal/network\"\n12: \tstor \"github.com/knirvcorp/knirvbase/internal/storage\"\n13: \ttyp \"github.com/knirvcorp/knirvbase/internal/types\"\n14: )\n15: \n16: type DistributedDbOptions struct {\n17: \tDistributed struct {\n18: \t\tEnabled        bool\n19: \t\tNetworkID      string\n20: \t\tBootstrapPeers []string\n21: \t}\n22: }\n23: \n24: type DistributedDatabase struct {\n25: \tnetwork     netpkg.Network\n26: \tstorage     stor.Storage\n27: \tdistributed bool\n28: \tcollections map[string]*coll.DistributedCollection\n29: \tmu          sync.Mutex\n30: }\n31: \n32: func NewDistributedDatabase(ctx context.Context, opts DistributedDbOptions, store stor.Storage, mockNet ...netpkg.Network) (*DistributedDatabase, error) {\n33: \tvar nm netpkg.Network\n34: \tif len(mockNet) > 0 && mockNet[0] != nil {\n35: \t\tnm = mockNet[0]\n36: \t} else {\n37: \t\tnm = netpkg.NewNetworkManager(ctx)\n38: \t}\n39: \tdb := &DistributedDatabase{network: nm, storage: store, distributed: opts.Distributed.Enabled, collections: make(map[string]*coll.DistributedCollection)}\n40: \tif db.distributed {\n41: \t\tif err := nm.Initialize(); err != nil {\n42: \t\t\treturn nil, err\n43: \t\t}\n44: \t\tif opts.Distributed.NetworkID != \"\" {\n45: \t\t\tif len(opts.Distributed.BootstrapPeers) > 0 {\n46: \t\t\t\tif err := nm.JoinNetwork(opts.Distributed.NetworkID, opts.Distributed.BootstrapPeers); err != nil {\n47: \t\t\t\t\treturn nil, err\n48: \t\t\t\t}\n49: \t\t\t} else {\n50: \t\t\t\t_, err := nm.CreateNetwork(typ.NetworkConfig{NetworkID: opts.Distributed.NetworkID, Name: \"Network \" + opts.Distributed.NetworkID})\n51: \t\t\t\tif err != nil {\n52: \t\t\t\t\treturn nil, err\n53: \t\t\t\t}\n54: \t\t\t}\n55: \t\t}\n56: \t}\n57: \treturn db, nil\n58: }\n59: \n60: func (db *DistributedDatabase) Collection(name string, store stor.Storage) *coll.DistributedCollection {\n61: \tdb.mu.Lock()\n62: \tdefer db.mu.Unlock()\n63: \n64: \tif c, ok := db.collections[name]; ok {\n65: \t\treturn c\n66: \t}\n67: \tc := coll.NewDistributedCollection(name, db.network, store)\n68: \tdb.collections[name] = c\n69: \treturn c\n70: }\n71: \n72: func (db *DistributedDatabase) CreateNetwork(cfg typ.NetworkConfig) (string, error) {\n73: \tif db.network == nil {\n74: \t\treturn \"\", errors.New(\"network manager not initialized\")\n75: \t}\n76: \treturn db.network.CreateNetwork(cfg)\n77: }\n78: \n79: func (db *DistributedDatabase) JoinNetwork(networkID string, bootstrapPeers []string) error {\n80: \tif db.network == nil {\n81: \t\treturn errors.New(\"network manager not initialized\")\n82: \t}\n83: \treturn db.network.JoinNetwork(networkID, bootstrapPeers)\n84: }\n85: \n86: func (db *DistributedDatabase) LeaveNetwork(networkID string) error {\n87: \tif db.network == nil {\n88: \t\treturn errors.New(\"network manager not initialized\")\n89: \t}\n90: \treturn db.network.LeaveNetwork(networkID)\n91: }\n92: \n93: func (db *DistributedDatabase) AddCollectionToNetwork(networkID string, collectionName string) error {\n94: \tc := db.collections[collectionName]\n95: \tif c == nil {\n96: \t\treturn errors.New(\"collection not found\")\n97: \t}\n98: \treturn c.AttachToNetwork(networkID)\n99: }\n100: \n101: func (db *DistributedDatabase) RemoveCollectionFromNetwork(collectionName string) error {\n102: \tc := db.collections[collectionName]\n103: \tif c == nil {\n104: \t\treturn nil\n105: \t}\n106: \treturn c.DetachFromNetwork()\n107: }\n108: \n109: func (db *DistributedDatabase) GetNetworkManager() netpkg.Network { return db.network }\n110: \n111: // SetMasterKey sets the master PQC key for encryption at rest\n112: func (db *DistributedDatabase) SetMasterKey(keyPair *pqc.PQCKeyPair) {\n113: \tif fs, ok := db.storage.(interface{ SetMasterKey(*pqc.PQCKeyPair) }); ok {\n114: \t\tfs.SetMasterKey(keyPair)\n115: \t}\n116: }\n117: \n118: // Key-Value and JSON operations\n119: func (db *DistributedDatabase) Put(ctx context.Context, key string, value []byte) error {\n120: \treturn db.storage.Put(ctx, key, value)\n121: }\n122: \n123: func (db *DistributedDatabase) Get(ctx context.Context, key string) ([]byte, error) {\n124: \treturn db.storage.Get(ctx, key)\n125: }\n126: \n127: func (db *DistributedDatabase) DeleteKey(ctx context.Context, key string) error {\n128: \treturn db.storage.DeleteKey(ctx, key)\n129: }\n130: \n131: func (db *DistributedDatabase) StoreObject(ctx context.Context, key string, obj interface{}) error {\n132: \treturn db.storage.StoreObject(ctx, key, obj)\n133: }\n134: \n135: func (db *DistributedDatabase) GetObject(ctx context.Context, key string, dest interface{}) error {\n136: \treturn db.storage.GetObject(ctx, key, dest)\n137: }\n138: \n139: func (db *DistributedDatabase) ProjectToMarkdown(ctx context.Context, key string, targetPath string) error {\n140: \treturn db.storage.ProjectToMarkdown(ctx, key, targetPath)\n141: }\n142: \n143: // Global DHT operations\n144: func (db *DistributedDatabase) PutDHT(ctx context.Context, key string, value interface{}, ttl time.Duration) error {\n145: \tif nm, ok := db.network.(*netpkg.NetworkManager); ok {\n146: \t\treturn nm.PutDHT(key, value, ttl)\n147: \t}\n148: \treturn errors.New(\"DHT not supported by current network manager\")\n149: }\n150: \n151: func (db *DistributedDatabase) GetDHT(ctx context.Context, key string) ([]interface{}, error) {\n152: \tif nm, ok := db.network.(*netpkg.NetworkManager); ok {\n153: \t\treturn nm.GetDHT(key)\n154: \t}\n155: \treturn nil, errors.New(\"DHT not supported by current network manager\")\n156: }\n157: \n158: // Index management methods\n159: func (db *DistributedDatabase) CreateIndex(ctx context.Context, collection, name string, indexType stor.IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error {\n160: \treturn db.storage.CreateIndex(ctx, collection, name, indexType, fields, unique, partialExpr, options)\n161: }\n162: \n163: func (db *DistributedDatabase) DropIndex(ctx context.Context, collection, name string) error {\n164: \treturn db.storage.DropIndex(ctx, collection, name)\n165: }\n166: \n167: func (db *DistributedDatabase) GetIndex(ctx context.Context, collection, name string) *stor.Index {\n168: \treturn db.storage.GetIndex(ctx, collection, name)\n169: }\n170: \n171: func (db *DistributedDatabase) GetIndexesForCollection(ctx context.Context, collection string) []*stor.Index {\n172: \treturn db.storage.GetIndexesForCollection(ctx, collection)\n173: }\n174: \n175: func (db *DistributedDatabase) QueryIndex(ctx context.Context, collection, indexName string, query map[string]interface{}) ([]string, error) {\n176: \treturn db.storage.QueryIndex(ctx, collection, indexName, query)\n177: }\n178: \n179: func (db *DistributedDatabase) Shutdown() error {\n180: \tif db.network == nil {\n181: \t\treturn nil\n182: \t}\n183: \treturn db.network.Shutdown()\n184: }\n\n(End of file - total 184 lines)\n</content>",
+            "metadata": {
+              "preview": "package distributed\n\nimport (\n\t\"context\"\n\t\"errors\"\n\t\"sync\"\n\t\"time\"\n\n\tcoll \"github.com/knirvcorp/knirvbase/internal/collection\"\n\t\"github.com/knirvcorp/knirvbase/internal/crypto/pqc\"\n\tnetpkg \"github.com/knirvcorp/knirvbase/internal/network\"\n\tstor \"github.com/knirvcorp/knirvbase/internal/storage\"\n\ttyp \"github.com/knirvcorp/knirvbase/internal/types\"\n)\n\ntype DistributedDbOptions struct {\n\tDistributed struct {\n\t\tEnabled        bool\n\t\tNetworkID      string\n\t\tBootstrapPeers []string",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVBASE/internal/database/distributed_database.go",
+            "time": {
+              "start": 1779217768602,
+              "end": 1779217768709
+            }
+          },
+          "id": "prt_e41a49f9e001XlrHhhWyBmCDr3",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a491a9001s6oC21zVhDUwOj"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_02_QXtANfq9IiAPlsLzUde74676",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/storage.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/storage.go</path>\n<type>file</type>\n<content>\n1: package storage\n2: \n3: import (\n4: \t\"context\"\n5: \t\"encoding/base64\"\n6: \t\"encoding/json\"\n7: \t\"fmt\"\n8: \t\"os\"\n9: \t\"path/filepath\"\n10: \t\"strings\"\n11: \t\"sync\"\n12: \n13: \t\"github.com/knirvcorp/knirvbase/internal/crypto/pqc\"\n14: \t\"github.com/knirvcorp/knirvbase/internal/types\"\n15: )\n16: \n17: // Storage interface for persistence\n18: type Storage interface {\n19: \t// Collection-based API\n20: \tInsert(ctx context.Context, collection string, doc map[string]interface{}) error\n21: \tUpdate(ctx context.Context, collection, id string, update map[string]interface{}) error\n22: \tDelete(ctx context.Context, collection, id string) error\n23: \tFind(ctx context.Context, collection, id string) (map[string]interface{}, error)\n24: \tFindAll(ctx context.Context, collection string) ([]map[string]interface{}, error)\n25: \n26: \t// Key-Value API (Unified Storage)\n27: \tPut(ctx context.Context, key string, value []byte) error\n28: \tGet(ctx context.Context, key string) ([]byte, error)\n29: \tDeleteKey(ctx context.Context, key string) error\n30: \n31: \t// JSON Support\n32: \tStoreObject(ctx context.Context, key string, obj interface{}) error\n33: \tGetObject(ctx context.Context, key string, dest interface{}) error\n34: \n35: \t// Markdown Projection\n36: \tProjectToMarkdown(ctx context.Context, key string, targetPath string) error\n37: \n38: \t// Index management\n39: \tCreateIndex(ctx context.Context, collection, name string, indexType IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error\n40: \tDropIndex(ctx context.Context, collection, name string) error\n41: \tGetIndex(ctx context.Context, collection, name string) *Index\n42: \tGetIndexesForCollection(ctx context.Context, collection string) []*Index\n43: \tQueryIndex(ctx context.Context, collection, indexName string, query map[string]interface{}) ([]string, error)\n44: \n45: \tClose() error\n46: }\n47: \n48: // FileStorage implements Storage using files\n49: type FileStorage struct {\n50: \tbaseDir       string\n51: \tindexManager  *IndexManager\n52: \tencryptionMgr *pqc.EncryptionManager\n53: \tmu            sync.RWMutex\n54: }\n55: \n56: func NewFileStorage(baseDir string) *FileStorage {\n57: \tos.MkdirAll(baseDir, 0700)\n58: \tindexManager := NewIndexManager(baseDir)\n59: \tindexManager.LoadIndexes() // Load existing indexes\n60: \treturn &FileStorage{\n61: \t\tbaseDir:       baseDir,\n62: \t\tindexManager:  indexManager,\n63: \t\tencryptionMgr: pqc.NewEncryptionManager(),\n64: \t}\n65: }\n66: \n67: func (fs *FileStorage) getCollectionDir(collection string) string {\n68: \treturn filepath.Join(fs.baseDir, collection)\n69: }\n70: \n71: func (fs *FileStorage) getDocPath(collection, id string) string {\n72: \treturn filepath.Join(fs.getCollectionDir(collection), id+\".json\")\n73: }\n74: \n75: // SetMasterKey sets the master PQC key for encryption\n76: func (fs *FileStorage) SetMasterKey(keyPair *pqc.PQCKeyPair) {\n77: \tfs.encryptionMgr.SetMasterKey(keyPair)\n78: }\n79: \n80: // IsEncryptedCollection checks if a collection contains sensitive data that should be encrypted\n81: func (fs *FileStorage) IsEncryptedCollection(collection string) bool {\n82: \t// Collections that contain sensitive data requiring encryption at rest\n83: \tsensitiveCollections := []string{\n84: \t\t\"credentials\",    // hash, salt fields\n85: \t\t\"pqc_keys\",       // private key fields\n86: \t\t\"sessions\",       // token_hash field\n87: \t\t\"audit_log\",      // details field\n88: \t\t\"threat_events\",  // indicators field\n89: \t\t\"access_control\", // permissions field\n90: \t}\n91: \tfor _, sc := range sensitiveCollections {\n92: \t\tif collection == sc {\n93: \t\t\treturn true\n94: \t\t}\n95: \t}\n96: \treturn false\n97: }\n98: \n99: func (fs *FileStorage) Insert(ctx context.Context, collection string, doc map[string]interface{}) error {\n100: \tfs.mu.Lock()\n101: \tdefer fs.mu.Unlock()\n102: \n103: \tos.MkdirAll(fs.getCollectionDir(collection), 0755)\n104: \tpath := fs.getDocPath(collection, doc[\"id\"].(string))\n105: \n106: \t// Create a copy for processing\n107: \tdocCopy := fs.deepCopyDoc(doc)\n108: \n109: \t// Handle MEMORY blob\n110: \tif entryType, ok := docCopy[\"entryType\"].(types.EntryType); ok && entryType == types.EntryTypeMemory {\n111: \t\tif payload, ok := docCopy[\"payload\"].(map[string]interface{}); ok {\n112: \t\t\tif blob, hasBlob := payload[\"blob\"]; hasBlob {\n113: \t\t\t\tblobPath := fs.saveBlob(collection, docCopy[\"id\"].(string), blob)\n114: \t\t\t\tpayload[\"blobRef\"] = blobPath\n115: \t\t\t\tdelete(payload, \"blob\")\n116: \t\t\t\tdocCopy[\"payload\"] = payload\n117: \t\t\t}\n118: \t\t}\n119: \t}\n120: \n121: \t// Encrypt all documents (mandatory PQC encryption at rest)\n122: \tif fs.encryptionMgr.GetMasterKey() != nil {\n123: \t\tencryptedDoc, err := fs.encryptDocument(collection, docCopy)\n124: \t\tif err != nil {\n125: \t\t\treturn fmt.Errorf(\"failed to encrypt document: %w\", err)\n126: \t\t}\n127: \t\tdocCopy = encryptedDoc\n128: \t}\n129: \n130: \tdata, err := json.Marshal(docCopy)\n131: \tif err != nil {\n132: \t\treturn err\n133: \t}\n134: \n135: \t// Sign the write operation for integrity (Dilithium-3)\n136: \tif fs.encryptionMgr.GetMasterKey() != nil {\n137: \t\tsignature, err := fs.encryptionMgr.GetMasterKey().Sign(data)\n138: \t\tif err == nil {\n139: \t\t\t// Store signature in a companion file or wrap the data\n140: \t\t\t// For simplicity, we'll wrap it\n141: \t\t\tsignedData := map[string]interface{}{\n142: \t\t\t\t\"data\":      docCopy,\n143: \t\t\t\t\"signature\": signature,\n144: \t\t\t}\n145: \t\t\tdata, _ = json.Marshal(signedData)\n146: \t\t}\n147: \t}\n148: \n149: \terr = os.WriteFile(path, data, 0644)\n150: \tif err != nil {\n151: \t\treturn err\n152: \t}\n153: \n154: \t// Update indexes (use original doc for indexing)\n155: \treturn fs.indexManager.Insert(collection, doc)\n156: }\n157: \n158: func (fs *FileStorage) Update(ctx context.Context, collection, id string, update map[string]interface{}) error {\n159: \tfs.mu.Lock()\n160: \tdefer fs.mu.Unlock()\n161: \n162: \tdoc, err := fs.Find(ctx, collection, id)\n163: \tif err != nil {\n164: \t\treturn err\n165: \t}\n166: \tif doc == nil {\n167: \t\treturn fmt.Errorf(\"not found\")\n168: \t}\n169: \n170: \tfor k, v := range update {\n171: \t\tdoc[k] = v\n172: \t}\n173: \n174: \treturn fs.Insert(ctx, collection, doc)\n175: }\n176: \n177: func (fs *FileStorage) Delete(ctx context.Context, collection, id string) error {\n178: \tfs.mu.Lock()\n179: \tdefer fs.mu.Unlock()\n180: \n181: \tpath := fs.getDocPath(collection, id)\n182: \tif err := os.Remove(path); err != nil && !os.IsNotExist(err) {\n183: \t\treturn err\n184: \t}\n185: \n186: \t// Remove blob if exists\n187: \tblobDir := filepath.Join(fs.getCollectionDir(collection), \"blobs\")\n188: \tblobPath := filepath.Join(blobDir, id)\n189: \tos.Remove(blobPath)\n190: \n191: \t// Remove from indexes\n192: \treturn fs.indexManager.Delete(collection, id)\n193: }\n194: \n195: func (fs *FileStorage) Find(ctx context.Context, collection, id string) (map[string]interface{}, error) {\n196: \tfs.mu.RLock()\n197: \tdefer fs.mu.RUnlock()\n198: \n199: \tpath := fs.getDocPath(collection, id)\n200: \tdata, err := os.ReadFile(path)\n201: \tif err != nil {\n202: \t\tif os.IsNotExist(err) {\n203: \t\t\treturn nil, nil\n204: \t\t}\n205: \t\treturn nil, err\n206: \t}\n207: \n208: \tvar doc map[string]interface{}\n209: \tif err := json.Unmarshal(data, &doc); err != nil {\n210: \t\treturn nil, err\n211: \t}\n212: \n213: \t// Unwrap and verify signature if present\n214: \tif signedData, ok := doc[\"data\"].(map[string]interface{}); ok {\n215: \t\tif signatureStr, ok := doc[\"signature\"].(string); ok && fs.encryptionMgr.GetMasterKey() != nil {\n216: \t\t\t// Verify signature (Dilithium-3)\n217: \t\t\toriginalBytes, _ := json.Marshal(signedData)\n218: \t\t\tsignature, err := base64.StdEncoding.DecodeString(signatureStr)\n219: \t\t\tif err != nil {\n220: \t\t\t\treturn nil, fmt.Errorf(\"failed to decode signature: %w\", err)\n221: \t\t\t}\n222: \n223: \t\t\tif !fs.encryptionMgr.GetMasterKey().Verify(originalBytes, signature) {\n224: \t\t\t\treturn nil, fmt.Errorf(\"integrity violation: document signature verification failed\")\n225: \t\t\t}\n226: \t\t\tdoc = signedData\n227: \t\t}\n228: \t}\n229: \n230: \t// Decrypt if document is encrypted and we have a master key\n231: \tif encrypted, ok := doc[\"encrypted\"].(bool); ok && encrypted && fs.encryptionMgr.GetMasterKey() != nil {\n232: \t\t// Decryption-on-Demand: Check for valid session token in context\n233: \t\tif !fs.authorizeAccess(ctx, doc) {\n234: \t\t\treturn nil, fmt.Errorf(\"unauthorized: valid session token required for decryption\")\n235: \t\t}\n236: \n237: \t\tdecryptedDoc, err := fs.decryptDocument(doc)\n238: \t\tif err != nil {\n239: \t\t\treturn nil, fmt.Errorf(\"failed to decrypt document: %w\", err)\n240: \t\t}\n241: \t\tdoc = decryptedDoc\n242: \t}\n243: \n244: \t// Load blob for MEMORY\n245: \tif entryType, ok := doc[\"entryType\"].(string); ok && entryType == string(types.EntryTypeMemory) {\n246: \t\tif payload, ok := doc[\"payload\"].(map[string]interface{}); ok {\n247: \t\t\tif blobRef, hasRef := payload[\"blobRef\"].(string); hasRef {\n248: \t\t\t\tblob, err := fs.loadBlob(blobRef)\n249: \t\t\t\tif err == nil {\n250: \t\t\t\t\tpayload[\"blob\"] = blob\n251: \t\t\t\t\tdelete(payload, \"blobRef\")\n252: \t\t\t\t}\n253: \t\t\t}\n254: \t\t}\n255: \t}\n256: \n257: \treturn doc, nil\n258: }\n259: \n260: func (fs *FileStorage) FindAll(ctx context.Context, collection string) ([]map[string]interface{}, error) {\n261: \tfs.mu.RLock()\n262: \tdefer fs.mu.RUnlock()\n263: \n264: \tdir := fs.getCollectionDir(collection)\n265: \tfiles, err := os.ReadDir(dir)\n266: \tif err != nil {\n267: \t\tif os.IsNotExist(err) {\n268: \t\t\treturn []map[string]interface{}{}, nil\n269: \t\t}\n270: \t\treturn nil, err\n271: \t}\n272: \n273: \tvar docs []map[string]interface{}\n274: \tfor _, file := range files {\n275: \t\tif filepath.Ext(file.Name()) == \".json\" {\n276: \t\t\tid := file.Name()[:len(file.Name())-5]\n277: \t\t\tdoc, err := fs.Find(ctx, collection, id)\n278: \t\t\tif err != nil {\n279: \t\t\t\tcontinue\n280: \t\t\t}\n281: \t\t\tif doc != nil {\n282: \t\t\t\tdocs = append(docs, doc)\n283: \t\t\t}\n284: \t\t}\n285: \t}\n286: \treturn docs, nil\n287: }\n288: \n289: func (fs *FileStorage) saveBlob(collection, id string, blob interface{}) string {\n290: \tblobDir := filepath.Join(fs.getCollectionDir(collection), \"blobs\")\n291: \tos.MkdirAll(blobDir, 0755)\n292: \n293: \tblobPath := filepath.Join(blobDir, id)\n294: \tdata, _ := json.Marshal(blob)\n295: \tos.WriteFile(blobPath, data, 0644)\n296: \treturn blobPath\n297: }\n298: \n299: func (fs *FileStorage) loadBlob(blobRef string) (interface{}, error) {\n300: \tdata, err := os.ReadFile(blobRef)\n301: \tif err != nil {\n302: \t\treturn nil, err\n303: \t}\n304: \tvar blob interface{}\n305: \tjson.Unmarshal(data, &blob)\n306: \treturn blob, nil\n307: }\n308: \n309: // Index management methods\n310: \n311: func (fs *FileStorage) CreateIndex(ctx context.Context, collection, name string, indexType IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error {\n312: \treturn fs.indexManager.CreateIndex(collection, name, indexType, fields, unique, partialExpr, options)\n313: }\n314: \n315: func (fs *FileStorage) DropIndex(ctx context.Context, collection, name string) error {\n316: \treturn fs.indexManager.DropIndex(collection, name)\n317: }\n318: \n319: func (fs *FileStorage) GetIndex(ctx context.Context, collection, name string) *Index {\n320: \treturn fs.indexManager.GetIndex(collection, name)\n321: }\n322: \n323: func (fs *FileStorage) GetIndexesForCollection(ctx context.Context, collection string) []*Index {\n324: \treturn fs.indexManager.GetIndexesForCollection(collection)\n325: }\n326: \n327: func (fs *FileStorage) QueryIndex(ctx context.Context, collection, indexName string, query map[string]interface{}) ([]string, error) {\n328: \treturn fs.indexManager.QueryIndex(collection, indexName, query)\n329: }\n330: \n331: // Get retrieves a value by key - implements Key-Value API\n332: func (fs *FileStorage) Get(ctx context.Context, key string) ([]byte, error) {\n333: \tfs.mu.RLock()\n334: \tdefer fs.mu.RUnlock()\n335: \n336: \tpath := filepath.Join(fs.baseDir, \"kv\", key)\n337: \n338: \tdata, err := os.ReadFile(path)\n339: \tif err != nil {\n340: \t\tif os.IsNotExist(err) {\n341: \t\t\treturn nil, fmt.Errorf(\"key not found: %s\", key)\n342: \t\t}\n343: \t\treturn nil, err\n344: \t}\n345: \n346: \t// Decrypt if it's PQC encrypted\n347: \tif fs.encryptionMgr.GetMasterKey() != nil {\n348: \t\t// For raw KV, we might not have document metadata, so we just try to decrypt\n349: \t\t// but we still check for authorization if we want to enforce it.\n350: \t\tif !fs.authorizeAccess(ctx, nil) {\n351: \t\t\t// If not authorized, return raw (encrypted) data or error\n352: \t\t\t// The requirement says \"Data should only be decrypted if...\"\n353: \t\t\treturn data, nil\n354: \t\t}\n355: \n356: \t\tdecrypted, err := fs.encryptionMgr.DecryptData(string(data))\n357: \t\tif err == nil {\n358: \t\t\treturn decrypted, nil\n359: \t\t}\n360: \t}\n361: \n362: \treturn data, nil\n363: }\n364: \n365: // Put stores a value by key - implements Key-Value API\n366: func (fs *FileStorage) Put(ctx context.Context, key string, value []byte) error {\n367: \tfs.mu.Lock()\n368: \tdefer fs.mu.Unlock()\n369: \n370: \tkvDir := filepath.Join(fs.baseDir, \"kv\")\n371: \tos.MkdirAll(kvDir, 0755)\n372: \n373: \tpath := filepath.Join(kvDir, key)\n374: \n375: \tdataToSave := value\n376: \tif fs.encryptionMgr.GetMasterKey() != nil {\n377: \t\tencrypted, err := fs.encryptionMgr.EncryptData(value, fs.encryptionMgr.GetMasterKey().ID)\n378: \t\tif err == nil {\n379: \t\t\tdataToSave = []byte(encrypted)\n380: \t\t}\n381: \t}\n382: \n383: \treturn os.WriteFile(path, dataToSave, 0644)\n384: }\n385: \n386: // DeleteKey removes a key from the Key-Value store\n387: func (fs *FileStorage) DeleteKey(ctx context.Context, key string) error {\n388: \tfs.mu.Lock()\n389: \tdefer fs.mu.Unlock()\n390: \n391: \tpath := filepath.Join(fs.baseDir, \"kv\", key)\n392: \treturn os.Remove(path)\n393: }\n394: \n395: // StoreObject stores a JSON object by key\n396: func (fs *FileStorage) StoreObject(ctx context.Context, key string, obj interface{}) error {\n397: \tdata, err := json.Marshal(obj)\n398: \tif err != nil {\n399: \t\treturn err\n400: \t}\n401: \treturn fs.Put(ctx, key, data)\n402: }\n403: \n404: // GetObject retrieves a JSON object by key\n405: func (fs *FileStorage) GetObject(ctx context.Context, key string, dest interface{}) error {\n406: \tdata, err := fs.Get(ctx, key)\n407: \tif err != nil {\n408: \t\treturn err\n409: \t}\n410: \treturn json.Unmarshal(data, dest)\n411: }\n412: \n413: // ProjectToMarkdown projects structured data into a .md file\n414: func (fs *FileStorage) ProjectToMarkdown(ctx context.Context, key string, targetPath string) error {\n415: \tdata, err := fs.Get(ctx, key)\n416: \tif err != nil {\n417: \t\treturn err\n418: \t}\n419: \n420: \tvar obj map[string]interface{}\n421: \tif err := json.Unmarshal(data, &obj); err != nil {\n422: \t\t// If not JSON, just write as raw markdown\n423: \t\treturn os.WriteFile(targetPath, []byte(fmt.Sprintf(\"# Projected Data: %s\\n\\n%s\", key, string(data))), 0644)\n424: \t}\n425: \n426: \tvar sb strings.Builder\n427: \tsb.WriteString(fmt.Sprintf(\"# %s\\n\\n\", key))\n428: \tfor k, v := range obj {\n429: \t\tsb.WriteString(fmt.Sprintf(\"## %s\\n%v\\n\\n\", k, v))\n430: \t}\n431: \n432: \treturn os.WriteFile(targetPath, []byte(sb.String()), 0644)\n433: }\n434: \n435: // Has checks if a key exists\n436: func (fs *FileStorage) Has(ctx context.Context, key string) (bool, error) {\n437: \tpath := filepath.Join(fs.baseDir, \"kv\", key)\n438: \n439: \t_, err := os.Stat(path)\n440: \tif err != nil {\n441: \t\tif os.IsNotExist(err) {\n442: \t\t\treturn false, nil\n443: \t\t}\n444: \t\treturn false, err\n445: \t}\n446: \n447: \treturn true, nil\n448: }\n449: \n450: // Close closes the storage and cleans up resources\n451: func (fs *FileStorage) Close() error {\n452: \t// FileStorage doesn't have explicit resources to close\n453: \t// but we implement this for compatibility\n454: \treturn nil\n455: }\n456: \n457: // authorizeAccess checks if the context has a valid session token for decryption\n458: func (fs *FileStorage) authorizeAccess(ctx context.Context, doc map[string]interface{}) bool {\n459: \t// For now, we assume the token is passed in the context under a \"session_token\" key\n460: \ttoken, ok := ctx.Value(\"session_token\").(string)\n461: \tif !ok {\n462: \t\treturn false\n463: \t}\n464: \n465: \t// In a real implementation, we would validate this token against our Auth service\n466: \t// or check if it matches a session stored in the document or DHT.\n467: \t// For this prototype, any non-empty token is considered authorized if it's present.\n468: \t// Additionally, we can check if the document has any encryption metadata\n469: \tif encrypted, ok := doc[\"encrypted\"].(bool); ok && encrypted {\n470: \t\t// If document is encrypted, we need to verify the token matches the encryption key\n471: \t\t// For now, just return true if token exists\n472: \t}\n473: \treturn token != \"\"\n474: }\n475: \n476: // deepCopyDoc creates a deep copy of a document\n477: func (fs *FileStorage) deepCopyDoc(doc map[string]interface{}) map[string]interface{} {\n478: \tdata, _ := json.Marshal(doc)\n479: \tvar copy map[string]interface{}\n480: \tjson.Unmarshal(data, &copy)\n481: \treturn copy\n482: }\n483: \n484: // encryptDocument encrypts sensitive fields in a document\n485: func (fs *FileStorage) encryptDocument(collection string, doc map[string]interface{}) (map[string]interface{}, error) {\n486: \tmasterKey := fs.encryptionMgr.GetMasterKey()\n487: \tif masterKey == nil {\n488: \t\treturn nil, fmt.Errorf(\"no master key set for encryption\")\n489: \t}\n490: \n491: \t// Encrypt the payload\n492: \tif payload, ok := doc[\"payload\"].(map[string]interface{}); ok {\n493: \t\tencryptedPayload, err := fs.encryptPayload(collection, payload, masterKey.ID)\n494: \t\tif err != nil {\n495: \t\t\treturn nil, fmt.Errorf(\"failed to encrypt payload: %w\", err)\n496: \t\t}\n497: \t\tdoc[\"payload\"] = encryptedPayload\n498: \t\tdoc[\"encrypted\"] = true\n499: \t\tdoc[\"encryption_key_id\"] = masterKey.ID\n500: \t}\n501: \n502: \treturn doc, nil\n503: }\n504: \n505: // encryptPayload encrypts sensitive fields in the payload\n506: func (fs *FileStorage) encryptPayload(collection string, payload map[string]interface{}, keyID string) (map[string]interface{}, error) {\n507: \tencrypted := make(map[string]interface{})\n508: \n509: \tfor key, value := range payload {\n510: \t\t// Encrypt sensitive fields based on collection and field name\n511: \t\tif fs.isSensitiveField(collection, key) {\n512: \t\t\t// Convert value to bytes for encryption\n513: \t\t\tvalueBytes, err := json.Marshal(value)\n514: \t\t\tif err != nil {\n515: \t\t\t\treturn nil, fmt.Errorf(\"failed to marshal field %s: %w\", key, err)\n516: \t\t\t}\n517: \n518: \t\t\tencryptedValue, err := fs.encryptionMgr.EncryptData(valueBytes, keyID)\n519: \t\t\tif err != nil {\n520: \t\t\t\treturn nil, fmt.Errorf(\"failed to encrypt field %s: %w\", key, err)\n521: \t\t\t}\n522: \n523: \t\t\tencrypted[key] = encryptedValue\n524: \t\t\tencrypted[key+\"_encrypted\"] = true\n525: \t\t} else {\n526: \t\t\tencrypted[key] = value\n527: \t\t}\n528: \t}\n529: \n530: \treturn encrypted, nil\n531: }\n532: \n533: // isSensitiveField checks if a field contains sensitive data that should be encrypted\n534: // Based on the ASIC-Shield security specification\n535: func (fs *FileStorage) isSensitiveField(collection, fieldName string) bool {\n536: \t// Define sensitive fields by collection (field-level encryption)\n537: \tsensitiveFields := map[string][]string{\n538: \t\t\"credentials\": {\n539: \t\t\t\"hash\", // KDF output\n540: \t\t\t\"salt\", // Random salt for KDF\n541: \t\t},\n542: \t\t\"pqc_keys\": {\n543: \t\t\t\"kyber_private_key\",     // Kyber private key\n544: \t\t\t\"dilithium_private_key\", // Dilithium private key\n545: \t\t},\n546: \t\t\"sessions\": {\n547: \t\t\t\"token_hash\", // Session token hash\n548: \t\t},\n549: \t\t\"audit_log\": {\n550: \t\t\t\"details\", // Event details that may contain sensitive info\n551: \t\t},\n552: \t\t\"threat_events\": {\n553: \t\t\t\"indicators\", // Attack indicators and evidence\n554: \t\t},\n555: \t\t\"access_control\": {\n556: \t\t\t\"permissions\", // Access control permissions\n557: \t\t},\n558: \t}\n559: \n560: \tif fields, exists := sensitiveFields[collection]; exists {\n561: \t\tfor _, field := range fields {\n562: \t\t\tif fieldName == field {\n563: \t\t\t\treturn true\n564: \t\t\t}\n565: \t\t}\n566: \t}\n567: \n568: \treturn false\n569: }\n570: \n571: // decryptDocument decrypts an encrypted document\n572: func (fs *FileStorage) decryptDocument(doc map[string]interface{}) (map[string]interface{}, error) {\n573: \tkeyID, ok := doc[\"encryption_key_id\"].(string)\n574: \tif !ok {\n575: \t\treturn nil, fmt.Errorf(\"missing encryption_key_id\")\n576: \t}\n577: \n578: \t// Decrypt the payload\n579: \tif payload, ok := doc[\"payload\"].(map[string]interface{}); ok {\n580: \t\tdecryptedPayload, err := fs.decryptPayload(payload, keyID)\n581: \t\tif err != nil {\n582: \t\t\treturn nil, fmt.Errorf(\"failed to decrypt payload: %w\", err)\n583: \t\t}\n584: \t\tdoc[\"payload\"] = decryptedPayload\n585: \t}\n586: \n587: \t// Remove encryption metadata\n588: \tdelete(doc, \"encrypted\")\n589: \tdelete(doc, \"encryption_key_id\")\n590: \n591: \treturn doc, nil\n592: }\n593: \n594: // decryptPayload decrypts encrypted fields in the payload\n595: func (fs *FileStorage) decryptPayload(payload map[string]interface{}, _ string) (map[string]interface{}, error) {\n596: \tdecrypted := make(map[string]interface{})\n597: \n598: \tfor key, value := range payload {\n599: \t\t// Check if field is encrypted\n600: \t\tif strings.HasSuffix(key, \"_encrypted\") {\n601: \t\t\t// This is an encryption marker, skip\n602: \t\t\tcontinue\n603: \t\t}\n604: \n605: \t\tif isEncrypted, ok := payload[key+\"_encrypted\"].(bool); ok && isEncrypted {\n606: \t\t\t// This field is encrypted\n607: \t\t\tencryptedValue, ok := value.(string)\n608: \t\t\tif !ok {\n609: \t\t\t\treturn nil, fmt.Errorf(\"encrypted field %s is not a string\", key)\n610: \t\t\t}\n611: \n612: \t\t\tdecryptedBytes, err := fs.encryptionMgr.DecryptData(encryptedValue)\n613: \t\t\tif err != nil {\n614: \t\t\t\treturn nil, fmt.Errorf(\"failed to decrypt field %s: %w\", key, err)\n615: \t\t\t}\n616: \n617: \t\t\t// Unmarshal the decrypted value\n618: \t\t\tvar decryptedValue interface{}\n619: \t\t\tif err := json.Unmarshal(decryptedBytes, &decryptedValue); err != nil {\n620: \t\t\t\treturn nil, fmt.Errorf(\"failed to unmarshal decrypted field %s: %w\", key, err)\n621: \t\t\t}\n622: \n623: \t\t\tdecrypted[key] = decryptedValue\n624: \t\t} else {\n625: \t\t\tdecrypted[key] = value\n626: \t\t}\n627: \t}\n628: \n629: \treturn decrypted, nil\n630: }\n\n(End of file - total 630 lines)\n</content>",
+            "metadata": {
+              "preview": "package storage\n\nimport (\n\t\"context\"\n\t\"encoding/base64\"\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"os\"\n\t\"path/filepath\"\n\t\"strings\"\n\t\"sync\"\n\n\t\"github.com/knirvcorp/knirvbase/internal/crypto/pqc\"\n\t\"github.com/knirvcorp/knirvbase/internal/types\"\n)\n\n// Storage interface for persistence\ntype Storage interface {\n\t// Collection-based API\n\tInsert(ctx context.Context, collection string, doc map[string]interface{}) error",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVBASE/internal/storage/storage.go",
+            "time": {
+              "start": 1779217768918,
+              "end": 1779217768966
+            }
+          },
+          "id": "prt_e41a4a0d4001ksBlDlHYKcPoai",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a491a9001s6oC21zVhDUwOj"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-finish",
+          "tokens": {
+            "total": 16410,
+            "input": 2566,
+            "output": 233,
+            "reasoning": 43,
+            "cache": {
+              "write": 0,
+              "read": 13568
+            }
+          },
+          "cost": 0,
+          "id": "prt_e41a4a65e001DtTNqyO4MHYM4t",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a491a9001s6oC21zVhDUwOj"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e41a3c68a0016847W1ke5OKv7D",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 30528,
+          "input": 13974,
+          "output": 153,
+          "reasoning": 17,
+          "cache": {
+            "write": 0,
+            "read": 16384
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779217770486,
+          "completed": 1779217777158
+        },
+        "finish": "tool-calls",
+        "id": "msg_e41a4a7f6001AoNFltPlDeSzew",
+        "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q"
+      },
+      "parts": [
+        {
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-start",
+          "id": "prt_e41a4b24c001tda61dmfk4brrl",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4a7f6001AoNFltPlDeSzew"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now let me read the Flight server file and the types file to complete the picture.",
+          "time": {
+            "start": 1779217773685,
+            "end": 1779217774059
+          },
+          "id": "prt_e41a4b4750017lZxEeUSYRsh1e",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4a7f6001AoNFltPlDeSzew"
+        },
+        {
+          "type": "text",
+          "text": "Now let me read the Flight server and types files to complete the picture.",
+          "time": {
+            "start": 1779217774064,
+            "end": 1779217775691
+          },
+          "id": "prt_e41a4b5f0001xJQiPRCuZwkA2l",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4a7f6001AoNFltPlDeSzew"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_rjRBMyGYF8g9cCXrC50O6158",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/network/flight_server.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/network/flight_server.go</path>\n<type>file</type>\n<content>\n1: package network\n2: \n3: import (\n4: \t\"bytes\"\n5: \t\"context\"\n6: \t\"fmt\"\n7: \t\"io\"\n8: \n9: \t\"github.com/apache/arrow/go/v15/arrow\"\n10: \t\"github.com/apache/arrow/go/v15/arrow/array\"\n11: \t\"github.com/apache/arrow/go/v15/arrow/ipc\"\n12: \t\"github.com/apache/arrow/go/v15/arrow/memory\"\n13: \n14: \tstor \"github.com/knirvcorp/knirvbase/internal/storage\"\n15: \t\"github.com/knirvcorp/knirvbase/pkg/nrv\"\n16: )\n17: \n18: type FlightServer struct {\n19: \tstorage *stor.NRVStorage\n20: \tmemPool memory.Allocator\n21: \tschema  *arrow.Schema\n22: }\n23: \n24: func NewFlightServer(storage *stor.NRVStorage) *FlightServer {\n25: \tfs := &FlightServer{\n26: \t\tstorage: storage,\n27: \t\tmemPool: memory.NewGoAllocator(),\n28: \t}\n29: \tfs.schema = fs.bracketArrowSchema()\n30: \treturn fs\n31: }\n32: \n33: func (s *FlightServer) bracketArrowSchema() *arrow.Schema {\n34: \tasicType := &arrow.FixedSizeBinaryType{ByteWidth: nrv.BracketSize}\n35: \treturn arrow.NewSchema([]arrow.Field{\n36: \t\t{Name: \"bracket_id\", Type: arrow.BinaryTypes.String},\n37: \t\t{Name: \"frame_id\", Type: arrow.BinaryTypes.String},\n38: \t\t{Name: \"frame_timestamp_unix\", Type: arrow.PrimitiveTypes.Int64},\n39: \t\t{Name: \"payload_asic\", Type: asicType},\n40: \t\t{Name: \"drift_score\", Type: arrow.PrimitiveTypes.Float64},\n41: \t\t{Name: \"bracket_type\", Type: arrow.BinaryTypes.String},\n42: \t}, nil)\n43: }\n44: \n45: func (s *FlightServer) Schema() *arrow.Schema {\n46: \treturn s.schema\n47: }\n48: \n49: func (s *FlightServer) parseTicket(ticket string) (collection string, goldOnly bool, err error) {\n50: \tparts := splitTicket(ticket)\n51: \tif len(parts) != 2 {\n52: \t\treturn \"\", false, fmt.Errorf(\"flight: invalid ticket format, expected <stream>.<collection>\")\n53: \t}\n54: \tstreamType, collection := parts[0], parts[1]\n55: \tgoldOnly = streamType == \"gold\"\n56: \treturn collection, goldOnly, nil\n57: }\n58: \n59: func splitTicket(ticket string) []string {\n60: \tvar parts []string\n61: \tvar current []byte\n62: \tfor i := 0; i < len(ticket); i++ {\n63: \t\tif ticket[i] == '.' {\n64: \t\t\tparts = append(parts, string(current))\n65: \t\t\tcurrent = nil\n66: \t\t} else {\n67: \t\t\tcurrent = append(current, ticket[i])\n68: \t\t}\n69: \t}\n70: \tif len(current) > 0 {\n71: \t\tparts = append(parts, string(current))\n72: \t}\n73: \treturn parts\n74: }\n75: \n76: type BracketStreamServer interface {\n77: \tSend(*BracketBatch) error\n78: \tContext() context.Context\n79: }\n80: \n81: type BracketBatch struct {\n82: \tData []byte\n83: }\n84: \n85: func (s *FlightServer) StreamBrackets(ticket string, server BracketStreamServer) error {\n86: \tcollection, goldOnly, err := s.parseTicket(ticket)\n87: \tif err != nil {\n88: \t\treturn err\n89: \t}\n90: \n91: \tbracketCh, err := s.storage.StreamBrackets(server.Context(), collection, goldOnly)\n92: \tif err != nil {\n93: \t\treturn err\n94: \t}\n95: \n96: \tbatchSize := 1024\n97: \treturn s.streamBatches(server, bracketCh, batchSize)\n98: }\n99: \n100: func bracketFrameUnix(b *nrv.Bracket) int64 {\n101: \tif b == nil {\n102: \t\treturn 0\n103: \t}\n104: \tif b.FrameUnix != 0 {\n105: \t\treturn b.FrameUnix\n106: \t}\n107: \treturn int64(b.SubSecondUS)\n108: }\n109: \n110: func bracketDriftScore(b *nrv.Bracket) float64 {\n111: \tif b == nil || b.Meta == nil {\n112: \t\treturn 0\n113: \t}\n114: \treturn b.Meta.DriftScore\n115: }\n116: \n117: func bracketTypeStr(b *nrv.Bracket) string {\n118: \tif b == nil || b.Meta == nil || b.Meta.Type == \"\" {\n119: \t\treturn string(nrv.DeltaTypeI)\n120: \t}\n121: \treturn string(b.Meta.Type)\n122: }\n123: \n124: func appendBracketRecord(recordBuilder *array.RecordBuilder, bracket *nrv.Bracket) {\n125: \twire := nrv.EncodeBracket(bracket)\n126: \trecordBuilder.Field(0).(*array.StringBuilder).Append(bracket.ID)\n127: \trecordBuilder.Field(1).(*array.StringBuilder).Append(bracket.FrameID)\n128: \trecordBuilder.Field(2).(*array.Int64Builder).Append(bracketFrameUnix(bracket))\n129: \trecordBuilder.Field(3).(*array.FixedSizeBinaryBuilder).Append(wire[:])\n130: \trecordBuilder.Field(4).(*array.Float64Builder).Append(bracketDriftScore(bracket))\n131: \trecordBuilder.Field(5).(*array.StringBuilder).Append(bracketTypeStr(bracket))\n132: }\n133: \n134: func (s *FlightServer) streamBatches(server BracketStreamServer, bracketCh <-chan *nrv.Bracket, batchSize int) error {\n135: \trecordBuilder := array.NewRecordBuilder(s.memPool, s.schema)\n136: \tdefer func() {\n137: \t\tif recordBuilder != nil {\n138: \t\t\trecordBuilder.Release()\n139: \t\t}\n140: \t}()\n141: \n142: \tflushBatch := func() error {\n143: \t\trecord := recordBuilder.NewRecord()\n144: \t\tif record == nil {\n145: \t\t\treturn nil\n146: \t\t}\n147: \t\tdefer record.Release()\n148: \n149: \t\tvar buf bytes.Buffer\n150: \t\twriter := ipc.NewWriter(&buf, ipc.WithSchema(s.schema))\n151: \t\tif err := writer.Write(record); err != nil {\n152: \t\t\twriter.Close()\n153: \t\t\treturn err\n154: \t\t}\n155: \t\twriter.Close()\n156: \n157: \t\treturn server.Send(&BracketBatch{Data: buf.Bytes()})\n158: \t}\n159: \n160: \tvar batchCount int\n161: \n162: \tfor {\n163: \t\tselect {\n164: \t\tcase <-server.Context().Done():\n165: \t\t\treturn server.Context().Err()\n166: \t\tcase bracket, ok := <-bracketCh:\n167: \t\t\tif !ok {\n168: \t\t\t\tif batchCount > 0 {\n169: \t\t\t\t\treturn flushBatch()\n170: \t\t\t\t}\n171: \t\t\t\treturn nil\n172: \t\t\t}\n173: \n174: \t\t\tappendBracketRecord(recordBuilder, bracket)\n175: \t\t\tbatchCount++\n176: \n177: \t\t\tif batchCount >= batchSize {\n178: \t\t\t\tif err := flushBatch(); err != nil {\n179: \t\t\t\t\treturn err\n180: \t\t\t\t}\n181: \t\t\t\trecordBuilder.Release()\n182: \t\t\t\trecordBuilder = array.NewRecordBuilder(s.memPool, s.schema)\n183: \t\t\t\tbatchCount = 0\n184: \t\t\t}\n185: \t\t}\n186: \t}\n187: }\n188: \n189: func BracketsToFlightData(brackets []*nrv.Bracket) ([]byte, error) {\n190: \tif len(brackets) == 0 {\n191: \t\treturn nil, nil\n192: \t}\n193: \n194: \tmemPool := memory.NewGoAllocator()\n195: \tserver := &FlightServer{memPool: memPool}\n196: \tschema := server.bracketArrowSchema()\n197: \n198: \trecordBuilder := array.NewRecordBuilder(memPool, schema)\n199: \tdefer recordBuilder.Release()\n200: \n201: \tfor _, b := range brackets {\n202: \t\tappendBracketRecord(recordBuilder, b)\n203: \t}\n204: \n205: \trecord := recordBuilder.NewRecord()\n206: \tif record == nil {\n207: \t\treturn nil, nil\n208: \t}\n209: \tdefer record.Release()\n210: \n211: \tvar buf bytes.Buffer\n212: \twriter := ipc.NewWriter(&buf, ipc.WithSchema(schema))\n213: \tif err := writer.Write(record); err != nil {\n214: \t\twriter.Close()\n215: \t\treturn nil, err\n216: \t}\n217: \twriter.Close()\n218: \n219: \treturn buf.Bytes(), nil\n220: }\n221: \n222: func FlightDataToBrackets(data []byte) ([]*nrv.Bracket, error) {\n223: \tif len(data) == 0 {\n224: \t\treturn nil, nil\n225: \t}\n226: \n227: \treader, err := ipc.NewReader(bytes.NewReader(data))\n228: \tif err != nil {\n229: \t\treturn nil, err\n230: \t}\n231: \n232: \tvar brackets []*nrv.Bracket\n233: \n234: \tfor reader.Next() {\n235: \t\trecord := reader.Record()\n236: \t\tcount := int(record.NumRows())\n237: \n238: \t\tidCol := record.Column(0).(*array.String)\n239: \t\tframeIDCol := record.Column(1).(*array.String)\n240: \t\tframeUnixCol := record.Column(2).(*array.Int64)\n241: \t\tasicCol := record.Column(3).(*array.FixedSizeBinary)\n242: \t\tdriftCol := record.Column(4).(*array.Float64)\n243: \t\ttypeCol := record.Column(5).(*array.String)\n244: \n245: \t\tfor i := 0; i < count; i++ {\n246: \t\t\tvar raw [nrv.BracketSize]byte\n247: \t\t\tcopy(raw[:], asicCol.Value(i))\n248: \t\t\tdec := nrv.DecodeBracket(raw)\n249: \t\t\tbp := new(nrv.Bracket)\n250: \t\t\t*bp = dec\n251: \t\t\tbp.ID = idCol.Value(i)\n252: \t\t\tbp.FrameID = frameIDCol.Value(i)\n253: \t\t\tbp.FrameUnix = frameUnixCol.Value(i)\n254: \t\t\tbp.Meta = &nrv.BracketMeta{\n255: \t\t\t\tID:         idCol.Value(i),\n256: \t\t\t\tType:       nrv.DeltaType(typeCol.Value(i)),\n257: \t\t\t\tDriftScore: driftCol.Value(i),\n258: \t\t\t}\n259: \t\t\tbrackets = append(brackets, bp)\n260: \t\t}\n261: \t\trecord.Release()\n262: \t}\n263: \n264: \treturn brackets, nil\n265: }\n266: \n267: // euclideanDistanceFloat32 calculates the squared Euclidean distance between two\n268: // 16-dimensional float32 vectors. Each Bracket's Projections [32]byte field\n269: // encodes a 16-dimensional LSH vector (2 bytes per dimension, uint16 normalized\n270: // to float32). This distance drives the I/P-bracket decision: a new I-bracket\n271: // is emitted whenever the drift score exceeds the configured threshold.\n272: //\n273: // Usage: convert a Bracket's Projections to [16]float32 via projectionsToFloat32,\n274: // then compare current vs. anchor bracket to produce the drift_score stored in\n275: // BracketMeta and the frame's bracket_index entry.\n276: func euclideanDistanceFloat32(a, b [16]float32) float64 {\n277: \tvar sum float64\n278: \tfor i := 0; i < 16; i++ {\n279: \t\tdiff := float64(a[i] - b[i])\n280: \t\tsum += diff * diff\n281: \t}\n282: \treturn sum\n283: }\n284: \n285: // projectionsToFloat32 interprets a Bracket's 32-byte Projections field as a\n286: // 16-dimensional LSH vector. Each pair of bytes encodes one uint16 dimension,\n287: // which is normalized to the float32 range [0.0, 1.0].\n288: func projectionsToFloat32(p [32]byte) [16]float32 {\n289: \tvar v [16]float32\n290: \tfor i := 0; i < 16; i++ {\n291: \t\tval := uint16(p[i*2]) | uint16(p[i*2+1])<<8\n292: \t\tv[i] = float32(val) / 65535.0\n293: \t}\n294: \treturn v\n295: }\n296: \n297: // CalcBracketDriftScore returns the Euclidean drift between two brackets based\n298: // on their 16-dimensional LSH Projections. The result is stored as DriftScore\n299: // in BracketMeta and used by the FrameTicker to decide when to anchor a new\n300: // I-bracket vs. emitting a P-bracket (delta).\n301: func CalcBracketDriftScore(current, anchor *nrv.Bracket) float64 {\n302: \tif current == nil || anchor == nil {\n303: \t\treturn 0\n304: \t}\n305: \treturn euclideanDistanceFloat32(\n306: \t\tprojectionsToFloat32(current.Projections),\n307: \t\tprojectionsToFloat32(anchor.Projections),\n308: \t)\n309: }\n310: \n311: type FlightClient struct {\n312: \tconn    io.Reader\n313: \tmemPool memory.Allocator\n314: }\n315: \n316: func NewFlightClient(conn io.Reader) *FlightClient {\n317: \treturn &FlightClient{\n318: \t\tconn:    conn,\n319: \t\tmemPool: memory.NewGoAllocator(),\n320: \t}\n321: }\n322: \n323: func (c *FlightClient) StreamBrackets(ctx context.Context, ticket string) ([]*nrv.Bracket, error) {\n324: \t_, _ = ctx, ticket\n325: \treader, err := ipc.NewReader(c.conn)\n326: \tif err != nil {\n327: \t\treturn nil, err\n328: \t}\n329: \n330: \tvar brackets []*nrv.Bracket\n331: \n332: \tfor reader.Next() {\n333: \t\trecord := reader.Record()\n334: \t\tcount := int(record.NumRows())\n335: \n336: \t\tidCol := record.Column(0).(*array.String)\n337: \t\tframeIDCol := record.Column(1).(*array.String)\n338: \t\tframeUnixCol := record.Column(2).(*array.Int64)\n339: \t\tasicCol := record.Column(3).(*array.FixedSizeBinary)\n340: \t\tdriftCol := record.Column(4).(*array.Float64)\n341: \t\ttypeCol := record.Column(5).(*array.String)\n342: \n343: \t\tfor i := 0; i < count; i++ {\n344: \t\t\tvar raw [nrv.BracketSize]byte\n345: \t\t\tcopy(raw[:], asicCol.Value(i))\n346: \t\t\tdec := nrv.DecodeBracket(raw)\n347: \t\t\tbp := new(nrv.Bracket)\n348: \t\t\t*bp = dec\n349: \t\t\tbp.ID = idCol.Value(i)\n350: \t\t\tbp.FrameID = frameIDCol.Value(i)\n351: \t\t\tbp.FrameUnix = frameUnixCol.Value(i)\n352: \t\t\tbp.Meta = &nrv.BracketMeta{\n353: \t\t\t\tID:         idCol.Value(i),\n354: \t\t\t\tType:       nrv.DeltaType(typeCol.Value(i)),\n355: \t\t\t\tDriftScore: driftCol.Value(i),\n356: \t\t\t}\n357: \t\t\tbrackets = append(brackets, bp)\n358: \t\t}\n359: \t\trecord.Release()\n360: \t}\n361: \n362: \treturn brackets, nil\n363: }\n\n(End of file - total 363 lines)\n</content>",
+            "metadata": {
+              "preview": "package network\n\nimport (\n\t\"bytes\"\n\t\"context\"\n\t\"fmt\"\n\t\"io\"\n\n\t\"github.com/apache/arrow/go/v15/arrow\"\n\t\"github.com/apache/arrow/go/v15/arrow/array\"\n\t\"github.com/apache/arrow/go/v15/arrow/ipc\"\n\t\"github.com/apache/arrow/go/v15/arrow/memory\"\n\n\tstor \"github.com/knirvcorp/knirvbase/internal/storage\"\n\t\"github.com/knirvcorp/knirvbase/pkg/nrv\"\n)\n\ntype FlightServer struct {\n\tstorage *stor.NRVStorage\n\tmemPool memory.Allocator",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVBASE/internal/network/flight_server.go",
+            "time": {
+              "start": 1779217774351,
+              "end": 1779217774480
+            }
+          },
+          "id": "prt_e41a4b5fc0013hbmDfhoYXJD0B",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4a7f6001AoNFltPlDeSzew"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_5xOdSTMSJ5MNiR6W8UgO4319",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/types/types.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/types/types.go</path>\n<type>file</type>\n<content>\n1: package types\n2: \n3: import (\n4: \t\"time\"\n5: \n6: \t\"github.com/knirvcorp/knirvbase/internal/clock\"\n7: )\n8: \n9: // EntryType specifies the kind of data stored.\n10: type EntryType string\n11: \n12: const (\n13: \tEntryTypeMemory EntryType = \"MEMORY\"\n14: \tEntryTypeAuth   EntryType = \"AUTH\"\n15: )\n16: \n17: // MemoryCategory specifies the category of memory entries\n18: type MemoryCategory string\n19: \n20: const (\n21: \tMemoryCategoryError      MemoryCategory = \"ERROR\"\n22: \tMemoryCategoryContext    MemoryCategory = \"CONTEXT\"\n23: \tMemoryCategoryIdea       MemoryCategory = \"IDEA\"\n24: \tMemoryCategorySolution   MemoryCategory = \"SOLUTION\"\n25: \tMemoryCategorySkill      MemoryCategory = \"SKILL\"\n26: \tMemoryCategoryGeneric    MemoryCategory = \"GENERIC\"\n27: \tMemoryCategoryEvent      MemoryCategory = \"EVENT\"\n28: \tMemoryCategoryPreference MemoryCategory = \"PREFERENCE\"\n29: \tMemoryCategoryTrait      MemoryCategory = \"TRAIT\"\n30: )\n31: \n32: // DistributedDocument augments a document with CRDT metadata\n33: type DistributedDocument struct {\n34: \tID        string                 `json:\"id\"`\n35: \tEntryType EntryType              `json:\"entryType\"`\n36: \tPayload   map[string]interface{} `json:\"payload,omitempty\"`\n37: \tVector    clock.VectorClock      `json:\"_vector\"`\n38: \tTimestamp int64                  `json:\"_timestamp\"`\n39: \tPeerID    string                 `json:\"_peerId\"`\n40: \t// Stage is an optional marker used to indicate special handling for a document.\n41: \t// Supported values: \"post-pending\" (document is staged and will be posted as a KNIRVGRAPH\n42: \t// transaction during the next sync), or empty string for normal documents.\n43: \tStage   string `json:\"_stage,omitempty\"`\n44: \tDeleted bool   `json:\"_deleted,omitempty\"`\n45: }\n46: \n47: // OperationType enumerates CRDT operation kinds\n48: type OperationType int\n49: \n50: const (\n51: \tOpInsert OperationType = iota\n52: \tOpUpdate\n53: \tOpDelete\n54: )\n55: \n56: // CRDTOperation represents a change to be synchronized\n57: type CRDTOperation struct {\n58: \tID         string               `json:\"id\"`\n59: \tType       OperationType        `json:\"type\"`\n60: \tCollection string               `json:\"collection\"`\n61: \tDocumentID string               `json:\"documentId\"`\n62: \tData       *DistributedDocument `json:\"data,omitempty\"`\n63: \tVector     clock.VectorClock    `json:\"vector\"`\n64: \tTimestamp  int64                `json:\"timestamp\"`\n65: \tPeerID     string               `json:\"peerId\"`\n66: }\n67: \n68: // NetworkConfig holds network-level configuration\n69: // Additional fields control posting/staging behavior:\n70: //   - DefaultPostingNetwork: the network to which staged entries are posted (e.g. \"knirvgraph\").\n71: //   - AutoPostClassifications: a list of EntryTypes that are automatically staged for posting by classification.\n72: //   - PrivateByDefault: when true (default), entries are private unless staged or explicitly configured.\n73: type NetworkConfig struct {\n74: \tNetworkID      string\n75: \tName           string\n76: \tCollections    map[string]bool\n77: \tBootstrapPeers []string\n78: \t// Default posting target for staged entries (e.g., \"knirvgraph\").\n79: \tDefaultPostingNetwork string\n80: \n81: \t// Entry classifications which are auto-staged for posting. Common defaults include\n82: \t// EntryType values like \"ERROR\", \"CONTEXT\", and \"IDEA\".\n83: \tAutoPostClassifications []EntryType\n84: \n85: \t// Entries are private by default unless staged or configured otherwise.\n86: \tPrivateByDefault bool\n87: \n88: \tEncryption struct {\n89: \t\tEnabled      bool\n90: \t\tSharedSecret string\n91: \t}\n92: \tReplication struct {\n93: \t\tFactor   int\n94: \t\tStrategy string // full | partial | leader\n95: \t}\n96: \tDiscovery struct {\n97: \t\tMDNS      bool\n98: \t\tBootstrap bool\n99: \t}\n100: }\n101: \n102: // PeerInfo\n103: type PeerInfo struct {\n104: \tPeerID      string\n105: \tAddrs       []string\n106: \tProtocols   []string\n107: \tLatency     time.Duration\n108: \tLastSeen    time.Time\n109: \tCollections []string\n110: }\n111: \n112: // SyncState for a collection/network\n113: type SyncState struct {\n114: \tCollection        string\n115: \tNetworkID         string\n116: \tLocalVector       clock.VectorClock\n117: \tLastSync          time.Time\n118: \tPendingOperations []CRDTOperation\n119: \t// StagedEntries contains IDs of documents marked with `_stage == \"post-pending\"`.\n120: \t// These will be converted to KNIRVGRAPH transactions and posted during the next sync.\n121: \tStagedEntries  []string\n122: \tSyncInProgress bool\n123: }\n124: \n125: // NetworkStats\n126: type NetworkStats struct {\n127: \tNetworkID          string\n128: \tConnectedPeers     int\n129: \tTotalPeers         int\n130: \tCollectionsShared  int\n131: \tOperationsSent     int64\n132: \tOperationsReceived int64\n133: \tBytesTransferred   int64\n134: \tAverageLatency     time.Duration\n135: }\n136: \n137: // MessageType strings for protocol\n138: type MessageType string\n139: \n140: const (\n141: \tMsgSyncRequest        MessageType = \"sync_request\"\n142: \tMsgSyncResponse       MessageType = \"sync_response\"\n143: \tMsgOperation          MessageType = \"operation\"\n144: \tMsgHeartbeat          MessageType = \"heartbeat\"\n145: \tMsgCollectionAnnounce MessageType = \"collection_announce\"\n146: \tMsgCollectionRequest  MessageType = \"collection_request\"\n147: \tMsgDHTPut             MessageType = \"dht_put\"\n148: \tMsgDHTGet             MessageType = \"dht_get\"\n149: )\n150: \n151: // ProtocolMessage generic envelope\n152: type ProtocolMessage struct {\n153: \tType      MessageType `json:\"type\"`\n154: \tNetworkID string      `json:\"networkId\"`\n155: \tSenderID  string      `json:\"senderId\"`\n156: \tTimestamp int64       `json:\"timestamp\"`\n157: \tPayload   interface{} `json:\"payload\"`\n158: }\n\n(End of file - total 158 lines)\n</content>",
+            "metadata": {
+              "preview": "package types\n\nimport (\n\t\"time\"\n\n\t\"github.com/knirvcorp/knirvbase/internal/clock\"\n)\n\n// EntryType specifies the kind of data stored.\ntype EntryType string\n\nconst (\n\tEntryTypeMemory EntryType = \"MEMORY\"\n\tEntryTypeAuth   EntryType = \"AUTH\"\n)\n\n// MemoryCategory specifies the category of memory entries\ntype MemoryCategory string\n\nconst (",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVBASE/internal/types/types.go",
+            "time": {
+              "start": 1779217774636,
+              "end": 1779217774707
+            }
+          },
+          "id": "prt_e41a4b726001r4jckVFm7gT0m7",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4a7f6001AoNFltPlDeSzew"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-finish",
+          "tokens": {
+            "total": 30528,
+            "input": 13974,
+            "output": 153,
+            "reasoning": 17,
+            "cache": {
+              "write": 0,
+              "read": 16384
+            }
+          },
+          "cost": 0,
+          "id": "prt_e41a4bfca001vAmcPDiVeqnRfy",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4a7f6001AoNFltPlDeSzew"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e41a3c68a0016847W1ke5OKv7D",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 36332,
+          "input": 5602,
+          "output": 213,
+          "reasoning": 53,
+          "cache": {
+            "write": 0,
+            "read": 30464
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779217777177,
+          "completed": 1779217784911
+        },
+        "finish": "tool-calls",
+        "id": "msg_e41a4c219001DldnSG6mrLIHYL",
+        "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q"
+      },
+      "parts": [
+        {
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-start",
+          "id": "prt_e41a4cd3d001eqHYwWjHNfs49C",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4c219001DldnSG6mrLIHYL"
+        },
+        {
+          "type": "reasoning",
+          "text": "I have a very comprehensive view now. Let me also check for the `FindAll` method on `DistributedCollection` to make sure I have it right, and also see if there's anything else in the `internal/network` package that's relevant.",
+          "time": {
+            "start": 1779217780505,
+            "end": 1779217781046
+          },
+          "id": "prt_e41a4cf19001DG6nSteIRVW4eF",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4c219001DldnSG6mrLIHYL"
+        },
+        {
+          "type": "text",
+          "text": "Let me check the network package for additional files and verify the `DistributedCollection.FindAll` implementation:",
+          "time": {
+            "start": 1779217781050,
+            "end": 1779217783813
+          },
+          "id": "prt_e41a4d13a001qddqyrf0blXA79",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4c219001DldnSG6mrLIHYL"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_00_CiWlA2qVcBJeaTH8oPOX0158",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/internal/network/*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/network/flight_server.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/network/network_manager_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/network/network_manager.go",
+            "metadata": {
+              "count": 3,
+              "truncated": false
+            },
+            "title": "packages/KNIRVBASE",
+            "time": {
+              "start": 1779217781731,
+              "end": 1779217781837
+            }
+          },
+          "id": "prt_e41a4d25b001ARkU4zKl43i5PL",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4c219001DldnSG6mrLIHYL"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_RWdNy0KK9Ho9ccWnCrgb1828",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "func \\(dc \\*DistributedCollection\\) FindAll",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE",
+              "include": "*.go"
+            },
+            "output": "Found 1 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/collection/distributed_collection.go:\n  Line 254: func (dc *DistributedCollection) FindAll(ctx context.Context) ([]map[string]interface{}, error) {\n",
+            "metadata": {
+              "matches": 1,
+              "truncated": false
+            },
+            "title": "func \\(dc \\*DistributedCollection\\) FindAll",
+            "time": {
+              "start": 1779217782134,
+              "end": 1779217782219
+            }
+          },
+          "id": "prt_e41a4d3e8001F3uflPZfrGZF36",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4c219001DldnSG6mrLIHYL"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-finish",
+          "tokens": {
+            "total": 36332,
+            "input": 5602,
+            "output": 213,
+            "reasoning": 53,
+            "cache": {
+              "write": 0,
+              "read": 30464
+            }
+          },
+          "cost": 0,
+          "id": "prt_e41a4ddf6001VY49hJiAF2OYMQ",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4c219001DldnSG6mrLIHYL"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e41a3c68a0016847W1ke5OKv7D",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 39404,
+          "input": 303,
+          "output": 2861,
+          "reasoning": 16,
+          "cache": {
+            "write": 0,
+            "read": 36224
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779217784928,
+          "completed": 1779217808787
+        },
+        "finish": "stop",
+        "id": "msg_e41a4e060001uLauk7itYGpkMe",
+        "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q"
+      },
+      "parts": [
+        {
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-start",
+          "id": "prt_e41a4f055001f6TQzb7NRZk34q",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4e060001uLauk7itYGpkMe"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now I have all the information I need. Let me compile a comprehensive answer.",
+          "time": {
+            "start": 1779217789313,
+            "end": 1779217789554
+          },
+          "id": "prt_e41a4f181001HVICUC7WmvhvVb",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4e060001uLauk7itYGpkMe"
+        },
+        {
+          "type": "text",
+          "text": "Here is a comprehensive report of all the `knirvbase` API definitions found across the codebase.\n\n---\n\n## 1. `knirvbase.DB` -- Struct (not interface)\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase.go`\n\n`DB` is a **struct**, not an interface. It wraps the internal `DistributedDatabase`.\n\n```go\ntype DB struct {\n    db    *db.DistributedDatabase\n    store stor.Storage\n}\n```\n\n**Constructor:**\n\n```go\nfunc New(ctx context.Context, opts Options) (*DB, error)\n```\n\nWhere `Options` is:\n\n```go\ntype Options struct {\n    DataDir                   string\n    DistributedEnabled        bool\n    DistributedNetworkID      string\n    DistributedBootstrapPeers []string\n}\n```\n\n**`DB` methods:**\n\n| Method | Signature |\n|--------|-----------|\n| `CreateNetwork` | `(cfg typ.NetworkConfig) (string, error)` |\n| `JoinNetwork` | `(networkID string, bootstrapPeers []string) error` |\n| `LeaveNetwork` | `(networkID string) error` |\n| **`Collection`** | `(name string) Collection` -- returns the `Collection` interface |\n| `Dataset` | `(name string) *NRVDataset` |\n| `Shutdown` | `() error` |\n\nThere is also an NRV-specific constructor:\n\n```go\nfunc NewNRV(ctx context.Context, opts Options, keyPair *pqc.PQCKeyPair) (*DB, error)\n```\n\n---\n\n## 2. `knirvbase.Collection` -- Interface\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase.go` (lines 124-133)\n\n```go\ntype Collection interface {\n    Insert(ctx context.Context, doc map[string]interface{}) (map[string]interface{}, error)\n    Update(ctx context.Context, id string, update map[string]interface{}) (int, error)\n    Delete(ctx context.Context, id string) (int, error)\n    Find(ctx context.Context, id string) (map[string]interface{}, error)\n    FindAll(ctx context.Context) ([]map[string]interface{}, error)\n    AttachToNetwork(networkID string) error\n    DetachFromNetwork() error\n    ForceSync() error\n}\n```\n\n**Implementation adapter** (private, `collectionAdapter` at line 135) delegates to `coll.DistributedCollection`.\n\nThe underlying `DistributedCollection` (in `internal/collection/distributed_collection.go`) has an additional method not exposed through the public `Collection` interface:\n\n- `StreamBrackets(ctx context.Context, goldOnly bool) (<-chan *nrv.Bracket, error)` -- only works if the storage backend is `*stor.NRVStorage`; otherwise returns an error.\n\n---\n\n## 3. How Collections are Created/Accessed\n\n**Chained flow:**\n1. User calls `db.Collection(name)` on the public `*knirvbase.DB` struct (line 62 of `knirvbase.go`).\n2. This calls `d.db.Collection(name, d.store)` on `DistributedDatabase` (`internal/database/distributed_database.go`, line 60).\n3. `DistributedDatabase` checks its internal map; if not found, it calls `coll.NewDistributedCollection(name, db.network, store)` (`internal/collection/distributed_collection.go`, line 104).\n4. `NewDistributedCollection` creates an internal `LocalCollection(name, store)` plus sets up CRDT-based network sync via message handlers.\n\n**Collection key methods on `DistributedCollection`:**\n\n```go\nfunc NewDistributedCollection(name string, net netpkg.Network, store stor.Storage) *DistributedCollection\nfunc (dc *DistributedCollection) Insert(ctx, doc) (map[string]interface{}, error)\nfunc (dc *DistributedCollection) Update(ctx, id, update) (int, error)\nfunc (dc *DistributedCollection) Delete(ctx, id) (int, error)\nfunc (dc *DistributedCollection) Find(ctx, id) (map[string]interface{}, error)\nfunc (dc *DistributedCollection) FindAll(ctx) ([]map[string]interface{}, error)\nfunc (dc *DistributedCollection) AttachToNetwork(networkID string) error\nfunc (dc *DistributedCollection) DetachFromNetwork() error\nfunc (dc *DistributedCollection) ForceSync() error\nfunc (dc *DistributedCollection) StreamBrackets(ctx, goldOnly bool) (<-chan *nrv.Bracket, error)  // NRV-only\n```\n\n---\n\n## 4. Flight Stream Related Code\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/network/flight_server.go`\n\n### `FlightServer` struct\n\n```go\ntype FlightServer struct {\n    storage *stor.NRVStorage\n    memPool memory.Allocator       // Apache Arrow memory allocator\n    schema  *arrow.Schema\n}\n\nfunc NewFlightServer(storage *stor.NRVStorage) *FlightServer\n```\n\n### `BracketStreamServer` interface (for server-side streaming callbacks)\n\n```go\ntype BracketStreamServer interface {\n    Send(*BracketBatch) error\n    Context() context.Context\n}\n```\n\n### `BracketBatch` struct\n\n```go\ntype BracketBatch struct {\n    Data []byte  // Arrow IPC encoded record batch\n}\n```\n\n### `FlightServer` methods\n\n| Method | Signature |\n|--------|-----------|\n| `Schema` | `() *arrow.Schema` -- returns the Arrow schema for bracket data |\n| `StreamBrackets` | `(ticket string, server BracketStreamServer) error` -- ticket format is `\"gold.<collection>\"` or `\"research.<collection>\"` |\n\n### `FlightClient` struct\n\n```go\ntype FlightClient struct {\n    conn    io.Reader\n    memPool memory.Allocator\n}\n\nfunc NewFlightClient(conn io.Reader) *FlightClient\nfunc (c *FlightClient) StreamBrackets(ctx context.Context, ticket string) ([]*nrv.Bracket, error)\n```\n\n### Arrow Schema for bracket streaming\n\n```\nFields:\n  bracket_id           : String\n  frame_id             : String\n  frame_timestamp_unix : Int64\n  payload_asic         : FixedSizeBinary(32)  -- BracketSize = 32 bytes\n  drift_score          : Float64\n  bracket_type         : String\n```\n\n### Conversion utilities\n\n```go\nfunc BracketsToFlightData(brackets []*nrv.Bracket) ([]byte, error)\nfunc FlightDataToBrackets(data []byte) ([]*nrv.Bracket, error)\nfunc CalcBracketDriftScore(current, anchor *nrv.Bracket) float64\n```\n\n---\n\n## 5. Internal Storage Interface\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/storage.go`\n\nThe `Storage` interface that backs all collection operations:\n\n```go\ntype Storage interface {\n    // Collection-based API\n    Insert(ctx context.Context, collection string, doc map[string]interface{}) error\n    Update(ctx context.Context, collection, id string, update map[string]interface{}) error\n    Delete(ctx context.Context, collection, id string) error\n    Find(ctx context.Context, collection, id string) (map[string]interface{}, error)\n    FindAll(ctx context.Context, collection string) ([]map[string]interface{}, error)\n\n    // Key-Value API\n    Put(ctx context.Context, key string, value []byte) error\n    Get(ctx context.Context, key string) ([]byte, error)\n    DeleteKey(ctx context.Context, key string) error\n\n    // JSON Support\n    StoreObject(ctx context.Context, key string, obj interface{}) error\n    GetObject(ctx context.Context, key string, dest interface{}) error\n\n    // Markdown Projection\n    ProjectToMarkdown(ctx context.Context, key string, targetPath string) error\n\n    // Index management\n    CreateIndex(ctx, collection, name string, indexType IndexType, fields []string, unique bool, partialExpr string, options map[string]interface{}) error\n    DropIndex(ctx, collection, name string) error\n    GetIndex(ctx, collection, name string) *Index\n    GetIndexesForCollection(ctx, collection string) []*Index\n    QueryIndex(ctx, collection, indexName string, query map[string]interface{}) ([]string, error)\n\n    Close() error\n}\n```\n\nImplementations:\n- `FileStorage` -- file-based, with PQC encryption-at-rest (Kyber/Dilithium)\n- `NRVStorage` -- NRV (Neural Random Vector)-specific storage, adds `StreamBrackets`, `AppendBracketDirect`, etc.\n\n---\n\n## 6. `NRVDataset` -- NRV-specific accessor\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase.go` (lines 77-109)\n\n```go\ntype NRVDataset struct {\n    name    string\n    storage *stor.NRVStorage\n    inner   *coll.DistributedCollection\n}\n\nfunc (ds *NRVDataset) AppendBracket(ctx context.Context, b *nrv.Bracket, thermo nrv.ThermoAtmosphere) error\nfunc (ds *NRVDataset) StreamBrackets(ctx context.Context, goldOnly bool) (<-chan *nrv.Bracket, error)\nfunc (ds *NRVDataset) GetFrame(ctx context.Context, frameID string) (*nrv.FrameEntry, []*nrv.Bracket, error)\nfunc (ds *NRVDataset) SetLinguistic(token, unit string) error\n```\n\n---\n\n## 7. Internal Type Definitions\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/types/types.go`\n\nKey types used throughout:\n\n```go\ntype EntryType string    // \"MEMORY\" | \"AUTH\"\ntype OperationType int   // OpInsert | OpUpdate | OpDelete\n\ntype DistributedDocument struct {\n    ID, EntryType, Stage string\n    Payload              map[string]interface{}\n    Vector               clock.VectorClock\n    Timestamp            int64\n    PeerID               string\n    Deleted              bool\n}\n\ntype CRDTOperation struct {\n    ID, Collection, DocumentID, PeerID string\n    Type                               OperationType\n    Data                               *DistributedDocument\n    Vector                             clock.VectorClock\n    Timestamp                          int64\n}\n```\n\n---\n\n### Summary of All Files Examined\n\n| File | Content |\n|------|---------|\n| `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase.go` | **Public API**: `DB` struct, `Options`, `New`, `NewNRV`, `Collection` interface, `collectionAdapter`, `NRVDataset` |\n| `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/pkg/knirvbase/knirvbase_test.go` | Tests for `New`, `Collection`, `Insert`, `Find` |\n| `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/collection/distributed_collection.go` | `DistributedCollection` + `LocalCollection` implementations |\n| `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/database/distributed_database.go` | `DistributedDatabase` -- manages collections, DHT, indexes, shutdown |\n| `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/storage/storage.go` | `Storage` interface + `FileStorage` implementation with PQC encryption |\n| `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/network/flight_server.go` | `FlightServer`, `FlightClient`, `BracketStreamServer`, Arrow IPC streaming |\n| `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/internal/types/types.go` | Core types: `EntryType`, `CRDTOperation`, `DistributedDocument`, `SyncState`, `NetworkConfig` |\n| `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVBASE/go.mod` | Module: `github.com/knirvcorp/knirvbase` (Go 1.24.6) |",
+          "time": {
+            "start": 1779217789560,
+            "end": 1779217807832
+          },
+          "id": "prt_e41a4f278001MuJ1Qs4v2oQRO6",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4e060001uLauk7itYGpkMe"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "512789086fd840928d37132ec7c7d87cc7e34d64",
+          "type": "step-finish",
+          "tokens": {
+            "total": 39404,
+            "input": 303,
+            "output": 2861,
+            "reasoning": 16,
+            "cache": {
+              "write": 0,
+              "read": 36224
+            }
+          },
+          "cost": 0,
+          "id": "prt_e41a53b7f0016SH9VEzqyXXWo6",
+          "sessionID": "ses_1be5c398affeoTez9YK3d8Qy4q",
+          "messageID": "msg_e41a4e060001uLauk7itYGpkMe"
+        }
+      ]
+    }
+  ]
+}
