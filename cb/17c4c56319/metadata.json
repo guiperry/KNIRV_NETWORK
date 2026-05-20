@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "cb17c4c56319",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CALIBER_LEARNINGS.md",
+    "packages/KNIRVSERVER/pkg/knirvhasher/manager.go"
+  ],
+  "sessions": [
+    {
+      "metadata": "/cb/17c4c56319/0/metadata.json",
+      "transcript": "/cb/17c4c56319/0/full.jsonl",
+      "content_hash": "/cb/17c4c56319/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 3,
+    "cache_creation_tokens": 14646,
+    "cache_read_tokens": 13624,
+    "output_tokens": 11,
+    "api_call_count": 1
+  }
+}
