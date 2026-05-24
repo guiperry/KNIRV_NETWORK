@@ -3,7 +3,7 @@
   "checkpoint_id": "e8733c2120df",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 6,
   "files_touched": [
     ".ignore",
     ".socraticodecontextartifacts.json",
@@ -40,13 +40,19 @@
       "transcript": "/e8/733c2120df/1/full.jsonl",
       "content_hash": "/e8/733c2120df/1/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/e8/733c2120df/2/metadata.json",
+      "transcript": "/e8/733c2120df/2/full.jsonl",
+      "content_hash": "/e8/733c2120df/2/content_hash.txt",
+      "prompt": ""
     }
   ],
   "token_usage": {
-    "input_tokens": 95,
-    "cache_creation_tokens": 425069,
-    "cache_read_tokens": 6158143,
-    "output_tokens": 107411,
-    "api_call_count": 83
+    "input_tokens": 142,
+    "cache_creation_tokens": 623024,
+    "cache_read_tokens": 7402707,
+    "output_tokens": 120045,
+    "api_call_count": 114
   }
 }

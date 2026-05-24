@@ -1,0 +1,62 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "e8733c2120df",
+  "session_id": "466a039f-de95-4333-840c-7e9bc313bccd",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-24T04:50:55.623091073Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".ignore",
+    ".socraticodecontextartifacts.json",
+    "BadgeLab_Implementation.html",
+    "CALIBER_LEARNINGS.md",
+    "DVE_PAGES_FIX.html",
+    "agentic_hierarchy_implementation.html",
+    "arena_implementation.html",
+    "arena_investigation.html",
+    "knirvhasher_fix.html",
+    "value_proposition_strategies.html"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "109ed4211166",
+  "token_usage": {
+    "input_tokens": 47,
+    "cache_creation_tokens": 197955,
+    "cache_read_tokens": 1244564,
+    "output_tokens": 12634,
+    "api_call_count": 31
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-24T04:50:55.587943725Z",
+    "agent_lines": 1532,
+    "agent_removed": 5266,
+    "human_added": 95,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1627,
+    "total_lines_changed": 6913,
+    "agent_percentage": 98.33646752495298,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
