@@ -1,0 +1,81 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "e8733c2120df",
+  "session_id": "07f48e24-0214-4641-a901-14bd38300375",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-24T04:50:53.863586301Z",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".ignore",
+    ".socraticodecontextartifacts.json",
+    "BadgeLab_Implementation.html",
+    "CALIBER_LEARNINGS.md",
+    "DVE_PAGES_FIX.html",
+    "agentic_hierarchy_implementation.html",
+    "arena_implementation.html",
+    "arena_investigation.html",
+    "knirvhasher_fix.html",
+    "packages/KNIRVARENA/src/App.tsx",
+    "packages/KNIRVARENA/src/components/AgentManager.tsx",
+    "packages/KNIRVARENA/src/components/GameArena.tsx",
+    "packages/KNIRVARENA/src/components/game/AIAgent.tsx",
+    "packages/KNIRVARENA/src/components/game/AnchorStraighteningSequence.tsx",
+    "packages/KNIRVARENA/src/components/modals/AgentManagementModal.tsx",
+    "packages/KNIRVARENA/vite.config.ts",
+    "packages/KNIRVGATEWAY/CALIBER_LEARNINGS.md",
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVSERVER/backend/cmd/root_key_encryptor/root.key",
+    "packages/KNIRVSERVER/main.go",
+    "packages/KNIRVSERVER/pkg/knirvarena/embedded.go",
+    "value_proposition_strategies.html"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "917c08b2c967",
+  "token_usage": {
+    "input_tokens": 88,
+    "cache_creation_tokens": 374341,
+    "cache_read_tokens": 6014729,
+    "output_tokens": 88831,
+    "api_call_count": 78
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-24T04:50:53.714319909Z",
+    "agent_lines": 1627,
+    "agent_removed": 5286,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1627,
+    "total_lines_changed": 6913,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

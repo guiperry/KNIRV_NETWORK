@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "e8733c2120df",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".ignore",
+    ".socraticodecontextartifacts.json",
+    "BadgeLab_Implementation.html",
+    "CALIBER_LEARNINGS.md",
+    "DVE_PAGES_FIX.html",
+    "agentic_hierarchy_implementation.html",
+    "arena_implementation.html",
+    "arena_investigation.html",
+    "knirvhasher_fix.html",
+    "packages/KNIRVARENA/src/App.tsx",
+    "packages/KNIRVARENA/src/components/AgentManager.tsx",
+    "packages/KNIRVARENA/src/components/GameArena.tsx",
+    "packages/KNIRVARENA/src/components/game/AIAgent.tsx",
+    "packages/KNIRVARENA/src/components/game/AnchorStraighteningSequence.tsx",
+    "packages/KNIRVARENA/src/components/modals/AgentManagementModal.tsx",
+    "packages/KNIRVARENA/vite.config.ts",
+    "packages/KNIRVGATEWAY/CALIBER_LEARNINGS.md",
+    "packages/KNIRVGATEWAY/internal/server/server.go",
+    "packages/KNIRVSERVER/backend/cmd/root_key_encryptor/root.key",
+    "packages/KNIRVSERVER/main.go",
+    "packages/KNIRVSERVER/pkg/knirvarena/embedded.go",
+    "value_proposition_strategies.html"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e8/733c2120df/0/metadata.json",
+      "transcript": "/e8/733c2120df/0/full.jsonl",
+      "content_hash": "/e8/733c2120df/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 88,
+    "cache_creation_tokens": 374341,
+    "cache_read_tokens": 6014729,
+    "output_tokens": 88831,
+    "api_call_count": 78
+  }
+}
