@@ -20,8 +20,10 @@ export default defineConfig({
 
   esbuild: {},
   
-  // Use absolute base for development stability
-  base: '/',
+  // Base path matches the proxy mount point in KNIRVSERVER/KNIRVGATEWAY (/arena/).
+  // This ensures all asset references in the built output are prefixed with /arena/
+  // so they resolve correctly when served via the gateway's /arena/* reverse proxy.
+  base: '/arena/',
   
   // Root source directory
   root: '.',

@@ -15,12 +15,12 @@ interface AIAgentProps {
   stagingIndex?: number;
 }
 
-// Pre-load the model to avoid loading it multiple times
-useGLTF.preload('/assets/avatar/Green_Bot_Explorer.glb');
+const GLB_PATH = `${import.meta.env.BASE_URL}assets/avatar/Green_Bot_Explorer.glb`;
+useGLTF.preload(GLB_PATH);
 
 export default function AIAgent({ agent, isSelected, onSelect, onStage, isStaged = false }: AIAgentProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF('/assets/avatar/Green_Bot_Explorer.glb');
+  const { scene, animations } = useGLTF(GLB_PATH);
   const { actions, names } = useAnimations(animations, groupRef);
 
   // Play idle animation by default if available

@@ -69,7 +69,7 @@ export const AgentManagementModal: React.FC<AgentManagementModalProps> = ({
   // Convert keyAgent to KeyAgentData format
   const keyAgentData: KeyAgentData | null = keyAgent ? {
     name: keyAgent.name,
-    avatar: '/assets/avatar/key-agent.png',
+    avatar: `${import.meta.env.BASE_URL}assets/avatar/key-agent.png`,
     status: keyAgent.status,
     capabilities: keyAgent.capabilities,
     version: keyAgent.metadata.version,

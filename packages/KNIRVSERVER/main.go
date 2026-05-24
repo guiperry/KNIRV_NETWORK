@@ -743,6 +743,31 @@ func (app *ServerApp) setupRoutes() error {
 	if err := registerGatewayPrefix("/dve", "/dve"); err != nil {
 		return fmt.Errorf("failed to configure /dve proxy: %w", err)
 	}
+	// Arena proxy — forward /arena/* to the gateway which proxies to the KNIRVARENA
+	// Unix socket (arena.sock).  The exact /arena path redirects to /arena/ so that
+	// the arena's SPA index is served; all sub-paths are forwarded with the path
+	// unchanged so the gateway's gorilla/mux /arena/* routes handle stripping.
+	{
+		gatewayTarget, err := url.Parse(gatewayBase)
+		if err != nil {
+			return fmt.Errorf("failed to parse gateway URL for arena proxy: %w", err)
+		}
+		arenaPassProxy := &httputil.ReverseProxy{
+			Director: func(req *http.Request) {
+				req.URL.Scheme = gatewayTarget.Scheme
+				req.URL.Host = gatewayTarget.Host
+				req.Host = gatewayTarget.Host
+			},
+			Transport:     gatewayTransport,
+			FlushInterval: -1,
+		}
+		app.router.Any("/arena", func(c *gin.Context) {
+			c.Redirect(http.StatusMovedPermanently, "/arena/")
+		})
+		app.router.Any("/arena/*path", func(c *gin.Context) {
+			arenaPassProxy.ServeHTTP(c.Writer, c.Request)
+		})
+	}
 	// Network-monitor API routes — proxy to the gateway which has Go handler
 	// equivalents for the Next.js API routes excluded from the static export.
 	// These are handled inside the /api/*path catch-all below rather than as

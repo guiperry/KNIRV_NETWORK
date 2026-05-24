@@ -106,8 +106,15 @@ func ExtractEmbeddedApp(destDir string) (string, error) {
 		}
 
 		target := filepath.Join(destDir, hdr.Name)
+		cleanTarget := filepath.Clean(target)
+		cleanDest := filepath.Clean(destDir)
 
-		if !strings.HasPrefix(filepath.Clean(target), filepath.Clean(destDir)+string(os.PathSeparator)) {
+		// Skip the archive root entry (./ or .) — it maps to destDir itself.
+		if cleanTarget == cleanDest {
+			continue
+		}
+
+		if !strings.HasPrefix(cleanTarget, cleanDest+string(os.PathSeparator)) {
 			return "", fmt.Errorf("illegal tar path: %s", hdr.Name)
 		}
 

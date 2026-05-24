@@ -439,7 +439,12 @@ func (s *Server) setupRoutes() error {
 	// Arena proxy — KNIRVARENA static bundle server via Unix socket
 	if s.config.ArenaSocketPath != "" {
 		arenaProxy := newSocketProxy(s.config.ArenaSocketPath, "http://knirvarena")
-		r.Handle("/arena", arenaProxy)
+		// Redirect exact /arena → /arena/ so the SPA index is served correctly.
+		// Without this, the file server would look for a non-existent "arena" entry
+		// in the extract directory and return 404.
+		r.HandleFunc("/arena", func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "/arena/", http.StatusMovedPermanently)
+		})
 		r.PathPrefix("/arena/").Handler(http.StripPrefix("/arena", arenaProxy))
 		s.logger.Info("Arena proxy registered", zap.String("socket", s.config.ArenaSocketPath))
 	} else {

@@ -161,12 +161,13 @@ export const AgentManager: React.FC<AgentManagerProps> = ({
   };
 
   const getAgentAvatar = (status: string) => {
+    const base = import.meta.env.BASE_URL;
     switch (status) {
-      case 'Available': return '/assets/avatar/bot_green.png';
-      case 'Deployed': return '/assets/avatar/bot_blue.png';
-      case 'Compiling': return '/assets/avatar/bot_orange.png';
-      case 'Error': return '/assets/avatar/bot_red.png';
-      default: return '/assets/avatar/bot_default.png';
+      case 'Available': return `${base}assets/avatar/bot_green.png`;
+      case 'Deployed': return `${base}assets/avatar/bot_blue.png`;
+      case 'Compiling': return `${base}assets/avatar/bot_orange.png`;
+      case 'Error': return `${base}assets/avatar/bot_red.png`;
+      default: return `${base}assets/avatar/bot_default.png`;
     }
   };
 

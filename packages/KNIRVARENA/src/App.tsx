@@ -839,7 +839,7 @@ const ReceiverInterface = () => {
             {/* Large Robot Image */}
             <div className="flex justify-center">
               <img
-                src="/assets/avatar/bot_default.png"
+                src={`${import.meta.env.BASE_URL}assets/avatar/bot_default.png`}
                 alt="Key Agent"
                 className="w-64 h-64 rounded-full border-4 border-green-500/50 shadow-2xl"
               />
@@ -1346,7 +1346,7 @@ function App() {
   }, []);
 
   return (
-    <Router>
+    <Router basename="/arena">
       <Routes>
         <Route path="/*" element={<ReceiverInterface />} />
         <Route path="/manager/*" element={<ManagerInterface />} />

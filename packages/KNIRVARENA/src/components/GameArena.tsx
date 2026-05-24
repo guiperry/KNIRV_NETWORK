@@ -25,16 +25,16 @@ export default function GameArena() {
   const { setBackgroundMusic, setHitSound, setSuccessSound } = useAudio();
 
   useEffect(() => {
-    // Initialize audio assets
-    const backgroundMusic = new Audio('/sounds/background.mp3');
+    const base = import.meta.env.BASE_URL;
+    const backgroundMusic = new Audio(`${base}sounds/background.mp3`);
     backgroundMusic.loop = true;
     backgroundMusic.volume = 0.2;
     setBackgroundMusic(backgroundMusic);
 
-    const hitSound = new Audio('/sounds/hit.mp3');
+    const hitSound = new Audio(`${base}sounds/hit.mp3`);
     setHitSound(hitSound);
 
-    const successSound = new Audio('/sounds/success.mp3');
+    const successSound = new Audio(`${base}sounds/success.mp3`);
     setSuccessSound(successSound);
   }, [setBackgroundMusic, setHitSound, setSuccessSound]);
 

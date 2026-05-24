@@ -17,7 +17,7 @@ interface ProxyAgentProps {
 
 function ProxyAgent({ startPos, targetPos, index, timeRef }: ProxyAgentProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF('/assets/avatar/Green_Bot_Explorer.glb');
+  const { scene, animations } = useGLTF(`${import.meta.env.BASE_URL}assets/avatar/Green_Bot_Explorer.glb`);
   const { actions, names } = useAnimations(animations, groupRef);
   const clonedScene = useMemo(() => scene.clone(), [scene]);
 
