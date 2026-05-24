@@ -1,0 +1,1 @@
+Audit the KNIRVHASHER package against the current @knirvhasher_fix.html file. Repport here with your findings. We need to enure the implementation has been completed fully.
