@@ -1,0 +1,1 @@
+Audit the KNIRVWALLET codebase and ensure the @Wallet_Alignment.md has been fully implemented. Report here with your findings.
