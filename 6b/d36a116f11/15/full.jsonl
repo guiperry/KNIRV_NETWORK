@@ -1,0 +1,878 @@
+{
+  "info": {
+    "id": "ses_19ff7512dffedVlGbc6xg4M5kT",
+    "slug": "mighty-cactus",
+    "projectID": "04b7e1a8120cdaa36434d2d66f64522e4313fe2b",
+    "directory": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+    "path": "packages/KNIRVSERVER",
+    "parentID": "ses_1a068485cffeoKY1KW873Ysf8p",
+    "title": "Explore guardrail handlers (@explore subagent)",
+    "agent": "explore",
+    "model": {
+      "id": "big-pickle",
+      "providerID": "opencode",
+      "variant": "default"
+    },
+    "version": "1.15.10",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "cost": 0,
+    "tokens": {
+      "input": 29019,
+      "output": 4364,
+      "reasoning": 215,
+      "cache": {
+        "read": 102528,
+        "write": 0
+      }
+    },
+    "permission": [
+      {
+        "permission": "todowrite",
+        "action": "deny",
+        "pattern": "*"
+      },
+      {
+        "permission": "task",
+        "action": "deny",
+        "pattern": "*"
+      }
+    ],
+    "time": {
+      "created": 1779727642322,
+      "updated": 1779727711646
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1779727642352
+        },
+        "tools": {
+          "todowrite": false,
+          "task": false
+        },
+        "agent": "explore",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "big-pickle"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_e6008aee9001z9ho02xB31ZCAl",
+        "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "I need to understand the guardrail HTTP handlers and the DynamicGuardrailManager in the KNIRVSERVER codebase. Please examine:\n\n1. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/guardrail_handlers.go - the ValidateResourceUsage handler and how violations are recorded\n\n2. The DynamicGuardrailManager from the guardrails package (search for it in backend/internal/services/guardrails/ or similar)\n\n3. The GuardrailViolation struct\n\nReturn the exact code for:\n- ValidateResourceUsage handler\n- RecordViolation method\n- DynamicGuardrailManager struct\n- GuardrailViolation struct\n- Any interfaces that DynamicGuardrailManager implements\n\nBe thorough - return full file paths and line numbers.",
+          "id": "prt_e6008aefb001KdcU9OPeiFEdK8",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6008aee9001z9ho02xB31ZCAl"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008aee9001z9ho02xB31ZCAl",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 7960,
+          "input": 7540,
+          "output": 398,
+          "reasoning": 22,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727642503,
+          "completed": 1779727666606
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6008af87001MEvfWeT4umc7Om",
+        "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e6008b9d0001fdvr34TI1vl9N8",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6008af87001MEvfWeT4umc7Om"
+        },
+        {
+          "type": "reasoning",
+          "text": "Let me find and read the relevant files for the guardrail system in the KNIRVSERVER codebase.",
+          "time": {
+            "start": 1779727645458,
+            "end": 1779727645882
+          },
+          "id": "prt_e6008bb120012LR8mttO4suGsB",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6008af87001MEvfWeT4umc7Om"
+        },
+        {
+          "type": "text",
+          "text": "I'll start by searching for the relevant files and structures simultaneously.",
+          "time": {
+            "start": 1779727645889,
+            "end": 1779727648341
+          },
+          "id": "prt_e6008bcc1001LIkWmCNHQYO5F3",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6008af87001MEvfWeT4umc7Om"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_6stf35Es2I8i2udd140w0604",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/guardrail_handlers.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/guardrail_handlers.go</path>\n<type>file</type>\n<content>\n1: package web\n2: \n3: import (\n4: \t\"encoding/json\"\n5: \t\"net/http\"\n6: \t\"time\"\n7: \n8: \t\"backend_server/internal/services/guardrails\"\n9: \n10: \t\"github.com/gorilla/mux\"\n11: )\n12: \n13: // policyEventEmitter is the minimal interface needed to broadcast policy events.\n14: type policyEventEmitter interface {\n15: \tEmitPolicyUpdate(policyID, source, policyType string, rules map[string]interface{})\n16: }\n17: \n18: type GuardrailHandlers struct {\n19: \tguardrailManager *guardrails.DynamicGuardrailManager\n20: \tpolicyEngine     *guardrails.PolicyEngine\n21: \teventBroadcaster policyEventEmitter\n22: }\n23: \n24: func NewGuardrailHandlers(gm *guardrails.DynamicGuardrailManager, pe *guardrails.PolicyEngine) *GuardrailHandlers {\n25: \treturn &GuardrailHandlers{\n26: \t\tguardrailManager: gm,\n27: \t\tpolicyEngine:     pe,\n28: \t}\n29: }\n30: \n31: // SetEventBroadcaster wires the broadcaster used to push policy:update events\n32: // to connected WebSocket clients after a policy is saved or committed.\n33: func (h *GuardrailHandlers) SetEventBroadcaster(eb policyEventEmitter) {\n34: \th.eventBroadcaster = eb\n35: }\n36: \n37: func (h *GuardrailHandlers) RegisterRoutes(r *mux.Router) {\n38: \tguardrailRouter := r.PathPrefix(\"/api/guardrail\").Subrouter()\n39: \n40: \tguardrailRouter.HandleFunc(\"/configure\", h.ConfigureGuardrail).Methods(\"POST\", \"OPTIONS\")\n41: \tguardrailRouter.HandleFunc(\"/config/{nodeID}/{guardrailType}\", h.GetGuardrailConfig).Methods(\"GET\", \"OPTIONS\")\n42: \tguardrailRouter.HandleFunc(\"/validate\", h.ValidateResourceUsage).Methods(\"POST\", \"OPTIONS\")\n43: \tguardrailRouter.HandleFunc(\"/validate/ontology\", h.ValidateOntology).Methods(\"POST\", \"OPTIONS\")\n44: \tguardrailRouter.HandleFunc(\"/violations\", h.ListViolations).Methods(\"GET\", \"OPTIONS\")\n45: \tguardrailRouter.HandleFunc(\"/violations/{id}/resolve\", h.ResolveViolation).Methods(\"POST\", \"OPTIONS\")\n46: \tguardrailRouter.HandleFunc(\"/statistics\", h.GetStatistics).Methods(\"GET\", \"OPTIONS\")\n47: \n48: \tguardrailRouter.HandleFunc(\"/ontology/configure\", h.ConfigureOntology).Methods(\"POST\", \"OPTIONS\")\n49: \n50: \tif h.policyEngine != nil {\n51: \t\tguardrailRouter.HandleFunc(\"/policies\", h.ListPolicies).Methods(\"GET\", \"OPTIONS\")\n52: \t\tguardrailRouter.HandleFunc(\"/policies\", h.CreatePolicy).Methods(\"POST\", \"OPTIONS\")\n53: \t\tguardrailRouter.HandleFunc(\"/policies/{id}\", h.GetPolicy).Methods(\"GET\", \"OPTIONS\")\n54: \t\tguardrailRouter.HandleFunc(\"/policies/{id}\", h.UpdatePolicy).Methods(\"PUT\", \"OPTIONS\")\n55: \t\tguardrailRouter.HandleFunc(\"/policies/{id}\", h.DeletePolicy).Methods(\"DELETE\", \"OPTIONS\")\n56: \t\tguardrailRouter.HandleFunc(\"/policies/{id}/commit\", h.CommitPolicy).Methods(\"POST\", \"OPTIONS\")\n57: \t\tguardrailRouter.HandleFunc(\"/policies/{id}/evaluate\", h.EvaluatePolicy).Methods(\"POST\", \"OPTIONS\")\n58: \t}\n59: }\n60: \n61: func (h *GuardrailHandlers) ConfigureGuardrail(w http.ResponseWriter, r *http.Request) {\n62: \tvar req struct {\n63: \t\tNodeID string                      `json:\"node_id\"`\n64: \t\tConfig *guardrails.GuardrailConfig `json:\"config\"`\n65: \t}\n66: \tif err := json.NewDecoder(r.Body).Decode(&req); err != nil {\n67: \t\thttp.Error(w, `{\"error\":\"invalid request body\"}`, http.StatusBadRequest)\n68: \t\treturn\n69: \t}\n70: \tif req.Config == nil || req.NodeID == \"\" {\n71: \t\thttp.Error(w, `{\"error\":\"node_id and config required\"}`, http.StatusBadRequest)\n72: \t\treturn\n73: \t}\n74: \n75: \tif err := h.guardrailManager.ConfigureGuardrail(req.NodeID, req.Config); err != nil {\n76: \t\thttp.Error(w, `{\"error\":\"`+err.Error()+`\"}`, http.StatusInternalServerError)\n77: \t\treturn\n78: \t}\n79: \n80: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n81: \t\t\"status\":  \"configured\",\n82: \t\t\"node_id\": req.NodeID,\n83: \t\t\"config\":  req.Config,\n84: \t})\n85: }\n86: \n87: func (h *GuardrailHandlers) GetGuardrailConfig(w http.ResponseWriter, r *http.Request) {\n88: \tvars := mux.Vars(r)\n89: \tnodeID := vars[\"nodeID\"]\n90: \tguardrailType := guardrails.GuardrailType(vars[\"guardrailType\"])\n91: \n92: \tconfig, ok := h.guardrailManager.GetGuardrailConfig(nodeID, guardrailType)\n93: \tif !ok {\n94: \t\thttp.Error(w, `{\"error\":\"configuration not found\"}`, http.StatusNotFound)\n95: \t\treturn\n96: \t}\n97: \n98: \tjson.NewEncoder(w).Encode(config)\n99: }\n100: \n101: func (h *GuardrailHandlers) ValidateResourceUsage(w http.ResponseWriter, r *http.Request) {\n102: \tvar req struct {\n103: \t\tNodeID  string                 `json:\"node_id\"`\n104: \t\tMetrics map[string]interface{} `json:\"metrics\"`\n105: \t}\n106: \tif err := json.NewDecoder(r.Body).Decode(&req); err != nil {\n107: \t\thttp.Error(w, `{\"error\":\"invalid request body\"}`, http.StatusBadRequest)\n108: \t\treturn\n109: \t}\n110: \tif req.NodeID == \"\" || req.Metrics == nil {\n111: \t\thttp.Error(w, `{\"error\":\"node_id and metrics required\"}`, http.StatusBadRequest)\n112: \t\treturn\n113: \t}\n114: \n115: \tviolation, isViolated := h.guardrailManager.ValidateResourceUsage(req.NodeID, req.Metrics)\n116: \tif isViolated {\n117: \t\th.guardrailManager.RecordViolation(violation)\n118: \t\tjson.NewEncoder(w).Encode(map[string]interface{}{\n119: \t\t\t\"violated\":  true,\n120: \t\t\t\"violation\": violation,\n121: \t\t})\n122: \t\treturn\n123: \t}\n124: \n125: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n126: \t\t\"violated\": false,\n127: \t})\n128: }\n129: \n130: func (h *GuardrailHandlers) ValidateOntology(w http.ResponseWriter, r *http.Request) {\n131: \tvar req struct {\n132: \t\tNodeID  string `json:\"node_id\"`\n133: \t\tDomain  string `json:\"domain\"`\n134: \t\tConcept string `json:\"concept\"`\n135: \t}\n136: \tif err := json.NewDecoder(r.Body).Decode(&req); err != nil {\n137: \t\thttp.Error(w, `{\"error\":\"invalid request body\"}`, http.StatusBadRequest)\n138: \t\treturn\n139: \t}\n140: \tif req.NodeID == \"\" || req.Domain == \"\" || req.Concept == \"\" {\n141: \t\thttp.Error(w, `{\"error\":\"node_id, domain, and concept required\"}`, http.StatusBadRequest)\n142: \t\treturn\n143: \t}\n144: \n145: \tallowed, reason := h.guardrailManager.ValidateOntologyConstraint(req.NodeID, req.Domain, req.Concept)\n146: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n147: \t\t\"allowed\": allowed,\n148: \t\t\"reason\":  reason,\n149: \t})\n150: }\n151: \n152: func (h *GuardrailHandlers) ConfigureOntology(w http.ResponseWriter, r *http.Request) {\n153: \tvar req struct {\n154: \t\tDomain string                        `json:\"domain\"`\n155: \t\tRule   *guardrails.OntologyGuardrail `json:\"rule\"`\n156: \t}\n157: \tif err := json.NewDecoder(r.Body).Decode(&req); err != nil {\n158: \t\thttp.Error(w, `{\"error\":\"invalid request body\"}`, http.StatusBadRequest)\n159: \t\treturn\n160: \t}\n161: \tif req.Domain == \"\" || req.Rule == nil {\n162: \t\thttp.Error(w, `{\"error\":\"domain and rule required\"}`, http.StatusBadRequest)\n163: \t\treturn\n164: \t}\n165: \n166: \tif err := h.guardrailManager.ConfigureOntologyGuardrail(req.Domain, req.Rule); err != nil {\n167: \t\thttp.Error(w, `{\"error\":\"`+err.Error()+`\"}`, http.StatusInternalServerError)\n168: \t\treturn\n169: \t}\n170: \n171: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n172: \t\t\"status\": \"configured\",\n173: \t\t\"domain\": req.Domain,\n174: \t})\n175: }\n176: \n177: func (h *GuardrailHandlers) ListViolations(w http.ResponseWriter, r *http.Request) {\n178: \tnodeID := r.URL.Query().Get(\"node_id\")\n179: \tlimit := 100\n180: \n181: \tviolations := h.guardrailManager.GetViolations(nodeID, limit)\n182: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n183: \t\t\"violations\": violations,\n184: \t\t\"count\":      len(violations),\n185: \t})\n186: }\n187: \n188: func (h *GuardrailHandlers) ResolveViolation(w http.ResponseWriter, r *http.Request) {\n189: \tvars := mux.Vars(r)\n190: \tviolationID := vars[\"id\"]\n191: \n192: \tif err := h.guardrailManager.ResolveViolation(violationID); err != nil {\n193: \t\thttp.Error(w, `{\"error\":\"`+err.Error()+`\"}`, http.StatusNotFound)\n194: \t\treturn\n195: \t}\n196: \n197: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n198: \t\t\"status\":       \"resolved\",\n199: \t\t\"violation_id\": violationID,\n200: \t\t\"resolved_at\":  time.Now().Format(time.RFC3339),\n201: \t})\n202: }\n203: \n204: func (h *GuardrailHandlers) GetStatistics(w http.ResponseWriter, r *http.Request) {\n205: \tstats := h.guardrailManager.GetStatistics()\n206: \tjson.NewEncoder(w).Encode(stats)\n207: }\n208: \n209: func (h *GuardrailHandlers) ListPolicies(w http.ResponseWriter, r *http.Request) {\n210: \tif h.policyEngine == nil {\n211: \t\thttp.Error(w, `{\"error\":\"policy engine not available\"}`, http.StatusServiceUnavailable)\n212: \t\treturn\n213: \t}\n214: \n215: \tpolicies := h.policyEngine.ListPolicies()\n216: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n217: \t\t\"policies\": policies,\n218: \t\t\"count\":    len(policies),\n219: \t})\n220: }\n221: \n222: func (h *GuardrailHandlers) CreatePolicy(w http.ResponseWriter, r *http.Request) {\n223: \tif h.policyEngine == nil {\n224: \t\thttp.Error(w, `{\"error\":\"policy engine not available\"}`, http.StatusServiceUnavailable)\n225: \t\treturn\n226: \t}\n227: \n228: \tvar policy guardrails.Policy\n229: \tif err := json.NewDecoder(r.Body).Decode(&policy); err != nil {\n230: \t\thttp.Error(w, `{\"error\":\"invalid request body\"}`, http.StatusBadRequest)\n231: \t\treturn\n232: \t}\n233: \n234: \tif err := h.policyEngine.CreatePolicy(&policy); err != nil {\n235: \t\thttp.Error(w, `{\"error\":\"`+err.Error()+`\"}`, http.StatusInternalServerError)\n236: \t\treturn\n237: \t}\n238: \n239: \tif h.eventBroadcaster != nil {\n240: \t\th.eventBroadcaster.EmitPolicyUpdate(policy.ID, \"guardrail_handler\", \"created\", map[string]interface{}{\n241: \t\t\t\"name\":  policy.Name,\n242: \t\t\t\"rules\": len(policy.Rules),\n243: \t\t})\n244: \t}\n245: \n246: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n247: \t\t\"status\": \"created\",\n248: \t\t\"policy\": &policy,\n249: \t})\n250: }\n251: \n252: func (h *GuardrailHandlers) GetPolicy(w http.ResponseWriter, r *http.Request) {\n253: \tif h.policyEngine == nil {\n254: \t\thttp.Error(w, `{\"error\":\"policy engine not available\"}`, http.StatusServiceUnavailable)\n255: \t\treturn\n256: \t}\n257: \n258: \tvars := mux.Vars(r)\n259: \tpolicyID := vars[\"id\"]\n260: \n261: \tpolicy, ok := h.policyEngine.GetPolicy(policyID)\n262: \tif !ok {\n263: \t\thttp.Error(w, `{\"error\":\"policy not found\"}`, http.StatusNotFound)\n264: \t\treturn\n265: \t}\n266: \n267: \tjson.NewEncoder(w).Encode(policy)\n268: }\n269: \n270: func (h *GuardrailHandlers) UpdatePolicy(w http.ResponseWriter, r *http.Request) {\n271: \tif h.policyEngine == nil {\n272: \t\thttp.Error(w, `{\"error\":\"policy engine not available\"}`, http.StatusServiceUnavailable)\n273: \t\treturn\n274: \t}\n275: \n276: \tvars := mux.Vars(r)\n277: \tpolicyID := vars[\"id\"]\n278: \n279: \tvar policy guardrails.Policy\n280: \tif err := json.NewDecoder(r.Body).Decode(&policy); err != nil {\n281: \t\thttp.Error(w, `{\"error\":\"invalid request body\"}`, http.StatusBadRequest)\n282: \t\treturn\n283: \t}\n284: \n285: \tpolicy.ID = policyID\n286: \tpolicy.UpdatedAt = time.Now()\n287: \n288: \tif err := h.policyEngine.CreatePolicy(&policy); err != nil {\n289: \t\thttp.Error(w, `{\"error\":\"`+err.Error()+`\"}`, http.StatusInternalServerError)\n290: \t\treturn\n291: \t}\n292: \n293: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n294: \t\t\"status\": \"updated\",\n295: \t\t\"policy\": &policy,\n296: \t})\n297: }\n298: \n299: func (h *GuardrailHandlers) DeletePolicy(w http.ResponseWriter, r *http.Request) {\n300: \tif h.policyEngine == nil {\n301: \t\thttp.Error(w, `{\"error\":\"policy engine not available\"}`, http.StatusServiceUnavailable)\n302: \t\treturn\n303: \t}\n304: \n305: \tvars := mux.Vars(r)\n306: \tpolicyID := vars[\"id\"]\n307: \n308: \tif err := h.policyEngine.DeletePolicy(policyID); err != nil {\n309: \t\thttp.Error(w, `{\"error\":\"`+err.Error()+`\"}`, http.StatusInternalServerError)\n310: \t\treturn\n311: \t}\n312: \n313: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n314: \t\t\"status\":    \"deleted\",\n315: \t\t\"policy_id\": policyID,\n316: \t})\n317: }\n318: \n319: func (h *GuardrailHandlers) CommitPolicy(w http.ResponseWriter, r *http.Request) {\n320: \tif h.policyEngine == nil {\n321: \t\thttp.Error(w, `{\"error\":\"policy engine not available\"}`, http.StatusServiceUnavailable)\n322: \t\treturn\n323: \t}\n324: \n325: \tvars := mux.Vars(r)\n326: \tpolicyID := vars[\"id\"]\n327: \n328: \ttxHash, err := h.policyEngine.CommitPolicyToBlockchain(policyID)\n329: \tif err != nil {\n330: \t\thttp.Error(w, `{\"error\":\"`+err.Error()+`\"}`, http.StatusInternalServerError)\n331: \t\treturn\n332: \t}\n333: \n334: \tif h.eventBroadcaster != nil {\n335: \t\th.eventBroadcaster.EmitPolicyUpdate(policyID, \"guardrail_handler\", \"committed\", map[string]interface{}{\n336: \t\t\t\"tx_hash\": txHash,\n337: \t\t})\n338: \t}\n339: \n340: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n341: \t\t\"status\":    \"committed\",\n342: \t\t\"policy_id\": policyID,\n343: \t\t\"tx_hash\":   txHash,\n344: \t})\n345: }\n346: \n347: func (h *GuardrailHandlers) EvaluatePolicy(w http.ResponseWriter, r *http.Request) {\n348: \tif h.policyEngine == nil {\n349: \t\thttp.Error(w, `{\"error\":\"policy engine not available\"}`, http.StatusServiceUnavailable)\n350: \t\treturn\n351: \t}\n352: \n353: \tvar req struct {\n354: \t\tNodeID  string                 `json:\"node_id\"`\n355: \t\tAction  string                 `json:\"action\"`\n356: \t\tContext map[string]interface{} `json:\"context\"`\n357: \t}\n358: \tif err := json.NewDecoder(r.Body).Decode(&req); err != nil {\n359: \t\thttp.Error(w, `{\"error\":\"invalid request body\"}`, http.StatusBadRequest)\n360: \t\treturn\n361: \t}\n362: \tif req.NodeID == \"\" || req.Action == \"\" {\n363: \t\thttp.Error(w, `{\"error\":\"node_id and action required\"}`, http.StatusBadRequest)\n364: \t\treturn\n365: \t}\n366: \n367: \tallowed, reason := h.policyEngine.EvaluateAction(req.NodeID, req.Action, req.Context)\n368: \tjson.NewEncoder(w).Encode(map[string]interface{}{\n369: \t\t\"allowed\": allowed,\n370: \t\t\"reason\":  reason,\n371: \t})\n372: }\n\n(End of file - total 372 lines)\n</content>",
+            "metadata": {
+              "preview": "package web\n\nimport (\n\t\"encoding/json\"\n\t\"net/http\"\n\t\"time\"\n\n\t\"backend_server/internal/services/guardrails\"\n\n\t\"github.com/gorilla/mux\"\n)\n\n// policyEventEmitter is the minimal interface needed to broadcast policy events.\ntype policyEventEmitter interface {\n\tEmitPolicyUpdate(policyID, source, policyType string, rules map[string]interface{})\n}\n\ntype GuardrailHandlers struct {\n\tguardrailManager *guardrails.DynamicGuardrailManager\n\tpolicyEngine     *guardrails.PolicyEngine",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/web/guardrail_handlers.go",
+            "time": {
+              "start": 1779727646270,
+              "end": 1779727648138
+            }
+          },
+          "id": "prt_e6008bd31001imv5SKYg9cFK5J",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6008af87001MEvfWeT4umc7Om"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_01_3zAzjer5IAIuBcmVNeFr9073",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/guardrail*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/badge/guardrail_injector.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/guardrail_handlers.go",
+            "metadata": {
+              "count": 6,
+              "truncated": false
+            },
+            "title": "packages/KNIRVSERVER",
+            "time": {
+              "start": 1779727646881,
+              "end": 1779727650449
+            }
+          },
+          "id": "prt_e6008be63001jv8sUEn3BO7P9k",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6008af87001MEvfWeT4umc7Om"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_02_uSMg0RYDMrml50GokXmz3981",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "DynamicGuardrailManager",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 58 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go:\n  Line 177: \tguardrailManager   *guardrails.DynamicGuardrailManager\n\n  Line 1375: \tguardrailManager := guardrails.NewDynamicGuardrailManager(dbManager)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go:\n  Line 73: type DynamicGuardrailManager struct {\n\n  Line 88: func NewDynamicGuardrailManager(db *database.BuntDBManager) *DynamicGuardrailManager {\n\n  Line 89: \treturn &DynamicGuardrailManager{\n\n  Line 98: func (gm *DynamicGuardrailManager) SetEventBroadcaster(eb interface {\n\n  Line 105: func (gm *DynamicGuardrailManager) SetHasherValidator(validator HasherValidator) {\n\n  Line 109: func (gm *DynamicGuardrailManager) ValidateWithHasher(nodeID string, action string, ctx map[string]string) (*HasherSecurityDecision, error) {\n\n  Line 120: func (gm *DynamicGuardrailManager) OnHasherViolation(violation *GuardrailViolation) error {\n\n  Line 140: func (gm *DynamicGuardrailManager) ConfigureGuardrail(nodeID string, config *GuardrailConfig) error {\n\n  Line 156: func (gm *DynamicGuardrailManager) GetGuardrailConfig(nodeID string, guardrailType GuardrailType) (*GuardrailConfig, bool) {\n\n  Line 165: func (gm *DynamicGuardrailManager) ValidateResourceUsage(nodeID string, metrics map[string]interface{}) (*GuardrailViolation, bool) {\n\n  Line 229: func (gm *DynamicGuardrailManager) ValidateOntologyConstraint(nodeID, domain string, concept string) (bool, string) {\n\n  Line 247: func (gm *DynamicGuardrailManager) ValidateExecutionTime(nodeID string, duration time.Duration) (bool, *GuardrailViolation) {\n\n  Line 274: func (gm *DynamicGuardrailManager) ValidateIntentObjective(nodeID, objectiveID string, context map[string]interface{}) (bool, *GuardrailViolation) {\n\n  Line 311: func (gm *DynamicGuardrailManager) RecordViolation(violation *GuardrailViolation) error {\n\n  Line 330: func (gm *DynamicGuardrailManager) GetViolations(nodeID string, limit int) []*GuardrailViolation {\n\n  Line 347: func (gm *DynamicGuardrailManager) ResolveViolation(violationID string) error {\n\n  Line 373: func (gm *DynamicGuardrailManager) ConfigureOntologyGuardrail(domain string, rule *OntologyGuardrail) error {\n\n  Line 392: func (gm *DynamicGuardrailManager) isNodeScope(key, nodeID string) bool {\n\n  Line 403: func (gm *DynamicGuardrailManager) isInCooldown(key string) bool {\n\n  Line 413: func (gm *DynamicGuardrailManager) setCooldown(key string, duration time.Duration) {\n\n  Line 419: func (gm *DynamicGuardrailManager) severityOrder(severity string) int {\n\n  Line 434: func (gm *DynamicGuardrailManager) determineSeverity(gType GuardrailType, value, max float64) string {\n\n  Line 446: func (gm *DynamicGuardrailManager) saveConfiguration(key string, config *GuardrailConfig) error {\n\n  Line 461: func (gm *DynamicGuardrailManager) LoadConfigurations() error {\n\n  Line 477: func (gm *DynamicGuardrailManager) LoadOntologyRules() error {\n\n  Line 493: func (gm *DynamicGuardrailManager) GetAllConfigurations(nodeID string) []*GuardrailConfig {\n\n  Line 506: func (gm *DynamicGuardrailManager) GetStatistics() map[string]interface{} {\n\n  Line 533: \tguardrailManager      *DynamicGuardrailManager\n\n  Line 575: func NewPolicyEngine(db *database.BuntDBManager, gm *DynamicGuardrailManager) *PolicyEngine {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager_test.go:\n  Line 22: func TestNewDynamicGuardrailManager(t *testing.T) {\n\n  Line 23: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 25: \t\tt.Fatal(\"Expected non-nil DynamicGuardrailManager\")\n\n  Line 40: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 64: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 84: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 111: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 126: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 144: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 160: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 179: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 204: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 232: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 256: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 274: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 307: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 329: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 356: \tengine := NewPolicyEngine(db, NewDynamicGuardrailManager(db))\n\n  Line 404: \tgm := NewDynamicGuardrailManager(nil)\n\n  Line 423: \tgm := NewDynamicGuardrailManager(nil)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/onboarding/onboarding_service.go:\n  Line 26: \tguardrailManager *guardrails.DynamicGuardrailManager\n\n  Line 117: func NewOnboardingService(db *database.BuntDBManager, cognitiveEngine *cognitiveengine.CognitiveEngine, guardrailManager *guardrails.DynamicGuardrailManager) *OnboardingService {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/hasher_integration.go:\n  Line 22: \tguardrailMgr *guardrails.DynamicGuardrailManager\n\n  Line 44: }, guardrailMgr *guardrails.DynamicGuardrailManager) *HasherIntegration {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/Production_Status_Report.md:\n  Line 62: | DynamicGuardrailManager | `backend/internal/services/guardrails/` | ✅ Ready | Loads/configures guardrails |\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/guardrail_handlers.go:\n  Line 19: \tguardrailManager *guardrails.DynamicGuardrailManager\n\n  Line 24: func NewGuardrailHandlers(gm *guardrails.DynamicGuardrailManager, pe *guardrails.PolicyEngine) *GuardrailHandlers {\n",
+            "metadata": {
+              "matches": 58,
+              "truncated": false
+            },
+            "title": "DynamicGuardrailManager",
+            "time": {
+              "start": 1779727647219,
+              "end": 1779727649368
+            }
+          },
+          "id": "prt_e6008c0ad0015qLt42ddex66mo",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6008af87001MEvfWeT4umc7Om"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_03_A3YXaD6wRLM2WcFdYtsV6917",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "GuardrailViolation",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 51 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/frontend/src/components/dashboard/dashboard-wrapper.tsx:\n  Line 28: import { GuardrailViolationsPanel, GuardrailStatisticsCard } from '@/components/dashboard/guardrail-violations-panel';\n\n  Line 980:                             <GuardrailViolationsPanel />\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/websocket/websocket_service.go:\n  Line 34: \tGetGuardrailViolations(limit int) []cognitiveengine.PolicyViolation\n\n  Line 43: \tGetGuardrailViolations(limit int) []cognitiveengine.PolicyViolation\n\n  Line 742: \t\t\tGetGuardrailViolations(limit int) []cognitiveengine.PolicyViolation\n\n  Line 745: \t\t\tviolations := gp.GetGuardrailViolations(3)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/hasher_grpc_server.go:\n  Line 359: \tvar violations []*guardrails.GuardrailViolation\n\n  Line 363: \t\tvar v guardrails.GuardrailViolation\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go:\n  Line 60: type GuardrailViolation struct {\n\n  Line 78: \tviolations       map[string]*GuardrailViolation\n\n  Line 93: \t\tviolations:     make(map[string]*GuardrailViolation),\n\n  Line 120: func (gm *DynamicGuardrailManager) OnHasherViolation(violation *GuardrailViolation) error {\n\n  Line 165: func (gm *DynamicGuardrailManager) ValidateResourceUsage(nodeID string, metrics map[string]interface{}) (*GuardrailViolation, bool) {\n\n  Line 169: \tviolations := make([]*GuardrailViolation, 0)\n\n  Line 201: \t\t\tviolation := &GuardrailViolation{\n\n  Line 247: func (gm *DynamicGuardrailManager) ValidateExecutionTime(nodeID string, duration time.Duration) (bool, *GuardrailViolation) {\n\n  Line 255: \t\tviolation := &GuardrailViolation{\n\n  Line 274: func (gm *DynamicGuardrailManager) ValidateIntentObjective(nodeID, objectiveID string, context map[string]interface{}) (bool, *GuardrailViolation) {\n\n  Line 293: \t\t\t\tviolation := &GuardrailViolation{\n\n  Line 311: func (gm *DynamicGuardrailManager) RecordViolation(violation *GuardrailViolation) error {\n\n  Line 330: func (gm *DynamicGuardrailManager) GetViolations(nodeID string, limit int) []*GuardrailViolation {\n\n  Line 334: \tvar result []*GuardrailViolation\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager_test.go:\n  Line 206: \tviolation := &GuardrailViolation{\n\n  Line 234: \tviolation := &GuardrailViolation{\n\n  Line 279: \tgm.RecordViolation(&GuardrailViolation{\n\n  Line 286: \tgm.RecordViolation(&GuardrailViolation{\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/README.md:\n  Line 294: | `GetGuardrailViolations(limit)` | Recent policy violations with remediation status |\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go:\n  Line 417: \t\t\t\tType:      EventGuardrailViolation,\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/hasher_integration.go:\n  Line 95: func (hi *HasherIntegration) OnGuardrailViolation(violation *guardrails.GuardrailViolation) error {\n\n  Line 149: \tviolation := &guardrails.GuardrailViolation{\n\n  Line 163: \treturn hi.OnGuardrailViolation(violation)\n\n  Line 389: \tvar violations []*guardrails.GuardrailViolation\n\n  Line 392: \t\tvar v guardrails.GuardrailViolation\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/cognitive_engine.go:\n  Line 447: // GetGuardrailViolations returns recent policy violations from the guardrail engine.\n\n  Line 448: func (ce *CognitiveEngine) GetGuardrailViolations(limit int) []PolicyViolation {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/frontend/src/components/dashboard/guardrail-violations-panel.tsx:\n  Line 9: import { useGuardrail, GuardrailViolation, GuardrailStatistics } from '@/hooks/use-guardrail';\n\n  Line 18: interface GuardrailViolationsPanelProps {\n\n  Line 23: export function GuardrailViolationsPanel({ className, nodeId }: GuardrailViolationsPanelProps) {\n\n  Line 24:   const [selectedViolation, setSelectedViolation] = useState<GuardrailViolation | null>(null);\n\n  Line 240: export default GuardrailViolationsPanel;\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/frontend/src/hooks/use-guardrail.ts:\n  Line 6: export interface GuardrailViolation {\n\n  Line 53:   const violations = useQuery<GuardrailViolation[]>({\n\n  Line 56:       const response = await apiRequest<{ violations: GuardrailViolation[] }>(\n\n  Line 188: export const useGuardrailViolationsForNode = (nodeId: string) => {\n\n  Line 189:   return useQuery<GuardrailViolation[]>({\n\n  Line 192:       const response = await apiRequest<{ violations: GuardrailViolation[] }>(\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/ebpf_bridge.go:\n  Line 174: \t\tType:   EventGuardrailViolation,\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/event_bus.go:\n  Line 15: \tEventGuardrailViolation EventType = \"guardrail_violation\"\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/cognitive_engine_enhanced_test.go:\n  Line 728: \tv := engine.GetGuardrailViolations(10)\n\n  Line 730: \t\tt.Error(\"GetGuardrailViolations should return non-nil slice\")\n\n  Line 848: \tviolations := engine.GetGuardrailViolations(20)\n",
+            "metadata": {
+              "matches": 51,
+              "truncated": false
+            },
+            "title": "GuardrailViolation",
+            "time": {
+              "start": 1779727647760,
+              "end": 1779727649424
+            }
+          },
+          "id": "prt_e6008c3cc001gazI8N9cY68Dyr",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6008af87001MEvfWeT4umc7Om"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_04_OV6clQRhdrLRG3qLhqUI6533",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "RecordViolation",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 7 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go:\n  Line 311: func (gm *DynamicGuardrailManager) RecordViolation(violation *GuardrailViolation) error {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager_test.go:\n  Line 215: \terr := gm.RecordViolation(violation)\n\n  Line 217: \t\tt.Errorf(\"RecordViolation failed: %v\", err)\n\n  Line 242: \tgm.RecordViolation(violation)\n\n  Line 279: \tgm.RecordViolation(&GuardrailViolation{\n\n  Line 286: \tgm.RecordViolation(&GuardrailViolation{\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/guardrail_handlers.go:\n  Line 117: \t\th.guardrailManager.RecordViolation(violation)\n",
+            "metadata": {
+              "matches": 7,
+              "truncated": false
+            },
+            "title": "RecordViolation",
+            "time": {
+              "start": 1779727648068,
+              "end": 1779727649866
+            }
+          },
+          "id": "prt_e6008c41a001BXPniLGV4SXM3h",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6008af87001MEvfWeT4umc7Om"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 7960,
+            "input": 7540,
+            "output": 398,
+            "reasoning": 22,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0,
+          "id": "prt_e600909aa001eMbMWzjRJN7c0K",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6008af87001MEvfWeT4umc7Om"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008aee9001z9ho02xB31ZCAl",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 16318,
+          "input": 8251,
+          "output": 98,
+          "reasoning": 33,
+          "cache": {
+            "write": 0,
+            "read": 7936
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727666637,
+          "completed": 1779727683440
+        },
+        "finish": "tool-calls",
+        "id": "msg_e60090dcd001bwf9WODBoFg0YA",
+        "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e60091b01001tB5YaEZtBbHWnW",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60090dcd001bwf9WODBoFg0YA"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now let me read the main guardrail_manager.go file to get the complete DynamicGuardrailManager struct, GuardrailViolation struct, and all the relevant methods.",
+          "time": {
+            "start": 1779727670403,
+            "end": 1779727670838
+          },
+          "id": "prt_e60091c83001sdk07Sl8Fsbktu",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60090dcd001bwf9WODBoFg0YA"
+        },
+        {
+          "type": "text",
+          "text": "Now let me read the guardrail manager file for the structs and methods:",
+          "time": {
+            "start": 1779727670867,
+            "end": 1779727671311
+          },
+          "id": "prt_e60091e53001sjuRjOqghzEETy",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60090dcd001bwf9WODBoFg0YA"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_KceVwfzCy9YJ59p11i7x4076",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go</path>\n<type>file</type>\n<content>\n1: package guardrails\n2: \n3: import (\n4: \t\"encoding/json\"\n5: \t\"fmt\"\n6: \t\"log\"\n7: \t\"sync\"\n8: \t\"time\"\n9: \n10: \t\"backend_server/internal/database\"\n11: \t\"backend_server/internal/services/blockchain/validationchain\"\n12: \n13: \t\"github.com/google/uuid\"\n14: \t\"github.com/tidwall/buntdb\"\n15: )\n16: \n17: type GuardrailType string\n18: \n19: const (\n20: \tGuardrailTypeMemory     GuardrailType = \"memory\"\n21: \tGuardrailTypeCPU        GuardrailType = \"cpu\"\n22: \tGuardrailTypeNetwork    GuardrailType = \"network\"\n23: \tGuardrailTypeExecution  GuardrailType = \"execution\"\n24: \tGuardrailTypeFileSystem GuardrailType = \"filesystem\"\n25: \tGuardrailTypeOntology   GuardrailType = \"ontology\"\n26: \tGuardrailTypeHasher     GuardrailType = \"hasher\"\n27: )\n28: \n29: type HasherSecurityDecision struct {\n30: \tAllowed      bool\n31: \tConfidence   float64\n32: \tViolations   []string\n33: \tAppliedRules []string\n34: \tSeedID       string\n35: \tDecisionID   string\n36: \tNote         string\n37: }\n38: \n39: type HasherValidator interface {\n40: \tValidateAction(userID, action string, ctx map[string]string) (*HasherSecurityDecision, error)\n41: \tIsAvailable() bool\n42: }\n43: \n44: type GuardrailConfig struct {\n45: \tType      GuardrailType `json:\"type\"`\n46: \tEnabled   bool          `json:\"enabled\"`\n47: \tMaxValue  float64       `json:\"max_value\"`\n48: \tMinValue  float64       `json:\"min_value\"`\n49: \tAction    string        `json:\"action\"` // \"warn\", \"block\", \"isolate\"\n50: \tThreshold float64       `json:\"threshold\"`\n51: \tCooldown  time.Duration `json:\"cooldown\"`\n52: }\n53: \n54: type OntologyGuardrail struct {\n55: \tDomain      string   `json:\"domain\"`\n56: \tConcepts    []string `json:\"concepts\"`\n57: \tConstraints []string `json:\"constraints\"`\n58: }\n59: \n60: type GuardrailViolation struct {\n61: \tID            string                 `json:\"id\"`\n62: \tNodeID        string                 `json:\"node_id\"`\n63: \tGuardrailType GuardrailType          `json:\"guardrail_type\"`\n64: \tViolationType string                 `json:\"violation_type\"`\n65: \tMessage       string                 `json:\"message\"`\n66: \tSeverity      string                 `json:\"severity\"` // \"low\", \"medium\", \"high\", \"critical\"\n67: \tContext       map[string]interface{} `json:\"context\"`\n68: \tTimestamp     time.Time              `json:\"timestamp\"`\n69: \tResolved      bool                   `json:\"resolved\"`\n70: \tResolvedAt    *time.Time             `json:\"resolved_at,omitempty\"`\n71: }\n72: \n73: type DynamicGuardrailManager struct {\n74: \tdb               *database.BuntDBManager\n75: \tmu               sync.RWMutex\n76: \tconfigurations   map[string]*GuardrailConfig\n77: \tontologyRules    map[string]*OntologyGuardrail\n78: \tviolations       map[string]*GuardrailViolation\n79: \teventBroadcaster interface {\n80: \t\tEmitGuardrailTrigger(nodeID, source, guardrailType, trigger string, context map[string]interface{})\n81: \t\tEmitPolicyViolation(nodeID, source, violationType, details string)\n82: \t}\n83: \tcooldowns       map[string]time.Time\n84: \tcooldownMu      sync.RWMutex\n85: \thasherValidator HasherValidator\n86: }\n87: \n88: func NewDynamicGuardrailManager(db *database.BuntDBManager) *DynamicGuardrailManager {\n89: \treturn &DynamicGuardrailManager{\n90: \t\tdb:             db,\n91: \t\tconfigurations: make(map[string]*GuardrailConfig),\n92: \t\tontologyRules:  make(map[string]*OntologyGuardrail),\n93: \t\tviolations:     make(map[string]*GuardrailViolation),\n94: \t\tcooldowns:      make(map[string]time.Time),\n95: \t}\n96: }\n97: \n98: func (gm *DynamicGuardrailManager) SetEventBroadcaster(eb interface {\n99: \tEmitGuardrailTrigger(nodeID, source, guardrailType, trigger string, context map[string]interface{})\n100: \tEmitPolicyViolation(nodeID, source, violationType, details string)\n101: }) {\n102: \tgm.eventBroadcaster = eb\n103: }\n104: \n105: func (gm *DynamicGuardrailManager) SetHasherValidator(validator HasherValidator) {\n106: \tgm.hasherValidator = validator\n107: }\n108: \n109: func (gm *DynamicGuardrailManager) ValidateWithHasher(nodeID string, action string, ctx map[string]string) (*HasherSecurityDecision, error) {\n110: \tif gm.hasherValidator == nil || !gm.hasherValidator.IsAvailable() {\n111: \t\treturn &HasherSecurityDecision{\n112: \t\t\tAllowed:    true,\n113: \t\t\tConfidence: 0,\n114: \t\t\tNote:       \"hasher_unavailable\",\n115: \t\t}, nil\n116: \t}\n117: \treturn gm.hasherValidator.ValidateAction(nodeID, action, ctx)\n118: }\n119: \n120: func (gm *DynamicGuardrailManager) OnHasherViolation(violation *GuardrailViolation) error {\n121: \tgm.mu.Lock()\n122: \tdefer gm.mu.Unlock()\n123: \n124: \tgm.violations[violation.ID] = violation\n125: \n126: \tif gm.db == nil {\n127: \t\treturn nil\n128: \t}\n129: \n130: \treturn gm.db.Transaction(func(tx *buntdb.Tx) error {\n131: \t\tdata, err := json.Marshal(violation)\n132: \t\tif err != nil {\n133: \t\t\treturn err\n134: \t\t}\n135: \t\t_, _, err = tx.Set(fmt.Sprintf(\"guardrail:violation:%s\", violation.ID), string(data), nil)\n136: \t\treturn err\n137: \t})\n138: }\n139: \n140: func (gm *DynamicGuardrailManager) ConfigureGuardrail(nodeID string, config *GuardrailConfig) error {\n141: \tgm.mu.Lock()\n142: \tdefer gm.mu.Unlock()\n143: \n144: \tkey := fmt.Sprintf(\"%s:%s\", nodeID, config.Type)\n145: \tgm.configurations[key] = config\n146: \n147: \tif err := gm.saveConfiguration(key, config); err != nil {\n148: \t\treturn fmt.Errorf(\"failed to persist guardrail config: %w\", err)\n149: \t}\n150: \n151: \tlog.Printf(\"Configured guardrail %s for node %s: max=%v, action=%s\",\n152: \t\tconfig.Type, nodeID, config.MaxValue, config.Action)\n153: \treturn nil\n154: }\n155: \n156: func (gm *DynamicGuardrailManager) GetGuardrailConfig(nodeID string, guardrailType GuardrailType) (*GuardrailConfig, bool) {\n157: \tgm.mu.RLock()\n158: \tdefer gm.mu.RUnlock()\n159: \n160: \tkey := fmt.Sprintf(\"%s:%s\", nodeID, guardrailType)\n161: \tconfig, ok := gm.configurations[key]\n162: \treturn config, ok\n163: }\n164: \n165: func (gm *DynamicGuardrailManager) ValidateResourceUsage(nodeID string, metrics map[string]interface{}) (*GuardrailViolation, bool) {\n166: \tgm.mu.RLock()\n167: \tdefer gm.mu.RUnlock()\n168: \n169: \tviolations := make([]*GuardrailViolation, 0)\n170: \n171: \tfor guardrailType, config := range gm.configurations {\n172: \t\tif !config.Enabled {\n173: \t\t\tcontinue\n174: \t\t}\n175: \n176: \t\tif !gm.isNodeScope(guardrailType, nodeID) {\n177: \t\t\tcontinue\n178: \t\t}\n179: \n180: \t\tif gm.isInCooldown(guardrailType) {\n181: \t\t\tcontinue\n182: \t\t}\n183: \n184: \t\tvar value float64\n185: \t\tswitch config.Type {\n186: \t\tcase GuardrailTypeMemory:\n187: \t\t\tif mem, ok := metrics[\"memory_usage\"].(float64); ok {\n188: \t\t\t\tvalue = mem\n189: \t\t\t}\n190: \t\tcase GuardrailTypeCPU:\n191: \t\t\tif cpu, ok := metrics[\"cpu_usage\"].(float64); ok {\n192: \t\t\t\tvalue = cpu\n193: \t\t\t}\n194: \t\tcase GuardrailTypeNetwork:\n195: \t\t\tif net, ok := metrics[\"network_bandwidth\"].(float64); ok {\n196: \t\t\t\tvalue = net\n197: \t\t\t}\n198: \t\t}\n199: \n200: \t\tif value > config.MaxValue && config.MaxValue > 0 {\n201: \t\t\tviolation := &GuardrailViolation{\n202: \t\t\t\tID:            uuid.New().String(),\n203: \t\t\t\tNodeID:        nodeID,\n204: \t\t\t\tGuardrailType: config.Type,\n205: \t\t\t\tViolationType: \"resource_exceeded\",\n206: \t\t\t\tMessage:       fmt.Sprintf(\"%s usage %.2f exceeds max %.2f\", config.Type, value, config.MaxValue),\n207: \t\t\t\tSeverity:      gm.determineSeverity(config.Type, value, config.MaxValue),\n208: \t\t\t\tContext:       metrics,\n209: \t\t\t\tTimestamp:     time.Now(),\n210: \t\t\t}\n211: \t\t\tviolations = append(violations, violation)\n212: \t\t\tgm.setCooldown(guardrailType, config.Cooldown)\n213: \t\t}\n214: \t}\n215: \n216: \tif len(violations) > 0 {\n217: \t\thighest := violations[0]\n218: \t\tfor _, v := range violations[1:] {\n219: \t\t\tif gm.severityOrder(v.Severity) > gm.severityOrder(highest.Severity) {\n220: \t\t\t\thighest = v\n221: \t\t\t}\n222: \t\t}\n223: \t\treturn highest, true\n224: \t}\n225: \n226: \treturn nil, false\n227: }\n228: \n229: func (gm *DynamicGuardrailManager) ValidateOntologyConstraint(nodeID, domain string, concept string) (bool, string) {\n230: \tgm.mu.RLock()\n231: \tdefer gm.mu.RUnlock()\n232: \n233: \trule, ok := gm.ontologyRules[domain]\n234: \tif !ok {\n235: \t\treturn true, \"\"\n236: \t}\n237: \n238: \tfor _, allowedConcept := range rule.Concepts {\n239: \t\tif allowedConcept == concept {\n240: \t\t\treturn true, \"\"\n241: \t\t}\n242: \t}\n243: \n244: \treturn false, fmt.Sprintf(\"concept '%s' not allowed in domain '%s'\", concept, domain)\n245: }\n246: \n247: func (gm *DynamicGuardrailManager) ValidateExecutionTime(nodeID string, duration time.Duration) (bool, *GuardrailViolation) {\n248: \tconfig, ok := gm.GetGuardrailConfig(nodeID, GuardrailTypeExecution)\n249: \tif !ok || !config.Enabled {\n250: \t\treturn true, nil\n251: \t}\n252: \n253: \tmaxDuration := time.Duration(config.MaxValue) * time.Second\n254: \tif duration > maxDuration {\n255: \t\tviolation := &GuardrailViolation{\n256: \t\t\tID:            uuid.New().String(),\n257: \t\t\tNodeID:        nodeID,\n258: \t\t\tGuardrailType: GuardrailTypeExecution,\n259: \t\t\tViolationType: \"execution_timeout\",\n260: \t\t\tMessage:       fmt.Sprintf(\"execution took %v, exceeds max %v\", duration, maxDuration),\n261: \t\t\tSeverity:      \"high\",\n262: \t\t\tContext: map[string]interface{}{\n263: \t\t\t\t\"duration\":     duration.String(),\n264: \t\t\t\t\"max_duration\": maxDuration.String(),\n265: \t\t\t},\n266: \t\t\tTimestamp: time.Now(),\n267: \t\t}\n268: \t\treturn false, violation\n269: \t}\n270: \n271: \treturn true, nil\n272: }\n273: \n274: func (gm *DynamicGuardrailManager) ValidateIntentObjective(nodeID, objectiveID string, context map[string]interface{}) (bool, *GuardrailViolation) {\n275: \tgm.mu.RLock()\n276: \tdefer gm.mu.RUnlock()\n277: \n278: \tfor guardrailType, config := range gm.configurations {\n279: \t\tif config.Type != GuardrailTypeOntology || !config.Enabled {\n280: \t\t\tcontinue\n281: \t\t}\n282: \n283: \t\tif !gm.isNodeScope(guardrailType, nodeID) {\n284: \t\t\tcontinue\n285: \t\t}\n286: \n287: \t\tif context == nil {\n288: \t\t\tcontinue\n289: \t\t}\n290: \n291: \t\tif intentValue, ok := context[\"intent_score\"].(float64); ok {\n292: \t\t\tif intentValue < config.MinValue && config.MinValue > 0 {\n293: \t\t\t\tviolation := &GuardrailViolation{\n294: \t\t\t\t\tID:            uuid.New().String(),\n295: \t\t\t\t\tNodeID:        nodeID,\n296: \t\t\t\t\tGuardrailType: GuardrailTypeOntology,\n297: \t\t\t\t\tViolationType: \"intent_threshold_breach\",\n298: \t\t\t\t\tMessage:       fmt.Sprintf(\"intent score %.2f below minimum %.2f\", intentValue, config.MinValue),\n299: \t\t\t\t\tSeverity:      gm.determineSeverity(GuardrailTypeOntology, intentValue, config.MinValue),\n300: \t\t\t\t\tContext:       context,\n301: \t\t\t\t\tTimestamp:     time.Now(),\n302: \t\t\t\t}\n303: \t\t\t\treturn false, violation\n304: \t\t\t}\n305: \t\t}\n306: \t}\n307: \n308: \treturn true, nil\n309: }\n310: \n311: func (gm *DynamicGuardrailManager) RecordViolation(violation *GuardrailViolation) error {\n312: \tgm.mu.Lock()\n313: \tdefer gm.mu.Unlock()\n314: \n315: \tgm.violations[violation.ID] = violation\n316: \n317: \tif gm.db == nil {\n318: \t\treturn nil\n319: \t}\n320: \treturn gm.db.Transaction(func(tx *buntdb.Tx) error {\n321: \t\tdata, err := json.Marshal(violation)\n322: \t\tif err != nil {\n323: \t\t\treturn err\n324: \t\t}\n325: \t\t_, _, err = tx.Set(fmt.Sprintf(\"guardrail:violation:%s\", violation.ID), string(data), nil)\n326: \t\treturn err\n327: \t})\n328: }\n329: \n330: func (gm *DynamicGuardrailManager) GetViolations(nodeID string, limit int) []*GuardrailViolation {\n331: \tgm.mu.RLock()\n332: \tdefer gm.mu.RUnlock()\n333: \n334: \tvar result []*GuardrailViolation\n335: \tfor _, v := range gm.violations {\n336: \t\tif nodeID == \"\" || v.NodeID == nodeID {\n337: \t\t\tresult = append(result, v)\n338: \t\t}\n339: \t}\n340: \n341: \tif limit > 0 && len(result) > limit {\n342: \t\treturn result[len(result)-limit:]\n343: \t}\n344: \treturn result\n345: }\n346: \n347: func (gm *DynamicGuardrailManager) ResolveViolation(violationID string) error {\n348: \tgm.mu.Lock()\n349: \tdefer gm.mu.Unlock()\n350: \n351: \tviolation, ok := gm.violations[violationID]\n352: \tif !ok {\n353: \t\treturn fmt.Errorf(\"violation not found: %s\", violationID)\n354: \t}\n355: \n356: \tviolation.Resolved = true\n357: \tnow := time.Now()\n358: \tviolation.ResolvedAt = &now\n359: \n360: \tif gm.db == nil {\n361: \t\treturn nil\n362: \t}\n363: \treturn gm.db.Transaction(func(tx *buntdb.Tx) error {\n364: \t\tdata, err := json.Marshal(violation)\n365: \t\tif err != nil {\n366: \t\t\treturn err\n367: \t\t}\n368: \t\t_, _, err = tx.Set(fmt.Sprintf(\"guardrail:violation:%s\", violation.ID), string(data), nil)\n369: \t\treturn err\n370: \t})\n371: }\n372: \n373: func (gm *DynamicGuardrailManager) ConfigureOntologyGuardrail(domain string, rule *OntologyGuardrail) error {\n374: \tgm.mu.Lock()\n375: \tdefer gm.mu.Unlock()\n376: \n377: \tgm.ontologyRules[domain] = rule\n378: \n379: \tif gm.db == nil {\n380: \t\treturn nil\n381: \t}\n382: \treturn gm.db.Transaction(func(tx *buntdb.Tx) error {\n383: \t\tdata, err := json.Marshal(rule)\n384: \t\tif err != nil {\n385: \t\t\treturn err\n386: \t\t}\n387: \t\t_, _, err = tx.Set(fmt.Sprintf(\"guardrail:ontology:%s\", domain), string(data), nil)\n388: \t\treturn err\n389: \t})\n390: }\n391: \n392: func (gm *DynamicGuardrailManager) isNodeScope(key, nodeID string) bool {\n393: \tfor _, gt := range []GuardrailType{GuardrailTypeMemory, GuardrailTypeCPU, GuardrailTypeNetwork, GuardrailTypeExecution, GuardrailTypeFileSystem, GuardrailTypeOntology} {\n394: \t\tsuffix := \":\" + string(gt)\n395: \t\tif len(key) > len(suffix) && key[len(key)-len(suffix):] == suffix {\n396: \t\t\tconfiguredNodeID := key[:len(key)-len(suffix)]\n397: \t\t\treturn configuredNodeID == nodeID || configuredNodeID == \"global\"\n398: \t\t}\n399: \t}\n400: \treturn false\n401: }\n402: \n403: func (gm *DynamicGuardrailManager) isInCooldown(key string) bool {\n404: \tgm.cooldownMu.RLock()\n405: \tdefer gm.cooldownMu.RUnlock()\n406: \n407: \tif cooldown, ok := gm.cooldowns[key]; ok {\n408: \t\treturn time.Now().Before(cooldown)\n409: \t}\n410: \treturn false\n411: }\n412: \n413: func (gm *DynamicGuardrailManager) setCooldown(key string, duration time.Duration) {\n414: \tgm.cooldownMu.Lock()\n415: \tdefer gm.cooldownMu.Unlock()\n416: \tgm.cooldowns[key] = time.Now().Add(duration)\n417: }\n418: \n419: func (gm *DynamicGuardrailManager) severityOrder(severity string) int {\n420: \tswitch severity {\n421: \tcase \"critical\":\n422: \t\treturn 4\n423: \tcase \"high\":\n424: \t\treturn 3\n425: \tcase \"medium\":\n426: \t\treturn 2\n427: \tcase \"low\":\n428: \t\treturn 1\n429: \tdefault:\n430: \t\treturn 0\n431: \t}\n432: }\n433: \n434: func (gm *DynamicGuardrailManager) determineSeverity(gType GuardrailType, value, max float64) string {\n435: \tratio := value / max\n436: \tif ratio > 1.5 {\n437: \t\treturn \"critical\"\n438: \t} else if ratio > 1.2 {\n439: \t\treturn \"high\"\n440: \t} else if ratio > 1.0 {\n441: \t\treturn \"medium\"\n442: \t}\n443: \treturn \"low\"\n444: }\n445: \n446: func (gm *DynamicGuardrailManager) saveConfiguration(key string, config *GuardrailConfig) error {\n447: \tif gm.db == nil {\n448: \t\treturn nil\n449: \t}\n450: \tdata, err := json.Marshal(config)\n451: \tif err != nil {\n452: \t\treturn err\n453: \t}\n454: \n455: \treturn gm.db.Transaction(func(tx *buntdb.Tx) error {\n456: \t\t_, _, err = tx.Set(fmt.Sprintf(\"guardrail:config:%s\", key), string(data), nil)\n457: \t\treturn err\n458: \t})\n459: }\n460: \n461: func (gm *DynamicGuardrailManager) LoadConfigurations() error {\n462: \tif gm.db == nil {\n463: \t\treturn nil\n464: \t}\n465: \treturn gm.db.GetObjectsByPrefix(\"guardrail:config:\", func(key string, value []byte) bool {\n466: \t\tvar config GuardrailConfig\n467: \t\tif err := json.Unmarshal(value, &config); err != nil {\n468: \t\t\treturn true\n469: \t\t}\n470: \t\tgm.mu.Lock()\n471: \t\tgm.configurations[key] = &config\n472: \t\tgm.mu.Unlock()\n473: \t\treturn true\n474: \t})\n475: }\n476: \n477: func (gm *DynamicGuardrailManager) LoadOntologyRules() error {\n478: \tif gm.db == nil {\n479: \t\treturn nil\n480: \t}\n481: \treturn gm.db.GetObjectsByPrefix(\"guardrail:ontology:\", func(key string, value []byte) bool {\n482: \t\tvar rule OntologyGuardrail\n483: \t\tif err := json.Unmarshal(value, &rule); err != nil {\n484: \t\t\treturn true\n485: \t\t}\n486: \t\tgm.mu.Lock()\n487: \t\tgm.ontologyRules[rule.Domain] = &rule\n488: \t\tgm.mu.Unlock()\n489: \t\treturn true\n490: \t})\n491: }\n492: \n493: func (gm *DynamicGuardrailManager) GetAllConfigurations(nodeID string) []*GuardrailConfig {\n494: \tgm.mu.RLock()\n495: \tdefer gm.mu.RUnlock()\n496: \n497: \tvar configs []*GuardrailConfig\n498: \tfor key, config := range gm.configurations {\n499: \t\tif nodeID == \"\" || gm.isNodeScope(key, nodeID) {\n500: \t\t\tconfigs = append(configs, config)\n501: \t\t}\n502: \t}\n503: \treturn configs\n504: }\n505: \n506: func (gm *DynamicGuardrailManager) GetStatistics() map[string]interface{} {\n507: \tgm.mu.RLock()\n508: \tdefer gm.mu.RUnlock()\n509: \n510: \ttotalViolations := len(gm.violations)\n511: \tunresolvedViolations := 0\n512: \tseverityCounts := map[string]int{\"low\": 0, \"medium\": 0, \"high\": 0, \"critical\": 0}\n513: \n514: \tfor _, v := range gm.violations {\n515: \t\tif !v.Resolved {\n516: \t\t\tunresolvedViolations++\n517: \t\t}\n518: \t\tseverityCounts[v.Severity]++\n519: \t}\n520: \n521: \treturn map[string]interface{}{\n522: \t\t\"total_configurations\":   len(gm.configurations),\n523: \t\t\"total_ontology_rules\":   len(gm.ontologyRules),\n524: \t\t\"total_violations\":       totalViolations,\n525: \t\t\"unresolved_violations\":  unresolvedViolations,\n526: \t\t\"violations_by_severity\": severityCounts,\n527: \t\t\"active_cooldowns\":       len(gm.cooldowns),\n528: \t}\n529: }\n530: \n531: type PolicyEngine struct {\n532: \tdb                    *database.BuntDBManager\n533: \tguardrailManager      *DynamicGuardrailManager\n534: \tvalidationChainClient interface {\n535: \t\tCommitPolicy(req validationchain.PolicyCommitRequest) (string, error)\n536: \t}\n537: \ticmeService interface {\n538: \t\tRegisterObjective(obj *IntentObjective) error\n539: \t\tGetObjectiveForAgent(agentID, dveID string) *IntentObjective\n540: \t}\n541: \tactivePolicies map[string]*Policy\n542: \tmu             sync.RWMutex\n543: }\n544: \n545: type Policy struct {\n546: \tID          string        `json:\"id\"`\n547: \tName        string        `json:\"name\"`\n548: \tDescription string        `json:\"description\"`\n549: \tEnabled     bool          `json:\"enabled\"`\n550: \tPriority    int           `json:\"priority\"`\n551: \tRules       []*PolicyRule `json:\"rules\"`\n552: \tCreatedAt   time.Time     `json:\"created_at\"`\n553: \tUpdatedAt   time.Time     `json:\"updated_at\"`\n554: }\n555: \n556: type PolicyRule struct {\n557: \tID         string                 `json:\"id\"`\n558: \tType       string                 `json:\"type\"` // \"guardrail\", \"ontology\", \"execution\"\n559: \tCondition  map[string]interface{} `json:\"condition\"`\n560: \tAction     string                 `json:\"action\"` // \"allow\", \"deny\", \"warn\"\n561: \tParameters map[string]interface{} `json:\"parameters\"`\n562: }\n563: \n564: type IntentObjective struct {\n565: \tName           string             `json:\"name\"`\n566: \tScope          string             `json:\"scope\"` // \"global\" or DVE ID\n567: \tHardBoundaries map[string]float64 `json:\"hard_boundaries\"`\n568: \tSoftLimits     map[string]float64 `json:\"soft_limits\"`\n569: \tTradeOffs      map[string]float64 `json:\"trade_offs\"`\n570: \tCreatedAt      time.Time          `json:\"created_at\"`\n571: \tUpdatedAt      time.Time          `json:\"updated_at\"`\n572: \tVersion        int                `json:\"version\"`\n573: }\n574: \n575: func NewPolicyEngine(db *database.BuntDBManager, gm *DynamicGuardrailManager) *PolicyEngine {\n576: \treturn &PolicyEngine{\n577: \t\tdb:               db,\n578: \t\tguardrailManager: gm,\n579: \t\tactivePolicies:   make(map[string]*Policy),\n580: \t}\n581: }\n582: \n583: func (pe *PolicyEngine) SetICMEService(icme interface {\n584: \tRegisterObjective(obj *IntentObjective) error\n585: \tGetObjectiveForAgent(agentID, dveID string) *IntentObjective\n586: }) {\n587: \tpe.icmeService = icme\n588: }\n589: \n590: func (pe *PolicyEngine) SetValidationChainClient(client interface {\n591: \tCommitPolicy(req validationchain.PolicyCommitRequest) (string, error)\n592: }) {\n593: \tpe.validationChainClient = client\n594: }\n595: \n596: func (pe *PolicyEngine) CreatePolicy(policy *Policy) error {\n597: \tpe.mu.Lock()\n598: \tdefer pe.mu.Unlock()\n599: \n600: \tpolicy.ID = uuid.New().String()\n601: \tpolicy.CreatedAt = time.Now()\n602: \tpolicy.UpdatedAt = time.Now()\n603: \n604: \tpe.activePolicies[policy.ID] = policy\n605: \n606: \tfor _, rule := range policy.Rules {\n607: \t\trule.ID = uuid.New().String()\n608: \t\tif rule.Type == \"guardrail\" {\n609: \t\t\tif err := pe.applyGuardrailRule(policy.ID, rule); err != nil {\n610: \t\t\t\tlog.Printf(\"Warning: Failed to apply guardrail rule: %v\", err)\n611: \t\t\t}\n612: \t\t} else if rule.Type == \"ontology\" {\n613: \t\t\tif err := pe.applyOntologyRule(policy.ID, rule); err != nil {\n614: \t\t\t\tlog.Printf(\"Warning: Failed to apply ontology rule: %v\", err)\n615: \t\t\t}\n616: \t\t}\n617: \t}\n618: \n619: \treturn pe.savePolicy(policy)\n620: }\n621: \n622: func (pe *PolicyEngine) applyGuardrailRule(policyID string, rule *PolicyRule) error {\n623: \tnodeID, _ := rule.Parameters[\"node_id\"].(string)\n624: \tif nodeID == \"\" {\n625: \t\tnodeID = \"global\"\n626: \t}\n627: \n628: \tguardrailType := GuardrailType(rule.Parameters[\"guardrail_type\"].(string))\n629: \tconfig := &GuardrailConfig{\n630: \t\tType:     guardrailType,\n631: \t\tEnabled:  rule.Action != \"deny\",\n632: \t\tAction:   rule.Action,\n633: \t\tMaxValue: rule.Condition[\"max_value\"].(float64),\n634: \t}\n635: \n636: \tif minValue, ok := rule.Condition[\"min_value\"].(float64); ok {\n637: \t\tconfig.MinValue = minValue\n638: \t}\n639: \n640: \treturn pe.guardrailManager.ConfigureGuardrail(nodeID, config)\n641: }\n642: \n643: func (pe *PolicyEngine) applyOntologyRule(policyID string, rule *PolicyRule) error {\n644: \tdomain := rule.Parameters[\"domain\"].(string)\n645: \truleGuardrail := &OntologyGuardrail{\n646: \t\tDomain: domain,\n647: \t}\n648: \n649: \tif concepts, ok := rule.Parameters[\"concepts\"].([]interface{}); ok {\n650: \t\tfor _, c := range concepts {\n651: \t\t\tif concept, ok := c.(string); ok {\n652: \t\t\t\truleGuardrail.Concepts = append(ruleGuardrail.Concepts, concept)\n653: \t\t\t}\n654: \t\t}\n655: \t}\n656: \n657: \treturn pe.guardrailManager.ConfigureOntologyGuardrail(domain, ruleGuardrail)\n658: }\n659: \n660: func (pe *PolicyEngine) EvaluateAction(nodeID, action string, context map[string]interface{}) (bool, string) {\n661: \tpe.mu.RLock()\n662: \tdefer pe.mu.RUnlock()\n663: \n664: \tvar applicablePolicies []*Policy\n665: \tfor _, policy := range pe.activePolicies {\n666: \t\tif !policy.Enabled {\n667: \t\t\tcontinue\n668: \t\t}\n669: \t\tapplicablePolicies = append(applicablePolicies, policy)\n670: \t}\n671: \n672: \tfor _, policy := range applicablePolicies {\n673: \t\tfor _, rule := range policy.Rules {\n674: \t\t\tif pe.matchesCondition(rule.Condition, context) {\n675: \t\t\t\tif rule.Action == \"deny\" {\n676: \t\t\t\t\treturn false, fmt.Sprintf(\"denied by policy '%s' rule '%s'\", policy.Name, rule.ID)\n677: \t\t\t\t}\n678: \t\t\t\tif rule.Action == \"warn\" {\n679: \t\t\t\t\treturn true, fmt.Sprintf(\"warning from policy '%s'\", policy.Name)\n680: \t\t\t\t}\n681: \t\t\t}\n682: \t\t}\n683: \t}\n684: \n685: \treturn true, \"allowed\"\n686: }\n687: \n688: func (pe *PolicyEngine) matchesCondition(condition map[string]interface{}, context map[string]interface{}) bool {\n689: \tif condition == nil {\n690: \t\treturn true\n691: \t}\n692: \n693: \tfor key, expected := range condition {\n694: \t\tactual, ok := context[key]\n695: \t\tif !ok {\n696: \t\t\treturn false\n697: \t\t}\n698: \n699: \t\tswitch exp := expected.(type) {\n700: \t\tcase float64:\n701: \t\t\tif act, ok := actual.(float64); ok {\n702: \t\t\t\tif act < exp {\n703: \t\t\t\t\treturn false\n704: \t\t\t\t}\n705: \t\t\t}\n706: \t\tcase string:\n707: \t\t\tif act, ok := actual.(string); ok {\n708: \t\t\t\tif act != exp {\n709: \t\t\t\t\treturn false\n710: \t\t\t\t}\n711: \t\t\t}\n712: \t\tcase bool:\n713: \t\t\tif act, ok := actual.(bool); ok {\n714: \t\t\t\tif act != exp {\n715: \t\t\t\t\treturn false\n716: \t\t\t\t}\n717: \t\t\t}\n718: \t\t}\n719: \t}\n720: \n721: \treturn true\n722: }\n723: \n724: func (pe *PolicyEngine) CommitPolicyToBlockchain(policyID string) (string, error) {\n725: \tpe.mu.RLock()\n726: \tpolicy, ok := pe.activePolicies[policyID]\n727: \tpe.mu.RUnlock()\n728: \n729: \tif !ok {\n730: \t\treturn \"\", fmt.Errorf(\"policy not found: %s\", policyID)\n731: \t}\n732: \n733: \tif pe.validationChainClient == nil {\n734: \t\treturn \"\", fmt.Errorf(\"validation chain client not configured\")\n735: \t}\n736: \n737: \trules := make(map[string]interface{}, len(policy.Rules))\n738: \tfor _, rule := range policy.Rules {\n739: \t\tif rule == nil {\n740: \t\t\tcontinue\n741: \t\t}\n742: \t\trules[rule.ID] = map[string]interface{}{\n743: \t\t\t\"type\":       rule.Type,\n744: \t\t\t\"condition\":  rule.Condition,\n745: \t\t\t\"action\":     rule.Action,\n746: \t\t\t\"parameters\": rule.Parameters,\n747: \t\t}\n748: \t}\n749: \n750: \ttxHash, err := pe.validationChainClient.CommitPolicy(validationchain.PolicyCommitRequest{\n751: \t\tName:     policy.Name,\n752: \t\tType:     \"guardrail_policy\",\n753: \t\tPriority: policy.Priority,\n754: \t\tEnabled:  policy.Enabled,\n755: \t\tRules:    rules,\n756: \t})\n757: \tif err != nil {\n758: \t\treturn \"\", fmt.Errorf(\"failed to commit policy to validation chain: %w\", err)\n759: \t}\n760: \n761: \tpolicyData, err := json.Marshal(map[string]interface{}{\n762: \t\t\"policy\":          policy,\n763: \t\t\"validation_hash\": txHash,\n764: \t\t\"committed_at\":    time.Now().UTC(),\n765: \t})\n766: \tif err != nil {\n767: \t\treturn \"\", fmt.Errorf(\"failed to marshal committed policy record: %w\", err)\n768: \t}\n769: \n770: \tif err := pe.db.Transaction(func(tx *buntdb.Tx) error {\n771: \t\t_, _, err = tx.Set(fmt.Sprintf(\"policy:committed:%s\", policyID), string(policyData), nil)\n772: \t\treturn err\n773: \t}); err != nil {\n774: \t\treturn \"\", fmt.Errorf(\"failed to persist committed policy: %w\", err)\n775: \t}\n776: \n777: \tlog.Printf(\"Policy %s committed to validation chain with tx hash: %s\", policyID, txHash)\n778: \treturn txHash, nil\n779: }\n780: \n781: func (pe *PolicyEngine) savePolicy(policy *Policy) error {\n782: \tdata, err := json.Marshal(policy)\n783: \tif err != nil {\n784: \t\treturn err\n785: \t}\n786: \n787: \treturn pe.db.Transaction(func(tx *buntdb.Tx) error {\n788: \t\t_, _, err = tx.Set(fmt.Sprintf(\"policy:%s\", policy.ID), string(data), nil)\n789: \t\treturn err\n790: \t})\n791: }\n792: \n793: func (pe *PolicyEngine) LoadPolicies() error {\n794: \treturn pe.db.GetObjectsByPrefix(\"policy:\", func(key string, value []byte) bool {\n795: \t\tvar policy Policy\n796: \t\tif err := json.Unmarshal(value, &policy); err != nil {\n797: \t\t\treturn true\n798: \t\t}\n799: \t\tpe.mu.Lock()\n800: \t\tpe.activePolicies[policy.ID] = &policy\n801: \t\tpe.mu.Unlock()\n802: \t\treturn true\n803: \t})\n804: }\n805: \n806: func (pe *PolicyEngine) GetPolicy(policyID string) (*Policy, bool) {\n807: \tpe.mu.RLock()\n808: \tdefer pe.mu.RUnlock()\n809: \tpolicy, ok := pe.activePolicies[policyID]\n810: \treturn policy, ok\n811: }\n812: \n813: func (pe *PolicyEngine) ListPolicies() []*Policy {\n814: \tpe.mu.RLock()\n815: \tdefer pe.mu.RUnlock()\n816: \n817: \tpolicies := make([]*Policy, 0, len(pe.activePolicies))\n818: \tfor _, p := range pe.activePolicies {\n819: \t\tpolicies = append(policies, p)\n820: \t}\n821: \treturn policies\n822: }\n823: \n824: func (pe *PolicyEngine) DeletePolicy(policyID string) error {\n825: \tpe.mu.Lock()\n826: \tdefer pe.mu.Unlock()\n827: \n828: \tif _, ok := pe.activePolicies[policyID]; !ok {\n829: \t\treturn fmt.Errorf(\"policy not found: %s\", policyID)\n830: \t}\n831: \n832: \tdelete(pe.activePolicies, policyID)\n833: \n834: \treturn pe.db.Transaction(func(tx *buntdb.Tx) error {\n835: \t\t_, err := tx.Delete(fmt.Sprintf(\"policy:%s\", policyID))\n836: \t\treturn err\n837: \t})\n838: }\n\n(End of file - total 838 lines)\n</content>",
+            "metadata": {
+              "preview": "package guardrails\n\nimport (\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"log\"\n\t\"sync\"\n\t\"time\"\n\n\t\"backend_server/internal/database\"\n\t\"backend_server/internal/services/blockchain/validationchain\"\n\n\t\"github.com/google/uuid\"\n\t\"github.com/tidwall/buntdb\"\n)\n\ntype GuardrailType string\n\nconst (\n\tGuardrailTypeMemory     GuardrailType = \"memory\"",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go",
+            "time": {
+              "start": 1779727671266,
+              "end": 1779727671969
+            }
+          },
+          "id": "prt_e60091e8d001P4BZb1iDL6Hsb0",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60090dcd001bwf9WODBoFg0YA"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 16318,
+            "input": 8251,
+            "output": 98,
+            "reasoning": 33,
+            "cache": {
+              "write": 0,
+              "read": 7936
+            }
+          },
+          "cost": 0,
+          "id": "prt_e600949da001jjhDsVdXIoSuwp",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60090dcd001bwf9WODBoFg0YA"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008aee9001z9ho02xB31ZCAl",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 25336,
+          "input": 8803,
+          "output": 233,
+          "reasoning": 44,
+          "cache": {
+            "write": 0,
+            "read": 16256
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727683484,
+          "completed": 1779727696367
+        },
+        "finish": "tool-calls",
+        "id": "msg_e60094f9c001G6OkiqqLJqmHxr",
+        "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e60095b2d00126OuI23g61DQYh",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60094f9c001G6OkiqqLJqmHxr"
+        },
+        {
+          "type": "reasoning",
+          "text": "Now I have all the information needed. Let me compile the findings thoroughly. Let me also check for any interfaces that DynamicGuardrailManager explicitly implements (beyond the implicit interface satisfaction happening with the eventBroadcaster field).",
+          "time": {
+            "start": 1779727686776,
+            "end": 1779727687337
+          },
+          "id": "prt_e60095c78001nimpwWBigmE0Bn",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60094f9c001G6OkiqqLJqmHxr"
+        },
+        {
+          "type": "text",
+          "text": "Now let me also check if DynamicGuardrailManager explicitly satisfies any defined interfaces in the codebase:",
+          "time": {
+            "start": 1779727687350,
+            "end": 1779727688707
+          },
+          "id": "prt_e60095eb6001YqYbG0YLb5su0L",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60094f9c001G6OkiqqLJqmHxr"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_5THOQZS8mpG6yBytoaWP1032",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "interface.*\\{",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails",
+              "include": "*.go"
+            },
+            "output": "Found 30 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go:\n  Line 39: type HasherValidator interface {\n\n  Line 67: \tContext       map[string]interface{} `json:\"context\"`\n\n  Line 79: \teventBroadcaster interface {\n\n  Line 80: \t\tEmitGuardrailTrigger(nodeID, source, guardrailType, trigger string, context map[string]interface{})\n\n  Line 98: func (gm *DynamicGuardrailManager) SetEventBroadcaster(eb interface {\n\n  Line 99: \tEmitGuardrailTrigger(nodeID, source, guardrailType, trigger string, context map[string]interface{})\n\n  Line 165: func (gm *DynamicGuardrailManager) ValidateResourceUsage(nodeID string, metrics map[string]interface{}) (*GuardrailViolation, bool) {\n\n  Line 262: \t\t\tContext: map[string]interface{}{\n\n  Line 274: func (gm *DynamicGuardrailManager) ValidateIntentObjective(nodeID, objectiveID string, context map[string]interface{}) (bool, *GuardrailViolation) {\n\n  Line 506: func (gm *DynamicGuardrailManager) GetStatistics() map[string]interface{} {\n\n  Line 521: \treturn map[string]interface{}{\n\n  Line 534: \tvalidationChainClient interface {\n\n  Line 537: \ticmeService interface {\n\n  Line 559: \tCondition  map[string]interface{} `json:\"condition\"`\n\n  Line 561: \tParameters map[string]interface{} `json:\"parameters\"`\n\n  Line 583: func (pe *PolicyEngine) SetICMEService(icme interface {\n\n  Line 590: func (pe *PolicyEngine) SetValidationChainClient(client interface {\n\n  Line 649: \tif concepts, ok := rule.Parameters[\"concepts\"].([]interface{}); ok {\n\n  Line 660: func (pe *PolicyEngine) EvaluateAction(nodeID, action string, context map[string]interface{}) (bool, string) {\n\n  Line 688: func (pe *PolicyEngine) matchesCondition(condition map[string]interface{}, context map[string]interface{}) bool {\n\n  Line 737: \trules := make(map[string]interface{}, len(policy.Rules))\n\n  Line 742: \t\trules[rule.ID] = map[string]interface{}{\n\n  Line 761: \tpolicyData, err := json.Marshal(map[string]interface{}{\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager_test.go:\n  Line 73: \tmetrics := map[string]interface{}{\n\n  Line 94: \tmetrics := map[string]interface{}{\n\n  Line 188: \tallowed, _ := gm.ValidateIntentObjective(\"test-node\", \"obj-1\", map[string]interface{}{\n\n  Line 195: \tallowed, _ = gm.ValidateIntentObjective(\"test-node\", \"obj-1\", map[string]interface{}{\n\n  Line 368: \t\t\t\tCondition: map[string]interface{}{\"max_value\": 42.0},\n\n  Line 370: \t\t\t\tParameters: map[string]interface{}{\n\n  Line 394: \tvar record map[string]interface{}\n",
+            "metadata": {
+              "matches": 30,
+              "truncated": false
+            },
+            "title": "interface.*\\{",
+            "time": {
+              "start": 1779727688062,
+              "end": 1779727688376
+            }
+          },
+          "id": "prt_e60095fbb001MtpsJ5aLWoq5tb",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60094f9c001G6OkiqqLJqmHxr"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_YNFZugfPiHwl2IgXgJJo0818",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "DynamicGuardrailManager",
+              "include": "*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager"
+            },
+            "output": "Found 2 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/hasher_integration.go:\n  Line 22: \tguardrailMgr *guardrails.DynamicGuardrailManager\n\n  Line 44: }, guardrailMgr *guardrails.DynamicGuardrailManager) *HasherIntegration {\n",
+            "metadata": {
+              "matches": 2,
+              "truncated": false
+            },
+            "title": "DynamicGuardrailManager",
+            "time": {
+              "start": 1779727688606,
+              "end": 1779727688861
+            }
+          },
+          "id": "prt_e60096194001tJ0xdgrM3XRFyv",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60094f9c001G6OkiqqLJqmHxr"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 25336,
+            "input": 8803,
+            "output": 233,
+            "reasoning": 44,
+            "cache": {
+              "write": 0,
+              "read": 16256
+            }
+          },
+          "cost": 0,
+          "id": "prt_e60097eec0013kWi1BxS1hcB24",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e60094f9c001G6OkiqqLJqmHxr"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008aee9001z9ho02xB31ZCAl",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 26467,
+          "input": 981,
+          "output": 210,
+          "reasoning": 60,
+          "cache": {
+            "write": 0,
+            "read": 25216
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727696385,
+          "completed": 1779727709372
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6009820100163qR1ZUBGtBYGg",
+        "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e60098974001Eff60c80MlrIUh",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009820100163qR1ZUBGtBYGg"
+        },
+        {
+          "type": "reasoning",
+          "text": "I now have all the information needed. Let me compile a thorough answer covering all the user's questions.\n\nLet me also check if there's a `GuardrailManager` interface (separate from `DynamicGuardrailManager`) defined in the codebase that the `DynamicGuardrailManager` implements.",
+          "time": {
+            "start": 1779727698657,
+            "end": 1779727699232
+          },
+          "id": "prt_e60098ae10010YMvgUuyG4Pe5l",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009820100163qR1ZUBGtBYGg"
+        },
+        {
+          "type": "text",
+          "text": "Let me also check for any `GuardrailManager` interface that `DynamicGuardrailManager` might be satisfying:",
+          "time": {
+            "start": 1779727699249,
+            "end": 1779727700422
+          },
+          "id": "prt_e60098d31001IVASwjnQZkoLgn",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009820100163qR1ZUBGtBYGg"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_7Kl5jiwXMmqvcyCDBRqM5203",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "type.*GuardrailManager.*interface",
+              "include": "*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "No files found",
+            "metadata": {
+              "matches": 0,
+              "truncated": false
+            },
+            "title": "type.*GuardrailManager.*interface",
+            "time": {
+              "start": 1779727699941,
+              "end": 1779727700136
+            }
+          },
+          "id": "prt_e60098de5001I7qijdqosKBkBC",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009820100163qR1ZUBGtBYGg"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_01_REi8R50BDcH51cK4qt0V7485",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/guardrails/*.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager_test.go",
+            "metadata": {
+              "count": 2,
+              "truncated": false
+            },
+            "title": "packages/KNIRVSERVER",
+            "time": {
+              "start": 1779727700406,
+              "end": 1779727700632
+            }
+          },
+          "id": "prt_e6009902e001HIMu7G530h4g8J",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009820100163qR1ZUBGtBYGg"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 26467,
+            "input": 981,
+            "output": 210,
+            "reasoning": 60,
+            "cache": {
+              "write": 0,
+              "read": 25216
+            }
+          },
+          "cost": 0,
+          "id": "prt_e6009b0e70014Eh1Xftz3lXulV",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009820100163qR1ZUBGtBYGg"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008aee9001z9ho02xB31ZCAl",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 26800,
+          "input": 202,
+          "output": 189,
+          "reasoning": 41,
+          "cache": {
+            "write": 0,
+            "read": 26368
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727709390,
+          "completed": 1779727721334
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6009b4ce001yNXsWStA87g0Z7",
+        "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e6009bfef001iy2M8sbblOrXEH",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009b4ce001yNXsWStA87g0Z7"
+        },
+        {
+          "type": "reasoning",
+          "text": "Good. There is no explicitly defined `GuardrailManager` interface. Let me also check the cognitiveengine guardrail files and the wasm guardrail middleware to see if there are any interfaces used there.",
+          "time": {
+            "start": 1779727712545,
+            "end": 1779727712977
+          },
+          "id": "prt_e6009c121001ofprIl7GY8q9FO",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009b4ce001yNXsWStA87g0Z7"
+        },
+        {
+          "type": "text",
+          "text": "Now let me check the cognitive engine guardrail file and wasm guardrail middleware for additional interfaces:",
+          "time": {
+            "start": 1779727712984,
+            "end": 1779727713945
+          },
+          "id": "prt_e6009c2d8001B1F7OgjUJ8sfmr",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009b4ce001yNXsWStA87g0Z7"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_ZEZ9cE9GGm0zgpG3lzR93849",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go",
+              "limit": 80
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go</path>\n<type>file</type>\n<content>\n1: package cognitiveengine\n2: \n3: import (\n4: \t\"context\"\n5: \t\"fmt\"\n6: \t\"log\"\n7: \t\"sync\"\n8: \t\"time\"\n9: )\n10: \n11: // PolicyRule defines a single per-DVE guardrail constraint.\n12: type PolicyRule struct {\n13: \tID                string\n14: \tDescription       string\n15: \tDVEID             string // empty = applies to all DVEs\n16: \tBadgeID           string // empty = applies to all badges\n17: \tBadgeOntologyTags []string // ontology elements from badge\n18: \tMetric            string // \"success_rate\", \"avg_processing_time\", \"resource_utilization\", \"violation_count\"\n19: \tOperator          string // \"lt\", \"gt\", \"eq\", \"lte\", \"gte\"\n20: \tThreshold         float64\n21: \tSeverity          string // \"warning\", \"critical\", \"panic\"\n22: \tRemediationAction string\n23: \tEnabled           bool\n24: \tCreatedAt         time.Time\n25: \tLastTriggered     time.Time\n26: \tTriggerCount      int\n27: }\n28: \n29: // PolicyViolation records a single detected policy breach and its remediation status.\n30: type PolicyViolation struct {\n31: \tID                string\n32: \tRuleID            string\n33: \tDVEID             string\n34: \tNodeID            string\n35: \tMetricValue       float64\n36: \tSeverity          string\n37: \tDetectedAt        time.Time\n38: \tRemediated        bool\n39: \tRemediatedAt      *time.Time\n40: \tRemediationResult string\n41: }\n42: \n43: // RemediationFn is a function that handles a policy violation.\n44: type RemediationFn func(ctx context.Context, violation *PolicyViolation) error\n45: \n46: // RemediationStatus tracks the state of remediation attempts.\n47: type RemediationStatus struct {\n48: \tNodeID      string\n49: \tDVEID       string\n50: \tRuleID      string\n51: \tAttempt     int\n52: \tMaxAttempts int\n53: \tCooldown    time.Time\n54: \tLastError   string\n55: }\n56: \n57: // BadgeWASMMapperInterface defines the minimal interface the GuardrailEngine\n58: // requires from the BadgeWASMMapper.  This avoids a direct import cycle\n59: // between the cognitiveengine and wasm packages.\n60: type BadgeWASMMapperInterface interface {\n61: \tRegisterBadge(badgeID string, ontologyTags []string) error\n62: \tRemoveBadge(badgeID string)\n63: }\n64: \n65: // GuardrailEngine enforces per-DVE policies, records violations, triggers\n66: // automated remediation, and feeds learning data back to refine thresholds.\n67: type GuardrailEngine struct {\n68: \tpolicies           map[string]*PolicyRule\n69: \tviolations         []PolicyViolation\n70: \tremediators        map[string]RemediationFn\n71: \teventBus           *EventBus\n72: \tmu                 sync.RWMutex\n73: \tremediationStatus  map[string]*RemediationStatus\n74: \tescalationPolicies map[string]string\n75: \tcooldownDuration   time.Duration\n76: \twasmMapper         BadgeWASMMapperInterface // optional Badge-to-WASM integration\n77: }\n78: \n79: // NewGuardrailEngine creates a GuardrailEngine with the built-in default policies\n80: // and remediators pre-registered.\n\n(Showing lines 1-80 of 656. Use offset=81 to continue.)\n</content>",
+            "metadata": {
+              "preview": "package cognitiveengine\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"log\"\n\t\"sync\"\n\t\"time\"\n)\n\n// PolicyRule defines a single per-DVE guardrail constraint.\ntype PolicyRule struct {\n\tID                string\n\tDescription       string\n\tDVEID             string // empty = applies to all DVEs\n\tBadgeID           string // empty = applies to all badges\n\tBadgeOntologyTags []string // ontology elements from badge\n\tMetric            string // \"success_rate\", \"avg_processing_time\", \"resource_utilization\", \"violation_count\"\n\tOperator          string // \"lt\", \"gt\", \"eq\", \"lte\", \"gte\"\n\tThreshold         float64",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go",
+            "time": {
+              "start": 1779727713592,
+              "end": 1779727714337
+            }
+          },
+          "id": "prt_e6009c37a001JmolpEJ0xtlWII",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009b4ce001yNXsWStA87g0Z7"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_y46KpNQ7V1Uywf0tEmSB0666",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go</path>\n<type>file</type>\n<content>\n1: // Copyright 2026 KNIRV-SERVER\n2: // SPDX-License-Identifier: GPL-3.0-or-later\n3: \n4: package wasm\n5: \n6: import (\n7: \t\"context\"\n8: \t\"fmt\"\n9: \t\"log\"\n10: \t\"net/http\"\n11: \t\"time\"\n12: )\n13: \n14: // GuardrailDecision captures the result of a rules.wasm guardrail check.\n15: type GuardrailDecision struct {\n16: \tAllowed       bool      `json:\"allowed\"`\n17: \tGuardrailClass uint32   `json:\"guardrail_class\"`\n18: \tBadgeID       string    `json:\"badge_id\"`\n19: \tTag           string    `json:\"tag\"`\n20: \tWASMPath      string    `json:\"wasm_path\"`\n21: \tError         string    `json:\"error,omitempty\"`\n22: \tCheckedAt     time.Time `json:\"checked_at\"`\n23: }\n24: \n25: // GuardrailMiddleware implements Option A of the WASM Integration\n26: // Investigation: userspace guardrail enforcement via rules.wasm.\n27: //\n28: // It wraps an HTTP handler (typically ViewportProxy) and, before\n29: // forwarding the request, loads the rules.wasm associated with the\n30: // DVE's Badge and calls GuardrailClass().  If the guardrail class\n31: // indicates a blocked category, the request is rejected with 403.\n32: //\n33: // The middleware uses a pool of pre-compiled WazeroGate instances\n34: // per rules.wasm module for low-latency checks.\n35: type GuardrailMiddleware struct {\n36: \tmapper   *BadgeWASMMapper\n37: \tpools    map[string]*WazeroPool // wasmPath → pool\n38: \tpoolSize int\n39: }\n40: \n41: // NewGuardrailMiddleware creates a guardrail middleware backed by the\n42: // Badge-to-WASM mapper.  poolSize controls how many WazeroGate instances\n43: // are pre-allocated per unique rules.wasm module.\n44: func NewGuardrailMiddleware(mapper *BadgeWASMMapper, poolSize int) *GuardrailMiddleware {\n45: \tif poolSize < 1 {\n46: \t\tpoolSize = 8\n47: \t}\n48: \treturn &GuardrailMiddleware{\n49: \t\tmapper:   mapper,\n50: \t\tpools:    make(map[string]*WazeroPool),\n51: \t\tpoolSize: poolSize,\n52: \t}\n53: }\n54: \n55: // Middleware returns an HTTP middleware that validates requests via\n56: // rules.wasm before passing them to the next handler.\n57: //\n58: // The middleware expects the following request headers to identify the\n59: // DVE and its active Badge:\n60: //\n61: //\tX-DVE-ID     — DVE node identifier\n62: //\tX-Badge-ID   — Badge NFT ID whose guardrail rules.wasm to invoke\n63: //\tX-Badge-Tag  — (optional) specific ontology tag; if omitted, the\n64: //\t               first guardrail-classified tag is used\n65: func (gm *GuardrailMiddleware) Middleware(next http.Handler) http.Handler {\n66: \treturn http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n67: \t\tdveID := r.Header.Get(\"X-DVE-ID\")\n68: \t\tbadgeID := r.Header.Get(\"X-Badge-ID\")\n69: \t\tbadgeTag := r.Header.Get(\"X-Badge-Tag\")\n70: \n71: \t\t// If no badge header, pass through (no guardrail active).\n72: \t\tif badgeID == \"\" {\n73: \t\t\tnext.ServeHTTP(w, r)\n74: \t\t\treturn\n75: \t\t}\n76: \n77: \t\tdecision := gm.validate(r.Context(), dveID, badgeID, badgeTag)\n78: \n79: \t\t// Attach decision to response headers for observability.\n80: \t\tw.Header().Set(\"X-Guardrail-Allowed\", fmt.Sprintf(\"%v\", decision.Allowed))\n81: \t\tw.Header().Set(\"X-Guardrail-Class\", fmt.Sprintf(\"%d\", decision.GuardrailClass))\n82: \t\tif decision.Error != \"\" {\n83: \t\t\tw.Header().Set(\"X-Guardrail-Error\", decision.Error)\n84: \t\t}\n85: \n86: \t\tif !decision.Allowed {\n87: \t\t\thttp.Error(w, fmt.Sprintf(\"guardrail blocked: class=%d\", decision.GuardrailClass),\n88: \t\t\t\thttp.StatusForbidden)\n89: \t\t\treturn\n90: \t\t}\n91: \n92: \t\tnext.ServeHTTP(w, r)\n93: \t})\n94: }\n95: \n96: // ValidateSession is a convenience method that validates a session\n97: // against the DVE's guardrail WASM without requiring an HTTP request.\n98: // Returns (allowed, guardrailClass, error).\n99: func (gm *GuardrailMiddleware) ValidateSession(ctx context.Context, dveID, badgeID, tag string) (bool, uint32, error) {\n100: \tdecision := gm.validate(ctx, dveID, badgeID, tag)\n101: \treturn decision.Allowed, decision.GuardrailClass, nil\n102: }\n103: \n104: // Close releases all WazeroGate pools.\n105: func (gm *GuardrailMiddleware) Close() {\n106: \tfor _, pool := range gm.pools {\n107: \t\tpool.CloseAll()\n108: \t}\n109: \tgm.pools = make(map[string]*WazeroPool)\n110: }\n111: \n112: // —— internal ——\n113: \n114: func (gm *GuardrailMiddleware) validate(ctx context.Context, dveID, badgeID, tag string) *GuardrailDecision {\n115: \tdecision := &GuardrailDecision{\n116: \t\tAllowed:   true, // default allow if nothing to check\n117: \t\tBadgeID:   badgeID,\n118: \t\tTag:       tag,\n119: \t\tCheckedAt: time.Now(),\n120: \t}\n121: \n122: \t// Find the guardrail WASM for this badge.\n123: \tmappings := gm.mapper.GetGuardrailWASM(badgeID)\n124: \tif len(mappings) == 0 {\n125: \t\t// No guardrail WASM — allow (no policy to enforce).\n126: \t\treturn decision\n127: \t}\n128: \n129: \t// If a specific tag is requested, filter to that tag.\n130: \tvar target *WASMMapping\n131: \tif tag != \"\" {\n132: \t\tfor i := range mappings {\n133: \t\t\tif mappings[i].Tag == tag {\n134: \t\t\t\ttarget = &mappings[i]\n135: \t\t\t\tbreak\n136: \t\t\t}\n137: \t\t}\n138: \t\tif target == nil {\n139: \t\t\tdecision.Error = fmt.Sprintf(\"guardrail tag %s not found on badge %s\", tag, badgeID)\n140: \t\t\treturn decision\n141: \t\t}\n142: \t} else {\n143: \t\t// Use the first available guardrail mapping.\n144: \t\ttarget = &mappings[0]\n145: \t}\n146: \n147: \tdecision.Tag = target.Tag\n148: \tdecision.WASMPath = target.WASMPath\n149: \n150: \t// Acquire a WazeroGate from the pool.\n151: \tpool := gm.getOrCreatePool(target.WASMPath)\n152: \tgate, err := pool.Acquire(ctx)\n153: \tif err != nil {\n154: \t\tdecision.Error = fmt.Sprintf(\"wazero pool error: %v\", err)\n155: \t\tlog.Printf(\"[guardrail-middleware] dve=%s badge=%s: %s\", dveID, badgeID, decision.Error)\n156: \t\t// Fail-open when WASM runtime is unavailable.\n157: \t\tdecision.Allowed = true\n158: \t\treturn decision\n159: \t}\n160: \n161: \tclass, err := gate.GuardrailClass(ctx)\n162: \tif err != nil {\n163: \t\tdecision.Error = fmt.Sprintf(\"GuardrailClass() error: %v\", err)\n164: \t\tlog.Printf(\"[guardrail-middleware] dve=%s badge=%s: %s\", dveID, badgeID, decision.Error)\n165: \t\t// Fail-open on WASM execution error to avoid blocking legitimate\n166: \t\t// traffic when the WASM module is misconfigured.\n167: \t\tdecision.Allowed = true\n168: \t\tdecision.GuardrailClass = class\n169: \t\treturn decision\n170: \t}\n171: \n172: \tdecision.GuardrailClass = class\n173: \t// Class 0 = no violation; non-zero = specific policy violation.\n174: \tdecision.Allowed = (class == 0)\n175: \n176: \tif !decision.Allowed {\n177: \t\tlog.Printf(\"[guardrail-middleware] dve=%s badge=%s class=%d → BLOCKED\",\n178: \t\t\tdveID, badgeID, class)\n179: \t}\n180: \n181: \treturn decision\n182: }\n183: \n184: func (gm *GuardrailMiddleware) getOrCreatePool(wasmPath string) *WazeroPool {\n185: \t// Simple map access without locking; pools are created at registration\n186: \t// time and never removed during the lifetime of the middleware.\n187: \tif pool, ok := gm.pools[wasmPath]; ok {\n188: \t\treturn pool\n189: \t}\n190: \tpool := NewWazeroPool(wasmPath, gm.poolSize)\n191: \tgm.pools[wasmPath] = pool\n192: \treturn pool\n193: }\n\n(End of file - total 193 lines)\n</content>",
+            "metadata": {
+              "preview": "// Copyright 2026 KNIRV-SERVER\n// SPDX-License-Identifier: GPL-3.0-or-later\n\npackage wasm\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"log\"\n\t\"net/http\"\n\t\"time\"\n)\n\n// GuardrailDecision captures the result of a rules.wasm guardrail check.\ntype GuardrailDecision struct {\n\tAllowed       bool      `json:\"allowed\"`\n\tGuardrailClass uint32   `json:\"guardrail_class\"`\n\tBadgeID       string    `json:\"badge_id\"`\n\tTag           string    `json:\"tag\"`\n\tWASMPath      string    `json:\"wasm_path\"`",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go",
+            "time": {
+              "start": 1779727713924,
+              "end": 1779727714587
+            }
+          },
+          "id": "prt_e6009c54c001rH2t1OGcA2ONUH",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009b4ce001yNXsWStA87g0Z7"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 26800,
+            "input": 202,
+            "output": 189,
+            "reasoning": 41,
+            "cache": {
+              "write": 0,
+              "read": 26368
+            }
+          },
+          "cost": 0,
+          "id": "prt_e6009dd86001H3hCXzx7o2OcSy",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009b4ce001yNXsWStA87g0Z7"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008aee9001z9ho02xB31ZCAl",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 33245,
+          "input": 3242,
+          "output": 3236,
+          "reasoning": 15,
+          "cache": {
+            "write": 0,
+            "read": 26752
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727721350,
+          "completed": 1779727872449
+        },
+        "finish": "stop",
+        "id": "msg_e6009e385001B1c4rzHNlynLmF",
+        "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e6009f2850012ofy1naZvbgUTO",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009e385001B1c4rzHNlynLmF"
+        },
+        {
+          "type": "reasoning",
+          "text": "I now have all the information needed. Let me compile a comprehensive answer.",
+          "time": {
+            "start": 1779727725607,
+            "end": 1779727725687
+          },
+          "id": "prt_e6009f427001lbVoVCL8owv65D",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009e385001B1c4rzHNlynLmF"
+        },
+        {
+          "type": "text",
+          "text": "Here is a thorough breakdown of all the requested code, with exact file paths and line numbers.\n\n---\n\n## 1. `GuardrailViolation` struct\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go`  \n**Lines 60–71**\n\n```go\ntype GuardrailViolation struct {\n\tID            string                 `json:\"id\"`\n\tNodeID        string                 `json:\"node_id\"`\n\tGuardrailType GuardrailType          `json:\"guardrail_type\"`\n\tViolationType string                 `json:\"violation_type\"`\n\tMessage       string                 `json:\"message\"`\n\tSeverity      string                 `json:\"severity\"` // \"low\", \"medium\", \"high\", \"critical\"\n\tContext       map[string]interface{} `json:\"context\"`\n\tTimestamp     time.Time              `json:\"timestamp\"`\n\tResolved      bool                   `json:\"resolved\"`\n\tResolvedAt    *time.Time             `json:\"resolved_at,omitempty\"`\n}\n```\n\n---\n\n## 2. `DynamicGuardrailManager` struct\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go`  \n**Lines 73–86**\n\n```go\ntype DynamicGuardrailManager struct {\n\tdb               *database.BuntDBManager\n\tmu               sync.RWMutex\n\tconfigurations   map[string]*GuardrailConfig\n\tontologyRules    map[string]*OntologyGuardrail\n\tviolations       map[string]*GuardrailViolation\n\teventBroadcaster interface {\n\t\tEmitGuardrailTrigger(nodeID, source, guardrailType, trigger string, context map[string]interface{})\n\t\tEmitPolicyViolation(nodeID, source, violationType, details string)\n\t}\n\tcooldowns       map[string]time.Time\n\tcooldownMu      sync.RWMutex\n\thasherValidator HasherValidator\n}\n```\n\nThe embedded `eventBroadcaster` field is an anonymous interface requiring two methods:\n- `EmitGuardrailTrigger(nodeID, source, guardrailType, trigger string, context map[string]interface{})`\n- `EmitPolicyViolation(nodeID, source, violationType, details string)`\n\n---\n\n## 3. Interfaces that `DynamicGuardrailManager` satisfies\n\n`DynamicGuardrailManager` does **not** explicitly implement any named interface that is defined in the codebase with the phrase `type ... interface` and `DynamicGuardrailManager` as a receiver. However, it implicitly satisfies several interface contracts used by other packages:\n\n### 3a. `HasherValidator` interface (defined in the same file, lines 39–42)\n\n```go\ntype HasherValidator interface {\n\tValidateAction(userID, action string, ctx map[string]string) (*HasherSecurityDecision, error)\n\tIsAvailable() bool\n}\n```\n\n`DynamicGuardrailManager` *consumes* this interface (stored as `hasherValidator` field), rather than implementing it. The manager delegates to it via `ValidateWithHasher` (line 109).\n\n### 3b. The anonymous `eventBroadcaster` interface (lines 79–82, shown above)\n\n`DynamicGuardrailManager` stores this as a field; the setter is `SetEventBroadcaster` (lines 98–103).\n\n### 3c. Usage as a dependency in other structs\n\n`DynamicGuardrailManager` is consumed by pointer in three other packages, each treating it as a concrete type, not an interface:\n\n- **`GuardrailHandlers`** in `guardrail_handlers.go` line 19:\n  ```go\n  guardrailManager *guardrails.DynamicGuardrailManager\n  ```\n\n- **`OnboardingService`** in `onboarding_service.go` line 26:\n  ```go\n  guardrailManager *guardrails.DynamicGuardrailManager\n  ```\n\n- **`HasherIntegration`** in `hasher_integration.go` line 22:\n  ```go\n  guardrailMgr *guardrails.DynamicGuardrailManager\n  ```\n\n- **`PolicyEngine`** in `guardrail_manager.go` line 533:\n  ```go\n  guardrailManager *DynamicGuardrailManager\n  ```\n\n### 3d. The only interface that `DynamicGuardrailManager` is used *as* (not shown above)\n\nIn **`hasher_integration.go`** (line 95), `HasherIntegration` defines an `OnGuardrailViolation` method that accepts a `*guardrails.GuardrailViolation` — but this does not define an interface. The `DynamicGuardrailManager` is used directly here.\n\n---\n\n## 4. `ValidateResourceUsage` handler (HTTP layer)\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/guardrail_handlers.go`  \n**Lines 101–128**\n\n```go\nfunc (h *GuardrailHandlers) ValidateResourceUsage(w http.ResponseWriter, r *http.Request) {\n\tvar req struct {\n\t\tNodeID  string                 `json:\"node_id\"`\n\t\tMetrics map[string]interface{} `json:\"metrics\"`\n\t}\n\tif err := json.NewDecoder(r.Body).Decode(&req); err != nil {\n\t\thttp.Error(w, `{\"error\":\"invalid request body\"}`, http.StatusBadRequest)\n\t\treturn\n\t}\n\tif req.NodeID == \"\" || req.Metrics == nil {\n\t\thttp.Error(w, `{\"error\":\"node_id and metrics required\"}`, http.StatusBadRequest)\n\t\treturn\n\t}\n\n\tviolation, isViolated := h.guardrailManager.ValidateResourceUsage(req.NodeID, req.Metrics)\n\tif isViolated {\n\t\th.guardrailManager.RecordViolation(violation)\n\t\tjson.NewEncoder(w).Encode(map[string]interface{}{\n\t\t\t\"violated\":  true,\n\t\t\t\"violation\": violation,\n\t\t})\n\t\treturn\n\t}\n\n\tjson.NewEncoder(w).Encode(map[string]interface{}{\n\t\t\"violated\": false,\n\t})\n}\n```\n\n**How violations are recorded in the HTTP handler (lines 115–123):**\n\n1. The handler calls `h.guardrailManager.ValidateResourceUsage(req.NodeID, req.Metrics)` which returns a `(*GuardrailViolation, bool)`.\n2. If `isViolated` is `true`, the handler immediately calls `h.guardrailManager.RecordViolation(violation)` to persist the violation.\n3. It then returns a JSON response with `\"violated\": true` and the full violation object.\n\n---\n\n## 5. `ValidateResourceUsage` method (core business logic)\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go`  \n**Lines 165–227**\n\n```go\nfunc (gm *DynamicGuardrailManager) ValidateResourceUsage(nodeID string, metrics map[string]interface{}) (*GuardrailViolation, bool) {\n\tgm.mu.RLock()\n\tdefer gm.mu.RUnlock()\n\n\tviolations := make([]*GuardrailViolation, 0)\n\n\tfor guardrailType, config := range gm.configurations {\n\t\tif !config.Enabled {\n\t\t\tcontinue\n\t\t}\n\n\t\tif !gm.isNodeScope(guardrailType, nodeID) {\n\t\t\tcontinue\n\t\t}\n\n\t\tif gm.isInCooldown(guardrailType) {\n\t\t\tcontinue\n\t\t}\n\n\t\tvar value float64\n\t\tswitch config.Type {\n\t\tcase GuardrailTypeMemory:\n\t\t\tif mem, ok := metrics[\"memory_usage\"].(float64); ok {\n\t\t\t\tvalue = mem\n\t\t\t}\n\t\tcase GuardrailTypeCPU:\n\t\t\tif cpu, ok := metrics[\"cpu_usage\"].(float64); ok {\n\t\t\t\tvalue = cpu\n\t\t\t}\n\t\tcase GuardrailTypeNetwork:\n\t\t\tif net, ok := metrics[\"network_bandwidth\"].(float64); ok {\n\t\t\t\tvalue = net\n\t\t\t}\n\t\t}\n\n\t\tif value > config.MaxValue && config.MaxValue > 0 {\n\t\t\tviolation := &GuardrailViolation{\n\t\t\t\tID:            uuid.New().String(),\n\t\t\t\tNodeID:        nodeID,\n\t\t\t\tGuardrailType: config.Type,\n\t\t\t\tViolationType: \"resource_exceeded\",\n\t\t\t\tMessage:       fmt.Sprintf(\"%s usage %.2f exceeds max %.2f\", config.Type, value, config.MaxValue),\n\t\t\t\tSeverity:      gm.determineSeverity(config.Type, value, config.MaxValue),\n\t\t\t\tContext:       metrics,\n\t\t\t\tTimestamp:     time.Now(),\n\t\t\t}\n\t\t\tviolations = append(violations, violation)\n\t\t\tgm.setCooldown(guardrailType, config.Cooldown)\n\t\t}\n\t}\n\n\tif len(violations) > 0 {\n\t\thighest := violations[0]\n\t\tfor _, v := range violations[1:] {\n\t\t\tif gm.severityOrder(v.Severity) > gm.severityOrder(highest.Severity) {\n\t\t\t\thighest = v\n\t\t\t}\n\t\t}\n\t\treturn highest, true\n\t}\n\n\treturn nil, false\n}\n```\n\nThe method iterates over all configured guardrails, checks:\n- Is the guardrail **enabled**?\n- Does it **scope** to this `nodeID`?\n- Is it **not in cooldown**?\n- Does the incoming metric value **exceed** the configured `MaxValue`?\n\nIf violated, it creates a `GuardrailViolation`, applies a cooldown, and returns the **highest-severity** violation if multiple guardrails tripped simultaneously.\n\n---\n\n## 6. `RecordViolation` method\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go`  \n**Lines 311–328**\n\n```go\nfunc (gm *DynamicGuardrailManager) RecordViolation(violation *GuardrailViolation) error {\n\tgm.mu.Lock()\n\tdefer gm.mu.Unlock()\n\n\tgm.violations[violation.ID] = violation\n\n\tif gm.db == nil {\n\t\treturn nil\n\t}\n\treturn gm.db.Transaction(func(tx *buntdb.Tx) error {\n\t\tdata, err := json.Marshal(violation)\n\t\tif err != nil {\n\t\t\treturn err\n\t\t}\n\t\t_, _, err = tx.Set(fmt.Sprintf(\"guardrail:violation:%s\", violation.ID), string(data), nil)\n\t\treturn err\n\t})\n}\n```\n\nThis method:\n1. Acquires a write lock.\n2. Stores the violation in the in-memory `violations` map (keyed by violation ID).\n3. If a BuntDB database is configured, it persists the violation under the key `guardrail:violation:<UUID>`.\n\n---\n\n## 7. Supporting types used by `DynamicGuardrailManager`\n\n### `GuardrailConfig` (lines 44–52)\n\n```go\ntype GuardrailConfig struct {\n\tType      GuardrailType `json:\"type\"`\n\tEnabled   bool          `json:\"enabled\"`\n\tMaxValue  float64       `json:\"max_value\"`\n\tMinValue  float64       `json:\"min_value\"`\n\tAction    string        `json:\"action\"` // \"warn\", \"block\", \"isolate\"\n\tThreshold float64       `json:\"threshold\"`\n\tCooldown  time.Duration `json:\"cooldown\"`\n}\n```\n\n### `GuardrailType` constants (lines 17–27)\n\n```go\ntype GuardrailType string\n\nconst (\n\tGuardrailTypeMemory     GuardrailType = \"memory\"\n\tGuardrailTypeCPU        GuardrailType = \"cpu\"\n\tGuardrailTypeNetwork    GuardrailType = \"network\"\n\tGuardrailTypeExecution  GuardrailType = \"execution\"\n\tGuardrailTypeFileSystem GuardrailType = \"filesystem\"\n\tGuardrailTypeOntology   GuardrailType = \"ontology\"\n\tGuardrailTypeHasher     GuardrailType = \"hasher\"\n)\n```\n\n### `OntologyGuardrail` (lines 54–58)\n\n```go\ntype OntologyGuardrail struct {\n\tDomain      string   `json:\"domain\"`\n\tConcepts    []string `json:\"concepts\"`\n\tConstraints []string `json:\"constraints\"`\n}\n```\n\n### `HasherSecurityDecision` (lines 29–37)\n\n```go\ntype HasherSecurityDecision struct {\n\tAllowed      bool\n\tConfidence   float64\n\tViolations   []string\n\tAppliedRules []string\n\tSeedID       string\n\tDecisionID   string\n\tNote         string\n}\n```\n\n### `HasherValidator` interface (lines 39–42)\n\n```go\ntype HasherValidator interface {\n\tValidateAction(userID, action string, ctx map[string]string) (*HasherSecurityDecision, error)\n\tIsAvailable() bool\n}\n```\n\n---\n\n## Summary of all files examined\n\n| File (absolute path) | What it contains |\n|---|---|\n| `/home/gperry/.../KNIRVSERVER/backend/internal/web/guardrail_handlers.go` | HTTP handlers including `ValidateResourceUsage`, `GuardrailHandlers` struct, route registration |\n| `/home/gperry/.../KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager.go` | All core types (`GuardrailViolation`, `DynamicGuardrailManager`, `GuardrailConfig`, `OntologyGuardrail`, `HasherValidator`, `PolicyEngine`) and all methods (`ValidateResourceUsage`, `RecordViolation`, `ConfigureGuardrail`, etc.) |\n| `/home/gperry/.../KNIRVSERVER/backend/internal/services/guardrails/guardrail_manager_test.go` | Unit tests for the guardrail manager |\n| `/home/gperry/.../KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go` | Separate `GuardrailEngine` (per-DVE policy enforcement, distinct from the `DynamicGuardrailManager`) |\n| `/home/gperry/.../KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go` | WASM-backed guardrail HTTP middleware using `rules.wasm` |\n| `/home/gperry/.../KNIRVSERVER/backend/internal/services/dvemanager/hasher_integration.go` | `HasherIntegration` that uses `*guardrails.DynamicGuardrailManager` directly |\n| `/home/gperry/.../KNIRVSERVER/backend/internal/services/websocket/websocket_service.go` | WebSocket service that queries guardrail violations |\n\nAll paths are under the root: `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/`",
+          "time": {
+            "start": 1779727725692,
+            "end": 1779727869888
+          },
+          "id": "prt_e6009f47c001w4iGjmAw66MkH9",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009e385001B1c4rzHNlynLmF"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 33245,
+            "input": 3242,
+            "output": 3236,
+            "reasoning": 15,
+            "cache": {
+              "write": 0,
+              "read": 26752
+            }
+          },
+          "cost": 0,
+          "id": "prt_e600c3074001rkQTCmM6wn7wdT",
+          "sessionID": "ses_19ff7512dffedVlGbc6xg4M5kT",
+          "messageID": "msg_e6009e385001B1c4rzHNlynLmF"
+        }
+      ]
+    }
+  ]
+}

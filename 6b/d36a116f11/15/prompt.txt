@@ -1,0 +1,16 @@
+I need to understand the guardrail HTTP handlers and the DynamicGuardrailManager in the KNIRVSERVER codebase. Please examine:
+
+1. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/guardrail_handlers.go - the ValidateResourceUsage handler and how violations are recorded
+
+2. The DynamicGuardrailManager from the guardrails package (search for it in backend/internal/services/guardrails/ or similar)
+
+3. The GuardrailViolation struct
+
+Return the exact code for:
+- ValidateResourceUsage handler
+- RecordViolation method
+- DynamicGuardrailManager struct
+- GuardrailViolation struct
+- Any interfaces that DynamicGuardrailManager implements
+
+Be thorough - return full file paths and line numbers.
