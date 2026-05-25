@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useCognitiveEngine, BackgroundTask } from '@/hooks/use-cognitive-engine';
+import { useCognitiveEngine, useQualityMode, BackgroundTask } from '@/hooks/use-cognitive-engine';
 import { apiRequest, API_BASE_URL } from '@/lib/api';
 import NeuralDesktopPanel from './neural-desktop-panel';
 
@@ -566,6 +566,7 @@ export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ cla
   const [healthResult, setHealthResult] = useState<string | null>(null);
   const [validationResult, setValidationResult] = useState<string | null>(null);
   const [rollingLog, setRollingLog] = useState<BackgroundTask[]>([]);
+  const { qualityMode, setQualityMode } = useQualityMode();
 
   // Rolling background task log (kept here so the controls pane can reference it)
   useEffect(() => {
@@ -630,6 +631,32 @@ export const CognitiveEnginePanel = React.memo<CognitiveEnginePanelProps>(({ cla
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Quality Mode Selection */}
+          <div className="flex items-center gap-4 mb-4">
+            <span className="text-xs text-[#8080c0] uppercase tracking-wider">Quality:</span>
+            <div className="flex gap-1 bg-[#0d1117] rounded-lg p-0.5 border border-[#1e2235]">
+              <button
+                onClick={() => setQualityMode('standard')}
+                className={`px-3 py-1.5 text-xs rounded-md transition-all ${
+                  qualityMode === 'standard'
+                    ? 'bg-[#7c4dff] text-white shadow-sm'
+                    : 'text-[#8080c0] hover:text-white'
+                }`}
+              >
+                Standard
+              </button>
+              <button
+                onClick={() => setQualityMode('deep')}
+                className={`px-3 py-1.5 text-xs rounded-md transition-all ${
+                  qualityMode === 'deep'
+                    ? 'bg-[#7c4dff] text-white shadow-sm'
+                    : 'text-[#8080c0] hover:text-white'
+                }`}
+              >
+                Deep MoA
+              </button>
+            </div>
+          </div>
           {/* Cognitive Engine Buttons */}
           <div className="flex flex-wrap gap-2">
             <Button

@@ -19,19 +19,20 @@ import (
 
 // HEARTService provides HTTP endpoints for KNIRVCORTEX to query HEART
 type HEARTService struct {
-	gpt       *GPT
-	bridge    *CerebrasBridge
-	processor *NetworkMetricsProcessor
-	tokenizer Tokenizer
-	embedder  *embeddings.DeterministicService
-	compiler  *WASMCompiler
-	verifier  *BidirectionalVerifier
-	auditor   *Auditor
-	hashNet   *HashNetworkWrapper
-	config    *HEARTConfig
-	stats     *HEARTServiceStats
-	baseline  *VarianceAnalyzerSnapshot // baseline for OntologyDrift detection
-	mu        sync.RWMutex
+	gpt               *GPT
+	bridge            *CerebrasBridge
+	processor         *NetworkMetricsProcessor
+	tokenizer         Tokenizer
+	embedder          *embeddings.DeterministicService
+	compiler          *WASMCompiler
+	verifier          *BidirectionalVerifier
+	auditor           *Auditor
+	hashNet           *HashNetworkWrapper
+	config            *HEARTConfig
+	stats             *HEARTServiceStats
+	baseline          *VarianceAnalyzerSnapshot
+	generatorSwitcher *GeneratorSwitcher
+	mu                sync.RWMutex
 }
 
 // VarianceAnalyzerSnapshot stores a snapshot of signal indices for drift detection.
@@ -149,7 +150,7 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 		hashNet.SetAvailable(true)
 	}
 
-	return &HEARTService{
+	svc := &HEARTService{
 		gpt:       gpt,
 		bridge:    cfg.getBridge(),
 		tokenizer: tokIface,
@@ -164,7 +165,37 @@ func NewHEARTServiceWithConfig(cfg *HEARTConfig) (*HEARTService, error) {
 			HeuristicUsage:    make(map[string]uint64),
 			MinResponseTimeMs: 999999.0,
 		},
-	}, nil
+	}
+
+	// Set up the generator switcher: internal Gorgonite pipeline + optional
+	// external LLM bootstrap generator.
+	internalGen := NewInternalGPTGenerator(svc)
+	var externalGen WASMSourceGenerator
+	if cfg.ExternalGeneratorURL != "" {
+		externalGen = NewExternalLLMGeneratorWithURL(cfg.ExternalGeneratorURL)
+	} else if cfg.ExternalGenerateFn != nil {
+		externalGen = NewExternalLLMGenerator(cfg.ExternalGenerateFn)
+	}
+
+	// Use the GPT itself as the training-state provider: IsReady() returns
+	// true once SetTrained(true) has been called (e.g. after pre-training
+	// completes).  Until then, the external generator is used.
+	var trainingProvider TrainingStateProvider
+	if gpt != nil {
+		trainingProvider = gpt
+	}
+	svc.generatorSwitcher = NewGeneratorSwitcher(internalGen, externalGen, trainingProvider)
+
+	return svc, nil
+}
+
+// SetGeneratorSwitcher sets the generator switcher used by process().
+// When the switcher selects GeneratorExternal, the multi-turn pipeline
+// is bypassed and the external LLM generates the WASM source directly.
+func (hs *HEARTService) SetGeneratorSwitcher(gs *GeneratorSwitcher) {
+	hs.mu.Lock()
+	defer hs.mu.Unlock()
+	hs.generatorSwitcher = gs
 }
 
 func (c *HEARTConfig) getBridge() *CerebrasBridge {
@@ -177,6 +208,7 @@ func (c *HEARTConfig) getBridge() *CerebrasBridge {
 // Start starts the HEART HTTP service
 func (hs *HEARTService) Start(port int) error {
 	http.HandleFunc("/heart/analyze", hs.handleAnalyze)
+	http.HandleFunc("/heart/generate", hs.handleGenerate)
 	http.HandleFunc("/heart/health", hs.handleHealth)
 	http.HandleFunc("/heart/stats", hs.handleStats)
 
@@ -191,6 +223,7 @@ func (hs *HEARTService) ListenAndServe(addr string) error {
 	mux.HandleFunc("/heart/advise", hs.handleAdvise)
 	mux.HandleFunc("/heart/resolve", hs.handleResolve)
 	mux.HandleFunc("/heart/patch", hs.handlePatch)
+	mux.HandleFunc("/heart/generate", hs.handleGenerate)
 	mux.HandleFunc("/heart/health", hs.handleHealth)
 	mux.HandleFunc("/heart/stats", hs.handleStats)
 
@@ -382,7 +415,28 @@ func computeEntropy(logits []float32) float64 {
 }
 
 // process runs the multi-turn HEART cognitive loop with HashNetwork fast-path (Phase 7.2 + 8.2).
+// When the GeneratorSwitcher selects GeneratorExternal, the external LLM
+// generates the WASM source directly (bootstrap mode) instead of running
+// the full Gorgonite pipeline.
 func (hs *HEARTService) process(ctx context.Context, wasmType WASMType, inquiry interface{}) (WASMDecision, error) {
+	hs.mu.RLock()
+	switcher := hs.generatorSwitcher
+	hs.mu.RUnlock()
+
+	// Bootstrap mode: use external LLM to generate WASM source directly,
+	// bypassing the multi-turn Gorgonite pipeline.
+	if switcher != nil && switcher.ActiveGenerator() == GeneratorExternal {
+		source, err := switcher.GenerateSource(ctx, wasmType, inquiry)
+		if err != nil {
+			return WASMDecision{}, fmt.Errorf("external generation: %w", err)
+		}
+		s4 := &Stage4Result{Source: source, WASMType: wasmType}
+		s3 := &Stage3Result{Rationale: "Generated via external LLM (bootstrap mode)"}
+		d := hs.buildDecision(ctx, s4, s3)
+		d.TurnCount = 1
+		return d, nil
+	}
+
 	maxTurns := 3
 	if hs.config != nil && hs.config.MaxTurns > 0 {
 		maxTurns = hs.config.MaxTurns
@@ -989,17 +1043,97 @@ func (hs *HEARTService) findSimilarErrors(inquiry *HEARTErrorInquiry) []SimilarE
 	}
 }
 
-// handleHealth returns service health status
+// handleGenerate handles /heart/generate requests from the KNIRVSERVER
+// InferenceSwitcher. Returns generated text when the internal model is
+// trained, or a 503 with readiness status when it isn't.
+func (hs *HEARTService) handleGenerate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error":"method not allowed","ready":false}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Prompt string `json:"prompt"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"bad request: %s","ready":false}`, err), http.StatusBadRequest)
+		return
+	}
+
+	hs.mu.RLock()
+	gpt := hs.gpt
+	tok := hs.tokenizer
+	hs.mu.RUnlock()
+
+	if gpt == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":    "gpt not initialized",
+			"ready":    false,
+			"progress": 0.0,
+		})
+		return
+	}
+
+	if !gpt.IsReady() {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":    "model not trained",
+			"ready":    false,
+			"progress": gpt.Progress(),
+		})
+		return
+	}
+
+	if tok == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"error":    "tokenizer not available",
+			"ready":    true,
+			"progress": 1.0,
+		})
+		return
+	}
+
+	// Tokenize, generate, detokenize
+	startTokens := tok.Encode(req.Prompt)
+	maxNewTokens := 256
+	temperature := float32(0.8)
+	topK := 40
+
+	outTokens := Generate(gpt, startTokens, maxNewTokens, temperature, topK)
+	text := tok.Decode(outTokens)
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"text":    text,
+		"ready":   true,
+		"tokens":  len(outTokens),
+	})
+}
+
+// handleHealth returns service health status including model readiness.
 func (hs *HEARTService) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
+	var ready bool
+	var progress float64
+	if hs.gpt != nil {
+		ready = hs.gpt.IsReady()
+		progress = hs.gpt.Progress()
+	}
+
 	health := map[string]interface{}{
-		"available":   true,
-		"status":      "online",
+		"available":      true,
+		"status":         "online",
+		"ready":          ready,
+		"progress":       progress,
 		"avg_latency_ms": hs.getAvgLatency(),
 		"total_queries":  hs.stats.TotalInquiries,
-		"success_rate": hs.getSuccessRate(),
+		"success_rate":   hs.getSuccessRate(),
 	}
 
 	json.NewEncoder(w).Encode(health)

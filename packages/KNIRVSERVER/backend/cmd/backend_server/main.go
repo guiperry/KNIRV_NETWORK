@@ -56,6 +56,7 @@ import (
 	"backend_server/internal/services/systemhealth"
 	"backend_server/internal/services/teesecurity"
 	"backend_server/internal/services/validation"
+	wasm "backend_server/internal/services/wasm"
 	"backend_server/internal/utils/host"
 
 	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL"
@@ -733,6 +734,15 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		return nil, fmt.Errorf("failed to initialize inference service: %w", err)
 	}
 
+	// Initialize InferenceSwitcher for internal transformer routing.
+	// When the HEART Gorgonite model finishes pre-training, text generation
+	// is routed through the internal transformer instead of external LLMs.
+	heartURL := fmt.Sprintf("http://127.0.0.1:%d", cfg.Hasher.HeadlessPort)
+	heartGenerator := inference.NewHeartTextGenerator(heartURL)
+	switcher := inference.NewInferenceSwitcher(heartGenerator, &inference.InferenceServiceAdapter{Svc: inferenceService})
+	inferenceService.SetInferenceSwitcher(switcher)
+	log.Printf("InferenceSwitcher configured: HEART at %s", heartURL)
+
 	// Initialize TEE Security service with Kali environment detection
 	teeSecurityService, err := teesecurity.NewTEESecurityService(dbManager)
 	if err != nil {
@@ -1381,6 +1391,69 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		log.Printf("Warning: Failed to load ontology rules: %v", err)
 	}
 
+	// ── Resolution pipeline ───────────────────────────────────────────────────
+
+	// Create infrastructure adapter for real remediation actions
+	infraAdapter := wasm.NewServerInfrastructureAdapter(
+		dveManager,
+		ebpfManager,
+		func(eventType, source, message string) {
+			if eventBroadcaster != nil {
+				eventBroadcaster.EmitPolicyViolation("", source, eventType, message)
+			}
+			log.Printf("[resolution-infra] %s/%s: %s", eventType, source, message)
+		},
+	)
+	log.Println("ServerInfrastructureAdapter created for remediation")
+
+	// Create the production remediation sink (real infrastructure actions)
+	productionSink := wasm.NewProductionRemediationSink(infraAdapter)
+	log.Println("ProductionRemediationSink initialized")
+
+	// Create the BadgeConfigResolver — replaces the WASM module pipeline
+	// with a simple in-memory badge config lookup keyed by ontology tags.
+	configResolver := wasm.NewBadgeConfigResolver(productionSink)
+
+	// Register the resolution function for all 8 remediation action names.
+	resolveFn := func(ctx context.Context, v *cognitiveengine.PolicyViolation) error {
+		signal := &wasm.ResolutionSignal{
+			DVEID:   v.DVEID,
+			NodeID:  v.NodeID,
+			BadgeID: v.BadgeID,
+		}
+		_, err := configResolver.Resolve(ctx, signal)
+		return err
+	}
+	remediationActions := []string{
+		"quarantine_node", "redistribute_tasks", "scale_resources",
+		"kernel_isolation", "drain_node", "throttle_requests",
+		"alert_operators", "restart_service",
+	}
+	for _, action := range remediationActions {
+		cognitiveEngine.RegisterRemediator(action, resolveFn)
+	}
+	log.Printf("BadgeConfigResolver remediator registered for %d actions", len(remediationActions))
+
+	// Subscribe to guardrail violation events (async path)
+	violationCh := cognitiveEngine.EventBus().Subscribe(cognitiveengine.EventGuardrailViolation)
+	go func() {
+		for evt := range violationCh {
+			violation, ok := evt.Payload.(*cognitiveengine.PolicyViolation)
+			if !ok || violation == nil {
+				continue
+			}
+			signal := &wasm.ResolutionSignal{
+				DVEID:   violation.DVEID,
+				NodeID:  violation.NodeID,
+				BadgeID: violation.BadgeID,
+			}
+			configResolver.Resolve(context.Background(), signal)
+		}
+	}()
+	log.Println("Guardrail violation event bus subscribed to BadgeConfigResolver")
+
+	log.Println("Resolution pipeline fully initialized")
+
 	// Initialize Onboarding Service - Value System and Ontology Ingestion
 	onboardingService := onboarding.NewOnboardingService(dbManager, cognitiveEngine, guardrailManager)
 	log.Println("Onboarding service initialized")
@@ -1908,6 +1981,15 @@ func (s *Server) setupRoutes() {
 		}
 		inferenceHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("Inference service routes configured")
+	}
+
+	// Register WASM generation endpoint (bootstrap LLM generator for HEART).
+	// The HEART service calls this endpoint when its GeneratorSwitcher is
+	// in external mode (i.e. while the internal Gorgonite model is training).
+	if s.inferenceService != nil {
+		genBadgeConfigHandlers := web.NewGenerateBadgeConfigHandlers(s.inferenceService)
+		s.router.HandleFunc("/api/v1/generate-badge-config", genBadgeConfigHandlers.GenerateBadgeConfig).Methods("POST")
+		log.Println("Badge config generation endpoint configured")
 	}
 
 	// Register WebSocket service routes

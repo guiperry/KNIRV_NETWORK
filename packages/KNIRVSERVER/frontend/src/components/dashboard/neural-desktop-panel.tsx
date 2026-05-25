@@ -65,6 +65,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [qualityMode, setQualityMode] = useState<'standard' | 'deep'>('standard');
 
   const recognitionRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -237,6 +238,7 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
         body: JSON.stringify({
           message: goal,
           session_id: sessionId,
+          quality: qualityMode,
         }),
       });
 
@@ -315,6 +317,16 @@ export const NeuralDesktopPanel: React.FC<NeuralDesktopPanelProps> = ({ classNam
               <span>Neural Desktop</span>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setQualityMode(qualityMode === 'deep' ? 'standard' : 'deep')}
+                className={`px-2 py-1 text-[10px] rounded border ${
+                  qualityMode === 'deep'
+                    ? 'border-[#7c4dff] text-[#7c4dff] bg-[#7c4dff]/10'
+                    : 'border-[#1e2235] text-[#8080c0]'
+                }`}
+              >
+                {qualityMode === 'deep' ? 'MoA' : 'Std'}
+              </button>
               <span className="text-[10px] font-mono text-gray-600">ID: PERSISTENT_LOG</span>
             </div>
           </CardTitle>

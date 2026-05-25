@@ -7,6 +7,8 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // generateSessionID creates a unique session identifier using crypto/rand.
@@ -209,6 +211,9 @@ func (s *InferenceService) Chat(ctx context.Context, req ChatRequest) (*ChatResp
 	// Add assistant response to history
 	session.AddMessage("assistant", response)
 
+	// Clone the chat transaction into KNIRVBASE as a training dataset entry
+	s.cloneChatTransaction(session.ID, req.Message, response)
+
 	return &ChatResponse{
 		Response:  response,
 		SessionID: session.ID,
@@ -222,6 +227,28 @@ func (s *InferenceService) InitializeChatSessions() {
 	defer s.mutex.Unlock()
 	s.chatSessions = NewChatSessions()
 	log.Println("ChatSessions: initialized")
+}
+
+// cloneChatTransaction stores a chat I/O pair into the KNIRVBASE pipeline
+// as a training dataset entry. The key includes the session ID and a UUID
+// to make each entry unique and queryable by session.
+func (s *InferenceService) cloneChatTransaction(sessionID, userMsg, assistantMsg string) {
+	if s.db == nil {
+		return
+	}
+	entry := map[string]interface{}{
+		"type":      "chat_training",
+		"session":   sessionID,
+		"prompt":    userMsg,
+		"response":  assistantMsg,
+		"timestamp": time.Now().UTC(),
+	}
+	key := fmt.Sprintf("chat:training:%s:%s", sessionID, uuid.New().String())
+	if err := s.db.StoreJSON(key, entry); err != nil {
+		log.Printf("Chat: failed to clone transaction to KNIRVBASE: %v", err)
+	} else {
+		log.Printf("Chat: cloned transaction to KNIRVBASE (session=%s, key=%s)", sessionID, key)
+	}
 }
 
 // ClearChatSession removes a specific session's history.

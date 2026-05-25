@@ -65,6 +65,8 @@ type InferenceService struct {
 	moaFallbackModelName string
 	moaPrimaryOpts       []config.ConfigOption
 	moaFallbackOpts      []config.ConfigOption
+	// Inference switcher for internal transformer routing
+	switcher *InferenceSwitcher
 	// Semantic prompt response cache
 	responseCacheMu sync.Mutex
 	responseCache   []cachedResponse
@@ -195,17 +197,57 @@ func (s *InferenceService) StartWithConfig(attemptConfigs []LLMAttemptConfig, pl
 	return nil
 }
 
-// Start configures the service with both proxy and base providers and the delegator.
+// providerChain defines the ordered fallback chain of LLM providers.
+// Each entry specifies the provider name, model, env var for the API key, and max tokens.
+// When a provider returns a 429 (rate-limit/quota) error, the system falls through
+// to the next provider in the chain. If no API key is found for a provider, it's skipped.
+var providerChain = []struct {
+	ProviderName string
+	ModelName    string
+	APIKeyEnvVar string
+	MaxTokens    int
+}{
+	{ProviderName: "gemini", ModelName: "gemini-2.5-flash", APIKeyEnvVar: "GEMINI_API_KEY", MaxTokens: 100000},
+	{ProviderName: "deepseek", ModelName: "deepseek-chat", APIKeyEnvVar: "DEEPSEEK_API_KEY", MaxTokens: 8000},
+	{ProviderName: "cerebras", ModelName: "cerebras/Llama-3.3-70B", APIKeyEnvVar: "CEREBRAS_API_KEY", MaxTokens: 8000},
+	{ProviderName: "openai", ModelName: "gpt-4o", APIKeyEnvVar: "OPENAI_API_KEY", MaxTokens: 8000},
+	{ProviderName: "anthropic", ModelName: "claude-sonnet-4-20250514", APIKeyEnvVar: "ANTHROPIC_API_KEY", MaxTokens: 8000},
+}
+
+// Start configures the service with the ordered provider fallback chain.
+// Gemini is the primary; all others are fallbacks tried in order on 429/quota errors.
 func (s *InferenceService) Start() error {
-	log.Println("InferenceService: Starting...")
+	log.Println("InferenceService: Starting with provider fallback chain...")
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	// --- Define the desired attempts ---
-	// Primary: Gemini 2.5 Flash, Fallback: DeepSeek
-	attemptConfigs := []LLMAttemptConfig{
-		{ProviderName: "gemini", ModelName: "gemini-2.5-flash", APIKeyEnvVar: "GEMINI_API_KEY", MaxTokens: 100000, IsPrimary: true}, // Primary
-		{ProviderName: "deepseek", ModelName: "deepseek-chat", APIKeyEnvVar: "DEEPSEEK_API_KEY", MaxTokens: 8000, IsPrimary: false}, // Fallback
+	// --- Build the attempt configs from the provider chain ---
+	// The first available provider is the primary; the rest are fallbacks.
+	var attemptConfigs []LLMAttemptConfig
+	foundPrimary := false
+
+	for _, provider := range providerChain {
+		apiKey := os.Getenv(provider.APIKeyEnvVar)
+		if apiKey == "" {
+			log.Printf("[WARN] InferenceService: API Key from env var '%s' not found. Skipping provider '%s'.", provider.APIKeyEnvVar, provider.ProviderName)
+			continue
+		}
+
+		isPrimary := !foundPrimary
+		foundPrimary = true
+
+		attemptConfigs = append(attemptConfigs, LLMAttemptConfig{
+			ProviderName: provider.ProviderName,
+			ModelName:    provider.ModelName,
+			APIKeyEnvVar: provider.APIKeyEnvVar,
+			MaxTokens:    provider.MaxTokens,
+			IsPrimary:    isPrimary,
+		})
+		log.Printf("InferenceService: Will configure %s (%s) as %s", provider.ProviderName, provider.ModelName, map[bool]string{true: "PRIMARY", false: "FALLBACK"}[isPrimary])
+	}
+
+	if len(attemptConfigs) == 0 {
+		return fmt.Errorf("inference service configuration error: no LLM providers could be configured (no API keys found)")
 	}
 
 	s.primaryAttempts = make([]LLMAttempt, 0)
@@ -250,7 +292,7 @@ func (s *InferenceService) Start() error {
 				s.fallbackAttempts = append(s.fallbackAttempts, attempt)
 				fallbackOptsList = append(fallbackOptsList, opts)
 			}
-			log.Printf("InferenceService: Successfully configured LLM instance for model '%s'", attemptConf.ModelName)
+			log.Printf("InferenceService: Successfully configured LLM instance: Provider=%s, Model=%s, Role=%s", attemptConf.ProviderName, attemptConf.ModelName, map[bool]string{true: "Primary", false: "Fallback"}[attemptConf.IsPrimary])
 		} else {
 			log.Printf("[ERROR] InferenceService: Initialized instance for model '%s' is not of type llm.LLM. Skipping.", attemptConf.ModelName)
 		}
@@ -317,14 +359,16 @@ func (s *InferenceService) Stop() error {
 	return nil
 }
 
-// GenerateTextWithContext delegates to the DelegatorService.
+// GenerateTextWithContext delegates to the DelegatorService or the internal
+// transformer (via InferenceSwitcher) when the internal model is ready.
 func (s *InferenceService) GenerateTextWithContext(ctx context.Context, modelName string, promptText string, instructionText string) (string, error) {
-	s.mutex.Lock() // Lock at the beginning
-	if !s.isRunning || s.delegator == nil {
+	s.mutex.Lock()
+	if !s.isRunning {
 		s.mutex.Unlock()
-		return "", errors.New("inference service is not running or delegator not configured")
+		return "", errors.New("inference service is not running")
 	}
-	delegatorInstance := s.delegator // Capture instance under lock
+	switcher := s.switcher
+	delegatorInstance := s.delegator
 	s.mutex.Unlock()
 
 	// Check prompt cache first
@@ -333,12 +377,23 @@ func (s *InferenceService) GenerateTextWithContext(ctx context.Context, modelNam
 		return cachedResponse, nil
 	}
 
+	// Route through internal transformer when ready and no specific model requested
+	if modelName == "" && instructionText == "" && switcher != nil && switcher.IsReady() {
+		log.Println("InferenceService: routing to internal transformer via InferenceSwitcher")
+		response, err := switcher.GenerateText(ctx, promptText)
+		if err != nil {
+			return "", err
+		}
+		s.storeCache(promptText, response)
+		return response, nil
+	}
+
+	if delegatorInstance == nil {
+		return "", errors.New("inference service: delegator not configured")
+	}
+
 	log.Printf("InferenceService: Delegating generation request to DelegatorService. Model: '%s', Instruction: '%s'", modelName, instructionText)
-	// --- Adapt GenerateText to potentially use ContextStrategist ---
-	// The delegator will now handle the potential call to ContextManager internally
-	// Pass modelName and instructionText to the delegator
 	response, err := delegatorInstance.GenerateSimple(ctx, modelName, promptText, instructionText)
-	// --- End Adapt ---
 	if err != nil {
 		return "", err
 	}
@@ -619,6 +674,15 @@ func (s *InferenceService) IsRunning() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	return s.isRunning
+}
+
+// SetInferenceSwitcher attaches a switcher that routes text generation
+// to the internal transformer (HEART/Gorgonite) when pre-training completes.
+func (s *InferenceService) SetInferenceSwitcher(switcher *InferenceSwitcher) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.switcher = switcher
+	log.Println("InferenceService: InferenceSwitcher attached")
 }
 
 // GetName identifies the service structure

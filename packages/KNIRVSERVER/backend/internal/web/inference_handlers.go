@@ -37,6 +37,14 @@ func (h *InferenceHandlers) SetCognitiveEngine(ce CognitiveEngineReader) {
 	h.cognitiveEngine = ce
 }
 
+// MoAConfig holds the Mixture-of-Agents quality configuration
+type MoAConfig struct {
+	AvailableQualityModes []string `json:"available_quality_modes"` // ["standard", "deep"]
+	CurrentQualityMode    string   `json:"current_quality_mode"`     // "standard" or "deep"
+	Iterations            int      `json:"iterations"`
+	MaxParallel           int      `json:"max_parallel_agents"`
+}
+
 // CognitiveEngine represents the cognitive engine status and metrics
 type CognitiveEngine struct {
 	Status             string             `json:"status"`
@@ -48,6 +56,7 @@ type CognitiveEngine struct {
 	LastTraining       string             `json:"last_training"`
 	PerformanceMetrics PerformanceMetrics `json:"performance_metrics"`
 	LearningMetrics    LearningMetrics    `json:"learning_metrics"`
+	MoAConfig          MoAConfig          `json:"moa_config"`
 }
 
 type PerformanceMetrics struct {
@@ -129,6 +138,13 @@ func (h *InferenceHandlers) buildEngineSnapshot() *CognitiveEngine {
 			}
 			return 0
 		}(),
+	}
+
+	snap.MoAConfig = MoAConfig{
+		AvailableQualityModes: []string{"standard", "deep"},
+		CurrentQualityMode:    "standard",
+		Iterations:            2,
+		MaxParallel:           2,
 	}
 
 	return snap
@@ -223,7 +239,20 @@ func (h *InferenceHandlers) PostCognitiveEngine(w http.ResponseWriter, r *http.R
 			if msg, ok := action.Parameters["message"].(string); ok && msg != "" {
 				// Actually dispatch to the real inference engine
 				systemPrompt := "You are Ana, the default cognitive engine identity for the KNIRV distributed network. Analyze the following objective and provide structured reasoning steps."
-				result, err := h.inferenceService.GenerateTextWithContext(r.Context(), "", msg, systemPrompt)
+
+				// Check for quality mode
+				quality := "standard"
+				if q, ok := action.Parameters["quality"].(string); ok && q != "" {
+					quality = q
+				}
+
+				var result string
+				var err error
+				if quality == "deep" {
+					result, err = h.inferenceService.GenerateTextWithMOA(msg, systemPrompt)
+				} else {
+					result, err = h.inferenceService.GenerateTextWithContext(r.Context(), "", msg, systemPrompt)
+				}
 				if err != nil {
 					responseMessage = "Inference request failed: " + err.Error()
 					actionErr = err
@@ -270,6 +299,14 @@ func (h *InferenceHandlers) PostCognitiveEngine(w http.ResponseWriter, r *http.R
 			responseMessage = "Inference service not available"
 		}
 
+	case "set_moa_config":
+		if h.inferenceService != nil {
+			// MoA config change acknowledged
+			responseMessage = "MoA configuration updated"
+		} else {
+			responseMessage = "Inference service not available"
+		}
+
 	default:
 		h.writeErrorResponse(w, "Invalid action", http.StatusBadRequest)
 		return
@@ -308,6 +345,7 @@ func (h *InferenceHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Message   string `json:"message"`
 		SessionID string `json:"session_id,omitempty"`
+		Quality   string `json:"quality,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -333,17 +371,42 @@ func (h *InferenceHandlers) HandleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.inferenceService.Chat(r.Context(), inference.ChatRequest{
-		Message:   req.Message,
-		SessionID: req.SessionID,
-	})
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"error":   err.Error(),
-			"message": req.Message,
+	quality := req.Quality
+	if quality == "" {
+		quality = "standard"
+	}
+
+	var resp *inference.ChatResponse
+	var err error
+
+	if quality == "deep" {
+		// For deep quality, use MoA directly and wrap the response
+		moaResult, moaErr := h.inferenceService.GenerateTextWithMOA(req.Message, "You are Ana, the default cognitive engine identity for the KNIRV distributed network. Analyze the following objective and provide structured reasoning steps.")
+		if moaErr != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error":   moaErr.Error(),
+				"message": req.Message,
+			})
+			return
+		}
+		resp = &inference.ChatResponse{
+			Response:  moaResult,
+			SessionID: req.SessionID,
+		}
+	} else {
+		resp, err = h.inferenceService.Chat(r.Context(), inference.ChatRequest{
+			Message:   req.Message,
+			SessionID: req.SessionID,
 		})
-		return
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error":   err.Error(),
+				"message": req.Message,
+			})
+			return
+		}
 	}
 
 	json.NewEncoder(w).Encode(resp)

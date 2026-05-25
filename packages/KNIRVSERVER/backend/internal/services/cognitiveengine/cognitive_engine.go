@@ -280,6 +280,17 @@ func (ce *CognitiveEngine) SetKNIRVGRAPHEngine(hg *icme.TemporalHypergraph, logg
 	ce.ontologyManager = NewDVEOntologyManager(hg, logger)
 }
 
+// RegisterRemediator registers a remediation function for the given action
+// name in the guardrail engine.  This is how the WASMRemediator bridge or
+// ProductionRemediationSink actions are wired into the policy enforcement loop.
+func (ce *CognitiveEngine) RegisterRemediator(action string, fn func(ctx context.Context, violation *PolicyViolation) error) {
+	ce.mu.Lock()
+	defer ce.mu.Unlock()
+	if ce.guardrailEngine != nil {
+		ce.guardrailEngine.RegisterRemediator(action, fn)
+	}
+}
+
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
 // Start starts the cognitive engine and all subsystem goroutines.
@@ -447,6 +458,11 @@ func (ce *CognitiveEngine) GetAdaptationHistory(limit int) []AdaptationEvent {
 // GetGuardrailViolations returns recent policy violations from the guardrail engine.
 func (ce *CognitiveEngine) GetGuardrailViolations(limit int) []PolicyViolation {
 	return ce.guardrailEngine.GetViolations(limit)
+}
+
+// EventBus returns the internal event bus for subscribing to engine events.
+func (ce *CognitiveEngine) EventBus() *EventBus {
+	return ce.eventBus
 }
 
 // ── runtime.CognitiveEngineInterface implementation ──────────────────────────

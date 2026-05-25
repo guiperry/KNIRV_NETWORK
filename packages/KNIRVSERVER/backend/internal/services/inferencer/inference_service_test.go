@@ -17,6 +17,10 @@ func (m *MockDatabaseAccessor) SetValue(key, value string) error {
 	return nil
 }
 
+func (m *MockDatabaseAccessor) StoreJSON(key string, data interface{}) error {
+	return nil
+}
+
 func TestNewInferenceService(t *testing.T) {
 	mockDB := &MockDatabaseAccessor{}
 

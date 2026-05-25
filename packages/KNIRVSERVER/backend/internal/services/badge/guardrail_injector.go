@@ -26,13 +26,9 @@ import (
 //	"Badge enforcement ... every request to the DVE is checked against
 //	 the badge's embedded ontology tags and value signals."
 type GuardrailInjector struct {
-	// guardrailEngine is the target policy engine (from the cognitiveengine package).
-	// Avoids direct import cycle via interface.
 	guardrailEngine GuardrailEngineInterface
-	wasmMapper      WASMMapperInterface // optional Badge-to-WASM hook
 	badgeRegistry   BadgeRegistryInterface
 	mu              sync.Mutex
-	// badgeAttachments tracks which badges are attached to which DVEs.
 	badgeAttachments map[string][]string // dveID → []badgeID
 }
 
@@ -40,12 +36,6 @@ type GuardrailInjector struct {
 type GuardrailEngineInterface interface {
 	InjectBadgeRules(dveID, badgeID string, ontologyTags []string)
 	RemoveBadgeRules(badgeID string)
-}
-
-// WASMMapperInterface abstracts the BadgeWASMMapper (optional, for WASM guardrail support).
-type WASMMapperInterface interface {
-	RegisterBadge(badgeID string, ontologyTags []string) error
-	RemoveBadge(badgeID string)
 }
 
 // BadgeRegistryInterface provides badge metadata lookups.
@@ -63,14 +53,6 @@ func NewGuardrailInjector(
 		badgeRegistry:    registry,
 		badgeAttachments: make(map[string][]string),
 	}
-}
-
-// SetWASMMapper optionally wires the Badge-to-WASM mapper so that guardrail
-// rules also trigger .wasm loading for the attached badge.
-func (gi *GuardrailInjector) SetWASMMapper(m WASMMapperInterface) {
-	gi.mu.Lock()
-	defer gi.mu.Unlock()
-	gi.wasmMapper = m
 }
 
 // AttachBadge is called when a badge is minted/attached to a DVE.
@@ -124,13 +106,6 @@ func (gi *GuardrailInjector) AttachBadge(dveID, badgeID string) error {
 	allTags := append(ontologyTags, valueSignals...)
 	gi.guardrailEngine.InjectBadgeRules(dveID, badgeID, allTags)
 
-	// Register with WASM mapper if configured (for rules.wasm / resolution.wasm).
-	if gi.wasmMapper != nil {
-		if err := gi.wasmMapper.RegisterBadge(badgeID, allTags); err != nil {
-			log.Printf("[badge-injector] WASM mapper registration for badge %s: %v", badgeID, err)
-		}
-	}
-
 	// Track attachment.
 	gi.badgeAttachments[dveID] = append(gi.badgeAttachments[dveID], badgeID)
 
@@ -154,13 +129,7 @@ func (gi *GuardrailInjector) DetachBadge(dveID, badgeID string) {
 	}
 	gi.badgeAttachments[dveID] = filtered
 
-	// Clean up guardrail rules.
 	gi.guardrailEngine.RemoveBadgeRules(badgeID)
-
-	// Clean up WASM mappings.
-	if gi.wasmMapper != nil {
-		gi.wasmMapper.RemoveBadge(badgeID)
-	}
 
 	log.Printf("[badge-injector] detached badge %s from DVE %s", badgeID, dveID)
 }

@@ -25,6 +25,9 @@ type BadgeSVGParams struct {
 	PrimaryColor   string   // hex e.g. "#FBBF24" (gold)
 	SecondaryColor string   // hex e.g. "#D97706" (dark gold)
 	BackgroundColor string  // hex e.g. "#02040a"
+	BackgroundImage string  // base64-encoded background image (data:image/... or raw base64)
+	PolicyName      string  // policy name to display on badge
+	Tags            []string // tags to display on badge
 }
 
 // GenerateBadgeSVG produces an SVG string for a badge combining the selected
@@ -86,6 +89,18 @@ func GenerateBadgeSVG(params BadgeSVGParams) string {
 	buf.WriteString(fmt.Sprintf(`  <rect width="%d" height="%d" fill="%s"/>
 `, size, size, params.BackgroundColor))
 
+	// Background image (if provided, render as centered circular image with clip path)
+	if params.BackgroundImage != "" {
+		href := params.BackgroundImage
+		if !strings.HasPrefix(href, "data:") {
+			href = "data:image/png;base64," + href
+		}
+		buf.WriteString(fmt.Sprintf(`  <clipPath id="bgClip"><circle cx="%d" cy="%d" r="%d"/></clipPath>
+`, cx, cy, outerR-8))
+		buf.WriteString(fmt.Sprintf(`  <image href="%s" x="0" y="0" width="%d" height="%d" clip-path="url(#bgClip)" preserveAspectRatio="xMidYMid slice"/>
+`, href, size, size))
+	}
+
 	// Outer rings
 	buf.WriteString(fmt.Sprintf(`  <circle cx="%d" cy="%d" r="%d" fill="url(#darkGrad)" stroke="url(#primaryGrad)" stroke-width="6"/>
 `, cx, cy, outerR))
@@ -115,6 +130,32 @@ func GenerateBadgeSVG(params BadgeSVGParams) string {
 		escapedTag := html.EscapeString(truncate(params.AITextTag, 32))
 		buf.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" text-anchor="middle" fill="%s" font-family="Arial, sans-serif" font-size="11" font-style="italic" opacity="0.7">%s</text>
 `, cx, cy+60, params.PrimaryColor, escapedTag))
+	}
+
+	// Policy name (if provided, displayed prominently below badge name)
+	if params.PolicyName != "" {
+		escapedPolicy := html.EscapeString(truncate(params.PolicyName, 28))
+		buf.WriteString(fmt.Sprintf(`  <text x="%d" y="%d" text-anchor="middle" fill="%s" font-family="'Arial', sans-serif" font-size="12" font-weight="bold" opacity="0.9">%s</text>
+`, cx, cy+75, params.PrimaryColor, escapedPolicy))
+	}
+
+	// Tags (if provided, rendered as small rounded rectangles below policy name)
+	if len(params.Tags) > 0 {
+		tagStartX := cx - (len(params.Tags)*70)/2
+		if tagStartX < 10 {
+			tagStartX = 10
+		}
+		for i, tag := range params.Tags {
+			if i >= 6 {
+				break
+			} // max 6 tags
+			escapedTag := html.EscapeString(truncate(tag, 10))
+			tx := tagStartX + i*70
+			ty := cy + 90
+			buf.WriteString(fmt.Sprintf(`  <rect x="%d" y="%d" width="60" height="16" rx="8" fill="%s" opacity="0.3"/>
+  <text x="%d" y="%d" text-anchor="middle" fill="%s" font-family="Arial, sans-serif" font-size="8" font-weight="bold">%s</text>
+`, tx, ty, params.PrimaryColor, tx+30, ty+12, params.PrimaryColor, escapedTag))
+		}
 	}
 
 	// KNIRV VERIFIED certification

@@ -362,15 +362,17 @@ func (tb *TransformerBlock) Forward(x *gorgonia.Node, mask *gorgonia.Node, train
 }
 
 type GPT struct {
-	graph          *gorgonia.ExprGraph
-	config         *GorgoniteConfig
-	embedding      *EmbeddingLayer
-	posEncoding    *PositionalEncoding
-	blocks         []*TransformerBlock
-	outputLayer    *gorgonia.Node
-	logits         *gorgonia.Node
-	loss           *gorgonia.Node
-learnables     []*gorgonia.Node
+	graph           *gorgonia.ExprGraph
+	config          *GorgoniteConfig
+	embedding       *EmbeddingLayer
+	posEncoding     *PositionalEncoding
+	blocks          []*TransformerBlock
+	outputLayer     *gorgonia.Node
+	logits          *gorgonia.Node
+	loss            *gorgonia.Node
+	learnables      []*gorgonia.Node
+	trained         bool
+	trainingProgress float64
 }
 
 func NewGPT(g *gorgonia.ExprGraph, config *GorgoniteConfig) *GPT {
@@ -455,6 +457,36 @@ func NewGPT(g *gorgonia.ExprGraph, config *GorgoniteConfig) *GPT {
 
 func (gpt *GPT) Forward(training bool) (*gorgonia.Node, error) {
 	return gpt.logits, nil
+}
+
+// SetTrained marks the GPT model as trained (or not), enabling the
+// GeneratorSwitcher to route generation requests to the internal model.
+func (gpt *GPT) SetTrained(v bool) {
+	gpt.trained = v
+}
+
+// SetProgress updates the training progress fraction [0.0, 1.0].
+func (gpt *GPT) SetProgress(p float64) {
+	if p < 0 {
+		p = 0
+	}
+	if p > 1 {
+		p = 1
+	}
+	gpt.trainingProgress = p
+	if p >= 1 {
+		gpt.trained = true
+	}
+}
+
+// IsReady implements TrainingStateProvider.
+func (gpt *GPT) IsReady() bool {
+	return gpt.trained
+}
+
+// Progress implements TrainingStateProvider.
+func (gpt *GPT) Progress() float64 {
+	return gpt.trainingProgress
 }
 
 func createCausalMask(_ *gorgonia.ExprGraph, seqLen int) *gorgonia.Node {

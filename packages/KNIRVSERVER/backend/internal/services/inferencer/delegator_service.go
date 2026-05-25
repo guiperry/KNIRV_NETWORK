@@ -132,8 +132,8 @@ func formatMessagesToPrompt(messages []gollm_types.MemoryMessage) string {
 	return strings.TrimSuffix(builder.String(), "\n")
 }
 
-// shouldRetryWithError determines if the given error warrants a fallback attempt to the base LLM.
-// Customize this logic based on the errors observed from the primary LLM (Cerebras).
+// shouldFallbackOnError determines if the given error warrants a fallback attempt to the next
+// LLM attempt (next API key or next provider).
 func (d *DelegatorService) shouldFallbackOnError(err error) bool {
 	if err == nil {
 		return false
@@ -141,17 +141,22 @@ func (d *DelegatorService) shouldFallbackOnError(err error) bool {
 	errStr := err.Error()
 	log.Printf("DelegatorService: Evaluating error for fallback: %s", errStr)
 
-	// Allow Fallback on context length exceeded
+	// Allow fallback on context length exceeded
 	if strings.Contains(errStr, "context_length_exceeded") || strings.Contains(errStr, "token limit") {
 		log.Println("DelegatorService: Decision: Allowing Fallback (Context Length Exceeded)")
 		return true
 	}
 
-	// Add other conditions where fallback is desired (e.g., specific server errors, timeouts)
-	// if strings.Contains(errStr, "timeout") || strings.Contains(errStr, "status code 5") {
-	// 	   log.Println("DelegatorService: Decision: Allowing Fallback (Transient Error)")
-	//     return true
-	// }
+	// Allow fallback on rate-limit / quota-exceeded errors (e.g. HTTP 429 from Gemini).
+	// When a provider returns "status code 429", we should try the next API key for that
+	// provider before falling back to a different provider entirely.
+	if strings.Contains(errStr, "status code 429") ||
+		strings.Contains(errStr, "quota") ||
+		strings.Contains(errStr, "RESOURCE_EXHAUSTED") ||
+		strings.Contains(errStr, "rate limit") {
+		log.Println("DelegatorService: Decision: Allowing Fallback (Rate Limit / Quota Exceeded)")
+		return true
+	}
 
 	// Allow fallback for common transient errors (e.g., 5xx status codes, timeouts)
 	if strings.Contains(errStr, "status code 5") || strings.Contains(errStr, "timeout") || strings.Contains(errStr, "connection refused") {
@@ -159,10 +164,7 @@ func (d *DelegatorService) shouldFallbackOnError(err error) bool {
 		return true
 	}
 
-	// TODO: Refine - Should we fallback on API key errors? Probably not to the *same* provider.
-	// if strings.Contains(errStr, "invalid API key") { return false }
-
-	// Default: Allow fallback for now, can be made stricter
+	// Default: Allow fallback
 	log.Println("DelegatorService: Decision: Allowing Fallback (Default Error)")
 	return true
 }

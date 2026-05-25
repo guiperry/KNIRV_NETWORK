@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest, API_BASE_URL } from '@/lib/api';
 import { webSocketService } from '@/lib/websocket-service';
@@ -26,6 +26,12 @@ export interface CognitiveEngine {
   background_tasks?: BackgroundTask[];
   health_status?: string;
   last_validation?: string;
+  moa_config?: {
+    available_quality_modes: string[];
+    current_quality_mode: string;
+    iterations: number;
+    max_parallel_agents: number;
+  };
   performance_metrics: {
     inference_latency: number;
     throughput: number;
@@ -50,6 +56,11 @@ export interface CognitiveEngineAction {
   action: string;
   parameters?: Record<string, any>;
 }
+
+export const useQualityMode = () => {
+  const [qualityMode, setQualityMode] = useState<'standard' | 'deep'>('standard');
+  return { qualityMode, setQualityMode };
+};
 
 export const useCognitiveEngine = () => {
   const queryClient = useQueryClient();
@@ -113,7 +124,20 @@ export const useCognitiveEngine = () => {
     stopEngine: () => performActionMutation.mutateAsync({ action: 'stop_engine' }),
     healthCheck: () => performActionMutation.mutateAsync({ action: 'health_check' }),
     selfValidate: () => performActionMutation.mutateAsync({ action: 'self_validate' }),
-    makeRequest: (message: string) => performActionMutation.mutateAsync({ action: 'make_request', parameters: { message } }),
+    makeRequest: (message: string, quality?: string) => performActionMutation.mutateAsync({ action: 'make_request', parameters: { message, ...(quality ? { quality } : {}) } }),
+    sendChat: async (message: string, sessionId?: string | null, quality?: string) => {
+      const url = `${API_BASE_URL}/api/cognitive-engine/chat`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          ...(sessionId ? { session_id: sessionId } : {}),
+          ...(quality ? { quality } : {}),
+        }),
+      });
+      return response.json();
+    },
     resetMetrics: () => performActionMutation.mutateAsync({ action: 'reset_metrics' }),
     clearConversationHistory: () => performActionMutation.mutateAsync({ action: 'clear_conversation_history' }),
     updateFabricVersion: (modelVersion: string) => performActionMutation.mutateAsync({ action: 'update_model', parameters: { model_version: modelVersion } }),

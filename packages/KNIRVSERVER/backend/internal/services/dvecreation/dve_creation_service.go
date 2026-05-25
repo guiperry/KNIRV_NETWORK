@@ -130,6 +130,7 @@ func (dcs *DVECreationService) Start() error {
 
 	go dcs.cleanupRoutine()
 	go dcs.sessionValidationRoutine()
+	go dcs.nodeHeartbeatRoutine()
 
 	dcs.running = true
 	log.Println("DVE creation service started successfully")
@@ -839,6 +840,42 @@ func (dcs *DVECreationService) cleanupExpiredSessions() {
 
 	if expiredCount > 0 {
 		log.Printf("Cleaned up %d expired DVE sessions", expiredCount)
+	}
+}
+
+// nodeHeartbeatRoutine keeps active DVE nodes alive in the DVEManager so the
+// health-check goroutine (which marks nodes offline after 2 min without a
+// heartbeat) does not silently hide them from the KNIRVGATEWAY WebGUI list.
+func (dcs *DVECreationService) nodeHeartbeatRoutine() {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		if !dcs.running {
+			return
+		}
+		dcs.refreshActiveNodeHeartbeats()
+	}
+}
+
+func (dcs *DVECreationService) refreshActiveNodeHeartbeats() {
+	if dcs.dveManager == nil {
+		return
+	}
+
+	dcs.mu.RLock()
+	var nodeIDs []string
+	for _, creation := range dcs.activeCreations {
+		if creation.Status == "active" && creation.DVENodeID != "" {
+			nodeIDs = append(nodeIDs, creation.DVENodeID)
+		}
+	}
+	dcs.mu.RUnlock()
+
+	for _, nodeID := range nodeIDs {
+		if _, err := dcs.dveManager.UpdateNode(nodeID, map[string]interface{}{"status": "online"}); err != nil {
+			log.Printf("[DVE Creation] Warning: Failed to refresh heartbeat for node %s: %v", nodeID, err)
+		}
 	}
 }
 

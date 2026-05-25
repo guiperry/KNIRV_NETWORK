@@ -57,6 +57,11 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
   const [selectedRole, setSelectedRole] = useState('');
   const [alignmentThreshold, setAlignmentThreshold] = useState(0.75);
 
+  // Background image, policy name, tags
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [policyName, setPolicyName] = useState('');
+  const [tagsText, setTagsText] = useState(''); // comma-separated input
+
   // Template Library mode
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
   const [savingAsTemplate, setSavingAsTemplate] = useState(false);
@@ -190,35 +195,43 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
     setMintError(null);
     setTemplateSaved(false);
 
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    try {
+      const params = {
+        name: prompt,
+        badge_type: 'capability',
+        description: `Values: ${selectedValues.join(', ')}. Ontology: ${selectedOntology.join(', ')}`,
+        value_signals: selectedValues,
+        ontology_signals: selectedOntology,
+        ai_text_tag: aiTextTag,
+        output_size: 400,
+        primary_color: '#FBBF24',
+        secondary_color: '#D97706',
+        background_color: '#02040a',
+        background_image: backgroundImage || '',
+        policy_name: policyName,
+        tags: tagsText.split(',').map(t => t.trim()).filter(Boolean),
+      };
 
-    const generatedSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
-        <defs>
-          <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#FBBF24"/>
-            <stop offset="50%" style="stop-color:#D97706"/>
-            <stop offset="100%" style="stop-color:#B45309"/>
-          </linearGradient>
-          <linearGradient id="darkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#1F2937"/>
-            <stop offset="100%" style="stop-color:#111827"/>
-          </linearGradient>
-        </defs>
-        <rect width="400" height="400" fill="#02040a"/>
-        <circle cx="200" cy="200" r="180" fill="url(#darkGrad)" stroke="url(#goldGrad)" stroke-width="8"/>
-        <circle cx="200" cy="200" r="150" fill="none" stroke="url(#goldGrad)" stroke-width="2" opacity="0.5"/>
-        <polygon points="200,80 230,140 295,140 245,180 265,245 200,205 135,245 155,180 105,140 170,140" fill="url(#goldGrad)"/>
-        <text x="200" y="280" text-anchor="middle" fill="#FBBF24" font-family="Arial Black" font-size="24" font-weight="bold">${prompt.substring(0, 20)}</text>
-        <text x="200" y="310" text-anchor="middle" fill="#9CA3AF" font-family="Arial" font-size="12">KNIRV VERIFIED</text>
-      </svg>
-    `;
-    
-    const blob = new Blob([generatedSvg], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    setSvgContent(generatedSvg);
-    setOutputUrl(url);
-    setIsProcessing(false);
+      const response = await fetch(`${API_BASE_URL}/api/badge/generate`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) {
+        throw new Error('Badge generation failed');
+      }
+
+      const svg = await response.text();
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      setSvgContent(svg);
+      setOutputUrl(url);
+    } catch (err) {
+      setMintError(err instanceof Error ? err.message : 'Generation failed');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const resetFull = () => {
@@ -226,6 +239,7 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
     setSelectedValues([]); setSelectedOntology([]);
     setMintedBadgeId(null); setMintError(null);
     setTemplateSaved(false);
+    setBackgroundImage(null); setPolicyName(''); setTagsText('');
   };
 
   return (
@@ -418,6 +432,85 @@ export const BadgeLabPanel: React.FC<BadgeLabPanelProps> = ({ className }) => {
                       placeholder="e.g. 'Confidential • SOC2 Compliant • v2.1'"
                       className="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-xs focus:outline-none focus:border-blue-500/50 text-gray-200"
                     />
+                  </div>
+
+                  {/* Policy Name */}
+                  <div>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-3">
+                      Policy Name <span className="text-purple-400">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={policyName}
+                      onChange={(e) => setPolicyName(e.target.value)}
+                      placeholder="e.g. 'Data Governance Policy v2'"
+                      className="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-xs focus:outline-none focus:border-purple-500/50 text-gray-200"
+                    />
+                  </div>
+
+                  {/* Tags */}
+                  <div>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-3">
+                      Tags (comma-separated) <span className="text-purple-400">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={tagsText}
+                      onChange={(e) => setTagsText(e.target.value)}
+                      placeholder="e.g. 'confidential, SOC2, production'"
+                      className="w-full bg-gray-900 border border-gray-800 rounded-lg p-2 text-xs focus:outline-none focus:border-purple-500/50 text-gray-200"
+                    />
+                  </div>
+
+                  {/* Background Image Upload */}
+                  <div>
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-3">
+                      Background Image <span className="text-purple-400">(Optional)</span>
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setBackgroundImage(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-3 py-2 bg-gray-900 border border-gray-800 rounded-lg text-[10px] font-bold text-gray-400 hover:text-amber-400 hover:border-amber-500/30 transition-interactive flex items-center gap-1.5"
+                      >
+                        <Upload size={12} />
+                        {backgroundImage ? 'Change Image' : 'Choose File'}
+                      </button>
+                      {backgroundImage && (
+                        <>
+                          <span className="text-[9px] text-gray-500 truncate max-w-[100px]">Image selected</span>
+                          <button
+                            onClick={() => setBackgroundImage(null)}
+                            className="text-[9px] text-red-400 hover:text-red-300 font-bold"
+                          >
+                            Clear
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {/* Background image thumbnail preview */}
+                    {backgroundImage && (
+                      <div className="mt-2">
+                        <img
+                          src={backgroundImage}
+                          alt="Background preview"
+                          className="w-14 h-14 rounded-lg object-cover border border-gray-700"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Gap 1c: Auth Credential Scoping */}
