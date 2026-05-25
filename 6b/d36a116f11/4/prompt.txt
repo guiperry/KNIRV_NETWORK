@@ -1,0 +1,16 @@
+In the KNIRVSERVER codebase at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend, I need to find:
+
+1. How the KNIRVBASE pipeline works for exporting data as training datasets. Search for:
+   - "KNIRVBASE", "knirvbase", "Knirvbase" in Go files
+   - "DataExporter", "data_exporter", "DatasetEntry", "TrainingEntry"
+   - "Export", "export" combined with "chat" or "training" or "dataset"
+   
+2. Look in `internal/database/` for KNIRVBASE-related files, especially `knirvbase.go` or similar.
+
+3. Look for any pipeline that exports chat conversations or inference data to a training set.
+
+4. Look at the `InferenceService.Chat()` method in `chat_session.go` to understand how chat transactions flow.
+
+5. Look at the `ChatRequest` and `ChatResponse` types to understand what data is available.
+
+Return all relevant file paths, struct definitions, and method signatures with line numbers. Be very thorough - search across the entire backend directory.

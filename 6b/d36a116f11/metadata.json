@@ -3,7 +3,7 @@
   "checkpoint_id": "6bd36a116f11",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 5,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
     "packages/KNIRVHASHER/cmd/heart/main.go",
@@ -38,16 +38,24 @@
     "packages/KNIRVSERVER/backend/cmd/root_key_encryptor/wasm/spinner_light.gif",
     "packages/KNIRVSERVER/backend/cmd/root_key_encryptor/wasm/wasm_exec.js",
     "packages/KNIRVSERVER/backend/cmd/root_key_encryptor/wasm/webgl-debug.js",
+    "packages/KNIRVSERVER/backend/go.mod",
+    "packages/KNIRVSERVER/backend/go.sum",
+    "packages/KNIRVSERVER/backend/internal/services/badge/guardrail_injector.go",
     "packages/KNIRVSERVER/backend/internal/services/badge/svg_generator.go",
     "packages/KNIRVSERVER/backend/internal/services/cognitiveengine/cognitive_engine.go",
     "packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go",
     "packages/KNIRVSERVER/backend/internal/services/dvecreation/dve_creation_service.go",
     "packages/KNIRVSERVER/backend/internal/services/inferencer/delegator_service.go",
     "packages/KNIRVSERVER/backend/internal/services/inferencer/inference_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper.go",
+    "packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go",
     "packages/KNIRVSERVER/backend/internal/services/wasm/infra_adapter.go",
     "packages/KNIRVSERVER/backend/internal/services/wasm/integration_test.go",
     "packages/KNIRVSERVER/backend/internal/services/wasm/production_sink.go",
     "packages/KNIRVSERVER/backend/internal/services/wasm/production_sink_test.go",
+    "packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/wasm/wazero_gate.go",
     "packages/KNIRVSERVER/backend/internal/web/inference_handlers.go",
     "packages/KNIRVSERVER/frontend/src/components/dashboard/badge-lab-panel.tsx",
     "packages/KNIRVSERVER/frontend/src/components/dashboard/cognitive-engine-panel.tsx",
@@ -78,13 +86,19 @@
       "transcript": "/6b/d36a116f11/3/full.jsonl",
       "content_hash": "/6b/d36a116f11/3/content_hash.txt",
       "prompt": ""
+    },
+    {
+      "metadata": "/6b/d36a116f11/4/metadata.json",
+      "transcript": "/6b/d36a116f11/4/full.jsonl",
+      "content_hash": "/6b/d36a116f11/4/content_hash.txt",
+      "prompt": "/6b/d36a116f11/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 74,
+    "input_tokens": 101383,
     "cache_creation_tokens": 316158,
-    "cache_read_tokens": 3977740,
-    "output_tokens": 58276,
-    "api_call_count": 61
+    "cache_read_tokens": 4611596,
+    "output_tokens": 67450,
+    "api_call_count": 74
   }
 }
