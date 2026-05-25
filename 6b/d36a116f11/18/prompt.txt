@@ -1,0 +1,15 @@
+Thoroughly explore the KNIRVSERVER web router and storage layer. Read and return the FULL contents of each of these files:
+
+1. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/api_router.go
+2. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/storage/memory_store.go
+
+Also glob for storage-related files:
+   Glob **/storage/**/*.go in /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend
+
+And for the main.go entry point:
+3. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go
+
+And any Go module file:
+4. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/go.mod
+
+Return the FULL file contents of all files found.
