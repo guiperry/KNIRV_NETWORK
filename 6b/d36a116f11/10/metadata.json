@@ -1,0 +1,92 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "6bd36a116f11",
+  "session_id": "ses_19fdc3a00ffeLG7XWKEZoqi9yl",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-25T19:59:51.590375157Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CALIBER_LEARNINGS.md",
+    "packages/KNIRVHASHER/cmd/heart/main.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/config.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/gpt.go",
+    "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/internal/services/inferencer/delegator_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/inferencer/inference_service.go"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "507d22b0e69e",
+  "token_usage": {
+    "input_tokens": 21446,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 15488,
+    "output_tokens": 4371,
+    "api_call_count": 3
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-25T19:59:51.576572008Z",
+    "agent_lines": 117,
+    "agent_removed": 27,
+    "human_added": 2123,
+    "human_modified": 43,
+    "human_removed": 0,
+    "total_committed": 2283,
+    "total_lines_changed": 4231,
+    "agent_percentage": 3.403450720869771,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 5937,
+      "user_lines_removed": 43,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "CALIBER_LEARNINGS.md": 2,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVHASHER/cmd/heart/main.go": 9,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/config.go": 13,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/external_generator.go": 186,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/generator.go": 125,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/gpt.go": 41,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go": 67,
+        "packages/KNIRVSERVER/backend/cmd/backend_server/main.go": 9,
+        "packages/KNIRVSERVER/backend/cmd/bootnode_key_encryptor/go.mod": 44,
+        "packages/KNIRVSERVER/backend/cmd/bootnode_key_encryptor/go.sum": 680,
+        "packages/KNIRVSERVER/backend/cmd/bootnode_key_encryptor/main.go": 298,
+        "packages/KNIRVSERVER/backend/cmd/bootnode_key_encryptor/main_test.go": 118,
+        "packages/KNIRVSERVER/backend/cmd/bootnode_key_encryptor/wasm/dark.css": 17,
+        "packages/KNIRVSERVER/backend/cmd/bootnode_key_encryptor/wasm/index.html": 140,
+        "packages/KNIRVSERVER/backend/cmd/bootnode_key_encryptor/wasm/light.css": 17,
+        "packages/KNIRVSERVER/backend/cmd/bootnode_key_encryptor/wasm/wasm_exec.js": 575,
+        "packages/KNIRVSERVER/backend/cmd/bootnode_key_encryptor/wasm/webgl-debug.js": 1191,
+        "packages/KNIRVSERVER/backend/cmd/root_key_encryptor/wasm/dark.css": 17,
+        "packages/KNIRVSERVER/backend/cmd/root_key_encryptor/wasm/index.html": 140,
+        "packages/KNIRVSERVER/backend/cmd/root_key_encryptor/wasm/light.css": 17,
+        "packages/KNIRVSERVER/backend/cmd/root_key_encryptor/wasm/wasm_exec.js": 575,
+        "packages/KNIRVSERVER/backend/cmd/root_key_encryptor/wasm/webgl-debug.js": 1191,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/backend/internal/services/inferencer/delegator_service.go": 24,
+        "packages/KNIRVSERVER/backend/internal/services/inferencer/inference_service.go": 78,
+        "packages/KNIRVSERVER/backend/internal/web/generate_wasm_handlers.go": 71
+      },
+      "user_removed_per_file": {
+        "packages/KNIRVHASHER/pkg/hashing/transformer/gpt.go": 9,
+        "packages/KNIRVHASHER/pkg/hashing/transformer/heart_service.go": 15,
+        "packages/KNIRVSERVER/backend/internal/services/inferencer/delegator_service.go": 14,
+        "packages/KNIRVSERVER/backend/internal/services/inferencer/inference_service.go": 5
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+In /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/, collect the following with exact line numbers:
+
+1. resolution_service.go: ResolutionService struct, ResolutionSignal struct, ResolutionResult struct, RemediationSink interface, Resolve() method, Submit() method, worker(), getOrCreatePool()
+2. wazero_gate.go: WazeroGate struct, WazeroPool struct, GuardrailClass(), ResolveError(), ErrorClass() methods
+3. guardrail_middleware.go: GuardrailMiddleware struct, validate() method
+4. badge_wasm_mapper.go: BadgeWASMMapper struct, LookupWASM() method, RegisterBadge() method
+
+Return full code for each.
