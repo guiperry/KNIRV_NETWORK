@@ -1,0 +1,9 @@
+In the KNIRVSERVER codebase at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER, find:
+
+1. The knirvhasher.Manager type - search for it in packages/KNIRVSERVER/backend/internal/services/knirvhasher/ or similar
+2. How the hasherManager starts the KNIRVHASHER subprocess (Start method)
+3. What command line arguments or environment variables are passed to the KNIRVHASHER subprocess
+4. How the HEARTService is started within KNIRVHASHER
+5. Any existing communication channel between KNIRVSERVER and KNIRVHASHER (gRPC, HTTP, etc.)
+
+Return the Manager struct, Start method, and any configuration of the subprocess environment. Full code with file paths and line numbers.
