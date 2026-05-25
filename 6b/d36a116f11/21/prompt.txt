@@ -1,0 +1,41 @@
+I want you to analyze the KNIRVSERVER's policy guardrail engine. The policy editor, guardrail engine, and blockchain commit pipeline are the most production-complete features in the codebase. The OpenAPI spec fully documents the policy endpoints. The frontend Policy Editor is already built. The violation tracking and remediation system is wired. This could ship as a standalone product with 2 weeks of work: add TLS, wire the Postgres backend (or keep BuntDB for single-tenant), and publish a Helm chart. I need to know what else needs to be done so this is all wired together. Report back here with your findings.
+
+---
+
+WHen a policy violation happens in realtime, what is the proocess flow for remediation? Are we missing an execution of the rules.wasm/resolution.wasm file in order to actually resolve the issue? CAn this be engineered better? How?
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
+
+---
+
+Okay, so, currently, the application uses the internal transformer to draft the wasm file. This cannot work until the transformer's data model has actually been pretrained. Therefore, we need to add a bootstrap and switcher that uses the provided inferencer 3rd party inference service, then switches over to the internal version after the internal model has been fully trained up to working status.
+
+---
+
+I want you to draft a KNIRVSERVER PolicyGuardrailEngine-ProductionReadinessReport.html with the complete implementation guide as detailed at the beginning of this chat.
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
+
+---
+
+How can we simplify the policy guardrail engine without the need for a wasm file creation?
+
+---
+
+Proceed...
+
+---
+
+Finish your current task list, then I want you to enhance/repurpose the "inference switch" so that it also switches (from external llm calls to the internal transformer when the model has been fully pretrined) for the cognitive engine, inferencer package, and Neural Desktop Chat functionalities.
+
+---
+
+Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed.
+
+---
+
+Change the HEART's readiness check in the InferenceSwitcher from every 30 seconds to every hour. Also, I want every chat transaction (i/o) to be cloned into the KNIRVBASE pipeline (as a new dataset entry to train the model with) that is already setup via the data exporter in the KNIRVSERVER.
