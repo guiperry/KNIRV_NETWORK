@@ -1,0 +1,16 @@
+I need to understand the Server struct and the initialization code in main.go for KNIRVSERVER. Please examine:
+
+1. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/main.go - specifically:
+   - The Server struct (all fields)
+   - The ContainerOrchestrator field and its type
+   - The DVE Manager field and its type
+   - The eBPF Manager field and its type
+   - The eventBroadcaster or event bus field
+   - The guardrail engine initialization
+   - The resolution service initialization
+   - The WASM initialization
+   - Any section where services are wired together
+
+2. Also check for ContainerOrchestrator interface/type - search for its definition
+
+Return exact code with file paths and line numbers for all of these.
