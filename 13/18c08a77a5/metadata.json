@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "1318c08a77a5",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CALIBER_LEARNINGS.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/13/18c08a77a5/0/metadata.json",
+      "transcript": "/13/18c08a77a5/0/full.jsonl",
+      "content_hash": "/13/18c08a77a5/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 5,
+    "cache_creation_tokens": 56777,
+    "cache_read_tokens": 137563,
+    "output_tokens": 8128,
+    "api_call_count": 3
+  }
+}
