@@ -1,0 +1,14 @@
+I need to find the training pipeline for the internal transformer model in the KNIRVSERVER codebase at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER
+
+Search for:
+1. Any "transformer" package or module - search for "transformer" in directory names, file names, struct names
+2. Any training system - search for "train", "Trainer", "training", "pretrain", "PreTrain"
+3. Any model serving - search for "model", "inference", "serve"
+4. Check the config package for any model configuration - search for "model", "wasm", "inference" in config
+5. Check the cognitiveengine package for any model references
+6. Look for any internal LLM or ML model inference code
+7. Search for "tinybert", "bert", "llm", "transformer" in go.mod or imports
+
+Also search the broader KNIRV_NETWORK for any training scripts or pipelines - check devtools/KNIRVTRAINING or similar directories.
+
+Return all relevant code with file paths and line numbers.

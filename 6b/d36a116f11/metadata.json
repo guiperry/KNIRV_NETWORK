@@ -3,7 +3,7 @@
   "checkpoint_id": "6bd36a116f11",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 12,
+  "checkpoints_count": 13,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
     "packages/KNIRVHASHER/cmd/heart/main.go",
@@ -134,13 +134,19 @@
       "transcript": "/6b/d36a116f11/11/full.jsonl",
       "content_hash": "/6b/d36a116f11/11/content_hash.txt",
       "prompt": "/6b/d36a116f11/11/prompt.txt"
+    },
+    {
+      "metadata": "/6b/d36a116f11/12/metadata.json",
+      "transcript": "/6b/d36a116f11/12/full.jsonl",
+      "content_hash": "/6b/d36a116f11/12/content_hash.txt",
+      "prompt": "/6b/d36a116f11/12/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 546975,
+    "input_tokens": 628978,
     "cache_creation_tokens": 316158,
-    "cache_read_tokens": 6878604,
-    "output_tokens": 111712,
-    "api_call_count": 128
+    "cache_read_tokens": 7534092,
+    "output_tokens": 122245,
+    "api_call_count": 142
   }
 }
