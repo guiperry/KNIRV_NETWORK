@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "1318c08a77a5",
+  "session_id": "fd4e36dc-9fca-4780-90d0-e1de26d7a770",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-25T07:33:50.374928814Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "CALIBER_LEARNINGS.md",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/internal/web/dve_creation_handlers.go",
+    "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dve-card-modal.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dashboard/dve-nodes-panel.tsx",
+    "packages/KNIRVSERVER/frontend/src/components/dve-management/dve-creation-management.tsx"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "bd5081aa6f25",
+  "token_usage": {
+    "input_tokens": 58,
+    "cache_creation_tokens": 350641,
+    "cache_read_tokens": 5272567,
+    "output_tokens": 41856,
+    "api_call_count": 51
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-25T07:33:50.307016914Z",
+    "agent_lines": 65,
+    "agent_removed": 6,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 65,
+    "total_lines_changed": 71,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
