@@ -1,0 +1,12 @@
+I need to find the transformer/drafting system that generates WASM files in the KNIRVSERVER codebase at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER
+
+Search thoroughly for:
+1. Any "transformer" that generates or drafts WASM files - search for "transformer", "wasm", "draft", "generateWASM", "compile" across Go files
+2. The WASM output directory or compilation pipeline
+3. Any training pipeline for the transformer model - search for "train", "pretrain", "model" related to WASM generation
+4. Any existing 3rd party inference client or service integration - search for "inference", "third party", "3rd", "external inference", "LLM inference", "openai", "anthropic" in the backend code
+5. Look at the BadgeWASMMapper particularly how WASM files are found/loaded (it may show where they come from)
+6. Search for "rules.wasm" or "resolution.wasm" to find how WASM files are generated
+7. Look in the wasm directory for any generation/complication scripts
+
+Return all relevant code with file paths and line numbers. Be very thorough - this is about understanding the full WASM lifecycle from generation to execution.
