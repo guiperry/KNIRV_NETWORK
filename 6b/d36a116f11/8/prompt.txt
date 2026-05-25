@@ -1,0 +1,10 @@
+In /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go, collect:
+
+1. The Server struct with ALL fields (lines 102-202) - full code
+2. The guardrail manager initialization section (lines 1375-1402 or nearby) - full code
+3. The guardrail route registration section (around line 1958-1965)
+4. The ContainerOrchestrator struct from internal/services/container/orchestrator.go
+5. The DVEManager struct from internal/services/dvemanager/dve_manager.go
+6. The ebpf.ManagerInterface from internal/ebpf/interfaces.go
+
+Return exact code with line numbers.

@@ -1,0 +1,586 @@
+{
+  "info": {
+    "id": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+    "slug": "brave-cactus",
+    "projectID": "04b7e1a8120cdaa36434d2d66f64522e4313fe2b",
+    "directory": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+    "path": "packages/KNIRVSERVER",
+    "parentID": "ses_1a068485cffeoKY1KW873Ysf8p",
+    "title": "Collect main.go wiring details (@explore subagent)",
+    "agent": "explore",
+    "model": {
+      "id": "big-pickle",
+      "providerID": "opencode",
+      "variant": "default"
+    },
+    "version": "1.15.10",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "cost": 0,
+    "tokens": {
+      "input": 31148,
+      "output": 3767,
+      "reasoning": 79,
+      "cache": {
+        "read": 18816,
+        "write": 0
+      }
+    },
+    "permission": [
+      {
+        "permission": "todowrite",
+        "action": "deny",
+        "pattern": "*"
+      },
+      {
+        "permission": "task",
+        "action": "deny",
+        "pattern": "*"
+      }
+    ],
+    "time": {
+      "created": 1779729420416,
+      "updated": 1779729750155
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1779729420460
+        },
+        "tools": {
+          "todowrite": false,
+          "task": false
+        },
+        "agent": "explore",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "big-pickle"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_e6023d0a0001zOBA2Zi9YkMj22",
+        "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "In /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go, collect:\n\n1. The Server struct with ALL fields (lines 102-202) - full code\n2. The guardrail manager initialization section (lines 1375-1402 or nearby) - full code\n3. The guardrail route registration section (around line 1958-1965)\n4. The ContainerOrchestrator struct from internal/services/container/orchestrator.go\n5. The DVEManager struct from internal/services/dvemanager/dve_manager.go\n6. The ebpf.ManagerInterface from internal/ebpf/interfaces.go\n\nReturn exact code with line numbers.",
+          "id": "prt_e6023d0bf0016jhDQWHnP0kkU0",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d0a0001zOBA2Zi9YkMj22"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6023d0a0001zOBA2Zi9YkMj22",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 8130,
+          "input": 7536,
+          "output": 566,
+          "reasoning": 28,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779729420677,
+          "completed": 1779729438149
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6023d185001qxcs1EXfo1YHoN",
+        "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e6023e47f001f8f6s8AWjz2YCW",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d185001qxcs1EXfo1YHoN"
+        },
+        {
+          "type": "reasoning",
+          "text": "The user wants me to read specific sections from several files. Let me start by reading the main.go file and the other files they mentioned.",
+          "time": {
+            "start": 1779729425813,
+            "end": 1779729426019
+          },
+          "id": "prt_e6023e595001vsF5J8WGN7YTs1",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d185001qxcs1EXfo1YHoN"
+        },
+        {
+          "type": "text",
+          "text": "I'll start by reading all the requested files in parallel.",
+          "time": {
+            "start": 1779729426024,
+            "end": 1779729428998
+          },
+          "id": "prt_e6023e668001taN3t4vx4DYeo6",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d185001qxcs1EXfo1YHoN"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_9ZvFSN2JZchaZWShxS2B4482",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+              "offset": 102,
+              "limit": 101
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go</path>\n<type>file</type>\n<content>\n102: type Server struct {\n103: \tconfig                 *config.Config\n104: \tdb                     *database.BuntDBManager\n105: \trouter                 *mux.Router\n106: \thttpServer             *http.Server\n107: \tp2pManager             *p2p.DVEP2PManager\n108: \tlogger                 *zap.Logger\n109: \ttransactionChainClient *transactionchain.Client\n110: \tvalidationChainClient  *validationchain.Client\n111: \n112: \t// eBPF subsystem\n113: \tebpfManager             ebpf.ManagerInterface\n114: \tvirtualContainerManager *ebpf.VirtualContainerManager\n115: \n116: \t// SERVER Memory Fabric\n117: \tnexusServer    *nexus.NexusMemoryServer\n118: \tnexusAllocator memory.Allocator\n119: \n120: \t// All services are held here\n121: \tdveManager                   *dvemanager.DVEManager\n122: \tdveCreationService           *dvecreation.DVECreationService\n123: \tdveRentalService             *dverental.DVERentalService\n124: \tvalidationCore               *validation.ValidationCore\n125: \tdnsService                   *dns.DynamicDNSService\n126: \tpluginServer                 *pluginserver.PluginServer\n127: \tdataEngine                   *data_engine.BuntDBDataEngine\n128: \tinferenceService             *inference.InferenceService\n129: \twebsocketService             *websocket.WebSocketService\n130: \tteeSecurityService           *teesecurity.TEESecurityService\n131: \tsystemHealthService          *systemhealth.SystemHealthService\n132: \tfabricManagementService      *fabricmanagement.PluginManagementService\n133: \tcontrollerIntegrationService *controllerintegration.ControllerIntegrationService\n134: \tcognitiveEngine              *cognitiveengine.CognitiveEngine\n135: \tcontainerOrchestrator        *container.ContainerOrchestrator\n136: \tsessionManager               *session.SessionManager\n137: \tendpointRegistry             *endpoints.EndpointRegistry\n138: \tgatewayManager               *knirvgateway.Manager\n139: \tgraphManager                 *knirvgraph.Manager\n140: \tgraphSyncManager             *knirvgraph.SyncManager\n141: \tchainManager                 *knirvchain.Manager\n142: \ttransactionChainManager      *transactionchain.Manager\n143: \tvalidationChainManager       *validationchain.Manager\n144: \n145: \t// Active Memory Layer (Markdown Fabric)\n146: \tpqcManager          *pqc.EncryptionManager\n147: \tmdStorage           *mdstorage.MarkdownStorageDriver\n148: \tvaultService        *vault.VaultService\n149: \treasoningEngine     *graph.ReasoningEngine\n150: \tactiveMemoryService *active_memory.ActiveMemoryService\n151: \n152: \t// Object Nest subsystem\n153: \tunifiedContainerManager *runtime.UnifiedContainerManager\n154: \n155: \t// Agent runtime (oh-my-pi) — being replaced by KNIRVAGENT\n156: \tagentService *agentsvc.AgentService\n157: \n158: \t// DVE Supervisor Agent (KNIRVAGENT embedded subprocess)\n159: \tknirvagentManager *knirvagent.Manager\n160: \n161: \t// ICME - Intentional Context Memory Engine\n162: \ticmeService *icme.Service\n163: \n164: \t// KNIRVSHELL Backend Integration Service\n165: \tknirvshellService *knirvshell.KNIRVSHELLService\n166: \n167: \t// Onboarding Service - Value System and Ontology Ingestion\n168: \tonboardingService *onboarding.OnboardingService\n169: \n170: \t// Production Services (Phase 3, 4, 8)\n171: \teventBroadcaster   *websocket.EventBroadcaster\n172: \tanchoringService   *evidence.AnchoringService\n173: \tsecretManager      *secrets.SecretManager\n174: \tworkflowService    *workflow.WorkflowService\n175: \trollupService      *rollup.Service\n176: \trollupPollInterval time.Duration\n177: \tguardrailManager   *guardrails.DynamicGuardrailManager\n178: \tpolicyEngine       *guardrails.PolicyEngine\n179: \n180: \t// KNIRVHASHER integration\n181: \thasherGRPCServer  *dvemanager.HasherGRPCServer\n182: \thasherIntegration *dvemanager.HasherIntegration\n183: \n184: \t// KNIRVHASHER Manager (headless binary subprocess)\n185: \thasherManager *knirvhasher.Manager\n186: \n187: \t// KNIRVARENA Manager (in-process static bundle server)\n188: \tarenaManager *knirvarena.Manager\n189: \n190: \t// Oracle service (root-only — managed via knirvoracle Manager)\n191: \toracleManager *knirvoracle.Manager\n192: \n193: \t// GraphRAG Knowledge Base Engine\n194: \tgraphRAGClient *knowledge_base.GraphRAGClient\n195: \n196: \t// Context for managing service lifecycle\n197: \tctx    context.Context\n198: \tcancel context.CancelFunc\n199: \n200: \t// State management\n201: \trunning bool\n202: }\n\n(Showing lines 102-202 of 3190. Use offset=203 to continue.)\n</content>",
+            "metadata": {
+              "preview": "type Server struct {\n\tconfig                 *config.Config\n\tdb                     *database.BuntDBManager\n\trouter                 *mux.Router\n\thttpServer             *http.Server\n\tp2pManager             *p2p.DVEP2PManager\n\tlogger                 *zap.Logger\n\ttransactionChainClient *transactionchain.Client\n\tvalidationChainClient  *validationchain.Client\n\n\t// eBPF subsystem\n\tebpfManager             ebpf.ManagerInterface\n\tvirtualContainerManager *ebpf.VirtualContainerManager\n\n\t// SERVER Memory Fabric\n\tnexusServer    *nexus.NexusMemoryServer\n\tnexusAllocator memory.Allocator\n\n\t// All services are held here\n\tdveManager                   *dvemanager.DVEManager",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+            "time": {
+              "start": 1779729426602,
+              "end": 1779729427377
+            }
+          },
+          "id": "prt_e6023e72c0015EWUaTmFlWA65u",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d185001qxcs1EXfo1YHoN"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_IzzMtxb8oU1tXyY1NuLz7453",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+              "offset": 1375,
+              "limit": 30
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go</path>\n<type>file</type>\n<content>\n1375: \tguardrailManager := guardrails.NewDynamicGuardrailManager(dbManager)\n1376: \tguardrailManager.SetEventBroadcaster(eventBroadcaster)\n1377: \tif err := guardrailManager.LoadConfigurations(); err != nil {\n1378: \t\tlog.Printf(\"Warning: Failed to load guardrail configurations: %v\", err)\n1379: \t}\n1380: \tif err := guardrailManager.LoadOntologyRules(); err != nil {\n1381: \t\tlog.Printf(\"Warning: Failed to load ontology rules: %v\", err)\n1382: \t}\n1383: \n1384: \t// Initialize Onboarding Service - Value System and Ontology Ingestion\n1385: \tonboardingService := onboarding.NewOnboardingService(dbManager, cognitiveEngine, guardrailManager)\n1386: \tlog.Println(\"Onboarding service initialized\")\n1387: \n1388: \t// Initialize PolicyEngine for ICME policy integration\n1389: \tpolicyEngine := guardrails.NewPolicyEngine(dbManager, guardrailManager)\n1390: \tif validationChainClient != nil {\n1391: \t\tpolicyEngine.SetValidationChainClient(validationChainClient)\n1392: \t\tlog.Println(\"PolicyEngine: validation chain client wired for policy anchoring\")\n1393: \t}\n1394: \tif icmeService != nil {\n1395: \t\ticmeAdapter := &icmePolicyAdapter{icme: icmeService}\n1396: \t\tpolicyEngine.SetICMEService(icmeAdapter)\n1397: \t\tlog.Println(\"PolicyEngine: ICME service wired for intent objective management\")\n1398: \t}\n1399: \tif err := policyEngine.LoadPolicies(); err != nil {\n1400: \t\tlog.Printf(\"Warning: Failed to load policies: %v\", err)\n1401: \t}\n1402: \tlog.Println(\"GuardrailManager and PolicyEngine initialized\")\n1403: \n1404: \t// Initialize Hasher gRPC Server for KNIRVHASHER integration\n\n(Showing lines 1375-1404 of 3190. Use offset=1405 to continue.)\n</content>",
+            "metadata": {
+              "preview": "\tguardrailManager := guardrails.NewDynamicGuardrailManager(dbManager)\n\tguardrailManager.SetEventBroadcaster(eventBroadcaster)\n\tif err := guardrailManager.LoadConfigurations(); err != nil {\n\t\tlog.Printf(\"Warning: Failed to load guardrail configurations: %v\", err)\n\t}\n\tif err := guardrailManager.LoadOntologyRules(); err != nil {\n\t\tlog.Printf(\"Warning: Failed to load ontology rules: %v\", err)\n\t}\n\n\t// Initialize Onboarding Service - Value System and Ontology Ingestion\n\tonboardingService := onboarding.NewOnboardingService(dbManager, cognitiveEngine, guardrailManager)\n\tlog.Println(\"Onboarding service initialized\")\n\n\t// Initialize PolicyEngine for ICME policy integration\n\tpolicyEngine := guardrails.NewPolicyEngine(dbManager, guardrailManager)\n\tif validationChainClient != nil {\n\t\tpolicyEngine.SetValidationChainClient(validationChainClient)\n\t\tlog.Println(\"PolicyEngine: validation chain client wired for policy anchoring\")\n\t}\n\tif icmeService != nil {",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+            "time": {
+              "start": 1779729427197,
+              "end": 1779729428781
+            }
+          },
+          "id": "prt_e6023e90e001upJA2jhc8ktwTV",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d185001qxcs1EXfo1YHoN"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_02_sKbwSCeA3VdJHBF0b5EJ7887",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+              "offset": 1950,
+              "limit": 20
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go</path>\n<type>file</type>\n<content>\n1950: \t\tif s.websocketService != nil {\n1951: \t\t\tdveCreationHandlers.SetWebSocketService(s.websocketService)\n1952: \t\t}\n1953: \t\tdveCreationHandlers.RegisterRoutes(s.router, authMiddleware)\n1954: \t\tlog.Println(\"DVE creation routes configured\")\n1955: \t}\n1956: \n1957: \t// DVE Rental has been removed/deprecated in exchange for direct DVE Creation\n1958: \n1959: \t// Register workflow execution routes with real WorkflowService (Phase 4)\n1960: \tif s.workflowService != nil {\n1961: \t\tworkflowHandlers := web.NewWorkflowHandlers(s.dveManager, s.workflowService)\n1962: \t\tworkflowHandlers.RegisterRoutes(s.router)\n1963: \t\tlog.Println(\"Workflow execution routes configured with WorkflowService\")\n1964: \t}\n1965: \n1966: \t// Register guardrail and policy routes\n1967: \tif s.guardrailManager != nil {\n1968: \t\tguardrailHandlers := web.NewGuardrailHandlers(s.guardrailManager, s.policyEngine)\n1969: \t\tif s.eventBroadcaster != nil {\n\n(Showing lines 1950-1969 of 3190. Use offset=1970 to continue.)\n</content>",
+            "metadata": {
+              "preview": "\t\tif s.websocketService != nil {\n\t\t\tdveCreationHandlers.SetWebSocketService(s.websocketService)\n\t\t}\n\t\tdveCreationHandlers.RegisterRoutes(s.router, authMiddleware)\n\t\tlog.Println(\"DVE creation routes configured\")\n\t}\n\n\t// DVE Rental has been removed/deprecated in exchange for direct DVE Creation\n\n\t// Register workflow execution routes with real WorkflowService (Phase 4)\n\tif s.workflowService != nil {\n\t\tworkflowHandlers := web.NewWorkflowHandlers(s.dveManager, s.workflowService)\n\t\tworkflowHandlers.RegisterRoutes(s.router)\n\t\tlog.Println(\"Workflow execution routes configured with WorkflowService\")\n\t}\n\n\t// Register guardrail and policy routes\n\tif s.guardrailManager != nil {\n\t\tguardrailHandlers := web.NewGuardrailHandlers(s.guardrailManager, s.policyEngine)\n\t\tif s.eventBroadcaster != nil {",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+            "time": {
+              "start": 1779729427617,
+              "end": 1779729429313
+            }
+          },
+          "id": "prt_e6023eb060011CvWC86C5D4Rdk",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d185001qxcs1EXfo1YHoN"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_03_Vq2V72s2Oaq7Ujs1tpCT9320",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/internal/services/container/orchestrator.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/container/orchestrator.go",
+            "metadata": {
+              "count": 1,
+              "truncated": false
+            },
+            "title": "packages/KNIRVSERVER",
+            "time": {
+              "start": 1779729428129,
+              "end": 1779729429157
+            }
+          },
+          "id": "prt_e6023ecbd001ks1qV93r4Pa1Ug",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d185001qxcs1EXfo1YHoN"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_04_QQ0AL0xvW9IQH9VvQ3kl6188",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/internal/services/dvemanager/dve_manager.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go",
+            "metadata": {
+              "count": 1,
+              "truncated": false
+            },
+            "title": "packages/KNIRVSERVER",
+            "time": {
+              "start": 1779729428421,
+              "end": 1779729429210
+            }
+          },
+          "id": "prt_e6023eeab001Ax6ShWPh3Wz3O5",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d185001qxcs1EXfo1YHoN"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_05_wY5lhYwUnjP8VKq8k0Al7791",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/internal/ebpf/interfaces.go",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/ebpf/interfaces.go",
+            "metadata": {
+              "count": 1,
+              "truncated": false
+            },
+            "title": "packages/KNIRVSERVER",
+            "time": {
+              "start": 1779729428946,
+              "end": 1779729429620
+            }
+          },
+          "id": "prt_e6023efe8001RCH01PfLSgm38S",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d185001qxcs1EXfo1YHoN"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 8130,
+            "input": 7536,
+            "output": 566,
+            "reasoning": 28,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0,
+          "id": "prt_e602411ba001Mf18he1WjO0T1J",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6023d185001qxcs1EXfo1YHoN"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6023d0a0001zOBA2Zi9YkMj22",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 10845,
+          "input": 2414,
+          "output": 332,
+          "reasoning": 35,
+          "cache": {
+            "write": 0,
+            "read": 8064
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779729438173,
+          "completed": 1779729750717
+        },
+        "finish": "tool-calls",
+        "id": "msg_e602415dd0011oHVq6DlcuFYoo",
+        "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e60241eb0001MahSNGsBDiXHCV",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e602415dd0011oHVq6DlcuFYoo"
+        },
+        {
+          "type": "reasoning",
+          "text": "Good, I found all the files. Now let me read the remaining files to get the struct definitions. Let me also get the rest of the guardrail route registration section.",
+          "time": {
+            "start": 1779729440592,
+            "end": 1779729440959
+          },
+          "id": "prt_e60241f50001eeFJgg0xcyr2VF",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e602415dd0011oHVq6DlcuFYoo"
+        },
+        {
+          "type": "text",
+          "text": "Now let me read the remaining files and the rest of the guardrail route registration:",
+          "time": {
+            "start": 1779729440965,
+            "end": 1779729442618
+          },
+          "id": "prt_e602420c5001ZtBTabm1TLdh8d",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e602415dd0011oHVq6DlcuFYoo"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_fhafcBgo6SXvIPvx9gXG0507",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/container/orchestrator.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/container/orchestrator.go</path>\n<type>file</type>\n<content>\n1: package container\n2: \n3: import (\n4: \t\"context\"\n5: \t\"fmt\"\n6: \t\"log\"\n7: \t\"strings\"\n8: \t\"time\"\n9: \n10: \t\"backend_server/internal/objects\"\n11: \t\"backend_server/internal/services/teesecurity\"\n12: )\n13: \n14: // ContainerOrchestrator manages the lifecycle of DVE containers\n15: type ContainerOrchestrator struct {\n16: \tportAllocator      *PortAllocator\n17: \tsshProvisioner     *SSHProvisioner\n18: \tconfig             *ContainerConfig\n19: \tteeSecurityService *teesecurity.TEESecurityService\n20: \tsshKeys            map[string]*SSHKeypair // containerID -> SSH keys\n21: }\n22: \n23: // ContainerConfig holds configuration for container orchestration\n24: type ContainerConfig struct {\n25: \tContainerRuntime         string        // \"docker\", \"podman\", \"kata\", \"gvisor\"\n26: \tBaseImage                string        // Base container image\n27: \tSSHPortRangeStart        int           // Starting port for SSH allocation\n28: \tSSHPortRangeEnd          int           // Ending port for SSH allocation\n29: \tValidationPortRangeStart int           // Starting port for validation allocation\n30: \tValidationPortRangeEnd   int           // Ending port for validation allocation\n31: \tErrorResPortRangeStart   int           // Starting port for error resolution allocation\n32: \tErrorResPortRangeEnd     int           // Ending port for error resolution allocation\n33: \tProvisioningTimeout      time.Duration // Timeout for container provisioning\n34: \tCleanupInterval          time.Duration // Interval for cleanup of expired containers\n35: }\n36: \n37: // NewContainerOrchestrator creates a new container orchestrator\n38: func NewContainerOrchestrator(config *ContainerConfig, teeSecurityService *teesecurity.TEESecurityService) (*ContainerOrchestrator, error) {\n39: \tportAllocator := NewPortAllocator(PortAllocationConfig{\n40: \t\tSSHRangeStart:        config.SSHPortRangeStart,\n41: \t\tSSHRangeEnd:          config.SSHPortRangeEnd,\n42: \t\tValidationRangeStart: config.ValidationPortRangeStart,\n43: \t\tValidationRangeEnd:   config.ValidationPortRangeEnd,\n44: \t\tErrorResRangeStart:   config.ErrorResPortRangeStart,\n45: \t\tErrorResRangeEnd:     config.ErrorResPortRangeEnd,\n46: \t})\n47: \n48: \tsshProvisioner := NewSSHProvisioner()\n49: \n50: \treturn &ContainerOrchestrator{\n51: \t\tportAllocator:      portAllocator,\n52: \t\tsshProvisioner:     sshProvisioner,\n53: \t\tconfig:             config,\n54: \t\tteeSecurityService: teeSecurityService,\n55: \t\tsshKeys:            make(map[string]*SSHKeypair),\n56: \t}, nil\n57: }\n58: \n59: // ProvisionContainer provisions a new DVE container for a rental\n60: func (co *ContainerOrchestrator) ProvisionContainer(rentalID string) (*Container, error) {\n61: \tctx, cancel := context.WithTimeout(context.Background(), co.config.ProvisioningTimeout)\n62: \tdefer cancel()\n63: \n64: \tlog.Printf(\"Provisioning container for rental %s\", rentalID)\n65: \n66: \t// Step 1: Security pre-check - verify TEE environment\n67: \tif err := co.performSecurityPreCheck(rentalID); err != nil {\n68: \t\treturn nil, fmt.Errorf(\"security pre-check failed: %w\", err)\n69: \t}\n70: \n71: \t// Allocate ports for the container\n72: \tendpoints, err := co.portAllocator.AllocatePorts(rentalID)\n73: \tif err != nil {\n74: \t\treturn nil, fmt.Errorf(\"failed to allocate ports: %w\", err)\n75: \t}\n76: \n77: \t// Generate SSH keypair with security validation\n78: \tsshKeys, err := co.sshProvisioner.GenerateSSHKeypair()\n79: \tif err != nil {\n80: \t\tco.portAllocator.ReleasePorts(rentalID) // Cleanup on failure\n81: \t\treturn nil, fmt.Errorf(\"failed to generate SSH keys: %w\", err)\n82: \t}\n83: \n84: \t// Validate SSH key strength\n85: \tif err := co.validateSSHKeyStrength(sshKeys); err != nil {\n86: \t\tco.portAllocator.ReleasePorts(rentalID)\n87: \t\treturn nil, fmt.Errorf(\"SSH key validation failed: %w\", err)\n88: \t}\n89: \n90: \t// Create container specification with security hardening\n91: \tcontainerSpec := &ContainerSpec{\n92: \t\tID:             fmt.Sprintf(\"dve-%s-%d\", rentalID, time.Now().Unix()),\n93: \t\tImage:          co.config.BaseImage,\n94: \t\tSSHPort:        endpoints.SSHPort,\n95: \t\tValidationPort: endpoints.ValidationPort,\n96: \t\tErrorResPort:   endpoints.ErrorResPort,\n97: \t\tSSHUsername:    fmt.Sprintf(\"rental-user-%s\", rentalID[:8]),\n98: \t\tSSHPublicKey:   sshKeys.PublicKey,\n99: \t\tTEEType:        co.determineTEEType(),\n100: \t\tResourceLimits: objects.ResourceLimits{\n101: \t\t\tMaxCPU:       2.0,\n102: \t\t\tMaxMemory:    4 * 1024 * 1024 * 1024,  // 4GB\n103: \t\t\tMaxDisk:      50 * 1024 * 1024 * 1024, // 50GB\n104: \t\t\tMaxBandwidth: 100 * 1024 * 1024,       // 100Mbps\n105: \t\t},\n106: \t\tSecurityProfile: co.createSecurityProfile(),\n107: \t}\n108: \n109: \t// Provision the container with security enforcement\n110: \tcontainer, err := co.provisionContainer(ctx, containerSpec)\n111: \tif err != nil {\n112: \t\tco.portAllocator.ReleasePorts(rentalID) // Cleanup on failure\n113: \t\treturn nil, fmt.Errorf(\"failed to provision container: %w\", err)\n114: \t}\n115: \n116: \t// Inject SSH keys with security validation\n117: \tif err := co.sshProvisioner.InjectSSHKey(container.ID, sshKeys.PublicKey, containerSpec.SSHUsername); err != nil {\n118: \t\tco.TerminateContainer(container.ID) // Cleanup on failure\n119: \t\tco.portAllocator.ReleasePorts(rentalID)\n120: \t\treturn nil, fmt.Errorf(\"failed to inject SSH key: %w\", err)\n121: \t}\n122: \n123: \t// Post-provisioning security validation\n124: \tif err := co.performPostProvisioningSecurityCheck(container); err != nil {\n125: \t\tco.TerminateContainer(container.ID)\n126: \t\tco.portAllocator.ReleasePorts(rentalID)\n127: \t\treturn nil, fmt.Errorf(\"post-provisioning security check failed: %w\", err)\n128: \t}\n129: \n130: \tcontainer.SSHKeys = sshKeys\n131: \tcontainer.Endpoints = endpoints\n132: \n133: \t// Store SSH keys for later retrieval\n134: \tco.sshKeys[container.ID] = sshKeys\n135: \n136: \tlog.Printf(\"Successfully provisioned container %s for rental %s with security enforcement\", container.ID, rentalID)\n137: \treturn container, nil\n138: }\n139: \n140: // AllocateEndpoints allocates network endpoints for a rental\n141: func (co *ContainerOrchestrator) AllocateEndpoints(rentalID string) (*Endpoints, error) {\n142: \treturn co.portAllocator.AllocatePorts(rentalID)\n143: }\n144: \n145: // InjectSSHKeys injects SSH keys into a running container\n146: func (co *ContainerOrchestrator) InjectSSHKeys(containerID string, publicKey string) error {\n147: \t// This would be called after container is running\n148: \tusername := fmt.Sprintf(\"rental-user-%s\", containerID[len(\"dve-\"):len(\"dve-\")+8])\n149: \treturn co.sshProvisioner.InjectSSHKey(containerID, publicKey, username)\n150: }\n151: \n152: // GetContainerStatus returns the status of a container\n153: func (co *ContainerOrchestrator) GetContainerStatus(containerID string) (ContainerStatus, error) {\n154: \treturn co.getContainerStatus(containerID)\n155: }\n156: \n157: // GetSSHPrivateKey retrieves the SSH private key for a container\n158: func (co *ContainerOrchestrator) GetSSHPrivateKey(containerID string) (string, error) {\n159: \tkeys, exists := co.sshKeys[containerID]\n160: \tif !exists {\n161: \t\treturn \"\", fmt.Errorf(\"SSH keys not found for container %s\", containerID)\n162: \t}\n163: \treturn keys.PrivateKey, nil\n164: }\n165: \n166: // TerminateContainer terminates and cleans up a container\n167: func (co *ContainerOrchestrator) TerminateContainer(containerID string) error {\n168: \tlog.Printf(\"Terminating container %s\", containerID)\n169: \n170: \t// Extract rental ID from container ID for port cleanup\n171: \trentalID := co.extractRentalIDFromContainerID(containerID)\n172: \tif rentalID != \"\" {\n173: \t\tco.portAllocator.ReleasePorts(rentalID)\n174: \t}\n175: \n176: \t// Clean up SSH keys\n177: \tdelete(co.sshKeys, containerID)\n178: \n179: \t// Terminate the container\n180: \treturn co.terminateContainer(containerID)\n181: }\n182: \n183: // Start begins the container orchestrator services\n184: func (co *ContainerOrchestrator) Start(ctx context.Context) error {\n185: \tlog.Println(\"Starting container orchestrator\")\n186: \n187: \t// Start cleanup routine\n188: \tgo co.cleanupRoutine(ctx)\n189: \n190: \treturn nil\n191: }\n192: \n193: // Stop stops the container orchestrator services\n194: func (co *ContainerOrchestrator) Stop() error {\n195: \tlog.Println(\"Stopping container orchestrator\")\n196: \treturn nil\n197: }\n198: \n199: // cleanupRoutine periodically cleans up expired containers and releases ports\n200: func (co *ContainerOrchestrator) cleanupRoutine(ctx context.Context) {\n201: \tticker := time.NewTicker(co.config.CleanupInterval)\n202: \tdefer ticker.Stop()\n203: \n204: \tfor {\n205: \t\tselect {\n206: \t\tcase <-ctx.Done():\n207: \t\t\treturn\n208: \t\tcase <-ticker.C:\n209: \t\t\tco.performCleanup()\n210: \t\t}\n211: \t}\n212: }\n213: \n214: // performCleanup cleans up expired containers and releases ports\n215: func (co *ContainerOrchestrator) performCleanup() {\n216: \tlog.Println(\"Performing container cleanup\")\n217: \n218: \t// Get all active rentals and check for expired ones\n219: \t// This would integrate with the rental service to find expired rentals\n220: \t// For now, this is a placeholder\n221: \n222: \t// TODO: Implement cleanup logic\n223: \t// - Find expired rentals\n224: \t// - Terminate their containers\n225: \t// - Release allocated ports\n226: \t// - Clean up SSH keys\n227: }\n228: \n229: // extractRentalIDFromContainerID extracts rental ID from container ID\n230: func (co *ContainerOrchestrator) extractRentalIDFromContainerID(containerID string) string {\n231: \t// Container ID format: dve-{rentalID}-{timestamp}\n232: \tif len(containerID) < 8 || containerID[:4] != \"dve-\" {\n233: \t\treturn \"\"\n234: \t}\n235: \n236: \t// Find the last dash to extract rental ID\n237: \tfor i := len(containerID) - 1; i >= 4; i-- {\n238: \t\tif containerID[i] == '-' {\n239: \t\t\treturn containerID[4:i]\n240: \t\t}\n241: \t}\n242: \n243: \treturn \"\"\n244: }\n245: \n246: // provisionContainer provisions a container using the configured runtime\n247: func (co *ContainerOrchestrator) provisionContainer(ctx context.Context, spec *ContainerSpec) (*Container, error) {\n248: \tswitch co.config.ContainerRuntime {\n249: \tcase \"docker\":\n250: \t\treturn co.provisionDockerContainer(ctx, spec)\n251: \tcase \"podman\":\n252: \t\treturn co.provisionPodmanContainer(ctx, spec)\n253: \tcase \"native-go\":\n254: \t\treturn co.provisionNativeContainer(spec)\n255: \tdefault:\n256: \t\treturn nil, fmt.Errorf(\"unsupported container runtime: %s\", co.config.ContainerRuntime)\n257: \t}\n258: }\n259: \n260: // getContainerStatus gets the status of a container\n261: func (co *ContainerOrchestrator) getContainerStatus(containerID string) (ContainerStatus, error) {\n262: \tlog.Printf(\"DEBUG: getContainerStatus called with containerID: %s\", containerID)\n263: \t// This is a placeholder implementation\n264: \t// In a real implementation, this would query the container runtime\n265: \n266: \treturn ContainerStatusRunning, nil\n267: }\n268: \n269: // terminateContainer terminates a container\n270: func (co *ContainerOrchestrator) terminateContainer(containerID string) error {\n271: \tswitch co.config.ContainerRuntime {\n272: \tcase \"docker\":\n273: \t\treturn co.terminateDockerContainer(containerID)\n274: \tcase \"podman\":\n275: \t\treturn co.terminatePodmanContainer(containerID)\n276: \tcase \"native-go\":\n277: \t\treturn co.terminateNativeContainer(containerID)\n278: \tdefault:\n279: \t\treturn fmt.Errorf(\"unsupported container runtime: %s\", co.config.ContainerRuntime)\n280: \t}\n281: }\n282: \n283: // provisionDockerContainer provisions a container using Docker\n284: func (co *ContainerOrchestrator) provisionDockerContainer(ctx context.Context, spec *ContainerSpec) (*Container, error) {\n285: \t// This is a simplified Docker implementation\n286: \t// In production, this would use the Docker SDK or API\n287: \n288: \tlog.Printf(\"Provisioning Docker container %s with image %s\", spec.ID, spec.Image)\n289: \n290: \t// Simulate Docker container creation\n291: \t// In real implementation, this would:\n292: \t// 1. Use Docker API client\n293: \t// 2. Create container with proper configuration\n294: \t// 3. Set up port mappings\n295: \t// 4. Configure TEE runtime (if using Kata/gVisor)\n296: \t// 5. Start the container\n297: \n298: \tcontainer := &Container{\n299: \t\tID:        spec.ID,\n300: \t\tStatus:    ContainerStatusRunning,\n301: \t\tCreatedAt: time.Now(),\n302: \t\tSpec:      spec,\n303: \t\tRuntime:   \"docker\",\n304: \t}\n305: \n306: \t// Simulate provisioning time\n307: \tselect {\n308: \tcase <-time.After(3 * time.Second):\n309: \t\t// Container provisioned successfully\n310: \tcase <-ctx.Done():\n311: \t\treturn nil, fmt.Errorf(\"container provisioning timed out\")\n312: \t}\n313: \n314: \tlog.Printf(\"Successfully provisioned Docker container %s\", container.ID)\n315: \treturn container, nil\n316: }\n317: \n318: // provisionPodmanContainer provisions a container using Podman\n319: func (co *ContainerOrchestrator) provisionPodmanContainer(ctx context.Context, spec *ContainerSpec) (*Container, error) {\n320: \t// This is a simplified Podman implementation\n321: \t// In production, this would use the Podman API or CLI\n322: \n323: \tlog.Printf(\"Provisioning Podman container %s with image %s\", spec.ID, spec.Image)\n324: \n325: \t// Simulate Podman container creation\n326: \tcontainer := &Container{\n327: \t\tID:        spec.ID,\n328: \t\tStatus:    ContainerStatusRunning,\n329: \t\tCreatedAt: time.Now(),\n330: \t\tSpec:      spec,\n331: \t\tRuntime:   \"podman\",\n332: \t}\n333: \n334: \t// Simulate provisioning time\n335: \tselect {\n336: \tcase <-time.After(3 * time.Second):\n337: \t\t// Container provisioned successfully\n338: \tcase <-ctx.Done():\n339: \t\treturn nil, fmt.Errorf(\"container provisioning timed out\")\n340: \t}\n341: \n342: \tlog.Printf(\"Successfully provisioned Podman container %s\", container.ID)\n343: \treturn container, nil\n344: }\n345: \n346: // terminateDockerContainer terminates a Docker container\n347: func (co *ContainerOrchestrator) terminateDockerContainer(containerID string) error {\n348: \tlog.Printf(\"Terminating Docker container %s\", containerID)\n349: \n350: \t// Simulate Docker container termination\n351: \t// In real implementation, this would:\n352: \t// 1. Stop the container\n353: \t// 2. Remove the container\n354: \t// 3. Clean up associated volumes/networks\n355: \n356: \ttime.Sleep(1 * time.Second) // Simulate termination time\n357: \tlog.Printf(\"Terminated Docker container %s\", containerID)\n358: \treturn nil\n359: }\n360: \n361: // terminatePodmanContainer terminates a Podman container\n362: func (co *ContainerOrchestrator) terminatePodmanContainer(containerID string) error {\n363: \tlog.Printf(\"Terminating Podman container %s\", containerID)\n364: \n365: \t// Simulate Podman container termination\n366: \ttime.Sleep(1 * time.Second) // Simulate termination time\n367: \tlog.Printf(\"Terminated Podman container %s\", containerID)\n368: \treturn nil\n369: }\n370: \n371: // provisionNativeContainer provisions a container using native Go runtime with Kali security tools\n372: func (co *ContainerOrchestrator) provisionNativeContainer(spec *ContainerSpec) (*Container, error) {\n373: \tif co.teeSecurityService == nil {\n374: \t\treturn nil, fmt.Errorf(\"TEE security service not available for native container runtime\")\n375: \t}\n376: \n377: \tlog.Printf(\"Provisioning native Go container %s with Kali Linux security tools\", spec.ID)\n378: \n379: \t// Create container specification for native runtime\n380: \tcontainer := &Container{\n381: \t\tID:        spec.ID,\n382: \t\tStatus:    ContainerStatusRunning,\n383: \t\tCreatedAt: time.Now(),\n384: \t\tSpec:      spec,\n385: \t\tRuntime:   \"native-go\",\n386: \t}\n387: \n388: \t// For native containers, we don't actually create a traditional container\n389: \t// Instead, we prepare the environment for sandboxed execution\n390: \t// The actual execution happens when skills are run through the TEE security service\n391: \n392: \tlog.Printf(\"Successfully provisioned native Go container %s\", container.ID)\n393: \treturn container, nil\n394: }\n395: \n396: // terminateNativeContainer terminates a native Go container\n397: func (co *ContainerOrchestrator) terminateNativeContainer(containerID string) error {\n398: \tlog.Printf(\"Terminating native Go container %s\", containerID)\n399: \n400: \t// For native containers, cleanup involves removing any temporary sandbox directories\n401: \t// This is handled by the native container runtime's cleanup mechanisms\n402: \n403: \ttime.Sleep(500 * time.Millisecond) // Simulate cleanup time\n404: \tlog.Printf(\"Terminated native Go container %s\", containerID)\n405: \treturn nil\n406: }\n407: \n408: // performSecurityPreCheck performs security validation before container provisioning\n409: func (co *ContainerOrchestrator) performSecurityPreCheck(rentalID string) error {\n410: \tif co.teeSecurityService == nil {\n411: \t\tlog.Printf(\"Warning: TEE security service not available, skipping security pre-check for rental %s\", rentalID)\n412: \t\treturn nil // Allow provisioning without TEE for testing/development\n413: \t}\n414: \n415: \t// Run security scan to ensure environment is secure\n416: \tif err := co.teeSecurityService.RunSecurityScan(); err != nil {\n417: \t\treturn fmt.Errorf(\"security scan failed: %w\", err)\n418: \t}\n419: \n420: \t// Verify TEE attestation\n421: \tif err := co.teeSecurityService.PerformAttestation(); err != nil {\n422: \t\treturn fmt.Errorf(\"TEE attestation failed: %w\", err)\n423: \t}\n424: \n425: \tlog.Printf(\"Security pre-check passed for rental %s\", rentalID)\n426: \treturn nil\n427: }\n428: \n429: // validateSSHKeyStrength validates the strength of generated SSH keys\n430: func (co *ContainerOrchestrator) validateSSHKeyStrength(keys *SSHKeypair) error {\n431: \tif keys == nil {\n432: \t\treturn fmt.Errorf(\"SSH keys are nil\")\n433: \t}\n434: \n435: \t// Basic validation - check key length and format\n436: \tif len(keys.PublicKey) < 100 {\n437: \t\treturn fmt.Errorf(\"SSH public key too short\")\n438: \t}\n439: \n440: \tif len(keys.PrivateKey) < 500 {\n441: \t\treturn fmt.Errorf(\"SSH private key too short\")\n442: \t}\n443: \n444: \t// Check for required key components\n445: \tif !strings.Contains(keys.PublicKey, \"ssh-\") {\n446: \t\treturn fmt.Errorf(\"invalid SSH public key format\")\n447: \t}\n448: \n449: \tif !strings.Contains(keys.PrivateKey, \"-----BEGIN\") {\n450: \t\treturn fmt.Errorf(\"invalid SSH private key format\")\n451: \t}\n452: \n453: \treturn nil\n454: }\n455: \n456: // determineTEEType determines the appropriate TEE type based on environment\n457: func (co *ContainerOrchestrator) determineTEEType() string {\n458: \tif co.teeSecurityService == nil {\n459: \t\treturn \"none\"\n460: \t}\n461: \n462: \tkaliProfile := co.teeSecurityService.GetKaliProfile()\n463: \tif kaliProfile.IsKaliLinux {\n464: \t\t// Check for SGX support\n465: \t\tfor _, arch := range kaliProfile.ArchitectureSupport {\n466: \t\t\tif strings.Contains(strings.ToLower(arch), \"sgx\") {\n467: \t\t\t\treturn \"sgx\"\n468: \t\t\t}\n469: \t\t}\n470: \t\t// Default to software-based TEE for Kali\n471: \t\treturn \"software\"\n472: \t}\n473: \n474: \t// For non-Kali systems, use basic isolation\n475: \treturn \"basic\"\n476: }\n477: \n478: // createSecurityProfile creates a security profile based on the environment\n479: func (co *ContainerOrchestrator) createSecurityProfile() *SecurityProfile {\n480: \tprofile := &SecurityProfile{\n481: \t\tReadOnlyRootFS:  false, // Allow writes for development\n482: \t\tNoNewPrivileges: true,  // Prevent privilege escalation\n483: \t\tIsolationLevel:  \"standard\",\n484: \t\tCapabilities:    []string{}, // Drop all capabilities\n485: \t\tSecurityOpts:    []string{},\n486: \t}\n487: \n488: \tif co.teeSecurityService != nil {\n489: \t\tkaliProfile := co.teeSecurityService.GetKaliProfile()\n490: \n491: \t\tif kaliProfile.IsKaliLinux {\n492: \t\t\t// Enhanced security for Kali Linux\n493: \t\t\tprofile.IsolationLevel = \"strong\"\n494: \t\t\tprofile.AppArmorProfile = \"docker-default\"\n495: \t\t\tprofile.SELinuxLabel = \"system_u:system_r:container_t:s0\"\n496: \n497: \t\t\t// Add security options for Kali\n498: \t\t\tprofile.SecurityOpts = append(profile.SecurityOpts,\n499: \t\t\t\t\"no-new-privileges:true\",\n500: \t\t\t\t\"seccomp=builtin\",\n501: \t\t\t)\n502: \n503: \t\t\t// Allow specific syscalls for Kali tools\n504: \t\t\tprofile.AllowedSyscalls = []string{\n505: \t\t\t\t\"strace\", \"ptrace\", \"perf_event_open\",\n506: \t\t\t\t\"tcpdump\", \"network\",\n507: \t\t\t}\n508: \t\t}\n509: \t}\n510: \n511: \treturn profile\n512: }\n513: \n514: // performPostProvisioningSecurityCheck performs security validation after container provisioning\n515: func (co *ContainerOrchestrator) performPostProvisioningSecurityCheck(container *Container) error {\n516: \tif container == nil {\n517: \t\treturn fmt.Errorf(\"container is nil\")\n518: \t}\n519: \n520: \t// Verify container is running\n521: \tstatus, err := co.GetContainerStatus(container.ID)\n522: \tif err != nil {\n523: \t\treturn fmt.Errorf(\"failed to get container status: %w\", err)\n524: \t}\n525: \n526: \tif status != ContainerStatusRunning {\n527: \t\treturn fmt.Errorf(\"container is not running, status: %s\", status)\n528: \t}\n529: \n530: \t// Perform security scan on the running container\n531: \tif co.teeSecurityService != nil {\n532: \t\t// This would perform runtime security checks\n533: \t\tlog.Printf(\"Post-provisioning security check passed for container %s\", container.ID)\n534: \t}\n535: \n536: \treturn nil\n537: }\n\n(End of file - total 537 lines)\n</content>",
+            "metadata": {
+              "preview": "package container\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"log\"\n\t\"strings\"\n\t\"time\"\n\n\t\"backend_server/internal/objects\"\n\t\"backend_server/internal/services/teesecurity\"\n)\n\n// ContainerOrchestrator manages the lifecycle of DVE containers\ntype ContainerOrchestrator struct {\n\tportAllocator      *PortAllocator\n\tsshProvisioner     *SSHProvisioner\n\tconfig             *ContainerConfig\n\tteeSecurityService *teesecurity.TEESecurityService\n\tsshKeys            map[string]*SSHKeypair // containerID -> SSH keys",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/container/orchestrator.go",
+            "time": {
+              "start": 1779729441573,
+              "end": 1779729441953
+            }
+          },
+          "id": "prt_e6024215800107BTbuub2Df0hA",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e602415dd0011oHVq6DlcuFYoo"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_clhWDG7rDtd3WgX2mJ8J3843",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go</path>\n<type>file</type>\n<content>\n1: package dvemanager\n2: \n3: import (\n4: \t\"context\"\n5: \t\"encoding/json\"\n6: \t\"fmt\"\n7: \t\"log\"\n8: \t\"sync\"\n9: \t\"time\"\n10: \n11: \t\"backend_server/internal/config\"\n12: \t\"backend_server/internal/database\"\n13: \t\"backend_server/internal/ebpf\"\n14: \t\"backend_server/internal/objects\"\n15: \t\"backend_server/internal/services/p2p\"\n16: \n17: \t\"github.com/google/uuid\"\n18: \t\"github.com/tidwall/buntdb\"\n19: )\n20: \n21: // DVEManager manages DVE nodes and their operations.\n22: // It also owns the DVECreationService (merged from the dvecreation package)\n23: // so that node registration, session management, and DVE lifecycle are\n24: // accessible through a single service boundary.\n25: type DVEManager struct {\n26: \tdb                   *database.BuntDBManager\n27: \tp2pManager           *p2p.DVEP2PManager\n28: \tebpfManager          ebpf.ManagerInterface\n29: \tconfig               *config.Config\n30: \tnodeTracker          *NodeTracker\n31: \tloadBalancer         *LoadBalancer\n32: \tinstanceRegistry     *InstanceRegistry\n33: \tlsmIntegration       *ebpf.LSMIntegration\n34: \tchainDiscovery       *ChainNativeNodeDiscovery\n35: \tctx                  context.Context\n36: \tcancel               context.CancelFunc\n37: \tmu                   sync.RWMutex\n38: \tenableChainDiscovery bool\n39: }\n40: \n41: // NodeTracker tracks the status and health of DVE nodes\n42: type NodeTracker struct {\n43: \tnodes map[string]*objects.DVENode\n44: \tmu    sync.RWMutex\n45: }\n46: \n47: // LoadBalancer handles task assignment and load balancing\n48: type LoadBalancer struct {\n49: \talgorithm string // \"round_robin\", \"reputation_based\", \"resource_based\"\n50: \tmu        sync.RWMutex\n51: }\n52: \n53: // NewDVEManager creates a new DVE Manager instance\n54: func NewDVEManager(db *database.BuntDBManager, p2pManager *p2p.DVEP2PManager, ebpfMgr ebpf.ManagerInterface, cfg *config.Config) (*DVEManager, error) {\n55: \tctx, cancel := context.WithCancel(context.Background())\n56: \n57: \t// Initialize instance registry for remote DVE discovery\n58: \tinstanceRegistry, err := NewInstanceRegistry(db, &cfg.DVE.Discovery)\n59: \tif err != nil {\n60: \t\tlog.Printf(\"Warning: Failed to initialize instance registry: %v\", err)\n61: \t\t// Continue without remote discovery - instance registry will be nil\n62: \t}\n63: \n64: \t// Initialize chain-native node discovery (replaces seedDemoDVENodesIfEmpty)\n65: \tvar chainDiscovery *ChainNativeNodeDiscovery\n66: \tif cfg.DVE.EnableChainDiscovery {\n67: \t\treputationEngine := NewDVEDefaultReputationEngine(db)\n68: \t\tchainDiscovery = NewChainNativeNodeDiscovery(db, nil, reputationEngine)\n69: \t\tif err := chainDiscovery.loadCacheFromDatabase(); err != nil {\n70: \t\t\tlog.Printf(\"Warning: Failed to load chain discovery cache: %v\", err)\n71: \t\t}\n72: \t\tlog.Println(\"Chain-native node discovery initialized (production mode)\")\n73: \t}\n74: \n75: \tmanager := &DVEManager{\n76: \t\tdb:          db,\n77: \t\tp2pManager:  p2pManager,\n78: \t\tebpfManager: ebpfMgr,\n79: \t\tconfig:      cfg,\n80: \t\tnodeTracker: &NodeTracker{\n81: \t\t\tnodes: make(map[string]*objects.DVENode),\n82: \t\t},\n83: \t\tloadBalancer: &LoadBalancer{\n84: \t\t\talgorithm: \"reputation_based\",\n85: \t\t},\n86: \t\tinstanceRegistry:     instanceRegistry,\n87: \t\tlsmIntegration:       ebpf.NewLSMIntegration(\"/var/run/knirv\"),\n88: \t\tchainDiscovery:       chainDiscovery,\n89: \t\tenableChainDiscovery: cfg.DVE.EnableChainDiscovery,\n90: \t\tctx:                  ctx,\n91: \t\tcancel:               cancel,\n92: \t}\n93: \n94: \t// Note: API routes are registered with the unified server\n95: \n96: \t// Register P2P message handlers\n97: \tif p2pManager != nil {\n98: \t\tp2pManager.RegisterMessageHandler(p2p.MessageTypeNodeAnnouncement, manager)\n99: \t\tp2pManager.RegisterMessageHandler(p2p.MessageTypeNodeHeartbeat, manager)\n100: \t}\n101: \n102: \treturn manager, nil\n103: }\n104: \n105: // SetChainRegistry sets the chain node registry for chain-native discovery\n106: func (dm *DVEManager) SetChainRegistry(registry ChainNodeRegistry) {\n107: \tif dm.chainDiscovery != nil {\n108: \t\tdm.chainDiscovery.chainRegistry = registry\n109: \t\tlog.Println(\"Chain registry connected to DVE Manager\")\n110: \t}\n111: }\n112: \n113: // Start starts the DVE Manager service\n114: func (dm *DVEManager) Start(ctx context.Context) error {\n115: \tlog.Println(\"Starting DVE Manager service...\")\n116: \n117: \t// Initialize LSM integration for real-time telemetry\n118: \tif dm.lsmIntegration != nil {\n119: \t\tif err := dm.lsmIntegration.Initialize(ctx); err != nil {\n120: \t\t\tlog.Printf(\"Warning: Failed to initialize LSM integration: %v\", err)\n121: \t\t} else {\n122: \t\t\tlog.Println(\"DVE Manager: LSM integration initialized\")\n123: \t\t}\n124: \t}\n125: \n126: \t// Note: API routes are registered with the unified server, no separate server needed\n127: \n128: \t// Start instance registry for remote DVE discovery\n129: \tif dm.instanceRegistry != nil {\n130: \t\tif err := dm.instanceRegistry.Start(); err != nil {\n131: \t\t\tlog.Printf(\"Warning: Failed to start instance registry: %v\", err)\n132: \t\t}\n133: \t}\n134: \n135: \t// Start periodic tasks\n136: \tgo dm.monitorNodes()\n137: \tgo dm.cleanupExpiredNodes()\n138: \tgo dm.updateMetrics()\n139: \n140: \t// Load existing nodes from database\n141: \tif err := dm.loadNodesFromDB(); err != nil {\n142: \t\tlog.Printf(\"Warning: Failed to load nodes from database: %v\", err)\n143: \t}\n144: \n145: \t// Seed demo DVE nodes if database is empty\n146: \tif err := dm.seedDemoDVENodesIfEmpty(); err != nil {\n147: \t\tlog.Printf(\"Warning: Failed to seed demo DVE nodes: %v\", err)\n148: \t}\n149: \n150: \tlog.Println(\"DVE Manager service started successfully\")\n151: \treturn nil\n152: }\n153: \n154: // Stop stops the DVE Manager service\n155: func (dm *DVEManager) Stop(ctx context.Context) error {\n156: \tlog.Println(\"Stopping DVE Manager service...\")\n157: \n158: \t// Stop instance registry for remote DVE discovery\n159: \tif dm.instanceRegistry != nil {\n160: \t\tdm.instanceRegistry.Stop()\n161: \t}\n162: \n163: \t// Note: API routes are handled by the unified server\n164: \n165: \tdm.cancel()\n166: \tlog.Println(\"DVE Manager service stopped\")\n167: \treturn nil\n168: }\n169: \n170: // HandleMessage implements the P2P MessageHandler interface\n171: func (dm *DVEManager) HandleMessage(ctx context.Context, msg *objects.P2PMessage) error {\n172: \tswitch msg.Type {\n173: \tcase p2p.MessageTypeNodeAnnouncement:\n174: \t\treturn dm.handleNodeAnnouncement(msg)\n175: \tcase p2p.MessageTypeNodeHeartbeat:\n176: \t\treturn dm.handleNodeHeartbeat(msg)\n177: \tdefault:\n178: \t\treturn fmt.Errorf(\"unsupported message type: %s\", msg.Type)\n179: \t}\n180: }\n181: \n182: // RegisterNode registers a new DVE node\n183: func (dm *DVEManager) RegisterNode(req *objects.RegisterNodeRequest) (*objects.DVENode, error) {\n184: \tdm.mu.Lock()\n185: \tdefer dm.mu.Unlock()\n186: \treturn dm.registerNodeInternal(req)\n187: }\n188: \n189: // registerNodeInternal registers a new DVE node without locking (caller must hold dm.mu)\n190: func (dm *DVEManager) registerNodeInternal(req *objects.RegisterNodeRequest) (*objects.DVENode, error) {\n191: \t// Validate TEE type\n192: \tvalidTEETypes := map[string]bool{\n193: \t\t\"sgx\":              true,\n194: \t\t\"sev-snp\":          true,\n195: \t\t\"tdx\":              true,\n196: \t\t\"software\":         true,\n197: \t\t\"browser-extension\": true,\n198: \t}\n199: \tif !validTEETypes[req.TEEType] {\n200: \t\treturn nil, fmt.Errorf(\"invalid TEE type: %s. Valid types: sgx, sev-snp, tdx, software, browser-extension\", req.TEEType)\n201: \t}\n202: \n203: \tnode := &objects.DVENode{\n204: \t\tID:              uuid.New().String(),\n205: \t\tName:            req.Name,\n206: \t\tStatus:          \"online\",\n207: \t\tTEEType:         req.TEEType,\n208: \t\tStakeAmount:     req.StakeAmount,\n209: \t\tReputationScore: 100, // Initial reputation\n210: \t\tLocation:        req.Location,\n211: \t\tIPAddress:       req.IPAddress,\n212: \t\tSSHPort:         req.SSHPort,\n213: \t\tPublicKey:       req.PublicKey,\n214: \t\tCapabilities:    req.Capabilities,\n215: \t\tLastHeartbeat:   time.Now(),\n216: \t\tCreatedAt:       time.Now(),\n217: \t\tUpdatedAt:       time.Now(),\n218: \t\tLatitude:        req.Latitude,\n219: \t\tLongitude:       req.Longitude,\n220: \t}\n221: \n222: \t// Set browser-extension specific defaults\n223: \tif req.TEEType == \"browser-extension\" {\n224: \t\tnode.IsRemote = true\n225: \t\tnode.Connected = true\n226: \t\tnode.SSHPort = 0 // No SSH for browser extensions\n227: \t}\n228: \n229: \t// Store in database\n230: \tif err := dm.storeNode(node); err != nil {\n231: \t\treturn nil, fmt.Errorf(\"failed to store node: %w\", err)\n232: \t}\n233: \n234: \t// Add to tracker\n235: \tdm.nodeTracker.AddNode(node)\n236: \n237: \t// Announce to P2P network\n238: \tif dm.p2pManager != nil {\n239: \t\tif err := dm.p2pManager.AnnounceNode(node); err != nil {\n240: \t\t\tlog.Printf(\"Warning: Failed to announce node to P2P network: %v\", err)\n241: \t\t}\n242: \t}\n243: \n244: \t// Register with chain-native discovery if available\n245: \tif dm.chainDiscovery != nil {\n246: \t\tif _, err := dm.chainDiscovery.RegisterNodeFromChain(node, req.StakeAmount); err != nil {\n247: \t\t\tlog.Printf(\"Warning: Failed to register node with chain-native discovery: %v\", err)\n248: \t\t}\n249: \t}\n250: \n251: \tlog.Printf(\"DVE node %s (%s) registered successfully\", node.ID, node.Name)\n252: \treturn node, nil\n253: }\n254: \n255: // GetNodes returns a list of DVE nodes with optional filtering\n256: func (dm *DVEManager) GetNodes(filter *NodeFilter) ([]*objects.DVENode, error) {\n257: \tdm.mu.RLock()\n258: \tdefer dm.mu.RUnlock()\n259: \n260: \tvar nodes []*objects.DVENode\n261: \n262: \terr := dm.db.GetObjectsByPrefix(\"dve:nodes:\", func(key string, value []byte) bool {\n263: \t\tvar node objects.DVENode\n264: \t\tif err := json.Unmarshal(value, &node); err != nil {\n265: \t\t\tlog.Printf(\"Error unmarshaling node: %v\", err)\n266: \t\t\treturn true\n267: \t\t}\n268: \n269: \t\t// Apply filters\n270: \t\tif filter != nil && !filter.Matches(&node) {\n271: \t\t\treturn true\n272: \t\t}\n273: \n274: \t\tnodes = append(nodes, &node)\n275: \t\treturn true\n276: \t})\n277: \n278: \treturn nodes, err\n279: }\n280: \n281: // AllocateTask allocates a validation task to an optimal DVE node\n282: func (dm *DVEManager) AllocateTask(task *objects.ValidationTask) (*objects.DVENode, error) {\n283: \tdm.mu.RLock()\n284: \tdefer dm.mu.RUnlock()\n285: \n286: \t// Find optimal node based on load balancing algorithm\n287: \tnode, err := dm.loadBalancer.SelectNode(task, dm.nodeTracker.GetActiveNodes())\n288: \tif err != nil {\n289: \t\treturn nil, fmt.Errorf(\"failed to select node: %w\", err)\n290: \t}\n291: \n292: \t// Update task assignment\n293: \ttask.AssignedNodeID = node.ID\n294: \ttask.Status = \"assigned\"\n295: \ttask.UpdatedAt = time.Now()\n296: \n297: \t// Store updated task\n298: \tif err := dm.storeTask(task); err != nil {\n299: \t\treturn nil, fmt.Errorf(\"failed to store task: %w\", err)\n300: \t}\n301: \n302: \tlog.Printf(\"Task %s allocated to node %s\", task.ID, node.ID)\n303: \treturn node, nil\n304: }\n305: \n306: // UpdateNodeStatus updates the status of a DVE node\n307: func (dm *DVEManager) UpdateNodeStatus(nodeID, status string) error {\n308: \tdm.mu.Lock()\n309: \tdefer dm.mu.Unlock()\n310: \n311: \tnode, err := dm.getNodeFromDB(nodeID)\n312: \tif err != nil {\n313: \t\treturn fmt.Errorf(\"node not found: %w\", err)\n314: \t}\n315: \n316: \tnode.Status = status\n317: \tnode.UpdatedAt = time.Now()\n318: \n319: \tif err := dm.storeNode(node); err != nil {\n320: \t\treturn fmt.Errorf(\"failed to update node: %w\", err)\n321: \t}\n322: \n323: \tdm.nodeTracker.UpdateNode(node)\n324: \tlog.Printf(\"Node %s status updated to %s\", nodeID, status)\n325: \treturn nil\n326: }\n327: \n328: // GetSystemHealth returns overall system health metrics\n329: func (dm *DVEManager) GetSystemHealth() (*objects.SystemHealth, error) {\n330: \tdm.mu.RLock()\n331: \tdefer dm.mu.RUnlock()\n332: \n333: \tactiveNodes := dm.nodeTracker.GetActiveNodes()\n334: \ttotalNodes := dm.nodeTracker.GetTotalNodes()\n335: \n336: \t// Calculate pending/completed/failed tasks\n337: \tpendingTasks, completedTasks, failedTasks, err := dm.getTaskStats()\n338: \tif err != nil {\n339: \t\treturn nil, err\n340: \t}\n341: \n342: \thealth := &objects.SystemHealth{\n343: \t\tID:                  uuid.New().String(),\n344: \t\tOverallStatus:       dm.calculateOverallStatus(len(activeNodes), totalNodes),\n345: \t\tActiveNodes:         len(activeNodes),\n346: \t\tTotalNodes:          totalNodes,\n347: \t\tPendingTasks:        pendingTasks,\n348: \t\tCompletedTasks:      completedTasks,\n349: \t\tFailedTasks:         failedTasks,\n350: \t\tAverageResponseTime: dm.calculateAverageResponseTime(),\n351: \t\tNetworkLatency:      dm.calculateNetworkLatency(),\n352: \t\tTEEHealthScore:      dm.calculateTEEHealthScore(),\n353: \t\tTimestamp:           time.Now(),\n354: \t}\n355: \n356: \treturn health, nil\n357: }\n358: \n359: // RegisterNodeRequest is defined in backend_server/internal/objects\n360: \n361: // NodeFilter represents filters for node queries\n362: type NodeFilter struct {\n363: \tStatus        string   `json:\"status,omitempty\"`\n364: \tTEEType       string   `json:\"tee_type,omitempty\"`\n365: \tLocation      string   `json:\"location,omitempty\"`\n366: \tMinStake      int64    `json:\"min_stake,omitempty\"`\n367: \tMinReputation int      `json:\"min_reputation,omitempty\"`\n368: \tCapabilities  []string `json:\"capabilities,omitempty\"`\n369: \tLimit         int      `json:\"limit,omitempty\"`\n370: }\n371: \n372: // Matches checks if a node matches the filter criteria\n373: func (nf *NodeFilter) Matches(node *objects.DVENode) bool {\n374: \tif nf.Status != \"\" && node.Status != nf.Status {\n375: \t\treturn false\n376: \t}\n377: \tif nf.TEEType != \"\" && node.TEEType != nf.TEEType {\n378: \t\treturn false\n379: \t}\n380: \tif nf.Location != \"\" && node.Location != nf.Location {\n381: \t\treturn false\n382: \t}\n383: \tif nf.MinStake > 0 && node.StakeAmount < nf.MinStake {\n384: \t\treturn false\n385: \t}\n386: \tif nf.MinReputation > 0 && node.ReputationScore < nf.MinReputation {\n387: \t\treturn false\n388: \t}\n389: \t// Check capabilities\n390: \tif len(nf.Capabilities) > 0 {\n391: \t\tnodeCapMap := make(map[string]bool)\n392: \t\tfor _, cap := range node.Capabilities {\n393: \t\t\tnodeCapMap[cap] = true\n394: \t\t}\n395: \t\tfor _, reqCap := range nf.Capabilities {\n396: \t\t\tif !nodeCapMap[reqCap] {\n397: \t\t\t\treturn false\n398: \t\t\t}\n399: \t\t}\n400: \t}\n401: \treturn true\n402: }\n403: \n404: // Helper methods for DVE Manager\n405: \n406: // storeNode stores a node in the database\n407: func (dm *DVEManager) storeNode(node *objects.DVENode) error {\n408: \treturn dm.db.Transaction(func(tx *buntdb.Tx) error {\n409: \t\tnodeJSON, err := json.Marshal(node)\n410: \t\tif err != nil {\n411: \t\t\treturn err\n412: \t\t}\n413: \t\t_, _, err = tx.Set(fmt.Sprintf(\"dve:nodes:%s\", node.ID), string(nodeJSON), nil)\n414: \t\treturn err\n415: \t})\n416: }\n417: \n418: // getNodeFromDB retrieves a node from the database\n419: func (dm *DVEManager) getNodeFromDB(nodeID string) (*objects.DVENode, error) {\n420: \tvar node objects.DVENode\n421: \terr := dm.db.ViewTransaction(func(tx *buntdb.Tx) error {\n422: \t\tvalue, err := tx.Get(fmt.Sprintf(\"dve:nodes:%s\", nodeID))\n423: \t\tif err != nil {\n424: \t\t\treturn err\n425: \t\t}\n426: \t\treturn json.Unmarshal([]byte(value), &node)\n427: \t})\n428: \treturn &node, err\n429: }\n430: \n431: // storeTask stores a task in the database\n432: func (dm *DVEManager) storeTask(task *objects.ValidationTask) error {\n433: \treturn dm.db.Transaction(func(tx *buntdb.Tx) error {\n434: \t\ttaskJSON, err := json.Marshal(task)\n435: \t\tif err != nil {\n436: \t\t\treturn err\n437: \t\t}\n438: \t\t_, _, err = tx.Set(fmt.Sprintf(\"validation:tasks:%s\", task.ID), string(taskJSON), nil)\n439: \t\treturn err\n440: \t})\n441: }\n442: \n443: // loadNodesFromDB loads existing nodes from database\n444: func (dm *DVEManager) loadNodesFromDB() error {\n445: \treturn dm.db.GetObjectsByPrefix(\"dve:nodes:\", func(key string, value []byte) bool {\n446: \t\tvar node objects.DVENode\n447: \t\tif err := json.Unmarshal(value, &node); err != nil {\n448: \t\t\tlog.Printf(\"Error loading node from DB: %v\", err)\n449: \t\t\treturn true\n450: \t\t}\n451: \t\tdm.nodeTracker.AddNode(&node)\n452: \t\treturn true\n453: \t})\n454: }\n455: \n456: // seedDemoDVENodesIfEmpty seeds demo DVE nodes if the database is empty\n457: // In production mode, this uses chain-native discovery instead of demo nodes\n458: func (dm *DVEManager) seedDemoDVENodesIfEmpty() error {\n459: \ttotalNodes := dm.nodeTracker.GetTotalNodes()\n460: \tif totalNodes > 0 {\n461: \t\tlog.Printf(\"DVE nodes already exist (%d nodes), skipping node seeding\", totalNodes)\n462: \t\treturn nil\n463: \t}\n464: \n465: \tif dm.enableChainDiscovery && dm.chainDiscovery != nil {\n466: \t\tlog.Println(\"Chain-native discovery enabled: syncing nodes from KNIRVCHAIN registry\")\n467: \t\tnodes := dm.chainDiscovery.GetDiscoveredNodes()\n468: \t\tif len(nodes) > 0 {\n469: \t\t\tfor _, chainNode := range nodes {\n470: \t\t\t\tdveNode := &objects.DVENode{\n471: \t\t\t\t\tID:              chainNode.NodeID,\n472: \t\t\t\t\tName:            fmt.Sprintf(\"DVE Node %s\", chainNode.NodeID[:8]),\n473: \t\t\t\t\tStatus:          chainNode.Status,\n474: \t\t\t\t\tTEEType:         chainNode.TEEType,\n475: \t\t\t\t\tStakeAmount:     chainNode.StakeAmount,\n476: \t\t\t\t\tReputationScore: chainNode.ReputationScore,\n477: \t\t\t\t\tLocation:        chainNode.Location,\n478: \t\t\t\t\tCapabilities:    chainNode.Capabilities,\n479: \t\t\t\t\tLastHeartbeat:   chainNode.LastHeartbeat,\n480: \t\t\t\t\tCreatedAt:       chainNode.RegisteredAt,\n481: \t\t\t\t\tUpdatedAt:       time.Now(),\n482: \t\t\t\t}\n483: \t\t\t\tif err := dm.storeNode(dveNode); err != nil {\n484: \t\t\t\t\tlog.Printf(\"Error storing chain-synced node %s: %v\", chainNode.NodeID, err)\n485: \t\t\t\t\tcontinue\n486: \t\t\t\t}\n487: \t\t\t\tdm.nodeTracker.AddNode(dveNode)\n488: \t\t\t\tlog.Printf(\"Synced DVE node from chain: %s (TEE: %s, Reputation: %d)\",\n489: \t\t\t\t\tchainNode.NodeID[:12], chainNode.TEEType, chainNode.ReputationScore)\n490: \t\t\t}\n491: \t\t\tlog.Printf(\"Chain-native discovery: synced %d nodes from KNIRVCHAIN\", len(nodes))\n492: \t\t\treturn nil\n493: \t\t}\n494: \t\tlog.Println(\"Chain-native discovery: no nodes found on KNIRVCHAIN registry\")\n495: \t}\n496: \n497: \tif dm.chainDiscovery != nil && dm.chainDiscovery.chainRegistry == nil {\n498: \t\tlog.Println(\"Chain registry not connected - seeding local demo nodes\")\n499: \t} else if dm.enableChainDiscovery && dm.chainDiscovery != nil {\n500: \t\t// Chain discovery is active and registry is connected but returned no nodes.\n501: \t\t// Seed demo nodes so the dashboard is not empty during initial setup.\n502: \t\tlog.Println(\"Chain registry connected but no nodes discovered yet - seeding demo nodes\")\n503: \t}\n504: \n505: \tdemoDVENodes := []*objects.RegisterNodeRequest{\n506: \t\t{\n507: \t\t\tName:         \"Demo DVE Node 1 (SGX - US-East)\",\n508: \t\t\tTEEType:      \"sgx\",\n509: \t\t\tStakeAmount:  50000,\n510: \t\t\tLocation:     \"us-east-1\",\n511: \t\t\tIPAddress:    \"192.168.1.101\",\n512: \t\t\tPublicKey:    \"pub_key_demo_1\",\n513: \t\t\tCapabilities: []string{\"validation\", \"attestation\", \"sgx-compute\"},\n514: \t\t\tLatitude:     40.7128,\n515: \t\t\tLongitude:    -74.0060,\n516: \t\t},\n517: \t\t{\n518: \t\t\tName:         \"Demo DVE Node 2 (SEV-SNP - US-West)\",\n519: \t\t\tTEEType:      \"sev-snp\",\n520: \t\t\tStakeAmount:  75000,\n521: \t\t\tLocation:     \"us-west-2\",\n522: \t\t\tIPAddress:    \"192.168.1.102\",\n523: \t\t\tPublicKey:    \"pub_key_demo_2\",\n524: \t\t\tCapabilities: []string{\"validation\", \"attestation\", \"sev-snp-compute\"},\n525: \t\t\tLatitude:     34.0522,\n526: \t\t\tLongitude:    -118.2437,\n527: \t\t},\n528: \t\t{\n529: \t\t\tName:         \"Demo DVE Node 3 (TDX - EU-Central)\",\n530: \t\t\tTEEType:      \"tdx\",\n531: \t\t\tStakeAmount:  100000,\n532: \t\t\tLocation:     \"eu-central-1\",\n533: \t\t\tIPAddress:    \"192.168.1.103\",\n534: \t\t\tPublicKey:    \"pub_key_demo_3\",\n535: \t\t\tCapabilities: []string{\"validation\", \"attestation\", \"tdx-compute\", \"ml-inference\"},\n536: \t\t\tLatitude:     52.5200,\n537: \t\t\tLongitude:    13.4050,\n538: \t\t},\n539: \t\t{\n540: \t\t\tName:         \"Demo DVE Node 4 (Software TEE - Asia-Pacific)\",\n541: \t\t\tTEEType:      \"software\",\n542: \t\t\tStakeAmount:  25000,\n543: \t\t\tLocation:     \"ap-southeast-1\",\n544: \t\t\tIPAddress:    \"192.168.1.104\",\n545: \t\t\tPublicKey:    \"pub_key_demo_4\",\n546: \t\t\tCapabilities: []string{\"validation\", \"software-tee\"},\n547: \t\t\tLatitude:     1.3521,\n548: \t\t\tLongitude:    103.8198,\n549: \t\t},\n550: \t\t{\n551: \t\t\tName:         \"Demo DVE Node 5 (SGX - EU-West)\",\n552: \t\t\tTEEType:      \"sgx\",\n553: \t\t\tStakeAmount:  60000,\n554: \t\t\tLocation:     \"eu-west-1\",\n555: \t\t\tIPAddress:    \"192.168.1.105\",\n556: \t\t\tPublicKey:    \"pub_key_demo_5\",\n557: \t\t\tCapabilities: []string{\"validation\", \"attestation\", \"sgx-compute\", \"ml-inference\"},\n558: \t\t\tLatitude:     53.3498,\n559: \t\t\tLongitude:    -6.2603,\n560: \t\t},\n561: \t\t{\n562: \t\t\tName:         \"Demo Browser DVE Node\",\n563: \t\t\tTEEType:      \"browser-extension\",\n564: \t\t\tStakeAmount:  5000,\n565: \t\t\tLocation:     \"browser\",\n566: \t\t\tCapabilities: []string{\"policy-check\", \"signature-verify\", \"reasoning-simple\", \"skill-lint\"},\n567: \t\t},\n568: \t}\n569: \n570: \tfor _, req := range demoDVENodes {\n571: \t\tnode, err := dm.RegisterNode(req)\n572: \t\tif err != nil {\n573: \t\t\tlog.Printf(\"Error registering demo node %s: %v\", req.Name, err)\n574: \t\t\tcontinue\n575: \t\t}\n576: \t\tlog.Printf(\"Successfully registered demo DVE node: %s (ID: %s)\", node.Name, node.ID)\n577: \t}\n578: \n579: \treturn nil\n580: }\n581: \n582: // handleNodeAnnouncement handles node announcement messages\n583: func (dm *DVEManager) handleNodeAnnouncement(msg *objects.P2PMessage) error {\n584: \t// Extract node information from message payload\n585: \tnodeData, ok := msg.Payload[\"node\"]\n586: \tif !ok {\n587: \t\treturn fmt.Errorf(\"missing node data in announcement\")\n588: \t}\n589: \n590: \t// Convert to DVENode struct\n591: \tnodeJSON, err := json.Marshal(nodeData)\n592: \tif err != nil {\n593: \t\treturn err\n594: \t}\n595: \n596: \tvar node objects.DVENode\n597: \tif err := json.Unmarshal(nodeJSON, &node); err != nil {\n598: \t\treturn err\n599: \t}\n600: \n601: \t// Update node tracker (in-memory)\n602: \tdm.nodeTracker.UpdateNode(&node)\n603: \n604: \t// Persist to database so it's visible to API queries\n605: \tif err := dm.storeNode(&node); err != nil {\n606: \t\tlog.Printf(\"Warning: Failed to persist P2P discovered node %s to database: %v\", node.ID, err)\n607: \t}\n608: \n609: \tlog.Printf(\"Received node announcement from %s and persisted to database\", node.ID)\n610: \treturn nil\n611: }\n612: \n613: // handleNodeHeartbeat handles node heartbeat messages\n614: func (dm *DVEManager) handleNodeHeartbeat(msg *objects.P2PMessage) error {\n615: \tnodeID, ok := msg.Payload[\"node_id\"].(string)\n616: \tif !ok {\n617: \t\treturn fmt.Errorf(\"missing node_id in heartbeat\")\n618: \t}\n619: \n620: \t// Update last heartbeat time\n621: \tdm.nodeTracker.UpdateHeartbeat(nodeID)\n622: \treturn nil\n623: }\n624: \n625: // monitorNodes monitors node health and status\n626: func (dm *DVEManager) monitorNodes() {\n627: \tticker := time.NewTicker(30 * time.Second)\n628: \tdefer ticker.Stop()\n629: \n630: \tfor {\n631: \t\tselect {\n632: \t\tcase <-dm.ctx.Done():\n633: \t\t\treturn\n634: \t\tcase <-ticker.C:\n635: \t\t\tdm.checkNodeHealth()\n636: \t\t}\n637: \t}\n638: }\n639: \n640: // checkNodeHealth checks the health of all nodes\n641: func (dm *DVEManager) checkNodeHealth() {\n642: \tnodes := dm.nodeTracker.GetAllNodes()\n643: \tfor _, node := range nodes {\n644: \t\t// Check if node hasn't sent heartbeat in too long\n645: \t\tif time.Since(node.LastHeartbeat) > 2*time.Minute {\n646: \t\t\tif node.Status != \"offline\" {\n647: \t\t\t\tnode.Status = \"offline\"\n648: \t\t\t\tnode.UpdatedAt = time.Now()\n649: \t\t\t\tdm.storeNode(node)\n650: \t\t\t\tdm.nodeTracker.UpdateNode(node)\n651: \t\t\t\tlog.Printf(\"Node %s marked as offline due to missing heartbeat\", node.ID)\n652: \t\t\t}\n653: \t\t}\n654: \t}\n655: }\n656: \n657: // cleanupExpiredNodes removes expired nodes\n658: func (dm *DVEManager) cleanupExpiredNodes() {\n659: \tticker := time.NewTicker(10 * time.Minute)\n660: \tdefer ticker.Stop()\n661: \n662: \tfor {\n663: \t\tselect {\n664: \t\tcase <-dm.ctx.Done():\n665: \t\t\treturn\n666: \t\tcase <-ticker.C:\n667: \t\t\t// Remove nodes that have been offline for too long\n668: \t\t\tdm.removeExpiredNodes()\n669: \t\t}\n670: \t}\n671: }\n672: \n673: // removeExpiredNodes removes nodes that have been offline for extended periods\n674: func (dm *DVEManager) removeExpiredNodes() {\n675: \tnodes := dm.nodeTracker.GetAllNodes()\n676: \tfor _, node := range nodes {\n677: \t\tif node.Status == \"offline\" && time.Since(node.UpdatedAt) > 24*time.Hour {\n678: \t\t\tdm.nodeTracker.RemoveNode(node.ID)\n679: \t\t\tlog.Printf(\"Removed expired node %s\", node.ID)\n680: \t\t}\n681: \t}\n682: }\n683: \n684: // updateMetrics updates system metrics\n685: func (dm *DVEManager) updateMetrics() {\n686: \tticker := time.NewTicker(1 * time.Minute)\n687: \tdefer ticker.Stop()\n688: \n689: \tfor {\n690: \t\tselect {\n691: \t\tcase <-dm.ctx.Done():\n692: \t\t\treturn\n693: \t\tcase <-ticker.C:\n694: \t\t\tdm.collectAndStoreMetrics()\n695: \t\t}\n696: \t}\n697: }\n698: \n699: // collectAndStoreMetrics collects and stores system metrics\n700: func (dm *DVEManager) collectAndStoreMetrics() {\n701: \t// Check if context is cancelled before doing any work\n702: \tselect {\n703: \tcase <-dm.ctx.Done():\n704: \t\treturn\n705: \tdefault:\n706: \t}\n707: \n708: \thealth, err := dm.GetSystemHealth()\n709: \tif err != nil {\n710: \t\t// Only log error if context is not cancelled\n711: \t\tselect {\n712: \t\tcase <-dm.ctx.Done():\n713: \t\t\treturn\n714: \t\tdefault:\n715: \t\t\tlog.Printf(\"Error collecting system health: %v\", err)\n716: \t\t}\n717: \t\treturn\n718: \t}\n719: \n720: \t// Store metrics snapshot\n721: \tsnapshot := &objects.MetricsSnapshot{\n722: \t\tID:        uuid.New().String(),\n723: \t\tTimestamp: time.Now(),\n724: \t\tType:      \"system_health\",\n725: \t\tData: map[string]interface{}{\n726: \t\t\t\"active_nodes\":          health.ActiveNodes,\n727: \t\t\t\"total_nodes\":           health.TotalNodes,\n728: \t\t\t\"pending_tasks\":         health.PendingTasks,\n729: \t\t\t\"completed_tasks\":       health.CompletedTasks,\n730: \t\t\t\"failed_tasks\":          health.FailedTasks,\n731: \t\t\t\"average_response_time\": health.AverageResponseTime,\n732: \t\t\t\"network_latency\":       health.NetworkLatency,\n733: \t\t\t\"tee_health_score\":      health.TEEHealthScore,\n734: \t\t},\n735: \t}\n736: \n737: \tif err := dm.storeMetricsSnapshot(snapshot); err != nil {\n738: \t\tlog.Printf(\"Error storing metrics snapshot: %v\", err)\n739: \t}\n740: }\n741: \n742: // storeMetricsSnapshot stores a metrics snapshot\n743: func (dm *DVEManager) storeMetricsSnapshot(snapshot *objects.MetricsSnapshot) error {\n744: \treturn dm.db.Transaction(func(tx *buntdb.Tx) error {\n745: \t\tsnapshotJSON, err := json.Marshal(snapshot)\n746: \t\tif err != nil {\n747: \t\t\treturn err\n748: \t\t}\n749: \t\tkey := fmt.Sprintf(\"metrics:historical:%d:%s\", snapshot.Timestamp.Unix(), snapshot.Type)\n750: \t\t_, _, err = tx.Set(key, string(snapshotJSON), nil)\n751: \t\treturn err\n752: \t})\n753: }\n754: \n755: // Helper calculation methods\n756: func (dm *DVEManager) getTaskStats() (pending, completed, failed int, err error) {\n757: \terr = dm.db.GetObjectsByPrefix(\"validation:tasks:\", func(key string, value []byte) bool {\n758: \t\tvar task objects.ValidationTask\n759: \t\tif err := json.Unmarshal(value, &task); err != nil {\n760: \t\t\treturn true\n761: \t\t}\n762: \n763: \t\tswitch task.Status {\n764: \t\tcase \"pending\", \"assigned\", \"running\":\n765: \t\t\tpending++\n766: \t\tcase \"completed\":\n767: \t\t\tcompleted++\n768: \t\tcase \"failed\":\n769: \t\t\tfailed++\n770: \t\t}\n771: \t\treturn true\n772: \t})\n773: \n774: \treturn\n775: }\n776: \n777: func (dm *DVEManager) calculateOverallStatus(activeNodes, totalNodes int) string {\n778: \tif totalNodes == 0 {\n779: \t\treturn \"critical\"\n780: \t}\n781: \tratio := float64(activeNodes) / float64(totalNodes)\n782: \tif ratio >= 0.8 {\n783: \t\treturn \"healthy\"\n784: \t} else if ratio >= 0.5 {\n785: \t\treturn \"degraded\"\n786: \t}\n787: \treturn \"critical\"\n788: }\n789: \n790: func (dm *DVEManager) calculateAverageResponseTime() float64 {\n791: \tdm.mu.RLock()\n792: \tebpfMgr := dm.ebpfManager\n793: \tdm.mu.RUnlock()\n794: \n795: \tif ebpfMgr != nil {\n796: \t\tstats, err := ebpfMgr.GetProcessMetrics()\n797: \t\tif err == nil && len(stats) > 0 {\n798: \t\t\tvar totalCPUTime uint64\n799: \t\t\tvar processCount int\n800: \t\t\tfor _, s := range stats {\n801: \t\t\t\ttotalCPUTime += s.CPUTimeNs\n802: \t\t\t\tprocessCount++\n803: \t\t\t}\n804: \t\t\tif processCount > 0 {\n805: \t\t\t\tavgCPUTimeNs := float64(totalCPUTime) / float64(processCount)\n806: \t\t\t\treturn avgCPUTimeNs / 1_000_000.0\n807: \t\t\t}\n808: \t\t}\n809: \t}\n810: \n811: \tnodes := dm.nodeTracker.GetAllNodes()\n812: \tif len(nodes) == 0 {\n813: \t\treturn 0.0\n814: \t}\n815: \n816: \treturn 10.0\n817: }\n818: \n819: func (dm *DVEManager) calculateNetworkLatency() float64 {\n820: \tdm.mu.RLock()\n821: \tebpfMgr := dm.ebpfManager\n822: \tdm.mu.RUnlock()\n823: \n824: \tif ebpfMgr != nil {\n825: \t\tstats, err := ebpfMgr.GetProcessMetrics()\n826: \t\tif err == nil && len(stats) > 0 {\n827: \t\t\tvar totalContextSwitches uint32\n828: \t\t\tvar totalPageFaults uint32\n829: \t\t\tvar processCount int\n830: \t\t\tfor _, s := range stats {\n831: \t\t\t\ttotalContextSwitches += s.ContextSwitches\n832: \t\t\t\ttotalPageFaults += s.PageFaults\n833: \t\t\t\tprocessCount++\n834: \t\t\t}\n835: \t\t\tif processCount > 0 {\n836: \t\t\t\tavgContextSwitches := float64(totalContextSwitches) / float64(processCount)\n837: \t\t\t\tavgPageFaults := float64(totalPageFaults) / float64(processCount)\n838: \t\t\t\tlatencyScore := (avgContextSwitches * 0.3) + (avgPageFaults * 0.7)\n839: \t\t\t\treturn latencyScore\n840: \t\t\t}\n841: \t\t}\n842: \t}\n843: \n844: \tif dm.p2pManager != nil {\n845: \t\tpeers := dm.p2pManager.GetConnectedPeers()\n846: \t\tif len(peers) > 0 {\n847: \t\t\treturn float64(len(peers)) * 2.0\n848: \t\t}\n849: \t}\n850: \n851: \treturn 0.0\n852: }\n853: \n854: func (dm *DVEManager) calculateTEEHealthScore() float64 {\n855: \tdm.mu.RLock()\n856: \tlsm := dm.lsmIntegration\n857: \tdm.mu.RUnlock()\n858: \n859: \tif lsm != nil && lsm.IsEnabled() {\n860: \t\tauditLog := lsm.GetAuditLog()\n861: \t\tif len(auditLog) == 0 {\n862: \t\t\treturn 1.0\n863: \t\t}\n864: \n865: \t\tdeniedCount := 0\n866: \t\tfor _, entry := range auditLog {\n867: \t\t\tif entry.Decision == \"DENY\" {\n868: \t\t\t\tdeniedCount++\n869: \t\t\t}\n870: \t\t}\n871: \n872: \t\treturn 1.0 - (float64(deniedCount) / float64(len(auditLog)))\n873: \t}\n874: \treturn 0.98 // High confidence default\n875: }\n876: \n877: // GetAllNodes returns all nodes managed by the DVE Manager\n878: func (dm *DVEManager) GetAllNodes() []*objects.DVENode {\n879: \tdm.mu.RLock()\n880: \tdefer dm.mu.RUnlock()\n881: \n882: \tif dm.nodeTracker == nil {\n883: \t\treturn []*objects.DVENode{}\n884: \t}\n885: \n886: \tdm.nodeTracker.mu.RLock()\n887: \tdefer dm.nodeTracker.mu.RUnlock()\n888: \n889: \tnodes := make([]*objects.DVENode, 0, len(dm.nodeTracker.nodes))\n890: \tfor _, node := range dm.nodeTracker.nodes {\n891: \t\tnodes = append(nodes, node)\n892: \t}\n893: \treturn nodes\n894: }\n895: \n896: // GetNode returns a specific node by ID\n897: func (dm *DVEManager) GetNode(nodeID string) (*objects.DVENode, error) {\n898: \tdm.mu.RLock()\n899: \tdefer dm.mu.RUnlock()\n900: \n901: \t// First try to get from in-memory tracker\n902: \tif dm.nodeTracker != nil {\n903: \t\tif node, exists := dm.nodeTracker.GetNode(nodeID); exists {\n904: \t\t\treturn node, nil\n905: \t\t}\n906: \t}\n907: \n908: \t// Fall back to database lookup\n909: \tnode, err := dm.getNodeFromDB(nodeID)\n910: \tif err != nil {\n911: \t\treturn nil, fmt.Errorf(\"node not found\")\n912: \t}\n913: \n914: \t// Add to tracker for future lookups (best effort, don't fail if tracker is nil)\n915: \tif dm.nodeTracker != nil {\n916: \t\tdm.nodeTracker.AddNode(node)\n917: \t}\n918: \n919: \treturn node, nil\n920: }\n921: \n922: // UpdateNode updates a DVE node with new information\n923: func (dm *DVEManager) UpdateNode(nodeID string, updates map[string]interface{}) (*objects.DVENode, error) {\n924: \tdm.mu.Lock()\n925: \tdefer dm.mu.Unlock()\n926: \n927: \t// Get existing node from database\n928: \tnode, err := dm.getNodeFromDB(nodeID)\n929: \tif err != nil {\n930: \t\treturn nil, fmt.Errorf(\"node not found: %w\", err)\n931: \t}\n932: \n933: \t// Apply updates\n934: \tif name, ok := updates[\"name\"].(string); ok && name != \"\" {\n935: \t\tnode.Name = name\n936: \t}\n937: \tif status, ok := updates[\"status\"].(string); ok && status != \"\" {\n938: \t\tnode.Status = status\n939: \t\t// When bringing a node back online, refresh its heartbeat so the\n940: \t\t// health-check goroutine (checkNodeHealth, 2-min stale threshold)\n941: \t\t// doesn't immediately revert it back to \"offline\".\n942: \t\tif status == \"online\" {\n943: \t\t\tnode.LastHeartbeat = time.Now()\n944: \t\t}\n945: \t}\n946: \tif location, ok := updates[\"location\"].(string); ok {\n947: \t\tnode.Location = location\n948: \t}\n949: \tif ipAddress, ok := updates[\"ip_address\"].(string); ok {\n950: \t\tnode.IPAddress = ipAddress\n951: \t}\n952: \tif stakeAmount, ok := updates[\"stake_amount\"].(float64); ok {\n953: \t\tnode.StakeAmount = int64(stakeAmount)\n954: \t}\n955: \tif capabilities, ok := updates[\"capabilities\"].([]interface{}); ok {\n956: \t\tnode.Capabilities = make([]string, len(capabilities))\n957: \t\tfor i, cap := range capabilities {\n958: \t\t\tif capStr, ok := cap.(string); ok {\n959: \t\t\t\tnode.Capabilities[i] = capStr\n960: \t\t\t}\n961: \t\t}\n962: \t}\n963: \n964: \tnode.UpdatedAt = time.Now()\n965: \n966: \t// Store updated node in database\n967: \tif err := dm.storeNode(node); err != nil {\n968: \t\treturn nil, fmt.Errorf(\"failed to update node: %w\", err)\n969: \t}\n970: \n971: \t// Update in tracker\n972: \tdm.nodeTracker.UpdateNode(node)\n973: \n974: \tlog.Printf(\"DVE node %s updated successfully\", nodeID)\n975: \treturn node, nil\n976: }\n977: \n978: // RemoveNode removes a DVE node from the system\n979: func (dm *DVEManager) RemoveNode(nodeID string) error {\n980: \tdm.mu.Lock()\n981: \tdefer dm.mu.Unlock()\n982: \n983: \t// Check if node exists\n984: \t_, err := dm.getNodeFromDB(nodeID)\n985: \tif err != nil {\n986: \t\treturn fmt.Errorf(\"node not found: %w\", err)\n987: \t}\n988: \n989: \t// Remove from database\n990: \terr = dm.db.Transaction(func(tx *buntdb.Tx) error {\n991: \t\t_, err := tx.Delete(fmt.Sprintf(\"dve:nodes:%s\", nodeID))\n992: \t\treturn err\n993: \t})\n994: \tif err != nil {\n995: \t\treturn fmt.Errorf(\"failed to remove node from database: %w\", err)\n996: \t}\n997: \n998: \t// Remove from tracker\n999: \tdm.nodeTracker.RemoveNode(nodeID)\n1000: \n1001: \tlog.Printf(\"DVE node %s removed successfully\", nodeID)\n1002: \treturn nil\n1003: }\n1004: \n1005: // RegisterBrowserDVE registers a new browser-extension DVE node with wallet-based identity\n1006: func (dm *DVEManager) RegisterBrowserDVE(walletAddress string, capabilities []string, badgeNFTIDs []string, extensionID string, browserVersion string) (*objects.DVENode, error) {\n1007: \tdm.mu.Lock()\n1008: \tdefer dm.mu.Unlock()\n1009: \n1010: \twalletLabel := walletAddress\n1011: \tif len(walletLabel) > 8 {\n1012: \t\twalletLabel = walletLabel[:8]\n1013: \t}\n1014: \n1015: \treq := &objects.RegisterNodeRequest{\n1016: \t\tName:           \"Browser DVE - \" + walletLabel,\n1017: \t\tTEEType:        \"browser-extension\",\n1018: \t\tStakeAmount:    10000,\n1019: \t\tLocation:       \"browser\",\n1020: \t\tCapabilities:   capabilities,\n1021: \t\tWalletAddress:  walletAddress,\n1022: \t\tExtensionID:    extensionID,\n1023: \t\tBrowserVersion: browserVersion,\n1024: \t\tBadgeNFTIDs:    badgeNFTIDs,\n1025: \t}\n1026: \n1027: \tnode, err := dm.registerNodeInternal(req)\n1028: \tif err != nil {\n1029: \t\treturn nil, fmt.Errorf(\"failed to register browser DVE: %w\", err)\n1030: \t}\n1031: \n1032: \t// Set browser-specific fields\n1033: \tnode.WalletAddress = walletAddress\n1034: \tnode.ExtensionID = extensionID\n1035: \tnode.BrowserVersion = browserVersion\n1036: \tnode.BadgeNFTIDs = badgeNFTIDs\n1037: \tnode.IsRemote = true\n1038: \tnode.Connected = true\n1039: \tnode.SSHPort = 0\n1040: \n1041: \t// Update in database\n1042: \tif err := dm.storeNode(node); err != nil {\n1043: \t\treturn nil, fmt.Errorf(\"failed to store browser DVE node: %w\", err)\n1044: \t}\n1045: \tdm.nodeTracker.UpdateNode(node)\n1046: \n1047: \t// Register with chain-native discovery if available\n1048: \tif dm.chainDiscovery != nil {\n1049: \t\tif err := dm.chainDiscovery.RegisterBrowserDVEIdentity(node.ID, walletAddress, capabilities); err != nil {\n1050: \t\t\tlog.Printf(\"Warning: Failed to register browser DVE with chain discovery: %v\", err)\n1051: \t\t}\n1052: \t}\n1053: \n1054: \twalletShort := walletAddress\n1055: \tif len(walletShort) > 12 {\n1056: \t\twalletShort = walletShort[:12]\n1057: \t}\n1058: \tlog.Printf(\"Browser DVE node %s registered (wallet: %s, extension: %s)\", node.ID, walletShort, extensionID)\n1059: \treturn node, nil\n1060: }\n1061: \n1062: // UpdateBrowserDVEHeartbeat updates the heartbeat for a browser-extension node with its WS connection ID\n1063: func (dm *DVEManager) UpdateBrowserDVEHeartbeat(nodeID string, wsConnectionID string) error {\n1064: \tdm.mu.Lock()\n1065: \tdefer dm.mu.Unlock()\n1066: \n1067: \tnode, err := dm.getNodeFromDB(nodeID)\n1068: \tif err != nil {\n1069: \t\treturn fmt.Errorf(\"browser DVE node not found: %w\", err)\n1070: \t}\n1071: \n1072: \tif node.TEEType != \"browser-extension\" {\n1073: \t\treturn fmt.Errorf(\"node %s is not a browser-extension DVE\", nodeID)\n1074: \t}\n1075: \n1076: \tnode.WSConnectionID = wsConnectionID\n1077: \tnode.LastHeartbeat = time.Now()\n1078: \tnode.UpdatedAt = time.Now()\n1079: \tnode.Status = \"online\"\n1080: \tnode.Connected = true\n1081: \n1082: \tif err := dm.storeNode(node); err != nil {\n1083: \t\treturn fmt.Errorf(\"failed to update browser DVE heartbeat: %w\", err)\n1084: \t}\n1085: \tdm.nodeTracker.UpdateNode(node)\n1086: \n1087: \treturn nil\n1088: }\n1089: \n1090: // GetRemoteInstances returns all managed remote DVE instances\n1091: func (dm *DVEManager) GetRemoteInstances() map[string]map[string]interface{} {\n1092: \tif dm.instanceRegistry == nil {\n1093: \t\treturn make(map[string]map[string]interface{})\n1094: \t}\n1095: \treturn dm.instanceRegistry.GetAllInstancesStats()\n1096: }\n1097: \n1098: // GetRemoteInstanceNodes returns all nodes from a specific remote instance\n1099: func (dm *DVEManager) GetRemoteInstanceNodes(instanceURL string) ([]*objects.DVENode, error) {\n1100: \tif dm.instanceRegistry == nil {\n1101: \t\treturn nil, fmt.Errorf(\"instance registry not initialized\")\n1102: \t}\n1103: \treturn dm.instanceRegistry.GetInstanceNodes(instanceURL)\n1104: }\n1105: \n1106: // AddRemoteInstance registers a new remote DVE instance for discovery\n1107: func (dm *DVEManager) AddRemoteInstance(instanceURL string) error {\n1108: \tif dm.instanceRegistry == nil {\n1109: \t\treturn fmt.Errorf(\"instance registry not initialized\")\n1110: \t}\n1111: \tdm.instanceRegistry.AddInstance(instanceURL)\n1112: \treturn nil\n1113: }\n1114: \n1115: // RemoveRemoteInstance unregisters a remote DVE instance\n1116: func (dm *DVEManager) RemoveRemoteInstance(instanceURL string) error {\n1117: \tif dm.instanceRegistry == nil {\n1118: \t\treturn fmt.Errorf(\"instance registry not initialized\")\n1119: \t}\n1120: \tdm.instanceRegistry.RemoveInstance(instanceURL)\n1121: \treturn nil\n1122: }\n1123: \n1124: // GetHealthyRemoteInstances returns only healthy remote instances\n1125: func (dm *DVEManager) GetHealthyRemoteInstances() map[string]map[string]interface{} {\n1126: \tif dm.instanceRegistry == nil {\n1127: \t\treturn make(map[string]map[string]interface{})\n1128: \t}\n1129: \n1130: \tstats := dm.instanceRegistry.GetAllInstancesStats()\n1131: \thealthyStats := make(map[string]map[string]interface{})\n1132: \n1133: \tfor url, stat := range stats {\n1134: \t\tif isHealthy, ok := stat[\"is_healthy\"].(bool); ok && isHealthy {\n1135: \t\t\thealthyStats[url] = stat\n1136: \t\t}\n1137: \t}\n1138: \n1139: \treturn healthyStats\n1140: }\n1141: \n1142: // GetNodeTasks returns all tasks assigned to a specific node\n1143: func (dm *DVEManager) GetNodeTasks(nodeID string) ([]*objects.ValidationTask, error) {\n1144: \tvar tasks []*objects.ValidationTask\n1145: \n1146: \terr := dm.db.GetObjectsByPrefix(\"validation:tasks:\", func(key string, value []byte) bool {\n1147: \t\tvar task objects.ValidationTask\n1148: \t\tif err := json.Unmarshal(value, &task); err != nil {\n1149: \t\t\treturn true\n1150: \t\t}\n1151: \t\tif task.AssignedNodeID == nodeID {\n1152: \t\t\ttasks = append(tasks, &task)\n1153: \t\t}\n1154: \t\treturn true\n1155: \t})\n1156: \n1157: \treturn tasks, err\n1158: }\n1159: \n1160: // CreateTask creates a new validation task\n1161: func (dm *DVEManager) CreateTask(task *objects.ValidationTask) error {\n1162: \treturn dm.storeTask(task)\n1163: }\n1164: \n1165: // GetTask retrieves a specific task by ID\n1166: func (dm *DVEManager) GetTask(taskID string) (*objects.ValidationTask, error) {\n1167: \tvar task objects.ValidationTask\n1168: \terr := dm.db.ViewTransaction(func(tx *buntdb.Tx) error {\n1169: \t\tvalue, err := tx.Get(fmt.Sprintf(\"validation:tasks:%s\", taskID))\n1170: \t\tif err != nil {\n1171: \t\t\treturn err\n1172: \t\t}\n1173: \t\treturn json.Unmarshal([]byte(value), &task)\n1174: \t})\n1175: \treturn &task, err\n1176: }\n1177: \n1178: // UpdateTask updates a task with new information\n1179: func (dm *DVEManager) UpdateTask(taskID string, updates map[string]interface{}) (*objects.ValidationTask, error) {\n1180: \ttask, err := dm.GetTask(taskID)\n1181: \tif err != nil {\n1182: \t\treturn nil, err\n1183: \t}\n1184: \n1185: \tif status, ok := updates[\"status\"].(string); ok {\n1186: \t\ttask.Status = status\n1187: \t}\n1188: \tif priority, ok := updates[\"priority\"].(float64); ok {\n1189: \t\ttask.Priority = int(priority)\n1190: \t}\n1191: \tif parameters, ok := updates[\"parameters\"].(map[string]interface{}); ok {\n1192: \t\ttask.Parameters = parameters\n1193: \t}\n1194: \ttask.UpdatedAt = time.Now()\n1195: \n1196: \tif err := dm.storeTask(task); err != nil {\n1197: \t\treturn nil, err\n1198: \t}\n1199: \n1200: \treturn task, nil\n1201: }\n1202: \n1203: // ListTasks returns all tasks with optional filtering\n1204: func (dm *DVEManager) ListTasks(statusFilter, nodeIDFilter string) ([]*objects.ValidationTask, error) {\n1205: \tvar tasks []*objects.ValidationTask\n1206: \n1207: \terr := dm.db.GetObjectsByPrefix(\"validation:tasks:\", func(key string, value []byte) bool {\n1208: \t\tvar task objects.ValidationTask\n1209: \t\tif err := json.Unmarshal(value, &task); err != nil {\n1210: \t\t\treturn true\n1211: \t\t}\n1212: \n1213: \t\tif statusFilter != \"\" && task.Status != statusFilter {\n1214: \t\t\treturn true\n1215: \t\t}\n1216: \t\tif nodeIDFilter != \"\" && task.AssignedNodeID != nodeIDFilter {\n1217: \t\t\treturn true\n1218: \t\t}\n1219: \n1220: \t\ttasks = append(tasks, &task)\n1221: \t\treturn true\n1222: \t})\n1223: \n1224: \treturn tasks, err\n1225: }\n1226: \n1227: // GetNodeMetrics returns the current metrics for a specific node\n1228: func (dm *DVEManager) GetNodeMetrics(nodeID string) (map[string]interface{}, error) {\n1229: \tnode, err := dm.GetNode(nodeID)\n1230: \tif err != nil {\n1231: \t\treturn nil, err\n1232: \t}\n1233: \n1234: \tmetrics := map[string]interface{}{\n1235: \t\t\"node_id\":      node.ID,\n1236: \t\t\"node_name\":    node.Name,\n1237: \t\t\"status\":       node.Status,\n1238: \t\t\"reputation\":   node.ReputationScore,\n1239: \t\t\"last_seen\":    node.LastHeartbeat,\n1240: \t\t\"location\":     node.Location,\n1241: \t\t\"tee_type\":     node.TEEType,\n1242: \t\t\"capabilities\": node.Capabilities,\n1243: \t}\n1244: \n1245: \tif dm.ebpfManager != nil {\n1246: \t\tstats, err := dm.ebpfManager.GetProcessMetrics()\n1247: \t\tif err == nil && len(stats) > 0 {\n1248: \t\t\tvar totalCPUTime uint64\n1249: \t\t\tvar totalMemory uint64\n1250: \t\t\tvar totalNetTx, totalNetRx uint64\n1251: \t\t\tfor _, s := range stats {\n1252: \t\t\t\ttotalCPUTime += s.CPUTimeNs\n1253: \t\t\t\ttotalMemory += s.MemoryBytes\n1254: \t\t\t\ttotalNetTx += s.NetTxBytes\n1255: \t\t\t\ttotalNetRx += s.NetRxBytes\n1256: \t\t\t}\n1257: \t\t\tmetrics[\"cpu_time_ns\"] = totalCPUTime\n1258: \t\t\tmetrics[\"memory_bytes\"] = totalMemory\n1259: \t\t\tmetrics[\"net_tx_bytes\"] = totalNetTx\n1260: \t\t\tmetrics[\"net_rx_bytes\"] = totalNetRx\n1261: \t\t}\n1262: \t}\n1263: \n1264: \treturn metrics, nil\n1265: }\n1266: \n1267: // GetNodeMetricsHistory returns historical metrics for a specific node\n1268: func (dm *DVEManager) GetNodeMetricsHistory(nodeID string, limitStr string) ([]map[string]interface{}, error) {\n1269: \tlimit := 10\n1270: \tif limitStr != \"\" {\n1271: \t\tif l, err := fmt.Sscanf(limitStr, \"%d\", &limit); err == nil && l > 0 {\n1272: \t\t\t// Use provided limit\n1273: \t\t}\n1274: \t}\n1275: \n1276: \tvar history []map[string]interface{}\n1277: \t_ = dm.db.GetObjectsByPrefix(\"metrics:historical:\", func(key string, value []byte) bool {\n1278: \t\tvar snapshot objects.MetricsSnapshot\n1279: \t\tif err := json.Unmarshal(value, &snapshot); err != nil {\n1280: \t\t\treturn true\n1281: \t\t}\n1282: \n1283: \t\tif data, ok := snapshot.Data[\"node_id\"]; ok && data == nodeID {\n1284: \t\t\thistory = append(history, map[string]interface{}{\n1285: \t\t\t\t\"timestamp\": snapshot.Timestamp,\n1286: \t\t\t\t\"data\":      snapshot.Data,\n1287: \t\t\t})\n1288: \t\t}\n1289: \n1290: \t\treturn true\n1291: \t})\n1292: \n1293: \tif len(history) > limit {\n1294: \t\thistory = history[:limit]\n1295: \t}\n1296: \n1297: \treturn history, nil\n1298: }\n1299: \n1300: // GetConnectedP2PPeers returns the list of connected P2P peers from the P2P manager.\n1301: func (dm *DVEManager) GetConnectedP2PPeers() []objects.PeerInfo {\n1302: \tif dm.p2pManager == nil {\n1303: \t\treturn []objects.PeerInfo{}\n1304: \t}\n1305: \treturn dm.p2pManager.GetConnectedPeers()\n1306: }\n\n(End of file - total 1306 lines)\n</content>",
+            "metadata": {
+              "preview": "package dvemanager\n\nimport (\n\t\"context\"\n\t\"encoding/json\"\n\t\"fmt\"\n\t\"log\"\n\t\"sync\"\n\t\"time\"\n\n\t\"backend_server/internal/config\"\n\t\"backend_server/internal/database\"\n\t\"backend_server/internal/ebpf\"\n\t\"backend_server/internal/objects\"\n\t\"backend_server/internal/services/p2p\"\n\n\t\"github.com/google/uuid\"\n\t\"github.com/tidwall/buntdb\"\n)\n",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go",
+            "time": {
+              "start": 1779729441755,
+              "end": 1779729442387
+            }
+          },
+          "id": "prt_e6024232f001JWAYnyZfQvN0qb",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e602415dd0011oHVq6DlcuFYoo"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_02_Mxrw4LqUmR7MyUDpkUfG7025",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/ebpf/interfaces.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/ebpf/interfaces.go</path>\n<type>file</type>\n<content>\n1: // Copyright 2026 KNIRV-SERVER\n2: // SPDX-License-Identifier: GPL-3.0-or-later\n3: \n4: package ebpf\n5: \n6: import \"context\"\n7: \n8: // ManagerInterface defines the interface for eBPF Manager operations\n9: type ManagerInterface interface {\n10: \tInitialize(ctx context.Context, config *Config) error\n11: \tShutdown() error\n12: \tGetMetrics() *Metrics\n13: \tGetProcessMetrics() (map[uint32]*ProcessStats, error)\n14: }\n\n(End of file - total 14 lines)\n</content>",
+            "metadata": {
+              "preview": "// Copyright 2026 KNIRV-SERVER\n// SPDX-License-Identifier: GPL-3.0-or-later\n\npackage ebpf\n\nimport \"context\"\n\n// ManagerInterface defines the interface for eBPF Manager operations\ntype ManagerInterface interface {\n\tInitialize(ctx context.Context, config *Config) error\n\tShutdown() error\n\tGetMetrics() *Metrics\n\tGetProcessMetrics() (map[uint32]*ProcessStats, error)\n}",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/ebpf/interfaces.go",
+            "time": {
+              "start": 1779729442111,
+              "end": 1779729442640
+            }
+          },
+          "id": "prt_e602423fd001iMm530NyqDUKTg",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e602415dd0011oHVq6DlcuFYoo"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_03_YFo2bMbdES7u3rZgCke84911",
+          "state": {
+            "status": "completed",
+            "input": {
+              "offset": 1966,
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+              "limit": 25
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go</path>\n<type>file</type>\n<content>\n1966: \t// Register guardrail and policy routes\n1967: \tif s.guardrailManager != nil {\n1968: \t\tguardrailHandlers := web.NewGuardrailHandlers(s.guardrailManager, s.policyEngine)\n1969: \t\tif s.eventBroadcaster != nil {\n1970: \t\t\tguardrailHandlers.SetEventBroadcaster(s.eventBroadcaster)\n1971: \t\t}\n1972: \t\tguardrailHandlers.RegisterRoutes(s.router)\n1973: \t\tlog.Println(\"Guardrail and Policy routes configured\")\n1974: \t}\n1975: \n1976: \t// Register secret manager routes\n1977: \tif s.secretManager != nil {\n1978: \t\tsecretHandlers := web.NewSecretHandlers(s.secretManager)\n1979: \t\tsecretHandlers.RegisterRoutes(s.router)\n1980: \t\tlog.Println(\"Secret manager routes configured\")\n1981: \t}\n1982: \n1983: \t// Register anchoring service routes\n1984: \tif s.anchoringService != nil {\n1985: \t\tanchoringHandlers := web.NewAnchoringHandlers(s.anchoringService)\n1986: \t\tanchoringHandlers.RegisterRoutes(s.router)\n1987: \t\tlog.Println(\"Anchoring service routes configured\")\n1988: \t}\n1989: \n1990: \t// Register validation service routes\n\n(Showing lines 1966-1990 of 3190. Use offset=1991 to continue.)\n</content>",
+            "metadata": {
+              "preview": "\t// Register guardrail and policy routes\n\tif s.guardrailManager != nil {\n\t\tguardrailHandlers := web.NewGuardrailHandlers(s.guardrailManager, s.policyEngine)\n\t\tif s.eventBroadcaster != nil {\n\t\t\tguardrailHandlers.SetEventBroadcaster(s.eventBroadcaster)\n\t\t}\n\t\tguardrailHandlers.RegisterRoutes(s.router)\n\t\tlog.Println(\"Guardrail and Policy routes configured\")\n\t}\n\n\t// Register secret manager routes\n\tif s.secretManager != nil {\n\t\tsecretHandlers := web.NewSecretHandlers(s.secretManager)\n\t\tsecretHandlers.RegisterRoutes(s.router)\n\t\tlog.Println(\"Secret manager routes configured\")\n\t}\n\n\t// Register anchoring service routes\n\tif s.anchoringService != nil {\n\t\tanchoringHandlers := web.NewAnchoringHandlers(s.anchoringService)",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+            "time": {
+              "start": 1779729442584,
+              "end": 1779729443439
+            }
+          },
+          "id": "prt_e6024256e001KRD0wIwoRqF2i7",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e602415dd0011oHVq6DlcuFYoo"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 10845,
+            "input": 2414,
+            "output": 332,
+            "reasoning": 35,
+            "cache": {
+              "write": 0,
+              "read": 8064
+            }
+          },
+          "cost": 0,
+          "id": "prt_e6028d9e9001pyJxe5971AyIHL",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e602415dd0011oHVq6DlcuFYoo"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6023d0a0001zOBA2Zi9YkMj22",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 34835,
+          "input": 21198,
+          "output": 2869,
+          "reasoning": 16,
+          "cache": {
+            "write": 0,
+            "read": 10752
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779729750738,
+          "completed": 1779729837967
+        },
+        "finish": "stop",
+        "id": "msg_e6028dad20013vu2dSnsuQ94cz",
+        "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e602a2841001urmbkxT2K02fj3",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6028dad20013vu2dSnsuQ94cz"
+        },
+        {
+          "type": "reasoning",
+          "text": "I have all the data. Let me compile the results clearly for the user.",
+          "time": {
+            "start": 1779729836101,
+            "end": 1779729836110
+          },
+          "id": "prt_e602a28450016rvsWHit9cOEtl",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6028dad20013vu2dSnsuQ94cz"
+        },
+        {
+          "type": "text",
+          "text": "Here are all six requested code sections with exact line numbers:\n\n---\n\n## 1. Server struct with ALL fields — `main.go` lines 102-202\n\n```go\n102: type Server struct {\n103: \tconfig                 *config.Config\n104: \tdb                     *database.BuntDBManager\n105: \trouter                 *mux.Router\n106: \thttpServer             *http.Server\n107: \tp2pManager             *p2p.DVEP2PManager\n108: \tlogger                 *zap.Logger\n109: \ttransactionChainClient *transactionchain.Client\n110: \tvalidationChainClient  *validationchain.Client\n111: \n112: \t// eBPF subsystem\n113: \tebpfManager             ebpf.ManagerInterface\n114: \tvirtualContainerManager *ebpf.VirtualContainerManager\n115: \n116: \t// SERVER Memory Fabric\n117: \tnexusServer    *nexus.NexusMemoryServer\n118: \tnexusAllocator memory.Allocator\n119: \n120: \t// All services are held here\n121: \tdveManager                   *dvemanager.DVEManager\n122: \tdveCreationService           *dvecreation.DVECreationService\n123: \tdveRentalService             *dverental.DVERentalService\n124: \tvalidationCore               *validation.ValidationCore\n125: \tdnsService                   *dns.DynamicDNSService\n126: \tpluginServer                 *pluginserver.PluginServer\n127: \tdataEngine                   *data_engine.BuntDBDataEngine\n128: \tinferenceService             *inference.InferenceService\n129: \twebsocketService             *websocket.WebSocketService\n130: \tteeSecurityService           *teesecurity.TEESecurityService\n131: \tsystemHealthService          *systemhealth.SystemHealthService\n132: \tfabricManagementService      *fabricmanagement.PluginManagementService\n133: \tcontrollerIntegrationService *controllerintegration.ControllerIntegrationService\n134: \tcognitiveEngine              *cognitiveengine.CognitiveEngine\n135: \tcontainerOrchestrator        *container.ContainerOrchestrator\n136: \tsessionManager               *session.SessionManager\n137: \tendpointRegistry             *endpoints.EndpointRegistry\n138: \tgatewayManager               *knirvgateway.Manager\n139: \tgraphManager                 *knirvgraph.Manager\n140: \tgraphSyncManager             *knirvgraph.SyncManager\n141: \tchainManager                 *knirvchain.Manager\n142: \ttransactionChainManager      *transactionchain.Manager\n143: \tvalidationChainManager       *validationchain.Manager\n144: \n145: \t// Active Memory Layer (Markdown Fabric)\n146: \tpqcManager          *pqc.EncryptionManager\n147: \tmdStorage           *mdstorage.MarkdownStorageDriver\n148: \tvaultService        *vault.VaultService\n149: \treasoningEngine     *graph.ReasoningEngine\n150: \tactiveMemoryService *active_memory.ActiveMemoryService\n151: \n152: \t// Object Nest subsystem\n153: \tunifiedContainerManager *runtime.UnifiedContainerManager\n154: \n155: \t// Agent runtime (oh-my-pi) — being replaced by KNIRVAGENT\n156: \tagentService *agentsvc.AgentService\n157: \n158: \t// DVE Supervisor Agent (KNIRVAGENT embedded subprocess)\n159: \tknirvagentManager *knirvagent.Manager\n160: \n161: \t// ICME - Intentional Context Memory Engine\n162: \ticmeService *icme.Service\n163: \n164: \t// KNIRVSHELL Backend Integration Service\n165: \tknirvshellService *knirvshell.KNIRVSHELLService\n166: \n167: \t// Onboarding Service - Value System and Ontology Ingestion\n168: \tonboardingService *onboarding.OnboardingService\n169: \n170: \t// Production Services (Phase 3, 4, 8)\n171: \teventBroadcaster   *websocket.EventBroadcaster\n172: \tanchoringService   *evidence.AnchoringService\n173: \tsecretManager      *secrets.SecretManager\n174: \tworkflowService    *workflow.WorkflowService\n175: \trollupService      *rollup.Service\n176: \trollupPollInterval time.Duration\n177: \tguardrailManager   *guardrails.DynamicGuardrailManager\n178: \tpolicyEngine       *guardrails.PolicyEngine\n179: \n180: \t// KNIRVHASHER integration\n181: \thasherGRPCServer  *dvemanager.HasherGRPCServer\n182: \thasherIntegration *dvemanager.HasherIntegration\n183: \n184: \t// KNIRVHASHER Manager (headless binary subprocess)\n185: \thasherManager *knirvhasher.Manager\n186: \n187: \t// KNIRVARENA Manager (in-process static bundle server)\n188: \tarenaManager *knirvarena.Manager\n189: \n190: \t// Oracle service (root-only — managed via knirvoracle Manager)\n191: \toracleManager *knirvoracle.Manager\n192: \n193: \t// GraphRAG Knowledge Base Engine\n194: \tgraphRAGClient *knowledge_base.GraphRAGClient\n195: \n196: \t// Context for managing service lifecycle\n197: \tctx    context.Context\n198: \tcancel context.CancelFunc\n199: \n200: \t// State management\n201: \trunning bool\n202: }\n```\n\n---\n\n## 2. Guardrail manager initialization section — `main.go` lines 1375-1402\n\n```go\n1375: \tguardrailManager := guardrails.NewDynamicGuardrailManager(dbManager)\n1376: \tguardrailManager.SetEventBroadcaster(eventBroadcaster)\n1377: \tif err := guardrailManager.LoadConfigurations(); err != nil {\n1378: \t\tlog.Printf(\"Warning: Failed to load guardrail configurations: %v\", err)\n1379: \t}\n1380: \tif err := guardrailManager.LoadOntologyRules(); err != nil {\n1381: \t\tlog.Printf(\"Warning: Failed to load ontology rules: %v\", err)\n1382: \t}\n1383: \n1384: \t// Initialize Onboarding Service - Value System and Ontology Ingestion\n1385: \tonboardingService := onboarding.NewOnboardingService(dbManager, cognitiveEngine, guardrailManager)\n1386: \tlog.Println(\"Onboarding service initialized\")\n1387: \n1388: \t// Initialize PolicyEngine for ICME policy integration\n1389: \tpolicyEngine := guardrails.NewPolicyEngine(dbManager, guardrailManager)\n1390: \tif validationChainClient != nil {\n1391: \t\tpolicyEngine.SetValidationChainClient(validationChainClient)\n1392: \t\tlog.Println(\"PolicyEngine: validation chain client wired for policy anchoring\")\n1393: \t}\n1394: \tif icmeService != nil {\n1395: \t\ticmeAdapter := &icmePolicyAdapter{icme: icmeService}\n1396: \t\tpolicyEngine.SetICMEService(icmeAdapter)\n1397: \t\tlog.Println(\"PolicyEngine: ICME service wired for intent objective management\")\n1398: \t}\n1399: \tif err := policyEngine.LoadPolicies(); err != nil {\n1400: \t\tlog.Printf(\"Warning: Failed to load policies: %v\", err)\n1401: \t}\n1402: \tlog.Println(\"GuardrailManager and PolicyEngine initialized\")\n```\n\n---\n\n## 3. Guardrail route registration section — `main.go` lines 1966-1974\n\n```go\n1966: \t// Register guardrail and policy routes\n1967: \tif s.guardrailManager != nil {\n1968: \t\tguardrailHandlers := web.NewGuardrailHandlers(s.guardrailManager, s.policyEngine)\n1969: \t\tif s.eventBroadcaster != nil {\n1970: \t\t\tguardrailHandlers.SetEventBroadcaster(s.eventBroadcaster)\n1971: \t\t}\n1972: \t\tguardrailHandlers.RegisterRoutes(s.router)\n1973: \t\tlog.Println(\"Guardrail and Policy routes configured\")\n1974: \t}\n```\n\nNote: The preceding context (lines 1957-1965) was also provided in the read — the DVE Rental deprecation comment and Workflow route registration serve as visual anchors.\n\n---\n\n## 4. `ContainerOrchestrator` struct — `orchestrator.go` lines 15-21\n\n```go\n15: // ContainerOrchestrator manages the lifecycle of DVE containers\n16: type ContainerOrchestrator struct {\n17: \tportAllocator      *PortAllocator\n18: \tsshProvisioner     *SSHProvisioner\n19: \tconfig             *ContainerConfig\n20: \tteeSecurityService *teesecurity.TEESecurityService\n21: \tsshKeys            map[string]*SSHKeypair // containerID -> SSH keys\n22: }\n```\n\nAlso included for full context — the `ContainerConfig` type immediately follows at lines 24-35:\n\n```go\n24: type ContainerConfig struct {\n25: \tContainerRuntime         string        // \"docker\", \"podman\", \"kata\", \"gvisor\"\n26: \tBaseImage                string        // Base container image\n27: \tSSHPortRangeStart        int           // Starting port for SSH allocation\n28: \tSSHPortRangeEnd          int           // Ending port for SSH allocation\n29: \tValidationPortRangeStart int           // Starting port for validation allocation\n30: \tValidationPortRangeEnd   int           // Ending port for validation allocation\n31: \tErrorResPortRangeStart   int           // Starting port for error resolution allocation\n32: \tErrorResPortRangeEnd     int           // Ending port for error resolution allocation\n33: \tProvisioningTimeout      time.Duration // Timeout for container provisioning\n34: \tCleanupInterval          time.Duration // Interval for cleanup of expired containers\n35: }\n```\n\n---\n\n## 5. `DVEManager` struct — `dve_manager.go` lines 25-39\n\n```go\n25: type DVEManager struct {\n26: \tdb                   *database.BuntDBManager\n27: \tp2pManager           *p2p.DVEP2PManager\n28: \tebpfManager          ebpf.ManagerInterface\n29: \tconfig               *config.Config\n30: \tnodeTracker          *NodeTracker\n31: \tloadBalancer         *LoadBalancer\n32: \tinstanceRegistry     *InstanceRegistry\n33: \tlsmIntegration       *ebpf.LSMIntegration\n34: \tchainDiscovery       *ChainNativeNodeDiscovery\n35: \tctx                  context.Context\n36: \tcancel               context.CancelFunc\n37: \tmu                   sync.RWMutex\n38: \tenableChainDiscovery bool\n39: }\n```\n\n---\n\n## 6. `ebpf.ManagerInterface` — `interfaces.go` lines 8-14\n\n```go\n 8: // ManagerInterface defines the interface for eBPF Manager operations\n 9: type ManagerInterface interface {\n10: \tInitialize(ctx context.Context, config *Config) error\n11: \tShutdown() error\n12: \tGetMetrics() *Metrics\n13: \tGetProcessMetrics() (map[uint32]*ProcessStats, error)\n14: }\n```\n\n---\n\n**Summary of files referenced:**\n\n| # | Struct/Interface | File (absolute path) | Lines |\n|---|---|---|---|\n| 1 | `Server` | `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/cmd/backend_server/main.go` | 102-202 |\n| 2 | Guardrail init | same file | 1375-1402 |\n| 3 | Guardrail routes | same file | 1966-1974 |\n| 4 | `ContainerOrchestrator` | `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/container/orchestrator.go` | 15-21 |\n| 5 | `DVEManager` | `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go` | 25-39 |\n| 6 | `ManagerInterface` | `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/ebpf/interfaces.go` | 8-14 |",
+          "time": {
+            "start": 1779729836114,
+            "end": 1779729837620
+          },
+          "id": "prt_e602a28520010l7jqc7ni3lo2D",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6028dad20013vu2dSnsuQ94cz"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 34835,
+            "input": 21198,
+            "output": 2869,
+            "reasoning": 16,
+            "cache": {
+              "write": 0,
+              "read": 10752
+            }
+          },
+          "cost": 0,
+          "id": "prt_e602a2edb001UShKv0KWJ6wWNK",
+          "sessionID": "ses_19fdc2f7fffe0Y4orLDMsGoagd",
+          "messageID": "msg_e6028dad20013vu2dSnsuQ94cz"
+        }
+      ]
+    }
+  ]
+}
