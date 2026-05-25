@@ -1,9 +1,11 @@
 {
   "cli_version": "0.5.5",
   "checkpoint_id": "6bd36a116f11",
+  "session_id": "ae818a56-9a15-41d6-a7f3-b0ad8122564f",
   "strategy": "manual-commit",
+  "created_at": "2026-05-25T19:59:47.028122669Z",
   "branch": "main",
-  "checkpoints_count": 3,
+  "checkpoints_count": 1,
   "files_touched": [
     "CALIBER_LEARNINGS.md",
     "packages/KNIRVHASHER/cmd/heart/main.go",
@@ -54,31 +56,38 @@
     "packages/KNIRVSERVER/frontend/src/components/dashboard/neural-desktop-panel.tsx",
     "packages/KNIRVSERVER/frontend/src/hooks/use-cognitive-engine.ts"
   ],
-  "sessions": [
-    {
-      "metadata": "/6b/d36a116f11/0/metadata.json",
-      "transcript": "/6b/d36a116f11/0/full.jsonl",
-      "content_hash": "/6b/d36a116f11/0/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/6b/d36a116f11/1/metadata.json",
-      "transcript": "/6b/d36a116f11/1/full.jsonl",
-      "content_hash": "/6b/d36a116f11/1/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/6b/d36a116f11/2/metadata.json",
-      "transcript": "/6b/d36a116f11/2/full.jsonl",
-      "content_hash": "/6b/d36a116f11/2/content_hash.txt",
-      "prompt": ""
-    }
-  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "859b188d0b18",
   "token_usage": {
-    "input_tokens": 69,
-    "cache_creation_tokens": 229606,
-    "cache_read_tokens": 3830295,
-    "output_tokens": 46353,
-    "api_call_count": 58
-  }
+    "input_tokens": 61,
+    "cache_creation_tokens": 133688,
+    "cache_read_tokens": 3674422,
+    "output_tokens": 31079,
+    "api_call_count": 54
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-25T19:59:46.985864318Z",
+    "agent_lines": 6691,
+    "agent_removed": 261,
+    "human_added": 1209,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 7900,
+    "total_lines_changed": 9891,
+    "agent_percentage": 70.286118693762,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
 }
