@@ -1,0 +1,15 @@
+Very thorough — I need to understand the full scope of WASM/wazero dependencies in the KNIRVSERVER backend. 
+
+1. Read `backend/go.mod` — find all wazero and WASM-related dependencies
+2. Read `backend/cmd/backend_server/main.go` — find all references to wasm imports and resolution service wiring (lines 1389-1460 area)
+3. Glob for all files in `backend/internal/services/wasm/` 
+4. Read `backend/internal/services/wasm/resolution_service.go` in full
+5. Read `backend/internal/services/wasm/badge_wasm_mapper.go` in full  
+6. Read `backend/internal/services/wasm/wazero_gate.go` in full
+7. Read `backend/internal/services/wasm/guardrail_middleware.go` if it exists
+8. Search for any imports of the wasm package across the codebase (grep for `backend_server/internal/services/wasm` or `"wasm"`)
+9. Check if there are any `.wasm` files or WASM-related build scripts
+10. Check what the `DefaultWASMDir()` function returns
+11. Look for any Makefile or build scripts that compile WASM
+
+Return ALL content found so I can assess the full impact of removing the WASM dependency.
