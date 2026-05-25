@@ -1,0 +1,11 @@
+Thoroughly explore the KNIRVSERVER blockchain commit pipeline. Read and return the FULL contents of each of these files:
+
+1. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/rollup/transaction_rollup_service.go
+2. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/rollup/transaction_rollup_service_test.go
+3. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/rollup/types.go
+4. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/rollup/oracle_client.go
+5. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/rollup_handlers.go
+6. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/rollup_handlers_test.go
+7. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/payment/blockchain_service.go
+
+Return the FULL file contents plus any other rollup- or blockchain-related files you find via glob (e.g., **/rollup/** and **/*blockchain* in packages/KNIRVSERVER).
