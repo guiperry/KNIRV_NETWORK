@@ -1,0 +1,21 @@
+I need to understand the full WASM resolution pipeline in the KNIRVSERVER backend. Please explore these files thoroughly and return their full content or key sections:
+
+1. `backend/internal/services/wasm/` - all files, especially:
+   - `resolution_service.go` - the ResolutionService struct, its methods, how it loads/executes WASM
+   - `wasm_mapper.go` - how BadgeID → wasm module mapping works
+   - `wasm_remediator.go` - the bridge
+   - `production_sink.go` - the sink
+   - `infra_adapter.go` - infra adapter
+2. `backend/internal/services/cognitiveengine/guardrail_engine.go` - Evaluate flow, RemediationFn type, PolicyViolation struct
+3. `backend/internal/services/cognitiveengine/cognitive_engine.go` - how SetWASMMapper and RegisterRemediator work
+4. `backend/cmd/backend_server/main.go` - how the pipeline is wired together
+
+For each file, I need:
+- The full struct definitions
+- Key interfaces
+- How WASM modules are loaded, cached, resolved
+- What the `Resolver` interface looks like
+- What `resolution_signal.go` or similar types exist
+- How the ResolutionService.Start() loop works
+
+Return all the relevant code sections so I can understand the full flow.
