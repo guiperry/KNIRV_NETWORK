@@ -1,0 +1,19 @@
+Very thorough search — I need to find all "inference switch", "generator switcher", "external generate", "GeneratorSwitcher", "ExternalGenerateFn", "Gorgonite", "internal transformer" related code in the KNIRVSERVER backend and KNIRVHASHER packages.
+
+Search in both:
+1. `packages/KNIRVSERVER/backend/` — especially `internal/services/inferencer/` and `internal/services/cognitiveengine/`
+2. `packages/KNIRVHASHER/` — especially `pkg/hashing/transformer/` and `cmd/heart/`
+
+For each match found:
+- Return the full file path and line numbers
+- Show the surrounding context (10-20 lines)
+- Identify the struct/interface and its methods
+
+Specifically I need to understand:
+1. What is the current GeneratorSwitcher / ExternalGenerateFn mechanism?
+2. How does the inferencer package decide between external LLM vs internal?
+3. What's the Gorgonite / internal transformer model?
+4. How is it currently configured and wired?
+5. Where is the Neural Desktop Chat implemented?
+
+Be very thorough — search for patterns like: GeneratorSwitcher, ExternalGenerateFn, external_generator, internal_generator, Gorgonite, gorgonite, transformer, inference_switch, model_switch, NewGPT, GenerateText, GenerateTextWithContext
