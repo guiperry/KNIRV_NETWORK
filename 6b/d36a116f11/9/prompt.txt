@@ -1,0 +1,7 @@
+In /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend, collect:
+
+1. internal/web/guardrail_handlers.go: GuardrailHandlers struct, ValidateResourceUsage handler, RegisterRoutes method
+2. internal/services/guardrails/guardrail_manager.go: DynamicGuardrailManager struct, GuardrailViolation struct, ValidateResourceUsage() method, RecordViolation() method, GuardrailConfig struct
+3. internal/services/cognitiveengine/event_bus.go: EventBus struct, EventType constants, EngineEvent struct
+
+Return full code with line numbers.
