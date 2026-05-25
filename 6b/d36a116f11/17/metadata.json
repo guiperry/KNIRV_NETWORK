@@ -1,0 +1,55 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "6bd36a116f11",
+  "session_id": "ses_1a067d5aaffeXscpn5yxsoDWdV",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-25T19:59:55.098843689Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CALIBER_LEARNINGS.md"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "c84492e1790e",
+  "token_usage": {
+    "input_tokens": 72361,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 144128,
+    "output_tokens": 2372,
+    "api_call_count": 4
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-25T19:59:55.079218173Z",
+    "agent_lines": 8,
+    "agent_removed": 13,
+    "human_added": 7890,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 7898,
+    "total_lines_changed": 9889,
+    "agent_percentage": 0.2123571645262413,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 294,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "CALIBER_LEARNINGS.md": 2,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      }
+    }
+  ]
+}

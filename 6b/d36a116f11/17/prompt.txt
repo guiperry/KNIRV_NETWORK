@@ -1,0 +1,9 @@
+Find and explore the Policy Editor frontend for KNIRVSERVER. Search comprehensively:
+
+1. Glob for **/*policy* in /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK (catch frontend files)
+2. Glob for **/*guardrail* in /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK
+3. Read the frontend directory structure: /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/frontend/ or whatever the frontend dir is.
+4. Look for any OpenAPI or swagger spec files: Glob for **/*openapi* and **/*swagger* and **/*.yaml in /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER
+5. Read any frontend policy editor files you find.
+
+Return the FULL contents of any policy editor, guardrail UI, or related frontend files, and the directory listing of the frontend folder. Also list all files found matching the glob patterns.
