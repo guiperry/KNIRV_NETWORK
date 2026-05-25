@@ -112,8 +112,8 @@ const DVECardModal: React.FC<DVECardModalProps> = ({ isOpen, onClose, node }) =>
 
   if (!isOpen) return null;
 
-  const getTEEIcon = (teeType: string) => {
-    switch (teeType.toUpperCase()) {
+  const getTEEIcon = (teeType: string | undefined | null) => {
+    switch ((teeType || '').toUpperCase()) {
       case 'SGX': return <Shield className="w-5 h-5 text-blue-500" />;
       case 'SEV-SNP': return <Shield className="w-5 h-5 text-green-500" />;
       case 'TDX': return <Shield className="w-5 h-5 text-purple-500" />;
@@ -269,7 +269,7 @@ const DVECardModal: React.FC<DVECardModalProps> = ({ isOpen, onClose, node }) =>
                           {endpoint.endpoint_type.replace('-', ' ')} ACCESS
                         </p>
                         <p className="text-[10px] font-mono text-slate-500">
-                          {endpoint.host}:{endpoint.port} • {endpoint.protocol.toUpperCase()}
+                          {endpoint.host}:{endpoint.port} • {(endpoint.protocol || '').toUpperCase()}
                         </p>
                       </div>
                     </div>

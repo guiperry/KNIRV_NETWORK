@@ -209,7 +209,7 @@ export default function DVECreationManagement({ isOpen, onClose, onCreated, defa
                               <Coins className="w-3 h-3 mr-1" /> {creation.stake_amount.toLocaleString()} NRN Staked
                             </div>
                             <div className="flex items-center text-xs text-muted-foreground">
-                              <Cpu className="w-3 h-3 mr-1" /> {creation.tee_type.toUpperCase()}
+                              <Cpu className="w-3 h-3 mr-1" /> {(creation.tee_type || '').toUpperCase()}
                             </div>
                           </div>
                         </div>

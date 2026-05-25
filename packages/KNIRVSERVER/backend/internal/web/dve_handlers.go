@@ -19,10 +19,16 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// wsBroadcaster is a minimal interface for pushing real-time events to connected clients.
+type wsBroadcaster interface {
+	Broadcast(event string, payload interface{})
+}
+
 type DVEHandlers struct {
 	dveManager          *dvemanager.DVEManager
 	dveCreationService  *dvecreation.DVECreationService
 	sessionManager *session.SessionManager
+	wsBroadcaster  wsBroadcaster
 	agentService   interface {
 		BroadcastAgentMessage(dveID string, message string)
 	}
@@ -43,6 +49,11 @@ func NewDVEHandlers(dveManager *dvemanager.DVEManager, dveCreationService *dvecr
 		dveManager: dveManager,
 		dveCreationService: dveCreationService,
 	}
+}
+
+// SetWebSocketService wires in a broadcaster so mutations immediately notify connected clients.
+func (h *DVEHandlers) SetWebSocketService(ws wsBroadcaster) {
+	h.wsBroadcaster = ws
 }
 
 // SetSessionManager wires in the session manager for SSH session creation.
@@ -506,6 +517,10 @@ func (h *DVEHandlers) PostDVENodes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if h.wsBroadcaster != nil {
+		h.wsBroadcaster.Broadcast("dve-node-discovered", node)
+	}
+
 	response := DVENodeResponse{
 		Success:   true,
 		Data:      node,
@@ -623,6 +638,10 @@ func (h *DVEHandlers) UpdateDVENode(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(response)
 		return
+	}
+
+	if h.wsBroadcaster != nil {
+		h.wsBroadcaster.Broadcast("dve-node-updated", node)
 	}
 
 	response := DVENodeResponse{

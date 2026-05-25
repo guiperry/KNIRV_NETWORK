@@ -138,8 +138,8 @@ export const DVENodesPanel = React.memo<DVENodesPanelProps>(({ className, onRent
     }
   }, []);
 
-  const getTEEIcon = useCallback((teeType: string) => {
-    switch (teeType.toUpperCase()) {
+  const getTEEIcon = useCallback((teeType: string | undefined | null) => {
+    switch ((teeType || '').toUpperCase()) {
       case 'SGX': return <Shield className="w-4 h-4 text-blue-500" />;
       case 'SEV-SNP': return <Shield className="w-4 h-4 text-green-500" />;
       case 'TDX': return <Shield className="w-4 h-4 text-purple-500" />;

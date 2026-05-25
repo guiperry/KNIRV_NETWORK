@@ -25,6 +25,12 @@ type DVECreationHandlers struct {
 	sessionManager        *session.SessionManager
 	endpointRegistry      *endpoints.EndpointRegistry
 	db                    *database.BuntDBManager
+	wsBroadcaster         wsBroadcaster
+}
+
+// SetWebSocketService wires in a broadcaster so DVE creation immediately notifies connected clients.
+func (h *DVECreationHandlers) SetWebSocketService(ws wsBroadcaster) {
+	h.wsBroadcaster = ws
 }
 
 func NewDVECreationHandlers(
@@ -73,6 +79,28 @@ func (h *DVECreationHandlers) CreateDVE(w http.ResponseWriter, r *http.Request) 
 	if !resp.Success {
 		h.sendError(w, resp.Error, http.StatusBadRequest)
 		return
+	}
+
+	// Notify connected frontend clients immediately — the frontend listens for
+	// 'dve-node-discovered' to refresh the DVE list without waiting for the
+	// next polling cycle. Include all fields that the DVENode renderer needs
+	// so partial payloads cannot cause 'tee_type.toUpperCase()' crashes.
+	if h.wsBroadcaster != nil && resp.DVECreation != nil {
+		h.wsBroadcaster.Broadcast("dve-node-discovered", map[string]interface{}{
+			"id":               resp.DVECreation.DVENodeID,
+			"name":             resp.DVECreation.Name,
+			"status":           "online",
+			"tee_type":         resp.DVECreation.TEEType,
+			"stake_amount":     resp.DVECreation.StakeAmount,
+			"location":         "local-dve",
+			"capabilities":     resp.DVECreation.Capabilities,
+			"reputation_score": 100,
+			"cpu_usage":        0.0,
+			"memory_usage":     0.0,
+			"last_heartbeat":   resp.DVECreation.LastHeartbeat.Format("2006-01-02T15:04:05Z07:00"),
+			"created_at":       resp.DVECreation.RegisteredAt.Format("2006-01-02T15:04:05Z07:00"),
+			"updated_at":       resp.DVECreation.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		})
 	}
 
 	h.sendJSON(w, resp, "DVE node created successfully", http.StatusCreated)

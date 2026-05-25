@@ -1928,6 +1928,9 @@ func (s *Server) setupRoutes() {
 		if s.knirvagentManager != nil {
 			dveHandlers.SetKnirvagentManager(s.knirvagentManager)
 		}
+		if s.websocketService != nil {
+			dveHandlers.SetWebSocketService(s.websocketService)
+		}
 		dveHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE manager routes configured")
 	}
@@ -1935,6 +1938,9 @@ func (s *Server) setupRoutes() {
 	// Register DVE creation routes
 	if s.dveCreationService != nil {
 		dveCreationHandlers := web.NewDVECreationHandlers(s.dveCreationService, s.containerOrchestrator, s.sessionManager, s.endpointRegistry, s.db)
+		if s.websocketService != nil {
+			dveCreationHandlers.SetWebSocketService(s.websocketService)
+		}
 		dveCreationHandlers.RegisterRoutes(s.router, authMiddleware)
 		log.Println("DVE creation routes configured")
 	}
@@ -2155,6 +2161,9 @@ func (s *Server) setupRoutes() {
 	}
 	if s.sessionManager != nil {
 		dveHandlers.SetSessionManager(s.sessionManager)
+	}
+	if s.websocketService != nil {
+		dveHandlers.SetWebSocketService(s.websocketService)
 	}
 
 	browserDVEHub := web.NewBrowserDVEHub(s.dveManager)
