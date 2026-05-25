@@ -1,0 +1,868 @@
+{
+  "info": {
+    "id": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+    "slug": "shiny-panda",
+    "projectID": "04b7e1a8120cdaa36434d2d66f64522e4313fe2b",
+    "directory": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+    "path": "packages/KNIRVSERVER",
+    "parentID": "ses_1a068485cffeoKY1KW873Ysf8p",
+    "title": "Explore WASM resolution service (@explore subagent)",
+    "agent": "explore",
+    "model": {
+      "id": "big-pickle",
+      "providerID": "opencode",
+      "variant": "default"
+    },
+    "version": "1.15.10",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "cost": 0,
+    "tokens": {
+      "input": 40530,
+      "output": 7821,
+      "reasoning": 177,
+      "cache": {
+        "read": 88960,
+        "write": 0
+      }
+    },
+    "permission": [
+      {
+        "permission": "todowrite",
+        "action": "deny",
+        "pattern": "*"
+      },
+      {
+        "permission": "task",
+        "action": "deny",
+        "pattern": "*"
+      }
+    ],
+    "time": {
+      "created": 1779727638591,
+      "updated": 1779727707132
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1779727638662
+        },
+        "tools": {
+          "todowrite": false,
+          "task": false
+        },
+        "agent": "explore",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "big-pickle"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_e6008a07b001IJG4RZ2wQSVni2",
+        "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "I need to understand the WASM resolution pipeline in the KNIRVSERVER codebase. Please find and read the following files in /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER:\n\n1. The ResolutionService implementation and ResolutionSignal struct (search for these in backend/internal/services/wasm/ or similar)\n2. The RemediationSink interface (search for RemediationSink)\n3. The WazeroGate and WazeroPool types\n4. The BadgeWASMMapper type\n5. The guardrail_middleware.go in wasm/\n\nFor each file, return:\n- Full file path\n- The ResolutionSignal struct definition\n- The ResolutionService struct and its methods (Resolve, Submit, etc.)\n- The RemediationSink interface definition\n- Any existing implementations of RemediationSink\n- How WazeroGate relates to WazeroPool\n\nReturn ALL the code as-is so I can use it as reference.",
+          "id": "prt_e6008a0a8001ZlToE9hkYobMco",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a07b001IJG4RZ2wQSVni2"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008a07b001IJG4RZ2wQSVni2",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 8178,
+          "input": 7584,
+          "output": 571,
+          "reasoning": 23,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727638781,
+          "completed": 1779727660657
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6008a0fd001b1P4i669a1MBGg",
+        "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e6008b9e100162tBqNUi2kVzYj",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        },
+        {
+          "type": "reasoning",
+          "text": "Let me search for these files and code structures systematically. I'll start with broad searches to find the relevant files.",
+          "time": {
+            "start": 1779727645387,
+            "end": 1779727645778
+          },
+          "id": "prt_e6008bacb0012AULsQc1GTSUQy",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        },
+        {
+          "type": "text",
+          "text": "I'll start by searching for all the relevant files and code structures in parallel.",
+          "time": {
+            "start": 1779727645786,
+            "end": 1779727648942
+          },
+          "id": "prt_e6008bc5a001U7iIwm6QtB9QpS",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_eg9BAQhdBe7MNC19jMV50346",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "ResolutionSignal",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 16 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/README.md:\n  Line 325:     └── eBPF EventCollector ───► ResolutionSignal ───► ResolutionService.Submit()\n\n  Line 352: 3. **eBPF EventCollector**: `SubscribeResolution()` registers a `ResolutionSignalHandler`. Events matching resolution badge mappings are forwarded to `ResolutionService.Submit()`.\n\n  Line 354: 4. **ResolutionService**: Background workers consume `ResolutionSignal` entries, invoke `resolveError()` and `ErrorClass()` via WazeroPool, and dispatch results to the `RemediationSink`.\n\n  Line 377:     resSvc.Submit(&wasm.ResolutionSignal{\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/ebpf/events.go:\n  Line 20: // ResolutionSignalHandler processes eBPF events that have been classified\n\n  Line 26: type ResolutionSignalHandler func(event *SyscallEvent, badgeID string, tag string)\n\n  Line 32: \tresolutionHandler ResolutionSignalHandler // optional WASM resolution handler\n\n  Line 54: func (ec *EventCollector) SubscribeResolution(handler ResolutionSignalHandler) {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go:\n  Line 54: \tsignalChan   chan *ResolutionSignal\n\n  Line 61: // ResolutionSignal is produced by the eBPF EventCollector when a\n\n  Line 63: type ResolutionSignal struct {\n\n  Line 104: \t\tsignalChan: make(chan *ResolutionSignal, signalBuffer),\n\n  Line 138: func (rs *ResolutionService) Submit(signal *ResolutionSignal) bool {\n\n  Line 156: func (rs *ResolutionService) Resolve(ctx context.Context, signal *ResolutionSignal) (*ResolutionResult, error) {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go:\n  Line 340: \tsignal := &ResolutionSignal{\n\n  Line 369: \tsignal := &ResolutionSignal{\n",
+            "metadata": {
+              "matches": 16,
+              "truncated": false
+            },
+            "title": "ResolutionSignal",
+            "time": {
+              "start": 1779727646233,
+              "end": 1779727649220
+            }
+          },
+          "id": "prt_e6008bc9c001jo6jtkRg9YFAq4",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_0klaOXzyRCM4cb9l6OHD9895",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "ResolutionService",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 27 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/README.md:\n  Line 317:     │                    └── resolution.wasm ──► ResolutionService\n\n  Line 325:     └── eBPF EventCollector ───► ResolutionSignal ───► ResolutionService.Submit()\n\n  Line 352: 3. **eBPF EventCollector**: `SubscribeResolution()` registers a `ResolutionSignalHandler`. Events matching resolution badge mappings are forwarded to `ResolutionService.Submit()`.\n\n  Line 354: 4. **ResolutionService**: Background workers consume `ResolutionSignal` entries, invoke `resolveError()` and `ErrorClass()` via WazeroPool, and dispatch results to the `RemediationSink`.\n\n  Line 374: resSvc := wasm.NewResolutionService(wasmMapper, remediationSink, 4, 256)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/ebpf/events.go:\n  Line 21: // as resolution triggers.  These are forwarded to the ResolutionService\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go:\n  Line 38: // ResolutionService implements Option B of the WASM Integration\n\n  Line 48: type ResolutionService struct {\n\n  Line 84: // NewResolutionService creates a resolution worker pool.\n\n  Line 87: func NewResolutionService(\n\n  Line 92: ) *ResolutionService {\n\n  Line 99: \treturn &ResolutionService{\n\n  Line 111: func (rs *ResolutionService) Start(ctx context.Context, numWorkers int) {\n\n  Line 123: func (rs *ResolutionService) Stop() {\n\n  Line 138: func (rs *ResolutionService) Submit(signal *ResolutionSignal) bool {\n\n  Line 156: func (rs *ResolutionService) Resolve(ctx context.Context, signal *ResolutionSignal) (*ResolutionResult, error) {\n\n  Line 241: func (rs *ResolutionService) Stats() *ResolutionStats {\n\n  Line 250: func (rs *ResolutionService) worker(ctx context.Context, id int) {\n\n  Line 275: func (rs *ResolutionService) getOrCreatePool(wasmPath string) *WazeroPool {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go:\n  Line 321: // ── ResolutionService Tests ───────────────────────────────────────────\n\n  Line 332: func TestResolutionService_SubmitAndStats(t *testing.T) {\n\n  Line 337: \tsvc := NewResolutionService(mapper, sink, 2, 16)\n\n  Line 359: func TestResolutionService_ResolveWithoutWASM(t *testing.T) {\n\n  Line 367: \tsvc := NewResolutionService(mapper, sink, 2, 16)\n\n  Line 395: func TestResolutionService_StartStop(t *testing.T) {\n\n  Line 399: \tsvc := NewResolutionService(mapper, sink, 2, 8)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/WASM_Integration_Investigation.md:\n  Line 66:     *   Create a `ResolutionService` that maintains a pool of `WazeroGate` instances specifically for `resolution.wasm`. The DVE supervisor agent queries WASM programs via function call from this pool.\n",
+            "metadata": {
+              "matches": 27,
+              "truncated": false
+            },
+            "title": "ResolutionService",
+            "time": {
+              "start": 1779727646584,
+              "end": 1779727649323
+            }
+          },
+          "id": "prt_e6008be57001wPsDfkObLBsFHS",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_02_oyEPTXAVn5yEmjQ3s6IU4964",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "RemediationSink",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 10 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/README.md:\n  Line 354: 4. **ResolutionService**: Background workers consume `ResolutionSignal` entries, invoke `resolveError()` and `ErrorClass()` via WazeroPool, and dispatch results to the `RemediationSink`.\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go:\n  Line 29: // RemediationSink receives resolution results and dispatches them\n\n  Line 31: type RemediationSink interface {\n\n  Line 50: \tsink         RemediationSink\n\n  Line 89: \tsink RemediationSink,\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go:\n  Line 323: type mockRemediationSink struct {\n\n  Line 327: func (m *mockRemediationSink) DispatchRemediation(ctx context.Context, result *ResolutionResult) error {\n\n  Line 336: \tsink := &mockRemediationSink{}\n\n  Line 366: \tsink := &mockRemediationSink{}\n\n  Line 398: \tsink := &mockRemediationSink{}\n",
+            "metadata": {
+              "matches": 10,
+              "truncated": false
+            },
+            "title": "RemediationSink",
+            "time": {
+              "start": 1779727647296,
+              "end": 1779727649386
+            }
+          },
+          "id": "prt_e6008c0bb001xHNH0MXkgYfmdU",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_03_gf5at3j1KAMxxjlScNXw7529",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "WazeroGate|WazeroPool",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 51 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/README.md:\n  Line 333: | `services/wasm/wazero_gate.go` | WASM runtime | Wazero-based runtime for loading and executing .wasm binaries; includes WazeroPool |\n\n  Line 354: 4. **ResolutionService**: Background workers consume `ResolutionSignal` entries, invoke `resolveError()` and `ErrorClass()` via WazeroPool, and dispatch results to the `RemediationSink`.\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper.go:\n  Line 78: //   - Provides a lookup for the WazeroGate runtime and middleware.\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go:\n  Line 46: // The service maintains a pool of WazeroGate instances per resolution.wasm\n\n  Line 51: \tpools        map[string]*WazeroPool // wasmPath → pool\n\n  Line 85: // poolSize controls how many concurrent WazeroGate instances per module.\n\n  Line 102: \t\tpools:      make(map[string]*WazeroPool),\n\n  Line 132: \trs.pools = make(map[string]*WazeroPool)\n\n  Line 185: \t// Acquire a WazeroGate from the pool for this module.\n\n  Line 275: func (rs *ResolutionService) getOrCreatePool(wasmPath string) *WazeroPool {\n\n  Line 289: \tpool = NewWazeroPool(wasmPath, rs.poolSize)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go:\n  Line 465: func TestWazeroPool_NewAndClose(t *testing.T) {\n\n  Line 466: \tpool := NewWazeroPool(\"/nonexistent/path.wasm\", 4)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go:\n  Line 33: // The middleware uses a pool of pre-compiled WazeroGate instances\n\n  Line 37: \tpools    map[string]*WazeroPool // wasmPath → pool\n\n  Line 42: // Badge-to-WASM mapper.  poolSize controls how many WazeroGate instances\n\n  Line 50: \t\tpools:    make(map[string]*WazeroPool),\n\n  Line 104: // Close releases all WazeroGate pools.\n\n  Line 109: \tgm.pools = make(map[string]*WazeroPool)\n\n  Line 150: \t// Acquire a WazeroGate from the pool.\n\n  Line 184: func (gm *GuardrailMiddleware) getOrCreatePool(wasmPath string) *WazeroPool {\n\n  Line 190: \tpool := NewWazeroPool(wasmPath, gm.poolSize)\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/wazero_gate.go:\n  Line 16: // WazeroGate wraps the wazero WASM runtime for KNIRVSERVER.  It loads\n\n  Line 27: // module.  For concurrent resolution across multiple DVEs, use WazeroPool.\n\n  Line 28: type WazeroGate struct {\n\n  Line 38: // NewWazeroGate creates a gate that loads and validates a .wasm binary.\n\n  Line 39: func NewWazeroGate(ctx context.Context, wasmPath string) (*WazeroGate, error) {\n\n  Line 52: \treturn &WazeroGate{\n\n  Line 60: func (wg *WazeroGate) Instantiate(ctx context.Context) error {\n\n  Line 82: func (wg *WazeroGate) GuardrailClass(ctx context.Context) (uint32, error) {\n\n  Line 106: func (wg *WazeroGate) ResolveError(ctx context.Context) (bool, error) {\n\n  Line 129: func (wg *WazeroGate) ErrorClass(ctx context.Context) (uint32, error) {\n\n  Line 151: func (wg *WazeroGate) ApplyPatch(ctx context.Context) (bool, error) {\n\n  Line 173: func (wg *WazeroGate) ListExports(ctx context.Context) ([]string, error) {\n\n  Line 186: func (wg *WazeroGate) Close() error {\n\n  Line 205: func (wg *WazeroGate) WasmPath() string { return wg.wasmPath }\n\n  Line 207: // ── WazeroPool ──────────────────────────────────────────────────────────\n\n  Line 209: // WazeroPool maintains a bounded pool of reusable WazeroGate instances\n\n  Line 212: type WazeroPool struct {\n\n  Line 214: \tgates    []*WazeroGate\n\n  Line 220: // NewWazeroPool creates a pool that lazily instantiates up to size gates.\n\n  Line 221: func NewWazeroPool(wasmPath string, size int) *WazeroPool {\n\n  Line 225: \treturn &WazeroPool{\n\n  Line 227: \t\tgates:    make([]*WazeroGate, size),\n\n  Line 233: func (wp *WazeroPool) Acquire(ctx context.Context) (*WazeroGate, error) {\n\n  Line 241: \t\tgate, err := NewWazeroGate(ctx, wp.wasmPath)\n\n  Line 252: func (wp *WazeroPool) CloseAll() {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/WASM_Integration_Investigation.md:\n  Line 16: *   **WASM Runtime:** Uses `wazero` (via `WazeroGate`) for execution within the Go backend.\n\n  Line 43: *   **Mechanism:** Modify `ViewportProxy.HandleHTTP` to intercept incoming requests. Before proxying to the container, the proxy invokes the `GuardrailClass()` function in `rules.wasm` via `WazeroGate`.\n\n  Line 66:     *   Create a `ResolutionService` that maintains a pool of `WazeroGate` instances specifically for `resolution.wasm`. The DVE supervisor agent queries WASM programs via function call from this pool.\n\n  Line 72: The most viable path for \"operational fulfilment\" is a **Hybrid Approach**: Use eBPF for low-level signal detection based on Badge ontology, and use the `WazeroGate` in userspace to execute the generated `resolution.wasm` as a \"logic gate\" for remediation.\n",
+            "metadata": {
+              "matches": 51,
+              "truncated": false
+            },
+            "title": "WazeroGate|WazeroPool",
+            "time": {
+              "start": 1779727647831,
+              "end": 1779727649484
+            }
+          },
+          "id": "prt_e6008c287001lfbqyndgEbkiwL",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_04_dKqpqw6LBOtZGInNFw3r8161",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "BadgeWASMMapper",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 57 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/badge/guardrail_injector.go:\n  Line 45: // WASMMapperInterface abstracts the BadgeWASMMapper (optional, for WASM guardrail support).\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/README.md:\n  Line 313: BadgeWASMMapper ────► rules.wasm ────► GuardrailMiddleware (ViewportProxy)\n\n  Line 348: 1. **GuardrailEngine**: `InjectBadgeRules()` now also calls `BadgeWASMMapper.RegisterBadge()` when a WASM mapper is configured via `SetWASMMapper()`.\n\n  Line 360: wasmMapper := wasm.NewBadgeWASMMapper(\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper.go:\n  Line 75: // BadgeWASMMapper is the core Badge-to-WASM mapping service.  It:\n\n  Line 79: type BadgeWASMMapper struct {\n\n  Line 86: // NewBadgeWASMMapper creates a mapper that reads .wasm modules from wasmDir.\n\n  Line 88: func NewBadgeWASMMapper(wasmDir, persistPath string) *BadgeWASMMapper {\n\n  Line 89: \tm := &BadgeWASMMapper{\n\n  Line 114: func (m *BadgeWASMMapper) RegisterBadge(badgeID string, ontologyTags []string) error {\n\n  Line 162: func (m *BadgeWASMMapper) RemoveBadge(badgeID string) {\n\n  Line 172: func (m *BadgeWASMMapper) GetGuardrailWASM(badgeID string) []WASMMapping {\n\n  Line 177: func (m *BadgeWASMMapper) GetResolutionWASM(badgeID string) []WASMMapping {\n\n  Line 182: func (m *BadgeWASMMapper) GetPatchWASM(badgeID string) []WASMMapping {\n\n  Line 188: func (m *BadgeWASMMapper) LookupWASM(badgeID, tag string) (string, WASMType, error) {\n\n  Line 208: func (m *BadgeWASMMapper) GetEntry(badgeID string) (*BadgeEntry, bool) {\n\n  Line 216: func (m *BadgeWASMMapper) ListBadges() []string {\n\n  Line 228: func (m *BadgeWASMMapper) RefreshWASMDir() {\n\n  Line 249: func (m *BadgeWASMMapper) Stats() map[string]interface{} {\n\n  Line 285: func (m *BadgeWASMMapper) getByClassification(badgeID string, class BadgeTagClassification) []WASMMapping {\n\n  Line 304: func (m *BadgeWASMMapper) findWASMForTag(tag string, wasmType WASMType) (path, hash string) {\n\n  Line 373: func (m *BadgeWASMMapper) savePersisted() {\n\n  Line 387: func (m *BadgeWASMMapper) loadPersisted() {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go:\n  Line 49: \tmapper       *BadgeWASMMapper\n\n  Line 88: \tmapper *BadgeWASMMapper,\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go:\n  Line 57: // BadgeWASMMapperInterface defines the minimal interface the GuardrailEngine\n\n  Line 58: // requires from the BadgeWASMMapper.  This avoids a direct import cycle\n\n  Line 60: type BadgeWASMMapperInterface interface {\n\n  Line 76: \twasmMapper         BadgeWASMMapperInterface // optional Badge-to-WASM integration\n\n  Line 108: func (ge *GuardrailEngine) SetWASMMapper(mapper BadgeWASMMapperInterface) {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go:\n  Line 14: // ── BadgeWASMMapper Tests ──────────────────────────────────────────────\n\n  Line 16: func TestBadgeWASMMapper_RegisterBadge(t *testing.T) {\n\n  Line 18: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 65: func TestBadgeWASMMapper_LookupWASM(t *testing.T) {\n\n  Line 67: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 105: func TestBadgeWASMMapper_RemoveBadge(t *testing.T) {\n\n  Line 107: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 118: func TestBadgeWASMMapper_GetGuardrailAndResolutionWASM(t *testing.T) {\n\n  Line 120: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 151: func TestBadgeWASMMapper_Persistence(t *testing.T) {\n\n  Line 156: \tmapper1 := NewBadgeWASMMapper(tmpDir, persistPath)\n\n  Line 160: \tmapper2 := NewBadgeWASMMapper(tmpDir, persistPath)\n\n  Line 170: func TestBadgeWASMMapper_RefreshWASMDir(t *testing.T) {\n\n  Line 172: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 197: func TestBadgeWASMMapper_Stats(t *testing.T) {\n\n  Line 199: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 216: func TestBadgeWASMMapper_ListBadges(t *testing.T) {\n\n  Line 218: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 237: func TestBadgeWASMMapper_DefaultWASMDir(t *testing.T) {\n\n  Line 334: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 361: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 397: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 413: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 433: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n  Line 452: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go:\n  Line 36: \tmapper   *BadgeWASMMapper\n\n  Line 44: func NewGuardrailMiddleware(mapper *BadgeWASMMapper, poolSize int) *GuardrailMiddleware {\n",
+            "metadata": {
+              "matches": 57,
+              "truncated": false
+            },
+            "title": "BadgeWASMMapper",
+            "time": {
+              "start": 1779727647947,
+              "end": 1779727649440
+            }
+          },
+          "id": "prt_e6008c490001J3hX0O817IkR4u",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_05_Hzp16XrmUHlUH8rsIlXJ1814",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/backend/internal/services/wasm/**",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/wazero_gate.go",
+            "metadata": {
+              "count": 5,
+              "truncated": false
+            },
+            "title": "packages/KNIRVSERVER",
+            "time": {
+              "start": 1779727648423,
+              "end": 1779727650340
+            }
+          },
+          "id": "prt_e6008c554001tCusvAlJ7ssydV",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_06_gNQgNcbTEZhOIcmyQBAa9729",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "**/guardrail_middleware*",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go",
+            "metadata": {
+              "count": 1,
+              "truncated": false
+            },
+            "title": "packages/KNIRVSERVER",
+            "time": {
+              "start": 1779727648871,
+              "end": 1779727650169
+            }
+          },
+          "id": "prt_e6008c6f9001OL7N1n7S8O7QF5",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 8178,
+            "input": 7584,
+            "output": 571,
+            "reasoning": 23,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0,
+          "id": "prt_e6008f033001VOt1rfW3qzmDEK",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008a0fd001b1P4i669a1MBGg"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008a07b001IJG4RZ2wQSVni2",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 13797,
+          "input": 5334,
+          "output": 378,
+          "reasoning": 21,
+          "cache": {
+            "write": 0,
+            "read": 8064
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727660812,
+          "completed": 1779727679101
+        },
+        "finish": "tool-calls",
+        "id": "msg_e6008f70c001K8rAZHAkzu664u",
+        "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e600908fa001jzJQKoebfrELm3",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008f70c001K8rAZHAkzu664u"
+        },
+        {
+          "type": "reasoning",
+          "text": "I found all the relevant files. Now let me read them all in parallel to get the full code.",
+          "time": {
+            "start": 1779727665857,
+            "end": 1779727666005
+          },
+          "id": "prt_e60090ac1001hTeEcY4SSC0V5v",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008f70c001K8rAZHAkzu664u"
+        },
+        {
+          "type": "text",
+          "text": "I found all the relevant files. Let me now read each one in full.",
+          "time": {
+            "start": 1779727666010,
+            "end": 1779727667968
+          },
+          "id": "prt_e60090b5a001kGgEDNcTIkkdsh",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008f70c001K8rAZHAkzu664u"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_5KqsBWIHgUVAot6X5EXR3957",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go</path>\n<type>file</type>\n<content>\n1: // Copyright 2026 KNIRV-SERVER\n2: // SPDX-License-Identifier: GPL-3.0-or-later\n3: \n4: package wasm\n5: \n6: import (\n7: \t\"context\"\n8: \t\"errors\"\n9: \t\"fmt\"\n10: \t\"log\"\n11: \t\"sync\"\n12: \t\"time\"\n13: )\n14: \n15: // ResolutionResult captures the outcome of a resolution.wasm invocation.\n16: type ResolutionResult struct {\n17: \tBadgeID      string    `json:\"badge_id\"`\n18: \tDVEID        string    `json:\"dve_id\"`\n19: \tNodeID       string    `json:\"node_id\"`\n20: \tTag          string    `json:\"tag\"`\n21: \tWASMPath     string    `json:\"wasm_path\"`\n22: \tResolved     bool      `json:\"resolved\"`\n23: \tErrorClassID uint32    `json:\"error_class_id\"`\n24: \tError        string    `json:\"error,omitempty\"`\n25: \tDuration     time.Duration `json:\"duration_ms\"`\n26: \tTimestamp    time.Time `json:\"timestamp\"`\n27: }\n28: \n29: // RemediationSink receives resolution results and dispatches them\n30: // into the GuardrailEngine remediation pipeline.\n31: type RemediationSink interface {\n32: \t// DispatchRemediation is called when a resolution.wasm returns\n33: \t// resolved=true.  The sink should trigger the appropriate\n34: \t// remediation action (e.g. restart_service, apply_patch).\n35: \tDispatchRemediation(ctx context.Context, result *ResolutionResult) error\n36: }\n37: \n38: // ResolutionService implements Option B of the WASM Integration\n39: // Investigation: eBPF-triggered error resolution via resolution.wasm.\n40: //\n41: // It listens for \"Resolution Signals\" forwarded by the eBPF EventCollector,\n42: // loads the appropriate resolution.wasm for the DVE's Badge, executes\n43: // resolveError() and ErrorClass(), and pipes results into the\n44: // GuardrailEngine's remediation pipeline.\n45: //\n46: // The service maintains a pool of WazeroGate instances per resolution.wasm\n47: // module to avoid re-compilation overhead under high event rates.\n48: type ResolutionService struct {\n49: \tmapper       *BadgeWASMMapper\n50: \tsink         RemediationSink\n51: \tpools        map[string]*WazeroPool // wasmPath → pool\n52: \tpoolsMu      sync.RWMutex\n53: \tpoolSize     int\n54: \tsignalChan   chan *ResolutionSignal\n55: \tstopChan     chan struct{}\n56: \tworkerWg     sync.WaitGroup\n57: \tstats        *ResolutionStats\n58: \tstatsMu      sync.RWMutex\n59: }\n60: \n61: // ResolutionSignal is produced by the eBPF EventCollector when a\n62: // kernel-level anomaly matching a Badge's resolution ontology is detected.\n63: type ResolutionSignal struct {\n64: \tDVEID     string            `json:\"dve_id\"`\n65: \tNodeID    string            `json:\"node_id\"`\n66: \tBadgeID   string            `json:\"badge_id\"`\n67: \tTag       string            `json:\"tag\"` // ontology tag that triggered\n68: \tErrorType string            `json:\"error_type\"`\n69: \tSyscallID uint32            `json:\"syscall_id\"`\n70: \tPID       uint32            `json:\"pid\"`\n71: \tContext   map[string]string `json:\"context,omitempty\"`\n72: }\n73: \n74: // ResolutionStats tracks resolution service metrics.\n75: type ResolutionStats struct {\n76: \tTotalSignals      int64 `json:\"total_signals\"`\n77: \tTotalResolutions  int64 `json:\"total_resolutions\"`\n78: \tSuccessfulResolve int64 `json:\"successful_resolve\"`\n79: \tFailedResolve     int64 `json:\"failed_resolve\"`\n80: \tWASMErrors        int64 `json:\"wasm_errors\"`\n81: \tDroppedSignals    int64 `json:\"dropped_signals\"`\n82: }\n83: \n84: // NewResolutionService creates a resolution worker pool.\n85: // poolSize controls how many concurrent WazeroGate instances per module.\n86: // signalBuffer controls the capacity of the incoming signal channel.\n87: func NewResolutionService(\n88: \tmapper *BadgeWASMMapper,\n89: \tsink RemediationSink,\n90: \tpoolSize int,\n91: \tsignalBuffer int,\n92: ) *ResolutionService {\n93: \tif poolSize < 1 {\n94: \t\tpoolSize = 4\n95: \t}\n96: \tif signalBuffer < 1 {\n97: \t\tsignalBuffer = 256\n98: \t}\n99: \treturn &ResolutionService{\n100: \t\tmapper:     mapper,\n101: \t\tsink:       sink,\n102: \t\tpools:      make(map[string]*WazeroPool),\n103: \t\tpoolSize:   poolSize,\n104: \t\tsignalChan: make(chan *ResolutionSignal, signalBuffer),\n105: \t\tstopChan:   make(chan struct{}),\n106: \t\tstats:      &ResolutionStats{},\n107: \t}\n108: }\n109: \n110: // Start launches the background resolution workers.\n111: func (rs *ResolutionService) Start(ctx context.Context, numWorkers int) {\n112: \tif numWorkers < 1 {\n113: \t\tnumWorkers = 2\n114: \t}\n115: \tfor i := 0; i < numWorkers; i++ {\n116: \t\trs.workerWg.Add(1)\n117: \t\tgo rs.worker(ctx, i)\n118: \t}\n119: \tlog.Printf(\"[resolution-service] started %d workers\", numWorkers)\n120: }\n121: \n122: // Stop gracefully shuts down the resolution workers.\n123: func (rs *ResolutionService) Stop() {\n124: \tclose(rs.stopChan)\n125: \trs.workerWg.Wait()\n126: \n127: \trs.poolsMu.Lock()\n128: \tdefer rs.poolsMu.Unlock()\n129: \tfor _, pool := range rs.pools {\n130: \t\tpool.CloseAll()\n131: \t}\n132: \trs.pools = make(map[string]*WazeroPool)\n133: \tlog.Println(\"[resolution-service] stopped\")\n134: }\n135: \n136: // Submit enqueues a resolution signal for asynchronous processing.\n137: // Non-blocking: returns false if the signal buffer is full (signal dropped).\n138: func (rs *ResolutionService) Submit(signal *ResolutionSignal) bool {\n139: \trs.statsMu.Lock()\n140: \trs.stats.TotalSignals++\n141: \trs.statsMu.Unlock()\n142: \n143: \tselect {\n144: \tcase rs.signalChan <- signal:\n145: \t\treturn true\n146: \tdefault:\n147: \t\trs.statsMu.Lock()\n148: \t\trs.stats.DroppedSignals++\n149: \t\trs.statsMu.Unlock()\n150: \t\treturn false\n151: \t}\n152: }\n153: \n154: // Resolve synchronously executes the resolution pipeline for a signal.\n155: // Returns the resolution result.\n156: func (rs *ResolutionService) Resolve(ctx context.Context, signal *ResolutionSignal) (*ResolutionResult, error) {\n157: \tstart := time.Now()\n158: \tresult := &ResolutionResult{\n159: \t\tBadgeID:   signal.BadgeID,\n160: \t\tDVEID:     signal.DVEID,\n161: \t\tNodeID:    signal.NodeID,\n162: \t\tTag:       signal.Tag,\n163: \t\tTimestamp: time.Now(),\n164: \t}\n165: \n166: \t// Look up the .wasm for this badge + tag.\n167: \twasmPath, wasmType, err := rs.mapper.LookupWASM(signal.BadgeID, signal.Tag)\n168: \tif err != nil {\n169: \t\tresult.Error = err.Error()\n170: \t\tresult.Duration = time.Since(start)\n171: \t\trs.statsMu.Lock()\n172: \t\trs.stats.WASMErrors++\n173: \t\trs.statsMu.Unlock()\n174: \t\treturn result, err\n175: \t}\n176: \n177: \tif wasmType != WASMTypeResolution {\n178: \t\tresult.Error = fmt.Sprintf(\"tag %s maps to %s, not resolution\", signal.Tag, wasmType)\n179: \t\tresult.Duration = time.Since(start)\n180: \t\treturn result, errors.New(result.Error)\n181: \t}\n182: \n183: \tresult.WASMPath = wasmPath\n184: \n185: \t// Acquire a WazeroGate from the pool for this module.\n186: \tpool := rs.getOrCreatePool(wasmPath)\n187: \tgate, err := pool.Acquire(ctx)\n188: \tif err != nil {\n189: \t\tresult.Error = fmt.Sprintf(\"wazero pool acquire: %v\", err)\n190: \t\tresult.Duration = time.Since(start)\n191: \t\trs.statsMu.Lock()\n192: \t\trs.stats.WASMErrors++\n193: \t\trs.statsMu.Unlock()\n194: \t\treturn result, err\n195: \t}\n196: \n197: \t// Execute resolveError()\n198: \tresolved, err := gate.ResolveError(ctx)\n199: \tif err != nil {\n200: \t\tresult.Error = fmt.Sprintf(\"resolveError(): %v\", err)\n201: \t\tresult.Duration = time.Since(start)\n202: \t\trs.statsMu.Lock()\n203: \t\trs.stats.WASMErrors++\n204: \t\trs.stats.TotalResolutions++\n205: \t\trs.stats.FailedResolve++\n206: \t\trs.statsMu.Unlock()\n207: \t\treturn result, err\n208: \t}\n209: \n210: \tresult.Resolved = resolved\n211: \n212: \t// Execute ErrorClass()\n213: \terrorClass, err := gate.ErrorClass(ctx)\n214: \tif err != nil {\n215: \t\t// Non-fatal: we still have resolveError's result.\n216: \t\tlog.Printf(\"[resolution-service] ErrorClass() failed: %v\", err)\n217: \t}\n218: \tresult.ErrorClassID = errorClass\n219: \tresult.Duration = time.Since(start)\n220: \n221: \trs.statsMu.Lock()\n222: \trs.stats.TotalResolutions++\n223: \tif resolved {\n224: \t\trs.stats.SuccessfulResolve++\n225: \t} else {\n226: \t\trs.stats.FailedResolve++\n227: \t}\n228: \trs.statsMu.Unlock()\n229: \n230: \t// If resolved, dispatch to remediation sink.\n231: \tif resolved && rs.sink != nil {\n232: \t\tif err := rs.sink.DispatchRemediation(ctx, result); err != nil {\n233: \t\t\tlog.Printf(\"[resolution-service] remediation dispatch error: %v\", err)\n234: \t\t}\n235: \t}\n236: \n237: \treturn result, nil\n238: }\n239: \n240: // Stats returns current resolution statistics.\n241: func (rs *ResolutionService) Stats() *ResolutionStats {\n242: \trs.statsMu.RLock()\n243: \tdefer rs.statsMu.RUnlock()\n244: \ts := *rs.stats\n245: \treturn &s\n246: }\n247: \n248: // —— internal ——\n249: \n250: func (rs *ResolutionService) worker(ctx context.Context, id int) {\n251: \tdefer rs.workerWg.Done()\n252: \tlog.Printf(\"[resolution-service] worker %d running\", id)\n253: \n254: \tfor {\n255: \t\tselect {\n256: \t\tcase <-rs.stopChan:\n257: \t\t\tlog.Printf(\"[resolution-service] worker %d stopping\", id)\n258: \t\t\treturn\n259: \t\tcase <-ctx.Done():\n260: \t\t\tlog.Printf(\"[resolution-service] worker %d context done\", id)\n261: \t\t\treturn\n262: \t\tcase signal := <-rs.signalChan:\n263: \t\t\tresult, err := rs.Resolve(ctx, signal)\n264: \t\t\tif err != nil {\n265: \t\t\t\tlog.Printf(\"[resolution-service] worker %d: resolve %s/%s: %v\",\n266: \t\t\t\t\tid, signal.DVEID, signal.Tag, err)\n267: \t\t\t} else {\n268: \t\t\t\tlog.Printf(\"[resolution-service] worker %d: resolved=%v class=%d dve=%s badge=%s (%v)\",\n269: \t\t\t\t\tid, result.Resolved, result.ErrorClassID, signal.DVEID, signal.BadgeID, result.Duration)\n270: \t\t\t}\n271: \t\t}\n272: \t}\n273: }\n274: \n275: func (rs *ResolutionService) getOrCreatePool(wasmPath string) *WazeroPool {\n276: \trs.poolsMu.RLock()\n277: \tpool, ok := rs.pools[wasmPath]\n278: \trs.poolsMu.RUnlock()\n279: \tif ok {\n280: \t\treturn pool\n281: \t}\n282: \n283: \trs.poolsMu.Lock()\n284: \tdefer rs.poolsMu.Unlock()\n285: \t// Double-check after acquiring write lock.\n286: \tif pool, ok = rs.pools[wasmPath]; ok {\n287: \t\treturn pool\n288: \t}\n289: \tpool = NewWazeroPool(wasmPath, rs.poolSize)\n290: \trs.pools[wasmPath] = pool\n291: \treturn pool\n292: }\n\n(End of file - total 292 lines)\n</content>",
+            "metadata": {
+              "preview": "// Copyright 2026 KNIRV-SERVER\n// SPDX-License-Identifier: GPL-3.0-or-later\n\npackage wasm\n\nimport (\n\t\"context\"\n\t\"errors\"\n\t\"fmt\"\n\t\"log\"\n\t\"sync\"\n\t\"time\"\n)\n\n// ResolutionResult captures the outcome of a resolution.wasm invocation.\ntype ResolutionResult struct {\n\tBadgeID      string    `json:\"badge_id\"`\n\tDVEID        string    `json:\"dve_id\"`\n\tNodeID       string    `json:\"node_id\"`\n\tTag          string    `json:\"tag\"`",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go",
+            "time": {
+              "start": 1779727666517,
+              "end": 1779727666598
+            }
+          },
+          "id": "prt_e60090c2a001pPx3Ln1txnSv5N",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008f70c001K8rAZHAkzu664u"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_01_7W2R150m7YlXtfe0Gdef6857",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/wazero_gate.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/wazero_gate.go</path>\n<type>file</type>\n<content>\n1: // Copyright 2026 KNIRV-SERVER\n2: // SPDX-License-Identifier: GPL-3.0-or-later\n3: \n4: package wasm\n5: \n6: import (\n7: \t\"context\"\n8: \t\"fmt\"\n9: \t\"os\"\n10: \t\"sync\"\n11: \n12: \t\"github.com/tetratelabs/wazero\"\n13: \t\"github.com/tetratelabs/wazero/api\"\n14: )\n15: \n16: // WazeroGate wraps the wazero WASM runtime for KNIRVSERVER.  It loads\n17: // pre-compiled .wasm binaries (produced by KNIRVHASHER's TinyGo pipeline)\n18: // from disk and executes their exported functions.\n19: //\n20: // Expected exports by WASM type:\n21: //\n22: //\trules.wasm      → GuardrailClass() uint32\n23: //\tresolution.wasm → resolveError() bool, ErrorClass() uint32\n24: //\tpatch.wasm      → applyPatch() bool (future)\n25: //\n26: // Each gate instance is single-use in the sense that it binds to one .wasm\n27: // module.  For concurrent resolution across multiple DVEs, use WazeroPool.\n28: type WazeroGate struct {\n29: \truntime  wazero.Runtime\n30: \tmodule   api.Module\n31: \tcompiled wazero.CompiledModule\n32: \twasmPath string\n33: \twasmType WASMType\n34: \tmu       sync.Mutex\n35: \tclosed   bool\n36: }\n37: \n38: // NewWazeroGate creates a gate that loads and validates a .wasm binary.\n39: func NewWazeroGate(ctx context.Context, wasmPath string) (*WazeroGate, error) {\n40: \tdata, err := os.ReadFile(wasmPath)\n41: \tif err != nil {\n42: \t\treturn nil, fmt.Errorf(\"wazero: read %s: %w\", wasmPath, err)\n43: \t}\n44: \n45: \truntime := wazero.NewRuntime(ctx)\n46: \tcompiled, err := runtime.CompileModule(ctx, data)\n47: \tif err != nil {\n48: \t\truntime.Close(ctx)\n49: \t\treturn nil, fmt.Errorf(\"wazero: compile %s: %w\", wasmPath, err)\n50: \t}\n51: \n52: \treturn &WazeroGate{\n53: \t\truntime:  runtime,\n54: \t\tcompiled: compiled,\n55: \t\twasmPath: wasmPath,\n56: \t}, nil\n57: }\n58: \n59: // Instantiate finalizes the module so exports can be called.\n60: func (wg *WazeroGate) Instantiate(ctx context.Context) error {\n61: \twg.mu.Lock()\n62: \tdefer wg.mu.Unlock()\n63: \n64: \tif wg.closed {\n65: \t\treturn fmt.Errorf(\"wazero: gate closed\")\n66: \t}\n67: \tif wg.module != nil {\n68: \t\treturn nil // already instantiated\n69: \t}\n70: \n71: \tmodule, err := wg.runtime.InstantiateModule(ctx, wg.compiled,\n72: \t\twazero.NewModuleConfig().WithName(\"\"))\n73: \tif err != nil {\n74: \t\treturn fmt.Errorf(\"wazero: instantiate %s: %w\", wg.wasmPath, err)\n75: \t}\n76: \twg.module = module\n77: \treturn nil\n78: }\n79: \n80: // GuardrailClass calls the GuardrailClass() export and returns the\n81: // guardrail class ID (uint32).  Requires a rules.wasm module.\n82: func (wg *WazeroGate) GuardrailClass(ctx context.Context) (uint32, error) {\n83: \tif err := wg.Instantiate(ctx); err != nil {\n84: \t\treturn 0, err\n85: \t}\n86: \n87: \tfn := wg.module.ExportedFunction(ExportGuardrailClass)\n88: \tif fn == nil {\n89: \t\treturn 0, fmt.Errorf(\"wazero: export %s not found in %s\", ExportGuardrailClass, wg.wasmPath)\n90: \t}\n91: \n92: \tresults, err := fn.Call(ctx)\n93: \tif err != nil {\n94: \t\treturn 0, fmt.Errorf(\"wazero: %s(): %w\", ExportGuardrailClass, err)\n95: \t}\n96: \tif len(results) == 0 {\n97: \t\treturn 0, fmt.Errorf(\"wazero: %s() returned no values\", ExportGuardrailClass)\n98: \t}\n99: \n100: \t// wazero returns uint64 for all integer types; cast down.\n101: \treturn uint32(results[0]), nil\n102: }\n103: \n104: // ResolveError calls the resolveError() export and returns whether\n105: // resolution succeeded.  Requires a resolution.wasm module.\n106: func (wg *WazeroGate) ResolveError(ctx context.Context) (bool, error) {\n107: \tif err := wg.Instantiate(ctx); err != nil {\n108: \t\treturn false, err\n109: \t}\n110: \n111: \tfn := wg.module.ExportedFunction(ExportResolveError)\n112: \tif fn == nil {\n113: \t\treturn false, fmt.Errorf(\"wazero: export %s not found in %s\", ExportResolveError, wg.wasmPath)\n114: \t}\n115: \n116: \tresults, err := fn.Call(ctx)\n117: \tif err != nil {\n118: \t\treturn false, fmt.Errorf(\"wazero: %s(): %w\", ExportResolveError, err)\n119: \t}\n120: \tif len(results) == 0 {\n121: \t\treturn false, fmt.Errorf(\"wazero: %s() returned no values\", ExportResolveError)\n122: \t}\n123: \n124: \treturn results[0] != 0, nil\n125: }\n126: \n127: // ErrorClass calls the ErrorClass() export and returns the error class ID.\n128: // Requires a resolution.wasm module.\n129: func (wg *WazeroGate) ErrorClass(ctx context.Context) (uint32, error) {\n130: \tif err := wg.Instantiate(ctx); err != nil {\n131: \t\treturn 0, err\n132: \t}\n133: \n134: \tfn := wg.module.ExportedFunction(ExportErrorClass)\n135: \tif fn == nil {\n136: \t\treturn 0, fmt.Errorf(\"wazero: export %s not found in %s\", ExportErrorClass, wg.wasmPath)\n137: \t}\n138: \n139: \tresults, err := fn.Call(ctx)\n140: \tif err != nil {\n141: \t\treturn 0, fmt.Errorf(\"wazero: %s(): %w\", ExportErrorClass, err)\n142: \t}\n143: \tif len(results) == 0 {\n144: \t\treturn 0, fmt.Errorf(\"wazero: %s() returned no values\", ExportErrorClass)\n145: \t}\n146: \n147: \treturn uint32(results[0]), nil\n148: }\n149: \n150: // ApplyPatch calls the applyPatch() export (future patch.wasm support).\n151: func (wg *WazeroGate) ApplyPatch(ctx context.Context) (bool, error) {\n152: \tif err := wg.Instantiate(ctx); err != nil {\n153: \t\treturn false, err\n154: \t}\n155: \n156: \tfn := wg.module.ExportedFunction(\"applyPatch\")\n157: \tif fn == nil {\n158: \t\treturn false, fmt.Errorf(\"wazero: export applyPatch not found in %s\", wg.wasmPath)\n159: \t}\n160: \n161: \tresults, err := fn.Call(ctx)\n162: \tif err != nil {\n163: \t\treturn false, fmt.Errorf(\"wazero: applyPatch(): %w\", err)\n164: \t}\n165: \tif len(results) == 0 {\n166: \t\treturn false, fmt.Errorf(\"wazero: applyPatch() returned no values\")\n167: \t}\n168: \n169: \treturn results[0] != 0, nil\n170: }\n171: \n172: // ListExports returns the names of all exported functions.\n173: func (wg *WazeroGate) ListExports(ctx context.Context) ([]string, error) {\n174: \tif err := wg.Instantiate(ctx); err != nil {\n175: \t\treturn nil, err\n176: \t}\n177: \tdefs := wg.module.ExportedFunctionDefinitions()\n178: \tnames := make([]string, 0, len(defs))\n179: \tfor name := range defs {\n180: \t\tnames = append(names, name)\n181: \t}\n182: \treturn names, nil\n183: }\n184: \n185: // Close releases the wazero runtime and module resources.\n186: func (wg *WazeroGate) Close() error {\n187: \twg.mu.Lock()\n188: \tdefer wg.mu.Unlock()\n189: \n190: \tif wg.closed {\n191: \t\treturn nil\n192: \t}\n193: \twg.closed = true\n194: \n195: \tif wg.module != nil {\n196: \t\twg.module.Close(context.Background())\n197: \t}\n198: \tif wg.runtime != nil {\n199: \t\treturn wg.runtime.Close(context.Background())\n200: \t}\n201: \treturn nil\n202: }\n203: \n204: // WasmPath returns the source .wasm file path.\n205: func (wg *WazeroGate) WasmPath() string { return wg.wasmPath }\n206: \n207: // ── WazeroPool ──────────────────────────────────────────────────────────\n208: \n209: // WazeroPool maintains a bounded pool of reusable WazeroGate instances\n210: // for a specific .wasm module.  This avoids re-compilation on every\n211: // guardrail check or resolution attempt.\n212: type WazeroPool struct {\n213: \twasmPath string\n214: \tgates    []*WazeroGate\n215: \tsize     int\n216: \tnext     int\n217: \tmu       sync.Mutex\n218: }\n219: \n220: // NewWazeroPool creates a pool that lazily instantiates up to size gates.\n221: func NewWazeroPool(wasmPath string, size int) *WazeroPool {\n222: \tif size < 1 {\n223: \t\tsize = 4\n224: \t}\n225: \treturn &WazeroPool{\n226: \t\twasmPath: wasmPath,\n227: \t\tgates:    make([]*WazeroGate, size),\n228: \t\tsize:     size,\n229: \t}\n230: }\n231: \n232: // Acquire returns a ready-to-use gate from the pool.\n233: func (wp *WazeroPool) Acquire(ctx context.Context) (*WazeroGate, error) {\n234: \twp.mu.Lock()\n235: \tdefer wp.mu.Unlock()\n236: \n237: \tidx := wp.next\n238: \twp.next = (wp.next + 1) % wp.size\n239: \n240: \tif wp.gates[idx] == nil {\n241: \t\tgate, err := NewWazeroGate(ctx, wp.wasmPath)\n242: \t\tif err != nil {\n243: \t\t\treturn nil, err\n244: \t\t}\n245: \t\twp.gates[idx] = gate\n246: \t}\n247: \n248: \treturn wp.gates[idx], nil\n249: }\n250: \n251: // CloseAll shuts down every gate in the pool.\n252: func (wp *WazeroPool) CloseAll() {\n253: \twp.mu.Lock()\n254: \tdefer wp.mu.Unlock()\n255: \tfor i, g := range wp.gates {\n256: \t\tif g != nil {\n257: \t\t\tg.Close()\n258: \t\t\twp.gates[i] = nil\n259: \t\t}\n260: \t}\n261: }\n\n(End of file - total 261 lines)\n</content>",
+            "metadata": {
+              "preview": "// Copyright 2026 KNIRV-SERVER\n// SPDX-License-Identifier: GPL-3.0-or-later\n\npackage wasm\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"os\"\n\t\"sync\"\n\n\t\"github.com/tetratelabs/wazero\"\n\t\"github.com/tetratelabs/wazero/api\"\n)\n\n// WazeroGate wraps the wazero WASM runtime for KNIRVSERVER.  It loads\n// pre-compiled .wasm binaries (produced by KNIRVHASHER's TinyGo pipeline)\n// from disk and executes their exported functions.\n//\n// Expected exports by WASM type:",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/wasm/wazero_gate.go",
+            "time": {
+              "start": 1779727667313,
+              "end": 1779727668217
+            }
+          },
+          "id": "prt_e60090d61001St0ikrWiJWEOuD",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008f70c001K8rAZHAkzu664u"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_02_nLtubjeOBYRZ60mH0zqr1240",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper.go</path>\n<type>file</type>\n<content>\n1: // Copyright 2026 KNIRV-SERVER\n2: // SPDX-License-Identifier: GPL-3.0-or-later\n3: \n4: // Package wasm provides the Badge-to-WASM mapping service that links DVE\n5: // Badge ontology tags to pre-compiled .wasm modules generated by KNIRVHASHER.\n6: //\n7: // This implements Step 1 of the WASM Integration Investigation:\n8: //\n9: //\tMap \"Guardrail\" tags in Badges to rules.wasm.\n10: //\tMap \"Resolution/Recovery\" tags in Badges to resolution.wasm.\n11: //\n12: // WASM binaries are produced by the KNIRVHASHER transformer pipeline\n13: // (packages/KNIRVHASHER/pkg/hashing/transformer/compiler.go) and stored\n14: // in a configurable output directory (default /var/heart/wasm/).  Each\n15: // .wasm file is named by its SHA-256 hash.\n16: //\n17: // Badge-to-tag-to-WASM mapping is persisted so that subsequent guardrail\n18: // evaluations and eBPF-triggered resolutions can look up the correct\n19: // WASM module without re-scanning the directory.\n20: package wasm\n21: \n22: import (\n23: \t\"crypto/sha256\"\n24: \t\"encoding/hex\"\n25: \t\"encoding/json\"\n26: \t\"fmt\"\n27: \t\"log\"\n28: \t\"os\"\n29: \t\"path/filepath\"\n30: \t\"strings\"\n31: \t\"sync\"\n32: )\n33: \n34: // WASMType classifies the kind of WASM module (matching KNIRVHASHER types).\n35: type WASMType string\n36: \n37: const (\n38: \tWASMTypeRule       WASMType = \"rule\"\n39: \tWASMTypeResolution WASMType = \"resolution\"\n40: \tWASMTypePatch      WASMType = \"patch\"\n41: )\n42: \n43: // WASMExport names expected on compiled WASM modules (per Investigation §2.1).\n44: const (\n45: \tExportGuardrailClass = \"GuardrailClass\" // rules.wasm → uint32\n46: \tExportResolveError   = \"resolveError\"   // resolution.wasm → bool\n47: \tExportErrorClass     = \"ErrorClass\"     // resolution.wasm → uint32\n48: )\n49: \n50: // BadgeTagClassification groups ontology tags by their WASM role.\n51: type BadgeTagClassification string\n52: \n53: const (\n54: \tTagClassGuardrail  BadgeTagClassification = \"guardrail\"\n55: \tTagClassResolution BadgeTagClassification = \"resolution\"\n56: \tTagClassPatch      BadgeTagClassification = \"patch\"\n57: \tTagClassUnknown    BadgeTagClassification = \"unknown\"\n58: )\n59: \n60: // WASMMapping links one Badge ontology tag to a specific .wasm file on disk.\n61: type WASMMapping struct {\n62: \tBadgeID  string   `json:\"badge_id\"`\n63: \tTag      string   `json:\"tag\"`\n64: \tWASMType WASMType `json:\"wasm_type\"`\n65: \tWASMPath string   `json:\"wasm_path\"`\n66: \tWASMHash string   `json:\"wasm_hash\"`\n67: }\n68: \n69: // BadgeEntry tracks all WASM mappings for a single Badge NFT.\n70: type BadgeEntry struct {\n71: \tBadgeID  string        `json:\"badge_id\"`\n72: \tMappings []WASMMapping `json:\"mappings\"`\n73: }\n74: \n75: // BadgeWASMMapper is the core Badge-to-WASM mapping service.  It:\n76: //   - Scans the KNIRVHASHER WASM output directory for compiled modules.\n77: //   - Maps Badge ontology tags to their corresponding .wasm files.\n78: //   - Provides a lookup for the WazeroGate runtime and middleware.\n79: type BadgeWASMMapper struct {\n80: \twasmDir    string\n81: \tentries    map[string]*BadgeEntry // badgeID → BadgeEntry\n82: \tmu         sync.RWMutex\n83: \tpersistPath string // optional path for JSON persistence\n84: }\n85: \n86: // NewBadgeWASMMapper creates a mapper that reads .wasm modules from wasmDir.\n87: // If persistPath is non-empty the mapping table is saved/loaded as JSON.\n88: func NewBadgeWASMMapper(wasmDir, persistPath string) *BadgeWASMMapper {\n89: \tm := &BadgeWASMMapper{\n90: \t\twasmDir:     wasmDir,\n91: \t\tentries:     make(map[string]*BadgeEntry),\n92: \t\tpersistPath: persistPath,\n93: \t}\n94: \tif persistPath != \"\" {\n95: \t\tm.loadPersisted()\n96: \t}\n97: \treturn m\n98: }\n99: \n100: // DefaultWASMDir returns the default KNIRVHASHER WASM output directory.\n101: func DefaultWASMDir() string {\n102: \tif d := os.Getenv(\"KNIRV_WASM_OUT_DIR\"); d != \"\" {\n103: \t\treturn d\n104: \t}\n105: \tif _, err := os.Stat(\"/var/heart/wasm\"); err == nil {\n106: \t\treturn \"/var/heart/wasm\"\n107: \t}\n108: \treturn \"/var/lib/knirvserver/wasm\"\n109: }\n110: \n111: // RegisterBadge scans the WASM directory for modules matching the given\n112: // Badge ontology tags and builds the mapping table.  Each tag is classified\n113: // as guardrail, resolution, or patch, and linked to the appropriate .wasm.\n114: func (m *BadgeWASMMapper) RegisterBadge(badgeID string, ontologyTags []string) error {\n115: \tif badgeID == \"\" {\n116: \t\treturn fmt.Errorf(\"badge ID is required\")\n117: \t}\n118: \n119: \tm.mu.Lock()\n120: \tdefer m.mu.Unlock()\n121: \n122: \tentry := &BadgeEntry{BadgeID: badgeID}\n123: \n124: \tfor _, tag := range ontologyTags {\n125: \t\ttag = strings.TrimSpace(tag)\n126: \t\tif tag == \"\" {\n127: \t\t\tcontinue\n128: \t\t}\n129: \n130: \t\tclass := classifyTag(tag)\n131: \t\twasmType := classToWASMType(class)\n132: \n133: \t\t// Try to find a matching .wasm for this tag.\n134: \t\twasmPath, wasmHash := m.findWASMForTag(tag, wasmType)\n135: \n136: \t\tmapping := WASMMapping{\n137: \t\t\tBadgeID:  badgeID,\n138: \t\t\tTag:      tag,\n139: \t\t\tWASMType: wasmType,\n140: \t\t\tWASMPath: wasmPath,\n141: \t\t\tWASMHash: wasmHash,\n142: \t\t}\n143: \t\tentry.Mappings = append(entry.Mappings, mapping)\n144: \n145: \t\tif wasmPath != \"\" {\n146: \t\t\tlog.Printf(\"[wasm-mapper] badge=%s tag=%s class=%s → %s (%s)\",\n147: \t\t\t\tbadgeID, tag, class, filepath.Base(wasmPath), wasmType)\n148: \t\t} else {\n149: \t\t\tlog.Printf(\"[wasm-mapper] badge=%s tag=%s class=%s → no WASM found yet\",\n150: \t\t\t\tbadgeID, tag, class)\n151: \t\t}\n152: \t}\n153: \n154: \tm.entries[badgeID] = entry\n155: \tif m.persistPath != \"\" {\n156: \t\tm.savePersisted()\n157: \t}\n158: \treturn nil\n159: }\n160: \n161: // RemoveBadge removes all mappings for a badge (e.g. when DVE decommissioned).\n162: func (m *BadgeWASMMapper) RemoveBadge(badgeID string) {\n163: \tm.mu.Lock()\n164: \tdefer m.mu.Unlock()\n165: \tdelete(m.entries, badgeID)\n166: \tif m.persistPath != \"\" {\n167: \t\tm.savePersisted()\n168: \t}\n169: }\n170: \n171: // GetGuardrailWASM returns the .wasm paths for all \"guardrail\" tags on a badge.\n172: func (m *BadgeWASMMapper) GetGuardrailWASM(badgeID string) []WASMMapping {\n173: \treturn m.getByClassification(badgeID, TagClassGuardrail)\n174: }\n175: \n176: // GetResolutionWASM returns the .wasm paths for all \"resolution\" tags on a badge.\n177: func (m *BadgeWASMMapper) GetResolutionWASM(badgeID string) []WASMMapping {\n178: \treturn m.getByClassification(badgeID, TagClassResolution)\n179: }\n180: \n181: // GetPatchWASM returns the .wasm paths for all \"patch\" tags on a badge.\n182: func (m *BadgeWASMMapper) GetPatchWASM(badgeID string) []WASMMapping {\n183: \treturn m.getByClassification(badgeID, TagClassPatch)\n184: }\n185: \n186: // LookupWASM finds the WASM mapping for a specific badge+tag combination.\n187: // Returns the .wasm path, WASMType, and error if not found.\n188: func (m *BadgeWASMMapper) LookupWASM(badgeID, tag string) (string, WASMType, error) {\n189: \tm.mu.RLock()\n190: \tdefer m.mu.RUnlock()\n191: \n192: \tentry, ok := m.entries[badgeID]\n193: \tif !ok {\n194: \t\treturn \"\", \"\", fmt.Errorf(\"badge %s not registered\", badgeID)\n195: \t}\n196: \tfor _, mp := range entry.Mappings {\n197: \t\tif strings.EqualFold(mp.Tag, tag) {\n198: \t\t\tif mp.WASMPath == \"\" {\n199: \t\t\t\treturn \"\", mp.WASMType, fmt.Errorf(\"no WASM module for tag %s on badge %s\", tag, badgeID)\n200: \t\t\t}\n201: \t\t\treturn mp.WASMPath, mp.WASMType, nil\n202: \t\t}\n203: \t}\n204: \treturn \"\", \"\", fmt.Errorf(\"tag %s not found on badge %s\", tag, badgeID)\n205: }\n206: \n207: // GetEntry returns the full BadgeEntry for a badge.\n208: func (m *BadgeWASMMapper) GetEntry(badgeID string) (*BadgeEntry, bool) {\n209: \tm.mu.RLock()\n210: \tdefer m.mu.RUnlock()\n211: \te, ok := m.entries[badgeID]\n212: \treturn e, ok\n213: }\n214: \n215: // ListBadges returns all registered badge IDs.\n216: func (m *BadgeWASMMapper) ListBadges() []string {\n217: \tm.mu.RLock()\n218: \tdefer m.mu.RUnlock()\n219: \tids := make([]string, 0, len(m.entries))\n220: \tfor id := range m.entries {\n221: \t\tids = append(ids, id)\n222: \t}\n223: \treturn ids\n224: }\n225: \n226: // RefreshWASMDir re-scans the WASM directory and updates all paths for\n227: // existing badge mappings.  Call this after KNIRVHASHER generates new WASM.\n228: func (m *BadgeWASMMapper) RefreshWASMDir() {\n229: \tm.mu.Lock()\n230: \tdefer m.mu.Unlock()\n231: \n232: \tfor _, entry := range m.entries {\n233: \t\tfor i := range entry.Mappings {\n234: \t\t\tmp := &entry.Mappings[i]\n235: \t\t\twasmPath, wasmHash := m.findWASMForTag(mp.Tag, mp.WASMType)\n236: \t\t\tif wasmPath != \"\" {\n237: \t\t\t\tmp.WASMPath = wasmPath\n238: \t\t\t\tmp.WASMHash = wasmHash\n239: \t\t\t}\n240: \t\t}\n241: \t}\n242: \tif m.persistPath != \"\" {\n243: \t\tm.savePersisted()\n244: \t}\n245: \tlog.Printf(\"[wasm-mapper] refreshed %d badge entries\", len(m.entries))\n246: }\n247: \n248: // Stats returns mapper statistics.\n249: func (m *BadgeWASMMapper) Stats() map[string]interface{} {\n250: \tm.mu.RLock()\n251: \tdefer m.mu.RUnlock()\n252: \n253: \ttotalBadges := len(m.entries)\n254: \twithGuardrail := 0\n255: \twithResolution := 0\n256: \twithPatch := 0\n257: \n258: \tfor _, entry := range m.entries {\n259: \t\tfor _, mp := range entry.Mappings {\n260: \t\t\tif mp.WASMPath == \"\" {\n261: \t\t\t\tcontinue\n262: \t\t\t}\n263: \t\t\tswitch classifyTag(mp.Tag) {\n264: \t\t\tcase TagClassGuardrail:\n265: \t\t\t\twithGuardrail++\n266: \t\t\tcase TagClassResolution:\n267: \t\t\t\twithResolution++\n268: \t\t\tcase TagClassPatch:\n269: \t\t\t\twithPatch++\n270: \t\t\t}\n271: \t\t}\n272: \t}\n273: \n274: \treturn map[string]interface{}{\n275: \t\t\"total_badges\":       totalBadges,\n276: \t\t\"guardrail_wasm\":     withGuardrail,\n277: \t\t\"resolution_wasm\":    withResolution,\n278: \t\t\"patch_wasm\":         withPatch,\n279: \t\t\"wasm_dir\":           m.wasmDir,\n280: \t}\n281: }\n282: \n283: // —— internal helpers ——\n284: \n285: func (m *BadgeWASMMapper) getByClassification(badgeID string, class BadgeTagClassification) []WASMMapping {\n286: \tm.mu.RLock()\n287: \tdefer m.mu.RUnlock()\n288: \n289: \tentry, ok := m.entries[badgeID]\n290: \tif !ok {\n291: \t\treturn nil\n292: \t}\n293: \tvar result []WASMMapping\n294: \tfor _, mp := range entry.Mappings {\n295: \t\tif classifyTag(mp.Tag) == class && mp.WASMPath != \"\" {\n296: \t\t\tresult = append(result, mp)\n297: \t\t}\n298: \t}\n299: \treturn result\n300: }\n301: \n302: // findWASMForTag scans the WASM directory for a .wasm file whose SHA-256\n303: // filename or embedded metadata matches the given tag and type.\n304: func (m *BadgeWASMMapper) findWASMForTag(tag string, wasmType WASMType) (path, hash string) {\n305: \tif m.wasmDir == \"\" {\n306: \t\treturn \"\", \"\"\n307: \t}\n308: \n309: \tentries, err := os.ReadDir(m.wasmDir)\n310: \tif err != nil {\n311: \t\treturn \"\", \"\"\n312: \t}\n313: \n314: \t// Phase 1: look for files named by type prefix (e.g. \"rule_*.wasm\")\n315: \t// These are the intermediate names before final hash rename.\n316: \ttypePrefix := string(wasmType) + \"_\"\n317: \tfor _, e := range entries {\n318: \t\tif e.IsDir() || !strings.HasSuffix(e.Name(), \".wasm\") {\n319: \t\t\tcontinue\n320: \t\t}\n321: \t\tif strings.HasPrefix(e.Name(), typePrefix) {\n322: \t\t\tfp := filepath.Join(m.wasmDir, e.Name())\n323: \t\t\th, err := fileHash(fp)\n324: \t\t\tif err == nil {\n325: \t\t\t\treturn fp, h\n326: \t\t\t}\n327: \t\t}\n328: \t}\n329: \n330: \t// Phase 2: look for hash-named files (sha256hex.wasm).\n331: \t// We can't match by tag directly from filename, but if there's only one\n332: \t// file of the expected type, return it.\n333: \tvar candidates []string\n334: \tfor _, e := range entries {\n335: \t\tif e.IsDir() || !strings.HasSuffix(e.Name(), \".wasm\") {\n336: \t\t\tcontinue\n337: \t\t}\n338: \t\t// Hash-named: 64 hex chars + \".wasm\"\n339: \t\tbase := strings.TrimSuffix(e.Name(), \".wasm\")\n340: \t\tif len(base) == 64 && isHex(base) {\n341: \t\t\tcandidates = append(candidates, e.Name())\n342: \t\t}\n343: \t}\n344: \n345: \t// If we've got candidates, return the most recent by mod time.\n346: \tif len(candidates) > 0 {\n347: \t\tvar newest string\n348: \t\tvar newestTime int64\n349: \t\tfor _, c := range candidates {\n350: \t\t\tfp := filepath.Join(m.wasmDir, c)\n351: \t\t\tinfo, err := os.Stat(fp)\n352: \t\t\tif err != nil {\n353: \t\t\t\tcontinue\n354: \t\t\t}\n355: \t\t\tif info.ModTime().Unix() > newestTime {\n356: \t\t\t\tnewestTime = info.ModTime().Unix()\n357: \t\t\t\tnewest = fp\n358: \t\t\t}\n359: \t\t}\n360: \t\tif newest != \"\" {\n361: \t\t\th, err := fileHash(newest)\n362: \t\t\tif err == nil {\n363: \t\t\t\treturn newest, h\n364: \t\t\t}\n365: \t\t}\n366: \t}\n367: \n368: \treturn \"\", \"\"\n369: }\n370: \n371: // —— persistence ——\n372: \n373: func (m *BadgeWASMMapper) savePersisted() {\n374: \tif m.persistPath == \"\" {\n375: \t\treturn\n376: \t}\n377: \tdata, err := json.MarshalIndent(m.entries, \"\", \"  \")\n378: \tif err != nil {\n379: \t\tlog.Printf(\"[wasm-mapper] persist marshal error: %v\", err)\n380: \t\treturn\n381: \t}\n382: \tif err := os.WriteFile(m.persistPath, data, 0644); err != nil {\n383: \t\tlog.Printf(\"[wasm-mapper] persist write error: %v\", err)\n384: \t}\n385: }\n386: \n387: func (m *BadgeWASMMapper) loadPersisted() {\n388: \tdata, err := os.ReadFile(m.persistPath)\n389: \tif err != nil {\n390: \t\treturn\n391: \t}\n392: \tvar entries map[string]*BadgeEntry\n393: \tif err := json.Unmarshal(data, &entries); err != nil {\n394: \t\tlog.Printf(\"[wasm-mapper] persist parse error: %v\", err)\n395: \t\treturn\n396: \t}\n397: \tm.entries = entries\n398: \tlog.Printf(\"[wasm-mapper] loaded %d badge entries from %s\", len(entries), m.persistPath)\n399: }\n400: \n401: // —— tag classification ——\n402: \n403: // classifyTag determines whether an ontology tag maps to guardrail,\n404: // resolution, or patch WASM.\n405: func classifyTag(tag string) BadgeTagClassification {\n406: \tlower := strings.ToLower(tag)\n407: \n408: \t// Guardrail / policy / rule tags\n409: \tguardrailPatterns := []string{\n410: \t\t\"guardrail\", \"guard\", \"policy\", \"rule\", \"compliance\",\n411: \t\t\"audit\", \"sandbox\", \"lsm\", \"seccomp\",\n412: \t\t\"ontology:guard\", \"ontology:policy\",\n413: \t}\n414: \tfor _, p := range guardrailPatterns {\n415: \t\tif strings.Contains(lower, p) {\n416: \t\t\treturn TagClassGuardrail\n417: \t\t}\n418: \t}\n419: \n420: \t// Resolution / recovery / error tags\n421: \tresolutionPatterns := []string{\n422: \t\t\"resolution\", \"resolve\", \"recovery\", \"error\", \"remediation\",\n423: \t\t\"heal\", \"self-heal\", \"restart\", \"rollback\",\n424: \t\t\"ontology:resolve\", \"ontology:error\",\n425: \t}\n426: \tfor _, p := range resolutionPatterns {\n427: \t\tif strings.Contains(lower, p) {\n428: \t\t\treturn TagClassResolution\n429: \t\t}\n430: \t}\n431: \n432: \t// Patch / update tags\n433: \tpatchPatterns := []string{\n434: \t\t\"patch\", \"update\", \"hotfix\", \"migrate\",\n435: \t}\n436: \tfor _, p := range patchPatterns {\n437: \t\tif strings.Contains(lower, p) {\n438: \t\t\treturn TagClassPatch\n439: \t\t}\n440: \t}\n441: \n442: \treturn TagClassUnknown\n443: }\n444: \n445: func classToWASMType(class BadgeTagClassification) WASMType {\n446: \tswitch class {\n447: \tcase TagClassGuardrail:\n448: \t\treturn WASMTypeRule\n449: \tcase TagClassResolution:\n450: \t\treturn WASMTypeResolution\n451: \tcase TagClassPatch:\n452: \t\treturn WASMTypePatch\n453: \tdefault:\n454: \t\treturn WASMTypeRule\n455: \t}\n456: }\n457: \n458: // —— utility ——\n459: \n460: func fileHash(path string) (string, error) {\n461: \tdata, err := os.ReadFile(path)\n462: \tif err != nil {\n463: \t\treturn \"\", err\n464: \t}\n465: \th := sha256.Sum256(data)\n466: \treturn hex.EncodeToString(h[:]), nil\n467: }\n468: \n469: func isHex(s string) bool {\n470: \tif s == \"\" {\n471: \t\treturn false\n472: \t}\n473: \tfor _, c := range s {\n474: \t\tif !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {\n475: \t\t\treturn false\n476: \t\t}\n477: \t}\n478: \treturn true\n479: }\n\n(End of file - total 479 lines)\n</content>",
+            "metadata": {
+              "preview": "// Copyright 2026 KNIRV-SERVER\n// SPDX-License-Identifier: GPL-3.0-or-later\n\n// Package wasm provides the Badge-to-WASM mapping service that links DVE\n// Badge ontology tags to pre-compiled .wasm modules generated by KNIRVHASHER.\n//\n// This implements Step 1 of the WASM Integration Investigation:\n//\n//\tMap \"Guardrail\" tags in Badges to rules.wasm.\n//\tMap \"Resolution/Recovery\" tags in Badges to resolution.wasm.\n//\n// WASM binaries are produced by the KNIRVHASHER transformer pipeline\n// (packages/KNIRVHASHER/pkg/hashing/transformer/compiler.go) and stored\n// in a configurable output directory (default /var/heart/wasm/).  Each\n// .wasm file is named by its SHA-256 hash.\n//\n// Badge-to-tag-to-WASM mapping is persisted so that subsequent guardrail\n// evaluations and eBPF-triggered resolutions can look up the correct\n// WASM module without re-scanning the directory.\npackage wasm",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper.go",
+            "time": {
+              "start": 1779727667618,
+              "end": 1779727668247
+            }
+          },
+          "id": "prt_e600910d4001rxyS2Abm5c2G2I",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008f70c001K8rAZHAkzu664u"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_03_4cZsNMtR73UFb3KtwL9X0963",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go</path>\n<type>file</type>\n<content>\n1: // Copyright 2026 KNIRV-SERVER\n2: // SPDX-License-Identifier: GPL-3.0-or-later\n3: \n4: package wasm\n5: \n6: import (\n7: \t\"context\"\n8: \t\"fmt\"\n9: \t\"log\"\n10: \t\"net/http\"\n11: \t\"time\"\n12: )\n13: \n14: // GuardrailDecision captures the result of a rules.wasm guardrail check.\n15: type GuardrailDecision struct {\n16: \tAllowed       bool      `json:\"allowed\"`\n17: \tGuardrailClass uint32   `json:\"guardrail_class\"`\n18: \tBadgeID       string    `json:\"badge_id\"`\n19: \tTag           string    `json:\"tag\"`\n20: \tWASMPath      string    `json:\"wasm_path\"`\n21: \tError         string    `json:\"error,omitempty\"`\n22: \tCheckedAt     time.Time `json:\"checked_at\"`\n23: }\n24: \n25: // GuardrailMiddleware implements Option A of the WASM Integration\n26: // Investigation: userspace guardrail enforcement via rules.wasm.\n27: //\n28: // It wraps an HTTP handler (typically ViewportProxy) and, before\n29: // forwarding the request, loads the rules.wasm associated with the\n30: // DVE's Badge and calls GuardrailClass().  If the guardrail class\n31: // indicates a blocked category, the request is rejected with 403.\n32: //\n33: // The middleware uses a pool of pre-compiled WazeroGate instances\n34: // per rules.wasm module for low-latency checks.\n35: type GuardrailMiddleware struct {\n36: \tmapper   *BadgeWASMMapper\n37: \tpools    map[string]*WazeroPool // wasmPath → pool\n38: \tpoolSize int\n39: }\n40: \n41: // NewGuardrailMiddleware creates a guardrail middleware backed by the\n42: // Badge-to-WASM mapper.  poolSize controls how many WazeroGate instances\n43: // are pre-allocated per unique rules.wasm module.\n44: func NewGuardrailMiddleware(mapper *BadgeWASMMapper, poolSize int) *GuardrailMiddleware {\n45: \tif poolSize < 1 {\n46: \t\tpoolSize = 8\n47: \t}\n48: \treturn &GuardrailMiddleware{\n49: \t\tmapper:   mapper,\n50: \t\tpools:    make(map[string]*WazeroPool),\n51: \t\tpoolSize: poolSize,\n52: \t}\n53: }\n54: \n55: // Middleware returns an HTTP middleware that validates requests via\n56: // rules.wasm before passing them to the next handler.\n57: //\n58: // The middleware expects the following request headers to identify the\n59: // DVE and its active Badge:\n60: //\n61: //\tX-DVE-ID     — DVE node identifier\n62: //\tX-Badge-ID   — Badge NFT ID whose guardrail rules.wasm to invoke\n63: //\tX-Badge-Tag  — (optional) specific ontology tag; if omitted, the\n64: //\t               first guardrail-classified tag is used\n65: func (gm *GuardrailMiddleware) Middleware(next http.Handler) http.Handler {\n66: \treturn http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {\n67: \t\tdveID := r.Header.Get(\"X-DVE-ID\")\n68: \t\tbadgeID := r.Header.Get(\"X-Badge-ID\")\n69: \t\tbadgeTag := r.Header.Get(\"X-Badge-Tag\")\n70: \n71: \t\t// If no badge header, pass through (no guardrail active).\n72: \t\tif badgeID == \"\" {\n73: \t\t\tnext.ServeHTTP(w, r)\n74: \t\t\treturn\n75: \t\t}\n76: \n77: \t\tdecision := gm.validate(r.Context(), dveID, badgeID, badgeTag)\n78: \n79: \t\t// Attach decision to response headers for observability.\n80: \t\tw.Header().Set(\"X-Guardrail-Allowed\", fmt.Sprintf(\"%v\", decision.Allowed))\n81: \t\tw.Header().Set(\"X-Guardrail-Class\", fmt.Sprintf(\"%d\", decision.GuardrailClass))\n82: \t\tif decision.Error != \"\" {\n83: \t\t\tw.Header().Set(\"X-Guardrail-Error\", decision.Error)\n84: \t\t}\n85: \n86: \t\tif !decision.Allowed {\n87: \t\t\thttp.Error(w, fmt.Sprintf(\"guardrail blocked: class=%d\", decision.GuardrailClass),\n88: \t\t\t\thttp.StatusForbidden)\n89: \t\t\treturn\n90: \t\t}\n91: \n92: \t\tnext.ServeHTTP(w, r)\n93: \t})\n94: }\n95: \n96: // ValidateSession is a convenience method that validates a session\n97: // against the DVE's guardrail WASM without requiring an HTTP request.\n98: // Returns (allowed, guardrailClass, error).\n99: func (gm *GuardrailMiddleware) ValidateSession(ctx context.Context, dveID, badgeID, tag string) (bool, uint32, error) {\n100: \tdecision := gm.validate(ctx, dveID, badgeID, tag)\n101: \treturn decision.Allowed, decision.GuardrailClass, nil\n102: }\n103: \n104: // Close releases all WazeroGate pools.\n105: func (gm *GuardrailMiddleware) Close() {\n106: \tfor _, pool := range gm.pools {\n107: \t\tpool.CloseAll()\n108: \t}\n109: \tgm.pools = make(map[string]*WazeroPool)\n110: }\n111: \n112: // —— internal ——\n113: \n114: func (gm *GuardrailMiddleware) validate(ctx context.Context, dveID, badgeID, tag string) *GuardrailDecision {\n115: \tdecision := &GuardrailDecision{\n116: \t\tAllowed:   true, // default allow if nothing to check\n117: \t\tBadgeID:   badgeID,\n118: \t\tTag:       tag,\n119: \t\tCheckedAt: time.Now(),\n120: \t}\n121: \n122: \t// Find the guardrail WASM for this badge.\n123: \tmappings := gm.mapper.GetGuardrailWASM(badgeID)\n124: \tif len(mappings) == 0 {\n125: \t\t// No guardrail WASM — allow (no policy to enforce).\n126: \t\treturn decision\n127: \t}\n128: \n129: \t// If a specific tag is requested, filter to that tag.\n130: \tvar target *WASMMapping\n131: \tif tag != \"\" {\n132: \t\tfor i := range mappings {\n133: \t\t\tif mappings[i].Tag == tag {\n134: \t\t\t\ttarget = &mappings[i]\n135: \t\t\t\tbreak\n136: \t\t\t}\n137: \t\t}\n138: \t\tif target == nil {\n139: \t\t\tdecision.Error = fmt.Sprintf(\"guardrail tag %s not found on badge %s\", tag, badgeID)\n140: \t\t\treturn decision\n141: \t\t}\n142: \t} else {\n143: \t\t// Use the first available guardrail mapping.\n144: \t\ttarget = &mappings[0]\n145: \t}\n146: \n147: \tdecision.Tag = target.Tag\n148: \tdecision.WASMPath = target.WASMPath\n149: \n150: \t// Acquire a WazeroGate from the pool.\n151: \tpool := gm.getOrCreatePool(target.WASMPath)\n152: \tgate, err := pool.Acquire(ctx)\n153: \tif err != nil {\n154: \t\tdecision.Error = fmt.Sprintf(\"wazero pool error: %v\", err)\n155: \t\tlog.Printf(\"[guardrail-middleware] dve=%s badge=%s: %s\", dveID, badgeID, decision.Error)\n156: \t\t// Fail-open when WASM runtime is unavailable.\n157: \t\tdecision.Allowed = true\n158: \t\treturn decision\n159: \t}\n160: \n161: \tclass, err := gate.GuardrailClass(ctx)\n162: \tif err != nil {\n163: \t\tdecision.Error = fmt.Sprintf(\"GuardrailClass() error: %v\", err)\n164: \t\tlog.Printf(\"[guardrail-middleware] dve=%s badge=%s: %s\", dveID, badgeID, decision.Error)\n165: \t\t// Fail-open on WASM execution error to avoid blocking legitimate\n166: \t\t// traffic when the WASM module is misconfigured.\n167: \t\tdecision.Allowed = true\n168: \t\tdecision.GuardrailClass = class\n169: \t\treturn decision\n170: \t}\n171: \n172: \tdecision.GuardrailClass = class\n173: \t// Class 0 = no violation; non-zero = specific policy violation.\n174: \tdecision.Allowed = (class == 0)\n175: \n176: \tif !decision.Allowed {\n177: \t\tlog.Printf(\"[guardrail-middleware] dve=%s badge=%s class=%d → BLOCKED\",\n178: \t\t\tdveID, badgeID, class)\n179: \t}\n180: \n181: \treturn decision\n182: }\n183: \n184: func (gm *GuardrailMiddleware) getOrCreatePool(wasmPath string) *WazeroPool {\n185: \t// Simple map access without locking; pools are created at registration\n186: \t// time and never removed during the lifetime of the middleware.\n187: \tif pool, ok := gm.pools[wasmPath]; ok {\n188: \t\treturn pool\n189: \t}\n190: \tpool := NewWazeroPool(wasmPath, gm.poolSize)\n191: \tgm.pools[wasmPath] = pool\n192: \treturn pool\n193: }\n\n(End of file - total 193 lines)\n</content>",
+            "metadata": {
+              "preview": "// Copyright 2026 KNIRV-SERVER\n// SPDX-License-Identifier: GPL-3.0-or-later\n\npackage wasm\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"log\"\n\t\"net/http\"\n\t\"time\"\n)\n\n// GuardrailDecision captures the result of a rules.wasm guardrail check.\ntype GuardrailDecision struct {\n\tAllowed       bool      `json:\"allowed\"`\n\tGuardrailClass uint32   `json:\"guardrail_class\"`\n\tBadgeID       string    `json:\"badge_id\"`\n\tTag           string    `json:\"tag\"`\n\tWASMPath      string    `json:\"wasm_path\"`",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go",
+            "time": {
+              "start": 1779727667759,
+              "end": 1779727668233
+            }
+          },
+          "id": "prt_e600911b9001StDToG7HzzoL64",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008f70c001K8rAZHAkzu664u"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_04_pRBW8dZ0oWUr8BANnJoI2649",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go</path>\n<type>file</type>\n<content>\n1: // Copyright 2026 KNIRV-SERVER\n2: // SPDX-License-Identifier: GPL-3.0-or-later\n3: \n4: package wasm\n5: \n6: import (\n7: \t\"context\"\n8: \t\"os\"\n9: \t\"path/filepath\"\n10: \t\"testing\"\n11: \t\"time\"\n12: )\n13: \n14: // ── BadgeWASMMapper Tests ──────────────────────────────────────────────\n15: \n16: func TestBadgeWASMMapper_RegisterBadge(t *testing.T) {\n17: \ttmpDir := t.TempDir()\n18: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n19: \n20: \ttags := []string{\n21: \t\t\"guardrail:policy:sandbox\",\n22: \t\t\"resolution:error:recovery\",\n23: \t\t\"resolution:restart\",\n24: \t\t\"patch:update\",\n25: \t\t\"unknown:tag\",\n26: \t}\n27: \n28: \terr := mapper.RegisterBadge(\"badge-001\", tags)\n29: \tif err != nil {\n30: \t\tt.Fatalf(\"RegisterBadge failed: %v\", err)\n31: \t}\n32: \n33: \tentry, ok := mapper.GetEntry(\"badge-001\")\n34: \tif !ok {\n35: \t\tt.Fatal(\"badge entry not found after registration\")\n36: \t}\n37: \n38: \tif len(entry.Mappings) != len(tags) {\n39: \t\tt.Fatalf(\"expected %d mappings, got %d\", len(tags), len(entry.Mappings))\n40: \t}\n41: \n42: \t// Verify tag classifications.\n43: \tfor _, mp := range entry.Mappings {\n44: \t\tswitch mp.Tag {\n45: \t\tcase \"guardrail:policy:sandbox\":\n46: \t\t\tif mp.WASMType != WASMTypeRule {\n47: \t\t\t\tt.Errorf(\"tag %s: expected WASMType rule, got %s\", mp.Tag, mp.WASMType)\n48: \t\t\t}\n49: \t\tcase \"resolution:error:recovery\", \"resolution:restart\":\n50: \t\t\tif mp.WASMType != WASMTypeResolution {\n51: \t\t\t\tt.Errorf(\"tag %s: expected WASMType resolution, got %s\", mp.Tag, mp.WASMType)\n52: \t\t\t}\n53: \t\tcase \"patch:update\":\n54: \t\t\tif mp.WASMType != WASMTypePatch {\n55: \t\t\t\tt.Errorf(\"tag %s: expected WASMType patch, got %s\", mp.Tag, mp.WASMType)\n56: \t\t\t}\n57: \t\tcase \"unknown:tag\":\n58: \t\t\tif mp.WASMType != WASMTypeRule {\n59: \t\t\t\tt.Errorf(\"tag %s: expected WASMType rule (default), got %s\", mp.Tag, mp.WASMType)\n60: \t\t\t}\n61: \t\t}\n62: \t}\n63: }\n64: \n65: func TestBadgeWASMMapper_LookupWASM(t *testing.T) {\n66: \ttmpDir := t.TempDir()\n67: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n68: \n69: \t// Create a dummy .wasm file so lookup can find it.\n70: \tdummyWasm := filepath.Join(tmpDir, \"rule_test.wasm\")\n71: \tif err := os.WriteFile(dummyWasm, []byte{0x00, 0x61, 0x73, 0x6d}, 0644); err != nil {\n72: \t\tt.Fatalf(\"create dummy wasm: %v\", err)\n73: \t}\n74: \n75: \terr := mapper.RegisterBadge(\"badge-002\", []string{\"guardrail:sandbox\"})\n76: \tif err != nil {\n77: \t\tt.Fatalf(\"RegisterBadge failed: %v\", err)\n78: \t}\n79: \n80: \t// Should find the dummy .wasm.\n81: \twasmPath, wasmType, err := mapper.LookupWASM(\"badge-002\", \"guardrail:sandbox\")\n82: \tif err != nil {\n83: \t\tt.Fatalf(\"LookupWASM failed: %v\", err)\n84: \t}\n85: \tif wasmPath != dummyWasm {\n86: \t\tt.Errorf(\"expected wasm path %s, got %s\", dummyWasm, wasmPath)\n87: \t}\n88: \tif wasmType != WASMTypeRule {\n89: \t\tt.Errorf(\"expected WASMType rule, got %s\", wasmType)\n90: \t}\n91: \n92: \t// Non-existent badge.\n93: \t_, _, err = mapper.LookupWASM(\"badge-999\", \"guardrail:sandbox\")\n94: \tif err == nil {\n95: \t\tt.Error(\"expected error for non-existent badge\")\n96: \t}\n97: \n98: \t// Non-existent tag.\n99: \t_, _, err = mapper.LookupWASM(\"badge-002\", \"nonexistent\")\n100: \tif err == nil {\n101: \t\tt.Error(\"expected error for non-existent tag\")\n102: \t}\n103: }\n104: \n105: func TestBadgeWASMMapper_RemoveBadge(t *testing.T) {\n106: \ttmpDir := t.TempDir()\n107: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n108: \n109: \tmapper.RegisterBadge(\"badge-003\", []string{\"guardrail:test\"})\n110: \tmapper.RemoveBadge(\"badge-003\")\n111: \n112: \t_, ok := mapper.GetEntry(\"badge-003\")\n113: \tif ok {\n114: \t\tt.Error(\"badge should have been removed\")\n115: \t}\n116: }\n117: \n118: func TestBadgeWASMMapper_GetGuardrailAndResolutionWASM(t *testing.T) {\n119: \ttmpDir := t.TempDir()\n120: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n121: \n122: \t// Create dummy .wasm files.\n123: \truleWasm := filepath.Join(tmpDir, \"rule_guard.wasm\")\n124: \tresWasm := filepath.Join(tmpDir, \"resolution_rec.wasm\")\n125: \tos.WriteFile(ruleWasm, []byte{0x00, 0x61, 0x73, 0x6d}, 0644)\n126: \tos.WriteFile(resWasm, []byte{0x00, 0x61, 0x73, 0x6d}, 0644)\n127: \n128: \terr := mapper.RegisterBadge(\"badge-004\", []string{\n129: \t\t\"guardrail:policy\",\n130: \t\t\"resolution:error\",\n131: \t})\n132: \tif err != nil {\n133: \t\tt.Fatalf(\"RegisterBadge failed: %v\", err)\n134: \t}\n135: \n136: \tguardrails := mapper.GetGuardrailWASM(\"badge-004\")\n137: \tif len(guardrails) != 1 {\n138: \t\tt.Errorf(\"expected 1 guardrail mapping, got %d\", len(guardrails))\n139: \t} else if guardrails[0].WASMType != WASMTypeRule {\n140: \t\tt.Errorf(\"expected rule type, got %s\", guardrails[0].WASMType)\n141: \t}\n142: \n143: \tresolutions := mapper.GetResolutionWASM(\"badge-004\")\n144: \tif len(resolutions) != 1 {\n145: \t\tt.Errorf(\"expected 1 resolution mapping, got %d\", len(resolutions))\n146: \t} else if resolutions[0].WASMType != WASMTypeResolution {\n147: \t\tt.Errorf(\"expected resolution type, got %s\", resolutions[0].WASMType)\n148: \t}\n149: }\n150: \n151: func TestBadgeWASMMapper_Persistence(t *testing.T) {\n152: \ttmpDir := t.TempDir()\n153: \tpersistPath := filepath.Join(tmpDir, \"wasm-mappings.json\")\n154: \n155: \t// Create mapper with persistence.\n156: \tmapper1 := NewBadgeWASMMapper(tmpDir, persistPath)\n157: \tmapper1.RegisterBadge(\"badge-persist\", []string{\"guardrail:compliance\"})\n158: \n159: \t// Create a second mapper that should load from disk.\n160: \tmapper2 := NewBadgeWASMMapper(tmpDir, persistPath)\n161: \tentry, ok := mapper2.GetEntry(\"badge-persist\")\n162: \tif !ok {\n163: \t\tt.Fatal(\"persisted badge not loaded\")\n164: \t}\n165: \tif entry.BadgeID != \"badge-persist\" {\n166: \t\tt.Errorf(\"expected badge ID 'badge-persist', got '%s'\", entry.BadgeID)\n167: \t}\n168: }\n169: \n170: func TestBadgeWASMMapper_RefreshWASMDir(t *testing.T) {\n171: \ttmpDir := t.TempDir()\n172: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n173: \n174: \t// Register badge when no WASM exists yet.\n175: \terr := mapper.RegisterBadge(\"badge-refresh\", []string{\"resolution:heal\"})\n176: \tif err != nil {\n177: \t\tt.Fatalf(\"RegisterBadge failed: %v\", err)\n178: \t}\n179: \n180: \tentry, _ := mapper.GetEntry(\"badge-refresh\")\n181: \tif entry.Mappings[0].WASMPath != \"\" {\n182: \t\tt.Log(\"WASM already present — skipping empty check\")\n183: \t}\n184: \n185: \t// Now create a WASM file.\n186: \tnewWasm := filepath.Join(tmpDir, \"resolution_heal.wasm\")\n187: \tos.WriteFile(newWasm, []byte{0x00, 0x61, 0x73, 0x6d}, 0644)\n188: \n189: \tmapper.RefreshWASMDir()\n190: \n191: \tentry, _ = mapper.GetEntry(\"badge-refresh\")\n192: \tif entry.Mappings[0].WASMPath == \"\" {\n193: \t\tt.Error(\"expected WASM path to be populated after refresh\")\n194: \t}\n195: }\n196: \n197: func TestBadgeWASMMapper_Stats(t *testing.T) {\n198: \ttmpDir := t.TempDir()\n199: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n200: \n201: \truleWasm := filepath.Join(tmpDir, \"rule_stat.wasm\")\n202: \tresWasm := filepath.Join(tmpDir, \"resolution_stat.wasm\")\n203: \tos.WriteFile(ruleWasm, []byte{0x00, 0x61, 0x73, 0x6d}, 0644)\n204: \tos.WriteFile(resWasm, []byte{0x00, 0x61, 0x73, 0x6d}, 0644)\n205: \n206: \tmapper.RegisterBadge(\"badge-stat-1\", []string{\"guardrail:audit\", \"resolution:heal\"})\n207: \tmapper.RegisterBadge(\"badge-stat-2\", []string{\"guardrail:lsm\"})\n208: \n209: \tstats := mapper.Stats()\n210: \tbadges := stats[\"total_badges\"].(int)\n211: \tif badges != 2 {\n212: \t\tt.Errorf(\"expected 2 badges in stats, got %d\", badges)\n213: \t}\n214: }\n215: \n216: func TestBadgeWASMMapper_ListBadges(t *testing.T) {\n217: \ttmpDir := t.TempDir()\n218: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n219: \n220: \tmapper.RegisterBadge(\"badge-a\", []string{\"guardrail:x\"})\n221: \tmapper.RegisterBadge(\"badge-b\", []string{\"resolution:y\"})\n222: \n223: \tids := mapper.ListBadges()\n224: \tif len(ids) != 2 {\n225: \t\tt.Errorf(\"expected 2 badges, got %d\", len(ids))\n226: \t}\n227: \n228: \tfound := make(map[string]bool)\n229: \tfor _, id := range ids {\n230: \t\tfound[id] = true\n231: \t}\n232: \tif !found[\"badge-a\"] || !found[\"badge-b\"] {\n233: \t\tt.Error(\"expected both badge IDs in list\")\n234: \t}\n235: }\n236: \n237: func TestBadgeWASMMapper_DefaultWASMDir(t *testing.T) {\n238: \tdir := DefaultWASMDir()\n239: \tif dir == \"\" {\n240: \t\tt.Error(\"DefaultWASMDir should not be empty\")\n241: \t}\n242: }\n243: \n244: // ── Tag Classification Tests ──────────────────────────────────────────\n245: \n246: func TestClassifyTag_Guardrail(t *testing.T) {\n247: \ttags := []string{\n248: \t\t\"guardrail:sandbox\",\n249: \t\t\"policy:network\",\n250: \t\t\"compliance:audit\",\n251: \t\t\"lsm:restrict\",\n252: \t\t\"seccomp:block\",\n253: \t\t\"ontology:guard:file\",\n254: \t}\n255: \tfor _, tag := range tags {\n256: \t\tclass := classifyTag(tag)\n257: \t\tif class != TagClassGuardrail {\n258: \t\t\tt.Errorf(\"tag %q: expected guardrail, got %s\", tag, class)\n259: \t\t}\n260: \t}\n261: }\n262: \n263: func TestClassifyTag_Resolution(t *testing.T) {\n264: \ttags := []string{\n265: \t\t\"resolution:error:epipe\",\n266: \t\t\"resolve:oom\",\n267: \t\t\"recovery:panic\",\n268: \t\t\"error:enoent\",\n269: \t\t\"remediation:restart\",\n270: \t\t\"heal:service\",\n271: \t\t\"self-heal:container\",\n272: \t\t\"restart:node\",\n273: \t\t\"rollback:config\",\n274: \t\t\"ontology:resolve:crash\",\n275: \t}\n276: \tfor _, tag := range tags {\n277: \t\tclass := classifyTag(tag)\n278: \t\tif class != TagClassResolution {\n279: \t\t\tt.Errorf(\"tag %q: expected resolution, got %s\", tag, class)\n280: \t\t}\n281: \t}\n282: }\n283: \n284: func TestClassifyTag_Patch(t *testing.T) {\n285: \ttags := []string{\n286: \t\t\"patch:binary\",\n287: \t\t\"update:library\",\n288: \t\t\"hotfix:critical\",\n289: \t\t\"migrate:schema\",\n290: \t}\n291: \tfor _, tag := range tags {\n292: \t\tclass := classifyTag(tag)\n293: \t\tif class != TagClassPatch {\n294: \t\t\tt.Errorf(\"tag %q: expected patch, got %s\", tag, class)\n295: \t\t}\n296: \t}\n297: }\n298: \n299: func TestClassifyTag_Unknown(t *testing.T) {\n300: \tclass := classifyTag(\"random:nonsense\")\n301: \tif class != TagClassUnknown {\n302: \t\tt.Errorf(\"expected unknown, got %s\", class)\n303: \t}\n304: }\n305: \n306: func TestClassToWASMType(t *testing.T) {\n307: \tif classToWASMType(TagClassGuardrail) != WASMTypeRule {\n308: \t\tt.Error(\"guardrail → rule mapping wrong\")\n309: \t}\n310: \tif classToWASMType(TagClassResolution) != WASMTypeResolution {\n311: \t\tt.Error(\"resolution → resolution mapping wrong\")\n312: \t}\n313: \tif classToWASMType(TagClassPatch) != WASMTypePatch {\n314: \t\tt.Error(\"patch → patch mapping wrong\")\n315: \t}\n316: \tif classToWASMType(TagClassUnknown) != WASMTypeRule {\n317: \t\tt.Error(\"unknown → rule fallback wrong\")\n318: \t}\n319: }\n320: \n321: // ── ResolutionService Tests ───────────────────────────────────────────\n322: \n323: type mockRemediationSink struct {\n324: \tdispatched []*ResolutionResult\n325: }\n326: \n327: func (m *mockRemediationSink) DispatchRemediation(ctx context.Context, result *ResolutionResult) error {\n328: \tm.dispatched = append(m.dispatched, result)\n329: \treturn nil\n330: }\n331: \n332: func TestResolutionService_SubmitAndStats(t *testing.T) {\n333: \ttmpDir := t.TempDir()\n334: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n335: \n336: \tsink := &mockRemediationSink{}\n337: \tsvc := NewResolutionService(mapper, sink, 2, 16)\n338: \n339: \t// Submit should succeed when buffer has room.\n340: \tsignal := &ResolutionSignal{\n341: \t\tDVEID:     \"dve-1\",\n342: \t\tNodeID:    \"node-1\",\n343: \t\tBadgeID:   \"badge-1\",\n344: \t\tTag:       \"resolution:error\",\n345: \t\tErrorType: \"ENOENT\",\n346: \t}\n347: \tif !svc.Submit(signal) {\n348: \t\tt.Error(\"expected submit to succeed\")\n349: \t}\n350: \n351: \tstats := svc.Stats()\n352: \tif stats.TotalSignals != 1 {\n353: \t\tt.Errorf(\"expected 1 total signal, got %d\", stats.TotalSignals)\n354: \t}\n355: \n356: \tsvc.Stop()\n357: }\n358: \n359: func TestResolutionService_ResolveWithoutWASM(t *testing.T) {\n360: \ttmpDir := t.TempDir()\n361: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n362: \n363: \t// Register badge but no WASM file exists.\n364: \tmapper.RegisterBadge(\"badge-no-wasm\", []string{\"resolution:test\"})\n365: \n366: \tsink := &mockRemediationSink{}\n367: \tsvc := NewResolutionService(mapper, sink, 2, 16)\n368: \n369: \tsignal := &ResolutionSignal{\n370: \t\tDVEID:   \"dve-1\",\n371: \t\tNodeID:  \"node-1\",\n372: \t\tBadgeID: \"badge-no-wasm\",\n373: \t\tTag:     \"resolution:test\",\n374: \t}\n375: \n376: \tresult, err := svc.Resolve(context.Background(), signal)\n377: \tif err == nil {\n378: \t\tt.Error(\"expected error when WASM is missing\")\n379: \t}\n380: \tif result == nil {\n381: \t\tt.Fatal(\"expected non-nil result even on error\")\n382: \t}\n383: \tif result.Error == \"\" {\n384: \t\tt.Error(\"expected error message in result\")\n385: \t}\n386: \n387: \tstats := svc.Stats()\n388: \tif stats.WASMErrors == 0 {\n389: \t\tt.Error(\"expected WASM errors in stats\")\n390: \t}\n391: \n392: \tsvc.Stop()\n393: }\n394: \n395: func TestResolutionService_StartStop(t *testing.T) {\n396: \ttmpDir := t.TempDir()\n397: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n398: \tsink := &mockRemediationSink{}\n399: \tsvc := NewResolutionService(mapper, sink, 2, 8)\n400: \n401: \tctx, cancel := context.WithCancel(context.Background())\n402: \tsvc.Start(ctx, 2)\n403: \n404: \ttime.Sleep(50 * time.Millisecond)\n405: \tcancel()\n406: \tsvc.Stop()\n407: }\n408: \n409: // ── GuardrailMiddleware Tests ─────────────────────────────────────────\n410: \n411: func TestGuardrailMiddleware_NoBadgeHeader(t *testing.T) {\n412: \ttmpDir := t.TempDir()\n413: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n414: \tmiddleware := NewGuardrailMiddleware(mapper, 2)\n415: \tdefer middleware.Close()\n416: \n417: \t// ValidateSession with empty badgeID should allow.\n418: \tallowed, class, err := middleware.ValidateSession(\n419: \t\tcontext.Background(), \"dve-1\", \"\", \"\")\n420: \tif err != nil {\n421: \t\tt.Fatalf(\"ValidateSession failed: %v\", err)\n422: \t}\n423: \tif !allowed {\n424: \t\tt.Error(\"expected allowed=true when no badge\")\n425: \t}\n426: \tif class != 0 {\n427: \t\tt.Errorf(\"expected class=0, got %d\", class)\n428: \t}\n429: }\n430: \n431: func TestGuardrailMiddleware_MissingGuardrailWASM(t *testing.T) {\n432: \ttmpDir := t.TempDir()\n433: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n434: \tmapper.RegisterBadge(\"badge-no-guard\", []string{\"resolution:test\"})\n435: \n436: \tmiddleware := NewGuardrailMiddleware(mapper, 2)\n437: \tdefer middleware.Close()\n438: \n439: \t// This badge has no guardrail tags → should allow.\n440: \tallowed, _, err := middleware.ValidateSession(\n441: \t\tcontext.Background(), \"dve-1\", \"badge-no-guard\", \"\")\n442: \tif err != nil {\n443: \t\tt.Fatalf(\"ValidateSession failed: %v\", err)\n444: \t}\n445: \tif !allowed {\n446: \t\tt.Error(\"expected allowed=true when no guardrail WASM\")\n447: \t}\n448: }\n449: \n450: func TestGuardrailMiddleware_Close(t *testing.T) {\n451: \ttmpDir := t.TempDir()\n452: \tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n453: \tmiddleware := NewGuardrailMiddleware(mapper, 2)\n454: \n455: \t// Close should not panic even with no pools.\n456: \tmiddleware.Close()\n457: \n458: \tif len(middleware.pools) != 0 {\n459: \t\tt.Error(\"expected empty pools after close\")\n460: \t}\n461: }\n462: \n463: // ── Wazero Pool Tests ─────────────────────────────────────────────────\n464: \n465: func TestWazeroPool_NewAndClose(t *testing.T) {\n466: \tpool := NewWazeroPool(\"/nonexistent/path.wasm\", 4)\n467: \tif pool == nil {\n468: \t\tt.Fatal(\"expected non-nil pool\")\n469: \t}\n470: \n471: \t// CloseAll on empty pool should not panic.\n472: \tpool.CloseAll()\n473: }\n474: \n475: // ── Utility Tests ─────────────────────────────────────────────────────\n476: \n477: func TestFileHash(t *testing.T) {\n478: \ttmpDir := t.TempDir()\n479: \ttmpFile := filepath.Join(tmpDir, \"test.bin\")\n480: \tcontent := []byte(\"hello wasm world\")\n481: \tos.WriteFile(tmpFile, content, 0644)\n482: \n483: \thash, err := fileHash(tmpFile)\n484: \tif err != nil {\n485: \t\tt.Fatalf(\"fileHash failed: %v\", err)\n486: \t}\n487: \tif len(hash) != 64 {\n488: \t\tt.Errorf(\"expected 64-char hex hash, got %d\", len(hash))\n489: \t}\n490: }\n491: \n492: func TestFileHash_NonExistent(t *testing.T) {\n493: \t_, err := fileHash(\"/nonexistent/file.wasm\")\n494: \tif err == nil {\n495: \t\tt.Error(\"expected error for non-existent file\")\n496: \t}\n497: }\n498: \n499: func TestIsHex(t *testing.T) {\n500: \tif !isHex(\"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\") {\n501: \t\tt.Error(\"expected valid hex string\")\n502: \t}\n503: \tif isHex(\"not-hex!\") {\n504: \t\tt.Error(\"expected invalid hex string\")\n505: \t}\n506: \tif isHex(\"\") {\n507: \t\tt.Error(\"empty string should not be hex\")\n508: \t}\n509: }\n\n(End of file - total 509 lines)\n</content>",
+            "metadata": {
+              "preview": "// Copyright 2026 KNIRV-SERVER\n// SPDX-License-Identifier: GPL-3.0-or-later\n\npackage wasm\n\nimport (\n\t\"context\"\n\t\"os\"\n\t\"path/filepath\"\n\t\"testing\"\n\t\"time\"\n)\n\n// ── BadgeWASMMapper Tests ──────────────────────────────────────────────\n\nfunc TestBadgeWASMMapper_RegisterBadge(t *testing.T) {\n\ttmpDir := t.TempDir()\n\tmapper := NewBadgeWASMMapper(tmpDir, \"\")\n\n\ttags := []string{",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go",
+            "time": {
+              "start": 1779727667881,
+              "end": 1779727668353
+            }
+          },
+          "id": "prt_e60091240001C5htr45XApECnz",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008f70c001K8rAZHAkzu664u"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 13797,
+            "input": 5334,
+            "output": 378,
+            "reasoning": 21,
+            "cache": {
+              "write": 0,
+              "read": 8064
+            }
+          },
+          "cost": 0,
+          "id": "prt_e60093ad10016LJocrEFVMTbel",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e6008f70c001K8rAZHAkzu664u"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008a07b001IJG4RZ2wQSVni2",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 33387,
+          "input": 19427,
+          "output": 218,
+          "reasoning": 46,
+          "cache": {
+            "write": 0,
+            "read": 13696
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727679118,
+          "completed": 1779727686836
+        },
+        "finish": "tool-calls",
+        "id": "msg_e60093e8e001TqJdr3rFFBwdXi",
+        "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e600947f8001kKitgOXT0WQ3Zr",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60093e8e001TqJdr3rFFBwdXi"
+        },
+        {
+          "type": "reasoning",
+          "text": "I now have all the files. Let me also check if there are any other implementations of RemediationSink outside the test file, and also look at the GuardrailEngine to see how it might implement RemediationSink.",
+          "time": {
+            "start": 1779727682182,
+            "end": 1779727682655
+          },
+          "id": "prt_e60094a86001SfOd4fD8CUGLgy",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60093e8e001TqJdr3rFFBwdXi"
+        },
+        {
+          "type": "text",
+          "text": "Now let me check if there are any other implementations of `RemediationSink` beyond the test mock, and look at how the `GuardrailEngine` relates.",
+          "time": {
+            "start": 1779727682666,
+            "end": 1779727683855
+          },
+          "id": "prt_e60094c6a001bMK6GvpbmGfE3g",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60093e8e001TqJdr3rFFBwdXi"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_00_1UvvC8KzJy2LHRx96k6n1517",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "DispatchRemediation",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER"
+            },
+            "output": "Found 4 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go:\n  Line 32: \t// DispatchRemediation is called when a resolution.wasm returns\n\n  Line 35: \tDispatchRemediation(ctx context.Context, result *ResolutionResult) error\n\n  Line 232: \t\tif err := rs.sink.DispatchRemediation(ctx, result); err != nil {\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go:\n  Line 327: func (m *mockRemediationSink) DispatchRemediation(ctx context.Context, result *ResolutionResult) error {\n",
+            "metadata": {
+              "matches": 4,
+              "truncated": false
+            },
+            "title": "DispatchRemediation",
+            "time": {
+              "start": 1779727683303,
+              "end": 1779727685507
+            }
+          },
+          "id": "prt_e60094db2001bIZ08Q3zKixywk",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60093e8e001TqJdr3rFFBwdXi"
+        },
+        {
+          "type": "tool",
+          "tool": "grep",
+          "callID": "call_01_K055th8JMjEX1FJnyGl85853",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "RemediationSink",
+              "path": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+              "include": "*.go"
+            },
+            "output": "Found 9 matches\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go:\n  Line 29: // RemediationSink receives resolution results and dispatches them\n\n  Line 31: type RemediationSink interface {\n\n  Line 50: \tsink         RemediationSink\n\n  Line 89: \tsink RemediationSink,\n\n\n/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go:\n  Line 323: type mockRemediationSink struct {\n\n  Line 327: func (m *mockRemediationSink) DispatchRemediation(ctx context.Context, result *ResolutionResult) error {\n\n  Line 336: \tsink := &mockRemediationSink{}\n\n  Line 366: \tsink := &mockRemediationSink{}\n\n  Line 398: \tsink := &mockRemediationSink{}\n",
+            "metadata": {
+              "matches": 9,
+              "truncated": false
+            },
+            "title": "RemediationSink",
+            "time": {
+              "start": 1779727683766,
+              "end": 1779727684073
+            }
+          },
+          "id": "prt_e60094f12001ATA5YPabKCacjw",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60093e8e001TqJdr3rFFBwdXi"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 33387,
+            "input": 19427,
+            "output": 218,
+            "reasoning": 46,
+            "cache": {
+              "write": 0,
+              "read": 13696
+            }
+          },
+          "cost": 0,
+          "id": "prt_e60095a46001fso60cexgjxhfH",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60093e8e001TqJdr3rFFBwdXi"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008a07b001IJG4RZ2wQSVni2",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 34001,
+          "input": 554,
+          "output": 102,
+          "reasoning": 65,
+          "cache": {
+            "write": 0,
+            "read": 33280
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727686904,
+          "completed": 1779727699781
+        },
+        "finish": "tool-calls",
+        "id": "msg_e60095cf8001RseB720xc4D2zZ",
+        "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e6009669c001xvVuBBfF6FGqHx",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60095cf8001RseB720xc4D2zZ"
+        },
+        {
+          "type": "reasoning",
+          "text": "The `RemediationSink` interface is only defined in `resolution_service.go` and only implemented as a mock in the test file. There's no production implementation yet -- the GuardrailEngine has not been wired up to implement it. Let me check the GuardrailEngine to see if it has any related structures.",
+          "time": {
+            "start": 1779727689657,
+            "end": 1779727690500
+          },
+          "id": "prt_e600967b9001XvRx4AyE4c4ilR",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60095cf8001RseB720xc4D2zZ"
+        },
+        {
+          "type": "text",
+          "text": "Let me also check the GuardrailEngine to see if it has any related methods or references.",
+          "time": {
+            "start": 1779727690505,
+            "end": 1779727691127
+          },
+          "id": "prt_e60096b09001DZiF8z7aVWgnEM",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60095cf8001RseB720xc4D2zZ"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_00_hs0wP2ulRQtDbo9Zkrp73449",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go"
+            },
+            "output": "<path>/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go</path>\n<type>file</type>\n<content>\n1: package cognitiveengine\n2: \n3: import (\n4: \t\"context\"\n5: \t\"fmt\"\n6: \t\"log\"\n7: \t\"sync\"\n8: \t\"time\"\n9: )\n10: \n11: // PolicyRule defines a single per-DVE guardrail constraint.\n12: type PolicyRule struct {\n13: \tID                string\n14: \tDescription       string\n15: \tDVEID             string // empty = applies to all DVEs\n16: \tBadgeID           string // empty = applies to all badges\n17: \tBadgeOntologyTags []string // ontology elements from badge\n18: \tMetric            string // \"success_rate\", \"avg_processing_time\", \"resource_utilization\", \"violation_count\"\n19: \tOperator          string // \"lt\", \"gt\", \"eq\", \"lte\", \"gte\"\n20: \tThreshold         float64\n21: \tSeverity          string // \"warning\", \"critical\", \"panic\"\n22: \tRemediationAction string\n23: \tEnabled           bool\n24: \tCreatedAt         time.Time\n25: \tLastTriggered     time.Time\n26: \tTriggerCount      int\n27: }\n28: \n29: // PolicyViolation records a single detected policy breach and its remediation status.\n30: type PolicyViolation struct {\n31: \tID                string\n32: \tRuleID            string\n33: \tDVEID             string\n34: \tNodeID            string\n35: \tMetricValue       float64\n36: \tSeverity          string\n37: \tDetectedAt        time.Time\n38: \tRemediated        bool\n39: \tRemediatedAt      *time.Time\n40: \tRemediationResult string\n41: }\n42: \n43: // RemediationFn is a function that handles a policy violation.\n44: type RemediationFn func(ctx context.Context, violation *PolicyViolation) error\n45: \n46: // RemediationStatus tracks the state of remediation attempts.\n47: type RemediationStatus struct {\n48: \tNodeID      string\n49: \tDVEID       string\n50: \tRuleID      string\n51: \tAttempt     int\n52: \tMaxAttempts int\n53: \tCooldown    time.Time\n54: \tLastError   string\n55: }\n56: \n57: // BadgeWASMMapperInterface defines the minimal interface the GuardrailEngine\n58: // requires from the BadgeWASMMapper.  This avoids a direct import cycle\n59: // between the cognitiveengine and wasm packages.\n60: type BadgeWASMMapperInterface interface {\n61: \tRegisterBadge(badgeID string, ontologyTags []string) error\n62: \tRemoveBadge(badgeID string)\n63: }\n64: \n65: // GuardrailEngine enforces per-DVE policies, records violations, triggers\n66: // automated remediation, and feeds learning data back to refine thresholds.\n67: type GuardrailEngine struct {\n68: \tpolicies           map[string]*PolicyRule\n69: \tviolations         []PolicyViolation\n70: \tremediators        map[string]RemediationFn\n71: \teventBus           *EventBus\n72: \tmu                 sync.RWMutex\n73: \tremediationStatus  map[string]*RemediationStatus\n74: \tescalationPolicies map[string]string\n75: \tcooldownDuration   time.Duration\n76: \twasmMapper         BadgeWASMMapperInterface // optional Badge-to-WASM integration\n77: }\n78: \n79: // NewGuardrailEngine creates a GuardrailEngine with the built-in default policies\n80: // and remediators pre-registered.\n81: func NewGuardrailEngine(bus *EventBus) *GuardrailEngine {\n82: \tge := &GuardrailEngine{\n83: \t\tpolicies:           make(map[string]*PolicyRule),\n84: \t\tviolations:         make([]PolicyViolation, 0, 64),\n85: \t\tremediators:        make(map[string]RemediationFn),\n86: \t\teventBus:           bus,\n87: \t\tremediationStatus:  make(map[string]*RemediationStatus),\n88: \t\tescalationPolicies: make(map[string]string),\n89: \t\tcooldownDuration:   5 * time.Minute,\n90: \t}\n91: \tge.registerDefaultPolicies()\n92: \tge.registerDefaultRemediators()\n93: \tge.registerEscalationPolicies()\n94: \treturn ge\n95: }\n96: \n97: func (ge *GuardrailEngine) registerEscalationPolicies() {\n98: \tge.escalationPolicies[\"quarantine_node\"] = \"drain_node\"\n99: \tge.escalationPolicies[\"redistribute_tasks\"] = \"scale_resources\"\n100: \tge.escalationPolicies[\"scale_resources\"] = \"alert_operators\"\n101: \tge.escalationPolicies[\"alert_operators\"] = \"kernel_isolation\"\n102: }\n103: \n104: // SetWASMMapper wires the Badge-to-WASM mapper into the guardrail engine.\n105: // When set, InjectBadgeRules also registers badges with the WASM mapper so\n106: // that rules.wasm and resolution.wasm can be located for guardrail checks\n107: // and eBPF-triggered resolution.\n108: func (ge *GuardrailEngine) SetWASMMapper(mapper BadgeWASMMapperInterface) {\n109: \tge.mu.Lock()\n110: \tdefer ge.mu.Unlock()\n111: \tge.wasmMapper = mapper\n112: }\n113: \n114: // RemoveBadgeRules removes all policies and WASM mappings for a badge.\n115: func (ge *GuardrailEngine) RemoveBadgeRules(badgeID string) {\n116: \tge.mu.Lock()\n117: \tdefer ge.mu.Unlock()\n118: \n119: \t// Remove guardrail policies\n120: \tfor id, policy := range ge.policies {\n121: \t\tif policy.BadgeID == badgeID {\n122: \t\t\tdelete(ge.policies, id)\n123: \t\t}\n124: \t}\n125: \n126: \t// Remove WASM mappings\n127: \tif ge.wasmMapper != nil {\n128: \t\tge.wasmMapper.RemoveBadge(badgeID)\n129: \t}\n130: \tlog.Printf(\"Removed badge rules and WASM mappings for badge %s\", badgeID)\n131: }\n132: \n133: // InjectBadgeRules creates guardrail rules based on badge ontology tags\n134: // and registers the badge with the WASM mapper if one is configured.\n135: // This is called when a badge is attached to a DVE node.\n136: func (ge *GuardrailEngine) InjectBadgeRules(dveID string, badgeID string, ontologyTags []string) {\n137: \tge.mu.Lock()\n138: \tdefer ge.mu.Unlock()\n139: \n140: \t// Register with the WASM mapper for rules.wasm / resolution.wasm lookups.\n141: \tif ge.wasmMapper != nil {\n142: \t\tif err := ge.wasmMapper.RegisterBadge(badgeID, ontologyTags); err != nil {\n143: \t\t\tlog.Printf(\"[GUARDRAIL] WASM mapper registration for badge %s: %v\", badgeID, err)\n144: \t\t}\n145: \t}\n146: \n147: \t// Create ontology-scoped rules based on badge tags\n148: \tfor _, tag := range ontologyTags {\n149: \t\truleID := fmt.Sprintf(\"badge_%s_%s\", badgeID, tag)\n150: \t\t\n151: \t\t// Skip if rule already exists\n152: \t\tif _, exists := ge.policies[ruleID]; exists {\n153: \t\t\tcontinue\n154: \t\t}\n155: \n156: \t\t// Create tag-specific rule\n157: \t\trule := &PolicyRule{\n158: \t\t\tID:                ruleID,\n159: \t\t\tDescription:       fmt.Sprintf(\"Badge %s ontology constraint: %s\", badgeID, tag),\n160: \t\t\tDVEID:             dveID,\n161: \t\t\tBadgeID:           badgeID,\n162: \t\t\tBadgeOntologyTags:  ontologyTags,\n163: \t\t\tMetric:            \"violation_count\",\n164: \t\t\tOperator:          \"gt\",\n165: \t\t\tThreshold:         3.0,\n166: \t\t\tSeverity:          \"warning\",\n167: \t\t\tRemediationAction: \"quarantine_node\",\n168: \t\t\tEnabled:           true,\n169: \t\t\tCreatedAt:         time.Now(),\n170: \t\t}\n171: \n172: \t\tge.policies[ruleID] = rule\n173: \t\tlog.Printf(\"Injected badge rule %s for DVE %s (badge %s, tag %s)\", ruleID, dveID, badgeID, tag)\n174: \t}\n175: }\n176: \n177: func (ge *GuardrailEngine) registerDefaultPolicies() {\n178: \tdefaults := []*PolicyRule{\n179: \t\t{\n180: \t\t\tID:                \"dveguard_low_success\",\n181: \t\t\tDescription:       \"DVE node has critically low task success rate\",\n182: \t\t\tMetric:            \"success_rate\",\n183: \t\t\tOperator:          \"lt\",\n184: \t\t\tThreshold:         0.4,\n185: \t\t\tSeverity:          \"critical\",\n186: \t\t\tRemediationAction: \"quarantine_node\",\n187: \t\t\tEnabled:           true,\n188: \t\t\tCreatedAt:         time.Now(),\n189: \t\t},\n190: \t\t{\n191: \t\t\tID:                \"dveguard_slow_response\",\n192: \t\t\tDescription:       \"DVE node average response time exceeds safety threshold\",\n193: \t\t\tMetric:            \"avg_processing_time\",\n194: \t\t\tOperator:          \"gt\",\n195: \t\t\tThreshold:         300.0, // seconds\n196: \t\t\tSeverity:          \"warning\",\n197: \t\t\tRemediationAction: \"redistribute_tasks\",\n198: \t\t\tEnabled:           true,\n199: \t\t\tCreatedAt:         time.Now(),\n200: \t\t},\n201: \t\t{\n202: \t\t\tID:                \"dveguard_high_resource\",\n203: \t\t\tDescription:       \"DVE node resource utilization is critically high\",\n204: \t\t\tMetric:            \"resource_utilization\",\n205: \t\t\tOperator:          \"gt\",\n206: \t\t\tThreshold:         0.95,\n207: \t\t\tSeverity:          \"critical\",\n208: \t\t\tRemediationAction: \"scale_resources\",\n209: \t\t\tEnabled:           true,\n210: \t\t\tCreatedAt:         time.Now(),\n211: \t\t},\n212: \t\t{\n213: \t\t\tID:                \"dveguard_panic_trigger\",\n214: \t\t\tDescription:       \"DVE node has breached multiple critical policies – kernel isolation required\",\n215: \t\t\tMetric:            \"violation_count\",\n216: \t\t\tOperator:          \"gt\",\n217: \t\t\tThreshold:         5.0,\n218: \t\t\tSeverity:          \"panic\",\n219: \t\t\tRemediationAction: \"kernel_isolation\",\n220: \t\t\tEnabled:           true,\n221: \t\t\tCreatedAt:         time.Now(),\n222: \t\t},\n223: \t}\n224: \tfor _, p := range defaults {\n225: \t\tge.policies[p.ID] = p\n226: \t}\n227: }\n228: \n229: func (ge *GuardrailEngine) registerDefaultRemediators() {\n230: \tge.remediators[\"quarantine_node\"] = ge.quarantineNodeRemediator\n231: \tge.remediators[\"redistribute_tasks\"] = ge.redistributeTasksRemediator\n232: \tge.remediators[\"scale_resources\"] = ge.scaleResourcesRemediator\n233: \tge.remediators[\"kernel_isolation\"] = ge.kernelIsolationRemediator\n234: \tge.remediators[\"drain_node\"] = ge.drainNodeRemediator\n235: \tge.remediators[\"throttle_requests\"] = ge.throttleRequestsRemediator\n236: \tge.remediators[\"alert_operators\"] = ge.alertOperatorsRemediator\n237: \tge.remediators[\"restart_service\"] = ge.restartServiceRemediator\n238: }\n239: \n240: func (ge *GuardrailEngine) quarantineNodeRemediator(ctx context.Context, v *PolicyViolation) error {\n241: \tlog.Printf(\"[GUARDRAIL] Quarantining node %s (DVE: %s) – rule: %s metric=%.4f\",\n242: \t\tv.NodeID, v.DVEID, v.RuleID, v.MetricValue)\n243: \n244: \tif ge.eventBus != nil {\n245: \t\tge.eventBus.Publish(EngineEvent{\n246: \t\t\tType:      EventNodeOverload,\n247: \t\t\tSource:    \"guardrail_engine\",\n248: \t\t\tPayload:   map[string]interface{}{\"node_id\": v.NodeID, \"dve_id\": v.DVEID, \"action\": \"quarantine\", \"rule\": v.RuleID},\n249: \t\t\tTimestamp: time.Now(),\n250: \t\t})\n251: \t}\n252: \n253: \treturn nil\n254: }\n255: \n256: func (ge *GuardrailEngine) redistributeTasksRemediator(ctx context.Context, v *PolicyViolation) error {\n257: \tlog.Printf(\"[GUARDRAIL] Redistributing tasks from slow node %s (DVE: %s) metric=%.2fs\",\n258: \t\tv.NodeID, v.DVEID, v.MetricValue)\n259: \n260: \tif ge.eventBus != nil {\n261: \t\tge.eventBus.Publish(EngineEvent{\n262: \t\t\tType:      EventScalingDecision,\n263: \t\t\tSource:    \"guardrail_engine\",\n264: \t\t\tPayload:   map[string]interface{}{\"node_id\": v.NodeID, \"dve_id\": v.DVEID, \"action\": \"redistribute\", \"metric\": v.MetricValue},\n265: \t\t\tTimestamp: time.Now(),\n266: \t\t})\n267: \t}\n268: \n269: \treturn nil\n270: }\n271: \n272: func (ge *GuardrailEngine) scaleResourcesRemediator(ctx context.Context, v *PolicyViolation) error {\n273: \tlog.Printf(\"[GUARDRAIL] Requesting resource scale-up for node %s (DVE: %s) utilization=%.2f\",\n274: \t\tv.NodeID, v.DVEID, v.MetricValue)\n275: \n276: \tif ge.eventBus != nil {\n277: \t\tge.eventBus.Publish(EngineEvent{\n278: \t\t\tType:      EventScalingDecision,\n279: \t\t\tSource:    \"guardrail_engine\",\n280: \t\t\tPayload:   map[string]interface{}{\"node_id\": v.NodeID, \"dve_id\": v.DVEID, \"action\": \"scale_up\", \"utilization\": v.MetricValue},\n281: \t\t\tTimestamp: time.Now(),\n282: \t\t})\n283: \t}\n284: \n285: \treturn nil\n286: }\n287: \n288: func (ge *GuardrailEngine) kernelIsolationRemediator(ctx context.Context, v *PolicyViolation) error {\n289: \tlog.Printf(\"[GUARDRAIL] PANIC: Kernel isolation triggered for node %s (DVE: %s) violations=%.0f\",\n290: \t\tv.NodeID, v.DVEID, v.MetricValue)\n291: \n292: \tif ge.eventBus != nil {\n293: \t\tge.eventBus.Publish(EngineEvent{\n294: \t\t\tType:      EventEBPFSecurityAlert,\n295: \t\t\tSource:    \"guardrail_engine\",\n296: \t\t\tPayload:   map[string]interface{}{\"node_id\": v.NodeID, \"dve_id\": v.DVEID, \"action\": \"kernel_isolation\", \"severity\": \"panic\"},\n297: \t\t\tTimestamp: time.Now(),\n298: \t\t})\n299: \t}\n300: \n301: \treturn nil\n302: }\n303: \n304: func (ge *GuardrailEngine) drainNodeRemediator(ctx context.Context, v *PolicyViolation) error {\n305: \tlog.Printf(\"[GUARDRAIL] Draining node %s (DVE: %s) for maintenance – rule: %s\",\n306: \t\tv.NodeID, v.DVEID, v.RuleID)\n307: \n308: \tif ge.eventBus != nil {\n309: \t\tge.eventBus.Publish(EngineEvent{\n310: \t\t\tType:      EventNodeOverload,\n311: \t\t\tSource:    \"guardrail_engine\",\n312: \t\t\tPayload:   map[string]interface{}{\"node_id\": v.NodeID, \"dve_id\": v.DVEID, \"action\": \"drain\"},\n313: \t\t\tTimestamp: time.Now(),\n314: \t\t})\n315: \t}\n316: \n317: \treturn nil\n318: }\n319: \n320: func (ge *GuardrailEngine) throttleRequestsRemediator(ctx context.Context, v *PolicyViolation) error {\n321: \tlog.Printf(\"[GUARDRAIL] Throttling requests for node %s (DVE: %s) due to high load\",\n322: \t\tv.NodeID, v.DVEID)\n323: \n324: \treturn nil\n325: }\n326: \n327: func (ge *GuardrailEngine) alertOperatorsRemediator(ctx context.Context, v *PolicyViolation) error {\n328: \tlog.Printf(\"[GUARDRAIL] ALERT: Operators notified about violation on node %s (DVE: %s) – %s\",\n329: \t\tv.NodeID, v.DVEID, v.RuleID)\n330: \n331: \treturn nil\n332: }\n333: \n334: func (ge *GuardrailEngine) restartServiceRemediator(ctx context.Context, v *PolicyViolation) error {\n335: \tlog.Printf(\"[GUARDRAIL] Initiating service restart for node %s (DVE: %s)\",\n336: \t\tv.NodeID, v.DVEID)\n337: \n338: \tif ge.eventBus != nil {\n339: \t\tge.eventBus.Publish(EngineEvent{\n340: \t\t\tType:      EventAdaptationRequired,\n341: \t\t\tSource:    \"guardrail_engine\",\n342: \t\t\tPayload:   map[string]interface{}{\"node_id\": v.NodeID, \"dve_id\": v.DVEID, \"action\": \"restart\"},\n343: \t\t\tTimestamp: time.Now(),\n344: \t\t})\n345: \t}\n346: \n347: \treturn nil\n348: }\n349: \n350: // AddPolicy registers (or replaces) a policy rule.\n351: func (ge *GuardrailEngine) AddPolicy(rule *PolicyRule) {\n352: \tge.mu.Lock()\n353: \tdefer ge.mu.Unlock()\n354: \tge.policies[rule.ID] = rule\n355: }\n356: \n357: // GetPolicy retrieves a policy rule by ID.\n358: func (ge *GuardrailEngine) GetPolicy(id string) (*PolicyRule, bool) {\n359: \tge.mu.RLock()\n360: \tdefer ge.mu.RUnlock()\n361: \tp, ok := ge.policies[id]\n362: \treturn p, ok\n363: }\n364: \n365: // RegisterRemediator wires a custom remediation function to an action name.\n366: func (ge *GuardrailEngine) RegisterRemediator(action string, fn RemediationFn) {\n367: \tge.mu.Lock()\n368: \tdefer ge.mu.Unlock()\n369: \tge.remediators[action] = fn\n370: }\n371: \n372: // Evaluate checks the supplied metrics map against all active policies for the\n373: // given (nodeID, dveID) pair.  It executes remediation for each triggered rule\n374: // and returns the full list of new violations.\n375: func (ge *GuardrailEngine) Evaluate(\n376: \tctx context.Context,\n377: \tnodeID, dveID string,\n378: \tmetrics map[string]float64,\n379: ) []*PolicyViolation {\n380: \tge.mu.Lock()\n381: \tdefer ge.mu.Unlock()\n382: \n383: \tvar triggered []*PolicyViolation\n384: \n385: \tfor _, policy := range ge.policies {\n386: \t\tif !policy.Enabled {\n387: \t\t\tcontinue\n388: \t\t}\n389: \t\tif policy.DVEID != \"\" && policy.DVEID != dveID {\n390: \t\t\tcontinue\n391: \t\t}\n392: \t\tvalue, ok := metrics[policy.Metric]\n393: \t\tif !ok {\n394: \t\t\tcontinue\n395: \t\t}\n396: \t\tif !ge.checkCondition(value, policy.Operator, policy.Threshold) {\n397: \t\t\tcontinue\n398: \t\t}\n399: \n400: \t\tv := &PolicyViolation{\n401: \t\t\tID:          fmt.Sprintf(\"viol_%d_%s\", time.Now().UnixNano(), policy.ID),\n402: \t\t\tRuleID:      policy.ID,\n403: \t\t\tDVEID:       dveID,\n404: \t\t\tNodeID:      nodeID,\n405: \t\t\tMetricValue: value,\n406: \t\t\tSeverity:    policy.Severity,\n407: \t\t\tDetectedAt:  time.Now(),\n408: \t\t}\n409: \t\tge.violations = append(ge.violations, *v)\n410: \t\tpolicy.TriggerCount++\n411: \t\tpolicy.LastTriggered = time.Now()\n412: \t\ttriggered = append(triggered, v)\n413: \n414: \t\t// Emit event so other subsystems can react\n415: \t\tif ge.eventBus != nil {\n416: \t\t\tge.eventBus.Publish(EngineEvent{\n417: \t\t\t\tType:      EventGuardrailViolation,\n418: \t\t\t\tSource:    \"guardrail_engine\",\n419: \t\t\t\tPayload:   v,\n420: \t\t\t\tTimestamp: time.Now(),\n421: \t\t\t})\n422: \t\t}\n423: \n424: \t\t// Apply remediation with retry logic\n425: \t\tif fn, exists := ge.remediators[policy.RemediationAction]; exists {\n426: \t\t\tstatusKey := fmt.Sprintf(\"%s:%s:%s\", nodeID, dveID, policy.ID)\n427: \n428: \t\t\tif status, exists := ge.remediationStatus[statusKey]; exists {\n429: \t\t\t\tif time.Now().Before(status.Cooldown) {\n430: \t\t\t\t\tcontinue\n431: \t\t\t\t}\n432: \t\t\t\tif status.Attempt >= 3 {\n433: \t\t\t\t\tif escalatedAction, hasEscalation := ge.escalationPolicies[policy.RemediationAction]; hasEscalation {\n434: \t\t\t\t\t\tlog.Printf(\"[GUARDRAIL] Escalating remediation for node %s from %s to %s\",\n435: \t\t\t\t\t\t\tnodeID, policy.RemediationAction, escalatedAction)\n436: \t\t\t\t\t\tif escalationFn, exists := ge.remediators[escalatedAction]; exists {\n437: \t\t\t\t\t\t\tif err := escalationFn(ctx, v); err != nil {\n438: \t\t\t\t\t\t\t\tlog.Printf(\"[GUARDRAIL] Escalated remediation %s failed: %v\", escalatedAction, err)\n439: \t\t\t\t\t\t\t} else {\n440: \t\t\t\t\t\t\t\tnow := time.Now()\n441: \t\t\t\t\t\t\t\tv.Remediated = true\n442: \t\t\t\t\t\t\t\tv.RemediatedAt = &now\n443: \t\t\t\t\t\t\t\tv.RemediationResult = fmt.Sprintf(\"escalated_%s\", escalatedAction)\n444: \t\t\t\t\t\t\t}\n445: \t\t\t\t\t\t}\n446: \t\t\t\t\t}\n447: \t\t\t\t\tdelete(ge.remediationStatus, statusKey)\n448: \t\t\t\t\tcontinue\n449: \t\t\t\t}\n450: \t\t\t}\n451: \n452: \t\t\tif err := fn(ctx, v); err != nil {\n453: \t\t\t\tlog.Printf(\"[GUARDRAIL] Remediation %s failed for node %s: %v\",\n454: \t\t\t\t\tpolicy.RemediationAction, nodeID, err)\n455: \t\t\t\tge.remediationStatus[statusKey] = &RemediationStatus{\n456: \t\t\t\t\tNodeID:      nodeID,\n457: \t\t\t\t\tDVEID:       dveID,\n458: \t\t\t\t\tRuleID:      policy.ID,\n459: \t\t\t\t\tAttempt:     1,\n460: \t\t\t\t\tMaxAttempts: 3,\n461: \t\t\t\t\tCooldown:    time.Now().Add(ge.cooldownDuration),\n462: \t\t\t\t\tLastError:   err.Error(),\n463: \t\t\t\t}\n464: \t\t\t} else {\n465: \t\t\t\tnow := time.Now()\n466: \t\t\t\tv.Remediated = true\n467: \t\t\t\tv.RemediatedAt = &now\n468: \t\t\t\tv.RemediationResult = \"success\"\n469: \t\t\t\tdelete(ge.remediationStatus, statusKey)\n470: \t\t\t}\n471: \t\t}\n472: \t}\n473: \n474: \t// Cap violation log to last 1000 entries\n475: \tif len(ge.violations) > 1000 {\n476: \t\tge.violations = ge.violations[len(ge.violations)-1000:]\n477: \t}\n478: \n479: \treturn triggered\n480: }\n481: \n482: func (ge *GuardrailEngine) checkCondition(value float64, operator string, threshold float64) bool {\n483: \tswitch operator {\n484: \tcase \"lt\":\n485: \t\treturn value < threshold\n486: \tcase \"gt\":\n487: \t\treturn value > threshold\n488: \tcase \"eq\":\n489: \t\treturn value == threshold\n490: \tcase \"lte\":\n491: \t\treturn value <= threshold\n492: \tcase \"gte\":\n493: \t\treturn value >= threshold\n494: \t}\n495: \treturn false\n496: }\n497: \n498: // GetViolations returns the most recent `limit` violations.\n499: func (ge *GuardrailEngine) GetViolations(limit int) []PolicyViolation {\n500: \tge.mu.RLock()\n501: \tdefer ge.mu.RUnlock()\n502: \tif len(ge.violations) <= limit {\n503: \t\tresult := make([]PolicyViolation, len(ge.violations))\n504: \t\tcopy(result, ge.violations)\n505: \t\treturn result\n506: \t}\n507: \tsrc := ge.violations[len(ge.violations)-limit:]\n508: \tresult := make([]PolicyViolation, len(src))\n509: \tcopy(result, src)\n510: \treturn result\n511: }\n512: \n513: // ViolationCountForNode returns how many un-remediated violations exist for a node.\n514: func (ge *GuardrailEngine) ViolationCountForNode(nodeID string) int {\n515: \tge.mu.RLock()\n516: \tdefer ge.mu.RUnlock()\n517: \tcount := 0\n518: \tfor _, v := range ge.violations {\n519: \t\tif v.NodeID == nodeID && !v.Remediated {\n520: \t\t\tcount++\n521: \t\t}\n522: \t}\n523: \treturn count\n524: }\n525: \n526: // RefinePolicy uses observed metric values to auto-tune a rule's threshold.\n527: // A rule that fires more than 50% of observations is considered too sensitive;\n528: // its threshold is moved 10% away from the mean.\n529: func (ge *GuardrailEngine) RefinePolicy(ruleID string, observedValues []float64) {\n530: \tge.mu.Lock()\n531: \tdefer ge.mu.Unlock()\n532: \n533: \trule, exists := ge.policies[ruleID]\n534: \tif !exists || len(observedValues) < 10 {\n535: \t\treturn\n536: \t}\n537: \n538: \tsum := 0.0\n539: \tfor _, v := range observedValues {\n540: \t\tsum += v\n541: \t}\n542: \tmean := sum / float64(len(observedValues))\n543: \ttriggerRate := float64(rule.TriggerCount) / float64(len(observedValues))\n544: \n545: \tif triggerRate > 0.5 {\n546: \t\toldThreshold := rule.Threshold\n547: \t\tswitch rule.Operator {\n548: \t\tcase \"lt\":\n549: \t\t\trule.Threshold = mean * 0.9\n550: \t\tcase \"gt\":\n551: \t\t\trule.Threshold = mean * 1.1\n552: \t\t}\n553: \t\tlog.Printf(\"[GUARDRAIL] Auto-refined policy %s: threshold %.4f → %.4f (trigger rate %.2f)\",\n554: \t\t\truleID, oldThreshold, rule.Threshold, triggerRate)\n555: \t}\n556: }\n557: \n558: func (ge *GuardrailEngine) GetRemediationStatus(nodeID, dveID, ruleID string) *RemediationStatus {\n559: \tge.mu.RLock()\n560: \tdefer ge.mu.RUnlock()\n561: \tstatusKey := fmt.Sprintf(\"%s:%s:%s\", nodeID, dveID, ruleID)\n562: \treturn ge.remediationStatus[statusKey]\n563: }\n564: \n565: func (ge *GuardrailEngine) ClearRemediationStatus(nodeID, dveID, ruleID string) {\n566: \tge.mu.Lock()\n567: \tdefer ge.mu.Unlock()\n568: \tstatusKey := fmt.Sprintf(\"%s:%s:%s\", nodeID, dveID, ruleID)\n569: \tdelete(ge.remediationStatus, statusKey)\n570: }\n571: \n572: func (ge *GuardrailEngine) GetStatistics() map[string]interface{} {\n573: \tge.mu.RLock()\n574: \tdefer ge.mu.RUnlock()\n575: \n576: \tstats := map[string]interface{}{\n577: \t\t\"total_policies\":      len(ge.policies),\n578: \t\t\"total_violations\":    len(ge.violations),\n579: \t\t\"active_remediations\": len(ge.remediationStatus),\n580: \t}\n581: \n582: \tviolationsBySeverity := map[string]int{}\n583: \tviolationsByDVE := map[string]int{}\n584: \tactiveRemediations := 0\n585: \n586: \tfor _, v := range ge.violations {\n587: \t\tviolationsBySeverity[v.Severity]++\n588: \t\tviolationsByDVE[v.DVEID]++\n589: \t}\n590: \n591: \tfor _, status := range ge.remediationStatus {\n592: \t\tif time.Now().Before(status.Cooldown) {\n593: \t\t\tactiveRemediations++\n594: \t\t}\n595: \t}\n596: \n597: \tstats[\"violations_by_severity\"] = violationsBySeverity\n598: \tstats[\"violations_by_dve\"] = violationsByDVE\n599: \tstats[\"active_remediations\"] = activeRemediations\n600: \n601: \treturn stats\n602: }\n603: \n604: func (ge *GuardrailEngine) GetActiveViolations() []PolicyViolation {\n605: \tge.mu.RLock()\n606: \tdefer ge.mu.RUnlock()\n607: \n608: \tvar active []PolicyViolation\n609: \tfor _, v := range ge.violations {\n610: \t\tif !v.Remediated {\n611: \t\t\tactive = append(active, v)\n612: \t\t}\n613: \t}\n614: \treturn active\n615: }\n616: \n617: func (ge *GuardrailEngine) ClearResolvedViolations() {\n618: \tge.mu.Lock()\n619: \tdefer ge.mu.Unlock()\n620: \n621: \tvar remaining []PolicyViolation\n622: \tfor _, v := range ge.violations {\n623: \t\tif !v.Remediated {\n624: \t\t\tremaining = append(remaining, v)\n625: \t\t}\n626: \t}\n627: \tge.violations = remaining\n628: }\n629: \n630: func (ge *GuardrailEngine) SetCooldownDuration(d time.Duration) {\n631: \tge.mu.Lock()\n632: \tdefer ge.mu.Unlock()\n633: \tge.cooldownDuration = d\n634: }\n635: \n636: func (ge *GuardrailEngine) RegisterEscalation(from, to string) {\n637: \tge.mu.Lock()\n638: \tdefer ge.mu.Unlock()\n639: \tge.escalationPolicies[from] = to\n640: }\n641: \n642: func (ge *GuardrailEngine) DisablePolicy(ruleID string) {\n643: \tge.mu.Lock()\n644: \tdefer ge.mu.Unlock()\n645: \tif policy, exists := ge.policies[ruleID]; exists {\n646: \t\tpolicy.Enabled = false\n647: \t}\n648: }\n649: \n650: func (ge *GuardrailEngine) EnablePolicy(ruleID string) {\n651: \tge.mu.Lock()\n652: \tdefer ge.mu.Unlock()\n653: \tif policy, exists := ge.policies[ruleID]; exists {\n654: \t\tpolicy.Enabled = true\n655: \t}\n656: }\n\n(End of file - total 656 lines)\n</content>",
+            "metadata": {
+              "preview": "package cognitiveengine\n\nimport (\n\t\"context\"\n\t\"fmt\"\n\t\"log\"\n\t\"sync\"\n\t\"time\"\n)\n\n// PolicyRule defines a single per-DVE guardrail constraint.\ntype PolicyRule struct {\n\tID                string\n\tDescription       string\n\tDVEID             string // empty = applies to all DVEs\n\tBadgeID           string // empty = applies to all badges\n\tBadgeOntologyTags []string // ontology elements from badge\n\tMetric            string // \"success_rate\", \"avg_processing_time\", \"resource_utilization\", \"violation_count\"\n\tOperator          string // \"lt\", \"gt\", \"eq\", \"lte\", \"gte\"\n\tThreshold         float64",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "packages/KNIRVSERVER/backend/internal/services/cognitiveengine/guardrail_engine.go",
+            "time": {
+              "start": 1779727691112,
+              "end": 1779727691524
+            }
+          },
+          "id": "prt_e60096bf0001BeTaTlJCRcqns7",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60095cf8001RseB720xc4D2zZ"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 34001,
+            "input": 554,
+            "output": 102,
+            "reasoning": 65,
+            "cache": {
+              "write": 0,
+              "read": 33280
+            }
+          },
+          "cost": 0,
+          "id": "prt_e60098b13001M3oDumEX3WtqXB",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60095cf8001RseB720xc4D2zZ"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_e6008a07b001IJG4RZ2wQSVni2",
+        "role": "assistant",
+        "mode": "explore",
+        "agent": "explore",
+        "path": {
+          "cwd": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER",
+          "root": "/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK"
+        },
+        "cost": 0,
+        "tokens": {
+          "total": 48125,
+          "input": 7631,
+          "output": 6552,
+          "reasoning": 22,
+          "cache": {
+            "write": 0,
+            "read": 33920
+          }
+        },
+        "modelID": "big-pickle",
+        "providerID": "opencode",
+        "time": {
+          "created": 1779727699802,
+          "completed": 1779727944426
+        },
+        "finish": "stop",
+        "id": "msg_e60098f59001NJJGEzY8vSdZHA",
+        "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR"
+      },
+      "parts": [
+        {
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-start",
+          "id": "prt_e60099a67001m3Tiwj7rpUeAHN",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60098f59001NJJGEzY8vSdZHA"
+        },
+        {
+          "type": "reasoning",
+          "text": "I now have all the information needed. Let me compile a comprehensive response covering all the requested files and structures.",
+          "time": {
+            "start": 1779727703121,
+            "end": 1779727703328
+          },
+          "id": "prt_e60099c50001Fiz5R5Fe6362G4",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60098f59001NJJGEzY8vSdZHA"
+        },
+        {
+          "type": "text",
+          "text": "Here is a complete report of all the files and structures in the WASM resolution pipeline.\n\n---\n\n## 1. ResolutionService + ResolutionSignal + RemediationSink\n\n### File Path\n**`/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/resolution_service.go`**\n\n### `ResolutionResult` struct (lines 16-27)\n```go\ntype ResolutionResult struct {\n\tBadgeID      string        `json:\"badge_id\"`\n\tDVEID        string        `json:\"dve_id\"`\n\tNodeID       string        `json:\"node_id\"`\n\tTag          string        `json:\"tag\"`\n\tWASMPath     string        `json:\"wasm_path\"`\n\tResolved     bool          `json:\"resolved\"`\n\tErrorClassID uint32        `json:\"error_class_id\"`\n\tError        string        `json:\"error,omitempty\"`\n\tDuration     time.Duration `json:\"duration_ms\"`\n\tTimestamp    time.Time     `json:\"timestamp\"`\n}\n```\n\n### `RemediationSink` interface (lines 29-36)\n```go\ntype RemediationSink interface {\n\t// DispatchRemediation is called when a resolution.wasm returns\n\t// resolved=true.  The sink should trigger the appropriate\n\t// remediation action (e.g. restart_service, apply_patch).\n\tDispatchRemediation(ctx context.Context, result *ResolutionResult) error\n}\n```\n\n### `ResolutionService` struct (lines 48-59)\n```go\ntype ResolutionService struct {\n\tmapper       *BadgeWASMMapper\n\tsink         RemediationSink\n\tpools        map[string]*WazeroPool // wasmPath → pool\n\tpoolsMu      sync.RWMutex\n\tpoolSize     int\n\tsignalChan   chan *ResolutionSignal\n\tstopChan     chan struct{}\n\tworkerWg     sync.WaitGroup\n\tstats        *ResolutionStats\n\tstatsMu      sync.RWMutex\n}\n```\n\n### `ResolutionSignal` struct (lines 63-72)\n```go\ntype ResolutionSignal struct {\n\tDVEID     string            `json:\"dve_id\"`\n\tNodeID    string            `json:\"node_id\"`\n\tBadgeID   string            `json:\"badge_id\"`\n\tTag       string            `json:\"tag\"` // ontology tag that triggered\n\tErrorType string            `json:\"error_type\"`\n\tSyscallID uint32            `json:\"syscall_id\"`\n\tPID       uint32            `json:\"pid\"`\n\tContext   map[string]string `json:\"context,omitempty\"`\n}\n```\n\n### `ResolutionStats` struct (lines 75-82)\n```go\ntype ResolutionStats struct {\n\tTotalSignals      int64 `json:\"total_signals\"`\n\tTotalResolutions  int64 `json:\"total_resolutions\"`\n\tSuccessfulResolve int64 `json:\"successful_resolve\"`\n\tFailedResolve     int64 `json:\"failed_resolve\"`\n\tWASMErrors        int64 `json:\"wasm_errors\"`\n\tDroppedSignals    int64 `json:\"dropped_signals\"`\n}\n```\n\n### `NewResolutionService` (lines 87-108)\n```go\nfunc NewResolutionService(\n\tmapper *BadgeWASMMapper,\n\tsink RemediationSink,\n\tpoolSize int,\n\tsignalBuffer int,\n) *ResolutionService {\n\tif poolSize < 1 {\n\t\tpoolSize = 4\n\t}\n\tif signalBuffer < 1 {\n\t\tsignalBuffer = 256\n\t}\n\treturn &ResolutionService{\n\t\tmapper:     mapper,\n\t\tsink:       sink,\n\t\tpools:      make(map[string]*WazeroPool),\n\t\tpoolSize:   poolSize,\n\t\tsignalChan: make(chan *ResolutionSignal, signalBuffer),\n\t\tstopChan:   make(chan struct{}),\n\t\tstats:      &ResolutionStats{},\n\t}\n}\n```\n\n### `ResolutionService.Start` (lines 111-120)\n```go\nfunc (rs *ResolutionService) Start(ctx context.Context, numWorkers int) {\n\tif numWorkers < 1 {\n\t\tnumWorkers = 2\n\t}\n\tfor i := 0; i < numWorkers; i++ {\n\t\trs.workerWg.Add(1)\n\t\tgo rs.worker(ctx, i)\n\t}\n\tlog.Printf(\"[resolution-service] started %d workers\", numWorkers)\n}\n```\n\n### `ResolutionService.Stop` (lines 123-134)\n```go\nfunc (rs *ResolutionService) Stop() {\n\tclose(rs.stopChan)\n\trs.workerWg.Wait()\n\n\trs.poolsMu.Lock()\n\tdefer rs.poolsMu.Unlock()\n\tfor _, pool := range rs.pools {\n\t\tpool.CloseAll()\n\t}\n\trs.pools = make(map[string]*WazeroPool)\n\tlog.Println(\"[resolution-service] stopped\")\n}\n```\n\n### `ResolutionService.Submit` (lines 138-152)\n```go\nfunc (rs *ResolutionService) Submit(signal *ResolutionSignal) bool {\n\trs.statsMu.Lock()\n\trs.stats.TotalSignals++\n\trs.statsMu.Unlock()\n\n\tselect {\n\tcase rs.signalChan <- signal:\n\t\treturn true\n\tdefault:\n\t\trs.statsMu.Lock()\n\t\trs.stats.DroppedSignals++\n\t\trs.statsMu.Unlock()\n\t\treturn false\n\t}\n}\n```\n\n### `ResolutionService.Resolve` (lines 156-238) -- the core synchronous resolution pipeline\n```go\nfunc (rs *ResolutionService) Resolve(ctx context.Context, signal *ResolutionSignal) (*ResolutionResult, error) {\n\tstart := time.Now()\n\tresult := &ResolutionResult{\n\t\tBadgeID:   signal.BadgeID,\n\t\tDVEID:     signal.DVEID,\n\t\tNodeID:    signal.NodeID,\n\t\tTag:       signal.Tag,\n\t\tTimestamp: time.Now(),\n\t}\n\n\twasmPath, wasmType, err := rs.mapper.LookupWASM(signal.BadgeID, signal.Tag)\n\tif err != nil {\n\t\tresult.Error = err.Error()\n\t\tresult.Duration = time.Since(start)\n\t\trs.statsMu.Lock()\n\t\trs.stats.WASMErrors++\n\t\trs.statsMu.Unlock()\n\t\treturn result, err\n\t}\n\n\tif wasmType != WASMTypeResolution {\n\t\tresult.Error = fmt.Sprintf(\"tag %s maps to %s, not resolution\", signal.Tag, wasmType)\n\t\tresult.Duration = time.Since(start)\n\t\treturn result, errors.New(result.Error)\n\t}\n\n\tresult.WASMPath = wasmPath\n\n\tpool := rs.getOrCreatePool(wasmPath)\n\tgate, err := pool.Acquire(ctx)\n\tif err != nil {\n\t\tresult.Error = fmt.Sprintf(\"wazero pool acquire: %v\", err)\n\t\tresult.Duration = time.Since(start)\n\t\trs.statsMu.Lock()\n\t\trs.stats.WASMErrors++\n\t\trs.statsMu.Unlock()\n\t\treturn result, err\n\t}\n\n\tresolved, err := gate.ResolveError(ctx)\n\tif err != nil {\n\t\tresult.Error = fmt.Sprintf(\"resolveError(): %v\", err)\n\t\tresult.Duration = time.Since(start)\n\t\trs.statsMu.Lock()\n\t\trs.stats.WASMErrors++\n\t\trs.stats.TotalResolutions++\n\t\trs.stats.FailedResolve++\n\t\trs.statsMu.Unlock()\n\t\treturn result, err\n\t}\n\n\tresult.Resolved = resolved\n\n\terrorClass, err := gate.ErrorClass(ctx)\n\tif err != nil {\n\t\tlog.Printf(\"[resolution-service] ErrorClass() failed: %v\", err)\n\t}\n\tresult.ErrorClassID = errorClass\n\tresult.Duration = time.Since(start)\n\n\trs.statsMu.Lock()\n\trs.stats.TotalResolutions++\n\tif resolved {\n\t\trs.stats.SuccessfulResolve++\n\t} else {\n\t\trs.stats.FailedResolve++\n\t}\n\trs.statsMu.Unlock()\n\n\tif resolved && rs.sink != nil {\n\t\tif err := rs.sink.DispatchRemediation(ctx, result); err != nil {\n\t\t\tlog.Printf(\"[resolution-service] remediation dispatch error: %v\", err)\n\t\t}\n\t}\n\n\treturn result, nil\n}\n```\n\n### `ResolutionService.Stats` (lines 241-246)\n```go\nfunc (rs *ResolutionService) Stats() *ResolutionStats {\n\trs.statsMu.RLock()\n\tdefer rs.statsMu.RUnlock()\n\ts := *rs.stats\n\treturn &s\n}\n```\n\n### Internal worker (lines 250-273) and `getOrCreatePool` (lines 275-292)\n```go\nfunc (rs *ResolutionService) worker(ctx context.Context, id int) {\n\tdefer rs.workerWg.Done()\n\tlog.Printf(\"[resolution-service] worker %d running\", id)\n\tfor {\n\t\tselect {\n\t\tcase <-rs.stopChan:\n\t\t\tlog.Printf(\"[resolution-service] worker %d stopping\", id)\n\t\t\treturn\n\t\tcase <-ctx.Done():\n\t\t\tlog.Printf(\"[resolution-service] worker %d context done\", id)\n\t\t\treturn\n\t\tcase signal := <-rs.signalChan:\n\t\t\tresult, err := rs.Resolve(ctx, signal)\n\t\t\tif err != nil {\n\t\t\t\tlog.Printf(\"[resolution-service] worker %d: resolve %s/%s: %v\",\n\t\t\t\t\tid, signal.DVEID, signal.Tag, err)\n\t\t\t} else {\n\t\t\t\tlog.Printf(\"[resolution-service] worker %d: resolved=%v class=%d dve=%s badge=%s (%v)\",\n\t\t\t\t\tid, result.Resolved, result.ErrorClassID, signal.DVEID, signal.BadgeID, result.Duration)\n\t\t\t}\n\t\t}\n\t}\n}\n\nfunc (rs *ResolutionService) getOrCreatePool(wasmPath string) *WazeroPool {\n\trs.poolsMu.RLock()\n\tpool, ok := rs.pools[wasmPath]\n\trs.poolsMu.RUnlock()\n\tif ok {\n\t\treturn pool\n\t}\n\n\trs.poolsMu.Lock()\n\tdefer rs.poolsMu.Unlock()\n\tif pool, ok = rs.pools[wasmPath]; ok {\n\t\treturn pool\n\t}\n\tpool = NewWazeroPool(wasmPath, rs.poolSize)\n\trs.pools[wasmPath] = pool\n\treturn pool\n}\n```\n\n---\n\n## 2. Existing `RemediationSink` Implementations\n\n### Only implementation found: `mockRemediationSink` in the test file\n\n**File:** `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go`\n\n**Lines 323-330:**\n```go\ntype mockRemediationSink struct {\n\tdispatched []*ResolutionResult\n}\n\nfunc (m *mockRemediationSink) DispatchRemediation(ctx context.Context, result *ResolutionResult) error {\n\tm.dispatched = append(m.dispatched, result)\n\treturn nil\n}\n```\n\n**There is no production implementation of `RemediationSink` anywhere in the codebase.** The `GuardrailEngine` does not implement it -- it has its own `RemediationFn` function type and its own remediator map (`map[string]RemediationFn`). The bridge between `ResolutionService` (which calls `DispatchRemediation`) and the `GuardrailEngine`'s remediator pipeline has not yet been wired in production code.\n\n---\n\n## 3. WazeroGate and WazeroPool\n\n### File Path\n**`/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/wazero_gate.go`**\n\n### `WazeroGate` struct (lines 28-36)\n```go\ntype WazeroGate struct {\n\truntime  wazero.Runtime\n\tmodule   api.Module\n\tcompiled wazero.CompiledModule\n\twasmPath string\n\twasmType WASMType\n\tmu       sync.Mutex\n\tclosed   bool\n}\n```\n\n### `NewWazeroGate` (lines 39-57)\n```go\nfunc NewWazeroGate(ctx context.Context, wasmPath string) (*WazeroGate, error) {\n\tdata, err := os.ReadFile(wasmPath)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"wazero: read %s: %w\", wasmPath, err)\n\t}\n\n\truntime := wazero.NewRuntime(ctx)\n\tcompiled, err := runtime.CompileModule(ctx, data)\n\tif err != nil {\n\t\truntime.Close(ctx)\n\t\treturn nil, fmt.Errorf(\"wazero: compile %s: %w\", wasmPath, err)\n\t}\n\n\treturn &WazeroGate{\n\t\truntime:  runtime,\n\t\tcompiled: compiled,\n\t\twasmPath: wasmPath,\n\t}, nil\n}\n```\n\n### `WazeroGate.Instantiate` (lines 60-78)\n```go\nfunc (wg *WazeroGate) Instantiate(ctx context.Context) error {\n\twg.mu.Lock()\n\tdefer wg.mu.Unlock()\n\tif wg.closed {\n\t\treturn fmt.Errorf(\"wazero: gate closed\")\n\t}\n\tif wg.module != nil {\n\t\treturn nil\n\t}\n\tmodule, err := wg.runtime.InstantiateModule(ctx, wg.compiled,\n\t\twazero.NewModuleConfig().WithName(\"\"))\n\tif err != nil {\n\t\treturn fmt.Errorf(\"wazero: instantiate %s: %w\", wg.wasmPath, err)\n\t}\n\twg.module = module\n\treturn nil\n}\n```\n\n### `WazeroGate.GuardrailClass` (lines 82-102)\n```go\nfunc (wg *WazeroGate) GuardrailClass(ctx context.Context) (uint32, error) {\n\tif err := wg.Instantiate(ctx); err != nil {\n\t\treturn 0, err\n\t}\n\tfn := wg.module.ExportedFunction(ExportGuardrailClass)\n\tif fn == nil {\n\t\treturn 0, fmt.Errorf(\"wazero: export %s not found in %s\", ExportGuardrailClass, wg.wasmPath)\n\t}\n\tresults, err := fn.Call(ctx)\n\tif err != nil {\n\t\treturn 0, fmt.Errorf(\"wazero: %s(): %w\", ExportGuardrailClass, err)\n\t}\n\tif len(results) == 0 {\n\t\treturn 0, fmt.Errorf(\"wazero: %s() returned no values\", ExportGuardrailClass)\n\t}\n\treturn uint32(results[0]), nil\n}\n```\n\n### `WazeroGate.ResolveError` (lines 106-125)\n```go\nfunc (wg *WazeroGate) ResolveError(ctx context.Context) (bool, error) {\n\tif err := wg.Instantiate(ctx); err != nil {\n\t\treturn false, err\n\t}\n\tfn := wg.module.ExportedFunction(ExportResolveError)\n\tif fn == nil {\n\t\treturn false, fmt.Errorf(\"wazero: export %s not found in %s\", ExportResolveError, wg.wasmPath)\n\t}\n\tresults, err := fn.Call(ctx)\n\tif err != nil {\n\t\treturn false, fmt.Errorf(\"wazero: %s(): %w\", ExportResolveError, err)\n\t}\n\tif len(results) == 0 {\n\t\treturn false, fmt.Errorf(\"wazero: %s() returned no values\", ExportResolveError)\n\t}\n\treturn results[0] != 0, nil\n}\n```\n\n### `WazeroGate.ErrorClass` (lines 129-148)\n```go\nfunc (wg *WazeroGate) ErrorClass(ctx context.Context) (uint32, error) {\n\tif err := wg.Instantiate(ctx); err != nil {\n\t\treturn 0, err\n\t}\n\tfn := wg.module.ExportedFunction(ExportErrorClass)\n\tif fn == nil {\n\t\treturn 0, fmt.Errorf(\"wazero: export %s not found in %s\", ExportErrorClass, wg.wasmPath)\n\t}\n\tresults, err := fn.Call(ctx)\n\tif err != nil {\n\t\treturn 0, fmt.Errorf(\"wazero: %s(): %w\", ExportErrorClass, err)\n\t}\n\tif len(results) == 0 {\n\t\treturn 0, fmt.Errorf(\"wazero: %s() returned no values\", ExportErrorClass)\n\t}\n\treturn uint32(results[0]), nil\n}\n```\n\n### `WazeroGate.ApplyPatch` (lines 151-170) and `ListExports` (lines 173-183)\n```go\nfunc (wg *WazeroGate) ApplyPatch(ctx context.Context) (bool, error) {\n\t// ... calls \"applyPatch\" export\n}\n\nfunc (wg *WazeroGate) ListExports(ctx context.Context) ([]string, error) {\n\t// ... returns exported function names\n}\n```\n\n### `WazeroGate.Close` (lines 186-202) and `WasmPath` (line 205)\n```go\nfunc (wg *WazeroGate) Close() error { ... }\nfunc (wg *WazeroGate) WasmPath() string { return wg.wasmPath }\n```\n\n---\n\n### `WazeroPool` (lines 207-261)\n\n`WazeroPool` maintains a **bounded, round-robin pool of reusable `WazeroGate` instances** for a specific .wasm module. This avoids re-compilation on every guardrail check or resolution attempt.\n\n```go\ntype WazeroPool struct {\n\twasmPath string\n\tgates    []*WazeroGate\n\tsize     int\n\tnext     int\n\tmu       sync.Mutex\n}\n\nfunc NewWazeroPool(wasmPath string, size int) *WazeroPool {\n\tif size < 1 {\n\t\tsize = 4\n\t}\n\treturn &WazeroPool{\n\t\twasmPath: wasmPath,\n\t\tgates:    make([]*WazeroGate, size),\n\t\tsize:     size,\n\t}\n}\n\nfunc (wp *WazeroPool) Acquire(ctx context.Context) (*WazeroGate, error) {\n\twp.mu.Lock()\n\tdefer wp.mu.Unlock()\n\n\tidx := wp.next\n\twp.next = (wp.next + 1) % wp.size\n\n\tif wp.gates[idx] == nil {\n\t\tgate, err := NewWazeroGate(ctx, wp.wasmPath)\n\t\tif err != nil {\n\t\t\treturn nil, err\n\t\t}\n\t\twp.gates[idx] = gate\n\t}\n\n\treturn wp.gates[idx], nil\n}\n\nfunc (wp *WazeroPool) CloseAll() {\n\twp.mu.Lock()\n\tdefer wp.mu.Unlock()\n\tfor i, g := range wp.gates {\n\t\tif g != nil {\n\t\t\tg.Close()\n\t\t\twp.gates[i] = nil\n\t\t}\n\t}\n}\n```\n\n### How `WazeroGate` relates to `WazeroPool`\n\n- **`WazeroGate`** is a single wrapper around the wazero runtime for one compiled .wasm module. It holds a `wazero.Runtime`, a `wazero.CompiledModule`, and an `api.Module` (instantiated). It is the unit of WASM execution.\n- **`WazeroPool`** is a bounded collection (`[]*WazeroGate`) using round-robin (`next` index) to distribute load across multiple `WazeroGate` instances for the **same** .wasm file. It lazily creates gates on first `Acquire()`. This allows concurrent invocations without blocking on a single gate.\n- Both `ResolutionService` and `GuardrailMiddleware` own a `map[string]*WazeroPool` (keyed by wasm path) and call `getOrCreatePool()` followed by `pool.Acquire(ctx)` to get a reusable gate.\n\n---\n\n## 4. BadgeWASMMapper\n\n### File Path\n**`/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper.go`**\n\n### `WASMType` and `BadgeTagClassification` constants (lines 35-58)\n```go\ntype WASMType string\nconst (\n\tWASMTypeRule       WASMType = \"rule\"\n\tWASMTypeResolution WASMType = \"resolution\"\n\tWASMTypePatch      WASMType = \"patch\"\n)\n\nconst (\n\tExportGuardrailClass = \"GuardrailClass\"\n\tExportResolveError   = \"resolveError\"\n\tExportErrorClass     = \"ErrorClass\"\n)\n\ntype BadgeTagClassification string\nconst (\n\tTagClassGuardrail  BadgeTagClassification = \"guardrail\"\n\tTagClassResolution BadgeTagClassification = \"resolution\"\n\tTagClassPatch      BadgeTagClassification = \"patch\"\n\tTagClassUnknown    BadgeTagClassification = \"unknown\"\n)\n```\n\n### `WASMMapping` and `BadgeEntry` (lines 61-73)\n```go\ntype WASMMapping struct {\n\tBadgeID  string   `json:\"badge_id\"`\n\tTag      string   `json:\"tag\"`\n\tWASMType WASMType `json:\"wasm_type\"`\n\tWASMPath string   `json:\"wasm_path\"`\n\tWASMHash string   `json:\"wasm_hash\"`\n}\n\ntype BadgeEntry struct {\n\tBadgeID  string        `json:\"badge_id\"`\n\tMappings []WASMMapping `json:\"mappings\"`\n}\n```\n\n### `BadgeWASMMapper` struct (lines 79-84)\n```go\ntype BadgeWASMMapper struct {\n\twasmDir     string\n\tentries     map[string]*BadgeEntry // badgeID → BadgeEntry\n\tmu          sync.RWMutex\n\tpersistPath string // optional path for JSON persistence\n}\n```\n\n### Key methods (full file is 479 lines):\n\n| Method | Lines | Purpose |\n|--------|-------|---------|\n| `NewBadgeWASMMapper(wasmDir, persistPath)` | 88-98 | Constructor; optionally loads persisted JSON |\n| `DefaultWASMDir()` | 101-109 | Returns `$KNIRV_WASM_OUT_DIR`, `/var/heart/wasm`, or `/var/lib/knirvserver/wasm` |\n| `RegisterBadge(badgeID, ontologyTags)` | 114-159 | Classifies each tag, finds matching .wasm on disk, stores mapping |\n| `RemoveBadge(badgeID)` | 162-169 | Deletes badge entry, persists |\n| `GetGuardrailWASM(badgeID)` | 172-174 | Returns all guardrail-tagged WASMMappings |\n| `GetResolutionWASM(badgeID)` | 177-179 | Returns all resolution-tagged WASMMappings |\n| `GetPatchWASM(badgeID)` | 182-184 | Returns all patch-tagged WASMMappings |\n| `LookupWASM(badgeID, tag)` | 188-205 | Finds WASM path + type for a specific badge + tag |\n| `GetEntry(badgeID)` | 208-213 | Returns full BadgeEntry |\n| `ListBadges()` | 216-224 | Returns all registered badge IDs |\n| `RefreshWASMDir()` | 228-246 | Re-scans WASM directory, updates all paths |\n| `Stats()` | 249-281 | Returns counts by WAM type |\n| `classifyTag(tag)` | 405-443 | Classifies a tag string (guardrail/resolution/patch/unknown) |\n| `classToWASMType(class)` | 445-456 | Maps classification to WASMType |\n| `findWASMForTag(tag, wasmType)` | 304-369 | Scans wasmDir -- Phase 1: type-prefixed filenames; Phase 2: hash-named (64 hex chars + .wasm) |\n\n---\n\n## 5. GuardrailMiddleware\n\n### File Path\n**`/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go`**\n\n### `GuardrailDecision` struct (lines 15-23)\n```go\ntype GuardrailDecision struct {\n\tAllowed        bool      `json:\"allowed\"`\n\tGuardrailClass uint32    `json:\"guardrail_class\"`\n\tBadgeID        string    `json:\"badge_id\"`\n\tTag            string    `json:\"tag\"`\n\tWASMPath       string    `json:\"wasm_path\"`\n\tError          string    `json:\"error,omitempty\"`\n\tCheckedAt      time.Time `json:\"checked_at\"`\n}\n```\n\n### `GuardrailMiddleware` struct (lines 35-39)\n```go\ntype GuardrailMiddleware struct {\n\tmapper   *BadgeWASMMapper\n\tpools    map[string]*WazeroPool // wasmPath → pool\n\tpoolSize int\n}\n```\n\n### `NewGuardrailMiddleware` (lines 44-53)\n```go\nfunc NewGuardrailMiddleware(mapper *BadgeWASMMapper, poolSize int) *GuardrailMiddleware {\n\tif poolSize < 1 {\n\t\tpoolSize = 8\n\t}\n\treturn &GuardrailMiddleware{\n\t\tmapper:   mapper,\n\t\tpools:    make(map[string]*WazeroPool),\n\t\tpoolSize: poolSize,\n\t}\n}\n```\n\n### `Middleware` -- HTTP middleware (lines 65-94)\nExpects `X-DVE-ID`, `X-Badge-ID`, and optionally `X-Badge-Tag` headers. Calls `validate()`, attaches `X-Guardrail-Allowed`, `X-Guardrail-Class`, `X-Guardrail-Error` response headers, and returns 403 if not allowed.\n\n### `ValidateSession` -- non-HTTP convenience (lines 98-102)\n```go\nfunc (gm *GuardrailMiddleware) ValidateSession(ctx context.Context, dveID, badgeID, tag string) (bool, uint32, error) {\n\tdecision := gm.validate(ctx, dveID, badgeID, tag)\n\treturn decision.Allowed, decision.GuardrailClass, nil\n}\n```\n\n### `Close` (lines 105-110) and internal `validate` (lines 114-182)\nThe internal `validate` method:\n1. Calls `mapper.GetGuardrailWASM(badgeID)` to find guardrail mappings\n2. Filters by specific tag if provided, otherwise uses first mapping\n3. Calls `getOrCreatePool(target.WASMPath)` then `pool.Acquire(ctx)` to get a `WazeroGate`\n4. Calls `gate.GuardrailClass(ctx)` -- **fails open** (allows traffic) on WASM errors\n5. Class 0 = allowed; non-zero = blocked (403)\n\n### `getOrCreatePool` (lines 184-193)\n```go\nfunc (gm *GuardrailMiddleware) getOrCreatePool(wasmPath string) *WazeroPool {\n\tif pool, ok := gm.pools[wasmPath]; ok {\n\t\treturn pool\n\t}\n\tpool := NewWazeroPool(wasmPath, gm.poolSize)\n\tgm.pools[wasmPath] = pool\n\treturn pool\n}\n```\n\n**Note:** Unlike ResolutionService's `getOrCreatePool`, this one does **not** use a mutex -- the comment says \"pools are created at registration time and never removed during the lifetime of the middleware.\"\n\n---\n\n## Architecture Summary\n\nThe WASM resolution pipeline flows as follows:\n\n```\neBPF EventCollector\n  │  SubscribeResolution(handler) registers a ResolutionSignalHandler\n  │  When a syscall event matches a badge's resolution ontology tag:\n  │\n  ▼\nResolutionSignal (DVEID, NodeID, BadgeID, Tag, ...)\n  │\n  ▼\nResolutionService.Submit(signal)    ← non-blocking, buffered channel\n  │\n  ▼ (worker goroutine picks up signal)\nResolutionService.Resolve(ctx, signal)\n  │\n  ├─ 1. mapper.LookupWASM(badgeID, tag) → wasmPath, WASMType\n  │     (BadgeWASMMapper looks up the badge→tag→wasm mapping JSON)\n  │\n  ├─ 2. pool = getOrCreatePool(wasmPath)  → *WazeroPool\n  │     (creates a WazeroPool per unique .wasm file)\n  │\n  ├─ 3. gate = pool.Acquire(ctx)         → *WazeroGate\n  │     (round-robins through pre-compiled WazeroGate instances)\n  │\n  ├─ 4. gate.ResolveError(ctx)           → bool (wasm export \"resolveError\")\n  │     called via wazero runtime\n  │\n  ├─ 5. gate.ErrorClass(ctx)             → uint32 (wasm export \"ErrorClass\")\n  │     called via wazero runtime\n  │\n  └─ 6. if resolved && sink != nil:\n         sink.DispatchRemediation(ctx, result)\n         └─ (no production implementation yet -- only test mock exists)\n```\n\nThe **GuardrailMiddleware** (Option A) follows the same pattern for inbound HTTP guardrail checks, but calls `GuardrailClass()` instead of `ResolveError()`/`ErrorClass()`.\n\n### Key dependency: `BadgeWASMMapperInterface` in GuardrailEngine\n\nThe `GuardrailEngine` (in `cognitiveengine/`) defines its own interface to avoid a circular import with the `wasm` package:\n\n```go\ntype BadgeWASMMapperInterface interface {\n\tRegisterBadge(badgeID string, ontologyTags []string) error\n\tRemoveBadge(badgeID string)\n}\n```\n\nWhen `GuardrailEngine.SetWASMMapper()` is called with a `BadgeWASMMapper`, calling `InjectBadgeRules()` will also call `RegisterBadge()` on the WASM mapper, bridging the two systems.",
+          "time": {
+            "start": 1779727703346,
+            "end": 1779727871512
+          },
+          "id": "prt_e60099d32001XOCICgkCjcKKfF",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60098f59001NJJGEzY8vSdZHA"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "0b68439f62ac4e3492653fb13e26b89517097e2e",
+          "type": "step-finish",
+          "tokens": {
+            "total": 48125,
+            "input": 7631,
+            "output": 6552,
+            "reasoning": 22,
+            "cache": {
+              "write": 0,
+              "read": 33920
+            }
+          },
+          "cost": 0,
+          "id": "prt_e600d4a45001668yc6sneVpyrX",
+          "sessionID": "ses_19ff75fc1ffeWbIty9sYd1AXVR",
+          "messageID": "msg_e60098f59001NJJGEzY8vSdZHA"
+        }
+      ]
+    }
+  ]
+}

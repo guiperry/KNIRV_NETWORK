@@ -1,0 +1,17 @@
+I need to understand the WASM resolution pipeline in the KNIRVSERVER codebase. Please find and read the following files in /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER:
+
+1. The ResolutionService implementation and ResolutionSignal struct (search for these in backend/internal/services/wasm/ or similar)
+2. The RemediationSink interface (search for RemediationSink)
+3. The WazeroGate and WazeroPool types
+4. The BadgeWASMMapper type
+5. The guardrail_middleware.go in wasm/
+
+For each file, return:
+- Full file path
+- The ResolutionSignal struct definition
+- The ResolutionService struct and its methods (Resolve, Submit, etc.)
+- The RemediationSink interface definition
+- Any existing implementations of RemediationSink
+- How WazeroGate relates to WazeroPool
+
+Return ALL the code as-is so I can use it as reference.
