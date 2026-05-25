@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "6bd36a116f11",
+  "session_id": "e61168fb-2a5b-4375-8796-31ac2b2942ee",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-25T19:59:48.13000932Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "CALIBER_LEARNINGS.md"
+  ],
+  "agent": "Claude Code",
+  "model": "",
+  "turn_id": "4416e09d1696",
+  "token_usage": {
+    "input_tokens": 5,
+    "cache_creation_tokens": 86552,
+    "cache_read_tokens": 147445,
+    "output_tokens": 11923,
+    "api_call_count": 3
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-25T19:59:48.094060511Z",
+    "agent_lines": 10,
+    "agent_removed": 13,
+    "human_added": 7890,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 7900,
+    "total_lines_changed": 9891,
+    "agent_percentage": 0.23253462743908607,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
