@@ -1,0 +1,13 @@
+Thoroughly explore the KNIRVSERVER guardrail engine. Read the following files completely and return their full contents:
+
+1. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/guardrail_handlers.go
+2. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/guardrail_middleware.go
+3. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/badge/guardrail_injector.go
+4. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/badge/template.go
+5. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper.go
+6. /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/wasm/badge_wasm_mapper_test.go
+
+Also search for any files matching "*guardrail*" and "*policy*" in the entire packages/KNIRVSERVER tree:
+- Glob for **/*guardrail* and **/*policy* in /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER
+
+Return the FULL contents of each file found, plus the list of all matching filenames.
