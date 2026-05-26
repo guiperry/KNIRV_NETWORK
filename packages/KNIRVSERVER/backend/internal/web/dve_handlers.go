@@ -40,6 +40,7 @@ type DVEHandlers struct {
 		RunningCount() int
 		GetSocketPathForDVE(dveID string) (string, error)
 	}
+	workspaceFSHandlers *WorkspaceFSHandlers
 }
 
 // NewDVEHandlers creates the DVE HTTP handler set.  DVE creation operations are
@@ -1115,5 +1116,20 @@ func (h *DVEHandlers) RegisterRoutes(r *mux.Router, authMiddleware *middleware.A
 	if h.knirvagentManager != nil {
 		dveAliasRouter.HandleFunc("/{nodeId}/supervisor-agent/status", h.GetSupervisorAgentStatus).Methods("GET", "OPTIONS")
 		dveAliasRouter.HandleFunc("/{nodeId}/supervisor-agent/session", h.GetSupervisorAgentSession).Methods("GET", "OPTIONS")
+	}
+
+	// Workspace FS API routes (Phase 10 — OverlayFS file explorer)
+	if h.workspaceFSHandlers != nil {
+		wsFSRouter := r.PathPrefix("/api/dve/{id}/workspace").Subrouter()
+		wsFSRouter.HandleFunc("/ls", h.workspaceFSHandlers.ListDir).Methods("GET", "OPTIONS")
+		wsFSRouter.HandleFunc("/cat", h.workspaceFSHandlers.ReadFile).Methods("GET", "OPTIONS")
+		wsFSRouter.HandleFunc("/download", h.workspaceFSHandlers.DownloadFile).Methods("GET", "OPTIONS")
+
+		if authMiddleware != nil {
+			protectedWS := wsFSRouter.PathPrefix("").Subrouter()
+			protectedWS.Use(authMiddleware.RequireAuth)
+			protectedWS.HandleFunc("/upload", h.workspaceFSHandlers.UploadFile).Methods("POST", "OPTIONS")
+			protectedWS.HandleFunc("/rm", h.workspaceFSHandlers.DeleteFile).Methods("DELETE", "OPTIONS")
+		}
 	}
 }

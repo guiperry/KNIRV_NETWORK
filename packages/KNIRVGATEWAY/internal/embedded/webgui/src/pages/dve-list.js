@@ -62,7 +62,7 @@ export default function DVEList() {
     setModal({
       open: true,
       title: `DVE File Manager — ${node.name || node.id}`,
-      src: `/dve/${encodeURIComponent(node.id)}`,
+      src: `/dve/${encodeURIComponent(node.id)}?tab=files`,
     });
   };
 
@@ -186,6 +186,11 @@ export default function DVEList() {
               </div>
 
               <div className={styles.cardFooter}>
+                <span className={styles.workspaceBadge} style={{
+                  color: node.workspace_active ? '#81c784' : '#e57373',
+                }}>
+                  {node.workspace_active ? '⬡ Workspace Active' : '○ Workspace Offline'}
+                </span>
                 <span className={styles.launchBtn} onClick={(e) => { e.stopPropagation(); openDVEExplorer(node); }}>
                   Open DVE Explorer →
                 </span>

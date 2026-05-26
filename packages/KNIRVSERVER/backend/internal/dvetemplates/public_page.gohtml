@@ -431,6 +431,232 @@
         .badge-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .badge-toast { position: fixed; bottom: 20px; right: 20px; background: rgba(25,35,70,0.95); border: 1px solid rgba(100,130,255,0.3); border-radius: 8px; padding: 10px 16px; font-size: 12px; color: #d0d0ff; z-index: 100; animation: fadeInUp 0.3s ease; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Live FS Explorer Styles ── */
+        .explorer-tree {
+            flex: 1;
+            overflow-y: auto;
+            padding: 6px;
+            font-size: 13px;
+        }
+        .explorer-btn {
+            background: rgba(60, 80, 170, 0.25);
+            border: 1px solid rgba(100, 130, 255, 0.25);
+            color: #b0b0ff;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .explorer-btn:hover {
+            background: rgba(80, 110, 220, 0.4);
+            border-color: rgba(140, 170, 255, 0.5);
+            color: white;
+        }
+        .tree-node {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background 0.15s ease;
+        }
+        .tree-node:hover {
+            background: rgba(60, 80, 170, 0.3);
+        }
+        .tree-node.selected {
+            background: rgba(60, 90, 200, 0.4);
+            border: 1px solid rgba(140, 170, 255, 0.4);
+        }
+        .tree-icon {
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+            font-size: 13px;
+        }
+        .tree-toggle {
+            width: 16px;
+            text-align: center;
+            flex-shrink: 0;
+            font-size: 10px;
+            color: #7070a0;
+            cursor: pointer;
+            user-select: none;
+        }
+        .tree-toggle:hover { color: #b0b0ff; }
+        .tree-children { margin-left: 18px; }
+        .tree-children.collapsed { display: none; }
+        .tree-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 12px;
+        }
+        .tree-label.dir { color: #90caf9; font-weight: 500; }
+        .tree-label.file { color: #c0c0e0; }
+        .tree-label.file.txt { color: #a0d0a0; }
+        .tree-label.file.js,
+        .tree-label.file.ts,
+        .tree-label.file.go,
+        .tree-label.file.py,
+        .tree-label.file.java,
+        .tree-label.file.c,
+        .tree-label.file.cpp,
+        .tree-label.file.h { color: #ce93d8; }
+        .tree-label.file.json,
+        .tree-label.file.yaml,
+        .tree-label.file.yml,
+        .tree-label.file.toml,
+        .tree-label.file.xml { color: #ffcc80; }
+        .tree-label.file.md,
+        .tree-label.file.html,
+        .tree-label.file.css { color: #80cbc4; }
+        .tree-label.file.sh,
+        .tree-label.file.bash,
+        .tree-label.file.zsh { color: #a5d6a7; }
+        .tree-label.file.img,
+        .tree-label.file.png,
+        .tree-label.file.jpg,
+        .tree-label.file.jpeg,
+        .tree-label.file.gif,
+        .tree-label.file.svg,
+        .tree-label.file.webp { color: #ef9a9a; }
+        .tree-label.file.bin,
+        .tree-label.file.so,
+        .tree-label.file.o,
+        .tree-label.file.a { color: #b0bec5; }
+        /* File viewer */
+        .file-viewer {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(25, 35, 70, 0.5);
+            border: 1px solid rgba(100, 130, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .file-toolbar {
+            padding: 8px 14px;
+            border-bottom: 1px solid rgba(100, 130, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(20, 30, 60, 0.4);
+        }
+        .file-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+        .file-name { font-weight: 600; font-size: 14px; color: #d0d0ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .layer-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .layer-badge.lower { background: rgba(244,67,54,0.15); color: #e57373; border: 1px solid rgba(244,67,54,0.3); }
+        .layer-badge.upper { background: rgba(76,175,80,0.15); color: #81c784; border: 1px solid rgba(76,175,80,0.3); }
+        .file-size { font-size: 12px; color: #8080c0; white-space: nowrap; }
+        .file-actions { display: flex; gap: 6px; }
+        .file-action-btn {
+            background: rgba(60, 80, 170, 0.3);
+            border: 1px solid rgba(100, 130, 255, 0.3);
+            color: #b0b0ff;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        .file-action-btn:hover {
+            background: rgba(80, 110, 220, 0.4);
+            border-color: rgba(140, 170, 255, 0.5);
+            color: white;
+        }
+        .file-action-danger { color: #e57373; border-color: rgba(244,67,54,0.3); }
+        .file-action-danger:hover { background: rgba(220, 60, 60, 0.3); border-color: rgba(255,100,100,0.4); color: #ff6b6b; }
+        .file-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        .file-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6060a0;
+            font-size: 14px;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .file-preview {
+            flex: 1;
+            margin: 0;
+            padding: 14px 16px;
+            overflow: auto;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #d0d0ff;
+            background: rgba(10, 15, 30, 0.6);
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .file-error {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #e57373;
+            font-size: 13px;
+            padding: 20px;
+            text-align: center;
+            flex-direction: column;
+            gap: 8px;
+        }
+        /* Upload dialog overlay */
+        .upload-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .upload-dialog {
+            background: rgba(20, 30, 60, 0.95);
+            border: 1px solid rgba(100, 130, 255, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            min-width: 340px;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .upload-dialog h3 { margin: 0 0 12px; font-size: 16px; color: #d0d0ff; }
+        .upload-dialog input[type="file"] {
+            display: block;
+            width: 100%;
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(30,40,80,0.5);
+            border: 1px dashed rgba(100,130,255,0.3);
+            border-radius: 6px;
+            color: #b0b0ff;
+            font-size: 12px;
+        }
+        .upload-dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
     </style>
 </head>
 <body>
@@ -468,32 +694,19 @@
     <div class="main-content">
         <!-- Sidebar -->
         <div class="sidebar">
-            <!-- Tab: Files -->
+            <!-- Tab: Files — Live FS Explorer -->
             <div class="tab-content active" id="tab-files">
-                <div class="sidebar-header"><h3>DVE Objects / Files</h3></div>
-                <div class="object-list">
-                    <div class="list-header"><h4>Available Records</h4><span class="count" id="records-count">{{ len .Records }}</span></div>
-                    <div class="objects-container" id="records-list">
-                        {{ if .Records }}
-                            {{ range .Records }}
-                            <div class="object-item" onclick="selectRecord('{{ .ID }}', '{{ .Type }}', '{{ .Status }}', '{{ .Score }}', '{{ .ValidatorNodeID }}')">
-                                <span class="object-name">{{ .Type }}</span>
-                                <span class="object-type">{{ .Status }}</span>
-                                <span class="object-meta">{{ .CreatedAt }}</span>
-                            </div>
-                            {{ end }}
-                        {{ else }}
-                            <div class="empty-state">No record files available</div>
+                <div class="sidebar-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <h3>File Explorer</h3>
+                    <div class="explorer-toolbar" style="display:flex;gap:4px;">
+                        <button class="explorer-btn" onclick="loadDir('/')" title="Refresh">&#x21BB;</button>
+                        {{ if .ExplorerAllowWrite }}
+                        <button class="explorer-btn" onclick="showUploadDialog()" title="Upload File">&#x2191;</button>
                         {{ end }}
                     </div>
                 </div>
-                <div class="section">
-                    <h4>DVE Details</h4>
-                    <div class="metric-grid">
-                        <div class="metric-mini"><div class="metric-mini-value">{{ .ReputationScore }}</div><div class="metric-mini-label">Score</div></div>
-                        <div class="metric-mini"><div class="metric-mini-value">{{ .Metrics.TotalValidations }}</div><div class="metric-mini-label">Validations</div></div>
-                        <div class="metric-mini"><div class="metric-mini-value">{{ printf "%.1f" .Metrics.SuccessRate }}%</div><div class="metric-mini-label">Success</div></div>
-                    </div>
+                <div class="explorer-tree" id="explorer-tree">
+                    <div class="empty-state" id="explorer-loading">Loading file tree...</div>
                 </div>
             </div>
 
@@ -567,38 +780,29 @@
 
         <!-- Content Area -->
         <div class="content-area">
-            <!-- Tab Content: Files -->
+            <!-- Tab Content: Files — Live FS Viewer -->
             <div id="content-files" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
-                <div class="viewport-container" style="flex:1;">
-                    <div class="viewport-header">
-                        <h3>3D Object Viewport</h3>
-                        <div class="object-info">
-                            <span class="selected-name" id="selected-name">No file selected</span>
-                            <span class="selected-id" id="selected-id"></span>
+                <div class="file-viewer">
+                    <div class="file-toolbar" id="file-toolbar" style="display:none;">
+                        <div class="file-info">
+                            <span class="file-name" id="file-name">Select a file</span>
+                            <span class="layer-badge" id="layer-badge"></span>
+                            <span class="file-size" id="file-size"></span>
+                        </div>
+                        <div class="file-actions">
+                            <button class="file-action-btn" onclick="downloadFile()" title="Download">&#x2B07; Download</button>
+                            {{ if .ExplorerAllowWrite }}
+                            <button class="file-action-btn file-action-danger" onclick="deleteFile()" title="Delete">&#x1F5D1; Delete</button>
+                            {{ end }}
                         </div>
                     </div>
-                    <div class="viewport" id="viewport-container">
-                        <div class="placeholder" id="viewer-placeholder">
-                            <div class="placeholder-icon">📦</div>
-                            <span>Select a record or object to view in 3D</span>
+                    <div class="file-content" id="file-content">
+                        <div class="file-placeholder" id="file-placeholder">
+                            <div class="placeholder-icon">&#x1F4C1;</div>
+                            <span>Select a file from the sidebar to view its contents</span>
                         </div>
-                        <div id="three-container" style="width:100%;height:100%;display:none;"></div>
-                    </div>
-                </div>
-                <div class="bottom-section" style="min-height:120px;">
-                    <div class="info-panel">
-                        <div class="info-panel-header"><h3>Record Details</h3></div>
-                        <div class="info-content" id="record-details">
-                            <div style="text-align:center;color:#6060a0;font-size:12px;padding:20px;">
-                                Select a record from the sidebar to view details
-                            </div>
-                        </div>
-                    </div>
-                    <div class="console-container">
-                        <div class="console-header"><h3>Console</h3></div>
-                        <div class="console" id="console-main">
-                            <div class="log-line">[{{ GetTimestamp }}] DVE session ready</div>
-                        </div>
+                        <pre class="file-preview" id="file-preview" style="display:none;"></pre>
+                        <div class="file-error" id="file-error" style="display:none;"></div>
                     </div>
                 </div>
             </div>
@@ -674,7 +878,7 @@ function switchTab(name) {
     document.querySelector(`.nav-links button[data-tab="${name}"]`).classList.add('active');
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById(`tab-${name}`).classList.add('active');
-    ['content-files','content-validation','content-console'].forEach(id => {
+    ['content-files','content-validation','content-console','content-badges'].forEach(id => {
         document.getElementById(id).style.display = id === `content-${name}` ? 'flex' : 'none';
     });
 }
@@ -1073,6 +1277,337 @@ async function mintBadge(templateId) {
         if (btn) { btn.disabled = false; btn.textContent = 'Mint to DVE'; }
     }
 }
+
+// ── Live FS Explorer ──
+let currentDir = '/';
+let selectedFilePath = null;
+
+// Auto-load explorer when switching to files tab
+const origSwitchTab = switchTab;
+window.switchTab = function(name) {
+    origSwitchTab(name);
+    if (name === 'files') {
+        const treeEl = document.getElementById('explorer-tree');
+        if (treeEl && !treeEl.querySelector('.tree-node')) {
+            loadDir('/');
+        }
+    }
+};
+
+function humanSize(bytes) {
+    if (bytes == null) return '';
+    if (bytes === 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    const s = (bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0);
+    return s + ' ' + units[i];
+}
+
+function fileIcon(name, isDir) {
+    if (isDir) return '📁';
+    const ext = name.split('.').pop().toLowerCase();
+    const map = {
+        txt: '📄', md: '📝', html: '🌐', css: '🎨', js: '⚡', ts: '⚡',
+        go: '🔷', py: '🐍', java: '☕', c: '⚙', cpp: '⚙', h: '⚙',
+        json: '📋', yaml: '📋', yml: '📋', toml: '📋', xml: '📋',
+        sh: '💻', bash: '💻', zsh: '💻',
+        png: '🖼', jpg: '🖼', jpeg: '🖼', gif: '🖼', svg: '🖼', webp: '🖼',
+        pdf: '📕', zip: '📦', tar: '📦', gz: '📦', tgz: '📦',
+        bin: '⚫', so: '🔌', o: '🔧', a: '📚',
+        log: '📊', csv: '📊',
+        conf: '⚙', cfg: '⚙', ini: '⚙',
+    };
+    return map[ext] || '📄';
+}
+
+function getExtClass(name, isDir) {
+    if (isDir) return 'dir';
+    const ext = name.split('.').pop().toLowerCase();
+    const textExts = ['txt','md','html','css','js','ts','go','py','java','c','cpp','h'];
+    const dataExts = ['json','yaml','yml','toml','xml'];
+    const webExts = ['md','html','css'];
+    const shellExts = ['sh','bash','zsh'];
+    const imgExts = ['png','jpg','jpeg','gif','svg','webp'];
+    const binExts = ['bin','so','o','a'];
+    if (textExts.includes(ext)) return 'file ' + ext;
+    if (dataExts.includes(ext)) return 'file ' + ext;
+    if (webExts.includes(ext)) return 'file ' + ext;
+    if (shellExts.includes(ext)) return 'file ' + ext;
+    if (imgExts.includes(ext)) return 'file img';
+    if (binExts.includes(ext)) return 'file ' + ext;
+    return 'file';
+}
+
+async function loadDir(dirPath) {
+    currentDir = dirPath || '/';
+    const tree = document.getElementById('explorer-tree');
+    tree.innerHTML = '<div class="empty-state"><span class="spinner"></span> Loading...</div>';
+    try {
+        const resp = await fetch('/api/dve/{{ .DVEID }}/workspace/ls?path=' + encodeURIComponent(currentDir));
+        if (!resp.ok) {
+            const e = await resp.json().catch(()=>({}));
+            throw new Error(e.error || 'HTTP ' + resp.status);
+        }
+        const data = await resp.json();
+        renderTree(data);
+    } catch (e) {
+        tree.innerHTML = '<div class="file-error">Error: ' + escapeHtml(e.message) + '</div>';
+        logBoth('FS explorer error: ' + e.message, 'error');
+    }
+}
+
+function renderTree(data) {
+    const tree = document.getElementById('explorer-tree');
+    const entries = data.entries || data.files || data.children || [];
+    const dirs = entries.filter(function(e) { return e.is_dir || e.type === 'dir'; });
+    const files = entries.filter(function(e) { return !e.is_dir && e.type !== 'dir'; });
+
+    dirs.sort(function(a,b) { return (a.name || '').localeCompare(b.name || ''); });
+    files.sort(function(a,b) { return (a.name || '').localeCompare(b.name || ''); });
+
+    let html = '';
+    dirs.forEach(function(e) {
+        const name = e.name || e.path || '';
+        const fullPath = e.path || (currentDir === '/' ? '/' + name : currentDir.replace(/\/+$/, '') + '/' + name);
+        html += '<div class="tree-node" onclick="toggleDir(this, \'' + escapeHtml(fullPath) + '\')" title="' + escapeHtml(fullPath) + '">' +
+            '<span class="tree-toggle" id="toggle-' + escapeHtml(name) + '">&#x25B6;</span>' +
+            '<span class="tree-icon">📁</span>' +
+            '<span class="tree-label dir">' + escapeHtml(name) + '</span>' +
+            '</div>' +
+            '<div class="tree-children collapsed" id="children-' + escapeHtml(name) + '"></div>';
+    });
+    files.forEach(function(e) {
+        const name = e.name || e.path || '';
+        const fullPath = e.path || (currentDir === '/' ? '/' + name : currentDir.replace(/\/+$/, '') + '/' + name);
+        const size = e.size || 0;
+        html += '<div class="tree-node" onclick="openFile(\'' + escapeHtml(fullPath) + '\', this)" title="' + escapeHtml(fullPath) + '">' +
+            '<span class="tree-icon">' + fileIcon(name, false) + '</span>' +
+            '<span class="tree-label ' + getExtClass(name, false) + '">' + escapeHtml(name) + '</span>' +
+            '</div>';
+    });
+
+    if (dirs.length === 0 && files.length === 0) {
+        html = '<div class="empty-state">Empty directory</div>';
+    }
+
+    tree.innerHTML = html;
+}
+
+async function toggleDir(el, dirPath) {
+    const name = dirPath.split('/').filter(Boolean).pop() || '';
+    const childrenDiv = document.getElementById('children-' + escapeHtml(name));
+    if (!childrenDiv) return;
+    const toggleSpan = el.querySelector('.tree-toggle');
+
+    if (childrenDiv.classList.contains('collapsed')) {
+        // Load if empty
+        if (childrenDiv.innerHTML.trim() === '') {
+            childrenDiv.innerHTML = '<div style="padding:4px 0 4px 18px;font-size:11px;color:#6060a0;"><span class="spinner"></span></div>';
+            try {
+                const resp = await fetch('/api/dve/{{ .DVEID }}/workspace/ls?path=' + encodeURIComponent(dirPath));
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const data = await resp.json();
+                const entries = data.entries || data.files || data.children || [];
+                let html = '';
+                entries.forEach(function(e) {
+                    const iname = e.name || e.path || '';
+                    const ifullPath = e.path || (dirPath === '/' ? '/' + iname : dirPath.replace(/\/+$/, '') + '/' + iname);
+                    if (e.is_dir || e.type === 'dir') {
+                        html += '<div class="tree-node" onclick="toggleDir(this, \'' + escapeHtml(ifullPath) + '\')" title="' + escapeHtml(ifullPath) + '">' +
+                            '<span class="tree-toggle" id="toggle-' + escapeHtml(iname) + '">&#x25B6;</span>' +
+                            '<span class="tree-icon">📁</span>' +
+                            '<span class="tree-label dir">' + escapeHtml(iname) + '</span>' +
+                            '</div>' +
+                            '<div class="tree-children collapsed" id="children-' + escapeHtml(iname) + '"></div>';
+                    } else {
+                        html += '<div class="tree-node" onclick="openFile(\'' + escapeHtml(ifullPath) + '\', this)" title="' + escapeHtml(ifullPath) + '">' +
+                            '<span class="tree-icon">' + fileIcon(iname, false) + '</span>' +
+                            '<span class="tree-label ' + getExtClass(iname, false) + '">' + escapeHtml(iname) + '</span>' +
+                            '</div>';
+                    }
+                });
+                if (!html) html = '<div class="empty-state" style="padding:6px 0 6px 18px;font-size:11px;">Empty directory</div>';
+                childrenDiv.innerHTML = html;
+            } catch (e) {
+                childrenDiv.innerHTML = '<div style="padding:4px 0 4px 18px;font-size:11px;color:#e57373;">Error: ' + escapeHtml(e.message) + '</div>';
+            }
+        }
+        childrenDiv.classList.remove('collapsed');
+        if (toggleSpan) toggleSpan.innerHTML = '&#x25BC;';
+    } else {
+        childrenDiv.classList.add('collapsed');
+        if (toggleSpan) toggleSpan.innerHTML = '&#x25B6;';
+    }
+}
+
+async function openFile(filePath, el) {
+    // Deselect previous
+    document.querySelectorAll('.tree-node.selected').forEach(function(n) { n.classList.remove('selected'); });
+    if (el) el.classList.add('selected');
+    selectedFilePath = filePath;
+
+    const toolbar = document.getElementById('file-toolbar');
+    const nameEl = document.getElementById('file-name');
+    const layerEl = document.getElementById('layer-badge');
+    const sizeEl = document.getElementById('file-size');
+    const preview = document.getElementById('file-preview');
+    const placeholder = document.getElementById('file-placeholder');
+    const errorEl = document.getElementById('file-error');
+
+    toolbar.style.display = 'flex';
+    nameEl.textContent = filePath.split('/').pop() || filePath;
+    layerEl.textContent = '';
+    layerEl.className = 'layer-badge';
+    sizeEl.textContent = '';
+    preview.style.display = 'none';
+    errorEl.style.display = 'none';
+    placeholder.style.display = 'flex';
+    placeholder.innerHTML = '<span class="spinner"></span> Loading...';
+
+    try {
+        const resp = await fetch('/api/dve/{{ .DVEID }}/workspace/cat?path=' + encodeURIComponent(filePath));
+        if (!resp.ok) {
+            const e = await resp.json().catch(()=>({}));
+            throw new Error(e.error || 'HTTP ' + resp.status);
+        }
+        const data = await resp.json();
+
+        // Layer badge
+        if (data.layer) {
+            if (data.layer === 'lower' || data.layer === 'busybox' || data.layer === 'readonly') {
+                layerEl.textContent = '🔒 ' + (data.layer || 'Lower');
+                layerEl.className = 'layer-badge lower';
+            } else {
+                layerEl.textContent = '✏️ ' + (data.layer || 'Upper');
+                layerEl.className = 'layer-badge upper';
+            }
+        } else if (data.readonly) {
+            layerEl.textContent = '🔒 Lower';
+            layerEl.className = 'layer-badge lower';
+        } else {
+            layerEl.textContent = '✏️ Upper';
+            layerEl.className = 'layer-badge upper';
+        }
+
+        // Size
+        sizeEl.textContent = data.size != null ? humanSize(data.size) : '';
+
+        // Content
+        if (data.content != null) {
+            preview.textContent = data.content;
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+        } else if (data.error) {
+            throw new Error(data.error);
+        } else {
+            preview.textContent = JSON.stringify(data, null, 2);
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+    } catch (e) {
+        errorEl.innerHTML = '&#x26A0; Error loading file: ' + escapeHtml(e.message);
+        errorEl.style.display = 'flex';
+        placeholder.style.display = 'none';
+        logBoth('Failed to open ' + filePath + ': ' + e.message, 'error');
+    }
+}
+
+async function downloadFile() {
+    if (!selectedFilePath) return;
+    const url = '/api/dve/{{ .DVEID }}/workspace/download?path=' + encodeURIComponent(selectedFilePath);
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('Download failed');
+        const blob = await resp.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = selectedFilePath.split('/').pop() || 'download';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        logBoth('Downloaded: ' + selectedFilePath, 'success');
+    } catch (e) {
+        logBoth('Download failed: ' + e.message, 'error');
+    }
+}
+
+async function deleteFile() {
+    if (!selectedFilePath) return;
+    if (!confirm('Delete ' + selectedFilePath + '?')) return;
+    try {
+        const resp = await fetch('/api/dve/{{ .DVEID }}/workspace/rm?path=' + encodeURIComponent(selectedFilePath), {
+            method: 'DELETE'
+        });
+        if (!resp.ok) {
+            const e = await resp.json().catch(()=>({}));
+            throw new Error(e.error || 'HTTP ' + resp.status);
+        }
+        logBoth('Deleted: ' + selectedFilePath, 'success');
+        // Reload parent directory
+        const parentDir = selectedFilePath.substring(0, selectedFilePath.lastIndexOf('/')) || '/';
+        loadDir(parentDir);
+        // Clear viewer
+        document.getElementById('file-toolbar').style.display = 'none';
+        document.getElementById('file-preview').style.display = 'none';
+        document.getElementById('file-error').style.display = 'none';
+        document.getElementById('file-placeholder').style.display = 'flex';
+        document.getElementById('file-placeholder').innerHTML = '<div class="placeholder-icon">📁</div><span>Select a file from the sidebar to view its contents</span>';
+        selectedFilePath = null;
+    } catch (e) {
+        logBoth('Delete failed: ' + e.message, 'error');
+    }
+}
+
+function showUploadDialog() {
+    const overlay = document.createElement('div');
+    overlay.className = 'upload-overlay';
+    overlay.innerHTML =
+        '<div class="upload-dialog">' +
+        '<h3>Upload File</h3>' +
+        '<p style="font-size:12px;color:#8080c0;margin-bottom:8px;">Upload to: <code>' + escapeHtml(currentDir) + '</code></p>' +
+        '<input type="file" id="upload-file-input" />' +
+        '<div class="upload-dialog-actions">' +
+        '<button class="file-action-btn" onclick="this.closest(\\'.upload-overlay\\').remove()">Cancel</button>' +
+        '<button class="section-btn" onclick="doUpload()">Upload</button>' +
+        '</div>' +
+        '</div>';
+    document.body.appendChild(overlay);
+}
+
+async function doUpload() {
+    const input = document.getElementById('upload-file-input');
+    if (!input || !input.files || !input.files[0]) {
+        logBoth('No file selected for upload', 'warn');
+        return;
+    }
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('path', currentDir);
+
+    const overlay = document.querySelector('.upload-overlay');
+    if (overlay) overlay.remove();
+
+    logBoth('Uploading ' + file.name + '...', 'info');
+    try {
+        const resp = await fetch('/api/dve/{{ .DVEID }}/workspace/upload', {
+            method: 'POST',
+            body: formData
+        });
+        if (!resp.ok) {
+            const e = await resp.json().catch(()=>({}));
+            throw new Error(e.error || 'HTTP ' + resp.status);
+        }
+        logBoth('Uploaded: ' + file.name, 'success');
+        loadDir(currentDir);
+    } catch (e) {
+        logBoth('Upload failed: ' + e.message, 'error');
+    }
+}
+
+// Also auto-load explorer on page load since the files tab is active by default
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() { loadDir('/'); }, 300);
+});
 </script>
 </body>
 </html>

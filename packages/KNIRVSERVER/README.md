@@ -622,6 +622,74 @@ systemctl restart knirv-server
 
 ---
 
+## 🏗️ OverlayFS DVE Workspace
+
+KNIRV-SERVER provides **OverlayFS + Linux User Namespace** isolation for DVE workspaces, replacing the previous eBPF-only virtual container approach. Each workspace gets its own writable CoW layer sharing a read-only BusyBox base.
+
+### Architecture
+
+```
+/var/lib/knirvserver/
+├── busybox-rootfs/          ← read-only lower layer (shared, ~5MB)
+│   ├── bin/busybox          ← static binary with 400+ applets via symlink
+│   ├── etc/passwd           ← minimal passwd for DVE user
+│   └── .knirvdve-ready      ← bootstrap marker
+└── workspaces/{dveID}/
+    ├── upper/               ← per-DVE writable CoW layer
+    ├── work/                ← OverlayFS internal scratch
+    └── merged/              ← DVE sees this as its root /
+```
+
+### Isolation Model
+
+| Layer | Technology | Privilege | Speed |
+|-------|-----------|-----------|-------|
+| Filesystem | OverlayFS (kernel) | None (Linux ≥3.18 userns) | ~8ms workspace creation |
+| Namespace | `CLONE_NEWUSER \| CLONE_NEWNS` | No root required | Instant |
+| Skill execution | Wazero WASM (pure Go) | No host syscalls | Compile+run |
+| Fallback | fuse-overlayfs | No root | Slightly slower |
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `backend/internal/services/dve_workspace/dve_service.go` | DVE service with createVirtualDVEAsync |
+| `backend/internal/services/dve_workspace/overlayfs.go` | OverlayWorkspace mount/unmount/destroy |
+| `backend/internal/services/dve_workspace/namespace.go` | DVENamespace spawn/teardown + helper |
+| `backend/internal/services/dve_workspace/busybox.go` | BusyBox rootfs bootstrap (embedded/package/download) |
+| `backend/internal/services/dve_workspace/wazero_executor.go` | Wazero WASM skill executor |
+| `frontend/src/components/dashboard/dve-workspace-settings.tsx` | Runtime config UI panel |
+
+### API Endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/dve-workspace/config` | Get current runtime DVEConfig |
+| `PUT` | `/api/dve-workspace/config` | Hot-update config (affects new workspaces) |
+| `GET` | `/api/dve-workspace/rootfs-status` | Check BusyBox rootfs bootstrap state |
+| `POST` | `/api/dve-workspace/rootfs-bootstrap` | Trigger one-time rootfs setup |
+| `GET` | `/api/dve-workspace/stats` | Active workspaces, CoW disk usage, WASM queue depth |
+
+### Configuration
+
+```yaml
+dve_workspace:
+  enable_overlayfs: true
+  busybox_rootfs_path: "/var/lib/knirvserver/busybox-rootfs"
+  busybox_source: "embedded"       # embedded | package | download
+  fuse_overlayfs_bin: "fuse-overlayfs"
+  skill_exec_timeout: "120s"
+  skill_max_memory_mb: 512
+  max_concurrent_wasm: 10
+  workspace_retention_hours: 48
+```
+
+### BuntDB Migration
+
+Existing BuntDB data keyed under legacy `cde_*` prefixes is automatically migrated to `dve_*` prefixes at startup via `BuntDBManager.MigrateCDEKeysToDVE()`. Safe to call multiple times — already-migrated records are skipped.
+
+---
+
 ## 🔒 Security Constraints
 
 - **Hardware Enclaves**: TEE features (SGX/TDX) require specific hardware support and BIOS configuration.

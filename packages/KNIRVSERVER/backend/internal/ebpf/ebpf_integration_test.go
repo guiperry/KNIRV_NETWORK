@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"backend_server/internal/ebpf"
-	"backend_server/internal/services/cde"
+	dve "backend_server/internal/services/dve_workspace"
 	"backend_server/internal/services/p2p"
 
 	"github.com/stretchr/testify/assert"
@@ -111,11 +111,11 @@ func TestEBPFIntegration(t *testing.T) {
 		assert.NotNil(t, metrics, "Metrics should not be nil")
 	})
 
-	// Test 4: CDE Service Integration
-	t.Run("CDE_Service_Integration", func(t *testing.T) {
-		// Create CDE service with eBPF integration
-		cdeConfig := cde.CDEConfig{
-			WorkspaceRoot:   "/tmp/cde-test",
+	// Test 4: DVE Service Integration
+	t.Run("DVE_Service_Integration", func(t *testing.T) {
+		// Create DVE service with eBPF integration
+		dveConfig := dve.DVEConfig{
+			WorkspaceRoot:   "/tmp/dve-test",
 			MaxEnvironments: 10,
 			MaxCPUPerEnv:    2.0,
 			MaxMemoryPerEnv: 4 * 1024 * 1024 * 1024,  // 4GB
@@ -123,30 +123,30 @@ func TestEBPFIntegration(t *testing.T) {
 		}
 
 		// Mock TEE security service and data engine (nil for testing)
-		cdeService, err := cde.NewCDEService(nil, nil, vcManager, cdeConfig)
-		assert.NoError(t, err, "Creating CDE service should succeed")
+		dveService, err := dve.NewDVEService(nil, nil, vcManager, dveConfig)
+		assert.NoError(t, err, "Creating DVE service should succeed")
 
-		// Start CDE service
-		err = cdeService.Start()
-		assert.NoError(t, err, "Starting CDE service should succeed")
-		defer cdeService.Stop()
+		// Start DVE service
+		err = dveService.Start()
+		assert.NoError(t, err, "Starting DVE service should succeed")
+		defer dveService.Stop()
 
-		// Test virtual CDE creation
-		env, err := cdeService.CreateVirtualCDE("test-user", "test-virtual-cde", cde.EnvTypePython, nil)
-		assert.NoError(t, err, "Creating virtual CDE should succeed")
+		// Test virtual DVE creation
+		env, err := dveService.CreateVirtualDVE("test-user", "test-virtual-dve", dve.EnvTypePython, nil)
+		assert.NoError(t, err, "Creating virtual DVE should succeed")
 		assert.NotNil(t, env, "Environment should not be nil")
-		assert.Contains(t, env.ID, "virtual", "Environment ID should indicate virtual CDE")
+		assert.Contains(t, env.ID, "virtual", "Environment ID should indicate virtual DVE")
 
 		// Wait for environment to be created
 		time.Sleep(100 * time.Millisecond)
 
 		// Verify environment exists
-		retrievedEnv, err := cdeService.GetEnvironment(env.ID)
+		retrievedEnv, err := dveService.GetEnvironment(env.ID)
 		assert.NoError(t, err, "Getting environment should succeed")
 		assert.Equal(t, env.ID, retrievedEnv.ID, "Environment IDs should match")
 
 		// Test environment cleanup
-		err = cdeService.StopEnvironment(env.ID)
+		err = dveService.StopEnvironment(env.ID)
 		assert.NoError(t, err, "Stopping environment should succeed")
 	})
 
@@ -330,20 +330,20 @@ func TestEBPFEndToEnd(t *testing.T) {
 	assert.NoError(t, err, "Starting P2P service should succeed")
 	defer p2pService.Stop()
 
-	// Create CDE service
-	cdeConfig := cde.CDEConfig{
-		WorkspaceRoot:   "/tmp/cde-e2e-test",
+	// Create DVE service
+	dveConfig := dve.DVEConfig{
+		WorkspaceRoot:   "/tmp/dve-e2e-test",
 		MaxEnvironments: 5,
 		MaxCPUPerEnv:    1.0,
 		MaxMemoryPerEnv: 2 * 1024 * 1024 * 1024,  // 2GB
 		MaxDiskPerEnv:   10 * 1024 * 1024 * 1024, // 10GB
 	}
 
-	cdeService, err := cde.NewCDEService(nil, nil, vcManager, cdeConfig)
-	assert.NoError(t, err, "Creating CDE service should succeed")
-	err = cdeService.Start()
-	assert.NoError(t, err, "Starting CDE service should succeed")
-	defer cdeService.Stop()
+	dveService, err := dve.NewDVEService(nil, nil, vcManager, dveConfig)
+	assert.NoError(t, err, "Creating DVE service should succeed")
+	err = dveService.Start()
+	assert.NoError(t, err, "Starting DVE service should succeed")
+	defer dveService.Stop()
 
 	// Simulate the complete workflow:
 	// 1. Peer connects to P2P network
@@ -351,20 +351,20 @@ func TestEBPFEndToEnd(t *testing.T) {
 	testPeerIP := net.IPv4(10, 0, 0, 1)
 	p2pService.OnPeerConnected(testPeerID, testPeerIP.String())
 
-	// 2. Create virtual CDE for development
-	env, err := cdeService.CreateVirtualCDE("test-dev", "e2e-test-env", cde.EnvTypeGo, map[string]interface{}{
+	// 2. Create virtual DVE for development
+	env, err := dveService.CreateVirtualDVE("test-dev", "e2e-test-env", dve.EnvTypeGo, map[string]interface{}{
 	  "project":  "test-project",
 	  "language": "go",
 	})
-	assert.NoError(t, err, "Creating virtual CDE should succeed")
+	assert.NoError(t, err, "Creating virtual DVE should succeed")
 
 	// 3. Wait for environment to be ready
 	time.Sleep(200 * time.Millisecond)
 
 	// 4. Verify environment is running
-	retrievedEnv, err := cdeService.GetEnvironment(env.ID)
+	retrievedEnv, err := dveService.GetEnvironment(env.ID)
 	assert.NoError(t, err, "Getting environment should succeed")
-	assert.Equal(t, cde.EnvStatusRunning, retrievedEnv.Status, "Environment should be running")
+	assert.Equal(t, dve.EnvStatusRunning, retrievedEnv.Status, "Environment should be running")
 
 	// 5. Check network metrics (should show peer is whitelisted)
 	metrics, err := p2pService.GetNetworkMetrics()
@@ -375,7 +375,7 @@ func TestEBPFEndToEnd(t *testing.T) {
 	p2pService.OnPeerDisconnected(testPeerID, testPeerIP.String())
 
 	// 7. Clean up environment
-	err = cdeService.StopEnvironment(env.ID)
+	err = dveService.StopEnvironment(env.ID)
 	assert.NoError(t, err, "Stopping environment should succeed")
 
 	// 8. Verify all components are still operational

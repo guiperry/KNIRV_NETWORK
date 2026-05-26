@@ -1,11 +1,11 @@
-package cde
+package dve_workspace
 
 import (
 	"testing"
 )
 
-func TestNewCDEResourcePool(t *testing.T) {
-	pool, err := NewCDEResourcePool()
+func TestNewDVEResourcePool(t *testing.T) {
+	pool, err := NewDVEResourcePool()
 	if err != nil {
 		t.Fatalf("Failed to create resource pool: %v", err)
 	}
@@ -42,10 +42,10 @@ func TestNewCDEResourcePool(t *testing.T) {
 }
 
 func TestCanAllocate(t *testing.T) {
-	pool, _ := NewCDEResourcePool()
+	pool, _ := NewDVEResourcePool()
 
 	// Test allocation within limits
-	request := &CDEResourceAllocation{
+	request := &DVEResourceAllocation{
 		CPUCores:    1.0,
 		MemoryBytes: 1024 * 1024 * 1024,      // 1GB
 		DiskBytes:   10 * 1024 * 1024 * 1024, // 10GB
@@ -56,7 +56,7 @@ func TestCanAllocate(t *testing.T) {
 	}
 
 	// Test allocation exceeding CPU
-	excessiveRequest := &CDEResourceAllocation{
+	excessiveRequest := &DVEResourceAllocation{
 		CPUCores:    pool.TotalCPU + 1,
 		MemoryBytes: 1024 * 1024 * 1024,
 		DiskBytes:   10 * 1024 * 1024 * 1024,
@@ -67,7 +67,7 @@ func TestCanAllocate(t *testing.T) {
 	}
 
 	// Test allocation exceeding memory
-	excessiveRequest = &CDEResourceAllocation{
+	excessiveRequest = &DVEResourceAllocation{
 		CPUCores:    1.0,
 		MemoryBytes: pool.TotalMemory + 1,
 		DiskBytes:   10 * 1024 * 1024 * 1024,
@@ -78,7 +78,7 @@ func TestCanAllocate(t *testing.T) {
 	}
 
 	// Test allocation exceeding disk
-	excessiveRequest = &CDEResourceAllocation{
+	excessiveRequest = &DVEResourceAllocation{
 		CPUCores:    1.0,
 		MemoryBytes: 1024 * 1024 * 1024,
 		DiskBytes:   pool.TotalDisk + 1,
@@ -90,14 +90,14 @@ func TestCanAllocate(t *testing.T) {
 }
 
 func TestAllocateResources(t *testing.T) {
-	pool, _ := NewCDEResourcePool()
+	pool, _ := NewDVEResourcePool()
 
 	initialCPU := pool.AvailableCPU
 	initialMemory := pool.AvailableMemory
 	initialDisk := pool.AvailableDisk
 
 	// Allocate some resources
-	request := &CDEResourceAllocation{
+	request := &DVEResourceAllocation{
 		CPUCores:    1.0,
 		MemoryBytes: 512 * 1024 * 1024,      // 512MB
 		DiskBytes:   5 * 1024 * 1024 * 1024, // 5GB
@@ -136,10 +136,10 @@ func TestAllocateResources(t *testing.T) {
 }
 
 func TestReleaseResources(t *testing.T) {
-	pool, _ := NewCDEResourcePool()
+	pool, _ := NewDVEResourcePool()
 
 	// First allocate some resources
-	request := &CDEResourceAllocation{
+	request := &DVEResourceAllocation{
 		CPUCores:    1.0,
 		MemoryBytes: 512 * 1024 * 1024,
 		DiskBytes:   5 * 1024 * 1024 * 1024,
@@ -185,7 +185,7 @@ func TestReleaseResources(t *testing.T) {
 }
 
 func TestGetResourceUsage(t *testing.T) {
-	pool, _ := NewCDEResourcePool()
+	pool, _ := NewDVEResourcePool()
 
 	usage := pool.GetResourceUsage()
 
@@ -223,7 +223,7 @@ func TestGetResourceUsage(t *testing.T) {
 }
 
 func TestGetAvailableResources(t *testing.T) {
-	pool, _ := NewCDEResourcePool()
+	pool, _ := NewDVEResourcePool()
 
 	available := pool.GetAvailableResources()
 
@@ -241,7 +241,7 @@ func TestGetAvailableResources(t *testing.T) {
 }
 
 func TestGetTotalResources(t *testing.T) {
-	pool, _ := NewCDEResourcePool()
+	pool, _ := NewDVEResourcePool()
 
 	total := pool.GetTotalResources()
 
@@ -259,7 +259,7 @@ func TestGetTotalResources(t *testing.T) {
 }
 
 func TestUpdateAvailableResources(t *testing.T) {
-	pool, _ := NewCDEResourcePool()
+	pool, _ := NewDVEResourcePool()
 
 	initialAvailableMemory := pool.AvailableMemory
 
@@ -275,7 +275,7 @@ func TestUpdateAvailableResources(t *testing.T) {
 	// (AvailableMemory is uint64, so it can't be negative)
 
 	// Test that allocated resources are considered
-	request := &CDEResourceAllocation{
+	request := &DVEResourceAllocation{
 		CPUCores:    0.5,
 		MemoryBytes: 100 * 1024 * 1024,      // 100MB
 		DiskBytes:   1 * 1024 * 1024 * 1024, // 1GB

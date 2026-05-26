@@ -15,7 +15,7 @@ type DVERental struct {
 	EndTime              time.Time      `json:"end_time"`
 	Status               string         `json:"status"`             // "active", "expired", "cancelled"
 	PaymentTxHash        string         `json:"payment_tx_hash"`    // Transaction hash for NRN payment
-	CDEEnvironmentID     string         `json:"cde_environment_id"` // Associated CDE environment
+	DVEEnvironmentID     string         `json:"dve_environment_id"` // Associated DVE environment
 	ResourceLimits       ResourceLimits `json:"resource_limits"`
 	UsageMetrics         UsageMetrics   `json:"usage_metrics"`
 	AutoRenewalEnabled   bool           `json:"auto_renewal_enabled"`              // Whether automatic renewal is enabled
@@ -132,15 +132,15 @@ type RentalResponse struct {
 	Success        bool           `json:"success"`
 	RentalID       string         `json:"rental_id,omitempty"`
 	DVENodeID      string         `json:"dve_node_id,omitempty"`
-	CDEAccessURL   string         `json:"cde_access_url,omitempty"`
-	CDECredentials CDECredentials `json:"cde_credentials,omitempty"`
+	DVEAccessURL   string         `json:"dve_access_url,omitempty"`
+	DVECredentials DVECredentials `json:"dve_credentials,omitempty"`
 	ExpiresAt      time.Time      `json:"expires_at,omitempty"`
 	Error          string         `json:"error,omitempty"`
 	Message        string         `json:"message,omitempty"`
 }
 
-// CDECredentials provides access credentials for the provisioned CDE
-type CDECredentials struct {
+// DVECredentials provides access credentials for the provisioned DVE
+type DVECredentials struct {
 	Username    string `json:"username"`
 	Password    string `json:"password"`
 	SSHKey      string `json:"ssh_key,omitempty"`

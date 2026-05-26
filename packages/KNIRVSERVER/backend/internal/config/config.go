@@ -217,10 +217,10 @@ type Config struct {
 	Server      ServerConfig      `mapstructure:"server"`
 	Blockchain  BlockchainConfig  `mapstructure:"blockchain"`
 	TEE         TEEConfig         `mapstructure:"tee"`
-	CDE         CDEConfig         `mapstructure:"cde"`
+	DVEWorkspace DVEConfig         `mapstructure:"dve_workspace"`
 	Reports     ReportsConfig     `mapstructure:"reports"`
 	Log         LogConfig         `mapstructure:"log"`
-	DVE         DVEConfig         `mapstructure:"dve"`
+	DVE         DVENodeConfig         `mapstructure:"dve"`
 	Failover    FailoverConfig    `mapstructure:"failover"`
 	ModelServer ModelServerConfig `mapstructure:"model_server"`
 	IsRoot      bool              `json:"is_root" mapstructure:"is_root,IsRoot"`
@@ -391,8 +391,8 @@ type SoftwareConfig struct {
 	KeyFile           string `mapstructure:"key_file"`
 }
 
-// CDEConfig represents Cloud Development Environment configuration
-type CDEConfig struct {
+// DVEConfig represents Cloud Development Environment configuration
+type DVEConfig struct {
 	BaseImagePath          string        `mapstructure:"base_image_path"`
 	WorkspaceRoot          string        `mapstructure:"workspace_root"`
 	MaxEnvironments        int           `mapstructure:"max_environments"`
@@ -425,8 +425,8 @@ type LogConfig struct {
 	Output string `mapstructure:"output"`
 }
 
-// DVEConfig represents DVE (Deterministic Validation Environment) configuration
-type DVEConfig struct {
+// DVENodeConfig represents DVE (Deterministic Validation Environment) node configuration
+type DVENodeConfig struct {
 	Discovery            DVEDiscoveryConfig `mapstructure:"discovery"`
 	EnableChainDiscovery bool               `mapstructure:"enable_chain_discovery"`
 }
@@ -658,33 +658,33 @@ func (c *Config) ExpandPaths() error {
 		}
 	}
 
-	// Expand CDE paths
-	if c.CDE.BaseImagePath != "" {
-		c.CDE.BaseImagePath, err = expandPath(c.CDE.BaseImagePath)
+	// Expand DVE Workspace paths
+	if c.DVEWorkspace.BaseImagePath != "" {
+		c.DVEWorkspace.BaseImagePath, err = expandPath(c.DVEWorkspace.BaseImagePath)
 		if err != nil {
 			return err
 		}
-		if err := os.MkdirAll(c.CDE.BaseImagePath, 0755); err != nil {
+		if err := os.MkdirAll(c.DVEWorkspace.BaseImagePath, 0755); err != nil {
 			return fmt.Errorf("failed to create base image directory: %v", err)
 		}
 	}
 
-	if c.CDE.WorkspaceRoot != "" {
-		c.CDE.WorkspaceRoot, err = expandPath(c.CDE.WorkspaceRoot)
+	if c.DVEWorkspace.WorkspaceRoot != "" {
+		c.DVEWorkspace.WorkspaceRoot, err = expandPath(c.DVEWorkspace.WorkspaceRoot)
 		if err != nil {
 			return err
 		}
-		if err := os.MkdirAll(c.CDE.WorkspaceRoot, 0755); err != nil {
+		if err := os.MkdirAll(c.DVEWorkspace.WorkspaceRoot, 0755); err != nil {
 			return fmt.Errorf("failed to create workspace root directory: %v", err)
 		}
 	}
 
-	if c.CDE.ProjectStoragePath != "" {
-		c.CDE.ProjectStoragePath, err = expandPath(c.CDE.ProjectStoragePath)
+	if c.DVEWorkspace.ProjectStoragePath != "" {
+		c.DVEWorkspace.ProjectStoragePath, err = expandPath(c.DVEWorkspace.ProjectStoragePath)
 		if err != nil {
 			return err
 		}
-		if err := os.MkdirAll(c.CDE.ProjectStoragePath, 0755); err != nil {
+		if err := os.MkdirAll(c.DVEWorkspace.ProjectStoragePath, 0755); err != nil {
 			return fmt.Errorf("failed to create project storage directory: %v", err)
 		}
 	}
@@ -1005,21 +1005,30 @@ func setDefaults() {
 	viper.SetDefault("log.format", "json")
 	viper.SetDefault("log.output", filepath.Join(appDataDir, "logs", "nexus.log"))
 
-	// CDE configuration defaults - use XDG Base Directory
-	viper.SetDefault("cde.base_image_path", filepath.Join(appDataDir, "images"))
-	viper.SetDefault("cde.workspace_root", filepath.Join(appDataDir, "workspaces"))
-	viper.SetDefault("cde.max_environments", 50)
-	viper.SetDefault("cde.default_timeout", "1h")
-	viper.SetDefault("cde.max_cpu_per_env", 2.0)
-	viper.SetDefault("cde.max_memory_per_env", 2147483648) // 2GB
-	viper.SetDefault("cde.max_disk_per_env", 10737418240)  // 10GB
-	viper.SetDefault("cde.enable_sandboxing", true)
-	viper.SetDefault("cde.enable_network_isolation", false)
-	viper.SetDefault("cde.allowed_ports", []int{8082, 3000, 5000})
-	viper.SetDefault("cde.session_timeout", "2h")
-	viper.SetDefault("cde.max_sessions_per_user", 5)
-	viper.SetDefault("cde.max_projects_per_user", 20)
-	viper.SetDefault("cde.project_storage_path", filepath.Join(appDataDir, "projects"))
+	// DVE Workspace configuration defaults - use XDG Base Directory
+	viper.SetDefault("dve_workspace.base_image_path", filepath.Join(appDataDir, "images"))
+	viper.SetDefault("dve_workspace.workspace_root", filepath.Join(appDataDir, "workspaces"))
+	viper.SetDefault("dve_workspace.max_environments", 50)
+	viper.SetDefault("dve_workspace.default_timeout", "1h")
+	viper.SetDefault("dve_workspace.max_cpu_per_env", 2.0)
+	viper.SetDefault("dve_workspace.max_memory_per_env", 2147483648) // 2GB
+	viper.SetDefault("dve_workspace.max_disk_per_env", 10737418240)  // 10GB
+	viper.SetDefault("dve_workspace.enable_sandboxing", true)
+	viper.SetDefault("dve_workspace.enable_overlayfs", true)
+	viper.SetDefault("dve_workspace.enable_network_isolation", false)
+	viper.SetDefault("dve_workspace.busybox_rootfs_path", "/var/lib/knirvserver/busybox-rootfs")
+	viper.SetDefault("dve_workspace.busybox_source", "embedded")
+	viper.SetDefault("dve_workspace.busybox_version", "1.36.1")
+	viper.SetDefault("dve_workspace.fuse_overlayfs_bin", "fuse-overlayfs")
+	viper.SetDefault("dve_workspace.skill_exec_timeout", "120s")
+	viper.SetDefault("dve_workspace.skill_max_memory_mb", 512)
+	viper.SetDefault("dve_workspace.max_concurrent_wasm", 10)
+	viper.SetDefault("dve_workspace.workspace_retention_hours", 48)
+	viper.SetDefault("dve_workspace.allowed_ports", []int{8082, 3000, 5000})
+	viper.SetDefault("dve_workspace.session_timeout", "2h")
+	viper.SetDefault("dve_workspace.max_sessions_per_user", 5)
+	viper.SetDefault("dve_workspace.max_projects_per_user", 20)
+	viper.SetDefault("dve_workspace.project_storage_path", filepath.Join(appDataDir, "projects"))
 
 	// Reports configuration - use XDG Base Directory
 	viper.SetDefault("reports.storage_path", filepath.Join(appDataDir, "reports"))

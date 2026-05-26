@@ -42,9 +42,9 @@ const (
 	ValidationResultsCollection = "validation_results:"
 
 	// CDE (Cloud Development Environment) Collections
-	CDEEnvironmentsCollection = "cde_environments:"
-	CDESessionsCollection     = "cde_sessions:"
-	CDEProjectsCollection     = "cde_projects:"
+	DVEEnvironmentsCollection = "dve_environments:"
+	DVESessionsCollection     = "dve_sessions:"
+	DVEProjectsCollection     = "dve_projects:"
 
 	// Report Collections (User vs System)
 	UserReportsCollection   = "user_reports:"
@@ -770,9 +770,9 @@ func (m *BuntDBManager) GetStats() (map[string]interface{}, error) {
 		"dve_nodes":          DVENodesCollection,
 		"validation_tasks":   ValidationTasksCollection,
 		"validation_results": ValidationResultsCollection,
-		"cde_environments":   CDEEnvironmentsCollection,
-		"cde_sessions":       CDESessionsCollection,
-		"cde_projects":       CDEProjectsCollection,
+		"cde_environments":   DVEEnvironmentsCollection,
+		"cde_sessions":       DVESessionsCollection,
+		"cde_projects":       DVEProjectsCollection,
 		"dve_messages":       DVEMessagesCollection,
 		"dve_routing":        DVERoutingCollection,
 		"dve_registry":       DVERegistryCollection,
@@ -1084,3 +1084,5 @@ func (m *BuntDBManager) GetAllKeysWithPrefix(prefix string) ([]string, error) {
 
 	return keys, err
 }
+
+

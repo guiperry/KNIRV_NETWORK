@@ -1,4 +1,4 @@
-package cde
+package dve_workspace
 
 import (
 	"fmt"
@@ -9,9 +9,9 @@ import (
 	"syscall"
 )
 
-// NewCDEResourcePool creates a new CDE resource pool
-func NewCDEResourcePool() (*CDEResourcePool, error) {
-	pool := &CDEResourcePool{}
+// NewDVEResourcePool creates a new DVE resource pool
+func NewDVEResourcePool() (*DVEResourcePool, error) {
+	pool := &DVEResourcePool{}
 	
 	// Initialize system resources
 	if err := pool.initializeSystemResources(); err != nil {
@@ -22,7 +22,7 @@ func NewCDEResourcePool() (*CDEResourcePool, error) {
 }
 
 // initializeSystemResources discovers and initializes system resources
-func (rp *CDEResourcePool) initializeSystemResources() error {
+func (rp *DVEResourcePool) initializeSystemResources() error {
 	// Get CPU information
 	rp.TotalCPU = float64(runtime.NumCPU())
 	rp.AvailableCPU = rp.TotalCPU
@@ -47,7 +47,7 @@ func (rp *CDEResourcePool) initializeSystemResources() error {
 }
 
 // getMemoryInfo gets total system memory
-func (rp *CDEResourcePool) getMemoryInfo() (uint64, error) {
+func (rp *DVEResourcePool) getMemoryInfo() (uint64, error) {
 	data, err := os.ReadFile("/proc/meminfo")
 	if err != nil {
 		return 0, err
@@ -71,7 +71,7 @@ func (rp *CDEResourcePool) getMemoryInfo() (uint64, error) {
 }
 
 // getDiskInfo gets disk space information for a path
-func (rp *CDEResourcePool) getDiskInfo(path string) (uint64, error) {
+func (rp *DVEResourcePool) getDiskInfo(path string) (uint64, error) {
 	var stat syscall.Statfs_t
 	if err := syscall.Statfs(path, &stat); err != nil {
 		return 0, err
@@ -83,7 +83,7 @@ func (rp *CDEResourcePool) getDiskInfo(path string) (uint64, error) {
 }
 
 // CanAllocate checks if the requested resources can be allocated
-func (rp *CDEResourcePool) CanAllocate(requested *CDEResourceAllocation) bool {
+func (rp *DVEResourcePool) CanAllocate(requested *DVEResourceAllocation) bool {
 	rp.mu.RLock()
 	defer rp.mu.RUnlock()
 	
@@ -93,7 +93,7 @@ func (rp *CDEResourcePool) CanAllocate(requested *CDEResourceAllocation) bool {
 }
 
 // AllocateResources allocates resources for an environment
-func (rp *CDEResourcePool) AllocateResources(requested *CDEResourceAllocation) error {
+func (rp *DVEResourcePool) AllocateResources(requested *DVEResourceAllocation) error {
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
 	
@@ -127,7 +127,7 @@ func (rp *CDEResourcePool) AllocateResources(requested *CDEResourceAllocation) e
 }
 
 // ReleaseResources releases allocated resources
-func (rp *CDEResourcePool) ReleaseResources(allocation *CDEResourceAllocation) {
+func (rp *DVEResourcePool) ReleaseResources(allocation *DVEResourceAllocation) {
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
 	
@@ -160,7 +160,7 @@ func (rp *CDEResourcePool) ReleaseResources(allocation *CDEResourceAllocation) {
 }
 
 // UpdateAvailableResources updates available resources based on current system state
-func (rp *CDEResourcePool) UpdateAvailableResources() {
+func (rp *DVEResourcePool) UpdateAvailableResources() {
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
 	
@@ -181,7 +181,7 @@ func (rp *CDEResourcePool) UpdateAvailableResources() {
 }
 
 // getCurrentMemoryUsage gets current system memory usage
-func (rp *CDEResourcePool) getCurrentMemoryUsage() (uint64, error) {
+func (rp *DVEResourcePool) getCurrentMemoryUsage() (uint64, error) {
 	data, err := os.ReadFile("/proc/meminfo")
 	if err != nil {
 		return 0, err
@@ -208,7 +208,7 @@ func (rp *CDEResourcePool) getCurrentMemoryUsage() (uint64, error) {
 }
 
 // GetResourceUsage returns current resource usage statistics
-func (rp *CDEResourcePool) GetResourceUsage() map[string]interface{} {
+func (rp *DVEResourcePool) GetResourceUsage() map[string]interface{} {
 	rp.mu.RLock()
 	defer rp.mu.RUnlock()
 	
@@ -235,11 +235,11 @@ func (rp *CDEResourcePool) GetResourceUsage() map[string]interface{} {
 }
 
 // GetAvailableResources returns currently available resources
-func (rp *CDEResourcePool) GetAvailableResources() *CDEResourceAllocation {
+func (rp *DVEResourcePool) GetAvailableResources() *DVEResourceAllocation {
 	rp.mu.RLock()
 	defer rp.mu.RUnlock()
 	
-	return &CDEResourceAllocation{
+	return &DVEResourceAllocation{
 		CPUCores:    rp.AvailableCPU,
 		MemoryBytes: rp.AvailableMemory,
 		DiskBytes:   rp.AvailableDisk,
@@ -247,11 +247,11 @@ func (rp *CDEResourcePool) GetAvailableResources() *CDEResourceAllocation {
 }
 
 // GetTotalResources returns total system resources
-func (rp *CDEResourcePool) GetTotalResources() *CDEResourceAllocation {
+func (rp *DVEResourcePool) GetTotalResources() *DVEResourceAllocation {
 	rp.mu.RLock()
 	defer rp.mu.RUnlock()
 	
-	return &CDEResourceAllocation{
+	return &DVEResourceAllocation{
 		CPUCores:    rp.TotalCPU,
 		MemoryBytes: rp.TotalMemory,
 		DiskBytes:   rp.TotalDisk,

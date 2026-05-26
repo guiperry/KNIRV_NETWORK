@@ -1,4 +1,4 @@
-package cde
+package dve_workspace
 
 import (
 	"testing"
@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCDEService_Start(t *testing.T) {
+func TestDVEService_Start(t *testing.T) {
 	// Create a minimal config for testing
-	config := CDEConfig{
+	config := DVEConfig{
 		WorkspaceRoot:       "/tmp/test-workspaces",
 		ProjectStoragePath:  "/tmp/test-projects",
 		MaxEnvironments:     5,
@@ -26,7 +26,7 @@ func TestCDEService_Start(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, nil, config)
+	service, err := NewDVEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
@@ -41,9 +41,9 @@ func TestCDEService_Start(t *testing.T) {
 	assert.False(t, service.IsRunning())
 }
 
-func TestCDEService_Stop(t *testing.T) {
+func TestDVEService_Stop(t *testing.T) {
 	// Create a minimal config for testing
-	config := CDEConfig{
+	config := DVEConfig{
 		WorkspaceRoot:       "/tmp/test-workspaces",
 		ProjectStoragePath:  "/tmp/test-projects",
 		MaxEnvironments:     5,
@@ -59,7 +59,7 @@ func TestCDEService_Stop(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, nil, config)
+	service, err := NewDVEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
@@ -69,9 +69,9 @@ func TestCDEService_Stop(t *testing.T) {
 	assert.False(t, service.IsRunning())
 }
 
-func TestCDEService_Start_AlreadyRunning(t *testing.T) {
+func TestDVEService_Start_AlreadyRunning(t *testing.T) {
 	// Create a minimal config for testing
-	config := CDEConfig{
+	config := DVEConfig{
 		WorkspaceRoot:       "/tmp/test-workspaces",
 		ProjectStoragePath:  "/tmp/test-projects",
 		MaxEnvironments:     5,
@@ -87,7 +87,7 @@ func TestCDEService_Start_AlreadyRunning(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, nil, config)
+	service, err := NewDVEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
@@ -105,9 +105,9 @@ func TestCDEService_Start_AlreadyRunning(t *testing.T) {
 	service.Stop()
 }
 
-func TestCDEService_Stop_NotRunning(t *testing.T) {
+func TestDVEService_Stop_NotRunning(t *testing.T) {
 	// Create a minimal config for testing
-	config := CDEConfig{
+	config := DVEConfig{
 		WorkspaceRoot:       "/tmp/test-workspaces",
 		ProjectStoragePath:  "/tmp/test-projects",
 		MaxEnvironments:     5,
@@ -123,7 +123,7 @@ func TestCDEService_Stop_NotRunning(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, nil, config)
+	service, err := NewDVEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
@@ -133,9 +133,9 @@ func TestCDEService_Stop_NotRunning(t *testing.T) {
 	assert.False(t, service.IsRunning())
 }
 
-func TestCDEService_GetStatus(t *testing.T) {
+func TestDVEService_GetStatus(t *testing.T) {
 	// Create a minimal config for testing
-	config := CDEConfig{
+	config := DVEConfig{
 		WorkspaceRoot:       "/tmp/test-workspaces",
 		ProjectStoragePath:  "/tmp/test-projects",
 		MaxEnvironments:     5,
@@ -151,14 +151,14 @@ func TestCDEService_GetStatus(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, nil, config)
+	service, err := NewDVEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
 	// Test GetStatus when not running
 	status := service.GetStatus()
 	assert.False(t, status["running"].(bool))
-	assert.Equal(t, config, status["config"].(CDEConfig))
+	assert.Equal(t, config, status["config"].(DVEConfig))
 	assert.Equal(t, 0, status["projects"].(int))
 
 	// Start service and test again
@@ -167,16 +167,16 @@ func TestCDEService_GetStatus(t *testing.T) {
 
 	status = service.GetStatus()
 	assert.True(t, status["running"].(bool))
-	assert.Equal(t, config, status["config"].(CDEConfig))
+	assert.Equal(t, config, status["config"].(DVEConfig))
 	assert.Equal(t, 0, status["projects"].(int))
 
 	// Clean up
 	service.Stop()
 }
 
-func TestCDEService_IsRunning(t *testing.T) {
+func TestDVEService_IsRunning(t *testing.T) {
 	// Create a minimal config for testing
-	config := CDEConfig{
+	config := DVEConfig{
 		WorkspaceRoot:       "/tmp/test-workspaces",
 		ProjectStoragePath:  "/tmp/test-projects",
 		MaxEnvironments:     5,
@@ -192,7 +192,7 @@ func TestCDEService_IsRunning(t *testing.T) {
 	}
 
 	// Create service with nil dependencies for basic testing
-	service, err := NewCDEService(nil, nil, nil, config)
+	service, err := NewDVEService(nil, nil, nil, config)
 	require.NoError(t, err)
 	require.NotNil(t, service)
 

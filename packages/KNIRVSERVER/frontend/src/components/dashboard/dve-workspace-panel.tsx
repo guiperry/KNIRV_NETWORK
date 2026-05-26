@@ -10,7 +10,7 @@ import ConnectionsPanel, { type ActiveWorker } from './connections-panel';
 import MetadataPanel from './metadata-panel';
 import DVESolverPanel from './dve-solver-panel';
 import ViewportPanel from './viewport-panel';
-import { DVEVerificationIframe } from './dve-verification-iframe';
+import { DVEWorkspaceExplorer } from './dve-workspace-explorer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { DVENode } from '@/types/api';
@@ -167,10 +167,11 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
               </button>
               <button
                 onClick={() => setShowVerification(true)}
-                className={`p-2 rounded-md transition-colors duration-150 ${showVerification ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-300'}`}
-                title="DVE Public Verification"
+                className={`p-2 rounded-md transition-colors duration-150 flex items-center gap-1 ${showVerification ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-purple-300'}`}
+                title="DVE Workspace Files"
               >
                 <Globe className="w-4 h-4" />
+                <span className="text-xs">Files</span>
               </button>
             </div>
             
@@ -360,14 +361,15 @@ const DVEWorkspacePanel: React.FC<DVEWorkspacePanelProps> = ({
           />
         </div>
 
-        {/* DVE Verification Iframe - public DVE page via gateway */}
+        {/* DVE Workspace Explorer - public DVE page via gateway */}
         {/* Rendered here, OUTSIDE overflow-hidden, so its fixed inset-0
             header bar (Back / X buttons) is not clipped by the content area. */}
-        <DVEVerificationIframe
+        <DVEWorkspaceExplorer
           isOpen={showVerification}
           onClose={() => setShowVerification(false)}
           dveId={actualNodeId}
           dveName={actualNodeName}
+          initialTab="files"
         />
       </div>
     </div>,

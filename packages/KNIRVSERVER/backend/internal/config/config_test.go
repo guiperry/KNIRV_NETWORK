@@ -202,7 +202,7 @@ func TestConfig_ExpandPaths(t *testing.T) {
 		Database: DatabaseConfig{
 			Path: "/tmp/test.db",
 		},
-		CDE: CDEConfig{
+		DVEWorkspace: DVEConfig{
 			BaseImagePath: "/tmp/images",
 			WorkspaceRoot: "/tmp/workspaces",
 			ProjectStoragePath: "/tmp/projects",

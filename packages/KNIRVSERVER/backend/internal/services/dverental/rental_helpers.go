@@ -86,7 +86,7 @@ func createDefaultRentalPlans() []*objects.RentalPlan {
 			},
 			MaxDuration: 24 * 60 * 60, // 24 hours
 			MinDuration: 60 * 60,      // 1 hour
-			Features:    []string{"Basic CDE", "SSH Access", "Web Terminal"},
+			Features:    []string{"Basic DVE", "SSH Access", "Web Terminal"},
 			IsActive:    true,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -104,7 +104,7 @@ func createDefaultRentalPlans() []*objects.RentalPlan {
 			},
 			MaxDuration: 7 * 24 * 60 * 60, // 7 days
 			MinDuration: 60 * 60,          // 1 hour
-			Features:    []string{"Enhanced CDE", "SSH Access", "Web Terminal", "GPU Access", "Custom Images"},
+			Features:    []string{"Enhanced DVE", "SSH Access", "Web Terminal", "GPU Access", "Custom Images"},
 			IsActive:    true,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -122,7 +122,7 @@ func createDefaultRentalPlans() []*objects.RentalPlan {
 			},
 			MaxDuration: 30 * 24 * 60 * 60, // 30 days
 			MinDuration: 60 * 60,           // 1 hour
-			Features:    []string{"Premium CDE", "SSH Access", "Web Terminal", "GPU Access", "Custom Images", "Priority Support", "Dedicated Resources"},
+			Features:    []string{"Premium DVE", "SSH Access", "Web Terminal", "GPU Access", "Custom Images", "Priority Support", "Dedicated Resources"},
 			IsActive:    true,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -226,9 +226,9 @@ func (drs *DVERentalService) cleanupExpiredRentals() {
 			rental.Status = "expired"
 			rental.UpdatedAt = now
 
-			// Clean up CDE environment
-			if err := drs.cleanupCDEEnvironment(rental.CDEEnvironmentID); err != nil {
-				log.Printf("Warning: Failed to cleanup CDE environment for expired rental %s: %v", id, err)
+			// Clean up DVE workspace
+			if err := drs.cleanupDVEEnvironment(rental.DVEEnvironmentID); err != nil {
+				log.Printf("Warning: Failed to cleanup DVE workspace for expired rental %s: %v", id, err)
 			}
 
 			expiredRentals = append(expiredRentals, id)

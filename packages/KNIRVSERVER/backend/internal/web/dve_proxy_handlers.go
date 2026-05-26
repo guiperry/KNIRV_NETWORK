@@ -46,6 +46,10 @@ type DVEPageData struct {
 	ReputationScore   int
 	LastHeartbeat     string
 	UptimeSeconds     int64
+
+	WorkspaceActive  bool
+	ExplorerEnabled  bool
+	ExplorerAllowWrite bool
 }
 
 type DVEPageMetrics struct {
@@ -77,13 +81,28 @@ func WithRewardPoolAddress(addr string) DVEProxyHandlerOption {
 	return func(h *DVEProxyHandler) { h.rewardPoolAddr = addr }
 }
 
+func WithExplorerEnabled(enabled bool) DVEProxyHandlerOption {
+	return func(h *DVEProxyHandler) { h.explorerEnabled = enabled }
+}
+
+func WithExplorerAllowWrite(allow bool) DVEProxyHandlerOption {
+	return func(h *DVEProxyHandler) { h.explorerAllowWrite = allow }
+}
+
+func WithWorkspaceChecker(fn func(string) bool) DVEProxyHandlerOption {
+	return func(h *DVEProxyHandler) { h.workspaceChecker = fn }
+}
+
 type DVEProxyHandler struct {
-	uriRegistry    *services.DVEURIRegistry
-	dveManager     *dvemanager.DVEManager
-	validationCore *validation.ValidationCore
-	rewardPoolAddr string
-	logger         *zap.Logger
-	tmpl           *template.Template
+	uriRegistry      *services.DVEURIRegistry
+	dveManager       *dvemanager.DVEManager
+	validationCore   *validation.ValidationCore
+	rewardPoolAddr   string
+	logger           *zap.Logger
+	tmpl             *template.Template
+	explorerEnabled  bool
+	explorerAllowWrite bool
+	workspaceChecker func(string) bool
 }
 
 func NewDVEProxyHandler(registry *services.DVEURIRegistry, tmplFS fs.FS, logger *zap.Logger, opts ...DVEProxyHandlerOption) (*DVEProxyHandler, error) {
@@ -242,6 +261,13 @@ func (h *DVEProxyHandler) buildPageData(dve *services.DVEURI, query string) *DVE
 		}
 	}
 	data.RewardPoolAddress = h.rewardPoolAddr
+	data.ExplorerEnabled = h.explorerEnabled
+	data.ExplorerAllowWrite = h.explorerAllowWrite
+	if h.explorerEnabled && h.workspaceChecker != nil {
+		data.WorkspaceActive = h.workspaceChecker(dve.DVEID)
+	} else {
+		data.WorkspaceActive = false
+	}
 	return data
 }
 

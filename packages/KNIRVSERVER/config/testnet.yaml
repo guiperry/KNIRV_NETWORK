@@ -167,7 +167,7 @@ inference:
     batch_size: 8
 
 # Cloud Development Environment (CDE) Configuration
-cde:
+dve_workspace:
   base_image_path: "/var/lib/knirvserver/backend_server/images"
   workspace_root: "/var/lib/knirvserver/backend_server/workspaces"
   max_environments: 50
@@ -186,6 +186,21 @@ cde:
   max_sessions_per_user: 5
   max_projects_per_user: 20
   project_storage_path: "/var/lib/knirvserver/backend_server/projects"
+
+  # OverlayFS workspace isolation
+  enable_overlayfs: true
+  busybox_rootfs_path: "/var/lib/knirvserver/busybox-rootfs"
+  busybox_source: "embedded"
+  busybox_version: "1.36.1"
+  fuse_overlayfs_bin: "fuse-overlayfs"
+
+  # Wazero skill executor
+  skill_exec_timeout: "120s"
+  skill_max_memory_mb: 512
+  max_concurrent_wasm: 10
+
+  # Workspace persistence
+  workspace_retention_hours: 48
 
 # Reports Configuration
 reports:

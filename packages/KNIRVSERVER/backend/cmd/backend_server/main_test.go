@@ -40,7 +40,7 @@ func TestNewServer(t *testing.T) {
 		Security: config.SecurityConfig{
 			JWTSecret: "test-secret",
 		},
-		CDE: config.CDEConfig{
+		DVEWorkspace: config.DVEConfig{
 			BaseImagePath:          "/tmp/test",
 			WorkspaceRoot:          "/tmp/test",
 			MaxEnvironments:        10,
@@ -164,7 +164,7 @@ func TestServerSetupRoutes(t *testing.T) {
 		Security: config.SecurityConfig{
 			JWTSecret: "test-secret",
 		},
-		CDE: config.CDEConfig{
+		DVEWorkspace: config.DVEConfig{
 			BaseImagePath:          "/tmp/test",
 			WorkspaceRoot:          "/tmp/test",
 			MaxEnvironments:        10,
@@ -248,7 +248,7 @@ func TestServerHandleHealth(t *testing.T) {
 	expectedServices := []string{
 		"database", "p2p_manager", "dve_manager", "validation_core",
 		"model_server", "data_engine", "inference_service", "websocket_service",
-		"cde_service", "dns_service",
+		"dve_service", "dns_service",
 	}
 
 	for _, service := range expectedServices {

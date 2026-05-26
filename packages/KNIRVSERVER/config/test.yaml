@@ -18,7 +18,7 @@ p2p:
   dht_enabled: false
 
 # CDE Service Configuration - Disabled for testing
-cde:
+dve_workspace:
   base_image_path: ""
   workspace_root: ""
   max_environments: 0  # Disable CDE environments in tests
@@ -33,6 +33,21 @@ cde:
   max_sessions_per_user: 0
   max_projects_per_user: 0
   project_storage_path: ""
+
+  # OverlayFS workspace isolation
+  enable_overlayfs: true
+  busybox_rootfs_path: "/var/lib/knirvserver/busybox-rootfs"
+  busybox_source: "embedded"
+  busybox_version: "1.36.1"
+  fuse_overlayfs_bin: "fuse-overlayfs"
+
+  # Wazero skill executor
+  skill_exec_timeout: "120s"
+  skill_max_memory_mb: 512
+  max_concurrent_wasm: 10
+
+  # Workspace persistence
+  workspace_retention_hours: 48
 
 # DNS Service Configuration - Disabled for testing
 dns:

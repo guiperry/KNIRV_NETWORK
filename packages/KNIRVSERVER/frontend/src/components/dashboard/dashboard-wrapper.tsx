@@ -123,7 +123,7 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
     if (nav) applyNavSection(nav);
   }, [searchParams]);
 
-  const [cdeModalOpen, setCdeModalOpen] = useState(false);
+  const [dveWorkspaceModalOpen, setDveWorkspaceModalOpen] = useState(false);
   const [dveCreationModalOpen, setDveCreationModalOpen] = useState(false);
   const [dveRefreshKey, setDveRefreshKey] = useState(0);
   const [knirvEngineModalOpen, setKnirvEngineModalOpen] = useState(false);
@@ -390,11 +390,11 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
 
   const handleNodeAccess = (node: DVENode) => {
     setSelectedNode(node);
-    setCdeModalOpen(true);
+    setDveWorkspaceModalOpen(true);
   };
 
   const handleOpenKNIRVEngine = () => {
-    setCdeModalOpen(false);
+    setDveWorkspaceModalOpen(false);
     setKnirvEngineModalOpen(true);
   };
 
@@ -1369,8 +1369,8 @@ function DashboardWrapperInner({ children, onRentDVE }: DashboardWrapperProps) {
       {/* DVE Workspace Access Modal / Panel */}
       {selectedNode && (
         <DVEWorkspacePanel
-          isOpen={cdeModalOpen}
-          onClose={() => setCdeModalOpen(false)}
+          isOpen={dveWorkspaceModalOpen}
+          onClose={() => setDveWorkspaceModalOpen(false)}
           node={selectedNode}
         />
       )}

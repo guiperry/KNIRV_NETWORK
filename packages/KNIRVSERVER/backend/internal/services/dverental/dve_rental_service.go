@@ -4,7 +4,7 @@ import (
 	"backend_server/internal/database"
 	"backend_server/internal/objects"
 	"backend_server/internal/services/blockchain/transactionchain"
-	"backend_server/internal/services/cde"
+	"backend_server/internal/services/dve_workspace"
 	"backend_server/internal/services/container"
 	"crypto/rand"
 	"encoding/base64"
@@ -35,7 +35,7 @@ type DVERentalService struct {
 
 	// Service references
 	dveManager            interface{} // DVE manager for node allocation
-	cdeService            interface{} // CDE service for environment provisioning
+	dveService            interface{} // DVE service for environment provisioning
 	containerOrchestrator interface{} // Container orchestrator for TEE containers
 
 	// Rental data
@@ -74,12 +74,12 @@ func NewDVERentalService(db *database.BuntDBManager) (*DVERentalService, error) 
 }
 
 // SetServiceReferences sets references to other services
-func (drs *DVERentalService) SetServiceReferences(dveManager, cdeService interface{}) {
+func (drs *DVERentalService) SetServiceReferences(dveManager, dveService interface{}) {
 	drs.mu.Lock()
 	defer drs.mu.Unlock()
 
 	drs.dveManager = dveManager
-	drs.cdeService = cdeService
+	drs.dveService = dveService
 }
 
 // SetContainerOrchestrator sets the container orchestrator reference
@@ -252,22 +252,22 @@ func (drs *DVERentalService) CreateRental(req *objects.RentalRequest) (*objects.
 		UpdatedAt:          time.Now(),
 	}
 
-	// Provision CDE environment
-	cdeEnvID, cdeURL, credentials, err := drs.provisionCDEEnvironment(rental)
+	// Provision DVE workspace
+	cdeEnvID, cdeURL, credentials, err := drs.provisionDVEEnvironment(rental)
 	if err != nil {
 		return &objects.RentalResponse{
 			Success: false,
-			Error:   fmt.Sprintf("Failed to provision CDE environment: %v", err),
+			Error:   fmt.Sprintf("Failed to provision DVE workspace: %v", err),
 		}, nil
 	}
 
-	rental.CDEEnvironmentID = cdeEnvID
+	rental.DVEEnvironmentID = cdeEnvID
 
 	// ⭐ Provision TEE container for SSH access
 	container, err := drs.provisionTEEContainer(rental)
 	if err != nil {
-		// Clean up CDE environment if container provisioning fails
-		drs.cleanupCDEEnvironment(cdeEnvID)
+		// Clean up DVE workspace if container provisioning fails
+		drs.cleanupDVEEnvironment(cdeEnvID)
 		return &objects.RentalResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to provision TEE container: %v", err),
@@ -293,8 +293,8 @@ func (drs *DVERentalService) CreateRental(req *objects.RentalRequest) (*objects.
 		Success:        true,
 		RentalID:       rental.ID,
 		DVENodeID:      dveNodeID,
-		CDEAccessURL:   cdeURL,
-		CDECredentials: credentials,
+		DVEAccessURL:   cdeURL,
+		DVECredentials: credentials,
 		ExpiresAt:      rental.EndTime,
 		Message:        "DVE rental created successfully",
 	}, nil
@@ -477,9 +477,9 @@ func (drs *DVERentalService) CancelRental(rentalID string, userID string) error 
 	rental.Status = "cancelled"
 	rental.UpdatedAt = time.Now()
 
-	// Clean up CDE environment
-	if err := drs.cleanupCDEEnvironment(rental.CDEEnvironmentID); err != nil {
-		log.Printf("Warning: Failed to cleanup CDE environment: %v", err)
+	// Clean up DVE workspace
+	if err := drs.cleanupDVEEnvironment(rental.DVEEnvironmentID); err != nil {
+		log.Printf("Warning: Failed to cleanup DVE workspace: %v", err)
 	}
 
 	// Remove from active rentals
@@ -554,14 +554,14 @@ func (drs *DVERentalService) findAvailableDVENode(preferredDVE string) string {
 	return selectedNode.ID
 }
 
-// provisionCDEEnvironment provisions a CDE environment for the rental
-func (drs *DVERentalService) provisionCDEEnvironment(rental *objects.DVERental) (string, string, objects.CDECredentials, error) {
-	// Check if CDE service is available
-	if drs.cdeService == nil {
-		// Fallback to mock data if CDE service is not available
-		envID := "cde-env-" + uuid.New().String()[:8]
-		accessURL := fmt.Sprintf("https://cde.knirv.com/env/%s", envID)
-		credentials := objects.CDECredentials{
+// provisionDVEEnvironment provisions a DVE workspace for the rental
+func (drs *DVERentalService) provisionDVEEnvironment(rental *objects.DVERental) (string, string, objects.DVECredentials, error) {
+	// Check if DVE service is available
+	if drs.dveService == nil {
+		// Fallback to mock data if DVE service is not available
+		envID := "dve-env-" + uuid.New().String()[:8]
+		accessURL := fmt.Sprintf("https://dve.knirv.com/env/%s", envID)
+		credentials := objects.DVECredentials{
 			Username:    "user-" + rental.UserID[:8],
 			Password:    "temp-" + uuid.New().String()[:12],
 			AccessToken: "token-" + uuid.New().String(),
@@ -569,18 +569,18 @@ func (drs *DVERentalService) provisionCDEEnvironment(rental *objects.DVERental) 
 		return envID, accessURL, credentials, nil
 	}
 
-	// Use actual CDE service
-	type CDEServiceInterface interface {
-		CreateEnvironment(userID, name string, envType interface{}, config map[string]interface{}) (*cde.CDEEnvironment, error)
-		CreateSession(userID, envID string, connectionType string) (*cde.CDESession, error)
+	// Use actual DVE service
+	type DVEServiceInterface interface {
+		CreateEnvironment(userID, name string, envType interface{}, config map[string]interface{}) (*dve_workspace.DVEEnvironment, error)
+		CreateSession(userID, envID string, connectionType string) (*dve_workspace.DVESession, error)
 	}
 
-	cdeService, ok := drs.cdeService.(CDEServiceInterface)
+	dveService, ok := drs.dveService.(DVEServiceInterface)
 	if !ok {
 		// Fallback to mock if interface doesn't match
-		envID := "cde-env-" + uuid.New().String()[:8]
-		accessURL := fmt.Sprintf("https://cde.knirv.com/env/%s", envID)
-		credentials := objects.CDECredentials{
+		envID := "dve-env-" + uuid.New().String()[:8]
+		accessURL := fmt.Sprintf("https://dve.knirv.com/env/%s", envID)
+		credentials := objects.DVECredentials{
 			Username:    "user-" + rental.UserID[:8],
 			Password:    "temp-" + uuid.New().String()[:12],
 			AccessToken: "token-" + uuid.New().String(),
@@ -588,33 +588,33 @@ func (drs *DVERentalService) provisionCDEEnvironment(rental *objects.DVERental) 
 		return envID, accessURL, credentials, nil
 	}
 
-	// Create CDE environment
+	// Create DVE workspace
 	envName := fmt.Sprintf("rental-%s", rental.ID[:8])
 	envConfig := map[string]interface{}{
 		"rental_id":       rental.ID,
 		"resource_limits": rental.ResourceLimits,
 	}
 
-	env, err := cdeService.CreateEnvironment(rental.UserID, envName, "development", envConfig)
+	env, err := dveService.CreateEnvironment(rental.UserID, envName, "development", envConfig)
 	if err != nil {
-		return "", "", objects.CDECredentials{}, fmt.Errorf("failed to create CDE environment: %w", err)
+		return "", "", objects.DVECredentials{}, fmt.Errorf("failed to create DVE workspace: %w", err)
 	}
 
 	// Extract environment ID from the created environment
 	envID := env.ID
 
 	// Create a session for the environment
-	session, err := cdeService.CreateSession(rental.UserID, envID, "websocket")
+	session, err := dveService.CreateSession(rental.UserID, envID, "websocket")
 	if err != nil {
-		log.Printf("Warning: Failed to create CDE session: %v", err)
+		log.Printf("Warning: Failed to create DVE session: %v", err)
 		// Continue without session - user can create one later
 	}
 
 	// Generate access URL and secure credentials
-	accessURL := fmt.Sprintf("https://cde.knirv.com/env/%s", envID)
+	accessURL := fmt.Sprintf("https://dve.knirv.com/env/%s", envID)
 	credentials, err := drs.generateSecureCredentials(rental.UserID, envID)
 	if err != nil {
-		return "", "", objects.CDECredentials{}, fmt.Errorf("failed to generate secure credentials: %w", err)
+		return "", "", objects.DVECredentials{}, fmt.Errorf("failed to generate secure credentials: %w", err)
 	}
 
 	// If session was created successfully, use session ID as access token
@@ -625,55 +625,55 @@ func (drs *DVERentalService) provisionCDEEnvironment(rental *objects.DVERental) 
 	return envID, accessURL, credentials, nil
 }
 
-// cleanupCDEEnvironment cleans up a CDE environment
-func (drs *DVERentalService) cleanupCDEEnvironment(envID string) error {
-	// Check if CDE service is available
-	if drs.cdeService == nil {
-		log.Printf("Cleaning up CDE environment (mock): %s", envID)
+// cleanupDVEEnvironment cleans up a DVE workspace
+func (drs *DVERentalService) cleanupDVEEnvironment(envID string) error {
+	// Check if DVE service is available
+	if drs.dveService == nil {
+		log.Printf("Cleaning up DVE workspace (mock): %s", envID)
 		return nil
 	}
 
-	// Use actual CDE service
-	type CDEServiceInterface interface {
+	// Use actual DVE service
+	type DVEServiceInterface interface {
 		DeleteEnvironment(envID string) error
 	}
 
-	cdeService, ok := drs.cdeService.(CDEServiceInterface)
+	dveService, ok := drs.dveService.(DVEServiceInterface)
 	if !ok {
-		log.Printf("Cleaning up CDE environment (fallback): %s", envID)
+		log.Printf("Cleaning up DVE workspace (fallback): %s", envID)
 		return nil
 	}
 
-	// Delete the CDE environment
-	if err := cdeService.DeleteEnvironment(envID); err != nil {
-		log.Printf("Warning: Failed to delete CDE environment %s: %v", envID, err)
+	// Delete the DVE workspace
+	if err := dveService.DeleteEnvironment(envID); err != nil {
+		log.Printf("Warning: Failed to delete DVE workspace %s: %v", envID, err)
 		return err
 	}
 
-	log.Printf("Successfully cleaned up CDE environment: %s", envID)
+	log.Printf("Successfully cleaned up DVE workspace: %s", envID)
 	return nil
 }
 
 // generateSecureCredentials generates cryptographically secure credentials for CDE access
-func (drs *DVERentalService) generateSecureCredentials(userID, envID string) (objects.CDECredentials, error) {
+func (drs *DVERentalService) generateSecureCredentials(userID, envID string) (objects.DVECredentials, error) {
 	// Generate secure password (32 bytes = 256 bits of entropy)
 	passwordBytes := make([]byte, 32)
 	if _, err := rand.Read(passwordBytes); err != nil {
-		return objects.CDECredentials{}, fmt.Errorf("failed to generate secure password: %w", err)
+		return objects.DVECredentials{}, fmt.Errorf("failed to generate secure password: %w", err)
 	}
 	password := base64.URLEncoding.EncodeToString(passwordBytes)
 
 	// Generate secure access token (32 bytes)
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
-		return objects.CDECredentials{}, fmt.Errorf("failed to generate secure token: %w", err)
+		return objects.DVECredentials{}, fmt.Errorf("failed to generate secure token: %w", err)
 	}
 	accessToken := base64.URLEncoding.EncodeToString(tokenBytes)
 
 	// Create username based on user ID and environment
 	username := fmt.Sprintf("user-%s-%s", userID[:8], envID[:8])
 
-	credentials := objects.CDECredentials{
+	credentials := objects.DVECredentials{
 		Username:    username,
 		Password:    password,
 		AccessToken: accessToken,

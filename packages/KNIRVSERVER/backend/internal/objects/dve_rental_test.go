@@ -297,7 +297,7 @@ func TestRentalResponse_StructFields(t *testing.T) {
 	now := time.Now()
 	expiresAt := now.Add(time.Hour * 24)
 
-	credentials := CDECredentials{
+	credentials := DVECredentials{
 		Username:    "user123",
 		Password:    "securepass456",
 		SSHKey:      "ssh-rsa AAAAB3NzaC1yc2E...",
@@ -308,8 +308,8 @@ func TestRentalResponse_StructFields(t *testing.T) {
 		Success:        true,
 		RentalID:       "rental-789",
 		DVENodeID:      "dve-node-123",
-		CDEAccessURL:   "https://cde.knirv.com/env-123",
-		CDECredentials: credentials,
+		DVEAccessURL:   "https://cde.knirv.com/env-123",
+		DVECredentials: credentials,
 		ExpiresAt:      expiresAt,
 		Message:        "DVE rental successful",
 	}
@@ -323,11 +323,11 @@ func TestRentalResponse_StructFields(t *testing.T) {
 	if response.DVENodeID != "dve-node-123" {
 		t.Errorf("Expected DVENodeID 'dve-node-123', got '%s'", response.DVENodeID)
 	}
-	if response.CDEAccessURL != "https://cde.knirv.com/env-123" {
-		t.Errorf("Expected CDEAccessURL 'https://cde.knirv.com/env-123', got '%s'", response.CDEAccessURL)
+	if response.DVEAccessURL != "https://cde.knirv.com/env-123" {
+		t.Errorf("Expected DVEAccessURL 'https://cde.knirv.com/env-123', got '%s'", response.DVEAccessURL)
 	}
-	if response.CDECredentials.Username != "user123" {
-		t.Errorf("Expected Username 'user123', got '%s'", response.CDECredentials.Username)
+	if response.DVECredentials.Username != "user123" {
+		t.Errorf("Expected Username 'user123', got '%s'", response.DVECredentials.Username)
 	}
 	if response.Message != "DVE rental successful" {
 		t.Errorf("Expected Message 'DVE rental successful', got '%s'", response.Message)
@@ -338,7 +338,7 @@ func TestRentalResponse_StructFields(t *testing.T) {
 }
 
 func TestCDECredentials_StructFields(t *testing.T) {
-	credentials := CDECredentials{
+	credentials := DVECredentials{
 		Username:    "testuser",
 		Password:    "testpass123",
 		SSHKey:      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5...",

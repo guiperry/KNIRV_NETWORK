@@ -57,6 +57,7 @@ import (
 	"backend_server/internal/services/teesecurity"
 	"backend_server/internal/services/validation"
 	wasm "backend_server/internal/services/wasm"
+	dve_workspace "backend_server/internal/services/dve_workspace"
 	"backend_server/internal/utils/host"
 
 	knirvshell "github.com/KNIRV/KNIRV_NETWORK/KNIRVSHELL"
@@ -2421,7 +2422,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 			"active_memory_service": s.activeMemoryService != nil,
 			"pqc_manager":           s.pqcManager != nil,
 			"dve_creation_service":  s.dveCreationService != nil,
-			"cde_service":           s.cognitiveEngine != nil,
+			"dve_service":           s.cognitiveEngine != nil,
 			"model_server":          s.unifiedContainerManager != nil,
 			"agent_service":         s.agentService != nil,
 			"icme_service":          s.icmeService != nil,
@@ -3257,6 +3258,19 @@ func run() error {
 }
 
 func main() {
+	// Check for DVE namespace helper mode before any initialization.
+	// The namespace helper is a re-execution of this binary inside new
+	// user+mount namespaces. It performs the OverlayFS mount and blocks
+	// until stdin is closed (teardown signal).
+	if len(os.Args) > 1 && os.Args[1] == "--dve-ns-helper" {
+		// Import must be available at runtime - this is the dve_workspace package
+		// which is imported elsewhere in the binary.
+		// We directly invoke the helper function from the dve_workspace package.
+		// This is a blocking call - it mounts overlayfs then reads stdin.
+		dve_workspace.NamespaceHelper()
+		return
+	}
+
 	if err := run(); err != nil {
 		log.Fatalf("Error: %v", err)
 	}

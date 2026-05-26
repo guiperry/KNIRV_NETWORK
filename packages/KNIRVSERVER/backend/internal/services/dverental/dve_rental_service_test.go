@@ -148,7 +148,7 @@ func TestDVERentalService_CreateRental(t *testing.T) {
 	assert.True(t, rental.Success)
 	assert.NotEmpty(t, rental.RentalID)
 	assert.NotEmpty(t, rental.DVENodeID)
-	assert.NotEmpty(t, rental.CDEAccessURL)
+	assert.NotEmpty(t, rental.DVEAccessURL)
 }
 
 func TestDVERentalService_CreateRentalInvalidPlan(t *testing.T) {

@@ -1,4 +1,4 @@
-package cde
+package dve_workspace
 
 import (
 	"context"
@@ -17,23 +17,26 @@ import (
 	"backend_server/internal/services/teesecurity"
 )
 
-// CDEService manages Cloud Development Environments
-type CDEService struct {
+// DVEService manages DVE Workspace environments
+type DVEService struct {
 	// Core components
 	teeSecurityService  *teesecurity.TEESecurityService
 	dataEngine          *data_engine.BuntDBDataEngine
 	virtualContainerMgr *ebpf.VirtualContainerManager
 
 	// Environment management
-	environments map[string]*CDEEnvironment
-	sessions     map[string]*CDESession
-	projects     map[string]*CDEProject
+	environments map[string]*DVEEnvironment
+	sessions     map[string]*DVESession
+	projects     map[string]*DVEProject
 
 	// Resource management
-	resourcePool *CDEResourcePool
+	resourcePool *DVEResourcePool
+
+	// Namespace handles for OverlayFS workspaces
+	namespaces map[string]*DVENamespace
 
 	// Configuration
-	config CDEConfig
+	config DVEConfig
 
 	// State management
 	isRunning bool
@@ -42,8 +45,8 @@ type CDEService struct {
 	cancel    context.CancelFunc
 }
 
-// CDEConfig contains configuration for the CDE service
-type CDEConfig struct {
+// DVEConfig contains configuration for the DVE workspace service
+type DVEConfig struct {
 	// Environment settings
 	BaseImagePath   string        `yaml:"base_image_path"`
 	WorkspaceRoot   string        `yaml:"workspace_root"`
@@ -67,10 +70,32 @@ type CDEConfig struct {
 	// Project management
 	MaxProjectsPerUser int    `yaml:"max_projects_per_user"`
 	ProjectStoragePath string `yaml:"project_storage_path"`
+
+	// OverlayFS settings
+	EnableOverlayFS   bool   `yaml:"enable_overlayfs"`
+	BusyBoxRootfsPath string `yaml:"busybox_rootfs_path"`
+	BusyBoxSource     string `yaml:"busybox_source"`       // "embedded" | "package" | "download"
+	BusyBoxVersion    string `yaml:"busybox_version"`      // only used with "download"
+	FuseOverlayFSBin  string `yaml:"fuse_overlayfs_bin"`   // path, default "fuse-overlayfs"
+
+	// Wazero skill executor settings
+	SkillExecTimeout  time.Duration `yaml:"skill_exec_timeout"`
+	SkillMaxMemoryMB  uint32        `yaml:"skill_max_memory_mb"`
+	MaxConcurrentWASM int           `yaml:"max_concurrent_wasm"`
+
+	// Workspace persistence
+	WorkspaceRetentionHours int `yaml:"workspace_retention_hours"`
+
+	// File explorer settings
+	ExplorerEnabled        bool     `yaml:"explorer_enabled"`
+	ExplorerAllowWrite     bool     `yaml:"explorer_allow_write"`
+	ExplorerShowLayerBadges bool    `yaml:"explorer_show_layer_badges"`
+	ExplorerHideSystemDirs bool     `yaml:"explorer_hide_system_dirs"`
+	ExplorerMaxPreviewKB   int      `yaml:"explorer_max_preview_kb"`
 }
 
-// CDEEnvironment represents a development environment
-type CDEEnvironment struct {
+// DVEEnvironment represents a development environment
+type DVEEnvironment struct {
 	ID           string            `json:"id"`
 	Name         string            `json:"name"`
 	UserID       string            `json:"user_id"`
@@ -84,7 +109,7 @@ type CDEEnvironment struct {
 	EnvironmentType EnvironmentType `json:"environment_type"`
 
 	// Resource allocation
-	Resources *CDEResourceAllocation `json:"resources"`
+	Resources *DVEResourceAllocation `json:"resources"`
 
 	// Runtime information
 	ContainerID string         `json:"container_id,omitempty"`
@@ -132,8 +157,8 @@ const (
 	EnvTypeKubernetes EnvironmentType = "kubernetes"
 )
 
-// CDESession represents an active development session
-type CDESession struct {
+// DVESession represents an active development session
+type DVESession struct {
 	ID            string        `json:"id"`
 	EnvironmentID string        `json:"environment_id"`
 	UserID        string        `json:"user_id"`
@@ -162,8 +187,8 @@ const (
 	SessionStatusTerminated SessionStatus = "terminated"
 )
 
-// CDEProject represents a development project
-type CDEProject struct {
+// DVEProject represents a development project
+type DVEProject struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
@@ -207,8 +232,8 @@ const (
 	ProjectTypeBlockchain      ProjectType = "blockchain"
 )
 
-// CDEResourceAllocation represents resource allocation for an environment
-type CDEResourceAllocation struct {
+// DVEResourceAllocation represents resource allocation for an environment
+type DVEResourceAllocation struct {
 	CPUCores         float64 `json:"cpu_cores"`
 	MemoryBytes      uint64  `json:"memory_bytes"`
 	DiskBytes        uint64  `json:"disk_bytes"`
@@ -220,8 +245,8 @@ type CDEResourceAllocation struct {
 	DiskLimit   uint64  `json:"disk_limit"`
 }
 
-// CDEResourcePool manages available resources for CDE environments
-type CDEResourcePool struct {
+// DVEResourcePool manages available resources for CDE environments
+type DVEResourcePool struct {
 	TotalCPU    float64 `json:"total_cpu"`
 	TotalMemory uint64  `json:"total_memory"`
 	TotalDisk   uint64  `json:"total_disk"`
@@ -237,17 +262,18 @@ type CDEResourcePool struct {
 	mu sync.RWMutex
 }
 
-// NewCDEService creates a new CDE service
-func NewCDEService(teeSecurityService *teesecurity.TEESecurityService, dataEngine *data_engine.BuntDBDataEngine, virtualContainerMgr *ebpf.VirtualContainerManager, config CDEConfig) (*CDEService, error) {
+// NewDVEService creates a new CDE service
+func NewDVEService(teeSecurityService *teesecurity.TEESecurityService, dataEngine *data_engine.BuntDBDataEngine, virtualContainerMgr *ebpf.VirtualContainerManager, config DVEConfig) (*DVEService, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	service := &CDEService{
+	service := &DVEService{
 		teeSecurityService:  teeSecurityService,
 		dataEngine:          dataEngine,
 		virtualContainerMgr: virtualContainerMgr,
-		environments:        make(map[string]*CDEEnvironment),
-		sessions:            make(map[string]*CDESession),
-		projects:            make(map[string]*CDEProject),
+		environments:        make(map[string]*DVEEnvironment),
+		sessions:            make(map[string]*DVESession),
+		projects:            make(map[string]*DVEProject),
+		namespaces:          make(map[string]*DVENamespace),
 		config:              config,
 		ctx:                 ctx,
 		cancel:              cancel,
@@ -255,7 +281,7 @@ func NewCDEService(teeSecurityService *teesecurity.TEESecurityService, dataEngin
 
 	// Initialize resource pool
 	var err error
-	service.resourcePool, err = NewCDEResourcePool()
+	service.resourcePool, err = NewDVEResourcePool()
 	if err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to create resource pool: %w", err)
@@ -271,7 +297,7 @@ func NewCDEService(teeSecurityService *teesecurity.TEESecurityService, dataEngin
 }
 
 // Start starts the CDE service
-func (cde *CDEService) Start() error {
+func (cde *DVEService) Start() error {
 	cde.mu.Lock()
 	defer cde.mu.Unlock()
 
@@ -286,45 +312,54 @@ func (cde *CDEService) Start() error {
 	go cde.cleanupLoop()
 
 	cde.isRunning = true
-	log.Println("CDEService: Started successfully")
+	log.Println("DVEService: Started successfully")
 
 	return nil
 }
 
-// Stop stops the CDE service
-func (cde *CDEService) Stop() error {
-	cde.mu.Lock()
-	defer cde.mu.Unlock()
+// Stop stops the DVE service
+func (s *DVEService) Stop() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
-	if !cde.isRunning {
+	if !s.isRunning {
 		return nil
 	}
 
 	// Stop all environments
-	for _, env := range cde.environments {
+	for _, env := range s.environments {
 		if env.Status == EnvStatusRunning {
-			cde.stopEnvironmentInternal(env)
+			s.stopEnvironmentInternal(env)
 		}
 	}
 
 	// Terminate all sessions
-	for _, session := range cde.sessions {
+	for _, session := range s.sessions {
 		if session.Status == SessionStatusActive {
 			session.Status = SessionStatusTerminated
 		}
 	}
 
-	// Cancel context
-	cde.cancel()
+	// Tear down all namespace helpers (OverlayFS unmount)
+	for id, ns := range s.namespaces {
+		log.Printf("DVEService: tearing down namespace for %s", id)
+		if err := ns.Teardown(); err != nil {
+			log.Printf("DVEService: namespace teardown error for %s: %v", id, err)
+		}
+	}
+	s.namespaces = make(map[string]*DVENamespace)
 
-	cde.isRunning = false
-	log.Println("CDEService: Stopped successfully")
+	// Cancel context
+	s.cancel()
+
+	s.isRunning = false
+	log.Println("DVEService: Stopped successfully")
 
 	return nil
 }
 
-// CreateVirtualCDE creates a new virtual CDE using eBPF-based virtual containers
-func (cde *CDEService) CreateVirtualCDE(userID, name string, envType EnvironmentType, config map[string]interface{}) (*CDEEnvironment, error) {
+// CreateVirtualDVE creates a new virtual CDE using eBPF-based virtual containers
+func (cde *DVEService) CreateVirtualDVE(userID, name string, envType EnvironmentType, config map[string]interface{}) (*DVEEnvironment, error) {
 	cde.mu.Lock()
 	defer cde.mu.Unlock()
 
@@ -344,7 +379,7 @@ func (cde *CDEService) CreateVirtualCDE(userID, name string, envType Environment
 	}
 
 	// Allocate resources
-	resources := &CDEResourceAllocation{
+	resources := &DVEResourceAllocation{
 		CPUCores:    cde.config.MaxCPUPerEnv,
 		MemoryBytes: cde.config.MaxMemoryPerEnv,
 		DiskBytes:   cde.config.MaxDiskPerEnv,
@@ -358,7 +393,7 @@ func (cde *CDEService) CreateVirtualCDE(userID, name string, envType Environment
 	}
 
 	// Create environment
-	env := &CDEEnvironment{
+	env := &DVEEnvironment{
 		ID:              fmt.Sprintf("env-virtual-%d", time.Now().UnixNano()),
 		Name:            name,
 		UserID:          userID,
@@ -381,15 +416,15 @@ func (cde *CDEService) CreateVirtualCDE(userID, name string, envType Environment
 	cde.environments[env.ID] = env
 
 	// Start virtual CDE creation
-	go cde.createVirtualCDEAsync(env)
+	go cde.createVirtualDVEAsync(env)
 
-	log.Printf("CDEService: Created virtual CDE %s for user %s", env.ID, userID)
+	log.Printf("DVEService: Created virtual CDE %s for user %s", env.ID, userID)
 
 	return env, nil
 }
 
 // CreateEnvironment creates a new development environment
-func (cde *CDEService) CreateEnvironment(userID, name string, envType EnvironmentType, config map[string]interface{}) (*CDEEnvironment, error) {
+func (cde *DVEService) CreateEnvironment(userID, name string, envType EnvironmentType, config map[string]interface{}) (*DVEEnvironment, error) {
 	cde.mu.Lock()
 	defer cde.mu.Unlock()
 
@@ -409,7 +444,7 @@ func (cde *CDEService) CreateEnvironment(userID, name string, envType Environmen
 	}
 
 	// Allocate resources
-	resources := &CDEResourceAllocation{
+	resources := &DVEResourceAllocation{
 		CPUCores:    cde.config.MaxCPUPerEnv,
 		MemoryBytes: cde.config.MaxMemoryPerEnv,
 		DiskBytes:   cde.config.MaxDiskPerEnv,
@@ -423,7 +458,7 @@ func (cde *CDEService) CreateEnvironment(userID, name string, envType Environmen
 	}
 
 	// Create environment
-	env := &CDEEnvironment{
+	env := &DVEEnvironment{
 		ID:              fmt.Sprintf("env-%d", time.Now().UnixNano()),
 		Name:            name,
 		UserID:          userID,
@@ -448,75 +483,125 @@ func (cde *CDEService) CreateEnvironment(userID, name string, envType Environmen
 	// Start environment creation
 	go cde.createEnvironmentAsync(env)
 
-	log.Printf("CDEService: Created environment %s for user %s", env.ID, userID)
+	log.Printf("DVEService: Created environment %s for user %s", env.ID, userID)
 
 	return env, nil
 }
 
-// createVirtualCDEAsync creates a virtual CDE asynchronously using eBPF-based virtual containers
-func (cde *CDEService) createVirtualCDEAsync(env *CDEEnvironment) {
+// createVirtualDVEAsync creates an isolated DVE workspace using
+// OverlayFS + Linux user namespaces. Replaces the former eBPF placeholder.
+func (s *DVEService) createVirtualDVEAsync(env *DVEEnvironment) {
+	// 1. Ensure BusyBox rootfs is bootstrapped
+	if s.config.EnableOverlayFS {
+		if err := EnsureBusyBoxRootfs(s.config.BusyBoxRootfsPath, s.config); err != nil {
+			env.Status = EnvStatusError
+			log.Printf("DVEService: busybox rootfs bootstrap failed for %s: %v", env.ID, err)
+			return
+		}
+
+		// 2. Allocate overlay workspace directories
+		ws, err := NewOverlayWorkspace(s.config.WorkspaceRoot, s.config.BusyBoxRootfsPath, env.ID)
+		if err != nil {
+			env.Status = EnvStatusError
+			log.Printf("DVEService: overlay workspace alloc failed for %s: %v", env.ID, err)
+			return
+		}
+
+		// 3. Spawn user+mount namespace and mount OverlayFS within it
+		fuseBin := s.config.FuseOverlayFSBin
+		if fuseBin == "" {
+			fuseBin = "fuse-overlayfs"
+		}
+		ns, err := SpawnNamespaced(ws, os.Getuid(), os.Getgid(), fuseBin)
+		if err != nil {
+			env.Status = EnvStatusError
+			log.Printf("DVEService: namespace spawn failed for %s: %v", env.ID, err)
+			return
+		}
+
+		// 4. Write DVE identity files into the upper (writable) layer
+		identityDir := filepath.Join(ws.UpperDir, "workspace")
+		os.MkdirAll(identityDir, 0755)
+		os.WriteFile(filepath.Join(identityDir, "IDENTITY.md"),
+			[]byte(s.generateDVEIdentity(env)), 0644)
+		os.WriteFile(filepath.Join(identityDir, "AGENT.md"),
+			[]byte(s.generateAgentInstructions(env)), 0644)
+
+		// 5. Register namespace handle for teardown
+		s.mu.Lock()
+		s.namespaces[env.ID] = ns
+		env.Status = EnvStatusRunning
+		env.WorkspacePath = ws.MergedDir // agents see merged/ as their root
+		env.ContainerID = fmt.Sprintf("ovl-%s", env.ID)
+		s.mu.Unlock()
+
+		log.Printf("DVEService: workspace %s ready at %s (OverlayFS)", env.ID, ws.MergedDir)
+		return
+	}
+
+	// Fallback: use workspace directory without overlay isolation
 	// Create workspace directory
 	if err := os.MkdirAll(env.WorkspacePath, 0755); err != nil {
 		env.Status = EnvStatusError
-		log.Printf("CDEService: Failed to create workspace directory for virtual CDE %s: %v", env.ID, err)
+		log.Printf("DVEService: Failed to create workspace directory for DVE %s: %v", env.ID, err)
 		return
 	}
 
 	// Use eBPF-based virtual container for instant creation
-	if cde.virtualContainerMgr != nil {
+	if s.virtualContainerMgr != nil {
 		// Launch a simple process to serve as the root of the virtual container
 		cmd := exec.Command("/usr/bin/env", "bash", "-c", "sleep 3600")
 		cmd.Dir = env.WorkspacePath
 		if err := cmd.Start(); err != nil {
 			env.Status = EnvStatusError
-			log.Printf("CDEService: Failed to start root process for virtual CDE %s: %v", env.ID, err)
+			log.Printf("DVEService: Failed to start root process for DVE %s: %v", env.ID, err)
 			return
 		}
 
-		// Create virtual container using eBPF (no namespaces needed!)
-		container, err := cde.virtualContainerMgr.CreateVirtualContainer(
+		// Create virtual container using eBPF
+		container, err := s.virtualContainerMgr.CreateVirtualContainer(
 			uint32(cmd.Process.Pid),
 			env.WorkspacePath,
 		)
 		if err != nil {
 			cmd.Process.Kill()
 			env.Status = EnvStatusError
-			log.Printf("CDEService: Failed to create virtual container for CDE %s: %v", env.ID, err)
+			log.Printf("DVEService: Failed to create virtual container for DVE %s: %v", env.ID, err)
 			return
 		}
 
 		// Set up environment in the virtual container
-		setupScript := cde.generateEnvironmentSetupScript(env)
-		if err := cde.executeInVirtualContainer(container.ID, setupScript); err != nil {
-			cde.virtualContainerMgr.DestroyVirtualContainer(container.ID)
+		setupScript := s.generateEnvironmentSetupScript(env)
+		if err := s.executeInVirtualContainer(container.ID, setupScript); err != nil {
+			s.virtualContainerMgr.DestroyVirtualContainer(container.ID)
 			cmd.Process.Kill()
 			env.Status = EnvStatusError
-			log.Printf("CDEService: Failed to set up virtual CDE %s: %v", env.ID, err)
+			log.Printf("DVEService: Failed to set up DVE %s: %v", env.ID, err)
 			return
 		}
 
 		// Store container ID for later reference
 		env.ContainerID = fmt.Sprintf("virtual-%d", container.ID)
 
-		log.Printf("CDEService: Virtual CDE %s created in <10ms using eBPF, container ID: %d", env.ID, container.ID)
+		log.Printf("DVEService: DVE %s created using eBPF, container ID: %d", env.ID, container.ID)
 	} else {
-		// Fallback: simulate virtual CDE creation
-		log.Printf("CDEService: Virtual container manager not available, simulating virtual CDE creation for %s", env.ID)
+		// Fallback: simulate DVE creation
+		log.Printf("DVEService: Virtual container manager not available, simulating DVE creation for %s", env.ID)
 		time.Sleep(10 * time.Millisecond) // Simulate fast creation
 	}
 
-	cde.mu.Lock()
+	s.mu.Lock()
 	env.Status = EnvStatusRunning
 	env.IPAddress = "172.20.0.10" // Simulated IP
 	env.Ports["ssh"] = 22
 	env.Ports["http"] = 8082
-	cde.mu.Unlock()
+	s.mu.Unlock()
 
 	// Log metrics
-	if cde.dataEngine != nil {
-		cde.dataEngine.ProcessMetricEvent(
-			"cde-service",
-			"virtual_cde_created",
+	if s.dataEngine != nil {
+		s.dataEngine.ProcessMetricEvent(
+			"dve-service",
+			"dve_created",
 			1.0,
 			"count",
 			map[string]string{
@@ -527,11 +612,11 @@ func (cde *CDEService) createVirtualCDEAsync(env *CDEEnvironment) {
 		)
 	}
 
-	log.Printf("CDEService: Virtual CDE %s is now running", env.ID)
+	log.Printf("DVEService: DVE %s is now running", env.ID)
 }
 
 // executeInVirtualContainer executes a script in a virtual container
-func (cde *CDEService) executeInVirtualContainer(containerID uint64, script string) error {
+func (cde *DVEService) executeInVirtualContainer(containerID uint64, script string) error {
 	// In a real implementation, this would use the eBPF manager to
 	// execute the script within the virtual container's context
 	// For now, we simulate this by just running the script
@@ -553,11 +638,11 @@ func (cde *CDEService) executeInVirtualContainer(containerID uint64, script stri
 }
 
 // createEnvironmentAsync creates an environment asynchronously using TEE security service
-func (cde *CDEService) createEnvironmentAsync(env *CDEEnvironment) {
+func (cde *DVEService) createEnvironmentAsync(env *DVEEnvironment) {
 	// Create workspace directory
 	if err := os.MkdirAll(env.WorkspacePath, 0755); err != nil {
 		env.Status = EnvStatusError
-		log.Printf("CDEService: Failed to create workspace directory for %s: %v", env.ID, err)
+		log.Printf("DVEService: Failed to create workspace directory for %s: %v", env.ID, err)
 		return
 	}
 
@@ -575,20 +660,20 @@ func (cde *CDEService) createEnvironmentAsync(env *CDEEnvironment) {
 
 		if err != nil {
 			env.Status = EnvStatusError
-			log.Printf("CDEService: Failed to create environment %s via TEE security: %v", env.ID, err)
+			log.Printf("DVEService: Failed to create environment %s via TEE security: %v", env.ID, err)
 			return
 		}
 
-		log.Printf("CDEService: Environment setup completed for %s, exit code: %d", env.ID, result.ExitCode)
+		log.Printf("DVEService: Environment setup completed for %s, exit code: %d", env.ID, result.ExitCode)
 
 		if result.ExitCode != 0 {
 			env.Status = EnvStatusError
-			log.Printf("CDEService: Environment setup failed for %s: %s", env.ID, result.Stderr)
+			log.Printf("DVEService: Environment setup failed for %s: %s", env.ID, result.Stderr)
 			return
 		}
 	} else {
 		// Fallback: simulate environment creation
-		log.Printf("CDEService: TEE security service not available, simulating environment creation for %s", env.ID)
+		log.Printf("DVEService: TEE security service not available, simulating environment creation for %s", env.ID)
 		time.Sleep(5 * time.Second)
 	}
 
@@ -614,11 +699,11 @@ func (cde *CDEService) createEnvironmentAsync(env *CDEEnvironment) {
 		)
 	}
 
-	log.Printf("CDEService: Environment %s is now running", env.ID)
+	log.Printf("DVEService: Environment %s is now running", env.ID)
 }
 
 // StopEnvironment stops a development environment
-func (cde *CDEService) StopEnvironment(envID string) error {
+func (cde *DVEService) StopEnvironment(envID string) error {
 	cde.mu.Lock()
 	defer cde.mu.Unlock()
 
@@ -631,7 +716,7 @@ func (cde *CDEService) StopEnvironment(envID string) error {
 }
 
 // stopEnvironmentInternal stops an environment (internal method, assumes lock is held)
-func (cde *CDEService) stopEnvironmentInternal(env *CDEEnvironment) error {
+func (cde *DVEService) stopEnvironmentInternal(env *DVEEnvironment) error {
 	if env.Status != EnvStatusRunning {
 		return fmt.Errorf("environment %s is not running", env.ID)
 	}
@@ -648,13 +733,13 @@ func (cde *CDEService) stopEnvironmentInternal(env *CDEEnvironment) error {
 		}
 	}
 
-	log.Printf("CDEService: Stopped environment %s", env.ID)
+	log.Printf("DVEService: Stopped environment %s", env.ID)
 
 	return nil
 }
 
 // CreateSession creates a new development session
-func (cde *CDEService) CreateSession(userID, envID string, connectionType string) (*CDESession, error) {
+func (cde *DVEService) CreateSession(userID, envID string, connectionType string) (*DVESession, error) {
 	cde.mu.Lock()
 	defer cde.mu.Unlock()
 
@@ -684,7 +769,7 @@ func (cde *CDEService) CreateSession(userID, envID string, connectionType string
 	}
 
 	// Create session
-	session := &CDESession{
+	session := &DVESession{
 		ID:               fmt.Sprintf("sess-%d", time.Now().UnixNano()),
 		EnvironmentID:    envID,
 		UserID:           userID,
@@ -718,13 +803,13 @@ func (cde *CDEService) CreateSession(userID, envID string, connectionType string
 	// Update environment last accessed
 	env.LastAccessed = time.Now()
 
-	log.Printf("CDEService: Created session %s for user %s in environment %s", session.ID, userID, envID)
+	log.Printf("DVEService: Created session %s for user %s in environment %s", session.ID, userID, envID)
 
 	return session, nil
 }
 
 // CreateProject creates a new development project
-func (cde *CDEService) CreateProject(userID, name, description string, projectType ProjectType, language string) (*CDEProject, error) {
+func (cde *DVEService) CreateProject(userID, name, description string, projectType ProjectType, language string) (*DVEProject, error) {
 	cde.mu.Lock()
 	defer cde.mu.Unlock()
 
@@ -744,7 +829,7 @@ func (cde *CDEService) CreateProject(userID, name, description string, projectTy
 	}
 
 	// Create project
-	project := &CDEProject{
+	project := &DVEProject{
 		ID:              fmt.Sprintf("proj-%d", time.Now().UnixNano()),
 		Name:            name,
 		Description:     description,
@@ -769,13 +854,13 @@ func (cde *CDEService) CreateProject(userID, name, description string, projectTy
 	// Add to projects
 	cde.projects[project.ID] = project
 
-	log.Printf("CDEService: Created project %s for user %s", project.ID, userID)
+	log.Printf("DVEService: Created project %s for user %s", project.ID, userID)
 
 	return project, nil
 }
 
 // GetEnvironment returns an environment by ID
-func (cde *CDEService) GetEnvironment(envID string) (*CDEEnvironment, error) {
+func (cde *DVEService) GetEnvironment(envID string) (*DVEEnvironment, error) {
 	cde.mu.RLock()
 	defer cde.mu.RUnlock()
 
@@ -790,11 +875,11 @@ func (cde *CDEService) GetEnvironment(envID string) (*CDEEnvironment, error) {
 }
 
 // ListUserEnvironments returns all environments for a user
-func (cde *CDEService) ListUserEnvironments(userID string) []*CDEEnvironment {
+func (cde *DVEService) ListUserEnvironments(userID string) []*DVEEnvironment {
 	cde.mu.RLock()
 	defer cde.mu.RUnlock()
 
-	var userEnvs []*CDEEnvironment
+	var userEnvs []*DVEEnvironment
 	for _, env := range cde.environments {
 		if env.UserID == userID {
 			envCopy := *env
@@ -806,11 +891,11 @@ func (cde *CDEService) ListUserEnvironments(userID string) []*CDEEnvironment {
 }
 
 // ListUserSessions returns all sessions for a user
-func (cde *CDEService) ListUserSessions(userID string) []*CDESession {
+func (cde *DVEService) ListUserSessions(userID string) []*DVESession {
 	cde.mu.RLock()
 	defer cde.mu.RUnlock()
 
-	var userSessions []*CDESession
+	var userSessions []*DVESession
 	for _, session := range cde.sessions {
 		if session.UserID == userID {
 			sessionCopy := *session
@@ -822,11 +907,11 @@ func (cde *CDEService) ListUserSessions(userID string) []*CDESession {
 }
 
 // ListUserProjects returns all projects for a user
-func (cde *CDEService) ListUserProjects(userID string) []*CDEProject {
+func (cde *DVEService) ListUserProjects(userID string) []*DVEProject {
 	cde.mu.RLock()
 	defer cde.mu.RUnlock()
 
-	var userProjects []*CDEProject
+	var userProjects []*DVEProject
 	for _, project := range cde.projects {
 		if project.UserID == userID {
 			projectCopy := *project
@@ -840,7 +925,7 @@ func (cde *CDEService) ListUserProjects(userID string) []*CDEProject {
 // Helper methods
 
 // countUserEnvironments counts environments for a user
-func (cde *CDEService) countUserEnvironments(userID string) int {
+func (cde *DVEService) countUserEnvironments(userID string) int {
 	count := 0
 	for _, env := range cde.environments {
 		if env.UserID == userID && env.Status != EnvStatusTerminated {
@@ -851,7 +936,7 @@ func (cde *CDEService) countUserEnvironments(userID string) int {
 }
 
 // countUserSessions counts active sessions for a user
-func (cde *CDEService) countUserSessions(userID string) int {
+func (cde *DVEService) countUserSessions(userID string) int {
 	count := 0
 	for _, session := range cde.sessions {
 		if session.UserID == userID && session.Status == SessionStatusActive {
@@ -862,7 +947,7 @@ func (cde *CDEService) countUserSessions(userID string) int {
 }
 
 // countUserProjects counts projects for a user
-func (cde *CDEService) countUserProjects(userID string) int {
+func (cde *DVEService) countUserProjects(userID string) int {
 	count := 0
 	for _, project := range cde.projects {
 		if project.UserID == userID {
@@ -873,7 +958,7 @@ func (cde *CDEService) countUserProjects(userID string) int {
 }
 
 // getBaseImageForType returns the base image for an environment type
-func (cde *CDEService) getBaseImageForType(envType EnvironmentType) string {
+func (cde *DVEService) getBaseImageForType(envType EnvironmentType) string {
 	switch envType {
 	case EnvTypePython:
 		return "python:3.11-slim"
@@ -891,7 +976,7 @@ func (cde *CDEService) getBaseImageForType(envType EnvironmentType) string {
 }
 
 // getRequiredEnvType returns the required environment type for a language
-func (cde *CDEService) getRequiredEnvType(language string) EnvironmentType {
+func (cde *DVEService) getRequiredEnvType(language string) EnvironmentType {
 	switch language {
 	case "python":
 		return EnvTypePython
@@ -909,7 +994,7 @@ func (cde *CDEService) getRequiredEnvType(language string) EnvironmentType {
 }
 
 // generateEnvironmentSetupScript generates a shell script to set up the development environment
-func (cde *CDEService) generateEnvironmentSetupScript(env *CDEEnvironment) string {
+func (cde *DVEService) generateEnvironmentSetupScript(env *DVEEnvironment) string {
 	var script strings.Builder
 
 	// Common setup
@@ -982,7 +1067,7 @@ func (cde *CDEService) generateEnvironmentSetupScript(env *CDEEnvironment) strin
 }
 
 // initializeWorkspaceDirectories creates necessary workspace directories
-func (cde *CDEService) initializeWorkspaceDirectories() error {
+func (cde *DVEService) initializeWorkspaceDirectories() error {
 	dirs := []string{
 		cde.config.WorkspaceRoot,
 		cde.config.ProjectStoragePath,
@@ -1004,10 +1089,51 @@ func (cde *CDEService) initializeWorkspaceDirectories() error {
 	return nil
 }
 
+// generateDVEIdentity generates the IDENTITY.md file content for a DVE workspace.
+func (s *DVEService) generateDVEIdentity(env *DVEEnvironment) string {
+	return fmt.Sprintf(`# DVE Workspace Identity
+
+- ID: %s
+- Name: %s
+- User: %s
+- Type: %s
+- Created: %s
+- Environment: KNIRV DVE (OverlayFS)
+
+This workspace is an isolated development environment powered by OverlayFS
+and Linux user namespaces. All filesystem operations are confined to this
+workspace.
+`, env.ID, env.Name, env.UserID, env.EnvironmentType, env.CreatedAt.Format(time.RFC3339))
+}
+
+// generateAgentInstructions generates the AGENT.md file content for a DVE workspace.
+func (s *DVEService) generateAgentInstructions(env *DVEEnvironment) string {
+	return fmt.Sprintf(`# Agent Instructions
+
+This is an autonomous DVE workspace for %s.
+
+## Available Tools
+- Shell access via /bin/sh (BusyBox)
+- curl, wget for network access
+- tar, gzip for archive operations
+- grep, find, sed, awk for text processing
+
+## Workspace Layout
+- /workspace - main working directory
+- /tmp - temporary files
+- IDENTITY.md - workspace identity
+
+## Rules
+1. All work must happen within /workspace
+2. Do not modify /etc or system files
+3. Write output files to /workspace/results/ for durable storage
+`, env.Name)
+}
+
 // Monitoring loops
 
 // environmentMonitoringLoop monitors environment health and metrics
-func (cde *CDEService) environmentMonitoringLoop() {
+func (cde *DVEService) environmentMonitoringLoop() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
@@ -1022,9 +1148,9 @@ func (cde *CDEService) environmentMonitoringLoop() {
 }
 
 // monitorEnvironments monitors all environments
-func (cde *CDEService) monitorEnvironments() {
+func (cde *DVEService) monitorEnvironments() {
 	cde.mu.RLock()
-	environments := make([]*CDEEnvironment, 0, len(cde.environments))
+	environments := make([]*DVEEnvironment, 0, len(cde.environments))
 	for _, env := range cde.environments {
 		environments = append(environments, env)
 	}
@@ -1066,7 +1192,7 @@ func (cde *CDEService) monitorEnvironments() {
 }
 
 // updateEnvironmentMetrics updates metrics for an environment
-func (cde *CDEService) updateEnvironmentMetrics(env *CDEEnvironment) {
+func (cde *DVEService) updateEnvironmentMetrics(env *DVEEnvironment) {
 	// Simulate metric collection
 	// In a real implementation, this would query container metrics
 	env.CPUUsage = 15.5 + float64(time.Now().Unix()%10)                       // Simulated CPU usage
@@ -1075,7 +1201,7 @@ func (cde *CDEService) updateEnvironmentMetrics(env *CDEEnvironment) {
 }
 
 // sessionManagementLoop manages session lifecycle
-func (cde *CDEService) sessionManagementLoop() {
+func (cde *DVEService) sessionManagementLoop() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
@@ -1090,7 +1216,7 @@ func (cde *CDEService) sessionManagementLoop() {
 }
 
 // manageSessions manages session timeouts and cleanup
-func (cde *CDEService) manageSessions() {
+func (cde *DVEService) manageSessions() {
 	cde.mu.Lock()
 	defer cde.mu.Unlock()
 
@@ -1101,7 +1227,7 @@ func (cde *CDEService) manageSessions() {
 			// Check for session timeout
 			if now.After(session.ExpiresAt) {
 				session.Status = SessionStatusExpired
-				log.Printf("CDEService: Session %s expired", session.ID)
+				log.Printf("DVEService: Session %s expired", session.ID)
 
 				// Log session expiry
 				if cde.dataEngine != nil {
@@ -1126,7 +1252,7 @@ func (cde *CDEService) manageSessions() {
 }
 
 // resourceMonitoringLoop monitors resource usage
-func (cde *CDEService) resourceMonitoringLoop() {
+func (cde *DVEService) resourceMonitoringLoop() {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
@@ -1141,7 +1267,7 @@ func (cde *CDEService) resourceMonitoringLoop() {
 }
 
 // monitorResources monitors resource pool usage
-func (cde *CDEService) monitorResources() {
+func (cde *DVEService) monitorResources() {
 	// Update resource pool
 	cde.resourcePool.UpdateAvailableResources()
 
@@ -1184,7 +1310,7 @@ func (cde *CDEService) monitorResources() {
 }
 
 // checkResourceAlerts checks for resource usage alerts
-func (cde *CDEService) checkResourceAlerts(usage map[string]interface{}) {
+func (cde *DVEService) checkResourceAlerts(usage map[string]interface{}) {
 	if cde.dataEngine == nil {
 		return
 	}
@@ -1223,7 +1349,7 @@ func (cde *CDEService) checkResourceAlerts(usage map[string]interface{}) {
 }
 
 // cleanupLoop performs periodic cleanup
-func (cde *CDEService) cleanupLoop() {
+func (cde *DVEService) cleanupLoop() {
 	ticker := time.NewTicker(1 * time.Hour)
 	defer ticker.Stop()
 
@@ -1238,7 +1364,7 @@ func (cde *CDEService) cleanupLoop() {
 }
 
 // performCleanup performs cleanup of old environments and sessions
-func (cde *CDEService) performCleanup() {
+func (cde *DVEService) performCleanup() {
 	cde.mu.Lock()
 	defer cde.mu.Unlock()
 
@@ -1248,7 +1374,7 @@ func (cde *CDEService) performCleanup() {
 	for envID, env := range cde.environments {
 		if env.Status == EnvStatusTerminated && now.Sub(env.LastAccessed) > 24*time.Hour {
 			delete(cde.environments, envID)
-			log.Printf("CDEService: Cleaned up terminated environment %s", envID)
+			log.Printf("DVEService: Cleaned up terminated environment %s", envID)
 		}
 	}
 
@@ -1256,13 +1382,13 @@ func (cde *CDEService) performCleanup() {
 	for sessionID, session := range cde.sessions {
 		if session.Status == SessionStatusTerminated && now.Sub(session.LastActivity) > 24*time.Hour {
 			delete(cde.sessions, sessionID)
-			log.Printf("CDEService: Cleaned up terminated session %s", sessionID)
+			log.Printf("DVEService: Cleaned up terminated session %s", sessionID)
 		}
 	}
 }
 
 // GetStatus returns the current status of the CDE service
-func (cde *CDEService) GetStatus() map[string]interface{} {
+func (cde *DVEService) GetStatus() map[string]interface{} {
 	cde.mu.RLock()
 	defer cde.mu.RUnlock()
 
@@ -1297,8 +1423,19 @@ func (cde *CDEService) GetStatus() map[string]interface{} {
 }
 
 // IsRunning returns whether the CDE service is running
-func (cde *CDEService) IsRunning() bool {
+func (cde *DVEService) IsRunning() bool {
 	cde.mu.RLock()
 	defer cde.mu.RUnlock()
 	return cde.isRunning
+}
+
+// GetWorkspace returns the OverlayWorkspace for a DVE by ID.
+func (s *DVEService) GetWorkspace(dveID string) (*OverlayWorkspace, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	ns, ok := s.namespaces[dveID]
+	if !ok {
+		return nil, fmt.Errorf("no active workspace for DVE %s", dveID)
+	}
+	return ns.Workspace, nil
 }
