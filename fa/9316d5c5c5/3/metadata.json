@@ -1,7 +1,9 @@
 {
   "cli_version": "0.5.5",
   "checkpoint_id": "fa9316d5c5c5",
+  "session_id": "ses_1a068485cffeoKY1KW873Ysf8p",
   "strategy": "manual-commit",
+  "created_at": "2026-05-26T17:46:48.051999325Z",
   "branch": "main",
   "checkpoints_count": 0,
   "files_touched": [
@@ -24,30 +26,24 @@
     "transformer_opportunities_KNIRV.md",
     "value_proposition_strategies.html"
   ],
-  "sessions": [
-    {
-      "metadata": "/fa/9316d5c5c5/0/metadata.json",
-      "transcript": "/fa/9316d5c5c5/0/full.jsonl",
-      "content_hash": "/fa/9316d5c5c5/0/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/fa/9316d5c5c5/1/metadata.json",
-      "transcript": "/fa/9316d5c5c5/1/full.jsonl",
-      "content_hash": "/fa/9316d5c5c5/1/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/fa/9316d5c5c5/2/metadata.json",
-      "transcript": "/fa/9316d5c5c5/2/full.jsonl",
-      "content_hash": "/fa/9316d5c5c5/2/content_hash.txt",
-      "prompt": ""
-    },
-    {
-      "metadata": "/fa/9316d5c5c5/3/metadata.json",
-      "transcript": "/fa/9316d5c5c5/3/full.jsonl",
-      "content_hash": "/fa/9316d5c5c5/3/content_hash.txt",
-      "prompt": ""
-    }
-  ]
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "4520aaff838b",
+  "checkpoint_transcript_start": 336,
+  "transcript_lines_at_start": 336,
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-26T17:46:48.048214307Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 3,
+    "human_removed": 9904,
+    "total_committed": 0,
+    "total_lines_changed": 9907,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
 }
