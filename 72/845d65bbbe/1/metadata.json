@@ -1,0 +1,87 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "72845d65bbbe",
+  "session_id": "ses_19e2df1bdfferOyGidsNWsuqey",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-26T03:27:21.491428486Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs",
+    "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfoInputs.cache",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/PageLayout.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleProtectedRoute.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleSwitcher.module.css",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/auth-test.js",
+    "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/auth-test.module.css",
+    "packages/KNIRVSERVER/backend/CALIBER_LEARNINGS.md",
+    "packages/KNIRVSERVER/backend/internal/objects/dve.go",
+    "packages/KNIRVSERVER/backend/internal/services/dvecreation/dve_creation_service.go",
+    "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go",
+    "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "87f09f41ad50",
+  "token_usage": {
+    "input_tokens": 80878,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2299008,
+    "output_tokens": 11773,
+    "api_call_count": 36
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-26T03:27:21.452223272Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 9,
+    "human_removed": 41,
+    "total_committed": 0,
+    "total_lines_changed": 59,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 477,
+      "user_lines_removed": 50,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs": 1,
+        "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfoInputs.cache": 1,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleSwitcher.module.css": 1,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/auth-test.js": 11,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/auth-test.module.css": 10,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/CALIBER_LEARNINGS.md": 20,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/backend/internal/objects/dve.go": 10,
+        "packages/KNIRVSERVER/backend/internal/services/dvecreation/dve_creation_service.go": 23,
+        "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go": 105,
+        "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go": 3
+      },
+      "user_removed_per_file": {
+        "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs": 1,
+        "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfoInputs.cache": 1,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/PageLayout.js": 4,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleProtectedRoute.js": 4,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleSwitcher.module.css": 4,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/auth-test.js": 1,
+        "packages/KNIRVSERVER/backend/CALIBER_LEARNINGS.md": 20,
+        "packages/KNIRVSERVER/backend/internal/services/dvecreation/dve_creation_service.go": 8,
+        "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go": 6,
+        "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go": 1
+      }
+    }
+  ]
+}

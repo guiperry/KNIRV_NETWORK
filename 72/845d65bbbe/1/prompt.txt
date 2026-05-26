@@ -1,0 +1,17 @@
+Search the KNIRVSERVER codebase at /home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK for any code that creates a directory named "data" inside or relative to a "bin" path. Specifically:
+
+1. Search for any `os.MkdirAll` calls that could create a `data` directory under `/var/lib/knirvserver/bin/` or under any `bin/` path that resolves to the KNIRVSERVER bin directory.
+
+2. Look at the KNIRVCHAIN external binary code in `packages/KNIRVCHAIN/` - search for any data directory creation, especially in `internal/` subpackages. The chain binary is extracted to `/var/lib/knirvserver/bin/knirvchain` and runs as a subprocess. Check if its default data path could create a `data/` dir alongside the binary.
+
+3. Look at the KNIRVGRAPH external binary code - similar check.
+
+4. Search for any "data" path references combined with "bin" in the KNIRVSERVER configs and code.
+
+5. Check `pkg/knirvhasher/` - particularly the data-miner binary path resolution. Check where the data-miner stores its data.
+
+6. Look at `backend/internal/services/blockchain/validationchain/` - check if the validation chain binary creates data in the binary directory.
+
+7. Check the embedded binary extraction functions - when they extract to `/var/lib/knirvserver/bin/`, do any of the extracted binaries then create a `data/` subdirectory there?
+
+Return: A list of all locations where a "data" directory could potentially be created inside the "bin" directory, with file paths and line numbers. Also identify the root cause of the rogue data directory.
