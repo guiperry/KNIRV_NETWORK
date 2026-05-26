@@ -492,7 +492,7 @@ func interactiveMode(agentLoop *agent.AgentLoop, sessionKey string) {
 func simpleInteractiveMode(agentLoop *agent.AgentLoop, sessionKey string) {
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Print(fmt.Sprintf("%s You: ", logo))
+		fmt.Printf("%s You: ", logo)
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {
@@ -859,9 +859,10 @@ func serverCmd() {
 
 	// Register inner agent hierarchy routes (spawn/install/sessions/tools/
 	// input/stream/log for child AI agents such as Claude Code, Aider, Codex).
-	// Workspace lives at <data_root>/workspaces/<dveID>/, NOT inside the sockets dir.
-	// filepath.Dir(socketPath) is the sockets dir; go one level up to get the data root.
-	innerWorkspace := filepath.Join(filepath.Dir(filepath.Dir(socketPath)), "workspaces", dveID)
+	// Inner agent PTY sessions must operate inside the same workspace root as the
+	// supervisor agent for this DVE. KNIRVSERVER sets KNIRV_AGENTS_DEFAULTS_WORKSPACE
+	// per DVE so both paths point at the DVE OverlayFS merged/ root.
+	innerWorkspace := cfg.WorkspacePath()
 	if err := os.MkdirAll(innerWorkspace, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "[KNIRVAGENT] Warning: could not create workspace %s: %v\n", innerWorkspace, err)
 	}

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"backend_server/pkg/knirvagent"
+	"github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT"
 
 	"go.uber.org/zap"
 )

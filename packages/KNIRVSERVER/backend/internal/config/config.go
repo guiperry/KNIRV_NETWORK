@@ -401,12 +401,28 @@ type DVEConfig struct {
 	MaxMemoryPerEnv        uint64        `mapstructure:"max_memory_per_env"`
 	MaxDiskPerEnv          uint64        `mapstructure:"max_disk_per_env"`
 	EnableSandboxing       bool          `mapstructure:"enable_sandboxing"`
+	EnableOverlayFS        bool          `mapstructure:"enable_overlayfs"`
 	EnableNetworkIsolation bool          `mapstructure:"enable_network_isolation"`
 	AllowedPorts           []int         `mapstructure:"allowed_ports"`
 	SessionTimeout         time.Duration `mapstructure:"session_timeout"`
 	MaxSessionsPerUser     int           `mapstructure:"max_sessions_per_user"`
 	MaxProjectsPerUser     int           `mapstructure:"max_projects_per_user"`
 	ProjectStoragePath     string        `mapstructure:"project_storage_path"`
+
+	// OverlayFS + file explorer (Overlay DVE workspaces)
+	BusyBoxRootfsPath        string        `mapstructure:"busybox_rootfs_path"`
+	BusyBoxSource            string        `mapstructure:"busybox_source"`  // "embedded" | "package" | "download"
+	BusyBoxVersion           string        `mapstructure:"busybox_version"` // only used with "download"
+	FuseOverlayFSBin         string        `mapstructure:"fuse_overlayfs_bin"`
+	SkillExecTimeout         time.Duration `mapstructure:"skill_exec_timeout"`
+	SkillMaxMemoryMB         uint32        `mapstructure:"skill_max_memory_mb"`
+	MaxConcurrentWASM        int           `mapstructure:"max_concurrent_wasm"`
+	WorkspaceRetentionHours  int           `mapstructure:"workspace_retention_hours"`
+	ExplorerEnabled          bool          `mapstructure:"explorer_enabled"`
+	ExplorerAllowWrite       bool          `mapstructure:"explorer_allow_write"`
+	ExplorerShowLayerBadges  bool          `mapstructure:"explorer_show_layer_badges"`
+	ExplorerHideSystemDirs   bool          `mapstructure:"explorer_hide_system_dirs"`
+	ExplorerMaxPreviewKB     int           `mapstructure:"explorer_max_preview_kb"`
 }
 
 // ReportsConfig represents report generation configuration

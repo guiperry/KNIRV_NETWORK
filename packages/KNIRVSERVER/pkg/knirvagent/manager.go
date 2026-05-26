@@ -35,21 +35,6 @@ func killStaleAgent(binaryPath string) {
 	exec.Command("pkill", "-KILL", "-x", binaryName).Run() //nolint:errcheck
 }
 
-// waitForPortFree blocks until the given TCP port is no longer occupied or
-// the deadline is reached. Returns true if the port is free.
-func waitForPortFree(port int, deadline time.Duration) bool {
-	end := time.Now().Add(deadline)
-	for time.Now().Before(end) {
-		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-		if err == nil {
-			ln.Close()
-			return true
-		}
-		time.Sleep(200 * time.Millisecond)
-	}
-	return false
-}
-
 func getAgentAppDataDir() string {
 	if explicit := strings.TrimSpace(os.Getenv("KNIRV_APP_DATA_DIR")); explicit != "" {
 		return explicit
@@ -125,22 +110,6 @@ func waitForSocket(socketPath string, deadline time.Duration) bool {
 	return false
 }
 
-// waitForTCPPort blocks until the given TCP port is accepting connections or
-// the deadline is reached. Returns true when the port is ready.
-func waitForTCPPort(port int, deadline time.Duration) bool {
-	end := time.Now().Add(deadline)
-	addr := fmt.Sprintf("127.0.0.1:%d", port)
-	for time.Now().Before(end) {
-		conn, err := net.DialTimeout("tcp", addr, 100*time.Millisecond)
-		if err == nil {
-			conn.Close()
-			return true
-		}
-		time.Sleep(200 * time.Millisecond)
-	}
-	return false
-}
-
 // ──────────────────────────────────────────────
 // AgentProcess — a single agent subprocess
 // ──────────────────────────────────────────────
@@ -184,6 +153,10 @@ type AgentManager struct {
 	healthInterval  time.Duration
 	wg              sync.WaitGroup
 	extraEnv        []string // extra environment variables for subprocesses
+	// workspaceResolver, when set, returns the per-DVE workspace directory
+	// that should be exposed to the KNIRVAGENT process as its workspace root.
+	// This is used to point agent terminals at the DVE OverlayFS merged/ dir.
+	workspaceResolver func(dveID string) (string, error)
 }
 
 // AgentManagerConfig configures the AgentManager.
@@ -222,6 +195,14 @@ func NewAgentManager(cfg *AgentManagerConfig, logger *zap.Logger) *AgentManager 
 		healthInterval: cfg.HealthInterval,
 		extraEnv:       cfg.ExtraEnv,
 	}
+}
+
+// SetWorkspaceResolver sets the callback used to resolve per-DVE workspace roots.
+// When non-nil, StartAgent will export KNIRV_AGENTS_DEFAULTS_WORKSPACE for that DVE.
+func (am *AgentManager) SetWorkspaceResolver(resolver func(dveID string) (string, error)) {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+	am.workspaceResolver = resolver
 }
 
 // StartAgent spawns a new KNIRVAGENT subprocess for the given DVE ID.
@@ -282,6 +263,20 @@ func (am *AgentManager) StartAgent(ctx context.Context, dveID string, startTimeo
 	cmd := exec.Command(resolvedPath, args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, am.extraEnv...)
+
+	// If we have a per-DVE workspace resolver, export it for this subprocess so
+	// both the supervisor and inner PTY sessions operate on the DVE workspace.
+	am.mu.RLock()
+	resolver := am.workspaceResolver
+	am.mu.RUnlock()
+	if resolver != nil {
+		if wsPath, err := resolver(dveID); err == nil && wsPath != "" {
+			cmd.Env = append(cmd.Env,
+				fmt.Sprintf("KNIRV_AGENTS_DEFAULTS_WORKSPACE=%s", wsPath),
+				"KNIRV_AGENTS_DEFAULTS_RESTRICT_TO_WORKSPACE=true",
+			)
+		}
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -737,6 +732,14 @@ func NewManager(cfg *ManagerConfig, logger *zap.Logger) *Manager {
 
 	inner := NewAgentManager(innerCfg, logger)
 	return &Manager{inner: inner, logger: logger, cfg: cfg}
+}
+
+// SetWorkspaceResolver wires a per-DVE workspace resolver into the underlying AgentManager.
+func (m *Manager) SetWorkspaceResolver(resolver func(dveID string) (string, error)) {
+	if m == nil || m.inner == nil {
+		return
+	}
+	m.inner.SetWorkspaceResolver(resolver)
 }
 
 // StartAgent delegates per-DVE agent start to the inner AgentManager.

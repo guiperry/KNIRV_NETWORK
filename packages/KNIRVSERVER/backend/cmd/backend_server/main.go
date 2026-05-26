@@ -160,6 +160,9 @@ type Server struct {
 	// DVE Supervisor Agent (KNIRVAGENT embedded subprocess)
 	knirvagentManager *knirvagent.Manager
 
+	// DVE OverlayFS workspaces (merged/ upper/ lower/)
+	dveWorkspaceService *dve_workspace.DVEService
+
 	// ICME - Intentional Context Memory Engine
 	icmeService *icme.Service
 
@@ -729,6 +732,8 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		return nil, fmt.Errorf("failed to initialize data engine: %w", err)
 	}
 
+	var dveWorkspaceService *dve_workspace.DVEService
+
 	// Initialize inference service
 	inferenceService, err := inference.NewInferenceService(dbManager)
 	if err != nil {
@@ -765,6 +770,48 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 			virtualContainerManager = nil
 		} else {
 			log.Println("Virtual Container Manager initialized successfully")
+		}
+	}
+
+	// Initialize DVE OverlayFS workspace service (rootless OverlayFS + user/mount namespaces).
+	// This is the backing store for the Phase 10 workspace file explorer and for
+	// terminal/inner-agent sessions that need to edit real files in the DVE.
+	{
+		dveCfg := dve_workspace.DVEConfig{
+			BaseImagePath:            cfg.DVEWorkspace.BaseImagePath,
+			WorkspaceRoot:            cfg.DVEWorkspace.WorkspaceRoot,
+			MaxEnvironments:          cfg.DVEWorkspace.MaxEnvironments,
+			DefaultTimeout:           cfg.DVEWorkspace.DefaultTimeout,
+			MaxCPUPerEnv:             cfg.DVEWorkspace.MaxCPUPerEnv,
+			MaxMemoryPerEnv:          cfg.DVEWorkspace.MaxMemoryPerEnv,
+			MaxDiskPerEnv:            cfg.DVEWorkspace.MaxDiskPerEnv,
+			EnableSandboxing:         cfg.DVEWorkspace.EnableSandboxing,
+			EnableNetworkIsolation:   cfg.DVEWorkspace.EnableNetworkIsolation,
+			AllowedPorts:             cfg.DVEWorkspace.AllowedPorts,
+			SessionTimeout:           cfg.DVEWorkspace.SessionTimeout,
+			MaxSessionsPerUser:       cfg.DVEWorkspace.MaxSessionsPerUser,
+			MaxProjectsPerUser:       cfg.DVEWorkspace.MaxProjectsPerUser,
+			ProjectStoragePath:       cfg.DVEWorkspace.ProjectStoragePath,
+			EnableOverlayFS:          cfg.DVEWorkspace.EnableOverlayFS,
+			BusyBoxRootfsPath:        cfg.DVEWorkspace.BusyBoxRootfsPath,
+			BusyBoxSource:            cfg.DVEWorkspace.BusyBoxSource,
+			BusyBoxVersion:           cfg.DVEWorkspace.BusyBoxVersion,
+			FuseOverlayFSBin:         cfg.DVEWorkspace.FuseOverlayFSBin,
+			SkillExecTimeout:         cfg.DVEWorkspace.SkillExecTimeout,
+			SkillMaxMemoryMB:         cfg.DVEWorkspace.SkillMaxMemoryMB,
+			MaxConcurrentWASM:        cfg.DVEWorkspace.MaxConcurrentWASM,
+			WorkspaceRetentionHours:  cfg.DVEWorkspace.WorkspaceRetentionHours,
+			ExplorerEnabled:          cfg.DVEWorkspace.ExplorerEnabled,
+			ExplorerAllowWrite:       cfg.DVEWorkspace.ExplorerAllowWrite,
+			ExplorerShowLayerBadges:  cfg.DVEWorkspace.ExplorerShowLayerBadges,
+			ExplorerHideSystemDirs:   cfg.DVEWorkspace.ExplorerHideSystemDirs,
+			ExplorerMaxPreviewKB:     cfg.DVEWorkspace.ExplorerMaxPreviewKB,
+		}
+		if wsSvc, wsErr := dve_workspace.NewDVEService(teeSecurityService, dataEngine, virtualContainerManager, dveCfg); wsErr != nil {
+			log.Printf("Warning: Failed to initialize DVE OverlayFS workspace service: %v", wsErr)
+		} else {
+			dveWorkspaceService = wsSvc
+			log.Println("DVE OverlayFS workspace service initialized")
 		}
 	}
 
@@ -1198,6 +1245,19 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 	}
 	knirvagentMgr := knirvagent.NewManager(knirvagentCfg, logger)
 	logger.Info("KNIRVAGENT manager created (will start on DVE initialization)")
+
+	// Wire DVE OverlayFS merged/ workspace path into KNIRVAGENT subprocesses so that
+	// in-browser terminal sessions edit real files inside the assigned DVE workspace.
+	if knirvagentMgr != nil && dveWorkspaceService != nil {
+		knirvagentMgr.SetWorkspaceResolver(func(dveID string) (string, error) {
+			ws, err := dveWorkspaceService.GetWorkspace(dveID)
+			if err != nil {
+				return "", err
+			}
+			return ws.MergedDir, nil
+		})
+		log.Println("KNIRVAGENT manager wired with DVE OverlayFS workspace resolver")
+	}
 
 	// Initialize GraphRAG Knowledge Base Engine
 	graphRAGClient := knowledge_base.NewGraphRAGClient()
@@ -1638,6 +1698,7 @@ func NewServer(cfg *config.Config, rootKeySecrets *pb.RootKeyFileContentProto) (
 		dnsService:                   dnsService,
 		pluginServer:                 pluginServer,
 		dataEngine:                   dataEngine,
+		dveWorkspaceService:          dveWorkspaceService,
 		inferenceService:             inferenceService,
 		websocketService:             nil, // Will be set in setupRoutes
 		teeSecurityService:           teeSecurityService,
@@ -2010,6 +2071,22 @@ func (s *Server) setupRoutes() {
 		}
 		if s.knirvagentManager != nil {
 			dveHandlers.SetKnirvagentManager(s.knirvagentManager)
+		}
+		// Phase 10 — OverlayFS workspace file explorer API
+		if s.dveWorkspaceService != nil && s.config != nil && s.config.DVEWorkspace.ExplorerEnabled {
+			maxPreviewBytes := int64(512 * 1024)
+			if s.config.DVEWorkspace.ExplorerMaxPreviewKB > 0 {
+				maxPreviewBytes = int64(s.config.DVEWorkspace.ExplorerMaxPreviewKB) * 1024
+			}
+			wsFSHandlers := web.NewWorkspaceFSHandlers(s.dveWorkspaceService, web.ExplorerConfig{
+				MaxFileSizeBytes:  maxPreviewBytes,
+				AllowUpload:       s.config.DVEWorkspace.ExplorerAllowWrite,
+				AllowDelete:       s.config.DVEWorkspace.ExplorerAllowWrite,
+				HiddenPathPrefixes: []string{"work/"},
+				ShowLayerOrigin:   s.config.DVEWorkspace.ExplorerShowLayerBadges,
+				HideSystemDirs:    s.config.DVEWorkspace.ExplorerHideSystemDirs,
+			})
+			dveHandlers.SetWorkspaceFSHandlers(wsFSHandlers)
 		}
 		if s.websocketService != nil {
 			dveHandlers.SetWebSocketService(s.websocketService)
@@ -2467,6 +2544,15 @@ func (s *Server) Start() error {
 		log.Println("Warning: P2P Manager not initialized, skipping")
 	}
 
+	// Start DVE OverlayFS workspace service
+	if s.dveWorkspaceService != nil {
+		if err := s.dveWorkspaceService.Start(); err != nil {
+			log.Printf("Warning: Failed to start DVE OverlayFS workspace service: %v", err)
+		} else {
+			log.Println("DVE OverlayFS workspace service started")
+		}
+	}
+
 	// Start embedded KNIRVGRAPH
 	if s.graphManager != nil && s.config.Graph.Enabled {
 		if err := s.graphManager.Start(); err != nil {
@@ -2846,6 +2932,15 @@ func (s *Server) Stop() error {
 			log.Printf("Error stopping oracle manager: %v", err)
 		} else {
 			log.Println("Oracle manager stopped")
+		}
+	}
+
+	// Stop DVE OverlayFS workspace service
+	if s.dveWorkspaceService != nil {
+		if err := s.dveWorkspaceService.Stop(); err != nil {
+			log.Printf("Warning: Failed to stop DVE OverlayFS workspace service: %v", err)
+		} else {
+			log.Println("DVE OverlayFS workspace service stopped")
 		}
 	}
 
