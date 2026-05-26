@@ -1,0 +1,26 @@
+Audit these frontend and web handler files against the OverlayFS_Implementation.html plan:
+
+1. Check if `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/frontend/src/components/dashboard/dve-workspace-settings.tsx` exists
+   - If yes, does it match the plan's interface DVEWorkspaceConfig and component DVEWorkspaceSettings?
+   - If no, note it as missing.
+
+2. Read `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/web/workspace_fs_handlers.go` — check:
+   - Has WorkspaceFSHandlers struct with dveService interface{ GetWorkspace(string) ... }
+   - Has ExplorerConfig struct
+   - Has workspaceRoot() with filepath.EvalSymlinks + filepath.Rel + ".." guard
+   - Has layerOf() checking UpperDir
+   - Has ListDir, ReadFile, UploadFile, DeleteFile, DownloadFile handlers
+
+3. Read `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/dvetemplates/public_page.gohtml` — check:
+   - Look for "Files" tab content — does it have the explorer-layout with tree/viewer?
+   - Does it have the JavaScript functions (loadDir, renderTree, openFile, toggleDir)?
+   - Does it reference {{.ExplorerAllowWrite}}, {{.ExplorerEnabled}}, {{.WorkspaceActive}}?
+   - Quick check only the first ~200 lines and search for key patterns.
+
+4. Check if `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/dve-list.js` exists.
+   - Search for "?tab=files" in openDVEExplorer function and "workspace_active" field usage.
+
+5. Check if `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/frontend/src/components/dashboard/dve-workspace-explorer.tsx` exists.
+   - If the old `dve-verification-iframe.tsx` still exists instead, note it.
+
+Return detailed gaps found.
