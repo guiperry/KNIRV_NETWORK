@@ -19,8 +19,8 @@ func TestGetAppDataDir(t *testing.T) {
 	}
 
 	// Check that path contains 'hasher'
-	if !containsSubstring(appDir, "hasher") {
-		t.Errorf("App data directory should contain 'hasher': %s", appDir)
+	if !containsSubstring(appDir, "knirvhasher") {
+		t.Errorf("App data directory should contain 'knirvhasher': %s", appDir)
 	}
 
 	t.Logf("App data directory: %s", appDir)
@@ -125,7 +125,7 @@ func TestOSSpecificPaths(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get app data dir on macOS: %v", err)
 		}
-		expectedPath := filepath.Join(tempDir, "Library", "Application Support", "hasher", "data")
+		expectedPath := filepath.Join(tempDir, "Library", "Application Support", "knirvhasher", "data")
 		if appDir != expectedPath {
 			t.Errorf("macOS app dir mismatch: expected %s, got %s", expectedPath, appDir)
 		}
@@ -138,7 +138,7 @@ func TestOSSpecificPaths(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get app data dir on Linux: %v", err)
 		}
-		expectedPath := filepath.Join(tempDir, ".local", "share", "hasher", "data")
+		expectedPath := filepath.Join(tempDir, ".local", "share", "knirvhasher", "data")
 		if appDir != expectedPath {
 			t.Errorf("Linux app dir mismatch: expected %s, got %s", expectedPath, appDir)
 		}

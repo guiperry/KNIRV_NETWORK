@@ -76,14 +76,14 @@ func main() {
 func getAppDataDir() string {
 	candidates := []string{}
 	if appData := os.Getenv("KNIRV_APP_DATA_DIR"); appData != "" {
-		candidates = append(candidates, filepath.Join(appData, "hasher", "data"))
+		candidates = append(candidates, filepath.Join(appData, "knirvhasher", "data"))
 	}
-	candidates = append(candidates, "/var/lib/knirvserver/hasher/data")
+	candidates = append(candidates, "/var/lib/knirvserver/knirvhasher/data")
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
 		candidates = append(candidates,
-			filepath.Join(homeDir, ".local", "share", "knirvserver", "hasher", "data"),
-			filepath.Join(homeDir, ".local", "share", "hasher", "data"),
+			filepath.Join(homeDir, ".local", "share", "knirvserver", "knirvhasher", "data"),
+			filepath.Join(homeDir, ".local", "share", "knirvhasher", "data"),
 		)
 	}
 
@@ -213,7 +213,7 @@ func AutoDetectInputFile() string {
 	}
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		searchDirs = append(searchDirs,
-			filepath.Join(homeDir, ".local", "share", "hasher", "data", "json"),
+			filepath.Join(homeDir, ".local", "share", "knirvhasher", "data", "json"),
 		)
 	}
 

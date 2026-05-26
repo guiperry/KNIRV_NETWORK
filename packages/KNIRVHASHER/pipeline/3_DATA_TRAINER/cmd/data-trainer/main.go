@@ -104,18 +104,18 @@ func getAppDataDir() (string, error) {
 			}
 			basePath = filepath.Join(userProfile, "AppData", "Local")
 		}
-		basePath = filepath.Join(basePath, "knirvserver", "hasher", "data")
+		basePath = filepath.Join(basePath, "knirvserver", "knirvhasher", "data")
 	} else {
 		// KNIRV_APP_DATA_DIR takes highest precedence
 		if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
-			p := filepath.Join(explicit, "hasher", "data")
+			p := filepath.Join(explicit, "knirvhasher", "data")
 			if err := os.MkdirAll(p, 0755); err == nil {
 				return p, nil
 			}
 		}
 		// System location
-		if err := os.MkdirAll("/var/lib/knirvserver/hasher/data", 0755); err == nil {
-			return "/var/lib/knirvserver/hasher/data", nil
+		if err := os.MkdirAll("/var/lib/knirvserver/knirvhasher/data", 0755); err == nil {
+			return "/var/lib/knirvserver/knirvhasher/data", nil
 		}
 		// Unix-like systems: ~/.local/share
 		home := os.Getenv("HOME")
@@ -131,7 +131,7 @@ func getAppDataDir() (string, error) {
 		if dataHome == "" {
 			dataHome = filepath.Join(home, ".local", "share")
 		}
-		basePath = filepath.Join(dataHome, "knirvserver", "hasher", "data")
+		basePath = filepath.Join(dataHome, "knirvserver", "knirvhasher", "data")
 	}
 
 	// Create the directory if it doesn't exist

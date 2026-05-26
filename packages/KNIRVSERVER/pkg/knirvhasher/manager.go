@@ -71,8 +71,8 @@ const (
 func DefaultManagerConfig() *ManagerConfig {
 	appDataDir := getHasherAppDataDir()
 	return &ManagerConfig{
-		SocketPath:   filepath.Join(appDataDir, "sockets", "hasher.sock"),
-		DataPath:     filepath.Join(appDataDir, "hasher"),
+		SocketPath:   filepath.Join(appDataDir, "sockets", "knirvhasher.sock"),
+		DataPath:     filepath.Join(appDataDir, "knirvhasher"),
 		SocketPerm:   DefaultSocketPerm,
 		StartTimeout: 30 * time.Second,
 		StopTimeout:  10 * time.Second,

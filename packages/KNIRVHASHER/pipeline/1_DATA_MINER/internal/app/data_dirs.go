@@ -37,12 +37,12 @@ func GetAppDataDir() (string, error) {
 		// KNIRV_APP_DATA_DIR takes highest precedence
 		if explicit := os.Getenv("KNIRV_APP_DATA_DIR"); explicit != "" {
 			if err := os.MkdirAll(explicit, 0755); err == nil {
-				return filepath.Join(explicit, "hasher", "data"), nil
+				return filepath.Join(explicit, "knirvhasher", "data"), nil
 			}
 		}
 		// System location
-		if err := os.MkdirAll("/var/lib/knirvserver/hasher/data", 0755); err == nil {
-			return "/var/lib/knirvserver/hasher/data", nil
+		if err := os.MkdirAll("/var/lib/knirvserver/knirvhasher/data", 0755); err == nil {
+			return "/var/lib/knirvserver/knirvhasher/data", nil
 		}
 		// ~/.local/share on XDG Base Directory Specification
 		if home := os.Getenv("HOME"); home != "" {
@@ -56,7 +56,7 @@ func GetAppDataDir() (string, error) {
 		}
 	}
 
-	appDir := filepath.Join(basePath, "knirvserver", "hasher", "data")
+	appDir := filepath.Join(basePath, "knirvserver", "knirvhasher", "data")
 
 	// Ensure the directory exists
 	if err := os.MkdirAll(appDir, 0755); err != nil {
