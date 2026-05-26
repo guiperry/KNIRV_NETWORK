@@ -1,0 +1,97 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "10086d5ac49d",
+  "session_id": "ses_19db796e8ffePGXoLm9omM5z4x",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-26T03:44:30.336549229Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVHASHER/internal/config/config.go",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/data_dirs.go",
+    "packages/KNIRVHASHER/pipeline/1_DATA_MINER/internal/app/data_dirs_test.go",
+    "packages/KNIRVHASHER/pipeline/2_DATA_ENCODER/cmd/data-encoder/main.go",
+    "packages/KNIRVHASHER/pipeline/3_DATA_TRAINER/cmd/data-trainer/main.go",
+    "packages/KNIRVSERVER/pkg/knirvhasher/manager.go"
+  ],
+  "agent": "OpenCode",
+  "model": "big-pickle",
+  "turn_id": "1403f491e1a0",
+  "token_usage": {
+    "input_tokens": 65899,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1273088,
+    "output_tokens": 8518,
+    "api_call_count": 21
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-26T03:44:30.23232266Z",
+    "agent_lines": 22,
+    "agent_removed": 23,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 1,
+    "total_committed": 22,
+    "total_lines_changed": 46,
+    "agent_percentage": 97.82608695652173,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 486,
+      "user_lines_removed": 59,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs": 1,
+        "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfoInputs.cache": 1,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVCHAIN/config/config_integration.go": 2,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleSwitcher.module.css": 1,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/auth-test.js": 11,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/auth-test.module.css": 10,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/CALIBER_LEARNINGS.md": 20,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133,
+        "packages/KNIRVSERVER/backend/internal/objects/dve.go": 10,
+        "packages/KNIRVSERVER/backend/internal/services/dvecreation/dve_creation_service.go": 23,
+        "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go": 105,
+        "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go": 3,
+        "packages/KNIRVSERVER/pkg/knirvagent/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvarena/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvchain/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvgateway/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvgraph/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvhasher/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvoracle/manager.go": 1
+      },
+      "user_removed_per_file": {
+        "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfo.cs": 1,
+        "modp/output/PChecker/obj/Debug/net8.0/KnirvNetwork.AssemblyInfoInputs.cache": 1,
+        "packages/KNIRVCHAIN/config/config_integration.go": 2,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/PageLayout.js": 4,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleProtectedRoute.js": 4,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/components/RoleSwitcher.module.css": 4,
+        "packages/KNIRVGATEWAY/internal/embedded/webgui/src/pages/auth-test.js": 1,
+        "packages/KNIRVSERVER/backend/CALIBER_LEARNINGS.md": 20,
+        "packages/KNIRVSERVER/backend/internal/services/dvecreation/dve_creation_service.go": 8,
+        "packages/KNIRVSERVER/backend/internal/services/dvemanager/dve_manager.go": 6,
+        "packages/KNIRVSERVER/backend/internal/web/dve_handlers.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvagent/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvarena/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvchain/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvgateway/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvgraph/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvhasher/manager.go": 1,
+        "packages/KNIRVSERVER/pkg/knirvoracle/manager.go": 1
+      }
+    }
+  ]
+}
