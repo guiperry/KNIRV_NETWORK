@@ -1,24 +1,15 @@
-package knirvagent_test
+package knirvagent
 
 import (
 	"testing"
 	"time"
-
-	"github.com/KNIRV/KNIRV_NETWORK/KNIRVAGENT"
-
-	"go.uber.org/zap"
 )
-
-// newTestLogger returns a no-op logger for testing.
-func newTestLogger() *zap.Logger {
-	return zap.NewNop()
-}
 
 // TestManager_GetSocketPath_EmptyDVE verifies that GetSocketPath returns an
 // error when called with an empty DVE ID on a freshly created Manager that
 // has no agents running.
 func TestManager_GetSocketPath_EmptyDVE(t *testing.T) {
-	mgr := knirvagent.NewManager(&knirvagent.ManagerConfig{
+	mgr := NewManager(&ManagerConfig{
 		StartTimeout: 1 * time.Second,
 		StopTimeout:  1 * time.Second,
 	}, newTestLogger())
@@ -35,7 +26,7 @@ func TestManager_GetSocketPath_EmptyDVE(t *testing.T) {
 // TestManager_InnerAgentClient_NotRunning verifies that InnerAgentClient
 // returns an error when the Manager has no running agents.
 func TestManager_InnerAgentClient_NotRunning(t *testing.T) {
-	mgr := knirvagent.NewManager(&knirvagent.ManagerConfig{
+	mgr := NewManager(&ManagerConfig{
 		StartTimeout: 1 * time.Second,
 		StopTimeout:  1 * time.Second,
 	}, newTestLogger())
