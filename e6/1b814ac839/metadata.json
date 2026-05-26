@@ -3,7 +3,7 @@
   "checkpoint_id": "e61b814ac839",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 5,
   "files_touched": [
     "OverlayFS_Implementation.html",
     "integration-tests/dve_overlayfs_test.go",
@@ -65,13 +65,19 @@
       "transcript": "/e6/1b814ac839/1/full.jsonl",
       "content_hash": "/e6/1b814ac839/1/content_hash.txt",
       "prompt": "/e6/1b814ac839/1/prompt.txt"
+    },
+    {
+      "metadata": "/e6/1b814ac839/2/metadata.json",
+      "transcript": "/e6/1b814ac839/2/full.jsonl",
+      "content_hash": "/e6/1b814ac839/2/content_hash.txt",
+      "prompt": "/e6/1b814ac839/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 86998,
+    "input_tokens": 178915,
     "cache_creation_tokens": 289732,
-    "cache_read_tokens": 3716647,
-    "output_tokens": 100626,
-    "api_call_count": 52
+    "cache_read_tokens": 4367143,
+    "output_tokens": 105657,
+    "api_call_count": 62
   }
 }
