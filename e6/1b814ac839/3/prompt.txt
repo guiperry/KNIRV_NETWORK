@@ -1,0 +1,23 @@
+Read these 3 files and audit them against the plan requirements from OverlayFS_Implementation.html:
+
+1. Read `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dve_workspace/overlayfs.go` — check:
+   - Has OverlayWorkspace struct with LowerDir, UpperDir, WorkDir, MergedDir
+   - Has NewOverlayWorkspace() constructor
+   - Has Mount() with OverlayFS unix.Mount + fuse-overlayfs fallback
+   - Has Unmount() with MNT_DETACH
+   - Has Destroy()
+   - Package name (should be `dve_workspace` or `dve`)
+
+2. Read `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dve_workspace/namespace.go` — check:
+   - Has DVENamespace struct
+   - Has SpawnNamespaced() that re-execs /proc/self/exe with CLONE_NEWUSER|CLONE_NEWNS
+   - Has Teardown() with SIGTERM
+   - Has UID/GID mappings
+   - passes DVE_* env vars
+
+3. Read `/home/gperry/Documents/GitHub/KNIRV/KNIRV_NETWORK/packages/KNIRVSERVER/backend/internal/services/dve_workspace/busybox.go` — check:
+   - Has EnsureBusyBoxRootfs() with switch on cfg.BusyBoxSource
+   - Has extractEmbeddedBusyBox() with //go:embed directive
+   - Has createRootfsSymlinks() with applets list, passwd, tmp, workspace dirs, .knirvdve-ready marker
+
+Return any gaps: missing functions, wrong signatures, missing fields, incorrect package name vs plan.
