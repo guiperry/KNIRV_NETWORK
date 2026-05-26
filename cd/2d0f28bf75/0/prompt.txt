@@ -1,0 +1,82 @@
+We've just recently implemented the @docs/OverlayFS_Implementation.html implementation. I want you to confirm if the current DVE in-browser frontend terminal sessions that host agents are able to access the new Overlay file system to make edits to actual files within the assigned DVE container.
+
+---
+
+Good analysis, here's what Claude said to the same query:
+The OverlayFS workspace exists and is mounted correctly, but the
+  in-browser agent terminal sessions are not connected to it. There are two specific wiring gaps
+  preventing it.
+
+  ---
+  What is actually working
+
+  - overlayfs.go — OverlayWorkspace with MergedDir/UpperDir is real and functional
+  - createVirtualDVEAsync correctly sets env.WorkspacePath = ws.MergedDir when
+  config.EnableOverlayFS = true (dve_service.go:534)
+  - GetWorkspace(dveID) exists and returns the OverlayWorkspace (dve_service.go:1432)
+  - workspace_fs_handlers.go (353 lines) implements all 5 REST endpoints (/ls, /cat, /download,
+  /upload, /rm) with layerOf() and path traversal protection
+  - Routes ARE declared in dve_handlers.go:1122–1132 guarded by if h.workspaceFSHandlers != nil
+
+  ---
+  Gap 1 — SetWorkspaceFSHandlers is never called from main.go
+  
+  NewWorkspaceFSHandlers is defined but never instantiated at server startup. The if 
+  h.workspaceFSHandlers != nil guard in RegisterRoutes() means all five workspace FS API routes
+  are silently skipped at runtime. The file explorer frontend will get 404s on
+  /api/dve/{id}/workspace/ls.
+
+  Fix needed in main.go or wherever NewDVEHandlers is called:
+  wsFSHandlers := web.NewWorkspaceFSHandlers(dveSvc, web.ExplorerConfig{
+      MaxFileSizeBytes:   512 * 1024,
+      AllowUpload:        false,
+      AllowDelete:        false,
+      HideSystemDirs:     true,
+      ShowLayerOrigin:    true,
+  })
+  dveHandlers.SetWorkspaceFSHandlers(wsFSHandlers)
+
+  ---
+  Gap 2 — Agent terminal sessions don't receive the OverlayFS path
+  
+  AgentProvisioner.SpawnSupervisorAgent (agentprovisioner/agent_provisioner.go:55) independently
+  computes:
+  workspacePath := fmt.Sprintf("%s/%s/agent", ap.workspaceRoot, dveID)
+  This is a different path from ws.MergedDir. The browser WS handler (dve_browser_ws_handler.go)
+  and inner agent handler (dve_inner_agent_ws_handler.go) reference neither WorkspacePath nor
+  MergedDir — there is no mechanism that hands the mounted OverlayFS root to the agent as its
+  working directory.
+  
+  Additionally, SpawnSupervisorAgent is never called from anywhere in the non-test codebase — it's
+   defined but unconnected to the DVE creation flow.
+
+  Fix needed: After createVirtualDVEAsync sets env.WorkspacePath = ws.MergedDir, the agent
+  provisioning call (wherever it happens) needs to receive that resolved path, not reconstruct it
+  independently. SpawnSupervisorAgent needs a workspacePath string parameter, or needs to look up
+  the environment from DVEService.
+
+  ---
+  Summary
+
+  ┌──────────────────────────────────────────────┬────────────────────────────────────────────┐
+  │                  Component                   │                   Status                   │
+  ├──────────────────────────────────────────────┼────────────────────────────────────────────┤
+  │ OverlayFS mount (overlayfs.go)               │ ✅ Implemented                             │
+  ├──────────────────────────────────────────────┼────────────────────────────────────────────┤
+  │ createVirtualDVEAsync using OverlayFS        │ ✅ Implemented (gated on EnableOverlayFS   │
+  │                                              │ config flag)                               │
+  ├──────────────────────────────────────────────┼────────────────────────────────────────────┤
+  │ Workspace FS REST API                        │ ✅ Implemented but never registered at     │
+  │ (workspace_fs_handlers.go)                   │ startup                                    │
+  ├──────────────────────────────────────────────┼────────────────────────────────────────────┤
+  │ DVE public page file explorer (Phase 11)     │ Needs Phase 10 routes live first           │
+  ├──────────────────────────────────────────────┼────────────────────────────────────────────┤
+  │ Agent terminal session sees MergedDir as     │ ❌ Not wired — AgentProvisioner uses its   │
+  │ working root                                 │ own path                                   │
+  └──────────────────────────────────────────────┴────────────────────────────────────────────┘
+
+  The two lines needed to unblock the file explorer are: the SetWorkspaceFSHandlers call in
+  main.go, and ensuring EnableOverlayFS is true in the running config. The agent terminal path
+  alignment is a separate deeper fix.
+
+I'd like you to fully implement the fixes detailed above!

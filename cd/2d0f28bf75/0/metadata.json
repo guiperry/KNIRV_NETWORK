@@ -1,0 +1,57 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "cd2d0f28bf75",
+  "session_id": "d26572c9-07e2-4649-84e1-38394e76d4fc",
+  "strategy": "manual-commit",
+  "created_at": "2026-05-26T20:14:00.911916783Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "packages/KNIRVAGENT/cmd/knirvagent/main.go",
+    "packages/KNIRVSERVER/backend/cmd/backend_server/main.go",
+    "packages/KNIRVSERVER/backend/internal/config/config.go",
+    "packages/KNIRVSERVER/pkg/knirvagent/manager.go"
+  ],
+  "agent": "Claude Code",
+  "model": "default",
+  "turn_id": "cce2541dd421",
+  "token_usage": {
+    "input_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0,
+    "output_tokens": 0,
+    "api_call_count": 0
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-05-26T20:14:00.888370983Z",
+    "agent_lines": 75,
+    "agent_removed": 3,
+    "human_added": 0,
+    "human_modified": 46,
+    "human_removed": 27,
+    "total_committed": 121,
+    "total_lines_changed": 154,
+    "agent_percentage": 50.649350649350644,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 292,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.local.json": 96,
+        "packages/KNIRVARENA/.claude/settings.local.json": 16,
+        "packages/KNIRVCHAIN/.claude/settings.local.json": 15,
+        "packages/KNIRVGATEWAY/.claude/settings.local.json": 23,
+        "packages/KNIRVGRAPH/.claude/settings.local.json": 9,
+        "packages/KNIRVSERVER/backend/internal/embedded/graphrag-rs/.vscode/settings.json": 133
+      }
+    }
+  ]
+}
